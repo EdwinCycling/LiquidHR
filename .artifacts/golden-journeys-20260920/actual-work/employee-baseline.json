@@ -1,0 +1,105 @@
+{
+  "persona": "employee",
+  "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+  "month": "2026-09",
+  "desktop": {
+    "url": "http://127.0.0.1:3000/focus/uren",
+    "headings": [
+      "Mijn uren",
+      "Verwacht / Geregistreerd"
+    ],
+    "saveButtons": 0,
+    "fillLinks": 0,
+    "layout": {
+      "viewportWidth": 1440,
+      "viewportHeight": 1000,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false
+    }
+  },
+  "mobile": {
+    "url": "http://127.0.0.1:3000/focus/uren",
+    "headings": [
+      "Mijn uren",
+      "Verwacht / Geregistreerd"
+    ],
+    "saveButtons": 0,
+    "fillLinks": 0,
+    "layout": {
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "scrollWidth": 390,
+      "horizontalOverflow": false
+    }
+  },
+  "api": {
+    "selfRead": {
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "dataKeys": [
+        "employee",
+        "employment",
+        "types",
+        "entries",
+        "revisions",
+        "period",
+        "schedule"
+      ],
+      "entryCount": 0,
+      "typeCount": 0
+    },
+    "selfWriteAttempt": {
+      "status": 403,
+      "ok": false,
+      "error": "Je hebt geen selfservice-recht voor deze actie.",
+      "dataKeys": [],
+      "entryCount": null,
+      "typeCount": null
+    },
+    "foreignRead": {
+      "status": 403,
+      "ok": false,
+      "error": "Je hebt onvoldoende rechten voor deze actie.",
+      "dataKeys": [],
+      "entryCount": null,
+      "typeCount": null
+    },
+    "teamRead": {
+      "status": 403,
+      "ok": false,
+      "error": "Je hebt onvoldoende rechten voor deze actie.",
+      "dataKeys": [],
+      "entryCount": null,
+      "typeCount": null
+    },
+    "insightsRead": {
+      "status": 403,
+      "ok": false,
+      "error": "Je hebt onvoldoende rechten voor deze actie.",
+      "dataKeys": [],
+      "entryCount": null,
+      "typeCount": null
+    }
+  },
+  "hrWorkspaceAsEmployee": {
+    "url": "http://127.0.0.1:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+    "headings": [
+      "Dagelijks",
+      "Mensen & organisatie",
+      "HR-processen",
+      "Werkelijke uren · 2026-09",
+      "Urenregistraties",
+      "Effectief rooster",
+      "Nieuwe registratie"
+    ],
+    "saveButtons": 0,
+    "fillLinks": 0,
+    "layout": {
+      "viewportWidth": 1440,
+      "viewportHeight": 1000,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false
+    }
+  }
+}

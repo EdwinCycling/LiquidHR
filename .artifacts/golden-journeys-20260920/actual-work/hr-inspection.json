@@ -1,0 +1,1214 @@
+{
+  "pages": [
+    {
+      "route": "/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "url": "http://127.0.0.1:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "headings": [
+        "Dagelijks",
+        "Mensen & organisatie",
+        "HR-processen",
+        "Sturen",
+        "Beheer",
+        "Werkelijke uren · 2026-09",
+        "Urenregistraties",
+        "Effectief rooster",
+        "Nieuwe registratie"
+      ],
+      "buttons": [
+        "",
+        "",
+        "",
+        "Planeten",
+        "",
+        "hradmin.fixture",
+        "AW_WORK · Gewerkte uren · Werk",
+        "Dag",
+        "Opslaan",
+        "",
+        "SETUP"
+      ],
+      "links": [
+        "Startpagina",
+        "Werk",
+        "Kalender",
+        "Medewerkers",
+        "Organogram",
+        "Ontwikkeling",
+        "Sollicitaties",
+        "Journeys",
+        "Onderzoeken",
+        "Inzichten",
+        "Instellingen",
+        "Document Studio",
+        "Terug naar medewerker",
+        "← 2026-08",
+        "2026-10 →"
+      ],
+      "labels": [
+        "Type urenAW_WORK · Gewerkte uren · WerkAW_ADDITIONAL · Aanvullende uren deeltijd · AanvullendAW_OVERTIME · Overwerk Actual Work · OverwerkAW_TRANSPARENT · Thuiswerk informatief · TransparantAW_TRANSPARENT_FUTURE · Opleiding informatief · TransparantAW_WORK · Gewerkte uren · Werk",
+        "RegistratieniveauDagPeriodeDag",
+        "Werkdatum",
+        "Uren",
+        "Toelichting"
+      ],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": "6ba6f1df-e376-40f2-abff-ffdf000172e1"
+        },
+        {
+          "tag": "SELECT",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": "00000000-0000-0000-0000-00000000a001"
+        },
+        {
+          "tag": "SELECT",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": "DAY"
+        },
+        {
+          "tag": "INPUT",
+          "type": "date",
+          "name": null,
+          "aria": null,
+          "value": "2026-09-01"
+        },
+        {
+          "tag": "INPUT",
+          "type": "text",
+          "name": null,
+          "aria": null,
+          "value": ""
+        },
+        {
+          "tag": "TEXTAREA",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": ""
+        }
+      ]
+    },
+    {
+      "route": "/actual-work/team?month=2026-09",
+      "url": "http://127.0.0.1:3000/actual-work/team?month=2026-09",
+      "headings": [
+        "Dagelijks",
+        "Mensen & organisatie",
+        "HR-processen",
+        "Sturen",
+        "Beheer",
+        "Werkelijke uren · 2026-09"
+      ],
+      "buttons": [
+        "",
+        "",
+        "",
+        "Planeten",
+        "",
+        "hradmin.fixture",
+        "",
+        "SETUP"
+      ],
+      "links": [
+        "Startpagina",
+        "Werk",
+        "Kalender",
+        "Medewerkers",
+        "Organogram",
+        "Ontwikkeling",
+        "Sollicitaties",
+        "Journeys",
+        "Onderzoeken",
+        "Inzichten",
+        "Instellingen",
+        "Document Studio",
+        "Werkelijke uren · bulk invoer",
+        "Terug naar medewerker",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Aanvullende uren deeltijd",
+        "Aanvullende uren deeltijd",
+        "Overwerk Actual Work",
+        "Overwerk Actual Work",
+        "Overwerk Actual Work",
+        "Thuiswerk informatief",
+        "Thuiswerk informatief"
+      ],
+      "labels": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": "6ba6f1df-e376-40f2-abff-ffdf000172e1"
+        }
+      ]
+    },
+    {
+      "route": "/actual-work/insights?month=2026-09",
+      "url": "http://127.0.0.1:3000/actual-work/insights?month=2026-09",
+      "headings": [
+        "Dagelijks",
+        "Mensen & organisatie",
+        "HR-processen",
+        "Sturen",
+        "Beheer",
+        "Werkelijke uren · 2026-09-01"
+      ],
+      "buttons": [
+        "",
+        "",
+        "",
+        "Planeten",
+        "",
+        "hradmin.fixture",
+        "",
+        "SETUP"
+      ],
+      "links": [
+        "Startpagina",
+        "Werk",
+        "Kalender",
+        "Medewerkers",
+        "Organogram",
+        "Ontwikkeling",
+        "Sollicitaties",
+        "Journeys",
+        "Onderzoeken",
+        "Inzichten",
+        "Instellingen",
+        "Document Studio",
+        "Terug naar inzichten",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Aanvullende uren deeltijd",
+        "Aanvullende uren deeltijd",
+        "Overwerk Actual Work",
+        "Overwerk Actual Work",
+        "Overwerk Actual Work",
+        "Thuiswerk informatief",
+        "Thuiswerk informatief"
+      ],
+      "labels": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": "6ba6f1df-e376-40f2-abff-ffdf000172e1"
+        }
+      ]
+    },
+    {
+      "route": "/insights?report=actual-work&month=2026-09",
+      "url": "http://127.0.0.1:3000/insights?report=actual-work&month=2026-09",
+      "headings": [
+        "Dagelijks",
+        "Mensen & organisatie",
+        "HR-processen",
+        "Sturen",
+        "Beheer",
+        "Werkelijke uren · 2026-09-01"
+      ],
+      "buttons": [
+        "",
+        "",
+        "",
+        "Planeten",
+        "",
+        "hradmin.fixture",
+        "",
+        "SETUP"
+      ],
+      "links": [
+        "Startpagina",
+        "Werk",
+        "Kalender",
+        "Medewerkers",
+        "Organogram",
+        "Ontwikkeling",
+        "Sollicitaties",
+        "Journeys",
+        "Onderzoeken",
+        "Inzichten",
+        "Instellingen",
+        "Document Studio",
+        "Terug naar inzichten",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Gewerkte uren",
+        "Aanvullende uren deeltijd",
+        "Aanvullende uren deeltijd",
+        "Overwerk Actual Work",
+        "Overwerk Actual Work",
+        "Overwerk Actual Work",
+        "Thuiswerk informatief",
+        "Thuiswerk informatief"
+      ],
+      "labels": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": "6ba6f1df-e376-40f2-abff-ffdf000172e1"
+        }
+      ]
+    }
+  ],
+  "api": {
+    "entries": {
+      "status": 200,
+      "body": {
+        "data": {
+          "employee": {
+            "id": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+            "employee_number": "DEMO-035",
+            "first_name": "Noah",
+            "birth_name_prefix": null,
+            "birth_name": "Hendriks"
+          },
+          "employment": {
+            "id": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+            "employee_id": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+            "administration_id": "8483abc9-f275-c80b-5a23-fedc54ce9f0a",
+            "starts_on": "2024-01-15",
+            "ends_on": null
+          },
+          "types": [
+            {
+              "id": "00000000-0000-0000-0000-00000000a001",
+              "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+              "administration_id": null,
+              "name": "Gewerkte uren",
+              "category": "REGULAR_WORK",
+              "is_active": true,
+              "created_by": null,
+              "updated_by": null,
+              "created_at": "2026-09-14T19:23:20.088271+00:00",
+              "updated_at": "2026-09-14T19:23:20.088271+00:00",
+              "color_code": "var(--chart-1)",
+              "is_self_service": false,
+              "pin_in_calendar": true,
+              "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+              "code": "AW_WORK",
+              "family": "WORK",
+              "valid_from": "2026-01-01",
+              "valid_until": null,
+              "entry_granularity": "DAY",
+              "comment_required": false,
+              "future_entry_allowed": false,
+              "show_in_team_overview": true,
+              "show_in_calendar": true,
+              "approval_required": false,
+              "display_order": 10
+            },
+            {
+              "id": "00000000-0000-0000-0000-00000000a002",
+              "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+              "administration_id": null,
+              "name": "Aanvullende uren deeltijd",
+              "category": "REGULAR_WORK",
+              "is_active": true,
+              "created_by": null,
+              "updated_by": null,
+              "created_at": "2026-09-14T19:23:20.088271+00:00",
+              "updated_at": "2026-09-14T19:23:20.088271+00:00",
+              "color_code": "var(--chart-2)",
+              "is_self_service": false,
+              "pin_in_calendar": false,
+              "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+              "code": "AW_ADDITIONAL",
+              "family": "ADDITIONAL",
+              "valid_from": "2026-01-01",
+              "valid_until": null,
+              "entry_granularity": "BOTH",
+              "comment_required": true,
+              "future_entry_allowed": false,
+              "show_in_team_overview": true,
+              "show_in_calendar": false,
+              "approval_required": false,
+              "display_order": 20
+            },
+            {
+              "id": "00000000-0000-0000-0000-00000000a003",
+              "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+              "administration_id": null,
+              "name": "Overwerk Actual Work",
+              "category": "OVERTIME",
+              "is_active": true,
+              "created_by": null,
+              "updated_by": null,
+              "created_at": "2026-09-14T19:23:20.088271+00:00",
+              "updated_at": "2026-09-14T19:23:20.088271+00:00",
+              "color_code": "var(--chart-3)",
+              "is_self_service": false,
+              "pin_in_calendar": true,
+              "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+              "code": "AW_OVERTIME",
+              "family": "OVERTIME",
+              "valid_from": "2026-01-01",
+              "valid_until": null,
+              "entry_granularity": "DAY",
+              "comment_required": false,
+              "future_entry_allowed": false,
+              "show_in_team_overview": true,
+              "show_in_calendar": true,
+              "approval_required": false,
+              "display_order": 30
+            },
+            {
+              "id": "00000000-0000-0000-0000-00000000a004",
+              "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+              "administration_id": null,
+              "name": "Thuiswerk informatief",
+              "category": "INFORMATIONAL",
+              "is_active": true,
+              "created_by": null,
+              "updated_by": null,
+              "created_at": "2026-09-14T19:23:20.088271+00:00",
+              "updated_at": "2026-09-14T19:23:20.088271+00:00",
+              "color_code": "var(--chart-4)",
+              "is_self_service": false,
+              "pin_in_calendar": false,
+              "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+              "code": "AW_TRANSPARENT",
+              "family": "TRANSPARENT",
+              "valid_from": "2026-01-01",
+              "valid_until": null,
+              "entry_granularity": "DAY",
+              "comment_required": false,
+              "future_entry_allowed": false,
+              "show_in_team_overview": true,
+              "show_in_calendar": true,
+              "approval_required": false,
+              "display_order": 40
+            },
+            {
+              "id": "00000000-0000-0000-0000-00000000a005",
+              "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+              "administration_id": null,
+              "name": "Opleiding informatief",
+              "category": "INFORMATIONAL",
+              "is_active": true,
+              "created_by": null,
+              "updated_by": null,
+              "created_at": "2026-09-14T19:23:20.088271+00:00",
+              "updated_at": "2026-09-14T19:23:20.088271+00:00",
+              "color_code": "var(--chart-5)",
+              "is_self_service": false,
+              "pin_in_calendar": false,
+              "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+              "code": "AW_TRANSPARENT_FUTURE",
+              "family": "TRANSPARENT",
+              "valid_from": "2026-01-01",
+              "valid_until": null,
+              "entry_granularity": "PERIOD",
+              "comment_required": true,
+              "future_entry_allowed": true,
+              "show_in_team_overview": false,
+              "show_in_calendar": false,
+              "approval_required": false,
+              "display_order": 50
+            }
+          ],
+          "entries": [],
+          "revisions": [],
+          "period": {
+            "id": "206a86f7-d5a3-40d9-bfd5-7f3da226842e",
+            "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+            "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+            "administration_id": null,
+            "period_start": "2026-09-01",
+            "period_end": "2026-10-01",
+            "status": "OPEN",
+            "closed_at": null,
+            "closed_by": null,
+            "created_by": "b86f6a66-276d-4f3d-a985-230f2cca9fdb",
+            "created_at": "2026-09-14T19:23:20.088271+00:00",
+            "updated_at": "2026-09-14T19:23:20.088271+00:00"
+          },
+          "schedule": [
+            {
+              "valid_from": "2024-01-15",
+              "valid_until": null,
+              "part_time_factor": 1,
+              "fulltime_hours_per_week": 40,
+              "average_hours_per_week": 40,
+              "monday_hours": 8,
+              "tuesday_hours": 8,
+              "wednesday_hours": 8,
+              "thursday_hours": 8,
+              "friday_hours": 8,
+              "saturday_hours": null,
+              "sunday_hours": null
+            }
+          ]
+        }
+      }
+    },
+    "team": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "00000000-0000-0000-0000-00000000c002",
+            "employee_id": "66ef22a5-5777-44dc-9bde-44a65d0a6d60",
+            "employment_id": "b058d882-47a9-43ff-853e-0e05237214af",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+            "work_date": "2026-09-29",
+            "hours": 8,
+            "entry_granularity": "DAY",
+            "note": "Fixture Jan voor roosterwissel",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a001",
+              "name": "Gewerkte uren",
+              "code": "AW_WORK",
+              "family": "WORK",
+              "color_code": "var(--chart-1)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "66ef22a5-5777-44dc-9bde-44a65d0a6d60",
+              "first_name": "Jan",
+              "birth_name_prefix": null,
+              "birth_name": "Test"
+            }
+          },
+          {
+            "id": "00000000-0000-0000-0000-00000000c001",
+            "employee_id": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+            "employment_id": "b7391845-77d4-407c-bfe6-555a8a3d463b",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+            "work_date": "2026-09-08",
+            "hours": 8,
+            "entry_granularity": "DAY",
+            "note": "Fixture Lisa werkdag",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a001",
+              "name": "Gewerkte uren",
+              "code": "AW_WORK",
+              "family": "WORK",
+              "color_code": "var(--chart-1)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+              "first_name": "Lisa",
+              "birth_name_prefix": null,
+              "birth_name": "Test"
+            }
+          },
+          {
+            "id": "31d320e4-5fe8-4c93-895c-26f0878c5de1",
+            "employee_id": "66ef22a5-5777-44dc-9bde-44a65d0a6d60",
+            "employment_id": "b058d882-47a9-43ff-853e-0e05237214af",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+            "work_date": "2026-09-12",
+            "hours": 8,
+            "entry_granularity": "DAY",
+            "note": "QA Jan Actual Work 2026-09-30",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a001",
+              "name": "Gewerkte uren",
+              "code": "AW_WORK",
+              "family": "WORK",
+              "color_code": "var(--chart-1)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "66ef22a5-5777-44dc-9bde-44a65d0a6d60",
+              "first_name": "Jan",
+              "birth_name_prefix": null,
+              "birth_name": "Test"
+            }
+          },
+          {
+            "id": "0a5c2bf4-4c98-40d5-9412-a26fe59da5a5",
+            "employee_id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+            "employment_id": "c1c70315-446f-4975-85bd-f6026457af61",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+            "work_date": "2026-09-15",
+            "hours": 8,
+            "entry_granularity": "DAY",
+            "note": "Eric WORKED_HOURS fixture - gewerkte uren",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a001",
+              "name": "Gewerkte uren",
+              "code": "AW_WORK",
+              "family": "WORK",
+              "color_code": "var(--chart-1)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+              "first_name": "Eric",
+              "birth_name_prefix": null,
+              "birth_name": "Oproeper"
+            }
+          },
+          {
+            "id": "65b0b403-3209-4ccd-891d-a84c9851917e",
+            "employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+            "employment_id": "b407c312-3293-7830-5c49-f2c8514ac32f",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+            "work_date": "2026-09-01",
+            "hours": 7.25,
+            "entry_granularity": "DAY",
+            "note": "",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a001",
+              "name": "Gewerkte uren",
+              "code": "AW_WORK",
+              "family": "WORK",
+              "color_code": "var(--chart-1)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+              "first_name": "Maya",
+              "birth_name_prefix": null,
+              "birth_name": "Bos"
+            }
+          },
+          {
+            "id": "b8c2ac0a-7e2d-469e-aea3-cce6020f0059",
+            "employee_id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+            "employment_id": "c1c70315-446f-4975-85bd-f6026457af61",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a002",
+            "work_date": "2026-09-14",
+            "hours": 2,
+            "entry_granularity": "DAY",
+            "note": "Eric WORKED_HOURS fixture - aanvullende uren deeltijd",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a002",
+              "name": "Aanvullende uren deeltijd",
+              "code": "AW_ADDITIONAL",
+              "family": "ADDITIONAL",
+              "color_code": "var(--chart-2)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+              "first_name": "Eric",
+              "birth_name_prefix": null,
+              "birth_name": "Oproeper"
+            }
+          },
+          {
+            "id": "a1fbad95-f653-432d-9fb0-2c656a4c3987",
+            "employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+            "employment_id": "b407c312-3293-7830-5c49-f2c8514ac32f",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a002",
+            "work_date": "2026-09-02",
+            "hours": 1.5,
+            "entry_granularity": "DAY",
+            "note": "Hosted Bulk acceptance",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a002",
+              "name": "Aanvullende uren deeltijd",
+              "code": "AW_ADDITIONAL",
+              "family": "ADDITIONAL",
+              "color_code": "var(--chart-2)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+              "first_name": "Maya",
+              "birth_name_prefix": null,
+              "birth_name": "Bos"
+            }
+          },
+          {
+            "id": "00000000-0000-0000-0000-00000000c005",
+            "employee_id": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+            "employment_id": "b7391845-77d4-407c-bfe6-555a8a3d463b",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a003",
+            "work_date": "2026-09-09",
+            "hours": 2,
+            "entry_granularity": "DAY",
+            "note": "Fixture Lisa overwerk",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a003",
+              "name": "Overwerk Actual Work",
+              "code": "AW_OVERTIME",
+              "family": "OVERTIME",
+              "color_code": "var(--chart-3)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+              "first_name": "Lisa",
+              "birth_name_prefix": null,
+              "birth_name": "Test"
+            }
+          },
+          {
+            "id": "b777a951-e908-4e30-b1ac-6cfdfee6ebe5",
+            "employee_id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+            "employment_id": "c1c70315-446f-4975-85bd-f6026457af61",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a003",
+            "work_date": "2026-09-13",
+            "hours": 2,
+            "entry_granularity": "DAY",
+            "note": "Eric WORKED_HOURS fixture - overwerk",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a003",
+              "name": "Overwerk Actual Work",
+              "code": "AW_OVERTIME",
+              "family": "OVERTIME",
+              "color_code": "var(--chart-3)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+              "first_name": "Eric",
+              "birth_name_prefix": null,
+              "birth_name": "Oproeper"
+            }
+          },
+          {
+            "id": "94e513a8-285b-4b90-8995-f76b96852085",
+            "employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+            "employment_id": "b407c312-3293-7830-5c49-f2c8514ac32f",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a003",
+            "work_date": "2026-09-03",
+            "hours": 2.5,
+            "entry_granularity": "DAY",
+            "note": "",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a003",
+              "name": "Overwerk Actual Work",
+              "code": "AW_OVERTIME",
+              "family": "OVERTIME",
+              "color_code": "var(--chart-3)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+              "first_name": "Maya",
+              "birth_name_prefix": null,
+              "birth_name": "Bos"
+            }
+          },
+          {
+            "id": "e6bc24c3-3bfb-4974-90ea-cad8d2c4907f",
+            "employee_id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+            "employment_id": "c1c70315-446f-4975-85bd-f6026457af61",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a004",
+            "work_date": "2026-09-01",
+            "hours": 4,
+            "entry_granularity": "DAY",
+            "note": "Hosted transparent exclusion check",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a004",
+              "name": "Thuiswerk informatief",
+              "code": "AW_TRANSPARENT",
+              "family": "TRANSPARENT",
+              "color_code": "var(--chart-4)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+              "first_name": "Eric",
+              "birth_name_prefix": null,
+              "birth_name": "Oproeper"
+            }
+          },
+          {
+            "id": "4c3fce89-1ea6-44ab-8721-21937e7d2ff7",
+            "employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+            "employment_id": "b407c312-3293-7830-5c49-f2c8514ac32f",
+            "work_hour_type_id": "00000000-0000-0000-0000-00000000a004",
+            "work_date": "2026-09-04",
+            "hours": 1.25,
+            "entry_granularity": "DAY",
+            "note": "",
+            "type": {
+              "id": "00000000-0000-0000-0000-00000000a004",
+              "name": "Thuiswerk informatief",
+              "code": "AW_TRANSPARENT",
+              "family": "TRANSPARENT",
+              "color_code": "var(--chart-4)",
+              "show_in_team_overview": true
+            },
+            "employee": {
+              "id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+              "first_name": "Maya",
+              "birth_name_prefix": null,
+              "birth_name": "Bos"
+            }
+          }
+        ]
+      }
+    },
+    "insights": {
+      "status": 200,
+      "body": {
+        "data": {
+          "month": "2026-09-01",
+          "totalEntries": 12,
+          "totals": {
+            "WORK": 39.25,
+            "ADDITIONAL": 3.5,
+            "OVERTIME": 6.5,
+            "TRANSPARENT": 5.25
+          },
+          "corrections": 6,
+          "rows": [
+            {
+              "id": "00000000-0000-0000-0000-00000000c002",
+              "employee_id": "66ef22a5-5777-44dc-9bde-44a65d0a6d60",
+              "employment_id": "b058d882-47a9-43ff-853e-0e05237214af",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+              "work_date": "2026-09-29",
+              "hours": 8,
+              "entry_granularity": "DAY",
+              "note": "Fixture Jan voor roosterwissel",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a001",
+                "name": "Gewerkte uren",
+                "code": "AW_WORK",
+                "family": "WORK",
+                "color_code": "var(--chart-1)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "66ef22a5-5777-44dc-9bde-44a65d0a6d60",
+                "first_name": "Jan",
+                "birth_name_prefix": null,
+                "birth_name": "Test"
+              }
+            },
+            {
+              "id": "00000000-0000-0000-0000-00000000c001",
+              "employee_id": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+              "employment_id": "b7391845-77d4-407c-bfe6-555a8a3d463b",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+              "work_date": "2026-09-08",
+              "hours": 8,
+              "entry_granularity": "DAY",
+              "note": "Fixture Lisa werkdag",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a001",
+                "name": "Gewerkte uren",
+                "code": "AW_WORK",
+                "family": "WORK",
+                "color_code": "var(--chart-1)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+                "first_name": "Lisa",
+                "birth_name_prefix": null,
+                "birth_name": "Test"
+              }
+            },
+            {
+              "id": "31d320e4-5fe8-4c93-895c-26f0878c5de1",
+              "employee_id": "66ef22a5-5777-44dc-9bde-44a65d0a6d60",
+              "employment_id": "b058d882-47a9-43ff-853e-0e05237214af",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+              "work_date": "2026-09-12",
+              "hours": 8,
+              "entry_granularity": "DAY",
+              "note": "QA Jan Actual Work 2026-09-30",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a001",
+                "name": "Gewerkte uren",
+                "code": "AW_WORK",
+                "family": "WORK",
+                "color_code": "var(--chart-1)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "66ef22a5-5777-44dc-9bde-44a65d0a6d60",
+                "first_name": "Jan",
+                "birth_name_prefix": null,
+                "birth_name": "Test"
+              }
+            },
+            {
+              "id": "0a5c2bf4-4c98-40d5-9412-a26fe59da5a5",
+              "employee_id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+              "employment_id": "c1c70315-446f-4975-85bd-f6026457af61",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+              "work_date": "2026-09-15",
+              "hours": 8,
+              "entry_granularity": "DAY",
+              "note": "Eric WORKED_HOURS fixture - gewerkte uren",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a001",
+                "name": "Gewerkte uren",
+                "code": "AW_WORK",
+                "family": "WORK",
+                "color_code": "var(--chart-1)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+                "first_name": "Eric",
+                "birth_name_prefix": null,
+                "birth_name": "Oproeper"
+              }
+            },
+            {
+              "id": "65b0b403-3209-4ccd-891d-a84c9851917e",
+              "employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+              "employment_id": "b407c312-3293-7830-5c49-f2c8514ac32f",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a001",
+              "work_date": "2026-09-01",
+              "hours": 7.25,
+              "entry_granularity": "DAY",
+              "note": "",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a001",
+                "name": "Gewerkte uren",
+                "code": "AW_WORK",
+                "family": "WORK",
+                "color_code": "var(--chart-1)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+                "first_name": "Maya",
+                "birth_name_prefix": null,
+                "birth_name": "Bos"
+              }
+            },
+            {
+              "id": "b8c2ac0a-7e2d-469e-aea3-cce6020f0059",
+              "employee_id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+              "employment_id": "c1c70315-446f-4975-85bd-f6026457af61",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a002",
+              "work_date": "2026-09-14",
+              "hours": 2,
+              "entry_granularity": "DAY",
+              "note": "Eric WORKED_HOURS fixture - aanvullende uren deeltijd",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a002",
+                "name": "Aanvullende uren deeltijd",
+                "code": "AW_ADDITIONAL",
+                "family": "ADDITIONAL",
+                "color_code": "var(--chart-2)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+                "first_name": "Eric",
+                "birth_name_prefix": null,
+                "birth_name": "Oproeper"
+              }
+            },
+            {
+              "id": "a1fbad95-f653-432d-9fb0-2c656a4c3987",
+              "employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+              "employment_id": "b407c312-3293-7830-5c49-f2c8514ac32f",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a002",
+              "work_date": "2026-09-02",
+              "hours": 1.5,
+              "entry_granularity": "DAY",
+              "note": "Hosted Bulk acceptance",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a002",
+                "name": "Aanvullende uren deeltijd",
+                "code": "AW_ADDITIONAL",
+                "family": "ADDITIONAL",
+                "color_code": "var(--chart-2)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+                "first_name": "Maya",
+                "birth_name_prefix": null,
+                "birth_name": "Bos"
+              }
+            },
+            {
+              "id": "00000000-0000-0000-0000-00000000c005",
+              "employee_id": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+              "employment_id": "b7391845-77d4-407c-bfe6-555a8a3d463b",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a003",
+              "work_date": "2026-09-09",
+              "hours": 2,
+              "entry_granularity": "DAY",
+              "note": "Fixture Lisa overwerk",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a003",
+                "name": "Overwerk Actual Work",
+                "code": "AW_OVERTIME",
+                "family": "OVERTIME",
+                "color_code": "var(--chart-3)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+                "first_name": "Lisa",
+                "birth_name_prefix": null,
+                "birth_name": "Test"
+              }
+            },
+            {
+              "id": "b777a951-e908-4e30-b1ac-6cfdfee6ebe5",
+              "employee_id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+              "employment_id": "c1c70315-446f-4975-85bd-f6026457af61",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a003",
+              "work_date": "2026-09-13",
+              "hours": 2,
+              "entry_granularity": "DAY",
+              "note": "Eric WORKED_HOURS fixture - overwerk",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a003",
+                "name": "Overwerk Actual Work",
+                "code": "AW_OVERTIME",
+                "family": "OVERTIME",
+                "color_code": "var(--chart-3)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+                "first_name": "Eric",
+                "birth_name_prefix": null,
+                "birth_name": "Oproeper"
+              }
+            },
+            {
+              "id": "94e513a8-285b-4b90-8995-f76b96852085",
+              "employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+              "employment_id": "b407c312-3293-7830-5c49-f2c8514ac32f",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a003",
+              "work_date": "2026-09-03",
+              "hours": 2.5,
+              "entry_granularity": "DAY",
+              "note": "",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a003",
+                "name": "Overwerk Actual Work",
+                "code": "AW_OVERTIME",
+                "family": "OVERTIME",
+                "color_code": "var(--chart-3)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+                "first_name": "Maya",
+                "birth_name_prefix": null,
+                "birth_name": "Bos"
+              }
+            },
+            {
+              "id": "e6bc24c3-3bfb-4974-90ea-cad8d2c4907f",
+              "employee_id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+              "employment_id": "c1c70315-446f-4975-85bd-f6026457af61",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a004",
+              "work_date": "2026-09-01",
+              "hours": 4,
+              "entry_granularity": "DAY",
+              "note": "Hosted transparent exclusion check",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a004",
+                "name": "Thuiswerk informatief",
+                "code": "AW_TRANSPARENT",
+                "family": "TRANSPARENT",
+                "color_code": "var(--chart-4)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "088e7ee3-e08e-4372-adaa-560338c397ef",
+                "first_name": "Eric",
+                "birth_name_prefix": null,
+                "birth_name": "Oproeper"
+              }
+            },
+            {
+              "id": "4c3fce89-1ea6-44ab-8721-21937e7d2ff7",
+              "employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+              "employment_id": "b407c312-3293-7830-5c49-f2c8514ac32f",
+              "work_hour_type_id": "00000000-0000-0000-0000-00000000a004",
+              "work_date": "2026-09-04",
+              "hours": 1.25,
+              "entry_granularity": "DAY",
+              "note": "",
+              "type": {
+                "id": "00000000-0000-0000-0000-00000000a004",
+                "name": "Thuiswerk informatief",
+                "code": "AW_TRANSPARENT",
+                "family": "TRANSPARENT",
+                "color_code": "var(--chart-4)",
+                "show_in_team_overview": true
+              },
+              "employee": {
+                "id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+                "first_name": "Maya",
+                "birth_name_prefix": null,
+                "birth_name": "Bos"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "leave": {
+      "status": 200,
+      "body": {
+        "data": {
+          "report": {
+            "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+            "calendarYear": 2026,
+            "asOfDate": "2026-09-21",
+            "leaveTypes": [
+              {
+                "id": "b9f47ad7-3b7f-4e74-97a8-a7d7de251315",
+                "name": "Boven wettelijk",
+                "colorCode": "var(--chart-2)",
+                "entitlementMode": "ACCRUAL",
+                "annualHoursCap": null,
+                "annualHoursFteCap": null,
+                "partTimeFactor": 1,
+                "leaveTypeId": "b9f47ad7-3b7f-4e74-97a8-a7d7de251315",
+                "status": "ACCRUAL",
+                "annualLimit": null,
+                "usedAnnualLimit": null,
+                "startOfYearBalance": 0,
+                "currentBalance": 0,
+                "projectedEndBalance": 0,
+                "projectedContractEndBalance": null,
+                "openingBalance": 8,
+                "accrual": 0,
+                "planned": 0,
+                "carryForwards": [],
+                "monthlyAccrualMoments": [],
+                "expirationBuckets": [],
+                "manualAdjustments": [],
+                "taken": [
+                  {
+                    "id": "976385ab-9c27-46a4-898a-cef5f912f795",
+                    "bucketId": "4ae41b36-d1e7-47ef-9610-da5f16de3472",
+                    "leaveTypeId": "b9f47ad7-3b7f-4e74-97a8-a7d7de251315",
+                    "transactionType": "TAKEN",
+                    "amount": -8,
+                    "transactionDate": "2026-09-18",
+                    "reason": "Verlofaanvraag via workflow",
+                    "actorUserId": "71e35860-95c9-4ba3-ac9a-6b366096d8ec",
+                    "actorDisplayName": null,
+                    "createdAt": "2026-09-20T16:52:45.716791+00:00",
+                    "sourceType": "ESS_LEAVE_WORKFLOW"
+                  }
+                ]
+              },
+              {
+                "id": "8cb0e8c2-ebb1-42f4-9c98-06a2c7cfbe39",
+                "name": "R2-LEAVE-TYPE-20260823-092551",
+                "colorCode": "blue",
+                "entitlementMode": "ACCRUAL",
+                "annualHoursCap": null,
+                "annualHoursFteCap": null,
+                "partTimeFactor": 1,
+                "leaveTypeId": "8cb0e8c2-ebb1-42f4-9c98-06a2c7cfbe39",
+                "status": "ACCRUAL",
+                "annualLimit": null,
+                "usedAnnualLimit": null,
+                "startOfYearBalance": 0,
+                "currentBalance": 0,
+                "projectedEndBalance": 0,
+                "projectedContractEndBalance": null,
+                "openingBalance": 0,
+                "accrual": 0,
+                "planned": 0,
+                "carryForwards": [],
+                "monthlyAccrualMoments": [],
+                "expirationBuckets": [],
+                "manualAdjustments": [],
+                "taken": []
+              },
+              {
+                "id": "00000000-0000-0000-0000-00000000b001",
+                "name": "Verlof Oproeper wettelijk",
+                "colorCode": "var(--chart-2)",
+                "entitlementMode": "ACCRUAL",
+                "annualHoursCap": null,
+                "annualHoursFteCap": null,
+                "partTimeFactor": 1,
+                "leaveTypeId": "00000000-0000-0000-0000-00000000b001",
+                "status": "ACCRUAL",
+                "annualLimit": null,
+                "usedAnnualLimit": null,
+                "startOfYearBalance": 0,
+                "currentBalance": 0,
+                "projectedEndBalance": 0,
+                "projectedContractEndBalance": null,
+                "openingBalance": 0,
+                "accrual": 0,
+                "planned": 0,
+                "carryForwards": [],
+                "monthlyAccrualMoments": [],
+                "expirationBuckets": [],
+                "manualAdjustments": [],
+                "taken": []
+              },
+              {
+                "id": "45ede297-8d62-4614-ab2d-33ae41200265",
+                "name": "Wettelijk verlof",
+                "colorCode": "var(--chart-1)",
+                "entitlementMode": "ACCRUAL",
+                "annualHoursCap": null,
+                "annualHoursFteCap": null,
+                "partTimeFactor": 1,
+                "leaveTypeId": "45ede297-8d62-4614-ab2d-33ae41200265",
+                "status": "ACCRUAL",
+                "annualLimit": null,
+                "usedAnnualLimit": null,
+                "startOfYearBalance": 0,
+                "currentBalance": 0,
+                "projectedEndBalance": 0,
+                "projectedContractEndBalance": null,
+                "openingBalance": 0,
+                "accrual": 0,
+                "planned": 0,
+                "carryForwards": [],
+                "monthlyAccrualMoments": [],
+                "expirationBuckets": [],
+                "manualAdjustments": [],
+                "taken": []
+              }
+            ]
+          },
+          "employmentSelection": {
+            "required": false,
+            "selectedEmploymentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+            "options": [
+              {
+                "id": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+                "employmentNumber": "EMP-DEMO-035-A",
+                "startsOn": "2024-01-15",
+                "endsOn": null,
+                "administrationName": "Jupiter BV",
+                "departmentName": "P9 Test Transfer",
+                "functionName": "Test manager"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

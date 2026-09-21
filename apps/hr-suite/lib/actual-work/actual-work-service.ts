@@ -1,5 +1,5 @@
 import type { Database, Tables } from '@scope/db'
-import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { exactHoursToDatabase, isPositiveExactHours, parseExactHours } from './exact-hours'
 import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
@@ -71,6 +71,11 @@ function addMonth(date: string): string {
 
 async function authForGroup(permission: 'leave:read' | 'leave:write', employeeId?: string) {
   const context = employeeId ? await requirePermission(permission, employeeId) : await requirePermission(permission)
+  return { context, hrGroupId: requireHrGroupId(context), supabase: await createClient() }
+}
+
+async function authForActualWorkWrite(employeeId: string) {
+  const context = await requireAnyPermission(['leave:write', 'self:actual-work:write'], employeeId)
   return { context, hrGroupId: requireHrGroupId(context), supabase: await createClient() }
 }
 
@@ -236,7 +241,7 @@ export async function saveActualWorkEntry(input: unknown): Promise<ActualWorkEnt
   const parsed = actualWorkEntrySchema.safeParse(input)
   if (!parsed.success) throw new ActualWorkServiceError(parsed.error.issues[0]?.message ?? 'ACTUAL_WORK_INPUT_INVALID')
   const value = parsed.data
-  const auth = await authForGroup('leave:write', value.employeeId)
+  const auth = await authForActualWorkWrite(value.employeeId)
   return saveActualWorkEntryValue(value, auth)
 }
 

@@ -296,7 +296,7 @@ export async function getFocusHoursOverview(section: FocusSectionContext): Promi
     const expected = expectedHours(schedule, date)
     return { date, expected, recorded, needsAction: expected > 0 && recorded === 0 && date <= today }
   })
-  return { employeeName: displayName(projection.employee), employmentId: projection.employment.id, days, canEdit: !section.actAs && hasFocusPermission(section, 'self:leave:write', 'leave:write'), projection }
+  return { employeeName: displayName(projection.employee), employmentId: projection.employment.id, days, canEdit: !section.actAs && hasFocusPermission(section, 'self:actual-work:write', 'actual-work:write', 'leave:write'), projection }
 }
 
 export async function getFocusDocuments(section: FocusSectionContext) {

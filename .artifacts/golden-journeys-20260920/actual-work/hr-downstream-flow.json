@@ -1,0 +1,654 @@
+{
+  "persona": "GJ03 downstream and negative acceptance",
+  "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+  "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+  "month": "2026-09",
+  "entryDate": "2026-09-21",
+  "hr": {
+    "employeePage": {
+      "url": "http://localhost:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "headings": [
+        "Dagelijks",
+        "Mensen & organisatie",
+        "HR-processen",
+        "Sturen",
+        "Beheer",
+        "Werkelijke uren · 2026-09",
+        "Urenregistraties",
+        "Effectief rooster",
+        "Nieuwe registratie",
+        "Correctiegeschiedenis"
+      ],
+      "layout": {
+        "viewportWidth": 1440,
+        "viewportHeight": 1000,
+        "scrollWidth": 1440,
+        "horizontalOverflow": false,
+        "overflowContainers": 1
+      }
+    },
+    "projectionBeforeProbes": {
+      "status": 200,
+      "entryCount": 2,
+      "entries": [
+        {
+          "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2.25,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 gecontroleerde WORK-registratie"
+        },
+        {
+          "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 Employee eigen registratie gecorrigeerd"
+        }
+      ],
+      "revisions": [
+        {
+          "id": "fb285bad-733d-43a2-9869-34551dc72058",
+          "entryId": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "revisionNumber": 1,
+          "operation": "CREATE",
+          "previousHours": null,
+          "currentHours": 1.75,
+          "deltaHours": 1.75,
+          "actorUserId": "f38fe229-494e-4294-822d-90c19188232f",
+          "reason": null
+        },
+        {
+          "id": "fa1ca9ac-9875-4de8-aa89-fc0ca16c3b8d",
+          "entryId": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "revisionNumber": 1,
+          "operation": "CREATE",
+          "previousHours": null,
+          "currentHours": 2.25,
+          "deltaHours": 2.25,
+          "actorUserId": "f9157157-6527-4348-8200-57ef57e28df1",
+          "reason": null
+        },
+        {
+          "id": "1f09e0d2-f8fa-467e-b57d-512ec722917d",
+          "entryId": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "revisionNumber": 2,
+          "operation": "CORRECTION",
+          "previousHours": 1.75,
+          "currentHours": 2,
+          "deltaHours": 0.25,
+          "actorUserId": "f38fe229-494e-4294-822d-90c19188232f",
+          "reason": "GJ03 Employee correctie"
+        }
+      ],
+      "period": {
+        "start": "2026-09-01",
+        "end": "2026-10-01",
+        "status": "OPEN"
+      },
+      "schedule": [
+        {
+          "validFrom": "2024-01-15",
+          "validUntil": null,
+          "partTimeFactor": 1,
+          "averageHoursPerWeek": 40,
+          "mondayHours": 8,
+          "tuesdayHours": 8,
+          "wednesdayHours": 8,
+          "thursdayHours": 8,
+          "fridayHours": 8
+        }
+      ]
+    },
+    "team": {
+      "status": 200,
+      "noahRows": [
+        {
+          "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "workDate": "2026-09-21",
+          "hours": 2.25,
+          "type": "AW_WORK",
+          "employee": "Noah Hendriks"
+        },
+        {
+          "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "workDate": "2026-09-21",
+          "hours": 2,
+          "type": "AW_WORK",
+          "employee": "Noah Hendriks"
+        }
+      ]
+    },
+    "teamPage": {
+      "url": "http://localhost:3000/actual-work/team?month=2026-09",
+      "headings": [
+        "Dagelijks",
+        "Mensen & organisatie",
+        "HR-processen",
+        "Sturen",
+        "Beheer",
+        "Werkelijke uren · 2026-09"
+      ],
+      "layout": {
+        "viewportWidth": 1440,
+        "viewportHeight": 1000,
+        "scrollWidth": 1440,
+        "horizontalOverflow": false,
+        "overflowContainers": 0
+      }
+    },
+    "insights": {
+      "status": 200,
+      "totalEntries": 14,
+      "totals": {
+        "WORK": 43.5,
+        "ADDITIONAL": 3.5,
+        "OVERTIME": 6.5,
+        "TRANSPARENT": 5.25
+      },
+      "corrections": 7,
+      "noahRows": [
+        {
+          "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "workDate": "2026-09-21",
+          "hours": 2.25,
+          "type": "AW_WORK"
+        },
+        {
+          "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "workDate": "2026-09-21",
+          "hours": 2,
+          "type": "AW_WORK"
+        }
+      ]
+    },
+    "insightsPage": {
+      "url": "http://localhost:3000/actual-work/insights?month=2026-09",
+      "headings": [
+        "Dagelijks",
+        "Mensen & organisatie",
+        "HR-processen",
+        "Sturen",
+        "Beheer",
+        "Werkelijke uren · 2026-09-01"
+      ],
+      "layout": {
+        "viewportWidth": 1440,
+        "viewportHeight": 1000,
+        "scrollWidth": 1440,
+        "horizontalOverflow": false,
+        "overflowContainers": 0
+      }
+    },
+    "leaveBalance": {
+      "status": 200,
+      "leaveTypes": [
+        {
+          "name": "Boven wettelijk",
+          "currentBalance": 0,
+          "accrual": 0,
+          "taken": -8
+        },
+        {
+          "name": "R2-LEAVE-TYPE-20260823-092551",
+          "currentBalance": 0,
+          "accrual": 0,
+          "taken": 0
+        },
+        {
+          "name": "Verlof Oproeper wettelijk",
+          "currentBalance": 0,
+          "accrual": 0,
+          "taken": 0
+        },
+        {
+          "name": "Wettelijk verlof",
+          "currentBalance": 0,
+          "accrual": 0,
+          "taken": 0
+        }
+      ]
+    },
+    "leaveAccrualPreview": {
+      "status": 200,
+      "items": [
+        {
+          "leaveTypeName": "Boven wettelijk",
+          "periodStart": "2026-01-01",
+          "periodEnd": "2027-01-01",
+          "basis": "CONTRACT_HOURS",
+          "calculatedAmount": 11.2877,
+          "status": "READY",
+          "reason": null
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-01-01",
+          "periodEnd": "2026-02-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-02-01",
+          "periodEnd": "2026-03-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-03-01",
+          "periodEnd": "2026-04-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-04-01",
+          "periodEnd": "2026-05-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-05-01",
+          "periodEnd": "2026-06-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-06-01",
+          "periodEnd": "2026-07-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-07-01",
+          "periodEnd": "2026-08-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-08-01",
+          "periodEnd": "2026-09-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-09-01",
+          "periodEnd": "2026-10-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0.3542,
+          "status": "READY",
+          "reason": null
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-10-01",
+          "periodEnd": "2026-11-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-11-01",
+          "periodEnd": "2026-12-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Verlof Oproeper wettelijk",
+          "periodStart": "2026-12-01",
+          "periodEnd": "2027-01-01",
+          "basis": "WORKED_HOURS",
+          "calculatedAmount": 0,
+          "status": "ALREADY_POSTED",
+          "reason": "UP_TO_DATE"
+        },
+        {
+          "leaveTypeName": "Wettelijk verlof",
+          "periodStart": "2026-01-01",
+          "periodEnd": "2027-01-01",
+          "basis": "CONTRACT_HOURS",
+          "calculatedAmount": 160,
+          "status": "READY",
+          "reason": null
+        }
+      ]
+    },
+    "projectionAfterProbes": {
+      "status": 200,
+      "entryCount": 2,
+      "entries": [
+        {
+          "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2.25,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 gecontroleerde WORK-registratie"
+        },
+        {
+          "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 Employee eigen registratie gecorrigeerd"
+        }
+      ],
+      "revisions": [
+        {
+          "id": "fb285bad-733d-43a2-9869-34551dc72058",
+          "entryId": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "revisionNumber": 1,
+          "operation": "CREATE",
+          "previousHours": null,
+          "currentHours": 1.75,
+          "deltaHours": 1.75,
+          "actorUserId": "f38fe229-494e-4294-822d-90c19188232f",
+          "reason": null
+        },
+        {
+          "id": "fa1ca9ac-9875-4de8-aa89-fc0ca16c3b8d",
+          "entryId": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "revisionNumber": 1,
+          "operation": "CREATE",
+          "previousHours": null,
+          "currentHours": 2.25,
+          "deltaHours": 2.25,
+          "actorUserId": "f9157157-6527-4348-8200-57ef57e28df1",
+          "reason": null
+        },
+        {
+          "id": "1f09e0d2-f8fa-467e-b57d-512ec722917d",
+          "entryId": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "revisionNumber": 2,
+          "operation": "CORRECTION",
+          "previousHours": 1.75,
+          "currentHours": 2,
+          "deltaHours": 0.25,
+          "actorUserId": "f38fe229-494e-4294-822d-90c19188232f",
+          "reason": "GJ03 Employee correctie"
+        }
+      ],
+      "period": {
+        "start": "2026-09-01",
+        "end": "2026-10-01",
+        "status": "OPEN"
+      },
+      "schedule": [
+        {
+          "validFrom": "2024-01-15",
+          "validUntil": null,
+          "partTimeFactor": 1,
+          "averageHoursPerWeek": 40,
+          "mondayHours": 8,
+          "tuesdayHours": 8,
+          "wednesdayHours": 8,
+          "thursdayHours": 8,
+          "fridayHours": 8
+        }
+      ]
+    },
+    "mobileEmployeePage": {
+      "url": "http://localhost:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "headings": [
+        "Dagelijks",
+        "Mensen & organisatie",
+        "HR-processen",
+        "Sturen",
+        "Beheer",
+        "Werkelijke uren · 2026-09",
+        "Urenregistraties",
+        "Effectief rooster",
+        "Nieuwe registratie",
+        "Correctiegeschiedenis"
+      ],
+      "layout": {
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "scrollWidth": 390,
+        "horizontalOverflow": false,
+        "overflowContainers": 4
+      }
+    }
+  },
+  "negative": {
+    "closedPeriod": {
+      "status": 400,
+      "ok": false,
+      "error": "ACTUAL_WORK_PERIOD_CLOSED",
+      "dataKeys": [],
+      "body": {
+        "error": "ACTUAL_WORK_PERIOD_CLOSED"
+      }
+    },
+    "futureWork": {
+      "status": 400,
+      "ok": false,
+      "error": "ACTUAL_WORK_FUTURE_NOT_ALLOWED",
+      "dataKeys": [],
+      "body": {
+        "error": "ACTUAL_WORK_FUTURE_NOT_ALLOWED"
+      }
+    },
+    "invalidType": {
+      "status": 400,
+      "ok": false,
+      "error": "ACTUAL_WORK_TYPE_NOT_ACTIVE",
+      "dataKeys": [],
+      "body": {
+        "error": "ACTUAL_WORK_TYPE_NOT_ACTIVE"
+      }
+    },
+    "leaveOverlap": {
+      "status": 400,
+      "ok": false,
+      "error": "ACTUAL_WORK_LEAVE_OVERLAP",
+      "dataKeys": [],
+      "body": {
+        "error": "ACTUAL_WORK_LEAVE_OVERLAP"
+      }
+    },
+    "employeeForeignRead": {
+      "status": 403,
+      "ok": false,
+      "error": "Je hebt onvoldoende rechten voor deze actie.",
+      "dataKeys": [],
+      "body": {
+        "error": "Je hebt onvoldoende rechten voor deze actie."
+      }
+    },
+    "employeeForeignWrite": {
+      "status": 404,
+      "ok": false,
+      "error": "ACTUAL_WORK_EMPLOYMENT_NOT_FOUND",
+      "dataKeys": [],
+      "body": {
+        "error": "ACTUAL_WORK_EMPLOYMENT_NOT_FOUND"
+      }
+    },
+    "managerEmployeeMutation": {
+      "status": 403,
+      "ok": false,
+      "error": "Je hebt onvoldoende rechten voor deze actie.",
+      "dataKeys": [],
+      "body": {
+        "error": "Je hebt onvoldoende rechten voor deze actie."
+      }
+    }
+  },
+  "employeeAfter": {
+    "ownRead": {
+      "status": 200,
+      "entryCount": 2,
+      "entries": [
+        {
+          "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2.25,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 gecontroleerde WORK-registratie"
+        },
+        {
+          "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 Employee eigen registratie gecorrigeerd"
+        }
+      ],
+      "revisions": [
+        {
+          "id": "fb285bad-733d-43a2-9869-34551dc72058",
+          "entryId": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "revisionNumber": 1,
+          "operation": "CREATE",
+          "previousHours": null,
+          "currentHours": 1.75,
+          "deltaHours": 1.75,
+          "actorUserId": "f38fe229-494e-4294-822d-90c19188232f",
+          "reason": null
+        },
+        {
+          "id": "fa1ca9ac-9875-4de8-aa89-fc0ca16c3b8d",
+          "entryId": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "revisionNumber": 1,
+          "operation": "CREATE",
+          "previousHours": null,
+          "currentHours": 2.25,
+          "deltaHours": 2.25,
+          "actorUserId": "f9157157-6527-4348-8200-57ef57e28df1",
+          "reason": null
+        },
+        {
+          "id": "1f09e0d2-f8fa-467e-b57d-512ec722917d",
+          "entryId": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "revisionNumber": 2,
+          "operation": "CORRECTION",
+          "previousHours": 1.75,
+          "currentHours": 2,
+          "deltaHours": 0.25,
+          "actorUserId": "f38fe229-494e-4294-822d-90c19188232f",
+          "reason": "GJ03 Employee correctie"
+        }
+      ],
+      "period": {
+        "start": "2026-09-01",
+        "end": "2026-10-01",
+        "status": "OPEN"
+      },
+      "schedule": [
+        {
+          "validFrom": "2024-01-15",
+          "validUntil": null,
+          "partTimeFactor": 1,
+          "averageHoursPerWeek": 40,
+          "mondayHours": 8,
+          "tuesdayHours": 8,
+          "wednesdayHours": 8,
+          "thursdayHours": 8,
+          "fridayHours": 8
+        }
+      ]
+    }
+  },
+  "manager": {
+    "api": {
+      "noahEntryRead": {
+        "status": 403,
+        "error": "Je hebt onvoldoende rechten voor deze actie."
+      },
+      "teamRead": {
+        "status": 403,
+        "error": "Je hebt onvoldoende rechten voor deze actie."
+      }
+    },
+    "actualWorkPage": {
+      "url": "http://localhost:3000/geen-toegang",
+      "headings": [
+        "Nog geen toegang"
+      ],
+      "layout": {
+        "viewportWidth": 1440,
+        "viewportHeight": 1000,
+        "scrollWidth": 1440,
+        "horizontalOverflow": false,
+        "overflowContainers": 0
+      }
+    },
+    "focusTeamPage": {
+      "url": "http://localhost:3000/focus/team?month=2026-09",
+      "headings": [
+        "Mijn team",
+        "Maand: 2026-09"
+      ],
+      "layout": {
+        "viewportWidth": 1440,
+        "viewportHeight": 1000,
+        "scrollWidth": 1440,
+        "horizontalOverflow": false,
+        "overflowContainers": 401
+      },
+      "noahVisible": 2,
+      "actualHoursVisible": 0
+    },
+    "mobileFocusTeamPage": {
+      "url": "http://localhost:3000/focus/team?month=2026-09",
+      "headings": [
+        "Mijn team",
+        "Maand: 2026-09"
+      ],
+      "layout": {
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "scrollWidth": 390,
+        "horizontalOverflow": false,
+        "overflowContainers": 0
+      },
+      "noahVisible": 2,
+      "actualHoursVisible": 0
+    }
+  }
+}

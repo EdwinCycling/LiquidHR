@@ -2,7 +2,7 @@
 
 ## Overnight Golden Journeys — 2026-09-21
 
-**Status: GJ01 CODE/DEV-PREVIEW GREEN / AUTHENTICATED PREBOARDING BLOCKED BY DEV AUTH MAIL DELIVERY / GJ02-GJ03 OPEN**
+**Status: GJ01 CODE/DEV-PREVIEW GREEN / AUTHENTICATED PREBOARDING BLOCKED BY DEV AUTH MAIL DELIVERY / GJ02 GREEN / GJ03 GREEN / OVERNIGHT BLOCKED BY GJ01**
 
 - Exacte releasebasis: `1.20260920.1`, main-commit
   `874098d9c0675d17774ad027c7a8b4fbadb37c39`; overnight branch is
@@ -51,6 +51,45 @@
   Targeted 11 files/20 tests, typecheck, lint, i18n, diff-check and Next build
   296/296 are green. The same branch and exact release baseline continue into
   GJ03.
+
+## GJ03 — Actual Work / Hours — 2026-09-21
+
+**Status: GREEN / Employee self-service contract corrected and DEV-accepted / overnight remains blocked only by GJ01 Auth mail delivery**
+
+- The approved contract correction is implemented on the existing Actual Work
+  domain: Employee Focus → Uren now uses the canonical
+  `self:actual-work:write` permission, existing save service and invoker RPC.
+  Employee create/correction is limited to the authenticated employee's own
+  employment; Manager rights and colleague/private data access were not
+  broadened.
+- DEV project `wnpfloqpjvaacobppbpk` received the bounded migration
+  `actual_work_employee_self_service` (remote history version
+  `20260921092305`). Readback confirms the permission on the global EMPLOYEE
+  role, own-row RLS for read/insert/update, no self-delete policy, and
+  `save_actual_work_entry` remains `SECURITY INVOKER` with authenticated
+  execute only. Leave overlap, type, future, period and existing schedule /
+  part-time eligibility checks remain server-side.
+- Authenticated Employee Focus acceptance created exactly one controlled
+  Employee-owned row `5b1746a2-16df-4b09-bb1a-40e573c7b386` at `1.7500` hours
+  and corrected that same row once to `2.0000`. DEV revision readback is
+  `CREATE` followed by `CORRECTION`, both by the Employee fixture, with the
+  required correction reason. The earlier pre-contract HR baseline row
+  `80fdc675-6213-44ea-9941-ee18612ce398` at `2.2500` is retained; it was not
+  deleted or voided. No duplicate Employee submission was created.
+- Employee own read is 200 with five types and two own ledger rows. Foreign
+  read is 403; foreign write is denied before persistence (`404` employment
+  scope response); Team and Insights are 403. HR Team/Insights read the
+  Employee-owned row and correction. Manager mutation, Team and Noah entry
+  read are 403; `/actual-work/team` redirects to `/geen-toegang`, while the
+  existing Focus Team surface contains no Actual Work hours. Closed period,
+  future date, inactive type and approved Leave overlap probes all failed
+  with their canonical server errors and left the ledger unchanged.
+- Desktop and 390x844 Employee/HR/Manager evidence is under
+  `.artifacts/golden-journeys-20260920/actual-work/`. Local focused tests are
+  17/17; full Vitest is 437/437 files and 1714/1714 tests with the established
+  30s timeout; strict TypeScript, ESLint, i18n and Next build 296/296 are
+  green. Supabase type generation and security/performance advisors ran;
+  project-wide existing advisor findings remain recorded in the GJ03 report.
 
 ## Focus DEV act-as alignment and completion acceptance — 2026-09-20
 

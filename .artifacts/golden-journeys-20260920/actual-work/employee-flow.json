@@ -1,0 +1,549 @@
+{
+  "persona": "employee",
+  "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+  "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+  "entryDate": "2026-09-21",
+  "baseline": {
+    "url": "http://localhost:3000/focus/uren?edit=1",
+    "headings": [
+      "Mijn uren",
+      "Verwacht / Geregistreerd",
+      "Uren toevoegen",
+      "Mijn geregistreerde uren"
+    ],
+    "buttons": [
+      "Corrigeren",
+      "Corrigeren",
+      "Gewerkte uren",
+      "Uren opslaan",
+      ""
+    ],
+    "controls": [
+      {
+        "tag": "SELECT",
+        "type": null,
+        "name": null,
+        "aria": null,
+        "value": "00000000-0000-0000-0000-00000000a001"
+      },
+      {
+        "tag": "INPUT",
+        "type": "date",
+        "name": null,
+        "aria": null,
+        "value": "2026-09-21"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "name": null,
+        "aria": null,
+        "value": ""
+      },
+      {
+        "tag": "TEXTAREA",
+        "type": null,
+        "name": null,
+        "aria": null,
+        "value": ""
+      }
+    ],
+    "layout": {
+      "viewportWidth": 1440,
+      "viewportHeight": 1000,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false
+    },
+    "api": {
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "dataKeys": [
+        "employee",
+        "employment",
+        "types",
+        "entries",
+        "revisions",
+        "period",
+        "schedule"
+      ],
+      "entryCount": 2,
+      "entries": [
+        {
+          "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2.25,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 gecontroleerde WORK-registratie"
+        },
+        {
+          "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 Employee eigen registratie gecorrigeerd"
+        }
+      ],
+      "typeCount": 5
+    }
+  },
+  "create": {
+    "status": 200,
+    "ok": true,
+    "skipped": "controlled Employee entry already persisted"
+  },
+  "afterCreate": {
+    "page": {
+      "url": "http://localhost:3000/focus/uren?edit=1",
+      "headings": [
+        "Mijn uren",
+        "Verwacht / Geregistreerd",
+        "Uren toevoegen",
+        "Mijn geregistreerde uren"
+      ],
+      "buttons": [
+        "Corrigeren",
+        "Corrigeren",
+        "Gewerkte uren",
+        "Uren opslaan",
+        ""
+      ],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": "00000000-0000-0000-0000-00000000a001"
+        },
+        {
+          "tag": "INPUT",
+          "type": "date",
+          "name": null,
+          "aria": null,
+          "value": "2026-09-21"
+        },
+        {
+          "tag": "INPUT",
+          "type": "text",
+          "name": null,
+          "aria": null,
+          "value": ""
+        },
+        {
+          "tag": "TEXTAREA",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": ""
+        }
+      ],
+      "layout": {
+        "viewportWidth": 1440,
+        "viewportHeight": 1000,
+        "scrollWidth": 1440,
+        "horizontalOverflow": false
+      },
+      "api": {
+        "status": 200,
+        "ok": true,
+        "error": null,
+        "dataKeys": [
+          "employee",
+          "employment",
+          "types",
+          "entries",
+          "revisions",
+          "period",
+          "schedule"
+        ],
+        "entryCount": 2,
+        "entries": [
+          {
+            "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+            "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+            "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+            "workDate": "2026-09-21",
+            "hours": 2.25,
+            "typeId": "00000000-0000-0000-0000-00000000a001",
+            "status": "APPROVED",
+            "note": "GJ03 gecontroleerde WORK-registratie"
+          },
+          {
+            "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+            "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+            "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+            "workDate": "2026-09-21",
+            "hours": 2,
+            "typeId": "00000000-0000-0000-0000-00000000a001",
+            "status": "APPROVED",
+            "note": "GJ03 Employee eigen registratie gecorrigeerd"
+          }
+        ],
+        "typeCount": 5
+      }
+    },
+    "api": {
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "dataKeys": [
+        "employee",
+        "employment",
+        "types",
+        "entries",
+        "revisions",
+        "period",
+        "schedule"
+      ],
+      "entryCount": 2,
+      "entries": [
+        {
+          "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2.25,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 gecontroleerde WORK-registratie"
+        },
+        {
+          "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 Employee eigen registratie gecorrigeerd"
+        }
+      ],
+      "typeCount": 5
+    }
+  },
+  "edit": {
+    "status": 200,
+    "ok": true,
+    "skipped": "controlled Employee correction already persisted"
+  },
+  "afterEdit": {
+    "page": {
+      "url": "http://localhost:3000/focus/uren?edit=1",
+      "headings": [
+        "Mijn uren",
+        "Verwacht / Geregistreerd",
+        "Uren toevoegen",
+        "Mijn geregistreerde uren"
+      ],
+      "buttons": [
+        "Corrigeren",
+        "Corrigeren",
+        "Gewerkte uren",
+        "Uren opslaan",
+        ""
+      ],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": "00000000-0000-0000-0000-00000000a001"
+        },
+        {
+          "tag": "INPUT",
+          "type": "date",
+          "name": null,
+          "aria": null,
+          "value": "2026-09-21"
+        },
+        {
+          "tag": "INPUT",
+          "type": "text",
+          "name": null,
+          "aria": null,
+          "value": ""
+        },
+        {
+          "tag": "TEXTAREA",
+          "type": null,
+          "name": null,
+          "aria": null,
+          "value": ""
+        }
+      ],
+      "layout": {
+        "viewportWidth": 1440,
+        "viewportHeight": 1000,
+        "scrollWidth": 1440,
+        "horizontalOverflow": false
+      },
+      "api": {
+        "status": 200,
+        "ok": true,
+        "error": null,
+        "dataKeys": [
+          "employee",
+          "employment",
+          "types",
+          "entries",
+          "revisions",
+          "period",
+          "schedule"
+        ],
+        "entryCount": 2,
+        "entries": [
+          {
+            "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+            "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+            "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+            "workDate": "2026-09-21",
+            "hours": 2.25,
+            "typeId": "00000000-0000-0000-0000-00000000a001",
+            "status": "APPROVED",
+            "note": "GJ03 gecontroleerde WORK-registratie"
+          },
+          {
+            "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+            "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+            "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+            "workDate": "2026-09-21",
+            "hours": 2,
+            "typeId": "00000000-0000-0000-0000-00000000a001",
+            "status": "APPROVED",
+            "note": "GJ03 Employee eigen registratie gecorrigeerd"
+          }
+        ],
+        "typeCount": 5
+      }
+    },
+    "api": {
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "dataKeys": [
+        "employee",
+        "employment",
+        "types",
+        "entries",
+        "revisions",
+        "period",
+        "schedule"
+      ],
+      "entryCount": 2,
+      "entries": [
+        {
+          "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2.25,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 gecontroleerde WORK-registratie"
+        },
+        {
+          "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 Employee eigen registratie gecorrigeerd"
+        }
+      ],
+      "typeCount": 5
+    }
+  },
+  "negative": {
+    "foreignRead": {
+      "status": 403,
+      "ok": false,
+      "error": "Je hebt onvoldoende rechten voor deze actie.",
+      "dataKeys": [],
+      "entryCount": null,
+      "entries": [],
+      "typeCount": null
+    },
+    "foreignWrite": {
+      "status": 404,
+      "ok": false,
+      "error": "ACTUAL_WORK_EMPLOYMENT_NOT_FOUND",
+      "dataKeys": [],
+      "entryCount": null,
+      "entries": [],
+      "typeCount": null
+    },
+    "teamRead": {
+      "status": 403,
+      "ok": false,
+      "error": "Je hebt onvoldoende rechten voor deze actie.",
+      "dataKeys": [],
+      "entryCount": null,
+      "entries": [],
+      "typeCount": null
+    },
+    "insightsRead": {
+      "status": 403,
+      "ok": false,
+      "error": "Je hebt onvoldoende rechten voor deze actie.",
+      "dataKeys": [],
+      "entryCount": null,
+      "entries": [],
+      "typeCount": null
+    },
+    "hrWorkspace": {
+      "url": "http://localhost:3000/focus/uren?edit=1"
+    }
+  },
+  "desktop": {
+    "url": "http://localhost:3000/focus/uren?edit=1",
+    "headings": [
+      "Mijn uren",
+      "Verwacht / Geregistreerd",
+      "Uren toevoegen",
+      "Mijn geregistreerde uren"
+    ],
+    "buttons": [
+      "Corrigeren",
+      "Corrigeren",
+      "Gewerkte uren",
+      "Uren opslaan",
+      ""
+    ],
+    "controls": [
+      {
+        "tag": "SELECT",
+        "type": null,
+        "name": null,
+        "aria": null,
+        "value": "00000000-0000-0000-0000-00000000a001"
+      },
+      {
+        "tag": "INPUT",
+        "type": "date",
+        "name": null,
+        "aria": null,
+        "value": "2026-09-21"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "name": null,
+        "aria": null,
+        "value": ""
+      },
+      {
+        "tag": "TEXTAREA",
+        "type": null,
+        "name": null,
+        "aria": null,
+        "value": ""
+      }
+    ],
+    "layout": {
+      "viewportWidth": 1440,
+      "viewportHeight": 1000,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false
+    },
+    "api": {
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "dataKeys": [
+        "employee",
+        "employment",
+        "types",
+        "entries",
+        "revisions",
+        "period",
+        "schedule"
+      ],
+      "entryCount": 2,
+      "entries": [
+        {
+          "id": "80fdc675-6213-44ea-9941-ee18612ce398",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2.25,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 gecontroleerde WORK-registratie"
+        },
+        {
+          "id": "5b1746a2-16df-4b09-bb1a-40e573c7b386",
+          "employeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+          "employmentId": "eb1eea55-62c4-4b85-a3e9-20dca923e7d4",
+          "workDate": "2026-09-21",
+          "hours": 2,
+          "typeId": "00000000-0000-0000-0000-00000000a001",
+          "status": "APPROVED",
+          "note": "GJ03 Employee eigen registratie gecorrigeerd"
+        }
+      ],
+      "typeCount": 5
+    }
+  },
+  "mobile": {
+    "url": "http://localhost:3000/focus/uren?edit=1",
+    "headings": [
+      "Mijn uren",
+      "Verwacht / Geregistreerd",
+      "Uren toevoegen",
+      "Mijn geregistreerde uren"
+    ],
+    "buttons": [
+      "Corrigeren",
+      "Corrigeren",
+      "Gewerkte uren",
+      "Uren opslaan",
+      ""
+    ],
+    "controls": [
+      {
+        "tag": "SELECT",
+        "type": null,
+        "name": null,
+        "aria": null,
+        "value": "00000000-0000-0000-0000-00000000a001"
+      },
+      {
+        "tag": "INPUT",
+        "type": "date",
+        "name": null,
+        "aria": null,
+        "value": "2026-09-21"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "name": null,
+        "aria": null,
+        "value": ""
+      },
+      {
+        "tag": "TEXTAREA",
+        "type": null,
+        "name": null,
+        "aria": null,
+        "value": ""
+      }
+    ],
+    "layout": {
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "scrollWidth": 390,
+      "horizontalOverflow": false
+    }
+  }
+}
