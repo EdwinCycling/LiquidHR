@@ -2,7 +2,8 @@
 
 ## Verdict
 
-**GJ01 BLOCKED** for the complete authenticated employee acceptance gate.
+**GJ01 PARTIAL / EXTERNAL_BLOCKER** for the complete authenticated employee
+acceptance gate.
 
 The canonical HR journey flow, DEV persistence, manager resolution, Focus preview and responsive route checks are green. The remaining block is DEV Auth mail delivery: after one bounded fixture recovery, the canonical invitation endpoint still returned HTTP `502` and revoked the pending invitation. No service-role browser session, direct `auth_user_id` link, invitation-token bypass or role/permission broadening was used.
 
@@ -68,3 +69,13 @@ Evidence files:
 ## Blocking boundary
 
 The authenticated employee leg cannot be completed because the canonical invitation/activation flow cannot deliver its Auth invitation in this DEV project. The bounded fixture correction and one server-side Auth bootstrap recovery did not resolve the external mail-delivery failure. The employee remains unlinked (`auth_user_id` is null), so the HR preview is evidence for the server-derived safe surface, not proof of a real employee session. GJ02 and GJ03 continue independently under the overnight orchestration rule.
+
+## Final closure classification
+
+The exact remaining blocker is DEV Supabase Auth mail delivery returning HTTP
+`502`. The endpoint was reached correctly; both invitations were safely
+revoked; no Employee Auth link was fabricated; and the bootstrap identity did
+not gain access. Authenticated preboarding, representative Employee task
+completion and the canonical start-date transition remain unproven. This is
+an environment-gated follow-up (`GJ01R`), not a newly inferred product
+defect. GJ01R was deliberately not executed during final closure.

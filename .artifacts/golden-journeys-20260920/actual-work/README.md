@@ -150,3 +150,13 @@ horizontal overflow; it showed no Actual Work hours.
 
 **GJ03 GREEN — Employee self-service Actual Work create/correction and
 downstream/privacy/validation gates complete in DEV.**
+
+## Final closure confirmation
+
+The DEV migration metadata was reconciled without rerunning migration SQL:
+the single `actual_work_employee_self_service` history row now has canonical
+version `20260921100000`; the former `20260921092305` identity is absent.
+Relevant schema objects and data were read back unchanged. Before and after
+readback both contained 16 DEV entries and 23 revisions with unchanged
+fingerprints. A repository metadata-identity regression guard was added and
+the targeted GJ03 plus full Vitest suites remain green.
