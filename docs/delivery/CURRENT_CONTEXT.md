@@ -18,10 +18,10 @@
   EMPLOYEE binding, RLS, SECURITY INVOKER RPC, authenticated-only execute and
   unchanged Actual Work business counts during this release action.
 - Final Vercel Production: deployment
-  `dpl_DPFLRe7QB4rVe1nQAobZWGuUEfUf`, `READY`, alias
+  `dpl_2Ye1qPKpWxqHxmCMtqo4RcvPDJDP`, `READY`, alias
   `liquid-hr-hr-suite.vercel.app`, Node `24.x`, remote build 296/296. The
   deploy input was built from exact main SHA
-  `a0bb108559bf8733926c8205ae2b23323bd2a89b`; direct CLI deployment metadata
+  `0e0590de91c741228478617a1f3072a747d524bc`; direct CLI deployment metadata
   exposes no separate `gitSource` field.
 - Safe Production smoke: login loaded; `/`, dashboard, Focus, Settings,
   Focus Documenten and Focus Uren all reached the authentication boundary;

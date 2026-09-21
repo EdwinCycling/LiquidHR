@@ -23,10 +23,10 @@ globale EMPLOYEE-binding, RLS op de relevante tabellen, SECURITY INVOKER voor
 `save_actual_work_entry`, uitsluitend `authenticated` execute en geen nieuwe
 Actual Work-businessrijen door deze releaseactie.
 
-Vercel Production deployment `dpl_DPFLRe7QB4rVe1nQAobZWGuUEfUf` is `READY`,
+Vercel Production deployment `dpl_2Ye1qPKpWxqHxmCMtqo4RcvPDJDP` is `READY`,
 met alias `liquid-hr-hr-suite.vercel.app`, Node `24.x` en remote build
 `296/296`. De deploybron is uit de exacte main-SHA opgebouwd en geverifieerd
-als `a0bb108559bf8733926c8205ae2b23323bd2a89b`; directe CLI-uploads leveren
+als `0e0590de91c741228478617a1f3072a747d524bc`; directe CLI-uploads leveren
 geen afzonderlijk `gitSource`-veld in de deployment-inspectie. Read-only
 Production browser smoke laadde login en liet alle beschermde shell-, Focus-,
 Settings-, Documenten- en Uren-routes correct naar login redirecteren; de
