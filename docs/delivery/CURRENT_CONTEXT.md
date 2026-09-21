@@ -1,5 +1,30 @@
 # Actuele overdracht Liquid HR
 
+## Overnight Golden Journeys — 2026-09-21
+
+**Status: GJ01 CODE/DEV-PREVIEW GREEN / AUTHENTICATED PREBOARDING BLOCKED BY DEV AUTH MAIL DELIVERY / GJ02-GJ03 OPEN**
+
+- Exacte releasebasis: `1.20260920.1`, main-commit
+  `874098d9c0675d17774ad027c7a8b4fbadb37c39`; overnight branch is
+  `work/post-release-golden-journeys-20260920`.
+- GJ01 uses DEV project `wnpfloqpjvaacobppbpk`, tenant De Sterren / group
+  Planeten, employee `Test test100`, future employment starting `2026-10-01`,
+  and Journey `7da29334-5979-4a75-b39c-4434021e36e6`. The HR/UI journey
+  activation, manager resolution, server-derived Focus preview and
+  1440x1000/390x844 evidence are green.
+- The existing target fixture lacked a private email; that single field was
+  corrected through the normal HR employee UI. The canonical invitation
+  endpoint was then exercised before and after one bounded server-side DEV
+  fixture-auth bootstrap. Both attempts returned HTTP `502`; readback is two
+  revoked invitation rows, one Auth user and zero employee Auth links. The
+  new login correctly ends at `/geen-toegang`, proving no direct link or
+  service-role browser bypass. GJ01 remains blocked only at the authenticated
+  employee leg because DEV Auth mail delivery is unavailable.
+- GJ01 code fix: `/api/focus/preview` accepts the repository's PostgreSQL-
+  compatible deterministic fixture UUID format through `databaseUuid`, with a
+  focused regression test. No role, permission, RLS or Production change was
+  made. Evidence is under `.artifacts/golden-journeys-20260920/onboarding/`.
+
 ## Focus DEV act-as alignment and completion acceptance — 2026-09-20
 
 **Status: DEV-GREEN / FULL LOCAL TECHNICAL GATES GREEN / FINAL MAIN-PRODUCTION RELEASE GATE OPEN**

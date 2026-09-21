@@ -1,0 +1,447 @@
+{
+  "baseUrl": "http://127.0.0.1:3000",
+  "branch": "work/post-release-golden-journeys-20260920",
+  "captures": [
+    {
+      "role": "hr-admin",
+      "journey": "onboarding",
+      "name": "onboarding-hr-overview",
+      "route": "/journeys",
+      "finalUrl": "http://127.0.0.1:3000/journeys",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEH",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/hr-admin-onboarding-hr-overview.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=qZ1Zh1umm4vvYQyUHukcX' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=qZ1Zh1umm4vvYQyUHukcX' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=qZ1Zh1umm4vvYQyUHukcX' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=qZ1Zh1umm4vvYQyUHukcX' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=qZ1Zh1umm4vvYQyUHukcX' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=So2czU4KQwj1pOYIjmwt8' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "hr-admin",
+      "journey": "onboarding",
+      "name": "onboarding-hr-settings",
+      "route": "/settings/journeys",
+      "finalUrl": "http://127.0.0.1:3000/settings/journeys",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEH",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/hr-admin-onboarding-hr-settings.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=So2czU4KQwj1pOYIjmwt8' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=So2czU4KQwj1pOYIjmwt8' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=So2czU4KQwj1pOYIjmwt8' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=oiFtf8XkJwS8OenFehm40' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "hr-admin",
+      "journey": "documents",
+      "name": "documents-hr-studio",
+      "route": "/document-studio",
+      "finalUrl": "http://127.0.0.1:3000/document-studio",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEH",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-admin-documents-hr-studio.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=oiFtf8XkJwS8OenFehm40' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=oiFtf8XkJwS8OenFehm40' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "hr-admin",
+      "journey": "documents",
+      "name": "documents-hr-generate",
+      "route": "/document-studio/generate",
+      "finalUrl": "http://127.0.0.1:3000/document-studio/generate",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEH",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-admin-documents-hr-generate.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=vH4ZxFnnq_B22xoD7V-we' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "hr-admin",
+      "journey": "documents",
+      "name": "documents-hr-distributions",
+      "route": "/document-studio/distributions",
+      "finalUrl": "http://127.0.0.1:3000/document-studio/distributions",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEH",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-admin-documents-hr-distributions.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=fdSVLx0Tf9yVJ7XHhf8aq' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "hr-admin",
+      "journey": "documents",
+      "name": "documents-hr-signing",
+      "route": "/document-studio/signing",
+      "finalUrl": "http://127.0.0.1:3000/document-studio/signing",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEH",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-admin-documents-hr-signing.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=Y1hW1H80fJndmsNxSYBYk' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "hr-admin",
+      "journey": "actual-work",
+      "name": "actual-work-hr-hours",
+      "route": "/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "finalUrl": "http://127.0.0.1:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEH",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/hr-admin-actual-work-hr-hours.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=03DRKqjYmbnkns4Mnz6EZ' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "hr-admin",
+      "journey": "actual-work",
+      "name": "actual-work-hr-team",
+      "route": "/actual-work/team",
+      "finalUrl": "http://127.0.0.1:3000/actual-work/team",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEH",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/hr-admin-actual-work-hr-team.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=zQhH2b858moyfVfBV11F2' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "hr-admin",
+      "journey": "actual-work",
+      "name": "actual-work-hr-insights",
+      "route": "/actual-work/insights",
+      "finalUrl": "http://127.0.0.1:3000/actual-work/insights",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEH",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/hr-admin-actual-work-hr-insights.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=UX4uP1d0PZvc_DmhpuRqX' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "manager",
+      "journey": "onboarding",
+      "name": "onboarding-manager-focus",
+      "route": "/focus",
+      "finalUrl": "http://127.0.0.1:3000/focus",
+      "responseStatus": 200,
+      "body": "Focus Overzicht Mijn documenten Mijn verlof Mijn uren Mijn aanvragen Mijn werk Mijn team Hallo Yara Meijer 21 september 2026 Focus Volledige omgeving Mijn Focus · leidinggevende Je persoonlijke zaken en de acties voor je team bij elkaar. Te",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/manager-onboarding-manager-focus.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=03RY8bYumWkClr06BBWrL' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=MbdDXX8HOZRgyA5OAPRLb' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "manager",
+      "journey": "onboarding",
+      "name": "onboarding-manager-team",
+      "route": "/focus/team",
+      "finalUrl": "http://127.0.0.1:3000/focus/team",
+      "responseStatus": 200,
+      "body": "Focus Overzicht Mijn documenten Mijn verlof Mijn uren Mijn aanvragen Mijn werk Mijn team Terug naar Focus Mijn team Je team in de organisatie. Maand: 2026-09 Aanwezig / Verlof / Afwezig Vandaag Collega di 1 sep wo 2 sep do 3 sep vr 4 sep za",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/manager-onboarding-manager-team.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=MbdDXX8HOZRgyA5OAPRLb' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=MbdDXX8HOZRgyA5OAPRLb' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=MbdDXX8HOZRgyA5OAPRLb' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=MbdDXX8HOZRgyA5OAPRLb' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=MbdDXX8HOZRgyA5OAPRLb' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=EYQ5P0j0L0-hAwcR_-api' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "manager",
+      "journey": "documents",
+      "name": "documents-manager-focus",
+      "route": "/focus",
+      "finalUrl": "http://127.0.0.1:3000/focus",
+      "responseStatus": 200,
+      "body": "Focus Overzicht Mijn documenten Mijn verlof Mijn uren Mijn aanvragen Mijn werk Mijn team Hallo Yara Meijer 21 september 2026 Focus Volledige omgeving Mijn Focus · leidinggevende Je persoonlijke zaken en de acties voor je team bij elkaar. Te",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/manager-documents-manager-focus.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=EYQ5P0j0L0-hAwcR_-api' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=tsgJiFKsk4XS6GYEfh6EY' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "manager",
+      "journey": "actual-work",
+      "name": "actual-work-manager-team",
+      "route": "/actual-work/team",
+      "finalUrl": "http://127.0.0.1:3000/actual-work/team",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk MENSEN & ORGANISATIE Medewerkers Ontwikkeling HR-PROCESSEN Sollicitaties Onderzoeken STUREN Inzichten Yara",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/manager-actual-work-manager-team.png",
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "role": "employee",
+      "journey": "onboarding",
+      "name": "onboarding-employee-focus",
+      "route": "/focus",
+      "finalUrl": "http://127.0.0.1:3000/focus",
+      "responseStatus": 200,
+      "body": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Mijn verlof Mijn uren Ziek melden Mijn aanvragen Mijn werk Mijn team Hallo Noah Hendriks 21 september 2026 Focus Volledige omgeving Mijn Focus Je volgende stap en je belangrijkste",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/employee-onboarding-employee-focus.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=qICv38TJoG396Ymgww9sF' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=qICv38TJoG396Ymgww9sF' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=JZJwl8CoX3UMABo_QnkbF' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "employee",
+      "journey": "onboarding",
+      "name": "onboarding-employee-journey",
+      "route": "/focus/onboarding",
+      "finalUrl": "http://127.0.0.1:3000/focus/onboarding",
+      "responseStatus": 200,
+      "body": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Mijn verlof Mijn uren Ziek melden Mijn aanvragen Mijn werk Mijn team Terug naar Focus Mijn onboarding Je voorbereiding en volgende stappen. JY-S1 02 Gepubliceerde template Stap vo",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/employee-onboarding-employee-journey.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=JZJwl8CoX3UMABo_QnkbF' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=JZJwl8CoX3UMABo_QnkbF' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=irWFR9lzDcPeVTkcGhcqj' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "employee",
+      "journey": "onboarding",
+      "name": "onboarding-employee-documents",
+      "route": "/focus/documenten",
+      "finalUrl": "http://127.0.0.1:3000/focus/documenten",
+      "responseStatus": 200,
+      "body": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Mijn verlof Mijn uren Ziek melden Mijn aanvragen Mijn werk Mijn team Terug naar Focus Mijn documenten Documenten en ondertekeningen voor jou. TEST DG1 Generation Acceptance Toegev",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/employee-onboarding-employee-documents.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=irWFR9lzDcPeVTkcGhcqj' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=irWFR9lzDcPeVTkcGhcqj' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE",
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=K7iMOlB9tf2IRoG9twATi' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "employee",
+      "journey": "documents",
+      "name": "documents-employee-focus",
+      "route": "/focus/documenten",
+      "finalUrl": "http://127.0.0.1:3000/focus/documenten",
+      "responseStatus": 200,
+      "body": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Mijn verlof Mijn uren Ziek melden Mijn aanvragen Mijn werk Mijn team Terug naar Focus Mijn documenten Documenten en ondertekeningen voor jou. TEST DG1 Generation Acceptance Toegev",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/employee-documents-employee-focus.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=K7iMOlB9tf2IRoG9twATi' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "employee",
+      "journey": "actual-work",
+      "name": "actual-work-employee-hours",
+      "route": "/focus/uren",
+      "finalUrl": "http://127.0.0.1:3000/focus/uren",
+      "responseStatus": 200,
+      "body": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Mijn verlof Mijn uren Ziek melden Mijn aanvragen Mijn werk Mijn team Terug naar Focus Mijn uren Je verwachte en geregistreerde uren deze week. Verwacht / Geregistreerd 40 / 0 uur ",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/employee-actual-work-employee-hours.png",
+      "pageErrors": [],
+      "consoleErrors": [
+        "WebSocket connection to 'ws://127.0.0.1:3000/_next/hmr?id=9e7LcLkQTOKZyBq2IDwSd' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE"
+      ]
+    },
+    {
+      "role": "employee",
+      "journey": "actual-work",
+      "name": "actual-work-employee-direct",
+      "route": "/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "finalUrl": "http://127.0.0.1:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "responseStatus": 200,
+      "body": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Werk MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Onderzoeken Noah Werkelijke uren · 2026-09 Leg gewerkte, aanvu",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/employee-actual-work-employee-direct.png",
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  ],
+  "api": [
+    {
+      "role": "hr-admin",
+      "journey": "onboarding",
+      "name": "onboarding-list-api",
+      "route": "/api/journeys",
+      "method": "GET",
+      "status": 200,
+      "body": {
+        "keys": [
+          "data"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "hr-admin",
+      "journey": "documents",
+      "name": "document-generation-list-api",
+      "route": "/api/document-studio/generation",
+      "method": "GET",
+      "status": 200,
+      "body": {
+        "keys": [
+          "data"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "hr-admin",
+      "journey": "documents",
+      "name": "document-distribution-list-api",
+      "route": "/api/document-studio/distributions",
+      "method": "GET",
+      "status": 200,
+      "body": {
+        "keys": [
+          "data"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "hr-admin",
+      "journey": "documents",
+      "name": "document-signing-list-api",
+      "route": "/api/document-studio/signing",
+      "method": "GET",
+      "status": 200,
+      "body": {
+        "keys": [
+          "data"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "hr-admin",
+      "journey": "actual-work",
+      "name": "actual-work-entry-api",
+      "route": "/api/actual-work/entries?employeeId=c6b1c7a9-c250-3d19-b1a0-87e317e80b13&month=2026-09",
+      "method": "GET",
+      "status": 200,
+      "body": {
+        "keys": [
+          "data"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "hr-admin",
+      "journey": "actual-work",
+      "name": "actual-work-team-api",
+      "route": "/api/actual-work/team?month=2026-09",
+      "method": "GET",
+      "status": 200,
+      "body": {
+        "keys": [
+          "data"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "manager",
+      "journey": "onboarding",
+      "name": "manager-onboarding-api",
+      "route": "/api/journeys",
+      "method": "GET",
+      "status": 403,
+      "body": {
+        "keys": [
+          "error"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "manager",
+      "journey": "actual-work",
+      "name": "manager-actual-work-api",
+      "route": "/api/actual-work/entries?employeeId=c6b1c7a9-c250-3d19-b1a0-87e317e80b13&month=2026-09",
+      "method": "GET",
+      "status": 403,
+      "body": {
+        "keys": [
+          "error"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "employee",
+      "journey": "onboarding",
+      "name": "employee-onboarding-api",
+      "route": "/api/journeys",
+      "method": "GET",
+      "status": 403,
+      "body": {
+        "keys": [
+          "error"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "employee",
+      "journey": "documents",
+      "name": "employee-document-api",
+      "route": "/api/document-studio/signing/mine",
+      "method": "GET",
+      "status": 200,
+      "body": {
+        "keys": [
+          "data"
+        ],
+        "code": null
+      }
+    },
+    {
+      "role": "employee",
+      "journey": "actual-work",
+      "name": "employee-actual-work-api",
+      "route": "/api/actual-work/entries?employeeId=c6b1c7a9-c250-3d19-b1a0-87e317e80b13&month=2026-09",
+      "method": "GET",
+      "status": 200,
+      "body": {
+        "keys": [
+          "data"
+        ],
+        "code": null
+      }
+    }
+  ],
+  "errors": []
+}

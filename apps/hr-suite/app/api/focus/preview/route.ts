@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { AuthorizationError, getRequestAuthorizationContext, permissionErrorResponse } from '@/lib/auth/permissions'
 import { setFocusPreviewCookie } from '@/lib/focus/preview-token'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 
-const requestSchema = z.object({ employeeId: z.uuid() }).strict()
+const requestSchema = z.object({ employeeId: databaseUuid }).strict()
 
 export async function POST(request: Request) {
   const parsed = requestSchema.safeParse(await request.json().catch(() => null))

@@ -1,0 +1,30 @@
+{
+  "journey": "GJ01",
+  "projectRef": "wnpfloqpjvaacobppbpk",
+  "employeeId": "a6ef0ba0-440b-4b3d-8bf5-f7ef07f7baa5",
+  "canonicalInvitationAttempts": [
+    { "route": "POST /api/invitations/employee", "status": 502 },
+    { "route": "POST /api/invitations/employee", "status": 502 }
+  ],
+  "readback": {
+    "invitationCount": 2,
+    "revokedInvitationCount": 2,
+    "authUserCount": 1,
+    "employeeAuthLinkCount": 0,
+    "privateEmailPresent": true
+  },
+  "browserNegative": {
+    "authenticatedLoginFinalPath": "/geen-toegang",
+    "focus": { "status": 200, "finalPath": "/geen-toegang" },
+    "focusOnboarding": { "status": 200, "finalPath": "/geen-toegang" },
+    "focusDocuments": { "status": 200, "finalPath": "/geen-toegang" },
+    "focusTeam": { "status": 200, "finalPath": "/geen-toegang" },
+    "focusActualWork": { "status": 200, "finalPath": "/geen-toegang" },
+    "focusRequests": { "status": 200, "finalPath": "/geen-toegang" },
+    "journeys": { "status": 200, "finalPath": "/geen-toegang" }
+  },
+  "classification": "BLOCKED_BY_DEV_AUTH_MAIL_DELIVERY",
+  "secretsLogged": false,
+  "serviceRoleUsedInBrowser": false,
+  "directEmployeeAuthLinkCreated": false
+}

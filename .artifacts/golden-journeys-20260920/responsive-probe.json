@@ -1,0 +1,379 @@
+{
+  "captures": [
+    {
+      "name": "hr-preboarding-preview",
+      "route": "/focus/preview/a6ef0ba0-440b-4b3d-8bf5-f7ef07f7baa5",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/preview/a6ef0ba0-440b-4b3d-8bf5-f7ef07f7baa5",
+      "navigationError": null,
+      "text": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Je bekijkt LiquidHR als medewerker Voorbeeldweergave · alleen lezen Preview sluiten Welkom Test test100 21 september 2026 Focus Voor je eerste werkdag Bereid je rustig voor op je start. Je start op 1 oktober 2026 Nog 10 dagen tot je eerste werkdag. Tot je start vind je hier alleen je onboarding, profiel en toegewezen documenten en ondertekeningen. Je volgende stap Stap 3 preboarding controle Stap voor stap verder met jouw voorbereiding en ontwikkeling. Gepland Voortgang 0 van 1 afgerond Volgende actie Binnenkort Welkom Beschikbaar vanaf 1 oktober 2026 Snel naar Mijn onboarding Je voorbereiding en volgende stappen. Mijn profiel Je persoonlijke gegevens. Mijn documenten Documenten en ondertekeningen voor jou.",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/hr-preboarding-preview-1440x1000.png"
+    },
+    {
+      "name": "hr-preboarding-preview",
+      "route": "/focus/preview/a6ef0ba0-440b-4b3d-8bf5-f7ef07f7baa5",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/preview/a6ef0ba0-440b-4b3d-8bf5-f7ef07f7baa5",
+      "navigationError": null,
+      "text": "Focus Je bekijkt LiquidHR als medewerker Voorbeeldweergave · alleen lezen Preview sluiten Welkom Test test100 21 september 2026 Focus Voor je eerste werkdag Bereid je rustig voor op je start. Je start op 1 oktober 2026 Nog 10 dagen tot je eerste werkdag. Tot je start vind je hier alleen je onboarding, profiel en toegewezen documenten en ondertekeningen. Je volgende stap Stap 3 preboarding controle Stap voor stap verder met jouw voorbereiding en ontwikkeling. Gepland Voortgang 0 van 1 afgerond Volgende actie Binnenkort Welkom Beschikbaar vanaf 1 oktober 2026 Snel naar Mijn onboarding Je voorbereiding en volgende stappen. Mijn profiel Je persoonlijke gegevens. Mijn documenten Documenten en ondertekeningen voor jou. Overzicht Taken Mijn documenten Mijn profiel",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/hr-preboarding-preview-390x844.png"
+    },
+    {
+      "name": "hr-hr-journeys",
+      "route": "/journeys",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/journeys",
+      "navigationError": null,
+      "text": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture JOURNEYS · HR-CONFIGURATIE Journeys Volg actieve begeleiding, aankomende momenten en aandachtspunten. Journey starten Journeys zoeken Status Alle statussen Gepland Actief Gepauzeerd Afgerond Geannuleerd Alle statussen Journeys zoeken 20 journeys Stap 3 preboarding controle Gepland Test test100 · 100016 Ankerdatum: 1 okt 2026 VOORTGANG 0% 0 van 1 topics TEAM Test test100, Yara Meijer VOLGEND MOMENT Welkom 1 okt 2026 Stap 3 preboarding controle Geannuleerd Test Validatie · 100006 Ankerdatum: 25 aug 2026 VOORTGANG 100% 1 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Test Validatie · 100006 Ankerdatum: 25 aug 2026 VOORTGANG 100% 1 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Afgerond Test Validatie · 100006 Ankerdatum: 25 aug 2026 VOORTGANG 0% 0 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Test Validatie · 100006 Ankerdatum: 24 aug 2026 VOORTGANG 100% 1 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Noah Hendriks · DEMO-035 Ankerdatum: 24 aug 2026 VOORTGANG 0% 0 van 1 topics TEAM Noah Hendriks, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Test Validatie · 100006 Ankerdatum: 24 aug 2026 VOORTGANG 0% 0 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Noah Hendriks · DEMO-035 Ankerdatum: 24 aug 2026 VOORTGANG 100% 1 van 1 topics TEAM Noah Hendriks, Yara Meijer VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Sophie De Vries · DEMO-002 Ankerdatum: 12 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Sophie De Vries, Edwin Testbeheerder VOLGEND MOMENT — JY-S1 03 Gepubliceerd + draft r2 Geannuleerd Noah Hendriks · DEMO-035 Ankerdatum: 15 jan 2024 VOORTGANG 0% 0 van 2 topics TEAM Noah Hendriks, Yara Meijer VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Afgerond Daan Jansen · DEMO-003 Ankerdatum: 12 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Daan Jansen, Noah Hendriks, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Gepland Noah Hendriks · DEMO-035 Ankerdatum: 1 sep 2026 VOORTGANG 0% 0 van 1 topics TEAM Noah Hendriks, Yara Meijer VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Gepauzeerd Yara Meijer · DEMO-008 Ankerdatum: 11 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Yara Meijer, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Finn De Groot · DEMO-011 Ankerdatum: 12 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Finn De Groot, Lina Bakker, Noah Hendriks VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Milan Visser · DEMO-007 Ankerdatum: 28 jun 2026 VOORTGANG 0% 0 van 2 topics TEAM Milan Visser, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Bram Van Dijk · DEMO-005 Ankerdatum: 12 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Bram Van Dijk, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Nora Smit · DEMO-004 Ankerdatum: 9 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Nora Smit, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Geannuleerd Sara Mulder · DEMO-010 Ankerdatum: 28 jul 2026 VOORTGANG 0% 0 van 2 topics TEAM Sara Mulder, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Gepland Sophie De Vries · DEMO-002 Ankerdatum: 26 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Sophie De Vries, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Afgerond Lucas De Boer · DEMO-009 Ankerdatum: 23 jul 2026 VOORTGANG 0% 0 van 2 topics TEAM Lucas De Boer, Lina Bakker VOLGEND MOMENT — SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/hr-hr-journeys-1440x1000.png"
+    },
+    {
+      "name": "hr-hr-journeys",
+      "route": "/journeys",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/journeys",
+      "navigationError": null,
+      "text": "Liquid HR Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture JOURNEYS · HR-CONFIGURATIE Journeys Volg actieve begeleiding, aankomende momenten en aandachtspunten. Journey starten Journeys zoeken Status Alle statussen Gepland Actief Gepauzeerd Afgerond Geannuleerd Alle statussen Journeys zoeken 20 journeys Stap 3 preboarding controle Gepland Test test100 · 100016 Ankerdatum: 1 okt 2026 VOORTGANG 0% 0 van 1 topics TEAM Test test100, Yara Meijer VOLGEND MOMENT Welkom 1 okt 2026 Stap 3 preboarding controle Geannuleerd Test Validatie · 100006 Ankerdatum: 25 aug 2026 VOORTGANG 100% 1 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Test Validatie · 100006 Ankerdatum: 25 aug 2026 VOORTGANG 100% 1 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Afgerond Test Validatie · 100006 Ankerdatum: 25 aug 2026 VOORTGANG 0% 0 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Test Validatie · 100006 Ankerdatum: 24 aug 2026 VOORTGANG 100% 1 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Noah Hendriks · DEMO-035 Ankerdatum: 24 aug 2026 VOORTGANG 0% 0 van 1 topics TEAM Noah Hendriks, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Test Validatie · 100006 Ankerdatum: 24 aug 2026 VOORTGANG 0% 0 van 1 topics TEAM Test Validatie, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Geannuleerd Noah Hendriks · DEMO-035 Ankerdatum: 24 aug 2026 VOORTGANG 100% 1 van 1 topics TEAM Noah Hendriks, Yara Meijer VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Sophie De Vries · DEMO-002 Ankerdatum: 12 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Sophie De Vries, Edwin Testbeheerder VOLGEND MOMENT — JY-S1 03 Gepubliceerd + draft r2 Geannuleerd Noah Hendriks · DEMO-035 Ankerdatum: 15 jan 2024 VOORTGANG 0% 0 van 2 topics TEAM Noah Hendriks, Yara Meijer VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Afgerond Daan Jansen · DEMO-003 Ankerdatum: 12 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Daan Jansen, Noah Hendriks, Yara Meijer VOLGEND MOMENT — Stap 3 preboarding controle Gepland Noah Hendriks · DEMO-035 Ankerdatum: 1 sep 2026 VOORTGANG 0% 0 van 1 topics TEAM Noah Hendriks, Yara Meijer VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Gepauzeerd Yara Meijer · DEMO-008 Ankerdatum: 11 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Yara Meijer, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Finn De Groot · DEMO-011 Ankerdatum: 12 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Finn De Groot, Lina Bakker, Noah Hendriks VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Milan Visser · DEMO-007 Ankerdatum: 28 jun 2026 VOORTGANG 0% 0 van 2 topics TEAM Milan Visser, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Bram Van Dijk · DEMO-005 Ankerdatum: 12 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Bram Van Dijk, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Actief Aandacht nodig Nora Smit · DEMO-004 Ankerdatum: 9 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Nora Smit, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Geannuleerd Sara Mulder · DEMO-010 Ankerdatum: 28 jul 2026 VOORTGANG 0% 0 van 2 topics TEAM Sara Mulder, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Gepland Sophie De Vries · DEMO-002 Ankerdatum: 26 aug 2026 VOORTGANG 0% 0 van 2 topics TEAM Sophie De Vries, Lina Bakker VOLGEND MOMENT — JY-S1 02 Gepubliceerde template Afgerond Lucas De Boer · DEMO-009 Ankerdatum: 23 jul 2026 VOORTGANG 0% 0 van 2 topics TEAM Lucas De Boer, Lina Bakker VOLGEND MOMENT — SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/hr-hr-journeys-390x844.png"
+    },
+    {
+      "name": "hr-hr-generation",
+      "route": "/document-studio/generate",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/document-studio/generate",
+      "navigationError": null,
+      "text": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture Document genereren Maak vanuit een actieve template een gecontroleerd document. Actieve template TEST DG1 Generation Acceptance · v1 TEST DG1 Generation Acceptance · v1 Medewerker Pien Acceptatie · FOCUS-PREBOARDING-20260917 Lina Bakker · DEMO-026 Lina Bakker · DEMO-046 Frans Bakker · 100008 Lina Bakker · DEMO-006 AAAAAA BBBBBBB · 100011 Frans Binnen · 100007 Frans Boer · 100005 Maya Bos · DEMO-032 Maya Bos · DEMO-012 Iris de Boer · OPS-TEST-009 Lucas De Boer · DEMO-029 Lucas De Boer · DEMO-049 Lucas De Boer · DEMO-009 Fin de Groot · TEST-VERZ-047 Finn De Groot · DEMO-031 Finn De Groot · DEMO-011 Bas de Jong · OPS-TEST-002 Sophie De Vries · DEMO-042 Sophie De Vries · DEMO-022 Sophie De Vries · DEMO-002 Lotte Dekker · DEMO-036 Lotte Dekker · DEMO-016 edwin Dingjan · 100002 Edwin Dingjan · 100001 Erik Edwards · 100010 Aylin El Amrani · DEMO-040 Aylin El Amrani · DEMO-020 Noah Hendriks · DEMO-015 Noah Hendriks · DEMO-035 Noah Hendriks · TEST-VERZ-048 Daan Jansen · DEMO-003 Daan Jansen · DEMO-023 Daan Jansen · DEMO-043 Frans Jansen · 100004 jaap jappaie · 100009 Omar Kaya · DEMO-017 Omar Kaya · DEMO-037 Joris Koster · OPS-TEST-010 Frank Kuiper · OPS-TEST-006 Timo Martens · DEMO-039 Timo Martens · DEMO-019 Yara Meijer · DEMO-008 Yara Meijer · DEMO-028 Yara Meijer · DEMO-048 Hugo Meijer · OPS-TEST-008 Sara Mulder · DEMO-010 Sara Mulder · DEMO-050 Daan Mulder · OPS-TEST-004 Sara Mulder · DEMO-030 Eric Oproeper · 100021 Eva Peters · DEMO-014 Eva Peters · DEMO-034 Eva Peters · OPS-TEST-005 Nora Smit · DEMO-004 Nora Smit · DEMO-024 Chloe Smit · OPS-TEST-003 Nora Smit · DEMO-044 Lisa Test · 100020 Jan Test · 100017 Piet Test · 100018 Frank Test · 100019 Test test100 · 100016 Edwin Testbeheerder · DEMO-001 Edwin Testbeheerder · DEMO-021 Edwin Testbeheerder · DEMO-041 Test Validatie · 100006 Bram Van Dijk · DEMO-005 Bram Van Dijk · DEMO-025 Bram Van Dijk · DEMO-045 Julia Van Leeuwen · DEMO-018 Julia Van Leeuwen · DEMO-038 Anna Vermeer · OPS-TEST-001 Milan Visser · DEMO-027 Milan Visser · DEMO-007 Milan Visser · DEMO-047 Sem Vos · DEMO-013 Sem Vos · DEMO-033 Gita Vos · OPS-TEST-007 Edwin Vries · 100003 Johan Wit · 100012 Minimaal Wizartest · 100013 Payroll Wizartest · 100015 Volledig Wizartest · 100014 Pien Acceptatie · FOCUS-PREBOARDING-20260917 Preview maken Generatiehistorie TEST DG1 Generation Acceptance · v1 Noah Hendriks · DEMO-035 Status: FINAL · Gegenereerd op: 2026-09-07T15:29:17.859939+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Yara Meijer · DEMO-028 Status: FINAL · Gegenereerd op: 2026-09-07T15:29:11.99919+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Edwin Testbeheerder · DEMO-001 Status: FINAL · Gegenereerd op: 2026-09-07T15:29:05.73481+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: FINAL · Gegenereerd op: 2026-09-04T12:14:48.580148+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: FINAL · Gegenereerd op: 2026-09-04T12:14:04.69971+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T12:10:08.366089+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T12:08:36.278702+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: FINAL · Gegenereerd op: 2026-09-04T11:16:09.820674+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:13:37.426944+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:09:43.512734+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:06:17.799245+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:05:42.894977+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:04:43.063959+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-hr-generation-1440x1000.png"
+    },
+    {
+      "name": "hr-hr-generation",
+      "route": "/document-studio/generate",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/document-studio/generate",
+      "navigationError": null,
+      "text": "Liquid HR Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture Document genereren Maak vanuit een actieve template een gecontroleerd document. Actieve template TEST DG1 Generation Acceptance · v1 TEST DG1 Generation Acceptance · v1 Medewerker Pien Acceptatie · FOCUS-PREBOARDING-20260917 Lina Bakker · DEMO-026 Lina Bakker · DEMO-046 Frans Bakker · 100008 Lina Bakker · DEMO-006 AAAAAA BBBBBBB · 100011 Frans Binnen · 100007 Frans Boer · 100005 Maya Bos · DEMO-032 Maya Bos · DEMO-012 Iris de Boer · OPS-TEST-009 Lucas De Boer · DEMO-029 Lucas De Boer · DEMO-049 Lucas De Boer · DEMO-009 Fin de Groot · TEST-VERZ-047 Finn De Groot · DEMO-031 Finn De Groot · DEMO-011 Bas de Jong · OPS-TEST-002 Sophie De Vries · DEMO-042 Sophie De Vries · DEMO-022 Sophie De Vries · DEMO-002 Lotte Dekker · DEMO-036 Lotte Dekker · DEMO-016 edwin Dingjan · 100002 Edwin Dingjan · 100001 Erik Edwards · 100010 Aylin El Amrani · DEMO-040 Aylin El Amrani · DEMO-020 Noah Hendriks · DEMO-015 Noah Hendriks · DEMO-035 Noah Hendriks · TEST-VERZ-048 Daan Jansen · DEMO-003 Daan Jansen · DEMO-023 Daan Jansen · DEMO-043 Frans Jansen · 100004 jaap jappaie · 100009 Omar Kaya · DEMO-017 Omar Kaya · DEMO-037 Joris Koster · OPS-TEST-010 Frank Kuiper · OPS-TEST-006 Timo Martens · DEMO-039 Timo Martens · DEMO-019 Yara Meijer · DEMO-008 Yara Meijer · DEMO-028 Yara Meijer · DEMO-048 Hugo Meijer · OPS-TEST-008 Sara Mulder · DEMO-010 Sara Mulder · DEMO-050 Daan Mulder · OPS-TEST-004 Sara Mulder · DEMO-030 Eric Oproeper · 100021 Eva Peters · DEMO-014 Eva Peters · DEMO-034 Eva Peters · OPS-TEST-005 Nora Smit · DEMO-004 Nora Smit · DEMO-024 Chloe Smit · OPS-TEST-003 Nora Smit · DEMO-044 Lisa Test · 100020 Jan Test · 100017 Piet Test · 100018 Frank Test · 100019 Test test100 · 100016 Edwin Testbeheerder · DEMO-001 Edwin Testbeheerder · DEMO-021 Edwin Testbeheerder · DEMO-041 Test Validatie · 100006 Bram Van Dijk · DEMO-005 Bram Van Dijk · DEMO-025 Bram Van Dijk · DEMO-045 Julia Van Leeuwen · DEMO-018 Julia Van Leeuwen · DEMO-038 Anna Vermeer · OPS-TEST-001 Milan Visser · DEMO-027 Milan Visser · DEMO-007 Milan Visser · DEMO-047 Sem Vos · DEMO-013 Sem Vos · DEMO-033 Gita Vos · OPS-TEST-007 Edwin Vries · 100003 Johan Wit · 100012 Minimaal Wizartest · 100013 Payroll Wizartest · 100015 Volledig Wizartest · 100014 Pien Acceptatie · FOCUS-PREBOARDING-20260917 Preview maken Generatiehistorie TEST DG1 Generation Acceptance · v1 Noah Hendriks · DEMO-035 Status: FINAL · Gegenereerd op: 2026-09-07T15:29:17.859939+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Yara Meijer · DEMO-028 Status: FINAL · Gegenereerd op: 2026-09-07T15:29:11.99919+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Edwin Testbeheerder · DEMO-001 Status: FINAL · Gegenereerd op: 2026-09-07T15:29:05.73481+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: FINAL · Gegenereerd op: 2026-09-04T12:14:48.580148+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: FINAL · Gegenereerd op: 2026-09-04T12:14:04.69971+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T12:10:08.366089+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T12:08:36.278702+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: FINAL · Gegenereerd op: 2026-09-04T11:16:09.820674+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Aan dossier toegevoegd PDF downloaden TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:13:37.426944+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:09:43.512734+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:06:17.799245+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:05:42.894977+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting TEST DG1 Generation Acceptance · v1 Frans Bakker · 100008 Status: PREVIEW · Gegenereerd op: 2026-09-04T11:04:43.063959+00:00 Gegenereerd door: f9157157-6527-4348-8200-57ef57e28df1 Dossier: Dossierkoppeling in afwachting SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-hr-generation-390x844.png"
+    },
+    {
+      "name": "hr-hr-distributions",
+      "route": "/document-studio/distributions",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/document-studio/distributions",
+      "navigationError": null,
+      "text": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture Documenten verspreiden Genereer één template gecontroleerd voor een geselecteerde medewerkersgroep. Document genereren Interne signing Actieve template TEST DG1 Generation Acceptance · v1 TEST DG1 Generation Acceptance · v1 Medewerkersgroep Geselecteerd: 0 Zichtbare medewerkers selecteren Selectie wissen Pien Acceptatie · FOCUS-PREBOARDING-20260917 Lina Bakker · DEMO-026 Lina Bakker · DEMO-046 Frans Bakker · 100008 Lina Bakker · DEMO-006 AAAAAA BBBBBBB · 100011 Frans Binnen · 100007 Frans Boer · 100005 Maya Bos · DEMO-032 Maya Bos · DEMO-012 Iris de Boer · OPS-TEST-009 Lucas De Boer · DEMO-029 Lucas De Boer · DEMO-049 Lucas De Boer · DEMO-009 Fin de Groot · TEST-VERZ-047 Finn De Groot · DEMO-031 Finn De Groot · DEMO-011 Bas de Jong · OPS-TEST-002 Sophie De Vries · DEMO-042 Sophie De Vries · DEMO-022 Sophie De Vries · DEMO-002 Lotte Dekker · DEMO-036 Lotte Dekker · DEMO-016 edwin Dingjan · 100002 Edwin Dingjan · 100001 Erik Edwards · 100010 Aylin El Amrani · DEMO-040 Aylin El Amrani · DEMO-020 Noah Hendriks · DEMO-015 Noah Hendriks · DEMO-035 Noah Hendriks · TEST-VERZ-048 Daan Jansen · DEMO-003 Daan Jansen · DEMO-023 Daan Jansen · DEMO-043 Frans Jansen · 100004 jaap jappaie · 100009 Omar Kaya · DEMO-017 Omar Kaya · DEMO-037 Joris Koster · OPS-TEST-010 Frank Kuiper · OPS-TEST-006 Timo Martens · DEMO-039 Timo Martens · DEMO-019 Yara Meijer · DEMO-008 Yara Meijer · DEMO-028 Yara Meijer · DEMO-048 Hugo Meijer · OPS-TEST-008 Sara Mulder · DEMO-010 Sara Mulder · DEMO-050 Daan Mulder · OPS-TEST-004 Sara Mulder · DEMO-030 Eric Oproeper · 100021 Eva Peters · DEMO-014 Eva Peters · DEMO-034 Eva Peters · OPS-TEST-005 Nora Smit · DEMO-004 Nora Smit · DEMO-024 Chloe Smit · OPS-TEST-003 Nora Smit · DEMO-044 Lisa Test · 100020 Jan Test · 100017 Piet Test · 100018 Frank Test · 100019 Test test100 · 100016 Edwin Testbeheerder · DEMO-001 Edwin Testbeheerder · DEMO-021 Edwin Testbeheerder · DEMO-041 Test Validatie · 100006 Bram Van Dijk · DEMO-005 Bram Van Dijk · DEMO-025 Bram Van Dijk · DEMO-045 Julia Van Leeuwen · DEMO-018 Julia Van Leeuwen · DEMO-038 Anna Vermeer · OPS-TEST-001 Milan Visser · DEMO-027 Milan Visser · DEMO-007 Milan Visser · DEMO-047 Sem Vos · DEMO-013 Sem Vos · DEMO-033 Gita Vos · OPS-TEST-007 Edwin Vries · 100003 Johan Wit · 100012 Minimaal Wizartest · 100013 Payroll Wizartest · 100015 Volledig Wizartest · 100014 Verspreiding starten Verspreidingshistorie Aangemaakt Status Aangevraagd Definitief Mislukt 2026-09-07T15:29:02.879528+00:00 COMPLETED 3 3 0 Openen SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-hr-distributions-1440x1000.png"
+    },
+    {
+      "name": "hr-hr-distributions",
+      "route": "/document-studio/distributions",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/document-studio/distributions",
+      "navigationError": null,
+      "text": "Liquid HR Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture Documenten verspreiden Genereer één template gecontroleerd voor een geselecteerde medewerkersgroep. Document genereren Interne signing Actieve template TEST DG1 Generation Acceptance · v1 TEST DG1 Generation Acceptance · v1 Medewerkersgroep Geselecteerd: 0 Zichtbare medewerkers selecteren Selectie wissen Pien Acceptatie · FOCUS-PREBOARDING-20260917 Lina Bakker · DEMO-026 Lina Bakker · DEMO-046 Frans Bakker · 100008 Lina Bakker · DEMO-006 AAAAAA BBBBBBB · 100011 Frans Binnen · 100007 Frans Boer · 100005 Maya Bos · DEMO-032 Maya Bos · DEMO-012 Iris de Boer · OPS-TEST-009 Lucas De Boer · DEMO-029 Lucas De Boer · DEMO-049 Lucas De Boer · DEMO-009 Fin de Groot · TEST-VERZ-047 Finn De Groot · DEMO-031 Finn De Groot · DEMO-011 Bas de Jong · OPS-TEST-002 Sophie De Vries · DEMO-042 Sophie De Vries · DEMO-022 Sophie De Vries · DEMO-002 Lotte Dekker · DEMO-036 Lotte Dekker · DEMO-016 edwin Dingjan · 100002 Edwin Dingjan · 100001 Erik Edwards · 100010 Aylin El Amrani · DEMO-040 Aylin El Amrani · DEMO-020 Noah Hendriks · DEMO-015 Noah Hendriks · DEMO-035 Noah Hendriks · TEST-VERZ-048 Daan Jansen · DEMO-003 Daan Jansen · DEMO-023 Daan Jansen · DEMO-043 Frans Jansen · 100004 jaap jappaie · 100009 Omar Kaya · DEMO-017 Omar Kaya · DEMO-037 Joris Koster · OPS-TEST-010 Frank Kuiper · OPS-TEST-006 Timo Martens · DEMO-039 Timo Martens · DEMO-019 Yara Meijer · DEMO-008 Yara Meijer · DEMO-028 Yara Meijer · DEMO-048 Hugo Meijer · OPS-TEST-008 Sara Mulder · DEMO-010 Sara Mulder · DEMO-050 Daan Mulder · OPS-TEST-004 Sara Mulder · DEMO-030 Eric Oproeper · 100021 Eva Peters · DEMO-014 Eva Peters · DEMO-034 Eva Peters · OPS-TEST-005 Nora Smit · DEMO-004 Nora Smit · DEMO-024 Chloe Smit · OPS-TEST-003 Nora Smit · DEMO-044 Lisa Test · 100020 Jan Test · 100017 Piet Test · 100018 Frank Test · 100019 Test test100 · 100016 Edwin Testbeheerder · DEMO-001 Edwin Testbeheerder · DEMO-021 Edwin Testbeheerder · DEMO-041 Test Validatie · 100006 Bram Van Dijk · DEMO-005 Bram Van Dijk · DEMO-025 Bram Van Dijk · DEMO-045 Julia Van Leeuwen · DEMO-018 Julia Van Leeuwen · DEMO-038 Anna Vermeer · OPS-TEST-001 Milan Visser · DEMO-027 Milan Visser · DEMO-007 Milan Visser · DEMO-047 Sem Vos · DEMO-013 Sem Vos · DEMO-033 Gita Vos · OPS-TEST-007 Edwin Vries · 100003 Johan Wit · 100012 Minimaal Wizartest · 100013 Payroll Wizartest · 100015 Volledig Wizartest · 100014 Verspreiding starten Verspreidingshistorie Aangemaakt Status Aangevraagd Definitief Mislukt 2026-09-07T15:29:02.879528+00:00 COMPLETED 3 3 0 Openen SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-hr-distributions-390x844.png"
+    },
+    {
+      "name": "hr-hr-signing",
+      "route": "/document-studio/signing",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/document-studio/signing",
+      "navigationError": null,
+      "text": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture Interne signing Bereid interne signing voor en volg de status per medewerker. Documenten verspreiden Signingverzoeken Medewerker Status Provider Aangemaakt c6b1c7a9-c250-3d19-b1a0-87e317e80b13 SIGNED INTERNAL 2026-09-07T15:32:51.45303+00:00 6f2e2302-748f-8684-0ce6-1b29702d5d92 PENDING INTERNAL 2026-09-07T15:32:50.734723+00:00 SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-hr-signing-1440x1000.png"
+    },
+    {
+      "name": "hr-hr-signing",
+      "route": "/document-studio/signing",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/document-studio/signing",
+      "navigationError": null,
+      "text": "Liquid HR Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture Interne signing Bereid interne signing voor en volg de status per medewerker. Documenten verspreiden Signingverzoeken Medewerker Status Provider Aangemaakt c6b1c7a9-c250-3d19-b1a0-87e317e80b13 SIGNED INTERNAL 2026-09-07T15:32:51.45303+00:00 6f2e2302-748f-8684-0ce6-1b29702d5d92 PENDING INTERNAL 2026-09-07T15:32:50.734723+00:00 SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/hr-hr-signing-390x844.png"
+    },
+    {
+      "name": "hr-hr-hours",
+      "route": "/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "navigationError": null,
+      "text": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture Werkelijke uren · 2026-09 Leg gewerkte, aanvullende en overuren vast als canonieke HR-feiten. Transparante typen zijn alleen informatief. · Noah Hendriks Terug naar medewerker ← 2026-08 2026-10 → Urenregistraties 0 · 2026-09 Periode-status: Open Nog geen urenregistraties in deze periode. Effectief rooster 2024-01-15 → ∞ Deeltijdfactor 1 Uren per week 40 Nieuwe registratie Type uren Type uren AW_WORK · Gewerkte uren · Werk AW_ADDITIONAL · Aanvullende uren deeltijd · Aanvullend AW_OVERTIME · Overwerk Actual Work · Overwerk AW_TRANSPARENT · Thuiswerk informatief · Transparant AW_TRANSPARENT_FUTURE · Opleiding informatief · Transparant AW_WORK · Gewerkte uren · Werk Registratieniveau Dag Periode Dag Werkdatum Uren Toelichting Opslaan SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/hr-hr-hours-1440x1000.png"
+    },
+    {
+      "name": "hr-hr-hours",
+      "route": "/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "navigationError": null,
+      "text": "Liquid HR Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Startpagina Werk Kalender MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Journeys Onderzoeken STUREN Inzichten BEHEER Instellingen Document Studio hradmin.fixture Werkelijke uren · 2026-09 Leg gewerkte, aanvullende en overuren vast als canonieke HR-feiten. Transparante typen zijn alleen informatief. · Noah Hendriks Terug naar medewerker ← 2026-08 2026-10 → Urenregistraties 0 · 2026-09 Periode-status: Open Nog geen urenregistraties in deze periode. Effectief rooster 2024-01-15 → ∞ Deeltijdfactor 1 Uren per week 40 Nieuwe registratie Type uren Type uren AW_WORK · Gewerkte uren · Werk AW_ADDITIONAL · Aanvullende uren deeltijd · Aanvullend AW_OVERTIME · Overwerk Actual Work · Overwerk AW_TRANSPARENT · Thuiswerk informatief · Transparant AW_TRANSPARENT_FUTURE · Opleiding informatief · Transparant AW_WORK · Gewerkte uren · Werk Registratieniveau Dag Periode Dag Werkdatum Uren Toelichting Opslaan SETUP",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/hr-hr-hours-390x844.png"
+    },
+    {
+      "name": "manager-manager-focus",
+      "route": "/focus",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus",
+      "navigationError": null,
+      "text": "Focus Overzicht Mijn documenten Mijn verlof Mijn uren Mijn aanvragen Mijn werk Mijn team Hallo Yara Meijer 21 september 2026 Focus Volledige omgeving Mijn Focus · leidinggevende Je persoonlijke zaken en de acties voor je team bij elkaar. Team in beeld Mijn werk Ziek in mijn team Niemand in je team is momenteel ziek. Op vakantie deze week Niemand in je team heeft deze week vakantie. Je volgende stap Nog geen journey beschikbaar Een toegewezen journey en je volgende stap verschijnen hier zodra ze beschikbaar zijn. Snel naar Mijn documenten Documenten en ondertekeningen voor jou. Mijn verlof Je saldo en verlofaanvragen. Mijn uren Je verwachte en geregistreerde uren deze week. Mijn aanvragen De voortgang van je aanvragen. Mijn werk Taken die jouw aandacht vragen. Mijn team Je team in de organisatie.",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/manager-manager-focus-1440x1000.png"
+    },
+    {
+      "name": "manager-manager-focus",
+      "route": "/focus",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus",
+      "navigationError": null,
+      "text": "Focus Hallo Yara Meijer 21 september 2026 Focus Volledige omgeving Mijn Focus · leidinggevende Je persoonlijke zaken en de acties voor je team bij elkaar. Team in beeld Mijn werk Ziek in mijn team Niemand in je team is momenteel ziek. Op vakantie deze week Niemand in je team heeft deze week vakantie. Je volgende stap Nog geen journey beschikbaar Een toegewezen journey en je volgende stap verschijnen hier zodra ze beschikbaar zijn. Snel naar Mijn documenten Documenten en ondertekeningen voor jou. Mijn verlof Je saldo en verlofaanvragen. Mijn uren Je verwachte en geregistreerde uren deze week. Mijn aanvragen De voortgang van je aanvragen. Mijn werk Taken die jouw aandacht vragen. Mijn team Je team in de organisatie. Overzicht Werk Team Aanvragen Meer",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/manager-manager-focus-390x844.png"
+    },
+    {
+      "name": "manager-manager-focus-documents",
+      "route": "/focus/documenten",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/documenten",
+      "navigationError": null,
+      "text": "Focus Overzicht Mijn documenten Mijn verlof Mijn uren Mijn aanvragen Mijn werk Mijn team Terug naar Focus Mijn documenten Documenten en ondertekeningen voor jou. TEST DG1 Generation Acceptance Toegevoegd op: 2026-09-07",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/manager-manager-focus-documents-1440x1000.png"
+    },
+    {
+      "name": "manager-manager-focus-documents",
+      "route": "/focus/documenten",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/documenten",
+      "navigationError": null,
+      "text": "Focus Terug naar Focus Mijn documenten Documenten en ondertekeningen voor jou. TEST DG1 Generation Acceptance Toegevoegd op: 2026-09-07 Overzicht Werk Team Aanvragen Meer",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/manager-manager-focus-documents-390x844.png"
+    },
+    {
+      "name": "manager-manager-team",
+      "route": "/actual-work/team",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/geen-toegang",
+      "navigationError": null,
+      "text": "LIQUID HR Nog geen toegang Je account is ingelogd, maar nog niet aan een klantomgeving gekoppeld. Vraag de HR-beheerder die je heeft uitgenodigd om je toegang te controleren. Uitloggen",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/manager-manager-team-1440x1000.png"
+    },
+    {
+      "name": "manager-manager-team",
+      "route": "/actual-work/team",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/geen-toegang",
+      "navigationError": null,
+      "text": "LIQUID HR Nog geen toegang Je account is ingelogd, maar nog niet aan een klantomgeving gekoppeld. Vraag de HR-beheerder die je heeft uitgenodigd om je toegang te controleren. Uitloggen",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/manager-manager-team-390x844.png"
+    },
+    {
+      "name": "employee-employee-focus",
+      "route": "/focus",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus",
+      "navigationError": null,
+      "text": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Mijn verlof Mijn uren Ziek melden Mijn aanvragen Mijn werk Mijn team Hallo Noah Hendriks 21 september 2026 Focus Volledige omgeving Mijn Focus Je volgende stap en je belangrijkste zaken bij elkaar. Je volgende stap JY-S1 02 Gepubliceerde template Stap voor stap verder met jouw voorbereiding en ontwikkeling. Actief Voortgang 0 van 0 afgerond Er staat nu geen volgende actie voor je klaar. Bekijk je journey Snel naar Mijn onboarding Je voorbereiding en volgende stappen. Mijn profiel Je persoonlijke gegevens. Mijn documenten Documenten en ondertekeningen voor jou. Mijn verlof Je saldo en verlofaanvragen. Mijn uren Je verwachte en geregistreerde uren deze week. Ziek melden Meld je eerste ziektedag aan je manager. Mijn aanvragen De voortgang van je aanvragen. Mijn werk Taken die jouw aandacht vragen. Mijn team Je team in de organisatie.",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/employee-employee-focus-1440x1000.png"
+    },
+    {
+      "name": "employee-employee-focus",
+      "route": "/focus",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus",
+      "navigationError": null,
+      "text": "Focus Hallo Noah Hendriks 21 september 2026 Focus Volledige omgeving Mijn Focus Je volgende stap en je belangrijkste zaken bij elkaar. Je volgende stap JY-S1 02 Gepubliceerde template Stap voor stap verder met jouw voorbereiding en ontwikkeling. Actief Voortgang 0 van 0 afgerond Er staat nu geen volgende actie voor je klaar. Bekijk je journey Snel naar Mijn onboarding Je voorbereiding en volgende stappen. Mijn profiel Je persoonlijke gegevens. Mijn documenten Documenten en ondertekeningen voor jou. Mijn verlof Je saldo en verlofaanvragen. Mijn uren Je verwachte en geregistreerde uren deze week. Ziek melden Meld je eerste ziektedag aan je manager. Mijn aanvragen De voortgang van je aanvragen. Mijn werk Taken die jouw aandacht vragen. Mijn team Je team in de organisatie. Overzicht Werk Team Aanvragen Meer",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/employee-employee-focus-390x844.png"
+    },
+    {
+      "name": "employee-employee-onboarding",
+      "route": "/focus/onboarding",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/onboarding",
+      "navigationError": null,
+      "text": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Mijn verlof Mijn uren Ziek melden Mijn aanvragen Mijn werk Mijn team Terug naar Focus Mijn onboarding Je voorbereiding en volgende stappen. JY-S1 02 Gepubliceerde template Stap voor stap verder met jouw voorbereiding en ontwikkeling. Actief Voortgang 0 van 0 afgerond Er staat nu geen volgende actie voor je klaar. Bekijk je journey",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/employee-employee-onboarding-1440x1000.png"
+    },
+    {
+      "name": "employee-employee-onboarding",
+      "route": "/focus/onboarding",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/onboarding",
+      "navigationError": null,
+      "text": "Focus Terug naar Focus Mijn onboarding Je voorbereiding en volgende stappen. JY-S1 02 Gepubliceerde template Stap voor stap verder met jouw voorbereiding en ontwikkeling. Actief Voortgang 0 van 0 afgerond Er staat nu geen volgende actie voor je klaar. Bekijk je journey Overzicht Werk Team Aanvragen Meer",
+      "screenshot": ".artifacts/golden-journeys-20260920/onboarding/employee-employee-onboarding-390x844.png"
+    },
+    {
+      "name": "employee-employee-documents",
+      "route": "/focus/documenten",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/documenten",
+      "navigationError": null,
+      "text": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Mijn verlof Mijn uren Ziek melden Mijn aanvragen Mijn werk Mijn team Terug naar Focus Mijn documenten Documenten en ondertekeningen voor jou. TEST DG1 Generation Acceptance Toegevoegd op: 2026-09-07 Bevestiging documentkennisname Toegevoegd op: 2026-08-27 Dossier interne overplaatsing Toegevoegd op: 2026-08-27 R5-TEST — Employee acknowledgement completed Toegevoegd op: 2026-08-27 R5-TEST — Employee acknowledgement open Toegevoegd op: 2026-08-27 Dossier interne overplaatsing Toegevoegd op: 2026-08-26 Dossier interne overplaatsing Toegevoegd op: 2026-08-10",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/employee-employee-documents-1440x1000.png"
+    },
+    {
+      "name": "employee-employee-documents",
+      "route": "/focus/documenten",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/documenten",
+      "navigationError": null,
+      "text": "Focus Terug naar Focus Mijn documenten Documenten en ondertekeningen voor jou. TEST DG1 Generation Acceptance Toegevoegd op: 2026-09-07 Bevestiging documentkennisname Toegevoegd op: 2026-08-27 Dossier interne overplaatsing Toegevoegd op: 2026-08-27 R5-TEST — Employee acknowledgement completed Toegevoegd op: 2026-08-27 R5-TEST — Employee acknowledgement open Toegevoegd op: 2026-08-27 Dossier interne overplaatsing Toegevoegd op: 2026-08-26 Dossier interne overplaatsing Toegevoegd op: 2026-08-10 Overzicht Werk Team Aanvragen Meer",
+      "screenshot": ".artifacts/golden-journeys-20260920/documents/employee-employee-documents-390x844.png"
+    },
+    {
+      "name": "employee-employee-hours",
+      "route": "/focus/uren",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/uren",
+      "navigationError": null,
+      "text": "Focus Overzicht Mijn onboarding Mijn profiel Mijn documenten Mijn verlof Mijn uren Ziek melden Mijn aanvragen Mijn werk Mijn team Terug naar Focus Mijn uren Je verwachte en geregistreerde uren deze week. Verwacht / Geregistreerd 40 / 0 uur maandag 21 sep Verwacht: 8 uur Geregistreerd: 0 uur Actie nodig dinsdag 22 sep Verwacht: 8 uur Geregistreerd: 0 uur Bijgewerkt woensdag 23 sep Verwacht: 8 uur Geregistreerd: 0 uur Bijgewerkt donderdag 24 sep Verwacht: 8 uur Geregistreerd: 0 uur Bijgewerkt vrijdag 25 sep Verwacht: 8 uur Geregistreerd: 0 uur Bijgewerkt zaterdag 26 sep Verwacht: 0 uur Geregistreerd: 0 uur Bijgewerkt zondag 27 sep Verwacht: 0 uur Geregistreerd: 0 uur Bijgewerkt",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/employee-employee-hours-1440x1000.png"
+    },
+    {
+      "name": "employee-employee-hours",
+      "route": "/focus/uren",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/focus/uren",
+      "navigationError": null,
+      "text": "Focus Terug naar Focus Mijn uren Je verwachte en geregistreerde uren deze week. Verwacht / Geregistreerd 40 / 0 uur maandag 21 sep Verwacht: 8 uur Geregistreerd: 0 uur Actie nodig dinsdag 22 sep Verwacht: 8 uur Geregistreerd: 0 uur Bijgewerkt woensdag 23 sep Verwacht: 8 uur Geregistreerd: 0 uur Bijgewerkt donderdag 24 sep Verwacht: 8 uur Geregistreerd: 0 uur Bijgewerkt vrijdag 25 sep Verwacht: 8 uur Geregistreerd: 0 uur Bijgewerkt zaterdag 26 sep Verwacht: 0 uur Geregistreerd: 0 uur Bijgewerkt zondag 27 sep Verwacht: 0 uur Geregistreerd: 0 uur Bijgewerkt Overzicht Werk Team Aanvragen Meer",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/employee-employee-hours-390x844.png"
+    },
+    {
+      "name": "employee-employee-direct-hours",
+      "route": "/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "navigationError": null,
+      "text": "Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Werk MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Onderzoeken Noah Werkelijke uren · 2026-09 Leg gewerkte, aanvullende en overuren vast als canonieke HR-feiten. Transparante typen zijn alleen informatief. · Noah Hendriks Terug naar medewerker ← 2026-08 2026-10 → Urenregistraties 0 · 2026-09 Periode-status: Open Nog geen urenregistraties in deze periode. Effectief rooster 2024-01-15 → ∞ Deeltijdfactor 1 Uren per week 40 Nieuwe registratie Type uren Er zijn geen actieve uren-typen beschikbaar.",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/employee-employee-direct-hours-1440x1000.png"
+    },
+    {
+      "name": "employee-employee-direct-hours",
+      "route": "/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/hours?month=2026-09",
+      "navigationError": null,
+      "text": "Liquid HR Liquid HR Planeten Stap 6 testgroep meerdere autorisaties TEST (leeg) Planeten DAGELIJKS Werk MENSEN & ORGANISATIE Medewerkers Organogram Ontwikkeling HR-PROCESSEN Sollicitaties Onderzoeken Noah Werkelijke uren · 2026-09 Leg gewerkte, aanvullende en overuren vast als canonieke HR-feiten. Transparante typen zijn alleen informatief. · Noah Hendriks Terug naar medewerker ← 2026-08 2026-10 → Urenregistraties 0 · 2026-09 Periode-status: Open Nog geen urenregistraties in deze periode. Effectief rooster 2024-01-15 → ∞ Deeltijdfactor 1 Uren per week 40 Nieuwe registratie Type uren Er zijn geen actieve uren-typen beschikbaar.",
+      "screenshot": ".artifacts/golden-journeys-20260920/actual-work/employee-employee-direct-hours-390x844.png"
+    }
+  ],
+  "api": [
+    {
+      "name": "hr-preboarding-preview",
+      "status": 201,
+      "body": {
+        "data": {
+          "employeeId": "a6ef0ba0-440b-4b3d-8bf5-f7ef07f7baa5"
+        }
+      }
+    }
+  ]
+}
