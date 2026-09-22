@@ -31,7 +31,7 @@ import { TestRoleSwitcher, type TestRoleSwitchOption } from '@/components/layout
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
 import { ProductUpdateDrawerTrigger, type ProductUpdateSurfaceLabels } from '@/components/product-updates/product-update-surfaces'
 import type { ProductUpdate } from '@/lib/product-updates/service'
-import { buildSidebarSections, normalizeSidebarMenuOrder } from '@/components/layout/sidebar-navigation'
+import { buildSidebarSections, normalizeSidebarMenuOrder, type RecruitmentNavigationHref } from '@/components/layout/sidebar-navigation'
 import type {
   HrGroupContextOption,
   HrGroupSwitcherMode,
@@ -85,6 +85,7 @@ interface SidebarProps {
   canReadInsights: boolean
   canOpenResearch: boolean
   canReadRecruitment: boolean
+  recruitmentHref: RecruitmentNavigationHref
   canReadJourneys: boolean
   canReadDocumentStudio: boolean
   labels: SidebarLabels
@@ -123,6 +124,7 @@ export function Sidebar({
   canReadInsights,
   canOpenResearch,
   canReadRecruitment,
+  recruitmentHref,
   canReadJourneys,
   canReadDocumentStudio,
   labels,
@@ -156,7 +158,7 @@ export function Sidebar({
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
     { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: canReadOrganizationChart },
     { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: canReadWorkforce },
-    { href: '/recruitment', label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
+    { href: recruitmentHref, label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
     { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
     { href: '/document-studio', label: labels.documentStudio, icon: FileStack, visible: canReadDocumentStudio },
     { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch },

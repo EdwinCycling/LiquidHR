@@ -4,7 +4,7 @@ import { RecruitmentOverviewDashboard, type RecruitmentOverviewLabels } from './
 
 const labels: RecruitmentOverviewLabels = {
   eyebrow: 'Sollicitaties',
-  title: 'Recruitment',
+  title: 'Sollicitaties',
   description: 'Beschrijving',
   newVacancy: 'Nieuwe vacature',
   summaryTitle: 'Kerncijfers',
@@ -54,6 +54,7 @@ describe('RecruitmentOverviewDashboard', () => {
     )
 
     expect(html).toContain('Er zijn nog geen vacatures')
+    expect(html).toContain('<h1 class="text-2xl font-semibold tracking-tight text-foreground">Sollicitaties</h1>')
     expect(html).toContain('Geen kandidaatrecht')
     expect(html).not.toContain('/recruitment/vacancies/new')
   })

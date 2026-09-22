@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSidebarSections, normalizeSidebarMenuOrder } from './sidebar-navigation'
+import { buildSidebarSections, getRecruitmentNavigationHref, normalizeSidebarMenuOrder } from './sidebar-navigation'
 
 describe('sidebar navigation contract', () => {
   const labels = {
@@ -59,5 +59,11 @@ describe('sidebar navigation contract', () => {
       '/dashboard', '/insights', '/product-updates', '/insights', '/not-a-route', '/settings', 42,
     ])).toEqual(['/insights', '/settings'])
     expect(normalizeSidebarMenuOrder('not-an-array')).toEqual([])
+  })
+
+  it('routes recruitment participants to their assigned-only surface', () => {
+    expect(getRecruitmentNavigationHref(true, ['recruitment-participation:read'])).toBe('/recruitment/assigned')
+    expect(getRecruitmentNavigationHref(true, ['recruitment-participation:read', 'recruitment-candidate:read'])).toBe('/recruitment')
+    expect(getRecruitmentNavigationHref(false, ['recruitment-candidate:read'])).toBeNull()
   })
 })

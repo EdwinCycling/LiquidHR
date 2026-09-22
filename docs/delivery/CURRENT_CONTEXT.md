@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## F02 Acceptance — 2026-09-22
+
+**Status: PARTIAL / PRODUCT_DECISION — navigation/help acceptance completed on dedicated DEV branch**
+
+- F02 ran from clean `origin/main` `5c1191b3907d56622deb7c3d3c12a6012785b8c6` on `work/acceptance-F02-20260922`; DEV only, no Production action, deploy, merge or database schema change.
+- Full-mode, Focus, Settings, help, onboarding, persistence, negative authorization and `390x844` responsive surfaces were exercised. Preboarding and separate Manager-out authentication remained environment-gated without inventing identities.
+- Fixed and regression-tested the Manager recruitment destination mismatch (`/recruitment/assigned` versus overview `/recruitment`) and aligned the Dutch overview title to `Sollicitaties`.
+- Quality gate: targeted regressions, strict TypeScript, ESLint, i18n parity, 438 Vitest files / 1,718 tests, Next build 296/296 and diff-check are GREEN. Detailed evidence is under the F02 artifact run directory.
+- The only open boundary is the literal `Niet meer tonen` control named by the F02 specification; the existing group-level `Setup Assistent tonen` hide/re-enable switch was tested and restored enabled, but equivalence requires product decision.
+
 ## Final consolidation — 2026-09-21
 
 **Status: PARTIAL / REVIEW REQUIRED — Acceptance Library geïntegreerd; bredere worktree-cleanup afgebroken na protected-state incident**

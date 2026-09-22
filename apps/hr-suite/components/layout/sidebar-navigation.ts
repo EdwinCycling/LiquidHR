@@ -1,14 +1,33 @@
 export type SidebarSectionId = 'daily' | 'peopleOrganization' | 'hrProcesses' | 'steering' | 'management'
 
+export type RecruitmentNavigationHref = '/recruitment' | '/recruitment/assigned'
+
+const RECRUITMENT_OVERVIEW_PERMISSIONS = [
+  'recruitment-vacancy:read',
+  'recruitment-candidate:read',
+  'recruitment-assessment:read',
+  'recruitment-settings:manage',
+] as const
+
 export const SIDEBAR_SECTION_DEFINITIONS: readonly { id: SidebarSectionId; hrefs: readonly string[] }[] = [
   { id: 'daily', hrefs: ['/dashboard/start', '/work', '/hr-calendar'] },
   { id: 'peopleOrganization', hrefs: ['/employees', '/organization-chart', '/workforce'] },
-  { id: 'hrProcesses', hrefs: ['/recruitment', '/journeys', '/research'] },
+  { id: 'hrProcesses', hrefs: ['/recruitment', '/recruitment/assigned', '/journeys', '/research'] },
   { id: 'steering', hrefs: ['/insights'] },
   { id: 'management', hrefs: ['/settings', '/document-studio'] },
 ]
 
 export const SIDEBAR_MENU_HREFS = SIDEBAR_SECTION_DEFINITIONS.flatMap((section) => section.hrefs)
+
+export function getRecruitmentNavigationHref(
+  recruitmentModuleEnabled: boolean,
+  permissions: readonly string[],
+): RecruitmentNavigationHref | null {
+  if (!recruitmentModuleEnabled) return null
+  if (permissions.some((permission) => RECRUITMENT_OVERVIEW_PERMISSIONS.includes(permission as (typeof RECRUITMENT_OVERVIEW_PERMISSIONS)[number]))) return '/recruitment'
+  if (permissions.includes('recruitment-participation:read')) return '/recruitment/assigned'
+  return null
+}
 
 export function normalizeSidebarMenuOrder(value: unknown): string[] {
   if (!Array.isArray(value)) return []
