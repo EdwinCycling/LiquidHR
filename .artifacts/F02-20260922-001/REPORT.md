@@ -93,7 +93,7 @@ No unresolved authorization or routing defect remains from the exercised surface
 
 ## 14. Commits/Remote Head
 
-The dedicated branch is `work/acceptance-F02-20260922`, based on `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. Final local and remote head: `5a59bcedadee1118b1bca003c77a54756ba56761`. The branch was pushed normally to `origin`; no merge was performed.
+The dedicated branch is `work/acceptance-F02-20260922`, based on `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. The acceptance payload and reporting commits were pushed normally to `origin`; the last verified remote head before this final report-only update was `28354942d2e217aa4278f2237e1445aa2cb35d3e`. The exact final branch tip is printed in the acceptance response because this report is itself part of the branch history. No merge was performed.
 
 No merge to `main`, Production deploy or Production mutation was performed.
 

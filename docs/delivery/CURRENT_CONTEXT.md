@@ -8,7 +8,7 @@
 - Full-mode, Focus, Settings, help, onboarding, persistence, negative authorization and `390x844` responsive surfaces were exercised. Preboarding and separate Manager-out authentication remained environment-gated without inventing identities.
 - Fixed and regression-tested the Manager recruitment destination mismatch (`/recruitment/assigned` versus overview `/recruitment`) and aligned the Dutch overview title to `Sollicitaties`.
 - Quality gate: targeted regressions, strict TypeScript, ESLint, i18n parity, 438 Vitest files / 1,718 tests, Next build 296/296 and diff-check are GREEN. Detailed evidence is under the F02 artifact run directory.
-- The dedicated branch was pushed normally; final remote head is `5a59bcedadee1118b1bca003c77a54756ba56761`. Textual inventory/reporting is committed; DEV screenshots remain local-only because they contain persona/organization context.
+- The dedicated branch was pushed normally; the last verified pre-finalization remote head is `28354942d2e217aa4278f2237e1445aa2cb35d3e`. Textual inventory/reporting is committed; DEV screenshots remain local-only because they contain persona/organization context. The exact final branch tip is recorded in the acceptance response.
 - The only open boundary is the literal `Niet meer tonen` control named by the F02 specification; the existing group-level `Setup Assistent tonen` hide/re-enable switch was tested and restored enabled, but equivalence requires product decision.
 
 ## Final consolidation — 2026-09-21
