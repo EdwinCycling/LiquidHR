@@ -8,6 +8,7 @@ This log contains only known historical outcomes. Detailed screenshots, traces a
 | GJ01 | PARTIAL / EXTERNAL_BLOCKER | HR journey, preview, restrictions and responsive checks | Authenticated future Employee leg; DEV Auth mail delivery returned HTTP 502 |
 | GJ02 | GREEN | Canonical batch → snapshot → dossier → signing → SIGNED lifecycle | DOC02 rendering follow-up |
 | GJ03 | GREEN | Employee Actual Work create/edit through canonical service/RPC/RLS | AW02 rules/concurrency follow-up |
+| T01-20260922-193129 | GREEN acceptance / PARTIAL delivery | DEV Survey, Team Compass personality and 9-grid lifecycle, persistence, scoring, privacy, negative and responsive checks; local quality gates green | Normal branch push blocked by Git credential error `SEC_E_NO_CREDENTIALS`; retry push only after credentials recover |
 | T01/F01/F02/F03/S01/T02/R01/P01/F04/F05/I01 | READY | Specification prepared; not executed by this library pass | Future isolated acceptance runs |
 | GJ01R | WAITING_FOR_DEV_MAIL | Follow-up scope specified; not executed here | DEV mail dependency |
 | DOC02/AW02 | READY | Follow-up scope specified; not executed here | Dedicated fixture gate |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateCampaignReminderAt, canManagerAccessReviewSubject, deriveGridCell, movementDirection } from './rules'
+import { calculateCampaignReminderAt, canEditTalentReviewAssignment, canManagerAccessReviewSubject, deriveGridCell, movementDirection } from './rules'
 
 describe('talent review rules', () => {
   it('uses seven days before the deadline when that is after the campaign start', () => {
@@ -26,5 +26,12 @@ describe('talent review rules', () => {
   it('never exposes the manager as a review subject, even when the organization says they manage themselves', () => {
     expect(canManagerAccessReviewSubject('employee-1', 'employee-2')).toBe(true)
     expect(canManagerAccessReviewSubject('employee-1', 'employee-1')).toBe(false)
+  })
+
+  it('locks submitted assignments while allowing draft and returned work to be edited', () => {
+    expect(canEditTalentReviewAssignment('DRAFT')).toBe(true)
+    expect(canEditTalentReviewAssignment('NOT_STARTED')).toBe(true)
+    expect(canEditTalentReviewAssignment('RETURNED')).toBe(true)
+    expect(canEditTalentReviewAssignment('SUBMITTED')).toBe(false)
   })
 })

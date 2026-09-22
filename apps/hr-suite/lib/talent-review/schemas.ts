@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 import { GRID_VALUES } from './rules'
 
-const uuid = z.string().uuid()
+const uuid = databaseUuid
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const gridValue = z.enum(GRID_VALUES)
 
