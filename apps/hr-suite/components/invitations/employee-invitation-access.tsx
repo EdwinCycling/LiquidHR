@@ -1,10 +1,12 @@
 'use client'
 
-import { Eye, LockKeyhole, Mail, RefreshCw, Send, ShieldCheck, UnlockKeyhole, X } from 'lucide-react'
+import { Eye, Mail, RefreshCw, Send, ShieldCheck, Trash2, UnlockKeyhole, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { Badge, type BadgeTone } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
 import { Surface } from '@/components/ui/surface'
 import type { EmployeeInvitationAccess } from '@/lib/auth/invitation-management'
 import type { InvitationLifecycleStatus } from '@/lib/auth/invitation-lifecycle'
@@ -35,6 +37,9 @@ export interface EmployeeInvitationAccessLabels {
   working: string
   actionFailed: string
   actionDone: string
+  cancel: string
+  blockConfirmTitle: string
+  blockConfirmDescription: string
   lastLogin: string
   neverLoggedIn: string
   block: string
@@ -84,6 +89,7 @@ export function EmployeeInvitationAccess({
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [blockOpen, setBlockOpen] = useState(false)
 
   async function runAction(action: 'send' | 'resend' | 'revoke' | 'block' | 'unblock' | 'preview'): Promise<void> {
     if (busy) return
@@ -115,6 +121,7 @@ export function EmployeeInvitationAccess({
           : await fetch(`/api/invitations/${access.invitationId}/${action}`, { method: 'POST' })
       if (!response.ok) throw new Error('INVITATION_ACTION_FAILED')
       setMessage(labels.actionDone)
+      if (action === 'block') setBlockOpen(false)
       router.refresh()
     } catch {
       setMessage(action === 'preview' ? labels.previewFailed : labels.actionFailed)
@@ -133,8 +140,8 @@ export function EmployeeInvitationAccess({
         <Badge tone={statusTone(access.status)}>{statusLabel(access.status, labels)}</Badge>
       </div>
       <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.recipient}</dt><dd className="mt-1 flex min-w-0 items-center gap-2 break-words"><Mail aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />{access.recipientEmail ?? labels.noEmail}</dd></div>
-        <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.purpose}</dt><dd className="mt-1">{purposeLabel(access.invitationPurpose, access.invitationEligibility === 'ELIGIBLE', labels)}</dd></div>
+        <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.recipient}</dt><dd className="mt-1 flex min-w-0 items-start gap-2"><Mail aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><span className="min-w-0 break-all">{access.recipientEmail ?? labels.noEmail}</span></dd></div>
+        <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.purpose}</dt><dd className="mt-1 break-words">{purposeLabel(access.invitationPurpose, access.invitationEligibility === 'ELIGIBLE', labels)}</dd></div>
         <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.status}</dt><dd className="mt-1">{statusLabel(access.status, labels)}</dd></div>
         <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.lastLogin}</dt><dd className="mt-1">{access.lastLoginAt ? dateLabel(access.lastLoginAt, locale) : labels.neverLoggedIn}</dd></div>
       </dl>
@@ -144,11 +151,12 @@ export function EmployeeInvitationAccess({
         {access.canSend ? <Button disabled={busy || access.recipientEmail === null} loading={busy} onClick={() => void runAction('send')} size="sm" type="button"><Send aria-hidden="true" />{labels.send}</Button> : null}
         {access.canResend && access.invitationId ? <Button disabled={busy} loading={busy} onClick={() => void runAction('resend')} size="sm" type="button" variant="secondary"><RefreshCw aria-hidden="true" />{labels.resend}</Button> : null}
         {access.status === 'INVITED' && access.invitationId ? <Button disabled={busy} onClick={() => void runAction('revoke')} size="sm" type="button" variant="ghost"><X aria-hidden="true" />{labels.revoke}</Button> : null}
-        {access.canBlock ? <Button disabled={busy} onClick={() => void runAction('block')} size="sm" type="button" variant="danger"><LockKeyhole aria-hidden="true" />{labels.block}</Button> : null}
+        {access.canBlock ? <IconButton aria-busy={busy || undefined} disabled={busy} label={labels.block} onClick={() => setBlockOpen(true)} size="sm" title={labels.block} variant="ghost" className="border border-border/70 text-destructive hover:bg-destructive-surface hover:text-destructive"><Trash2 aria-hidden="true" /></IconButton> : null}
         {access.canUnblock ? <Button disabled={busy} onClick={() => void runAction('unblock')} size="sm" type="button" variant="secondary"><UnlockKeyhole aria-hidden="true" />{labels.unblock}</Button> : null}
         {access.canPreview ? <Button disabled={busy} onClick={() => void runAction('preview')} size="sm" type="button" variant="ghost"><Eye aria-hidden="true" />{labels.preview}</Button> : null}
       </div>
       {message ? <p aria-live="polite" className="text-sm text-muted-foreground">{message}</p> : null}
+      <ConfirmDialog cancelLabel={labels.cancel} confirmLabel={labels.block} description={labels.blockConfirmDescription} destructive onConfirm={() => runAction('block')} onOpenChange={setBlockOpen} open={blockOpen} pending={busy} title={labels.blockConfirmTitle} />
     </Surface>
   )
 }

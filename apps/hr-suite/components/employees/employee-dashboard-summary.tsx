@@ -44,7 +44,7 @@ export function EmployeeDashboardSummary({ detail, labels, today }: { detail: Em
         <SummaryDataPoint label={labels.privatePhone} value={employee.privatePhone ?? employee.privateMobile ?? labels.noContact} />
         <SummaryDataPoint label={labels.address} value={currentAddress ? `${currentAddress.addressLine1}, ${currentAddress.postalCode ?? ''} ${currentAddress.city}` : labels.noAddress} />
       </dl>
-      {primaryBank || emergencyContacts.length > 0 ? <div className="mt-6 grid gap-3 border-t border-border/70 pt-5 sm:grid-cols-2">
+      {primaryBank || emergencyContacts.length > 0 ? <div className={`mt-6 border-t border-border/70 pt-5 ${primaryBank && emergencyContacts.length > 0 ? 'grid gap-3 sm:grid-cols-2' : ''}`}>
         {primaryBank ? <SummaryFact icon={<WalletCards aria-hidden="true" className="h-4 w-4" />} label={labels.contact} value={`${primaryBank.maskedIban} · ${primaryBank.accountHolder}`} /> : null}
         {emergencyContacts.length > 0 ? <SummaryFact icon={<ShieldAlert aria-hidden="true" className="h-4 w-4" />} label={labels.privateContact} value={emergencyContacts.slice(0, 2).map((contact) => `${contact.firstName ?? ''} ${contact.lastName}`).join(', ')} /> : null}
       </div> : null}
