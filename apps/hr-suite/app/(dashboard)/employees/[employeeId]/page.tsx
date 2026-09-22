@@ -246,20 +246,20 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             </div>
             <div className="flex shrink-0 items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} locale={locale} weather={workWeather} /><Link aria-label={tEmployees('expand')} href={`/employees/${employeeId}?tab=${tab}&view=expanded`} prefetch={false} title={tEmployees('expand')} className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"><Maximize2 aria-hidden="true" size={18} /></Link></div>
           </div><EmployeeCalendarHeader items={calendarHeader} locale={locale} labels={{ holiday: tEmployees('nextHoliday'), activity: tEmployees('nextCompanyActivity') }} /></> : <>
-            <div aria-hidden="true" className="h-16 border-b border-subtle bg-surface-subtle sm:h-20" />
-            <div className="relative px-5 pb-6 sm:px-8 sm:pb-8">
-              <div className="-mt-12 grid gap-x-8 gap-y-5 md:-mt-14 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-end">
-                <div className="md:self-start"><EmployeeAvatarManager employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed'), close: tEmployees('cancel'), removeTitle: tEmployees('photoRemoveTitle'), removeDescription: tEmployees('photoRemoveDescription'), removeConfirm: tEmployees('photoRemoveConfirm'), removeCancel: tEmployees('cancel') }} /></div>
-                <div className="min-w-0 self-end text-center md:text-left">
-                  <h1 className="break-words text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">{detail.employee.firstName} {detail.employee.birthName}</h1>
+            <div aria-hidden="true" className="h-14 border-b border-subtle bg-surface-subtle sm:h-16 lg:h-20" />
+            <div className="relative px-4 pb-5 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
+              <div className="-mt-10 flex flex-wrap items-end gap-x-4 gap-y-4 sm:-mt-12">
+                <div className="shrink-0"><EmployeeAvatarManager employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed'), close: tEmployees('cancel'), removeTitle: tEmployees('photoRemoveTitle'), removeDescription: tEmployees('photoRemoveDescription'), removeConfirm: tEmployees('photoRemoveConfirm'), removeCancel: tEmployees('cancel') }} /></div>
+                <div className="min-w-0 flex-1 self-center text-left">
+                  <h1 className="break-words text-pretty text-xl font-semibold leading-tight tracking-tight sm:text-2xl xl:text-3xl">{detail.employee.firstName} {detail.employee.birthName}</h1>
                   {profileContext ? <p className="mt-2 truncate text-sm font-medium text-muted-foreground">{profileContext}</p> : null}
-                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     {detail.employee.isArchived && <Badge tone="warning">{tEmployees('archived')}</Badge>}
                     <Badge tone={detail.employee.isActive ? 'success' : 'info'}>{statusLabel}</Badge>
                     <span className="text-xs text-muted-foreground">{tEmployees('employeeNumber')}: {detail.employee.employeeNumber}</span>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-2 md:max-w-[15rem] md:justify-end">
+                <div className="flex w-full basis-full flex-wrap items-center justify-end gap-2">
                   <EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} locale={locale} weather={workWeather} />
                   {canActAsEmployee ? <FocusActAsButton employeeId={employeeId} errorLabel={tFocus('actAs.failed')} label={tFocus('actAs.start')} loadingLabel={tFocus('actAs.starting')} /> : null}
                   <Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"><Minimize2 aria-hidden="true" size={18} /></Link>
