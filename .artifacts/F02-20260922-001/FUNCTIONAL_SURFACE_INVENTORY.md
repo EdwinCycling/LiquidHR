@@ -51,7 +51,7 @@ Every material implemented navigation/help surface identified from the F02 speci
 | NAV-21 | Inaccessible destinations | `/geen-toegang` fail closed with no leak | Manager/Employee negative paths | no redirect loop | TESTED | Employee direct Settings/Document Studio/Recruitment root and Manager recruitment root failed closed; no unauthorized detail/report data exposed. |
 | NAV-22 | No dead links/routing loops | inventoried links produce intended destination | all applicable | n/a | TESTED | Primary shell, Focus, Setup Assistant and tested Settings links resolved; no routing loop observed. |
 | NAV-23 | Keyboard/basic interaction | Tab/focus, Enter, Escape, drawer close/focus restore where material | all applicable | keyboard remains usable | TESTED | Escape closed account, HR-group, HeRa, quick-actions and Setup Assistant overlays; buttons and switches were keyboard-addressable through semantic controls. |
-| NAV-24 | Console/network quality | no unexpected product errors; runner friction separated | all browser flows | n/a | TESTED | Current authenticated 3010 session had no browser error output after clear; earlier 3000 connection loss was isolated as harness friction, not product evidence. |
+| NAV-24 | Console/network quality | no unexpected product errors; runner friction separated | all browser flows | n/a | TESTED | Current authenticated 3010 session had no browser error output after clear. A transient dev-only bundler/client-render fallback appeared once in the long-lived server log; a fresh 3010 server plus `/dashboard/start` reproduced no error, so it is classified as harness friction. |
 
 ## Explicit environment gates
 

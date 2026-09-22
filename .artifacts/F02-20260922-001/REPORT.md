@@ -58,7 +58,7 @@ The run used the canonical DEV project only. The only controlled state changes w
 | `git diff --check` | GREEN |
 | Authenticated DEV browser | PARTIAL overall only because of the product-decision item; tested routes/negative/mobile surfaces GREEN |
 
-The earlier 3000 browser connection loss was classified as `HARNESS_FRICTION` after the F02 server ended and an unrelated local process reclaimed that port. The dedicated F02 server on 3010 was used for the completed browser evidence.
+The earlier 3000 browser connection loss was classified as `HARNESS_FRICTION` after the F02 server ended and an unrelated local process reclaimed that port. During the long-lived 3010 dev session, the server log also emitted one transient Next.js webpack module/client-render fallback; a fresh 3010 server and authenticated `/dashboard/start` request reproduced no browser or server error, so this was classified as `HARNESS_FRICTION`, not a product defect. The dedicated F02 server on 3010 was used for the completed browser evidence.
 
 ## 9. Fixed During Run
 
