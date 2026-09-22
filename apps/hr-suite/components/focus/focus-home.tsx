@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, ChevronRight, ClipboardList, FileText, HeartPulse, Route, ShieldCheck, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, ChevronRight, ClipboardList, FileText, HeartPulse, LayoutDashboard, Route, ShieldCheck, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
 import { PageHeader } from '@/components/patterns/page-header'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { Badge } from '@/components/ui/badge'
@@ -75,22 +75,17 @@ export function FocusHome(props: FocusPageData) {
   return (
     <FocusShell actions={actions} actAs={data.actAs ? { title: t('actAs.title'), description: t('actAs.description'), stopLabel: t('actAs.stop'), subjectName: data.actAs.subjectName, token: data.actAs.token } : null} readOnly={data.readOnly} preview={data.isPreview ? { title: t('preview.title'), status: t('preview.status'), closeLabel: t('preview.close'), returnHref: '/employees' } : undefined} labels={{ actAsToken: data.actAs?.token, product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'), actions: {
       journey: t('actions.journey.title'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), leave: t('actions.leave.title'), hours: t('actions.hours.title'), requests: t('actions.requests.title'), work: t('actions.work.title'), team: t('actions.team.title'), absence: t('actions.absence.title'),
-    }, bottom: { home: t('nav.home'), journey: t('nav.tasks'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), requests: t('nav.requests'), leave: t('nav.leave'), hours: t('nav.hours'), work: t('nav.work'), team: t('nav.team'), more: t('nav.more') } }}>
+    }, bottom: { menu: t('nav.menu'), home: t('nav.home'), journey: t('nav.tasks'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), requests: t('nav.requests'), leave: t('nav.leave'), hours: t('nav.hours'), work: t('nav.work'), team: t('nav.team'), more: t('nav.more') } }}>
         <PageHeader
           title={data.employee ? t(preboarding ? 'home.welcome' : 'home.hello', { name: data.employee.name }) : t('home.title')}
           description={<time dateTime={today}>{focusDate(today, locale)}</time>}
-          actions={<FocusPresentation canOpenFull={data.canOpenFull} isPreboarding={preboarding} readOnly={data.readOnly} presentation={data.presentation} labels={{ label: t('presentation.label'), focus: t('presentation.focus'), full: t('presentation.full') }} />}
+          actions={<><span aria-label={t('experience.tooltip')} className="inline-flex size-10 items-center justify-center rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle text-primary" role="img" title={t('experience.tooltip')}><LayoutDashboard aria-hidden="true" className="size-4" /></span><FocusPresentation canOpenFull={data.canOpenFull} isPreboarding={preboarding} readOnly={data.readOnly} presentation={data.presentation} labels={{ label: t('presentation.label'), focus: t('presentation.focus'), full: t('presentation.full') }} /></>}
         />
 
         {data.experience === 'NO_EMPLOYMENT' ? (
           <EmptyState icon={<UserRound />} title={t('home.noEmploymentTitle')} description={t('home.noEmploymentDescription')} />
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={preboarding ? 'info' : 'neutral'}>{t(`experience.${data.experience}`)}</Badge>
-              <p className="text-sm text-muted-foreground">{t(preboarding ? 'home.preboardingDescription' : data.experience === 'MANAGER' ? 'home.managerDescription' : 'home.employeeDescription')}</p>
-            </div>
-
             {data.isEssBlocked ? <Surface className="border-destructive/40 bg-destructive-surface p-4 sm:p-6" variant="subtle"><div className="flex items-start gap-3"><ShieldCheck aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-destructive" /><div className="space-y-1"><h2 className="font-semibold text-destructive">{t('home.blockedTitle')}</h2><p className="text-sm text-destructive">{t('home.blockedDescription')}</p></div></div></Surface> : null}
             {preboarding || dayOne ? (
               <Surface className="flex items-start gap-3 p-4 sm:p-6" variant="subtle">

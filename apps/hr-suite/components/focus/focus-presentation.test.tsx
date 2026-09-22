@@ -68,9 +68,15 @@ describe('Focus browser presentation preference', () => {
     expect(host.querySelector('a[href="/dashboard/start"]')).toBeNull()
   })
 
-  it.each([['/focus', 'FOCUS'], ['/dashboard/start', 'FULL']] as const)('persists %s before following the link', (href, value) => {
+  it('renders Focus as an active status instead of a misleading action', () => {
     mount()
-    const link = host.querySelector<HTMLAnchorElement>(`a[href="${href}"]`)!
+    expect(host.querySelector('a[href="/focus"]')).toBeNull()
+    expect(host.querySelector('[aria-current="page"]')?.textContent).toBe('Focus')
+  })
+
+  it('persists Focus before following the link from Full', () => {
+    mount('FULL')
+    const link = host.querySelector<HTMLAnchorElement>('a[href="/focus"]')!
     let preferenceAtNavigation: string | null = null
     const stopNavigation = (event: MouseEvent) => {
       preferenceAtNavigation = localStorage.getItem(FOCUS_PRESENTATION_STORAGE_KEY)
@@ -78,7 +84,7 @@ describe('Focus browser presentation preference', () => {
     }
     document.addEventListener('click', stopNavigation, { once: true })
     act(() => link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })))
-    expect(preferenceAtNavigation).toBe(value)
+    expect(preferenceAtNavigation).toBe('FOCUS')
   })
 
   it('falls back to the server default if storage is blocked', () => {

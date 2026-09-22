@@ -29,6 +29,13 @@ describe('Focus home', () => {
     vacationTotal: 1,
   }
 
+  it('keeps the header concise and exposes the shared bottom navigation', () => {
+    const host = render(focusData())
+    expect(host.textContent).not.toContain('Je volgende stap en je belangrijkste zaken bij elkaar.')
+    expect(host.querySelector('[role="img"]')?.getAttribute('aria-label')).toContain('Mijn Focus')
+    expect(host.querySelector('nav[aria-label="Focus-navigatie"]')).not.toBeNull()
+  })
+
   it.each(['nl', 'en'] as const)('renders all permitted manager actions with real %s translations and progress', (locale) => {
     const host = render(focusData({ experience: 'MANAGER' }), locale)
     expect(host.querySelector('h1')?.textContent).toContain('Noah Test')

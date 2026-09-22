@@ -35,7 +35,7 @@ export function FocusFloatingActions({ labels, token, canRequestLeave = false, c
 
   const linkClasses = 'inline-flex w-full max-w-xs items-center justify-end gap-2 rounded-[var(--radius-control)] border border-subtle bg-surface px-2 py-1.5 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus'
 
-  return <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex w-[calc(100vw-2rem)] max-w-xs flex-col items-end sm:bottom-6 sm:right-6">
+  return <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex w-[calc(100vw-2rem)] max-w-xs flex-col items-end sm:right-6">
     {open ? <nav aria-label={labels.label} className="mb-3 flex flex-col items-end gap-2" id={menuId}>
       {canReportSickness ? <Link className={linkClasses} href={focusActAsHref('/focus/ziek', token)} onClick={() => setOpen(false)} prefetch={false}>
         <span className="truncate pl-1">{labels.sickness}</span>

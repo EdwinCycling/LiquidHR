@@ -33,7 +33,7 @@ function shellLabels(t: Awaited<ReturnType<typeof getTranslator>>, token: string
   return {
     actAsToken: token, product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'),
     actions: { journey: t('actions.journey.title'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), leave: t('actions.leave.title'), hours: t('actions.hours.title'), requests: t('actions.requests.title'), work: t('actions.work.title'), team: t('actions.team.title'), absence: t('actions.absence.title') },
-    bottom: { home: t('nav.home'), journey: t('nav.tasks'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), requests: t('nav.requests'), leave: t('nav.leave'), hours: t('nav.hours'), work: t('nav.work'), team: t('nav.team'), more: t('nav.more') },
+    bottom: { menu: t('nav.menu'), home: t('nav.home'), journey: t('nav.tasks'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), requests: t('nav.requests'), leave: t('nav.leave'), hours: t('nav.hours'), work: t('nav.work'), team: t('nav.team'), more: t('nav.more') },
   }
 }
 

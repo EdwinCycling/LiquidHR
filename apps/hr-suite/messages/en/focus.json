@@ -5,10 +5,9 @@
   "preview": { "title": "You are viewing LiquidHR as an employee", "status": "Preview · read-only", "close": "Close preview" },
   "actAs": { "title": "ON BEHALF OF EMPLOYEE", "description": "You are acting as {name}. Actions are recorded under your name as HR Admin.", "label": "You are acting as", "stop": "Stop", "start": "KIDHV", "tooltip": "KIDHV: temporarily open the employee workspace in this employee's role. Actions are recorded under your HR Admin account.", "starting": "Opening KIDHV…", "failed": "Act-as could not be started." },
   "floating": { "label": "Quick actions", "open": "Open quick actions", "close": "Close quick actions", "leave": "Request leave", "sickness": "Report sickness", "employeeSickness": "Report employee sickness", "declaration": "New expense claim", "newRequest": "New request", "comingSoon": "Expense claims will be available later." },
-  "experience": { "EMPLOYEE": "My Focus", "MANAGER": "My Focus · manager", "PREBOARDING": "Before your first day" },
+  "experience": { "EMPLOYEE": "My Focus", "MANAGER": "My Focus · manager", "PREBOARDING": "Before your first day", "tooltip": "My Focus: your personal Focus workspace. The presentation switch is next to it." },
   "home": {
     "title": "Focus", "hello": "Hello {name}", "welcome": "Welcome {name}",
-    "employeeDescription": "Your next step and everyday essentials in one place.",
     "managerDescription": "Your personal essentials and actions for your team in one place.",
     "preboardingDescription": "Get ready for your first day at your own pace.",
     "nextUp": "Your next step", "quickActions": "Quick access",

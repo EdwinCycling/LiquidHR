@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Focus-navigatie en weergave-indicator — 2026-09-22
+
+**Status: LOCAL GREEN**
+
+- De oude horizontale Focus-tabnavigatie is verwijderd; dezelfde contextafhankelijke iconennavigatie staat nu op alle breedtes vast onderaan. De content houdt hiervoor altijd ruimte vrij en zwevende snelle acties blijven erboven zichtbaar.
+- De losse zin onder de Focus-header is verwijderd. `Mijn Focus` is nu een compact icoon met tooltip naast de weergave-indicator.
+- De actieve `Focus`-weergave wordt als status getoond; `Volledige omgeving` is de echte weergaveschakelaar en `Stoppen` in de namens-medewerkerbalk blijft de echte KIDHV-stopactie.
+- Gerichte Focus-tests (19/19), strict TypeScript, i18n en diff-check zijn groen; route/API/database/permission-logica is niet gewijzigd.
+
 ## Employee detail KIDHV en toegangskaart — 2026-09-22
 
 **Status: LOCAL GREEN**

@@ -5,10 +5,9 @@
   "preview": { "title": "Je bekijkt LiquidHR als medewerker", "status": "Voorbeeldweergave · alleen lezen", "close": "Preview sluiten" },
   "actAs": { "title": "NAMENS MEDEWERKER", "description": "Je handelt als {name}. Acties worden vastgelegd op jouw naam als HR Admin.", "label": "Je handelt als", "stop": "Stoppen", "start": "KIDHV", "tooltip": "KIDHV: open tijdelijk de medewerkeromgeving in de rol van deze medewerker. Acties worden vastgelegd op jouw HR Admin-account.", "starting": "KIDHV openen…", "failed": "Act-as starten is niet gelukt." },
   "floating": { "label": "Snelle acties", "open": "Snelle acties openen", "close": "Snelle acties sluiten", "leave": "Aanvraag verlof", "sickness": "Ziek melden", "employeeSickness": "Medewerker ziek melden", "declaration": "Nieuwe declaratie", "newRequest": "Nieuwe aanvraag", "comingSoon": "Declaraties komen later beschikbaar." },
-  "experience": { "EMPLOYEE": "Mijn Focus", "MANAGER": "Mijn Focus · leidinggevende", "PREBOARDING": "Voor je eerste werkdag" },
+  "experience": { "EMPLOYEE": "Mijn Focus", "MANAGER": "Mijn Focus · leidinggevende", "PREBOARDING": "Voor je eerste werkdag", "tooltip": "Mijn Focus: jouw persoonlijke Focus-omgeving. De weergaveschakelaar staat hiernaast." },
   "home": {
     "title": "Focus", "hello": "Hallo {name}", "welcome": "Welkom {name}",
-    "employeeDescription": "Je volgende stap en je belangrijkste zaken bij elkaar.",
     "managerDescription": "Je persoonlijke zaken en de acties voor je team bij elkaar.",
     "preboardingDescription": "Bereid je rustig voor op je start.",
     "nextUp": "Je volgende stap", "quickActions": "Snel naar",

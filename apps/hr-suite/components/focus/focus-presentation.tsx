@@ -44,7 +44,7 @@ export function FocusPresentation({ presentation, canOpenFull, isPreboarding, re
 
   return (
     <nav aria-label={labels.label} className="flex flex-wrap items-center gap-2">
-      {readOnly ? <span aria-current="page" className={buttonClasses({ variant: 'secondary' })}>{labels.focus}</span> : <Link aria-current="page" className={buttonClasses({ variant: 'secondary' })} href="/focus" onClick={() => savePresentation('FOCUS')}>{labels.focus}</Link>}
+      {readOnly || presentation === 'FOCUS' ? <span aria-current="page" className="inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle px-4 py-2 text-sm font-medium text-foreground" title={labels.focus}>{labels.focus}</span> : <Link aria-current="page" className={buttonClasses({ variant: 'secondary' })} href="/focus" onClick={() => savePresentation('FOCUS')}>{labels.focus}</Link>}
       {fullAvailable ? <Link className={buttonClasses({ variant: 'ghost', className: 'whitespace-normal text-left' })} href="/dashboard/start" onClick={() => savePresentation('FULL')} prefetch={false}><LayoutDashboard aria-hidden="true" />{labels.full}</Link> : null}
     </nav>
   )
