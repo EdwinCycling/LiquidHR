@@ -1,6 +1,6 @@
 'use client'
 
-import { Eye, Mail, RefreshCw, Send, ShieldCheck, Trash2, UnlockKeyhole, X } from 'lucide-react'
+import { Mail, RefreshCw, Send, ShieldCheck, Trash2, UnlockKeyhole, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
@@ -44,8 +44,6 @@ export interface EmployeeInvitationAccessLabels {
   neverLoggedIn: string
   block: string
   unblock: string
-  preview: string
-  previewFailed: string
 }
 
 function statusLabel(status: InvitationLifecycleStatus, labels: EmployeeInvitationAccessLabels): string {
@@ -91,23 +89,11 @@ export function EmployeeInvitationAccess({
   const [message, setMessage] = useState<string | null>(null)
   const [blockOpen, setBlockOpen] = useState(false)
 
-  async function runAction(action: 'send' | 'resend' | 'revoke' | 'block' | 'unblock' | 'preview'): Promise<void> {
+  async function runAction(action: 'send' | 'resend' | 'revoke' | 'block' | 'unblock'): Promise<void> {
     if (busy) return
     setBusy(true)
     setMessage(null)
     try {
-      if (action === 'preview') {
-        const response = await fetch('/api/focus/preview', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employeeId: access.employeeId }),
-        })
-        if (!response.ok) throw new Error('PREVIEW_ACTION_FAILED')
-        const previewWindow = window.open(`/focus/preview/${access.employeeId}`, '_blank', 'noopener,noreferrer')
-        if (!previewWindow) throw new Error('PREVIEW_ACTION_FAILED')
-        setMessage(labels.actionDone)
-        return
-      }
       const response = action === 'send'
         ? await fetch('/api/invitations/employee', {
           method: 'POST',
@@ -124,7 +110,7 @@ export function EmployeeInvitationAccess({
       if (action === 'block') setBlockOpen(false)
       router.refresh()
     } catch {
-      setMessage(action === 'preview' ? labels.previewFailed : labels.actionFailed)
+      setMessage(labels.actionFailed)
     } finally {
       setBusy(false)
     }
@@ -153,7 +139,6 @@ export function EmployeeInvitationAccess({
         {access.status === 'INVITED' && access.invitationId ? <Button disabled={busy} onClick={() => void runAction('revoke')} size="sm" type="button" variant="ghost"><X aria-hidden="true" />{labels.revoke}</Button> : null}
         {access.canBlock ? <IconButton aria-busy={busy || undefined} disabled={busy} label={labels.block} onClick={() => setBlockOpen(true)} size="sm" title={labels.block} variant="ghost" className="border border-border/70 text-destructive hover:bg-destructive-surface hover:text-destructive"><Trash2 aria-hidden="true" /></IconButton> : null}
         {access.canUnblock ? <Button disabled={busy} onClick={() => void runAction('unblock')} size="sm" type="button" variant="secondary"><UnlockKeyhole aria-hidden="true" />{labels.unblock}</Button> : null}
-        {access.canPreview ? <Button disabled={busy} onClick={() => void runAction('preview')} size="sm" type="button" variant="ghost"><Eye aria-hidden="true" />{labels.preview}</Button> : null}
       </div>
       {message ? <p aria-live="polite" className="text-sm text-muted-foreground">{message}</p> : null}
       <ConfirmDialog cancelLabel={labels.cancel} confirmLabel={labels.block} description={labels.blockConfirmDescription} destructive onConfirm={() => runAction('block')} onOpenChange={setBlockOpen} open={blockOpen} pending={busy} title={labels.blockConfirmTitle} />

@@ -261,7 +261,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 </div>
                 <div className="flex w-full basis-full flex-wrap items-center justify-end gap-2">
                   <EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} locale={locale} weather={workWeather} />
-                  {canActAsEmployee ? <FocusActAsButton employeeId={employeeId} errorLabel={tFocus('actAs.failed')} label={tFocus('actAs.start')} loadingLabel={tFocus('actAs.starting')} /> : null}
+                  {canActAsEmployee ? <FocusActAsButton employeeId={employeeId} errorLabel={tFocus('actAs.failed')} label={tFocus('actAs.start')} loadingLabel={tFocus('actAs.starting')} tooltipLabel={tFocus('actAs.tooltip')} /> : null}
                   <Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"><Minimize2 aria-hidden="true" size={18} /></Link>
                   <EmployeeArchiveToggle headerStyle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), notFound: tEmployees('archiveNotFound'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />
                 </div>
@@ -307,8 +307,6 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           blockConfirmTitle: invitationPage[0]('blockConfirmTitle'),
           blockConfirmDescription: invitationPage[0]('blockConfirmDescription'),
           unblock: invitationPage[0]('unblock'),
-          preview: invitationPage[0]('preview'),
-          previewFailed: invitationPage[0]('previewFailed'),
         }} /> : null}
 
         <nav className="mt-6" aria-label={tEmployees('tabsLabel')}>

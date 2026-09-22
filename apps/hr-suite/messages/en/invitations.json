@@ -74,8 +74,6 @@
   "blockConfirmTitle": "Block employee?",
   "blockConfirmDescription": "The employee will no longer be able to sign in to the LiquidHR employee workspace.",
   "unblock": "Unblock Employee",
-  "preview": "Open Focus preview",
-  "previewFailed": "The Focus preview could not be opened.",
   "loadFailed": "The invitations could not be loaded.",
   "inviteEmployee": "Invite employee",
   "employeeAccessTitle": "LiquidHR access",

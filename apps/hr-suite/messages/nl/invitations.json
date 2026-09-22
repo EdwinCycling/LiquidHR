@@ -74,8 +74,6 @@
   "blockConfirmTitle": "Employee blokkeren?",
   "blockConfirmDescription": "De medewerker kan daarna niet meer inloggen op de LiquidHR-medewerkeromgeving.",
   "unblock": "Employee deblokkeren",
-  "preview": "Focus-preview openen",
-  "previewFailed": "De Focus-preview kon niet worden geopend.",
   "loadFailed": "De uitnodigingen konden niet worden geladen.",
   "inviteEmployee": "Medewerker uitnodigen",
   "employeeAccessTitle": "LiquidHR-toegang",

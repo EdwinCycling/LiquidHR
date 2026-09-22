@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## Employee detail KIDHV en toegangskaart — 2026-09-22
+
+**Status: LOCAL GREEN**
+
+- De medewerkerdetail-header gebruikt `KIDHV` als label voor de bestaande act-as-functie, met een Nederlandstalige en Engelstalige tooltip die de tijdelijke medewerkerrol en auditcontext uitlegt.
+- De aparte `Focus-preview openen`-actie is uit de LiquidHR-toegangskaart verwijderd; de bestaande Focus-preview-endpoints, act-as-logica, autorisatie en database zijn niet gewijzigd.
+- Gecontroleerd met `npm.cmd run type-check`, `npm.cmd run check:i18n`, `git diff --check` en een lokale browsercontrole op Lisa’s medewerkerpagina.
+
 ## Final consolidation — 2026-09-21
 
 **Status: PARTIAL / REVIEW REQUIRED — Acceptance Library geïntegreerd; bredere worktree-cleanup afgebroken na protected-state incident**

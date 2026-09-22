@@ -3,7 +3,7 @@
   "nav": { "product": "Focus", "home": "Overzicht", "menu": "Focus-navigatie", "requests": "Aanvragen", "leave": "Verlof", "hours": "Uren", "work": "Werk", "team": "Team", "more": "Meer", "tasks": "Taken" },
   "presentation": { "label": "Weergave", "focus": "Focus", "full": "Volledige omgeving" },
   "preview": { "title": "Je bekijkt LiquidHR als medewerker", "status": "Voorbeeldweergave · alleen lezen", "close": "Preview sluiten" },
-  "actAs": { "title": "NAMENS MEDEWERKER", "description": "Je handelt als {name}. Acties worden vastgelegd op jouw naam als HR Admin.", "label": "Je handelt als", "stop": "Stoppen", "start": "Handelen als medewerker", "starting": "Focus openen…", "failed": "Act-as starten is niet gelukt." },
+  "actAs": { "title": "NAMENS MEDEWERKER", "description": "Je handelt als {name}. Acties worden vastgelegd op jouw naam als HR Admin.", "label": "Je handelt als", "stop": "Stoppen", "start": "KIDHV", "tooltip": "KIDHV: open tijdelijk de medewerkeromgeving in de rol van deze medewerker. Acties worden vastgelegd op jouw HR Admin-account.", "starting": "KIDHV openen…", "failed": "Act-as starten is niet gelukt." },
   "floating": { "label": "Snelle acties", "open": "Snelle acties openen", "close": "Snelle acties sluiten", "leave": "Aanvraag verlof", "sickness": "Ziek melden", "employeeSickness": "Medewerker ziek melden", "declaration": "Nieuwe declaratie", "newRequest": "Nieuwe aanvraag", "comingSoon": "Declaraties komen later beschikbaar." },
   "experience": { "EMPLOYEE": "Mijn Focus", "MANAGER": "Mijn Focus · leidinggevende", "PREBOARDING": "Voor je eerste werkdag" },
   "home": {
