@@ -9,7 +9,7 @@ This log contains only known historical outcomes. Detailed screenshots, traces a
 | GJ02 | GREEN | Canonical batch → snapshot → dossier → signing → SIGNED lifecycle | DOC02 rendering follow-up |
 | GJ03 | GREEN | Employee Actual Work create/edit through canonical service/RPC/RLS | AW02 rules/concurrency follow-up |
 | T01/F01/F03/S01/T02/R01/P01/F04/F05/I01 | READY | Specification prepared; not executed by this library pass | Future isolated acceptance runs |
-| F02 | PARTIAL / PRODUCT_DECISION | DEV navigation, Focus, Settings, help, onboarding, persistence, negative and responsive acceptance; two in-scope fixes | Literal `Niet meer tonen` control is not implemented; decide whether the canonical `Setup Assistent tonen` switch satisfies the requirement |
+| F02 | PARTIAL / PRODUCT_DECISION | DEV navigation, Focus, Settings, help, onboarding, persistence, negative and responsive acceptance; two in-scope fixes; remote head `570025a5e163e2a0a086469016fe569bec152e77` | Literal `Niet meer tonen` control is not implemented; decide whether the canonical `Setup Assistent tonen` switch satisfies the requirement |
 | GJ01R | WAITING_FOR_DEV_MAIL | Follow-up scope specified; not executed here | DEV mail dependency |
 | DOC02/AW02 | READY | Follow-up scope specified; not executed here | Dedicated fixture gate |
 

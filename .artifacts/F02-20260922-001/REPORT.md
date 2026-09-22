@@ -12,7 +12,7 @@ Final classification is `PARTIAL / PRODUCT_DECISION`: the specification calls fo
 
 The Functional Surface Inventory covers full-mode primary navigation, Focus navigation and bottom navigation, More, Settings categories, breadcrumbs, browser back, deep links, active state, role/module-dependent visibility, inaccessible destinations, drawers, side panels, contextual panels, tooltips, info/help affordances, empty states, setup guidance, onboarding checklist lifecycle, mobile `390x844`, keyboard/Escape interactions, dead-link/routing-loop checks and browser console/network classification.
 
-Evidence is retained under `.artifacts/F02-20260922-001/`, including the [functional surface inventory](FUNCTIONAL_SURFACE_INVENTORY.md) and screenshots for desktop/mobile shells, drawers, role switching, HR-group switching and Setup Assistant.
+The textual inventory and report are committed under `.artifacts/F02-20260922-001/`. Browser screenshots for desktop/mobile shells, drawers, role switching, HR-group switching and Setup Assistant are retained in the local acceptance worktree only and were deliberately excluded from the pushed branch because they contain DEV organization/persona context.
 
 ## 3. Role Matrix
 
@@ -93,7 +93,7 @@ No unresolved authorization or routing defect remains from the exercised surface
 
 ## 14. Commits/Remote Head
 
-The dedicated branch is `work/acceptance-F02-20260922`, based on `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. The final commit and remote head are recorded in the final report update after the authorized normal push.
+The dedicated branch is `work/acceptance-F02-20260922`, based on `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. Final local and remote head: `570025a5e163e2a0a086469016fe569bec152e77`. The branch was pushed normally to `origin`; no merge was performed.
 
 No merge to `main`, Production deploy or Production mutation was performed.
 
