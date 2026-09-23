@@ -4,9 +4,9 @@
 
 F02 was executed from clean `origin/main` SHA `5c1191b3907d56622deb7c3d3c12a6012785b8c6` in dedicated branch `work/acceptance-F02-20260922`, DEV only, using the canonical DEV project `wnpfloqpjvaacobppbpk`. The authenticated browser run used the explicitly permitted local port `3010`.
 
-The navigation/help surface is broadly functional and fail-closed. Two genuine in-scope defects were fixed and regression-tested: Manager recruitment participation was linked to an unauthorized overview route, and the recruitment overview heading contradicted the Dutch navigation label. The HR Admin Setup Assistant completion state persisted through refresh and relogin and was restored to its original incomplete state; the visibility setting was restored enabled. No Production, deployment, migration, authorization, RLS or unrelated business-data mutation occurred.
+The navigation/help surface is functional and fail-closed. Three genuine in-scope defects were fixed and regression-tested: Manager recruitment participation was linked to an unauthorized overview route, the recruitment overview heading contradicted the Dutch navigation label, and the HR Admin Setup Assistant lacked the required contextual hide action. The Setup Assistant hide action now reuses the canonical visibility setting; completion state remained unchanged and the final visibility setting was restored enabled. No Production, deployment, migration, authorization, RLS or unrelated business-data mutation occurred.
 
-Final classification is `PARTIAL / PRODUCT_DECISION`: the specification calls for a literal `Niet meer tonen` control, but the implemented product has the canonical group-level `Setup Assistent tonen` switch and no separate literal control. The equivalent hide/re-enable lifecycle was tested; deciding whether that canonical switch satisfies the exact acceptance wording remains a product decision.
+Final classification is `GREEN`. The prior product ambiguity is resolved: `Niet meer tonen` is a contextual hide action inside the Setup Assistant, while the existing `Setup Assistent tonen` Settings control remains the administrative/user re-enable path. Both paths use the existing canonical persistence mechanism and the hide, refresh, relogin, Settings and re-enable lifecycle was proven in DEV.
 
 ## 2. Coverage
 
@@ -39,24 +39,24 @@ No permission, role, RLS or server-side authorization was broadened. No token, s
 
 ## 6. Mobile/Responsive Results
 
-At `390x844`, Employee Focus navigation, bottom navigation, More, quick actions and all exercised Focus destinations remained usable with no horizontal overflow. HR Admin Startpagina, navigation drawer and Setup Assistant drawer remained usable at the same viewport. Escape closed account, HR-group, HeRa, quick-actions and Setup Assistant overlays. Full-mode desktop navigation was also checked in expanded and collapsed sidebar states.
+At `390x844`, Employee Focus navigation, bottom navigation, More, quick actions and all exercised Focus destinations remained usable with no horizontal overflow. HR Admin Startpagina, navigation drawer, Settings and Setup Assistant drawer remained usable at the same viewport; the Setup Assistant exposed `Niet meer tonen` without overflow. Escape closed account, HR-group, HeRa, quick-actions and Setup Assistant overlays. Full-mode desktop navigation was also checked in expanded and collapsed sidebar states.
 
 ## 7. Data/DB Readback
 
-The run used the canonical DEV project only. The only controlled state changes were Setup Assistant completion and visibility preference checks through the normal application APIs. One first checklist item was marked complete, observed through refresh and a fresh authentication session, restored incomplete, and the assistant visibility switch was toggled off/on and left enabled. No business row was created, no shared business fixture was altered, and no database migration or Production database action was performed.
+The run used the canonical DEV project only. The only controlled state changes were Setup Assistant completion and visibility preference checks through the normal application APIs. One first checklist item was marked complete, observed through refresh and a fresh authentication session, restored incomplete, and the assistant was hidden through `Niet meer tonen`, observed hidden after refresh and relogin, then re-enabled through Settings and left enabled. The regression coverage confirms the sidepanel action and Settings form both call the same existing `/api/setup-assistant` setting path; the service coverage retains the same `setup_guide_settings` conflict target, with no second preference model or duplicate configuration path introduced. No business row was created, no shared business fixture was altered, and no database migration or Production database action was performed.
 
 ## 8. Quality Gates
 
 | Gate | Result |
 |---|---|
-| Targeted navigation/recruitment regression tests | GREEN — 2 files, 5 tests |
+| Targeted navigation/setup-assistant regression tests | GREEN — 5 files, 14 tests |
 | Strict TypeScript | GREEN |
 | ESLint | GREEN |
 | i18n parity | GREEN — 39 NL/EN namespaces |
 | Full Vitest | GREEN — 438 files, 1,718 tests |
 | Next production build | GREEN — 296/296 static pages generated |
 | `git diff --check` | GREEN |
-| Authenticated DEV browser | PARTIAL overall only because of the product-decision item; tested routes/negative/mobile surfaces GREEN |
+| Authenticated DEV browser | GREEN — hide, refresh, relogin, Settings disabled state, re-enable, checklist preservation and 390x844 usability proven |
 
 The earlier 3000 browser connection loss was classified as `HARNESS_FRICTION` after the F02 server ended and an unrelated local process reclaimed that port. During the long-lived 3010 dev session, the server log also emitted one transient Next.js webpack module/client-render fallback; a fresh 3010 server and authenticated `/dashboard/start` request reproduced no browser or server error, so this was classified as `HARNESS_FRICTION`, not a product defect. The dedicated F02 server on 3010 was used for the completed browser evidence.
 
@@ -66,6 +66,7 @@ The earlier 3000 browser connection loss was classified as `HARNESS_FRICTION` af
 |---|---|---|---|---|---|---|
 | F02-NAV-001 | Role/module-dependent navigation | Manager participation saw `Sollicitaties` linking to `/recruitment`, which returned `Nog geen toegang`. | Shell visibility accepted `recruitment-participation:read`, while the root page required overview permissions. | Added a shared permission-to-destination resolver; participation-only users route to `/recruitment/assigned`, overview permissions route to `/recruitment`. | `sidebar-navigation.test.ts`; Manager browser retest of assigned route and fail-closed root route. | TESTED / fixed |
 | F02-COPY-001 | Navigation/help naming | HR Admin recruitment overview rendered `Recruitment` while navigation and requirements use `Sollicitaties`. | Dutch overview message diverged from the implemented shell contract. | Changed the NL overview title to `Sollicitaties`. | `recruitment-overview-dashboard.test.tsx`; HR Admin browser H1 retest. | TESTED / fixed |
+| F02-HELP-001 | Setup Assistant contextual visibility | HR Admin onboarding sidepanel had no user-facing `Niet meer tonen` action distinct from Settings. | The acceptance wording required a contextual hide action, while the existing Settings switch is the re-enable mechanism. | Added NL/EN sidepanel action using the existing `PATCH /api/setup-assistant` canonical `isEnabled` setting; hide closes and removes the trigger, while Settings retains re-enable. | `setup-assistant-floating.test.tsx`, `setup-assistant-settings-form.test.tsx`, `service.test.ts`; DEV browser hide/refresh/relogin/Settings/re-enable and 390x844 retest. | TESTED / fixed |
 
 ## 10. Environment-Gated
 
@@ -77,11 +78,11 @@ The earlier 3000 browser connection loss was classified as `HARNESS_FRICTION` af
 
 ## 11. Product Decisions
 
-The F02 specification names a literal `Niet meer tonen` control for onboarding. The current implementation instead exposes the HR-group-level Settings switch `Setup Assistent tonen`; this switch was tested for hide/re-enable behavior and left enabled. The code contains no separate literal `Niet meer tonen` control. Product must decide whether the existing canonical switch satisfies the acceptance requirement or whether a distinct actor-scoped dismissal control is required. No new persistence model or control was invented during this run.
+`PRODUCT_DECISION RESOLVED`. The prior ambiguity was whether the existing Settings control `Setup Assistent tonen` could stand in for the specification's literal `Niet meer tonen` action. The final product contract is explicit: `Niet meer tonen` is a contextual hide action inside the Setup Assistant; `Setup Assistent tonen` remains the Settings re-enable mechanism. The implementation uses the existing scope semantics and canonical `setup_guide_settings.is_enabled` persistence path. No second preference model, duplicate state or authorization broadening was introduced.
 
 ## 12. Not Fixed
 
-No unresolved authorization or routing defect remains from the exercised surfaces. The only unimplemented acceptance wording is the literal `Niet meer tonen` control described above; it is not silently treated as passed and remains the reason for the PARTIAL verdict.
+No unresolved in-scope authorization, routing or Setup Assistant product defect remains from the exercised surfaces. Preboarding Employee and the separate out-of-scope Manager persona remain explicitly environment-gated as documented; they are not defects in this run.
 
 ## 13. Lessons/Patterns
 
@@ -93,10 +94,10 @@ No unresolved authorization or routing defect remains from the exercised surface
 
 ## 14. Commits/Remote Head
 
-The dedicated branch is `work/acceptance-F02-20260922`, based on `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. The acceptance payload and reporting commits were pushed normally to `origin`; the last verified remote head before this final report-only update was `28354942d2e217aa4278f2237e1445aa2cb35d3e`. The exact final branch tip is printed in the acceptance response because this report is itself part of the branch history. No merge was performed.
+The dedicated branch is `work/acceptance-F02-20260922`, based on `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. The prior acceptance payload was pushed normally to `origin`; this product-decision fix and its reporting are committed and pushed normally after the bounded post-fix gate. The exact final branch tip is printed in the acceptance response because this report is itself part of the branch history. No merge was performed.
 
 No merge to `main`, Production deploy or Production mutation was performed.
 
 ## 15. Final Verdict
 
-`F02 ACCEPTANCE PARTIAL — PRODUCT_DECISION` because all exercised navigation/help, role-boundary, persistence, responsive and quality gates passed, but the literal `Niet meer tonen` requirement is not implemented and requires an explicit product decision.
+`F02 ACCEPTANCE GREEN` — the previously blocked `Niet meer tonen` scenario is implemented, regression-tested and proven through hide, refresh, relogin, Settings re-enable, persistence, checklist preservation and mobile behavior.

@@ -2,14 +2,14 @@
 
 ## F02 Acceptance — 2026-09-22
 
-**Status: PARTIAL / PRODUCT_DECISION — navigation/help acceptance completed on dedicated DEV branch**
+**Status: GREEN — navigation/help acceptance completed on dedicated DEV branch; PRODUCT_DECISION RESOLVED**
 
 - F02 ran from clean `origin/main` `5c1191b3907d56622deb7c3d3c12a6012785b8c6` on `work/acceptance-F02-20260922`; DEV only, no Production action, deploy, merge or database schema change.
 - Full-mode, Focus, Settings, help, onboarding, persistence, negative authorization and `390x844` responsive surfaces were exercised. Preboarding and separate Manager-out authentication remained environment-gated without inventing identities.
 - Fixed and regression-tested the Manager recruitment destination mismatch (`/recruitment/assigned` versus overview `/recruitment`) and aligned the Dutch overview title to `Sollicitaties`.
-- Quality gate: targeted regressions, strict TypeScript, ESLint, i18n parity, 438 Vitest files / 1,718 tests, Next build 296/296 and diff-check are GREEN. Detailed evidence is under the F02 artifact run directory.
-- The dedicated branch was pushed normally; the last verified pre-finalization remote head is `28354942d2e217aa4278f2237e1445aa2cb35d3e`. Textual inventory/reporting is committed; DEV screenshots remain local-only because they contain persona/organization context. The exact final branch tip is recorded in the acceptance response.
-- The only open boundary is the literal `Niet meer tonen` control named by the F02 specification; the existing group-level `Setup Assistent tonen` hide/re-enable switch was tested and restored enabled, but equivalence requires product decision.
+- Quality gate: targeted navigation/setup-assistant regressions, strict TypeScript, ESLint, i18n parity, the prior 438 Vitest files / 1,718 tests, the prior Next build 296/296 and post-fix diff-check are GREEN. Detailed evidence is under the F02 artifact run directory.
+- The dedicated branch was pushed normally before this continuation; the product-decision fix, targeted regression tests and updated report/status are now prepared for the bounded post-fix gate and normal push. DEV screenshots remain local-only because they contain persona/organization context. The exact final branch tip is recorded in the acceptance response.
+- `PRODUCT_DECISION RESOLVED`: the sidepanel now has contextual `Niet meer tonen`; it reuses the canonical visibility setting, persists through refresh/relogin, and the existing Settings `Setup Assistent tonen` control re-enables it. Checklist completion remained intact and no second preference model was introduced.
 
 ## Final consolidation — 2026-09-21
 
