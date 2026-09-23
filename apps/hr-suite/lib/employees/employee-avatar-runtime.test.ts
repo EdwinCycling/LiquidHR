@@ -9,7 +9,7 @@ const { createClient, requireHrGroupId, requirePermission } = vi.hoisted(() => (
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/auth/permissions', () => ({ requireHrGroupId, requirePermission }))
 
-import { employeeAvatarHref, getEmployeeAvatar } from './employee-service'
+import { employeeAvatarHref, getEmployeeAvatar, uploadEmployeeAvatar } from './employee-service'
 
 interface AvatarQuery {
   select: ReturnType<typeof vi.fn>
@@ -70,5 +70,20 @@ describe('employee avatar runtime', () => {
 
     await expect(getEmployeeAvatar('employee-1')).resolves.toBeNull()
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('raakt database en storage niet aan wanneer avatarbytes worden afgewezen', async () => {
+    const avif = Uint8Array.from([
+      0, 0, 0, 20, 0x66, 0x74, 0x79, 0x70,
+      0x61, 0x76, 0x69, 0x66, 0, 0, 0, 0,
+    ])
+    createClient.mockClear()
+
+    await expect(uploadEmployeeAvatar(
+      'employee-1',
+      new File([avif], 'avatar.jpg', { type: 'image/jpeg' }),
+    )).rejects.toMatchObject({ code: 'EMPLOYEE_AVATAR_INPUT_INVALID', status: 400 })
+
+    expect(createClient).not.toHaveBeenCalled()
   })
 })

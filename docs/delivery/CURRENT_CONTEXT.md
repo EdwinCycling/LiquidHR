@@ -1,17 +1,16 @@
 # Actuele overdracht Liquid HR
 
-## Final convergence T01 + F02 + Focus — 2026-09-23
+## Production release 1.20260923.1 — 2026-09-23
 
-**Status: CONVERGENCE PARTIAL — all three source lines are merged locally; main push is held because the T01 local pgTAP contract gate could not run.**
+**Status: sharp security remediation and requested local release gates GREEN. The version remains `1.20260923.1`; no database change or acceptance rerun is part of this fix.**
 
-- Baseline: `origin/main` `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. T01 source: `68c65b9dcb372aef4df874db6975d1681f51469d`; F02 source: `a30b93ba756465c3c7478edc493c35201d04a906`.
-- Integration branch: `work/convergence-20260923`. Merge commits: T01 `33ca35bd88376cfa2dd1f2b092c1782a916f7af7`, F02 `6365dd32e287a7ed2c2e9b42cc98e96d3a0a0e6d`, Stream 3 `6d98594b0282a7d4b3896bb13d28dde5c43a5a5b`.
-- Stream 3 was preserved from local `main` (which already contained four in-scope employee/Focus commits) in commit `bf83c441f84fd4a801f1e37d711ee91ddfd5d9e2`. It covers Employee Detail, Focus shell/profile/relations/leave/hours/team calendar and restricted act-as leave support.
-- Verification: targeted regressions `28 files / 121 tests`, strict TypeScript, NL/EN parity (`39` namespaces), `git diff --check` and the single Webpack production build (`296/296` static pages) passed. Changed-scope ESLint did not start because the current `typescript-eslint` release rejects TypeScript 7.0.
-- The Stream-3 Vitest migration contract passed. T01's `supabase/tests/talent_review_9_grid_contract.sql` remains unrun: the Supabase CLI is absent, local port `54322` is closed and the Docker engine is not running. No remote substitute was used.
-- T01 migration `20260922210000_fix_talent_review_current_placement_uniqueness.sql` was already applied to DEV during T01; do not apply it again. Stream 3 migration `20260922230000_allow_focus_act_as_leave_workflow.sql` is canonical source code only and has **not** been applied to DEV.
-- Local `main` remains `7028b5a9ec13b00422f1964608461860596e9ac4`; `origin/main` remains `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. No main integration or push was made because the bounded gate is incomplete. No DEV/Production database mutation, new DEV business record, Production deployment, product-version bump or acceptance rerun occurred.
-- T01 and F02 acceptance results remain GREEN from their separate completed runs. Stream-3 broad browser acceptance remains open; after completing the local SQL contract gate, resume the normal main push and then start the Focus/broad acceptance phase from consolidated main.
+- The direct avatar upload path now pins `sharp@0.35.4`, blocks `VipsForeignLoadHeif` before decoding, and requires actual JPEG/PNG/WebP signatures and Sharp metadata to match the declared allowlist. JPEG, PNG and WebP processing remains supported; AVIF/HEIF, MIME spoofing and malformed input are rejected before storage access.
+- Focused avatar/runtime coverage is `13/13` tests GREEN. Strict TypeScript, `git diff --check`, the production build (`296/296` pages), and the resolved dependency check (`sharp@0.35.4`) passed. Full acceptance, broad Focus acceptance and full Vitest were not rerun.
+- Existing lint friction remains: `typescript-eslint` rejects TypeScript 7.0. This is unchanged toolchain friction and was not repaired in this bounded security fix.
+- LiquidHR has a **SINGLE TEST ENVIRONMENT**. Vercel Production is the published test deployment, not a separate customer Production environment. It uses Supabase project `wnpfloqpjvaacobppbpk`; no separate customer Production database exists.
+- Both canonical migrations are applied once and verified on the shared project: `20260922210000_fix_talent_review_current_placement_uniqueness` and `20260922230000_allow_focus_act_as_leave_workflow`. The latter MCP history row uses server version `20260923164105`; its logical name, canonical SQL and post-apply verification are accepted. Do not reapply either migration or repair migration history.
+- T01 and F02 accepted evidence is reused. The convergence candidate was `46daa3dbe5dc88f471458fd81d922b4975f31507`; T01 source `68c65b9dcb372aef4df874db6975d1681f51469d`, F02 source `a30b93ba756465c3c7478edc493c35201d04a906`, and Stream 3 are integrated into `main`. The unavailable local pgTAP/Supabase execution was environment-gated and was not required for convergence. Broad Focus browser acceptance remains pending.
+- The canonical main-worktree `apps/hr-suite/.env.local` is protected local state. No DEV or Production database mutation, business-record creation, or version bump was performed for this remediation.
 
 ## Focus implementation details
 
