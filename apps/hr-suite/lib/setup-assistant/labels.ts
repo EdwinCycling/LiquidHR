@@ -17,6 +17,8 @@ export interface SetupAssistantLabels {
   empty: string
   helpTitle: string
   helpDescription: string
+  hide: string
+  hideFailed: string
   categoryOpen: string
   categoryClose: string
   markComplete: string
@@ -74,6 +76,8 @@ export function createSetupAssistantLabels(messages: Translator): SetupAssistant
     empty: messages('empty'),
     helpTitle: messages('helpTitle'),
     helpDescription: messages('helpDescription'),
+    hide: messages('hide'),
+    hideFailed: messages('hideFailed'),
     categoryOpen: messages('categoryOpen'),
     categoryClose: messages('categoryClose'),
     markComplete: messages('markComplete'),

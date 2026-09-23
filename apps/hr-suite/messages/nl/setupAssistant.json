@@ -21,6 +21,8 @@
   "complete": "✓ LiquidHR is ingericht",
   "helpTitle": "Hulp nodig?",
   "helpDescription": "Kom je er niet uit? Open een stap en controleer de uitleg op de bijbehorende beheerpagina.",
+  "hide": "Niet meer tonen",
+  "hideFailed": "De Setup Assistent kon niet worden verborgen.",
   "markComplete": "Markeer als gereed",
   "markIncomplete": "Markeer als niet gereed",
   "openStep": "Open {title}",

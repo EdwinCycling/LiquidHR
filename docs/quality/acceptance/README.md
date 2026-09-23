@@ -21,7 +21,7 @@ Canonical repository-owned source of truth for repeatable LiquidHR acceptance ru
 | GJ03 | Actual Work / Hours | GREEN | ISOLATED_FIXTURE | AW02 follow-up |
 | T01 | Survey / Personality / 9-grid | GREEN | ISOLATED_FIXTURE | T01-20260922-193129 completed; remote branch verified |
 | F01 | Settings | READY | SOLO | Execute sequentially |
-| F02 | Navigation / Help | READY | PARALLEL_SAFE | Execute read-mostly wave |
+| F02 | Navigation / Help | GREEN | PARALLEL_SAFE | Regression maintenance |
 | F03 | Workforce / Employment | READY | SOLO | Execute dedicated employee fixture |
 | S01 | Authorization torture | READY | SOLO | Execute after preflight |
 | T02 | Talent development | READY | ISOLATED_FIXTURE | Execute dedicated talent fixture |

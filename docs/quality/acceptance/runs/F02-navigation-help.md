@@ -2,7 +2,7 @@
 
 - **Run ID:** F02
 - **Name:** Navigation, sidepanel, help and setup guidance acceptance
-- **Status:** READY
+- **Status:** GREEN
 - **Execution mode:** PARALLEL_SAFE
 - **Mutation risk:** LOW
 - **Expected runtime:** MEDIUM

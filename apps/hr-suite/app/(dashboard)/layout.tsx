@@ -23,6 +23,7 @@ import { resolveResearchAccess } from '@/lib/research/access'
 import { SetupAssistantFloating } from '@/components/setup-assistant/setup-assistant-floating'
 import { canUseSetupAssistant, getSetupAssistantState } from '@/lib/setup-assistant/service'
 import { createSetupAssistantLabels } from '@/lib/setup-assistant/labels'
+import { getRecruitmentNavigationHref } from '@/components/layout/sidebar-navigation'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let requestContext
@@ -79,13 +80,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       ? supabase.from('employees').select('first_name, avatar_url').eq('id', authContext.employeeId).eq('tenant_id', context.tenant.id).eq('hr_group_id', authContext.hrGroupId ?? '').is('deleted_at', null).maybeSingle().then(({ data: employee }) => employee)
       : Promise.resolve(null),
   ])
-  const canReadRecruitment = enabledModules.includes('RECRUITMENT') && authContext.permissions.some((permission) => [
-    'recruitment-vacancy:read',
-    'recruitment-candidate:read',
-    'recruitment-assessment:read',
-    'recruitment-settings:manage',
-    'recruitment-participation:read',
-  ].includes(permission))
+  const recruitmentHref = getRecruitmentNavigationHref(enabledModules.includes('RECRUITMENT'), authContext.permissions)
+  const canReadRecruitment = recruitmentHref !== null
   const profileFirstName = profile?.first_name?.trim() || (typeof email === 'string' ? email.split('@')[0] : '') || common('appName')
   const profileAvatarUrl = authContext.employeeId ? employeeAvatarHref(authContext.employeeId, profile?.avatar_url ?? null) : null
   const currentEmail = typeof email === 'string' ? email.trim().toLowerCase() : null
@@ -131,6 +127,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadInsights={canReadAnalysis || insightPermissions.some(Boolean)}
         canOpenResearch={researchAccess.canOpenHub && (enabledModules.includes('SURVEYS') || enabledModules.includes('ENPS'))}
         canReadRecruitment={canReadRecruitment}
+        recruitmentHref={recruitmentHref ?? '/recruitment'}
         canReadJourneys={authContext.permissions.includes('journey:read') && enabledModules.includes('JOURNEYS')}
         canReadDocumentStudio={canReadDocumentStudio}
         labels={{

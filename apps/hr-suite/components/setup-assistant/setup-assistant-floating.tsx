@@ -36,6 +36,9 @@ export function SetupAssistantFloating({
   const [pendingCompletions, setPendingCompletions] = useState<Record<string, boolean>>({})
   const [dismissedSuggestionKeys, setDismissedSuggestionKeys] = useState(() => new Set<string>())
   const [savingStepKey, setSavingStepKey] = useState<string | null>(null)
+  const [savingVisibility, setSavingVisibility] = useState(false)
+  const [hideError, setHideError] = useState(false)
+  const [isHidden, setIsHidden] = useState(false)
   const visibleCategories = useMemo(() => SETUP_ASSISTANT_GUIDE
     .map((category) => ({
       ...category,
@@ -96,10 +99,32 @@ export function SetupAssistantFloating({
     }
   }
 
+  async function hideAssistant() {
+    if (!state.canWrite || savingVisibility) return
+    setSavingVisibility(true)
+    setHideError(false)
+    try {
+      const response = await fetch('/api/setup-assistant', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ isEnabled: false }),
+      })
+      if (!response.ok) throw new Error('SETUP_ASSISTANT_HIDE_FAILED')
+      setOpen(false)
+      setIsHidden(true)
+      router.refresh()
+    } catch {
+      setSavingVisibility(false)
+      setHideError(true)
+    }
+  }
+
   const completedCount = visibleSteps.filter((step) => completedStepKeys.has(step.stepKey)).length
   const totalCount = visibleSteps.length
   const percentage = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100)
   const activeCategoryDefinition = visibleCategories.find((category) => category.categoryKey === activeCategory)
+
+  if (isHidden) return null
 
   return (
     <>
@@ -117,9 +142,22 @@ export function SetupAssistantFloating({
         closeLabel={labels.close}
         contentClassName="px-5 py-4 sm:px-6"
         footer={(
-          <div>
-            <p className="text-sm font-semibold text-foreground">{labels.helpTitle}</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.helpDescription}</p>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">{labels.helpTitle}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.helpDescription}</p>
+            </div>
+            <Button
+              disabled={!state.canWrite || savingVisibility}
+              loading={savingVisibility}
+              onClick={() => void hideAssistant()}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {labels.hide}
+            </Button>
+            {hideError ? <p aria-live="polite" className="text-xs text-destructive">{labels.hideFailed}</p> : null}
           </div>
         )}
         onOpenChange={handleOpenChange}

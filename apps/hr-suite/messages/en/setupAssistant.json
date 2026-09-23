@@ -21,6 +21,8 @@
   "complete": "✓ LiquidHR is set up",
   "helpTitle": "Need help?",
   "helpDescription": "Stuck? Open a step and check the explanation on the corresponding settings page.",
+  "hide": "Don't show again",
+  "hideFailed": "The Setup Assistant could not be hidden.",
   "markComplete": "Mark as ready",
   "markIncomplete": "Mark as not ready",
   "openStep": "Open {title}",
