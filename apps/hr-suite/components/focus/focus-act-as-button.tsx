@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
-export function FocusActAsButton({ employeeId, errorLabel, label, loadingLabel }: { employeeId: string; errorLabel: string; label: string; loadingLabel: string }) {
+export function FocusActAsButton({ employeeId, errorLabel, label, loadingLabel, tooltipLabel }: { employeeId: string; errorLabel: string; label: string; loadingLabel: string; tooltipLabel?: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
@@ -28,7 +28,7 @@ export function FocusActAsButton({ employeeId, errorLabel, label, loadingLabel }
   }
 
   return <span className="inline-flex flex-wrap items-center gap-2">
-    <Button disabled={loading} loading={loading} onClick={() => void start()} size="sm" type="button" variant="secondary">{loading ? loadingLabel : label}</Button>
+    <Button aria-label={tooltipLabel} disabled={loading} loading={loading} onClick={() => void start()} size="sm" title={tooltipLabel} type="button" variant="secondary">{loading ? loadingLabel : label}</Button>
     {error ? <span className="text-xs text-destructive" role="alert">{errorLabel}</span> : null}
   </span>
 }

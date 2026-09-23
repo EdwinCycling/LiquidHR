@@ -113,6 +113,21 @@ export const addressSchema = z.object({
   }
 })
 
+export const focusProfileUpdateSchema = z.object({
+  title: nullableText(40),
+  initials: nullableText(20),
+  firstName: z.string().trim().min(1).max(120),
+  birthNamePrefix: nullableText(40),
+  birthName: z.string().trim().min(1).max(120),
+  partnerNamePrefix: nullableText(40),
+  partnerName: nullableText(120),
+  nameUsage: z.enum(['BIRTH_NAME', 'PARTNER_NAME', 'PARTNER_BEFORE_BIRTH_NAME', 'BIRTH_NAME_BEFORE_PARTNER_NAME']),
+  privateEmail: z.email().max(254).nullish(),
+  privatePhone: nullableText(40),
+  privateMobile: nullableText(40),
+  updatedAt: z.iso.datetime({ offset: true }),
+}).strict()
+
 function isValidIban(input: string): boolean {
   const iban = input.replace(/\s/g, '').toUpperCase()
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) return false
@@ -164,6 +179,7 @@ export const relationSchema = z.object({
 
 export type EmployeeCreateInput = Omit<z.infer<typeof employeeCreateSchema>, 'bsn'> & { bsn?: string }
 export type EmployeeUpdateInput = z.infer<typeof employeeUpdateSchema>
+export type FocusProfileUpdateInput = z.infer<typeof focusProfileUpdateSchema>
 export type AddressInput = z.infer<typeof addressSchema>
 export type AddressType = AddressInput['addressType']
 export type BankAccountInput = z.infer<typeof bankAccountSchema>

@@ -142,18 +142,66 @@ export interface FocusProfileProjection {
   firstName: string
   updatedAt: string
   canEdit: boolean
+  canEditRelations: boolean
   name: string
   avatarUrl: string | null
+  editable: {
+    title: string | null
+    initials: string | null
+    firstName: string
+    birthNamePrefix: string | null
+    birthName: string
+    partnerNamePrefix: string | null
+    partnerName: string | null
+    nameUsage: 'BIRTH_NAME' | 'PARTNER_NAME' | 'PARTNER_BEFORE_BIRTH_NAME' | 'BIRTH_NAME_BEFORE_PARTNER_NAME'
+    privateEmail: string | null
+    privatePhone: string | null
+    privateMobile: string | null
+  }
   personal: Array<{ key: 'language'; value: string }>
-  contact: Array<{ key: 'workEmail' | 'workPhone' | 'privateEmail' | 'privatePhone'; value: string; href?: string }>
-  relations: Array<{ name: string; relation: string; contact: string | null }>
+  contact: Array<{ key: 'workEmail' | 'workPhone' | 'privateEmail' | 'privatePhone' | 'privateMobile'; value: string; href?: string }>
+  relations: Array<{
+    id: string
+    relationType: string
+    isEmergencyContact: boolean
+    firstName: string | null
+    initials: string | null
+    prefix: string | null
+    lastName: string
+    gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY' | null
+    birthDate: string | null
+    phone: string | null
+    mobile: string | null
+    email: string | null
+    notes: string | null
+  }>
+  relationTypes: Array<{ code: string; nameNl: string; nameEn: string }>
   address: string[]
   work: Array<{ key: 'jobTitle' | 'department' | 'startDate' | 'hoursPerWeek'; value: string }>
   bank: { iban: string; bic: string | null; holder: string | null } | null
 }
 
-function displayName(row: { first_name: string; birth_name_prefix?: string | null; birth_name: string }): string {
-  return [row.first_name, row.birth_name_prefix, row.birth_name].filter((part): part is string => Boolean(part?.trim())).join(' ').trim()
+const DEFAULT_FOCUS_RELATION_TYPES = [
+  { code: 'PARTNER', nameNl: 'Partner', nameEn: 'Partner' },
+  { code: 'CHILD', nameNl: 'Kind', nameEn: 'Child' },
+  { code: 'PARENT', nameNl: 'Ouder', nameEn: 'Parent' },
+  { code: 'SIBLING', nameNl: 'Broer of zus', nameEn: 'Sibling' },
+  { code: 'DOCTOR', nameNl: 'Huisarts', nameEn: 'Doctor' },
+  { code: 'DENTIST', nameNl: 'Tandarts', nameEn: 'Dentist' },
+  { code: 'OTHER', nameNl: 'Overig', nameEn: 'Other' },
+]
+
+function displayName(row: { first_name: string; birth_name_prefix?: string | null; birth_name: string; partner_name_prefix?: string | null; partner_name?: string | null; name_usage?: 'BIRTH_NAME' | 'PARTNER_NAME' | 'PARTNER_BEFORE_BIRTH_NAME' | 'BIRTH_NAME_BEFORE_PARTNER_NAME' }): string {
+  const birthName = [row.birth_name_prefix, row.birth_name].filter((part): part is string => Boolean(part?.trim())).join(' ').trim()
+  const partnerName = [row.partner_name_prefix, row.partner_name].filter((part): part is string => Boolean(part?.trim())).join(' ').trim()
+  const surname = row.name_usage === 'PARTNER_NAME'
+    ? partnerName || birthName
+    : row.name_usage === 'PARTNER_BEFORE_BIRTH_NAME'
+      ? [partnerName, birthName].filter(Boolean).join(' ')
+      : row.name_usage === 'BIRTH_NAME_BEFORE_PARTNER_NAME'
+        ? [birthName, partnerName].filter(Boolean).join(' ')
+        : birthName
+  return [row.first_name, surname].filter(Boolean).join(' ').trim()
 }
 
 function optionalText(value: string | null | undefined): string | null {
@@ -168,11 +216,12 @@ export async function getFocusProfileProjection(section: FocusSectionContext): P
   if (!hasFocusPermission(section, 'self:employee:read', 'employee:read')) throw new AuthorizationError('Je hebt geen toegang tot dit profiel.')
   const groupId = requireHrGroupId(section.context)
   const today = new Date().toISOString().slice(0, 10)
-  const [employeeResult, employmentResult, addressResult, relationsResult, bankResult] = await Promise.all([
-    section.supabase.from('employees').select('id,first_name,birth_name_prefix,birth_name,avatar_url,private_email,private_phone,private_mobile,work_email,work_phone,work_phone_ext,work_mobile,preferred_language,updated_at').eq('tenant_id', section.context.tenantId).eq('hr_group_id', groupId).eq('id', section.employeeId).is('deleted_at', null).maybeSingle(),
+  const [employeeResult, employmentResult, addressResult, relationsResult, relationTypesResult, bankResult] = await Promise.all([
+    section.supabase.from('employees').select('id,title,initials,first_name,birth_name_prefix,birth_name,partner_name_prefix,partner_name,name_usage,avatar_url,private_email,private_phone,private_mobile,work_email,work_phone,work_phone_ext,work_mobile,preferred_language,updated_at').eq('tenant_id', section.context.tenantId).eq('hr_group_id', groupId).eq('id', section.employeeId).is('deleted_at', null).maybeSingle(),
     section.supabase.from('employments').select('id,starts_on,ends_on,is_primary,administration_id').eq('tenant_id', section.context.tenantId).eq('hr_group_id', groupId).eq('employee_id', section.employeeId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', today).or(`ends_on.is.null,ends_on.gte.${today}`).order('is_primary', { ascending: false }).order('starts_on', { ascending: false }).limit(20),
     section.supabase.from('employee_addresses').select('address_type,address_line_1,address_line_2,street,house_number,house_number_addition,postal_code,city,region,country_code').eq('tenant_id', section.context.tenantId).eq('employee_id', section.employeeId).is('deleted_at', null).order('valid_from', { ascending: false }).limit(5),
-    section.supabase.from('employee_relations').select('relation_type,first_name,prefix,last_name,email,phone,mobile,is_emergency_contact').eq('tenant_id', section.context.tenantId).eq('employee_id', section.employeeId).is('deleted_at', null).order('is_emergency_contact', { ascending: false }).limit(20),
+    section.supabase.from('employee_relations').select('id,relation_type,is_emergency_contact,first_name,initials,prefix,last_name,gender,birth_date,email,phone,mobile,notes').eq('tenant_id', section.context.tenantId).eq('employee_id', section.employeeId).is('deleted_at', null).order('is_emergency_contact', { ascending: false }).limit(20),
+    section.supabase.from('relation_types').select('code,name_nl,name_en').eq('tenant_id', section.context.tenantId).eq('is_active', true).order('name_nl').limit(100),
     section.supabase.from('employee_bank_accounts').select('iban_last_four,bic,account_holder,is_primary').eq('tenant_id', section.context.tenantId).eq('employee_id', section.employeeId).is('deleted_at', null).order('is_primary', { ascending: false }).limit(5),
   ])
   if (employeeResult.error || employmentResult.error || addressResult.error || relationsResult.error || bankResult.error) throw new FocusSectionError('FOCUS_PROFILE_READ_FAILED')
@@ -191,15 +240,32 @@ export async function getFocusProfileProjection(section: FocusSectionContext): P
   const workPhone = optionalText(employee.work_phone) ?? optionalText(employee.work_mobile)
   const privateEmail = optionalText(employee.private_email)
   const privatePhone = optionalText(employee.private_phone) ?? optionalText(employee.private_mobile)
+  const privateMobile = optionalText(employee.private_mobile)
   const address = addressResult.data?.[0]
-  const relationLabel = (value: string | null): string => value?.trim() || '—'
+  const relationTypes = relationTypesResult.data?.length
+    ? relationTypesResult.data.map((relationType) => ({ code: relationType.code, nameNl: relationType.name_nl, nameEn: relationType.name_en }))
+    : DEFAULT_FOCUS_RELATION_TYPES
   return {
     employeeId: employee.id,
     firstName: employee.first_name,
     updatedAt: employee.updated_at,
-    canEdit: !section.actAs && hasFocusPermission(section, 'self:employee:write'),
+    canEdit: hasFocusPermission(section, 'self:employee:write'),
+    canEditRelations: hasFocusPermission(section, 'self:relation:write'),
     name: displayName(employee),
     avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url),
+    editable: {
+      title: optionalText(employee.title),
+      initials: optionalText(employee.initials),
+      firstName: employee.first_name,
+      birthNamePrefix: optionalText(employee.birth_name_prefix),
+      birthName: employee.birth_name,
+      partnerNamePrefix: optionalText(employee.partner_name_prefix),
+      partnerName: optionalText(employee.partner_name),
+      nameUsage: employee.name_usage,
+      privateEmail,
+      privatePhone: optionalText(employee.private_phone),
+      privateMobile,
+    },
     personal: [
       { key: 'language', value: employee.preferred_language || '—' },
     ],
@@ -208,12 +274,24 @@ export async function getFocusProfileProjection(section: FocusSectionContext): P
       ...(workPhone ? [{ key: 'workPhone' as const, value: employee.work_phone_ext ? `${workPhone} · ${employee.work_phone_ext}` : workPhone, href: contactHref(workPhone, 'tel') }] : []),
       ...(privateEmail ? [{ key: 'privateEmail' as const, value: privateEmail, href: contactHref(privateEmail, 'mailto') }] : []),
       ...(privatePhone ? [{ key: 'privatePhone' as const, value: privatePhone, href: contactHref(privatePhone, 'tel') }] : []),
+      ...(privateMobile ? [{ key: 'privateMobile' as const, value: privateMobile, href: contactHref(privateMobile, 'tel') }] : []),
     ],
     relations: (relationsResult.data ?? []).map((relation) => ({
-      name: [relation.first_name, relation.prefix, relation.last_name].filter((part): part is string => Boolean(part?.trim())).join(' ').trim(),
-      relation: relationLabel(relation.relation_type),
-      contact: optionalText(relation.email) ?? optionalText(relation.mobile) ?? optionalText(relation.phone),
+      id: relation.id,
+      relationType: relation.relation_type,
+      isEmergencyContact: relation.is_emergency_contact,
+      firstName: relation.first_name,
+      initials: relation.initials,
+      prefix: relation.prefix,
+      lastName: relation.last_name,
+      gender: relation.gender,
+      birthDate: relation.birth_date,
+      phone: relation.phone,
+      mobile: relation.mobile,
+      email: relation.email,
+      notes: relation.notes,
     })),
+    relationTypes,
     address: address ? [address.address_line_1 ?? [address.street, address.house_number, address.house_number_addition].filter(Boolean).join(' '), [address.postal_code, address.city].filter(Boolean).join(' '), address.region, address.country_code].filter((part): part is string => Boolean(part?.trim())) : [],
     work: [
       ...(organizationResult.data?.job_title ? [{ key: 'jobTitle' as const, value: organizationResult.data.job_title }] : []),
@@ -255,6 +333,7 @@ export interface FocusHoursOverview {
   employeeName: string
   employmentId: string | null
   days: Array<{ date: string; expected: number; recorded: number; needsAction: boolean }>
+  entries: Array<{ id: string; date: string; type: string; hours: number; status: string; corrected: boolean }>
   canEdit: boolean
   projection: ActualWorkEmployeeProjection | null
 }
@@ -286,7 +365,7 @@ export async function getFocusHoursOverview(section: FocusSectionContext): Promi
   try {
     projection = await getActualWorkEmployeeProjection({ employeeId: section.employeeId, month: today.slice(0, 7) }, { context: section.context, hrGroupId: requireHrGroupId(section.context), supabase: section.supabase })
   } catch (error) {
-    if (error instanceof ActualWorkServiceError && error.code === 'ACTUAL_WORK_EMPLOYMENT_NOT_FOUND') return { employeeName: '', employmentId: null, days: [], canEdit: false, projection: null }
+    if (error instanceof ActualWorkServiceError && error.code === 'ACTUAL_WORK_EMPLOYMENT_NOT_FOUND') return { employeeName: '', employmentId: null, days: [], entries: [], canEdit: false, projection: null }
     throw error
   }
   const start = mondayOf(today)
@@ -296,7 +375,19 @@ export async function getFocusHoursOverview(section: FocusSectionContext): Promi
     const expected = expectedHours(schedule, date)
     return { date, expected, recorded, needsAction: expected > 0 && recorded === 0 && date <= today }
   })
-  return { employeeName: displayName(projection.employee), employmentId: projection.employment.id, days, canEdit: !section.actAs && hasFocusPermission(section, 'self:actual-work:write', 'actual-work:write', 'leave:write'), projection }
+  const typeById = new Map(projection.types.map((type) => [type.id, type.name]))
+  const entries = projection.entries
+    .filter((entry) => entry.status !== 'REVOKED')
+    .map((entry) => ({
+      id: entry.id,
+      date: entry.subject_period_start,
+      type: typeById.get(entry.work_hour_type_id) ?? '—',
+      hours: Number(entry.hours),
+      status: entry.status,
+      corrected: Boolean(entry.correction_reason) || projection.revisions.some((revision) => revision.entry_id === entry.id && revision.operation === 'CORRECTION'),
+    }))
+    .sort((left, right) => right.date.localeCompare(left.date) || left.id.localeCompare(right.id))
+  return { employeeName: displayName(projection.employee), employmentId: projection.employment.id, days, entries, canEdit: !section.actAs && hasFocusPermission(section, 'self:actual-work:write'), projection }
 }
 
 export async function getFocusDocuments(section: FocusSectionContext) {

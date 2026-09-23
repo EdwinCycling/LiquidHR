@@ -132,7 +132,7 @@ export async function loadFocusTeamCalendarForContext(
   const employmentIds = employments.map((employment) => employment.id)
   const [schedulesResult, leaveResult, absenceCasesResult] = await Promise.all([
     employmentIds.length ? supabase.from('employment_schedules').select('employment_id,valid_from,valid_until,sunday_hours,monday_hours,tuesday_hours,wednesday_hours,thursday_hours,friday_hours,saturday_hours').in('employment_id', employmentIds).lte('valid_from', endDate).or(`valid_until.is.null,valid_until.gte.${startDate}`).limit(5000) : Promise.resolve({ data: [], error: null }),
-    supabase.from('leave_requests').select('employee_id,start_date,end_date').eq('tenant_id', context.tenantId).eq('status', 'APPROVED').in('employee_id', employeeIds).lte('start_date', endDate).gte('end_date', startDate).limit(10000),
+    supabase.from('leave_requests').select('employee_id,start_date,end_date').eq('tenant_id', context.tenantId).in('status', ['PENDING', 'CHANGES_REQUESTED', 'APPROVED']).in('employee_id', employeeIds).lte('start_date', endDate).gte('end_date', startDate).limit(10000),
     supabase.from('absence_cases').select('id,employee_id,status,pending_confirmation').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).in('employee_id', employeeIds).in('status', ['ACTIVE', 'RECOVERY_WINDOW']).is('archived_at', null).lte('first_absence_on', endDate).limit(3000),
   ])
   if (schedulesResult.error || leaveResult.error || absenceCasesResult.error) throw schedulesResult.error ?? leaveResult.error ?? absenceCasesResult.error

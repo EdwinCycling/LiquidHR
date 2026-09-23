@@ -1,15 +1,18 @@
 # Actuele overdracht Liquid HR
 
-## F02 Acceptance — 2026-09-22
+## Final convergence T01 + F02 + Focus — 2026-09-23
 
-**Status: GREEN — navigation/help acceptance completed on dedicated DEV branch; PRODUCT_DECISION RESOLVED**
+**Status: INTEGRATION CANDIDATE — prior T01/F02 acceptance remains GREEN; Stream 3 is code only pending the bounded convergence gate and main push.**
 
-- F02 ran from clean `origin/main` `5c1191b3907d56622deb7c3d3c12a6012785b8c6` on `work/acceptance-F02-20260922`; DEV only, no Production action, deploy, merge or database schema change.
-- Full-mode, Focus, Settings, help, onboarding, persistence, negative authorization and `390x844` responsive surfaces were exercised. Preboarding and separate Manager-out authentication remained environment-gated without inventing identities.
-- Fixed and regression-tested the Manager recruitment destination mismatch (`/recruitment/assigned` versus overview `/recruitment`) and aligned the Dutch overview title to `Sollicitaties`.
-- Quality gate: targeted navigation/setup-assistant regressions, strict TypeScript, ESLint, i18n parity, the prior 438 Vitest files / 1,718 tests, the prior Next build 296/296 and post-fix diff-check are GREEN. Detailed evidence is under the F02 artifact run directory.
-- The dedicated branch and the product-decision fix, targeted regression tests and updated report/status were pushed normally; the product-decision fix commit is `26fd2214bc3627e9d297a63477cd81e5553255c1` and the exact final branch tip is recorded in the acceptance response. DEV screenshots remain local-only because they contain persona/organization context. No merge or deploy was performed.
-- `PRODUCT_DECISION RESOLVED`: the sidepanel now has contextual `Niet meer tonen`; it reuses the canonical visibility setting, persists through refresh/relogin, and the existing Settings `Setup Assistent tonen` control re-enables it. Checklist completion remained intact and no second preference model was introduced.
+- Baseline: `origin/main` `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. T01 source: `68c65b9dcb372aef4df874db6975d1681f51469d`; F02 source: `a30b93ba756465c3c7478edc493c35201d04a906`.
+- Stream 3 was preserved from the local `main` work (which already contained four in-scope employee/Focus commits) in commit `bf83c441f84fd4a801f1e37d711ee91ddfd5d9e2`. It covers Employee Detail, Focus shell/profile/relations/leave/hours/team calendar and restricted act-as leave support.
+- T01 migration `20260922210000_fix_talent_review_current_placement_uniqueness.sql` was already applied to DEV during T01; do not apply it again. Stream 3 migration `20260922230000_allow_focus_act_as_leave_workflow.sql` is canonical source code only and has **not** been applied to DEV.
+- T01 and F02 acceptance results are retained from their separate completed runs; neither acceptance run is repeated here. Stream 3 broad browser acceptance remains open for the next phase.
+- This convergence performs no DEV or Production database mutation, creates no DEV business records, makes no Production deployment and does not bump the product version. Main becomes a development/acceptance candidate only after the bounded regression, type, i18n, diff and build gates pass and the normal push is verified.
+
+## Focus implementation details
+
+See the Focus sections below and [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) for delivered behavior, prior targeted evidence and remaining Employee/browser acceptance boundaries. The next phase starts from consolidated `main` and covers Focus plus the broader acceptance inventory.
 
 ## Final consolidation — 2026-09-21
 

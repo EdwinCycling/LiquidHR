@@ -166,19 +166,38 @@ export function LeaveBalanceHistoryPanel({
     {loadingForSelection ? <p className="text-sm text-muted-foreground" role="status">{labels.loading}</p> : failedForSelection ? <p className="rounded-[var(--radius-control)] bg-destructive-surface p-3 text-sm text-destructive" role="alert">{labels.failed}</p> : reportForSelection ? <>
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-semibold">{labels.currentBalance}</h3><label className="flex items-center gap-2 text-sm font-medium" htmlFor="leave-report-year">{labels.year}<DropdownSelect aria-label={labels.yearSelect} id="leave-report-year" onChange={(event) => setSelectedYear(Number(event.target.value))} value={String(selectedYear)}><option value={String(yearOptions[0])}>{yearOptions[0]}</option><option value={String(yearOptions[1])}>{yearOptions[1]}</option><option value={String(yearOptions[2])}>{yearOptions[2]}</option></DropdownSelect></label></div>
-        <dl className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {reportForSelection.leaveTypes.map((leaveType) => <div className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3" key={leaveType.leaveTypeId}>
-            <dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{leaveType.name}</dt>
-            <dd className="mt-1 text-lg font-semibold tabular-nums">{formatMetric(leaveType.currentBalance)}</dd>
-            <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs"><div><dt className="text-muted-foreground">{labels.beginningBalance}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.startOfYearBalance)}</dd></div><div><dt className="text-muted-foreground">{labels.openingBalance}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.openingBalance)}</dd></div><div><dt className="text-muted-foreground">{labels.accrual}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.accrual)}</dd></div><div><dt className="text-muted-foreground">{labels.taken}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.taken.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0))}</dd></div><div><dt className="text-muted-foreground">{labels.planned}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.planned)}</dd></div><div><dt className="text-muted-foreground">{labels.projectedEnd}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.projectedEndBalance)}</dd></div></dl>
-          </div>)}
-        </dl>
+        <div className="mt-3 overflow-x-auto rounded-[var(--radius-control)] border border-subtle">
+          <table className="w-full min-w-[42rem] border-collapse text-left text-xs">
+            <thead className="border-b border-subtle bg-surface-subtle text-muted-foreground"><tr>
+              <th className="px-3 py-2 font-semibold">{labels.leaveType}</th>
+              <th className="px-3 py-2 text-right font-semibold">{labels.currentBalance}</th>
+              <th className="px-3 py-2 text-right font-semibold">{labels.beginningBalance}</th>
+              <th className="px-3 py-2 text-right font-semibold">{labels.openingBalance}</th>
+              <th className="px-3 py-2 text-right font-semibold">{labels.accrual}</th>
+              <th className="px-3 py-2 text-right font-semibold">{labels.taken}</th>
+              <th className="px-3 py-2 text-right font-semibold">{labels.planned}</th>
+              <th className="px-3 py-2 text-right font-semibold">{labels.projectedEnd}</th>
+            </tr></thead>
+            <tbody className="divide-y divide-border/70">
+              {reportForSelection.leaveTypes.map((leaveType) => <tr key={leaveType.leaveTypeId}>
+                <th scope="row" className="max-w-[12rem] px-3 py-2 text-left font-semibold">{leaveType.name}</th>
+                <td className="px-3 py-2 text-right font-semibold tabular-nums">{formatMetric(leaveType.currentBalance)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatMetric(leaveType.startOfYearBalance)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatMetric(leaveType.openingBalance)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatMetric(leaveType.accrual)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatMetric(leaveType.taken.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0))}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatMetric(leaveType.planned)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatMetric(leaveType.projectedEndBalance)}</td>
+              </tr>)}
+            </tbody>
+          </table>
+        </div>
         {reportForSelection.leaveTypes.some((leaveType) => leaveType.projectedContractEndBalance !== null) ? <p className="mt-3 text-xs text-muted-foreground">{labels.projectedContractEnd}: {reportForSelection.leaveTypes.map((leaveType) => `${leaveType.name}: ${formatMetric(leaveType.projectedContractEndBalance)}`).join(' · ')}</p> : null}
         {overviewHref ? <Link className="mt-4 inline-flex text-sm font-semibold text-primary hover:underline" href={`${overviewHref}${overviewHref.includes('?') ? '&' : '?'}year=${selectedYear}`}>{labels.viewOverview}</Link> : null}
       </div>
-      <div>
+      {rows.length > 0 ? <div>
         <h3 className="text-sm font-semibold">{labels.history}</h3>
-        {rows.length === 0 ? <EmptyState className="mt-3 items-start p-4 text-left" title={labels.empty} /> : <DataTableShell className="mt-3" caption={labels.history}>
+        <DataTableShell className="mt-3" caption={labels.history}>
           <thead className="border-b text-left text-xs uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-3 py-2">{labels.leaveType}</th><th className="px-3 py-2">{labels.amount}</th><th className="px-3 py-2">{labels.effectiveDate}</th><th className="px-3 py-2">{labels.reason}</th><th className="px-3 py-2">{labels.actor}</th><th className="px-3 py-2">{labels.createdAt}</th></tr></thead>
           <tbody className="divide-y">{rows.map((transaction, index) => <tr key={transaction.id ?? `${transaction.transactionDate}:${transaction.createdAt ?? index}:${transaction.amount}`}>
             <td className="px-3 py-3 font-medium">{transaction.leaveTypeName}</td>
@@ -188,8 +207,8 @@ export function LeaveBalanceHistoryPanel({
             <td className="px-3 py-3">{transaction.actorDisplayName ?? transaction.actorUserId ?? labels.notRecorded}</td>
             <td className="px-3 py-3 whitespace-nowrap text-sm text-muted-foreground">{formatDate(transaction.createdAt, dateTimeFormatter, labels.notRecorded)}</td>
           </tr>)}</tbody>
-        </DataTableShell>}
-      </div>
+        </DataTableShell>
+      </div> : null}
     </> : <EmptyState title={labels.empty} />}
   </div>
 }

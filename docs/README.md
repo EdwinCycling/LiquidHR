@@ -1,5 +1,21 @@
 # Liquid HR documentatie-index
 
+## Development/acceptance candidate — T01 + F02 + Focus — 2026-09-23
+
+T01 (`68c65b9dcb372aef4df874db6975d1681f51469d`), F02
+(`a30b93ba756465c3c7478edc493c35201d04a906`) and the preserved local Focus
+work are being integrated on a clean branch from `origin/main`
+`5c1191b3907d56622deb7c3d3c12a6012785b8c6`. This is a development and
+acceptance candidate, not a release. The bounded integration gate and normal
+main push must complete before calling it consolidated. Focus/browser
+acceptance remains the next phase.
+
+Migration `20260922210000_fix_talent_review_current_placement_uniqueness.sql`
+was already applied to DEV during T01. Migration
+`20260922230000_allow_focus_act_as_leave_workflow.sql` is source-controlled
+only and has not been applied to DEV. No Production deployment, DEV migration
+or product-version bump is part of this convergence.
+
 ## Release 1.20260921.1 — 2026-09-21
 
 **Status: PRODUCTION GREEN / GJ01 PARTIAL-EXTERNAL-BLOCKER / GJ02 GREEN / GJ03 GREEN**

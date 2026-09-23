@@ -3,14 +3,14 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { ActualWorkEmployeeProjection } from '@/lib/actual-work/actual-work-service'
-import { FocusHoursEntryForm, type FocusHoursEntryLabels } from './focus-hours-entry-form'
+import { FocusHoursEntryForm, focusHoursErrorMessage, type FocusHoursEntryLabels } from './focus-hours-entry-form'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 
 const labels: FocusHoursEntryLabels = {
   title: 'Uren toevoegen', editTitle: 'Uren corrigeren', existingTitle: 'Mijn geregistreerde uren', edit: 'Corrigeren', cancel: 'Annuleren',
   type: 'Type uren', selectType: 'Kies een type', searchTypes: 'Zoek type', date: 'Datum', hours: 'uur', hoursPlaceholder: 'bijv. 7,5', note: 'Notitie', correctionReason: 'Reden voor correctie',
-  save: 'Uren opslaan', saveEdit: 'Correctie opslaan', saving: 'Opslaan…', saved: 'Opgeslagen.', failed: 'Mislukt.', noTypes: 'Geen typen.',
+  save: 'Uren opslaan', saveEdit: 'Correctie opslaan', saving: 'Opslaan…', saved: 'Opgeslagen.', failed: 'Mislukt.', noTypes: 'Geen typen.', errorClosedPeriod: 'Deze periode is gesloten.', errorFutureDate: 'Toekomstige uren zijn voor dit type niet toegestaan.', errorInactiveType: 'Dit urentype is niet actief.', errorLeaveOverlap: 'Deze invoer overlapt met verlof.', errorUnauthorized: 'Je mag deze uren niet wijzigen.', errorHoursInvalid: 'Vul een geldig positief aantal uren in.', errorStale: 'De registratie is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.', errorGeneric: 'De uren konden niet worden opgeslagen.', errorCommentRequired: 'Vul een notitie in voor dit urentype.',
 }
 
 const projection = {
@@ -28,5 +28,11 @@ describe('Focus Actual Work self-service form', () => {
     expect(host.textContent).toContain('2026-09-21')
     expect(host.textContent).toContain('Corrigeren')
     expect(host.querySelectorAll('button').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('maps canonical validation codes to employee-facing Dutch messages', () => {
+    expect(focusHoursErrorMessage('ACTUAL_WORK_PERIOD_CLOSED', labels)).toBe('Deze periode is gesloten.')
+    expect(focusHoursErrorMessage('ACTUAL_WORK_LEAVE_OVERLAP', labels)).toBe('Deze invoer overlapt met verlof.')
+    expect(focusHoursErrorMessage('UNEXPECTED_CODE', labels)).toBe('De uren konden niet worden opgeslagen.')
   })
 })
