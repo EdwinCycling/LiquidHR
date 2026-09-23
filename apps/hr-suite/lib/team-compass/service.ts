@@ -4,6 +4,7 @@ import { permissionErrorResponse, requireAuthContext, requireHrGroupId } from '@
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
 import type { TeamCompassCampaignInput, TeamCompassResponseInput, TeamCompassTransitionInput } from './schemas'
+import { teamCompassDatabaseErrorStatus } from './errors'
 
 type Campaign = Database['public']['Tables']['team_compass_campaigns']['Row']
 type Participation = Database['public']['Tables']['team_compass_participations']['Row']
@@ -44,12 +45,9 @@ function modeForPermissions(permissions: readonly string[]): TeamCompassMode {
 
 function ensureDatabaseResult(error: { message: string; code?: string } | null, fallback: string): void {
   if (!error) return
-  const conflict = error.code === '40001' || error.message.includes('VERSION_CONFLICT')
-  const forbidden = error.code === '42501' || error.message.includes('FORBIDDEN')
-  const invalid = error.code === '22023' || error.message.includes('INVALID') || error.message.includes('INCOMPLETE')
   throw new TeamCompassServiceError(
     error.message.match(/TEAM_COMPASS_[A-Z_]+/)?.[0] ?? fallback,
-    conflict ? 409 : forbidden ? 403 : invalid ? 400 : 500,
+    teamCompassDatabaseErrorStatus(error),
   )
 }
 

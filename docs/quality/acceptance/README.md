@@ -19,7 +19,7 @@ Canonical repository-owned source of truth for repeatable LiquidHR acceptance ru
 | GJ01 | Onboarding / Preboarding | PARTIAL / EXTERNAL_BLOCKER | SOLO | GJ01R after DEV mail recovery |
 | GJ02 | Documents / Studio / Signing | GREEN | SOLO | DOC02 follow-up |
 | GJ03 | Actual Work / Hours | GREEN | ISOLATED_FIXTURE | AW02 follow-up |
-| T01 | Survey / Personality / 9-grid | READY | ISOLATED_FIXTURE | Execute dedicated talent fixture |
+| T01 | Survey / Personality / 9-grid | GREEN | ISOLATED_FIXTURE | T01-20260922-193129 completed; remote branch verified |
 | F01 | Settings | READY | SOLO | Execute sequentially |
 | F02 | Navigation / Help | READY | PARALLEL_SAFE | Execute read-mostly wave |
 | F03 | Workforce / Employment | READY | SOLO | Execute dedicated employee fixture |

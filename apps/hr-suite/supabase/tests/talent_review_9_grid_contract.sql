@@ -78,7 +78,7 @@ begin
     join pg_namespace namespace_row on namespace_row.oid = function_row.pronamespace
     where namespace_row.nspname = 'public'
       and function_row.proname = 'start_talent_review_campaign'
-      and pg_get_function_identity_arguments(function_row.oid) = 'uuid'
+      and pg_get_function_identity_arguments(function_row.oid) = 'requested_campaign_id uuid'
       and function_row.prosecdef
   ) then
     raise exception 'Start command must be SECURITY DEFINER for assignment materialization';
@@ -89,10 +89,22 @@ begin
     join pg_namespace namespace_row on namespace_row.oid = function_row.pronamespace
     where namespace_row.nspname = 'public'
       and function_row.proname = 'start_talent_review_campaign'
-      and pg_get_function_identity_arguments(function_row.oid) = 'uuid'
+      and pg_get_function_identity_arguments(function_row.oid) = 'requested_campaign_id uuid'
       and pg_get_functiondef(function_row.oid) ilike '%distinct on (placement.employee_id)%'
   ) then
     raise exception 'Start command must materialize one current placement per employee';
+  end if;
+  if not exists (
+    select 1
+    from pg_proc function_row
+    join pg_namespace namespace_row on namespace_row.oid = function_row.pronamespace
+    where namespace_row.nspname = 'public'
+      and function_row.proname = 'start_talent_review_campaign'
+      and pg_get_function_identity_arguments(function_row.oid) = 'requested_campaign_id uuid'
+      and pg_get_functiondef(function_row.oid) ilike '%with current_placements as%'
+      and length(pg_get_functiondef(function_row.oid)) - length(replace(lower(pg_get_functiondef(function_row.oid)), 'with current_placements as', '')) >= 2
+  ) then
+    raise exception 'Start command must deduplicate current placements before assignment and member materialization';
   end if;
 
   if not exists (select 1 from public.permissions where code = 'talent-review:manage')

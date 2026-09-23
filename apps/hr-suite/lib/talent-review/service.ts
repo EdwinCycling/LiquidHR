@@ -10,7 +10,7 @@ import type {
   TalentReviewReminderInput,
   TalentReviewScoreSaveInput,
 } from './schemas'
-import { canManagerAccessReviewSubject, deriveGridCell, type GridValue } from './rules'
+import { canEditTalentReviewAssignment, canManagerAccessReviewSubject, deriveGridCell, type GridValue } from './rules'
 
 type CampaignRow = Database['public']['Tables']['talent_review_campaigns']['Row']
 type AssignmentRow = Database['public']['Tables']['talent_review_assignments']['Row']
@@ -20,6 +20,8 @@ type ScoreRow = Database['public']['Tables']['talent_review_scores']['Row']
 export type TalentReviewErrorCode =
   | 'TALENT_REVIEW_CAMPAIGN_NOT_FOUND'
   | 'TALENT_REVIEW_ASSIGNMENT_NOT_FOUND'
+  | 'TALENT_REVIEW_ASSIGNMENT_LOCKED'
+  | 'TALENT_REVIEW_ASSIGNMENT_ALREADY_SUBMITTED'
   | 'TALENT_REVIEW_MEMBER_NOT_FOUND'
   | 'TALENT_REVIEW_SCORE_NOT_FOUND'
   | 'TALENT_REVIEW_CAMPAIGN_LOCKED'
@@ -288,6 +290,10 @@ export async function saveTalentReviewScore(campaignId: string, input: TalentRev
   const { data: member, error: memberError } = await supabase.from('talent_review_assignment_members').select('assignment_id,manager_employee_id,employee_snapshot').eq('tenant_id', context.tenantId).eq('campaign_id', campaignId).eq('employee_id', input.employeeId).maybeSingle()
   if (memberError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!member) throw new TalentReviewError('TALENT_REVIEW_MEMBER_NOT_FOUND', 404)
+  const { data: assignment, error: assignmentError } = await supabase.from('talent_review_assignments').select('status').eq('tenant_id', context.tenantId).eq('id', member.assignment_id).maybeSingle()
+  if (assignmentError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
+  if (!assignment) throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_NOT_FOUND', 404)
+  if (!canEditTalentReviewAssignment(assignment.status)) throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_LOCKED', 409)
   const { data: existing, error: existingError } = await supabase.from('talent_review_scores').select('*').eq('tenant_id', context.tenantId).eq('campaign_id', campaignId).eq('employee_id', input.employeeId).maybeSingle()
   if (existingError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   const performanceScore = input.performanceScore ?? null
@@ -330,6 +336,7 @@ export async function submitTalentReviewAssignment(campaignId: string): Promise<
   const { data: assignment, error: assignmentError } = await supabase.from('talent_review_assignments').select('*').eq('tenant_id', context.tenantId).eq('campaign_id', campaignId).eq('manager_employee_id', context.employeeId).maybeSingle()
   if (assignmentError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!assignment) throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_NOT_FOUND', 404)
+  if (assignment.status === 'SUBMITTED') throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_ALREADY_SUBMITTED', 409)
   const [membersResult, scoresResult] = await Promise.all([
     supabase.from('talent_review_assignment_members').select('employee_id').eq('tenant_id', context.tenantId).eq('assignment_id', assignment.id),
     supabase.from('talent_review_scores').select('employee_id,performance_score,potential_score').eq('tenant_id', context.tenantId).eq('assignment_id', assignment.id),
