@@ -2,13 +2,16 @@
 
 ## Final convergence T01 + F02 + Focus — 2026-09-23
 
-**Status: INTEGRATION CANDIDATE — prior T01/F02 acceptance remains GREEN; Stream 3 is code only pending the bounded convergence gate and main push.**
+**Status: CONVERGENCE PARTIAL — all three source lines are merged locally; main push is held because the T01 local pgTAP contract gate could not run.**
 
 - Baseline: `origin/main` `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. T01 source: `68c65b9dcb372aef4df874db6975d1681f51469d`; F02 source: `a30b93ba756465c3c7478edc493c35201d04a906`.
-- Stream 3 was preserved from the local `main` work (which already contained four in-scope employee/Focus commits) in commit `bf83c441f84fd4a801f1e37d711ee91ddfd5d9e2`. It covers Employee Detail, Focus shell/profile/relations/leave/hours/team calendar and restricted act-as leave support.
+- Integration branch: `work/convergence-20260923`. Merge commits: T01 `33ca35bd88376cfa2dd1f2b092c1782a916f7af7`, F02 `6365dd32e287a7ed2c2e9b42cc98e96d3a0a0e6d`, Stream 3 `6d98594b0282a7d4b3896bb13d28dde5c43a5a5b`.
+- Stream 3 was preserved from local `main` (which already contained four in-scope employee/Focus commits) in commit `bf83c441f84fd4a801f1e37d711ee91ddfd5d9e2`. It covers Employee Detail, Focus shell/profile/relations/leave/hours/team calendar and restricted act-as leave support.
+- Verification: targeted regressions `28 files / 121 tests`, strict TypeScript, NL/EN parity (`39` namespaces), `git diff --check` and the single Webpack production build (`296/296` static pages) passed. Changed-scope ESLint did not start because the current `typescript-eslint` release rejects TypeScript 7.0.
+- The Stream-3 Vitest migration contract passed. T01's `supabase/tests/talent_review_9_grid_contract.sql` remains unrun: the Supabase CLI is absent, local port `54322` is closed and the Docker engine is not running. No remote substitute was used.
 - T01 migration `20260922210000_fix_talent_review_current_placement_uniqueness.sql` was already applied to DEV during T01; do not apply it again. Stream 3 migration `20260922230000_allow_focus_act_as_leave_workflow.sql` is canonical source code only and has **not** been applied to DEV.
-- T01 and F02 acceptance results are retained from their separate completed runs; neither acceptance run is repeated here. Stream 3 broad browser acceptance remains open for the next phase.
-- This convergence performs no DEV or Production database mutation, creates no DEV business records, makes no Production deployment and does not bump the product version. Main becomes a development/acceptance candidate only after the bounded regression, type, i18n, diff and build gates pass and the normal push is verified.
+- Local `main` remains `7028b5a9ec13b00422f1964608461860596e9ac4`; `origin/main` remains `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. No main integration or push was made because the bounded gate is incomplete. No DEV/Production database mutation, new DEV business record, Production deployment, product-version bump or acceptance rerun occurred.
+- T01 and F02 acceptance results remain GREEN from their separate completed runs. Stream-3 broad browser acceptance remains open; after completing the local SQL contract gate, resume the normal main push and then start the Focus/broad acceptance phase from consolidated main.
 
 ## Focus implementation details
 

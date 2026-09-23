@@ -1,20 +1,24 @@
 # Liquid HR documentatie-index
 
-## Development/acceptance candidate — T01 + F02 + Focus — 2026-09-23
+## Lokale integratiekandidaat T01 + F02 + Focus — 2026-09-23
 
-T01 (`68c65b9dcb372aef4df874db6975d1681f51469d`), F02
-(`a30b93ba756465c3c7478edc493c35201d04a906`) and the preserved local Focus
-work are being integrated on a clean branch from `origin/main`
-`5c1191b3907d56622deb7c3d3c12a6012785b8c6`. This is a development and
-acceptance candidate, not a release. The bounded integration gate and normal
-main push must complete before calling it consolidated. Focus/browser
-acceptance remains the next phase.
+**Status: PARTIAL — lokaal geïntegreerd; niet op main gepusht en geen release.**
 
-Migration `20260922210000_fix_talent_review_current_placement_uniqueness.sql`
-was already applied to DEV during T01. Migration
-`20260922230000_allow_focus_act_as_leave_workflow.sql` is source-controlled
-only and has not been applied to DEV. No Production deployment, DEV migration
-or product-version bump is part of this convergence.
+De aparte acceptatieruns voor T01 (`68c65b9dcb372aef4df874db6975d1681f51469d`)
+en F02 (`a30b93ba756465c3c7478edc493c35201d04a906`) zijn GREEN. Beide bronnen
+en de bewaarde Focus-stream zijn samengevoegd op `work/convergence-20260923`, commit
+`6d98594b0282a7d4b3896bb13d28dde5c43a5a5b`, vanaf
+`origin/main` `5c1191b3907d56622deb7c3d3c12a6012785b8c6`. De regressie-, type-,
+i18n-, diff- en Webpack-buildchecks zijn geslaagd. De lokale T01 pgTAP-test kon
+niet starten: de Supabase-CLI ontbreekt, poort `54322` luistert niet en Docker
+is niet actief. De normale main-integratie en push wachten op die contracttest.
+Focus/browseracceptatie blijft open voor de volgende fase.
+
+Migratie `20260922210000_fix_talent_review_current_placement_uniqueness.sql`
+was tijdens T01 al op DEV toegepast. Migratie
+`20260922230000_allow_focus_act_as_leave_workflow.sql` staat alleen in Git en
+is niet op DEV toegepast. Er is geen DEV-migratie, Production-deployment of
+productversiebump uitgevoerd.
 
 ## Release 1.20260921.1 — 2026-09-21
 
