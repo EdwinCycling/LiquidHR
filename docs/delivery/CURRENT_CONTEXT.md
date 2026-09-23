@@ -8,7 +8,7 @@
 - Full-mode, Focus, Settings, help, onboarding, persistence, negative authorization and `390x844` responsive surfaces were exercised. Preboarding and separate Manager-out authentication remained environment-gated without inventing identities.
 - Fixed and regression-tested the Manager recruitment destination mismatch (`/recruitment/assigned` versus overview `/recruitment`) and aligned the Dutch overview title to `Sollicitaties`.
 - Quality gate: targeted navigation/setup-assistant regressions, strict TypeScript, ESLint, i18n parity, the prior 438 Vitest files / 1,718 tests, the prior Next build 296/296 and post-fix diff-check are GREEN. Detailed evidence is under the F02 artifact run directory.
-- The dedicated branch was pushed normally before this continuation; the product-decision fix, targeted regression tests and updated report/status are now prepared for the bounded post-fix gate and normal push. DEV screenshots remain local-only because they contain persona/organization context. The exact final branch tip is recorded in the acceptance response.
+- The dedicated branch and the product-decision fix, targeted regression tests and updated report/status were pushed normally; verified remote head is `26fd2214bc3627e9d297a63477cd81e5553255c1`. DEV screenshots remain local-only because they contain persona/organization context. No merge or deploy was performed.
 - `PRODUCT_DECISION RESOLVED`: the sidepanel now has contextual `Niet meer tonen`; it reuses the canonical visibility setting, persists through refresh/relogin, and the existing Settings `Setup Assistent tonen` control re-enables it. Checklist completion remained intact and no second preference model was introduced.
 
 ## Final consolidation — 2026-09-21
