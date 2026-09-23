@@ -1,5 +1,164 @@
 # Actuele overdracht Liquid HR
 
+## Focus checkpoint — 2026-09-23 — hervatten vanaf hier
+
+**Status: lokaal grotendeels geïmplementeerd — DEV/browser-acceptatie nog gedeeltelijk open.**
+
+Dit is het vaste hervatpunt voor volgende Focus-vragen. Controleer bij hervatten eerst de actuele worktree, server, browser en DEV-database; neem tijdelijke act-as-URL’s of draaiende processen niet blind over.
+
+### Wat tot dit punt is afgerond
+
+- De lokale Next.js-server/buildketen is hersteld; de eerdere `next/font`-buildfout door de ontbrekende `@alloc/quick-lru`-dependency blokkeert de lokale app niet meer.
+- Focus is op desktop begrensd op een smalle, gecentreerde iPad-verticale werkbreedte (`max-w-3xl`); mobiel blijft volledig beschikbaar.
+- De oude horizontale Focus-tabnavigatie is vervangen door vaste icon-navigatie onderaan. De uitlegzin onder “Mijn Focus” is verwijderd en de Focus-status/stopactie is verduidelijkt.
+- Medewerkerdetail is responsive hersteld: compacte header, geen fotoknoppen in compactmodus, geen overlappende toegangskolommen, kleinere blokkeeractie, KIDHV-label met uitleg-tooltip en verwijderde dubbele Focus-previewactie.
+- Focus-profiel ondersteunt wijziging van persoonlijke/naamvelden en privécontactgegevens; relaties ondersteunen toevoegen, wijzigen en archiveren met server-side scope- en concurrencycontrole.
+- Focus-verlof toont het totaal in uren, heeft een standaard ingeklapt teamoverzicht met toekomstig aanwezig/afwezig per collega en een leesbare horizontaal scrollbare maandweergave.
+- Focus-uren hergebruikt de bestaande Actual Work-keten voor eigen uren, inclusief invoer, Nederlandse decimale invoer en correctie-indicatie.
+- De lokale KIDHV/act-as-verlofroute en migratiecode zijn toegevoegd: HR met `leave:request` kan binnen dezelfde tenant/HR-groep de bestaande verlofworkflow namens de medewerker starten; gewone ESS blijft zelf-beperkt.
+
+### Uitgevoerde verificatie
+
+- Gerichte tests zijn groen: Focus-home 10/10, navigatie 19/19, verlof-totaal 18/18, teamkalender 17/17, profiel/relaties 17/17, uren/Actual Work 20/20 en act-as-verlofcontract 3/3.
+- Strict TypeScript, i18n-pariteit van 39 namespaces, Next-productiebuild 296/296 en `git diff --check` zijn groen.
+- ESLint is niet als groen gemeld: de repository heeft een bestaande incompatibiliteit tussen TypeScript 7.0 en de geïnstalleerde `typescript-eslint`-versie.
+- Browsercontrole bevestigde de gecentreerde desktoplayout en lege console op de gecontroleerde Focus-schermen.
+- Gewone medewerker-verlofaanvraag is end-to-end gelukt voor Noah Hendriks: 2026-10-01, volledige dag, 8 uur, zonder voorrangsregels, status `PENDING`; record `7b8e83ca-3332-4f40-b8b4-1faae5f1c475` blijft als testdata in DEV staan.
+- KIDHV-start voor Noah is gelukt, maar de namens-aanvraag voor 2026-10-02 met voorrangsregels faalde nog met de generieke fout. Read-only controle liet zien dat migratie `20260922230000_allow_focus_act_as_leave_workflow` nog niet in DEV staat en dat er geen record voor 2026-10-02 is aangemaakt.
+
+### Open gates en begrenzingen
+
+- De lokale act-as-verlofmigratie staat wel in de worktree, maar is **niet** op DEV toegepast. Remote schemawijziging vereist een afzonderlijke expliciete toestemming; pas daarna KIDHV-verlof opnieuw testen.
+- Nog niet volledig browsermatig afgedekt: de volledige verlofmatrix, manager-goedkeuren/afwijzen/wijziging, ziekmelding en herstel, uren invoeren/corrigeren als echte medewerker, profiel/relaties CRUD in act-as, en de volledige responsive/accessibility-personamatrix.
+- Er is in deze samenvattingsstap niets gecommit, gepusht, gemerged of gedeployed. Bestaande dirty-worktree-wijzigingen zijn behouden.
+
+### Tien aanbevolen vervolgtests
+
+1. Herhaal na expliciete DEV-migratietoestemming KIDHV-verlof met één dag, meerdere dagen, volledige dag, voormiddag, namiddag en specifieke uren; test elk scenario mét en zonder voorrangsregels.
+2. Controleer foutpaden: onvoldoende saldo, geen passende verlofsoort, weekend/feestdag, omgekeerde periode, overlap en dubbelklikken/idempotentie.
+3. Test de hele workflow: manager goedkeuren, afwijzen en wijziging vragen; controleer daarna medewerker-readback, saldo en teamkalender.
+4. Test ziekmelden end-to-end: opslaan, dubbele melding, gedeeltelijke datum, managerbevestiging/herstel en zichtbaarheid in het teamoverzicht.
+5. Test Mijn uren met hele uren, komma-decimalen, correcties, toekomstige/gesloten dagen en overlap met verlof of ziekte.
+6. Test profiel en relaties als medewerker én KIDHV-actor, inclusief optimistic-concurrencyconflict, archiveren en privacy van privégegevens.
+7. Test teamkalender over maandgrenzen en meerdere items op één dag; verifieer pending/approved verlof, ziekte, gedeeltelijke ziekte en geen detaillekken.
+8. Test autorisatie-negatief met gewone medewerker, HR buiten de HR-groep, verkeerde tenant, geblokkeerde/preboarding-medewerker en directe deep links.
+9. Test alle Focus-routes die nog minder zijn geraakt: documenten, onboarding, aanvragen, werk, team en instellingen; controleer lege staten en terugnavigatie.
+10. Doe een laatste kwaliteitsmatrix op 390/360 px, iPad-verticale desktopbreedte, toetsenbord/screenreader, NL/EN, browserconsole en netwerkfouten.
+
+## Focus-modus desktop viewport — 2026-09-23
+
+**Status: LOCAL CODE GREEN / DESKTOP BROWSER VERIFIED**
+
+- De volledige Focus-shell gebruikt nu een gecentreerde `max-w-3xl`-canvas
+  (768 px): header, inhoud en onderste navigatie hebben dezelfde begrenzing.
+- Op mobiel blijft de shell `w-full`; routes, URL-state, navigation en
+  permissie-/act-asgedrag zijn niet gewijzigd. Er is geen API-, database- of
+  remote wijziging uitgevoerd.
+- Verificatie: Focus-home-tests `10/10`, strict TypeScript,
+  `git diff --check` en lokale browsercontrole op `/focus` zonder
+  consolefouten. De bestaande mobiele Focus-matrix blijft inhoudelijk
+  ongewijzigd door de `w-full max-w-3xl`-opbouw.
+
+## Focus teamoverzicht leesbaar gemaakt — 2026-09-23
+
+**Status: LOCAL CODE GREEN / BROWSER VERIFICATION OPEN**
+
+- De hergebruikte Focus-teamkalender gebruikt nu een vaste sticky
+  collega-kolom en vaste dagkolommen. Op smallere desktopbreedtes scrollt de
+  maand horizontaal in plaats van dagcellen samen te drukken.
+- Dagkoppen en statuslabels blijven op één regel; de maandtitel toont een
+  gelokaliseerde naam zoals `september 2026`. Route, API, statusberekening,
+  privacy, permissions en mobiele dagkaarten zijn niet gewijzigd.
+- Requirements/status bijgewerkt in `REDESIGN_FOCUS_TEAM.md` en
+  `SCHERM_REDESIGN_STATUS.md`. Browsercontrole op de actuele act-as-teamroute
+  en 390px, plus gerichte tests/typecheck, staat nog open.
+
+## Focus employee urenregistratie — 2026-09-23
+
+**Status: LOCAL CODE GREEN / EMPLOYEE BROWSER ACCEPTANCE OPEN**
+
+- `Mijn uren` hergebruikt de bestaande Actual Work-projectie en API/RPC en
+  toont eigen registraties chronologisch met datum, type, uren, status en
+  correctie-indicatie. De invoer ondersteunt Nederlandse decimalen en toont
+  de canonieke validatiefouten in begrijpelijke NL/EN-tekst.
+- De schrijfactie verschijnt alleen met de exacte
+  `self:actual-work:write`-permission. HR blijft de bestaande canonieke
+  `leave:write`-route gebruiken; er is geen deletepad of nieuwe ledgerlogica
+  toegevoegd.
+- DEV bevat al de migratie
+  `20260921100000_actual_work_employee_self_service`; er was daarom geen
+  nieuwe migratie nodig en er is in deze run geen remote Supabase-mutatie
+  uitgevoerd.
+- Verificatie: gerichte Focus/Actual Work-tests `20/20`, strict TypeScript,
+  i18n-pariteit (`39` gelijke NL/EN-namespaces), Next productiebuild
+  `296/296` en `git diff --check` zijn groen. ESLint start niet door de
+  bestaande TypeScript 7.0/typescript-eslint-incompatibiliteit. De huidige
+  browser-sessie heeft geen medewerker-schrijfactie; create/correctie en
+  persisted readback blijven daarom een expliciet open acceptance-gate.
+
+## Focus-teamkalender op Mijn verlof — 2026-09-23
+
+**Status: LOCAL GREEN**
+
+- `Mijn verlof` hergebruikt nu het bestaande teamoverzicht als een standaard
+  ingeklapt uitklapvenster. De kalender toont alleen toekomstige dagen vanaf
+  vandaag, één regel per collega en uitsluitend `Aanwezig`/`Afwezig`.
+- Goedgekeurd, aangevraagd en gewijzigde verlofaanvragen tellen mee als
+  afwezigheid; de bestaande ziekte-logica blijft volledige toekomstige dagen
+  afwezig tonen. In de medewerkersweergave zijn HR-acties en detailinformatie
+  verborgen.
+- De ingesloten kalender gebruikt `/focus/verlof` voor maand- en daglinks. Er
+  is geen schemawijziging en geen remote Supabase-mutatie uitgevoerd.
+- Verificatie: strict TypeScript, i18n-pariteit, gerichte Focus-tests (17/17)
+  en lokale browsercontrole op poort 3000 zijn groen.
+
+## Focus-act-as verlofaanvraag — 2026-09-22
+
+**Status: LOCAL CODE GREEN / DEV MIGRATION APPLY REQUIRED**
+
+- De fout bij het indienen vanuit Focus-act-as is herleid tot de unified Leave
+  workflow-RPC: die controleerde alleen de self-scope van de database-actor en
+  wees daardoor een aanvraag namens een andere medewerker af met
+  `LEAVE_SELF_SCOPE_REQUIRED`.
+- Migratie `20260922230000_allow_focus_act_as_leave_workflow.sql` houdt gewone
+  ESS-aanvragen self-scoped en staat voor Focus-act-as alleen een actor met de
+  expliciete HR-permission `leave:request` toe. De bestaande workflow,
+  idempotency, process-bridge en `actor_user_id`-audit blijven behouden.
+- De Focus-submitroute controleert nu zowel de effectieve self-permission van
+  de medewerkerervaring als de HR-permission van de ingelogde actor.
+- Verificatie: strict TypeScript, i18n-pariteit, gerichte workflow-/migratie-
+  contracttests (3/3) en `git diff --check` zijn groen. De aangesloten lokale
+  app gebruikt DEV Supabase; de nieuwe migratie is nog niet remote toegepast.
+
+## Focus-verloftotaal — 2026-09-22
+
+**Status: LOCAL GREEN**
+
+- De Focus-verlofpagina toont onder `Je verlofsaldo` niet langer het aantal
+  verloftypen. De pagina toont nu het opgetelde actuele saldo in uren, met
+  correcte fallback voor onbekende of onbeperkte saldi.
+- Verificatie: strict TypeScript, gerichte Focus-tests (18/18), i18n (39
+  gelijke NL/EN-namespaces), diff-check en lokale browser-rendering zijn groen.
+
+## Focus-profiel bewerken en relaties — 2026-09-22
+
+**Status: LOCAL CODE GREEN / ACT-AS BROWSER ACCEPTANCE OPEN**
+
+- Focus-profiel ondersteunt nu bewerken van naamgegevens (titel, initialen,
+  voornaam, geboortenaam, partnernaam en naamgebruik) en privécontactgegevens
+  (e-mail, telefoon en mobiel) via een optimistic-concurrency update.
+- Relaties ondersteunen toevoegen, wijzigen en archiveren vanuit Focus, met
+  relation-typekeuze, noodcontactmarkering, contactgegevens en notities.
+- De nieuwe Focus API-routes valideren act-as-sessies server-side, controleren
+  de effectieve self-permissions en blijven tenant/HR-groep/employee-scoped.
+  Er is geen schemawijziging, remote Supabase-mutatie of Production-wijziging
+  uitgevoerd.
+- Verificatie: strict TypeScript, gerichte Focus-tests (17/17), i18n (39
+  gelijke NL/EN-namespaces) en `git diff --check` zijn groen. De lokale
+  `/focus/profiel`-route rendert de CRUD-oppervlakte; volledige Lisa-act-as
+  browser-read/write acceptance staat open omdat de beschikbare HR-sessie de
+  KIDHV-startknop als disabled toont.
+
 ## Focus-navigatie en weergave-indicator — 2026-09-22
 
 **Status: LOCAL GREEN**

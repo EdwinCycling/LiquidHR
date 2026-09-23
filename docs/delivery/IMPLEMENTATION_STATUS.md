@@ -1,5 +1,113 @@
 # Implementatiestatus Liquid HR
 
+## Focus checkpoint — 2026-09-23
+
+Zie [`CURRENT_CONTEXT.md`](CURRENT_CONTEXT.md) voor het volledige hervatpunt, de uitgevoerde controles en de tien aanbevolen vervolgtests.
+
+Samengevat: de Focus-code, lokale tests, typecheck, i18n-controle en build zijn grotendeels groen. De gewone medewerker-verlofaanvraag is in DEV opgeslagen. De KIDHV-verlofworkflow is lokaal voorbereid, maar de bijbehorende migratie `20260922230000_allow_focus_act_as_leave_workflow` is nog niet op DEV toegepast; daardoor is namens-verlof nog niet geaccepteerd. Er is in deze stap niet gecommit, gepusht, gemerged of gedeployed.
+
+## Focus-modus desktop viewport — 2026-09-23
+
+**Status: LOCAL CODE GREEN / DESKTOP BROWSER VERIFIED**
+
+- Focus gebruikt één gecentreerde `max-w-3xl`-canvas voor header, inhoud en
+  onderste navigatie. Op mobiele breedtes blijft de shell volledig vloeibaar.
+- Alleen de layout is aangepast; routes, data-contracten, permissions,
+  database en remote omgeving zijn ongemoeid gelaten.
+- Focus-home-tests `10/10`, strict TypeScript, diff-check en lokale
+  browserconsolecontrole zijn groen.
+
+## Focus teamoverzicht leesbaar gemaakt — 2026-09-23
+
+**Status: LOCAL CODE GREEN / BROWSER VERIFICATION OPEN**
+
+- De Focus-teamkalender houdt de collega-kolom en elke dagkolom op vaste
+  minimale breedte. De bestaande horizontale scroll krijgt daardoor betekenis
+  en `Aanwezig`/`Afwezig`-labels lopen niet langer over elkaar.
+- De maandkop is gelokaliseerd; de mobiele geselecteerde-dagweergave en
+  bestaande team/privacylogica zijn behouden.
+- De componenttest is uitgebreid met checks op maandlabel, vaste tabelbreedte
+  en niet-afbrekende statuslabels. Browsercontrole en responsive controle zijn
+  nog uit te voeren.
+
+## Focus employee urenregistratie — 2026-09-23
+
+**Status: LOCAL CODE GREEN / EMPLOYEE BROWSER ACCEPTANCE OPEN**
+
+- Focus `Mijn uren` gebruikt de bestaande Actual Work-service, projection en
+  `/api/actual-work/entries`-route. Eigen registraties worden chronologisch
+  weergegeven; toevoegen en corrigeren gebruiken de bestaande self-permission
+  en canonical RPC, inclusief correctiereden en foutcodes voor gesloten
+  periodes, toekomstige datums, inactieve types, verlofoverlap en ongeldige
+  uren.
+- De Nederlandse invoer `7,5` wordt vóór submit genormaliseerd naar de
+  canonieke decimaalnotatie. HR- en managerrechten worden niet gebruikt om de
+  Employee Focus-schrijfknop zichtbaar te maken.
+- De al aanwezige DEV-migratie
+  `20260921100000_actual_work_employee_self_service` is read-only
+  geïnventariseerd; geen remote schema- of datamutatie is uitgevoerd.
+- Gerichte tests `20/20`, strict TypeScript, i18n-pariteit, Next build
+  `296/296` en diff-check zijn groen. ESLint is geblokkeerd vóór linting door
+  TypeScript 7.0 versus de huidige typescript-eslint-versie. Authenticated
+  Employee create/correctie/negative browser acceptance is nog niet bewezen
+  met de huidige sessie, omdat de self-write actie daar niet beschikbaar is.
+
+## Focus-teamkalender op Mijn verlof — 2026-09-23
+
+**Status: LOCAL GREEN**
+
+- De verlofpagina bevat nu een standaard ingeklapt, hergebruikt teamkalender-
+  overzicht. Het overzicht start bij vandaag, ondersteunt horizontaal scrollen
+  over de dagen en toont per collega alleen aanwezig/afwezig.
+- Pending, wijzigingen en goedgekeurd verlof worden meegenomen; ziekte blijft
+  via de bestaande teamkalenderlogica zichtbaar als afwezig. De embedded
+  medewerkersweergave toont geen manageracties of detailuren.
+- Strict TypeScript, i18n-pariteit, gerichte Focus-tests (17/17) en lokale
+  browsercontrole zijn groen. Er is geen Supabase-migratie toegepast.
+
+## Focus-act-as verlofaanvraag — 2026-09-22
+
+**Status: LOCAL CODE GREEN / DEV MIGRATION APPLY REQUIRED**
+
+- De Focus-act-as Leave-submit faalde omdat de unified workflow-RPC alleen de
+  database-actor als de aangevraagde medewerker accepteerde. De nieuwe
+  migratie `20260922230000_allow_focus_act_as_leave_workflow.sql` laat naast
+  die ESS-self-scope een expliciet geautoriseerde HR `leave:request`-actor toe
+  binnen dezelfde tenant en HR-groep.
+- De API bewaakt daarnaast de signed act-as-scope, de subject-self-permission
+  en de HR-permission van de actor. De workflow blijft atomisch en schrijft de
+  HR-actor in `actor_user_id` voor audit.
+- Strict TypeScript, i18n-pariteit, gerichte tests (3/3) en diff-check zijn
+  groen. DEV/remote apply is niet uitgevoerd; de lokale app gebruikt de
+  aangesloten DEV Supabase-database.
+
+## Focus-verloftotaal — 2026-09-22
+
+**Status: LOCAL GREEN**
+
+- Focus toont nu het totale actuele verlofsaldo in uren in plaats van het
+  aantal saldo-categorieën. Onbeperkte saldi tonen `∞`; onbekende waarden
+  tonen `—`.
+- Gerichte Focus-tests `18/18`, strict TypeScript, i18n-pariteit (`39` gelijke
+  NL/EN-namespaces) en `git diff --check` zijn groen. De lokale route rendert
+  de nieuwe totaalweergave.
+
+## Focus-profiel bewerken en relaties — 2026-09-22
+
+**Status: LOCAL CODE GREEN / ACT-AS BROWSER ACCEPTANCE OPEN**
+
+- Focus-profiel ondersteunt naam-/naamgebruikvelden en privécontactgegevens
+  wijzigen met server-side optimistic concurrency.
+- Relaties ondersteunen toevoegen, wijzigen en archiveren via tenant-,
+  HR-groep- en employee-scoped Focus-routes. Act-as-token, self-permission en
+  HR-write authority worden server-side gecontroleerd; er is geen nieuwe
+  schema- of remote databasewijziging gedaan.
+- Gerichte Focus-tests `17/17`, strict TypeScript, i18n-pariteit (`39` gelijke
+  NL/EN-namespaces) en `git diff --check` zijn groen. De lokale
+  `/focus/profiel`-route rendert de bewerk- en relatie-CRUD-oppervlakte. De
+  volledige Lisa-act-as browser read/write gate blijft open omdat de huidige
+  beschikbare HR-sessie KIDHV disabled toont.
+
 ## Convergence Focus + ESS/MSS — 2026-09-18
 
 **Status: IMPLEMENTED ON CONVERGENCE / DEV READBACK GREEN / AUTHENTICATED ACCEPTANCE BLOCKED BY ENVIRONMENT / NOT RELEASED**

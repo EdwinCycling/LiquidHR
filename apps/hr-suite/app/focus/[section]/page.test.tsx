@@ -38,7 +38,7 @@ vi.mock('@/lib/focus/section-service', () => ({
 vi.mock('@/lib/focus/team-service', () => ({ loadFocusTeamCalendarForContext: mocks.team }))
 vi.mock('@/lib/process-automation/work-service', () => ({ listProcessWork: mocks.process }))
 vi.mock('@/lib/auth/permissions', () => ({ getRequestAuthorizationContext: mocks.context }))
-vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('NOT_FOUND') } }))
+vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('NOT_FOUND') }, useRouter: () => ({ refresh: vi.fn() }) }))
 
 function setup(experience: 'EMPLOYEE' | 'PREBOARDING' = 'EMPLOYEE', locale: Locale = 'nl') {
   const data = focusData({ experience, isPreboarding: experience === 'PREBOARDING' })
@@ -50,7 +50,7 @@ function setup(experience: 'EMPLOYEE' | 'PREBOARDING' = 'EMPLOYEE', locale: Loca
   mocks.profile.mockResolvedValue({ name: 'Noah Test', avatarUrl: null, personal: [], contact: [], relations: [], address: [], work: [], bank: null })
   mocks.documents.mockResolvedValue([])
   mocks.leave.mockResolvedValue({ employmentId: null, balances: [], upcoming: [] })
-  mocks.hours.mockResolvedValue({ employeeName: 'Noah Test', employmentId: 'employment-a', days: [], canEdit: false, projection: {} })
+  mocks.hours.mockResolvedValue({ employeeName: 'Noah Test', employmentId: 'employment-a', days: [], entries: [], canEdit: false, projection: {} })
   mocks.directory.mockResolvedValue({ enabled: true, entries: [] })
   mocks.team.mockResolvedValue({ month: '2026-09', dates: ['2026-09-17'], selectedDate: '2026-09-17', members: [], viewerMode: 'EMPLOYEE', canReportAbsence: false, canRecoverAbsence: false, canActAs: false })
   mocks.process.mockResolvedValue({ items: [], total: 0, hasMore: false })

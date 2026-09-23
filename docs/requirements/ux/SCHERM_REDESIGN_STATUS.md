@@ -2,6 +2,18 @@
 
 Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesignskill worden aangepakt. Werk dit document bij wanneer een schermvoorstel, implementatie of verificatie is afgerond.
 
+## Focus-modus viewport — 2026-09-23
+
+| Scherm | Route | Status | Resultaat / resterend |
+|---|---|---|---|
+| Focus-shell | `/focus` en `/focus/*` | LOCAL CODE GREEN / DESKTOP BROWSER VERIFIED | Volledige Focus-canvas gecentreerd op maximaal `max-w-3xl` (768 px), inclusief header, inhoud en onderste navigatie; mobiel blijft `w-full`. Gerichte test, typecheck en consolecontrole zijn groen. |
+
+## Focus teamoverzicht — 2026-09-23
+
+| Scherm | Route | Status | Resultaat / resterend |
+|---|---|---|---|
+| Teamkalender | `/focus/team` en ingesloten op `/focus/verlof` | LOCAL IMPLEMENTED / BROWSER VERIFICATION OPEN | Vaste collega- en dagkolommen, horizontaal scrollen zonder tekstoverlap en gelokaliseerde maandtitel; browsercontrole volgt op desktop en 390px. |
+
 ## Dienstverbandhistorie — 2026-09-04
 
 | Scherm | Route | Status | Resultaat / resterend |

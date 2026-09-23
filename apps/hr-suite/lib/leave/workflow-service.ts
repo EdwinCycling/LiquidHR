@@ -122,7 +122,9 @@ export async function startFocusLeaveRequestWorkflow(
   dependencies: WorkflowDependencies,
 ): Promise<LeaveWorkflowStartResult> {
   const selfPermissions = await getSelfPermissions(dependencies.supabase, dependencies.context.tenantId)
-  if (!selfPermissions.includes('self:leave:request')) throw new LeaveServiceError('LEAVE_SELF_SERVICE_FORBIDDEN', 403)
+  if (!selfPermissions.includes('self:leave:request') || !dependencies.context.permissions.includes('leave:request')) {
+    throw new LeaveServiceError('LEAVE_REQUEST_PERMISSION_REQUIRED', 403)
+  }
   return startLeaveRequestWorkflowWithDependencies(input, dependencies)
 }
 

@@ -34,6 +34,8 @@ describe('Focus home', () => {
     expect(host.textContent).not.toContain('Je volgende stap en je belangrijkste zaken bij elkaar.')
     expect(host.querySelector('[role="img"]')?.getAttribute('aria-label')).toContain('Mijn Focus')
     expect(host.querySelector('nav[aria-label="Focus-navigatie"]')).not.toBeNull()
+    expect(host.querySelector('main > div')?.className).toContain('max-w-3xl')
+    expect(host.querySelector('nav > div')?.className).toContain('max-w-3xl')
   })
 
   it.each(['nl', 'en'] as const)('renders all permitted manager actions with real %s translations and progress', (locale) => {

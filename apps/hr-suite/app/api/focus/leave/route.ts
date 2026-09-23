@@ -24,7 +24,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const session = await resolveFocusActAsSession(actAs, requestContext.context, requestContext.supabase)
     if (!session || session.subjectEmployeeId !== parsed.data.employeeId) return NextResponse.json({ error: 'FOCUS_ACT_AS_SCOPE_INVALID' }, { status: 403 })
     const selfPermissions = await getSelfPermissions(requestContext.supabase, requestContext.context.tenantId)
-    if (!selfPermissions.includes('self:leave:request')) return NextResponse.json({ error: 'LEAVE_SELF_SERVICE_FORBIDDEN' }, { status: 403 })
+    if (!selfPermissions.includes('self:leave:request') || !requestContext.context.permissions.includes('leave:request')) {
+      return NextResponse.json({ error: 'LEAVE_REQUEST_PERMISSION_REQUIRED' }, { status: 403 })
+    }
     return NextResponse.json({ data: await startFocusLeaveRequestWorkflow(parsed.data, requestContext) }, { status: 201 })
   } catch (error) {
     return leaveErrorResponse(error)
