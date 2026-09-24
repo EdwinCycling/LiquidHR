@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## Startpagina — compact logboek en teamoverzicht — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Geïsoleerde branch `work/bugfix-startpage-layout-20260924` vanaf `origin/main`-baseline `3f9de359c76524306de057455861da734217f252`.
+- De niet-vrijgegeven logboekpreview gebruikt één compacte privacyregel in plaats van drie grote geblurde rijen. Bij nul notities verschijnt geen inhoudvrijgaveactie.
+- De sectiekop voor teamcontext en de managerbeschikbaarheid staan samen in één full-width Foundation-paneel. De vaste beschikbaarheidsweergave valt niet meer onder de verplaatsbare persoonlijke vensters; oude opgeslagen posities worden bij inlezen genormaliseerd.
+- Gerichte tests `11/11`, strict TypeScript, ESLint, i18n-pariteit en diff-check zijn groen. Authenticated browsercontrole is environment-gated doordat deze worktree geen `.env.local` heeft. De beschermde configuratie is niet gelezen of gekopieerd.
+- Geen database-, schema-, permission-, API-, version- of deploymentwijziging.
+
 ## Convergence T01 + F02 + Focus — 2026-09-23
 
 **Status: PARTIAL — all three source lines are merged locally; main push is held because the T01 local pgTAP contract gate could not run. This is not a release.**

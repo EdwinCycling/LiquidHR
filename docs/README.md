@@ -675,6 +675,8 @@ De roadmap en eerste employee-context voice-slice staan in [`LIQUIDHR_AI_ROADMAP
 
 De lokale implementation-candidate [`LIQUIDHR_CONVERSATIONAL_AI_V2_TEAM_AI_LOGBOOK.md`](requirements/ai/LIQUIDHR_CONVERSATIONAL_AI_V2_TEAM_AI_LOGBOOK.md) voegt een server-geautoriseerde Team AI-scope, GPT-Live voice-tools en een owner-only persoonlijk logboek toe. Direct managers blijven beperkt tot hun directe team; HR Admin/Tenant Admin kiezen een afdeling en HR Advisor gebruikt toegewezen afdelingen. AI-samenvattingen blijven voorstel-only en worden pas na review expliciet opgeslagen in Mijn logboek. De migration is lokaal voorbereid maar nog niet remote toegepast; main, Production en de leave-branch zijn buiten scope.
 
+De Startpagina-preview houdt privé-notitie-inhoud compact verborgen tot de gebruiker die expliciet opent. Voor managers staan de teamcontext en beschikbaarheid samen in één breed werkpaneel; de vaste beschikbaarheidsweergave hoort niet langer bij de persoonlijke venstervolgorde. Zie [`IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor de bugfixstatus en verificatie.
+
 ## Liquid Analyse AN-4/5 Mijn Analyses en Liquid Explore V1 — 2026-08-30
 
 **Status: AN-4/5 TEST GREEN — READY FOR FINAL INTEGRATION**
