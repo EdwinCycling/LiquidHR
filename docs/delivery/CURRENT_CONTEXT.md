@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## Actieve bugfix — organogramverbindingen — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Branch `work/bugfix-orgchart-lines-20260924`, vanaf `origin/main` `3f9de359c76524306de057455861da734217f252`.
+- Organogramrelaties delen nu een orthogonale bus per kindrij. Vervolgrijen gebruiken een gereserveerde zijrail buiten de onderliggende subtree. Schema/API/permissies en versie zijn ongewijzigd.
+- Gerichte tests `10/10`, strict TypeScript, gewijzigde-scope ESLint en diff-check zijn groen.
+- De browserrequest op poort `3010` gaf `EADDRINUSE`; de branchserver op `3012` bereikte Next, maar `/organization-chart` faalde in middleware door ontbrekende lokale Supabase URL/key-configuratie. Worktree `.env.local` is niet aanwezig; secrets zijn niet gelezen of gekopieerd. Authenticated visuele controle blijft open.
+- Volgende stap: normale commit en push van alleen de organogramfix; geen merge of deploy.
+
 ## Production release 1.20260923.1 — 2026-09-23
 
 **Status: sharp security remediation and requested local release gates GREEN. The version remains `1.20260923.1`; no database change or acceptance rerun is part of this fix.**

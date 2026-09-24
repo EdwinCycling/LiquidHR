@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo } from 'react'
 import { LocateFixed, Minus, Plus } from 'lucide-react'
-import { Background, BackgroundVariant, Panel, ReactFlow, useReactFlow, type Edge } from '@xyflow/react'
+import { Background, BackgroundVariant, BaseEdge, Panel, ReactFlow, useReactFlow, type Edge, type EdgeProps, type EdgeTypes } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { OrganizationChartGraph } from '@/lib/organization-chart/types'
 import { organizationChartNodeTypes, type OrganizationChartLabels, type OrganizationFlowNode } from './organization-chart-nodes'
-import { layoutOrganizationChart } from './organization-chart-layout'
+import { buildOrganizationChartEdgePath, layoutOrganizationChart, type OrganizationChartEdgeRoute, type OrganizationChartLayout } from './organization-chart-layout'
 
 interface OrganizationChartCanvasProps {
   graph: OrganizationChartGraph
@@ -18,33 +18,53 @@ interface OrganizationChartCanvasProps {
   }
 }
 
-function layoutGraph(graph: OrganizationChartGraph, labels: OrganizationChartLabels): OrganizationFlowNode[] {
-  const positions = layoutOrganizationChart(graph)
-
+function layoutGraph(graph: OrganizationChartGraph, labels: OrganizationChartLabels, layout: OrganizationChartLayout): OrganizationFlowNode[] {
   return graph.nodes.map((chartNode) => ({
     id: chartNode.id,
     type: chartNode.type,
-    position: positions.get(chartNode.id) ?? { x: 0, y: 0 },
+    position: layout.positions.get(chartNode.id) ?? { x: 0, y: 0 },
     data: { chartNode, labels },
     draggable: false,
     selectable: false,
   }))
 }
 
-function flowEdges(graph: OrganizationChartGraph): Edge[] {
-  return graph.edges.map((edge) => {
-    return {
+interface OrganizationChartEdgeData extends Record<string, unknown> {
+  route: OrganizationChartEdgeRoute
+}
+
+type OrganizationChartFlowEdge = Edge<OrganizationChartEdgeData>
+
+function OrganizationChartEdge({ id, sourceX, sourceY, targetX, targetY, style, data }: EdgeProps<OrganizationChartFlowEdge>) {
+  const route = data?.route
+  if (!route) return null
+
+  const path = buildOrganizationChartEdgePath(route, sourceX, sourceY, targetX, targetY)
+
+  return <BaseEdge id={id} interactionWidth={18} path={path} style={style} />
+}
+
+const organizationChartEdgeTypes: EdgeTypes = { organizationTree: OrganizationChartEdge }
+
+function flowEdges(graph: OrganizationChartGraph, layout: OrganizationChartLayout): OrganizationChartFlowEdge[] {
+  return graph.edges.flatMap((edge) => {
+    const route = layout.edgeRoutes.get(edge.id)
+    if (!route) return []
+
+    return [{
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      type: 'smoothstep',
-      pathOptions: { borderRadius: 8, offset: 24 },
+      sourceHandle: route.kind === 'overflow-row' ? 'source-right' : 'source-bottom',
+      targetHandle: 'target-top',
+      type: 'organizationTree',
+      data: { route },
       style: {
         stroke: 'var(--accent-foreground)',
-        strokeWidth: 2.5,
+        strokeWidth: 2,
         opacity: edge.matchState === 'dimmed' ? 0.2 : 1,
       },
-    }
+    }]
   })
 }
 
@@ -77,8 +97,9 @@ function FitToContent({ layoutKey }: { layoutKey: string }) {
 }
 
 export function OrganizationChartCanvas({ graph, labels }: OrganizationChartCanvasProps) {
-  const nodes = useMemo(() => layoutGraph(graph, labels), [graph, labels])
-  const edges = useMemo(() => flowEdges(graph), [graph])
+  const layout = useMemo(() => layoutOrganizationChart(graph), [graph])
+  const nodes = useMemo(() => layoutGraph(graph, labels, layout), [graph, labels, layout])
+  const edges = useMemo(() => flowEdges(graph, layout), [graph, layout])
   const layoutKey = `${graph.metadata.view}:${graph.metadata.asOfDate}:${nodes.length}`
 
   return (
@@ -89,6 +110,7 @@ export function OrganizationChartCanvas({ graph, labels }: OrganizationChartCanv
         elementsSelectable={false}
         fitView
         fitViewOptions={{ padding: 0.16, maxZoom: 1 }}
+        edgeTypes={organizationChartEdgeTypes}
         maxZoom={1.45}
         minZoom={0.12}
         nodeTypes={organizationChartNodeTypes}

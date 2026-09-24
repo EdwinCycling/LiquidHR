@@ -1,5 +1,16 @@
 # Implementatiestatus Liquid HR
 
+## Organogram — verbindingen per rij gebundeld — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Geïsoleerde branch `work/bugfix-orgchart-lines-20260924` start vanaf de opgegeven `origin/main`-baseline `3f9de359c76524306de057455861da734217f252`.
+- Root cause: de layout verdeelde meer dan vier directe kinderen over meerdere rijen, terwijl React Flow iedere relatie apart met `smoothstep` tekende. De verbindingen deelden daardoor geen duidelijke rijvertakking en vervolgverbindingen liepen door het gebied van eerdere subtrees.
+- De canvas gebruikt nu orthogonale, gedeelde bussen voor de eerste kindrij. Vervolgrijen lopen via een gereserveerde zijrail en een eigen horizontale tak; de layout reserveert daarvoor ruimte binnen dezelfde subtree.
+- Geen schema, API, permissie, data-eigenaarschap, route of taalbestand gewijzigd.
+- Gerichte layout- en projectorregressies `10/10`, strict TypeScript, gewijzigde-scope ESLint en `git diff --check` zijn groen.
+- Browsercontrole: poort `3010` gaf `EADDRINUSE`; de branchserver startte op `3012`. `/organization-chart` kon niet renderen omdat deze worktree geen `.env.local` bevat en Supabase URL/key ontbreken. Geen secrets gelezen of gekopieerd. De authenticated visuele controle blijft open.
+
 ## Convergence T01 + F02 + Focus — 2026-09-23
 
 **Status: PARTIAL — all three source lines are merged locally; main push is held because the T01 local pgTAP contract gate could not run. This is not a release.**

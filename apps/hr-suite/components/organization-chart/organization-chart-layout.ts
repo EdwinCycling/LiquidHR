@@ -6,6 +6,27 @@ interface LayoutSize { width: number; height: number }
 interface LayoutItem { id: string; size: LayoutSize }
 interface LayoutRow { items: LayoutItem[]; width: number; height: number }
 
+export type OrganizationChartEdgeRoute =
+  | { kind: 'child-row'; branchY: number }
+  | { kind: 'overflow-row'; branchY: number; laneX: number }
+
+export interface OrganizationChartLayout {
+  positions: ReadonlyMap<string, OrganizationChartPosition>
+  edgeRoutes: ReadonlyMap<string, OrganizationChartEdgeRoute>
+}
+
+export function buildOrganizationChartEdgePath(
+  route: OrganizationChartEdgeRoute,
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+): string {
+  return route.kind === 'overflow-row'
+    ? `M ${sourceX} ${sourceY} H ${route.laneX} V ${route.branchY} H ${targetX} V ${targetY}`
+    : `M ${sourceX} ${sourceY} V ${route.branchY} H ${targetX} V ${targetY}`
+}
+
 const PRIMARY_WIDTH = 256
 const PRIMARY_HEIGHT = 188
 const ADMINISTRATION_HEIGHT = 144
@@ -15,6 +36,7 @@ const ITEM_GAP = 28
 const ROW_GAP = 40
 const NODE_TO_CHILD_GAP = 68
 const ROOT_GAP = 96
+const ROUTE_GUTTER = 28
 const MAX_COLUMNS = 4
 const MAX_ROOT_COLUMNS = 4
 
@@ -62,7 +84,7 @@ function childOrder(nodeById: ReadonlyMap<string, OrganizationChartNode>, ids: r
  * Every child subtree is treated as a grid item so manager chains cannot
  * collapse into one horizontal row or overlap their following siblings.
  */
-export function layoutOrganizationChart(graph: OrganizationChartGraph): ReadonlyMap<string, OrganizationChartPosition> {
+export function layoutOrganizationChart(graph: OrganizationChartGraph): OrganizationChartLayout {
   const childrenById = new Map<string, string[]>()
   const targets = new Set<string>()
   graph.edges.forEach((edge) => {
@@ -87,10 +109,11 @@ export function layoutOrganizationChart(graph: OrganizationChartGraph): Readonly
     })
     const columns = Math.min(MAX_COLUMNS, Math.max(1, childItems.length))
     const childrenSize = gridSize(rowsFor(childItems, columns))
+    const routeGutter = childItems.length > MAX_COLUMNS ? ROUTE_GUTTER * 2 : 0
     const size = childItems.length === 0
       ? ownSize
       : {
-          width: Math.max(ownSize.width, childrenSize.width),
+          width: Math.max(ownSize.width, childrenSize.width) + routeGutter,
           height: ownSize.height + NODE_TO_CHILD_GAP + childrenSize.height,
         }
     sizeById.set(nodeId, size)
@@ -144,5 +167,43 @@ export function layoutOrganizationChart(graph: OrganizationChartGraph): Readonly
     positions.set(node.id, { x: 0, y: rootTop })
     rootTop += nodeSize(node).height + ROOT_GAP
   })
-  return positions
+
+  const edgeRoutes = new Map<string, OrganizationChartEdgeRoute>()
+  childrenById.forEach((childIds, sourceId) => {
+    const source = nodeById.get(sourceId)
+    const sourcePosition = positions.get(sourceId)
+    if (!source || !sourcePosition) return
+
+    const orderedChildren = childOrder(nodeById, childIds)
+    const rowYById = new Map(orderedChildren.map((childId) => [childId, positions.get(childId)?.y ?? Number.MAX_SAFE_INTEGER]))
+    const rowTops = [...new Set(rowYById.values())].sort((left, right) => left - right)
+    const ownSize = nodeSize(source)
+    const childItems = orderedChildren.flatMap((childId) => {
+      const child = nodeById.get(childId)
+      return child ? [{ id: childId, size: sizeById.get(childId) ?? nodeSize(child) }] : []
+    })
+    const columns = Math.min(MAX_COLUMNS, Math.max(1, childItems.length))
+    const childGridWidth = gridSize(rowsFor(childItems, columns)).width
+    const laneX = sourcePosition.x + ownSize.width / 2 + childGridWidth / 2 + ROUTE_GUTTER / 2
+
+    graph.edges.filter((edge) => edge.source === sourceId).forEach((edge) => {
+      const targetY = rowYById.get(edge.target) ?? Number.MAX_SAFE_INTEGER
+      const rowIndex = rowTops.indexOf(targetY)
+      if (rowIndex <= 0) {
+        edgeRoutes.set(edge.id, {
+          kind: 'child-row',
+          branchY: sourcePosition.y + ownSize.height + NODE_TO_CHILD_GAP / 2,
+        })
+        return
+      }
+
+      edgeRoutes.set(edge.id, {
+        kind: 'overflow-row',
+        branchY: targetY - ROW_GAP / 2,
+        laneX,
+      })
+    })
+  })
+
+  return { positions, edgeRoutes }
 }

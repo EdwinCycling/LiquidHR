@@ -184,9 +184,10 @@ export function OrganizationChartNodeCard({ node, labels }: { node: Organization
 function FlowNode({ data }: NodeProps<OrganizationFlowNode>) {
   return (
     <>
-      <Handle className="!size-2.5 !border-2 !border-surface !bg-accent-foreground" isConnectable={false} position={Position.Top} type="target" />
+      <Handle className="!size-2.5 !border-2 !border-surface !bg-accent-foreground" id="target-top" isConnectable={false} position={Position.Top} type="target" />
       <OrganizationChartNodeCard labels={data.labels} node={data.chartNode} />
-      <Handle className="!size-2.5 !border-2 !border-surface !bg-accent-foreground" isConnectable={false} position={Position.Bottom} type="source" />
+      <Handle className="!size-2.5 !border-2 !border-surface !bg-accent-foreground" id="source-bottom" isConnectable={false} position={Position.Bottom} type="source" />
+      <Handle className="!size-1 !border-0 !bg-transparent !opacity-0" id="source-right" isConnectable={false} position={Position.Right} type="source" />
     </>
   )
 }
