@@ -1,5 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## Login zonder medewerkercontext — 2026-09-24
+
+**Status: BUGFIX GREEN; branch `work/bugfix-login-context-20260924` is gepusht naar origin. Broncodecommit: `3e07b1e`.**
+
+- Startpunt was exact `origin/main` `3f9de359c76524306de057455861da734217f252`; versie blijft `1.20260923.1`.
+- `/login` stuurde bestaande auth-sessies zonder expliciete bestemming standaard naar Focus. Als die actor geen medewerkercontext had, gaf `/focus/meer` een ongehandelde `AuthorizationError`.
+- De loginfallback gebruikt nu de bestaande rolbewuste root-router. Focus handelt ontbrekende medewerkercontext af via `/geen-toegang`.
+- Verificatie: 24/24 gerichte tests, strict TypeScript, gerichte ESLint, `git diff --check` en de lokale browserflow op poort 3010 geslaagd. `/login` landde op `/dashboard/start`; `/focus/meer` op `/geen-toegang`.
+- Geen DB-mutatie, migratie, versiebump, deployment, merge of D01-aanraking. De lokale browser gebruikte de al aanwezige sessie; er zijn geen credentials ingevoerd.
+- De server luistert op `localhost:3010`. De bugfixbranch is gepusht; er is geen PR aangemaakt.
+
 ## Production release 1.20260923.1 — 2026-09-23
 
 **Status: sharp security remediation and requested local release gates GREEN. The version remains `1.20260923.1`; no database change or acceptance rerun is part of this fix.**

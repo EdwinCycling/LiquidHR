@@ -1,5 +1,14 @@
 # Liquid HR documentatie-index
 
+## Inloggen zonder medewerkercontext — 2026-09-24
+
+**Status: BUGFIX GREEN op `work/bugfix-login-context-20260924`; broncodecommit `3e07b1e` staat op de remote branch.**
+
+- Oorzaak: een bestaande auth-sessie zonder `next` werd door de proxy rechtstreeks naar Focus gestuurd. Een account zonder medewerkercontext veroorzaakte daar een ongehandelde `AuthorizationError`.
+- Fix: login zonder bestemming gebruikt nu de rolbewuste app-startpagina. De Focus-sectieroute stuurt een actor zonder medewerkercontext naar `/geen-toegang`.
+- Verificatie: gerichte tests `24/24`, strict TypeScript, gerichte ESLint, `git diff --check` en browserflow op `localhost:3010` zijn groen. De bestaande lokale sessie ging via `/login` naar `/dashboard/start`; `/focus/meer` eindigde gecontroleerd op `/geen-toegang` zonder runtimefout.
+- Geen databasewijziging, migratie, versiebump, deployment of wijziging aan D01.
+
 ## Lokale integratiekandidaat T01 + F02 + Focus — 2026-09-23
 
 **Status: PARTIAL — lokaal geïntegreerd; niet op main gepusht en geen release.**

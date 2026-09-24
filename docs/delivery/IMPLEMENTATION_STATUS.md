@@ -1,5 +1,16 @@
 # Implementatiestatus Liquid HR
 
+## Login zonder medewerkercontext — 2026-09-24
+
+**Status: BUGFIX GREEN — `work/bugfix-login-context-20260924`; broncodecommit `3e07b1e` is naar origin gepusht.**
+
+- Baseline: `origin/main` `3f9de359c76524306de057455861da734217f252`; versie bleef `1.20260923.1`.
+- Root cause: de geauthenticeerde `/login`-route en de fallback van `safeNextPath` kozen standaard `/focus`. Een geldige auth-claim garandeert geen medewerkercontext; de sectieroute liet de daaruit volgende `AuthorizationError` als runtimefout ontsnappen.
+- Oplossing: standaard loginrouting gaat via `/`, zodat de bestaande rolrouter de bestemming kiest. Ontbrekende medewerkercontext in een Focus-sectie leidt nu naar `/geen-toegang`.
+- Gates: gerichte tests `24/24`, strict TypeScript, gerichte ESLint en `git diff --check` geslaagd. Productiebuild niet nodig voor deze smalle wijziging.
+- Browser: in de Codex-browser op `http://localhost:3010` stuurde de bestaande lokale sessie `/login` naar `/dashboard/start`; `/focus/meer` stuurde naar `/geen-toegang` zonder gemelde runtimefout. Er zijn geen credentials ingevoerd.
+- Geen database-/Supabase-mutatie, migratie, versiebump, deployment, merge of D01-wijziging.
+
 ## Convergence T01 + F02 + Focus — 2026-09-23
 
 **Status: PARTIAL — all three source lines are merged locally; main push is held because the T01 local pgTAP contract gate could not run. This is not a release.**
