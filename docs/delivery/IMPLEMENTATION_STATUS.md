@@ -10,6 +10,7 @@
 - Geen schema, API, permissie, data-eigenaarschap, route of taalbestand gewijzigd.
 - Gerichte layout- en projectorregressies `10/10`, strict TypeScript, gewijzigde-scope ESLint en `git diff --check` zijn groen.
 - Browsercontrole: poort `3010` gaf `EADDRINUSE`; de branchserver startte op `3012`. `/organization-chart` kon niet renderen omdat deze worktree geen `.env.local` bevat en Supabase URL/key ontbreken. Geen secrets gelezen of gekopieerd. De authenticated visuele controle blijft open.
+- Codecommit `042c1cf` is normaal naar de parallelle bugfixbranch gepusht. Geen merge of deployment uitgevoerd.
 
 ## Convergence T01 + F02 + Focus — 2026-09-23
 
