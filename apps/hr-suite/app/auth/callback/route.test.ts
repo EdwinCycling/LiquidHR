@@ -50,7 +50,13 @@ describe('GET /auth/callback', () => {
     exchangeCodeForSession.mockResolvedValue({ error: null })
     const request = new NextRequest(
       'http://localhost:3000/auth/callback?code=oauth-code&next=%2Fdashboard%2Fstart',
-      { headers: { host: 'localhost:3000' } },
+      {
+        headers: {
+          'x-forwarded-host': 'liquid-hr-hr-suite.vercel.app',
+          'x-forwarded-proto': 'https',
+          host: 'localhost:3000',
+        },
+      },
     )
 
     const response = await GET(request)
