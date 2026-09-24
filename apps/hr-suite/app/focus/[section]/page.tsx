@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, FileText } from 'lucide-react'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { FocusAbsenceForm } from '@/components/focus/focus-absence-form'
 import { FocusAbsenceWorkList } from '@/components/focus/focus-absence-work-list'
 import { FocusDirectoryView, FocusHoursView, FocusLeaveView, FocusProfileView, type FocusProfileLabels } from '@/components/focus/focus-section-views'
@@ -17,8 +17,9 @@ import { PageHeader } from '@/components/patterns/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { listProcessWork } from '@/lib/process-automation/work-service'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { focusActAsHref } from '@/lib/focus/url'
-import { getFocusAbsenceState, getFocusAbsenceWork, getFocusDocuments, getFocusDirectory, getFocusHoursOverview, getFocusLeaveOverview, getFocusProfileProjection, loadFocusSectionContext } from '@/lib/focus/section-service'
+import { getFocusAbsenceState, getFocusAbsenceWork, getFocusDocuments, getFocusDirectory, getFocusHoursOverview, getFocusLeaveOverview, getFocusProfileProjection, loadFocusSectionContext, type FocusSectionContext } from '@/lib/focus/section-service'
 import { loadFocusTeamCalendarForContext } from '@/lib/focus/team-service'
 import type { FocusActionKey } from '@/lib/focus/service'
 import { getTranslator } from '@/lib/i18n/server'
@@ -61,7 +62,13 @@ export default async function FocusSectionPage({ params, searchParams = Promise.
   const isSpecial = kind === 'directory' || kind === 'more'
   if (!isSpecial && !actions.some((action) => action.key === kind)) notFound()
   if (data.isPreboarding && isSpecial) notFound()
-  const context = await loadFocusSectionContext(query.actAs)
+  let context: FocusSectionContext
+  try {
+    context = await loadFocusSectionContext(query.actAs)
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
   const employeeId = data.employee?.id ?? context.employeeId
   const labels = shellLabels(t, data.actAs?.token ?? query.actAs)
   const activeKey: FocusActionKey | 'more' | undefined = kind === 'more' ? 'more' : kind === 'directory' ? 'team' : kind
