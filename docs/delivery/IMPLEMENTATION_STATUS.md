@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Organogram — bediening en peildatum — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- De beheerknop en `Wis alles`-acties zijn uit de organogrampagina verwijderd. `resultaten` wordt alleen getoond als een zoekterm of inhoudelijk filter actief is.
+- De peildatum is instelbaar in de kop en ondersteunt verleden en toekomst. Een datum die expliciet in de URL staat wordt gevolgd; bij openen zonder query gebruikt de pagina vandaag in tijdzone Amsterdam en negeert zij een eventueel opgeslagen oude peildatum. De datum blijft behouden bij zoeken en filteren.
+- Gerichte regressietests voor datum- en tellinggedrag zijn toegevoegd. Authenticated browsercontrole is environment-gated: de worktree heeft geen lokale Supabase-configuratie en de vorige lokale route-aanroep kon daardoor niet renderen. Geen secrets gelezen of gekopieerd.
+
 ## Organogram — verbindingen per rij gebundeld — 2026-09-24
 
 **Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**

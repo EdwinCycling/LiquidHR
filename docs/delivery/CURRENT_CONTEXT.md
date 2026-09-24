@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Organogram — bediening en peildatum — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Op dezelfde geïsoleerde branch zijn de knop `Afdelingen beheren` en beide acties `Wis alles` verwijderd. De matchtelling staat alleen bij een actieve zoekopdracht of inhoudelijk filter en gebruikt de tekst `resultaten`.
+- De peildatum is nu direct bij de paginakop instelbaar, inclusief datums in het verleden en de toekomst. Een expliciete URL-datum blijft gelden; bij openen zonder query wordt de Amsterdamse datum van vandaag gebruikt, ook als er een oudere datum als voorkeur was opgeslagen. Zoeken en filters behouden de gekozen datum.
+- Regressietests dekken de standaarddatum, expliciete datum en zichtbaarheid van de telling. Authenticated browsercontrole kon de branch niet tonen: de worktree mist lokale Supabase URL/key-configuratie en de vorige lokale poortpoging kon de route niet renderen. Geen secrets gelezen of gekopieerd.
+- Gerichte organogramtests, strict TypeScript, gewijzigde-scope ESLint, i18n-pariteit en diff-check zijn uitgevoerd; zie de uiteindelijke branchcommit voor het exacte resultaat. Geen merge, deployment, migratie of versieaanpassing.
+
 ## Actieve bugfix — organogramverbindingen — 2026-09-24
 
 **Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
