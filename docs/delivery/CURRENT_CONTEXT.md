@@ -1,5 +1,17 @@
 # Actuele overdracht Liquid HR
 
+## Focus-login, kalenderwerkbalk en RLS-blokkade — 2026-09-24
+
+**Status: Focus-loginfallback en compacte kalenderwerkbalk aangepast; de filters voor tijdlijngebeurtenissen en dagstatus zijn verwijderd. Gerichte hercontrole volgt; browseracceptatie en bugfix-afronding zijn geblokkeerd door een RLS-recursie in de actieve D01-databasewijziging. Geen commit of push.**
+
+- Branch `work/bugfix-calendar-toolbar-20260924` is gebaseerd op de afgesproken `origin/main`-SHA `3f9de359c76524306de057455861da734217f252`. Filters en weergaveopties starten ingeklapt. De bestaande medewerkerkeuze, maandkiezer, actiemenu en filterknop staan in één compacte regel; weekkeuze staat onder de ingeklapte weergaveopties.
+- De filtergroep `Tijdlijngebeurtenissen` en het paneel `Filter op vandaag` zijn uit de kalender verwijderd. Event-typekeuzes zijn ook uit het queryschema en URL-opbouw verwijderd; oude `type`-parameters filteren geen gebeurtenissen meer en keren niet terug bij navigatie.
+- De loginfallback in `safeNextPath` stuurde accounts zonder expliciete `next` naar `/focus`, ook als zij geen medewerkercontext hebben. De fallback is nu `/dashboard/start`; de dashboardlayout blijft medewerkers die Focus nodig hebben naar `/focus` routeren.
+- Edwin heeft lokaal als HR Admin aangemeld. `/hr-calendar` faalt bij `hr_change_events` met Postgres-code `42P17`: oneindige RLS-recursie op `employee_documents`. De actieve documentpolicies vormen een cyclus: `employee_documents_salary_gate` leest `document_categories`, waarvan `document_categories_self_document_read` weer `employee_documents` leest. Deze policies zijn aanwezig na `20260924073155_d01_document_access_and_metadata` in het gedeelde testproject.
+- Dit vraagt om een autorisatie-/schemamigratie en botst met de actieve D01-scope. Geen migratie aangemaakt of toegepast; D01-worktree, `main`, Supabase-data en deployment zijn niet gewijzigd. Hervat na een D01-eigen policycorrectie en expliciete toestemming voor de specifieke migratie.
+- Gerichte Vitest (3 bestanden, 11 tests), ESLint, strict TypeScript, `git diff --check` en i18n-controle (39 namespaces) zijn groen. Geen versieaanpassing of productiebuild.
+- Poort `3010` was bezet door een niet-inspecteerbaar proces en is ongemoeid gelaten. De branchserver draait op `127.0.0.1:3011` met een tijdelijke write-guard voor `next-env.d.ts`; de SHA-256 van dat bestand bleef gelijk aan de baseline. De echte kalenderweergave blijft onbereikbaar zolang de RLS-fout bestaat.
+
 ## Production release 1.20260923.1 — 2026-09-23
 
 **Status: sharp security remediation and requested local release gates GREEN. The version remains `1.20260923.1`; no database change or acceptance rerun is part of this fix.**

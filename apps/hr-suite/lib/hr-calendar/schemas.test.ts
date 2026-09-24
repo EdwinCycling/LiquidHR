@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { calendarQuerySchema } from './schemas'
 describe('calendar query',()=>{
   it('accepts valid month filters and display toggles',()=>{
-    expect(calendarQuerySchema.parse({month:'2026-07',type:['SCHEDULE_CHANGED'],showReminders:'0',showScheduledHours:'1',showDayOccupancy:'1'})).toMatchObject({month:'2026-07',showReminders:'0',showDayOccupancy:'1'})
+    expect(calendarQuerySchema.parse({month:'2026-07',showReminders:'0',showScheduledHours:'1',showDayOccupancy:'1'})).toMatchObject({month:'2026-07',showReminders:'0',showDayOccupancy:'1'})
+  })
+
+  it('rejects removed event-type filter parameters',()=>{
+    expect(()=>calendarQuerySchema.parse({month:'2026-07',type:['SCHEDULE_CHANGED']})).toThrow()
   })
 
   it('accepts database UUID values without an RFC variant marker',()=>{
