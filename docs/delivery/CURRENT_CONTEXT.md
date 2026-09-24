@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## Google OAuth lokale callback — 2026-09-24
+
+**Status: CODE GREEN / browser- en Supabase Auth-configuratiecontrole extern geblokkeerd**
+
+- Branch `work/bugfix-google-oauth-redirect-20260924`, gestart vanaf `origin/main` SHA `3f9de359c76524306de057455861da734217f252`. Geen main- of D01-bestanden gewijzigd.
+- Reproduceerbare code-root cause in de originresolver: `VERCEL_ENV` kon een lokale `NODE_ENV=development` overschrijven, waardoor `localhost` werd afgewezen. Daarnaast won een vertrouwde Vercel `x-forwarded-host` van de echte lokale `Host`, en kon het bijbehorende `x-forwarded-proto` `https` voor localhost kiezen. De Supabase redirect-allowlist is een mogelijke aparte oorzaak en blijft onbevestigd.
+- De resolver gebruikt nu tijdens lokale ontwikkeling de actuele localhost-host en bijbehorend HTTP-origin. Productie blijft loopback-hosts weigeren; bekende Vercel-hosts blijven werken. OAuth `next` blijft beperkt tot interne paden.
+- Auth-regressies: 4 bestanden / 28 tests geslaagd; strict TypeScript, gerichte ESLint en `git diff --check` geslaagd. Geen migratie, versie-, Site URL- of deploymentwijziging.
+- De live flow op `localhost:3000` is niet getest omdat de open D01-worktree/server die poort gebruikt en niet mag worden aangeraakt. De Supabase URL Configuration is nog onbekend: het dashboard leidt naar interactieve aanmelding. Het is dus niet bevestigd of `http://localhost:3000/**` al op de redirect allowlist staat. Eerstvolgende verificatie is alleen-lezen controle van de Supabase allowlist en een browserrun zodra poort 3000 vrij is.
+
 ## Production release 1.20260923.1 — 2026-09-23
 
 **Status: sharp security remediation and requested local release gates GREEN. The version remains `1.20260923.1`; no database change or acceptance rerun is part of this fix.**

@@ -1,5 +1,14 @@
 # Implementatiestatus Liquid HR
 
+## Google OAuth lokale callback — 2026-09-24
+
+**Status: CODE GREEN / live browser- en Supabase Auth-configuratiecontrole extern geblokkeerd**
+
+- De OAuth startactie bouwt de callback op uit de gevalideerde actuele request-origin. De resolver houdt een lokale `Host: localhost` voorrang op een vertrouwde Vercel-forwarded host en laat lokale development-origin toe als `VERCEL_ENV` lokaal op `production` staat. Een lokale browserrequest gebruikt HTTP; productie accepteert geen loopback-origin.
+- De callback wisselt de OAuth-code uit met de bestaande Supabase SSR-client en behoudt alleen veilige interne `next`-routes. De bestaande Vercel-origin en open-redirect-afwijzing blijven getest.
+- Verificatie: 4 gerichte auth-testbestanden / 28 tests, strict TypeScript, gewijzigde bestanden ESLint en `git diff --check` zijn geslaagd.
+- De live Google-flow en sessie-cookie zijn niet in de browser bewezen: poort `3000` behoort aan de actieve D01-worktree en de Supabase Dashboard URL Configuration vraagt om interactieve aanmelding. De redirect allowlist is daardoor onbekend. Geen Supabase-instelling, migration, geheim of versie aangepast; geen deployment uitgevoerd.
+
 ## Convergence T01 + F02 + Focus — 2026-09-23
 
 **Status: PARTIAL — all three source lines are merged locally; main push is held because the T01 local pgTAP contract gate could not run. This is not a release.**
