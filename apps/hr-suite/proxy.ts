@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isProtectedApplicationPath } from '@/lib/auth/route-access'
+import { frameOptionsForPath } from '@/lib/security/security-headers'
 import { getAuthCookieOptions } from '@/lib/supabase/cookie-options'
 
 function isInvalidRefreshTokenError(error: unknown): boolean {
@@ -13,6 +14,11 @@ function clearInvalidAuthCookies(response: NextResponse, request: NextRequest): 
   request.cookies.getAll()
     .filter(({ name }) => name.startsWith('sb-'))
     .forEach(({ name }) => response.cookies.set(name, '', { expires: new Date(0), maxAge: 0, path: '/' }))
+}
+
+function withFramePolicy(response: NextResponse, pathname: string): NextResponse {
+  response.headers.set('X-Frame-Options', frameOptionsForPath(pathname))
+  return response
 }
 
 export async function proxy(request: NextRequest) {
@@ -50,17 +56,17 @@ export async function proxy(request: NextRequest) {
     url.searchParams.set('next', `${pathname}${request.nextUrl.search}`)
     const redirectResponse = NextResponse.redirect(url)
     if (hadInvalidRefreshToken) clearInvalidAuthCookies(redirectResponse, request)
-    return redirectResponse
+    return withFramePolicy(redirectResponse, pathname)
   }
 
   if (pathname === '/login' && isAuthenticated) {
     const url = request.nextUrl.clone()
     url.pathname = '/focus'
-    return NextResponse.redirect(url)
+    return withFramePolicy(NextResponse.redirect(url), pathname)
   }
 
   if (hadInvalidRefreshToken) clearInvalidAuthCookies(response, request)
-  return response
+  return withFramePolicy(response, pathname)
 }
 
 export const config = {

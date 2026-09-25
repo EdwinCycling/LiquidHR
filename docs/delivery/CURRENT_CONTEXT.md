@@ -1,5 +1,22 @@
 # Actuele overdracht Liquid HR
 
+## D01 Dossier/Documents acceptance — 2026-09-24 to 2026-09-25
+
+**Status: D01 ACCEPTANCE GREEN. Strict TypeScript/build retain two verified pre-existing errors outside D01; no D01 source errors remain.**
+
+- Isolated branch `work/acceptance-D01-20260924`, worktree `.codex-worktrees/acceptance-D01-20260924`, base SHA `3f9de359c76524306de057455861da734217f252`; version remains `1.20260923.1`.
+- All D01 scope used the single shared test project `wnpfloqpjvaacobppbpk`. No merge, deployment, version bump, Docker/local Supabase start, unrelated cleanup, or `next-env.d.ts` change is included.
+- `42P17` root cause was category-read → `employee_documents` → salary gate → category. The minimal actor-bound helper/policy fix is applied once. All five D01 logical migration names exist remotely; server-stamped versions differ from local filenames, but there is no missing logical migration. History was not edited/repaired and nothing was reapplied. Current repository migrations produce the desired state on a clean database; no convergence migration is needed.
+- Reproduced defects fixed: category RLS recursion; dossier `42501` from reading restricted custom fields directly; ambiguous reminder identifier; incomplete actor/subject audience scope; Manager expiry reminder blocked by generic reminder permission; mixed-case category code duplicate and missing category lifecycle controls; Manager Focus scope leak; Focus mobile action-row collapse; blank same-origin preview; DATE/custom-field/expiry/reminder roundtrip; English labels and selector names falling back to Dutch; and Escape bubbling from the selector and closing the editor. Each root cause and regression is in [`D01 report`](../quality/acceptance/runs/D01-dossier-documents.md).
+- HR DATE/custom-field/expiry/reminder roundtrip fix uses the canonical atomic document write. Regression asserts the initial payload; live readback for document `18c4e1a0-e3b3-4d0d-9f1c-876c0975129e` confirms DATE `2026-11-30`, expiry `2027-01-31`, linked PUBLISHED reminder at `2027-01-01 08:00Z`, and matching `text/plain` 132-byte storage metadata. Reloaded UI showed the same values.
+- Browser/data acceptance passed for categories, nine DOCUMENT definitions, HR and in-scope Manager uploads, negative file fixtures, salary-sensitive gate, Employee/Manager Full and Focus, expiry/reminders, delete/restore and private storage readback. Final readback: three required categories, 12 documents, 12 matching storage objects, 51 audiences, three linked reminders, and zero missing storage, orphan audience, reminder or storage records. The exact D01-created uppercase category duplicate was deleted after read-only confirmation that it had no document references.
+- Final browser gates: English preference and labels persisted through reload; category Add and DOCUMENT custom-field editors opened and worked at 390×844 with no horizontal overflow; keyboard traversal and selector Escape preserved the dirty editor; original Dutch preference was restored and verified after reload. Mobile Focus had no overflow in the earlier Manager pass.
+- Cross-tenant negative: active HR Admin in `liquid-hr-demo-holding` requested a dossier for an active employee in `noorderlicht-zorggroep`; the app server recorded HTTP 403 and the profile route returned concealed 404. The extension blocked its API response body, which was not read; no foreign record was changed.
+- Evidence/gates: final relevant rerun 23 files / 107 tests, changed-file ESLint, 39 equal NL/EN namespaces, rollback-only SQL/RLS matrix and `git diff --check` passed. Strict TypeScript and the production build stop only on unchanged absence-service nullability errors at `confirmation-service.ts:51` and `service.ts:339`. Guarded Webpack compilation succeeded; `next-env.d.ts` retained base hash `ce4e94a6b10f160ee021fe18939af160d2927dcf`.
+- D01 remains on the isolated branch. Do not merge, deploy, bump version, edit `apps/hr-suite/next-env.d.ts`, or clean unrelated worktrees. The D01 report contains the complete run matrix and limitations.
+
+## Production release 1.20260923.1 — 2026-09-23
+
 ## Production release 1.20260923.1 — 2026-09-23
 
 **Status: sharp security remediation and requested local release gates GREEN. The version remains `1.20260923.1`; no database change or acceptance rerun is part of this fix.**

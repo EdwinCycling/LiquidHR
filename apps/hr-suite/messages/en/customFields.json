@@ -11,6 +11,7 @@
   "labelEn": "English label",
   "country": "Country code (ISO-2)",
   "fieldType": "Field type",
+  "selectOption": "Select an option",
   "required": "Required",
   "chartFilter": "Available in organization chart",
   "chartFilterHelp": "Only expose this field as a filter when its contents are not sensitive.",
