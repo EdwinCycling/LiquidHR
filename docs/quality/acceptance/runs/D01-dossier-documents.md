@@ -52,7 +52,7 @@ The three required categories were created through Settings and read back after 
 | D01 Tijdelijk en verval D01-20260924 | `d01_expiry_d01-20260924` | false | Active; persisted |
 | D01 Vertrouwelijk beloning D01-20260924 | `d01_salary_d01-20260924` | true | Active; salary gate verified |
 
-Settings edit, active/inactive, required-value validation, delete guard, duplicate rejection and database readback passed. An earlier uppercase duplicate (`D01_GENERAL_D01-20260924`) was created by the pre-fix UI, which uppercased codes while the unique constraint compared case-sensitively. It is an identifiable D01 test row, has no linked documents, and remains active. The fix canonicalizes codes to lowercase and returns a localized conflict response; it prevents new duplicates. No unrelated category was changed.
+Settings edit, active/inactive, required-value validation, delete guard, duplicate rejection and database readback passed. The pre-fix UI created an uppercase duplicate (`D01_GENERAL_D01-20260924`) because it uppercased codes while the unique constraint compared case-sensitively. Read-only verification found zero linked documents and no other dependent rows; the exact D01-only row `9cb79e91-4f94-49a0-807f-6d9360a7537b` was then deleted under the D01 cleanup authorization. Final database readback shows only the three required categories, linked to 6, 5, and 1 D01 documents. The fix canonicalizes codes to lowercase and returns a localized conflict response; it prevents new duplicates. No unrelated category was changed.
 
 ## DOCUMENT custom fields
 
@@ -91,7 +91,7 @@ Generated deterministic, harmless fixtures under `.artifacts/D01-20260924/fixtur
 | Long filename | Accepted; original metadata preserved; storage filename bounded to 180 characters |
 | Path-like filename | Accepted safely; path segments removed from storage filename |
 
-For successful rows, database and storage readback matched original filename, MIME, size, checksum, storage key and category. Authorized open/download was tested. The bucket is private. Negative cases left zero `employee_documents`, audience, reminder, or storage artifacts. The complete D01 readback showed 12 D01 document rows after restore, all with a matching storage object, no unlinked D01 reminder, and no D01 object without a document row.
+For successful rows, database and storage readback matched original filename, MIME, size, checksum, storage key and category. Authorized open/download was tested. The bucket is private. Negative cases left zero `employee_documents`, audience, reminder, or storage artifacts. Final readback after the exact D01 category cleanup showed three required categories, 12 documents, 12 matching private storage objects, 51 audiences, three linked reminders, zero documents missing storage, zero orphan audiences, and zero D01 storage or reminder orphans.
 
 ## HR upload, metadata, expiry and reminder
 
@@ -142,7 +142,7 @@ Read-only post-apply inspection confirmed document/category/audience/storage RLS
 | Reminder create had ambiguous `reminder_id` | Local PL/pgSQL identifier collided with target-rule column | Rename local variable to `document_reminder_id` | SQL contract and three linked live reminder readbacks | Fixed |
 | Manager upload with expiry failed at nested reminder permission | Scoped document path reached helper requiring generic `reminder:write` | Permit only one reminder target equal to the scoped document subject | SQL allows in-scope subject, rejects wrong/multiple target; real Manager upload and readback | Fixed; no global permission added |
 | Implicit uploader audience could miss complete scope validation | Actor/subject active, tenant and HR-group checks were incomplete | Enforce active same-tenant, same-HR-group actor/subject scope in canonical write path | SQL forged/out-of-scope checks; Manager audit/audience readback | Fixed |
-| Category duplicate could persist with different casing | UI uppercased codes but uniqueness was case-sensitive | Lowercase canonicalization and localized conflict response | API/category schema tests; browser duplicate rejected; DB readback | Fixed; one earlier D01-only duplicate remains unlinked |
+| Category duplicate could persist with different casing | UI uppercased codes but uniqueness was case-sensitive | Lowercase canonicalization and localized conflict response | API/category schema tests; browser duplicate rejected; exact orphan-free DB cleanup/readback | Fixed; duplicate test row removed; three canonical categories remain |
 | Category Settings lacked supported lifecycle controls | UI did not expose complete edit/active/delete-guard behavior | Extend existing category manager UI with edit, state and salary controls | Component/API tests and real Settings create/edit/state/validation flow | Fixed |
 | Manager Focus list could include employees outside current management scope | Grouping did not filter through canonical manager scope | Filter using existing scope service | Focus tests and Yara in-scope/out-of-scope browser/SQL checks | Fixed |
 | Focus document action row collapsed title at mobile width | Actions and title competed in one narrow row | Use a second responsive action row | Browser at 390×844: no horizontal overflow; title width 268 px | Fixed |
@@ -176,7 +176,7 @@ No Docker or local Supabase was started. Generated fixtures are ignored; no bina
 
 ## ENVIRONMENT-GATED
 
-- This run used only the canonical shared test project. Test data is identifiable by `D01-20260924`; all D01 rows and objects were read back together. The one old uppercase duplicate is D01-created and unlinked; it remains as explicit acceptance evidence rather than being confused with unrelated data.
+- This run used only the canonical shared test project. Test data is identifiable by `D01-20260924`; all D01 rows and objects were read back together. The exact unlinked uppercase D01 duplicate category was removed after confirming zero document references; the three required categories remain.
 - Cross-tenant actor denial is not directly proven: the shared project currently has active documents in one tenant, while the other tenant has no active employee with an authenticated user identity. The rollback-only matrix proves wrong-employee and cross-HR-group denials; a real second-tenant authenticated fixture is unavailable.
 - The local browser harness failed to hydrate client interactions during the final Settings/English pass. This is recorded as a harness gate, not a product pass or a server-side authorization denial.
 - Vercel deployment and main integration were intentionally not part of D01.
