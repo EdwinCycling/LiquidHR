@@ -46,6 +46,24 @@
 - De resolver gebruikt nu tijdens lokale ontwikkeling de actuele localhost-host en bijbehorend HTTP-origin. Productie blijft loopback-hosts weigeren; bekende Vercel-hosts blijven werken. OAuth `next` blijft beperkt tot interne paden.
 - Auth-regressies: 4 bestanden / 28 tests geslaagd; strict TypeScript, gerichte ESLint en `git diff --check` geslaagd. Geen migratie, versie-, Site URL- of deploymentwijziging.
 - De live flow op `localhost:3000` is niet getest omdat de open D01-worktree/server die poort gebruikt en niet mag worden aangeraakt. De Supabase URL Configuration is nog onbekend: het dashboard leidt naar interactieve aanmelding. Het is dus niet bevestigd of `http://localhost:3000/**` al op de redirect allowlist staat. Eerstvolgende verificatie is alleen-lezen controle van de Supabase allowlist en een browserrun zodra poort 3000 vrij is.
+## Organogram — bediening en peildatum — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Op dezelfde geïsoleerde branch zijn de knop `Afdelingen beheren` en beide acties `Wis alles` verwijderd. De matchtelling staat alleen bij een actieve zoekopdracht of inhoudelijk filter en gebruikt de tekst `resultaten`.
+- De peildatum is nu direct bij de paginakop instelbaar, inclusief datums in het verleden en de toekomst. Een expliciete URL-datum blijft gelden; bij openen zonder query wordt de Amsterdamse datum van vandaag gebruikt, ook als er een oudere datum als voorkeur was opgeslagen. Zoeken en filters behouden de gekozen datum.
+- Regressietests dekken de standaarddatum, expliciete datum en zichtbaarheid van de telling. Authenticated browsercontrole kon de branch niet tonen: de worktree mist lokale Supabase URL/key-configuratie en de vorige lokale poortpoging kon de route niet renderen. Geen secrets gelezen of gekopieerd.
+- Gerichte organogramtests, strict TypeScript, gewijzigde-scope ESLint, i18n-pariteit en diff-check zijn uitgevoerd; zie de uiteindelijke branchcommit voor het exacte resultaat. Geen merge, deployment, migratie of versieaanpassing.
+
+## Actieve bugfix — organogramverbindingen — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Branch `work/bugfix-orgchart-lines-20260924`, vanaf `origin/main` `3f9de359c76524306de057455861da734217f252`.
+- Organogramrelaties delen nu een orthogonale bus per kindrij. Vervolgrijen gebruiken een gereserveerde zijrail buiten de onderliggende subtree. Schema/API/permissies en versie zijn ongewijzigd.
+- Gerichte tests `10/10`, strict TypeScript, gewijzigde-scope ESLint en diff-check zijn groen.
+- De browserrequest op poort `3010` gaf `EADDRINUSE`; de branchserver op `3012` bereikte Next, maar `/organization-chart` faalde in middleware door ontbrekende lokale Supabase URL/key-configuratie. Worktree `.env.local` is niet aanwezig; secrets zijn niet gelezen of gekopieerd. Authenticated visuele controle blijft open.
+- Codecommit `042c1cf` is normaal naar `origin/work/bugfix-orgchart-lines-20260924` gepusht. Geen merge of deploy. De authenticated visuele controle blijft environment-gated door de ontbrekende Supabase-configuratie in de worktree.
 
 ## Production release 1.20260923.1 — 2026-09-23
 

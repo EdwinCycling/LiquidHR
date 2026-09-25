@@ -1,11 +1,12 @@
-import Link from 'next/link'
-import { Building2, CalendarDays, UsersRound } from 'lucide-react'
+import { CalendarDays, UsersRound } from 'lucide-react'
 import { OrganizationChartExplorer, type OrganizationChartExplorerLabels, type OrganizationChartExplorerQuery } from '@/components/organization-chart/organization-chart-explorer'
 import { buttonClasses } from '@/components/ui/button'
+import { TextInput } from '@/components/ui/text-input'
 import { Badge } from '@/components/ui/badge'
-import { AuthorizationError, getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
+import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getLocale } from '@/lib/i18n/server'
 import { createTranslator } from '@/lib/i18n/translator'
+import { resolveOrganizationChartPageQuery } from '@/lib/organization-chart/page-state'
 import { organizationChartQuerySchema } from '@/lib/organization-chart/schemas'
 import { getOrganizationChart } from '@/lib/organization-chart/service'
 import { getStoredOrganizationChartFilter } from '@/lib/preferences/organization-chart'
@@ -55,8 +56,7 @@ function safeDate(value: string | undefined, fallback: string): string {
 export default async function OrganizationChartPage({ searchParams }: OrganizationChartPageProps) {
   const [params, locale, storedFilter] = await Promise.all([searchParams, getLocale(), getStoredOrganizationChartFilter()])
   const defaultDate = amsterdamDate()
-  const hasQuery = Object.values(params).some((value) => (Array.isArray(value) ? value.length > 0 : Boolean(value)))
-  const source = hasQuery ? params : storedFilter
+  const source = resolveOrganizationChartPageQuery(params, storedFilter, defaultDate)
   const field = safeUuid(first(source.field))
   const value = safeText(first(source.value))
   const candidate = {
@@ -71,9 +71,6 @@ export default async function OrganizationChartPage({ searchParams }: Organizati
   const query = organizationChartQuerySchema.parse(candidate)
   const graph = await getOrganizationChart(query)
   const authContext = (await getRequestAuthorizationContext()).context
-  let canWrite = true
-  try { await requirePermission('department:write') }
-  catch (error) { if (error instanceof AuthorizationError) canWrite = false; else throw error }
   const translate = createTranslator(locale === 'en' ? messagesEn : messagesNl)
   const administration = graph.nodes.find((node): node is AdministrationChartNode => node.type === 'administration')
   const explorerQuery: OrganizationChartExplorerQuery = query
@@ -83,25 +80,28 @@ export default async function OrganizationChartPage({ searchParams }: Organizati
     viewManager: translate('viewManager'),
     searchLabel: translate('searchLabel'), searchPlaceholder: translate('searchPlaceholder'), searchAction: translate('searchAction'),
     departmentLabel: translate('departmentLabel'), allDepartments: translate('allDepartments'), roleLabel: translate('roleLabel'), allRoles: translate('allRoles'),
-    moreFilters: translate('moreFilters'), lessFilters: translate('lessFilters'), dateLabel: translate('dateLabel'), customFieldLabel: translate('customFieldLabel'), noCustomField: translate('noCustomField'),
+    moreFilters: translate('moreFilters'), lessFilters: translate('lessFilters'), customFieldLabel: translate('customFieldLabel'), noCustomField: translate('noCustomField'),
     customFieldValueLabel: translate('customFieldValueLabel'), customFieldValuePlaceholder: translate('customFieldValuePlaceholder'), customFieldValueDisabled: translate('customFieldValueDisabled'), applyFilters: translate('applyFilters'),
     searchDepartment: translate('searchDepartment'), searchRole: translate('searchRole'), noFilterOptions: translate('noFilterOptions'), quickFilters: translate('quickFilters'),
-    activeFilters: translate('activeFilters'), queryChip: translate('queryChip'), departmentChip: translate('departmentChip'), roleChip: translate('roleChip'), fieldChip: translate('fieldChip'), dateChip: translate('dateChip'), removeFilter: translate('removeFilter'), resetAll: translate('resetAll'),
+    activeFilters: translate('activeFilters'), queryChip: translate('queryChip'), departmentChip: translate('departmentChip'), roleChip: translate('roleChip'), fieldChip: translate('fieldChip'), dateChip: translate('dateChip'), removeFilter: translate('removeFilter'),
     matchCount: translate('matchCount'), matchCountOne: translate('matchCountOne'), noMatchesTitle: translate('noMatchesTitle'), noMatchesBody: translate('noMatchesBody'), emptyTitle: translate('emptyTitle'), emptyBody: translate('emptyBody'),
     canvasLabel: translate('canvasLabel'), mobileTreeLabel: translate('mobileTreeLabel'), expandBranch: translate('expandBranch'),
     employees: translate('employees'), groupedEmployees: translate('groupedEmployees'), rootEmployees: translate('rootEmployees'), manager: translate('manager'), managerInherited: translate('managerInherited'), managerNone: translate('managerNone'), managerAmbiguous: translate('managerAmbiguous'),
     jobUnknown: translate('jobUnknown'), moreBadges: translate('moreBadges'), openEmployee: translate('openEmployee'), administrationNode: translate('administrationNode'), departmentNode: translate('departmentNode'), employeeNode: translate('employeeNode'), startProcess: translate('startProcess'), canStartProcess: authContext.permissions.includes('process-instance:start'), canStartSelfProcess: authContext.permissions.includes('self:process-instance:start'), currentEmployeeId: authContext.employeeId,
     groupNode: translate('groupNode'),
-    zoomIn: translate('zoomIn'), zoomOut: translate('zoomOut'), fitView: translate('fitView'), previousTab: translate('previousTab'), nextTab: translate('nextTab'), manageDepartments: translate('manageDepartments'),
+    zoomIn: translate('zoomIn'), zoomOut: translate('zoomOut'), fitView: translate('fitView'), previousTab: translate('previousTab'), nextTab: translate('nextTab'),
   }
 
   return (
     <PageShell className="space-y-6 py-7 sm:py-9" width="wide">
       <PageHeader
         actions={<div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          <span className="inline-flex items-center gap-2"><CalendarDays aria-hidden="true" size={16} />{translate('asOf', { date: graph.metadata.asOfDate })}</span>
+          <form action="/organization-chart" className="flex flex-wrap items-center gap-2" method="get">
+            {Object.entries(query).flatMap(([key, value]) => key !== 'date' && value ? [<input key={key} name={key} type="hidden" value={value} />] : [])}
+            <label className="inline-flex items-center gap-2"><span className="text-xs font-semibold">{translate('dateLabel')}</span><span className="w-44 shrink-0"><TextInput aria-label={translate('dateLabel')} className="min-h-9" defaultValue={query.date} leadingIcon={<CalendarDays aria-hidden="true" />} name="date" type="date" /></span></label>
+            <button className={buttonClasses({ size: 'sm', variant: 'secondary' })} type="submit">{translate('showDate')}</button>
+          </form>
           <span className="inline-flex items-center gap-2"><UsersRound aria-hidden="true" size={16} />{translate('employeeCount', { count: graph.metadata.visibleEmployeeCount })}</span>
-          {canWrite ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/departments"><Building2 aria-hidden="true" />{translate('manageDepartments')}</Link> : null}
         </div>}
         description={administration ? <span className="inline-flex items-center gap-2"><Badge>{translate('administration')}</Badge>{`${administration.code} · ${administration.name}`}</span> : undefined}
         title={translate('title')}

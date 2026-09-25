@@ -28,6 +28,25 @@
 - De callback wisselt de OAuth-code uit met de bestaande Supabase SSR-client en behoudt alleen veilige interne `next`-routes. De bestaande Vercel-origin en open-redirect-afwijzing blijven getest.
 - Verificatie: 4 gerichte auth-testbestanden / 28 tests, strict TypeScript, gewijzigde bestanden ESLint en `git diff --check` zijn geslaagd.
 - De live Google-flow en sessie-cookie zijn niet in de browser bewezen: poort `3000` behoort aan de actieve D01-worktree en de Supabase Dashboard URL Configuration vraagt om interactieve aanmelding. De redirect allowlist is daardoor onbekend. Geen Supabase-instelling, migration, geheim of versie aangepast; geen deployment uitgevoerd.
+## Organogram — bediening en peildatum — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- De beheerknop en `Wis alles`-acties zijn uit de organogrampagina verwijderd. `resultaten` wordt alleen getoond als een zoekterm of inhoudelijk filter actief is.
+- De peildatum is instelbaar in de kop en ondersteunt verleden en toekomst. Een datum die expliciet in de URL staat wordt gevolgd; bij openen zonder query gebruikt de pagina vandaag in tijdzone Amsterdam en negeert zij een eventueel opgeslagen oude peildatum. De datum blijft behouden bij zoeken en filteren.
+- Gerichte regressietests voor datum- en tellinggedrag zijn toegevoegd. Authenticated browsercontrole is environment-gated: de worktree heeft geen lokale Supabase-configuratie en de vorige lokale route-aanroep kon daardoor niet renderen. Geen secrets gelezen of gekopieerd.
+
+## Organogram — verbindingen per rij gebundeld — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Geïsoleerde branch `work/bugfix-orgchart-lines-20260924` start vanaf de opgegeven `origin/main`-baseline `3f9de359c76524306de057455861da734217f252`.
+- Root cause: de layout verdeelde meer dan vier directe kinderen over meerdere rijen, terwijl React Flow iedere relatie apart met `smoothstep` tekende. De verbindingen deelden daardoor geen duidelijke rijvertakking en vervolgverbindingen liepen door het gebied van eerdere subtrees.
+- De canvas gebruikt nu orthogonale, gedeelde bussen voor de eerste kindrij. Vervolgrijen lopen via een gereserveerde zijrail en een eigen horizontale tak; de layout reserveert daarvoor ruimte binnen dezelfde subtree.
+- Geen schema, API, permissie, data-eigenaarschap, route of taalbestand gewijzigd.
+- Gerichte layout- en projectorregressies `10/10`, strict TypeScript, gewijzigde-scope ESLint en `git diff --check` zijn groen.
+- Browsercontrole: poort `3010` gaf `EADDRINUSE`; de branchserver startte op `3012`. `/organization-chart` kon niet renderen omdat deze worktree geen `.env.local` bevat en Supabase URL/key ontbreken. Geen secrets gelezen of gekopieerd. De authenticated visuele controle blijft open.
+- Codecommit `042c1cf` is normaal naar de parallelle bugfixbranch gepusht. Geen merge of deployment uitgevoerd.
 
 ## Convergence T01 + F02 + Focus — 2026-09-23
 
