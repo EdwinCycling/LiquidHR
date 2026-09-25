@@ -2,7 +2,7 @@
 
 - **Run ID:** `D01-20260924`
 - **Run date:** 2026-09-24 to 2026-09-25
-- **Status:** GREEN WITH UNRELATED BASELINE TYPECHECK/BUILD EXCEPTION
+- **Status:** PARTIAL / ENVIRONMENT-GATED — D01 product/data fixes verified; browser gates remain
 - **Branch:** `work/acceptance-D01-20260924`
 - **Worktree:** `.codex-worktrees/acceptance-D01-20260924`
 - **Base SHA:** `3f9de359c76524306de057455861da734217f252`
@@ -13,9 +13,9 @@
 
 ## Result
 
-The D01 dossier flow passed the tested category, DOCUMENT custom-field, HR upload, scoped Manager upload, Employee/Manager Full and Focus access, salary gate, expiry/reminder, file validation, delete/restore, and database/storage checks. Ordinary defects found during those scenarios were fixed and retested. No D01 document, audience, reminder, or storage orphan remained in the readback.
+The tested category, DOCUMENT custom-field, HR upload, scoped Manager upload, Employee/Manager Full and Focus access, salary gate, expiry/reminder, file validation, delete/restore, and database/storage scenarios passed. In-scope product/security defects found during those scenarios were fixed and retested. The latest rollback-only SQL matrix also passed. D01 is **not GREEN yet**: English browser interaction, interactive Settings mobile controls, full keyboard traversal, and a real cross-tenant actor denial remain unproven.
 
-The only final quality exception is the pre-existing strict TypeScript failure in two unchanged absence-service files. The production build compiled, then stopped at those same errors. Per the D01 acceptance criteria, this is reported separately and is not changed in this scoped branch.
+Strict TypeScript and the production build also remain blocked by two unchanged absence-service errors. Those are outside D01. The final browser gates above are separate from that baseline code failure.
 
 ## Functional Surface Inventory
 
@@ -37,7 +37,7 @@ The only final quality exception is the pre-existing strict TypeScript failure i
 | Manager Yara, in scope | Opened Noah's dossier in Full and Focus; uploaded a document through the real browser file chooser; edited/verified scoped data; saw Manager-READ fields and not HIDDEN fields; reminder creation succeeded through the document flow. |
 | Manager Yara, out of scope | Direct Full route returned to the employee list containing only in-scope employees. SQL negative regression rejected out-of-scope document creation/access. |
 | Employee Noah, owner | Opened own Full and Focus dossier and a same-origin preview. Allowed fields appeared; employee-HIDDEN, HR-only, and salary-sensitive fields/documents did not. |
-| Different employee | SQL/RLS checks returned no access to Noah's or Yara's representative documents or storage. |
+| Different employee | Rollback-only authenticated SQL/RLS checks returned no access to another employee's document, custom-field payload, or storage object. |
 | Anonymous | No category/document access; private storage and authenticated RPC grants deny access. |
 
 The D01 UI exercised `EMPLOYEE` and `MANAGEMENT_ROLE` audience behavior. `DEPARTMENT_BRANCH` was not forced through a UI flow that does not expose that target. Direct CUA calls that returned `ERR_BLOCKED_BY_CLIENT` are recorded as browser-harness failures, not misreported as HTTP denials; database/RLS negative checks supplied the access-denial evidence.
@@ -97,7 +97,7 @@ For successful rows, database and storage readback matched original filename, MI
 
 - HR basic PDF upload to D01 Algemeen succeeded through the real browser. Category, employee, original filename, MIME, size, checksum, storage object, actor and database/UI reload matched.
 - Extended TXT/DOCX uploads persisted description, tags, category, expiry, audience and canonical custom-field values. The extended TXT metadata update retained unchanged values and changed representative TEXT, NUMBER, DATE, BOOLEAN, SELECT and MULTI_SELECT values.
-- Initial upload regression: the form regression test asserts that DATE custom fields, `expires_on`, and reminder data are in the canonical initial-upload request. A real native browser date-input interaction uploaded HR record `18c4e1a0-...`; database readback shows `d01_review_date=2026-11-30`, `expires_on=2027-01-31`, and one linked PUBLISHED reminder for `2027-01-01 08:00Z`. Reloaded UI showed the same values. With native input events, the reported mismatch did not reproduce; no UI-only or parallel storage workaround was introduced.
+- Initial upload roundtrip defect: the canonical atomic create path now applies validated DOCUMENT custom-field values to `employee_documents.custom_fields`; the existing canonical insert persists `expires_on` and creates/links the reminder in the same transaction. The UI sends the DATE value, expiry and reminder together in the initial request. A real native browser date-input upload created HR record `18c4e1a0-e3b3-4d0d-9f1c-876c0975129e`; current read-only database/storage readback confirms `d01_review_date=2026-11-30`, `expires_on=2027-01-31`, reminder `13c77f38-11b3-4265-ab50-0f9cd1f09c70` is PUBLISHED for `2027-01-01 08:00Z`, and storage has `text/plain`/132 bytes matching the document metadata. The same UI reload showed those values. The targeted component regression asserts the canonical initial request; canonical RPC coverage and this browser/DB/storage roundtrip protect the write path.
 - Expiry states exercised: no expiry, more than 30 days, within 30 days, tomorrow (`2026-09-26`), today (`2026-09-25`), and past (`2026-09-24`). The UI and DB reflected the final values after reload. The PNG currently expires `2026-10-10` (within 30 days). No unsupported expiry behavior was inferred.
 - HR TXT reminder: linked, PUBLISHED, correct target/rules/recipients, no duplicate on refresh. D01 HR date record: one linked PUBLISHED reminder. There were three D01 reminders in final readback; every reminder linked to a D01 document.
 
@@ -147,13 +147,13 @@ Read-only post-apply inspection confirmed document/category/audience/storage RLS
 | Manager Focus list could include employees outside current management scope | Grouping did not filter through canonical manager scope | Filter using existing scope service | Focus tests and Yara in-scope/out-of-scope browser/SQL checks | Fixed |
 | Focus document action row collapsed title at mobile width | Actions and title competed in one narrow row | Use a second responsive action row | Browser at 390×844: no horizontal overflow; title width 268 px | Fixed |
 | Document preview was blank under framing policy | Authenticated same-origin viewer conflicted with default frame header | Canonical same-origin preview route and route-specific frame policy | Browser opened and displayed fixture text; signed/authenticated authorization path retained | Fixed |
-| DATE/expiry/reminder initial form roundtrip concern | Could not reproduce once native date inputs emitted actual browser events; prior synthetic input did not represent the real interaction | No alternate storage or UI workaround; retain canonical payload flow and add initial-request regression | Real HR browser upload, DB/custom-field/reminder/storage readback and reload all match | Verified; no product failure reproduced |
+| HR upload DATE/custom-field/expiry/reminder roundtrip | The atomic create path did not apply accepted DOCUMENT custom-field JSON to the canonical document row; those values therefore were not guaranteed to roundtrip with the existing expiry/reminder fields | Apply validated custom fields in the canonical atomic create/update flow; retain `expires_on` and linked reminder persistence in that transaction | Initial-request regression plus real browser upload, reload, and database/reminder/storage readback | Fixed and verified after migration; current values match |
 
 ## Responsive, localization and UX
 
-- At 390×844, Manager Full document view measured 390px document width and Manager Focus 375px content width inside a 390px viewport; neither overflowed horizontally. Focus title width was 268px.
-- HR upload and category/custom-field Settings flows were exercised on desktop. The browser viewport could not be held at 390×844 for the Settings screens during the final run; individual mobile checks of those Settings screens are not claimed.
-- Dutch browser flows were exercised. `npm run check:i18n` found 39 NL/EN namespaces with equal keys; no raw key was reported. Full English browser scenario was not repeated.
+- At 390×844, Dossier, document-category list, and DOCUMENT custom-field Settings pages rendered at 390px document width without horizontal overflow. Earlier Manager Full/Focus checks also had no horizontal overflow; Focus title width was 268px.
+- In the final local CUA pass, Settings mobile rows were visible but accordion/create actions did not fire. The local Next dev page showed an HMR cross-origin warning from `127.0.0.1`; React hydration was not operational in that session. Therefore the Settings mobile interaction gate remains open.
+- Dutch browser flows were exercised. `npm run check:i18n` found 39 NL/EN namespaces with equal keys and no raw translation key was reported. The English preference control changed its native DOM state in the final local pass but did not update the rendered locale, so the English browser gate remains open.
 - Focus preview, loading/error feedback for rejected file types, required category fields, and restored/deleted document states were checked. Full keyboard-only traversal was not separately recorded.
 
 ## Acknowledgement
@@ -164,8 +164,8 @@ The current Dossier UI does not expose acknowledgement / kennisname. The canonic
 
 | Gate | Result | Evidence |
 |---|---|---|
-| D01-targeted Vitest | PASS | 16 files / 80 tests across targeted commands |
-| SQL/RLS contract | PASS | `employee_document_dossiers.sql` completed on shared TEST project; transaction rolled back |
+| D01-targeted Vitest | PASS | Final bounded rerun: 12 files / 58 tests. Earlier D01 aggregate targeted run: 16 files / 70 tests; the aggregate was not rerun after the SQL-only matrix addition. |
+| SQL/RLS contract | PASS | Latest `employee_document_dossiers.sql` completed on shared TEST project; transaction rolled back |
 | Changed-file ESLint | PASS | Exit 0; changed TypeScript/TSX files linted |
 | NL/EN parity | PASS | 39 namespaces have equal keys |
 | `git diff --check` | PASS | Exit 0 after the report and delivery-status updates; only standard Windows line-ending notices |
@@ -177,6 +177,8 @@ No Docker or local Supabase was started. Generated fixtures are ignored; no bina
 ## ENVIRONMENT-GATED
 
 - This run used only the canonical shared test project. Test data is identifiable by `D01-20260924`; all D01 rows and objects were read back together. The one old uppercase duplicate is D01-created and unlinked; it remains as explicit acceptance evidence rather than being confused with unrelated data.
+- Cross-tenant actor denial is not directly proven: the shared project currently has active documents in one tenant, while the other tenant has no active employee with an authenticated user identity. The rollback-only matrix proves wrong-employee and cross-HR-group denials; a real second-tenant authenticated fixture is unavailable.
+- The local browser harness failed to hydrate client interactions during the final Settings/English pass. This is recorded as a harness gate, not a product pass or a server-side authorization denial.
 - Vercel deployment and main integration were intentionally not part of D01.
 
 ## PRODUCT DECISIONS
@@ -188,7 +190,7 @@ No Docker or local Supabase was started. Generated fixtures are ignored; no bina
 ## NOT FIXED
 
 - The two unchanged absence-service nullability errors remain outside D01 and block strict TypeScript and the production build after compilation.
-- English browser flows, Settings-specific mobile viewport checks and full keyboard-only traversal were not separately executed. Static NL/EN parity and representative 390×844 Full/Focus checks passed.
+- Full English browser interaction, interactive Settings mobile controls, full keyboard-only traversal, and an authenticated cross-tenant negative actor check remain unproven. Mobile page rendering and NL/EN key parity passed.
 
 ## LESSONS / PATTERNS
 
