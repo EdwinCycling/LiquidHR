@@ -48,7 +48,7 @@ export async function registerAbsenceConfirmation(caseId: string, subjectEmploye
   const supabase = await createClient()
   const result = await supabase.rpc('register_absence_confirmation', {
     requested_case_id: caseId,
-    requested_subject_employee_id: subjectEmployeeId ?? null,
+    ...(subjectEmployeeId === undefined ? {} : { requested_subject_employee_id: subjectEmployeeId }),
   })
   if (result.error || typeof result.data !== 'string') throw new Error(result.error?.message ?? 'ABSENCE_CONFIRMATION_REGISTER_FAILED')
   return result.data

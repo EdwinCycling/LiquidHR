@@ -88,7 +88,7 @@ describe('signInWithGoogle', () => {
     expect(signInWithOAuth).toHaveBeenCalledWith({
       provider: 'google',
       options: {
-        redirectTo: 'http://localhost:3000/auth/callback?next=%2Ffocus',
+        redirectTo: 'http://localhost:3000/auth/callback?next=%2Fdashboard%2Fstart',
       },
     })
   })

@@ -20,6 +20,10 @@ export function isTestRoleSwitchAccount(email: string | null | undefined): boole
   return TEST_ROLE_SWITCH_TARGETS.some((target) => target.email === candidate)
 }
 
+export function canInitiateTestRoleSwitch(activeRoles: readonly string[]): boolean {
+  return activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
+}
+
 export function getTestRoleSwitchTarget(value: string | null | undefined): TestRoleSwitchTarget | null {
   return TEST_ROLE_SWITCH_TARGETS.find((target) => target.key === value) ?? null
 }
@@ -68,14 +72,13 @@ export function isTestRoleSwitchEnabled(environment: TestRoleSwitchEnvironment =
   const vercelEnv = normalizedEnvironment(environment.vercelEnv ?? process.env.VERCEL_ENV)
   const explicitFlag = normalizedEnvironment(environment.explicitFlag ?? process.env.LIQUIDHR_TEST_ROLE_SWITCH_ENABLED)
   const projectRef = resolveSupabaseProjectRef(environment.supabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL)
-  const explicitlyEnabledForDevProject = explicitFlag === 'true' && projectRef === TEST_ROLE_SWITCH_SUPABASE_PROJECT_REF
+  const explicitlyEnabledForCanonicalProject = explicitFlag === 'true' && projectRef === TEST_ROLE_SWITCH_SUPABASE_PROJECT_REF
 
-  // Vercel's production target is also used for the hosted DEV/test product
-  // line. It is safe only when the explicit flag and canonical DEV project
-  // ref both match; another Supabase project remains fail-closed.
-  if (vercelEnv === 'production') return explicitlyEnabledForDevProject
+  // Vercel Production is the deployment channel for the only LiquidHR environment.
+  // The role switch fails closed unless its explicit flag and canonical project ref match.
+  if (vercelEnv === 'production') return explicitlyEnabledForCanonicalProject
   if (!vercelEnv && nodeEnv === 'production') return false
   if (vercelEnv && !['preview', 'development', 'test'].includes(vercelEnv)) return false
 
-  return explicitlyEnabledForDevProject
+  return explicitlyEnabledForCanonicalProject
 }

@@ -128,6 +128,6 @@ describe('GET /auth/callback', () => {
 
     const response = await GET(request)
 
-    expect(response.headers.get('location')).toBe('https://liquid-hr-hr-suite.vercel.app/focus')
+    expect(response.headers.get('location')).toBe('https://liquid-hr-hr-suite.vercel.app/dashboard/start')
   })
 })

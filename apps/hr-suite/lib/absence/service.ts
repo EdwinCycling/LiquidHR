@@ -336,7 +336,6 @@ export async function reportFocusEmployeeAbsence(
     requested_employee_id: employeeId,
     requested_employment_id: selection.employment.id,
     requested_start_date: input.startDate,
-    requested_expected_recovery_on: null,
     requested_idempotency_key: input.idempotencyKey,
   })
   if (result.error || typeof result.data !== 'string') throwAbsenceRpcError(result.error, 'ABSENCE_REPORT_FAILED')

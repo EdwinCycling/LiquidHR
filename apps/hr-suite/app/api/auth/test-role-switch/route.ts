@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
+  canInitiateTestRoleSwitch,
   getTestRoleSwitchTarget,
   isTestRoleSwitchAccount,
   isTestRoleSwitchEnabled,
 } from '@/lib/auth/test-role-switch'
+import { getRequestAuthorizationContext, permissionErrorResponse } from '@/lib/auth/permissions'
 import { resolveRequestOrigin } from '@/lib/auth/request-origin'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 
 const HANDOFF_COOKIE = 'liquidhr-test-role-switch'
 
@@ -15,13 +16,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'TEST_ROLE_SWITCH_DISABLED' }, { status: 404 })
   }
 
-  const supabase = await createClient()
-  const { data, error: userError } = await supabase.auth.getUser()
-  const currentEmail = data.user?.email
+  let requestContext: Awaited<ReturnType<typeof getRequestAuthorizationContext>>
+  try {
+    requestContext = await getRequestAuthorizationContext()
+  } catch (error) {
+    const response = permissionErrorResponse(error)
+    if (response) return response
+    throw error
+  }
+
+  const currentEmail = typeof requestContext.email === 'string' ? requestContext.email : null
   const formData = await request.formData()
   const target = getTestRoleSwitchTarget(String(formData.get('target') ?? ''))
 
-  if (userError || !data.user || !isTestRoleSwitchAccount(currentEmail) || !target) {
+  if (
+    !isTestRoleSwitchAccount(currentEmail)
+    || !canInitiateTestRoleSwitch(requestContext.context.activeRoles)
+    || !target
+  ) {
     return NextResponse.json({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' }, { status: 403 })
   }
 
@@ -35,7 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'TEST_ROLE_SWITCH_UNAVAILABLE' }, { status: 503 })
   }
 
-  await supabase.auth.signOut()
+  await requestContext.supabase.auth.signOut()
 
   const origin = resolveRequestOrigin({
     canonicalUrl: process.env.NEXT_PUBLIC_APP_URL,

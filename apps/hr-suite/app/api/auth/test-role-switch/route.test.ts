@@ -1,93 +1,95 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, createAdminClient, getUser, signOut, generateLink } = vi.hoisted(() => ({
-  createClient: vi.fn(),
+const { createAdminClient, generateLink, getRequestAuthorizationContext, permissionErrorResponse, signOut } = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
-  getUser: vi.fn(),
-  signOut: vi.fn(),
   generateLink: vi.fn(),
+  getRequestAuthorizationContext: vi.fn(),
+  permissionErrorResponse: vi.fn(),
+  signOut: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/auth/permissions', () => ({ getRequestAuthorizationContext, permissionErrorResponse }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 
 import { NextRequest } from 'next/server'
 import { POST } from './route'
 
-const DEV_SUPABASE_URL = 'https://wnpfloqpjvaacobppbpk.supabase.co'
+const CANONICAL_SUPABASE_URL = 'https://wnpfloqpjvaacobppbpk.supabase.co'
+const APPLICATION_URL = 'https://liquid-hr-hr-suite.vercel.app'
+
+function switchRequest(target: string): NextRequest {
+  return new NextRequest(`${APPLICATION_URL}/api/auth/test-role-switch`, {
+    method: 'POST',
+    body: new URLSearchParams({ target }),
+  })
+}
+
+function enableSwitcher(supabaseUrl = CANONICAL_SUPABASE_URL): void {
+  vi.stubEnv('NODE_ENV', 'production')
+  vi.stubEnv('VERCEL_ENV', 'production')
+  vi.stubEnv('VERCEL_URL', 'liquid-hr-hr-suite.vercel.app')
+  vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', supabaseUrl)
+}
+
+function setAuthorizationContext(email: string, activeRoles: string[]): void {
+  getRequestAuthorizationContext.mockResolvedValue({
+    supabase: { auth: { signOut } },
+    context: { activeRoles },
+    email,
+  })
+}
 
 describe('POST /api/auth/test-role-switch', () => {
   beforeEach(() => {
-    createClient.mockReset()
     createAdminClient.mockReset()
-    getUser.mockReset()
-    signOut.mockReset()
     generateLink.mockReset()
-    createClient.mockResolvedValue({ auth: { getUser, signOut } })
+    getRequestAuthorizationContext.mockReset()
+    permissionErrorResponse.mockReset()
+    signOut.mockReset()
+    permissionErrorResponse.mockReturnValue(null)
+    setAuthorizationContext('hradmin.fixture@liquidhr.test', ['TENANT_ADMIN'])
     createAdminClient.mockReturnValue({ auth: { admin: { generateLink } } })
+    generateLink.mockResolvedValue({ data: { properties: { hashed_token: 'hashed-token' } }, error: null })
+    signOut.mockResolvedValue({ error: null })
   })
 
   afterEach(() => {
     vi.unstubAllEnvs()
   })
 
-  it('weigert een Vercel production-target zodra de Supabase-ref niet canonical DEV is', async () => {
-    vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('VERCEL_ENV', 'production')
-    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://real-production.supabase.co')
+  it('weigert een niet-canoniek Supabase-project voordat de sessie wordt gelezen', async () => {
+    enableSwitcher('https://other-project.supabase.co')
 
-    const request = new NextRequest('https://liquid-hr-hr-suite.vercel.app/api/auth/test-role-switch', {
-      method: 'POST',
-      body: new URLSearchParams({ target: 'manager' }),
-    })
-
-    const response = await POST(request)
+    const response = await POST(switchRequest('manager'))
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_DISABLED' })
-    expect(createClient).not.toHaveBeenCalled()
+    expect(getRequestAuthorizationContext).not.toHaveBeenCalled()
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 
-  it('blijft lokaal in een productie-build gesloten als Vercel-context ontbreekt', async () => {
+  it('blijft lokaal in een productie-build zonder Vercel-context gesloten', async () => {
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('VERCEL_ENV', '')
     vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', DEV_SUPABASE_URL)
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', CANONICAL_SUPABASE_URL)
 
-    const request = new NextRequest('https://liquid-hr-hr-suite.vercel.app/api/auth/test-role-switch', {
-      method: 'POST',
-      body: new URLSearchParams({ target: 'manager' }),
-    })
-
-    const response = await POST(request)
+    const response = await POST(switchRequest('manager'))
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_DISABLED' })
-    expect(createClient).not.toHaveBeenCalled()
+    expect(getRequestAuthorizationContext).not.toHaveBeenCalled()
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 
-  it('behoudt de bestaande allowlisted handoff op de Vercel production-target van de DEV/testlijn', async () => {
-    vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('VERCEL_ENV', 'production')
-    vi.stubEnv('VERCEL_URL', 'liquid-hr-hr-suite.vercel.app')
-    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', DEV_SUPABASE_URL)
-    getUser.mockResolvedValue({ data: { user: { email: 'edwin@editsolutions.nl' } }, error: null })
-    generateLink.mockResolvedValue({ data: { properties: { hashed_token: 'hashed-token' } }, error: null })
-    signOut.mockResolvedValue({ error: null })
+  it('houdt de bestaande HR Admin-handoff en de kortlevende beveiligde cookie intact', async () => {
+    enableSwitcher()
 
-    const request = new NextRequest('https://liquid-hr-hr-suite.vercel.app/api/auth/test-role-switch', {
-      method: 'POST',
-      body: new URLSearchParams({ target: 'manager' }),
-    })
-
-    const response = await POST(request)
+    const response = await POST(switchRequest('manager'))
 
     expect(response.status).toBe(303)
-    expect(response.headers.get('location')).toBe('https://liquid-hr-hr-suite.vercel.app/auth/test-role-switch/confirm')
+    expect(response.headers.get('location')).toBe(`${APPLICATION_URL}/auth/test-role-switch/confirm`)
     const handoffCookie = response.headers.get('set-cookie') ?? ''
     expect(handoffCookie).toContain('liquidhr-test-role-switch=hashed-token')
     expect(handoffCookie).toContain('HttpOnly')
@@ -95,40 +97,58 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(handoffCookie).toContain('SameSite=lax')
     expect(handoffCookie).toContain('Secure')
     expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'manager.fixture@liquidhr.test' })
+    expect(signOut).toHaveBeenCalledOnce()
   })
 
-  it('weigert een niet-allowlisted source vóór de admin-handoff', async () => {
-    vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('VERCEL_ENV', 'production')
-    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', DEV_SUPABASE_URL)
-    getUser.mockResolvedValue({ data: { user: { email: 'outsider@example.com' } }, error: null })
+  it('laat een HR_ADMIN-systeemrol de bestaande allowlisted targets gebruiken', async () => {
+    enableSwitcher()
+    setAuthorizationContext('edwin@editsolutions.nl', ['HR_ADMIN'])
 
-    const request = new NextRequest('https://liquid-hr-hr-suite.vercel.app/api/auth/test-role-switch', {
-      method: 'POST',
-      body: new URLSearchParams({ target: 'manager' }),
-    })
+    const response = await POST(switchRequest('employee'))
 
-    const response = await POST(request)
+    expect(response.status).toBe(303)
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'employee.fixture@liquidhr.test' })
+  })
+
+  it('weigert Manager als bron voordat de admin-handoff wordt aangemaakt', async () => {
+    enableSwitcher()
+    setAuthorizationContext('manager.fixture@liquidhr.test', ['DIRECT_MANAGER'])
+
+    const response = await POST(switchRequest('hr-admin'))
 
     expect(response.status).toBe(403)
     await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' })
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 
-  it('weigert een niet-allowlisted crafted target vóór de admin-handoff', async () => {
-    vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('VERCEL_ENV', 'production')
-    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', DEV_SUPABASE_URL)
-    getUser.mockResolvedValue({ data: { user: { email: 'edwin@editsolutions.nl' } }, error: null })
+  it('weigert Employee als bron voor Manager- en HR Admin-sessies', async () => {
+    enableSwitcher()
+    setAuthorizationContext('employee.fixture@liquidhr.test', ['EMPLOYEE'])
 
-    const request = new NextRequest('https://liquid-hr-hr-suite.vercel.app/api/auth/test-role-switch', {
-      method: 'POST',
-      body: new URLSearchParams({ target: 'hr-admin%00' }),
-    })
+    for (const target of ['manager', 'hr-admin']) {
+      const response = await POST(switchRequest(target))
+      expect(response.status).toBe(403)
+      await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' })
+    }
 
-    const response = await POST(request)
+    expect(createAdminClient).not.toHaveBeenCalled()
+  })
+
+  it('weigert een niet-allowlisted bron ook met een beheerrol', async () => {
+    enableSwitcher()
+    setAuthorizationContext('outsider@example.com', ['TENANT_ADMIN'])
+
+    const response = await POST(switchRequest('manager'))
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' })
+    expect(createAdminClient).not.toHaveBeenCalled()
+  })
+
+  it('weigert een vervalste target voordat de admin-handoff wordt aangemaakt', async () => {
+    enableSwitcher()
+
+    const response = await POST(switchRequest('hr-admin%00'))
 
     expect(response.status).toBe(403)
     await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' })

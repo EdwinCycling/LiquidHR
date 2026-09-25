@@ -59,5 +59,6 @@ describe('Focus employee absence reporting', () => {
       requested_employment_id: employmentId,
       requested_start_date: '2026-09-20',
     }))
+    expect(rpc.mock.calls[1]?.[1]).not.toHaveProperty('requested_expected_recovery_on')
   })
 })

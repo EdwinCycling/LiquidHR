@@ -1,5 +1,15 @@
 # Liquid HR documentatie-index
 
+## Convergence release — 2026-09-25
+
+**Status: CANDIDATE GREEN — vrijgegeven voor de convergence-releaseflow.** De role switch is hersteld in de bestaande sidebar header/action row naast het cadeau-icoon; de bestaande fail-closed runtimevoorwaarde verklaarde waarom deze in een lokale productiebuild zonder Vercel-context verborgen was. HR Admin/ACT-AS zijn handmatig gecontroleerd; Manager- en Employee-negatives zijn geautomatiseerd. Edwin bevestigde de responsive acceptance in Chrome Device Mode op exact `390×844` voor Startpage, Focus, dossier/document, calendar en org chart. De volledige hr-suite slaagde met `460` bestanden en `1827` tests. Een gecombineerde workspace-run had één timeout in een ongewijzigde PDF-test; de geïsoleerde PDF-test slaagde en de daaropvolgende volledige hr-suite-run was groen. Die timeout blokkeert de release niet.
+
+- Kandidaatbranch `work/convergence-20260925`, huidige HEAD `c407ded188609056bce0af1bc449e10446e7dfb5` plus de nog te committen convergence/security/role-switch fixes; `main` en `origin/main` staan beide op `3f9de359c76524306de057455861da734217f252`.
+- Workspace typecheck, changed-file ESLint, NL/EN-pariteit, `git diff --check` en production builds zijn groen (`296` hr-suite-routes, `12` control-routes). Runtime-audit: `0`; volledige audit: alleen development dependency-paden, details in [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
+- De enige LiquidHR-omgeving blijft Supabase `wnpfloqpjvaacobppbpk` met de bestaande Vercel Production deployment. Versie blijft `1.20260923.1`; de enige releasebump naar `1.20260925.1` volgt op main-integratie en post-merge gates. Candidate push, main-integratie en deployment zijn nog niet uitgevoerd.
+
+Zie [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor volledige browser-, security-, audit- en database-evidence.
+
 ## Inloggen zonder medewerkercontext — 2026-09-24
 
 **Status: BUGFIX GREEN op `work/bugfix-login-context-20260924`; broncodecommit `3e07b1e` staat op de remote branch.**

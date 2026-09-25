@@ -55,23 +55,33 @@ export async function loadUnifiedCalendar(month: string) {
     else throw error
   }
 
-  const [employeesResult, organizationsResult, departmentsResult, patternsResult, schedulesResult, holidaysResult, companyActivitiesResult, recipientsResult, generalResult, absenceCasesResult, hrData] = await Promise.all([
+  const [employeesResult, organizationsResult, departmentsResult, holidaysResult, companyActivitiesResult, recipientsResult, generalResult, absenceCasesResult, leaveRequestsResult, hrData] = await Promise.all([
     supabase.from('employees').select('id,employee_number,first_name,birth_name,avatar_url,is_archived').in('id', employeeIds).eq('is_archived', false).order('birth_name').limit(2000),
     supabase.from('employee_organizations').select('employee_id,department_id,job_id,job_title,effective_from').in('employee_id', employeeIds).eq('administration_id', administrationId).lte('effective_from', to).or(`effective_to.is.null,effective_to.gte.${from}`).order('effective_from', { ascending: false }).limit(4000),
     supabase.from('departments').select('id,code,name').eq('tenant_id', auth.tenantId).eq('is_active', true).order('code').limit(500),
-    supabase.from('employment_work_patterns').select('id,employee_id,employment_id,name,cycle_weeks,anchor_date,average_minutes_per_week,valid_from,valid_until,employment_work_pattern_days(week_index,iso_weekday,is_working_day,starts_at,ends_at,break_minutes,scheduled_minutes,note)').in('employment_id', employmentIds).order('valid_from', { ascending: false }).limit(10000),
-    supabase.from('employment_schedules').select('id,employee_id,employment_id,monday_hours,tuesday_hours,wednesday_hours,thursday_hours,friday_hours,saturday_hours,sunday_hours,average_hours_per_week,fulltime_hours_per_week,valid_from,valid_until').eq('administration_id', administrationId).in('employment_id', employmentIds).lte('valid_from', to).or(`valid_until.is.null,valid_until.gte.${from}`).order('valid_from', { ascending: false }).limit(10000),
     supabase.from('holidays').select('id,holiday_date,display_name,provider_name,source').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).gte('holiday_date', from).lt('holiday_date', to).order('holiday_date').limit(400),
     supabase.from('company_activities').select('id,name,activity_date').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).gte('activity_date', from).lt('activity_date', to).order('activity_date').limit(400),
     supabase.from('reminder_recipients').select('id,employee_id,effective_remind_at,reminder_id').not('employee_id', 'is', null).gte('effective_remind_at', `${from}T00:00:00Z`).lt('effective_remind_at', `${to}T00:00:00Z`).limit(5000),
     supabase.from('reminders').select('id,title,remind_at').eq('administration_id', administrationId).eq('status', 'PUBLISHED').eq('target_type', 'EVERYONE').gte('remind_at', `${from}T00:00:00Z`).lt('remind_at', `${to}T00:00:00Z`).limit(500),
     canReadAbsence ? supabase.from('absence_cases').select('id,employee_id').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('status', 'ACTIVE').is('archived_at', null).in('employee_id', employeeIds).lte('first_absence_on', to).limit(2000) : Promise.resolve({ data: [], error: null }),
+    supabase.from('leave_requests').select('id,employee_id,employment_id,request_mode,time_mode,specific_start,specific_end,start_date,end_date,requested_minutes,status').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('employment_id', employmentIds).eq('status', 'APPROVED').lt('start_date', to).gte('end_date', from).limit(5000),
     listCalendarHrEvents(month),
   ])
-  const failed = [employeesResult, organizationsResult, departmentsResult, patternsResult, schedulesResult, holidaysResult, recipientsResult, generalResult, absenceCasesResult].find((result) => result.error)
+  const failed = [employeesResult, organizationsResult, departmentsResult, holidaysResult, recipientsResult, generalResult, absenceCasesResult].find((result) => result.error)
   if (failed?.error) throw new Error('HR_CALENDAR_CONTEXT_FAILED')
+  if (leaveRequestsResult.error) throw new Error('HR_CALENDAR_LEAVE_EVENTS_FAILED')
   const companyActivitiesError = companyActivitiesResult.error?.message ?? ''
   if (companyActivitiesResult.error && !(companyActivitiesError.includes('company_activities') && (companyActivitiesError.includes('does not exist') || companyActivitiesError.includes('schema cache') || companyActivitiesError.includes('Could not find the table')))) throw new Error('HR_CALENDAR_CONTEXT_FAILED')
+  const leaveEmploymentIds = [...new Set((leaveRequestsResult.data ?? []).map((request) => request.employment_id))]
+  const [patternsResult, schedulesResult] = await Promise.all([
+    leaveEmploymentIds.length
+      ? supabase.from('employment_work_patterns').select('id,employee_id,employment_id,name,cycle_weeks,anchor_date,average_minutes_per_week,valid_from,valid_until,employment_work_pattern_days(week_index,iso_weekday,is_working_day,starts_at,ends_at,break_minutes,scheduled_minutes,note)').eq('tenant_id', auth.tenantId).eq('administration_id', administrationId).in('employment_id', leaveEmploymentIds).lt('valid_from', to).or(`valid_until.is.null,valid_until.gt.${from}`).order('valid_from', { ascending: false }).limit(10000)
+      : Promise.resolve({ data: [], error: null }),
+    leaveEmploymentIds.length
+      ? supabase.from('employment_schedules').select('id,employee_id,employment_id,monday_hours,tuesday_hours,wednesday_hours,thursday_hours,friday_hours,saturday_hours,sunday_hours,average_hours_per_week,fulltime_hours_per_week,valid_from,valid_until').eq('tenant_id', auth.tenantId).eq('administration_id', administrationId).in('employment_id', leaveEmploymentIds).lte('valid_from', to).or(`valid_until.is.null,valid_until.gte.${from}`).order('valid_from', { ascending: false }).limit(10000)
+      : Promise.resolve({ data: [], error: null }),
+  ])
+  if (patternsResult.error || schedulesResult.error) throw new Error('HR_CALENDAR_CONTEXT_FAILED')
   const absenceCaseRows = absenceCasesResult.data ?? []
   const absenceSpellResult = canReadAbsence && absenceCaseRows.length ? await supabase.from('absence_spells').select('id,case_id,started_on,expected_recovery_on,recovered_on').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('case_id', absenceCaseRows.map((row) => row.id)).is('recovered_on', null).order('started_on', { ascending: false }) : { data: [], error: null }
   if (absenceSpellResult.error) throw new Error('HR_CALENDAR_CONTEXT_FAILED')
@@ -99,11 +109,8 @@ export async function loadUnifiedCalendar(month: string) {
   const reminderIds = [...new Set((recipientsResult.data ?? []).map((recipient) => recipient.reminder_id))]
   const remindersResult = reminderIds.length ? await supabase.from('reminders').select('id,title').in('id', reminderIds).limit(5000) : { data: [], error: null }
   if (remindersResult.error) throw new Error('HR_CALENDAR_REMINDERS_FAILED')
-  const [leaveRequestsResult, workEntriesResult] = await Promise.all([
-    supabase.from('leave_requests').select('id,employee_id,employment_id,request_mode,time_mode,specific_start,specific_end,start_date,end_date,requested_minutes,status').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('employment_id', employmentIds).eq('status', 'APPROVED').lt('start_date', to).gte('end_date', from).limit(5000),
-    supabase.from('employment_work_hour_entries').select('id,employee_id,employment_id,work_hour_type_id,work_date,hours,entry_granularity').eq('administration_id', administrationId).in('employment_id', employmentIds).eq('entry_granularity', 'DAY').eq('status', 'APPROVED').gte('work_date', from).lt('work_date', to).limit(5000),
-  ])
-  if (leaveRequestsResult.error || workEntriesResult.error) throw new Error('HR_CALENDAR_LEAVE_EVENTS_FAILED')
+  const workEntriesResult = await supabase.from('employment_work_hour_entries').select('id,employee_id,employment_id,work_hour_type_id,work_date,hours,entry_granularity').eq('administration_id', administrationId).in('employment_id', employmentIds).eq('entry_granularity', 'DAY').eq('status', 'APPROVED').gte('work_date', from).lt('work_date', to).limit(5000)
+  if (workEntriesResult.error) throw new Error('HR_CALENDAR_LEAVE_EVENTS_FAILED')
   const requestIds = (leaveRequestsResult.data ?? []).map((row) => row.id)
   const leaveAllocationsResult = requestIds.length
     ? await supabase.from('leave_request_allocations').select('request_id,employment_id,leave_type_id,allocated_hours,sort_order').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('request_id', requestIds).limit(5000)

@@ -1,8 +1,18 @@
 # Implementatiestatus Liquid HR
 
+## Convergence release — 2026-09-25
+
+**Status: CANDIDATE GREEN voor de convergence-releaseflow.** Branch work/convergence-20260925, HEAD c407ded188609056bce0af1bc449e10446e7dfb5 plus de hieronder beschreven, nog te committen fixes. Lokale main en origin/main staan beide op 3f9de359c76524306de057455861da734217f252.
+
+- De sidebaractie was aanwezig in pre-convergence source. De lokale productiebuild zonder VERCEL_ENV activeerde de bestaande fail-closed runtimegate; op lokale next dev verscheen en werkte dezelfde actie in de oorspronkelijke header row. UI en POST-route vereisen nu TENANT_ADMIN of HR_ADMIN; geautomatiseerde tests weigeren Manager/Employee-escalatie. ACT-AS actor-, tenant-, HR-group-, rol-, capability- en subject-scope-tests zijn toegevoegd.
+- HR Admin accepteerde startpagina, Full, dossier, kalender, organogram en Focus/Full-navigatie. Edwin’s eigen Focus laadde; de HR Admin-fixture mist eigen actief dienstverband. ACT-AS start/stop werkte en registreerde alleen bedoelde auditrecords. De kalenderlaadfout is opgelost door roosterqueries te beperken tot dienstverbanden met overlappend goedgekeurd verlof; RLS bleef aan.
+- Hr-suite volledig groen: 460 bestanden / 1827 tests. Een gecombineerde workspace-run had eerder één fixed-5s timeout op de ongewijzigde PDF-test; de geïsoleerde PDF-test en daaropvolgende volledige hr-suite-run slaagden, zoals Edwin accepteert. Control slaagde met 2/2 bestanden / 7/7. Strict TypeScript, changed-file ESLint, NL/EN i18n (39 namespaces, 147 Control-sleutels), diff check en production builds (296 hr-suite-routes, 12 Control-routes) slaagden.
+- Edwin bevestigde de handmatige responsive acceptance in Chrome Device Mode op exact 390×844 voor Startpage, Focus, dossier/document, kalender en organogram. Manager/Employee-aanmeldingen zijn niet handmatig gebruikt volgens gebruikersinstructie; role-switch negatives zijn geautomatiseerd. Full dependency-audit vermeldt development-toolingissues; runtime-audit meldt 0.
+- De enige LiquidHR-omgeving gebruikt Supabase wnpfloqpjvaacobppbpk en de bestaande Vercel Production deployment. Read-only database readback vond 496 migraties en ingeschakelde RLS met policies op calendar schedule/pattern/leave-tabellen. Geen schema/policy-write, candidate-push, main-integratie, deployment, version bump of cleanup is nog uitgevoerd. Versie is 1.20260923.1; de eenmaal toegestane bump naar 1.20260925.1 volgt op merge en post-merge gates.
+
 ## D01 Dossier / Documents — 2026-09-25
 
-**Status: D01 ACCEPTANCE GREEN — only the documented pre-existing TypeScript/build errors outside D01 remain.**
+**Status: D01 ACCEPTANCE GREEN in de oorspronkelijke acceptatierun.** De convergence cold-check op `origin/main` slaagde; de D01 gegenereerde database-types maakten twee optionele ABSENCE RPC-argumenten strikter en lieten de geïntegreerde build falen. De convergence-kandidaat bevat hiervoor een minimale typeveilige compatibiliteitsfix.
 
 - Work is on `work/acceptance-D01-20260924`, from `3f9de359c76524306de057455861da734217f252`; app version remains `1.20260923.1`. Do not merge, deploy, or bump version.
 - Category CRUD, DOCUMENT custom fields, HR/Manager upload, audience and scope checks, expiry/reminder, salary gate, Employee/Manager Full and Focus, private storage, negative file validation and delete/restore were exercised with canonical DB/storage readback.

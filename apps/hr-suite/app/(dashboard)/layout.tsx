@@ -17,7 +17,7 @@ import { createHeRaLabels } from '@/lib/hera/labels'
 import { getProductUpdateDashboardData } from '@/lib/product-updates/service'
 import { ProductUpdateBanner, ProductUpdateLoginPopup } from '@/components/product-updates/product-update-surfaces'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
-import { TEST_ROLE_SWITCH_TARGETS, isTestRoleSwitchAccount, isTestRoleSwitchEnabled } from '@/lib/auth/test-role-switch'
+import { TEST_ROLE_SWITCH_TARGETS, canInitiateTestRoleSwitch, isTestRoleSwitchAccount, isTestRoleSwitchEnabled } from '@/lib/auth/test-role-switch'
 import type { TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { resolveResearchAccess } from '@/lib/research/access'
 import { SetupAssistantFloating } from '@/components/setup-assistant/setup-assistant-floating'
@@ -200,7 +200,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         productUpdateUnreadCount={productUpdates.unreadGiftCount}
         testRoleSwitch={{
           currentEmail,
-          enabled: isTestRoleSwitchEnabled() && isTestRoleSwitchAccount(currentEmail),
+          enabled: isTestRoleSwitchEnabled() && isTestRoleSwitchAccount(currentEmail) && canInitiateTestRoleSwitch(authContext.activeRoles),
           labels: {
             title: navigation('testRoleSwitchTitle'),
             hint: navigation('testRoleSwitchHint'),
