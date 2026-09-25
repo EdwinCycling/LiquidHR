@@ -43,6 +43,28 @@ describe('GET /auth/callback', () => {
     )
   })
 
+  it('behoudt localhost na code-uitwisseling en stuurt door naar de gevraagde interne route', async () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('VERCEL', '')
+    exchangeCodeForSession.mockResolvedValue({ error: null })
+    const request = new NextRequest(
+      'http://localhost:3000/auth/callback?code=oauth-code&next=%2Fdashboard%2Fstart',
+      {
+        headers: {
+          'x-forwarded-host': 'liquid-hr-hr-suite.vercel.app',
+          'x-forwarded-proto': 'https',
+          host: 'localhost:3000',
+        },
+      },
+    )
+
+    const response = await GET(request)
+
+    expect(exchangeCodeForSession).toHaveBeenCalledWith('oauth-code')
+    expect(response.headers.get('location')).toBe('http://localhost:3000/dashboard/start')
+  })
+
   it('stuurt een callbackfout terug naar login met behoud van de veilige bestemming', async () => {
     exchangeCodeForSession.mockResolvedValue({ error: new Error('PKCE mislukt') })
     const request = new NextRequest(
@@ -89,5 +111,23 @@ describe('GET /auth/callback', () => {
     expect(response.headers.get('location')).toBe(
       'https://liquid-hr-hr-suite.vercel.app/login?error=auth&next=%2Fdashboard%2Fstart',
     )
+  })
+
+  it('weigert zowel een externe callbackhost als een externe bestemmingsroute', async () => {
+    exchangeCodeForSession.mockResolvedValue({ error: null })
+    const request = new NextRequest(
+      'https://internal.vercel.app/auth/callback?code=oauth-code&next=%2F%2Fattacker.example',
+      {
+        headers: {
+          'x-forwarded-host': 'attacker.example',
+          'x-forwarded-proto': 'https',
+          host: 'internal.vercel.app',
+        },
+      },
+    )
+
+    const response = await GET(request)
+
+    expect(response.headers.get('location')).toBe('https://liquid-hr-hr-suite.vercel.app/focus')
   })
 })
