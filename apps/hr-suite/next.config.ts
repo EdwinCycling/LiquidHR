@@ -21,7 +21,9 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: MAX_DOCUMENT_REQUEST_BYTES,
   },
   async headers() {
-    return [{ source: '/(.*)', headers: securityHeaders }]
+    return [
+      { source: '/(.*)', headers: securityHeaders.filter(({ key }) => key !== 'X-Frame-Options') },
+    ]
   },
 }
 

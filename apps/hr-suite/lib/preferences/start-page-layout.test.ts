@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { parseStartPageWindowLayout } from './start-page-layout'
 
 describe('start-page window layout', () => {
-  it('puts a newly introduced manager window first for an existing layout', () => {
-    expect(parseStartPageWindowLayout({ wide: ['documents', 'events'] }).wide[0]).toBe('teamAvailability')
+  it('keeps the full-width team availability window outside personal window ordering', () => {
+    expect(parseStartPageWindowLayout({ wide: ['teamAvailability', 'events', 'documents'] }).wide).toEqual([
+      'events', 'documents', 'continuousAppraisal', 'leave', 'absenceCases', 'kpis',
+    ])
   })
 
-  it('preserves a saved position after the new window is known', () => {
-    expect(parseStartPageWindowLayout({ wide: ['events', 'teamAvailability', 'documents'] }).wide.slice(0, 3)).toEqual(['events', 'teamAvailability', 'documents'])
+  it('preserves a saved position for the remaining wide windows', () => {
+    expect(parseStartPageWindowLayout({ wide: ['events', 'documents'] }).wide.slice(0, 2)).toEqual(['events', 'documents'])
   })
 })

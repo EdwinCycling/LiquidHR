@@ -17,7 +17,6 @@ interface HrCalendarWeekSelectProps {
     employee?: string
     jobGroup?: string
     job?: string
-    type: string[]
     size?: '10' | '25' | 'all'
     page?: string
     showWeekendsAndHolidays: boolean
@@ -54,7 +53,6 @@ export function HrCalendarWeekSelect({
     if (query.employee) params.set('employee', query.employee)
     if (query.jobGroup) params.set('jobGroup', query.jobGroup)
     if (query.job) params.set('job', query.job)
-    for (const type of query.type) params.append('type', type)
     if (query.size && query.size !== '10') params.set('size', query.size)
     if (query.page) params.set('page', query.page)
     if (!query.showWeekendsAndHolidays) params.set('showWeekendsAndHolidays', '0')

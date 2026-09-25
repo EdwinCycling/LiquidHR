@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { buttonClasses } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { SectionHeader } from '@/components/patterns/section-header'
 import { TeamLiveVoice, type TeamLiveVoiceLabels } from './team-live-voice'
 
 interface StartPageAppraisalLabels { continuousAppraisalTitle: string; continuousAppraisalDescription: string; openContinuousAppraisal: string; openManagerAppraisal: string; appraisalLatest: string; appraisalOpenActions: string; appraisalNoItems: string }
@@ -168,29 +169,25 @@ function LogbookWindow({ data, labels, locale }: { data: StartPageData['logbook'
 
   const totalLabel = labels.logbookRecentCount.replace('{count}', String(data.totalCount))
   return <section aria-labelledby="startpage-logbook-title" className="mt-6 overflow-hidden rounded-[var(--radius-surface)] border bg-surface" data-testid="startpage-logbook">
-    <header className="flex flex-wrap items-start justify-between gap-4 border-b p-5 sm:p-6">
-      <div><p className="eyebrow">{labels.logbookTitle}</p><h2 className="mt-1 text-lg font-semibold" id="startpage-logbook-title">{labels.logbookDescription}</h2></div>
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
+      <div className="min-w-0"><h2 className="text-base font-semibold" id="startpage-logbook-title">{labels.logbookTitle}</h2><p className="mt-1 max-w-3xl text-sm leading-5 text-muted-foreground">{labels.logbookDescription}</p></div>
       <Link className={buttonClasses({ variant: 'secondary', size: 'sm' })} href="/logbook?new=1">{labels.logbookNew}</Link>
     </header>
-    <div className="grid gap-3 border-b bg-surface-subtle p-5 sm:grid-cols-3 sm:p-6">
+    <div className="grid items-center gap-x-4 gap-y-2 border-b bg-surface-subtle px-4 py-3 sm:grid-cols-3 sm:px-5">
       <p className="text-sm font-semibold">{totalLabel}</p>
       {data.latestCreatedAt ? <time className="text-sm text-muted-foreground" dateTime={data.latestCreatedAt}>{labels.logbookLatest}: {formatStartPageDate(data.latestCreatedAt, dateLocale, 'medium')}</time> : <p className="text-sm text-muted-foreground">{labels.logbookEmpty}</p>}
       <p className="text-sm text-muted-foreground">{labels.logbookSourceManual}: {data.manualCount} · {labels.logbookSourceAi}: {data.aiCount}</p>
     </div>
-    {revealedEntries === null ? <>
-      <ul aria-hidden="true" className="divide-y divide-border/70">
-        {Array.from({ length: 3 }, (_, index) => <li className="flex items-center gap-3 px-5 py-4 sm:px-6" key={index}><span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground"><LockKeyhole aria-hidden="true" size={16} /></span><div className="min-w-0 flex-1"><span className="block h-3 w-2/3 rounded-full bg-muted blur-[2px]" /><span className="mt-2 block h-2 w-full rounded-full bg-muted/80 blur-[2px]" /><span className="mt-1 block h-2 w-4/5 rounded-full bg-muted/70 blur-[2px]" /></div></li>)}
-      </ul>
-      <div className="flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
-        <p className="sr-only">{labels.logbookPrivatePlaceholder}</p>
+    {revealedEntries === null && data.totalCount > 0 ? <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5" data-testid="startpage-logbook-private-preview">
+        <div className="flex min-w-0 items-start gap-2"><LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><div className="min-w-0"><p className="text-sm font-medium">{labels.logbookPrivatePlaceholder}</p><p className="text-xs leading-5 text-muted-foreground">{labels.logbookPrivatePlaceholderDescription}</p></div></div>
         <button className={buttonClasses({ variant: 'primary', size: 'sm' })} disabled={revealing} onClick={() => { void revealRecentEntries() }} type="button"><Eye aria-hidden="true" />{revealing ? labels.logbookShowRecent : labels.logbookShowRecent}</button>
-        {revealFailed ? <p className="text-sm text-destructive" role="alert">{labels.logbookRevealFailed}</p> : <p className="sr-only">{labels.logbookPrivatePlaceholderDescription}</p>}
-      </div>
-    </> : <>
+        {revealFailed ? <p className="w-full text-sm text-destructive" role="alert">{labels.logbookRevealFailed}</p> : null}
+      </div> : null}
+    {revealedEntries !== null ? <>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6"><p className="text-sm font-semibold">{labels.logbookRecentCount.replace('{count}', String(revealedEntries.length))}</p><button className={buttonClasses({ variant: 'secondary', size: 'sm' })} onClick={hideEntries} type="button"><EyeOff aria-hidden="true" />{labels.logbookHideRecent}</button></div>
       {revealedEntries.length > 0 ? <ul className="divide-y divide-border/70">{revealedEntries.map((entry) => <li className="px-5 py-4 sm:px-6" key={entry.id}><div className="flex items-start justify-between gap-3"><p className="font-semibold">{entry.title}</p><span className="shrink-0 text-xs text-muted-foreground">{entry.source === 'AI_TEAM_SUMMARY' ? labels.logbookSourceAi : labels.logbookSourceManual}</span></div><p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{entry.description}</p><time className="mt-2 block text-xs text-muted-foreground" dateTime={entry.createdAt}>{formatStartPageDate(entry.createdAt, dateLocale, 'medium')}</time></li>)}</ul> : <p className="p-5 text-sm text-muted-foreground sm:p-6">{labels.logbookNoRecent}</p>}
-    </>}
-    <footer className="border-t px-5 py-3 sm:px-6"><Link className="inline-flex items-center gap-2 text-sm font-semibold text-accent-foreground hover:underline" href="/logbook">{labels.logbookOpen}<ArrowRight aria-hidden="true" size={15} /></Link></footer>
+    </> : null}
+    <footer className="border-t px-4 py-3 sm:px-5"><Link className="inline-flex items-center gap-2 text-sm font-semibold text-accent-foreground hover:underline" href="/logbook">{labels.logbookOpen}<ArrowRight aria-hidden="true" size={15} /></Link></footer>
   </section>
 }
 
@@ -250,7 +247,7 @@ function TeamAvailabilityWindow({ data, dateLocale, labels }: { data: StartPageT
   const endDate = data.dates[data.dates.length - 1]
   const endDateLabel = endDate ? dayFormatter.format(new Date(`${endDate}T00:00:00Z`)) : ''
 
-  return <section className="overflow-hidden rounded-[var(--radius-surface)] border bg-surface" data-testid="team-availability-window">
+  return <section className="overflow-hidden" data-testid="team-availability-window">
     <header className="flex flex-col gap-4 border-b px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-accent text-accent-foreground"><CalendarDays aria-hidden="true" size={20} /></span><div><h3 className="font-semibold">{labels.teamAvailabilityTitle}</h3><p className="mt-1 text-sm text-muted-foreground">{labels.teamAvailabilityDescription.replace('{date}', endDateLabel)}</p></div></div>
       <div aria-label={labels.teamAvailabilityModeLabel} className="flex shrink-0 self-start rounded-full border bg-background p-0.5" role="group"><button aria-pressed={mode === 'presence'} className={`rounded-full px-2.5 py-1.5 text-xs font-semibold transition ${mode === 'presence' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} onClick={() => setMode('presence')} type="button">{labels.teamAvailabilityPresence}</button><button aria-pressed={mode === 'hours'} className={`rounded-full px-2.5 py-1.5 text-xs font-semibold transition ${mode === 'hours' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} onClick={() => setMode('hours')} type="button">{labels.teamAvailabilityHours}</button></div>
@@ -362,11 +359,19 @@ export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labe
       {data.teamAi ? <TeamAiWindow data={data.teamAi} labels={labels} locale={locale} /> : null}
       <LogbookWindow data={data.logbook} labels={labels} locale={locale} />
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1.38fr)_minmax(19rem,.62fr)]"><section>
-        <header className="mb-5 flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap items-center gap-x-3 gap-y-2"><span className="text-sm font-medium text-muted-foreground">{data.scope === 'team' ? labels.operationalTitleTeam : labels.operationalTitleCompany}</span>{data.isManager ? <Link className="inline-flex items-center gap-1 text-xs font-semibold text-accent-foreground hover:underline" href={employeeListMyTeamHref()}><UsersRound aria-hidden="true" size={14} />{labels.openTeamEmployees}</Link> : null}</div><div className="flex flex-wrap items-center justify-end gap-3"><span className="text-sm text-muted-foreground">{formatStartPageDate(today, dateLocale, 'full')}</span>{data.canSwitchScope ? <div aria-label={labels.scopeSwitchLabel} className="flex items-center rounded-full border bg-surface p-0.5" role="group"><button aria-pressed={data.scope === 'team'} className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${data.scope === 'team' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} onClick={() => changeScope('team')} type="button">{labels.scopeTeam}</button><button aria-pressed={data.scope === 'company'} className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${data.scope === 'company' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} onClick={() => changeScope('company')} type="button">{labels.scopeCompany}</button></div> : null}</div></header>
+      <Surface aria-labelledby="startpage-operational-title" className="mt-10 w-full max-w-none overflow-hidden p-0" data-testid="startpage-team-overview" role="region">
+        <header className="border-b bg-surface-subtle p-4 sm:p-5">
+          <SectionHeader
+            actions={<div className="flex flex-wrap items-center gap-3"><span className="text-sm text-muted-foreground"><time dateTime={today}>{formatStartPageDate(today, dateLocale, 'full')}</time></span>{data.canSwitchScope ? <div aria-label={labels.scopeSwitchLabel} className="flex items-center rounded-full border bg-surface p-0.5" role="group"><button aria-pressed={data.scope === 'team'} className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${data.scope === 'team' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} onClick={() => changeScope('team')} type="button">{labels.scopeTeam}</button><button aria-pressed={data.scope === 'company'} className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${data.scope === 'company' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} onClick={() => changeScope('company')} type="button">{labels.scopeCompany}</button></div> : null}{data.isManager ? <Link className="inline-flex items-center gap-1 text-xs font-semibold text-accent-foreground hover:underline" href={employeeListMyTeamHref()}><UsersRound aria-hidden="true" size={14} />{labels.openTeamEmployees}</Link> : null}</div>}
+            title={<span id="startpage-operational-title">{data.scope === 'team' ? labels.operationalTitleTeam : labels.operationalTitleCompany}</span>}
+          />
+        </header>
+        {data.isManager && data.teamAvailability ? <TeamAvailabilityWindow data={data.teamAvailability} dateLocale={dateLocale} labels={labels} /> : null}
+      </Surface>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.38fr)_minmax(19rem,.62fr)]" data-testid="startpage-operational-windows"><section>
 
         <div className="flex flex-col">
-        {data.isManager && data.teamAvailability ? windowFrame('wide', 'teamAvailability', <TeamAvailabilityWindow data={data.teamAvailability} dateLocale={dateLocale} labels={labels} />) : null}
         {/* Bedrijfsdocumenten - breed */}
         {windowFrame('wide', 'documents', <article className="flex min-h-36 flex-col justify-between rounded-[var(--radius-surface)] border bg-surface p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4"><span className="grid size-11 place-items-center rounded-2xl bg-warning-surface text-warning"><FileText aria-hidden="true" size={20} /></span><span className="inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-muted-foreground"><span className="size-1.5 rounded-full bg-success" />{labels.liveSource}</span></div>

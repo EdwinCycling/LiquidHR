@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  isInlineDocumentPreviewContentType,
   isDocumentRequestBodyTooLarge,
   MAX_DOCUMENT_FILE_BYTES,
   MAX_DOCUMENT_REQUEST_BYTES,
@@ -23,6 +24,17 @@ function zipEntry(entryName: string): Uint8Array {
 }
 
 describe('internal document file rules', () => {
+  it('allows only safe dossier MIME types for inline preview', () => {
+    expect(isInlineDocumentPreviewContentType('application/pdf')).toBe(true)
+    expect(isInlineDocumentPreviewContentType('text/plain; charset=utf-8')).toBe(true)
+    expect(isInlineDocumentPreviewContentType('text/markdown')).toBe(true)
+    expect(isInlineDocumentPreviewContentType('text/csv')).toBe(true)
+    expect(isInlineDocumentPreviewContentType('image/png')).toBe(true)
+    expect(isInlineDocumentPreviewContentType('text/html')).toBe(false)
+    expect(isInlineDocumentPreviewContentType('image/svg+xml')).toBe(false)
+    expect(isInlineDocumentPreviewContentType('application/vnd.openxmlformats-officedocument.wordprocessingml.document')).toBe(false)
+  })
+
   it('accepteert een echte PDF en normaliseert een lege browser-MIME', async () => {
     const result = await validateDocumentFile(file(new TextEncoder().encode('%PDF-1.7\n'), 'contract.pdf', ''))
     expect(result.ok).toBe(true)
@@ -53,6 +65,17 @@ describe('internal document file rules', () => {
   it('weigert actieve inhoud in tekstbestanden', async () => {
     const result = await validateDocumentFile(file(new TextEncoder().encode('<script>alert(1)</script>'), 'notes.txt', 'text/plain'))
     expect(result).toEqual({ ok: false, reason: 'SIGNATURE' })
+  })
+
+  it('rejects a zero-byte file before reading its body', async () => {
+    const empty = {
+      name: 'D01-empty.txt',
+      type: 'text/plain',
+      size: 0,
+      arrayBuffer: async () => { throw new Error('arrayBuffer must not be called') },
+    } as unknown as File
+
+    await expect(validateDocumentFile(empty)).resolves.toEqual({ ok: false, reason: 'EMPTY' })
   })
 
   it('weigert te grote bestanden vóórdat bytes worden gelezen', async () => {
@@ -87,5 +110,12 @@ describe('internal document file rules', () => {
     expect(result).toBe('contract-.pdf')
     expect(result).not.toContain('\\')
     expect(result).not.toContain('/')
+  })
+
+  it('normalizes Unicode and bounds long storage filenames', () => {
+    const unicode = sanitizeDocumentFilename('D01-café-测试-📄.txt')
+    expect(unicode).toMatch(/^[A-Za-z0-9._-]+$/)
+    expect(unicode).toMatch(/\.txt$/)
+    expect(sanitizeDocumentFilename(`${'a'.repeat(200)}.pdf`)).toHaveLength(180)
   })
 })

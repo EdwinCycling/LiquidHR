@@ -1,6 +1,12 @@
 import { z } from 'zod'
 
-const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+export function isDocumentDateOnly(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return Number.isFinite(date.valueOf()) && date.toISOString().slice(0, 10) === value
+}
+
+const dateOnly = z.string().refine(isDocumentDateOnly, 'DOCUMENT_DATE_INVALID')
 const audienceType = z.enum(['EMPLOYEE', 'MANAGEMENT_ROLE', 'DEPARTMENT_BRANCH'])
 const reminderAudienceType = z.enum(['EMPLOYEE', 'MANAGEMENT_ROLE'])
 const target = z.object({ type: audienceType, targetId: z.string().uuid() }).strict()

@@ -35,10 +35,13 @@ interface DocumentAudience {
 
 interface DocumentItem {
   id: string
+  category_id: string
   title: string
   description: string | null
   tags: string[]
   custom_fields: Json
+  custom_field_labels_nl: Json
+  custom_field_labels_en: Json
   original_filename: string
   content_type: string
   file_size: number
@@ -47,15 +50,16 @@ interface DocumentItem {
   deleted_at: string | null
   delete_reason: string | null
   expiry_reminder_id: string | null
-  document_categories: { code: string; name: string } | null
+  document_categories: { code: string; name: string; requires_salary_permission: boolean } | null
   document_audiences: DocumentAudience[]
 }
-interface Option { id: string; code: string; name: string }
+interface Option { id: string; code: string; name: string; requires_salary_permission?: boolean }
 interface EmployeeOption { id: string; employee_number: string; first_name: string; birth_name: string }
 interface DocumentCustomField {
   id: string; key: string; label_nl: string; label_en: string
   field_type: 'TEXT' | 'TEXTAREA' | 'NUMBER' | 'DATE' | 'BOOLEAN' | 'SELECT' | 'MULTI_SELECT' | 'AUTO_INCREMENT'
   is_required: boolean
+  access: 'WRITE'
   options: Array<{ definition_id: string; value: string; label_nl: string; label_en: string; sort_order: number }>
 }
 interface Options { categories: Option[]; departments: Option[]; roles: Option[]; employees: EmployeeOption[]; cloudTags: Array<{ id: string; name: string }>; documentCustomFields: DocumentCustomField[] }
@@ -96,6 +100,8 @@ interface Labels {
   download: string
   delete: string
   restore: string
+  deletedDocuments: string
+  activeDocuments: string
   deleteReason: string
   deleted: string
   expires: string
@@ -109,6 +115,7 @@ interface Labels {
   noReminderRecipients: string
   invalidType: string
   invalidSize: string
+  emptyFile: string
   invalidInput: string
   audienceRequired: string
   expiryRequired: string
@@ -117,6 +124,8 @@ interface Labels {
   view: string
   viewerClose: string
   viewerUnsupported: string
+  viewerPreviewLoading: string
+  viewerPreviewUnavailable: string
   customMetadata: string
   automaticValue: string
   cancel: string
@@ -134,10 +143,17 @@ interface Labels {
   restoreDescription: string
   restoreConfirm: string
   restoreCancel: string
+  editMetadata: string
+  saveChanges: string
+  salarySensitive: string
+  salaryPermissionRequired: string
+  customFieldsInvalid: string
+  customFieldsRequired: string
 }
 
 export function EmployeeDocumentDossier({
   employeeId,
+  locale,
   documents,
   options,
   canWrite,
@@ -145,6 +161,7 @@ export function EmployeeDocumentDossier({
   labels,
 }: {
   employeeId: string
+  locale: string
   documents: DocumentItem[]
   options: Options | null
   canWrite: boolean
@@ -159,6 +176,12 @@ export function EmployeeDocumentDossier({
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [deleteReason, setDeleteReason] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [editingDocument, setEditingDocument] = useState<DocumentItem | null>(null)
+  const [documentTitle, setDocumentTitle] = useState('')
+  const [documentDescription, setDocumentDescription] = useState('')
+  const [categoryId, setCategoryId] = useState(options?.categories[0]?.id ?? '')
+  const [tagValues, setTagValues] = useState('')
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, Json>>({})
   const [dragActive, setDragActive] = useState(false)
   const [employeeVisible, setEmployeeVisible] = useState(true)
   const [visibleRoleIds, setVisibleRoleIds] = useState<string[]>(() => defaultRoleIds(options?.roles ?? []))
@@ -173,27 +196,36 @@ export function EmployeeDocumentDossier({
   const [restoreCandidate, setRestoreCandidate] = useState<string | null>(null)
   const [mutating, setMutating] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
+  const [showDeletedDocuments, setShowDeletedDocuments] = useState(false)
+  const submitLockRef = useRef(false)
+  const deletedDocuments = canDelete ? documents.filter((document) => document.deleted_at !== null) : []
+  const activeDocuments = documents.filter((document) => document.deleted_at === null)
+  const visibleDocuments = showDeletedDocuments ? deletedDocuments : activeDocuments
 
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const formElement = event.currentTarget
-    if (saving) return
-    if (!options || !selectedFile) {
+    if (submitLockRef.current) return
+    const updateMode = editingDocument !== null
+    if (!options || (!updateMode && !selectedFile)) {
       setErrorCode('DOCUMENT_INPUT_INVALID')
       return
     }
 
-    if (!isAllowedDocumentFile(selectedFile)) {
+    if (selectedFile && !isAllowedDocumentFile(selectedFile)) {
       setErrorCode('DOCUMENT_TYPE_INVALID')
       return
     }
 
-    if (selectedFile.size < 1 || selectedFile.size > MAX_DOCUMENT_FILE_BYTES) {
+    if (selectedFile?.size === 0) {
+      setErrorCode('DOCUMENT_FILE_EMPTY')
+      return
+    }
+
+    if (selectedFile && selectedFile.size > MAX_DOCUMENT_FILE_BYTES) {
       setErrorCode('DOCUMENT_SIZE_INVALID')
       return
     }
 
-    const form = new FormData(formElement)
     const audiences = [
       ...(employeeVisible ? [{ type: 'EMPLOYEE' as const, targetId: employeeId }] : []),
       ...visibleRoleIds.map((targetId) => ({ type: 'MANAGEMENT_ROLE' as const, targetId })),
@@ -206,23 +238,21 @@ export function EmployeeDocumentDossier({
     const customFieldEntries: Array<[string, Json]> = []
     for (const definition of options.documentCustomFields) {
       if (definition.field_type === 'AUTO_INCREMENT') continue
-      const name = `customField.${definition.key}`
-      if (definition.field_type === 'MULTI_SELECT') { customFieldEntries.push([definition.key, form.getAll(name).map(String)]); continue }
-      if (definition.field_type === 'BOOLEAN') { customFieldEntries.push([definition.key, form.get(name) === 'on']); continue }
-      const raw = form.get(name)
-      if (raw === null || raw === '') continue
-      customFieldEntries.push([definition.key, definition.field_type === 'NUMBER' ? Number(raw) : String(raw)])
+      const value = customFieldValues[definition.key]
+      if (value === undefined || value === null || value === '') continue
+      if (Array.isArray(value) && value.length === 0) continue
+      customFieldEntries.push([definition.key, value])
     }
     const customFields = Object.fromEntries(customFieldEntries)
     const metadata = {
-      title: form.get('title'),
-      description: form.get('description') || null,
-      tags: options.cloudTags.filter((tag) => selectedCloudTagIds.includes(tag.id)).map((tag) => tag.name),
-      categoryId: form.get('categoryId'),
+      title: documentTitle,
+      description: documentDescription || null,
+      tags: [...options.cloudTags.filter((tag) => selectedCloudTagIds.includes(tag.id)).map((tag) => tag.name), ...tagValues.split(',').map((tag) => tag.trim()).filter(Boolean)],
+      categoryId,
       customFields,
       expiresOn: expiresOn || null,
       audiences,
-      reminder: reminderAt ? { remindAt: new Date(reminderAt).toISOString(), targets: reminderTargets } : null,
+      reminder: !updateMode && reminderAt ? { remindAt: new Date(reminderAt).toISOString(), targets: reminderTargets } : null,
     }
 
     const parsed = documentMetadataSchema.safeParse(metadata)
@@ -231,26 +261,32 @@ export function EmployeeDocumentDossier({
       return
     }
 
+    submitLockRef.current = true
     setSaving(true)
     setErrorCode(null)
-
-    const body = new FormData()
-    body.set('file', selectedFile)
-    body.set('metadata', JSON.stringify(parsed.data))
-
-    const response = await fetch(`/api/employees/${employeeId}/documents`, { method: 'POST', body })
-    const payload = await response.json().catch(() => null)
-    setSaving(false)
-
-    if (!response.ok) {
-      setErrorCode(typeof payload?.code === 'string' ? payload.code : 'DOCUMENT_ACTION_FAILED')
-      return
+    try {
+      let response: Response
+      if (updateMode && editingDocument) {
+        response = await fetch(`/api/employees/${employeeId}/documents/${editingDocument.id}/metadata`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(parsed.data) })
+      } else {
+        const body = new FormData()
+        if (selectedFile) body.set('file', selectedFile)
+        body.set('metadata', JSON.stringify(parsed.data))
+        response = await fetch(`/api/employees/${employeeId}/documents`, { method: 'POST', body })
+      }
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) {
+        setErrorCode(typeof payload?.code === 'string' ? payload.code : 'DOCUMENT_ACTION_FAILED')
+        return
+      }
+      resetUploadForm()
+      router.refresh()
+    } catch {
+      setErrorCode('DOCUMENT_ACTION_FAILED')
+    } finally {
+      submitLockRef.current = false
+      setSaving(false)
     }
-
-    formElement.reset()
-    resetFormState(options.roles)
-    setDirty(false)
-    router.refresh()
   }
 
   async function mutate(documentId: string, restore: boolean, reason?: string): Promise<void> {
@@ -273,6 +309,7 @@ export function EmployeeDocumentDossier({
       setDeleteCandidate(null)
       setRestoreCandidate(null)
       setDeleteReason('')
+      if (restore) setShowDeletedDocuments(false)
       router.refresh()
     } catch {
       setErrorCode('DOCUMENT_ACTION_FAILED')
@@ -283,6 +320,12 @@ export function EmployeeDocumentDossier({
 
   function resetFormState(roleOptions: Option[]) {
     setSelectedFile(null)
+    setEditingDocument(null)
+    setDocumentTitle('')
+    setDocumentDescription('')
+    setCategoryId(options?.categories[0]?.id ?? '')
+    setTagValues('')
+    setCustomFieldValues({})
     setDragActive(false)
     setEmployeeVisible(true)
     setVisibleRoleIds(defaultRoleIds(roleOptions))
@@ -304,6 +347,26 @@ export function EmployeeDocumentDossier({
   function resetUploadForm(): void {
     formRef.current?.reset()
     resetFormState(options?.roles ?? [])
+    setDirty(false)
+  }
+
+  function beginEdit(document: DocumentItem): void {
+    setEditingDocument(document)
+    setDocumentTitle(document.title)
+    setDocumentDescription(document.description ?? '')
+    setCategoryId(document.category_id)
+    setCustomFieldValues(projectWritableCustomFields(document.custom_fields, options?.documentCustomFields ?? []))
+    setSelectedFile(null)
+    setEmployeeVisible(document.document_audiences.some((audience) => audience.target_type === 'EMPLOYEE' && audience.target_employee_id === employeeId))
+    setVisibleRoleIds(document.document_audiences.flatMap((audience) => audience.target_type === 'MANAGEMENT_ROLE' && audience.target_management_role_id ? [audience.target_management_role_id] : []))
+    setVisibleDepartmentIds(document.document_audiences.flatMap((audience) => audience.target_type === 'DEPARTMENT_BRANCH' && audience.target_department_id ? [audience.target_department_id] : []))
+    setExpiresOn(document.expires_on ?? '')
+    setReminderAt('')
+    setReminderEmployee(false)
+    setReminderRoleIds([])
+    setSelectedCloudTagIds([])
+    setTagValues(document.tags.join(', '))
+    setErrorCode(null)
     setDirty(false)
   }
 
@@ -343,7 +406,7 @@ export function EmployeeDocumentDossier({
 
       {canWrite && options ? (
         <div className="mt-6 rounded-[var(--radius-surface)] border border-subtle bg-surface-subtle p-4">
-          <h3 className="inline-flex items-center gap-2 text-sm font-semibold"><Upload className="h-4 w-4" />{labels.upload}</h3>
+          <h3 className="inline-flex items-center gap-2 text-sm font-semibold"><Upload className="h-4 w-4" />{editingDocument ? labels.editMetadata : labels.upload}</h3>
 
           <form className="mt-4 space-y-5" onChange={() => setDirty(true)} onInput={() => setDirty(true)} onSubmit={(event) => void upload(event)} ref={formRef}>
             <div className="rounded-[var(--radius-surface)] border border-subtle bg-surface p-4">
@@ -351,7 +414,7 @@ export function EmployeeDocumentDossier({
 
               <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)]">
                 <div className="space-y-4">
-                  <label
+                  {!editingDocument ? <label
                     className={`block rounded-[var(--radius-surface)] border-2 border-dashed bg-surface p-4 transition-colors ${dragActive ? 'border-primary bg-accent/40' : 'border-border'} ${selectedFile ? 'border-primary/40' : ''}`}
                     onDragEnter={() => setDragActive(true)}
                     onDragLeave={() => setDragActive(false)}
@@ -381,9 +444,9 @@ export function EmployeeDocumentDossier({
                         ) : null}
                       </span>
                     </span>
-                  </label>
+                  </label> : null}
 
-                  <div className="flex flex-wrap gap-2">
+                  {!editingDocument ? <div className="flex flex-wrap gap-2">
                     <Button onClick={openFilePicker} type="button" variant="secondary">
                       {selectedFile ? labels.fileReplace : labels.file}
                     </Button>
@@ -392,15 +455,15 @@ export function EmployeeDocumentDossier({
                         {labels.fileRemove}
                       </Button>
                     ) : null}
-                  </div>
+                  </div> : null}
 
-                  <FormField control={<TextInput name="title" />} label={labels.documentTitle} required />
+                  <FormField control={<TextInput name="title" onChange={(event) => setDocumentTitle(event.currentTarget.value)} required value={documentTitle} />} label={labels.documentTitle} required />
 
                   <FormField
-                    control={<DropdownSelect defaultValue={options.categories[0]?.id} name="categoryId" required searchable searchPlaceholder={labels.category}>
+                    control={<DropdownSelect name="categoryId" onChange={(event) => setCategoryId(event.currentTarget.value)} required searchable searchPlaceholder={labels.category} value={categoryId}>
                       {options.categories.map((category) => (
                         <option key={category.id} value={category.id}>
-                          {category.code} · {category.name}
+                          {category.code} · {category.name}{category.requires_salary_permission ? ` · ${labels.salarySensitive}` : ''}
                         </option>
                       ))}
                     </DropdownSelect>}
@@ -418,7 +481,7 @@ export function EmployeeDocumentDossier({
                   </div>
                 </fieldset>
               </div>
-              {options.documentCustomFields.length ? <fieldset className="mt-4 rounded-[var(--radius-surface)] border border-subtle bg-surface p-4"><legend className="px-1 text-sm font-semibold">{labels.customMetadata}</legend><div className="mt-3 grid gap-4 md:grid-cols-2">{options.documentCustomFields.map((definition) => <DocumentCustomFieldControl definition={definition} key={definition.id} labels={labels} />)}</div></fieldset> : null}
+              {options.documentCustomFields.length ? <fieldset className="mt-4 rounded-[var(--radius-surface)] border border-subtle bg-surface p-4"><legend className="px-1 text-sm font-semibold">{labels.customMetadata}</legend><div className="mt-3 grid gap-4 md:grid-cols-2">{options.documentCustomFields.map((definition) => <DocumentCustomFieldControl definition={definition} key={definition.id} labels={labels} locale={locale} value={customFieldValues[definition.key]} onChange={(value) => setCustomFieldValues((current) => ({ ...current, [definition.key]: value }))} />)}</div></fieldset> : null}
             </div>
 
             <details className="rounded-[var(--radius-surface)] border border-subtle p-4">
@@ -427,10 +490,11 @@ export function EmployeeDocumentDossier({
                 <p className="text-sm text-muted-foreground">{labels.uploadAdvanced}</p>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <FormField className="md:col-span-2" control={<Textarea name="description" rows={3} />} label={labels.description} />
+                  <FormField className="md:col-span-2" control={<Textarea name="description" onChange={(event) => setDocumentDescription(event.currentTarget.value)} rows={3} value={documentDescription} />} label={labels.description} />
 
                   <fieldset className="rounded-[var(--radius-surface)] border border-subtle p-4 md:col-span-2">
                     <legend className="px-1 text-sm font-semibold">{labels.tags}</legend>
+                    <FormField control={<TextInput aria-label={labels.tags} onChange={(event) => setTagValues(event.currentTarget.value)} placeholder={labels.tags} value={tagValues} />} label={labels.tags} />
                     {options.cloudTags.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{options.cloudTags.map((tag) => <CheckboxCard checked={selectedCloudTagIds.includes(tag.id)} description={tag.name} key={tag.id} label={tag.name} onChange={() => setSelectedCloudTagIds((current) => toggleValue(current, tag.id))} />)}</div> : <p className="mt-2 text-sm text-muted-foreground">{labels.noCloudTags}</p>}
                   </fieldset>
                 </div>
@@ -502,18 +566,20 @@ export function EmployeeDocumentDossier({
               </div>
             </details>
 
-            <FormActions cancelLabel={labels.cancel} onCancel={requestReset} saveLabel={labels.save} saving={saving} sticky />
+            <FormActions cancelLabel={labels.cancel} onCancel={requestReset} saveLabel={editingDocument ? labels.saveChanges : labels.save} saving={saving} sticky />
           </form>
         </div>
       ) : null}
 
       {errorCode ? <p className="mt-4 text-sm text-destructive" role="alert">{messageForCode(errorCode, labels)}</p> : null}
 
+      {canDelete && deletedDocuments.length > 0 ? <div className="mt-5"><Button onClick={() => setShowDeletedDocuments((current) => !current)} size="sm" type="button" variant="secondary">{showDeletedDocuments ? labels.activeDocuments : `${labels.deletedDocuments} (${deletedDocuments.length})`}</Button></div> : null}
+
       <div className="mt-6 grid gap-3 lg:grid-cols-2">
-        {documents.length === 0 ? (
+        {visibleDocuments.length === 0 ? (
           <EmptyState className="lg:col-span-2" description={labels.subtitle} icon={<FileText />} title={labels.empty} />
         ) : (
-          documents.map((document) => {
+          visibleDocuments.map((document) => {
             const employeeCanView = document.document_audiences.some((audience) => audience.target_type === 'EMPLOYEE' && audience.target_employee_id === employeeId)
             const roleCount = document.document_audiences.filter((audience) => audience.target_type === 'MANAGEMENT_ROLE').length
             const departmentCount = document.document_audiences.filter((audience) => audience.target_type === 'DEPARTMENT_BRANCH').length
@@ -546,7 +612,7 @@ export function EmployeeDocumentDossier({
                 </div>
 
                 {document.description ? <p className="mt-3 text-sm text-muted-foreground">{document.description}</p> : null}
-                {document.custom_fields && typeof document.custom_fields === 'object' && !Array.isArray(document.custom_fields) ? <dl className="mt-3 grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-3 gap-y-1 rounded-[var(--radius-control)] bg-muted/50 px-3 py-2 text-xs">{Object.entries(document.custom_fields).map(([key, value]) => <div className="contents" key={key}><dt className="font-medium text-muted-foreground">{options?.documentCustomFields.find((definition) => definition.key === key)?.label_nl ?? key}</dt><dd>{displayCustomFieldValue(value)}</dd></div>)}</dl> : null}
+                {document.custom_fields && typeof document.custom_fields === 'object' && !Array.isArray(document.custom_fields) ? <dl className="mt-3 grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-3 gap-y-1 rounded-[var(--radius-control)] bg-muted/50 px-3 py-2 text-xs">{Object.entries(document.custom_fields).map(([key, value]) => { const labelsObject = locale === 'en' ? document.custom_field_labels_en : document.custom_field_labels_nl; const fieldLabel = labelsObject && typeof labelsObject === 'object' && !Array.isArray(labelsObject) ? labelsObject[key] : undefined; return typeof fieldLabel === 'string' ? <div className="contents" key={key}><dt className="font-medium text-muted-foreground">{fieldLabel}</dt><dd>{displayCustomFieldValue(value)}</dd></div> : null })}</dl> : null}
 
                 <div className="mt-3 flex flex-wrap gap-1">
                   {document.tags.map((tag) => (
@@ -569,6 +635,7 @@ export function EmployeeDocumentDossier({
                 <div className="mt-4">
                   <RowActions
                     menuItems={[
+                      ...(canWrite && !document.deleted_at ? [{ id: 'edit', label: labels.editMetadata, onSelect: () => beginEdit(document) }] : []),
                       ...(!document.deleted_at ? [{ href: `/api/employees/${employeeId}/documents/${document.id}/download`, id: 'download', label: labels.download }] : []),
                       ...(canDelete && !document.deleted_at ? [{ destructive: true, id: 'delete', label: labels.delete, onSelect: () => { setDeleteReason(''); setDeleteCandidate(document.id) } }] : []),
                       ...(canDelete && document.deleted_at ? [{ id: 'restore', label: labels.restore, onSelect: () => setRestoreCandidate(document.id) }] : []),
@@ -588,32 +655,41 @@ export function EmployeeDocumentDossier({
       </Dialog>
       <ConfirmDialog cancelLabel={labels.restoreCancel} confirmLabel={labels.restoreConfirm} description={labels.restoreDescription} onConfirm={() => restoreCandidate ? mutate(restoreCandidate, true) : Promise.resolve()} onOpenChange={(open) => { if (!open && !mutating) setRestoreCandidate(null) }} open={restoreCandidate !== null} pending={mutating} title={labels.restoreTitle} />
       <ConfirmDialog cancelLabel={labels.discardCancel} confirmLabel={labels.discardConfirm} description={labels.discardDescription} destructive onConfirm={() => { setDiscardOpen(false); resetUploadForm() }} onOpenChange={setDiscardOpen} open={discardOpen} title={labels.discardTitle} />
-      {previewDocument ? <DocumentViewer contentType={previewDocument.content_type} filename={previewDocument.original_filename} labels={{ close: labels.viewerClose, download: labels.download, unsupported: labels.viewerUnsupported }} onClose={() => setPreviewDocument(null)} previewHref={`/api/employees/${employeeId}/documents/${previewDocument.id}/download`} title={previewDocument.title} /> : null}
+      {previewDocument ? <DocumentViewer contentType={previewDocument.content_type} downloadHref={`/api/employees/${employeeId}/documents/${previewDocument.id}/download`} filename={previewDocument.original_filename} labels={{ close: labels.viewerClose, download: labels.download, unsupported: labels.viewerUnsupported, previewLoading: labels.viewerPreviewLoading, previewUnavailable: labels.viewerPreviewUnavailable }} onClose={() => setPreviewDocument(null)} previewHref={`/api/employees/${employeeId}/documents/${previewDocument.id}/preview`} title={previewDocument.title} useBlobPreview /> : null}
     </Surface>
   )
 }
 
-function DocumentCustomFieldControl({ definition, labels }: { definition: DocumentCustomField; labels: Labels }) {
+function DocumentCustomFieldControl({ definition, labels, locale, value, onChange }: { definition: DocumentCustomField; labels: Labels; locale: string; value: Json | undefined; onChange: (value: Json) => void }) {
   const name = `customField.${definition.key}`
-  const label = definition.label_nl
+  const label = locale === 'en' ? definition.label_en : definition.label_nl
   const wide = definition.field_type === 'TEXTAREA' || definition.field_type === 'MULTI_SELECT'
 
-  if (definition.field_type === 'BOOLEAN') return <div className={wide ? 'md:col-span-2' : undefined}><Checkbox name={name} label={label} /></div>
-  if (definition.field_type === 'TEXTAREA') return <FormField className="md:col-span-2" control={<Textarea name={name} required={definition.is_required} rows={3} />} label={label} required={definition.is_required} />
-  if (definition.field_type === 'SELECT' || definition.field_type === 'MULTI_SELECT') {
+  if (definition.field_type === 'BOOLEAN') return <div className={wide ? 'md:col-span-2' : undefined}><Checkbox checked={value === true} label={label} name={name} onChange={(event) => onChange(event.currentTarget.checked)} /></div>
+  if (definition.field_type === 'TEXTAREA') return <FormField className="md:col-span-2" control={<Textarea name={name} onChange={(event) => onChange(event.currentTarget.value)} required={definition.is_required} rows={3} value={typeof value === 'string' ? value : ''} />} label={label} required={definition.is_required} />
+  if (definition.field_type === 'SELECT') {
     return <FormField
-      className={wide ? 'md:col-span-2' : undefined}
-      control={<DropdownSelect multiple={definition.field_type === 'MULTI_SELECT'} name={name} required={definition.is_required} searchable={definition.field_type === 'SELECT'} searchPlaceholder={label}>
-        {definition.field_type === 'SELECT' ? <option value="" /> : null}
-        {definition.options.map((option) => <option key={option.value} value={option.value}>{option.label_nl}</option>)}
+      control={<DropdownSelect name={name} onChange={(event) => onChange(event.currentTarget.value)} required={definition.is_required} searchable searchPlaceholder={label} value={typeof value === 'string' ? value : ''}>
+        <option value="" />
+        {definition.options.map((option) => <option key={option.value} value={option.value}>{locale === 'en' ? option.label_en : option.label_nl}</option>)}
       </DropdownSelect>}
       label={label}
       required={definition.is_required}
     />
   }
+  if (definition.field_type === 'MULTI_SELECT') return <FormField className="md:col-span-2" control={<select aria-label={label} className="min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus-visible:border-focus focus-visible:outline-2 focus-visible:outline-focus/50" multiple name={name} onChange={(event) => onChange(Array.from(event.currentTarget.selectedOptions, (option) => option.value))} required={definition.is_required} value={Array.isArray(value) ? value.map(String) : []}>{definition.options.map((option) => <option key={option.value} value={option.value}>{locale === 'en' ? option.label_en : option.label_nl}</option>)}</select>} label={label} required={definition.is_required} />
   if (definition.field_type === 'AUTO_INCREMENT') return <FormField control={<TextInput disabled placeholder={labels.automaticValue} />} label={label} />
 
-  return <FormField control={<TextInput name={name} required={definition.is_required} type={definition.field_type === 'NUMBER' ? 'number' : definition.field_type === 'DATE' ? 'date' : 'text'} />} label={label} required={definition.is_required} />
+  return <FormField control={<TextInput name={name} onChange={(event) => onChange(definition.field_type === 'NUMBER' ? event.currentTarget.value === '' ? '' : Number(event.currentTarget.value) : event.currentTarget.value)} required={definition.is_required} type={definition.field_type === 'NUMBER' ? 'number' : definition.field_type === 'DATE' ? 'date' : 'text'} value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''} />} label={label} required={definition.is_required} />
+}
+
+function projectWritableCustomFields(values: Json, definitions: readonly DocumentCustomField[]): Record<string, Json> {
+  if (!values || typeof values !== 'object' || Array.isArray(values)) return {}
+  const available = new Set(definitions.filter((definition) => definition.field_type !== 'AUTO_INCREMENT').map((definition) => definition.key))
+  return Object.entries(values).reduce<Record<string, Json>>((projected, [key, value]) => {
+    if (available.has(key) && value !== undefined) projected[key] = value
+    return projected
+  }, {})
 }
 
 function displayCustomFieldValue(value: Json | undefined): string {
@@ -658,6 +734,8 @@ function messageForCode(code: string, labels: Labels): string {
       return labels.invalidType
     case 'DOCUMENT_SIZE_INVALID':
       return labels.invalidSize
+    case 'DOCUMENT_FILE_EMPTY':
+      return labels.emptyFile
     case 'DOCUMENT_AUDIENCE_REQUIRED':
       return labels.audienceRequired
     case 'DOCUMENT_EXPIRY_REQUIRED':
@@ -665,6 +743,12 @@ function messageForCode(code: string, labels: Labels): string {
     case 'DOCUMENT_REMINDER_TARGET_REQUIRED':
     case 'REMINDER_TARGET_SCOPE_INVALID':
       return labels.reminderTargetRequired
+    case 'DOCUMENT_SALARY_PERMISSION_REQUIRED':
+      return labels.salaryPermissionRequired
+    case 'DOCUMENT_CUSTOM_FIELDS_INVALID':
+      return labels.customFieldsInvalid
+    case 'DOCUMENT_CUSTOM_FIELDS_REQUIRED':
+      return labels.customFieldsRequired
     case 'DOCUMENT_FILE_COUNT_INVALID':
       return labels.singleFileOnly
     case 'DOCUMENT_INPUT_INVALID':

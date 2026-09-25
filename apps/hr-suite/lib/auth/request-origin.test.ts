@@ -22,9 +22,23 @@ describe('resolveRequestOrigin', () => {
     expect(resolveRequestOrigin({ host: '127.0.0.1:3000', canonicalUrl: 'https://liquidhr.vercel.app' })).toBe('http://127.0.0.1:3000')
   })
 
+  it('houdt localhost als origin voor een lokale devserver met een Vercel-omgevingvariabele', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('VERCEL', '')
+
+    expect(resolveRequestOrigin({
+      forwardedHost: 'liquid-hr-hr-suite.vercel.app',
+      forwardedProtocol: 'https',
+      host: 'localhost:3000',
+      canonicalUrl: 'https://liquid-hr-hr-suite.vercel.app',
+    })).toBe('http://localhost:3000')
+  })
+
   it('gebruikt in productie niet een lokaal Host-alias als publieke origin', () => {
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('VERCEL', '1')
     expect(resolveRequestOrigin({
       host: 'localhost:3000',
       canonicalUrl: 'https://liquidhr.vercel.app',

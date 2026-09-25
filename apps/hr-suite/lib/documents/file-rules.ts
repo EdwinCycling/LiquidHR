@@ -62,6 +62,21 @@ const DOCUMENT_FILE_RULES: readonly DocumentFileRule[] = [
 export const DOCUMENT_FILE_ACCEPT = '.pdf,.txt,.md,.csv,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.bmp'
 export const DOCUMENT_FILE_TYPES_LABEL = 'PDF, TXT, MD, CSV, DOC, DOCX, XLS, XLSX, JPG, PNG, WEBP, BMP'
 
+const INLINE_PREVIEW_CONTENT_TYPES = new Set([
+  'application/pdf',
+  'image/bmp',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'text/csv',
+  'text/markdown',
+  'text/plain',
+])
+
+export function isInlineDocumentPreviewContentType(contentType: string): boolean {
+  return INLINE_PREVIEW_CONTENT_TYPES.has(contentType.split(';', 1)[0]?.trim().toLocaleLowerCase('en-US') ?? '')
+}
+
 export function isAllowedDocumentFile(file: { name: string; type: string }): boolean {
   const rule = DOCUMENT_FILE_RULES.find((item) => item.extension === normalizeExtension(file.name))
   const mimeType = file.type.trim().toLocaleLowerCase('en-US')
@@ -76,13 +91,14 @@ function normalizeExtension(filename: string): string {
   return filename.slice(dotIndex).toLocaleLowerCase('en-US')
 }
 
-export type DocumentFileValidationFailure = 'SIZE' | 'TYPE' | 'SIGNATURE'
+export type DocumentFileValidationFailure = 'EMPTY' | 'SIZE' | 'TYPE' | 'SIGNATURE'
 export type DocumentFileValidation =
   | { readonly ok: true; readonly bytes: Uint8Array; readonly contentType: string }
   | { readonly ok: false; readonly reason: DocumentFileValidationFailure }
 
 export async function validateDocumentFile(file: File): Promise<DocumentFileValidation> {
-  if (file.size < 1 || file.size > MAX_DOCUMENT_FILE_BYTES) return { ok: false, reason: 'SIZE' }
+  if (file.size === 0) return { ok: false, reason: 'EMPTY' }
+  if (file.size > MAX_DOCUMENT_FILE_BYTES) return { ok: false, reason: 'SIZE' }
 
   const rule = DOCUMENT_FILE_RULES.find((item) => item.extension === normalizeExtension(file.name))
   if (!rule) return { ok: false, reason: 'TYPE' }

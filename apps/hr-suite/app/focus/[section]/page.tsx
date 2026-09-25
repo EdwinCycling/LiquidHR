@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, FileText } from 'lucide-react'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { FocusAbsenceForm } from '@/components/focus/focus-absence-form'
 import { FocusAbsenceWorkList } from '@/components/focus/focus-absence-work-list'
 import { FocusDirectoryView, FocusHoursView, FocusLeaveView, FocusProfileView, type FocusProfileLabels } from '@/components/focus/focus-section-views'
@@ -17,8 +17,9 @@ import { PageHeader } from '@/components/patterns/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { listProcessWork } from '@/lib/process-automation/work-service'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { focusActAsHref } from '@/lib/focus/url'
-import { getFocusAbsenceState, getFocusAbsenceWork, getFocusDocuments, getFocusDirectory, getFocusHoursOverview, getFocusLeaveOverview, getFocusProfileProjection, loadFocusSectionContext } from '@/lib/focus/section-service'
+import { getFocusAbsenceState, getFocusAbsenceWork, getFocusDocuments, getFocusDirectory, getFocusHoursOverview, getFocusLeaveOverview, getFocusProfileProjection, loadFocusSectionContext, type FocusSectionContext } from '@/lib/focus/section-service'
 import { loadFocusTeamCalendarForContext } from '@/lib/focus/team-service'
 import type { FocusActionKey } from '@/lib/focus/service'
 import { getTranslator } from '@/lib/i18n/server'
@@ -61,7 +62,13 @@ export default async function FocusSectionPage({ params, searchParams = Promise.
   const isSpecial = kind === 'directory' || kind === 'more'
   if (!isSpecial && !actions.some((action) => action.key === kind)) notFound()
   if (data.isPreboarding && isSpecial) notFound()
-  const context = await loadFocusSectionContext(query.actAs)
+  let context: FocusSectionContext
+  try {
+    context = await loadFocusSectionContext(query.actAs)
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
   const employeeId = data.employee?.id ?? context.employeeId
   const labels = shellLabels(t, data.actAs?.token ?? query.actAs)
   const activeKey: FocusActionKey | 'more' | undefined = kind === 'more' ? 'more' : kind === 'directory' ? 'team' : kind
@@ -74,9 +81,9 @@ export default async function FocusSectionPage({ params, searchParams = Promise.
     const profileLabels: FocusProfileLabels = { personal: t('profile.personal'), contact: t('profile.contact'), relations: t('profile.relations'), address: t('profile.address'), work: t('profile.work'), bank: t('profile.bank'), empty: t('profile.empty'), language: t('profile.language'), workEmail: t('profile.workEmail'), workPhone: t('profile.workPhone'), privateEmail: t('profile.privateEmail'), privatePhone: t('profile.privatePhone'), privateMobile: t('profile.privateMobile'), jobTitle: t('profile.jobTitle'), department: t('profile.department'), startDate: t('profile.startDate'), hoursPerWeek: t('profile.hoursPerWeek'), hoursUnit: t('leave.hours'), noAddress: t('profile.noAddress'), noRelations: t('profile.noRelations'), noBank: t('profile.noBank'), masked: t('profile.masked'), bic: t('profile.bic'), accountHolder: t('profile.accountHolder'), editTitle: t('profile.editTitle'), edit: t('profile.edit'), nameSection: t('profile.nameSection'), contactSection: t('profile.contactSection'), title: t('profile.title'), initials: t('profile.initials'), firstName: t('profile.firstName'), birthNamePrefix: t('profile.birthNamePrefix'), birthName: t('profile.birthName'), partnerNamePrefix: t('profile.partnerNamePrefix'), partnerName: t('profile.partnerName'), nameUsage: t('profile.nameUsage'), nameUsageBirth: t('profile.nameUsageBirth'), nameUsagePartner: t('profile.nameUsagePartner'), nameUsagePartnerBirth: t('profile.nameUsagePartnerBirth'), nameUsageBirthPartner: t('profile.nameUsageBirthPartner'), cancel: t('profile.cancel'), close: t('profile.close'), discardTitle: t('profile.discardTitle'), discardDescription: t('profile.discardDescription'), discardConfirm: t('profile.discardConfirm'), discardCancel: t('profile.discardCancel'), save: t('profile.save'), saving: t('profile.saving'), saved: t('profile.saved'), failed: t('profile.failed'), relationAdd: t('profile.relationAdd'), relationEdit: t('profile.relationEdit'), relationEditTitle: t('profile.relationEditTitle'), relationAddTitle: t('profile.relationAddTitle'), relationType: t('profile.relationType'), relationFirstName: t('profile.relationFirstName'), relationInitials: t('profile.relationInitials'), relationPrefix: t('profile.relationPrefix'), relationLastName: t('profile.relationLastName'), relationGender: t('profile.relationGender'), relationGenderMale: t('profile.relationGenderMale'), relationGenderFemale: t('profile.relationGenderFemale'), relationGenderOther: t('profile.relationGenderOther'), relationGenderUndisclosed: t('profile.relationGenderUndisclosed'), relationBirthDate: t('profile.relationBirthDate'), relationPhone: t('profile.relationPhone'), relationMobile: t('profile.relationMobile'), relationEmail: t('profile.relationEmail'), relationNotes: t('profile.relationNotes'), relationEmergencyContact: t('profile.relationEmergencyContact'), relationSave: t('profile.relationSave'), relationDelete: t('profile.relationDelete'), relationDeleteTitle: t('profile.relationDeleteTitle'), relationDeleteDescription: t('profile.relationDeleteDescription'), relationDeleteConfirm: t('profile.relationDeleteConfirm'), relationTypeSearch: t('profile.relationTypeSearch'), relationGenderSearch: t('profile.relationGenderSearch') }
     content = <FocusProfileView actAsToken={data.actAs?.token ?? query.actAs} labels={profileLabels} locale={locale} profile={profile} />
   } else if (kind === 'documents') {
-    const documents = await getFocusDocuments(context)
+    const groups = await getFocusDocuments(context)
     const documentLabels = await getTranslator('documents', locale)
-    content = documents.length ? <FocusDocuments employeeId={employeeId} documents={documents} labels={{ added: t('documents.added'), expires: t('documents.expires'), open: documentLabels('view'), download: documentLabels('download'), close: documentLabels('viewerClose'), unsupported: documentLabels('viewerUnsupported') }} /> : <EmptyState icon={<FileText />} title={t('actions.documents.title')} description={t('documents.empty')} />
+    content = groups.some((group) => group.documents.length > 0) ? <FocusDocuments groups={groups} locale={locale} labels={{ added: t('documents.added'), expires: t('documents.expires'), open: documentLabels('view'), download: documentLabels('download'), close: documentLabels('viewerClose'), unsupported: documentLabels('viewerUnsupported'), previewLoading: documentLabels('viewerPreviewLoading'), previewUnavailable: documentLabels('viewerPreviewUnavailable'), category: documentLabels('category'), salarySensitive: documentLabels('salarySensitive'), tags: documentLabels('tags') }} /> : <EmptyState icon={<FileText />} title={t('actions.documents.title')} description={t('documents.empty')} />
   } else if (kind === 'leave') {
     const overview = await getFocusLeaveOverview(context)
     const request = query.request === '1' && data.canRequestLeave

@@ -1,5 +1,24 @@
 # Liquid HR documentatie-index
 
+## Convergence release — 2026-09-25
+
+**Status: CANDIDATE GREEN — vrijgegeven voor de convergence-releaseflow.** De role switch is hersteld in de bestaande sidebar header/action row naast het cadeau-icoon; de bestaande fail-closed runtimevoorwaarde verklaarde waarom deze in een lokale productiebuild zonder Vercel-context verborgen was. HR Admin/ACT-AS zijn handmatig gecontroleerd; Manager- en Employee-negatives zijn geautomatiseerd. Edwin bevestigde de responsive acceptance in Chrome Device Mode op exact `390×844` voor Startpage, Focus, dossier/document, calendar en org chart. De volledige hr-suite slaagde met `460` bestanden en `1827` tests. Een gecombineerde workspace-run had één timeout in een ongewijzigde PDF-test; de geïsoleerde PDF-test slaagde en de daaropvolgende volledige hr-suite-run was groen. Die timeout blokkeert de release niet.
+
+- Kandidaatbranch `work/convergence-20260925`, huidige HEAD `c407ded188609056bce0af1bc449e10446e7dfb5` plus de nog te committen convergence/security/role-switch fixes; `main` en `origin/main` staan beide op `3f9de359c76524306de057455861da734217f252`.
+- Workspace typecheck, changed-file ESLint, NL/EN-pariteit, `git diff --check` en production builds zijn groen (`296` hr-suite-routes, `12` control-routes). Runtime-audit: `0`; volledige audit: alleen development dependency-paden, details in [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
+- De enige LiquidHR-omgeving blijft Supabase `wnpfloqpjvaacobppbpk` met de bestaande Vercel Production deployment. Versie blijft `1.20260923.1`; de enige releasebump naar `1.20260925.1` volgt op main-integratie en post-merge gates. Candidate push, main-integratie en deployment zijn nog niet uitgevoerd.
+
+Zie [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor volledige browser-, security-, audit- en database-evidence.
+
+## Inloggen zonder medewerkercontext — 2026-09-24
+
+**Status: BUGFIX GREEN op `work/bugfix-login-context-20260924`; broncodecommit `3e07b1e` staat op de remote branch.**
+
+- Oorzaak: een bestaande auth-sessie zonder `next` werd door de proxy rechtstreeks naar Focus gestuurd. Een account zonder medewerkercontext veroorzaakte daar een ongehandelde `AuthorizationError`.
+- Fix: login zonder bestemming gebruikt nu de rolbewuste app-startpagina. De Focus-sectieroute stuurt een actor zonder medewerkercontext naar `/geen-toegang`.
+- Verificatie: gerichte tests `24/24`, strict TypeScript, gerichte ESLint, `git diff --check` en browserflow op `localhost:3010` zijn groen. De bestaande lokale sessie ging via `/login` naar `/dashboard/start`; `/focus/meer` eindigde gecontroleerd op `/geen-toegang` zonder runtimefout.
+- Geen databasewijziging, migratie, versiebump, deployment of wijziging aan D01.
+
 ## Lokale integratiekandidaat T01 + F02 + Focus — 2026-09-23
 
 **Status: PARTIAL — lokaal geïntegreerd; niet op main gepusht en geen release.**
@@ -674,6 +693,8 @@ De roadmap en eerste employee-context voice-slice staan in [`LIQUIDHR_AI_ROADMAP
 ## Conversational AI V2, Team AI en Mijn logboek — 2026-09-14
 
 De lokale implementation-candidate [`LIQUIDHR_CONVERSATIONAL_AI_V2_TEAM_AI_LOGBOOK.md`](requirements/ai/LIQUIDHR_CONVERSATIONAL_AI_V2_TEAM_AI_LOGBOOK.md) voegt een server-geautoriseerde Team AI-scope, GPT-Live voice-tools en een owner-only persoonlijk logboek toe. Direct managers blijven beperkt tot hun directe team; HR Admin/Tenant Admin kiezen een afdeling en HR Advisor gebruikt toegewezen afdelingen. AI-samenvattingen blijven voorstel-only en worden pas na review expliciet opgeslagen in Mijn logboek. De migration is lokaal voorbereid maar nog niet remote toegepast; main, Production en de leave-branch zijn buiten scope.
+
+De Startpagina-preview houdt privé-notitie-inhoud compact verborgen tot de gebruiker die expliciet opent. Voor managers staan de teamcontext en beschikbaarheid samen in één breed werkpaneel; de vaste beschikbaarheidsweergave hoort niet langer bij de persoonlijke venstervolgorde. Zie [`IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor de bugfixstatus en verificatie.
 
 ## Liquid Analyse AN-4/5 Mijn Analyses en Liquid Explore V1 — 2026-08-30
 
@@ -1382,8 +1403,8 @@ Talentfundament is bereikbaar voor HR Admin via `Instellingen -> HR-inrichting` 
 | Multitenancy & administraties | [`requirements/multitenancy/MULTITENANCY_EN_MULTI_ADMINISTRATIE.md`](requirements/multitenancy/MULTITENANCY_EN_MULTI_ADMINISTRATIE.md) | LEIDEND | GEDEELTELIJK |
 | LiquidHR Control Plane | [`requirements/platform/LIQUIDHR_CONTROL_PLANE.md`](requirements/platform/LIQUIDHR_CONTROL_PLANE.md) | LEIDEND | LOKALE BASIS GEIMPLEMENTEERD — aparte app op poort 3001; migratie en eerste operator moeten nog handmatig worden toegepast |
 | Entiteiteigendom en koppelingen | [`requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md`](requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md) | LEIDEND | INSTRUCTIE VOOR NIEUWE MODULES |
-| Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE, HR-groepbreed inclusief beheer-CRUD, actieve status, landcode en preview |
-| Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | GEDEELTELIJK — veilig medewerkersdossier gereed; globale documenten en AI-compliance volgen later |
+| Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE EN DOCUMENT (dossier), inclusief beheer-CRUD, actieve status, NL/EN labels, documentwaarden en rolgebonden toegang; D01 bewezen op geïsoleerde branch |
+| Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | D01 DOSSIER/DOCUMENTS ACCEPTANCE GREEN op geïsoleerde branch `work/acceptance-D01-20260924`; niet geïntegreerd of gedeployed. Globale documenten en AI-compliance volgen later. Zie [`D01 acceptance`](quality/acceptance/runs/D01-dossier-documents.md). |
 | Instellingen, modules, roosters en kalender | [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) | LEIDEND | GEÏMPLEMENTEERD — groepsbrede bedrijfsgegevens, branding, feestdagen, medewerker-pop-up en menuvolgorde; legacy Dashboard Widget-beheer is retired |
 | Liquid Display aanvulling | [`requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md`](requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md) | LEIDEND | GEDEELTELIJK |
 | HeRa AI Agent | [`requirements/chatbot/HERA_AI_AGENT.md`](requirements/chatbot/HERA_AI_AGENT.md) | LEIDEND | GEÏMPLEMENTEERD EN PRODUCTIE-GEVERIFIEERD |

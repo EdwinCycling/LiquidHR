@@ -33,7 +33,7 @@ export async function uploadCompanyDocument(file: File, metadata: CompanyDocumen
   const context = await requirePermission('company-document:write')
   const hrGroupId = requireHrGroupId(context)
   const validation = await validateDocumentFile(file)
-  if (!validation.ok) throw new CompanyDocumentServiceError(validation.reason === 'SIZE' ? 'DOCUMENT_SIZE_INVALID' : 'DOCUMENT_TYPE_INVALID', 400)
+  if (!validation.ok) throw new CompanyDocumentServiceError(validation.reason === 'EMPTY' ? 'DOCUMENT_FILE_EMPTY' : validation.reason === 'SIZE' ? 'DOCUMENT_SIZE_INVALID' : 'DOCUMENT_TYPE_INVALID', 400)
 
   const { bytes, contentType } = validation
   const checksum = createHash('sha256').update(bytes).digest('hex')

@@ -13,7 +13,6 @@ interface HrCalendarPageSizeSelectProps {
     jobGroup?: string
     job?: string
     week?: string
-    type: string[]
     showWeekendsAndHolidays: boolean
     showReminders: boolean
     showScheduledHours: boolean
@@ -43,7 +42,6 @@ export function HrCalendarPageSizeSelect({
     if (query.jobGroup) params.set('jobGroup', query.jobGroup)
     if (query.job) params.set('job', query.job)
     if (query.week && query.showWeekNumbers) params.set('week', query.week)
-    for (const type of query.type) params.append('type', type)
     if (size !== '10') params.set('size', size)
     if (!query.showWeekendsAndHolidays) params.set('showWeekendsAndHolidays', '0')
     if (!query.showReminders) params.set('showReminders', '0')

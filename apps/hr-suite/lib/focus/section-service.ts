@@ -392,7 +392,23 @@ export async function getFocusHoursOverview(section: FocusSectionContext): Promi
 
 export async function getFocusDocuments(section: FocusSectionContext) {
   if (!hasFocusPermission(section, 'self:document:read', 'self:document-signing:read', 'document:read')) throw new AuthorizationError('Je hebt geen toegang tot documenten.')
-  return listEmployeeDashboardDocuments(section.employeeId, 12, { context: section.context as Awaited<ReturnType<typeof requirePermission>>, supabase: section.supabase })
+  const dependencies = { context: section.context as Awaited<ReturnType<typeof requirePermission>>, supabase: section.supabase }
+  if (!section.actAs && section.context.activeRoles.includes('DIRECT_MANAGER') && hasFocusPermission(section, 'document:read')) {
+    const employeeIds = await listFocusManagerEmployeeIds(section.context, section.supabase)
+    if (!employeeIds.length) return []
+    const [{ data: employees, error: employeesError }, ...documentsByEmployee] = await Promise.all([
+      section.supabase.from('employees').select('id,first_name,birth_name').eq('tenant_id', section.context.tenantId).eq('hr_group_id', requireHrGroupId(section.context)).in('id', employeeIds).eq('is_active', true).eq('is_archived', false).is('deleted_at', null),
+      ...employeeIds.map((employeeId) => listEmployeeDashboardDocuments(employeeId, 12, dependencies)),
+    ])
+    if (employeesError) throw new FocusSectionError('FOCUS_DOCUMENTS_READ_FAILED')
+    const names = new Map((employees ?? []).map((employee) => [employee.id, `${employee.first_name} ${employee.birth_name}`.trim()]))
+    return employeeIds.flatMap((employeeId, index) => {
+      const documents = documentsByEmployee[index]
+      return documents?.length ? [{ employeeId, employeeName: names.get(employeeId) ?? '', documents }] : []
+    })
+  }
+  const documents = await listEmployeeDashboardDocuments(section.employeeId, 12, dependencies)
+  return documents.length ? [{ employeeId: section.employeeId, employeeName: '', documents }] : []
 }
 
 export interface FocusDirectoryEntry {

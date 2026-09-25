@@ -11,6 +11,7 @@
   "labelEn": "Engels label",
   "country": "Landcode (ISO-2)",
   "fieldType": "Veldtype",
+  "selectOption": "Selecteer een optie",
   "required": "Verplicht",
   "chartFilter": "Beschikbaar in organogram",
   "chartFilterHelp": "Maak dit veld alleen beschikbaar als filter wanneer de inhoud niet gevoelig is.",

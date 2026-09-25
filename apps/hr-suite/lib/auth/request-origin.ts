@@ -39,9 +39,7 @@ function allowsLocalHost(): boolean {
   const nodeEnv = process.env.NODE_ENV?.trim().toLowerCase() ?? ''
   const vercelEnv = process.env.VERCEL_ENV?.trim().toLowerCase() ?? ''
 
-  return !vercelEnv
-    ? nodeEnv !== 'production'
-    : ['development', 'test'].includes(vercelEnv)
+  return nodeEnv !== 'production' || ['development', 'test'].includes(vercelEnv)
 }
 
 function fallbackOrigin(value: string | null | undefined): string | null {
@@ -86,13 +84,18 @@ function trustedFallbackOrigin(value: string | null | undefined, trustedHosts: S
 export function resolveRequestOrigin(input: RequestOriginInput): string {
   const canonicalOrigin = fallbackOrigin(input.canonicalUrl ?? process.env.NEXT_PUBLIC_APP_URL)
   const trustedHosts = trustedHostSet(input, canonicalOrigin)
-  const host = [input.forwardedHost, input.host]
-    .map(normalizeHost)
+  const requestHost = normalizeHost(input.host)
+  const forwardedHost = normalizeHost(input.forwardedHost)
+  const localHost = [requestHost, forwardedHost]
+    .find((candidate): candidate is string => candidate !== null && isLocalHost(candidate) && allowsLocalHost())
+  const host = localHost ?? [forwardedHost, requestHost]
     .find((candidate): candidate is string => candidate !== null && isTrustedHost(candidate, trustedHosts))
 
   if (host) {
     const forwardedProtocol = firstHeaderValue(input.forwardedProtocol)
-    const protocol = isLocalHost(host) && forwardedProtocol !== 'https' ? 'http' : 'https'
+    const protocol = isLocalHost(host)
+      ? (host === requestHost || forwardedProtocol !== 'https' ? 'http' : 'https')
+      : 'https'
     return `${protocol}://${host}`
   }
 

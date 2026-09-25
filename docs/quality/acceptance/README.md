@@ -15,6 +15,7 @@ Canonical repository-owned source of truth for repeatable LiquidHR acceptance ru
 
 | ID | Scope | Status | Mode | Next action |
 |---|---|---|---|---|
+| D01 | Dossier / Documents | GREEN (baseline TypeScript/build exception documented) | ISOLATED_FIXTURE | Regression baseline; isolated branch remains unmerged and undeployed |
 | A01 | Focus + Absence + Leave | DONE / GREEN | SOLO | Regression baseline |
 | GJ01 | Onboarding / Preboarding | PARTIAL / EXTERNAL_BLOCKER | SOLO | GJ01R after DEV mail recovery |
 | GJ02 | Documents / Studio / Signing | GREEN | SOLO | DOC02 follow-up |
@@ -39,7 +40,7 @@ Canonical repository-owned source of truth for repeatable LiquidHR acceptance ru
 ## Run specifications
 
 - [T01](runs/T01-survey-personality-9grid.md) · [F01](runs/F01-settings.md) · [F02](runs/F02-navigation-help.md) · [F03](runs/F03-workforce-employment.md)
-- [S01](runs/S01-authorization-torture.md) · [T02](runs/T02-talent-development.md) · [R01](runs/R01-recruitment.md) · [P01](runs/P01-process-automation.md)
+- [D01](runs/D01-dossier-documents.md) · [S01](runs/S01-authorization-torture.md) · [T02](runs/T02-talent-development.md) · [R01](runs/R01-recruitment.md) · [P01](runs/P01-process-automation.md)
 - [F04](runs/F04-dashboard-widgets.md) · [F05](runs/F05-ui-foundations.md) · [I01](runs/I01-i18n-localization.md)
 - [GJ01R](runs/GJ01R-preboarding-auth.md) · [DOC02](runs/DOC02-template-rendering.md) · [AW02](runs/AW02-actual-work-rules.md)
 

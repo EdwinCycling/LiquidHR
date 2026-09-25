@@ -163,6 +163,7 @@ function DropdownSingleSelect({
   function handleMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'Escape') {
       event.preventDefault()
+      event.stopPropagation()
       closeMenu()
       return
     }

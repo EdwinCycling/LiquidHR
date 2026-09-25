@@ -1,5 +1,72 @@
 # Implementatiestatus Liquid HR
 
+## Convergence release — 2026-09-25
+
+**Status: CANDIDATE GREEN voor de convergence-releaseflow.** Branch work/convergence-20260925, HEAD c407ded188609056bce0af1bc449e10446e7dfb5 plus de hieronder beschreven, nog te committen fixes. Lokale main en origin/main staan beide op 3f9de359c76524306de057455861da734217f252.
+
+- De sidebaractie was aanwezig in pre-convergence source. De lokale productiebuild zonder VERCEL_ENV activeerde de bestaande fail-closed runtimegate; op lokale next dev verscheen en werkte dezelfde actie in de oorspronkelijke header row. UI en POST-route vereisen nu TENANT_ADMIN of HR_ADMIN; geautomatiseerde tests weigeren Manager/Employee-escalatie. ACT-AS actor-, tenant-, HR-group-, rol-, capability- en subject-scope-tests zijn toegevoegd.
+- HR Admin accepteerde startpagina, Full, dossier, kalender, organogram en Focus/Full-navigatie. Edwin’s eigen Focus laadde; de HR Admin-fixture mist eigen actief dienstverband. ACT-AS start/stop werkte en registreerde alleen bedoelde auditrecords. De kalenderlaadfout is opgelost door roosterqueries te beperken tot dienstverbanden met overlappend goedgekeurd verlof; RLS bleef aan.
+- Hr-suite volledig groen: 460 bestanden / 1827 tests. Een gecombineerde workspace-run had eerder één fixed-5s timeout op de ongewijzigde PDF-test; de geïsoleerde PDF-test en daaropvolgende volledige hr-suite-run slaagden, zoals Edwin accepteert. Control slaagde met 2/2 bestanden / 7/7. Strict TypeScript, changed-file ESLint, NL/EN i18n (39 namespaces, 147 Control-sleutels), diff check en production builds (296 hr-suite-routes, 12 Control-routes) slaagden.
+- Edwin bevestigde de handmatige responsive acceptance in Chrome Device Mode op exact 390×844 voor Startpage, Focus, dossier/document, kalender en organogram. Manager/Employee-aanmeldingen zijn niet handmatig gebruikt volgens gebruikersinstructie; role-switch negatives zijn geautomatiseerd. Full dependency-audit vermeldt development-toolingissues; runtime-audit meldt 0.
+- De enige LiquidHR-omgeving gebruikt Supabase wnpfloqpjvaacobppbpk en de bestaande Vercel Production deployment. Read-only database readback vond 496 migraties en ingeschakelde RLS met policies op calendar schedule/pattern/leave-tabellen. Geen schema/policy-write, candidate-push, main-integratie, deployment, version bump of cleanup is nog uitgevoerd. Versie is 1.20260923.1; de eenmaal toegestane bump naar 1.20260925.1 volgt op merge en post-merge gates.
+
+## D01 Dossier / Documents — 2026-09-25
+
+**Status: D01 ACCEPTANCE GREEN in de oorspronkelijke acceptatierun.** De convergence cold-check op `origin/main` slaagde; de D01 gegenereerde database-types maakten twee optionele ABSENCE RPC-argumenten strikter en lieten de geïntegreerde build falen. De convergence-kandidaat bevat hiervoor een minimale typeveilige compatibiliteitsfix.
+
+- Work is on `work/acceptance-D01-20260924`, from `3f9de359c76524306de057455861da734217f252`; app version remains `1.20260923.1`. Do not merge, deploy, or bump version.
+- Category CRUD, DOCUMENT custom fields, HR/Manager upload, audience and scope checks, expiry/reminder, salary gate, Employee/Manager Full and Focus, private storage, negative file validation and delete/restore were exercised with canonical DB/storage readback.
+- Fixed category RLS recursion (`42P17`), restricted custom-field list failure (`42501`), reminder SQL ambiguity, uploader/audience scope, scoped Manager expiry reminder, category-code/Settings lifecycle defects, Manager Focus scope, Focus mobile action-row layout, same-origin preview policy, and canonical DOCUMENT custom-field persistence on create/update. HR DATE/expiry/reminder upload roundtrip now matches the canonical payload, database, linked reminder, storage metadata and reloaded UI. Final browser pass also fixed the English custom-field label/accessibility fallback and dropdown Escape bubbling that could open the discard prompt.
+- Remote history contains all five D01 logical migration names; server-generated version stamps differ from local filenames. No history repair or reapply occurred; the current repository migration sequence yields the intended clean database state.
+- Final targeted Vitest passed `23 files / 107 tests`; SQL/RLS matrix, changed-file ESLint, NL/EN parity `39/39` and `git diff --check` passed. English/NL, mobile Settings, keyboard Escape and authenticated cross-tenant denial are verified. Strict TypeScript and build stop only at unchanged absence-service nullability errors (`confirmation-service.ts:51`, `service.ts:339`); guarded Webpack compilation succeeds and `next-env.d.ts` is unchanged.
+- Detailed evidence and bug-by-bug regression status: [`D01 acceptance report`](../quality/acceptance/runs/D01-dossier-documents.md). D01 remains isolated; no merge, deployment or version bump is part of this run.
+## Login zonder medewerkercontext — 2026-09-24
+
+**Status: BUGFIX GREEN — `work/bugfix-login-context-20260924`; broncodecommit `3e07b1e` is naar origin gepusht.**
+
+- Baseline: `origin/main` `3f9de359c76524306de057455861da734217f252`; versie bleef `1.20260923.1`.
+- Root cause: de geauthenticeerde `/login`-route en de fallback van `safeNextPath` kozen standaard `/focus`. Een geldige auth-claim garandeert geen medewerkercontext; de sectieroute liet de daaruit volgende `AuthorizationError` als runtimefout ontsnappen.
+- Oplossing: standaard loginrouting gaat via `/`, zodat de bestaande rolrouter de bestemming kiest. Ontbrekende medewerkercontext in een Focus-sectie leidt nu naar `/geen-toegang`.
+- Gates: gerichte tests `24/24`, strict TypeScript, gerichte ESLint en `git diff --check` geslaagd. Productiebuild niet nodig voor deze smalle wijziging.
+- Browser: in de Codex-browser op `http://localhost:3010` stuurde de bestaande lokale sessie `/login` naar `/dashboard/start`; `/focus/meer` stuurde naar `/geen-toegang` zonder gemelde runtimefout. Er zijn geen credentials ingevoerd.
+- Geen database-/Supabase-mutatie, migratie, versiebump, deployment, merge of D01-wijziging.
+## Google OAuth lokale callback — 2026-09-24
+
+**Status: CODE GREEN / live browser- en Supabase Auth-configuratiecontrole extern geblokkeerd**
+
+- De OAuth startactie bouwt de callback op uit de gevalideerde actuele request-origin. De resolver houdt een lokale `Host: localhost` voorrang op een vertrouwde Vercel-forwarded host en laat lokale development-origin toe als `VERCEL_ENV` lokaal op `production` staat. Een lokale browserrequest gebruikt HTTP; productie accepteert geen loopback-origin.
+- De callback wisselt de OAuth-code uit met de bestaande Supabase SSR-client en behoudt alleen veilige interne `next`-routes. De bestaande Vercel-origin en open-redirect-afwijzing blijven getest.
+- Verificatie: 4 gerichte auth-testbestanden / 28 tests, strict TypeScript, gewijzigde bestanden ESLint en `git diff --check` zijn geslaagd.
+- De live Google-flow en sessie-cookie zijn niet in de browser bewezen: poort `3000` behoort aan de actieve D01-worktree en de Supabase Dashboard URL Configuration vraagt om interactieve aanmelding. De redirect allowlist is daardoor onbekend. Geen Supabase-instelling, migration, geheim of versie aangepast; geen deployment uitgevoerd.
+## Organogram — bediening en peildatum — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- De beheerknop en `Wis alles`-acties zijn uit de organogrampagina verwijderd. `resultaten` wordt alleen getoond als een zoekterm of inhoudelijk filter actief is.
+- De peildatum is instelbaar in de kop en ondersteunt verleden en toekomst. Een datum die expliciet in de URL staat wordt gevolgd; bij openen zonder query gebruikt de pagina vandaag in tijdzone Amsterdam en negeert zij een eventueel opgeslagen oude peildatum. De datum blijft behouden bij zoeken en filteren.
+- Gerichte regressietests voor datum- en tellinggedrag zijn toegevoegd. Authenticated browsercontrole is environment-gated: de worktree heeft geen lokale Supabase-configuratie en de vorige lokale route-aanroep kon daardoor niet renderen. Geen secrets gelezen of gekopieerd.
+
+## Organogram — verbindingen per rij gebundeld — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Geïsoleerde branch `work/bugfix-orgchart-lines-20260924` start vanaf de opgegeven `origin/main`-baseline `3f9de359c76524306de057455861da734217f252`.
+- Root cause: de layout verdeelde meer dan vier directe kinderen over meerdere rijen, terwijl React Flow iedere relatie apart met `smoothstep` tekende. De verbindingen deelden daardoor geen duidelijke rijvertakking en vervolgverbindingen liepen door het gebied van eerdere subtrees.
+- De canvas gebruikt nu orthogonale, gedeelde bussen voor de eerste kindrij. Vervolgrijen lopen via een gereserveerde zijrail en een eigen horizontale tak; de layout reserveert daarvoor ruimte binnen dezelfde subtree.
+- Geen schema, API, permissie, data-eigenaarschap, route of taalbestand gewijzigd.
+- Gerichte layout- en projectorregressies `10/10`, strict TypeScript, gewijzigde-scope ESLint en `git diff --check` zijn groen.
+- Browsercontrole: poort `3010` gaf `EADDRINUSE`; de branchserver startte op `3012`. `/organization-chart` kon niet renderen omdat deze worktree geen `.env.local` bevat en Supabase URL/key ontbreken. Geen secrets gelezen of gekopieerd. De authenticated visuele controle blijft open.
+- Codecommit `042c1cf` is normaal naar de parallelle bugfixbranch gepusht. Geen merge of deployment uitgevoerd.
+## Startpagina — compact logboek en teamoverzicht — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Geïsoleerde branch `work/bugfix-startpage-layout-20260924` vanaf `origin/main`-baseline `3f9de359c76524306de057455861da734217f252`.
+- De niet-vrijgegeven logboekpreview gebruikt één compacte privacyregel in plaats van drie grote geblurde rijen. Bij nul notities verschijnt geen inhoudvrijgaveactie.
+- De sectiekop voor teamcontext en de managerbeschikbaarheid staan samen in één full-width Foundation-paneel. De vaste beschikbaarheidsweergave valt niet meer onder de verplaatsbare persoonlijke vensters; oude opgeslagen posities worden bij inlezen genormaliseerd.
+- Gerichte tests `11/11`, strict TypeScript, ESLint, i18n-pariteit en diff-check zijn groen. Authenticated browsercontrole is environment-gated doordat deze worktree geen `.env.local` heeft. De beschermde configuratie is niet gelezen of gekopieerd.
+- Geen database-, schema-, permission-, API-, version- of deploymentwijziging.
+
 ## Convergence T01 + F02 + Focus — 2026-09-23
 
 **Status: PARTIAL — all three source lines are merged locally; main push is held because the T01 local pgTAP contract gate could not run. This is not a release.**

@@ -10,6 +10,7 @@ import en from '@/messages/en/focus.json'
 import FocusSectionPage from './page'
 
 const mocks = vi.hoisted(() => ({
+  AuthorizationError: class AuthorizationError extends Error {},
   load: vi.fn(),
   context: vi.fn(),
   sectionContext: vi.fn(),
@@ -22,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   process: vi.fn(),
   absenceWork: vi.fn(),
   absenceState: vi.fn(),
+  redirect: vi.fn((destination: string) => { throw new Error(`redirect:${destination}`) }),
 }))
 
 vi.mock('@/components/focus/load-focus-page', () => ({ loadFocusPage: mocks.load }))
@@ -37,8 +39,8 @@ vi.mock('@/lib/focus/section-service', () => ({
 }))
 vi.mock('@/lib/focus/team-service', () => ({ loadFocusTeamCalendarForContext: mocks.team }))
 vi.mock('@/lib/process-automation/work-service', () => ({ listProcessWork: mocks.process }))
-vi.mock('@/lib/auth/permissions', () => ({ getRequestAuthorizationContext: mocks.context }))
-vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('NOT_FOUND') }, useRouter: () => ({ refresh: vi.fn() }) }))
+vi.mock('@/lib/auth/permissions', () => ({ AuthorizationError: mocks.AuthorizationError, getRequestAuthorizationContext: mocks.context }))
+vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('NOT_FOUND') }, redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn() }) }))
 
 function setup(experience: 'EMPLOYEE' | 'PREBOARDING' = 'EMPLOYEE', locale: Locale = 'nl') {
   const data = focusData({ experience, isPreboarding: experience === 'PREBOARDING' })
@@ -83,6 +85,13 @@ describe('Focus section route boundaries', () => {
     const data = setup()
     data.actions = []
     await expect(render('profiel')).rejects.toThrow('NOT_FOUND')
+  })
+
+  it('sends an authenticated actor without employee context to the access boundary', async () => {
+    mocks.sectionContext.mockRejectedValue(new mocks.AuthorizationError('Er is geen medewerkercontext beschikbaar.'))
+
+    await expect(render('meer')).rejects.toThrow('redirect:/geen-toegang')
+    expect(mocks.redirect).toHaveBeenCalledWith('/geen-toegang')
   })
 
   it('shows only the limited profile and assigned onboarding for preboarding', async () => {

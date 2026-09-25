@@ -3,21 +3,18 @@ import { redirect } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
-import { PageToolbar } from '@/components/patterns/page-toolbar'
-import { buttonClasses } from '@/components/ui/button'
 import { HrCalendarFilterPanel } from '@/components/hr-calendar/hr-calendar-filter-panel'
 import { HrMonthCalendar } from '@/components/hr-calendar/hr-month-calendar'
 import { HrCalendarPageSizeSelect } from '@/components/hr-calendar/hr-calendar-page-size-select'
 import { HrCalendarWeekSelect } from '@/components/hr-calendar/hr-calendar-week-select'
 import {
-  formatCalendarMonth,
   getCalendarWeekOptions,
   getEmployeePageSize,
 } from '@/lib/hr-calendar/calendar-model'
+import { buildHrCalendarUrl, type HrCalendarQuery } from '@/lib/hr-calendar/calendar-url'
 import { loadUnifiedCalendar } from '@/lib/hr-calendar/calendar-service'
 import { calendarQuerySchema } from '@/lib/hr-calendar/schemas'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
-import { getStoredHrCalendarFilterPanelOpen } from '@/lib/preferences/hr-calendar'
 import { getUserPreferences } from '@/lib/preferences/server'
 import { AuthorizationError } from '@/lib/auth/permissions'
 
@@ -30,7 +27,6 @@ interface Props {
     jobGroup?: string
     job?: string
     week?: string
-    type?: string | string[]
     size?: string
     page?: string
     showWeekendsAndHolidays?: string
@@ -45,19 +41,6 @@ function shift(month: string, amount: number) {
   const date = new Date(`${month}-01T00:00:00Z`)
   date.setUTCMonth(date.getUTCMonth() + amount)
   return date.toISOString().slice(0, 7)
-}
-
-function href(query: Record<string, string | string[] | undefined>) {
-  const params = new URLSearchParams()
-  for (const [key, value] of Object.entries(query)) {
-    if (!value) continue
-    if (Array.isArray(value)) {
-      for (const entry of value) params.append(key, entry)
-      continue
-    }
-    params.set(key, value)
-  }
-  return `?${params.toString()}`
 }
 
 export default async function HrCalendarPage({ searchParams }: Props) {
@@ -75,7 +58,6 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     jobGroup: rawQuery.jobGroup,
     job: rawQuery.job,
     week: rawQuery.week,
-    type: Array.isArray(rawQuery.type) ? rawQuery.type : rawQuery.type ? [rawQuery.type] : [],
     size: rawQuery.size,
     page: rawQuery.page,
     showWeekendsAndHolidays: rawQuery.showWeekendsAndHolidays === '0' ? '0' : '1',
@@ -93,10 +75,9 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     throw error
   }
 
-  const [t, locale, filterPanelOpen, preferences] = await Promise.all([
+  const [t, locale, preferences] = await Promise.all([
     getTranslator('hrCalendar'),
     getLocale(),
-    getStoredHrCalendarFilterPanelOpen(),
     getUserPreferences(),
   ])
 
@@ -122,7 +103,6 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     DOCUMENT_ADDED: t('eventDocumentAdded'),
     DOCUMENT_EXPIRES: t('eventDocumentExpires'),
   }
-  const eventTypes = Object.entries(eventLabels).map(([value, label]) => ({ value, label }))
   const q = parsed.q.toLocaleLowerCase('nl-NL')
   const filtered = data.employees.filter((employee) => (
     (!parsed.department || employee.departmentId === parsed.department)
@@ -142,10 +122,7 @@ export default async function HrCalendarPage({ searchParams }: Props) {
   const page = Math.min(Math.max(Number(parsed.page) || 1, 1), totalPages)
   const employees = filtered.slice((page - 1) * size, page * size)
   const visibleIds = new Set(employees.map((employee) => employee.id))
-  const events = data.events.filter((event) => (
-    visibleIds.has(event.employeeId)
-    && (parsed.type.length === 0 || parsed.type.includes(event.eventType))
-  ))
+  const events = data.events.filter((event) => visibleIds.has(event.employeeId))
   const calendarEvents = data.calendarEvents.filter((event) => visibleIds.has(event.employeeId))
   const reminders = data.reminders.filter((reminder) => reminder.employeeId && visibleIds.has(reminder.employeeId))
 
@@ -156,7 +133,6 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     employee: parsed.employee,
     jobGroup: parsed.jobGroup,
     job: parsed.job,
-    type: parsed.type,
     size: parsed.size,
     page: parsed.page,
     week: selectedWeekOption ? String(selectedWeekOption.weekNumber) : undefined,
@@ -165,7 +141,7 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     showScheduledHours: parsed.showScheduledHours === '0' ? '0' : undefined,
     showWeekNumbers: parsed.showWeekNumbers === '1' ? '1' : undefined,
     showDayOccupancy: parsed.showDayOccupancy === '1' ? '1' : undefined,
-  } satisfies Record<string, string | string[] | undefined>
+  } satisfies HrCalendarQuery
 
   return (
     <PageShell className="py-6 sm:py-7" width="wide">
@@ -179,72 +155,29 @@ export default async function HrCalendarPage({ searchParams }: Props) {
         )}
       />
 
-      <PageToolbar
-        className="mt-5"
-        end={parsed.showWeekNumbers === '1' ? (
-          <HrCalendarWeekSelect
-            currentYear={calendarYear}
-            labels={{
-              week: t('week'),
-              weekSelectPlaceholder: t('weekSelectPlaceholder'),
-              searchWeek: t('search'),
-            }}
-            month={month}
-            options={weekOptions}
-            query={{
-              q: parsed.q,
-              department: parsed.department,
-              employee: parsed.employee,
-              jobGroup: parsed.jobGroup,
-              job: parsed.job,
-              type: parsed.type,
-              size: parsed.size,
-              page: parsed.page,
-              showWeekendsAndHolidays: parsed.showWeekendsAndHolidays === '1',
-              showReminders: parsed.showReminders === '1',
-              showScheduledHours: parsed.showScheduledHours === '1',
-              showWeekNumbers: true,
-              showDayOccupancy: parsed.showDayOccupancy === '1',
-            }}
-            selectedWeek={selectedWeekOption?.weekNumber}
-          />
-        ) : undefined}
-        start={(
-          <nav aria-label={t('title')} className="flex w-full flex-wrap gap-2 sm:w-auto">
-            <Link className={buttonClasses({ variant: 'secondary', className: 'order-1 min-w-0 flex-1 px-3 text-xs sm:order-none sm:flex-none sm:text-sm' })} href={href({ ...base, month: currentMonth, page: undefined, week: undefined })}>
-              {t('today')}
-            </Link>
-            <Link className={buttonClasses({ variant: 'secondary', className: 'order-2 min-w-0 flex-1 px-3 text-xs sm:order-none sm:flex-none sm:text-sm' })} href={href({ ...base, month: shift(month, -1), week: undefined })}>
-              {t('previousMonth')}
-            </Link>
-            <span className="order-first flex basis-full items-center justify-center rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle px-3 py-2 text-sm font-semibold sm:order-none sm:basis-auto">
-              {formatCalendarMonth(month, locale)}
-            </span>
-            <Link className={buttonClasses({ variant: 'secondary', className: 'order-3 min-w-0 flex-1 px-3 text-xs sm:order-none sm:flex-none sm:text-sm' })} href={href({ ...base, month: shift(month, 1), week: undefined })}>
-              {t('nextMonth')}
-            </Link>
-          </nav>
-        )}
-      />
-
       <HrCalendarFilterPanel
         departments={data.departments}
         employees={data.employees}
-        eventTypes={eventTypes}
-        initialOpen={filterPanelOpen}
         jobGroups={data.jobGroups}
         jobs={data.jobs}
+        actions={[
+          { id: 'today', label: t('today'), href: buildHrCalendarUrl({ ...base, month: currentMonth, page: undefined, week: undefined }) },
+          { id: 'previous-month', label: t('previousMonth'), href: buildHrCalendarUrl({ ...base, month: shift(month, -1), week: undefined }) },
+          { id: 'next-month', label: t('nextMonth'), href: buildHrCalendarUrl({ ...base, month: shift(month, 1), week: undefined }) },
+          { id: 'reset-defaults', label: t('resetDefaults'), href: buildHrCalendarUrl({ month }) },
+        ]}
         labels={{
+          actions: t('actions'),
+          filters: t('filters'),
+          month: t('month'),
           showFilters: t('showFilters'),
           hideFilters: t('hideFilters'),
-          resetDefaults: t('resetDefaults'),
           search: t('search'),
           searchPlaceholder: t('searchPlaceholder'),
           department: t('department'),
           employee: t('employee'),
           all: t('all'),
           dataToShow: t('dataToShow'),
-          eventTypes: t('eventTypes'),
           activeFilters: t('activeFilters'),
           weekNumbers: t('weekNumbers'),
           weekNumbersHint: t('weekNumbersHint'),
@@ -260,14 +193,38 @@ export default async function HrCalendarPage({ searchParams }: Props) {
           leaveHint: t('leaveHint'),
           absence: t('absence'),
           absenceHint: t('absenceHint'),
-          statusToday: t('statusToday'),
-          sickToday: t('sickToday'),
-          leaveToday: t('leaveToday'),
           notAvailableYet: t('notAvailableYet'),
           jobGroup: t('jobGroup'),
           job: t('job'),
         }}
         month={month}
+        weekSelect={parsed.showWeekNumbers === '1' ? (
+          <HrCalendarWeekSelect
+            currentYear={calendarYear}
+            labels={{
+              week: t('week'),
+              weekSelectPlaceholder: t('weekSelectPlaceholder'),
+              searchWeek: t('search'),
+            }}
+            month={month}
+            options={weekOptions}
+            query={{
+              q: parsed.q,
+              department: parsed.department,
+              employee: parsed.employee,
+              jobGroup: parsed.jobGroup,
+              job: parsed.job,
+              size: parsed.size,
+              page: parsed.page,
+              showWeekendsAndHolidays: parsed.showWeekendsAndHolidays === '1',
+              showReminders: parsed.showReminders === '1',
+              showScheduledHours: parsed.showScheduledHours === '1',
+              showWeekNumbers: true,
+              showDayOccupancy: parsed.showDayOccupancy === '1',
+            }}
+            selectedWeek={selectedWeekOption?.weekNumber}
+          />
+        ) : undefined}
         query={{
           q: parsed.q,
           department: parsed.department,
@@ -275,12 +232,12 @@ export default async function HrCalendarPage({ searchParams }: Props) {
           jobGroup: parsed.jobGroup,
           job: parsed.job,
           week: selectedWeekOption ? String(selectedWeekOption.weekNumber) : undefined,
-          type: parsed.type,
           showWeekendsAndHolidays: parsed.showWeekendsAndHolidays === '1',
           showReminders: parsed.showReminders === '1',
           showScheduledHours: parsed.showScheduledHours === '1',
           showWeekNumbers: parsed.showWeekNumbers === '1',
           showDayOccupancy: parsed.showDayOccupancy === '1',
+          size: parsed.size,
         }}
       />
 
@@ -411,7 +368,6 @@ export default async function HrCalendarPage({ searchParams }: Props) {
               jobGroup: parsed.jobGroup,
               job: parsed.job,
               week: selectedWeekOption ? String(selectedWeekOption.weekNumber) : undefined,
-              type: parsed.type,
               showWeekendsAndHolidays: parsed.showWeekendsAndHolidays === '1',
               showReminders: parsed.showReminders === '1',
               showScheduledHours: parsed.showScheduledHours === '1',
@@ -424,14 +380,14 @@ export default async function HrCalendarPage({ searchParams }: Props) {
           <Link
             aria-disabled={page === 1}
             className={`button-secondary flex-1 sm:flex-none ${page === 1 ? 'pointer-events-none opacity-45' : ''}`}
-            href={href({ ...base, page: String(page - 1) })}
+            href={buildHrCalendarUrl({ ...base, page: String(page - 1) })}
           >
             {t('previous')}
           </Link>
           <Link
             aria-disabled={page === totalPages}
             className={`button-secondary flex-1 sm:flex-none ${page === totalPages ? 'pointer-events-none opacity-45' : ''}`}
-            href={href({ ...base, page: String(page + 1) })}
+            href={buildHrCalendarUrl({ ...base, page: String(page + 1) })}
           >
             {t('next')}
           </Link>
