@@ -2,7 +2,7 @@
 
 ## D01 Dossier/Documents acceptance — 2026-09-24 to 2026-09-25
 
-**Status: GREEN WITH UNRELATED BASELINE TYPECHECK/BUILD EXCEPTION; commit/push finalization in progress.**
+**Status: GREEN WITH UNRELATED BASELINE TYPECHECK/BUILD EXCEPTION; D01 branch pushed.**
 
 - Isolated branch `work/acceptance-D01-20260924`, worktree `.codex-worktrees/acceptance-D01-20260924`, base SHA `3f9de359c76524306de057455861da734217f252`; version remains `1.20260923.1`.
 - All D01 scope used the single shared test project `wnpfloqpjvaacobppbpk`. No merge, deployment, version bump, Docker/local Supabase start, unrelated cleanup, or `next-env.d.ts` change is included.
@@ -11,7 +11,8 @@
 - HR initial DATE/custom-field/expiry/reminder concern was retested with real native date input events. Canonical request, DB values, linked reminder, storage and reloaded UI matched; a regression test now asserts the initial payload. The defect did not reproduce with real input events.
 - Browser/data acceptance passed for categories, nine DOCUMENT definitions, HR and in-scope Manager uploads, negative file fixtures, salary-sensitive gate, Employee/Manager Full and Focus, expiry/reminders, delete/restore and private storage readback. D01 final readback: 12 documents each matched a storage object; all three reminders linked; no negative upload, audience, reminder or storage residue. One old D01-created uppercase category duplicate remains active but unlinked.
 - Evidence/gates: targeted tests 16 files / 80 tests; SQL/RLS contract; changed-file ESLint; 39 equal NL/EN namespaces; Manager Full/Focus at 390×844 without horizontal overflow. Production build compiled but, like strict TypeScript, failed only on the two unchanged absence-service nullability errors at `confirmation-service.ts:51` and `service.ts:339`. D01 report lists unrun English-browser, Settings-mobile and full keyboard-only checks separately.
-- Next: rerun `git diff --check`, confirm generated `next-env.d.ts` has no content diff, commit the D01 source/tests/docs, push only this branch, and verify remote HEAD. Never merge/deploy/bump version or touch unrelated worktrees.
+- D01 source/tests/migrations/report commit: `7154cee2f7df635b9e089f441e50462a67317fc2`; first push was verified against the exact remote branch ref. This context-only closeout update is included in the final pushed branch head.
+- No D01 execution remains. Do not merge, deploy, bump version, edit `next-env.d.ts`, or clean unrelated worktrees. The report records the two unchanged absence-service build/typecheck failures plus the separately unrun English-browser, Settings-mobile and keyboard-only checks.
 
 ## Production release 1.20260923.1 — 2026-09-23
 
