@@ -6,7 +6,7 @@
 - **Branch:** `work/acceptance-D01-20260924`
 - **Worktree:** `.codex-worktrees/acceptance-D01-20260924`
 - **Base SHA:** `3f9de359c76524306de057455861da734217f252`
-- **Final SHA:** verified as the remote branch HEAD in the D01 close-out
+- **Final tested implementation SHA:** `94f2397047bba984a4ada1f2e9f4d76530bc659a` (the final D01 code/test commit; the close-out branch tip is verified separately)
 - **Environment:** SINGLE_TEST_ENVIRONMENT; shared Supabase test project `wnpfloqpjvaacobppbpk`
 - **Version:** `1.20260923.1` (unchanged)
 - **Deployment:** none; no merge, deployment, or version bump
