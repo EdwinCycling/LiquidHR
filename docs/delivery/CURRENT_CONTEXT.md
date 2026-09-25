@@ -25,6 +25,18 @@
 - Verificatie: 24/24 gerichte tests, strict TypeScript, gerichte ESLint, `git diff --check` en de lokale browserflow op poort 3010 geslaagd. `/login` landde op `/dashboard/start`; `/focus/meer` op `/geen-toegang`.
 - Geen DB-mutatie, migratie, versiebump, deployment, merge of D01-aanraking. De lokale browser gebruikte de al aanwezige sessie; er zijn geen credentials ingevoerd.
 - De server luistert op `localhost:3010`. De bugfixbranch is gepusht; er is geen PR aangemaakt.
+## Focus-login, kalenderwerkbalk en RLS-blokkade — 2026-09-24
+
+**Status as of 2026-09-25: calendar toolbar and login routing are integrated in the convergence candidate. The prior browser blocker was the D01 category/document RLS recursion; D01 now carries the accepted forward-only policy fix, and convergence will rerun the calendar route smoke.**
+
+- Branch `work/bugfix-calendar-toolbar-20260924` is gebaseerd op de afgesproken `origin/main`-SHA `3f9de359c76524306de057455861da734217f252`; codecommit `10e0149c8b794549a97fc7c8a420649da8ffc029` staat op `origin`. Filters en weergaveopties starten ingeklapt. De bestaande medewerkerkeuze, maandkiezer, actiemenu en filterknop staan in één compacte regel; weekkeuze staat onder de ingeklapte weergaveopties.
+- De filtergroep `Tijdlijngebeurtenissen` en het paneel `Filter op vandaag` zijn uit de kalender verwijderd. Event-typekeuzes zijn ook uit het queryschema en URL-opbouw verwijderd; oude `type`-parameters filteren geen gebeurtenissen meer en keren niet terug bij navigatie.
+- De loginfallback in `safeNextPath` stuurde accounts zonder expliciete `next` naar `/focus`, ook als zij geen medewerkercontext hebben. De fallback is nu `/dashboard/start`; de dashboardlayout blijft medewerkers die Focus nodig hebben naar `/focus` routeren.
+- Gerichte controle na de laatste codewijziging: Vitest 4 bestanden / 16 tests, ESLint op de gewijzigde TypeScript-bestanden, strict TypeScript, `check:i18n` (39 namespaces) en `git diff --check` zijn groen. De TypeScript-run gebruikte een tijdelijk `tsBuildInfoFile` buiten de repository nadat schrijven naar het standaard gegenereerde bestand `EPERM` gaf.
+- In de branch-checkpoint van 2026-09-24 faalde `/hr-calendar` voor de aangemelde HR Admin met Postgres-code `42P17` door de toen actieve cyclus `employee_documents_salary_gate` → `document_categories_self_document_read` → `employee_documents`. De fout was reproduceerbaar na de eerste D01-migratie en vóór de latere D01-recursiefix. De kandidaat moet de kalenderroute na die fix opnieuw controleren.
+- Destijds was dit een open autorisatie-/schema-afhankelijkheid. De bugfixbranch maakte daarvoor zelf geen migratie en wijzigde `main`, Supabase-data of deployment niet. D01 leverde daarna de goedgekeurde recursiefix; er is tijdens convergence geen migratie opnieuw toegepast of geschiedenis gerepareerd.
+- Op dat checkpoint was geen versieaanpassing of productiebuild uitgevoerd; de kalenderpagina kon door de toenmalige RLS-fout niet worden geaccepteerd. De convergence-run voert de releasebuild en routecontrole opnieuw uit.
+- Processtatus op poort `3010` en `3011` en de tijdelijke `next-env.d.ts` write-guard zijn checkpoint-observaties van 2026-09-24. Controleer die actuele status opnieuw voordat een server wordt gestart; de kandidaat vereist dat `next-env.d.ts` byte-identiek blijft.
 
 ## Production release 1.20260923.1 — 2026-09-23
 

@@ -9,7 +9,6 @@ export const calendarQuerySchema = z.object({
   jobGroup: calendarIdentifier.optional(),
   job: calendarIdentifier.optional(),
   week: z.string().regex(/^[1-9]\d*$/).optional(),
-  type: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
   size: z.enum(['10', '25', 'all']).optional(),
   page: z.string().regex(/^[1-9]\d*$/).optional(),
   showWeekendsAndHolidays: toggle,

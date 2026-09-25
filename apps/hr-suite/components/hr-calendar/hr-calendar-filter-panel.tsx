@@ -1,13 +1,14 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ChevronDown, Filter, RotateCcw, Search } from 'lucide-react'
+import { ChevronDown, Filter, Search } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { FilterBar } from '@/components/patterns/filter-bar'
-import { PageToolbar } from '@/components/patterns/page-toolbar'
+import { ActionMenu } from '@/components/ui/action-menu'
 import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { TextInput } from '@/components/ui/text-input'
+import { buildHrCalendarMonthUrl, buildHrCalendarUrl } from '@/lib/hr-calendar/calendar-url'
 import type { CalendarJobGroupOption, CalendarJobOption } from '@/lib/hr-calendar/calendar-service'
 
 interface Option {
@@ -24,16 +25,17 @@ interface EmployeeOption {
 }
 
 interface HrCalendarFilterPanelLabels {
+  actions: string
+  filters: string
+  month: string
   showFilters: string
   hideFilters: string
-  resetDefaults: string
   search: string
   searchPlaceholder: string
   department: string
   employee: string
   all: string
   dataToShow: string
-  eventTypes: string
   activeFilters: string
   weekNumbers: string
   weekNumbersHint: string
@@ -49,9 +51,6 @@ interface HrCalendarFilterPanelLabels {
   leaveHint: string
   absence: string
   absenceHint: string
-  statusToday: string
-  sickToday: string
-  leaveToday: string
   notAvailableYet: string
   jobGroup: string
   job: string
@@ -66,19 +65,19 @@ interface HrCalendarFilterPanelProps {
     jobGroup?: string
     job?: string
     week?: string
-    type: string[]
     showWeekendsAndHolidays: boolean
     showReminders: boolean
     showScheduledHours: boolean
     showWeekNumbers: boolean
     showDayOccupancy: boolean
+    size?: string
   }
   departments: Option[]
   employees: EmployeeOption[]
   jobGroups: CalendarJobGroupOption[]
   jobs: CalendarJobOption[]
-  eventTypes: Array<{ value: string; label: string }>
-  initialOpen: boolean
+  actions: Array<{ id: string; label: string; href: string }>
+  weekSelect?: ReactNode
   labels: HrCalendarFilterPanelLabels
 }
 
@@ -91,15 +90,14 @@ export function HrCalendarFilterPanel({
   employees,
   jobGroups,
   jobs,
-  eventTypes,
-  initialOpen,
+  actions,
+  weekSelect,
   labels,
 }: HrCalendarFilterPanelProps) {
   const router = useRouter()
-  const [filtersOpen, setFiltersOpen] = useState(initialOpen)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [searchValue, setSearchValue] = useState(query.q)
   const [displayOptionsOpen, setDisplayOptionsOpen] = useState(false)
-  const [todayFiltersOpen, setTodayFiltersOpen] = useState(false)
 
   const visibleJobs = useMemo(
     () => query.jobGroup ? jobs.filter((job) => job.jobGroupId === query.jobGroup) : jobs,
@@ -117,17 +115,13 @@ export function HrCalendarFilterPanel({
     if (jobGroup) filters.push(`${labels.jobGroup}: ${jobGroup.name}`)
     const job = jobs.find((option) => option.id === query.job)
     if (job) filters.push(`${labels.job}: ${job.name}`)
-    if (query.type.length) {
-      const typeLabels = query.type.map((type) => eventTypes.find((option) => option.value === type)?.label ?? type)
-      filters.push(`${labels.eventTypes}: ${typeLabels.join(', ')}`)
-    }
     if (query.week && query.showWeekNumbers) filters.push(`${labels.weekNumbers}: ${query.week}`)
     if (!query.showReminders) filters.push(labels.reminders)
     if (!query.showScheduledHours) filters.push(labels.scheduledHours)
     if (query.showDayOccupancy) filters.push(labels.dayOccupancy)
     if (!query.showWeekendsAndHolidays) filters.push(labels.weekendHoliday)
     return filters
-  }, [departments, employees, eventTypes, jobGroups, jobs, labels, query])
+  }, [departments, employees, jobGroups, jobs, labels, query])
 
   function replaceFilters(next: Partial<CalendarFilters>) {
     const merged: CalendarFilters = { ...query, ...next }
@@ -135,70 +129,60 @@ export function HrCalendarFilterPanel({
       const jobStillValid = jobs.some((job) => job.id === merged.job && (!merged.jobGroup || job.jobGroupId === merged.jobGroup))
       if (!jobStillValid) merged.job = undefined
     }
-    const params = new URLSearchParams()
-    params.set('month', month)
-    const search = merged.q.trim()
-    if (search) params.set('q', search)
-    if (merged.department) params.set('department', merged.department)
-    if (merged.employee) params.set('employee', merged.employee)
-    if (merged.jobGroup) params.set('jobGroup', merged.jobGroup)
-    if (merged.job) params.set('job', merged.job)
-    if (merged.week && merged.showWeekNumbers) params.set('week', merged.week)
-    for (const type of merged.type) params.append('type', type)
-    if (!merged.showWeekendsAndHolidays) params.set('showWeekendsAndHolidays', '0')
-    if (!merged.showReminders) params.set('showReminders', '0')
-    if (!merged.showScheduledHours) params.set('showScheduledHours', '0')
-    if (merged.showWeekNumbers) params.set('showWeekNumbers', '1')
-    if (merged.showDayOccupancy) params.set('showDayOccupancy', '1')
-    router.replace(`/hr-calendar?${params.toString()}`)
+    router.replace(buildHrCalendarUrl({
+      month,
+      q: merged.q.trim() || undefined,
+      department: merged.department,
+      employee: merged.employee,
+      jobGroup: merged.jobGroup,
+      job: merged.job,
+      week: merged.week && merged.showWeekNumbers ? merged.week : undefined,
+      size: merged.size === '10' ? undefined : merged.size,
+      showWeekendsAndHolidays: merged.showWeekendsAndHolidays ? undefined : '0',
+      showReminders: merged.showReminders ? undefined : '0',
+      showScheduledHours: merged.showScheduledHours ? undefined : '0',
+      showWeekNumbers: merged.showWeekNumbers ? '1' : undefined,
+      showDayOccupancy: merged.showDayOccupancy ? '1' : undefined,
+    }))
   }
 
   function toggleFilters() {
-    setFiltersOpen((current) => {
-      const next = !current
-      void fetch('/api/preferences/hr-calendar', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ filterPanelOpen: next }),
-      })
-      return next
-    })
+    setFiltersOpen((current) => !current)
   }
 
-  function resetDefaults() {
-    setSearchValue('')
-    router.replace(`/hr-calendar?month=${month}`)
-  }
-
-  function toggleType(type: string) {
-    replaceFilters({ type: query.type.includes(type) ? query.type.filter((value) => value !== type) : [...query.type, type] })
+  function changeMonth(nextMonth: string) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(nextMonth)) return
+    router.replace(buildHrCalendarMonthUrl(nextMonth, query))
   }
 
   const toggleCardClass = 'flex items-start gap-3 rounded-[var(--radius-control)] border border-border-subtle px-3 py-2.5 text-sm'
 
   return (
     <div className="my-5 space-y-3">
-      <PageToolbar
-        end={activeFilters.length ? (
-          <div aria-label={labels.activeFilters} className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">{labels.activeFilters}</span>
-            {activeFilters.map((filter) => <span className="max-w-full truncate rounded-full border border-border-subtle bg-surface-subtle px-2.5 py-1" key={filter}>{filter}</span>)}
-          </div>
-        ) : undefined}
-        start={(
-          <>
-            <Button aria-expanded={filtersOpen} onClick={toggleFilters} type="button" variant="secondary">
-              <Filter aria-hidden="true" />
-              {filtersOpen ? labels.hideFilters : labels.showFilters}
-              {activeFilters.length ? <span aria-label={`${activeFilters.length}`} className="rounded-full bg-accent px-1.5 text-xs text-accent-foreground">{activeFilters.length}</span> : null}
-            </Button>
-            <Button onClick={resetDefaults} type="button" variant="secondary">
-              <RotateCcw aria-hidden="true" />
-              {labels.resetDefaults}
-            </Button>
-          </>
-        )}
-      />
+      <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+        <div className="min-w-[3.5rem] flex-1">
+          <DropdownSelect aria-label={labels.employee} className="border-border-subtle bg-surface-subtle px-2 text-xs sm:px-3 sm:text-sm" onChange={(event) => replaceFilters({ employee: event.currentTarget.value || undefined, job: query.job, jobGroup: query.jobGroup })} placeholder={labels.all} searchable searchPlaceholder={labels.search} value={query.employee ?? ''}>
+            <option value="">{labels.all}</option>
+            {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.employee_number} · {employee.first_name} {employee.birth_name}</option>)}
+          </DropdownSelect>
+        </div>
+        <label className="sr-only" htmlFor="hr-calendar-month">{labels.month}</label>
+        <TextInput aria-label={labels.month} className="w-[6.5rem] shrink-0 border-border-subtle bg-surface-subtle px-2 text-xs sm:w-36 sm:px-3 sm:text-sm" id="hr-calendar-month" onChange={(event) => changeMonth(event.currentTarget.value)} type="month" value={month} />
+        <ActionMenu className="shrink-0" items={actions} label={labels.actions} />
+        <Button aria-expanded={filtersOpen} aria-label={filtersOpen ? labels.hideFilters : labels.showFilters} className="shrink-0 gap-1.5 px-2 text-xs sm:px-3 sm:text-sm" onClick={toggleFilters} type="button" variant="secondary">
+          <Filter aria-hidden="true" />
+          <span className="hidden sm:inline">{labels.filters}</span>
+          {activeFilters.length ? <span aria-label={`${activeFilters.length}`} className="rounded-full bg-accent px-1.5 text-xs text-accent-foreground">{activeFilters.length}</span> : null}
+          <ChevronDown aria-hidden="true" className={`size-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+        </Button>
+      </div>
+
+      {filtersOpen && activeFilters.length ? (
+        <div aria-label={labels.activeFilters} className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">{labels.activeFilters}</span>
+          {activeFilters.map((filter) => <span className="max-w-full truncate rounded-full border border-border-subtle bg-surface-subtle px-2.5 py-1" key={filter}>{filter}</span>)}
+        </div>
+      ) : null}
 
       {filtersOpen ? (
         <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,0.95fr)]">
@@ -251,43 +235,18 @@ export function HrCalendarFilterPanel({
               </DropdownSelect>
             </label>
 
-            <label className="grid min-w-0 flex-1 basis-full gap-1.5 text-xs font-medium sm:basis-[calc(50%-0.75rem)] xl:basis-[calc(25%-0.75rem)]">
-              <span>{labels.employee}</span>
-              <DropdownSelect aria-label={labels.employee} onChange={(event) => replaceFilters({ employee: event.currentTarget.value || undefined, job: query.job, jobGroup: query.jobGroup })} placeholder={labels.all} searchable searchPlaceholder={labels.search} value={query.employee ?? ''}>
-                <option value="">{labels.all}</option>
-                {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.employee_number} · {employee.first_name} {employee.birth_name}</option>)}
-              </DropdownSelect>
-            </label>
-
-            <fieldset className="grid basis-full gap-2 border-t border-border-subtle pt-3">
-              <legend className="text-xs font-semibold text-foreground">{labels.eventTypes}</legend>
-              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {eventTypes.map((eventType) => (
-                  <label className="flex min-w-0 items-start gap-2 rounded-[var(--radius-control)] border border-border-subtle px-3 py-2 text-xs font-medium" key={eventType.value}>
-                    <input checked={query.type.includes(eventType.value)} className="mt-0.5 size-4 shrink-0 accent-primary" onChange={() => toggleType(eventType.value)} type="checkbox" />
-                    <span className="min-w-0">{eventType.label}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
           </FilterBar>
 
           <div className="grid gap-3">
             <CollapsibleSection isOpen={displayOptionsOpen} onToggle={() => setDisplayOptionsOpen((current) => !current)} title={labels.dataToShow}>
               <div className="grid gap-2.5">
+                {weekSelect}
                 <ToggleCard checked={query.showWeekNumbers} description={labels.weekNumbersHint} label={labels.weekNumbers} onChange={() => replaceFilters({ showWeekNumbers: !query.showWeekNumbers, week: query.showWeekNumbers ? undefined : query.week, job: query.job, jobGroup: query.jobGroup })} toggleCardClass={toggleCardClass} />
                 <ToggleCard checked={query.showWeekendsAndHolidays} description={labels.weekendHolidayHint} label={labels.weekendHoliday} onChange={() => replaceFilters({ showWeekendsAndHolidays: !query.showWeekendsAndHolidays, job: query.job, jobGroup: query.jobGroup })} toggleCardClass={toggleCardClass} />
                 <ToggleCard checked={query.showReminders} description={labels.remindersHint} label={labels.reminders} onChange={() => replaceFilters({ showReminders: !query.showReminders, job: query.job, jobGroup: query.jobGroup })} toggleCardClass={toggleCardClass} />
                 <ToggleCard checked={query.showScheduledHours} description={labels.scheduledHoursHint} label={labels.scheduledHours} onChange={() => replaceFilters({ showScheduledHours: !query.showScheduledHours, job: query.job, jobGroup: query.jobGroup })} toggleCardClass={toggleCardClass} />
                 <ToggleCard checked={query.showDayOccupancy} description={labels.dayOccupancyHint} label={labels.dayOccupancy} onChange={() => replaceFilters({ showDayOccupancy: !query.showDayOccupancy, job: query.job, jobGroup: query.jobGroup })} toggleCardClass={toggleCardClass} />
                 <DisabledCard description={labels.absenceHint} label={labels.absence} note={labels.notAvailableYet} toggleCardClass={toggleCardClass} />
-              </div>
-            </CollapsibleSection>
-
-            <CollapsibleSection isOpen={todayFiltersOpen} onToggle={() => setTodayFiltersOpen((current) => !current)} title={labels.statusToday}>
-              <div className="grid gap-2.5">
-                <DisabledCard description={labels.notAvailableYet} label={labels.sickToday} note={labels.notAvailableYet} toggleCardClass={toggleCardClass} />
-                <DisabledCard description={labels.notAvailableYet} label={labels.leaveToday} note={labels.notAvailableYet} toggleCardClass={toggleCardClass} />
               </div>
             </CollapsibleSection>
           </div>
