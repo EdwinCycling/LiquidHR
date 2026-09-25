@@ -2,15 +2,14 @@
 
 ## D01 Dossier / Documents — 2026-09-25
 
-**Status: PARTIAL / ENVIRONMENT-GATED — D01 product/security fixes verified; browser gates open.**
+**Status: D01 ACCEPTANCE GREEN — only the documented pre-existing TypeScript/build errors outside D01 remain.**
 
 - Work is on `work/acceptance-D01-20260924`, from `3f9de359c76524306de057455861da734217f252`; app version remains `1.20260923.1`. Do not merge, deploy, or bump version.
 - Category CRUD, DOCUMENT custom fields, HR/Manager upload, audience and scope checks, expiry/reminder, salary gate, Employee/Manager Full and Focus, private storage, negative file validation and delete/restore were exercised with canonical DB/storage readback.
-- Fixed category RLS recursion (`42P17`), restricted custom-field list failure (`42501`), reminder SQL ambiguity, uploader/audience scope, scoped Manager expiry reminder, category-code/Settings lifecycle defects, Manager Focus scope, Focus mobile action-row layout, same-origin preview policy, and canonical DOCUMENT custom-field persistence on create/update. HR DATE/expiry/reminder upload roundtrip now matches the canonical payload, database, linked reminder, storage metadata and reloaded UI.
+- Fixed category RLS recursion (`42P17`), restricted custom-field list failure (`42501`), reminder SQL ambiguity, uploader/audience scope, scoped Manager expiry reminder, category-code/Settings lifecycle defects, Manager Focus scope, Focus mobile action-row layout, same-origin preview policy, and canonical DOCUMENT custom-field persistence on create/update. HR DATE/expiry/reminder upload roundtrip now matches the canonical payload, database, linked reminder, storage metadata and reloaded UI. Final browser pass also fixed the English custom-field label/accessibility fallback and dropdown Escape bubbling that could open the discard prompt.
 - Remote history contains all five D01 logical migration names; server-generated version stamps differ from local filenames. No history repair or reapply occurred; the current repository migration sequence yields the intended clean database state.
-- Latest targeted Vitest rerun passed `12 files / 58 tests`; earlier D01 aggregate targeted run passed `16 files / 70 tests`. The latest SQL/RLS matrix passed and rolled back. Changed-file ESLint and NL/EN parity `39/39` passed. Strict TypeScript and production build stop only at unchanged absence-service nullability errors (`confirmation-service.ts:51`, `service.ts:339`).
-- D01 is not GREEN: the local browser session did not hydrate the Settings accordion/create controls or persist the English locale. Full keyboard-only traversal and an authenticated cross-tenant actor denial also remain unproven; the second tenant has no active employee with an authenticated user identity. At 390×844 the Dossier, category list, and custom-field list rendered without horizontal overflow.
-- Detailed evidence, limits and bug-by-bug regression status: [`D01 acceptance report`](../quality/acceptance/runs/D01-dossier-documents.md). Resume at the open browser/security gates. No merge, deployment or version bump is part of this run.
+- Final targeted Vitest passed `23 files / 107 tests`; SQL/RLS matrix, changed-file ESLint, NL/EN parity `39/39` and `git diff --check` passed. English/NL, mobile Settings, keyboard Escape and authenticated cross-tenant denial are verified. Strict TypeScript and build stop only at unchanged absence-service nullability errors (`confirmation-service.ts:51`, `service.ts:339`); guarded Webpack compilation succeeds and `next-env.d.ts` is unchanged.
+- Detailed evidence and bug-by-bug regression status: [`D01 acceptance report`](../quality/acceptance/runs/D01-dossier-documents.md). D01 remains isolated; no merge, deployment or version bump is part of this run.
 
 ## Convergence T01 + F02 + Focus — 2026-09-23
 

@@ -15,7 +15,7 @@ Canonical repository-owned source of truth for repeatable LiquidHR acceptance ru
 
 | ID | Scope | Status | Mode | Next action |
 |---|---|---|---|---|
-| D01 | Dossier / Documents | PARTIAL / ENVIRONMENT-GATED | ISOLATED_FIXTURE | Complete English, interactive Settings mobile, keyboard, and cross-tenant actor gates; branch not integrated |
+| D01 | Dossier / Documents | GREEN (baseline TypeScript/build exception documented) | ISOLATED_FIXTURE | Regression baseline; isolated branch remains unmerged and undeployed |
 | A01 | Focus + Absence + Leave | DONE / GREEN | SOLO | Regression baseline |
 | GJ01 | Onboarding / Preboarding | PARTIAL / EXTERNAL_BLOCKER | SOLO | GJ01R after DEV mail recovery |
 | GJ02 | Documents / Studio / Signing | GREEN | SOLO | DOC02 follow-up |

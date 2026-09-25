@@ -2,7 +2,7 @@
 
 - **Run ID:** `D01-20260924`
 - **Run date:** 2026-09-24 to 2026-09-25
-- **Status:** PARTIAL / ENVIRONMENT-GATED — D01 product/data fixes verified; browser gates remain
+- **Status:** GREEN — all D01 gates pass; strict TypeScript/build retain two verified pre-existing errors outside D01
 - **Branch:** `work/acceptance-D01-20260924`
 - **Worktree:** `.codex-worktrees/acceptance-D01-20260924`
 - **Base SHA:** `3f9de359c76524306de057455861da734217f252`
@@ -13,7 +13,7 @@
 
 ## Result
 
-The tested category, DOCUMENT custom-field, HR upload, scoped Manager upload, Employee/Manager Full and Focus access, salary gate, expiry/reminder, file validation, delete/restore, and database/storage scenarios passed. In-scope product/security defects found during those scenarios were fixed and retested. The latest rollback-only SQL matrix also passed. D01 is **not GREEN yet**: English browser interaction, interactive Settings mobile controls, full keyboard traversal, and a real cross-tenant actor denial remain unproven.
+The tested category, DOCUMENT custom-field, HR upload, scoped Manager upload, Employee/Manager Full and Focus access, salary gate, expiry/reminder, file validation, delete/restore, and database/storage scenarios passed. In-scope product/security defects found during those scenarios were fixed and retested. English and Dutch browser flows, Settings mobile interactions, keyboard traversal, and authenticated cross-tenant denial are now verified. The latest rollback-only SQL matrix also passed.
 
 Strict TypeScript and the production build also remain blocked by two unchanged absence-service errors. Those are outside D01. The final browser gates above are separate from that baseline code failure.
 
@@ -148,13 +148,16 @@ Read-only post-apply inspection confirmed document/category/audience/storage RLS
 | Focus document action row collapsed title at mobile width | Actions and title competed in one narrow row | Use a second responsive action row | Browser at 390×844: no horizontal overflow; title width 268 px | Fixed |
 | Document preview was blank under framing policy | Authenticated same-origin viewer conflicted with default frame header | Canonical same-origin preview route and route-specific frame policy | Browser opened and displayed fixture text; signed/authenticated authorization path retained | Fixed |
 | HR upload DATE/custom-field/expiry/reminder roundtrip | The atomic create path did not apply accepted DOCUMENT custom-field JSON to the canonical document row; those values therefore were not guaranteed to roundtrip with the existing expiry/reminder fields | Apply validated custom fields in the canonical atomic create/update flow; retain `expires_on` and linked reminder persistence in that transaction | Initial-request regression plus real browser upload, reload, and database/reminder/storage readback | Fixed and verified after migration; current values match |
+| DOCUMENT custom-field labels were Dutch in the English list and preview | The server page did not pass the active locale, and the manager always chose `labelNl` for definitions and select options | Pass the authenticated preference locale to the manager and select the matching NL/EN definition, option and preview labels | Page prop regression, locale-label regression, English desktop/mobile list and editor browser readback | Fixed; NL and EN both render the correct labels |
+| DOCUMENT custom-field selector names fell back to Dutch in English | The shared dropdown's default placeholder was used as its accessible name when callers omitted `aria-label` | Add the translated `selectOption` label and pass explicit localized control names and placeholder in the D01 custom-field flow | Component regression and real English mobile editor: Field type, HR access, Manager access and Employee access are named in English; no Dutch fallback remains | Fixed; NL/EN key parity passes |
+| Escape on a field-type dropdown also closed the whole editor | The portaled dropdown key event bubbled to the containing Dialog's Escape handler | Stop propagation after the dropdown handles Escape, so only the option menu closes | Dirty-editor regression and browser retest: the menu closes, editor remains, and the unsaved value is intact; normal Cancel then prompts before discarding | Fixed; no business row was written |
 
 ## Responsive, localization and UX
 
-- At 390×844, Dossier, document-category list, and DOCUMENT custom-field Settings pages rendered at 390px document width without horizontal overflow. Earlier Manager Full/Focus checks also had no horizontal overflow; Focus title width was 268px.
-- In the final local CUA pass, Settings mobile rows were visible but accordion/create actions did not fire. The local Next dev page showed an HMR cross-origin warning from `127.0.0.1`; React hydration was not operational in that session. Therefore the Settings mobile interaction gate remains open.
-- Dutch browser flows were exercised. `npm run check:i18n` found 39 NL/EN namespaces with equal keys and no raw translation key was reported. The English preference control changed its native DOM state in the final local pass but did not update the rendered locale, so the English browser gate remains open.
-- Focus preview, loading/error feedback for rejected file types, required category fields, and restored/deleted document states were checked. Full keyboard-only traversal was not separately recorded.
+- At 390×844, the Dossier, document-category list/add dialog, and DOCUMENT custom-field list/editor rendered at 390px document width without horizontal overflow. The custom-field editor's controls and English type options were reachable; earlier Manager Full/Focus checks also had no horizontal overflow and Focus title width was 268px.
+- English preference was saved through Personal settings and reload confirmed English. Category settings and the DOCUMENT custom-field list/add editor rendered and accepted interaction in English. The definition labels, select options and selector accessible names were English; no Dutch fallback appeared. The original Dutch preference was restored through the same UI and confirmed after reload.
+- Keyboard-only category interaction opened the Add dialog, traversed Code, Name, Description, salary checkbox, Cancel, Add, and Close, then closed the dialog with Escape. In the dirty custom-field editor, Escape closed only the dropdown and preserved the unsaved value; Cancel opened the discard confirmation as expected.
+- Focus preview, loading/error feedback for rejected file types, required category fields, and restored/deleted document states were checked. `check:i18n` reports 39 NL/EN namespaces with equal keys.
 
 ## Acknowledgement
 
@@ -164,21 +167,21 @@ The current Dossier UI does not expose acknowledgement / kennisname. The canonic
 
 | Gate | Result | Evidence |
 |---|---|---|
-| D01-targeted Vitest | PASS | Final bounded rerun: 12 files / 58 tests. Earlier D01 aggregate targeted run: 16 files / 70 tests; the aggregate was not rerun after the SQL-only matrix addition. |
+| D01-targeted Vitest | PASS | Final relevant rerun: 23 files / 107 tests, including the locale, selector accessibility and dropdown Escape regressions |
 | SQL/RLS contract | PASS | Latest `employee_document_dossiers.sql` completed on shared TEST project; transaction rolled back |
 | Changed-file ESLint | PASS | Exit 0; changed TypeScript/TSX files linted |
 | NL/EN parity | PASS | 39 namespaces have equal keys |
 | `git diff --check` | PASS | Exit 0 after the report and delivery-status updates; only standard Windows line-ending notices |
-| Strict TypeScript | BASELINE FAILURE | Only `lib/absence/confirmation-service.ts:51` and `lib/absence/service.ts:339`; both verified unchanged from base SHA |
-| Production build | BASELINE FAILURE | Optimized production compilation succeeded; type phase stopped at the same two unchanged absence-service errors |
+| Strict TypeScript | BASELINE EXCEPTION | Only `lib/absence/confirmation-service.ts:51` and `lib/absence/service.ts:339`; both were verified unchanged from the D01 base SHA, and no changed D01 file reports a type error |
+| Production build | BASELINE EXCEPTION | Optimized Webpack compilation succeeded in 60 seconds; Next type checking stopped at the same two unchanged absence-service errors |
+| Protected `next-env.d.ts` | PASS | Guarded build; SHA-1 Git blob before and after is `ce4e94a6b10f160ee021fe18939af160d2927dcf` |
 
 No Docker or local Supabase was started. Generated fixtures are ignored; no binaries are committed. Version, main and Vercel deployment were not changed.
 
 ## ENVIRONMENT-GATED
 
 - This run used only the canonical shared test project. Test data is identifiable by `D01-20260924`; all D01 rows and objects were read back together. The exact unlinked uppercase D01 duplicate category was removed after confirming zero document references; the three required categories remain.
-- Cross-tenant actor denial is not directly proven: the shared project currently has active documents in one tenant, while the other tenant has no active employee with an authenticated user identity. The rollback-only matrix proves wrong-employee and cross-HR-group denials; a real second-tenant authenticated fixture is unavailable.
-- The local browser harness failed to hydrate client interactions during the final Settings/English pass. This is recorded as a harness gate, not a product pass or a server-side authorization denial.
+- Authenticated HR Admin in the active `liquid-hr-demo-holding` tenant requested the dossier list for an active employee in the separate `noorderlicht-zorggroep` tenant. The local app server recorded **403**; the employee profile route returned a concealed **404**. The browser extension blocked showing the API response body, which was not read; no employee data or target records were changed.
 - Vercel deployment and main integration were intentionally not part of D01.
 
 ## PRODUCT DECISIONS
@@ -189,8 +192,7 @@ No Docker or local Supabase was started. Generated fixtures are ignored; no bina
 
 ## NOT FIXED
 
-- The two unchanged absence-service nullability errors remain outside D01 and block strict TypeScript and the production build after compilation.
-- Full English browser interaction, interactive Settings mobile controls, full keyboard-only traversal, and an authenticated cross-tenant negative actor check remain unproven. Mobile page rendering and NL/EN key parity passed.
+- The two unchanged absence-service nullability errors remain outside D01 and stop the final strict TypeScript/build type phase after D01 source compilation. Both files match the D01 base SHA exactly.
 
 ## LESSONS / PATTERNS
 
