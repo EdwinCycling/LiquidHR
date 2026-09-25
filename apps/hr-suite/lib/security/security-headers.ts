@@ -5,3 +5,9 @@ export const securityHeaders: Array<{ key: string; value: string }> = [
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
 ]
+
+const DOCUMENT_PREVIEW_PATH = /^\/api\/employees\/[^/]+\/documents\/[^/]+\/preview$/
+
+export function frameOptionsForPath(pathname: string): 'DENY' | 'SAMEORIGIN' {
+  return DOCUMENT_PREVIEW_PATH.test(pathname) ? 'SAMEORIGIN' : 'DENY'
+}

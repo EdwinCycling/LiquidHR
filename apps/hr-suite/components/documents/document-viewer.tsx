@@ -2,11 +2,15 @@
 'use client'
 
 import { Download, ExternalLink, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { isInlineDocumentPreviewContentType } from '@/lib/documents/file-rules'
 
 interface DocumentViewerLabels {
   close: string
   download: string
   unsupported: string
+  previewLoading?: string
+  previewUnavailable?: string
 }
 
 export function DocumentViewer({
@@ -14,6 +18,8 @@ export function DocumentViewer({
   filename,
   contentType,
   previewHref,
+  downloadHref,
+  useBlobPreview = false,
   labels,
   onClose,
 }: {
@@ -21,11 +27,41 @@ export function DocumentViewer({
   filename: string
   contentType: string
   previewHref: string
+  downloadHref?: string
+  useBlobPreview?: boolean
   labels: DocumentViewerLabels
   onClose: () => void
 }) {
-  const isImage = contentType.startsWith('image/')
-  const isInline = contentType === 'application/pdf' || contentType.startsWith('text/')
+  const normalizedContentType = contentType.split(';', 1)[0]?.trim().toLocaleLowerCase('en-US') ?? ''
+  const isImage = ['image/bmp', 'image/jpeg', 'image/png', 'image/webp'].includes(normalizedContentType)
+  const isInline = isInlineDocumentPreviewContentType(normalizedContentType)
+  const [previewResult, setPreviewResult] = useState<{ href: string; url?: string; failed?: boolean } | null>(null)
+  const currentPreview = previewResult?.href === previewHref ? previewResult : null
+
+  useEffect(() => {
+    if (!useBlobPreview || !isInline) return
+
+    const controller = new AbortController()
+    let objectUrl: string | null = null
+    void fetch(previewHref, { cache: 'no-store', credentials: 'same-origin', signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Preview request failed')
+        const body = await response.blob()
+        if (controller.signal.aborted) return
+        objectUrl = URL.createObjectURL(new Blob([body], { type: normalizedContentType }))
+        setPreviewResult({ href: previewHref, url: objectUrl })
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setPreviewResult({ href: previewHref, failed: true })
+      })
+
+    return () => {
+      controller.abort()
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [isInline, normalizedContentType, previewHref, useBlobPreview])
+
+  const previewSource = useBlobPreview ? currentPreview?.url : previewHref
 
   return (
     <div className="fixed inset-0 z-[90] grid place-items-center bg-sidebar/75 p-3 backdrop-blur-sm sm:p-6" role="presentation" onMouseDown={onClose}>
@@ -35,9 +71,15 @@ export function DocumentViewer({
           <button aria-label={labels.close} className="button-secondary shrink-0 p-2" onClick={onClose} type="button"><X size={18} /></button>
         </header>
         <div className="min-h-0 flex-1 overflow-auto bg-muted/30 p-3 sm:p-5">
-          {isImage ? <div className="flex min-h-96 items-center justify-center"><img alt={title} className="max-h-[70vh] max-w-full rounded-xl object-contain shadow-sm" src={previewHref} /></div> : isInline ? <iframe className="h-[min(70vh,48rem)] w-full rounded-xl border bg-background" src={previewHref} title={title} /> : <div className="mx-auto flex min-h-64 max-w-lg flex-col items-center justify-center rounded-xl border bg-surface p-6 text-center"><ExternalLink className="text-muted-foreground" size={30} /><p className="mt-4 text-sm text-muted-foreground">{labels.unsupported}</p></div>}
+          {isInline
+            ? useBlobPreview && !previewSource
+              ? <p aria-live="polite" className="flex min-h-64 items-center justify-center text-sm text-muted-foreground">{currentPreview?.failed ? labels.previewUnavailable ?? labels.unsupported : labels.previewLoading ?? labels.unsupported}</p>
+              : isImage
+                ? <div className="flex min-h-96 items-center justify-center"><img alt={title} className="max-h-[70vh] max-w-full rounded-xl object-contain shadow-sm" src={previewSource ?? previewHref} /></div>
+                : <iframe className="h-[min(70vh,48rem)] w-full rounded-xl border bg-background" src={previewSource ?? previewHref} title={title} />
+            : <div className="mx-auto flex min-h-64 max-w-lg flex-col items-center justify-center rounded-xl border bg-surface p-6 text-center"><ExternalLink className="text-muted-foreground" size={30} /><p className="mt-4 text-sm text-muted-foreground">{labels.unsupported}</p></div>}
         </div>
-        <footer className="flex justify-end border-t px-4 py-3 sm:px-5"><a className="button-primary inline-flex items-center gap-2" href={previewHref} download={filename}><Download size={16} />{labels.download}</a></footer>
+        <footer className="flex justify-end border-t px-4 py-3 sm:px-5"><a className="button-primary inline-flex items-center gap-2" href={downloadHref ?? previewHref} download={filename}><Download size={16} />{labels.download}</a></footer>
       </section>
     </div>
   )

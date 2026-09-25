@@ -1,5 +1,16 @@
 # Implementatiestatus Liquid HR
 
+## D01 Dossier / Documents — 2026-09-25
+
+**Status: ACCEPTANCE GREEN WITH UNRELATED BASELINE TYPECHECK/BUILD EXCEPTION; isolated branch, not integrated.**
+
+- Completed on `work/acceptance-D01-20260924`, from `3f9de359c76524306de057455861da734217f252`; app version remains `1.20260923.1`.
+- Category CRUD, DOCUMENT custom fields, HR/Manager upload, audience and scope checks, expiry/reminder, salary gate, Employee/Manager Full and Focus, private storage, negative file validation and delete/restore were exercised with canonical DB/storage readback.
+- Fixed category RLS recursion (`42P17`), restricted custom-field list failure (`42501`), reminder SQL ambiguity, uploader/audience scope, scoped Manager expiry reminder, category-code/cyclic Settings defects, Manager Focus scope, Focus mobile action-row layout, and same-origin preview policy. The suspected initial DATE/expiry/reminder issue passed with real native input events; the initial request regression and end-to-end DB/reminder/storage/UI readback now protect it.
+- Remote history contains all five D01 logical migration names; server-generated version stamps differ from local filenames. No history repair or reapply occurred; the current repository migration sequence yields the intended clean database state.
+- D01-targeted Vitest `16 files / 80 tests`, SQL contract, changed-file ESLint and NL/EN parity `39/39` passed. Strict TypeScript and production build stop only at unchanged absence-service nullability errors (`confirmation-service.ts:51`, `service.ts:339`).
+- Detailed evidence, limits and bug-by-bug regression status: [`D01 acceptance report`](../quality/acceptance/runs/D01-dossier-documents.md). No merge, deployment or version bump is part of this run.
+
 ## Convergence T01 + F02 + Focus — 2026-09-23
 
 **Status: PARTIAL — all three source lines are merged locally; main push is held because the T01 local pgTAP contract gate could not run. This is not a release.**

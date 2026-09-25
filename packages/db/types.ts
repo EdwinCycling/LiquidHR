@@ -145,8 +145,8 @@ export type Database = {
           is_frequent_absence: boolean
           is_third_party_traffic_accident: boolean | null
           is_work_accident: boolean | null
-          prior_case_count_12_months: number
           pending_confirmation: boolean
+          prior_case_count_12_months: number
           recovery_window_ends_on: string | null
           status: Database["public"]["Enums"]["absence_case_status"]
           tenant_id: string
@@ -170,8 +170,8 @@ export type Database = {
           is_frequent_absence?: boolean
           is_third_party_traffic_accident?: boolean | null
           is_work_accident?: boolean | null
-          prior_case_count_12_months?: number
           pending_confirmation?: boolean
+          prior_case_count_12_months?: number
           recovery_window_ends_on?: string | null
           status?: Database["public"]["Enums"]["absence_case_status"]
           tenant_id: string
@@ -195,8 +195,8 @@ export type Database = {
           is_frequent_absence?: boolean
           is_third_party_traffic_accident?: boolean | null
           is_work_accident?: boolean | null
-          prior_case_count_12_months?: number
           pending_confirmation?: boolean
+          prior_case_count_12_months?: number
           recovery_window_ends_on?: string | null
           status?: Database["public"]["Enums"]["absence_case_status"]
           tenant_id?: string
@@ -324,6 +324,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_confirmations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2696,7 +2703,7 @@ export type Database = {
           },
         ]
       }
-      // Local compatibility type: this table exists in the application rollout but not in remote dev/test schema introspection.
+      // Local compatibility type: this table exists in the application rollout but not in remote test schema introspection.
       company_activities: {
         Row: {
           activity_date: string
@@ -20163,6 +20170,10 @@ export type Database = {
         Args: { requested_job_id: string; requested_language?: string }
         Returns: Json
       }
+      can_access_employee_dossier: {
+        Args: { requested_employee_id: string; requested_permission: string }
+        Returns: boolean
+      }
       capture_tenant_usage_snapshot: {
         Args: { requested_tenant_id: string }
         Returns: string
@@ -20298,6 +20309,10 @@ export type Database = {
           requested_output_id: string
         }
         Returns: Json
+      }
+      confirm_absence_confirmation: {
+        Args: { requested_case_id: string }
+        Returns: string
       }
       confirm_employment_termination: {
         Args: { requested_termination_id: string }
@@ -20445,6 +20460,14 @@ export type Database = {
         Returns: string
       }
       create_employee_document_metadata: {
+        Args: {
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_payload: Json
+        }
+        Returns: string
+      }
+      create_employee_document_metadata_atomic: {
         Args: {
           requested_administration_id: string
           requested_employee_id: string
@@ -20828,6 +20851,15 @@ export type Database = {
         }
         Returns: Json
       }
+      get_accessible_employee_document_custom_fields: {
+        Args: { requested_document_ids: string[] }
+        Returns: {
+          custom_fields: Json
+          document_id: string
+          labels_en: Json
+          labels_nl: Json
+        }[]
+      }
       get_ai_actor_quota: {
         Args: {
           requested_actor_user_id: string
@@ -20877,6 +20909,30 @@ export type Database = {
           reservation_id: string
           reserved_credits: number
           settled_credits: number
+        }[]
+      }
+      get_deleted_employee_documents_for_restore: {
+        Args: { requested_employee_id: string }
+        Returns: {
+          added_by_user_id: string
+          category_code: string
+          category_id: string
+          category_name: string
+          category_requires_salary_permission: boolean
+          checksum_sha256: string
+          content_type: string
+          created_at: string
+          delete_reason: string
+          deleted_at: string
+          deleted_by_user_id: string
+          description: string
+          expires_on: string
+          expiry_reminder_id: string
+          file_size: number
+          id: string
+          original_filename: string
+          tags: string[]
+          title: string
         }[]
       }
       get_document_acknowledgement_document: {
@@ -21495,6 +21551,13 @@ export type Database = {
             }
             Returns: string
           }
+      register_absence_confirmation: {
+        Args: {
+          requested_case_id: string
+          requested_subject_employee_id?: string
+        }
+        Returns: string
+      }
       release_ai_credits: {
         Args: {
           requested_invocation_id: string
@@ -21544,30 +21607,6 @@ export type Database = {
         }
         Returns: Json
       }
-      confirm_absence_confirmation: {
-        Args: { requested_case_id: string }
-        Returns: string
-      }
-      report_focus_employee_absence: {
-        Args: {
-          requested_employee_id: string
-          requested_employment_id: string
-          requested_expected_recovery_on?: string | null
-          requested_hr_group_id: string
-          requested_idempotency_key?: string | null
-          requested_start_date: string
-          requested_tenant_id: string
-        }
-        Returns: string
-      }
-      register_absence_confirmation: {
-        Args: { requested_case_id: string; requested_subject_employee_id?: string | null }
-        Returns: string
-      }
-      request_absence_correction: {
-        Args: { requested_case_id: string; requested_reason: string }
-        Returns: string
-      }
       report_absence: {
         Args: {
           requested_absence_percentage: number
@@ -21582,6 +21621,22 @@ export type Database = {
           requested_start_date: string
           requested_tenant_id: string
         }
+        Returns: string
+      }
+      report_focus_employee_absence: {
+        Args: {
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_expected_recovery_on?: string
+          requested_hr_group_id: string
+          requested_idempotency_key?: string
+          requested_start_date: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
+      request_absence_correction: {
+        Args: { requested_case_id: string; requested_reason: string }
         Returns: string
       }
       request_process_work_item_changes: {
@@ -21676,6 +21731,10 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: string
+      }
+      restore_employee_document_atomic: {
+        Args: { requested_document_id: string; requested_employee_id: string }
+        Returns: boolean
       }
       retire_document_studio_asset: {
         Args: { requested_asset_id: string }
@@ -21799,15 +21858,6 @@ export type Database = {
         }
         Returns: string
       }
-      set_group_leave_type_family: {
-        Args: {
-          requested_family: Database["public"]["Enums"]["leave_type_family"]
-          requested_hr_group_id: string
-          requested_leave_type_id: string
-          requested_tenant_id: string
-        }
-        Returns: string
-      }
       save_group_leave_type: {
         Args: {
           requested_allow_limit_overrun: boolean
@@ -21904,6 +21954,15 @@ export type Database = {
         Args: { requested_status: string; target_employee_id: string }
         Returns: string
       }
+      set_group_leave_type_family: {
+        Args: {
+          requested_family: Database["public"]["Enums"]["leave_type_family"]
+          requested_hr_group_id: string
+          requested_leave_type_id: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       set_recruitment_library_item_enabled: {
         Args: { requested_is_enabled: boolean; requested_item_id: string }
         Returns: Json
@@ -21926,6 +21985,14 @@ export type Database = {
       soft_delete_company_document: {
         Args: { requested_document_id: string }
         Returns: undefined
+      }
+      soft_delete_employee_document_atomic: {
+        Args: {
+          requested_delete_reason: string
+          requested_document_id: string
+          requested_employee_id: string
+        }
+        Returns: boolean
       }
       start_document_acknowledgement: {
         Args: {
@@ -22036,6 +22103,14 @@ export type Database = {
           requested_status: string
         }
         Returns: string
+      }
+      update_employee_document_metadata_atomic: {
+        Args: {
+          requested_document_id: string
+          requested_employee_id: string
+          requested_payload: Json
+        }
+        Returns: undefined
       }
       update_enps_draft: {
         Args: { p_campaign_id: string; p_payload: Json }
@@ -22818,6 +22893,7 @@ export const Constants = {
         "ANNUAL_HOURS_FTE_CAP",
         "OVERTIME_HOURS",
       ],
+      leave_type_family: ["VACATION", "OTHER"],
       leave_work_hour_entry_status: [
         "PENDING",
         "APPROVED",

@@ -1,5 +1,20 @@
 # Actuele overdracht Liquid HR
 
+## D01 Dossier/Documents acceptance — 2026-09-24 to 2026-09-25
+
+**Status: GREEN WITH UNRELATED BASELINE TYPECHECK/BUILD EXCEPTION; commit/push finalization in progress.**
+
+- Isolated branch `work/acceptance-D01-20260924`, worktree `.codex-worktrees/acceptance-D01-20260924`, base SHA `3f9de359c76524306de057455861da734217f252`; version remains `1.20260923.1`.
+- All D01 scope used the single shared test project `wnpfloqpjvaacobppbpk`. No merge, deployment, version bump, Docker/local Supabase start, unrelated cleanup, or `next-env.d.ts` change is included.
+- `42P17` root cause was category-read → `employee_documents` → salary gate → category. The minimal actor-bound helper/policy fix is applied once. All five D01 logical migration names exist remotely; server-stamped versions differ from local filenames, but there is no missing logical migration. History was not edited/repaired and nothing was reapplied. Current repository migrations produce the desired state on a clean database; no convergence migration is needed.
+- Reproduced defects fixed: category RLS recursion; dossier `42501` from reading restricted custom fields directly; ambiguous reminder identifier; incomplete actor/subject audience scope; Manager expiry reminder blocked by generic reminder permission; mixed-case category code duplicate and missing category lifecycle controls; Manager Focus scope leak; Focus mobile action-row collapse; blank same-origin preview under default frame policy. Root causes, fixes and regressions are recorded in [`D01 report`](../quality/acceptance/runs/D01-dossier-documents.md).
+- HR initial DATE/custom-field/expiry/reminder concern was retested with real native date input events. Canonical request, DB values, linked reminder, storage and reloaded UI matched; a regression test now asserts the initial payload. The defect did not reproduce with real input events.
+- Browser/data acceptance passed for categories, nine DOCUMENT definitions, HR and in-scope Manager uploads, negative file fixtures, salary-sensitive gate, Employee/Manager Full and Focus, expiry/reminders, delete/restore and private storage readback. D01 final readback: 12 documents each matched a storage object; all three reminders linked; no negative upload, audience, reminder or storage residue. One old D01-created uppercase category duplicate remains active but unlinked.
+- Evidence/gates: targeted tests 16 files / 80 tests; SQL/RLS contract; changed-file ESLint; 39 equal NL/EN namespaces; Manager Full/Focus at 390×844 without horizontal overflow. Production build compiled but, like strict TypeScript, failed only on the two unchanged absence-service nullability errors at `confirmation-service.ts:51` and `service.ts:339`. D01 report lists unrun English-browser, Settings-mobile and full keyboard-only checks separately.
+- Next: rerun `git diff --check`, confirm generated `next-env.d.ts` has no content diff, commit the D01 source/tests/docs, push only this branch, and verify remote HEAD. Never merge/deploy/bump version or touch unrelated worktrees.
+
+## Production release 1.20260923.1 — 2026-09-23
+
 ## Production release 1.20260923.1 — 2026-09-23
 
 **Status: sharp security remediation and requested local release gates GREEN. The version remains `1.20260923.1`; no database change or acceptance rerun is part of this fix.**
