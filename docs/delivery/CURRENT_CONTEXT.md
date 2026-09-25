@@ -64,6 +64,15 @@
 - Gerichte tests `10/10`, strict TypeScript, gewijzigde-scope ESLint en diff-check zijn groen.
 - De browserrequest op poort `3010` gaf `EADDRINUSE`; de branchserver op `3012` bereikte Next, maar `/organization-chart` faalde in middleware door ontbrekende lokale Supabase URL/key-configuratie. Worktree `.env.local` is niet aanwezig; secrets zijn niet gelezen of gekopieerd. Authenticated visuele controle blijft open.
 - Codecommit `042c1cf` is normaal naar `origin/work/bugfix-orgchart-lines-20260924` gepusht. Geen merge of deploy. De authenticated visuele controle blijft environment-gated door de ontbrekende Supabase-configuratie in de worktree.
+## Startpagina — compact logboek en teamoverzicht — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Geïsoleerde branch `work/bugfix-startpage-layout-20260924` vanaf de canonieke `origin/main`-baseline `3f9de359c76524306de057455861da734217f252`.
+- De verborgen logboekpreview toonde drie grote geblurde voorbeeldregels, terwijl er nog geen inhoud was vrijgegeven. De preview gebruikt nu één compacte privacyregel met expliciete actie; de lege tellingstoestand toont geen reveal-knop.
+- De losse teamsectiekop is opgenomen in een Foundation-paneel. Managerbeschikbaarheid staat in dezelfde full-width surface als context, datum en scopekeuze, buiten de tweekolomsindeling. De teamkalender is daarom verwijderd uit de persoonlijke venstervolgorde; bestaande opgeslagen voorkeuren worden veilig genormaliseerd.
+- Gerichte Startpagina-/layouttests `11/11`, strict TypeScript, ESLint, i18n-pariteit (`39` namespaces) en diff-check zijn groen. Authenticated browsercontrole is environment-gated omdat deze worktree geen lokale `.env.local` heeft; beschermde secretconfiguratie is niet gelezen of gekopieerd.
+- Geen schema-, API-, permission-, businesslogica-, version-, database- of deploymentwijziging.
 
 ## Production release 1.20260923.1 — 2026-09-23
 

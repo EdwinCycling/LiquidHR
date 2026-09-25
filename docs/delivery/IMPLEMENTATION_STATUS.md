@@ -47,6 +47,15 @@
 - Gerichte layout- en projectorregressies `10/10`, strict TypeScript, gewijzigde-scope ESLint en `git diff --check` zijn groen.
 - Browsercontrole: poort `3010` gaf `EADDRINUSE`; de branchserver startte op `3012`. `/organization-chart` kon niet renderen omdat deze worktree geen `.env.local` bevat en Supabase URL/key ontbreken. Geen secrets gelezen of gekopieerd. De authenticated visuele controle blijft open.
 - Codecommit `042c1cf` is normaal naar de parallelle bugfixbranch gepusht. Geen merge of deployment uitgevoerd.
+## Startpagina — compact logboek en teamoverzicht — 2026-09-24
+
+**Status: LOCAL CODE GREEN / AUTHENTICATED BROWSERGATE ENVIRONMENT-GATED**
+
+- Geïsoleerde branch `work/bugfix-startpage-layout-20260924` vanaf `origin/main`-baseline `3f9de359c76524306de057455861da734217f252`.
+- De niet-vrijgegeven logboekpreview gebruikt één compacte privacyregel in plaats van drie grote geblurde rijen. Bij nul notities verschijnt geen inhoudvrijgaveactie.
+- De sectiekop voor teamcontext en de managerbeschikbaarheid staan samen in één full-width Foundation-paneel. De vaste beschikbaarheidsweergave valt niet meer onder de verplaatsbare persoonlijke vensters; oude opgeslagen posities worden bij inlezen genormaliseerd.
+- Gerichte tests `11/11`, strict TypeScript, ESLint, i18n-pariteit en diff-check zijn groen. Authenticated browsercontrole is environment-gated doordat deze worktree geen `.env.local` heeft. De beschermde configuratie is niet gelezen of gekopieerd.
+- Geen database-, schema-, permission-, API-, version- of deploymentwijziging.
 
 ## Convergence T01 + F02 + Focus — 2026-09-23
 

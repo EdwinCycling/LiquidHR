@@ -22,10 +22,29 @@ const labels = new Proxy({} as StartPageLabels, {
     drag: 'Venster slepen om de volgorde te wijzigen',
     moveDown: 'Venster omlaag verplaatsen',
     moveUp: 'Venster omhoog verplaatsen',
-    logbookShowRecent: 'Toon recente notities',
-    logbookHideRecent: 'Verberg inhoud',
+    operationalTitleTeam: 'Wat speelt er nu in mijn team',
+    openTeamEmployees: 'Open mijn team',
+    teamAvailabilityTitle: 'Beschikbaarheid team',
+    teamAvailabilityDescription: 'Vanaf vandaag t/m {date}',
+    teamAvailabilityPeople: 'Teamleden',
+    teamAvailabilityPresence: 'Aanwezig',
+    teamAvailabilityHours: 'Uren aanwezig',
+    teamAvailabilityModeLabel: 'Beschikbaarheid weergeven',
+    teamAvailabilityAvailable: 'Aanwezig',
+    teamAvailabilityNotAvailable: 'Niet aanwezig',
+    teamAvailabilityOff: 'Vrij',
+    teamAvailabilityLeave: 'Verlof',
+    teamAvailabilityAbsent: 'Afwezig',
+    teamAvailabilityHoursUnit: 'uur',
+    scopeSwitchLabel: 'Weergave bereik',
+    scopeTeam: 'Mijn team',
+    scopeCompany: 'Ons bedrijf',
+    logbookTitle: 'Mijn logboek',
+    logbookDescription: 'Persoonlijke notities over jouw werk en teamgesprekken. Alleen jij kunt deze notities bekijken.',
     logbookPrivatePlaceholder: 'Privénotitie verborgen',
     logbookPrivatePlaceholderDescription: 'Inhoud wordt pas getoond nadat je dit kiest.',
+    logbookShowRecent: 'Toon recente notities',
+    logbookHideRecent: 'Verberg inhoud',
     logbookRecentCount: '{count} notities',
     logbookLatest: 'Laatste notitie',
     logbookNoRecent: 'Nog geen notities om te tonen.',
@@ -149,6 +168,53 @@ describe('StartPage view modes', () => {
     expect(markup).toContain('Privénotitie verborgen')
     expect(markup).not.toContain('Teamgesprek')
     expect(markup).not.toContain('Vervolgactie.')
+  })
+
+  it('keeps hidden logbook content compact until the user reveals it', () => {
+    const markup = render('full', {
+      ...data,
+      logbook: { totalCount: 2, latestCreatedAt: '2026-08-29T10:00:00.000Z', manualCount: 2, aiCount: 0 },
+    })
+    const logbookStart = markup.indexOf('data-testid="startpage-logbook"')
+    const operationalStart = markup.indexOf('data-testid="startpage-team-overview"')
+    const privatePreview = markup.slice(logbookStart, operationalStart)
+
+    expect(privatePreview).toContain('data-testid="startpage-logbook-private-preview"')
+    expect(privatePreview).toContain('Toon recente notities')
+    expect(privatePreview).not.toContain('blur-[2px]')
+  })
+
+  it('does not offer to reveal recent logbook content when there are no notes', () => {
+    const markup = render('full')
+    const logbookStart = markup.indexOf('data-testid="startpage-logbook"')
+    const operationalStart = markup.indexOf('data-testid="startpage-team-overview"')
+    const logbook = markup.slice(logbookStart, operationalStart)
+
+    expect(logbook).not.toContain('data-testid="startpage-logbook-private-preview"')
+    expect(logbook).not.toContain('Toon recente notities')
+  })
+
+  it('places the team section heading and availability in one full-width surface', () => {
+    const markup = render('full', {
+      ...data,
+      canSwitchScope: true,
+      isManager: true,
+      scope: 'team',
+      teamAvailability: {
+        dates: ['2026-08-29', '2026-08-30'],
+        members: [{ employeeId: 'employee-2', employeeName: 'Maya Bos', avatarUrl: null, cells: [{ status: 'AVAILABLE', scheduledMinutes: 480 }, { status: 'OFF', scheduledMinutes: 0 }] }],
+      },
+    })
+    const overviewStart = markup.indexOf('data-testid="startpage-team-overview"')
+    const calendarStart = markup.indexOf('data-testid="team-availability-window"')
+    const windowsStart = markup.indexOf('data-testid="startpage-operational-windows"')
+    const overviewOpening = markup.slice(markup.lastIndexOf('<div', overviewStart), markup.indexOf('>', overviewStart) + 1)
+
+    expect(overviewOpening).toContain('w-full max-w-none')
+    expect(markup).toContain('Wat speelt er nu in mijn team')
+    expect(calendarStart).toBeGreaterThan(overviewStart)
+    expect(calendarStart).toBeLessThan(windowsStart)
+    expect(overviewOpening).toContain('role="region"')
   })
 
   it('does not offer GPT-Live for a selected department without current team members', () => {
