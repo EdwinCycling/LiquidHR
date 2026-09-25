@@ -1,28 +1,31 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createServerClient } = vi.hoisted(() => ({
-  createServerClient: vi.fn(),
+const { getClaims } = vi.hoisted(() => ({ getClaims: vi.fn() }))
+
+vi.mock('@supabase/ssr', () => ({
+  createServerClient: vi.fn(() => ({ auth: { getClaims } })),
 }))
-
-vi.mock('@supabase/ssr', () => ({ createServerClient }))
 
 import { NextRequest } from 'next/server'
 import { proxy } from './proxy'
 
-describe('proxy auth recovery', () => {
+describe('proxy login routing', () => {
   beforeEach(() => {
-    createServerClient.mockReset()
+    getClaims.mockReset()
+    getClaims.mockResolvedValue({ data: { claims: { sub: 'user-a' } } })
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test-project.supabase.co')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_test')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it('redirects stale refresh sessions without throwing and clears auth cookies', async () => {
-    createServerClient.mockReturnValue({
-      auth: {
-        getClaims: vi.fn().mockRejectedValue({
-          code: 'refresh_token_not_found',
-          message: 'Invalid Refresh Token: Refresh Token Not Found',
-          status: 400,
-        }),
-      },
+    getClaims.mockRejectedValue({
+      code: 'refresh_token_not_found',
+      message: 'Invalid Refresh Token: Refresh Token Not Found',
+      status: 400,
     })
 
     const request = new NextRequest('https://liquidhr.example/departments', {
@@ -36,5 +39,11 @@ describe('proxy auth recovery', () => {
     expect(setCookie).toContain('sb-test-auth-token=')
     expect(setCookie).toContain('sb-test-auth-token.0=')
     expect(setCookie).toContain('Max-Age=0')
+  })
+
+  it('uses the role-aware app root for an authenticated login without a destination', async () => {
+    const response = await proxy(new NextRequest('https://liquidhr.test/login'))
+
+    expect(response.headers.get('location')).toBe('https://liquidhr.test/')
   })
 })

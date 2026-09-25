@@ -60,9 +60,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname === '/login' && isAuthenticated) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/focus'
-    return withFramePolicy(NextResponse.redirect(url), pathname)
+    return withFramePolicy(NextResponse.redirect(new URL('/', request.nextUrl.origin)), pathname)
   }
 
   if (hadInvalidRefreshToken) clearInvalidAuthCookies(response, request)

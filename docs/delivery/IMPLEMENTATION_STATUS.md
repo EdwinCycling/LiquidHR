@@ -10,6 +10,16 @@
 - Remote history contains all five D01 logical migration names; server-generated version stamps differ from local filenames. No history repair or reapply occurred; the current repository migration sequence yields the intended clean database state.
 - Final targeted Vitest passed `23 files / 107 tests`; SQL/RLS matrix, changed-file ESLint, NL/EN parity `39/39` and `git diff --check` passed. English/NL, mobile Settings, keyboard Escape and authenticated cross-tenant denial are verified. Strict TypeScript and build stop only at unchanged absence-service nullability errors (`confirmation-service.ts:51`, `service.ts:339`); guarded Webpack compilation succeeds and `next-env.d.ts` is unchanged.
 - Detailed evidence and bug-by-bug regression status: [`D01 acceptance report`](../quality/acceptance/runs/D01-dossier-documents.md). D01 remains isolated; no merge, deployment or version bump is part of this run.
+## Login zonder medewerkercontext — 2026-09-24
+
+**Status: BUGFIX GREEN — `work/bugfix-login-context-20260924`; broncodecommit `3e07b1e` is naar origin gepusht.**
+
+- Baseline: `origin/main` `3f9de359c76524306de057455861da734217f252`; versie bleef `1.20260923.1`.
+- Root cause: de geauthenticeerde `/login`-route en de fallback van `safeNextPath` kozen standaard `/focus`. Een geldige auth-claim garandeert geen medewerkercontext; de sectieroute liet de daaruit volgende `AuthorizationError` als runtimefout ontsnappen.
+- Oplossing: standaard loginrouting gaat via `/`, zodat de bestaande rolrouter de bestemming kiest. Ontbrekende medewerkercontext in een Focus-sectie leidt nu naar `/geen-toegang`.
+- Gates: gerichte tests `24/24`, strict TypeScript, gerichte ESLint en `git diff --check` geslaagd. Productiebuild niet nodig voor deze smalle wijziging.
+- Browser: in de Codex-browser op `http://localhost:3010` stuurde de bestaande lokale sessie `/login` naar `/dashboard/start`; `/focus/meer` stuurde naar `/geen-toegang` zonder gemelde runtimefout. Er zijn geen credentials ingevoerd.
+- Geen database-/Supabase-mutatie, migratie, versiebump, deployment, merge of D01-wijziging.
 
 ## Convergence T01 + F02 + Focus — 2026-09-23
 
