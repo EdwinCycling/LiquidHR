@@ -60,17 +60,17 @@ export interface CanonicalText {
 
 export interface KnownPlaceholder {
   readonly type: 'knownPlaceholder'
-  readonly attrs: Readonly<{ field: string }>
+  readonly attrs: Readonly<{ field: string; optional?: boolean }>
 }
 
 export interface TemporalPlaceholder {
   readonly type: 'temporalPlaceholder'
-  readonly attrs: Readonly<{ field: string; temporal: 'was' | 'is' | 'wordt' }>
+  readonly attrs: Readonly<{ field: string; temporal: 'was' | 'is' | 'wordt'; optional?: boolean }>
 }
 
 export interface FreePlaceholder {
   readonly type: 'freePlaceholder'
-  readonly attrs: Readonly<{ key: string }>
+  readonly attrs: Readonly<{ key: string; optional?: boolean }>
 }
 
 export type CanonicalInline = CanonicalText | KnownPlaceholder | TemporalPlaceholder | FreePlaceholder
@@ -235,6 +235,12 @@ function requireString(value: unknown, path: readonly DocumentPathPart[]): strin
   return value
 }
 
+function optionalPlaceholderFlag(value: unknown, path: readonly DocumentPathPart[]): { readonly optional?: true } {
+  if (value === undefined || value === false) return {}
+  if (value !== true) throw issue('DOCUMENT_PLACEHOLDER_OPTIONAL_INVALID', path)
+  return { optional: true }
+}
+
 function requireEnum<T extends string>(value: unknown, values: readonly T[], path: readonly DocumentPathPart[]): T {
   if (typeof value !== 'string' || !values.includes(value as T)) throw issue('DOCUMENT_SCHEMA_ENUM_INVALID', path)
   return value as T
@@ -285,27 +291,27 @@ function parseInline(value: unknown, path: readonly DocumentPathPart[]): Canonic
   if (type === 'knownPlaceholder') {
     requireExactKeys(candidate, ['type', 'attrs'], path)
     const attrs = requireRecord(candidate.attrs, [...path, 'attrs'])
-    requireExactKeys(attrs, ['field'], [...path, 'attrs'])
+    requireExactKeys(attrs, ['field', 'optional'], [...path, 'attrs'])
     const field = requireString(attrs.field, [...path, 'attrs', 'field'])
     if (!KNOWN_FIELD_KEYS.includes(field as (typeof KNOWN_FIELD_KEYS)[number])) throw issue('DOCUMENT_KNOWN_FIELD_UNKNOWN', [...path, 'attrs', 'field'])
-    return { type, attrs: { field } }
+    return { type, attrs: { field, ...optionalPlaceholderFlag(attrs.optional, [...path, 'attrs', 'optional']) } }
   }
   if (type === 'temporalPlaceholder') {
     requireExactKeys(candidate, ['type', 'attrs'], path)
     const attrs = requireRecord(candidate.attrs, [...path, 'attrs'])
-    requireExactKeys(attrs, ['field', 'temporal'], [...path, 'attrs'])
+    requireExactKeys(attrs, ['field', 'temporal', 'optional'], [...path, 'attrs'])
     const field = requireString(attrs.field, [...path, 'attrs', 'field'])
     const temporal = requireEnum(attrs.temporal, ['was', 'is', 'wordt'] as const, [...path, 'attrs', 'temporal'])
     if (!/^[a-z][a-z0-9]*(?:[._][a-z][a-z0-9]*)*$/.test(field)) throw issue('DOCUMENT_TEMPORAL_FIELD_INVALID', [...path, 'attrs', 'field'])
-    return { type, attrs: { field, temporal } }
+    return { type, attrs: { field, temporal, ...optionalPlaceholderFlag(attrs.optional, [...path, 'attrs', 'optional']) } }
   }
   if (type === 'freePlaceholder') {
     requireExactKeys(candidate, ['type', 'attrs'], path)
     const attrs = requireRecord(candidate.attrs, [...path, 'attrs'])
-    requireExactKeys(attrs, ['key'], [...path, 'attrs'])
+    requireExactKeys(attrs, ['key', 'optional'], [...path, 'attrs'])
     const key = requireString(attrs.key, [...path, 'attrs', 'key'])
     if (!/^[A-Z][A-Za-z0-9]{0,79}$/.test(key)) throw issue('DOCUMENT_FREE_FIELD_INVALID', [...path, 'attrs', 'key'])
-    return { type, attrs: { key } }
+    return { type, attrs: { key, ...optionalPlaceholderFlag(attrs.optional, [...path, 'attrs', 'optional']) } }
   }
   throw issue('DOCUMENT_INLINE_NODE_UNSUPPORTED', [...path, 'type'])
 }
@@ -542,6 +548,27 @@ export function validateCanonicalDocument(input: unknown): { readonly valid: boo
     if (error instanceof CanonicalDocumentError) return { valid: false, issues: error.issues }
     throw error
   }
+}
+
+function inlineHasContent(inline: readonly CanonicalInline[]): boolean {
+  return inline.some((node) => node.type !== 'text' || node.text.trim().length > 0)
+}
+
+function blockHasContent(block: CanonicalBlock): boolean {
+  if (block.type === 'paragraph' || block.type === 'heading') return inlineHasContent(block.content)
+  if (block.type === 'bulletList' || block.type === 'orderedList') {
+    return block.content.some((item) => item.content.some((paragraph) => inlineHasContent(paragraph.content)))
+  }
+  if (block.type === 'table') {
+    return block.content.some((row) => row.content.some((cell) => cell.content.some((paragraph) => inlineHasContent(paragraph.content))))
+  }
+  if (block.type === 'twoColumnBlock') return block.content.some((column) => column.content.some(blockHasContent))
+  return block.type === 'horizontalRule' || block.type === 'blockImage'
+}
+
+export function validateDocumentBodyForActivation(document: CanonicalDocument): readonly DocumentValidationIssue[] {
+  if (document.kind !== 'DOCUMENT' || document.regions.body?.content.some(blockHasContent)) return []
+  return [{ code: 'DOCUMENT_BODY_EMPTY', path: ['regions', 'body', 'content'], messageKey: 'documentStudio.validation.bodyEmpty' }]
 }
 
 export function emptyCanonicalDocument(kind: 'DOCUMENT'): Omit<CanonicalDocument, 'kind'> & { readonly kind: 'DOCUMENT' }

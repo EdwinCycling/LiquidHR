@@ -13,6 +13,7 @@ This log contains only known historical outcomes. Detailed screenshots, traces a
 | F02 | GREEN | DEV navigation, Focus, Settings, help, onboarding, persistence, negative and responsive acceptance; three in-scope fixes; contextual `Niet meer tonen` hide and Settings re-enable proven; final remote head is recorded in the acceptance response | None for the exercised F02 scope; preboarding and separate out-of-scope Manager personas remain environment-gated |
 | GJ01R | WAITING_FOR_DEV_MAIL | Follow-up scope specified; not executed here | DEV mail dependency |
 | DOC02/AW02 | READY | Follow-up scope specified; not executed here | Dedicated fixture gate |
+| DOC02-20260927 | BLOCKED / NOT GREEN | Exact approved migration applied once; validator readback, SQL runtime probes, advisors, local quality gates and partial synthetic HR Admin browser acceptance passed, including final PDF and Storage readback | Existing DOCUMENTS module disabled; seeded Test Manager has no customer-environment link; Dossier UI, full personas, signing/batch/expiry/reminders and 390×844 remain open; further ACT-AS stopped after signed URL appeared in browser observability |
 
 ## Historical commit anchors
 

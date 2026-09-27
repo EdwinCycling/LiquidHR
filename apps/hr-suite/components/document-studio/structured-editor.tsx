@@ -5,6 +5,7 @@ import type { JSONContent } from '@tiptap/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Surface } from '@/components/ui/surface'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { TextInput } from '@/components/ui/text-input'
 import { IMAGE_ALIGNMENTS, IMAGE_WIDTHS, type CanonicalDocument, type ImageAlignment, type ImageWidth, type TemplateKind } from '@/lib/document-studio/canonical-document'
@@ -22,6 +23,8 @@ export interface StructuredEditorLabels extends EditorToolbarLabels {
   readonly temporalWordt: string
   readonly freePlaceholder: string
   readonly freePlaceholderHint: string
+  readonly optionalPlaceholder: string
+  readonly optionalPlaceholderHint: string
   readonly insertPlaceholder: string
   readonly asset: string
   readonly assetSelect: string
@@ -66,6 +69,7 @@ export function StructuredEditor({
   const [placeholderField, setPlaceholderField] = useState<string>(PLACEHOLDER_FIELDS[0])
   const [temporal, setTemporal] = useState<(typeof TEMPORAL_VALUES)[number]>('is')
   const [freeKey, setFreeKey] = useState('')
+  const [placeholderOptional, setPlaceholderOptional] = useState(false)
   const [assets, setAssets] = useState([...initialAssets])
   const [assetId, setAssetId] = useState(initialAssets[0]?.id ?? '')
   const [altText, setAltText] = useState('')
@@ -118,16 +122,16 @@ export function StructuredEditor({
   }
 
   function insertKnownPlaceholder() {
-    editor?.chain().focus().insertContent({ type: 'knownPlaceholder', attrs: { field: placeholderField } }).run()
+    editor?.chain().focus().insertContent({ type: 'knownPlaceholder', attrs: { field: placeholderField, ...(placeholderOptional ? { optional: true } : {}) } }).run()
   }
 
   function insertTemporalPlaceholder() {
-    editor?.chain().focus().insertContent({ type: 'temporalPlaceholder', attrs: { field: placeholderField, temporal } }).run()
+    editor?.chain().focus().insertContent({ type: 'temporalPlaceholder', attrs: { field: placeholderField, temporal, ...(placeholderOptional ? { optional: true } : {}) } }).run()
   }
 
   function insertFreePlaceholder() {
     if (!FREE_PLACEHOLDER_PATTERN.test(freeKey)) return
-    editor?.chain().focus().insertContent({ type: 'freePlaceholder', attrs: { key: freeKey } }).run()
+    editor?.chain().focus().insertContent({ type: 'freePlaceholder', attrs: { key: freeKey, ...(placeholderOptional ? { optional: true } : {}) } }).run()
     setFreeKey('')
   }
 
@@ -163,6 +167,7 @@ export function StructuredEditor({
           <TextInput aria-label={labels.freePlaceholder} onChange={(event) => setFreeKey(event.target.value)} placeholder={labels.freePlaceholderHint} value={freeKey} />
           <Button disabled={!FREE_PLACEHOLDER_PATTERN.test(freeKey)} onClick={insertFreePlaceholder} size="sm" type="button">{labels.freePlaceholder}</Button>
         </div>
+        <Checkbox checked={placeholderOptional} description={labels.optionalPlaceholderHint} label={labels.optionalPlaceholder} onChange={(event) => setPlaceholderOptional(event.target.checked)} />
       </div>
       <div className="space-y-3 border-b border-border bg-surface-subtle px-3 py-3">
         <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">

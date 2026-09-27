@@ -21,14 +21,21 @@ function unique(values: readonly string[]): string[] {
   return [...new Set(values)]
 }
 
-function requiredKeys(
+function manifestKeys(
   manifest: NormalizedDocumentV1['placeholderManifest'],
   type: 'KNOWN' | 'TEMPORAL' | 'FREE',
 ): string[] {
   return unique(manifest.filter((entry) => entry.type === type).map((entry) => entry.key))
 }
 
-function onlyRequired(keys: readonly string[], values: GenerationInputValues): Record<string, string> {
+function requiredKeys(
+  manifest: NormalizedDocumentV1['placeholderManifest'],
+  type: 'KNOWN' | 'TEMPORAL' | 'FREE',
+): string[] {
+  return unique(manifest.filter((entry) => entry.type === type && entry.optional !== true).map((entry) => entry.key))
+}
+
+function onlyManifestValues(keys: readonly string[], values: GenerationInputValues): Record<string, string> {
   return Object.fromEntries(keys.map((key) => [key, values[key] ?? '']))
 }
 
@@ -38,16 +45,19 @@ export function resolveRequiredGenerationValues(
   temporalInputs: GenerationInputValues,
   freeInputs: GenerationInputValues,
 ): RequiredGenerationValues {
-  const knownKeys = requiredKeys(manifest, 'KNOWN')
-  const temporalKeys = requiredKeys(manifest, 'TEMPORAL')
-  const freeKeys = requiredKeys(manifest, 'FREE')
-  const known = onlyRequired(knownKeys, knownCatalog)
-  const temporal = onlyRequired(temporalKeys, temporalInputs)
-  const free = onlyRequired(freeKeys, freeInputs)
+  const knownKeys = manifestKeys(manifest, 'KNOWN')
+  const temporalKeys = manifestKeys(manifest, 'TEMPORAL')
+  const freeKeys = manifestKeys(manifest, 'FREE')
+  const requiredKnownKeys = requiredKeys(manifest, 'KNOWN')
+  const requiredTemporalKeys = requiredKeys(manifest, 'TEMPORAL')
+  const requiredFreeKeys = requiredKeys(manifest, 'FREE')
+  const known = onlyManifestValues(knownKeys, knownCatalog)
+  const temporal = onlyManifestValues(temporalKeys, temporalInputs)
+  const free = onlyManifestValues(freeKeys, freeInputs)
   const missingKeys = [
-    ...knownKeys.filter((key) => !known[key]?.trim()),
-    ...temporalKeys.filter((key) => !temporal[key]?.trim()),
-    ...freeKeys.filter((key) => !free[key]?.trim()),
+    ...requiredKnownKeys.filter((key) => !known[key]?.trim()),
+    ...requiredTemporalKeys.filter((key) => !temporal[key]?.trim()),
+    ...requiredFreeKeys.filter((key) => !free[key]?.trim()),
   ]
   if (missingKeys.length > 0) throw new GenerationResolutionError(missingKeys)
   return { known, temporal, free, temporalKeys, freeKeys }

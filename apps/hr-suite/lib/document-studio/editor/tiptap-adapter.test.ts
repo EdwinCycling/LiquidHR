@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { canonicalToEditorJson, editorJsonToCanonical, sanitizePastedHtml } from './tiptap-adapter'
+import { Editor } from '@tiptap/core'
+import { canonicalToEditorJson, documentEditorExtensions, editorJsonToCanonical, sanitizePastedHtml } from './tiptap-adapter'
 import { emptyCanonicalDocument } from '../canonical-document'
 
 describe('Document Studio Tiptap adapter', () => {
@@ -10,6 +11,37 @@ describe('Document Studio Tiptap adapter', () => {
     const editorJson = canonicalToEditorJson(document)
     expect(editorJson.content?.[0]?.content?.[0]?.type).toBe('knownPlaceholder')
     expect(editorJsonToCanonical(editorJson, base)).toEqual(document)
+  })
+
+  it('keeps optional placeholders through the live editor schema', () => {
+    const base = emptyCanonicalDocument('DOCUMENT')
+    const document = {
+      ...base,
+      regions: {
+        ...base.regions,
+        body: {
+          type: 'region' as const,
+          content: [{
+            type: 'paragraph' as const,
+            attrs: { align: 'LEFT' as const },
+            content: [
+              { type: 'knownPlaceholder' as const, attrs: { field: 'employee.first_name', optional: true } },
+              { type: 'temporalPlaceholder' as const, attrs: { field: 'employment.start_date', temporal: 'is' as const, optional: true } },
+              { type: 'freePlaceholder' as const, attrs: { key: 'OptionalNote', optional: true } },
+            ],
+          }],
+        },
+      },
+    }
+    const editor = new Editor({ extensions: documentEditorExtensions, content: canonicalToEditorJson(document) })
+    try {
+      expect(editor.state.doc.firstChild?.firstChild?.attrs.optional).toBe(true)
+      expect(editor.state.doc.firstChild?.child(1).attrs.optional).toBe(true)
+      expect(editor.state.doc.firstChild?.child(2).attrs.optional).toBe(true)
+      expect(editorJsonToCanonical(editor.getJSON(), base)).toEqual(document)
+    } finally {
+      editor.destroy()
+    }
   })
 
   it('removes active content and non-table attributes from pasted HTML', () => {

@@ -35,6 +35,7 @@ export interface NormalizedDocumentV1 {
     readonly type: 'KNOWN' | 'TEMPORAL' | 'FREE'
     readonly key: string
     readonly locations: readonly string[]
+    readonly optional?: boolean
   }[]
 }
 
@@ -64,7 +65,7 @@ export interface NormalizedDocumentV1Input {
   readonly assets: readonly NormalizedDocumentAssetInput[]
 }
 
-type ManifestEntry = { type: 'KNOWN' | 'TEMPORAL' | 'FREE'; key: string; locations: string[] }
+type ManifestEntry = { type: 'KNOWN' | 'TEMPORAL' | 'FREE'; key: string; locations: string[]; optional: boolean }
 
 function isText(node: CanonicalInline): node is CanonicalText {
   return node.type === 'text'
@@ -81,7 +82,8 @@ function collectInline(inline: readonly CanonicalInline[], path: string, entries
         ? `${node.attrs.field}[${node.attrs.temporal}]`
         : node.attrs.key
     const mapKey = `${type}:${key}`
-    const entry = entries.get(mapKey) ?? { type, key, locations: [] }
+    const entry = entries.get(mapKey) ?? { type, key, locations: [], optional: true }
+    if (node.attrs.optional !== true) entry.optional = false
     entry.locations.push(location)
     entries.set(mapKey, entry)
   })
@@ -114,7 +116,7 @@ function collectManifest(regions: CanonicalRegions): NormalizedDocumentV1['place
     if (region) collectBlocks(region.content, `/regions/${regionName}`, entries)
   }
   return [...entries.values()]
-    .map((entry) => ({ ...entry, locations: [...entry.locations].sort() }))
+    .map(({ optional, ...entry }) => ({ ...entry, locations: [...entry.locations].sort(), ...(optional ? { optional: true } : {}) }))
     .sort((left, right) => `${left.type}:${left.key}`.localeCompare(`${right.type}:${right.key}`))
 }
 

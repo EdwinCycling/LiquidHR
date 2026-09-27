@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getEditorData, getNormalizedDocumentV1 } from '@/lib/document-studio/service'
 import { createNormalizedDocumentV1, type NormalizedDocumentV1 } from '@/lib/document-studio/normalized-document'
-import { type CanonicalBlock, type CanonicalRegion } from '@/lib/document-studio/canonical-document'
+import { type CanonicalBlock, type CanonicalRegion, validateDocumentBodyForActivation } from '@/lib/document-studio/canonical-document'
 import { resolveGenerationSnapshot, assertActiveComponentVersions, type GenerationAsset, type GenerationContext, type ResolvedGenerationSnapshot } from './domain'
 import { parseGenerationDocument, type GenerationDocument } from './generation-document'
 import { GenerationResolutionError, resolveRequiredGenerationValues } from './resolver'
@@ -275,6 +275,12 @@ interface MaterializedDocument {
 
 async function materializeDocument(normalized: NormalizedDocumentV1): Promise<MaterializedDocument> {
   if (normalized.kind !== 'DOCUMENT' || !normalized.regions.body) throw new DocumentGenerationError('DOCUMENT_GENERATION_TEMPLATE_NOT_ACTIVE', 422)
+  if (validateDocumentBodyForActivation({
+    schema: { id: 'liquid-hr.document-studio.native.v1', version: 1 },
+    kind: normalized.kind,
+    page: normalized.page,
+    regions: normalized.regions,
+  }).length > 0) throw new DocumentGenerationError('DOCUMENT_GENERATION_TEMPLATE_BODY_EMPTY', 422)
   const coverRefs = normalized.composition.filter((item) => item.kind === 'COVER')
   if (coverRefs.length > 1) throw new DocumentGenerationError('DOCUMENT_GENERATION_COMPONENT_INVALID', 422)
   const assets = new Map<string, GenerationAsset>()
@@ -385,15 +391,17 @@ export async function listGenerationOptions(): Promise<{ templates: readonly { i
   }
 }
 
-async function generationManifestForVersion(templateVersionId: string): Promise<{ readonly freeKeys: string[]; readonly temporalKeys: string[] }> {
+async function generationManifestForVersion(templateVersionId: string): Promise<{ readonly freeKeys: string[]; readonly temporalKeys: string[]; readonly optionalFreeKeys: string[]; readonly optionalTemporalKeys: string[] }> {
   const { composed } = await fullNormalizedDocument(templateVersionId)
   return {
     freeKeys: composed.placeholderManifest.filter((entry) => entry.type === 'FREE').map((entry) => entry.key),
     temporalKeys: composed.placeholderManifest.filter((entry) => entry.type === 'TEMPORAL').map((entry) => entry.key),
+    optionalFreeKeys: composed.placeholderManifest.filter((entry) => entry.type === 'FREE' && entry.optional === true).map((entry) => entry.key),
+    optionalTemporalKeys: composed.placeholderManifest.filter((entry) => entry.type === 'TEMPORAL' && entry.optional === true).map((entry) => entry.key),
   }
 }
 
-export async function listGenerationManifest(templateVersionId: string): Promise<{ readonly freeKeys: string[]; readonly temporalKeys: string[] }> {
+export async function listGenerationManifest(templateVersionId: string): Promise<{ readonly freeKeys: string[]; readonly temporalKeys: string[]; readonly optionalFreeKeys: string[]; readonly optionalTemporalKeys: string[] }> {
   await authz('document-generation:write')
   if (!z.string().uuid().safeParse(templateVersionId).success) throw new DocumentGenerationError('DOCUMENT_GENERATION_INPUT_INVALID', 400)
   return generationManifestForVersion(templateVersionId)
