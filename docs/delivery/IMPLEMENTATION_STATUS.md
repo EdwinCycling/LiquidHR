@@ -2,7 +2,7 @@
 
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 
-**Status: CODE/TEST GREEN; main-convergentie en hosted release nog open.**
+**Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance environment-gated.**
 
 Vanaf exact `origin/main` `22ad719246095f75c1e3c034e6bdd3867c489569` zijn de
 absence-KPI's op employee-niveau geaggregeerd, verlopen recovery windows
@@ -22,7 +22,14 @@ Lokale eindgates: targeted `9 bestanden / 52 tests`, full suite `469 / 1880`,
 strict TypeScript, changed-area ESLint, i18n `39` namespaces, diff-check en
 Next productiebuild `298/298` groen. De eenmalige versie-bump
 `1.20260927.2` -> `1.20260927.3` is toegepast en post-bump versie-test/build
-zijn groen. Zie
+zijn groen. De gedeployde ABS02-applicatiebron is exact
+`e5e090b084a18561dc74a09d4054ddabe2c641b`; deze handoff-update is
+documentation-only.
+Vercel deployment `dpl_Bb7bMVrWAasTgGovZbVv3KytV9KY` is READY, target
+Production, aliasing is actief en de publieke login heeft geen Test Auth.
+De CLI-upload geeft geen GitHub-SHA-velden terug en een geauthenticeerde
+hosted versie-readback is niet uitgevoerd zonder normale Production-credentials;
+beide gates blijven expliciet environment-gated. Zie
 [`ABS02 acceptance`](../quality/acceptance/runs/ABS02-20260927.md) voor de
 verplichte velden, ENVIRONMENT-GATED, PRODUCT DECISIONS, NOT FIXED en
 LESSONS/PATTERNS. Vercel/Production is nog geen afgeronde gate.

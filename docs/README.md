@@ -2,7 +2,7 @@
 
 ## ABS02 — verzuim hardening, security en WvP-foundation — 2026-09-27
 
-**Status: CODE/TEST GREEN; gecontroleerde main-convergentie en hosted release open.**
+**Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance blijven environment-gated.**
 
 ABS02 startte vanaf exact `origin/main` `22ad719246095f75c1e3c034e6bdd3867c489569`.
 De slice corrigeert multi-employment verzuim-KPI's, normaliseert verlopen
@@ -18,8 +18,10 @@ NL/EN i18n met 39 namespaces, diff-check en productiebuild `298/298`.
 De volledige matrix, environment-gated punten, productbesluiten en open
 grenzen staan in [`ABS02 acceptance`](quality/acceptance/runs/ABS02-20260927.md).
 De eenmalige versie-bump `1.20260927.2` → `1.20260927.3` is na de groene
-gates toegepast en opnieuw gebouwd; main-convergentie en hosted release zijn
-nog aparte gates.
+gates toegepast, naar `main` gepusht en vanuit een schone exact-SHA checkout
+naar Vercel Production gedeployed. Deployment `dpl_Bb7bMVrWAasTgGovZbVv3KytV9KY`
+is READY en de publieke login heeft geen Test Auth. Zie het acceptance report
+voor de twee resterende externe bewijslimieten.
 
 ## Test Auth Harness — lokaal-only — 2026-09-27
 
