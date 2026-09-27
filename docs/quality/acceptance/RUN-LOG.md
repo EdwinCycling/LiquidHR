@@ -13,6 +13,7 @@ This log contains only known historical outcomes. Detailed screenshots, traces a
 | F02 | GREEN | DEV navigation, Focus, Settings, help, onboarding, persistence, negative and responsive acceptance; three in-scope fixes; contextual `Niet meer tonen` hide and Settings re-enable proven; final remote head is recorded in the acceptance response | None for the exercised F02 scope; preboarding and separate out-of-scope Manager personas remain environment-gated |
 | GJ01R | WAITING_FOR_DEV_MAIL | Follow-up scope specified; not executed here | DEV mail dependency |
 | DOC02/AW02 | READY | Follow-up scope specified; not executed here | Dedicated fixture gate |
+| T01-R-20260927 | PARTIAL | Survey, Team Compass and 9-grid TEST acceptance; four fixes, persona/scope negatives, persistence, 390 px routes and full local quality gates | Additional persona/cohort fixtures, role-switch cycle, ACT-AS UI stop proof, console errors and ACT-AS token transport review |
 
 ## Historical commit anchors
 

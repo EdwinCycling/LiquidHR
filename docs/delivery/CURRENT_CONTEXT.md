@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## T01-R Survey, Team Compass en 9-grid reacceptance — 2026-09-27
+
+**Status: PARTIAL; code en lokale quality gates GREEN, volledige acceptance niet GREEN.** Branch work/acceptance-T01R-20260927 is gebaseerd op aa1bb386d5afb704611fbe0634f40c07090bbb73. Implementation commit aa01d864f7534c3590dfa8d4dd8ed0215548d89d fixe vier T01-R-regressies: Survey DropdownSelect accessible name en viewport-clipping; 9-grid draft/version state bij employeewissel; en editbaarheid van IN_PROGRESS assignments. Regressies, volledige suite (463 bestanden / 1.834 tests), strict TypeScript, gewijzigde ESLint, 39 NL/EN namespaces, productiebuild (296 routes) en diff-check slaagden.
+
+- TEST-only campagne-readback: anonieme Survey 1 invite/response, respondent id NULL; Team Compass 1 van threshold 5 met 40 antwoorden en sharing uit; 9-grid 10 unieke leden zonder duplicates, één gecontroleerde NORMAL_NORMAL-score versie 7 en 9 unplaced. Andere medewerkers niet beoordeeld; assignment niet submitted.
+- Open acceptancegrenzen: andere Employee en tweede out-of-scope Manager niet beschikbaar; Survey audience-varianten en Team Compass multi-profile aggregate niet bewezen; role-switch cyclus eindigt fail-closed bij Manager; ACT-AS Stop-knop request niet waargenomen hoewel API/audit slaagden; drie browser-console errors zonder bewaarde tekst.
+- Een kortlevende ACT-AS credential wordt via queryparameter vervoerd en lokale Next access logging bevat querystrings. Geen auth-architectuur gewijzigd; aparte security-review en redactie-/transportbesluit nodig. Survey n=1-resultaat is afleidbaar ondanks anonieme opslag; kleine-n suppressie is productbeslissing.
+- Geen migration/schema/RLS/grant, ABS01, production, Vercel, merge of main-mutatie. Canonieke en worktree .env.local zijn uitsluitend op bestaan gecontroleerd. Zie [T01-R acceptance report](../quality/acceptance/runs/T01R-survey-personality-9grid-20260927.md); push-/remote SHA is vastgelegd in de taskafronding.
+
 ## Convergence release — 2026-09-25
 
 **Status: CONVERGENCE RELEASE GREEN; versie 1.20260925.1 is uitgerold naar de enige LiquidHR-omgeving.** Candidate `work/convergence-20260925` eindigde op `c0d3902` en is zonder conflicten in `main` geïntegreerd; de eenmalige versiecommit was `db85dde`. Na de laatste releasecontext-sync zijn `local main`, `origin/main` en Vercel Production opnieuw exact gelijk gecontroleerd; de definitieve SHA staat als `ABS01_BASELINE_SHA` in het afrondingsrapport van deze taak. Edwin bevestigde de responsive acceptance in Chrome Device Mode op exact 390×844 voor Startpage, Focus, dossier/document, kalender en organogram; geen blocking overlap, verdwenen essentiële controls of onbruikbare layout.
