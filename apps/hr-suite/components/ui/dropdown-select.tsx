@@ -4,6 +4,7 @@ import { Children, isValidElement, useEffect, useId, useMemo, useRef, useState, 
 import { createPortal } from 'react-dom'
 
 import { TextInput } from './text-input'
+import { calculateDropdownMenuPosition } from './dropdown-menu-position'
 
 type OptionElementProps = {
   value?: string
@@ -97,7 +98,7 @@ function DropdownSingleSelect({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 })
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 288 })
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -111,7 +112,13 @@ function DropdownSingleSelect({
   function updateMenuPosition() {
     const rect = triggerRef.current?.getBoundingClientRect()
     if (!rect) return
-    setMenuPosition({ top: rect.bottom + 8, left: rect.left, width: Math.max(rect.width, 240) })
+    const position = calculateDropdownMenuPosition({
+      trigger: { top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width },
+      menuHeight: menuRef.current?.scrollHeight ?? 288,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+    })
+    setMenuPosition({ top: position.top, left: position.left, width: position.width, maxHeight: position.maxHeight })
   }
 
   function focusActive(index: number) {
@@ -208,16 +215,17 @@ function DropdownSingleSelect({
       window.removeEventListener('resize', reposition)
       window.removeEventListener('scroll', reposition, true)
     }
-  }, [open])
+  }, [open, query])
 
   const triggerLabel = selectedOption?.label ?? placeholder
-  const triggerAriaLabel = selectProps['aria-label'] ?? (typeof placeholder === 'string' ? placeholder : undefined)
+  const triggerAriaLabel = selectProps['aria-label']
+    ?? (id || selectProps['aria-labelledby'] ? undefined : typeof placeholder === 'string' ? placeholder : undefined)
   const ariaInvalid = selectProps['aria-invalid']
 
   return <>
     <select aria-describedby={selectProps['aria-describedby']} aria-hidden="true" aria-invalid={ariaInvalid} aria-labelledby={selectProps['aria-labelledby']} aria-required={selectProps['aria-required']} className="sr-only" disabled={disabled} id={`${menuId}-native`} name={name} required={required} tabIndex={-1} {...(value === undefined ? { defaultValue: currentValue, onChange } : { value: currentValue, onChange: onChange ?? (() => undefined) })}>{children}</select>
      <button aria-controls={open ? menuId : undefined} aria-describedby={selectProps['aria-describedby']} aria-expanded={open} aria-haspopup="listbox" aria-label={triggerAriaLabel} aria-labelledby={selectProps['aria-labelledby']} className={`inline-flex min-h-10 w-full min-w-0 items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-left text-sm font-medium text-foreground transition-[background-color,border-color,box-shadow] hover:border-primary/40 hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/20 disabled:cursor-not-allowed disabled:opacity-60 ${ariaInvalid ? 'border-destructive' : ''} ${className ?? ''}`.trim()} data-invalid={ariaInvalid} disabled={disabled} id={id} onBlur={onTriggerBlur} onClick={() => open ? closeMenu() : openMenu()} onKeyDown={handleTriggerKeyDown} ref={triggerRef} type="button"><span className={`min-w-0 flex-1 truncate ${selectedOption ? '' : 'text-muted-foreground'}`}>{triggerLabel}</span><ChevronDown aria-hidden="true" className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} /></button>
-     {open ? createPortal(<div className="fixed z-[80] overflow-hidden rounded-[var(--radius-overlay)] border border-border bg-surface p-2 shadow-[var(--elevation-overlay)]" id={menuId} ref={menuRef} role="listbox" style={{ top: menuPosition.top, left: menuPosition.left, minWidth: menuPosition.width }} onKeyDown={handleMenuKeyDown}>
+     {open ? createPortal(<div className="fixed z-[80] overflow-y-auto rounded-[var(--radius-overlay)] border border-border bg-surface p-2 shadow-[var(--elevation-overlay)]" id={menuId} ref={menuRef} role="listbox" style={{ top: menuPosition.top, left: menuPosition.left, width: menuPosition.width, maxHeight: menuPosition.maxHeight }} onKeyDown={handleMenuKeyDown}>
        {searchable ? <div className="mb-2"><TextInput aria-label={searchPlaceholder} leadingIcon={<Search aria-hidden="true" />} onChange={(event) => { const nextQuery = event.target.value; setQuery(nextQuery); setActiveIndex(nextEnabled(filterOptions(options, nextQuery), 0, 1)) }} placeholder={searchPlaceholder} ref={searchRef} value={query} /></div> : null}
        <div className="max-h-72 overflow-y-auto" role="presentation">{visibleOptions.length ? visibleOptions.map((option, index) => <button aria-selected={option.value === currentValue} className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left text-sm transition-colors ${option.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted'} ${option.value === currentValue ? 'bg-accent font-semibold text-accent-foreground' : ''}`} disabled={option.disabled} key={option.value} onClick={() => choose(option)} ref={(node) => { optionRefs.current[index] = node }} role="option" tabIndex={activeIndex === index ? 0 : -1} type="button"><span className="min-w-0 truncate">{option.label}</span>{option.value === currentValue ? <Check aria-hidden="true" className="size-4 shrink-0 text-primary" /> : null}</button>) : <p className="px-3 py-3 text-sm text-muted-foreground">{emptyLabel}</p>}</div>
     </div>, document.body) : null}

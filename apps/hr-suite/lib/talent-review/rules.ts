@@ -8,7 +8,7 @@ export function canManagerAccessReviewSubject(managerEmployeeId: string, employe
 }
 
 export function canEditTalentReviewAssignment(status: string): boolean {
-  return ['NOT_STARTED', 'DRAFT', 'RETURNED'].includes(status)
+  return ['NOT_STARTED', 'DRAFT', 'IN_PROGRESS', 'RETURNED'].includes(status)
 }
 
 export function deriveGridCell(performanceScore: GridValue | null, potentialScore: GridValue | null): GridCell | null {
