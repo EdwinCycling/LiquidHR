@@ -31,6 +31,7 @@ describe('talent review rules', () => {
   it('locks submitted assignments while allowing draft and returned work to be edited', () => {
     expect(canEditTalentReviewAssignment('DRAFT')).toBe(true)
     expect(canEditTalentReviewAssignment('NOT_STARTED')).toBe(true)
+    expect(canEditTalentReviewAssignment('IN_PROGRESS')).toBe(true)
     expect(canEditTalentReviewAssignment('RETURNED')).toBe(true)
     expect(canEditTalentReviewAssignment('SUBMITTED')).toBe(false)
   })
