@@ -2,15 +2,17 @@
 
 ## Test Auth Harness — lokaal-only — 2026-09-27
 
-**Status: implementatie, lokale acceptatie en codegates GREEN; main-integratie en finale exact-SHA Vercel-verificatie zijn de resterende releasegates. App-versie 1.20260927.2 is eenmaal verhoogd.**
+**Status: implementatie en lokale acceptatie GREEN; codecommit 1a774f8de833997bb8fa0855df0246cfb0743e04 is op main. App-versie 1.20260927.2. De finale main-SHA en Vercel Production-evidence staan in de taakafronding.**
 
 De synthetische login biedt uitsluitend hradmin.fixture@liquidhr.test aan en leest TALENT_HR_ADMIN_PASSWORD server-side. De POST gebruikt de bestaande Supabase SSR-client, meldt de bestaande sessie af en voert de normale signInWithPassword-flow uit. Manager en Medewerker keren lokaal via een same-origin POST terug naar Test HR Admin. De gewone wachtwoord- en Google-login blijven intact.
 
 De UI, test-login, role-switch en confirmation zijn gesloten buiten lokale development: NODE_ENV=development, VERCEL en VERCEL_ENV afwezig, expliciete LIQUIDHR_TEST_ROLE_SWITCH_ENABLED=true en de canonieke projectref. Productie- en Preview-tests bevestigen fail-closed gedrag met een stale flag. Geen migration-, schema-, RLS-, grant-, permission-, Production-configuratie- of remote Supabase-wijziging.
 
-Gerichte regressies: 6 bestanden / 39 tests groen. De volledige hr-suite draaide eenmaal (467 bestanden / 1.869 tests) en de Next productiebuild eenmaal (297/297 routes/pagina's), beide groen. ESLint, check:i18n, strict TypeScript en diff-check groen. De lokale browserflow Test HR Admin → Test Manager → Admin → Test Medewerker → logout en beide negatieve toegangschecks zijn geaccepteerd. Productie-mode browsercontrole van een lokaal gehoste server kon niet worden uitgevoerd doordat de Codex-browser de lokale poort niet kon bereiken; zie delivery/CURRENT_CONTEXT.md.
+Gerichte regressies: 6 bestanden / 39 tests groen. De volledige hr-suite draaide eenmaal (467 bestanden / 1.869 tests) en de Next productiebuild eenmaal (297/297 routes/pagina's), beide groen. ESLint, check:i18n, strict TypeScript en diff-check groen. De lokale browserflow Test HR Admin → Test Manager → Admin → Test Medewerker → logout en beide negatieve toegangschecks zijn geaccepteerd. De Production-loginpagina toont normale wachtwoord- en Google-login en geen testcontrol. De zichtbare versie is 1.20260927.2 op de codecommit die in de finale main/SHA-check is gedeployd.
 
-Deze entry supersedeert oudere historische SEC-003-notities die een Vercel Preview-target toelieten. De definitieve main-SHA, Vercel READY/Production-evidence en hosted login-/harness-controle worden bij afronding in de release-handoff gerapporteerd.## Convergence release — 2026-09-25
+De directe Production POST-routecheck kon niet worden uitgevoerd doordat de Windows HTTPS-clients vóór het verzoek faalden en de browserpolicy de lokale POST-form-URL blokkeerde. Geautomatiseerde Production- en Preview-tests bevestigen fail-closed gedrag. Exacte finale SHA en Vercel READY/Production-provenance worden in de actuele release-handoff gerapporteerd.
+
+Deze entry supersedeert oudere historische SEC-003-notities die een Vercel Preview-target toelieten.## Convergence release — 2026-09-25
 
 **Status: CONVERGENCE RELEASE GREEN — versie 1.20260925.1 is uitgerold naar de enige LiquidHR-omgeving.** Candidate `work/convergence-20260925` eindigde op `c0d3902` en is zonder conflicten in main geïntegreerd; de eenmalige versiecommit was `db85dde`. Na de laatste contextsync zijn lokale main, origin/main en Vercel Production op exact dezelfde SHA gecontroleerd; de definitieve SHA staat als `ABS01_BASELINE_SHA` in het afrondingsrapport.
 
