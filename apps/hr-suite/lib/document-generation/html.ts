@@ -111,6 +111,7 @@ export function renderResolvedSnapshotToHtml(snapshot: ResolvedGenerationSnapsho
   const cover = regionSection('dg1-cover', region(document, 'cover', options))
   const body = regionSection('dg1-body', region(document, 'body', options), Boolean(cover))
   const appendix = regionSection('dg1-appendix', region(document, 'appendix', options), Boolean(body || cover))
+  const header = `<header class="dg1-header">${region(document, 'header', options)}</header>`
   const fontFaceCss = options.fontFaceCss ? `${options.fontFaceCss}\n` : ''
-  return `<article class="dg1-document" data-renderer="${escape(snapshot.rendererVersion)}"><style>${fontFaceCss}${baseCss}</style><header class="dg1-header">${region(document, 'header', options)}</header><main>${cover}${body}${appendix}</main><footer class="dg1-footer">${region(document, 'footer', options)} <span class="dg1-page-number" aria-hidden="true"></span></footer></article>`
+  return `<article class="dg1-document" data-renderer="${escape(snapshot.rendererVersion)}"><style>${fontFaceCss}${baseCss}</style><main>${cover}${header}${body}${appendix}</main><footer class="dg1-footer">${region(document, 'footer', options)} <span class="dg1-page-number" aria-hidden="true"></span></footer></article>`
 }

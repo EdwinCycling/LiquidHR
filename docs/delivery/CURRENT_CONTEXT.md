@@ -1,13 +1,14 @@
 # Actuele overdracht Liquid HR
 
-## T01-R Survey, Team Compass en 9-grid reacceptance — 2026-09-27
+## Gecontroleerde convergentie T01-R + DOC02 — 2026-09-27
 
-**Status: PARTIAL; code en lokale quality gates GREEN, volledige acceptance niet GREEN.** Branch work/acceptance-T01R-20260927 is gebaseerd op aa1bb386d5afb704611fbe0634f40c07090bbb73. Implementation commit aa01d864f7534c3590dfa8d4dd8ed0215548d89d fixe vier T01-R-regressies: Survey DropdownSelect accessible name en viewport-clipping; 9-grid draft/version state bij employeewissel; en editbaarheid van IN_PROGRESS assignments. Regressies, volledige suite (463 bestanden / 1.834 tests), strict TypeScript, gewijzigde ESLint, 39 NL/EN namespaces, productiebuild (296 routes) en diff-check slaagden.
+**Status: codeconvergentie GREEN op work/convergence-20260927 vanaf exact main-baseline aa1bb386d5afb704611fbe0634f40c07090bbb73.** De geteste T01-R-code en regressies (aa01d864f7534c3590dfa8d4dd8ed0215548d89d), de T01-R-acceptance-rapportage (f78f9adb98b083c2e3da0a71036eb63b40109e8f), het DOC02-codecheckpoint (8ecb01f8801004d702a65edcabb58348ebd0e13c) en de DOC02-rapportage (a8934ac5b41a71140d410a21828b1574fcc8f55a) zijn samengebracht.
 
-- TEST-only campagne-readback: anonieme Survey 1 invite/response, respondent id NULL; Team Compass 1 van threshold 5 met 40 antwoorden en sharing uit; 9-grid 10 unieke leden zonder duplicates, één gecontroleerde NORMAL_NORMAL-score versie 7 en 9 unplaced. Andere medewerkers niet beoordeeld; assignment niet submitted.
-- Open acceptancegrenzen: andere Employee en tweede out-of-scope Manager niet beschikbaar; Survey audience-varianten en Team Compass multi-profile aggregate niet bewezen; role-switch cyclus eindigt fail-closed bij Manager; ACT-AS Stop-knop request niet waargenomen hoewel API/audit slaagden; drie browser-console errors zonder bewaarde tekst.
-- Een kortlevende ACT-AS credential wordt via queryparameter vervoerd en lokale Next access logging bevat querystrings. Geen auth-architectuur gewijzigd; aparte security-review en redactie-/transportbesluit nodig. Survey n=1-resultaat is afleidbaar ondanks anonieme opslag; kleine-n suppressie is productbeslissing.
-- Geen migration/schema/RLS/grant, ABS01, production, Vercel, merge of main-mutatie. Canonieke en worktree .env.local zijn uitsluitend op bestaan gecontroleerd. Zie [T01-R acceptance report](../quality/acceptance/runs/T01R-survey-personality-9grid-20260927.md); push-/remote SHA is vastgelegd in de taskafronding.
+- Verificatie: gerichte regressies 37 bestanden / 140 tests; strict TypeScript; ESLint voor 23 gewijzigde TS/JS-bestanden; NL/EN i18n-pariteit met 39 namespaces; productiebuild 296/296 routes; volledige hr-suite 465 bestanden / 1.851 tests.
+- DOC02-migratiebestand 20260927080748_document_studio_optional_placeholders.sql staat in de kandidaat. Read-only Supabase-history bevat precies één registratie: versie 20260927082836 met die migratienaam. De migratie is niet opnieuw toegepast en er is geen schemawijziging uitgevoerd.
+- T01-R-acceptance blijft PARTIAL. Behoud de open kleine-n Survey-beslissing, ACT-AS transport/logging-beoordeling en ontbrekende persona-dekking; deze zijn niet heropend. Zie [T01-R acceptance report](../quality/acceptance/runs/T01R-survey-personality-9grid-20260927.md).
+- DOC02-acceptance blijft BLOCKED BY TOOLING / NOT FULLY GREEN. Geen browsercredential-workaround, wijziging van module/permissies of nieuwe persona-matrix is uitgevoerd. Zie [DOC02 acceptance report](../quality/acceptance/runs/DOC02-20260927-test-fix.md).
+- Geen ABS01-werk, productversiebump, Vercel-deployment of Production-actie.
 
 ## Convergence release — 2026-09-25
 

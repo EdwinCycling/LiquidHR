@@ -5,6 +5,7 @@ import { sha256CanonicalJson } from './canonical-hash'
 import { AssetPolicyError, normalizeStructuralImage, type NormalizedStructuralImage } from './asset-policy'
 import {
   normalizeCanonicalDocument,
+  validateDocumentBodyForActivation,
   type DocumentValidationIssue,
   type NormalizedCanonicalDocument,
 } from './canonical-document'
@@ -298,6 +299,7 @@ export async function validateDraft(value: unknown): Promise<{ readonly valid: b
   if (normalized && normalized.document.kind !== (await getDocumentStudioTemplate(client, auth.tenantId, hrGroupId, version.template_id))?.kind) {
     errors.push({ code: 'DOCUMENT_KIND_MISMATCH', path: [], messageKey: 'documentStudio.validation.kindMismatch' })
   }
+  if (normalized) errors.push(...validateDocumentBodyForActivation(normalized.document))
   if (normalized) {
     for (const assetRef of normalized.assetRefs) {
       if (!knownAssets.has(assetRef)) errors.push({ code: 'ASSET_NOT_APPROVED', path: [], messageKey: 'documentStudio.validation.assetNotApproved' })

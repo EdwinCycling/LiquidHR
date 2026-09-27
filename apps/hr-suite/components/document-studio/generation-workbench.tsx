@@ -23,6 +23,9 @@ interface GenerationLabels {
   readonly temporalInputs: string
   readonly inputHint: string
   readonly temporalHint: string
+  readonly optionalValue: string
+  readonly requiredValuesMissing: string
+  readonly emptyBody: string
   readonly createPreview: string
   readonly preview: string
   readonly finalize: string
@@ -34,8 +37,25 @@ interface GenerationLabels {
   readonly failed: string
 }
 
+class GenerationUiError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'GenerationUiError'
+  }
+}
+
 function newIdempotencyKey(): string {
   return crypto.randomUUID()
+}
+
+function localizedGenerationError(code: string | undefined, labels: GenerationLabels): GenerationUiError {
+  if (code === 'DOCUMENT_GENERATION_FIELD_UNRESOLVED') return new GenerationUiError(labels.requiredValuesMissing)
+  if (code === 'DOCUMENT_GENERATION_TEMPLATE_BODY_EMPTY') return new GenerationUiError(labels.emptyBody)
+  return new GenerationUiError(labels.failed)
+}
+
+function errorMessage(error: unknown, labels: GenerationLabels): string {
+  return error instanceof GenerationUiError ? error.message : labels.failed
 }
 
 export function GenerationWorkbench({ options, labels }: { options: GenerationOptions; labels: GenerationLabels }) {
@@ -43,6 +63,8 @@ export function GenerationWorkbench({ options, labels }: { options: GenerationOp
   const [employeeId, setEmployeeId] = useState(options.employees[0]?.id ?? '')
   const [freeKeys, setFreeKeys] = useState<string[]>([])
   const [temporalKeys, setTemporalKeys] = useState<string[]>([])
+  const [optionalFreeKeys, setOptionalFreeKeys] = useState<string[]>([])
+  const [optionalTemporalKeys, setOptionalTemporalKeys] = useState<string[]>([])
   const [freeInputs, setFreeInputs] = useState<Record<string, string>>({})
   const [temporalInputs, setTemporalInputs] = useState<Record<string, string>>({})
   const [snapshotId, setSnapshotId] = useState<string | null>(null)
@@ -60,19 +82,21 @@ export function GenerationWorkbench({ options, labels }: { options: GenerationOp
       if (!templateVersionId) return
       try {
         const response = await fetch(`/api/document-studio/generation/manifest?templateVersionId=${encodeURIComponent(templateVersionId)}`)
-        const result = await response.json() as { data?: { freeKeys: string[]; temporalKeys: string[] }; code?: string }
-        if (!response.ok || !result.data) throw new Error(result.code ?? labels.failed)
+        const result = await response.json() as { data?: { freeKeys: string[]; temporalKeys: string[]; optionalFreeKeys: string[]; optionalTemporalKeys: string[] }; code?: string }
+        if (!response.ok || !result.data) throw localizedGenerationError(result.code, labels)
         if (!cancelled) {
           setFreeKeys(result.data.freeKeys)
           setTemporalKeys(result.data.temporalKeys)
+          setOptionalFreeKeys(result.data.optionalFreeKeys)
+          setOptionalTemporalKeys(result.data.optionalTemporalKeys)
         }
       } catch (caught) {
-        if (!cancelled) setError(caught instanceof Error ? caught.message : labels.failed)
+        if (!cancelled) setError(errorMessage(caught, labels))
       }
     }
     void loadManifest()
     return () => { cancelled = true }
-  }, [labels.failed, templateVersionId])
+  }, [labels, templateVersionId])
 
   function resetResult(): void {
     setSnapshotId(null)
@@ -122,7 +146,7 @@ export function GenerationWorkbench({ options, labels }: { options: GenerationOp
         body: JSON.stringify({ templateVersionId, employeeId, idempotencyKey: previewKey, freeInputs, temporalInputs }),
       })
       const result = await response.json() as { data?: GenerationResult; code?: string }
-      if (!response.ok || !result.data) throw new Error(result.code ?? labels.failed)
+      if (!response.ok || !result.data) throw localizedGenerationError(result.code, labels)
       setSnapshotId(result.data.id)
       setFreeKeys(result.data.freeKeys ?? freeKeys)
       setTemporalKeys(result.data.temporalKeys ?? temporalKeys)
@@ -131,10 +155,10 @@ export function GenerationWorkbench({ options, labels }: { options: GenerationOp
       setDossierStatus(null)
       const previewResponse = await fetch(`/api/document-studio/generation/${result.data.id}`)
       const previewResult = await previewResponse.json() as { data?: GenerationResult; code?: string }
-      if (!previewResponse.ok || !previewResult.data?.html) throw new Error(previewResult.code ?? labels.failed)
+      if (!previewResponse.ok || !previewResult.data?.html) throw localizedGenerationError(previewResult.code, labels)
       setPreview(previewResult.data.html)
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : labels.failed)
+      setError(errorMessage(caught, labels))
     } finally {
       setBusy(false)
     }
@@ -153,11 +177,11 @@ export function GenerationWorkbench({ options, labels }: { options: GenerationOp
         body: JSON.stringify({ idempotencyKey: key }),
       })
       const result = await response.json() as { data?: GenerationResult; code?: string }
-      if (!response.ok || !result.data) throw new Error(result.code ?? labels.failed)
+      if (!response.ok || !result.data) throw localizedGenerationError(result.code, labels)
       setIsFinal(true)
       setDossierStatus(result.data.dossierStatus ?? 'SKIPPED')
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : labels.failed)
+      setError(errorMessage(caught, labels))
     } finally {
       setBusy(false)
     }
@@ -168,8 +192,8 @@ export function GenerationWorkbench({ options, labels }: { options: GenerationOp
       <label className="space-y-1 text-sm font-medium"><span>{labels.template}</span><DropdownSelect aria-label={labels.template} onChange={(event) => chooseTemplate(event.target.value)} searchable searchPlaceholder={labels.choose} value={templateVersionId}>{options.templates.map((item) => <option key={item.versionId} value={item.versionId}>{item.name} · v{item.version}</option>)}</DropdownSelect></label>
       <label className="space-y-1 text-sm font-medium"><span>{labels.employee}</span><DropdownSelect aria-label={labels.employee} onChange={(event) => chooseEmployee(event.target.value)} searchable searchPlaceholder={labels.choose} value={employeeId}>{options.employees.map((item) => <option key={item.id} value={item.id}>{item.name}{item.employeeNumber ? ` · ${item.employeeNumber}` : ''}</option>)}</DropdownSelect></label>
     </div>
-    {temporalKeys.length ? <section className="space-y-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5"><h2 className="font-semibold">{labels.temporalInputs}</h2><p className="text-sm text-muted-foreground">{labels.temporalHint}</p>{temporalKeys.map((key) => <label className="block space-y-1 text-sm" key={key}><span>{key}</span><TextInput aria-label={key} onChange={(event) => changeTemporalInput(key, event.target.value)} required value={temporalInputs[key] ?? ''} /></label>)}</section> : null}
-    {freeKeys.length ? <section className="space-y-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5"><h2 className="font-semibold">{labels.freeInputs}</h2><p className="text-sm text-muted-foreground">{labels.inputHint}</p>{freeKeys.map((key) => <label className="block space-y-1 text-sm" key={key}><span>{key}</span><TextInput aria-label={key} onChange={(event) => changeFreeInput(key, event.target.value)} required value={freeInputs[key] ?? ''} /></label>)}</section> : null}
+    {temporalKeys.length ? <section className="space-y-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5"><h2 className="font-semibold">{labels.temporalInputs}</h2><p className="text-sm text-muted-foreground">{labels.temporalHint}</p>{temporalKeys.map((key) => { const required = !optionalTemporalKeys.includes(key); return <label className="block space-y-1 text-sm" key={key}><span>{key}{required ? '' : ` · ${labels.optionalValue}`}</span><TextInput aria-label={key} onChange={(event) => changeTemporalInput(key, event.target.value)} required={required} value={temporalInputs[key] ?? ''} /></label> })}</section> : null}
+    {freeKeys.length ? <section className="space-y-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5"><h2 className="font-semibold">{labels.freeInputs}</h2><p className="text-sm text-muted-foreground">{labels.inputHint}</p>{freeKeys.map((key) => { const required = !optionalFreeKeys.includes(key); return <label className="block space-y-1 text-sm" key={key}><span>{key}{required ? '' : ` · ${labels.optionalValue}`}</span><TextInput aria-label={key} onChange={(event) => changeFreeInput(key, event.target.value)} required={required} value={freeInputs[key] ?? ''} /></label> })}</section> : null}
     <div className="flex flex-wrap gap-3">
       <Button disabled={!templateVersionId || !employeeId} loading={busy} onClick={createPreview} type="button">{labels.createPreview}</Button>
       {snapshotId && !isFinal ? <Button loading={busy} onClick={finalize} type="button" variant="secondary">{labels.finalize}</Button> : null}

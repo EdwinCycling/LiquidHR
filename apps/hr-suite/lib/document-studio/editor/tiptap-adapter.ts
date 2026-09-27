@@ -77,6 +77,14 @@ export const FontSizeMark = Mark.create({
   },
 })
 
+function optionalPlaceholderAttribute() {
+  return {
+    default: false,
+    parseHTML: (element: HTMLElement) => element.getAttribute('data-optional') === 'true',
+    renderHTML: (attributes: Record<string, unknown>) => attributes.optional === true ? { 'data-optional': 'true' } : {},
+  }
+}
+
 export const KnownPlaceholderNode = Node.create({
   name: 'knownPlaceholder',
   group: 'inline',
@@ -84,7 +92,7 @@ export const KnownPlaceholderNode = Node.create({
   atom: true,
   selectable: true,
   addAttributes() {
-    return { field: { default: '' } }
+    return { field: { default: '' }, optional: optionalPlaceholderAttribute() }
   },
   parseHTML() {
     return [{ tag: 'span[data-liquid-placeholder="known"]' }]
@@ -105,7 +113,7 @@ export const TemporalPlaceholderNode = Node.create({
   atom: true,
   selectable: true,
   addAttributes() {
-    return { field: { default: '' }, temporal: { default: 'is' } }
+    return { field: { default: '' }, temporal: { default: 'is' }, optional: optionalPlaceholderAttribute() }
   },
   parseHTML() {
     return [{ tag: 'span[data-liquid-placeholder="temporal"]' }]
@@ -127,7 +135,7 @@ export const FreePlaceholderNode = Node.create({
   atom: true,
   selectable: true,
   addAttributes() {
-    return { key: { default: '' } }
+    return { key: { default: '' }, optional: optionalPlaceholderAttribute() }
   },
   parseHTML() {
     return [{ tag: 'span[data-liquid-placeholder="free"]' }]
