@@ -17,6 +17,9 @@ export interface LoginFormLabels {
   password: string
   signIn: string
   signingIn: string
+  testLogin: string
+  testLoginAsHrAdmin: string
+  testLoginFailed: string
   signInWithGoogle: string
   or: string
   forgotPassword: string
@@ -37,9 +40,11 @@ interface LoginFormProps {
   nextPath: string
   authError: boolean
   providerError: boolean
+  testLoginEnabled: boolean
+  testLoginError: boolean
 }
 
-export function LoginForm({ labels, nextPath, authError, providerError }: LoginFormProps) {
+export function LoginForm({ labels, nextPath, authError, providerError, testLoginEnabled, testLoginError }: LoginFormProps) {
   const [mode, setMode] = useState<'login' | 'reset'>('login')
   const [loginState, loginAction, loginPending] = useActionState(
     signInWithPassword,
@@ -184,6 +189,27 @@ export function LoginForm({ labels, nextPath, authError, providerError }: LoginF
         <input name="next" type="hidden" value={nextPath} />
         <GoogleSignInButton labels={labels} />
       </form>
+
+      {testLoginEnabled ? (
+        <section aria-label={labels.testLogin} className="mt-6 border-t pt-5">
+          <p className="text-center text-xs font-medium text-muted-foreground">{labels.testLogin}</p>
+          {testLoginError ? (
+            <p className="mt-3 rounded-lg border border-destructive/25 bg-destructive-surface px-3 py-2.5 text-sm text-destructive" role="alert">
+              {labels.testLoginFailed}
+            </p>
+          ) : null}
+          <form action="/api/auth/test-login" className="mt-3" method="post">
+            <input name="persona" type="hidden" value="hr-admin" />
+            <button
+              className="inline-flex h-11 w-full items-center justify-center rounded-lg border bg-surface-raised px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              data-testid="test-login-hr-admin"
+              type="submit"
+            >
+              {labels.testLoginAsHrAdmin}
+            </button>
+          </form>
+        </section>
+      ) : null}
 
       <p className="mt-6 border-t pt-5 text-center text-xs leading-5 text-muted-foreground">
         {labels.invitationOnly}

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   getTestRoleSwitchTarget,
+  getTestAuthHarnessCredentials,
+  canReturnToTestHrAdmin,
   canInitiateTestRoleSwitch,
   isTestRoleSwitchAccount,
   isTestRoleSwitchEnabled,
@@ -29,6 +31,13 @@ describe('test role switch', () => {
     expect(canInitiateTestRoleSwitch([])).toBe(false)
   })
 
+  it('biedt alleen de twee lagere testpersonas een terugkeer naar Test HR Admin', () => {
+    expect(canReturnToTestHrAdmin('manager.fixture@liquidhr.test')).toBe(true)
+    expect(canReturnToTestHrAdmin('employee.fixture@liquidhr.test')).toBe(true)
+    expect(canReturnToTestHrAdmin('hradmin.fixture@liquidhr.test')).toBe(false)
+    expect(canReturnToTestHrAdmin('other@example.com')).toBe(false)
+  })
+
   it('vereist de expliciete flag en de canonieke LiquidHR Supabase-projectref', () => {
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'development', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(true)
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'development', explicitFlag: 'false', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
@@ -47,24 +56,48 @@ describe('test role switch', () => {
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'production' })).toBe(false)
   })
 
-  it('kan via het Vercel Production deployment channel met flag en canonieke projectref werken', () => {
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'production', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(true)
+  it('houdt test-login en rolwissel uit iedere production-runtime', () => {
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'production', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'production', explicitFlag: 'false', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'production', explicitFlag: 'true', supabaseUrl: 'https://real-production.supabase.co' })).toBe(false)
   })
 
-  it('kan in Vercel Preview alleen met dezelfde twee gates werken', () => {
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(true)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: ' TRUE ', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(true)
+  it('houdt test-login en rolwissel uit Vercel Preview en lokale Vercel-runtime', () => {
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: ' TRUE ', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: 'true', supabaseUrl: 'https://real-production.supabase.co' })).toBe(false)
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'development', vercel: '1', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
   })
 
-  it('leest de productieflag uit de runtimeomgeving wanneer geen override wordt meegegeven', () => {
+  it('is disabled by default in test runtime', () => {
+    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', '')
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('VERCEL_ENV', '')
+    vi.stubEnv('VERCEL', '')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', CANONICAL_SUPABASE_URL)
+    expect(isTestRoleSwitchEnabled()).toBe(false)
+    vi.unstubAllEnvs()
+  })
+
+  it('blijft gesloten met een stale flag in de productieomgeving', () => {
     vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('VERCEL', '1')
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', CANONICAL_SUPABASE_URL)
-    expect(isTestRoleSwitchEnabled()).toBe(true)
+    expect(isTestRoleSwitchEnabled()).toBe(false)
     vi.unstubAllEnvs()
+  })
+
+  it('gebruikt alleen de vaste synthetische HR Admin met een servercredential', () => {
+    expect(getTestAuthHarnessCredentials('hr-admin', 'synthetic-password')).toEqual({
+      email: 'hradmin.fixture@liquidhr.test',
+      password: 'synthetic-password',
+    })
+    expect(getTestAuthHarnessCredentials('hr-admin', '')).toBeNull()
+    expect(getTestAuthHarnessCredentials('manager', 'synthetic-password')).toBeNull()
+    expect(getTestAuthHarnessCredentials('employee', 'synthetic-password')).toBeNull()
+    expect(getTestAuthHarnessCredentials('edwin', 'synthetic-password')).toBeNull()
+    expect(getTestAuthHarnessCredentials('arbitrary-user', 'synthetic-password')).toBeNull()
   })
 })

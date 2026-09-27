@@ -1,5 +1,27 @@
 # Liquid HR documentatie-index
 
+## Test Auth Harness — lokaal-only — 2026-09-27
+
+De lokale testauthenticatie biedt alleen de vaste synthetische Test HR Admin aan
+via `TALENT_HR_ADMIN_PASSWORD`, gelezen op de server. De route gebruikt de
+bestaande Supabase SSR-client en `signInWithPassword`; gewone e-mail-/wachtwoord-
+en Google-login blijven intact. De bestaande rolwissel kan in lokale
+development naar Test Manager en Test Medewerker wisselen; die accounts kunnen
+met dezelfde lokale route terug naar Test HR Admin.
+
+De helper vereist `NODE_ENV=development`, geen `VERCEL`/`VERCEL_ENV`, de
+expliciete lokale flag `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED=true` en de bestaande
+canonieke Supabase-projectref. UI en POST-routes blijven daardoor standaard,
+in productie en in elke Vercel-runtime verborgen/gesloten, ook met een stale
+flag. Credentials komen niet in de browser. Er is geen schema-, migration-,
+RLS- of permissionwijziging.
+
+Deze lokale-only policy supersedeert de historische DEV-guard-notities hieronder
+die een expliciete Vercel Preview- of deploymentflag toelieten. Zie
+[`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en
+[`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor
+de actuele release-evidence en gates.
+
 ## Convergence release — 2026-09-25
 
 **Status: CONVERGENCE RELEASE GREEN — versie `1.20260925.1` is uitgerold naar de enige LiquidHR-omgeving.** De role switch is hersteld in de bestaande sidebar header/action row naast het cadeau-icoon; de bestaande fail-closed runtimevoorwaarde verklaarde waarom die in een lokale productiebuild zonder Vercel-context verborgen was. D01, login context, calendar toolbar, Google OAuth redirect, org chart en startpage zijn geïntegreerd. HR Admin/ACT-AS zijn handmatig gecontroleerd; Manager- en Employee-negatives zijn geautomatiseerd. Edwin bevestigde de responsive acceptance in Chrome Device Mode op exact `390×844` voor Startpage, Focus, dossier/document, calendar en org chart. De volledige hr-suite slaagde met `460` bestanden en `1827` tests. Een gecombineerde workspace-run had één timeout in een ongewijzigde PDF-test; de geïsoleerde PDF-test slaagde en de daaropvolgende volledige hr-suite-run was groen. Die timeout blokkeert de release niet.

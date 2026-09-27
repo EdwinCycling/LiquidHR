@@ -1,24 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, headers, redirect, signInWithOAuth } = vi.hoisted(() => ({
+const { createClient, headers, redirect, signInWithOAuth, signInWithPassword } = vi.hoisted(() => ({
   createClient: vi.fn(),
   headers: vi.fn(),
   redirect: vi.fn(),
   signInWithOAuth: vi.fn(),
+  signInWithPassword: vi.fn(),
 }))
 
 vi.mock('next/headers', () => ({ headers }))
 vi.mock('next/navigation', () => ({ redirect }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
-import { signInWithGoogle } from './login-actions'
+import { signInWithGoogle, signInWithPassword as signInWithPasswordAction } from './login-actions'
 
-describe('signInWithGoogle', () => {
+describe('login actions', () => {
   beforeEach(() => {
     createClient.mockReset()
     headers.mockReset()
     redirect.mockReset()
     signInWithOAuth.mockReset()
+    signInWithPassword.mockReset()
     vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://liquid-hr-hr-suite.vercel.app')
     vi.stubEnv('NODE_ENV', 'development')
     vi.stubEnv('VERCEL_ENV', 'production')
@@ -32,10 +34,27 @@ describe('signInWithGoogle', () => {
       data: { url: 'https://supabase.example/auth/v1/authorize?provider=google' },
       error: null,
     })
-    createClient.mockResolvedValue({ auth: { signInWithOAuth } })
+    signInWithPassword.mockResolvedValue({ error: null })
+    createClient.mockResolvedValue({ auth: { signInWithOAuth, signInWithPassword } })
     redirect.mockImplementation((destination: string) => {
       throw new Error(`NEXT_REDIRECT:${destination}`)
     })
+  })
+
+  it('houdt e-mail- en wachtwoordaanmelding op dezelfde server-side Supabase Auth-route', async () => {
+    const formData = new FormData()
+    formData.set('email', 'test.user@example.com')
+    formData.set('password', 'SyntheticPassw0rd!')
+    formData.set('next', '/dashboard/start')
+
+    await expect(signInWithPasswordAction({ code: 'idle' }, formData)).rejects.toThrow('NEXT_REDIRECT:/dashboard/start')
+
+    expect(createClient).toHaveBeenCalledOnce()
+    expect(signInWithPassword).toHaveBeenCalledWith({
+      email: 'test.user@example.com',
+      password: 'SyntheticPassw0rd!',
+    })
+    expect(redirect).toHaveBeenCalledWith('/dashboard/start')
   })
 
   afterEach(() => {

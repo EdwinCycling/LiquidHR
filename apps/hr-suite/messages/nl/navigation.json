@@ -47,5 +47,6 @@
   "testRoleSwitchEdwin": "Edwin — eigen account",
   "testRoleSwitchHrAdmin": "Test HR Admin",
   "testRoleSwitchManager": "Test Manager",
-  "testRoleSwitchEmployee": "Test Medewerker"
+  "testRoleSwitchEmployee": "Test Medewerker",
+  "testRoleSwitchReturnToAdmin": "Terug naar Test HR Admin"
 }

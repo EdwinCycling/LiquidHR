@@ -20,13 +20,15 @@ const APPLICATION_URL = 'https://liquid-hr-hr-suite.vercel.app'
 function switchRequest(target: string): NextRequest {
   return new NextRequest(`${APPLICATION_URL}/api/auth/test-role-switch`, {
     method: 'POST',
+    headers: { origin: APPLICATION_URL },
     body: new URLSearchParams({ target }),
   })
 }
 
 function enableSwitcher(supabaseUrl = CANONICAL_SUPABASE_URL): void {
-  vi.stubEnv('NODE_ENV', 'production')
-  vi.stubEnv('VERCEL_ENV', 'production')
+  vi.stubEnv('NODE_ENV', 'development')
+  vi.stubEnv('VERCEL_ENV', '')
+  vi.stubEnv('VERCEL', '')
   vi.stubEnv('VERCEL_URL', 'liquid-hr-hr-suite.vercel.app')
   vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', supabaseUrl)
@@ -69,6 +71,21 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 
+  it('weigert een cross-origin verzoek voordat de sessie of adminclient wordt gelezen', async () => {
+    enableSwitcher()
+    const request = new NextRequest(`${APPLICATION_URL}/api/auth/test-role-switch`, {
+      method: 'POST',
+      headers: { origin: 'https://attacker.example' },
+      body: new URLSearchParams({ target: 'manager' }),
+    })
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(403)
+    expect(getRequestAuthorizationContext).not.toHaveBeenCalled()
+    expect(createAdminClient).not.toHaveBeenCalled()
+  })
+
   it('blijft lokaal in een productie-build zonder Vercel-context gesloten', async () => {
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('VERCEL_ENV', '')
@@ -79,6 +96,20 @@ describe('POST /api/auth/test-role-switch', () => {
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_DISABLED' })
+    expect(getRequestAuthorizationContext).not.toHaveBeenCalled()
+    expect(createAdminClient).not.toHaveBeenCalled()
+  })
+
+  it.each(['production', 'preview'])('blijft gesloten in Vercel %s', async (vercelEnv) => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('VERCEL_ENV', vercelEnv)
+    vi.stubEnv('VERCEL', '1')
+    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', CANONICAL_SUPABASE_URL)
+
+    const response = await POST(switchRequest('manager'))
+
+    expect(response.status).toBe(404)
     expect(getRequestAuthorizationContext).not.toHaveBeenCalled()
     expect(createAdminClient).not.toHaveBeenCalled()
   })

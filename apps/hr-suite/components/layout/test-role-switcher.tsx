@@ -1,6 +1,6 @@
 'use client'
 
-import { FlaskConical } from 'lucide-react'
+import { FlaskConical, Undo2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { IconButton } from '@/components/ui/icon-button'
 import type { TestRoleSwitchTargetKey } from '@/lib/auth/test-role-switch'
@@ -14,14 +14,17 @@ export interface TestRoleSwitchOption {
 interface TestRoleSwitcherProps {
   collapsed?: boolean
   currentEmail: string
+  enabled: boolean
   labels: {
     title: string
     hint: string
+    returnToAdmin: string
   }
   options: TestRoleSwitchOption[]
+  returnToAdmin: boolean
 }
 
-export function TestRoleSwitcher({ collapsed = false, currentEmail, labels, options }: TestRoleSwitcherProps) {
+export function TestRoleSwitcher({ collapsed = false, currentEmail, enabled, labels, options, returnToAdmin }: TestRoleSwitcherProps) {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -65,22 +68,40 @@ export function TestRoleSwitcher({ collapsed = false, currentEmail, labels, opti
 
   return (
     <div className="relative">
-      <IconButton
-        aria-controls={open ? 'test-role-switch-popover' : undefined}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        className="!bg-transparent !text-sidebar-muted hover:!bg-sidebar-accent hover:!text-sidebar-foreground"
-        data-testid="test-role-switch-trigger"
-        label={labels.title}
-        onClick={() => setOpen((value) => !value)}
-        ref={triggerRef}
-        size="sm"
-        title={labels.title}
-        type="button"
-        variant="ghost"
-      >
-        <FlaskConical aria-hidden="true" />
-      </IconButton>
+      {enabled ? (
+        <IconButton
+          aria-controls={open ? 'test-role-switch-popover' : undefined}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          className="!bg-transparent !text-sidebar-muted hover:!bg-sidebar-accent hover:!text-sidebar-foreground"
+          data-testid="test-role-switch-trigger"
+          label={labels.title}
+          onClick={() => setOpen((value) => !value)}
+          ref={triggerRef}
+          size="sm"
+          title={labels.title}
+          type="button"
+          variant="ghost"
+        >
+          <FlaskConical aria-hidden="true" />
+        </IconButton>
+      ) : null}
+      {returnToAdmin ? (
+        <form action="/api/auth/test-login" method="post">
+          <input name="persona" type="hidden" value="hr-admin" />
+          <IconButton
+            className="!bg-transparent !text-sidebar-muted hover:!bg-sidebar-accent hover:!text-sidebar-foreground"
+            data-testid="test-role-return-to-admin"
+            label={labels.returnToAdmin}
+            size="sm"
+            title={labels.returnToAdmin}
+            type="submit"
+            variant="ghost"
+          >
+            <Undo2 aria-hidden="true" />
+          </IconButton>
+        </form>
+      ) : null}
       {open ? (
         <div
           aria-describedby="test-role-switch-hint"

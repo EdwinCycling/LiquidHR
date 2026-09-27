@@ -1,6 +1,7 @@
 import { AuthShell } from '@/components/auth/auth-shell'
 import { LoginForm, type LoginFormLabels } from '@/components/auth/login-form'
 import { safeNextPath } from '@/lib/auth/login-rules'
+import { isTestRoleSwitchEnabled } from '@/lib/auth/test-role-switch'
 import { getTranslator } from '@/lib/i18n/server'
 
 interface LoginPageProps {
@@ -22,6 +23,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     password: auth('password'),
     signIn: auth('signIn'),
     signingIn: auth('signingIn'),
+    testLogin: auth('testLogin'),
+    testLoginAsHrAdmin: auth('testLoginAsHrAdmin'),
+    testLoginFailed: auth('testLoginFailed'),
     signInWithGoogle: auth('signInWithGoogle'),
     or: auth('or'),
     forgotPassword: auth('forgotPassword'),
@@ -62,6 +66,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         labels={labels}
         nextPath={nextPath}
         providerError={params.error === 'provider'}
+        testLoginEnabled={isTestRoleSwitchEnabled()}
+        testLoginError={params.error === 'test-login'}
       />
     </AuthShell>
   )

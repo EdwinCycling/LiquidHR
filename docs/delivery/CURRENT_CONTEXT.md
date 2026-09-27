@@ -1,6 +1,15 @@
 # Actuele overdracht Liquid HR
 
-## Gecontroleerde convergentie T01-R + DOC02 — 2026-09-27
+## Test Auth Harness + final release sync — 2026-09-27
+
+**Status: lokale acceptatie en codegates GREEN; release naar main en exacte Vercel-SHA-verificatie volgen. Kandidaatbranch work/test-auth-harness-20260927, gebaseerd op origin/main cc5bd5a54f6021d58247267db1eaeeddf75c051d. Zichtbare app-versie: 1.20260927.2 (eenmalige bump).**
+
+- De testlogin is beperkt tot de synthetische Test HR Admin en leest TALENT_HR_ADMIN_PASSWORD uitsluitend server-side via de normale Supabase SSR signInWithPassword-flow. Manager en Medewerker kunnen lokaal via een same-origin POST terug naar Test HR Admin. Gewone wachtwoord- en Google-login blijven beschikbaar.
+- De harness-, confirm- en rolwisselroutes vereisen lokale development, de expliciete flag en de canonieke Supabase-projectref; VERCEL, VERCEL_ENV en niet-development runtimes zijn gesloten. Geen migration-, schema-, RLS-, grant-, permission-, Production-configuratie- of remote Supabase-wijziging.
+- Gerichte route-, helper-, form-, rolwissel- en bestaande loginregressies: 6 bestanden / 39 tests groen. De volledige hr-suite draaide exact één keer: 467 bestanden / 1.869 tests groen. Productiebuild groen met 297/297 routes/pagina's. Gewijzigde bestanden ESLint, check:i18n (39 namespaces), strict TypeScript (npx tsc --noEmit --incremental false) en git diff --check groen.
+- Lokale authenticated browserflow geaccepteerd: Test HR Admin → Test Manager → terug naar Admin → Test Medewerker → logout. Manager /authorization en Medewerker /settings werden geweigerd; na logout verwees /dashboard/start terug naar login.
+- De productie-mode browsercheck via lokale next start is niet bereikbaar vanuit de Codex-browser (ERR_CONNECTION_REFUSED), hoewel PowerShell de lokale server wel kon opvragen. De geautomatiseerde helper- en routetests bevestigen dat zowel Vercel Production als Preview ook met een stale flag gesloten zijn. Normale login bleef zichtbaar in de lokale browseracceptatie.
+- Open: kandidaatcommit, integratie/push van main, clean external release checkout, en Vercel Production verifiëren op READY, target production, githubCommitRef=main, exacte githubCommitSha en zichtbare versie. Alleen het project liquidhr; geen Supabase-wijziging. Payroll-worktrees behouden; geen ABS02/INS01 starten.## Gecontroleerde convergentie T01-R + DOC02 — 2026-09-27
 
 **Status: codeconvergentie GREEN op work/convergence-20260927 vanaf exact main-baseline aa1bb386d5afb704611fbe0634f40c07090bbb73.** De geteste T01-R-code en regressies (aa01d864f7534c3590dfa8d4dd8ed0215548d89d), de T01-R-acceptance-rapportage (f78f9adb98b083c2e3da0a71036eb63b40109e8f), het DOC02-codecheckpoint (8ecb01f8801004d702a65edcabb58348ebd0e13c) en de DOC02-rapportage (a8934ac5b41a71140d410a21828b1574fcc8f55a) zijn samengebracht.
 

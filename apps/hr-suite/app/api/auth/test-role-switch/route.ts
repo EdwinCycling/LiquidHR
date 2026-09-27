@@ -16,6 +16,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'TEST_ROLE_SWITCH_DISABLED' }, { status: 404 })
   }
 
+  if (request.headers.get('origin') !== request.nextUrl.origin) {
+    return NextResponse.json({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' }, { status: 403 })
+  }
+
   let requestContext: Awaited<ReturnType<typeof getRequestAuthorizationContext>>
   try {
     requestContext = await getRequestAuthorizationContext()

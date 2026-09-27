@@ -1,9 +1,12 @@
+import 'server-only'
+
 export const TEST_ROLE_SWITCH_OWNER_EMAIL = 'edwin@editsolutions.nl'
 export const TEST_ROLE_SWITCH_SUPABASE_PROJECT_REF = 'wnpfloqpjvaacobppbpk'
+const TEST_HR_ADMIN_EMAIL = 'hradmin.fixture@liquidhr.test'
 
 export const TEST_ROLE_SWITCH_TARGETS = [
   { key: 'edwin', email: TEST_ROLE_SWITCH_OWNER_EMAIL },
-  { key: 'hr-admin', email: 'hradmin.fixture@liquidhr.test' },
+  { key: 'hr-admin', email: TEST_HR_ADMIN_EMAIL },
   { key: 'manager', email: 'manager.fixture@liquidhr.test' },
   { key: 'employee', email: 'employee.fixture@liquidhr.test' },
 ] as const
@@ -28,8 +31,23 @@ export function getTestRoleSwitchTarget(value: string | null | undefined): TestR
   return TEST_ROLE_SWITCH_TARGETS.find((target) => target.key === value) ?? null
 }
 
-interface TestRoleSwitchEnvironment {
+export function getTestAuthHarnessCredentials(
+  persona: string,
+  adminPassword: string | undefined = process.env.TALENT_HR_ADMIN_PASSWORD,
+): { email: string; password: string } | null {
+  if (persona !== 'hr-admin' || !adminPassword) return null
+  return { email: TEST_HR_ADMIN_EMAIL, password: adminPassword }
+}
+
+export function canReturnToTestHrAdmin(email: string | null | undefined): boolean {
+  const candidate = normalizedEmail(email)
+  return candidate === TEST_ROLE_SWITCH_TARGETS[2].email
+    || candidate === TEST_ROLE_SWITCH_TARGETS[3].email
+}
+
+export interface TestRoleSwitchEnvironment {
   nodeEnv?: string
+  vercel?: string
   vercelEnv?: string
   explicitFlag?: string
   supabaseUrl?: string
@@ -69,16 +87,14 @@ export function resolveSupabaseProjectRef(supabaseUrl: string | undefined): stri
 
 export function isTestRoleSwitchEnabled(environment: TestRoleSwitchEnvironment = {}): boolean {
   const nodeEnv = normalizedEnvironment(environment.nodeEnv ?? process.env.NODE_ENV)
+  const vercel = normalizedEnvironment(environment.vercel ?? process.env.VERCEL)
   const vercelEnv = normalizedEnvironment(environment.vercelEnv ?? process.env.VERCEL_ENV)
   const explicitFlag = normalizedEnvironment(environment.explicitFlag ?? process.env.LIQUIDHR_TEST_ROLE_SWITCH_ENABLED)
   const projectRef = resolveSupabaseProjectRef(environment.supabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL)
   const explicitlyEnabledForCanonicalProject = explicitFlag === 'true' && projectRef === TEST_ROLE_SWITCH_SUPABASE_PROJECT_REF
 
-  // Vercel Production is the deployment channel for the only LiquidHR environment.
-  // The role switch fails closed unless its explicit flag and canonical project ref match.
-  if (vercelEnv === 'production') return explicitlyEnabledForCanonicalProject
-  if (!vercelEnv && nodeEnv === 'production') return false
-  if (vercelEnv && !['preview', 'development', 'test'].includes(vercelEnv)) return false
-
-  return explicitlyEnabledForCanonicalProject
+  return nodeEnv === 'development'
+    && !vercel
+    && !vercelEnv
+    && explicitlyEnabledForCanonicalProject
 }

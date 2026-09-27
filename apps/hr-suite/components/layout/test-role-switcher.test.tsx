@@ -15,7 +15,7 @@ function mount(element: React.ReactElement) {
   return { host, unmount: () => act(() => root.unmount()) }
 }
 
-const labels = { title: 'Testrol wisselen', hint: 'Je wordt opnieuw ingelogd als de gekozen testgebruiker.' }
+const labels = { title: 'Testrol wisselen', hint: 'Je wordt opnieuw ingelogd als de gekozen testgebruiker.', returnToAdmin: 'Terug naar Test HR Admin' }
 const options: TestRoleSwitchOption[] = [
   { key: 'edwin', email: 'edwin@editsolutions.nl', label: 'Edwin — eigen account' },
   { key: 'hr-admin', email: 'hradmin.fixture@liquidhr.test', label: 'Test HR Admin' },
@@ -26,7 +26,7 @@ const options: TestRoleSwitchOption[] = [
 describe('TestRoleSwitcher', () => {
   it('keeps the compact trigger, stable selector and submit flow inside an accessible popover', () => {
     const requestSubmit = vi.spyOn(HTMLFormElement.prototype, 'requestSubmit').mockImplementation(() => undefined)
-    const mounted = mount(createElement(TestRoleSwitcher, { currentEmail: 'manager.fixture@liquidhr.test', labels, options }))
+    const mounted = mount(createElement(TestRoleSwitcher, { currentEmail: 'manager.fixture@liquidhr.test', enabled: true, labels, options, returnToAdmin: false }))
     const trigger = mounted.host.querySelector('[data-testid="test-role-switch-trigger"]') as HTMLButtonElement
 
     expect(trigger.getAttribute('aria-haspopup')).toBe('dialog')
@@ -52,6 +52,26 @@ describe('TestRoleSwitcher', () => {
     expect(document.activeElement).toBe(trigger)
 
     requestSubmit.mockRestore()
+    mounted.unmount()
+  })
+
+  it('renders a server-posted return to Test HR Admin without a browser credential', () => {
+    const mounted = mount(createElement(TestRoleSwitcher, {
+      currentEmail: 'manager.fixture@liquidhr.test',
+      enabled: false,
+      labels,
+      options,
+      returnToAdmin: true,
+    }))
+    const form = mounted.host.querySelector('form')
+    const button = mounted.host.querySelector('[data-testid="test-role-return-to-admin"]')
+
+    expect(mounted.host.querySelector('[data-testid="test-role-switch-trigger"]')).toBeNull()
+    expect(form?.getAttribute('action')).toBe('/api/auth/test-login')
+    expect(form?.querySelector('input[name="persona"]')?.getAttribute('value')).toBe('hr-admin')
+    expect(form?.querySelector('input[name="password"]')).toBeNull()
+    expect(button?.getAttribute('aria-label')).toBe(labels.returnToAdmin)
+
     mounted.unmount()
   })
 })

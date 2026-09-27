@@ -105,10 +105,12 @@ interface SidebarProps {
   testRoleSwitch: {
     enabled: boolean
     currentEmail: string | null
+    returnToAdmin: boolean
     options: TestRoleSwitchOption[]
     labels: {
       title: string
       hint: string
+      returnToAdmin: string
     }
   }
 }
@@ -227,7 +229,7 @@ export function Sidebar({
           ) : null}
           <div className={`relative flex shrink-0 items-center gap-0.5 ${collapsed ? 'flex-col gap-1' : ''}`}>
             <ProductUpdateDrawerTrigger collapsed={collapsed} labels={productUpdateLabels} locale={locale} onClose={() => setMobileOpen(false)} unreadCount={currentProductUpdateUnreadCount} updates={productUpdates} />
-            {testRoleSwitch.enabled && testRoleSwitch.currentEmail ? <TestRoleSwitcher collapsed={collapsed} currentEmail={testRoleSwitch.currentEmail} labels={testRoleSwitch.labels} options={testRoleSwitch.options} /> : null}
+            {(testRoleSwitch.enabled || testRoleSwitch.returnToAdmin) && testRoleSwitch.currentEmail ? <TestRoleSwitcher collapsed={collapsed} currentEmail={testRoleSwitch.currentEmail} enabled={testRoleSwitch.enabled} labels={testRoleSwitch.labels} options={testRoleSwitch.options} returnToAdmin={testRoleSwitch.returnToAdmin} /> : null}
             <button aria-label={labels.closeMenu} className="grid size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden" onClick={() => setMobileOpen(false)} type="button">
               <X aria-hidden="true" size={19} />
             </button>
