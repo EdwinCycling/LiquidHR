@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, CalendarDays, CheckCircle2, ChevronDown, HeartPulse, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CheckCircle2, ChevronDown, ClipboardCheck, HeartPulse, ShieldAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
 import { AbsenceConfirmationActions } from '@/components/absence/absence-confirmation-actions'
@@ -82,6 +82,16 @@ interface AbsenceCaseDetailProps {
     confirmationCorrectionSent?: string
     confirmationFailed?: string
     confirmationConfirm?: string
+    wvpTitle?: string
+    wvpDescription?: string
+    wvpDue?: string
+    wvpStatus?: string
+    wvpOpen?: string
+    wvpCompleted?: string
+    wvpCancelled?: string
+    wvpHumanConfirmation?: string
+    wvpFallback?: string
+    wvpMilestones?: Record<string, string>
   }
 }
 
@@ -143,6 +153,20 @@ export function AbsenceCaseDetail({ employeeId, today, employmentId, compact, ab
         })}
       </div>
     </Surface>
+
+    {absenceCase.wvpTasks.length > 0 && labels.wvpTitle && labels.wvpDescription && labels.wvpDue && labels.wvpStatus && labels.wvpHumanConfirmation ? <Surface className="p-5">
+      <SectionHeader title={<span className="flex items-center gap-2"><ClipboardCheck aria-hidden="true" className="h-5 w-5 text-primary" />{labels.wvpTitle}</span>} description={labels.wvpDescription} />
+      <ul className="mt-4 divide-y divide-border/70 rounded-[var(--radius-control)] border border-border/70">
+        {absenceCase.wvpTasks.map((task) => {
+          const statusLabel = task.status === 'COMPLETED' ? labels.wvpCompleted ?? task.status : task.status === 'CANCELLED' ? labels.wvpCancelled ?? task.status : labels.wvpOpen ?? task.status
+          const statusTone = task.status === 'COMPLETED' ? 'success' : task.status === 'CANCELLED' ? 'neutral' : 'info'
+          return <li className="space-y-2 px-3 py-3 text-sm" key={task.id}>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{labels.wvpMilestones?.[task.milestoneCode] ?? labels.wvpFallback ?? labels.wvpTitle}</p><p className="mt-1 text-xs text-muted-foreground">{labels.wvpStatus}: <Badge tone={statusTone}>{statusLabel}</Badge></p></div><span className="shrink-0 text-xs text-muted-foreground">{labels.wvpDue}: {formatDate(task.dueOn, { locale, dateFormat })}</span></div>
+            {task.humanConfirmationRequired ? <p className="text-xs text-muted-foreground">{labels.wvpHumanConfirmation}</p> : null}
+          </li>
+        })}
+      </ul>
+    </Surface> : null}
   </>
 
   const actionPanel = hasActions ? <Surface className="p-5 lg:sticky lg:top-5">

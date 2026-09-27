@@ -1,22 +1,20 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse, getRequestAuthorizationContext } from '@/lib/auth/permissions'
-import { resolveFocusActAsSession, writeFocusActAsAudit } from '@/lib/focus/act-as-token'
+import { FOCUS_ACT_AS_COOKIE, resolveFocusActAsSession, revokeFocusActAsSession, writeFocusActAsAudit } from '@/lib/focus/act-as-token'
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(): Promise<NextResponse> {
   try {
-    const body: unknown = await request.json()
-    const token = body && typeof body === 'object' && 'token' in body
-      ? (body as { token?: unknown }).token
-      : null
-    if (typeof token !== 'string') return NextResponse.json({ error: 'FOCUS_ACT_AS_TOKEN_REQUIRED' }, { status: 400 })
     const requestContext = await getRequestAuthorizationContext()
-    const session = await resolveFocusActAsSession(token, requestContext.context, requestContext.supabase)
-    if (!session) return NextResponse.json({ href: '/focus' })
+    const session = await resolveFocusActAsSession(undefined, requestContext.context, requestContext.supabase)
+    const response = NextResponse.json({ href: '/focus' })
+    response.cookies.set({ name: FOCUS_ACT_AS_COOKIE, value: '', httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 0 })
+    if (!session) return response
+    await revokeFocusActAsSession(requestContext.supabase, session)
     await writeFocusActAsAudit(requestContext.supabase, requestContext.context, session.subjectEmployeeId, 'STOP', {
       mode: session.mode,
       expiresAt: session.expiresAt,
     })
-    return NextResponse.json({ href: '/focus' })
+    return response
   } catch (error) {
     const response = permissionErrorResponse(error)
     if (response) return response

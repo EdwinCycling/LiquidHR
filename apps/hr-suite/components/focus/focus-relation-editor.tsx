@@ -102,7 +102,7 @@ function nullable(value: string): string | null {
   return trimmed || null
 }
 
-export function FocusRelationManager({ employeeId, actAsToken, canEdit, locale, relations, relationTypes, labels }: { employeeId: string; actAsToken?: string | null; canEdit: boolean; locale: string; relations: FocusProfileRelation[]; relationTypes: FocusRelationTypeOption[]; labels: FocusRelationEditorLabels }) {
+export function FocusRelationManager({ employeeId, canEdit, locale, relations, relationTypes, labels }: { employeeId: string; actAsToken?: string | null; canEdit: boolean; locale: string; relations: FocusProfileRelation[]; relationTypes: FocusRelationTypeOption[]; labels: FocusRelationEditorLabels }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [dirty, setDirty] = useState(false)
@@ -141,7 +141,6 @@ export function FocusRelationManager({ employeeId, actAsToken, canEdit, locale, 
       ...draft,
       firstName: nullable(draft.firstName), initials: nullable(draft.initials), prefix: nullable(draft.prefix), lastName: draft.lastName.trim(),
       gender: draft.gender || null, birthDate: nullable(draft.birthDate), phone: nullable(draft.phone), mobile: nullable(draft.mobile), email: nullable(draft.email)?.toLowerCase() ?? null, notes: nullable(draft.notes),
-      actAs: actAsToken ?? null,
     }
     try {
       const response = await fetch(`/api/focus/profile/${employeeId}/relations${relation ? `/${relation.id}` : ''}`, { method: relation ? 'PATCH' : 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
@@ -158,7 +157,7 @@ export function FocusRelationManager({ employeeId, actAsToken, canEdit, locale, 
     if (!deleteCandidate) return
     const candidate = deleteCandidate
     try {
-      const response = await fetch(`/api/focus/profile/${employeeId}/relations/${candidate.id}`, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actAs: actAsToken ?? null }) })
+      const response = await fetch(`/api/focus/profile/${employeeId}/relations/${candidate.id}`, { method: 'DELETE', headers: { 'content-type': 'application/json' } })
       if (!response.ok) throw new Error('FOCUS_RELATION_DELETE_FAILED')
       setDeleteCandidate(null)
       router.refresh()

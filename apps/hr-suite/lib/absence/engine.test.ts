@@ -18,6 +18,10 @@ describe('absence engine', () => {
     expect(getAbsenceCaseRelationship({ previousRecoveredOn: '2026-07-01', newStartedOn: '2026-07-29' })).toBe('NEW_CASE')
   })
 
+  it('maakt ook na 29 dagen een nieuwe casus', () => {
+    expect(getAbsenceCaseRelationship({ previousRecoveredOn: '2026-07-01', newStartedOn: '2026-07-30' })).toBe('NEW_CASE')
+  })
+
   it('telt casuswortels in het voorafgaande jaar en niet de nieuwe casus dubbel', () => {
     expect(countPriorAbsenceCases({ firstAbsenceDates: ['2025-08-01', '2026-01-10', '2026-07-01'], newFirstAbsenceOn: '2026-07-26', threshold: 3 })).toEqual({ priorCount: 3, isFrequentAbsence: true })
   })

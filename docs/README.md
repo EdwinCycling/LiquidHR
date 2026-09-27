@@ -1,5 +1,26 @@
 # Liquid HR documentatie-index
 
+## ABS02 — verzuim hardening, security en WvP-foundation — 2026-09-27
+
+**Status: CODE/TEST GREEN; gecontroleerde main-convergentie en hosted release open.**
+
+ABS02 startte vanaf exact `origin/main` `22ad719246095f75c1e3c034e6bdd3867c489569`.
+De slice corrigeert multi-employment verzuim-KPI's, normaliseert verlopen
+recovery windows, voegt een neutrale idempotente WvP-foundation toe en sluit
+directe absence-DML en browser bearer-token ACT-AS af. De manager- en
+medewerker-scope is met de TEST-AUTH-HARNESS gecontroleerd; geen ABS01-werk is
+heropend en INS01 is niet gestart.
+
+TEST `wnpfloqpjvaacobppbpk` heeft vijf forward migrations ontvangen en is
+read-back gecontroleerd. Lokale eindgates zijn groen: gerichte ABS02-tests
+`9/52`, volledige hr-suite `469/1880`, strict TypeScript, changed-area ESLint,
+NL/EN i18n met 39 namespaces, diff-check en productiebuild `298/298`.
+De volledige matrix, environment-gated punten, productbesluiten en open
+grenzen staan in [`ABS02 acceptance`](quality/acceptance/runs/ABS02-20260927.md).
+De eenmalige versie-bump `1.20260927.2` → `1.20260927.3` is na de groene
+gates toegepast en opnieuw gebouwd; main-convergentie en hosted release zijn
+nog aparte gates.
+
 ## Test Auth Harness — lokaal-only — 2026-09-27
 
 De lokale testauthenticatie biedt alleen de vaste synthetische Test HR Admin aan

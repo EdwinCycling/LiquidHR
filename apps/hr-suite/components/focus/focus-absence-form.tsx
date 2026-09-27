@@ -25,7 +25,7 @@ export interface FocusAbsenceFormLabels {
   recoveryFailed: string
 }
 
-export function FocusAbsenceForm({ employeeId, employmentId, endpoint = '/api/focus/absence/report', token, today, initialStartDate, initialExpectedRecoveryOn, showExpectedRecoveryOn = true, recoveryCaseId, mode = 'report', labels }: { employeeId: string; employmentId?: string | null; endpoint?: string; token?: string | null; today: string; initialStartDate?: string; initialExpectedRecoveryOn?: string | null; showExpectedRecoveryOn?: boolean; recoveryCaseId?: string | null; mode?: 'report' | 'recovery' | 'both'; labels: FocusAbsenceFormLabels }) {
+export function FocusAbsenceForm({ employeeId, employmentId, endpoint = '/api/focus/absence/report', today, initialStartDate, initialExpectedRecoveryOn, showExpectedRecoveryOn = true, recoveryCaseId, mode = 'report', labels }: { employeeId: string; employmentId?: string | null; endpoint?: string; today: string; initialStartDate?: string; initialExpectedRecoveryOn?: string | null; showExpectedRecoveryOn?: boolean; recoveryCaseId?: string | null; mode?: 'report' | 'recovery' | 'both'; labels: FocusAbsenceFormLabels }) {
   const router = useRouter()
   const [startDate, setStartDate] = useState(initialStartDate ?? today)
   const [expectedRecoveryOn, setExpectedRecoveryOn] = useState(initialExpectedRecoveryOn ?? '')
@@ -39,7 +39,7 @@ export function FocusAbsenceForm({ employeeId, employmentId, endpoint = '/api/fo
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ employeeId, employmentId: employmentId ?? undefined, startDate, ...(showExpectedRecoveryOn ? { expectedRecoveryOn: expectedRecoveryOn || null } : {}), actAs: endpoint === '/api/focus/absence/report' ? token ?? null : undefined, idempotencyKey: globalThis.crypto.randomUUID() }),
+        body: JSON.stringify({ employeeId, employmentId: employmentId ?? undefined, startDate, ...(showExpectedRecoveryOn ? { expectedRecoveryOn: expectedRecoveryOn || null } : {}), idempotencyKey: globalThis.crypto.randomUUID() }),
       })
       if (!response.ok) throw new Error(labels.failed)
       setState('success')

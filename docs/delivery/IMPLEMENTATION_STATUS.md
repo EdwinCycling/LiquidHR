@@ -1,5 +1,32 @@
 # Implementatiestatus Liquid HR
 
+## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
+
+**Status: CODE/TEST GREEN; main-convergentie en hosted release nog open.**
+
+Vanaf exact `origin/main` `22ad719246095f75c1e3c034e6bdd3867c489569` zijn de
+absence-KPI's op employee-niveau geaggregeerd, verlopen recovery windows
+deterministisch genormaliseerd, en is een neutrale/idempotente WvP-foundation
+toegevoegd. Directe core absence-DML is ingetrokken; ACT-AS gebruikt voor
+browserflows een HttpOnly-cookie met persisted revocable scope en stop/revoke.
+De bestaande absence/ABS01-grenzen zijn niet opnieuw opengesteld.
+
+TEST `wnpfloqpjvaacobppbpk` heeft de vijf ABS02-forward migrations gekregen;
+RLS, privileges, policies, wrappers, indexes en advisors zijn read-back
+gecontroleerd. De live TEST-AUTH-HARNESS-matrix bevestigde HR Admin,
+manager-scope plus toegestane Maya-mutatie, manager out-of-scope denial en
+medewerker own-state isolation. WvP-readback is één taak voor het long case,
+due-date deterministisch, idempotent (1 daarna 0), en nul voor een short case.
+
+Lokale eindgates: targeted `9 bestanden / 52 tests`, full suite `469 / 1880`,
+strict TypeScript, changed-area ESLint, i18n `39` namespaces, diff-check en
+Next productiebuild `298/298` groen. De eenmalige versie-bump
+`1.20260927.2` -> `1.20260927.3` is toegepast en post-bump versie-test/build
+zijn groen. Zie
+[`ABS02 acceptance`](../quality/acceptance/runs/ABS02-20260927.md) voor de
+verplichte velden, ENVIRONMENT-GATED, PRODUCT DECISIONS, NOT FIXED en
+LESSONS/PATTERNS. Vercel/Production is nog geen afgeronde gate.
+
 ## Test Auth Harness — lokaal-only — 2026-09-27
 
 **Status: implementatie en lokale acceptatie GREEN; codecommit 1a774f8de833997bb8fa0855df0246cfb0743e04 is op main. App-versie 1.20260927.2. De finale main-SHA en Vercel Production-evidence staan in de taakafronding.**

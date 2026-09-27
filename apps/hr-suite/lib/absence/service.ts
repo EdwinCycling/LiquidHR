@@ -59,6 +59,18 @@ export interface AbsenceCapacityChangeSummary {
   expectedNextReviewOn: string | null
 }
 
+export interface AbsenceWvpTaskSummary {
+  id: string
+  milestoneCode: string
+  milestoneType: string
+  dueOn: string
+  status: string
+  humanConfirmationRequired: boolean
+  sourceVersion: string
+  completionNote: string | null
+  completedAt: string | null
+}
+
 type AbsenceCapacityRow = {
   id: string
   spell_id: string
@@ -87,6 +99,19 @@ export interface AbsenceCaseSummary {
   priorCaseCount12Months: number
   frequentAbsenceThreshold: number
   spells: AbsenceSpellSummary[]
+  wvpTasks: AbsenceWvpTaskSummary[]
+}
+
+async function normalizeExpiredAbsenceCases(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  hrGroupId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('normalize_expired_absence_cases', {
+    requested_tenant_id: tenantId,
+    requested_hr_group_id: hrGroupId,
+  })
+  if (error) throw new AbsenceServiceError('ABSENCE_LIFECYCLE_NORMALIZATION_FAILED')
 }
 
 function mapCase(row: {
@@ -105,7 +130,7 @@ function mapCase(row: {
   is_frequent_absence: boolean
   prior_case_count_12_months: number
   frequent_absence_threshold: number
-}, spells: Array<{ id: string; started_on: string; reported_at: string; expected_recovery_on: string | null; recovered_on: string | null; absence_capacity_changes: Array<{ id: string; absence_percentage: number; effective_on: string; scheduled_hours_per_week_snapshot: number | null; absence_hours_per_week: number | null; input_mode: string | null; expected_next_review_on: string | null }> }>): AbsenceCaseSummary {
+}, spells: Array<{ id: string; started_on: string; reported_at: string; expected_recovery_on: string | null; recovered_on: string | null; absence_capacity_changes: Array<{ id: string; absence_percentage: number; effective_on: string; scheduled_hours_per_week_snapshot: number | null; absence_hours_per_week: number | null; input_mode: string | null; expected_next_review_on: string | null }> }>, wvpTasks: AbsenceWvpTaskSummary[]): AbsenceCaseSummary {
   return {
     id: row.id,
     employmentId: row.employment_id,
@@ -122,6 +147,7 @@ function mapCase(row: {
     isFrequentAbsence: row.is_frequent_absence,
     priorCaseCount12Months: row.prior_case_count_12_months,
     frequentAbsenceThreshold: row.frequent_absence_threshold,
+    wvpTasks,
     spells: spells.map((spell) => ({
       id: spell.id,
       startedOn: spell.started_on,
@@ -151,6 +177,7 @@ export async function listEmployeeAbsence(employeeId: string): Promise<AbsenceCa
   const auth = await requireAbsenceTargetPermission('absence:read', employeeId)
   const hrGroupId = requireHrGroupId(auth)
   const supabase = await createClient()
+  await normalizeExpiredAbsenceCases(supabase, auth.tenantId, hrGroupId)
   const { data, error } = await supabase
     .from('absence_cases')
     .select('id,employment_id,status,pending_confirmation,first_absence_on,effective_clock_start_on,recovery_window_ends_on,closed_at,created_at,has_sickness_benefit_safety_net,is_work_accident,is_third_party_traffic_accident,is_frequent_absence,prior_case_count_12_months,frequent_absence_threshold')
@@ -164,6 +191,10 @@ export async function listEmployeeAbsence(employeeId: string): Promise<AbsenceCa
   const caseRows = data ?? []
   const caseIds = caseRows.map((row) => row.id)
   if (caseIds.length === 0) return []
+  if (auth.permissions.includes('absence:write')) {
+    const generationResults = await Promise.all(caseIds.map((caseId) => supabase.rpc('generate_absence_wvp_tasks', { requested_case_id: caseId })))
+    if (generationResults.some((result) => result.error)) throw new AbsenceServiceError('ABSENCE_WVP_TASK_GENERATION_FAILED')
+  }
   const { data: spellRows, error: spellError } = await supabase
     .from('absence_spells')
     .select('id,case_id,employment_id,started_on,reported_at,expected_recovery_on,recovered_on')
@@ -172,6 +203,30 @@ export async function listEmployeeAbsence(employeeId: string): Promise<AbsenceCa
     .in('case_id', caseIds)
     .order('started_on', { ascending: false })
   if (spellError) throw new AbsenceServiceError('ABSENCE_READ_FAILED')
+  const { data: taskRows, error: taskError } = await supabase
+    .from('absence_tasks')
+    .select('id,case_id,milestone_code,milestone_type,due_on,status,human_confirmation_required,source_version,completion_note,completed_at')
+    .eq('tenant_id', auth.tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .in('case_id', caseIds)
+    .order('due_on', { ascending: true })
+    .limit(500)
+  if (taskError) throw new AbsenceServiceError('ABSENCE_READ_FAILED')
+  const tasksByCase = new Map<string, AbsenceWvpTaskSummary[]>()
+  for (const task of taskRows ?? []) {
+    const summary: AbsenceWvpTaskSummary = {
+      id: task.id,
+      milestoneCode: task.milestone_code,
+      milestoneType: task.milestone_type,
+      dueOn: task.due_on,
+      status: task.status,
+      humanConfirmationRequired: task.human_confirmation_required,
+      sourceVersion: task.source_version,
+      completionNote: task.completion_note,
+      completedAt: task.completed_at,
+    }
+    tasksByCase.set(task.case_id, [...(tasksByCase.get(task.case_id) ?? []), summary])
+  }
   const spellIds = (spellRows ?? []).map((row) => row.id)
   let capacityRows: AbsenceCapacityRow[] = []
   if (spellIds.length > 0) {
@@ -237,7 +292,7 @@ export async function listEmployeeAbsence(employeeId: string): Promise<AbsenceCa
       input_mode: change.inputMode,
       expected_next_review_on: change.expectedNextReviewOn,
     })),
-  }))))
+  })), tasksByCase.get(row.id) ?? []))
 }
 
 export async function getEmployeeAbsenceOverview(employeeId: string, employmentId?: string): Promise<AbsenceCaseSummary | null> {
@@ -279,6 +334,7 @@ export async function reportEmployeeAbsence(employeeId: string, input: unknown):
   const parsed = absenceCaseCreateSchema.parse({ ...(typeof input === 'object' && input !== null ? input : {}), employeeId })
   assertAbsenceActualDate(parsed.startDate)
   const supabase = await createClient()
+  await normalizeExpiredAbsenceCases(supabase, auth.tenantId, hrGroupId)
   const selection = await resolveLeaveEmployment(supabase, auth, employeeId, parsed.employmentId, parsed.startDate)
   if (!selection.employment) {
     if (!parsed.employmentId && selection.options.length > 1) throw new AbsenceEmploymentRequiredError(selection.options)
@@ -301,6 +357,17 @@ export async function reportEmployeeAbsence(employeeId: string, input: unknown):
   return data
 }
 
+export async function completeAbsenceWvpTask(taskId: string, completionNote?: string | null): Promise<string> {
+  await requirePermission('absence:write')
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('complete_absence_wvp_task', {
+    requested_task_id: taskId,
+    requested_completion_note: completionNote ?? undefined,
+  })
+  if (error || typeof data !== 'string') throw new AbsenceServiceError('ABSENCE_WVP_TASK_COMPLETION_FAILED')
+  return data
+}
+
 export async function reportFocusEmployeeAbsence(
   employeeId: string,
   input: { startDate: string; employmentId?: string; idempotencyKey?: string },
@@ -312,6 +379,7 @@ export async function reportFocusEmployeeAbsence(
   if (auth.employeeId !== employeeId && !auth.permissions.includes('focus:act-as-employee')) throw new AbsenceServiceError('ABSENCE_SELF_SERVICE_FORBIDDEN', 403)
   if (!auth.hrGroupId) throw new AbsenceServiceError('ABSENCE_GROUP_REQUIRED', 403)
   const supabase = await createClient()
+  await normalizeExpiredAbsenceCases(supabase, auth.tenantId, auth.hrGroupId)
   if (auth.employeeId === employeeId) {
     const settings = await supabase.rpc('get_employee_self_report_enabled', {
       requested_tenant_id: auth.tenantId,

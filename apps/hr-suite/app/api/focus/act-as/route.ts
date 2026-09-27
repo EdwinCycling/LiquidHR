@@ -11,7 +11,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (typeof employeeId !== 'string' || employeeId.length === 0) {
       return NextResponse.json({ error: 'FOCUS_ACT_AS_EMPLOYEE_REQUIRED' }, { status: 400 })
     }
-    return NextResponse.json(await createFocusActAsSession(employeeId))
+    const session = await createFocusActAsSession(employeeId)
+    const response = NextResponse.json({ href: session.href })
+    response.cookies.set({
+      name: 'liquidhr_focus_act_as',
+      value: session.token,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 600,
+    })
+    return response
   } catch (error) {
     const response = permissionErrorResponse(error)
     if (response) return response

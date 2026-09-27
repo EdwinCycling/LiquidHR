@@ -100,6 +100,11 @@ export function isFocusAbsenceCaseVisible(absenceCase: { status: string; recover
 export async function getFocusAbsenceState(section: FocusSectionContext, today = new Date().toISOString().slice(0, 10)): Promise<FocusAbsenceState | null> {
   if (!hasFocusPermission(section, 'self:absence:write', 'self:absence:read')) return null
   const groupId = requireHrGroupId(section.context)
+  const lifecycleResult = await section.supabase.rpc('normalize_expired_absence_cases', {
+    requested_tenant_id: section.context.tenantId,
+    requested_hr_group_id: groupId,
+  })
+  if (lifecycleResult.error) throw new FocusSectionError('FOCUS_ABSENCE_READ_FAILED')
   const casesResult = await section.supabase
     .from('absence_cases')
     .select('id,status,first_absence_on,pending_confirmation,recovery_window_ends_on')

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
-export function FocusActAsStop({ token, label }: { token: string; label: string }) {
+export function FocusActAsStop({ label }: { token?: string | null; label: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -14,7 +14,6 @@ export function FocusActAsStop({ token, label }: { token: string; label: string 
       const response = await fetch('/api/focus/act-as/stop', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token }),
       })
       const payload = await response.json() as { href?: string }
       router.replace(response.ok && payload.href ? payload.href : '/focus')

@@ -61,7 +61,6 @@ export function LeaveRequestDialog({
   submitPath = '/api/leave/request',
   previewPath = '/api/leave/request/preview',
   allowStartDateChange = false,
-  requestContext,
   onSuccess,
 }: {
   employeeId: string
@@ -95,7 +94,6 @@ export function LeaveRequestDialog({
     const params = new URLSearchParams({ employeeId, startDate: requestStartDate, mode })
     if (endDate) params.set('endDate', endDate)
     if (employmentId) params.set('employmentId', employmentId)
-    if (requestContext?.actAsToken) params.set('actAs', requestContext.actAsToken)
     fetch(`${previewPath}?${params.toString()}`, { signal: controller.signal })
       .then(async (response) => {
         const body = await response.json() as unknown
@@ -121,7 +119,7 @@ export function LeaveRequestDialog({
         setState('error')
       })
     return () => controller.abort()
-  }, [employeeId, requestStartDate, endDate, employmentId, mode, previewPath, requestContext?.actAsToken])
+  }, [employeeId, requestStartDate, endDate, employmentId, mode, previewPath])
 
   const selectedType = useMemo(() => preview?.types.find((type) => type.id === leaveTypeId) ?? null, [leaveTypeId, preview])
   const totalMinutes = timeMode === 'FULL_DAY'
@@ -183,7 +181,6 @@ export function LeaveRequestDialog({
           specificStart: timeMode === 'SPECIFIC_HOURS' ? specificStart : null,
           specificEnd: timeMode === 'SPECIFIC_HOURS' ? specificEnd : null,
           idempotencyKey,
-          actAs: requestContext?.actAsToken ?? null,
         }),
       })
       if (!response.ok) {

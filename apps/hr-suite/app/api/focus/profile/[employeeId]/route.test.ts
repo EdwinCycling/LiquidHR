@@ -41,11 +41,18 @@ describe('PATCH /api/focus/profile/[employeeId]', () => {
     expect(updateFocusEmployeeProfile).not.toHaveBeenCalled()
   })
 
-  it('passes the complete profile and act-as token to the scoped write service', async () => {
-    const response = await PATCH(new Request('http://localhost/api/focus/profile/employee-1', { method: 'PATCH', body: JSON.stringify({ ...validInput, actAs: 'signed-act-as-token' }) }), context)
+  it('passes the complete profile to the cookie-scoped write service', async () => {
+    const response = await PATCH(new Request('http://localhost/api/focus/profile/employee-1', { method: 'PATCH', body: JSON.stringify(validInput) }), context)
 
     expect(response.status).toBe(200)
-    expect(updateFocusEmployeeProfile).toHaveBeenCalledWith('employee-1', validInput, 'signed-act-as-token')
+    expect(updateFocusEmployeeProfile).toHaveBeenCalledWith('employee-1', validInput)
     expect(await response.json()).toEqual({ data: { updatedAt: '2026-09-22T10:01:00.000Z' } })
+  })
+
+  it('rejects a legacy bearer token in the request body', async () => {
+    const response = await PATCH(new Request('http://localhost/api/focus/profile/employee-1', { method: 'PATCH', body: JSON.stringify({ ...validInput, actAs: 'signed-act-as-token' }) }), context)
+
+    expect(response.status).toBe(400)
+    expect(updateFocusEmployeeProfile).not.toHaveBeenCalled()
   })
 })

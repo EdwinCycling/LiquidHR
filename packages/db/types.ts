@@ -631,6 +631,75 @@ export type Database = {
           },
         ]
       }
+      absence_tasks: {
+        Row: {
+          case_id: string
+          completed_at: string | null
+          completed_by_user_id: string | null
+          completion_note: string | null
+          created_at: string
+          due_on: string
+          hr_group_id: string
+          human_confirmation_required: boolean
+          id: string
+          milestone_code: string
+          milestone_type: string
+          source_version: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          completed_at?: string | null
+          completed_by_user_id?: string | null
+          completion_note?: string | null
+          created_at?: string
+          due_on: string
+          hr_group_id: string
+          human_confirmation_required?: boolean
+          id?: string
+          milestone_code: string
+          milestone_type?: string
+          source_version?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          completed_at?: string | null
+          completed_by_user_id?: string | null
+          completion_note?: string | null
+          created_at?: string
+          due_on?: string
+          hr_group_id?: string
+          human_confirmation_required?: boolean
+          id?: string
+          milestone_code?: string
+          milestone_type?: string
+          source_version?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_tasks_case_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "case_id"]
+            isOneToOne: false
+            referencedRelation: "absence_cases"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       actual_work_periods: {
         Row: {
           administration_id: string | null
@@ -8135,6 +8204,67 @@ export type Database = {
           },
           {
             foreignKeyName: "flex_phases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      focus_act_as_sessions: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          hr_group_id: string
+          id: string
+          mode: string
+          nonce: string
+          subject_employee_id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at: string
+          hr_group_id: string
+          id?: string
+          mode?: string
+          nonce: string
+          subject_employee_id: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          hr_group_id?: string
+          id?: string
+          mode?: string
+          nonce?: string
+          subject_employee_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "focus_act_as_sessions_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "focus_act_as_sessions_subject_fkey"
+            columns: ["tenant_id", "hr_group_id", "subject_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "focus_act_as_sessions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -20294,6 +20424,10 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_absence_wvp_task: {
+        Args: { requested_completion_note?: string; requested_task_id: string }
+        Returns: string
+      }
       complete_ai_provider_execution: {
         Args: { requested_invocation_id: string; requested_lease_id: string }
         Returns: undefined
@@ -20851,6 +20985,10 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_absence_wvp_tasks: {
+        Args: { requested_case_id: string }
+        Returns: number
+      }
       get_accessible_employee_document_custom_fields: {
         Args: { requested_document_ids: string[] }
         Returns: {
@@ -21262,6 +21400,10 @@ export type Database = {
       }
       next_custom_field_value: {
         Args: { p_definition_id: string }
+        Returns: number
+      }
+      normalize_expired_absence_cases: {
+        Args: { requested_hr_group_id: string; requested_tenant_id: string }
         Returns: number
       }
       onboard_platform_tenant: {

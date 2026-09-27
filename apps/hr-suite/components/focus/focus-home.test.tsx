@@ -59,7 +59,7 @@ describe('Focus home', () => {
     expect(managerHost.querySelector('a[href="/focus/werk"]')).not.toBeNull()
 
     const actAsHost = render(focusData({ experience: 'MANAGER', managerHome, actAs: {
-      token: 'token', actorUserId: 'actor', tenantId: 'tenant', hrGroupId: 'group', subjectEmployeeId: 'subject', mode: 'FOCUS_ESS', expiresAt: 1, subjectName: 'Lisa de Vries',
+      token: 'token', nonce: 'nonce', actorUserId: 'actor', tenantId: 'tenant', hrGroupId: 'group', subjectEmployeeId: 'subject', mode: 'FOCUS_ESS', expiresAt: 1, subjectName: 'Lisa de Vries',
     } }))
     expect(actAsHost.textContent).not.toContain('Ziek in mijn team')
     expect(actAsHost.textContent).not.toContain('Op vakantie deze week')

@@ -41,11 +41,18 @@ describe('POST /api/focus/profile/[employeeId]/relations', () => {
     expect(createFocusEmployeeRelation).not.toHaveBeenCalled()
   })
 
-  it('passes relation data and act-as token to the scoped write service', async () => {
-    const response = await POST(new Request('http://localhost/api/focus/profile/employee-1/relations', { method: 'POST', body: JSON.stringify({ ...validInput, actAs: 'signed-act-as-token' }) }), context)
+  it('passes relation data to the cookie-scoped write service', async () => {
+    const response = await POST(new Request('http://localhost/api/focus/profile/employee-1/relations', { method: 'POST', body: JSON.stringify(validInput) }), context)
 
     expect(response.status).toBe(201)
-    expect(createFocusEmployeeRelation).toHaveBeenCalledWith('employee-1', validInput, 'signed-act-as-token')
+    expect(createFocusEmployeeRelation).toHaveBeenCalledWith('employee-1', validInput)
     expect(await response.json()).toEqual({ data: { id: 'relation-1' } })
+  })
+
+  it('rejects a legacy bearer token in the request body', async () => {
+    const response = await POST(new Request('http://localhost/api/focus/profile/employee-1/relations', { method: 'POST', body: JSON.stringify({ ...validInput, actAs: 'signed-act-as-token' }) }), context)
+
+    expect(response.status).toBe(400)
+    expect(createFocusEmployeeRelation).not.toHaveBeenCalled()
   })
 })

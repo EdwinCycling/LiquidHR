@@ -33,7 +33,7 @@ describe('Focus employee absence reporting', () => {
       employment: { id: employmentId },
       options: [],
     })
-    rpc.mockResolvedValueOnce({ data: true, error: null }).mockResolvedValueOnce({ data: '33333333-3333-4333-8333-333333333333', error: null })
+    rpc.mockResolvedValueOnce({ data: 0, error: null }).mockResolvedValueOnce({ data: true, error: null }).mockResolvedValueOnce({ data: '33333333-3333-4333-8333-333333333333', error: null })
     createClient.mockResolvedValue({ rpc, from: vi.fn() } as unknown as SupabaseServerClient)
   })
 
@@ -50,15 +50,19 @@ describe('Focus employee absence reporting', () => {
 
     await expect(reportFocusEmployeeAbsence(employeeId, { startDate: '2026-09-20', idempotencyKey: 'self-report-2026' }, context)).resolves.toBe('33333333-3333-4333-8333-333333333333')
 
-    expect(rpc).toHaveBeenNthCalledWith(1, 'get_employee_self_report_enabled', {
+    expect(rpc).toHaveBeenNthCalledWith(1, 'normalize_expired_absence_cases', {
       requested_tenant_id: 'tenant-a',
       requested_hr_group_id: 'group-a',
     })
-    expect(rpc).toHaveBeenNthCalledWith(2, 'report_focus_employee_absence', expect.objectContaining({
+    expect(rpc).toHaveBeenNthCalledWith(2, 'get_employee_self_report_enabled', {
+      requested_tenant_id: 'tenant-a',
+      requested_hr_group_id: 'group-a',
+    })
+    expect(rpc).toHaveBeenNthCalledWith(3, 'report_focus_employee_absence', expect.objectContaining({
       requested_employee_id: employeeId,
       requested_employment_id: employmentId,
       requested_start_date: '2026-09-20',
     }))
-    expect(rpc.mock.calls[1]?.[1]).not.toHaveProperty('requested_expected_recovery_on')
+    expect(rpc.mock.calls[2]?.[1]).not.toHaveProperty('requested_expected_recovery_on')
   })
 })

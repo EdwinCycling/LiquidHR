@@ -1,14 +1,15 @@
 import 'server-only'
 
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { cookies } from 'next/headers'
 import type { Json } from '@scope/db'
 import { AuthorizationError, getRequestAuthorizationContext, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { focusActAsHref } from './url'
 
 export const FOCUS_ACT_AS_QUERY = 'actAs'
+export const FOCUS_ACT_AS_COOKIE = 'liquidhr_focus_act_as'
 export const FOCUS_ACT_AS_MODE = 'FOCUS_ESS' as const
-const ACT_AS_MAX_AGE_SECONDS = 10 * 60
+export const FOCUS_ACT_AS_MAX_AGE_SECONDS = 10 * 60
 
 export interface FocusActAsTokenPayload {
   actorUserId: string
@@ -30,6 +31,7 @@ export interface FocusActAsSession {
   mode: typeof FOCUS_ACT_AS_MODE
   expiresAt: number
   subjectName: string
+  nonce: string
 }
 
 function tokenSecret(): string {
@@ -56,7 +58,7 @@ export function createFocusActAsToken(input: Omit<FocusActAsTokenPayload, 'issue
     ...input,
     mode: FOCUS_ACT_AS_MODE,
     issuedAt: now,
-    expiresAt: now + ACT_AS_MAX_AGE_SECONDS,
+    expiresAt: now + FOCUS_ACT_AS_MAX_AGE_SECONDS,
     nonce: randomUUID(),
   }
   const encodedPayload = encode(JSON.stringify(payload))
@@ -85,7 +87,7 @@ export function readFocusActAsToken(token: string | null): FocusActAsTokenPayloa
       || typeof raw.nonce !== 'string' || !isValidUuid(raw.nonce)
       || raw.issuedAt > now + 60
       || raw.expiresAt <= now
-      || raw.expiresAt - raw.issuedAt > ACT_AS_MAX_AGE_SECONDS
+      || raw.expiresAt - raw.issuedAt > FOCUS_ACT_AS_MAX_AGE_SECONDS
     ) return null
     return raw as FocusActAsTokenPayload
   } catch {
@@ -109,8 +111,9 @@ export async function resolveFocusActAsSession(
   context: AuthContext,
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<FocusActAsSession | null> {
-  if (!token) return null
-  const payload = readFocusActAsToken(token)
+  const candidateToken = token ?? await readFocusActAsCookieToken()
+  if (!candidateToken) return null
+  const payload = readFocusActAsToken(candidateToken)
   if (
     !payload
     || payload.actorUserId !== context.userId
@@ -119,6 +122,20 @@ export async function resolveFocusActAsSession(
     || !context.permissions.includes('focus:act-as-employee')
     || !context.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
   ) throw new AuthorizationError('Deze Focus-sessie is ongeldig of verlopen.')
+
+  const sessionResult = await supabase
+    .from('focus_act_as_sessions')
+    .select('id')
+    .eq('tenant_id', payload.tenantId)
+    .eq('hr_group_id', payload.hrGroupId)
+    .eq('actor_user_id', payload.actorUserId)
+    .eq('subject_employee_id', payload.subjectEmployeeId)
+    .eq('nonce', payload.nonce)
+    .is('ended_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle()
+  if (sessionResult.error) throw sessionResult.error
+  if (!sessionResult.data) throw new AuthorizationError('Deze Focus-sessie is ongeldig of gestopt.')
 
   const { data, error } = await supabase
     .from('employees')
@@ -133,7 +150,7 @@ export async function resolveFocusActAsSession(
   }
 
   return {
-    token,
+    token: candidateToken,
     actorUserId: payload.actorUserId,
     tenantId: payload.tenantId,
     hrGroupId: payload.hrGroupId,
@@ -141,6 +158,7 @@ export async function resolveFocusActAsSession(
     mode: payload.mode,
     expiresAt: payload.expiresAt,
     subjectName: `${data.first_name} ${data.birth_name}`.trim(),
+    nonce: payload.nonce,
   }
 }
 
@@ -167,11 +185,46 @@ export async function createFocusActAsSession(employeeId: string): Promise<{ tok
     subjectEmployeeId: employeeId,
     mode: FOCUS_ACT_AS_MODE,
   })
+  const payload = readFocusActAsToken(token)
+  if (!payload) throw new Error('FOCUS_ACT_AS_TOKEN_CREATE_FAILED')
+  const { error: sessionError } = await supabase.from('focus_act_as_sessions').insert({
+    tenant_id: context.tenantId,
+    hr_group_id: context.hrGroupId,
+    actor_user_id: context.userId,
+    subject_employee_id: employeeId,
+    nonce: payload.nonce,
+    mode: payload.mode,
+    expires_at: new Date(payload.expiresAt * 1000).toISOString(),
+  })
+  if (sessionError) throw sessionError
   await writeFocusActAsAudit(supabase, context, employeeId, 'START', {
     mode: FOCUS_ACT_AS_MODE,
-    expiresAt: readFocusActAsToken(token)?.expiresAt ?? null,
+    expiresAt: payload.expiresAt,
   })
-  return { token, href: focusActAsHref('/focus', token) }
+  return { token, href: '/focus' }
+}
+
+export async function revokeFocusActAsSession(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  session: FocusActAsSession,
+): Promise<void> {
+  const { error } = await supabase
+    .from('focus_act_as_sessions')
+    .update({ ended_at: new Date().toISOString() })
+    .eq('tenant_id', session.tenantId)
+    .eq('hr_group_id', session.hrGroupId)
+    .eq('actor_user_id', session.actorUserId)
+    .eq('nonce', session.nonce)
+    .is('ended_at', null)
+  if (error) throw error
+}
+
+async function readFocusActAsCookieToken(): Promise<string | null> {
+  try {
+    return (await cookies()).get(FOCUS_ACT_AS_COOKIE)?.value ?? null
+  } catch {
+    return null
+  }
 }
 
 export async function writeFocusActAsAudit(

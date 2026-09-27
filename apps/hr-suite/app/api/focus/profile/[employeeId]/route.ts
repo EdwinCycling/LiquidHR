@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { employeeErrorPayload } from '@/lib/employees/http-errors'
 import { focusProfileUpdateSchema } from '@/lib/employees/schemas'
@@ -7,9 +6,7 @@ import { updateFocusEmployeeProfile } from '@/lib/focus/profile-service'
 
 interface RouteContext { params: Promise<{ employeeId: string }> }
 
-const inputSchema = focusProfileUpdateSchema.extend({
-  actAs: z.string().trim().min(1).max(4096).nullable().optional(),
-}).strict()
+const inputSchema = focusProfileUpdateSchema
 
 function fail(error: unknown): NextResponse {
   const permission = permissionErrorResponse(error)
@@ -23,8 +20,7 @@ export async function PATCH(request: Request, context: RouteContext): Promise<Ne
     const parsed = inputSchema.safeParse(await request.json())
     if (!parsed.success) return NextResponse.json({ error: 'FOCUS_PROFILE_INPUT_INVALID' }, { status: 400 })
     const { employeeId } = await context.params
-    const { actAs, ...input } = parsed.data
-    const data = await updateFocusEmployeeProfile(employeeId, input, actAs)
+    const data = await updateFocusEmployeeProfile(employeeId, parsed.data)
     return NextResponse.json({ data })
   } catch (error) {
     return fail(error)

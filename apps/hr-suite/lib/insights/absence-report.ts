@@ -1,5 +1,6 @@
 import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { aggregateAbsenceEmployeeMetrics, type AbsenceEmploymentMetric } from './absence-report-calculations'
 
 export interface AbsenceInsightQuery {
   report: 'absence'
@@ -60,7 +61,7 @@ type OrganizationRow = { employee_id: string; employment_id: string | null; depa
 type ScheduleRow = { employment_id: string; schedule_type: string; monday_hours: number | null; tuesday_hours: number | null; wednesday_hours: number | null; thursday_hours: number | null; friday_hours: number | null; saturday_hours: number | null; sunday_hours: number | null; part_time_factor: number; valid_from: string; valid_until: string | null }
 type CaseRow = { id: string; employee_id: string; employment_id: string; status: string; first_absence_on: string; archived_at: string | null }
 type SpellRow = { id: string; case_id: string; started_on: string; recovered_on: string | null }
-type CapacityRow = { spell_id: string; effective_on: string; absence_percentage: number }
+type CapacityRow = { spell_id: string; effective_on: string; absence_percentage: number; scheduled_hours_per_week_snapshot: number | null; absence_hours_per_week: number | null }
 
 export class AbsenceInsightsServiceError extends Error {
   constructor(readonly code: string, readonly status = 500) {
@@ -110,7 +111,12 @@ function activeSchedule(schedules: ScheduleRow[], employmentId: string, date: st
 function capacityForDay(spells: SpellRow[], capacities: CapacityRow[], caseIds: Set<string>, date: string): number {
   const values = spells.filter((spell) => caseIds.has(spell.case_id) && spell.started_on <= date && (spell.recovered_on === null || spell.recovered_on >= date)).map((spell) => {
     const changes = capacities.filter((change) => change.spell_id === spell.id && change.effective_on <= date).sort((left, right) => right.effective_on.localeCompare(left.effective_on))
-    return changes[0]?.absence_percentage ?? 0
+    const change = changes[0]
+    if (!change) return 0
+    if (change.scheduled_hours_per_week_snapshot && change.scheduled_hours_per_week_snapshot > 0 && change.absence_hours_per_week && change.absence_hours_per_week > 0) {
+      return Math.min(100, Math.max(0, change.absence_hours_per_week / change.scheduled_hours_per_week_snapshot * 100))
+    }
+    return change.absence_percentage
   })
   return Math.min(100, Math.max(0, ...values))
 }
@@ -141,6 +147,11 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
   const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const administrationId = context.administrationId
+  const lifecycleResult = await supabase.rpc('normalize_expired_absence_cases', {
+    requested_tenant_id: context.tenantId,
+    requested_hr_group_id: hrGroupId,
+  })
+  if (lifecycleResult.error) fail(lifecycleResult.error)
 
   const [employmentResult, departmentsResult, organizationResult, scheduleResult, caseResult] = await Promise.all([
     supabase.from('employments').select('id,employee_id,starts_on,ends_on').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', query.endDate).or(`ends_on.is.null,ends_on.gte.${query.startDate}`).limit(5000),
@@ -170,7 +181,7 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
   if (spellsResult.error) fail(spellsResult.error)
   const spellIds = (spellsResult.data as Array<{ id: string }>).map((spell) => spell.id)
   const capacitiesResult = spellIds.length
-    ? await supabase.from('absence_capacity_changes').select('spell_id,effective_on,absence_percentage').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('spell_id', spellIds).limit(20000)
+    ? await supabase.from('absence_capacity_changes').select('spell_id,effective_on,absence_percentage,scheduled_hours_per_week_snapshot,absence_hours_per_week').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('spell_id', spellIds).limit(20000)
     : { data: [], error: null }
   if (capacitiesResult.error) fail(capacitiesResult.error)
   const employees = employeesResult.data as EmployeeRow[]
@@ -192,7 +203,7 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
     let availableHours = 0
     let sickDays = 0
     let availableDays = 0
-    const rowMap = new Map<string, AbsenceInsightRow>()
+    const employmentMetrics: AbsenceEmploymentMetric[] = []
     for (const employment of employments) {
       const activeStart = maxDate(periodStart, employment.starts_on)
       const activeEnd = minDate(periodEnd, employment.ends_on ?? periodEnd)
@@ -225,27 +236,39 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
       availableDays += employeeAvailableDays
       sickHours += employeeSickHours
       sickDays += employeeSickDays
-      if (employeeSickHours > 0) {
-        const current = rowMap.get(employee.id)
-        const latestCase = [...employmentCases].sort((left, right) => right.first_absence_on.localeCompare(left.first_absence_on))[0]
-        rowMap.set(employee.id, {
-          employeeId: employee.id,
-          employeeName: employeeName(employee),
-          departmentId: organization?.department_id ?? null,
-          departmentName: organization ? departmentMap.get(organization.department_id) ?? null : null,
-          status: latestCase?.status ?? 'ACTIVE',
-          firstAbsenceOn: latestCase?.first_absence_on ?? periodStart,
-          caseCount: (current?.caseCount ?? 0) + new Set(employeeSpells.map((spell) => spell.case_id)).size,
-          absenceOccurrences: (current?.absenceOccurrences ?? 0) + employeeSpells.length,
-          sickDays: round((current?.sickDays ?? 0) + employeeSickDays),
-          sickHours: round((current?.sickHours ?? 0) + employeeSickHours),
-          absenceRate: 0,
-        })
-        const row = rowMap.get(employee.id)
-        if (row) row.absenceRate = round(employeeAvailableHours ? employeeSickHours / employeeAvailableHours * 100 : 0)
-      }
+      const latestCase = [...employmentCases].sort((left, right) => right.first_absence_on.localeCompare(left.first_absence_on))[0]
+      employmentMetrics.push({
+        employeeId: employee.id,
+        employeeName: employeeName(employee),
+        departmentId: organization?.department_id ?? null,
+        departmentName: organization ? departmentMap.get(organization.department_id) ?? null : null,
+        status: latestCase?.status ?? 'ACTIVE',
+        firstAbsenceOn: latestCase?.first_absence_on ?? periodStart,
+        availableHours: employeeAvailableHours,
+        availableDays: employeeAvailableDays,
+        sickHours: employeeSickHours,
+        sickDays: employeeSickDays,
+        caseIds: [...new Set(employeeSpells.map((spell) => spell.case_id))],
+        spellIds: employeeSpells.map((spell) => spell.id),
+      })
     }
-    return { sickHours: round(sickHours), availableHours: round(availableHours), sickDays: round(sickDays), availableDays: round(availableDays), rows: [...rowMap.values()].sort((left, right) => right.sickHours - left.sickHours || left.employeeName.localeCompare(right.employeeName, 'nl')) }
+    const rows = aggregateAbsenceEmployeeMetrics(employmentMetrics)
+      .filter((metric) => metric.sickHours > 0)
+      .map((metric): AbsenceInsightRow => ({
+        employeeId: metric.employeeId,
+        employeeName: metric.employeeName,
+        departmentId: metric.departmentId,
+        departmentName: metric.departmentName,
+        status: metric.status,
+        firstAbsenceOn: metric.firstAbsenceOn,
+        caseCount: metric.caseIds.size,
+        absenceOccurrences: metric.spellIds.size,
+        sickDays: round(metric.sickDays),
+        sickHours: round(metric.sickHours),
+        absenceRate: round(metric.availableHours ? metric.sickHours / metric.availableHours * 100 : 0),
+      }))
+      .sort((left, right) => right.sickHours - left.sickHours || left.employeeName.localeCompare(right.employeeName, 'nl'))
+    return { sickHours: round(sickHours), availableHours: round(availableHours), sickDays: round(sickDays), availableDays: round(availableDays), rows }
   }
 
   const current = calculate(query.startDate, query.endDate)

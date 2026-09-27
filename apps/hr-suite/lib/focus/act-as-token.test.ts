@@ -46,17 +46,24 @@ function actAsToken(): string {
   })
 }
 
-function scopedSupabase(subject: Record<string, unknown> | null) {
-  const maybeSingle = vi.fn().mockResolvedValue({ data: subject, error: null })
+function queryChain(data: Record<string, unknown> | null) {
+  const maybeSingle = vi.fn().mockResolvedValue({ data, error: null })
   const select = vi.fn().mockReturnThis()
   const eq = vi.fn().mockReturnThis()
-  const query = { select, eq, maybeSingle }
-  const from = vi.fn().mockReturnValue(query)
+  const is = vi.fn().mockReturnThis()
+  const gt = vi.fn().mockReturnThis()
+  return { select, eq, is, gt, maybeSingle }
+}
+
+function scopedSupabase(subject: Record<string, unknown> | null, session: Record<string, unknown> | null = { id: 'session-1' }) {
+  const sessionQuery = queryChain(session)
+  const employeeQuery = queryChain(subject)
+  const from = vi.fn((table: string) => table === 'focus_act_as_sessions' ? sessionQuery : employeeQuery)
   return {
     client: { from } as unknown as Parameters<typeof resolveFocusActAsSession>[2],
     from,
-    select,
-    eq,
+    sessionQuery,
+    employeeQuery,
   }
 }
 
@@ -140,11 +147,18 @@ describe('Focus act-as start authorization contract', () => {
       subjectName: 'Test Medewerker',
     })
 
+    expect(query.from).toHaveBeenCalledWith('focus_act_as_sessions')
     expect(query.from).toHaveBeenCalledWith('employees')
-    expect(query.select).toHaveBeenCalledWith('id,first_name,birth_name,is_active,is_archived,deleted_at')
-    expect(query.eq).toHaveBeenNthCalledWith(1, 'tenant_id', TENANT_ID)
-    expect(query.eq).toHaveBeenNthCalledWith(2, 'hr_group_id', HR_GROUP_ID)
-    expect(query.eq).toHaveBeenNthCalledWith(3, 'id', SUBJECT_EMPLOYEE_ID)
+    expect(query.sessionQuery.select).toHaveBeenCalledWith('id')
+    expect(query.sessionQuery.eq).toHaveBeenNthCalledWith(1, 'tenant_id', TENANT_ID)
+    expect(query.sessionQuery.eq).toHaveBeenNthCalledWith(2, 'hr_group_id', HR_GROUP_ID)
+    expect(query.sessionQuery.eq).toHaveBeenNthCalledWith(3, 'actor_user_id', ACTOR_USER_ID)
+    expect(query.sessionQuery.eq).toHaveBeenNthCalledWith(4, 'subject_employee_id', SUBJECT_EMPLOYEE_ID)
+    expect(query.sessionQuery.eq).toHaveBeenNthCalledWith(5, 'nonce', expect.any(String))
+    expect(query.employeeQuery.select).toHaveBeenCalledWith('id,first_name,birth_name,is_active,is_archived,deleted_at')
+    expect(query.employeeQuery.eq).toHaveBeenNthCalledWith(1, 'tenant_id', TENANT_ID)
+    expect(query.employeeQuery.eq).toHaveBeenNthCalledWith(2, 'hr_group_id', HR_GROUP_ID)
+    expect(query.employeeQuery.eq).toHaveBeenNthCalledWith(3, 'id', SUBJECT_EMPLOYEE_ID)
   })
 
   it.each(mismatchedContextOverrides)('rejects an ACT-AS token when the current %s boundary does not match', async (_label, overrides) => {
@@ -158,8 +172,16 @@ describe('Focus act-as start authorization contract', () => {
     const query = scopedSupabase(null)
 
     await expect(resolveFocusActAsSession(actAsToken(), authContext(), query.client)).rejects.toMatchObject({ status: 403 })
-    expect(query.eq).toHaveBeenNthCalledWith(1, 'tenant_id', TENANT_ID)
-    expect(query.eq).toHaveBeenNthCalledWith(2, 'hr_group_id', HR_GROUP_ID)
-    expect(query.eq).toHaveBeenNthCalledWith(3, 'id', SUBJECT_EMPLOYEE_ID)
+    expect(query.employeeQuery.eq).toHaveBeenNthCalledWith(1, 'tenant_id', TENANT_ID)
+    expect(query.employeeQuery.eq).toHaveBeenNthCalledWith(2, 'hr_group_id', HR_GROUP_ID)
+    expect(query.employeeQuery.eq).toHaveBeenNthCalledWith(3, 'id', SUBJECT_EMPLOYEE_ID)
+  })
+
+  it('rejects a signed token when its persisted session is absent or revoked', async () => {
+    const query = scopedSupabase(ACTIVE_SUBJECT, null)
+
+    await expect(resolveFocusActAsSession(actAsToken(), authContext(), query.client)).rejects.toMatchObject({ status: 403 })
+    expect(query.from).toHaveBeenCalledWith('focus_act_as_sessions')
+    expect(query.from).not.toHaveBeenCalledWith('employees')
   })
 })

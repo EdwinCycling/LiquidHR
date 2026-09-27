@@ -1,5 +1,17 @@
 # Actuele overdracht Liquid HR
 
+## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
+
+**Status: CODE/TEST GREEN; versie-bump uitgevoerd; gecontroleerde convergentie naar main en hosted release zijn de volgende gates.** Baseline en origin/main zijn exact `22ad719246095f75c1e3c034e6bdd3867c489569`; kandidaatbranch `work/ABS02-20260927`; huidige kandidaatversie `1.20260927.3` (eenmalig `.2 -> .3` na groene gates). ABS01 blijft frozen PARTIAL en INS01 is niet gestart.
+
+- Opgeleverd: employee-level multi-employment KPI-aggregatie (24/(24+16)=60%), deterministische normalisatie van verlopen recovery windows, neutrale/idempotente WvP-taken en human-confirmation contract, directe absence-DML-hardening en cookie-only persisted ACT-AS met stop/revoke.
+- TEST Supabase `wnpfloqpjvaacobppbpk`: `20260927100000_abs02_absence_hardening_wvp`, `20260927101500_abs02_absence_lifecycle_self_scope`, `20260927103000_abs02_advisor_followup`, `20260927104500_abs02_subject_fk_index` en forward repair `20260927110000_abs02_self_scope_permission_fix` zijn toegepast. RLS, grants, policies, wrappers, privileges en advisor-follow-up zijn read-back gecontroleerd; geen Production-schemaactie.
+- Browser: HR Admin absence-insights, long-running case/WvP en ACT-AS START/STOP zijn groen. Manager scope bevatte vijf teamleden; in-scope Maya-ziekmelding gaf HTTP 201 en een ACTIVE DB-readback; out-of-scope Edwin viel terug naar `/employees`. Test Medewerker kon Noah zelf lezen; Maya-detail viel terug naar `/employees`. Self-report is niet opnieuw aangemaakt omdat Noah al een actieve absence had.
+- Eindgates: gerichte ABS02-tests `9 bestanden / 52 tests`; volledige hr-suite `469 / 1880`; strict TypeScript; changed-area ESLint; i18n `39` gelijke NL/EN-namespaces; `git diff --check`; productiebuild `298/298`.
+- Environment boundary: local TEST browserserver is gestopt; canonical `apps/hr-suite/.env.local` bestaat en waarden zijn niet gelezen. Eén tijdelijke TEST-AUTH-HARNESS `PGRST303 JWT issued at future` herstelde bij de volgende request; dit staat in het acceptance report als environment-gated observatie.
+- Releasevolgorde: de eenmalige versiecommit `.2 -> .3` is lokaal toegepast en post-bump gebouwd; commit nu de kandidaat, fast-forward/merge gecontroleerd naar `main`, push `origin/main`, bouw uitsluitend vanuit een schone exacte-SHA externe releasecheckout en verifieer Vercel READY/provenance/hosted versie/normal login. Houd Production/test-auth en payroll buiten scope bij ontbrekende externe proof.
+- Volledig bewijs: [`ABS02 acceptance report`](../quality/acceptance/runs/ABS02-20260927.md). Na main/deployment moet dit document worden aangevuld met final main-SHA, Vercel deployment en hosted acceptance; geen nieuwe INS01-run starten.
+
 ## Test Auth Harness + final release sync — 2026-09-27
 
 **Status: implementatie, lokale acceptatie en release GREEN. Codecommit 1a774f8de833997bb8fa0855df0246cfb0743e04 is gepusht naar main. De finale main-SHA, Vercel Production-deployment en hosted controles staan in de huidige taakafronding. App-versie: 1.20260927.2.**

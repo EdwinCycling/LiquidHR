@@ -71,7 +71,7 @@ function updatedAtFromResponse(payload: unknown): string | null {
   return typeof data?.updatedAt === 'string' ? data.updatedAt : null
 }
 
-export function FocusProfileEditor({ employeeId, actAsToken, initialValues, initialUpdatedAt, labels }: { employeeId: string; actAsToken?: string | null; initialValues: FocusProfileEditorValues; initialUpdatedAt: string; labels: FocusProfileEditorLabels }) {
+export function FocusProfileEditor({ employeeId, initialValues, initialUpdatedAt, labels }: { employeeId: string; actAsToken?: string | null; initialValues: FocusProfileEditorValues; initialUpdatedAt: string; labels: FocusProfileEditorLabels }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [dirty, setDirty] = useState(false)
@@ -112,8 +112,7 @@ export function FocusProfileEditor({ employeeId, actAsToken, initialValues, init
           privateEmail: nullable(draft.privateEmail ?? '')?.toLowerCase() ?? null,
           privatePhone: nullable(draft.privatePhone ?? ''),
           privateMobile: nullable(draft.privateMobile ?? ''),
-          updatedAt,
-          actAs: actAsToken ?? null,
+           updatedAt,
         }),
       })
       const payload: unknown = await response.json()

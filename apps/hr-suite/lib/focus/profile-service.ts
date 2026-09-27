@@ -16,8 +16,8 @@ async function authorizeFocusWrite(
 ): Promise<FocusRequestAuthorizationContext> {
   const requestContext = await getRequestAuthorizationContext()
 
-  if (actAsToken) {
-    const session = await resolveFocusActAsSession(actAsToken, requestContext.context, requestContext.supabase)
+  const session = await resolveFocusActAsSession(actAsToken, requestContext.context, requestContext.supabase)
+  if (session) {
     if (!session || session.subjectEmployeeId !== employeeId) throw new AuthorizationError('Deze Focus-sessie heeft geen toegang tot dit profiel.')
 
     const selfPermissions = await getSelfPermissions(requestContext.supabase, requestContext.context.tenantId)
