@@ -83,17 +83,17 @@ export function resolveRealtimeVoiceModel(environment: Record<string, string | u
   return configured || GPT_LIVE_MODEL
 }
 
-async function requireEmployeeVoiceActorContext(employeeId: string): Promise<AuthContext> {
+export async function requireEmployeeVoiceRecoveryContext(employeeId: string): Promise<AuthContext> {
   const context = await requirePermission('employee:read', employeeId)
   if (!context.activeRoles.some((role) => managerVoiceRoles.has(role))) {
     throw new AiExecutionError('UNAUTHORIZED')
   }
-  await requirePermission('ai:use')
   return context
 }
 
 export async function requireEmployeeVoiceContext(employeeId: string): Promise<AuthContext> {
-  const context = await requireEmployeeVoiceActorContext(employeeId)
+  const context = await requireEmployeeVoiceRecoveryContext(employeeId)
+  await requirePermission('ai:use')
   if (!isRealtimeVoiceEnabled()) throw new AiExecutionError('FEATURE_UNAVAILABLE')
   await new SupabaseAiSettingsPort().assertVoiceAllowed({
     scope: { tenantId: context.tenantId, hrGroupId: requireHrGroupId(context), administrationId: context.administrationId },
@@ -104,7 +104,9 @@ export async function requireEmployeeVoiceContext(employeeId: string): Promise<A
 }
 
 export async function requireEmployeeVoiceFinalizationContext(employeeId: string): Promise<AuthContext> {
-  return requireEmployeeVoiceActorContext(employeeId)
+  const context = await requireEmployeeVoiceRecoveryContext(employeeId)
+  await requirePermission('ai:use')
+  return context
 }
 
 export function createRealtimeVoiceCallIdempotencyKey(sessionId: string, callId: string): string {
@@ -392,6 +394,7 @@ export async function createRealtimeVoiceSession(input: {
   context: AuthContext
   employeeId: string
   model: string
+  maxDurationSeconds: number
 }): Promise<string> {
   const id = randomUUID()
   const hrGroupId = requireHrGroupId(input.context)
@@ -403,6 +406,7 @@ export async function createRealtimeVoiceSession(input: {
     actor_employee_id: input.context.employeeId,
     employee_id: input.employeeId,
     model_id: input.model,
+    max_duration_seconds: input.maxDurationSeconds,
     status: 'ACTIVE',
   })
   if (error) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
@@ -410,7 +414,7 @@ export async function createRealtimeVoiceSession(input: {
 }
 
 export async function assertActiveEmployeeVoiceSession(input: { context: AuthContext; employeeId: string; sessionId: string }): Promise<void> {
-  const { data, error } = await createAdminClient().from('ai_voice_sessions').select('id')
+  const { data, error } = await createAdminClient().from('ai_voice_sessions').select('id,finalization_deadline_at')
     .eq('id', input.sessionId)
     .eq('tenant_id', input.context.tenantId)
     .eq('hr_group_id', requireHrGroupId(input.context))
@@ -419,7 +423,9 @@ export async function assertActiveEmployeeVoiceSession(input: { context: AuthCon
     .eq('status', 'ACTIVE')
     .maybeSingle()
   if (error) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
-  if (!data) throw new AiExecutionError('UNAUTHORIZED')
+  if (!data || !Number.isFinite(Date.parse(data.finalization_deadline_at)) || Date.parse(data.finalization_deadline_at) <= Date.now()) {
+    throw new AiExecutionError('UNAUTHORIZED')
+  }
 }
 
 export async function markRealtimeVoiceSessionFailed(sessionId: string, context: AuthContext): Promise<void> {

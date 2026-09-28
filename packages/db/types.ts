@@ -1908,6 +1908,7 @@ export type Database = {
           business_object_id: string
           business_object_type: string
           business_permission_code: string | null
+          business_audit_status: string
           charged_credits: number
           config_version: string
           correlation_id: string
@@ -1931,6 +1932,7 @@ export type Database = {
           quality_profile: string | null
           reasoning_profile: string | null
           request_fingerprint: string
+          release_reason: string | null
           reserved_credits: number
           result_status: string
           started_at: string | null
@@ -1945,6 +1947,7 @@ export type Database = {
           business_object_id: string
           business_object_type: string
           business_permission_code?: string | null
+          business_audit_status?: string
           charged_credits?: number
           config_version: string
           correlation_id: string
@@ -1968,6 +1971,7 @@ export type Database = {
           quality_profile?: string | null
           reasoning_profile?: string | null
           request_fingerprint: string
+          release_reason?: string | null
           reserved_credits?: number
           result_status?: string
           started_at?: string | null
@@ -1982,6 +1986,7 @@ export type Database = {
           business_object_id?: string
           business_object_type?: string
           business_permission_code?: string | null
+          business_audit_status?: string
           charged_credits?: number
           config_version?: string
           correlation_id?: string
@@ -2005,6 +2010,7 @@ export type Database = {
           quality_profile?: string | null
           reasoning_profile?: string | null
           request_fingerprint?: string
+          release_reason?: string | null
           reserved_credits?: number
           result_status?: string
           started_at?: string | null
@@ -2274,8 +2280,10 @@ export type Database = {
           conversation_type: string
           duration_seconds: number | null
           ended_at: string | null
+          finalization_deadline_at: string
           hr_group_id: string
           id: string
+          max_duration_seconds: number
           model_id: string
           scope_type: string
           started_at: string
@@ -2299,6 +2307,7 @@ export type Database = {
           ended_at?: string | null
           hr_group_id: string
           id?: string
+          max_duration_seconds?: number
           model_id: string
           scope_type: string
           started_at?: string
@@ -2322,6 +2331,7 @@ export type Database = {
           ended_at?: string | null
           hr_group_id?: string
           id?: string
+          max_duration_seconds?: number
           model_id?: string
           scope_type?: string
           started_at?: string
@@ -2624,8 +2634,10 @@ export type Database = {
           duration_seconds: number | null
           employee_id: string
           ended_at: string | null
+          finalization_deadline_at: string
           hr_group_id: string
           id: string
+          max_duration_seconds: number
           model_id: string
           started_at: string
           status: string
@@ -2644,6 +2656,7 @@ export type Database = {
           ended_at?: string | null
           hr_group_id: string
           id: string
+          max_duration_seconds?: number
           model_id: string
           started_at?: string
           status: string
@@ -2662,6 +2675,7 @@ export type Database = {
           ended_at?: string | null
           hr_group_id?: string
           id?: string
+          max_duration_seconds?: number
           model_id?: string
           started_at?: string
           status?: string
@@ -20958,6 +20972,35 @@ export type Database = {
           voice_credits: number
         }[]
       }
+      reconcile_ai_invocation_lifecycle: {
+        Args: {
+          requested_batch_size: number
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          audits_recorded: number
+          releases_recovered: number
+          settlements_recovered: number
+          retryable_count: number
+        }[]
+      }
+      reconcile_expired_ai_voice_sessions: {
+        Args: {
+          requested_batch_size: number
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          finalized_count: number
+          processed_count: number
+          retryable_count: number
+        }[]
+      }
+      record_ai_invocation_business_audit: {
+        Args: { requested_invocation_id: string }
+        Returns: undefined
+      }
       finalize_document_generation: {
         Args: {
           requested_actor_user_id: string
@@ -21708,6 +21751,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      release_ai_invocation: {
+        Args: {
+          requested_finished_at: string
+          requested_invocation_id: string
+          requested_reason: string
+          requested_reservation_id: string
+        }
+        Returns: undefined
+      }
       release_process_work_item: {
         Args: {
           requested_expected_version: number
@@ -22119,6 +22171,14 @@ export type Database = {
       }
       settle_ai_credits: {
         Args: {
+          requested_invocation_id: string
+          requested_reservation_id: string
+        }
+        Returns: undefined
+      }
+      settle_ai_invocation: {
+        Args: {
+          requested_finished_at: string
           requested_invocation_id: string
           requested_reservation_id: string
         }

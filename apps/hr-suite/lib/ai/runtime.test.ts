@@ -135,6 +135,112 @@ function input(overrides: Partial<Parameters<typeof runAiInvocation>[0]> = {}) {
 }
 
 describe('AI runtime foundation', () => {
+  it('A: houdt business-audit na succesvolle settlement pending en reconcilieert zonder provider of tweede charge', async () => {
+    const runtime = dependencies()
+    let pendingAudit: Parameters<typeof runtime.businessAudit.record>[0] | null = null
+    const recordOriginal = runtime.businessAudit.record.bind(runtime.businessAudit)
+    let attempts = 0
+    vi.spyOn(runtime.businessAudit, 'record').mockImplementation(async (event) => {
+      attempts += 1
+      if (attempts === 1) {
+        pendingAudit = event
+        throw new Error('audit repository unavailable')
+      }
+      await recordOriginal(event)
+    })
+    runtime.lifecycleRecovery = {
+      reconcile: async () => {
+        if (!pendingAudit) return
+        const event = pendingAudit
+        pendingAudit = null
+        await runtime.businessAudit.record(event)
+      },
+    }
+
+    const first = await runAiInvocation(input(), runtime)
+    expect(first.kind).toBe('SUCCEEDED')
+    expect(runtime.businessAudit.events).toHaveLength(0)
+    expect(runtime.credits.settleCalls).toHaveLength(1)
+    expect(runtime.credits.reserveCalls).toHaveLength(1)
+    expect(runtime.provider.calls).toHaveLength(1)
+
+    const replay = await runAiInvocation(input(), runtime)
+    expect(replay).toMatchObject({ kind: 'DUPLICATE', replayed: true })
+    expect(runtime.businessAudit.events).toHaveLength(1)
+    expect(runtime.credits.settleCalls).toHaveLength(1)
+    expect(runtime.credits.reserveCalls).toHaveLength(1)
+    expect(runtime.provider.calls).toHaveLength(1)
+  })
+
+  it('H: bewaart audit-pending na twee sinkstoringen en schrijft exact eenmaal zodra de sink terugkomt', async () => {
+    const runtime = dependencies()
+    let pendingAudit: Parameters<typeof runtime.businessAudit.record>[0] | null = null
+    const recordOriginal = runtime.businessAudit.record.bind(runtime.businessAudit)
+    let attempts = 0
+    vi.spyOn(runtime.businessAudit, 'record').mockImplementation(async (event) => {
+      attempts += 1
+      if (attempts < 3) {
+        pendingAudit = event
+        throw new Error('audit repository unavailable')
+      }
+      await recordOriginal(event)
+    })
+    runtime.lifecycleRecovery = {
+      reconcile: async () => {
+        if (!pendingAudit) return
+        const event = pendingAudit
+        await runtime.businessAudit.record(event)
+        pendingAudit = null
+      },
+    }
+
+    await runAiInvocation(input(), runtime)
+    await runAiInvocation(input(), runtime)
+    const recoveredReplay = await runAiInvocation(input(), runtime)
+
+    expect(recoveredReplay).toMatchObject({ kind: 'DUPLICATE', replayed: true })
+    expect(attempts).toBe(3)
+    expect(runtime.businessAudit.events).toHaveLength(1)
+    expect(runtime.credits.settleCalls).toHaveLength(1)
+    expect(runtime.provider.calls).toHaveLength(1)
+  })
+
+  it('B: retains RELEASING after immediate credit release fails and retries cleanup without re-running provider', async () => {
+    const runtime = dependencies({ provider: new DeterministicTestProvider('FAILED') })
+    runtime.credits.releaseFailure = new Error('release RPC unavailable')
+    let pendingRelease: (typeof runtime.credits.releaseCalls)[number] | null = null
+    runtime.lifecycleRecovery = {
+      reconcile: async () => {
+        if (!pendingRelease) return
+        const request = pendingRelease
+        runtime.credits.releaseFailure = null
+        await runtime.credits.release(request)
+        await runtime.repository.transition({
+          invocationId: request.reservation.invocationId,
+          expectedStatus: 'RELEASING',
+          nextStatus: 'FAILED',
+          patch: {
+            resultStatus: 'FAILED',
+            chargedCredits: 0,
+            failureCode: 'PROVIDER_FAILED',
+            finishedAt: request.finishedAt,
+          },
+        })
+        pendingRelease = null
+      },
+    }
+
+    await expect(runAiInvocation(input(), runtime)).rejects.toMatchObject({ code: 'CREDITS_UNAVAILABLE' })
+    pendingRelease = runtime.credits.releaseCalls[0]
+    const replay = await runAiInvocation(input(), runtime)
+
+    expect(replay).toMatchObject({ kind: 'DUPLICATE', replayed: true })
+    expect(runtime.credits.releaseCalls).toHaveLength(2)
+    expect(runtime.credits.reserveCalls).toHaveLength(1)
+    expect(runtime.credits.settleCalls).toHaveLength(0)
+    expect(runtime.provider.calls).toHaveLength(1)
+  })
+
   it('valideert output, settle eenmalig en schrijft gescheiden usage/audit', async () => {
     const runtime = dependencies()
 

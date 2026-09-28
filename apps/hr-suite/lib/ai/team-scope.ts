@@ -277,7 +277,7 @@ export async function getTeamAiStartPageData(auth: AuthContext, existingClient?:
   }
 }
 
-export async function createTeamAiSession(input: { auth: AuthContext; scope: TeamAiScope; conversationType?: 'VOICE' | 'TEXT'; model?: string }): Promise<string> {
+export async function createTeamAiSession(input: { auth: AuthContext; scope: TeamAiScope; conversationType?: 'VOICE' | 'TEXT'; model?: string; maxDurationSeconds?: number }): Promise<string> {
   if (input.scope.memberIds.length === 0) throw new TeamAiScopeError('TEAM_SCOPE_NOT_FOUND', 404)
   const groupId = requireHrGroupId(input.auth)
   const id = randomUUID()
@@ -294,6 +294,7 @@ export async function createTeamAiSession(input: { auth: AuthContext; scope: Tea
     scope_type: input.scope.scopeType,
     conversation_type: input.conversationType ?? 'VOICE',
     model_id: input.model ?? resolveRealtimeVoiceModel(),
+    max_duration_seconds: input.maxDurationSeconds ?? 900,
     status: 'ACTIVE',
     authorized_employee_count: input.scope.memberIds.length,
   })
@@ -309,10 +310,11 @@ export async function createTeamAiSession(input: { auth: AuthContext; scope: Tea
 export async function getAuthorizedTeamAiSession(auth: AuthContext, sessionId: string, options: { activeOnly?: boolean } = {}): Promise<AuthorizedTeamAiSession> {
   const groupId = requireHrGroupId(auth)
   const admin = createAdminClient()
-  const { data: session, error } = await admin.from('ai_team_sessions').select('id,scope_type,context_department_id,context_name_snapshot,model_id,status,started_at').eq('id', sessionId).eq('tenant_id', auth.tenantId).eq('hr_group_id', groupId).eq('actor_user_id', auth.userId).maybeSingle()
+  const { data: session, error } = await admin.from('ai_team_sessions').select('id,scope_type,context_department_id,context_name_snapshot,model_id,status,started_at,finalization_deadline_at').eq('id', sessionId).eq('tenant_id', auth.tenantId).eq('hr_group_id', groupId).eq('actor_user_id', auth.userId).maybeSingle()
   if (error) throw new TeamAiScopeError('TEAM_SESSION_NOT_FOUND', 500)
   if (!session) throw new TeamAiScopeError('TEAM_SESSION_NOT_FOUND', 404)
   if (options.activeOnly && session.status !== 'ACTIVE') throw new TeamAiScopeError('TEAM_SESSION_NOT_ACTIVE', 409)
+  if (options.activeOnly && (!Number.isFinite(Date.parse(session.finalization_deadline_at)) || Date.parse(session.finalization_deadline_at) <= Date.now())) throw new TeamAiScopeError('TEAM_SESSION_NOT_ACTIVE', 409)
   const { data: members, error: memberError } = await admin.from('ai_team_session_members').select('employee_id').eq('session_id', session.id).eq('tenant_id', auth.tenantId).eq('hr_group_id', groupId).limit(2000)
   if (memberError) throw new TeamAiScopeError('TEAM_SESSION_NOT_FOUND', 500)
   const currentScope = await resolveTeamAiScope(auth, session.context_department_id, await createClient())

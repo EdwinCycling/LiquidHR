@@ -1,16 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthContext } from '@/lib/auth/permissions'
-import { defaultAiGroupSettings } from './settings-contracts'
 
-const { rpc, resolveMonth, getSettings } = vi.hoisted(() => ({
+const { rpc, resolveMonth } = vi.hoisted(() => ({
   rpc: vi.fn(),
   resolveMonth: vi.fn(),
-  getSettings: vi.fn(),
 }))
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: () => ({ rpc }) }))
-vi.mock('./settings-service', () => ({ getAiGroupSettingsForContext: getSettings }))
 vi.mock('./timezone', () => ({ resolveHrGroupCalendarMonth: resolveMonth }))
 
 import { classifyFinalizeError, finalizeAiVoiceSession } from './voice-credits'
@@ -28,7 +25,6 @@ const context: AuthContext = {
 beforeEach(() => {
   rpc.mockReset().mockResolvedValue({ data: [{ duration_seconds: 45, billable_voice_units: 1, voice_credits: 1, finalized: true }], error: null })
   resolveMonth.mockReset().mockResolvedValue('2026-09')
-  getSettings.mockReset().mockResolvedValue({ ...defaultAiGroupSettings({ tenantId: context.tenantId, hrGroupId: context.hrGroupId ?? '' }), aiEnabled: false, voiceEnabled: false, maxVoiceSessionSeconds: 900 })
 })
 
 describe('classifyFinalizeError', () => {

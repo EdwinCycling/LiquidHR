@@ -3,7 +3,6 @@ import 'server-only'
 import { requireHrGroupId, type AuthContext } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { AiExecutionError } from './contracts'
-import { getAiGroupSettingsForContext } from './settings-service'
 import { resolveHrGroupCalendarMonth } from './timezone'
 
 export const AI_VOICE_TERMINATION_REASONS = ['NORMAL', 'EXPLICIT', 'TIMEOUT', 'DISCONNECT', 'FAILURE', 'CANCELLED'] as const
@@ -66,7 +65,6 @@ export async function finalizeAiVoiceSession(input: {
     throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
   }
 
-  const settings = await getAiGroupSettingsForContext(input.context)
   const month = await resolveHrGroupCalendarMonth(
     { tenantId: input.context.tenantId, hrGroupId: requireHrGroupId(input.context), administrationId: input.context.administrationId },
     new Date(),
@@ -80,7 +78,8 @@ export async function finalizeAiVoiceSession(input: {
     requested_session_id: input.sessionId,
     requested_status: input.status,
     requested_tool_call_count: input.toolCallCount,
-    requested_max_duration_seconds: settings.maxVoiceSessionSeconds,
+    // The SQL wrapper ignores this legacy parameter and uses the value snapshotted on session creation.
+    requested_max_duration_seconds: 900,
     requested_month: month,
     requested_termination_reason: input.terminationReason,
   })

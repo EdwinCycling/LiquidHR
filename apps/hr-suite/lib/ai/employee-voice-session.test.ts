@@ -37,7 +37,7 @@ beforeEach(() => {
   from.mockClear()
   query.select.mockClear().mockReturnValue(query)
   query.eq.mockClear().mockReturnValue(query)
-  query.maybeSingle.mockReset().mockResolvedValue({ data: { id: request.sessionId }, error: null })
+  query.maybeSingle.mockReset().mockResolvedValue({ data: { id: request.sessionId, finalization_deadline_at: '2099-01-01T00:00:00.000Z' }, error: null })
 })
 
 describe('employee voice tool session binding', () => {
@@ -57,6 +57,12 @@ describe('employee voice tool session binding', () => {
 
   it('rejects a forged, foreign, ended, or missing session without running a tool', async () => {
     query.maybeSingle.mockResolvedValue({ data: null, error: null })
+
+    await expect(assertActiveEmployeeVoiceSession(request)).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+  })
+
+  it('rejects an ACTIVE row after its server deadline has passed', async () => {
+    query.maybeSingle.mockResolvedValue({ data: { id: request.sessionId, finalization_deadline_at: '2000-01-01T00:00:00.000Z' }, error: null })
 
     await expect(assertActiveEmployeeVoiceSession(request)).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
   })

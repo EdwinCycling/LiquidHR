@@ -162,18 +162,20 @@ export class SupabaseLiquidCreditsService implements LiquidCreditsServicePort {
   }
 
   async settle(input: AiCreditSettlementRequest): Promise<void> {
-    const { error } = await createAdminClient().rpc('settle_ai_credits', {
+    const { error } = await createAdminClient().rpc('settle_ai_invocation', {
       requested_reservation_id: input.reservation.reservationId,
       requested_invocation_id: input.reservation.invocationId,
+      requested_finished_at: input.finishedAt ?? new Date().toISOString(),
     })
     if (error) throwRpcError(error)
   }
 
   async release(input: AiCreditReleaseRequest): Promise<void> {
-    const { error } = await createAdminClient().rpc('release_ai_credits', {
+    const { error } = await createAdminClient().rpc('release_ai_invocation', {
       requested_reservation_id: input.reservation.reservationId,
       requested_invocation_id: input.reservation.invocationId,
       requested_reason: input.reason,
+      requested_finished_at: input.finishedAt ?? new Date().toISOString(),
     })
     if (error) throwRpcError(error)
   }

@@ -5,13 +5,14 @@ import {
   createOpenAiRealtimeCall,
   createRealtimeVoiceSession,
   createRealtimeVoiceSessionConfiguration,
-  isRealtimeVoiceEnabled,
   markRealtimeVoiceSessionFailed,
   realtimeVoiceSessionRequestSchema,
   requireEmployeeVoiceContext,
+  requireEmployeeVoiceRecoveryContext,
   resolveRealtimeVoiceModel,
 } from '@/lib/ai/realtime-voice'
 import { getAiGroupSettingsForContext } from '@/lib/ai/settings-service'
+import { reconcileVoiceForContext } from '@/lib/ai/durable-recovery'
 
 interface RouteContext { params: Promise<{ employeeId: string }> }
 
@@ -19,14 +20,14 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   const { employeeId } = await context.params
   const parsed = realtimeVoiceSessionRequestSchema.safeParse(await request.json().catch(() => null) as unknown)
   if (!parsed.success) return NextResponse.json({ error: 'AI_VOICE_INPUT_INVALID' }, { status: 400 })
-  if (!isRealtimeVoiceEnabled()) return NextResponse.json({ error: 'AI_VOICE_DISABLED' }, { status: 403 })
-
   let sessionId: string | null = null
   try {
+    const recoveryContext = await requireEmployeeVoiceRecoveryContext(employeeId)
+    await reconcileVoiceForContext(recoveryContext)
     const authContext = await requireEmployeeVoiceContext(employeeId)
     const model = resolveRealtimeVoiceModel()
     const settings = await getAiGroupSettingsForContext(authContext)
-    sessionId = await createRealtimeVoiceSession({ context: authContext, employeeId, model })
+    sessionId = await createRealtimeVoiceSession({ context: authContext, employeeId, model, maxDurationSeconds: settings.maxVoiceSessionSeconds })
     try {
       const sdpAnswer = await createOpenAiRealtimeCall({
         sdpOffer: parsed.data.sdpOffer,

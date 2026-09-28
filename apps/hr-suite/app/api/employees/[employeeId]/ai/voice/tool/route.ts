@@ -8,7 +8,9 @@ import {
   assertActiveEmployeeVoiceSession,
   createRealtimeVoiceCallIdempotencyKey,
   requireEmployeeVoiceContext,
+  requireEmployeeVoiceRecoveryContext,
 } from '@/lib/ai/realtime-voice'
+import { reconcileVoiceForContext } from '@/lib/ai/durable-recovery'
 import { runDevelopmentGoalSmart } from '@/lib/talent/goal-ai'
 import { executePersonalReminderTool } from '@/lib/ai/personal-reminders'
 
@@ -19,6 +21,8 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   const parsed = realtimeVoiceToolRequestSchema.safeParse(await request.json().catch(() => null) as unknown)
   if (!parsed.success) return NextResponse.json({ error: 'AI_VOICE_TOOL_INPUT_INVALID' }, { status: 400 })
   try {
+    const recoveryContext = await requireEmployeeVoiceRecoveryContext(employeeId)
+    await reconcileVoiceForContext(recoveryContext)
     const authContext = await requireEmployeeVoiceContext(employeeId)
     const args = parseRealtimeVoiceToolArguments(parsed.data.name, parsed.data.arguments)
     await assertActiveEmployeeVoiceSession({ context: authContext, employeeId, sessionId: parsed.data.sessionId })

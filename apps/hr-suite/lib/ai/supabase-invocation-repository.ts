@@ -36,6 +36,7 @@ type SupabaseInvocationRow = {
   provider_output_units: number | null
   latency_ms: number | null
   failure_code: string | null
+  release_reason?: string | null
   created_at: string
   updated_at: string
   started_at: string | null
@@ -236,6 +237,7 @@ function rowPatch(patch: AiInvocationPatch): Record<string, string | number | nu
   if (patch.providerMetadata !== undefined) Object.assign(values, providerPatch(patch.providerMetadata))
   if (patch.latencyMs !== undefined) values.latency_ms = patch.latencyMs
   if (patch.failureCode !== undefined) values.failure_code = patch.failureCode
+  if (patch.releaseReason !== undefined) values.release_reason = patch.releaseReason
   if (patch.startedAt !== undefined) values.started_at = patch.startedAt
   if (patch.finishedAt !== undefined) values.finished_at = patch.finishedAt
   values.updated_at = patch.updatedAt ?? new Date().toISOString()
@@ -293,7 +295,19 @@ export class SupabaseInvocationRepository implements InvocationRepository {
       .select('*')
       .maybeSingle()
 
-    if (updated.error || !updated.data) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
+    if (updated.error || !updated.data) {
+      const current = await admin.from('ai_invocations').select('*').eq('id', input.invocationId).maybeSingle()
+      if (current.error || !current.data) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
+      const currentRow = current.data as SupabaseInvocationRow
+      if (currentRow.execution_status !== input.nextStatus) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
+      const expected = rowPatch(input.patch ?? {})
+      const actualRow = currentRow as unknown as Record<string, unknown>
+      for (const [key, value] of Object.entries(expected)) {
+        if (key === 'updated_at') continue
+        if (actualRow[key] !== value) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
+      }
+      return mapRow(currentRow)
+    }
     return mapRow(updated.data as SupabaseInvocationRow)
   }
 }

@@ -156,7 +156,11 @@ function auditEvent(invocation: AiInvocation, status: AiAuditStatus, failureCode
 }
 
 async function recordAudit(invocation: AiInvocation, status: AiAuditStatus, failureCode: AiFailureCode | null, services: RuntimeServices): Promise<void> {
-  await services.businessAudit.record(auditEvent(invocation, status, failureCode, isoNow(services)))
+  try {
+    await services.businessAudit.record(auditEvent(invocation, status, failureCode, isoNow(services)))
+  } catch {
+    // The invocation row remains the durable audit outbox until reconciliation succeeds.
+  }
 }
 
 function technicalEvent(
@@ -201,12 +205,15 @@ async function releaseAndFail(
     expectedStatus: invocation.executionStatus,
     nextStatus: 'RELEASING',
     patch: {
+      resultStatus: options.resultStatus,
+      chargedCredits: 0,
+      failureCode,
       providerMetadata: options.providerMetadata,
       latencyMs: options.latencyMs,
+      releaseReason,
     },
   })
 
-  let finalFailure = failureCode
   if (options.technicalOutcome && options.latencyMs !== null) {
     try {
       await services.technicalUsage.record(technicalEvent(
@@ -216,15 +223,15 @@ async function releaseAndFail(
         options.latencyMs,
         isoNow(services),
       ))
-    } catch {
-      finalFailure = 'INTERNAL_CONFIGURATION_ERROR'
-    }
+    } catch { /* Technical usage is separate from mandatory business audit. */ }
   }
 
+  const releaseFinishedAt = isoNow(services)
   try {
-    await services.credits.release({ reservation, reason: releaseReason })
+    await services.credits.release({ reservation, reason: releaseReason, finishedAt: releaseFinishedAt })
   } catch {
-    finalFailure = 'CREDITS_UNAVAILABLE'
+    // Keep RELEASING and its persisted reason. The server reconciler owns this retry.
+    throw new AiExecutionError('CREDITS_UNAVAILABLE')
   }
 
   const failed = await services.repository.transition({
@@ -234,14 +241,13 @@ async function releaseAndFail(
     patch: {
       resultStatus: options.resultStatus,
       chargedCredits: 0,
-      failureCode: finalFailure,
-      finishedAt: isoNow(services),
+      finishedAt: releaseFinishedAt,
       providerMetadata: options.providerMetadata,
       latencyMs: options.latencyMs,
     },
   })
-  await recordAudit(failed, 'FAILED', finalFailure, services)
-  throw new AiExecutionError(finalFailure)
+  await recordAudit(failed, 'FAILED', failureCode, services)
+  throw new AiExecutionError(failureCode)
 }
 
 async function reject(
@@ -277,6 +283,11 @@ export async function runAiInvocation<T>(input: AiInvocationInput, dependencies:
   if (!feature || !featureIsExecutable(feature)) throw new AiExecutionError('FEATURE_UNAVAILABLE')
 
   const scope = scopeFromInput(input)
+  try {
+    await dependencies.lifecycleRecovery?.reconcile(scope)
+  } catch {
+    // A failed reconciliation attempt keeps its durable database state pending for the next request.
+  }
   const createdAt = isoNow(dependencies)
   const invocationInput = {
     id: dependencies.createId(),
@@ -552,8 +563,10 @@ export async function runAiInvocation<T>(input: AiInvocationInput, dependencies:
     )
   }
 
+  let finishedAt: string
   try {
-    await dependencies.credits.settle({ reservation, outcome: 'SUCCEEDED' })
+    finishedAt = isoNow(services)
+    await dependencies.credits.settle({ reservation, outcome: 'SUCCEEDED', finishedAt })
   } catch {
     return releaseAndFail(
       invocation,
@@ -571,7 +584,7 @@ export async function runAiInvocation<T>(input: AiInvocationInput, dependencies:
     nextStatus: 'SUCCEEDED',
     patch: {
       chargedCredits: reservation.units,
-      finishedAt: isoNow(services),
+      finishedAt,
     },
   })
   await recordAudit(invocation, 'SUCCEEDED', null, services)

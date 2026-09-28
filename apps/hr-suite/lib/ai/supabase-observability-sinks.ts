@@ -33,29 +33,10 @@ export class SupabaseTechnicalUsageSink {
 
 export class SupabaseBusinessAuditSink {
   async record(event: BusinessAuditEvent): Promise<void> {
-    const result = await createAdminClient().from('ai_business_audit').insert({
-      invocation_id: event.invocationId,
-      tenant_id: event.scope.tenantId,
-      hr_group_id: event.scope.hrGroupId,
-      administration_id: event.scope.administrationId,
-      actor_user_id: event.actorUserId,
-      actor_employee_id: event.actorEmployeeId,
-      feature_code: event.featureCode,
-      business_object_type: event.businessObject.type,
-      business_object_id: event.businessObject.id,
-      action: event.action,
-      quality_profile: event.qualityProfile,
-      writing_style: event.writingStyle,
-      reserved_credits: event.reservedCredits,
-      charged_credits: event.chargedCredits,
-      status: event.status,
-      failure_code: event.failureCode,
-      correlation_id: event.correlationId,
-      config_version: event.configVersion,
-      prompt_template_version: event.promptTemplateVersion,
-      recorded_at: event.recordedAt,
+    const result = await createAdminClient().rpc('record_ai_invocation_business_audit', {
+      requested_invocation_id: event.invocationId,
     })
 
-    if (result.error && result.error.code !== '23505') throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
+    if (result.error) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
   }
 }

@@ -189,6 +189,7 @@ export interface AiInvocationPatch {
   providerMetadata?: AiProviderMetadata | null
   latencyMs?: number | null
   failureCode?: AiFailureCode | null
+  releaseReason?: AiCreditReleaseRequest['reason'] | null
   startedAt?: string | null
   finishedAt?: string | null
   updatedAt?: string
@@ -330,11 +331,13 @@ export interface AiCreditReservation {
 export interface AiCreditSettlementRequest {
   reservation: AiCreditReservation
   outcome: 'SUCCEEDED'
+  finishedAt?: string
 }
 
 export interface AiCreditReleaseRequest {
   reservation: AiCreditReservation
   reason: 'CONTEXT_FAILED' | 'PROVIDER_UNAVAILABLE' | 'PROVIDER_FAILED' | 'INVALID_RESULT' | 'INTERNAL_FAILURE'
+  finishedAt?: string
 }
 
 export interface CreditsPort {
@@ -347,6 +350,10 @@ export interface CreditsPort {
 export interface InvocationRepository {
   createOrGet(input: NewAiInvocation): Promise<{ invocation: AiInvocation; created: boolean }>
   transition(input: AiStateTransition): Promise<AiInvocation>
+}
+
+export interface AiLifecycleRecoveryPort {
+  reconcile(scope: AiScope): Promise<void>
 }
 
 export interface AiSettingsPort {
@@ -423,6 +430,7 @@ export interface AiRuntimeDependencies<T> {
   clock: AiClock
   createId: () => string
   settings?: AiSettingsPort
+  lifecycleRecovery?: AiLifecycleRecoveryPort
 }
 
 export class AiExecutionError extends Error {

@@ -4,24 +4,25 @@ import { createOpenAiRealtimeCall, createTeamRealtimeVoiceSessionConfiguration, 
 import { createTeamAiSession, failTeamAiSession, resolveTeamAiScope, TeamAiScopeError } from '@/lib/ai/team-scope'
 import { isAiImproveAvailable } from '@/lib/ai/supabase-governance'
 import { SupabaseAiSettingsPort } from '@/lib/ai/settings-service'
+import { reconcileVoiceForContext } from '@/lib/ai/durable-recovery'
 import { permissionErrorResponse, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 
 export async function POST(request: Request): Promise<NextResponse> {
   const parsed = teamRealtimeVoiceSessionRequestSchema.safeParse(await request.json().catch(() => null) as unknown)
   if (!parsed.success) return NextResponse.json({ error: 'AI_TEAM_VOICE_INPUT_INVALID' }, { status: 400 })
-  if (!isRealtimeVoiceEnabled() || !isAiImproveAvailable()) return NextResponse.json({ error: 'AI_TEAM_VOICE_DISABLED' }, { status: 503 })
-
   let sessionId: string | null = null
   try {
     const authContext = await requirePermission('start-page:read')
+    await reconcileVoiceForContext(authContext)
     await requirePermission('ai:use')
+    if (!isRealtimeVoiceEnabled() || !isAiImproveAvailable()) return NextResponse.json({ error: 'AI_TEAM_VOICE_DISABLED' }, { status: 503 })
     const scope = await resolveTeamAiScope(authContext, parsed.data.departmentId)
     const settings = await new SupabaseAiSettingsPort().assertVoiceAllowed({
       scope: { tenantId: authContext.tenantId, hrGroupId: requireHrGroupId(authContext), administrationId: authContext.administrationId },
       authContext,
       contextType: 'TEAM',
     })
-    sessionId = await createTeamAiSession({ auth: authContext, scope, model: resolveRealtimeVoiceModel() })
+    sessionId = await createTeamAiSession({ auth: authContext, scope, model: resolveRealtimeVoiceModel(), maxDurationSeconds: settings.maxVoiceSessionSeconds })
     try {
       const sdpAnswer = await createOpenAiRealtimeCall({
         sdpOffer: parsed.data.sdpOffer,

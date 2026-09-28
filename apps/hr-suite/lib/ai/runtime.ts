@@ -2,7 +2,7 @@ import 'server-only'
 
 import { randomUUID } from 'node:crypto'
 import { AuthenticationError, AuthorizationError, requirePermission, type AuthContext } from '@/lib/auth/permissions'
-import { AiExecutionError, type AiExecutionResult, type AiInvocationInput, type AiRuntimeDependencies, type AuthorizedContextLoader, type BusinessAuditSink, type CreditsPort, type AiGovernancePort, type AiResultValidator, type ProviderPort, type ProviderSafetyPort, type TechnicalUsageSink, type InvocationRepository, type AiClock, type HrGroupTimeZoneResolver, type AiSettingsPort } from './contracts'
+import { AiExecutionError, type AiExecutionResult, type AiInvocationInput, type AiRuntimeDependencies, type AiLifecycleRecoveryPort, type AuthorizedContextLoader, type BusinessAuditSink, type CreditsPort, type AiGovernancePort, type AiResultValidator, type ProviderPort, type ProviderSafetyPort, type TechnicalUsageSink, type InvocationRepository, type AiClock, type HrGroupTimeZoneResolver, type AiSettingsPort } from './contracts'
 import { SupabaseAiGovernancePort } from './supabase-governance'
 import { aiFeatureRegistry } from './feature-registry'
 import { runAiInvocation } from './orchestrator'
@@ -12,6 +12,7 @@ import { SupabaseLiquidCreditsService } from './supabase-liquid-credits'
 import { defaultHrGroupTimeZoneResolver } from './timezone'
 import { resolveServerAiRuntimeProviders } from './provider-resolver'
 import { SupabaseAiSettingsPort } from './settings-service'
+import { SupabaseAiLifecycleRecovery } from './durable-recovery'
 
 export function createServerAiRuntimeDependencies<T>(input: {
   provider?: ProviderPort
@@ -26,6 +27,7 @@ export function createServerAiRuntimeDependencies<T>(input: {
   timeZoneResolver?: HrGroupTimeZoneResolver
   clock?: AiClock
   settings?: AiSettingsPort
+  lifecycleRecovery?: AiLifecycleRecoveryPort
 }): AiRuntimeDependencies<T> {
   const resolved = input.provider ? null : resolveServerAiRuntimeProviders()
   const provider = input.provider ?? resolved?.provider
@@ -46,6 +48,7 @@ export function createServerAiRuntimeDependencies<T>(input: {
     clock: input.clock ?? { now: () => new Date() },
     createId: randomUUID,
     settings: input.settings ?? new SupabaseAiSettingsPort(),
+    lifecycleRecovery: input.lifecycleRecovery ?? new SupabaseAiLifecycleRecovery(),
   }
 }
 
