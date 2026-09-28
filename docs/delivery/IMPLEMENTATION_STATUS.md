@@ -1,32 +1,14 @@
 # Implementatiestatus Liquid HR
 
-## INS01 — Insights reliability, authorization & acceptance — 2026-09-28
+## CONVERGENCE01 — INS01 + CONTROL01 + AI01-A — 2026-09-28
 
-**Status: PARTIAL — local code/regression GREEN; authenticated TEST/browser proof remains environment-gated.**
+**Status: PARTIAL / RELEASE BLOCKED.** De drie slices zijn geïntegreerd op work/CONVERGENCE01-20260928 vanaf exact 3a0fc67f84bc7dab0acff732afab597142d59ea9. Lokale code/regressies, TEST-schema-readback, officiële DB-typegeneratie, strict TypeScript, ESLint, i18n en beide productiebuilds zijn groen. De integratie is niet naar main gepusht en niet gedeployed; versie blijft 1.20260927.3.
 
-Vanaf exact `3a0fc67f84bc7dab0acff732afab597142d59ea9` zijn bestaande Insights-seams gecontroleerd en minimaal gecorrigeerd: service-level filter/KPI/export-pariteit voor Frequent Absence en Bradford, Upcoming Events HR-group/direct-team-scope, historische Analysis V2-labelresolutie, volledige Analysis source-scopeguards, veilige CSV-formuleprefixen en strikte Actual Work-maandvalidatie. De lokale eindset is `57 bestanden / 215 tests`, met strict TypeScript, changed-file ESLint, i18n-pariteit en diff-check groen.
+- **INS01:** lokale correctness-, authorization- en regressiegates groen; HR Admin/Manager/Employee live route/API/filter/export-matrix blijft environment-gated.
+- **CONTROL01:** migration, typegen, local tests/build en security-readback groen; full-circle tenant → first-admin invitation → normale login/contextselector en synthetic import journey blijven environment-gated. Officiële Loonaangifte blijft bewust XSD_PENDING / REAL_XML_PENDING.
+- **AI01-A:** lokale durable recovery-contracttests en build groen; remote reservation/settlement/release/reconciliation, personas en echte concurrencyprobes blijven environment-gated. Voice hard-crash rekent af tot de opgeslagen serverdeadline; korter werkelijk gebruik is niet reconstrueerbaar.
 
-Authenticated persona/API- en live TEST-readback blijven environment-gated. Er zijn geen migrations toegepast, geen remote schemawijzigingen uitgevoerd, en geen merge, deploy of versie-bump gedaan. Zie [`INS01 acceptance`](quality/acceptance/runs/INS01-20260928.md) voor de volledige matrix, defecten, regressies en open grenzen.
-
-## AI01-A2 — Durable AI recovery — 2026-09-28
-
-**Status: READY_FOR_CONVERGENCE.** Op branch `work/AI01-A-20260928` zijn de drie A1-blockers voor business-audit na settlement, credit-releasefailure en voice-hardcrash afgedekt. A1-checkpoint: `e36fe9f69cc2d7d3bb24a200111465bacc2c37c3`; A2 code-/migration-/testcommit: `72d79d15608dff516f1adce600fff0b025625111`. Het volledige A2-state machine, failurebewijs en beperkingen staan in [AI01-A acceptance](../quality/acceptance/runs/AI01-A-20260928.md).
-
-De forward migration `20260928072242_ai01_a2_durable_recovery.sql` gebruikt invocation-outboxstatus, idempotente service-role recovery-RPC's en database-afgeleide voice-deadlines. Gerichte tests zijn groen (`15 bestanden / 86 tests`), net als non-incremental strict TypeScript, changed-file ESLint en diff-check. Geen remote apply, Docker, browser/persona, provider of deployment.
-
-**CONVERGENCE_REQUIRED:** controleer de actuele TEST-migrationhistory; de huidige lokale voorganger is `20260927110000_abs02_self_scope_permission_fix.sql`. Pas de AI01-A2-migration bij geautoriseerde convergence eenmaal daarna toe, genereer DB-types opnieuw en voer advisors, echte SQL/concurrency/RLS- en persona-gates uit. De documentatie-closeoutcommit en uiteindelijke HEAD-SHA worden bij taakcloseout vermeld.
-
-## CONTROL01 — Control Plane convergence, customer bootstrap en payroll-import — 2026-09-28
-
-**Status: READY_FOR_CONVERGENCE.** Deze lokale slice staat op `work/CONTROL01-20260928`, vanaf exact `3a0fc67f84bc7dab0acff732afab597142d59ea`. De Control Plane gebruikt nu dezelfde semantic UX-basis als hr-suite; onboarding valideert tenant/administratie-input; OWNER/OPERATOR kunnen een eerste HR Admin uitnodigen met exacte HR-groep/administratiescope, idempotency, revoke, audit en fail-closed TEST_CAPTURE; en hr-suite heeft expliciete contextkeuze plus een canonical payroll-import/staging/preview/reporting-contract.
-
-- Lokale gates: hr-suite targeted Vitest `5 bestanden / 26 tests`, Control targeted Vitest `1 / 5`, strict TypeScript voor beide apps, ESLint voor beide apps, hr-suite i18n `41` namespaces, Control i18n `165` sleutels en migration contract assertions zijn groen.
-- Migrations `20260928090000_control01_first_admin_invitation_enum.sql`, `20260928090100_control01_customer_bootstrap.sql` en `20260928090200_control01_payroll_import_staging.sql` zijn additive broncodecontracten met `CONVERGENCE_REQUIRED`; RLS/policies/grants staan in dezelfde payrollmigration. Ze zijn niet op Supabase TEST toegepast.
-- Officiële Loonaangifte XML/XSD blijft bewust `XSD_PENDING`/`REAL_XML_PENDING`; er is geen namespace of claimsstructuur gegokt. De interne representatieve fixture is alleen voor lokale contracttests en bevat geen plaintext BSN/raw XML.
-- Environment-gated: remote migration apply, Supabase advisors, `packages/db/types.ts`-typegen, authenticated Control → invitation → login → context → empty-environment E2E, hosted smoke/provenance, deploy, version bump, merge en push zijn niet uitgevoerd.
-- Open productpunt: wanneer brongegevens contract-/organisatievelden missen, maakt finalisatie een veilige draft-employment aan en rapporteert `EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING`; volledige employment-publicatie vereist een volgende mappingbeslissing.
-
-Zie [`CONTROL01 acceptance`](../quality/acceptance/runs/CONTROL01-20260928.md) en [`CONTROL01 payroll requirement`](../requirements/payroll/CONTROL01_LOONAANGIFTE_IMPORT.md) voor de gate-matrix en expliciete NOT FIXED/ENVIRONMENT-GATED-grenzen.
+Geen reeds geconfigureerde lokale TEST-authsessie of LiquidHR-browsersessie was beschikbaar, en er draaide geen app op poort 3000. De beschermde .env.local is niet gelezen en er is geen auth-bypass gebruikt. Daarom zijn version bump, main-update/push, release-checkout, Vercel Production en hosted smoke niet uitgevoerd. Zie [CONVERGENCE01 acceptance](../quality/acceptance/runs/CONVERGENCE01-20260928.md) voor volledige evidence en bewust open gates.
 
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 

@@ -6,7 +6,7 @@ import { AuthorizationError, getRequestAuthorizationContext, requirePermission }
 import { createEmployee } from '@/lib/employees/employee-service'
 import { createEmployment, ensureEmployeeAdministrationAssignment } from '@/lib/employment/employment-service'
 import { nextAvailableEmploymentNumber } from '@/lib/employment/employment-number'
-import { PayrollImportError, type ExistingPayrollEmployeeCandidate, type PayrollImportAnalysis, type PayrollImportSourceType } from './model'
+import { PayrollImportError, type CanonicalPayrollAddress, type ExistingPayrollEmployeeCandidate, type PayrollImportAnalysis, type PayrollImportSourceType } from './model'
 import { adaptPayrollSource } from './source-adapter'
 import { toEmployeeCreateInput } from './mapping'
 import { validatePayrollPersons } from './validation'
@@ -29,6 +29,18 @@ type PayrollImportBatchInput = {
   periodStart?: string
   periodEnd?: string
   administrationId: string
+}
+
+function toPayrollAddressJson(address: CanonicalPayrollAddress | undefined): Json | null {
+  if (!address) return null
+  const value: { [key: string]: Json | undefined } = {}
+  if (address.street !== undefined) value.street = address.street
+  if (address.houseNumber !== undefined) value.houseNumber = address.houseNumber
+  if (address.houseNumberAddition !== undefined) value.houseNumberAddition = address.houseNumberAddition
+  if (address.postalCode !== undefined) value.postalCode = address.postalCode
+  if (address.city !== undefined) value.city = address.city
+  if (address.countryCode !== undefined) value.countryCode = address.countryCode
+  return value
 }
 
 function asPayrollImportClient(client: Awaited<ReturnType<typeof getRequestAuthorizationContext>>['supabase']): PayrollImportClient {
@@ -198,7 +210,7 @@ export async function stagePayrollImport(input: {
       birth_date: row.birthDate ?? null,
       gender: row.gender ?? null,
       nationality: row.nationality ?? null,
-      address: row.address ?? null,
+      address: toPayrollAddressJson(row.address),
       status: row.status,
       match_status: row.match.status,
       matched_employee_id: row.match.employeeId ?? null,

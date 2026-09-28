@@ -59,7 +59,10 @@ describe('AI01-A2 durable recovery migration contract', () => {
   })
 
   it('D: expires stale voice sessions from the stored server deadline and finalizes accounting', () => {
-    expect(migration).toContain('generated always as (started_at + (max_duration_seconds * interval')
+    expect(migration).toContain('finalization_deadline_at timestamptz')
+    expect(migration).toContain('create or replace function internal_security.set_ai_voice_finalization_deadline()')
+    expect(migration).toContain('new.finalization_deadline_at := new.started_at + (new.max_duration_seconds * interval')
+    expect(migration).toContain('alter column finalization_deadline_at set not null')
     expect(voiceRecovery).toContain("session.finalization_deadline_at <= timezone('utc', now())")
     expect(voiceRecovery).toContain("set status = 'ended'")
     expect(voiceRecovery).toContain("termination_reason = 'timeout'")

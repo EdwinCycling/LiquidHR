@@ -1,16 +1,8 @@
 # Liquid HR documentatie-index
 
-## INS01 — Insights reliability, authorization & acceptance — 2026-09-28
+## CONVERGENCE01 — INS01 + CONTROL01 + AI01-A — 2026-09-28
 
-**Status: PARTIAL — lokale code- en regressiegates groen; authenticated TEST/browser-acceptance environment-gated.**
-
-INS01 is uitgevoerd vanaf exact `3a0fc67f84bc7dab0acff732afab597142d59ea9` in de externe worktree `work/INS01-20260928`. De run corrigeert service-level filterpariteit voor Frequent Absence en Bradford, Upcoming Events manager/HR Admin-scope, historische Analysis-labels, volledige Analysis-scopeguards, veilige CSV-cellen en Actual Work-maandvalidatie. Er zijn geen schemawijzigingen, remote writes, deploys, version bumps of merges uitgevoerd.
-
-De fact matrix, defectledger, lokale testresultaten, environment-gated grenzen en open INS02/AI01-B/AW02-scope staan in [`INS01 acceptance`](quality/acceptance/runs/INS01-20260928.md).
-
-## AI01-A2 — Durable AI recovery — 2026-09-28
-
-**Status: READY_FOR_CONVERGENCE; codecommit `72d79d15608dff516f1adce600fff0b025625111` staat lokaal op `work/AI01-A-20260928`.** De business-auditstatus is durable, reservations met mislukte release blijven retrybaar en verlopen voice-sessies krijgen server-side finalisatie. De forward migration is `20260928072242_ai01_a2_durable_recovery.sql`; remote apply, echte databaseconcurrency/RLS/personaacceptatie en typegeneratie blijven CONVERGENCE_REQUIRED. Zie [AI01-A acceptance](quality/acceptance/runs/AI01-A-20260928.md) voor lifecycle, tests, evidence limits en exacte migrationvolgorde. Geen Docker, remote Supabase of deployment gebruikt.
+**Status: PARTIAL / RELEASE BLOCKED.** De slices zijn geïntegreerd op een kandidaatbranch; TEST-migrations, officiële typegen, RLS/grants-readback, lokale volledige tests, strict TypeScript, ESLint, i18n en productiebuilds zijn groen. Geauthenticeerde Control-, Insights- en AI-acceptatie en echte remote concurrency konden niet veilig worden uitgevoerd omdat er geen reeds geconfigureerde TEST-sessie of LiquidHR-browsersessie beschikbaar was. De beschermde .env.local is niet gelezen. Daarom zijn versie-bump, main/push, release en hosted smoke open. De complete gate-matrix staat in [CONVERGENCE01 acceptance](quality/acceptance/runs/CONVERGENCE01-20260928.md). Eerdere INS01-, CONTROL01- en AI01-A-runreports blijven historische bronbewijzen; XSD_PENDING / REAL_XML_PENDING blijft een bewuste importgrens.
 
 ## ABS02 — verzuim hardening, security en WvP-foundation — 2026-09-27
 

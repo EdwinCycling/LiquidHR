@@ -308,10 +308,10 @@ from public, anon, authenticated;
 grant execute on function public.match_payroll_import_employee_bsn_fingerprint(uuid, uuid, text)
 to authenticated;
 
-revoke all on table public.administration_payroll_tax_numbers from public, anon;
-revoke all on table public.payroll_import_batches from public, anon;
-revoke all on table public.payroll_import_persons from public, anon;
-revoke all on table public.payroll_import_income_relationships from public, anon;
+revoke all on table public.administration_payroll_tax_numbers from public, anon, authenticated;
+revoke all on table public.payroll_import_batches from public, anon, authenticated;
+revoke all on table public.payroll_import_persons from public, anon, authenticated;
+revoke all on table public.payroll_import_income_relationships from public, anon, authenticated;
 grant select, insert, update on table public.administration_payroll_tax_numbers to authenticated;
 grant select, insert, update on table public.payroll_import_batches to authenticated;
 grant select, insert, update on table public.payroll_import_persons to authenticated;

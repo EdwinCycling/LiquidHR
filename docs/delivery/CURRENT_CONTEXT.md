@@ -1,23 +1,14 @@
 # Actuele overdracht Liquid HR
 
-## AI01-A2 — Durable AI recovery — 2026-09-28
+## CONVERGENCE01 — INS01 + CONTROL01 + AI01-A — 2026-09-28
 
-**Status: READY_FOR_CONVERGENCE op `work/AI01-A-20260928`, vanaf `3a0fc67f84bc7dab0acff732afab597142d59ea9`.** Het A1 checkpoint is `e36fe9f69cc2d7d3bb24a200111465bacc2c37c3`; de eerder geverifieerde A1-fixes zijn behouden. A2 code-/migration-/testcommit: `72d79d15608dff516f1adce600fff0b025625111`. AI01-A2 voegt een transactionele settlement/outbox-status, retrybare credit release, herstel van legacy tussenstaten en server-side expiry/finalisatie voor employee- en Team-voice toe. Details en failure evidence staan in [AI01-A acceptance](../quality/acceptance/runs/AI01-A-20260928.md).
+**Status: PARTIAL / RELEASE BLOCKED.** Integratie staat op work/CONVERGENCE01-20260928, gebaseerd op de geverifieerde baseline 3a0fc67f84bc7dab0acff732afab597142d59ea9. De drie slices zijn samengebracht en hun TEST-migrations, officiële typegeneratie, remote security-readback en lokale codegates zijn uitgevoerd. De branch-closeout is geen release: main en origin/main blijven op de baseline en de appversie blijft 1.20260927.3.
 
-- Lokale gates: gerichte AI runtime/credits/voice/recovery/migrationmetadataset `15 bestanden / 86 tests`, strict non-incremental TypeScript, changed-file ESLint en `git diff --check` zijn groen. Geen i18n-tekst aangepast.
-- Voorbereide forward migration: `20260928072242_ai01_a2_durable_recovery.sql`, na de huidige lokale migratie `20260927110000_abs02_self_scope_permission_fix.sql`. `packages/db/types.ts` is bijgewerkt, maar niet vanuit een database gegenereerd.
-- Geen Docker/container/WSL, remote Supabase, provider API, deployment, merge, version bump of AI Usage Insights-wijziging. Worktree blijft `.env.local` buiten scope.
-- **CONVERGENCE_REQUIRED:** vóór runtimegebruik remote TEST-history verifiëren en migration eenmaal toepassen in volgorde; daarna advisors, DB-typegeneratie, echte SQL/concurrency/RLS en persona-evidence. De documentatie-closeoutcommit en definitieve HEAD-SHA staan in de taakcloseout.
+De vereiste geauthenticeerde TEST/browsermatrix kon niet veilig worden gestart: er draaide geen lokale app op poort 3000, de execution context bood geen reeds geconfigureerde TEST-sessie en de browser had geen LiquidHR-login. apps/hr-suite/.env.local is niet geopend. Daardoor zijn Control full-circle/invitation/import, INS01 persona- en exportacceptatie, AI remote lifecycle/concurrency en hosted smoke niet bewezen. Volgens de convergence-gate is deploy geblokkeerd totdat deze security- en data-integriteitsinvarianten zijn getest.
 
-## CONTROL01 — 2026-09-28
+Vijf TEST-migrations zijn in volgorde toegepast en teruggelezen; remote history ging van 502 naar 507 unieke, oplopende registraties. Officiële typegen is met de TEST-database vergeleken en veilig gereconcilieerd. Local gates: hr-suite 480 bestanden / 1933 tests, Control 2 bestanden / 9 tests, strict TypeScript, ESLint, NL/EN-pariteit en builds (304/304 en 12/12) groen. De volledige evidence, inventory, advisorclassificatie en open grenzen staan in [CONVERGENCE01 acceptance](../quality/acceptance/runs/CONVERGENCE01-20260928.md).
 
-**Status: READY_FOR_CONVERGENCE.** Werkbranch `work/CONTROL01-20260928`, externe worktree `C:\Users\Edwin\.codex\worktrees\control01-20260928\LiquidHR`, baseline `3a0fc67f84bc7dab0acff732afab597142d59ea`. De canonical `apps/hr-suite/.env.local` is alleen op bestaan gecontroleerd en niet gelezen, gekopieerd, gewijzigd of verwijderd; de externe worktree bevat geen `.env.local`.
-
-- CONTROL01-code is lokaal uitgewerkt voor Control UX parity, onboarding hardening, first-admin bootstrap/invitation, contextselectie en Loonaangifte-import. De import gebruikt alleen een synthetische internal fixture totdat het officiële XML/XSD-broncontract beschikbaar is.
-- Lokale evidence is groen: hr-suite `5/26` targeted tests, Control `1/5` targeted tests, strict TypeScript beide apps, ESLint beide apps, i18n hr-suite `41` namespaces en Control `165` sleutels. De verplichte acceptance-run staat in `docs/quality/acceptance/runs/CONTROL01-20260928.md`.
-- De drie nieuwe migrations staan in broncode met `CONVERGENCE_REQUIRED`: enum voor `TENANT_FIRST_ADMIN`, customer bootstrap/invitation contract en payroll tax/staging/RLS-model. Remote apply, advisors en typegen zijn niet uitgevoerd; Supabase CLI was niet beschikbaar en de npx fallback werd door telemetry-cache-permissie geblokkeerd.
-- Geen deploy, version bump, merge, push, Production-actie of remote databasewrite. Stop bij `READY_FOR_CONVERGENCE` totdat een afzonderlijk geautoriseerd convergence-run de migrations, typegen, readback en authenticated browsermatrix uitvoert.
-- Volgende veilige stap: migration convergence op TEST met readback/advisors, daarna typegen, lokale/authenticated E2E voor Control → first-admin invitation → normal login → context selection → empty isolated HR environment, en pas daarna de echte XSD-adapter/mappingbeslissing.
+Cherry-pick-integratiecommits: INS01 e4bf48bed1c85fdff1a2eafd526b789c9200064e; AI01-A A1 ed7bdfa9af716983f521964f2c50b2a8e13b5b21, A2 1033ded7e8447d9b0d03012f0cd8435fa4c3c4e7, documentatie cd8f9d817bee50942ce33cf59aa9270c0afde6b6; CONTROL01 5282d95bd86da11042f8c407013bba92a693a50c. Deze handoffs vervangen de eerdere READY_FOR_CONVERGENCE-statussen hieronder; historische acceptance reports zijn behouden.
 
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 

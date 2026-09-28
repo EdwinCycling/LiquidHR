@@ -42,8 +42,11 @@ alter table public.ai_voice_sessions
   alter column max_duration_seconds set not null,
   add constraint ai_voice_sessions_max_duration_seconds_check
     check (max_duration_seconds between 30 and 3600),
-  add column finalization_deadline_at timestamptz
-    generated always as (started_at + (max_duration_seconds * interval '1 second')) stored;
+  add column finalization_deadline_at timestamptz;
+update public.ai_voice_sessions
+set finalization_deadline_at = started_at + (max_duration_seconds * interval '1 second');
+alter table public.ai_voice_sessions
+  alter column finalization_deadline_at set not null;
 
 alter table public.ai_team_sessions
   add column max_duration_seconds integer;
@@ -60,8 +63,32 @@ alter table public.ai_team_sessions
   alter column max_duration_seconds set not null,
   add constraint ai_team_sessions_max_duration_seconds_check
     check (max_duration_seconds between 30 and 3600),
-  add column finalization_deadline_at timestamptz
-    generated always as (started_at + (max_duration_seconds * interval '1 second')) stored;
+  add column finalization_deadline_at timestamptz;
+update public.ai_team_sessions
+set finalization_deadline_at = started_at + (max_duration_seconds * interval '1 second');
+alter table public.ai_team_sessions
+  alter column finalization_deadline_at set not null;
+
+create or replace function internal_security.set_ai_voice_finalization_deadline()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  new.finalization_deadline_at := new.started_at + (new.max_duration_seconds * interval '1 second');
+  return new;
+end;
+$$;
+
+revoke all on function internal_security.set_ai_voice_finalization_deadline() from public, anon, authenticated;
+
+create trigger set_ai_voice_sessions_finalization_deadline
+before insert or update on public.ai_voice_sessions
+for each row execute function internal_security.set_ai_voice_finalization_deadline();
+create trigger set_ai_team_sessions_finalization_deadline
+before insert or update on public.ai_team_sessions
+for each row execute function internal_security.set_ai_voice_finalization_deadline();
 
 create index ai_voice_sessions_expiry_idx
   on public.ai_voice_sessions (tenant_id, hr_group_id, finalization_deadline_at)

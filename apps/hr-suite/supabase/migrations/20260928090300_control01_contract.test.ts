@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 const enumMigration = readFileSync(resolve(__dirname, '20260928090000_control01_first_admin_invitation_enum.sql'), 'utf8')
 const bootstrapMigration = readFileSync(resolve(__dirname, '20260928090100_control01_customer_bootstrap.sql'), 'utf8')
 const importMigration = readFileSync(resolve(__dirname, '20260928090200_control01_payroll_import_staging.sql'), 'utf8')
+const payrollGrantHardeningMigration = readFileSync(resolve(__dirname, '20260928100207_control01_payroll_import_grants_hardening.sql'), 'utf8')
 
 describe('CONTROL01 additive migration contract', () => {
   it('marks all remote convergence work explicitly', () => {
@@ -27,7 +28,9 @@ describe('CONTROL01 additive migration contract', () => {
   it('keeps payroll staging protected and free of raw XML or plaintext BSN', () => {
     for (const table of ['administration_payroll_tax_numbers', 'payroll_import_batches', 'payroll_import_persons', 'payroll_import_income_relationships']) {
       expect(importMigration).toContain(`alter table public.${table} enable row level security`)
+      expect(importMigration).toContain(`revoke all on table public.${table} from public, anon, authenticated`)
       expect(importMigration).toContain(`grant select, insert, update on table public.${table} to authenticated`)
+      expect(payrollGrantHardeningMigration).toContain(`revoke all on table public.${table} from authenticated`)
     }
     expect(importMigration).toContain('bsn_fingerprint')
     expect(importMigration).not.toContain('raw_xml')
