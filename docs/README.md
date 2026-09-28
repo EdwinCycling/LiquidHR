@@ -8,6 +8,10 @@ INS01 is uitgevoerd vanaf exact `3a0fc67f84bc7dab0acff732afab597142d59ea9` in de
 
 De fact matrix, defectledger, lokale testresultaten, environment-gated grenzen en open INS02/AI01-B/AW02-scope staan in [`INS01 acceptance`](quality/acceptance/runs/INS01-20260928.md).
 
+## AI01-A2 — Durable AI recovery — 2026-09-28
+
+**Status: READY_FOR_CONVERGENCE; codecommit `72d79d15608dff516f1adce600fff0b025625111` staat lokaal op `work/AI01-A-20260928`.** De business-auditstatus is durable, reservations met mislukte release blijven retrybaar en verlopen voice-sessies krijgen server-side finalisatie. De forward migration is `20260928072242_ai01_a2_durable_recovery.sql`; remote apply, echte databaseconcurrency/RLS/personaacceptatie en typegeneratie blijven CONVERGENCE_REQUIRED. Zie [AI01-A acceptance](quality/acceptance/runs/AI01-A-20260928.md) voor lifecycle, tests, evidence limits en exacte migrationvolgorde. Geen Docker, remote Supabase of deployment gebruikt.
+
 ## ABS02 — verzuim hardening, security en WvP-foundation — 2026-09-27
 
 **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance blijven environment-gated.**

@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## AI01-A2 — Durable AI recovery — 2026-09-28
+
+**Status: READY_FOR_CONVERGENCE op `work/AI01-A-20260928`, vanaf `3a0fc67f84bc7dab0acff732afab597142d59ea9`.** Het A1 checkpoint is `e36fe9f69cc2d7d3bb24a200111465bacc2c37c3`; de eerder geverifieerde A1-fixes zijn behouden. A2 code-/migration-/testcommit: `72d79d15608dff516f1adce600fff0b025625111`. AI01-A2 voegt een transactionele settlement/outbox-status, retrybare credit release, herstel van legacy tussenstaten en server-side expiry/finalisatie voor employee- en Team-voice toe. Details en failure evidence staan in [AI01-A acceptance](../quality/acceptance/runs/AI01-A-20260928.md).
+
+- Lokale gates: gerichte AI runtime/credits/voice/recovery/migrationmetadataset `15 bestanden / 86 tests`, strict non-incremental TypeScript, changed-file ESLint en `git diff --check` zijn groen. Geen i18n-tekst aangepast.
+- Voorbereide forward migration: `20260928072242_ai01_a2_durable_recovery.sql`, na de huidige lokale migratie `20260927110000_abs02_self_scope_permission_fix.sql`. `packages/db/types.ts` is bijgewerkt, maar niet vanuit een database gegenereerd.
+- Geen Docker/container/WSL, remote Supabase, provider API, deployment, merge, version bump of AI Usage Insights-wijziging. Worktree blijft `.env.local` buiten scope.
+- **CONVERGENCE_REQUIRED:** vóór runtimegebruik remote TEST-history verifiëren en migration eenmaal toepassen in volgorde; daarna advisors, DB-typegeneratie, echte SQL/concurrency/RLS en persona-evidence. De documentatie-closeoutcommit en definitieve HEAD-SHA staan in de taakcloseout.
+
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 
 **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance blijven environment-gated.** Baseline was exact `22ad719246095f75c1e3c034e6bdd3867c489569`; de gedeployde ABS02-applicatiebron is `e5e090b084a18561dc74a09d4054ddabe2c641b`; kandidaatversie `1.20260927.3` (eenmalig `.2 -> .3` na groene gates). Deze handoff-update is documentatie-only. ABS01 blijft frozen PARTIAL en INS01 is niet gestart.

@@ -8,6 +8,14 @@ Vanaf exact `3a0fc67f84bc7dab0acff732afab597142d59ea9` zijn bestaande Insights-s
 
 Authenticated persona/API- en live TEST-readback blijven environment-gated. Er zijn geen migrations toegepast, geen remote schemawijzigingen uitgevoerd, en geen merge, deploy of versie-bump gedaan. Zie [`INS01 acceptance`](quality/acceptance/runs/INS01-20260928.md) voor de volledige matrix, defecten, regressies en open grenzen.
 
+## AI01-A2 — Durable AI recovery — 2026-09-28
+
+**Status: READY_FOR_CONVERGENCE.** Op branch `work/AI01-A-20260928` zijn de drie A1-blockers voor business-audit na settlement, credit-releasefailure en voice-hardcrash afgedekt. A1-checkpoint: `e36fe9f69cc2d7d3bb24a200111465bacc2c37c3`; A2 code-/migration-/testcommit: `72d79d15608dff516f1adce600fff0b025625111`. Het volledige A2-state machine, failurebewijs en beperkingen staan in [AI01-A acceptance](../quality/acceptance/runs/AI01-A-20260928.md).
+
+De forward migration `20260928072242_ai01_a2_durable_recovery.sql` gebruikt invocation-outboxstatus, idempotente service-role recovery-RPC's en database-afgeleide voice-deadlines. Gerichte tests zijn groen (`15 bestanden / 86 tests`), net als non-incremental strict TypeScript, changed-file ESLint en diff-check. Geen remote apply, Docker, browser/persona, provider of deployment.
+
+**CONVERGENCE_REQUIRED:** controleer de actuele TEST-migrationhistory; de huidige lokale voorganger is `20260927110000_abs02_self_scope_permission_fix.sql`. Pas de AI01-A2-migration bij geautoriseerde convergence eenmaal daarna toe, genereer DB-types opnieuw en voer advisors, echte SQL/concurrency/RLS- en persona-gates uit. De documentatie-closeoutcommit en uiteindelijke HEAD-SHA worden bij taakcloseout vermeld.
+
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 
 **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance environment-gated.**
