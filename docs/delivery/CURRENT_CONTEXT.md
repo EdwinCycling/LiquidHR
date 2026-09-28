@@ -9,6 +9,16 @@
 - Geen Docker/container/WSL, remote Supabase, provider API, deployment, merge, version bump of AI Usage Insights-wijziging. Worktree blijft `.env.local` buiten scope.
 - **CONVERGENCE_REQUIRED:** vóór runtimegebruik remote TEST-history verifiëren en migration eenmaal toepassen in volgorde; daarna advisors, DB-typegeneratie, echte SQL/concurrency/RLS en persona-evidence. De documentatie-closeoutcommit en definitieve HEAD-SHA staan in de taakcloseout.
 
+## CONTROL01 — 2026-09-28
+
+**Status: READY_FOR_CONVERGENCE.** Werkbranch `work/CONTROL01-20260928`, externe worktree `C:\Users\Edwin\.codex\worktrees\control01-20260928\LiquidHR`, baseline `3a0fc67f84bc7dab0acff732afab597142d59ea`. De canonical `apps/hr-suite/.env.local` is alleen op bestaan gecontroleerd en niet gelezen, gekopieerd, gewijzigd of verwijderd; de externe worktree bevat geen `.env.local`.
+
+- CONTROL01-code is lokaal uitgewerkt voor Control UX parity, onboarding hardening, first-admin bootstrap/invitation, contextselectie en Loonaangifte-import. De import gebruikt alleen een synthetische internal fixture totdat het officiële XML/XSD-broncontract beschikbaar is.
+- Lokale evidence is groen: hr-suite `5/26` targeted tests, Control `1/5` targeted tests, strict TypeScript beide apps, ESLint beide apps, i18n hr-suite `41` namespaces en Control `165` sleutels. De verplichte acceptance-run staat in `docs/quality/acceptance/runs/CONTROL01-20260928.md`.
+- De drie nieuwe migrations staan in broncode met `CONVERGENCE_REQUIRED`: enum voor `TENANT_FIRST_ADMIN`, customer bootstrap/invitation contract en payroll tax/staging/RLS-model. Remote apply, advisors en typegen zijn niet uitgevoerd; Supabase CLI was niet beschikbaar en de npx fallback werd door telemetry-cache-permissie geblokkeerd.
+- Geen deploy, version bump, merge, push, Production-actie of remote databasewrite. Stop bij `READY_FOR_CONVERGENCE` totdat een afzonderlijk geautoriseerd convergence-run de migrations, typegen, readback en authenticated browsermatrix uitvoert.
+- Volgende veilige stap: migration convergence op TEST met readback/advisors, daarna typegen, lokale/authenticated E2E voor Control → first-admin invitation → normal login → context selection → empty isolated HR environment, en pas daarna de echte XSD-adapter/mappingbeslissing.
+
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 
 **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance blijven environment-gated.** Baseline was exact `22ad719246095f75c1e3c034e6bdd3867c489569`; de gedeployde ABS02-applicatiebron is `e5e090b084a18561dc74a09d4054ddabe2c641b`; kandidaatversie `1.20260927.3` (eenmalig `.2 -> .3` na groene gates). Deze handoff-update is documentatie-only. ABS01 blijft frozen PARTIAL en INS01 is niet gestart.

@@ -11,11 +11,11 @@
   "login": {
     "eyebrow": "Alleen platformbeheerders",
     "title": "Control room",
-    "subtitle": "Beheer klantomgevingen, toegang en gebruik vanuit Ã©Ã©n gesloten plek.",
+    "subtitle": "Beheer klantomgevingen, toegang en gebruik vanuit één gesloten plek.",
     "email": "E-mailadres",
     "password": "Wachtwoord",
     "submit": "Veilig inloggen",
-    "submitting": "Inloggenâ€¦",
+    "submitting": "Inloggen…",
     "google": "Doorgaan met Google",
     "or": "of",
     "error": "De inloggegevens zijn niet geldig.",
@@ -23,7 +23,7 @@
   },
   "setup": {
     "eyebrow": "Lokale installatie",
-    "title": "Nog Ã©Ã©n configuratiestap",
+    "title": "Nog één configuratiestap",
     "body": "De control-app draait, maar heeft nog geen Supabase-instellingen. Maak het lokale omgevingsbestand aan en herstart poort 3001.",
     "file": "Bestand",
     "source": "Neem de twee publieke waarden over uit apps/hr-suite/.env.local",
@@ -96,7 +96,7 @@
     "lifecycle": "Status beheren",
     "lifecycleHint": "Een statuswijziging werkt direct door in de toegang tot LiquidHR.",
     "reason": "Reden",
-    "reasonPlaceholder": "Bijvoorbeeld: betaling ontvangen of abonnement op verzoek beÃ«indigd",
+    "reasonPlaceholder": "Bijvoorbeeld: betaling ontvangen of abonnement op verzoek beëindigd",
     "confirm": "Status wijzigen",
     "errorInvalid": "Controleer de gekozen status en geef een duidelijke reden van minimaal vijf tekens.",
     "errorFailed": "De statuswijziging is niet uitgevoerd. Controleer je rol en de toegestane overgang.",
@@ -104,6 +104,23 @@
     "auditHint": "Statuswijzigingen en gebruiksmetingen van deze klant verschijnen hier.",
     "noAudit": "Voor deze klant zijn nog geen beheeractiviteiten geregistreerd.",
     "noTransition": "Voor deze eindstatus zijn geen vervolgacties beschikbaar.",
+    "bootstrapTitle": "Eerste HR-admin uitnodigen",
+    "bootstrapHint": "Maak de eerste tenantbeheerder aan via de normale uitnodigings- en acceptatiestroom. Dit werkt alleen zolang de tenant in voorbereiding staat en nog geen eerste HR-admin heeft.",
+    "bootstrapGroup": "HR-groep",
+    "bootstrapGroupHint": "Kies exact de groep waar deze beheerder toegang toe krijgt.",
+    "bootstrapGroupPlaceholder": "Kies een HR-groep",
+    "bootstrapAdministration": "Administratie",
+    "bootstrapAdministrationHint": "Kies de administratie binnen dezelfde HR-groep waarop de uitnodiging wordt verankerd.",
+    "bootstrapAdministrationPlaceholder": "Kies een administratie",
+    "selectSearch": "Zoek in de opties",
+    "bootstrapEmail": "Zakelijk e-mailadres",
+    "bootstrapEmailHint": "De uitnodiging wordt aan dit adres gekoppeld; er wordt geen tweede identiteit aangemaakt.",
+    "bootstrapCreate": "Uitnodiging maken",
+    "bootstrapCreating": "Uitnodiging maken…",
+    "bootstrapCreated": "De eerste HR-admin is uitgenodigd. Accepteer de uitnodiging via de normale LiquidHR-flow.",
+    "bootstrapCaptureTitle": "Lokale testuitnodiging",
+    "bootstrapInvalid": "Kies een HR-groep en vul een geldig e-mailadres in.",
+    "bootstrapFailed": "De eerste HR-admin kon niet worden uitgenodigd. Controleer de tenantstatus, de groep en de uitnodigingsconfiguratie.",
     "supportTitle": "Supportmodus starten",
     "supportHint": "Open een tijdelijke, alleen-lezen weergave van deze klantomgeving om support te leveren.",
     "supportReadOnly": "Alleen lezen",
@@ -130,8 +147,8 @@
     "slugPlaceholder": "noordzee-groep",
     "email": "Primair contact e-mail",
     "model": "Hoe ziet de klant de administraties?",
-    "combined": "Samen als Ã©Ã©n organisatie",
-    "combinedHint": "EÃ©n medewerkerslijst en gedeelde inrichting; dienstverbanden blijven aan hun administratie gekoppeld.",
+    "combined": "Samen als één organisatie",
+    "combinedHint": "Eén medewerkerslijst en gedeelde inrichting; dienstverbanden blijven aan hun administratie gekoppeld.",
     "separate": "Als gescheiden administraties",
     "separateHint": "Gebruikers kiezen een administratie en zien alleen hun toegestane context.",
     "administrations": "Administraties",
@@ -141,7 +158,7 @@
     "addAdministration": "Administratie toevoegen",
     "remove": "Verwijderen",
     "submit": "Klant in voorbereiding aanmaken",
-    "submitting": "Aanmakenâ€¦",
+    "submitting": "Aanmaken…",
     "invalid": "Controleer alle velden. De technische naam gebruikt alleen kleine letters, cijfers en streepjes.",
     "failed": "Aanmaken is niet gelukt. Mogelijk bestaat de technische naam al of heb je geen schrijfrecht.",
     "after": "Hierna",
@@ -151,14 +168,14 @@
     "PROVISIONING": "In voorbereiding",
     "ACTIVE": "Actief",
     "PAUSED": "Gepauzeerd",
-    "TERMINATING": "Wordt beÃ«indigd",
-    "TERMINATED": "BeÃ«indigd"
+    "TERMINATING": "Wordt beëindigd",
+    "TERMINATED": "Beëindigd"
   },
   "actions": {
     "ACTIVE": "Activeren / hervatten",
     "PAUSED": "Pauzeren",
-    "TERMINATING": "BeÃ«indiging starten",
-    "TERMINATED": "Definitief beÃ«indigen"
+    "TERMINATING": "Beëindiging starten",
+    "TERMINATED": "Definitief beëindigen"
   },
   "roles": {
     "OWNER": "Eigenaar",
@@ -168,6 +185,7 @@
   "common": {
     "unknown": "Onbekend",
     "notSet": "Niet ingesteld",
-    "bytes": "0 B"
+    "bytes": "0 B",
+    "search": "Zoeken"
   }
 }

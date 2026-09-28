@@ -5,7 +5,7 @@ import { readEmployeeEssAccess } from '@/lib/auth/employee-ess-access'
 import { isFullPortalAllowed } from '@/lib/focus/access-state'
 import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
 import { ANALYSIS_PERMISSION } from '@/lib/insights/analysis-contract'
-import { ContextAccessError } from '@/lib/context/administration-context'
+import { ContextAccessError, ContextSelectionRequiredError } from '@/lib/context/administration-context'
 import { getHrGroupSwitcherMode } from '@/lib/context/administration-context'
 import { getTranslator } from '@/lib/i18n/server'
 import { APP_VERSION } from '@/lib/app-version'
@@ -30,6 +30,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   try {
     requestContext = await getRequestAuthorizationContext()
   } catch (error) {
+    if (error instanceof ContextSelectionRequiredError) redirect('/context/select')
     if (error instanceof ContextAccessError) redirect('/geen-toegang')
     if (error instanceof AuthenticationError) redirect('/login')
     throw error

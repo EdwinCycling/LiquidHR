@@ -106,6 +106,10 @@ export class ContextAccessError extends Error {
   readonly status = 403
 }
 
+export class ContextSelectionRequiredError extends Error {
+  readonly status = 409
+}
+
 export type HrGroupSwitcherMode = 'HIDDEN' | 'SELECT'
 export type AdministrationSwitcherMode = 'HIDDEN' | 'SELECT'
 
@@ -187,22 +191,43 @@ function groupAccessesForGroup(accesses: ContextGroupAccessRow[], groupId: strin
 }
 
 export function selectActiveContext(input: SelectActiveContextInput): ActiveContext {
-  const tenant =
-    input.tenants.find((option) => option.id === input.requestedTenantId) ?? input.tenants[0]
+  const requestedTenant = input.requestedTenantId
+    ? input.tenants.find((option) => option.id === input.requestedTenantId)
+    : undefined
+  if (input.requestedTenantId && !requestedTenant) {
+    throw new ContextSelectionRequiredError('Kies een klantomgeving waartoe je toegang hebt.')
+  }
 
-  if (!tenant) throw new ContextAccessError('Je hebt geen toegang tot een actieve klantomgeving.')
+  const tenant = requestedTenant ?? (input.tenants.length === 1 ? input.tenants[0] : undefined)
 
-  const activeHrGroup =
-    tenant.hrGroups.find((group) => group.id === input.requestedHrGroupId) ?? tenant.hrGroups[0]
+  if (!tenant) {
+    if (input.tenants.length > 1) throw new ContextSelectionRequiredError('Kies een klantomgeving waartoe je toegang hebt.')
+    throw new ContextAccessError('Je hebt geen toegang tot een actieve klantomgeving.')
+  }
 
-  if (!activeHrGroup) throw new ContextAccessError('Je hebt geen toegang tot een actieve HR-groep.')
+  const requestedHrGroup = input.requestedHrGroupId
+    ? tenant.hrGroups.find((group) => group.id === input.requestedHrGroupId)
+    : undefined
+  if (input.requestedHrGroupId && !requestedHrGroup) {
+    throw new ContextSelectionRequiredError('Kies een HR-groep waartoe je toegang hebt.')
+  }
+
+  const activeHrGroup = requestedHrGroup ?? (tenant.hrGroups.length === 1 ? tenant.hrGroups[0] : undefined)
+
+  if (!activeHrGroup) {
+    if (tenant.hrGroups.length > 1) throw new ContextSelectionRequiredError('Kies een HR-groep waartoe je toegang hebt.')
+    throw new ContextAccessError('Je hebt geen toegang tot een actieve HR-groep.')
+  }
 
   const { hrGroups, ...tenantContext } = tenant
   const administrationsInActiveHrGroup = activeHrGroup.administrations
-  const activeAdministration =
-    administrationsInActiveHrGroup.find((option) => option.id === input.requestedAdministrationId)
-    ?? administrationsInActiveHrGroup[0]
-    ?? null
+  const requestedAdministration = input.requestedAdministrationId
+    ? administrationsInActiveHrGroup.find((option) => option.id === input.requestedAdministrationId)
+    : undefined
+  if (input.requestedAdministrationId && !requestedAdministration) {
+    throw new ContextSelectionRequiredError('Kies een administratie binnen de actieve HR-groep.')
+  }
+  const activeAdministration = requestedAdministration ?? administrationsInActiveHrGroup[0] ?? null
 
   return {
     tenant: tenantContext,

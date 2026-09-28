@@ -42,6 +42,8 @@ export const MESSAGE_NAMESPACES = [
   'documentStudio',
   'logbook',
   'focus',
+  'context',
+  'payrollImport',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

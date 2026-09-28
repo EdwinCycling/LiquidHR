@@ -74,6 +74,10 @@ import logbookNl from '@/messages/nl/logbook.json'
 import logbookEn from '@/messages/en/logbook.json'
 import focusNl from '@/messages/nl/focus.json'
 import focusEn from '@/messages/en/focus.json'
+import contextNl from '@/messages/nl/context.json'
+import contextEn from '@/messages/en/context.json'
+import payrollImportNl from '@/messages/nl/payrollImport.json'
+import payrollImportEn from '@/messages/en/payrollImport.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -120,6 +124,8 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     documentStudio: documentStudioNl,
     logbook: logbookNl,
     focus: focusNl,
+    context: contextNl,
+    payrollImport: payrollImportNl,
   },
   en: {
     auth: authEn,
@@ -159,6 +165,8 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     documentStudio: documentStudioEn,
     logbook: logbookEn,
     focus: focusEn,
+    context: contextEn,
+    payrollImport: payrollImportEn,
   },
 }
 

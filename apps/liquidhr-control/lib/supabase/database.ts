@@ -52,6 +52,22 @@ export type ControlDatabase = {
         }
         Returns: string
       }
+      bootstrap_platform_first_admin: {
+        Args: {
+          requested_tenant_id: string
+          requested_hr_group_id: string
+          requested_administration_id: string
+          requested_email: string
+          requested_token_hash: string
+          requested_expires_at: string
+          requested_request_key: string
+        }
+        Returns: { invitationId: string; expiresAt: string; reused: boolean }
+      }
+      revoke_platform_first_admin_invitation: {
+        Args: { requested_invitation_id: string; requested_reason: string }
+        Returns: boolean
+      }
     }
     Enums: {
       administration_mode: 'SEPARATE' | 'COMBINED'

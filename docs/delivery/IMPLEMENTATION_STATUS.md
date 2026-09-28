@@ -16,6 +16,18 @@ De forward migration `20260928072242_ai01_a2_durable_recovery.sql` gebruikt invo
 
 **CONVERGENCE_REQUIRED:** controleer de actuele TEST-migrationhistory; de huidige lokale voorganger is `20260927110000_abs02_self_scope_permission_fix.sql`. Pas de AI01-A2-migration bij geautoriseerde convergence eenmaal daarna toe, genereer DB-types opnieuw en voer advisors, echte SQL/concurrency/RLS- en persona-gates uit. De documentatie-closeoutcommit en uiteindelijke HEAD-SHA worden bij taakcloseout vermeld.
 
+## CONTROL01 — Control Plane convergence, customer bootstrap en payroll-import — 2026-09-28
+
+**Status: READY_FOR_CONVERGENCE.** Deze lokale slice staat op `work/CONTROL01-20260928`, vanaf exact `3a0fc67f84bc7dab0acff732afab597142d59ea`. De Control Plane gebruikt nu dezelfde semantic UX-basis als hr-suite; onboarding valideert tenant/administratie-input; OWNER/OPERATOR kunnen een eerste HR Admin uitnodigen met exacte HR-groep/administratiescope, idempotency, revoke, audit en fail-closed TEST_CAPTURE; en hr-suite heeft expliciete contextkeuze plus een canonical payroll-import/staging/preview/reporting-contract.
+
+- Lokale gates: hr-suite targeted Vitest `5 bestanden / 26 tests`, Control targeted Vitest `1 / 5`, strict TypeScript voor beide apps, ESLint voor beide apps, hr-suite i18n `41` namespaces, Control i18n `165` sleutels en migration contract assertions zijn groen.
+- Migrations `20260928090000_control01_first_admin_invitation_enum.sql`, `20260928090100_control01_customer_bootstrap.sql` en `20260928090200_control01_payroll_import_staging.sql` zijn additive broncodecontracten met `CONVERGENCE_REQUIRED`; RLS/policies/grants staan in dezelfde payrollmigration. Ze zijn niet op Supabase TEST toegepast.
+- Officiële Loonaangifte XML/XSD blijft bewust `XSD_PENDING`/`REAL_XML_PENDING`; er is geen namespace of claimsstructuur gegokt. De interne representatieve fixture is alleen voor lokale contracttests en bevat geen plaintext BSN/raw XML.
+- Environment-gated: remote migration apply, Supabase advisors, `packages/db/types.ts`-typegen, authenticated Control → invitation → login → context → empty-environment E2E, hosted smoke/provenance, deploy, version bump, merge en push zijn niet uitgevoerd.
+- Open productpunt: wanneer brongegevens contract-/organisatievelden missen, maakt finalisatie een veilige draft-employment aan en rapporteert `EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING`; volledige employment-publicatie vereist een volgende mappingbeslissing.
+
+Zie [`CONTROL01 acceptance`](../quality/acceptance/runs/CONTROL01-20260928.md) en [`CONTROL01 payroll requirement`](../requirements/payroll/CONTROL01_LOONAANGIFTE_IMPORT.md) voor de gate-matrix en expliciete NOT FIXED/ENVIRONMENT-GATED-grenzen.
+
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 
 **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance environment-gated.**

@@ -1,0 +1,12 @@
+{
+  "title": "Choose where to work",
+  "description": "You can access multiple customer environments or HR groups. Choose the context for this session.",
+  "tenantLabel": "Customer environment",
+  "tenantPlaceholder": "Choose a customer environment",
+  "hrGroupLabel": "HR group",
+  "hrGroupPlaceholder": "Choose an HR group",
+  "continue": "Continue",
+  "noAccess": "No active HR context is available.",
+  "failed": "The context could not be saved. Choose again.",
+  "invalid": "Choose a valid customer environment and HR group."
+}

@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, signOut } = vi.hoisted(() => ({
+const { cookies, createClient, signOut } = vi.hoisted(() => ({
+  cookies: vi.fn(),
   createClient: vi.fn(),
   signOut: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('next/headers', () => ({ cookies }))
 
 import { NextRequest } from 'next/server'
 import { POST } from './route'
@@ -13,8 +15,10 @@ import { POST } from './route'
 describe('POST /auth/signout', () => {
   beforeEach(() => {
     createClient.mockReset()
+    cookies.mockReset()
     signOut.mockReset()
     createClient.mockResolvedValue({ auth: { signOut } })
+    cookies.mockResolvedValue({ delete: vi.fn() })
     vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://liquid-hr-hr-suite.vercel.app')
     vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'liquid-hr-hr-suite.vercel.app')
   })

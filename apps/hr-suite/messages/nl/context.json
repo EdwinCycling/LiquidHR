@@ -1,0 +1,12 @@
+{
+  "title": "Kies waar je wilt werken",
+  "description": "Je hebt toegang tot meerdere klantomgevingen of HR-groepen. Kies bewust de context voor deze sessie.",
+  "tenantLabel": "Klantomgeving",
+  "tenantPlaceholder": "Kies een klantomgeving",
+  "hrGroupLabel": "HR-groep",
+  "hrGroupPlaceholder": "Kies een HR-groep",
+  "continue": "Doorgaan",
+  "noAccess": "Er is geen actieve HR-context beschikbaar.",
+  "failed": "De context kon niet worden opgeslagen. Kies opnieuw.",
+  "invalid": "Kies een geldige klantomgeving en HR-groep."
+}

@@ -7,15 +7,40 @@ export const uuidStringSchema = z.string().regex(
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
 )
 
+const onboardingAdministrationSchema = z.object({
+  code: z.string().trim().toUpperCase().regex(/^[A-Z0-9_-]+$/).max(24),
+  name: z.string().trim().min(2).max(120),
+})
+
+const onboardingAdministrationsSchema = z.array(onboardingAdministrationSchema).min(1).max(25).superRefine((administrations, context) => {
+  const codes = new Map<string, number>()
+  const names = new Map<string, number>()
+  administrations.forEach((administration, index) => {
+    const code = administration.code.toUpperCase()
+    const name = administration.name.toLocaleLowerCase('nl-NL')
+    const previousCodeIndex = codes.get(code)
+    if (previousCodeIndex !== undefined) {
+      context.addIssue({ code: 'custom', path: [index, 'code'], message: 'ADMINISTRATION_CODE_DUPLICATE' })
+      context.addIssue({ code: 'custom', path: [previousCodeIndex, 'code'], message: 'ADMINISTRATION_CODE_DUPLICATE' })
+    } else {
+      codes.set(code, index)
+    }
+    const previousNameIndex = names.get(name)
+    if (previousNameIndex !== undefined) {
+      context.addIssue({ code: 'custom', path: [index, 'name'], message: 'ADMINISTRATION_NAME_DUPLICATE' })
+      context.addIssue({ code: 'custom', path: [previousNameIndex, 'name'], message: 'ADMINISTRATION_NAME_DUPLICATE' })
+    } else {
+      names.set(name, index)
+    }
+  })
+})
+
 export const onboardingSchema = z.object({
   name: z.string().trim().min(2).max(120),
   slug: z.string().trim().toLowerCase().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
   administrationMode: administrationModeSchema,
   primaryContactEmail: z.email().transform((value) => value.toLowerCase()),
-  administrations: z.array(z.object({
-    code: z.string().trim().toUpperCase().regex(/^[A-Z0-9_-]+$/).max(24),
-    name: z.string().trim().min(2).max(120),
-  })).min(1).max(25),
+  administrations: onboardingAdministrationsSchema,
 })
 
 export const lifecycleCommandSchema = z.object({

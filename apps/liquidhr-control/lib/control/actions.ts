@@ -3,12 +3,45 @@
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createHrGroupSchema, lifecycleCommandSchema, onboardingSchema, supportSessionSchema } from './schemas'
+import { createHrGroupSchema, lifecycleCommandSchema, onboardingSchema, supportSessionSchema, uuidStringSchema } from './schemas'
 import { createClient } from '@/lib/supabase/server'
+import { bootstrapFirstAdmin } from './bootstrap'
+import { z } from 'zod'
 
 export interface ControlActionState {
   code: 'idle' | 'invalid' | 'failed' | 'success'
   message?: string
+  captureUrl?: string
+}
+
+const firstAdminBootstrapSchema = z.object({
+  tenantId: uuidStringSchema,
+  hrGroupId: uuidStringSchema,
+  administrationId: uuidStringSchema,
+  email: z.email().transform((value) => value.toLowerCase()),
+})
+
+export async function bootstrapFirstAdminAction(
+  _previous: ControlActionState,
+  formData: FormData,
+): Promise<ControlActionState> {
+  const parsed = firstAdminBootstrapSchema.safeParse({
+    tenantId: formData.get('tenantId'),
+    hrGroupId: formData.get('hrGroupId'),
+    administrationId: formData.get('administrationId'),
+    email: formData.get('email'),
+  })
+  if (!parsed.success) return { code: 'invalid' }
+
+  try {
+    const result = await bootstrapFirstAdmin(parsed.data)
+    return {
+      code: 'success',
+      captureUrl: result.delivery.mode === 'TEST_CAPTURE' ? result.delivery.invitationUrl : undefined,
+    }
+  } catch {
+    return { code: 'failed' }
+  }
 }
 
 export async function createPlatformHrGroup(

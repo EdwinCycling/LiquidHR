@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cache } from 'react'
 import { toSelfPermission } from '@/lib/auth/permission-rules'
-import { ContextAccessError, type ActiveContext } from '@/lib/context/administration-context'
+import { ContextAccessError, ContextSelectionRequiredError, type ActiveContext } from '@/lib/context/administration-context'
 import { ContextAuthenticationError, loadActiveContext } from '@/lib/context/server-context'
 import {
   isPreboardingAllowedSelfPermission,
@@ -316,6 +316,7 @@ export function permissionErrorResponse(error: unknown): NextResponse | null {
     || error instanceof AuthorizationError
     || error instanceof ContextAuthenticationError
     || error instanceof ContextAccessError
+    || error instanceof ContextSelectionRequiredError
   ) {
     return NextResponse.json({ error: error.message }, { status: error.status })
   }

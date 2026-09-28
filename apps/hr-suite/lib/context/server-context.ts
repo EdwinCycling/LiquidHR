@@ -3,6 +3,7 @@ import {
   buildTenantContextOptions,
   selectActiveContext,
   type ActiveContext,
+  type TenantContextOption,
 } from '@/lib/context/administration-context'
 import type { PortalMode } from '@/lib/context/administration-context'
 import { createClient } from '@/lib/supabase/server'
@@ -17,7 +18,15 @@ export class ContextAuthenticationError extends Error {
 
 const EMPLOYEE_MANAGER_ROLE_CODES = new Set(['EMPLOYEE', 'DIRECT_MANAGER'])
 
-export async function loadActiveContext(userId?: string, existingClient?: Awaited<ReturnType<typeof createClient>>): Promise<ActiveContext> {
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+export interface AccessibleContextOptions {
+  supabase: SupabaseServerClient
+  userId: string
+  tenants: TenantContextOption[]
+}
+
+export async function loadAccessibleContextOptions(userId?: string, existingClient?: SupabaseServerClient): Promise<AccessibleContextOptions> {
   const supabase = existingClient ?? await createClient()
   let resolvedUserId = userId
 
@@ -52,7 +61,7 @@ export async function loadActiveContext(userId?: string, existingClient?: Awaite
   if (administrationAccessError) throw administrationAccessError
 
   const tenantIds = [...new Set(groupAccesses.map((access) => access.tenant_id))]
-  if (tenantIds.length === 0) return selectActiveContext({ tenants: [] })
+  if (tenantIds.length === 0) return { supabase, userId: resolvedUserId, tenants: [] }
 
   const roleIds = [...new Set(groupAccesses.map((access) => access.management_role_id))]
   const { data: roles, error: roleError } = await supabase
@@ -156,10 +165,16 @@ export async function loadActiveContext(userId?: string, existingClient?: Awaite
     administrations,
     actorAdministrationIdsByHrGroup,
   })
+
+  return { supabase, userId: resolvedUserId, tenants: tenantOptions }
+}
+
+export async function loadActiveContext(userId?: string, existingClient?: SupabaseServerClient): Promise<ActiveContext> {
+  const { tenants } = await loadAccessibleContextOptions(userId, existingClient)
   const cookieStore = await cookies()
 
   return selectActiveContext({
-    tenants: tenantOptions,
+    tenants,
     requestedTenantId: cookieStore.get(ACTIVE_TENANT_COOKIE)?.value,
     requestedHrGroupId: cookieStore.get(ACTIVE_HR_GROUP_COOKIE)?.value,
     requestedAdministrationId: cookieStore.get(ACTIVE_ADMINISTRATION_COOKIE)?.value,

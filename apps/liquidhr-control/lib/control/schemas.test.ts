@@ -19,6 +19,32 @@ describe('control plane schemas', () => {
     }).success).toBe(false)
   })
 
+  it('weigert dubbele administratiecodes en namen', () => {
+    const result = onboardingSchema.safeParse({
+      name: 'Voorbeeld BV',
+      slug: 'voorbeeld-bv',
+      administrationMode: 'SEPARATE',
+      primaryContactEmail: 'admin@example.com',
+      administrations: [
+        { code: 'HOLDING', name: 'Hoofdkantoor' },
+        { code: 'holding', name: 'Hoofdkantoor' },
+      ],
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.issues.map((issue) => issue.message)).toEqual(expect.arrayContaining(['ADMINISTRATION_CODE_DUPLICATE', 'ADMINISTRATION_NAME_DUPLICATE']))
+  })
+
+  it('weigert meer dan 25 administraties', () => {
+    expect(onboardingSchema.safeParse({
+      name: 'Voorbeeld BV',
+      slug: 'voorbeeld-bv',
+      administrationMode: 'SEPARATE',
+      primaryContactEmail: 'admin@example.com',
+      administrations: Array.from({ length: 26 }, (_, index) => ({ code: `A${index}`, name: `Administratie ${index}` })),
+    }).success).toBe(false)
+  })
+
   it('vereist een inhoudelijke reden bij een statuswijziging', () => {
     expect(lifecycleCommandSchema.safeParse({
       tenantId: '016a7b84-9e98-4d99-a95a-70f21b06a2ae', status: 'PAUSED', reason: 'nee',

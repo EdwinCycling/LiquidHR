@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildTenantContextOptions,
   ContextAccessError,
+  ContextSelectionRequiredError,
   getAdministrationSwitcherMode,
   getHrGroupSwitcherMode,
   selectActiveContext,
@@ -35,8 +36,8 @@ const tenantOne: TenantContextOption = {
 }
 
 describe('selectActiveContext', () => {
-  it('kiest de eerste toegestane groep en administratie als veilige default', () => {
-    const result = selectActiveContext({ tenants: [tenantOne] })
+  it('kiest de enige toegestane groep en administratie als veilige default', () => {
+    const result = selectActiveContext({ tenants: [{ ...tenantOne, hrGroups: [tenantOne.hrGroups[0]] }] })
 
     expect(result.tenant.id).toBe('tenant-1')
     expect(result.activeHrGroup.id).toBe('group-a')
@@ -55,26 +56,35 @@ describe('selectActiveContext', () => {
     expect(result.activeAdministration?.id).toBe('admin-b1')
   })
 
-  it('valt bij gemanipuleerde cookies terug op toegestane context', () => {
-    const result = selectActiveContext({
+  it('vraagt expliciete keuze bij gemanipuleerde cookies', () => {
+    expect(() => selectActiveContext({
       tenants: [tenantOne],
       requestedHrGroupId: 'group-van-een-andere-klant',
       requestedAdministrationId: 'admin-van-een-andere-klant',
-    })
-
-    expect(result.activeHrGroup.id).toBe('group-a')
-    expect(result.activeAdministration?.id).toBe('admin-a1')
+    })).toThrow(ContextSelectionRequiredError)
   })
 
   it('laat een administratie uit groep B niet actief worden in groep A', () => {
-    const result = selectActiveContext({
+    expect(() => selectActiveContext({
       tenants: [tenantOne],
       requestedHrGroupId: 'group-a',
       requestedAdministrationId: 'admin-b1',
-    })
+    })).toThrow(ContextSelectionRequiredError)
+  })
 
-    expect(result.activeHrGroup.id).toBe('group-a')
-    expect(result.activeAdministration?.id).toBe('admin-a1')
+  it('vraagt expliciete tenant- en groepskeuze bij meerdere tenants', () => {
+    const otherTenant: TenantContextOption = {
+      ...tenantOne,
+      id: 'tenant-2',
+      name: 'Andere klant',
+      slug: 'andere-klant',
+      hrGroups: [{ ...tenantOne.hrGroups[0], id: 'group-c', tenantId: 'tenant-2' }],
+    }
+
+    expect(() => selectActiveContext({ tenants: [tenantOne, otherTenant] })).toThrow(ContextSelectionRequiredError)
+    const result = selectActiveContext({ tenants: [tenantOne, otherTenant], requestedTenantId: 'tenant-2', requestedHrGroupId: 'group-c' })
+    expect(result.tenant.id).toBe('tenant-2')
+    expect(result.activeHrGroup.id).toBe('group-c')
   })
 
   it('houdt administratie optioneel wanneer de groep nog geen administratie heeft', () => {
@@ -155,7 +165,7 @@ describe('buildTenantContextOptions', () => {
 
 describe('switcher modes', () => {
   it('toont eerst de HR-groepkiezer en daarna administratie wanneer nodig', () => {
-    const context = selectActiveContext({ tenants: [tenantOne] })
+    const context = selectActiveContext({ tenants: [tenantOne], requestedHrGroupId: 'group-a' })
     expect(getHrGroupSwitcherMode(context)).toBe('SELECT')
     expect(getAdministrationSwitcherMode(context)).toBe('HIDDEN')
   })
