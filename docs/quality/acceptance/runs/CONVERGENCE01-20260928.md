@@ -217,3 +217,32 @@ Dit addendum registreert de latere runtimepoging na de expliciete Runtime Env Br
 - HR production build: PASS, 304/304 routes/pagina’s. Control-code en de eerdere Control-suite/build op dezelfde geïntegreerde HEAD zijn ongewijzigd; Control 2 bestanden / 9 tests en 12/12 build blijven de eerder vastgelegde resultaten.
 - Release blijft geblokkeerd: Control operator-authenticatie/full-circle en synthetic payroll-import ontbreken; belangrijke Control bootstrap/import/security-invarianten zijn dus niet bewezen. Versie blijft `1.20260927.3`; main en origin/main blijven op `3a0fc67f84bc7dab0acff732afab597142d59ea9`. Geen commit, push, schone releasecheckout, Vercel-deploy of hosted release smoke uitgevoerd.
 - Er is geen migration, schemawijziging, typegen, dependency-update of productwave uitgevoerd. De vijf Insights-filtercomponenten zijn nog on-gecommit op de convergence-worktree. Next dev liet alleen `apps/liquidhr-control/next-env.d.ts` als gegenereerde dirty state achter; dit bestand is niet handmatig gewijzigd of teruggezet. `apps/hr-suite/next-env.d.ts` is clean en niet aangepast.
+
+
+## CONVERGENCE01-C runtime continuation — 2026-09-28
+
+**Status: PARTIAL / HUMAN_ACTION_REQUIRED: CONTROL_OWNER_LOGIN.** De codebasis staat op branch work/CONVERGENCE01-20260928, HEAD 21c1538929bbea57fe13a22d77a8aa26ead8bd70. De checkpoint commit bevatte de vijf Insights-filter/event fixes en bijgewerkte delivery-evidence; deze C-continuation heeft geen productcode of schema gewijzigd.
+
+### Lokale runtime en browser
+
+- HR-suite is via Node --env-file rechtstreeks gestart met het bestaande canonical apps/hr-suite/.env.local; de inhoud is niet geopend, gelezen, geprint, gelogd of gekopieerd. Control had geen eigen .env.local; het bestaande in-memory bridge-proces kreeg alleen de twee toegestane publieke Supabase-waarden plus de lokale Control URL. Geen tijdelijke env-file gemaakt.
+- HR /login en Control /login antwoordden HTTP 200 zonder de eerdere ontbrekende-Supabase-configuratiefout. Beide servers zijn gestopt; poort 3000 en 3001 luisteren nu niet.
+- HR Test Auth bleef lokaal. De Manager-context toonde de toegestane Insights-subset van 7 rapporten en Aankomende gebeurtenissen; voor de huidige selectie toonde de pagina de lege toestand. Deze check voegt geen bewijs toe voor de nog open forged-context, pagination, drilldown of volledige exportmatrix.
+- De Supabase TEST URL Configuration-flow is geopend, maar stuurde naar auth.openai.com/choose-an-account. De pagina vraagt een bestaande accountkeuze om met ChatGPT bij Supabase aan te melden. Die keuze is niet gemaakt; geen login, callbackallowlist-wijziging, providerinstelling of andere Supabase Auth-mutatie is uitgevoerd. De handofftab staat open op dat scherm.
+- Control OWNER OAuth callback, tenant/HR-group/administration bootstrap, invitation/TEST_CAPTURE acceptance, contextselector en securityprobes zijn daardoor niet gestart. Er is geen synthetic Control-data toegevoegd. De payroll-import is niet gestart; preview/finalization en employee-writegedrag zijn niet geclaimd.
+
+### AI01-A continuation
+
+- De eerder gerapporteerde TEST-synthetic settlement/release/reconcile/reaper-concurrencyprobes blijven de eerdere bewijsbasis; deze C-continuation heeft ze niet gedupliceerd en heeft geen remote businessrecords geschreven.
+- Gerichte lokale AI-autorisatie-/durabilityregressies: 5 bestanden / 43 tests PASS (settings-service, runtime, realtime voice, employee voice session, durable recovery).
+- Read-only TEST-readback bevestigde RLS enabled op ai_invocations, ai_credit_reservations, ai_voice_sessions, ai_team_sessions en ai_group_settings. Voor deze tabellen is geen anon-table grant teruggelezen. Public settlement/release/audit/reconcile/finalize wrappers zijn alleen executeerbaar door service_role; Internal A2 security-definer helpers hebben lege search_path; settlement/release/reconcile helpers hebben service_role-grants, terwijl de interne finalization helper owner-only blijft en alleen de public wrapper service_role execute krijgt. Dit is structuur-/ACL-bewijs, geen nieuwe persona-, toggle- of revocationacceptatie.
+- HR Admin en Manager konden de HeRa-shell openen; het lege gespreksscherm maakte geen provider-call. Dit bewijst geen ai:use-runtimeautorisatie. Live AI/Voice-disabled, revoked-scope, HR-group-forgery en employee/team-forgery blijven onbewezen. Geen echte provider gebruikt.
+- De voice usage-heartbeat en technical-usage-sinkbeperking blijven de eerder vastgelegde AI01-A/ops-beperkingen.
+
+### Overige gates en closeout
+
+- Bradford export is in de browser als download bevestigd, maar het bestand is in deze C-runtime niet onafhankelijk geparseerd. Browserconsole/networkdump en alle resterende INS01 forged-cookie/drilldown/exportvarianten zijn niet als groen geclaimd.
+- Eerder bewezen volledige suites/builds blijven geldig voor dezelfde productcode: HR 480 bestanden / 1.933 tests, Control 2 bestanden / 9 tests, HR build 304/304, Control build 12/12, strict TypeScript en ESLint PASS. Deze continuation draaide alleen de gerichte AI-set; geen productcode gewijzigd.
+- apps/liquidhr-control/next-env.d.ts is na het stoppen exact naar HEAD hersteld. Next dev genereerde apps/hr-suite/next-env.d.ts opnieuw met .next/dev/types-referenties; die tracked file bleef buiten de handmatige wijziging en is daarom nog dirty. Geen appproces blijft draaien. Protected .env.local bleef onaangeraakt.
+- Er is geen version bump, main-update, push, releasecheckout, Vercel-deploy of hosted smoke uitgevoerd. De release blijft geblokkeerd tot de bestaande accountkeuze de Supabase TEST Dashboard-authenticatie opent; daarna kan alleen de expliciet toegestane callback http://localhost:3001/auth/callback aan de Redirect URLs worden toegevoegd en moet de Control-flow opnieuw worden geaccepteerd.
+- Geen Docker, container, WSL, migration, typegen, dependency-update of nieuwe productwave gebruikt.

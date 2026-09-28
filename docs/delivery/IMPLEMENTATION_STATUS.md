@@ -2726,3 +2726,8 @@ Lokale verificatie: 17/17 targeted leave/schema/migration tests, strict TypeScri
 - Main integration, Production migration/deployment and final release approval
   remain separate gates. Protected `.env.local` and the existing untracked
   migration reconciliation note are outside the staged scope.
+
+
+## CONVERGENCE01-C runtime continuation — 2026-09-28
+
+**Status: PARTIAL / HUMAN_ACTION_REQUIRED: CONTROL_OWNER_LOGIN.** Native HR/Control startup and local HR Test Auth succeeded; the C run added 43 passing AI authorization/durability tests and read back AI RLS/RPC ACLs. Manager Insights showed its existing 7-report subset. Supabase Dashboard URL Configuration is waiting at the ChatGPT account selector, so the pre-approved exact local callback has not been added. No Control OAuth/full-circle, synthetic payroll-import, full remaining INS01/AI runtime matrix, version bump, main push or Vercel release is claimed. The prior full suites/build remain valid for the unchanged product code. Exact evidence and handoff action are in the convergence run report.

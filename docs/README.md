@@ -2,7 +2,7 @@
 
 ## CONVERGENCE01 — INS01 + CONTROL01 + AI01-A — 2026-09-28
 
-**Status: PARTIAL / RELEASE BLOCKED.** TEST-migrations, typegen, remote security-readback en de volledige hr-suite/build zijn groen. Native `--env-file` liet HR `/login` en lokale Test Auth werken zonder de canonical env-inhoud te inspecteren of te kopiëren. HR Admin/Manager/Employee INS01-bewijs is gedeeltelijk groen; remote AI synthetic durability/concurrency is groen. Control full-circle en payroll-import zijn geblokkeerd doordat geen Control OWNER/OPERATOR-testidentiteit beschikbaar is en TEST OAuth geen lokale Control-callback accepteert. Daarom zijn versie-bump, main/push, release en hosted smoke niet uitgevoerd. Zie [CONVERGENCE01 acceptance](quality/acceptance/runs/CONVERGENCE01-20260928.md). Officiële Loonaangifte blijft XSD_PENDING / REAL_XML_PENDING.
+**Status: PARTIAL / HUMAN_ACTION_REQUIRED: CONTROL_OWNER_LOGIN.** Eerdere TEST-migrations, typegen, security-readback en full-suite/build-bewijzen blijven geldig. De C-runtimebrug startte HR en Control lokaal; HR Test Auth werkt. Voor de exacte Control OAuth-callback is Supabase Dashboard-login nodig: de URL Configuration-flow staat nu op het ChatGPT-accountkeuzescherm. Er is geen account gekozen en geen Auth-config gewijzigd. Control full-circle, synthetic import en resterende live Insights/AI-autorisatiegates zijn niet volledig bewezen. Geen version bump, main/push, Vercel-release of hosted smoke. Zie [CONVERGENCE01 acceptance](quality/acceptance/runs/CONVERGENCE01-20260928.md). Officiële Loonaangifte blijft XSD_PENDING / REAL_XML_PENDING.
 
 ## ABS02 — verzuim hardening, security en WvP-foundation — 2026-09-27
 
