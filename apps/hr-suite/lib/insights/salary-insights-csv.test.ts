@@ -28,4 +28,11 @@ describe('salary insights CSV export', () => {
     expect(csv).toContain('Employee 1')
     expect(csv).not.toContain('peerNames')
   })
+
+  it('neutralizes spreadsheet formula prefixes in employee values', () => {
+    const filters = defaultSalaryInsightFilters('salary-overview', '2025-01-01')
+    const report = createSalaryInsightReport({ report: 'salary-overview', asOfDate: '2025-01-01', rows: [row({ employeeName: '=HYPERLINK("https://example.test")' })], filters, isHrAdmin: true })
+    const csv = salaryInsightCsv(report)
+    expect(csv).toContain(`"'=HYPERLINK(""https://example.test"")"`)
+  })
 })

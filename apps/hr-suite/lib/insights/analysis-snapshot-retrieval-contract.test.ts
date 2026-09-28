@@ -27,6 +27,13 @@ describe('V2 snapshot retrieval seam', () => {
     expect(source).toContain(".is('employment_id', null)")
   })
 
+  it('resolves job labels at the requested snapshot date', () => {
+    expect(source).toContain('async function loadLabelsAt(')
+    expect(source).toContain(".lte('valid_from', asOf)")
+    expect(source).toContain('valid_until.is.null,valid_until.gt.${asOf}')
+    expect(source).not.toContain('const today = new Date().toISOString().slice(0, 10)')
+  })
+
   it('retrieves 501 rows across the 200/201 boundary without stitching in the browser', async () => {
     const allRows = Array.from({ length: 501 }, (_, index) => ({ id: `row-${String(index).padStart(4, '0')}` }))
     const calls: Array<{ readonly cursor: string | null; readonly pageSize: number }> = []

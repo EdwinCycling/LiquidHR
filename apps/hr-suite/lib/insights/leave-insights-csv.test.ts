@@ -19,4 +19,9 @@ describe('Leave Insights CSV contract', () => {
     expect(csv).toContain('as_of_date,2026-06-30')
     expect(csv.endsWith('\r\n')).toBe(true)
   })
+
+  it('neutralizes spreadsheet formula prefixes in employee values', () => {
+    const csv = leaveInsightsCsv({ ...report, balances: [{ ...report.balances[0], employeeName: '=HYPERLINK("https://example.test")' }] })
+    expect(csv).toContain(`"'=HYPERLINK(""https://example.test"")"`)
+  })
 })

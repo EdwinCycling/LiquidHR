@@ -87,4 +87,10 @@ describe('V2 snapshot engine', () => {
     expect(result.rows).toHaveLength(1)
     expect(result.rows[0]?.values.delta).toBe(1)
   })
+
+  it('rejects a mixed-tenant source even when the first row is in scope', async () => {
+    const spec = validateAnalysisSpecV2({ version: 2, source: 'workforce', entity: 'employees', measures: ['headcount'], dimensions: ['department'], filters: [], period: { kind: 'snapshot', asOf: '2026-01-01' }, comparison: null, sort: null, limit: 25, presentation: { intent: 'table' } })
+    const foreign = { ...row('employee-foreign', 'Finance'), tenantId: 'tenant-other' } as const
+    await expect(executeAnalysisSpecV2(spec, { getContext: async () => auth, retrieve: async () => source('2026-01-01', [row('employee-a', 'Engineering'), foreign]) })).rejects.toMatchObject({ code: 'ANALYSIS_SCOPE_VIOLATION' })
+  })
 })

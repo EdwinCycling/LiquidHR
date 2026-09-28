@@ -256,6 +256,7 @@ export type ActualWorkEmployeeProjection = {
 }
 
 export async function getActualWorkEmployeeProjection(input: { employeeId: string; employmentId?: string; month: string }, dependencies?: ActualWorkReadDependencies): Promise<ActualWorkEmployeeProjection> {
+  if (!isValidActualWorkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
   const { context, hrGroupId, supabase } = dependencies ?? await authForGroup('leave:read', input.employeeId)
   const from = monthStart(input.month)
   const to = addMonth(from)
@@ -290,7 +291,7 @@ export type ActualWorkBulkQuery = {
   departmentId?: string
 }
 
-function validBulkMonth(value: string): boolean {
+export function isValidActualWorkMonth(value: string): boolean {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value)
 }
 
@@ -310,7 +311,7 @@ function additionalEligible(schedules: ActualWorkBulkSchedule[], date: string): 
 }
 
 async function getActualWorkBulkProjectionForAuth(input: ActualWorkBulkQuery, auth: ActualWorkAuth): Promise<ActualWorkBulkProjection> {
-  if (!validBulkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
+  if (!isValidActualWorkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
   const { context, hrGroupId, supabase } = auth
   const from = monthStart(input.month)
   const to = addMonth(from)
@@ -472,6 +473,7 @@ export async function saveActualWorkBulkEntries(input: unknown): Promise<{ saved
 }
 
 export async function getActualWorkTeamProjection(month: string) {
+  if (!isValidActualWorkMonth(month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
   const { context, hrGroupId, supabase } = await authForGroup('leave:write')
   const from = monthStart(month)
   const to = addMonth(from)
@@ -491,6 +493,7 @@ export async function getActualWorkTeamProjection(month: string) {
 }
 
 export async function getActualWorkInsights(month: string) {
+  if (!isValidActualWorkMonth(month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
   const rows = await getActualWorkTeamProjection(month)
   const totals = new Map<ActualWorkFamily, number>()
   for (const row of rows) totals.set(row.type.family, (totals.get(row.type.family) ?? 0) + Number(row.hours))

@@ -61,6 +61,17 @@ function assertSourceDate(source: SnapshotSource, asOf: string): void {
   }
 }
 
+function assertSourceScope(source: SnapshotSource, context: AuthContext, hrGroupId: string): void {
+  for (const row of source.rows) {
+    if (row.tenantId !== context.tenantId || row.hrGroupId !== hrGroupId) {
+      throw new AnalysisEngineError('ANALYSIS_SCOPE_VIOLATION', 403)
+    }
+    if (row.placement && (row.placement.tenantId !== context.tenantId || row.placement.hrGroupId !== hrGroupId)) {
+      throw new AnalysisEngineError('ANALYSIS_SCOPE_VIOLATION', 403)
+    }
+  }
+}
+
 function groupRecords(records: readonly SnapshotEmployeeRecord[], dimensions: readonly ValidatedAnalysisSpecV2['dimensions'][number][]): readonly SnapshotGroup[] {
   const grouped = new Map<string, { readonly values: readonly (string | null)[]; readonly labels: readonly (string | null)[]; count: number }>()
   if (dimensions.length === 0) {
@@ -186,16 +197,14 @@ export async function executeAnalysisSpecV2(spec: ValidatedAnalysisSpecV2, depen
   const currentInput: LoadSnapshotSourceInput = { authContext: context, asOf: spec.period.asOf, populationMode }
   const currentSource = await retrieve(currentInput)
   assertSourceDate(currentSource, spec.period.asOf)
+  assertSourceScope(currentSource, context, hrGroupId)
   const current = resolveSnapshotPopulation(currentSource, spec, { mode: populationMode, actorEmployeeId: context.employeeId })
-  if (context.tenantId !== currentSource.rows[0]?.tenantId && currentSource.rows.length > 0) throw new AnalysisEngineError('ANALYSIS_SCOPE_VIOLATION', 403)
-  if (hrGroupId !== currentSource.rows[0]?.hrGroupId && currentSource.rows.length > 0) throw new AnalysisEngineError('ANALYSIS_SCOPE_VIOLATION', 403)
 
   if (!spec.comparison) return executeGrouped(spec, current, null)
   const comparisonInput: LoadSnapshotSourceInput = { authContext: context, asOf: spec.comparison.period.asOf, populationMode }
   const comparisonSource = await retrieve(comparisonInput)
   assertSourceDate(comparisonSource, spec.comparison.period.asOf)
+  assertSourceScope(comparisonSource, context, hrGroupId)
   const comparison = resolveSnapshotPopulation(comparisonSource, { ...spec, period: spec.comparison.period, comparison: null }, { mode: populationMode, actorEmployeeId: context.employeeId })
-  if (context.tenantId !== comparisonSource.rows[0]?.tenantId && comparisonSource.rows.length > 0) throw new AnalysisEngineError('ANALYSIS_SCOPE_VIOLATION', 403)
-  if (hrGroupId !== comparisonSource.rows[0]?.hrGroupId && comparisonSource.rows.length > 0) throw new AnalysisEngineError('ANALYSIS_SCOPE_VIOLATION', 403)
   return executeGrouped(spec, current, comparison)
 }

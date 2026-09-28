@@ -1,4 +1,4 @@
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
 
@@ -33,6 +33,20 @@ export class UpcomingEventsServiceError extends Error {
   constructor(readonly code: string, readonly status = 500) { super(code) }
 }
 
+type OrganizationRow = { employee_id: string; employment_id: string | null; department_id: string }
+type UpcomingOrganizationScope = Pick<OrganizationRow, 'employee_id' | 'department_id'>
+
+export function scopeUpcomingDepartments(
+  departments: readonly UpcomingEventsReport['departments'][number][],
+  organizations: readonly UpcomingOrganizationScope[],
+  employeeScope: readonly string[] | null,
+): UpcomingEventsReport['departments'] {
+  if (employeeScope === null) return [...departments]
+  const employeeIds = new Set(employeeScope)
+  const departmentIds = new Set(organizations.filter((organization) => employeeIds.has(organization.employee_id)).map((organization) => organization.department_id))
+  return departments.filter((department) => departmentIds.has(department.id))
+}
+
 function dateOnly(value: Date): string { return value.toISOString().slice(0, 10) }
 
 function anniversaryDate(source: string, year: number): string | null {
@@ -58,18 +72,20 @@ function yearsOn(source: string, date: string): number {
 export async function getUpcomingEventsReport(query: UpcomingEventsQuery): Promise<UpcomingEventsReport> {
   const [context] = await Promise.all([requirePermission('report-upcoming-events:read'), requirePermission('employee:read')])
   if (!context.administrationId) throw new UpcomingEventsServiceError('INSIGHTS_ADMINISTRATION_REQUIRED', 400)
+  const hrGroupId = requireHrGroupId(context)
+  const isHrAdmin = context.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
   const startDate = dateOnly(new Date())
   const end = new Date(`${startDate}T00:00:00Z`)
   end.setUTCDate(end.getUTCDate() + query.periodDays)
   const endDate = dateOnly(end)
   const supabase = await createClient()
-  const employeeScope = context.activeRoles.includes('DIRECT_MANAGER') ? await listDirectTeamEmployeeIds(context) : null
+  const employeeScope = !isHrAdmin && context.activeRoles.includes('DIRECT_MANAGER') ? await listDirectTeamEmployeeIds(context) : null
   if (employeeScope !== null && employeeScope.length === 0) return { startDate, endDate, rows: [], departments: [] }
   let employmentsQuery = supabase.from('employments').select('id,employee_id,starts_on,ends_on,seniority_date,is_primary').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', endDate).or(`ends_on.is.null,ends_on.gte.${startDate}`).limit(2000)
   if (employeeScope !== null) employmentsQuery = employmentsQuery.in('employee_id', employeeScope)
   const [employmentsResult, departmentsResult, anniversaryRulesResult, administrationResult] = await Promise.all([
-    employmentsQuery,
-    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(500),
+    employmentsQuery.eq('hr_group_id', hrGroupId),
+    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).order('name').limit(500),
     supabase.from('tenant_anniversary_rules').select('years').eq('tenant_id', context.tenantId).eq('is_active', true).order('years').limit(100),
     supabase.from('administrations').select('code').eq('tenant_id', context.tenantId).eq('id', context.administrationId).single(),
   ])
@@ -77,12 +93,13 @@ export async function getUpcomingEventsReport(query: UpcomingEventsQuery): Promi
   const employments = employmentsResult.data
   const employeeIds = [...new Set(employments.map((employment) => employment.employee_id))]
   const [employeesResult, organizationsResult] = await Promise.all([
-    employeeIds.length ? supabase.from('employees').select('id,employee_number,first_name,birth_name_prefix,birth_name,birth_date').eq('tenant_id', context.tenantId).in('id', employeeIds).is('deleted_at', null).limit(2000) : Promise.resolve({ data: [], error: null }),
-    employeeIds.length ? supabase.from('employee_organizations').select('employee_id,employment_id,department_id,effective_from,effective_to').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).lte('effective_from', startDate).or(`effective_to.is.null,effective_to.gte.${startDate}`).limit(5000) : Promise.resolve({ data: [], error: null }),
+    employeeIds.length ? supabase.from('employees').select('id,employee_number,first_name,birth_name_prefix,birth_name,birth_date').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('id', employeeIds).is('deleted_at', null).limit(2000) : Promise.resolve({ data: [], error: null }),
+    employeeIds.length ? supabase.from('employee_organizations').select('employee_id,employment_id,department_id,effective_from,effective_to').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', context.administrationId).in('employee_id', employeeIds).lte('effective_from', startDate).or(`effective_to.is.null,effective_to.gte.${startDate}`).limit(5000) : Promise.resolve({ data: [], error: null }),
   ])
   if (employeesResult.error || organizationsResult.error) throw new UpcomingEventsServiceError('UPCOMING_EVENTS_READ_FAILED')
   const employeeById = new Map(employeesResult.data.map((employee) => [employee.id, employee]))
-  const departmentById = new Map(departmentsResult.data.map((department) => [department.id, department.name]))
+  const departments = scopeUpcomingDepartments(departmentsResult.data, organizationsResult.data, employeeScope)
+  const departmentById = new Map(departments.map((department) => [department.id, department.name]))
   const organizationByEmployment = new Map(organizationsResult.data.map((organization) => [organization.employment_id ?? organization.employee_id, organization]))
   const selectedEmploymentByEmployee = new Map<string, typeof employments[number]>()
   for (const employment of employments) {
@@ -110,5 +127,5 @@ export async function getUpcomingEventsReport(query: UpcomingEventsQuery): Promi
     }
     if (query.types.includes('STARTER') && employment.starts_on >= startDate && employment.starts_on <= endDate) rows.push({ administrationNumber: administrationResult.data.code, employeeNumber: employee.employee_number, employeeId: employee.id, id: `starter-${employment.id}`, type: 'STARTER', date: employment.starts_on, employeeName, departmentName, years: null })
   }
-  return { startDate, endDate, rows: rows.sort((left, right) => left.date.localeCompare(right.date) || left.employeeName.localeCompare(right.employeeName, 'nl')), departments: departmentsResult.data }
+  return { startDate, endDate, rows: rows.sort((left, right) => left.date.localeCompare(right.date) || left.employeeName.localeCompare(right.employeeName, 'nl')), departments }
 }

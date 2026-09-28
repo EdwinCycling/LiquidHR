@@ -9,7 +9,7 @@ const { createClient, requireAnyPermission, requireHrGroupId } = vi.hoisted(() =
 vi.mock('@/lib/auth/permissions', () => ({ AuthorizationError: class AuthorizationError extends Error { readonly status = 403 }, requireAnyPermission, requireHrGroupId, requirePermission: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
-import { ActualWorkServiceError, saveActualWorkEntry } from './actual-work-service'
+import { ActualWorkServiceError, isValidActualWorkMonth, saveActualWorkEntry } from './actual-work-service'
 
 const employeeId = '11111111-1111-4111-8111-111111111111'
 const employmentId = '22222222-2222-4222-8222-222222222222'
@@ -107,5 +107,14 @@ describe('Actual Work Employee self-service write boundary', () => {
 
   it('exposes the domain error type for server validation responses', () => {
     expect(new ActualWorkServiceError('ACTUAL_WORK_LEAVE_OVERLAP').status).toBe(400)
+  })
+})
+
+describe('Actual Work month boundary', () => {
+  it('accepts only canonical YYYY-MM values for direct report requests', () => {
+    expect(isValidActualWorkMonth('2026-09')).toBe(true)
+    expect(isValidActualWorkMonth('2026-9')).toBe(false)
+    expect(isValidActualWorkMonth('2026-13')).toBe(false)
+    expect(isValidActualWorkMonth('not-a-month')).toBe(false)
   })
 })

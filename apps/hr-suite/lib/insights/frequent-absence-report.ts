@@ -48,6 +48,11 @@ function daysBetween(start: string, end: string): number {
   return Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1)
 }
 
+export function filterFrequentAbsenceRows(rows: readonly FrequentAbsenceRow[], query: Pick<FrequentAbsenceQuery, 'search' | 'frequentOnly'>): FrequentAbsenceRow[] {
+  const search = query.search.trim().toLocaleLowerCase('nl-NL')
+  return rows.filter((row) => (!query.frequentOnly || row.isFrequent) && row.employeeName.toLocaleLowerCase('nl-NL').includes(search))
+}
+
 export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Promise<FrequentAbsenceReport> {
   const context = await requirePermission('report-absence:read')
   await requirePermission('employee:read')
@@ -139,7 +144,7 @@ export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Pro
     }
   }
 
-  const rows: FrequentAbsenceRow[] = [...accumulator.entries()].map(([employeeId, data]) => {
+  const calculatedRows: FrequentAbsenceRow[] = [...accumulator.entries()].map(([employeeId, data]) => {
     const employee = employeeMap.get(employeeId)
     return {
       employeeId,
@@ -150,6 +155,7 @@ export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Pro
       isFrequent: data.reportCount >= threshold,
     }
   }).filter((row) => row.employeeName).sort((left, right) => right.reportCount - left.reportCount || left.employeeName.localeCompare(right.employeeName, 'nl'))
+  const rows = filterFrequentAbsenceRows(calculatedRows, query)
 
   return {
     report: 'absence-frequent',

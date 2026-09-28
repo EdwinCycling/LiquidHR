@@ -10,4 +10,13 @@ describe('employeeInsightCsv', () => {
 
     expect(csv).toBe('\uFEFFsep=;\r\n"Administratienr";"Medewerkernr";"Medewerker";"Geslacht";"Leeftijd";"Team";"Segment";"Einddatum";"Reden"\r\n"ADM-001";"EMP-001";"Mila ""de Boer""";"FEMALE";"31";"Operations";"CC-029";"";""')
   })
+
+  it('neutralizes spreadsheet formula prefixes in employee values', () => {
+    const csv = employeeInsightCsv([{
+      administrationNumber: 'ADM-001', employeeNumber: 'EMP-001', employeeId: 'employee-1', employeeName: '=HYPERLINK("https://example.test")', gender: 'FEMALE', age: 31,
+      team: 'Operations', segment: 'CC-029', birthDate: null, startDate: '2024-01-01', endDate: null, reason: null,
+    }])
+
+    expect(csv).toContain(`"'=HYPERLINK(""https://example.test"")"`)
+  })
 })

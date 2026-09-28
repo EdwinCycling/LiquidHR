@@ -1,9 +1,5 @@
 import type { SalaryInsightReport, SalaryInsightRow } from './salary-insights-types'
-
-function cell(value: string | number | null | undefined): string {
-  const text = value === null || value === undefined ? '' : String(value)
-  return /[\";,\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
-}
+import { safeCsvCell } from './csv'
 
 function rowValues(report: SalaryInsightReport, row: SalaryInsightRow): Array<string | number | null> {
   const common: Array<string | number | null> = [report.asOfDate, row.employeeName, row.administrationName, row.departmentName, row.functionName, row.fte]
@@ -37,5 +33,5 @@ export function salaryInsightCsv(report: SalaryInsightReport): string {
   const filterFields = ['administrations', 'departments', 'teams', 'managers', 'functions', 'functionGroups', 'locations', 'laborConditions', 'structures', 'bands', 'scales', 'steps', 'fteBuckets', 'employmentTypes', 'salaryRoutes', 'statuses', 'severities', 'exceptionTypes'] as const
   for (const field of filterFields) if (report.filters[field].length) metadata.push([`filter.${field}`, report.filters[field].join(',')])
   const rows = [['metadata', 'value'], ...metadata, [], headers(report.report), ...report.rows.map((row) => rowValues(report, row))]
-  return `\uFEFFsep=;\r\n${rows.map((values) => values.map(cell).join(';')).join('\r\n')}`
+  return `\uFEFFsep=;\r\n${rows.map((values) => values.map((value) => safeCsvCell(value, false, ';')).join(';')).join('\r\n')}`
 }

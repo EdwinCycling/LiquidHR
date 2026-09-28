@@ -1,12 +1,8 @@
 import type { LeaveInsightsReport } from './leave-insights-types'
-
-function cell(value: string | number | null | undefined): string {
-  const text = value === null || value === undefined ? '' : String(value)
-  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
-}
+import { safeCsvCell } from './csv'
 
 function row(values: readonly (string | number | null | undefined)[]): string {
-  return values.map(cell).join(',')
+  return values.map((value) => safeCsvCell(value, false, ',')).join(',')
 }
 
 export function leaveInsightsCsv(report: LeaveInsightsReport): string {

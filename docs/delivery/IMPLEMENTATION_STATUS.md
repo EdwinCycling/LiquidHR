@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## INS01 — Insights reliability, authorization & acceptance — 2026-09-28
+
+**Status: PARTIAL — local code/regression GREEN; authenticated TEST/browser proof remains environment-gated.**
+
+Vanaf exact `3a0fc67f84bc7dab0acff732afab597142d59ea9` zijn bestaande Insights-seams gecontroleerd en minimaal gecorrigeerd: service-level filter/KPI/export-pariteit voor Frequent Absence en Bradford, Upcoming Events HR-group/direct-team-scope, historische Analysis V2-labelresolutie, volledige Analysis source-scopeguards, veilige CSV-formuleprefixen en strikte Actual Work-maandvalidatie. De lokale eindset is `57 bestanden / 215 tests`, met strict TypeScript, changed-file ESLint, i18n-pariteit en diff-check groen.
+
+Authenticated persona/API- en live TEST-readback blijven environment-gated. Er zijn geen migrations toegepast, geen remote schemawijzigingen uitgevoerd, en geen merge, deploy of versie-bump gedaan. Zie [`INS01 acceptance`](quality/acceptance/runs/INS01-20260928.md) voor de volledige matrix, defecten, regressies en open grenzen.
+
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 
 **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance environment-gated.**

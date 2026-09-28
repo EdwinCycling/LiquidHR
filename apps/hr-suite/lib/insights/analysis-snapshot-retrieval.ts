@@ -130,7 +130,7 @@ async function loadManagerEmploymentScope(client: AdminClient, context: AuthCont
   return employmentIds
 }
 
-async function loadCurrentLabels(client: AdminClient, context: AuthContext, hrGroupId: string, placements: readonly SnapshotPlacementRow[]): Promise<Map<string, { readonly departmentLabel: string | null; readonly jobLabel: string | null }>> {
+async function loadLabelsAt(client: AdminClient, context: AuthContext, hrGroupId: string, placements: readonly SnapshotPlacementRow[], asOf: string): Promise<Map<string, { readonly departmentLabel: string | null; readonly jobLabel: string | null }>> {
   const departmentIds = [...new Set(placements.map((row) => row.department_id).filter((value): value is string => value !== null))]
   const jobIds = [...new Set(placements.map((row) => row.job_id).filter((value): value is string => value !== null))]
   const departmentLabels = new Map<string, string>()
@@ -151,15 +151,14 @@ async function loadCurrentLabels(client: AdminClient, context: AuthContext, hrGr
     if (jobsError) retrievalFailure()
     for (const row of jobs ?? []) assertScoped(row, context, hrGroupId)
 
-    const today = new Date().toISOString().slice(0, 10)
     const { data: revisions, error: revisionsError } = await client
       .from('job_revisions')
       .select('id,job_id,tenant_id,hr_group_id,name,valid_from,valid_until')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', hrGroupId)
       .in('job_id', jobIds)
-      .lte('valid_from', today)
-      .or(`valid_until.is.null,valid_until.gt.${today}`)
+      .lte('valid_from', asOf)
+      .or(`valid_until.is.null,valid_until.gt.${asOf}`)
       .order('valid_from', { ascending: false })
       .order('id', { ascending: false })
     if (revisionsError) retrievalFailure()
@@ -289,7 +288,7 @@ export async function loadSnapshotSource(input: LoadSnapshotSourceInput): Promis
     if (placement) assertScoped(placement, authContext, hrGroupId)
     placements.push({ employment: row, placement })
   }
-  const labels = await loadCurrentLabels(client, authContext, hrGroupId, placements.flatMap((item) => item.placement ? [item.placement] : []))
+  const labels = await loadLabelsAt(client, authContext, hrGroupId, placements.flatMap((item) => item.placement ? [item.placement] : []), asOf)
 
   const sourceRows: SnapshotSourceRow[] = placements.map(({ employment, placement }) => {
     const label = placement ? labels.get(placement.id) : undefined

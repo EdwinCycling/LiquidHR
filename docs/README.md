@@ -1,5 +1,13 @@
 # Liquid HR documentatie-index
 
+## INS01 — Insights reliability, authorization & acceptance — 2026-09-28
+
+**Status: PARTIAL — lokale code- en regressiegates groen; authenticated TEST/browser-acceptance environment-gated.**
+
+INS01 is uitgevoerd vanaf exact `3a0fc67f84bc7dab0acff732afab597142d59ea9` in de externe worktree `work/INS01-20260928`. De run corrigeert service-level filterpariteit voor Frequent Absence en Bradford, Upcoming Events manager/HR Admin-scope, historische Analysis-labels, volledige Analysis-scopeguards, veilige CSV-cellen en Actual Work-maandvalidatie. Er zijn geen schemawijzigingen, remote writes, deploys, version bumps of merges uitgevoerd.
+
+De fact matrix, defectledger, lokale testresultaten, environment-gated grenzen en open INS02/AI01-B/AW02-scope staan in [`INS01 acceptance`](quality/acceptance/runs/INS01-20260928.md).
+
 ## ABS02 — verzuim hardening, security en WvP-foundation — 2026-09-27
 
 **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance blijven environment-gated.**
