@@ -137,7 +137,7 @@ De poorten 3000 en 3001 waren vrij. De bestaande root-scripts npm run dev en npm
 
 De ontbrekende lokale env-configuratie blokkeert de Test Auth harness en daarmee alle authenticated Control-, INS01- en AI01-A-runtimeacceptatie. Geen alternatief configpad is toegevoegd.
 
-## Environment-gated bewijs
+## Environment-gated bewijs — eerste runtimepoging vóór de Runtime Env Bridge
 
 De servers zijn gestart, maar de geïntegreerde worktree mist de Supabase runtime-configuratie en de bestaande Test Auth UI kwam niet beschikbaar. De canonical .env.local is niet gelezen of gekopieerd en er is niet om credentials gevraagd. Daarom zijn niet uitgevoerd:
 
@@ -173,3 +173,47 @@ Dit zijn niet uitgevoerde gates, geen geslaagde browserchecks en geen codefouten
 - Optionele server-side voice usage heartbeat voor nauwkeuriger herstel na hard crash.
 
 Geen volgende productwave gestart.
+
+## CONVERGENCE01-B runtime acceptance addendum — 2026-09-28
+
+Dit addendum registreert de latere runtimepoging na de expliciete Runtime Env Bridge. De eerdere secties hierboven blijven het bewijs van de oorspronkelijke poging; dit addendum vervangt alleen de toenmalige constatering dat de lokale Supabase-config niet door de child-processen kon worden geladen.
+
+### Native runtimeconfig en appstart
+
+- Node `v22.14.0` ondersteunt `--env-file`. HR-suite is op `localhost:3000` gestart met het bestaande Next dev-entrypoint en de canonical `apps/hr-suite/.env.local` rechtstreeks als Node `--env-file`. Alleen Node-versie/help zijn vooraf geraadpleegd; de env-inhoud is niet door Codex gelezen, geprint, gelogd, gekopieerd, geschreven of persistent gemaakt.
+- `apps/liquidhr-control/.env.local` bestond niet (existence-only). Control op `localhost:3001` kreeg in-memory uitsluitend `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` en `NEXT_PUBLIC_CONTROL_APP_URL=http://localhost:3001`. Geen env-bestand aangemaakt en geen andere variabelen geladen.
+- HR `/login` gaf HTTP 200 zonder missing-Supabase-configfout. Control `/login` gaf HTTP 200 en stuurde niet meer naar `/setup`. Beide native servers meldden Ready; er is geen Docker, WSL, container of nieuwe tooling gebruikt.
+
+### Control01 runtime en payroll-import
+
+- HR Test Auth werkte lokaal voor Test HR Admin, Test Manager en Test Medewerker. De bestaande HR testidentiteit kon Control niet gebruiken: de Control-app gaf `/geen-toegang` omdat die identity geen platform OWNER/OPERATOR is en Control geen Test Auth-harness heeft.
+- De normale Google-loginflow toonde het bestaande accountkeuzescherm, maar de TEST-authredirect stuurde de callback naar de hosted login in plaats van de lokale Control-callback. De lokale callback is niet aan Supabase Auth toegevoegd en er is geen bypass gebouwd. Er is geen wachtwoord gevraagd of ingevoerd; na de redirect is geen hosted login voltooid en geen Production-write uitgevoerd.
+- Daarom zijn synthetic tenant/HR-group/administration, first-admin invitation, TEST_CAPTURE, token accept/revoke/reuse, contextselector/logout-login en forged-bootstrap securitycases niet uitgevoerd. De synthetic payroll-import is evenmin gestart; er is geen preview/finalize, employee-write of importrecord aangemaakt.
+- Control desktop/mobile UX en import Setup Assistant zijn niet geaccepteerd. Official XSD/REAL_XML blijft `XSD_PENDING / REAL_XML_PENDING`.
+
+### INS01 authenticated evidence
+
+- HR Admin Test Auth toonde 19 beschikbare rapporten. Frequent Absence met `frequentOnly=1` had KPI’s `1 frequent / 1 medewerker / 3 ziekteperioden` en een tabel met 1/1 rij. Het gegenereerde Excel-compatibele bestand is SpreadsheetML (`application/vnd.ms-excel`), met 1 worksheet, 2 rijen (header + 1 datarij), 10 cellen en geen celwaarde met een formuleprefix. De export bevatte één rij en stemde overeen met de gefilterde KPI/tabel. De response heeft volgens de route `Content-Disposition` voor `.xls`; de UI meldde “CSV-export is gedownload en klaar voor Excel”.
+- Bradford `risk=MEDIUM` toonde 7 ziekteperioden, 4,9 dagen, en 1/1 tabelrij met risicoscore 240. De Bradford-exportbutton gaf de succesvolle downloadtoast; serverreadback liet `/api/insights/absence?...format=excel` HTTP 200 zien (`application/vnd.ms-excel`). De Chrome-client bewaart deze tweede download niet op de gecontroleerde standaard-Downloads-locatie, dus het tweede bestand zelf is niet onafhankelijk geparseerd.
+- De eerste echte Bradford-filterselectie reproduceerde een React-eventlifetime TypeError doordat deferred state-updaters `event.currentTarget` lazen nadat eventdispatch was afgelopen. De minimale correctie vervangt in de vijf Insights-filtercomponenten de deferred `currentTarget.value`-lezingen door het stabiele `target.value`; de Bradford Medium-filter werkte daarna live en liet de verwachte KPI/tabel zien. Geen i18n- of copywijziging.
+- Manager zag 7 rapporten, inclusief Upcoming Events, en twee events in de geselecteerde periode. De view/API-request met een niet-bestaande department-ID en forged employee/team/tenant/HR-group querywaarden gaf een lege eventselectie; server gebruikt de Manager-context en onbekende scopequery’s veranderen die context niet. De directe API-request vanuit de reportflow kwam terug met HTTP 200. Een directe Chrome top-level navigatie naar `/api/...` werd door de browser-client geblokkeerd (`ERR_BLOCKED_BY_CLIENT`) en wordt niet als geslaagde losse direct-API-browserprobe geteld.
+- Employee zag `0 rapportages beschikbaar`; een directe Frequent Absence-report URL bleef op 0 managementrapporten. Eerder tijdens dezelfde lokale acceptance gaf de directe absence API voor Employee HTTP 403. Geen HR-managementrij verscheen in de Employee Insights-view.
+- Niet live afgedekt: volledige report-permissionmatrix, alle forged employee/team/department/context-cookievarianten, contextwisseling/stale cookies, paginatie, filteropties, alle reports, Analysis V2 historische labels, Actual Work strict `YYYY-MM`, volledige drilldown- en exportmatrix en browser DevTools console dump. De Bradford runtimefout is opgelost en de pagina/API re-test slaagde; geen ongeautoriseerde rij is waargenomen.
+
+### AI01-A remote durability/concurrency
+
+- Geen migratie of typegen opnieuw uitgevoerd. Op Supabase TEST `wnpfloqpjvaacobppbpk` zijn uitsluitend synthetic testrecords gebruikt in de vooraf lege Stap-6-testgroep. Er is één gecontroleerde 25-credit testallocatie aangemaakt; vier synthetic AI-invocations kregen reservations. Geen echte AI/provider-call.
+- Dubbele parallelle `settle_ai_invocation` op dezelfde reservation eindigde als één economische settlement: invocation `SUCCEEDED`, reservation `SETTLED`, 1 credit charged en precies 1 business audit.
+- In de parallelle settle-vs-release-CAS won settlement; de release-CAS vond geen `SETTLING`-rij. Er is dus geen dubbele charge/refund. De aparte `RELEASING`-recovery eindigde `FAILED/RELEASED`, 0 charged en precies 1 business audit.
+- Twee gelijktijdige invocation-reconcilers leverden één effectieve batchuitkomst (`1` recovery en `2` audits) en een tweede no-op (`0`); readback bevestigde voor elke terminale synthetic invocation exact één audit. De legacy crash-sequence settlede eerst alleen het ledger en werd daarna eenmaal tot `SUCCEEDED` en audit gereconcilieerd.
+- Een verlopen synthetic voice-sessie werd door twee parallelle reaper-calls éénmaal beëindigd (`TIMEOUT`), 60 seconden / 1 billable minute / 1 credit, met precies één charge en allocation-link. De tweede reaper was `0 processed / 0 finalized / 0 retryable`.
+- Niet remote getest in deze run: live AI/Voice-toggle na start, revoked-scope/toolactie en HR Admin/Manager/Employee-forgerymatrix. Bestaande AI runtime/scope tests zijn onderdeel van de volledige lokale suite; remote persona-/feature-togglebewijs blijft open. De voice-heartbeat- en technical-usage-sinklimieten hierboven blijven ongewijzigd.
+
+### Post-fix checks en releasebesluit
+
+- Gerichte regressies na eventfix: 13 bestanden / 53 tests PASS.
+- Volledige hr-suite na eventfix: 480 bestanden / 1.933 tests PASS.
+- Strict TypeScript: PASS met `--incremental false` (de standaard incremental run werd door de sandbox geweigerd op een write naar `tsconfig.tsbuildinfo`, zonder TypeScript-codefout). Volledige hr-suite ESLint: PASS. NL/EN/i18n-bronnen zijn niet gewijzigd.
+- HR production build: PASS, 304/304 routes/pagina’s. Control-code en de eerdere Control-suite/build op dezelfde geïntegreerde HEAD zijn ongewijzigd; Control 2 bestanden / 9 tests en 12/12 build blijven de eerder vastgelegde resultaten.
+- Release blijft geblokkeerd: Control operator-authenticatie/full-circle en synthetic payroll-import ontbreken; belangrijke Control bootstrap/import/security-invarianten zijn dus niet bewezen. Versie blijft `1.20260927.3`; main en origin/main blijven op `3a0fc67f84bc7dab0acff732afab597142d59ea9`. Geen commit, push, schone releasecheckout, Vercel-deploy of hosted release smoke uitgevoerd.
+- Er is geen migration, schemawijziging, typegen, dependency-update of productwave uitgevoerd. De vijf Insights-filtercomponenten zijn nog on-gecommit op de convergence-worktree. Next dev liet alleen `apps/liquidhr-control/next-env.d.ts` als gegenereerde dirty state achter; dit bestand is niet handmatig gewijzigd of teruggezet. `apps/hr-suite/next-env.d.ts` is clean en niet aangepast.

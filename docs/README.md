@@ -2,7 +2,7 @@
 
 ## CONVERGENCE01 — INS01 + CONTROL01 + AI01-A — 2026-09-28
 
-**Status: PARTIAL / RELEASE BLOCKED.** De slices zijn geïntegreerd op een kandidaatbranch; TEST-migrations, officiële typegen, RLS/grants-readback, lokale volledige tests, strict TypeScript, ESLint, i18n en productiebuilds zijn groen. De devservers startten, maar de convergence-worktree mist NEXT_PUBLIC_SUPABASE_URL en NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY; HR /login gaf HTTP 500 en Control toonde de configuratie-setup. De beschermde canonical .env.local is niet gelezen of gekopieerd. Daarom blijven authenticated acceptatie, versie-bump, main/push, release en hosted smoke open. De complete gate-matrix staat in [CONVERGENCE01 acceptance](quality/acceptance/runs/CONVERGENCE01-20260928.md). Eerdere INS01-, CONTROL01- en AI01-A-runreports blijven historische bronbewijzen; XSD_PENDING / REAL_XML_PENDING blijft een bewuste importgrens.
+**Status: PARTIAL / RELEASE BLOCKED.** TEST-migrations, typegen, remote security-readback en de volledige hr-suite/build zijn groen. Native `--env-file` liet HR `/login` en lokale Test Auth werken zonder de canonical env-inhoud te inspecteren of te kopiëren. HR Admin/Manager/Employee INS01-bewijs is gedeeltelijk groen; remote AI synthetic durability/concurrency is groen. Control full-circle en payroll-import zijn geblokkeerd doordat geen Control OWNER/OPERATOR-testidentiteit beschikbaar is en TEST OAuth geen lokale Control-callback accepteert. Daarom zijn versie-bump, main/push, release en hosted smoke niet uitgevoerd. Zie [CONVERGENCE01 acceptance](quality/acceptance/runs/CONVERGENCE01-20260928.md). Officiële Loonaangifte blijft XSD_PENDING / REAL_XML_PENDING.
 
 ## ABS02 — verzuim hardening, security en WvP-foundation — 2026-09-27
 
