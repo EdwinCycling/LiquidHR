@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isRealtimeVoiceEnabled, resolveRealtimeVoiceModel } from './realtime-voice'
 import { isAiImproveAvailable } from './supabase-governance'
-import { evaluateAiSettingsAccess, getAiGroupSettingsForContext } from './settings-service'
+import { AiExecutionError } from './contracts'
+import { evaluateAiSettingsAccess, getAiGroupSettingsForContext, SupabaseAiSettingsPort } from './settings-service'
 import { finalizeAiVoiceSession, type AiVoiceTerminationReason } from './voice-credits'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -84,8 +85,25 @@ function teamSettingsAllow(settings: Awaited<ReturnType<typeof getAiGroupSetting
   return evaluateAiSettingsAccess({ settings, activeRoles: auth.activeRoles, featureCode: origin === 'VOICE' ? 'VOICE' : 'TEAM_SUMMARY', contextType: 'TEAM', origin }) === 'ALLOWED'
 }
 
+export async function assertTeamAiVoiceAllowed(auth: AuthContext): Promise<Awaited<ReturnType<typeof getAiGroupSettingsForContext>>> {
+  if (!canUseTeamAi(auth)) throw new TeamAiScopeError('TEAM_SCOPE_FORBIDDEN', 403)
+  if (!isRealtimeVoiceEnabled() || !isAiImproveAvailable()) throw new AiExecutionError('FEATURE_UNAVAILABLE')
+  return new SupabaseAiSettingsPort().assertVoiceAllowed({
+    scope: { tenantId: auth.tenantId, hrGroupId: requireHrGroupId(auth), administrationId: auth.administrationId },
+    authContext: auth,
+    contextType: 'TEAM',
+  })
+}
+
 function employeeName(employee: { id: string; first_name: string; birth_name: string }): string {
   return [employee.first_name, employee.birth_name].filter((part) => Boolean(part?.trim())).join(' ').trim() || employee.id
+}
+
+export function assertTeamAiSessionMembersCurrent(sessionMemberIds: readonly string[], currentMemberIds: readonly string[]): void {
+  const currentMembers = new Set(currentMemberIds)
+  if (sessionMemberIds.length === 0 || sessionMemberIds.some((employeeId) => !currentMembers.has(employeeId))) {
+    throw new TeamAiScopeError('TEAM_SCOPE_FORBIDDEN', 403)
+  }
 }
 
 async function assignedDepartmentIds(auth: AuthContext, supabase: SupabaseServerClient): Promise<string[]> {
@@ -297,8 +315,13 @@ export async function getAuthorizedTeamAiSession(auth: AuthContext, sessionId: s
   if (options.activeOnly && session.status !== 'ACTIVE') throw new TeamAiScopeError('TEAM_SESSION_NOT_ACTIVE', 409)
   const { data: members, error: memberError } = await admin.from('ai_team_session_members').select('employee_id').eq('session_id', session.id).eq('tenant_id', auth.tenantId).eq('hr_group_id', groupId).limit(2000)
   if (memberError) throw new TeamAiScopeError('TEAM_SESSION_NOT_FOUND', 500)
-  const scope = await loadScopeMembers(auth, members.map((member) => member.employee_id), session.context_department_id, session.scope_type as TeamAiScopeType, session.context_name_snapshot, await createClient())
-  return { id: session.id, scopeType: session.scope_type as TeamAiScopeType, departmentId: session.context_department_id, contextName: session.context_name_snapshot, memberIds: scope.memberIds, members: scope.members, modelId: session.model_id, status: session.status as AuthorizedTeamAiSession['status'], startedAt: session.started_at }
+  const currentScope = await resolveTeamAiScope(auth, session.context_department_id, await createClient())
+  if (currentScope.scopeType !== session.scope_type) throw new TeamAiScopeError('TEAM_SCOPE_FORBIDDEN', 403)
+  const sessionMemberIds = members.map((member) => member.employee_id)
+  assertTeamAiSessionMembersCurrent(sessionMemberIds, currentScope.memberIds)
+  const sessionMemberSet = new Set(sessionMemberIds)
+  const scopedMembers = currentScope.members.filter((member) => sessionMemberSet.has(member.employeeId))
+  return { id: session.id, scopeType: currentScope.scopeType, departmentId: currentScope.departmentId, contextName: currentScope.contextName, memberIds: scopedMembers.map((member) => member.employeeId), members: scopedMembers, modelId: session.model_id, status: session.status as AuthorizedTeamAiSession['status'], startedAt: session.started_at }
 }
 
 export async function finishTeamAiSession(input: { auth: AuthContext; sessionId: string; toolCallCount: number; terminationReason?: AiVoiceTerminationReason }): Promise<void> {

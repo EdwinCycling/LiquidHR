@@ -415,7 +415,7 @@ export function EmployeeLiveVoice({
         default:
           break
       }
-      if (!functionCall || run.calls.has(functionCall.callId)) return
+      if (!functionCall || run.calls.has(functionCall.callId) || !run.sessionId) return
       run.calls.add(functionCall.callId)
       run.toolCallCount += 1
       dispatch({ type: 'tool.started' })
@@ -424,7 +424,7 @@ export function EmployeeLiveVoice({
         const response = await fetch(`${run.base}/tool`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ locale, name: functionCall.name, arguments: functionCall.arguments }),
+          body: JSON.stringify({ sessionId: run.sessionId, callId: functionCall.callId, locale, name: functionCall.name, arguments: functionCall.arguments }),
           signal: run.tools.signal,
         })
         const result: unknown = await response.json()

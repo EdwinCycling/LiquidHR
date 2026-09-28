@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { AiExecutionError } from './contracts'
 import { defaultAiGroupSettings, type AiGroupSettings } from './settings-contracts'
@@ -23,6 +23,8 @@ export const realtimeVoiceSessionRequestSchema = z.object({
 
 export const realtimeVoiceToolRequestSchema = z.object({
   locale: z.enum(['nl', 'en']),
+  sessionId: z.string().uuid(),
+  callId: z.string().trim().min(1).max(128),
   name: z.enum(['employee_summary', 'conversation_preparation', 'development_goal_smart', 'create_personal_reminder']),
   arguments: z.unknown(),
 }).strict()
@@ -42,6 +44,7 @@ export const teamRealtimeVoiceSessionRequestSchema = z.object({
 export const teamRealtimeVoiceToolRequestSchema = z.object({
   locale: z.enum(['nl', 'en']),
   sessionId: z.string().uuid(),
+  callId: z.string().trim().min(1).max(128),
   name: z.enum(['team_overview', 'team_employee_summary', 'team_conversation_preparation', 'team_summary_proposal', 'create_personal_reminder']),
   arguments: z.unknown(),
 }).strict()
@@ -80,12 +83,17 @@ export function resolveRealtimeVoiceModel(environment: Record<string, string | u
   return configured || GPT_LIVE_MODEL
 }
 
-export async function requireEmployeeVoiceContext(employeeId: string): Promise<AuthContext> {
+async function requireEmployeeVoiceActorContext(employeeId: string): Promise<AuthContext> {
   const context = await requirePermission('employee:read', employeeId)
   if (!context.activeRoles.some((role) => managerVoiceRoles.has(role))) {
     throw new AiExecutionError('UNAUTHORIZED')
   }
   await requirePermission('ai:use')
+  return context
+}
+
+export async function requireEmployeeVoiceContext(employeeId: string): Promise<AuthContext> {
+  const context = await requireEmployeeVoiceActorContext(employeeId)
   if (!isRealtimeVoiceEnabled()) throw new AiExecutionError('FEATURE_UNAVAILABLE')
   await new SupabaseAiSettingsPort().assertVoiceAllowed({
     scope: { tenantId: context.tenantId, hrGroupId: requireHrGroupId(context), administrationId: context.administrationId },
@@ -93,6 +101,14 @@ export async function requireEmployeeVoiceContext(employeeId: string): Promise<A
     contextType: 'EMPLOYEE',
   })
   return context
+}
+
+export async function requireEmployeeVoiceFinalizationContext(employeeId: string): Promise<AuthContext> {
+  return requireEmployeeVoiceActorContext(employeeId)
+}
+
+export function createRealtimeVoiceCallIdempotencyKey(sessionId: string, callId: string): string {
+  return createHash('sha256').update(JSON.stringify([sessionId, callId])).digest('hex')
 }
 
 const emptyParameters = {
@@ -391,6 +407,19 @@ export async function createRealtimeVoiceSession(input: {
   })
   if (error) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
   return id
+}
+
+export async function assertActiveEmployeeVoiceSession(input: { context: AuthContext; employeeId: string; sessionId: string }): Promise<void> {
+  const { data, error } = await createAdminClient().from('ai_voice_sessions').select('id')
+    .eq('id', input.sessionId)
+    .eq('tenant_id', input.context.tenantId)
+    .eq('hr_group_id', requireHrGroupId(input.context))
+    .eq('actor_user_id', input.context.userId)
+    .eq('employee_id', input.employeeId)
+    .eq('status', 'ACTIVE')
+    .maybeSingle()
+  if (error) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
+  if (!data) throw new AiExecutionError('UNAUTHORIZED')
 }
 
 export async function markRealtimeVoiceSessionFailed(sessionId: string, context: AuthContext): Promise<void> {

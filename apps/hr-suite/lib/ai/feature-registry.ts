@@ -35,7 +35,7 @@ const improveExistingHrText: AiFeatureDefinition = Object.freeze({
   },
   supportsWritingStyle: true,
   allowedResultType: 'PROPOSAL',
-  promptTemplateVersion: 'improve-existing-hr-text.v1',
+  promptTemplateVersion: 'improve-existing-hr-text.v2',
   configVersion: 'ai-foundation-1a.20260830.1',
 })
 
@@ -74,11 +74,11 @@ function aiEverywhereFeature(featureCode: string, promptTemplateVersion: string,
   })
 }
 
-const employeeSummary = aiEverywhereFeature(EMPLOYEE_SUMMARY_FEATURE, 'employee-summary.v1', 'employee-summary')
-const conversationPreparation = aiEverywhereFeature(CONVERSATION_PREPARATION_FEATURE, 'conversation-preparation.v1', 'conversation-preparation')
-const developmentGoalSmart = aiEverywhereFeature(DEVELOPMENT_GOAL_SMART_FEATURE, 'development-goal-smart.v1', 'development-goal-smart')
-const vacancyDraft = aiEverywhereFeature(VACANCY_DRAFT_FEATURE, 'vacancy-draft.v1', 'vacancy-draft')
-const teamSummary = aiEverywhereFeature(TEAM_SUMMARY_FEATURE, 'team-summary.v1', 'team-summary')
+const employeeSummary = aiEverywhereFeature(EMPLOYEE_SUMMARY_FEATURE, 'employee-summary.v2', 'employee-summary')
+const conversationPreparation = aiEverywhereFeature(CONVERSATION_PREPARATION_FEATURE, 'conversation-preparation.v2', 'conversation-preparation')
+const developmentGoalSmart = aiEverywhereFeature(DEVELOPMENT_GOAL_SMART_FEATURE, 'development-goal-smart.v2', 'development-goal-smart')
+const vacancyDraft = aiEverywhereFeature(VACANCY_DRAFT_FEATURE, 'vacancy-draft.v2', 'vacancy-draft')
+const teamSummary = aiEverywhereFeature(TEAM_SUMMARY_FEATURE, 'team-summary.v2', 'team-summary')
 
 const definitions: Readonly<Record<string, AiFeatureDefinition>> = {
   [IMPROVE_EXISTING_HR_TEXT_FEATURE]: improveExistingHrText,

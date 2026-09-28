@@ -19,6 +19,7 @@ describe('AI feature registry', () => {
     for (const featureCode of [EMPLOYEE_SUMMARY_FEATURE, CONVERSATION_PREPARATION_FEATURE, DEVELOPMENT_GOAL_SMART_FEATURE, VACANCY_DRAFT_FEATURE, TEAM_SUMMARY_FEATURE]) {
       const feature = aiFeatureRegistry.get(featureCode)
       expect(feature).toMatchObject({ featureCode, capabilityGroup: 'AI_EVERYWHERE_V1', productStatus: 'AVAILABLE', allowedResultType: 'PROPOSAL', supportsWritingStyle: false })
+      expect(feature?.promptTemplateVersion).toMatch(/\.v2$/)
       expect(feature?.chargeReferenceByProfile.EFFICIENT).toMatch(/^ai\.(employee-summary|conversation-preparation|development-goal-smart|vacancy-draft|team-summary)\.efficient$/)
       expect(feature?.chargeReferenceByProfile.BALANCED).toMatch(/^ai\.(employee-summary|conversation-preparation|development-goal-smart|vacancy-draft|team-summary)\.balanced$/)
       expect(feature?.chargeReferenceByProfile.IN_DEPTH).toMatch(/^ai\.(employee-summary|conversation-preparation|development-goal-smart|vacancy-draft|team-summary)\.in-depth$/)

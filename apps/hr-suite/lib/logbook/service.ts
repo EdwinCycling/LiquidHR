@@ -3,6 +3,7 @@ import 'server-only'
 import { requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthorizedTeamAiSession } from '@/lib/ai/team-scope'
+import { getAiGroupSettingsForContext } from '@/lib/ai/settings-service'
 import type { AiTeamSummaryLogbookEntryCreateInput, PersonalLogbookEntryCreateInput, PersonalLogbookEntryUpdateInput } from './schemas'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -44,7 +45,7 @@ interface LogbookSummaryRow {
 }
 
 export class LogbookServiceError extends Error {
-  constructor(readonly code: 'LOGBOOK_READ_FAILED' | 'LOGBOOK_CREATE_FAILED' | 'LOGBOOK_UPDATE_FAILED' | 'LOGBOOK_DELETE_FAILED' | 'LOGBOOK_NOT_FOUND' | 'LOGBOOK_SESSION_INVALID', readonly status: 400 | 403 | 404 | 409 | 500) {
+  constructor(readonly code: 'LOGBOOK_READ_FAILED' | 'LOGBOOK_CREATE_FAILED' | 'LOGBOOK_UPDATE_FAILED' | 'LOGBOOK_DELETE_FAILED' | 'LOGBOOK_NOT_FOUND' | 'LOGBOOK_SESSION_INVALID' | 'LOGBOOK_AI_SAVE_DISABLED', readonly status: 400 | 403 | 404 | 409 | 500) {
     super(code)
   }
 }
@@ -129,6 +130,8 @@ export async function createManualPersonalLogbookEntry(input: PersonalLogbookEnt
 
 export async function createAiTeamSummaryLogbookEntry(input: AiTeamSummaryLogbookEntryCreateInput, dependencies?: ContextDependencies): Promise<PersonalLogbookEntry> {
   const resolved = await dependenciesFor('logbook:write', dependencies)
+  const settings = await getAiGroupSettingsForContext(resolved.context)
+  if (!settings.teamLogbookSaveEnabled) throw new LogbookServiceError('LOGBOOK_AI_SAVE_DISABLED', 403)
   const session = await getAuthorizedTeamAiSession(resolved.context, input.sessionId)
   if (session.status !== 'ENDED') throw new LogbookServiceError('LOGBOOK_SESSION_INVALID', 409)
   const groupId = requireHrGroupId(resolved.context)

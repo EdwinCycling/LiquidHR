@@ -67,7 +67,6 @@ export async function finalizeAiVoiceSession(input: {
   }
 
   const settings = await getAiGroupSettingsForContext(input.context)
-  if (!settings.aiEnabled || !settings.voiceEnabled) throw new AiExecutionError('FEATURE_UNAVAILABLE')
   const month = await resolveHrGroupCalendarMonth(
     { tenantId: input.context.tenantId, hrGroupId: requireHrGroupId(input.context), administrationId: input.context.administrationId },
     new Date(),

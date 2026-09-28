@@ -372,7 +372,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
       dispatch({ type: 'tool.started' })
       let output: string
       try {
-        const response = await fetch(`${run.base}/tool`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: run.sessionId, locale, name: functionCall.name, arguments: functionCall.arguments }), signal: run.tools.signal })
+        const response = await fetch(`${run.base}/tool`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: run.sessionId, callId: functionCall.callId, locale, name: functionCall.name, arguments: functionCall.arguments }), signal: run.tools.signal })
         const result: unknown = await response.json()
         const data = isRecord(result) && isRecord(result.data) ? result.data : null
         const resultText = data && typeof data.resultText === 'string' ? data.resultText : null

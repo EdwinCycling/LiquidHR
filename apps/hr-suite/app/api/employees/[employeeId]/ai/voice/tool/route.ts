@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { AiExecutionError } from '@/lib/ai/contracts'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
@@ -6,6 +5,8 @@ import { runEmployeeAi } from '@/lib/employees/employee-ai'
 import {
   parseRealtimeVoiceToolArguments,
   realtimeVoiceToolRequestSchema,
+  assertActiveEmployeeVoiceSession,
+  createRealtimeVoiceCallIdempotencyKey,
   requireEmployeeVoiceContext,
 } from '@/lib/ai/realtime-voice'
 import { runDevelopmentGoalSmart } from '@/lib/talent/goal-ai'
@@ -20,7 +21,8 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   try {
     const authContext = await requireEmployeeVoiceContext(employeeId)
     const args = parseRealtimeVoiceToolArguments(parsed.data.name, parsed.data.arguments)
-    const idempotencyKey = randomUUID()
+    await assertActiveEmployeeVoiceSession({ context: authContext, employeeId, sessionId: parsed.data.sessionId })
+    const idempotencyKey = createRealtimeVoiceCallIdempotencyKey(parsed.data.sessionId, parsed.data.callId)
     if (parsed.data.name === 'employee_summary') {
       const proposal = await runEmployeeAi({ employeeId, feature: 'EMPLOYEE_SUMMARY', request: { locale: parsed.data.locale }, idempotencyKey, origin: 'VOICE' })
       return NextResponse.json({ data: { proposedText: proposal.proposedText } })

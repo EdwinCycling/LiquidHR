@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AiExecutionError } from '@/lib/ai/contracts'
 
-const { finishRealtimeVoiceSession, permissionErrorResponse, requireEmployeeVoiceContext } = vi.hoisted(() => ({
+const { finishRealtimeVoiceSession, permissionErrorResponse, requireEmployeeVoiceFinalizationContext } = vi.hoisted(() => ({
   finishRealtimeVoiceSession: vi.fn(),
   permissionErrorResponse: vi.fn((): Response | null => null),
-  requireEmployeeVoiceContext: vi.fn(),
+  requireEmployeeVoiceFinalizationContext: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/permissions', () => ({ permissionErrorResponse }))
@@ -20,7 +20,7 @@ vi.mock('@/lib/ai/realtime-voice', () => ({
       },
     }),
   },
-  requireEmployeeVoiceContext,
+  requireEmployeeVoiceFinalizationContext,
 }))
 
 import { POST } from './route'
@@ -32,8 +32,8 @@ describe('POST /api/employees/[employeeId]/ai/voice/usage', () => {
     finishRealtimeVoiceSession.mockReset()
     permissionErrorResponse.mockReset()
     permissionErrorResponse.mockReturnValue(null)
-    requireEmployeeVoiceContext.mockReset()
-    requireEmployeeVoiceContext.mockResolvedValue({ userId: 'actor-test' })
+    requireEmployeeVoiceFinalizationContext.mockReset()
+    requireEmployeeVoiceFinalizationContext.mockResolvedValue({ userId: 'actor-test' })
   })
 
   it('logs a safe accounting category while returning a generic failed response', async () => {

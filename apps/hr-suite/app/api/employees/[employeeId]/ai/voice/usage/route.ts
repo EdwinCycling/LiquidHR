@@ -3,8 +3,8 @@ import { AiExecutionError } from '@/lib/ai/contracts'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 import {
   finishRealtimeVoiceSession,
+  requireEmployeeVoiceFinalizationContext,
   realtimeVoiceUsageRequestSchema,
-  requireEmployeeVoiceContext,
 } from '@/lib/ai/realtime-voice'
 
 interface RouteContext { params: Promise<{ employeeId: string }> }
@@ -26,7 +26,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   const parsed = realtimeVoiceUsageRequestSchema.safeParse(await request.json().catch(() => null) as unknown)
   if (!parsed.success) return NextResponse.json({ error: 'AI_VOICE_USAGE_INPUT_INVALID' }, { status: 400 })
   try {
-    const authContext = await requireEmployeeVoiceContext(employeeId)
+    const authContext = await requireEmployeeVoiceFinalizationContext(employeeId)
     await finishRealtimeVoiceSession({ ...parsed.data, context: authContext, terminationReason: parsed.data.terminationReason ?? 'EXPLICIT' })
     return NextResponse.json({ data: { recorded: true } })
   } catch (error) {

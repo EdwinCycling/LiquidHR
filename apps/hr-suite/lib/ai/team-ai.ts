@@ -1,12 +1,12 @@
 import 'server-only'
 
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import { AiExecutionError, type AiExecutionResult, type AiInvocationInput, type AiJsonValue, type AiRuntimeDependencies, type AuthorizedAiContext } from './contracts'
 import { createSafeTextProposalValidator, type AiTextProposal } from './everywhere/proposal'
 import { TEAM_SUMMARY_FEATURE } from './feature-registry'
 import { createServerAiRuntimeDependencies, runAuthorizedAiInvocation } from './runtime'
-import { getAuthorizedTeamAiSession, type AuthorizedTeamAiSession, type TeamAiMember } from './team-scope'
-import { parseTeamRealtimeVoiceToolArguments, type TeamRealtimeVoiceLocale, type TeamRealtimeVoiceToolName } from './realtime-voice'
+import { assertTeamAiVoiceAllowed, getAuthorizedTeamAiSession, type AuthorizedTeamAiSession, type TeamAiMember } from './team-scope'
+import { createRealtimeVoiceCallIdempotencyKey, parseTeamRealtimeVoiceToolArguments, type TeamRealtimeVoiceLocale, type TeamRealtimeVoiceToolName } from './realtime-voice'
 import { executePersonalReminderTool, type PersonalReminderToolResult } from './personal-reminders'
 import type { AuthContext } from '@/lib/auth/permissions'
 import { runEmployeeAi } from '@/lib/employees/employee-ai'
@@ -93,27 +93,29 @@ function createTeamSummaryInvocationInput(sessionId: string, summaryText: string
 
 const teamSummaryValidator = createSafeTextProposalValidator({ maxCharacters: 8_000, forbidden: /\b(ranking|rank|high[- ]risk|low[- ]performer|score|rating|prestatiescore|ranglijst|discrimin|disciplin|medisch|medical|diagnos)/i })
 
-async function runTeamSummaryProposal(session: AuthorizedTeamAiSession, summaryText: string, locale: TeamRealtimeVoiceLocale): Promise<AiTextProposal> {
+async function runTeamSummaryProposal(session: AuthorizedTeamAiSession, summaryText: string, locale: TeamRealtimeVoiceLocale, idempotencyKey: string): Promise<AiTextProposal> {
   const dependencies: AiRuntimeDependencies<AiTextProposal> = createServerAiRuntimeDependencies({
     contextLoader: createTeamSummaryContextLoader(session, summaryText, locale),
     validator: teamSummaryValidator,
   })
   const result: AiExecutionResult<AiTextProposal> = await runAuthorizedAiInvocation(
-    createTeamSummaryInvocationInput(session.id, summaryText, locale, randomUUID()),
+    createTeamSummaryInvocationInput(session.id, summaryText, locale, idempotencyKey),
     dependencies,
   )
   if (result.kind === 'DUPLICATE') throw new AiExecutionError('DUPLICATE_COMPLETED')
   return result.output
 }
 
-export async function executeTeamAiTool(input: { auth: AuthContext; sessionId: string; name: TeamRealtimeVoiceToolName; arguments: unknown; locale: TeamRealtimeVoiceLocale }): Promise<TeamAiToolResult> {
+export async function executeTeamAiTool(input: { auth: AuthContext; sessionId: string; callId: string; name: TeamRealtimeVoiceToolName; arguments: unknown; locale: TeamRealtimeVoiceLocale }): Promise<TeamAiToolResult> {
   let args: ReturnType<typeof parseTeamRealtimeVoiceToolArguments>
   try {
     args = parseTeamRealtimeVoiceToolArguments(input.name, input.arguments)
   } catch {
     throw new TeamAiToolError('TEAM_TOOL_INPUT_INVALID', 400)
   }
+  await assertTeamAiVoiceAllowed(input.auth)
   const session = await getAuthorizedTeamAiSession(input.auth, input.sessionId, { activeOnly: true })
+  const idempotencyKey = createRealtimeVoiceCallIdempotencyKey(input.sessionId, input.callId)
   if (input.name === 'team_overview') return { resultText: overviewText(session, input.locale) }
 
   if (input.name === 'create_personal_reminder') {
@@ -132,7 +134,7 @@ export async function executeTeamAiTool(input: { auth: AuthContext; sessionId: s
       employeeId: member.employeeId,
       feature: input.name === 'team_employee_summary' ? 'EMPLOYEE_SUMMARY' : 'CONVERSATION_PREPARATION',
       request: { locale: input.locale },
-      idempotencyKey: randomUUID(),
+      idempotencyKey,
       origin: 'VOICE',
       contextType: 'TEAM',
     })
@@ -140,6 +142,6 @@ export async function executeTeamAiTool(input: { auth: AuthContext; sessionId: s
   }
 
   if (!args.summaryText) throw new TeamAiToolError('TEAM_TOOL_INPUT_INVALID', 400)
-  const proposal = await runTeamSummaryProposal(session, args.summaryText, input.locale)
+  const proposal = await runTeamSummaryProposal(session, args.summaryText, input.locale, idempotencyKey)
   return { resultText: proposal.proposedText, proposedText: proposal.proposedText }
 }

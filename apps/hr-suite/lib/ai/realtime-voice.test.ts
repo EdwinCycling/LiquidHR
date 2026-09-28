@@ -2,12 +2,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   createOpenAiRealtimeCall,
+  createRealtimeVoiceCallIdempotencyKey,
   createTeamRealtimeVoiceSessionConfiguration,
   createRealtimeVoiceSessionConfiguration,
   isRealtimeVoiceEnabled,
   parseRealtimeVoiceToolArguments,
   parseTeamRealtimeVoiceToolArguments,
   realtimeVoiceSessionRequestSchema,
+  realtimeVoiceToolRequestSchema,
+  teamRealtimeVoiceToolRequestSchema,
   teamRealtimeVoiceSessionRequestSchema,
   resolveRealtimeVoiceModel,
 } from './realtime-voice'
@@ -128,6 +131,17 @@ describe('GPT-Live employee voice contract', () => {
     const departmentId = '66c647bd-da37-2097-6c17-78ca6cbec389'
     const parsed = teamRealtimeVoiceSessionRequestSchema.parse({ locale: 'nl', departmentId, sdpOffer: 'v=0\\r\\noffer' })
     expect(parsed.departmentId).toBe(departmentId)
+  })
+
+  it('binds voice tool retries to a server-created session and stable provider call id', () => {
+    const sessionId = '00000000-0000-4000-8000-000000000001'
+    const request = { sessionId, callId: 'call_provider_1', locale: 'nl', name: 'employee_summary', arguments: {} }
+    expect(realtimeVoiceToolRequestSchema.parse(request)).toEqual(request)
+    expect(() => realtimeVoiceToolRequestSchema.parse({ ...request, callId: undefined })).toThrow()
+    expect(teamRealtimeVoiceToolRequestSchema.parse({ ...request, name: 'team_overview' })).toEqual({ ...request, name: 'team_overview' })
+    expect(createRealtimeVoiceCallIdempotencyKey(sessionId, 'call_provider_1')).toBe(createRealtimeVoiceCallIdempotencyKey(sessionId, 'call_provider_1'))
+    expect(createRealtimeVoiceCallIdempotencyKey(sessionId, 'call_provider_2')).not.toBe(createRealtimeVoiceCallIdempotencyKey(sessionId, 'call_provider_1'))
+    expect(createRealtimeVoiceCallIdempotencyKey('00000000-0000-4000-8000-000000000002', 'call_provider_1')).not.toBe(createRealtimeVoiceCallIdempotencyKey(sessionId, 'call_provider_1'))
   })
 
   it('preserves the complete browser SDP offer during request validation', () => {
