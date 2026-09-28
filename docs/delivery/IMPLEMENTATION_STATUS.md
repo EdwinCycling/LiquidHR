@@ -8,7 +8,7 @@
 - **CONTROL01:** migration, typegen, local tests/build en security-readback groen; full-circle tenant → first-admin invitation → normale login/contextselector en synthetic import journey blijven environment-gated. Officiële Loonaangifte blijft bewust XSD_PENDING / REAL_XML_PENDING.
 - **AI01-A:** lokale durable recovery-contracttests en build groen; remote reservation/settlement/release/reconciliation, personas en echte concurrencyprobes blijven environment-gated. Voice hard-crash rekent af tot de opgeslagen serverdeadline; korter werkelijk gebruik is niet reconstrueerbaar.
 
-Geen reeds geconfigureerde lokale TEST-authsessie of LiquidHR-browsersessie was beschikbaar, en er draaide geen app op poort 3000. De beschermde .env.local is niet gelezen en er is geen auth-bypass gebruikt. Daarom zijn version bump, main-update/push, release-checkout, Vercel Production en hosted smoke niet uitgevoerd. Zie [CONVERGENCE01 acceptance](../quality/acceptance/runs/CONVERGENCE01-20260928.md) voor volledige evidence en bewust open gates.
+De devservers zijn gestart, maar HR /login gaf HTTP 500 omdat NEXT_PUBLIC_SUPABASE_URL en NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY niet geladen waren. Control /login stuurde naar /setup met dezelfde ontbrekende Supabase-configuratie. De Test Auth UI kwam niet beschikbaar. apps/hr-suite/.env.local ontbreekt in de externe worktree; de canonical file is niet geopend of gekopieerd. Er is geen auth-bypass gebruikt. Daarom zijn version bump, main-update/push, release-checkout, Vercel Production en hosted smoke niet uitgevoerd. Zie [CONVERGENCE01 acceptance](../quality/acceptance/runs/CONVERGENCE01-20260928.md) voor volledige evidence en bewust open gates.
 
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 

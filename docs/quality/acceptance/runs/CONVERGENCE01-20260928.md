@@ -124,9 +124,22 @@ Nieuwe TEST-indexen kunnen als unused worden gemeld doordat de nieuwe tabellen n
 
 Source en regressietests zijn gecontroleerd. Test Auth vereist lokale development, expliciete flag en het canonieke project; VERCEL/VERCEL_ENV sluiten de feature uit. TEST_CAPTURE vereist expliciete enablement en weigert Production/Preview. De production build bevat het bestaande /api/auth/test-login endpoint, maar de runtime guard weigert Production en de UI toont de testbediening daar niet. Dit is code/buildbewijs; een live Production-routecheck is niet uitgevoerd. Er is geen invitation-token debugendpoint of bootstrapbypass toegevoegd.
 
+## Lokale runtime-start — 2026-09-28
+
+De poorten 3000 en 3001 waren vrij. De bestaande root-scripts npm run dev en npm run dev:control startten de geïntegreerde servers op Next.js 16.3.6; beide meldden Ready.
+
+- HR-suite op http://localhost:3000: de loginrequest eindigde in HTTP 500. De Next runtime-overlay en proxy.ts:26:38 melden dat de Supabase-project-URL en key ontbreken. De ontbrekende runtime-configuratie is NEXT_PUBLIC_SUPABASE_URL en NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Een existence-only controle bevestigde dat apps/hr-suite/.env.local niet in deze externe convergence-worktree staat. De canonical beschermde file is niet geopend, gelezen of gekopieerd.
+- De bestaande Test Auth UI kon hierdoor niet laden. Browserconsole meldde Fast Refresh full reload na een unrecoverable error; de login gaf de Supabase-clientfout. De lokale Next-assets laadden, maar er is geen authenticated applicatie-API- of Supabase-request bereikt.
+- Control op http://localhost:3001: /login stuurde door naar /setup, HTTP 200. De pagina meldde dat Supabase-instellingen ontbreken en noemt apps/liquidhr-control/.env.local met dezelfde twee publieke configuratienamen. De browser had geen app-error of console-error op de setup-pagina; alleen HMR-informatie. Er was geen OWNER/OPERATOR-login of full-circle UI beschikbaar.
+- De setup-pagina beschrijft waarden overnemen vanuit de HR-suite-configuratie. Er is geen configuratiebestand gemaakt, gelinkt of gekopieerd; er zijn geen waarden gelezen en geen auth-bypass gebruikt.
+- Er is in deze runtime-poging geen Supabase TEST-businessdata geschreven en geen migration aangeraakt.
+- De twee servers en browser-sessies zijn gesloten; daarna luisterde geen proces op poort 3000 of 3001. Next dev had de twee next-env.d.ts files automatisch naar .next/dev-types aangepast en het Control-script maakte twee agentinstructiebestanden aan. De next-env.d.ts files zijn exact naar HEAD hersteld en alleen die twee door deze start gegenereerde bestanden zijn verwijderd. De applicatiecode bleef ongewijzigd.
+
+De ontbrekende lokale env-configuratie blokkeert de Test Auth harness en daarmee alle authenticated Control-, INS01- en AI01-A-runtimeacceptatie. Geen alternatief configpad is toegevoegd.
+
 ## Environment-gated bewijs
 
-Geen lokaal proces luisterde op poort 3000; de huidige integration-execution context bood geen bestaande geconfigureerde TEST-authsessie; de beschikbare browser had geen LiquidHR-sessie. De canonical .env.local is niet gelezen of gekopieerd en er is niet om credentials gevraagd. Daarom zijn niet uitgevoerd:
+De servers zijn gestart, maar de geïntegreerde worktree mist de Supabase runtime-configuratie en de bestaande Test Auth UI kwam niet beschikbaar. De canonical .env.local is niet gelezen of gekopieerd en er is niet om credentials gevraagd. Daarom zijn niet uitgevoerd:
 
 - authenticated Control full-circle, invitation lifecycle/contextselector en Control UX op desktop/mobile;
 - synthetic payroll import live inclusief no-write-preview, duplicate IKV/person, draft-mappingfout en Setup Assistant readback;
