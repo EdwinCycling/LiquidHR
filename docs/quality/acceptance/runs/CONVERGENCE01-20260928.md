@@ -281,3 +281,10 @@ Dit addendum registreert de latere runtimepoging na de expliciete Runtime Env Br
 - Bradford-regressie: 1 bestand / 1 test PASS. De eerder uitgevoerde volledige suite, strict TypeScript, ESLint en productiebuild 304/304 gelden voor dezelfde code-HEAD; in deze follow-up is geen productcode gewijzigd. De volledige suite had één niet-gerelateerde PDF-render-timeout.
 - De bestaande lokale servers gaven HTTP 200 op de HR- en Control-loginroutes en zijn blijven draaien. Deze follow-up maakte geen bedrijfsrecords. Geen Docker gebruikt; de beschermde omgevingsconfiguratie is niet door Codex geïnspecteerd of gewijzigd.
 - Status blijft PARTIAL: Control OWNER OAuth, resterende bootstrap/import- en live API/securityprobes staan open. Versie 1.20260927.3; main en origin/main blijven 3a0fc67f84bc7dab0acff732afab597142d59ea9. Geen push of deployment uitgevoerd.
+
+## Control OWNER OAuth handoff — 2026-09-29
+
+- De normale Google-login in de bestaande lokale Control-app leverde een geldige Supabase-sessie op, maar Control meldde “Geen platformbeheerder”. Er zijn geen rollen gewijzigd. De ingebouwde lokale uitlogroute bracht de browser terug naar de loginpagina.
+- De eerste server-action-respons toonde kort een Next development-fout (“An unexpected response was received from the server”). Na herladen eindigde de app op de pagina zonder platformbeheerder. Codex heeft geen OAuth-credentials ingevoerd en geen providerconfiguratie gewijzigd.
+- HUMAN_ACTION_REQUIRED: CONTROL_OWNER_LOGIN. De handoffpagina staat op http://localhost:3001/login. Selecteer via “Doorgaan met Google” het bestaande actieve OWNER-account; ga pas verder wanneer Control terugkeert naar het lokale dashboard. Onder de niet-operator zijn geen Control-bootstrap-, import-, securityacceptatie- of releaseacties uitgevoerd.
+- Auth-gebruikersduplicatie is niet teruggelezen. Of deze niet-operatoridentiteit al bestond is daarom niet vastgesteld; er zijn geen rollen toegekend en geen bedrijfsrecords gewijzigd.
