@@ -26,7 +26,8 @@ Praktische regel:
 - tijdens bouwen: targeted;
 - bij een defect: defecttest + relevante regressie;
 - bij convergence/release: één full suite op de **uiteindelijke productcode**;
-- na uitsluitend docs/versionmetadata: niet opnieuw.
+- na uitsluitend docs/versionmetadata: niet opnieuw;
+- zodra ná een eerdere full suite nog productcode, UI-code, schema of runtimegedrag wijzigt, geldt die eerdere full-suite-GREEN niet automatisch als releasebewijs voor de nieuwe worktree.
 
 ## 2. Persona's
 
@@ -145,6 +146,17 @@ Bij databasekritieke flows:
 - test races waar dubbele charge/dubbele mutation plausibel is;
 - test recovery/retry zonder dubbele businessactie;
 - controleer grants/RLS/RPCscope.
+
+### Importfinalisatie
+
+Voor staged imports die meerdere domainwrites doen, test minimaal:
+- preview veroorzaakt nul definitieve domainwrites;
+- employee + assignment + IKV + employment/draft volgens contract;
+- failure na een eerdere deelwrite laat een herkenbare herstelbare status achter;
+- retry maakt geen duplicate employee, IKV of employment;
+- idempotency over dezelfde batch/source;
+- foutdiagnostiek is voldoende voor root-cause zonder PII/secrets;
+- batchstatus maskeert geen ontbrekende kernrecord.
 
 ## 8. UI en i18n
 

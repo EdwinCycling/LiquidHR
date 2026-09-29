@@ -32,7 +32,7 @@ Convergence:
 5. readback + typegen + RLS/grants/advisors;
 6. targeted integration tests;
 7. runtime/persona/securityacceptatie;
-8. één volledige suite op uiteindelijke productcode; herhaal die niet na uitsluitend docs/versionmetadata;
+8. één volledige suite op uiteindelijke productcode, ná de laatste product-/UI-/schemawijziging; herhaal die niet na uitsluitend docs/versionmetadata;
 9. strict TypeScript;
 10. ESLint;
 11. i18n indien relevant;
@@ -40,6 +40,8 @@ Convergence:
 13. productiebuild(s);
 14. acceptance report finaliseren;
 15. pas daarna releasebesluit.
+
+Een eerder GREEN resultaat mag niet als finale releasegate worden hergebruikt wanneer daarna nog schema, productcode, Control UI of andere runtimecode is gewijzigd. Draai dan opnieuw de relevante targeted gates en vóór release één finale complete gate op exact de te releasen code.
 
 ## 3. Versioning
 

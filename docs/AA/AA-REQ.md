@@ -96,6 +96,15 @@ Leidend detail:
 - Ontbrekende afdelingen, functies, kostenplaatsen of salarisstructuur blokkeren een Loonaangifte-import niet automatisch.
 - De claim “XSD-geldig voor jaar N” mag alleen wanneer tegen de bijpassende officiële XSD voor dat jaar/namespace is gevalideerd.
 
+### Import-finalization en herstel
+
+- Een importfinalisatie moet **atomair of veilig resumable** zijn. Een gedeeltelijke write mag niet leiden tot duplicaten bij retry.
+- Als de productflow een medewerker plus dienstverband/draft verwacht, geldt “medewerker aangemaakt maar geen dienstverband/draft” als onvolledige finalisatie en niet als succesvolle businessuitkomst.
+- Per batch/record moet voldoende duurzame status bestaan om veilig te kunnen hervatten of gericht te herstellen zonder dezelfde medewerker opnieuw aan te maken.
+- Een retry gebruikt de reeds vastgestelde bestaande medewerker/match en maakt niet opnieuw een employee aan.
+- Foutcategorie/SQLSTATE of equivalente diagnostische classificatie moet veilig kunnen worden vastgelegd zonder persoonsgegevens/secrets te loggen.
+- `COMPLETED_WITH_WARNINGS` mag geen kerninvariant verbergen die volgens het importcontract noodzakelijk is voor een bruikbare uitkomst.
+
 ## 7. AI-principes
 
 - AI-acties gaan via app-/service-/autorisatielaag.

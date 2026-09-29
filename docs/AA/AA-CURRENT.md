@@ -22,11 +22,15 @@ Momentopname: 2026-09-29
 
 ## Lopend — CONVERGENCE01
 
+Status: **PARTIAL — nog niet vrijgeven**.
+
 Branch:
 `work/CONVERGENCE01-20260928`
 
-Laatste bekende HEAD:
+Laatste vastgelegde HEAD:
 `9029f52e20f7559b6dded2682856f0f544db9bcf`
+
+De worktree bevat daarna nog niet-gecommitte wijzigingen; de genoemde HEAD is dus niet gelijk aan alle huidige productwijzigingen.
 
 Geïntegreerd:
 - INS01
@@ -34,11 +38,12 @@ Geïntegreerd:
 - AI01-A/A2
 
 Remote database:
-- vijf convergence migrations toegepast;
-- typegen/readback uitgevoerd;
-- payroll staging grants gehard;
+- de oorspronkelijke vijf convergence migrations zijn eenmaal toegepast en teruggelezen;
+- typegen/readback, RLS/grants/policies en relevante RPC's zijn toen gecontroleerd;
+- payroll staging grants zijn gehard;
 - geen advisor ERROR gemeld;
-- bestaande projectbrede warnings buiten scope niet opportunistisch opgeschoond.
+- later is aanvullend `20260929111847_control01_hr_group_update.sql` eenmaal op TEST toegepast;
+- na die latere schema-/UI-wijziging is nog geen nieuwe officiële typegen/advisor/full-regression gate vastgelegd.
 
 ## INS01 huidige stand
 
@@ -61,9 +66,11 @@ Belangrijke bewijsgrens:
 - niet alle 19 rapporten zijn daarmee automatisch volledig gelijkgetrokken op shell, filters, KPI/chart/table, drilldown en export;
 - die systematische harmonisatie is expliciet INS02.
 
-Nog onderdeel van lopende closeout:
-- resterende forged context/API/export/drilldownmatrix;
-- finale classification GREEN/PARTIAL.
+Open bewijs:
+- niet de volledige forged context/API/export/drilldownmatrix;
+- Bradford-exportroute was succesvol, maar het laatste downloadbestand is niet onafhankelijk opnieuw geparsed;
+- niet alle report-/context-/pagination-/historical-label-/Actual Work-varianten zijn live bewezen;
+- finale status blijft daarom PARTIAL tot de afgesproken matrix is gesloten.
 
 ## CONTROL01 huidige stand
 
@@ -84,9 +91,21 @@ Bestaande relevante tabellen:
 - `payroll_import_persons`
 - `payroll_import_income_relationships`
 
-Control OWNER normale lokale OAuth-login is inmiddels door menselijke accountselectie gelukt. De lokale Control callback is via de Supabase Redirect URL allowlist toegestaan zonder de production Site URL te wijzigen. De eerdere redirect naar de hosted HR-login was allowlist/configuratiegedrag, geen reden voor een auth-bypass. Resterende full-circle/import/securityacceptatie loopt.
+Control OWNER normale lokale OAuth-login is inmiddels door menselijke accountselectie gelukt. De lokale Control callback is via de Supabase Redirect URL allowlist toegestaan zonder de production Site URL te wijzigen. De eerdere redirect naar de hosted HR-login was allowlist/configuratiegedrag, geen reden voor een auth-bypass.
 
-Official Loonaangifte ondersteuning blijft CONTROL02-scope.
+De basis full-circle is live doorlopen: tenant → HR-groep → administratie → first-admin invitation/acceptatie → activatie → HR-contextselectie → geïsoleerde empty state → logout/login → selector opnieuw zichtbaar.
+
+Open:
+- token reuse/revoke;
+- forged tenant/HR-group/administration;
+- AUDITOR write;
+- tweede bootstrap;
+- cross-tenant bootstrap;
+- volledige Control-suite/build na de latere accordion/side-panel UI-wijzigingen.
+
+**Releaseblokkerend importdefect:** de synthetic payrollfinalisatie maakte een medewerker aan maar geen dienstverband/draft. De batch eindigde `COMPLETED_WITH_WARNINGS`; de verwachte `EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING`-uitkomst ontstond niet. Exacte DB-fout is nog niet vastgesteld en een blinde retry is onveilig omdat de medewerker al bestaat.
+
+Official Loonaangifte/XSD-productondersteuning blijft CONTROL02-scope.
 
 ## AI01-A huidige stand
 
@@ -101,28 +120,53 @@ Gebouwd/bewezen:
 - remote synthetic concurrencytests zonder providercalls.
 
 Nog onderdeel van lopende closeout:
-- persona authorization;
-- feature/voice disable;
-- scope revocation/forgery;
+- feature-toggle na sessiestart;
+- scope-intrekking tijdens sessie;
+- volledige HR Admin/Manager/Employee forgerymatrix;
 - trusted cleanup invariant.
+
+De remote durability/concurrencyprobes zelf blijven sterk bewezen: settlement exactly-once, settle/release-race, dual reconcilers, audit recovery, release recovery en voice reaper no-op bij herhaling.
 
 ## Testbaseline in lopende convergence
 
-Eerder GREEN op de geïntegreerde code:
-- volledige HR-suite: 480 bestanden / 1.933 tests;
+Oorspronkelijk GREEN vóór latere wijzigingen:
+- HR: 480 bestanden / 1.933 tests;
 - Control: 2 bestanden / 9 tests;
-- strict TypeScript;
-- HR ESLint;
+- TypeScript;
+- ESLint;
+- i18n;
 - HR build 304/304;
 - Control build 12/12.
 
-Na latere Bradfordtestuitbreiding telde de full suite 481 bestanden / 1.934 tests; één bestaande PDF-render-test timeoutte. Release-closeout moet dit volgens AA-TEST/AA-REL verdedigbaar GREEN afsluiten.
+Latere volledige HR-run:
+- 1.933 / 1.934 tests geslaagd;
+- één bestaande PDF-render-timeout op 5 seconden;
+- niet daarna opnieuw volledig uitgevoerd.
 
-## Eerstvolgende update na release
+Na die run zijn nog UI-, Control- en payrollwijzigingen gedaan. Daardoor gelden de eerdere volledige GREEN-resultaten **niet automatisch** als releasebewijs voor de huidige worktree. Er moet vóór release opnieuw een finale gate op exact de uiteindelijke code draaien.
 
-Als CONVERGENCE01 GREEN/RELEASED:
-1. definitieve version invullen;
-2. release/main/origin SHA gelijk vastleggen;
-3. Vercel deployment/READY/alias vastleggen;
-4. INS01/CONTROL01/AI01-A naar AA-ACCEPT promoveren;
-5. AA-NEXT CURRENT verplaatsen naar CONTROL02.
+## Releasepositie
+
+Nog niet uitgevoerd:
+- bump naar `1.20260928.1`;
+- release-push;
+- clean releasecheckout;
+- Vercel deploy;
+- hosted smoke.
+
+`main` en `origin/main` staan volgens de laatste vastgelegde status nog op `3a0fc67f84bc7dab0acff732afab597142d59ea9`.
+
+Eerstvolgende blocker:
+1. synthetic payrollfinalisatie veilig root-causen;
+2. minimale fix;
+3. veilige retry/recovery zonder duplicate employee;
+4. open Control/AI/Insights negatives sluiten;
+5. finale volledige gates op de uiteindelijke code.
+
+Pas daarna:
+- version bump;
+- main/origin synchroniseren;
+- clean releasecheckout;
+- Vercel deploy;
+- hosted safety smoke;
+- AA-CURRENT/AA-ACCEPT/AA-NEXT naar de released baseline bijwerken.

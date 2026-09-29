@@ -7,7 +7,7 @@ Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements s
 
 ## CURRENT — CONVERGENCE01
 
-Status bij deze eerste AA-opzet: **IN FLIGHT / nog niet released**.
+Status: **PARTIAL / RELEASE BLOCKED — nog niet vrijgeven**.
 
 Doel:
 - INS01 + CONTROL01 + AI01-A convergeren;
@@ -18,7 +18,7 @@ Doel:
 Laatste bekende convergence HEAD uit de lopende run:
 `9029f52e20f7559b6dded2682856f0f544db9bcf`
 
-De eerdere Control OWNER-loginblokkade is door menselijke normale OAuth-login opgelost; Codex rondt de resterende acceptance/release af.
+De eerdere Control OWNER-loginblokkade is opgelost. De huidige primaire blocker is de synthetic payrollfinalisatie: employee is aangemaakt, employment/draft ontbreekt. Eerst dit veilig root-causen en herstellen zonder duplicate, daarna open security/persona-probes en finale gates.
 
 Na GREEN moeten AA-CURRENT, AA-ACCEPT en deze roadmap onmiddellijk worden bijgewerkt.
 

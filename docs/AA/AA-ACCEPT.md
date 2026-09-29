@@ -17,10 +17,10 @@ Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte
 | Slice | Status | Bewijs / opmerking |
 | --- | --- | --- |
 | ABS02 | GREEN | `docs/quality/acceptance/runs/ABS02-20260927.md` |
-| INS01 | IN CONVERGENCE | Definitief verdict volgt uit CONVERGENCE01 |
-| CONTROL01 | IN CONVERGENCE | Definitief verdict volgt uit CONVERGENCE01 |
-| AI01-A/A2 | IN CONVERGENCE | Durability/concurrency sterk bewezen; persona closeout loopt |
-| CONVERGENCE01 | IN FLIGHT | Huidige releasecloseout loopt op `work/CONVERGENCE01-20260928` |
+| INS01 | PARTIAL | Kernreports/scopes bewezen; volledige live matrix en laatste Bradford-exportparse nog open |
+| CONTROL01 | PARTIAL / RELEASE BLOCKER | Basis full-circle bewezen; synthetic import maakte employee maar geen employment/draft; negatives en finale Control gates open |
+| AI01-A/A2 | PARTIAL | Durability/concurrency sterk bewezen; feature-toggle/scope-revocation/persona matrix nog open |
+| CONVERGENCE01 | PARTIAL — NIET RELEASED | Payrollfinalisatie + open negatives + finale regressiegates blokkeren release |
 
 ## ABS02 accepted kern
 
@@ -34,6 +34,15 @@ Accepted onder meer:
 - gerichte regressies + volledige suite/build van die release.
 
 Gebruik voor detail uitsluitend het acceptance report.
+
+## Actuele blockers voor CONVERGENCE01
+
+- Synthetic payrollfinalisatie creëerde een employee maar geen employment/draft; veilige recovery zonder duplicate is nog niet bewezen.
+- Negatieve Control-autorisatiematrix is niet volledig.
+- AI feature-toggle/scope-revocation/personamatrix is niet volledig.
+- Laatste full HR-run was 1.933/1.934 door PDF-timeout.
+- Latere Control/UI/payroll/schemawijzigingen hebben nog geen finale volledige test-/buildgate.
+- Geen version bump, main/origin release-sync, Vercel deploy of hosted smoke.
 
 ## CONVERGENCE01 promotion rule
 
