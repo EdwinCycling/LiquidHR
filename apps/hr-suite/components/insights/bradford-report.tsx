@@ -19,7 +19,7 @@ import type { BradfordInsightReport, BradfordBand } from '@/lib/insights/bradfor
 import { buildInsightApplyHref, insightEmployeeDrilldownHref } from '@/lib/insights/query-seam'
 
 interface BradfordReportLabels {
-  title: string; description: string; backToAbsence: string; exportExcel: string; exportPreparing: string; exportSuccess: string; exportFailed: string; period: string; last52Weeks: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; resetFilters: string; clearFilters: string; removeFilter: string; filterStatus: string; groupBy: string; person: string; search: string; searchPlaceholder: string; risk: string; allRisks: string; lowRisk: string; mediumRisk: string; highRisk: string; employee: string; distribution: string; score: string; occurrences: string; days: string; since: string; dossier: string; info: string; infoTitle: string; infoFormula: string; infoInterpretation: string; infoLow: string; infoMedium: string; infoHigh: string; infoCaveat: string; infoSource: string; close: string; noResults: string; activeFilters?: string
+  title: string; backToAbsence: string; exportExcel: string; exportPreparing: string; exportSuccess: string; exportFailed: string; period: string; last52Weeks: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; resetFilters: string; clearFilters: string; removeFilter: string; filterStatus: string; groupBy: string; person: string; search: string; searchPlaceholder: string; risk: string; allRisks: string; lowRisk: string; mediumRisk: string; highRisk: string; employee: string; distribution: string; score: string; occurrences: string; days: string; since: string; dossier: string; info: string; infoTitle: string; infoFormula: string; infoInterpretation: string; infoLow: string; infoMedium: string; infoHigh: string; infoCaveat: string; infoSource: string; close: string; noResults: string; activeFilters?: string
 }
 
 function periodLabel(query: BradfordInsightQuery, labels: BradfordReportLabels): string {
@@ -77,7 +77,7 @@ export function BradfordReportView({ report, query, labels, returnTo }: { report
   return <section className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <Link className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary" href="/insights?report=absence"><ArrowLeft aria-hidden="true" size={16} />{labels.backToAbsence}</Link>
-      <p className="max-w-xl text-right text-sm text-muted-foreground">{labels.description}</p>
+
     </div>
 
     <InsightsFilterBar actions={<>
