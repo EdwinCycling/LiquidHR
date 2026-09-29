@@ -56,6 +56,11 @@ Bekende live catalogus:
 - Manager: 7 toegestane reports;
 - Employee: 0 managementreports.
 
+Belangrijke bewijsgrens:
+- INS01 is reliability/scope-hardening;
+- niet alle 19 rapporten zijn daarmee automatisch volledig gelijkgetrokken op shell, filters, KPI/chart/table, drilldown en export;
+- die systematische harmonisatie is expliciet INS02.
+
 Nog onderdeel van lopende closeout:
 - resterende forged context/API/export/drilldownmatrix;
 - finale classification GREEN/PARTIAL.
@@ -79,7 +84,7 @@ Bestaande relevante tabellen:
 - `payroll_import_persons`
 - `payroll_import_income_relationships`
 
-Control OWNER normale lokale OAuth-login is inmiddels door menselijke accountselectie gelukt; resterende full-circle/import/securityacceptatie loopt.
+Control OWNER normale lokale OAuth-login is inmiddels door menselijke accountselectie gelukt. De lokale Control callback is via de Supabase Redirect URL allowlist toegestaan zonder de production Site URL te wijzigen. De eerdere redirect naar de hosted HR-login was allowlist/configuratiegedrag, geen reden voor een auth-bypass. Resterende full-circle/import/securityacceptatie loopt.
 
 Official Loonaangifte ondersteuning blijft CONTROL02-scope.
 

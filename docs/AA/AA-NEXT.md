@@ -27,11 +27,16 @@ Na GREEN moeten AA-CURRENT, AA-ACCEPT en deze roadmap onmiddellijk worden bijgew
 **Loonaangifte XML Import V1 + Readiness UI**
 
 Doel:
-- HR Admin importscherm onder Instellingen;
-- automatische readiness-check van noodzakelijke en aanbevolen stamdata;
-- groen/oranje/rood/grijs statusmodel;
+- HR Admin importscherm onder **Instellingen → Medewerkers & dienstverband → Loonaangifte XML importeren**;
+- server-side readiness-paneel dat actuele stamdata controleert;
+- groen = gereed, oranje = import kan met draft/follow-up, rood = veilige import geblokkeerd, grijs = niet vereist;
+- readiness minimaal voor actieve HR-groep, actieve administratie, importrechten en na parsing LhNr/jaar/tijdvak/source support;
+- arbeidsvoorwaarden/contractinrichting mogen als oranje ontbreken en leiden dan tot veilige draft/follow-up;
+- afdelingen, functies, kostenplaatsen en salarisstructuur zijn niet automatisch blockers;
 - upload → detect → analyse → matching → preview → confirm → result;
-- bestaande medewerkers veilig herkennen en aanvullen;
+- bestaande medewerkers veilig herkennen en aanvullen: EXACT / PROPOSED / MANUAL REVIEW / NEW;
+- bestaande medewerker nooit dupliceren omdat dezelfde persoon opnieuw via XML binnenkomt;
+- bron-/LiquidHR-verschillen op veldniveau zichtbaar maken; niet blind overschrijven;
 - één persoon met meerdere IKV's correct behandelen;
 - geen voornaam uit initialen verzinnen;
 - BSN uitsluitend via bestaande secure identifier/fingerprintarchitectuur;
@@ -40,7 +45,8 @@ Doel:
 - ontbrekende niet-blokkerende inrichting leidt tot draft/follow-up;
 - jaar-/namespaceadapterarchitectuur;
 - representative synthetic XML + geanonimiseerde real-world fixture;
-- volledige gerichte import/security/UI acceptance.
+- formele XSD-validatie alleen claimen voor jaren met de bijpassende officiële XSD;
+- volledige gerichte import/security/UI acceptance, inclusief readiness-statussen en refresh na stamdatawijziging.
 
 Belangrijke input:
 - bestaande CONTROL01 stagingtabellen/services;

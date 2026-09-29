@@ -10,6 +10,8 @@ Eerste opzet: 2026-09-29
 - Start een nieuwe productwave pas nadat de bedoelde baseline op `origin/main` is bevestigd.
 - Lees vóór implementatie de relevante AA-documenten en domeinrequirements.
 - Scan de actuele code eerst; bouw nooit een tweede versie van iets dat al bestaat zonder die bestaande laag te begrijpen.
+- Start een run met een korte statusclassificatie: wat is BEDOELD, GEBOUWD, GETEST en RELEASED.
+- Corrigeer expliciet wanneer een prompt of ouder document meer claimt dan repo/acceptance evidence ondersteunt.
 
 ## 2. Branches en worktrees
 
@@ -69,6 +71,8 @@ Voor iedere feature:
 10. STOP wanneer scope bewezen is.
 
 Geen opportunistische redesigns of unrelated cleanup in dezelfde run.
+
+Framework-generated bestanden zoals `next-env.d.ts` zijn geen productwijziging. Commit onbedoelde generated drift niet; herstel die vóór checkpoint/release.
 
 ## 6. Defecten tijdens een run
 

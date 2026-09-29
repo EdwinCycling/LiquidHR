@@ -53,8 +53,9 @@ Bij GREEN moeten minimaal worden vastgelegd:
 
 ## Niet als GREEN behandelen zonder bewijs
 
-- alle 19 Insights reports volledig geharmoniseerd: **niet impliceren**; INS02 is de harmonisatiewave;
-- official Loonaangifte XML/XSD support: **niet CONTROL01 claimen**; CONTROL02;
+- alle 19 Insights reports volledig geharmoniseerd: **niet impliceren**; catalogus-/regressiebewijs is niet hetzelfde als end-to-end reportharmonisatie; INS02 is de harmonisatiewave;
+- official Loonaangifte XML/XSD support: **niet CONTROL01 claimen**; CONTROL01 bewijst foundation/staging/contracts, CONTROL02 levert jaaradapter, readiness UI en productimport;
+- parser/stagingbewijs is niet automatisch bewijs dat bestaande-medewerker matching, conflictresolutie en de volledige HR Admin importwizard productaccepted zijn;
 - AI commercial tiers/creditvalues: **AI01-B/productbesluit**;
 - full WvP case management: **WVP01**;
 - standalone Payroll Engine: **experiment, buiten LiquidHR core**.

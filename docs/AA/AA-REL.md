@@ -32,7 +32,7 @@ Convergence:
 5. readback + typegen + RLS/grants/advisors;
 6. targeted integration tests;
 7. runtime/persona/securityacceptatie;
-8. één volledige suite op uiteindelijke productcode;
+8. één volledige suite op uiteindelijke productcode; herhaal die niet na uitsluitend docs/versionmetadata;
 9. strict TypeScript;
 10. ESLint;
 11. i18n indien relevant;
@@ -68,6 +68,7 @@ Gebruik een nieuwe externe releasecheckout/worktree:
 - geen `.next`;
 - geen debugtraces/acceptance artifacts;
 - geen nested worktrees;
+- geen onbedoelde framework-generated drift zoals gewijzigde `next-env.d.ts`;
 - sane upload footprint.
 
 ## 6. Vercel

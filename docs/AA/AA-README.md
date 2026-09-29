@@ -86,6 +86,24 @@ Bij conflict geldt in deze volgorde:
 
 Een oud document wordt nooit stilzwijgend als actueler behandeld dan een later vastgelegd besluit.
 
+## Scherpteprotocol
+
+De AA-set is ook bedoeld om Edwin, ChatGPT en Codex elkaar inhoudelijk scherp te laten houden.
+
+Maak bij iedere relevante conclusie onderscheid tussen:
+- **BEDOELD** — productwens of requirement;
+- **GEBOUWD** — aantoonbaar in code/schema aanwezig;
+- **GETEST** — het specifieke gedrag is daadwerkelijk bewezen;
+- **RELEASED** — de bewezen code staat op de canonieke release/main/deployment.
+
+Regels:
+- Zet een aanname nooit stilzwijgend om in een feit.
+- Een grote groene regressiesuite bewijst niet automatisch dat elk scherm of businessscenario handmatig is geaccepteerd.
+- Een catalogus van 19 rapporten bewijst niet dat alle 19 rapporten volledig geharmoniseerd zijn.
+- Een parser/stagingcontract bewijst niet automatisch een live end-to-end import.
+- Als een gebruikersaanname, Codex-rapport of ouder document botst met actuele code/evidence: benoem het verschil en corrigeer de AA-baseline.
+- Als tijdens een run een herhaalbare procesles ontstaat, leg die in AA vast in plaats van dezelfde uitleg in toekomstige prompts te herhalen.
+
 ## Updatebeleid
 
 - Geen `v2-final-final`-bestanden; werk het canonieke AA-bestand bij.

@@ -22,6 +22,12 @@ Test **risicogestuurd en bounded**.
 
 Een full suite is geen ritueel. Gebruik hem waar het bewijs toevoegt.
 
+Praktische regel:
+- tijdens bouwen: targeted;
+- bij een defect: defecttest + relevante regressie;
+- bij convergence/release: één full suite op de **uiteindelijke productcode**;
+- na uitsluitend docs/versionmetadata: niet opnieuw.
+
 ## 2. Persona's
 
 De vaste functionele testpersona's zijn:
@@ -65,7 +71,9 @@ Test:
 - read-only;
 - writes moeten server-side worden geweigerd.
 
-Gebruik de bestaande geconfigureerde identities/harness. Documenteer geen wachtwoorden of secrets in deze file.
+Gebruik de bestaande geconfigureerde identities/harness. Documenteer geen wachtwoorden, tokens of persoonlijke accountgegevens in deze file. Exacte accountmapping hoort in beveiligde/runtime testconfiguratie, niet in publieke canonieke documentatie.
+
+Een test mag nooit groen worden gemaakt door tijdens acceptance een extra rol, platformoperator of tweede identity te creëren die het product normaal niet zou hebben.
 
 ## 3. Test Auth versus normale OAuth
 
@@ -77,7 +85,10 @@ Test Auth:
 
 Normale OAuth:
 - gebruiken wanneer echte identity/callback/sessiongedrag onderdeel van acceptance is;
-- geen redirect/securitybypass bouwen om een test te laten slagen.
+- geen redirect/securitybypass bouwen om een test te laten slagen;
+- voor lokale Control OAuth moet de lokale callback expliciet in de Supabase Redirect URL allowlist staan; wijzig daarvoor niet de production Site URL;
+- houd lokale redirecttoegang development-specifiek (huidig Control-patroon: `http://localhost:3001/**`);
+- terugvallen naar de hosted HR-login is geen geslaagde lokale Control-authenticatie.
 
 Control:
 - platformoperatorstatus komt uit de echte `platform_operators`-autorisatie, niet uit een testrol die tijdens acceptance wordt verzonnen.

@@ -85,6 +85,17 @@ Leidend detail:
 - Ontbrekende niet-blokkerende inrichting leidt tot duidelijke waarschuwing, draft/status of Setup Assistant-vervolgstap.
 - Jaar-/versieverschillen in externe standaarden horen in adapters, niet verspreid door UI en services.
 
+### Import-readiness en bestaande medewerkers
+
+- Een personenimport is ook een **match/upsert-proces**: een bronpersoon kan al als medewerker in LiquidHR bestaan.
+- Bij een veilige bestaande match blijft de bestaande medewerker leidend; maak geen duplicate employee aan.
+- De import mag gecontroleerd ontbrekende administratie-/IKV-/dienstverbandrelaties toevoegen.
+- Materiële verschillen tussen bron en bestaande HR-data worden als conflict/controlepunt getoond en niet blind overschreven.
+- Readiness wordt server-side uit actuele stamdata bepaald; geen handmatig afgevinkte checklist als bewijs.
+- Readiness onderscheidt minimaal: **gereed**, **waarschuwing/draft mogelijk**, **blokkerend** en **niet vereist**.
+- Ontbrekende afdelingen, functies, kostenplaatsen of salarisstructuur blokkeren een Loonaangifte-import niet automatisch.
+- De claim “XSD-geldig voor jaar N” mag alleen wanneer tegen de bijpassende officiële XSD voor dat jaar/namespace is gevalideerd.
+
 ## 7. AI-principes
 
 - AI-acties gaan via app-/service-/autorisatielaag.
