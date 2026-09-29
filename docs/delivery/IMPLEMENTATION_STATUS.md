@@ -10,6 +10,10 @@
 
 De eerste start miste Supabase-configuratie; het runtime-addendum loste alleen het laden van de bestaande config op en bouwde geen auth-bypass. Door de ontbrekende veilige Control testidentiteit/OAuth-callback en niet-uitgevoerde full-circle/importgates zijn version bump, main-update/push, release-checkout, Vercel Production en hosted smoke niet uitgevoerd. De HR-codefix is nog een lokale worktree-wijziging. Zie [CONVERGENCE01 acceptance](../quality/acceptance/runs/CONVERGENCE01-20260928.md) voor volledige evidence en open gates.
 
+## CONVERGENCE01 runtime-update — 2026-09-29
+
+De Bradford-dubbeling is verholpen in commit b6a60a10149fea8b5006016e5a5aa948ed3a4e07 en lokaal visueel gecontroleerd. De broncontrole en browsercheck van Frequent verzuimers en Aankomende gebeurtenissen vonden geen herhaalde rapportuitleg. Test Auth toonde 19 rapporten voor HR Admin, 7 voor Manager en 0 voor Employee; de directe browser-API-check werd door de browser geblokkeerd en blijft open. De gemelde Webpack-fout en een afzonderlijke eerste Startpagina-serverfout kwamen na herladen niet terug; hun oorzaak is niet vastgesteld. De Bradford-regressie slaagde (1/1); eerdere suite-, type-, lint- en buildresultaten blijven gelden. CONVERGENCE01 blijft PARTIAL door ontbrekende Control OWNER-login en resterende importer-, API- en securityacceptatie. Zie het acceptance-runrapport voor bewijs en grenzen.
+
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 
 **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance environment-gated.**

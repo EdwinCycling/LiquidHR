@@ -10,6 +10,10 @@ Vijf TEST-migrations zijn in volgorde toegepast en teruggelezen; remote history 
 
 Cherry-pick-integratiecommits: INS01 e4bf48bed1c85fdff1a2eafd526b789c9200064e; AI01-A A1 ed7bdfa9af716983f521964f2c50b2a8e13b5b21, A2 1033ded7e8447d9b0d03012f0cd8435fa4c3c4e7, documentatie cd8f9d817bee50942ce33cf59aa9270c0afde6b6; CONTROL01 5282d95bd86da11042f8c407013bba92a693a50c. Deze handoffs vervangen de eerdere READY_FOR_CONVERGENCE-statussen hieronder; historische acceptance reports zijn behouden.
 
+## CONVERGENCE01 runtime-update — 2026-09-29
+
+De Bradford-dubbeling is verholpen in commit b6a60a10149fea8b5006016e5a5aa948ed3a4e07 en lokaal visueel gecontroleerd. De broncontrole en browsercheck van Frequent verzuimers en Aankomende gebeurtenissen vonden geen herhaalde rapportuitleg. Test Auth toonde 19 rapporten voor HR Admin, 7 voor Manager en 0 voor Employee; de directe browser-API-check werd door de browser geblokkeerd en blijft open. De gemelde Webpack-fout en een afzonderlijke eerste Startpagina-serverfout kwamen na herladen niet terug; hun oorzaak is niet vastgesteld. De Bradford-regressie slaagde (1/1); eerdere suite-, type-, lint- en buildresultaten blijven gelden. CONVERGENCE01 blijft PARTIAL door ontbrekende Control OWNER-login en resterende importer-, API- en securityacceptatie. Zie het acceptance-runrapport voor bewijs en grenzen.
+
 ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
 
 **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance blijven environment-gated.** Baseline was exact `22ad719246095f75c1e3c034e6bdd3867c489569`; de gedeployde ABS02-applicatiebron is `e5e090b084a18561dc74a09d4054ddabe2c641b`; kandidaatversie `1.20260927.3` (eenmalig `.2 -> .3` na groene gates). Deze handoff-update is documentatie-only. ABS01 blijft frozen PARTIAL en INS01 is niet gestart.
