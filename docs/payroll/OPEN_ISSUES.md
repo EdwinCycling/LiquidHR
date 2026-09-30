@@ -1,5 +1,10 @@
 # Payroll Lab open issues
 
+2026-09-30 M0 update: synthetic PAYLAB02 is accepted; see
+[evidence](acceptance/PAYLAB02-M0-20260930.md). The historical JWT issue did not
+recur during existing HR Admin Test Auth browser acceptance. PAYLAB01 live Core
+source proof remains unexecuted rather than newly claimed as accepted.
+
 1. **Authenticated test environment clock validation — PAYLAB00 closed as
    environment-gated.** A fresh local test login redirected successfully, but
    the first authenticated page read failed with PostgREST
@@ -16,6 +21,7 @@
 4. **Tax/fiscal source fields — SOURCE_GAP.** No tax status, withholding choice
    or other fiscal value is mapped until an accepted Core source contract
    reliably provides it.
-5. **PAYLAB02 persistence and calculation — not started.** This slice creates
-   snapshots in memory only. No Payroll migration, persisted source snapshot,
-   payroll calculation or PAYLAB02 code was added.
+5. **Atomic orchestration / retention — later hardening.** Synthetic PAYLAB02
+   calculation and persistence are accepted. Sequential writes before run
+   insertion can leave append-only snapshot/input records after a failure.
+   No extra migration or cleanup was performed in this M0 slice.

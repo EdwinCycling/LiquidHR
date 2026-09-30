@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthorizationError } from '@/lib/auth/permissions'
 import { redirect } from 'next/navigation'
 import PayrollLabPage from './page'
@@ -17,14 +18,76 @@ vi.mock('@/lib/payroll/access', async (importOriginal) => ({
   resolvePayrollLabAdministration: vi.fn(),
 }))
 
+vi.mock('@/lib/payroll/synthetic-calculation-service', () => ({ getLatestSyntheticPayroll: vi.fn() }))
+
+vi.mock('@/lib/i18n/server', () => ({
+  getLocale: vi.fn(async () => 'nl'),
+  getTranslator: vi.fn(async () => (key: string) => ({
+    payrollLabTestEmployee: 'PAYLAB Test Employee',
+    payrollLabDeductions: 'Inhoudingen',
+    payrollLabEmployerCosts: 'Werkgever',
+  }[key] ?? key)),
+}))
+
 import { requirePermission } from '@/lib/auth/permissions'
 import { resolvePayrollLabAdministration } from '@/lib/payroll/access'
+import { getLatestSyntheticPayroll } from '@/lib/payroll/synthetic-calculation-service'
+
+const hrAdminContext = {
+  tenantId: '10000000-0000-4000-8000-000000000001',
+  hrGroupId: '10000000-0000-4000-8000-000000000002',
+  administrationId: '10000000-0000-4000-8000-000000000003',
+  userId: '20000000-0000-4000-8000-000000000005',
+  employeeId: null,
+  activeRoles: ['HR_ADMIN'],
+  permissions: ['salary:read', 'salary:write'],
+}
+
+const payrollAdministration = {
+  id: '30000000-0000-4000-8000-000000000004',
+  displayName: 'Synthetic Payroll Lab',
+  capabilityEnabled: true,
+  status: 'ACTIVE' as const,
+}
+
+const syntheticResult = {
+  runId: '40000000-0000-4000-8000-000000000001',
+  status: 'SUCCEEDED',
+  runType: 'GOLDEN_CASE',
+  payrollAdministrationId: payrollAdministration.id,
+  payrollPeriod: { year: 2026, month: 9 },
+  employeeId: '50000000-0000-4000-8000-000000000009',
+  sourceHash: 'a'.repeat(64),
+  inputHash: 'b'.repeat(64),
+  resultHash: 'c'.repeat(64),
+  components: [
+    ['gross_salary', '4000.00'],
+    ['employee_pension', '125.00'],
+    ['wage_tax', '700.00'],
+    ['net_salary', '3175.00'],
+    ['employer_pension', '250.00'],
+    ['employer_insurance', '400.00'],
+    ['employer_zvw', '260.00'],
+    ['holiday_allowance_accrual', '320.00'],
+    ['total_employer_cost', '4910.00'],
+  ].map(([key, amount]) => ({ key, amount, payload: { output: amount } })),
+  trace: [{ sequence: 1, componentCode: 'GC-NL-001' }],
+  controls: [{ key: 'NET_PAYABLE_MATCHES', status: 'PASS', details: { actual: '3175.00' } }],
+  startedAt: '2026-09-30T10:00:00.000Z',
+  finishedAt: '2026-09-30T10:00:01.000Z',
+  createdAt: '2026-09-30T10:00:00.000Z',
+  errorCode: null,
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('Payroll Lab protected shell route', () => {
   it('rejects direct visits without salary:read', async () => {
     vi.mocked(requirePermission).mockRejectedValue(new AuthorizationError('forbidden'))
 
-    await expect(PayrollLabPage()).rejects.toThrow('redirect:/geen-toegang')
+    await expect(PayrollLabPage({ searchParams: Promise.resolve({}) })).rejects.toThrow('redirect:/geen-toegang')
     expect(requirePermission).toHaveBeenCalledWith('salary:read')
     expect(resolvePayrollLabAdministration).not.toHaveBeenCalled()
     expect(redirect).toHaveBeenCalledWith('/geen-toegang')
@@ -42,8 +105,77 @@ describe('Payroll Lab protected shell route', () => {
     })
     vi.mocked(resolvePayrollLabAdministration).mockResolvedValue(null)
 
-    await expect(PayrollLabPage()).rejects.toThrow('redirect:/geen-toegang')
+    await expect(PayrollLabPage({ searchParams: Promise.resolve({}) })).rejects.toThrow('redirect:/geen-toegang')
     expect(resolvePayrollLabAdministration).toHaveBeenCalled()
     expect(redirect).toHaveBeenCalledWith('/geen-toegang')
+  })
+
+  it('shows all nine synthetic amounts and scoped run details to an authorized Payroll admin', async () => {
+    vi.mocked(requirePermission).mockResolvedValue(hrAdminContext)
+    vi.mocked(resolvePayrollLabAdministration).mockResolvedValue(payrollAdministration)
+    vi.mocked(getLatestSyntheticPayroll).mockResolvedValue(syntheticResult as never)
+
+    const page = await PayrollLabPage({ searchParams: Promise.resolve({}) })
+    const markup = renderToStaticMarkup(page)
+
+    expect(requirePermission).toHaveBeenCalledWith('salary:read')
+    expect(getLatestSyntheticPayroll).toHaveBeenCalledWith({
+      tenantId: hrAdminContext.tenantId,
+      hrGroupId: hrAdminContext.hrGroupId,
+      administrationId: hrAdminContext.administrationId,
+    }, payrollAdministration.id)
+    for (const [key, amount] of [
+      ['gross_salary', '4000.00'],
+      ['employee_pension', '125.00'],
+      ['wage_tax', '700.00'],
+      ['net_salary', '3175.00'],
+      ['employer_pension', '250.00'],
+      ['employer_insurance', '400.00'],
+      ['employer_zvw', '260.00'],
+      ['holiday_allowance_accrual', '320.00'],
+      ['total_employer_cost', '4910.00'],
+    ]) {
+      expect(markup).toContain(key)
+      expect(markup).toContain(amount)
+    }
+    expect(markup).toContain('payrollLabTrace')
+    expect(markup).toContain('payrollLabControls')
+    expect(markup).toContain('GOLDEN_CASE')
+    expect(markup).toContain('PAYLAB Test Employee · September 2026')
+    expect(markup).toContain('Inhoudingen')
+    expect(markup).toContain('Werkgever')
+    expect(markup.indexOf('PAYLAB Test Employee')).toBeLessThan(markup.indexOf('payrollLabRunStatus'))
+  })
+
+  it('shows a scoped failed run code and reference without exposing raw service details', async () => {
+    vi.mocked(requirePermission).mockResolvedValue(hrAdminContext)
+    vi.mocked(resolvePayrollLabAdministration).mockResolvedValue(payrollAdministration)
+    vi.mocked(getLatestSyntheticPayroll).mockResolvedValue({
+      ...syntheticResult,
+      status: 'FAILED',
+      errorCode: 'PAYROLL_CALCULATION_FAILED',
+    } as never)
+
+    const page = await PayrollLabPage({ searchParams: Promise.resolve({
+      error: 'PAYROLL_CALCULATION_FAILED',
+      run: syntheticResult.runId,
+    }) })
+    const markup = renderToStaticMarkup(page)
+
+    expect(markup).toContain('PAYROLL_CALCULATION_FAILED')
+    expect(markup).toContain(syntheticResult.runId)
+    expect(markup).not.toContain('private database detail')
+  })
+
+  it('does not render the run action for an actor with read access only', async () => {
+    vi.mocked(requirePermission).mockResolvedValue({ ...hrAdminContext, permissions: ['salary:read'] })
+    vi.mocked(resolvePayrollLabAdministration).mockResolvedValue(payrollAdministration)
+    vi.mocked(getLatestSyntheticPayroll).mockResolvedValue(null)
+
+    const page = await PayrollLabPage({ searchParams: Promise.resolve({}) })
+    const markup = renderToStaticMarkup(page)
+
+    expect(markup).not.toContain('form')
+    expect(markup).toContain('payrollLabEmptyTitle')
   })
 })

@@ -72,6 +72,7 @@ interface SidebarLabels {
   sectionPeopleOrganization: string
   sectionHrProcesses: string
   sectionSteering: string
+  sectionPayroll: string
   sectionManagement: string
   signOut: string
 }
@@ -208,6 +209,7 @@ export function Sidebar({
     peopleOrganization: labels.sectionPeopleOrganization,
     hrProcesses: labels.sectionHrProcesses,
     steering: labels.sectionSteering,
+    payroll: labels.sectionPayroll,
     management: labels.sectionManagement,
   }, menuOrder)
 

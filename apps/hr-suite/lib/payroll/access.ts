@@ -27,7 +27,8 @@ export async function resolvePayrollLabAdministration(
   options: PayrollLabAccessOptions = {},
 ): Promise<PayrollAdministrationCapability | null> {
   const enabled = isPayrollLabEnabled()
-  if (!enabled || !context.permissions.includes('salary:read')) return null
+  if (!enabled || !context.permissions.includes('salary:read')
+    || !context.activeRoles.some((role) => role === 'HR_ADMIN' || role === 'TENANT_ADMIN')) return null
 
   const scope = payrollScopeFromAuthContext(context)
   if (!scope) return null
@@ -51,7 +52,8 @@ export async function updatePayrollLabAdministrationCapability(
   options: PayrollLabCapabilityUpdateOptions = {},
 ): Promise<PayrollAdministrationCapability | null> {
   const context = await requirePermission('salary:write')
-  if (!isPayrollLabEnabled() || !context.permissions.includes('salary:write')) return null
+  if (!isPayrollLabEnabled() || !context.permissions.includes('salary:write')
+    || !context.activeRoles.some((role) => role === 'HR_ADMIN' || role === 'TENANT_ADMIN')) return null
 
   const scope = payrollScopeFromAuthContext(context)
   if (!scope) return null

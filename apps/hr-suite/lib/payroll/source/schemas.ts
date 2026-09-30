@@ -18,6 +18,8 @@ function isPayrollJsonValue(value: unknown): value is PayrollJsonValue {
 }
 
 const payrollJsonValueSchema = z.custom<PayrollJsonValue>(isPayrollJsonValue)
+// Core IDs are opaque PostgreSQL UUIDs; legacy records may not use RFC version/variant bits.
+const opaqueUuidSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
 
 export const payrollPeriodReferenceSchema = z.object({
   year: z.number().int().min(1900).max(2200),
@@ -25,10 +27,10 @@ export const payrollPeriodReferenceSchema = z.object({
 }).strict()
 
 export const payrollSourceProviderInputSchema = z.object({
-  tenantId: z.string().uuid(),
-  hrGroupId: z.string().uuid(),
-  administrationId: z.string().uuid(),
-  employeeId: z.string().uuid(),
+  tenantId: opaqueUuidSchema,
+  hrGroupId: opaqueUuidSchema,
+  administrationId: opaqueUuidSchema,
+  employeeId: opaqueUuidSchema,
   payrollPeriod: payrollPeriodReferenceSchema,
 }).strict() satisfies z.ZodType<PayrollSourceProviderInput>
 
@@ -39,13 +41,13 @@ export const payrollSourceGapSchema = z.object({
 }).strict()
 
 export const payrollSourceSnapshotSchema = z.object({
-  id: z.string().uuid(),
-  sourceTenantId: z.string().uuid(),
-  sourceHrGroupId: z.string().uuid(),
-  sourceAdministrationId: z.string().uuid(),
-  sourceEmployeeId: z.string().uuid(),
-  sourceEmploymentId: z.string().uuid(),
-  sourceIncomeRelationshipId: z.string().uuid().nullable(),
+  id: opaqueUuidSchema,
+  sourceTenantId: opaqueUuidSchema,
+  sourceHrGroupId: opaqueUuidSchema,
+  sourceAdministrationId: opaqueUuidSchema,
+  sourceEmployeeId: opaqueUuidSchema,
+  sourceEmploymentId: opaqueUuidSchema,
+  sourceIncomeRelationshipId: opaqueUuidSchema.nullable(),
   periodReference: payrollPeriodReferenceSchema,
   canonicalSource: payrollJsonValueSchema,
   sourceVersionVector: z.record(z.string(), z.string()),

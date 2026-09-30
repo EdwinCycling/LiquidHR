@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import nextEnv from '@next/env'
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const staticRoot = join(appRoot, '.next', 'static')
@@ -44,6 +45,10 @@ function selfTest() {
 }
 
 try {
+  // Load server configuration only for an exact-value leak check; never print it.
+  nextEnv.loadEnvConfig(appRoot)
+  const payrollSecret = process.env.PAYROLL_SUPABASE_SECRET_KEY
+  if (payrollSecret) markers.push(payrollSecret)
   const initialFiles = listFiles(staticRoot)
   assertAssetsExist(initialFiles)
   if (process.argv.includes('--self-test')) {

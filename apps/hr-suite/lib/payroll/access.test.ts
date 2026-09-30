@@ -53,6 +53,16 @@ describe('Payroll Lab administration capability', () => {
     vi.restoreAllMocks()
   })
 
+  it('denies a non-admin with salary permissions before querying Payroll Lab', async () => {
+    const repository = makeRepository()
+    const manager = { ...context, activeRoles: ['DIRECT_MANAGER'], permissions: ['salary:read', 'salary:write'] }
+    expect(await resolvePayrollLabAdministration(manager, { repository })).toBeNull()
+    vi.mocked(requirePermission).mockResolvedValue(manager)
+    expect(await updatePayrollLabAdministrationCapability(true, { repository })).toBeNull()
+    expect(repository.getPayrollAdministration).not.toHaveBeenCalled()
+    expect(repository.setPayrollAdministrationCapability).not.toHaveBeenCalled()
+  })
+
   it('allows an authorized, enabled administration only when the global flag is on', async () => {
     const repository = makeRepository()
     await expect(resolvePayrollLabAdministration(context, { repository })).resolves.toEqual(enabledAdministration)

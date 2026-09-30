@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 
 const clientModule = readFileSync(new URL('./supabase-client.ts', import.meta.url), 'utf8')
 const sourceProviderModule = readFileSync(new URL('./source/liquid-hr-source-provider.ts', import.meta.url), 'utf8')
+const calculationRepositoryModule = readFileSync(new URL('./calculation-repository.ts', import.meta.url), 'utf8')
+const syntheticCalculationServiceModule = readFileSync(new URL('./synthetic-calculation-service.ts', import.meta.url), 'utf8')
 const sidebarModule = readFileSync(new URL('../../components/layout/sidebar.tsx', import.meta.url), 'utf8')
 const payrollDirectory = fileURLToPath(new URL('./', import.meta.url))
 const hrSuiteRoot = fileURLToPath(new URL('../../', import.meta.url))
@@ -128,6 +130,15 @@ describe('Payroll Lab server-only boundary', () => {
     expect(sourceProviderModule).not.toMatch(/\.from\(['"](employees|employments|employment_salaries|employment_schedules)['"]\)/)
   })
 
+  it('keeps synthetic calculation and Payroll persistence server-only without Core reads', () => {
+    expect(calculationRepositoryModule.startsWith("import 'server-only'")).toBe(true)
+    expect(syntheticCalculationServiceModule.startsWith("import 'server-only'")).toBe(true)
+    expect(syntheticCalculationServiceModule).not.toContain('@/lib/auth/')
+    expect(syntheticCalculationServiceModule).not.toContain('@/lib/supabase/')
+    expect(syntheticCalculationServiceModule).not.toContain('./source/liquid-hr-source-provider')
+    expect(syntheticCalculationServiceModule).not.toContain("requirePermission(")
+  })
+
   it('does not import Payroll server modules from the client sidebar', () => {
     expect(sidebarModule).not.toMatch(/@\/lib\/payroll|\.\.\/payroll/)
     expect(sidebarModule).not.toContain('PAYROLL_SUPABASE')
@@ -141,11 +152,16 @@ describe('Payroll Lab server-only boundary', () => {
       join(hrSuiteRoot, 'proxy.ts'),
     ]
     const repositoryImporters = findImporters(sourceFiles, 'repository.ts')
+    const calculationRepositoryImporters = findImporters(sourceFiles, 'calculation-repository.ts')
     const supabaseClientImporters = findImporters(sourceFiles, 'supabase-client.ts')
 
     expect(resolveModulePath(join(payrollDirectory, 'access.ts'), './repository.js'))
       .toBe(resolve(payrollDirectory, 'repository.ts'))
     expect(repositoryImporters).toEqual([join(payrollDirectory, 'access.ts')])
-    expect(supabaseClientImporters).toEqual([join(payrollDirectory, 'repository.ts')])
+    expect(calculationRepositoryImporters).toEqual([join(payrollDirectory, 'synthetic-calculation-service.ts')])
+    expect(supabaseClientImporters).toEqual([
+      join(payrollDirectory, 'calculation-repository.ts'),
+      join(payrollDirectory, 'repository.ts'),
+    ])
   }, 20_000)
 })

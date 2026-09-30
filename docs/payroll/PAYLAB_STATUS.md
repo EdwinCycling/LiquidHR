@@ -1,4 +1,15 @@
-# Payroll Lab status — PAYLAB00 closed, PAYLAB01 partial
+# Payroll Lab status — synthetic PAYLAB02 / Engine M0 accepted
+
+**2026-09-30: PAYLAB02 synthetic M0 accepted.** Existing HR Admin Test Auth,
+Payroll sidebar, calculation action, engine, real Lab persistence and visible
+SUCCEEDED results were exercised. Net 3175.00, employer cost 4910.00, nine
+components, one trace and seven PASS controls. Two browser runs have identical
+source/input/result hashes. See [M0 evidence](acceptance/PAYLAB02-M0-20260930.md)
+and [engine contract](ENGINE_M0.md). No Core writes or auth/permission changes.
+PAYLAB01 live Core employment source proof remains unexecuted; the historical
+JWT error below did not recur in this M0 browser session.
+
+## Previous PAYLAB00 / PAYLAB01 status (historical)
 
 **PAYLAB00: ENVIRONMENT-GATED — database/isolation foundation accepted.** The
 authorized Payroll Lab migration and schema/security readback were accepted in

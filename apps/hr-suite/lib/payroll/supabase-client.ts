@@ -8,6 +8,7 @@ import type { PayrollDatabase } from './database'
 // project documented by this workspace; PAYROLL_* remain the only Payroll
 // runtime configuration variables.
 const LIQUIDHR_CORE_SUPABASE_HOST = 'wnpfloqpjvaacobppbpk.supabase.co'
+const PAYROLL_LAB_SUPABASE_HOST = 'jhgeriucbkfarxiudzfy.supabase.co'
 
 export class PayrollDatabaseConfigurationError extends Error {
   constructor() {
@@ -32,6 +33,10 @@ export function createPayrollSupabaseClient() {
   if (
     parsedUrl.protocol !== 'https:'
     || parsedUrl.hostname.toLowerCase() === LIQUIDHR_CORE_SUPABASE_HOST
+    || parsedUrl.hostname.toLowerCase() !== PAYROLL_LAB_SUPABASE_HOST
+    || parsedUrl.username !== '' || parsedUrl.password !== ''
+    || parsedUrl.port !== '' || parsedUrl.pathname !== '/'
+    || parsedUrl.search !== '' || parsedUrl.hash !== ''
   ) {
     throw new PayrollDatabaseConfigurationError()
   }

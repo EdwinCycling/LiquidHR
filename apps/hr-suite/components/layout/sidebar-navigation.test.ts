@@ -7,6 +7,7 @@ describe('sidebar navigation contract', () => {
     peopleOrganization: 'Mensen & organisatie',
     hrProcesses: 'HR-processen',
     steering: 'Sturen',
+    payroll: 'Payroll',
     management: 'Beheer',
   }
 
@@ -54,7 +55,7 @@ describe('sidebar navigation contract', () => {
     expect(sections[0]?.id).toBe('daily')
   })
 
-  it('shows Payroll Lab in management only when the server passes its guarded capability', () => {
+  it('shows Payroll Lab in its own main-menu section only when the server passes its guarded capability', () => {
     const hidden = buildSidebarSections([
       { href: '/payroll-lab', visible: false },
     ], labels, [])
@@ -63,7 +64,21 @@ describe('sidebar navigation contract', () => {
     ], labels, [])
 
     expect(hidden).toEqual([])
-    expect(visible).toEqual([{ id: 'management', label: labels.management, items: [{ href: '/payroll-lab', visible: true }] }])
+    expect(visible).toEqual([{ id: 'payroll', label: labels.payroll, items: [{ href: '/payroll-lab', visible: true }] }])
+  })
+
+  it('keeps Payroll Lab separate from management when both sections have visible items', () => {
+    const sections = buildSidebarSections([
+      { href: '/payroll-lab', visible: true },
+      { href: '/settings', visible: true },
+      { href: '/document-studio', visible: true },
+    ], labels, [])
+
+    expect(sections.map((section) => section.id)).toEqual(['payroll', 'management'])
+    expect(sections.map((section) => section.items.map((item) => item.href))).toEqual([
+      ['/payroll-lab'],
+      ['/settings', '/document-studio'],
+    ])
   })
 
   it('normalizes legacy order without Dashboard, product updates or stale entries', () => {
