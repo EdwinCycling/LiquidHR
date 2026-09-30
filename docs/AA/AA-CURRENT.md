@@ -1,7 +1,7 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**  
-Momentopname: 2026-09-29
+Momentopname: 2026-09-30
 
 > Deze eerste opzet is geschreven terwijl CONVERGENCE01 nog loopt. Na GREEN/RELEASED moet dit document direct worden bijgewerkt naar de definitieve release-SHA en versie.
 
@@ -19,6 +19,47 @@ Momentopname: 2026-09-29
 - appversie: `1.20260927.3`
 - ABS02 is inhoudelijk afgerond en deployed.
 - Hosted provenance had beperkte metadata-evidencegaps, niet opnieuw openen als productdefect.
+
+
+## Payroll Lab — PAYLAB00/01/02
+
+Payroll wordt niet als aparte gebruikersapp ontwikkeld. Het is een bounded context binnen dezelfde LiquidHR-app/repository, met een pure `packages/payroll-engine` en een aparte Payroll Lab Supabase-database.
+
+Ontwikkelwerkplek:
+- worktree: `LiquidHR-Payroll/Code`;
+- branch: `work/paylab00`;
+- niet gepusht, niet gemerged, niet gedeployed.
+
+PAYLAB00:
+- **ENVIRONMENT-GATED / CLOSED**;
+- isolation foundation en separate Payroll Lab-database staan;
+- Core bleef ongewijzigd.
+
+PAYLAB01:
+- **PARTIAL**;
+- server-only source adapter + canonical source snapshot gebouwd;
+- live Core→snapshot browserbewijs bleef buiten die slice/open door eerdere auth/environmentissues;
+- IncomeRelationship/CONTROL02 en fiscale source gaps blijven expliciet.
+
+PAYLAB02 / Engine M0:
+- **GREEN voor synthetic M0-scope** op 2026-09-30;
+- authenticated HR Admin Test Auth browserflow: Payroll → Payroll Lab → Bereken test payroll;
+- run `SUCCEEDED`;
+- 9 componentresultaten;
+- trace;
+- 7 controls PASS;
+- GC-NL-001 netto € 3.175,00;
+- totale werkgeverskosten € 4.910,00;
+- herhaalrun met identieke source/input/result hashes;
+- SYSTEM / CUSTOMER_FORK / CUSTOMER_CUSTOM ownership + provenance aanwezig;
+- veilige bounded typed expression engine aanwezig;
+- productiebuild, typecheck, changed-area lint, i18n en client-secret scan GREEN;
+- separate Payroll Lab persistence/readback bewezen;
+- alleen expliciet goedgekeurde Lab-testcontextkoppeling toegepast;
+- geen Core-writes of permissionwijzigingen.
+
+Bewijsgrens:
+PAYLAB02 bewijst de generieke componentengine + synthetic vertical slice. Echte Nederlandse fiscale 2026-regels zijn nog niet geïmplementeerd/geaccepteerd. Dat is de eerstvolgende inhoudelijke payrollstap.
 
 ## Lopend — CONVERGENCE01
 
