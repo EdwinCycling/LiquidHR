@@ -8,7 +8,8 @@ Lab-persistence en geauthenticeerde lokale browser **GREEN**.
 - Branch: `work/paylab00`; PAYLAB02 checkpoint `1918a7b2f94e6ad9c1544929a735b4d94a26a118`.
 - AA-reference: `origin/docs/aa-foundation-20260929` op `b71d663` gelezen,
   inclusief AA-PAYROLL/AA-OP/AA-CURRENT/AA-ACCEPT; niet gemerged.
-- Finale code-SHA wordt na de lokale commit hieronder vastgelegd.
+- Finale code-SHA: `5d7e9fc5e19ff4582787b51e0104c885ac83370a`. De opvolgende documentatiecommit
+  registreert uitsluitend deze SHA; de geverifieerde implementatie blijft identiek.
 - Geen push, merge, deployment, app-version bump, authwijziging, nieuwe gebruiker,
   gewijzigde permissions, Core-write of CONTROL02-schemawijziging.
 - Bestaande goedgekeurde Planeten Lab-administratiekoppelingen hergebruikt.
