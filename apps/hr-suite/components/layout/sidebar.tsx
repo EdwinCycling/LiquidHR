@@ -18,6 +18,7 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   ClipboardList,
+  Calculator,
   FileStack,
   UserRound,
   Users,
@@ -57,6 +58,7 @@ interface SidebarLabels {
   recruitment: string
   journeys: string
   documentStudio: string
+  payrollLab: string
   navigation: string
   openMenu: string
   closeMenu: string
@@ -88,6 +90,7 @@ interface SidebarProps {
   recruitmentHref: RecruitmentNavigationHref
   canReadJourneys: boolean
   canReadDocumentStudio: boolean
+  canReadPayrollLab: boolean
   labels: SidebarLabels
   preferences: UserPreferences
   profileFirstName: string
@@ -129,6 +132,7 @@ export function Sidebar({
   recruitmentHref,
   canReadJourneys,
   canReadDocumentStudio,
+  canReadPayrollLab,
   labels,
   preferences,
   profileFirstName,
@@ -163,6 +167,7 @@ export function Sidebar({
     { href: recruitmentHref, label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
     { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
     { href: '/document-studio', label: labels.documentStudio, icon: FileStack, visible: canReadDocumentStudio },
+    { href: '/payroll-lab', label: labels.payrollLab, icon: Calculator, visible: canReadPayrollLab },
     { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights },
     { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, exact: true },
@@ -178,7 +183,7 @@ export function Sidebar({
     const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(normalizeSidebarMenuOrder(detail)) }
     const handleProductUpdatesSeen = () => setCurrentProductUpdateUnreadCount(0)
     load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); window.addEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen); return () => { window.removeEventListener('liquidhr-menu-order-changed', handleChange); window.removeEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen) }
-  }, [canOpenResearch, canReadDocumentStudio, canReadJourneys, canReadProcessWork, canReadRecruitment, canReadStartPage, canReadWorkforce])
+  }, [canOpenResearch, canReadDocumentStudio, canReadJourneys, canReadPayrollLab, canReadProcessWork, canReadRecruitment, canReadStartPage, canReadWorkforce])
   useEffect(() => {
     if (!accountMenuOpen) return
     const handlePointerDown = (event: PointerEvent) => {

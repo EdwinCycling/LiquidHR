@@ -48,5 +48,12 @@
   "testRoleSwitchHrAdmin": "Test HR Admin",
   "testRoleSwitchManager": "Test Manager",
   "testRoleSwitchEmployee": "Test Medewerker",
-  "testRoleSwitchReturnToAdmin": "Terug naar Test HR Admin"
+  "testRoleSwitchReturnToAdmin": "Terug naar Test HR Admin",
+  "payrollLab": "Payroll Lab",
+  "payrollLabDescription": "Geïsoleerde Payroll Lab-omgeving.",
+  "payrollLabAdministration": "Administratie",
+  "payrollLabStatus": "Status",
+  "payrollLabActive": "Actief",
+  "payrollLabConnected": "Payroll Lab-verbinding actief",
+  "payrollLabUnavailable": "Payroll Lab is tijdelijk niet beschikbaar. Probeer het later opnieuw."
 }

@@ -54,6 +54,18 @@ describe('sidebar navigation contract', () => {
     expect(sections[0]?.id).toBe('daily')
   })
 
+  it('shows Payroll Lab in management only when the server passes its guarded capability', () => {
+    const hidden = buildSidebarSections([
+      { href: '/payroll-lab', visible: false },
+    ], labels, [])
+    const visible = buildSidebarSections([
+      { href: '/payroll-lab', visible: true },
+    ], labels, [])
+
+    expect(hidden).toEqual([])
+    expect(visible).toEqual([{ id: 'management', label: labels.management, items: [{ href: '/payroll-lab', visible: true }] }])
+  })
+
   it('normalizes legacy order without Dashboard, product updates or stale entries', () => {
     expect(normalizeSidebarMenuOrder([
       '/dashboard', '/insights', '/product-updates', '/insights', '/not-a-route', '/settings', 42,

@@ -66,3 +66,22 @@ CONTROL02 remains owner of the canonical Core administration/IKV import contract
 
 PAYLAB00 may create interfaces/placeholders but must not modify CONTROL02-owned Core contracts.
 
+## PAYLAB01 implementation note — 2026-09-30
+
+`LiquidHrPayrollSourceProvider` implements the read-only anti-corruption seam as
+a server-only service. It uses existing employment services, requires the
+existing `salary:read` and `contract:read` permissions, and verifies the
+requested tenant, HR-group and administration against the authenticated
+context. It also honors `PAYROLL_LAB_ENABLED` before authorization or source
+reads. Its canonical snapshot includes source IDs, period, employment dates
+and types, effective-dated salary and hours entries, source row versions,
+explicit source gaps, and a deterministic SHA-256 hash.
+
+IncomeRelationship remains `UNSUPPORTED` until CONTROL02's accepted contract
+is available; Employment is not its substitute. Tax/fiscal fields remain
+`SOURCE_GAP`. No Core query is made directly by the adapter, no Core write or
+schema change is made, and the snapshot is not persisted in this milestone.
+Live authenticated integration proof remains environment-gated by
+PostgREST `PGRST303: JWT issued at future`; see the
+[`PAYLAB00/PAYLAB01 acceptance evidence`](../payroll/acceptance/PAYLAB00-01-20260930.md).
+
