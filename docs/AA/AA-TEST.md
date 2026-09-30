@@ -170,7 +170,31 @@ Waar relevant:
 - narrow/mobile viewport;
 - NL/EN parity.
 
-## 9. Full-suite beleid
+## 9. Payroll Lab / payroll engine
+
+Voor Payroll geldt aanvullend `AA-PAYROLL.md`.
+
+Tijdens normale Payroll-engineontwikkeling bewijs minimaal waar relevant:
+- componentdefinition/input/output/dependency-contracten;
+- fixed-decimal gedrag en afronding;
+- graph/order/dependency-resolutie;
+- veilige expression-engine;
+- ownership/provenance en detached forks;
+- Golden Case exact-resultaat;
+- source/input/result hash-repeatability;
+- run lifecycle;
+- persistence readback;
+- immutable trace/control artifacts;
+- tenant/HR-groep/administratie-scope negatives;
+- client secret boundary.
+
+Een synthetische Golden Case bewijst de engine en orchestration, niet automatisch fiscale juistheid. Echte NL-jaarrules krijgen afzonderlijke compliancecases tegen de betreffende officiële bronnen.
+
+Browseracceptatie mag bestaande lokale Test Auth/testidentities gebruiken. Maak geen nieuwe rol, gebruiker of bypass om acceptatie mogelijk te maken.
+
+Een Payroll Lab-auth/environmentprobleem mag als `ENVIRONMENT-GATED` worden geregistreerd wanneer engine/persistencebewijs onafhankelijk beschikbaar is; heropen geen eindeloze auth-RCA buiten de afgesproken slice.
+
+## 10. Full-suite beleid
 
 Draai een volledige hr-suite:
 - aan het eind van convergence/release;
@@ -186,7 +210,7 @@ Als één ongerelateerde test timeout:
 3. bepaal flaky/performance/root cause;
 4. release vereist uiteindelijk een verdedigbare GREEN gate volgens AA-REL.
 
-## 10. Acceptance verdicts
+## 11. Acceptance verdicts
 
 Volg `docs/quality/acceptance/REPORTING-STANDARD.md`.
 
