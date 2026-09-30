@@ -115,7 +115,9 @@ Reconcile bestaande payrollworktrees en migrationlineage tegen dan-actuele main.
 - niet blind cherry-picken;
 - unieke commits/data-contracten behouden;
 - obsolete experimenten expliciet markeren;
-- geen vermenging met standalone Payroll Engine Lab.
+- Payroll Lab niet behandelen als standalone gebruikersapp: behoud de bounded-contextarchitectuur binnen LiquidHR, met pure engine package en aparte Payroll-database;
+- behoud PAYLAB02 M0 componentengine/ownership/expression-contracten;
+- volgende inhoudelijke Payroll-slice: synthetische fiscale waarden vervangen door echte, versioned Nederlandse 2026-rule logic met compliancecases.
 
 ## THEN — AW02
 
