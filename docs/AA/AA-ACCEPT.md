@@ -1,7 +1,7 @@
 # AA-ACCEPT — Accepted Baseline
 
 Status: **LIVING INDEX**  
-Bijgewerkt: 2026-09-29
+Bijgewerkt: 2026-09-30
 
 Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte index van wat we als actuele baseline accepteren.
 
@@ -21,6 +21,9 @@ Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte
 | CONTROL01 | PARTIAL / RELEASE BLOCKER | Basis full-circle bewezen; synthetic import maakte employee maar geen employment/draft; negatives en finale Control gates open |
 | AI01-A/A2 | PARTIAL | Durability/concurrency sterk bewezen; feature-toggle/scope-revocation/persona matrix nog open |
 | CONVERGENCE01 | PARTIAL — NIET RELEASED | Payrollfinalisatie + open negatives + finale regressiegates blokkeren release |
+| PAYLAB00 | ENVIRONMENT-GATED / CLOSED | Isolated Payroll Lab foundation; geen verdere acceptance-RCA nodig voor deze slice |
+| PAYLAB01 | PARTIAL | Server-only source adapter + canonical snapshot gebouwd; live Core→snapshot acceptance blijft open |
+| PAYLAB02 M0 | GREEN — SYNTHETIC SCOPE | Authenticated browser → componentengine → persistence → SUCCEEDED; 9 results, trace, 7 controls, repeatable hashes |
 
 ## ABS02 accepted kern
 
@@ -67,7 +70,30 @@ Bij GREEN moeten minimaal worden vastgelegd:
 - parser/stagingbewijs is niet automatisch bewijs dat bestaande-medewerker matching, conflictresolutie en de volledige HR Admin importwizard productaccepted zijn;
 - AI commercial tiers/creditvalues: **AI01-B/productbesluit**;
 - full WvP case management: **WVP01**;
-- standalone Payroll Engine: **experiment, buiten LiquidHR core**.
+- Payroll: **geen aparte gebruikersapp**; bounded context binnen dezelfde LiquidHR-app/repository met pure engine package en aparte Payroll-database. PAYLAB02 GREEN geldt uitsluitend voor synthetic M0, niet voor fiscale NL-2026-correctheid.
+
+## PAYLAB02 accepted kern
+
+Accepted voor synthetic M0:
+- bestaande HR Admin Test Auth → Payroll → Payroll Lab;
+- echte componentengine-uitvoering;
+- `SUCCEEDED` persistence;
+- netto € 3.175,00 en werkgeverskosten € 4.910,00 voor GC-NL-001;
+- 9 componentresultaten, trace en 7 passing controls;
+- repeatability met identieke source/input/result hashes;
+- SYSTEM / CUSTOMER_FORK / CUSTOMER_CUSTOM ownership/provenance;
+- bounded typed expression engine;
+- geen Core-write of permissionwijziging;
+- bestaande LiquidHR UI-shell/styles/componenten hergebruikt.
+
+Niet accepted door PAYLAB02:
+- fiscale Nederlandse 2026-correctheid;
+- live Core employment/IKV end-to-end source acceptance;
+- CONTROL02/IncomeRelationship-contracten;
+- production release/deployment van Payroll.
+
+Detailbewijs:
+`docs/payroll/acceptance/PAYLAB02-M0-20260930.md`
 
 ## Acceptance bron
 
