@@ -177,6 +177,13 @@ Voor Payroll geldt aanvullend `AA-PAYROLL.md`.
 Tijdens normale Payroll-engineontwikkeling bewijs minimaal waar relevant:
 - componentdefinition/input/output/dependency-contracten;
 - fixed-decimal gedrag en afronding;
+- geen binary-float regressies in financiële calculation paths;
+- expliciete rounding stage/mode/scale per wettelijke regel waar van toepassing;
+- tests voor rekenkundig, naar beneden, naar boven en target-multiple rounding waar gebruikt;
+- statutory boundary tests rond relevante drempels (onder/exact/boven);
+- trace van unrounded → rounded value + rounding rule version waar relevant;
+- deterministische restcentallocatie wanneer groepsbedragen worden verdeeld;
+- cumulatieve/YTD-logica alleen waar de component/regeling dit expliciet vereist;
 - graph/order/dependency-resolutie;
 - veilige expression-engine;
 - ownership/provenance en detached forks;
