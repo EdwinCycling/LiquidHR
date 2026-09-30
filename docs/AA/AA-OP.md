@@ -76,6 +76,8 @@ Geen opportunistische redesigns of unrelated cleanup in dezelfde run.
 
 Bij substantiële, goed afgebakende runs mogen subagents expliciet worden ingezet wanneer parallelisering of onafhankelijke controle aantoonbaar waarde toevoegt, bijvoorbeeld voor implementatie, security/scope-review, database/migration-review, UI-consistentie, teststrategie of domeinregelcontrole. De hoofdagent blijft orchestrator: verdeelt werk, beoordeelt resultaten, lost conflicten op, laat fixes uitvoeren en rapporteert pas daarna geïntegreerd. Laat niet meerdere agents hetzelfde werk dupliceren zonder duidelijke reden.
 
+**Vaste modelkeuze:** wanneer de runtime/modelselector subagents ondersteunt, gebruikt iedere subagent **LUNA MAX**. Gebruik geen automatische, lagere of alternatieve subagentconfiguratie. Als LUNA MAX niet beschikbaar/selecteerbaar is, vervang dit niet stilzwijgend door een ander model; meld de beperking aan de orchestrator en ga alleen verder wanneer de taak zonder subagent verantwoord kan worden uitgevoerd.
+
 Voor Payroll geldt aanvullend `AA-PAYROLL.md`.
 
 Framework-generated bestanden zoals `next-env.d.ts` zijn geen productwijziging. Commit onbedoelde generated drift niet; herstel die vóór checkpoint/release.
