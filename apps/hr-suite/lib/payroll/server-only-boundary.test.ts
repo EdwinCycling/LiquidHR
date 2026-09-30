@@ -158,7 +158,7 @@ describe('Payroll Lab server-only boundary', () => {
     expect(resolveModulePath(join(payrollDirectory, 'access.ts'), './repository.js'))
       .toBe(resolve(payrollDirectory, 'repository.ts'))
     expect(repositoryImporters).toEqual([join(payrollDirectory, 'access.ts')])
-    expect(calculationRepositoryImporters).toEqual([join(payrollDirectory, 'synthetic-calculation-service.ts')])
+    expect(calculationRepositoryImporters).toEqual([join(payrollDirectory, 'nl-2026-calculation-service.ts'), join(payrollDirectory, 'synthetic-calculation-service.ts')])
     expect(supabaseClientImporters).toEqual([
       join(payrollDirectory, 'calculation-repository.ts'),
       join(payrollDirectory, 'repository.ts'),

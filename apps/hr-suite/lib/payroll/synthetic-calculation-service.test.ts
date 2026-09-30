@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { NL_2026_TEST_ENGINE, NL_2026_TEST_SCENARIO } from './nl-2026-calculation-service'
+import { PayrollEngineError } from '@liquid-hr/payroll-engine'
 import { describe, expect, it, vi } from 'vitest'
 import type {
   PayrollCalculationInputs,
@@ -350,5 +353,43 @@ describe('synthetic Payroll calculation service', () => {
       code: 'PAYROLL_SYNTHETIC_MODE_DISABLED',
     })
     expect(calls).toEqual([])
+  })
+})
+
+
+describe('NL-2026 scenario in the persisted calculation lifecycle', () => {
+  it('persists actual rule outputs, distinct source identities and reproducible package trace', async () => {
+    const { repository } = makeRepository()
+    const service = createSyntheticPayrollService({ repository, engine: NL_2026_TEST_ENGINE, scenario: NL_2026_TEST_SCENARIO, isEnabled: () => true, now: () => fixedNow })
+    NL_2026_TEST_ENGINE.calculate(NL_2026_TEST_ENGINE.buildInputs(NL_2026_TEST_SCENARIO.createSnapshot(scope, NL_2026_TEST_SCENARIO.period, { now: fixedNow }), '2026-09-01'))
+    const first = await service.runSyntheticPayroll(scope, payrollAdministrationId, actorUserId)
+    const second = await service.runSyntheticPayroll(scope, payrollAdministrationId, actorUserId)
+    expect(first.status).toBe('SUCCEEDED')
+    expect(Object.fromEntries(first.components.map((row) => [row.key, row.amount]))).toEqual({ gross_salary: '4000.00', taxable_wage: '4000.00', wage_tax: '818.67', net_salary: '3181.33' })
+    expect(second.inputHash).toBe(first.inputHash)
+    expect(second.resultHash).toBe(first.resultHash)
+    expect(first.caseKey).toBe('CC-NL-2026-001')
+    const snapshot = vi.mocked(repository.insertSourceSnapshot).mock.calls[0]?.[2]
+    expect(snapshot?.source_employment_id).not.toBe(snapshot?.source_income_relationship_id)
+    expect(snapshot?.source_employee_id).toBe(first.employeeId)
+    const trace = JSON.stringify(first.trace)
+    expect(trace).toContain('packageMetadata')
+    expect(trace).toContain('unroundedValue')
+    expect(trace).toContain('roundingDifference')
+    const messages = JSON.parse(readFileSync(new URL('../../messages/nl/navigation.json', import.meta.url), 'utf8')) as Record<string, string>
+    const payload = first.trace as { steps: readonly { registeredRuleTrace?: readonly { code: string }[] }[] }
+    for (const step of payload.steps.flatMap((row) => row.registeredRuleTrace ?? [])) {
+      expect(messages[`payrollLabTrace_${step.code.replaceAll('.', '_').replaceAll('-', '_')}`]).toBeDefined()
+    }
+    await service.getLatestSyntheticPayroll(scope, payrollAdministrationId)
+    expect(repository.getLatestSyntheticArtifacts).toHaveBeenCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId)
+  })
+  it('stores controlled UNSUPPORTED trace and no financial outputs', async () => {
+    const { repository, getRun } = makeRepository()
+    const service = createSyntheticPayrollService({ repository, scenario: NL_2026_TEST_SCENARIO, engine: { ...NL_2026_TEST_ENGINE, calculate: () => { throw new PayrollEngineError('NL2026_UNSUPPORTED_TABLE', 'unsupported') } }, isEnabled: () => true, now: () => fixedNow })
+    await expect(service.runSyntheticPayroll(scope, payrollAdministrationId, actorUserId)).rejects.toMatchObject({ code: 'PAYROLL_UNSUPPORTED', reasonCode: 'NL2026_UNSUPPORTED_TABLE' })
+    expect(getRun()?.status).toBe('FAILED')
+    expect(repository.insertComponentResults).not.toHaveBeenCalled()
+    expect(vi.mocked(repository.insertCalculationTrace).mock.calls[0]?.[2].trace_payload).toMatchObject({ status: 'UNSUPPORTED', unsupportedReason: 'NL2026_UNSUPPORTED_TABLE' })
   })
 })

@@ -68,3 +68,39 @@ de aparte synthetische Payroll Lab-scope gebruiken zonder een Auth-user aan te
 maken. Opaque audit-UUID's in Payroll-testrecords zijn geen loginidentiteiten.
 
 Verificatie en live resultaten staan in het afzonderlijke acceptatierapport.
+
+
+## PAYLAB03 uitbreidingen (2026-09-30)
+
+Engineversie 0.2.0 houdt de GC-NL-001-bedragen als synthetische regressiecase.
+NL-PAYROLL-2026 versie 2026.1 bevat de afzonderlijke fiscale CC-NL-2026-001.
+De geregistreerde SYSTEM-rule wordt statisch server-side geleverd; package,
+component, schema, implementatie en parameters zijn gepind. Deze functiegrens
+is geen sandbox. Klantcomponenten kunnen geen geregistreerde SYSTEM-rule
+uitvoeren; een detached fork moet een ondersteunde veilige methode kiezen.
+
+Rond alleen wanneer de actieve payrollregel dit expliciet voorschrijft,
+precies op die calculation stage, met de voorgeschreven schaal en methode.
+Versioned/effective-dated rounding definitions bevatten stage, schaal of
+veelvoud, mode en wettelijke provenance. Ondersteund: arithmetic, floor,
+ceiling, truncate, round-down-to-multiple en no-rounding. Floor en truncate
+verschillen bij negatieve waarden. Niet-eindigende delingen vragen een
+expliciete regel; wettelijke tijdvakdelingen ronden rechtstreeks vanuit een
+exacte breuk. Decimal bewaart officiële parameterschalen; de veiligheidsgrens
+van 36 decimalen weigert overflow en is geen impliciete afrondingsregel.
+Serialization weigert verlies van niet-nul decimalen. Trace bewaart invoer,
+uitvoer, exact verschil, mode/stage/schaal/versie en bron. Breuken blijven
+exact als numerator/denominator bewaard. Geen generieke YTD-regel.
+
+Node-identiteit bevat componentcode/versie, processing scope en opaque scope
+instance ID. Employment en IKV zijn afzonderlijke identiteiten. Types reserveren
+assessment-base scopes/groepen, grondslagspecifieke IKV-membership en een
+versioned allocation-policy reference. Shared bases en restcentverdeling worden
+nog niet uitgevoerd. Geen Core-IKV-schema of cross-database FK toegevoegd.
+
+De huidige executor ondersteunt acyclische berekeningen. Expliciete iteratieve
+clusters en versioned tolerance/comparison precision/max/min iterations/output
+selectors zijn gereserveerd; uitvoering levert gecontroleerd
+ITERATIVE_CLUSTER_UNSUPPORTED. Dit verklaart de huidige beperking zonder alle
+toekomstige graphs universeel als DAG te definiëren. Geen iteration of
+allocation calculation wordt in PAYLAB03 geïmplementeerd.

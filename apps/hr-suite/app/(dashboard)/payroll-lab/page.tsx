@@ -13,28 +13,19 @@ import { ContextAuthenticationError } from '@/lib/context/server-context'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { PayrollLabUnavailableError, resolvePayrollLabAdministration } from '@/lib/payroll/access'
 import { payrollScopeFromAuthContext } from '@/lib/payroll/scope'
-import { getLatestSyntheticPayroll, type SyntheticPayrollView } from '@/lib/payroll/synthetic-calculation-service'
-import { runSyntheticPayrollAction } from './actions'
+import type { PayrollJson } from '@/lib/payroll/database'
+import type { SyntheticPayrollView } from '@/lib/payroll/synthetic-calculation-service'
+import { getLatestNl2026Payroll } from '@/lib/payroll/nl-2026-calculation-service'
+import { runNl2026PayrollAction } from './actions'
 import { isPayrollLabErrorCode, payrollLabErrorMessageKey } from './error-codes'
 import { formatPayrollMoney } from './format-money'
 
-const PAYROLL_AMOUNT_FIELDS = {
-  summary: [
-    { key: 'gross_salary', label: 'payrollLabAmountGrossSalary' },
-    { key: 'net_salary', label: 'payrollLabAmountNetSalary' },
-    { key: 'total_employer_cost', label: 'payrollLabAmountTotalEmployerCost' },
-  ],
-  deductions: [
-    { key: 'employee_pension', label: 'payrollLabAmountEmployeePension' },
-    { key: 'wage_tax', label: 'payrollLabAmountWageTax' },
-  ],
-  employer: [
-    { key: 'employer_pension', label: 'payrollLabAmountEmployerPension' },
-    { key: 'employer_insurance', label: 'payrollLabAmountEmployerInsurance' },
-    { key: 'employer_zvw', label: 'payrollLabAmountEmployerZvw' },
-    { key: 'holiday_allowance_accrual', label: 'payrollLabAmountHolidayAllowanceAccrual' },
-  ],
-} as const
+const PAYROLL_AMOUNT_FIELDS = { summary: [
+  { key: 'gross_salary', label: 'payrollLabAmountGrossSalary' },
+  { key: 'taxable_wage', label: 'payrollLabAmountTaxableWage' },
+  { key: 'wage_tax', label: 'payrollLabAmountWageTax' },
+  { key: 'net_salary', label: 'payrollLabAmountNetSalary' },
+] } as const
 
 type PayrollLabQuery = {
   run?: string | string[]
@@ -90,6 +81,26 @@ function traceText(trace: SyntheticPayrollView['trace']): string | null {
   }
 }
 
+function traceRecord(value: PayrollJson | undefined): value is { readonly [key: string]: PayrollJson | undefined } {
+  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
+}
+
+function CalculationTrace({ trace, t }: { trace: SyntheticPayrollView['trace']; t: Awaited<ReturnType<typeof getTranslator>> }) {
+  const record = traceRecord(trace) ? trace : null
+  const steps = record && Array.isArray(record.steps) ? record.steps : []
+  const rules = steps.flatMap((step) => traceRecord(step) && Array.isArray(step.registeredRuleTrace) ? step.registeredRuleTrace : [])
+  return <ol className="mt-4 space-y-4">{rules.map((rule, index) => {
+    if (!traceRecord(rule)) return null
+    const values = traceRecord(rule.values) ? rule.values : {}
+    const code = typeof rule.code === 'string' ? rule.code : ''
+    return <li className="border-t border-subtle pt-3" key={`${code}-${index}`}>
+      <p className="text-sm font-medium">{t(`payrollLabTrace_${code.replaceAll('.', '_').replaceAll('-', '_')}`)}</p>
+      <dl className="mt-2 grid gap-2 text-xs sm:grid-cols-2">{Object.entries(values).map(([key, value]) => <div className="min-w-0" key={key}><dt className="break-all text-muted-foreground">{key}</dt><dd className="break-all font-mono">{String(traceRecord(value) && 'value' in value ? value.value ?? '—' : value ?? '—')}</dd></div>)}</dl>
+      <p className="mt-2 break-words text-xs text-muted-foreground">{typeof rule.sourceReference === 'string' ? rule.sourceReference : ''}</p>
+    </li>
+  })}</ol>
+}
+
 function formatPeriod(period: SyntheticPayrollView['payrollPeriod']): string {
   return `${period.year}-${String(period.month).padStart(2, '0')}`
 }
@@ -116,7 +127,7 @@ function AmountList({
   featured?: boolean
 }) {
   return (
-    <dl className={`grid gap-x-6 gap-y-4 ${featured ? 'sm:grid-cols-3' : 'sm:grid-cols-2 xl:grid-cols-4'}`}>
+    <dl className={`grid gap-x-6 gap-y-4 ${featured ? 'sm:grid-cols-2 xl:grid-cols-4' : 'sm:grid-cols-2 xl:grid-cols-4'}`}>
       {fields.map(({ key, label }) => {
         const amount = amounts.get(key) ?? null
         return (
@@ -179,7 +190,7 @@ export default async function PayrollLabPage({
   let latest: SyntheticPayrollView | null = null
   let loadFailed = false
   try {
-    latest = await getLatestSyntheticPayroll(scope, administration.id)
+    latest = await getLatestNl2026Payroll(scope, administration.id)
   } catch {
     loadFailed = true
   }
@@ -204,23 +215,26 @@ export default async function PayrollLabPage({
   const runCompleted = Boolean(latest && validRunId(query.run) && latest.runId === query.run && latest.status === 'SUCCEEDED')
   const renderedTrace = latest ? traceText(latest.trace) : null
   const amounts = new Map<string, string | null>(latest?.components.map((component) => [component.key, component.amount]) ?? [])
+  const packageMetadata = latest && traceRecord(latest.trace) && traceRecord(latest.trace.packageMetadata) ? latest.trace.packageMetadata : null
+  const sourceMetadata = packageMetadata && traceRecord(packageMetadata.sourceMetadata) ? packageMetadata.sourceMetadata : null
   const periodHeading = latest ? formatPeriodHeading(latest.payrollPeriod, locale) : ''
 
   return (
     <PageShell className="space-y-6 py-6 sm:py-8" width="standard">
       <PageHeader
         actions={canRun ? (
-          <form action={runSyntheticPayrollAction}>
-            <Button type="submit"><Play aria-hidden="true" />{t('payrollLabRun')}</Button>
+          <form action={runNl2026PayrollAction}>
+            <Button type="submit"><Play aria-hidden="true" />{t('payrollLabNl2026Run')}</Button>
           </form>
         ) : undefined}
-        description={t('payrollLabDescription')}
+        description={t('payrollLabNl2026Description')}
         title={t('payrollLab')}
       />
 
       {errorMessage ? (
         <Surface className="border-destructive/40 p-4 text-sm text-destructive" role="alert">
           <p>{errorMessage}</p>
+          {failedLatestRun?.unsupportedReason ? <p className="mt-2 break-all">{failedLatestRun.unsupportedReason}</p> : null}
           {failureCode ? <p className="mt-2"><span className="font-medium">{t('payrollLabErrorCode')}:</span> <code>{failureCode}</code></p> : null}
           {runReference ? <p className="mt-1"><span className="font-medium">{t('payrollLabRunReference')}:</span> <code>{runReference}</code></p> : null}
         </Surface>
@@ -251,39 +265,19 @@ export default async function PayrollLabPage({
             </div>
           </Surface>
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
-            <Surface className="p-4 sm:p-6">
-              <SectionHeader title={t('payrollLabDeductions')} />
-              <div className="mt-5">
-                <AmountList
-                  fields={PAYROLL_AMOUNT_FIELDS.deductions.map(({ key, label }) => ({ key, label: t(label) }))}
-                  amounts={amounts}
-                  locale={locale}
-                />
-              </div>
-            </Surface>
-
-            <Surface className="p-4 sm:p-6">
-              <SectionHeader title={t('payrollLabEmployerCosts')} />
-              <div className="mt-5">
-                <AmountList
-                  fields={PAYROLL_AMOUNT_FIELDS.employer.map(({ key, label }) => ({ key, label: t(label) }))}
-                  amounts={amounts}
-                  locale={locale}
-                />
-              </div>
-            </Surface>
-          </div>
-
           <Surface className="p-4 sm:p-6">
             <SectionHeader title={t('payrollLabRunStatus')} />
             <dl className="mt-4 grid gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
               <MetadataItem label={t('payrollLabPeriod')} value={formatPeriod(latest.payrollPeriod)} />
+              <MetadataItem label={t('payrollLabCase')} value={latest.caseKey ?? 'CC-NL-2026-001'} />
               <MetadataItem label={t('payrollLabRunType')} value={latest.runType} />
               <MetadataItem label={t('payrollLabRunId')} value={latest.runId} mono />
               <MetadataItem label={t('payrollLabEmployee')} value={latest.employeeId} mono />
               <MetadataItem label={t('payrollLabRuleComposition')} value={latest.rulePackageCompositionId} mono />
               <MetadataItem label={t('payrollLabEngineVersion')} value={latest.engineVersion} mono />
+              <MetadataItem label={t('payrollLabPackageVersion')} value={String(packageMetadata?.version ?? '—')} />
+              <MetadataItem label={t('payrollLabPackageHash')} value={String(packageMetadata?.packageHash ?? '—')} mono />
+              <MetadataItem label={t('payrollLabStatutorySource')} value={String(sourceMetadata?.calculationRulesTitle ?? '—')} />
               <MetadataItem label={t('payrollLabSourceHash')} value={latest.sourceHash} mono />
               <MetadataItem label={t('payrollLabInputHash')} value={latest.inputHash} mono />
               <MetadataItem label={t('payrollLabResultHash')} value={latest.resultHash ?? '—'} mono />
@@ -304,7 +298,8 @@ export default async function PayrollLabPage({
                     <li className="flex min-w-0 flex-col gap-2 border-t border-subtle pt-3 sm:flex-row sm:items-start sm:justify-between" key={control.key}>
                       <div className="min-w-0">
                         <p className="break-all text-sm font-medium text-foreground">{control.key}</p>
-                        <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{JSON.stringify(control.details, null, 2)}</pre>
+                        {traceRecord(control.details) ? <dl className="mt-2 text-xs text-muted-foreground">{['actual', 'expected'].map((key) => control.details && traceRecord(control.details) && control.details[key] !== undefined ? <div className="break-all" key={key}><dt className="inline">{t(key === 'actual' ? 'payrollLabActual' : 'payrollLabExpected')}: </dt><dd className="inline font-mono">{String(control.details[key])}</dd></div> : null)}</dl> : null}
+
                       </div>
                       <Badge tone={controlTone(control.status)}>{controlStatusLabel(control.status, t)}</Badge>
                     </li>
@@ -318,7 +313,11 @@ export default async function PayrollLabPage({
               {renderedTrace ? (
                 <details className="mt-4 rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3">
                   <summary className="cursor-pointer text-sm font-medium text-foreground">{t('payrollLabTrace')}</summary>
-                  <pre className="mt-3 max-h-[34rem] overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{renderedTrace}</pre>
+                  <CalculationTrace trace={latest.trace} t={t} />
+                  <details className="mt-4">
+                    <summary className="cursor-pointer text-xs text-muted-foreground">{t('payrollLabDebugTrace')}</summary>
+                    <pre className="mt-3 max-h-[34rem] overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{renderedTrace}</pre>
+                  </details>
                 </details>
               ) : <p className="mt-4 text-sm text-muted-foreground">{t('payrollLabNoTrace')}</p>}
             </Surface>

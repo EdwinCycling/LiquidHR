@@ -18,7 +18,7 @@ vi.mock('@/lib/payroll/access', async (importOriginal) => ({
   resolvePayrollLabAdministration: vi.fn(),
 }))
 
-vi.mock('@/lib/payroll/synthetic-calculation-service', () => ({ getLatestSyntheticPayroll: vi.fn() }))
+vi.mock('@/lib/payroll/nl-2026-calculation-service', () => ({ getLatestNl2026Payroll: vi.fn() }))
 
 vi.mock('@/lib/i18n/server', () => ({
   getLocale: vi.fn(async () => 'nl'),
@@ -31,7 +31,7 @@ vi.mock('@/lib/i18n/server', () => ({
 
 import { requirePermission } from '@/lib/auth/permissions'
 import { resolvePayrollLabAdministration } from '@/lib/payroll/access'
-import { getLatestSyntheticPayroll } from '@/lib/payroll/synthetic-calculation-service'
+import { getLatestNl2026Payroll } from '@/lib/payroll/nl-2026-calculation-service'
 
 const hrAdminContext = {
   tenantId: '10000000-0000-4000-8000-000000000001',
@@ -62,17 +62,12 @@ const syntheticResult = {
   resultHash: 'c'.repeat(64),
   components: [
     ['gross_salary', '4000.00'],
-    ['employee_pension', '125.00'],
-    ['wage_tax', '700.00'],
-    ['net_salary', '3175.00'],
-    ['employer_pension', '250.00'],
-    ['employer_insurance', '400.00'],
-    ['employer_zvw', '260.00'],
-    ['holiday_allowance_accrual', '320.00'],
-    ['total_employer_cost', '4910.00'],
+    ['taxable_wage', '4000.00'],
+    ['wage_tax', '818.67'],
+    ['net_salary', '3181.33'],
   ].map(([key, amount]) => ({ key, amount, payload: { output: amount } })),
   trace: [{ sequence: 1, componentCode: 'GC-NL-001' }],
-  controls: [{ key: 'NET_PAYABLE_MATCHES', status: 'PASS', details: { actual: '3175.00' } }],
+  controls: [{ key: 'NET_PAYABLE_MATCHES', status: 'PASS', details: { actual: '3181.00' } }],
   startedAt: '2026-09-30T10:00:00.000Z',
   finishedAt: '2026-09-30T10:00:01.000Z',
   createdAt: '2026-09-30T10:00:00.000Z',
@@ -113,27 +108,22 @@ describe('Payroll Lab protected shell route', () => {
   it('shows all nine synthetic amounts and scoped run details to an authorized Payroll admin', async () => {
     vi.mocked(requirePermission).mockResolvedValue(hrAdminContext)
     vi.mocked(resolvePayrollLabAdministration).mockResolvedValue(payrollAdministration)
-    vi.mocked(getLatestSyntheticPayroll).mockResolvedValue(syntheticResult as never)
+    vi.mocked(getLatestNl2026Payroll).mockResolvedValue(syntheticResult as never)
 
     const page = await PayrollLabPage({ searchParams: Promise.resolve({}) })
     const markup = renderToStaticMarkup(page)
 
     expect(requirePermission).toHaveBeenCalledWith('salary:read')
-    expect(getLatestSyntheticPayroll).toHaveBeenCalledWith({
+    expect(getLatestNl2026Payroll).toHaveBeenCalledWith({
       tenantId: hrAdminContext.tenantId,
       hrGroupId: hrAdminContext.hrGroupId,
       administrationId: hrAdminContext.administrationId,
     }, payrollAdministration.id)
     for (const [key, amount] of [
       ['gross_salary', '4000.00'],
-      ['employee_pension', '125.00'],
-      ['wage_tax', '700.00'],
-      ['net_salary', '3175.00'],
-      ['employer_pension', '250.00'],
-      ['employer_insurance', '400.00'],
-      ['employer_zvw', '260.00'],
-      ['holiday_allowance_accrual', '320.00'],
-      ['total_employer_cost', '4910.00'],
+      ['taxable_wage', '4000.00'],
+      ['wage_tax', '818.67'],
+      ['net_salary', '3181.33'],
     ]) {
       expect(markup).toContain(key)
       expect(markup).toContain(amount)
@@ -142,15 +132,15 @@ describe('Payroll Lab protected shell route', () => {
     expect(markup).toContain('payrollLabControls')
     expect(markup).toContain('GOLDEN_CASE')
     expect(markup).toContain('PAYLAB Test Employee · September 2026')
-    expect(markup).toContain('Inhoudingen')
-    expect(markup).toContain('Werkgever')
+    expect(markup).not.toContain('total_employer_cost')
+    expect(markup).not.toContain('employer_pension')
     expect(markup.indexOf('PAYLAB Test Employee')).toBeLessThan(markup.indexOf('payrollLabRunStatus'))
   })
 
   it('shows a scoped failed run code and reference without exposing raw service details', async () => {
     vi.mocked(requirePermission).mockResolvedValue(hrAdminContext)
     vi.mocked(resolvePayrollLabAdministration).mockResolvedValue(payrollAdministration)
-    vi.mocked(getLatestSyntheticPayroll).mockResolvedValue({
+    vi.mocked(getLatestNl2026Payroll).mockResolvedValue({
       ...syntheticResult,
       status: 'FAILED',
       errorCode: 'PAYROLL_CALCULATION_FAILED',
@@ -170,7 +160,7 @@ describe('Payroll Lab protected shell route', () => {
   it('does not render the run action for an actor with read access only', async () => {
     vi.mocked(requirePermission).mockResolvedValue({ ...hrAdminContext, permissions: ['salary:read'] })
     vi.mocked(resolvePayrollLabAdministration).mockResolvedValue(payrollAdministration)
-    vi.mocked(getLatestSyntheticPayroll).mockResolvedValue(null)
+    vi.mocked(getLatestNl2026Payroll).mockResolvedValue(null)
 
     const page = await PayrollLabPage({ searchParams: Promise.resolve({}) })
     const markup = renderToStaticMarkup(page)

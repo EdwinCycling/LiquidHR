@@ -10,6 +10,7 @@ export const PAYROLL_LAB_ERROR_CODES = [
   'PAYROLL_CALCULATION_BLOCKED',
   'PAYROLL_CALCULATION_FAILED',
   'PAYROLL_PERSISTENCE_FAILED',
+  'PAYROLL_UNSUPPORTED',
 ] as const satisfies readonly SyntheticPayrollErrorCode[]
 
 const PAYROLL_LAB_ERROR_CODE_SET: ReadonlySet<string> = new Set(PAYROLL_LAB_ERROR_CODES)
@@ -18,7 +19,8 @@ export function isPayrollLabErrorCode(value: unknown): value is SyntheticPayroll
   return typeof value === 'string' && PAYROLL_LAB_ERROR_CODE_SET.has(value)
 }
 
-export function payrollLabErrorMessageKey(code: SyntheticPayrollErrorCode): 'payrollLabRunUnavailable' | 'payrollLabRunFailed' {
+export function payrollLabErrorMessageKey(code: SyntheticPayrollErrorCode): 'payrollLabRunUnavailable' | 'payrollLabRunFailed' | 'payrollLabUnsupported' {
+  if (code === 'PAYROLL_UNSUPPORTED') return 'payrollLabUnsupported'
   if (
     code === 'PAYROLL_SYNTHETIC_MODE_DISABLED'
     || code === 'PAYROLL_ADMINISTRATION_UNAVAILABLE'

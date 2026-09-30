@@ -12,6 +12,8 @@ export type {
 export {
   FixedDecimal,
   PayrollEngineError,
+  applyPayrollRounding,
+  applyPayrollRoundingToRatio,
 } from './engine/decimal'
 export {
   PAYROLL_ENGINE_VERSION,
@@ -25,13 +27,17 @@ export type {
   ForkSystemComponentOptions,
   PayrollCustomerComponentPatch,
 } from './engine/engine'
-export { sha256 } from './engine/hash'
+export { sha256, stableSerialize } from './engine/hash'
 export type {
   PayrollCalculationBuildOptions,
   PayrollCalculationInputs,
   PayrollCalculationResult,
   PayrollCalculationResultRow,
   PayrollCalculationTraceStep,
+  PayrollAssessmentBaseAllocationPolicyReference,
+  PayrollAssessmentBaseGroupIdentity,
+  PayrollAssessmentBaseMembership,
+  PayrollAssessmentBaseScope,
   PayrollComponentDefinition,
   PayrollComponentInputDefinition,
   PayrollComponentMethod,
@@ -45,13 +51,21 @@ export type {
   PayrollResultMapping,
   PayrollRoundingMode,
   PayrollRoundingPolicy,
+  PayrollRoundingDefinition,
+  PayrollRoundingDefinitionMode,
   PayrollRuleOwnership,
   PayrollRulePackage,
+  PayrollRulePackageProvenance,
+  PayrollScopedNodeIdentity,
+  PayrollIterativeClusterDefinition,
   PayrollSerializedOutput,
   PayrollSerializedValue,
   PayrollTracePolicy,
   PayrollTypedParameter,
   PayrollValueType,
+  PayrollRegisteredRule,
+  PayrollRegisteredRuleTraceStep,
+  PayrollRulePackageMetadata,
 } from './engine/types'
 export {
   GC_NL_001_RESULT_COMPONENTS,

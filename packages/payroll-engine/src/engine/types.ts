@@ -7,12 +7,73 @@ export interface PayrollRoundingPolicy {
   readonly mode: PayrollRoundingMode
 }
 
+export type PayrollRoundingDefinitionMode =
+  | 'ARITHMETIC'
+  | 'FLOOR'
+  | 'CEILING'
+  | 'TRUNCATE'
+  | 'ROUND_DOWN_TO_MULTIPLE'
+  | 'NO_ROUNDING'
+
+/** An effective-dated statutory rounding instruction bound to a rule and source. */
+export interface PayrollRoundingDefinition {
+  readonly id: string
+  readonly componentCode: string
+  readonly stage: string
+  readonly ruleVersion: string
+  readonly packageId: string
+  readonly packageVersion: string
+  readonly mode: PayrollRoundingDefinitionMode
+  readonly decimalPlaces?: number
+  readonly targetMultiple?: string
+  readonly effectiveFrom: string
+  readonly effectiveTo: string | null
+  readonly provenance: {
+    readonly sourceReference: string
+    readonly sourceHash: string
+  }
+}
+
 export type PayrollProcessingScope =
+  | 'EMPLOYMENT'
+  | 'PAYROLL_RUN'
   | 'INCOME_RELATIONSHIP'
   | 'ASSESSMENT_BASE_GROUP'
   | 'EMPLOYEE'
   | 'PAYROLL_PERIOD'
   | 'EMPLOYER'
+
+/** Reserved scopes for future assessment-base grouping; current engine execution does not evaluate them. */
+export type PayrollAssessmentBaseScope =
+  | 'INCOME_RELATIONSHIP'
+  | 'EMPLOYMENT'
+  | 'EMPLOYEE_EMPLOYER'
+  | 'EMPLOYEE_LEGAL_ENTITY'
+  | 'EMPLOYEE_PENSION_SCHEME'
+  | 'EMPLOYEE'
+
+/** Stable group identity contract. It is descriptive only and does not create an executable group. */
+export interface PayrollAssessmentBaseGroupIdentity {
+  readonly assessmentBaseCode: string
+  readonly assessmentBaseVersion: string
+  readonly scope: PayrollAssessmentBaseScope
+  readonly scopeInstanceId: string
+}
+
+/** A versioned allocation policy reference only; policy code is not evaluated by the engine. */
+export interface PayrollAssessmentBaseAllocationPolicyReference {
+  readonly policyCode: string
+  readonly policyVersion: string
+  readonly policyHash: string
+}
+
+/** Optional membership metadata keyed per assessment-base group, reserved for later iterations. */
+export interface PayrollAssessmentBaseMembership {
+  readonly group: PayrollAssessmentBaseGroupIdentity
+  /** Opaque INCOME_RELATIONSHIP scope-instance ids; no membership expansion is performed today. */
+  readonly incomeRelationshipScopeInstanceIds?: readonly string[]
+  readonly allocationPolicyReference?: PayrollAssessmentBaseAllocationPolicyReference
+}
 
 export type PayrollRuleOwnership =
   | { readonly kind: 'SYSTEM' }
@@ -73,6 +134,7 @@ export interface PayrollTypedParameter {
 }
 
 export type PayrollComponentMethod =
+  | { readonly kind: 'registeredRule'; readonly ruleKey: string; readonly ruleVersion: string; readonly implementationHash: string; readonly parameterSetHash: string }
   | { readonly kind: 'source'; readonly path: readonly (string | number)[] }
   | { readonly kind: 'passThrough'; readonly outputs: Readonly<Record<string, string>> }
   | { readonly kind: 'expression'; readonly outputs: Readonly<Record<string, PayrollExpression>> }
@@ -114,13 +176,85 @@ export interface PayrollResultMapping {
 }
 
 export interface PayrollRulePackage {
+  /** Reserved future contract. M0/M1 execution rejects any nonempty iterative cluster. */
+  readonly iterativeClusters?: readonly PayrollIterativeClusterDefinition[]
+  readonly roundingDefinitions?: readonly PayrollRoundingDefinition[]
+  readonly metadata?: PayrollRulePackageMetadata
   readonly compositionId: string
   readonly components: readonly PayrollComponentDefinition[]
   readonly controls: readonly PayrollControlDefinition[]
   readonly resultMappings: readonly PayrollResultMapping[]
 }
 
+export interface PayrollIterativeClusterDefinition {
+  readonly id: string
+  readonly version: string
+  readonly componentCodes: readonly string[]
+  readonly policy: {
+    readonly version: string
+    readonly minimumIterations: number
+    readonly maximumIterations: number
+    readonly tolerance: string
+    readonly comparisonPrecision: {
+      readonly decimalPlaces: number
+      readonly mode: 'ARITHMETIC' | 'FLOOR' | 'CEILING' | 'TRUNCATE'
+    }
+    readonly outputSelectors: readonly { readonly componentCode: string; readonly outputName: string }[]
+  }
+}
+
+export interface PayrollScopedNodeIdentity {
+  readonly componentCode: string
+  readonly componentVersion: string
+  readonly scopeKind: PayrollProcessingScope
+  /** Opaque identity of an IKV, employment, assessment-base group or run. Never inferred from another scope. */
+  readonly scopeInstanceId: string
+}
+
+export interface PayrollRulePackageMetadata {
+  readonly packageId: string
+  readonly version: string
+  readonly packageHash: string
+  readonly parameterSetHash: string
+  readonly sourceMetadata: Readonly<Record<string, string>>
+}
+
+export interface PayrollRulePackageProvenance {
+  readonly packageId: string
+  readonly version: string
+  readonly packageHash: string
+  readonly parameterSetHash: string
+}
+
+export interface PayrollRegisteredRuleTraceStep {
+  readonly code: string
+  readonly values: Readonly<Record<string, PayrollSerializedValue>>
+  readonly sourceReference: string
+}
+
+/** Trusted, statically imported application code. This contract is not a JavaScript sandbox. */
+export interface PayrollRegisteredRule {
+  readonly ruleKey: string
+  readonly ruleVersion: string
+  readonly implementationHash: string
+  readonly parameterSetHash: string
+  readonly packageId: string
+  readonly packageVersion: string
+  readonly allowedComponents: readonly { readonly id: string; readonly code: string; readonly version: string }[]
+  readonly inputs: readonly PayrollComponentInputDefinition[]
+  readonly outputs: readonly PayrollComponentOutputDefinition[]
+  readonly execute: (context: {
+    readonly inputs: Readonly<Record<string, PayrollSerializedValue>>
+    readonly parameters: Readonly<Record<string, PayrollTypedParameter>>
+    readonly roundingDefinitions?: readonly PayrollRoundingDefinition[]
+  }) => {
+    readonly outputs: Readonly<Record<string, PayrollSerializedValue>>
+    readonly trace: readonly PayrollRegisteredRuleTraceStep[]
+  }
+}
+
 export interface PayrollCalculationBuildOptions {
+  readonly scopeInstanceIds?: Readonly<Partial<Record<PayrollProcessingScope, string>>>
   /** Defaults to the first calendar day of the snapshot period. */
   readonly effectiveDate?: string
 }
@@ -131,6 +265,9 @@ export interface PayrollSerializedValue {
 }
 
 export interface PayrollCalculationInputs {
+  readonly scopeInstanceIds?: Readonly<Partial<Record<PayrollProcessingScope, string>>>
+  readonly packageMetadata?: PayrollRulePackageMetadata
+  readonly roundingDefinitions?: readonly PayrollRoundingDefinition[]
   readonly sourceSnapshotId: string
   readonly sourceHash: string
   readonly periodReference: { readonly year: number; readonly month: number }
@@ -147,6 +284,7 @@ export interface PayrollCalculationInputs {
 }
 
 export interface PayrollComponentResult {
+  readonly nodeIdentity?: PayrollScopedNodeIdentity
   readonly componentId: string
   readonly componentCode: string
   readonly version: string
@@ -165,6 +303,9 @@ export interface PayrollDependencyTrace {
 }
 
 export interface PayrollCalculationTraceStep {
+  readonly nodeIdentity?: PayrollScopedNodeIdentity
+  readonly rulePackageProvenance?: PayrollRulePackageProvenance
+  readonly registeredRuleTrace?: readonly PayrollRegisteredRuleTraceStep[]
   readonly sequence: number
   readonly componentId: string
   readonly componentCode: string
@@ -191,6 +332,7 @@ export interface PayrollCalculationResultRow {
 }
 
 export interface PayrollCalculationResult {
+  readonly packageMetadata?: PayrollRulePackageMetadata
   readonly status: 'CALCULATED' | 'BLOCKED'
   readonly sourceSnapshotId: string
   readonly sourceHash: string

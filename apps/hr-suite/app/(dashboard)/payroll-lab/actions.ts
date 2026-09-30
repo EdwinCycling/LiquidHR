@@ -8,11 +8,12 @@ import { PayrollLabUnavailableError, resolvePayrollLabAdministration } from '@/l
 import { isPayrollLabEnabled } from '@/lib/payroll/feature-flag'
 import { payrollScopeFromAuthContext } from '@/lib/payroll/scope'
 import { runSyntheticPayroll, SyntheticPayrollServiceError } from '@/lib/payroll/synthetic-calculation-service'
+import { runNl2026Payroll } from '@/lib/payroll/nl-2026-calculation-service'
 import { isPayrollLabErrorCode } from './error-codes'
 
 const RUN_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export async function runSyntheticPayrollAction(): Promise<never> {
+async function runPayrollAction(runner: typeof runSyntheticPayroll): Promise<never> {
   let destination = '/payroll-lab?error=unavailable'
 
   try {
@@ -28,7 +29,7 @@ export async function runSyntheticPayrollAction(): Promise<never> {
         if (!payrollAdministration || !scope) {
           destination = '/geen-toegang'
         } else {
-          const run = await runSyntheticPayroll(scope, payrollAdministration.id, context.userId)
+          const run = await runner(scope, payrollAdministration.id, context.userId)
           destination = RUN_ID_PATTERN.test(run.runId)
             ? `/payroll-lab?run=${encodeURIComponent(run.runId)}`
             : '/payroll-lab?error=PAYROLL_CALCULATION_FAILED'
@@ -52,3 +53,6 @@ export async function runSyntheticPayrollAction(): Promise<never> {
 
   redirect(destination)
 }
+
+export async function runSyntheticPayrollAction(): Promise<never> { return runPayrollAction(runSyntheticPayroll) }
+export async function runNl2026PayrollAction(): Promise<never> { return runPayrollAction(runNl2026Payroll) }

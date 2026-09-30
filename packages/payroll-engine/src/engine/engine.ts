@@ -19,9 +19,16 @@ import type {
   PayrollSerializedValue,
   PayrollTypedParameter,
   PayrollValueType,
+  PayrollRegisteredRule,
+  PayrollRegisteredRuleTraceStep,
+  PayrollRulePackageMetadata,
+  PayrollRulePackageProvenance,
+  PayrollScopedNodeIdentity,
+  PayrollProcessingScope,
+  PayrollRoundingDefinition,
 } from './types'
 
-export const PAYROLL_ENGINE_VERSION = '0.1.0-m0'
+export const PAYROLL_ENGINE_VERSION = '0.2.0'
 
 const MAX_COMPONENTS = 256
 const MAX_DEPENDENCIES = 1_024
@@ -30,6 +37,12 @@ const MAX_EXPRESSION_NODES = 512
 const MAX_EXPRESSION_DEPTH = 32
 const MAX_RULE_DATA_DEPTH = 64
 const MAX_RULE_DATA_NODES = 16_384
+const MAX_REGISTERED_RULE_TRACE_STEPS = 128
+const MAX_REGISTERED_RULE_TRACE_VALUES = 64
+const MAX_REGISTERED_RULE_TEXT_LENGTH = 2_048
+const MAX_REGISTERED_RULE_TRACE_TEXT_LENGTH = 262_144
+const MAX_SCOPE_INSTANCE_ID_LENGTH = 256
+const MAX_ROUNDING_DEFINITIONS = 1_024
 
 export type PayrollCustomerComponentPatch = Partial<Pick<PayrollComponentDefinition,
   'processingScope' | 'inputs' | 'outputs' | 'dependencies' | 'parameters' | 'method' | 'tracePolicy' | 'effectiveFrom' | 'effectiveTo'>>
@@ -67,6 +80,9 @@ export function buildCalculationInputs(
 ): PayrollCalculationInputs {
   validateSnapshotIdentityWithPayload(sourceSnapshot)
   validateRulePackageShape(rulePackage)
+  const packageMetadata = rulePackage.metadata === undefined ? undefined : cloneAndFreezePlain(rulePackage.metadata)
+  if (packageMetadata) validatePackageMetadata(packageMetadata)
+  const scopeInstanceIds = normalizeScopeInstanceIds(options.scopeInstanceIds)
 
   const effectiveDate = options.effectiveDate ?? periodStartDate(sourceSnapshot.periodReference)
   if (!isIsoDate(effectiveDate)) throw new PayrollEngineError('EFFECTIVE_DATE_INVALID', 'Effective date must be a valid ISO calendar date.')
@@ -74,12 +90,21 @@ export function buildCalculationInputs(
   const allComponents = rulePackage.components.map(cloneAndFreezePlain)
   const controls = rulePackage.controls.map(cloneAndFreezePlain)
   const resultMappings = rulePackage.resultMappings.map(cloneAndFreezePlain)
+  const allRoundingDefinitions = (rulePackage.roundingDefinitions ?? []).map(cloneAndFreezePlain)
   validateOwnershipIdentities(allComponents)
   validateComponentVersions(allComponents)
   const activeComponents = allComponents
     .filter((component) => component.effectiveFrom <= effectiveDate && (component.effectiveTo === null || effectiveDate <= component.effectiveTo))
     .sort((left, right) => left.code.localeCompare(right.code) || left.id.localeCompare(right.id))
   if (activeComponents.length === 0) throw new PayrollEngineError('RULE_PACKAGE_EMPTY', 'No payroll component is effective on the requested date.')
+
+  const roundingDefinitions = selectEffectiveRoundingDefinitions(
+    allRoundingDefinitions,
+    allComponents,
+    activeComponents,
+    packageMetadata,
+    effectiveDate,
+  )
 
   const componentsByCode = new Map<string, PayrollComponentDefinition>()
   for (const component of activeComponents) {
@@ -108,8 +133,10 @@ export function buildCalculationInputs(
   }
 
   const compositionValue = {
+    ...(packageMetadata ? { packageMetadata } : {}),
     components: activeComponents.map(normalizeComponentForHash),
     controls: [...controls].sort((left, right) => left.code.localeCompare(right.code)),
+    ...(allRoundingDefinitions.length > 0 ? { roundingDefinitions: sortRoundingDefinitions(allRoundingDefinitions) } : {}),
     resultMappings: [...resultMappings].sort((left, right) => left.key.localeCompare(right.key)),
   }
   const rulePackageCompositionHash = sha256(stableSerialize(compositionValue))
@@ -120,9 +147,13 @@ export function buildCalculationInputs(
     engineVersion: PAYROLL_ENGINE_VERSION,
     rulePackageCompositionId: rulePackage.compositionId,
     rulePackageCompositionHash,
+    ...(scopeInstanceIds ? { scopeInstanceIds } : {}),
   }))
 
   return deepFreeze({
+    ...(packageMetadata ? { packageMetadata } : {}),
+    ...(scopeInstanceIds ? { scopeInstanceIds } : {}),
+    ...(roundingDefinitions.length > 0 ? { roundingDefinitions } : {}),
     sourceSnapshotId: snapshot.id,
     sourceHash: snapshot.sourceHash,
     periodReference: { ...snapshot.periodReference },
@@ -139,10 +170,22 @@ export function buildCalculationInputs(
 }
 
 /** Runs the validated, acyclic component graph without consulting external state. */
-export function calculatePayroll(inputs: PayrollCalculationInputs): PayrollCalculationResult {
+export function calculatePayroll(inputs: PayrollCalculationInputs, registry: readonly PayrollRegisteredRule[] = []): PayrollCalculationResult {
   if (inputs.engineVersion !== PAYROLL_ENGINE_VERSION) {
     throw new PayrollEngineError('ENGINE_VERSION_UNSUPPORTED', `Unsupported payroll engine version ${inputs.engineVersion}.`)
   }
+  const packageMetadata = inputs.packageMetadata === undefined ? undefined : cloneAndFreezePlain(inputs.packageMetadata)
+  if (packageMetadata) validatePackageMetadata(packageMetadata)
+  const scopeInstanceIds = normalizeScopeInstanceIds(inputs.scopeInstanceIds)
+  const declaredRoundingDefinitions = cloneAndFreezePlain(inputs.roundingDefinitions ?? [])
+  const roundingDefinitions = validateActiveRoundingDefinitions(
+    declaredRoundingDefinitions,
+    inputs.components,
+    packageMetadata,
+    inputs.effectiveDate,
+  )
+  validateOwnershipIdentities(inputs.components)
+  for (const component of inputs.components) validateComponentDefinition(component)
   const componentsByCode = new Map(inputs.components.map((component) => [component.code, component]))
   const order = topologicalOrder(inputs.components, componentsByCode)
   const outputsByCode = new Map<string, Readonly<Record<string, RuntimeValue>>>()
@@ -161,8 +204,19 @@ export function calculatePayroll(inputs: PayrollCalculationInputs): PayrollCalcu
     }
 
     const componentOutputs: Record<string, RuntimeValue> = {}
+    let registeredRuleTrace: readonly PayrollRegisteredRuleTraceStep[] | undefined
     const method = component.method
-    if (method.kind === 'source') {
+    if (method.kind === 'registeredRule') {
+      const execution = executeRegisteredRule(
+        component,
+        packageMetadata,
+        localInputs,
+        registry,
+        roundingDefinitions.filter((definition) => definition.componentCode === component.code),
+      )
+      for (const [name, value] of Object.entries(execution.outputs)) componentOutputs[name] = parseSerializedValue(value)
+      registeredRuleTrace = execution.trace
+    } else if (method.kind === 'source') {
       const output = component.outputs[0]
       if (!output) throw new PayrollEngineError('SOURCE_OUTPUT_REQUIRED', `Source component ${component.code} must define one output.`)
       const sourceValue = inputs.resolvedSourceValues[outputKey(component.code, output.name)]
@@ -217,6 +271,9 @@ export function calculatePayroll(inputs: PayrollCalculationInputs): PayrollCalcu
       .sort((left, right) => left.name.localeCompare(right.name))
       .map((definition) => ({ name: definition.name, ...serializeValue(frozenOutputs[definition.name]!) }))
     componentResults.push({
+      ...(scopeInstanceIds?.[component.processingScope]
+        ? { nodeIdentity: nodeIdentity(component, scopeInstanceIds[component.processingScope]!) }
+        : {}),
       componentId: component.id,
       componentCode: component.code,
       version: component.version,
@@ -231,6 +288,11 @@ export function calculatePayroll(inputs: PayrollCalculationInputs): PayrollCalcu
       value: output.value,
     }]))
     trace.push({
+      ...(registeredRuleTrace && component.tracePolicy === 'FULL' ? { registeredRuleTrace } : {}),
+      ...(packageMetadata ? { rulePackageProvenance: rulePackageProvenance(packageMetadata) } : {}),
+      ...(scopeInstanceIds?.[component.processingScope]
+        ? { nodeIdentity: nodeIdentity(component, scopeInstanceIds[component.processingScope]!) }
+        : {}),
       sequence: trace.length + 1,
       componentId: component.id,
       componentCode: component.code,
@@ -256,6 +318,7 @@ export function calculatePayroll(inputs: PayrollCalculationInputs): PayrollCalcu
     engineVersion: inputs.engineVersion,
     rulePackageCompositionId: inputs.rulePackageCompositionId,
     rulePackageCompositionHash: inputs.rulePackageCompositionHash,
+    ...(packageMetadata ? { packageMetadata } : {}),
     inputHash: inputs.inputHash,
     componentResults,
     resultRows,
@@ -264,6 +327,7 @@ export function calculatePayroll(inputs: PayrollCalculationInputs): PayrollCalcu
   }))
 
   return deepFreeze({
+    ...(packageMetadata ? { packageMetadata } : {}),
     status,
     sourceSnapshotId: inputs.sourceSnapshotId,
     sourceHash: inputs.sourceHash,
@@ -337,6 +401,7 @@ export function forkSystemComponent(
     },
   }
   validateComponentIdentity(forked)
+  validateComponentDefinition(forked)
   validateOwnershipIdentities([forked])
   return deepFreeze(forked)
 }
@@ -404,6 +469,16 @@ function validateRulePackageShape(rulePackage: PayrollRulePackage): void {
     throw new PayrollEngineError('CONTROL_COUNT_INVALID', `Rule package must contain at most ${MAX_CONTROLS} controls.`)
   }
   if (!Array.isArray(rulePackage.resultMappings)) throw new PayrollEngineError('RESULT_MAPPINGS_INVALID', 'Rule package result mappings must be an array.')
+  if (rulePackage.roundingDefinitions !== undefined && (!Array.isArray(rulePackage.roundingDefinitions)
+    || rulePackage.roundingDefinitions.length > MAX_ROUNDING_DEFINITIONS)) {
+    throw new PayrollEngineError('ROUNDING_DEFINITION_COUNT_INVALID', 'Rule package rounding definitions must be a bounded array.')
+  }
+  if (rulePackage.iterativeClusters !== undefined && !Array.isArray(rulePackage.iterativeClusters)) {
+    throw new PayrollEngineError('ITERATIVE_CLUSTER_DEFINITION_INVALID', 'Iterative clusters must be an array when supplied.')
+  }
+  if (rulePackage.iterativeClusters && rulePackage.iterativeClusters.length > 0) {
+    throw new PayrollEngineError('ITERATIVE_CLUSTER_UNSUPPORTED', 'Iterative clusters are reserved and are not supported by this engine version.')
+  }
 }
 
 function validateComponentVersions(components: readonly PayrollComponentDefinition[]): void {
@@ -448,7 +523,7 @@ function validateComponentIdentity(component: PayrollComponentDefinition): void 
   if (!component.ownership || !['SYSTEM', 'CUSTOMER_FORK', 'CUSTOMER_CUSTOM'].includes(component.ownership.kind)) {
     throw new PayrollEngineError('COMPONENT_OWNERSHIP_INVALID', `Ownership for ${component.code} is invalid.`)
   }
-  if (!['INCOME_RELATIONSHIP', 'ASSESSMENT_BASE_GROUP', 'EMPLOYEE', 'PAYROLL_PERIOD', 'EMPLOYER'].includes(component.processingScope)) {
+  if (!['EMPLOYMENT', 'PAYROLL_RUN', 'INCOME_RELATIONSHIP', 'ASSESSMENT_BASE_GROUP', 'EMPLOYEE', 'PAYROLL_PERIOD', 'EMPLOYER'].includes(component.processingScope)) {
     throw new PayrollEngineError('COMPONENT_SCOPE_INVALID', `Processing scope for ${component.code} is invalid.`)
   }
   if (!Array.isArray(component.inputs) || !Array.isArray(component.outputs) || component.outputs.length === 0
@@ -542,6 +617,13 @@ function validateMethodShape(
 ): void {
   const outputByName = new Map(component.outputs.map((output) => [output.name, output]))
   const method = component.method
+  if (method.kind === 'registeredRule') {
+    if (component.ownership.kind !== 'SYSTEM') throw new PayrollEngineError('REGISTERED_RULE_SYSTEM_ONLY', 'Registered rules are restricted to system components.')
+    if (!method.ruleKey || !method.ruleVersion || !isHash(method.implementationHash) || !isHash(method.parameterSetHash)) {
+      throw new PayrollEngineError('REGISTERED_RULE_PIN_INVALID', 'Registered rules require versioned SHA-256 pins.')
+    }
+    return
+  }
   if (method.kind === 'source') {
     if (component.inputs.length !== 0 || component.dependencies.length !== 0 || component.outputs.length !== 1
       || method.path.length === 0 || method.path.some((segment) => typeof segment !== 'string' && (!Number.isInteger(segment) || segment < 0))) {
@@ -884,7 +966,7 @@ function evaluateExpression(expression: PayrollExpression, context: ExpressionCo
     if (expression.operator === 'ABS') return { valueType: arguments_[0]!.valueType, value: asDecimal(arguments_[0]!).abs() }
     if (expression.operator === 'ROUND') {
       const scale = asDecimal(arguments_[1]!).toBigIntExact()
-      if (scale < BigInt(0) || scale > BigInt(18)) throw new PayrollEngineError('EXPRESSION_ROUND_SCALE_INVALID', 'ROUND scale must be between 0 and 18.')
+      if (scale < BigInt(0) || scale > BigInt(36)) throw new PayrollEngineError('EXPRESSION_ROUND_SCALE_INVALID', 'ROUND scale must be between 0 and 36.')
       return { valueType: arguments_[0]!.valueType, value: asDecimal(arguments_[0]!).round(Number(scale), 'HALF_UP') }
     }
     const values = arguments_.map(asDecimal)
@@ -923,14 +1005,14 @@ function evaluateBinary(
   if (operator === '-') return { valueType: left.valueType, value: leftDecimal.subtract(rightDecimal) }
   if (operator === '*') {
     if (left.valueType === 'PERCENTAGE') {
-      return { valueType: right.valueType, value: leftDecimal.multiply(rightDecimal).divide(FixedDecimal.fromInteger(BigInt(100))) }
+      return { valueType: right.valueType, value: leftDecimal.multiply(rightDecimal).divideExact(FixedDecimal.fromInteger(BigInt(100))) }
     }
     if (right.valueType === 'PERCENTAGE') {
-      return { valueType: left.valueType, value: leftDecimal.multiply(rightDecimal).divide(FixedDecimal.fromInteger(BigInt(100))) }
+    return { valueType: left.valueType, value: leftDecimal.multiply(rightDecimal).divideExact(FixedDecimal.fromInteger(BigInt(100))) }
     }
     return { valueType: multiplicationType(left.valueType, right.valueType), value: leftDecimal.multiply(rightDecimal) }
   }
-  return { valueType: divisionType(left.valueType, right.valueType), value: leftDecimal.divide(rightDecimal) }
+  return { valueType: divisionType(left.valueType, right.valueType), value: leftDecimal.divideExact(rightDecimal) }
 }
 
 function aggregate(operation: 'SUM' | 'MIN' | 'MAX', values: readonly (RuntimeValue | undefined)[]): RuntimeValue {
@@ -992,6 +1074,259 @@ function mapResultRows(
       ...serializeValue(value),
     }
   })
+}
+
+function isHash(value: unknown): value is string {
+  return typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)
+}
+
+function validatePackageMetadata(metadata: PayrollRulePackageMetadata): void {
+  if (!isPlainRecord(metadata) || typeof metadata.packageId !== 'string' || !metadata.packageId || metadata.packageId.length > 128
+    || typeof metadata.version !== 'string' || !metadata.version || metadata.version.length > 128
+    || !isHash(metadata.packageHash) || !isHash(metadata.parameterSetHash)
+    || !isPlainRecord(metadata.sourceMetadata) || Object.entries(metadata.sourceMetadata).length > 128
+    || Object.entries(metadata.sourceMetadata).some(([key, value]) => !key || key.length > 128 || typeof value !== 'string' || value.length > MAX_REGISTERED_RULE_TEXT_LENGTH)) {
+    throw new PayrollEngineError('RULE_PACKAGE_METADATA_INVALID', 'Rule package metadata requires versioned hashes and source references.')
+  }
+}
+
+function selectEffectiveRoundingDefinitions(
+  definitions: readonly PayrollRoundingDefinition[],
+  allComponents: readonly PayrollComponentDefinition[],
+  activeComponents: readonly PayrollComponentDefinition[],
+  metadata: PayrollRulePackageMetadata | undefined,
+  effectiveDate: string,
+): readonly PayrollRoundingDefinition[] {
+  if (definitions.length > MAX_ROUNDING_DEFINITIONS) {
+    throw new PayrollEngineError('ROUNDING_DEFINITION_COUNT_INVALID', 'Rule package has too many rounding definitions.')
+  }
+  if (definitions.length > 0 && !metadata) {
+    throw new PayrollEngineError('ROUNDING_PACKAGE_PROVENANCE_REQUIRED', 'Versioned rounding definitions require rule package provenance.')
+  }
+  const ids = new Set<string>()
+  for (const definition of definitions) {
+    if (!metadata || !isPlainRecord(definition) || typeof definition.id !== 'string' || ids.has(definition.id)) {
+      throw new PayrollEngineError('ROUNDING_DEFINITION_ID_INVALID', 'Rounding definitions require unique ids and package provenance.')
+    }
+    ids.add(definition.id)
+    validateRoundingDefinition(definition, metadata)
+  }
+  const sorted = sortRoundingDefinitions(definitions)
+  for (let index = 0; index < sorted.length; index += 1) {
+    const definition = sorted[index]!
+    const component = allComponents.find((candidate) => candidate.code === definition.componentCode
+      && candidate.method.kind === 'registeredRule' && candidate.method.ruleVersion === definition.ruleVersion)
+    if (!component || definition.effectiveFrom < component.effectiveFrom
+      || (component.effectiveTo !== null && (definition.effectiveTo === null || definition.effectiveTo > component.effectiveTo))) {
+      throw new PayrollEngineError('ROUNDING_RULE_VERSION_MISMATCH', 'Rounding definitions must fit an effective registered component version.')
+    }
+    for (let otherIndex = index + 1; otherIndex < sorted.length; otherIndex += 1) {
+      const other = sorted[otherIndex]!
+      if (other.componentCode !== definition.componentCode || other.ruleVersion !== definition.ruleVersion || other.stage !== definition.stage) continue
+      const overlaps = (definition.effectiveTo === null || definition.effectiveTo >= other.effectiveFrom)
+        && (other.effectiveTo === null || other.effectiveTo >= definition.effectiveFrom)
+      if (overlaps) throw new PayrollEngineError('ROUNDING_DEFINITION_OVERLAP', 'Rounding definitions for the same stage cannot overlap.')
+    }
+  }
+  return deepFreeze(sorted.filter((definition) => definition.effectiveFrom <= effectiveDate
+    && (definition.effectiveTo === null || effectiveDate <= definition.effectiveTo)
+    && activeComponents.some((component) => component.code === definition.componentCode
+      && component.method.kind === 'registeredRule' && component.method.ruleVersion === definition.ruleVersion)))
+}
+
+function validateActiveRoundingDefinitions(
+  definitions: readonly PayrollRoundingDefinition[],
+  activeComponents: readonly PayrollComponentDefinition[],
+  metadata: PayrollRulePackageMetadata | undefined,
+  effectiveDate: string,
+): readonly PayrollRoundingDefinition[] {
+  const selected = selectEffectiveRoundingDefinitions(definitions, activeComponents, activeComponents, metadata, effectiveDate)
+  if (selected.length !== definitions.length) {
+    throw new PayrollEngineError('ROUNDING_DEFINITION_INACTIVE', 'Calculation input contains an inactive rounding definition.')
+  }
+  return selected
+}
+
+function validateRoundingDefinition(definition: PayrollRoundingDefinition, metadata: PayrollRulePackageMetadata): void {
+  const validModes: readonly string[] = ['ARITHMETIC', 'FLOOR', 'CEILING', 'TRUNCATE', 'ROUND_DOWN_TO_MULTIPLE', 'NO_ROUNDING']
+  if (!isPlainRecord(definition) || typeof definition.id !== 'string' || !definition.id || definition.id.length > 128
+    || typeof definition.componentCode !== 'string' || !definition.componentCode
+    || typeof definition.stage !== 'string' || !definition.stage || definition.stage.length > 128
+    || definition.packageId !== metadata.packageId || definition.packageVersion !== metadata.version
+    || typeof definition.ruleVersion !== 'string' || !definition.ruleVersion
+    || !validModes.includes(definition.mode)
+    || !isIsoDate(definition.effectiveFrom)
+    || (definition.effectiveTo !== null && !isIsoDate(definition.effectiveTo))
+    || (definition.effectiveTo !== null && definition.effectiveTo < definition.effectiveFrom)
+    || !isPlainRecord(definition.provenance)
+    || typeof definition.provenance.sourceReference !== 'string' || !definition.provenance.sourceReference
+    || definition.provenance.sourceReference.length > MAX_REGISTERED_RULE_TEXT_LENGTH
+    || !isHash(definition.provenance.sourceHash)) {
+    throw new PayrollEngineError('ROUNDING_DEFINITION_INVALID', 'Rounding definition identity, dates, mode or provenance are invalid.')
+  }
+  if (definition.mode === 'NO_ROUNDING') {
+    if (definition.decimalPlaces !== undefined || definition.targetMultiple !== undefined) {
+      throw new PayrollEngineError('ROUNDING_DEFINITION_INVALID', 'No-rounding definitions cannot specify precision.')
+    }
+    return
+  }
+  if (definition.mode === 'ROUND_DOWN_TO_MULTIPLE') {
+    if (definition.decimalPlaces !== undefined || typeof definition.targetMultiple !== 'string') {
+      throw new PayrollEngineError('ROUNDING_DEFINITION_INVALID', 'Round-down-to-multiple requires a target multiple only.')
+    }
+    if (FixedDecimal.parse(definition.targetMultiple).coefficient <= BigInt(0)) {
+      throw new PayrollEngineError('ROUNDING_DEFINITION_INVALID', 'Rounding target multiple must be positive.')
+    }
+    return
+  }
+  if (definition.targetMultiple !== undefined || !Number.isInteger(definition.decimalPlaces)
+    || definition.decimalPlaces! < 0 || definition.decimalPlaces! > 36) {
+    throw new PayrollEngineError('ROUNDING_DEFINITION_INVALID', 'This rounding mode requires decimal places only.')
+  }
+}
+
+function sortRoundingDefinitions(definitions: readonly PayrollRoundingDefinition[]): PayrollRoundingDefinition[] {
+  return [...definitions].sort((left, right) => left.componentCode.localeCompare(right.componentCode)
+    || left.ruleVersion.localeCompare(right.ruleVersion)
+    || left.stage.localeCompare(right.stage)
+    || left.effectiveFrom.localeCompare(right.effectiveFrom)
+    || left.id.localeCompare(right.id))
+}
+
+function normalizeScopeInstanceIds(
+  value: Readonly<Partial<Record<PayrollProcessingScope, string>>> | undefined,
+): Readonly<Partial<Record<PayrollProcessingScope, string>>> | undefined {
+  if (value === undefined) return undefined
+  const copied = cloneAndFreezePlain(value)
+  if (!isPlainRecord(copied)) throw new PayrollEngineError('SCOPE_INSTANCE_IDS_INVALID', 'Scope instance ids must be a plain record.')
+  const validScopes: readonly PayrollProcessingScope[] = [
+    'EMPLOYMENT', 'PAYROLL_RUN', 'INCOME_RELATIONSHIP', 'ASSESSMENT_BASE_GROUP', 'EMPLOYEE', 'PAYROLL_PERIOD', 'EMPLOYER',
+  ]
+  const entries = Object.entries(copied)
+  for (const [scope, instanceId] of entries) {
+    if (!validScopes.includes(scope as PayrollProcessingScope) || typeof instanceId !== 'string'
+      || instanceId.trim().length === 0 || instanceId.length > MAX_SCOPE_INSTANCE_ID_LENGTH
+      || /[\u0000-\u001f\u007f]/.test(instanceId)) {
+      throw new PayrollEngineError('SCOPE_INSTANCE_IDS_INVALID', 'Scope instance ids must use known scopes and bounded opaque identities.')
+    }
+  }
+  if (entries.length === 0) return undefined
+  return Object.fromEntries(entries.sort(([left], [right]) => left.localeCompare(right))) as Readonly<Partial<Record<PayrollProcessingScope, string>>>
+}
+
+function nodeIdentity(component: PayrollComponentDefinition, scopeInstanceId: string): PayrollScopedNodeIdentity {
+  return {
+    componentCode: component.code,
+    componentVersion: component.version,
+    scopeKind: component.processingScope,
+    scopeInstanceId,
+  }
+}
+
+function rulePackageProvenance(metadata: PayrollRulePackageMetadata): PayrollRulePackageProvenance {
+  return {
+    packageId: metadata.packageId,
+    version: metadata.version,
+    packageHash: metadata.packageHash,
+    parameterSetHash: metadata.parameterSetHash,
+  }
+}
+
+function executeRegisteredRule(
+  component: PayrollComponentDefinition,
+  metadata: PayrollRulePackageMetadata | undefined,
+  localInputs: Readonly<Record<string, RuntimeValue>>,
+  registry: readonly PayrollRegisteredRule[],
+  roundingDefinitions: readonly PayrollRoundingDefinition[],
+): { readonly outputs: Readonly<Record<string, PayrollSerializedValue>>; readonly trace: readonly PayrollRegisteredRuleTraceStep[] } {
+  const method = component.method
+  if (method.kind !== 'registeredRule' || component.ownership.kind !== 'SYSTEM') {
+    throw new PayrollEngineError('REGISTERED_RULE_SYSTEM_ONLY', 'Registered rules are restricted to system components.')
+  }
+  if (!metadata) throw new PayrollEngineError('REGISTERED_RULE_PACKAGE_REQUIRED', 'Registered rules require package provenance.')
+  validatePackageMetadata(metadata)
+  const sameRuleVersion = registry.filter((rule) => rule.ruleKey === method.ruleKey && rule.ruleVersion === method.ruleVersion)
+  const candidates = sameRuleVersion.filter((rule) => rule.implementationHash === method.implementationHash
+    && rule.parameterSetHash === method.parameterSetHash
+    && rule.packageId === metadata.packageId && rule.packageVersion === metadata.version)
+  if (candidates.length !== 1) {
+    if (candidates.length > 1) throw new PayrollEngineError('REGISTERED_RULE_UNAVAILABLE', 'Exactly one pinned trusted rule must be registered.')
+    if (sameRuleVersion.length > 0) throw new PayrollEngineError('REGISTERED_RULE_IDENTITY_MISMATCH', 'Trusted rule pins do not match the component and package.')
+    throw new PayrollEngineError('REGISTERED_RULE_UNAVAILABLE', 'Exactly one pinned trusted rule must be registered.')
+  }
+  const rule = candidates[0]!
+  if (metadata.parameterSetHash !== method.parameterSetHash
+    || sha256(stableSerialize(component.parameters ?? {})) !== method.parameterSetHash
+    || !Array.isArray(rule.allowedComponents)
+    || !rule.allowedComponents.some((allowed) => allowed?.id === component.id && allowed?.code === component.code && allowed?.version === component.version)) {
+    throw new PayrollEngineError('REGISTERED_RULE_IDENTITY_MISMATCH', 'Trusted rule, parameters and component identity do not match the pinned package.')
+  }
+  const normalizeSchema = (definitions: readonly { readonly name: string }[]) => [...definitions].sort((left, right) => left.name.localeCompare(right.name))
+  if (stableSerialize(normalizeSchema(rule.inputs)) !== stableSerialize(normalizeSchema(component.inputs))
+    || stableSerialize(normalizeSchema(rule.outputs)) !== stableSerialize(normalizeSchema(component.outputs))) {
+    throw new PayrollEngineError('REGISTERED_RULE_SCHEMA_MISMATCH', 'Trusted rule schemas do not match the component contract.')
+  }
+  const declaredInputs: Record<string, PayrollSerializedValue> = {}
+  for (const definition of component.inputs) {
+    const value = localInputs[definition.name]
+    if (!value) {
+      if (definition.required) throw new PayrollEngineError('COMPONENT_INPUT_MISSING', 'A required registered rule input is missing.')
+      continue
+    }
+    if (value.valueType !== definition.valueType) throw new PayrollEngineError('REGISTERED_RULE_INPUT_TYPE_MISMATCH', 'Registered rule input type does not match its declaration.')
+    declaredInputs[definition.name] = serializeValue(value)
+  }
+  const execution = rule.execute(cloneAndFreezePlain({
+    inputs: declaredInputs,
+    parameters: component.parameters ?? {},
+    ...(roundingDefinitions.length > 0 ? { roundingDefinitions } : {}),
+  }))
+  // Reject Promises, arbitrary class instances, cycles and over-budget data before reading output values.
+  if (isThenable(execution)) {
+    if (execution instanceof Promise) void execution.catch(() => undefined)
+    throw new PayrollEngineError('REGISTERED_RULE_ASYNC_UNSUPPORTED', 'Registered rules must return synchronously.')
+  }
+  const result = cloneAndFreezePlain(execution)
+  if (!isPlainRecord(result) || !isPlainRecord(result.outputs) || !Array.isArray(result.trace)
+    || result.trace.length > MAX_REGISTERED_RULE_TRACE_STEPS || Object.keys(result).some((key) => key !== 'outputs' && key !== 'trace')) {
+    throw new PayrollEngineError('REGISTERED_RULE_RESULT_INVALID', 'Registered rules must synchronously return bounded plain typed data.')
+  }
+  const outputNames = component.outputs.map((definition) => definition.name)
+  if (Object.keys(result.outputs).length !== outputNames.length || Object.keys(result.outputs).some((name) => !outputNames.includes(name))) {
+    throw new PayrollEngineError('REGISTERED_RULE_OUTPUT_INVALID', 'Registered rule outputs must exactly match the declared contract.')
+  }
+  for (const definition of component.outputs) {
+    const value = result.outputs[definition.name]
+    if (!value || !isPlainRecord(value) || value.valueType !== definition.valueType
+      || Object.keys(value).some((key) => key !== 'valueType' && key !== 'value')
+      || (typeof value.value === 'string' && value.value.length > MAX_REGISTERED_RULE_TEXT_LENGTH)) {
+      throw new PayrollEngineError('REGISTERED_RULE_OUTPUT_TYPE_MISMATCH', 'Registered rule output type does not match its declaration.')
+    }
+    parseSerializedValue(value)
+  }
+  let traceTextLength = 0
+  for (const step of result.trace) {
+    if (!isPlainRecord(step) || typeof step.code !== 'string' || !step.code || step.code.length > 128
+      || typeof step.sourceReference !== 'string' || !step.sourceReference || step.sourceReference.length > MAX_REGISTERED_RULE_TEXT_LENGTH
+      || !isPlainRecord(step.values) || Object.keys(step.values).length > MAX_REGISTERED_RULE_TRACE_VALUES
+      || Object.keys(step).some((key) => !['code', 'values', 'sourceReference'].includes(key))) {
+      throw new PayrollEngineError('REGISTERED_RULE_TRACE_INVALID', 'Registered rule trace must contain bounded steps and source references.')
+    }
+    traceTextLength += step.code.length + step.sourceReference.length
+    for (const value of Object.values(step.values)) {
+      if (!isPlainRecord(value) || typeof value.valueType !== 'string' || !['MONEY', 'DECIMAL', 'PERCENTAGE', 'BOOLEAN', 'STRING'].includes(value.valueType)
+        || Object.keys(value).some((key) => key !== 'valueType' && key !== 'value')
+        || Object.keys(step.values).some((key) => !key || key.length > 128)
+        || (typeof value.value === 'string' && value.value.length > MAX_REGISTERED_RULE_TEXT_LENGTH)) throw new PayrollEngineError('REGISTERED_RULE_TRACE_INVALID', 'Trace values must be bounded and typed.')
+      parseExternalValue(value.value, value.valueType as PayrollValueType)
+      traceTextLength += typeof value.value === 'string' ? value.value.length : 0
+    }
+    traceTextLength += Object.keys(step.values).reduce((sum, key) => sum + key.length, 0)
+    if (traceTextLength > MAX_REGISTERED_RULE_TRACE_TEXT_LENGTH) {
+      throw new PayrollEngineError('REGISTERED_RULE_TRACE_INVALID', 'Registered rule trace exceeds the supported text budget.')
+    }
+  }
+  return result
 }
 
 function parseExternalValue(value: unknown, valueType: PayrollValueType): RuntimeValue {
@@ -1134,6 +1469,17 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const prototype = Object.getPrototypeOf(value)
   return prototype === Object.prototype || prototype === null
+}
+
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  if ((typeof value !== 'object' || value === null) && typeof value !== 'function') return false
+  let candidate: object | null = value as object
+  while (candidate !== null) {
+    const descriptor = Object.getOwnPropertyDescriptor(candidate, 'then')
+    if (descriptor) return !('value' in descriptor) || typeof descriptor.value === 'function'
+    candidate = Object.getPrototypeOf(candidate) as object | null
+  }
+  return false
 }
 
 function assertOnlyKeys(value: object, allowedKeys: readonly string[], code: string): void {
