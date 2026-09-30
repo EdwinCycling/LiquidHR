@@ -184,6 +184,8 @@ Zolang Payroll uitsluitend intern/test is:
 - niet-kritieke issues mogen als `KNOWN ISSUE / LATER CHECK` worden geregistreerd;
 - werkcyclus: implementeren → targeted test → onafhankelijke review waar nuttig → fix → retest → verder;
 - subagents mogen bij grotere runs expliciet worden ingezet voor parallelle implementatie, onafhankelijke review, security/scope, database/migrations, UI-consistentie en payrollregelcontrole;
+- wanneer subagents worden ingezet en modelkeuze beschikbaar is, gebruiken zij altijd **LUNA MAX**; geen automatische of lagere alternatieve subagentconfiguratie;
+- als LUNA MAX niet beschikbaar/selecteerbaar is, niet stilzwijgend substitueren maar aan de orchestrator melden;
 - de hoofdagent blijft orchestrator en integreert de resultaten.
 
 Hard stop alleen bij onder meer:
@@ -287,3 +289,212 @@ Voorkeursroute:
 8. aangifte-, payment-, accounting- en overige adapters.
 
 Na M0 is de eerstvolgende inhoudelijke payrollmijlpaal dus: de synthetische fiscale waarden vervangen door aantoonbare Nederlandse 2026-rule logic, zonder de generieke componentengine te omzeilen.
+
+## 13. Future engine invariants — iteraties, IKV's en gedeelde grondslagen
+
+Deze capabilities hoeven niet in iedere vroege payrollslice volledig te worden gebouwd, maar de architectuur mag ze niet blokkeren.
+
+### Circulaire / iteratieve berekeningen
+
+Niet iedere componentgrafiek blijft altijd een DAG.
+
+De engine moet later expliciete iteratieve/convergence-clusters kunnen ondersteunen:
+
+- detecteer strongly-connected component clusters;
+- alleen expliciet als iterative/convergence gemarkeerde clusters zijn geldig;
+- iteration policy is versioned;
+- policy kan minimaal tolerance, maximum iterations, eventueel minimum iterations en de relevante convergence outputs bevatten;
+- trace legt iteraties en de uiteindelijke convergence/non-convergence uit;
+- non-convergence wordt een gecontroleerde calculation failure/control result;
+- de engine rondt iteratieve tussenwaarden niet impliciet op 2 decimalen af om convergence te forceren.
+
+Vroege acyclische slices hoeven deze capability niet volledig te implementeren, maar hardcode nergens de aanname dat iedere toekomstige graph DAG-only is.
+
+### Employment versus IncomeRelationship / IKV
+
+Employment en IncomeRelationship/IKV zijn verschillende domeinconcepten.
+
+Nooit aannemen:
+
+```text
+employmentId == incomeRelationshipId
+```
+
+Toekomstig canoniek model:
+
+```text
+Employee
+→ 1..* Employment
+→ per Employment 0..* IncomeRelationship
+```
+
+Een Employment kan meerdere opeenvolgende of gelijktijdige IKV's hebben.
+
+De definitieve Core IncomeRelationship/IKV-entiteit wordt niet geïmproviseerd zolang het Core/CONTROL02-contract niet expliciet is vastgesteld. Payroll bewaart in de tussentijd een opaque `source_income_relationship_id` in canonical snapshots.
+
+### Gedeelde assessment bases
+
+Een grondslag hoort niet automatisch bij één IKV.
+
+De engine moet later componentnodes kunnen uitvoeren op scopes zoals:
+
+- `IncomeRelationship`;
+- `Employment`;
+- `AssessmentBaseGroup`;
+- `EmployeeEmployer`;
+- `EmployeeLegalEntity`;
+- `EmployeePensionScheme`;
+- `Employee`;
+- `PayrollRun`.
+
+Een `AssessmentBaseGroup` bepaalt voor één specifieke grondslag welke IKV's gezamenlijk worden behandeld. Verschillende grondslagen mogen verschillende group membership hebben.
+
+Conceptuele flow:
+
+```text
+IKV A local nodes ──→ contribution ──┐
+                                     │
+                                 Base Group
+                                     │
+IKV B local nodes ──→ contribution ──┘
+                                     ↓
+                       maximum/franchise/cumulative
+                                     ↓
+                                 allocation
+                              ↙             ↘
+                         IKV A             IKV B
+```
+
+Een wijziging aan één IKV kan daardoor resultaten op andere IKV's binnen dezelfde geraakte grondslaggroep beïnvloeden.
+
+Data ownership blijft:
+
+**LiquidHR Core**
+- Employee;
+- Employment;
+- later canonical IncomeRelationship/IKV identity + versions.
+
+**Payroll**
+- opaque source references;
+- immutable snapshots;
+- IncomeRelationshipCalculation;
+- assessment-base definitions/groups;
+- contributions;
+- allocations;
+- cumulatives;
+- calculated results.
+
+Geen cross-database foreign keys.
+
+## 14. Rounding, precision en statutory calculation stages
+
+Afronding is payroll business logic, geen formattering.
+
+### 14.1 Hoofdregel
+
+Gebruik geen generieke regel "alles onder water onbegrensd exact en alleen aan het einde naar 2 decimalen".
+
+De juiste regel is:
+
+> **Rond alleen wanneer de actieve payrollregel dat expliciet voorschrijft, precies op die rekenstap, met de voorgeschreven schaal en afrondingsmethode. Rond op alle andere stappen niet impliciet.**
+
+Dit is essentieel omdat wettelijke rekenvoorschriften juist tussentijdse afrondingen kunnen voorschrijven.
+
+### 14.2 Numerieke representatie
+
+- Gebruik nooit binary floating point (`float`/`double`/JavaScript `number`) als financiële rekenrepresentatie voor payrollbedragen, percentages en factoren.
+- Gebruik een exacte decimal/fixed-decimal representatie.
+- Leg geen globale regel vast dat 4-6 decimalen altijd voldoende zijn. De engine moet voldoende schaal behouden om de actieve regel exact uit te voeren.
+- Parameters bewaren hun officiële/publiceerde schaal en provenance.
+- Ongeafronde tussenwaarden mogen een grotere technische schaal gebruiken dan de uiteindelijke output.
+- De opslagrepresentatie mag geen precisie verliezen bij persistence, hashing of serialisatie.
+
+### 14.3 Rounding policy is versioned data
+
+Een financiële output of wettelijke tussenstap kan een expliciete `RoundingDefinition` hebben met minimaal:
+
+- `stage`;
+- `decimalPlaces` of target multiple;
+- `mode`;
+- `effectiveFrom/effectiveTo`;
+- rule/package version;
+- officiële bron/provenance waar wettelijk;
+- traceability.
+
+Ondersteun conceptueel afzonderlijke modes zoals:
+
+- arithmetic / half-up wanneer de bron "rekenkundig" voorschrijft;
+- floor / naar beneden;
+- ceiling / naar boven;
+- truncate-toward-zero alleen wanneer expliciet vereist;
+- round-down-to-multiple, bijvoorbeeld een wettelijke tabelstap;
+- no-rounding.
+
+Verwar `floor` en `truncate toward zero` niet bij eventuele negatieve waarden.
+
+### 14.4 Rounding stages
+
+Rounding moet per stap kunnen worden vastgelegd, bijvoorbeeld:
+
+- input normalization;
+- statutory intermediate step;
+- component output;
+- assessment-base/group result;
+- allocation/distribution;
+- period total;
+- annual/YTD total;
+- payment;
+- declaration projection.
+
+Niet iedere component gebruikt al deze stages.
+
+### 14.5 Officiële NL-2026 regels hebben voorrang op generieke conventies
+
+Voor de Belastingdienst Rekenvoorschriften 2026 geldt bijvoorbeeld dat verschillende symbolen verschillende regels hebben. Voor de huidige standaardscope zijn onder meer relevant:
+
+- jaarloon `L` wordt tot `Lmax` naar beneden op een veelvoud van `Lv` gebracht; boven `Lmax` wordt `L` volgens de voorschriften op 5 decimalen rekenkundig bepaald;
+- `X1` bij `L ≤ Lmax` wordt naar beneden op hele euro's afgerond;
+- bepaalde heffingskortingen zoals AHK worden bij afbouw naar boven op hele euro's afgerond;
+- het tijdvakbedrag `x` van de in te houden LB/PH wordt rekenkundig op 2 decimalen afgerond;
+- boven `Lmax` bestaan expliciete stappen op 2 en 5 decimalen;
+- bij het zelf herleiden van standaardparameters gelden onder meer hele euro's in het voordeel van de werknemer, percentages op 3 decimalen en factoren op 5 decimalen, precies voor de scope waarin de officiële voorschriften dat bepalen.
+
+Daarom is de uitspraak "de uiteindelijke loonheffing wordt per werknemer op hele euro's afgerond" **niet** als algemene regel toegestaan. Het jaarbedrag en het uiteindelijke tijdvakbedrag hebben verschillende afrondingsregels.
+
+### 14.6 Trace en audit
+
+Bewaar voor iedere relevante afgeronde stap waar praktisch:
+
+- unrounded value;
+- rounded value;
+- rounding difference;
+- rounding mode;
+- scale/target multiple;
+- rounding stage;
+- rounding rule/package version;
+- bronverwijzing bij wettelijke SYSTEM-rules.
+
+Een wijziging in een rounding rule vereist een nieuwe rule/component/package version en regressietests.
+
+### 14.7 Cumulatief rekenen
+
+Cumulatief rekenen is geen universele anti-afrondingsregel die op iedere payrollcomponent moet worden toegepast.
+
+Gebruik cumulatieve/YTD-methoden alleen wanneer de betreffende regeling, component of grondslag dat vereist, bijvoorbeeld bij wettelijke voortschrijdend-cumulatieve grondslagen of een expliciete reserverings-/balansregel.
+
+De engine moet cumulatieve balances versioned, scoped en reproduceerbaar bewaren. Een generieke "reken vanaf januari en trek eerdere afgeronde betalingen af"-regel mag niet stilzwijgend op alle componenten worden toegepast.
+
+### 14.8 Allocatie en restcenten
+
+Wanneer een afgerond groepsbedrag over meerdere IKV's, componenten of betalingen wordt verdeeld:
+
+- de som van allocaties moet exact aansluiten op het afgeronde groeps-/eindbedrag;
+- eventuele restcenten worden deterministisch volgens een expliciete, versioned allocation policy verdeeld;
+- nooit afhankelijk van databasevolgorde;
+- trace legt vast waar het afrondingsverschil terechtkwam.
+
+### 14.9 Convergence
+
+Iteratieve berekeningen vergelijken ongeafronde of expliciet voor convergence genormaliseerde waarden op een versioned comparison precision/tolerance.
+
+Rond iteratieve bedragen niet standaard op 2 decimalen voordat convergence wordt vastgesteld. Een wettelijke component mag wel expliciete afrondingsstappen binnen de iteratie bevatten wanneer de betreffende regel dat vereist.
