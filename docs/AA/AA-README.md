@@ -13,6 +13,7 @@ De AA-set voorkomt dat actuele afspraken verspreid raken over oude prompts, loss
 - AA-REQ bevat de **fundamentele product- en architectuurregels**.
 - AA-OP bepaalt **hoe Codex werkt**.
 - AA-TEST bepaalt **hoe we bewijs verzamelen**.
+- AA-PAYROLL bevat de **leidende payrollarchitectuur en ontwikkelafspraken**.
 - AA-REL bepaalt **hoe convergence, release, deployment en cleanup verlopen**.
 - AA-NEXT bepaalt **wat direct hierna komt**.
 - AA-ROAD bevat de **langere productkoers**.
@@ -26,6 +27,7 @@ De AA-set voorkomt dat actuele afspraken verspreid raken over oude prompts, loss
 | [AA-REQ](AA-REQ.md) | Niet-onderhandelbare product-, data-, security- en architectuurregels |
 | [AA-OP](AA-OP.md) | Codex operating model: branches, worktrees, implementatie, migrations, stopcriteria |
 | [AA-TEST](AA-TEST.md) | Teststrategie, persona's, testdata en risicogestuurde gates |
+| [AA-PAYROLL](AA-PAYROLL.md) | Payroll bounded context, componentengine, ownership, test-/UI-regels |
 | [AA-REL](AA-REL.md) | Convergence, versioning, deployment, provenance en cleanup |
 | [AA-NEXT](AA-NEXT.md) | Korte-termijnroadmap |
 | [AA-ROAD](AA-ROAD.md) | Lange-termijnroadmap |
@@ -42,6 +44,14 @@ Lees minimaal:
 4. `AA-CURRENT.md`
 5. `AA-NEXT.md`
 6. de domeinspecifieke requirements waarnaar de wave verwijst
+
+### Payroll feature / Payroll Lab
+Lees minimaal:
+1. `AA-PAYROLL.md`
+2. `AA-OP.md`
+3. `AA-TEST.md`
+4. `AA-CURRENT.md`
+5. relevante payrollrequirements/ADR/FDR/acceptance evidence
 
 ### Bugfix
 Lees minimaal:
@@ -77,7 +87,7 @@ Lees:
 Bij conflict geldt in deze volgorde:
 
 1. expliciet, actueel besluit in een ADR/FDR of leidend requirement;
-2. AA-REQ / AA-OP / AA-TEST / AA-REL;
+2. AA-REQ / AA-OP / AA-TEST / AA-PAYROLL / AA-REL;
 3. AA-CURRENT / AA-ACCEPT;
 4. domeinspecifieke requirements;
 5. actuele acceptance reports;
