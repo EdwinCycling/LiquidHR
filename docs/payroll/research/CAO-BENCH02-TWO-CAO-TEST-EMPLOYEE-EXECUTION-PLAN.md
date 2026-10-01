@@ -151,3 +151,50 @@ Bij de eerste read-only inspectie was Planeten → Test Operations → Jupiter B
 4. Maak geen namen, BSN, IBAN of privécontact openbaar. Geen Core-write zonder afzonderlijke expliciete scopebeslissing. De gewenste UI-flow voor 'primaire cao per employment' wordt dan bewezen via synthetic Lab-assignments totdat het live Core-contract is aanvaard.
 
 Deze correctie heeft voorrang op eerdere passages in dit document die de vier Jubilee/Jupiter-testprofielen zonder onderscheid als de bedoelde Test-medewerkers zouden kunnen laten lezen.
+
+## 10. Besloten testset: 2 cao's + 1 bedrijfseigen open-bandenregeling
+
+**Definitieve keuze van Edwin op 2026-10-01:** de benchmark omvat **drie primaire arrangementen** binnen de gescopeerde synthetische Payroll Lab-testadministratie. Dit zijn **twee cao's en één bedrijfseigen regeling**, dus nadrukkelijk niet drie cao's.
+
+1. `KINDEROPVANG_2025_2026`: officiële Kinderopvang-cao; discrete salaris-/tredetabel plus selectief ondersteunde cao-componenten.
+2. `RETAIL_NON_FOOD_MODE_2026_2027`: officiële Retail Non-Food, branchevariant Mode; relevante functiegroep/ervaringsjaar-/uurtabel plus selectief ondersteunde cao-componenten.
+3. `COMPANY_OPEN_BANDS_V1`: door Codex uitdrukkelijk **synthetisch** ingericht bedrijfseigen pakket met **alleen salarisstructuur, open schalen/bandbreedtes en compa-ratio**; geen vaste treden, geen ongevraagde extra cao-/pensioen-/fondsregels. Algemene wettelijke fiscale SYSTEM-regels blijven vanzelf afzonderlijk van kracht waar ondersteund.
+
+### Contract bedrijfseigen regeling
+
+- Schalen hebben `code`, `name`, `effectiveFrom/To`, `basis` (fulltime bruto maand/uur, expliciet), `fullTimeHours`, `currency`, `min`, `referenceMidpoint`, `max`. Het midpoint mag expliciet configureerbaar zijn en hoeft niet altijd `(min + max) / 2` te zijn. Als het beleid een berekend midden voorschrijft, leg die formule/versie dan vast.
+- Validatie: `min <= referenceMidpoint <= max`; alleen positieve, toepasselijke referentiewaarden. Andere minima/maxima alleen met expliciete bron- en beleidsvoorwaarden.
+- Werknemerssalaris is **vrij binnen de gekozen schaalband**; géén trede. Bewaar daadwerkelijk afgesproken salaris apart van de band en het afgeleide referentiesalaris.
+- **Compa-ratio = (individueel salaris op dezelfde fulltime/geannualiseerde basis / schaal-referenceMidpoint) × 100%.** Gebruik exact-decimal en expliciete display-rounding. Vergelijk nooit deeltijdloon rechtstreeks met een fulltime midden; normaliseer beide naar dezelfde uur-, maand- of jaarbasis. Gebruik voor de payrollberekening de juiste contractueel vastgelegde deeltijdloongegevens, niet de com­pa-ratio als salarisberekeningsgrondslag.
+- Onderscheid `BELOW_MIN`, `WITHIN_BAND`, `AT_MIDPOINT`, `ABOVE_MAX` als uitlegbare, door policy te sturen controles. De policy beslist of buiten-band een blokkade of een expliciet goed te keuren uitzondering is; de simulatietest moet de uitkomst tonen.
+- Geen automatische verhoging, periodiek, afgedwongen middenstap of fictieve juridische rechten afleiden uit compa-ratio. Dit is een beloningsanalyse- en inrichtingskengetal, niet een wettelijk verplichte cao-berekening.
+- Publiceer minstens twee **versies** van een synthetische bedrijfsschaal om behoud van eerdere band-/ratio-berekeningen en effectieve datums te verifiëren, zonder bestaande gepinde payrollruns te herschrijven.
+
+### Uit te voeren benchmarkmatrix
+
+Plan **minimaal zes** gescheiden synthetische testscenario's (twee per arrangement):
+
+| ID | Arrangement | Salarisinstelling | Controle |
+| --- | --- | --- | --- |
+| K1 | Kinderopvang | fulltime salarisnummer/schaal | officiële periodetabel en componenten |
+| K2 | Kinderopvang | parttime salarisnummer + relevante toeslag | deeltijd en cao-grondslag |
+| R1 | Retail Mode | functiegroep/ervaringsjaar | officiële uurtabel en maandresultaat |
+| R2 | Retail Mode | parttime plus overlappende tijdvensters | toepasselijke toeslagconflictregel |
+| B1 | Company open bands | fulltime, exact referentiemidden | 100% compa-ratio |
+| B2 | Company open bands | deeltijd, gekozen salaris t.o.v. midden | correcte fulltime-normalisatie en verhouding, onafhankelijk van FTE |
+
+Voeg gerichte boundarycases toe voor onder minimum, precies minimum, precies maximum, boven maximum, en voor een gepinde oudere bandversie.
+
+Gebruik eerst de door Edwin bedoelde Test-achternaamprofielen **als hun scope en payrollinput toereikend zijn**; raadpleeg ze alleen via de bestaande geautoriseerde Core-services. Anders mogen maximaal beschikbare complete bestaande testprofielen als bron voor gepseudonimiseerde snapshots dienen, aangevuld met **zuiver synthetische Lab-profielen** voor de extra twee cases. Eerdere read-only controle bewees vier complete Test Operations/Jupiter-profielen, **niet** zes. Verplaats of wijzig geen Core-medewerkers, contracten, afdelingen, bestaande labor-condition assignments of managerrechten om de matrix vol te maken.
+
+### Functionele acceptance
+
+- Op de synthetische Jupiter-testadministratie zijn **exact de drie gekozen primaire arrangementen** als selecteerbare testconfiguraties zichtbaar. Productbreed moet het model meer dan drie regelingen ondersteunen.
+- Eén gescopeerd employment-scenario selecteert **exact één** primaire regeling uit de beschikbaar gestelde lijst; niet tegelijk een cao en de bedrijfseigen **primaire** regeling. Aanvullende fondsen/pensioenpakketten blijven een apart toekomstig concept.
+- Cao's gebruiken hun gedocumenteerde schalen/treden en ingangsdatums; bedrijfseigen pakket heeft alleen open band, afgesproken salaris en compa-ratio zonder tredeselectie.
+- Compa-ratio voor B1 = 100%; voor B2 onafhankelijk verifieerbaar bij een expliciete deeltijdfactor, inclusief correcte vergelijking van fulltime-equivalenten.
+- Voor alle zes blijven component-, package- en snapshotidentiteiten geïsoleerd en reproduceerbaar; dezelfde scalaire engine berekent alleen aanwezige, geaccepteerde componenten. **Vergelijk compa-ratio niet met eindnetto**: de ratio is een salarispositie, geen fiscaal outputbedrag.
+- Geen claim 'drie cao's ondersteund'; twee cao's zijn nog interne benchmarkpakketten met beperkte bewezen dekking, het derde is een synthetische bedrijfspolicy.
+- Codex maakt **alle** drie de arrangementen, tabellen en fixtures zelf, met onafhankelijke oracles/subagents op LUNA MAX; Edwin hoeft geen bandwaarden, percentagetabellen of werknemerskoppelingen handmatig in te voeren.
+
+Dit hoofdstuk verduidelijkt en **vervangt** eerdere aantalsformuleringen elders in dit plan die nog uitgaan van slechts vier scenario's/twee arrangementen. De acceptatiematrix is vanaf nu zes scenario's/drie arrangementen.
