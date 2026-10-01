@@ -535,3 +535,15 @@ Jaaropgaaf gebruikt **loonstaat-/jaaraggregatie** en correcte werkgever-, dienst
 Navigatie: pas zodra functioneel de tegel `Loonstroken & Jaaropgaven` onder het enkele `Payroll Lab`-overzicht; medewerker ziet PDF's onder eigen ESS-ingang. De toekomstige eenvoudige salaris-cockpit is een **apart uit te werken** productonderdeel. Geen extra Payroll-sidebar-item.
 
 Details en gefaseerde acceptatie: [PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER](../requirements/payroll/PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER.md). Huidige PAYLAB03-jaar- en premiegegevens zijn onvoldoende voor een echte, wettelijk volledige jaaropgaaf; geen premature uitgifteclaim.
+
+## 19. Salary/tax payments — separate payment orchestration (planned)
+
+Geen eigen payroll-/belastinggeld door LiquidHR laten lopen. De engine maakt immutable gefinaliseerde resultaten; `PayableProjection` bepaalt het daadwerkelijk verschuldigde bedrag en is bewust onderscheiden van `NET_WAGE`. Een aparte, streng gescopeerde payment domain layer maakt `PaymentInstruction`, `PaymentOrder/Batch`, `PaymentAttempt/ExportArtifact`, status-/reconciliationevents, en later afzonderlijke `TaxPaymentObligation` en `RecoveryCase`. Renderer/bankexport rekent niet opnieuw.
+
+Betalingsgoedkeuring staat los van HR-/payrollrollen en payrollfinalisatie. Batchinhoud/IBAN/bedrag/datum wordt bij goedkeuring vastgezet met immutable hash; inhoudelijke wijziging vereist nieuwe revisie en goedkeuring. Download betekent alleen EXPORTED, API-submission alleen submitted/accepted wanneer bevestigd; nooit SETTLED zonder betrouwbare reconciliatie/verklaring. UNKNOWN status is veilig af te handelen vóór fallback om dubbele salarisbetaling te voorkomen.
+
+Eerste kanaal: versie-/bankprofielgebonden, volledig gevalideerde SEPA Credit Transfer XML-export. Later optionele bank-/PSP-adapter die een batch klaarzet voor bankautorisatie bij de klant. Behoud altijd gecontroleerde SEPA-fallback; directe koppeling introduceert geen eigen betaalinstellingsclaims. EU SCT rulebook en EPC customer-to-PSP IG op uitvoerdatum opnieuw verifiëren, inclusief name/IBAN-check (VOP) die door bank/PSP wordt uitgevoerd.
+
+Loonheffingenbetaling komt uit het **eindbedrag van een werkelijk geaccepteerde aangifte**, heeft periodiek betalingskenmerk, deadline en actueel officieel rekeningprofiel; fiscale periodebetaling is onderscheiden van werknemerbetalingen. Geen negatieve SEPA-instructie voor een netto-terugvordering. Werknemerloonstrook gebruikt dezelfde pinned payableprojection, bankstatus verandert geen historische PDF.
+
+Navigatie: `Betalingen` wordt pas bij werkende module een overzichtstegel onder het **enige** `Payroll Lab`-sidebaritem. Details/fasering: [PAYMENT01-SALARY-AND-TAX-PAYMENTS-ARCHITECTURE](../requirements/payroll/PAYMENT01-SALARY-AND-TAX-PAYMENTS-ARCHITECTURE.md). Dit is gepland, niet op basis van PAYLAB03 geaccepteerde betaalfunctionaliteit.
