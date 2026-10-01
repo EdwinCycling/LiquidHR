@@ -513,3 +513,13 @@ Rond iteratieve bedragen niet standaard op 2 decimalen voordat convergence wordt
 Volgens het lokale acceptance report van 2026-09-30 is CC-NL-2026-001 GREEN binnen WHITE/NL/STD, onder AOW, volledige reguliere maand, loonheffingskorting aan. Fiscaal loon € 4.000,00 → loonheffing € 818,67 → netto € 3.181,33. Er zijn 21 onafhankelijke rekengevallen, 10 officiële maandtabelankers, 2 geauthenticeerde persisted browserruns met identieke hashes en rounding trace. Code-SHA: `5d7e9fc5e19ff4582787b51e0104c885ac83370a` (lokaal; geen push/deploy).
 
 Deze status wijzigt niets aan de toekomstige invarianten: geen automatische employment=IKV-aanname, geen impliciete twee-decimaalafronding, geen generieke YTD, geen veronderstelde DAG-only engine. Iteratieve clusters, shared bases en multi-IKV zijn nog niet uitgevoerd/accepted. Raadpleeg het lokale `docs/payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md` voordat nieuwe scope wordt gepland.
+
+## 17. Pro Forma / What-if — gereserveerde scenarioarchitectuur
+
+De pro-formamodule wordt geen tweede engine of parallelle bronadministratie. Een scenario is een immutable canonical baseline + gestructureerde tijdelijke delta's + versiegebonden rule-/cao-/bedrijfspakketcompositie. Berekening loopt via dezelfde Payroll Component Graph Engine in een strict `SIMULATION` context, **zonder** echte HR/Payroll-writes, betaling, aangifte, journaalpost of wijziging van productiecumulatieven.
+
+HR Admin kan eerst een synthetische werknemer gebruiken; pas na live Core-sourceacceptatie en server-side salary-permissions een bestaande medewerker kopiëren. Medewerkers zien alleen de eigen toegestane gegevens en houden hun simulaties privé totdat ze bewust delen. Bied alleen scenario's aan waarvoor de betrokken componenten, wettelijke regels en cao-behandeling daadwerkelijk getest en ondersteund zijn; geen onjuiste ziekengeld-, pensioen-, werkgeverskosten- of netto-uitkomst verzinnen.
+
+Netto-naar-bruto is een **bounded inverse search over de bestaande forward engine**, geen eigen belastingformule. Definieer doelnetto, zoekvariabele, brutoband/salarisstap en overige bevroren arbeidsvoorwaarden expliciet. Houd rekening met discontinuïteiten, loonbelastingtabelstappen, afronding en mogelijk onbereikbare exacte nettodoelen; rapporteer controleerbaar doelbereik of dichtstbijzijnde uitkomst.
+
+UX: zodra functioneel een `Pro Forma`-tegel op het enkele `Payroll Lab`-overzicht; toekomstig ESS onder `Mijn salaris → Wat als`. Geen extra Payroll-sidebaronderdelen. Detailconcept en fasering: [PROFORMA01-WHAT-IF-PRODUCT-ARCHITECTURE](../requirements/payroll/PROFORMA01-WHAT-IF-PRODUCT-ARCHITECTURE.md). Dit is gepland ontwerp, niet geïmplementeerd of geaccepteerd door PAYLAB03/04.
