@@ -57,6 +57,8 @@ Geen automatische 'laatste wint' of 'klant gaat altijd boven cao' voor botsende 
 - publiceren van een expliciete package-manifest/hash. Niet de generieke engine of willekeurige statutory executable code naar Control verplaatsen.
 
 **LiquidHR HR Suite / Payroll (klantgericht):**
+- gebruik één `Payroll Lab`-sidebar-ingang met een dashboard/overzicht van bestaande LiquidHR-tegels; geen afzonderlijke sidebar-menu's voor Salariscomponenten of toekomstige cao's;
+- plaats toekomstige `Cao's en regelingen` als functionele tegel vanuit dat overzicht, met onderliggende routes en terugnavigatie;
 - bladeren door beschikbare componenten en cao-/fondspakketten;
 - zien of een pakket BENCHMARK/BETA, functioneel getest, intern gereviewd of extern gevalideerd is, zonder ongefundeerde keurmerkclaim;
 - toepasbaarheid laten bevestigen door bevoegde klantfunctionaris;
