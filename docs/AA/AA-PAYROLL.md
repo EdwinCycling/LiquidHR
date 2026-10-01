@@ -557,3 +557,15 @@ Op 2026-10-01 is read-only vastgesteld: Planeten → Test Operations → Jupiter
 Test beide packageversies per werknemer/contract, niet globaal voor de hele afdeling; breng officiële bronwijzigingen, schaal-/uren-/deeltijdberekening, toeslagoverlap en onderliggende NL-fiscale compatibiliteit aan het licht. Documenteer per cao welke bepaling daadwerkelijk SUPPORTED, PARTIAL of UNSUPPORTED is. Een interne benchmark is geen wettelijke validatie van beide cao's en geen productierelease.
 
 Detail: [CAO-BENCH02](../payroll/research/CAO-BENCH02-TWO-CAO-TEST-EMPLOYEE-EXECUTION-PLAN.md). Uitvoering pas na PAYLAB04; geen aanpassingen aan bestaande Core-medewerkers of managerrechten in een benchmarkrun.
+
+## 21. Administratie- en dienstverbandcao: salary models en selectieregels (ontwerp)
+
+Er is **geen universele verplichte schaal-/tredestructuur**. Ondersteun discrete schaal + salarisnummer/ervaringsjaar, open schaalband met individueel overeengekomen loon, en vrij loon met toepasselijke wettelijke/cao-garanties. De twee eerste benchmark-cao's (Kinderopvang 2025–2026, Retail Non-Food 2026–2027 module Mode) gebruiken allebei tabellen met stappen, maar Retail vereist apart feitelijk loon vs garantieloon en overgangs-/beoordelingsregels; neem geen universele automatisering van periodieken aan.
+
+Per juridische administratie stelt de HR Admin beschikbare, door LiquidHR gepubliceerde **primaire** cao-/bedrijfsarrangementen in. Per employment selecteert een bevoegd persoon daaruit precies één primaire regeling of expliciet een wettelijke/no-cao-basis als geen cao van toepassing is. Aanvullende fonds-/pensioenpakketten zijn afzonderlijke assignments met compatibility checks. Niet aan de hele afdeling of tenant forceren.
+
+Een primaire cao-wisseling midden in hetzelfde employment is in V1 niet vrij uitvoerbaar: later expliciet wijzigings-/retroproces. Een nieuwe gepubliceerde versie van **dezelfde** cao is geen cao-wissel: versioned effective dates en gepinde historische snapshots blijven gelden. Schaal/trede hoort bij geversioneerde employment-salarissegmenten, niet bij Employee-masterdata.
+
+Core heeft reeds `labor_condition_sets`, `employment_contracts.labor_condition_set_id` en salaris-/schaal-/IKV-entiteiten. Dat bewijst nog niet de geaccepteerde mapping naar Payroll ArrangementPackage, of berekening door de engine; ontwerp het service-/ownershipcontract zonder impliciete Core-schemawijziging.
+
+Let bij testgebruik op persoonsidentiteit: de vier complete profielen uit Planeten/Test Operations/Jupiter zijn **niet bevestigd** als de elf Planeten-profielen met 'test' in de achternaam; een read-only naamcontrole vond 0 dergelijke namen in Test Operations. Codex moet eerst de door Edwin bedoelde profielen gescopeerd identificeren of de vier bestaande profielen uitsluitend als benoemde synthetische Lab-varianten gebruiken. Zie [CAO-BENCH02](../payroll/research/CAO-BENCH02-TWO-CAO-TEST-EMPLOYEE-EXECUTION-PLAN.md), paragrafen 8–9.
