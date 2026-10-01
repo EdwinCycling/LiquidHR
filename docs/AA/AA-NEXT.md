@@ -118,6 +118,10 @@ Voorgesteld volgende productonderwerp, pas definitief maken na expliciete scopek
 - PAYLAB05 (later): component Designer bovenop de bestaande veilige engine/DSL;
 - CAO-BENCH01: publieke Cao Kinderopvang als benchmark voor bestaande componenten, arrangement packages, effective dating en gap-analyse (geen officiële cao-publicatie);
 - PROFORMA00/01: aparte, gescopeerde pro-forma-scenario's bovenop dezelfde engine; eerst synthetische full-month what-if + onderbouwde bruto-naar-netto en netto-naar-bruto-inversie. Na live Core-to-IKV-proof en bredere rules volgen HR-kopie bestaande medewerker en medewerker-selfservice; geen kopie van niet-geautoriseerde salarisdata.
+- PAYDOC00/01: loonstrook- en jaaropgaaf-contract + LiquidHR Standard loonstrook/PDF met beperkte klantbranding, verplichte veldvalidatie en scoped ESS-inzage zodra finalization/delivery veilig beschikbaar is.
+- PAYDOC02: officiële jaarlijkse loonstaataggregatie en jaaropgaaf-PDF na bewijs van volledige jaarlijkse werknemersverzekering-/Zvw-/arbeidskortinggegevens en werkgever/IKV-groepering.
+- PAYDOC03: optionele veilige Custom Document Designer met veldcatalogus, wettelijke required-field validator en versiebare klanttemplates. **Geen** volledige designer in lopende PAYLAB04.
+- Medewerker salaris-cockpit: apart later uit te werken; niet vooruitbouwen zonder productscope.
 - afzonderlijke fiscale vervolgslices: pensioen, werkgeverspremies/VCR, Zvw, bijzondere beloning en overige 2026-situaties op basis van officiële bron- en compliancecases;
 - CONTROL02/Core IncomeRelationship-contract expliciet vastleggen vóór echte multi-IKV-integratie;
 - iteratieve clusters en gedeelde IKV-grondslagen blijven gereserveerde architectuurinvarianten totdat een afgesproken slice ze implementeert.
