@@ -523,3 +523,15 @@ HR Admin kan eerst een synthetische werknemer gebruiken; pas na live Core-source
 Netto-naar-bruto is een **bounded inverse search over de bestaande forward engine**, geen eigen belastingformule. Definieer doelnetto, zoekvariabele, brutoband/salarisstap en overige bevroren arbeidsvoorwaarden expliciet. Houd rekening met discontinuïteiten, loonbelastingtabelstappen, afronding en mogelijk onbereikbare exacte nettodoelen; rapporteer controleerbaar doelbereik of dichtstbijzijnde uitkomst.
 
 UX: zodra functioneel een `Pro Forma`-tegel op het enkele `Payroll Lab`-overzicht; toekomstig ESS onder `Mijn salaris → Wat als`. Geen extra Payroll-sidebaronderdelen. Detailconcept en fasering: [PROFORMA01-WHAT-IF-PRODUCT-ARCHITECTURE](../requirements/payroll/PROFORMA01-WHAT-IF-PRODUCT-ARCHITECTURE.md). Dit is gepland ontwerp, niet geïmplementeerd of geaccepteerd door PAYLAB03/04.
+
+## 18. Payrolldocumenten: loonstrook, jaaropgaaf en gecontroleerde templates
+
+Voorgesteld, **nog niet geïmplementeerd**: één documentpipeline over **immutable finalized payroll-/loonstaatprojecties**, géén tweede rekenengine. Documenttypes `PAYSLIP` en `ANNUAL_STATEMENT`; modes `LIQUIDHR_STANDARD`, `CUSTOMIZED_STANDARD`, later `CUSTOM_DESIGNER`.
+
+Een LiquidHR Standard is door LiquidHR onderhouden, **niet** door de Belastingdienst gecertificeerd. Klanten mogen in de aangepaste standaard het logo, vooraf als optioneel geclassificeerde blokken en beperkte eigen velden instellen; wettelijke verplichte velden, bedragen en betekenis blijven beschermd. De optionele vrije designer bouwt op een typed read-only datafieldregister en een server-side wettelijke veldvalidator: eigen risico ontslaat klanten niet van wettelijke vereisten en is geen toestemming om wettelijk verplichte gegevens te verwijderen.
+
+Jaaropgaaf gebruikt **loonstaat-/jaaraggregatie** en correcte werkgever-, dienstbetrekking- en IKV-groepering, niet simpelweg een optelsom van PDF-loonstroken. Digitale loonstroken vereisen instemming en duurzame inzage/bewaarbaarheid. ESS-toegang is strikt employee-scoped; BSN op jaaropgaaf wordt alleen in het afgeschermde document getoond. Eenmaal uitgegeven PDF's en hun template-/bronversies blijven auditeerbaar en worden bij correcties niet stilzwijgend overschreven.
+
+Navigatie: pas zodra functioneel de tegel `Loonstroken & Jaaropgaven` onder het enkele `Payroll Lab`-overzicht; medewerker ziet PDF's onder eigen ESS-ingang. De toekomstige eenvoudige salaris-cockpit is een **apart uit te werken** productonderdeel. Geen extra Payroll-sidebar-item.
+
+Details en gefaseerde acceptatie: [PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER](../requirements/payroll/PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER.md). Huidige PAYLAB03-jaar- en premiegegevens zijn onvoldoende voor een echte, wettelijk volledige jaaropgaaf; geen premature uitgifteclaim.
