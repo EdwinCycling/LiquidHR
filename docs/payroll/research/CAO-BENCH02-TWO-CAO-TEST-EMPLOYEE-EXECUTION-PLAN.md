@@ -248,3 +248,49 @@ Read-only geïnventariseerd 2026-10-01, HR-groep Planeten:
 7. Na gerichte Core-/PAYLAB02–04 regressie-, autorisatie-, persistence- en browserchecks rapporteer werkelijke dekking per regeling, eventuele nog ontbrekende bron/IKV/CAO-capability en de uiteindelijke geconfigureerde fixturemapping. Geen push/merge/deploy.
 
 **Override eerdere beperkingen:** teksten in dit document die 'Core altijd read-only in de benchmark' eisen, gelden voortaan alleen voor discovery en Core-buiten-de-doelgroep. Voor vooraf geïnventariseerde, betrokken Core-testloon-/regelingsrecords zijn in deze afzonderlijke run gerichte writes uitdrukkelijk toegestaan. Een noodzakelijke Core-schema- of CONTROL02-wijziging blijft een harde stop.
+
+
+## 12. Extra benchmark — Hoger Personeel versus CEO buiten de cao
+
+**Aanvullend gebruikersbesluit 2026-10-01:** test expliciet het verschil tussen een werknemer binnen een afzonderlijke cao Hoger Personeel en een CEO/direct beleidsbepaler buiten de werkingssfeer van een cao. Dit is een uitbreiding van de **applicability-/assignmenttests**, geen opdracht om meteen een derde volledige cao-fiscale implementatie te claimen.
+
+### Officiële primaire referentie en belangrijke correctie
+
+- [Metalektro Hoger Personeel 2026, Staatscourant 20 mei 2026 nr. 14650](https://zoek.officielebekendmakingen.nl/stcrt-2026-14650.html): groepsgrenzen L=591–645, M=646–700, N=701–760, O=761–820, P=821–880, Q=881–940 ISF-punten bij dat functiesysteem. Cao bevat onder meer eigen inkomens-/verhogingsvoorwaarden, dus 'hoger personeel' betekent **niet** vrijblijvend loon zonder verdere cao-verplichtingen.
+- [Wijziging werkingssfeer 16 juli 2026, Staatscourant nr. 22083](https://zoek.officielebekendmakingen.nl/stcrt-2026-22083.html): voor relevante werkgevers/werknemers geldt HP voor functies boven de Basis-cao-salarisgroepen **met uitzondering van ondernemingsbestuurders en functionarissen die rechtstreeks het ondernemingsbeleid bepalen**. Datum wijziging: 17 juli 2026 zonder terugwerkende kracht. Controleer peildatum en bronversie bij uitvoering. Status `CEO` in een functieomschrijving is op zichzelf **niet** genoeg om juridisch uitsluiting/DGA/verzekeringsplicht af te leiden.
+
+**Concreet gevolg:** koppel de CEO **niet** aan Metalektro HP. In onze fictieve Jupiter-demo krijgt de CEO de bestaande primaire **bedrijfseigen** regeling met een managementuitzondering `DIRECTIE_INDIVIDUEEL` en persoonlijk onderhandeld salaris; de publiek geïnspireerde A–J open-bandstructuur blijft voor reguliere bedrijfsschalen in datzelfde company arrangement beschikbaar. Dit is géén echte Metalektro-toepasselijkheid voor Jupiter.
+
+### Testpersona C1: fictieve CEO — buiten cao
+
+- Doel: vind eerst een geschikte bestaande synthetische Jupiter BV / Planeten Directie / BOARD werknemer met echte Employment, salaris-/contractstatus; als onvoldoende, een afzonderlijke synthetische test-CEO-Employment.
+- Read-only inventaris 2026-10-01: BOARD/Jupiter BV had vijf actuele employee-organisatielinks en ROOT/Jupiter één; in de gecontroleerde organisatorische `job_title`-teksten stond **geen expliciete CEO-/directeurbenaming**. Dit bewijst geen juridische bestuurdersstatus en is géén bewijs dat een CEO niet elders bestaat.
+- Codex mag binnen de **afgesproken geselecteerde testcohort** één kandidaat als `CEO — Benchmark` benoemen in gescopeerde testfunctie/organisatiedata na de bestaande dependency/back-upcontrole. Verander geen authenticatierol, echte juridische functie-/KvK-data, bestuurdersstatus of DGA-/verzekeringsindicatoren om de test te laten slagen.
+- `C1` valt onder `LHR_DEMO_OPEN_BANDS_2026` als primaire **bedrijfseigen** regeling, maar salarismodel `FREELY_NEGOTIATED` / `DIRECTIE_INDIVIDUEEL`, **zonder afgedwongen schaal/trede of bandlimiet**. Demo-testloon bijv. € 12.000 bruto/maand; dit bedrag is een **synthetische testwaarde**, niet een gepubliceerd extern cao-bedrag. Bestaande managementbanden kunnen als **niet-bindende analytische referentie** dienen, maar vergelijk geen fictieve bedrijfseigen managementband met de publieke luchtvaart-A–J-uurbanden zonder transparante afbakening.
+- Scope/eligibility-resultaat: `NO_APPLICABLE_CAO_IDENTIFIED_IN_SYNTHETIC_DEMO` met duidelijk gekozen company policy; niet `METAL_HP_EXCLUDED` alsof Jupiter daadwerkelijk onder Metalektro valt.
+- Fiscale status van CEO: reguliere werknemercase **alleen** als de synthetische input die status afzonderlijk verklaart en binnen geaccepteerde engine-/rulecase valt; statutair bestuurder, DGA en eventuele werknemersverzekeringsuitzonderingen komen in een **aparte toekomstige compliancecase**.
+
+### Referentiepersona H1: hogere specialist — HP-eligibility
+
+- Separate **isolated synthetic employer/eligibility fixture**: een *fictieve* onderneming die voor deze testcase expliciet binnen de werkingssfeer Metalektro is gepositioneerd, senior specialist functiegroep L of hoger volgens toepasselijke functiewaardering, niet beleidsbepaler/bestuurder.
+- Test met officiële juli-2026 werkingssfeerbron: deze synthetische H1 kan de **HP-eligibility route** gebruiken terwijl een synthetische Metalektro-bestuurder met vergelijkbaar salaris **afgewezen** wordt voor HP. De basisgroepen/bewijscodes komen uit de officiële bron, niet uit salarisbedrag alleen.
+- Dit is expliciet een **applicability-contracttest**. Voeg Metalektro HP nog **niet** als volwaardig derde cao-package aan de 3-arrangement-employee-payrollmatrix toe. Een berekening onder de HP-cao vereist eerst een afzonderlijk functioneel/brongebonden pakket en onafhankelijke review.
+- Gebruik functietype + rechtens relevante werkgever-/functie-/datumgegevens; **salaris boven maximum, managerrol of functietitel 'CEO' alleen zijn nooit generieke 'buiten cao'-beslisregels**.
+
+### Functionele architectuur/UX
+
+- **Primaire assignment per Employment** blijft één van de per administratie beschikbare `COLLECTIVE_AGREEMENT` of `COMPANY_ARRANGEMENT`, of expliciet `NO_CAO_WITH_STATUTORY_BASELINE` wanneer daar juridisch grond voor is. Voor onze CEO: `COMPANY_ARRANGEMENT` is één primaire toewijzing; `OUTSIDE_COLLECTIVE_SCOPE` is een *gedocumenteerde applicability-classificatie*, **geen tweede gelijktijdig primair pakket**.
+- Applicability metadata minimaal: source scope / optional legal reason, included / excluded role categories, werkgeverreikwijdte, geldigheid, rechtvaardiging/evidence, beslissingsstatus `SUPPORTED / REQUIRES_REVIEW / EXCLUDED`, wie de beslissing vastlegde. Klant kan wettelijke reikwijdte niet willekeurig uitschakelen om een gunstiger pakket te selecteren.
+- Cao-pakket dat HP ondersteunt kan later afzonderlijk door de interne Control-app worden gepubliceerd en alleen verschijnen bij administraties/Employment-cases waarvoor zijn applicability is bevestigd.
+- Salary strategy `FREELY_NEGOTIATED` is ondersteund binnen een bedrijfseigen arrangement, ook wanneer andere werknemers onder `OPEN_SALARY_BAND` vallen. Niet één salary-route voor de hele administratie afdwingen.
+- Later cao-wisseling binnen dezelfde Employment via expliciet juridisch gevalideerd proces; V1 primaire keuze vergrendeld. Versies binnen dezelfde cao blijven wel effective-dated.
+
+### Acceptance uitbreiding
+
+De bestaande **zes** rekenpersona's (K1/K2, R1/R2, B1/B2) blijven ongewijzigd; voeg **C1 als zevende** gerichte **bedrijfseigen** payrollscenario toe met één individueel overeengekomen managementsalaris en geen schaal/trede. **H1 is een achtste applicability-only referentie**, geen uitgevoerde Metalektro-HP-payrollrun.
+
+- C1 op `LHR_DEMO_OPEN_BANDS_2026`, vrij loon, niet in Retail/Kinderopvang, geen foutieve automatische bandbegrenzing; gescheiden van B1/B2-comparatio.
+- H1 herkent HP-eligible op officiële juli-2026 scope onder expliciete synthetische Metalektro-werkgever; equivalent fictieve bestuurder niet HP-eligible.
+- Jupiter-demo niet als Metalektro-werkgever presenteren; uitvoer benoemt `DEMO` en beperkt bewezen juridische reikwijdte.
+- Test dat metadatafunctie/manageraccount nooit op zichzelf salarisrechten verleent. Echte fiscale CEO-/DGA-case status = OPEN totdat rekenregels afzonderlijk zijn gevalideerd.
+- Codex doet broninventaris, testpersona-selectie/-aanmaak, regelingsconfiguratie en onafhankelijke tests autonoom met LUNA MAX-subagents; geen wijziging aan reeds afgeronde PAYLAB04-run.
