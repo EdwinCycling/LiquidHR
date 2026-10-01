@@ -10,8 +10,9 @@ Dit document legt de structurele product-, architectuur- en ontwikkelafspraken v
 Payroll is onderdeel van dezelfde LiquidHR-app en dezelfde repository.
 
 - Gebruikers werken in de bestaande `apps/hr-suite`.
-- Payroll krijgt een eigen hoofdmenu-item binnen de bestaande LiquidHR-sidebar.
-- De eerste ingang is `Payroll → Payroll Lab`.
+- Payroll heeft **precies één** sidebar-ingang: `Payroll Lab`.
+- `/payroll-lab` is de centrale overzichtspagina met bestaande LiquidHR-dashboardvensters/tegels, géén uitklapbare Payroll-submenu's.
+- PAYLAB04 maakt de tegels `Berekeningen` en `Salariscomponenten` functioneel; toekomstige functies zoals `Cao's en regelingen`, `Controles` en `Historie` worden later als venster toegevoegd wanneer ze echt werken.
 - Payroll gebruikt dezelfde app-shell, styles, tokens, componenten, responsive patterns, i18n en authorization-aware UI-patronen als de rest van LiquidHR.
 - Er komt geen afzonderlijk Payroll design system of losse gebruikersapp voor deze productlijn.
 
@@ -245,14 +246,22 @@ Gebruik bestaande:
 
 Payroll-specifieke UI-componenten zijn toegestaan wanneer ze echte domeinweergave bieden, maar bouwen op bestaande LiquidHR-primitives.
 
-Eerste navigatie:
+Definitieve navigatie vanaf PAYLAB04:
 
 ```text
-Payroll
-└── Payroll Lab
+Sidebar:
+  Payroll Lab
+
+/payroll-lab (centrale overzichtspagina met bestaande dashboardtegels)
+  ├── Berekeningen      → bestaande berekeningsfunctionaliteit
+  └── Salariscomponenten → componentenbibliotheek
+
+Later als werkende overzichtstegels:
+  Cao's en regelingen
+  Controles en historie
 ```
 
-Later kan dit uitbreiden naar bijvoorbeeld Overzicht, Medewerkers, Mutaties, Runs, Componenten, Controles en Instellingen.
+**Geen afzonderlijke Payroll-submenu's in de sidebar.** Onderliggende routes mogen bestaan achter de overzichtstegels; voeg een terugnavigatie naar Payroll Lab toe en behoud bestaande berekeningsflows en backward compatibility waar nodig. Toon geen niet-functionele navigatie-acties. Dezelfde server-side autorisatie- en NL/EN-i18n-patronen gelden voor overzicht en bestemmingen.
 
 ## 11. Bewezen M0-baseline
 
