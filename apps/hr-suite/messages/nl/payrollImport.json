@@ -45,6 +45,9 @@
   "issue_LHNR_INVALID": "Ongeldig loonheffingennummer",
   "issue_LHNR_SCOPE_MISMATCH": "Loonheffingennummer past niet bij de administratie",
   "issue_DUPLICATE_IKV": "Dubbele IKV",
+  "issue_IKV_NUMBER_INVALID": "IKV-nummer moet tussen 1 en 99 liggen",
+  "issue_INCOME_IKV_NUMBER_INVALID": "IKV-nummer moet tussen 1 en 99 liggen",
+  "issue_INCOME_START_DATE_REQUIRED": "Startdatum van de inkomensrelatie ontbreekt",
   "issue_INCOME_DATE_RANGE_INVALID": "Ongeldige inkomensperiode",
   "issue_INCOME_START_DATE_INVALID": "Startdatum van de inkomensrelatie is ongeldig",
   "issue_INCOME_END_DATE_INVALID": "Einddatum van de inkomensrelatie is ongeldig",
@@ -79,5 +82,15 @@
   "stepConflicts": "Conflicten",
   "stepPreview": "Preview",
   "stepFinal": "Definitief",
-  "stepReport": "Rapport"
+  "stepReport": "Rapport",
+  "previousSteps": "Vorige importstappen",
+  "nextSteps": "Volgende importstappen",
+  "recoverTitle": "Onvolledige imports herstellen",
+  "recoverDescription": "Herstel alleen rijen waarvan de preview al is bevestigd en waarvan de domeinverwerking nog niet compleet is.",
+  "recoverBatch": "Import gestart",
+  "recoverResume": "Geselecteerde rijen hervatten",
+  "recoverMissingEmployment": "Dienstverband ontbreekt",
+  "recoverPendingIncome": "{count} IKV-rij(en) nog niet verwerkt",
+  "recoverFinalizationNotice": "Je hervat de definitieve verwerking voor {count} geselecteerde rij(en) uit de eerder bevestigde preview.",
+  "recoverReadError": "Herstelbare imports konden niet worden geladen. Vernieuw de pagina of controleer de context en rechten."
 }

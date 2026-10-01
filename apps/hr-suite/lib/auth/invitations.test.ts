@@ -62,6 +62,16 @@ describe('validateInvitationRules', () => {
       scopeType: 'TENANT',
     })).toEqual({ ok: true })
   })
+
+  it('accepteert first-admin onboarding zonder employee- of administration-binding', () => {
+    expect(validateInvitationRules({
+      purpose: 'TENANT_FIRST_ADMIN',
+      emailKind: 'BUSINESS',
+      employeeId: null,
+      administrationId: null,
+      scopeType: 'TENANT',
+    })).toEqual({ ok: true })
+  })
 })
 
 describe('invitation token', () => {

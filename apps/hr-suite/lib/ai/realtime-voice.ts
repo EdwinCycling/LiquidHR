@@ -407,6 +407,7 @@ export async function createRealtimeVoiceSession(input: {
     employee_id: input.employeeId,
     model_id: input.model,
     max_duration_seconds: input.maxDurationSeconds,
+    finalization_deadline_at: new Date(Date.now() + input.maxDurationSeconds * 1_000).toISOString(),
     status: 'ACTIVE',
   })
   if (error) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')

@@ -1,4 +1,8 @@
+// @vitest-environment happy-dom
+
 import { renderToStaticMarkup } from 'react-dom/server'
+import { act, createElement } from 'react'
+import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
 import { BradfordReportView } from './bradford-report'
 import type { BradfordInsightQuery } from '@/lib/insights/bradford-query'
@@ -10,6 +14,8 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => new URLSearchParams('report=absence-bradford&period=52-weeks'),
 }))
+
+;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const query: BradfordInsightQuery = {
   report: 'absence-bradford',
@@ -85,6 +91,14 @@ const labelsWithCardDescription = {
   description: 'This summary is already shown in the report card header.',
 }
 
+function mount(element: React.ReactElement) {
+  const host = document.createElement('div')
+  document.body.append(host)
+  const root = createRoot(host)
+  act(() => root.render(element))
+  return { host, unmount: () => act(() => root.unmount()) }
+}
+
 describe('Bradford report view', () => {
   it('does not repeat the description that belongs to the report-card header', () => {
     const markup = renderToStaticMarkup(
@@ -94,5 +108,29 @@ describe('Bradford report view', () => {
     expect(markup).not.toContain(labelsWithCardDescription.description)
     expect(markup).toContain('Back to absence')
     expect(markup).toContain('Apply filters')
+  })
+
+  it('keeps the table and active filter chips on applied filters while a draft is being edited', () => {
+    const rows: BradfordInsightReport['rows'] = [
+      { employeeId: 'employee-low', employeeName: 'Aline Low', departmentName: 'Finance', firstAbsenceOn: '2026-01-01', absenceOccurrences: 1, sickDays: 2, score: 2, band: 'LOW' },
+      { employeeId: 'employee-high', employeeName: 'Bert High', departmentName: 'Sales', firstAbsenceOn: '2026-01-02', absenceOccurrences: 3, sickDays: 20, score: 180, band: 'MEDIUM' },
+    ]
+    const mounted = mount(createElement(BradfordReportView, {
+      labels,
+      query,
+      report: { ...report, rows, totalOccurrences: 4, totalSickDays: 22 },
+      returnTo: '/insights?report=absence-bradford',
+    }))
+
+    expect(mounted.host.textContent).toContain('Aline Low')
+    expect(mounted.host.textContent).toContain('Bert High')
+    act(() => (mounted.host.querySelector('button[aria-label="Risk level"]') as HTMLButtonElement).click())
+    act(() => (document.body.querySelector('[role="option"][aria-selected="false"]') as HTMLButtonElement).click())
+
+    expect(mounted.host.textContent).toContain('Aline Low')
+    expect(mounted.host.textContent).toContain('Bert High')
+    expect(mounted.host.textContent).not.toContain('Risk level: Medium')
+    expect(mounted.host.textContent).toContain('4')
+    mounted.unmount()
   })
 })

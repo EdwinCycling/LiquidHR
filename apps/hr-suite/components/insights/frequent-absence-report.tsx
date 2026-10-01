@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { AlertTriangle, Search } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -40,13 +40,13 @@ export function FrequentAbsenceReportView({ report, query, labels, returnTo }: {
   }
   const apply = (next: FrequentAbsenceQuery): void => router.push(buildInsightApplyHref(searchParams, frequentAbsenceQueryParams(next)), { scroll: false })
   const reset = (): void => { const next = defaultQuery(); setDraft(next); apply(next) }
-  const rows = useMemo(() => report.rows.filter((row) => (!draft.frequentOnly || row.isFrequent) && row.employeeName.toLocaleLowerCase('nl-NL').includes(draft.search.trim().toLocaleLowerCase('nl-NL'))), [draft.frequentOnly, draft.search, report.rows])
-  const selectedDepartment = draft.departmentId ? report.departments.find((department) => department.id === draft.departmentId)?.name ?? draft.departmentId : null
+  const rows = report.rows
+  const selectedDepartment = query.departmentId ? report.departments.find((department) => department.id === query.departmentId)?.name ?? query.departmentId : null
   const activeFilters: ActiveReportFilter[] = [
-    { key: 'period', label: labels.period, value: periodLabel(draft, labels), onRemove: reset },
-    ...(selectedDepartment ? [{ key: 'department', label: labels.team, value: selectedDepartment, onRemove: () => setDraft((current) => ({ ...current, departmentId: null })) }] : []),
-    ...(draft.search.trim() ? [{ key: 'search', label: labels.search, value: draft.search.trim(), onRemove: () => setDraft((current) => ({ ...current, search: '' })) }] : []),
-    ...(draft.frequentOnly ? [{ key: 'frequentOnly', label: labels.frequent, onRemove: () => setDraft((current) => ({ ...current, frequentOnly: false })) }] : []),
+    { key: 'period', label: labels.period, value: periodLabel(query, labels), onRemove: reset },
+    ...(selectedDepartment ? [{ key: 'department', label: labels.team, value: selectedDepartment, onRemove: () => { const next = { ...query, departmentId: null }; setDraft(next); apply(next) } }] : []),
+    ...(query.search.trim() ? [{ key: 'search', label: labels.search, value: query.search.trim(), onRemove: () => { const next = { ...query, search: '' }; setDraft(next); apply(next) } }] : []),
+    ...(query.frequentOnly ? [{ key: 'frequentOnly', label: labels.frequent, onRemove: () => { const next = { ...query, frequentOnly: false }; setDraft(next); apply(next) } }] : []),
   ]
   const exportParams = frequentAbsenceQueryParams(query, 'excel')
 
@@ -54,7 +54,7 @@ export function FrequentAbsenceReportView({ report, query, labels, returnTo }: {
     <InsightsFilterBar actions={<>
         <Button onClick={() => apply(draft)} size="md" type="button">{labels.applyFilters}</Button>
         <Button onClick={reset} size="md" type="button" variant="secondary">{labels.resetFilters}</Button>
-        <InsightsExportAction fileName="absence-frequent.xlsx" href={`/api/insights/absence?${exportParams.toString()}`} label={labels.exportExcel} labels={{ error: labels.exportFailed, loading: labels.exportPreparing, success: labels.exportSuccess }} />
+        <InsightsExportAction fileName="absence-frequent.xls" href={`/api/insights/absence?${exportParams.toString()}`} label={labels.exportExcel} labels={{ error: labels.exportFailed, loading: labels.exportPreparing, success: labels.exportSuccess }} />
       </>}>
         <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-44"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} onChange={(event) => setDraft((current) => ({ ...current, period: event.target.value as FrequentAbsenceQuery['period'] }))} value={draft.period}><option value="12-months">{labels.last12Months}</option><option value="this-year">{labels.thisYear}</option><option value="previous-year">{labels.previousYear}</option></DropdownSelect></label>
         <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.team}</span><DropdownSelect aria-label={labels.team} onChange={(event) => setDraft((current) => ({ ...current, departmentId: event.target.value || null }))} searchable searchPlaceholder={labels.team} value={draft.departmentId ?? ''}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>

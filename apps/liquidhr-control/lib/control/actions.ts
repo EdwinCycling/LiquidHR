@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createHrGroupSchema, lifecycleCommandSchema, onboardingSchema, supportSessionSchema, uuidStringSchema } from './schemas'
+import { createHrGroupSchema, lifecycleCommandSchema, onboardingSchema, supportSessionSchema, updateHrGroupSchema, uuidStringSchema } from './schemas'
 import { createClient } from '@/lib/supabase/server'
 import { bootstrapFirstAdmin } from './bootstrap'
 import { z } from 'zod'
@@ -69,6 +69,30 @@ export async function createPlatformHrGroup(
   return { code: 'success' }
 }
 
+export async function updatePlatformHrGroup(
+  _previous: ControlActionState,
+  formData: FormData,
+): Promise<ControlActionState> {
+  const parsed = updateHrGroupSchema.safeParse({
+    tenantId: formData.get('tenantId'),
+    hrGroupId: formData.get('hrGroupId'),
+    name: formData.get('name'),
+    description: formData.get('description') ?? '',
+  })
+  if (!parsed.success) return { code: 'invalid' }
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('update_platform_hr_group', {
+    requested_tenant_id: parsed.data.tenantId,
+    requested_hr_group_id: parsed.data.hrGroupId,
+    requested_name: parsed.data.name,
+    requested_description: parsed.data.description,
+  })
+  if (error) return { code: 'failed' }
+
+  revalidatePath('/dashboard/tenants/' + parsed.data.tenantId)
+  return { code: 'success' }
+}
 function administrationsFromFormData(formData: FormData) {
   const names = formData.getAll('administrationName').map(String)
   const codes = formData.getAll('administrationCode').map(String)

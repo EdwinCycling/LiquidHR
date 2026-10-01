@@ -1,6 +1,7 @@
 import {
   isValidIsoDate,
   isValidLoonaangifteLhNr,
+  isValidPayrollIkvNumber,
   type CanonicalPayrollPerson,
   type ExistingPayrollEmployeeCandidate,
   type PayrollImportAnalysis,
@@ -44,7 +45,11 @@ export function validatePayrollPersons(input: {
     for (const income of person.incomeRelationships) {
       if (!isValidLoonaangifteLhNr(income.payrollTaxNumber)) issues.push(issue('LHNR_INVALID', 'BLOCKING', 'payrollTaxNumber'))
       if (input.expectedPayrollTaxNumber && income.payrollTaxNumber !== input.expectedPayrollTaxNumber) issues.push(issue('LHNR_SCOPE_MISMATCH', 'BLOCKING', 'payrollTaxNumber'))
+      if (!isValidPayrollIkvNumber(income.ikvNumber)) {
+        issues.push(issue('INCOME_IKV_NUMBER_INVALID', 'BLOCKING', 'ikvNumber'))
+      }
       if (duplicateIncomeKeys.has(payrollIncomeRelationshipKey(person, income.payrollTaxNumber, income.ikvNumber))) issues.push(issue('DUPLICATE_IKV', 'BLOCKING', 'ikvNumber'))
+      if (!income.startsOn) issues.push(issue('INCOME_START_DATE_REQUIRED', 'BLOCKING', 'startsOn'))
       const startsOnValid = !income.startsOn || isValidIsoDate(income.startsOn)
       const endsOnValid = !income.endsOn || isValidIsoDate(income.endsOn)
       if (income.startsOn && !startsOnValid) issues.push(issue('INCOME_START_DATE_INVALID', 'BLOCKING', 'startsOn'))

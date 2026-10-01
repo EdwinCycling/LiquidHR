@@ -1962,10 +1962,10 @@ export type Database = {
           actor_employee_id: string | null
           actor_user_id: string
           administration_id: string | null
+          business_audit_status: string
           business_object_id: string
           business_object_type: string
           business_permission_code: string | null
-          business_audit_status: string
           charged_credits: number
           config_version: string
           correlation_id: string
@@ -1988,8 +1988,8 @@ export type Database = {
           provider_request_id: string | null
           quality_profile: string | null
           reasoning_profile: string | null
-          request_fingerprint: string
           release_reason: string | null
+          request_fingerprint: string
           reserved_credits: number
           result_status: string
           started_at: string | null
@@ -2001,10 +2001,10 @@ export type Database = {
           actor_employee_id?: string | null
           actor_user_id: string
           administration_id?: string | null
+          business_audit_status?: string
           business_object_id: string
           business_object_type: string
           business_permission_code?: string | null
-          business_audit_status?: string
           charged_credits?: number
           config_version: string
           correlation_id: string
@@ -2027,8 +2027,8 @@ export type Database = {
           provider_request_id?: string | null
           quality_profile?: string | null
           reasoning_profile?: string | null
-          request_fingerprint: string
           release_reason?: string | null
+          request_fingerprint: string
           reserved_credits?: number
           result_status?: string
           started_at?: string | null
@@ -2040,10 +2040,10 @@ export type Database = {
           actor_employee_id?: string | null
           actor_user_id?: string
           administration_id?: string | null
+          business_audit_status?: string
           business_object_id?: string
           business_object_type?: string
           business_permission_code?: string | null
-          business_audit_status?: string
           charged_credits?: number
           config_version?: string
           correlation_id?: string
@@ -2066,8 +2066,8 @@ export type Database = {
           provider_request_id?: string | null
           quality_profile?: string | null
           reasoning_profile?: string | null
-          request_fingerprint?: string
           release_reason?: string | null
+          request_fingerprint?: string
           reserved_credits?: number
           result_status?: string
           started_at?: string | null
@@ -2362,7 +2362,7 @@ export type Database = {
           conversation_type?: string
           duration_seconds?: number | null
           ended_at?: string | null
-          finalization_deadline_at?: string
+          finalization_deadline_at: string
           hr_group_id: string
           id?: string
           max_duration_seconds?: number
@@ -2713,7 +2713,7 @@ export type Database = {
           duration_seconds?: number | null
           employee_id: string
           ended_at?: string | null
-          finalization_deadline_at?: string
+          finalization_deadline_at: string
           hr_group_id: string
           id: string
           max_duration_seconds?: number
@@ -7779,6 +7779,7 @@ export type Database = {
           id: string
           is_primary: boolean
           original_hire_date: string
+          payroll_import_person_id: string | null
           probation_ends_on: string | null
           reason_started: string | null
           record_status: Database["public"]["Enums"]["employment_record_status"]
@@ -7802,6 +7803,7 @@ export type Database = {
           id?: string
           is_primary?: boolean
           original_hire_date: string
+          payroll_import_person_id?: string | null
           probation_ends_on?: string | null
           reason_started?: string | null
           record_status?: Database["public"]["Enums"]["employment_record_status"]
@@ -7825,6 +7827,7 @@ export type Database = {
           id?: string
           is_primary?: boolean
           original_hire_date?: string
+          payroll_import_person_id?: string | null
           probation_ends_on?: string | null
           reason_started?: string | null
           record_status?: Database["public"]["Enums"]["employment_record_status"]
@@ -7868,6 +7871,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employments_payroll_import_person_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "payroll_import_person_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_import_persons"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "employments_tenant_id_fkey"
@@ -12459,7 +12469,6 @@ export type Database = {
           },
         ]
       }
-
       payroll_import_income_relationships: {
         Row: {
           administration_id: string
@@ -12568,7 +12577,6 @@ export type Database = {
           },
         ]
       }
-
       payroll_import_persons: {
         Row: {
           address: Json | null
@@ -21339,35 +21347,6 @@ export type Database = {
           voice_credits: number
         }[]
       }
-      reconcile_ai_invocation_lifecycle: {
-        Args: {
-          requested_batch_size: number
-          requested_hr_group_id: string
-          requested_tenant_id: string
-        }
-        Returns: {
-          audits_recorded: number
-          releases_recovered: number
-          settlements_recovered: number
-          retryable_count: number
-        }[]
-      }
-      reconcile_expired_ai_voice_sessions: {
-        Args: {
-          requested_batch_size: number
-          requested_hr_group_id: string
-          requested_tenant_id: string
-        }
-        Returns: {
-          finalized_count: number
-          processed_count: number
-          retryable_count: number
-        }[]
-      }
-      record_ai_invocation_business_audit: {
-        Args: { requested_invocation_id: string }
-        Returns: undefined
-      }
       finalize_document_generation: {
         Args: {
           requested_actor_user_id: string
@@ -22001,6 +21980,35 @@ export type Database = {
           requested_work_item_id: string
         }
         Returns: Json
+      }
+      reconcile_ai_invocation_lifecycle: {
+        Args: {
+          requested_batch_size: number
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          audits_recorded: number
+          releases_recovered: number
+          retryable_count: number
+          settlements_recovered: number
+        }[]
+      }
+      reconcile_expired_ai_voice_sessions: {
+        Args: {
+          requested_batch_size: number
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          finalized_count: number
+          processed_count: number
+          retryable_count: number
+        }[]
+      }
+      record_ai_invocation_business_audit: {
+        Args: { requested_invocation_id: string }
+        Returns: undefined
       }
       record_journey_topic_outcome: {
         Args: {
@@ -22726,6 +22734,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_platform_hr_group: {
+        Args: {
+          requested_description?: string
+          requested_hr_group_id: string
+          requested_name: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       update_recruitment_library_item: {
         Args: {
           requested_content: Json
@@ -22931,6 +22948,7 @@ export type Database = {
         | "PREBOARDING_EMPLOYEE"
         | "BUSINESS_USER"
         | "EMPLOYEE_ACTIVATION"
+        | "TENANT_FIRST_ADMIN"
       invitation_status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED"
       journey_anchor_rule: "EMPLOYMENT_START_DATE" | "MANUAL_DATE"
       journey_participant_source:
@@ -23401,6 +23419,7 @@ export const Constants = {
         "PREBOARDING_EMPLOYEE",
         "BUSINESS_USER",
         "EMPLOYEE_ACTIVATION",
+        "TENANT_FIRST_ADMIN",
       ],
       invitation_status: ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"],
       journey_anchor_rule: ["EMPLOYMENT_START_DATE", "MANUAL_DATE"],

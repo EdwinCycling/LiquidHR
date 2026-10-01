@@ -88,10 +88,18 @@ export interface PayrollImportAnalysis {
 }
 
 export class PayrollImportError extends Error {
-  constructor(readonly code: string, readonly status: 400 | 403 | 404 | 409 | 422 | 500 = 400) {
+  constructor(
+    readonly code: string,
+    readonly status: 400 | 403 | 404 | 409 | 422 | 500 = 400,
+    readonly databaseCode?: string,
+  ) {
     super(code)
     this.name = 'PayrollImportError'
   }
+}
+
+export function payrollImportEmploymentLinkId(input: { employmentId: string; recordStatus: string }): string | null {
+  return input.recordStatus === 'DRAFT' ? null : input.employmentId
 }
 
 export function normalizeIdentityPart(value: string | null | undefined): string {
@@ -107,6 +115,14 @@ export function isValidIsoDate(value: string): boolean {
   return day <= daysInMonth && year >= 1
 }
 
+export function toSafeDatabaseDate(value: string | undefined): string | null {
+  return value && isValidIsoDate(value) ? value : null
+}
+
 export function isValidLoonaangifteLhNr(value: string): boolean {
   return /^[0-9]{9}L(0[1-9]|[1-9][0-9])$/.test(value.trim())
+}
+
+export function isValidPayrollIkvNumber(value: number): boolean {
+  return Number.isInteger(value) && value >= 1 && value <= 99
 }

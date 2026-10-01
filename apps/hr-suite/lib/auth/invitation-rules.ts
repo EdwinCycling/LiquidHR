@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 
 export type InvitationEmailKind = 'PRIVATE' | 'BUSINESS'
-export type InvitationPurpose = 'PREBOARDING_EMPLOYEE' | 'EMPLOYEE_ACTIVATION' | 'BUSINESS_USER'
+export type InvitationPurpose = 'PREBOARDING_EMPLOYEE' | 'EMPLOYEE_ACTIVATION' | 'BUSINESS_USER' | 'TENANT_FIRST_ADMIN'
 export type InvitationScopeType = 'TENANT' | 'ADMINISTRATION'
 
 export type InvitationRuleErrorCode =

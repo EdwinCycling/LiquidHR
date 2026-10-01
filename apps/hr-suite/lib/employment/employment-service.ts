@@ -32,6 +32,7 @@ export class EmploymentServiceError extends Error {
   constructor(
     readonly code: string,
     readonly status: 400 | 403 | 404 | 409 | 500,
+    readonly databaseCode?: string,
   ) {
     super(code)
   }
@@ -494,9 +495,10 @@ async function enrichIdentityCandidates(
   })
 }
 
-export async function createEmployment(input: CreateEmploymentInput): Promise<{
+export async function createEmployment(input: CreateEmploymentInput, options?: { payrollImportPersonId?: string }): Promise<{
   employment: EmploymentRow
   isRehire: boolean
+  wasCreated: boolean
 }> {
   const context = await requirePermission('contract:write', input.employeeId)
   const administrationId = requireAdministrationId(context.administrationId)
@@ -526,6 +528,37 @@ export async function createEmployment(input: CreateEmploymentInput): Promise<{
     .is('deleted_at', null)
   if (historyError) throw new EmploymentServiceError('EMPLOYMENT_HISTORY_FAILED', 500)
 
+  const readPayrollSourceEmployment = async () => {
+    if (!options?.payrollImportPersonId) return null
+    const { data: sourceEmployment, error: sourceEmploymentError } = await supabase
+      .from('employments')
+      .select('*')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .eq('payroll_import_person_id', options.payrollImportPersonId)
+      .maybeSingle()
+    if (sourceEmploymentError) throw new EmploymentServiceError('EMPLOYMENT_IMPORT_SOURCE_READ_FAILED', 500)
+    if (!sourceEmployment) return null
+    if (sourceEmployment.employee_id !== input.employeeId
+      || sourceEmployment.administration_id !== administrationId
+      || sourceEmployment.starts_on !== input.startsOn) {
+      throw new EmploymentServiceError('EMPLOYMENT_IMPORT_SOURCE_CONFLICT', 409)
+    }
+    return sourceEmployment
+  }
+
+  const existingSourceEmployment = await readPayrollSourceEmployment()
+  if (existingSourceEmployment) {
+    return {
+      employment: existingSourceEmployment,
+      isRehire: isRehire(
+        history.map((row) => ({ startsOn: row.starts_on, endsOn: row.ends_on, recordStatus: row.record_status })),
+        input.startsOn,
+      ),
+      wasCreated: false,
+    }
+  }
+
   const { data, error } = await supabase
     .from('employments')
     .insert({
@@ -534,6 +567,7 @@ export async function createEmployment(input: CreateEmploymentInput): Promise<{
       administration_id: administrationId,
       employee_id: input.employeeId,
       employment_number: input.employmentNumber,
+      ...(options?.payrollImportPersonId ? { payroll_import_person_id: options.payrollImportPersonId } : {}),
       employment_type: input.employmentType,
       contract_type: input.contractType,
       starts_on: input.startsOn,
@@ -548,8 +582,24 @@ export async function createEmployment(input: CreateEmploymentInput): Promise<{
     .select('*')
     .single()
 
-  if (error?.code === '23505') throw new EmploymentServiceError('EMPLOYMENT_NUMBER_CONFLICT', 409)
-  if (error || !data) throw new EmploymentServiceError('EMPLOYMENT_CREATE_FAILED', 500)
+  if (error?.code === '23505') {
+    const sourceEmployment = await readPayrollSourceEmployment()
+    if (sourceEmployment) {
+      return {
+        employment: sourceEmployment,
+        isRehire: isRehire(
+          history.map((row) => ({ startsOn: row.starts_on, endsOn: row.ends_on, recordStatus: row.record_status })),
+          input.startsOn,
+        ),
+        wasCreated: false,
+      }
+    }
+    throw new EmploymentServiceError('EMPLOYMENT_NUMBER_CONFLICT', 409)
+  }
+  if (error || !data) {
+    const databaseCode = error?.code && /^[0-9A-Z]{5}$/.test(error.code) ? error.code : undefined
+    throw new EmploymentServiceError('EMPLOYMENT_CREATE_FAILED', 500, databaseCode)
+  }
 
   return {
     employment: data,
@@ -561,6 +611,7 @@ export async function createEmployment(input: CreateEmploymentInput): Promise<{
       })),
       input.startsOn,
     ),
+    wasCreated: true,
   }
 }
 

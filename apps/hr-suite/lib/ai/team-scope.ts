@@ -282,6 +282,7 @@ export async function createTeamAiSession(input: { auth: AuthContext; scope: Tea
   const groupId = requireHrGroupId(input.auth)
   const id = randomUUID()
   const admin = createAdminClient()
+  const maxDurationSeconds = input.maxDurationSeconds ?? 900
   const { error } = await admin.from('ai_team_sessions').insert({
     id,
     tenant_id: input.auth.tenantId,
@@ -294,7 +295,8 @@ export async function createTeamAiSession(input: { auth: AuthContext; scope: Tea
     scope_type: input.scope.scopeType,
     conversation_type: input.conversationType ?? 'VOICE',
     model_id: input.model ?? resolveRealtimeVoiceModel(),
-    max_duration_seconds: input.maxDurationSeconds ?? 900,
+    max_duration_seconds: maxDurationSeconds,
+    finalization_deadline_at: new Date(Date.now() + maxDurationSeconds * 1_000).toISOString(),
     status: 'ACTIVE',
     authorized_employee_count: input.scope.memberIds.length,
   })

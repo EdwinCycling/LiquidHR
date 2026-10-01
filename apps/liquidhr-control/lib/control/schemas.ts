@@ -78,6 +78,13 @@ export const createHrGroupSchema = z.object({
   description: z.string().trim().max(1000),
 })
 
+export const updateHrGroupSchema = z.object({
+  tenantId: uuidStringSchema,
+  hrGroupId: uuidStringSchema,
+  name: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(1000),
+})
+
 export const snapshotTenantSchema = z.object({
   id: uuidStringSchema,
   name: z.string(),

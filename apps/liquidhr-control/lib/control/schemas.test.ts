@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { lifecycleCommandSchema, onboardingSchema } from './schemas'
+import { lifecycleCommandSchema, onboardingSchema, updateHrGroupSchema } from './schemas'
 
 describe('control plane schemas', () => {
   it('normaliseert een geldige onboarding', () => {
@@ -41,7 +41,27 @@ describe('control plane schemas', () => {
       slug: 'voorbeeld-bv',
       administrationMode: 'SEPARATE',
       primaryContactEmail: 'admin@example.com',
-      administrations: Array.from({ length: 26 }, (_, index) => ({ code: `A${index}`, name: `Administratie ${index}` })),
+      administrations: Array.from({ length: 26 }, (_, index) => ({ code: 'A' + index, name: 'Administratie ' + index })),
+    }).success).toBe(false)
+  })
+
+  it('normaliseert de HR-groepvelden zonder de code te wijzigen', () => {
+    const result = updateHrGroupSchema.parse({
+      tenantId: '016a7b84-9e98-4d99-a95a-70f21b06a2ae',
+      hrGroupId: 'd51f8e2e-03e9-46ab-90ea-c30177c8af67',
+      name: ' Nieuwe naam ',
+      description: '  Testomschrijving  ',
+    })
+    expect(result.name).toBe('Nieuwe naam')
+    expect(result.description).toBe('Testomschrijving')
+  })
+
+  it('weigert lege HR-groepnamen en ongeldige identifiers', () => {
+    expect(updateHrGroupSchema.safeParse({
+      tenantId: 'tenant',
+      hrGroupId: 'group',
+      name: ' ',
+      description: '',
     }).success).toBe(false)
   })
 

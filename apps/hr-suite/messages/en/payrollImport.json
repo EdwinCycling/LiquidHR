@@ -45,6 +45,9 @@
   "issue_LHNR_INVALID": "Invalid payroll tax number",
   "issue_LHNR_SCOPE_MISMATCH": "Payroll tax number does not match the administration",
   "issue_DUPLICATE_IKV": "Duplicate income relationship",
+  "issue_IKV_NUMBER_INVALID": "IKV number must be between 1 and 99",
+  "issue_INCOME_IKV_NUMBER_INVALID": "IKV number must be between 1 and 99",
+  "issue_INCOME_START_DATE_REQUIRED": "Income relationship start date is missing",
   "issue_INCOME_DATE_RANGE_INVALID": "Invalid income relationship period",
   "issue_INCOME_START_DATE_INVALID": "Income relationship start date is invalid",
   "issue_INCOME_END_DATE_INVALID": "Income relationship end date is invalid",
@@ -79,5 +82,15 @@
   "stepConflicts": "Conflicts",
   "stepPreview": "Preview",
   "stepFinal": "Final",
-  "stepReport": "Report"
+  "stepReport": "Report",
+  "previousSteps": "Previous import steps",
+  "nextSteps": "Next import steps",
+  "recoverTitle": "Recover incomplete imports",
+  "recoverDescription": "Resume only rows whose preview was already confirmed and whose domain processing is still incomplete.",
+  "recoverBatch": "Import started",
+  "recoverResume": "Resume selected rows",
+  "recoverMissingEmployment": "Employment is missing",
+  "recoverPendingIncome": "{count} income row(s) still pending",
+  "recoverFinalizationNotice": "You are resuming finalization for {count} selected row(s) from the previously confirmed preview.",
+  "recoverReadError": "Recoverable imports could not be loaded. Refresh the page or check the context and permissions."
 }

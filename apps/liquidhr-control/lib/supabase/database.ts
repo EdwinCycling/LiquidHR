@@ -22,6 +22,15 @@ export type ControlDatabase = {
         }
         Returns: string
       }
+      update_platform_hr_group: {
+        Args: {
+          requested_tenant_id: string
+          requested_hr_group_id: string
+          requested_name: string
+          requested_description?: string
+        }
+        Returns: string
+      }
       onboard_platform_tenant: {
         Args: {
           requested_name: string

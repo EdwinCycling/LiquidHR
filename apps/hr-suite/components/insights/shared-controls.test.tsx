@@ -51,7 +51,10 @@ describe('shared Insights controls', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob(['report']) }))
     const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test')
     const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
-    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+    let downloadedFileName: string | null = null
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      downloadedFileName = this.download
+    })
     const mounted = mount(createElement(InsightsExportAction, {
       fileName: 'insights.csv',
       href: '/api/insights/example?report=example',
@@ -62,6 +65,7 @@ describe('shared Insights controls', () => {
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
     expect(mounted.host.textContent).toContain('Export gereed')
     expect(anchorClick).toHaveBeenCalledOnce()
+    expect(downloadedFileName).toBe('insights.csv')
     expect(createObjectUrl).toHaveBeenCalledOnce()
     expect(revokeObjectUrl).not.toHaveBeenCalled()
     mounted.unmount()

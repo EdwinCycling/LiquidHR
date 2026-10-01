@@ -13,7 +13,7 @@ const addressSchema = z.object({
 
 const incomeRelationshipSchema = z.object({
   payrollTaxNumber: z.string().trim(),
-  ikvNumber: z.number().int().positive(),
+  ikvNumber: z.number().int(),
   incomeCode: z.string().trim().optional(),
   employmentRelationCode: z.string().trim().optional(),
   caoCode: z.string().trim().optional(),

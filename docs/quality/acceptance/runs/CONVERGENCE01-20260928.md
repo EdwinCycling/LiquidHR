@@ -288,3 +288,32 @@ Dit addendum registreert de latere runtimepoging na de expliciete Runtime Env Br
 - De eerste server-action-respons toonde kort een Next development-fout (“An unexpected response was received from the server”). Na herladen eindigde de app op de pagina zonder platformbeheerder. Codex heeft geen OAuth-credentials ingevoerd en geen providerconfiguratie gewijzigd.
 - HUMAN_ACTION_REQUIRED: CONTROL_OWNER_LOGIN. De handoffpagina staat op http://localhost:3001/login. Selecteer via “Doorgaan met Google” het bestaande actieve OWNER-account; ga pas verder wanneer Control terugkeert naar het lokale dashboard. Onder de niet-operator zijn geen Control-bootstrap-, import-, securityacceptatie- of releaseacties uitgevoerd.
 - Auth-gebruikersduplicatie is niet teruggelezen. Of deze niet-operatoridentiteit al bestond is daarom niet vastgesteld; er zijn geen rollen toegekend en geen bedrijfsrecords gewijzigd.
+
+## Begrensde runtime-closeout — 2026-10-01
+
+**Status: PARTIAL / RELEASE BLOCKED.** Deze aanvulling bewaart alleen de laatste gerichte checks; eerdere acceptance-resultaten hierboven blijven ongewijzigde historische evidence.
+
+### Control OWNER en klant-/HR-groep-UX
+
+- De bestaande OWNER meldde zich via normale Google OAuth aan. Dashboard en een klantdetail waren bereikbaar. De harmonica met Klantgegevens, HR-groepen, Wijzigingshistorie, Supportmodus en Status beheren, inclusief terugkeer naar het overzicht, was zichtbaar. Toevoegen en wijzigen van HR-groepen openden sidepanels; Annuleren sloot ze zonder write.
+- Tijdens één begrensde diagnose viel Control daarna opnieuw terug naar Geen platformbeheerder. Read-only TEST-readback toonde één actieve bestaande OWNER en geen actieve OPERATOR/AUDITOR. Control-signout beëindigde ook de HR-tab sessie in dezelfde browser. Cookie-interferentie tussen apps op verschillende poorten is hiermee aannemelijk, maar de roluitval na herauthenticatie heeft geen bewezen volledige root cause. Geen auth-architectuur of rechten aangepast; geen extra diagnose/reproductie gestart.
+- De full-circle met nieuwe tenant/invitation, token-negatives, bootstrap-boundaries en de nieuwe tenant als HR-context is niet compleet bewezen.
+
+### Payroll synthetic import
+
+- De bestaande TEST-batch met ongeldige IKV is ongemoeid gelaten. Een geldige synthetic fixture met twee IKV's was voorbereid, maar er is geen UI-upload, preview, finalisatie of domain write voltooid.
+- De bestaande HR Test Auth kon geen gekoppelde klantcontext selecteren en eindigde op /geen-toegang. De normale OWNER-browser was tijdens de beperkte run niet stabiel genoeg om upload/preview/finalisatie veilig te voltooien. Geen alternatieve auth-bypass of ongeautoriseerde API-route gebruikt.
+- Gerichte service-/recoverytests: 2 bestanden / 20 tests PASS. Dit bewijst niet de live browserimport, preview-before-write, administratiebinding, draftstatus, deduplicatie in TEST of hervatten van een gedeeltelijke remote import. Official XML blijft XSD_PENDING / REAL_XML_PENDING.
+
+### INS01 live check
+
+- HR Admin Bradford-report toonde 9 zichtbare tabelrijen en de verklarende zin één keer.
+- Een echte download leverde absence-bradford.xls, 3.997 bytes. Browserconsole: geen errors. Exportinhoud, rijscope, formule-escaping en filter/KPI/tabel/exportpariteit zijn niet volledig gecontroleerd.
+- De eerder gemelde __webpack_modules__[moduleId] is not a function is in deze beperkte run niet opnieuw gezien. Geen reproduceerbare root cause of codefix vastgesteld.
+
+### AI en finale gates
+
+- Eerder vastgelegde remote TEST core durability/concurrency-probes zijn hergebruikt omdat AI-code/schema in deze laatste ronde niet wijzigde. De extra persona-, feature-disabled- en revoked-scope-controles zijn niet opnieuw live uitgevoerd; geen provider-call gedaan.
+- Deze ronde: Bradford-regressie 1/1 PASS; payroll gericht 2 bestanden / 20 tests PASS; i18n 41 namespaces PASS; git diff --check PASS. De volledige HR-suite, volledige Control-suite, strict TypeScript, ESLint en beide production builds zijn na alle huidige wijzigingen niet als finale kwaliteitsronde uitgevoerd.
+- Geen migrations of typegen opnieuw uitgevoerd. Geen versie-update, canonical main-update, push, clean release-checkout, Vercel-deployment of hosted smoke. Geen Docker/WSL/containers; protected env niet gelezen; geen businessdatawrites in deze ronde.
+- Resterende releaseblokker: herhaalbare geauthenticeerde runtimecontext ontbreekt voor Control security/full-circle en payroll preview/finalisatie. Wanneer dit bewijs beschikbaar is, voer de ene finale kwaliteitsronde uit en beoordeel daarna de releasecriteria. Versie blijft 1.20260927.3; main/origin-main blijven 3a0fc67f84bc7dab0acff732afab597142d59ea9.
