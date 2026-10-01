@@ -198,3 +198,53 @@ Gebruik eerst de door Edwin bedoelde Test-achternaamprofielen **als hun scope en
 - Codex maakt **alle** drie de arrangementen, tabellen en fixtures zelf, met onafhankelijke oracles/subagents op LUNA MAX; Edwin hoeft geen bandwaarden, percentagetabellen of werknemerskoppelingen handmatig in te voeren.
 
 Dit hoofdstuk verduidelijkt en **vervangt** eerdere aantalsformuleringen elders in dit plan die nog uitgaan van slechts vier scenario's/twee arrangementen. De acceptatiematrix is vanaf nu zes scenario's/drie arrangementen.
+
+
+## 11. Definitieve clean-slate benchmark met authentieke open-bandbedragen (2026-10-01)
+
+**Nieuw besluit Edwin:** bestaande relevante salaris-/schaal-/trede-/bandbreedte-inrichtingen en testmedewerkerkoppelingen zijn testdata en mogen voor deze benchmark gericht worden vervangen. Voer dit uit **na** de lopende PAYLAB04-run, met inventarisatie, veilig beperkt back-up-/rollbackoverzicht en gerichte regressiecontrole. Deze toestemming omvat geen wijziging van auth, rollen, CONTROL02, ongerelateerde Core-functies of blinde truncate van gedeelde testfixtures. Het doel is een schone *benchmark-inrichting*, niet het wissen van de gehele testdatabase.
+
+### Authentieke gepubliceerde bron voor de eigen bedrijfsregeling
+
+Neem als **publieke bandbenchmark** de werkelijke **Cao Passagiers- en Bagageafhandeling Luchtvaart**, Staatscourant 2026 nr. 11183, bijlage 2:
+https://zoek.officielebekendmakingen.nl/stcrt-2026-11183.html
+
+Gebruik exacte *bruto-uurlonen* (geen maandbedragen), en behoud bronmetadata en effectieve datums:
+
+| Band | Jan min | Jan max | Jul min | Jul max |
+| --- | ---: | ---: | ---: | ---: |
+| A | 16.29 | 19.19 | 16.62 | 19.57 |
+| B | 16.29 | 19.46 | 16.62 | 19.85 |
+| C | 16.43 | 20.03 | 16.76 | 20.43 |
+| D | 16.58 | 20.88 | 16.91 | 21.30 |
+| E | 17.00 | 21.87 | 17.34 | 22.31 |
+| F | 17.56 | 23.14 | 17.92 | 23.61 |
+| G | 18.28 | 24.70 | 18.64 | 25.20 |
+| H | 19.13 | 26.41 | 19.51 | 26.94 |
+| I | 20.26 | 28.53 | 20.66 | 29.10 |
+| J | 21.53 | 31.22 | 21.96 | 31.85 |
+
+**Bedrijfseigen TEST-pakket:** `LHR_DEMO_OPEN_BANDS_2026`, display `LiquidHR Demo – Open Salarisbanden 2026`. Dit is nadrukkelijk **geen derde ondersteunde cao**. Alleen min/max grenzen en codes A–J zijn ontleend aan de publieke luchtvaart-cao; neem **niet** haar overige arbeidsvoorwaarden, beoordelingsverhogingen, functiewaarderingen, werkgeverswerkingssfeer of uren-/maandloonregels over. Benoem fictieve interne bedrijfsschalen eenduidig (bijv. `Band F (benchmark)`), en houd officiële broncodes/metagegevens apart van klantnaamgeving. Klantfunctie→bandmapping is in deze test fictief en expliciet.
+
+**Eigen versioned benchmarkbeleid, niet gepubliceerd cao-recht:** referentiemidden in uurlooncenten = rekenkundig midden van gepubliceerde minimum/maximum, vervolgens HALF_UP naar €0,01. Compa-ratio = afgesproken uurloon / referentie-uurloon × 100, exacte Decimal; displayratio afzonderlijk afgerond. Geen parttime-maandloon door een fulltime-uurloonmidpoint delen; beide eerst naar gelijke basis normaliseren. Juli Band F: 17,92–23,61 → ongerond midden 20,765 → demo-midpoint **€20,77/uur** → €20,77 afgesproken = **100%**. Voeg randgevallen voor beneden minimum, exact minimum, midpoint, exact maximum, erboven, parttime en peildatum juni/juli toe. Gebruik compa-ratio uitsluitend als beloningsanalyse, niet als grondslag die automatisch betaald wordt.
+
+### Gecontroleerde bestaande Core-testdata
+
+Read-only geïnventariseerd 2026-10-01, HR-groep Planeten:
+- `salary_structures` bevatten `ENG` (6 open banden; 3 salary references), `MGT` (3 banden; 0 salary references), `SUP` (4 banden; 3 salary references).
+- `Demo loonschaal`: 3 schalen/3 treden, **51** salarisrecords refereren de schaal-trederoute.
+- Salarisrecords per route in de HR-groep: MANUAL 36, MINIMUM_WAGE 3, SCALE_WITH_STEPS 51, SALARY_BAND 6; dit zijn records, geen gegarandeerd unieke medewerkers.
+- Bestaande tabellen `salary_bands`, `salary_band_values`, `salary_structure_revisions`, `salary_scales`, `salary_scale_steps`, `employment_salaries` ondersteunen delen van de gewenste inrichting al. **Hergebruik bestaande schema en salarisservices**, creëer geen parallelle salarisbandentabel.
+- Eerder 11 Planeten-werknemers met 'test' in achternaam gevonden; 0 in de eerder geselecteerde Test Operations-afdeling. Zoek eerst bedoelde Test-profielen via bestaande geautoriseerde Core-services; andere vier Test Operations/Jupiter-profielen niet verwarren met deze groep.
+
+### Nieuwe uitvoeringsvolgorde voor Codex
+
+1. Wacht tot PAYLAB04 klaar en schoon gecheckpoint is. Lees nieuwste AA. Gebruik uitsluitend **LUNA MAX** voor subagents.
+2. Controleer bestaande gedocumenteerde Test-medewerkers, hun (juridische) administratie, afdeling, manager, contracts, salarissegments, schaal-/bandkoppelingen, uurgegevens en IKV-relaties **read-only**. Selecteer geschikte bestaande testmedewerkers; vul ontbrekende cases alleen met synthetic benchmarkfixtures zonder PII.
+3. Maak een compacte, **beperkt toegankelijke** inventarisatie/backup en mapping van alle **geraakte** salarisstructuren, revisies, labor-condition sets, salaris-/contractrefs en overige directe/indirecte gebruikers vóór de eerste write. Geen persoonsgegevens/secrets in repo of tool-output. Beschrijf gerichte rollback. Controleer afhankelijkheden van bestaande tests/PAYLAB04.
+4. Richt vanaf schoon begin drie **nieuwe dedicated benchmarkregelingen** in, uniek benoemd (Kinderopvang, Retail Mode, LiquidHR Demo Open Salarisbanden). Importeer zelf officiële eerste twee cao's en de bovenstaande real-world banden voor de derde; maak minimaal twee versies per relevante wijzigingsgrens.
+5. Configureer bij **één gekozen testadministratie** de drie beschikbare primaire regelingen. Koppel bestaande gekozen test-employment-scenario's (doel: zes, twee per regeling) binnen hun gescopeerde administratie. Maak employee/salary segment-verwijzingen netjes consistent. Alleen geautoriseerde **gerichte testloon-/regeling-/assignmentwrites in Core** zijn door Edwin hiervoor toegestaan; geen blind verwijderen/overschrijven van ongerelateerde shared-testfixtures. Behoud of archiveer oude demo-configuratie afhankelijk van bestaande verwijzingen en maak oude concurrerende demo's niet selecteerbaar in de nieuwe benchmarkervaring.
+6. Bewijs contractkeuze→schaal/trede of open band→geregeld maand-/uurloon→versioned componentengine→trace en onafhankelijk geverifieerd bruto. Fiscaal netto slechts bij bewezen complete ondersteunde PAYLAB03 scope.
+7. Na gerichte Core-/PAYLAB02–04 regressie-, autorisatie-, persistence- en browserchecks rapporteer werkelijke dekking per regeling, eventuele nog ontbrekende bron/IKV/CAO-capability en de uiteindelijke geconfigureerde fixturemapping. Geen push/merge/deploy.
+
+**Override eerdere beperkingen:** teksten in dit document die 'Core altijd read-only in de benchmark' eisen, gelden voortaan alleen voor discovery en Core-buiten-de-doelgroep. Voor vooraf geïnventariseerde, betrokken Core-testloon-/regelingsrecords zijn in deze afzonderlijke run gerichte writes uitdrukkelijk toegestaan. Een noodzakelijke Core-schema- of CONTROL02-wijziging blijft een harde stop.
