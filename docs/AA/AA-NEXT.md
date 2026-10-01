@@ -1,7 +1,7 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**  
-Bijgewerkt: 2026-09-29
+Bijgewerkt: 2026-10-01
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
 
@@ -108,6 +108,20 @@ Doel:
 - capabilitymodel verfijnen;
 - commerciële tierwaarden pas vastleggen na expliciet productbesluit.
 
+## PARALLELLE PAYROLLTRACK — NA PAYLAB03
+
+PAYLAB03 is lokaal **GREEN voor de beperkte 2026-reguliere maandcase** (zie AA-CURRENT/AA-ACCEPT); er is nog geen push, merge of deployment. De codebranch en de intussen bijgewerkte AA-documentatiebranch moeten vóór de volgende run bewust worden gereconcilieerd, zonder blind te mergen.
+
+Voorgesteld volgende productonderwerp, pas definitief maken na expliciete scopekeuze:
+
+- PAYLAB04: bestaande SYSTEM Payroll Components en het regelpakket ontsluiten via een versioned Payroll Component Library/catalogus; geen volledige designer;
+- PAYLAB05 (later): component Designer bovenop de bestaande veilige engine/DSL;
+- afzonderlijke fiscale vervolgslices: pensioen, werkgeverspremies/VCR, Zvw, bijzondere beloning en overige 2026-situaties op basis van officiële bron- en compliancecases;
+- CONTROL02/Core IncomeRelationship-contract expliciet vastleggen vóór echte multi-IKV-integratie;
+- iteratieve clusters en gedeelde IKV-grondslagen blijven gereserveerde architectuurinvarianten totdat een afgesproken slice ze implementeert.
+
+Geen van deze onderwerpen is reeds geaccepteerd door PAYLAB03.
+
 ## THEN — PAY-CONVERGE
 
 Reconcile bestaande payrollworktrees en migrationlineage tegen dan-actuele main.
@@ -117,7 +131,7 @@ Reconcile bestaande payrollworktrees en migrationlineage tegen dan-actuele main.
 - obsolete experimenten expliciet markeren;
 - Payroll Lab niet behandelen als standalone gebruikersapp: behoud de bounded-contextarchitectuur binnen LiquidHR, met pure engine package en aparte Payroll-database;
 - behoud PAYLAB02 M0 componentengine/ownership/expression-contracten;
-- volgende inhoudelijke Payroll-slice: synthetische fiscale waarden vervangen door echte, versioned Nederlandse 2026-rule logic met compliancecases.
+- PAYLAB03 versie van de afgebakende NL-2026 fiscale maandcase behouden, met onafhankelijke oracle en officiële tabelankers; overige NL-situaties apart plannen.
 
 ## THEN — AW02
 
