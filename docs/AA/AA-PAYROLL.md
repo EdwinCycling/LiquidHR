@@ -288,7 +288,7 @@ Voorkeursroute:
 7. Continuous Payroll / Payroll by Exception;
 8. aangifte-, payment-, accounting- en overige adapters.
 
-Na M0 is de eerstvolgende inhoudelijke payrollmijlpaal dus: de synthetische fiscale waarden vervangen door aantoonbare Nederlandse 2026-rule logic, zonder de generieke componentengine te omzeilen.
+Na M0 is PAYLAB03 lokaal geaccepteerd voor uitsluitend de eerste NL-2026 WHITE/NL/STD/onder-AOW reguliere maandcase, met versioned SYSTEM statutory rules, oracle, rounding trace en persistent browserbewijs. Verdere fiscale scope blijft afzonderlijk te plannen.
 
 ## 13. Future engine invariants — iteraties, IKV's en gedeelde grondslagen
 
@@ -498,3 +498,9 @@ Wanneer een afgerond groepsbedrag over meerdere IKV's, componenten of betalingen
 Iteratieve berekeningen vergelijken ongeafronde of expliciet voor convergence genormaliseerde waarden op een versioned comparison precision/tolerance.
 
 Rond iteratieve bedragen niet standaard op 2 decimalen voordat convergence wordt vastgesteld. Een wettelijke component mag wel expliciete afrondingsstappen binnen de iteratie bevatten wanneer de betreffende regel dat vereist.
+
+## 15. PAYLAB03 — eerste fiscale referentiecase (lokaal geaccepteerd)
+
+Volgens het lokale acceptance report van 2026-09-30 is CC-NL-2026-001 GREEN binnen WHITE/NL/STD, onder AOW, volledige reguliere maand, loonheffingskorting aan. Fiscaal loon € 4.000,00 → loonheffing € 818,67 → netto € 3.181,33. Er zijn 21 onafhankelijke rekengevallen, 10 officiële maandtabelankers, 2 geauthenticeerde persisted browserruns met identieke hashes en rounding trace. Code-SHA: `5d7e9fc5e19ff4582787b51e0104c885ac83370a` (lokaal; geen push/deploy).
+
+Deze status wijzigt niets aan de toekomstige invarianten: geen automatische employment=IKV-aanname, geen impliciete twee-decimaalafronding, geen generieke YTD, geen veronderstelde DAG-only engine. Iteratieve clusters, shared bases en multi-IKV zijn nog niet uitgevoerd/accepted. Raadpleeg het lokale `docs/payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md` voordat nieuwe scope wordt gepland.
