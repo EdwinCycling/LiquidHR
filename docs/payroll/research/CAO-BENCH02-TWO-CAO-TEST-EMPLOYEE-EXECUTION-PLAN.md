@@ -113,3 +113,41 @@ Laat beide cao-analisten elkaar niet kopiëren en laat de oracle niet de product
 De twee CAO's worden **intern als benchmark/testpakket** geaccepteerd met zichtbare `SupportedRules` en `UnsupportedRules`. Zij mogen pas commercieel als door LiquidHR ondersteunde cao's worden geadverteerd nadat volledige relevante payroll-/juridische/actualiteitsdekking inclusief pensioen/fondsen, cumulatieven, output en onafhankelijke reviews is aangetoond.
 
 Definitieve centrale cataloguspublicatie en automatische klantupgrade worden als eigen Control/inrichtingapp-slice gepland; deze benchmark bewijst eerst herbruikbare package-/assignment-/composition-contracten met echte scenario's.
+
+## 8. Besluit na bron-/schemaonderzoek: loonmodellen en administratie→dienstverband
+
+**Officiële bronnen opnieuw gecontroleerd op 2026-10-01:**
+- Kinderopvang heeft functiematrix → salarisschaal → salarisnummer → effectief maandbedrag, incl. tabel van 1 september 2026 (cao art. 5.1–5.3 en bijlage 2): https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/het-salaris-bepalen
+- Retail Non-Food 2026–2027, module Mode, heeft functiegroepen A–I, leeftijd-/ervaringsjaar- en schaaltrede-afhankelijke **uurlonen**, plus voor bepaalde medewerkers een beoordelings-/extra loongebouw en feitelijk loon boven tabelmaximum (art. 6.2 en bijlage 1a/1b): https://www.inretail.nl/wp-content/uploads/2026/05/260527-Cao-Retail-Non-Food-juli-2026-def.pdf. Let op: de tekst bevat een bijzondere situatie zonder reguliere ervaringsjaar-tredeverhoging in 2026; importeer niet alleen de matrix, maar ook de geldige overgangs- en verhogingsregels.
+
+**Geen aanname dat iedere cao schaal + vaste treden heeft.** Het generieke salary policy contract moet minimaal ondersteunen:
+- `DISCRETE_SCALE_STEP`: functie/functiegroep, schaal, salarisnummer/trede/ervaringsjaar, effectieve tabelwaarde, afgesproken fulltime urenbasis en payrollperiode;
+- `OPEN_SALARY_BAND`: functie/schaal, min/max en individuele overeengekomen beloning binnen toepasselijke grenzen, evt. relatieve salarispositie;
+- `FREELY_NEGOTIATED`: vrij bedrag zonder tabel, maar nog steeds wettelijke en eventueel toepasselijke collectieve garanties beoordelen;
+- voor cao's zoals Retail: `ACTUAL_PAY` versus `TABLE_GUARANTEE` onderscheiden, inclusief boven-schaal- en overgangssituaties;
+- keuze uur-/maandbasis, WML/cao-ondergrens en deeltijdberekening volgens de **specifieke** cao, niet één universeel maand-omrekengetal.
+
+**Gewenste administratieve configuratie:**
+1. Bevoegde HR Admin configureert per **juridische administratie** een gescopeerde `AdministrationArrangementAvailability`: welke gepubliceerde cao-/branchemodules en/of bedrijfseigen primaire arrangementen selecteerbaar zijn, met hun geldigheid.
+2. Elk relevant Employment krijgt binnen zijn administratie precies één **primaire loon-/arbeidsvoorwaardenregeling**: `COLLECTIVE_AGREEMENT` of `COMPANY_ARRANGEMENT` of expliciet `NO_CAO_WITH_STATUTORY_BASELINE` wanneer er juridisch geen cao geldt. Niet ieder dienstverband valt automatisch onder een cao; laat applicability/juridische werkingssfeer apart valideren.
+3. Kies tijdens het Employment-aanmaakproces uitsluitend primaire regelingen die voor die administratie zijn geactiveerd. Leg de keuze gescopeerd, effectief gedateerd en auditeerbaar vast, met passende Core-ownership. Dezelfde administratie kan meerdere verschillende primaire regelingen beschikbaar stellen; niet twee primaire cao's tegelijk op één employment toepassen zonder later uit te werken expliciet juridisch conflictmodel.
+4. Aanvullende compatibele pakketten (pensioen-/sectorfonds/bedrijfseigen aanvullende componenten) volgen een **separate scoped assignment**, niet een tweede primaire cao.
+5. Zodra een employment zijn primaire arrangement heeft, wordt de *identiteit* in deze eerste productfase niet vrij wijzigbaar gemaakt; een ander primair arrangement tijdens hetzelfde employment = gereserveerd wijzigingsproces/impactreview voor later. Nieuwe **versies van hetzelfde** arrangement volgen wel hun juridische effective dates en gepinde payrollrun-compositie, zonder de oorspronkelijke assignment in-place te overschrijven.
+6. Schaal/trede hoort bij het **employment salary segment**, niet globaal bij Employee of afdeling; nieuwe tabellen leveren geldende bedragen voor berekeningen, maar herschrijven geen historische salary segments of afgesloten runs.
+7. Een Core `labor_condition_set_id` verwijst momenteel naar een eigen arbeidsvoorwaardenset; dit is niet bewezen dezelfde entiteit als de centrale versieerbare Payroll `ArrangementPackage`. Definieer een expliciete mapping/contract vóór live writes. PAYLAB-benchmark mag vooralsnog uitsluitend gescheiden synthetic assignments gebruiken. Geen Core-schema- of CONTROL02-wijziging zonder afzonderlijk besluit.
+
+**Waarom dit nodig is:** de database bevat al `labor_condition_sets`, `employment_contracts.labor_condition_set_id`, `employment_salaries` met `salary_scale_id/salary_scale_step_id` en loonroute, en `employment_income_relationships`. Dit levert *inrichtingsaanknopingspunten* maar nog geen bewezen volledige gepubliceerde cao-packagecompositie of gebruik van packagevalues bij de engine. Codex moet de feitelijke actuele services inspecteren en aantonen dat selectie→salarisconfiguratie→snapshot→componentengine werkt.
+
+## 9. Correctie testmedewerkeridentiteiten
+
+Bij de eerste read-only inspectie was Planeten → Test Operations → Jupiter BV gekozen omdat daar **vier bestaande profielen met gekoppelde employment, salaris, rooster, IKV en arbeidsvoorwaardenset** zijn gevonden, plus een auth-linked manager.
+
+**Vervolgvraag van Edwin:** zijn dit de medewerkers die eerder met voornaam en achternaam 'Test' zijn aangemaakt? **Nee, die gelijkstelling is niet onderbouwd.** Een afzonderlijke read-only telling op 2026-10-01 vond **11 employees met 'test' in de `birth_name` binnen Planeten, maar 0 in de eerder bekeken afdeling Test Operations**. Er is niet bevestigd waar alle elf medewerkers organisatorisch hangen of dat zij volledige payrollinput hebben. Koppel de eerdere 4 Jupiter-profielen niet stilzwijgend aan deze elf.
+
+**Nieuwe selectievolgorde bij Codex-start:**
+1. Zoek binnen de normale server-side geautoriseerde Core-testscope de **bedoelde bestaande voornaam + achternaam-'Test'** profielen en controleer via opaque IDs hun afdeling, juridische administratie, manager én completeness (employment, contract, salary, schedule, IKV, perioden).
+2. Als vier geschikte bedoelde 'Test'-profielen veilig binnen één bestaande administratie/testafdeling met bruikbare manager beschikbaar zijn, gebruik juist die; persoonsgegevens alleen in beveiligde Core-services, externe benchmarkfixture uitsluitend synthetisch/pseudoniem.
+3. Zo niet: behoud de vier technisch complete Test Operations/Jupiter-profielen uitsluitend als **gepseudonimiseerde synthetische Payroll Lab-baseline**, label expliciet dat dit NIET de eerdere 'Test'-achternaamprofielen zijn. Niet verplaatsen, hernoemen, van cao veranderen of een manager aanmaken in Core om een test te forceren.
+4. Maak geen namen, BSN, IBAN of privécontact openbaar. Geen Core-write zonder afzonderlijke expliciete scopebeslissing. De gewenste UI-flow voor 'primaire cao per employment' wordt dan bewezen via synthetic Lab-assignments totdat het live Core-contract is aanvaard.
+
+Deze correctie heeft voorrang op eerdere passages in dit document die de vier Jubilee/Jupiter-testprofielen zonder onderscheid als de bedoelde Test-medewerkers zouden kunnen laten lezen.
