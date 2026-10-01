@@ -223,3 +223,49 @@ Medewerker salaris-cockpit = apart traject na afstemming.
 - mobile ESS PDF preview / download en accesstests voor eigen/niet-eigen/cross-admin;
 - geanonimiseerde voorbeeldweergave voor editor en tests;
 - NB: huidige PAYLAB03 ondersteunt één regulier synthetisch maandscenario zonder pensioen, werkgeverspremies, Zvw of volledig jaar/YTD. Daarom eerst complete projecties/preview testen en **geen wettelijke completeness-/productie-uitgifteclaim** voordat ontbrekende engine/source-rules beschikbaar zijn.
+
+## 9. Visuele benchmark — AFAS Salariswijzer (gebruikersreferentie, 2026-10-01)
+
+Gebruiker deelde een schermafbeelding van een AFAS-voorbeeldloonstrook (april 2026) en https://www.afas.nl/salariswijzer als uitlegbron. Deze benchmark **is geen sjabloon dat mag worden gekopieerd**. De verstrekte screenshot bevat medewerker-/rekeningidentificatie; commit deze afbeelding niet in repository of openbare documentatie, citeer geen persoonlijke velden of volledige IBAN en gebruik voor UI-tests uitsluitend gesynthetiseerde gegevens.
+
+### Waarneembare UX-secties en LiquidHR-vertaling
+
+| Sectie in benchmark | LiquidHR-keuze |
+| --- | --- |
+| Maand/jaar + prominent uitbetaalbedrag | Toon periode en `PAYABLE_AMOUNT` als eerste, groot en duidelijk, los van `NET_WAGE`. |
+| Betalingen met rekening en bedrag | Afzonderlijke payment projection uit immutable finalized run; IBAN naar beleid gemaskeerd in app/voorbeeld, documenten alleen voor bevoegde ontvanger. |
+| Bruto-nettotabel | Gebruik de echte componentresultaten en gestructureerde loonregels; hoeveelheids-, grondslag- en bedragkolommen waar relevant. |
+| Kolommen Normaal, Bijzonder en Cumulatief | Toon alleen wanneer de onderliggende correcte statutory classification en period/YTD-datasets beschikbaar zijn; geen uit één bedrag nagemaakte fictieve cumulatieven. |
+| Contract- en dienstverbandkenmerken | Uren, parttime%, contractkenmerken, relevant minimumloon en andere wettelijk verplichte gegevens uit gepinde HR/sourceversies. |
+| Fiscale kenmerken en basis | Tabelkleur, loonheffingskorting en bijzonder-tariefreferentie indien ondersteund; strikt gescheiden van bruto-/netto-output. |
+| Mobiliteit | Dynamisch optioneel blok met cataloguswaarde, bijtelling en waar van toepassing eigen bijdrage; uitsluitend bij werkelijk toegepaste regeling. |
+| Reserveringen/saldi | Herhaalbare regels voor vakantie- en overige reserveringen met mutatie en saldo, pas na accepted balances/YTD-contracten. |
+
+De screenshot toont terecht waarom `NET_WAGE` en `PAYABLE_AMOUNT` afzonderlijke resultaatsoorten zijn: netto kan door een afzonderlijke netto-/keuzebudgetbetaling afwijken van uitbetaling. **Een goede LiquidHR-required control sluit alle werkelijk toepasselijke nettovergoedingen, netto-inhoudingen en uitbetalingscomponenten expliciet aan op de betaling.** Gebruik geen hardcoded verschilcorrectie in de PDF-renderer.
+
+### AFAS-uitleg als referentie voor medewerkerbegrip
+
+AFAS beschrijft op zijn Salariswijzer-pagina onder meer bijtelling auto, brutoloon, BSN, bijzonder-tariefjaarloon, keuzebudget, loonheffing, nettoloon, nettovergoedingen, parttimepercentage, pensioen, tabelkleur en vakantiegeld. Gebruik deze onderwerpen als benchmark voor een toekomstige **typed term/explanation catalog** die in de web-ESS loonstrookviewer contextual hulp toont. Per term een door LiquidHR onderhouden, versioned beknopte uitleg met toepasselijkheid; niet blind AFAS-tekst kopiëren en niet alle technische uitleg in de PDF proppen.
+
+### Voorgestelde LiquidHR Standard PDF-indeling
+
+1. **Header:** werkgeverlogo of neutraal LiquidHR, werknemer, uitbetalingsperiode, geboekstempeldatum/documentversie voor interne audit.
+2. **Uitbetaling:** opvallend `uit te betalen`; betaalmethode/rekening en eventuele afzonderlijke deelbetalingen.
+3. **Bruto → fiscaal → netto → uit te betalen:** heldere, blokgewijze periodieke berekening, echte componentregels met hoeveelheid, basis en bedrag. Bijzondere looncomponenten en cumulatieven alleen als ondersteund.
+4. **Dienstverband & fiscale informatie:** compacte verplichte gegevens en relevante interpretatiecontext, optionele extra bedrijfsvelden op afgesproken plekken.
+5. **Conditionele blokken:** auto/mobiliteit, reserveringen/verlofsaldi, vergoedingen/bijzondere context, uitsluitend waar van toepassing én gevalideerd.
+6. **Documentfooter:** werkgevercontact indien geconfigureerd, betalings-/documentreferentie en paginering.
+
+Klant mag binnen `CUSTOMIZED_STANDARD` alleen **als optioneel gemarkeerde** blokken of velden verbergen. Denk aan interne kostenplaats, extra mededeling of uitgebreide reserveringsinformatie voor zover die niet vereist is in het getoonde documenttype. Verplichte loonregels en juridische contract-/minimumloonvelden blijven beschermd. Klantlogo hoort in de headerzone, met veilige bestands-/beeldvalidatie.
+
+### Validatie/golden documentcases
+
+- **NET ≠ PAYABLE:** een synthetische extra nettobetaling van €25 leidt tot exact €25 extra uitbetaling, met beide waarden afzonderlijk duidelijk op de strook en aansluiting naar betalingsprojectie.
+- **No optional data:** geen lege mobiliteits- of reserveblokken zonder werkelijk ondersteunde brondata.
+- **Required fields:** alle vereiste velden blijven zichtbaar na klantconfiguratie die optionele secties verbergt.
+- **Classification:** normale, bijzondere en cumulatieve bedragen verschijnen alleen na onderbouwde berekening en statutaire classificatie; nooit afgeleid uit visuele tabelstructuur.
+- **Versioning:** wijziging logo/opmaak creëert nieuwe templateversie en verandert reeds uitgegeven PDF-documenten niet.
+- **Legibility:** A4 PDF met lange loonregellijst, meervoudige pagina's, behoorlijke layout op afdruk en mobiele PDF-viewer.
+- **Disclosure:** BSN (voor zover wettelijk benodigd), IBAN en andere persoonsgegevens blijven uitsluitend bij de bevoegde werknemer of geautoriseerde payrollactor.
+
+Geraadpleegde uitlegpagina AFAS: https://www.afas.nl/salariswijzer (geraadpleegd 2026-10-01). Dit blijft een secundaire UX-benchmark; voor verplichte inhoud gelden officiële Nederlandse bronnen uit de eerdere secties.
