@@ -4,6 +4,16 @@ Status: **gekozen benchmark; architectuurvoorstel, nog niet geïmplementeerd, fi
 Datum: 2026-10-01  
 Werkspoor: na PAYLAB04 Component Library; ontwerpinput voor PAYLAB05 Component Designer en Control/inrichtingapp.
 
+## Update 2026-10-01 — tweede cao en daadwerkelijke testprofielen
+
+De benchmark wordt uitgebreid naar **twee publiek brongebonden cao's**: (1) Kinderopvang 2025–2026 en (2) Retail Non-Food 2026–2027, eerst branchemodule **Mode**. Van beide komen afzonderlijke versioned ArrangementPackages met een per-artikel dekkingsmatrix.
+
+Een read-only Core-/Payroll-Lab-inspectie bevestigde in Planeten → Test Operations → Jupiter BV vier bestaande medewerkersprofielen met employment, salaris, rooster, IKV-link en Core-arbeidsvoorwaardenset. Er is een toegewezen manager met gekoppelde auth_user-identiteit; daadwerkelijke payrollrechten en PAYLAB01 live source-read blijven afzonderlijk te bewijzen. De goedgekeurde Jupiter Payroll Lab administratie bestaat.
+
+Codex bouwt twee configuraties uit de officiële bronnen, richt vier **synthetisch gekopieerde, gepseudonimiseerde** Payroll Lab-benchmarkprofielen in (2 Kinderopvang + 2 Retail Mode) en berekent uitsluitend wat volgens de actuele engine/rules echt is ondersteund. Bestaande Core-arbeidsvoorwaarden/salarissen/managers worden in deze benchmark niet gewijzigd. Een Core labor-condition set is **nog niet** hetzelfde als een gepubliceerde, berekenbare cao-packageassignment.
+
+Gedetailleerd uitvoeringsplan: [CAO-BENCH02-TWO-CAO-TEST-EMPLOYEE-EXECUTION-PLAN](CAO-BENCH02-TWO-CAO-TEST-EMPLOYEE-EXECUTION-PLAN.md). Dit gaat **na** de lopende PAYLAB04-run; geen scope-creep in PAYLAB04.
+
 ## Doel
 
 Gebruik Cao Kinderopvang 2025–2026 als eerste echte praktijktest voor de bestaande Payroll Component Graph Engine. Onderzoek twee vragen gescheiden:
