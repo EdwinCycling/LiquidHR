@@ -1,7 +1,7 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**  
-Momentopname: 2026-09-30
+Momentopname: 2026-10-01
 
 > Deze eerste opzet is geschreven terwijl CONVERGENCE01 nog loopt. Na GREEN/RELEASED moet dit document direct worden bijgewerkt naar de definitieve release-SHA en versie.
 
@@ -21,7 +21,7 @@ Momentopname: 2026-09-30
 - Hosted provenance had beperkte metadata-evidencegaps, niet opnieuw openen als productdefect.
 
 
-## Payroll Lab — PAYLAB00/01/02
+## Payroll Lab — PAYLAB00/01/02/03
 
 Payroll wordt niet als aparte gebruikersapp ontwikkeld. Het is een bounded context binnen dezelfde LiquidHR-app/repository, met een pure `packages/payroll-engine` en een aparte Payroll Lab Supabase-database.
 
@@ -59,7 +59,23 @@ PAYLAB02 / Engine M0:
 - geen Core-writes of permissionwijzigingen.
 
 Bewijsgrens:
-PAYLAB02 bewijst de generieke componentengine + synthetic vertical slice. Echte Nederlandse fiscale 2026-regels zijn nog niet geïmplementeerd/geaccepteerd. Dat is de eerstvolgende inhoudelijke payrollstap.
+PAYLAB02 bewijst de generieke componentengine + synthetic vertical slice; deze synthetic GC blijft als regressiecase naast de afzonderlijke PAYLAB03 compliancecase bestaan.
+
+PAYLAB03 / NL 2026 regular monthly wage:
+- **GREEN — uitsluitend WHITE/NL/STD/onder AOW/reguliere volledige maand 2026**; loonheffingskorting aan, en korting uit in de geteste formulevariant.
+- CC-NL-2026-001: bruto/fiscaal loon € 4.000,00 → echte loonheffing € 818,67 → netto € 3.181,33.
+- Systeemregelset `NL-PAYROLL-2026` versie `2026.1`, engine `0.2.0`; SYS-only registered statutory rule, exact Decimal/breukrekenen en expliciet geversioneerde wettelijke rounding stages met volledige trace.
+- 21 onafhankelijk vooraf opgestelde rekengevallen, 10 onafhankelijke officiële witte-maandtabelankers; fiscale oracle onafhankelijk van productiecalculator.
+- 2 authenticated browserruns SUCCEEDED, 4 componentresultaten en 4 interne PASS-aansluitcontroles per run, persisted trace en identieke source/input/result hashes.
+- Gerichte engine/package/app-tests, typechecks, lint, i18n, productiebuild en client-secret scan volgens acceptance report GREEN; geen volledige hr-suite-regressierun.
+- Code-SHA lokaal: `5d7e9fc5e19ff4582787b51e0104c885ac83370a`; bewijsregistratiecommit `ab2e1d5`.
+- Alleen synthetische Lab-artefacten; geen Core-write/migration/permissionwijziging. Geen push/merge/deployment.
+- De actieve Codex-run las destijds AA op `b71d663`, vóór de latere AA-documentatiecommits; lees bij de volgende run de **nieuwste** AA-branch inclusief rounding/iterative/IKV-invariants en de vaste LUNA MAX-subagentregel. Niet automatisch mergen.
+
+**Bewijsgrens:** dit is niet algemene Nederlandse payrollcompliance. Buiten scope: pensioen, werkgeverspremies, VCR/YTD, gedeelde grondslagen, multi-IKV, iteratie, reserveringen, aangifte, boven-Lmax en live Core→IKV-sourceacceptatie. GC-NL-001 blijft als aparte synthetische M0-regressiecase bestaan.
+
+Acceptancebron (lokaal op de Payroll worktree, nog niet op GitHub): `docs/payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md`.
+
 
 ## Lopend — CONVERGENCE01
 
