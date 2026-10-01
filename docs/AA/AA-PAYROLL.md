@@ -547,3 +547,13 @@ Eerste kanaal: versie-/bankprofielgebonden, volledig gevalideerde SEPA Credit Tr
 Loonheffingenbetaling komt uit het **eindbedrag van een werkelijk geaccepteerde aangifte**, heeft periodiek betalingskenmerk, deadline en actueel officieel rekeningprofiel; fiscale periodebetaling is onderscheiden van werknemerbetalingen. Geen negatieve SEPA-instructie voor een netto-terugvordering. Werknemerloonstrook gebruikt dezelfde pinned payableprojection, bankstatus verandert geen historische PDF.
 
 Navigatie: `Betalingen` wordt pas bij werkende module een overzichtstegel onder het **enige** `Payroll Lab`-sidebaritem. Details/fasering: [PAYMENT01-SALARY-AND-TAX-PAYMENTS-ARCHITECTURE](../requirements/payroll/PAYMENT01-SALARY-AND-TAX-PAYMENTS-ARCHITECTURE.md). Dit is gepland, niet op basis van PAYLAB03 geaccepteerde betaalfunctionaliteit.
+
+## 20. Benchmark minimaal twee cao's op bestaande gescopeerde testdata
+
+De afgesproken cao-proef omvat **twee** echte publiek verkrijgbare sets: Kinderopvang 2025–2026 en Retail Non-Food 2026–2027 (**alleen** branchemodule Mode als eerste variant). Laat Codex de beide bronpakketten en componentconfiguraties zelfstandig samenstellen; Edwin voert geen salaristabellen/percentages handmatig in. Alle subagents gebruiken LUNA MAX als modelselector dat ondersteunt.
+
+Op 2026-10-01 is read-only vastgesteld: Planeten → Test Operations → Jupiter BV beschikt over vier testprofielen met salaris, rooster, employment, IKV-link en Core-arbeidsvoorwaardenset; een toegewezen direct manager is gekoppeld aan een auth user. De daadwerkelijke payrollautorisatie van manager en PAYLAB01 live Core source proof zijn nog open. Gebruik uit deze profielen uitsluitend gescopeerd gelezen data om **synthetische en gepseudonimiseerde Payroll Lab-snapshots** te maken: K1/K2 op Kinderopvang, R1/R2 op Retail Mode. Alle afwijkingen van originele data worden expliciete synthetic scenario-overrides, geen wijzigingen van Core-verplichtingen.
+
+Test beide packageversies per werknemer/contract, niet globaal voor de hele afdeling; breng officiële bronwijzigingen, schaal-/uren-/deeltijdberekening, toeslagoverlap en onderliggende NL-fiscale compatibiliteit aan het licht. Documenteer per cao welke bepaling daadwerkelijk SUPPORTED, PARTIAL of UNSUPPORTED is. Een interne benchmark is geen wettelijke validatie van beide cao's en geen productierelease.
+
+Detail: [CAO-BENCH02](../payroll/research/CAO-BENCH02-TWO-CAO-TEST-EMPLOYEE-EXECUTION-PLAN.md). Uitvoering pas na PAYLAB04; geen aanpassingen aan bestaande Core-medewerkers of managerrechten in een benchmarkrun.
