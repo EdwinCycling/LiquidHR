@@ -223,9 +223,7 @@ vertalingen; de daaropvolgende gerichte rerun (6 tests) en i18n-check PASS.
 
 ## Lokale commitregistratie
 
-De geteste implementatie wordt lokaal gecommit; de exacte implementatie-SHA
-wordt vervolgens in een afzonderlijke documentatie-only bewijsregistratie
-vastgelegd, zoals in PAYLAB03. Geen push, merge of deployment. Bestaande
+Finale geteste implementatie-SHA: `35c624acd7a7a64eeb2422334946a2f5e9731e7e`. Geen push, merge of deployment. Bestaande
 generated drift in `next-env.d.ts`, `tmp/` en de CLI-toolcache `.temp/` worden
 niet meegenomen; beschermde runtimeconfig is nooit gestaged of gewijzigd.
 
