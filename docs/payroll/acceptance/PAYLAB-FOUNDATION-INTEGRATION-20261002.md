@@ -7,6 +7,7 @@ This handoff integrates the already accepted Payroll Lab foundation into the cur
 ## References and transferred history
 
 - LiquidHR main / `origin/main` baseline: `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`, application version `1.20260928.1`. The TEST release is READY; the separate LiquidHR security-acceptance track remains OPEN. The TEST release contains no Payroll-foundation code.
+- The required start-time remote check confirmed that baseline. The final `git ls-remote` refresh could not authenticate (`SEC_E_NO_CREDENTIALS`); the local `origin/main` ref remains at the baseline, but a remote advance after the initial check cannot be excluded. Fetch and compare `main` again before any later merge decision.
 - Payroll source checkout: `Code`, branch `work/paylab00`, HEAD `e4e8f009e681f7bbcfade069ed1b229ae05d4761`. PAYLAB04 implementation and actual tested code commit: `35c624acd7a7a64eeb2422334946a2f5e9731e7e`, an ancestor of that HEAD. Later source HEAD records acceptance/documentation, not additional tested implementation.
 - Latest AA-documentation branch was read at `b0956d0542477b8b5866b723decbfb480b447b93`; it was not merged.
 - Integration branch: `integration/payroll-foundation-20261002`, based on the exact main SHA above. Integrated code commit: `2cba7457d57ce41d941ef482117559bbe9319946` (documentation handoff follows it).
