@@ -107,6 +107,12 @@ The existing local `.next` production build was started on port 3011 with `npm.c
 
 No application-code defect has been proven, so no code, dependency, cache, or build change is justified in this single diagnostic round. No regression tests were run. The existing CSS, calculation, hash, component, authorization, and scope evidence above remains unchanged. The smallest reproducer is: in the integrated Next dev runtime, load `/dashboard/start` as Test HR Admin, click the Payroll Lab sidebar link, and observe the RSC decoder overlay; loading `/payroll-lab` directly succeeds. The exact `frame.join` stack itself was not available in this pass; the full sibling decoder stack above is the captured runtime trace.
 
+### Definitive production navigation gate — 2026-10-02
+
+The production navigation gate could not be run in this continuation. No app terminal session was attached to the task, and neither port 3010 nor 3011 had a listening process. I did not inspect or load protected configuration. Starting `next start` from the task shell previously reached “Ready” but lacked the approved TEST runtime context, so repeating that launch from the same shell would not provide valid acceptance evidence. This is **Gate C: production runtime unavailable**, not a production navigation failure. No browser acceptance or regression tests were run in this pass.
+
+Required operator action: in the PowerShell session that has the already-approved TEST runtime loaded, run `Set-Location 'C:\Users\Edwin\Documents\Apps\LiquidHR-Payroll\Integration-Payroll-20261002\apps\hr-suite'` followed by `npm.cmd run start -- --port 3011 --hostname 127.0.0.1`. This uses the existing `.next` build, binds only to loopback, and requires no config values to be shared. Once the production server is available at `localhost:3011`, the requested Test HR Admin desktop/mobile route, history, trace, fork, and CSS acceptance can be performed.
+
 ### Browser acceptance in Test HR Admin
 
 The existing Test HR Admin fixture session was active (hradmin.fixture). The M0 historical run and new browser calculation succeeded. Both reported the PAYLAB04 hashes and results:
@@ -125,10 +131,10 @@ The negative authorization probe switched to Test Manager; Payroll Lab was absen
 ## Demonstration and availability
 
 - **Completed on this integration branch:** Test HR Admin calculations and history traces, PAYLAB03/PAYLAB04 hash comparison, 24 SYSTEM checks, CUSTOMER_FORK save/reopen, RegisteredRule copy rejection, negative authorization and run/case scope checks, and styled dashboard/Payroll Lab checks at desktop and 390 px.
-- **Still blocking:** Next.js client-side route navigation reproducibly fails in the local dev runtime after otherwise successful CSS retrieval and full-page render. The exact source cause remains unisolated; the existing production build could not be browser-tested because the separate start process lacked the approved runtime configuration. No application code change is justified by the available evidence.
+- **Still blocking:** the local dev runtime has the reproducible client-side route navigation failure documented above, and the production navigation gate is not run because the approved TEST runtime is unavailable in this task shell. No application code change is justified by the available evidence.
 - **TEST and future deployment:** neither contains this Payroll integration. Version bump, push, main merge, and deployment were outside this handoff and were not performed.
 
-**Merge decision: NOT MERGE-READY.** The Dashboard → Payroll Lab client navigation failure remains reproducible and unisolated. Required browser acceptance after a verified repair was not run. The separate LiquidHR release security acceptance remains OPEN.
+**Merge decision: NOT MERGE-READY.** Gate C: production-build browser acceptance cannot be performed until Edwin starts the existing build from the PowerShell session with the approved TEST runtime already loaded. Development navigation remains unisolated; no production-only acceptance result is available. The separate LiquidHR release security acceptance remains OPEN.
 
 ## CAO-BENCH02 first implementation slice prepared (not implemented)
 
