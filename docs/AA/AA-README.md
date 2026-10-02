@@ -45,6 +45,9 @@ Lees minimaal:
 5. `AA-NEXT.md`
 6. de domeinspecifieke requirements waarnaar de wave verwijst
 
+### API / MCP / WebMCP / ChatGPT-app / externe provider
+Lees AA-REQ, AA-OP, AA-TEST, AA-CURRENT, AA-NEXT en de [integratiebesluiten V1](../requirements/integrations/API_MCP_WEBMCP_CHATGPT_PROVIDER_DECISIONS_V1.md); verifieer de actuele code en geaccepteerde releasebaseline voordat een wave start.
+
 ### Payroll feature / Payroll Lab
 Lees minimaal:
 1. `AA-PAYROLL.md`
