@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack --port 3000",
     "dev:turbopack": "next dev --port 3000",
-    "build": "next build && node lib/payroll/verify-client-bundle.mjs --self-test",
+    "build": "next build && node lib/payroll/verify-client-bundle.mjs --self-test && node scripts/write-build-provenance.mjs",
     "start": "next start --port 3000",
     "lint": "eslint .",
     "check:i18n": "node scripts/check-i18n.mjs",

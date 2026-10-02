@@ -17,6 +17,14 @@ $commands = @(
         Example = 'EdwinHelp'
     },
     [pscustomobject]@{
+        Name = 'Start lokale TEST-runtime'
+        Aliases = @('test runtime starten', 'start liquidhr test', 'test preflight')
+        Description = 'Controleert de centrale lokale TEST-target, dependencies, loopback-poort en buildprovenance; bouwen of starten gebeurt alleen met expliciete opties.'
+        Source = '.\scripts\start-test-worktree.ps1'
+        Risk = 'Laadt centrale runtimeconfig in een child-proces; installeert niets en wijzigt geen config'
+        Example = '.\scripts\start-test-worktree.ps1 -Mode Production -PayrollAcceptance -Build'
+    },
+    [pscustomobject]@{
         Name = 'Maak Git backup'
         Aliases = @('git backup', 'backup')
         Description = 'Maakt lokaal een backup-commit en werkt last-good bij.'

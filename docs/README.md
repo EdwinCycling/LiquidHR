@@ -1,6 +1,14 @@
 # Liquid HR documentatie-index
 
-## PAYLAB00–04 integration handoff — 2026-10-02
+## ONE VERSION — accepted PAYLAB00–04 integration — 2026-10-02
+
+**Status: PAYLAB integration MERGE-READY at `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; ONE VERSION release preparation is underway.** The independent LUNA MAX acceptance review passed. The earlier production historical-run error was traced to `PGRST303: JWT issued at future`; desktop and 390 px browser retests passed. No Payroll application fix or new CAO implementation was needed. The release candidate sets app version `1.20261002.1`; merge/deployment status is recorded in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
+
+The local runtime and separated Vercel Preview process are in [`TEST_RUNTIME_AND_VERCEL_PREVIEW.md`](delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md).
+
+## PAYLAB00–04 pre-browser-acceptance handoff (historical snapshot) — 2026-10-02
+
+The following status records the state before central TEST runtime configuration was linked and production-browser acceptance completed. Its old blocker is superseded by the accepted integration above.
 
 **Status: eerdere code- en regressiegates GREEN; integratie NOT MERGE-READY.** De kandidaatbrowserroute op de branch kan niet renderen zonder de bestaande Supabase-runtimeconfiguratie; desktop-/mobile- en Test HR Admin-acceptatie zijn daardoor niet uitgevoerd. `git fetch origin main` bevestigde baseline `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`. De huidige TEST-release (`1.20260928.1`) bevat deze Payroll-code niet. Er is niet gepusht, gemerged, gebumpt of gedeployed.
 

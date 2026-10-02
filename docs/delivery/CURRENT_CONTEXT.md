@@ -1,6 +1,18 @@
 # Actuele overdracht Liquid HR
 
+## ONE VERSION — accepted PAYLAB00–04 release preparation — 2026-10-02
+
+- Geaccepteerde integratiebranch `integration/payroll-foundation-20261002`, basis-HEAD `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; eerdere onafhankelijke LUNA MAX-acceptatiereview en desktop/390 px productie-browsertests zijn GREEN.
+- De historische NL-2026 React #441/digest `4058759727@E394` was gekoppeld aan `PGRST303: JWT issued at future`. De route, calculation trace en hashes zijn daarna opnieuw geslaagd; er is geen Payroll-codefix nodig.
+- Releaseversie `1.20261002.1` staat op de kandidaatbranch. De volledige suite, typecheck, lint, i18n en lokale runtime-preflights zijn gecontroleerd; de gecontroleerde merge, Vercel-deployment en hosted smoke blijven de releaseacties.
+- Lokale TEST runtime gebruikt `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` via `scripts/start-test-worktree.ps1`; waarden zijn niet getoond of gekopieerd. De aparte Vercel Preview-inrichting is gedocumenteerd als latere eenmalige actie.
+- De launcher blokkeert nu ook niet-goedgekeurde `.env*`-sidecars op repositoryroot en in `apps/hr-suite`; de lege `.env.production.local`-negatieve controle werd geweigerd vóór build/start. De geïsoleerde build op `7716d7f` slaagde, maar de definitieve kandidaat na deze guardwijziging moet nog worden gebouwd en onafhankelijk gereviewd.
+- Geen nieuwe Payroll-feature, CAO-implementatie, migration, auth/config-wijziging of cleanup van oude branches/worktrees.
+- Definitief merge-, build-, deployment- en smoke-bewijs: `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
+
 ## PAYLAB00–04 integration handoff — 2026-10-02
+
+Deze sectie bewaart de pre-acceptance momentopname. De daarin genoemde browser/runtimeblokkade is opgelost; zie de actuele ONE VERSION-sectie en het geaccepteerde PAYLAB-integratierapport.
 
 **Status: CODE/TEST GREEN; geïntegreerde authenticated browseracceptatie op desktop en mobiel ENVIRONMENT-GATED.** Lokale branch `integration/payroll-foundation-20261002`, codecommit `2cba7457d57ce41d941ef482117559bbe9319946`, vanaf exact releasebaseline `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`. De TEST-release blijft `1.20260928.1` en bevat de Payroll-foundation nog niet; overige LiquidHR-releasebeveiligingsacceptatie blijft een apart OPEN traject. Er was geen push, main-merge, version bump, deployment of remote migration-apply.
 

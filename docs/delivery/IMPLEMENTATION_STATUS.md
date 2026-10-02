@@ -1,6 +1,14 @@
 # Implementatiestatus Liquid HR
 
+## ONE VERSION — PAYLAB00–04 TEST-release — 2026-10-02
+
+**Status: integratie MERGE-READY; ONE VERSION TEST-release wordt voorbereid vanaf de geselecteerde releasekandidaat op branch `integration/payroll-foundation-20261002`.** Appversie `1.20261002.1` is geselecteerd. De historische NL-2026-browsertestfout is herleid tot `PGRST303: JWT issued at future`; de productie-browsertests slaagden bij de daaropvolgende retest. Er is geen Payroll-applicatiecode gewijzigd. De herbruikbare TEST-launcher weigert nu ook onverwachte `.env*`-sidecars; eindbuild, onafhankelijke review, merge, deployment en hosted smoke worden vastgelegd in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
+
+De lokale TEST-startscript- en Vercel Preview-procedure staat in `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`. Preview-backends en Preview-scoped instellingen zijn nog eenmalig door Edwin in te richten; dit blokkeert de huidige TEST-release niet.
+
 ## PAYLAB00–04 integration handoff — 2026-10-02
+
+Deze pre-acceptance status is historisch; de daarin beschreven kandidaatbrowserblokkade is opgelost. Zie de sectie ONE VERSION hierboven en `docs/payroll/acceptance/PAYLAB-FOUNDATION-INTEGRATION-20261002.md`.
 
 **NOT MERGE-READY.** Eerdere code/regressiegates zijn GREEN; kandidaat-authenticated browseracceptatie is geblokkeerd doordat de standaard Next-runtime op deze checkout geen Supabase URL/publishable key kreeg. Payroll Lab is selectief geïntegreerd vanaf `cb73260ff0cd83d19fa29e44c9f0b93749fb10af` op `integration/payroll-foundation-20261002`; codecommit `2cba7457d57ce41d941ef482117559bbe9319946`. De gerichte Payroll-/context-/Control-regressies, packages, typecheck, lint (0 errors; 7 warnings in bestaande tests), i18n, build (308 routes) en marker-only bundlecontrole zijn beschreven in het [PAYLAB handoff-rapport](../payroll/acceptance/PAYLAB-FOUNDATION-INTEGRATION-20261002.md).
 

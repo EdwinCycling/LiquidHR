@@ -7,6 +7,7 @@ Deze toolkit geeft LiquidHR vaste, natuurlijke werkcommando's. `EdwinHelp` is he
 | Natuurlijk commando | Lokale actie |
 | --- | --- |
 | `EdwinHelp` | Read-only overzicht van alle commando's, bronnen, risico's en voorbeelden. |
+| `Start lokale TEST-runtime` | Preflight of start de centrale lokale TEST-runtime vanuit iedere geschikte worktree; kopieert geen config, installeert niets en bouwt alleen na expliciet `-Build`. |
 | `Maak Git backup` | Stage alle lokale wijzigingen, maak zo nodig een backup-commit en verplaats `last-good` en `backup/last-good` naar de actuele commit. |
 | `Zet Git backup terug` | Vraag een expliciete bevestiging en zet tracked bestanden terug naar `last-good`; nieuwe ongetrackte bestanden blijven standaard behouden. |
 | `Nieuwe feature: <naam>` | Weigert een dirty werkboom, normaliseert `<naam>` naar `feature/<slug>` en maakt die branch vanaf `last-good`. |
