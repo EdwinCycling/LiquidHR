@@ -1,5 +1,17 @@
 # Liquid HR documentatie-index
 
+## CONVERGENCE01 TEST-release update — 2026-10-02
+
+**Status: TEST-release closeout in progress; remaining acceptance is OPEN.** App version is 1.20260928.1. This update supersedes the earlier release decision above; historical evidence is retained below.
+
+- Minimal security review: Control page routes require an authenticated Supabase claim; bootstrap/revoke RPCs revoke PUBLIC/anon execution, grant authenticated execution, and check OWNER/OPERATOR server-side. HR payroll analysis resolves authenticated import authorization, Insights report services require permissions and active tenant/HR-group/administration context, and Test Auth is guarded as local development only. The focused authentication, context, Control migration contract tests passed 12 files / 78 tests.
+- Browser scope evidence reused: HR Admin had 19 Insights reports, Manager 7, Employee 0; direct Bradford access showed no report to Manager or Employee. A Bradford CSV download was confirmed by the UI, but export row/filter/formula contents remain OPEN. Control OWNER session and tenant detail were accessible locally.
+- Regression gates: Control 2 files / 11 tests passed. HR full run reported 1,954 passed and one PDF-render timeout at 5 seconds while other checks ran in parallel; the same PDF test passed separately in 3.03 seconds. Treat the timeout as documented parallel-run evidence, not as a clean full-suite run.
+- TypeScript passed for HR and Control with incremental output disabled because the standard scripts could not write tsbuildinfo in the external worktree. ESLint completed with no errors (six HR warnings); NL/EN i18n passed (41 HR namespaces; 182 Control keys). Production builds passed: HR 304/304 routes and Control 12/12.
+- Earlier payroll runtime acceptance remains complete and was not repeated.
+- OPEN: Control invitation reuse/revocation, forged tenant/group/administration, AUDITOR write and second-bootstrap negatives; INS01 API/filter/export content and complete scope matrix; AI01-A live persona, toggle and scope-revocation probes. These are follow-up TEST acceptance, not recorded as GREEN here.
+- No migration or remote database write was performed for this release closeout.
+
 ## CONVERGENCE01 — INS01 + CONTROL01 + AI01-A — 2026-09-28
 
 **Status: PARTIAL / RELEASE BLOCKED (runtime closeout 2026-10-01).** De bestaande Control OWNER-login werkte na normale OAuth tijdelijk voor dashboard en klantdetail, maar toegang viel tijdens de begrensde reproductie opnieuw weg; oorzaak is niet vastgesteld. Control full-circle/security-negatives en de browserimport zijn daardoor niet afgerond. De nieuwe synthetic payroll-import is niet ingediend; de oude batch met ongeldige IKV bleef ongemoeid. INS01 Bradford is live bekeken met 9 tabelrijen, één uitleg en een echte XLS-download; de inhoudelijke export-/scopepariteit is niet volledig gevalideerd. AI remote durability/concurrency steunt op eerder vastgelegde TEST-probes; persona-/toggleacceptatie blijft open. Gerichte payrolltests (20/20), Bradford-regressie (1/1), i18n (41 namespaces) en diff-check zijn groen; de finale volledige suite/build na de huidige wijzigingen is niet uitgevoerd. Versie 1.20260927.3; geen main/push/deploy. Zie het [CONVERGENCE01 acceptance-rapport](quality/acceptance/runs/CONVERGENCE01-20260928.md). Officiële Loonaangifte blijft XSD_PENDING / REAL_XML_PENDING.
