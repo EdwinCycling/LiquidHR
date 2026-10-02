@@ -2,7 +2,7 @@
 
 ## PAYLAB00–04 integration handoff — 2026-10-02
 
-**Status: code en relevante regressies GREEN; geïntegreerde geauthenticeerde desktop/mobile-acceptatie ENVIRONMENT-GATED.** De integratie staat op `integration/payroll-foundation-20261002` vanaf exact main-releasebaseline `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`. De huidige TEST-release (`1.20260928.1`) bevat deze Payroll-code niet. Er is niet gepusht, gemerged, gebumpt of gedeployed.
+**Status: eerdere code- en regressiegates GREEN; integratie NOT MERGE-READY.** De kandidaatbrowserroute op de branch kan niet renderen zonder de bestaande Supabase-runtimeconfiguratie; desktop-/mobile- en Test HR Admin-acceptatie zijn daardoor niet uitgevoerd. `git fetch origin main` bevestigde baseline `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`. De huidige TEST-release (`1.20260928.1`) bevat deze Payroll-code niet. Er is niet gepusht, gemerged, gebumpt of gedeployed.
 
 - Engine/rules `44/44`; HR-gerichte regressie `196 passed, 3 skipped`; TypeScript, build `308/308 routes`, i18n en client-marker scan zijn groen. Er zijn geen Payroll- of Control-securitybevindingen; de branchbrowserproef blijft open.
 - De Core-/Control-schema's en -migraties zijn ongewijzigd. LAB-migraties zijn alleen op de afzonderlijke Payroll Lab-database geregistreerd; niets is opnieuw toegepast.

@@ -1,13 +1,13 @@
 # PAYLAB00–04 controlled integration handoff — 2026-10-02
 
-**Status: CODE/TEST GREEN; integrated authenticated browser acceptance ENVIRONMENT-GATED. The branch is not yet fully merge-ready.**
+**Status: NOT MERGE-READY.** Previously recorded code and automated test gates remain GREEN; authenticated browser/mobile acceptance of this integrated branch is BLOCKED by missing local Supabase runtime configuration.
 
 This handoff integrates the already accepted Payroll Lab foundation into the current LiquidHR main baseline. No Payroll implementation was restarted. No push, merge to main, version bump, deployment, Core/Control schema change, or remote migration apply was performed.
 
 ## References and transferred history
 
 - LiquidHR main / `origin/main` baseline: `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`, application version `1.20260928.1`. The TEST release is READY; the separate LiquidHR security-acceptance track remains OPEN. The TEST release contains no Payroll-foundation code.
-- The required start-time remote check confirmed that baseline. The final `git ls-remote` refresh could not authenticate (`SEC_E_NO_CREDENTIALS`); the local `origin/main` ref remains at the baseline, but a remote advance after the initial check cannot be excluded. Fetch and compare `main` again before any later merge decision.
+- The final acceptance run fetched `origin/main` successfully. Both `FETCH_HEAD` and `origin/main` resolve to `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; no credentials were changed.
 - Payroll source checkout: `Code`, branch `work/paylab00`, HEAD `e4e8f009e681f7bbcfade069ed1b229ae05d4761`. PAYLAB04 implementation and actual tested code commit: `35c624acd7a7a64eeb2422334946a2f5e9731e7e`, an ancestor of that HEAD. Later source HEAD records acceptance/documentation, not additional tested implementation.
 - Latest AA-documentation branch was read at `b0956d0542477b8b5866b723decbfb480b447b93`; it was not merged.
 - Integration branch: `integration/payroll-foundation-20261002`, based on the exact main SHA above. Integrated code commit: `2cba7457d57ce41d941ef482117559bbe9319946` (documentation handoff follows it).
@@ -44,14 +44,12 @@ The separate Payroll Lab project is `LiquidHR-Payroll-Lab` (`jhgeriucbkfarxiudzf
 
 Read-only run readback confirmed the accepted deterministic values and hashes:
 
-| Case | Run ID | Engine / composition | Input SHA-256 | Result SHA-256 | Readback |
-|---|---|---|---|---|---|
-| Synthetic M0 | `3d83c8ca-2ebe-47f7-9735-76e7377168d7` | `0.2.0` / `RPC-GC1-V1` | `d751c32f1e54b6bbed64eec7314340b6c7a247a79e5a2792144068c19ce87854` | `f23fa646764176becc9bb78cacba1e3909b3640f97103ae6386168ee6ef61acd` | `SUCCEEDED`; 9 results, 1 trace, 7 PASS controls; net `3175.00`, employer cost `4910.00` |
-| NL-2026 | `06f7a7ff-fc8f-4ffe-aeb6-a9aed10f98ae` | `0.2.0` / `NL-PAYROLL-2026:2026.1` | `47246b1f3e7037a11eb7ddd68303a9ed1625e5c62cf3fc4e4469d4833ff6c17a` | `a2995a7af2a6b1876f5b5ccb21fb5db04a7f4a2ddfe190699cdda9f871e41cc5` | `SUCCEEDED`; 4 results, 1 trace, 4 PASS controls; gross/taxable `4000.00`, tax `818.67`, net `3181.33` |
+| Case | Run ID | Engine / composition | Source SHA-256 | Input SHA-256 | Result SHA-256 | Readback |
+|---|---|---|---|---|---|---|
+| Synthetic M0 | `3d83c8ca-2ebe-47f7-9735-76e7377168d7` | `0.2.0` / `RPC-GC1-V1` | `d751c32f1e54b6bbed64eec7314340b6c7a247a79e5a2792144068c19ce87854` | `ae1a740b0c1b3bad2ee07edd71fa331203f7496c0fc244a5e050530efa41c345` | `f23fa646764176becc9bb78cacba1e3909b3640f97103ae6386168ee6ef61acd` | `SUCCEEDED`; 9 results, 1 trace, 7 PASS controls; net `3175.00`, employer cost `4910.00` |
+| NL-2026 | `06f7a7ff-fc8f-4ffe-aeb6-a9aed10f98ae` | `0.2.0` / `NL-PAYROLL-2026:2026.1` | `6e4e9e1c2d51eb4b06e28fc226a19a413b314b66c4cb7231b40d26be83c13d0c` | `47246b1f3e7037a11eb7ddd68303a9ed1625e5c62cf3fc4e4469d4833ff6c17a` | `a2995a7af2a6b1876f5b5ccb21fb5db04a7f4a2ddfe190699cdda9f871e41cc5` | `SUCCEEDED`; 4 results, 1 trace, 4 PASS controls; gross/taxable `4000.00`, tax `818.67`, net `3181.33` |
 
-The corresponding NL input also records its package/composition version and source hash `6e4e9e1c2d51eb4b06e28fc226a19a413b314b66c4cb7231b40d26be83c13d0c`. There is no standalone general SYSTEM-package hash in the input schema. Existing readback confirmed two customer-component drafts; the browser-context Jupiter fork remains `CUSTOMER_FORK`/`DRAFT`, with package hash `17ea6e7b7caa736c91f76ef23cbe8410d77d43a2d6c09d20038faa39514cc876` and definition hash `429d7e673b661cdfcf64843e300e97324898d790f1af8099bb0356137ad0bbac`. The separate synthetic live-test draft is not treated as customer data.
-
-Hashes are recorded per stored run. No comparison was made against earlier M0 values from engine `0.1.0-m0`, since engine versions differ.
+Comparison with the source acceptance records: NL-2026 source/input/result hashes and outputs match PAYLAB03 and PAYLAB04 exactly. The current M0 row matches the PAYLAB04 `0.2.0` recalculation (`3d83c8ca…`, input `ae1a740b…`, result `f23fa646…`). The older PAYLAB02 historical run `adc49957-55bd-40e3-82ce-2a9166988009` is engine `0.1.0-m0` with input `c4b2f80531185f60f03135b793f716635b01db49e394452cc8556448800c8088` and result `dd10e395497a290183038cc48434e1a78f5f293980d039a760463a16b9c01afe`; its differing hashes are expected and are not treated as a mismatch. There is no standalone general SYSTEM-package hash in the input schema. Existing readback confirmed two customer-component drafts; the browser-context Jupiter fork remains `CUSTOMER_FORK`/`DRAFT`, with package hash `17ea6e7b7caa736c91f76ef23cbe8410d77d43a2d6c09d20038faa39514cc876` and definition hash `429d7e673b661cdfcf64843e300e97324898d790f1af8099bb0356137ad0bbac`. The separate synthetic live-test draft is not treated as customer data.
 
 ## Verification and independent review
 
@@ -65,7 +63,13 @@ Hashes are recorded per stored run. No comparison was made against earlier M0 va
 - `git diff --check` passed. Exact-base Core migration/config path checks were empty.
 - Independent LUNA MAX code/security review found no actionable defect in auth/context, tenant/HR-group/Lab scope, Core/Control boundaries, source adapter, historical run lookup, secret isolation, or the dashboard reconciliation. It identified a fixed-SHA unit-test issue and stale milestone/central-document gaps; the brittle assertion was removed, and dated status entries plus this report supersede the stale milestone assignment.
 
-The integration branch has **not** had an authenticated desktop or mobile browser session. No app listener existed on ports 3000–3002, and protected config was not loaded into this checkout. This is an environment gate, not a passed browser result. PAYLAB04's earlier source-branch screenshots and browser acceptance are preserved separately.
+## Final acceptance attempt — 2026-10-02
+
+`git fetch origin main` succeeded and confirmed the exact baseline stated above. Next.js dev was started directly from this integration checkout on port `3010`; the server reported ready, but `/dashboard/start` failed before rendering because `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` were unavailable to this process. The missing configuration was reported by the standard app runtime; protected files were not read, copied, printed, or modified. No Git credentials were changed.
+
+The existing browser session on `localhost:3000` was not the candidate server and showed no Payroll Lab navigation; `localhost:3001` is LiquidHR Control. Neither was used as candidate evidence. The authenticated Test HR Admin flow could not be exercised on the integration branch. Consequently, no calculation, Lab write, component fork, or authorization probe was issued during this attempt; no new browser or mobile result is claimed. The candidate server was stopped, and its generated `apps/hr-suite/next-env.d.ts` change was restored to the clean HEAD state. Independent LUNA MAX review found no code defect and confirmed this is an environment blocker; no safe supported path exists here to provide the absent config without reading/copying protected config.
+
+PAYLAB04's earlier source-branch browser/screenshots remain valid for that source branch only. They do not close the integrated branch's browser gate.
 
 ## Demonstration and availability
 
@@ -73,7 +77,7 @@ The integration branch has **not** had an authenticated desktop or mobile browse
 - **Current integration branch:** production build and automated route/scope regressions pass. Integrated authenticated UI, context redirect interaction, historical deep links in a live session, fork create/readback, and the 390px layout have not yet been visually/browser accepted.
 - **TEST and future deployment:** neither contains this Payroll integration. Version bump, push, main merge, and deployment were outside this handoff and were not performed.
 
-To close the candidate acceptance gate before any later merge decision, run the existing secure Test HR Admin flow against this exact branch. Verify the single sidebar link and both tiles, context/auth redirects, both saved historical runs and traces, scoped detached fork create/readback, browser console, and desktop plus 390px mobile layout. Do not use the source checkout's browser evidence as proof for the candidate. The separate LiquidHR release security acceptance remains OPEN.
+To close the candidate acceptance gate before any later merge decision, make the existing secure Test HR Admin environment available to this checkout through its normal runtime, without exposing or copying protected configuration. Then verify the single sidebar link and both tiles, both routes and return navigation, current and historical M0/NL-2026 runs/traces, all 24 SYSTEM components, CUSTOMER_FORK persistence/reopen, SYSTEM read-only and RegisteredRule rejection, negative authorization/scope cases, console, and desktop plus 390px mobile layout. Do not use the source checkout's browser evidence as proof for the candidate. The separate LiquidHR release security acceptance remains OPEN.
 
 ## CAO-BENCH02 first implementation slice prepared (not implemented)
 

@@ -2,7 +2,7 @@
 
 ## PAYLAB00–04 integration handoff — 2026-10-02
 
-**CODE/TEST GREEN; volledige integratieacceptatie nog ENVIRONMENT-GATED.** Payroll Lab is selectief geïntegreerd vanaf `cb73260ff0cd83d19fa29e44c9f0b93749fb10af` op `integration/payroll-foundation-20261002`; codecommit `2cba7457d57ce41d941ef482117559bbe9319946`. De gerichte Payroll-/context-/Control-regressies, packages, typecheck, lint (0 errors; 7 warnings in bestaande tests), i18n, build (308 routes) en marker-only bundlecontrole zijn beschreven in het [PAYLAB handoff-rapport](../payroll/acceptance/PAYLAB-FOUNDATION-INTEGRATION-20261002.md).
+**NOT MERGE-READY.** Eerdere code/regressiegates zijn GREEN; kandidaat-authenticated browseracceptatie is geblokkeerd doordat de standaard Next-runtime op deze checkout geen Supabase URL/publishable key kreeg. Payroll Lab is selectief geïntegreerd vanaf `cb73260ff0cd83d19fa29e44c9f0b93749fb10af` op `integration/payroll-foundation-20261002`; codecommit `2cba7457d57ce41d941ef482117559bbe9319946`. De gerichte Payroll-/context-/Control-regressies, packages, typecheck, lint (0 errors; 7 warnings in bestaande tests), i18n, build (308 routes) en marker-only bundlecontrole zijn beschreven in het [PAYLAB handoff-rapport](../payroll/acceptance/PAYLAB-FOUNDATION-INTEGRATION-20261002.md).
 
 PAYLAB04 was GREEN op de bronbranch en alle code/tests zijn lokaal geïntegreerd. Candidate desktop/mobile browseracceptatie is niet uitgevoerd, dus dit is nog niet merge-ready. Main/TEST/deployment zijn niet gewijzigd; `1.20260928.1` blijft de TEST-versie zonder Payroll-foundation. De afzonderlijke securitycloseout van CONVERGENCE01 blijft OPEN. PAYLAB00/01 context/source-read grenzen blijven expliciet staan.
 
