@@ -1,6 +1,6 @@
 # PAYLAB00–04 controlled integration handoff — 2026-10-02
 
-**Status: NOT MERGE-READY.** Previously recorded code and automated test gates remain GREEN; authenticated browser/mobile acceptance of this integrated branch is BLOCKED by missing local Supabase runtime configuration.
+**Status: NOT MERGE-READY.** The Test HR Admin browser acceptance, calculations and trace/hash comparisons, 24 SYSTEM-component checks, CUSTOMER_FORK save/reopen, and negative authorization/scope probes completed. The user hard refresh restored CSS rendering: dashboard and Payroll Lab use the Next layout stylesheet, retrieved successfully (1 requested, 1 downloaded, 0 failures), and both were visibly styled on desktop and at 390 px. However, repeated Next.js client-side route changes now reproduce React Server Components runtime errors and the page-level “This page couldn’t load” screen; a full reload recovers the route, but a subsequent link navigation can fail again. CSS failure was not reproduced. The unstable client navigation leaves this acceptance NOT GREEN.
 
 This handoff integrates the already accepted Payroll Lab foundation into the current LiquidHR main baseline. No Payroll implementation was restarted. No push, merge to main, version bump, deployment, Core/Control schema change, or remote migration apply was performed.
 
@@ -71,13 +71,64 @@ The existing browser session on `localhost:3000` was not the candidate server an
 
 PAYLAB04's earlier source-branch browser/screenshots remain valid for that source branch only. They do not close the integrated branch's browser gate.
 
+## CSS and local TEST follow-up — 2026-10-02
+
+The user performed Ctrl+Shift+R on the candidate at localhost:3010; the LiquidHR styles returned. I rechecked the dashboard and Payroll Lab on the integrated branch using the existing approved local TEST runtime. Protected configuration values were not read, printed, copied, or changed, and no authentication or security settings were modified.
+
+The browser asset inventory showed /_next/static/css/app/layout.css on both pages. Bundling the observed stylesheet requested 1 asset, downloaded 1, and reported 0 failures. The stylesheet was present in document.styleSheets with 144 CSS rules. Console review found no CSS-specific warning or failed stylesheet load. Chrome’s native DevTools Network panel was not exposed by the current browser-control surface, so this is asset-inventory, successful retrieval, and console evidence rather than a direct Network-tab capture.
+
+Visual and viewport checks on the integrated branch:
+
+| Page | Desktop | 390 px viewport | CSS/layout result |
+|---|---|---|---|
+| Dashboard /dashboard/start | 1718 × 1207; styled dashboard rendered | 390 × 844; styled dashboard rendered | stylesheet loaded; document width matched 390 px on mobile |
+| Payroll Lab /payroll-lab | 1718 × 1207; styled overview with exactly **Berekeningen** and **Salariscomponenten** | 390 × 844; the same two styled tiles rendered, each 356 px wide | stylesheet loaded; document width matched 390 px on mobile |
+
+The browser-rendered stylesheet and dashboard were correct after the hard refresh. On the post-refresh route replay, Payroll Lab → Dashboard succeeded; Dashboard → Payroll Lab reproduced a Next.js runtime overlay. An earlier Calculations → Payroll Lab attempt also failed. Browser errors included “Cannot read properties of undefined (reading 'stack')” in react-server-dom-webpack-client.browser.development.js at initializeDebugInfo, “frame.join is not a function”, and “Cannot read properties of null (reading 'enqueueModel')”; the overlay said “This page couldn’t load.” The current overlay identifies Next.js 16.3.6 as “stale”. The official [Next.js version-staleness documentation](https://nextjs.org/docs/messages/version-staleness) defines that marker as meaning a newer stable release is available; it does not by itself show that browser CSS assets or local build output are stale. A Next.js dependency upgrade would be an out-of-scope version bump, so none was made. The dev-server log also reported that Fast Refresh had to perform a full reload. The page document request returned 200, and a full reload recovered the styled Payroll Lab overview, but the client-side Dashboard → Payroll Lab route still failed. This is a client/runtime navigation failure, not evidence of a missing CSS asset. Its source-level cause was not isolated; no CSS or application source change, cache deletion, rebuild, or dependency upgrade was made. While the dev server was active, Next.js generated a tracked working-tree change in `apps/hr-suite/next-env.d.ts`, changing references from `.next/types/` to `.next/dev/types/`. That generated file was not manually edited; the drift is visible in the current working tree and is not part of the integration code commit.
+
+### Focused navigation fault isolation — 2026-10-02
+
+On the integrated dev candidate, directly loading `/payroll-lab` rendered the overview, and directly loading `/dashboard/start` rendered the dashboard. From the dashboard, clicking the visible Payroll Lab navigation link changed the URL to `/payroll-lab` and then produced “This page couldn’t load.” Payroll Lab → Dashboard succeeded; the following Dashboard → Payroll Lab transition failed again. A newly opened Chrome tab using the same browser profile also passed direct loading and failed on the same sidebar transition; this was a fresh tab, not an isolated browser profile/session.
+
+The browser console captured this full React Flight decoder stack on the failed transition:
+
+```text
+TypeError: Cannot read properties of null (reading 'enqueueModel')
+    at resolveModelChunk (react-server-dom-webpack-client.browser.development.js:1724:52)
+    at processFullStringRow (react-server-dom-webpack-client.browser.development.js:4573:19)
+    at processFullBinaryRow (react-server-dom-webpack-client.browser.development.js:4431:7)
+    at processBinaryChunk (react-server-dom-webpack-client.browser.development.js:4654:19)
+    at progress (react-server-dom-webpack-client.browser.development.js:4972:16)
+```
+
+The trace also recorded a preceding React Flight performance-measure error (`PayrollLabOverview` had a negative timestamp) from `flushComponentPerformance` / `flushInitialRenderPerformance`. The previously reported `frame.join is not a function` is in Next’s compiled development RSC client while `buildFakeCallStack` reconstructs stack frames; the browser console exposed the decoder stack above on this reproduction, not a separate full stack for that exact message. Read-only source inspection found no application `frame.join` call, a standard `next/link` in the sidebar, shared dashboard layout, and no app-specific Flight request rewriting. These findings localize the observed failure to Flight response/debug-metadata handling but do not distinguish a bad RSC response from a development client/server artifact mismatch or an underlying server error.
+
+The existing local `.next` production build was started on port 3011 with `npm.cmd run start -- --port 3011`. Next reported ready, but the route could not be rendered because this process did not have the approved TEST runtime values for creating a Supabase client. Protected files and values were not read or displayed. Production-build client navigation therefore remains unverified; the temporary server was stopped. Browser automation did not expose the native Network panel or response-body capture, and its page evaluator did not expose the Performance API, so the failing `_rsc` response and matching request status/body were not captured. The dev-server process on port 3010 was no longer reachable at the end of this focused pass.
+
+No application-code defect has been proven, so no code, dependency, cache, or build change is justified in this single diagnostic round. No regression tests were run. The existing CSS, calculation, hash, component, authorization, and scope evidence above remains unchanged. The smallest reproducer is: in the integrated Next dev runtime, load `/dashboard/start` as Test HR Admin, click the Payroll Lab sidebar link, and observe the RSC decoder overlay; loading `/payroll-lab` directly succeeds. The exact `frame.join` stack itself was not available in this pass; the full sibling decoder stack above is the captured runtime trace.
+
+### Browser acceptance in Test HR Admin
+
+The existing Test HR Admin fixture session was active (hradmin.fixture). The M0 historical run and new browser calculation succeeded. Both reported the PAYLAB04 hashes and results:
+
+| Case | Browser run | Result | Source hash | Input hash | Result hash |
+|---|---|---|---|---|---|
+| Synthetic M0 | e377e755-b014-4764-b75d-247445c08b2c | SUCCEEDED; 9 results, 7 PASS controls; net 3175.00, employer cost 4910.00 | d751c32f1e54b6bbed64eec7314340b6c7a247a79e5a2792144068c19ce87854 | ae1a740b0c1b3bad2ee07edd71fa331203f7496c0fc244a5e050530efa41c345 | f23fa646764176becc9bb78cacba1e3909b3640f97103ae6386168ee6ef61acd |
+| NL-2026 | f9a254e1-a500-49dc-8e1d-4a7538903773 | SUCCEEDED; 4 PASS controls; gross/taxable 4000.00, tax 818.67, net 3181.33 | 6e4e9e1c2d51eb4b06e28fc226a19a413b314b66c4cb7231b40d26be83c13d0c | 47246b1f3e7037a11eb7ddd68303a9ed1625e5c62cf3fc4e4469d4833ff6c17a | a2995a7af2a6b1876f5b5ccb21fb5db04a7f4a2ddfe190699cdda9f871e41cc5 |
+
+The historical M0 run 3d83c8ca-2ebe-47f7-9735-76e7377168d7 and historical NL-2026 run 06f7a7ff-fc8f-4ffe-aeb6-a9aed10f98ae opened with their calculation traces. New and historical calculation hashes matched the PAYLAB04 and PAYLAB03/PAYLAB04 reference evidence respectively. The new M0 trace showed 9 steps; NL-2026 showed 15 sequence steps.
+
+The component view contained all 24 SYSTEM components. SYSTEM remained read-only; RegisteredRule NL_WAGE_TAX had a disabled copy control and stated that the system rule was not copyable. A CUSTOMER_FORK of NL_NET_PAY was created and saved as a draft, then reopened: ID 7a061ef3-bdd0-4da5-9361-43384695369e, code CUSTOM_C45BA4D05A7B478C8AA38F55E32238B0, origin NL_NET_PAY v2026.1. The fork is not used in calculations and receives no system updates.
+
+The negative authorization probe switched to Test Manager; Payroll Lab was absent from navigation and opening the M0 run URL redirected to /geen-toegang. The negative case/run scope probe requested the M0 run under CC-NL-2026-001; the calculation page displayed “De gevraagde berekening is niet beschikbaar voor deze case” and did not expose that run’s result.
+
 ## Demonstration and availability
 
-- **Previously demonstrated on the accepted source branch:** M0 (`3175.00` net; `4910.00` employer cost), NL-2026 (`4000.00` gross; `818.67` tax; `3181.33` net), component library and customer-fork draft behavior, with desktop/mobile evidence in the PAYLAB04 acceptance materials.
-- **Current integration branch:** production build and automated route/scope regressions pass. Integrated authenticated UI, context redirect interaction, historical deep links in a live session, fork create/readback, and the 390px layout have not yet been visually/browser accepted.
+- **Completed on this integration branch:** Test HR Admin calculations and history traces, PAYLAB03/PAYLAB04 hash comparison, 24 SYSTEM checks, CUSTOMER_FORK save/reopen, RegisteredRule copy rejection, negative authorization and run/case scope checks, and styled dashboard/Payroll Lab checks at desktop and 390 px.
+- **Still blocking:** Next.js client-side route navigation reproducibly fails in the local dev runtime after otherwise successful CSS retrieval and full-page render. The exact source cause remains unisolated; the existing production build could not be browser-tested because the separate start process lacked the approved runtime configuration. No application code change is justified by the available evidence.
 - **TEST and future deployment:** neither contains this Payroll integration. Version bump, push, main merge, and deployment were outside this handoff and were not performed.
 
-To close the candidate acceptance gate before any later merge decision, make the existing secure Test HR Admin environment available to this checkout through its normal runtime, without exposing or copying protected configuration. Then verify the single sidebar link and both tiles, both routes and return navigation, current and historical M0/NL-2026 runs/traces, all 24 SYSTEM components, CUSTOMER_FORK persistence/reopen, SYSTEM read-only and RegisteredRule rejection, negative authorization/scope cases, console, and desktop plus 390px mobile layout. Do not use the source checkout's browser evidence as proof for the candidate. The separate LiquidHR release security acceptance remains OPEN.
+**Merge decision: NOT MERGE-READY.** The Dashboard → Payroll Lab client navigation failure remains reproducible and unisolated. Required browser acceptance after a verified repair was not run. The separate LiquidHR release security acceptance remains OPEN.
 
 ## CAO-BENCH02 first implementation slice prepared (not implemented)
 
