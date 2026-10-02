@@ -137,6 +137,9 @@ Onderzoek/gefaseerd:
 - voorkomen dat NL-only velden buiten NL foutief dominant zijn.
 
 ### Integratie-ecosysteem
+
+De eerder gekozen API-/AI-kanaal- en Nmbrs-prioriteiten staan in [Integratiebesluiten V1](../requirements/integrations/API_MCP_WEBMCP_CHATGPT_PROVIDER_DECISIONS_V1.md). Eerste ChatGPT-MVP: read-only Workforce Assistant; Nmbrs: eerste payrollprovider via een generiek providercontract. Provider #2, write-agents en events zijn nog geen vastgesteld implementatiebesluit.
+
 - payrollproviders;
 - MCP/API;
 - geselecteerde third-party HR/payroll/integratiepartners;
