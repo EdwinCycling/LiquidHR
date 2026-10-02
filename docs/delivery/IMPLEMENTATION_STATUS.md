@@ -2,7 +2,7 @@
 
 ## ONE VERSION — PAYLAB00–04 TEST-release — 2026-10-02
 
-**Status: integratie MERGE-READY; ONE VERSION TEST-release wordt voorbereid vanaf de geselecteerde releasekandidaat op branch `integration/payroll-foundation-20261002`.** Appversie `1.20261002.1` is geselecteerd. De historische NL-2026-browsertestfout is herleid tot `PGRST303: JWT issued at future`; de productie-browsertests slaagden bij de daaropvolgende retest. Er is geen Payroll-applicatiecode gewijzigd. De herbruikbare TEST-launcher weigert nu ook onverwachte `.env*`-sidecars; eindbuild, onafhankelijke review, merge, deployment en hosted smoke worden vastgelegd in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
+**Status: integratie MERGE-READY; ONE VERSION TEST-releasekandidaat `17b0485736f4e108a0dec96c77a877c30ab80568` is gebouwd en de lokale Test HR Admin-browser-smoke is groen.** Appversie `1.20261002.1` is geselecteerd. De historische NL-2026-browsertestfout is herleid tot `PGRST303: JWT issued at future`; de productie-browsertests slaagden bij de daaropvolgende retest. Er is geen Payroll-applicatiecode gewijzigd. LUNA MAX vond geen resterende P1/P2 in de launcher. De GitHub-merge, deployment en hosted smoke worden vastgelegd in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
 
 De lokale TEST-startscript- en Vercel Preview-procedure staat in `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`. Preview-backends en Preview-scoped instellingen zijn nog eenmalig door Edwin in te richten; dit blokkeert de huidige TEST-release niet.
 

@@ -6,7 +6,7 @@
 - De historische NL-2026 React #441/digest `4058759727@E394` was gekoppeld aan `PGRST303: JWT issued at future`. De route, calculation trace en hashes zijn daarna opnieuw geslaagd; er is geen Payroll-codefix nodig.
 - Releaseversie `1.20261002.1` staat op de kandidaatbranch. De volledige suite, typecheck, lint, i18n en lokale runtime-preflights zijn gecontroleerd; de gecontroleerde merge, Vercel-deployment en hosted smoke blijven de releaseacties.
 - Lokale TEST runtime gebruikt `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` via `scripts/start-test-worktree.ps1`; waarden zijn niet getoond of gekopieerd. De aparte Vercel Preview-inrichting is gedocumenteerd als latere eenmalige actie.
-- De launcher blokkeert nu ook niet-goedgekeurde `.env*`-sidecars op repositoryroot en in `apps/hr-suite`; de lege `.env.production.local`-negatieve controle werd geweigerd vóór build/start. De geïsoleerde build op `7716d7f` slaagde, maar de definitieve kandidaat na deze guardwijziging moet nog worden gebouwd en onafhankelijk gereviewd.
+- De launcher blokkeert nu ook niet-goedgekeurde `.env*`-sidecars op repositoryroot en in `apps/hr-suite`; de lege `.env.production.local`-negatieve controle werd geweigerd vóór build/start. LUNA MAX bevestigde de guard en centrale hardlinkcheck zonder resterende P1/P2. Geïsoleerde productiebuild, exacte provenance-preflight en Test HR Admin smoke op app-kandidaat `17b0485736f4e108a0dec96c77a877c30ab80568` zijn groen; de remote GitHub/Vercel-release en hosted smoke blijven open.
 - Geen nieuwe Payroll-feature, CAO-implementatie, migration, auth/config-wijziging of cleanup van oude branches/worktrees.
 - Definitief merge-, build-, deployment- en smoke-bewijs: `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
 
