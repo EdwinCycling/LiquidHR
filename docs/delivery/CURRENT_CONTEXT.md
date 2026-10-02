@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## PAYLAB00–04 integration handoff — 2026-10-02
+
+**Status: CODE/TEST GREEN; geïntegreerde authenticated browseracceptatie op desktop en mobiel ENVIRONMENT-GATED.** Lokale branch `integration/payroll-foundation-20261002`, codecommit `2cba7457d57ce41d941ef482117559bbe9319946`, vanaf exact releasebaseline `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`. De TEST-release blijft `1.20260928.1` en bevat de Payroll-foundation nog niet; overige LiquidHR-releasebeveiligingsacceptatie blijft een apart OPEN traject. Er was geen push, main-merge, version bump, deployment of remote migration-apply.
+
+De gerichte HR-selectie slaagde `196/199` (3 bestaande skips), engine/NL-rules `44/44`, typecheck en productiebuild `308/308 routes`; i18n en de productie-clientmarkercontrole slaagden. Gerichte code-/securityreview vond geen actionable Payroll-defect. PAYLAB00 context en PAYLAB01 live Core-source read blijven environment-gated/partial volgens hun bestaande acceptatie. De Lab-run- en migration-readbacks, branchverschillen, demo-afbakening en CAO-BENCH02-voorbereiding staan in het [acceptatierapport](../payroll/acceptance/PAYLAB-FOUNDATION-INTEGRATION-20261002.md).
+
+Vóór een merge ontbreken op deze exacte branch de bestaande Test HR Admin browsercontrole van sidebar, beide routes, historische links/resultaten/traces en fork-persistence op desktop plus 390px mobiel. Er was op de integratiecheckout geen draaiende appserver; beschermde config is niet gelezen of gekopieerd. De CAO-BENCH02-uitvoering en alle data-/schemawijzigingen blijven voor een aparte opdracht.
+
 ## CONVERGENCE01 TEST-release update — 2026-10-02
 
 **Status: TEST-release closeout in progress; remaining acceptance is OPEN.** App version is 1.20260928.1. This update supersedes the earlier release decision above; historical evidence is retained below.

@@ -1,4 +1,10 @@
-# Payroll Lab status — PAYLAB04 Component Library V1 accepted
+# Payroll Lab status
+
+## PAYLAB00–04 integration handoff — 2026-10-02
+
+**CODE/TEST GREEN; integrated authenticated desktop/mobile acceptance ENVIRONMENT-GATED.** Selective integration branch `integration/payroll-foundation-20261002` starts at main baseline `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; codecommit `2cba7457d57ce41d941ef482117559bbe9319946`. Relevant HR regressions passed `196` with `3` skipped; payroll-engine/rules `44/44`; strict typecheck, ESLint (zero errors, seven existing warnings), i18n, production build (`308/308 routes`), and marker-only browser asset scan passed. The candidate has not had an authenticated browser/mobile pass; no merge, push, version bump, deployment, Core/Control migration, or Lab migration apply occurred. Full evidence and exact next gate: [PAYLAB integration acceptance](acceptance/PAYLAB-FOUNDATION-INTEGRATION-20261002.md).
+
+## PAYLAB04 Component Library V1 accepted
 
 **2026-10-02: PAYLAB04 lokaal GREEN.** Eén Payroll Lab-sidebarlink, twee tegels
 Berekeningen/Salariscomponenten, catalogus met 24 echte SYSTEM-definities en

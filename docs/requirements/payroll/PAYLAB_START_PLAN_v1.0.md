@@ -4,6 +4,8 @@
 **Status:** READY TO START  
 **Doel:** Payroll Lab veilig naast LiquidHR bouwen zonder de bestaande HR-database of core-domeinen onnodig te vervuilen.
 
+> **Statusupdate 2026-10-02:** de onderstaande oorspronkelijke milestone-indeling is historische planning en is voor de opgeleverde PAYLAB-reeks vervangen. De geaccepteerde volgorde is PAYLAB00 isolatiefoundation, PAYLAB01 source adapter, PAYLAB02 M0, PAYLAB03 NL-2026 wage tax en PAYLAB04 Component Library V1. Gebruik [`PAYLAB_STATUS.md`](../../payroll/PAYLAB_STATUS.md) en de actuele [PAYLAB04-acceptatie](../../payroll/acceptance/PAYLAB04-COMPONENT-LIBRARY.md); voer de oude PAYLAB04 NL-tax/M1-stap niet opnieuw uit.
+
 ## 1. Architectuurbesluit
 
 We kiezen:

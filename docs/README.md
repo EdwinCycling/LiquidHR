@@ -1,5 +1,13 @@
 # Liquid HR documentatie-index
 
+## PAYLAB00–04 integration handoff — 2026-10-02
+
+**Status: code en relevante regressies GREEN; geïntegreerde geauthenticeerde desktop/mobile-acceptatie ENVIRONMENT-GATED.** De integratie staat op `integration/payroll-foundation-20261002` vanaf exact main-releasebaseline `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`. De huidige TEST-release (`1.20260928.1`) bevat deze Payroll-code niet. Er is niet gepusht, gemerged, gebumpt of gedeployed.
+
+- Engine/rules `44/44`; HR-gerichte regressie `196 passed, 3 skipped`; TypeScript, build `308/308 routes`, i18n en client-marker scan zijn groen. Er zijn geen Payroll- of Control-securitybevindingen; de branchbrowserproef blijft open.
+- De Core-/Control-schema's en -migraties zijn ongewijzigd. LAB-migraties zijn alleen op de afzonderlijke Payroll Lab-database geregistreerd; niets is opnieuw toegepast.
+- Zie het [PAYLAB-integratie- en overdrachtsrapport](payroll/acceptance/PAYLAB-FOUNDATION-INTEGRATION-20261002.md) voor de migratie-/hashreadback, exacte open browserstap, demonstratiegrens en CAO-BENCH02-slice. Het oudere startplan is voor milestone-nummering door deze status bijgewerkt; historische inhoud blijft staan.
+
 ## CONVERGENCE01 TEST-release update — 2026-10-02
 
 **Status: TEST-release closeout in progress; remaining acceptance is OPEN.** App version is 1.20260928.1. This update supersedes the earlier release decision above; historical evidence is retained below.
