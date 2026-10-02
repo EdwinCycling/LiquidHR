@@ -264,8 +264,8 @@ export function Sidebar({
         <nav aria-label={labels.navigation} className="min-h-0 flex-1 overflow-y-auto px-3">
           <div className="space-y-3 py-3">
             {sidebarSections.map((section) => (
-              <section aria-labelledby={!collapsed ? `sidebar-section-${section.id}` : undefined} key={section.id}>
-                {!collapsed ? <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-muted/75" id={`sidebar-section-${section.id}`}>{section.label}</h2> : null}
+              <section aria-label={section.id === 'payroll' ? labels.payrollLab : undefined} aria-labelledby={!collapsed && section.id !== 'payroll' ? `sidebar-section-${section.id}` : undefined} key={section.id}>
+                {!collapsed && section.id !== 'payroll' ? <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-muted/75" id={`sidebar-section-${section.id}`}>{section.label}</h2> : null}
                 <div className="space-y-0.5">
                   {section.items.map((link) => {
                     const active = link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`)

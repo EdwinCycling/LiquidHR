@@ -30,6 +30,6 @@ function service() {
 export async function runNl2026Payroll(scope: PayrollScope, administrationId: string, actorUserId: string) {
   return service().runSyntheticPayroll(scope, administrationId, actorUserId)
 }
-export async function getLatestNl2026Payroll(scope: PayrollScope, administrationId: string) {
-  return service().getLatestSyntheticPayroll(scope, administrationId)
+export async function getLatestNl2026Payroll(scope: PayrollScope, administrationId: string, runId?: string) {
+  return service().getLatestSyntheticPayroll(scope, administrationId, runId)
 }

@@ -137,6 +137,36 @@ export type PayrollGoldenCaseRunRow = AuditColumns & {
   expected_result_hash: string | null
 }
 
+export type PayrollCustomerComponentOwnership = 'CUSTOMER_FORK' | 'CUSTOMER_CUSTOM'
+
+export type PayrollCustomerComponentVersionRow = {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  component_id: string
+  component_code: string
+  component_version: string
+  status: 'DRAFT'
+  ownership: PayrollCustomerComponentOwnership
+  effective_from: string
+  effective_to: string | null
+  origin_component_id: string | null
+  origin_component_code: string | null
+  origin_component_version: string | null
+  origin_composition_id: string | null
+  origin_package_id: string | null
+  origin_package_version: string | null
+  origin_package_hash: string | null
+  forked_at: string | null
+  catalog_metadata_json: PayrollJson
+  definition_json: PayrollJson
+  definition_hash: string
+  created_at: string
+  created_by_user_id: string
+}
+
 type PayrollTable<Row, Insert, Update = Partial<Insert>> = {
   Row: Row
   Insert: Insert
@@ -243,6 +273,14 @@ export interface PayrollDatabase {
           expected_result_hash?: string | null
         },
         Partial<PayrollGoldenCaseRunRow>
+      >
+      customer_component_versions: PayrollTable<
+        PayrollCustomerComponentVersionRow,
+        Omit<PayrollCustomerComponentVersionRow, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        },
+        never
       >
     }
     Views: { [_ in never]: never }

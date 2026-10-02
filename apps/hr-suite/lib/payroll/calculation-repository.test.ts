@@ -59,6 +59,9 @@ function makeClient(seed: Record<string, Array<Record<string, unknown>>>) {
         filters.push([column, value])
         return query
       }),
+      order: vi.fn(() => query),
+      limit: vi.fn(() => query),
+      returns: vi.fn(() => query),
       maybeSingle: vi.fn(async () => {
         const tableRows = rows[table] ?? []
         const rowIndex = tableRows.findIndex((candidate) => filters.every(([column, value]) => candidate[column] === value))
@@ -79,6 +82,24 @@ function makeClient(seed: Record<string, Array<Record<string, unknown>>>) {
 }
 
 describe('Payroll calculation repository scope and lifecycle', () => {
+  it('keeps an exact legacy run lookup within the full scope and package', async () => {
+    const { client, queryLog } = makeClient({ calculation_runs: [{ ...runRow, source_tenant_id: 'other-tenant' }] })
+    const repository = createPayrollCalculationRepository(client)
+    await expect(repository.getLatestSyntheticArtifacts(scope, payrollAdministrationId, 'RPC-GC1-V1', runId)).resolves.toBeNull()
+    expect(queryLog[0]?.filters).toEqual(expect.arrayContaining([
+      ['id', runId], ['payroll_administration_id', payrollAdministrationId],
+      ['calculation_input_sets.rule_package_composition_id', 'RPC-GC1-V1'],
+      ['source_tenant_id', scope.tenantId], ['source_hr_group_id', scope.hrGroupId],
+      ['source_administration_id', scope.administrationId],
+    ]))
+  })
+
+  it('rejects invalid legacy run identity before querying', async () => {
+    const { client, from } = makeClient({})
+    const repository = createPayrollCalculationRepository(client)
+    await expect(repository.getLatestSyntheticArtifacts(scope, payrollAdministrationId, 'RPC-GC1-V1', 'invalid')).rejects.toThrow()
+    expect(from).not.toHaveBeenCalled()
+  })
   it('reads the Payroll administration only under the full source scope', async () => {
     const administrationRow = {
       id: payrollAdministrationId,

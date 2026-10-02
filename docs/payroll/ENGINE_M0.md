@@ -104,3 +104,41 @@ selectors zijn gereserveerd; uitvoering levert gecontroleerd
 ITERATIVE_CLUSTER_UNSUPPORTED. Dit verklaart de huidige beperking zonder alle
 toekomstige graphs universeel als DAG te definiëren. Geen iteration of
 allocation calculation wordt in PAYLAB03 geïmplementeerd.
+
+## Component Library V1 — PAYLAB04
+
+De bibliotheek projecteert de werkelijke componentdefinitions uit de bestaande
+GC-NL-001 en NL-PAYROLL-2026 packages. Er is geen tweede uitvoerbare registratie.
+Catalogussleutels onderscheiden composition, componentcode en versie; package-
+versie is afzonderlijke metadata. Ontbrekende bronbeschrijvingen/status blijven
+expliciet ontbrekend. Functionele UI-labels zijn presentatie en wijzigen geen
+definition, fiscale regel of packagehash. Upstream/downstream worden uit de
+getypeerde dependencies en expression-outputreferences afgeleid, binnen het
+betreffende package; versie-/scope-/referenceproblemen worden zichtbaar gemaakt.
+
+Klantconcepten staan uitsluitend in de aparte Payroll Lab-database, met de
+bestaande volledige tenant-/HR-groep-/administratiescope. Een fork bewaart een
+losse definitionsnapshot, eigen CUSTOM-identiteit en versie, oorspronkelijke
+component- en packageversie, forkdatum en inhoudshash. Deze snapshots blijven
+append-only DRAFT. Nieuwe SYSTEM-versies wijzigen ze niet. Ze worden nooit
+automatisch aan een berekeningspackage toegevoegd; dependencyreferences in een
+concept zijn inspecteerbare verwijzingen, geen inheritance of activeringsflow.
+
+Alleen de server selecteert de originele SYSTEM-versie en leidt opslagscope
+uit de bestaande authenticatie af. De browser levert geen definition, scope,
+ownership of status aan. RegisteredRule is niet kopieerbaar in V1: vertrouwde
+fiscale implementaties blijven binnen de bestaande serverregistratie. De
+opslag ondersteunt CUSTOMER_CUSTOM zonder system origin, maar V1 bevat geen
+editor, publicatie of activering. Systeemcomponenten blijven alleen leesbaar.
+
+De Library is een inspectie- en conceptopslaglaag. Uitvoeringsscope/node identity,
+iteration-/assessment-base-contracten, Decimal, rounding en immutable historische
+berekeningen blijven de bestaande enginecontracten volgen.
+
+Navigatie heeft één centrale sidebar-ingang `/payroll-lab`. Het overzicht
+definieert een compacte lijst van echte vensters, nu uitsluitend Berekeningen
+(`/payroll-lab/calculations`) en Salariscomponenten (`/payroll-components`).
+Toekomstige domeinvensters kunnen aan die lijst worden toegevoegd zonder een
+tweede menu of shell. Geldige oude run/error-links blijven doorgestuurd; beide
+detailroutes hebben terugnavigatie. De bestaande berekeningsactions en packages
+blijven gescheiden van de klantconceptcatalogus.

@@ -383,6 +383,8 @@ describe('NL-2026 scenario in the persisted calculation lifecycle', () => {
     }
     await service.getLatestSyntheticPayroll(scope, payrollAdministrationId)
     expect(repository.getLatestSyntheticArtifacts).toHaveBeenCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId)
+    await service.getLatestSyntheticPayroll(scope, payrollAdministrationId, runId)
+    expect(repository.getLatestSyntheticArtifacts).toHaveBeenLastCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, runId)
   })
   it('stores controlled UNSUPPORTED trace and no financial outputs', async () => {
     const { repository, getRun } = makeRepository()

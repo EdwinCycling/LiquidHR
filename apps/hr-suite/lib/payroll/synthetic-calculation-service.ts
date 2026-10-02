@@ -587,11 +587,14 @@ export function createSyntheticPayrollService(dependencies: SyntheticPayrollServ
   async function getLatestSyntheticPayroll(
     rawScope: PayrollScope,
     rawPayrollAdministrationId: string,
+    runId?: string,
   ): Promise<SyntheticPayrollView | null> {
     if (!dependencies.isEnabled()) throw new SyntheticPayrollServiceError('PAYROLL_SYNTHETIC_MODE_DISABLED')
     const scope = assertServiceScope(rawScope, rawPayrollAdministrationId)
     await requirePayrollAdministration(scope, rawPayrollAdministrationId)
-    const artifacts = await dependencies.repository.getLatestSyntheticArtifacts(scope, rawPayrollAdministrationId, scenario.compositionId)
+    const artifacts = runId === undefined
+      ? await dependencies.repository.getLatestSyntheticArtifacts(scope, rawPayrollAdministrationId, scenario.compositionId)
+      : await dependencies.repository.getLatestSyntheticArtifacts(scope, rawPayrollAdministrationId, scenario.compositionId, runId)
     return artifacts ? viewFromArtifacts(artifacts) : null
   }
 
@@ -627,6 +630,7 @@ export async function runSyntheticPayroll(
 export async function getLatestSyntheticPayroll(
   scope: PayrollScope,
   payrollAdministrationId: string,
+  runId?: string,
 ): Promise<SyntheticPayrollView | null> {
-  return await defaultService().getLatestSyntheticPayroll(scope, payrollAdministrationId)
+  return await defaultService().getLatestSyntheticPayroll(scope, payrollAdministrationId, runId)
 }

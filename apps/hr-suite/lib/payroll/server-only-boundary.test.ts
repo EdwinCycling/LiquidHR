@@ -154,6 +154,7 @@ describe('Payroll Lab server-only boundary', () => {
     const repositoryImporters = findImporters(sourceFiles, 'repository.ts')
     const calculationRepositoryImporters = findImporters(sourceFiles, 'calculation-repository.ts')
     const supabaseClientImporters = findImporters(sourceFiles, 'supabase-client.ts')
+    const draftRepositoryImporters = findImporters(sourceFiles, 'component-draft-repository.ts')
 
     expect(resolveModulePath(join(payrollDirectory, 'access.ts'), './repository.js'))
       .toBe(resolve(payrollDirectory, 'repository.ts'))
@@ -161,7 +162,12 @@ describe('Payroll Lab server-only boundary', () => {
     expect(calculationRepositoryImporters).toEqual([join(payrollDirectory, 'nl-2026-calculation-service.ts'), join(payrollDirectory, 'synthetic-calculation-service.ts')])
     expect(supabaseClientImporters).toEqual([
       join(payrollDirectory, 'calculation-repository.ts'),
+      join(payrollDirectory, 'component-draft-repository.ts'),
       join(payrollDirectory, 'repository.ts'),
+    ])
+    expect(draftRepositoryImporters).toEqual([
+      join(payrollDirectory, 'component-draft-service.ts'),
+      join(payrollDirectory, 'component-library.ts'),
     ])
   }, 20_000)
 })

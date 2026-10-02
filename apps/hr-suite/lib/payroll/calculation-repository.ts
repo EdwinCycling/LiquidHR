@@ -50,7 +50,7 @@ export interface PayrollCalculationRepository {
   insertCalculationTrace(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_traces'>): Promise<PayrollCalculationTraceRow>
   insertPayrollControls(scope: PayrollScope, payrollAdministrationId: string, rows: readonly PayrollInsert<'payroll_controls'>[]): Promise<readonly PayrollControlRow[]>
   insertGoldenCaseRun(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'golden_case_runs'>): Promise<PayrollGoldenCaseRunRow>
-  getLatestSyntheticArtifacts(scope: PayrollScope, payrollAdministrationId: string, compositionId?: string): Promise<PayrollCalculationArtifacts | null>
+  getLatestSyntheticArtifacts(scope: PayrollScope, payrollAdministrationId: string, compositionId?: string, runId?: string): Promise<PayrollCalculationArtifacts | null>
 }
 
 export class PayrollCalculationRepositoryError extends Error {
@@ -291,15 +291,18 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
     return data
   }
 
-  async getLatestSyntheticArtifacts(scope: PayrollScope, payrollAdministrationId: string, compositionId?: string): Promise<PayrollCalculationArtifacts | null> {
+  async getLatestSyntheticArtifacts(scope: PayrollScope, payrollAdministrationId: string, compositionId?: string, runId?: string): Promise<PayrollCalculationArtifacts | null> {
     const validatedScope = assertPayrollScope(scope)
     assertUuid(payrollAdministrationId)
+
+    if (runId !== undefined) assertUuid(runId)
 
     let query = this.client.from('calculation_runs')
       .select('*, calculation_input_sets!calculation_runs_input_set_scope_fk!inner(rule_package_composition_id)')
       .eq('payroll_administration_id', payrollAdministrationId)
       .eq('run_type', 'GOLDEN_CASE')
     if (compositionId) query = query.eq('calculation_input_sets.rule_package_composition_id', compositionId)
+    if (runId !== undefined) query = query.eq('id', runId)
     const { data: run, error: runError } = await applyPayrollScopeFilter(
       query.order('created_at', { ascending: false }).limit(1), validatedScope,
     ).returns<PayrollCalculationRunRow[]>().maybeSingle()

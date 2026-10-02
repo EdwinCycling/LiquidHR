@@ -1,4 +1,17 @@
-# Payroll Lab status — synthetic PAYLAB02 / Engine M0 accepted
+# Payroll Lab status — PAYLAB04 Component Library V1 accepted
+
+**2026-10-02: PAYLAB04 lokaal GREEN.** Eén Payroll Lab-sidebarlink, twee tegels
+Berekeningen/Salariscomponenten, catalogus met 24 echte SYSTEM-definities en
+scoped detached conceptopslag in het Lab. Geen designer of activering.
+Beide bestaande berekeningsacties en exacte legacy-runlinks zijn geaccepteerd;
+M0 netto 3175.00/werkgeverskosten 4910.00, NL netto 3181.33/loonheffing 818.67.
+151 gerichte apptests, 44 engine/NL-regressies, build en 630-assets secretscan
+PASS. Zie [PAYLAB04-bewijs](acceptance/PAYLAB04-COMPONENT-LIBRARY.md).
+Geen Core-businesswrite/auth/perms, push, merge of deployment. De eerdere
+milestones hieronder blijven historische evidence; PAYLAB01 source/CONTROL02
+gaps zijn niet door deze componentenbibliotheek opgelost.
+
+## PAYLAB02 synthetic M0 (historical)
 
 **2026-09-30: PAYLAB02 synthetic M0 accepted.** Existing HR Admin Test Auth,
 Payroll sidebar, calculation action, engine, real Lab persistence and visible
