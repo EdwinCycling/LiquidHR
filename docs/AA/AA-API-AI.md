@@ -44,7 +44,9 @@ De documentatiebranch docs/aa-foundation-20260929 bevat AA-README, AA-REQ, AA-OP
 
 ### Status van ONE VERSION
 
-Op 2026-10-02 staat main op cb73260ff0cd83d19fa29e44c9f0b93749fb10af met TEST-release 1.20260928.1 volgens de releasehandoff en de aparte AA-CURRENT-conceptstatus. Het op main aanwezige CONVERGENCE01-rapport kent nog een TEST-release-update met OPEN acceptance. Uitstaande bewijzen zijn onder meer Control forged scopes/invitations/AUDITOR, Insights directe API en CSV-inhoud, en AI live persona, enablement-toggle en scope-revocation. **ONE VERSION mag voor dit spoor niet als volledig GREEN worden aangemerkt totdat de actuele formele acceptatie dit expliciet bewijst.** Niet opnieuw de bestaande synthetic payrollfoundation onderzoeken.
+Op 2026-10-02 staat main op cb73260ff0cd83d19fa29e44c9f0b93749fb10af met TEST-release 1.20260928.1 volgens de releasehandoff en de aparte AA-CURRENT-conceptstatus. Het op main aanwezige CONVERGENCE01-rapport kent nog een TEST-release-update met OPEN acceptance. Uitstaande bewijzen zijn onder meer Control forged scopes/invitations/AUDITOR, Insights directe API en CSV-inhoud, en AI live persona, enablement-toggle en scope-revocation. **ONE VERSION mag voor dit spoor niet als volledig GREEN worden aangemerkt totdat de actuele formele acceptatie dit expliciet bewijst.
+
+**Aanvullende Vercel-readback op 2026-10-02:** verbonden Vercel-project 'liquidhr' meldt deployment dpl_CANMAQydQcYGy9Xe7JhNm8grJuvH als READY, targetlabel 'production'. De deploymentmetadata bevat geen git commit-SHA; deze Vercel-readback bewijst dus READY maar koppelt de deployment niet zelfstandig cryptografisch aan de main-SHA. De afzonderlijke releasehandoff bevat daarvoor haar eigen bron-/checkoutbewijs. READY is evenmin bewijs van nog openstaande live securityacceptatie.** Niet opnieuw de bestaande synthetic payrollfoundation onderzoeken.
 
 ## 3. Productsysteem: één servicegrens, meerdere kanalen
 
