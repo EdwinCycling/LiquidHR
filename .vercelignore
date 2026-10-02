@@ -1,0 +1,8 @@
+.artifacts/
+**/.artifacts/
+.playwright-cli/
+.playwright-state/
+playwright-report/
+**/playwright-report/
+test-results/
+**/test-results/
