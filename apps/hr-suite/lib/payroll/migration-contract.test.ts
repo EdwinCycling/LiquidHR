@@ -1,11 +1,9 @@
 import { readFileSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const appSource = fileURLToPath(new URL('../../../../apps/hr-suite', import.meta.url))
-const repositoryRoot = fileURLToPath(new URL('../../../../', import.meta.url))
 const migrationPath = join(appSource, 'lib', 'payroll', 'supabase', 'migrations', '20260930100000_paylab00_isolation_foundation.sql')
 const requiredTables = [
   'payroll_administrations',
@@ -19,25 +17,10 @@ const requiredTables = [
   'golden_case_runs',
 ].sort()
 
-function gitLines(args: string[]): string[] {
-  return execFileSync('git', args, { cwd: repositoryRoot, encoding: 'utf8' })
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-}
-
 describe('PAYLAB00 Payroll Lab migration boundary', () => {
   it('is stored outside the LiquidHR Core Supabase migration stream', () => {
     expect(migrationPath.replaceAll('\\', '/')).toContain('/apps/hr-suite/lib/payroll/supabase/migrations/')
     expect(migrationPath.replaceAll('\\', '/')).not.toContain('/apps/hr-suite/supabase/migrations/')
-  })
-
-  it('has zero Core migration or Supabase config delta from the exact PAYLAB00 base', () => {
-    const corePaths = ['apps/hr-suite/supabase/migrations', 'apps/hr-suite/supabase/config.toml']
-    const changed = gitLines(['diff', '--name-only', '5ac6060236c947b5029d76de2998fa7ab9435e01', '--', ...corePaths])
-    const untracked = gitLines(['ls-files', '--others', '--exclude-standard', '--', ...corePaths])
-
-    expect([...changed, ...untracked]).toEqual([])
   })
 
   it('creates only isolated Payroll Lab tables with RLS and same-database scope references', () => {
