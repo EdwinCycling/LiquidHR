@@ -106,32 +106,28 @@ CONTROL02 en vervolgstappen:
 
 ## EXPLORE
 
-### Standalone Payroll Engine Lab
+### Payroll Lab — geïsoleerde bounded context in dezelfde monorepo
 
-Bewust **apart experiment**:
-- aparte repository;
-- aparte Next.js-app;
-- aparte Supabase-projectdatabase;
-- aparte Vercel-app indien/wanneer nodig;
-- geen LiquidHR migrations/codebase vervuilen zolang haalbaarheid niet bewezen is;
-- wel dezelfde architectuur-, security- en testprincipes.
+De inmiddels gekozen richting is **niet** een aparte kopie van LiquidHR of een zelfstandige Payroll-gebruikersapp:
+- dezelfde `EdwinCycling/LiquidHR`-monorepo;
+- pure Supabase-/Next-/React-onafhankelijke TypeScript-engine in `packages/payroll-engine`;
+- server-only sourceadapter, application services en repository in de HR-suite;
+- een aparte Payroll Lab Supabase-database voor snapshots, rules, runs, componenten, traces en controls;
+- één bestaande LiquidHR-login, expliciete tenant/HR-groep/administratieautorisa­tie bij iedere serverrepositoryactie;
+- géén rechtstreekse browserverbinding naar Payroll DB, géén cross-database FK's;
+- immutable input snapshots + rule- en engineversies voor herleidbaarheid;
+- aanvankelijk handmatige source-sync/recalculate, pas later events/outbox.
 
-Onderzoek:
-- continu berekende conceptloonperiode;
-- payroll by exception;
-- deterministic calculation engine;
-- versioned rules/facts;
-- looncomponenten;
-- tax;
-- pensioen;
-- auto;
-- WKR;
-- TWK;
-- approvals;
-- payslip/declaration output;
-- reproduceerbare snapshots.
+Bestaand lokaal bewijs: PAYLAB02 synthetic M0 GREEN en PAYLAB03 beperkte NL-2026 reguliere maandcase GREEN; de Payroll-code is nog **niet** in de canonieke `main` geïntegreerd. Verdere PAYLAB04-componentcatalogus en cao-/benchmarkvoorstellen zijn details in `AA-NEXT`; geen algemene NL-payrollcomplianceclaim.
 
-Pas na bewezen waarde ontwerpen we een gecontroleerde integratie met LiquidHR.
+**Parallelisering:** engine en geïsoleerde Lab-database mogelijk onafhankelijk ontwikkelen; shared Control-/Core-/IKV-contracten en migrations alleen na expliciete dependencycheck/integratie. Geen blinde merge van payrollworktrees of migrationlineage.
+
+Onderzoek/vervolg:
+- continu berekende conceptloonperiode en payroll by exception;
+- deterministic calculation engine, geversioneerde regels/facts;
+- looncomponenten, cao-/bedrijfseigen regelpakketten, fiscale regels;
+- pensioen, werkgeverspremies/VCR, auto, WKR, TWK;
+- approvals, loonstrook/aangifte, reproduceerbare snapshots en betalingen.
 
 ### Internationale HR
 Onderzoek/gefaseerd:
@@ -152,7 +148,7 @@ Onderzoek/gefaseerd:
 
 ## PARKED / EXPLICITLY NOT AUTOMATIC
 
-- Geen eigen payroll engine automatisch onderdeel maken van LiquidHR-core.
+- Payroll Lab blijft een geïsoleerde bounded context binnen de monorepo; niet automatisch in LiquidHR-Core-schema, auth of gedeelde migrations inbouwen.
 - Geen externe signing beloven voordat product/security/legal scope expliciet is vastgesteld.
 - Geen internationale payroll bouwen als bijproduct van HR-internationalisatie.
 - Geen features activeren alleen omdat er technische foundation bestaat.

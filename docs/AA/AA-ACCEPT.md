@@ -1,7 +1,7 @@
 # AA-ACCEPT — Accepted Baseline
 
 Status: **LIVING INDEX**  
-Bijgewerkt: 2026-10-01
+Bijgewerkt: 2026-10-02
 
 Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte index van wat we als actuele baseline accepteren.
 
@@ -17,10 +17,10 @@ Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte
 | Slice | Status | Bewijs / opmerking |
 | --- | --- | --- |
 | ABS02 | GREEN | `docs/quality/acceptance/runs/ABS02-20260927.md` |
-| INS01 | PARTIAL | Kernreports/scopes bewezen; volledige live matrix en laatste Bradford-exportparse nog open |
-| CONTROL01 | PARTIAL / RELEASE BLOCKER | Basis full-circle bewezen; synthetic import maakte employee maar geen employment/draft; negatives en finale Control gates open |
-| AI01-A/A2 | PARTIAL | Durability/concurrency sterk bewezen; feature-toggle/scope-revocation/persona matrix nog open |
-| CONVERGENCE01 | PARTIAL — NIET RELEASED | Payrollfinalisatie + open negatives + finale regressiegates blokkeren release |
+| INS01 | TEST RELEASED; ACCEPTANCE PARTIAL | Persona-catalogus/live Bradford-route bewezen; volledige API-/scope-/exportmatrix en laatste CSV-inhoudcontrole nog OPEN |
+| CONTROL01 | TEST RELEASED; ACCEPTANCE PARTIAL | Full-circle/OWNER en nieuwe synthetische payroll-import met employment draft runtime-bewezen; live actor-/invite-/cross-tenant-negatives OPEN |
+| AI01-A/A2 | TEST RELEASED; ACCEPTANCE PARTIAL | Durability/concurrency bewezen, 37 gerichte tests; live toggle/revoke/persona-negatives OPEN |
+| CONVERGENCE01 | **TEST RELEASED; SECURITY ACCEPTANCE OPEN** | App `1.20260928.1`; `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; Vercel `dpl_CANMAQydQcYGy9Xe7JhNm8grJuvH` READY |
 | PAYLAB00 | ENVIRONMENT-GATED / CLOSED | Isolated Payroll Lab foundation; geen verdere acceptance-RCA nodig voor deze slice |
 | PAYLAB01 | PARTIAL | Server-only source adapter + canonical snapshot gebouwd; live Core→snapshot acceptance blijft open |
 | PAYLAB02 M0 | GREEN — SYNTHETIC SCOPE | Authenticated browser → componentengine → persistence → SUCCEEDED; 9 results, trace, 7 controls, repeatable hashes |
@@ -39,30 +39,25 @@ Accepted onder meer:
 
 Gebruik voor detail uitsluitend het acceptance report.
 
-## Actuele blockers voor CONVERGENCE01
+## CONVERGENCE01 TEST-release: bewezen en nog OPEN
 
-- Synthetic payrollfinalisatie creëerde een employee maar geen employment/draft; veilige recovery zonder duplicate is nog niet bewezen.
-- Negatieve Control-autorisatiematrix is niet volledig.
-- AI feature-toggle/scope-revocation/personamatrix is niet volledig.
-- Laatste full HR-run was 1.933/1.934 door PDF-timeout.
-- Latere Control/UI/payroll/schemawijzigingen hebben nog geen finale volledige test-/buildgate.
-- Geen version bump, main/origin release-sync, Vercel deploy of hosted smoke.
+**Bewezen TEST-release:**
+- Appversie `1.20260928.1`; GitHub `main`/vrijgegeven codecommit `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; Codex bevestigde dezelfde lokale `main`.
+- Vercel `liquidhr` `dpl_CANMAQydQcYGy9Xe7JhNm8grJuvH` READY, beide bestaande aliases; geen Git-SHA in CLI-deploymentmetadata, dus niet onafhankelijk uit Vercel metadata te herleiden.
+- Payroll met geldige synthetic interne fixture runtime: employee + employment draft + twee IKV's. `EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING` correct; 20/20 regressietests voor o.a. safe resume. Oude ongeldige historische batch bleef onaangeraakt.
+- HR 1.954 tests geslaagd, één parallelle PDF-timeout; dezelfde test geïsoleerd PASS in 3,03 s. Geen volledige timeoutvrije full-suite claim.
+- Control 11/11 tests; TypeScript beide apps; ESLint zonder errors/6 HR-warnings; i18n 41 HR namespaces en 182 Control keys; HR build 304/304 en Control build 12/12; remote Vercel HR-build geslaagd.
+- Hosted login en minimale anonieme API/auth-beveiligingssmoke positief.
 
-## CONVERGENCE01 promotion rule
+**Nog OPEN in gerichte TEST-acceptatie (niet stilzwijgend promoveren):**
+- Control: live AUDITOR-write, uitnodigingstoken reuse/revoke, forged tenant/group/administration, cross-tenant en tweede bootstrap.
+- INS01: CSV-bestandsinhoud op rijscope, filterpariteit en spreadsheet-formuleveiligheid; resterende directe API-/forged context-/reportmatrix.
+- AI01-A: live feature-toggle na sessiestart, scope-revoke en complete gescopeerde HR Admin/Manager/Employee forgerymatrix.
+- Officiële loonaangifte XML/XSD-adapter is CONTROL02 en niet door de synthetische interne JSON-test bewezen.
 
-Promoveer INS01, CONTROL01 en AI01-A hier pas naar GREEN wanneer het finale convergence report dat onderbouwt.
+**Promotion rule:** pas de in-scope securityacceptatie op GREEN zetten na gedateerde, daadwerkelijke live-negative-evidence. De reeds gedane TEST-release hoeft niet opnieuw als geblokkeerd te worden beschreven. Elke opvolgende bugfix krijgt een eigen commit/deployment en controle op dezelfde baseline.
 
-Bij GREEN moeten minimaal worden vastgelegd:
-- finale convergence/release SHA;
-- full-suite resultaat;
-- builds;
-- remote migration/readback status;
-- runtime persona/securitymatrix;
-- version;
-- main/origin equality;
-- Vercel READY + alias;
-- hosted safety smoke;
-- expliciete niet-blockerende backlog.
+Detail: `docs/quality/acceptance/runs/CONVERGENCE01-20260928.md` op `main` plus Codex-releasehandoff 2026-10-02.
 
 ## Niet als GREEN behandelen zonder bewijs
 

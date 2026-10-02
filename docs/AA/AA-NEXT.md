@@ -1,26 +1,27 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**  
-Bijgewerkt: 2026-10-01
+Bijgewerkt: 2026-10-02
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
 
-## CURRENT — CONVERGENCE01
+## CURRENT — CONVERGENCE01 post-release TEST-acceptatie
 
-Status: **PARTIAL / RELEASE BLOCKED — nog niet vrijgeven**.
+**Status: TEST RELEASED; beveiligingsacceptatie OPEN.**
 
-Doel:
-- INS01 + CONTROL01 + AI01-A convergeren;
-- runtime/persona/securityacceptatie afronden;
-- volledige releasegates GREEN;
-- version bump en Vercel-release pas daarna.
+App `1.20260928.1`; canonical `main` `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; Vercel `liquidhr` deployment `dpl_CANMAQydQcYGy9Xe7JhNm8grJuvH` READY.
 
-Laatste bekende convergence HEAD uit de lopende run:
-`9029f52e20f7559b6dded2682856f0f544db9bcf`
+Nu uitsluitend een **bounded follow-up**, niet nóg een brede convergence- of release-loop:
+1. Control bestaande acteurs: AUDITOR write, invitation reuse/revoke, forged tenant/group/admin, tweede en cross-tenant bootstrap;
+2. AI live: na sessiestart feature disable en scope revoke, plus noodzakelijke forged persona-negatives;
+3. Bradford CSV-download echt parsen en rijscope/filter/formuleveiligheid vastleggen; resterende kritieke Insights-API/scope-gaten gericht testen;
+4. Alleen echte gevonden defecten minimaal fixen met regression en afzonderlijke traceerbare commits; laat elk deel OPEN tot bewijs.
 
-De eerdere Control OWNER-loginblokkade is opgelost. De huidige primaire blocker is de synthetic payrollfinalisatie: employee is aangemaakt, employment/draft ontbreekt. Eerst dit veilig root-causen en herstellen zonder duplicate, daarna open security/persona-probes en finale gates.
+De synthetische payrollfinalisatie is runtime-bewezen (employee + conceptemployment + twee IKV's), dus **niet opnieuw onderzoeken**. Officiële XML/XSD-support blijft CONTROL02.
 
-Na GREEN moeten AA-CURRENT, AA-ACCEPT en deze roadmap onmiddellijk worden bijgewerkt.
+**Integratiegrens:** bevries de releasebaseline voordat Payroll Lab/CONTROL02 shared Control/Core code aanraken. Eerst diff/migrationlineage/dependencyplan, nooit blind mergen of bestaande TEST-migrations opnieuw toepassen.
+
+**Parallelstrategie:** pure `packages/payroll-engine`/losse Payroll Lab database-experimenten kunnen na branchinventaris parallel met onafhankelijke tracks. Shared Control, payrollimport, employee/employment/IKV en migrations blijven geserialiseerd totdat expliciet geïntegreerd.
 
 ## NEXT — CONTROL02
 

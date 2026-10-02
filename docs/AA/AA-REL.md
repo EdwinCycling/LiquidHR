@@ -98,10 +98,23 @@ Minimaal:
 
 Authenticated hosted smoke alleen wanneer veilig beschikbaar; geen auth-bypass bouwen voor bewijs.
 
-## 8. Releaseblockers versus backlog
+## 8. Expliciete, beperkte TEST-release met open acceptance
+
+Voor een uitsluitend synthetische, operationele TEST-omgeving mag Edwin bewust een **TEST-release met OPEN acceptatie** besluiten na:
+- minimale geverifieerde auth/anonieme API-/tenantbasissmoke en geen vastgestelde kritieke kwetsbaarheid;
+- volledige passende kwaliteitsgate met eerlijke registratie van eventuele omgevingsgebonden timeouts;
+- exacte release-SHA, local/main/origin synchronisatie en schone deploymentcheckout;
+- hosted READY/safety smoke;
+- expliciete afzonderlijke OPEN-matrix, niet vermommen als volledig ACCEPTANCE GREEN.
+
+Vercel `production` is hier alleen het deploymentchannel, **geen** claim van operationele productieklaarheid. Deployment Protection is geen afgesproken extra voorwaarde voor deze TEST-release; dit ontslaat ons niet van server-side autorisatie of het gericht bewijzen van de openstaande negatieve controles.
+
+De CONVERGENCE01-uitzondering van 2026-10-02 resulteerde in TEST `1.20260928.1` met securityacceptatie OPEN. Verdere bugfixes documenteren als nieuwe traceerbare commits/deployments, en kritieke bevindingen eerst oplossen voordat nieuwe gevoelige mogelijkheden worden geactiveerd.
+
+## 9. Releaseblockers versus backlog
 
 Release blocker:
-- security/data-integrity niet bewezen of fout;
+- vastgesteld kritisch security-/data-integriteitsdefect; voor een volledige ACCEPTANCE GREEN-release blijft elke verplichte ontbrekende securityassertion blokkerend; een bewust beperkte TEST-release volgt uitsluitend de uitzondering hierboven;
 - required migration mismatch;
 - verplichte acceptance assertion faalt;
 - full releasegate rood;
@@ -113,7 +126,7 @@ Geen automatische blocker:
 - nice-to-have UX;
 - bewijs dat door toolingmetadata niet beschikbaar is terwijl onderliggende release technisch bewezen is, mits expliciet als evidencegap vastgelegd.
 
-## 9. Cleanup
+## 10. Cleanup
 
 Na succesvolle release:
 - stop lokale servers;
@@ -124,7 +137,7 @@ Na succesvolle release:
 - behoud worktrees met unieke payroll/migrationlineagecommits tot expliciete reconciliatie;
 - verwijder remote branches pas nadat merge/provenance bewezen is.
 
-## 10. Anti-iteratiehel
+## 11. Anti-iteratiehel
 
 - Geen volgende productwave starten vóór de huidige releasebeslissing.
 - Geen volledige suite na iedere kleine fix.

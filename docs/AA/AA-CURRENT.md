@@ -1,9 +1,9 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**  
-Momentopname: 2026-10-01
+Momentopname: 2026-10-02
 
-> Deze eerste opzet is geschreven terwijl CONVERGENCE01 nog loopt. Na GREEN/RELEASED moet dit document direct worden bijgewerkt naar de definitieve release-SHA en versie.
+> **Actueel:** CONVERGENCE01 is als TEST-release vrijgegeven op 2026-10-02. Dit is **geen** claim dat de volledige live security-/persona-acceptatiematrix GREEN is. Payroll Lab blijft een afzonderlijke, nog niet geïntegreerde branch.
 
 ## Canonieke repository
 
@@ -13,13 +13,28 @@ Momentopname: 2026-10-01
 - Canonieke Supabase TEST/projectomgeving: `wnpfloqpjvaacobppbpk`
 - Eén operationele LiquidHR-omgeving; Vercel “Production” is deploymentchannelnaam.
 
-## Laatste volledig vrijgegeven baseline vóór CONVERGENCE01
+## Actuele canonieke LiquidHR TEST-release — 2026-10-02
 
-- `main/origin/main`: `3a0fc67f84bc7dab0acff732afab597142d59ea9`
-- appversie: `1.20260927.3`
-- ABS02 is inhoudelijk afgerond en deployed.
-- Hosted provenance had beperkte metadata-evidencegaps, niet opnieuw openen als productdefect.
+- Appversie: `1.20260928.1`.
+- `main` / `origin/main`: `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; lokale `main`-gelijkheid bevestigd in de Codex-releasehandoff.
+- Vercel `liquidhr`: deployment `dpl_CANMAQydQcYGy9Xe7JhNm8grJuvH`, READY, targetlabel `production` = onze enige operationele TEST-omgeving.
+- Alias: https://liquid-hr-hr-suite.vercel.app/.
+- GitHub main-SHA en Vercel deploymentstatus/alias zijn onafhankelijk gecontroleerd. Vercel CLI-upload toont zelf geen Git-SHA; de schone checkout en gebruikte release-SHA zijn in de Codex-handoff vastgelegd.
+- Historische ABS02-baseline vóór convergence: `3a0fc67f84bc7dab0acff732afab597142d59ea9`, appversie `1.20260927.3`.
+- **Status:** TEST RELEASED; resterende live security-/persona-/exportacceptatie OPEN, dus geen volledige acceptance GREEN.
 
+### Bewezen bij release
+
+- CONTROL01 payrollruntime: synthetische interne JSON-fixture met IKV 1 en 2 verwerkt; één employee, één conceptdienstverband met `EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING`, twee IKV's. 20/20 gerichte payrolltests inclusief veilige resume zonder dubbele employee. Officiële XML/XSD-adapter blijft CONTROL02.
+- INS01: HR Admin 19 rapporten, Manager 7, Employee 0; directe Bradford-route geeft Manager/Employee geen rapport. CSV-download is gemeld; de laatste inhoudelijke rijscope/filter/formulecontrole blijft OPEN.
+- AI01-A: 7 bestanden / 37 gerichte tests GREEN; eerdere remote durability/concurrency-evidence behouden. Live toggle/revocation- en persona-negatives OPEN.
+- Control: OWNER werkt; 2 bestanden / 11 tests GREEN. AUDITOR write, invitation reuse/revoke, forged scopes en cross-tenant bootstrap live nog OPEN.
+- Kwaliteit: HR full-suite 1.954 geslaagde tests met één PDF-render-timeout tijdens parallelrun; die test geïsoleerd geslaagd in 3,03 s. Geen onjuiste claim van timeoutvrije full-suite-GREEN.
+- TypeScript HR/Control, ESLint zonder errors (6 HR-warnings), i18n 41 HR namespaces en 182 Control keys, builds 304 HR / 12 Control routes geslaagd; Vercel HR-build 304 routes.
+- Hosted smoke: /login HTTP 200; normale loginopties, Test Auth niet zichtbaar; protected pages redirecten naar login; anonieme /api/context en /api/employees HTTP 401, testauth POST 404.
+- Bij de release-closeout geen nieuwe migrations/schemawijzigingen.
+
+Acceptancebron op `main`: `docs/quality/acceptance/runs/CONVERGENCE01-20260928.md`; volg voor de vrijgegeven SHA de releasehandoff van 2 oktober.
 
 ## Payroll Lab — PAYLAB00/01/02/03
 
@@ -77,153 +92,10 @@ PAYLAB03 / NL 2026 regular monthly wage:
 Acceptancebron (lokaal op de Payroll worktree, nog niet op GitHub): `docs/payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md`.
 
 
-## Lopend — CONVERGENCE01
+## CONVERGENCE01 — na de TEST-release
 
-Status: **PARTIAL — nog niet vrijgeven**.
+De vroegere werkstatus, debugging en checkpoints zijn historische informatie en staan in het gedateerde convergence-acceptatierapport. De actueel geldige toestand is hierboven vastgelegd.
 
-Branch:
-`work/CONVERGENCE01-20260928`
+**Eerstvolgende taak:** sluit uitsluitend de openstaande Control-, Insights- en AI-live-negatives op de vastgepinde releasebaseline; registreer nieuwe gerichte bugfixes traceerbaar. Daarna pas shared Control-/Core-integratie van CONTROL02 en Payroll Lab plannen. Pure `packages/payroll-engine`-ontwikkeling kan na dependencycheck afzonderlijk parallel.
 
-Laatste vastgelegde HEAD:
-`9029f52e20f7559b6dded2682856f0f544db9bcf`
-
-De worktree bevat daarna nog niet-gecommitte wijzigingen; de genoemde HEAD is dus niet gelijk aan alle huidige productwijzigingen.
-
-Geïntegreerd:
-- INS01
-- CONTROL01
-- AI01-A/A2
-
-Remote database:
-- de oorspronkelijke vijf convergence migrations zijn eenmaal toegepast en teruggelezen;
-- typegen/readback, RLS/grants/policies en relevante RPC's zijn toen gecontroleerd;
-- payroll staging grants zijn gehard;
-- geen advisor ERROR gemeld;
-- later is aanvullend `20260929111847_control01_hr_group_update.sql` eenmaal op TEST toegepast;
-- na die latere schema-/UI-wijziging is nog geen nieuwe officiële typegen/advisor/full-regression gate vastgelegd.
-
-## INS01 huidige stand
-
-Bewezen/gebouwd:
-- HR Admin / Manager / Employee reportcatalogusscope;
-- Frequent Absence parity;
-- Bradford reliability/filterfix en duplicate-uitlegfix;
-- Upcoming Events managerscope;
-- historische labels;
-- export/formuleprefixhardening;
-- strengere periodinput.
-
-Bekende live catalogus:
-- HR Admin: 19 reports;
-- Manager: 7 toegestane reports;
-- Employee: 0 managementreports.
-
-Belangrijke bewijsgrens:
-- INS01 is reliability/scope-hardening;
-- niet alle 19 rapporten zijn daarmee automatisch volledig gelijkgetrokken op shell, filters, KPI/chart/table, drilldown en export;
-- die systematische harmonisatie is expliciet INS02.
-
-Open bewijs:
-- niet de volledige forged context/API/export/drilldownmatrix;
-- Bradford-exportroute was succesvol, maar het laatste downloadbestand is niet onafhankelijk opnieuw geparsed;
-- niet alle report-/context-/pagination-/historical-label-/Actual Work-varianten zijn live bewezen;
-- finale status blijft daarom PARTIAL tot de afgesproken matrix is gesloten.
-
-## CONTROL01 huidige stand
-
-Gebouwd:
-- Control Plane UX-convergence;
-- tenant/group/administration onboarding;
-- OWNER/OPERATOR/AUDITOR;
-- first-admin bootstrap/invitation;
-- contextselectie;
-- payroll import stagingfoundation;
-- secure BSN fingerprintmatching;
-- synthetic importercontract;
-- draft employment wanneer rijke mapping ontbreekt.
-
-Bestaande relevante tabellen:
-- `administration_payroll_tax_numbers`
-- `payroll_import_batches`
-- `payroll_import_persons`
-- `payroll_import_income_relationships`
-
-Control OWNER normale lokale OAuth-login is inmiddels door menselijke accountselectie gelukt. De lokale Control callback is via de Supabase Redirect URL allowlist toegestaan zonder de production Site URL te wijzigen. De eerdere redirect naar de hosted HR-login was allowlist/configuratiegedrag, geen reden voor een auth-bypass.
-
-De basis full-circle is live doorlopen: tenant → HR-groep → administratie → first-admin invitation/acceptatie → activatie → HR-contextselectie → geïsoleerde empty state → logout/login → selector opnieuw zichtbaar.
-
-Open:
-- token reuse/revoke;
-- forged tenant/HR-group/administration;
-- AUDITOR write;
-- tweede bootstrap;
-- cross-tenant bootstrap;
-- volledige Control-suite/build na de latere accordion/side-panel UI-wijzigingen.
-
-**Releaseblokkerend importdefect:** de synthetic payrollfinalisatie maakte een medewerker aan maar geen dienstverband/draft. De batch eindigde `COMPLETED_WITH_WARNINGS`; de verwachte `EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING`-uitkomst ontstond niet. Exacte DB-fout is nog niet vastgesteld en een blinde retry is onveilig omdat de medewerker al bestaat.
-
-Official Loonaangifte/XSD-productondersteuning blijft CONTROL02-scope.
-
-## AI01-A huidige stand
-
-Gebouwd/bewezen:
-- atomic settlement;
-- durable audit recovery;
-- durable release/recovery;
-- legacy recovery;
-- server deadline/reaper voor voice;
-- server-side permission/session rechecks;
-- Team save-switch enforcement;
-- remote synthetic concurrencytests zonder providercalls.
-
-Nog onderdeel van lopende closeout:
-- feature-toggle na sessiestart;
-- scope-intrekking tijdens sessie;
-- volledige HR Admin/Manager/Employee forgerymatrix;
-- trusted cleanup invariant.
-
-De remote durability/concurrencyprobes zelf blijven sterk bewezen: settlement exactly-once, settle/release-race, dual reconcilers, audit recovery, release recovery en voice reaper no-op bij herhaling.
-
-## Testbaseline in lopende convergence
-
-Oorspronkelijk GREEN vóór latere wijzigingen:
-- HR: 480 bestanden / 1.933 tests;
-- Control: 2 bestanden / 9 tests;
-- TypeScript;
-- ESLint;
-- i18n;
-- HR build 304/304;
-- Control build 12/12.
-
-Latere volledige HR-run:
-- 1.933 / 1.934 tests geslaagd;
-- één bestaande PDF-render-timeout op 5 seconden;
-- niet daarna opnieuw volledig uitgevoerd.
-
-Na die run zijn nog UI-, Control- en payrollwijzigingen gedaan. Daardoor gelden de eerdere volledige GREEN-resultaten **niet automatisch** als releasebewijs voor de huidige worktree. Er moet vóór release opnieuw een finale gate op exact de uiteindelijke code draaien.
-
-## Releasepositie
-
-Nog niet uitgevoerd:
-- bump naar `1.20260928.1`;
-- release-push;
-- clean releasecheckout;
-- Vercel deploy;
-- hosted smoke.
-
-`main` en `origin/main` staan volgens de laatste vastgelegde status nog op `3a0fc67f84bc7dab0acff732afab597142d59ea9`.
-
-Eerstvolgende blocker:
-1. synthetic payrollfinalisatie veilig root-causen;
-2. minimale fix;
-3. veilige retry/recovery zonder duplicate employee;
-4. open Control/AI/Insights negatives sluiten;
-5. finale volledige gates op de uiteindelijke code.
-
-Pas daarna:
-- version bump;
-- main/origin synchroniseren;
-- clean releasecheckout;
-- Vercel deploy;
-- hosted safety smoke;
-- AA-CURRENT/AA-ACCEPT/AA-NEXT naar de released baseline bijwerken.
+**Belangrijk:** `docs/AA/` staat nog op een afzonderlijke documentatiebranch. Rebase/cherry-pick alleen de definitieve AA-bestanden bovenop de nieuwste `main` wanneer integratie expliciet wordt gepland; merge geen oude baselines blind.
