@@ -24,6 +24,7 @@ import { SetupAssistantFloating } from '@/components/setup-assistant/setup-assis
 import { canUseSetupAssistant, getSetupAssistantState } from '@/lib/setup-assistant/service'
 import { createSetupAssistantLabels } from '@/lib/setup-assistant/labels'
 import { getRecruitmentNavigationHref } from '@/components/layout/sidebar-navigation'
+import { PayrollLabUnavailableError, resolvePayrollLabAdministration } from '@/lib/payroll/access'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let requestContext
@@ -60,6 +61,12 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const canReadHrCalendar = authContext.permissions.includes('hr-calendar:read')
   const canReadSettings = authContext.permissions.includes('settings:read')
   const canReadDocumentStudio = authContext.permissions.includes('document-template:read')
+  let canReadPayrollLab = false
+  try {
+    canReadPayrollLab = Boolean(await resolvePayrollLabAdministration(authContext))
+  } catch (error) {
+    if (!(error instanceof PayrollLabUnavailableError)) throw error
+  }
   const canShowSetupAssistant = canUseSetupAssistant(authContext)
   const researchAccess = resolveResearchAccess(authContext)
   const canReadAnalysis = authContext.permissions.includes(ANALYSIS_PERMISSION)
@@ -132,6 +139,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         recruitmentHref={recruitmentHref ?? '/recruitment'}
         canReadJourneys={authContext.permissions.includes('journey:read') && enabledModules.includes('JOURNEYS')}
         canReadDocumentStudio={canReadDocumentStudio}
+        canReadPayrollLab={canReadPayrollLab}
         labels={{
           appName: common('appName'),
           startPage: navigation('startPage'),
@@ -148,6 +156,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           recruitment: navigation('recruitment'),
           journeys: navigation('journeys'),
           documentStudio: navigation('documentStudio'),
+          payrollLab: navigation('payrollLab'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),
@@ -161,6 +170,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           sectionPeopleOrganization: navigation('sectionPeopleOrganization'),
           sectionHrProcesses: navigation('sectionHrProcesses'),
           sectionSteering: navigation('sectionSteering'),
+          sectionPayroll: navigation('sectionPayroll'),
           sectionManagement: navigation('sectionManagement'),
           signOut: auth('signOut'),
         }}

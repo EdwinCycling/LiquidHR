@@ -35,7 +35,7 @@
 
 - Target: TEST project `wnpfloqpjvaacobppbpk`, exact worktree `work/r2-r3-integration`, baseline `abfa0bbb7db628f588faa3d4818a4f4663f27b46`, integration HEAD `479b5b3156b59e99333ca486d2fc2237a31f09ed`.
 - Integrated scope: Authorization Coverage, Startpage, Organization/Departments, Continuous Appraisal, Star Performers, 9-grid, Absence Core, Absence Insights, HR Calendar + Leave, Process Automation lifecycle and Company Documents. Employment labor-condition is excluded.
-- Environment preflight: check `Test-Path apps/hr-suite/.env.local` before starting browser/API acceptance; inspect only required key names, never values; use only canonical TEST fixture-auth; do not copy or commit `.env.local`; reset TEST fixture passwords only when authenticated acceptance requires it; never use production accounts/data.
+- Environment preflight: from the active worktree run `.\scripts\start-test-worktree.ps1 -PreflightOnly` (add `-PayrollAcceptance` for Payroll Lab). It checks the central local TEST config, workspace dependencies and loopback port without displaying values or installing packages. Use only canonical TEST fixture-auth; never copy or commit `.env.local`; never use production accounts/data.
 - Technical gates: `219/219` test files and `857/857` tests, strict TypeScript, i18n `33` equal NL/EN namespaces, ESLint `0 errors / 8 warnings`, Webpack build with `224` generated static pages/routes and `git diff --check` green.
 - Schema/migration scope: 9-grid `20260823110000_fix_talent_review_start_rpc_rls.sql` and Company Documents `20260823073015_company_document_soft_delete_rls.sql` are included as code and were already applied on TEST; no remote migration was run in this integration.
 - Browser evidence: `/login` HTTP 200 with 0 relevant console-errors. All ten protected sanity routes returned HTTP 307 to `/login?next=...` anonymously, with normal routing and no relevant console-errors.
@@ -81,7 +81,9 @@ AGENT ACCEPTANCE MOET NIET STOPPEN OP “GEEN SESSIE” ZOLANG DE CANONICAL TEST
 
 ## Lokale runtime
 
-Voor echte browseracceptance: gebruik exact de actieve worktree, controleer `git rev-parse HEAD` en `git status --short`, zorg dat `apps/hr-suite/.env.local` aanwezig is zonder die te committen, start vanuit deze worktree met `npm run dev`, en gebruik `http://localhost:3000`. Controleer dat poort 3000 niet een andere worktree serveert. Gebruik bij auth-problemen een fresh Testrol-session.
+Voor echte browseracceptance: gebruik exact de actieve worktree, controleer `git rev-parse HEAD` en `git status --short`, en start vanuit de repositoryroot met `.\scripts\start-test-worktree.ps1 -Mode Development -PayrollAcceptance`. Het script laadt de goedgekeurde centrale TEST-configuratie onder `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` rechtstreeks voor het child-proces; het maakt geen lokale kopie. De standaard URL is `http://127.0.0.1:3010`. Controleer bij een eigen `-Port` dat de poort beschikbaar is; het script stopt nooit een bestaand proces. Gebruik bij auth-problemen een fresh Testrol-session.
+
+Voor een schone vastgelegde kandidaat: bouw met `.\scripts\start-test-worktree.ps1 -Mode Production -PayrollAcceptance -Build`, voer daarna `-Mode Production -PayrollAcceptance -PreflightOnly` uit en start met `-Mode Production -PayrollAcceptance`. De provenance bindt de build aan de commit en centrale TEST-public config; de standaard URL is `http://127.0.0.1:3011`. Zie [`TEST_RUNTIME_AND_VERCEL_PREVIEW.md`](TEST_RUNTIME_AND_VERCEL_PREVIEW.md) voor de volledige procedure.
 
 De eerste sanity gate is `/dashboard/start`: HTTP 200, normale render, geen PGRST303 en geen relevante console-errors. Zonder die gate volgt geen featureclaim.
 
