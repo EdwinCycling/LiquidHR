@@ -102,8 +102,9 @@ Er is geen handmatige database-readback of fixturemutatie uitgevoerd en geen sch
 - HR Suite TypeScript-check: **PASS** (`npm.cmd run type-check --workspace=@liquid-hr/hr-suite -- --incremental false`).
 - HR Suite lint: **0 errors, 7 warnings** in bestaande Payroll-testbestanden buiten APIAI-01.
 - Volledige HR Suite: **521 testbestanden geslaagd, 4 overgeslagen; 2.201 tests geslaagd, 8 overgeslagen** met `--no-file-parallelism --maxWorkers=1`. Een eerdere parallelle run had twee resourcegevoelige time-outs; de Payroll-boundary- en PDF-bestanden slaagden geïsoleerd en in de sequentiële volledige run.
-- Lokale Production-build, provenance, Production-preflight en lokale Development-preflight: **PASS** op codekandidaat `07f691c0d132bd48891bd61169d23ce671e0005a`.
-- Officiële lokale Production-mode TEST-runtime op poort 3014: **PASS**. Normale login + contextselectie zijn browsermatig voor HR Admin, Manager en Employee uitgevoerd; `/api/context` gaf 200 voor elk.
+- Lokale Production-build en provenance: **PASS** op definitieve implementatie-/contractbranch-HEAD `03ef813420ff4967afb8dcb9cfb6e09ca753b829`; 308 statische pagina's gegenereerd en Payroll client-boundary scan geslaagd (152 browser assets).
+- Production-preflight en Development-preflight: **PASS** op dezelfde SHA. Officiële lokale Production-mode TEST-runtime op poort 3014 startte succesvol.
+- Op die exacte runtimecommit slaagden de HTTP-boundaryproef **5/5** en normale login/contextselectie voor HR Admin, Manager en Employee **3/3**; `/api/context` gaf 200 voor elk account en de drie ongemounte APIAI-routes gaven elk 404.
 - Drie ongemounte APIAI-routes gaven voor elk van deze cookie-authsessies 404. Dit is alleen bewijs voor gesloten routes.
 - Officiële lokale Development-start: **BLOCKED BY ENVIRONMENT**. Next.js 16.3.6 zet Node `--env-file` uit de launcher door naar `NODE_OPTIONS`; Node 22.14.0 weigert `--env-file=` daar. De bestaande test-rolwisselaar vereist Development-mode.
 - Vercel Preview en hosted acceptatie zijn niet uitgevoerd.
@@ -141,8 +142,8 @@ De test implementeert geen productbesluit. De routegrens volgt de bouwopdracht: 
 
 - Buildbranch: `work/apiai-01-build-20261003`.
 - Baseline bij aanmaak: `6349d02538351cd01fc51f298c6e6fa0ba88006c`.
-- Codekandidaat/build-SHA: `07f691c0d132bd48891bd61169d23ce671e0005a`.
-- Document-/testcorrecties worden als afzonderlijke commit aan dezelfde branch toegevoegd; Production-build wordt daarna opnieuw aan de definitieve HEAD gekoppeld.
+- Implementatiecommit: `07f691c0d132bd48891bd61169d23ce671e0005a`.
+- Geïntegreerde contract-/acceptatiebuild en runtime-SHA: `03ef813420ff4967afb8dcb9cfb6e09ca753b829`. De huidige evidence-aanvulling is alleen documentatie; er is geen applicatiecode gewijzigd na die build en runtimeproef.
 - GitHub `main` stond bij de controle op baseline `6349d02538351cd01fc51f298c6e6fa0ba88006c`; D0-PR #2 was open en niet gemerged. Vercel Production/TEST was READY op diezelfde baseline. Deze branch is nog niet gepusht en heeft nog geen eigen PR.
 - Geen merge, deployment, Preview-configuratie of remote migratie uitgevoerd.
 
