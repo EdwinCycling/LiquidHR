@@ -1,5 +1,6 @@
 # AA-MASTER-ROADMAP — LiquidHR geïntegreerde productroadmap
 
+> **ACTUALISATIEWAARSCHUWING — 2026-10-03:** sinds dit concept is opgesteld staat de ONE VERSION/PAYLAB00–04-merge op remote `main` (`6349d02538351cd01fc51f298c6e6fa0ba88006c`); de canonieke AA-documenten staan inmiddels eveneens op main. De eerdere beschrijving dat PAYLAB04 nog de eerstvolgende feature is, en dat AA niet op main staat, is **ingehaald door deze code-/documentatiemerge**. De voorlopige releaseacceptatie op main registreerde hosted Vercel-proof/eindgate tijdens deze controle nog als PENDING. Voor verdere Payroll is nu de actuele AA-NEXT na PAYLAB04 leidend (onder meer CAO-BENCH); vervang bij formele AA-overname alle historische baselines en de oude PAYLAB04-vooruitblik. De DevDay-update in §9 is enkel een voorstel. **Deze branch niet blind mergen en security niet automatisch GREEN markeren.**\n\n
 **Status:** DRAFT / integratiedocument; nog niet canoniek op main  
 **Opgesteld:** 2026-10-02  
 **Repository:** EdwinCycling/LiquidHR  
