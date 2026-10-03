@@ -1,5 +1,11 @@
 # Implementatiestatus Liquid HR
 
+## CAO-BENCH02 Phase 1 — 2026-10-03
+
+**Status: lokale implementatie/codegates en synthetic Payroll Lab browserflow GREEN; totale acceptatie PARTIAL door een incidental Core-dashboardread; niet merge-ready.** Branch `work/cao-bench02-20261003` vanaf exact `6349d02538351cd01fc51f298c6e6fa0ba88006c`. De drie arrangementmigrations zijn toegepast op de geïsoleerde Payroll Lab-database `jhgeriucbkfarxiudzfy`; RLS/grants/readback/advisors zijn gecontroleerd. Na de UI-flow staan 3 synthetic rijen in elk van de drie arrangementtabellen; geen Core/CONTROL02-write.
+
+Gerichte arrangement-/route-/overviewregressies: 35 tests PASS in 5 bestanden; strict TypeScript, changed-area ESLint, NL/EN i18n en `git diff --check` PASS. Er is geen volledige test suite of build uitgevoerd. De local browserflow is geslaagd via de guarded TEST-runtime. De bestaande browserloginredirect laadde eerst Core dashboard employee/absence-samenvattingen en een avatar; daarom staat de totaalscopeacceptatie op PARTIAL. De laatste LUNA MAX-review vond geen P1/P2. Zie het [CAO-BENCH02-rapport](../payroll/acceptance/CAO-BENCH02-20261003.md).
+
 ## ONE VERSION — PAYLAB00–04 TEST-release — 2026-10-02
 
 **Status: integratie MERGE-READY; ONE VERSION TEST-releasekandidaat `17b0485736f4e108a0dec96c77a877c30ab80568` is gebouwd en de lokale Test HR Admin-browser-smoke is groen.** Appversie `1.20261002.1` is geselecteerd. De historische NL-2026-browsertestfout is herleid tot `PGRST303: JWT issued at future`; de productie-browsertests slaagden bij de daaropvolgende retest. Er is geen Payroll-applicatiecode gewijzigd. LUNA MAX vond geen resterende P1/P2 in de launcher. De GitHub-merge, deployment en hosted smoke worden vastgelegd in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.

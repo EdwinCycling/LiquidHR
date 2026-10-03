@@ -1,7 +1,16 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-02
+Momentopname: 2026-10-03
+
+## CAO-BENCH02 Phase 1 candidate — 2026-10-03
+
+De PAYLAB05-arrangementfoundation wordt lokaal ontwikkeld op `work/cao-bench02-20261003`, vanaf baseline `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Dit is een afzonderlijke kandidaatbranch na PAYLAB00–04; de actuele `main`/TEST-release hierboven is niet door deze slice bijgewerkt.
+
+- De bestaande QA-groep uit AA-PAYROLL hoofdstuk 13 blijft Planeten → Jupiter BV → Directie. De arrangementfixtures zijn synthetisch; na een loginredirect is wel de Core-startpagina met employee/absence-samenvattingen en een avatar gerenderd. Zie acceptance voor de scopecaveat.
+- Alleen Payroll Lab Supabase `jhgeriucbkfarxiudzfy` ontving de drie arrangementmigrations. Tabellen zijn RLS-afgeschermd, bevatten na synthetic browseracceptatie 3 beschikbaarheden, 3 assignments en 3 snapshots, en hebben geen foreign keys naar Core.
+- Er zijn geen salarisbedragen, payrollberekeningen, CAO-toepasselijkheidsclaims, CONTROL02-wijzigingen, versiebump, merge, push of deployment.
+- Gerichte codegates, synthetic Payroll Lab browserflow en LUNA MAX review zijn groen. Totale acceptatie blijft PARTIAL door de incidental Core-dashboardread. Zie [acceptance](../payroll/acceptance/CAO-BENCH02-20261003.md) en [ADR](../decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md).
 
 > **Actueel:** CONVERGENCE01 is als TEST-release vrijgegeven op 2026-10-02. Dit is **geen** claim dat de volledige live security-/persona-acceptatiematrix GREEN is.
 

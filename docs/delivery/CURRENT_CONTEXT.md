@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## CAO-BENCH02 Phase 1 arrangement foundation — 2026-10-03
+
+- Kandidaatbranch `work/cao-bench02-20261003`, gestart vanaf exacte PAYLAB00–04 baseline `6349d02538351cd01fc51f298c6e6fa0ba88006c`. De bestaande `Code`, `Integration-Payroll-20261002`, Nmbrs en `main` zijn buiten scope.
+- Gebouwd: versioned metadata-only arrangementcatalogus, drie synthetic fixtures, administration-scoped effective availability, één primaire fixturetoewijzing per fixture en immutable hash-pinned compositiesnapshots. Geen loontabellen/berekeningen of juridische toepasselijkheidsbeslissing.
+- Payroll Lab Supabase `jhgeriucbkfarxiudzfy` heeft migrations `20261003100000`, `20261003123000` en `20261003130000` ontvangen (server versions `20261003122457`, `20261003122705`, `20261003124346`). Na authenticated synthetic setup: 3 availability, 3 assignments, 3 snapshots; RLS en beperkte service_role-grants bevestigd, geen Core-FK's. De derde migrationbron is na toepassing veilig gehard en remote niet opnieuw uitgevoerd.
+- Verificatie: 35 gerichte tests / 5 bestanden PASS; strict TypeScript, changed-area ESLint, NL/EN i18n (41 namespaces) en `git diff --check` PASS. Geen volledige hr-suite of build. LUNA MAX follow-up: geen resterende P1/P2.
+- Browser: local route en synthetic forms werkten. Een bestaande TEST-sessie stuurde `/login` eerst naar `/dashboard/start`, waar Core employee/absence-samenvattingen en een employee-avatarresponse werden geladen. Geen details gebruikt of gewijzigd; dit overschreed de afgesproken no-Core-read-grens en staat als scopecaveat in acceptance. Verder geen production/hosted deploy.
+- De tijdelijke runner is gestopt en de task-local npm-cache is verwijderd. Geen Core-writes, CONTROL02, version bump, merge, push of deployment.
+- [Acceptance](../payroll/acceptance/CAO-BENCH02-20261003.md) · [ADR](../decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md) · [uitvoeringsplan](../payroll/research/CAO-BENCH02-TWO-CAO-TEST-EMPLOYEE-EXECUTION-PLAN.md).
+
 ## ONE VERSION — accepted PAYLAB00–04 release preparation — 2026-10-02
 
 - Geaccepteerde integratiebranch `integration/payroll-foundation-20261002`, basis-HEAD `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; eerdere onafhankelijke LUNA MAX-acceptatiereview en desktop/390 px productie-browsertests zijn GREEN.

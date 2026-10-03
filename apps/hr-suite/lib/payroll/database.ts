@@ -1,3 +1,5 @@
+import type { ArrangementSalaryStrategy } from './arrangement-foundation'
+
 export type PayrollJson =
   | string
   | number
@@ -167,6 +169,47 @@ export type PayrollCustomerComponentVersionRow = {
   created_by_user_id: string
 }
 
+export type PayrollArrangementAvailabilityRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  package_id: string
+  effective_from: string
+  effective_to: string | null
+  updated_at: string | null
+  updated_by_user_id: string | null
+}
+
+export type PayrollArrangementAssignmentRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  source_employment_id: string
+  fixture_code: string
+  package_id: string
+  salary_strategy: ArrangementSalaryStrategy
+  effective_from: string
+  effective_to: string | null
+  is_primary: true
+}
+
+export type PayrollArrangementCompositionSnapshotRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  source_employment_id: string
+  assignment_id: string
+  as_of_date: string
+  snapshot_json: PayrollJson
+  snapshot_hash: string
+}
+
 type PayrollTable<Row, Insert, Update = Partial<Insert>> = {
   Row: Row
   Insert: Insert
@@ -277,6 +320,32 @@ export interface PayrollDatabase {
       customer_component_versions: PayrollTable<
         PayrollCustomerComponentVersionRow,
         Omit<PayrollCustomerComponentVersionRow, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        },
+        never
+      >
+      payroll_arrangement_availability: PayrollTable<
+        PayrollArrangementAvailabilityRow,
+        Omit<PayrollArrangementAvailabilityRow, 'id' | 'created_at' | 'updated_at' | 'updated_by_user_id'> & {
+          id?: string
+          created_at?: string
+          updated_at?: string | null
+          updated_by_user_id?: string | null
+        },
+        Partial<PayrollArrangementAvailabilityRow>
+      >
+      payroll_arrangement_assignments: PayrollTable<
+        PayrollArrangementAssignmentRow,
+        Omit<PayrollArrangementAssignmentRow, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        },
+        never
+      >
+      payroll_arrangement_composition_snapshots: PayrollTable<
+        PayrollArrangementCompositionSnapshotRow,
+        Omit<PayrollArrangementCompositionSnapshotRow, 'id' | 'created_at'> & {
           id?: string
           created_at?: string
         },

@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## CAO-BENCH02 Phase 1 — 2026-10-03
+
+De lokale Payroll Lab-kandidaat staat op branch `work/cao-bench02-20261003`, gestart vanaf exact `6349d02538351cd01fc51f298c6e6fa0ba88006c`. De arrangementfoundation ondersteunt drie versioned referentiepakketten en drie synthetische testdienstverbanden. Er worden geen salarisbedragen, CAO-rekenregels of Core-employeegegevens in Payroll Lab verwerkt. De juiste latere Core-QA-groep is Planeten → Jupiter BV → Directie. De bestaande TEST-loginredirect laadde echter de Core-startpagina met employee/absence-samenvattingen en een avatar; daarom is totale acceptatie PARTIAL, ondanks dat de arrangementflow synthetic is.
+
+De feature is lokaal gecontroleerd met 35 gerichte tests, strict TypeScript, gewijzigde-bestanden-ESLint en NL/EN i18n-pariteit. Drie forward migrations staan op de afzonderlijke Payroll Lab Supabase `jhgeriucbkfarxiudzfy`; de UI heeft alleen synthetic records geplaatst (3 beschikbaarheden, 3 assignments, 3 snapshots). De finale LUNA MAX-review vond geen P1/P2. Zie [CAO-BENCH02 acceptance](payroll/acceptance/CAO-BENCH02-20261003.md) en [ADR-PAYLAB-002](decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md). Deze branch verandert main, de appversie en deployment niet.
+
 ## ONE VERSION — accepted PAYLAB00–04 integration — 2026-10-02
 
 **Status: PAYLAB integration MERGE-READY at `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; ONE VERSION release preparation is underway.** The independent LUNA MAX acceptance review passed. The earlier production historical-run error was traced to `PGRST303: JWT issued at future`; desktop and 390 px browser retests passed. No Payroll application fix or new CAO implementation was needed. The release candidate sets app version `1.20261002.1`; merge/deployment status is recorded in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.

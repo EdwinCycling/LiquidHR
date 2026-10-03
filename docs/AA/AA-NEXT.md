@@ -1,9 +1,20 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-02
+Bijgewerkt: 2026-10-03
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
+
+## CURRENT — CAO-BENCH02 Phase 1 Arrangement Foundation
+
+PAYLAB05 Phase 1 bouwt in `work/cao-bench02-20261003` vanaf exact baseline `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Het levert effectieve regelingbeschikbaarheid per Payroll-administratie, precies één primaire regeling per synthetisch dienstverband en immutable compositiesnapshots met versie- en inhoudshash. Drie metadata-only pakketten en drie synthetische fixtures zijn inbegrepen.
+
+- Fase 1 rekent geen loon, vult geen salaristabel en bepaalt geen wettelijke CAO-werkingssfeer.
+- De QA-groep uit AA-PAYROLL §13 (Planeten → Jupiter BV → Directie) blijft de latere bronreferentie. De arrangementflow gebruikte uitsluitend synthetic fixtures; een bestaande TEST-loginredirect laadde wel Core dashboard employee/absence-samenvattingen en een avatar, zoals vastgelegd in acceptance. Er waren geen Core-writes of wijzigingen aan CONTROL02.
+- Afgerond: gerichte tests, typecheck, changed-area lint, i18n, authenticated Payroll Lab browserflow en LUNA MAX review. De drie Payroll Lab-migrations zijn remote toegepast; na UI setup staan 3 synthetic rijen in elk van de drie featuretabellen.
+- Totale acceptatie blijft PARTIAL door de incidental Core-dashboardread. Geen integratie of deployment volgt uit deze kandidaat.
+
+Volledig bewijs: [CAO-BENCH02 acceptance](../payroll/acceptance/CAO-BENCH02-20261003.md); technische keuze: [ADR-PAYLAB-002](../decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md).
 
 ## Current release — ONE VERSION / PAYLAB00–04
 
