@@ -63,8 +63,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '405':
           $ref: '#/components/responses/MethodNotAllowed'
+        '413':
+          $ref: '#/components/responses/RequestTooLarge'
         '429':
           $ref: '#/components/responses/RateLimited'
         '500':
@@ -137,8 +141,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '405':
           $ref: '#/components/responses/MethodNotAllowed'
+        '413':
+          $ref: '#/components/responses/RequestTooLarge'
         '429':
           $ref: '#/components/responses/RateLimited'
         '500':
@@ -228,6 +236,25 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: De resource wordt niet gevonden zonder verborgen populatie te bevestigen.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
     MethodNotAllowed:
       description: Alleen GET is toegestaan.
       headers:
@@ -235,6 +262,25 @@ components:
           schema:
             type: string
             const: GET
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    RequestTooLarge:
+      description: Het verzoek overschrijdt de toegestane omvang.
+      headers:
         Cache-Control:
           schema:
             type: string

@@ -81,7 +81,7 @@ API-readprojectie alleen nullable uitbreidingsvelden toe:
 - `api_client_id` met een lengte- en karaktergrens;
 - `api_outcome` met `ALLOWED`, `DENIED` en `RATE_LIMITED`;
 - eventueel een bounded HTTP-statusveld;
-- bestaand `correlation_id` als herleidbare API-correlatie.
+- bestaand `correlation_id` als herleidbare API-correlatie. De huidige APIAI-scaffolding geeft alleen `correlationId` aan de auditwriter door; of dit volstaat of ook `requestId` moet worden opgeslagen, vereist expliciete Product- en Securitykeuze vóór de auditmigratie.
 
 Maak `entity_id` alleen nullable wanneer tegelijk een constraint wordt
 toegevoegd die het volgende afdwingt:
