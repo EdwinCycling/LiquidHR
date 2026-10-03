@@ -1,5 +1,6 @@
 # AA-API-AI — LiquidHR API, MCP, WebMCP en ChatGPT-integraties
 
+> **ACTUALISATIEWAARSCHUWING — 2026-10-03:** sinds de opstelling van dit concept is de ONE VERSION/PAYLAB00–04-merge daadwerkelijk op remote `main` verschenen: `6349d02538351cd01fc51f298c6e6fa0ba88006c`. De AA-set staat inmiddels ook op `main`. Het daar aanwezige release-acceptatierapport beschreef bij deze controle de hosted Vercel-smoke/definitieve eindgate nog als PENDING. **Een main-merge is geen bewezen gezamenlijke Vercel-/security-GREEN.** De eerdere momentopname en verwijzingen verderop in dit concept zijn historisch; vóór implementatie of overname dit gehele document reconciliëren tegen de **nieuwste** canonieke AA-API-/securitycontracten op main. De nieuwe DevDay-informatie in §11 is een ontwerpvoorstel, geen releasewijziging. Deze documentatiebranch niet blind mergen.\n\n
 **Status:** DRAFT — inventarisatie en uitvoeringsplan; geen implementatieautorisatie  
 **Datum:** 2026-10-02  
 **Broncodebaseline:** EdwinCycling/LiquidHR, main @ cb73260ff0cd83d19fa29e44c9f0b93749fb10af  
