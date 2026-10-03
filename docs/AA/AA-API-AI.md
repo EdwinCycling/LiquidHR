@@ -166,3 +166,69 @@ Gebruik na formele overname de dan canonieke AA-TEST en AA-ACCEPT; dupliceer hie
 2. D-02 code-/contractmatrix verdiepen per geselecteerde workforce/skills/plan-tool, plus generiek genaamde Nmbrs providerflows op alle relevante branches; expliciet labelen wat door deze eerste git-tree- en bestandsinventarisatie nog niet is aangetoond.
 3. Open besluiten D-03 t/m D-09 afbakenen in bestaande ADR/FDR-/requirementstructuur en laten accorderen voordat de betrokken slice start.
 4. Pas na de GREEN-gate de eerste implementatie-worktree vanaf de dan huidige main aanmaken. De huidige docs-branch is nadrukkelijk **geen** implementatieworktree.
+
+
+## 11. DevDay 2026 update — OpenAI Plugin Extensions, onboarding en Sign in with ChatGPT
+
+**Broncontrole:** 2026-10-03. Dit is een **nieuw te beoordelen ontwerpinput**, niet automatisch een goedgekeurde extra MVP-scope of bewijs van beschikbaarheid voor LiquidHR. Bronnen:
+- [Officiële MCP Extensions-specificatie](https://github.com/openai/mcp-extensions/blob/main/docs/spec.md)
+- [OpenAI Developer Guide: Plugin Extensions](https://developers.openai.com/plugins/build/extensions)
+- [OpenAI Cookbook: Sign in with ChatGPT (2026-09-28)](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)
+- [OpenAI DevDay 2026 feature-overzicht](https://learn.chatgpt.com/docs/whats-new/devday-2026)
+
+### 11.1 Nieuwe productmogelijkheid: van read-only ChatGPT-tool naar integreerbare pluginervaring
+
+OpenAI MCP Extensions breidt MCP en MCP Apps uit met aanvullende ChatGPT-oppervlakken. Die mogelijkheden veranderen niet het bestaande ontwerpbesluit van **één geautoriseerde business-toolfaçade** en één read-only Workforce Assistant-MVP. Ze bieden nieuwe, te beoordelen presentatielagen *bovenop dezelfde tools*:
+
+| Extension | Mogelijke LiquidHR-toepassing | Scope/voorwaarde |
+| --- | --- | --- |
+| Global/sidebar entrypoint | LiquidHR Workforce-startoverzicht direct vanuit ChatGPT | Kandidaat voor UI-verdieping na bewezen read-only MCP; geen kopie van de volledige LiquidHR-webapp |
+| Thread/conversation panel | Compact team-/skills-/POP-overzicht naast een gesprek | Kandidaat voor eerste compacte interactieve UX mits platformsupport en dataminimalisatie bewezen |
+| Plugin settings | Connectiestatus, toegestane keuze van HR-context en productvoorkeuren | Settings verlenen geen rechten; server valideert alle contextselecties |
+| MCP App deep links | Vanuit een antwoord rechtstreeks naar een geautoriseerd LiquidHR-team-/ontwikkeloverzicht | Deep links zijn navigatie, geen authenticatie of autorisatie |
+| Model-App Context | Geselecteerde, minimale geautoriseerde UI-context gebruiken bij gerichte analyse | Noodzakelijke informatie minimaliseren; geen brede PII of stille bulkcontext delen |
+| Custom file viewers/editors | In een latere fase HR-documentpreview en mogelijke documentworkflows | Niet in MVP; desktop-beperking bij introductie, documentscope/consent/audit en beveiligde opslag vereist |
+| Composer @-mentions / rich forms | Later een medewerker/plan selecteren of gestructureerde invoer faciliteren | Ondersteuning verschilt per client; geen MVP-verplichting |
+| Plugin onboarding skill | Na installatie begeleid koppelen en eerste waardevolle read-only vraag laten stellen | Geschikt als lichte toevoeging zodra auth, distributie en MCP-connectie vaststaan |
+
+**Platforms:** volgens de bij DevDay gepubliceerde specificatie ondersteunen global- en thread-entrypoints desktop, Work-web, iOS en Android; de specificatie definieert 'web' als **Work browser, niet klassieke ChatGPT-webinterface**. File opening/viewers en composer @-mentions zijn bij die introductie desktop-only. Beschikbaarheid en rollout moeten op de concrete TEST-clients worden gemeten, niet op de documentatietabel worden aangenomen.
+
+### 11.2 Concrete onboardinghypothese voor de eerste pluginpilot
+
+Maak van onboarding een functionele eerste ervaring, geen lange producttour:
+1. Na installatie activeert de gebruiker de meegeleverde setup-skill; toon doel en read-only-grenzen van LiquidHR.
+2. Verbind de bestaande LiquidHR-identiteit via het apart goedgekeurde **LiquidHR-naar-ChatGPT OAuth/delegatiecontract** en doorloop eventuele tenant-/HR-groep-/administratiekeuze binnen de daadwerkelijke gebruikersrechten.
+3. Doe één nuttige geautoriseerde starttaak, bijvoorbeeld een compacte samenvatting van het team van deze gebruiker met een link naar het LiquidHR-scherm. Als er geen teamrechten of geschikte brondata zijn, toon een begrijpelijke capability-/no-data-uitkomst zonder kunstmatige data.
+4. Licht toe waar de gebruiker toegang kan beheren, een verbinding kan intrekken en een taak in LiquidHR kan voortzetten.
+
+De officiële extensiespecificatie ondersteunt een in het pluginmanifest verpakte `extensions["com.openai"]["onboardingSkill"]` als verwijzing naar een meegeleverde skill. De skill bevat **geen** geheimen, bypass-instructies, permanente impersonatie of eigen autorisatielogica; iedere read-call blijft server-side scoped en geaudit. Schrijf deze skill pas als de werkelijk gekozen pluginverpakking en auth-flow zijn goedgekeurd.
+
+### 11.3 Sign in with ChatGPT: een afzonderlijke product- en haalbaarheidsbeslissing
+
+De nieuwe Sign in with ChatGPT-functionaliteit biedt twee te onderscheiden mogelijkheden:
+- **Identity:** een app kan de geverifieerde ChatGPT-identiteit gebruiken om een eigen appaccount aan te melden/aan te maken, indien de toepassing toegang heeft tot deze functie.
+- **ChatGPT plan usage:** met een aparte, optioneel verleende machtiging kunnen daarvoor geschikte apps AI-aanvragen op basis van het beschikbare ChatGPT-plan/credits van de gebruiker uitvoeren. Identity-toestemming alleen geeft geen plan-usage-rechten; geen van beide geeft toegang tot eerdere ChatGPT-gesprekken.
+
+**Beschikbaarheid ten tijde van broncontrole:** plan usage is volgens de Cookbook aangeboden aan open-sourceprojecten, lokaal draaiende persoonlijke projecten en geselecteerde private apps; identity-only aan een geselecteerde groep commerciële partners. LiquidHR is een commerciële HR-SaaS en mag daarom **geen** algemene beschikbaarheid, kosteloze implementatie of commerciële entitlement aannemen. Plan usage is ook **geen** vervanging voor Liquid Credits of bewijs dat server-side/scheduled LiquidHR-AI-calls door een klantabonnement kunnen worden betaald.
+
+**Cruciaal onderscheid:** de gebruiker die ChatGPT gebruikt om LiquidHR te benaderen moet via een *apart LiquidHR resource-server/delegatiecontract* voor een bestaande LiquidHR-actor en diens actuele rechten worden geautoriseerd. Een succesvolle ChatGPT-identiteitscontrole maakt de ChatGPT-gebruiker niet automatisch HR Admin, Manager of Employee binnen een tenant en vervangt geen Supabase-/LiquidHR-autorisatie. Voorkom accountkoppeling uitsluitend op een gelijk e-mailadres.
+
+**Nieuw besluit D-11 (OPEN):** is commerciële Sign in with ChatGPT-toegang voor LiquidHR daadwerkelijk verkrijgbaar, welk account-linking-/consent-/logoutcontract geldt, en heeft dat aantoonbare waarde naast de bestaande LiquidHR-login? Deze haalbaarheidscheck mag de huidige read-only MCP/ChatGPT-MVP niet blokkeren. Behoud de standaard externe gedelegeerde autorisatie als onafhankelijk werkend pad.
+
+### 11.4 Bijgestelde productfasering zonder scopeverschuiving
+
+- **APIAI-D0:** voeg een actuele support-/rolloutmatrix per ChatGPT-client toe, controleer Plugin Extensions SDK/spec en valideer distributie, externe resource-server-auth en D-11. Beschouw deze specs als externe veranderlijke contracten.
+- **APIAI-03/04 eerste MVP:** dezelfde drie reeds afgesproken read-only tools en bestaande geautoriseerde servicefaçade; alleen de kleinste UI die nodig is voor echte end-to-endwaarde. Voeg in de pilot de onboarding-skill toe *als* de gekozen packaging en de auth-flow dat mogelijk maken. Een threadpanel is een UI-optie, geen extra verplicht domein.
+- **APIAI-04 UI-verdieping na eerste MVP:** verken global/sidebar entrypoint, aantrekkelijke Workforce- en teaminzichten, instellingen, contextdeling en deep links; bewijstests op ondersteunde clients.
+- **APIAI-05 WebMCP:** blijft een **apart browservertrouwensmodel** van MCP Plugin Extensions in ChatGPT. Geen bewijs van veilige WebMCP-productintegratie afleiden uit een werkende ChatGPT-sidebar.
+- **Latere afzonderlijk geaccordeerde fase:** file viewers/editors voor Documenten & Signing, eventgedreven proactieve taken en eventuele Sign in with ChatGPT-optie na platform-, privacy-, security- en businesscasebesluit.
+
+### 11.5 Aanvullende acceptatie bij een plugin-UI-pilot
+
+- Geldige en geweigerde contextselectie, inclusief forged tenant/HR-groep/administratie, verlopen/ingetrokken machtiging en verschil tussen ChatGPT-identiteit en LiquidHR-actor.
+- Dataminimalisatie voor panel, model-appcontext, UI-state en deep links; geen vertrouwelijke medewerkerdata in ongescopeerde init-, telemetry- of plugindefaultresultaten.
+- Install → onboarding → echte read-only eerste taak → uitleg bron/resultaat → revoke → daaropvolgende tool-call fail-closed; geen tweede permissiebron.
+- Feitelijke desktop/Work-web/iOS/Android-ondersteuning per gebruikte extension; degradeer netjes waar een oppervlak nog niet beschikbaar is.
+- Eventuele ChatGPT plan usage apart opt-in, technisch én commercieel beschikbaarheid bewezen, eigen AI-budget- en governancecontract expliciet; geen stilzwijgende koppeling aan de serverkosten.
+
+**Beheer:** verwerk dit concept pas na ONE VERSION-documentatieconvergentie op de dan canonieke main; actualiseer D-11 en de supportmatrix bij de start van de betreffende uitvoeringsslice.
