@@ -233,3 +233,17 @@ Elke uitvoeringsrun verwijst naar het exacte start-SHA, de bedoelde scope, benod
 9. **Capaciteit/planning:** pas kalenderkwartalen, teams en harde releasedatums toevoegen zodra de afhankelijkheden en beschikbare capaciteit expliciet zijn vastgesteld.
 
 **Bijwerkregel:** na elke gezamenlijke GREEN-release eerst AA-CURRENT/AA-ACCEPT/AA-NEXT controleren; actualiseer deze master alleen bij relevante portfolio-, afhankelijkheids- of horizonwijzigingen. Detailrequirements blijven in de domeindocumenten, en bewijs in gedateerde acceptatierapporten. Zo ontstaat één overzicht zonder concurrerende of gedupliceerde roadmaps.
+
+
+## 9. Nieuwe ecosysteeminput: OpenAI Plugin Extensions (DevDay 2026)
+
+**Broncontrole:** 2026-10-03; **status:** voorgestelde uitbreiding van de *presentatie- en onboarding-roadmap*, geen extra automatische MVP-verplichting. Deze input is volledig uitgewerkt in het afzonderlijke AA-API-AI-concept, sectie 11. Actuele primaire bronnen:
+- https://github.com/openai/mcp-extensions/blob/main/docs/spec.md
+- https://developers.openai.com/plugins/build/extensions
+- https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt
+
+De reguliere externe API, één gedeelde geautoriseerde business-toolfaçade en een read-only MCP/ChatGPT Workforce Assistant blijven onze **eerste kernarchitectuur**. Nieuw te beoordelen zijn de ChatGPT-sidebar als mogelijke LiquidHR Workplace, een compact conversation-panel voor team-/skills-/POP-inzichten, instellingen en beveiligde deep links. Een verpakte onboarding-skill kan een eerste bruikbare read-only teamvraag begeleiden zodra distributie en auth aantoonbaar werken. HR-documentviewers/editors, model-appcontext op grotere schaal, events en geavanceerde ChatGPT-UX behoren tot latere afzonderlijk beoordeelde fasen.
+
+OpenAI's **Sign in with ChatGPT** mag niet worden verward met het resource-server- en rechtencontract voor LiquidHR-data. ChatGPT-identiteit is geen HR-rol, tenanttoewijzing of automatische accountlink. Optioneel gebruik van iemands ChatGPT-plan voor AI-aanvragen is een andere, afzonderlijk toegestane mogelijkheid. De officiële documentatie beperkt de initiële commerciële identity-beschikbaarheid tot geselecteerde partners en plan usage tot onder andere open-source, lokale persoonlijke en geselecteerde private apps; daardoor krijgt LiquidHR een **haalbaarheidsbesluit**, geen MVP-afhankelijkheid of aangenomen besparing op Liquid Credits.
+
+**Roadmapplaatsing:** tijdens APIAI-D0 actuele feature-/platformmatrix en commerciële beschikbaarheid verifiëren; eventueel onboarding bij bewezen eerste MCP/ChatGPT-MVP; sidebar/panel/settings/context/deep links als UI-verdieping; documentviewer en eventueel events later. Plugin Extensions zijn niet hetzelfde als WebMCP: beide delen services en governance maar hebben een ander kanaal en eigen toegangs-/acceptatietests. Geen wijzigingen aan de lopende ONE VERSION-merge of release.
