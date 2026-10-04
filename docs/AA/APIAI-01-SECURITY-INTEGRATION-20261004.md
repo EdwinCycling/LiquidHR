@@ -6,8 +6,8 @@
 - **Baseline:** GitHub `main` `6349d02538351cd01fc51f298c6e6fa0ba88006c`
 - **Upstream PR:** [draft PR #3](https://github.com/EdwinCycling/LiquidHR/pull/3), target `main`
 - **PR head at live recheck:** `399d596cbfd7cd5827f2d3f3eed60c40d40ba6dd`; this remained the remote head at the final pre-commit check. The local, unpushed code candidate SHA is recorded after the production-mode build below.
-- **Exact local code/build SHA:** `7d0f4b6043014e493a56fadc3909d24536f81153`. The later closeout commit changes documentation only.
-- **Scope boundary:** no OAuth activation, external route mount, remote migration, deployment, push, or merge.
+- **Code/build provenance:** application code commit `2bc99a210d4cfb4f73a47e47dff26c7bf2745891`; final official Production build/provenance commit `799f036d1f8dd874bdd6dcb54c425bfd1c2ce29c`. Later commits change documentation only.
+- **Scope boundary:** no OAuth activation, external route mount, remote migration, deployment, or merge. Documentation commits were pushed only to the existing Draft PR after branch-head and no-deployment checks.
 
 > **Historical snapshot:** sections 1–10 preserve the pre-final-wave candidate and evidence. Section 11 is authoritative for current code, build, database, test, provider, and remote status; it supersedes conflicting claims in sections 1–10.
 
