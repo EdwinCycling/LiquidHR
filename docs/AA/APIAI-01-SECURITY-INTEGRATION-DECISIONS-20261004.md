@@ -72,7 +72,7 @@ De kandidaat-RPC-wrappers en hun allowlistpayloads bestaan lokaal, maar de benod
 
 ## Besluitstatus en activeringsgrens
 
-Alle bovenstaande keuzes blijven **PROPOSAL / NOT APPROVED**. Opname in D0/PR #2 of PR #3, tests of dit addendum vormen geen goedkeuring. Een externe route blijft ongemount tot de benodigde Product-, Security-, Privacy- en Data-goedkeuringen formeel in ADR/FDR/contract zijn vastgelegd en provider-, RLS-, database- en runtimebewijs alle relevante negatieve cases dekt.
+Alle bovenstaande keuzes blijven **PROPOSAL / NOT APPROVED**. Opname in D0/PR #2 of PR #3, tests of dit addendum vormen geen goedkeuring. Een externe route blijft ongemount tot de benodigde Product-, Security-, Privacy-, Data- en Operations-goedkeuringen formeel in ADR/FDR/contract zijn vastgelegd en provider-, RLS-, database- en runtimebewijs alle relevante negatieve cases dekt.
 
 ## P-05 status update — Final Integration Wave, 2026-10-04
 
