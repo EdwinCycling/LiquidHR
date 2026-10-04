@@ -1,5 +1,8 @@
 # Implementatiestatus Liquid HR
 
+## TEST-HARNESS01 — lokale acceptatieharness — 2026-10-04
+
+**Status: lokale browseracceptatie 6/6 GREEN; onafhankelijke LUNA MAX-review vond geen auth-/origin-/context-/role-switch-blocker; lokale production build wordt nog vastgelegd. Hosted gebruik is NOT RELEASE-READY.** De login-403 is gerepareerd met Host-gebaseerde request-origin; allowlist en local-only Test Auth-gates blijven dicht buiten development. HR Admin, Manager en Medewerker passeerden desktop en iPhone 16 393 × 852 met identity-scoped context, rolwissel/terugkeer en positieve/negatieve API-probes. Test Auth- en rolwisselresponses wissen contextcookies bij een identiteitsovergang; de nieuwe persona-context wordt opnieuw server-side gecontroleerd. Acht gerichte Vitest-bestanden (80 tests), twaalf contextcontracttests, ESLint, strict typecheck en check:i18n zijn groen. Geen migration, businessdatawrite, push, merge of deployment. Bewijs: [runrapport](../quality/acceptance/runs/TEST-HARNESS01-20261004.md) en [handleiding](../quality/acceptance/TEST-HARNESS01.md).
 ## ONE VERSION — PAYLAB00–04 TEST-release — 2026-10-02
 
 **Status: integratie MERGE-READY; ONE VERSION TEST-releasekandidaat `17b0485736f4e108a0dec96c77a877c30ab80568` is gebouwd en de lokale Test HR Admin-browser-smoke is groen.** Appversie `1.20261002.1` is geselecteerd. De historische NL-2026-browsertestfout is herleid tot `PGRST303: JWT issued at future`; de productie-browsertests slaagden bij de daaropvolgende retest. Er is geen Payroll-applicatiecode gewijzigd. LUNA MAX vond geen resterende P1/P2 in de launcher. De GitHub-merge, deployment en hosted smoke worden vastgelegd in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.

@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## TEST-HARNESS01 — lokale acceptatieharness — 2026-10-04
+
+- Bestaande worktree/branch work/test-harness01-20261004, start-HEAD 6349d02538351cd01fc51f298c6e6fa0ba88006c; geen nieuwe worktree of remote wijziging.
+- 403-rootcause bewezen: browser-Origin en Host waren 127.0.0.1; Next request.nextUrl.origin werd localhost. Originvalidatie gebruikt nu feitelijke Host-gebaseerde request-origin en blijft strict; vaste allowlist en local-only Test Auth-gates bleven behouden.
+- Finale lokale browsermatrix 6/6 GREEN: HR Admin/Manager op /dashboard/start, Medewerker op /personal-settings, desktop 1440×900 en iPhone 16 393×852. Per cel nieuwe browsercontext; Manager/Medewerker switchten via de bestaande serverflow en keerden terug naar HR Admin.
+- Context: tenant/HR-groep correct voor alle rollen; HR Admin/Manager matchten de exacte administratie. Medewerker had geen actieve administratie en een lege server-toegankelijke set. Test Auth- en rolwisselresponses wissen alle drie de actieve contextcookies bij identiteitsovergang; de runner controleerde bron- en doelcontext afzonderlijk. Positieve en negatieve API-probes geslaagd.
+- Gerichte tests 8 Vitest-bestanden/80 tests plus 12 harness-contexttests; ESLint, strict typecheck incremental false, i18n (41 namespaces), runner syntax en runtimecontract geslaagd. Package type-checkscript kon eerder tsbuildinfo niet schrijven (EPERM); compilercontrole slaagde zonder incremental output. Volledige suite niet vereist voor deze begrensde scope.
+- Tijdelijke server ruimde uitsluitend eigen PID op; daarna geen listener. Bestaande server tijdens diagnose als NOT_OWNED behouden. Canonieke .env.local alleen op bestaan gecontroleerd, niet gelezen of gewijzigd.
+- Onafhankelijke LUNA MAX-review afgerond zonder resterende auth/origin/context-cookie/role-switch-beveiligingsblocker; 12 contextcontracttests en finale 6/6-browsermatrix bevestigd. Nog af te ronden: lokale production build op de kandidaatcommit en documentatieclose-out met exacte SHA's. Geen push/merge/deploy.
+- Handleiding: docs/quality/acceptance/TEST-HARNESS01.md; bewijs en hervatinstructies: docs/quality/acceptance/runs/TEST-HARNESS01-20261004.md.
 ## ONE VERSION — accepted PAYLAB00–04 release preparation — 2026-10-02
 
 - Geaccepteerde integratiebranch `integration/payroll-foundation-20261002`, basis-HEAD `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; eerdere onafhankelijke LUNA MAX-acceptatiereview en desktop/390 px productie-browsertests zijn GREEN.

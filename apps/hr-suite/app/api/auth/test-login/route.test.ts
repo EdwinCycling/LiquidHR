@@ -9,16 +9,24 @@ const { createClient, signInWithPassword, signOut } = vi.hoisted(() => ({
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
 import { NextRequest } from 'next/server'
+import { ACTIVE_ADMINISTRATION_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_TENANT_COOKIE } from '@/lib/context/context-cookies'
 import { POST } from './route'
 
 const APPLICATION_URL = 'http://localhost:3000'
 const SYNTHETIC_TEST_PASSWORD = 'synthetic-admin-password'
 
-function loginRequest(persona: string, origin = APPLICATION_URL): NextRequest {
-  return new NextRequest(`${APPLICATION_URL}/api/auth/test-login`, {
+function loginRequest(
+  persona: string,
+  origin = APPLICATION_URL,
+  next?: string,
+  requestUrl = APPLICATION_URL,
+): NextRequest {
+  const body = new URLSearchParams({ persona })
+  if (next !== undefined) body.set('next', next)
+  return new NextRequest(`${requestUrl}/api/auth/test-login`, {
     method: 'POST',
-    headers: { origin },
-    body: new URLSearchParams({ persona }),
+    headers: { origin, host: new URL(requestUrl).host },
+    body,
   })
 }
 
@@ -76,6 +84,10 @@ describe('POST /api/auth/test-login', () => {
     expect(response.headers.get('location')).toBe(`${APPLICATION_URL}/dashboard/start`)
     expect(response.headers.get('cache-control')).toContain('no-store')
     expect(response.headers.get('referrer-policy')).toBe('no-referrer')
+    for (const cookieName of [ACTIVE_TENANT_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_ADMINISTRATION_COOKIE]) {
+      expect(response.cookies.get(cookieName)?.value).toBe('')
+    }
+    expect(response.headers.get('set-cookie')).toContain('Max-Age=0')
     expect(createClient).toHaveBeenCalledOnce()
     expect(signOut).toHaveBeenCalledOnce()
     expect(signInWithPassword).toHaveBeenCalledWith({
@@ -85,6 +97,52 @@ describe('POST /api/auth/test-login', () => {
     expect(response.headers.get('location')).not.toContain(SYNTHETIC_TEST_PASSWORD)
     expect(response.headers.get('set-cookie') ?? '').not.toContain(SYNTHETIC_TEST_PASSWORD)
   })
+
+  it('preserves the browser loopback origin when Next.js normalizes request.nextUrl', async () => {
+    enableHarness()
+    const browserOrigin = 'http://127.0.0.1:3000'
+    const request = loginRequest('hr-admin', browserOrigin, undefined, browserOrigin)
+
+    expect(request.headers.get('origin')).toBe(browserOrigin)
+    expect(request.nextUrl.origin).toBe(APPLICATION_URL)
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(303)
+    expect(response.headers.get('location')).toBe(`${browserOrigin}/dashboard/start`)
+  })
+
+  it('denies a loopback origin that differs from the request Host', async () => {
+    enableHarness()
+
+    const request = loginRequest('hr-admin', APPLICATION_URL, undefined, 'http://127.0.0.1:3000')
+    const response = await POST(request)
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({ error: 'TEST_LOGIN_FORBIDDEN' })
+    expect(createClient).not.toHaveBeenCalled()
+  })
+
+  it('retains a validated relative route through the HR Admin test login', async () => {
+    enableHarness()
+
+    const response = await POST(loginRequest('hr-admin', APPLICATION_URL, '/employees?tab=profile'))
+
+    expect(response.status).toBe(303)
+    expect(response.headers.get('location')).toBe(APPLICATION_URL + '/employees?tab=profile')
+  })
+
+  it.each(['https://attacker.example', '//attacker.example', '/\\attacker.example'])(
+    'falls back to the dashboard for an unsafe test-login redirect %s',
+    async (next) => {
+      enableHarness()
+
+      const response = await POST(loginRequest('hr-admin', APPLICATION_URL, next))
+
+      expect(response.status).toBe(303)
+      expect(response.headers.get('location')).toBe(APPLICATION_URL + '/dashboard/start')
+    },
+  )
 
   it('denies unsupported personas before creating a Supabase client', async () => {
     enableHarness()
@@ -125,5 +183,18 @@ describe('POST /api/auth/test-login', () => {
     expect(response.status).toBe(303)
     expect(response.headers.get('location')).toBe(`${APPLICATION_URL}/login?error=test-login`)
     expect(signInWithPassword).toHaveBeenCalledOnce()
+  })
+
+  it('retains the validated destination on a failed test login without exposing credentials', async () => {
+    enableHarness()
+    signInWithPassword.mockResolvedValue({ error: new Error('invalid credentials') })
+
+    const response = await POST(loginRequest('hr-admin', APPLICATION_URL, '/employees?tab=profile'))
+
+    expect(response.status).toBe(303)
+    expect(response.headers.get('location')).toBe(
+      APPLICATION_URL + '/login?error=test-login&next=%2Femployees%3Ftab%3Dprofile',
+    )
+    expect(response.headers.get('location')).not.toContain(SYNTHETIC_TEST_PASSWORD)
   })
 })
