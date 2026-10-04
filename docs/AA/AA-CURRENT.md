@@ -3,6 +3,8 @@
 Status: **ACTUEEL / LIVING**
 Momentopname hoofddocument: 2026-10-02
 
+> **Actuele richting sinds 2026-10-04 (bronstatus gescheiden):** Remote GitHub `main` is bij controle `6349d02538351cd01fc51f298c6e6fa0ba88006c` / app `1.20261002.1`; ONE VERSION hosted TEST-acceptatie is volgens de release-ownerhandoff GREEN, de onafhankelijke volledige bewijsreview blijft PENDING. Lokale CONTROL02 `38af35c2...` en lokaal gemelde CAO-BENCH02-voortgang zijn **niet automatisch op `main` aanwezig**. CONTROL02 heeft lokaal gerichte XML-/XSD-/previewtests en inmiddels Core TEST-readbacks, maar mist echte volledige browser-/JWT-acceptatie en definitieve Core-/Payroll-contractgoedkeuring; geen merge-ready claim. CAO-BENCH02 is volgens lokale overdracht technisch grotendeels gebouwd, maar admin-isolatiebewijs ontbreekt. **Volg voor de actuele uitvoeringsvolgorde het eerste deel van [AA-NEXT](AA-NEXT.md), voor externe gates [AA-OPEN](AA-OPEN.md).** Historische momentopnamen hieronder vervangen deze actuele status niet.
+
 > **Latere lokale overdracht 2026-10-04 (niet automatisch remote geïntegreerd):** gezamenlijke ONE VERSION hosted TEST-acceptatie is volgens de overdracht afgerond; CAO-BENCH02 fase 2 heeft lokaal zeven persistent uitgevoerde benchmarks, maar blijft PARTIAL wegens ontbrekend Mars-only → Jupiter admin-isolatiebewijs. Zie [AA-OPEN](AA-OPEN.md) voor het gerichte register. Oudere momentopnamen hieronder zijn historische gegevens en mogen niet worden aangezien voor de actuele stand van niet-gemergede featurebranches. Verifieer de exacte status opnieuw bij PAY-CONVERGE.
 
 > **Actueel:** CONVERGENCE01 is als TEST-release vrijgegeven op 2026-10-02. Dit is **geen** claim dat de volledige live security-/persona-acceptatiematrix GREEN is.
