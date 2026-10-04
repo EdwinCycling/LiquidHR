@@ -74,6 +74,18 @@ describe('PayrollGrossOnlyConceptSlip', () => {
     expect(markup).toContain('kinderopvang.base-gross@1')
   })
 
+  it('labels the arrangement version distinctly from the rule version in Dutch and English', () => {
+    const dutchMarkup = render(nl, { arrangementVersion: '2026.07' })
+    const englishMarkup = render(en, { arrangementVersion: '2026.07' })
+
+    expect(dutchMarkup).toContain('Arrangementversie')
+    expect(englishMarkup).toContain('Arrangement version')
+    expect(dutchMarkup).not.toContain('Regelversie')
+    expect(englishMarkup).not.toContain('Rule version')
+    expect(dutchMarkup).toContain('2026.07')
+    expect(englishMarkup).toContain('2026.07')
+  })
+
   it('shows a specific note when exact total rounding differs from rounded lines', () => {
     const markup = render(en, {
       caseKey: 'CAO-BENCH02-K2',

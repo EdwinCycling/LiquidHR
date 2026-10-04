@@ -1,11 +1,11 @@
 # CAO-BENCH02 fase 2 — geïntegreerde kandidaat
 
-**Stand: 2026-10-04 — PARTIAL, niet GREEN.** De oorspronkelijke browserrun heeft zeven scenario's persistent opgeslagen en uitgelezen; H1, K1-PDF/JSON, desktop (1440×900), mobiel (393×852) en een negatieve HR-groepscopeprobe zijn toen uitgevoerd. De onafhankelijke LUNA MAX-review vond daarna drie provenance-/exact-run regressierisico's, die gericht zijn hersteld en getest. Na deze fixes kon de browser geen Payroll-klantcontext openen: de zichtbare pagina meldde dat het account was ingelogd maar niet aan een klantomgeving was gekoppeld. Daarom zijn K1/K2 en de bijgewerkte PDF/JSON na de laatste fixes niet opnieuw browsermatig bewezen. Er is ook geen tweede Payroll-enabled administratie of aparte niet-adminfixture voor de live rol-/administratiescopeproef. Productiebuild en lokale codegates zijn geslaagd. De lokale fase-2-commit is gemaakt; er is niets gepusht, gemerged of gedeployed.
+**Stand: 2026-10-04 — PARTIAL, niet GREEN.** Na de finale provenance-/exact-runfixes zijn alle zeven benchmarkscenario's opnieuw via de geauthenticeerde browser uitgevoerd, persistent opgeslagen en per run-ID teruggelezen. H1, conceptloonstrook, echte K1- en K2-PDF/JSON-downloads met inhoudspariteit, desktop (1440×900), mobiel (393×852), bestaande Test Manager-/Test Employee-persona's en twee andere HR-groepen zijn gecontroleerd. De enige open acceptatiecontrole is een directe negatieve admin-naar-admin-proef over een tweede Payroll-enabled administratie; zo'n administratie bestaat niet in deze TEST-fixture en is niet nagebootst. De lokale labelcorrectie voor arrangementversie is gericht getest; typecheck, lint, i18n en productiebuild zijn opnieuw geslaagd. Er is niets gepusht, gemerged of gedeployed.
 
 ## Branch en grens
 
 - Branch: `work/cao-bench02-20261003`.
-- Basis-HEAD: `05b78d7c6b2dbed4d14648b78bf78b497ab1d337`, vanaf de exacte fase-1-code; fase-2-commit staat lokaal op de branch; geen nieuwe featurebranch.
+- Basis-HEAD: `05b78d7c6b2dbed4d14648b78bf78b497ab1d337`, vanaf de exacte fase-1-code. De geaccepteerde fase-2-kandidaat was `c968e728c35f82ee56d4ef5c0ad642439111b9f7`; deze closeout bevat een gerichte UI-label/regressietest en bijgewerkte acceptatiedocumentatie op dezelfde featurebranch.
 - Worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR-Payroll\CAO-BENCH02-20261003`; fase-2-wijzigingen zijn lokaal.
 - Appversie blijft `1.20261002.1`.
 - Geen push, merge, deployment, versieaanpassing, Core-/CONTROL02-schemawijziging of Core-write.
@@ -24,19 +24,19 @@
 
 ## Package- en scenariomatrix
 
-De waarden hieronder zijn onafhankelijke rekenoracles die door de ruletests zijn vergeleken. De oorspronkelijke browserberekeningen zijn persistent opgeslagen en via exacte run-ID's uitgelezen vóór de laatste provenance-/exact-run fixes. Deze historische runs zijn immutable gebleven; de browserreadback is na de fixes niet herhaald:
+De waarden hieronder zijn onafhankelijke rekenoracles die door de ruletests zijn vergeleken. De onderstaande runs zijn na de laatste provenance-/exact-runfixes persistent opgeslagen, via hun exacte run-ID opnieuw in de browser geopend en via de database-readback gecontroleerd. De oudere historische runs zijn immutable gebleven:
 
 | Case | TEST-status | Run-ID | Opgeslagen bruto |
 | --- | --- | --- | ---: |
-| K1 | SUCCEEDED | `e95853c9-09a9-4eb3-bab8-1c2c39c5ffea` | €2.777,00 |
-| K2 | SUCCEEDED | `f303f748-26b0-4043-999e-d75ea9290ad8` | €1.911,735632183908045976 (weergave €1.911,74) |
+| K1 | SUCCEEDED | `81160d5e-6eac-4975-bfdb-a540911b8680` | €2.777,00 |
+| K2 | SUCCEEDED | `4f5e6cc0-f12a-45c2-9be5-6ff61d1cb064` | €1.911,735632183908045976 (weergave €1.911,74) |
 | R1 | SUCCEEDED | `a4a742c2-4df5-433b-8547-39d00c0a904e` | €4.767,20 |
-| R2 | SUCCEEDED | `92fbd917-a37e-4a72-a1fb-a588e47c1c6f` | €1.621,23 |
-| B1 | SUCCEEDED | `93ea092a-ee5e-4dea-9e24-bec89ba0f4d5` | €3.600,13; compa 100% |
-| B2 | SUCCEEDED | `c66bc758-6ae1-45da-9089-06b233164d92` | €2.912,00; compa 101,107366% |
-| C1 | SUCCEEDED | `3f415a2d-22c5-4f14-af24-88f2cdb7758e` | €12.000,00 per maand |
+| R2 | SUCCEEDED | `c1b92c72-210a-4c68-8e29-71b33e277bad` | €1.621,23 |
+| B1 | SUCCEEDED | `8f00badc-14a6-4560-8d67-aa8961215b66` | €3.600,13; compa 100% |
+| B2 | SUCCEEDED | `db194fd2-43cb-4784-ae7b-0c34f65afc07` | €2.912,00; compa 101,107366% |
+| C1 | SUCCEEDED | `e2fc3d8f-4e04-4ae3-9cb7-1919a04b57f1` | €12.000,00 per maand |
 
-De K1 readback bewaart arrangementversie `2026.07` apart van regelpackage-/regelversie `2026.01`; het zijn geen verwisselbare versievelden. De input-, source- en result-hashes van K1 zijn respectievelijk `21f868c3f7597220508ae52dd60b245d387a5e2e90360610b2a160bdf802563a`, `e4f058cc0544d0b221084728579b03b45e27f66c401db590ebbfb6fa94068255` en `58ba3f51bcde586bed62bd51535d3862d4e6da99534380b8e4af45c5ac76ac46`. De onafhankelijke brutoverificatie stemt met de opgeslagen resultaten overeen. Er is geen netto-uitkomst afgeleid of gepresenteerd.
+De K1 readback bewaart arrangementversie `2026.07` apart van regelpackage-/regelversie `2026.01`; het zijn geen verwisselbare versievelden. De verse K1 input-, source-, result-, arrangement-package- en regel-packagehashes zijn respectievelijk `f3d1de111abb9138dd67f2adb2a5e59c5869c2256396ebdc9efe174d76ed6dec`, `a4b3a8ade09f317e049b0ca4cf296524a452fe1929523532d6c31c0d279c45b8`, `fec6054f3c7f0b4852ce2a251dd34ccfe3604a6409998e81562f41594c1705c2`, `6fd9984fdd5fb45b793d92230c6d3e52b0a048eb0dc1c4677bedb3e4e3a1cc0a` en `cb6fb9f2603293e82dd969970d11156127a03e6de7c614342a447ab7324720d3`. Heropening en readback reproduceerden deze provenance voor dezelfde run. De onafhankelijke brutoverificatie stemt met de opgeslagen resultaten overeen. Er is geen netto-uitkomst afgeleid of gepresenteerd.
 
 | Case | Regeling en peildatum | Afgesproken synthetische scope | Bruto-oracle |
 | --- | --- | --- | ---: |
@@ -72,22 +72,28 @@ RLS staat aan op de vier arrangementtabellen; policies beperken toegang tot `ser
 
 ## Verificatie uitgevoerd
 
-- Gehele relevante Payroll/UI/rules-selectie na de gerichte reviewfixes, serieel uitgevoerd: **37 bestanden PASS, 3 overgeslagen; 240 tests PASS, 3 overgeslagen**.
+- Op fase-2-kandidaat `c968e728c35f82ee56d4ef5c0ad642439111b9f7` slaagde de gehele relevante Payroll/UI/rules-selectie na de provenance-/exact-runfixes, serieel uitgevoerd: **37 bestanden PASS, 3 overgeslagen; 240 tests PASS, 3 overgeslagen**. Na de daaropvolgende lokale arrangementlabelcorrectie is de geraakte componenttest opnieuw uitgevoerd: **5/5 PASS**.
 - HR Suite strict type-check: PASS.
 - Rules package type-check: PASS.
-- Gewijzigde HR Suite TS/TSX ESLint-scope: 0 errors; JSON en packagebestanden zijn door die app-config genegeerd. i18n-check: **41 NL/EN namespaces met gelijke sleutels**.
+- Volledige HR Suite ESLint: 0 errors; 6 bestaande warnings in `payroll-import/service.test.ts`, buiten deze wijziging. i18n-check: **41 NL/EN namespaces met gelijke sleutels**.
 - De retail-test controleert de inhoudelijke source-SHA van `retail-mode.ts`, na normalisatie van de hashdeclaratie. De Kinderopvang-ruletest controleert dezelfde soort binding.
-- Gewijzigde HR TS/TSX ESLint-scope: 0 errors. `git diff --check`: PASS.
-- Productiebuild: Next.js 16.3.6 compileerde, TypeScript slaagde, **309/309** statische pagina's gegenereerd; Payroll client-boundary negatieve controle geslaagd over 152 browserassets.
-- Launcher: één gecontroleerde verse Payroll TEST-start op vrije poort 3000 gebruikte de centrale TEST-configuratie. De probe meldde alleen dat vereiste variabelen aanwezig waren; waarden bleven verborgen. `/login` gaf HTTP 200. Alleen de eigen listener en launcher zijn daarna gestopt. De lijst met overige listenerendpoint-/PID-paren bleef vóór en na identiek; poort 3010 is gesloten. De door Next gegenereerde `next-env.d.ts` is na de build schoon hersteld.
+- ESLint op de aangepaste componenttest: PASS. NL/EN labels en sleutels zijn meegenomen in de i18n-check.
+- Productiebuild na de arrangementlabelcorrectie: Next.js 16.3.6 compileerde, TypeScript slaagde, **309/309** statische pagina's gegenereerd; Payroll client-boundary negatieve controle geslaagd over 152 browserassets. De build-generator rapporteerde kandidaat-HEAD `c968e72`, de HEAD die gold vóór de lokale closeoutcommit.
+- Launcher: één gecontroleerde verse Payroll TEST-start op vrije poort 3000 gebruikte `scripts/start-test-worktree.ps1` en de centrale TEST-configuratie. Alleen aanwezigheid van vereiste variabelen werd gerapporteerd; waarden bleven verborgen. `/login` gaf HTTP 200. Na de browseracceptatie is uitsluitend de eigen serverlistener gestopt; andere serverprocessen zijn ongemoeid gelaten. De door Next gegenereerde `next-env.d.ts` is schoon hersteld.
 - LUNA MAX follow-up review op de aangebrachte fixes: geen resterende actionable P1/P2. De review omvatte exacte run-ID-doorvoer, case/run fail-closed controle, rule package ID/provenance en de Kinderopvang traceversie. De regressie-, type-, lint- en productiebuildgates zijn daarna opnieuw uitgevoerd.
 
 ## Browser- en securityacceptatie
 
-Vóór de reviewfixes heeft de geauthenticeerde Test HR Admin-browser alle zeven exacte runroutes geopend in de oorspronkelijke Planeten-hr-groep. Desktop en mobiel toonden de toenmalige brutoresultaten, `Netto salaris / NIET BEREKEND` en exportlinks met dezelfde run-ID; H1 toonde toepasselijkheidsstatussen zonder berekening of conceptstrook. Na de fixes is de route opnieuw geopend, maar de pagina eindigde op `/geen-toegang` met de zichtbare melding dat de ingelogde gebruiker niet aan een klantomgeving was gekoppeld. Dit is geen algemene loginanalyse: het betekent dat de actuele K1/K2-resultaten en exports niet in de browser zijn herbevestigd.
+TEST-HARNESS01 is niet blind samengevoegd met de featurebranch. De bestaande kandidaatserver is via de guarded launcher gestart; de harness werd als afzonderlijke acceptatieclient gebruikt. Een tijdelijke wegwerpkopie kreeg alleen kandidaat-specifieke verwachte markers/ID's en is na de run verwijderd. Er is geen harness- of parallelle featurebranch in deze kandidaat geïntegreerd. De bestaande Test HR Admin is gebruikt en de context is in de browser gecontroleerd als **De Sterren holding → Planeten → Jupiter BV**.
 
-Vóór de reviewfixes is K1 als echte PDF- en JSON-download getest. Die inhoud bevatte destijds `SUCCEEDED`, de run-ID, arrangement `2026.07`, regel `2026.01`, €2.777,00 bruto en geen nettoresultaat; de PDF was 13 A4-pagina's. C1 validatiepack-API gaf toen HTTP 200 voor JSON en PDF. De service is intussen gericht aangepast voor exacte historische runselectie en correcte arrangement-/regelpackageprovenance. De eerdere downloadbewijzen gelden daarom niet als heracceptatie van de bijgewerkte exports; die downloads moeten nog in een actieve Payroll-context worden herhaald en onderling vergeleken.
+Alle zeven berekeningen hierboven zijn na de laatste codefixes in die Payroll-context via de echte browser uitgevoerd. Hun exacte runs zijn opnieuw geopend, status/resultaten zijn uit de persistente opslag teruggelezen en brutobedragen zijn met de onafhankelijke scenario-oracles vergeleken. K1 toont arrangement `2026.07` naast regelpackage/regel `2026.01`; K2 toont arrangement en regelpackageversie `2026.09`. De zeven actuele run-ID's zijn de waarden in de matrix hierboven.
 
-Voor een live negatieve scopeproef is naar een andere HR-groep gewisseld. De Payroll-route werd daar geweigerd (`/geen-toegang`) en de validatiepack-API gaf `404 PAYROLL_VALIDATION_PACK_UNAVAILABLE`. Dit bewijst de HR-groepsgrens voor deze gebruiker. De actieve context bood geen tweede Payroll-enabled administratie of aparte niet-admin-Testgebruiker; daarom is de volledige live rollen-/administratiescope-matrix **niet bewezen**. Geautomatiseerde permissie- en scope-regressies slagen, maar vervangen dat live bewijs niet. De fase-1 shared-shell Core-read caveat blijft historisch staan; deze CAO Payroll-routetest heeft geen Core-data uitgelezen.
+H1 is herhaald zonder loonberekening: specialist met aanwezig bewijs **Mogelijk binnen scope**, bestuurder **Uitgesloten**, ontbrekend bewijs **Beoordeling nodig**. Geen nettoresultaat is afgeleid of getoond. De conceptloonstrook voor K1 en K2 toont de persistente run en brutoresultaten, benoemt de arrangementversie apart van de regelversie en houdt inhoudingen/netto als niet berekend.
 
-**Eindstatus: PARTIAL, niet GREEN.** Lokale regressies, typechecks, lint en productiebuild zijn na de fixes bewezen. De oorspronkelijke zeven persistente runs en browsermatrix zijn historisch bewijs van vóór de laatste provenance-/exact-run codewijzigingen. Actuele K1/K2-run-readback, bijgewerkte conceptloonstrook/PDF/JSON-pariteit en browsermatrix na de fixes blijven open doordat de browser geen Payroll-klantcontext had. Een tweede live administratie en aparte niet-adminidentiteit ontbreken eveneens. Er is geen nettoresultaat verzonnen; historische snapshots zijn niet gewijzigd. Geen Core- of CONTROL02-write, push, merge of deployment.
+Echte browserdownloads voor K1-run `81160d5e-6eac-4975-bfdb-a540911b8680` en K2-run `4f5e6cc0-f12a-45c2-9be5-6ff61d1cb064` zijn opgeslagen als bestanden met dezelfde run-ID in `C:\Users\Edwin\Downloads` (`cao-bench02-k1-...-validation-pack.pdf/.json` en `cao-bench02-k2-...-validation-pack.pdf/.json`). Per scenario zijn de PDF en JSON inhoudelijk vergeleken: case, exacte persistente run-ID, status, arrangementversie, regelpackage-/regelversie, brutototaal en result-/source-/input-hashes stemmen overeen. Beide PDF's hebben 13 pagina's; K1 heeft arrangement `2026.07` en regels `2026.01`, K2 heeft arrangement/regels `2026.09`. Beide bevatten `NIET VOOR LOONBETALING` en presenteren geen netto-uitkomst. De K1-hashes staan hierboven.
+
+Browserweergave is gecontroleerd op desktop 1440×900 en mobiele viewport 393×852 (iPhone 16-afmetingen, browserviewport). Op beide formaten waren runstatus, bruto, conceptstrook en PDF/JSON-acties zichtbaar, zonder horizontale overflow; netto, inhoudingen en werkgeverslasten bleven niet berekend. De originele context is na de scopeprobes hersteld.
+
+Negatieve controles gebruikten bestaande Test Manager- en Test Employee-persona's en bestaande geïsoleerde TEST-hr-groepen; er is geen account aangemaakt of rechtenescalatie uitgevoerd. Beide persona's kregen voor K1 `/geen-toegang`; de K1-export gaf respectievelijk HTTP 404 en HTTP 403. De bestaande Test HR Admin kreeg vanuit `TEST-MULTIGROUP` en `TEST-BOUNDARY` eveneens `/geen-toegang` en export-404. De admincontext is daarna teruggezet op Planeten → Jupiter BV en de K1-run werkte opnieuw. In deze TEST-configuratie is maar één Payroll-enabled administratie ingericht; daardoor ontbreekt uitsluitend de directe admin-naar-admin-proef op een tweede Payroll-administratie. De andere live negatieve persona- en groepsscopeprobes zijn wel uitgevoerd. De historische fase-1 shared-shell Core-read caveat blijft staan; deze acceptatie heeft geen Core-data uitgelezen.
+
+**Eindstatus: PARTIAL, niet GREEN.** Berekeningen, persistente readbacks, H1, conceptloonstrook, werkelijke K1/K2-downloads en hun onderlinge inhoudspariteit, beschikbare rol-/groepscopeprobes, desktop/mobiel, gerichte regressie, typechecks, lint en productiebuild zijn bewezen voor de kandidaat. Het enige open punt voor de volledige gevraagde live autorisatiematrix is een bestaande tweede Payroll-enabled administratie. Die fixture ontbreekt en is bewust niet nagebootst; daarom is geen GREEN afgegeven. Geen nettoresultaat verzonnen, geen historische snapshot gewijzigd, geen Core-/CONTROL02-write, push, merge of deployment.

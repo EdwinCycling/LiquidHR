@@ -199,7 +199,7 @@
   "payrollLabConceptSlipEmployee": "Synthetic employee",
   "payrollLabConceptSlipPeriod": "Pay period",
   "payrollLabConceptSlipArrangement": "Arrangement",
-  "payrollLabConceptSlipArrangementVersion": "Rule version",
+  "payrollLabConceptSlipArrangementVersion": "Arrangement version",
   "payrollLabConceptSlipStatus": "Status",
   "payrollLabConceptSlipGrossComponents": "Calculated gross components",
   "payrollLabConceptSlipGrossTotal": "Gross total",
