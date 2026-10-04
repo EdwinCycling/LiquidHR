@@ -5,9 +5,10 @@ import { describe, expect, it, vi } from 'vitest'
 import type {
   PayrollCalculationInputs,
   PayrollCalculationResult,
+  PayrollResultMapping,
   PayrollSourceSnapshot,
 } from '@liquid-hr/payroll-engine'
-import { GC_NL_001_RESULT_COMPONENTS } from '@liquid-hr/payroll-engine'
+import { GC_NL_001_RESULT_COMPONENTS, GC_NL_001_RULE_PACKAGE } from '@liquid-hr/payroll-engine'
 import type {
   PayrollCalculationInputSetRow,
   PayrollCalculationRunRow,
@@ -22,8 +23,10 @@ import {
   createSyntheticPayrollService,
   SyntheticPayrollServiceError,
   type SyntheticPayrollEngine,
+  type PayrollTestScenario,
 } from './synthetic-calculation-service'
 import type { PayrollCalculationRepository } from './calculation-repository'
+import { createSyntheticPayrollSnapshot } from './synthetic-source'
 
 const scope = {
   tenantId: '10000000-0000-4000-8000-000000000001',
@@ -273,14 +276,66 @@ function makeEngine(shouldThrow = false): SyntheticPayrollEngine {
   }
 }
 
-function createService(repository: PayrollCalculationRepository, engine: SyntheticPayrollEngine, isEnabled = true) {
+function createService(
+  repository: PayrollCalculationRepository,
+  engine: SyntheticPayrollEngine,
+  isEnabled = true,
+  scenario?: PayrollTestScenario,
+) {
   return createSyntheticPayrollService({
     repository,
     engine,
+    ...(scenario ? { scenario } : {}),
     isEnabled: () => isEnabled,
     now: () => new Date(fixedNow),
     createId: () => snapshotId,
   })
+}
+
+const BAND_STATUS_MAPPING: PayrollResultMapping = {
+  key: 'band_status',
+  componentCode: 'synthetic_band_status',
+  outputName: 'status',
+}
+
+function makeCategoricalOutputEngine(): SyntheticPayrollEngine {
+  const engine = makeEngine()
+  return {
+    buildInputs: (snapshot, effectiveDate) => {
+      const inputs = engine.buildInputs(snapshot, effectiveDate)
+      const template = inputs.components[0]!
+      const categoricalComponent = {
+        ...template,
+        id: 'synthetic-band-status-id',
+        code: BAND_STATUS_MAPPING.componentCode,
+        processingScope: 'EMPLOYMENT' as const,
+        outputs: [{ name: BAND_STATUS_MAPPING.outputName, valueType: 'STRING' as const }],
+      }
+      return {
+        ...inputs,
+        components: [...inputs.components, categoricalComponent],
+        resultMappings: [...inputs.resultMappings, BAND_STATUS_MAPPING],
+      }
+    },
+    calculate: (inputs) => {
+      const result = engine.calculate(inputs)
+      return {
+        ...result,
+        componentResults: [...result.componentResults, {
+          componentId: 'synthetic-band-status-id',
+          componentCode: BAND_STATUS_MAPPING.componentCode,
+          version: '1.0.0',
+          processingScope: 'EMPLOYMENT',
+          outputs: [{ name: BAND_STATUS_MAPPING.outputName, valueType: 'STRING', value: 'WITHIN_BAND' }],
+        }],
+        resultRows: [...result.resultRows, {
+          ...BAND_STATUS_MAPPING,
+          valueType: 'STRING',
+          value: 'WITHIN_BAND',
+        }],
+      }
+    },
+  }
 }
 
 describe('synthetic Payroll calculation service', () => {
@@ -313,6 +368,29 @@ describe('synthetic Payroll calculation service', () => {
     expect(result.controls).toEqual([{ key: 'GC1-CTRL-020', status: 'PASS', details: expect.any(Object) }])
   })
 
+  it('keeps categorical component outputs out of the numeric amount column while preserving them in JSON', async () => {
+    const { repository } = makeRepository()
+    const scenario: PayrollTestScenario = {
+      caseKey: 'GC-NL-001',
+      compositionId: GC_NL_001_RULE_PACKAGE.compositionId,
+      period: { year: 2026, month: 9 },
+      expectedResults: [...GC_NL_001_RESULT_COMPONENTS, BAND_STATUS_MAPPING],
+      createSnapshot: createSyntheticPayrollSnapshot,
+    }
+    const service = createService(repository, makeCategoricalOutputEngine(), true, scenario)
+
+    await service.runSyntheticPayroll(scope, payrollAdministrationId, actorUserId)
+
+    const persistedRows = vi.mocked(repository.insertComponentResults).mock.calls[0]?.[2] ?? []
+    const bandStatus = persistedRows.find((row) => row.component_key === 'band_status')
+    expect(bandStatus?.amount).toBeNull()
+    expect(bandStatus?.result_payload).toMatchObject({
+      amount: null,
+      value: 'WITHIN_BAND',
+      valueType: 'STRING',
+    })
+  })
+
   it('marks a calculation FAILED and exposes a safe code plus run ID when the engine throws', async () => {
     const { repository, calls, getRun } = makeRepository()
     const service = createService(repository, makeEngine(true))
@@ -329,6 +407,7 @@ describe('synthetic Payroll calculation service', () => {
     expect(String(thrown)).not.toContain('Raw engine error')
     expect(calls).toContain('mark-running')
     expect(calls).toContain('insert-trace')
+    expect(calls).toContain('insert-golden-case')
     expect(calls[calls.length - 1]).toBe('mark-failed')
     expect(getRun()?.status).toBe('FAILED')
     expect(getRun()?.result_hash).toBeNull()
@@ -382,7 +461,7 @@ describe('NL-2026 scenario in the persisted calculation lifecycle', () => {
       expect(messages[`payrollLabTrace_${step.code.replaceAll('.', '_').replaceAll('-', '_')}`]).toBeDefined()
     }
     await service.getLatestSyntheticPayroll(scope, payrollAdministrationId)
-    expect(repository.getLatestSyntheticArtifacts).toHaveBeenCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId)
+    expect(repository.getLatestSyntheticArtifacts).toHaveBeenCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, undefined, NL_2026_TEST_SCENARIO.caseKey)
     await service.getLatestSyntheticPayroll(scope, payrollAdministrationId, runId)
     expect(repository.getLatestSyntheticArtifacts).toHaveBeenLastCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, runId)
   })

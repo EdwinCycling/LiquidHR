@@ -23,6 +23,23 @@ function testPackage(id: string, versions: readonly { version: string; effective
 }
 
 describe('CAO-BENCH02 arrangement foundation contracts', () => {
+  it('keeps the catalog provenance explicit about its reference-only scope', () => {
+    const childcare = ARRANGEMENT_PACKAGES.find((item) => item.id === 'KINDEROPVANG_2025_2026')!
+    const demoPolicy = ARRANGEMENT_PACKAGES.find((item) => item.id === 'LHR_DEMO_OPEN_BANDS_2026')!
+
+    expect(childcare.versions.every((version) => version.sourceMetadata.status === 'REFERENCE_ONLY')).toBe(true)
+    expect(childcare.versions.filter((version) => version.version !== '2026.07' && version.version !== '2026.09').every((version) =>
+      version.sourceMetadata.note.includes('not implemented in CAO-BENCH02 Phase 1'))).toBe(true)
+    expect(childcare.versions.find((version) => version.version === '2026.07')?.sourceMetadata.note)
+      .toContain('does not ingest their terms')
+    const childcareSeptember = childcare.versions.find((version) => version.version === '2026.09')!
+    expect(childcareSeptember.sourceMetadata.note).toBe('Reference metadata for the named agreement release only. CAO-BENCH02 Phase 2 evaluates limited synthetic scenarios; it does not implement the complete agreement, determine legal applicability, or calculate tax or net pay.')
+    expect(hashArrangementPackageVersion(childcare, childcareSeptember)).toBe('ef7b8446d8bc6d7a7527e7b3c04945a6c5aa4ddefd82c8a9ad779af879c1332c')
+    const openBandJuly = demoPolicy.versions.find((version) => version.version === '2026.07')!
+    expect(openBandJuly.sourceMetadata.note).toBe('Synthetic LiquidHR demo policy. Cases B1/B2 reference published 2026 band figures for a fictional benchmark only; no collective agreement applicability, other terms, or tax/net pay is inferred.')
+    expect(hashArrangementPackageVersion(demoPolicy, openBandJuly)).toBe('683c5d9db669b0738dd6b1435ff338ec8e1680f3260993e46e80d52a54013806')
+  })
+
   it('represents scale/step, open band, and freely negotiated salary as distinct strategies', () => {
     expect(scaleFixture.salaryStrategy).toBe('DISCRETE_SCALE_STEP')
     expect(openBandFixture.salaryStrategy).toBe('OPEN_SALARY_BAND')

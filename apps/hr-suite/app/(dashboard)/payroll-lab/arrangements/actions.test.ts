@@ -2,13 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createSyntheticArrangementAssignmentAction,
   endArrangementPackageAvailabilityAction,
+  extendArrangementPackageAvailabilityStartAction,
   makeArrangementPackagesAvailableAction,
   resolveArrangementCompositionAction,
 } from './actions'
 
-const { makeAvailable, endAvailable, assign, resolve } = vi.hoisted(() => ({
+const { makeAvailable, endAvailable, extendStart, assign, resolve } = vi.hoisted(() => ({
   makeAvailable: vi.fn(),
   endAvailable: vi.fn(),
+  extendStart: vi.fn(),
   assign: vi.fn(),
   resolve: vi.fn(),
 }))
@@ -16,6 +18,7 @@ const { makeAvailable, endAvailable, assign, resolve } = vi.hoisted(() => ({
 vi.mock('@/lib/payroll/arrangement-service', () => ({
   makeArrangementPackagesAvailable: makeAvailable,
   endArrangementPackageAvailability: endAvailable,
+  extendArrangementPackageAvailabilityStart: extendStart,
   createSyntheticArrangementAssignment: assign,
   createArrangementCompositionSnapshot: resolve,
   ArrangementServiceError: class ArrangementServiceError extends Error {
@@ -51,6 +54,16 @@ describe('Payroll arrangement actions', () => {
     await expect(endArrangementPackageAvailabilityAction(form))
       .rejects.toThrow('redirect:/payroll-lab/arrangements?ended=1')
     expect(endAvailable).toHaveBeenCalledWith({ packageId: 'KINDEROPVANG_2025_2026', effectiveTo: '2026-09-30' })
+  })
+
+  it('extends only a selected package start with the submitted historical date', async () => {
+    const form = new FormData()
+    form.set('packageId', 'KINDEROPVANG_2025_2026')
+    form.set('effectiveFrom', '2026-07-01')
+
+    await expect(extendArrangementPackageAvailabilityStartAction(form))
+      .rejects.toThrow('redirect:/payroll-lab/arrangements?availability=extended&package=KINDEROPVANG_2025_2026')
+    expect(extendStart).toHaveBeenCalledWith({ packageId: 'KINDEROPVANG_2025_2026', effectiveFrom: '2026-07-01' })
   })
 
   it('rejects forged scope fields before invoking the assignment service', async () => {

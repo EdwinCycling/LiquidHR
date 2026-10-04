@@ -29,6 +29,14 @@ export interface ArrangementRepository {
     updatedAt: string,
     updatedByUserId: string,
   ): Promise<PayrollArrangementAvailabilityRow>
+  extendAvailabilityStart(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    packageId: string,
+    effectiveFrom: string,
+    updatedAt: string,
+    updatedByUserId: string,
+  ): Promise<PayrollArrangementAvailabilityRow>
   listAssignments(scope: PayrollScope, payrollAdministrationId: string): Promise<readonly PayrollArrangementAssignmentRow[]>
   insertAssignment(
     scope: PayrollScope,
@@ -137,6 +145,29 @@ class SupabaseArrangementRepository implements ArrangementRepository {
     const { data, error } = await applyPayrollScopeFilter(
       this.client.from('payroll_arrangement_availability')
         .update({ effective_to: effectiveTo, updated_at: updatedAt, updated_by_user_id: updatedByUserId })
+        .eq('payroll_administration_id', payrollAdministrationId)
+        .eq('package_id', packageId),
+      checkedScope,
+    ).select('*').single()
+    throwOnError(error)
+    if (!data) throw new ArrangementRepositoryError()
+    return data
+  }
+
+  async extendAvailabilityStart(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    packageId: string,
+    effectiveFrom: string,
+    updatedAt: string,
+    updatedByUserId: string,
+  ): Promise<PayrollArrangementAvailabilityRow> {
+    const checkedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    assertUuid(updatedByUserId)
+    const { data, error } = await applyPayrollScopeFilter(
+      this.client.from('payroll_arrangement_availability')
+        .update({ effective_from: effectiveFrom, updated_at: updatedAt, updated_by_user_id: updatedByUserId })
         .eq('payroll_administration_id', payrollAdministrationId)
         .eq('package_id', packageId),
       checkedScope,

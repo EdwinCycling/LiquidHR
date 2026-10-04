@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## CAO-BENCH02 fase 2 — 2026-10-03
+
+- Branch `work/cao-bench02-20261003`, basis-HEAD `05b78d7c6b2dbed4d14648b78bf78b497ab1d337` (fase-1-HEAD); fase-2-commit staat lokaal op de branch. Appversie blijft `1.20261002.1`.
+- Geïntegreerd: Kinderopvang K1/K2, Retail Mode R1/R2, synthetische open bands B1/B2 en vrij overeengekomen C1, H1 alleen applicability, conceptloonstrook/details, server-side PDF/JSON-pack, disclosure van Retail 8% vakantietoeslag, en twee Payroll Lab-only forward migrations.
+- TEST readback bevestigt 3 beschikbare pakketten, 7 assignments, 8 arrangementcomposities, 19 behouden historische M0/NL-2026-runs, 136 componentresultaten/112 controls, plus de zeven hieronder gelogde CAO-BENCH02-runs. Vier arrangementtabellen hebben RLS/service-rolebeleid en geen Core-FK.
+- De oorspronkelijke zeven persistente gross-benchmarks zijn SUCCEEDED: K1 `e95853c9` €2.777,00; K2 `f303f748` €1.911,74; R1 `a4a742c2` €4.767,20; R2 `92fbd917` €1.621,23; B1 `93ea092a` €3.600,13; B2 `c66bc758` €2.912,00; C1 `3f415a2d` €12.000,00. K1 scheidt arrangement `2026.07` van regel `2026.01`. Dit runbewijs dateert van vóór de finale provenance-/exact-runfixes; immutable snapshots zijn niet aangepast. H1 gaf toen alleen toepasselijkheidsstatussen.
+- Browsercontrole vóór de laatste fixes: zeven scenario's en H1 op desktop 1440×900 en mobiel 393×852; K1 PDF/JSON echt gedownload en inhoudelijk vergeleken; één alternatieve HR-groep gaf `/geen-toegang` en API 404. Na fixes eindigde de browserroute op `/geen-toegang` met melding dat de ingelogde gebruiker niet aan een klantomgeving gekoppeld was. Daardoor zijn K1/K2, conceptloonstrook en bijgewerkte PDF/JSON na de fixes niet browsermatig herbevestigd. Een aparte niet-adminidentiteit en tweede Payroll-enabled administratie ontbreken; live rol-/administratiescopeacceptatie blijft PARTIAL.
+- Na reviewfixes: relevante seriële tests 37 bestanden / 240 PASS / 3 overgeslagen; beide typechecks, ESLint, i18n (41 namespaces), productiebuild (309/309 pagina's) en client-boundary scan (152 assets) PASS. Launcher is veilig gecontroleerd op vrije poort 3000 met de centrale TEST-config; alleen de eigen listener is gestopt en de overige listener/PID-paren bleven gelijk. LUNA MAX follow-up vond geen resterende P1/P2. Lokale commit staat in het acceptatierapport.
+- Geen push/merge/deployment/version bump/Core-write/CONTROL02-wijziging. Geen `.env.local` gelezen of gewijzigd. Eindstatus PARTIAL, niet GREEN. Zie [fase-2-acceptatie](../payroll/acceptance/CAO-BENCH02-PHASE2-20261003.md); [fase 1](../payroll/acceptance/CAO-BENCH02-20261003.md) blijft behouden.
+
 ## CAO-BENCH02 Phase 1 arrangement foundation — 2026-10-03
 
 - Kandidaatbranch `work/cao-bench02-20261003`, gestart vanaf exacte PAYLAB00–04 baseline `6349d02538351cd01fc51f298c6e6fa0ba88006c`. De bestaande `Code`, `Integration-Payroll-20261002`, Nmbrs en `main` zijn buiten scope.

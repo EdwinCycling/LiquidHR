@@ -22,6 +22,18 @@ const availabilityMigration = readFileSync(join(
   'migrations',
   '20261003130000_paylab05_arrangement_availability_validity.sql',
 ), 'utf8').toLowerCase()
+const auditedAvailabilityStartMigration = readFileSync(join(
+  payrollSource,
+  'supabase',
+  'migrations',
+  '20261003140000_paylab06_audited_availability_start.sql',
+), 'utf8').toLowerCase()
+const benchmarkFixtureCodesMigration = readFileSync(join(
+  payrollSource,
+  'supabase',
+  'migrations',
+  '20261003180000_paylab06_benchmark_fixture_codes.sql',
+), 'utf8').toLowerCase()
 
 const tables = [
   'payroll_arrangement_availability',
@@ -93,5 +105,36 @@ describe('CAO-BENCH02 Payroll migration contract', () => {
     expect(availabilityMigration).toContain('new.updated_by_user_id is null')
     expect(availabilityMigration).toContain("set search_path = ''")
     expect(availabilityMigration).not.toMatch(/grant\s+[^;]*\b(delete|all)\b[^;]*payroll_arrangement_availability/i)
+  })
+
+  it('audits scoped historical start extensions with an immutable service-role-only history', () => {
+    expect(auditedAvailabilityStartMigration).toContain('create table public.payroll_arrangement_availability_history')
+    expect(auditedAvailabilityStartMigration).toContain('foreign key (availability_id, payroll_administration_id, source_tenant_id, source_hr_group_id, source_administration_id)')
+    expect(auditedAvailabilityStartMigration).toContain('alter table public.payroll_arrangement_availability_history enable row level security')
+    expect(auditedAvailabilityStartMigration).toContain('for all to service_role using (true) with check (true)')
+    expect(auditedAvailabilityStartMigration).toContain('before update or delete on public.payroll_arrangement_availability_history')
+    expect(auditedAvailabilityStartMigration).toContain('grant select on table public.payroll_arrangement_availability_history to service_role')
+    expect(auditedAvailabilityStartMigration).toMatch(/create function public\.protect_payroll_arrangement_availability_update\([\s\S]+?security definer[\s\S]+?set search_path = ''/)
+    expect(auditedAvailabilityStartMigration).toMatch(/grant update \(effective_from, effective_to, updated_at, updated_by_user_id\)[\s\S]+?to service_role/)
+    expect(auditedAvailabilityStartMigration).toContain('new.effective_from > old.effective_from')
+    expect(auditedAvailabilityStartMigration).toContain('insert into public.payroll_arrangement_availability_history')
+    expect(auditedAvailabilityStartMigration).toContain('changed_by_user_id')
+    expect(auditedAvailabilityStartMigration).toContain("set search_path = ''")
+    expect(auditedAvailabilityStartMigration).not.toMatch(/grant\s+[^;]*\b(delete|all)\b[^;]*payroll_arrangement_availability_history/i)
+    expect(auditedAvailabilityStartMigration).not.toMatch(/delete\s+from\s+public\.payroll_arrangement_availability\b/i)
+  })
+
+  it('extends the synthetic assignment allowlist without removing Phase 1 fixture identities', () => {
+    expect(benchmarkFixtureCodesMigration).toContain('drop constraint payroll_arrangement_assignments_fixture_code_check')
+    for (const code of [
+      'cao-bench02-scale-step',
+      'cao-bench02-open-band',
+      'cao-bench02-freely-negotiated',
+      'cao-bench02-kinderopvang',
+      'cao-bench02-retail-mode',
+      'cao-bench02-open-band-benchmark',
+      'cao-bench02-ceo-benchmark',
+    ]) expect(benchmarkFixtureCodesMigration).toContain(code)
+    expect(benchmarkFixtureCodesMigration).not.toMatch(/delete\s+from|truncate\s+/i)
   })
 })

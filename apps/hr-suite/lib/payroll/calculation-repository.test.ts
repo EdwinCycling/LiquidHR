@@ -81,6 +81,114 @@ function makeClient(seed: Record<string, Array<Record<string, unknown>>>) {
   return { client, from, queryLog, rows }
 }
 
+function makeArtifactsClient(runId: string, caseKey: string, compositionId: string) {
+  const snapshotId = '10000000-0000-4000-8000-000000000008'
+  const periodId = '10000000-0000-4000-8000-000000000009'
+  const rows: Record<string, Array<Record<string, unknown>>> = {
+    calculation_runs: [{
+      ...runRow,
+      id: runId,
+      status: 'SUCCEEDED',
+      started_at: '2026-10-03T10:00:00.000Z',
+      finished_at: '2026-10-03T10:00:01.000Z',
+      result_hash: 'a'.repeat(64),
+    }],
+    calculation_input_sets: [{
+      id: inputSetId,
+      payroll_administration_id: payrollAdministrationId,
+      source_tenant_id: scope.tenantId,
+      source_hr_group_id: scope.hrGroupId,
+      source_administration_id: scope.administrationId,
+      source_snapshot_id: snapshotId,
+      payroll_period_id: periodId,
+      rule_package_composition_id: compositionId,
+      engine_version: '0.2.0',
+      input_hash: 'b'.repeat(64),
+      created_at: '2026-10-03T10:00:00.000Z',
+      created_by_user_id: actorUserId,
+    }],
+    source_snapshots: [{
+      id: snapshotId,
+      payroll_administration_id: payrollAdministrationId,
+      source_tenant_id: scope.tenantId,
+      source_hr_group_id: scope.hrGroupId,
+      source_administration_id: scope.administrationId,
+      source_employee_id: '10000000-0000-4000-8000-000000000010',
+      source_employment_id: '10000000-0000-4000-8000-000000000011',
+      source_income_relationship_id: null,
+      period_reference: '2026-07',
+      source_payload: {},
+      source_version_vector: {},
+      source_hash: 'c'.repeat(64),
+      created_at: '2026-10-03T10:00:00.000Z',
+      created_by_user_id: actorUserId,
+    }],
+    payroll_periods: [{
+      id: periodId,
+      payroll_administration_id: payrollAdministrationId,
+      source_tenant_id: scope.tenantId,
+      source_hr_group_id: scope.hrGroupId,
+      source_administration_id: scope.administrationId,
+      period_year: 2026,
+      period_month: 7,
+      starts_on: '2026-07-01',
+      ends_on: '2026-07-31',
+      status: 'OPEN',
+      updated_at: '2026-10-03T10:00:00.000Z',
+      updated_by_user_id: actorUserId,
+      created_at: '2026-10-03T10:00:00.000Z',
+      created_by_user_id: actorUserId,
+    }],
+    component_results: [],
+    calculation_traces: [],
+    payroll_controls: [],
+    golden_case_runs: [{
+      id: '10000000-0000-4000-8000-000000000012',
+      payroll_administration_id: payrollAdministrationId,
+      source_tenant_id: scope.tenantId,
+      source_hr_group_id: scope.hrGroupId,
+      source_administration_id: scope.administrationId,
+      calculation_run_id: runId,
+      case_key: caseKey,
+      expected_result_hash: null,
+      created_at: '2026-10-03T10:00:00.000Z',
+      created_by_user_id: actorUserId,
+    }],
+  }
+  const queryLog: Array<{ table: string; filters: Array<[string, unknown]> }> = []
+  const from = (table: string) => {
+    const filters: Array<[string, unknown]> = []
+    let rowLimit: number | null = null
+    queryLog.push({ table, filters })
+    const matchingRows = () => (rows[table] ?? []).filter((row) => filters.every(([column, value]) => {
+      if (column === 'calculation_input_sets.rule_package_composition_id') {
+        return rows.calculation_input_sets?.find((inputSet) => inputSet.id === row.calculation_input_set_id)?.rule_package_composition_id === value
+      }
+      return row[column] === value
+    })).slice(0, rowLimit ?? undefined)
+    const query = {
+      select: () => query,
+      eq: (column: string, value: unknown) => {
+        filters.push([column, value])
+        return query
+      },
+      order: () => query,
+      limit: (limit: number) => {
+        rowLimit = limit
+        return query
+      },
+      returns: () => query,
+      maybeSingle: async () => ({ data: matchingRows()[0] ?? null, error: null }),
+      then: (
+        onfulfilled: (value: { data: Array<Record<string, unknown>>; error: null }) => unknown,
+        onrejected?: (reason: unknown) => unknown,
+      ) => Promise.resolve({ data: matchingRows(), error: null as null }).then(onfulfilled, onrejected),
+    }
+    return query
+  }
+  return { client: { from } as unknown as PayrollSupabaseClient, queryLog }
+}
+
 describe('Payroll calculation repository scope and lifecycle', () => {
   it('keeps an exact legacy run lookup within the full scope and package', async () => {
     const { client, queryLog } = makeClient({ calculation_runs: [{ ...runRow, source_tenant_id: 'other-tenant' }] })
@@ -99,6 +207,42 @@ describe('Payroll calculation repository scope and lifecycle', () => {
     const repository = createPayrollCalculationRepository(client)
     await expect(repository.getLatestSyntheticArtifacts(scope, payrollAdministrationId, 'RPC-GC1-V1', 'invalid')).rejects.toThrow()
     expect(from).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['CAO-BENCH02-B1', '10000000-0000-4000-8000-000000000021', 'LHR_DEMO_OPEN_BANDS_2026:2026.07'],
+    ['CAO-BENCH02-C1', '10000000-0000-4000-8000-000000000022', 'LHR_DEMO_OPEN_BANDS_2026:2026.07:C1-FREELY-NEGOTIATED'],
+  ])('loads an exact %s run under its own composition and verifies its case link', async (caseKey, exactRunId, compositionId) => {
+    const { client, queryLog } = makeArtifactsClient(exactRunId, caseKey, compositionId)
+    const repository = createPayrollCalculationRepository(client)
+
+    const artifacts = await repository.getLatestSyntheticArtifacts(scope, payrollAdministrationId, compositionId, exactRunId, caseKey)
+
+    expect(artifacts?.run.id).toBe(exactRunId)
+    expect(artifacts?.goldenCase?.case_key).toBe(caseKey)
+    expect(queryLog[0]?.table).toBe('calculation_runs')
+    expect(queryLog[0]?.filters).toEqual(expect.arrayContaining([
+      ['id', exactRunId],
+      ['payroll_administration_id', payrollAdministrationId],
+      ['calculation_input_sets.rule_package_composition_id', compositionId],
+      ['source_tenant_id', scope.tenantId],
+      ['source_hr_group_id', scope.hrGroupId],
+      ['source_administration_id', scope.administrationId],
+    ]))
+  })
+
+  it('does not return an exact run when its persisted case link differs', async () => {
+    const compositionId = 'LHR_DEMO_OPEN_BANDS_2026:2026.07:C1-FREELY-NEGOTIATED'
+    const { client } = makeArtifactsClient(runId, 'CAO-BENCH02-C1', compositionId)
+    const repository = createPayrollCalculationRepository(client)
+
+    await expect(repository.getLatestSyntheticArtifacts(
+      scope,
+      payrollAdministrationId,
+      compositionId,
+      runId,
+      'CAO-BENCH02-B1',
+    )).resolves.toBeNull()
   })
   it('reads the Payroll administration only under the full source scope', async () => {
     const administrationRow = {

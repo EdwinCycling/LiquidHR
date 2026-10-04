@@ -1,5 +1,11 @@
 # Implementatiestatus Liquid HR
 
+## CAO-BENCH02 fase 2 — 2026-10-03
+
+**Status: PARTIAL, niet GREEN.** De drie regelpakketten, zeven gross-case rules, H1-scopeproef en Calculation Experience zijn geïntegreerd. De oorspronkelijke zeven browserruns, H1, K1-PDF/JSON-downloads en desktop-/393×852-weergave zijn van vóór de finale exact-run- en provenancefixes. Na die fixes slaagden 37 testbestanden / 240 tests (3 overgeslagen), beide typechecks, gewijzigde-bestanden-ESLint, NL/EN i18n en productiebuild 309/309 pagina's. De post-fix browserroute bereikte geen Payroll-klantcontext; actuele K1/K2, conceptstrook en downloads zijn daarom niet opnieuw bewezen. Een aparte niet-admingebruiker en tweede Payroll-enabled administratie ontbreken ook.
+
+De live negatieve HR-groepprobe gaf `/geen-toegang` en API 404. Geautomatiseerde permissie- en scopechecks slagen, maar bewijzen geen aparte live rol-/administratiecontext. LUNA MAX follow-up vond geen resterende P1/P2. De code is lokaal gecommit; geen push, merge, deployment, Core-write, CONTROL02-wijziging of version bump. Zie het [fase-2-rapport](../payroll/acceptance/CAO-BENCH02-PHASE2-20261003.md); fase 1 blijft in de volgende sectie ongewijzigd staan.
+
 ## CAO-BENCH02 Phase 1 — 2026-10-03
 
 **Status: lokale implementatie/codegates en synthetic Payroll Lab browserflow GREEN; totale acceptatie PARTIAL door een incidental Core-dashboardread; niet merge-ready.** Branch `work/cao-bench02-20261003` vanaf exact `6349d02538351cd01fc51f298c6e6fa0ba88006c`. De drie arrangementmigrations zijn toegepast op de geïsoleerde Payroll Lab-database `jhgeriucbkfarxiudzfy`; RLS/grants/readback/advisors zijn gecontroleerd. Na de UI-flow staan 3 synthetic rijen in elk van de drie arrangementtabellen; geen Core/CONTROL02-write.

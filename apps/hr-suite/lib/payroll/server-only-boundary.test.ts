@@ -144,7 +144,7 @@ describe('Payroll Lab server-only boundary', () => {
     expect(sidebarModule).not.toContain('PAYROLL_SUPABASE')
   })
 
-  it('keeps repository imports behind the Payroll access service', () => {
+  it('keeps calculation repository imports inside server-only Payroll services', () => {
     const sourceFiles = [
       ...collectSourceFiles(join(hrSuiteRoot, 'app')),
       ...collectSourceFiles(join(hrSuiteRoot, 'components')),
@@ -159,12 +159,19 @@ describe('Payroll Lab server-only boundary', () => {
     expect(resolveModulePath(join(payrollDirectory, 'access.ts'), './repository.js'))
       .toBe(resolve(payrollDirectory, 'repository.ts'))
     expect(repositoryImporters).toEqual([join(payrollDirectory, 'access.ts')])
-    expect(calculationRepositoryImporters).toEqual([join(payrollDirectory, 'nl-2026-calculation-service.ts'), join(payrollDirectory, 'synthetic-calculation-service.ts')])
+    expect(calculationRepositoryImporters).toEqual([
+      join(payrollDirectory, 'cao-bench02-calculation-service.ts'),
+      join(payrollDirectory, 'nl-2026-calculation-service.ts'),
+      join(payrollDirectory, 'synthetic-calculation-service.ts'),
+    ])
+    expect(calculationRepositoryImporters.every((path) => readFileSync(path, 'utf8').startsWith("import 'server-only'"))).toBe(true)
     expect(supabaseClientImporters).toEqual([
+      join(payrollDirectory, 'arrangement-repository.ts'),
       join(payrollDirectory, 'calculation-repository.ts'),
       join(payrollDirectory, 'component-draft-repository.ts'),
       join(payrollDirectory, 'repository.ts'),
     ])
+    expect(supabaseClientImporters.every((path) => readFileSync(path, 'utf8').startsWith("import 'server-only'"))).toBe(true)
     expect(draftRepositoryImporters).toEqual([
       join(payrollDirectory, 'component-draft-service.ts'),
       join(payrollDirectory, 'component-library.ts'),

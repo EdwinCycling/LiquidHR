@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## CAO-BENCH02 fase 2 — 2026-10-03
+
+De geïntegreerde kandidaat bevat drie regelingen, K1/K2/R1/R2/B1/B2/C1, H1-applicability-only en de Payroll Calculation Experience met conceptstrook en PDF/JSON-validatiepack. Na de finale provenance-/exact-runfixes slaagden de lokale regressies en productiebuild. De oorspronkelijke zeven persistent runs, H1 en desktop-/393×852-browsermatrix zijn van vóór die fixes; K1/K2 en de bijgewerkte downloads konden daarna niet opnieuw via de browser worden bewezen omdat de klantcontext ontbrak. Ook de aparte live rol-/administratiescopefixtures ontbreken. De eindacceptatie is **PARTIAL, niet GREEN**. Zie het [fase-2-acceptatierapport](payroll/acceptance/CAO-BENCH02-PHASE2-20261003.md). Fase 1 en haar dashboard-scopecaveat blijven behouden in het [fase-1-rapport](payroll/acceptance/CAO-BENCH02-20261003.md) en [ADR](decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md).
+
 ## CAO-BENCH02 Phase 1 — 2026-10-03
 
 De lokale Payroll Lab-kandidaat staat op branch `work/cao-bench02-20261003`, gestart vanaf exact `6349d02538351cd01fc51f298c6e6fa0ba88006c`. De arrangementfoundation ondersteunt drie versioned referentiepakketten en drie synthetische testdienstverbanden. Er worden geen salarisbedragen, CAO-rekenregels of Core-employeegegevens in Payroll Lab verwerkt. De juiste latere Core-QA-groep is Planeten → Jupiter BV → Directie. De bestaande TEST-loginredirect laadde echter de Core-startpagina met employee/absence-samenvattingen en een avatar; daarom is totale acceptatie PARTIAL, ondanks dat de arrangementflow synthetic is.

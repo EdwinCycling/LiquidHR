@@ -14,6 +14,7 @@ import {
   createArrangementCompositionSnapshot,
   createSyntheticArrangementAssignment,
   endArrangementPackageAvailability,
+  extendArrangementPackageAvailabilityStart,
   loadArrangementFoundationPage,
   makeArrangementPackagesAvailable,
   type ArrangementServiceDependencies,
@@ -85,6 +86,13 @@ class MemoryArrangementRepository implements ArrangementRepository {
     const index = this.availability.findIndex((row) => row.package_id === packageId)
     if (index < 0) throw new Error('missing availability')
     const updated = { ...this.availability[index]!, effective_to: effectiveTo, updated_at: updatedAt, updated_by_user_id: updatedByUserId }
+    this.availability[index] = updated
+    return updated
+  })
+  extendAvailabilityStart = vi.fn(async (_scope: PayrollScope, _payrollAdministrationId: string, packageId: string, effectiveFrom: string, updatedAt: string, updatedByUserId: string) => {
+    const index = this.availability.findIndex((row) => row.package_id === packageId)
+    if (index < 0) throw new Error('missing availability')
+    const updated = { ...this.availability[index]!, effective_from: effectiveFrom, updated_at: updatedAt, updated_by_user_id: updatedByUserId }
     this.availability[index] = updated
     return updated
   })
@@ -172,6 +180,44 @@ describe('Payroll Lab arrangement service', () => {
     await expect(makeArrangementPackagesAvailable({ effectiveFrom: '2026-10-01', effectiveTo: '2026-09-30' }, service(repository)))
       .rejects.toMatchObject({ code: 'ARRANGEMENT_INVALID_REQUEST' })
     expect(repository.insertAvailability).not.toHaveBeenCalled()
+  })
+
+  it('extends a package start only within its version history and records the acting user', async () => {
+    repository.availability = [availabilityRow('KINDEROPVANG_2025_2026')]
+
+    const updated = await extendArrangementPackageAvailabilityStart({
+      packageId: 'KINDEROPVANG_2025_2026',
+      effectiveFrom: '2026-07-01',
+    }, service(repository))
+
+    expect(updated.effective_from).toBe('2026-07-01')
+    expect(updated.updated_at).toBe(now)
+    expect(updated.updated_by_user_id).toBe(actorUserId)
+    expect(repository.extendAvailabilityStart).toHaveBeenCalledWith(
+      scope,
+      payrollAdministrationId,
+      'KINDEROPVANG_2025_2026',
+      '2026-07-01',
+      now,
+      actorUserId,
+    )
+  })
+
+  it('rejects a non-earlier, future, unsupported, or unknown availability start without writing', async () => {
+    repository.availability = [availabilityRow('KINDEROPVANG_2025_2026')]
+    const dependencies = service(repository)
+
+    for (const effectiveFrom of ['2026-09-01', '2026-10-04', '2024-12-31', 'not-a-date']) {
+      await expect(extendArrangementPackageAvailabilityStart({
+        packageId: 'KINDEROPVANG_2025_2026',
+        effectiveFrom,
+      }, dependencies)).rejects.toMatchObject({ code: 'ARRANGEMENT_INVALID_REQUEST' })
+    }
+    await expect(extendArrangementPackageAvailabilityStart({
+      packageId: 'UNKNOWN_PACKAGE',
+      effectiveFrom: '2026-07-01',
+    }, dependencies)).rejects.toMatchObject({ code: 'ARRANGEMENT_INVALID_REQUEST' })
+    expect(repository.extendAvailabilityStart).not.toHaveBeenCalled()
   })
 
   it('persists one package and strategy for a synthetic employment and rejects a competing primary assignment', async () => {

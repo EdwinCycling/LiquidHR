@@ -42,3 +42,16 @@ export function formatPayrollMoney(value: string | null, locale: string): string
     ...signPattern.slice(lastInteger + 1),
   ].map((part) => part.type === 'fraction' ? fractionDigits : part.value).join('')
 }
+
+/** Display-only HALF_UP rounding for exact engine decimals; persisted values stay unrounded. */
+export function formatPayrollMoneyForDisplay(value: string | null, locale: string): string {
+  if (value === null || !/^-?\d+(?:\.\d{1,18})?$/.test(value)) return '—'
+  const negative = value.startsWith('-')
+  const unsignedValue = negative ? value.slice(1) : value
+  const [integer = '0', fraction = ''] = unsignedValue.split('.')
+  const kept = fraction.padEnd(2, '0').slice(0, 2)
+  let cents = BigInt(integer) * BigInt(100) + BigInt(kept || '0')
+  if ((fraction[2] ?? '0') >= '5') cents += BigInt(1)
+  const rounded = `${negative && cents > BigInt(0) ? '-' : ''}${cents / BigInt(100)}.${(cents % BigInt(100)).toString().padStart(2, '0')}`
+  return formatPayrollMoney(rounded, locale)
+}

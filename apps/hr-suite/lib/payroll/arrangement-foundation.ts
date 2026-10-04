@@ -33,6 +33,7 @@ export interface ArrangementPackage {
 }
 
 const sourceOnlyNote = 'Reference metadata only. Salary tables, eligibility rules, and payroll calculations are not implemented in CAO-BENCH02 Phase 1.'
+const phase2ReferenceNote = 'Reference metadata for the named agreement release only. CAO-BENCH02 Phase 2 evaluates limited synthetic scenarios; it does not implement the complete agreement, determine legal applicability, or calculate tax or net pay.'
 
 const arrangementPackages: readonly ArrangementPackage[] = [
   {
@@ -102,7 +103,7 @@ const arrangementPackages: readonly ArrangementPackage[] = [
           sourceUrl: 'https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/het-salaris-bepalen',
           recordedOn: '2026-10-03',
           status: 'REFERENCE_ONLY',
-          note: sourceOnlyNote,
+          note: phase2ReferenceNote,
         },
       },
     ],
@@ -168,7 +169,7 @@ const arrangementPackages: readonly ArrangementPackage[] = [
           sourceUrl: 'https://zoek.officielebekendmakingen.nl/stcrt-2026-11183.html',
           recordedOn: '2026-10-03',
           status: 'SYNTHETIC_POLICY',
-          note: 'Synthetic company policy metadata only. The referenced public band amounts and all other agreement terms are not included or treated as applicable.',
+          note: 'Synthetic LiquidHR demo policy. Cases B1/B2 reference published 2026 band figures for a fictional benchmark only; no collective agreement applicability, other terms, or tax/net pay is inferred.',
         },
       },
     ],
@@ -217,6 +218,38 @@ export const SYNTHETIC_ARRANGEMENT_FIXTURES: readonly SyntheticArrangementFixtur
     salaryStrategy: 'FREELY_NEGOTIATED',
     allowedPackageIds: ['LHR_DEMO_OPEN_BANDS_2026'],
     effectiveFrom: '2026-09-01',
+  },
+  {
+    code: 'CAO-BENCH02-KINDEROPVANG',
+    sourceEmploymentId: 'b2e00000-0000-4000-8000-000000000004',
+    displayName: 'Synthetisch dienstverband — benchmark Kinderopvang K1/K2',
+    salaryStrategy: 'DISCRETE_SCALE_STEP',
+    allowedPackageIds: ['KINDEROPVANG_2025_2026'],
+    effectiveFrom: '2026-07-01',
+  },
+  {
+    code: 'CAO-BENCH02-RETAIL-MODE',
+    sourceEmploymentId: 'b2e00000-0000-4000-8000-000000000005',
+    displayName: 'Synthetisch dienstverband — benchmark Retail R1/R2',
+    salaryStrategy: 'DISCRETE_SCALE_STEP',
+    allowedPackageIds: ['RETAIL_NON_FOOD_MODE_2026_2027'],
+    effectiveFrom: '2026-07-01',
+  },
+  {
+    code: 'CAO-BENCH02-OPEN-BAND-BENCHMARK',
+    sourceEmploymentId: 'b2e00000-0000-4000-8000-000000000006',
+    displayName: 'Synthetisch dienstverband — benchmark open salarisband B1/B2',
+    salaryStrategy: 'OPEN_SALARY_BAND',
+    allowedPackageIds: ['LHR_DEMO_OPEN_BANDS_2026'],
+    effectiveFrom: '2026-07-01',
+  },
+  {
+    code: 'CAO-BENCH02-CEO-BENCHMARK',
+    sourceEmploymentId: 'b2e00000-0000-4000-8000-000000000007',
+    displayName: 'Synthetisch dienstverband — individueel overeengekomen CEO C1',
+    salaryStrategy: 'FREELY_NEGOTIATED',
+    allowedPackageIds: ['LHR_DEMO_OPEN_BANDS_2026'],
+    effectiveFrom: '2026-07-01',
   },
 ])
 

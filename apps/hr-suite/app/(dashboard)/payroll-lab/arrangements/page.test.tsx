@@ -14,6 +14,7 @@ vi.mock('@/lib/i18n/server', () => ({
 vi.mock('./actions', () => ({
   createSyntheticArrangementAssignmentAction: vi.fn(),
   endArrangementPackageAvailabilityAction: vi.fn(),
+  extendArrangementPackageAvailabilityStartAction: vi.fn(),
   makeArrangementPackagesAvailableAction: vi.fn(),
   resolveArrangementCompositionAction: vi.fn(),
 }))
@@ -56,6 +57,8 @@ describe('Payroll arrangements page', () => {
     expect(markup).not.toContain('Jan Test')
     expect(markup).not.toContain('Frank Test')
     expect(markup).toContain('name="effectiveTo"')
+    expect(markup).toContain('name="effectiveFrom"')
+    expect(markup).toContain('arrangementsExtendAvailabilityStart')
     expect(markup).toContain('name="packageId"')
     expect(markup).toContain('aria-haspopup="listbox"')
   })
@@ -95,7 +98,17 @@ describe('Payroll arrangements page', () => {
     loadPage.mockResolvedValue(pageData(false))
     const markup = renderToStaticMarkup(await PayrollArrangementsPage({ searchParams: Promise.resolve({}) }))
     expect(markup).not.toContain('name="packageId"')
+    expect(markup).not.toContain('name="fixtureCode"')
+    expect(markup).not.toContain('aria-haspopup="listbox"')
     expect(markup).toContain('arrangementsWritePermissionRequired')
+  })
+
+  it('confirms an audited availability start extension', async () => {
+    const markup = renderToStaticMarkup(await PayrollArrangementsPage({
+      searchParams: Promise.resolve({ availability: 'extended' }),
+    }))
+
+    expect(markup).toContain('arrangementsAvailabilityStartExtended')
   })
 
   it('hides expired packages from new assignment choices', async () => {
@@ -110,7 +123,8 @@ describe('Payroll arrangements page', () => {
 
     const markup = renderToStaticMarkup(await PayrollArrangementsPage({ searchParams: Promise.resolve({}) }))
 
-    expect(markup).not.toContain('name="packageId"')
+    expect(markup).not.toContain('name="fixtureCode"')
+    expect(markup).not.toContain('aria-haspopup="listbox"')
     expect(markup).toContain('arrangementsNoAvailableAssignmentChoice')
   })
 })

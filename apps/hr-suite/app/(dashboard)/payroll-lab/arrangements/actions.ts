@@ -4,12 +4,13 @@ import { redirect } from 'next/navigation'
 import { AuthenticationError, AuthorizationError } from '@/lib/auth/permissions'
 import { ContextAccessError } from '@/lib/context/administration-context'
 import { ContextAuthenticationError } from '@/lib/context/server-context'
-import { ArrangementFoundationError } from '@/lib/payroll/arrangement-foundation'
+import { ArrangementFoundationError, getSyntheticArrangementFixture } from '@/lib/payroll/arrangement-foundation'
 import {
   ArrangementServiceError,
   createArrangementCompositionSnapshot,
   createSyntheticArrangementAssignment,
   endArrangementPackageAvailability,
+  extendArrangementPackageAvailabilityStart,
   makeArrangementPackagesAvailable,
 } from '@/lib/payroll/arrangement-service'
 
@@ -79,6 +80,21 @@ export async function endArrangementPackageAvailabilityAction(formData: FormData
   redirect(destination)
 }
 
+export async function extendArrangementPackageAvailabilityStartAction(formData: FormData): Promise<never> {
+  let destination = '/payroll-lab/arrangements?error=save-failed'
+  try {
+    if (!fieldsMatch(formData, ['packageId', 'effectiveFrom'])) throw new Error('Invalid form.')
+    const packageId = stringField(formData, 'packageId', 120)
+    const effectiveFrom = stringField(formData, 'effectiveFrom', 10)
+    if (!packageId || !effectiveFrom) throw new Error('Invalid form.')
+    await extendArrangementPackageAvailabilityStart({ packageId, effectiveFrom })
+    destination = `/payroll-lab/arrangements?availability=extended&package=${encodeURIComponent(packageId)}`
+  } catch (error) {
+    destination = errorLocation(error)
+  }
+  redirect(destination)
+}
+
 export async function createSyntheticArrangementAssignmentAction(formData: FormData): Promise<never> {
   let destination = '/payroll-lab/arrangements?error=save-failed'
   try {
@@ -86,10 +102,12 @@ export async function createSyntheticArrangementAssignmentAction(formData: FormD
     const fixtureCode = stringField(formData, 'fixtureCode', 80)
     const packageId = stringField(formData, 'packageId', 120)
     if (!fixtureCode || !packageId) throw new Error('Invalid form.')
+    const fixture = getSyntheticArrangementFixture(fixtureCode)
+    if (!fixture) throw new Error('Invalid form.')
     const assignment = await createSyntheticArrangementAssignment({
       fixtureCode,
       packageId,
-      effectiveFrom: '2026-09-01',
+      effectiveFrom: fixture.effectiveFrom,
       effectiveTo: null,
     })
     destination = `/payroll-lab/arrangements?saved=1&fixture=${encodeURIComponent(assignment.fixture_code)}`

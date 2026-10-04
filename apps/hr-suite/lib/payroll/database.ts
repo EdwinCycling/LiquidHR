@@ -182,6 +182,23 @@ export type PayrollArrangementAvailabilityRow = AuditColumns & {
   updated_by_user_id: string | null
 }
 
+export type PayrollArrangementAvailabilityHistoryRow = {
+  id: string
+  availability_id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  package_id: string
+  previous_effective_from: string
+  previous_effective_to: string | null
+  new_effective_from: string
+  new_effective_to: string | null
+  changed_at: string
+  changed_by_user_id: string
+  change_kind: 'START_EXTENDED' | 'END_SHORTENED' | 'START_EXTENDED_AND_END_SHORTENED'
+}
+
 export type PayrollArrangementAssignmentRow = AuditColumns & {
   id: string
   payroll_administration_id: string
@@ -334,6 +351,11 @@ export interface PayrollDatabase {
           updated_by_user_id?: string | null
         },
         Partial<PayrollArrangementAvailabilityRow>
+      >
+      payroll_arrangement_availability_history: PayrollTable<
+        PayrollArrangementAvailabilityHistoryRow,
+        Omit<PayrollArrangementAvailabilityHistoryRow, 'id'> & { id?: string },
+        never
       >
       payroll_arrangement_assignments: PayrollTable<
         PayrollArrangementAssignmentRow,

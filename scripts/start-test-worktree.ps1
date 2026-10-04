@@ -137,10 +137,15 @@ if ([string]::IsNullOrWhiteSpace($package.scripts.build) -or [string]::IsNullOrW
 
 $npm = Get-Command npm.cmd -ErrorAction Stop
 Push-Location $repoRoot
+$previousErrorActionPreference = $ErrorActionPreference
 try {
+    # npm writes informational notices to stderr even when dependency validation succeeds.
+    # Keep the command's real exit code as the gate without promoting that stderr to a script exception.
+    $ErrorActionPreference = 'Continue'
     & $npm.Source ls --workspaces --depth=0 --json *> $null
     $dependencyExitCode = $LASTEXITCODE
 } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
     Pop-Location
 }
 if ($dependencyExitCode -ne 0) {
@@ -152,9 +157,10 @@ if ($PayrollAcceptance) {
     $requiredGroupsJson += ', ["PAYROLL_SUPABASE_URL"], ["PAYROLL_SUPABASE_SECRET_KEY"], ["PAYROLL_LAB_ENABLED"]'
 }
 $requiredGroupsJson += ' ]'
+$requiredGroupsBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($requiredGroupsJson))
 $requirePayrollJson = if ($PayrollAcceptance) { 'true' } else { 'false' }
 $configProbe = @'
-const groups = JSON.parse(process.argv[1]);
+const groups = JSON.parse(Buffer.from(process.argv[1], 'base64').toString('utf8'));
 const requirePayroll = process.argv[2] === 'true';
 const missing = groups
   .filter((group) => !group.some((name) => (process.env[name] ?? '').trim().length > 0))
@@ -192,7 +198,7 @@ if (missing.length > 0 || invalidTargets.length > 0) {
   console.log('Centrale TEST-configuratie: vereiste variabelen aanwezig; waarden verborgen.');
 }
 '@
-& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsJson $requirePayrollJson
+& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsBase64 $requirePayrollJson
 if ($LASTEXITCODE -ne 0) {
     throw 'De centrale TEST-configuratie bevat niet alle vereiste runtimevelden; waarden zijn niet getoond.'
 }
@@ -306,13 +312,28 @@ if ($PreflightOnly) {
     return
 }
 
-$nextArguments = @("--env-file=$centralConfig", $nextCli)
+$nextArguments = @()
 if ($Mode -eq 'Development') {
     $nextArguments += @('dev', '--webpack')
 } else {
     $nextArguments += 'start'
 }
 $nextArguments += @('--hostname', '127.0.0.1', '--port', [string]$resolvedPort)
+
+# Next's development worker copies process.execArgv into NODE_OPTIONS. Node
+# rejects --env-file there, so load the central config in a short-lived parent
+# process and start Next as a clean child with that environment already loaded.
+$nextBootstrap = @'
+const { spawnSync } = require('node:child_process');
+const [nextCli, ...nextArgs] = process.argv.slice(1);
+const result = spawnSync(process.execPath, [nextCli, ...nextArgs], {
+  env: process.env,
+  stdio: 'inherit',
+});
+if (result.error) throw result.error;
+process.exit(result.status ?? 1);
+'@
+$nextArguments = @("--env-file=$centralConfig", '-e', $nextBootstrap, $nextCli) + $nextArguments
 
 Write-Host "Start $Mode op http://127.0.0.1:$resolvedPort met de centrale TEST-configuratie. Configwaarden worden niet getoond of gekopieerd."
 Push-Location $appRoot

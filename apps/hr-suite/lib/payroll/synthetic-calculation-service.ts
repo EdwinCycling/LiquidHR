@@ -76,6 +76,10 @@ export interface SyntheticPayrollView {
   readonly runType: PayrollCalculationRunRow['run_type']
   readonly payrollAdministrationId: string
   readonly employeeId: string
+  readonly sourceSnapshotId: string
+  readonly inputSetId: string
+  readonly sourcePayload: PayrollJson
+  readonly sourceVersionVector: Readonly<Record<string, string>>
   readonly payrollPeriod: SyntheticPayrollPeriod
   readonly sourceHash: string
   readonly inputHash: string
@@ -91,6 +95,8 @@ export interface SyntheticPayrollView {
   readonly errorCode: SyntheticPayrollErrorCode | null
 }
 
+export type PayrollSelectionEvidence = Readonly<Record<string, string | number | boolean | null>>
+
 export interface SyntheticPayrollEngine {
   buildInputs(sourceSnapshot: PayrollSourceSnapshot, effectiveDate: string): PayrollCalculationInputs
   calculate(inputs: PayrollCalculationInputs): PayrollCalculationResult
@@ -101,7 +107,8 @@ export interface PayrollTestScenario {
   readonly compositionId: string
   readonly period: SyntheticPayrollPeriod
   readonly expectedResults: readonly PayrollResultMapping[]
-  readonly createSnapshot: (scope: PayrollScope, period: SyntheticPayrollPeriod, options: SyntheticPayrollSnapshotOptions) => PayrollSourceSnapshot
+  readonly createSnapshot: (scope: PayrollScope, period: SyntheticPayrollPeriod, options: SyntheticPayrollSnapshotOptions, selectionEvidence?: PayrollSelectionEvidence) => PayrollSourceSnapshot
+  readonly validateSelection?: (scope: PayrollScope, payrollAdministrationId: string, effectiveDate: string) => Promise<PayrollSelectionEvidence | undefined>
 }
 
 export interface SyntheticPayrollServiceDependencies {
@@ -187,6 +194,12 @@ function viewFromArtifacts(artifacts: PayrollCalculationArtifacts): SyntheticPay
   const traceRecord = isRecord(tracePayload) ? tracePayload : null
   const errorCode = getJsonText(traceRecord, 'failureCode')
   const safeErrorCode = errorCode && isSyntheticPayrollErrorCode(errorCode) ? errorCode : null
+  const sourceVersionVector: Record<string, string> = {}
+  if (isRecord(artifacts.sourceSnapshot.source_version_vector)) {
+    for (const [key, value] of Object.entries(artifacts.sourceSnapshot.source_version_vector)) {
+      if (typeof value === 'string') sourceVersionVector[key] = value
+    }
+  }
 
   return {
     caseKey: artifacts.goldenCase?.case_key ?? getJsonText(traceRecord, 'caseKey'),
@@ -197,6 +210,10 @@ function viewFromArtifacts(artifacts: PayrollCalculationArtifacts): SyntheticPay
     runType: artifacts.run.run_type,
     payrollAdministrationId: artifacts.run.payroll_administration_id,
     employeeId: artifacts.sourceSnapshot.source_employee_id,
+    sourceSnapshotId: artifacts.sourceSnapshot.id,
+    inputSetId: artifacts.inputSet.id,
+    sourcePayload: artifacts.sourceSnapshot.source_payload,
+    sourceVersionVector,
     payrollPeriod: {
       year: artifacts.payrollPeriod.period_year,
       month: artifacts.payrollPeriod.period_month,
@@ -239,7 +256,7 @@ function resultPayload(
   const outputDefinition = definition?.outputs.find((candidate) => candidate.name === resultRow.outputName)
   return toPayrollJson({
     key: resultRow.key,
-    amount: typeof resultRow.value === 'string' ? resultRow.value : null,
+    amount: numericResultAmount(resultRow),
     value: resultRow.value,
     valueType: resultRow.valueType,
     componentCode: resultRow.componentCode,
@@ -255,6 +272,13 @@ function resultPayload(
       rounding: outputDefinition?.rounding ?? null,
     } : null,
   })
+}
+
+function numericResultAmount(resultRow: PayrollCalculationResult['resultRows'][number]): string | null {
+  if (resultRow.valueType !== 'MONEY' && resultRow.valueType !== 'DECIMAL' && resultRow.valueType !== 'PERCENTAGE') {
+    return null
+  }
+  return typeof resultRow.value === 'string' ? resultRow.value : null
 }
 
 function componentDefinitionTrace(inputs: PayrollCalculationInputs): PayrollJson {
@@ -282,21 +306,29 @@ function controlStatus(status: PayrollCalculationResult['controls'][number]['sta
 
 function safeFailureCode(error: unknown): SyntheticPayrollErrorCode {
   if (error instanceof SyntheticPayrollServiceError) return error.code
-  if (error instanceof PayrollEngineError && /^NL2026_UNSUPPORTED_[A-Z_]+$/.test(error.code)) return 'PAYROLL_UNSUPPORTED'
+  if (error instanceof PayrollEngineError
+    && /^(?:NL2026|KO|RETAIL_MODE|BENCH02)_[A-Z0-9_]+$/.test(error.code)) return 'PAYROLL_UNSUPPORTED'
   if (error instanceof PayrollCalculationRepositoryError) return 'PAYROLL_PERSISTENCE_FAILED'
   return 'PAYROLL_CALCULATION_FAILED'
 }
 
-function hasExpectedGcOutputs(result: PayrollCalculationResult, expected: readonly PayrollResultMapping[]): boolean {
+function hasExpectedOutputs(
+  result: PayrollCalculationResult,
+  inputs: PayrollCalculationInputs,
+  expected: readonly PayrollResultMapping[],
+): boolean {
   if (result.resultRows.length !== expected.length) return false
   const rowsByKey = new Map(result.resultRows.map((row) => [row.key, row]))
   return expected.every((mapping) => {
     const row = rowsByKey.get(mapping.key)
+    const component = inputs.components.find((candidate) => candidate.code === mapping.componentCode)
+    const output = component?.outputs.find((candidate) => candidate.name === mapping.outputName)
     return row !== undefined
       && row.componentCode === mapping.componentCode
       && row.outputName === mapping.outputName
-      && row.valueType === 'MONEY'
-      && typeof row.value === 'string'
+      && output !== undefined
+      && row.valueType === output.valueType
+      && (row.valueType === 'BOOLEAN' ? typeof row.value === 'boolean' : typeof row.value === 'string')
   })
 }
 
@@ -362,18 +394,20 @@ export function createSyntheticPayrollService(dependencies: SyntheticPayrollServ
     const actorUserId = rawActorUserId
     let currentRun: PayrollCalculationRunRow | null = null
     let traceInserted = false
+    let goldenCaseInserted = false
 
     try {
       await requirePayrollAdministration(scope, payrollAdministrationId)
       const currentTime = now()
       const period = scenario.period
+      const selectionEvidence = await scenario.validateSelection?.(scope, payrollAdministrationId, periodStart(period))
       const payrollPeriod = await getOrCreatePayrollPeriod(scope, payrollAdministrationId, period, actorUserId)
       if (payrollPeriod.status === 'CLOSED') throw new SyntheticPayrollServiceError('PAYROLL_PERIOD_CLOSED')
 
       const snapshot = scenario.createSnapshot(scope, period, {
         now: currentTime,
         ...(createId ? { createId } : {}),
-      })
+      }, selectionEvidence)
       const inputs = dependencies.engine.buildInputs(snapshot, periodStart(period))
       if (!isHash(snapshot.sourceHash) || !isHash(inputs.inputHash) || !inputs.rulePackageCompositionId.trim() || !inputs.engineVersion.trim()) {
         throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID')
@@ -431,7 +465,7 @@ export function createSyntheticPayrollService(dependencies: SyntheticPayrollServ
         || result.sourceHash !== snapshot.sourceHash
         || result.sourceSnapshotId !== snapshot.id
         || result.status !== 'CALCULATED'
-        || !hasExpectedGcOutputs(result, scenario.expectedResults)
+        || !hasExpectedOutputs(result, inputs, scenario.expectedResults)
       ) {
         const code: SyntheticPayrollErrorCode = result.status === 'BLOCKED' ? 'PAYROLL_CALCULATION_BLOCKED' : 'PAYROLL_CALCULATION_FAILED'
         const blockedTrace = toPayrollJson({
@@ -480,7 +514,7 @@ export function createSyntheticPayrollService(dependencies: SyntheticPayrollServ
         source_administration_id: scope.administrationId,
         calculation_run_id: createdRunId,
         component_key: resultRow.key,
-        amount: typeof resultRow.value === 'string' ? resultRow.value : null,
+        amount: numericResultAmount(resultRow),
         result_payload: resultPayload(result, inputs, resultRow),
         created_by_user_id: actorUserId,
         updated_by_user_id: actorUserId,
@@ -534,6 +568,7 @@ export function createSyntheticPayrollService(dependencies: SyntheticPayrollServ
         expected_result_hash: null,
         created_by_user_id: actorUserId,
       })
+      goldenCaseInserted = true
       const finishedAt = now().toISOString()
       const succeededRun = await dependencies.repository.markCalculationRunSucceeded(
         scope,
@@ -571,6 +606,23 @@ export function createSyntheticPayrollService(dependencies: SyntheticPayrollServ
             // Keep the run failure visible even if its diagnostic trace cannot be stored.
           }
         }
+        if (!goldenCaseInserted) {
+          try {
+            await dependencies.repository.insertGoldenCaseRun(scope, payrollAdministrationId, {
+              payroll_administration_id: payrollAdministrationId,
+              source_tenant_id: scope.tenantId,
+              source_hr_group_id: scope.hrGroupId,
+              source_administration_id: scope.administrationId,
+              calculation_run_id: currentRun.id,
+              case_key: scenario.caseKey,
+              expected_result_hash: null,
+              created_by_user_id: actorUserId,
+            })
+            goldenCaseInserted = true
+          } catch {
+            // Preserve the run status even when the case index cannot be written.
+          }
+        }
         try {
           await dependencies.repository.markCalculationRunFailed(scope, payrollAdministrationId, currentRun.id, actorUserId, now().toISOString())
         } catch {
@@ -578,7 +630,7 @@ export function createSyntheticPayrollService(dependencies: SyntheticPayrollServ
         }
       }
       if (error instanceof SyntheticPayrollServiceError) {
-        throw new SyntheticPayrollServiceError(error.code, currentRun?.id ?? error.runId)
+        throw new SyntheticPayrollServiceError(error.code, currentRun?.id ?? error.runId, error.reasonCode)
       }
       throw new SyntheticPayrollServiceError(code, currentRun?.id ?? null, code === 'PAYROLL_UNSUPPORTED' && error instanceof PayrollEngineError ? error.code : null)
     }
@@ -592,10 +644,28 @@ export function createSyntheticPayrollService(dependencies: SyntheticPayrollServ
     if (!dependencies.isEnabled()) throw new SyntheticPayrollServiceError('PAYROLL_SYNTHETIC_MODE_DISABLED')
     const scope = assertServiceScope(rawScope, rawPayrollAdministrationId)
     await requirePayrollAdministration(scope, rawPayrollAdministrationId)
-    const artifacts = runId === undefined
-      ? await dependencies.repository.getLatestSyntheticArtifacts(scope, rawPayrollAdministrationId, scenario.compositionId)
-      : await dependencies.repository.getLatestSyntheticArtifacts(scope, rawPayrollAdministrationId, scenario.compositionId, runId)
-    return artifacts ? viewFromArtifacts(artifacts) : null
+    if (runId === undefined) {
+      const artifacts = await dependencies.repository.getLatestSyntheticArtifacts(
+        scope,
+        rawPayrollAdministrationId,
+        scenario.compositionId,
+        undefined,
+        scenario.caseKey,
+      )
+      if (!artifacts) return null
+      const view = viewFromArtifacts(artifacts)
+      return view.caseKey === scenario.caseKey ? view : null
+    }
+
+    const exactArtifacts = await dependencies.repository.getLatestSyntheticArtifacts(
+      scope,
+      rawPayrollAdministrationId,
+      scenario.compositionId,
+      runId,
+    )
+    if (!exactArtifacts) return null
+    const exactView = viewFromArtifacts(exactArtifacts)
+    return exactView.runId === runId && exactView.caseKey === scenario.caseKey ? exactView : null
   }
 
   return { runSyntheticPayroll, getLatestSyntheticPayroll }

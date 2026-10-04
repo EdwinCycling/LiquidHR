@@ -15,6 +15,7 @@ import {
 import {
   createSyntheticArrangementAssignmentAction,
   endArrangementPackageAvailabilityAction,
+  extendArrangementPackageAvailabilityStartAction,
   makeArrangementPackagesAvailableAction,
   resolveArrangementCompositionAction,
 } from './actions'
@@ -25,6 +26,7 @@ import { getTranslator } from '@/lib/i18n/server'
 type ArrangementQuery = {
   activated?: string | string[]
   ended?: string | string[]
+  availability?: string | string[]
   saved?: string | string[]
   snapshot?: string | string[]
   fixture?: string | string[]
@@ -80,6 +82,8 @@ export default async function PayrollArrangementsPage({
   const errorKey = ERROR_TRANSLATION_KEYS[single(query?.error) ?? '']
   const successKey = single(query?.ended) === '1'
     ? 'arrangementsAvailabilityEnded'
+    : single(query?.availability) === 'extended'
+      ? 'arrangementsAvailabilityStartExtended'
     : single(query?.activated) === '1'
     ? 'arrangementsPackagesActivated'
     : single(query?.saved) === '1'
@@ -129,6 +133,16 @@ export default async function PayrollArrangementsPage({
           </div>
           <p className="text-sm text-muted-foreground">{t(definition.kind === 'COLLECTIVE_AGREEMENT' ? 'arrangementsCollectiveAgreement' : 'arrangementsCompanyPolicy')}</p>
           {availability ? <p className="text-sm text-muted-foreground">{t('arrangementsAvailabilityPeriod')}: {availability.effective_from} — {availability.effective_to ?? t('arrangementsOpenEnded')}</p> : null}
+          {data.canWrite && available && availability && (() => {
+            const earliestPackageDate = definition.versions.map((version) => version.effectiveFrom).sort()[0]
+            return earliestPackageDate && availability.effective_from > earliestPackageDate
+              ? <form action={extendArrangementPackageAvailabilityStartAction} className="flex flex-wrap items-end gap-3">
+                <input name="packageId" type="hidden" value={definition.id} />
+                <label className="grid gap-1 text-sm"><span>{t('arrangementsAvailabilityFrom')}</span><TextInput defaultValue={availability.effective_from} max={availability.effective_to ?? data.today} min={earliestPackageDate} name="effectiveFrom" required type="date" /></label>
+                <Button type="submit" variant="secondary">{t('arrangementsExtendAvailabilityStart')}</Button>
+              </form>
+              : null
+          })()}
           {data.canWrite && availability?.effective_to === null ? <form action={endArrangementPackageAvailabilityAction} className="flex flex-wrap items-end gap-3">
             <input name="packageId" type="hidden" value={definition.id} />
             <label className="grid gap-1 text-sm"><span>{t('arrangementsAvailabilityLastDate')}</span><TextInput defaultValue={data.today} min={availability.effective_from} name="effectiveTo" required type="date" /></label>

@@ -523,3 +523,44 @@ export async function endArrangementPackageAvailability(input: {
     mapRepositoryError(error)
   }
 }
+
+export async function extendArrangementPackageAvailabilityStart(input: {
+  readonly packageId: string
+  readonly effectiveFrom: string
+}, dependencies?: Partial<ArrangementServiceDependencies>): Promise<PayrollArrangementAvailabilityRow> {
+  const resolved = dependenciesWithDefaults(dependencies)
+  const context = await resolved.requireAccess(true)
+  const repository = resolved.repository ?? createArrangementRepository()
+  try {
+    const state = await readState(context, repository)
+    const arrangementPackage = ARRANGEMENT_PACKAGES.find((item) => item.id === input.packageId)
+    const availability = state.availability.find((row) => row.package_id === input.packageId)
+    const today = resolved.now().slice(0, 10)
+    const earliestPackageDate = arrangementPackage?.versions
+      .map((version) => version.effectiveFrom)
+      .sort()[0]
+    if (!arrangementPackage || !availability || !isIsoDate(input.effectiveFrom)
+      || input.effectiveFrom >= availability.effective_from
+      || input.effectiveFrom > today
+      || !earliestPackageDate || input.effectiveFrom < earliestPackageDate) {
+      throw new ArrangementServiceError('ARRANGEMENT_INVALID_REQUEST')
+    }
+
+    const updatedAt = resolved.now()
+    const row = await repository.extendAvailabilityStart(
+      context.scope,
+      context.administration.id,
+      arrangementPackage.id,
+      input.effectiveFrom,
+      updatedAt,
+      context.actorUserId,
+    )
+    if (!sameScope(row, context) || row.id !== availability.id || row.package_id !== arrangementPackage.id
+      || row.effective_from !== input.effectiveFrom || row.updated_by_user_id !== context.actorUserId) {
+      throw new ArrangementServiceError('ARRANGEMENT_DATA_INVALID')
+    }
+    return row
+  } catch (error) {
+    mapRepositoryError(error)
+  }
+}
