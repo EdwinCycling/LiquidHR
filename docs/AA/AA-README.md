@@ -19,6 +19,7 @@ De AA-set voorkomt dat actuele afspraken verspreid raken over oude prompts, loss
 - AA-ROAD bevat de **langere productkoers**.
 - AA-CURRENT beschrijft **waar de actuele code/release staat**.
 - AA-ACCEPT beschrijft **wat aantoonbaar accepted/GREEN is** en verwijst naar detailrapporten.
+- AA-OPEN registreert **welke benoemde bewijs-, fixture- en besluitpunten nog openstaan**, zodat gedocumenteerde externe blokkades niet opnieuw dezelfde ontwikkellus starten.
 
 ## Canonieke documenten
 
@@ -33,6 +34,7 @@ De AA-set voorkomt dat actuele afspraken verspreid raken over oude prompts, loss
 | [AA-ROAD](AA-ROAD.md) | Lange-termijnroadmap |
 | [AA-CURRENT](AA-CURRENT.md) | Actuele technische/productstatus |
 | [AA-ACCEPT](AA-ACCEPT.md) | Actuele accepted baseline |
+| [AA-OPEN](AA-OPEN.md) | Openstaand bewijs, uitgestelde controles, afhankelijkheden, eigenaar en heropeningsvoorwaarden |
 
 ## Leesmatrix voor Codex
 
@@ -52,6 +54,7 @@ Lees minimaal:
 3. `AA-TEST.md`
 4. `AA-CURRENT.md`
 5. relevante payrollrequirements/ADR/FDR/acceptance evidence
+6. `AA-OPEN.md` voor relevante bestaande Payroll-gates en extern afhankelijke fixturepunten
 
 ### Bugfix
 Lees minimaal:
@@ -74,6 +77,7 @@ Lees minimaal:
 3. `AA-REL.md`
 4. `AA-CURRENT.md`
 5. `AA-ACCEPT.md`
+6. `AA-OPEN.md` — bespreek ieder relevant OPEN-punt expliciet; geen stilzwijgende GREEN
 
 Gebruik voor de centrale lokale TEST-runtime en geïsoleerde Vercel Preview daarnaast `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
 
@@ -83,6 +87,7 @@ Lees:
 2. `AA-ROAD.md`
 3. `AA-CURRENT.md`
 4. `AA-ACCEPT.md`
+5. `AA-OPEN.md` voor relevante evidencegaps en beslissingen
 
 ## Bronnen en prioriteit
 
@@ -124,6 +129,7 @@ Regels:
 - Na een GREEN release worden minimaal `AA-CURRENT`, `AA-ACCEPT` en `AA-NEXT` gecontroleerd.
 - Nieuwe structurele werkafspraken gaan naar AA-OP/AA-TEST/AA-REL, niet alleen naar een runrapport.
 - Gedateerde acceptance evidence blijft onder `docs/quality/acceptance/runs/`.
+- Zet vastgestelde externe fixture-/bewijs-/besluitpunten met eigenaar en afsluitproef in `AA-OPEN.md`; het vervangt geen regressietest, releasebesluit of acceptatierapport.
 
 ## Relatie met bestaande documenten
 
