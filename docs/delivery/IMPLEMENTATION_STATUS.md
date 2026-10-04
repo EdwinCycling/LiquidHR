@@ -1,5 +1,20 @@
 # Implementatiestatus Liquid HR
 
+## APIAI-01 Final Integration Wave — 2026-10-04
+
+**Status: PARTIAL / SECURITY GATES OPEN / ROUTES UNMOUNTED.** Draft PR #3 bevat de lokale bearer/RLS-keten, self-only Development Plans-adapter en kandidaatcode voor limiter/READ-auditopslag. Gerichte tests 9/75 en de volledige suite 528 bestanden/2.246 tests zijn groen; strict TypeScript, lint en officiële Production-build 308/308 zijn groen. Dit bewijst geen echte OAuth-bearer/RLS-HTTP-read. Alle APIAI-routes blijven ongemount. Keycloak is alleen providerbewijs; er is geen providerkeuze.
+
+Draft databasecode is niet toegepast of tegen lokale PostgreSQL uitgevoerd; pgTAP, RLS/grants, concurrency, advisors en typegen blijven OPEN. De audit-RPC-provenance P2 en formele P-01 t/m P-05-besluiten blijven OPEN. Zie de actuele integratieacceptatie en docs/AA/AA-API-AI.md.
+
+## APIAI-01 D0 — bouwvoorbereiding — 2026-10-03 (historische pre-code status)
+
+
+**Status: documentatie gereed; API-code wacht op expliciete product- en securitybesluiten P-01 t/m P-05.** Voorstel: delegated OAuth, minimale externe scope-mapping naar bestaande autorisatie, allowlisted GET-resources, conservatieve privacygrenzen en gedeelde rate-limit/audit/errorcontracten. Geen van de voorstellen is goedgekeurd of geïmplementeerd. Team Skills v1 gebruikt uitsluitend AuthContext-afgeleide scope zonder client teamId; Development Plans v1 is self-only. Managerdoelen zijn geblokkeerd tot server-afgeleide directe-reportscope en service/RLS-negatives bestaan. TEST-release evidence is aanwezig voor exact main-SHA 6349d02538351cd01fc51f298c6e6fa0ba88006c; bredere security/persona-acceptatie blijft OPEN. De verouderde ONE-VERSION-20261002 closeouttekst is administratief en maakt niet-overlappende open sporen geen lokale APIAI-startblokkade. APIAI-specifiek bewijs blijft vereist vóór merge/release; Preview is vereist voor hosted acceptatie. Geen API-, schema-, remote database-, shared security-, merge- of deploywijziging uitgevoerd. Zie docs/AA/AA-API-AI.md en docs/AA/APIAI-01-DECISION-PROPOSALS-20261003.md.
+
+## Actuele read-only status — 2026-10-03
+
+**Status: TEST RELEASED; release/security-acceptatie is niet volledig GREEN.** GitHub main is 6349d02538351cd01fc51f298c6e6fa0ba88006c, appversie 1.20261002.1. De Vercel-deployment dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5 voor die SHA is READY op het bestaande synthetische TEST-kanaal (Vercel target label production). Bestaande alias is aanwezig; /login gaf HTTP 200 en een anonieme protected-dashboardaanvraag werd naar login omgeleid. In deze read-only controle is geen authenticated hosted featureacceptatie uitgevoerd. Bestaande Control-, INS01- en AI01-A security-/persona-negatives blijven OPEN volgens releaseacceptatie. ONE-VERSION-20261002.md is niet bijgewerkt met deze na-merge deploymentreadback; behandel open closeoutacties niet als stilzwijgend GREEN. Geen remote database write of deployment uitgevoerd.
+
 ## ONE VERSION — PAYLAB00–04 TEST-release — 2026-10-02
 
 **Status: integratie MERGE-READY; ONE VERSION TEST-releasekandidaat `17b0485736f4e108a0dec96c77a877c30ab80568` is gebouwd en de lokale Test HR Admin-browser-smoke is groen.** Appversie `1.20261002.1` is geselecteerd. De historische NL-2026-browsertestfout is herleid tot `PGRST303: JWT issued at future`; de productie-browsertests slaagden bij de daaropvolgende retest. Er is geen Payroll-applicatiecode gewijzigd. LUNA MAX vond geen resterende P1/P2 in de launcher. De GitHub-merge, deployment en hosted smoke worden vastgelegd in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.

@@ -1,5 +1,7 @@
 # Liquid HR documentatie-index
 
+API- en AI-integraties: [AA-API-AI](AA/AA-API-AI.md) beschrijft de contractinventaris en actuele status; [APIAI-01-besluitvoorstellen](AA/APIAI-01-DECISION-PROPOSALS-20261003.md) bevat voorstellen die nog niet zijn goedgekeurd.
+
 ## ONE VERSION — accepted PAYLAB00–04 integration — 2026-10-02
 
 **Status: PAYLAB integration MERGE-READY at `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; ONE VERSION release preparation is underway.** The independent LUNA MAX acceptance review passed. The earlier production historical-run error was traced to `PGRST303: JWT issued at future`; desktop and 390 px browser retests passed. No Payroll application fix or new CAO implementation was needed. The release candidate sets app version `1.20261002.1`; merge/deployment status is recorded in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
