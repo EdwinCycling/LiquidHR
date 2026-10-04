@@ -6,6 +6,10 @@
 
 De LUNA MAX follow-up vond geen resterende P1/P2; resterende scopebeperking en run-/downloadbewijs staan in het [bijgewerkte fase-2-rapport](../payroll/acceptance/CAO-BENCH02-PHASE2-20261003.md). Lokale closeout en bijgewerkte rapportage zijn als lokale commit op dezelfde featurebranch vastgelegd; geen push, merge, deployment, Core-write, CONTROL02-wijziging of version bump. Fase 1 blijft in de volgende sectie ongewijzigd staan.
 
+### Technische afsluiting en PAY-CONVERGE — 2026-10-04
+
+De feature is technisch voltooid; de acceptatiestatus blijft PARTIAL door uitsluitend de verplichte Mars-only admin→Jupiter-serverweigering die nog OPEN staat. De volledige lokale suite, strict TypeScript, ESLint, i18n, productiebuild en client-boundaryscan zijn opnieuw groen op de productcode van `07cb05e` (buildprovenance HEAD `27ce374`; daarboven kwamen uitsluitend deze documentatieupdates). De bestaande integratietak is divergent, TEST-HARNESS01 is oncommitted en BLOCKED, en remote main-provenance/hosted safety smoke ontbreken voor een releasebesluit. Zie de [PAY-CONVERGE-overdracht en AA-REL-aanbeveling](../payroll/acceptance/PAY-CONVERGE-HANDOFF-CAO-BENCH02-20261004.md). Geen merge of deployment is uitgevoerd.
+
 ## CAO-BENCH02 Phase 1 — 2026-10-03
 
 **Status: lokale implementatie/codegates en synthetic Payroll Lab browserflow GREEN; totale acceptatie PARTIAL door een incidental Core-dashboardread; niet merge-ready.** Branch `work/cao-bench02-20261003` vanaf exact `6349d02538351cd01fc51f298c6e6fa0ba88006c`. De drie arrangementmigrations zijn toegepast op de geïsoleerde Payroll Lab-database `jhgeriucbkfarxiudzfy`; RLS/grants/readback/advisors zijn gecontroleerd. Na de UI-flow staan 3 synthetic rijen in elk van de drie arrangementtabellen; geen Core/CONTROL02-write.
