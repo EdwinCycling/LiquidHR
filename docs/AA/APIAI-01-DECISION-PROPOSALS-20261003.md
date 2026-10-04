@@ -6,7 +6,7 @@ Repositorybasis: GitHub main 6349d02538351cd01fc51f298c6e6fa0ba88006c
 
 Dit document maakt vijf concrete keuzes bespreekbaar voor APIAI-01. Het is geen ADR/FDR, productbesluit, securitygoedkeuring of implementatie-autoriteit. De eigenaar moet de voorstellen formeel aannemen, aanpassen of afwijzen voordat afhankelijke code start. De codebase en goedgekeurde besluiten blijven leidend tot die goedkeuring.
 
-**Follow-up 2026-10-04:** De geïsoleerde Keycloak 26.8-proef is uitgevoerd en staat beschreven in de [APIAI-01-acceptatierun van PR #3](https://github.com/EdwinCycling/LiquidHR/blob/work/apiai-01-build-20261003/docs/AA/APIAI-01-ACCEPTANCE-RUN-20261003.md). Dit verandert geen enkel voorstel in een goedkeuring en kiest geen provider. De lokale kandidaat in Draft PR #3 heeft de bearer/RLS-seam en self-only Development Plans-projector geïntegreerd; externe routes blijven ongemount en databasecode blijft unapplied.
+**Follow-up 2026-10-04:** De geïsoleerde Keycloak 26.8-proef is uitgevoerd en staat beschreven in de [APIAI-01-acceptatierun van PR #3](https://github.com/EdwinCycling/LiquidHR/blob/aa9ada1e859a233686c52666cb30d449e13d890b/docs/AA/APIAI-01-ACCEPTANCE-RUN-20261003.md). Dit verandert geen enkel voorstel in een goedkeuring en kiest geen provider. De lokale kandidaat in Draft PR #3 heeft de bearer/RLS-seam en self-only Development Plans-projector geïntegreerd; externe routes blijven ongemount en databasecode blijft unapplied.
 
 ## P-01 — Externe OAuth en gedelegeerde toegang
 
