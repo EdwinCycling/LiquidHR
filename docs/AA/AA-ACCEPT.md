@@ -7,6 +7,8 @@ Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte
 
 **Open punten en openstaande bewijslast:** zie [AA-OPEN](AA-OPEN.md). Een punt in dat register is geen nieuw GREEN-verdict; de gedateerde acceptance reports en exacte codeprovenance blijven bepalend. Nieuwe lokale feature-overdrachten zijn pas geïntegreerde baseline na gecontroleerde convergence.
 
+**Bijgewerkt onderscheid voor lopende lokale builds (2026-10-04):** remote `main` is gecontroleerd op `6349d025...` / `1.20261002.1`; ONE VERSION hosted acceptance GREEN is **volgens de release-eigenaar**, onafhankelijke volledige bewijsreview PENDING. CONTROL02 XML 2026/XSD/readiness/preview is volgens de lokale handoff op `38af35c2...` gerichte tests en deels remote Core TEST-readbacks verder, maar **PARTIAL / NOT MERGE-READY** wegens de historische secret, ontbrekende bevoegde CONTROL01-testcontext, echte JWT-/desktop-/390-px-acceptatie, niet-toegepaste scope-invariantmigratie en gedeeld Core-/Payroll-contract. De gemelde CAO-BENCH02-voortgang (zeven benchmarks) blijft lokaal `PARTIAL` zonder Mars-only → Jupiter admin-negative. **Geen** van die lokale voortgangen wordt door dit indexbericht als op `main` vrijgegeven of volledig GREEN aangemerkt. Zie [AA-OPEN](AA-OPEN.md) en de oorspronkelijke gescopeerde runrapporten.
+
 ## Verdictdefinities
 
 - **GREEN** — alle verplichte in-scope assertions bewezen.
