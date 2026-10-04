@@ -1,7 +1,9 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-02
+Momentopname hoofddocument: 2026-10-02
+
+> **Latere lokale overdracht 2026-10-04 (niet automatisch remote geïntegreerd):** gezamenlijke ONE VERSION hosted TEST-acceptatie is volgens de overdracht afgerond; CAO-BENCH02 fase 2 heeft lokaal zeven persistent uitgevoerde benchmarks, maar blijft PARTIAL wegens ontbrekend Mars-only → Jupiter admin-isolatiebewijs. Zie [AA-OPEN](AA-OPEN.md) voor het gerichte register. Oudere momentopnamen hieronder zijn historische gegevens en mogen niet worden aangezien voor de actuele stand van niet-gemergede featurebranches. Verifieer de exacte status opnieuw bij PAY-CONVERGE.
 
 > **Actueel:** CONVERGENCE01 is als TEST-release vrijgegeven op 2026-10-02. Dit is **geen** claim dat de volledige live security-/persona-acceptatiematrix GREEN is.
 

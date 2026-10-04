@@ -5,6 +5,8 @@ Bijgewerkt: 2026-10-02
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
 
+**Latere ontwikkelhandoff (2026-10-04):** CAO-BENCH02 fase 2 is lokaal technisch gebouwd en blijft `PARTIAL` door één ontbrekende admin-isolatiefixture; niet opnieuw als nog-ongebouwde feature plannen. Eerst een expliciete PAY-CONVERGE-releasebeslissing en relevante gates volgens AA-REL. Zie [AA-OPEN](AA-OPEN.md) voor de resterende bewijs-, fixture- en besluitpunten. De gedateerde historische roadmap hieronder wordt tijdens de volgende gecontroleerde documentatieconvergentie integraal bijgewerkt.
+
 ## Current release — ONE VERSION / PAYLAB00–04
 
 De geïntegreerde PAYLAB00–04-kandidaat is MERGE-READY op `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; de huidige opdracht rondt de gecontroleerde TEST-release af met versie `1.20261002.1`. Er komt in deze release geen Payroll-feature, migratie, CAO-implementatie of nieuwe ontwikkelronde. Houd de reeds geaccepteerde desktop-/mobiele payroll-browserresultaten en hashes intact.

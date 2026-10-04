@@ -99,6 +99,7 @@ Gebruik:
 - Geen “even alles herbouwen” voor een lokaal defect.
 - Een niet-reproduceerbare incidentele dev-runtimefout wordt gedocumenteerd en alleen gefixt als bewijs een productoorzaak aanwijst.
 - Stop test-looping zodra gewijzigd gedrag en relevante regressies bewezen GREEN zijn.
+- Wanneer een concreet vastgestelde externe fixture, goedkeuringsbeslissing of omgevingsafhankelijkheid het **laatste** verplichte bewijs verhindert: registreer één item in `AA-OPEN.md` met eigenaar, bestaand bewijs, echte blocker, heropeningsvoorwaarde en afsluitproef. Rond de feature eerlijk af als PARTIAL/ENVIRONMENT-GATED. Heropen dezelfde diagnose niet bij ieder vervolgbericht; gewone reproduceerbare productbugs blijven wel in de normale fix/retestcyclus.
 
 ## 7. Supabase en migrations
 

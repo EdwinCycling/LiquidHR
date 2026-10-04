@@ -5,6 +5,8 @@ Bijgewerkt: 2026-10-02
 
 Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte index van wat we als actuele baseline accepteren.
 
+**Open punten en openstaande bewijslast:** zie [AA-OPEN](AA-OPEN.md). Een punt in dat register is geen nieuw GREEN-verdict; de gedateerde acceptance reports en exacte codeprovenance blijven bepalend. Nieuwe lokale feature-overdrachten zijn pas geïntegreerde baseline na gecontroleerde convergence.
+
 ## Verdictdefinities
 
 - **GREEN** — alle verplichte in-scope assertions bewezen.
