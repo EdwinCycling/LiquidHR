@@ -60,11 +60,11 @@ APIAI-01 heeft wel zijn eigen, hierboven genoemde security- en integratiegates. 
 
 | Persona | Normale login | Bestaande rolwissel | APIAI-01-resourcecontroles |
 |---|---|---|---|
-| HR Admin | Nieuw: normale login PASS; contextselectie PASS; `/api/context` 200 | Test Role Switcher niet beschikbaar in Production-mode; Development-start geblokkeerd door Node/Next-runtimeprobleem | Drie APIAI-paden 404 via cookie-auth; bearer/API-resourceacceptatie OPEN |
-| Manager | Nieuw: normale login PASS; contextselectie PASS; `/api/context` 200 | Test Role Switcher niet beschikbaar in Production-mode; Development-start geblokkeerd door Node/Next-runtimeprobleem | Drie APIAI-paden 404 via cookie-auth; bearer/API-resourceacceptatie OPEN |
-| Employee | Nieuw: normale login PASS; contextselectie PASS; `/api/context` 200 | Test Role Switcher niet beschikbaar in Production-mode; Development-start geblokkeerd door Node/Next-runtimeprobleem | Drie APIAI-paden 404 via cookie-auth; bearer/API-resourceacceptatie OPEN |
+| HR Admin | 2026-10-03: normale login PASS; contextselectie PASS; `/api/context` 200 | 2026-10-04 Development-run startte met Test HR Admin; bestaande Test Role Switcher kon daarna Manager en Employee opnieuw aanmelden | Drie APIAI-paden blijven ongemount; productie-smoke gaf framework-404; bearer/API-resourceacceptatie OPEN |
+| Manager | 2026-10-03: normale login PASS; contextselectie PASS; `/api/context` 200 | 2026-10-04: switch naar Test Manager (Yara) PASS; manager-dashboard en beperkte navigatie zichtbaar | Drie APIAI-paden blijven ongemount; productie-smoke gaf framework-404; bearer/API-resourceacceptatie OPEN |
+| Employee | 2026-10-03: normale login PASS; contextselectie PASS; `/api/context` 200 | 2026-10-04: switch naar Test Employee (Noah) PASS; employee-dashboard en beperkte navigatie zichtbaar | Drie APIAI-paden blijven ongemount; productie-smoke gaf framework-404; bearer/API-resourceacceptatie OPEN |
 
-De browserproef gebruikte de bestaande normale e-mail-/wachtwoordlogin en selecteerde voor iedere identiteit een door de UI aangeboden tenant en HR-groep. Dit wijzigde uitsluitend de lokale sessiecontext; er is geen identity of rol aangemaakt. Wachtwoorden en context-ID's zijn niet gelogd. Bestaand Test Role Switcher-bewijs blijft contextueel; deze nieuwe run bewees geen rolwisseling, omdat de officiële Development-start faalde met `--env-file= is not allowed in NODE_OPTIONS` op Node 22.14.0 / Next.js 16.3.6. Er is geen alternatieve handmatige serverstart gebruikt.
+De 2026-10-03-browserproef gebruikte de normale e-mail-/wachtwoordlogin en selecteerde voor iedere identiteit een door de UI aangeboden tenant en HR-groep. Dit wijzigde uitsluitend de lokale sessiecontext; er is geen identity of rol aangemaakt. Wachtwoorden en context-ID's zijn niet gelogd. De Development-startblokkade (`--env-file` in `NODE_OPTIONS`) is op 2026-10-04 via de officiële launcher hersteld; de bestaande Test Role Switcher is daarna opnieuw uitgevoerd. De Production-mode browser-smoke hergebruikte de bestaande lokale Employee-sessie op `localhost`; er is daarbij geen nieuwe Production-mode login geclaimd. Tijdens herstel verschenen twee servermeldingen `Invalid Refresh Token` voor de vooraf bestaande sessie; daarna slaagden normale TEST-login en beide rolwissels. Er is geen alternatieve handmatige serverstart gebruikt.
 
 ## 4. Functionele resultaten
 
@@ -95,7 +95,7 @@ Desktop-browsertests bevestigden de normale login- en contextselectieflow voor d
 
 Er is geen handmatige database-readback of fixturemutatie uitgevoerd en geen schema- of remote wijziging gemaakt. De normale login- en contextselectieflow is via de bestaande applicatie uitgevoerd en kan daarbij de reguliere contextread-services gebruiken. Contextselectie heeft alleen de lokale sessiecontext bijgewerkt.
 
-## 8. Kwaliteitsgates
+## 8. Kwaliteitsgates — oorspronkelijke run op 2026-10-03
 
 - APIAI-gerichte suite: **91 PASS, 5 SKIP** (runtimecases zijn apart uitgevoerd via opt-in).
 - OpenAPI-draftcontract: **5/5 PASS**, structurele contractcontrole; het draft bevat nu ook de bestaande foutstatussen 404 en 413.
@@ -109,14 +109,16 @@ Er is geen handmatige database-readback of fixturemutatie uitgevoerd en geen sch
 - Officiële lokale Development-start: **BLOCKED BY ENVIRONMENT**. Next.js 16.3.6 zet Node `--env-file` uit de launcher door naar `NODE_OPTIONS`; Node 22.14.0 weigert `--env-file=` daar. De bestaande test-rolwisselaar vereist Development-mode.
 - Vercel Preview en hosted acceptatie zijn niet uitgevoerd.
 
+De eerste regel beschrijft de oorspronkelijke run op 2026-10-03 en is op 2026-10-04 opgelost; zie §16. Vercel Preview en hosted acceptatie blijven niet uitgevoerd.
+
 ## 9. Tijdens deze run opgelost
 
 OpenAPI-draft en contracttest lopen nu gelijk met de bestaande 404/413-foutmapping. De acceptatienotitie is bijgewerkt met exacte build-, runtime-, login- en omgevingsevidence. Het auditvoorstel verduidelijkt dat de huidige scaffolding alleen correlationId doorgeeft en dat requestId-opslag nog expliciet moet worden besloten.
 
-## 10. Omgevingsgebonden (ENVIRONMENT-GATED)
+## 10. Huidige omgevingsgrenzen
 
 - Lokale TEST-runtime vereist de centrale configuratie en de launcher `scripts/start-test-worktree.ps1`.
-- De officiële Development-start blijft omgevingsgeblokkeerd door de Node/Next `--env-file`/`NODE_OPTIONS`-interactie; rolwisselbewijs uit deze run is daarom niet beschikbaar.
+- De Node/Next `--env-file`/`NODE_OPTIONS`-interactie is op 2026-10-04 gericht in de officiële launcher hersteld; Development-start en Test Role Switcher slaagden daarna op poort 3015.
 - Vercel Preview is niet ingezet. Er is geen Preview-backendconfiguratie aangemaakt of gewijzigd.
 - Production-mode hier betekent de officiële lokale Production-runtime met centrale TEST-configuratie; er is geen deployment uitgevoerd.
 
@@ -126,7 +128,7 @@ De test implementeert geen productbesluit. De routegrens volgt de bouwopdracht: 
 
 ## 12. Nog niet opgelost
 
-- Geen nieuwe Test Role Switcher-/rolwisselresultaten door de Development-runtimeblokkade; eerdere rolwisselresultaten blijven contextueel.
+- De Test Role Switcher is opnieuw uitgevoerd op 2026-10-04; de browserlogin/rolwissel blijft gewone LiquidHR-cookie-auth en is geen beareracceptatie.
 - Geen positieve/negatieve API-resource-matrix.
 - Geen externe OAuth/provider-, limiter-, privacy- of auditacceptatie.
 - Geen bearergebonden `AuthContext`/RLS-bewijs voor HR Admin, Manager of Employee.
@@ -149,4 +151,15 @@ De test implementeert geen productbesluit. De routegrens volgt de bouwopdracht: 
 
 ## 15. Eindbeoordeling
 
-**PARTIAL / ENVIRONMENT-GATED.** De lokale foundation is reproduceerbaar getest; normale login/contextselectie werkt voor de drie synthetische persona's en APIAI-01 blijft gesloten met 404. Dit is geen bewijs voor externe API-bouwgereedheid. Provider, bearergebonden AuthContext/RLS, goedgekeurde scopemapping, database-atomiciteit van limiter/audit en positieve/negatieve bearerproeven blijven echte bouw- en securitygates. De Development-runtimeblokkade verhindert hier uitsluitend de aanvullende Test Role Switcher-run.
+**PARTIAL / SECURITY GATES OPEN / EXTERNAL ACTIVATION BLOCKED.** De lokale foundation, officiële Development-rolwisseling, Production-build en beperkte lokale Production-browser smoke zijn reproduceerbaar bewezen. De launcherblokkade is opgelost. APIAI-01 blijft bewust gesloten met framework-404; geen provider, bearergebonden live AuthContext/RLS, goedgekeurde scopemapping, limiter-/auditdatabasecontract of positieve/negatieve bearerproef is bewezen. Exacte vervolgresultaten staan hieronder.
+
+## 16. Follow-up — 2026-10-04
+
+- **Geteste code/build-SHA:** `7d0f4b6043014e493a56fadc3909d24536f81153` op branch `work/apiai-01-build-20261003`, gebaseerd op live GitHub `main` `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Dit lokale kandidaatcommit bevat de appcode en technische voorstellen die zijn gebouwd; de latere closeoutcommit verandert alleen documentatie.
+- **Development-start en rolwisseling:** de officiële `scripts/start-test-worktree.ps1 -Mode Development -Port 3015`-launcher startte op de dynamisch gecontroleerde vrije poort 3015 met centrale goedgekeurde TEST-configuratie. Een normale TEST-login als HR Admin slaagde; de bestaande Test Role Switcher meldde opnieuw aan als Manager (Yara) en Employee (Noah). Beide dashboards en hun beperkte navigatie werden zichtbaar; browserconsole had geen fouten. Er zijn geen credentials of TEST-configwaarden vastgelegd.
+- **Productiebuild en runtime:** `scripts/start-test-worktree.ps1 -Mode Production -Build -Port 3015` slaagde voor de exacte code-SHA hierboven, genereerde 308/308 statische pagina's, passeerde TypeScript en de Payroll client-boundary-scan (152 browser assets) en schreef provenance met overeenkomende SHA. De officiële runtime is gestart met `scripts/start-test-worktree.ps1 -Mode Production -Port 3015`. De browser toonde `/dashboard/start` onder de reeds bestaande Test Employee-sessie; dit is een bounded runtime smoke en geen verse Production-mode login.
+- **Gesloten routes:** in dezelfde lokale Production-runtime gaven directe GET-verzoeken `/api/v1/workforce/summary`, `/api/v1/development-plans` en `/api/v1/team/skills` alle HTTP 404. Browsernavigatie toonde voor alle drie de framework-404-pagina. Dit bewijst uitsluitend dat de routes ongemount zijn; er was geen bearerheader, positieve read-proef of API-foutenvelop.
+- **Tests:** volledige HR-suite `527` bestanden PASS / `4` SKIP; `2.233` tests PASS / `8` SKIP (`--no-file-parallelism --maxWorkers=1`). TypeScript PASS; gewijzigde APIAI/auth/service/testbestanden ESLint `0` errors / `0` warnings; launcher-Pester `2/2` PASS; gerichte APIAI-suite `5` bestanden / `39` tests PASS. De twee eerdere Development-server `Invalid Refresh Token`-meldingen waren afkomstig van de vooraf bestaande lokale sessie; daaropvolgende login- en rolwisselstappen slaagden.
+- **Onafhankelijke review:** read-only LUNA MAX-eindreview: overdraagbaar als gated, ongemounte foundation; geen P1-codefout in de bearer/service-seam gevonden; **NO-GO voor externe route-activatie**. Reviewer herhaalt dat provider/OAuth, live bearer/RLS-negatieven, tokenrevocatie, SQL/RLS/grants/atomiciteit/concurrency en formele besluiten ontbreken. Voor route-mounting moeten twee P2-verdedigingspunten opnieuw worden beoordeeld: onverwachte alternatieve JWT-argumenten aan de wrappergrens weigeren en eventueel een opaque request-binding aan de handlergrens toevoegen.
+- **Actuele grenzen:** PR #3 blijft remote draft en ongewijzigd op `399d596`; de lokale branch heeft twee implementatie-/besluitencommits extra. Vercel Production blijft `READY` op `main`-SHA `6349d025`; de branchquery vond geen Preview, maar projectinstellingen tonen niet of een nieuwe push automatisch een Preview maakt. Er is daarom niet gepusht of gedeployed. PR #2 blijft afzonderlijk open; gedeelde delivery-statusdocumenten zijn in deze follow-up niet gewijzigd om de D0-bijdrage daarop niet te overschrijven.
+- **Huidige beslissing:** lokale code/build/browsergates zijn PASS. Provider-, bearer/RLS-, limiter/audit-, privacy-, scope- en goedkeuringsgates blijven OPEN. De drie routes blijven ongemount; er vond geen remote migratie, Preview, merge of deployment plaats.

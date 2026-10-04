@@ -6,6 +6,7 @@
 - **Baseline:** GitHub `main` `6349d02538351cd01fc51f298c6e6fa0ba88006c`
 - **Upstream PR:** [draft PR #3](https://github.com/EdwinCycling/LiquidHR/pull/3), target `main`
 - **PR head at live recheck:** `399d596cbfd7cd5827f2d3f3eed60c40d40ba6dd`; this remained the remote head at the final pre-commit check. The local, unpushed code candidate SHA is recorded after the production-mode build below.
+- **Exact local code/build SHA:** `7d0f4b6043014e493a56fadc3909d24536f81153`. The later closeout commit changes documentation only.
 - **Scope boundary:** no OAuth activation, external route mount, remote migration, deployment, push, or merge.
 
 ## 1. Summary
@@ -45,13 +46,16 @@ Core service integration extracts an explicit-context permission helper preservi
 | Development official preflight | **PASS locally** | `scripts/start-test-worktree.ps1 -Mode Development -Port 3015 -PreflightOnly`; dependencies and approved central TEST target validated, values hidden. |
 | Full HR suite | **PASS locally** | Final sequential `npm.cmd run test -- --no-file-parallelism --maxWorkers=1`: 527 files passed, 4 skipped; 2,233 tests passed, 8 skipped (2,241 total), duration 263.89 seconds. |
 | Official local Development/browser | **PASS locally** | Launcher preflight passed on free port 3015. Browser login via the TEST HR Admin control succeeded; the role switcher re-logged as Test Manager (Yara) and Test Employee (Noah). Dashboard and scoped navigation rendered; no browser console errors. No bearer/API behavior is claimed. |
-| Official Production-mode build | **PENDING** | Launcher requires the final candidate to be committed and clean before exact-commit TEST build/provenance. |
+| Official Production-mode build | **PASS locally** | Exact committed code SHA `7d0f4b6043014e493a56fadc3909d24536f81153`; official launcher completed the TEST-configured build, TypeScript/build phases, 308/308 static pages and Payroll client-boundary scan (152 browser assets). Provenance matches the SHA. |
+| Official Production-mode runtime/browser | **PASS locally, bounded** | Official launcher started the exact build on port 3015. Existing local TEST Employee session rendered `/dashboard/start`; browser console had 0 errors. Direct GETs and browser navigation to all three unmounted `/api/v1` paths returned/showed framework 404. The browser reused the existing localhost session; this was not a fresh Production-mode login. |
 | OAuth provider / token | **NOT PROVEN** | No real Auth Code + PKCE S256, audience, client binding, token type, JWKS, account-link, unlink or revoke evidence. |
 | Bearer/RLS positive and negatives | **NOT PROVEN** | Mocks verify code-level client/context binding only. No live bearer request tested across tenant, HR group, administration, user/subject mismatch or switched permissions. |
 | Limiter / READ audit | **NOT PROVEN** | No database contract/RPC to exercise; no concurrent atomicity, RLS, grants, or stored audit readback. |
 | Vercel / hosted | **NOT RUN** | No APIAI Preview, hosted browser, deployment, or production route test. |
 
-The official Production build/runtime and final independent review remain pending; all reported PASS results above are local evidence only.
+The independent LUNA MAX reviewer completed a read-only review of the integrated candidate and evidence. It found no P1 code defect in the local bearer/service seam and judged the candidate suitable for handoff as a gated, unmounted foundation. Its verdict is **NO-GO for external route activation** until the provider, live bearer/RLS, limiter/audit database contracts and required approvals are complete. Two defense-in-depth points remain to recheck before route mount: reject unexpected alternate JWT arguments at the wrapper boundary, and consider an opaque request binding in the handler. The current canonical path binds the exact bearer before the handler and all public routes remain unmounted.
+
+All PASS results above are local evidence only. The closeout documentation records the exact build/runtime SHA; it does not upgrade provider, API bearer or database security gates.
 
 ## 5. Provider trial and exact environment limit
 
@@ -87,9 +91,11 @@ All five require the Product/Security/Privacy/Data decisions assigned in the add
 
 ## 8. Current gates and remaining blocks
 
-**GREEN locally (subject to final run):** typed delegated auth/service seam, self projection/unit contract, fail-closed wrapper behavior, strict TypeScript, scoped lint, launcher regression and official Development preflight.
+**PASS locally on code/build SHA `7d0f4b6043014e493a56fadc3909d24536f81153`:** typed delegated auth/service seam; self projection/unit contract; fail-closed wrapper behavior; strict TypeScript; changed-file lint; launcher regression; official Development and Production preflights; full sequential HR suite; normal TEST login and role-switcher browser checks; Production-mode build and bounded local browser/closed-route smoke. The independent read-only review found no P1 local code defect and approved handoff only as a gated, unmounted candidate.
 
-**Not GREEN / blocks external API activation:** approved provider and actual OAuth proof; real active-token revocation behavior; approved scope and context-selection contract; live bearer-bound RLS proof for subject, tenant, HR group and administration; workforce/privacy field decision; Team Skills privacy/linkability decision if included; approved limiter/audit schema and actual atomic/RLS/grant/concurrency proof; independently reviewed committed candidate; exact runtime build/browser gates.
+**Not GREEN / blocks external API activation:** approved provider and actual OAuth proof; real active-token revocation behavior; approved scope and context-selection contract; live bearer-bound RLS proof for subject, tenant, HR group and administration; workforce/privacy field decision; Team Skills privacy/linkability decision if included; approved limiter/audit schema and actual atomic/RLS/grant/concurrency proof; positive and negative bearer HTTP matrix. The local code review/build/browser gates are complete but do not replace these security gates.
+
+Before route mount, re-evaluate the independent review's two P2 defense-in-depth suggestions: constrain explicit JWT arguments accepted by the branded Supabase-client wrapper, and consider an opaque request binding at the handler boundary. They do not alter the current unmounted-route verdict.
 
 Work from CONVERGENCE01, CONTROL01, INS01 or AI01-A is not reopened as a prerequisite unless a specific APIAI dependency is found. Those independent workstream gates remain recorded in their own acceptance files.
 
