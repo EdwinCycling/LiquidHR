@@ -45,7 +45,8 @@ Lees minimaal:
 3. `AA-TEST.md`
 4. `AA-CURRENT.md`
 5. `AA-NEXT.md`
-6. de domeinspecifieke requirements waarnaar de wave verwijst
+6. `AA-OPEN.md` — alleen voor de huidige wave relevante open punten; geen automatische volledige heranalyse
+7. de domeinspecifieke requirements waarnaar de wave verwijst
 
 ### Payroll feature / Payroll Lab
 Lees minimaal:
@@ -88,6 +89,12 @@ Lees:
 3. `AA-CURRENT.md`
 4. `AA-ACCEPT.md`
 5. `AA-OPEN.md` voor relevante evidencegaps en beslissingen
+
+### Grotere geïntegreerde ontwikkelronde
+
+De standaard voor omvangrijke productwaves is één orchestrator met gespecialiseerde parallelle LUNA MAX-agents en één concrete gebruikersgerichte oplevering. Iedere wave heeft geïntegreerde test- en bugfixverantwoordelijkheid. Houd één canonieke productversie en centrale `main`-/migration-/releasecoördinatie; een openstaande externe fixture of productbeslissing komt met eigenaar en heropeningsvoorwaarde in AA-OPEN, niet in een eindeloze serie nieuwe acceptatieopdrachten.
+
+De orchestrator levert altijd een korte overdracht met **"Wat levert deze ronde ons op?"** en **"De beoogde volgende mijlpalen"**. Een lokale `PARTIAL`-feature kan op een reviewbare Draft PR worden gezet en onafhankelijke ontwikkeling mag doorgaan, maar beveiligings-/domeingates blijven verplicht vóór hun betreffende activatie/merge/release. Zie AA-OP §§5–6, AA-TEST §1A en AA-REL.
 
 ## Bronnen en prioriteit
 
