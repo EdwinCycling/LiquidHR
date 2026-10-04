@@ -1,27 +1,41 @@
 import { describe, expect, it, vi } from 'vitest'
+import { createSupabaseBearerRlsBinding } from '@/lib/api-v1/auth/bearer-rls'
+import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '@/lib/api-v1/auth'
 import {
   API_READ_AUDIT_RPC_NAME,
   ApiReadAuditConfigurationError,
   ApiReadAuditUnavailableError,
   PostgresApiReadAuditWriter,
-  type AuthenticatedApiReadAuditRpcClient,
 } from './audit'
 
 const tenantId = '11111111-1111-4111-8111-111111111111'
 const hrGroupId = '22222222-2222-4222-8222-222222222222'
 const correlationId = '33333333-3333-4333-8333-333333333333'
 
-function client(): AuthenticatedApiReadAuditRpcClient {
+function client(): {
+  rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>
+  rpc: ReturnType<typeof vi.fn>
+} {
+  const rls = createSupabaseBearerRlsBinding({
+    supabaseUrl: 'http://localhost:54321',
+    publishableKey: 'sb_publishable_test',
+    accessToken: 'synthetic.access-token.signature',
+    supabaseUserId: 'user-1',
+    identity: { issuer: 'https://issuer.synthetic.invalid', subject: 'subject-1' },
+    account: { userId: 'user-1' },
+  })
+  const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
+  vi.spyOn(rls.client, 'rpc').mockImplementation(rpc as never)
   return {
-    role: 'authenticated',
-    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    rls,
+    rpc,
   }
 }
 
 describe('PostgresApiReadAuditWriter', () => {
   it('writes only bounded request metadata to the canonical audit RPC', async () => {
     const rpcClient = client()
-    const writer = new PostgresApiReadAuditWriter(rpcClient)
+    const writer = new PostgresApiReadAuditWriter(rpcClient.rls)
 
     await expect(writer.record({
       tenantId,
@@ -57,7 +71,7 @@ describe('PostgresApiReadAuditWriter', () => {
 
   it('supports denied and rate-limited outcomes without accepting free-text metadata', async () => {
     const rpcClient = client()
-    const writer = new PostgresApiReadAuditWriter(rpcClient)
+    const writer = new PostgresApiReadAuditWriter(rpcClient.rls)
 
     await writer.record({ tenantId, hrGroupId, resource: 'team-skills', oauthClientId: 'client', correlationId, outcome: 'DENIED', statusCode: 403 })
     await writer.record({ tenantId, hrGroupId, resource: 'workforce-summary', oauthClientId: 'client', correlationId, outcome: 'RATE_LIMITED', statusCode: 429 })
@@ -66,26 +80,22 @@ describe('PostgresApiReadAuditWriter', () => {
   })
 
   it('fails closed when the audit RPC fails or returns an error', async () => {
-    const rejectedClient: AuthenticatedApiReadAuditRpcClient = {
-      role: 'authenticated',
-      rpc: vi.fn().mockRejectedValue(new Error('audit store unavailable')),
-    }
-    const errorClient: AuthenticatedApiReadAuditRpcClient = {
-      role: 'authenticated',
-      rpc: vi.fn().mockResolvedValue({ data: null, error: { message: 'permission denied' } }),
-    }
+    const rejectedClient = client()
+    rejectedClient.rpc.mockRejectedValue(new Error('audit store unavailable'))
+    const errorClient = client()
+    errorClient.rpc.mockResolvedValue({ data: null, error: { message: 'permission denied' } })
 
-    await expect(new PostgresApiReadAuditWriter(rejectedClient).record({
+    await expect(new PostgresApiReadAuditWriter(rejectedClient.rls).record({
       tenantId, hrGroupId, resource: 'team-skills', oauthClientId: 'client', correlationId, outcome: 'ALLOWED', statusCode: 200,
     })).rejects.toBeInstanceOf(ApiReadAuditUnavailableError)
-    await expect(new PostgresApiReadAuditWriter(errorClient).record({
+    await expect(new PostgresApiReadAuditWriter(errorClient.rls).record({
       tenantId, hrGroupId, resource: 'team-skills', oauthClientId: 'client', correlationId, outcome: 'ALLOWED', statusCode: 200,
     })).rejects.toBeInstanceOf(ApiReadAuditUnavailableError)
   })
 
   it('rejects invalid IDs, status codes and resources before the RPC', async () => {
     const rpcClient = client()
-    const writer = new PostgresApiReadAuditWriter(rpcClient)
+    const writer = new PostgresApiReadAuditWriter(rpcClient.rls)
     const valid = { tenantId, hrGroupId, resource: 'team-skills' as const, oauthClientId: 'client', correlationId, outcome: 'ALLOWED' as const, statusCode: 200 }
 
     await expect(writer.record({ ...valid, correlationId: 'not-a-uuid' })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
@@ -97,7 +107,7 @@ describe('PostgresApiReadAuditWriter', () => {
 
   it('accepts UUIDv7 trace identifiers consistently with the HTTP boundary', async () => {
     const rpcClient = client()
-    const writer = new PostgresApiReadAuditWriter(rpcClient)
+    const writer = new PostgresApiReadAuditWriter(rpcClient.rls)
     const valid = { tenantId, hrGroupId, resource: 'team-skills' as const, oauthClientId: 'client', correlationId: '01890f1e-7c70-7cc2-98c4-dc0c0c07398f', outcome: 'ALLOWED' as const, statusCode: 200 }
 
     await expect(writer.record(valid)).resolves.toBeUndefined()
@@ -106,10 +116,21 @@ describe('PostgresApiReadAuditWriter', () => {
 
   it('rejects a service-role wrapper', () => {
     const serviceRoleClient = {
-      role: 'service_role',
-      rpc: vi.fn(),
-    } as unknown as AuthenticatedApiReadAuditRpcClient
+      kind: 'supabase-bearer',
+      client: { role: 'service_role', rpc: vi.fn() },
+      userId: 'user-1',
+      identity: { issuer: 'https://issuer.synthetic.invalid', subject: 'subject-1' },
+    } as unknown as DelegatedBearerRlsClient<SupabaseBearerRlsClient>
 
     expect(() => new PostgresApiReadAuditWriter(serviceRoleClient)).toThrowError(ApiReadAuditConfigurationError)
+  })
+
+  it('rejects a copied authenticated marker without the private bearer binding', () => {
+    const copiedMarker = {
+      role: 'authenticated',
+      rpc: vi.fn(),
+    } as unknown as DelegatedBearerRlsClient<SupabaseBearerRlsClient>
+
+    expect(() => new PostgresApiReadAuditWriter(copiedMarker)).toThrowError(ApiReadAuditConfigurationError)
   })
 })

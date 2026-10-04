@@ -75,6 +75,21 @@ describe('API v1 resource projections', () => {
     ]))).toThrowError(expect.objectContaining({ code: 'SELF_SCOPE_MISMATCH' }))
   })
 
+  it('fails closed when the self context or source identity is blank', () => {
+    expect(() => projectSelfDevelopmentPlans(authContext('   '), workspace([]))).toThrowError(
+      expect.objectContaining({ code: 'SELF_CONTEXT_REQUIRED' }),
+    )
+    expect(() => projectSelfDevelopmentPlans(authContext('self-employee-id'), workspace([
+      goal({ employee_id: ' ' }),
+    ]))).toThrowError(expect.objectContaining({ code: 'INVALID_DEVELOPMENT_PLAN' }))
+  })
+
+  it('fails closed when a service result contains a malformed row', () => {
+    expect(() => projectSelfDevelopmentPlans(authContext('self-employee-id'), {
+      goals: [null as unknown as TalentGoal],
+    })).toThrowError(expect.objectContaining({ code: 'INVALID_DEVELOPMENT_PLAN' }))
+  })
+
   it('fails closed when a service result contains an unknown status', () => {
     expect(() => projectSelfDevelopmentPlans(authContext('self-employee-id'), workspace([
       goal({ status: 'UNREVIEWED' }),

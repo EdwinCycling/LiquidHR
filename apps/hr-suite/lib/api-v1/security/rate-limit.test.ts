@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import { createSupabaseBearerRlsBinding } from '@/lib/api-v1/auth/bearer-rls'
+import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '@/lib/api-v1/auth'
 import {
   API_RATE_LIMIT_RPC_NAME,
   ApiRateLimitConfigurationError,
@@ -6,7 +8,6 @@ import {
   PostgresApiRateLimiter,
   type ApiRateLimitInput,
   type AtomicApiRateLimiter,
-  type AuthenticatedApiRateLimitRpcClient,
 } from './rate-limit'
 
 const tenantId = '11111111-1111-4111-8111-111111111111'
@@ -23,17 +24,30 @@ function client(
     data: { allowed: true, remaining: 4 },
     error: null,
   },
-): AuthenticatedApiRateLimitRpcClient {
+): {
+  rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>
+  rpc: ReturnType<typeof vi.fn>
+} {
+  const rls = createSupabaseBearerRlsBinding({
+    supabaseUrl: 'http://localhost:54321',
+    publishableKey: 'sb_publishable_test',
+    accessToken: 'synthetic.access-token.signature',
+    supabaseUserId: 'user-1',
+    identity: { issuer: 'https://issuer.synthetic.invalid', subject: 'subject-1' },
+    account: { userId: 'user-1' },
+  })
+  const rpc = vi.fn().mockResolvedValue(response)
+  vi.spyOn(rls.client, 'rpc').mockImplementation(rpc as never)
   return {
-    role: 'authenticated',
-    rpc: vi.fn().mockResolvedValue(response),
+    rls,
+    rpc,
   }
 }
 
 describe('PostgresApiRateLimiter', () => {
   it('calls only the authenticated atomic RPC contract and parses an allowed decision', async () => {
     const rpcClient = client()
-    const limiter = new PostgresApiRateLimiter(rpcClient)
+    const limiter = new PostgresApiRateLimiter(rpcClient.rls)
 
     await expect(limiter.consume(input)).resolves.toEqual({ allowed: true, remaining: 4 })
     expect(rpcClient.rpc).toHaveBeenCalledWith(API_RATE_LIMIT_RPC_NAME, {
@@ -48,7 +62,7 @@ describe('PostgresApiRateLimiter', () => {
     const limiter = new PostgresApiRateLimiter(client({
       data: { allowed: false, remaining: 0, retryAfterSeconds: 12 },
       error: null,
-    }))
+    }).rls)
 
     await expect(limiter.consume(input)).resolves.toEqual({
       allowed: false,
@@ -58,19 +72,19 @@ describe('PostgresApiRateLimiter', () => {
   })
 
   it('fails closed when the RPC is unavailable or returns an invalid decision', async () => {
-    const unavailable = new PostgresApiRateLimiter(client({ data: null, error: { message: 'database unavailable' } }))
+    const unavailable = new PostgresApiRateLimiter(client({ data: null, error: { message: 'database unavailable' } }).rls)
     await expect(unavailable.consume(input)).rejects.toBeInstanceOf(ApiRateLimitUnavailableError)
 
-    const malformed = new PostgresApiRateLimiter(client({ data: { allowed: false, remaining: 0, retryAfterSeconds: 0 }, error: null }))
+    const malformed = new PostgresApiRateLimiter(client({ data: { allowed: false, remaining: 0, retryAfterSeconds: 0 }, error: null }).rls)
     await expect(malformed.consume(input)).rejects.toBeInstanceOf(ApiRateLimitUnavailableError)
 
-    const ambiguous = new PostgresApiRateLimiter(client({ data: { allowed: false, remaining: 1, retryAfterSeconds: 12 }, error: null }))
+    const ambiguous = new PostgresApiRateLimiter(client({ data: { allowed: false, remaining: 1, retryAfterSeconds: 12 }, error: null }).rls)
     await expect(ambiguous.consume(input)).rejects.toBeInstanceOf(ApiRateLimitUnavailableError)
   })
 
   it('rejects malformed scope or client input before calling the database', async () => {
     const rpcClient = client()
-    const limiter = new PostgresApiRateLimiter(rpcClient)
+    const limiter = new PostgresApiRateLimiter(rpcClient.rls)
 
     await expect(limiter.consume({ ...input, tenantId: 'tenant' })).rejects.toBeInstanceOf(ApiRateLimitConfigurationError)
     await expect(limiter.consume({ ...input, oauthClientId: 'client with whitespace' })).rejects.toBeInstanceOf(ApiRateLimitConfigurationError)
@@ -80,7 +94,7 @@ describe('PostgresApiRateLimiter', () => {
 
   it('accepts UUIDv7 scope identifiers consistently with the HTTP boundary', async () => {
     const rpcClient = client()
-    const limiter = new PostgresApiRateLimiter(rpcClient)
+    const limiter = new PostgresApiRateLimiter(rpcClient.rls)
 
     await expect(limiter.consume({ ...input, tenantId: '01890f1e-7c70-7cc2-98c4-dc0c0c07398f' }))
       .resolves.toEqual({ allowed: true, remaining: 4 })
@@ -89,11 +103,22 @@ describe('PostgresApiRateLimiter', () => {
 
   it('rejects service-role wrappers instead of silently bypassing RLS', () => {
     const serviceRoleClient = {
-      role: 'service_role',
-      rpc: vi.fn(),
-    } as unknown as AuthenticatedApiRateLimitRpcClient
+      kind: 'supabase-bearer',
+      client: { role: 'service_role', rpc: vi.fn() },
+      userId: 'user-1',
+      identity: { issuer: 'https://issuer.synthetic.invalid', subject: 'subject-1' },
+    } as unknown as DelegatedBearerRlsClient<SupabaseBearerRlsClient>
 
     expect(() => new PostgresApiRateLimiter(serviceRoleClient)).toThrowError(ApiRateLimitConfigurationError)
+  })
+
+  it('rejects a copied authenticated marker without the private bearer binding', () => {
+    const copiedMarker = {
+      role: 'authenticated',
+      rpc: vi.fn(),
+    } as unknown as DelegatedBearerRlsClient<SupabaseBearerRlsClient>
+
+    expect(() => new PostgresApiRateLimiter(copiedMarker)).toThrowError(ApiRateLimitConfigurationError)
   })
 })
 

@@ -8,6 +8,7 @@ import { loadAccessibleContextOptions } from '@/lib/context/server-context'
 import {
   DelegatedAuthError,
   type DelegatedAccountLink,
+  type DelegatedAudienceClaim,
   type DelegatedAuthErrorCode,
   type DelegatedIdentity,
   type DelegatedRequestAuthenticationInput,
@@ -36,11 +37,39 @@ const bearerRlsBindings = new WeakSet<object>()
 const bearerRlsTokens = new WeakMap<object, string>()
 const bearerRlsClients = new WeakMap<object, unknown>()
 const bearerRlsIdentities = new WeakMap<object, DelegatedIdentity>()
+const bearerRlsVerifiedTokens = new WeakMap<object, VerifiedDelegatedToken>()
 
 export interface DelegatedBearerRlsClientExpectation {
+  /**
+   * De exacte bearer die de requestketen heeft opgebouwd. Deze waarde blijft
+   * uitsluitend een validatie-input; de gebonden bearer zelf blijft in de
+   * module-private WeakMap.
+   */
+  readonly accessToken?: string
   readonly userId?: string
   readonly issuer?: string
   readonly subject?: string
+}
+
+function snapshotVerifiedToken(token: VerifiedDelegatedToken): VerifiedDelegatedToken {
+  return Object.freeze({
+    issuer: token.issuer,
+    subject: token.subject,
+    audience: Array.isArray(token.audience) ? Object.freeze([...token.audience]) : token.audience,
+    expiresAtEpochSeconds: token.expiresAtEpochSeconds,
+    revocation: token.revocation,
+    scopes: Object.freeze([...token.scopes]),
+    clientId: token.clientId,
+  })
+}
+
+function sameClaimList(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function sameAudience(left: DelegatedAudienceClaim, right: DelegatedAudienceClaim): boolean {
+  if (typeof left === 'string' || typeof right === 'string') return left === right
+  return sameClaimList(left, right)
 }
 
 export interface DelegatedBearerRlsClientFactory<TClient> {
@@ -151,6 +180,7 @@ export function assertDelegatedBearerRlsClient<TClient>(
     || bearerRlsClients.get(candidate) !== candidate.client
     || boundIdentity === undefined
     || candidate.identity !== boundIdentity
+    || (expected.accessToken !== undefined && bearerRlsTokens.get(candidate) !== expected.accessToken)
     || (expected.userId !== undefined && candidate.userId !== expected.userId)
     || (expected.issuer !== undefined && candidate.identity.issuer !== expected.issuer)
     || (expected.subject !== undefined && candidate.identity.subject !== expected.subject)
@@ -159,6 +189,43 @@ export function assertDelegatedBearerRlsClient<TClient>(
   }
 
   return candidate
+}
+
+/**
+ * Controleer dat de claims waarmee de provider-authenticatie is afgerond nog
+ * exact horen bij dezelfde private bearer-client. De snapshot is immutable en
+ * alleen de canonieke authentication-keten kan hem aan een wrapper koppelen.
+ */
+export function assertDelegatedBearerVerifiedToken<TClient>(
+  value: unknown,
+  expected: VerifiedDelegatedToken,
+): DelegatedBearerRlsClient<TClient> {
+  const candidate = assertDelegatedBearerRlsClient<TClient>(value)
+  const bound = bearerRlsVerifiedTokens.get(candidate)
+  if (
+    bound === undefined
+    || bound.issuer !== expected.issuer
+    || bound.subject !== expected.subject
+    || !sameAudience(bound.audience, expected.audience)
+    || bound.expiresAtEpochSeconds !== expected.expiresAtEpochSeconds
+    || bound.revocation !== expected.revocation
+    || bound.clientId !== expected.clientId
+    || !sameClaimList(bound.scopes, expected.scopes)
+  ) {
+    throw new DelegatedAuthError('RLS_CLIENT_INVALID')
+  }
+  return candidate
+}
+
+function bindDelegatedBearerVerifiedToken<TClient>(
+  value: DelegatedBearerRlsClient<TClient>,
+  token: VerifiedDelegatedToken,
+): void {
+  const candidate = assertDelegatedBearerRlsClient<TClient>(value, {
+    issuer: token.issuer,
+    subject: token.subject,
+  })
+  bearerRlsVerifiedTokens.set(candidate, snapshotVerifiedToken(token))
 }
 
 /**
@@ -246,6 +313,7 @@ export async function authenticateDelegatedBearerRequest<TClient>(input: {
     throw new DelegatedAuthError('RLS_CLIENT_UNAVAILABLE')
   }
   rls = assertRlsBinding<TClient>(rls, verified.account, identity, verified.accessToken)
+  bindDelegatedBearerVerifiedToken(rls, verified.verifiedToken)
 
   let authContext: AuthContext
   try {
@@ -290,7 +358,7 @@ export async function loadBearerAuthContext(
   try {
     // Zonder expliciete JWT valt getClaims terug op getSession/storage;
     // gebruik daarom uitsluitend de private bearerbinding van dit verzoek.
-    const claims = await rls.client.auth.getClaims(accessToken)
+    const claims = await rls.client.auth.getClaims()
     claimsData = claims.data
     claimsError = claims.error
   } catch {
@@ -350,6 +418,8 @@ export interface SupabaseBearerRlsBindingInput extends SupabaseBearerClientConfi
   readonly supabaseUserId: string
   readonly identity: DelegatedIdentity
   readonly account: DelegatedAccountLink
+  /** Optional only for trusted test/factory construction; the canonical authentication chain binds it itself. */
+  readonly verifiedToken?: VerifiedDelegatedToken
 }
 
 function assertSupabaseClientConfig(input: SupabaseBearerClientConfig): void {
@@ -419,8 +489,12 @@ export function createSupabaseBearerRlsClient(input: SupabaseBearerClientConfig 
   // deze cookievrije client bindt die vorm altijd aan dezelfde request-bearer;
   // AuthClient mag dan niet terugvallen op session storage.
   const getClaims = client.auth.getClaims.bind(client.auth)
-  client.auth.getClaims = ((jwt?: string, options?: { allowExpired?: boolean }) =>
-    getClaims(jwt ?? input.accessToken, options)) as typeof client.auth.getClaims
+  client.auth.getClaims = (async (jwt?: string, options?: { allowExpired?: boolean }) => {
+    if (jwt !== undefined && jwt !== input.accessToken) {
+      throw new DelegatedAuthError('RLS_CLIENT_INVALID')
+    }
+    return getClaims(input.accessToken, options)
+  }) as typeof client.auth.getClaims
 
   return client
 }
@@ -438,10 +512,12 @@ export function createSupabaseBearerRlsBinding(
     throw new DelegatedAuthError('RLS_SUBJECT_MISMATCH')
   }
 
-  return createBoundBearerRlsClient({
+  const binding = createBoundBearerRlsClient({
     accessToken: input.accessToken,
     client: createSupabaseBearerRlsClient(input),
     userId: input.account.userId,
     identity: input.identity,
   })
+  if (input.verifiedToken !== undefined) bindDelegatedBearerVerifiedToken(binding, input.verifiedToken)
+  return binding
 }

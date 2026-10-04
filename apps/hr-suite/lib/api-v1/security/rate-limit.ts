@@ -2,6 +2,8 @@ import {
   API_RATE_LIMIT_RESOURCE_KEYS,
   type ApiRateLimitResource,
 } from './resources'
+import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '@/lib/api-v1/auth'
+import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
 
 export { API_RATE_LIMIT_RESOURCE_KEYS }
 export type { ApiRateLimitResource }
@@ -37,6 +39,10 @@ export interface ApiRateLimitRpcPayload extends Record<string, unknown> {
  */
 export interface AuthenticatedApiRateLimitRpcClient {
   readonly role: 'authenticated'
+  rpc(name: string, args: Record<string, unknown>): Promise<ApiRateLimitRpcResult>
+}
+
+type BoundRpcClient = {
   rpc(name: string, args: Record<string, unknown>): Promise<ApiRateLimitRpcResult>
 }
 
@@ -141,8 +147,23 @@ function parseDecision(value: unknown): ApiRateLimitDecision {
  * intentionally does not accept a clock, actor id, IP address or quota.
  */
 export class PostgresApiRateLimiter implements AtomicApiRateLimiter {
-  constructor(private readonly client: AuthenticatedApiRateLimitRpcClient) {
-    if (client.role !== 'authenticated') throw new ApiRateLimitConfigurationError()
+  private readonly client: AuthenticatedApiRateLimitRpcClient
+
+  constructor(rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) {
+    let bound: DelegatedBearerRlsClient<SupabaseBearerRlsClient>
+    try {
+      bound = assertDelegatedBearerRlsClient(rls)
+    } catch {
+      throw new ApiRateLimitConfigurationError()
+    }
+
+    const client = bound.client as unknown as BoundRpcClient
+    if (typeof client.rpc !== 'function') throw new ApiRateLimitConfigurationError()
+
+    this.client = {
+      role: 'authenticated',
+      rpc: client.rpc.bind(bound.client),
+    }
   }
 
   async consume(input: ApiRateLimitInput): Promise<ApiRateLimitDecision> {

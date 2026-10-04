@@ -6,6 +6,7 @@ import {
   type DelegatedBearerRequestAuthentication,
   type DelegatedBearerRlsClient,
   type SupabaseBearerRlsClient,
+  type VerifiedDelegatedToken,
 } from '@/lib/api-v1/auth'
 import { createSupabaseBearerRlsBinding } from '@/lib/api-v1/auth/bearer-rls'
 import type { ApiReadAuditInput, ApiReadAuditWriter } from '@/lib/api-v1/security/audit'
@@ -19,6 +20,7 @@ const requestId = '44444444-4444-4444-8444-444444444444'
 const correlationId = '55555555-5555-4555-8555-555555555555'
 const issuer = 'https://issuer.synthetic.invalid'
 const subject = 'subject-1'
+const boundAccessToken = 'synthetic.access-token.signature'
 
 const authContext: AuthContext = {
   tenantId,
@@ -28,6 +30,16 @@ const authContext: AuthContext = {
   employeeId: 'employee-1',
   activeRoles: ['HR_ADMIN'],
   permissions: ['self:talent-goal:read'],
+}
+
+const defaultVerifiedToken: VerifiedDelegatedToken = {
+  issuer,
+  subject,
+  audience: 'liquid-hr-api',
+  expiresAtEpochSeconds: 2_000_000_000,
+  revocation: 'active',
+  scopes: ['development-plans.self.read'],
+  clientId: 'synthetic-client',
 }
 
 function permissionClient(selfPermissions: readonly string[] = ['self:talent-goal:read']): SupabaseBearerRlsClient {
@@ -55,32 +67,40 @@ function permissionClient(selfPermissions: readonly string[] = ['self:talent-goa
   return client as unknown as SupabaseBearerRlsClient
 }
 
-function bearerRls(userId: string, selfPermissions?: readonly string[]): DelegatedBearerRlsClient<SupabaseBearerRlsClient> {
+function bearerRls(
+  userId: string,
+  selfPermissions?: readonly string[],
+  verifiedToken: VerifiedDelegatedToken = defaultVerifiedToken,
+): DelegatedBearerRlsClient<SupabaseBearerRlsClient> {
   const rls = createSupabaseBearerRlsBinding({
     supabaseUrl: 'http://localhost:54321',
     publishableKey: 'sb_publishable_test',
-    accessToken: 'synthetic.access-token.signature',
+    accessToken: boundAccessToken,
     supabaseUserId: userId,
     identity: { issuer, subject },
     account: { userId },
+    verifiedToken,
   })
   vi.spyOn(rls.client, 'from').mockImplementation(permissionClient(selfPermissions).from)
   return rls
 }
 
+function requestForHandler(
+  url: string,
+  init: RequestInit = {},
+  accessToken = boundAccessToken,
+): Request {
+  const headers = new Headers(init.headers)
+  headers.set('authorization', `Bearer ${accessToken}`)
+  return new Request(url, { ...init, headers })
+}
+
 function authenticationFor(
   rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>,
+  verifiedToken: VerifiedDelegatedToken = defaultVerifiedToken,
 ): DelegatedBearerRequestAuthentication<SupabaseBearerRlsClient> {
   return {
-    verifiedToken: {
-      issuer,
-      subject,
-      audience: 'liquid-hr-api',
-      expiresAtEpochSeconds: 2_000_000_000,
-      revocation: 'active',
-      scopes: ['development-plans.self.read'],
-      clientId: 'synthetic-client',
-    },
+    verifiedToken,
     account: { userId: authContext.userId },
     authContext,
     rls,
@@ -102,13 +122,13 @@ function setup(input?: {
 }) {
   const auditCalls: ApiReadAuditInput[] = []
   const events: string[] = []
-  const currentRls = bearerRls(input?.rlsUserId ?? authContext.userId, input?.selfPermissions)
+  const verifiedToken: VerifiedDelegatedToken = {
+    ...defaultVerifiedToken,
+    scopes: input?.tokenScopes ?? defaultVerifiedToken.scopes,
+  }
+  const currentRls = bearerRls(input?.rlsUserId ?? authContext.userId, input?.selfPermissions, verifiedToken)
   const currentAuthentication: DelegatedBearerRequestAuthentication<SupabaseBearerRlsClient> = {
-    ...authenticationFor(currentRls),
-    verifiedToken: {
-      ...authenticationFor(currentRls).verifiedToken,
-      scopes: input?.tokenScopes ?? authenticationFor(currentRls).verifiedToken.scopes,
-    },
+    ...authenticationFor(currentRls, verifiedToken),
     authContext: {
       ...authContext,
       permissions: [...(input?.permissions ?? authContext.permissions)],
@@ -166,7 +186,7 @@ function setup(input?: {
 describe('createProtectedApiGetHandler', () => {
   it('requires GET and rejects all query parameters before authentication', async () => {
     const nonGet = setup()
-    const methodResponse = await nonGet.handler(new Request('https://liquid.example/api/v1/development-plans', {
+    const methodResponse = await nonGet.handler(requestForHandler('https://liquid.example/api/v1/development-plans', {
       method: 'POST',
       headers: { 'X-Request-Id': requestId, 'X-Correlation-Id': correlationId },
     }))
@@ -177,7 +197,7 @@ describe('createProtectedApiGetHandler', () => {
     expect(nonGet.authenticate).not.toHaveBeenCalled()
 
     const withQuery = setup()
-    const queryResponse = await withQuery.handler(new Request('https://liquid.example/api/v1/development-plans?employeeId=forged'))
+    const queryResponse = await withQuery.handler(requestForHandler('https://liquid.example/api/v1/development-plans?employeeId=forged'))
     expect(queryResponse.status).toBe(400)
     expect(queryResponse.headers.get('cache-control')).toBe('no-store')
     expect(withQuery.authenticate).not.toHaveBeenCalled()
@@ -185,7 +205,7 @@ describe('createProtectedApiGetHandler', () => {
 
   it('authorizes both scope systems, limits, projects, audits, then responds', async () => {
     const { handler, createRateLimiter, createAuditWriter, rateLimiter, auditWriter, auditCalls, read, events, rls } = setup()
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans', {
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans', {
       headers: { 'X-Request-Id': requestId, 'X-Correlation-Id': correlationId },
     }))
 
@@ -228,7 +248,7 @@ describe('createProtectedApiGetHandler', () => {
     ['self employee context is blank', { employeeId: '   ' }],
   ] as const)('audits and denies when %s', async (_label, options) => {
     const { handler, rateLimiter, auditCalls, read } = setup(options)
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
 
     expect(response.status).toBe(403)
     expect(response.headers.get('cache-control')).toBe('no-store')
@@ -239,7 +259,7 @@ describe('createProtectedApiGetHandler', () => {
 
   it('rejects an RLS client bound to a different LiquidHR user', async () => {
     const { handler, auditWriter, read } = setup({ rlsUserId: 'another-user' })
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
 
     expect(response.status).toBe(500)
     expect(auditWriter.record).not.toHaveBeenCalled()
@@ -253,7 +273,37 @@ describe('createProtectedApiGetHandler', () => {
       rls: { ...rls },
     })
 
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
+
+    expect(response.status).toBe(500)
+    expect(createRateLimiter).not.toHaveBeenCalled()
+    expect(read).not.toHaveBeenCalled()
+  })
+
+  it('rejects a request bearer that differs from the private RLS binding', async () => {
+    const { handler, createRateLimiter, read } = setup()
+    const response = await handler(requestForHandler(
+      'https://liquid.example/api/v1/development-plans',
+      {},
+      'different.access-token.signature',
+    ))
+
+    expect(response.status).toBe(500)
+    expect(createRateLimiter).not.toHaveBeenCalled()
+    expect(read).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['client id', { clientId: 'forged-client' }],
+    ['scopes', { scopes: ['forged.scope'] }],
+  ] as const)('rejects a verified-token %s that differs from the private RLS binding', async (_label, change) => {
+    const { handler, authenticate, createRateLimiter, read, rls } = setup()
+    authenticate.mockResolvedValueOnce({
+      ...authenticationFor(rls),
+      verifiedToken: { ...defaultVerifiedToken, ...change },
+    })
+
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
 
     expect(response.status).toBe(500)
     expect(createRateLimiter).not.toHaveBeenCalled()
@@ -262,7 +312,7 @@ describe('createProtectedApiGetHandler', () => {
 
   it('audits rate limiting and returns bounded Retry-After without reading data', async () => {
     const { handler, auditCalls, read } = setup({ rateLimit: { allowed: false, remaining: 0, retryAfterSeconds: 1200 } })
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
 
     expect(response.status).toBe(429)
     expect(response.headers.get('retry-after')).toBe('900')
@@ -273,7 +323,7 @@ describe('createProtectedApiGetHandler', () => {
 
   it('fails closed when the limiter is unavailable', async () => {
     const { handler, auditWriter, read } = setup({ rateLimitError: new Error('database detail') })
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
     const body = await response.text()
 
     expect(response.status).toBe(503)
@@ -285,7 +335,7 @@ describe('createProtectedApiGetHandler', () => {
 
   it('does not return HR data if its read audit cannot be recorded', async () => {
     const { handler, auditWriter, read } = setup({ auditError: new Error('audit storage details') })
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
     const body = await response.text()
 
     expect(response.status).toBe(503)
@@ -298,7 +348,7 @@ describe('createProtectedApiGetHandler', () => {
 
   it('rejects projectors that try to return fields outside the strict runtime schema', async () => {
     const { handler, auditWriter } = setup({ project: (data) => data })
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
     const body = await response.text()
 
     expect(response.status).toBe(500)
@@ -309,7 +359,7 @@ describe('createProtectedApiGetHandler', () => {
 
   it('returns only a redacted error when authentication fails', async () => {
     const { handler, auditWriter, read } = setup({ authenticateError: new Error('invalid token details') })
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
     const body = await response.text()
 
     expect(response.status).toBe(500)
@@ -322,7 +372,7 @@ describe('createProtectedApiGetHandler', () => {
     const { handler, auditWriter } = setup({
       authenticateError: new DelegatedAuthError('INVALID_ACCESS_TOKEN'),
     })
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
     expect(response.status).toBe(401)
     expect(auditWriter.record).not.toHaveBeenCalled()
   })
@@ -338,7 +388,7 @@ describe('createProtectedApiGetHandler', () => {
   ] as const)('maps an internal service status %s to a safe external error', async (status, expectedCode) => {
     const serviceError = Object.assign(new Error('internal service detail'), { status, code: 'INTERNAL_ONLY' })
     const { handler } = setup({ readError: serviceError })
-    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+    const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans'))
     const body = await response.text()
 
     expect(response.status).toBe(status)

@@ -10,6 +10,7 @@ export {
 
 export {
   assertDelegatedAuthContext,
+  assertDelegatedBearerVerifiedToken,
   authenticateDelegatedBearerRequest,
   createSupabaseBearerRlsBinding,
   createSupabaseBearerRlsClient,

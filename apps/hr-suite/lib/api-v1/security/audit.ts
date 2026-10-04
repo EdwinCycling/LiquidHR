@@ -2,6 +2,8 @@ import {
   API_RATE_LIMIT_RESOURCE_KEYS,
   type ApiRateLimitResource,
 } from './rate-limit'
+import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '@/lib/api-v1/auth'
+import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
 
 export const API_READ_AUDIT_RPC_NAME = 'record_api_read_audit' as const
 
@@ -18,6 +20,10 @@ export interface AuthenticatedApiReadAuditRpcClient {
    * HR-group and administration membership before recording requested scope.
    */
   readonly role: 'authenticated'
+  rpc(name: string, args: Record<string, unknown>): Promise<{ readonly data: unknown; readonly error: unknown }>
+}
+
+type BoundRpcClient = {
   rpc(name: string, args: Record<string, unknown>): Promise<{ readonly data: unknown; readonly error: unknown }>
 }
 
@@ -118,8 +124,23 @@ function validateInput(input: ApiReadAuditInput): void {
  * not have a real entity id and counts can disclose sensitive populations.
  */
 export class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
-  constructor(private readonly client: AuthenticatedApiReadAuditRpcClient) {
-    if (client.role !== 'authenticated') throw new ApiReadAuditConfigurationError()
+  private readonly client: AuthenticatedApiReadAuditRpcClient
+
+  constructor(rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) {
+    let bound: DelegatedBearerRlsClient<SupabaseBearerRlsClient>
+    try {
+      bound = assertDelegatedBearerRlsClient(rls)
+    } catch {
+      throw new ApiReadAuditConfigurationError()
+    }
+
+    const client = bound.client as unknown as BoundRpcClient
+    if (typeof client.rpc !== 'function') throw new ApiReadAuditConfigurationError()
+
+    this.client = {
+      role: 'authenticated',
+      rpc: client.rpc.bind(bound.client),
+    }
   }
 
   async record(input: ApiReadAuditInput): Promise<void> {

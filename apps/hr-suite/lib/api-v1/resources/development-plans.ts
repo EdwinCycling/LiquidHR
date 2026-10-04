@@ -21,7 +21,9 @@ export async function readSelfDevelopmentPlans(input: {
   readonly rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>
 }): Promise<SelfDevelopmentPlanProjection[]> {
   const context = input.authContext
-  if (!context.employeeId) throw new ApiResourceProjectionError('SELF_CONTEXT_REQUIRED')
+  if (context.employeeId === null || context.employeeId.trim().length === 0) {
+    throw new ApiResourceProjectionError('SELF_CONTEXT_REQUIRED')
+  }
 
   const goals = await listSelfDevelopmentPlans({
     authContext: context,

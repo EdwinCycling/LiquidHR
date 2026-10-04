@@ -1,28 +1,43 @@
 import { describe, expect, it, vi } from 'vitest'
+import { createSupabaseBearerRlsBinding } from '../../../lib/api-v1/auth/bearer-rls'
+import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '../../../lib/api-v1/auth'
 import {
   API_RATE_LIMIT_RPC_NAME,
   ApiRateLimitConfigurationError,
   ApiRateLimitUnavailableError,
   PostgresApiRateLimiter,
-  type AuthenticatedApiRateLimitRpcClient,
 } from '../../../lib/api-v1/security/rate-limit'
 import {
   API_READ_AUDIT_RPC_NAME,
   ApiReadAuditConfigurationError,
   PostgresApiReadAuditWriter,
-  type AuthenticatedApiReadAuditRpcClient,
 } from '../../../lib/api-v1/security/audit'
 
 const tenantId = '11111111-1111-4111-8111-111111111111'
 const hrGroupId = '22222222-2222-4222-8222-222222222222'
 const correlationId = '33333333-3333-4333-8333-333333333333'
 
+function brandedRls(
+  rpc: ReturnType<typeof vi.fn>,
+): DelegatedBearerRlsClient<SupabaseBearerRlsClient> {
+  const rls = createSupabaseBearerRlsBinding({
+    supabaseUrl: 'http://localhost:54321',
+    publishableKey: 'sb_publishable_test',
+    accessToken: 'synthetic.access-token.signature',
+    supabaseUserId: 'user-1',
+    identity: { issuer: 'https://issuer.synthetic.invalid', subject: 'subject-1' },
+    account: { userId: 'user-1' },
+  })
+  vi.spyOn(rls.client, 'rpc').mockImplementation(rpc as never)
+  return rls
+}
+
 describe('APIAI-01 security storage contracts', () => {
   it('keeps the atomic limiter payload bound to tenant, HR group, client and resource', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: { allowed: true, remaining: 1 }, error: null })
-    const client: AuthenticatedApiRateLimitRpcClient = { role: 'authenticated', rpc }
+    const rls = brandedRls(rpc)
 
-    await new PostgresApiRateLimiter(client).consume({
+    await new PostgresApiRateLimiter(rls).consume({
       tenantId,
       hrGroupId,
       resource: 'workforce-summary',
@@ -49,35 +64,31 @@ describe('APIAI-01 security storage contracts', () => {
   })
 
   it('fails closed on an ambiguous denied limiter decision and rejects missing HR group scope', async () => {
-    const unavailableClient: AuthenticatedApiRateLimitRpcClient = {
-      role: 'authenticated',
-      rpc: vi.fn().mockResolvedValue({ data: { allowed: false, remaining: 1, retryAfterSeconds: 4 }, error: null }),
-    }
-    await expect(new PostgresApiRateLimiter(unavailableClient).consume({
+    const unavailableRpc = vi.fn().mockResolvedValue({ data: { allowed: false, remaining: 1, retryAfterSeconds: 4 }, error: null })
+    const unavailableRls = brandedRls(unavailableRpc)
+    await expect(new PostgresApiRateLimiter(unavailableRls).consume({
       tenantId,
       hrGroupId,
       resource: 'workforce-summary',
       oauthClientId: 'client-liquidhr-test',
     })).rejects.toBeInstanceOf(ApiRateLimitUnavailableError)
 
-    const invalidScopeClient: AuthenticatedApiRateLimitRpcClient = {
-      role: 'authenticated',
-      rpc: vi.fn(),
-    }
-    await expect(new PostgresApiRateLimiter(invalidScopeClient).consume({
+    const invalidScopeRpc = vi.fn()
+    const invalidScopeRls = brandedRls(invalidScopeRpc)
+    await expect(new PostgresApiRateLimiter(invalidScopeRls).consume({
       tenantId,
       hrGroupId: 'not-a-uuid',
       resource: 'workforce-summary',
       oauthClientId: 'client-liquidhr-test',
     })).rejects.toBeInstanceOf(ApiRateLimitConfigurationError)
-    expect(invalidScopeClient.rpc).not.toHaveBeenCalled()
+    expect(invalidScopeRpc).not.toHaveBeenCalled()
   })
 
   it('writes only typed tenant and HR-group read metadata to the canonical audit RPC', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
-    const client: AuthenticatedApiReadAuditRpcClient = { role: 'authenticated', rpc }
+    const rls = brandedRls(rpc)
 
-    await new PostgresApiReadAuditWriter(client).record({
+    await new PostgresApiReadAuditWriter(rls).record({
       tenantId,
       hrGroupId,
       resource: 'development-plans',
@@ -119,9 +130,9 @@ describe('APIAI-01 security storage contracts', () => {
 
   it('rejects an audit request without tenant or HR-group scope before invoking storage', async () => {
     const rpc = vi.fn()
-    const client: AuthenticatedApiReadAuditRpcClient = { role: 'authenticated', rpc }
+    const rls = brandedRls(rpc)
 
-    await expect(new PostgresApiReadAuditWriter(client).record({
+    await expect(new PostgresApiReadAuditWriter(rls).record({
       tenantId,
       hrGroupId: 'invalid-group',
       resource: 'team-skills',

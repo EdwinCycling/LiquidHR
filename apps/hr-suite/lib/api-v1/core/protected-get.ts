@@ -1,9 +1,13 @@
 import 'server-only'
 
 import { AuthorizationError, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
-import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import {
+  assertDelegatedBearerRlsClient,
+  assertDelegatedBearerVerifiedToken,
+} from '@/lib/api-v1/auth/bearer-rls'
 import {
   DelegatedAuthError,
+  parseBearerToken,
   type DelegatedBearerRequestAuthentication,
   type DelegatedBearerRlsClient,
   type SupabaseBearerRlsClient,
@@ -118,10 +122,20 @@ function toSafeApiError(error: unknown): ApiError {
 
 function scopeFromAuthentication(
   authentication: DelegatedBearerRequestAuthentication<SupabaseBearerRlsClient>,
+  accessToken: string,
 ): ApiReadScope {
   const authContext = authentication.authContext
   if (authentication.account.userId !== authContext.userId) throw new DelegatedAuthError('AUTH_CONTEXT_MISMATCH')
-  assertDelegatedBearerRlsClient(authentication.rls)
+  // De private binding maakt de handlergrens requestgebonden: een
+  // authenticator of stale context die bij een andere Authorization-header
+  // hoort, kan niet alsnog via dezelfde shape worden doorgegeven.
+  assertDelegatedBearerRlsClient(authentication.rls, {
+    accessToken,
+    userId: authentication.account.userId,
+    issuer: authentication.verifiedToken.issuer,
+    subject: authentication.verifiedToken.subject,
+  })
+  assertDelegatedBearerVerifiedToken(authentication.rls, authentication.verifiedToken)
   if (
     authentication.rls.kind !== 'supabase-bearer'
     || authentication.rls.client === null
@@ -202,7 +216,8 @@ export function createProtectedApiGetHandler<T>(
     let scope: ApiReadScope | null = null
     try {
       const authentication = await dependencies.authenticate(request)
-      scope = scopeFromAuthentication(authentication)
+      const accessToken = parseBearerToken(request.headers)
+      scope = scopeFromAuthentication(authentication, accessToken)
       const tokenScopes = new Set(authentication.verifiedToken.scopes)
       const hasApiScopes = definition.requiredApiScopes.every((requiredScope) => tokenScopes.has(requiredScope))
       const employeeId = scope.authContext.employeeId

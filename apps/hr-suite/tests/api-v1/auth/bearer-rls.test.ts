@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AuthContext } from '@/lib/auth/permissions'
-import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import {
+  assertDelegatedBearerRlsClient,
+  assertDelegatedBearerVerifiedToken,
+} from '@/lib/api-v1/auth/bearer-rls'
 import {
   assertDelegatedAuthContext,
   authenticateDelegatedBearerRequest,
@@ -85,6 +88,18 @@ describe('Supabase bearer RLS client', () => {
     expect(requests).toHaveLength(1)
     expect(requests[0].headers.get('authorization')).toBe(`Bearer ${accessToken}`)
     expect(requests[0].headers.get('cookie')).toBeNull()
+  })
+
+  it('rejects an unexpected alternate JWT at the branded Auth client boundary', async () => {
+    const client = createSupabaseBearerRlsClient({
+      supabaseUrl: 'https://project.supabase.co',
+      publishableKey: 'publishable-test-key',
+      accessToken,
+    })
+
+    await expect(client.auth.getClaims('another-access-token')).rejects.toThrowError(
+      expect.objectContaining({ code: 'RLS_CLIENT_INVALID', status: 500 }),
+    )
   })
 
   it('rejects a Supabase subject that is not the linked LiquidHR auth user', () => {
@@ -185,6 +200,28 @@ describe('private bearer wrapper boundary', () => {
     })).toThrowError(expect.objectContaining({ code: 'RLS_CLIENT_INVALID', status: 500 }))
     expect(() => assertDelegatedBearerRlsClient<SupabaseBearerRlsClient>(binding, {
       userId: 'different-user',
+    })).toThrowError(expect.objectContaining({ code: 'RLS_CLIENT_INVALID', status: 500 }))
+  })
+
+  it('binds verified client and scopes to the private bearer wrapper', () => {
+    const binding = createSupabaseBearerRlsBinding({
+      supabaseUrl: 'https://project.supabase.co',
+      publishableKey: 'publishable-test-key',
+      accessToken,
+      supabaseUserId: account.userId,
+      identity,
+      account,
+      verifiedToken,
+    })
+
+    expect(assertDelegatedBearerVerifiedToken(binding, verifiedToken)).toBe(binding)
+    expect(() => assertDelegatedBearerVerifiedToken(binding, {
+      ...verifiedToken,
+      clientId: 'different-client',
+    })).toThrowError(expect.objectContaining({ code: 'RLS_CLIENT_INVALID', status: 500 }))
+    expect(() => assertDelegatedBearerVerifiedToken(binding, {
+      ...verifiedToken,
+      scopes: ['different.scope'],
     })).toThrowError(expect.objectContaining({ code: 'RLS_CLIENT_INVALID', status: 500 }))
   })
 })

@@ -45,6 +45,10 @@ export class ApiResourceProjectionError extends Error {
   }
 }
 
+function isNonEmptyText(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.trim() === value
+}
+
 /**
  * Workforce Summary heeft nog geen goedgekeurde populatie- of aggregaatvelden.
  * De peildatum komt uit de serverklok en beschrijft alleen de projectie.
@@ -66,7 +70,18 @@ export function projectSelfDevelopmentPlans(
   workspace: { readonly goals: ReadonlyArray<SelfDevelopmentPlanSource> },
 ): SelfDevelopmentPlanProjection[] {
   const employeeId = authContext.employeeId
-  if (!employeeId) throw new ApiResourceProjectionError('SELF_CONTEXT_REQUIRED')
+  if (!isNonEmptyText(authContext.tenantId) || !isNonEmptyText(employeeId)) {
+    throw new ApiResourceProjectionError('SELF_CONTEXT_REQUIRED')
+  }
+  if (!Array.isArray(workspace.goals)) {
+    throw new ApiResourceProjectionError('INVALID_DEVELOPMENT_PLAN')
+  }
+  for (const goal of workspace.goals) {
+    if (!goal || typeof goal !== 'object' || Array.isArray(goal)
+      || !isNonEmptyText(goal.tenant_id) || !isNonEmptyText(goal.employee_id)) {
+      throw new ApiResourceProjectionError('INVALID_DEVELOPMENT_PLAN')
+    }
+  }
   if (workspace.goals.some((goal) => goal.tenant_id !== authContext.tenantId || goal.employee_id !== employeeId)) {
     throw new ApiResourceProjectionError('SELF_SCOPE_MISMATCH')
   }

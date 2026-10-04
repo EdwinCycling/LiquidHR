@@ -73,4 +73,11 @@ describe('APIAI-01 self development-plan adapter', () => {
     await expect(readSelfDevelopmentPlans({ authContext: context(null), rls })).rejects.toBeInstanceOf(ApiResourceProjectionError)
     expect(listSelfDevelopmentPlans).not.toHaveBeenCalled()
   })
+
+  it('fails closed before querying when the current employee context is blank', async () => {
+    await expect(readSelfDevelopmentPlans({ authContext: context('   '), rls })).rejects.toMatchObject({
+      code: 'SELF_CONTEXT_REQUIRED',
+    })
+    expect(listSelfDevelopmentPlans).not.toHaveBeenCalled()
+  })
 })
