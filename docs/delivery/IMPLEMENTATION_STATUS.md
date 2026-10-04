@@ -1,6 +1,13 @@
 # Implementatiestatus Liquid HR
 
-## APIAI-01 D0 — bouwvoorbereiding — 2026-10-03
+## APIAI-01 Final Integration Wave — 2026-10-04
+
+**Status: PARTIAL / SECURITY GATES OPEN / ROUTES UNMOUNTED.** Draft PR #3 bevat de lokale bearer/RLS-keten, self-only Development Plans-adapter en kandidaatcode voor limiter/READ-auditopslag. Gerichte tests 9/75 en de volledige suite 528 bestanden/2.246 tests zijn groen; strict TypeScript, lint en officiële Production-build 308/308 zijn groen. Dit bewijst geen echte OAuth-bearer/RLS-HTTP-read. Alle APIAI-routes blijven ongemount. Keycloak is alleen providerbewijs; er is geen providerkeuze.
+
+Draft databasecode is niet toegepast of tegen lokale PostgreSQL uitgevoerd; pgTAP, RLS/grants, concurrency, advisors en typegen blijven OPEN. De audit-RPC-provenance P2 en formele P-01 t/m P-05-besluiten blijven OPEN. Zie de actuele integratieacceptatie en docs/AA/AA-API-AI.md.
+
+## APIAI-01 D0 — bouwvoorbereiding — 2026-10-03 (historische pre-code status)
+
 
 **Status: documentatie gereed; API-code wacht op expliciete product- en securitybesluiten P-01 t/m P-05.** Voorstel: delegated OAuth, minimale externe scope-mapping naar bestaande autorisatie, allowlisted GET-resources, conservatieve privacygrenzen en gedeelde rate-limit/audit/errorcontracten. Geen van de voorstellen is goedgekeurd of geïmplementeerd. Team Skills v1 gebruikt uitsluitend AuthContext-afgeleide scope zonder client teamId; Development Plans v1 is self-only. Managerdoelen zijn geblokkeerd tot server-afgeleide directe-reportscope en service/RLS-negatives bestaan. TEST-release evidence is aanwezig voor exact main-SHA 6349d02538351cd01fc51f298c6e6fa0ba88006c; bredere security/persona-acceptatie blijft OPEN. De verouderde ONE-VERSION-20261002 closeouttekst is administratief en maakt niet-overlappende open sporen geen lokale APIAI-startblokkade. APIAI-specifiek bewijs blijft vereist vóór merge/release; Preview is vereist voor hosted acceptatie. Geen API-, schema-, remote database-, shared security-, merge- of deploywijziging uitgevoerd. Zie docs/AA/AA-API-AI.md en docs/AA/APIAI-01-DECISION-PROPOSALS-20261003.md.
 

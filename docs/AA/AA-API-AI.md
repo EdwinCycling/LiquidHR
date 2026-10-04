@@ -1,12 +1,19 @@
 # AA-API-AI — Externe API en AI-integraties
 
-Status: **D0 DOCUMENTATION READY; APIAI-01 START AFTER EXPLICIT DECISION APPROVALS**
-Bijgewerkt: 2026-10-03
-Peildatum code: GitHub main / origin/main SHA 6349d02538351cd01fc51f298c6e6fa0ba88006c
+Status: **D0 DOCUMENTATION READY; LOCAL UNMOUNTED DEVELOPMENT PLANS CANDIDATE EXISTS; EXTERNAL ACTIVATION BLOCKED**
+Bijgewerkt: 2026-10-04
+Baseline: GitHub main SHA 6349d02538351cd01fc51f298c6e6fa0ba88006c; lokale APIAI-kandidaatcode commit 2bc99a210d4cfb4f73a47e47dff26c7bf2745891 in Draft PR #3
 Applicatieversie: 1.20261002.1
 
-> Deze notitie en het gekoppelde besluitvoorstel bereiden APIAI-01 voor. De voorstellen zijn niet goedgekeurd en autoriseren geen API-implementatie, schemawijziging, remote migratie, deployment, merge of release. De D0-documentatiebranch en PR naar main zijn wel onderdeel van deze herstelopdracht.
+> Deze notitie en de gekoppelde besluitvoorstellen zijn niet goedgekeurd en autoriseren geen externe provider, route-activatie, remote migratie, deployment, merge of release. Een lokale kandidaatimplementatie staat in de afzonderlijke Draft PR #3; de API-routes blijven ongemount en de database migration is niet toegepast.
 
+## 0. APIAI-01 Final Integration Wave — actuele status
+
+De lokale kandidaat bevat een exact bearergebonden RLS-client, actuele AuthContext/servicechecks en een self-only Development Plans-projector met uitsluitend periode, voortgang, status en voltooiing. Limiter- en audit-RPC-wrappers zijn aan dezelfde private bearerclient gebonden; draft databasecode en pgTAP-contractbron bestaan, maar zijn niet lokaal uitgevoerd of remote toegepast. De resource is nog niet veilig te mounten.
+
+De code staat in PR #3 vanaf baseline 6349d02538351cd01fc51f298c6e6fa0ba88006c. Codecommit 2bc99a210d4cfb4f73a47e47dff26c7bf2745891; de officiële lokale Production-build/provenance is bewezen op 799f036d1f8dd874bdd6dcb54c425bfd1c2ce29c. Gerichte regressies 9 bestanden/75 tests; volledige suite 528 bestanden/2.246 tests; strict TypeScript, lint en 308/308 Production-build PASS. De drie publieke routes gaven lokale framework-404 en blijven ongemount.
+
+De geïsoleerde Keycloak 26.8-proef bewijst de providerflow tot en met afwijzing van dezelfde bearer na logout op Keycloak UserInfo. Zij bewijst geen LiquidHR-auth/RLS-pad en keurt geen provider goed. P-01 t/m P-05 blijven voorstellen; lokale PostgreSQL/pgTAP/concurrency/RLS/grants/advisors/typegen en audit-RPC-provenance-negatives blijven OPEN. Volledig bewijs staat in [APIAI-01-acceptatierun PR #3](https://github.com/EdwinCycling/LiquidHR/blob/work/apiai-01-build-20261003/docs/AA/APIAI-01-ACCEPTANCE-RUN-20261003.md) en [APIAI-01-security-integratierapport PR #3](https://github.com/EdwinCycling/LiquidHR/blob/work/apiai-01-build-20261003/docs/AA/APIAI-01-SECURITY-INTEGRATION-20261004.md).
 ## 1. Doel en statuslegenda
 
 Dit spoor voegt meerdere integratiekanalen toe boven bestaande server-side geautoriseerde LiquidHR-domeinservices. Het introduceert geen tweede autorisatie-, AI- of businesslogica-engine. De eerste mogelijke externe tools zijn Workforce Summary, Team Skills en Development Plans, maar alleen waar bestaande brondata en actuele autorisatie dit veilig ondersteunen.
@@ -63,7 +70,11 @@ Bestaande interne endpoints, browsercookies, Supabase-sessies of client-ingestel
 | Tenant-, HR-groep-, administratie- en subjectscope | Alleen expliciet toegankelijke grenzen | server-context.ts en administration-context.ts laden toegankelijke contexten; actieve dienstverbanden en directe-managerrelaties leveren waar passend subjectscope. | Interne context/RLS-gates bestaan; externe actor-, request- en revocationmatrix ontbreekt. | Intern. | ADR-0001 maakt Tenant de harde klant-/RLS-grens; ADR-0009 stelt HR-groep in als zichtbaarheids-/inrichtingsgrens. Clientcontext is onbetrouwbaar; serverchecks en RLS blijven verplicht. |
 | Externe accountkoppeling | Externe actor aantoonbaar aan bestaande LiquidHR-user koppelen | Geen provider-subject-to-auth.users-contract gevonden. | Geen. | Geen. | Unieke subject-link, consent, accountverwijdering, recovery en ambiguïteit moeten worden besloten. Geen email-only matching. |
 
-Vereiste keten voor een latere API: valideer extern token en client; laad veilig gekoppelde bestaande user; laad actuele LiquidHR AuthContext; valideer geselecteerde context tegen server-side membership; voer bestaande permission- en domeinservicechecks uit; behoud database/RLS-defense-in-depth. Na intrekking van rol, context, module of account mag een eerder token geen bredere toegang behouden.
+Vereiste keten voor een latere API: valideer extern token en client; laad veilig gekoppelde bestaande user; controleer bij iedere aanvraag de actuele status van grant/token; laad de actuele LiquidHR AuthContext; valideer geselecteerde context tegen server-side membership; voer bestaande permission- en domeinservicechecks uit; behoud database/RLS-defense-in-depth. Alleen JWT-handtekening en expiry controleren trekt een eerder uitgegeven JWT niet direct in: daarvoor is per-request tokenintrospectie of een vertrouwde grant-livenesscontrole nodig. Bewijs dit met dezelfde bearer vóór en na intrekking. Herlaad daarnaast elke aanvraag met actuele rol-, context-, module- en accountstatus. Claim geen directe revocation zolang de gekozen provider- en grantketen dit niet bewijst.
+
+Begripsafbakening: de OpenID Connect-scopes `openid`, `profile` en `email` horen bij identity-/loginclaims en zijn geen API-resourcepermissies. API-specifieke scopes zoals `development-plans.self.read` horen bij het afzonderlijke gedelegeerde API-contract en begrenzen hoogstens wat de client mag aanvragen; zij vervangen nooit actuele LiquidHR-permissions, serviceguards of RLS.
+
+Dit is aanvullend op [ADR-0002](../decisions/ADR-0002-authenticatie-i18n-en-persoonlijke-themas.md); ADR-0002 beschrijft de bestaande first-party login en keurt de hier onderzochte externe OAuth- en API-scopecontracten niet goed.
 
 ### 3.3 HeRa en Workforce Summary
 
@@ -92,6 +103,8 @@ Salaris- of brede medewerkerdetails zijn niet automatisch onderdeel van Workforc
 | Talentmutaties | Niet onderdeel van eerste externe read-slice | Interne POST-/check-in-/writepaden bestaan. | Geen externe write-acceptatie. | Niet vrijgegeven extern. | APIAI-01 is GET-only. Link niet door naar bestaande muterende /api/talent/* handlers. |
 
 Alle clientselectors zijn onbetrouwbaar en kunnen nooit authority verlenen. Team Skills v1 heeft geen teamId: het bestaande filtercontract kent dat veld niet en de service leidt TEAM/TENANT-scope zelf af uit AuthContext. Development Plans v1 is self-only en leidt employee uit AuthContext af; accepteer extern geen mode of employeeId. Voeg andere filters pas toe wanneer de bestaande service ze veilig binnen de al toegestane scope valideert. Bij ontbrekende brondata, ambiguïteit of ontoereikende autorisatie faalt de aanvraag gesloten.
+
+Team Skills blijft voorbereid, niet afgerond: de eerste APIAI-01-slice bevat geen subjectRef, teamRef, naam, employee-ID, evidence, certificaatdetails of vrije tekst. Externe Team Skills-toegang blijft uitgesteld tot een afzonderlijk goedgekeurde projectie aantoonbaar niet-linkbaar is; anders wordt de resource uit v1 gelaten.
 
 ### 3.5 AI Foundation, governance, audit en Liquid Credits
 
@@ -131,6 +144,7 @@ Veranderlijke primaire platformbronnen opnieuw controleren bij latere iteraties:
 Goedgekeurde basisbesluiten:
 
 - ADR-0001: Tenant is absolute klant-/RLS-grens; administratiecontext is expliciet; clientcontext/cookie is onbetrouwbaar; siblings zijn niet impliciet toegankelijk.
+- ADR-0002: beschrijft de bestaande first-party Google-/wachtwoordlogin, uitnodigingsgrens en persoonlijke voorkeuren. Dit besluit keurt geen externe OAuth-provider, gedelegeerd API-bearercontract, API-scopes of tokenrevocatiemodel goed; die keuzes blijven open.
 - ADR-0009: HR-groep is zichtbaarheids- en inrichtingsgrens. Salaris-, dienstverband- en administratiegegevens blijven aan hun passende domeinscope gekoppeld.
 - ADR-0010: nieuwe AI blijft een server-side LiquidHR-capability. Gebruik AuthContext, actuele business permission en ai:use, fail-closed governance/credits, minimale providercontext en gescheiden technische/business audit.
 - FDR-0008: AI-invocation en Liquid Credits volgen het goedgekeurde reserveer-, settle-, release- en retrybeleid. Dit bepaalt niet zelfstandig kostenbeleid voor gewone REST-reads of externe AI-clients.
@@ -225,9 +239,9 @@ Leg vóór OpenAPI-freeze vast:
 - GET-only eerste release; geen POST/PATCH/PUT/DELETE, event, webhook, Payroll-import, AI-action of mutation alias.
 - No-store/cachebeleid; geen persoonsgegevenscache bij clients zonder besluit.
 
-## 9. Gerichte wijzigingslijst voor AA-MASTER-ROADMAP
+## 9. Gerichte wijzigingslijst voor de living roadmap
 
-docs/AA/AA-MASTER-ROADMAP.md zelf is niet gewijzigd.
+De geldige lange-termijnroadmap in deze baseline is [AA-ROAD.md](AA-ROAD.md). `docs/AA/AA-MASTER-ROADMAP.md` bestaat niet in deze baseline en is niet gewijzigd; eventuele roadmapredactie blijft een afzonderlijke wijziging.
 
 1. Vervang verouderde uitgangsbaseline cb73260... door current main 6349d02538351cd01fc51f298c6e6fa0ba88006c, appversie 1.20261002.1 en geverifieerde TEST-deployment-ID. Houd deployment READY gescheiden van securityacceptatie OPEN.
 2. Markeer PAYLAB00–04 als geïntegreerd in main en TEST-released, niet als volgende of nog MERGE-READY activiteit. Behoud begrensde synthetic acceptance en geen algemene payrollcomplianceclaim.
@@ -240,7 +254,7 @@ docs/AA/AA-MASTER-ROADMAP.md zelf is niet gewijzigd.
 9. Zet API/MCP/WebMCP/ChatGPT niet als gebouwd of released neer. D0 vond bestaande interne BFF, services en AI-runtime maar geen extern /api/v1, product MCP of WebMCP-route.
 10. Synchroniseer bij latere roadmapredactie AA-CURRENT/AA-NEXT, releasehandoff, repo README en IMPLEMENTATION_STATUS met dezelfde main/version/deployment evidence; behoud historische snapshots als gedateerde historie.
 
-## 10. Zelfstandige conditionele bouwopdracht voor APIAI-01
+## 10. D0-conditionele bouwopdracht voor APIAI-01 — historisch template
 
 ### Vrijgavepoort
 
@@ -295,11 +309,11 @@ Voer APIAI-01 uit volgens docs/AA/AA-API-AI.md, docs/AA/APIAI-01-DECISION-PROPOS
 
 **STOP** bij ontbrekende P-01 t/m P-05-goedkeuring, onduidelijke veld-/privacyclassificatie, niet-unieke subject-link, onvoldoende actuele re-autorisatie, concrete overlap met gedeelde securitycode, onveilige testconfiguratie, falende relevante gate of verzoek om een niet-geautoriseerde remote mutatie.
 
-## 11. Scope en referenties
+## Aanvullende scope en referenties
 
 In-scope voor D0: documentatie, code-/contractinventarisatie, actuele statuscontrole, dependencyanalyse, vijf niet-goedgekeurde besluitvoorstellen en de daarvoor geautoriseerde eigen documentatiebranch/commit/push/PR naar main.
 
-Out of scope: API-implementatie, nieuw schema/permission/OAuth-client, remote migration, live externe API-test, applicatiecodewijziging, merge, deployment, Production-toegang en activatie. De D0-documentatie-PR wordt niet automatisch gemerged.
+Historische D0-afbakening op 2026-10-03: API-implementatie, schema/permission/OAuth-client, externe API-test, merge en deployment vielen buiten die toenmalige documentatietaak. De latere, afzonderlijk geautoriseerde Final Integration Wave heeft de lokale kandidaat in PR #3 opgeleverd; de overige route-, database- en externe activatiegrenzen gelden nog steeds.
 
 Repositorybronnen:
 
@@ -315,3 +329,17 @@ Repositorybronnen:
 - AA-REL en docs/quality/acceptance/runs/ONE-VERSION-20261002.md voor release gates/evidence.
 
 Deze notitie vervangt voor deze inventarisatie de verouderde APIAI-baseline en historische readiness-aannames. Zij merge, delete of herschrijft geen historische decision artifacts.
+
+## 11. Direct uitvoerbare vervolgopdracht voor APIAI-01
+
+Ga verder vanaf de bestaande lokale kandidaat in de geïsoleerde worktree op branch work/apiai-01-build-20261003. Controleer eerst actuele PR #2/#3-heads, main-baseline, worktree-eigenaars en Vercel no-deployment-guard. Herbouw de foundation niet en raak geen andere worktrees aan.
+
+**Doel:** maak de self-only Development Plans GET lokaal volledig bewezen. Laat alle publieke APIAI-routes ongemount totdat toepasselijke Product-, Security-, Privacy- en Data-besluiten formeel zijn vastgelegd en de bearer-, database-, privacy- en auditgates aantoonbaar slagen.
+
+1. Leg P-01 t/m P-05 vast als aangenomen, aangepast of afgewezen ADR/FDR/requirement. Kies provider en dezelfde-bearer-intrekkingsgarantie; map API-scopes alleen als bovengrens op bestaande LiquidHR-permissions/modules/AuthContext; bevestig de Development Plans-allowlist; houd Workforce Summary en Team Skills buiten de afgeronde scope totdat hun contract/privacygrenzen zijn goedgekeurd; besluit quota, fouten, auditbron, IDs, retentie en auditprovenance.
+2. Behoud uitsluitend listSelfDevelopmentPlans en de velden periodStart, periodEnd, progressPercent, status en completedAt. Geen mode/employee/contextselector, title, vrije tekst, subjectref of interne identifiers.
+3. Bewijs in een geïsoleerde lokale providerstack issuer, audience, client, PKCE S256, subjectlink en onmiddellijke intrekking van dezelfde nog geldige bearer. Bind die bearer aan de actuele LiquidHR AuthContext en dezelfde Supabase RLS-client. Test positieve self-read en tenant-, HR-groep-, administratie-, actor-, permission-, module- en revocation-negatives. Geen cookie- of service-rolefallback.
+4. Start alleen lokale PostgreSQL via de officiële worktree-runtime. Voer de draft migration, 36 pgTAP-asserties, limiter-capacity/concurrency, RLS/grants/readback, advisors en typegen uit. Voeg een directe audit-RPC-negative toe die vervalste ALLOWED/status/correlation afwijst, of ontwerp en toets een vertrouwde route-only write-path. Niets remote toepassen.
+5. Mount hoogstens Development Plans wanneer approvals en alle relevante security/privacychecks groen zijn. Test echte loopback HTTP-verzoeken met normale login/rolwisseling, no-store, foutredactie, veldallowlist, limiter en persistente audit. Laat Workforce Summary en Team Skills ongemount.
+6. Herhaal gerichte regressies, volledige suite, strict TypeScript, lint, officiële Production-build en onafhankelijke LUNA MAX-review na alle correcties. Noteer exacte SHA, poort, testlaag en bewijsgrenzen.
+7. Stop vóór Preview/deployment, remote migratie, externe provideractivatie of merge. Push alleen als de actuele opdracht dit expliciet toestaat en na controle van PR-heads en no-deployment-guard.

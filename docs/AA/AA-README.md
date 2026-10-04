@@ -33,6 +33,8 @@ De AA-set voorkomt dat actuele afspraken verspreid raken over oude prompts, loss
 | [AA-ROAD](AA-ROAD.md) | Lange-termijnroadmap |
 | [AA-CURRENT](AA-CURRENT.md) | Actuele technische/productstatus |
 | [AA-ACCEPT](AA-ACCEPT.md) | Actuele accepted baseline |
+| [AA-API-AI](AA-API-AI.md) | API- en AI-integratie-inventaris, contractscope en securitygaten |
+| [APIAI-01-besluitvoorstellen](APIAI-01-DECISION-PROPOSALS-20261003.md) | Onbesliste provider-, autorisatie-, resource-, privacy- en operationele voorstellen |
 
 ## Leesmatrix voor Codex
 

@@ -1,5 +1,19 @@
 # Actuele overdracht Liquid HR
 
+## APIAI-01 Final Integration Wave — 2026-10-04
+
+**Status: PARTIAL / SECURITY GATES OPEN / ROUTES UNMOUNTED.** De eerdere D0-only overdracht hieronder is historisch. Draft PR #3 bevat nu een lokale bearer/RLS-seam, een self-only Development Plans-adapter en draft limiter/READ-auditdatabasecode. Dit is een ongeactiveerde kandidaat, geen goedgekeurde providerintegratie of externe API.
+
+- Kandidaatbranch work/apiai-01-build-20261003; codecommit 2bc99a210d4cfb4f73a47e47dff26c7bf2745891 vanaf GitHub main 6349d02538351cd01fc51f298c6e6fa0ba88006c. Officiële lokale Production-build/provenance slaagde op commit 799f036d1f8dd874bdd6dcb54c425bfd1c2ce29c; appcode was sindsdien ongewijzigd.
+- Gerichte APIAI-regressies 9 bestanden/75 tests PASS; volledige suite 528 bestanden PASS, 4 SKIP; 2.246 tests PASS, 8 SKIP. Strict TypeScript PASS; lint 0 errors met 7 bestaande Payroll-testwaarschuwingen; officiële build 308/308 pagina's en 152 browserassets PASS.
+- Lokale Production-runtime op poort 3015 gaf HTTP 404 voor Workforce Summary, Development Plans en Team Skills. Alle APIAI-routes blijven bewust ongemount; deze eindrun claimt geen verse normale login of positieve API-bearerrequest.
+- De geïsoleerde Keycloak 26.8-proef bewees DCR, PKCE S256, consent, discovery/JWKS, tampered-tokenafwijzing en afwijzing van dezelfde nog geldige access bearer bij UserInfo na logout. Dit kiest geen provider en bewijst geen LiquidHR-route of Supabase RLS.
+- Migration-contracttest 3/3 PASS en pgTAP-bron plan(36); lokale PostgreSQL op 127.0.0.1:54322 en Docker waren niet beschikbaar. SQL/pgTAP, RLS/grants/readback, concurrency, advisors en typegen zijn niet uitgevoerd. Geen remote migration.
+- Onafhankelijke review vond geen P0/P1 na de limiter-/administration-fixes. Open P2: een directe authenticated caller levert outcome/status/correlation aan de audit-RPC; de database bewijst niet dat de route de resource heeft gelezen. P-01 t/m P-05 zijn niet goedgekeurd.
+- PR #2 blijft de D0-documentatiebijdrage; PR #3 bevat de API-kandidaat. Beide blijven Draft tot vereiste review en goedkeuringen. Voor de push volgt controle van remote heads en Vercel no-deployment-guard. Geen route-mount, Preview/deployment, merge of externe activatie.
+
+Vervolg: formaliseer P-01 t/m P-05, voer geïsoleerde lokale SQL/RLS/concurrency-proeven uit, sluit de auditprovenance-negative en bewijs de gekozen provider met dezelfde bearer tegen actuele AuthContext/RLS. Mount uitsluitend de goedgekeurde self-only Development Plans GET na geslaagde gates. Zie docs/AA/AA-API-AI.md sectie 11 en de [APIAI-01-acceptatierun in PR #3](https://github.com/EdwinCycling/LiquidHR/blob/work/apiai-01-build-20261003/docs/AA/APIAI-01-ACCEPTANCE-RUN-20261003.md).
+
 ## APIAI-01 unblock & build readiness — 2026-10-03
 
 - D0-documentatie start vanaf exact GitHub/origin/main 6349d02538351cd01fc51f298c6e6fa0ba88006c in managed worktree apiai-d0-docs-20261003. De root-checkout is ouder (cb73260) en bleef onaangeraakt. De statusdocumenten zijn vóór wijziging gecontroleerd; geen andere actieve LiquidHR-thread past dezelfde CURRENT_CONTEXT/IMPLEMENTATION_STATUS aan. AA-MASTER-ROADMAP bleef onaangeraakt.
