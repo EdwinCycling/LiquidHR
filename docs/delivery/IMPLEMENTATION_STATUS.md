@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## PAY-CONVERGE — geïntegreerde lokale kandidaat — 2026-10-04
+
+**Status: code-integratie gereed; lokale codegates PASS; acceptatie PARTIAL; releaseadvies HOLD.** De CAO-BENCH02-productboom is in integration/pay-converge-20261004 vanaf exact main 6349d025 geïntegreerd en is identiek aan bronproductcommit 07cb05e. De volledige hr-suite slaagde met 523 bestanden / 2.195 tests (3 skips); strict TypeScript, lint (0 fouten, 6 bestaande warnings), NL/EN i18n (41 namespaces), productiebuild (309/309 pagina’s) en Payroll client-boundaryscan (152 assets) slaagden.
+
+De lokale browser smoke bevestigde anonieme redirect/401 en weergave zonder horizontale overflow op desktop 1440×900 en iPhone 16 viewport 393×852. Eerdere authenticated benchmarks, M0/NL-2026, componenten, exports en bestaande scopeprobes zijn hergebruikt op grond van exacte apps/packages-treepariteit. De Mars-only admin → Jupiter-negatieve proef is niet uitgevoerd; SEC-PAY-001 blijft OPEN. K2 wettelijke afronding PAY-RULE-002 blijft eveneens OPEN.
+
+Read-only Vercel-controle vond geen Preview-deployment of Payroll Preview-variabelen en geen hosted READY/safety smoke op de kandidaat. De bestaande READY-deployment blijft op main 6349d025; appversie is 1.20261002.1. Geen remote migration, identity provisioning, push, merge, deployment of version bump. Zie het [PAY-CONVERGE-acceptatierapport](../payroll/acceptance/PAY-CONVERGE-20261004.md) en [AA-OPEN](../AA/AA-OPEN.md).
+
 ## CAO-BENCH02 fase 2 — 2026-10-03
 
 **Status: PARTIAL, niet GREEN.** De drie regelpakketten, zeven gross-case rules, H1-scopeproef en Calculation Experience zijn geïntegreerd. Na de finale exact-run-/provenancefixes zijn alle zeven runs persistent opnieuw berekend en uitgelezen via de geauthenticeerde browser; H1, conceptstrook, echte K1/K2-PDF- en JSON-downloads met inhoudspariteit, desktop-/393×852-weergave en beschikbare negatieve persona-/groepscopeprobes zijn herhaald. De kandidaat slaagde eerder voor 37 testbestanden / 240 tests (3 overgeslagen); na de lokale arrangementlabelcorrectie slaagden de gerichte test (5/5), typechecks, lint, NL/EN i18n en productiebuild 309/309 pagina's. Bestaande Test Manager- en Test Employee-persona's en twee andere TEST-hr-groepen zijn geweigerd voor de K1-route. Read-only inventaris bevestigt drie actieve Payroll-enabled administraties. Het autorisatiemodel kan `TENANT_ADMIN` via een `ADMINISTRATION`-binding tot Mars beperken, maar er bestaat geen repository-goedgekeurde provisioner voor een nieuwe Auth-identiteit; de enige bestaande fixturevoorziening wijzigt alleen de drie canonieke accounts. De admin-naar-admin-weigering is daarom niet uitgevoerd en de kandidaat blijft PARTIAL.

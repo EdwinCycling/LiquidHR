@@ -45,6 +45,10 @@ De observaties over CAO-BENCH02 en TEST-HARNESS01 hieronder komen uit **lokale C
 | ENV-PREVIEW-010 | OPEN — ENVIRONMENT, laatst gedocumenteerd 2026-10-02; release/platform | In de bestaande Preview-procedure staat dat afzonderlijke synthetische Core- en Payroll-Preview-backends plus Preview-scoped Vercel-variabelen nog ingericht moeten worden. De huidige status na die documentdatum is niet opnieuw bewezen. | Verifieer actuele inrichting vóór de volgende PR die volgens AA-REL op een commit-specifieke Preview moet worden geaccepteerd. Geen gedeelde TEST-database gebruiken als Preview-vervanger. |
 | DOC-CONVERGE-011 | OPEN — INTEGRATIE; centrale releasecoördinatie | Remote `main` van deze docs-baseline is `6349d025...` / app `1.20261002.1`, maar sommige AA-statuspassages bevatten oudere historische releasebeschrijvingen. Nieuwere ONE VERSION-documentatie en CAO-BENCH02-commits zijn in lokale overdrachten gemeld, niet allemaal op `main`. Afzonderlijke AA-API-AI-/masterroadmapconceptbranches bestaan. | Tijdens geplande gecontroleerde documentatie-/PAY-CONVERGE-slag: verifieer de broncommits, werk AA-CURRENT/AA-ACCEPT/AA-NEXT bij op basis van echt bewijs; neem de losse AA-concepten selectief over, zonder blinde branchmerge of onbedoelde docs-only deployment. |
 
+**PAY-CONVERGE-verificatie 2026-10-04:** de CAO-BENCH02-code is alleen in de lokale integratiebranch samengebracht; remote main en de bestaande Vercel-release zijn niet gewijzigd. De AA-CURRENT/AA-ACCEPT/AA-NEXT-statussen verwijzen nu naar het lokale kandidaatrapport. DOC-CONVERGE-011 blijft OPEN voor niet-meegenomen API/AI- en masterroadmapconcepten.
+
+**ENV-PREVIEW-010-verificatie 2026-10-04:** read-only Vercel-metadata toonde geen Preview-deployment. De vereiste Payroll-Preview-variabelen staan alleen op Production. Core-variabelen zijn als Production/Preview-targets geregistreerd, maar omdat waarden verborgen bleven is gescheiden URL-inhoud niet bewezen. Gebruik de gedeelde TEST-database niet als Preview-vervanger.
+
 ## 4. Beslisregister voor de eerstvolgende integratie
 
 **PAY-CONVERGE (eerstvolgende centrale releasebeslissing):**

@@ -1,9 +1,22 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-03
+Momentopname: 2026-10-04
+
+## PAY-CONVERGE — lokale integratiekandidaat — 2026-10-04
+
+**Status: lokale codegates PASS; CAO-acceptatie PARTIAL; releaseadvies HOLD.** De kandidaatbranch integration/pay-converge-20261004 is schoon gestart vanaf exact geverifieerde GitHub main 6349d02538351cd01fc51f298c6e6fa0ba88006c. De CAO-BENCH02-apps/- en packages/-boom is gelijk aan de bewezen productboom; er zijn geen Core-, CONTROL02- of API/AI-branches geïntegreerd. De appversie blijft 1.20261002.1.
+
+- De volledige HR-suite slaagde met 523 bestanden / 2.195 tests (3 skips); strict TypeScript, ESLint (0 fouten / 6 bestaande warnings), i18n (41 namespaces), productiebuild (309 pagina’s) en client-boundaryscan (152 assets) slaagden.
+- De lokale centrale TEST-runtime draaide op een vrije poort. Anonieme toegang tot /payroll-lab werd naar login gestuurd; een directe anonieme K1-exportaanvraag kreeg 401 zonder run-ID. De browsercontrole op 1440×900 en 393×852 had geen horizontale overflow. Deze anonieme proef is geen persona- of tenantacceptatie.
+- Zeven benchmarkreadbacks, H1, K1/K2-downloads, historische M0/NL-2026 en componentcatalogus-/forkbewijzen zijn hergebruikt uit de gelinkte rapporten na verificatie dat de productboom gelijk is. Er is geen TEST-database herlezen of gewijzigd.
+- SEC-PAY-001 en PAY-RULE-002 blijven OPEN. De actuele Vercel Preview-inrichting is incompleet: geen Preview-deployment en geen Payroll Preview-variabelen. Zie [PAY-CONVERGE-acceptatie](../payroll/acceptance/PAY-CONVERGE-20261004.md) en [AA-OPEN](AA-OPEN.md).
+
+De bestaande Vercel READY-deployment blijft op main 6349d025; deze kandidaat is niet hosted. Daarom is er geen beperkt TEST-releasebesluit uitgevoerd. Geen push, merge, deployment, databasewrite, identity provisioning of version bump.
 
 ## CAO-BENCH02 Phase 1 candidate — 2026-10-03
+
+Historische featurehandoff; de code is inmiddels alleen in de lokale PAY-CONVERGE-kandidaat geïntegreerd, niet op remote main of in de hosted release.
 
 De PAYLAB05-arrangementfoundation wordt lokaal ontwikkeld op `work/cao-bench02-20261003`, vanaf baseline `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Dit is een afzonderlijke kandidaatbranch na PAYLAB00–04; de actuele `main`/TEST-release hierboven is niet door deze slice bijgewerkt.
 

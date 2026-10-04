@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## PAY-CONVERGE lokale integratie — 2026-10-04
+
+**Status: lokale codegates PASS; acceptatie PARTIAL; releaseadvies HOLD.** CAO-BENCH02 is vanaf exact geverifieerde main 6349d025 geïntegreerd in de geïsoleerde branch integration/pay-converge-20261004. De volledige HR-suite, typechecks, lint, i18n, productiebuild en client-boundaryscan slaagden. SEC-PAY-001 blijft OPEN; er is geen kandidaatdeployment, Preview-omgeving of hosted safety smoke. Geen push, merge, deployment, version bump of remote databasewrite.
+
+Zie het [PAY-CONVERGE-acceptatierapport](payroll/acceptance/PAY-CONVERGE-20261004.md), [AA-OPEN](AA/AA-OPEN.md) en de [CAO-BENCH02-fase-2-overdracht](payroll/acceptance/PAY-CONVERGE-HANDOFF-CAO-BENCH02-20261004.md).
+
 ## CAO-BENCH02 fase 2 — 2026-10-03
 
 De CAO-BENCH02-feature is technisch voltooid op productcommit `07cb05e`; de documentatiecommit is `27ce374`. De zeven benchmarks, H1, conceptstroken, K1/K2 PDF/JSON-downloads, browsermatrix, rol-/groepscopeprobes en lokale kwaliteitspoorten zijn bewezen. De resterende verplichte Mars-only admin→Jupiter-serverweigering is **OPEN**, zodat totale acceptatie **PARTIAL, niet GREEN** blijft. De actuele PAY-CONVERGE-overdracht bevat het bewijs, de divergentie van de bestaande integratietak en het AA-REL-releaseadvies: [PAY-CONVERGE handoff](payroll/acceptance/PAY-CONVERGE-HANDOFF-CAO-BENCH02-20261004.md). Het [fase-2-acceptatierapport](payroll/acceptance/CAO-BENCH02-PHASE2-20261003.md) en de fase-1-rapportage blijven behouden.

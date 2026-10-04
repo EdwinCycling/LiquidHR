@@ -1,11 +1,19 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-03
+Bijgewerkt: 2026-10-04
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
 
-## CURRENT — CAO-BENCH02 Phase 1 Arrangement Foundation
+## CURRENT — PAY-CONVERGE lokale kandidaat
+
+CAO-BENCH02 is geïntegreerd in integration/pay-converge-20261004 vanaf exact main 6349d025. De volledige lokale codegates slaagden; de kandidaat blijft PARTIAL/HOLD door SEC-PAY-001 en ontbrekende kandidaatgebonden hosted/Preview-evidence. Start geen nieuwe Payroll-feature voor dezelfde slice.
+
+- Volgende releaseactie: alleen na expliciete inrichting van de gescheiden synthetic Preview-backends en Payroll Preview-variabelen, een exact-SHA hosted READY/safety smoke en Edwins afzonderlijke besluit over een beperkte synthetische TEST-release volgens AA-REL §8.
+- SEC-PAY-001 sluit pas na een goedgekeurde bestaande TEST-provisioningroute en de echte Mars-only → Jupiter serverweigering. PAY-RULE-002 blijft een voorwaarde voor wettelijke of fiscale nauwkeurigheidsclaims.
+- Volledig lokaal bewijs en het HOLD-advies: [PAY-CONVERGE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md). Geen push, merge, deployment of version bump is uitgevoerd.
+
+## Historische handoff — CAO-BENCH02 Phase 1 Arrangement Foundation
 
 PAYLAB05 Phase 1 bouwt in `work/cao-bench02-20261003` vanaf exact baseline `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Het levert effectieve regelingbeschikbaarheid per Payroll-administratie, precies één primaire regeling per synthetisch dienstverband en immutable compositiesnapshots met versie- en inhoudshash. Drie metadata-only pakketten en drie synthetische fixtures zijn inbegrepen.
 

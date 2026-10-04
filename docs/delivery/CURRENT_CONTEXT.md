@@ -1,5 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## PAY-CONVERGE — 2026-10-04
+
+**Status: lokale integratie en codegates PASS; CAO-acceptatie PARTIAL; releaseadvies HOLD.** Branch integration/pay-converge-20261004 is gestart vanaf exact geverifieerde main 6349d02538351cd01fc51f298c6e6fa0ba88006c. De app- en packageboom is gelijk aan de geaccepteerde CAO-productboom; Core/API-AI/CONTROL02-worktrees bleven onaangeroerd.
+
+- HR-suite: 523 bestanden, 2.195 tests geslaagd, 3 overgeslagen; TypeScript, i18n, lint en build 309/309 geslaagd; client-boundaryscan 152 assets.
+- Op de lokale centrale TEST-runtime zijn de loginredirect, anonieme 401 op K1-export en desktop 1440×900 / mobiel 393×852 zonder horizontale overflow gecontroleerd. Geen account of TEST-identiteit is aangemaakt en geen databasewrite uitgevoerd.
+- Zeven benchmarks, historische M0/NL-2026, componentcatalogus/fork, K1/K2-PDF/JSON en eerdere geauthenticeerde scopeprobes zijn hergebruikt uit bestaande rapporten nadat de productboom exact was vergeleken. SEC-PAY-001 (Mars-only → Jupiter) en PAY-RULE-002 blijven OPEN.
+- De bestaande READY-deployment blijft exact op main 6349d025. Vercel heeft geen Preview-deployment of Payroll Preview-variabelen; geen kandidaat-SHA hosted smoke is beschikbaar. Appversie blijft 1.20261002.1.
+
+Geen push, merge, deployment, version bump, migratietoepassing, auth-provisioning of wijziging aan een ander actief worktree. Zie het [PAY-CONVERGE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md) en [AA-OPEN](../AA/AA-OPEN.md).
+
 ## CAO-BENCH02 fase 2 — 2026-10-03
 
 - Branch `work/cao-bench02-20261003`, basis-HEAD `05b78d7c6b2dbed4d14648b78bf78b497ab1d337` (fase-1-HEAD); fase-2-commit staat lokaal op de branch. Appversie blijft `1.20261002.1`.
