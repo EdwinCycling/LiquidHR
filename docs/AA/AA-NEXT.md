@@ -7,11 +7,27 @@ Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements s
 
 **Latere ontwikkelhandoff (2026-10-04):** CAO-BENCH02 fase 2 is lokaal technisch gebouwd en blijft `PARTIAL` door één ontbrekende admin-isolatiefixture; niet opnieuw als nog-ongebouwde feature plannen. Eerst een expliciete PAY-CONVERGE-releasebeslissing en relevante gates volgens AA-REL. Zie [AA-OPEN](AA-OPEN.md) voor de resterende bewijs-, fixture- en besluitpunten. De gedateerde historische roadmap hieronder wordt tijdens de volgende gecontroleerde documentatieconvergentie integraal bijgewerkt.
 
-## Current release — ONE VERSION / PAYLAB00–04
+## Actuele uitvoeringsvolgorde — besluitkader 2026-10-04
+
+**Verifieer vóór uitvoering opnieuw de remote branch/SHA en lokale featureoverdracht.** Laatste in deze AA-docs verifieerbare remote `main`: `6349d02538351cd01fc51f298c6e6fa0ba88006c`, app `1.20261002.1`. ONE VERSION is volgens de aangeleverde release-ownerhandoff `TEST RELEASED / hosted acceptance GREEN`; onafhankelijke volledige evidence-review is nog PENDING. Voor niet-gepushte featurecommits tellen de lokale overdrachten als gemeld bewijs, niet als remote/geïntegreerde toestand. Historische scope- en releasepassages verderop blijven voor detail; gebruik **dit** kader en [AA-OPEN](AA-OPEN.md) voor de actuele volgorde.
+
+1. **CONTROL02 — Draft PR en veilige doorbouw, parallel.** De officiële 2026-XML-/XSD-analyse, readiness, matching en preview zijn volgens de lokale overdrachten gebouwd en gericht getest, maar de echte complete browser-/JWT-acceptatie blijft `PARTIAL` door de niet-verifieerbare historische `BSN_HASH_KEY` en ontbrekende rechtmatig beschikbare CONTROL01-administratiecontext. De januari-LhNr-testbinding is volgens die handoff toegepast. De kandidaat voor twee ontbrekende staging-/HR-groep-scope-invarianten en het gedeelde IKV-/Employment-contract zijn voorbereid, niet automatisch goedgekeurd of geïntegreerd. Maak de veilige bestaande code reviewbaar en **bouw de onafhankelijke onderdelen van CONTROL02-FINAL met parallelle LUNA MAX-agents verder**; houd definitieve Core-writes uit zolang Core-/Payroll-contract en relevante securitygates niet zijn goedgekeurd. Zie `C02-*` in AA-OPEN.
+2. **CORE + PAYROLL CONTRACT — gerichte gezamenlijke activeringspoort.** Beslis expliciet over canonieke IKV-identiteit/historische LhNr, datumsemantiek, protected groepsidentiteit, expliciete Employment-keuze en de twee relevante database-invarianten. Eén gezamenlijk besluit, één eigenaar per schemaobject, één gecontroleerde migrationlineage. Geen nieuwe separate wekenlange 'leesronde'; reeds lokaal opgestelde contractvoorstellen gericht beoordelen.
+3. **CONTROL02-FINAL + acceptatie** — implementeer de volledige confirmed match-/Employment-/multi-IKV-/audit-/resumable-flow in de doorlopende grotere featurewave. Pas echte Core-domainwrites, migrations en integratie uitsluitend toe na de gedeelde poort. Heropen de volledige desktop/390-px/JWT-browseracceptatie pas zodra de juiste secret én rechtmatige testcontext bestaan; behoud bestaande gerichte bewijsstukken.
+4. **PAY-CONVERGE (parallelle Payroll-integratiebeslissing).** Volgens lokale 2026-10-04-handoff zijn zeven CAO-BENCH02-scenario's persistent doorgerekend; fase 2 blijft `PARTIAL` wegens ontbrekende echte Mars-only → Jupiter admin-weigering. **Niet opnieuw CAO-BENCH02 als ongebouwde feature plannen.** Controleer de kandidaatcommits, migraties en die ene scopefixture, en beslis expliciet over eventuele beperkte synthetische TEST-release conform AA-REL. Rond niet stilzwijgend wettelijke afrondings- of algemene cao-/fiscale claims af. Zie `SEC-PAY-001`, `PAY-RULE-002`, `PAY-COVER-003`.
+5. **APIAI-01 en vervolg parallel:** de afzonderlijke D0-/API-implementatiebranches en Draft PR blijven gescheiden. Bouw waar veilig achter gesloten interfaces, maar activeer niets extern zonder het gedelegeerde auth-/OAuth-/scope-/auditcontract en de toepasselijke veiligheidsacceptatie. Zie `API-DEC-009`.
+
+**Daarna in het algemene HR-productspoor:** WVP01 (verzuimcasemanagement), INS02 (rapportconsistentie + Headcount/FTE) en AI01-B (Liquid Credits/commerciële governance), ieder als één grotere duidelijk gescopeerde wave met werkende vertical slice, geïntegreerde tests en bugfixes. Nieuwe productideeën blijven in AA-ROAD; ontbrekend specifiek extern bewijs blijft in AA-OPEN en blokkeert niet automatisch de volgende onafhankelijke bouw.
+
+### Overdracht na iedere grotere Codex-ronde
+
+Gebruik steeds `Wat levert deze ronde ons op?` en `De beoogde volgende mijlpalen`, met heldere BEDOELD/GEBOUWD/GETEST/RELEASED-status, de exacte featurecommit, relevante test-/bugfixevidence, andere lopende sporen en alleen de AA-OPEN-ID's die de volgende stap werkelijk raken. Geen reeks aparte opdrachten om dezelfde al bekende acceptatieblokkade telkens opnieuw te bevestigen.
+
+## Historische releasebeschrijving — ONE VERSION / PAYLAB00–04
 
 De geïntegreerde PAYLAB00–04-kandidaat is MERGE-READY op `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; de huidige opdracht rondt de gecontroleerde TEST-release af met versie `1.20261002.1`. Er komt in deze release geen Payroll-feature, migratie, CAO-implementatie of nieuwe ontwikkelronde. Houd de reeds geaccepteerde desktop-/mobiele payroll-browserresultaten en hashes intact.
 
-## CURRENT — CONVERGENCE01 post-release TEST-acceptatie
+## Historische releasebeschrijving — CONVERGENCE01 post-release TEST-acceptatie
 
 **Status: TEST RELEASED; beveiligingsacceptatie OPEN.**
 
@@ -29,7 +45,7 @@ De synthetische payrollfinalisatie is runtime-bewezen (employee + conceptemploym
 
 **Parallelstrategie:** pure `packages/payroll-engine`/losse Payroll Lab database-experimenten kunnen na branchinventaris parallel met onafhankelijke tracks. Shared Control, payrollimport, employee/employment/IKV en migrations blijven geserialiseerd totdat expliciet geïntegreerd.
 
-## NEXT — CONTROL02
+## CONTROL02 productscope uit oorspronkelijke planning (nu deels lokaal gebouwd)
 
 **Loonaangifte XML Import V1 + Readiness UI**
 
@@ -60,7 +76,7 @@ Belangrijke input:
 - echte Exact-achtige 2025 Loonaangifte;
 - 2026 gegevensspecificatie;
 - 2027 XSD;
-- officiële 2026 XSD toevoegen zodra beschikbaar voor formele 2026 XSD-validatie.
+- officiële 2026-XSD is volgens de lokale CONTROL02-overdrachten gepind en gericht gevalideerd; actuele commit/bronhash vóór verdere releaseacceptatie controleren.
 
 ## THEN — WVP01
 
@@ -115,9 +131,9 @@ Doel:
 - capabilitymodel verfijnen;
 - commerciële tierwaarden pas vastleggen na expliciet productbesluit.
 
-## PARALLELLE PAYROLLTRACK — na PAYLAB04
+## Historisch Payroll-productbereik — verifieer tegen de actuele lokale CAO-BENCH02-handoff
 
-PAYLAB00–04 zijn geïntegreerd en geaccepteerd; de bestaande source-/featureworktrees blijven behouden. CAO-BENCH02 is voorbereid maar niet geïmplementeerd en valt buiten de ONE VERSION-release. Voor een volgende Payroll-productwave wordt de dan actuele main-baseline eerst bewust gereconcilieerd, zonder blind te mergen.
+PAYLAB00–04 zijn geïntegreerd en geaccepteerd; de bestaande source-/featureworktrees blijven behouden. CAO-BENCH02 is volgens de latere lokale overdracht deels gebouwd en gericht getest, maar de onafhankelijke autorisatieacceptatie is nog OPEN; herimplementeer de fase niet op basis van deze oudere tekst. Voor een volgende Payroll-productwave wordt de dan actuele main-baseline eerst bewust gereconcilieerd, zonder blind te mergen.
 
 Voorgesteld volgende productonderwerp, pas definitief maken na expliciete scopekeuze:
 
