@@ -29,6 +29,18 @@ Praktische regel:
 - na uitsluitend docs/versionmetadata: niet opnieuw;
 - zodra ná een eerdere full suite nog productcode, UI-code, schema of runtimegedrag wijzigt, geldt die eerdere full-suite-GREEN niet automatisch als releasebewijs voor de nieuwe worktree.
 
+## 1A. Bewijs tijdens grote bouwslagen en uitgestelde acceptatie
+
+Een substantieel featurepakket heeft **één risicogestuurde teststrategie vanaf het begin**. Iedere agent bezit zijn gerichte unit-/contracttests; de integrator voert relevante geïntegreerde regressies en waar uitvoerbaar echte browser-/JWT-tests uit; onafhankelijke review richt zich op veranderde risicogrenzen. Defecten die in scope liggen worden in dezelfde bouwronde gereproduceerd, gerepareerd en opnieuw getest. Herhaal geen volledige suite als de productcode en gedeelde blast radius onveranderd zijn; convergence doet de finale suite op exact de releasekandidaat.
+
+Bewijsniveaus niet verwisselen:
+- `STATIC/UNIT`: parser-, service- en migrationcontracttests; geen claim over remote grants, echte Auth-sessies of echte browserflow.
+- `REMOTE READBACK`: toegepaste schema-/grant-/trigger-/migrationstatus en concrete readbacks; niet automatisch bewijzen dat een gemanipuleerde JWT of definitieve SQL-write daadwerkelijk wordt geweigerd.
+- `REAL AUTH/API/BROWSER`: echte gescopeerde TEST-actor, directe HTTP-/RLS-negatieven en daadwerkelijk doorlopen desktop-/390-px-flow op vastgepinde code en omgeving.
+- `RELEASE`: onafhankelijke convergence-gate, juiste migratieprovenance, Preview/TEST en expliciet releasebesluit volgens AA-REL.
+
+Ontbreekt alleen een externe secret, authentieke persona, goedgekeurde fixture of gedeeld datacontract, rapporteer per niveau wat wel bewezen is. **Een gekende ontbrekende fixture herhaald onderzoeken is geen teststrategie.** Koppel één `AA-OPEN`-ID met concrete herstartvoorwaarde en test de onafhankelijke delen verder. Activeer de ontbrekend-bewezen beveiligde functionaliteit niet; geen fake persona, ongetoetste sleutel, omzeilde guard of synthetische SQL-rol als vervanging voor een echte JWT-negative.
+
 ## 2. Persona's
 
 De vaste functionele testpersona's zijn:
