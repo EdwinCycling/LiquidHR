@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import type { AuthContext } from '@/lib/auth/permissions'
-import { DelegatedAuthError, type DelegatedRequestAuthentication } from '@/lib/api-v1/auth'
+import {
+  DelegatedAuthError,
+  type DelegatedBearerRequestAuthentication,
+  type DelegatedBearerRlsClient,
+  type SupabaseBearerRlsClient,
+} from '@/lib/api-v1/auth'
+import { createSupabaseBearerRlsBinding } from '@/lib/api-v1/auth/bearer-rls'
 import type { ApiReadAuditInput, ApiReadAuditWriter } from '@/lib/api-v1/security/audit'
 import type { ApiRateLimitDecision, AtomicApiRateLimiter } from '@/lib/api-v1/security/rate-limit'
 import { createProtectedApiGetHandler } from './protected-get'
@@ -11,6 +17,8 @@ const hrGroupId = '22222222-2222-4222-8222-222222222222'
 const administrationId = '33333333-3333-4333-8333-333333333333'
 const requestId = '44444444-4444-4444-8444-444444444444'
 const correlationId = '55555555-5555-4555-8555-555555555555'
+const issuer = 'https://issuer.synthetic.invalid'
+const subject = 'subject-1'
 
 const authContext: AuthContext = {
   tenantId,
@@ -18,27 +26,71 @@ const authContext: AuthContext = {
   administrationId,
   userId: 'user-1',
   employeeId: 'employee-1',
-  activeRoles: ['EMPLOYEE'],
+  activeRoles: ['HR_ADMIN'],
   permissions: ['self:talent-goal:read'],
 }
 
-const authentication: DelegatedRequestAuthentication = {
-  verifiedToken: {
-    issuer: 'https://issuer.synthetic.invalid',
-    subject: 'subject-1',
-    audience: 'liquid-hr-api',
-    expiresAtEpochSeconds: 2_000_000_000,
-    revocation: 'active',
-    scopes: ['development-plans.self.read'],
-    clientId: 'synthetic-client',
-  },
-  account: { userId: authContext.userId },
-  authContext,
+function permissionClient(selfPermissions: readonly string[] = ['self:talent-goal:read']): SupabaseBearerRlsClient {
+  function resolved(data: readonly Record<string, unknown>[]) {
+    return Promise.resolve({ data, error: null })
+  }
+  function query(data: readonly Record<string, unknown>[]) {
+    const builder = {
+      select: () => builder,
+      eq: () => builder,
+      or: () => resolved(data),
+      in: () => resolved(data),
+    }
+    return builder
+  }
+  const client = {
+    from(table: string) {
+      const tableName = String(table)
+      if (tableName === 'management_roles') return query([{ id: 'employee-role', tenant_id: null }])
+      if (tableName === 'role_permissions') return query([{ permission_id: 'self-permission' }])
+      if (tableName === 'permissions') return query(selfPermissions.map((code) => ({ code })))
+      throw new Error(`Unexpected permission query: ${tableName}`)
+    },
+  }
+  return client as unknown as SupabaseBearerRlsClient
+}
+
+function bearerRls(userId: string, selfPermissions?: readonly string[]): DelegatedBearerRlsClient<SupabaseBearerRlsClient> {
+  const rls = createSupabaseBearerRlsBinding({
+    supabaseUrl: 'http://localhost:54321',
+    publishableKey: 'sb_publishable_test',
+    accessToken: 'synthetic.access-token.signature',
+    supabaseUserId: userId,
+    identity: { issuer, subject },
+    account: { userId },
+  })
+  vi.spyOn(rls.client, 'from').mockImplementation(permissionClient(selfPermissions).from)
+  return rls
+}
+
+function authenticationFor(
+  rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>,
+): DelegatedBearerRequestAuthentication<SupabaseBearerRlsClient> {
+  return {
+    verifiedToken: {
+      issuer,
+      subject,
+      audience: 'liquid-hr-api',
+      expiresAtEpochSeconds: 2_000_000_000,
+      revocation: 'active',
+      scopes: ['development-plans.self.read'],
+      clientId: 'synthetic-client',
+    },
+    account: { userId: authContext.userId },
+    authContext,
+    rls,
+  }
 }
 
 function setup(input?: {
   readonly tokenScopes?: readonly string[]
   readonly permissions?: readonly string[]
+  readonly selfPermissions?: readonly string[]
   readonly employeeId?: string | null
   readonly rateLimit?: ApiRateLimitDecision
   readonly rateLimitError?: Error
@@ -46,14 +98,16 @@ function setup(input?: {
   readonly readError?: Error
   readonly authenticateError?: Error
   readonly project?: (data: { readonly id: string; readonly title: string; readonly progressPercent: number }) => unknown
+  readonly rlsUserId?: string
 }) {
   const auditCalls: ApiReadAuditInput[] = []
   const events: string[] = []
-  const currentAuthentication: DelegatedRequestAuthentication = {
-    ...authentication,
+  const currentRls = bearerRls(input?.rlsUserId ?? authContext.userId, input?.selfPermissions)
+  const currentAuthentication: DelegatedBearerRequestAuthentication<SupabaseBearerRlsClient> = {
+    ...authenticationFor(currentRls),
     verifiedToken: {
-      ...authentication.verifiedToken,
-      scopes: input?.tokenScopes ?? authentication.verifiedToken.scopes,
+      ...authenticationFor(currentRls).verifiedToken,
+      scopes: input?.tokenScopes ?? authenticationFor(currentRls).verifiedToken.scopes,
     },
     authContext: {
       ...authContext,
@@ -61,7 +115,7 @@ function setup(input?: {
       employeeId: input?.employeeId === undefined ? authContext.employeeId : input.employeeId,
     },
   }
-  const authenticate = vi.fn(async (): Promise<DelegatedRequestAuthentication> => {
+  const authenticate = vi.fn(async (): Promise<DelegatedBearerRequestAuthentication<SupabaseBearerRlsClient>> => {
     events.push('authenticate')
     if (input?.authenticateError) throw input.authenticateError
     return currentAuthentication
@@ -80,8 +134,17 @@ function setup(input?: {
       if (input?.auditError) throw input.auditError
     }),
   }
-  const read = vi.fn(async () => {
+  const createRateLimiter = vi.fn((requestRls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) => {
+    expect(requestRls).toBe(currentRls)
+    return rateLimiter
+  })
+  const createAuditWriter = vi.fn((requestRls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) => {
+    expect(requestRls).toBe(currentRls)
+    return auditWriter
+  })
+  const read = vi.fn(async (scope: { readonly rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient> }) => {
     events.push('read')
+    expect(scope.rls).toBe(currentRls)
     if (input?.readError) throw input.readError
     return { id: 'internal-id', title: 'private title', progressPercent: 40 }
   })
@@ -95,9 +158,9 @@ function setup(input?: {
     responseSchema: z.object({
       progressPercent: z.number().int().min(0).max(100),
     }).strict(),
-  }, { authenticate, rateLimiter, auditWriter })
+  }, { authenticate, createRateLimiter, createAuditWriter })
 
-  return { handler, authenticate, rateLimiter, auditWriter, auditCalls, read, events }
+  return { handler, authenticate, createRateLimiter, createAuditWriter, rateLimiter, auditWriter, auditCalls, read, events, rls: currentRls }
 }
 
 describe('createProtectedApiGetHandler', () => {
@@ -121,7 +184,7 @@ describe('createProtectedApiGetHandler', () => {
   })
 
   it('authorizes both scope systems, limits, projects, audits, then responds', async () => {
-    const { handler, rateLimiter, auditWriter, auditCalls, read, events } = setup()
+    const { handler, createRateLimiter, createAuditWriter, rateLimiter, auditWriter, auditCalls, read, events, rls } = setup()
     const response = await handler(new Request('https://liquid.example/api/v1/development-plans', {
       headers: { 'X-Request-Id': requestId, 'X-Correlation-Id': correlationId },
     }))
@@ -153,11 +216,14 @@ describe('createProtectedApiGetHandler', () => {
     expect(read).toHaveBeenCalledTimes(1)
     expect(events).toEqual(['authenticate', 'limit', 'read', 'audit:ALLOWED'])
     expect(auditWriter.record).toHaveBeenCalledTimes(1)
+    expect(createRateLimiter).toHaveBeenCalledWith(rls)
+    expect(createAuditWriter).toHaveBeenCalledWith(rls)
+    expect(createRateLimiter.mock.calls[0]?.[0]).toBe(createAuditWriter.mock.calls[0]?.[0])
   })
 
   it.each([
     ['external scope is missing', { tokenScopes: [] }],
-    ['LiquidHR permission is missing', { permissions: [] }],
+    ['LiquidHR self permission is missing from the database permission set', { selfPermissions: [] }],
     ['self employee context is missing', { employeeId: null }],
     ['self employee context is blank', { employeeId: '   ' }],
   ] as const)('audits and denies when %s', async (_label, options) => {
@@ -168,6 +234,29 @@ describe('createProtectedApiGetHandler', () => {
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(auditCalls[0]).toMatchObject({ outcome: 'DENIED', statusCode: 403, resource: 'development-plans' })
     expect(rateLimiter.consume).not.toHaveBeenCalled()
+    expect(read).not.toHaveBeenCalled()
+  })
+
+  it('rejects an RLS client bound to a different LiquidHR user', async () => {
+    const { handler, auditWriter, read } = setup({ rlsUserId: 'another-user' })
+    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+
+    expect(response.status).toBe(500)
+    expect(auditWriter.record).not.toHaveBeenCalled()
+    expect(read).not.toHaveBeenCalled()
+  })
+
+  it('rejects a structurally similar but unbranded bearer RLS wrapper at the handler boundary', async () => {
+    const { handler, authenticate, createRateLimiter, read, rls } = setup()
+    authenticate.mockResolvedValueOnce({
+      ...authenticationFor(rls),
+      rls: { ...rls },
+    })
+
+    const response = await handler(new Request('https://liquid.example/api/v1/development-plans'))
+
+    expect(response.status).toBe(500)
+    expect(createRateLimiter).not.toHaveBeenCalled()
     expect(read).not.toHaveBeenCalled()
   })
 

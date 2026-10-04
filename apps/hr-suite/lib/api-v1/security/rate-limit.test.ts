@@ -63,6 +63,9 @@ describe('PostgresApiRateLimiter', () => {
 
     const malformed = new PostgresApiRateLimiter(client({ data: { allowed: false, remaining: 0, retryAfterSeconds: 0 }, error: null }))
     await expect(malformed.consume(input)).rejects.toBeInstanceOf(ApiRateLimitUnavailableError)
+
+    const ambiguous = new PostgresApiRateLimiter(client({ data: { allowed: false, remaining: 1, retryAfterSeconds: 12 }, error: null }))
+    await expect(ambiguous.consume(input)).rejects.toBeInstanceOf(ApiRateLimitUnavailableError)
   })
 
   it('rejects malformed scope or client input before calling the database', async () => {

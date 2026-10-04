@@ -1,7 +1,9 @@
 import type { Database } from '@scope/db'
-import { requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { requireAuthContext, requirePermission, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
+import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import type { DelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
 import type { TalentGoalCreateInput, TalentGoalListQuery, TalentGoalUpdateInput } from './goal-schemas'
 import { createTalentGoalNotification } from './notification-service'
 
@@ -26,6 +28,16 @@ export type TalentGoalWorkspace = {
   employees: Array<{ id: string; label: string }>
   capabilities: Array<{ id: string; label: string }>
 }
+
+/**
+ * Minimale bronrij voor de gedelegeerde self-read van Development Plans.
+ * Identifiers zijn alleen nodig voor server-side tenant/employee-binding en
+ * worden door de API-projector verwijderd uit de externe representatie.
+ */
+export type TalentSelfDevelopmentPlan = Pick<
+  GoalRow,
+  'tenant_id' | 'employee_id' | 'period_start' | 'period_end' | 'progress_percent' | 'status' | 'completed_at'
+>
 
 export type TalentGoalListOptions = {
   includeOptions?: boolean
@@ -57,6 +69,33 @@ async function authorizeList(mode: 'admin' | 'manager' | 'self'): Promise<AuthCo
   return requirePermission('self:talent-goal:read')
 }
 
+export interface TalentGoalListDependencies {
+  readonly authContext: AuthContext
+  readonly rls: DelegatedBearerRlsClient<Awaited<ReturnType<typeof createClient>>>
+}
+
+function delegatedSupabaseClient(
+  dependencies: TalentGoalListDependencies,
+): Awaited<ReturnType<typeof createClient>> {
+  assertDelegatedBearerRlsClient<Awaited<ReturnType<typeof createClient>>>(dependencies.rls)
+  if (dependencies.rls.userId !== dependencies.authContext.userId) {
+    throw new TalentGoalError('TALENT_GOAL_FORBIDDEN', 403)
+  }
+  return dependencies.rls.client
+}
+
+async function authorizeDelegatedSelfGoalRead(
+  authContext: AuthContext,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<AuthContext> {
+  return requirePermissionInContext(
+    supabase,
+    authContext,
+    'self:talent-goal:read',
+    authContext.employeeId ?? undefined,
+  )
+}
+
 async function loadEmployees(supabase: Awaited<ReturnType<typeof createClient>>, tenantId: string, employeeIds: string[]): Promise<Map<string, string | null>> {
   if (employeeIds.length === 0) return new Map()
   const { data, error } = await supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', tenantId).in('id', employeeIds).is('deleted_at', null)
@@ -80,10 +119,18 @@ async function loadEmployeeOptions(supabase: Awaited<ReturnType<typeof createCli
   return (data ?? []).map((employee) => ({ id: employee.id, label: employeeLabel(employee.first_name, employee.birth_name, employee.employee_number) ?? employee.employee_number }))
 }
 
-export async function listTalentGoals(mode: 'admin' | 'manager' | 'self', query: TalentGoalListQuery = {}, options: TalentGoalListOptions = {}): Promise<TalentGoalWorkspace> {
-  const context = await authorizeList(mode)
-  await requireTenantModule('TALENT')
-  const supabase = await createClient()
+export async function listTalentGoals(
+  mode: 'admin' | 'manager' | 'self',
+  query: TalentGoalListQuery = {},
+  options: TalentGoalListOptions = {},
+  dependencies?: TalentGoalListDependencies,
+): Promise<TalentGoalWorkspace> {
+  if (dependencies && mode !== 'self') throw new TalentGoalError('TALENT_GOAL_FORBIDDEN', 403)
+  const supabase = dependencies ? delegatedSupabaseClient(dependencies) : await createClient()
+  const context = dependencies
+    ? await authorizeDelegatedSelfGoalRead(dependencies.authContext, supabase)
+    : await authorizeList(mode)
+  await requireTenantModule('TALENT', dependencies ? { auth: context, supabase } : undefined)
   const includeOptions = options.includeOptions ?? true
   const includeEmployeeOptions = options.includeEmployeeOptions ?? includeOptions
   const includeCapabilityOptions = options.includeCapabilityOptions ?? includeOptions
@@ -141,6 +188,32 @@ export async function listTalentGoals(mode: 'admin' | 'manager' | 'self', query:
     employees: mode === 'self' || !includeEmployeeOptions ? [] : await loadEmployeeOptions(supabase, context, mode),
     capabilities: capabilityOptions,
   }
+}
+
+/**
+ * API-only self-read. Keep this separate from the broad workspace service so
+ * a delegated bearer cannot trigger a `select('*')` goal workspace read or
+ * capability/employee option lookups that the API contract does not need.
+ */
+export async function listSelfDevelopmentPlans(
+  dependencies: TalentGoalListDependencies,
+): Promise<TalentSelfDevelopmentPlan[]> {
+  const supabase = delegatedSupabaseClient(dependencies)
+  const context = await authorizeDelegatedSelfGoalRead(dependencies.authContext, supabase)
+  await requireTenantModule('TALENT', { auth: context, supabase })
+  if (!context.employeeId) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_REQUIRED', 403)
+
+  const { data, error } = await supabase
+    .from('talent_development_goals')
+    .select('tenant_id,employee_id,period_start,period_end,progress_percent,status,completed_at')
+    .eq('tenant_id', context.tenantId)
+    .eq('employee_id', context.employeeId)
+    .order('period_start', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1000)
+
+  if (error) throw new TalentGoalError('TALENT_GOAL_READ_FAILED')
+  return data ?? []
 }
 
 export async function getTalentGoal(goalId: string, mode: 'admin' | 'manager' | 'self'): Promise<TalentGoal> {

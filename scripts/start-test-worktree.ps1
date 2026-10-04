@@ -306,7 +306,7 @@ if ($PreflightOnly) {
     return
 }
 
-$nextArguments = @("--env-file=$centralConfig", $nextCli)
+$nextArguments = @()
 if ($Mode -eq 'Development') {
     $nextArguments += @('dev', '--webpack')
 } else {
@@ -314,10 +314,23 @@ if ($Mode -eq 'Development') {
 }
 $nextArguments += @('--hostname', '127.0.0.1', '--port', [string]$resolvedPort)
 
+# Next.js copies process.execArgv into NODE_OPTIONS for its Development child.
+# Passing --env-file on this process would therefore make Node reject the same
+# flag when Next starts that child. Load the central file inside a small bridge
+# instead, then remove the bridge's -e arguments before loading Next.
+$runtimeBridge = @'
+const [configFile, nextEntry, ...nextArgs] = process.argv.slice(1);
+process.loadEnvFile(configFile);
+process.execArgv = [];
+process.argv = [process.argv[0], nextEntry, ...nextArgs];
+require(nextEntry);
+'@
+$runtimeArguments = @($centralConfig, $nextCli) + $nextArguments
+
 Write-Host "Start $Mode op http://127.0.0.1:$resolvedPort met de centrale TEST-configuratie. Configwaarden worden niet getoond of gekopieerd."
 Push-Location $appRoot
 try {
-    & $node.Source @nextArguments
+    & $node.Source -e $runtimeBridge @runtimeArguments
     if ($LASTEXITCODE -ne 0) {
         throw "Next.js is gestopt met exitcode $LASTEXITCODE."
     }

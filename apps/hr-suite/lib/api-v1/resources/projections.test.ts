@@ -8,7 +8,7 @@ import {
   teamSkillsApiStatus,
 } from './projections'
 
-const authContext = (employeeId: string | null): Pick<AuthContext, 'employeeId'> => ({ employeeId })
+const authContext = (employeeId: string | null, tenantId = 'internal-tenant-id'): Pick<AuthContext, 'tenantId' | 'employeeId'> => ({ tenantId, employeeId })
 
 const goal = (overrides: Partial<TalentGoal> = {}): TalentGoal => ({
   id: 'internal-goal-id',
@@ -67,6 +67,18 @@ describe('API v1 resource projections', () => {
     expect(() => projectSelfDevelopmentPlans(authContext('self-employee-id'), workspace([
       goal({ employee_id: 'other-employee-id' }),
     ]))).toThrowError(expect.objectContaining({ code: 'SELF_SCOPE_MISMATCH' }))
+  })
+
+  it('fails closed when a service result belongs to another tenant', () => {
+    expect(() => projectSelfDevelopmentPlans(authContext('self-employee-id'), workspace([
+      goal({ tenant_id: 'other-tenant-id' }),
+    ]))).toThrowError(expect.objectContaining({ code: 'SELF_SCOPE_MISMATCH' }))
+  })
+
+  it('fails closed when a service result contains an unknown status', () => {
+    expect(() => projectSelfDevelopmentPlans(authContext('self-employee-id'), workspace([
+      goal({ status: 'UNREVIEWED' }),
+    ]))).toThrowError(expect.objectContaining({ code: 'INVALID_DEVELOPMENT_PLAN' }))
   })
 
   it('keeps Team Skills externally deferred pending privacy review', () => {

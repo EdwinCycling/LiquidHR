@@ -6,6 +6,7 @@ export {
   ApiRateLimitUnavailableError,
   type ApiRateLimitDecision,
   type ApiRateLimitInput,
+  type ApiRateLimitRpcPayload,
   type ApiRateLimitRpcResult,
   type AtomicApiRateLimiter,
   type AuthenticatedApiRateLimitRpcClient,
@@ -17,6 +18,7 @@ export {
   ApiReadAuditUnavailableError,
   type ApiReadAuditInput,
   type ApiReadAuditOutcome,
+  type ApiReadAuditRpcPayload,
   type ApiReadAuditWriter,
   type AuthenticatedApiReadAuditRpcClient,
 } from './audit'

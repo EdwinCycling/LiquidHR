@@ -21,6 +21,24 @@ export interface AuthenticatedApiReadAuditRpcClient {
   rpc(name: string, args: Record<string, unknown>): Promise<{ readonly data: unknown; readonly error: unknown }>
 }
 
+/**
+ * Typed allowlist for the canonical READ-audit RPC. The database function
+ * supplies action = READ and actor_user_id = auth.uid(); neither is caller
+ * input. There is deliberately no entity id, request payload, token, raw IP,
+ * employee id, result count or free-text reason. requestId is also absent
+ * until Product and Security decide whether correlation-only is sufficient.
+ */
+export interface ApiReadAuditRpcPayload extends Record<string, unknown> {
+  readonly requested_tenant_id: string
+  readonly requested_hr_group_id: string
+  readonly requested_administration_id: string | null
+  readonly requested_resource_key: ApiRateLimitResource
+  readonly requested_oauth_client_id: string
+  readonly requested_correlation_id: string
+  readonly requested_outcome: ApiReadAuditOutcome
+  readonly requested_status_code: number
+}
+
 export interface ApiReadAuditInput {
   readonly tenantId: string
   readonly hrGroupId: string
@@ -109,7 +127,7 @@ export class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
 
     let result: { readonly data: unknown; readonly error: unknown }
     try {
-      result = await this.client.rpc(API_READ_AUDIT_RPC_NAME, {
+      const payload: ApiReadAuditRpcPayload = {
         requested_tenant_id: input.tenantId,
         requested_hr_group_id: input.hrGroupId,
         requested_administration_id: input.administrationId ?? null,
@@ -118,7 +136,8 @@ export class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
         requested_correlation_id: input.correlationId,
         requested_outcome: input.outcome,
         requested_status_code: input.statusCode,
-      })
+      }
+      result = await this.client.rpc(API_READ_AUDIT_RPC_NAME, payload)
     } catch {
       throw new ApiReadAuditUnavailableError()
     }

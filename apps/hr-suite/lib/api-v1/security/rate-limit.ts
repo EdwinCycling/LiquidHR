@@ -19,6 +19,18 @@ export interface ApiRateLimitRpcResult {
 }
 
 /**
+ * The only arguments accepted by the database-side atomic limiter. The
+ * authenticated RPC derives the actor from auth.uid(); an API caller cannot
+ * provide an actor id, IP address, clock value, quota or arbitrary metadata.
+ */
+export interface ApiRateLimitRpcPayload extends Record<string, unknown> {
+  readonly requested_tenant_id: string
+  readonly requested_hr_group_id: string
+  readonly requested_resource_key: ApiRateLimitResource
+  readonly requested_oauth_client_id: string
+}
+
+/**
  * This role marker is deliberate. A service-role client must never be passed
  * to the request-path limiter. The production adapter has no service-role
  * fallback and only accepts a wrapper explicitly bound to authenticated RLS.
@@ -104,6 +116,11 @@ function parseDecision(value: unknown): ApiRateLimitDecision {
 
   if (value.allowed) return { allowed: true, remaining: value.remaining }
 
+  // A denied bucket must not advertise capacity that the route could use.
+  // Treat a malformed database response as unavailable so the request path
+  // fails closed instead of making a quota decision from ambiguous data.
+  if (value.remaining !== 0) throw new ApiRateLimitUnavailableError()
+
   if (!isSafeNonNegativeInteger(value.retryAfterSeconds)
     || value.retryAfterSeconds < 1
     || value.retryAfterSeconds > API_RATE_LIMIT_MAX_RETRY_AFTER_SECONDS) {
@@ -133,12 +150,13 @@ export class PostgresApiRateLimiter implements AtomicApiRateLimiter {
 
     let result: ApiRateLimitRpcResult
     try {
-      result = await this.client.rpc(API_RATE_LIMIT_RPC_NAME, {
+      const payload: ApiRateLimitRpcPayload = {
         requested_tenant_id: input.tenantId,
         requested_hr_group_id: input.hrGroupId,
         requested_resource_key: input.resource,
         requested_oauth_client_id: input.oauthClientId,
-      })
+      }
+      result = await this.client.rpc(API_RATE_LIMIT_RPC_NAME, payload)
     } catch {
       throw new ApiRateLimitUnavailableError()
     }

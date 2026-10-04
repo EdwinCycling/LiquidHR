@@ -1,7 +1,12 @@
-import type { AuthContext } from '@/lib/auth/permissions'
+import 'server-only'
+
+import { AuthorizationError, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
+import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
 import {
   DelegatedAuthError,
-  type DelegatedRequestAuthentication,
+  type DelegatedBearerRequestAuthentication,
+  type DelegatedBearerRlsClient,
+  type SupabaseBearerRlsClient,
 } from '@/lib/api-v1/auth'
 import {
   ApiError,
@@ -29,6 +34,7 @@ export interface ApiReadScope {
   readonly administrationId: string | null
   readonly oauthClientId: string
   readonly authContext: AuthContext
+  readonly rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>
 }
 
 export interface ApiRuntimeResponseSchema {
@@ -53,9 +59,9 @@ export interface ProtectedApiGetDefinition<T> {
 }
 
 export interface ProtectedApiGetDependencies {
-  readonly authenticate: (request: Request) => Promise<DelegatedRequestAuthentication>
-  readonly rateLimiter: AtomicApiRateLimiter
-  readonly auditWriter: ApiReadAuditWriter
+  readonly authenticate: (request: Request) => Promise<DelegatedBearerRequestAuthentication<SupabaseBearerRlsClient>>
+  readonly createRateLimiter: (rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) => AtomicApiRateLimiter
+  readonly createAuditWriter: (rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) => ApiReadAuditWriter
 }
 
 const PERMISSION_PATTERN = /^(?:self:)?[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/
@@ -64,6 +70,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 function assertDefinition<T>(definition: ProtectedApiGetDefinition<T>): void {
   if (!PERMISSION_PATTERN.test(definition.requiredLiquidHrPermission)
+    || (definition.requiredLiquidHrPermission.startsWith('self:') && definition.selfOnly !== true)
     || definition.requiredApiScopes.length === 0
     || definition.requiredApiScopes.some((scope) => !SCOPE_PATTERN.test(scope))) {
     throw new TypeError('De autorisatieconfiguratie voor API GET is ongeldig.')
@@ -109,11 +116,25 @@ function toSafeApiError(error: unknown): ApiError {
   return apiErrorForServiceStatus(serviceStatus(error)) ?? new ApiError('INTERNAL_ERROR')
 }
 
-function scopeFromAuthentication(authentication: DelegatedRequestAuthentication): ApiReadScope {
+function scopeFromAuthentication(
+  authentication: DelegatedBearerRequestAuthentication<SupabaseBearerRlsClient>,
+): ApiReadScope {
   const authContext = authentication.authContext
   if (authentication.account.userId !== authContext.userId) throw new DelegatedAuthError('AUTH_CONTEXT_MISMATCH')
+  assertDelegatedBearerRlsClient(authentication.rls)
+  if (
+    authentication.rls.kind !== 'supabase-bearer'
+    || authentication.rls.client === null
+    || authentication.rls.client === undefined
+    || authentication.rls.userId !== authentication.account.userId
+    || authentication.rls.identity.issuer !== authentication.verifiedToken.issuer
+    || authentication.rls.identity.subject !== authentication.verifiedToken.subject
+  ) throw new DelegatedAuthError('RLS_CLIENT_INVALID')
   const hrGroupId = authContext.hrGroupId
   if (!isUuid(authContext.tenantId) || !hrGroupId || !isUuid(hrGroupId)) {
+    throw new ApiError('INTERNAL_ERROR')
+  }
+  if (authContext.administrationId !== null && !isUuid(authContext.administrationId)) {
     throw new ApiError('INTERNAL_ERROR')
   }
 
@@ -123,6 +144,7 @@ function scopeFromAuthentication(authentication: DelegatedRequestAuthentication)
     administrationId: authContext.administrationId,
     oauthClientId: authentication.verifiedToken.clientId,
     authContext,
+    rls: authentication.rls,
   }
 }
 
@@ -135,7 +157,8 @@ async function recordAudit(
   statusCode: 200 | 403 | 429,
 ): Promise<void> {
   try {
-    await dependencies.auditWriter.record({
+    const auditWriter = dependencies.createAuditWriter(scope.rls)
+    await auditWriter.record({
       tenantId: scope.tenantId,
       hrGroupId: scope.hrGroupId,
       administrationId: scope.administrationId,
@@ -182,19 +205,32 @@ export function createProtectedApiGetHandler<T>(
       scope = scopeFromAuthentication(authentication)
       const tokenScopes = new Set(authentication.verifiedToken.scopes)
       const hasApiScopes = definition.requiredApiScopes.every((requiredScope) => tokenScopes.has(requiredScope))
-      const hasLiquidHrPermission = scope.authContext.permissions.includes(definition.requiredLiquidHrPermission)
       const employeeId = scope.authContext.employeeId
       const hasSelfContext = definition.selfOnly !== true
         || (typeof employeeId === 'string' && employeeId.trim().length > 0)
 
-      if (!hasApiScopes || !hasLiquidHrPermission || !hasSelfContext) {
+      if (!hasApiScopes || !hasSelfContext) {
+        await recordAudit(dependencies, definition.resource, scope, requestContext.correlationId, 'DENIED', 403)
+        return apiErrorResponse(new ApiError('FORBIDDEN'), { context: requestContext })
+      }
+
+      try {
+        await requirePermissionInContext(
+          scope.rls.client,
+          scope.authContext,
+          definition.requiredLiquidHrPermission,
+          definition.selfOnly === true ? employeeId ?? undefined : undefined,
+        )
+      } catch (error) {
+        if (!(error instanceof AuthorizationError)) throw error
         await recordAudit(dependencies, definition.resource, scope, requestContext.correlationId, 'DENIED', 403)
         return apiErrorResponse(new ApiError('FORBIDDEN'), { context: requestContext })
       }
 
       let limit: Awaited<ReturnType<AtomicApiRateLimiter['consume']>>
       try {
-        limit = await dependencies.rateLimiter.consume({
+        const rateLimiter = dependencies.createRateLimiter(scope.rls)
+        limit = await rateLimiter.consume({
           tenantId: scope.tenantId,
           hrGroupId: scope.hrGroupId,
           resource: definition.resource,

@@ -81,6 +81,18 @@ export interface DelegatedRequestAuthentication {
   readonly authContext: AuthContext
 }
 
+/**
+ * Het geverifieerde providerresultaat voordat de LiquidHR-context wordt
+ * geladen. Deze stap blijft afzonderlijk zodat een API-adapter exact dezelfde
+ * bearer aan de RLS-client kan binden voordat de huidige tenant-/groepcontext
+ * wordt opgevraagd.
+ */
+export interface DelegatedVerifiedRequest {
+  readonly accessToken: string
+  readonly verifiedToken: VerifiedDelegatedToken
+  readonly account: DelegatedAccountLink
+}
+
 export type DelegatedAuthErrorCode =
   | 'MISSING_AUTHORIZATION'
   | 'MALFORMED_AUTHORIZATION'
@@ -95,13 +107,31 @@ export type DelegatedAuthErrorCode =
   | 'AUTH_CONTEXT_MISMATCH'
   | 'AUTH_CONTEXT_UNAVAILABLE'
   | 'AUTH_CONFIGURATION_INVALID'
+  | 'RLS_CLIENT_UNAVAILABLE'
+  | 'RLS_CLIENT_INVALID'
+  | 'RLS_SUBJECT_MISMATCH'
+  | 'AUTH_CONTEXT_INVALID'
+  | 'DELEGATED_PERMISSION_DENIED'
+  | 'DELEGATED_SELF_CONTEXT_REQUIRED'
+  | 'DELEGATED_CONTEXT_SELECTION_REQUIRED'
+  | 'DELEGATED_CONTEXT_FORBIDDEN'
 
 function defaultStatus(code: DelegatedAuthErrorCode): number {
   if (code === 'TOKEN_VERIFIER_UNAVAILABLE'
     || code === 'CLIENT_REGISTRY_UNAVAILABLE'
     || code === 'ACCOUNT_LINK_UNAVAILABLE'
-    || code === 'AUTH_CONTEXT_UNAVAILABLE') return 503
-  if (code === 'AUTH_CONFIGURATION_INVALID' || code === 'ACCOUNT_LINK_INVALID') return 500
+    || code === 'AUTH_CONTEXT_UNAVAILABLE'
+    || code === 'RLS_CLIENT_UNAVAILABLE') return 503
+  if (
+    code === 'AUTH_CONFIGURATION_INVALID'
+    || code === 'ACCOUNT_LINK_INVALID'
+    || code === 'RLS_CLIENT_INVALID'
+    || code === 'AUTH_CONTEXT_INVALID'
+  ) return 500
+  if (code === 'DELEGATED_PERMISSION_DENIED'
+    || code === 'DELEGATED_SELF_CONTEXT_REQUIRED'
+    || code === 'DELEGATED_CONTEXT_FORBIDDEN') return 403
+  if (code === 'DELEGATED_CONTEXT_SELECTION_REQUIRED') return 409
   return 401
 }
 
@@ -157,7 +187,10 @@ function isVerifiedDelegatedToken(value: unknown): value is VerifiedDelegatedTok
     && nonEmptyText(candidate.clientId)
 }
 
-function assertVerificationConfiguration(input: DelegatedRequestAuthenticationInput, nowEpochSeconds: number): void {
+function assertVerificationConfiguration(
+  input: Pick<DelegatedRequestAuthenticationInput, 'expectedIssuer' | 'expectedAudience'>,
+  nowEpochSeconds: number,
+): void {
   if (!nonEmptyText(input.expectedIssuer) || !nonEmptyText(input.expectedAudience) || !Number.isFinite(nowEpochSeconds)) {
     throw new DelegatedAuthError('AUTH_CONFIGURATION_INVALID')
   }
@@ -240,9 +273,15 @@ export async function loadCurrentLiquidHrAuthContext(
   return context
 }
 
-export async function authenticateDelegatedRequest(
-  input: DelegatedRequestAuthenticationInput,
-): Promise<DelegatedRequestAuthentication> {
+export type DelegatedVerificationInput = Omit<DelegatedRequestAuthenticationInput, 'authContextLoader'>
+
+/**
+ * Verifieer bearer, clientregistratie en issuer/subject-koppeling zonder een
+ * context te laden. Deze stap gebruikt geen cookie- of service-role-client.
+ */
+export async function verifyDelegatedRequest(
+  input: DelegatedVerificationInput,
+): Promise<DelegatedVerifiedRequest> {
   const accessToken = parseBearerToken(input.headers)
   const nowEpochSeconds = input.nowEpochSeconds ?? Math.floor(Date.now() / 1000)
   assertVerificationConfiguration(input, nowEpochSeconds)
@@ -274,6 +313,14 @@ export async function authenticateDelegatedRequest(
     { issuer: verifiedToken.issuer, subject: verifiedToken.subject },
     input.accountLinkResolver,
   )
+
+  return { accessToken, verifiedToken, account }
+}
+
+export async function authenticateDelegatedRequest(
+  input: DelegatedRequestAuthenticationInput,
+): Promise<DelegatedRequestAuthentication> {
+  const { verifiedToken, account } = await verifyDelegatedRequest(input)
   const authContext = await loadCurrentLiquidHrAuthContext(account.userId, input.authContextLoader)
 
   return { verifiedToken, account, authContext }

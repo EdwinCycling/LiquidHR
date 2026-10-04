@@ -1,16 +1,24 @@
 import type { AuthContext } from '@/lib/auth/permissions'
-import type { TalentGoal, TalentGoalWorkspace } from '@/lib/talent/goal-service'
+import type { TalentSelfDevelopmentPlan } from '@/lib/talent/goal-service'
 import { z } from 'zod'
 
 export const workforceSummaryProjectionSchema = z.object({
   asOfDate: z.iso.date(),
 }).strict()
 
+export const selfDevelopmentPlanStatusSchema = z.enum([
+  'DRAFT',
+  'ACTIVE',
+  'COMPLETED',
+  'CANCELLED',
+  'ARCHIVED',
+])
+
 export const selfDevelopmentPlanProjectionSchema = z.object({
   periodStart: z.iso.date(),
   periodEnd: z.iso.date().nullable(),
   progressPercent: z.number().int().min(0).max(100),
-  status: z.string().min(1),
+  status: selfDevelopmentPlanStatusSchema,
   completedAt: z.iso.datetime({ offset: true }).nullable(),
 }).strict()
 
@@ -24,12 +32,14 @@ export interface SelfDevelopmentPlanProjection {
   readonly periodStart: string
   readonly periodEnd: string | null
   readonly progressPercent: number
-  readonly status: TalentGoal['status']
+  readonly status: z.infer<typeof selfDevelopmentPlanStatusSchema>
   readonly completedAt: string | null
 }
 
+export type SelfDevelopmentPlanSource = TalentSelfDevelopmentPlan
+
 export class ApiResourceProjectionError extends Error {
-  constructor(readonly code: 'INVALID_AS_OF_DATE' | 'SELF_CONTEXT_REQUIRED' | 'SELF_SCOPE_MISMATCH') {
+  constructor(readonly code: 'INVALID_AS_OF_DATE' | 'INVALID_DEVELOPMENT_PLAN' | 'SELF_CONTEXT_REQUIRED' | 'SELF_SCOPE_MISMATCH') {
     super(code)
     this.name = 'ApiResourceProjectionError'
   }
@@ -41,7 +51,9 @@ export class ApiResourceProjectionError extends Error {
  */
 export function projectWorkforceSummary(now: Date = new Date()): WorkforceSummaryProjection {
   if (!Number.isFinite(now.getTime())) throw new ApiResourceProjectionError('INVALID_AS_OF_DATE')
-  return { asOfDate: now.toISOString().slice(0, 10) }
+  const projection = workforceSummaryProjectionSchema.safeParse({ asOfDate: now.toISOString().slice(0, 10) })
+  if (!projection.success) throw new ApiResourceProjectionError('INVALID_AS_OF_DATE')
+  return projection.data
 }
 
 /**
@@ -50,22 +62,25 @@ export function projectWorkforceSummary(now: Date = new Date()): WorkforceSummar
  * aanroepen voordat deze projector wordt gebruikt.
  */
 export function projectSelfDevelopmentPlans(
-  authContext: Pick<AuthContext, 'employeeId'>,
-  workspace: Pick<TalentGoalWorkspace, 'goals'>,
+  authContext: Pick<AuthContext, 'tenantId' | 'employeeId'>,
+  workspace: { readonly goals: ReadonlyArray<SelfDevelopmentPlanSource> },
 ): SelfDevelopmentPlanProjection[] {
   const employeeId = authContext.employeeId
   if (!employeeId) throw new ApiResourceProjectionError('SELF_CONTEXT_REQUIRED')
-  if (workspace.goals.some((goal) => goal.employee_id !== employeeId)) {
+  if (workspace.goals.some((goal) => goal.tenant_id !== authContext.tenantId || goal.employee_id !== employeeId)) {
     throw new ApiResourceProjectionError('SELF_SCOPE_MISMATCH')
   }
 
-  return workspace.goals.map((goal: TalentGoal) => ({
+  const projection = workspace.goals.map((goal) => ({
     periodStart: goal.period_start,
     periodEnd: goal.period_end,
     progressPercent: goal.progress_percent,
     status: goal.status,
     completedAt: goal.completed_at,
   }))
+  const validated = selfDevelopmentPlansProjectionSchema.safeParse(projection)
+  if (!validated.success) throw new ApiResourceProjectionError('INVALID_DEVELOPMENT_PLAN')
+  return validated.data
 }
 
 /** Team Skills blijft uitgesteld totdat het privacy- en linkabilitycontract is goedgekeurd. */

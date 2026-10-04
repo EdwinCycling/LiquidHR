@@ -47,6 +47,10 @@ describe('PostgresApiReadAuditWriter', () => {
     const args = (rpcClient.rpc as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as Record<string, unknown>
     expect(args).not.toHaveProperty('entity_id')
     expect(args).not.toHaveProperty('result_count')
+    expect(args).not.toHaveProperty('request_id')
+    expect(args).not.toHaveProperty('employee_id')
+    expect(args).not.toHaveProperty('raw_ip')
+    expect(args).not.toHaveProperty('payload')
     expect(args).not.toHaveProperty('authorization')
     expect(args).not.toHaveProperty('access_token')
   })

@@ -144,7 +144,7 @@ De test implementeert geen productbesluit. De routegrens volgt de bouwopdracht: 
 - Baseline bij aanmaak: `6349d02538351cd01fc51f298c6e6fa0ba88006c`.
 - Implementatiecommit: `07f691c0d132bd48891bd61169d23ce671e0005a`.
 - Geïntegreerde contract-/acceptatiebuild en runtime-SHA: `03ef813420ff4967afb8dcb9cfb6e09ca753b829`. De huidige evidence-aanvulling is alleen documentatie; er is geen applicatiecode gewijzigd na die build en runtimeproef.
-- GitHub `main` stond bij de controle op baseline `6349d02538351cd01fc51f298c6e6fa0ba88006c`; D0-PR #2 was open en niet gemerged. Vercel Production/TEST was READY op diezelfde baseline. Deze branch is nog niet gepusht en heeft nog geen eigen PR.
+- Historische momentopname tijdens deze run op 2026-10-03: GitHub `main` stond op baseline `6349d02538351cd01fc51f298c6e6fa0ba88006c`; D0-PR #2 was open en niet gemerged; Vercel Production/TEST was READY op dezelfde baseline. Op dat moment was deze branch nog niet gepusht en bestond er nog geen eigen PR. Dit is later ingehaald door de aanmaak van draft-PR #3 op 2026-10-03; zie [`APIAI-01-SECURITY-INTEGRATION-20261004.md`](APIAI-01-SECURITY-INTEGRATION-20261004.md) voor de actuele GitHub-/Vercel-momentopname en de vervolgacceptatie.
 - Geen merge, deployment, Preview-configuratie of remote migratie uitgevoerd.
 
 ## 15. Eindbeoordeling

@@ -259,9 +259,12 @@ export async function requireAuthContext(existingClient?: SupabaseServerClient, 
   return resolveAuthContext(supabase, activeContext, userId)
 }
 
-export async function requirePermission(permissionCode: string, targetEmployeeId?: string): Promise<AuthContext> {
-  const { supabase, context } = await getRequestAuthorizationContext()
-
+export async function requirePermissionInContext(
+  supabase: SupabaseServerClient,
+  context: AuthContext,
+  permissionCode: string,
+  targetEmployeeId?: string,
+): Promise<AuthContext> {
   await assertEmployeeEssIsAvailable(supabase, context, permissionCode, targetEmployeeId)
 
   if (context.focusExperience === 'PREBOARDING') {
@@ -282,6 +285,11 @@ export async function requirePermission(permissionCode: string, targetEmployeeId
   }
 
   return context
+}
+
+export async function requirePermission(permissionCode: string, targetEmployeeId?: string): Promise<AuthContext> {
+  const { supabase, context } = await getRequestAuthorizationContext()
+  return requirePermissionInContext(supabase, context, permissionCode, targetEmployeeId)
 }
 
 export async function requireAnyPermission(permissionCodes: readonly string[], targetEmployeeId?: string): Promise<AuthContext> {
