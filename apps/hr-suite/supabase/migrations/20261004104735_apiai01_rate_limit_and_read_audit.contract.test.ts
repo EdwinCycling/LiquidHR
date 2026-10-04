@@ -18,7 +18,6 @@ describe('APIAI-01 limiter and read-audit migration contract', () => {
     expect(migration).not.toContain('requested_resource_key,\n    policy_capacity - 1,\n    now_value')
     expect(migration).toContain('grant execute on function public.consume_api_rate_limit')
     expect(migration).not.toContain('grant select on table internal_security.api_rate_limit_buckets')
-    expect(migration).not.toContain('service_role')
   })
 
   it('uses canonical audit_logs with a narrow nullable-entity READ contract', () => {
@@ -30,7 +29,15 @@ describe('APIAI-01 limiter and read-audit migration contract', () => {
     expect(migration).toContain('audit_logs_insert_api_read')
     expect(migration).toContain('has_hr_group_access')
     expect(migration).toContain('has_administration_access')
+    expect(migration).toContain('requested_actor_user_id')
+    expect(migration).toContain('from public.user_hr_group_access access')
+    expect(migration).toContain('from public.user_access access')
+    expect(migration).toContain('to service_role')
+    expect(migration).toContain("coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role'")
     expect(migration).toContain('record_api_read_audit')
+    expect(migration).toContain('grant execute on function public.record_api_read_audit')
+    expect(migration).toContain('to service_role')
+    expect(migration).not.toContain('grant execute on function public.record_api_read_audit(uuid, uuid, uuid, text, text, uuid, text, integer)\n  to authenticated')
     expect(migration).toContain('correlation_id')
     expect(migration).not.toContain('result_count')
     expect(migration).not.toContain('raw_ip')

@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+
+
 import { createSupabaseBearerRlsBinding } from '../../../lib/api-v1/auth/bearer-rls'
 import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '../../../lib/api-v1/auth'
 import {
@@ -10,12 +12,25 @@ import {
 import {
   API_READ_AUDIT_RPC_NAME,
   ApiReadAuditConfigurationError,
-  PostgresApiReadAuditWriter,
+  createPostgresApiReadAuditWriter,
 } from '../../../lib/api-v1/security/audit'
+
+const { adminRpc, adminFrom } = vi.hoisted(() => ({
+  adminRpc: vi.fn<(...args: unknown[]) => Promise<{ readonly data: unknown; readonly error: unknown }>>(),
+  adminFrom: vi.fn(),
+}))
+
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: () => ({
+    rpc: adminRpc,
+    from: adminFrom,
+  }),
+}))
 
 const tenantId = '11111111-1111-4111-8111-111111111111'
 const hrGroupId = '22222222-2222-4222-8222-222222222222'
 const correlationId = '33333333-3333-4333-8333-333333333333'
+const actorUserId = '66666666-6666-4666-8666-666666666666'
 
 function brandedRls(
   rpc: ReturnType<typeof vi.fn>,
@@ -85,11 +100,12 @@ describe('APIAI-01 security storage contracts', () => {
   })
 
   it('writes only typed tenant and HR-group read metadata to the canonical audit RPC', async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
-    const rls = brandedRls(rpc)
+    adminRpc.mockReset()
+    adminRpc.mockResolvedValue({ data: null, error: null })
 
-    await new PostgresApiReadAuditWriter(rls).record({
+    await createPostgresApiReadAuditWriter().record({
       tenantId,
+      actorUserId,
       hrGroupId,
       resource: 'development-plans',
       oauthClientId: 'client-liquidhr-test',
@@ -98,8 +114,9 @@ describe('APIAI-01 security storage contracts', () => {
       statusCode: 200,
     })
 
-    expect(rpc).toHaveBeenCalledWith(API_READ_AUDIT_RPC_NAME, {
+    expect(adminRpc).toHaveBeenCalledWith(API_READ_AUDIT_RPC_NAME, {
       requested_tenant_id: tenantId,
+      requested_actor_user_id: actorUserId,
       requested_hr_group_id: hrGroupId,
       requested_administration_id: null,
       requested_resource_key: 'development-plans',
@@ -108,8 +125,9 @@ describe('APIAI-01 security storage contracts', () => {
       requested_outcome: 'ALLOWED',
       requested_status_code: 200,
     })
-    const payload = rpc.mock.calls[0]?.[1] as Record<string, unknown>
+    const payload = adminRpc.mock.calls[0]?.[1] as Record<string, unknown>
     expect(Object.keys(payload).sort()).toEqual([
+      'requested_actor_user_id',
       'requested_administration_id',
       'requested_correlation_id',
       'requested_hr_group_id',
@@ -126,14 +144,16 @@ describe('APIAI-01 security storage contracts', () => {
     expect(payload).not.toHaveProperty('request_id')
     expect(payload).not.toHaveProperty('raw_ip')
     expect(payload).not.toHaveProperty('access_token')
+    expect(adminFrom).not.toHaveBeenCalled()
   })
 
   it('rejects an audit request without tenant or HR-group scope before invoking storage', async () => {
-    const rpc = vi.fn()
-    const rls = brandedRls(rpc)
+    adminRpc.mockReset()
+    const writer = createPostgresApiReadAuditWriter()
 
-    await expect(new PostgresApiReadAuditWriter(rls).record({
+    await expect(writer.record({
       tenantId,
+      actorUserId,
       hrGroupId: 'invalid-group',
       resource: 'team-skills',
       oauthClientId: 'client-liquidhr-test',
@@ -141,6 +161,6 @@ describe('APIAI-01 security storage contracts', () => {
       outcome: 'DENIED',
       statusCode: 403,
     })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(adminRpc).not.toHaveBeenCalled()
   })
 })

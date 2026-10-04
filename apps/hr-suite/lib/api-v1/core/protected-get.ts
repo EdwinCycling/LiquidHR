@@ -65,7 +65,8 @@ export interface ProtectedApiGetDefinition<T> {
 export interface ProtectedApiGetDependencies {
   readonly authenticate: (request: Request) => Promise<DelegatedBearerRequestAuthentication<SupabaseBearerRlsClient>>
   readonly createRateLimiter: (rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) => AtomicApiRateLimiter
-  readonly createAuditWriter: (rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) => ApiReadAuditWriter
+  readonly createAuditWriter: () => ApiReadAuditWriter
+  readonly createAuditCorrelationId?: () => string
 }
 
 const PERMISSION_PATTERN = /^(?:self:)?[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/
@@ -166,19 +167,19 @@ async function recordAudit(
   dependencies: ProtectedApiGetDependencies,
   resource: ApiRateLimitResource,
   scope: ApiReadScope,
-  correlationId: string,
   outcome: 'ALLOWED' | 'DENIED' | 'RATE_LIMITED',
   statusCode: 200 | 403 | 429,
 ): Promise<void> {
   try {
-    const auditWriter = dependencies.createAuditWriter(scope.rls)
+    const auditWriter = dependencies.createAuditWriter()
     await auditWriter.record({
       tenantId: scope.tenantId,
+      actorUserId: scope.authContext.userId,
       hrGroupId: scope.hrGroupId,
       administrationId: scope.administrationId,
       resource,
       oauthClientId: scope.oauthClientId,
-      correlationId,
+      correlationId: dependencies.createAuditCorrelationId?.() ?? globalThis.crypto.randomUUID(),
       outcome,
       statusCode,
     })
@@ -225,7 +226,7 @@ export function createProtectedApiGetHandler<T>(
         || (typeof employeeId === 'string' && employeeId.trim().length > 0)
 
       if (!hasApiScopes || !hasSelfContext) {
-        await recordAudit(dependencies, definition.resource, scope, requestContext.correlationId, 'DENIED', 403)
+        await recordAudit(dependencies, definition.resource, scope, 'DENIED', 403)
         return apiErrorResponse(new ApiError('FORBIDDEN'), { context: requestContext })
       }
 
@@ -238,7 +239,7 @@ export function createProtectedApiGetHandler<T>(
         )
       } catch (error) {
         if (!(error instanceof AuthorizationError)) throw error
-        await recordAudit(dependencies, definition.resource, scope, requestContext.correlationId, 'DENIED', 403)
+        await recordAudit(dependencies, definition.resource, scope, 'DENIED', 403)
         return apiErrorResponse(new ApiError('FORBIDDEN'), { context: requestContext })
       }
 
@@ -256,14 +257,14 @@ export function createProtectedApiGetHandler<T>(
         throw new ApiRateLimitUnavailableError()
       }
       if (!limit.allowed) {
-        await recordAudit(dependencies, definition.resource, scope, requestContext.correlationId, 'RATE_LIMITED', 429)
+        await recordAudit(dependencies, definition.resource, scope, 'RATE_LIMITED', 429)
         return apiRateLimitedResponse(requestContext, limit.retryAfterSeconds ?? 1)
       }
 
       const data = await definition.read(scope)
       const projected = definition.project(data)
       const validatedProjection = definition.responseSchema.parse(projected)
-      await recordAudit(dependencies, definition.resource, scope, requestContext.correlationId, 'ALLOWED', 200)
+      await recordAudit(dependencies, definition.resource, scope, 'ALLOWED', 200)
 
       return apiJsonResponse({ data: validatedProjection, requestId: requestContext.requestId }, {
         context: requestContext,

@@ -1,7 +1,7 @@
 begin;
 
 set local search_path = public, extensions;
-select plan(36);
+select plan(40);
 
 select has_table(
   'internal_security',
@@ -32,8 +32,8 @@ select has_function(
 select has_function(
   'public',
   'record_api_read_audit',
-  array['uuid', 'uuid', 'uuid', 'text', 'text', 'uuid', 'text', 'integer'],
-  'authenticated callers have a narrow read-audit RPC'
+  array['uuid', 'uuid', 'uuid', 'uuid', 'text', 'text', 'uuid', 'text', 'integer'],
+  'the trusted server has a narrow read-audit RPC'
 );
 
 select ok(
@@ -57,12 +57,16 @@ select ok(
   'authenticated can call the limiter RPC'
 );
 select ok(
-  not has_function_privilege('anon', 'public.record_api_read_audit(uuid,uuid,uuid,text,text,uuid,text,integer)', 'execute'),
+  not has_function_privilege('anon', 'public.record_api_read_audit(uuid,uuid,uuid,uuid,text,text,uuid,text,integer)', 'execute'),
   'anon cannot call the read-audit RPC'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.record_api_read_audit(uuid,uuid,uuid,text,text,uuid,text,integer)', 'execute'),
-  'authenticated can call the read-audit RPC'
+  not has_function_privilege('authenticated', 'public.record_api_read_audit(uuid,uuid,uuid,uuid,text,text,uuid,text,integer)', 'execute'),
+  'authenticated cannot call the trusted read-audit RPC'
+);
+select ok(
+  has_function_privilege('service_role', 'public.record_api_read_audit(uuid,uuid,uuid,uuid,text,text,uuid,text,integer)', 'execute'),
+  'only the trusted service role can call the read-audit RPC'
 );
 select ok(
   exists (
@@ -101,9 +105,19 @@ select ok(
     from pg_policy
     where polrelid = 'public.audit_logs'::regclass
       and polname = 'audit_logs_insert_api_read'
-      and pg_get_expr(polwithcheck, polrelid) like '%api_client_claim_is_registered%'
+      and pg_get_expr(polwithcheck, polrelid) like '%service_role%'
+      and exists (
+        select 1
+        from unnest(polroles) role_oid
+        where pg_get_userbyid(role_oid) = 'service_role'
+      )
+      and not exists (
+        select 1
+        from unnest(polroles) role_oid
+        where pg_get_userbyid(role_oid) = 'authenticated'
+      )
   ),
-  'API READ insert policy binds client claims and scope'
+  'API READ inserts are restricted to the trusted service role'
 );
 select ok(
   exists (
@@ -357,9 +371,64 @@ select throws_ok(
   'a caller cannot consume a bucket for an HR group it cannot access'
 );
 
+select throws_ok(
+  format(
+    $sql$select public.record_api_read_audit(%L::uuid,%L::uuid,%L::uuid,null,'development-plans',%L,%L::uuid,'ALLOWED',200)$sql$,
+    current_setting('app.apiai01_tenant_id'),
+    current_setting('app.apiai01_hr_user_id'),
+    current_setting('app.apiai01_hr_group_id'),
+    current_setting('app.apiai01_client_id'),
+    current_setting('app.apiai01_correlation_id')
+  ),
+  '42501',
+  NULL,
+  'an authenticated bearer cannot call the trusted read-audit RPC directly'
+);
+
+select throws_ok(
+  format(
+    $sql$select public.record_api_read_audit(%L::uuid,%L::uuid,%L::uuid,null,'development-plans',%L,%L::uuid,'ALLOWED',500)$sql$,
+    current_setting('app.apiai01_tenant_id'),
+    current_setting('app.apiai01_hr_user_id'),
+    current_setting('app.apiai01_hr_group_id'),
+    current_setting('app.apiai01_client_id'),
+    current_setting('app.apiai01_correlation_id')
+  ),
+  '42501',
+  NULL,
+  'an authenticated caller cannot forge a successful-read HTTP status'
+);
+
+select throws_ok(
+  format(
+    $sql$select public.record_api_read_audit(%L::uuid,%L::uuid,%L::uuid,null,'development-plans',%L,%L::uuid,'ALLOWED',200)$sql$,
+    current_setting('app.apiai01_tenant_id'),
+    current_setting('app.apiai01_hr_user_id'),
+    current_setting('app.apiai01_hr_group_id'),
+    current_setting('app.apiai01_client_id'),
+    '55555555-5555-4555-8555-555555555555'
+  ),
+  '42501',
+  NULL,
+  'an authenticated caller cannot choose the trusted audit correlation id'
+);
+
+reset role;
+set local role service_role;
+select set_config(
+  'request.jwt.claims',
+  jsonb_build_object(
+    'sub', current_setting('app.apiai01_hr_user_id'),
+    'role', 'service_role'
+  )::text,
+  true
+);
+select set_config('request.jwt.claim.role', 'service_role', true);
+
 select is(
   public.record_api_read_audit(
     current_setting('app.apiai01_tenant_id')::uuid,
+    current_setting('app.apiai01_hr_user_id')::uuid,
     current_setting('app.apiai01_hr_group_id')::uuid,
     null,
     'development-plans',
@@ -374,8 +443,9 @@ select is(
 
 select throws_ok(
   format(
-    $sql$select public.record_api_read_audit(%L::uuid,%L::uuid,%L::uuid,'development-plans',%L,%L::uuid,'ALLOWED',200)$sql$,
+    $sql$select public.record_api_read_audit(%L::uuid,%L::uuid,%L::uuid,%L::uuid,'development-plans',%L,%L::uuid,'ALLOWED',200)$sql$,
     current_setting('app.apiai01_tenant_id'),
+    current_setting('app.apiai01_hr_user_id'),
     current_setting('app.apiai01_hr_group_id'),
     current_setting('app.apiai01_inaccessible_administration_id'),
     current_setting('app.apiai01_client_id'),
@@ -410,14 +480,15 @@ select is(
 
 select throws_ok(
   format(
-    $sql$select public.record_api_read_audit(%L::uuid,%L::uuid,null,'development-plans','forged-client',%L::uuid,'ALLOWED',200)$sql$,
+    $sql$select public.record_api_read_audit(%L::uuid,null::uuid,%L::uuid,null::uuid,'development-plans',%L,%L::uuid,'ALLOWED',200)$sql$,
     current_setting('app.apiai01_tenant_id'),
     current_setting('app.apiai01_hr_group_id'),
+    current_setting('app.apiai01_client_id'),
     '44444444-4444-4444-8444-444444444444'
   ),
-  '42501',
-  NULL,
-  'the audit RPC rejects a client id that is not bound to the bearer claim'
+  'P0001',
+  'API_READ_AUDIT_UNAVAILABLE',
+  'the trusted audit sink rejects a fabricated missing actor'
 );
 
 reset role;

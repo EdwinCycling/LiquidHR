@@ -13,14 +13,13 @@ export {
 } from './rate-limit'
 export {
   API_READ_AUDIT_RPC_NAME,
-  PostgresApiReadAuditWriter,
+  createPostgresApiReadAuditWriter,
   ApiReadAuditConfigurationError,
   ApiReadAuditUnavailableError,
   type ApiReadAuditInput,
   type ApiReadAuditOutcome,
   type ApiReadAuditRpcPayload,
   type ApiReadAuditWriter,
-  type AuthenticatedApiReadAuditRpcClient,
 } from './audit'
 export {
   API_RATE_LIMIT_RESOURCE_KEYS,

@@ -263,12 +263,14 @@ alter table public.audit_logs
       action = 'READ'
       and entity_name = 'api_resource'
       and entity_id is null
+      and actor_user_id is not null
       and hr_group_id is not null
       and api_resource_key is not null
       and api_client_id is not null
       and api_outcome is not null
       and api_status_code is not null
       and correlation_id is not null
+      and correlation_id <> '00000000-0000-0000-0000-000000000000'::uuid
       and changes = '{}'::jsonb
       and subject_employee_id is null
       and employment_id is null
@@ -334,12 +336,13 @@ using (
   )
 );
 
--- The policy is intentionally narrow even though authenticated already has
--- INSERT on audit_logs for existing, explicitly approved event families.
+-- API READs are written only by the trusted server audit sink.  The regular
+-- authenticated audit insert policies remain available for their existing,
+-- explicitly approved event families, but they do not admit action = READ.
 create policy audit_logs_insert_api_read
-on public.audit_logs for insert to authenticated
+on public.audit_logs for insert to service_role
 with check (
-  actor_user_id = (select auth.uid())
+  coalesce(current_setting('request.jwt.claim.role', true), '') = 'service_role'
   and entity_name = 'api_resource'
   and entity_id is null
   and action = 'READ'
@@ -348,14 +351,9 @@ with check (
   and employment_id is null
   and change_set_id is null
   and hr_group_id is not null
-  and (select internal_security.has_hr_group_access(tenant_id, hr_group_id))
-  and (
-    administration_id is null
-    or (select internal_security.has_administration_access(tenant_id, administration_id))
-  )
-  and (select internal_security.api_read_administration_is_valid(tenant_id, hr_group_id, administration_id))
-  and (select internal_security.api_client_claim_is_registered(api_client_id, api_resource_key))
+  and actor_user_id is not null
   and correlation_id is not null
+  and correlation_id <> '00000000-0000-0000-0000-000000000000'::uuid
   and (
     (api_outcome = 'ALLOWED' and api_status_code between 200 and 299)
     or (api_outcome = 'DENIED' and api_status_code in (403, 404))
@@ -541,8 +539,11 @@ revoke all on function public.consume_api_rate_limit(uuid, uuid, text, text)
 grant execute on function public.consume_api_rate_limit(uuid, uuid, text, text)
   to authenticated;
 
+drop function if exists public.record_api_read_audit(uuid, uuid, uuid, text, text, uuid, text, integer);
+
 create or replace function public.record_api_read_audit(
   requested_tenant_id uuid,
+  requested_actor_user_id uuid,
   requested_hr_group_id uuid,
   requested_administration_id uuid,
   requested_resource_key text,
@@ -554,10 +555,96 @@ create or replace function public.record_api_read_audit(
 returns jsonb
 language plpgsql
 volatile
-security invoker
+security definer
 set search_path = ''
 as $$
 begin
+  -- This function is an audit sink for the trusted server route.  An
+  -- authenticated bearer may read through its own RLS client, but must never
+  -- be able to register a fabricated successful read by calling this RPC.
+  if coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role' then
+    raise exception 'API_READ_AUDIT_UNAVAILABLE' using errcode = '42501';
+  end if;
+
+  if requested_tenant_id is null
+    or requested_actor_user_id is null
+    or requested_hr_group_id is null
+    or requested_resource_key not in ('workforce-summary', 'team-skills', 'development-plans')
+    or requested_oauth_client_id is null
+    or length(btrim(requested_oauth_client_id)) not between 1 and 128
+    or requested_oauth_client_id <> btrim(requested_oauth_client_id)
+    or requested_oauth_client_id ~ '[[:cntrl:]]'
+    or requested_correlation_id is null
+    or requested_correlation_id = '00000000-0000-0000-0000-000000000000'::uuid
+    or requested_outcome not in ('ALLOWED', 'DENIED', 'RATE_LIMITED')
+    or requested_status_code is null
+    or requested_status_code not between 100 and 599
+    or not (
+      (requested_outcome = 'ALLOWED' and requested_status_code between 200 and 299)
+      or (requested_outcome = 'DENIED' and requested_status_code in (403, 404))
+      or (requested_outcome = 'RATE_LIMITED' and requested_status_code = 429)
+    )
+  then
+    raise exception 'API_READ_AUDIT_UNAVAILABLE' using errcode = 'P0001';
+  end if;
+
+  if not exists (
+    select 1
+    from auth.users user_row
+    where user_row.id = requested_actor_user_id
+  ) then
+    raise exception 'API_READ_AUDIT_UNAVAILABLE' using errcode = 'P0001';
+  end if;
+
+  if not exists (
+    select 1
+    from public.hr_groups group_row
+    where group_row.tenant_id = requested_tenant_id
+      and group_row.id = requested_hr_group_id
+      and group_row.is_active
+  ) then
+    raise exception 'API_READ_AUDIT_UNAVAILABLE' using errcode = 'P0001';
+  end if;
+
+  if requested_administration_id is not null and not exists (
+    select 1
+    from public.administrations administration
+    where administration.tenant_id = requested_tenant_id
+      and administration.hr_group_id = requested_hr_group_id
+      and administration.id = requested_administration_id
+      and administration.is_active
+  ) then
+    raise exception 'API_READ_AUDIT_UNAVAILABLE' using errcode = 'P0001';
+  end if;
+
+  if not exists (
+    select 1
+    from public.user_hr_group_access access
+    where access.user_id = requested_actor_user_id
+      and access.tenant_id = requested_tenant_id
+      and access.hr_group_id = requested_hr_group_id
+      and access.is_active
+  ) then
+    raise exception 'API_READ_AUDIT_UNAVAILABLE' using errcode = 'P0001';
+  end if;
+
+  if requested_administration_id is not null and not exists (
+    select 1
+    from public.user_access access
+    where access.user_id = requested_actor_user_id
+      and access.tenant_id = requested_tenant_id
+      and access.is_active
+      and (
+        (access.scope_type = 'TENANT' and access.administration_id is null)
+        or (
+          access.scope_type = 'ADMINISTRATION'
+          and access.administration_id = requested_administration_id
+        )
+      )
+  ) then
+    raise exception 'API_READ_AUDIT_UNAVAILABLE' using errcode = '42501';
+  end if;
+
   insert into public.audit_logs (
     tenant_id,
     administration_id,
@@ -577,7 +664,7 @@ begin
     requested_administration_id,
     'api_resource',
     null,
-    (select auth.uid()),
+    requested_actor_user_id,
     'READ',
     '{}'::jsonb,
     requested_hr_group_id,
@@ -592,10 +679,10 @@ begin
 end;
 $$;
 
-revoke all on function public.record_api_read_audit(uuid, uuid, uuid, text, text, uuid, text, integer)
-  from public, anon;
-grant execute on function public.record_api_read_audit(uuid, uuid, uuid, text, text, uuid, text, integer)
-  to authenticated;
+revoke all on function public.record_api_read_audit(uuid, uuid, uuid, uuid, text, text, uuid, text, integer)
+  from public, anon, authenticated, service_role;
+grant execute on function public.record_api_read_audit(uuid, uuid, uuid, uuid, text, text, uuid, text, integer)
+  to service_role;
 
 comment on table internal_security.api_rate_limit_policies is
   'APIAI-01 lokale limiterpolicy; disabled defaults require Product/Operations/Security approval before activation.';

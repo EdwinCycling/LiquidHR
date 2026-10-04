@@ -18,6 +18,7 @@ const hrGroupId = '22222222-2222-4222-8222-222222222222'
 const administrationId = '33333333-3333-4333-8333-333333333333'
 const requestId = '44444444-4444-4444-8444-444444444444'
 const correlationId = '55555555-5555-4555-8555-555555555555'
+const auditCorrelationId = '77777777-7777-4777-8777-777777777777'
 const issuer = 'https://issuer.synthetic.invalid'
 const subject = 'subject-1'
 const boundAccessToken = 'synthetic.access-token.signature'
@@ -26,7 +27,7 @@ const authContext: AuthContext = {
   tenantId,
   hrGroupId,
   administrationId,
-  userId: 'user-1',
+  userId: '66666666-6666-4666-8666-666666666666',
   employeeId: 'employee-1',
   activeRoles: ['HR_ADMIN'],
   permissions: ['self:talent-goal:read'],
@@ -158,10 +159,8 @@ function setup(input?: {
     expect(requestRls).toBe(currentRls)
     return rateLimiter
   })
-  const createAuditWriter = vi.fn((requestRls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) => {
-    expect(requestRls).toBe(currentRls)
-    return auditWriter
-  })
+  const createAuditCorrelationId = vi.fn(() => auditCorrelationId)
+  const createAuditWriter = vi.fn(() => auditWriter)
   const read = vi.fn(async (scope: { readonly rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient> }) => {
     events.push('read')
     expect(scope.rls).toBe(currentRls)
@@ -178,9 +177,9 @@ function setup(input?: {
     responseSchema: z.object({
       progressPercent: z.number().int().min(0).max(100),
     }).strict(),
-  }, { authenticate, createRateLimiter, createAuditWriter })
+  }, { authenticate, createRateLimiter, createAuditWriter, createAuditCorrelationId })
 
-  return { handler, authenticate, createRateLimiter, createAuditWriter, rateLimiter, auditWriter, auditCalls, read, events, rls: currentRls }
+  return { handler, authenticate, createRateLimiter, createAuditWriter, createAuditCorrelationId, rateLimiter, auditWriter, auditCalls, read, events, rls: currentRls }
 }
 
 describe('createProtectedApiGetHandler', () => {
@@ -203,8 +202,8 @@ describe('createProtectedApiGetHandler', () => {
     expect(withQuery.authenticate).not.toHaveBeenCalled()
   })
 
-  it('authorizes both scope systems, limits, projects, audits, then responds', async () => {
-    const { handler, createRateLimiter, createAuditWriter, rateLimiter, auditWriter, auditCalls, read, events, rls } = setup()
+  it('authorizes both scope systems and audits with a server-generated id distinct from the client trace', async () => {
+    const { handler, createRateLimiter, createAuditWriter, createAuditCorrelationId, rateLimiter, auditWriter, auditCalls, read, events, rls } = setup()
     const response = await handler(requestForHandler('https://liquid.example/api/v1/development-plans', {
       headers: { 'X-Request-Id': requestId, 'X-Correlation-Id': correlationId },
     }))
@@ -229,7 +228,8 @@ describe('createProtectedApiGetHandler', () => {
       administrationId,
       resource: 'development-plans',
       oauthClientId: 'synthetic-client',
-      correlationId,
+      actorUserId: authContext.userId,
+      correlationId: auditCorrelationId,
       outcome: 'ALLOWED',
       statusCode: 200,
     })])
@@ -237,8 +237,8 @@ describe('createProtectedApiGetHandler', () => {
     expect(events).toEqual(['authenticate', 'limit', 'read', 'audit:ALLOWED'])
     expect(auditWriter.record).toHaveBeenCalledTimes(1)
     expect(createRateLimiter).toHaveBeenCalledWith(rls)
-    expect(createAuditWriter).toHaveBeenCalledWith(rls)
-    expect(createRateLimiter.mock.calls[0]?.[0]).toBe(createAuditWriter.mock.calls[0]?.[0])
+    expect(createAuditWriter).toHaveBeenCalledWith()
+    expect(createAuditCorrelationId).toHaveBeenCalledTimes(1)
   })
 
   it.each([

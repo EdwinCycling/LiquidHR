@@ -1,9 +1,10 @@
+import 'server-only'
+
 import {
   API_RATE_LIMIT_RESOURCE_KEYS,
   type ApiRateLimitResource,
 } from './rate-limit'
-import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '@/lib/api-v1/auth'
-import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const API_READ_AUDIT_RPC_NAME = 'record_api_read_audit' as const
 
@@ -12,30 +13,22 @@ const MAX_CLIENT_ID_LENGTH = 128
 
 export type ApiReadAuditOutcome = 'ALLOWED' | 'DENIED' | 'RATE_LIMITED'
 
-export interface AuthenticatedApiReadAuditRpcClient {
-  /**
-   * This marker is only a type-level contract, not proof of a bearer-bound
-   * Supabase session. A future RPC must derive the actor from auth.uid(),
-   * validate the OAuth client against that identity, and verify the tenant,
-   * HR-group and administration membership before recording requested scope.
-   */
-  readonly role: 'authenticated'
-  rpc(name: string, args: Record<string, unknown>): Promise<{ readonly data: unknown; readonly error: unknown }>
-}
-
-type BoundRpcClient = {
+type TrustedApiReadAuditRpcClient = {
+  readonly role: 'service_role'
   rpc(name: string, args: Record<string, unknown>): Promise<{ readonly data: unknown; readonly error: unknown }>
 }
 
 /**
- * Typed allowlist for the canonical READ-audit RPC. The database function
- * supplies action = READ and actor_user_id = auth.uid(); neither is caller
- * input. There is deliberately no entity id, request payload, token, raw IP,
- * employee id, result count or free-text reason. requestId is also absent
- * until Product and Security decide whether correlation-only is sufficient.
+ * Typed allowlist for the trusted server-only canonical READ-audit RPC. Only
+ * the route supplies the actor, outcome and status after it has authenticated,
+ * authorized, limited, read and projected the resource. The database RPC is
+ * executable only by service_role; the ordinary bearer/RLS client cannot call
+ * it. This privileged client is wrapped to expose `rpc` only and is never
+ * used to read HR data.
  */
 export interface ApiReadAuditRpcPayload extends Record<string, unknown> {
   readonly requested_tenant_id: string
+  readonly requested_actor_user_id: string
   readonly requested_hr_group_id: string
   readonly requested_administration_id: string | null
   readonly requested_resource_key: ApiRateLimitResource
@@ -47,6 +40,7 @@ export interface ApiReadAuditRpcPayload extends Record<string, unknown> {
 
 export interface ApiReadAuditInput {
   readonly tenantId: string
+  readonly actorUserId: string
   readonly hrGroupId: string
   readonly administrationId?: string | null
   readonly resource: ApiRateLimitResource
@@ -105,6 +99,7 @@ function validateInput(input: ApiReadAuditInput): void {
       ? input.statusCode === 403 || input.statusCode === 404
       : input.statusCode === 429
   if (!isUuid(input.tenantId)
+    || !isUuid(input.actorUserId)
     || !isUuid(input.hrGroupId)
     || !validAdministration
     || !isResource(input.resource)
@@ -118,30 +113,8 @@ function validateInput(input: ApiReadAuditInput): void {
   }
 }
 
-/**
- * Writes only typed request metadata. There is deliberately no entity id,
- * result count, free-text reason or payload parameter: resource-level reads do
- * not have a real entity id and counts can disclose sensitive populations.
- */
-export class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
-  private readonly client: AuthenticatedApiReadAuditRpcClient
-
-  constructor(rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>) {
-    let bound: DelegatedBearerRlsClient<SupabaseBearerRlsClient>
-    try {
-      bound = assertDelegatedBearerRlsClient(rls)
-    } catch {
-      throw new ApiReadAuditConfigurationError()
-    }
-
-    const client = bound.client as unknown as BoundRpcClient
-    if (typeof client.rpc !== 'function') throw new ApiReadAuditConfigurationError()
-
-    this.client = {
-      role: 'authenticated',
-      rpc: client.rpc.bind(bound.client),
-    }
-  }
+class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
+  constructor(private readonly client: TrustedApiReadAuditRpcClient) {}
 
   async record(input: ApiReadAuditInput): Promise<void> {
     validateInput(input)
@@ -150,6 +123,7 @@ export class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
     try {
       const payload: ApiReadAuditRpcPayload = {
         requested_tenant_id: input.tenantId,
+        requested_actor_user_id: input.actorUserId,
         requested_hr_group_id: input.hrGroupId,
         requested_administration_id: input.administrationId ?? null,
         requested_resource_key: input.resource,
@@ -158,6 +132,7 @@ export class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
         requested_outcome: input.outcome,
         requested_status_code: input.statusCode,
       }
+      if (this.client.role !== 'service_role') throw new ApiReadAuditConfigurationError()
       result = await this.client.rpc(API_READ_AUDIT_RPC_NAME, payload)
     } catch {
       throw new ApiReadAuditUnavailableError()
@@ -165,4 +140,25 @@ export class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
 
     if (result.error !== null && result.error !== undefined) throw new ApiReadAuditUnavailableError()
   }
+}
+
+/**
+ * Creates the narrowly wrapped privileged audit sink. This admin client is
+ * intentionally constructed only here and only its RPC method is retained;
+ * the request-bound bearer RLS client remains the sole HR-data reader.
+ */
+export function createPostgresApiReadAuditWriter(): ApiReadAuditWriter {
+  let trustedClient: TrustedApiReadAuditRpcClient
+  try {
+    const admin = createAdminClient()
+    if (typeof admin.rpc !== 'function') throw new Error('Audit RPC is unavailable.')
+    const rpc = admin.rpc.bind(admin) as unknown as TrustedApiReadAuditRpcClient['rpc']
+    trustedClient = {
+      role: 'service_role',
+      rpc,
+    }
+  } catch {
+    throw new ApiReadAuditUnavailableError()
+  }
+  return new PostgresApiReadAuditWriter(trustedClient)
 }
