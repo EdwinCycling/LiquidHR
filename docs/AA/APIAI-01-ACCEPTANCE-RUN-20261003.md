@@ -1,5 +1,7 @@
 # APIAI-01 lokale acceptatie-run — 2026-10-03
 
+> **Leeswijzer:** de openingssamenvatting bewaart de status van de oorspronkelijke run op 2026-10-03. §16 bevat de follow-up van 2026-10-04 en is leidend voor de actuele build/runtime-SHA en kwaliteitsgates; §15 bevat het actuele eindoordeel.
+
 ## 1. Samenvatting
 
 Status: **PARTIAL / ENVIRONMENT-GATED**. De lokale API-foundation heeft gerichte unit-, contract-, type-, lint-, volledige suite- en production-buildchecks doorstaan. De drie publieke APIAI-01-resources zijn bewust niet gemount. Er is dus geen positieve externe API- of bearer-authenticatiebewijs.
