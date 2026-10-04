@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-**Status: lokale browsermatrix 6/6 GREEN; onafhankelijke LUNA MAX-review is afgerond zonder resterende auth-/origin-/context-/role-switch-beveiligingsblocker; lokale production build en SHA-close-out volgen. Hosted acceptatie ontbreekt, dus NOT RELEASE-READY.** Browser-Origin en Host waren 127.0.0.1, maar Next.js 16.3.6 gaf request.nextUrl.origin terug als localhost. Daardoor weigerde de test-loginroute een geldige same-origin HR Admin-login met 403 TEST_LOGIN_FORBIDDEN. De route gebruikt nu de feitelijke request-host en bestaande URL-resolutie en vergelijkt die nog steeds exact met browser-Origin. De vaste HR Admin-allowlist, lokale Test Auth-gates en fail-closed voorwaarden zijn behouden.
+**Status: lokale browsermatrix 6/6 GREEN; officiële lokale production build en onafhankelijke LUNA MAX-review geslaagd op de implementatiekandidaat. Hosted acceptatie ontbreekt, dus NOT RELEASE-READY.** Browser-Origin en Host waren 127.0.0.1, maar Next.js 16.3.6 gaf request.nextUrl.origin terug als localhost. Daardoor weigerde de test-loginroute een geldige same-origin HR Admin-login met 403 TEST_LOGIN_FORBIDDEN. De route gebruikt nu de feitelijke request-host en bestaande URL-resolutie en vergelijkt die nog steeds exact met browser-Origin. De vaste HR Admin-allowlist, lokale Test Auth-gates en fail-closed voorwaarden zijn behouden.
 
 De regressietest reproduceerde eerst rood en slaagde na de fix. De volledige lokale browsermatrix is groen: 3 persona's × 2 viewports = 6/6 cellen, met toegestane en geweigerde serverprobes, contextasserties en terugkeer naar HR Admin voor Manager en Medewerker. Iedere cel gebruikte een geïsoleerde browsercontext. De accountwissel wist identity-scoped contextcookies; tenant en HR-groep worden daarna opnieuw gecontroleerd. Voor de medewerker blijft de administratie server-afgeleid en moet een eventuele actieve selectie binnen de server-toegankelijke set vallen.
 
@@ -93,7 +93,7 @@ Exact 393 × 852 voor iPhone 16 en 1440 × 900 voor desktop. Alle zes persona-/v
 | Runtimecontract/browsermatrix | launchercontractchecks geslaagd; finale browsermatrix na alle codefixes 6/6 GREEN, auto-poort 3001, runtime niet hergebruikt, eigen proces STOPPED |
 | Diff-check | geslaagd vóór definitieve documentatieclose-out |
 | Volledige suite | Niet uitgevoerd; begrensde scope met 92 gerichte Vitest- en harness-regressies conform AA-TEST |
-| Production build/finale review | LUNA MAX-review afgerond zonder resterende securityblocker; production build op kandidaatcommit nog vastleggen |
+| Production build/finale review | officiële Production -Build exit 0; launcherprovenance sourceCommit matcht kandidaat SHA en buildId matcht; onafhankelijke LUNA MAX-review zonder resterende auth/origin/context-cookie/role-switch-blocker |
 ## 9. Fixed During Run
 
 ### ORIGIN01 — 127.0.0.1 versus localhost bij test-login
@@ -280,7 +280,7 @@ Exact 393 × 852 voor iPhone 16 en 1440 × 900 voor desktop. Alle zes persona-/v
 
 De matrix gebruikte bestaande goedgekeurde lokale TEST-configuratie en accounts. Geen account, context, permission of credential is verzonnen. Tests bewijzen dat Test Auth alleen open kan in development met expliciete flag, canonieke TEST-projectref en zonder Vercel-indicatoren.
 
-Geen directe Production-/Preview-request en geen hosted deployment uitgevoerd. Niet-lokale uitschakeling is bewezen door server-gates en tests, niet door hosted endpoint-evidence. De onafhankelijke review vond geen resterende securityblocker; de lokale production build en exacte commit-SHA volgen vóór close-out.
+Geen directe Production-/Preview-request en geen hosted deployment uitgevoerd. Niet-lokale uitschakeling is bewezen door server-gates en tests, niet door hosted endpoint-evidence. De onafhankelijke review vond geen resterende securityblocker; de lokale production build is geslaagd op de exacte kandidaat-SHA in sectie 14.
 
 ## 11. PRODUCT DECISIONS
 
@@ -307,14 +307,14 @@ Geen nieuw beleid, persona, permission, rol, database-entiteit of feature flag. 
 
 - Worktreebranch: work/test-harness01-20261004.
 - Exacte start-HEAD: 6349d02538351cd01fc51f298c6e6fa0ba88006c.
-- Kandidaatimplementatiecommit/geverifieerde HEAD: volgt na de lokale production build.
-- Documentatieclose-outcommit: volgt na build en rapportupdate.
+- Kandidaatimplementatiecommit/geverifieerde build source: `dfb752ee917f2f138d5dce79d5232b6508738c03`.
+- Documentatieclose-out: wordt als laatste lokale commit op dezelfde branch vastgelegd; de definitieve HEAD wordt bij oplevering gerapporteerd.
 - Geen push, merge, remote branchwijziging, migration, deployment of app-version bump.
 - Canonieke .env.local bestond; alleen bestaan gecontroleerd. Bestand en waarden zijn niet gelezen of gewijzigd.
 
 ## 15. Final Verdict
 
-**LOCAL ACCEPTANCE GREEN / NOT RELEASE-READY.** Browsermatrix, gerichte security-/qualitychecks en onafhankelijke LUNA MAX-review zijn groen. Lokale production build moet nog op de kandidaatcommit worden bevestigd. Hosted/productieacceptatie is niet geclaimd.
+**LOCAL ACCEPTANCE GREEN / NOT RELEASE-READY.** Browsermatrix, gerichte security-/qualitychecks, officiële lokale production build en onafhankelijke LUNA MAX-review zijn groen op de kandidaatimplementatie. Hosted/productieacceptatie is niet geclaimd.
 
 ## Hervatinstructies
 
