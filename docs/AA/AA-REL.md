@@ -23,6 +23,16 @@ Convergence:
 - voert gezamenlijke runtime/securityacceptatie uit;
 - sluit met één complete releasegate.
 
+
+### Grote features, gedeeltelijke acceptatie en volgende waves
+
+`BUILD-READY`, `DRAFT PR REVIEWABLE`, `MERGE-READY`, `TEST RELEASED WITH OPEN` en `FULL ACCEPTANCE GREEN` zijn **verschillende** statussen:
+- Een bestaand, getest en veilig geïsoleerd onderdeel mag als featurecommit of Draft PR ter review worden aangeboden, ook wanneer een nauwkeurig afgebakende externe acceptatievoorwaarde nog OPEN is. Dat is **geen** merge- of releasetoestemming.
+- De centrale release-eigenaar beslist expliciet of de huidige geïntegreerde kandidaat wordt released, met open beperkingen uitsluitend onder §8, of wordt vastgehouden. Een **vastgelegd HOLD-besluit** verhindert niet dat agents alvast onafhankelijk aan een volgende afgebakende feature bouwen; het geeft geen permissie om eerder geblokkeerde schema-/security-/domainwrites te activeren.
+- Eén releasecoördinator beheert de gedeelde `main`, de dependency-/migratievolgorde, exact één version bump en één gezamenlijke releasegate. Losse subagents, parallelle features en aparte Lab-databases maken **geen** nieuwe productversies of autonome releases.
+- Een ontbrekend TEST-secret, externe persona of onbeslist Core-contract krijgt één eigenaar/heropeningsvoorwaarde in [AA-OPEN](AA-OPEN.md). Laat de volgende veilige onafhankelijke ontwikkeling doorgaan; herhaal de mislukte TEST-acties pas wanneer de voorwaarde feitelijk is veranderd.
+- Bij kritieke auth-, scope-, secret- of data-integriteitsrisico's blijft het relevante onderdeel inactief en falen toegang/schrijfroutes gesloten totdat de vereiste controle GREEN is. Geen beperkte TEST-release gebruiken om een aangetoond kritisch defect of vereiste migratieafwijking te negeren.
+
 ## 2. Convergence-flow
 
 1. bevestig baseline;
@@ -150,7 +160,7 @@ Na succesvolle release:
 
 ## 11. Anti-iteratiehel
 
-- Geen volgende productwave starten vóór de huidige releasebeslissing.
+- Geen nieuwe **gedeelde integratie of release** vóór het huidige expliciete release-/HOLD-besluit en de vereiste dependency-/migrationafstemming. Onafhankelijke featureontwikkeling mag parallel doorgaan op een bewezen, vastgepinde baseline; dat is nooit een bypass van een relevante security- of activatiegate.
 - Geen volledige suite na iedere kleine fix.
 - Na een echte defectfix: targeted regressie; alleen bij brede blast radius opnieuw bredere gates.
 - Stop wanneer afgesproken scope GREEN is.
