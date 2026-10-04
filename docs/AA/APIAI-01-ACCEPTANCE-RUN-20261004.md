@@ -1,12 +1,6 @@
 # APIAI-01 — acceptatierun en beveiligingsgates
 
-**Datum:** 2026-10-04 (Europe/Amsterdam)  
-**Status:** **PARTIAL / NOT SECURITY-ACCEPTED / ROUTES UNMOUNTED**  
-**Worktree:** `C:\Users\Edwin\.codex\worktrees\apiai01-build-20261003\LiquidHR`  
-**Branch:** `work/apiai-01-build-20261003`  
-**Baseline:** `6349d02538351cd01fc51f298c6e6fa0ba88006c`  
-**Codecommit:** `2bdea940fe7652794a97d6cb42117b443baed4c7`  
-**Gebouwde en lokaal gestarte commit:** `af05f575a0bc3d0be84d31d19e463de85ded06f4` (codecommit plus uitsluitend het Keycloak/RLS-proefdocument)
+- **Datum:** 2026-10-04 (Europe/Amsterdam)\n- **Status:** **PARTIAL / NOT SECURITY-ACCEPTED / ROUTES UNMOUNTED**\n- **Worktree:** `C:\\Users\\Edwin\\.codex\\worktrees\\apiai01-build-20261003\\LiquidHR`\n- **Branch:** `work/apiai-01-build-20261003`\n- **Baseline:** `6349d02538351cd01fc51f298c6e6fa0ba88006c`\n- **Codecommit:** `2bdea940fe7652794a97d6cb42117b443baed4c7`\n**Gebouwde en lokaal gestarte commit:** `af05f575a0bc3d0be84d31d19e463de85ded06f4` (codecommit plus uitsluitend het Keycloak/RLS-proefdocument)
 
 Dit rapport is kandidaatbewijs voor de ongemounte APIAI-01-foundation. Het is geen securitygoedkeuring, productbesluit, providerkeuze, route-activatie of live-readbewijs. De gedeelde delivery-statusbestanden zijn niet gewijzigd omdat PR #2 diezelfde bestanden wijzigt.
 
