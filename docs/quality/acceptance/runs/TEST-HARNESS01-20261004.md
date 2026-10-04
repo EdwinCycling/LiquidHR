@@ -308,7 +308,7 @@ Geen nieuw beleid, persona, permission, rol, database-entiteit of feature flag. 
 - Worktreebranch: work/test-harness01-20261004.
 - Exacte start-HEAD: 6349d02538351cd01fc51f298c6e6fa0ba88006c.
 - Kandidaatimplementatiecommit/geverifieerde build source: `dfb752ee917f2f138d5dce79d5232b6508738c03`.
-- Documentatieclose-out: wordt als laatste lokale commit op dezelfde branch vastgelegd; de definitieve HEAD wordt bij oplevering gerapporteerd.
+- Documentatieclose-out is lokaal vastgelegd na build en review; de definitieve branch-HEAD staat in de taakoplevering.
 - Geen push, merge, remote branchwijziging, migration, deployment of app-version bump.
 - Canonieke .env.local bestond; alleen bestaan gecontroleerd. Bestand en waarden zijn niet gelezen of gewijzigd.
 
