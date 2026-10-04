@@ -86,6 +86,20 @@ Bij substantiële, goed afgebakende runs mogen subagents expliciet worden ingeze
 
 **Vaste modelkeuze:** wanneer de runtime/modelselector subagents ondersteunt, gebruikt iedere subagent **LUNA MAX**. Gebruik geen automatische, lagere of alternatieve subagentconfiguratie. Als LUNA MAX niet beschikbaar/selecteerbaar is, vervang dit niet stilzwijgend door een ander model; meld de beperking aan de orchestrator en ga alleen verder wanneer de taak zonder subagent verantwoord kan worden uitgevoerd.
 
+### Grotere geïntegreerde bouwslagen — standaard vanaf 2026-10-04
+
+Voor een substantieel, samenhangend productdoel is **één grotere featurewave met parallelle gespecialiseerde LUNA MAX-agents** de voorkeur boven een lange reeks losse voorbereidings-, acceptatie- en herhaalprompts. Houd de bestaande canonieke repository/één productversie en één orchestrator; extra subagents vormen geen zelfstandig integratie- of releasespoor.
+
+De orchestrator formuleert vóór de bouw één eindgebruikersresultaat, 3–6 gescheiden bouw-/QA-scopes, expliciete bestand-/schema-eigenaars en één geïntegreerde Definition of Done. Agents implementeren, testen en repareren parallel. Een onafhankelijke reviewer kijkt gericht naar integratie, auth/scope, migraties en waar passend fiscale bronjuistheid. Voeg geen tweede laag agents toe wanneer dat alleen overhead oplevert.
+
+**Gated dependency, niet gated hele bouwronde:** markeer per onderdeel `BUILDABLE NOW`, `NEEDS SHARED CONTRACT`, `NEEDS EXTERNAL FIXTURE` of `RELEASE GATE`. Bouw de onafhankelijke onderdelen door en houd verboden writes en publieke interfaces fail-closed. Een ontbrekende authentieke testidentiteit, secret-provenance of extern besluit rechtvaardigt niet het eindeloos heropenen van dezelfde diagnose en **nooit** een bypass, fictief bewijs of een onbevoegde Core-wijziging.
+
+Na vastgestelde root cause en één concrete herstel-/bewijsroute registreert de orchestrator hardnekkige externe afhankelijkheden in [AA-OPEN](AA-OPEN.md) met eigenaar, ID, bestaande evidence, exacte heropeningsaanleiding en afsluitproef; sluit de ontwikkelslice als `PARTIAL` of `ENVIRONMENT-GATED` wanneer de code wel zinvol af is. Dit is geen `GREEN`- of merge-/releaseautorisatie. Een aantoonbaar kritisch security-/integriteitsdefect in het nieuwe onderdeel wordt wel onmiddellijk opgelost of technisch geïsoleerd.
+
+Push een gecontroleerd afgebakende featurebranch / Draft PR wanneer dat onderdeel veilig reviewbaar is, ook bij correct geregistreerde externe gates, **zonder** daardoor merge-ready te claimen. Blijf in één geïntegreerde wave wanneer hetzelfde team de volgende onafhankelijke functionaliteit verantwoord kan ontwikkelen. Maak alleen een extra werkbranch bij een werkelijke overlap-/integratiegrens, niet voor iedere analyse, bugfix of subagent.
+
+Bij iedere Codex-overdracht: (a) daadwerkelijk geleverd en gerichte test-/bugfixresultaten, (b) expliciete onderscheidingen BEDOELD/GEBOUWD/GETEST/RELEASED, (c) alleen relevante AA-OPEN-ID's met concrete benodigde beslissing, (d) **"Wat levert deze ronde ons op?"** en (e) **"De beoogde volgende mijlpalen"**, met concrete volgorde en impact op andere parallelle sporen. Geen onderzoekslus als standaardvervolgstap.
+
 Voor Payroll geldt aanvullend `AA-PAYROLL.md`.
 
 Framework-generated bestanden zoals `next-env.d.ts` zijn geen productwijziging. Commit onbedoelde generated drift niet; herstel die vóór checkpoint/release.
