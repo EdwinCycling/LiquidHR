@@ -1,4 +1,9 @@
 import type { AuthContext } from '@/lib/auth/permissions'
+import {
+  dispatchHeRaWorkforceTool,
+  isHeRaWorkforceToolName,
+  WorkforceToolDispatchError,
+} from '@/lib/workforce-tools/registry'
 import type { HeRaToolCall } from './gemini'
 import {
   countVisibleSalariesAbove,
@@ -29,6 +34,26 @@ export interface HeRaToolRegistryDependencies {
   searchEmployees?: (context: AuthContext, input: EmployeeSearchInput) => Promise<unknown>
   getEmployment?: (context: AuthContext, input: VisibleEmploymentInput) => Promise<unknown>
   getOrganization?: (context: AuthContext, input: VisibleOrganizationInput) => Promise<unknown>
+  dispatchWorkforceTool?: (name: string, input: Record<string, unknown>) => Promise<unknown>
+}
+
+function mapWorkforceRegistryError(error: unknown): never {
+  if (error instanceof WorkforceToolDispatchError) {
+    if (error.code === 'INPUT_INVALID') {
+      throw new HeRaToolRegistryError('HERA_TOOL_INPUT_INVALID')
+    }
+    if (
+      error.code === 'RESULT_INVALID'
+      || error.code === 'MODULE_INACTIVE'
+      || error.code === 'RESOURCE_NOT_FOUND'
+      || error.code === 'TOOL_NOT_FOUND'
+      || error.code === 'AUTHENTICATION_REQUIRED'
+      || error.code === 'ACCESS_DENIED'
+    ) {
+      throw new HeRaToolRegistryError('HERA_TOOL_NOT_ALLOWED')
+    }
+  }
+  throw error
 }
 
 export async function dispatchHeRaTool(
@@ -36,6 +61,13 @@ export async function dispatchHeRaTool(
   call: HeRaToolCall,
   dependencies: HeRaToolRegistryDependencies = {},
 ): Promise<unknown> {
+  if (isHeRaWorkforceToolName(call.name)) {
+    try {
+      return await (dependencies.dispatchWorkforceTool ?? dispatchHeRaWorkforceTool)(call.name, call.args)
+    } catch (error) {
+      return mapWorkforceRegistryError(error)
+    }
+  }
   if (call.name === 'analyze_salary_threshold') {
     const parsed = salaryThresholdInputSchema.safeParse(call.args)
     if (!parsed.success) throw new HeRaToolRegistryError('HERA_TOOL_INPUT_INVALID')

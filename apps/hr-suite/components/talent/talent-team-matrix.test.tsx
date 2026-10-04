@@ -71,6 +71,7 @@ const data: TalentTeamMatrixData = {
       capabilityType: 'SKILL',
     }],
   }],
+    sourceTruncated: false,
   scopeCount: 1,
   scopeType: 'TEAM',
   aggregatePolicy: 'DISABLED',

@@ -1,5 +1,5 @@
 import type { Database } from '@scope/db'
-import { requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { AuthorizationError, requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
 import type { TalentCheckInCreateInput, TalentCheckInUpdateInput } from './check-in-schemas'
@@ -9,6 +9,7 @@ type CheckInInsert = Database['public']['Tables']['talent_goal_check_ins']['Inse
 type CheckInUpdate = Database['public']['Tables']['talent_goal_check_ins']['Update']
 
 export type TalentGoalCheckIn = Pick<CheckInRow, 'id' | 'goal_id' | 'employee_id' | 'entry_type' | 'body' | 'follow_up_title' | 'follow_up_due_on' | 'status' | 'version' | 'created_at' | 'completed_at'>
+export type TalentGoalCheckInMetadata = Pick<TalentGoalCheckIn, 'id' | 'goal_id' | 'employee_id' | 'entry_type' | 'follow_up_due_on' | 'status' | 'created_at' | 'completed_at'>
 
 export class TalentCheckInError extends Error {
   constructor(public readonly code: string, public readonly status = 500) {
@@ -74,6 +75,40 @@ export async function listTalentGoalCheckIns(goalId: string): Promise<TalentGoal
     .limit(100)
   if (error) throw new TalentCheckInError('TALENT_CHECKIN_READ_FAILED')
   return (data ?? []).map((row) => mapCheckIn(row as CheckInRow))
+}
+
+export async function listMyTalentGoalCheckIns(goalId: string): Promise<TalentGoalCheckInMetadata[]> {
+  const context = await requireAuthContext()
+  if (!context.employeeId) throw new TalentCheckInError('TALENT_CHECKIN_FORBIDDEN', 403)
+  try {
+    await requirePermission('self:talent-goal:read', context.employeeId)
+  } catch (error) {
+    if (!(error instanceof AuthorizationError)) throw error
+    throw new TalentCheckInError('TALENT_CHECKIN_FORBIDDEN', 403)
+  }
+  await requireTenantModule('TALENT')
+
+  const supabase = await createClient()
+  const { data: goal, error: goalError } = await supabase
+    .from('talent_development_goals')
+    .select('id')
+    .eq('tenant_id', context.tenantId)
+    .eq('id', goalId)
+    .eq('employee_id', context.employeeId)
+    .maybeSingle()
+  if (goalError) throw new TalentCheckInError('TALENT_GOAL_READ_FAILED')
+  if (!goal) throw new TalentCheckInError('TALENT_GOAL_NOT_FOUND', 404)
+
+  const { data, error } = await supabase
+    .from('talent_goal_check_ins')
+    .select('id,goal_id,employee_id,entry_type,follow_up_due_on,status,created_at,completed_at')
+    .eq('tenant_id', context.tenantId)
+    .eq('goal_id', goalId)
+    .eq('employee_id', context.employeeId)
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (error) throw new TalentCheckInError('TALENT_CHECKIN_READ_FAILED')
+  return (data ?? []) as TalentGoalCheckInMetadata[]
 }
 
 export async function createTalentGoalCheckIn(goalId: string, input: TalentCheckInCreateInput): Promise<string> {

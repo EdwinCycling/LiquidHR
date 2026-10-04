@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## APIAI-02 — workforce tools — 2026-10-04
+
+**Status: lokale implementatie- en regressiegates groen; onafhankelijke follow-up review vond geen P1/P2; PARTIAL / niet release-ready.** De candidate voegt een gedeelde, server-geautoriseerde catalogus met zes Employee-readtools, een directe-team-matrix voor Manager en een tenantmatrix voor HR toe. De interne cookie-authenticated BFF, HeRa/Gemini function declarations en lokale in-process harness gebruiken dezelfde dispatcher. De externe `/api/v1`-routes blijven ongemount en ongewijzigd. De exacte baseline, lokale TEST-runtimeproeven, gates en resterende releasegrenzen staan in het [APIAI-02 acceptance-rapport](quality/acceptance/runs/APIAI-02-20261004.md); het contract staat in [APIAI-02 workforce tools](requirements/ai/APIAI-02_WORKFORCE_TOOLS.md).
+
 ## ONE VERSION — accepted PAYLAB00–04 integration — 2026-10-02
 
 **Status: PAYLAB integration MERGE-READY at `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; ONE VERSION release preparation is underway.** The independent LUNA MAX acceptance review passed. The earlier production historical-run error was traced to `PGRST303: JWT issued at future`; desktop and 390 px browser retests passed. No Payroll application fix or new CAO implementation was needed. The release candidate sets app version `1.20261002.1`; merge/deployment status is recorded in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.

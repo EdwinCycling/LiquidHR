@@ -1,5 +1,68 @@
 import { z } from 'zod'
+import { WORKFORCE_TOOL_CATALOG, workforceToolHeRaName } from '@/lib/workforce-tools/catalog'
 
+
+type GeminiParameterType = 'OBJECT' | 'STRING' | 'NUMBER' | 'INTEGER' | 'BOOLEAN' | 'ARRAY'
+
+interface GeminiParameterSchema {
+  type: GeminiParameterType
+  description?: string
+  properties?: Record<string, GeminiParameterSchema>
+  required?: string[]
+  items?: GeminiParameterSchema
+  enum?: Array<string | number | boolean>
+}
+
+function asSchemaRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('HERA_FUNCTION_SCHEMA_INVALID')
+  }
+  return value as Record<string, unknown>
+}
+
+function toGeminiParameterSchema(value: unknown): GeminiParameterSchema {
+  const source = asSchemaRecord(value)
+  const typeMap: Record<string, GeminiParameterType> = {
+    object: 'OBJECT',
+    string: 'STRING',
+    number: 'NUMBER',
+    integer: 'INTEGER',
+    boolean: 'BOOLEAN',
+    array: 'ARRAY',
+  }
+  const sourceType = source.type
+  if (typeof sourceType !== 'string' || !typeMap[sourceType]) throw new Error('HERA_FUNCTION_SCHEMA_INVALID')
+
+  const result: GeminiParameterSchema = { type: typeMap[sourceType] }
+  if (typeof source.description === 'string') result.description = source.description
+  if (Array.isArray(source.required) && source.required.every((item): item is string => typeof item === 'string')) {
+    result.required = source.required
+  }
+  if (Array.isArray(source.enum) && source.enum.every((item): item is string | number | boolean =>
+    typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean')) {
+    result.enum = source.enum
+  }
+  if (source.properties !== undefined) {
+    const properties = asSchemaRecord(source.properties)
+    result.properties = Object.fromEntries(
+      Object.entries(properties).map(([key, property]) => [key, toGeminiParameterSchema(property)]),
+    )
+  }
+  if (source.items !== undefined) result.items = toGeminiParameterSchema(source.items)
+  return result
+}
+
+export function buildWorkforceHeRaDeclarations(): Array<{
+  name: string
+  description: string
+  parameters: GeminiParameterSchema
+}> {
+  return WORKFORCE_TOOL_CATALOG.map((tool) => ({
+    name: workforceToolHeRaName(tool.id),
+    description: tool.description,
+    parameters: toGeminiParameterSchema(z.toJSONSchema(tool.inputSchema)),
+  }))
+}
 const providerResponseSchema = z.object({
   candidates: z.array(z.object({
     content: z.object({
@@ -87,6 +150,7 @@ export async function generateHeRaResponse(input: GenerateHeRaResponseInput): Pr
       systemInstruction: { parts: [{ text: input.systemInstruction }] },
       contents,
       tools: [{ functionDeclarations: [
+        ...buildWorkforceHeRaDeclarations(),
         { name: 'get_my_profile', description: 'Lees alleen de eigen basisgegevens.', parameters: { type: 'OBJECT', properties: {} } },
         { name: 'list_my_reminders', description: 'Lees alleen de eigen reminders.', parameters: { type: 'OBJECT', properties: {} } },
         {

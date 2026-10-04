@@ -9,6 +9,7 @@ import {
   type HeRaToolCall,
 } from './gemini'
 import { dispatchHeRaTool, HeRaToolRegistryError } from './tool-registry'
+import { isHeRaWorkforceToolName } from '@/lib/workforce-tools/registry'
 import { executeHeRaTool } from './tools'
 import type { HeRaUserContext } from './types'
 
@@ -88,7 +89,7 @@ async function dispatchTool(context: AuthContext, call: HeRaToolCall): Promise<u
     'search_visible_employees',
     'get_visible_employment',
     'get_visible_organization',
-  ].includes(call.name)) {
+  ].includes(call.name) || isHeRaWorkforceToolName(call.name)) {
     return dispatchHeRaTool(context, call)
   }
   return executeHeRaTool(context, call)
