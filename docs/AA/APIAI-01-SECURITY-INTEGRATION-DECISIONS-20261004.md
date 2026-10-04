@@ -72,3 +72,13 @@ De kandidaat-RPC-wrappers en hun allowlistpayloads bestaan lokaal, maar de benod
 ## Besluitstatus en activeringsgrens
 
 Alle bovenstaande keuzes blijven **PROPOSAL / NOT APPROVED**. Opname in D0/PR #2 of PR #3, tests of dit addendum vormen geen goedkeuring. Een externe route blijft ongemount tot de benodigde Product-, Security-, Privacy- en Data-goedkeuringen formeel in ADR/FDR/contract zijn vastgelegd en provider-, RLS-, database- en runtimebewijs alle relevante negatieve cases dekt.
+
+## P-05 status update — Final Integration Wave, 2026-10-04
+
+The original P-05 text above records the design proposal before the local database candidate existed. This update supersedes its statements that no migration/RPC source exists; it does not convert P-05 into an approval.
+
+- A local draft migration now defines private limiter policy/client/bucket storage, authenticated limiter and audit RPCs, the narrowly constrained nullable-entity `api_resource`/`READ` audit contract, and scoped audit policies. Default resource quota rows are disabled.
+- The first-request bucket initialization and same-actor administration validation were corrected after independent review. The migration contract test passes 3/3; the pgTAP source declares 36 assertions, including capacity-1 first-use and a cross-administration audit denial.
+- The migration and pgTAP SQL have not run against local PostgreSQL. There is no RLS/grant/audit readback, concurrency result, advisor result or generated-type result. No remote apply occurred.
+- **Open audit-integrity decision:** the authenticated caller still supplies outcome, HTTP status and correlation ID to `record_api_read_audit`. The database scope checks do not prove a resource read occurred. Before mounting any route, Product/Security/Data must approve the provenance model or require a route-only trusted write path; add a negative direct-RPC test for forged ALLOWED and correlation values.
+- Quota/burst values, 429/503 behavior, `audit_logs` as source, nullable `entity_id`, retention, audit-reader HR-group policy, request/correlation-ID semantics and caller provenance still require the owners listed below to approve.
