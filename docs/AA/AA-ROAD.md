@@ -118,7 +118,7 @@ De inmiddels gekozen richting is **niet** een aparte kopie van LiquidHR of een z
 - immutable input snapshots + rule- en engineversies voor herleidbaarheid;
 - aanvankelijk handmatige source-sync/recalculate, pas later events/outbox.
 
-Bestaand lokaal bewijs: PAYLAB02 synthetic M0 GREEN en PAYLAB03 beperkte NL-2026 reguliere maandcase GREEN; de Payroll-code is nog **niet** in de canonieke `main` geïntegreerd. Verdere PAYLAB04-componentcatalogus en cao-/benchmarkvoorstellen zijn details in `AA-NEXT`; geen algemene NL-payrollcomplianceclaim.
+Bestaande PAYLAB00–04-foundation is op gecontroleerde remote `main` `6349d025...` geïntegreerd als app `1.20261002.1`. PAYLAB02 synthetic M0 en PAYLAB03 beperkte NL-2026-reguliere maandcase hebben afgebakend bewijs; dit betekent **geen algemene NL-payrollcompliance**. Volgens een latere lokale overdracht is CAO-BENCH02 inmiddels technisch grotendeels gebouwd met zeven persistente benchmarks, maar de echte admin-isolatiegate is nog OPEN en de lokale feature is geen geaccepteerde `main`-release. De actuele volgorde en specifiek te heropenen bewijsstukken staan in AA-NEXT en AA-OPEN.
 
 **Parallelisering:** engine en geïsoleerde Lab-database mogelijk onafhankelijk ontwikkelen; shared Control-/Core-/IKV-contracten en migrations alleen na expliciete dependencycheck/integratie. Geen blinde merge van payrollworktrees of migrationlineage.
 
