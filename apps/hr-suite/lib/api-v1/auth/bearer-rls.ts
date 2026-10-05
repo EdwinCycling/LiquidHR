@@ -493,7 +493,12 @@ export function createSupabaseBearerRlsClient(input: SupabaseBearerClientConfig 
     if (jwt !== undefined && jwt !== input.accessToken) {
       throw new DelegatedAuthError('RLS_CLIENT_INVALID')
     }
-    return getClaims(input.accessToken, options)
+    // Een handler mag de requestbinding niet verzwakken met een eigen JWKS,
+    // token of allowExpired-optie. De providerverifier blijft verantwoordelijk
+    // voor actuele expiry/revocation; deze client accepteert alleen de exacte
+    // bearer waarmee hij is opgebouwd.
+    if (options !== undefined) throw new DelegatedAuthError('RLS_CLIENT_INVALID')
+    return getClaims(input.accessToken)
   }) as typeof client.auth.getClaims
 
   return client
@@ -508,7 +513,13 @@ export function createSupabaseBearerRlsClient(input: SupabaseBearerClientConfig 
 export function createSupabaseBearerRlsBinding(
   input: SupabaseBearerRlsBindingInput,
 ): DelegatedBearerRlsClient<SupabaseBearerRlsClient> {
-  if (!isNonEmptyText(input.supabaseUserId) || input.supabaseUserId !== input.account.userId) {
+  if (
+    !isNonEmptyText(input.identity?.issuer)
+    || !isNonEmptyText(input.identity?.subject)
+    || !isNonEmptyText(input.supabaseUserId)
+    || !isNonEmptyText(input.account?.userId)
+    || input.supabaseUserId !== input.account?.userId
+  ) {
     throw new DelegatedAuthError('RLS_SUBJECT_MISMATCH')
   }
 

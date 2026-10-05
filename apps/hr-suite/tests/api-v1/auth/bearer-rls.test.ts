@@ -102,6 +102,18 @@ describe('Supabase bearer RLS client', () => {
     )
   })
 
+  it('rejects caller-controlled claims verification options at the branded Auth client boundary', async () => {
+    const client = createSupabaseBearerRlsClient({
+      supabaseUrl: 'https://project.supabase.co',
+      publishableKey: 'publishable-test-key',
+      accessToken,
+    })
+
+    await expect(client.auth.getClaims(undefined, { allowExpired: true })).rejects.toThrowError(
+      expect.objectContaining({ code: 'RLS_CLIENT_INVALID', status: 500 }),
+    )
+  })
+
   it('rejects a Supabase subject that is not the linked LiquidHR auth user', () => {
     expect(() => createSupabaseBearerRlsBinding({
       supabaseUrl: 'https://project.supabase.co',
@@ -109,6 +121,26 @@ describe('Supabase bearer RLS client', () => {
       accessToken,
       supabaseUserId: 'different-user',
       identity,
+      account,
+    })).toThrowError(expect.objectContaining({ code: 'RLS_SUBJECT_MISMATCH', status: 401 }))
+  })
+
+  it('rejects a binding without a stable external issuer and subject', () => {
+    expect(() => createSupabaseBearerRlsBinding({
+      supabaseUrl: 'https://project.supabase.co',
+      publishableKey: 'publishable-test-key',
+      accessToken,
+      supabaseUserId: account.userId,
+      identity: { issuer: '', subject: identity.subject },
+      account,
+    })).toThrowError(expect.objectContaining({ code: 'RLS_SUBJECT_MISMATCH', status: 401 }))
+
+    expect(() => createSupabaseBearerRlsBinding({
+      supabaseUrl: 'https://project.supabase.co',
+      publishableKey: 'publishable-test-key',
+      accessToken,
+      supabaseUserId: account.userId,
+      identity: { issuer: identity.issuer, subject: ' ' },
       account,
     })).toThrowError(expect.objectContaining({ code: 'RLS_SUBJECT_MISMATCH', status: 401 }))
   })

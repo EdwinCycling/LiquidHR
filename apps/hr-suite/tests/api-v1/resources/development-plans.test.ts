@@ -12,8 +12,8 @@ import type { TalentSelfDevelopmentPlan } from '@/lib/talent/goal-service'
 import { ApiResourceProjectionError } from '@/lib/api-v1/resources/projections'
 import { readSelfDevelopmentPlans } from '@/lib/api-v1/resources/development-plans'
 
-const context = (employeeId: string | null): AuthContext => ({
-  tenantId: 'tenant-id',
+const context = (employeeId: string | null, tenantId = 'tenant-id'): AuthContext => ({
+  tenantId,
   hrGroupId: 'hr-group-id',
   administrationId: 'administration-id',
   userId: 'user-id',
@@ -76,6 +76,13 @@ describe('APIAI-01 self development-plan adapter', () => {
 
   it('fails closed before querying when the current employee context is blank', async () => {
     await expect(readSelfDevelopmentPlans({ authContext: context('   '), rls })).rejects.toMatchObject({
+      code: 'SELF_CONTEXT_REQUIRED',
+    })
+    expect(listSelfDevelopmentPlans).not.toHaveBeenCalled()
+  })
+
+  it('fails closed before querying when the current tenant context is blank', async () => {
+    await expect(readSelfDevelopmentPlans({ authContext: context('employee-id', '   '), rls })).rejects.toMatchObject({
       code: 'SELF_CONTEXT_REQUIRED',
     })
     expect(listSelfDevelopmentPlans).not.toHaveBeenCalled()
