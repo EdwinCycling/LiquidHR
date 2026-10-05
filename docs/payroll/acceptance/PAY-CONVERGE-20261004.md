@@ -64,7 +64,7 @@ AA-REL §8 laat een beperkte synthetische TEST-release alleen toe na alle lokale
 
 ## PAY-RELEASE-01 voortzetting — 2026-10-05
 
-**Status vóór definitieve guarded build: kandidaat behouden; releasebesluit HOLD.** Remote `main` blijft `6349d02538351cd01fc51f298c6e6fa0ba88006c`; de bestaande Vercel-productiondeployment is READY op die baseline. Er is geen kandidaat-deployment of Preview-deployment. Er is niet gepusht, gemerged, gedeployed, geversion-bumpt of op een database geschreven.
+**Status: definitieve lokale codegates PASS; releasebesluit HOLD tot expliciet akkoord en hosted bewijs.** Remote `main` blijft `6349d02538351cd01fc51f298c6e6fa0ba88006c`; de bestaande Vercel-productiondeployment is READY op die baseline. Er is geen kandidaat-deployment of Preview-deployment. Er is niet gepusht, gemerged, gedeployed, geversion-bumpt of op een database geschreven.
 
 ### Aanvullende lokale gates
 
@@ -76,6 +76,8 @@ AA-REL §8 laat een beperkte synthetische TEST-release alleen toe na alle lokale
   - K2-run `4f5e6cc0-f12a-45c2-9be5-6ff61d1cb064`: bruto `1911.735632183908045976` (weergave € 1.911,74), arrangement/regels `2026.09`; gegenereerde SHA-256 `ed64b1924c949cb984522220fdb74ed651bc8c5b2b323c10aa61c14012a3ae8c`.
 - Deze PDF-proef bewijst de directe renderer met historische pack-inputs; zij roept de geauthenticeerde API-route niet aan en bewijst geen serverless-Chromium- of hosted PDF-runtime.
 - Read-only migratieledgercontrole bevestigde de zeven reeds geregistreerde Payroll Lab-migraties: twee baselineversies (`20260930125822`, `20261001155314`) plus de vijf PAYLAB05/06-migraties (`20261003122457`, `20261003122705`, `20261003124346`, `20261003171547`, `20261003174936`). Er is niets toegepast of herschreven. De bron van `20261003130000` was na toepassing op de oorspronkelijke lege fixture gehard; die migratie is niet opnieuw uitgevoerd.
+- De guarded productiebuild slaagde op kandidaatcommit `0f792665be6fb46ebcc4f3ebe7dc19bf1aba2618`: 309/309 pagina's, TypeScript-build, client-boundary negatieve controle en scan van 152 browserassets; buildprovenance is geschreven voor exact die SHA. Lokale Production-smoke op `127.0.0.1:3011` gaf `/login` 200, `/payroll-lab` 307 naar login, valide anonieme K1-validation-pack 401 zonder run-ID in de response, Test Auth en rolwissel POST beide 404 (`TEST_LOGIN_DISABLED` / `TEST_ROLE_SWITCH_DISABLED`) en `/api/test-capture` 404. De door ons gestarte listener is daarna gestopt; poort 3011 is vrij.
+- Dit is uitsluitend lokale runtime-evidence met de centrale TEST-config. Het is geen hosted safety smoke, persona-/tenantbewijs, Vercel-serverless-PDF-proef of bewijs dat Test Auth op de hosted omgeving ontoegankelijk is.
 
 ### TEST-HARNESS01 en integratiekeuze
 
@@ -88,6 +90,6 @@ Integratie is uitgesteld naar de eerste PAYLAB05-voorbereiding. De precieze bran
 - `SEC-PAY-001`, `PAY-RULE-002`, `PAY-COVER-003`, `PAY-CORE-004` en de overige niet-relevante platform-openpunten blijven zichtbaar in AA-OPEN; geen volledige ACCEPTANCE GREEN-claim.
 - `ENV-PREVIEW-010` blijft OPEN: er is geen geïsoleerde Preview-deployment en de benodigde Payroll Preview-configuratie ontbreekt. AA-REL §6 blokkeert daarmee de nieuwe PR-Preview-gate; §8 biedt alleen ruimte voor een bewust beperkte synthetische TEST-release na expliciet besluit en alle daar genoemde eisen. Edwin moet de ontbrekende Preview voor deze kandidaat dus uitdrukkelijk als beperkte TEST-uitzondering accepteren.
 - Een hosted kandidaatdeployment, canonical-alias/SHA-readback en hosted safety smoke ontbreken. Na een expliciet GO voor de releaseacties blijft de hosted smoke een harde voltooiingsgate; verifieer daarop expliciet dat Test Auth en rolwissel niet bereikbaar zijn en dat TEST_CAPTURE niet publiek is.
-- Nog uit te voeren vóór het finale verzoek om GO: schone guarded productiebuild en anonieme lokale Production-smoke op de uiteindelijke voorbereidingscommit. Appversie blijft voorlopig `1.20261002.1`; voorgestelde volgende versie na GO is `1.20261005.1`.
+- Lokale releasegates zijn afgerond op codecommit `0f792665be6fb46ebcc4f3ebe7dc19bf1aba2618`; documentatie legt de bewijsupdate vast zonder app-/packagewijzigingen. Appversie blijft voorlopig `1.20261002.1`; voorgestelde volgende versie na GO is `1.20261005.1`.
 
 **Advies blijft HOLD tot die lokale eindgates slagen en Edwin expliciet akkoord geeft met (a) beperkte synthetische TEST met open punten, (b) Preview-uitzondering voor deze kandidaat, (c) één version-only verhoging en (d) gecontroleerde merge/push naar `main` met de bestaande Vercel-gitflow.** Zonder dat akkoord blijven `main`, Vercel en de appversie ongemoeid.

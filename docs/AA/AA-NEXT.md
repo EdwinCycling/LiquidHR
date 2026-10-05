@@ -1,17 +1,19 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-04
+Bijgewerkt: 2026-10-05
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
 
-## CURRENT — PAY-CONVERGE lokale kandidaat
+## CURRENT — PAY-RELEASE-01 besluit en PAY-CONVERGE-kandidaat
 
 CAO-BENCH02 is geïntegreerd in integration/pay-converge-20261004 vanaf exact main 6349d025. De volledige lokale codegates slaagden; de kandidaat blijft PARTIAL/HOLD door SEC-PAY-001 en ontbrekende kandidaatgebonden hosted/Preview-evidence. Start geen nieuwe Payroll-feature voor dezelfde slice.
 
-- Volgende releaseactie: alleen na expliciete inrichting van de gescheiden synthetic Preview-backends en Payroll Preview-variabelen, een exact-SHA hosted READY/safety smoke en Edwins afzonderlijke besluit over een beperkte synthetische TEST-release volgens AA-REL §8.
+- PAY-RELEASE-01 lokale codegates, guarded build, PDF-rendering en anonieme lokale Production-smoke zijn PASS; hosted kandidaatbewijs ontbreekt. Er is nog geen merge, push, deployment of versiebumpt; zie het [PAY-RELEASE-01-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md).
+- De normale AA-REL §6 PR-route vereist een isolated synthetic Preview met eigen Preview-scoped backends/configuratie. Preview ontbreekt. Voor uitsluitend deze synthetische TEST-release kan Edwin desgewenst de beperkte AA-REL §8-route met OPEN-punten en Preview-uitzondering expliciet goedkeuren; die uitzondering is niet vooraf gegeven.
+- Als Edwin akkoord geeft, volgen de beschreven version-only bump, gecontroleerde main-merge/push en bestaande Vercel-flow; daarna moeten exacte SHA, READY/canonical alias en hosted safety smoke slagen. Verifieer hosted Test Auth en rolwissel ontoegankelijk en TEST_CAPTURE niet publiek. Zonder expliciet besluit blijft de kandidaat HOLD.
 - SEC-PAY-001 sluit pas na een goedgekeurde bestaande TEST-provisioningroute en de echte Mars-only → Jupiter serverweigering. PAY-RULE-002 blijft een voorwaarde voor wettelijke of fiscale nauwkeurigheidsclaims.
-- Volledig lokaal bewijs en het HOLD-advies: [PAY-CONVERGE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md). Geen push, merge, deployment of version bump is uitgevoerd.
+- TEST-HARNESS01 is lokaal geaccepteerd op een afzonderlijke branch; de exacte auth/context-/runnerdelta wordt niet in de huidige release ingemengd. Harnessintegratie is de eerste PAYLAB05-voorbereiding; geen afzonderlijke nieuwe harnessontwikkeling.
 
 ## Historische handoff — CAO-BENCH02 Phase 1 Arrangement Foundation
 

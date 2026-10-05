@@ -2,15 +2,16 @@
 
 ## PAY-RELEASE-01 — 2026-10-05
 
-**Status: lokale codegates PASS; finale guarded build/lokale safety-smoke nog uit te voeren; releasebesluit HOLD tot expliciete goedkeuring.** Kandidaatbranch `integration/pay-converge-20261004` blijft vanaf live geverifieerde `main` `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Appversie is nog `1.20261002.1`; voorgestelde volgende versie na akkoord is `1.20261005.1`.
+**Status: lokale codegates en guarded productiebuild PASS; releasebesluit HOLD tot expliciete goedkeuring en hosted bewijs.** Kandidaatbranch `integration/pay-converge-20261004` blijft vanaf live geverifieerde `main` `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Productiebuildprovenance is exact kandidaatcodecommit `0f792665be6fb46ebcc4f3ebe7dc19bf1aba2618`. Appversie is nog `1.20261002.1`; voorgestelde volgende versie na akkoord is `1.20261005.1`.
 
 - Onder Node 24.19.0 slaagden de volledige HR-suite (523 bestanden, 2.195 tests, 3 overgeslagen), beide strict TypeScript-checks, i18n (41 namespaces) en ESLint (0 fouten, 6 bestaande warnings). De server-only-boundarytest gebruikt voor alleen de scan een timeout van 60 seconden; alle assertions zijn gelijk gebleven.
+- Guarded productiebuild op codecommit `0f792665` slaagde: 309/309 pagina's en client-boundaryscan 152 assets. Lokale anonieme Production-smoke op poort 3011: login 200; Payroll Lab redirect 307; valide K1-export 401 zonder run-ID; Test Auth en rolwissel 404 disabled; TEST_CAPTURE-route 404. Eigen server gestopt en poort vrij.
 - K1/K2-PDF's zijn opnieuw gegenereerd via de directe productrenderer op de geaccepteerde JSON-runs. Beide zijn 13 pagina's en hun geëxtraheerde inhoud stemt exact overeen met de opgeslagen PDF's. Dit bewijst niet de geauthenticeerde API-route of hosted runtime.
 - Payrolldatabase-migratieledger is read-only gecontroleerd; alle zeven verwachte versies zijn al geregistreerd. Geen migratie/write uitgevoerd. Zie het [PAY-CONVERGE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md) voor run- en runtimegrenzen.
 - TEST-HARNESS01 is als zelfstandige lokale harness geaccepteerd (6/6 desktop/iPhone 16). De opgeloste 403 is niet opnieuw onderzocht. De branch bevat gedeelde auth/context-code en een omvangrijke lokale runner; integratie is daarom de eerste PAYLAB05-voorbereiding. QA-HARNESS-005 registreert integratie en hosted Test Auth-controle OPEN.
 - Vercel heeft geen Preview-deployment of Payroll Preview-configuratie; geen kandidaat-SHA is hosted. AA-REL §8 vraagt een expliciete beperkte-TEST-/Preview-uitzonderingsbeslissing. Na goedgekeurde deployment moeten READY, canonical alias, SHA-provenance en hosted veiligheidscontrole slagen, inclusief Test Auth ontoegankelijk en TEST_CAPTURE niet publiek.
 
-Geen push, merge, deployment, versiebumpt, migratietoepassing of auth-provisioning uitgevoerd. Vóór het definitieve expliciete GO-verzoek moeten de schone guarded build en lokale anonieme Production-smoke slagen.
+Geen push, merge, deployment, versiebumpt, migratietoepassing of auth-provisioning uitgevoerd. Hosted READY/SHA/canonical-alias en hosted safety smoke blijven na een expliciet GO en deployment vereist; de lokale 404's bewijzen de hosted toestand niet.
 
 ## PAY-CONVERGE — 2026-10-04
 

@@ -1,7 +1,19 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-04
+Momentopname: 2026-10-05
+
+## PAY-RELEASE-01 — pre-releasekandidaat — 2026-10-05
+
+**Status: lokale codegates PASS; CAO-acceptatie PARTIAL; releasebesluit HOLD tot expliciet akkoord en hosted bewijs.** `integration/pay-converge-20261004` blijft gebaseerd op live geverifieerde main `6349d02538351cd01fc51f298c6e6fa0ba88006c`; appversie is `1.20261002.1`. Appcodecommit `0f792665be6fb46ebcc4f3ebe7dc19bf1aba2618` is volledig getest en guarded gebouwd onder Node 24.19.0.
+
+- HR-suite 523 testbestanden / 2.195 geslaagde tests / 3 overgeslagen; beide TypeScript-checks, ESLint (0 fouten, 6 bestaande warnings), i18n (41 namespaces), build 309/309 pagina's en Payroll client-boundaryscan 152 assets zijn PASS.
+- Directe K1/K2-PDF-render onder Node 24 leverde 13 pagina's per run; geëxtraheerde tekst stemt exact overeen met de opgeslagen PDF's. Dit bewijst niet de API-route of hosted PDF-runtime.
+- Lokale anonieme Production-smoke: `/login` 200, `/payroll-lab` redirect naar login, geldige anonieme K1-validation-pack 401 zonder run-ID, Test Auth/rolwissel 404 disabled, `/api/test-capture` 404. Hosted veiligheidsbewijs ontbreekt nog.
+- De migratieledger is read-only bevestigd op zeven reeds toegepaste Payroll Lab-versies; er is niets toegepast of herschreven. Zie het [PAY-CONVERGE/PAY-RELEASE-01-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md) voor exacte versies en grenzen.
+- TEST-HARNESS01 is zelfstandig lokaal geaccepteerd op branch `work/test-harness01-20261004`, commit `dfb752e`, HEAD `f0ca2e2`, 6/6 browsercombinaties. Integratie is uitgesteld naar eerste PAYLAB05-voorbereiding; QA-HARNESS-005 houdt integratie en hosted Test Auth-controle OPEN.
+
+Er is geen Preview- of kandidaatdeployment. De beperkte synthetische TEST-route van AA-REL §8 vereist Edwins expliciete aanvaarding van de Preview-uitzondering en open acceptance. Geen merge, push, deployment, version bump, remote migration of auth-provisioning uitgevoerd. Hosted READY, alias/SHA en veiligheidscontrole zijn na geautoriseerde deployment nog verplicht.
 
 ## PAY-CONVERGE — lokale integratiekandidaat — 2026-10-04
 
