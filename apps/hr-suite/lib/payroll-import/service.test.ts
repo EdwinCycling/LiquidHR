@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { PayrollImportAnalysis } from './model'
 import { createEmployment } from '@/lib/employment/employment-service'
-import { analyzePayrollImport, finalizePayrollImport, stagePayrollImport } from './service'
+import { analyzePayrollImport, finalizePayrollImport, listRecoverablePayrollImports, stagePayrollImport } from './service'
 
 const mocks = vi.hoisted(() => {
   class MockEmploymentServiceError extends Error {
@@ -39,9 +39,17 @@ vi.mock('@/lib/employment/employment-number', () => ({ nextAvailableEmploymentNu
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: mocks.createAdminClient }))
 
 type DbRow = Record<string, unknown>
-type DbState = { tables: Record<string, DbRow[]>; nextId: number }
-type QueryResult = { data: DbRow[] | null; error: null }
-type Filter = { column: string; kind: 'eq' | 'in' | 'is' | 'lte'; value: unknown }
+type QueryError = { code: string; message: string }
+type DbState = {
+  tables: Record<string, DbRow[]>
+  nextId: number
+  simulateBatchInsertConflict: boolean
+  simulateEmployeeMarkerUpdateFailure: boolean
+  simulateCompletionAuditFailure: boolean
+  simulateStagedAuditReadFailure: boolean
+}
+type QueryResult = { data: DbRow[] | null; error: QueryError | null }
+type Filter = { column: string; kind: 'eq' | 'in' | 'is' | 'lte' | 'not'; value: unknown }
 let employeeMatchRpcCalls = 0
 let employeeCandidateSelectCalls = 0
 
@@ -56,6 +64,7 @@ class MemoryQuery {
   eq(column: string, value: unknown): this { this.filters.push({ column, kind: 'eq', value }); return this }
   in(column: string, value: readonly unknown[]): this { this.filters.push({ column, kind: 'in', value }); return this }
   is(column: string, value: unknown): this { this.filters.push({ column, kind: 'is', value }); return this }
+  not(column: string, _operator: string, value: unknown): this { this.filters.push({ column, kind: 'not', value }); return this }
   lte(column: string, value: unknown): this { this.filters.push({ column, kind: 'lte', value }); return this }
   or(_expression: string): this { return this }
   order(_column: string, _options?: { ascending?: boolean }): this { return this }
@@ -63,11 +72,12 @@ class MemoryQuery {
   insert(payload: DbRow | DbRow[]): this { this.operation = 'insert'; this.payload = payload; return this }
   update(payload: DbRow): this { this.operation = 'update'; this.payload = payload; return this }
 
-  maybeSingle(): Promise<{ data: DbRow | null; error: null }> {
-    return Promise.resolve({ data: this.execute().data?.[0] ?? null, error: null })
+  maybeSingle(): Promise<{ data: DbRow | null; error: QueryError | null }> {
+    const result = this.execute()
+    return Promise.resolve({ data: result.data?.[0] ?? null, error: result.error })
   }
 
-  single(): Promise<{ data: DbRow | null; error: null }> {
+  single(): Promise<{ data: DbRow | null; error: QueryError | null }> {
     return this.maybeSingle()
   }
 
@@ -82,6 +92,23 @@ class MemoryQuery {
     const rows = this.state.tables[this.table] ?? (this.state.tables[this.table] = [])
     if (this.operation === 'insert') {
       const inputRows = Array.isArray(this.payload) ? this.payload : this.payload ? [this.payload] : []
+      if (this.table === 'payroll_import_batches' && state.simulateBatchInsertConflict) {
+        this.state.simulateBatchInsertConflict = false
+        const raced = inputRows.map((input) => ({ ...input, id: 'raced-batch' }))
+        rows.push(...raced)
+        return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } }
+      }
+      if (this.table === 'audit_logs' && this.state.simulateCompletionAuditFailure) {
+        const hasCompletionAudit = inputRows.some((input) => {
+          const changes = input.changes
+          if (typeof changes !== 'object' || changes === null || Array.isArray(changes)) return false
+          return (changes as Record<string, unknown>).operation === 'FINALIZE'
+        })
+        if (hasCompletionAudit) {
+          this.state.simulateCompletionAuditFailure = false
+          return { data: null, error: { code: 'AUDIT_UNAVAILABLE', message: 'audit sink unavailable' } }
+        }
+      }
       const inserted = inputRows.map((input) => {
         const row = { ...input }
         if (typeof row.id !== 'string') row.id = `${this.table}-${this.state.nextId++}`
@@ -91,14 +118,26 @@ class MemoryQuery {
       return { data: inserted.map((row) => ({ ...row })), error: null }
     }
 
+    if (this.table === 'audit_logs' && this.state.simulateStagedAuditReadFailure) {
+      this.state.simulateStagedAuditReadFailure = false
+      return { data: null, error: { code: 'AUDIT_READ_UNAVAILABLE', message: 'audit readback unavailable' } }
+    }
+
     const matches = rows.filter((row) => this.filters.every((filter) => {
       const value = row[filter.column]
       if (filter.kind === 'in') return Array.isArray(filter.value) && filter.value.includes(value)
       if (filter.kind === 'lte') return typeof value === 'string' && typeof filter.value === 'string' && value <= filter.value
+      if (filter.kind === 'not') return value !== filter.value
       return value === filter.value
     }))
 
     if (this.operation === 'update' && this.payload) {
+      if (this.table === 'payroll_import_persons'
+        && this.state.simulateEmployeeMarkerUpdateFailure
+        && Object.prototype.hasOwnProperty.call(this.payload, 'matched_employee_id')) {
+        this.state.simulateEmployeeMarkerUpdateFailure = false
+        return { data: null, error: { code: 'STAGING_MARKER_UNAVAILABLE', message: 'employee marker update failed' } }
+      }
       for (const row of matches) Object.assign(row, this.payload)
     }
     return { data: matches.map((row) => ({ ...row })), error: null }
@@ -110,6 +149,10 @@ let state: DbState
 function createState(): DbState {
   return {
     nextId: 1,
+    simulateBatchInsertConflict: false,
+    simulateEmployeeMarkerUpdateFailure: false,
+    simulateCompletionAuditFailure: false,
+    simulateStagedAuditReadFailure: false,
     tables: {
       administration_payroll_tax_numbers: [{
         tenant_id: 'tenant-1',
@@ -130,6 +173,7 @@ function createState(): DbState {
       employments: [],
       income_relationships: [],
       employment_income_relationships: [],
+      audit_logs: [],
     },
   }
 }
@@ -343,7 +387,65 @@ describe('payroll import staging and finalization', () => {
     expect(state.tables.employee_administration_assignments).toHaveLength(0)
     expect(state.tables.income_relationships).toHaveLength(0)
     expect(JSON.stringify(state.tables.payroll_import_persons)).not.toContain(rawMarker)
+    expect(state.tables.audit_logs).toHaveLength(1)
+    expect(state.tables.audit_logs[0]).toMatchObject({ entity_name: 'payroll_import_batch', action: 'CREATE' })
+    expect(JSON.stringify(state.tables.audit_logs)).not.toContain(rawMarker)
+    expect(mocks.createAdminClient).toHaveBeenCalledTimes(2)
+  })
+
+  it('geeft geen bestaande stagingbatch terug zonder duurzame CREATE/STAGE-audit', async () => {
+    const analysis = makeAnalysis({ status: 'NEW' }, { incomeCount: 1 })
+    const batchId = await stageFixture(analysis)
+    state.tables.audit_logs.pop()
+
+    await expect(stagePayrollImport({ analysis, taxYear: 2026, administrationId: 'admin-1' }))
+      .rejects.toMatchObject({ code: 'PAYROLL_IMPORT_AUDIT_FAILED', status: 500 })
+    expect(state.tables.payroll_import_batches).toHaveLength(1)
+    expect(state.tables.payroll_import_batches[0]?.id).toBe(batchId)
+  })
+
+  it('faalt gesloten bij een fout tijdens de CREATE/STAGE-audit-readback', async () => {
+    const analysis = makeAnalysis({ status: 'NEW' }, { incomeCount: 1 })
+    const batchId = await stageFixture(analysis)
+    state.simulateStagedAuditReadFailure = true
+
+    await expect(stagePayrollImport({ analysis, taxYear: 2026, administrationId: 'admin-1' }))
+      .rejects.toMatchObject({ code: 'PAYROLL_IMPORT_AUDIT_FAILED', status: 500 })
+    expect(state.tables.payroll_import_batches).toHaveLength(1)
+    expect(state.tables.payroll_import_batches[0]?.id).toBe(batchId)
+  })
+
+  it('blokkeert een concurrerende maar nog lege staging-insert en herhaalt dezelfde 409', async () => {
+    state.simulateBatchInsertConflict = true
+
+    await expect(stageFixture()).rejects.toMatchObject({ code: 'PAYROLL_IMPORT_BATCH_IN_PROGRESS', status: 409 })
+    await expect(stageFixture()).rejects.toMatchObject({ code: 'PAYROLL_IMPORT_BATCH_IN_PROGRESS', status: 409 })
+
+    expect(state.tables.payroll_import_batches).toHaveLength(1)
+    expect(state.tables.payroll_import_persons).toHaveLength(0)
     expect(mocks.createAdminClient).toHaveBeenCalledOnce()
+  })
+
+  it('blokkeert een bestaande batch met ontbrekende inkomensrijen bij iedere idempotente lookup', async () => {
+    const analysis = makeAnalysis({ status: 'NEW' }, { incomeCount: 2 })
+    await stageFixture(analysis)
+    state.tables.payroll_import_income_relationships.pop()
+
+    const request = { analysis, taxYear: 2026, administrationId: 'admin-1' }
+    await expect(stagePayrollImport(request)).rejects.toMatchObject({ code: 'PAYROLL_IMPORT_BATCH_IN_PROGRESS', status: 409 })
+    await expect(stagePayrollImport(request)).rejects.toMatchObject({ code: 'PAYROLL_IMPORT_BATCH_IN_PROGRESS', status: 409 })
+    expect(state.tables.payroll_import_batches).toHaveLength(1)
+    expect(state.tables.payroll_import_persons).toHaveLength(1)
+    expect(state.tables.payroll_import_income_relationships).toHaveLength(1)
+  })
+
+  it('blokkeert hergebruik van een idempotency-key met een andere bronperiode', async () => {
+    await stageFixture()
+
+    await expect(stagePayrollImport({ analysis: makeAnalysis(), taxYear: 2026, periodStart: '2026-01-01', administrationId: 'admin-1' }))
+      .rejects.toMatchObject({ code: 'PAYROLL_IMPORT_IDEMPOTENCY_CONFLICT', status: 409 })
+    expect(state.tables.payroll_import_batches).toHaveLength(1)
+    expect(state.tables.payroll_import_persons).toHaveLength(1)
   })
 
   it('maakt voor een nieuwe persoon één employee, één draft employment en verwerkt alle IKV’s', async () => {
@@ -363,6 +465,7 @@ describe('payroll import staging and finalization', () => {
     expect(state.tables.payroll_import_income_relationships.filter((row) => row.status === 'IMPORTED')).toHaveLength(2)
     expect(state.tables.payroll_import_persons[0]?.validation_codes).toEqual(expect.arrayContaining(['EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING']))
     expect(state.tables.payroll_import_batches[0]?.status).toBe('COMPLETED_WITH_WARNINGS')
+    expect(state.tables.audit_logs.map((row) => row.action)).toEqual(['CREATE', 'UPDATE', 'UPDATE'])
     expect(mocks.createEmployee).toHaveBeenCalledOnce()
     expect(mocks.createAdminClient).toHaveBeenCalledTimes(2)
   })
@@ -391,6 +494,95 @@ describe('payroll import staging and finalization', () => {
     expect(state.tables.employees).toHaveLength(1)
     expect(state.tables.employments).toHaveLength(1)
     expect(state.tables.employments[0]?.employee_id).toBe('employee-existing')
+  })
+
+  it('toont recovery voor een employment die alleen in een andere administratie staat', async () => {
+    const batchId = await stageFixture(makeAnalysis({ status: 'EXACT', employeeId: 'employee-existing' }, { incomeCount: 1 }))
+    linkExistingEmployee('employee-existing')
+    const person = state.tables.payroll_import_persons[0]
+    if (!person) throw new Error('test fixture was not staged')
+    state.tables.employments.push({
+      id: 'employment-other-administration',
+      tenant_id: 'tenant-1',
+      hr_group_id: 'group-1',
+      administration_id: 'admin-2',
+      payroll_import_person_id: person.id,
+      record_status: 'DRAFT',
+    })
+
+    const recoverable = await listRecoverablePayrollImports('admin-1')
+
+    expect(recoverable).toHaveLength(1)
+    expect(recoverable[0]?.batchId).toBe(batchId)
+    expect(recoverable[0]?.rows[0]).toMatchObject({ rowNumber: 1, missingEmployment: true, pendingIncomeCount: 0 })
+  })
+
+  it('kan na een complete domain-write een FAILED batchstatus veilig afronden', async () => {
+    const batchId = await stageFixture(makeAnalysis({ status: 'EXACT', employeeId: 'employee-existing' }, { incomeCount: 1 }))
+    linkExistingEmployee('employee-existing')
+    const person = state.tables.payroll_import_persons[0]
+    if (!person) throw new Error('test fixture was not staged')
+    state.tables.employments.push({
+      id: 'employment-existing',
+      tenant_id: 'tenant-1',
+      hr_group_id: 'group-1',
+      administration_id: 'admin-1',
+      payroll_import_person_id: person.id,
+      employment_number: 'EMP-EXISTING',
+      record_status: 'CONFIRMED',
+    })
+
+    const result = await finalizePayrollImport({ batchId, administrationId: 'admin-1', selectedRowNumbers: [1] })
+
+    expect(result.employeesImported).toBe(0)
+    expect(result.employmentsCreated).toBe(0)
+    expect(result.incomeRelationshipsImported).toBe(0)
+    expect(state.tables.payroll_import_batches[0]?.status).toBe('COMPLETED')
+  })
+
+  it('toont een FAILED rij zonder employee-marker maar blokkeert een onveilige retry', async () => {
+    const batchId = await stageFixture(makeAnalysis({ status: 'NEW' }, { incomeCount: 1 }))
+    state.simulateEmployeeMarkerUpdateFailure = true
+
+    await expect(finalizePayrollImport({ batchId, administrationId: 'admin-1', selectedRowNumbers: [1] }))
+      .rejects.toMatchObject({ code: 'PAYROLL_IMPORT_EMPLOYEE_CREATE_FAILED', status: 500 })
+    expect(state.tables.employees).toHaveLength(1)
+    expect(state.tables.payroll_import_persons[0]?.matched_employee_id).toBeNull()
+    expect(state.tables.payroll_import_batches[0]?.status).toBe('FAILED')
+
+    const recoverable = await listRecoverablePayrollImports('admin-1')
+    expect(recoverable[0]?.rows[0]).toMatchObject({ rowNumber: 1, missingEmployment: true })
+
+    await expect(finalizePayrollImport({ batchId, administrationId: 'admin-1', selectedRowNumbers: [1] }))
+      .rejects.toMatchObject({ code: 'PAYROLL_IMPORT_BATCH_NOT_FINALIZABLE', status: 409 })
+    expect(mocks.createEmployee).toHaveBeenCalledOnce()
+    expect(state.tables.employees).toHaveLength(1)
+  })
+
+  it('laat een finalisatie zonder duurzame completion-audit niet als COMPLETED eindigen', async () => {
+    const batchId = await stageFixture(makeAnalysis({ status: 'NEW' }, { incomeCount: 1 }))
+    state.simulateCompletionAuditFailure = true
+
+    await expect(finalizePayrollImport({ batchId, administrationId: 'admin-1', selectedRowNumbers: [1] }))
+      .rejects.toMatchObject({ code: 'PAYROLL_IMPORT_AUDIT_FAILED', status: 500 })
+
+    expect(state.tables.payroll_import_batches[0]?.status).toBe('FAILED')
+    expect(state.tables.audit_logs.map((row) => (row.changes as Record<string, unknown> | undefined)?.operation))
+      .not.toContain('FINALIZE')
+    expect(state.tables.audit_logs.map((row) => (row.changes as Record<string, unknown> | undefined)?.operation))
+      .toContain('FINALIZE_FAILED')
+  })
+
+  it('blokkeert herstel van COMPLETED_WITH_WARNINGS zonder durable employee-marker', async () => {
+    const batchId = await stageFixture(makeAnalysis({ status: 'NEW' }, { incomeCount: 1 }))
+    const batch = state.tables.payroll_import_batches[0]
+    if (!batch) throw new Error('test fixture was not staged')
+    batch.status = 'COMPLETED_WITH_WARNINGS'
+
+    await expect(finalizePayrollImport({ batchId, administrationId: 'admin-1', selectedRowNumbers: [1] }))
+      .rejects.toMatchObject({ code: 'PAYROLL_IMPORT_BATCH_NOT_FINALIZABLE', status: 409 })
+    expect(mocks.createEmployee).not.toHaveBeenCalled()
+    expect(state.tables.payroll_import_batches[0]?.status).toBe('COMPLETED_WITH_WARNINGS')
   })
 
   it('hervat na employee-creatie zonder employment en voorkomt duplicaten bij herhaalde retry', async () => {

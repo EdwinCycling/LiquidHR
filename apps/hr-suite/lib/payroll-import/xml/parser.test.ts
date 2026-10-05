@@ -36,7 +36,7 @@ describe('CONTROL02 officiële XML-bronparser', () => {
   })
 
   it('maakt een conflict expliciet wanneer dezelfde bronpersoon tegenstrijdige velden heeft', () => {
-    const altered = new TextDecoder().decode(fixture).replace('<SignNm>Voorbeeld</SignNm>\n            <Gebdat>', '<SignNm>Anders</SignNm>\n            <Gebdat>')
+    const altered = new TextDecoder().decode(fixture).replace(/<SignNm>Voorbeeld<\/SignNm>\r?\n\s*<Gebdat>/u, '<SignNm>Anders</SignNm>\n            <Gebdat>')
     const result = parseLoonaangifteXml({ bytes: bytes(altered), context: { identity } })
 
     expect(result.status).toBe('SUPPORTED_READ_ONLY')
@@ -119,7 +119,7 @@ describe('CONTROL02 officiële XML-bronparser', () => {
   })
 
   it('geeft malformed waarden door als blocking contractfout en vraagt beschermde identiteit', () => {
-    const malformedDate = new TextDecoder().decode(fixture).replace('<DatAanv>2026-01-01</DatAanv>\n          <PersNr>', '<DatAanv>2026-02-30</DatAanv>\n          <PersNr>')
+    const malformedDate = new TextDecoder().decode(fixture).replace(/<DatAanv>2026-01-01<\/DatAanv>\r?\n\s*<PersNr>/u, '<DatAanv>2026-02-30</DatAanv>\n          <PersNr>')
     const malformedResult = parseLoonaangifteXml({ bytes: bytes(malformedDate), context: { identity } })
     const unsafeIdentity = parseLoonaangifteXml({ bytes: fixture, context: { identity: { protectBsn: () => 'not-a-fingerprint' } } })
 

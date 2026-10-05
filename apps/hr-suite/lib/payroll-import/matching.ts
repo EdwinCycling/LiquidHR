@@ -16,8 +16,9 @@ export function matchPayrollPerson(
   person: CanonicalPayrollPerson,
   candidates: readonly ExistingPayrollEmployeeCandidate[],
 ): PayrollImportMatch {
-  const bsnMatches = person.bsnFingerprint
-    ? exactCandidates(candidates, (candidate) => candidate.bsnFingerprint === person.bsnFingerprint)
+  const bsnFingerprint = person.bsnFingerprint?.trim()
+  const bsnMatches = bsnFingerprint
+    ? exactCandidates(candidates, (candidate) => candidate.bsnFingerprint === bsnFingerprint)
     : []
   const employeeNumber = normalizeIdentityPart(person.externalEmployeeNumber)
   const employeeNumberMatches = employeeNumber
@@ -29,10 +30,12 @@ export function matchPayrollPerson(
   }
   const bsnMatch = bsnMatches[0]
   const employeeNumberMatch = employeeNumberMatches[0]
-  if (person.bsnFingerprint && !bsnMatch && employeeNumberMatch) {
-    return { status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' }
-  }
-  if (bsnMatch && employeeNumberMatch && bsnMatch.id !== employeeNumberMatch.id) {
+  const hasBsn = Boolean(bsnFingerprint)
+  const hasEmployeeNumber = Boolean(employeeNumber)
+  const hasConflictingStrongIdentifiers = hasBsn && hasEmployeeNumber
+    && (Boolean(bsnMatch) || Boolean(employeeNumberMatch))
+    && (!bsnMatch || !employeeNumberMatch || bsnMatch.id !== employeeNumberMatch.id)
+  if (hasConflictingStrongIdentifiers) {
     return { status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' }
   }
   if (bsnMatch) return { status: 'EXACT', employeeId: bsnMatch.id, reason: 'BSN_EXACT' }
@@ -43,7 +46,11 @@ export function matchPayrollPerson(
   if (person.birthName && person.birthDate) {
     const birthName = normalizeIdentityPart(person.birthName)
     const matches = exactCandidates(candidates, (candidate) => normalizeIdentityPart(candidate.birthName) === birthName && candidate.birthDate === person.birthDate)
-    if (matches.length === 1) return { status: 'PROPOSED', employeeId: matches[0].id, reason: 'NAME_BIRTH_DATE' }
+    if (matches.length === 1) {
+      return hasBsn || hasEmployeeNumber
+        ? { status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' }
+        : { status: 'PROPOSED', employeeId: matches[0].id, reason: 'NAME_BIRTH_DATE' }
+    }
     if (matches.length > 1) return { status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' }
   }
 

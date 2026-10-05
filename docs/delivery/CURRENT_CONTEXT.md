@@ -1,7 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## CONTROL02 — actuele voortgang — 2026-10-05
+
+- Huidige bouwbranch: `work/CONTROL02-FINAL-20261004`, lokaal checkpoint `495cd028f26dbd89df6d1482a45263f5a81022d4` plus deze afrondingsronde. De onafhankelijke Draft PR #4 blijft ongewijzigd als baseline voor de bestaande feature, scope-invariantmigratie en Core/Payroll-contractreview; er worden geen ownerthreads benaderd.
+- De finalization-slice bevat een deterministische 500-persoonsplanner, expliciete Employee/Employment/multi-IKV-keuzes, bron- en datumcontroles, stabiele idempotency, auditpayloads, herstelbare actieledger en een fail-closed executor. XML-finalisatie is niet activeerbaar. Het gedeelde contract blijft DRAFT en de goedgekeurde contractversielijst blijft leeg.
+- De beslisworkspace toont alleen tijdelijke browserkeuzes; een zichtbare waarschuwing meldt dat die niet worden opgeslagen of toegepast. Er is geen serverroute of readback naar de ledger. Ledgerfuncties gebruiken een service-role client en vertrouwen nog op de interne caller voor actor/scope; dat is een P1-activatievoorwaarde en er is geen route aan gekoppeld.
+- Kandidaatmigraties `20261004150133_control02_payroll_import_scope_invariants.sql` en `20261005100056_control02_payroll_finalization_ledger.sql` zijn lokaal, forward-only en niet toegepast. Database-advisors, typegeneratie en runtime-readback zijn daarom niet uitgevoerd. Exacte hashes en RLS-/triggergrenzen staan in het [acceptatierapport](../quality/acceptance/runs/CONTROL02-XML-20261003.md).
+- Gerichte test-/typecheck-/lint-/i18n-resultaten na deze afronding staan in het acceptatierapport. De onafhankelijke LUNA MAX-review vond geen P0 en bevestigde de fail-closed runtimegrenzen; duurzame serverauthenticatie blijft open. Geen browserretry is gedaan: desktop-/390px XML-acceptatie blijft op de bekende bestaande TEST-context/key-gates wachten.
+- Open AA-gates blijven uitsluitend `C02-ENV-012`, `C02-CTX-013`, `C02-SEC-014`, `C02-CORE-015`, `C02-ACC-016` en `C02-MIG-017`. De historische BSN-sleutel en Test HR Admin-context zijn niet opnieuw onderzocht. Geen remote migration, businesswrite, merge, version bump of deployment.
+
 ## CONTROL02 — Loonaangifte XML Import V1 — 2026-10-03
-### Huidige afrondingsstatus — 2026-10-04, na fixture- en browservervolg
+### Historische afrondingssnapshot — 2026-10-04 (superseded by the 2026-10-05 entry above)
 
 - Branch `work/CONTROL02-XML-V1-20261003`, startcommit `914d11423087a57e2d6847c2354ac8a70ca9c623`. Read-only Core TEST-history telt 512 rijen en eindigt op `20261004113209`; remote versies/namen zijn `20261004113111 control02_xml_import_provenance_guard` en `20261004113209 control01_payroll_import_role_override_permissions`. De goedgekeurde bronbestanden hebben prefixes `20261003123900` en `20261004100000`; de remote ledger bewaart geen SQL SHA-256, dus bron-byte-identiteit is niet uit de history-readback af te leiden. Eerdere bronhashes waren vooraf aan de goedkeuring getoetst. In deze vervolgactie is geen schemawijziging op TEST toegepast.
 - Op expliciete toestemming is uitsluitend voor `CONTROL01 Test BV · DEFAULT · Hoofdadministratie` één primaire historische LhNr-binding toegevoegd met exact de bestaande waarde voor 2026-01-01 t/m 2026-01-31. De rij vanaf 2026-09-29 blijft behouden. Readback: 2 bindings, 1 unieke waarde, beide primary, 0 overlapparen. Geen nummer of rij-ID in documentatie; geen andere administratie- of rolwijziging.

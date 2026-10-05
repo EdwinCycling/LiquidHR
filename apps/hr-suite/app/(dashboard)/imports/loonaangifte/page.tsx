@@ -49,6 +49,18 @@ export default async function LoonaangifteImportPage() {
     'xmlDiagnostic_UNSUPPORTED_NAMESPACE', 'xmlDiagnostic_UNSUPPORTED_ROOT', 'xmlDiagnostic_UNSUPPORTED_SCHEMA_VERSION', 'xmlDiagnostic_XSD_UNAVAILABLE', 'xmlDiagnostic_XML_XSD_INVALID', 'xmlDiagnostic_SOURCE_CONTRACT_UNSUPPORTED', 'xmlDiagnostic_MALFORMED_VALUE',
     'xmlDiagnostic_IDENTIFIER_PROTECTION_REQUIRED', 'xmlXsdValidated', 'issue_XML_PERSON_FIELD_CONFLICT', 'issue_XML_EMPLOYEE_MATCH_CONTRACT_PENDING',
   ]
-  const labels = Object.fromEntries([...keys, ...extraKeys].map((key) => [key, translate(key)])) as Record<string, string>
+  const decisionKeys = [
+    'decisionAuditDescription', 'decisionAuditTitle', 'decisionBlockers', 'decisionComplete', 'decisionConfirm', 'decisionConfirmed', 'decisionConflictFieldsNotice',
+    'decisionConflictsDescription', 'decisionConflictsTitle', 'decisionEmployeeChoice', 'decisionEmploymentChoice', 'decisionEmploymentDescription', 'decisionEmploymentTitle',
+    'decisionExactMatchLocked', 'decisionFieldChoice', 'decisionFieldsDescription', 'decisionFieldsTitle', 'decisionFinalizationDisabled', 'decisionIdempotencyDescription',
+    'decisionIncomeChoice', 'decisionMatchesDescription', 'decisionMatchesTitle', 'decisionMatchStatus', 'decisionNeedsReview', 'decisionNoConflicts', 'decisionNoSourceFields',
+    'decisionPeople', 'decisionPlanBlockers', 'decisionPlanDescription', 'decisionPlanReady', 'decisionPlanTitle', 'decisionReady', 'decisionReviewAcknowledgement', 'decisionSourceRef',
+    'decisionEmployee_REUSE_EMPLOYEE', 'decisionEmployee_CREATE_EMPLOYEE', 'decisionEmployee_UNRESOLVED',
+    'decisionEmployment_REUSE_EMPLOYMENT', 'decisionEmployment_CREATE_DRAFT_EMPLOYMENT', 'decisionEmployment_UNDECIDED',
+    'decisionIncome_CREATE', 'decisionIncome_LINK', 'decisionIncome_NO_CHANGE', 'decisionIncome_UNDECIDED',
+    'decisionSourceField_USE_SOURCE', 'decisionSourceField_KEEP_CURRENT', 'decisionSourceField_MANUAL_REVIEW',
+    'decisionField_firstName', 'decisionField_birthName', 'decisionField_birthDate', 'decisionField_gender', 'decisionField_nationality', 'decisionField_address', 'decisionIkvCount',
+  ]
+  const labels = Object.fromEntries([...keys, ...extraKeys, ...decisionKeys].map((key) => [key, translate(key)])) as Record<string, string>
   return <PageShell className="space-y-6 py-7 lg:py-10" width="wide"><header><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{labels.eyebrow}</p><h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{labels.title}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.description}</p></header><PayrollImportWizard administrationId={administrationId} labels={labels} initialReadiness={initialReadiness} initialReadinessError={readinessError} initialRecoverableImports={recoverableImports} initialRecoveryError={recoveryError} /></PageShell>
 }

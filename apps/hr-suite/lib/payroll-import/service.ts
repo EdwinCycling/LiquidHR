@@ -33,6 +33,21 @@ type PayrollImportBatchInput = {
   administrationId: string
 }
 
+type StagedBatchIdentity = {
+  id: string
+  administration_id: string
+  source_type: PayrollImportSourceType
+  source_hash: string
+  tax_year: number
+  period_start: string | null
+  period_end: string | null
+}
+
+type StagedBatchVerificationInput = {
+  analysis: PayrollImportAnalysis
+  administrationId: string
+}
+
 function toPayrollAddressJson(address: CanonicalPayrollAddress | undefined): Json | null {
   if (!address) return null
   const value: { [key: string]: Json | undefined } = {}
@@ -56,6 +71,64 @@ function createServerOwnedStagingClient(): PayrollImportClient {
 function metadataForStorage(metadata: Record<string, string | number | boolean | null>): Json {
   const allowedKeys = new Set(['sourceSystem', 'sourcePath', 'fieldGroup', 'period', 'sourceRow'])
   return Object.fromEntries(Object.entries(metadata).filter(([key]) => allowedKeys.has(key))) as Json
+}
+
+async function recordPayrollImportAudit(
+  client: PayrollImportClient,
+  authorization: ImportAuthorization,
+  batchId: string,
+  action: 'CREATE' | 'UPDATE',
+  changes: Record<string, Json>,
+): Promise<void> {
+  const { error } = await client.from('audit_logs').insert({
+    tenant_id: authorization.tenantId,
+    administration_id: authorization.administrationId,
+    entity_name: 'payroll_import_batch',
+    entity_id: batchId,
+    actor_user_id: authorization.userId,
+    action,
+    changes: changes as Json,
+  })
+  if (error) throw new PayrollImportError('PAYROLL_IMPORT_AUDIT_FAILED', 500, error.code)
+}
+
+async function recordPayrollImportAuditBestEffort(
+  client: PayrollImportClient,
+  authorization: ImportAuthorization,
+  batchId: string,
+  changes: Record<string, Json>,
+): Promise<void> {
+  try {
+    await recordPayrollImportAudit(client, authorization, batchId, 'UPDATE', changes)
+  } catch (error) {
+    const databaseCode = error instanceof PayrollImportError ? error.databaseCode ?? null : null
+    console.error('[PAYROLL_IMPORT_AUDIT_FAILED]', { batchId, databaseCode })
+  }
+}
+
+async function assertStagedBatchAuditPresent(
+  authorization: ImportAuthorization,
+  batchId: string,
+): Promise<void> {
+  const auditClient = createServerOwnedStagingClient()
+  const { data, error } = await auditClient
+    .from('audit_logs')
+    .select('id, changes')
+    .eq('tenant_id', authorization.tenantId)
+    .eq('administration_id', authorization.administrationId)
+    .eq('entity_name', 'payroll_import_batch')
+    .eq('entity_id', batchId)
+    .eq('action', 'CREATE')
+    .limit(1)
+    .maybeSingle()
+  if (error) throw new PayrollImportError('PAYROLL_IMPORT_AUDIT_FAILED', 500, error.code)
+
+  const changes = data?.changes
+  const isStageAudit = typeof changes === 'object'
+    && changes !== null
+    && !Array.isArray(changes)
+    && (changes as Record<string, unknown>).operation === 'STAGE'
+  if (!isStageAudit) throw new PayrollImportError('PAYROLL_IMPORT_AUDIT_FAILED', 500)
 }
 
 async function requireImportAuthorization(administrationId: string, options: { requireCurrentPayrollTaxNumber?: boolean } = {}): Promise<ImportAuthorization> {
@@ -141,6 +214,108 @@ async function listEmployeeCandidates(
   }))
 }
 
+async function findBatchByIdempotencyKey(authorization: ImportAuthorization, idempotencyKey: string): Promise<StagedBatchIdentity | null> {
+  const { data, error } = await authorization.client
+    .from('payroll_import_batches')
+    .select('id, administration_id, source_type, source_hash, tax_year, period_start, period_end')
+    .eq('tenant_id', authorization.tenantId)
+    .eq('hr_group_id', authorization.hrGroupId)
+    .eq('idempotency_key', idempotencyKey)
+    .maybeSingle()
+  if (error) throw new PayrollImportError('PAYROLL_IMPORT_BATCH_READ_FAILED', 500)
+  return data
+}
+
+function assertIdempotentBatchIdentity(
+  batch: StagedBatchIdentity,
+  input: { analysis: PayrollImportAnalysis; taxYear: number; periodStart?: string; periodEnd?: string; administrationId: string },
+): void {
+  const sameIdentity = batch.administration_id === input.administrationId
+    && batch.source_type === input.analysis.sourceType
+    && batch.source_hash === input.analysis.sourceHash
+    && batch.tax_year === input.taxYear
+    && batch.period_start === (input.periodStart ?? null)
+    && batch.period_end === (input.periodEnd ?? null)
+  if (!sameIdentity) throw new PayrollImportError('PAYROLL_IMPORT_IDEMPOTENCY_CONFLICT', 409)
+}
+
+function payrollImportIncomeKey(input: {
+  payrollTaxNumber: string
+  ikvNumber: number
+  startsOn?: string | null
+  endsOn?: string | null
+}): string {
+  return [
+    input.payrollTaxNumber,
+    input.ikvNumber,
+    toSafeDatabaseDate(input.startsOn ?? undefined) ?? 'null',
+    toSafeDatabaseDate(input.endsOn ?? undefined) ?? 'null',
+  ].join('|')
+}
+
+function throwPayrollImportBatchInProgress(): never {
+  throw new PayrollImportError('PAYROLL_IMPORT_BATCH_IN_PROGRESS', 409)
+}
+
+async function assertStagedBatchMatchesAnalysis(
+  authorization: ImportAuthorization,
+  batchId: string,
+  input: StagedBatchVerificationInput,
+): Promise<void> {
+  const expectedSourceRows = input.analysis.rows.map((row) => row.sourceRowNumber)
+  const expectedSourceRowSet = new Set(expectedSourceRows)
+  if (expectedSourceRows.length !== expectedSourceRowSet.size) throwPayrollImportBatchInProgress()
+
+  const { data: persons, error: personsError } = await authorization.client
+    .from('payroll_import_persons')
+    .select('id, source_row_number')
+    .eq('tenant_id', authorization.tenantId)
+    .eq('hr_group_id', authorization.hrGroupId)
+    .eq('batch_id', batchId)
+  if (personsError || !persons) throw new PayrollImportError('PAYROLL_IMPORT_PERSON_READ_FAILED', 500)
+
+  const personIdBySourceRow = new Map<number, string>()
+  let personsMatch = persons.length === expectedSourceRows.length
+  for (const person of persons) {
+    if (personIdBySourceRow.has(person.source_row_number) || !expectedSourceRowSet.has(person.source_row_number)) {
+      personsMatch = false
+      continue
+    }
+    personIdBySourceRow.set(person.source_row_number, person.id)
+  }
+  if (!personsMatch || personIdBySourceRow.size !== expectedSourceRowSet.size) throwPayrollImportBatchInProgress()
+
+  const { data: incomeRows, error: incomeError } = await authorization.client
+    .from('payroll_import_income_relationships')
+    .select('import_person_id, payroll_tax_number, ikv_number, starts_on, ends_on')
+    .eq('tenant_id', authorization.tenantId)
+    .eq('hr_group_id', authorization.hrGroupId)
+    .eq('batch_id', batchId)
+    .eq('administration_id', input.administrationId)
+  if (incomeError || !incomeRows) throw new PayrollImportError('PAYROLL_IMPORT_INCOME_READ_FAILED', 500)
+
+  const sourceRowByPersonId = new Map([...personIdBySourceRow.entries()].map(([sourceRowNumber, personId]) => [personId, sourceRowNumber]))
+  const expectedIncomeKeys = input.analysis.rows
+    .flatMap((row) => row.incomeRelationships.map((income) => `${row.sourceRowNumber}|${payrollImportIncomeKey(income)}`))
+    .sort()
+  const actualIncomeKeys = incomeRows.map((income) => {
+    const sourceRowNumber = sourceRowByPersonId.get(income.import_person_id)
+    if (sourceRowNumber === undefined) return null
+    return `${sourceRowNumber}|${payrollImportIncomeKey({
+      payrollTaxNumber: income.payroll_tax_number,
+      ikvNumber: income.ikv_number,
+      startsOn: income.starts_on,
+      endsOn: income.ends_on,
+    })}`
+  })
+  if (actualIncomeKeys.some((key) => key === null)) throwPayrollImportBatchInProgress()
+  const actualIncomeKeyValues = actualIncomeKeys.filter((key): key is string => key !== null).sort()
+  if (actualIncomeKeyValues.length !== expectedIncomeKeys.length
+    || actualIncomeKeyValues.some((key, index) => key !== expectedIncomeKeys[index])) {
+    throwPayrollImportBatchInProgress()
+  }
+}
+
 export async function analyzePayrollImport(input: PayrollImportBatchInput): Promise<PayrollImportAnalysis> {
   const isXml = input.sourceType === 'LOONAANGIFTE_XML'
   const authorization = await requireImportAuthorization(input.administrationId, { requireCurrentPayrollTaxNumber: !isXml })
@@ -209,15 +384,16 @@ export async function stagePayrollImport(input: {
     .update(`${authorization.tenantId}:${authorization.hrGroupId}:${input.administrationId}:${input.analysis.sourceHash}:${input.taxYear}`, 'utf8')
     .digest('hex')
 
-  const existing = await authorization.client
-    .from('payroll_import_batches')
-    .select('id')
-    .eq('tenant_id', authorization.tenantId)
-    .eq('hr_group_id', authorization.hrGroupId)
-    .eq('idempotency_key', idempotencyKey)
-    .maybeSingle()
-  if (existing.error) throw new PayrollImportError('PAYROLL_IMPORT_BATCH_READ_FAILED', 500)
-  if (existing.data) return { batchId: existing.data.id }
+  const existing = await findBatchByIdempotencyKey(authorization, idempotencyKey)
+  if (existing) {
+    assertIdempotentBatchIdentity(existing, input)
+    await assertStagedBatchMatchesAnalysis(authorization, existing.id, {
+      analysis: input.analysis,
+      administrationId: input.administrationId,
+    })
+    await assertStagedBatchAuditPresent(authorization, existing.id)
+    return { batchId: existing.id }
+  }
   const stagingClient = createServerOwnedStagingClient()
 
   const { data: batch, error: batchError } = await stagingClient
@@ -240,7 +416,21 @@ export async function stagePayrollImport(input: {
     })
     .select('id')
     .single()
-  if (batchError || !batch) throw new PayrollImportError('PAYROLL_IMPORT_BATCH_CREATE_FAILED', 500)
+  if (batchError || !batch) {
+    if (batchError?.code === '23505') {
+      const raced = await findBatchByIdempotencyKey(authorization, idempotencyKey)
+      if (raced) {
+        assertIdempotentBatchIdentity(raced, input)
+        await assertStagedBatchMatchesAnalysis(authorization, raced.id, {
+          analysis: input.analysis,
+          administrationId: input.administrationId,
+        })
+        await assertStagedBatchAuditPresent(authorization, raced.id)
+        return { batchId: raced.id }
+      }
+    }
+    throw new PayrollImportError('PAYROLL_IMPORT_BATCH_CREATE_FAILED', 500)
+  }
 
   const { data: persons, error: personsError } = await stagingClient
     .from('payroll_import_persons')
@@ -300,6 +490,23 @@ export async function stagePayrollImport(input: {
         .eq('id', batch.id).eq('tenant_id', authorization.tenantId).eq('hr_group_id', authorization.hrGroupId).eq('administration_id', authorization.administrationId)
       throw new PayrollImportError('PAYROLL_IMPORT_INCOME_STAGE_FAILED', 500)
     }
+  }
+
+  try {
+    await recordPayrollImportAudit(stagingClient, authorization, batch.id, 'CREATE', {
+      operation: 'STAGE',
+      sourceType: input.analysis.sourceType,
+      sourceHash: input.analysis.sourceHash,
+      taxYear: input.taxYear,
+      periodStart: input.periodStart ?? null,
+      periodEnd: input.periodEnd ?? null,
+      rowCount: input.analysis.rows.length,
+      incomeRelationshipCount: input.analysis.summary.incomeRelationships,
+    })
+  } catch (error) {
+    await stagingClient.from('payroll_import_batches').update({ status: 'FAILED' })
+      .eq('id', batch.id).eq('tenant_id', authorization.tenantId).eq('hr_group_id', authorization.hrGroupId).eq('administration_id', authorization.administrationId)
+    throw error
   }
 
   return { batchId: batch.id }
@@ -449,6 +656,7 @@ export type RecoverablePayrollImport = {
 async function getRecoverableRows(
   authorization: ImportAuthorization,
   batchId: string,
+  options: { includeComplete?: boolean; requireDurableEmployeeMarker?: boolean } = {},
 ): Promise<RecoverablePayrollImportRow[]> {
   const { data: rows, error: rowsError } = await authorization.client
     .from('payroll_import_persons')
@@ -460,8 +668,7 @@ async function getRecoverableRows(
   if (rowsError || !rows) throw new PayrollImportError('PAYROLL_IMPORT_PERSON_READ_FAILED', 500)
 
   const eligibleRows = rows.filter((row) => row.status !== 'BLOCKING'
-    && row.match_status !== 'MANUAL_REVIEW'
-    && row.matched_employee_id !== null)
+    && row.match_status !== 'MANUAL_REVIEW')
   if (eligibleRows.length === 0) return []
 
   const personIds = eligibleRows.map((row) => row.id)
@@ -471,6 +678,7 @@ async function getRecoverableRows(
       .select('payroll_import_person_id')
       .eq('tenant_id', authorization.tenantId)
       .eq('hr_group_id', authorization.hrGroupId)
+      .eq('administration_id', authorization.administrationId)
       .in('payroll_import_person_id', personIds),
     authorization.client
       .from('payroll_import_income_relationships')
@@ -502,9 +710,10 @@ async function getRecoverableRows(
 
   return eligibleRows.flatMap((row) => {
     if (invalidIncomePersonIds.has(row.id) || (validIncomeCountByPerson.get(row.id) ?? 0) === 0) return []
-    const missingEmployment = !employmentPersonIds.has(row.id)
+    if (options.requireDurableEmployeeMarker && row.matched_employee_id === null) return []
+    const missingEmployment = row.matched_employee_id === null || !employmentPersonIds.has(row.id)
     const pendingIncomeCount = pendingIncomeCountByPerson.get(row.id) ?? 0
-    return missingEmployment || pendingIncomeCount > 0 ? [{
+    return missingEmployment || pendingIncomeCount > 0 || options.includeComplete ? [{
       id: row.id,
       rowNumber: row.source_row_number,
       firstName: row.first_name,
@@ -534,7 +743,7 @@ export async function listRecoverablePayrollImports(administrationId: string): P
     batchId: batch.id,
     status: batch.status,
     createdAt: batch.created_at,
-    rows: await getRecoverableRows(authorization, batch.id),
+    rows: await getRecoverableRows(authorization, batch.id, { includeComplete: batch.status === 'FAILED' }),
   })))
   return recoverable.filter((batch) => batch.rows.length > 0)
 }
@@ -563,7 +772,13 @@ export async function finalizePayrollImport(input: {
     throw new PayrollImportError('PAYROLL_IMPORT_BATCH_NOT_FINALIZABLE', 409)
   }
 
-  const { data: rows, error: rowsError } = await authorization.client.from('payroll_import_persons').select('*').eq('batch_id', batch.id).order('source_row_number')
+  const { data: rows, error: rowsError } = await authorization.client
+    .from('payroll_import_persons')
+    .select('*')
+    .eq('tenant_id', authorization.tenantId)
+    .eq('hr_group_id', authorization.hrGroupId)
+    .eq('batch_id', batch.id)
+    .order('source_row_number')
   if (rowsError || !rows) throw new PayrollImportError('PAYROLL_IMPORT_PERSON_READ_FAILED', 500)
 
   const selected = new Set(input.selectedRowNumbers)
@@ -598,8 +813,20 @@ export async function finalizePayrollImport(input: {
     firstStartsOnByPerson.set(row.id, firstStartsOn)
   }
 
-  if (batch.status === 'FAILED' || batch.status === 'COMPLETED_WITH_WARNINGS') {
-    const recoverableRows = await getRecoverableRows(authorization, batch.id)
+  if (batch.status === 'COMPLETED_WITH_WARNINGS') {
+    const recoverableRows = await getRecoverableRows(authorization, batch.id, {
+      requireDurableEmployeeMarker: true,
+    })
+    const recoverablePersonIds = new Set(recoverableRows.map((row) => row.id))
+    if (finalizableRows.some((row) => !recoverablePersonIds.has(row.id))) {
+      throw new PayrollImportError('PAYROLL_IMPORT_BATCH_NOT_FINALIZABLE', 409)
+    }
+  }
+  if (batch.status === 'FAILED') {
+    const recoverableRows = await getRecoverableRows(authorization, batch.id, {
+      includeComplete: true,
+      requireDurableEmployeeMarker: true,
+    })
     const recoverablePersonIds = new Set(recoverableRows.map((row) => row.id))
     if (finalizableRows.some((row) => !recoverablePersonIds.has(row.id))) {
       throw new PayrollImportError('PAYROLL_IMPORT_BATCH_NOT_FINALIZABLE', 409)
@@ -623,7 +850,15 @@ export async function finalizePayrollImport(input: {
   let employeesImported = 0
   let employmentsCreated = 0
   let incomeRelationshipsImported = 0
+  let completedStatus: 'COMPLETED' | 'COMPLETED_WITH_WARNINGS' | null = null
   try {
+    await recordPayrollImportAudit(stagingClient, authorization, batch.id, 'UPDATE', {
+      operation: 'FINALIZE_ATTEMPT',
+      fromStatus: batch.status,
+      toStatus: 'FINALIZING',
+      selectedRowCount: finalizableRows.length,
+    })
+
     for (const row of rows) {
       const selectedRow = selected.has(row.source_row_number)
       const finalizable = row.status !== 'BLOCKING' && row.match_status !== 'MANUAL_REVIEW' && selectedRow
@@ -733,7 +968,16 @@ export async function finalizePayrollImport(input: {
       .eq('status', 'FINALIZING')
       .select('id')
       .maybeSingle()
+    if (completed) completedStatus = finalStatus
     if (completeError || !completed) throw new PayrollImportError('PAYROLL_IMPORT_FINAL_STATUS_UPDATE_FAILED', 500)
+    await recordPayrollImportAudit(stagingClient, authorization, batch.id, 'UPDATE', {
+      operation: 'FINALIZE',
+      fromStatus: 'FINALIZING',
+      toStatus: finalStatus,
+      employeesImported,
+      employmentsCreated,
+      incomeRelationshipsImported,
+    })
     return { batchId: batch.id, employeesImported, employmentsCreated, incomeRelationshipsImported, warnings }
   } catch (error) {
     const category = error instanceof PayrollImportError ? error.code
@@ -748,8 +992,14 @@ export async function finalizePayrollImport(input: {
       .eq('tenant_id', authorization.tenantId)
       .eq('hr_group_id', authorization.hrGroupId)
       .eq('administration_id', authorization.administrationId)
-      .eq('status', 'FINALIZING')
+      .in('status', completedStatus ? [completedStatus] : ['FINALIZING'])
     if (failError) console.error('[PAYROLL_IMPORT_FINALIZATION_STATUS_UPDATE_FAILED]', { databaseCode: failError.code ?? null })
+    await recordPayrollImportAuditBestEffort(stagingClient, authorization, batch.id, {
+      operation: 'FINALIZE_FAILED',
+      fromStatus: completedStatus ?? 'FINALIZING',
+      toStatus: 'FAILED',
+      errorCode: category,
+    })
     if (error instanceof PayrollImportError) throw error
     throw new PayrollImportError('PAYROLL_IMPORT_FINALIZATION_FAILED', 500)
   }
