@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## APIAI-01 voortzetting — 2026-10-05
+
+- Status: **PARTIAL / database-environment-gated / niet security-geaccepteerd / routes ongemount**. P-01 t/m P-05 zijn door Edwin goedgekeurd voor implementatie; dit is geen externe security-, privacy- of dataacceptatie.
+- Lokale APIAI-codecommit 7c28cdd op work/apiai-01-build-20261003: providerneutrale OAuth-contracten, fail-closed identity-bridge seam en self-only Development Plans-handler. De volledige seriële hr-suite slaagde 533 bestanden / 2.289 tests; strict TypeScript, ESLint zonder errors, i18n en officiële Production-build 308 pagina's slaagden.
+- Lokale Production-smoke op poort 3011 gaf voor alle drie publieke APIAI-routes 404; deze commit activeert geen route. De commit is niet naar PR #3 gepusht.
+- De expliciet toegestane Supabase-testbranch kon niet worden aangemaakt: het bestaande project vereist Pro voor branching. Er zijn geen fixtures, migration apply, PostgreSQL-tests, advisors, typegen of remote schemawijzigingen uitgevoerd.
+- Volgende stap: ontgrendel branching op het bestaande project of wijs een bestaande geïsoleerde APIAI-testdatabase aan; voer daar pas de 40 pgTAP-tests, RLS/grants, direct-RPC-negatieven, tenantlifecycle, limiterconcurrency/refill en auditreadback uit. Provider/stateopslag, persistente identity mapping, bearer-auth.uid()-RLS en Security/Privacy/Data-acceptatie blijven OPEN.
+- Details: [acceptatievoortzetting](../AA/APIAI-01-ACCEPTANCE-CONTINUATION-20261005.md) en [productrichting](../AA/APIAI-01-PRODUCT-DIRECTION-20261005.md).
 ## ONE VERSION — accepted PAYLAB00–04 release preparation — 2026-10-02
 
 - Geaccepteerde integratiebranch `integration/payroll-foundation-20261002`, basis-HEAD `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; eerdere onafhankelijke LUNA MAX-acceptatiereview en desktop/390 px productie-browsertests zijn GREEN.

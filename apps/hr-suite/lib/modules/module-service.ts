@@ -11,7 +11,7 @@ export class ModuleError extends Error {
   }
 }
 
-type ModuleReadDependencies = {
+export type ModuleReadDependencies = {
   auth: AuthContext
   supabase: Awaited<ReturnType<typeof createClient>>
 }
@@ -54,8 +54,8 @@ export async function saveTenantModules(input: ModuleSelectionInput): Promise<vo
   if (error) throw new ModuleError('MODULES_SAVE_FAILED', 500)
 }
 
-export async function requireTenantModule(code: ToggleableModuleCode): Promise<void> {
-  const enabled = await getEnabledTenantModules()
+export async function requireTenantModule(code: ToggleableModuleCode, dependencies?: ModuleReadDependencies): Promise<void> {
+  const enabled = await getEnabledTenantModules(dependencies)
   if (!enabled.includes(code)) throw new ModuleError('MODULE_NOT_ACTIVE', 404)
 }
 

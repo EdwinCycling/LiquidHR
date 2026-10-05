@@ -1,0 +1,361 @@
+openapi: 3.1.0
+info:
+  title: LiquidHR API v1 — APIAI-01 ontwerp
+  version: 0.1.0-draft
+  description: >-
+    Intern ontwerp voor review. Deze kandidaatcontracten zijn niet goedgekeurd,
+    worden niet door een route gepubliceerd en mogen niet als beschikbaar API
+    worden gebruikt. Externe routes blijven ongemount totdat provider-,
+    autorisatie-, privacy-, limiter- en auditvoorwaarden zijn goedgekeurd.
+  x-implementation-status: NOT-PUBLISHED
+servers: []
+security:
+  - delegatedBearer: []
+paths:
+  /api/v1/workforce/summary:
+    get:
+      operationId: getWorkforceSummary
+      summary: Kandidaat voor een minimale workforce-samenvatting
+      description: >-
+        De server kiest de peildatum. Populatietellingen, uitsplitsingen,
+        filters en andere aggregaten zijn uitgesloten totdat privacygoedkeuring
+        is vastgelegd.
+      x-contract-status: DRAFT-PRIVACY-APPROVAL-REQUIRED
+      parameters: []
+      responses:
+        '200':
+          description: Kandidaatprojectie zonder populatietelling
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data, requestId]
+                properties:
+                  data:
+                    type: object
+                    additionalProperties: false
+                    required: [asOfDate]
+                    properties:
+                      asOfDate:
+                        type: string
+                        format: date
+                        description: Peildatum die de server uit de eigen klok afleidt.
+                  requestId:
+                    type: string
+                    format: uuid
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '413':
+          $ref: '#/components/responses/RequestTooLarge'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /api/v1/development-plans:
+    get:
+      operationId: getOwnDevelopmentPlans
+      summary: Kandidaat voor de eigen ontwikkelplannen
+      description: >-
+        Alleen self-scope. De server leidt de medewerker af uit de actuele
+        AuthContext. mode, employeeId en filters die de scope wijzigen zijn
+        niet toegestaan. Veldbetekenis en vrijgave vereisen nog domein- en
+        privacygoedkeuring.
+      x-contract-status: DRAFT-FIELD-APPROVAL-REQUIRED
+      parameters: []
+      responses:
+        '200':
+          description: Kandidaat self-only projectie zonder identifiers of vrije tekst
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data, requestId]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [periodStart, periodEnd, progressPercent, status, completedAt]
+                      properties:
+                        periodStart:
+                          type: string
+                          format: date
+                        periodEnd:
+                          type: [string, 'null']
+                          format: date
+                        progressPercent:
+                          type: integer
+                          minimum: 0
+                          maximum: 100
+                        status:
+                          type: string
+                          description: Interne status als string; toegestane externe waarden vereisen domeinreview.
+                        completedAt:
+                          type: [string, 'null']
+                          format: date-time
+                  requestId:
+                    type: string
+                    format: uuid
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '413':
+          $ref: '#/components/responses/RequestTooLarge'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+components:
+  securitySchemes:
+    delegatedBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Providerneutraal ontwerp. De issuer, audience, clientbinding, JWKS- en
+        intrekkingsvalidatie zijn nog niet goedgekeurd of geactiveerd.
+  schemas:
+    ApiError:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, requestId]
+          properties:
+            code:
+              type: string
+            requestId:
+              type: string
+              format: uuid
+  responses:
+    InvalidRequest:
+      description: Queryparameters en ongeldige verzoeken worden geweigerd.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Unauthorized:
+      description: Ontbrekende of ongeldige delegated bearer.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Forbidden:
+      description: Ontbrekende interne permission of externe scope.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: De resource wordt niet gevonden zonder verborgen populatie te bevestigen.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    MethodNotAllowed:
+      description: Alleen GET is toegestaan.
+      headers:
+        Allow:
+          schema:
+            type: string
+            const: GET
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    RequestTooLarge:
+      description: Het verzoek overschrijdt de toegestane omvang.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    RateLimited:
+      description: Rate limit bereikt; quota zijn nog niet vastgesteld.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 900
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    InternalError:
+      description: De interne fout is geredigeerd en bevat geen provider- of databasemelding.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Unavailable:
+      description: Beveiligingsafhankelijkheid kan niet betrouwbaar beslissen.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+        X-Request-Id:
+          schema:
+            type: string
+            format: uuid
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
