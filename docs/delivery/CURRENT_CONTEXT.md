@@ -9,6 +9,7 @@
 - Laatste kritieke regressierun: 5 bestanden / 48 tests geslaagd. TypeScript strikt/non-incremental geslaagd; ESLint 0 fouten en 5 bestaande ongebruikte mock-parameterwaarschuwingen; NL/EN-pariteit 41 namespaces geslaagd. Volledige suite: 534 testbestanden en 2.261 tests geslaagd, 3 overgeslagen; één bestaande payroll/server-only-boundary.test.ts-timeout van 20 seconden blijft open.
 - Onafhankelijke LUNA MAX-herreview is afgerond: groepsisolatie, retry-invalidatie en de besluitrace zijn gesloten; geen P0/P1 gevonden. P2 vóór toekomstige activatie: herhaal actuele bron/Core-statevalidatie per actie of gebruik transaction/lease, omdat de huidige preflight eenmaal per plan loopt. Activatie blijft uitgeschakeld.
 - Bestaande gates blijven C02-ENV-012, C02-CTX-013, C02-SEC-014, C02-CORE-015, C02-ACC-016 en C02-MIG-017. De sleutel/contextoorzaken zijn niet opnieuw onderzocht; er is geen browseracceptatie op desktop/mobiel geclaimd.
+- Contextkeuzescherm UX is aangescherpt met de bestaande PageShell/Surface/FormField/DropdownSelect/Button, NL/EN-hulpteksten en inline save-alert. Gerichte componentcontrole: 1 bestand / 5 tests PASS; i18n 41 namespaces, non-incremental TypeScript, gewijzigde ESLint en diff-check PASS. Geen authenticated browserrun: de bekende C02-CTX-013 gate bleef ongewijzigd; zie quality/acceptance/runs/CONTROL02-context-selection-ux.md.
 - Geen remote migratie, Core-businesswrite, merge, version bump of deployment.
 
 ## CONTROL02 — Loonaangifte XML Import V1 — 2026-10-03
