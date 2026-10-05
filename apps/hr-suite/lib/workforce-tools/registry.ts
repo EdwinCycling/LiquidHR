@@ -1,5 +1,5 @@
 import { ZodError, z } from 'zod'
-import { requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { requireAuthContext, requirePermission } from '@/lib/auth/permissions'
 import { ModuleError, requireTenantModule } from '@/lib/modules/module-service'
 import {
   getWorkforceTool,
@@ -57,16 +57,16 @@ function errorStatus(error: unknown): number | null {
   return typeof status === 'number' ? status : null
 }
 
-function resolveAudience(context: AuthContext): WorkforceToolAudience | null {
-  if (context.activeRoles.some((role) => role.includes('HR') || role === 'TENANT_ADMIN')) return 'HR'
-  if (context.activeRoles.includes('DIRECT_MANAGER')) return 'MANAGER'
-  if (context.activeRoles.includes('EMPLOYEE')) return 'EMPLOYEE'
+export function resolveWorkforceToolAudience(activeRoles: readonly string[]): WorkforceToolAudience | null {
+  if (activeRoles.some((role) => role.includes('HR') || role === 'TENANT_ADMIN')) return 'HR'
+  if (activeRoles.includes('DIRECT_MANAGER')) return 'MANAGER'
+  if (activeRoles.includes('EMPLOYEE')) return 'EMPLOYEE'
   return null
 }
 
 async function authorizeWorkforceTool(tool: WorkforceToolDefinition): Promise<void> {
   const context = await requireAuthContext()
-  const audience = resolveAudience(context)
+  const audience = resolveWorkforceToolAudience(context.activeRoles)
   if (!audience || !tool.audience.includes(audience)) throw new WorkforceToolDispatchError('ACCESS_DENIED')
 
   if (tool.scope === 'SELF' && (audience !== 'EMPLOYEE' || !context.employeeId)) {

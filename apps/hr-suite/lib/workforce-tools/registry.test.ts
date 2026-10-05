@@ -39,7 +39,12 @@ vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals }))
 
 import { workforceToolHeRaName, WORKFORCE_TOOL_CATALOG } from './catalog'
 import { createLocalWorkforceMcpHarness } from './mcp-local'
-import { assertWorkforceToolCatalogIsValid, dispatchHeRaWorkforceTool, dispatchWorkforceTool } from './registry'
+import {
+  assertWorkforceToolCatalogIsValid,
+  dispatchHeRaWorkforceTool,
+  dispatchWorkforceTool,
+  resolveWorkforceToolAudience,
+} from './registry'
 import { ModuleError } from '@/lib/modules/module-service'
 
 const toolId = 'employee.talent.development-progress.read'
@@ -77,6 +82,14 @@ describe('provider-neutral workforce catalog and adapters', () => {
     assertWorkforceToolCatalogIsValid()
     expect(new Set(WORKFORCE_TOOL_CATALOG.map((tool) => tool.id)).size).toBe(WORKFORCE_TOOL_CATALOG.length)
     expect(WORKFORCE_TOOL_CATALOG.every((tool) => tool.operation === 'READ' && tool.permission && tool.module)).toBe(true)
+  })
+
+  it('uses the same role precedence for browser exposure and server dispatch', () => {
+    expect(resolveWorkforceToolAudience(['EMPLOYEE'])).toBe('EMPLOYEE')
+    expect(resolveWorkforceToolAudience(['DIRECT_MANAGER'])).toBe('MANAGER')
+    expect(resolveWorkforceToolAudience(['HR_ADMIN', 'DIRECT_MANAGER'])).toBe('HR')
+    expect(resolveWorkforceToolAudience(['TENANT_ADMIN'])).toBe('HR')
+    expect(resolveWorkforceToolAudience(['UNRELATED_ROLE'])).toBeNull()
   })
 
   it('returns the same employee result through shared dispatch, local MCP, and HeRa adapters', async () => {

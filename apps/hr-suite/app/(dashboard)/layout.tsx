@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
+import { randomUUID } from 'node:crypto'
 import { Sidebar } from '@/components/layout/sidebar'
-import { AuthenticationError, getRequestAuthorizationContext } from '@/lib/auth/permissions'
+import { AuthenticationError, getRequestAuthorizationContext, getSelfPermissions } from '@/lib/auth/permissions'
 import { readEmployeeEssAccess } from '@/lib/auth/employee-ess-access'
 import { isFullPortalAllowed } from '@/lib/focus/access-state'
 import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
@@ -25,6 +26,8 @@ import { canUseSetupAssistant, getSetupAssistantState } from '@/lib/setup-assist
 import { createSetupAssistantLabels } from '@/lib/setup-assistant/labels'
 import { getRecruitmentNavigationHref } from '@/components/layout/sidebar-navigation'
 import { PayrollLabUnavailableError, resolvePayrollLabAdministration } from '@/lib/payroll/access'
+import { WorkforceWebMcpBootstrap } from '@/components/workforce/workforce-webmcp-bootstrap'
+import { listWorkforceToolDescriptors, resolveWorkforceToolAudience } from '@/lib/workforce-tools/registry'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let requestContext
@@ -90,6 +93,25 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   ])
   const recruitmentHref = getRecruitmentNavigationHref(enabledModules.includes('RECRUITMENT'), authContext.permissions)
   const canReadRecruitment = recruitmentHref !== null
+  const workforceAudience = resolveWorkforceToolAudience(authContext.activeRoles)
+  const workforcePermissions = workforceAudience === 'EMPLOYEE' && authContext.employeeId
+    ? await getSelfPermissions(supabase, authContext.tenantId).catch(() => [])
+    : authContext.permissions
+  const workforcePermissionSet = new Set(workforcePermissions)
+  const enabledModuleSet = new Set<string>(enabledModules)
+  const workforceWebMcpDescriptors = workforceAudience
+    ? listWorkforceToolDescriptors()
+      .filter((tool) => tool.audience.includes(workforceAudience))
+      .filter((tool) => enabledModuleSet.has(tool.module))
+      .filter((tool) => tool.permissions.every((permission) => workforcePermissionSet.has(permission)))
+      .filter((tool) => tool.scope !== 'SELF' || authContext.employeeId !== null)
+      .filter((tool) => tool.scope !== 'MANAGER_SCOPE' || (
+        workforceAudience === 'MANAGER' && !authContext.permissions.includes('talent:manage')
+      ))
+      .filter((tool) => tool.scope !== 'TENANT' || workforceAudience === 'HR')
+      .map(({ id, description, operation, inputSchema }) => ({ id, description, operation, inputSchema }))
+    : []
+  const workforceWebMcpLifecycleKey = randomUUID()
   const profileFirstName = profile?.first_name?.trim() || (typeof email === 'string' ? email.split('@')[0] : '') || common('appName')
   const profileAvatarUrl = authContext.employeeId ? employeeAvatarHref(authContext.employeeId, profile?.avatar_url ?? null) : null
   const currentEmail = typeof email === 'string' ? email.trim().toLowerCase() : null
@@ -223,6 +245,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         }}
       />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pt-16 md:h-dvh md:pt-0"><ProductUpdateBanner labels={updateSurfaceLabels} updates={productUpdates.bannerUpdates} />{children}</main>
+      <WorkforceWebMcpBootstrap descriptors={workforceWebMcpDescriptors} lifecycleKey={workforceWebMcpLifecycleKey} />
       {enabledModules.includes('HERA') ? <HeRaFloating labels={createHeRaLabels(preferences.locale)} /> : null}
       {setupAssistant?.isEnabled ? <SetupAssistantFloating labels={setupAssistantLabels} state={setupAssistant} /> : null}
       <ProductUpdateLoginPopup labels={updateSurfaceLabels} locale={preferences.locale} updates={productUpdates.loginPopupUpdates} />
