@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   isPostgresConflict,
+  isPrimaryForNewBankAccount,
   toEmployeeBankAccountUpdate,
   toEmployeeInsert,
   toEmployeeUpdate,
@@ -41,6 +42,12 @@ describe('employee service mappers', () => {
     expect(isPostgresConflict({ code: '23505' })).toBe(true)
     expect(isPostgresConflict({ code: '23P01' })).toBe(true)
     expect(isPostgresConflict({ code: '42501' })).toBe(false)
+  })
+
+  it('maakt de eerste actieve bankrekening primair, ook als de invoer dat niet aanvraagt', () => {
+    expect(isPrimaryForNewBankAccount(0, false)).toBe(true)
+    expect(isPrimaryForNewBankAccount(1, false)).toBe(false)
+    expect(isPrimaryForNewBankAccount(1, true)).toBe(true)
   })
 
   it('verandert de IBAN-kolommen alleen bij een echte nieuwe IBAN', () => {

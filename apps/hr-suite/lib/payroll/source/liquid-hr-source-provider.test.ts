@@ -220,7 +220,7 @@ describe('LiquidHR Payroll source provider', () => {
     const earlySalary = salary({
       id: '60000000-0000-4000-8000-000000000016',
       valid_from: '2026-09-01',
-      valid_until: '2026-09-14',
+      valid_until: '2026-09-15',
     })
     const lateSalary = salary({
       id: '60000000-0000-4000-8000-000000000017',
@@ -238,6 +238,48 @@ describe('LiquidHR Payroll source provider', () => {
 
     expect(first.sourceHash).toBe(reversed.sourceHash)
     expect(first.sourceGaps.some((gap) => gap.field === 'contractualSalary')).toBe(false)
+  })
+
+  it('treats salary and schedule valid_until as exclusive at an adjacent month boundary', async () => {
+    const octoberRequest = { ...request, payrollPeriod: { year: 2026, month: 10 } }
+    const salaryBeforeBoundary = salary({
+      id: '60000000-0000-4000-8000-000000000036',
+      valid_from: '2026-09-01',
+      valid_until: '2026-10-01',
+    })
+    const salaryFromBoundary = salary({
+      id: '60000000-0000-4000-8000-000000000037',
+      fulltime_amount: 4250,
+      valid_from: '2026-10-01',
+      valid_until: '2026-11-01',
+    })
+    const scheduleBeforeBoundary = schedule({
+      id: '70000000-0000-4000-8000-000000000036',
+      valid_from: '2026-09-01',
+      valid_until: '2026-10-01',
+    })
+    const scheduleFromBoundary = schedule({
+      id: '70000000-0000-4000-8000-000000000037',
+      average_hours_per_week: 32,
+      valid_from: '2026-10-01',
+      valid_until: '2026-11-01',
+    })
+
+    const october = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salaryBeforeBoundary, salaryFromBoundary],
+        schedules: [scheduleBeforeBoundary, scheduleFromBoundary],
+      })),
+    })).getPayrollSourceSnapshot(octoberRequest)
+
+    const canonicalSource = october.canonicalSource as {
+      readonly compensation: { readonly entries: readonly { readonly id: string }[] }
+      readonly schedule: { readonly entries: readonly { readonly id: string }[] }
+    }
+    expect(canonicalSource.compensation.entries.map((entry) => entry.id)).toEqual([salaryFromBoundary.id])
+    expect(canonicalSource.schedule.entries.map((entry) => entry.id)).toEqual([scheduleFromBoundary.id])
+    expect(october.sourceGaps.some((gap) => ['contractualSalary', 'contractualHours'].includes(gap.field))).toBe(false)
   })
 
   it('marks missing and overlapping source timelines explicitly', async () => {

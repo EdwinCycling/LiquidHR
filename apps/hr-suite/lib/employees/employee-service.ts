@@ -9,6 +9,7 @@ import { createEmployeeSystemActivity } from './employee-activity-service'
 import { parseStorageReference, resolveStoredImageUrl } from '@/lib/storage/image-url'
 import {
   isPostgresConflict,
+  isPrimaryForNewBankAccount,
   toEmployeeBankAccountUpdate,
   toEmployeeInsert,
   toEmployeeUpdate,
@@ -536,6 +537,9 @@ export async function archiveEmployeeRelation(employeeId: string, relationId: st
 export async function createEmployeeBankAccount(employeeId: string, input: BankAccountInput): Promise<string> {
   const context = await requirePermission('bank-account:write', employeeId)
   const supabase = await createClient()
+  const { data: existingAccounts, error: existingAccountsError } = await supabase.from('employee_bank_accounts')
+    .select('id').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).is('deleted_at', null).limit(1)
+  if (existingAccountsError) throw new EmployeeServiceError('BANK_ACCOUNT_CREATE_FAILED', 500)
   const { data, error } = await supabase.from('employee_bank_accounts').insert({
     tenant_id: context.tenantId,
     employee_id: employeeId,
@@ -544,7 +548,7 @@ export async function createEmployeeBankAccount(employeeId: string, input: BankA
     bic: input.bic ?? null,
     account_holder: input.accountHolder,
     description: input.description ?? null,
-    is_primary: input.isPrimary,
+    is_primary: isPrimaryForNewBankAccount(existingAccounts?.length ?? 0, input.isPrimary),
   }).select('id').single()
   if (isPostgresConflict(error)) throw new EmployeeServiceError('PRIMARY_BANK_ACCOUNT_CONFLICT', 409)
   if (error || !data) throw new EmployeeServiceError('BANK_ACCOUNT_CREATE_FAILED', 500)

@@ -11,7 +11,7 @@ const MOBILE_VIEWPORT = Object.freeze({ label: 'mobile', width: 393, height: 852
 const DESKTOP_VIEWPORT = Object.freeze({ label: 'desktop', width: 1440, height: 900 })
 const PERSONAS = Object.freeze(['hr-admin', 'manager', 'employee'])
 const PROBE_METHODS = Object.freeze(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT'])
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 let chromium
 
 class RunnerError extends Error {

@@ -87,14 +87,18 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
   }
 }
 
-function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { start: string; end: string } {
+function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { start: string; endInclusive: string; endExclusive: string } {
   const start = `${period.year}-${String(period.month).padStart(2, '0')}-01`
-  const end = new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
-  return { start, end }
+  const endInclusive = new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
+  return { start, endInclusive, endExclusive: dayAfter(endInclusive) }
 }
 
-function overlapsPeriod(validFrom: string, validUntil: string | null, start: string, end: string): boolean {
-  return validFrom <= end && (validUntil === null || validUntil >= start)
+function employmentOverlapsPeriod(startsOn: string, endsOn: string | null, start: string, endInclusive: string): boolean {
+  return startsOn <= endInclusive && (endsOn === null || endsOn >= start)
+}
+
+function effectiveRangeOverlapsPeriod(validFrom: string, validUntil: string | null, start: string, endExclusive: string): boolean {
+  return validFrom < endExclusive && (validUntil === null || validUntil > start)
 }
 
 function sortTimeline<T extends { readonly valid_from: string; readonly id: string }>(rows: readonly T[]): T[] {
@@ -105,30 +109,34 @@ function dayAfter(date: string): string {
   return new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10)
 }
 
+function laterDate(current: string | null, candidate: string): string {
+  return current === null || candidate > current ? candidate : current
+}
+
 function timelineCoverage(
   rows: readonly { readonly valid_from: string; readonly valid_until: string | null }[],
   requiredStart: string,
-  requiredEnd: string,
+  requiredEndExclusive: string,
 ): 'COMPLETE' | 'GAP' | 'OVERLAP' {
   let previousEnd: string | null = null
   for (const row of rows) {
     const rowStart = row.valid_from < requiredStart ? requiredStart : row.valid_from
-    const rawEnd = row.valid_until ?? requiredEnd
-    const rowEnd = rawEnd > requiredEnd ? requiredEnd : rawEnd
-    if (rowStart <= rowEnd && previousEnd !== null && rowStart <= previousEnd) return 'OVERLAP'
-    if (rowStart <= rowEnd) previousEnd = rowEnd
+    const rawEnd = row.valid_until ?? requiredEndExclusive
+    const rowEnd = rawEnd > requiredEndExclusive ? requiredEndExclusive : rawEnd
+    if (rowStart < rowEnd && previousEnd !== null && rowStart < previousEnd) return 'OVERLAP'
+    if (rowStart < rowEnd) previousEnd = laterDate(previousEnd, rowEnd)
   }
 
   let nextRequiredDate = requiredStart
   for (const row of rows) {
     const rowStart = row.valid_from < requiredStart ? requiredStart : row.valid_from
-    const rawEnd = row.valid_until ?? requiredEnd
-    const rowEnd = rawEnd > requiredEnd ? requiredEnd : rawEnd
-    if (rowEnd < nextRequiredDate) continue
+    const rawEnd = row.valid_until ?? requiredEndExclusive
+    const rowEnd = rawEnd > requiredEndExclusive ? requiredEndExclusive : rawEnd
+    if (rowEnd <= nextRequiredDate) continue
     if (rowStart > nextRequiredDate) return 'GAP'
     if (rowStart < nextRequiredDate) return 'OVERLAP'
-    if (rowEnd >= requiredEnd) return 'COMPLETE'
-    nextRequiredDate = dayAfter(rowEnd)
+    if (rowEnd >= requiredEndExclusive) return 'COMPLETE'
+    nextRequiredDate = rowEnd
   }
   return 'GAP'
 }
@@ -210,7 +218,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       && employment.employee_id === input.employeeId
       && employment.deleted_at === null
       && employment.record_status === 'CONFIRMED'
-      && overlapsPeriod(employment.starts_on, employment.ends_on, bounds.start, bounds.end),
+      && employmentOverlapsPeriod(employment.starts_on, employment.ends_on, bounds.start, bounds.endInclusive),
     )
     if (candidates.length === 0) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
     if (candidates.length > 1) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS', 409)
@@ -236,10 +244,11 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     }
 
     const activeStart = employment.starts_on > bounds.start ? employment.starts_on : bounds.start
-    const activeEnd = employment.ends_on && employment.ends_on < bounds.end ? employment.ends_on : bounds.end
-    const salaries = sortTimeline(timeline.salaries.filter((row) => overlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEnd)))
-    const schedules = sortTimeline(timeline.schedules.filter((row) => overlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEnd)))
-    const sourceGaps = sourceGapsFor(salaries, schedules, activeStart, activeEnd)
+    const employmentEndExclusive = employment.ends_on === null ? bounds.endExclusive : dayAfter(employment.ends_on)
+    const activeEndExclusive = employmentEndExclusive < bounds.endExclusive ? employmentEndExclusive : bounds.endExclusive
+    const salaries = sortTimeline(timeline.salaries.filter((row) => effectiveRangeOverlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEndExclusive)))
+    const schedules = sortTimeline(timeline.schedules.filter((row) => effectiveRangeOverlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEndExclusive)))
+    const sourceGaps = sourceGapsFor(salaries, schedules, activeStart, activeEndExclusive)
     const sourceVersionVector = Object.fromEntries([
       [`employment:${employment.id}`, employment.updated_at],
       ...salaries.map((row) => [`employment_salary:${row.id}`, row.updated_at] as const),

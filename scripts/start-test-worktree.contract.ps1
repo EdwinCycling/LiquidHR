@@ -30,6 +30,9 @@ if ($launcherSource -notmatch "-RedirectStandardOutput 'NUL' -RedirectStandardEr
 if ($launcherSource -notmatch '(?im)-UseNewEnvironment') {
     throw 'De runner mag geen user/session-environment erven bij het starten van Next.js.'
 }
+if ($launcherSource -notmatch '(?im)\$Process\.Kill\(\$true\)') {
+    throw 'De runner moet bij opruimen uitsluitend de eigen runtime en childprocessen stoppen.'
+}
 if ($launcherSource -notmatch '(?im)process\.loadEnvFile') {
     throw 'De runner moet de centrale config via Node process.loadEnvFile laden.'
 }
@@ -59,10 +62,11 @@ foreach ($requiredProbeToken in @(
 if ($launcherSource -notmatch [Regex]::Escape('$StopTestRunner -and ($RuntimePid -le 0 -or $Port -le 0)')) {
     throw 'De stoproute moet zowel een positieve owner-PID als de exacte positieve runner-poort vereisen.'
 }
-if ($launcherSource -notmatch '(?im)process\.execArgv\s*=\s*\[\]') {
-    throw 'De runner moet de Node-bootstrapopties wissen voordat Next.js wordt geladen.'
+if ($launcherSource -notmatch '(?im)spawnSync\(process\.execPath,\s*\[nextCliPath,\s*\.\.\.nextArgs\]') {
+    throw 'De runner moet Next.js als schone Node-child starten zodat de exacte owner-procesidentiteit behouden blijft.'
 }
-if ($launcherSource -notmatch "\`$arguments\.Add\('-e'\)" -or $launcherSource -notmatch "\`$arguments\.Add\('--'\)") {
+if ($launcherSource -notmatch "\`$arguments\.Add\('-e'\)" -or $launcherSource -notmatch "\`$arguments\.Add\('--'\)" -or
+    $launcherSource -notmatch "env:\s*process\.env" -or $launcherSource -notmatch "stdio:\s*'inherit'") {
     throw 'De runtimebootstrap moet de Next-argumenten na het Node-script doorgeven.'
 }
 if ($launcherSource -match '(?is)return\s+\[pscustomobject\]@\{[^}]*\bworktree\s*=') {

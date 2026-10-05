@@ -731,6 +731,7 @@ function Start-TestRuntimeProcess {
 
     $bootstrap = @'
 const process = require('node:process');
+const { spawnSync } = require('node:child_process');
 const [envFileArgument, workingDirectory, nextCliPath, ...nextArgs] = process.argv.slice(1);
 const envFilePrefix = '--env-file=';
 if (!envFileArgument || !envFileArgument.startsWith(envFilePrefix)) {
@@ -741,9 +742,13 @@ if ((process.env.NODE_OPTIONS ?? '').trim()) {
   throw new Error('NODE_OPTIONS is unsupported by the isolated TEST runtime.');
 }
 process.chdir(workingDirectory);
-process.execArgv = [];
-process.argv = [process.execPath, nextCliPath, ...nextArgs];
-require(nextCliPath);
+const result = spawnSync(process.execPath, [nextCliPath, ...nextArgs], {
+  cwd: workingDirectory,
+  env: process.env,
+  stdio: 'inherit',
+});
+if (result.error) throw new Error('The isolated Next.js runtime could not be started.');
+process.exit(result.status ?? 1);
 '@
     $arguments = [Collections.Generic.List[string]]::new()
     $arguments.Add('-e')
@@ -768,7 +773,8 @@ require(nextCliPath);
         # NUL and NUL. are both Windows null devices, so neither stream is persisted
         # or exposed while PowerShell still sees distinct targets.
         # UseNewEnvironment excludes the caller's user/session environment. The
-        # Node bootstrap loads the central config and passes its marker after `--`.
+        # bootstrap loads the central config, then runs Next as a clean Node child;
+        # the tracked bootstrap process stays alive for exact ownership checks.
         $process = Start-Process -FilePath $NodePath `
             -ArgumentList (($arguments | ForEach-Object { ConvertTo-ProcessArgument -Value $_ }) -join ' ') `
             -WorkingDirectory $WorkingDirectory -PassThru -WindowStyle Hidden -UseNewEnvironment `
@@ -787,7 +793,7 @@ function Stop-OwnedTestRuntimeProcess {
     }
     try {
         if (-not $Process.HasExited) {
-            $Process.Kill()
+            $Process.Kill($true)
             $Process.WaitForExit(5000)
         }
     } catch {

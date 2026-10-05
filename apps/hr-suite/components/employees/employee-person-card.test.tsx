@@ -28,4 +28,28 @@ describe('Employee personal tab contract', () => {
     for (const tab of EMPLOYEE_PERSONAL_TABS) expect(markup).toContain(`id="employee-tab-${tab}"`)
     expect(markup).toContain('aria-controls="employee-panel-personal"')
   })
+
+  it('shows the BSN maintenance action only to users with write permission', () => {
+    const writeOnlyDetail = {
+      ...detail,
+      capabilities: { ...detail.capabilities!, canWriteBsn: true },
+    }
+    const markup = renderToStaticMarkup(createElement(EmployeePersonCard, { detail: writeOnlyDetail, labels, locale: 'nl-NL', dateFormat: 'DMY', defaultCountryCode: 'NL' }))
+
+    expect(markup).toContain('<h3 class="font-semibold">BSN</h3>')
+    expect(markup).toContain('Wijzigen')
+    expect(markup).not.toContain('BSN bekijken')
+    expect(markup).not.toContain('name="bsn"')
+  })
+
+  it('keeps BSN reveal permission separate from maintenance permission', () => {
+    const readOnlyDetail = {
+      ...detail,
+      capabilities: { ...detail.capabilities!, canReadBsn: true },
+    }
+    const markup = renderToStaticMarkup(createElement(EmployeePersonCard, { detail: readOnlyDetail, labels, locale: 'nl-NL', dateFormat: 'DMY', defaultCountryCode: 'NL' }))
+
+    expect(markup).toContain('Tonen')
+    expect(markup).not.toContain('Wijzigen')
+  })
 })
