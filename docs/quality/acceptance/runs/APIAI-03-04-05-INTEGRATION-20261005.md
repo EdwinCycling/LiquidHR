@@ -2,7 +2,7 @@
 
 ## 1. Verdict
 
-**LOCAL CONVERGENCE ACCEPTANCE: GREEN; THREE INDEPENDENT CONVERGENCE REVIEWS COMPLETE WITH NO P0/P1; FINAL PRODUCTION BUILD AND GITHUB HANDOFF: PENDING. EXTERNAL ACTIVATION: BLOCKED.** The later authenticated local TEST run below supersedes the earlier missing-refresh-token result for persona/BFF/MCP/WebMCP acceptance. APIAI-01 provider/bearer/RLS/audit/database gates and ChatGPT-host acceptance remain open; this local evidence does not close them.
+**LOCAL CONVERGENCE ACCEPTANCE: GREEN ON EXACT SOURCE SHA; FINAL PRODUCTION BUILD, PAYROLL BUNDLE SCAN, BROWSER PERSONA/MCP/WEBMCP ACCEPTANCE AND THREE INDEPENDENT REVIEWS COMPLETE WITH NO P0/P1. SINGLE DRAFT PR AND POST-PUSH READBACK: PENDING. EXTERNAL ACTIVATION: BLOCKED.** APIAI-01 provider/bearer/RLS/audit/database gates and ChatGPT-host acceptance remain open; local evidence does not close them.
 
 ## 2. Provenance and scope
 
@@ -71,7 +71,7 @@ The adapter-only review preceded the later authenticated integrated-worktree run
 
 ## 9. Final status
 
-**LOCAL AUTHENTICATED PERSONA / BFF / MCP / NATIVE WEBMCP ACCEPTANCE, AUTOMATED REGRESSION GATES, AND THREE INDEPENDENT REVIEWS: GREEN WITH NO P0/P1. FINAL PRODUCTION BUILD / PAYROLL BUNDLE SCAN / GITHUB HANDOFF: PENDING. APIAI-01 SECURITY-DATABASE / PROVIDER / CHATGPT-HOST / HOSTED ACCEPTANCE: OPEN; EXTERNAL ACTIVATION BLOCKED.**
+**LOCAL AUTHENTICATED PERSONA / BFF / MCP / NATIVE WEBMCP ACCEPTANCE, AUTOMATED REGRESSION GATES, EXACT-SHA PRODUCTION BUILD / PAYROLL SCAN, AND THREE INDEPENDENT REVIEWS: GREEN WITH NO P0/P1. CANDIDATE PUSH / SINGLE DRAFT PR / POST-PUSH READBACK: PENDING. APIAI-01 SECURITY-DATABASE / PROVIDER / CHATGPT-HOST / HOSTED ACTIVATION: OPEN; EXTERNAL ACTIVATION BLOCKED.**
 
 ## 10. Authenticated local acceptance continuation — 2026-10-05
 
@@ -85,4 +85,24 @@ This section records the later run on the integrated worktree. It supersedes the
 - The dashboard serialization regression was reproduced before the source fix: Zod JSON Schema carried a non-enumerable ~standard property across the Server/Client boundary. The client projection now includes only id, description, operation, and inputSchema, round-trips through JSON, and is strict-validated. Its regression test checks plain data and absence of ~standard.
 - Current source regression gates: focused APIAI-01/02/03/04/05 and HeRa 37 files / 260 tests passed; full HR suite 545 files passed, 4 skipped; 2,369 tests passed, 8 skipped; strict TypeScript, changed-file ESLint, i18n parity (41 NL/EN namespaces), and launcher Pester 3/3 passed. Live HeRa Gemini inference was not run.
 
-The final Production build and Payroll client-boundary scan must run against the final committed candidate because the earlier Section 5 build belongs to the prior source SHA. Final browser acceptance must also be read back against the exact source commit. The authorized single Draft PR handoff and post-push GitHub/Vercel readback are pending. No merge, deployment, route activation, ChatGPT registration, tunnel, version bump, or remote database write was performed.
+The earlier pending statement is superseded by Section 11, which records the final build and exact-source browser results. The one authorized Draft PR and post-push GitHub/Vercel readback remain pending; no merge or deployment is included.
+
+## 11. Exact-source final acceptance closeout — 2026-10-05
+
+The final code candidate is source commit 6e443463561e77d3039a1e2afb1bbcaecff548b0 on work/apiai-030405-integrated-20261005. The official local Production build on this exact source passed Next.js 16.3.6 compilation and production TypeScript, generated 309/309 static pages, passed the Payroll client-boundary negative control and the scan of 152 browser assets, and recorded build provenance for this SHA. The documentation closeout is a separate commit; it does not change this source SHA.
+
+Exact-source Production-mode probes remained fail-closed: an anonymous same-origin Workforce BFF POST returned 401 AUTHENTICATION_REQUIRED; POST /api/internal/mcp returned 404 MCP_UNAVAILABLE; /api/v1/tools returned 404. No route was mounted or activated.
+
+The authenticated local run used scripts/start-test-worktree.ps1 on loopback port 3015 with the central TEST configuration and a task-only Chrome profile. A clean Development restart after removing only the stale .next/dev generated cache produced a browser pass with zero console errors. The normal role sequence was also explicitly completed: Employee logout, fresh Test HR Admin login, then normal Test Role Switcher transition to Manager. In the resulting Manager context, the former Employee skills BFF tool returned 403 ACCESS_DENIED and the Manager team matrix returned 200 with 5 rows. Manager logout followed by fresh Test HR Admin login and Planeten context selection returned 25 HR-matrix rows; the former Manager tool returned 403 ACCESS_DENIED.
+
+The earlier full exact-source persona matrix remains valid: Employee Development Plans returned 6, development gaps 4 and skills 0; Manager returned 5 direct-team rows and 0 after selecting the allowed Stap 6 test group; HR Admin returned 25 tenant rows. Forged context filters and role-mismatched calls were rejected. MCP initialize returned 200 Streamable HTTP SSE with protocol 2025-06-18; tools/list returned the static local catalog of 8; authenticated tools/call exercised the shared dispatcher and structured output. Employee, Manager and HR Admin MCP calls respected the same scopes, and cross-role execution returned bounded ACCESS_DENIED.
+
+Native WebMCP ran in isolated Chrome 154.0.8037.93 with the official local test flag. Employee, Manager and HR Admin pages registered 6, 1 and 1 tools respectively and executed through the real same-origin BFF and shared dispatcher with 6 plans, 5 direct-team rows and 25 tenant rows. A Manager context change reduced its result to 0; role changes replaced the registrations; an in-flight call rejected with AbortError; logout unregistered tools and an unauthenticated BFF call returned 401. Headless Chrome without the testing flag had no document.modelContext and safely no-oped.
+
+A separate repeated synthetic login initially encountered TEST environment clock skew (PGRST303, JWT issued at future) and a dashboard 500. After the token validity window passed, normal HR-group selection and the Employee logout, Manager switch, Manager logout and fresh HR Admin checks completed successfully without code changes. The browser error recorded by that first repeated attempt is environment evidence; it did not replace the earlier clean exact-source pass.
+
+The five focused adapter regressions, 37 files / 260 tests across APIAI-01/02/03/04/05 and HeRa, full HR suite (545 files passed, 4 skipped; 2,369 tests passed, 8 skipped), strict TypeScript, changed-file ESLint, 41 NL/EN namespace parity checks and launcher Pester 3/3 all passed. Independent Security/Auth, Architecture/ONE VERSION and cross-channel reviews have no remaining P0/P1; the P2 context-selection code drift was normalized and covered by five regressions.
+
+Remote readback before handoff confirmed main remains at 6349d02538351cd01fc51f298c6e6fa0ba88006c. PR #3 remains open Draft at f6353c7aa0fc811dc065b402277a36f989b3542d and PR #5 remains open Draft at ce6a2ea6c1cc1e4071147076a411c60bff667d8f; both are still unmerged. The convergence candidate has not yet been pushed and its single Draft PR and post-push Vercel readback remain pending.
+
+APIAI-01 live bearer/RLS, provider lifecycle, audit/limiter and isolated database gates remain OPEN. ChatGPT-host acceptance remains OPEN. No hosted deployment, remote migration, merge, tunnel, external registration, public MCP, /api/v1 activation or version change occurred. Conclusion for the dormant candidate: CONVERGENCE READY / EXTERNAL ACTIVATION BLOCKED.
