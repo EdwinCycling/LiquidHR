@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { listMyTalentGoalCheckIns, type TalentGoalCheckInMetadata } from '@/lib/talent/check-in-service'
 import { listMyTalentEmployeeCapabilityRecords, type TalentEmployeeCapabilityRecord } from '@/lib/talent/employee-capability-service'
 import { listTalentGoals, type TalentGoal } from '@/lib/talent/goal-service'
-import { listTalentRoleExplorerWorkspace, type TalentRoleExplorerAxis } from '@/lib/talent/role-explorer-service'
+import { listTalentCurrentRoleProfileWorkspace, type TalentRoleExplorerAxis } from '@/lib/talent/role-explorer-service'
 import { defineWorkforceTool } from './contracts'
 
 const uuidSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
@@ -253,7 +253,7 @@ export const employeeDevelopmentGapsTool = defineWorkforceTool({
   inputSchema: emptyInputSchema,
   outputSchema: employeeDevelopmentGapsOutputSchema,
   handler: async () => {
-    const workspace = await listTalentRoleExplorerWorkspace('self')
+    const workspace = await listTalentCurrentRoleProfileWorkspace()
     const axes = workspace.comparison?.axes ?? []
     return {
       asOf: workspace.asOf,

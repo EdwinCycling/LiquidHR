@@ -158,7 +158,11 @@ export class TalentRoleExplorerError extends Error {
   }
 }
 
-export async function listTalentRoleExplorerWorkspace(mode: TalentRoleExplorerMode, query: TalentRoleExplorerListQuery = {}): Promise<TalentRoleExplorerWorkspace> {
+async function buildTalentRoleExplorerWorkspace(
+  mode: TalentRoleExplorerMode,
+  query: TalentRoleExplorerListQuery,
+  compareCurrentProfileForSelf: boolean,
+): Promise<TalentRoleExplorerWorkspace> {
   const context = await authorize(mode)
   await requireTenantModule('TALENT')
   const supabase = await createClient()
@@ -194,8 +198,32 @@ export async function listTalentRoleExplorerWorkspace(mode: TalentRoleExplorerMo
   const [profilesResult, placementsResult] = await Promise.all([profilesQuery, placementsQuery])
   if (profilesResult.error || placementsResult.error) throw new TalentRoleExplorerError('TALENT_ROLE_EXPLORER_SCOPE_READ_FAILED')
 
-  const allProfiles = (profilesResult.data ?? []).flatMap((profile): TalentRoleExplorerProfileOption[] => {
+  const currentProfileJobId = compareCurrentProfileForSelf && mode === 'self'
+    ? placementsResult.data?.[0]?.job_id ?? null
+    : null
+  let currentProfileRows: NonNullable<typeof profilesResult.data> = []
+  if (currentProfileJobId) {
+    const currentProfileResult = await supabase
+      .from('talent_job_profile_readmodel')
+      .select('tenant_id,job_profile_id,job_id,job_code,job_group_name,profile_version_id,version_number,status,valid_from,valid_until')
+      .eq('tenant_id', context.tenantId)
+      .eq('job_id', currentProfileJobId)
+      .eq('job_is_active', true)
+      .eq('status', 'ACTIVE')
+      .not('profile_version_id', 'is', null)
+      .lte('valid_from', today)
+      .or(`valid_until.is.null,valid_until.gt.${today}`)
+      .order('valid_from', { ascending: false })
+      .limit(1)
+    if (currentProfileResult.error) throw new TalentRoleExplorerError('TALENT_ROLE_EXPLORER_SCOPE_READ_FAILED')
+    currentProfileRows = currentProfileResult.data ?? []
+  }
+
+  const seenProfileVersionIds = new Set<string>()
+  const allProfiles = [...currentProfileRows, ...(profilesResult.data ?? [])].flatMap((profile): TalentRoleExplorerProfileOption[] => {
     if (!profile.profile_version_id || !profile.job_id || !profile.job_code) return []
+    if (seenProfileVersionIds.has(profile.profile_version_id)) return []
+    seenProfileVersionIds.add(profile.profile_version_id)
     return [{
       profileVersionId: profile.profile_version_id,
       jobId: profile.job_id,
@@ -239,11 +267,15 @@ export async function listTalentRoleExplorerWorkspace(mode: TalentRoleExplorerMo
   const selectedEmployeeId = mode === 'self'
     ? context.employeeId
     : query.employeeId && employees.some((employee) => employee.employeeId === query.employeeId) ? query.employeeId : null
-  const selectedProfileVersionId = query.profileVersionId && profiles.some((profile) => profile.profileVersionId === query.profileVersionId) ? query.profileVersionId : null
+  const selectedProfileVersionId = compareCurrentProfileForSelf && mode === 'self'
+    ? selfEmployee?.currentProfileVersionId ?? null
+    : query.profileVersionId && profiles.some((profile) => profile.profileVersionId === query.profileVersionId) ? query.profileVersionId : null
   if (!selectedEmployeeId || !selectedProfileVersionId) return { mode, asOf: today, profiles, employees, selectedEmployeeId, selectedProfileVersionId, comparison: null }
 
   const selectedEmployee = employees.find((employee) => employee.employeeId === selectedEmployeeId)
-  const selectedProfile = profiles.find((profile) => profile.profileVersionId === selectedProfileVersionId)
+  const selectedProfile = compareCurrentProfileForSelf && mode === 'self'
+    ? allProfiles.find((profile) => profile.profileVersionId === selectedProfileVersionId && profile.jobId === selfEmployee?.jobId)
+    : profiles.find((profile) => profile.profileVersionId === selectedProfileVersionId)
   if (!selectedEmployee || !selectedProfile) throw new TalentRoleExplorerError('TALENT_ROLE_EXPLORER_SELECTION_INVALID', 400)
 
   const requirementsResult = await supabase.from('job_profile_capability_requirements').select('*').eq('tenant_id', context.tenantId).eq('profile_version_id', selectedProfileVersionId).order('sort_order').limit(500)
@@ -292,4 +324,12 @@ export async function listTalentRoleExplorerWorkspace(mode: TalentRoleExplorerMo
   })
 
   return { mode, asOf: today, profiles, employees, selectedEmployeeId, selectedProfileVersionId, comparison: { employee: selectedEmployee, profile: selectedProfile, axes } }
+}
+
+export function listTalentRoleExplorerWorkspace(mode: TalentRoleExplorerMode, query: TalentRoleExplorerListQuery = {}): Promise<TalentRoleExplorerWorkspace> {
+  return buildTalentRoleExplorerWorkspace(mode, query, false)
+}
+
+export function listTalentCurrentRoleProfileWorkspace(): Promise<TalentRoleExplorerWorkspace> {
+  return buildTalentRoleExplorerWorkspace('self', {}, true)
 }

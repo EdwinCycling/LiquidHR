@@ -40,7 +40,7 @@ import { POST } from './route'
 function post(toolId: string, input: unknown): Request {
   return new Request('http://localhost/api/internal/workforce-tools', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', origin: 'http://localhost' },
     body: JSON.stringify({ toolId, input }),
   })
 }

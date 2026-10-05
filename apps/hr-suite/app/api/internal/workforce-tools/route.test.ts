@@ -15,10 +15,12 @@ vi.mock('@/lib/auth/permissions', () => ({ requireAuthContext, permissionErrorRe
 import { POST } from './route'
 import { WorkforceToolDispatchError } from '@/lib/workforce-tools/registry'
 
-function post(body: unknown): Request {
+function post(body: unknown, origin: string | null = 'http://localhost'): Request {
+  const headers = new Headers({ 'content-type': 'application/json' })
+  if (origin !== null) headers.set('origin', origin)
   return new Request('http://localhost/api/internal/workforce-tools', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
   })
 }
@@ -33,6 +35,18 @@ describe('POST /api/internal/workforce-tools', () => {
   it('rejects caller-supplied identity or tenant fields before dispatch', async () => {
     const response = await POST(post({ toolId: 'employee.talent.skills.read', input: {}, tenantId: 'tenant-2' }))
     expect(response.status).toBe(400)
+    expect(requireAuthContext).not.toHaveBeenCalled()
+    expect(dispatchWorkforceTool).not.toHaveBeenCalled()
+  })
+
+  it('rejects missing and cross-origin browser requests before authentication', async () => {
+    const crossOrigin = await POST(post({ toolId: 'employee.talent.skills.read', input: {} }, 'https://attacker.example'))
+    const missingOrigin = await POST(post({ toolId: 'employee.talent.skills.read', input: {} }, null))
+
+    expect(crossOrigin.status).toBe(403)
+    expect(missingOrigin.status).toBe(403)
+    await expect(crossOrigin.json()).resolves.toEqual({ error: 'WORKFORCE_REQUEST_FORBIDDEN' })
+    await expect(missingOrigin.json()).resolves.toEqual({ error: 'WORKFORCE_REQUEST_FORBIDDEN' })
     expect(requireAuthContext).not.toHaveBeenCalled()
     expect(dispatchWorkforceTool).not.toHaveBeenCalled()
   })
@@ -53,6 +67,36 @@ describe('POST /api/internal/workforce-tools', () => {
     const response = await POST(post({ toolId: 'employee.talent.skills.read', input: {} }))
     expect(response.status).toBe(500)
     await expect(response.json()).resolves.toEqual({ error: 'WORKFORCE_TOOL_EXECUTION_FAILED' })
+  })
+
+  it('maps recognized permission failures to bounded error codes', async () => {
+    permissionErrorResponse.mockReturnValue(new Response(JSON.stringify({ error: 'Persoonlijke interne fouttekst.' }), { status: 401 }))
+    requireAuthContext.mockRejectedValue(new Error('Persoonlijke interne fouttekst.'))
+
+    const response = await POST(post({ toolId: 'employee.talent.skills.read', input: {} }))
+
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toEqual({ error: 'AUTHENTICATION_REQUIRED' })
+  })
+
+  it('maps permission denial to a bounded forbidden response', async () => {
+    permissionErrorResponse.mockReturnValue(new Response(JSON.stringify({ error: 'Gevoelige autorisatiedetails.' }), { status: 403 }))
+    requireAuthContext.mockRejectedValue(new Error('Gevoelige autorisatiedetails.'))
+
+    const response = await POST(post({ toolId: 'employee.talent.skills.read', input: {} }))
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({ error: 'ACCESS_DENIED' })
+  })
+
+  it('maps required context selection to a bounded conflict response', async () => {
+    permissionErrorResponse.mockReturnValue(new Response(JSON.stringify({ error: 'Gevoelige contextdetails.' }), { status: 409 }))
+    requireAuthContext.mockRejectedValue(new Error('Gevoelige contextdetails.'))
+
+    const response = await POST(post({ toolId: 'employee.talent.skills.read', input: {} }))
+
+    expect(response.status).toBe(409)
+    await expect(response.json()).resolves.toEqual({ error: 'CONTEXT_SELECTION_REQUIRED' })
   })
 
   it('maps a disabled Talent module to a stable not-found response', async () => {

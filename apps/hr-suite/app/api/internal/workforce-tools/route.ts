@@ -48,8 +48,14 @@ async function readBoundedJson(request: Request): Promise<unknown> {
 function failedResponse(error: unknown): NextResponse {
   const permissionResponse = permissionErrorResponse(error)
   if (permissionResponse) {
-    permissionResponse.headers.set('Cache-Control', 'no-store')
-    return permissionResponse
+    const code = permissionResponse.status === 401 ? 'AUTHENTICATION_REQUIRED'
+      : permissionResponse.status === 403 ? 'ACCESS_DENIED'
+        : permissionResponse.status === 409 ? 'CONTEXT_SELECTION_REQUIRED'
+          : null
+    if (code) {
+      const status = permissionResponse.status
+      return NextResponse.json({ error: code }, { status, headers: { 'Cache-Control': 'no-store' } })
+    }
   }
   if (error instanceof WorkforceToolDispatchError) {
     const status = error.code === 'TOOL_NOT_FOUND' ? 404
@@ -71,6 +77,16 @@ function failedResponse(error: unknown): NextResponse {
 
 /** Cookie-authenticated internal BFF. Each tool rechecks its own permission and module. */
 export async function POST(request: Request): Promise<NextResponse> {
+  let sameOrigin = false
+  try {
+    sameOrigin = request.headers.get('origin') === new URL(request.url).origin
+  } catch {
+    sameOrigin = false
+  }
+  if (!sameOrigin) {
+    return NextResponse.json({ error: 'WORKFORCE_REQUEST_FORBIDDEN' }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
+  }
+
   try {
     const body = requestSchema.safeParse(await readBoundedJson(request))
     if (!body.success) {

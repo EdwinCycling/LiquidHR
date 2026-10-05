@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { listTalentGoals, listMyTalentEmployeeCapabilityRecords, listTalentRoleExplorerWorkspace, listMyTalentGoalCheckIns } = vi.hoisted(() => ({
+const { listTalentGoals, listMyTalentEmployeeCapabilityRecords, listTalentCurrentRoleProfileWorkspace, listMyTalentGoalCheckIns } = vi.hoisted(() => ({
   listTalentGoals: vi.fn(),
   listMyTalentEmployeeCapabilityRecords: vi.fn(),
-  listTalentRoleExplorerWorkspace: vi.fn(),
+  listTalentCurrentRoleProfileWorkspace: vi.fn(),
   listMyTalentGoalCheckIns: vi.fn(),
 }))
 
 vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals }))
 vi.mock('@/lib/talent/employee-capability-service', () => ({ listMyTalentEmployeeCapabilityRecords }))
-vi.mock('@/lib/talent/role-explorer-service', () => ({ listTalentRoleExplorerWorkspace }))
+vi.mock('@/lib/talent/role-explorer-service', () => ({ listTalentCurrentRoleProfileWorkspace }))
 vi.mock('@/lib/talent/check-in-service', () => ({ listMyTalentGoalCheckIns }))
 
 import {
@@ -32,7 +32,7 @@ describe('employee workforce tool definitions', () => {
     vi.clearAllMocks()
     listTalentGoals.mockResolvedValue({ goals: [], employees: [], capabilities: [] })
     listMyTalentEmployeeCapabilityRecords.mockResolvedValue([])
-    listTalentRoleExplorerWorkspace.mockResolvedValue({
+    listTalentCurrentRoleProfileWorkspace.mockResolvedValue({
       mode: 'self',
       asOf: '2026-10-04',
       profiles: [],
@@ -288,7 +288,7 @@ describe('employee workforce tool definitions', () => {
   })
 
   it('projects non-matching role requirements as own development gaps', async () => {
-    listTalentRoleExplorerWorkspace.mockResolvedValue({
+    listTalentCurrentRoleProfileWorkspace.mockResolvedValue({
       mode: 'self',
       asOf: '2026-10-04',
       profiles: [],
@@ -378,6 +378,7 @@ describe('employee workforce tool definitions', () => {
         validUntil: null,
       }],
     })
+    expect(listTalentCurrentRoleProfileWorkspace).toHaveBeenCalledOnce()
     expect(JSON.stringify(await employeeDevelopmentGapsTool.execute({}))).not.toContain('employee-secret')
     expect(JSON.stringify(await employeeDevelopmentGapsTool.execute({}))).not.toContain('Private rationale')
     expect(JSON.stringify(await employeeDevelopmentGapsTool.execute({}))).not.toContain('record-secret')
