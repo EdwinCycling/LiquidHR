@@ -17,6 +17,8 @@ interface FakeClientOptions {
   accessRoleIds?: string[]
   assignmentRoleIds?: string[]
   roleCodes?: Record<string, string>
+  roleTenants?: Record<string, string | null>
+  tenantRoleOverrides?: Record<string, string>
   rolePermissions?: Record<string, string[]>
   selfPermissionCodes?: string[]
   essStatus?: 'ACTIVE' | 'BLOCKED'
@@ -103,10 +105,23 @@ function createFakeClient(options: FakeClientOptions = {}) {
 
       if (table === 'management_roles') {
         const builder = {
-          in: (_column: string, roleIds: string[]) => {
-            requestedRoleIds = roleIds
+          in: (column: string, values: string[]) => {
+            if (column === 'id') {
+              requestedRoleIds = values
+              return Promise.resolve({
+                data: values.map((id) => ({
+                  id,
+                  code: options.roleCodes?.[id] ?? 'TENANT_ADMIN',
+                  tenant_id: options.roleTenants?.[id] ?? null,
+                })),
+                error: null,
+              })
+            }
             return Promise.resolve({
-              data: roleIds.map((id) => ({ id, code: options.roleCodes?.[id] ?? 'TENANT_ADMIN' })),
+              data: values.flatMap((code) => {
+                const id = options.tenantRoleOverrides?.[code]
+                return id ? [{ id, code }] : []
+              }),
               error: null,
             })
           },
@@ -221,6 +236,27 @@ describe('requirePermission', () => {
     expect(context.activeRoles).toEqual(['TENANT_ADMIN', 'DIRECT_MANAGER'])
     expect(context.permissions).toEqual(['department:read', 'employee:read'])
     expect(context.administrationId).toBe('admin-1')
+  })
+
+  it('gebruikt de permissions van een tenantoverride zonder globale permissions te erven', async () => {
+    createClient.mockResolvedValue(
+      createFakeClient({
+        accessRoleIds: ['global-tenant-admin'],
+        roleCodes: { 'global-tenant-admin': 'TENANT_ADMIN' },
+        roleTenants: { 'global-tenant-admin': null },
+        tenantRoleOverrides: { TENANT_ADMIN: 'tenant-tenant-admin' },
+        rolePermissions: {
+          'global-tenant-admin': ['department:read', 'payroll-import:read', 'payroll-import:write'],
+          'tenant-tenant-admin': ['payroll-import:read', 'payroll-import:write'],
+        },
+      }),
+    )
+
+    const context = await requireAuthContext()
+
+    expect(context.activeRoles).toEqual(['TENANT_ADMIN'])
+    expect(context.permissions).toEqual(['payroll-import:read', 'payroll-import:write'])
+    expect(context.permissions).not.toContain('department:read')
   })
 
   it('bouwt een volledige context zonder een kunstmatige permissioncheck', async () => {

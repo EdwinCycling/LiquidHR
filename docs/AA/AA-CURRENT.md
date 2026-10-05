@@ -1,11 +1,11 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-02
+Momentopname: 2026-10-03
 
 > **Actueel:** CONVERGENCE01 is als TEST-release vrijgegeven op 2026-10-02. Dit is **geen** claim dat de volledige live security-/persona-acceptatiematrix GREEN is.
 
-> **PAYLAB update 2026-10-02:** die oudere branchstatus is superseded. PAYLAB00–04 zijn geïntegreerd en browser-geaccepteerd op `integration/payroll-foundation-20261002`, exact accepted HEAD `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`. De onafhankelijke LUNA MAX-review en desktop/390 px productie-acceptatie zijn GREEN. ONE VERSION gebruikt kandidaatversie `1.20261002.1`; de gezamenlijke TEST-release blijft pas RELEASED nadat main, Vercel en hosted smoke exact zijn geverifieerd. Zie `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
+> **PAYLAB / ONE VERSION update 2026-10-03:** PAYLAB00–04 zijn geïntegreerd en de TEST-release is technisch uitgevoerd. `main` staat op mergecommit `6349d02538351cd01fc51f298c6e6fa0ba88006c`; GitHub deployment `6815434828` is succesvol; Vercel `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` is READY met dezelfde SHA, versie `1.20261002.1` en de canonieke alias. Hosted desktop-/mobiele acceptatie is GREEN volgens release-evidencecommit `238a285e0d976b508230d6ac900c4e606e2d89e9` van Edwin op de integratiebranch. De onafhankelijke review van het volledige releasebewijs blijft PENDING; de CONTROL02-review sloot alleen de eigen slice. Dit is geen claim dat CONVERGENCE01-securityacceptatie gesloten is. Zie `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
 
 ## Canonieke repository
 
@@ -15,15 +15,16 @@ Momentopname: 2026-10-02
 - Canonieke Supabase TEST/projectomgeving: `wnpfloqpjvaacobppbpk`
 - Eén operationele LiquidHR-omgeving; Vercel “Production” is deploymentchannelnaam.
 
-## Actuele canonieke LiquidHR TEST-release — 2026-10-02
+## Actuele canonieke LiquidHR TEST-release — 2026-10-03
 
-- Appversie: `1.20260928.1`.
-- `main` / `origin/main`: `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; lokale `main`-gelijkheid bevestigd in de Codex-releasehandoff.
-- Vercel `liquidhr`: deployment `dpl_CANMAQydQcYGy9Xe7JhNm8grJuvH`, READY, targetlabel `production` = onze enige operationele TEST-omgeving.
+- Appversie: `1.20261002.1`.
+- `main` / `origin/main`: `6349d02538351cd01fc51f298c6e6fa0ba88006c`; mergecommit voor de ONE VERSION PAYLAB00–04-release.
+- GitHub deployment: `6815434828`, success op dezelfde SHA.
+- Vercel `liquidhr`: deployment `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5`, READY, targetlabel `production` = onze enige operationele TEST-omgeving.
 - Alias: https://liquid-hr-hr-suite.vercel.app/.
-- GitHub main-SHA en Vercel deploymentstatus/alias zijn onafhankelijk gecontroleerd. Vercel CLI-upload toont zelf geen Git-SHA; de schone checkout en gebruikte release-SHA zijn in de Codex-handoff vastgelegd.
+- De Vercel-deployment is aan dezelfde SHA gekoppeld in de deploymentreadback. Hosted desktop-/mobiele acceptatie staat geregistreerd op de integratiebranch; de volledige onafhankelijke release-evidence-review blijft PENDING.
 - Historische ABS02-baseline vóór convergence: `3a0fc67f84bc7dab0acff732afab597142d59ea9`, appversie `1.20260927.3`.
-- **Status:** TEST RELEASED; resterende live security-/persona-/exportacceptatie OPEN, dus geen volledige acceptance GREEN.
+- **Status:** ONE VERSION TEST RELEASED; hosted payrollacceptatie GREEN volgens release-eigenaar Edwin. De onafhankelijke review van het volledige samengestelde releasebewijs blijft PENDING. Afzonderlijke CONVERGENCE01 security-/persona-/exportacceptatie blijft OPEN.
 
 ### Bewezen bij release
 
@@ -40,7 +41,7 @@ Acceptancebron op `main`: `docs/quality/acceptance/runs/CONVERGENCE01-20260928.m
 
 ## Payroll Lab — PAYLAB00–04 integrated candidate
 
-Payroll wordt niet als aparte gebruikersapp ontwikkeld. Het is een bounded context binnen dezelfde LiquidHR-app/repository, met een pure `packages/payroll-engine` en een aparte Payroll Lab Supabase-database. De geïntegreerde kandidaat is MERGE-READY; de ONE VERSION-releasegate staat hierboven.
+Payroll wordt niet als aparte gebruikersapp ontwikkeld. Het is een bounded context binnen dezelfde LiquidHR-app/repository, met een pure `packages/payroll-engine` en een aparte Payroll Lab Supabase-database. PAYLAB00–04 is geïntegreerd in `main` en TEST-gedeployed zoals hierboven vermeld; branch `integration/payroll-foundation-20261002` is de bewaarde integratie-/evidencebranch.
 
 Accepted integration:
 - branch: `integration/payroll-foundation-20261002`;

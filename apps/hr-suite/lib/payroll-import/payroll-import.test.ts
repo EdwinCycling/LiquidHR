@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   PayrollImportError,
@@ -92,10 +93,43 @@ describe('payroll import contract', () => {
     expect(toSafeDatabaseDate(undefined)).toBeNull()
   })
 
-  it('weigert echte XML zolang de officiële adapter niet beschikbaar is', () => {
-    expect(() => adaptPayrollSource({ sourceType: 'LOONAANGIFTE_XML', bytes: new TextEncoder().encode('<xml />') })).toThrowError(
-      expect.objectContaining<Partial<PayrollImportError>>({ code: 'REAL_XML_PENDING', status: 409 }),
-    )
+  it('normaliseert geregistreerde XML alleen met servercontext en beschermt BSN binnen de adapter', () => {
+    const previousKey = process.env.BSN_HASH_KEY
+    process.env.BSN_HASH_KEY = 'control02-test-key-that-is-not-production-0001'
+    try {
+      const bytes = readFileSync(new URL('./xml/fixtures/loonaangifte-2026-v2.0.synthetic.xml', import.meta.url))
+      const result = adaptPayrollSource({ sourceType: 'LOONAANGIFTE_XML', bytes, tenantId: 'tenant-test' })
+
+      expect(result.sourceContext).toMatchObject({
+        status: 'SUPPORTED_READ_ONLY',
+        taxYear: 2026,
+        schemaVersion: '2.0',
+        xsdValidation: 'VALIDATED',
+      })
+      expect(result.persons).toHaveLength(2)
+      expect(result.persons[0]?.bsnFingerprint).toMatch(/^[0-9a-f]{64}$/u)
+      expect(result.persons[0]?.firstName).toBeUndefined()
+      expect(result.persons[0]?.birthName).toBeUndefined()
+      expect(result.persons[0]?.incomeRelationships[0]?.sourcePeriods?.length).toBeGreaterThan(0)
+      expect(JSON.stringify(result)).not.toContain('123456782')
+    } finally {
+      if (previousKey === undefined) delete process.env.BSN_HASH_KEY
+      else process.env.BSN_HASH_KEY = previousKey
+    }
+  })
+
+  it('weigert XML-normalisatie zonder tenantcontext of server-BSN-sleutel', () => {
+    const bytes = new TextEncoder().encode('<Loonaangifte />')
+    expect(() => adaptPayrollSource({ sourceType: 'LOONAANGIFTE_XML', bytes }))
+      .toThrowError(expect.objectContaining<Partial<PayrollImportError>>({ code: 'IMPORT_TENANT_CONTEXT_REQUIRED', status: 409 }))
+    const previousKey = process.env.BSN_HASH_KEY
+    delete process.env.BSN_HASH_KEY
+    try {
+      expect(() => adaptPayrollSource({ sourceType: 'LOONAANGIFTE_XML', bytes, tenantId: 'tenant-test' }))
+        .toThrowError(expect.objectContaining<Partial<PayrollImportError>>({ code: 'BSN_HASH_KEY_MISSING', status: 500 }))
+    } finally {
+      if (previousKey !== undefined) process.env.BSN_HASH_KEY = previousKey
+    }
   })
 
   it('accepteert alleen de synthetische interne representatieve fixture', () => {
@@ -121,16 +155,69 @@ describe('payroll import contract', () => {
     expect(result.rows[0]?.issues.map((item) => item.code)).toContain('FIRST_NAME_REQUIRED')
   })
 
+  it('maakt bronconflicten blokkerend zonder conflicterende bronwaarden te tonen', () => {
+    const result = validatePayrollPersons({
+      sourceType: 'LOONAANGIFTE_XML',
+      sourceFilename: 'source.xml',
+      sourceHash: 'f'.repeat(64),
+      persons: [person({ firstName: undefined, birthName: undefined })],
+      candidates: [],
+      sourceIssuesByRow: [{ sourceRowNumber: 1, code: 'XML_PERSON_FIELD_CONFLICT', field: 'significantSurnamePart' }],
+    })
+
+    expect(result.rows[0]?.issues).toContainEqual({ code: 'XML_PERSON_FIELD_CONFLICT', severity: 'BLOCKING', field: 'significantSurnamePart' })
+    expect(JSON.stringify(result)).not.toContain('Voorbeeld')
+  })
+
+  it('doet voor XML geen employee-matching en markeert de ontbrekende gedeelde matchcontractbeslissing', () => {
+    const result = validatePayrollPersons({
+      sourceType: 'LOONAANGIFTE_XML',
+      sourceFilename: 'source.xml',
+      sourceHash: 'e'.repeat(64),
+      persons: [person({ bsnFingerprint: 'a'.repeat(64) })],
+      candidates: [{
+        id: 'internal-employee-id',
+        externalEmployeeNumber: null,
+        bsnFingerprint: 'a'.repeat(64),
+        firstName: 'Anna',
+        birthName: 'Jansen',
+        birthDate: '1990-01-01',
+      }],
+    })
+
+    expect(result.rows[0]?.match).toEqual({ status: 'UNMATCHED' })
+    expect(result.rows[0]?.issues.map((item) => item.code)).toContain('XML_EMPLOYEE_MATCH_CONTRACT_PENDING')
+    expect(JSON.stringify(result)).not.toContain('internal-employee-id')
+  })
+
   it('blokkeert dezelfde IKV meer dan één keer binnen de batch', () => {
     const result = validatePayrollPersons({
       sourceType: 'INTERNAL_REPRESENTATIVE',
       sourceFilename: 'fixture.json',
       sourceHash: 'b'.repeat(64),
-      persons: [person(), person({ sourceRowNumber: 2, birthName: 'De Vries' })],
+      persons: [
+        person({ bsnFingerprint: 'a'.repeat(64) }),
+        person({ sourceRowNumber: 2, bsnFingerprint: 'a'.repeat(64) }),
+      ],
       candidates: [],
       expectedPayrollTaxNumber: income.payrollTaxNumber,
     })
     expect(result.rows.every((row) => row.issues.some((item) => item.code === 'DUPLICATE_IKV'))).toBe(true)
+  })
+
+  it('laat hetzelfde LhNr/IKV-paar toe voor twee verschillende werknemers', () => {
+    const result = validatePayrollPersons({
+      sourceType: 'INTERNAL_REPRESENTATIVE',
+      sourceFilename: 'fixture.json',
+      sourceHash: 'c'.repeat(64),
+      persons: [
+        person({ bsnFingerprint: 'a'.repeat(64) }),
+        person({ sourceRowNumber: 2, bsnFingerprint: 'b'.repeat(64), birthName: 'De Vries' }),
+      ],
+      candidates: [],
+      expectedPayrollTaxNumber: income.payrollTaxNumber,
+    })
+    expect(result.rows.every((row) => row.issues.every((item) => item.code !== 'DUPLICATE_IKV'))).toBe(true)
   })
 
   it('zet een ambigue match op handmatige controle', () => {
@@ -139,6 +226,25 @@ describe('payroll import contract', () => {
       { id: 'employee-2', externalEmployeeNumber: null, bsnFingerprint: null, firstName: 'Anne', birthName: 'Jansen', birthDate: '1990-01-01' },
     ]
     expect(matchPayrollPerson(person(), candidates)).toEqual({ status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' })
+  })
+
+  it('zet BSN en personeelsnummer die naar verschillende werknemers wijzen op handmatige controle', () => {
+    const candidates: ExistingPayrollEmployeeCandidate[] = [
+      { id: 'employee-bsn', externalEmployeeNumber: 'EMP-1', bsnFingerprint: 'a'.repeat(64), firstName: 'Anna', birthName: 'Jansen', birthDate: '1990-01-01' },
+      { id: 'employee-number', externalEmployeeNumber: 'EMP-2', bsnFingerprint: null, firstName: 'Anne', birthName: 'Vries', birthDate: '1991-01-01' },
+    ]
+    const sourcePerson = person({ bsnFingerprint: 'a'.repeat(64), externalEmployeeNumber: 'EMP-2' })
+
+    expect(matchPayrollPerson(sourcePerson, candidates)).toEqual({ status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' })
+  })
+
+  it('zet een personeelsnummer-match op handmatige controle als het opgegeven BSN nergens matcht', () => {
+    const candidates: ExistingPayrollEmployeeCandidate[] = [
+      { id: 'employee-number', externalEmployeeNumber: 'EMP-2', bsnFingerprint: null, firstName: 'Anne', birthName: 'Vries', birthDate: '1991-01-01' },
+    ]
+
+    expect(matchPayrollPerson(person({ bsnFingerprint: 'a'.repeat(64), externalEmployeeNumber: 'EMP-2' }), candidates))
+      .toEqual({ status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' })
   })
 
   it.each([0, 100, 91001])('blokkeert IKV-nummers buiten de ondersteunde reeks: %i', (ikvNumber) => {

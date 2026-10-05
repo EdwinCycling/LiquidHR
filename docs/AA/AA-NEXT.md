@@ -7,13 +7,13 @@ Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements s
 
 ## Current release — ONE VERSION / PAYLAB00–04
 
-De geïntegreerde PAYLAB00–04-kandidaat is MERGE-READY op `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; de huidige opdracht rondt de gecontroleerde TEST-release af met versie `1.20261002.1`. Er komt in deze release geen Payroll-feature, migratie, CAO-implementatie of nieuwe ontwikkelronde. Houd de reeds geaccepteerde desktop-/mobiele payroll-browserresultaten en hashes intact.
+PAYLAB00–04 is technisch als ONE VERSION TEST-release uitgevoerd: `main` mergecommit `6349d02538351cd01fc51f298c6e6fa0ba88006c`, GitHub deployment `6815434828` success, Vercel `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` READY, appversie `1.20261002.1`. Hosted desktop-/mobiele acceptatie is GREEN volgens release-evidencecommit `238a285e0d976b508230d6ac900c4e606e2d89e9` van release-eigenaar Edwin; de onafhankelijke review van het volledige bewijs blijft PENDING. Er is geen nieuwe releaseopdracht.
 
 ## CURRENT — CONVERGENCE01 post-release TEST-acceptatie
 
 **Status: TEST RELEASED; beveiligingsacceptatie OPEN.**
 
-App `1.20260928.1`; canonical `main` `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; Vercel `liquidhr` deployment `dpl_CANMAQydQcYGy9Xe7JhNm8grJuvH` READY.
+App `1.20261002.1`; canonical `main` `6349d02538351cd01fc51f298c6e6fa0ba88006c`; Vercel `liquidhr` deployment `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` READY. Remaining CONVERGENCE01 acceptance stays OPEN independently of ONE VERSION release state.
 
 Nu uitsluitend een **bounded follow-up**, niet nóg een brede convergence- of release-loop:
 1. Control bestaande acteurs: AUDITOR write, invitation reuse/revoke, forged tenant/group/admin, tweede en cross-tenant bootstrap;
@@ -27,38 +27,17 @@ De synthetische payrollfinalisatie is runtime-bewezen (employee + conceptemploym
 
 **Parallelstrategie:** pure `packages/payroll-engine`/losse Payroll Lab database-experimenten kunnen na branchinventaris parallel met onafhankelijke tracks. Shared Control, payrollimport, employee/employment/IKV en migrations blijven geserialiseerd totdat expliciet geïntegreerd.
 
-## NEXT — CONTROL02
+## CURRENT — CONTROL02 gerichte acceptatie- en afrondingsgates
 
-**Loonaangifte XML Import V1 + Readiness UI**
+**Status: PARTIAL / NIET MERGE-KLAAR.** De bestaande 2026 v2.0 read-only parser valideert lokaal tegen de gehashte officiële XSD. Geen nieuwe domein- of architectuurontwikkeling starten.
 
-Doel:
-- HR Admin importscherm onder **Instellingen → Medewerkers & dienstverband → Loonaangifte XML importeren**;
-- server-side readiness-paneel dat actuele stamdata controleert;
-- groen = gereed, oranje = import kan met draft/follow-up, rood = veilige import geblokkeerd, grijs = niet vereist;
-- readiness minimaal voor actieve HR-groep, actieve administratie, importrechten en na parsing LhNr/jaar/tijdvak/source support;
-- arbeidsvoorwaarden/contractinrichting mogen als oranje ontbreken en leiden dan tot veilige draft/follow-up;
-- afdelingen, functies, kostenplaatsen en salarisstructuur zijn niet automatisch blockers;
-- upload → detect → analyse → matching → preview → confirm → result;
-- bestaande medewerkers veilig herkennen en aanvullen: EXACT / PROPOSED / MANUAL REVIEW / NEW;
-- bestaande medewerker nooit dupliceren omdat dezelfde persoon opnieuw via XML binnenkomt;
-- bron-/LiquidHR-verschillen op veldniveau zichtbaar maken; niet blind overschrijven;
-- één persoon met meerdere IKV's correct behandelen;
-- geen voornaam uit initialen verzinnen;
-- BSN uitsluitend via bestaande secure identifier/fingerprintarchitectuur;
-- geen fictieve stamdata aanmaken;
-- preview = nul definitieve domain writes;
-- ontbrekende niet-blokkerende inrichting leidt tot draft/follow-up;
-- jaar-/namespaceadapterarchitectuur;
-- representative synthetic XML + geanonimiseerde real-world fixture;
-- formele XSD-validatie alleen claimen voor jaren met de bijpassende officiële XSD;
-- volledige gerichte import/security/UI acceptance, inclusief readiness-statussen en refresh na stamdatawijziging.
+Alleen deze acceptatiegates blijven open:
 
-Belangrijke input:
-- bestaande CONTROL01 stagingtabellen/services;
-- echte Exact-achtige 2025 Loonaangifte;
-- 2026 gegevensspecificatie;
-- 2027 XSD;
-- officiële 2026 XSD toevoegen zodra beschikbaar voor formele 2026 XSD-validatie.
+1. **TEST-migratie:** centrale toestemming voor exact Core TEST-project en migratiehash; daarna alleen de genoemde forward migration toepassen, live RLS/grants/policies/triggers readback, advisors en typegen. Geen apply of lineage-repair zonder die toestemming.
+2. **Browser:** normale contextselectie voor de bestaande Test HR Admin bevestigde tenant `De Sterren holding` en HR-groep `Planeten · DEFAULT`; de importer weigert de sessie omdat `payroll-import:write` ontbreekt. Hervat alleen met al bestaande, normaal geautoriseerde TEST-identiteit/context. Test dan volledige analyse op desktop en 390px en rolwissels/negatieven waar toegestaan; wijzig geen rollen of rechten.
+3. **Core-contract:** laat de gezamenlijke Core-/Payroll-eigenaren het IKV/Employment-contract goedkeuren voordat XML-finalisatie of Core-mapping wordt geactiveerd. Tot die goedkeuring blijft finalisatie uitgeschakeld.
+
+Read-only live TEST pre-state, migratielineage en exact readbackplan staan in `docs/quality/acceptance/runs/CONTROL02-XML-20261003.md`. XSD-herkomst en validatorgrens staan in `docs/requirements/payroll/CONTROL02_XML_SOURCE_MATRIX_V1.md`.
 
 ## THEN — WVP01
 

@@ -9,18 +9,24 @@ export const runtime = 'nodejs'
 const requestSchema = z.object({
   sourceType: payrollImportSourceTypeSchema,
   taxYear: z.coerce.number().int().min(2000).max(2200),
-  administrationId: z.string().uuid(),
+  administrationId: z.guid(),
   periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 }).strict()
 
 function publicAnalysis(analysis: Awaited<ReturnType<typeof analyzePayrollImport>>) {
+  const { sourceFilename, sourceHash, ...publicPayload } = analysis
+  void sourceFilename
+  void sourceHash
   return {
-    ...analysis,
-    rows: analysis.rows.map(({ bsnFingerprint, sourceMetadata, ...row }) => {
+    ...publicPayload,
+    rows: analysis.rows.map(({ bsnFingerprint, sourceMetadata, externalEmployeeNumber, match, ...row }) => {
       void bsnFingerprint
       void sourceMetadata
-      return row
+      void externalEmployeeNumber
+      const { employeeId, ...publicMatch } = match
+      void employeeId
+      return { ...row, match: publicMatch }
     }),
   }
 }

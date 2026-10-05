@@ -306,7 +306,7 @@ if ($PreflightOnly) {
     return
 }
 
-$nextArguments = @("--env-file=$centralConfig", $nextCli)
+$nextArguments = @($nextCli)
 if ($Mode -eq 'Development') {
     $nextArguments += @('dev', '--webpack')
 } else {
@@ -314,10 +314,21 @@ if ($Mode -eq 'Development') {
 }
 $nextArguments += @('--hostname', '127.0.0.1', '--port', [string]$resolvedPort)
 
-Write-Host "Start $Mode op http://127.0.0.1:$resolvedPort met de centrale TEST-configuratie. Configwaarden worden niet getoond of gekopieerd."
+# Load the protected TEST config in this Node process, then remove the
+# --env-file CLI argument before Next starts its child process. Next forwards
+# process.execArgv as NODE_OPTIONS; Node rejects --env-file in NODE_OPTIONS.
+$nextBootstrap = @'
+const [entrypoint, ...args] = process.argv.slice(1);
+if (!entrypoint) throw new Error('NEXT_CLI_ENTRYPOINT_REQUIRED');
+process.execArgv = [];
+process.argv = [process.argv[0], entrypoint, ...args];
+require(entrypoint);
+'@
+
+Write-Host "Start $Mode op http://localhost:$resolvedPort (loopbacklistener 127.0.0.1) met de centrale TEST-configuratie. Configwaarden worden niet getoond of gekopieerd."
 Push-Location $appRoot
 try {
-    & $node.Source @nextArguments
+    & $node.Source "--env-file=$centralConfig" -e $nextBootstrap @nextArguments
     if ($LASTEXITCODE -ne 0) {
         throw "Next.js is gestopt met exitcode $LASTEXITCODE."
     }

@@ -27,13 +27,16 @@ export function validatePayrollPersons(input: {
   persons: readonly CanonicalPayrollPerson[]
   candidates: readonly ExistingPayrollEmployeeCandidate[]
   expectedPayrollTaxNumber?: string
+  sourceIssuesByRow?: readonly { sourceRowNumber: number; code: string; field?: string }[]
 }): PayrollImportAnalysis {
   const duplicateExternalNumbers = duplicateValues(input.persons.map((person) => person.externalEmployeeNumber ?? ''))
   const incomeKeys = input.persons.flatMap((person) => person.incomeRelationships.map((income) => payrollIncomeRelationshipKey(person, income.payrollTaxNumber, income.ikvNumber)))
   const duplicateIncomeKeys = duplicateValues(incomeKeys)
 
   const rows: ValidatedPayrollPerson[] = input.persons.map((person) => {
-    const issues: PayrollImportIssue[] = []
+    const issues: PayrollImportIssue[] = (input.sourceIssuesByRow ?? [])
+      .filter((sourceIssue) => sourceIssue.sourceRowNumber === person.sourceRowNumber)
+      .map((sourceIssue) => issue(sourceIssue.code, 'BLOCKING', sourceIssue.field))
     const firstName = person.firstName?.trim()
     const birthName = person.birthName?.trim()
     if (!firstName) issues.push(issue('FIRST_NAME_REQUIRED', 'BLOCKING', 'firstName'))
@@ -57,7 +60,10 @@ export function validatePayrollPersons(input: {
       if (startsOnValid && endsOnValid && income.startsOn && income.endsOn && income.endsOn < income.startsOn) issues.push(issue('INCOME_DATE_RANGE_INVALID', 'BLOCKING', 'endsOn'))
     }
 
-    const match = matchPayrollPerson(person, input.candidates)
+    const match = input.sourceType === 'LOONAANGIFTE_XML'
+      ? { status: 'UNMATCHED' as const }
+      : matchPayrollPerson(person, input.candidates)
+    if (input.sourceType === 'LOONAANGIFTE_XML') issues.push(issue('XML_EMPLOYEE_MATCH_CONTRACT_PENDING', 'BLOCKING'))
     if (match.status === 'MANUAL_REVIEW') issues.push(issue('AMBIGUOUS_EMPLOYEE_MATCH', 'BLOCKING'))
     if (match.status === 'PROPOSED') issues.push(issue('EMPLOYEE_MATCH_REQUIRES_CONFIRMATION', 'WARNING'))
     if (match.status === 'NEW' && !firstName) issues.push(issue('NEW_EMPLOYEE_INCOMPLETE', 'BLOCKING'))

@@ -5,7 +5,7 @@ import { securityHeaders } from './lib/security/security-headers'
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@scope/db'],
-  serverExternalPackages: ['@sparticuz/chromium', 'playwright-core'],
+  serverExternalPackages: ['@sparticuz/chromium', 'playwright-core', 'libxml2-wasm'],
   outputFileTracingIncludes: {
     '/api/document-studio/generation/**': [
       '../../node_modules/playwright-core/browsers.json',

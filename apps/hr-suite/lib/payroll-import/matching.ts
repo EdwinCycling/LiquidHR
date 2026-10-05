@@ -16,16 +16,28 @@ export function matchPayrollPerson(
   person: CanonicalPayrollPerson,
   candidates: readonly ExistingPayrollEmployeeCandidate[],
 ): PayrollImportMatch {
-  if (person.bsnFingerprint) {
-    const matches = exactCandidates(candidates, (candidate) => candidate.bsnFingerprint === person.bsnFingerprint)
-    if (matches.length === 1) return { status: 'EXACT', employeeId: matches[0].id, reason: 'BSN_EXACT' }
-    if (matches.length > 1) return { status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' }
-  }
+  const bsnMatches = person.bsnFingerprint
+    ? exactCandidates(candidates, (candidate) => candidate.bsnFingerprint === person.bsnFingerprint)
+    : []
+  const employeeNumber = normalizeIdentityPart(person.externalEmployeeNumber)
+  const employeeNumberMatches = employeeNumber
+    ? exactCandidates(candidates, (candidate) => normalizeIdentityPart(candidate.externalEmployeeNumber) === employeeNumber)
+    : []
 
-  if (person.externalEmployeeNumber) {
-    const matches = exactCandidates(candidates, (candidate) => candidate.externalEmployeeNumber === person.externalEmployeeNumber)
-    if (matches.length === 1) return { status: 'EXACT', employeeId: matches[0].id, reason: 'EXTERNAL_EMPLOYEE_NUMBER' }
-    if (matches.length > 1) return { status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' }
+  if (bsnMatches.length > 1 || employeeNumberMatches.length > 1) {
+    return { status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' }
+  }
+  const bsnMatch = bsnMatches[0]
+  const employeeNumberMatch = employeeNumberMatches[0]
+  if (person.bsnFingerprint && !bsnMatch && employeeNumberMatch) {
+    return { status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' }
+  }
+  if (bsnMatch && employeeNumberMatch && bsnMatch.id !== employeeNumberMatch.id) {
+    return { status: 'MANUAL_REVIEW', reason: 'AMBIGUOUS' }
+  }
+  if (bsnMatch) return { status: 'EXACT', employeeId: bsnMatch.id, reason: 'BSN_EXACT' }
+  if (employeeNumberMatch) {
+    return { status: 'EXACT', employeeId: employeeNumberMatch.id, reason: 'EXTERNAL_EMPLOYEE_NUMBER' }
   }
 
   if (person.birthName && person.birthDate) {
@@ -39,5 +51,10 @@ export function matchPayrollPerson(
 }
 
 export function payrollIncomeRelationshipKey(person: CanonicalPayrollPerson, payrollTaxNumber: string, ikvNumber: number): string {
-  return `${payrollTaxNumber}:${ikvNumber}`
+  const personKey = person.bsnFingerprint
+    ? ['bsn', person.bsnFingerprint]
+    : person.externalEmployeeNumber
+      ? ['employee-number', normalizeIdentityPart(person.externalEmployeeNumber)]
+      : ['source-row', String(person.sourceRowNumber)]
+  return JSON.stringify([personKey, payrollTaxNumber.trim().toUpperCase(), ikvNumber])
 }

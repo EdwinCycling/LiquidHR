@@ -1,6 +1,10 @@
+import 'server-only'
+
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
-import { PayrollImportError, type CanonicalPayrollPerson, type PayrollImportSourceType } from './model'
+import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
+import { PayrollImportError, type CanonicalPayrollPerson, type PayrollImportSourceContext, type PayrollImportSourceType } from './model'
+import { parseLoonaangifteXml } from './xml/parser'
 
 const addressSchema = z.object({
   street: z.string().trim().max(160).optional(),
@@ -49,6 +53,8 @@ export interface AdaptedPayrollSource {
   sourceType: PayrollImportSourceType
   sourceHash: string
   persons: CanonicalPayrollPerson[]
+  sourceContext?: PayrollImportSourceContext
+  sourceIssuesByRow?: readonly { sourceRowNumber: number; code: string; field?: string }[]
 }
 
 export function hashPayrollSource(bytes: Uint8Array): string {
@@ -58,10 +64,88 @@ export function hashPayrollSource(bytes: Uint8Array): string {
 export function adaptPayrollSource(input: {
   sourceType: PayrollImportSourceType
   bytes: Uint8Array
+  tenantId?: string
 }): AdaptedPayrollSource {
   const sourceHash = hashPayrollSource(input.bytes)
   if (input.sourceType === 'LOONAANGIFTE_XML') {
-    throw new PayrollImportError('REAL_XML_PENDING', 409)
+    if (!input.tenantId?.trim()) throw new PayrollImportError('IMPORT_TENANT_CONTEXT_REQUIRED', 409)
+    const tenantId = input.tenantId
+    const key = process.env.BSN_HASH_KEY
+    if (!key) throw new PayrollImportError('BSN_HASH_KEY_MISSING', 500)
+    if (key.length < 32) throw new PayrollImportError('BSN_HASH_KEY_INVALID', 500)
+
+    const parsed = parseLoonaangifteXml({
+      bytes: input.bytes,
+      context: {
+        identity: {
+          protectBsn: (bsn) => createBsnFingerprint(tenantId, bsn, key),
+        },
+      },
+    })
+    if (parsed.status !== 'SUPPORTED_READ_ONLY') {
+      const context: PayrollImportSourceContext = {
+        status: parsed.status,
+        ...parsed.sourceMetadata,
+        reportingPeriods: [],
+        diagnostics: parsed.diagnostics.map(({ code }) => ({ code })),
+      }
+      return { sourceType: input.sourceType, sourceHash, persons: [], sourceContext: context }
+    }
+
+    const document = parsed.document
+    const persons: CanonicalPayrollPerson[] = document.persons.map((person) => ({
+      sourceRowNumber: person.sourceRowNumber,
+      externalEmployeeNumber: person.externalEmployeeNumber,
+      bsnFingerprint: person.bsnFingerprint,
+      initials: person.initials,
+      significantSurnamePart: person.significantSurnamePart,
+      birthDate: person.birthDate,
+      nationalityCode: person.nationalityCode,
+      genderCode: person.genderCode,
+      incomeRelationships: person.incomeRelationships.map((relationship) => {
+        const sourcePeriods = relationship.periods.map(({ startsOn, incomeCode, employmentRelationCode, caoCode }) => ({
+          startsOn,
+          incomeCode,
+          ...(employmentRelationCode === undefined ? {} : { employmentRelationCode }),
+          ...(caoCode === undefined ? {} : { caoCode }),
+        }))
+        const uniqueIncomeCodes = new Set(sourcePeriods.map((period) => period.incomeCode))
+        const uniqueEmploymentCodes = new Set(sourcePeriods.flatMap((period) => period.employmentRelationCode === undefined ? [] : [period.employmentRelationCode]))
+        const uniqueCaoCodes = new Set(sourcePeriods.flatMap((period) => period.caoCode === undefined ? [] : [period.caoCode]))
+        const hasOneEmploymentCode = sourcePeriods.every((period) => period.employmentRelationCode !== undefined) && uniqueEmploymentCodes.size === 1
+        const hasOneCaoCode = sourcePeriods.every((period) => period.caoCode !== undefined) && uniqueCaoCodes.size === 1
+        return {
+          payrollTaxNumber: relationship.payrollTaxNumber,
+          ikvNumber: relationship.ikvNumber,
+          ...(uniqueIncomeCodes.size === 1 ? { incomeCode: sourcePeriods[0]?.incomeCode } : {}),
+          ...(hasOneEmploymentCode ? { employmentRelationCode: String([...uniqueEmploymentCodes][0]) } : {}),
+          ...(hasOneCaoCode ? { caoCode: String([...uniqueCaoCodes][0]) } : {}),
+          flags: {},
+          startsOn: relationship.startsOn,
+          endsOn: relationship.endsOn,
+          sourcePeriods,
+        }
+      }),
+      sourceMetadata: { sourceSystem: 'Belastingdienst Loonaangifte XML', sourceRow: person.sourceRowNumber },
+    }))
+    const sourceContext: PayrollImportSourceContext = {
+      status: parsed.status,
+      taxYear: document.taxYear,
+      schemaVersion: document.schemaVersion,
+      namespaceUri: document.namespaceUri,
+      payrollTaxNumber: document.payrollTaxNumber,
+      reportingPeriods: document.reportingPeriods.map(({ startsOn, endsOn }) => ({ startsOn, endsOn })),
+      xsdValidation: parsed.xsdValidation,
+      sourceArchiveSha256: parsed.profile.sourceArchiveSha256,
+      xsdSha256: parsed.profile.xsdSha256,
+      diagnostics: parsed.diagnostics.map(({ code }) => ({ code })),
+    }
+    const sourceIssuesByRow = document.persons.flatMap((person) => person.conflicts.map((conflict) => ({
+      sourceRowNumber: person.sourceRowNumber,
+      code: 'XML_PERSON_FIELD_CONFLICT',
+      field: conflict.field,
+    })))
+    return { sourceType: input.sourceType, sourceHash: document.sourceHash, persons, sourceContext, sourceIssuesByRow }
   }
 
   let decoded: unknown

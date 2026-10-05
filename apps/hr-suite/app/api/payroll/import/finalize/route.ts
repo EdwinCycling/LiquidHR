@@ -5,8 +5,8 @@ import { PayrollImportError } from '@/lib/payroll-import/model'
 import { finalizePayrollImport } from '@/lib/payroll-import/service'
 
 const requestSchema = z.object({
-  batchId: z.string().uuid(),
-  administrationId: z.string().uuid(),
+  batchId: z.guid(),
+  administrationId: z.guid(),
   selectedRowNumbers: z.array(z.number().int().positive()).max(5_000).default([]),
 }).strict()
 

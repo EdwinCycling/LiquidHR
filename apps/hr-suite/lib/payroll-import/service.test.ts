@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 import type { PayrollImportAnalysis } from './model'
 import { createEmployment } from '@/lib/employment/employment-service'
-import { finalizePayrollImport, stagePayrollImport } from './service'
+import { analyzePayrollImport, finalizePayrollImport, stagePayrollImport } from './service'
 
 const mocks = vi.hoisted(() => {
   class MockEmploymentServiceError extends Error {
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => {
   return {
     getRequestAuthorizationContext: vi.fn(),
     requirePermission: vi.fn(),
+    createAdminClient: vi.fn(),
     createEmployee: vi.fn(),
     createEmployment: vi.fn(),
     ensureEmployeeAdministrationAssignment: vi.fn(),
@@ -34,11 +36,14 @@ vi.mock('@/lib/employment/employment-service', () => ({
   ensureEmployeeAdministrationAssignment: mocks.ensureEmployeeAdministrationAssignment,
 }))
 vi.mock('@/lib/employment/employment-number', () => ({ nextAvailableEmploymentNumber: mocks.nextAvailableEmploymentNumber }))
+vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: mocks.createAdminClient }))
 
 type DbRow = Record<string, unknown>
 type DbState = { tables: Record<string, DbRow[]>; nextId: number }
 type QueryResult = { data: DbRow[] | null; error: null }
 type Filter = { column: string; kind: 'eq' | 'in' | 'is' | 'lte'; value: unknown }
+let employeeMatchRpcCalls = 0
+let employeeCandidateSelectCalls = 0
 
 class MemoryQuery {
   private operation: 'select' | 'insert' | 'update' = 'select'
@@ -47,7 +52,7 @@ class MemoryQuery {
 
   constructor(private readonly state: DbState, private readonly table: string) {}
 
-  select(_columns?: string): this { return this }
+  select(_columns?: string): this { if (this.table === 'employees') employeeCandidateSelectCalls += 1; return this }
   eq(column: string, value: unknown): this { this.filters.push({ column, kind: 'eq', value }); return this }
   in(column: string, value: readonly unknown[]): this { this.filters.push({ column, kind: 'in', value }); return this }
   is(column: string, value: unknown): this { this.filters.push({ column, kind: 'is', value }); return this }
@@ -115,6 +120,8 @@ function createState(): DbState {
         valid_until: null,
         is_primary: true,
       }],
+      hr_groups: [{ id: 'group-1', tenant_id: 'tenant-1', is_active: true }],
+      administrations: [{ id: 'admin-1', tenant_id: 'tenant-1', hr_group_id: 'group-1', is_active: true }],
       payroll_import_batches: [],
       payroll_import_persons: [],
       payroll_import_income_relationships: [],
@@ -190,6 +197,8 @@ function linkExistingEmployee(employeeId: string): void {
 
 beforeEach(() => {
   state = createState()
+  employeeMatchRpcCalls = 0
+  employeeCandidateSelectCalls = 0
   mocks.getRequestAuthorizationContext.mockReset()
   mocks.requirePermission.mockReset().mockResolvedValue(undefined)
   mocks.createEmployee.mockReset().mockImplementation(async () => {
@@ -231,7 +240,11 @@ beforeEach(() => {
     state.tables.employments.push(employment)
     return { employment, isRehire: false, wasCreated: true } as never
   })
-  const client = { from: (table: string) => new MemoryQuery(state, table) }
+  const client = {
+    from: (table: string) => new MemoryQuery(state, table),
+    rpc: async () => { employeeMatchRpcCalls += 1; return { data: [], error: null } },
+  }
+  mocks.createAdminClient.mockReset().mockReturnValue(client as never)
   mocks.getRequestAuthorizationContext.mockResolvedValue({
     context: {
       tenantId: 'tenant-1',
@@ -245,6 +258,75 @@ beforeEach(() => {
 })
 
 describe('payroll import staging and finalization', () => {
+  it('analyseert XML tegen de historische periode zonder actuele LhNr-binding of writes te eisen', async () => {
+    const previousKey = process.env.BSN_HASH_KEY
+    process.env.BSN_HASH_KEY = 'control02-test-key-that-is-not-production-0001'
+    state.tables.administration_payroll_tax_numbers = [{
+      tenant_id: 'tenant-1',
+      hr_group_id: 'group-1',
+      administration_id: 'admin-1',
+      payroll_tax_number: '123456789L01',
+      valid_from: '2026-01-01',
+      valid_until: '2026-01-31',
+      is_primary: true,
+    }]
+    try {
+      const bytes = readFileSync(new URL('./xml/fixtures/loonaangifte-2026-v2.0.synthetic.xml', import.meta.url))
+      const analysis = await analyzePayrollImport({
+        sourceType: 'LOONAANGIFTE_XML',
+        filename: 'synthetic-loonaangifte.xml',
+        bytes,
+        taxYear: 2026,
+        administrationId: 'admin-1',
+      })
+
+      expect(analysis.sourceContext).toMatchObject({ status: 'SUPPORTED_READ_ONLY', taxYear: 2026, payrollTaxNumber: '123456789L01', xsdValidation: 'VALIDATED' })
+      expect(analysis.rows[0]).toMatchObject({ significantSurnamePart: 'Voorbeeld', nationalityCode: 999, genderCode: 1 })
+      expect(analysis.rows[0]?.birthName).toBeUndefined()
+      expect(analysis.readiness).toMatchObject({ status: 'READY', isReady: true })
+      expect(analysis.readiness?.checks).toContainEqual(expect.objectContaining({ key: 'PAYROLL_TAX_NUMBER', status: 'NOT_REQUIRED' }))
+      expect(analysis.readiness?.checks).toContainEqual(expect.objectContaining({ key: 'SOURCE_LHNR_PERIOD', status: 'READY' }))
+      expect(analysis.readiness?.checks).not.toContainEqual(expect.objectContaining({ code: 'SOURCE_FORMAL_VALIDATION_PENDING' }))
+      expect(analysis.summary.blocking).toBeGreaterThan(0)
+      expect(employeeMatchRpcCalls).toBe(0)
+      expect(employeeCandidateSelectCalls).toBe(0)
+      expect(state.tables.payroll_import_batches).toHaveLength(0)
+      expect(state.tables.employees).toHaveLength(0)
+      expect(state.tables.employments).toHaveLength(0)
+      expect(state.tables.income_relationships).toHaveLength(0)
+      expect(mocks.createAdminClient).not.toHaveBeenCalled()
+    } finally {
+      if (previousKey === undefined) delete process.env.BSN_HASH_KEY
+      else process.env.BSN_HASH_KEY = previousKey
+    }
+  })
+
+  it('houdt XML-import analyse-only en blokkeert staging en finalisatie fail-closed', async () => {
+    const xmlAnalysis: PayrollImportAnalysis = { ...makeAnalysis(), sourceType: 'LOONAANGIFTE_XML' }
+
+    await expect(stagePayrollImport({ analysis: xmlAnalysis, taxYear: 2026, administrationId: 'admin-1' }))
+      .rejects.toMatchObject({ code: 'REAL_XML_STAGING_PENDING', status: 409 })
+    expect(state.tables.payroll_import_batches).toHaveLength(0)
+    expect(state.tables.payroll_import_persons).toHaveLength(0)
+    expect(state.tables.payroll_import_income_relationships).toHaveLength(0)
+
+    state.tables.payroll_import_batches.push({
+      id: 'xml-batch',
+      tenant_id: 'tenant-1',
+      hr_group_id: 'group-1',
+      administration_id: 'admin-1',
+      source_type: 'LOONAANGIFTE_XML',
+      status: 'STAGED',
+      preview_confirmed_at: null,
+    })
+    await expect(finalizePayrollImport({ batchId: 'xml-batch', administrationId: 'admin-1', selectedRowNumbers: [1] }))
+      .rejects.toMatchObject({ code: 'REAL_XML_FINALIZATION_PENDING', status: 409 })
+    expect(state.tables.payroll_import_batches[0]?.status).toBe('STAGED')
+    expect(state.tables.employees).toHaveLength(0)
+    expect(state.tables.employments).toHaveLength(0)
+    expect(state.tables.income_relationships).toHaveLength(0)
+  })
+
   it('houdt preview-staging idempotent en schrijft geen domeinrecords of raw BSN', async () => {
     const rawMarker = 'SYNTHETIC_RAW_BSN_MARKER'
     const analysis = makeAnalysis({ status: 'NEW' }, { rawMarker })
@@ -261,6 +343,7 @@ describe('payroll import staging and finalization', () => {
     expect(state.tables.employee_administration_assignments).toHaveLength(0)
     expect(state.tables.income_relationships).toHaveLength(0)
     expect(JSON.stringify(state.tables.payroll_import_persons)).not.toContain(rawMarker)
+    expect(mocks.createAdminClient).toHaveBeenCalledOnce()
   })
 
   it('maakt voor een nieuwe persoon één employee, één draft employment en verwerkt alle IKV’s', async () => {
@@ -281,6 +364,21 @@ describe('payroll import staging and finalization', () => {
     expect(state.tables.payroll_import_persons[0]?.validation_codes).toEqual(expect.arrayContaining(['EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING']))
     expect(state.tables.payroll_import_batches[0]?.status).toBe('COMPLETED_WITH_WARNINGS')
     expect(mocks.createEmployee).toHaveBeenCalledOnce()
+    expect(mocks.createAdminClient).toHaveBeenCalledTimes(2)
+  })
+
+  it('finaliseert geen legacy-inkomensrij uit een andere administratie', async () => {
+    const batchId = await stageFixture(makeAnalysis({ status: 'NEW' }, { incomeCount: 1 }))
+    const income = state.tables.payroll_import_income_relationships[0]
+    if (!income) throw new Error('test fixture was not staged')
+    income.administration_id = 'admin-2'
+
+    await expect(finalizePayrollImport({ batchId, administrationId: 'admin-1', selectedRowNumbers: [1] }))
+      .rejects.toMatchObject({ code: 'PAYROLL_IMPORT_INCOME_INVALID', status: 422 })
+
+    expect(state.tables.employees).toHaveLength(0)
+    expect(state.tables.employments).toHaveLength(0)
+    expect(state.tables.payroll_import_batches[0]?.status).toBe('STAGED')
   })
 
   it('hergebruikt een bestaande employee-match uit de stagingrij', async () => {

@@ -33,6 +33,34 @@ export interface CanonicalPayrollIncomeRelationship {
   salaryAmount?: number
   startsOn?: string
   endsOn?: string
+  sourcePeriods?: readonly {
+    startsOn: string
+    incomeCode: string
+    employmentRelationCode?: number
+    caoCode?: number
+  }[]
+}
+
+export type PayrollImportXmlParseStatus = 'SUPPORTED_READ_ONLY' | 'SOURCE_GAP' | 'REJECTED'
+
+export interface PayrollImportSourceContext {
+  status: PayrollImportXmlParseStatus
+  taxYear?: number
+  schemaVersion?: string
+  namespaceUri?: string
+  payrollTaxNumber?: string
+  reportingPeriods: readonly { startsOn: string; endsOn: string }[]
+  xsdValidation?: 'VALIDATED'
+  sourceArchiveSha256?: string
+  xsdSha256?: string
+  diagnostics: readonly { code: string }[]
+}
+
+export interface PayrollImportReadinessSummary {
+  status: 'READY' | 'WARNING' | 'BLOCKED' | 'NOT_REQUIRED'
+  isReady: boolean
+  payrollTaxNumber: string | null
+  checks: readonly { key: string; status: 'READY' | 'WARNING' | 'BLOCKED' | 'NOT_REQUIRED'; code?: string }[]
 }
 
 export interface CanonicalPayrollPerson {
@@ -43,9 +71,12 @@ export interface CanonicalPayrollPerson {
   prefix?: string
   firstName?: string
   birthName?: string
+  significantSurnamePart?: string
   birthDate?: string
   gender?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'
   nationality?: string
+  nationalityCode?: number
+  genderCode?: number
   address?: CanonicalPayrollAddress
   incomeRelationships: CanonicalPayrollIncomeRelationship[]
   sourceMetadata: Record<string, string | number | boolean | null>
@@ -76,6 +107,8 @@ export interface PayrollImportAnalysis {
   sourceType: PayrollImportSourceType
   sourceFilename: string
   sourceHash: string
+  sourceContext?: PayrollImportSourceContext
+  readiness?: PayrollImportReadinessSummary
   rows: ValidatedPayrollPerson[]
   summary: {
     total: number
