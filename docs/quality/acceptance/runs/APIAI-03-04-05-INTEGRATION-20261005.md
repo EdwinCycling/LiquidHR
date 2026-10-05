@@ -2,7 +2,7 @@
 
 ## 1. Verdict
 
-**PARTIAL / NOT RELEASE-READY.** The local MCP transport, ChatGPT-specific MCP profile, WebMCP progressive enhancement, automated regression gates, MCP Inspector protocol checks, and native Chrome WebMCP adapter smoke passed. The authenticated Next.js route, persona/BFF browser matrix, production build and bundle scan were not run because the approved TEST launcher could not find its central runtime configuration. Provider, bearer/RLS/audit, public hosting, and ChatGPT-host acceptance remain open.
+**PARTIAL / NOT RELEASE-READY.** The local MCP transport, ChatGPT-specific MCP profile, WebMCP progressive enhancement, automated regression gates, MCP Inspector protocol checks, native Chrome WebMCP adapter smoke, official Production build, and Payroll client-boundary scan passed. The authenticated persona/BFF browser matrix remains open: the local app showed the login page and the available browser session had no valid refresh token. Provider, bearer/RLS/audit, public hosting, and ChatGPT-host acceptance remain open.
 
 ## 2. Provenance and scope
 
@@ -12,6 +12,7 @@
 - PR #5 head integrated locally: `ce6a2ea6c1cc1e4071147076a411c60bff667d8f`.
 - Integration checkpoint: `a7b84d102c65acca2f6ab3a49ab977040916255f`.
 - Source commit: `1b9cbc3970589dc6be60c633162c7a0f5cf0ab73` (`feat(ai): add local MCP and WebMCP adapters`).
+- Build candidate / committed delivery HEAD: `563028f1382d004d3938487c6d4ee8abf4b7d5ae`.
 - No push, PR edit, merge to `main`, version bump, Preview or Production deployment, public route activation, provider registration, public tunnel, remote database write, or migration apply occurred.
 
 This run adds local adapters only. APIAI-01's external authentication and database security acceptance remains distinct and is not granted by these results.
@@ -42,14 +43,15 @@ No database/schema/RLS/grants change and no MCP Apps UI widget were added.
 - ESLint on changed source files: passed with zero warnings/errors.
 - `git diff --check`: passed before documentation closeout.
 - TEST launcher Pester: **3/3** at the preceding APIAI-01/02 integration checkpoint; launcher scripts were not changed in this slice and Pester was not rerun.
+- Official local Production build on `563028f1382d004d3938487c6d4ee8abf4b7d5ae`: Next.js `16.3.6` compile and production TypeScript passed; **309/309** static pages generated; Payroll client-boundary negative control passed; scan passed across **152 browser assets**; build provenance recorded without runtime values.
 
 The first full suite run under default parallelism hit the 20-second timeout in one unchanged Payroll boundary scanner. That scanner passed in isolation (1 file / 5 tests, 8.73 seconds); the subsequent complete run capped at four workers passed as recorded above.
 
-No production build or bundle-boundary scan has run yet. The latest official `-Mode Production -PayrollAcceptance -Build` invocation validated central TEST variable presence without displaying values, then stopped before compilation because delivery documentation was uncommitted and the launcher requires a clean, committed candidate. The documentation commit will provide that candidate; the official build can then be retried.
-
 ## 6. Environment-gated acceptance
 
-An earlier official Development preflight reported the central `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` configuration missing. On the later Production build invocation, the same launcher validated the required central TEST variables without showing their values; it rejected the build before compilation because the worktree was not clean. No alternate configuration was used. No authenticated app session was started, and no live MCP/BFF call, Employee/Manager/HR persona matrix, app-route browser test, or production build was performed.
+The official TEST launcher validated the required central runtime fields without displaying their values. It built the clean candidate above and started the local Production app at `http://127.0.0.1:3011`. The browser showed `/login?next=%2Fdashboard%2Fstart`; no valid authenticated TEST session was available. The server log contained `Invalid Refresh Token: Refresh Token Not Found`. No credentials were entered or exposed, and no Employee/Manager/HR persona matrix or authenticated app-route test was completed.
+
+Anonymous loopback checks on that app returned `403 WORKFORCE_REQUEST_FORBIDDEN` for a Workforce read request and `404 MCP_UNAVAILABLE` for `/api/internal/mcp` in Production. These verify bounded anonymous denial and the Production MCP gate only. The server was stopped after the probe and port 3011 was confirmed to have no listener.
 
 The canonical repository `apps/hr-suite/.env.local` was not read or modified. No configuration values or credentials were exposed.
 
@@ -57,7 +59,7 @@ The canonical repository `apps/hr-suite/.env.local` was not read or modified. No
 
 - Public `/api/v1` remains unmounted; the ChatGPT profile is not exposed through a route.
 - No bearer provider, OAuth/PKCE lifecycle, external identity mapping, or service-role fallback was introduced.
-- Live `auth.uid()`/RLS behavior, tenant isolation, limiter concurrency/refill, READ audit persistence, PostgreSQL/pgTAP, advisors, type generation, and database readback were not tested in this run. APIAI-01 security/database acceptance remains open.
+- Live authenticated `auth.uid()`/RLS behavior, tenant isolation, limiter concurrency/refill, READ audit persistence, PostgreSQL/pgTAP, advisors, type generation, and database readback were not tested in this run. APIAI-01 security/database acceptance remains open.
 - No public HTTPS endpoint, tunnel, ChatGPT Developer Mode registration, or external host connection was created.
 - There was no schema or data mutation.
 
@@ -65,8 +67,8 @@ The canonical repository `apps/hr-suite/.env.local` was not read or modified. No
 
 The independent read-only LUNA MAX review found no P0/P1. Across its initial and follow-up passes it reported three P2 findings, all fixed with regression coverage: malformed `Host` authorities could parse as loopback; WebMCP did not validate published JSON Schema constraints before the BFF call; and a non-object schema root could be advertised despite the object-input execution contract. The corrected Host tests reject path/query/fragment/userinfo/backslash/comma-list values and invalid ports. WebMCP validates supported constraints before sending, rejects schemas with unsupported keywords, and advertises only object-root schemas. The final independent re-review found **no remaining P0/P1/P2**. Strict TypeScript, scoped ESLint, all five focused files / 35 tests, and the controlled full suite passed on the corrected source.
 
-Remaining acceptance gates include the approved TEST runtime configuration, authenticated route and persona/BFF checks, official build and client-boundary scan, and APIAI-01 provider/bearer/RLS/limiter/audit evidence. ChatGPT host connection and any public endpoint require a separately authorized external step.
+Remaining acceptance gates include authenticated route and persona/BFF checks, and APIAI-01 provider/bearer/RLS/limiter/audit evidence. ChatGPT host connection and any public endpoint require a separately authorized external step.
 
 ## 9. Final status
 
-**LOCAL CODE / AUTOMATED TESTS / MCP INSPECTOR / NATIVE WEBMCP SMOKE: GREEN. AUTHENTICATED APP / BUILD / SECURITY-DATABASE / HOSTED ACCEPTANCE: OPEN. PARTIAL / NOT RELEASE-READY.**
+**LOCAL CODE / AUTOMATED TESTS / MCP INSPECTOR / NATIVE WEBMCP SMOKE / PRODUCTION BUILD / PAYROLL BUNDLE SCAN: GREEN. AUTHENTICATED PERSONA APP / SECURITY-DATABASE / HOSTED ACCEPTANCE: OPEN. PARTIAL / NOT RELEASE-READY.**
