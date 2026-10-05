@@ -60,6 +60,18 @@ De observaties over CAO-BENCH02 en TEST-HARNESS01 hieronder komen uit **lokale C
 
 **Werkvolgorde:** CONTROL02 Draft PR + parallelle bouw van veilige definitieve-importonderdelen; `C02-CORE-015` en `C02-SEC-014` blijven activeringsgates voor definitieve writes; `C02-ENV-012`/`C02-CTX-013` en `C02-ACC-016` worden samen opgepakt zodra de echte acceptatieomgeving klopt. Geen automatische nieuwe betaalde backend. De relevante owner stemt deze specifieke Core-migratie af met PAY-CONVERGE en het aparte Payroll Lab-project.
 
+## 3B. CONTROL02 review-/doorbouwstatus — 2026-10-05
+
+**Remote geverifieerd:** Draft PR [#4](https://github.com/EdwinCycling/LiquidHR/pull/4) is open, draft, unmerged en GitHub meldt `mergeable=true`. Basis `main=6349d02538351cd01fc51f298c6e6fa0ba88006c`; review-snapshot `a5c056ba0d681351f54ee393c9e8f82be86736bd`; 53 gewijzigde paden. De PR bevat de bestaande XML/XSD-, readiness-, matching-, preview-, migratie- en contractartefacten. De lokale doorbouwbranch `work/CONTROL02-FINAL-20261004` op gemelde commit `495cd02...` is **nog niet remote geverifieerd/gepusht** en blijft daarom lokaal bewijs.
+
+Aanvullend lokaal geleverd in CONTROL02-FINAL: hardening van strong-identifier matching, idempotente staging-completeness, verplichte audit-readback en veilige recovery-markers; XML staging/finalization blijven fail-closed. Gerichte run: 4 bestanden / 53 tests GREEN, strict TypeScript GREEN, ESLint 0 errors / 5 bestaande testmockwarnings. Twee parserfixturetests zijn na line-endingfix gericht GREEN; productieparser bleef ongewijzigd. Een eerdere full suite rapporteerde 520 passed, 3 skipped, 4 failed; twee parserfailures zijn inmiddels gericht opgelost, server-only is afzonderlijk 5/5 GREEN, PDF-timeout en eerdere parallel-timeout zijn **niet** als nieuwe full-suite-GREEN weggepoetst.
+
+**Wijziging op OPEN-register:**
+- `C02-ACC-016` blijft OPEN, maar herhaal géén browseracceptatielus totdat een normaal geautoriseerde klantcontext beschikbaar is; de laatste runtime bereikte de importpagina maar eindigde op “Nog geen toegang” vóór XML-API-verkeer.
+- `C02-ENV-012` blijft OPEN en onderzoek naar de historische Core TEST-key blijft gestopt.
+- `C02-SEC-014` en `C02-CORE-015` zijn nu formeel zichtbaar in PR #4 als centrale reviewgates; geen cross-thread messaging nodig.
+- Nieuwe veilig onafhankelijke CONTROL02-FINAL-code mag parallel verder worden gebouwd en in een aparte reviewbare branch/PR worden aangeboden; definitieve Core-writes blijven uit tot goedkeuring van de gedeelde contract- en migratiegates.
+
 ## 4. Beslisregister voor de eerstvolgende integratie
 
 **PAY-CONVERGE (eerstvolgende centrale releasebeslissing):**
