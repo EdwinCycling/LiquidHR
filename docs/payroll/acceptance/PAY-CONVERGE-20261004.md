@@ -1,6 +1,6 @@
 # PAY-CONVERGE — CAO-BENCH02 + AA-OPEN — 2026-10-04
 
-**Verdict: lokale integratie gereed; lokale codegates PASS; CAO-acceptatie PARTIAL; releaseadvies HOLD.** Dit is een lokale kandidaat. Er is niet gepusht, gemerged, gedeployed of geversion-bumpt.
+**PAY-CONVERGE baseline verdict:** de CAO-codegates op pre-harness codecommit `0f792665` waren PASS; CAO-acceptatie blijft PARTIAL en releaseadvies HOLD. De nieuwste TEST-HARNESS01-integratiegate van 2026-10-05 staat in [PAYRUN01 readiness](../../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md): source-gates PASS, guarded build/browser geblokkeerd door ontbrekende centrale lokale TEST-config. Er is niet gepusht, naar `main` gemerged, gedeployed of geversion-bumpt.
 
 ## Baseline en provenance
 
@@ -62,7 +62,7 @@ AA-REL §8 laat een beperkte synthetische TEST-release alleen toe na alle lokale
 
 **Aanbeveling: HOLD.** De codeconvergentie en lokale gates zijn gereed, maar de kandidaat is niet release-ready. Houd SEC-PAY-001 zichtbaar OPEN, claim geen CAO-/fiscale correctheid voor K2 en laat de bestaande main/TEST-deployment ongemoeid totdat de ontbrekende Preview- en hosted gates zijn ingericht en het beperkte TEST-besluit expliciet is genomen.
 
-## PAY-RELEASE-01 voortzetting — 2026-10-05
+## PAY-RELEASE-01 voortzetting vóór TEST-HARNESS01-integratie — 2026-10-05
 
 **Status: definitieve lokale codegates PASS; releasebesluit HOLD tot expliciet akkoord en hosted bewijs.** Remote `main` blijft `6349d02538351cd01fc51f298c6e6fa0ba88006c`; de bestaande Vercel-productiondeployment is READY op die baseline. Er is geen kandidaat-deployment of Preview-deployment. Er is niet gepusht, gemerged, gedeployed, geversion-bumpt of op een database geschreven.
 
@@ -92,4 +92,4 @@ Integratie is uitgesteld naar de eerste PAYLAB05-voorbereiding. De precieze bran
 - Een hosted kandidaatdeployment, canonical-alias/SHA-readback en hosted safety smoke ontbreken. Na een expliciet GO voor de releaseacties blijft de hosted smoke een harde voltooiingsgate op het bestaande Vercel-project `liquidhr` en canonical alias `https://liquid-hr-hr-suite.vercel.app/`. Verifieer op die exacte SHA dat publieke login normaal werkt; `/api/auth/test-login`, `/api/auth/test-role-switch`, `/auth/test-role-switch/confirm` en `/api/test-capture` geen Test Auth/captureroute publiek maken; beschermde Payroll-routes auth vereisen; en deployment `READY`/alias/provenance kloppen. De Git-geïntegreerde push naar `main` kan de bestaande `Production`-targetdeployment automatisch starten; vermijd een tweede handmatige deployment.
 - Lokale releasegates zijn afgerond op codecommit `0f792665be6fb46ebcc4f3ebe7dc19bf1aba2618`; documentatie legt de bewijsupdate vast zonder app-/packagewijzigingen. Appversie blijft voorlopig `1.20261002.1`; voorgestelde volgende versie na GO is `1.20261005.1`.
 
-**Advies: HOLD.** De lokale eindgates zijn geslaagd. Edwin moet expliciet akkoord geven met (a) een beperkte synthetische TEST-release terwijl `SEC-PAY-001`, `PAY-RULE-002`, `PAY-COVER-003` en `PAY-CORE-004` OPEN blijven, zonder volledige CAO-/fiscale ACCEPTANCE GREEN-claim; (b) de ontbrekende geïsoleerde Preview als expliciete AA-REL §8-uitzondering voor deze kandidaat; (c) uitsluitend de versie-verhoging `1.20261002.1` → `1.20261005.1`; en (d) gecontroleerde integratie/push naar `main` én de daardoor automatisch gestarte deployment van het bestaande `liquidhr` Vercel-project naar de bestaande Production-target/canonical alias. Dit akkoord machtigt de Git-geïntegreerde deployment en de vereiste post-deploy hosted smoke; de release blijft onvoltooid totdat READY, exacte SHA/alias en hosted veiligheidscontroles slagen. Zonder GO blijven `main`, Vercel en de appversie ongemoeid.
+**Advies op de pre-harness codecommit `0f792665`: HOLD.** De later geïntegreerde kandidaatstatus, ontbrekende lokale TEST-runtime en actuele GO/NO-GO-grenzen staan in [PAYRUN01 readiness](../../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md). Dat rapport supersedeert deze pre-harness release-aanbeveling.

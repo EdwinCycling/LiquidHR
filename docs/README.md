@@ -1,10 +1,10 @@
 # Liquid HR documentatie-index
 
-## PAY-CONVERGE lokale integratie — 2026-10-04
+## PAYRUN01 Phase 1 readiness — 2026-10-05
 
-**Status: lokale codegates PASS; acceptatie PARTIAL; releaseadvies HOLD.** CAO-BENCH02 is vanaf exact geverifieerde main 6349d025 geïntegreerd in de geïsoleerde branch integration/pay-converge-20261004. De volledige HR-suite, typechecks, lint, i18n, productiebuild en client-boundaryscan slaagden. SEC-PAY-001 blijft OPEN; er is geen kandidaatdeployment, Preview-omgeving of hosted safety smoke. Geen push, merge, deployment, version bump of remote databasewrite.
+**Status: lokale source-gates PASS; guarded build/browser environment-blocked; PARTIAL / NOT RELEASE-READY / HOLD.** TEST-HARNESS01 is lokaal geïntegreerd in `integration/pay-converge-20261004`, code-HEAD `65ccfedea623295c4ec20b3191185b19ef848bad`, vanaf exact geverifieerde `origin/main` `6349d025`. De serial HR-suite (523 bestanden, 2.213 geslaagd, 3 overgeslagen), beide TypeScript-checks, lint (0 fouten, 6 bestaande warnings), i18n (41 namespaces) en runtimecontract zijn PASS. De guarded build, integrated browsermatrix en lokale Production-smoke wachten op herstel van de bestaande centrale TEST-runtimeconfiguratie; hosted Preview en candidate deployment ontbreken. Geen push, main-merge, deployment, version bump of databasewrite.
 
-Zie het [PAY-CONVERGE-acceptatierapport](payroll/acceptance/PAY-CONVERGE-20261004.md), [AA-OPEN](AA/AA-OPEN.md) en de [CAO-BENCH02-fase-2-overdracht](payroll/acceptance/PAY-CONVERGE-HANDOFF-CAO-BENCH02-20261004.md).
+Zie het [PAYRUN01-readinessrapport](quality/acceptance/runs/PAYRUN01-READINESS-20261005.md), [PAY-CONVERGE-rapport](payroll/acceptance/PAY-CONVERGE-20261004.md), [AA-OPEN](AA/AA-OPEN.md) en de [CAO-BENCH02-fase-2-overdracht](payroll/acceptance/PAY-CONVERGE-HANDOFF-CAO-BENCH02-20261004.md).
 
 ## CAO-BENCH02 fase 2 — 2026-10-03
 

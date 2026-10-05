@@ -5,15 +5,15 @@ Bijgewerkt: 2026-10-05
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
 
-## CURRENT — PAY-RELEASE-01 besluit en PAY-CONVERGE-kandidaat
+## CURRENT — PAYRUN01 Phase 1 release checkpoint
 
-CAO-BENCH02 is geïntegreerd in integration/pay-converge-20261004 vanaf exact main 6349d025. De volledige lokale codegates slaagden; de kandidaat blijft PARTIAL/HOLD door SEC-PAY-001 en ontbrekende kandidaatgebonden hosted/Preview-evidence. Start geen nieuwe Payroll-feature voor dezelfde slice.
+TEST-HARNESS01 is lokaal geïntegreerd in `integration/pay-converge-20261004`, vanaf exact `origin/main` `6349d025`. Op candidate code-HEAD `65ccfedea623295c4ec20b3191185b19ef848bad` slaagden de serial suite, beide TypeScript-checks, lint, i18n en runtimecontract. De candidate build en 6/6 browsermatrix zijn environment-blocked omdat de goedgekeurde centrale lokale TEST-config ontbreekt. De kandidaat is **PARTIAL / NOT RELEASE-READY / HOLD**; start Phase 2 niet vóór het Phase 1-besluit.
 
-- PAY-RELEASE-01 lokale codegates, guarded build, PDF-rendering en anonieme lokale Production-smoke zijn PASS; hosted kandidaatbewijs ontbreekt. Er is nog geen merge, push, deployment of versiebumpt; zie het [PAY-RELEASE-01-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md).
-- De normale AA-REL §6 PR-route vereist een isolated synthetic Preview met eigen Preview-scoped backends/configuratie. Preview ontbreekt. Voor uitsluitend deze synthetische TEST-release kan Edwin desgewenst de beperkte AA-REL §8-route met OPEN-punten en Preview-uitzondering expliciet goedkeuren; die uitzondering is niet vooraf gegeven.
-- Als Edwin akkoord geeft, volgen de beschreven version-only bump, gecontroleerde main-merge/push en bestaande Vercel-flow; daarna moeten exacte SHA, READY/canonical alias en hosted safety smoke slagen. Verifieer hosted Test Auth en rolwissel ontoegankelijk en TEST_CAPTURE niet publiek. Zonder expliciet besluit blijft de kandidaat HOLD.
-- SEC-PAY-001 sluit pas na een goedgekeurde bestaande TEST-provisioningroute en de echte Mars-only → Jupiter serverweigering. PAY-RULE-002 blijft een voorwaarde voor wettelijke of fiscale nauwkeurigheidsclaims.
-- TEST-HARNESS01 is lokaal geaccepteerd op een afzonderlijke branch; de exacte auth/context-/runnerdelta wordt niet in de huidige release ingemengd. Harnessintegratie is de eerste PAYLAB05-voorbereiding; geen afzonderlijke nieuwe harnessontwikkeling.
+- Het volledige evidence-overzicht en de Jan/Lisa read-only readiness staan in het [PAYRUN01-readinessrapport](../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md). Geen kandidaat-SHA is gehost; huidige Vercel readback toont geen Preview-deployment.
+- Herstel de bestaande, goedgekeurde centrale lokale TEST-runtimeconfiguratie en herhaal guarded build, geïntegreerde 6/6 browsermatrix en lokale anonymous safety smoke op een schone exacte kandidaat. Maak geen alternatieve config.
+- De normale AA-REL §6 PR-route vereist een isolated synthetic Preview met eigen Preview-scoped backends/configuratie. Preview ontbreekt. De beperkte AA-REL §8-route met OPEN-punten vereist Edwins uitdrukkelijke uitzondering en geldt niet vooraf.
+- Daarna vraagt de gecontroleerde release apart om expliciet GO voor de appversie `1.20261002.1` → `1.20261005.1`, main-merge/push en bestaande Vercel Production-flow. Verifieer daarna exact SHA, READY/canonical alias en hosted safety smoke: Test Auth/rolwissel ontoegankelijk, TEST_CAPTURE niet publiek, beschermde Payroll-auth.
+- `SEC-PAY-001` sluit pas na een goedgekeurde bestaande TEST-provisioningroute en de echte Mars-only → Jupiter-serverweigering. `PAY-RULE-002` blijft een voorwaarde voor wettelijke of fiscale nauwkeurigheidsclaims.
 
 ## Historische handoff — CAO-BENCH02 Phase 1 Arrangement Foundation
 

@@ -1,12 +1,14 @@
 # Implementatiestatus Liquid HR
 
-## PAY-RELEASE-01 — 2026-10-05
+## PAYRUN01 Phase 1 — 2026-10-05
 
-**Status: voorafgaande lokale gates PASS; PAY-CONVERGE-release HOLD.** De kandidaatbranch is gebaseerd op exact geverifieerde live main 6349d025. Vóór harnessintegratie slaagden de HR-suite, strict TypeScript-checks, ESLint, NL/EN i18n en guarded productiebuild op codecommit 0f792665 (309/309 pagina's; client-boundaryscan 152 assets). Ook de beschreven anonieme lokale Production-smoke en K1/K2-direct-PDF-pariteitscontrole zijn bewijs van die eerdere kandidaatcode. De huidige worktree bevat de lokale TEST-HARNESS01-integratie; relevante auth-, context-, capability- en runtimecontractregressies, gevolgd door de finale codegates, moeten nog op deze exacte kandidaat worden uitgevoerd.
+**Status: source-gates PASS; guarded build/browser environment-blocked; PARTIAL / NOT RELEASE-READY / HOLD.** Candidate branch `integration/pay-converge-20261004` is based on exact read-only verified `origin/main` `6349d025`. TEST-HARNESS01 is integrated locally at code-HEAD `65ccfedea623295c4ec20b3191185b19ef848bad`.
 
-TEST-HARNESS01 is vanuit work/test-harness01-20261004 in deze lokale kandidaat geïntegreerd. De vertrouwde origin-resolver en de identity-scoped contextwissels zijn meegenomen; de bekende 403-oorzaak is niet opnieuw onderzocht. De bronbranch behaalde eerder 6/6 desktop/iPhone 16 en bijbehorende lokale gates. Die resultaten zijn geen bewijs op de geïntegreerde kandidaat en moeten na integratie worden herhaald. QA-HARNESS-005 houdt hosted Test Auth- en TEST_CAPTURE-controles OPEN.
+The serial HR-suite passed on that exact code-HEAD (523 files; 2,213 passed, 3 skipped). Both strict TypeScript checks passed, ESLint had zero errors and six existing warnings, i18n passed with 41 namespaces, and the runtime contract passed. The direct PDF-renderer test passed within the suite. The guarded build, integrated six-cell browser matrix, and local anonymous Production smoke are blocked because the approved central local TEST config is absent. No server was started and no alternate config was used.
 
-Geen Vercel Preview- of kandidaatdeployment bestaat; de Payroll Preview-inrichting ontbreekt. Geen GitHub/main-merge, push, deployment, migratietoepassing, auth-provisioning of versiebumpt. Een expliciet besluit is nog nodig voor beperkte synthetische TEST met OPEN-punten, Preview-uitzondering, versie `1.20261005.1` en de gecontroleerde main/Vercel-flow. De hosted smoke (inclusief Test Auth ontoegankelijk en TEST_CAPTURE niet publiek) blijft verplicht na autorisatie en deployment. Zie het [PAY-CONVERGE/PAY-RELEASE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md) en [AA-OPEN](../AA/AA-OPEN.md).
+The separate source-branch 6/6 result is not reused as candidate browser evidence. Hosted Test Auth/role-switch/TEST_CAPTURE checks are still open; Vercel has no Preview deployment or candidate deployment, and its latest Production is READY on the old `6349d025` main SHA. `SEC-PAY-001`, `PAY-RULE-002`, `PAY-COVER-003`, `PAY-CORE-004`, and `ENV-PREVIEW-010` remain OPEN. See the [PAYRUN01 readiness report](../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md) and [AA-OPEN](../AA/AA-OPEN.md).
+
+No app-version bump, main merge, push, deployment, migration, Core write, persona provisioning, or Phase 2 payroll implementation. The app version remains `1.20261002.1`; `1.20261005.1` is only a proposal after a separate explicit GO.
 
 ## PAY-CONVERGE — geïntegreerde lokale kandidaat — 2026-10-04
 

@@ -3,17 +3,17 @@
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-05
 
-## PAY-RELEASE-01 — pre-releasekandidaat — 2026-10-05
+## PAYRUN01 — kandidaatstatus — 2026-10-05
 
-**Status: lokale codegates PASS; CAO-acceptatie PARTIAL; releasebesluit HOLD tot expliciet akkoord en hosted bewijs.** `integration/pay-converge-20261004` blijft gebaseerd op live geverifieerde main `6349d02538351cd01fc51f298c6e6fa0ba88006c`; appversie is `1.20261002.1`. Appcodecommit `0f792665be6fb46ebcc4f3ebe7dc19bf1aba2618` is volledig getest en guarded gebouwd onder Node 24.19.0.
+**Status: lokale source-gates PASS; guarded build en browsergates environment-blocked; PARTIAL / NOT RELEASE-READY / HOLD.** De kandidaatcode staat op `integration/pay-converge-20261004`, vanaf opnieuw read-only bevestigde `origin/main` `6349d02538351cd01fc51f298c6e6fa0ba88006c`. TEST-HARNESS01 is lokaal geïntegreerd. Exacte code-HEAD: `65ccfedea623295c4ec20b3191185b19ef848bad`; appversie blijft `1.20261002.1`.
 
-- HR-suite 523 testbestanden / 2.195 geslaagde tests / 3 overgeslagen; beide TypeScript-checks, ESLint (0 fouten, 6 bestaande warnings), i18n (41 namespaces), build 309/309 pagina's en Payroll client-boundaryscan 152 assets zijn PASS.
-- Directe K1/K2-PDF-render onder Node 24 leverde 13 pagina's per run; geëxtraheerde tekst stemt exact overeen met de opgeslagen PDF's. Dit bewijst niet de API-route of hosted PDF-runtime.
-- Lokale anonieme Production-smoke: `/login` 200, `/payroll-lab` redirect naar login, geldige anonieme K1-validation-pack 401 zonder run-ID, Test Auth/rolwissel 404 disabled, `/api/test-capture` 404. Hosted veiligheidsbewijs ontbreekt nog.
-- De migratieledger is read-only bevestigd op zeven reeds toegepaste Payroll Lab-versies; er is niets toegepast of herschreven. Zie het [PAY-CONVERGE/PAY-RELEASE-01-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md) voor exacte versies en grenzen.
-- TEST-HARNESS01 is zelfstandig lokaal geaccepteerd op branch `work/test-harness01-20261004`, commit `dfb752e`, HEAD `f0ca2e2`, 6/6 browsercombinaties. Integratie is uitgesteld naar eerste PAYLAB05-voorbereiding; QA-HARNESS-005 houdt integratie en hosted Test Auth-controle OPEN.
+- Op die code-HEAD slaagde de volledige serial HR-suite: 523 testbestanden, 2.213 tests geslaagd, 3 overgeslagen. Beide strict TypeScript-checks, ESLint (0 fouten; 6 bestaande warnings), i18n (41 namespaces) en `start-test-worktree.contract.ps1` slaagden.
+- De bestaande directe PDF-rendererregressie slaagde in de suite onder Node 24. Dit bewijst niet de authenticated export API of hosted/serverless runtime.
+- Guarded build, geïntegreerde 6/6 browsermatrix en lokale anonieme Production-smoke zijn niet uitgevoerd. De guarded preflight is fail-closed geblokkeerd omdat `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` ontbreekt; geen alternatieve config is gebruikt en geen server is gestart.
+- Read-only Vercel-controle: 0 Preview deployments; laatste Production is `READY` op main `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Geen kandidaat-SHA is hosted.
+- Read-only persona-inventaris vindt voor Jan overlappende salaris-/roosterintervallen en geen Auth identity; Lisa heeft één interval per bron maar permission is niet bewezen. Geen van beide dienstverbanden heeft een direct Payroll Lab source snapshot/arrangement. Zie het [PAYRUN01-readinessrapport](../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md); geen identiteit, run of record is gewijzigd.
 
-Er is geen Preview- of kandidaatdeployment. De beperkte synthetische TEST-route van AA-REL §8 vereist Edwins expliciete aanvaarding van de Preview-uitzondering en open acceptance. Geen merge, push, deployment, version bump, remote migration of auth-provisioning uitgevoerd. Hosted READY, alias/SHA en veiligheidscontrole zijn na geautoriseerde deployment nog verplicht.
+`SEC-PAY-001`, `PAY-RULE-002`, `PAY-COVER-003`, `PAY-CORE-004` en `ENV-PREVIEW-010` blijven OPEN. Appversieverhoging naar `1.20261005.1`, merge naar `main`/push en de automatisch volgende Vercel Production-deployment wachten op expliciet GO; hosted SHA/alias/READY en security smoke blijven verplichte vervolgbewijzen. Er is geen merge naar `main`, push, deployment, version bump, migratietoepassing, Core-write of persona provisioning uitgevoerd.
 
 ## PAY-CONVERGE — lokale integratiekandidaat — 2026-10-04
 
