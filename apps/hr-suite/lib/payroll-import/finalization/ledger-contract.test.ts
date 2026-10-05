@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { confirmPayrollImportDecision } from './decision-contract'
 import {
+  assertFinalizationCompletionProof,
   assertConfirmedDecisionForPersistence,
   eventFingerprint,
   FinalizationLedgerContractError,
@@ -56,7 +57,17 @@ describe('CONTROL02 finalization ledger contract', () => {
       eventType: 'COMPLETED',
       attemptNumber: 1,
       now: '2026-10-05T10:02:00.000Z',
-      checkpoint: { phase: 'done' },
+      checkpoint: {
+        phase: 'done',
+        completionProof: {
+          executionId: 'execution-1',
+          readbackHash: 'd'.repeat(64),
+          sourceHash,
+          analysisHash,
+          coreStateHash,
+          readbackVerified: true,
+        },
+      },
     })
     expect(completed).toMatchObject({ status: 'COMPLETED', attemptCount: 1, leaseUntil: null, completedAt: '2026-10-05T10:02:00.000Z' })
   })
@@ -84,6 +95,12 @@ describe('CONTROL02 finalization ledger contract', () => {
       leaseUntil: '2026-10-05T09:59:00.000Z',
       checkpoint: {},
     })).toThrow('PAYROLL_FINALIZATION_LEASE_INVALID')
+    expect(() => transitionFinalizationLedgerState({ ...state(), status: 'IN_PROGRESS', attemptCount: 1, leaseUntil: '2026-10-05T10:05:00.000Z' }, {
+      eventType: 'COMPLETED',
+      attemptNumber: 1,
+      now: '2026-10-05T10:01:00.000Z',
+      checkpoint: {},
+    })).toThrow('PAYROLL_FINALIZATION_COMPLETION_PROOF_INVALID')
   })
 
   it('binds persisted decisions to the current actor and all three state hashes', () => {
@@ -126,5 +143,27 @@ describe('CONTROL02 finalization ledger contract', () => {
     expect(first).toBe(second)
     expect(first).not.toBe(different)
     expect(first).toMatch(/^control02-[0-9a-f]{64}-claimed$/)
+  })
+
+  it('requires verified readback evidence bound to all current state hashes', () => {
+    const checkpoint = {
+      completionProof: {
+        executionId: 'execution-1',
+        readbackHash: 'd'.repeat(64),
+        sourceHash,
+        analysisHash,
+        coreStateHash,
+        readbackVerified: true,
+      },
+    }
+    expect(assertFinalizationCompletionProof(checkpoint, { sourceHash, analysisHash, coreStateHash })).toMatchObject({
+      executionId: 'execution-1',
+      readbackVerified: true,
+    })
+    expect(() => assertFinalizationCompletionProof(checkpoint, {
+      sourceHash,
+      analysisHash,
+      coreStateHash: 'e'.repeat(64),
+    })).toThrow('PAYROLL_FINALIZATION_COMPLETION_PROOF_STATE_STALE')
   })
 })

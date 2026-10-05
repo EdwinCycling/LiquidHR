@@ -126,14 +126,24 @@ type PayrollImportTables = Database['public']['Tables'] & {
 export type PayrollImportDatabase = Omit<Database, 'public'> & {
   public: Omit<Database['public'], 'Tables' | 'Functions'> & {
     Tables: PayrollImportTables
-    Functions: Database['public']['Functions'] & {
+    Functions: Omit<Database['public']['Functions'], 'match_payroll_import_employee_bsn_fingerprint' | 'match_payroll_import_employee_bsn_fingerprints'> & {
       match_payroll_import_employee_bsn_fingerprint: {
         Args: {
           requested_bsn_fingerprint: string
           requested_hr_group_id: string
+          requested_administration_id: string
           requested_tenant_id: string
         }
         Returns: { employee_id: string }[]
+      }
+      match_payroll_import_employee_bsn_fingerprints: {
+        Args: {
+          requested_bsn_fingerprints: string[]
+          requested_hr_group_id: string
+          requested_administration_id: string
+          requested_tenant_id: string
+        }
+        Returns: { requested_bsn_fingerprint: string; employee_id: string }[]
       }
     }
   }

@@ -51,6 +51,7 @@ type DbState = {
 type QueryResult = { data: DbRow[] | null; error: QueryError | null }
 type Filter = { column: string; kind: 'eq' | 'in' | 'is' | 'lte' | 'not'; value: unknown }
 let employeeMatchRpcCalls = 0
+let employeeMatchRpcArguments: Array<{ functionName: string; args: Record<string, unknown> }> = []
 let employeeCandidateSelectCalls = 0
 
 class MemoryQuery {
@@ -242,6 +243,7 @@ function linkExistingEmployee(employeeId: string): void {
 beforeEach(() => {
   state = createState()
   employeeMatchRpcCalls = 0
+  employeeMatchRpcArguments = []
   employeeCandidateSelectCalls = 0
   mocks.getRequestAuthorizationContext.mockReset()
   mocks.requirePermission.mockReset().mockResolvedValue(undefined)
@@ -286,7 +288,11 @@ beforeEach(() => {
   })
   const client = {
     from: (table: string) => new MemoryQuery(state, table),
-    rpc: async () => { employeeMatchRpcCalls += 1; return { data: [], error: null } },
+    rpc: async (functionName: string, args: Record<string, unknown>) => {
+      employeeMatchRpcCalls += 1
+      employeeMatchRpcArguments.push({ functionName, args })
+      return { data: [], error: null }
+    },
   }
   mocks.createAdminClient.mockReset().mockReturnValue(client as never)
   mocks.getRequestAuthorizationContext.mockResolvedValue({
@@ -302,6 +308,38 @@ beforeEach(() => {
 })
 
 describe('payroll import staging and finalization', () => {
+  it('binds legacy candidate matching to the active administration', async () => {
+    const bytes = new TextEncoder().encode(JSON.stringify({
+      sourceType: 'INTERNAL_REPRESENTATIVE',
+      persons: [{
+        sourceRowNumber: 1,
+        bsnFingerprint: 'a'.repeat(64),
+        firstName: 'Synthetisch',
+        birthName: 'Voorbeeld',
+        birthDate: '1990-01-01',
+        incomeRelationships: [{ payrollTaxNumber: '123456789L01', ikvNumber: 1, startsOn: '2026-01-01' }],
+      }],
+    }))
+
+    await analyzePayrollImport({
+      sourceType: 'INTERNAL_REPRESENTATIVE',
+      filename: 'synthetic-representative.json',
+      bytes,
+      taxYear: 2026,
+      administrationId: 'admin-1',
+    })
+
+    expect(employeeMatchRpcArguments).toEqual([{
+      functionName: 'match_payroll_import_employee_bsn_fingerprint',
+      args: {
+        requested_tenant_id: 'tenant-1',
+        requested_hr_group_id: 'group-1',
+        requested_administration_id: 'admin-1',
+        requested_bsn_fingerprint: 'a'.repeat(64),
+      },
+    }])
+  })
+
   it('analyseert XML tegen de historische periode zonder actuele LhNr-binding of writes te eisen', async () => {
     const previousKey = process.env.BSN_HASH_KEY
     process.env.BSN_HASH_KEY = 'control02-test-key-that-is-not-production-0001'

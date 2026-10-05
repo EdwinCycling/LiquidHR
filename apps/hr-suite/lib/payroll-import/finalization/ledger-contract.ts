@@ -44,6 +44,15 @@ export type FinalizationLedgerTransitionResult = {
   lastErrorCode: string | null
 }
 
+export type FinalizationCompletionEvidence = {
+  executionId: string
+  readbackHash: string
+  sourceHash: string
+  analysisHash: string
+  coreStateHash: string
+  readbackVerified: true
+}
+
 export class FinalizationLedgerContractError extends Error {
   constructor(readonly code: string) {
     super(code)
@@ -125,6 +134,7 @@ export function transitionFinalizationLedgerState(
         throw new FinalizationLedgerContractError('PAYROLL_FINALIZATION_COMPLETION_CONFLICT')
       }
       requireAttempt(current, transition.attemptNumber)
+      assertFinalizationCompletionProof(transition.checkpoint)
       status = 'COMPLETED'
       leaseUntil = null
       completedAt = transition.now
@@ -183,6 +193,43 @@ export function assertFinalizationHash(value: string, field: string): string {
 export function assertFinalizationUuid(value: string, field: string): string {
   if (!uuidPattern.test(value)) throw new FinalizationLedgerContractError(`${field.toUpperCase()}_INVALID`)
   return value
+}
+
+export function assertFinalizationCompletionProof(
+  checkpoint: unknown,
+  expectedHashes?: { sourceHash: string; analysisHash: string; coreStateHash: string },
+): FinalizationCompletionEvidence {
+  if (checkpoint === null || typeof checkpoint !== 'object' || Array.isArray(checkpoint)) {
+    throw new FinalizationLedgerContractError('PAYROLL_FINALIZATION_COMPLETION_PROOF_INVALID')
+  }
+  const completionProof = (checkpoint as Record<string, unknown>).completionProof
+  if (completionProof === null || typeof completionProof !== 'object' || Array.isArray(completionProof)) {
+    throw new FinalizationLedgerContractError('PAYROLL_FINALIZATION_COMPLETION_PROOF_INVALID')
+  }
+  const proof = completionProof as Record<string, unknown>
+  if (proof.readbackVerified !== true
+    || typeof proof.executionId !== 'string'
+    || !/^[A-Za-z0-9_.:-]{1,160}$/.test(proof.executionId)
+    || typeof proof.readbackHash !== 'string') {
+    throw new FinalizationLedgerContractError('PAYROLL_FINALIZATION_COMPLETION_PROOF_INVALID')
+  }
+  const sourceHash = assertFinalizationHash(String(proof.sourceHash ?? ''), 'source')
+  const analysisHash = assertFinalizationHash(String(proof.analysisHash ?? ''), 'analysis')
+  const coreStateHash = assertFinalizationHash(String(proof.coreStateHash ?? ''), 'core_state')
+  const readbackHash = assertFinalizationHash(proof.readbackHash, 'readback')
+  if (expectedHashes && (sourceHash !== expectedHashes.sourceHash
+    || analysisHash !== expectedHashes.analysisHash
+    || coreStateHash !== expectedHashes.coreStateHash)) {
+    throw new FinalizationLedgerContractError('PAYROLL_FINALIZATION_COMPLETION_PROOF_STATE_STALE')
+  }
+  return {
+    executionId: proof.executionId,
+    readbackHash,
+    sourceHash,
+    analysisHash,
+    coreStateHash,
+    readbackVerified: true,
+  }
 }
 
 export type DecisionPersistenceContext = {

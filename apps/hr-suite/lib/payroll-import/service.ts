@@ -177,6 +177,7 @@ async function listEmployeeCandidates(
   client: PayrollImportClient,
   tenantId: string,
   hrGroupId: string,
+  administrationId: string,
   bsnFingerprints: readonly string[],
 ): Promise<ExistingPayrollEmployeeCandidate[]> {
   const fingerprintByEmployee = new Map<string, string>()
@@ -184,6 +185,7 @@ async function listEmployeeCandidates(
     const { data: matches, error: matchError } = await client.rpc('match_payroll_import_employee_bsn_fingerprint', {
       requested_tenant_id: tenantId,
       requested_hr_group_id: hrGroupId,
+      requested_administration_id: administrationId,
       requested_bsn_fingerprint: bsnFingerprint,
     })
     if (matchError) {
@@ -325,6 +327,7 @@ export async function analyzePayrollImport(input: PayrollImportBatchInput): Prom
       authorization.client,
       authorization.tenantId,
       authorization.hrGroupId,
+      authorization.administrationId,
       source.persons.flatMap((person) => person.bsnFingerprint ? [person.bsnFingerprint] : []),
     )
     : []

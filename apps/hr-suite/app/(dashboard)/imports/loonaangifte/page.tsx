@@ -6,10 +6,12 @@ import { getTranslator } from '@/lib/i18n/server'
 import { getPayrollImportReadiness } from '@/lib/payroll-import/readiness'
 import { listRecoverablePayrollImports } from '@/lib/payroll-import/service'
 
-export default async function LoonaangifteImportPage() {
+export default async function LoonaangifteImportPage({ searchParams = Promise.resolve({}) }: { searchParams?: Promise<{ batchId?: string }> }) {
   const [{ activeContext, context, supabase }, translate] = await Promise.all([getRequestAuthorizationContext(), getTranslator('payrollImport')])
   if (!context.permissions.includes('payroll-import:write')) redirect('/geen-toegang')
   const administrationId = activeContext.activeAdministration?.id ?? context.administrationId
+  const query = await searchParams
+  const initialBatchId = typeof query.batchId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(query.batchId) ? query.batchId : null
   let recoverableImports: Awaited<ReturnType<typeof listRecoverablePayrollImports>> = []
   let recoveryError = false
   let initialReadiness: {
@@ -55,12 +57,21 @@ export default async function LoonaangifteImportPage() {
     'decisionExactMatchLocked', 'decisionFieldChoice', 'decisionFieldsDescription', 'decisionFieldsTitle', 'decisionFinalizationDisabled', 'decisionIdempotencyDescription',
     'decisionIncomeChoice', 'decisionMatchesDescription', 'decisionMatchesTitle', 'decisionMatchStatus', 'decisionNeedsReview', 'decisionNoConflicts', 'decisionNoSourceFields',
     'decisionPeople', 'decisionPlanBlockers', 'decisionPlanDescription', 'decisionPlanReady', 'decisionPlanTitle', 'decisionReady', 'decisionReviewAcknowledgement', 'decisionSourceRef',
+    'decisionPersistenceUnavailable', 'decisionBatchReloadRequiresAnalysis', 'decisionPersistenceReady', 'decisionReadbackLoading', 'decisionReadbackError', 'decisionUnsaved', 'decisionSave', 'decisionReconfirm', 'decisionSaving', 'decisionLastConfirmed',
+    'decisionStatus_DRAFT', 'decisionStatus_SAVED', 'decisionStatus_STALE', 'decisionStatus_CONFLICT', 'decisionStatus_BLOCKED', 'decisionStale', 'decisionConflict', 'decisionBlocked',
+    'decisionSelectedEmployee', 'decisionEmployeeCandidate', 'decisionEmployeeCandidateUnavailable', 'decisionCandidateSearch', 'decisionDraftEmployee', 'decisionEmployeeNotSelected', 'decisionSelectedEmployment', 'decisionEmploymentCandidate', 'decisionEmploymentCandidateUnavailable', 'decisionDraftEmployment', 'decisionEmploymentNotSelected', 'decisionSaveBeforePlan',
+    'decisionRequestPlan', 'decisionPlanLoading', 'decisionPlanBlocked', 'decisionPlanServerReady', 'decisionPlannedActions', 'decisionNoPlannedActions',
+    'decisionBlocker_DECISION_SHAPE_INVALID', 'decisionBlocker_MATCH_CONFIRMATION_REQUIRED', 'decisionBlocker_EMPLOYEE_SELECTION_REQUIRED', 'decisionBlocker_EXACT_MATCH_TARGET_CHANGED',
+    'decisionBlocker_INCOME_RELATIONSHIP_DECISION_REQUIRED', 'decisionBlocker_EMPLOYMENT_SELECTION_REQUIRED', 'decisionBlocker_EMPLOYMENT_DECISION_CONFIRMATION_REQUIRED', 'decisionBlocker_SOURCE_FIELD_DECISION_REQUIRED',
+    'decisionBlocker_SOURCE_FIELD_REVIEW_REQUIRED', 'decisionBlocker_DECISION_SOURCE_STALE', 'decisionBlocker_DECISION_CORE_STATE_STALE',
+    'decisionAction_REUSE_EMPLOYEE', 'decisionAction_CREATE_EMPLOYEE', 'decisionAction_REUSE_EMPLOYMENT', 'decisionAction_CREATE_DRAFT_EMPLOYMENT', 'decisionAction_CREATE_INCOME_RELATIONSHIP',
+    'decisionAction_LINK_INCOME_RELATIONSHIP', 'decisionAction_UPDATE_EMPLOYEE_FIELDS', 'decisionAction_NO_CHANGE', 'decisionAction_BLOCKED', 'decisionAction_UNKNOWN',
     'decisionEmployee_REUSE_EMPLOYEE', 'decisionEmployee_CREATE_EMPLOYEE', 'decisionEmployee_UNRESOLVED',
     'decisionEmployment_REUSE_EMPLOYMENT', 'decisionEmployment_CREATE_DRAFT_EMPLOYMENT', 'decisionEmployment_UNDECIDED',
-    'decisionIncome_CREATE', 'decisionIncome_LINK', 'decisionIncome_NO_CHANGE', 'decisionIncome_UNDECIDED',
+    'decisionIncome_CREATE', 'decisionIncome_LINK', 'decisionIncome_NO_CHANGE', 'decisionIncome_UNDECIDED', 'decisionIncomeCandidate', 'decisionIncomeCandidateUnavailable',
     'decisionSourceField_USE_SOURCE', 'decisionSourceField_KEEP_CURRENT', 'decisionSourceField_MANUAL_REVIEW',
     'decisionField_firstName', 'decisionField_birthName', 'decisionField_birthDate', 'decisionField_gender', 'decisionField_nationality', 'decisionField_address', 'decisionIkvCount',
   ]
   const labels = Object.fromEntries([...keys, ...extraKeys, ...decisionKeys].map((key) => [key, translate(key)])) as Record<string, string>
-  return <PageShell className="space-y-6 py-7 lg:py-10" width="wide"><header><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{labels.eyebrow}</p><h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{labels.title}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.description}</p></header><PayrollImportWizard administrationId={administrationId} labels={labels} initialReadiness={initialReadiness} initialReadinessError={readinessError} initialRecoverableImports={recoverableImports} initialRecoveryError={recoveryError} /></PageShell>
+  return <PageShell className="space-y-6 py-7 lg:py-10" width="wide"><header><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{labels.eyebrow}</p><h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{labels.title}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.description}</p></header><PayrollImportWizard administrationId={administrationId} initialBatchId={initialBatchId} labels={labels} initialReadiness={initialReadiness} initialReadinessError={readinessError} initialRecoverableImports={recoverableImports} initialRecoveryError={recoveryError} /></PageShell>
 }

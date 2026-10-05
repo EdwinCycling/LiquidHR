@@ -34,6 +34,7 @@ export type PayrollImportFinalizationActionRow = {
   hr_group_id: string
   administration_id: string
   batch_id: string
+  plan_id: string
   import_person_id: string
   decision_id: string
   sequence_no: number
@@ -69,6 +70,46 @@ export type PayrollImportFinalizationActionRow = {
   checkpoint: Json
   created_at: string
   updated_at: string
+}
+
+export type PayrollImportFinalizationPlanRow = {
+  id: string
+  tenant_id: string
+  hr_group_id: string
+  administration_id: string
+  batch_id: string
+  plan_hash: string
+  source_hash: string
+  analysis_hash: string
+  core_state_hash: string
+  contract_version: string | null
+  schema_version: string | null
+  expected_action_count: number
+  completed_action_count: number
+  status: string
+  created_by_user_id: string
+  invalidated_by_user_id: string | null
+  invalidation_reason: string | null
+  invalidated_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type PayrollImportFinalizationPlanEventRow = {
+  id: string
+  tenant_id: string
+  hr_group_id: string
+  administration_id: string
+  batch_id: string
+  plan_id: string
+  event_key: string
+  event_type: string
+  actor_user_id: string
+  reason: string
+  source_hash: string
+  analysis_hash: string
+  core_state_hash: string
+  created_at: string
 }
 
 export type PayrollImportFinalizationActionEventRow = {
@@ -114,8 +155,24 @@ export type FinalizationEventRpcResult = {
   event_id: string
 }
 
+export type FinalizationPlanInvalidationRpcArgs = {
+  requested_tenant_id: string
+  requested_hr_group_id: string
+  requested_batch_id: string
+  requested_plan_hash: string
+  requested_actor_user_id: string
+  requested_reason: string
+}
+
+export type FinalizationPlanInvalidationRpcResult = {
+  plan_id: string
+  status: string
+}
+
 type FinalizationTables = Database['public']['Tables'] & {
   payroll_import_decisions: TableDefinition<PayrollImportDecisionRow, Partial<PayrollImportDecisionRow>, Partial<PayrollImportDecisionRow>>
+  payroll_import_finalization_plans: TableDefinition<PayrollImportFinalizationPlanRow, Partial<PayrollImportFinalizationPlanRow>, Partial<PayrollImportFinalizationPlanRow>>
+  payroll_import_finalization_plan_events: TableDefinition<PayrollImportFinalizationPlanEventRow, Partial<PayrollImportFinalizationPlanEventRow>, Partial<PayrollImportFinalizationPlanEventRow>>
   payroll_import_finalization_actions: TableDefinition<PayrollImportFinalizationActionRow, Partial<PayrollImportFinalizationActionRow>, Partial<PayrollImportFinalizationActionRow>>
   payroll_import_finalization_action_events: TableDefinition<PayrollImportFinalizationActionEventRow, Partial<PayrollImportFinalizationActionEventRow>, Partial<PayrollImportFinalizationActionEventRow>>
 }
@@ -127,6 +184,10 @@ export type Control02FinalizationDatabase = Omit<Database, 'public'> & {
       record_payroll_import_finalization_event: {
         Args: FinalizationEventRpcArgs
         Returns: FinalizationEventRpcResult[]
+      }
+      invalidate_payroll_import_finalization_plan: {
+        Args: FinalizationPlanInvalidationRpcArgs
+        Returns: FinalizationPlanInvalidationRpcResult[]
       }
     }
   }
