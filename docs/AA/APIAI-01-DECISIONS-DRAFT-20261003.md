@@ -1,8 +1,8 @@
 # APIAI-01 — Besluitvoorstellen voor externe alleen-lezen-API
 
 **Datum:** 2026-10-03
-**Status:** alle vijf onderdelen zijn **PROPOSAL / NOT APPROVED**.
-**Scope:** voorbereiding van APIAI-01; dit document autoriseert geen implementatie, OAuth-configuratie, migratie, remote wijziging of publieke route.
+**Status van deze momentopname (2026-10-03):** alle vijf onderdelen waren PROPOSAL / NOT APPROVED. De actuele Edwin/Product-richting voor implementatie staat in [APIAI-01-PRODUCT-DIRECTION-20261005.md](APIAI-01-PRODUCT-DIRECTION-20261005.md); Security/Privacy/Data-acceptatie blijft open.
+**Scope:** historische ontwerpvoorstellen. De huidige opdracht autoriseert lokale implementatie van de expliciet goedgekeurde productrichting; dit document autoriseert geen OAuth-providerconfiguratie, remote wijziging of publieke route.
 
 Dit is een zelfstandige ontwerpbeoordeling op basis van de goedgekeurde ADR's/FDR's, de huidige autorisatie- en read-services en de bestaande audit- en securitypatronen. Het D0-document en PR #2 zijn ontwerpinput; daaruit volgt geen goedkeuring. De bestaande `AuthContext`, server-side permissiecontroles en RLS blijven de autoritatieve grenzen.
 

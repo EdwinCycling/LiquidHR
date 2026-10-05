@@ -2,14 +2,14 @@
 
 - **Datum:** 2026-10-05 (Europe/Amsterdam)
 - **Status:** **PARTIAL / NOT SECURITY-ACCEPTED / ROUTES UNMOUNTED**
-- **Worktree:** C:\Users\Edwin\.codex\worktrees\apiai01-build-20261003\LiquidHR
+- **Worktree:** apiai01-build-20261003
 - **Branch:** work/apiai-01-build-20261003
 - **Geteste applicatie-/migratiekandidaat:** e01006e8206d6a605960f5175ad2e1b197338206
 - **Remote PR-head op controlemoment:** 547b5cc2c425d9b8bc9e8a63383f230d548b95a2
 - **Lokale code-/migratiecommits na die PR-head:** f39cead (bearer- en contextguards), e01006e (alleen migratieversie/contracttestpad). Deze acceptatierun wordt apart en lokaal vastgelegd.
 - **Remotestatus:** PR #3 blijft open en Draft; niets gepusht of gemerged.
 
-Deze run vult de historische [APIAI-01-ACCEPTANCE-RUN-20261004.md](./APIAI-01-ACCEPTANCE-RUN-20261004.md) aan. Eerdere resultaten blijven historische snapshots; dit document is het actuele lokale bewijs voor de kandidaat hierboven. Het keurt geen productbesluit, provider, remote migration, API-route of externe activering goed.
+Deze run vult de historische [APIAI-01-ACCEPTANCE-RUN-20261004.md](./APIAI-01-ACCEPTANCE-RUN-20261004.md) aan. Deze acceptatierun is nu zelf een historische snapshot; het actuele lokale bewijs staat in [de acceptatievoortzetting](APIAI-01-ACCEPTANCE-CONTINUATION-20261005.md). Geen van beide rapporten keurt een provider, remote migration of externe activering goed.
 
 ## 1. Uitgevoerde lokale wijzigingen
 

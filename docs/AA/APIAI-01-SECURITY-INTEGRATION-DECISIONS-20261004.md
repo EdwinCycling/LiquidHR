@@ -72,7 +72,7 @@ De kandidaat-RPC-wrappers en hun allowlistpayloads bestaan lokaal, maar de benod
 
 ## Besluitstatus en activeringsgrens
 
-Alle bovenstaande keuzes blijven **PROPOSAL / NOT APPROVED**. Opname in D0/PR #2 of PR #3, tests of dit addendum vormen geen goedkeuring. Een externe route blijft ongemount tot de benodigde Product-, Security-, Privacy-, Data- en Operations-goedkeuringen formeel in ADR/FDR/contract zijn vastgelegd en provider-, RLS-, database- en runtimebewijs alle relevante negatieve cases dekt.
+De bovenstaande tekst legt de voorstelstatus van 2026-10-04 vast. De latere Edwin/Product-richting voor implementatie staat in [APIAI-01-PRODUCT-DIRECTION-20261005.md](APIAI-01-PRODUCT-DIRECTION-20261005.md); zij vormt geen Security-, Privacy-, Data- of Operations-acceptatie. Een externe route blijft ongemount tot de benodigde Product-, Security-, Privacy-, Data- en Operations-goedkeuringen formeel in ADR/FDR/contract zijn vastgelegd en provider-, RLS-, database- en runtimebewijs alle relevante negatieve cases dekt.
 
 ## P-05 status update — Final Integration Wave, 2026-10-04
 
@@ -83,3 +83,8 @@ The original P-05 text above records the design proposal before the local databa
 - The migration and pgTAP SQL have not run against local PostgreSQL. There is no RLS/grant/audit readback, concurrency result, advisor result or generated-type result. No remote apply occurred.
 - **Open audit-integrity decision:** the authenticated caller still supplies outcome, HTTP status and correlation ID to `record_api_read_audit`. The database scope checks do not prove a resource read occurred. Before mounting any route, Product/Security/Data must approve the provenance model or require a route-only trusted write path; add a negative direct-RPC test for forged ALLOWED and correlation values.
 - Quota/burst values, 429/503 behavior, `audit_logs` as source, nullable `entity_id`, retention, audit-reader HR-group policy, request/correlation-ID semantics and caller provenance still require the owners listed below to approve.
+
+
+## Database status update — 2026-10-05
+
+De huidige SQL-testbron declareert 40 pgTAP-asserties. De statische migratiecontracttest slaagde 3/3; geen assertion is tegen PostgreSQL uitgevoerd. Branchcreatie voor de expliciet geautoriseerde testbranch werd door de Supabase-planbeperking geweigerd. Zie [de actuele acceptatievoortzetting](APIAI-01-ACCEPTANCE-CONTINUATION-20261005.md) voor het bewijs, de migration-overloadcontrole en de uitvoerbare vervolgstappen.
