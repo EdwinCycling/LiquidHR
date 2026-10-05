@@ -8,10 +8,10 @@
 - Guarded productiebuild op codecommit `0f792665` slaagde: 309/309 pagina's en client-boundaryscan 152 assets. Lokale anonieme Production-smoke op poort 3011: login 200; Payroll Lab redirect 307; valide K1-export 401 zonder run-ID; Test Auth en rolwissel 404 disabled; TEST_CAPTURE-route 404. Eigen server gestopt en poort vrij.
 - K1/K2-PDF's zijn opnieuw gegenereerd via de directe productrenderer op de geaccepteerde JSON-runs. Beide zijn 13 pagina's en hun geëxtraheerde inhoud stemt exact overeen met de opgeslagen PDF's. Dit bewijst niet de geauthenticeerde API-route of hosted runtime.
 - Payrolldatabase-migratieledger is read-only gecontroleerd; alle zeven verwachte versies zijn al geregistreerd. Geen migratie/write uitgevoerd. Zie het [PAY-CONVERGE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md) voor run- en runtimegrenzen.
-- TEST-HARNESS01 is als zelfstandige lokale harness geaccepteerd (6/6 desktop/iPhone 16). De opgeloste 403 is niet opnieuw onderzocht. De branch bevat gedeelde auth/context-code en een omvangrijke lokale runner; integratie is daarom de eerste PAYLAB05-voorbereiding. QA-HARNESS-005 registreert integratie en hosted Test Auth-controle OPEN.
+- TEST-HARNESS01 is lokaal in deze PAY-CONVERGE-kandidaat geïntegreerd. De bekende origin-403-fix via de vertrouwde request-originresolver is meegenomen zonder de RCA te heropenen. De 6/6-matrix en quality gates gelden voor de zelfstandige bronbranch; gerichte regressies en de relevante gates moeten op de geïntegreerde kandidaat opnieuw worden bewezen. QA-HARNESS-005 houdt hosted Test Auth- en TEST_CAPTURE-controles OPEN.
 - Vercel heeft geen Preview-deployment of Payroll Preview-configuratie; geen kandidaat-SHA is hosted. AA-REL §8 vraagt een expliciete beperkte-TEST-/Preview-uitzonderingsbeslissing. Na goedgekeurde deployment moeten READY, canonical alias, SHA-provenance en hosted veiligheidscontrole slagen, inclusief Test Auth ontoegankelijk en TEST_CAPTURE niet publiek.
 
-Geen push, merge, deployment, versiebumpt, migratietoepassing of auth-provisioning uitgevoerd. Hosted READY/SHA/canonical-alias en hosted safety smoke blijven na een expliciet GO en deployment vereist; de lokale 404's bewijzen de hosted toestand niet.
+Geen push, GitHub/main-merge, deployment, versiebumpt, migratietoepassing of auth-provisioning uitgevoerd; de lokale branchintegratie is nog niet vastgelegd. Hosted READY/SHA/canonical-alias en hosted safety smoke blijven na een expliciet GO en deployment vereist; de lokale 404's bewijzen de hosted toestand niet.
 
 ## PAY-CONVERGE — 2026-10-04
 
@@ -46,6 +46,17 @@ Geen push, merge, deployment, version bump, migratietoepassing, auth-provisionin
 - De tijdelijke runner is gestopt en de task-local npm-cache is verwijderd. Geen Core-writes, CONTROL02, version bump, merge, push of deployment.
 - [Acceptance](../payroll/acceptance/CAO-BENCH02-20261003.md) · [ADR](../decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md) · [uitvoeringsplan](../payroll/research/CAO-BENCH02-TWO-CAO-TEST-EMPLOYEE-EXECUTION-PLAN.md).
 
+## TEST-HARNESS01 — lokale acceptatieharness — 2026-10-04
+
+- Bestaande worktree/branch work/test-harness01-20261004, start-HEAD 6349d02538351cd01fc51f298c6e6fa0ba88006c; geen nieuwe worktree of remote wijziging.
+- Kandidaatimplementatie lokaal gecommit als `dfb752ee917f2f138d5dce79d5232b6508738c03`; officiële Production -Build en buildprovenance bevestigen exact deze source commit. Geen server/deployment gestart.
+- 403-rootcause bewezen: browser-Origin en Host waren 127.0.0.1; Next request.nextUrl.origin werd localhost. Originvalidatie gebruikt nu feitelijke Host-gebaseerde request-origin en blijft strict; vaste allowlist en local-only Test Auth-gates bleven behouden.
+- Finale lokale browsermatrix 6/6 GREEN: HR Admin/Manager op /dashboard/start, Medewerker op /personal-settings, desktop 1440×900 en iPhone 16 393×852. Per cel nieuwe browsercontext; Manager/Medewerker switchten via de bestaande serverflow en keerden terug naar HR Admin.
+- Context: tenant/HR-groep correct voor alle rollen; HR Admin/Manager matchten de exacte administratie. Medewerker had geen actieve administratie en een lege server-toegankelijke set. Test Auth- en rolwisselresponses wissen alle drie de actieve contextcookies bij identiteitsovergang; de runner controleerde bron- en doelcontext afzonderlijk. Positieve en negatieve API-probes geslaagd.
+- Gerichte tests 8 Vitest-bestanden/80 tests plus 12 harness-contexttests; ESLint, strict typecheck incremental false, i18n (41 namespaces), runner syntax en runtimecontract geslaagd. Package type-checkscript kon eerder tsbuildinfo niet schrijven (EPERM); compilercontrole slaagde zonder incremental output. Volledige suite niet vereist voor deze begrensde scope.
+- Tijdelijke server ruimde uitsluitend eigen PID op; daarna geen listener. Bestaande server tijdens diagnose als NOT_OWNED behouden. Canonieke .env.local alleen op bestaan gecontroleerd, niet gelezen of gewijzigd.
+- Onafhankelijke LUNA MAX-review afgerond zonder resterende auth/origin/context-cookie/role-switch-beveiligingsblocker; 12 contextcontracttests en finale 6/6-browsermatrix bevestigd. De volledige documentatieclose-out is lokaal vastgelegd; definitieve branch-HEAD wordt in de taakoplevering vermeld. Geen push/merge/deploy.
+- Handleiding: docs/quality/acceptance/TEST-HARNESS01.md; bewijs en hervatinstructies: docs/quality/acceptance/runs/TEST-HARNESS01-20261004.md.
 ## ONE VERSION — accepted PAYLAB00–04 release preparation — 2026-10-02
 
 - Geaccepteerde integratiebranch `integration/payroll-foundation-20261002`, basis-HEAD `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; eerdere onafhankelijke LUNA MAX-acceptatiereview en desktop/390 px productie-browsertests zijn GREEN.

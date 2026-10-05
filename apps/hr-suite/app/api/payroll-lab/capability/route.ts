@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
+import { resolveRequestOrigin } from '@/lib/auth/request-origin'
 import {
   PayrollLabUnavailableError,
   updatePayrollLabAdministrationCapability,
@@ -17,7 +18,14 @@ function jsonResponse(body: unknown, status: number): NextResponse {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  if (request.headers.get('origin') !== request.nextUrl.origin) {
+  const origin = resolveRequestOrigin({
+    canonicalUrl: process.env.NEXT_PUBLIC_APP_URL,
+    fallbackUrl: request.url,
+    forwardedHost: request.headers.get('x-forwarded-host'),
+    forwardedProtocol: request.headers.get('x-forwarded-proto'),
+    host: request.headers.get('host') ?? request.nextUrl.host,
+  })
+  if (request.headers.get('origin') !== origin) {
     return jsonResponse({ error: 'PAYROLL_LAB_FORBIDDEN' }, 403)
   }
 
