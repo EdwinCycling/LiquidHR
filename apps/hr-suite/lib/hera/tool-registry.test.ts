@@ -102,6 +102,14 @@ describe('dispatchHeRaTool', () => {
       .rejects.toMatchObject({ code: 'HERA_TOOL_NOT_ALLOWED' })
   })
 
+  it('maps a required context selection to a bounded HeRa denial', async () => {
+    const dispatchWorkforceTool = vi.fn().mockRejectedValue(new WorkforceToolDispatchError('CONTEXT_SELECTION_REQUIRED'))
+    const name = workforceToolHeRaName('employee.talent.development-plans.read')
+
+    await expect(dispatchHeRaTool(context, { name, args: {} }, { dispatchWorkforceTool }))
+      .rejects.toMatchObject({ code: 'HERA_TOOL_NOT_ALLOWED' })
+  })
+
   it.each([
     { role: 'DIRECT_MANAGER', audience: 'manager' },
     { role: 'HR_ADMIN', audience: 'HR' },

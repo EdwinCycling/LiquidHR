@@ -60,12 +60,15 @@ annotations, same-origin credentials, requestbody, contextinjectie, bounded
 errors, JSON Schema-invoervalidatie en abort/cleanup. Een cataloguscontracttest
 controleert dat alle acht huidige Workforce-schema's worden geregistreerd.
 
-Een geïsoleerd Chrome `154.0.8037.93`-profiel met de officiële
-`chrome://flags/#enable-webmcp-testing`-flag bevestigde dat de native browser
-de tool registreert, uitvoert en na cleanup verwijdert. De proef gebruikte een
-lokale mockresponse. De TEST-app kon niet worden gestart omdat de centrale
-`%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` ontbreekt; de geïntegreerde
-authenticated BFF-/persona-browsertest blijft **ENVIRONMENT-GATED**.
+Een eerdere geïsoleerde Chrome-proef met mockresponse valideerde alleen de
+adapter. Die mockgrens is vervangen door de geïntegreerde acceptatierun van
+2026-10-05: geïsoleerde Chrome 154.0.8037.93 met de officiële lokale WebMCP-testflag gebruikte de echte native
+document.modelContext.getTools()- en executeTool()-API's naar de
+authenticated Workforce-BFF en gedeelde dispatcher. Employee (6 tools),
+Manager (1) en HR Admin (1) zijn live aangeroepen; context-/rolwissels,
+abort, logout-unregister en unauthenticated denial zijn gecontroleerd. Dezelfde
+run bevestigde dat headless Chrome zonder WebMCP veilig no-op blijft. Zie het
+[geïntegreerde acceptatierapport](../../quality/acceptance/runs/APIAI-03-04-05-INTEGRATION-20261005.md).
 
 WebMCP is een experimentele Chrome API, geen releasevoorwaarde of vervanging
 voor MCP. Externe ChatGPT, provider, OAuth/bearer, openbare hosting en

@@ -2,7 +2,7 @@
 
 ## 1. Verdict
 
-**PARTIAL / NOT RELEASE-READY.** The local MCP transport, ChatGPT-specific MCP profile, WebMCP progressive enhancement, automated regression gates, MCP Inspector protocol checks, native Chrome WebMCP adapter smoke, official Production build, and Payroll client-boundary scan passed. The authenticated persona/BFF browser matrix remains open: the local app showed the login page and the available browser session had no valid refresh token. Provider, bearer/RLS/audit, public hosting, and ChatGPT-host acceptance remain open.
+**LOCAL CONVERGENCE ACCEPTANCE: GREEN; THREE INDEPENDENT CONVERGENCE REVIEWS COMPLETE WITH NO P0/P1; FINAL PRODUCTION BUILD AND GITHUB HANDOFF: PENDING. EXTERNAL ACTIVATION: BLOCKED.** The later authenticated local TEST run below supersedes the earlier missing-refresh-token result for persona/BFF/MCP/WebMCP acceptance. APIAI-01 provider/bearer/RLS/audit/database gates and ChatGPT-host acceptance remain open; this local evidence does not close them.
 
 ## 2. Provenance and scope
 
@@ -37,8 +37,8 @@ No database/schema/RLS/grants change and no MCP Apps UI widget were added.
 
 ## 5. Automated and local quality gates
 
-- Focused Vitest after the review fixes: **5 files / 35 tests passed** (MCP server, local route, ChatGPT metadata, WebMCP, and Workforce registry).
-- Full HR suite on the corrected code with supported `--maxWorkers=4`: **545 files passed, 4 skipped; 2,363 tests passed, 8 skipped**.
+- Focused Vitest after the convergence-review fix: **37 files / 260 tests passed** across APIAI-01/02/03/04/05 and HeRa.
+- Full HR suite on the corrected code with supported `--maxWorkers=4`: **545 files passed, 4 skipped; 2,369 tests passed, 8 skipped**.
 - Strict HR TypeScript: passed with incremental output disabled.
 - ESLint on changed source files: passed with zero warnings/errors.
 - `git diff --check`: passed before documentation closeout.
@@ -67,8 +67,22 @@ The canonical repository `apps/hr-suite/.env.local` was not read or modified. No
 
 The independent read-only LUNA MAX review found no P0/P1. Across its initial and follow-up passes it reported three P2 findings, all fixed with regression coverage: malformed `Host` authorities could parse as loopback; WebMCP did not validate published JSON Schema constraints before the BFF call; and a non-object schema root could be advertised despite the object-input execution contract. The corrected Host tests reject path/query/fragment/userinfo/backslash/comma-list values and invalid ports. WebMCP validates supported constraints before sending, rejects schemas with unsupported keywords, and advertises only object-root schemas. The final independent re-review found **no remaining P0/P1/P2**. Strict TypeScript, scoped ESLint, all five focused files / 35 tests, and the controlled full suite passed on the corrected source.
 
-Remaining acceptance gates include authenticated route and persona/BFF checks, and APIAI-01 provider/bearer/RLS/limiter/audit evidence. ChatGPT host connection and any public endpoint require a separately authorized external step.
+The adapter-only review preceded the later authenticated integrated-worktree run in Section 10. Three independent convergence reviews of the integrated candidate are complete; all found **no P0/P1**. The architecture review findings about stale MCP/WebMCP status and migration-source wording were corrected in the requirements and current context. The cross-channel review found a P2 409 context-selection error-code drift; the shared dispatcher now returns CONTEXT_SELECTION_REQUIRED, the BFF preserves it as 409, MCP/WebMCP preserve the bounded code, and HeRa maps it to its bounded denial. Five focused regression tests cover the dispatcher and all adapters. The security review noted that local MCP tools/list exposes the shared eight-tool catalog to all local roles; this is documented as a local-only discovery limitation, while every execution remains server-authorized. The static catalog does not block a dormant local Draft PR. Remaining acceptance gates are APIAI-01 provider/bearer/RLS/limiter/audit/database evidence and ChatGPT-host acceptance; any public endpoint requires a separately authorized external step.
 
 ## 9. Final status
 
-**LOCAL CODE / AUTOMATED TESTS / MCP INSPECTOR / NATIVE WEBMCP SMOKE / PRODUCTION BUILD / PAYROLL BUNDLE SCAN: GREEN. AUTHENTICATED PERSONA APP / SECURITY-DATABASE / HOSTED ACCEPTANCE: OPEN. PARTIAL / NOT RELEASE-READY.**
+**LOCAL AUTHENTICATED PERSONA / BFF / MCP / NATIVE WEBMCP ACCEPTANCE, AUTOMATED REGRESSION GATES, AND THREE INDEPENDENT REVIEWS: GREEN WITH NO P0/P1. FINAL PRODUCTION BUILD / PAYROLL BUNDLE SCAN / GITHUB HANDOFF: PENDING. APIAI-01 SECURITY-DATABASE / PROVIDER / CHATGPT-HOST / HOSTED ACCEPTANCE: OPEN; EXTERNAL ACTIVATION BLOCKED.**
+
+## 10. Authenticated local acceptance continuation — 2026-10-05
+
+This section records the later run on the integrated worktree. It supersedes the earlier Section 6 statement that no authenticated persona/BFF run was available. The official scripts/start-test-worktree.ps1 Development launcher used the central TEST configuration on loopback port 3015. Fresh synthetic Test HR Admin login, ordinary role switching, logout, and HR-group selection were used; no auth bypass or credential values were exposed. The owned local server was stopped after the probes.
+
+- **Employee:** real Workforce BFF returned Development Plans 200/6, gaps 200/4, skills 200/0; a forged employeeId was rejected. Real MCP initialize/tools/list/call returned self-only Development Plans with structured output; forged employee scope returned bounded MCP_INPUT_INVALID; Manager/HR tools returned ACCESS_DENIED.
+- **Manager:** after full re-login, real BFF and MCP team matrix returned 5 direct-team rows under the selected Planeten context. Forged employeeId, teamId, tenantId, HR-group, and administration filters returned INPUT_INVALID; Employee/HR tool execution returned ACCESS_DENIED; malformed input was 400, unknown tool 404, and a request above 16 KiB was 413. Selecting the allowed Stap 6 test group through the normal context selector made both BFF and MCP return zero rows.
+- **HR Admin:** fresh login after Manager logout returned 25 tenant-matrix rows through BFF and MCP. Employee-only and Manager tools returned ACCESS_DENIED; forged context filters returned INPUT_INVALID; a forged top-level tenant selection returned WORKFORCE_REQUEST_INVALID. Structured MCP output matched its text projection.
+- **MCP discovery boundary:** tools/list is a shared static catalog of 8 tools for each role; it is not role-filtered. Every execution was rechecked by the shared dispatcher, and mismatched role execution was denied as above. Do not interpret discovery as authorization.
+- **Native WebMCP:** isolated Chrome 154.0.8037.93 with the official WebMCP test flag used the real document.modelContext.getTools() / executeTool() APIs and real same-origin BFF/dispatcher. Employee registered 6 tools and returned 6 plans; Manager registered 1 tool and returned 5 rows, then 0 after HR-group context change; HR Admin registered 1 tool and returned 25 tenant rows. Role changes replaced registrations. An aborted Employee call rejected with AbortError; logout cleared the registry and an unauthenticated BFF request returned 401. Headless Chrome without the flag had no document.modelContext, so the feature remained a no-op. No unrelated Chrome profile was used.
+- The dashboard serialization regression was reproduced before the source fix: Zod JSON Schema carried a non-enumerable ~standard property across the Server/Client boundary. The client projection now includes only id, description, operation, and inputSchema, round-trips through JSON, and is strict-validated. Its regression test checks plain data and absence of ~standard.
+- Current source regression gates: focused APIAI-01/02/03/04/05 and HeRa 37 files / 260 tests passed; full HR suite 545 files passed, 4 skipped; 2,369 tests passed, 8 skipped; strict TypeScript, changed-file ESLint, i18n parity (41 NL/EN namespaces), and launcher Pester 3/3 passed. Live HeRa Gemini inference was not run.
+
+The final Production build and Payroll client-boundary scan must run against the final committed candidate because the earlier Section 5 build belongs to the prior source SHA. Final browser acceptance must also be read back against the exact source commit. The authorized single Draft PR handoff and post-push GitHub/Vercel readback are pending. No merge, deployment, route activation, ChatGPT registration, tunnel, version bump, or remote database write was performed.

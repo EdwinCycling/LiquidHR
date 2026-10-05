@@ -64,7 +64,8 @@ function failedResponse(error: unknown): NextResponse {
       : error.code === 'INPUT_INVALID' ? 400
         : error.code === 'AUTHENTICATION_REQUIRED' ? 401
           : error.code === 'ACCESS_DENIED' ? 403
-            : 500
+            : error.code === 'CONTEXT_SELECTION_REQUIRED' ? 409
+              : 500
     return NextResponse.json({ error: error.code }, { status, headers: { 'Cache-Control': 'no-store' } })
   }
   if (error instanceof WorkforceRequestError) {

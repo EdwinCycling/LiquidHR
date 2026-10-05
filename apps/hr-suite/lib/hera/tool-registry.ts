@@ -49,6 +49,7 @@ function mapWorkforceRegistryError(error: unknown): never {
       || error.code === 'TOOL_NOT_FOUND'
       || error.code === 'AUTHENTICATION_REQUIRED'
       || error.code === 'ACCESS_DENIED'
+      || error.code === 'CONTEXT_SELECTION_REQUIRED'
     ) {
       throw new HeRaToolRegistryError('HERA_TOOL_NOT_ALLOWED')
     }

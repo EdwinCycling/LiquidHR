@@ -201,6 +201,16 @@ describe('registerWorkforceWebMcp', () => {
     )
   })
 
+  it('preserves the BFF context-selection error as a bounded WebMCP error', async () => {
+    const { modelContext, tools } = createModelContext()
+    const fetchImpl: typeof fetch = async () => jsonResponse({ error: 'CONTEXT_SELECTION_REQUIRED' }, 409)
+    await registerWorkforceWebMcp({ modelContext, descriptors: [readDescriptor], fetchImpl })
+
+    await expect(tools[0]?.execute({})).rejects.toEqual(
+      new WorkforceWebMcpError('CONTEXT_SELECTION_REQUIRED'),
+    )
+  })
+
   it('unregisters and aborts in-flight execution when lifecycle cleanup runs', async () => {
     const { modelContext, tools, signals } = createModelContext()
     let resolveFetch: ((response: Response) => void) | undefined

@@ -73,17 +73,23 @@ teruggestuurd.
 ## Verificatie en open acceptatie
 
 Focused protocol-, route-, metadata-, WebMCP- en dispatcherregressies zijn
-uitgevoerd. De officiële MCP Inspector heeft via HTTP `tools/list` gevalideerd:
+uitgevoerd. De officiële MCP Inspector heeft via HTTP tools/list gevalideerd:
 acht tools in het lokale testprofiel en één tool in het aparte ChatGPT-profiel;
-strict schema-controle slaagde. Dit test de MCP-handler op loopback en is geen
-authenticated app-route- of ChatGPT-hostacceptatie.
+strict schema-controle slaagde. Dit controleert de MCP-handler en is geen
+ChatGPT-hostacceptatie.
 
-De officiële TEST-launcher kon de app niet starten omdat
-`%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` ontbreekt. Een echte
-authenticated MCP-call via de Next-route en de Employee/Manager/HR-browsermatrix
-blijven daarom **ENVIRONMENT-GATED**. Er is geen ChatGPT Developer Mode-
-registratie, publiek HTTPS-endpoint of tunnel gemaakt. Provider-, bearer-,
-RLS-, limiter-, audit- en externe hostacceptatie blijven **OPEN**.
+De eerdere TEST-launcherblokkade is niet meer actueel; deze is vervangen door de
+geïntegreerde acceptatierun van 2026-10-05. Via de officiële TEST-launcher zijn
+verse normale persona-logins en echte authenticated BFF/MCP-calls uitgevoerd
+voor Employee, Manager en HR Admin; initialize, tools/list en tools/call
+zijn met structured output en dispatcherautorisatie bewezen. tools/list toont
+de statische catalogus van acht tools voor alle rollen; iedere uitvoering wordt
+opnieuw server-side geautoriseerd. Zie het
+[geïntegreerde acceptatierapport](../../quality/acceptance/runs/APIAI-03-04-05-INTEGRATION-20261005.md).
+
+Er is geen ChatGPT Developer Mode-registratie, publiek HTTPS-endpoint of tunnel
+gemaakt. Provider-, bearer-, RLS-, limiter-, audit- en externe hostacceptatie
+blijven OPEN.
 
 ## Bronnen
 

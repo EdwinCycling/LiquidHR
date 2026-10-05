@@ -42,10 +42,37 @@ import { createLocalWorkforceMcpHarness } from './mcp-local'
 import {
   assertWorkforceToolCatalogIsValid,
   dispatchHeRaWorkforceTool,
+  listWorkforceToolDescriptors,
+  toWorkforceWebMcpClientDescriptors,
   dispatchWorkforceTool,
   resolveWorkforceToolAudience,
 } from './registry'
 import { ModuleError } from '@/lib/modules/module-service'
+import { ContextSelectionRequiredError } from '@/lib/context/administration-context'
+
+function findNonPlainWebMcpProp(value: unknown, path = 'descriptor'): string | null {
+  const valueType = typeof value
+  if (value === null || valueType === 'string' || valueType === 'number' || valueType === 'boolean') return null
+  if (valueType !== 'object') return path + ' (unsupported ' + valueType + ')'
+  if (Array.isArray(value)) {
+    for (const [index, item] of value.entries()) {
+      const issue = findNonPlainWebMcpProp(item, path + '[' + index + ']')
+      if (issue) return issue
+    }
+    return null
+  }
+  const prototype = Object.getPrototypeOf(value)
+  if (prototype !== Object.prototype) return path + ' (non-plain prototype)'
+  if (Object.getOwnPropertySymbols(value).length > 0) return path + ' (symbol key)'
+  for (const key of Object.getOwnPropertyNames(value)) {
+    const property = Object.getOwnPropertyDescriptor(value, key)
+    if (!property || !property.enumerable) return path + '.' + key + ' (non-enumerable property)'
+    if (!Object.prototype.hasOwnProperty.call(property, 'value')) return path + '.' + key + ' (accessor)'
+    const issue = findNonPlainWebMcpProp(property.value, path + '.' + key)
+    if (issue) return issue
+  }
+  return null
+}
 
 const toolId = 'employee.talent.development-progress.read'
 const mockGoal = {
@@ -82,6 +109,20 @@ describe('provider-neutral workforce catalog and adapters', () => {
     assertWorkforceToolCatalogIsValid()
     expect(new Set(WORKFORCE_TOOL_CATALOG.map((tool) => tool.id)).size).toBe(WORKFORCE_TOOL_CATALOG.length)
     expect(WORKFORCE_TOOL_CATALOG.every((tool) => tool.operation === 'READ' && tool.permission && tool.module)).toBe(true)
+  })
+
+  it('returns plain JSON data for the WebMCP Server/Client boundary', () => {
+    const descriptors = toWorkforceWebMcpClientDescriptors(listWorkforceToolDescriptors())
+    const issue = descriptors.map((descriptor) => findNonPlainWebMcpProp(descriptor)).find((value) => value !== null) ?? null
+    expect(issue).toBeNull()
+    expect(Object.getOwnPropertyNames(descriptors[0]?.inputSchema ?? {})).not.toContain('~standard')
+  })
+
+  it('preserves a required context selection as a bounded dispatch error', async () => {
+    requireAuthContext.mockRejectedValueOnce(new ContextSelectionRequiredError())
+
+    await expect(dispatchWorkforceTool('employee.talent.skills.read', {}))
+      .rejects.toMatchObject({ code: 'CONTEXT_SELECTION_REQUIRED' })
   })
 
   it('uses the same role precedence for browser exposure and server dispatch', () => {

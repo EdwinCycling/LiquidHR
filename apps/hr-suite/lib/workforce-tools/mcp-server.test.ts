@@ -286,6 +286,23 @@ describe('local Workforce MCP server', () => {
     })
   })
 
+  it('preserves shared context-selection errors as a bounded MCP tool error', async () => {
+    const handler = createWorkforceMcpHandler()
+    dispatchWorkforceTool.mockRejectedValueOnce(new WorkforceToolDispatchError('CONTEXT_SELECTION_REQUIRED'))
+
+    const response = await handler.fetch(rpcRequest({
+      jsonrpc: '2.0',
+      id: 8,
+      method: 'tools/call',
+      params: { name: 'employee.talent.skills.read', arguments: {} },
+    }))
+
+    expect((await readResponse(response)).result).toMatchObject({
+      isError: true,
+      content: [{ text: 'CONTEXT_SELECTION_REQUIRED' }],
+    })
+  })
+
   it('rejects malformed arguments and oversized bodies before dispatch', async () => {
     const handler = createWorkforceMcpHandler()
     const malformed = await handler.fetch(rpcRequest({

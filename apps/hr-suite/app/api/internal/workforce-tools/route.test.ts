@@ -99,6 +99,15 @@ describe('POST /api/internal/workforce-tools', () => {
     await expect(response.json()).resolves.toEqual({ error: 'CONTEXT_SELECTION_REQUIRED' })
   })
 
+  it('preserves required context selection as a bounded conflict response from dispatch', async () => {
+    dispatchWorkforceTool.mockRejectedValueOnce(new WorkforceToolDispatchError('CONTEXT_SELECTION_REQUIRED'))
+
+    const response = await POST(post({ toolId: 'employee.talent.skills.read', input: {} }))
+
+    expect(response.status).toBe(409)
+    await expect(response.json()).resolves.toEqual({ error: 'CONTEXT_SELECTION_REQUIRED' })
+  })
+
   it('maps a disabled Talent module to a stable not-found response', async () => {
     dispatchWorkforceTool.mockRejectedValue(new WorkforceToolDispatchError('MODULE_INACTIVE'))
 

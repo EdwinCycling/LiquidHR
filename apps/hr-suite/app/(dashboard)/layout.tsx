@@ -27,7 +27,7 @@ import { createSetupAssistantLabels } from '@/lib/setup-assistant/labels'
 import { getRecruitmentNavigationHref } from '@/components/layout/sidebar-navigation'
 import { PayrollLabUnavailableError, resolvePayrollLabAdministration } from '@/lib/payroll/access'
 import { WorkforceWebMcpBootstrap } from '@/components/workforce/workforce-webmcp-bootstrap'
-import { listWorkforceToolDescriptors, resolveWorkforceToolAudience } from '@/lib/workforce-tools/registry'
+import { listWorkforceToolDescriptors, resolveWorkforceToolAudience, toWorkforceWebMcpClientDescriptors } from '@/lib/workforce-tools/registry'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let requestContext
@@ -100,16 +100,17 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const workforcePermissionSet = new Set(workforcePermissions)
   const enabledModuleSet = new Set<string>(enabledModules)
   const workforceWebMcpDescriptors = workforceAudience
-    ? listWorkforceToolDescriptors()
-      .filter((tool) => tool.audience.includes(workforceAudience))
-      .filter((tool) => enabledModuleSet.has(tool.module))
-      .filter((tool) => tool.permissions.every((permission) => workforcePermissionSet.has(permission)))
-      .filter((tool) => tool.scope !== 'SELF' || authContext.employeeId !== null)
-      .filter((tool) => tool.scope !== 'MANAGER_SCOPE' || (
-        workforceAudience === 'MANAGER' && !authContext.permissions.includes('talent:manage')
-      ))
-      .filter((tool) => tool.scope !== 'TENANT' || workforceAudience === 'HR')
-      .map(({ id, description, operation, inputSchema }) => ({ id, description, operation, inputSchema }))
+    ? toWorkforceWebMcpClientDescriptors(
+      listWorkforceToolDescriptors()
+        .filter((tool) => tool.audience.includes(workforceAudience))
+        .filter((tool) => enabledModuleSet.has(tool.module))
+        .filter((tool) => tool.permissions.every((permission) => workforcePermissionSet.has(permission)))
+        .filter((tool) => tool.scope !== 'SELF' || authContext.employeeId !== null)
+        .filter((tool) => tool.scope !== 'MANAGER_SCOPE' || (
+          workforceAudience === 'MANAGER' && !authContext.permissions.includes('talent:manage')
+        ))
+        .filter((tool) => tool.scope !== 'TENANT' || workforceAudience === 'HR')
+    )
     : []
   const workforceWebMcpLifecycleKey = randomUUID()
   const profileFirstName = profile?.first_name?.trim() || (typeof email === 'string' ? email.split('@')[0] : '') || common('appName')

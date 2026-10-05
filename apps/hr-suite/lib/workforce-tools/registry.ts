@@ -1,5 +1,6 @@
 import { ZodError, z } from 'zod'
 import { requireAuthContext, requirePermission } from '@/lib/auth/permissions'
+import { ContextSelectionRequiredError } from '@/lib/context/administration-context'
 import { ModuleError, requireTenantModule } from '@/lib/modules/module-service'
 import {
   getWorkforceTool,
@@ -14,6 +15,7 @@ export type WorkforceToolDispatchErrorCode =
   | 'RESULT_INVALID'
   | 'AUTHENTICATION_REQUIRED'
   | 'ACCESS_DENIED'
+  | 'CONTEXT_SELECTION_REQUIRED'
   | 'RESOURCE_NOT_FOUND'
   | 'MODULE_INACTIVE'
   | 'EXECUTION_FAILED'
@@ -49,6 +51,30 @@ export function listWorkforceToolDescriptors(): WorkforceToolDescriptor[] {
     module: tool.module,
     inputSchema: z.toJSONSchema(tool.inputSchema),
   }))
+}
+
+const workforceWebMcpClientDescriptorSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  operation: z.literal('READ'),
+  inputSchema: z.record(z.string(), z.unknown()),
+}).strict()
+
+type WorkforceWebMcpClientDescriptor = z.infer<typeof workforceWebMcpClientDescriptorSchema>
+
+/** Rebuilds the public browser descriptors as validated plain JSON data. */
+export function toWorkforceWebMcpClientDescriptors(
+  descriptors: readonly WorkforceToolDescriptor[],
+): WorkforceWebMcpClientDescriptor[] {
+  const projected = descriptors.map(({ id, description, operation, inputSchema }) => ({
+    id,
+    description,
+    operation,
+    inputSchema,
+  }))
+  const serialized = JSON.stringify(projected)
+  const plainDescriptors: unknown = serialized === undefined ? null : JSON.parse(serialized)
+  return z.array(workforceWebMcpClientDescriptorSchema).parse(plainDescriptors)
 }
 
 function errorStatus(error: unknown): number | null {
@@ -89,6 +115,7 @@ async function authorizeWorkforceTool(tool: WorkforceToolDefinition): Promise<vo
 function mapExecutionError(error: unknown): WorkforceToolDispatchError {
   if (error instanceof ZodError) return new WorkforceToolDispatchError('RESULT_INVALID')
   if (error instanceof ModuleError && error.status === 404) return new WorkforceToolDispatchError('MODULE_INACTIVE')
+  if (error instanceof ContextSelectionRequiredError) return new WorkforceToolDispatchError('CONTEXT_SELECTION_REQUIRED')
   const status = errorStatus(error)
   if (status === 401) return new WorkforceToolDispatchError('AUTHENTICATION_REQUIRED')
   if (status === 403) return new WorkforceToolDispatchError('ACCESS_DENIED')
