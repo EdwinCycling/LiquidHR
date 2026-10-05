@@ -48,3 +48,47 @@ export type {
   SupabaseBearerClientConfig,
   SupabaseBearerRlsClient,
 } from './bearer-rls'
+
+export {
+  OAuthProtocolError,
+  createLiveDelegatedAccessTokenVerifier,
+  createOAuthAuthorizationRequest,
+  createOAuthPkcePair,
+  discoverOAuthProviderMetadata,
+  exchangeOAuthAuthorizationCode,
+  revokeAndConfirmOAuthAccessToken,
+  revokeOAuthGrant,
+  validateOAuthAuthorizationResponse,
+  validateOAuthClientConfiguration,
+} from './oauth'
+
+export type {
+  OAuthAuthorizationCodeExchangeInput,
+  OAuthAuthorizationRequest,
+  OAuthAuthorizationResponseInput,
+  OAuthClientConfiguration,
+  OAuthCrypto,
+  OAuthDiscoveryInput,
+  OAuthErrorCode,
+  OAuthPkcePair,
+  OAuthProviderMetadata,
+  OAuthRevocationConfirmationInput,
+  OAuthRevocationInput,
+  OAuthTokenSet,
+  ProviderAccessTokenVerifier,
+} from './oauth'
+
+export {
+  bindIdentityBridgeToSupabaseAuth,
+  resolveIdentityBridge,
+} from './identity-bridge'
+
+export type {
+  IdentityBridgeAccountLinkResolver,
+  IdentityBridgeGrantResolver,
+  IdentityBridgeLink,
+  IdentityBridgeResolution,
+  IdentityBridgeResolutionInput,
+  IdentityBridgeSupabaseBinding,
+  IdentityBridgeSupabaseBindingInput,
+} from './identity-bridge'

@@ -26,6 +26,8 @@ export interface DelegatedTokenVerificationInput {
   readonly accessToken: string
   readonly expectedIssuer: string
   readonly expectedAudience: string
+  /** When present, the provider adapter must bind the token to this exact client. */
+  readonly expectedClientId?: string
   readonly nowEpochSeconds: number
 }
 
@@ -68,6 +70,8 @@ export interface DelegatedRequestAuthenticationInput {
   readonly headers: DelegatedAuthorizationHeaders
   readonly expectedIssuer: string
   readonly expectedAudience: string
+  /** Optional exact client binding for provider-neutral adapters. */
+  readonly expectedClientId?: string
   readonly nowEpochSeconds?: number
   readonly verifier: DelegatedAccessTokenVerifier
   readonly clientRegistrationResolver: DelegatedClientRegistrationResolver
@@ -188,10 +192,15 @@ function isVerifiedDelegatedToken(value: unknown): value is VerifiedDelegatedTok
 }
 
 function assertVerificationConfiguration(
-  input: Pick<DelegatedRequestAuthenticationInput, 'expectedIssuer' | 'expectedAudience'>,
+  input: Pick<DelegatedRequestAuthenticationInput, 'expectedIssuer' | 'expectedAudience' | 'expectedClientId'>,
   nowEpochSeconds: number,
 ): void {
-  if (!nonEmptyText(input.expectedIssuer) || !nonEmptyText(input.expectedAudience) || !Number.isFinite(nowEpochSeconds)) {
+  if (
+    !nonEmptyText(input.expectedIssuer)
+    || !nonEmptyText(input.expectedAudience)
+    || (input.expectedClientId !== undefined && !nonEmptyText(input.expectedClientId))
+    || !Number.isFinite(nowEpochSeconds)
+  ) {
     throw new DelegatedAuthError('AUTH_CONFIGURATION_INVALID')
   }
 }
@@ -200,11 +209,15 @@ function assertVerifiedToken(
   value: unknown,
   expectedIssuer: string,
   expectedAudience: string,
+  expectedClientId: string | undefined,
   nowEpochSeconds: number,
 ): VerifiedDelegatedToken {
   if (!isVerifiedDelegatedToken(value)) throw new DelegatedAuthError('INVALID_ACCESS_TOKEN')
   if (value.issuer !== expectedIssuer) throw new DelegatedAuthError('INVALID_ACCESS_TOKEN')
   if (!audienceValues(value.audience).includes(expectedAudience)) throw new DelegatedAuthError('INVALID_ACCESS_TOKEN')
+  if (expectedClientId !== undefined && value.clientId !== expectedClientId) {
+    throw new DelegatedAuthError('INVALID_ACCESS_TOKEN')
+  }
   if (value.expiresAtEpochSeconds <= nowEpochSeconds) throw new DelegatedAuthError('INVALID_ACCESS_TOKEN')
   if (value.revocation !== 'active') throw new DelegatedAuthError('INVALID_ACCESS_TOKEN')
   return value
@@ -292,6 +305,7 @@ export async function verifyDelegatedRequest(
       accessToken,
       expectedIssuer: input.expectedIssuer,
       expectedAudience: input.expectedAudience,
+      ...(input.expectedClientId === undefined ? {} : { expectedClientId: input.expectedClientId }),
       nowEpochSeconds,
     })
   } catch (error) {
@@ -306,6 +320,7 @@ export async function verifyDelegatedRequest(
     verifiedCandidate,
     input.expectedIssuer,
     input.expectedAudience,
+    input.expectedClientId,
     nowEpochSeconds,
   )
   await assertRegisteredClient(verifiedToken, input.expectedAudience, input.clientRegistrationResolver)
