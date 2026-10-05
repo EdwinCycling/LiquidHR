@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const migration = readFileSync(resolve(__dirname, '20261004104735_apiai01_rate_limit_and_read_audit.sql'), 'utf8')
+const migration = readFileSync(resolve(__dirname, '20261005051804_apiai01_rate_limit_and_read_audit.sql'), 'utf8')
 
 describe('APIAI-01 limiter and read-audit migration contract', () => {
   it('keeps limiter state private and binds consumption to the authenticated bearer', () => {
