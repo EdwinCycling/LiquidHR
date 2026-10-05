@@ -61,3 +61,33 @@ De lockfile-installatie gaf een niet-blokkerende enginewaarschuwing: de host is 
 AA-REL §8 laat een beperkte synthetische TEST-release alleen toe na alle lokale gates, exacte candidate provenance, hosted READY/safety smoke, een zichtbare OPEN-matrix en Edwins expliciete besluit. De hosted kandidaatproef ontbreekt en ENV-PREVIEW-010 is niet ingericht.
 
 **Aanbeveling: HOLD.** De codeconvergentie en lokale gates zijn gereed, maar de kandidaat is niet release-ready. Houd SEC-PAY-001 zichtbaar OPEN, claim geen CAO-/fiscale correctheid voor K2 en laat de bestaande main/TEST-deployment ongemoeid totdat de ontbrekende Preview- en hosted gates zijn ingericht en het beperkte TEST-besluit expliciet is genomen.
+
+## PAY-RELEASE-01 voortzetting — 2026-10-05
+
+**Status vóór definitieve guarded build: kandidaat behouden; releasebesluit HOLD.** Remote `main` blijft `6349d02538351cd01fc51f298c6e6fa0ba88006c`; de bestaande Vercel-productiondeployment is READY op die baseline. Er is geen kandidaat-deployment of Preview-deployment. Er is niet gepusht, gemerged, gedeployed, geversion-bumpt of op een database geschreven.
+
+### Aanvullende lokale gates
+
+- De verificatie is opnieuw uitgevoerd onder Node `24.19.0`, passend bij de live projectinstelling `24.x` en de enginevoorwaarde van `@sparticuz/chromium` 149 (`^22.17.0 || >=24.0.0`). De eerdere hostmelding over Node `22.14.0` is hiermee voor deze verificatie ondervangen.
+- HR-suite: PASS — 523 testbestanden; 2.195 tests geslaagd, 3 overgeslagen. De bestaande server-only-importscan kreeg uitsluitend een ruimere timeout (20 naar 60 seconden), omdat de scan onder Node 24 de eerdere limiet overschreed; de scanasserties zijn ongewijzigd.
+- TypeScript: PASS — `apps/hr-suite` en `payroll-rules-cao-bench02`. NL/EN i18n: PASS — 41 namespaces. ESLint: PASS — 0 fouten en 6 bestaande warnings in `payroll-import/service.test.ts`.
+- De bestaande K1- en K2-validation-pack JSON-inputs zijn met de echte `renderCaoBench02ValidationPackPdf`-functie gerenderd onder Node 24 en lokale Chrome. Beide PDF's hebben 13 pagina's; geëxtraheerde inhoud is exact gelijk aan de eerder opgeslagen PDF-inhoud. De PDF-bytes/SHA verschillen door de aanmaak-/wijzigingstijdstempels.
+  - K1-run `81160d5e-6eac-4975-bfdb-a540911b8680`: bruto `2777.000000000000000000` (weergave € 2.777,00), arrangement `2026.07`, regels `2026.01`; gegenereerde SHA-256 `81744d5576e0a31667c5fa177333e3682cbc44367c934999d5f10214954822c2`.
+  - K2-run `4f5e6cc0-f12a-45c2-9be5-6ff61d1cb064`: bruto `1911.735632183908045976` (weergave € 1.911,74), arrangement/regels `2026.09`; gegenereerde SHA-256 `ed64b1924c949cb984522220fdb74ed651bc8c5b2b323c10aa61c14012a3ae8c`.
+- Deze PDF-proef bewijst de directe renderer met historische pack-inputs; zij roept de geauthenticeerde API-route niet aan en bewijst geen serverless-Chromium- of hosted PDF-runtime.
+- Read-only migratieledgercontrole bevestigde de zeven reeds geregistreerde Payroll Lab-migraties: twee baselineversies (`20260930125822`, `20261001155314`) plus de vijf PAYLAB05/06-migraties (`20261003122457`, `20261003122705`, `20261003124346`, `20261003171547`, `20261003174936`). Er is niets toegepast of herschreven. De bron van `20261003130000` was na toepassing op de oorspronkelijke lege fixture gehard; die migratie is niet opnieuw uitgevoerd.
+
+### TEST-HARNESS01 en integratiekeuze
+
+De zelfstandige harnessbranch is exact gecontroleerd: `work/test-harness01-20261004`, implementatiecommit `dfb752ee917f2f138d5dce79d5232b6508738c03`, definitieve HEAD `f0ca2e25ff4f6d17416b47d09374339e360f168c`. De aangeleverde lokale acceptatie is 6/6 browsercombinaties GREEN (HR Admin, Manager, Medewerker op desktop en iPhone 16), met regressietests, securityreview en productiebuild. De oorspronkelijke origin-403 is opgelost en is niet opnieuw onderzocht.
+
+Integratie is uitgesteld naar de eerste PAYLAB05-voorbereiding. De precieze branchdelta omvat gedeelde test-login-, rolwissel-, context-cookie- en Payroll capability-routes en tests, plus een omvangrijke lokale runtime-owner/lock/stop-runner en acceptatiescripts. De onafhankelijke review vond geen P1/P2-codebevindingen, maar wel een documentatiestandaardpunt en twee lage duplicatiesmells in het harnessrapport/runner. Dit valt buiten een smalle release-only wijziging; een integratie vraagt opnieuw auth-/securityreview en de volledige gezamenlijke gates. De PAY-RELEASE-kandidaat blijft daarom inhoudelijk ongewijzigd. Zie de actuele registratie in [AA-OPEN](../../AA/AA-OPEN.md), QA-HARNESS-005.
+
+### Open releasevoorwaarden en besluit
+
+- `SEC-PAY-001`, `PAY-RULE-002`, `PAY-COVER-003`, `PAY-CORE-004` en de overige niet-relevante platform-openpunten blijven zichtbaar in AA-OPEN; geen volledige ACCEPTANCE GREEN-claim.
+- `ENV-PREVIEW-010` blijft OPEN: er is geen geïsoleerde Preview-deployment en de benodigde Payroll Preview-configuratie ontbreekt. AA-REL §6 blokkeert daarmee de nieuwe PR-Preview-gate; §8 biedt alleen ruimte voor een bewust beperkte synthetische TEST-release na expliciet besluit en alle daar genoemde eisen. Edwin moet de ontbrekende Preview voor deze kandidaat dus uitdrukkelijk als beperkte TEST-uitzondering accepteren.
+- Een hosted kandidaatdeployment, canonical-alias/SHA-readback en hosted safety smoke ontbreken. Na een expliciet GO voor de releaseacties blijft de hosted smoke een harde voltooiingsgate; verifieer daarop expliciet dat Test Auth en rolwissel niet bereikbaar zijn en dat TEST_CAPTURE niet publiek is.
+- Nog uit te voeren vóór het finale verzoek om GO: schone guarded productiebuild en anonieme lokale Production-smoke op de uiteindelijke voorbereidingscommit. Appversie blijft voorlopig `1.20261002.1`; voorgestelde volgende versie na GO is `1.20261005.1`.
+
+**Advies blijft HOLD tot die lokale eindgates slagen en Edwin expliciet akkoord geeft met (a) beperkte synthetische TEST met open punten, (b) Preview-uitzondering voor deze kandidaat, (c) één version-only verhoging en (d) gecontroleerde merge/push naar `main` met de bestaande Vercel-gitflow.** Zonder dat akkoord blijven `main`, Vercel en de appversie ongemoeid.

@@ -1,5 +1,17 @@
 # Actuele overdracht Liquid HR
 
+## PAY-RELEASE-01 — 2026-10-05
+
+**Status: lokale codegates PASS; finale guarded build/lokale safety-smoke nog uit te voeren; releasebesluit HOLD tot expliciete goedkeuring.** Kandidaatbranch `integration/pay-converge-20261004` blijft vanaf live geverifieerde `main` `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Appversie is nog `1.20261002.1`; voorgestelde volgende versie na akkoord is `1.20261005.1`.
+
+- Onder Node 24.19.0 slaagden de volledige HR-suite (523 bestanden, 2.195 tests, 3 overgeslagen), beide strict TypeScript-checks, i18n (41 namespaces) en ESLint (0 fouten, 6 bestaande warnings). De server-only-boundarytest gebruikt voor alleen de scan een timeout van 60 seconden; alle assertions zijn gelijk gebleven.
+- K1/K2-PDF's zijn opnieuw gegenereerd via de directe productrenderer op de geaccepteerde JSON-runs. Beide zijn 13 pagina's en hun geëxtraheerde inhoud stemt exact overeen met de opgeslagen PDF's. Dit bewijst niet de geauthenticeerde API-route of hosted runtime.
+- Payrolldatabase-migratieledger is read-only gecontroleerd; alle zeven verwachte versies zijn al geregistreerd. Geen migratie/write uitgevoerd. Zie het [PAY-CONVERGE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md) voor run- en runtimegrenzen.
+- TEST-HARNESS01 is als zelfstandige lokale harness geaccepteerd (6/6 desktop/iPhone 16). De opgeloste 403 is niet opnieuw onderzocht. De branch bevat gedeelde auth/context-code en een omvangrijke lokale runner; integratie is daarom de eerste PAYLAB05-voorbereiding. QA-HARNESS-005 registreert integratie en hosted Test Auth-controle OPEN.
+- Vercel heeft geen Preview-deployment of Payroll Preview-configuratie; geen kandidaat-SHA is hosted. AA-REL §8 vraagt een expliciete beperkte-TEST-/Preview-uitzonderingsbeslissing. Na goedgekeurde deployment moeten READY, canonical alias, SHA-provenance en hosted veiligheidscontrole slagen, inclusief Test Auth ontoegankelijk en TEST_CAPTURE niet publiek.
+
+Geen push, merge, deployment, versiebumpt, migratietoepassing of auth-provisioning uitgevoerd. Vóór het definitieve expliciete GO-verzoek moeten de schone guarded build en lokale anonieme Production-smoke slagen.
+
 ## PAY-CONVERGE — 2026-10-04
 
 **Status: lokale integratie en codegates PASS; CAO-acceptatie PARTIAL; releaseadvies HOLD.** Branch integration/pay-converge-20261004 is gestart vanaf exact geverifieerde main 6349d02538351cd01fc51f298c6e6fa0ba88006c. De app- en packageboom is gelijk aan de geaccepteerde CAO-productboom; Core/API-AI/CONTROL02-worktrees bleven onaangeroerd.

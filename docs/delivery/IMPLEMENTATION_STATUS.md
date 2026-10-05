@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## PAY-RELEASE-01 — 2026-10-05
+
+**Status: lokale codegates PASS; kandidaatrelease HOLD tot finale lokale productiebuild/safety-smoke en expliciet besluit.** `integration/pay-converge-20261004` is gebaseerd op exact geverifieerde live `main` `6349d025`. De HR-suite, strict TypeScript-checks, ESLint en NL/EN i18n zijn onder Node 24.19.0 opnieuw groen. De K1/K2-direct-PDF-renderers zijn met de opgeslagen synthetic JSON-runs uitgevoerd; beide gegenereerde PDF's hebben 13 pagina's en exact dezelfde geëxtraheerde inhoud als de opgeslagen PDF's.
+
+TEST-HARNESS01 is lokaal geaccepteerd op de zelfstandige branch `work/test-harness01-20261004` (6/6 desktop/iPhone 16), maar wordt niet in deze releasekandidaat opgenomen: de exacte delta raakt gedeelde auth/context-routes en de lokale runtime-runner. Registratie QA-HARNESS-005 houdt integratie en hosted veiligheidscontrole OPEN en maakt harnessintegratie de eerste PAYLAB05-voorbereiding. De opgeloste origin-403 is niet opnieuw onderzocht.
+
+Geen Vercel Preview- of kandidaatdeployment bestaat; de Payroll Preview-inrichting ontbreekt. Geen merge, push, deployment, migratietoepassing, auth-provisioning of versiebumpt. Na de finale lokale build/smoke is nog een expliciet besluit nodig voor beperkte synthetische TEST met OPEN-punten, Preview-uitzondering, versie `1.20261005.1` en de gecontroleerde main/Vercel-flow. De hosted smoke (inclusief Test Auth ontoegankelijk en TEST_CAPTURE niet publiek) blijft verplicht na autorisatie en deployment. Zie het [PAY-CONVERGE/PAY-RELEASE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md) en [AA-OPEN](../AA/AA-OPEN.md).
+
 ## PAY-CONVERGE — geïntegreerde lokale kandidaat — 2026-10-04
 
 **Status: code-integratie gereed; lokale codegates PASS; acceptatie PARTIAL; releaseadvies HOLD.** De CAO-BENCH02-productboom is in integration/pay-converge-20261004 vanaf exact main 6349d025 geïntegreerd en is identiek aan bronproductcommit 07cb05e. De volledige hr-suite slaagde met 523 bestanden / 2.195 tests (3 skips); strict TypeScript, lint (0 fouten, 6 bestaande warnings), NL/EN i18n (41 namespaces), productiebuild (309/309 pagina’s) en Payroll client-boundaryscan (152 assets) slaagden.

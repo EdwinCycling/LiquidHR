@@ -176,5 +176,5 @@ describe('Payroll Lab server-only boundary', () => {
       join(payrollDirectory, 'component-draft-service.ts'),
       join(payrollDirectory, 'component-library.ts'),
     ])
-  }, 20_000)
+  }, 60_000)
 })
