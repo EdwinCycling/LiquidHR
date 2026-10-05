@@ -11,6 +11,8 @@ Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte
 
 **CONTROL02 2026-10-05:** Draft PR #4 is remote reviewbaar maar **PARTIAL / NOT MERGE-READY**. XML/XSD/readiness/matching/preview en scope-/contractartefacten staan in de Draft PR; de lokale FINAL-doorbouw heeft aanvullend gerichte hardening maar is nog niet remote geïntegreerd. Gerichte tests zijn GREEN; een eerdere brede suite bevatte nog twee inmiddels gericht herstelde parserfailures plus timeouts en is niet opnieuw als full-suite GREEN gedraaid. Echte desktop/390-px XML-flow en JWT-negatieven blijven OPEN door de geautoriseerde context/secretgates. Geen definitieve Core-write of releaseclaim.
 
+**APIAI-02 2026-10-05:** Draft PR #5 is **BUILD/LOCAL-ACCEPTANCE STRONG, RELEASE PARTIAL**. Shared Workforce-tools/BFF staan remote reviewbaar; volledige HR-suite 520 bestanden / 2.157 tests, Pester, TypeScript, lint, Production-build en client-boundaryscan zijn GREEN. Finale profile-paginationfix is gericht met service- en authenticated browserbewijs herbevestigd; onafhankelijke LUNA MAX-review vond geen P1/P2. Niet accepted: hosted Preview/kandidaat-SHA, externe APIAI-01 bearer/provider/RLS/rate-limit/auditmatrix, mount van `/api/v1`, remote MCP of release. PR #2/#3/#5-integratie is nog niet uitgevoerd.
+
 ## Verdictdefinities
 
 - **GREEN** — alle verplichte in-scope assertions bewezen.
