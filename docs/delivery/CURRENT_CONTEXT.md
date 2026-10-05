@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## APIAI-01 + APIAI-02 integratiefoundation; vervolg APIAI-03/04/05 — 2026-10-05
+
+- Status: **integratiefoundation lokaal geïntegreerd en gericht getest; totaal APIAI-01 blijft PARTIAL en niet security-geaccepteerd**. Branch `work/apiai-030405-integrated-20261005`, gestart vanaf PR #5-head `ce6a2ea6c1cc1e4071147076a411c60bff667d8f`; PR #3-head `f6353c7aa0fc811dc065b402277a36f989b3542d` is als tweede parent geïntegreerd. `origin/main` was bij start `6349d02538351cd01fc51f298c6e6fa0ba88006c`.
+- Integratiecheckpoint: `a7b84d102c65acca2f6ab3a49ab977040916255f`. PR #3 en PR #5 zijn niet gewijzigd. De overlappende TEST-launcher gebruikt de uitgebreidere APIAI-02-runtimebridge, inclusief de ondersteunde Node-fallback; de compatibiliteitstest is behouden. Beide APIAI-contextsecties zijn hieronder behouden.
+- Tijdens de lokale integratiegate is de APIAI-01-migrationcontracttest platformneutraal gemaakt door CRLF naar LF te normaliseren vóór de stringassertions; de migratie-SQL is niet aangepast.
+- Gate op de integratiecheckpointcode: gerichte APIAI-01/APIAI-02/HeRa- en migrationcontractset **46 bestanden geslaagd, 1 overgeslagen; 287 tests geslaagd, 5 overgeslagen**; launcher-Pester **3/3**; strict TypeScript geslaagd; `git diff --check` geslaagd. Zie het [integratie-acceptatierapport](../quality/acceptance/runs/APIAI-01-02-INTEGRATION-20261005.md).
+- De migrationtest is uitsluitend een lokale contracttest. PostgreSQL/pgTAP, RLS/grants/readback, advisors, database-typegen, live bearer- of personaacceptatie zijn niet uitgevoerd. De publieke `/api/v1`-route bestaat niet in deze branch en blijft ongemount; er was geen externe activatie, registratie, deploy, remote write, merge naar `main` of versie-update.
+- Volgende slices in deze branch: APIAI-03 Remote MCP boven dezelfde Workforce-dispatcher; APIAI-04 ChatGPT/MCP Plugin-metadata en eventueel alleen bij aantoonbare waarde één MCP Apps-resource; APIAI-05 native WebMCP progressive enhancement met veilige fallback. Geen adapter krijgt een eigen autorisatiemodel. Lokale MCP Inspector- en beschikbare browseracceptatie blijven gescheiden van externe ChatGPT-hostacceptatie.
+
 ## APIAI-01 voortzetting — 2026-10-05
 
 - Status: **PARTIAL / database-environment-gated / niet security-geaccepteerd / routes ongemount**. P-01 t/m P-05 zijn door Edwin goedgekeurd voor implementatie; dit is geen externe security-, privacy- of dataacceptatie.
