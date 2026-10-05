@@ -5,15 +5,16 @@ Momentopname: 2026-10-05
 
 ## PAYRUN01 — kandidaatstatus — 2026-10-05
 
-**Status: lokale source-gates PASS; guarded build en browsergates environment-blocked; PARTIAL / NOT RELEASE-READY / HOLD.** De kandidaatcode staat op `integration/pay-converge-20261004`, vanaf opnieuw read-only bevestigde `origin/main` `6349d02538351cd01fc51f298c6e6fa0ba88006c`. TEST-HARNESS01 is lokaal geïntegreerd. Exacte code-HEAD: `65ccfedea623295c4ec20b3191185b19ef848bad`; appversie blijft `1.20261002.1`.
+**NO-GO / PARTIAL / NOT RELEASE-READY.** De lokale kandidaatgates zijn nu bewezen; de individuele Jan/Lisa payroll-DoD is dat niet. Branch integration/pay-converge-20261004, exact code-HEAD c04d8e615afd3d1f42067c38840f8c83f43c3b3f; appversie blijft 1.20261002.1.
 
-- Op die code-HEAD slaagde de volledige serial HR-suite: 523 testbestanden, 2.213 tests geslaagd, 3 overgeslagen. Beide strict TypeScript-checks, ESLint (0 fouten; 6 bestaande warnings), i18n (41 namespaces) en `start-test-worktree.contract.ps1` slaagden.
-- De bestaande directe PDF-rendererregressie slaagde in de suite onder Node 24. Dit bewijst niet de authenticated export API of hosted/serverless runtime.
-- Guarded build, geïntegreerde 6/6 browsermatrix en lokale anonieme Production-smoke zijn niet uitgevoerd. De guarded preflight is fail-closed geblokkeerd omdat `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` ontbreekt; geen alternatieve config is gebruikt en geen server is gestart.
-- Read-only Vercel-controle: 0 Preview deployments; laatste Production is `READY` op main `6349d02538351cd01fc51f298c6e6fa0ba88006c`. Geen kandidaat-SHA is hosted.
-- Read-only persona-inventaris vindt voor Jan overlappende salaris-/roosterintervallen en geen Auth identity; Lisa heeft één interval per bron maar permission is niet bewezen. Geen van beide dienstverbanden heeft een direct Payroll Lab source snapshot/arrangement. Zie het [PAYRUN01-readinessrapport](../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md); geen identiteit, run of record is gewijzigd.
+- De secret-safe centrale TEST-preflight, guarded Production-build/provenance, anonieme Production-smoke en geauthenticeerde lokale browsermatrix zijn GREEN. Build ID 6o13BAPGCNJLUx68dWNCy.
+- Op exact die code-HEAD slaagde de serial suite: 523 bestanden, 2.217 geslaagd, 3 overgeslagen. Strict TypeScript, ESLint (0 fouten; 6 bestaande warnings), i18n (41 namespaces) en runtimecontract slaagden.
+- De bestaande centrale config was al geldig en is niet gekopieerd, vervangen of opnieuw gelinkt; waarden bleven verborgen. De echte gebruikersprofielpreflight slaagde nadat de sandbox-LOCALAPPDATA-omleiding was geïdentificeerd.
+- De TEST persona-/viewportmatrix is 6/6 GREEN. De afzonderlijke HR Admin Payroll Lab-route is 2/2 GREEN. Production Test Auth en role-switch zijn 404; de anonieme Payroll capability-aanvraag kreeg 403 en validation-pack 401. Geen hosted kandidaat is gemaakt of bezocht.
+- Jan’s intervalgrens bij 1 oktober is correct aangrenzend; de eerdere overlapclaim was onjuist. Jan heeft geen Auth-identiteit. Lisa heeft een Auth-identiteit, maar effectieve Payroll-autorisatie is niet bewezen. Geen van beide heeft directe Payroll snapshots, assignments/compositions of een oktoberperioderecord.
+- Bank-primary-default en BSN read/write UI-regressies zijn groen. Geen Jan/Lisa-berekening, cumulatief, werkgeverskosten, control lifecycle, persistence/readback, oracle-resultaat of payslip-PDF/JSON bestaat. Het generieke source/tax/IKV-contract, CAO-/Lisa-beleid en PFZW-toepasselijkheid blijven OPEN.
 
-`SEC-PAY-001`, `PAY-RULE-002`, `PAY-COVER-003`, `PAY-CORE-004` en `ENV-PREVIEW-010` blijven OPEN. Appversieverhoging naar `1.20261005.1`, merge naar `main`/push en de automatisch volgende Vercel Production-deployment wachten op expliciet GO; hosted SHA/alias/READY en security smoke blijven verplichte vervolgbewijzen. Er is geen merge naar `main`, push, deployment, version bump, migratietoepassing, Core-write of persona provisioning uitgevoerd.
+SEC-PAY-001, PAY-RULE-002, PAY-COVER-003, PAY-CORE-004 en ENV-PREVIEW-010 blijven OPEN. Zie het [PAYRUN01-readinessrapport](../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md) voor bronafbakening en overige DoD-gates. Geen main-merge, push, deployment, version bump, migratietoepassing, persona provisioning of businessdata-write.
 
 ## PAY-CONVERGE — lokale integratiekandidaat — 2026-10-04
 

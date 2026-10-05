@@ -1,71 +1,94 @@
-# PAYRUN01 — Phase 1 release and persona readiness — 2026-10-05
+# PAYRUN01 — Complete Individual Payroll + TEST Persona Readiness — 2026-10-05
 
 ## Verdict
 
-**PARTIAL / NOT RELEASE-READY — recommendation: NO-GO for merge, push, version bump, or deployment at this checkpoint.** The local candidate integration and source-level gates pass. The guarded TEST build, integrated six-cell browser matrix, and local production safety smoke are blocked because the configured central TEST runtime file is absent. Hosted candidate proof is also absent, and Vercel currently has no Preview deployment.
+**NO-GO — PARTIAL / NOT RELEASE-READY.** The exact local candidate now passes its guarded build, local Production safety smoke, authenticated six-cell persona matrix, and separate Payroll Lab Admin desktop/mobile check. The individual Jan/Lisa payroll Definition of Done is still not met: required source contracts, persona authority, statutory/CAO inputs, cumulative basis, employer costs, controls, persisted results, independent comparison, and payslip artifacts are absent or unsupported. No approximate payroll result was produced.
 
-This closes only Phase 1 readiness. PAYRUN01 payroll implementation, Core writes, persona provisioning, and new payroll runs remain for a later authorized phase.
+This is the requested GO/NO-GO checkpoint. Do not merge, push, bump the app version, deploy, promote a deployment, or start payment/Loonaangifte flows from this result.
 
-## Candidate provenance
+## Candidate and runtime provenance
 
-- Worktree: `Integration-PAY-CONVERGE-20261004`
-- Branch: `integration/pay-converge-20261004`
-- Baseline: `origin/main` read-only verified at `6349d02538351cd01fc51f298c6e6fa0ba88006c`
-- Local TEST-HARNESS01 integration commit: `162e3c019c87d417a29de1be0d6530fdcbc550a5`; parent commits are the prior PAY-CONVERGE candidate `060ca2f01ad8d920588c72d0e1b8b65bc1322e36` and harness documentation commit `f0ca2e25ff4f6d17416b47d09374339e360f168c`.
-- Local test-assertion follow-up: `65ccfedea623295c4ec20b3191185b19ef848bad` (`test(auth): assert safe local login return path`). This updates the login-form test for the safe return-path field and keeps its credential-exposure assertions.
-- Exact candidate source-code HEAD: `65ccfedea623295c4ec20b3191185b19ef848bad`; its worktree was clean when the code gates ran.
-- App version remains `1.20261002.1`. Proposed version after a separate explicit GO remains `1.20261005.1`.
-- GitHub PR status is unverified: the read-only `gh pr list` query returned HTTP 401.
-- The latest Production deployment is `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5`, `READY` on main `6349d02538351cd01fc51f298c6e6fa0ba88006c`, with canonical alias `liquid-hr-hr-suite.vercel.app`; a current read-only Vercel query returned zero Preview deployments for `liquidhr`. No candidate SHA is hosted.
+- Worktree: C:\Users\Edwin\Documents\Apps\LiquidHR-Payroll\Integration-PAY-CONVERGE-20261004
+- Branch: integration/pay-converge-20261004
+- Baseline: origin/main was previously read-only verified at 6349d02538351cd01fc51f298c6e6fa0ba88006c.
+- Exact code commit: c04d8e615afd3d1f42067c38840f8c83f43c3b3f — fix(payroll): correct source boundaries and persona readiness.
+- The code worktree is clean at that SHA. App version remains 1.20261002.1.
+- The protected canonical local config and approved central TEST config both exist. The central file passed the repository launcher’s secret-safe checks with the real user profile. They are distinct files, not a hardlink; the central file was already valid, so neither file was copied, replaced, or relinked. No config values were printed or recorded.
+- The sandbox shell redirected LOCALAPPDATA to a sandbox profile and initially produced a false “missing config” result. Re-running the repository preflight with the real user profile returned GREEN. This was a profile-path difference, not a config repair.
+- PAYRUN acceptance preflight confirmed the fixed Core TEST project, fixed Payroll Lab TEST project, enabled Payroll Lab flag, required variable names, dependency consistency, absence of conflicting .env sidecars and inherited runtime shadows, and free loopback port 3013. Values remained hidden.
+- Guarded Production build source commit: c04d8e615afd3d1f42067c38840f8c83f43c3b3f. Build ID: 6o13BAPGCNJLUx68dWNCy. The client-boundary negative control passed; the scanner passed on 152 browser assets.
+- The Production launcher served the build on 127.0.0.1:3013. Its exact launch session was stopped after smoke checks; a follow-up request confirmed the port was closed. The browser harness separately stopped each Development runtime it owned.
 
-No `main` merge, push, deployment, version bump, database migration, account provisioning, or business-data write was performed. Seven expected Payroll Lab migration versions were confirmed in an earlier read-only ledger check; this run added no migration and did not reapply them.
-
-## Local source gates on the exact candidate
-
-| Gate | Result |
-|---|---|
-| Full HR-suite, Node 24.19.0, serial (`--no-file-parallelism`) | PASS — 523 test files; 2,213 passed; 3 skipped |
-| Strict TypeScript, `apps/hr-suite` | PASS |
-| Strict TypeScript, `payroll-rules-cao-bench02` | PASS |
-| ESLint, `apps/hr-suite` | PASS — zero errors; six existing warnings in `payroll-import/service.test.ts` |
-| NL/EN i18n | PASS — 41 namespaces with matching keys |
-| `start-test-worktree.contract.ps1` | PASS |
-| PDF renderer regression | PASS as part of the full suite under Node 24; this does not prove the authenticated export API or Vercel serverless runtime |
-| `git diff --check` | PASS before the candidate code commit; documentation diff check also passes before closeout commit |
-
-The parallel full-suite attempt timed out only the existing Chromium PDF test at its 5-second default. The documented serial run passed on the exact final code SHA; no timeout was widened.
-
-## Runtime-gated checks
-
-The guarded launcher expects `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local`. The file-existence check returned `false`; the launcher reported that the central TEST config is missing. No file was opened, copied, created, or replaced; no alternate configuration or placeholder values were used.
+## Local code and runtime gates
 
 | Gate | Result |
 |---|---|
-| Guarded Production build and exact build provenance | BLOCKED BY ENVIRONMENT — central TEST config absent |
-| Integrated HR Admin / Manager / Employee browser matrix, desktop + iPhone 16 | BLOCKED BY ENVIRONMENT — candidate preflight returned `TEST_RUNTIME_PREREQUISITE_UNAVAILABLE`; no server started |
-| Local anonymous Production route/safety smoke | NOT RUN — same prerequisite; no server started |
-| Hosted candidate READY/SHA/canonical-alias and security smoke | OPEN — no candidate deployment; the latest Production remains on old main |
-| Isolated Preview deployment | OPEN — current Vercel query returned none |
+| Full serial HR-suite, Node 24.19.0 | PASS — 523 test files; 2,217 passed; 3 skipped |
+| Strict TypeScript | PASS — HR-suite and payroll-rules-cao-bench02 |
+| ESLint | PASS — zero errors; six existing warnings in payroll-import/service.test.ts |
+| NL/EN i18n | PASS — 41 namespaces |
+| Runtime launcher contract | PASS |
+| Guarded Production build and provenance | PASS — source SHA matches c04d8e615afd3d1f42067c38840f8c83f43c3b3f |
+| Production preflight and Development acceptance preflight | PASS — exact candidate; no server started during preflight |
+| Authenticated persona matrix | PASS — 6/6 cells; HR Admin, Manager, Employee; desktop 1440×900 and iPhone 16 393×852 |
+| Payroll Lab Admin route | PASS — /payroll-lab desktop and iPhone 16, 2/2 cells |
+| Production anonymous safety smoke | PASS — see below |
 
-The standalone harness branch previously reported 6/6 browser cells, but that evidence is not reused as proof for this merged candidate. The integrated six-cell matrix must pass after the central runtime configuration is restored.
+The first six-cell browser attempt using the default 15-second action timeout encountered a transient context transport failure and role-switch destination timeout. The supported 30-second runner timeout retest passed 6/6 without source changes. Its result reported the exact candidate SHA, clean worktree, and successful owned-runtime cleanup. A separate Admin Payroll Lab run caused Next.js to change only the generated apps/hr-suite/next-env.d.ts imports; those two generated import lines were restored to the committed contents, and the candidate worktree is clean.
 
-## Read-only TEST persona readiness
+### Production smoke and authorization evidence
 
-The Core TEST records were inspected without exposing BSN, complete IBAN, credentials, or secret values, and without changing records:
+All requests were anonymous and sent to the local Production server.
 
-| Persona | Source readiness for an individual run |
+| Request | Result |
+|---|---:|
+| GET /login | 200; no-store |
+| POST /api/auth/test-login | 404 |
+| POST /api/auth/test-role-switch | 404 |
+| Same-origin POST /api/payroll-lab/capability with enabled=true | 403; no capability change |
+| GET /api/payroll-lab/validation-pack with a valid-format case key/run ID | 401; no-store |
+
+The successful browser matrix used existing local TEST identities in De Sterren holding → Planeten → Jupiter BV. HR Admin and Manager matched the selected administration; Employee context was server-authorized and consistent with its accessible set. Manager and Employee received 403 on GET /api/roles. The Payroll validation-pack probe returned 404 for Manager and 403 for Employee. The Manager 404 used a deliberately nonexistent run ID; it proves no result was returned for that request, not the cross-administration security boundary. A Mars-only administrator → Jupiter negative remains open under SEC-PAY-001.
+
+The separate HR Admin /payroll-lab route returned 200 at both viewports, with zero console errors and zero page errors. The full persona matrix passed; route/API statuses were recorded by the repository harness. No hosted route was contacted. Local results do not prove Vercel Preview or Production behavior.
+
+## Read-only Jan/Lisa readiness
+
+Core TEST and Payroll Lab TEST were inspected without exposing BSN, complete IBAN, credentials, or secret values. No employee, employment, bank, tax, payroll, arrangement, or schema data was changed; no Auth account was created or provisioned. The browser matrix used existing TEST identities and their normal local sign-in/role-switch flows.
+
+| Persona | Confirmed source state | Readiness |
+|---|---|---|
+| Jan | Active employment covers 1 September–30 November 2026. Salary and schedule records meet at the 1 October transition using half-open [valid_from, valid_until) semantics; they are adjacent, not overlapping, and the source adapter regression now covers that boundary. No linked Auth identity; income relationship remains DRAFT; no bank account; no valid October payroll tax-number row. | Not ready for an individual run. |
+| Lisa | Active employment from 1 January 2026; salary and schedule source rows are present. An Auth identity exists, but effective Payroll permission has not been proven. Income relationship remains DRAFT; one bank account and one primary are present, without reading account contents. | Not ready for an individual run. |
+
+Neither employment has a direct Payroll Lab source snapshot, arrangement assignment, or composition snapshot. No October 2026 Payroll Lab period exists. Historical CAO-BENCH02 runs and NL-2026 synthetic runs were preserved. No new calculation or business-data write was made.
+
+## PAYRUN01 Definition of Done
+
+| Requirement | Status and evidence |
 |---|---|
-| Jan | Active employment overlaps the inspected October 2026 window, but salary and schedule intervals overlap. No Auth identity is linked. The interval ambiguity must be resolved before a run can be built. |
-| Lisa | Active employment and one salary/schedule interval each. An Auth identity exists, but effective Payroll permission was not proven. A bank record is present; account contents were not read. |
+| First-bank-account-primary behavior | PASS in code: server default and UI checkbox behavior have regression coverage. |
+| BSN maintenance UI | PASS in code: write control is separate from read/reveal permission, uses the audited update route, starts blank, and has permission regression coverage. No BSN value was read. A live per-person read/write permission check remains OPEN. |
+| Jan Kinderopvang arrangement and real salary structure | OPEN. The CAO maps salary scale to the employee’s function via its function matrix. Jan’s accepted function/scale/number mapping is not proven, so no band or salary has been inferred. |
+| Lisa company / freely negotiated arrangement | OPEN. The actual company policy is unavailable; the synthetic LHR_DEMO_OPEN_BANDS_2026 fixture is not accepted as company policy. |
+| October 2026 payroll period | Target period is explicitly October 2026. No corresponding Payroll Lab period record exists and no period was created. |
+| Jan generic-engine calculation | UNSUPPORTED / SOURCE_GAP. The source provider is not wired into the current NL-2026 run service, whose accepted runner is a static September synthetic case. Income relationship is unsupported; tax profile has no accepted source contract; IKV, fiscal-credit, bank, and PFZW inputs are not accepted by this pipeline. |
+| Lisa generic-engine calculation | UNSUPPORTED / SOURCE_GAP for the same source-contract and pipeline gaps; no separate result was created. |
+| Cumulative/YTD basis | OPEN. No accepted year-to-date source basis or October payroll history is available for either employee. |
+| Statutory tax scope | LIMITED. The existing NL-2026 package is restricted to its documented standard 2026 white monthly table case; it does not establish full legal coverage, multi-IKV treatment, or special situations. See the [Belastingdienst 2026 white monthly table](https://download.belastingdienst.nl/belastingdienst/dl/rekenhulpen/loonheffing/2026/v01/pdf/wit_mnd_nl_std_20260101.pdf). |
+| CAO scope | OPEN for individual application. Kinderopvang salary depends on the mapped function and corresponding salary scale; the official scale increase is 1.5% from 1 September 2026. See [CAO salary determination](https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/het-salaris-bepalen). |
+| Pension | OPEN. PFZW publishes 2026 basis premium 25.9%, franchise €17,283, salary cap €137,800, and WIA-excess 3.4% / €79,409 franchise. Whether the employer must or may participate has not been determined, and no employee pensionable basis is accepted. See [PFZW 2026 rates](https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html) and [PFZW participation criteria](https://www.pfzw.nl/werkgevers/pensioen-bij-ons/klant-worden/moet-of-mag-ik-aansluiten.html). |
+| Employer costs and reserves | OPEN / not implemented for these personas. |
+| Controls and review/finalize/close lifecycle | OPEN / unavailable for these individual calculations. |
+| Persistence, database readback, immutable result, hashes | NOT CREATED. No persona snapshot, assignment, composition, run, result hash, or readback exists. |
+| Independent oracle | NOT AVAILABLE for Jan or Lisa because no accepted input/result exists. The existing independent fixture comparisons do not validate either person’s payroll. |
+| Payslip PDF and JSON | NOT CREATED for Jan or Lisa. |
+| Payroll scope negatives | Partial local evidence: Production fail-closed probes and Manager/Employee denial/hiding responses are above. Cross-administration Admin negative and live BSN read/write split remain OPEN. |
 
-Neither employment has a Payroll Lab source snapshot and arrangement assignment directly keyed to it. The current source adapter requires `salary:read` and `contract:read`, marks the income relationship unsupported, has a tax-profile source gap, does not fetch bank/IKV inputs, and rejects interval overlap as unsupported. The exact requested payroll period is also still unspecified. **Neither persona is ready for a complete individual payroll calculation.** No login, run, snapshot, arrangement assignment, or write was created.
+## Remaining AA items and decision
 
-For 2026 Kinderopvang inputs, the official CAO states 8% holiday allowance, an 8% year-end allowance from 1 January 2026, and a 1.5% salary-scale increase from 1 September 2026: [holiday allowance](https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/vakantietoeslag), [year-end allowance](https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/eindejaarsuitkering), [salary changes](https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/het-salaris-bepalen). PFZW publishes 2026 parameters of 25.9% basis premium, €17,283 franchise, €137,800 full-time salary cap, and 3.4% WIA-excess premium with a €79,409 franchise: [PFZW rates](https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html). These are reference inputs, not a calculated deduction or a determination that the employer is mandatorily covered; employer activities/participation and each contract's hours and pensionable salary must be established first ([PFZW scope](https://www.pfzw.nl/werkgevers/pensioen-bij-ons/klant-worden/moet-of-mag-ik-aansluiten.html), [calculation inputs](https://www.pfzw.nl/werkgevers/premie-en-factuur/premie-berekenen/hoe-bereken-ik.html)).
+Keep SEC-PAY-001, PAY-RULE-002, PAY-COVER-003, PAY-CORE-004, and ENV-PREVIEW-010 OPEN. No full tax/CAO/pension compliance claim is made. Preview/hosted acceptance is absent; no candidate SHA is deployed.
 
-## Remaining decisions and next gates
+The hard blockers for the individual payroll DoD are the missing accepted Core-to-Payroll contract and tax/IKV inputs, Jan identity and function/scale mapping, Lisa’s company compensation policy and effective Payroll authorization, missing YTD basis and payroll-period record, unresolved pension applicability, and missing cost/control/result-artifact lifecycle. Resolving them requires accepted source/authority evidence before code can safely produce an individual payroll result.
 
-- Keep `SEC-PAY-001`, `PAY-RULE-002`, `PAY-COVER-003`, `PAY-CORE-004`, and `ENV-PREVIEW-010` visible as OPEN. Do not claim full CAO/tax acceptance.
-- Restore the approved central local TEST runtime file, then rerun the guarded build, integrated six-cell matrix, and local anonymous safety smoke on a clean exact candidate.
-- AA-REL §8's Preview exception and any limited synthetic TEST release require Edwin's explicit decision. Even after local gates pass, do not merge to `main`, push, change the app version, or deploy until the user supplies GO.
-- After a separately authorized release, verify exact deployed SHA, `READY`, canonical alias, public Test Auth/role-switch/capture route safety, and protected Payroll authentication on the hosted environment.
-- Only after the release checkpoint may Phase 2 address Jan/Lisa interval cleanup, approved identity/permission evidence, source snapshots/arrangements, complete tax/pension inputs, and the specific pay period.
+**Final checkpoint: NO-GO.** Keep code commit c04d8e615afd3d1f42067c38840f8c83f43c3b3f local. No push, merge, version bump, migration, account provisioning, deployment, promotion, Loonaangifte submission, payment execution, PAYRUN02, Continuous Payroll, or Component Designer work was performed.

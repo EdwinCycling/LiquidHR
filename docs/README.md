@@ -1,8 +1,8 @@
 # Liquid HR documentatie-index
 
-## PAYRUN01 Phase 1 readiness — 2026-10-05
+## PAYRUN01 — Complete Individual Payroll + TEST Persona Readiness — 2026-10-05
 
-**Status: lokale source-gates PASS; guarded build/browser environment-blocked; PARTIAL / NOT RELEASE-READY / HOLD.** TEST-HARNESS01 is lokaal geïntegreerd in `integration/pay-converge-20261004`, code-HEAD `65ccfedea623295c4ec20b3191185b19ef848bad`, vanaf exact geverifieerde `origin/main` `6349d025`. De serial HR-suite (523 bestanden, 2.213 geslaagd, 3 overgeslagen), beide TypeScript-checks, lint (0 fouten, 6 bestaande warnings), i18n (41 namespaces) en runtimecontract zijn PASS. De guarded build, integrated browsermatrix en lokale Production-smoke wachten op herstel van de bestaande centrale TEST-runtimeconfiguratie; hosted Preview en candidate deployment ontbreken. Geen push, main-merge, deployment, version bump of databasewrite.
+**NO-GO / PARTIAL / NOT RELEASE-READY.** De lokale PAYRUN01-code-, build-, runtime- en browsergates zijn GREEN op code-HEAD c04d8e615afd3d1f42067c38840f8c83f43c3b3f. De guarded build, secret-safe TEST-preflight, Production-smoke, geauthenticeerde persona-/viewportmatrix 6/6 en aparte HR Admin Payroll Lab-matrix 2/2 zijn bewezen. Jan en Lisa hebben geen complete individuele payrollberekening: vereiste Core→Payroll-/tax-/IKV-bronnen, arrangementinvoer, cumulatieven, kosten, controls en resultaatartefacten blijven OPEN of UNSUPPORTED. Geen bedrag is berekend; geen candidate deployment of businessdatawrite.
 
 Zie het [PAYRUN01-readinessrapport](quality/acceptance/runs/PAYRUN01-READINESS-20261005.md), [PAY-CONVERGE-rapport](payroll/acceptance/PAY-CONVERGE-20261004.md), [AA-OPEN](AA/AA-OPEN.md) en de [CAO-BENCH02-fase-2-overdracht](payroll/acceptance/PAY-CONVERGE-HANDOFF-CAO-BENCH02-20261004.md).
 

@@ -11,7 +11,7 @@ Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte
 
 **PAY-RELEASE-01 pre-harness voortzetting 2026-10-05:** de extra suite/type/lint/i18n-gates, guarded build op codecommit `0f792665`, directe K1/K2-PDF-rendering en lokale Production-smoke zijn bewijs voor die pre-harness kandidaat. Zie de huidige kandidaatstatus hieronder.
 
-**PAYRUN01 Phase 1 — 2026-10-05:** TEST-HARNESS01 is lokaal geïntegreerd op `65ccfedea623295c4ec20b3191185b19ef848bad`. Op die codecommit slaagden de serial HR-suite (523 bestanden, 2.213 tests; 3 overgeslagen), beide strict TypeScript-checks, ESLint (0 fouten, 6 bestaande warnings), i18n (41 namespaces) en runtimecontract. Guarded build en kandidaatgebonden browser-/lokale Production-smoke zijn `BLOCKED BY ENVIRONMENT`: de centrale lokale TEST-config ontbreekt. Er is geen kandidaatdeployment en Vercel heeft geen Preview-deployment. Verdict blijft **PARTIAL / NOT RELEASE-READY / HOLD**. Zie het [PAYRUN01-readinessrapport](../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md) en [AA-OPEN](AA-OPEN.md). Geen nieuwe accepted TEST-release.
+**PAYRUN01 closeout — 2026-10-05:** de lokale geïntegreerde kandidaat c04d8e615afd3d1f42067c38840f8c83f43c3b3f slaagde voor guarded build/provenance, Production-smoke, de geauthenticeerde matrix 6/6 en Payroll Lab Admin-matrix 2/2. De serial suite slaagde met 523 bestanden, 2.217 tests; 3 overgeslagen. Individuele Jan/Lisa payroll-DoD blijft OPEN/UNSUPPORTED wegens geaccepteerde bron-, autorisatie-, CAO-/bedrijfs-, YTD-, kosten- en result lifecycle-gaten. Geen kandidaatdeployment en geen nieuwe TEST-release. Zie het [PAYRUN01-readinessrapport](../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md) en [AA-OPEN](AA-OPEN.md).
 
 ## Verdictdefinities
 
