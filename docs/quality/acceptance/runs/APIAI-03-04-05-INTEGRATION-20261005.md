@@ -2,7 +2,7 @@
 
 ## 1. Verdict
 
-**LOCAL CONVERGENCE ACCEPTANCE: GREEN ON EXACT SOURCE SHA; FINAL PRODUCTION BUILD, PAYROLL BUNDLE SCAN, BROWSER PERSONA/MCP/WEBMCP ACCEPTANCE AND THREE INDEPENDENT REVIEWS COMPLETE WITH NO P0/P1. SINGLE DRAFT PR AND POST-PUSH READBACK: PENDING. EXTERNAL ACTIVATION: BLOCKED.** APIAI-01 provider/bearer/RLS/audit/database gates and ChatGPT-host acceptance remain open; local evidence does not close them.
+**LOCAL CONVERGENCE ACCEPTANCE: GREEN ON EXACT SOURCE SHA; FINAL PRODUCTION BUILD, PAYROLL BUNDLE SCAN, BROWSER PERSONA/MCP/WEBMCP ACCEPTANCE AND THREE INDEPENDENT REVIEWS COMPLETE WITH NO P0/P1. DRAFT PR #7 IS OPEN AND CLEAN; STATUS CHECKS AND VERCEL DEPLOYMENTS: NONE. EXTERNAL ACTIVATION: BLOCKED.** APIAI-01 provider/bearer/RLS/audit/database gates and ChatGPT-host acceptance remain open; local evidence does not close them.
 
 ## 2. Provenance and scope
 
@@ -13,7 +13,7 @@
 - Integration checkpoint: `a7b84d102c65acca2f6ab3a49ab977040916255f`.
 - Source commit: `1b9cbc3970589dc6be60c633162c7a0f5cf0ab73` (`feat(ai): add local MCP and WebMCP adapters`).
 - Build candidate / committed delivery HEAD: `563028f1382d004d3938487c6d4ee8abf4b7d5ae`.
-- No push, PR edit, merge to `main`, version bump, Preview or Production deployment, public route activation, provider registration, public tunnel, remote database write, or migration apply occurred.
+- No merge to main, version bump, Preview or Production deployment, public route activation, provider registration, public tunnel, remote database write, or migration apply occurred. The later authorized branch push and Draft PR are recorded in Section 11.
 
 This run adds local adapters only. APIAI-01's external authentication and database security acceptance remains distinct and is not granted by these results.
 
@@ -71,7 +71,7 @@ The adapter-only review preceded the later authenticated integrated-worktree run
 
 ## 9. Final status
 
-**LOCAL AUTHENTICATED PERSONA / BFF / MCP / NATIVE WEBMCP ACCEPTANCE, AUTOMATED REGRESSION GATES, EXACT-SHA PRODUCTION BUILD / PAYROLL SCAN, AND THREE INDEPENDENT REVIEWS: GREEN WITH NO P0/P1. CANDIDATE PUSH / SINGLE DRAFT PR / POST-PUSH READBACK: PENDING. APIAI-01 SECURITY-DATABASE / PROVIDER / CHATGPT-HOST / HOSTED ACTIVATION: OPEN; EXTERNAL ACTIVATION BLOCKED.**
+**LOCAL AUTHENTICATED PERSONA / BFF / MCP / NATIVE WEBMCP ACCEPTANCE, AUTOMATED REGRESSION GATES, EXACT-SHA PRODUCTION BUILD / PAYROLL SCAN, AND THREE INDEPENDENT REVIEWS: GREEN WITH NO P0/P1. DRAFT PR #7: OPEN / DRAFT / MERGEABLE CLEAN; NO CHECK RUNS OR VERCEL DEPLOYMENTS. APIAI-01 SECURITY-DATABASE / PROVIDER / CHATGPT-HOST / HOSTED ACTIVATION: OPEN; EXTERNAL ACTIVATION BLOCKED.**
 
 ## 10. Authenticated local acceptance continuation — 2026-10-05
 
@@ -85,7 +85,7 @@ This section records the later run on the integrated worktree. It supersedes the
 - The dashboard serialization regression was reproduced before the source fix: Zod JSON Schema carried a non-enumerable ~standard property across the Server/Client boundary. The client projection now includes only id, description, operation, and inputSchema, round-trips through JSON, and is strict-validated. Its regression test checks plain data and absence of ~standard.
 - Current source regression gates: focused APIAI-01/02/03/04/05 and HeRa 37 files / 260 tests passed; full HR suite 545 files passed, 4 skipped; 2,369 tests passed, 8 skipped; strict TypeScript, changed-file ESLint, i18n parity (41 NL/EN namespaces), and launcher Pester 3/3 passed. Live HeRa Gemini inference was not run.
 
-The earlier pending statement is superseded by Section 11, which records the final build and exact-source browser results. The one authorized Draft PR and post-push GitHub/Vercel readback remain pending; no merge or deployment is included.
+The earlier pending statement is superseded by Section 11. Draft PR #7 is open; the handoff readback is recorded there. No merge or deployment is included.
 
 ## 11. Exact-source final acceptance closeout — 2026-10-05
 
@@ -103,6 +103,6 @@ A separate repeated synthetic login initially encountered TEST environment clock
 
 The five focused adapter regressions, 37 files / 260 tests across APIAI-01/02/03/04/05 and HeRa, full HR suite (545 files passed, 4 skipped; 2,369 tests passed, 8 skipped), strict TypeScript, changed-file ESLint, 41 NL/EN namespace parity checks and launcher Pester 3/3 all passed. Independent Security/Auth, Architecture/ONE VERSION and cross-channel reviews have no remaining P0/P1; the P2 context-selection code drift was normalized and covered by five regressions.
 
-Remote readback before handoff confirmed main remains at 6349d02538351cd01fc51f298c6e6fa0ba88006c. PR #3 remains open Draft at f6353c7aa0fc811dc065b402277a36f989b3542d and PR #5 remains open Draft at ce6a2ea6c1cc1e4071147076a411c60bff667d8f; both are still unmerged. The convergence candidate has not yet been pushed and its single Draft PR and post-push Vercel readback remain pending.
+Post-push readback confirmed main remains at 6349d02538351cd01fc51f298c6e6fa0ba88006c; PR #3 and PR #5 remain open Draft at their unchanged heads f6353c7aa0fc811dc065b402277a36f989b3542d and ce6a2ea6c1cc1e4071147076a411c60bff667d8f. The convergence branch is pushed and has one Draft PR: #7, feat(ai): converge API, Workforce tools, MCP, ChatGPT and WebMCP, targeting main. GitHub readback reports mergeable=true / clean; combined statuses and check-runs are empty. At that post-create readback Vercel returned zero deployments for the branch; vercel.json disables Git deployments.
 
 APIAI-01 live bearer/RLS, provider lifecycle, audit/limiter and isolated database gates remain OPEN. ChatGPT-host acceptance remains OPEN. No hosted deployment, remote migration, merge, tunnel, external registration, public MCP, /api/v1 activation or version change occurred. Conclusion for the dormant candidate: CONVERGENCE READY / EXTERNAL ACTIVATION BLOCKED.

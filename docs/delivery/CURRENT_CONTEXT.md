@@ -3,11 +3,11 @@
 ## APIAI-01–05 ONE VERSION convergence — 2026-10-05
 
 - Status: lokale ONE VERSION-code, persona-/adapteracceptatie, regressies, exacte Production-build en Payroll-bundlecontrole zijn GREEN. Drie onafhankelijke reviews eindigden zonder P0/P1. Conclusie voor opname van de dormante kandidaat: CONVERGENCE READY / EXTERNAL ACTIVATION BLOCKED.
-- Code-SHA: 6e443463561e77d3039a1e2afb1bbcaecff548b0 op work/apiai-030405-integrated-20261005, gestart vanaf main 6349d02538351cd01fc51f298c6e6fa0ba88006c. Fresh GitHub readback: PR #3 is open Draft op f6353c7aa0fc811dc065b402277a36f989b3542d; PR #5 is open Draft op ce6a2ea6c1cc1e4071147076a411c60bff667d8f; beide ongemerged.
+- Provenance and handoff: code-SHA 6e443463561e77d3039a1e2afb1bbcaecff548b0 on work/apiai-030405-integrated-20261005, from main 6349d02538351cd01fc51f298c6e6fa0ba88006c. PR #3 and #5 remain unchanged open Drafts. [Draft PR #7](https://github.com/EdwinCycling/LiquidHR/pull/7) is open to main; readback is mergeable/clean with no status checks or Vercel deployments.
 - Exact-source Production-build: Next.js 16.3.6, TypeScript en 309/309 pagina's groen; Payroll negative control en 152 browser-assetscan groen. Production-negative probes: BFF 401, local MCP 404 MCP_UNAVAILABLE en /api/v1/tools 404.
 - Persona's via de centrale lokale TEST-runtime: Employee self-only (6 plannen, 4 gaps); Manager directe teamscope (5 rijen, 0 na toegestane contextwissel); HR Admin tenantmatrix (25 rijen). Employee logout → verse HR Admin-login → Manager-switch en Manager logout → verse HR Admin-login zijn opnieuw normaal doorlopen; stale Employee- en Manager-tools kregen 403 ACCESS_DENIED.
 - MCP: initialize 200, tools/list 8 lokale tools, echte tools/call via dezelfde dispatcher en scope. Native WebMCP in Chrome 154 met de lokale testflag: 6/1/1 roltools, echte BFF-calls, context- en logoutcleanup, AbortError voor afgebroken call en veilige no-op zonder browserflag. Geen ChatGPT-hosttest.
-- Gaten: APIAI-01 provider/bearer/auth.uid()/RLS, audit/limiter en geïsoleerde databaseacceptatie plus ChatGPT-host blijven OPEN. Geen remote migratie of hosted deploy. Single Draft PR, branch push en Vercel-readback volgen na docs-closeout; merge is niet geautoriseerd.
+- Gaten: APIAI-01 provider/bearer/auth.uid()/RLS, audit/limiter and isolated database acceptance plus ChatGPT-host remain OPEN. No remote migration, external route activation, provider registration, tunnel, deployment or version bump. Geen merge naar main.
 - Acceptatierapport: ../quality/acceptance/runs/APIAI-03-04-05-INTEGRATION-20261005.md. Deze lokale testsessie is uitgelogd en de browser/server zijn gestopt.
 
 ## APIAI-01 + APIAI-02 integratiefoundation — historische checkpointcontext — 2026-10-05
