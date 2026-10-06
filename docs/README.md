@@ -1,6 +1,14 @@
 # Liquid HR documentatie-index
 
+## ONE VERSION deployed to shared TEST + APIAI-06 — 2026-10-06
+
+**ONE VERSION main baseline `38ccbcac6423824a1dba7075f022f68771edf087` is deployed READY to the existing Vercel `liquidhr` Production target, which Edwin has designated as the shared TEST environment.** The existing alias `liquid-hr-hr-suite.vercel.app` points to the new deployment; previous READY rollback deployment `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` remains available. Public APIAI-01 and MCP entry points remain fail-closed. Employee/Manager/HR Admin hosted acceptance and post-deploy HR/HeRa/workforce-tools browser checks are OPEN because the existing hosted auth session expired; the approved local TEST runtime preflight also reported its central config file missing.
+
+APIAI-06 is being developed only on `work/apiai-06-controlled-actions-20261006` from that exact baseline. Implementation commit `87dca5291d99adf9d4d0d6b67490e39b460a8918` supports the shared lifecycle for two existing Talent services through HeRa and local-only MCP. Full local regressions, typecheck, changed-file lint, i18n, launcher tests and the exact-commit Production build are GREEN. Migration code is not applied remotely, no APIAI-06 deployment occurred, and authenticated hosted acceptance is OPEN. See the [APIAI-06 acceptance report](quality/acceptance/runs/APIAI-06-20261006.md) and the [APIAI-06 contract](requirements/ai/APIAI-06_CONTROLLED_ACTIONS.md) for evidence and remaining gates.
+
 ## APIAI-01–05 ONE VERSION convergence — 2026-10-05
+
+**Historical checkpoint, superseded by the released baseline above.**
 
 **Status: ONE VERSION-kandidaat lokaal GREEN op code-SHA 6e443463561e77d3039a1e2afb1bbcaecff548b0: exact-source browseracceptatie, regressies, Production-build en Payroll-bundlecontrole zijn geslaagd; drie onafhankelijke reviews vonden geen P0/P1.** [Draft PR #7](https://github.com/EdwinCycling/LiquidHR/pull/7) staat open naar main; readback is mergeable/clean, zonder checks of Vercel-deployment. PR #3 en #5 blijven ongemergede Draft-bouwsporen. De externe API v1-routes blijven ongemount, lokale MCP faalt gesloten buiten de lokale opt-in en APIAI-01 live security/database- en ChatGPT-hostgates blijven OPEN. Merge en deployment zijn niet uitgevoerd. Zie het [APIAI-03/04/05-acceptatierapport](quality/acceptance/runs/APIAI-03-04-05-INTEGRATION-20261005.md) voor de volledige evidence.
 ## APIAI-02 — workforce tools — 2026-10-04

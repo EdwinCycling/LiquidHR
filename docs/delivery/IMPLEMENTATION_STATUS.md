@@ -1,6 +1,18 @@
 # Implementatiestatus Liquid HR
 
+## ONE VERSION shared TEST baseline + APIAI-06 — 2026-10-06
+
+**ONE VERSION deployed:** exact main SHA `38ccbcac6423824a1dba7075f022f68771edf087` is READY in existing Vercel project `liquidhr`, Production target used as shared TEST. Deployment `dpl_ArGD9NSVT7qaHSh1J5WzyaB8wkL5` owns existing alias `liquid-hr-hr-suite.vercel.app`; rollback candidate `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` remains. Public APIAI-01/MCP stay fail-closed. Hosted persona and existing HR/Workforce/HeRa acceptance are OPEN: the hosted session expired and the approved local TEST-runtime preflight found its existing central configuration missing.
+
+**APIAI-06 code candidate:** branch `work/apiai-06-controlled-actions-20261006`, exact base above, implementation commit `87dca5291d99adf9d4d0d6b67490e39b460a8918`. It implements one server-controlled lifecycle for two existing Talent writes through HeRa and local-only MCP, including explicit confirmation, idempotency, readback, central authorization and audit. The migration hardens controlled-draft write access using the existing server-only admin client; domain mutations still pass through existing Talent services.
+
+Verification on that implementation commit: full HR suite **548 passed / 4 skipped; 2,392 tests passed / 8 skipped**, strict TypeScript, changed-file ESLint, NL/EN parity **41 namespaces**, launcher Pester **3/3**, Next Production build **309/309 pages**, Payroll negative control and 152-asset scan all GREEN. Migration/source contract tests are included in the full suite. One default-worker run hit the unchanged Payroll boundary test's 20-second timeout; rerunning the full suite with two workers passed. The initial sandboxed build was blocked by Windows junction permissions; a permission-reviewed run of the standard build script succeeded on the exact commit.
+
+**Not release-ready:** APIAI-06 migration is code-only and not applied remotely under the explicit no-remote-DB-write boundary. Post-migration advisors/typegen/RLS proofs, authenticated Employee/Manager/HR Admin acceptance, hosted HeRa/MCP and existing HR regression acceptance remain OPEN. No APIAI-06 deployment, merge, external API activation or ChatGPT registration occurred. Full evidence: [APIAI-06 acceptance](../quality/acceptance/runs/APIAI-06-20261006.md); contract: [APIAI-06 requirements](../requirements/ai/APIAI-06_CONTROLLED_ACTIONS.md).
+
 ## APIAI-01–05 ONE VERSION convergence — 2026-10-05
+
+**Historical pre-merge checkpoint, superseded by the released baseline above.**
 
 **Voortgang: exacte code-SHA 6e443463561e77d3039a1e2afb1bbcaecff548b0 heeft lokale persona-/adapteracceptatie, full-suite regressies, Production-build en Payroll-bundlecontrole GREEN; drie onafhankelijke reviews vonden geen P0/P1.** Draft PR #7 staat open naar main, is mergeable/clean en heeft nog geen statuschecks; Vercel heeft geen deployment voor deze branch. Externe activatie en APIAI-01 live security/database- en ChatGPT-hostgates blijven geblokkeerd/open.
 

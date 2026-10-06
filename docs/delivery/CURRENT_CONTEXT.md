@@ -1,6 +1,19 @@
 # Actuele overdracht Liquid HR
 
+## ONE VERSION shared TEST baseline + APIAI-06 — 2026-10-06
+
+- **ONE VERSION:** PR #7 is merged. `main` baseline `38ccbcac6423824a1dba7075f022f68771edf087` is READY on the existing Vercel project `liquidhr`, Production target used as the shared TEST environment. Deployment `dpl_ArGD9NSVT7qaHSh1J5WzyaB8wkL5`; existing alias `liquid-hr-hr-suite.vercel.app`; prior READY rollback candidate `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` retained. No rollback, version bump or other deployment.
+- The public APIAI-01 path remains 404; internal MCP is 404 `MCP_UNAVAILABLE`; the well-known metadata path returns login HTML. No public MCP/ChatGPT activation occurred. `/login` returned 200.
+- **Hosted acceptance OPEN:** the existing hosted session failed with `Invalid Refresh Token: Refresh Token Not Found`. No Employee, Manager or HR Admin login, post-deploy Workforce/HeRa/HR workflow checks, or complete browser/server-error scan was completed. The approved local TEST launcher preflight also found `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` missing; it started no server or substitute configuration.
+- **APIAI-06:** exact branch `work/apiai-06-controlled-actions-20261006`, based directly on the new main SHA above. Implementation commit `87dca5291d99adf9d4d0d6b67490e39b460a8918`. The shared lifecycle covers existing Talent development-goal creation and goal check-ins via HeRa and local-only MCP. Confirm, execution, idempotency, scoped readback, failure boundaries, auth and minimal audit paths are implemented.
+- Migration `20261006062859_apiai06_controlled_actions.sql` is branch code only. It restricts authenticated writes for the controlled draft types and routes them through the existing server-only admin client; business writes still use existing Talent services. **No remote migration, DB write, APIAI-06 deployment, merge or public activation.** Existing remote RLS/constraints are not yet compatible with this branch until the migration is separately authorized and applied.
+- Local gates on the implementation commit: focused 8 files / 48 tests; full suite 548 passed / 4 skipped and 2,392 tests passed / 8 skipped; strict TypeScript, changed-file ESLint, NL/EN i18n (41 namespaces), Pester 3/3, exact-commit Production build (309/309 pages), Payroll client-boundary negative control and 152-asset scan all GREEN. `git diff --check` is clean. One default-worker full-suite run hit the existing Payroll boundary test's 20-second timeout; the unchanged full suite then passed with two workers.
+- **Next:** finish this Draft PR handoff without merging/deploying. Keep hosted persona acceptance OPEN. Any future remote APIAI-06 migration requires its own explicit authorization, followed by advisors, type/RLS readback and real three-persona acceptance. No schema/action write may be inferred from local mocks.
+- Full release and open-gate evidence: [APIAI-06 acceptance](../quality/acceptance/runs/APIAI-06-20261006.md); action/security contract: [APIAI-06 requirements](../requirements/ai/APIAI-06_CONTROLLED_ACTIONS.md).
+
 ## APIAI-01–05 ONE VERSION convergence — 2026-10-05
+
+**Historical pre-merge checkpoint, superseded by the released baseline and handoff above.**
 
 - Status: lokale ONE VERSION-code, persona-/adapteracceptatie, regressies, exacte Production-build en Payroll-bundlecontrole zijn GREEN. Drie onafhankelijke reviews eindigden zonder P0/P1. Conclusie voor opname van de dormante kandidaat: CONVERGENCE READY / EXTERNAL ACTIVATION BLOCKED.
 - Provenance and handoff: code-SHA 6e443463561e77d3039a1e2afb1bbcaecff548b0 on work/apiai-030405-integrated-20261005, from main 6349d02538351cd01fc51f298c6e6fa0ba88006c. PR #3 and #5 remain unchanged open Drafts. [Draft PR #7](https://github.com/EdwinCycling/LiquidHR/pull/7) is open to main; readback is mergeable/clean with no status checks or Vercel deployments.
