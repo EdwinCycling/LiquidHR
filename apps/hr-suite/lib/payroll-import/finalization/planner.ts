@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { isValidIsoDate, isValidLoonaangifteLhNr } from '../model'
 import { CONTROL02_APPROVED_CONTRACT_VERSIONS } from './contract'
+import { canUseSourceForEmployee } from './field-conflict-policy'
 import {
   isPayrollImportDecisionAuthentic,
   isPayrollImportDecisionFresh,
@@ -27,6 +28,7 @@ export type PayrollFinalizationAction = {
   actionId: string
   idempotencyKey: string
   type: PayrollFinalizationActionType
+  dependsOnActionIds: readonly string[]
   sourcePersonRef: string
   sourceIncomeRef?: string
   sourceRefs: readonly string[]
@@ -252,6 +254,7 @@ function action(
     actionId: `payroll-finalize:${idempotencyKey.slice(0, 24)}`,
     idempotencyKey,
     type,
+    dependsOnActionIds: [],
     sourcePersonRef,
     sourceRefs,
     preconditions: [...(options.preconditions ?? [])].sort(),
@@ -267,6 +270,42 @@ function action(
     ...(options.sourceEndsOn !== undefined ? { sourceEndsOn: options.sourceEndsOn } : {}),
     ...(options.fieldNames ? { fieldNames: [...options.fieldNames].sort() } : {}),
   }
+}
+
+function withActionDependencies(actions: readonly PayrollFinalizationAction[]): PayrollFinalizationAction[] {
+  const employeeAction = actions.find(({ type }) => type === 'CREATE_EMPLOYEE' || type === 'REUSE_EMPLOYEE')
+  const assignmentAction = actions.find(({ type }) => type === 'ADD_ADMINISTRATION_ASSIGNMENT')
+  const employeeDependentTypes = new Set<PayrollFinalizationActionType>([
+    'ADD_ADMINISTRATION_ASSIGNMENT',
+    'UPDATE_EMPLOYEE_FIELDS',
+    'REUSE_EMPLOYMENT',
+    'CREATE_DRAFT_EMPLOYMENT',
+    'CREATE_INCOME_RELATIONSHIP',
+    'LINK_INCOME_RELATIONSHIP',
+  ])
+  const administrationDependentTypes = new Set<PayrollFinalizationActionType>([
+    'REUSE_EMPLOYMENT',
+    'CREATE_DRAFT_EMPLOYMENT',
+    'CREATE_INCOME_RELATIONSHIP',
+    'LINK_INCOME_RELATIONSHIP',
+  ])
+
+  return actions.map((current) => {
+    const dependencies = new Set<string>()
+    if (employeeAction && employeeAction.actionId !== current.actionId && employeeDependentTypes.has(current.type)) {
+      dependencies.add(employeeAction.actionId)
+    }
+    if (assignmentAction && assignmentAction.actionId !== current.actionId && administrationDependentTypes.has(current.type)) {
+      dependencies.add(assignmentAction.actionId)
+    }
+    if (current.sourceIncomeRef && administrationDependentTypes.has(current.type)) {
+      const employmentAction = actions.find((candidate) => candidate.actionId !== current.actionId
+        && (candidate.type === 'REUSE_EMPLOYMENT' || candidate.type === 'CREATE_DRAFT_EMPLOYMENT')
+        && candidate.sourceRefs.includes(current.sourceIncomeRef!))
+      if (employmentAction) dependencies.add(employmentAction.actionId)
+    }
+    return { ...current, dependsOnActionIds: [...dependencies].sort() }
+  })
 }
 
 function planPerson(input: PayrollFinalizationPlannerInput, person: PayrollFinalizationPlannerPersonInput): PayrollFinalizationPlanPerson {
@@ -329,13 +368,17 @@ function planPerson(input: PayrollFinalizationPlannerInput, person: PayrollFinal
       || confirmed?.decision.sourceFieldDecisions.firstName !== 'USE_SOURCE') {
       blockers.add('FIRST_NAME_NOT_CONFIRMED')
     }
+    const fieldsToCreate = Object.entries(confirmed?.decision.sourceFieldDecisions ?? {})
+      .filter(([, choice]) => choice === 'USE_SOURCE')
+      .map(([field]) => field)
+    if (fieldsToCreate.some((field) => !canUseSourceForEmployee(field, 'CREATE'))) {
+      blockers.add('SOURCE_FIELD_REVIEW_REQUIRED')
+    }
     if (blockers.size === 0) {
       actions.push(action(input, person.sourceRef, 'CREATE_EMPLOYEE', {
         sourceRefs: [person.sourceRef],
         targetEmployeeRef: employeeTargetRef,
-        fieldNames: Object.entries(confirmed?.decision.sourceFieldDecisions ?? {})
-          .filter(([, choice]) => choice === 'USE_SOURCE')
-          .map(([field]) => field),
+        fieldNames: fieldsToCreate,
         preconditions: ['HUMAN_CONFIRMED_NEW_EMPLOYEE', 'NO_EXACT_MATCH_IN_HR_GROUP'],
       }))
     }
@@ -361,7 +404,9 @@ function planPerson(input: PayrollFinalizationPlannerInput, person: PayrollFinal
         .filter(([, choice]) => choice === 'USE_SOURCE')
         .map(([field]) => field)
         .sort()
-      if (fieldsToUpdate.length > 0) {
+      if (fieldsToUpdate.some((field) => !canUseSourceForEmployee(field, 'UPDATE'))) {
+        blockers.add('SOURCE_FIELD_REVIEW_REQUIRED')
+      } else if (fieldsToUpdate.length > 0) {
         actions.push(action(input, person.sourceRef, 'UPDATE_EMPLOYEE_FIELDS', {
           targetEmployeeId: selectedEmployee.id,
           sourceRefs: [person.sourceRef],
@@ -585,7 +630,7 @@ function planPerson(input: PayrollFinalizationPlannerInput, person: PayrollFinal
     decisionVersion: confirmed?.decisionVersion ?? null,
     confirmerUserId: confirmed?.confirmerUserId ?? null,
     status: blockers.size > 0 ? 'BLOCKED' : 'READY_FOR_REVIEW',
-    actions,
+    actions: withActionDependencies(actions),
     warnings: [...warnings].sort(),
     blockers: [...blockers].sort(),
     sourceIncomeRefs: incomeRefs,

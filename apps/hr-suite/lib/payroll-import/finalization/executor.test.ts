@@ -14,9 +14,9 @@ vi.mock('./execution-gate', async () => {
   }
 })
 
-import { executePayrollFinalizationPlan } from './executor'
+import { executePayrollFinalizationPlan, type PayrollFinalizationActionWriter } from './executor'
 import type { FinalizationEvidence } from './execution-gate'
-import type { PayrollFinalizationPlan } from './planner'
+import type { PayrollFinalizationAction, PayrollFinalizationPlan } from './planner'
 
 const evidence: FinalizationEvidence = {
   sourceType: 'LOONAANGIFTE_XML',
@@ -50,7 +50,7 @@ const plan: PayrollFinalizationPlan = {
   blockers: [],
   people: [{
     sourcePersonRef: 'person-1',
-    decisionHash: null,
+    decisionHash: '9'.repeat(64),
     decisionVersion: null,
     confirmerUserId: null,
     status: 'READY_FOR_REVIEW',
@@ -61,6 +61,7 @@ const plan: PayrollFinalizationPlan = {
       actionId: 'payroll-finalize:action-1',
       idempotencyKey: 'b'.repeat(64),
       type: 'CREATE_INCOME_RELATIONSHIP',
+      dependsOnActionIds: [],
       sourcePersonRef: 'person-1',
       sourceIncomeRef: 'income-1',
       sourceRefs: ['income-1'],
@@ -86,11 +87,23 @@ function validReadback(planToVerify: PayrollFinalizationPlan) {
   }
 }
 
-function validCurrentState(planToVerify: PayrollFinalizationPlan) {
+function validCurrentState(planToVerify: PayrollFinalizationPlan, action: PayrollFinalizationAction) {
   return {
+    actionId: action.actionId,
+    planHash: planToVerify.planHash,
+    decisionHash: planToVerify.people.find((person) => person.sourcePersonRef === action.sourcePersonRef)?.decisionHash,
     sourceHash: planToVerify.sourceHash,
     analysisHash: planToVerify.analysisHash,
     coreStateHash: planToVerify.coreStateHash,
+    tenantId: planToVerify.tenantId,
+    hrGroupId: planToVerify.hrGroupId,
+    administrationId: planToVerify.administrationId,
+    batchId: planToVerify.batchId,
+    stateToken: `state:${action.actionId}`,
+    expectedVersions: { employee: 'v1', employment: 'v1' },
+    dependencyActionIds: action.dependsOnActionIds,
+    preconditionsVerified: action.preconditions,
+    transactionallyEnforced: true as const,
     sourceImmutable: true as const,
     readbackVerified: true as const,
   }
@@ -104,7 +117,7 @@ describe('CONTROL02 finalization executor', () => {
   it('never invokes a writer while XML activation is disabled', async () => {
     const writeAction = vi.fn(async () => undefined)
     const verifyAction = vi.fn(async () => validReadback(plan))
-    const readCurrentState = vi.fn(async () => validCurrentState(plan))
+    const readCurrentState = vi.fn(async (_plan, action) => validCurrentState(plan, action))
 
     const result = await executePayrollFinalizationPlan({ plan, evidence, writeAction, verifyAction, readCurrentState })
 
@@ -147,11 +160,28 @@ describe('CONTROL02 finalization executor', () => {
     expect(writeAction).not.toHaveBeenCalled()
   })
 
+  it('rejects missing, duplicate, forward or cross-person action dependencies before any write', async () => {
+    const writeAction = vi.fn(async () => undefined)
+    const forgedPlan: PayrollFinalizationPlan = {
+      ...plan,
+      people: [{
+        ...plan.people[0]!,
+        actions: [{ ...plan.people[0]!.actions[0]!, dependsOnActionIds: ['missing-action'] }],
+      }],
+    }
+
+    const result = await executePayrollFinalizationPlan({ plan: forgedPlan, evidence, writeAction })
+
+    expect(result.status).toBe('BLOCKED')
+    expect(result.blockers).toContain('PLAN_REFERENCES_INVALID')
+    expect(writeAction).not.toHaveBeenCalled()
+  })
+
   it('requires a readback verifier before invoking a writer when gates are open', async () => {
     gateOverride.enabled = true
     const writeAction = vi.fn(async () => undefined)
     const executable = executablePlan()
-    const readCurrentState = vi.fn(async () => validCurrentState(executable))
+    const readCurrentState = vi.fn(async (_plan, action) => validCurrentState(executable, action))
 
     const result = await executePayrollFinalizationPlan({
       plan: executable,
@@ -191,7 +221,7 @@ describe('CONTROL02 finalization executor', () => {
       label: 'returns a stale source hash',
       errorCode: 'PAYROLL_FINALIZATION_CURRENT_STATE_PROOF_STATE_STALE',
       proof: (executable: PayrollFinalizationPlan) => ({
-        ...validCurrentState(executable),
+        ...validCurrentState(executable, executable.people[0]!.actions[0]!),
         sourceHash: 'f'.repeat(64),
       }),
     },
@@ -199,8 +229,25 @@ describe('CONTROL02 finalization executor', () => {
       label: 'does not confirm immutable readback',
       errorCode: 'PAYROLL_FINALIZATION_CURRENT_STATE_PROOF_INVALID',
       proof: (executable: PayrollFinalizationPlan) => ({
-        ...validCurrentState(executable),
+        ...validCurrentState(executable, executable.people[0]!.actions[0]!),
         readbackVerified: false,
+      }),
+    },
+    {
+      label: 'does not provide transactionally enforced expected versions',
+      errorCode: 'PAYROLL_FINALIZATION_ACTION_PRECONDITION_INVALID',
+      proof: (executable: PayrollFinalizationPlan) => ({
+        ...validCurrentState(executable, executable.people[0]!.actions[0]!),
+        expectedVersions: {},
+        transactionallyEnforced: false,
+      }),
+    },
+    {
+      label: 'does not verify every action-specific precondition',
+      errorCode: 'PAYROLL_FINALIZATION_ACTION_PRECONDITION_INVALID',
+      proof: (executable: PayrollFinalizationPlan) => ({
+        ...validCurrentState(executable, executable.people[0]!.actions[0]!),
+        preconditionsVerified: [],
       }),
     },
   ])('never invokes a writer when current state preflight $label', async ({ errorCode, proof }) => {
@@ -228,9 +275,9 @@ describe('CONTROL02 finalization executor', () => {
   it('reports COMPLETED only after every action has a valid state-bound readback proof', async () => {
     gateOverride.enabled = true
     const executable = executablePlan()
-    const writeAction = vi.fn(async () => undefined)
+    const writeAction = vi.fn<PayrollFinalizationActionWriter>(async () => undefined)
     const verifyAction = vi.fn(async () => validReadback(executable))
-    const readCurrentState = vi.fn(async () => validCurrentState(executable))
+    const readCurrentState = vi.fn(async (_plan, action) => validCurrentState(executable, action))
 
     const result = await executePayrollFinalizationPlan({
       plan: executable,
@@ -249,6 +296,53 @@ describe('CONTROL02 finalization executor', () => {
     expect(writeAction).toHaveBeenCalledTimes(1)
     expect(verifyAction).toHaveBeenCalledTimes(1)
     expect(readCurrentState).toHaveBeenCalledTimes(1)
+    expect(writeAction.mock.calls[0]?.[1]).toMatchObject({
+      actionId: 'payroll-finalize:action-1',
+      tenantId: executable.tenantId,
+      hrGroupId: executable.hrGroupId,
+      administrationId: executable.administrationId,
+      batchId: executable.batchId,
+      stateToken: 'state:payroll-finalize:action-1',
+      expectedVersions: { employee: 'v1', employment: 'v1' },
+      transactionallyEnforced: true,
+    })
+  })
+
+  it('rechecks source state immediately before each action and stops after stale-state detection', async () => {
+    gateOverride.enabled = true
+    const executable = executablePlan()
+    const firstAction = executable.people[0]!.actions[0]!
+    const secondAction: PayrollFinalizationAction = {
+      ...firstAction,
+      actionId: 'payroll-finalize:action-2',
+      idempotencyKey: 'c'.repeat(64),
+      dependsOnActionIds: [firstAction.actionId],
+    }
+    const multiActionPlan: PayrollFinalizationPlan = {
+      ...executable,
+      people: [{ ...executable.people[0]!, actions: [firstAction, secondAction] }],
+    }
+    const writeAction = vi.fn(async () => undefined)
+    const verifyAction = vi.fn(async () => validReadback(multiActionPlan))
+    const readCurrentState = vi.fn(async (_plan, action) => {
+      const current = validCurrentState(multiActionPlan, action)
+      return action.actionId === secondAction.actionId ? { ...current, sourceHash: 'f'.repeat(64) } : current
+    })
+
+    const result = await executePayrollFinalizationPlan({
+      plan: multiActionPlan,
+      evidence,
+      writeAction,
+      verifyAction,
+      readCurrentState,
+    })
+
+    expect(result.status).toBe('BLOCKED')
+    expect(result.blockers).toContain('PAYROLL_FINALIZATION_CURRENT_STATE_PROOF_STATE_STALE')
+    expect(readCurrentState).toHaveBeenCalledTimes(2)
+    expect(writeAction).toHaveBeenCalledTimes(1)
+    expect(result.executedActionIds).toEqual([firstAction.actionId])
+    expect(result.completionProofs).toHaveLength(1)
   })
 
   it.each([
@@ -276,7 +370,7 @@ describe('CONTROL02 finalization executor', () => {
     gateOverride.enabled = true
     const executable = executablePlan()
     const writeAction = vi.fn(async () => undefined)
-    const readCurrentState = vi.fn(async () => validCurrentState(executable))
+    const readCurrentState = vi.fn(async (_plan, action) => validCurrentState(executable, action))
     const verifyAction = vi.fn(async () => {
       if (throwError) throw new Error('readback unavailable')
       return readback

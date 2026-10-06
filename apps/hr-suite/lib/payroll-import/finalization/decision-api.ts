@@ -44,6 +44,7 @@ import {
   type PayrollFinalizationPlannerInput,
   type PayrollFinalizationPlannerPersonInput,
 } from './planner'
+import { summarizePayrollFinalizationResult, type PayrollFinalizationResultSummary } from './result-summary'
 
 const uuidSchema = z.guid()
 
@@ -272,6 +273,8 @@ export type PayrollImportDecisionSnapshot = {
 export type PayrollImportPlanResponse = PayrollFinalizationPlan & {
   /** Server readback is empty while the global XML-finalization gate is closed. */
   ledgerReadback: readonly FinalizationLedgerAction[]
+  /** Summary counts are derived from the server plan and persisted ledger readback. */
+  resultSummary: PayrollFinalizationResultSummary
 }
 
 export type PayrollImportDecisionPersonSnapshot = {
@@ -1602,5 +1605,9 @@ export async function previewPayrollImportPlan(
   if (ledgerReadback.length !== expectedActionCount) {
     throw new PayrollImportDecisionApiError('PAYROLL_FINALIZATION_PLAN_READBACK_INCOMPLETE', 500)
   }
-  return assertBoundedPayrollImportResponse({ ...plan, ledgerReadback })
+  return assertBoundedPayrollImportResponse({
+    ...plan,
+    ledgerReadback,
+    resultSummary: summarizePayrollFinalizationResult(plan, ledgerReadback),
+  })
 }

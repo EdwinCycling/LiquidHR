@@ -439,6 +439,7 @@ create table public.payroll_import_finalization_actions (
   source_ends_on date,
   source_refs jsonb not null default '[]'::jsonb,
   preconditions jsonb not null default '[]'::jsonb,
+  depends_on_action_ids text[] not null default '{}',
   plan_hash text not null,
   decision_hash text not null,
   source_hash text not null,
@@ -449,6 +450,8 @@ create table public.payroll_import_finalization_actions (
   status text not null default 'PENDING',
   attempt_count integer not null default 0,
   lease_until timestamptz,
+  lease_owner uuid,
+  lease_token_hash text,
   last_attempt_at timestamptz,
   completed_at timestamptz,
   last_error_code text,
@@ -515,7 +518,14 @@ create table public.payroll_import_finalization_actions (
   constraint payroll_import_finalization_actions_attempt_check
     check (attempt_count >= 0),
   constraint payroll_import_finalization_actions_lease_check
-    check ((status = 'IN_PROGRESS') = (lease_until is not null)),
+    check ((status = 'IN_PROGRESS'
+        and lease_until is not null and lease_owner is not null and lease_token_hash is not null)
+      or (status <> 'IN_PROGRESS'
+        and lease_until is null and lease_owner is null and lease_token_hash is null)),
+  constraint payroll_import_finalization_actions_lease_hash_check
+    check (lease_token_hash is null or lease_token_hash ~ '^[0-9a-f]{64}$'),
+  constraint payroll_import_finalization_actions_dependency_check
+    check (not (action_id = any(depends_on_action_ids))),
   constraint payroll_import_finalization_actions_completed_check
     check ((status = 'COMPLETED') = (completed_at is not null)),
   constraint payroll_import_finalization_actions_error_code_check
@@ -538,7 +548,19 @@ returns trigger
 language plpgsql
 set search_path = pg_catalog
 as $$
+declare
+  dependency_count bigint;
 begin
+  select count(distinct dependency_id)::bigint
+  into dependency_count
+  from unnest(new.depends_on_action_ids) as dependency(dependency_id);
+
+  if dependency_count <> cardinality(new.depends_on_action_ids) then
+    raise exception using
+      errcode = '23514',
+      message = 'PAYROLL_FINALIZATION_ACTION_DEPENDENCIES_INVALID';
+  end if;
+
   if not exists (
     select 1
     from public.payroll_import_batches as batch
@@ -573,6 +595,7 @@ begin
     old.action_type,
     old.source_refs,
     old.preconditions,
+    old.depends_on_action_ids,
     old.plan_hash,
     old.decision_hash,
     old.source_hash,
@@ -605,6 +628,7 @@ begin
     new.action_type,
     new.source_refs,
     new.preconditions,
+    new.depends_on_action_ids,
     new.plan_hash,
     new.decision_hash,
     new.source_hash,
@@ -669,6 +693,7 @@ create table public.payroll_import_finalization_action_events (
   checkpoint jsonb not null default '{}'::jsonb,
   error_code text,
   lease_until timestamptz,
+  lease_owner uuid,
   source_hash text not null,
   analysis_hash text not null,
   core_state_hash text not null,
@@ -690,6 +715,9 @@ create table public.payroll_import_finalization_action_events (
   constraint payroll_import_finalization_action_events_lease_check
     check ((event_type in ('CLAIMED', 'CHECKPOINT') and lease_until is not null)
       or (event_type not in ('CLAIMED', 'CHECKPOINT') and lease_until is null)),
+  constraint payroll_import_finalization_action_events_lease_owner_check
+    check ((event_type in ('CLAIMED', 'CHECKPOINT', 'COMPLETED', 'FAILED') and lease_owner is not null)
+      or (event_type not in ('CLAIMED', 'CHECKPOINT', 'COMPLETED', 'FAILED') and lease_owner is null)),
   constraint payroll_import_finalization_action_events_hash_check
     check (
       source_hash ~ '^[0-9a-f]{64}$'
@@ -804,7 +832,9 @@ create or replace function public.record_payroll_import_finalization_event(
   requested_core_state_hash text,
   requested_checkpoint jsonb default '{}'::jsonb,
   requested_error_code text default null,
-  requested_lease_until timestamptz default null
+  requested_lease_until timestamptz default null,
+  requested_lease_owner uuid default null,
+  requested_lease_token_hash text default null
 )
 returns table (
   action_id text,
@@ -824,6 +854,8 @@ declare
   next_plan_status text;
   next_attempt_count integer;
   next_lease_until timestamptz;
+  next_lease_owner uuid;
+  next_lease_token_hash text;
   next_completed_at timestamptz;
   next_error_code text;
   plan_total_count bigint;
@@ -838,6 +870,9 @@ begin
     or requested_core_state_hash !~ '^[0-9a-f]{64}$'
     or requested_checkpoint is null
     or jsonb_typeof(requested_checkpoint) <> 'object'
+    or (requested_lease_token_hash is not null and requested_lease_token_hash !~ '^[0-9a-f]{64}$')
+    or ((requested_lease_owner is null) <> (requested_lease_token_hash is null))
+    or ((requested_event_type in ('CLAIMED', 'CHECKPOINT', 'COMPLETED', 'FAILED')) <> (requested_lease_owner is not null))
     or (requested_event_type = 'COMPLETED' and (
       jsonb_typeof(requested_checkpoint -> 'completionProof') <> 'object'
       or requested_checkpoint -> 'completionProof' ->> 'readbackVerified' <> 'true'
@@ -934,6 +969,7 @@ begin
     if existing_event.event_type <> requested_event_type
       or existing_event.actor_user_id <> requested_actor_user_id
       or existing_event.attempt_number <> requested_attempt_number
+      or existing_event.lease_owner is distinct from requested_lease_owner
       or existing_event.lease_until is distinct from requested_lease_until
       or existing_event.source_hash <> requested_source_hash
       or existing_event.analysis_hash <> requested_analysis_hash
@@ -945,6 +981,18 @@ begin
         message = 'PAYROLL_FINALIZATION_EVENT_KEY_REUSED';
     end if;
 
+    if requested_event_type = 'CLAIMED'
+      and (current_action.status <> 'IN_PROGRESS'
+        or current_action.attempt_count <> requested_attempt_number
+        or current_action.lease_owner is distinct from requested_lease_owner
+        or current_action.lease_token_hash is distinct from requested_lease_token_hash
+        or current_action.lease_until is distinct from requested_lease_until
+        or current_action.lease_until <= timezone('utc', now())) then
+      raise exception using
+        errcode = '40901',
+        message = 'PAYROLL_FINALIZATION_ACTION_NOT_CLAIMABLE';
+    end if;
+
     return query
     select current_action.action_id, current_action.status, current_action.attempt_count, existing_event.id;
     return;
@@ -953,6 +1001,8 @@ begin
   next_status := current_action.status;
   next_attempt_count := current_action.attempt_count;
   next_lease_until := current_action.lease_until;
+  next_lease_owner := current_action.lease_owner;
+  next_lease_token_hash := current_action.lease_token_hash;
   next_completed_at := current_action.completed_at;
   next_error_code := current_action.last_error_code;
 
@@ -961,11 +1011,15 @@ begin
       or current_plan.status <> 'PENDING'
       or plan_total_count <> current_plan.expected_action_count
       or requested_attempt_number <> 0
-      or requested_lease_until is not null then
+      or requested_lease_until is not null
+      or requested_lease_owner is not null
+      or requested_lease_token_hash is not null then
       raise exception using errcode = '40901', message = 'PAYROLL_FINALIZATION_EVENT_STATE_CONFLICT';
     end if;
     next_status := 'PENDING';
     next_lease_until := null;
+    next_lease_owner := null;
+    next_lease_token_hash := null;
     next_completed_at := null;
     next_error_code := null;
   elsif requested_event_type = 'CLAIMED' then
@@ -974,12 +1028,32 @@ begin
       or plan_total_count <> current_plan.expected_action_count
       or requested_attempt_number <> current_action.attempt_count + 1
       or requested_lease_until is null
+      or requested_lease_owner is null
+      or requested_lease_token_hash is null
       or requested_lease_until <= timezone('utc', now()) then
       raise exception using errcode = '40901', message = 'PAYROLL_FINALIZATION_ACTION_NOT_CLAIMABLE';
     end if;
+
+    if cardinality(current_action.depends_on_action_ids) <> (
+      select count(*)::integer
+      from public.payroll_import_finalization_actions as dependency
+      where dependency.tenant_id = current_action.tenant_id
+        and dependency.hr_group_id = current_action.hr_group_id
+        and dependency.batch_id = current_action.batch_id
+        and dependency.plan_id = current_action.plan_id
+        and dependency.import_person_id = current_action.import_person_id
+        and dependency.action_id = any(current_action.depends_on_action_ids)
+        and dependency.sequence_no < current_action.sequence_no
+        and dependency.status = 'COMPLETED'
+    ) then
+      raise exception using errcode = '40901', message = 'PAYROLL_FINALIZATION_ACTION_DEPENDENCIES_INCOMPLETE';
+    end if;
+
     next_status := 'IN_PROGRESS';
     next_attempt_count := requested_attempt_number;
     next_lease_until := requested_lease_until;
+    next_lease_owner := requested_lease_owner;
+    next_lease_token_hash := requested_lease_token_hash;
     next_completed_at := null;
     next_error_code := null;
   elsif requested_event_type = 'CHECKPOINT' then
@@ -987,7 +1061,11 @@ begin
       or current_plan.status <> 'IN_PROGRESS'
       or requested_attempt_number <> current_action.attempt_count
       or requested_lease_until is null
-      or requested_lease_until <= timezone('utc', now()) then
+      or requested_lease_until <= timezone('utc', now())
+      or current_action.lease_until is null
+      or current_action.lease_until <= timezone('utc', now())
+      or requested_lease_owner is distinct from current_action.lease_owner
+      or requested_lease_token_hash is distinct from current_action.lease_token_hash then
       raise exception using errcode = '40901', message = 'PAYROLL_FINALIZATION_CHECKPOINT_CONFLICT';
     end if;
     next_lease_until := requested_lease_until;
@@ -995,54 +1073,80 @@ begin
     if current_action.status <> 'IN_PROGRESS'
       or current_plan.status <> 'IN_PROGRESS'
       or plan_total_count <> current_plan.expected_action_count
-      or requested_attempt_number <> current_action.attempt_count then
+      or requested_attempt_number <> current_action.attempt_count
+      or current_action.lease_until is null
+      or current_action.lease_until <= timezone('utc', now())
+      or requested_lease_owner is distinct from current_action.lease_owner
+      or requested_lease_token_hash is distinct from current_action.lease_token_hash then
       raise exception using errcode = '40901', message = 'PAYROLL_FINALIZATION_COMPLETION_CONFLICT';
     end if;
     next_status := 'COMPLETED';
     next_lease_until := null;
+    next_lease_owner := null;
+    next_lease_token_hash := null;
     next_completed_at := timezone('utc', now());
     next_error_code := null;
   elsif requested_event_type = 'FAILED' then
     if current_action.status <> 'IN_PROGRESS'
       or current_plan.status <> 'IN_PROGRESS'
       or requested_attempt_number <> current_action.attempt_count
-      or requested_error_code is null then
+      or requested_error_code is null
+      or current_action.lease_until is null
+      or current_action.lease_until <= timezone('utc', now())
+      or requested_lease_owner is distinct from current_action.lease_owner
+      or requested_lease_token_hash is distinct from current_action.lease_token_hash then
       raise exception using errcode = '40901', message = 'PAYROLL_FINALIZATION_FAILURE_CONFLICT';
     end if;
     next_status := 'FAILED';
     next_lease_until := null;
+    next_lease_owner := null;
+    next_lease_token_hash := null;
     next_completed_at := null;
     next_error_code := requested_error_code;
   elsif requested_event_type = 'RETRY' then
     if current_action.status <> 'FAILED'
       or current_plan.status in ('COMPLETED', 'INVALIDATED', 'BLOCKED')
-      or requested_attempt_number <> current_action.attempt_count then
+      or requested_attempt_number <> current_action.attempt_count
+      or requested_lease_owner is not null
+      or requested_lease_token_hash is not null then
       raise exception using errcode = '40901', message = 'PAYROLL_FINALIZATION_RETRY_CONFLICT';
     end if;
     next_status := 'PENDING';
     next_lease_until := null;
+    next_lease_owner := null;
+    next_lease_token_hash := null;
     next_completed_at := null;
     next_error_code := null;
   elsif requested_event_type = 'RECOVERED' then
     if current_action.status <> 'IN_PROGRESS'
       or current_plan.status <> 'IN_PROGRESS'
       or current_action.lease_until is null
+      or current_action.lease_owner is null
+      or current_action.lease_token_hash is null
       or current_action.lease_until > timezone('utc', now())
-      or requested_attempt_number <> current_action.attempt_count then
+      or requested_attempt_number <> current_action.attempt_count
+      or requested_lease_owner is not null
+      or requested_lease_token_hash is not null then
       raise exception using errcode = '40901', message = 'PAYROLL_FINALIZATION_RECOVERY_CONFLICT';
     end if;
     next_status := 'PENDING';
     next_lease_until := null;
+    next_lease_owner := null;
+    next_lease_token_hash := null;
     next_completed_at := null;
     next_error_code := coalesce(requested_error_code, 'LEASE_EXPIRED');
   elsif requested_event_type = 'BLOCKED' then
     if current_action.status not in ('PENDING', 'FAILED')
       or current_plan.status in ('COMPLETED', 'INVALIDATED')
-      or requested_attempt_number <> current_action.attempt_count then
+      or requested_attempt_number <> current_action.attempt_count
+      or requested_lease_owner is not null
+      or requested_lease_token_hash is not null then
       raise exception using errcode = '40901', message = 'PAYROLL_FINALIZATION_BLOCK_CONFLICT';
     end if;
     next_status := 'BLOCKED';
     next_lease_until := null;
+    next_lease_owner := null;
+    next_lease_token_hash := null;
     next_completed_at := null;
     next_error_code := requested_error_code;
   end if;
@@ -1051,6 +1155,8 @@ begin
   set status = next_status,
       attempt_count = next_attempt_count,
       lease_until = next_lease_until,
+      lease_owner = next_lease_owner,
+      lease_token_hash = next_lease_token_hash,
       last_attempt_at = case when requested_event_type = 'CLAIMED' then timezone('utc', now()) else current_action.last_attempt_at end,
       completed_at = next_completed_at,
       last_error_code = next_error_code,
@@ -1103,6 +1209,7 @@ begin
     checkpoint,
     error_code,
     lease_until,
+    lease_owner,
     source_hash,
     analysis_hash,
     core_state_hash
@@ -1118,6 +1225,7 @@ begin
     requested_checkpoint,
     requested_error_code,
     requested_lease_until,
+    requested_lease_owner,
     requested_source_hash,
     requested_analysis_hash,
     requested_core_state_hash
@@ -1128,10 +1236,10 @@ end;
 $$;
 
 revoke all on function public.record_payroll_import_finalization_event(
-  uuid, uuid, uuid, text, text, text, uuid, integer, text, text, text, jsonb, text, timestamptz
+  uuid, uuid, uuid, text, text, text, uuid, integer, text, text, text, jsonb, text, timestamptz, uuid, text
 ) from public, anon, authenticated;
 grant execute on function public.record_payroll_import_finalization_event(
-  uuid, uuid, uuid, text, text, text, uuid, integer, text, text, text, jsonb, text, timestamptz
+  uuid, uuid, uuid, text, text, text, uuid, integer, text, text, text, jsonb, text, timestamptz, uuid, text
 ) to service_role;
 
 create or replace function public.invalidate_payroll_import_finalization_plan(
@@ -1239,7 +1347,7 @@ comment on table public.payroll_import_finalization_actions is
   'Durable CONTROL02 plan ledger. It records safe planned actions only; it never performs Core XML writes.';
 comment on table public.payroll_import_finalization_action_events is
   'Immutable transition and checkpoint audit for resumable CONTROL02 actions.';
-comment on function public.record_payroll_import_finalization_event(uuid, uuid, uuid, text, text, text, uuid, integer, text, text, text, jsonb, text, timestamptz) is
+comment on function public.record_payroll_import_finalization_event(uuid, uuid, uuid, text, text, text, uuid, integer, text, text, text, jsonb, text, timestamptz, uuid, text) is
   'Atomically records one idempotent CONTROL02 ledger event and advances its safe checkpoint state.';
 comment on function public.invalidate_payroll_import_finalization_plan(uuid, uuid, uuid, text, uuid, text) is
   'Marks an incomplete CONTROL02 plan invalid when its source or Core state is superseded; it never writes Core domain data.';

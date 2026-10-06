@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
+import { canUseSourceForEmployee } from './field-conflict-policy'
 
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/i)
 const uuidSchema = z.uuid()
@@ -143,6 +144,10 @@ export function validatePayrollImportDecision(
     const fieldDecision = decision.sourceFieldDecisions[field]
     if (!fieldDecision) blockers.add('SOURCE_FIELD_DECISION_REQUIRED')
     else if (fieldDecision === 'MANUAL_REVIEW') blockers.add('SOURCE_FIELD_REVIEW_REQUIRED')
+    else if (fieldDecision === 'USE_SOURCE'
+      && !canUseSourceForEmployee(field, decision.match.action === 'CREATE_EMPLOYEE' ? 'CREATE' : 'UPDATE')) {
+      blockers.add('SOURCE_FIELD_REVIEW_REQUIRED')
+    }
   }
   if (Object.keys(decision.sourceFieldDecisions).some((field) => !expectedFields.has(field))) {
     blockers.add('UNKNOWN_SOURCE_FIELD')

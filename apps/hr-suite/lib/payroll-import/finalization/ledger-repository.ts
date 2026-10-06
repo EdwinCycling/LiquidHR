@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import type { Json } from '@scope/db'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -75,8 +76,12 @@ export type PersistPlanInput = {
 }
 
 export type FinalizationLedgerAction = {
-  row: PayrollImportFinalizationActionRow
+  row: Omit<PayrollImportFinalizationActionRow, 'lease_owner' | 'lease_token_hash'>
   status: FinalizationLedgerStatus
+}
+
+export type ClaimedFinalizationLedgerAction = FinalizationLedgerAction & {
+  leaseCapability: { token: string; owner: string; expiresAt: string }
 }
 
 export type FinalizationLedgerEvent = PayrollImportFinalizationActionEventRow
@@ -177,7 +182,15 @@ function actionStatus(value: string): FinalizationLedgerStatus {
 }
 
 function actionFromRow(row: PayrollImportFinalizationActionRow): FinalizationLedgerAction {
-  return { row, status: actionStatus(row.status) }
+  const { lease_owner: leaseOwner, lease_token_hash: leaseTokenHash, ...safeRow } = row
+  void leaseOwner
+  void leaseTokenHash
+  return { row: safeRow, status: actionStatus(row.status) }
+}
+
+function hashLeaseToken(token: string): string {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) throw new FinalizationLedgerError('PAYROLL_FINALIZATION_LEASE_TOKEN_INVALID', 422)
+  return createHash('sha256').update(token).digest('hex')
 }
 
 function stableDecisionPayload(value: PayrollImportPersonDecision): string {
@@ -264,6 +277,7 @@ function actionPayload(
     source_ends_on: action.sourceEndsOn ?? null,
     source_refs: jsonValue([...action.sourceRefs]),
     preconditions: jsonValue([...action.preconditions]),
+    depends_on_action_ids: [...action.dependsOnActionIds],
     plan_hash: plan.planHash,
     decision_hash: decision.decisionHash,
     source_hash: batch.sourceHash,
@@ -302,6 +316,7 @@ const immutableActionFields = [
   'source_ends_on',
   'source_refs',
   'preconditions',
+  'depends_on_action_ids',
   'plan_hash',
   'decision_hash',
   'source_hash',
@@ -353,6 +368,8 @@ async function recordEvent(
     checkpoint: Json
     errorCode?: string | null
     leaseUntil?: string | null
+    leaseOwner?: string | null
+    leaseTokenHash?: string | null
   },
 ): Promise<FinalizationEventRpcResult> {
   const args: FinalizationEventRpcArgs = {
@@ -370,10 +387,12 @@ async function recordEvent(
     requested_checkpoint: input.checkpoint,
     requested_error_code: input.errorCode ?? null,
     requested_lease_until: input.leaseUntil ?? null,
+    requested_lease_owner: input.leaseOwner ?? null,
+    requested_lease_token_hash: input.leaseTokenHash ?? null,
   }
   const { data, error } = await client.rpc('record_payroll_import_finalization_event', args)
   if (error) {
-    const conflict = /NOT_CLAIMABLE|STATE_CONFLICT|CONFLICT|INVALIDATED|STATE_HASH_MISMATCH|PLAN_INCOMPLETE|IDENTITY_MISMATCH/.test(error.message)
+    const conflict = /NOT_CLAIMABLE|DEPENDENCIES_INCOMPLETE|STATE_CONFLICT|CONFLICT|INVALIDATED|STATE_HASH_MISMATCH|PLAN_INCOMPLETE|IDENTITY_MISMATCH/.test(error.message)
     databaseError(error.message, conflict ? 409 : 500)
   }
   return rpcResult(data)
@@ -1012,7 +1031,7 @@ export async function readFinalizationActionEvents(
 export async function claimNextFinalizationAction(
   input: FinalizationLedgerScope & { actorUserId: string; leaseMs?: number },
   client: Control02FinalizationClient = adminClient(),
-): Promise<FinalizationLedgerAction | null> {
+): Promise<ClaimedFinalizationLedgerAction | null> {
   const pending = await client
     .from('payroll_import_finalization_actions')
     .select('*')
@@ -1027,13 +1046,20 @@ export async function claimNextFinalizationAction(
   if (pending.error) handleError(pending.error, 'PAYROLL_FINALIZATION_CLAIM_READ_FAILED')
   if (!pending.data) return null
   const action = actionFromRow(pending.data)
-  const leaseUntil = new Date(Date.now() + (input.leaseMs ?? 5 * 60_000)).toISOString()
+  const leaseOwner = randomUUID()
+  const leaseToken = randomBytes(32).toString('base64url')
+  const leaseTokenHash = hashLeaseToken(leaseToken)
+  const leaseMs = input.leaseMs ?? 5 * 60_000
+  if (!Number.isSafeInteger(leaseMs) || leaseMs < 5_000 || leaseMs > 15 * 60_000) {
+    throw new FinalizationLedgerError('PAYROLL_FINALIZATION_LEASE_DURATION_INVALID', 422)
+  }
+  const leaseUntil = new Date(Date.now() + leaseMs).toISOString()
   try {
     await recordEvent(client, {
       scope: input,
       actionId: action.row.action_id,
       eventType: 'CLAIMED',
-      eventKey: eventFingerprint({ actionId: action.row.action_id, eventType: 'CLAIMED', attemptNumber: action.row.attempt_count + 1, planHash: action.row.plan_hash, leaseUntil }),
+      eventKey: eventFingerprint({ actionId: action.row.action_id, eventType: 'CLAIMED', attemptNumber: action.row.attempt_count + 1, planHash: action.row.plan_hash, leaseUntil, leaseOwner }),
       actorUserId: input.actorUserId,
       attemptNumber: action.row.attempt_count + 1,
       sourceHash: action.row.source_hash,
@@ -1041,16 +1067,20 @@ export async function claimNextFinalizationAction(
       coreStateHash: action.row.core_state_hash,
       checkpoint: jsonValue(action.row.checkpoint),
       leaseUntil,
+      leaseOwner,
+      leaseTokenHash,
     })
   } catch (error) {
-    if (error instanceof FinalizationLedgerError && error.code === 'PAYROLL_FINALIZATION_ACTION_NOT_CLAIMABLE') return null
+    if (error instanceof FinalizationLedgerError
+      && ['PAYROLL_FINALIZATION_ACTION_NOT_CLAIMABLE', 'PAYROLL_FINALIZATION_ACTION_DEPENDENCIES_INCOMPLETE'].includes(error.code)) return null
     throw error
   }
-  return readAction(client, input, action.row.action_id)
+  const claimed = await readAction(client, input, action.row.action_id)
+  return { ...claimed, leaseCapability: { token: leaseToken, owner: leaseOwner, expiresAt: leaseUntil } }
 }
 
 export async function checkpointFinalizationAction(
-  input: FinalizationLedgerScope & { actorUserId: string; actionId: string; attemptNumber: number; checkpoint: Json; leaseUntil: string },
+  input: FinalizationLedgerScope & { actorUserId: string; actionId: string; attemptNumber: number; checkpoint: Json; leaseUntil: string; leaseToken: string; leaseOwner: string },
   client: Control02FinalizationClient = adminClient(),
 ): Promise<FinalizationLedgerAction> {
   const action = await readAction(client, input, input.actionId)
@@ -1059,7 +1089,7 @@ export async function checkpointFinalizationAction(
     scope: input,
     actionId: input.actionId,
     eventType: 'CHECKPOINT',
-    eventKey: eventFingerprint({ actionId: input.actionId, eventType: 'CHECKPOINT', attemptNumber: input.attemptNumber, planHash: action.row.plan_hash, checkpoint: input.checkpoint, leaseUntil: input.leaseUntil }),
+    eventKey: eventFingerprint({ actionId: input.actionId, eventType: 'CHECKPOINT', attemptNumber: input.attemptNumber, planHash: action.row.plan_hash, checkpoint: input.checkpoint, leaseUntil: input.leaseUntil, leaseOwner: input.leaseOwner }),
     actorUserId: input.actorUserId,
     attemptNumber: input.attemptNumber,
     sourceHash: action.row.source_hash,
@@ -1067,11 +1097,13 @@ export async function checkpointFinalizationAction(
     coreStateHash: action.row.core_state_hash,
     checkpoint: input.checkpoint,
     leaseUntil: input.leaseUntil,
+    leaseOwner: input.leaseOwner,
+    leaseTokenHash: hashLeaseToken(input.leaseToken),
   })
   return readAction(client, input, input.actionId)
 }
 export async function completeFinalizationAction(
-  input: FinalizationLedgerScope & { actorUserId: string; actionId: string; attemptNumber: number; checkpoint: Json },
+  input: FinalizationLedgerScope & { actorUserId: string; actionId: string; attemptNumber: number; checkpoint: Json; leaseToken: string; leaseOwner: string },
   client: Control02FinalizationClient = adminClient(),
 ): Promise<FinalizationLedgerAction> {
   const action = await readAction(client, input, input.actionId)
@@ -1092,19 +1124,21 @@ export async function completeFinalizationAction(
     scope: input,
     actionId: input.actionId,
     eventType: 'COMPLETED',
-    eventKey: eventFingerprint({ actionId: input.actionId, eventType: 'COMPLETED', attemptNumber: input.attemptNumber, planHash: action.row.plan_hash, checkpoint: input.checkpoint }),
+    eventKey: eventFingerprint({ actionId: input.actionId, eventType: 'COMPLETED', attemptNumber: input.attemptNumber, planHash: action.row.plan_hash, checkpoint: input.checkpoint, leaseOwner: input.leaseOwner }),
     actorUserId: input.actorUserId,
     attemptNumber: input.attemptNumber,
     sourceHash: action.row.source_hash,
     analysisHash: action.row.analysis_hash,
     coreStateHash: action.row.core_state_hash,
     checkpoint: input.checkpoint,
+    leaseOwner: input.leaseOwner,
+    leaseTokenHash: hashLeaseToken(input.leaseToken),
   })
   return readAction(client, input, input.actionId)
 }
 
 export async function failFinalizationAction(
-  input: FinalizationLedgerScope & { actorUserId: string; actionId: string; attemptNumber: number; checkpoint: Json; errorCode: string },
+  input: FinalizationLedgerScope & { actorUserId: string; actionId: string; attemptNumber: number; checkpoint: Json; errorCode: string; leaseToken: string; leaseOwner: string },
   client: Control02FinalizationClient = adminClient(),
 ): Promise<FinalizationLedgerAction> {
   const action = await readAction(client, input, input.actionId)
@@ -1116,7 +1150,7 @@ export async function failFinalizationAction(
       scope: input,
       actionId: input.actionId,
       eventType: 'FAILED',
-      eventKey: eventFingerprint({ actionId: input.actionId, eventType: 'FAILED', attemptNumber: input.attemptNumber, planHash: action.row.plan_hash, checkpoint: input.checkpoint, errorCode }),
+      eventKey: eventFingerprint({ actionId: input.actionId, eventType: 'FAILED', attemptNumber: input.attemptNumber, planHash: action.row.plan_hash, checkpoint: input.checkpoint, errorCode, leaseOwner: input.leaseOwner }),
       actorUserId: input.actorUserId,
       attemptNumber: input.attemptNumber,
       sourceHash: action.row.source_hash,
@@ -1124,6 +1158,8 @@ export async function failFinalizationAction(
       coreStateHash: action.row.core_state_hash,
       checkpoint: input.checkpoint,
       errorCode,
+      leaseOwner: input.leaseOwner,
+      leaseTokenHash: hashLeaseToken(input.leaseToken),
     })
   } catch (error) {
     if (error instanceof FinalizationLedgerContractError) throw new FinalizationLedgerError('PAYROLL_FINALIZATION_ERROR_CODE_INVALID', 422)

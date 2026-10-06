@@ -8,6 +8,8 @@ import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { RadioGroup } from '@/components/ui/radio-group'
 import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
+import { getPayrollImportFieldPolicy } from '@/lib/payroll-import/finalization/field-conflict-policy'
+import type { PayrollFinalizationResultSummary } from '@/lib/payroll-import/finalization/result-summary'
 
 type PublicAnalysis = {
   sourceType: 'LOONAANGIFTE_XML' | 'INTERNAL_REPRESENTATIVE'
@@ -111,6 +113,7 @@ type DecisionPlanResult = {
   status: 'BLOCKED' | 'READY_FOR_REVIEW'
   blockers: readonly string[]
   actions: readonly DecisionPlanAction[]
+  summary?: PayrollFinalizationResultSummary
 }
 
 type DecisionApiPayload = {
@@ -167,7 +170,13 @@ function initialDecisionDraft(row: PayrollImportDecisionRow): PayrollImportDecis
     match: { action, ...(row.match.employeeId ? { employeeId: row.match.employeeId } : {}), confirmed: false },
     incomeRelationships: Object.fromEntries(row.incomeRelationships.map((income, index) => [sourceRefForIncome(row, income, index), { action: 'UNDECIDED', confirmed: false }])) as PayrollImportDecisionDraft['incomeRelationships'],
     employments: Object.fromEntries(row.incomeRelationships.map((income, index) => [sourceRefForIncome(row, income, index), { action: 'UNDECIDED', confirmed: false }])) as PayrollImportDecisionDraft['employments'],
-    sourceFields: Object.fromEntries(sourceFieldsForRow(row).map((field) => [field, conflictingFields.has(field) ? 'MANUAL_REVIEW' : 'USE_SOURCE'])) as Record<string, DecisionSourceFieldChoice>,
+    sourceFields: Object.fromEntries(sourceFieldsForRow(row).map((field) => {
+      const policy = getPayrollImportFieldPolicy(field)
+      const defaultChoice = policy?.persistence === 'PREVIEW_ONLY' || policy?.persistence === 'SHARED_CONTRACT_REQUIRED' || policy?.persistence === 'PROVENANCE_ONLY'
+        ? 'KEEP_CURRENT'
+        : 'USE_SOURCE'
+      return [field, conflictingFields.has(field) ? 'MANUAL_REVIEW' : defaultChoice]
+    })) as Record<string, DecisionSourceFieldChoice>,
   }
 }
 
@@ -384,7 +393,41 @@ function planResultFromResponse(value: unknown): DecisionPlanResult | null {
         ...(stringValue(action.description) ? { description: stringValue(action.description) } : {}),
       })) : [])
       : []
-  return { status, blockers, actions }
+  const summaryValue = recordValue(data, 'resultSummary')
+  const summaryState = isRecord(summaryValue) ? summaryValue.state : null
+  const summaryKeys = [
+    'peopleTotal', 'peopleNew', 'peopleLinked', 'peopleSkipped', 'peopleNeedsReview', 'peopleProcessed',
+    'employmentCreated', 'employmentReused', 'incomeCreatedOrLinked', 'incomeNoChange',
+    'actionsCompleted', 'actionsPending', 'actionsFailed', 'actionsBlocked', 'actionsRecovering', 'warnings', 'missingConfirmations',
+  ] as const
+  const summary = isRecord(summaryValue)
+    && ['NOT_STARTED', 'IN_PROGRESS', 'PARTIAL', 'BLOCKED', 'FAILED', 'COMPLETED'].includes(String(summaryState))
+    && summaryKeys.every((key) => Number.isSafeInteger(summaryValue[key]) && Number(summaryValue[key]) >= 0)
+    ? summaryValue as unknown as PayrollFinalizationResultSummary
+    : undefined
+  return { status, blockers, actions, ...(summary ? { summary } : {}) }
+}
+
+function finalizationSummaryRows(summary: PayrollFinalizationResultSummary): readonly (readonly [string, number])[] {
+  return [
+    ['finalizationResultPeopleTotal', summary.peopleTotal],
+    ['finalizationResultPeopleNew', summary.peopleNew],
+    ['finalizationResultPeopleLinked', summary.peopleLinked],
+    ['finalizationResultPeopleSkipped', summary.peopleSkipped],
+    ['finalizationResultPeopleNeedsReview', summary.peopleNeedsReview],
+    ['finalizationResultPeopleProcessed', summary.peopleProcessed],
+    ['finalizationResultEmploymentCreated', summary.employmentCreated],
+    ['finalizationResultEmploymentReused', summary.employmentReused],
+    ['finalizationResultIncomeCreatedOrLinked', summary.incomeCreatedOrLinked],
+    ['finalizationResultIncomeNoChange', summary.incomeNoChange],
+    ['finalizationResultActionsCompleted', summary.actionsCompleted],
+    ['finalizationResultActionsPending', summary.actionsPending],
+    ['finalizationResultActionsFailed', summary.actionsFailed],
+    ['finalizationResultActionsBlocked', summary.actionsBlocked],
+    ['finalizationResultActionsRecovering', summary.actionsRecovering],
+    ['finalizationResultWarnings', summary.warnings],
+    ['finalizationResultMissingConfirmations', summary.missingConfirmations],
+  ] as const
 }
 
 export function decisionAnalysisFromResponse(value: unknown): PublicAnalysis | null {
@@ -975,7 +1018,7 @@ export function DecisionWorkspace({ labels, readOnly, rows, section, batchId = n
         </div>
       })}</div> : null}
       {batchId && !readOnly ? <Button disabled={!planRequestAllowed || planPending} loading={planPending} onClick={() => void requestPlan()} type="button">{planPending ? labels.decisionPlanLoading : labels.decisionRequestPlan}</Button> : null}
-      {planResult ? <div className={`space-y-3 rounded-[var(--radius-control)] p-4 ${planResult.status === 'BLOCKED' ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success'}`} role="status"><p className="text-sm font-semibold">{planResult.status === 'BLOCKED' ? labels.decisionPlanBlocked : labels.decisionPlanServerReady}</p>{planResult.blockers.length ? <ul className="list-disc space-y-1 pl-5 text-sm">{planResult.blockers.map((blocker) => <li key={blocker}>{decisionLabel(labels, `decisionBlocker_${blocker}`)}</li>)}</ul> : null}{planResult.actions.length ? <div><p className="text-sm font-semibold">{labels.decisionPlannedActions}</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm">{planResult.actions.map((action, index) => <li key={`${action.type ?? 'action'}-${index}`}>{decisionPlanActionLabel(labels, action)}</li>)}</ul></div> : <p className="text-sm">{labels.decisionNoPlannedActions}</p>}</div> : null}
+      {planResult ? <div className={`space-y-3 rounded-[var(--radius-control)] p-4 ${planResult.status === 'BLOCKED' ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success'}`} role="status"><p className="text-sm font-semibold">{planResult.status === 'BLOCKED' ? labels.decisionPlanBlocked : labels.decisionPlanServerReady}</p>{planResult.summary ? <section aria-label={labels.finalizationResultTitle} className="space-y-3 border-t border-current/20 pt-4"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-semibold">{labels.finalizationResultTitle}</h3><span className="text-sm font-semibold">{decisionLabel(labels, `finalizationResultState_${planResult.summary.state}`)}</span></div><p className="text-sm">{labels.finalizationResultNotExecuted}</p><dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">{finalizationSummaryRows(planResult.summary).map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{labels[label] ?? label}</dt><dd className="text-lg font-semibold tabular-nums">{value}</dd></div>)}</dl></section> : null}{planResult.blockers.length ? <ul className="list-disc space-y-1 pl-5 text-sm">{planResult.blockers.map((blocker) => <li key={blocker}>{decisionLabel(labels, `decisionBlocker_${blocker}`)}</li>)}</ul> : null}{planResult.actions.length ? <div><p className="text-sm font-semibold">{labels.decisionPlannedActions}</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm">{planResult.actions.map((action, index) => <li key={`${action.type ?? 'action'}-${index}`}>{decisionPlanActionLabel(labels, action)}</li>)}</ul></div> : <p className="text-sm">{labels.decisionNoPlannedActions}</p>}</div> : null}
       <div className="space-y-2 rounded-[var(--radius-control)] border border-border p-4"><p className="text-sm font-semibold">{labels.decisionAuditTitle}</p><p className="text-sm text-muted-foreground">{labels.decisionAuditDescription}</p><p className="text-sm text-muted-foreground">{labels.decisionIdempotencyDescription}</p></div>
       <p className="rounded-[var(--radius-control)] border border-border bg-surface-subtle p-4 text-sm text-muted-foreground" role="status">{labels.decisionFinalizationDisabled}</p>
     </div>

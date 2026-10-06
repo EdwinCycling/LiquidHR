@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { confirmPayrollImportDecision, type PayrollImportDecisionSource } from './decision-contract'
 import {
+  claimNextFinalizationAction,
   persistConfirmedPayrollImportDecision,
   persistFinalizationPlan,
   readFinalizationActionEvents,
@@ -402,6 +404,7 @@ class FinalizationPlanPersistenceFake {
         source_ends_on: value.source_ends_on ?? null,
         source_refs: required(value.source_refs, 'source_refs'),
         preconditions: required(value.preconditions, 'preconditions'),
+        depends_on_action_ids: required(value.depends_on_action_ids, 'depends_on_action_ids'),
         plan_hash: required(value.plan_hash, 'plan_hash'),
         decision_hash: required(value.decision_hash, 'decision_hash'),
         source_hash: required(value.source_hash, 'source_hash'),
@@ -412,6 +415,8 @@ class FinalizationPlanPersistenceFake {
         status: value.status ?? 'PENDING',
         attempt_count: value.attempt_count ?? 0,
         lease_until: value.lease_until ?? null,
+        lease_owner: value.lease_owner ?? null,
+        lease_token_hash: value.lease_token_hash ?? null,
         last_attempt_at: value.last_attempt_at ?? null,
         completed_at: value.completed_at ?? null,
         last_error_code: value.last_error_code ?? null,
@@ -437,7 +442,20 @@ class FinalizationPlanPersistenceFake {
     if (existing) {
       return Promise.resolve({ data: [{ action_id: action.action_id, status: action.status, attempt_count: action.attempt_count, event_id: existing.id }], error: null })
     }
-    action.status = args.requested_event_type === 'BLOCKED' ? 'BLOCKED' : 'PENDING'
+    if (args.requested_event_type === 'CLAIMED') {
+      if (action.status !== 'PENDING' || !args.requested_lease_owner || !args.requested_lease_token_hash || !args.requested_lease_until) {
+        return Promise.resolve({ data: null, error: { code: '40901', message: 'PAYROLL_FINALIZATION_ACTION_NOT_CLAIMABLE' } })
+      }
+      action.status = 'IN_PROGRESS'
+      action.attempt_count = args.requested_attempt_number
+      action.lease_until = args.requested_lease_until
+      action.lease_owner = args.requested_lease_owner
+      action.lease_token_hash = args.requested_lease_token_hash
+      const claimPlan = this.planRows.find((row) => row.id === action.plan_id)
+      if (claimPlan) claimPlan.status = 'IN_PROGRESS'
+    } else {
+      action.status = args.requested_event_type === 'BLOCKED' ? 'BLOCKED' : 'PENDING'
+    }
     action.last_error_code = args.requested_error_code ?? null
     action.checkpoint = args.requested_checkpoint ?? {}
     const plan = this.planRows.find((row) => row.id === action.plan_id)
@@ -455,6 +473,7 @@ class FinalizationPlanPersistenceFake {
       checkpoint: args.requested_checkpoint ?? {},
       error_code: args.requested_error_code ?? null,
       lease_until: args.requested_lease_until ?? null,
+      lease_owner: args.requested_lease_owner ?? null,
       source_hash: args.requested_source_hash,
       analysis_hash: args.requested_analysis_hash,
       core_state_hash: args.requested_core_state_hash,
@@ -608,6 +627,57 @@ function blockedPlannerInput(): PayrollFinalizationPlannerInput {
 }
 
 describe('CONTROL02 finalization decision repository', () => {
+  it('atomically claims a persisted action once and keeps its raw lease token out of readback', async () => {
+    const fake = new FinalizationPlanPersistenceFake()
+    const plannerInput = blockedPlannerInput()
+    const confirmedDecision = plannerInput.people[0]?.confirmedDecision
+    if (!confirmedDecision) throw new Error('fixture decision missing')
+    fake.decisionRows.push({
+      id: '00000000-0000-4000-8000-000000000099',
+      tenant_id: tenantId,
+      hr_group_id: hrGroupId,
+      administration_id: administrationId,
+      batch_id: batchId,
+      import_person_id: importPersonId,
+      decision_version: confirmedDecision.decisionVersion,
+      decision_payload: confirmedDecision.decision as unknown as Json,
+      decision_hash: confirmedDecision.decisionHash,
+      source_hash: sourceHash,
+      analysis_hash: analysisHash,
+      core_state_hash: coreStateHash,
+      contract_version: plannerInput.contractVersion,
+      schema_version: plannerInput.batch.schemaVersion,
+      confirmer_user_id: actorUserId,
+      confirmed_at: confirmedDecision.confirmedAt,
+      created_at: '2026-10-05T10:00:00.000Z',
+    })
+    await persistFinalizationPlan({ plannerInput, actorUserId }, fake.client())
+    const persistedPlan = fake.planRows[0]
+    if (!persistedPlan) throw new Error('fixture plan missing')
+    // The shared contract gate is intentionally closed in production code;
+    // this persistence-fake test isolates the atomic claim transition.
+    persistedPlan.status = 'PENDING'
+    const pendingAction = fake.actionRows[0]
+    if (!pendingAction) throw new Error('fixture action missing')
+    pendingAction.status = 'PENDING'
+    expect(fake.actionRows[0]?.status).toBe('PENDING')
+
+    const scope = { tenantId, hrGroupId, administrationId, batchId, actorUserId }
+    const [first, second] = await Promise.all([
+      claimNextFinalizationAction(scope, fake.client()),
+      claimNextFinalizationAction(scope, fake.client()),
+    ])
+    const claimed = first ?? second
+
+    expect(Number(Boolean(first)) + Number(Boolean(second))).toBe(1)
+    expect(claimed?.leaseCapability.token).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    expect(claimed?.leaseCapability.owner).toMatch(/^[0-9a-f-]{36}$/i)
+    expect(claimed?.row).not.toHaveProperty('lease_token_hash')
+    expect(claimed?.row).not.toHaveProperty('lease_owner')
+    expect(fake.actionRows[0]?.lease_token_hash).toBe(createHash('sha256').update(claimed?.leaseCapability.token ?? '').digest('hex'))
+    expect(fake.actionEvents.filter(({ event_type }) => event_type === 'CLAIMED')).toHaveLength(1)
+  })
+
   it('inserts and reads back a server-confirmed decision, then replays idempotently', async () => {
     const fake = new DecisionPersistenceFake()
     const client = fake.client()

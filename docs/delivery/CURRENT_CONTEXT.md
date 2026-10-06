@@ -1,5 +1,20 @@
 # Actuele overdracht Liquid HR
 
+## CONTROL02 autonomous build — 2026-10-06
+
+- Geïsoleerde werkbranch `work/CONTROL02-MEGA-20261006` start op de toen geverifieerde PR #6-head `fbb1ec324a792bc860c5285e022b2c175a56c32e`. Lokale eind-SHA volgt na de afrondingscommit; geen merge naar `main`.
+- Planneracties dragen nu expliciete, topologisch gevalideerde dependencies. De executor weigert onbekende, dubbele, vooruitwijzende of onvoltooide dependencies en herleest vlak vóór elke actie bron-/besluit-/plan-/scope-/Core-preconditionbewijs en versies. De writer krijgt een transactioneel af te dwingen expected-version-token; er is nog geen actieve Core-writeadapter en de finalization gate blijft dicht.
+- De niet-toegepaste ledgerkandidaat bewaart actieafhankelijkheden per persoon/plan, atomic dependency-complete claims, lease owner, gehashte token-capability, expiry-controle en stale-worker fencing. Readbacks verwijderen owner/tokenhash; de ruwe worker-token wordt niet bewaard. Candidatebestand en SHA staan in het acceptatierapport.
+- Eén centrale veldconflictpolicy wordt gedeeld door besluitvalidatie, planner en wizarddefaults: alleen expliciet bevestigde naamvelden mogen bestaande medewerkers wijzigen; geboortedatum is alleen toegestaan bij expliciete creatie; adres, gender en nationaliteit blijven preview-only; employment-, salaris- en fiscale identiteit zijn geen Employee-updates.
+- Planpreview toont NL/EN-tellingen voor personen, medewerkerkoppelingen, Employments, IKV's, acties en waarschuwingen, naast BLOCKED/PARTIAL/FAILED/COMPLETED en “niet uitgevoerd”-status. Dit is uitsluitend serverplan- en ledger-readback; geen Core-finalisatie.
+- Gericht: 8 bestanden / 54 tests GREEN; aanvullende ledgermigratiecontracttest 1 bestand / 7 tests GREEN. Volledige hr-suite na normalisatie van SQL-fixture-regeleinden: 539 bestanden geslaagd, 3 overgeslagen; 2.282 tests geslaagd, 3 overgeslagen. De eerste volledige run had alleen een CRLF/LF-gevoeligheid in de statische migratietest; die test normaliseert nu regeleinden.
+- Verificatie: `npx.cmd tsc --noEmit --incremental false` PASS; ESLint op gewijzigde TypeScript/TSX-bestanden 0 fouten; `check:i18n` PASS (41 NL/EN-namespaces); `git diff --check` PASS. Productiebuild PASS: 308 routes gegenereerd, payroll-client-boundaryscanner negative control PASS en scan PASS op 154 browserassets; buildprovenance bevat geen runtimewaarden.
+- Ledgermigratiekandidaat `20261005100056_control02_payroll_finalization_ledger.sql`: canonical LF SHA-256 `2A8EB9D89FB28AFB7BD25BA06F1991B594CF1C485D832964E66002AB065F981A`; raw CRLF-byte SHA-256 `9B6676106696DD9EE25920E5E4CD1A6CD41AD5989DA0B4F12349DE22B4A54E6E`. Onveranderde scope-invariantkandidaat: canonical LF SHA-256 `94C07DEBF4AC4807C8F77BD8E8A184A4A84E4B269AA87A81B4C203B8DBA9A2C3`. Geen PostgreSQL/Supabase-runtime beschikbaar: migraties blijven unapplied en advisors, typegeneratie en live JWT/constraint-proeven zijn niet uitgevoerd.
+- Contextselector UX-notitie: `docs/quality/acceptance/runs/CONTROL02-context-selection-ux.md` registreert de visuele update plus default/loading/error/responsive states; eerder 1 componentbestand / 5 tests, i18n, TypeScript, lint en diff-check PASS. Authenticated browserflow blijft door de bekende contextgate open.
+- Bekende gates blijven `C02-ENV-012`, `C02-CTX-013`, `C02-SEC-014`, `C02-CORE-015`, `C02-ACC-016`, `C02-MIG-017`; dit werk herhaalt die onderzoeken niet. Er is geen onafhankelijke agentreview uitgevoerd omdat de actuele megabouwopdracht subagents verbood; self-review is uitgevoerd. Geen browserrun, secret-/contextonderzoek, remote migratie, Core-write, merge, version bump of deployment; Draft PR #6 blijft het enige reviewdoel.
+
+## CONTROL02 — actuele voortgang — 2026-10-05 (superseded by the 2026-10-06 build above)
+
 ## CONTROL02 — actuele voortgang — 2026-10-05
 
 - Branch work/CONTROL02-FINAL-20261004 bevat nu geauthenticeerde decision-readback/save, immutable versiebevestigingen, persistente previewplannen en refresh-veilige wizardstate. De server leidt actor en tenant/HR-groep/administratie af uit de bestaande autorisatiecontext; request bodies kunnen die waarden niet aanleveren.

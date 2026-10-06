@@ -54,6 +54,7 @@ export type PayrollImportFinalizationActionRow = {
   source_ends_on: string | null
   source_refs: Json
   preconditions: Json
+  depends_on_action_ids: string[]
   plan_hash: string
   decision_hash: string
   source_hash: string
@@ -64,6 +65,8 @@ export type PayrollImportFinalizationActionRow = {
   status: string
   attempt_count: number
   lease_until: string | null
+  lease_owner: string | null
+  lease_token_hash: string | null
   last_attempt_at: string | null
   completed_at: string | null
   last_error_code: string | null
@@ -125,6 +128,7 @@ export type PayrollImportFinalizationActionEventRow = {
   checkpoint: Json
   error_code: string | null
   lease_until: string | null
+  lease_owner: string | null
   source_hash: string
   analysis_hash: string
   core_state_hash: string
@@ -146,6 +150,8 @@ export type FinalizationEventRpcArgs = {
   requested_checkpoint?: Json
   requested_error_code?: string | null
   requested_lease_until?: string | null
+  requested_lease_owner?: string | null
+  requested_lease_token_hash?: string | null
 }
 
 export type FinalizationEventRpcResult = {

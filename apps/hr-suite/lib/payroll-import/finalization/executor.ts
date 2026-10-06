@@ -13,14 +13,49 @@ import type {
   PayrollFinalizationPlan,
 } from './planner'
 
-export type PayrollFinalizationActionWriter = (action: PayrollFinalizationAction) => Promise<void>
-export type PayrollFinalizationActionReadbackVerifier = (action: PayrollFinalizationAction) => Promise<unknown>
-export type PayrollFinalizationCurrentStateReader = (plan: PayrollFinalizationPlan) => Promise<unknown>
-
-export type PayrollFinalizationCurrentStateProof = {
+export type PayrollFinalizationActionPrecondition = {
+  actionId: string
+  planHash: string
+  decisionHash: string
   sourceHash: string
   analysisHash: string
   coreStateHash: string
+  tenantId: string
+  hrGroupId: string
+  administrationId: string
+  batchId: string
+  stateToken: string
+  expectedVersions: Readonly<Record<string, string>>
+  dependencyActionIds: readonly string[]
+  preconditionsVerified: readonly string[]
+  transactionallyEnforced: true
+}
+export type PayrollFinalizationActionWriter = (
+  action: PayrollFinalizationAction,
+  precondition: PayrollFinalizationActionPrecondition,
+) => Promise<void>
+export type PayrollFinalizationActionReadbackVerifier = (action: PayrollFinalizationAction) => Promise<unknown>
+export type PayrollFinalizationCurrentStateReader = (
+  plan: PayrollFinalizationPlan,
+  action: PayrollFinalizationAction,
+) => Promise<unknown>
+
+export type PayrollFinalizationCurrentStateProof = {
+  actionId: string
+  decisionHash: string
+  planHash: string
+  sourceHash: string
+  analysisHash: string
+  coreStateHash: string
+  tenantId: string
+  hrGroupId: string
+  administrationId: string
+  batchId: string
+  stateToken: string
+  expectedVersions: Readonly<Record<string, string>>
+  dependencyActionIds: readonly string[]
+  preconditionsVerified: readonly string[]
+  transactionallyEnforced: true
   sourceImmutable: true
   readbackVerified: true
 }
@@ -80,6 +115,8 @@ function completionProof(
 function currentStateProof(
   value: unknown,
   plan: PayrollFinalizationPlan,
+  action: PayrollFinalizationAction,
+  completedActionIds: ReadonlySet<string>,
 ): PayrollFinalizationCurrentStateProof {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new FinalizationLedgerContractError('PAYROLL_FINALIZATION_CURRENT_STATE_PROOF_INVALID')
@@ -88,28 +125,76 @@ function currentStateProof(
   if (proof.sourceImmutable !== true || proof.readbackVerified !== true) {
     throw new FinalizationLedgerContractError('PAYROLL_FINALIZATION_CURRENT_STATE_PROOF_INVALID')
   }
+  const person = plan.people.find((candidate) => candidate.sourcePersonRef === action.sourcePersonRef)
+  const verifiedPreconditions = Array.isArray(proof.preconditionsVerified) ? proof.preconditionsVerified : []
+  const decisionHash = assertFinalizationHash(String(proof.decisionHash ?? ''), 'decision')
+  const planHash = assertFinalizationHash(String(proof.planHash ?? ''), 'plan')
+  if (!person?.decisionHash
+    || decisionHash !== person.decisionHash.toLowerCase()
+    || planHash !== plan.planHash.toLowerCase()
+    || proof.actionId !== action.actionId
+    || proof.tenantId !== plan.tenantId
+    || proof.hrGroupId !== plan.hrGroupId
+    || proof.administrationId !== plan.administrationId
+    || proof.batchId !== plan.batchId
+    || proof.transactionallyEnforced !== true
+    || typeof proof.stateToken !== 'string'
+    || proof.stateToken.trim().length === 0
+    || proof.expectedVersions === null
+    || typeof proof.expectedVersions !== 'object'
+    || Array.isArray(proof.expectedVersions)
+    || Object.keys(proof.expectedVersions).length === 0
+    || Object.values(proof.expectedVersions).some((version) => typeof version !== 'string' || version.length === 0)
+    || !Array.isArray(proof.dependencyActionIds)
+    || proof.dependencyActionIds.some((id) => typeof id !== 'string' || !completedActionIds.has(id))
+    || !Array.isArray(proof.preconditionsVerified)
+    || action.preconditions.some((precondition) => !verifiedPreconditions.includes(precondition))
+    || action.dependsOnActionIds.some((dependencyId) => !completedActionIds.has(dependencyId))) {
+    throw new FinalizationLedgerContractError('PAYROLL_FINALIZATION_ACTION_PRECONDITION_INVALID')
+  }
   const sourceHash = assertFinalizationHash(String(proof.sourceHash ?? ''), 'source')
   const analysisHash = assertFinalizationHash(String(proof.analysisHash ?? ''), 'analysis')
   const coreStateHash = assertFinalizationHash(String(proof.coreStateHash ?? ''), 'core_state')
   if (sourceHash !== plan.sourceHash.toLowerCase()
-    || analysisHash !== plan.analysisHash.toLowerCase()
-    || coreStateHash !== plan.coreStateHash.toLowerCase()) {
+    || analysisHash !== plan.analysisHash.toLowerCase()) {
     throw new FinalizationLedgerContractError('PAYROLL_FINALIZATION_CURRENT_STATE_PROOF_STATE_STALE')
   }
-  return { sourceHash, analysisHash, coreStateHash, sourceImmutable: true, readbackVerified: true }
+  return {
+    actionId: action.actionId,
+    decisionHash,
+    planHash,
+    sourceHash,
+    analysisHash,
+    coreStateHash,
+    tenantId: plan.tenantId,
+    hrGroupId: plan.hrGroupId,
+    administrationId: plan.administrationId,
+    batchId: plan.batchId,
+    stateToken: proof.stateToken as string,
+    expectedVersions: proof.expectedVersions as Record<string, string>,
+    dependencyActionIds: proof.dependencyActionIds as string[],
+    preconditionsVerified: proof.preconditionsVerified as string[],
+    transactionallyEnforced: true,
+    sourceImmutable: true,
+    readbackVerified: true,
+  }
 }
 
 function hasValidPlanReferences(plan: PayrollFinalizationPlan): boolean {
   const people = new Map(plan.people.map((person) => [person.sourcePersonRef, new Set([person.sourcePersonRef, ...person.sourceIncomeRefs])]))
   const actionKeys = new Set<string>()
+  const actionIds = new Set<string>()
   for (const person of plan.people) {
-    for (const action of person.actions) {
+    for (const [index, action] of person.actions.entries()) {
       const knownSourceRefs = people.get(action.sourcePersonRef)
       if (!knownSourceRefs || action.sourceRefs.length === 0 || action.sourceRefs.some((sourceRef) => !knownSourceRefs.has(sourceRef))) {
         return false
       }
-      if (actionKeys.has(action.idempotencyKey)) return false
+      if (actionKeys.has(action.idempotencyKey) || actionIds.has(action.actionId)) return false
+      if (new Set(action.dependsOnActionIds).size !== action.dependsOnActionIds.length
+        || action.dependsOnActionIds.some((dependencyId) => !person.actions.slice(0, index).some((prior) => prior.actionId === dependencyId))) return false
       actionKeys.add(action.idempotencyKey)
+      actionIds.add(action.actionId)
     }
   }
   return /^[a-f0-9]{64}$/i.test(plan.planHash)
@@ -160,14 +245,8 @@ export async function executePayrollFinalizationPlan(
   const executedActionIds: string[] = []
   const completionProofs: PayrollFinalizationActionCompletion[] = []
   const actions = input.plan.people.flatMap((person) => person.actions)
+  const completedActionIds = new Set<string>()
   let verifiedCurrentState: PayrollFinalizationCurrentStateProof | null = null
-  try {
-    verifiedCurrentState = currentStateProof(await input.readCurrentState!(input.plan), input.plan)
-  } catch (error) {
-    blockers.add(error instanceof FinalizationLedgerContractError
-      ? error.code
-      : 'CURRENT_STATE_PREFLIGHT_FAILED')
-  }
   if (actions.length === 0) blockers.add('PLAN_ACTIONS_EMPTY')
 
   if (blockers.size > 0) {
@@ -182,8 +261,39 @@ export async function executePayrollFinalizationPlan(
 
   for (const person of input.plan.people) {
     for (const action of person.actions) {
+      let precondition: PayrollFinalizationCurrentStateProof
       try {
-        await input.writeAction!(action)
+        precondition = currentStateProof(
+          await input.readCurrentState!(input.plan, action),
+          input.plan,
+          action,
+          completedActionIds,
+        )
+        verifiedCurrentState = precondition
+      } catch (error) {
+        blockers.add(error instanceof FinalizationLedgerContractError
+          ? error.code
+          : 'CURRENT_STATE_PREFLIGHT_FAILED')
+        break
+      }
+      try {
+        await input.writeAction!(action, {
+          actionId: action.actionId,
+          planHash: precondition.planHash,
+          decisionHash: precondition.decisionHash,
+          sourceHash: precondition.sourceHash,
+          analysisHash: precondition.analysisHash,
+          coreStateHash: precondition.coreStateHash,
+          tenantId: precondition.tenantId,
+          hrGroupId: precondition.hrGroupId,
+          administrationId: precondition.administrationId,
+          batchId: precondition.batchId,
+          stateToken: precondition.stateToken,
+          expectedVersions: precondition.expectedVersions,
+          dependencyActionIds: action.dependsOnActionIds,
+          preconditionsVerified: precondition.preconditionsVerified,
+          transactionallyEnforced: true,
+        })
       } catch {
         blockers.add('ACTION_WRITE_FAILED')
         break
@@ -196,6 +306,7 @@ export async function executePayrollFinalizationPlan(
           actionId: action.actionId,
           completionProof: completionProof(readback, input.plan),
         })
+        completedActionIds.add(action.actionId)
       } catch (error) {
         blockers.add(error instanceof FinalizationLedgerContractError
           ? error.code

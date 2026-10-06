@@ -284,6 +284,7 @@ export function eventFingerprint(input: {
   planHash: string
   checkpoint?: unknown
   leaseUntil?: string | null
+  leaseOwner?: string | null
   errorCode?: string | null
 }): string {
   const value = stableSerialize(input)

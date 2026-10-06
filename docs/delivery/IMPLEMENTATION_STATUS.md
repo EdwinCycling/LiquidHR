@@ -1,5 +1,19 @@
 # Implementatiestatus Liquid HR
 
+## CONTROL02 — finalization build candidate — 2026-10-06
+
+**Status: IMPLEMENTATION CANDIDATE / ACCEPTANCE PARTIAL / FINALIZATION DISABLED.** Draft PR #6 is extended locally on `work/CONTROL02-MEGA-20261006`, based on its verified head `fbb1ec324a792bc860c5285e022b2c175a56c32e`. The action planner persists topological dependencies; the database candidate validates dependency completion in the atomic claim RPC and adds lease-owner/token-hash/expiry fencing, stale-worker rejection and event ownership. The raw claim token is returned only to the internal worker result and removed from ledger row readback.
+
+The executor now obtains action-specific current-state proof immediately before each action, bound to source, analysis, decision, plan, tenant, HR group, administration, batch, dependencies and verified action preconditions. A writer must consume expected record versions and the opaque state token inside a conditional/transactional write. No Core adapter is active, no official XML finalization API was added, and the global execution gate remains closed while Core/Payroll contract, migration and environment gates are open.
+
+The server-authoritative field conflict policy is shared by decision validation and planner: explicit name updates only, birth date only on confirmed creation, preview-only address/gender/nationality, and no Employee mutation from employment, salary or fiscal identity fields. Wizard defaults avoid proposing preview-only values as writes. The plan response and preview now show server-derived person/Employment/IKV/action/warning counts and persisted execution state in NL/EN, always labelled as not executed while the gate is closed.
+
+The finalization ledger migration is a **local, unapplied candidate** changed for dependency and lease fencing. Canonical LF SHA-256: `2A8EB9D89FB28AFB7BD25BA06F1991B594CF1C485D832964E66002AB065F981A`; raw CRLF-byte SHA-256: `9B6676106696DD9EE25920E5E4CD1A6CD41AD5989DA0B4F12349DE22B4A54E6E`. The separate scope-invariant candidate remains unapplied. There is no local PostgreSQL/Supabase runtime; no remote advisors, type generation or live JWT/constraint probes were performed.
+
+Final verification: 8 focused files / 54 tests passed; ledger migration contract 1 file / 7 tests passed. Full hr-suite: **539 files passed, 3 skipped; 2,282 tests passed, 3 skipped**. The first full run found only CRLF/LF sensitivity in the static migration contract reader; normalizing the read text fixed it and the repeated full suite passed. Strict non-incremental TypeScript passed; changed-area ESLint had 0 errors; `check:i18n` confirmed 41 equal NL/EN namespaces. Production build passed with TypeScript, 308 routes, payroll-client-boundary negative control and 154 browser assets scanned. No authenticated browser run was attempted because the known secret and identity gates did not change.
+
+Known open gates: `C02-ENV-012`, `C02-CTX-013`, `C02-SEC-014`, `C02-CORE-015`, `C02-ACC-016`, `C02-MIG-017`. No merge, version bump, deployment, remote migration, shared-contract approval or Core business write occurred.
+
 ## CONTROL02 — Loonaangifte XML Import V1 — actuele status 2026-10-05
 
 **Status: PARTIAL / NOT MERGE-READY.** Draft PR #6 bevat de persisted decision- en preview-plan-API op work/CONTROL02-FINAL-20261004. Bestaande permission services bepalen actor en scope. Strict inputs wijzen client-supplied actor, tenant, HR group, administration, hashes, timestamps en actions af. Besluiten zijn append-only en idempotent; plan-readback gebruikt persisted besluitversies en invalideert de plan wanneer een nieuw besluit tijdens opslag wint.

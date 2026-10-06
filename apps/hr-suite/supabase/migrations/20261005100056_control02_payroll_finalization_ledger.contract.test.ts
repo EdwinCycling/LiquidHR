@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 const migration = readFileSync(
   resolve(__dirname, '20261005100056_control02_payroll_finalization_ledger.sql'),
   'utf8',
-)
+).replace(/\r\n/g, '\n')
 
 describe('CONTROL02 durable decision and finalization ledger migration', () => {
   it('provides one bounded, write-authorized secure BSN batch matcher', () => {

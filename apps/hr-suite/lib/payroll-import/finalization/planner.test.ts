@@ -126,6 +126,11 @@ describe('pure CONTROL02 Finalization Planner', () => {
       'CREATE_INCOME_RELATIONSHIP',
       'CREATE_INCOME_RELATIONSHIP',
     ])
+    const actions = first.people[0]?.actions ?? []
+    expect(actions[1]?.dependsOnActionIds).toEqual([actions[0]?.actionId])
+    expect(actions[2]?.dependsOnActionIds).toEqual(expect.arrayContaining([actions[0]?.actionId, actions[1]?.actionId]))
+    expect(actions[4]?.dependsOnActionIds).toEqual(expect.arrayContaining([actions[0]?.actionId, actions[1]?.actionId, actions[2]?.actionId]))
+    expect(actions[5]?.dependsOnActionIds).toEqual(expect.arrayContaining([actions[0]?.actionId, actions[1]?.actionId, actions[3]?.actionId]))
     expect(new Set(first.people[0]?.actions.map(({ idempotencyKey }) => idempotencyKey)).size)
       .toBe(first.people[0]?.actions.length)
   })
@@ -217,6 +222,8 @@ describe('pure CONTROL02 Finalization Planner', () => {
     expect(person.actions[1]?.targetEmploymentRef).toMatch(/^draft-employment:/)
     expect(person.actions[2]?.targetEmploymentRef).toBe(person.actions[1]?.targetEmploymentRef)
     expect(person.actions[2]?.targetEmployeeId).toBeUndefined()
+    expect(person.actions[1]?.dependsOnActionIds).toEqual([person.actions[0]?.actionId])
+    expect(person.actions[2]?.dependsOnActionIds).toEqual(expect.arrayContaining([person.actions[0]?.actionId, person.actions[1]?.actionId]))
   })
 
   it('rejects a forged confirmation and a source-to-staging reference mismatch', () => {

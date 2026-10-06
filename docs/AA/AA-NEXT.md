@@ -1,7 +1,7 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-02
+Bijgewerkt: 2026-10-06
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
 
@@ -29,13 +29,19 @@ De synthetische payrollfinalisatie is runtime-bewezen (employee + conceptemploym
 
 ## CURRENT — CONTROL02 gerichte acceptatie- en afrondingsgates
 
-**Status: PARTIAL / NIET MERGE-KLAAR.** De bestaande 2026 v2.0 read-only parser valideert lokaal tegen de gehashte officiële XSD. Geen nieuwe domein- of architectuurontwikkeling starten.
+**Status: PARTIAL / NIET MERGE-KLAAR.** De bestaande 2026 v2.0 read-only parser valideert lokaal tegen de gehashte officiële XSD. De bounded hardening hieronder werkt uitsluitend de bestaande finalization-kandidaat verder uit; gedeelde contracten en definitieve Core-writes blijven bij de eigenaren.
 
-Alleen deze acceptatiegates blijven open:
+### 2026-10-06 — CONTROL02 finalization build candidate
 
-1. **TEST-migratie:** centrale toestemming voor exact Core TEST-project en migratiehash; daarna alleen de genoemde forward migration toepassen, live RLS/grants/policies/triggers readback, advisors en typegen. Geen apply of lineage-repair zonder die toestemming.
-2. **Browser:** normale contextselectie voor de bestaande Test HR Admin bevestigde tenant `De Sterren holding` en HR-groep `Planeten · DEFAULT`; de importer weigert de sessie omdat `payroll-import:write` ontbreekt. Hervat alleen met al bestaande, normaal geautoriseerde TEST-identiteit/context. Test dan volledige analyse op desktop en 390px en rolwissels/negatieven waar toegestaan; wijzig geen rollen of rechten.
-3. **Core-contract:** laat de gezamenlijke Core-/Payroll-eigenaren het IKV/Employment-contract goedkeuren voordat XML-finalisatie of Core-mapping wordt geactiveerd. Tot die goedkeuring blijft finalisatie uitgeschakeld.
+In de geïsoleerde branch `work/CONTROL02-MEGA-20261006` zijn per-action state-proof/expected-version contracts, dependency-aware planner/ledgeracties, owner/token-hash/expiry fencing, centrale veldconflictregels en een server-derived plan/recovery summary gebouwd achter de gesloten execution gate. De ledgermigratie is een gewijzigde lokale candidate en niet toegepast. De writer heeft nog geen gedeelde Core transaction adapter; echte Core freshness/conditional-write-, JWT-, migration-catalogue/advisor- en browserbewijzen ontbreken. De volledige lokale hr-suite slaagde (539 bestanden, 2.282 tests; 3 overgeslagen), TypeScript/lint/i18n slaagden en de productiebuild genereerde 308 routes. De Core/Payroll besluitvoorstel staat ter review in de enige reviewbestemming Draft PR #6. Onafhankelijke subagentreview is niet gedaan omdat de huidige bouwopdracht delegatie verbood.
+
+Concrete open gates en mijlpalen:
+
+1. **BSN-key:** alleen bevoegde beheerder kan historische Core TEST-key herkomst bevestigen en veilig provisionen; anders besluit over een afgescheiden synthetische backend. Geen Production/Preview-key hergebruiken.
+2. **TEST-context:** een al bestaande, normaal bevoegde HR Admin-context voor de synthetische administratie beschikbaar maken; geen rol- of toegangsverruiming.
+3. **Database/contractbesluiten:** expliciete eigenaarstoestemming voor de exacte scope-invariantmigratie, plus gezamenlijke Core/Payroll-goedkeuring van het IKV-/Employment-/datum-/transactionele write-contract. De ledgerkandidaat blijft eveneens unapplied.
+4. **Databaseproof:** na die toestemming uitsluitend de goedgekeurde forward migration toepassen en werkelijke history/schema/grants/RLS/triggers/provenance/staging/JWT-negatieven, advisors en typegen bewijzen.
+5. **Browser en release review:** zodra key/context bruikbaar zijn, volledige normale-sessie XML-flow met XSD, matching, multi-IKV, conflicten en preview op desktop en 390px; daarna onafhankelijke acceptatiereview. Core-finalisatie blijft uitgeschakeld tot alle contract- en writegrenzen zijn goedgekeurd.
 
 Read-only live TEST pre-state, migratielineage en exact readbackplan staan in `docs/quality/acceptance/runs/CONTROL02-XML-20261003.md`. XSD-herkomst en validatorgrens staan in `docs/requirements/payroll/CONTROL02_XML_SOURCE_MATRIX_V1.md`.
 

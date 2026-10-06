@@ -64,6 +64,17 @@ describe('CONTROL02 server-authoritative decision contract', () => {
     expect(result.blockers).toContain('SOURCE_FIELD_DECISION_REQUIRED')
   })
 
+  it('keeps preview-only address data out of Employee writes even when USE_SOURCE is submitted', () => {
+    const addressSource = { ...source, sourceFields: ['address'], conflictingFields: ['address'] }
+    const result = validatePayrollImportDecision({
+      ...completeDecision,
+      sourceFieldDecisions: { address: 'USE_SOURCE' },
+    }, addressSource)
+
+    expect(result.valid).toBe(false)
+    expect(result.blockers).toContain('SOURCE_FIELD_REVIEW_REQUIRED')
+  })
+
   it('does not permit replacing an exact match with an unconfirmed employee', () => {
     const exactSource = { ...source, matchStatus: 'EXACT' as const, proposedEmployeeId: 'employee-1' }
     const result = validatePayrollImportDecision({
