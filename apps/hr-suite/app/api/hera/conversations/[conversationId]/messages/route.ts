@@ -10,6 +10,9 @@ import { requireHeRaContext } from '@/lib/hera/request-context'
 import { userMessageSchema } from '@/lib/hera/schemas'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslator } from '@/lib/i18n/server'
+import { controlledActionErrorResponse } from '@/lib/controlled-actions/http-errors'
+import { controlledActions, isControlledActionId } from '@/lib/controlled-actions/service'
+import { randomUUID } from 'node:crypto'
 
 interface Params {
   params: Promise<{ conversationId: string }>
@@ -99,31 +102,54 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
 
     let draft: { id: string; version: number; expiresAt: string; summary: string; controlPayload: Json } | null = null
     if (turn.draft) {
-      const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString()
-      const { data, error } = await supabase
-        .from('ai_action_drafts')
-        .insert({
-          tenant_id: context.tenantId,
-          conversation_id: conversationId,
-          owner_user_id: context.userId,
-          action_type: turn.draft.actionType,
-          tool_name: turn.draft.toolName,
-          payload: toJson(turn.draft.payload),
-          summary: turn.draft.summary,
-          control_payload: toJson(turn.draft.controlPayload),
-          status: 'AWAITING_CONFIRMATION',
-          version: 1,
-          expires_at: expiresAt,
+      const controlledActionId = turn.draft.actionType === 'TALENT_DEVELOPMENT_GOAL_CREATE'
+        ? 'talent.development-goal.create'
+        : turn.draft.actionType === 'TALENT_GOAL_CHECK_IN_CREATE'
+          ? 'talent.goal-check-in.create'
+          : null
+      if (controlledActionId && isControlledActionId(controlledActionId)) {
+        const prepared = await controlledActions.prepare(context, {
+          conversationId,
+          actionId: controlledActionId,
+          payload: turn.draft.payload,
+          idempotencyKey: parsed.data.idempotencyKey ?? randomUUID(),
+          channel: 'HERA',
+          locale: userContext.locale,
         })
-        .select('id, version, expires_at, summary, control_payload')
-        .single()
-      if (error) throw error
-      draft = {
-        id: data.id,
-        version: data.version,
-        expiresAt: data.expires_at,
-        summary: data.summary,
-        controlPayload: data.control_payload,
+        draft = {
+          id: prepared.draft.id,
+          version: prepared.draft.version,
+          expiresAt: prepared.draft.expiresAt,
+          summary: prepared.draft.summary,
+          controlPayload: prepared.draft.controlPayload,
+        }
+      } else {
+        const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString()
+        const { data, error } = await supabase
+          .from('ai_action_drafts')
+          .insert({
+            tenant_id: context.tenantId,
+            conversation_id: conversationId,
+            owner_user_id: context.userId,
+            action_type: turn.draft.actionType,
+            tool_name: turn.draft.toolName,
+            payload: toJson(turn.draft.payload),
+            summary: turn.draft.summary,
+            control_payload: toJson(turn.draft.controlPayload),
+            status: 'AWAITING_CONFIRMATION',
+            version: 1,
+            expires_at: expiresAt,
+          })
+          .select('id, version, expires_at, summary, control_payload')
+          .single()
+        if (error) throw error
+        draft = {
+          id: data.id,
+          version: data.version,
+          expiresAt: data.expires_at,
+          summary: data.summary,
+          controlPayload: data.control_payload,
+        }
       }
     }
 
@@ -156,6 +182,7 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
     })
   } catch (error) {
     return permissionErrorResponse(error)
+      ?? controlledActionErrorResponse(error)
       ?? heRaErrorResponse(error)
       ?? NextResponse.json({ error: 'HERA_OPERATION_FAILED' }, { status: 500 })
   }

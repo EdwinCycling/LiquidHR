@@ -5,6 +5,7 @@ import { placementUpdateSchema } from '@/lib/organization/schemas'
 
 export const userMessageSchema = z.object({
   content: z.string().trim().min(1).max(8_000),
+  idempotencyKey: z.string().uuid().optional(),
 })
 
 export const createConversationSchema = z.object({

@@ -1,12 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { dispatchWorkforceTool } = vi.hoisted(() => ({
+const mcpActionMocks = vi.hoisted(() => ({
   dispatchWorkforceTool: vi.fn(),
+  requireAuthContext: vi.fn(),
+  getOrCreateLocalMcpConversation: vi.fn(),
+  prepare: vi.fn(),
+  preview: vi.fn(),
+  confirm: vi.fn(),
+  cancel: vi.fn(),
+  execute: vi.fn(),
+  readback: vi.fn(),
 }))
 
 vi.mock('./registry', async (importOriginal) => {
   const original = await importOriginal<typeof import('./registry')>()
-  return { ...original, dispatchWorkforceTool }
+  return { ...original, dispatchWorkforceTool: mcpActionMocks.dispatchWorkforceTool }
+})
+vi.mock('@/lib/auth/permissions', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/lib/auth/permissions')>()
+  return { ...original, requireAuthContext: mcpActionMocks.requireAuthContext }
+})
+vi.mock('@/lib/controlled-actions/service', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/lib/controlled-actions/service')>()
+  return {
+    ...original,
+    controlledActions: {
+      ...original.controlledActions,
+      prepare: mcpActionMocks.prepare,
+      preview: mcpActionMocks.preview,
+      confirm: mcpActionMocks.confirm,
+      cancel: mcpActionMocks.cancel,
+      execute: mcpActionMocks.execute,
+      readback: mcpActionMocks.readback,
+    },
+    getOrCreateLocalMcpConversation: mcpActionMocks.getOrCreateLocalMcpConversation,
+  }
 })
 
 import {
@@ -52,7 +80,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 describe('local Workforce MCP server', () => {
   beforeEach(() => {
-    dispatchWorkforceTool.mockReset()
+    mcpActionMocks.dispatchWorkforceTool.mockReset()
+    mcpActionMocks.requireAuthContext.mockReset()
+    mcpActionMocks.getOrCreateLocalMcpConversation.mockReset()
+    mcpActionMocks.prepare.mockReset()
+    mcpActionMocks.preview.mockReset()
+    mcpActionMocks.confirm.mockReset()
+    mcpActionMocks.cancel.mockReset()
+    mcpActionMocks.execute.mockReset()
+    mcpActionMocks.readback.mockReset()
   })
 
   it('is explicitly opt-in and rejects production or Vercel environments', () => {
@@ -82,7 +118,7 @@ describe('local Workforce MCP server', () => {
     }
   })
 
-  it('registers every Workforce catalog tool with read-only typed schemas', () => {
+  it('registers the read-only Workforce catalog and separate local controlled-action tools', () => {
     const server = createWorkforceMcpServer()
     expect(server).toBeDefined()
     expect(WORKFORCE_TOOL_CATALOG.length).toBeGreaterThan(1)
@@ -127,7 +163,15 @@ describe('local Workforce MCP server', () => {
     const listedTools = listResult.tools
     expect(Array.isArray(listedTools)).toBe(true)
     if (!Array.isArray(listedTools)) throw new Error('MCP tools/list returned no tools')
-    expect(listedTools).toHaveLength(WORKFORCE_TOOL_CATALOG.length)
+    expect(listedTools).toHaveLength(WORKFORCE_TOOL_CATALOG.length + 6)
+    expect(listedTools.map((tool) => (tool as Record<string, unknown>).name)).toEqual(expect.arrayContaining([
+      'controlled_action_prepare',
+      'controlled_action_preview',
+      'controlled_action_confirm',
+      'controlled_action_cancel',
+      'controlled_action_execute',
+      'controlled_action_readback',
+    ]))
 
     const skillsTool = listedTools.find((tool): tool is Record<string, unknown> => (
       typeof tool === 'object'
@@ -140,6 +184,86 @@ describe('local Workforce MCP server', () => {
       inputSchema: expect.objectContaining({ type: 'object' }),
       outputSchema: expect.objectContaining({ type: 'object' }),
     })
+  })
+
+  it('executes local MCP prepare and cancel calls through the shared controlled-action service', async () => {
+    const context = {
+      tenantId: 'tenant-1',
+      administrationId: null,
+      userId: 'user-1',
+      employeeId: 'employee-1',
+      activeRoles: ['EMPLOYEE'],
+      permissions: ['self:talent-goal:write'],
+    }
+    mcpActionMocks.requireAuthContext.mockResolvedValue(context)
+    mcpActionMocks.getOrCreateLocalMcpConversation.mockResolvedValue('10000000-0000-4000-8000-000000000004')
+    const draftResult = {
+      draft: {
+        id: '10000000-0000-4000-8000-000000000007',
+        tenantId: '10000000-0000-4000-8000-000000000001',
+        conversationId: '10000000-0000-4000-8000-000000000004',
+        ownerUserId: '10000000-0000-4000-8000-000000000002',
+        actionId: 'talent.development-goal.create',
+        actionType: 'TALENT_DEVELOPMENT_GOAL_CREATE',
+        toolName: 'draft_talent_development_goal',
+        payload: { title: 'Klantgesprekken verbeteren', periodStart: '2026-10-01' },
+        summary: 'Controleer en bevestig het ontwikkeldoel.',
+        status: 'AWAITING_CONFIRMATION',
+        idempotencyKey: '10000000-0000-4000-8000-000000000005',
+        expiresAt: '2026-10-06T10:15:00.000Z',
+        confirmedAt: null,
+        executedAt: null,
+        failureCode: null,
+        version: 1,
+        controlPayload: {},
+      },
+      preview: {
+        actionId: 'talent.development-goal.create',
+        summary: 'Controleer en bevestig het ontwikkeldoel.',
+        subject: 'self',
+        changes: { title: 'Klantgesprekken verbeteren' },
+      },
+      readback: null,
+    }
+    mcpActionMocks.prepare.mockResolvedValue(draftResult)
+    mcpActionMocks.cancel.mockResolvedValue({ ...draftResult, draft: { ...draftResult.draft, status: 'CANCELLED', version: 2 }, preview: null })
+    const handler = createWorkforceMcpHandler()
+
+    const preparedResponse = await handler.fetch(rpcRequest({
+      jsonrpc: '2.0',
+      id: 20,
+      method: 'tools/call',
+      params: {
+        name: 'controlled_action_prepare',
+        arguments: {
+          actionId: 'talent.development-goal.create',
+          payload: { title: 'Klantgesprekken verbeteren', periodStart: '2026-10-01' },
+          idempotencyKey: '10000000-0000-4000-8000-000000000005',
+          locale: 'nl',
+        },
+      },
+    }))
+    const preparedPayload = await readResponse(preparedResponse)
+    expect(preparedPayload.result).toMatchObject({ structuredContent: draftResult })
+    expect(mcpActionMocks.prepare).toHaveBeenCalledWith(context, {
+      conversationId: '10000000-0000-4000-8000-000000000004',
+      actionId: 'talent.development-goal.create',
+      payload: { title: 'Klantgesprekken verbeteren', periodStart: '2026-10-01' },
+      idempotencyKey: '10000000-0000-4000-8000-000000000005',
+      channel: 'LOCAL_MCP',
+      locale: 'nl',
+    })
+
+    const cancelledResponse = await handler.fetch(rpcRequest({
+      jsonrpc: '2.0',
+      id: 21,
+      method: 'tools/call',
+      params: { name: 'controlled_action_cancel', arguments: { draftId: '10000000-0000-4000-8000-000000000007' } },
+    }))
+    expect((await readResponse(cancelledResponse)).result).toMatchObject({
+      structuredContent: { draft: { id: '10000000-0000-4000-8000-000000000007', status: 'CANCELLED', version: 2 } },
+    })
+    expect(mcpActionMocks.cancel).toHaveBeenCalledWith(context, '10000000-0000-4000-8000-000000000007')
   })
 
   it('serves the ChatGPT profile with one approved tool and projects its output', async () => {
@@ -181,7 +305,7 @@ describe('local Workforce MCP server', () => {
     expect(JSON.stringify(listResult.tools)).not.toContain('manager.talent.team-capability-matrix.read')
     expect(JSON.stringify(listResult.tools)).not.toContain('hr.talent.tenant-capability-matrix.read')
 
-    dispatchWorkforceTool.mockResolvedValue({
+    mcpActionMocks.dispatchWorkforceTool.mockResolvedValue({
       plans: [{
         goalId: '00000000-0000-0000-0000-000000000001',
         title: 'Private development plan',
@@ -216,13 +340,13 @@ describe('local Workforce MCP server', () => {
     expect(JSON.stringify(callPayload)).not.toContain('00000000-0000-0000-0000-000000000001')
     expect(JSON.stringify(callPayload)).not.toContain('Private development plan')
     expect(JSON.stringify(callPayload)).not.toContain('Private capability')
-    expect(dispatchWorkforceTool).toHaveBeenCalledWith('employee.talent.development-plans.read', {})
+    expect(mcpActionMocks.dispatchWorkforceTool).toHaveBeenCalledWith('employee.talent.development-plans.read', {})
   })
 
   it('calls a catalog tool through the shared dispatcher and returns bounded errors', async () => {
     const handler = createWorkforceMcpHandler()
     const toolId = 'employee.talent.skills.read'
-    dispatchWorkforceTool.mockResolvedValue({ skills: [] })
+    mcpActionMocks.dispatchWorkforceTool.mockResolvedValue({ skills: [] })
 
     const response = await handler.fetch(rpcRequest({
       jsonrpc: '2.0',
@@ -234,9 +358,9 @@ describe('local Workforce MCP server', () => {
     expect(response.status).toBe(200)
     const payload = await readResponse(response)
     expect(payload.result).toMatchObject({ structuredContent: { skills: [] } })
-    expect(dispatchWorkforceTool).toHaveBeenCalledWith(toolId, {})
+    expect(mcpActionMocks.dispatchWorkforceTool).toHaveBeenCalledWith(toolId, {})
 
-    dispatchWorkforceTool.mockRejectedValue(new Error('private database detail'))
+    mcpActionMocks.dispatchWorkforceTool.mockRejectedValue(new Error('private database detail'))
     const failure = await handler.fetch(rpcRequest({
       jsonrpc: '2.0',
       id: 3,
@@ -261,7 +385,7 @@ describe('local Workforce MCP server', () => {
     expect(unknownPayload.error).toBeDefined()
     expect(JSON.stringify(unknownPayload)).not.toContain('tenant')
 
-    dispatchWorkforceTool.mockRejectedValueOnce(new WorkforceToolDispatchError('ACCESS_DENIED'))
+    mcpActionMocks.dispatchWorkforceTool.mockRejectedValueOnce(new WorkforceToolDispatchError('ACCESS_DENIED'))
     const denied = await handler.fetch(rpcRequest({
       jsonrpc: '2.0',
       id: 5,
@@ -273,7 +397,7 @@ describe('local Workforce MCP server', () => {
       content: [{ text: 'ACCESS_DENIED' }],
     })
 
-    dispatchWorkforceTool.mockRejectedValueOnce(new WorkforceToolDispatchError('MODULE_INACTIVE'))
+    mcpActionMocks.dispatchWorkforceTool.mockRejectedValueOnce(new WorkforceToolDispatchError('MODULE_INACTIVE'))
     const inactive = await handler.fetch(rpcRequest({
       jsonrpc: '2.0',
       id: 6,
@@ -288,7 +412,7 @@ describe('local Workforce MCP server', () => {
 
   it('preserves shared context-selection errors as a bounded MCP tool error', async () => {
     const handler = createWorkforceMcpHandler()
-    dispatchWorkforceTool.mockRejectedValueOnce(new WorkforceToolDispatchError('CONTEXT_SELECTION_REQUIRED'))
+    mcpActionMocks.dispatchWorkforceTool.mockRejectedValueOnce(new WorkforceToolDispatchError('CONTEXT_SELECTION_REQUIRED'))
 
     const response = await handler.fetch(rpcRequest({
       jsonrpc: '2.0',
@@ -317,7 +441,7 @@ describe('local Workforce MCP server', () => {
       content: [{ text: expect.stringContaining('MCP_INPUT_INVALID') }],
     })
     expect(JSON.stringify(malformedPayload)).not.toContain('caller-selected')
-    expect(dispatchWorkforceTool).not.toHaveBeenCalled()
+    expect(mcpActionMocks.dispatchWorkforceTool).not.toHaveBeenCalled()
 
     const oversized = await handler.fetch(rpcRequest({
       jsonrpc: '2.0',
@@ -326,6 +450,6 @@ describe('local Workforce MCP server', () => {
       params: { name: 'employee.talent.skills.read', arguments: { value: 'x'.repeat(20_000) } },
     }))
     expect(oversized.status).toBe(413)
-    expect(dispatchWorkforceTool).not.toHaveBeenCalled()
+    expect(mcpActionMocks.dispatchWorkforceTool).not.toHaveBeenCalled()
   })
 })

@@ -166,4 +166,33 @@ describe('runHeRaTurn', () => {
     }))
     expect(result.draft?.summary).toContain('09:00')
   })
+
+  it('gebruikt voor een gecontroleerde Talent-actie de serverpreviewtekst in plaats van modelclaims', async () => {
+    const result = await runHeRaTurn({
+      context,
+      userContext,
+      latestUserMessage: 'Maak een ontwikkeldoel aan.',
+      modelContext: 'USER: Maak een ontwikkeldoel aan.',
+      personaInstruction: 'Schrijf precies.',
+      groundingRequiredMessage: 'Alleen met geautoriseerde data.',
+      now: new Date('2026-10-06T10:00:00.000Z'),
+    }, {
+      generate: async () => ({
+        text: 'Het ontwikkeldoel is opgeslagen.',
+        model: 'gemini-test',
+        toolCall: { name: 'draft_talent_development_goal', args: { title: 'Klantgesprekken verbeteren', periodStart: '2026-10-01' } },
+      }),
+      dispatchTool: async () => ({
+        kind: 'DRAFT',
+        toolName: 'draft_talent_development_goal',
+        payload: { title: 'Klantgesprekken verbeteren', periodStart: '2026-10-01' },
+        summary: 'Controleer en bevestig het ontwikkeldoel.',
+        controlPayload: { oldValue: null, newValue: { title: 'Klantgesprekken verbeteren' } },
+      }),
+    })
+
+    expect(result.content).toBe('Controleer en bevestig het ontwikkeldoel.')
+    expect(result.content).not.toContain('opgeslagen')
+    expect(result.draft?.actionType).toBe('TALENT_DEVELOPMENT_GOAL_CREATE')
+  })
 })

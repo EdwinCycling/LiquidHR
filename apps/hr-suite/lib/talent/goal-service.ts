@@ -233,6 +233,13 @@ async function goalMutationContext(employeeId: string | undefined): Promise<{ co
   return { context, targetEmployeeId, sourceType: targetEmployeeId === context.employeeId ? 'SELF_ENTERED' : 'MANAGER_ENTERED' }
 }
 
+/** Reuses the goal write authorization path for non-mutating action previews. */
+export async function authorizeTalentGoalCreate(input: TalentGoalCreateInput): Promise<{ context: AuthContext; targetEmployeeId: string }> {
+  await requireTenantModule('TALENT')
+  const { context, targetEmployeeId } = await goalMutationContext(input.employeeId)
+  return { context, targetEmployeeId }
+}
+
 export async function createTalentGoal(input: TalentGoalCreateInput): Promise<string> {
   await requireTenantModule('TALENT')
   const { context, targetEmployeeId, sourceType } = await goalMutationContext(input.employeeId)
