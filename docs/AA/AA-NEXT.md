@@ -7,6 +7,12 @@ Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements s
 
 **Latere ontwikkelhandoff (2026-10-04):** CAO-BENCH02 fase 2 is lokaal technisch gebouwd en blijft `PARTIAL` door één ontbrekende admin-isolatiefixture; niet opnieuw als nog-ongebouwde feature plannen. Eerst een expliciete PAY-CONVERGE-releasebeslissing en relevante gates volgens AA-REL. Zie [AA-OPEN](AA-OPEN.md) voor de resterende bewijs-, fixture- en besluitpunten. De gedateerde historische roadmap hieronder wordt tijdens de volgende gecontroleerde documentatieconvergentie integraal bijgewerkt.
 
+## Update 2026-10-06 — CONTROL02 lokale build GREEN, activatie OPEN
+
+Remote PR #6 heeft head `2dd5cd43975f4da1c6e88992926f303ff2798c50`; PR #4 blijft de gestapelde basis. CONTROL02 heeft volgens het actuele acceptatierapport nu per-action preconditioncontracten, leasefencing-kandidaat, centrale field-conflict-policy, recoverytellingen en een gerestyled contextkeuzescherm. HR full suite 2.282 tests GREEN, Production-build 308 routes; geen Core-writer/finalizeroute, geen toegepaste SQL en geen authentieke XML-browser-/JWT-acceptatie. Werkelijke transactionele writebescherming blijft `C02-CORE-015`/activeringsvoorwaarde.
+
+**Nieuwe afhankelijkheid:** main is verdergegaan naar `38ccbcac6423824a1dba7075f022f68771edf087` (PR #7 APIAI-merge), appversie `1.20261002.1`. Voor het uiteindelijke CONTROL02-integratiespoor eerst oude-baseline-overlap bewust reconciliëren; bestaande Draft PR's niet blind mergen. De volgende grote onafhankelijke bouwstap: gecapsuleerde Core-write-adapters en volledig synthetische transactional/retry/readback-harness bouwen achter gesloten gate, met parallel een compact formeel Core/Payroll ownerbesluit. Zie [AA-OPEN](AA-OPEN.md) §3D. Niet opnieuw uitsluitend environmentonderzoek starten.
+
 ## Actuele uitvoeringsvolgorde — besluitkader 2026-10-04
 
 **Verifieer vóór uitvoering opnieuw de remote branch/SHA en lokale featureoverdracht.** Laatste in deze AA-docs verifieerbare remote `main`: `6349d02538351cd01fc51f298c6e6fa0ba88006c`, app `1.20261002.1`. ONE VERSION is volgens de aangeleverde release-ownerhandoff `TEST RELEASED / hosted acceptance GREEN`; onafhankelijke volledige evidence-review is nog PENDING. Voor niet-gepushte featurecommits tellen de lokale overdrachten als gemeld bewijs, niet als remote/geïntegreerde toestand. Historische scope- en releasepassages verderop blijven voor detail; gebruik **dit** kader en [AA-OPEN](AA-OPEN.md) voor de actuele volgorde.
