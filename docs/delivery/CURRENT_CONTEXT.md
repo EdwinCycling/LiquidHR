@@ -2,7 +2,7 @@
 
 ## CONTROL02 autonomous build — 2026-10-06
 
-- Geïsoleerde werkbranch `work/CONTROL02-MEGA-20261006` start op de toen geverifieerde PR #6-head `fbb1ec324a792bc860c5285e022b2c175a56c32e`. Lokale eind-SHA volgt na de afrondingscommit; geen merge naar `main`.
+- Geïsoleerde werkbranch `work/CONTROL02-MEGA-20261006` startte op de geverifieerde PR #6-head `fbb1ec324a792bc860c5285e022b2c175a56c32e`. De afgeronde bouwcommit is als fast-forward naar Draft PR #6 gepusht; er is niet naar `main` gemerged.
 - Planneracties dragen nu expliciete, topologisch gevalideerde dependencies. De executor weigert onbekende, dubbele, vooruitwijzende of onvoltooide dependencies en herleest vlak vóór elke actie bron-/besluit-/plan-/scope-/Core-preconditionbewijs en versies. De writer krijgt een transactioneel af te dwingen expected-version-token; er is nog geen actieve Core-writeadapter en de finalization gate blijft dicht.
 - De niet-toegepaste ledgerkandidaat bewaart actieafhankelijkheden per persoon/plan, atomic dependency-complete claims, lease owner, gehashte token-capability, expiry-controle en stale-worker fencing. Readbacks verwijderen owner/tokenhash; de ruwe worker-token wordt niet bewaard. Candidatebestand en SHA staan in het acceptatierapport.
 - Eén centrale veldconflictpolicy wordt gedeeld door besluitvalidatie, planner en wizarddefaults: alleen expliciet bevestigde naamvelden mogen bestaande medewerkers wijzigen; geboortedatum is alleen toegestaan bij expliciete creatie; adres, gender en nationaliteit blijven preview-only; employment-, salaris- en fiscale identiteit zijn geen Employee-updates.
