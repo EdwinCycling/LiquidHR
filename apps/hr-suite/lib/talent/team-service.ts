@@ -20,8 +20,8 @@ function label(firstName: string, birthName: string, employeeNumber: string): st
   return [firstName, birthName].filter((value) => value.trim().length > 0).join(' ').trim() || employeeNumber
 }
 
-function emptyTalentTeamMatrix(scopeType: 'TEAM' | 'TENANT'): TalentTeamMatrix {
-  return { rows: [], scopeCount: 0, scopeType, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5, aggregateDisabled: true }
+function emptyTalentTeamMatrix(scopeType: 'TEAM' | 'TENANT', sourceTruncated = false): TalentTeamMatrix {
+  return { rows: [], sourceTruncated, scopeCount: 0, scopeType, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5, aggregateDisabled: true }
 }
 
 export async function listTalentTeamMatrix(filters: TalentTeamMatrixFilters = {}): Promise<TalentTeamMatrix> {
@@ -33,7 +33,7 @@ export async function listTalentTeamMatrix(filters: TalentTeamMatrixFilters = {}
   const scopeType = canReadTenant ? 'TENANT' : 'TEAM'
   let placementQuery = supabase
     .from('employee_organizations')
-    .select('employee_id,job_title,department_id,job_id,effective_from')
+    .select('employee_id,job_title,department_id,job_id,effective_from', { count: 'exact' })
     .eq('tenant_id', context.tenantId)
     .lte('effective_from', today)
     .or(`effective_to.is.null,effective_to.gte.${today}`)
@@ -43,21 +43,23 @@ export async function listTalentTeamMatrix(filters: TalentTeamMatrixFilters = {}
     if (!context.employeeId) throw new TalentTeamError('EMPLOYEE_CONTEXT_REQUIRED', 403)
     placementQuery = placementQuery.eq('direct_manager_id', context.employeeId)
   }
-  const { data: placementRows, error: placementError } = await placementQuery
-  if (placementError) throw new TalentTeamError('TALENT_TEAM_SCOPE_READ_FAILED')
+  const { data: placementRows, error: placementError, count: placementCount } = await placementQuery
+  if (placementError || placementCount === null) throw new TalentTeamError('TALENT_TEAM_SCOPE_READ_FAILED')
+  const placementSourceTruncated = placementCount > (placementRows?.length ?? 0)
   const placements = new Map<string, Placement>()
   for (const placement of placementRows ?? []) {
     if (!placements.has(placement.employee_id)) placements.set(placement.employee_id, placement)
   }
   const employeeIds = [...placements.keys()]
-  if (employeeIds.length === 0) return emptyTalentTeamMatrix(scopeType)
+  if (employeeIds.length === 0) return emptyTalentTeamMatrix(scopeType, placementSourceTruncated)
 
   const visibleStatuses = canReadTenant ? ['DRAFT', 'RELEASED', 'EXPIRED'] : ['RELEASED', 'EXPIRED']
   const [employeesResult, recordsResult] = await Promise.all([
     supabase.from('employees').select('id,employee_number,first_name,birth_name').eq('tenant_id', context.tenantId).in('id', employeeIds).is('deleted_at', null),
-    supabase.from('talent_employee_capability_records').select('id,employee_id,capability_id,status,source_type,valid_from,valid_until,certificate_status,evidence_status,certificate_code').eq('tenant_id', context.tenantId).in('employee_id', employeeIds).in('status', visibleStatuses).order('valid_from', { ascending: false }).limit(10000),
+    supabase.from('talent_employee_capability_records').select('id,employee_id,capability_id,status,source_type,valid_from,valid_until,certificate_status,evidence_status,certificate_code', { count: 'exact' }).eq('tenant_id', context.tenantId).in('employee_id', employeeIds).in('status', visibleStatuses).order('valid_from', { ascending: false }).limit(10000),
   ])
-  if (employeesResult.error || recordsResult.error) throw new TalentTeamError('TALENT_TEAM_READ_FAILED')
+  if (employeesResult.error || recordsResult.error || recordsResult.count === null) throw new TalentTeamError('TALENT_TEAM_READ_FAILED')
+  const capabilitySourceTruncated = recordsResult.count > (recordsResult.data?.length ?? 0)
   const capabilityIds = [...new Set((recordsResult.data ?? []).map((record) => record.capability_id))]
   const { data: capabilities, error: capabilitiesError } = capabilityIds.length > 0
     ? await supabase.from('talent_capabilities').select('id,code,name,capability_type').eq('tenant_id', context.tenantId).in('id', capabilityIds)
@@ -99,5 +101,5 @@ export async function listTalentTeamMatrix(filters: TalentTeamMatrixFilters = {}
       capabilities: recordsByEmployee.get(employeeId) ?? [],
     }]
   })
-  return { rows: filterTalentTeamMatrixRows(rows, filters), scopeCount: rows.length, scopeType, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5, aggregateDisabled: true }
+  return { rows: filterTalentTeamMatrixRows(rows, filters), sourceTruncated: placementSourceTruncated || capabilitySourceTruncated, scopeCount: rows.length, scopeType, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5, aggregateDisabled: true }
 }

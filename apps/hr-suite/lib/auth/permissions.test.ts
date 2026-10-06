@@ -10,7 +10,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/context/server-context', () => ({ loadActiveContext }))
 vi.mock('@/lib/focus/preview-token', () => ({ hasActiveFocusPreviewToken }))
 
-import { AuthorizationError, getRequestAuthorizationContext, requireAuthContext, requirePermission } from './permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requireAuthContext, requirePermission, requirePermissionInContext, type AuthContext } from './permissions'
 
 interface FakeClientOptions {
   actor?: { id: string; tenant_id: string } | null
@@ -304,5 +304,86 @@ describe('requirePermission', () => {
     }))
 
     await expect(requirePermission('self:leave:read')).rejects.toBeInstanceOf(AuthorizationError)
+  })
+
+  it('past bestaande selfpermissions en ESS-blokkering toe op een expliciet bearergebonden client', async () => {
+    const client = createFakeClient({
+      roleCodes: { 'tenant-admin-role': 'EMPLOYEE' },
+      selfPermissionCodes: ['self:talent-goal:read'],
+      essStatus: 'ACTIVE',
+      employments: [{ starts_on: '2020-01-01', ends_on: null, record_status: 'CONFIRMED', deleted_at: null }],
+    })
+    const context: AuthContext = {
+      tenantId: 'tenant-1',
+      hrGroupId: 'group-1',
+      administrationId: 'admin-1',
+      userId: 'user-1',
+      employeeId: 'employee-1',
+      activeRoles: ['EMPLOYEE'],
+      permissions: [],
+      focusExperience: 'EMPLOYEE',
+    }
+
+    await expect(requirePermissionInContext(
+      client as unknown as Parameters<typeof requirePermissionInContext>[0],
+      context,
+      'self:talent-goal:read',
+      'employee-1',
+    )).resolves.toBe(context)
+    expect(createClient).not.toHaveBeenCalled()
+  })
+
+  it('weigert selftoegang als de bestaande selfpermission ontbreekt, ook wanneer AuthContext die naam bevat', async () => {
+    const client = createFakeClient({
+      roleCodes: { 'tenant-admin-role': 'EMPLOYEE' },
+      selfPermissionCodes: ['self:employee:read'],
+      essStatus: 'ACTIVE',
+      employments: [{ starts_on: '2020-01-01', ends_on: null, record_status: 'CONFIRMED', deleted_at: null }],
+    })
+    const context: AuthContext = {
+      tenantId: 'tenant-1',
+      hrGroupId: 'group-1',
+      administrationId: 'admin-1',
+      userId: 'user-1',
+      employeeId: 'employee-1',
+      activeRoles: ['EMPLOYEE'],
+      permissions: ['self:talent-goal:read'],
+      focusExperience: 'EMPLOYEE',
+    }
+
+    await expect(requirePermissionInContext(
+      client as unknown as Parameters<typeof requirePermissionInContext>[0],
+      context,
+      'self:talent-goal:read',
+      'employee-1',
+    )).rejects.toBeInstanceOf(AuthorizationError)
+    expect(createClient).not.toHaveBeenCalled()
+  })
+
+  it('weigert selftoegang wanneer de bearercontext door employee-ESS is geblokkeerd', async () => {
+    const client = createFakeClient({
+      roleCodes: { 'tenant-admin-role': 'EMPLOYEE' },
+      selfPermissionCodes: ['self:talent-goal:read'],
+      essStatus: 'BLOCKED',
+      employments: [{ starts_on: '2020-01-01', ends_on: null, record_status: 'CONFIRMED', deleted_at: null }],
+    })
+    const context: AuthContext = {
+      tenantId: 'tenant-1',
+      hrGroupId: 'group-1',
+      administrationId: 'admin-1',
+      userId: 'user-1',
+      employeeId: 'employee-1',
+      activeRoles: ['EMPLOYEE'],
+      permissions: ['self:talent-goal:read'],
+      focusExperience: 'EMPLOYEE',
+    }
+
+    await expect(requirePermissionInContext(
+      client as unknown as Parameters<typeof requirePermissionInContext>[0],
+      context,
+      'self:talent-goal:read',
+      'employee-1',
+    )).rejects.toBeInstanceOf(AuthorizationError)
+    expect(createClient).not.toHaveBeenCalled()
   })
 })

@@ -306,7 +306,7 @@ if ($PreflightOnly) {
     return
 }
 
-$nextArguments = @("--env-file=$centralConfig", $nextCli)
+$nextArguments = @()
 if ($Mode -eq 'Development') {
     $nextArguments += @('dev', '--webpack')
 } else {
@@ -314,10 +314,35 @@ if ($Mode -eq 'Development') {
 }
 $nextArguments += @('--hostname', '127.0.0.1', '--port', [string]$resolvedPort)
 
+# Next.js kopieert process.execArgv naar zijn Development-child.
+# --env-file zou daar onterecht NODE_OPTIONS worden, waar Node de vlag weigert.
+$runtimeBridge = @'
+const [configFile, nextEntry, ...nextArgs] = process.argv.slice(1);
+if (!configFile || !nextEntry) throw new Error('TEST-runtimeconfiguratie of Next.js CLI ontbreekt.');
+if (typeof process.loadEnvFile === 'function') {
+    process.loadEnvFile(configFile);
+} else if (!process.execArgv.some((argument) => argument.startsWith('--env-file='))) {
+    throw new Error('Deze Node.js-versie kan de TEST-runtimeconfiguratie niet laden.');
+}
+process.execArgv = [];
+process.argv = [process.argv[0], nextEntry, ...nextArgs];
+require(nextEntry);
+'@
+$runtimeArguments = @($centralConfig, $nextCli) + $nextArguments
+$hasLoadEnvFileApi = $nodeVersion.Major -ge 22 -or
+    ($nodeVersion.Major -eq 21 -and $nodeVersion.Minor -ge 7) -or
+    ($nodeVersion.Major -eq 20 -and $nodeVersion.Minor -ge 12)
+
 Write-Host "Start $Mode op http://127.0.0.1:$resolvedPort met de centrale TEST-configuratie. Configwaarden worden niet getoond of gekopieerd."
 Push-Location $appRoot
 try {
-    & $node.Source @nextArguments
+    # Next.js kopieert process.execArgv naar zijn dev-child; --env-file wordt
+    # daar onterecht NODE_OPTIONS en Node weigert die vlag in die variabele.
+    if ($hasLoadEnvFileApi) {
+        & $node.Source -e $runtimeBridge @runtimeArguments
+    } else {
+        & $node.Source "--env-file=$centralConfig" -e $runtimeBridge @runtimeArguments
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "Next.js is gestopt met exitcode $LASTEXITCODE."
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { generateHeRaResponse } from './gemini'
+import { buildWorkforceHeRaDeclarations, generateHeRaResponse } from './gemini'
 
 describe('generateHeRaResponse', () => {
   it('gebruikt het geconfigureerde model, houdt de sleutel uit de body en leest typed tool calls', async () => {
@@ -46,5 +46,18 @@ describe('generateHeRaResponse', () => {
       { role: 'model', parts: [{ functionCall: { name: 'analyze_salary_threshold', args: { amount: 6000 } }, thoughtSignature: 'signed-state' }] },
       { role: 'user', parts: [{ functionResponse: { name: 'analyze_salary_threshold', response: { source: 'LIQUID_HR', data: { matchedCount: 3 } } } }] },
     ])
+  })
+})
+
+describe('HeRa workforce declarations', () => {
+  it('publishes shared provider-neutral tools with generated bounded input schemas', () => {
+    const declarations = buildWorkforceHeRaDeclarations()
+    expect(declarations.map((tool) => tool.name)).toContain('workforce_employee_talent_development_plans_read')
+    expect(declarations.find((tool) => tool.name === 'workforce_employee_talent_goal_check_ins_read')?.parameters).toMatchObject({
+      type: 'OBJECT',
+      properties: { goalId: { type: 'STRING' } },
+      required: ['goalId'],
+    })
+    expect(declarations.every((tool) => tool.name.startsWith('workforce_'))).toBe(true)
   })
 })

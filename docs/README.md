@@ -1,5 +1,12 @@
 # Liquid HR documentatie-index
 
+## APIAI-01–05 ONE VERSION convergence — 2026-10-05
+
+**Status: ONE VERSION-kandidaat lokaal GREEN op code-SHA 6e443463561e77d3039a1e2afb1bbcaecff548b0: exact-source browseracceptatie, regressies, Production-build en Payroll-bundlecontrole zijn geslaagd; drie onafhankelijke reviews vonden geen P0/P1.** [Draft PR #7](https://github.com/EdwinCycling/LiquidHR/pull/7) staat open naar main; readback is mergeable/clean, zonder checks of Vercel-deployment. PR #3 en #5 blijven ongemergede Draft-bouwsporen. De externe API v1-routes blijven ongemount, lokale MCP faalt gesloten buiten de lokale opt-in en APIAI-01 live security/database- en ChatGPT-hostgates blijven OPEN. Merge en deployment zijn niet uitgevoerd. Zie het [APIAI-03/04/05-acceptatierapport](quality/acceptance/runs/APIAI-03-04-05-INTEGRATION-20261005.md) voor de volledige evidence.
+## APIAI-02 — workforce tools — 2026-10-04
+
+**Status: lokale implementatie-, regressie-, browser- en productiebuildgates groen voor codecommit `6e0a3f398e6ab16e9f9dfbdf336915f1c48e482c`; finale LUNA MAX-review vond geen P1/P2; PARTIAL / niet release-ready.** De gedeelde server-geautoriseerde catalogus bevat zes Employee-readtools, een directe-team-matrix voor Manager en een tenantmatrix voor HR. De browsermatrix bevestigde persona-afbakening, matrixpagination, bronlimieten en invoervalidatie; na de laatste current-profile-randgevalfix gaf de gerichte Employee BFF-browsercall op de definitieve bron `200` met 4 gaps. [Draft PR #5](https://github.com/EdwinCycling/LiquidHR/pull/5) staat open naar `main`; hosted Preview- en deployed-SHA-bewijs ontbreken en `/api/v1` blijft ongemount. Zie het [APIAI-02 acceptance-rapport](quality/acceptance/runs/APIAI-02-20261004.md) voor bewijs en open integratiegates; het contract staat in [APIAI-02 workforce tools](requirements/ai/APIAI-02_WORKFORCE_TOOLS.md).
+
 ## ONE VERSION — accepted PAYLAB00–04 integration — 2026-10-02
 
 **Status: PAYLAB integration MERGE-READY at `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; ONE VERSION release preparation is underway.** The independent LUNA MAX acceptance review passed. The earlier production historical-run error was traced to `PGRST303: JWT issued at future`; desktop and 390 px browser retests passed. No Payroll application fix or new CAO implementation was needed. The release candidate sets app version `1.20261002.1`; merge/deployment status is recorded in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.

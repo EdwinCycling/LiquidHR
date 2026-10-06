@@ -20,6 +20,7 @@ export type TalentTeamMatrixRow = {
 
 export type TalentTeamMatrix = {
   rows: TalentTeamMatrixRow[]
+  sourceTruncated: boolean
   scopeCount: number
   scopeType: 'TEAM' | 'TENANT'
   aggregatePolicy: 'DISABLED'
