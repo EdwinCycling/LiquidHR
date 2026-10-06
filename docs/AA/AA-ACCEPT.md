@@ -13,6 +13,8 @@ Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte
 
 **CONTROL02 FINAL 2026-10-05 (persisted decisions):** Draft PR #6 is **REVIEWABLE / PARTIAL / NOT MERGE-READY**. Authenticated server-side decision persistence, readback/freshness, persisted previewplans, concurrency-race invalidatie en refresh-safe wizardstate zijn gebouwd. Kritieke 5 bestanden / 48 tests, strict TypeScript, NL/EN en lint zonder errors zijn GREEN. De brede suite heeft 2.261 tests GREEN maar één bestaande server-only timeout en is daarom niet volledig GREEN. Niet accepted: per-action freshness/transaction-lease bescherming voor activering, remote migration/readback/RLS/JWT-negatives, volledige desktop/390px XML-flow, gedeeld Core/Payroll-contract, definitieve XML Core-writes of release.
 
+**CONTROL02 2026-10-06:** De actuele PR #6 is **LOCAL BUILD/SUITE GREEN, ACCEPTANCE PARTIAL / NOT ACTIVATION-READY**. Codex rapporteert 539 HR-testbestanden/2.282 tests GREEN, 3 overgeslagen, strict TypeScript, changed lint, 41 namespaces, 308-route build en 154 browserasset scan. Planner/executor hebben pre-action proof en afhankelijkheden; de ledgerkandidaat heeft leasefencing en de wizard recoverytellingen; contextselectie heeft aparte componenttests. Er is geen echte Core-writeadapter, geen finalizeroute, geen live database/RLS/JWT-negatives of volledige XML-browseracceptatie. Remote ledger-/scope-migraties blijven unapplied. Het technische pre-action-contract is geen bewijs van atomische Core-writeveiligheid. Onafhankelijke review in deze single-agent run niet gedaan. Nieuwe main `38ccbcac...` is nog niet in de gestapelde PR #4/#6 gereconcilieerd. Zie AA-OPEN §3D.
+
 ## Verdictdefinities
 
 - **GREEN** — alle verplichte in-scope assertions bewezen.
