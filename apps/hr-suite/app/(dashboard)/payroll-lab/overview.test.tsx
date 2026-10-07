@@ -11,10 +11,11 @@ vi.mock('next/navigation', () => ({ redirect: (path: string) => { throw new Erro
 
 describe('single Payroll Lab overview', () => {
   beforeEach(() => { vi.clearAllMocks(); access.mockResolvedValue({}); arrangementStorageReady.mockResolvedValue(false) })
-  it('contains exactly two functional window links and no future empty modules', async () => {
+  it('contains the calculation, individual payroll, and component windows without empty modules', async () => {
     const markup = renderToStaticMarkup(await PayrollLabOverview({}))
-    expect(markup.match(/href=/g)).toHaveLength(2)
+    expect(markup.match(/href=/g)).toHaveLength(3)
     expect(markup).toContain('href="/payroll-lab/calculations"')
+    expect(markup).toContain('href="/payroll-lab/salarisverwerking"')
     expect(markup).toContain('href="/payroll-components"')
     expect(markup).toContain('lg:grid-cols-2')
     expect(markup).not.toContain('md:grid-cols-2')
@@ -32,7 +33,7 @@ describe('single Payroll Lab overview', () => {
   it('shows the arrangements window only when scoped Payroll storage is available', async () => {
     arrangementStorageReady.mockResolvedValue(true)
     const markup = renderToStaticMarkup(await PayrollLabOverview({}))
-    expect(markup.match(/href=/g)).toHaveLength(3)
+    expect(markup.match(/href=/g)).toHaveLength(4)
     expect(markup).toContain('href="/payroll-lab/arrangements"')
     expect(access).toHaveBeenCalledOnce()
     expect(arrangementStorageReady).toHaveBeenCalledWith(await access.mock.results[0]?.value)

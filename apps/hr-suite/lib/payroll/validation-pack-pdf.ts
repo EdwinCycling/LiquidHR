@@ -195,11 +195,11 @@ async function launchBrowser(): Promise<Browser> {
   })
 }
 
-export async function renderCaoBench02ValidationPackPdf(pack: CaoBench02ValidationPack): Promise<Uint8Array> {
+export async function renderPayrollLabHtmlToPdf(html: string): Promise<Uint8Array> {
   const browser = await launchBrowser()
   try {
     const page = await browser.newPage({ viewport: { width: 794, height: 1123 } })
-    await page.setContent(renderCaoBench02ValidationPackHtml(pack), { waitUntil: 'load' })
+    await page.setContent(html, { waitUntil: 'load' })
     await page.addStyleTag({ content: `${fontFace('work-sans-latin-400-normal.woff2', 400)}${fontFace('work-sans-latin-700-normal.woff2', 700)}` })
     await page.emulateMedia({ media: 'print' })
     await page.evaluate(() => document.fonts.ready)
@@ -207,4 +207,8 @@ export async function renderCaoBench02ValidationPackPdf(pack: CaoBench02Validati
   } finally {
     await browser.close()
   }
+}
+
+export async function renderCaoBench02ValidationPackPdf(pack: CaoBench02ValidationPack): Promise<Uint8Array> {
+  return await renderPayrollLabHtmlToPdf(renderCaoBench02ValidationPackHtml(pack))
 }

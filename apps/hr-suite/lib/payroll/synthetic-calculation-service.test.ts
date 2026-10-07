@@ -25,7 +25,7 @@ import {
   type SyntheticPayrollEngine,
   type PayrollTestScenario,
 } from './synthetic-calculation-service'
-import type { PayrollCalculationRepository } from './calculation-repository'
+import { PayrollCalculationRepositoryError, type PayrollCalculationRepository } from './calculation-repository'
 import { createSyntheticPayrollSnapshot } from './synthetic-source'
 
 const scope = {
@@ -192,9 +192,9 @@ function makeRepository(capabilityEnabled = true) {
       goldenCase = insertedGoldenCase
       return insertedGoldenCase
     }),
-    getLatestSyntheticArtifacts: vi.fn(async () => {
+    getLatestSyntheticArtifacts: vi.fn(async (_scope, _payrollAdministrationId, _compositionId, _runId, _caseKey, runType) => {
       calls.push('get-latest')
-      if (!run || !inputSet || !sourceSnapshot || !period || !trace || !goldenCase) return null
+      if (!run || !inputSet || !sourceSnapshot || !period || !trace || (runType !== 'INDIVIDUAL_PAYROLL' && !goldenCase)) return null
       return { run, inputSet, sourceSnapshot, payrollPeriod: period, componentResults, trace, controls, goldenCase }
     }),
   }
@@ -461,9 +461,9 @@ describe('NL-2026 scenario in the persisted calculation lifecycle', () => {
       expect(messages[`payrollLabTrace_${step.code.replaceAll('.', '_').replaceAll('-', '_')}`]).toBeDefined()
     }
     await service.getLatestSyntheticPayroll(scope, payrollAdministrationId)
-    expect(repository.getLatestSyntheticArtifacts).toHaveBeenCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, undefined, NL_2026_TEST_SCENARIO.caseKey)
+    expect(repository.getLatestSyntheticArtifacts).toHaveBeenCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, undefined, NL_2026_TEST_SCENARIO.caseKey, 'GOLDEN_CASE')
     await service.getLatestSyntheticPayroll(scope, payrollAdministrationId, runId)
-    expect(repository.getLatestSyntheticArtifacts).toHaveBeenLastCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, runId)
+    expect(repository.getLatestSyntheticArtifacts).toHaveBeenLastCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, runId, undefined, 'GOLDEN_CASE')
   })
   it('stores controlled UNSUPPORTED trace and no financial outputs', async () => {
     const { repository, getRun } = makeRepository()
@@ -472,5 +472,155 @@ describe('NL-2026 scenario in the persisted calculation lifecycle', () => {
     expect(getRun()?.status).toBe('FAILED')
     expect(repository.insertComponentResults).not.toHaveBeenCalled()
     expect(vi.mocked(repository.insertCalculationTrace).mock.calls[0]?.[2].trace_payload).toMatchObject({ status: 'UNSUPPORTED', unsupportedReason: 'NL2026_UNSUPPORTED_TABLE' })
+  })
+
+  it('persists an individual run without a GoldenCase and binds lifecycle events to the source employment and period', async () => {
+    const { repository, calls } = makeRepository()
+    const persistInputReference = vi.fn(async () => undefined)
+    const recordLifecycleEvent = vi.fn(async () => undefined)
+    const scenario: PayrollTestScenario = {
+      runType: 'INDIVIDUAL_PAYROLL',
+      compositionId: GC_NL_001_RULE_PACKAGE.compositionId,
+      period: { year: 2026, month: 10 },
+      createSnapshot: createSyntheticPayrollSnapshot,
+      persistInputReference,
+      recordLifecycleEvent,
+    }
+    const service = createService(repository, makeEngine(), true, scenario)
+
+    const result = await service.runSyntheticPayroll(scope, payrollAdministrationId, actorUserId)
+    await service.getLatestSyntheticPayroll(scope, payrollAdministrationId)
+
+    expect(result.caseKey).toBeNull()
+    expect(calls).not.toContain('insert-golden-case')
+    expect(persistInputReference).toHaveBeenCalledWith(expect.objectContaining({
+      scope,
+      payrollAdministrationId,
+      actorUserId,
+      payrollPeriod: expect.objectContaining({ id: periodId }),
+    }))
+    expect(recordLifecycleEvent).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'CONCEPT',
+      payrollPeriodId: periodId,
+      sourceEmploymentId: '50000000-0000-4000-8000-000000000009',
+      calculationRunId: runId,
+      revision: 1,
+      eventSequence: 1,
+    }))
+    expect(repository.getLatestSyntheticArtifacts).toHaveBeenLastCalledWith(
+      scope,
+      payrollAdministrationId,
+      scenario.compositionId,
+      undefined,
+      undefined,
+      'INDIVIDUAL_PAYROLL',
+    )
+  })
+
+  it('reuses deterministic PAYRUN01 source and input rows after an input-reference persistence failure', async () => {
+    const { repository, calls } = makeRepository()
+    let persistedSnapshot: PayrollSourceSnapshotRow | null = null
+    let persistedInputSet: PayrollCalculationInputSetRow | null = null
+    repository.getOrCreateSourceSnapshot = vi.fn(async (inputScope, administrationId, row) => {
+      calls.push('get-or-create-snapshot')
+      if (persistedSnapshot) return persistedSnapshot
+      persistedSnapshot = await repository.insertSourceSnapshot(inputScope, administrationId, row)
+      return persistedSnapshot
+    })
+    repository.getOrCreateCalculationInputSet = vi.fn(async (inputScope, administrationId, row) => {
+      calls.push('get-or-create-input-set')
+      if (persistedInputSet) return persistedInputSet
+      persistedInputSet = await repository.insertCalculationInputSet(inputScope, administrationId, row)
+      return persistedInputSet
+    })
+    let referenceAttempt = 0
+    const persistInputReference = vi.fn(async () => {
+      referenceAttempt += 1
+      if (referenceAttempt === 1) throw new PayrollCalculationRepositoryError()
+    })
+    const scenario: PayrollTestScenario = {
+      runType: 'INDIVIDUAL_PAYROLL',
+      reusePersistedInputs: true,
+      compositionId: GC_NL_001_RULE_PACKAGE.compositionId,
+      period: { year: 2026, month: 10 },
+      createSnapshot: async (snapshotScope, period, options) => ({
+        ...(await createSyntheticPayrollSnapshot(snapshotScope, period, options)),
+        id: snapshotId,
+      }),
+      persistInputReference,
+    }
+    const service = createService(repository, makeEngine(), true, scenario)
+
+    await expect(service.runSyntheticPayroll(scope, payrollAdministrationId, actorUserId)).rejects.toMatchObject({
+      code: 'PAYROLL_PERSISTENCE_FAILED',
+      runId: null,
+    })
+    const result = await service.runSyntheticPayroll(scope, payrollAdministrationId, actorUserId)
+
+    expect(result.status).toBe('SUCCEEDED')
+    expect(repository.getOrCreateSourceSnapshot).toHaveBeenCalledTimes(2)
+    expect(repository.getOrCreateCalculationInputSet).toHaveBeenCalledTimes(2)
+    expect(repository.insertSourceSnapshot).toHaveBeenCalledTimes(1)
+    expect(repository.insertCalculationInputSet).toHaveBeenCalledTimes(1)
+    expect(persistInputReference).toHaveBeenCalledTimes(2)
+    const firstInputSetRow = vi.mocked(repository.getOrCreateCalculationInputSet).mock.calls[0]?.[2]
+    const secondInputSetRow = vi.mocked(repository.getOrCreateCalculationInputSet).mock.calls[1]?.[2]
+    expect(firstInputSetRow?.id).toBe(secondInputSetRow?.id)
+    expect(calls.filter((call) => call === 'insert-snapshot')).toHaveLength(1)
+    expect(calls.filter((call) => call === 'insert-input-set')).toHaveLength(1)
+  })
+
+  it('atomically marks an individual run succeeded with its concept event when supported', async () => {
+    const { repository, calls, getRun } = makeRepository()
+    const recordLifecycleEvent = vi.fn(async () => undefined)
+    repository.markCalculationRunSucceededWithConcept = vi.fn(async (_scope, _payrollAdministrationId, _runId, _periodId, _employmentId, _actorUserId, finishedAt, resultHash, _eventPayload) => {
+      void _eventPayload
+      calls.push('mark-succeeded-with-concept')
+      const running = getRun()
+      if (!running) throw new Error('Run must exist before SUCCEEDED.')
+      return { ...running, status: 'SUCCEEDED' as const, finished_at: finishedAt, result_hash: resultHash }
+    })
+    const scenario: PayrollTestScenario = {
+      runType: 'INDIVIDUAL_PAYROLL',
+      compositionId: GC_NL_001_RULE_PACKAGE.compositionId,
+      period: { year: 2026, month: 10 },
+      createSnapshot: createSyntheticPayrollSnapshot,
+      persistInputReference: async () => undefined,
+      recordLifecycleEvent,
+    }
+    const service = createService(repository, makeEngine(), true, scenario)
+
+    const result = await service.runSyntheticPayroll(scope, payrollAdministrationId, actorUserId)
+
+    expect(result.status).toBe('SUCCEEDED')
+    expect(calls.at(-1)).toBe('mark-succeeded-with-concept')
+    expect(recordLifecycleEvent).not.toHaveBeenCalled()
+    expect(repository.markCalculationRunSucceeded).not.toHaveBeenCalled()
+  })
+
+  it('records a blocked lifecycle event against the employment when an individual run fails', async () => {
+    const { repository } = makeRepository()
+    const recordLifecycleEvent = vi.fn(async () => undefined)
+    const scenario: PayrollTestScenario = {
+      runType: 'INDIVIDUAL_PAYROLL',
+      compositionId: GC_NL_001_RULE_PACKAGE.compositionId,
+      period: { year: 2026, month: 10 },
+      createSnapshot: createSyntheticPayrollSnapshot,
+      persistInputReference: async () => undefined,
+      recordLifecycleEvent,
+    }
+    const service = createService(repository, makeEngine(true), true, scenario)
+
+    await expect(service.runSyntheticPayroll(scope, payrollAdministrationId, actorUserId)).rejects.toMatchObject({
+      code: 'PAYROLL_CALCULATION_FAILED',
+      runId,
+    })
+
+    expect(recordLifecycleEvent).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'BLOCKED',
+      payrollPeriodId: periodId,
+      sourceEmploymentId: '50000000-0000-4000-8000-000000000009',
+      calculationRunId: runId,
+    }))
   })
 })

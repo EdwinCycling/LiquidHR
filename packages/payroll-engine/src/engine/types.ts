@@ -117,6 +117,13 @@ export type PayrollExpression =
     readonly right: PayrollExpression
   }
   | {
+    /** Apply one pinned package rounding definition directly to a rational numerator/denominator. */
+    readonly kind: 'ratio'
+    readonly numerator: PayrollExpression
+    readonly denominator: PayrollExpression
+    readonly roundingDefinitionId: string
+  }
+  | {
     readonly kind: 'if'
     readonly condition: PayrollExpression
     readonly then: PayrollExpression
@@ -255,6 +262,10 @@ export interface PayrollRegisteredRule {
 
 export interface PayrollCalculationBuildOptions {
   readonly scopeInstanceIds?: Readonly<Partial<Record<PayrollProcessingScope, string>>>
+  /** Explicit, typed Payroll-owned values may supply effective salary and rule inputs for source components. */
+  readonly sourceValueOverrides?: Readonly<Record<string, PayrollSerializedValue>>
+  /** Hash of separately versioned Payroll-owned assignment/config/opening inputs. */
+  readonly calculationContextHash?: string
   /** Defaults to the first calendar day of the snapshot period. */
   readonly effectiveDate?: string
 }
@@ -276,6 +287,8 @@ export interface PayrollCalculationInputs {
   readonly rulePackageCompositionId: string
   readonly rulePackageCompositionHash: string
   readonly inputHash: string
+  readonly sourceValueOverrides?: Readonly<Record<string, PayrollSerializedValue>>
+  readonly calculationContextHash?: string
   readonly components: readonly PayrollComponentDefinition[]
   readonly controls: readonly PayrollControlDefinition[]
   readonly resultMappings: readonly PayrollResultMapping[]

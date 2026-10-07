@@ -162,6 +162,8 @@ describe('Payroll Lab server-only boundary', () => {
     expect(calculationRepositoryImporters).toEqual([
       join(payrollDirectory, 'cao-bench02-calculation-service.ts'),
       join(payrollDirectory, 'nl-2026-calculation-service.ts'),
+      join(payrollDirectory, 'payrun01-repository.ts'),
+      join(payrollDirectory, 'payrun01-service.ts'),
       join(payrollDirectory, 'synthetic-calculation-service.ts'),
     ])
     expect(calculationRepositoryImporters.every((path) => readFileSync(path, 'utf8').startsWith("import 'server-only'"))).toBe(true)
@@ -169,6 +171,7 @@ describe('Payroll Lab server-only boundary', () => {
       join(payrollDirectory, 'arrangement-repository.ts'),
       join(payrollDirectory, 'calculation-repository.ts'),
       join(payrollDirectory, 'component-draft-repository.ts'),
+      join(payrollDirectory, 'payrun01-repository.ts'),
       join(payrollDirectory, 'repository.ts'),
     ])
     expect(supabaseClientImporters.every((path) => readFileSync(path, 'utf8').startsWith("import 'server-only'"))).toBe(true)

@@ -3,7 +3,9 @@ import {
   ARRANGEMENT_PACKAGES,
   ArrangementFoundationError,
   buildCalculationCompositionSnapshot,
+  buildPayrollOwnedArrangementCompositionSnapshot,
   hashArrangementPackageVersion,
+  resolvePayrollOwnedArrangementAssignmentVersion,
   resolveArrangementVersion,
   SYNTHETIC_ARRANGEMENT_FIXTURES,
   validateArrangementSelection,
@@ -172,5 +174,127 @@ describe('CAO-BENCH02 arrangement foundation contracts', () => {
       assignmentEffectiveTo: null,
       asOfDate: '2026-09-30',
     })).toThrowError(expect.objectContaining<Partial<ArrangementFoundationError>>({ code: 'ARRANGEMENT_ASSIGNMENT_INACTIVE' }))
+  })
+
+  it('builds a versioned CAO scale-step assignment against an opaque Core employment ID', () => {
+    const assignment = {
+      assignmentId: 'payroll-assignment-cao-scale-step',
+      assignmentVersion: 2,
+      coreEmploymentId: 'core-employment-opaque-001',
+      compositionIds: {
+        arrangement: 'arrangement-composition-v2',
+        pension: 'pension-composition-v1',
+      },
+      packageId: 'KINDEROPVANG_2025_2026',
+      salary: {
+        strategy: 'DISCRETE_SCALE_STEP' as const,
+        caoScaleId: 'test-scale-composition-01',
+        step: 4,
+      },
+      effectiveFrom: '2026-09-01',
+      effectiveTo: null,
+      provenance: {
+        status: 'TEST_ONLY' as const,
+        source: 'CAO-BENCH02 synthetic assignment',
+      },
+    }
+    const snapshot = buildPayrollOwnedArrangementCompositionSnapshot({
+      scope: {
+        tenantId: 'a1e00000-0000-4000-8000-000000000001',
+        hrGroupId: 'a1e00000-0000-4000-8000-000000000002',
+        administrationId: 'a1e00000-0000-4000-8000-000000000003',
+        payrollAdministrationId: 'a1e00000-0000-4000-8000-000000000004',
+      },
+      assignmentVersions: [assignment],
+      asOfDate: '2026-09-30',
+    })
+
+    expect(snapshot.content.employment).toEqual({
+      source: 'CORE',
+      coreEmploymentId: assignment.coreEmploymentId,
+    })
+    expect(snapshot.content.primaryAssignment).toMatchObject({
+      id: assignment.assignmentId,
+      version: 2,
+      compositionIds: assignment.compositionIds,
+      salary: assignment.salary,
+    })
+    expect(snapshot.content.arrangement.sourceMetadata.status).toBe('REFERENCE_ONLY')
+    expect(snapshot.content.provenance).toEqual(assignment.provenance)
+    expect(snapshot.content.calculationStatus).toBe('FOUNDATION_ONLY')
+  })
+
+  it('supports a freely negotiated assignment without a CAO scale and with an explicit pension composition', () => {
+    const assignment = {
+      assignmentId: 'payroll-assignment-freely-negotiated',
+      assignmentVersion: 1,
+      coreEmploymentId: 'core-employment-opaque-002',
+      compositionIds: {
+        arrangement: 'negotiated-arrangement-composition-v1',
+        pension: 'pension-composition-explicit-01',
+      },
+      packageId: 'LHR_DEMO_OPEN_BANDS_2026',
+      salary: {
+        strategy: 'FREELY_NEGOTIATED' as const,
+        caoScaleId: null,
+        negotiatedSalaryCompositionId: 'negotiated-salary-composition-01',
+      },
+      effectiveFrom: '2026-07-01',
+      effectiveTo: null,
+      provenance: {
+        status: 'TEST_ONLY' as const,
+        source: 'CAO-BENCH02 synthetic assignment',
+      },
+    }
+    const snapshot = buildPayrollOwnedArrangementCompositionSnapshot({
+      scope: {
+        tenantId: 'a1e00000-0000-4000-8000-000000000001',
+        hrGroupId: 'a1e00000-0000-4000-8000-000000000002',
+        administrationId: 'a1e00000-0000-4000-8000-000000000003',
+        payrollAdministrationId: 'a1e00000-0000-4000-8000-000000000004',
+      },
+      assignmentVersions: [assignment],
+      asOfDate: '2026-09-30',
+    })
+
+    expect(snapshot.content.primaryAssignment.salary).toEqual({
+      strategy: 'FREELY_NEGOTIATED',
+      caoScaleId: null,
+      negotiatedSalaryCompositionId: 'negotiated-salary-composition-01',
+    })
+    expect(snapshot.content.primaryAssignment.compositionIds.pension).toBe('pension-composition-explicit-01')
+    expect(snapshot.content.provenance.status).toBe('TEST_ONLY')
+    expect(snapshot.content.arrangement.sourceMetadata.status).toBe('SYNTHETIC_POLICY')
+    expect(snapshot.content.calculationStatus).toBe('FOUNDATION_ONLY')
+  })
+
+  it('resolves assignment versions by effective date and rejects overlapping versions', () => {
+    const assignmentVersion = {
+      assignmentId: 'payroll-assignment-versioned',
+      assignmentVersion: 1,
+      coreEmploymentId: 'core-employment-opaque-003',
+      compositionIds: { arrangement: 'arr-v1', pension: 'pen-v1' },
+      packageId: 'KINDEROPVANG_2025_2026',
+      salary: { strategy: 'DISCRETE_SCALE_STEP' as const, caoScaleId: 'test-scale', step: 1 },
+      effectiveFrom: '2026-07-01',
+      effectiveTo: '2026-09-30',
+      provenance: { status: 'TEST_ONLY' as const, source: 'synthetic test' },
+    }
+    const nextVersion = {
+      ...assignmentVersion,
+      assignmentVersion: 2,
+      compositionIds: { arrangement: 'arr-v2', pension: 'pen-v2' },
+      effectiveFrom: '2026-10-01',
+      effectiveTo: null,
+    }
+
+    expect(resolvePayrollOwnedArrangementAssignmentVersion([assignmentVersion, nextVersion], '2026-10-01'))
+      .toEqual(nextVersion)
+    expect(() => resolvePayrollOwnedArrangementAssignmentVersion([
+      assignmentVersion,
+      { ...nextVersion, effectiveFrom: '2026-09-30' },
+    ], '2026-09-30')).toThrowError(
+      expect.objectContaining<Partial<ArrangementFoundationError>>({ code: 'ARRANGEMENT_ASSIGNMENT_VERSION_AMBIGUOUS' }),
+    )
   })
 })

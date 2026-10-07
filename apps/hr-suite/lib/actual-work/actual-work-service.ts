@@ -255,6 +255,63 @@ export type ActualWorkEmployeeProjection = {
   schedule: Pick<Tables<'employment_schedules'>, 'valid_from' | 'valid_until' | 'part_time_factor' | 'fulltime_hours_per_week' | 'average_hours_per_week' | 'monday_hours' | 'tuesday_hours' | 'wednesday_hours' | 'thursday_hours' | 'friday_hours' | 'saturday_hours' | 'sunday_hours'>[]
 }
 
+export type ActualWorkPayrollProjection = {
+  period: Pick<ActualWorkPeriod, 'id' | 'period_start' | 'period_end' | 'status' | 'updated_at'> | null
+  entries: Pick<ActualWorkEntry,
+    | 'id' | 'employment_id' | 'work_hour_type_id' | 'work_date' | 'entry_granularity'
+    | 'subject_period_start' | 'subject_period_end' | 'posting_period_start' | 'hours'
+    | 'status' | 'approved_at' | 'updated_at'
+  >[]
+  types: Pick<ActualWorkType, 'id' | 'family' | 'valid_from' | 'valid_until' | 'approval_required' | 'updated_at'>[]
+}
+
+/** Reads only payroll-relevant work metadata; notes and person data stay out of the payroll source snapshot. */
+export async function getActualWorkPayrollProjection(
+  input: { employeeId: string; employmentId: string; month: string },
+  dependencies?: ActualWorkReadDependencies,
+): Promise<ActualWorkPayrollProjection> {
+  if (!isValidActualWorkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
+  const { context, hrGroupId, supabase } = dependencies ?? await authForGroup('leave:read', input.employeeId)
+  const from = monthStart(input.month)
+  const [entriesResult, periodResult] = await Promise.all([
+    supabase.from('employment_work_hour_entries')
+      .select('id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,approved_at,updated_at')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .eq('employee_id', input.employeeId)
+      .eq('employment_id', input.employmentId)
+      .eq('posting_period_start', from)
+      .order('work_date')
+      .order('id')
+      .limit(2001),
+    supabase.from('actual_work_periods')
+      .select('id,period_start,period_end,status,updated_at')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .eq('period_start', from)
+      .maybeSingle(),
+  ])
+  if (entriesResult.error) databaseError(entriesResult.error)
+  if (periodResult.error) databaseError(periodResult.error)
+
+  const entries = entriesResult.data ?? []
+  const typeIds = [...new Set(entries.map((entry) => entry.work_hour_type_id))]
+  const typesResult = typeIds.length
+    ? await supabase.from('work_hour_types')
+      .select('id,family,valid_from,valid_until,approval_required,updated_at')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .in('id', typeIds)
+    : { data: [], error: null }
+  if (typesResult.error) databaseError(typesResult.error)
+
+  return {
+    period: periodResult.data,
+    entries,
+    types: typesResult.data ?? [],
+  }
+}
+
 export async function getActualWorkEmployeeProjection(input: { employeeId: string; employmentId?: string; month: string }, dependencies?: ActualWorkReadDependencies): Promise<ActualWorkEmployeeProjection> {
   if (!isValidActualWorkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
   const { context, hrGroupId, supabase } = dependencies ?? await authForGroup('leave:read', input.employeeId)

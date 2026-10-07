@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Blocks, Calculator, ArrowUpRight, Scale } from 'lucide-react'
+import { Blocks, Calculator, ArrowUpRight, Scale, WalletCards } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
@@ -16,6 +16,7 @@ type LegacyCalculationQuery = { run?: string | string[]; error?: string | string
 // Reserve extension space without rendering empty modules.
 const PAYROLL_LAB_WINDOWS = [
   { href: '/payroll-lab/calculations', title: 'payrollLabCalculations', icon: Calculator },
+  { href: '/payroll-lab/salarisverwerking', title: 'payrollLabIndividualPayroll', icon: WalletCards },
   { href: '/payroll-components', title: 'payrollLabComponents', icon: Blocks },
 ] as const
 

@@ -262,6 +262,8 @@ export type ArrangementFoundationErrorCode =
   | 'ARRANGEMENT_FIXTURE_UNKNOWN'
   | 'ARRANGEMENT_FIXTURE_PACKAGE_FORBIDDEN'
   | 'ARRANGEMENT_ASSIGNMENT_INACTIVE'
+  | 'ARRANGEMENT_ASSIGNMENT_INVALID'
+  | 'ARRANGEMENT_ASSIGNMENT_VERSION_AMBIGUOUS'
 
 export class ArrangementFoundationError extends Error {
   constructor(readonly code: ArrangementFoundationErrorCode) {
@@ -441,6 +443,208 @@ export function buildCalculationCompositionSnapshot(input: CalculationCompositio
       supportedSalaryStrategies: version.supportedSalaryStrategies,
       sourceMetadata: version.sourceMetadata,
     },
+    asOfDate: input.asOfDate,
+    calculationStatus: 'FOUNDATION_ONLY',
+  }
+  return { content, contentHash: sha256(stableSerialize(content)) }
+}
+
+export type PayrollOwnedArrangementSalary =
+  | {
+    readonly strategy: 'DISCRETE_SCALE_STEP'
+    readonly caoScaleId: string
+    readonly step: number
+  }
+  | {
+    readonly strategy: 'OPEN_SALARY_BAND'
+    readonly caoScaleId: null
+    readonly salaryBandCompositionId: string
+  }
+  | {
+    readonly strategy: 'FREELY_NEGOTIATED'
+    readonly caoScaleId: null
+    readonly negotiatedSalaryCompositionId: string
+  }
+
+export interface PayrollArrangementAssignmentProvenance {
+  readonly status: 'TEST_ONLY' | 'PAYROLL_OWNED'
+  readonly source: string
+}
+
+/** A Payroll-owned assignment version referencing Core employment by opaque ID. */
+export interface PayrollOwnedArrangementAssignmentVersion {
+  readonly assignmentId: string
+  readonly assignmentVersion: number
+  readonly coreEmploymentId: string
+  readonly compositionIds: {
+    readonly arrangement: string
+    readonly pension: string
+  }
+  readonly packageId: string
+  readonly salary: PayrollOwnedArrangementSalary
+  readonly effectiveFrom: string
+  readonly effectiveTo: string | null
+  readonly provenance: PayrollArrangementAssignmentProvenance
+}
+
+export interface PayrollOwnedArrangementCompositionSnapshotInput {
+  readonly scope: {
+    readonly tenantId: string
+    readonly hrGroupId: string
+    readonly administrationId: string
+    readonly payrollAdministrationId: string
+  }
+  readonly assignmentVersions: readonly PayrollOwnedArrangementAssignmentVersion[]
+  readonly asOfDate: string
+}
+
+export interface PayrollOwnedArrangementCompositionSnapshot {
+  readonly schemaVersion: 'PAYROLL_ARRANGEMENT_COMPOSITION_V1'
+  readonly scope: PayrollOwnedArrangementCompositionSnapshotInput['scope']
+  readonly employment: {
+    readonly source: 'CORE'
+    readonly coreEmploymentId: string
+  }
+  readonly primaryAssignment: {
+    readonly id: string
+    readonly version: number
+    readonly compositionIds: PayrollOwnedArrangementAssignmentVersion['compositionIds']
+    readonly packageId: string
+    readonly salary: PayrollOwnedArrangementSalary
+    readonly effectiveFrom: string
+    readonly effectiveTo: string | null
+  }
+  readonly arrangement: {
+    readonly packageId: string
+    readonly displayName: string
+    readonly kind: ArrangementPackageKind
+    readonly version: string
+    readonly effectiveFrom: string
+    readonly effectiveTo: string | null
+    readonly packageVersionHash: string
+    readonly supportedSalaryStrategies: readonly ArrangementSalaryStrategy[]
+    readonly sourceMetadata: ArrangementSourceMetadata
+  }
+  readonly provenance: PayrollArrangementAssignmentProvenance
+  readonly asOfDate: string
+  readonly calculationStatus: 'FOUNDATION_ONLY'
+}
+
+function hasText(value: string): boolean {
+  return value.trim().length > 0
+}
+
+function validatePayrollOwnedAssignmentVersion(assignment: PayrollOwnedArrangementAssignmentVersion): void {
+  if (!hasText(assignment.assignmentId)
+    || !Number.isInteger(assignment.assignmentVersion)
+    || assignment.assignmentVersion < 1
+    || !hasText(assignment.coreEmploymentId)
+    || !hasText(assignment.compositionIds.arrangement)
+    || !hasText(assignment.compositionIds.pension)
+    || !hasText(assignment.packageId)
+    || !isIsoDate(assignment.effectiveFrom)
+    || (assignment.effectiveTo !== null && !isIsoDate(assignment.effectiveTo))
+    || (assignment.effectiveTo !== null && assignment.effectiveTo < assignment.effectiveFrom)
+    || (assignment.provenance.status !== 'TEST_ONLY' && assignment.provenance.status !== 'PAYROLL_OWNED')
+    || !hasText(assignment.provenance.source)) {
+    throw new ArrangementFoundationError('ARRANGEMENT_ASSIGNMENT_INVALID')
+  }
+
+  switch (assignment.salary.strategy) {
+    case 'DISCRETE_SCALE_STEP':
+      if (!hasText(assignment.salary.caoScaleId)
+        || !Number.isInteger(assignment.salary.step)
+        || assignment.salary.step < 0) {
+        throw new ArrangementFoundationError('ARRANGEMENT_ASSIGNMENT_INVALID')
+      }
+      break
+    case 'OPEN_SALARY_BAND':
+      if (assignment.salary.caoScaleId !== null || !hasText(assignment.salary.salaryBandCompositionId)) {
+        throw new ArrangementFoundationError('ARRANGEMENT_ASSIGNMENT_INVALID')
+      }
+      break
+    case 'FREELY_NEGOTIATED':
+      if (assignment.salary.caoScaleId !== null || !hasText(assignment.salary.negotiatedSalaryCompositionId)) {
+        throw new ArrangementFoundationError('ARRANGEMENT_ASSIGNMENT_INVALID')
+      }
+      break
+    default:
+      throw new ArrangementFoundationError('ARRANGEMENT_ASSIGNMENT_INVALID')
+  }
+}
+
+/** Resolve one Payroll assignment timeline; dates are inclusive, as in the package catalog. */
+export function resolvePayrollOwnedArrangementAssignmentVersion(
+  assignmentVersions: readonly PayrollOwnedArrangementAssignmentVersion[],
+  asOfDate: string,
+): PayrollOwnedArrangementAssignmentVersion {
+  if (!isIsoDate(asOfDate)) throw new ArrangementFoundationError('ARRANGEMENT_DATE_INVALID')
+  if (assignmentVersions.length === 0) throw new ArrangementFoundationError('ARRANGEMENT_ASSIGNMENT_INACTIVE')
+
+  const first = assignmentVersions[0]!
+  const seenVersions = new Set<number>()
+  for (const assignment of assignmentVersions) {
+    validatePayrollOwnedAssignmentVersion(assignment)
+    if (assignment.assignmentId !== first.assignmentId
+      || assignment.coreEmploymentId !== first.coreEmploymentId
+      || seenVersions.has(assignment.assignmentVersion)) {
+      throw new ArrangementFoundationError('ARRANGEMENT_ASSIGNMENT_INVALID')
+    }
+    seenVersions.add(assignment.assignmentVersion)
+  }
+
+  const matches = assignmentVersions.filter((assignment) => (
+    assignment.effectiveFrom <= asOfDate
+    && (assignment.effectiveTo === null || asOfDate <= assignment.effectiveTo)
+  ))
+  if (matches.length === 0) throw new ArrangementFoundationError('ARRANGEMENT_ASSIGNMENT_INACTIVE')
+  if (matches.length > 1) throw new ArrangementFoundationError('ARRANGEMENT_ASSIGNMENT_VERSION_AMBIGUOUS')
+  return matches[0]!
+}
+
+/** Build a hash-pinned composition while retaining source/test provenance as metadata only. */
+export function buildPayrollOwnedArrangementCompositionSnapshot(
+  input: PayrollOwnedArrangementCompositionSnapshotInput,
+): {
+  readonly content: PayrollOwnedArrangementCompositionSnapshot
+  readonly contentHash: string
+} {
+  const assignment = resolvePayrollOwnedArrangementAssignmentVersion(input.assignmentVersions, input.asOfDate)
+  const arrangementPackage = getArrangementPackage(assignment.packageId)
+  if (!arrangementPackage) throw new ArrangementFoundationError('ARRANGEMENT_PACKAGE_UNKNOWN')
+  const version = resolveArrangementVersion(arrangementPackage, input.asOfDate)
+  if (!version.supportedSalaryStrategies.includes(assignment.salary.strategy)) {
+    throw new ArrangementFoundationError('ARRANGEMENT_STRATEGY_UNSUPPORTED')
+  }
+
+  const content: PayrollOwnedArrangementCompositionSnapshot = {
+    schemaVersion: 'PAYROLL_ARRANGEMENT_COMPOSITION_V1',
+    scope: input.scope,
+    employment: {
+      source: 'CORE',
+      coreEmploymentId: assignment.coreEmploymentId,
+    },
+    primaryAssignment: {
+      id: assignment.assignmentId,
+      version: assignment.assignmentVersion,
+      compositionIds: assignment.compositionIds,
+      packageId: assignment.packageId,
+      salary: assignment.salary,
+      effectiveFrom: assignment.effectiveFrom,
+      effectiveTo: assignment.effectiveTo,
+    },
+    arrangement: {
+      packageId: arrangementPackage.id,
+      displayName: arrangementPackage.displayName,
+      kind: arrangementPackage.kind,
+      version: version.version,
+      effectiveFrom: version.effectiveFrom,
+      effectiveTo: version.effectiveTo,
+      packageVersionHash: hashArrangementPackageVersion(arrangementPackage, version),
+      supportedSalaryStrategies: version.supportedSalaryStrategies,
+      sourceMetadata: version.sourceMetadata,
+    },
+    provenance: assignment.provenance,
     asOfDate: input.asOfDate,
     calculationStatus: 'FOUNDATION_ONLY',
   }
