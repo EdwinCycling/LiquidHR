@@ -23,7 +23,10 @@ Progress wordt in de plannen getoond. Check-in- en andere tools die een opaque g
 
 ## Authenticatie, toestemming en autorisatie
 
-- Supabase OAuth 2.1/PKCE authenticeert de bestaande LiquidHR-gebruiker; de consentpagina toont clientnaam, exacte redirect-URI en gevraagde OIDC-scopes en biedt expliciet toestaan/weigeren.
+- Supabase OAuth 2.1/PKCE authenticeert de bestaande LiquidHR-gebruiker. `/oauth/consent` accepteert alleen een begrensde, veilige opaque `authorization_id`-string uit de request-URL; de werkelijke geldigheid wordt uitsluitend door `getAuthorizationDetails()` en een exacte ID-match met de Supabase-response bepaald. Clientnaam, exacte redirect-URI, scopes en eventuele resource komen uitsluitend uit die response. Een pending record heeft vóór consent normaal nog geen `user_id`; dat veld is daarom geen accountbinding of afwijzingsreden. De actuele gebruiker wordt via de bestaande Supabase-sessie en Employee self-context gecontroleerd.
+- Zonder sessie gaat de gebruiker naar de bestaande login met een lokale `next` naar exact `/oauth/consent?authorization_id=<zelfde-id>`. Na login haalt de consentpagina de details opnieuw op. Een afwijkend ID, verlopen/ongeldige aanvraag, al afgehandelde aanvraag of callback buiten ChatGPT wordt fail-closed behandeld. De query levert geen clientnaam, callback, scope of resource.
+- Alleen `openid`, `email` en `offline_access` worden geaccepteerd, met verplicht `openid` en zonder duplicaten. Deze OAuth-scopes geven geen LiquidHR-datarechten; de consentpagina toont de scopes zelf en licht e-maildeling en tokenvernieuwing apart toe. Het actuele `supabase-js`-type voor `getAuthorizationDetails()` bevat geen `resource`; als de response dit veld wel levert, wordt alleen de vaste TEST-MCP-resource geaccepteerd en getoond. Zonder responseveld blijft de MCP-resource/audience door de bestaande serverconfiguratie vastgezet en per request gecontroleerd.
+- Toestaan en weigeren lopen uitsluitend via `approveAuthorization()` en `denyAuthorization()` op de request-gebonden sessieclient. Alleen de door Supabase teruggegeven ChatGPT-redirect met geldige callback, `code` of `error`, en optionele `state` wordt gevolgd. Supabase blijft eigenaar van authorization state, CSRF en PKCE.
 - Supabase DCR kan tijdens het toevoegen van de connector een OAuth-client registreren. Alleen na goedgekeurde consent registreert een smalle server-side service-role RPC die door Supabase gevalideerde OAuth `client_id` in de interne LiquidHR-allowlist voor de vaste `employee-self-service`-resource. Er is geen client-selecteerbare resource, tenant, HR-groep, administratie of medewerker.
 - MCP-calls vereisen een geldige Supabase bearer met exacte issuer, `aud=authenticated`, role, subject, client ID en toekomstig expiry. Tokenclaims worden signature-geverifieerd en de user wordt live gevalideerd; de bearer wordt vervolgens aan dezelfde Supabase RLS-client gebonden.
 - De bestaande `AuthContext`, self-permissions, actieve TALENT-module en RLS bepalen per request de toegang. OAuth/OIDC-scopes geven op zichzelf geen LiquidHR-rechten.
@@ -50,7 +53,7 @@ Progress wordt in de plannen getoond. Check-in- en andere tools die een opaque g
 
 1. Lokale migratiecontracttests controleren additiviteit, vaste resource, strikte service-role RPC-grants en actieve beperkte policy. Remote preflight bevestigt exact projectref, bestaande APIAI-01-contracten en afwezigheid van botsende bestaande data/policies.
 2. Na migratie: readback van grants, functiedefinities, resourceallowlists en limiterpolicy; Supabase Security- en Performance-advisors; gegenereerde database-types.
-3. OAuth discovery, PKCE-consent, weigeren/toestaan, geregistreerde callback, tokenclaims, refresh/revoke, en security-negatieven.
+3. OAuth discovery, PKCE-consent, weigeren/toestaan, geregistreerde callback, tokenclaims, refresh/revoke, en security-negatieven. Consent-negatieven omvatten ontbrekend/onbekend/verlopen/al goedgekeurd authorization ID, een ID-wissel tussen browserflows, logout tijdens consent, directe approval zonder sessie, login-returnbehoud en query-URI-manipulatie.
 4. MCP `initialize`, `tools/list` en `tools/call`; de vier goedgekeurde tools geven uitsluitend self-data terug. Niet-authenticated, ongeldig/verlopen/verkeerd issuer/audience/role/client, niet-geregistreerde client, ontbrekende permission/module, forged context, te hoge rate en audit-/limiterfout blokkeren.
 5. Durable audit en limiter readback na zowel toegestane als afgewezen contextcalls; kill-switch weigert nieuwe calls.
 6. Lokale gerichte tests, volledige HR-regressies, strict TypeScript, lint/i18n indien toepasselijk, exacte production-build en hosted runtime-/browserfoutencontrole.
@@ -60,7 +63,7 @@ Progress wordt in de plannen getoond. Check-in- en andere tools die een opaque g
 
 - Pluginnaam: `LiquidHR Workforce`.
 - MCP-URL: `https://liquid-hr-hr-suite.vercel.app/mcp`.
-- Authenticatie: OAuth 2.1 met Supabase TEST-login, PKCE en expliciete consent.
+- Authenticatie: OAuth 2.1 authorization code met Supabase TEST-login, PKCE S256 en expliciete consent; ChatGPT vraagt `openid email offline_access` aan. De consentpagina toont de exacte scope en callback uit Supabase-details.
 - Eerste testprompt: `Welke ontwikkelplannen heb ik?`
 - Daarna: eigen ontwikkelgaps, skills, competenties en andere later afzonderlijk goedgekeurde veilige self-service-reads.
 - Geen autonome writes. APIAI-06 controlled writes blijven buiten toolset totdat een menselijk bevestigingsproces in ChatGPT aantoonbaar veilig is.

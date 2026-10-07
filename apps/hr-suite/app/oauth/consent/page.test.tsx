@@ -17,7 +17,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
 import OAuthConsentPage from './page'
 
-const AUTHORIZATION_ID = '1b72f03c-a41c-4b81-9d71-4f8a377b1064'
+const AUTHORIZATION_ID = 'f6a4c2e8b1d3a5f70918273645546321'
 const CALLBACK_URL = 'https://chatgpt.com/connector/oauth/callback'
 const RESOURCE_URL = 'https://liquid-hr-hr-suite.vercel.app/mcp'
 
@@ -77,7 +77,7 @@ describe('GET /oauth/consent page', () => {
   })
 
   it('does not display or follow an authorization response for a different browser flow', async () => {
-    getAuthorizationDetails.mockResolvedValue({ data: response('b75c8126-9c6c-4697-a183-59a2a6d9d08c'), error: null })
+    getAuthorizationDetails.mockResolvedValue({ data: response('b75c81269c6c4697a18359a2a6d9d08c'), error: null })
 
     const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
     const text = pageText(page)

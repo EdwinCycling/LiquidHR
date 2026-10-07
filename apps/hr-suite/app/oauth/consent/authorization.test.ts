@@ -10,7 +10,7 @@ import {
   parseConsentAuthorization,
 } from './authorization'
 
-const AUTHORIZATION_ID = '1b72f03c-a41c-4b81-9d71-4f8a377b1064'
+const AUTHORIZATION_ID = 'f6a4c2e8b1d3a5f70918273645546321'
 const CHATGPT_REDIRECT = 'https://chatgpt.com/connector/oauth/callback'
 
 function details(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -38,16 +38,19 @@ describe('OAuth consent authorization parsing', () => {
   })
 
   it.each([
-    ['different authorization ID', details({ authorization_id: 'b75c8126-9c6c-4697-a183-59a2a6d9d08c' })],
+    ['different authorization ID', details({ authorization_id: 'b75c81269c6c4697a18359a2a6d9d08c' })],
     ['already-resolved authorization', { redirect_url: `${CHATGPT_REDIRECT}?code=used&state=old` }],
     ['wrong resource', details({ resource: 'https://attacker.example/mcp' })],
   ])('rejects %s', (_label, response) => {
     expect(parseConsentAuthorization(response, AUTHORIZATION_ID)).toBeNull()
   })
 
-  it('accepts only a valid UUID authorization_id', () => {
+  it('accepts bounded opaque Supabase authorization IDs and rejects unsafe values', () => {
     expect(isAuthorizationId(AUTHORIZATION_ID)).toBe(true)
-    expect(isAuthorizationId('missing')).toBe(false)
+    expect(isAuthorizationId('supabase-auth_id.v1~opaque')).toBe(true)
+    expect(isAuthorizationId('')).toBe(false)
+    expect(isAuthorizationId('bad/id?query=swap')).toBe(false)
+    expect(isAuthorizationId('x'.repeat(257))).toBe(false)
     expect(isAuthorizationId(['one', 'two'])).toBe(false)
   })
 })

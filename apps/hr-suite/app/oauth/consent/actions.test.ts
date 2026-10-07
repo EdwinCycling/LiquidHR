@@ -30,7 +30,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
 import { approveChatGptMcpConsent, denyChatGptMcpConsent } from './actions'
 
-const AUTHORIZATION_ID = '1b72f03c-a41c-4b81-9d71-4f8a377b1064'
+const AUTHORIZATION_ID = 'f6a4c2e8b1d3a5f70918273645546321'
 const CALLBACK_URL = 'https://chatgpt.com/connector/oauth/callback?code=issued-code&state=client-state'
 const DENY_URL = 'https://chatgpt.com/connector/oauth/callback?error=access_denied&state=client-state'
 
@@ -95,7 +95,7 @@ describe('APIAI-07 OAuth consent actions', () => {
     ['unknown authorization', { data: null, error: new Error('not found') }],
     ['expired authorization', { data: null, error: new Error('expired') }],
     ['already approved authorization', { data: { redirect_url: CALLBACK_URL }, error: null }],
-    ['stale or swapped browser flow', { data: authorizationDetails({ authorization_id: 'b75c8126-9c6c-4697-a183-59a2a6d9d08c' }), error: null }],
+    ['stale or swapped browser flow', { data: authorizationDetails({ authorization_id: 'b75c81269c6c4697a18359a2a6d9d08c' }), error: null }],
     ['unsupported scopes', { data: authorizationDetails({ scope: 'openid api:write' }), error: null }],
     ['untrusted redirect URI', { data: authorizationDetails({ redirect_uri: 'https://attacker.example/callback' }), error: null }],
   ])('fails closed for %s', async (_label, response) => {
