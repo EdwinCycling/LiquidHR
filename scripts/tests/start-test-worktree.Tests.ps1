@@ -18,4 +18,9 @@ Describe 'start-test-worktree runtime bridge' {
         $launcherSource | Should Match 'process\.execArgv\.some'
         $launcherSource | Should Match '--env-file=\$centralConfig'
     }
+
+    It 'verwijst naar de veilige metadata-only provisioningroutine wanneer centrale config ontbreekt' {
+        $launcherSource | Should Match 'provision-test-runtime\.ps1'
+        $launcherSource | Should Match 'er is geen alternatieve configuratie gemaakt of gebruikt'
+    }
 }

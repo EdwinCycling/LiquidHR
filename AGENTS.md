@@ -129,6 +129,7 @@ De repository bevat vaste natuurlijke commando's. Gebruik `EdwinHelp` voor het a
 | Natuurlijk commando | Script en gedrag |
 | --- | --- |
 | **EdwinHelp** | `.\scripts\edwin-help.ps1`: read-only overzicht van alle afgesproken commando's, bronnen, risico's en voorbeelden. Ondersteunt `-Detailed` en `-Command`. |
+| **Provision lokale TEST-runtimeconfig** | `.\scripts\provision-test-runtime.ps1`: maakt de centrale runtimeconfig alleen als geverifieerde hardlink naar de beschermde canonical file; leest, kopieert, overschrijft of verplaatst geen inhoud en weigert een afwijkend bestaand doel. |
 | **Start lokale TEST-runtime** | `.\scripts\start-test-worktree.ps1`: centrale lokale TEST-config, exacte TEST-target-, dependency-, poort- en build-provenancepreflight; optioneel `-Build` voor een schone vastgelegde kandidaat, zonder configkopie, dependency-installatie of processtop. Zie [`docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`](docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md). |
 | **Maak Git backup** | `.\scripts\backup.ps1`: legt alle huidige wijzigingen lokaal vast, maakt of verplaatst de tag `last-good` en de branch `backup/last-good`, en pusht niets. |
 | **Zet Git backup terug** | `.\scripts\restore.ps1`: vraagt eerst om exact `HERSTEL`, weigert standaard een dirty werkboom en laat ongetrackte bestanden standaard staan. `-Force` en eventueel `-Clean` zijn alleen voor expliciet bevestigde noodsituaties. |

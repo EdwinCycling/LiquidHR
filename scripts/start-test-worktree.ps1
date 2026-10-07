@@ -27,7 +27,7 @@ if ([string]::IsNullOrWhiteSpace($centralConfigRoot)) {
 
 $centralConfig = Join-Path $centralConfigRoot 'LiquidHR/TestRuntime/.env.local'
 if (-not (Test-Path -LiteralPath $centralConfig -PathType Leaf)) {
-    throw 'De centrale lokale TEST-configuratie ontbreekt. Er is geen alternatieve configuratie gemaakt of gebruikt.'
+    throw 'De centrale lokale TEST-configuratie ontbreekt. Voer .\scripts\provision-test-runtime.ps1 uit; er is geen alternatieve configuratie gemaakt of gebruikt.'
 }
 
 # Next.js can load several .env* files after Node has loaded the central config.
