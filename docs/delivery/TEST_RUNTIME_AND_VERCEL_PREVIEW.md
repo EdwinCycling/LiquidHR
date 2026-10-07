@@ -1,6 +1,6 @@
 # Lokale TEST-runtime en Vercel Preview-procedure
 
-Bijgewerkt: 2026-10-02
+Bijgewerkt: 2026-10-07
 
 Deze procedure geldt voor nieuwe LiquidHR-worktrees en toekomstige pull requests. Zij scheidt de lokale TEST-runtime, Vercel Preview en de gezamenlijke TEST-release.
 
@@ -9,6 +9,15 @@ Deze procedure geldt voor nieuwe LiquidHR-worktrees en toekomstige pull requests
 De enige goedgekeurde lokale TEST-configuratie staat centraal op:
 
 `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local`
+
+Als dit centrale bestand ontbreekt, voer dan vanuit de repositoryroot de metadata-only provisioner uit:
+
+```powershell
+.\scripts\provision-test-runtime.ps1
+.\scripts\start-test-worktree.ps1 -Mode Development -PreflightOnly
+```
+
+De provisioner controleert alleen dat de beschermde canonical `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` bestaat en maakt de doelmap plus een NTFS-hardlink naar diezelfde file. Er wordt geen bestandsinhoud gelezen, geprint, gekopieerd, overschreven of verplaatst. Een afwijkend bestaand doel wordt geweigerd; ontbrekende hardlinkondersteuning geeft een fout zonder fallback-kopie. Een reeds geverifieerde hardlink is idempotent.
 
 Gebruik vanuit de repositoryroot:
 

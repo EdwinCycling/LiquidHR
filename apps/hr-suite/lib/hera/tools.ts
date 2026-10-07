@@ -1,6 +1,10 @@
+import { z } from 'zod'
 import type { AuthContext } from '@/lib/auth/permissions'
 import { listMyReminders, type ReminderItem } from '@/lib/reminders/reminder-service'
 import { createClient } from '@/lib/supabase/server'
+import { getTranslator } from '@/lib/i18n/server'
+import { talentCheckInCreateSchema } from '@/lib/talent/check-in-schemas'
+import { talentGoalCreateSchema } from '@/lib/talent/goal-schemas'
 import {
   addressChangeProposalSchema,
   employmentTimelineProposalSchema,
@@ -14,7 +18,7 @@ export type HeRaToolResult =
   | { kind: 'REMINDERS'; reminders: ReminderItem[] }
   | {
     kind: 'DRAFT'
-    toolName: 'draft_personal_reminder' | 'draft_employee_address_change' | 'draft_employment_salary_change' | 'draft_employment_schedule_change' | 'draft_organization_placement_change'
+    toolName: 'draft_personal_reminder' | 'draft_employee_address_change' | 'draft_employment_salary_change' | 'draft_employment_schedule_change' | 'draft_organization_placement_change' | 'draft_talent_development_goal' | 'draft_talent_goal_check_in'
     payload: Record<string, unknown>
     summary: string
     controlPayload: Record<string, unknown>
@@ -104,6 +108,30 @@ export async function executeHeRaTool(
       kind: 'DRAFT', toolName: call.name, payload,
       summary: `Wijziging van organisatieplaatsing ${proposal.placementId}.`,
       controlPayload: { oldValue: currentValue, newValue: proposal.input },
+    }
+  }
+
+  if (call.name === 'draft_talent_development_goal') {
+    const proposal = talentGoalCreateSchema.parse(call.args)
+    const translate = await getTranslator('hera')
+    return {
+      kind: 'DRAFT',
+      toolName: call.name,
+      payload: proposal,
+      summary: translate('controlledActionDraftPending'),
+      controlPayload: { oldValue: null, newValue: proposal },
+    }
+  }
+
+  if (call.name === 'draft_talent_goal_check_in') {
+    const proposal = z.object({ goalId: z.string().uuid(), input: talentCheckInCreateSchema }).strict().parse(call.args)
+    const translate = await getTranslator('hera')
+    return {
+      kind: 'DRAFT',
+      toolName: call.name,
+      payload: proposal,
+      summary: translate('controlledActionDraftPending'),
+      controlPayload: { oldValue: null, newValue: proposal },
     }
   }
 

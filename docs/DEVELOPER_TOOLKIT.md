@@ -7,6 +7,7 @@ Deze toolkit geeft LiquidHR vaste, natuurlijke werkcommando's. `EdwinHelp` is he
 | Natuurlijk commando | Lokale actie |
 | --- | --- |
 | `EdwinHelp` | Read-only overzicht van alle commando's, bronnen, risico's en voorbeelden. |
+| `Provision lokale TEST-runtimeconfig` | Maakt de centrale runtimeconfig als metadata-geverifieerde hardlink naar de beschermde canonical config; leest, kopieert of overschrijft geen configuratiebestand. |
 | `Start lokale TEST-runtime` | Preflight of start de centrale lokale TEST-runtime vanuit iedere geschikte worktree; kopieert geen config, installeert niets en bouwt alleen na expliciet `-Build`. |
 | `Maak Git backup` | Stage alle lokale wijzigingen, maak zo nodig een backup-commit en verplaats `last-good` en `backup/last-good` naar de actuele commit. |
 | `Zet Git backup terug` | Vraag een expliciete bevestiging en zet tracked bestanden terug naar `last-good`; nieuwe ongetrackte bestanden blijven standaard behouden. |
@@ -65,6 +66,7 @@ Gebruik EdwinHelp. Redesign de pagina Rollen en autorisatie op /authorization. L
 ```powershell
 .\scripts\backup.ps1
 .\scripts\restore.ps1
+.\scripts\provision-test-runtime.ps1
 .\scripts\new-feature.ps1 -Name 'Split Screen'
 .\scripts\finish-feature.ps1
 ```

@@ -254,6 +254,45 @@ export async function generateHeRaResponse(input: GenerateHeRaResponseInput): Pr
             }, required: ['placementId', 'expectedUpdatedAt', 'currentValue', 'input'],
           },
         },
+        {
+          name: 'draft_talent_development_goal',
+          description: 'Bereid een ontwikkeldoelconcept voor. Vraag expliciete bevestiging voordat LiquidHR iets opslaat; gebruik geen zelfbedachte medewerker-ID.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              employeeId: { type: 'STRING', description: 'Alleen een employeeId dat de gebruiker via LiquidHR-tools zichtbaar heeft gekregen.' },
+              capabilityId: { type: 'STRING' },
+              title: { type: 'STRING' },
+              description: { type: 'STRING' },
+              periodStart: { type: 'STRING', description: 'Datum in YYYY-MM-DD.' },
+              periodEnd: { type: 'STRING', description: 'Optionele datum in YYYY-MM-DD.' },
+              progressPercent: { type: 'INTEGER' },
+              status: { type: 'STRING', enum: ['DRAFT', 'ACTIVE'] },
+            },
+            required: ['title', 'periodStart'],
+          },
+        },
+        {
+          name: 'draft_talent_goal_check_in',
+          description: 'Bereid een check-in voor een actief ontwikkeldoel voor. Toon de volledige tekst ter bevestiging voordat LiquidHR iets opslaat.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              goalId: { type: 'STRING' },
+              input: {
+                type: 'OBJECT',
+                properties: {
+                  entryType: { type: 'STRING', enum: ['EMPLOYEE_REFLECTION', 'MANAGER_OBSERVATION', 'FOLLOW_UP'] },
+                  body: { type: 'STRING' },
+                  followUpTitle: { type: 'STRING' },
+                  followUpDueOn: { type: 'STRING', description: 'Optionele datum in YYYY-MM-DD.' },
+                },
+                required: ['entryType', 'body'],
+              },
+            },
+            required: ['goalId', 'input'],
+          },
+        },
       ] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 800 },
     }),

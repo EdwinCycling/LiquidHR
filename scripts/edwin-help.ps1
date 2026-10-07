@@ -17,6 +17,14 @@ $commands = @(
         Example = 'EdwinHelp'
     },
     [pscustomobject]@{
+        Name = 'Provision lokale TEST-runtimeconfig'
+        Aliases = @('test runtime config herstellen', 'test config provisionen')
+        Description = 'Maakt de centrale TEST-runtimeconfig als geverifieerde NTFS-hardlink naar de beschermde canonieke config; leest of kopieert geen waarden en weigert een afwijkend bestaand doel.'
+        Source = '.\scripts\provision-test-runtime.ps1'
+        Risk = 'Maakt alleen de centrale doelmap en hardlink; de canonieke config wordt niet geopend of gewijzigd'
+        Example = '.\scripts\provision-test-runtime.ps1'
+    },
+    [pscustomobject]@{
         Name = 'Start lokale TEST-runtime'
         Aliases = @('test runtime starten', 'start liquidhr test', 'test preflight')
         Description = 'Controleert de centrale lokale TEST-target, dependencies, loopback-poort en buildprovenance; bouwen of starten gebeurt alleen met expliciete opties.'

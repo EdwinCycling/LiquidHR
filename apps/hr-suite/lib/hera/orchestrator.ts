@@ -24,8 +24,8 @@ interface RunHeRaTurnInput {
 }
 
 interface HeRaDraftProposal {
-  actionType: 'PERSONAL_REMINDER' | 'EMPLOYEE_ADDRESS_CHANGE' | 'EMPLOYMENT_SALARY_CHANGE' | 'EMPLOYMENT_SCHEDULE_CHANGE' | 'ORGANIZATION_PLACEMENT_CHANGE'
-  toolName: 'draft_personal_reminder' | 'draft_employee_address_change' | 'draft_employment_salary_change' | 'draft_employment_schedule_change' | 'draft_organization_placement_change'
+  actionType: 'PERSONAL_REMINDER' | 'EMPLOYEE_ADDRESS_CHANGE' | 'EMPLOYMENT_SALARY_CHANGE' | 'EMPLOYMENT_SCHEDULE_CHANGE' | 'ORGANIZATION_PLACEMENT_CHANGE' | 'TALENT_DEVELOPMENT_GOAL_CREATE' | 'TALENT_GOAL_CHECK_IN_CREATE'
+  toolName: 'draft_personal_reminder' | 'draft_employee_address_change' | 'draft_employment_salary_change' | 'draft_employment_schedule_change' | 'draft_organization_placement_change' | 'draft_talent_development_goal' | 'draft_talent_goal_check_in'
   payload: Record<string, unknown>
   summary: string
   controlPayload: Record<string, unknown>
@@ -103,6 +103,8 @@ function draftFromToolResult(toolResult: Record<string, unknown>): HeRaDraftProp
     draft_employment_salary_change: 'EMPLOYMENT_SALARY_CHANGE',
     draft_employment_schedule_change: 'EMPLOYMENT_SCHEDULE_CHANGE',
     draft_organization_placement_change: 'ORGANIZATION_PLACEMENT_CHANGE',
+    draft_talent_development_goal: 'TALENT_DEVELOPMENT_GOAL_CREATE',
+    draft_talent_goal_check_in: 'TALENT_GOAL_CHECK_IN_CREATE',
   } as const
   const toolName = toolResult.toolName as keyof typeof actionTypes
   const actionType = actionTypes[toolName]
@@ -206,7 +208,12 @@ export async function runHeRaTurn(
   const draft = draftFromToolResult(toolResult)
   if (draft) {
     return {
-      content: first.text || draft.summary,
+      // Never surface model prose that could claim a write happened before the
+      // user reviewed and confirmed the controlled action.
+      content: draft.actionType === 'TALENT_DEVELOPMENT_GOAL_CREATE'
+        || draft.actionType === 'TALENT_GOAL_CHECK_IN_CREATE'
+        ? draft.summary
+        : first.text || draft.summary,
       model: first.model,
       evidence: null,
       draft,

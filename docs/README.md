@@ -1,6 +1,14 @@
 # Liquid HR documentatie-index
 
+## APIAI-06 final local acceptance — 2026-10-07
+
+**Local convergence is ready** on `work/apiai-06-controlled-actions-20261006`, based on main `38ccbcac6423824a1dba7075f022f68771edf087`, with product code at `c37646e3e6033368080d0fad60a8bad9cdc91907`. The existing TEST migration `20261007054728_apiai06_controlled_actions` is applied once and verified. Employee, Manager and HR Admin local authenticated acceptance, action idempotency/audit, regressions and the exact-source production build passed. The HR Admin fixture corruption was restored through the existing fixture process before acceptance; this run added no identity or permission.
+
+Status: **CONVERGENCE READY / LOCAL TEST ACCEPTED / HERA PROVIDER ACCEPTANCE OPEN**. `GEMINI_KEY` and `GEMINI_MODEL` remain absent; HeRa stays fail-closed and no unaided provider action is allowed. A later launcher recheck could not start a new browser session: the official preflight reported the central runtime config absent, and the existing provisioner refused to overwrite an occupied destination it could not verify as the canonical hardlink. It made no changes; an extra logout/stale-context browser recheck remains open. PR #8 is still Draft at the previous remote head while the final evidence is recorded. Exact-head PR checks, merge and the authorized shared-TEST deployment/hosted smoke remain pending. Public APIAI-01 and public MCP remain fail-closed. See the [APIAI-06 acceptance report](quality/acceptance/runs/APIAI-06-20261006.md) and [controlled-action contract](requirements/ai/APIAI-06_CONTROLLED_ACTIONS.md).
+
 ## APIAI-01–05 ONE VERSION convergence — 2026-10-05
+
+**Historical checkpoint, superseded by the released baseline above.**
 
 **Status: ONE VERSION-kandidaat lokaal GREEN op code-SHA 6e443463561e77d3039a1e2afb1bbcaecff548b0: exact-source browseracceptatie, regressies, Production-build en Payroll-bundlecontrole zijn geslaagd; drie onafhankelijke reviews vonden geen P0/P1.** [Draft PR #7](https://github.com/EdwinCycling/LiquidHR/pull/7) staat open naar main; readback is mergeable/clean, zonder checks of Vercel-deployment. PR #3 en #5 blijven ongemergede Draft-bouwsporen. De externe API v1-routes blijven ongemount, lokale MCP faalt gesloten buiten de lokale opt-in en APIAI-01 live security/database- en ChatGPT-hostgates blijven OPEN. Merge en deployment zijn niet uitgevoerd. Zie het [APIAI-03/04/05-acceptatierapport](quality/acceptance/runs/APIAI-03-04-05-INTEGRATION-20261005.md) voor de volledige evidence.
 ## APIAI-02 — workforce tools — 2026-10-04

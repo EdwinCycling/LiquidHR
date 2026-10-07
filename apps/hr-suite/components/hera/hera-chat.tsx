@@ -1,7 +1,7 @@
 'use client'
 
 import { Download, Edit3, LoaderCircle, Menu, MessageCircleHeart, Plus, Send, Settings2, Sparkles, Trash2 } from 'lucide-react'
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { getConversationLoadStateAfterFetch, getHeRaScreenState } from './hera-chat-state'
 import { HeRaControlCard, type HeRaDraftView, type HeRaMemoryProposalView } from './hera-control-card'
 import { requestJson } from './hera-request'
@@ -56,7 +56,7 @@ function messageClass(role: Message['role']): string {
     : 'mr-auto border bg-surface text-foreground'
 }
 
-export function HeRaChat({ labels }: { labels: HeRaLabels }) {
+export function HeRaChat({ labels, layout = 'page' }: { labels: HeRaLabels; layout?: 'page' | 'floating' }) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [detail, setDetail] = useState<ConversationDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -66,6 +66,8 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
   const [memoryProposal, setMemoryProposal] = useState<HeRaMemoryProposalView | null>(null)
   const [railOpen, setRailOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const actionIdempotencyKey = useRef<string | null>(null)
+  const actionIdempotencyContent = useRef<string | null>(null)
 
   const screenState = getHeRaScreenState({
     isLoading,
@@ -123,6 +125,8 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
       setDetail({ conversation: result.data, messages: [] })
       setDraft(null)
       setMemoryProposal(null)
+      actionIdempotencyKey.current = null
+      actionIdempotencyContent.current = null
     } catch {
       setError(labels.error)
     } finally {
@@ -140,13 +144,19 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
     setIsSending(true)
     setError(null)
     try {
+      if (actionIdempotencyContent.current !== content || !actionIdempotencyKey.current) {
+        actionIdempotencyKey.current = crypto.randomUUID()
+        actionIdempotencyContent.current = content
+      }
       const result = await request<{ data: { message: Message; draft: HeRaDraftView | null; memoryProposal: HeRaMemoryProposalView | null } }>(`/api/hera/conversations/${detail.conversation.id}/messages`, {
-        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content }),
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content, idempotencyKey: actionIdempotencyKey.current }),
       })
       const userMessage: Message = { id: `local-${Date.now()}`, role: 'USER', content, created_at: new Date().toISOString() }
       setDetail((current) => current ? { ...current, messages: [...current.messages, userMessage, result.data.message] } : current)
       setDraft(result.data.draft)
       setMemoryProposal(result.data.memoryProposal)
+      actionIdempotencyKey.current = null
+      actionIdempotencyContent.current = null
       form.reset()
     } catch {
       setError(labels.error)
@@ -184,9 +194,20 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
   async function confirmDraft() {
     if (!draft) return
     try {
-      await request<{ data: unknown }>(`/api/hera/drafts/${draft.id}/confirm`, {
-        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedVersion: draft.version }),
+      const previewHash = previewHashFrom(draft.controlPayload)
+      const confirmed = await request<{ data: { status?: string; version?: number; confirmedAt?: string | null } }>(`/api/hera/drafts/${draft.id}/confirm`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedVersion: draft.version, ...(previewHash ? { expectedPreviewHash: previewHash } : {}) }),
       })
+      if (confirmed.data.status === 'AWAITING_CONFIRMATION' && confirmed.data.confirmedAt && confirmed.data.version && previewHash) {
+        try {
+          await request<{ data: unknown }>(`/api/hera/drafts/${draft.id}/execute`, {
+            method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedVersion: confirmed.data.version, expectedPreviewHash: previewHash }),
+          })
+        } catch (error) {
+          setDraft(null)
+          throw error
+        }
+      }
       setDraft(null)
     } catch { setError(labels.error) }
   }
@@ -235,7 +256,9 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
   )
 
   return (
-    <section className="relative mx-auto flex h-[calc(100dvh-5rem)] min-h-[38rem] w-full max-w-[100rem] overflow-hidden rounded-3xl border bg-surface shadow-[0_24px_70px_-46px_var(--primary)]">
+    <section className={layout === 'floating'
+      ? 'relative flex h-full min-h-0 w-full overflow-hidden bg-surface'
+      : 'relative mx-auto flex h-[calc(100dvh-5rem)] min-h-[38rem] w-full max-w-[100rem] overflow-hidden rounded-3xl border bg-surface shadow-[0_24px_70px_-46px_var(--primary)]'}>
       <div className="hidden w-72 shrink-0 md:block">{rail}</div>
       {railOpen ? <div className="absolute inset-0 z-30 grid grid-cols-[minmax(0,18rem)_1fr] bg-foreground/20 md:hidden"><div className="min-w-0 bg-surface shadow-xl">{rail}</div><button aria-label={labels.cancel} onClick={() => setRailOpen(false)} type="button" /></div> : null}
       <div className="flex min-w-0 flex-1 flex-col">
@@ -258,4 +281,10 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
       <HeRaSettings labels={labels} onClose={() => setSettingsOpen(false)} open={settingsOpen} />
     </section>
   )
+}
+
+function previewHashFrom(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return null
+  const previewHash = (payload as Record<string, unknown>).previewHash
+  return typeof previewHash === 'string' && /^[0-9a-f]{64}$/i.test(previewHash) ? previewHash : null
 }

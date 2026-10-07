@@ -1,6 +1,20 @@
 # Implementatiestatus Liquid HR
 
+## APIAI-06 final acceptance and release handoff — 2026-10-07
+
+**Local convergence ready:** APIAI-06 branch `work/apiai-06-controlled-actions-20261006` is based on main `38ccbcac6423824a1dba7075f022f68771edf087`; product-code SHA `c37646e3e6033368080d0fad60a8bad9cdc91907`. It supports the shared Prepare → Preview → Confirm → Execute → Readback lifecycle for the two existing Talent services through HeRa and local-only MCP, with central authorization, preview binding, idempotency, bounded failures, readback and payload-free audit. Existing domain services remain the only business-write path.
+
+The existing synthetic HR Admin fixture had been corrupted and was restored through its approved fixture path before this acceptance. Fresh HR Admin login/context and one complete synthetic development-goal lifecycle passed; duplicate execution returned the existing result, no second goal appeared, audit contained the four ordered events and one correlation ID without Talent free text, and forged scope was rejected. Employee read nine plans and completed a safe preview/cancel plus cross-scope deny; Manager read five team-matrix rows and completed an in-scope preview/cancel plus outside-team deny. The earlier Employee and Manager full MCP lifecycles remain documented in the acceptance report. No identity or permission was created or expanded.
+
+Verification on the exact product-code SHA: focused APIAI-06/Talent/HeRa/Workforce/MCP/migration suite **54 files / 244 tests passed**; full HR suite **549 passed / 4 skipped; 2,405 tests passed / 8 skipped**; strict TypeScript passed; ESLint had 0 errors and 7 existing Payroll warnings; NL/EN parity **41 namespaces**; Pester **8/8**; production build **309/309 pages**; Payroll negative control and 152-asset scan passed. The HeRa layout was inspected at 390×844 and 1440×900. One transient local `PGRST303`/`/dashboard/start` 500 recovered after session settling/reload; no subsequent 5xx remained.
+
+Status: **CONVERGENCE READY / LOCAL TEST ACCEPTED / HERA PROVIDER ACCEPTANCE OPEN**. The existing `GEMINI_KEY` and `GEMINI_MODEL` are absent, so no provider call was attempted; HeRa remains fail-closed. A later official runtime preflight reported the central config absent; the existing provisioner safely refused to overwrite the occupied destination because it could not verify the canonical hardlink. An extra local browser logout/stale-context check remains open and no runtime file changed. APIAI-06 hosted acceptance is open until deployment of the merged exact main SHA. Preflight confirmed the existing Vercel `liquidhr` project, Production/shared-TEST target, current alias, and a previous READY deployment in the same project for rollback. PR #8 remains Draft on the previous remote head until final evidence is pushed and checked. Merge and the explicitly authorized TEST deployment remain to be performed. Public APIAI-01/MCP and ChatGPT registration stay closed.
+
+See [APIAI-06 acceptance](../quality/acceptance/runs/APIAI-06-20261006.md) for full evidence and [APIAI-06 requirements](../requirements/ai/APIAI-06_CONTROLLED_ACTIONS.md) for the security contract.
+
 ## APIAI-01–05 ONE VERSION convergence — 2026-10-05
+
+**Historical pre-merge checkpoint, superseded by the released baseline above.**
 
 **Voortgang: exacte code-SHA 6e443463561e77d3039a1e2afb1bbcaecff548b0 heeft lokale persona-/adapteracceptatie, full-suite regressies, Production-build en Payroll-bundlecontrole GREEN; drie onafhankelijke reviews vonden geen P0/P1.** Draft PR #7 staat open naar main, is mergeable/clean en heeft nog geen statuschecks; Vercel heeft geen deployment voor deze branch. Externe activatie en APIAI-01 live security/database- en ChatGPT-hostgates blijven geblokkeerd/open.
 

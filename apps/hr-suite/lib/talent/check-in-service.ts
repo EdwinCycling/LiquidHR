@@ -29,13 +29,13 @@ function checkInDatabaseError(message: string, fallback: string, databaseCode?: 
   throw new TalentCheckInError(fallback)
 }
 
-async function goalContext(goalId: string): Promise<{ context: AuthContext; supabase: Awaited<ReturnType<typeof createClient>>; employeeId: string; goalStatus: string }> {
+async function goalContext(goalId: string): Promise<{ context: AuthContext; supabase: Awaited<ReturnType<typeof createClient>>; employeeId: string; goalStatus: string; goalTitle: string; goalVersion: number }> {
   const context = await requireAuthContext()
   await requireTenantModule('TALENT')
   const supabase = await createClient()
   const { data: goal, error } = await supabase
     .from('talent_development_goals')
-    .select('employee_id,status')
+    .select('employee_id,status,title,version')
     .eq('tenant_id', context.tenantId)
     .eq('id', goalId)
     .maybeSingle()
@@ -45,7 +45,25 @@ async function goalContext(goalId: string): Promise<{ context: AuthContext; supa
   } catch {
     throw new TalentCheckInError('TALENT_CHECKIN_FORBIDDEN', 403)
   }
-  return { context, supabase, employeeId: goal.employee_id, goalStatus: goal.status }
+  return { context, supabase, employeeId: goal.employee_id, goalStatus: goal.status, goalTitle: goal.title, goalVersion: goal.version }
+}
+
+async function checkInMutationContext(goalId: string, input: TalentCheckInCreateInput): Promise<Awaited<ReturnType<typeof goalContext>>> {
+  const result = await goalContext(goalId)
+  if (result.goalStatus !== 'ACTIVE') throw new TalentCheckInError('TALENT_CHECKIN_GOAL_NOT_ACTIVE', 409)
+  const isAdmin = result.context.permissions.includes('talent-goal:manage')
+  const isSelf = result.context.employeeId === result.employeeId
+  if (!isAdmin && (isSelf ? input.entryType !== 'EMPLOYEE_REFLECTION' : input.entryType === 'EMPLOYEE_REFLECTION')) {
+    throw new TalentCheckInError('TALENT_CHECKIN_ENTRY_TYPE_FORBIDDEN', 403)
+  }
+  await requirePermission('talent-goal:write', result.employeeId)
+  return result
+}
+
+/** Reuses the check-in service's goal, module, permission, and entry-type checks during preview. */
+export async function authorizeTalentGoalCheckIn(goalId: string, input: TalentCheckInCreateInput): Promise<{ employeeId: string; goalStatus: string; goalTitle: string; goalVersion: number }> {
+  const result = await checkInMutationContext(goalId, input)
+  return { employeeId: result.employeeId, goalStatus: result.goalStatus, goalTitle: result.goalTitle, goalVersion: result.goalVersion }
 }
 
 function mapCheckIn(row: CheckInRow): TalentGoalCheckIn {
@@ -112,14 +130,7 @@ export async function listMyTalentGoalCheckIns(goalId: string): Promise<TalentGo
 }
 
 export async function createTalentGoalCheckIn(goalId: string, input: TalentCheckInCreateInput): Promise<string> {
-  const { context, supabase, employeeId, goalStatus } = await goalContext(goalId)
-  if (goalStatus !== 'ACTIVE') throw new TalentCheckInError('TALENT_CHECKIN_GOAL_NOT_ACTIVE', 409)
-  const isAdmin = context.permissions.includes('talent-goal:manage')
-  const isSelf = context.employeeId === employeeId
-  if (!isAdmin && (isSelf ? input.entryType !== 'EMPLOYEE_REFLECTION' : input.entryType === 'EMPLOYEE_REFLECTION')) {
-    throw new TalentCheckInError('TALENT_CHECKIN_ENTRY_TYPE_FORBIDDEN', 403)
-  }
-  await requirePermission('talent-goal:write', employeeId)
+  const { context, supabase, employeeId } = await checkInMutationContext(goalId, input)
   const insert: CheckInInsert = {
     tenant_id: context.tenantId,
     goal_id: goalId,
