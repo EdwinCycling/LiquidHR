@@ -4,6 +4,7 @@ import type { AuthContext } from '@/lib/auth/permissions'
 import {
   createControlledActionService,
   ControlledActionError,
+  buildAuthorizedGoalPayload,
   type ControlledActionId,
   type ControlledActionDomain,
   type ControlledActionDraft,
@@ -27,6 +28,31 @@ const actionInput = {
   channel: 'HERA' as const,
   locale: 'nl' as const,
 }
+
+describe('authorized goal payload ordering', () => {
+  it('keeps an implicit self target stable after the employee ID is persisted', () => {
+    const targetEmployeeId = context.employeeId!
+    const implicitTarget = buildAuthorizedGoalPayload({
+      title: 'Synthetisch testdoel',
+      periodStart: '2026-10-07',
+      progressPercent: 0,
+      status: 'DRAFT',
+    }, targetEmployeeId)
+    const explicitTarget = buildAuthorizedGoalPayload({
+      employeeId: targetEmployeeId,
+      title: 'Synthetisch testdoel',
+      periodStart: '2026-10-07',
+      progressPercent: 0,
+      status: 'DRAFT',
+    }, targetEmployeeId)
+
+    expect(Object.keys(implicitTarget)[0]).toBe('employeeId')
+    expect(implicitTarget).not.toHaveProperty('capabilityId')
+    expect(implicitTarget).not.toHaveProperty('description')
+    expect(implicitTarget).not.toHaveProperty('periodEnd')
+    expect(JSON.stringify(implicitTarget)).toBe(JSON.stringify(explicitTarget))
+  })
+})
 
 function setup(previewAllowed = true) {
   let draft: ControlledActionDraft | null = null

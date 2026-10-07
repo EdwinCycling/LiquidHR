@@ -56,7 +56,7 @@ function messageClass(role: Message['role']): string {
     : 'mr-auto border bg-surface text-foreground'
 }
 
-export function HeRaChat({ labels }: { labels: HeRaLabels }) {
+export function HeRaChat({ labels, layout = 'page' }: { labels: HeRaLabels; layout?: 'page' | 'floating' }) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [detail, setDetail] = useState<ConversationDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -256,7 +256,9 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
   )
 
   return (
-    <section className="relative mx-auto flex h-[calc(100dvh-5rem)] min-h-[38rem] w-full max-w-[100rem] overflow-hidden rounded-3xl border bg-surface shadow-[0_24px_70px_-46px_var(--primary)]">
+    <section className={layout === 'floating'
+      ? 'relative flex h-full min-h-0 w-full overflow-hidden bg-surface'
+      : 'relative mx-auto flex h-[calc(100dvh-5rem)] min-h-[38rem] w-full max-w-[100rem] overflow-hidden rounded-3xl border bg-surface shadow-[0_24px_70px_-46px_var(--primary)]'}>
       <div className="hidden w-72 shrink-0 md:block">{rail}</div>
       {railOpen ? <div className="absolute inset-0 z-30 grid grid-cols-[minmax(0,18rem)_1fr] bg-foreground/20 md:hidden"><div className="min-w-0 bg-surface shadow-xl">{rail}</div><button aria-label={labels.cancel} onClick={() => setRailOpen(false)} type="button" /></div> : null}
       <div className="flex min-w-0 flex-1 flex-col">

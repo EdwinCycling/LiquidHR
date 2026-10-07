@@ -10,7 +10,7 @@ import { requireTenantModule } from '@/lib/modules/module-service'
 import { createTalentGoalCheckIn, authorizeTalentGoalCheckIn, listMyTalentGoalCheckIns, listTalentGoalCheckIns, TalentCheckInError } from '@/lib/talent/check-in-service'
 import { talentCheckInCreateSchema } from '@/lib/talent/check-in-schemas'
 import { authorizeTalentGoalCreate, createTalentGoal, getTalentGoal, TalentGoalError } from '@/lib/talent/goal-service'
-import { talentGoalCreateSchema } from '@/lib/talent/goal-schemas'
+import { talentGoalCreateSchema, type TalentGoalCreateInput } from '@/lib/talent/goal-schemas'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -26,6 +26,22 @@ export type ControlledActionId = keyof typeof controlledActionPayloadSchemas
 export type ControlledActionType = 'TALENT_DEVELOPMENT_GOAL_CREATE' | 'TALENT_GOAL_CHECK_IN_CREATE'
 export type ControlledActionChannel = 'HERA' | 'LOCAL_MCP'
 export type ControlledActionStatus = 'AWAITING_CONFIRMATION' | 'EXECUTING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
+
+export function buildAuthorizedGoalPayload(
+  input: TalentGoalCreateInput,
+  targetEmployeeId: string,
+): TalentGoalCreateInput {
+  return {
+    employeeId: targetEmployeeId,
+    ...(input.capabilityId === undefined ? {} : { capabilityId: input.capabilityId }),
+    title: input.title,
+    ...(input.description === undefined ? {} : { description: input.description }),
+    periodStart: input.periodStart,
+    ...(input.periodEnd === undefined ? {} : { periodEnd: input.periodEnd }),
+    progressPercent: input.progressPercent,
+    status: input.status,
+  }
+}
 
 export interface ControlledActionDraft {
   id: string
@@ -207,7 +223,7 @@ async function defaultPreview(context: AuthContext, actionId: ControlledActionId
   if (actionId === 'talent.development-goal.create') {
     const input = talentGoalCreateSchema.parse(parsed.data)
     const authorized = await authorizeTalentGoalCreate(input)
-    const payload = { ...input, employeeId: authorized.targetEmployeeId }
+    const payload = buildAuthorizedGoalPayload(input, authorized.targetEmployeeId)
     const self = authorized.targetEmployeeId === context.employeeId
     const translate = await getTranslator('hera', locale)
     const summary = translate(self ? 'controlledGoalCreateSelf' : 'controlledGoalCreateEmployee')
