@@ -57,6 +57,23 @@ describe('login actions', () => {
     expect(redirect).toHaveBeenCalledWith('/dashboard/start')
   })
 
+  it('keert na geslaagde wachtwoordlogin terug naar dezelfde OAuth-consentaanvraag', async () => {
+    const authorizationId = '1b72f03c-a41c-4b81-9d71-4f8a377b1064'
+    const consentPath = `/oauth/consent?authorization_id=${authorizationId}`
+    const formData = new FormData()
+    formData.set('email', 'employee.fixture@liquidhr.test')
+    formData.set('password', 'x')
+    formData.set('next', consentPath)
+
+    await expect(signInWithPasswordAction({ code: 'idle' }, formData)).rejects.toThrow(`NEXT_REDIRECT:${consentPath}`)
+
+    expect(signInWithPassword).toHaveBeenCalledWith({
+      email: 'employee.fixture@liquidhr.test',
+      password: 'x',
+    })
+    expect(redirect).toHaveBeenCalledWith(consentPath)
+  })
+
   afterEach(() => {
     vi.unstubAllEnvs()
   })

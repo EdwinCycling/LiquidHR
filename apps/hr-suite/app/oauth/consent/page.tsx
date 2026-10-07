@@ -6,45 +6,19 @@ import { requireAuthContext } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
 import { approveChatGptMcpConsent, denyChatGptMcpConsent } from './actions'
+import {
+  buildConsentLoginHref,
+  isAllowedChatGptRedirectUri,
+  isAuthorizationId,
+  isSupportedChatGptScope,
+  parseConsentAuthorization,
+} from './authorization'
 
 export const dynamic = 'force-dynamic'
-
-const AUTHORIZATION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const CHATGPT_CALLBACK_PATTERN = /^\/connector\/oauth\/[a-zA-Z0-9_-]{1,128}$/
-
-type ConsentErrorCode = 'invalid-request' | 'unsupported-client' | 'unsupported-scope' | 'employee-only' | 'approval-failed'
-
-function isAllowedChatGptRedirectUri(value: string): boolean {
-  try {
-    const uri = new URL(value)
-    return uri.protocol === 'https:'
-      && uri.hostname === 'chatgpt.com'
-      && !uri.port
-      && !uri.username
-      && !uri.password
-      && !uri.search
-      && !uri.hash
-      && (uri.pathname === '/connector_platform_oauth_redirect' || CHATGPT_CALLBACK_PATTERN.test(uri.pathname))
-  } catch {
-    return false
-  }
-}
-
-function consentErrorMessage(code: string | undefined, t: Awaited<ReturnType<typeof getTranslator>>): string | null {
-  const messages: Record<ConsentErrorCode, string> = {
-    'invalid-request': t('oauthConsentInvalidRequest'),
-    'unsupported-client': t('oauthConsentUnsupportedClient'),
-    'unsupported-scope': t('oauthConsentUnsupportedScope'),
-    'employee-only': t('oauthConsentEmployeeOnly'),
-    'approval-failed': t('oauthConsentApprovalFailed'),
-  }
-  return code && Object.hasOwn(messages, code) ? messages[code as ConsentErrorCode] ?? null : null
-}
 
 interface OAuthConsentPageProps {
   readonly searchParams: Promise<{
     readonly authorization_id?: string | string[]
-    readonly error?: string | string[]
   }>
 }
 
@@ -55,41 +29,49 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
     getTranslator('common'),
   ])
   const authorizationId = typeof params.authorization_id === 'string' ? params.authorization_id : ''
-  const errorCode = typeof params.error === 'string' ? params.error : undefined
   const t = auth
-  let message = consentErrorMessage(errorCode, t)
+  let message: string | null = null
   let details: {
     clientName: string
     authorizationId: string
+    redirectUri: string
     scope: string
+    resource: string | null
     canApprove: boolean
     canDeny: boolean
   } | null = null
 
-  if (!AUTHORIZATION_ID_PATTERN.test(authorizationId)) {
+  if (!isAuthorizationId(authorizationId)) {
     message = t('oauthConsentInvalidRequest')
   } else {
     const supabase = await createClient()
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
-    const userId = claimsData?.claims?.sub
-    if (claimsError || typeof userId !== 'string') {
-      const nextPath = `/oauth/consent?authorization_id=${encodeURIComponent(authorizationId)}`
-      redirect(`/login?next=${encodeURIComponent(nextPath)}`)
+    let authorizationResponse: unknown = null
+    let authorizationError = false
+    try {
+      const response = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
+      authorizationResponse = response.data
+      authorizationError = response.error !== null
+    } catch {
+      authorizationError = true
     }
 
-    const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
-    if (error || !data) {
+    let authenticated = false
+    try {
+      const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
+      const subject = claimsData?.claims?.sub
+      authenticated = !claimsError && typeof subject === 'string' && subject.length > 0
+    } catch {
+      authenticated = false
+    }
+    if (!authenticated) redirect(buildConsentLoginHref(authorizationId))
+
+    const authorization = authorizationError ? null : parseConsentAuthorization(authorizationResponse, authorizationId)
+    if (!authorization) {
       message = t('oauthConsentInvalidRequest')
-    } else if ('redirect_url' in data) {
-      if (isAllowedChatGptRedirectUri(data.redirect_url)) redirect(data.redirect_url)
-      message = t('oauthConsentUnsupportedClient')
-    } else if (data.authorization_id !== authorizationId || data.user.id !== userId) {
-      message = t('oauthConsentInvalidRequest')
-    } else if (!isAllowedChatGptRedirectUri(data.redirect_uri)) {
+    } else if (!isAllowedChatGptRedirectUri(authorization.redirectUri)) {
       message = t('oauthConsentUnsupportedClient')
     } else {
-      const requestedScopes = data.scope.split(/\s+/u).filter(Boolean)
-      const scopesSupported = requestedScopes.length === 1 && requestedScopes[0] === 'openid'
+      const scopesSupported = isSupportedChatGptScope(authorization.scope)
       let canApprove = scopesSupported
       try {
         const context = await requireAuthContext()
@@ -106,9 +88,11 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
       }
       if (!scopesSupported) message = t('oauthConsentUnsupportedScope')
       details = {
-        clientName: data.client.name,
+        clientName: authorization.clientName,
         authorizationId,
-        scope: data.scope,
+        redirectUri: authorization.redirectUri,
+        scope: authorization.scope,
+        resource: authorization.resource,
         canApprove,
         canDeny: true,
       }
@@ -139,6 +123,16 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
             <p className="mt-1 break-words text-lg font-semibold text-foreground">{details.clientName}</p>
           </div>
           <div>
+            <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentRedirectLabel')}</p>
+            <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.redirectUri}</p>
+          </div>
+          {details.resource ? (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentResourceLabel')}</p>
+              <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.resource}</p>
+            </div>
+          ) : null}
+          <div>
             <h2 className="text-sm font-semibold text-foreground">{auth('oauthConsentDataTitle')}</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
               <li>{auth('oauthConsentDevelopmentPlans')}</li>
@@ -151,7 +145,16 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
           <p className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground">
             {auth('oauthConsentReadOnly')}
           </p>
-          <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentOpenIdScope')}</p>
+          <p className="text-sm leading-6 text-muted-foreground">
+            <span className="font-medium text-foreground">{auth('oauthConsentScopesLabel')}: </span>
+            <span>{details.scope}</span>
+          </p>
+          {details.scope.split(/\s+/u).includes('email') ? (
+            <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentEmailScope')}</p>
+          ) : null}
+          {details.scope.split(/\s+/u).includes('offline_access') ? (
+            <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentOfflineAccessScope')}</p>
+          ) : null}
 
           {details.canApprove ? (
             <form action={approveChatGptMcpConsent}>
