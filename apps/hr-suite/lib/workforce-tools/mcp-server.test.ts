@@ -266,6 +266,33 @@ describe('local Workforce MCP server', () => {
     expect(mcpActionMocks.cancel).toHaveBeenCalledWith(context, '10000000-0000-4000-8000-000000000007')
   })
 
+  it('rejects client-supplied tenant, HR-group, and administration fields before controlled-action authorization', async () => {
+    const handler = createWorkforceMcpHandler()
+    const response = await handler.fetch(rpcRequest({
+      jsonrpc: '2.0',
+      id: 22,
+      method: 'tools/call',
+      params: {
+        name: 'controlled_action_prepare',
+        arguments: {
+          actionId: 'talent.development-goal.create',
+          payload: { title: 'Klantgesprekken verbeteren', periodStart: '2026-10-01' },
+          idempotencyKey: '10000000-0000-4000-8000-000000000005',
+          tenantId: '10000000-0000-4000-8000-000000000001',
+          hrGroupId: '10000000-0000-4000-8000-000000000006',
+          administrationId: '10000000-0000-4000-8000-000000000007',
+        },
+      },
+    }))
+
+    const payload = await readResponse(response)
+    expect(payload.result).toMatchObject({ isError: true })
+    expect(JSON.stringify(payload)).toContain('MCP_INPUT_INVALID')
+    expect(JSON.stringify(payload)).not.toContain('10000000-0000-4000-8000-000000000007')
+    expect(mcpActionMocks.requireAuthContext).not.toHaveBeenCalled()
+    expect(mcpActionMocks.prepare).not.toHaveBeenCalled()
+  })
+
   it('serves the ChatGPT profile with one approved tool and projects its output', async () => {
     const handler = createChatGptMcpHandler()
     const initializeResponse = await handler.fetch(rpcRequest({

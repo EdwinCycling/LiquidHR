@@ -1,5 +1,5 @@
 import type { Database } from '@scope/db'
-import { requireAuthContext, requirePermission, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
+import { requireAuthContext, requireHrGroupId, requirePermission, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
 import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
@@ -223,13 +223,58 @@ export async function getTalentGoal(goalId: string, mode: 'admin' | 'manager' | 
   return goal
 }
 
+async function assertGoalTargetScope(context: AuthContext, targetEmployeeId: string): Promise<void> {
+  const hrGroupId = requireHrGroupId(context)
+  const supabase = await createClient()
+  const { data: employee, error: employeeError } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .eq('id', targetEmployeeId)
+    .eq('is_active', true)
+    .eq('is_archived', false)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  if (employeeError) throw new TalentGoalError('TALENT_GOAL_SCOPE_READ_FAILED')
+  if (!employee) throw new TalentGoalError('TALENT_GOAL_FORBIDDEN', 403)
+
+  const isSelf = context.employeeId === targetEmployeeId
+  const isAdmin = context.permissions.includes('talent-goal:manage')
+  const mustCheckPlacement = context.administrationId !== null || (!isAdmin && !isSelf)
+  if (!mustCheckPlacement) return
+
+  const today = new Date().toISOString().slice(0, 10)
+  let placementQuery = supabase
+    .from('employee_organizations')
+    .select('employee_id,direct_manager_id')
+    .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .eq('employee_id', targetEmployeeId)
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
+    .limit(100)
+
+  if (context.administrationId) placementQuery = placementQuery.eq('administration_id', context.administrationId)
+  if (!isAdmin && !isSelf) {
+    if (!context.employeeId) throw new TalentGoalError('TALENT_GOAL_FORBIDDEN', 403)
+    placementQuery = placementQuery.eq('direct_manager_id', context.employeeId)
+  }
+
+  const { data: placements, error: placementError } = await placementQuery
+  if (placementError) throw new TalentGoalError('TALENT_GOAL_SCOPE_READ_FAILED')
+  if (!placements || placements.length === 0) throw new TalentGoalError('TALENT_GOAL_FORBIDDEN', 403)
+}
+
 async function goalMutationContext(employeeId: string | undefined): Promise<{ context: AuthContext; targetEmployeeId: string; sourceType: GoalInsert['source_type'] }> {
   const context = await requireAuthContext()
   const targetEmployeeId = employeeId ?? context.employeeId
   if (!targetEmployeeId) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_REQUIRED', 400)
 
+  if (!context.permissions.includes('talent-goal:manage')) await requirePermission('talent-goal:write', targetEmployeeId)
+  await assertGoalTargetScope(context, targetEmployeeId)
   if (context.permissions.includes('talent-goal:manage')) return { context, targetEmployeeId, sourceType: 'HR_ENTERED' }
-  await requirePermission('talent-goal:write', targetEmployeeId)
   return { context, targetEmployeeId, sourceType: targetEmployeeId === context.employeeId ? 'SELF_ENTERED' : 'MANAGER_ENTERED' }
 }
 

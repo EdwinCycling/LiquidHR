@@ -4,6 +4,7 @@ import type { AuthContext } from '@/lib/auth/permissions'
 import {
   createControlledActionService,
   ControlledActionError,
+  type ControlledActionId,
   type ControlledActionDomain,
   type ControlledActionDraft,
   type ControlledActionStorage,
@@ -30,6 +31,7 @@ const actionInput = {
 function setup(previewAllowed = true) {
   let draft: ControlledActionDraft | null = null
   let previewMarker = 'current'
+  let currentTime = new Date('2026-10-06T09:00:00.000Z')
   const makePreview = (payload: unknown) => ({
     actionId: actionInput.actionId,
     actionType: 'TALENT_DEVELOPMENT_GOAL_CREATE' as const,
@@ -133,10 +135,16 @@ function setup(previewAllowed = true) {
   const service = createControlledActionService({
     storage,
     domain,
-    now: () => new Date('2026-10-06T09:00:00.000Z'),
+    now: () => currentTime,
     newId: vi.fn().mockReturnValue('10000000-0000-4000-8000-000000000008'),
   })
-  return { service, storage, domain, setPreviewMarker: (value: string) => { previewMarker = value } }
+  return {
+    service,
+    storage,
+    domain,
+    setPreviewMarker: (value: string) => { previewMarker = value },
+    setNow: (value: string) => { currentTime = new Date(value) },
+  }
 }
 
 describe('controlled action lifecycle', () => {
@@ -309,6 +317,12 @@ describe('controlled action lifecycle', () => {
     const sameActorAfterRoleChange = { ...context, activeRoles: ['EMPLOYEE', 'DIRECT_MANAGER'] }
     await expect(changedRoleSetup.service.preview(sameActorAfterRoleChange, roleBoundDraft.draft.id))
       .rejects.toMatchObject({ code: 'CONTROLLED_ACTION_PREVIEW_STALE' })
+
+    const changedGroupSetup = setup()
+    const groupBoundDraft = await changedGroupSetup.service.prepare(context, actionInput)
+    const sameActorAfterGroupChange = { ...context, hrGroupId: '10000000-0000-4000-8000-000000000009' }
+    await expect(changedGroupSetup.service.preview(sameActorAfterGroupChange, groupBoundDraft.draft.id))
+      .rejects.toMatchObject({ code: 'CONTROLLED_ACTION_PREVIEW_STALE' })
   })
 
   it('does not create a draft when central domain authorization denies prepare', async () => {
@@ -324,5 +338,107 @@ describe('controlled action lifecycle', () => {
       ...actionInput,
       payload: { title: 'Ander doel', periodStart: '2026-10-01' },
     })).rejects.toMatchObject({ code: 'CONTROLLED_ACTION_CONFLICT' } satisfies Partial<ControlledActionError>)
+  })
+
+  it('rejects malformed keys and unknown actions before domain preview or draft storage', async () => {
+    const { service, storage, domain } = setup()
+    await expect(service.prepare(context, { ...actionInput, idempotencyKey: 'not-a-uuid' }))
+      .rejects.toMatchObject({ code: 'CONTROLLED_ACTION_INPUT_INVALID', status: 400 })
+    await expect(service.prepare(context, {
+      ...actionInput,
+      actionId: 'talent.unknown.create' as ControlledActionId,
+    })).rejects.toMatchObject({ code: 'CONTROLLED_ACTION_INPUT_INVALID', status: 400 })
+    expect(domain.preview).not.toHaveBeenCalled()
+    expect(storage.insert).not.toHaveBeenCalled()
+  })
+
+  it('rejects execution before confirmation and stale draft versions without claiming or writing', async () => {
+    const { service, storage, domain } = setup()
+    const prepared = await service.prepare(context, actionInput)
+    const previewHash = String((prepared.draft.controlPayload as Record<string, Json>).previewHash)
+
+    await expect(service.execute(context, {
+      draftId: prepared.draft.id,
+      expectedVersion: prepared.draft.version,
+      expectedPreviewHash: previewHash,
+    })).rejects.toMatchObject({ code: 'CONTROLLED_ACTION_NOT_EXECUTABLE' })
+
+    const confirmed = await service.confirm(context, {
+      draftId: prepared.draft.id,
+      expectedVersion: prepared.draft.version,
+      expectedPreviewHash: previewHash,
+    })
+    await expect(service.execute(context, {
+      draftId: prepared.draft.id,
+      expectedVersion: confirmed.draft.version + 1,
+      expectedPreviewHash: previewHash,
+    })).rejects.toMatchObject({ code: 'CONTROLLED_ACTION_NOT_EXECUTABLE' })
+    expect(storage.claim).not.toHaveBeenCalled()
+    expect(domain.execute).not.toHaveBeenCalled()
+  })
+
+  it('rejects preview and execution after the 15-minute expiry boundary', async () => {
+    const previewExpiry = setup()
+    const previewDraft = await previewExpiry.service.prepare(context, actionInput)
+    previewExpiry.setNow('2026-10-06T09:15:00.000Z')
+    await expect(previewExpiry.service.preview(context, previewDraft.draft.id))
+      .rejects.toMatchObject({ code: 'CONTROLLED_ACTION_EXPIRED' })
+
+    const executeExpiry = setup()
+    const executeDraft = await executeExpiry.service.prepare(context, actionInput)
+    const previewHash = String((executeDraft.draft.controlPayload as Record<string, Json>).previewHash)
+    const confirmed = await executeExpiry.service.confirm(context, {
+      draftId: executeDraft.draft.id,
+      expectedVersion: executeDraft.draft.version,
+      expectedPreviewHash: previewHash,
+    })
+    executeExpiry.setNow('2026-10-06T09:15:00.000Z')
+    await expect(executeExpiry.service.execute(context, {
+      draftId: executeDraft.draft.id,
+      expectedVersion: confirmed.draft.version,
+      expectedPreviewHash: previewHash,
+    })).rejects.toMatchObject({ code: 'CONTROLLED_ACTION_EXPIRED' })
+    expect(executeExpiry.storage.claim).not.toHaveBeenCalled()
+    expect(executeExpiry.domain.execute).not.toHaveBeenCalled()
+  })
+
+  it('does not permit cancellation after execution has committed', async () => {
+    const { service, domain } = setup()
+    const prepared = await service.prepare(context, actionInput)
+    const previewHash = String((prepared.draft.controlPayload as Record<string, Json>).previewHash)
+    const confirmed = await service.confirm(context, {
+      draftId: prepared.draft.id,
+      expectedVersion: prepared.draft.version,
+      expectedPreviewHash: previewHash,
+    })
+    const executed = await service.execute(context, {
+      draftId: prepared.draft.id,
+      expectedVersion: confirmed.draft.version,
+      expectedPreviewHash: previewHash,
+    })
+
+    await expect(service.cancel(context, executed.draft.id))
+      .rejects.toMatchObject({ code: 'CONTROLLED_ACTION_NOT_EXECUTABLE' })
+    expect(domain.execute).toHaveBeenCalledTimes(1)
+  })
+
+  it('revalidates current permissions at execution instead of trusting the old preview', async () => {
+    const { service, storage, domain } = setup()
+    const prepared = await service.prepare(context, actionInput)
+    const previewHash = String((prepared.draft.controlPayload as Record<string, Json>).previewHash)
+    const confirmed = await service.confirm(context, {
+      draftId: prepared.draft.id,
+      expectedVersion: prepared.draft.version,
+      expectedPreviewHash: previewHash,
+    })
+    const changedPermissionContext = { ...context, permissions: ['self:talent-goal:read'] }
+
+    await expect(service.execute(changedPermissionContext, {
+      draftId: prepared.draft.id,
+      expectedVersion: confirmed.draft.version,
+      expectedPreviewHash: previewHash,
+    })).rejects.toMatchObject({ code: 'CONTROLLED_ACTION_PREVIEW_STALE' })
+    expect(storage.claim).not.toHaveBeenCalled()
+    expect(domain.execute).not.toHaveBeenCalled()
   })
 })

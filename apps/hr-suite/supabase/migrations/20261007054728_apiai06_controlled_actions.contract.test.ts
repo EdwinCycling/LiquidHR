@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const migrationUrl = new URL('./20261006062859_apiai06_controlled_actions.sql', import.meta.url)
+const migrationUrl = new URL('./20261007054728_apiai06_controlled_actions.sql', import.meta.url)
 
 describe('APIAI-06 controlled-action migration contract', () => {
   it('extends the allowlists and reserves controlled draft writes for the server', async () => {

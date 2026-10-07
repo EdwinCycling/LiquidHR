@@ -71,4 +71,18 @@ describe('POST /api/hera/drafts/:draftId/confirm', () => {
       expectedPreviewHash: 'a'.repeat(64),
     })
   })
+
+  it('weigert controlled-actionbevestiging zonder previewhash', async () => {
+    findControlledActionDraft.mockResolvedValue(true)
+    const request = new Request('http://localhost/api/hera/drafts/00000000-0000-4000-8000-000000000001/confirm', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ expectedVersion: 1 }),
+    })
+
+    const response = await POST(request, { params: Promise.resolve({ draftId: '00000000-0000-4000-8000-000000000001' }) })
+
+    expect(response.status).toBe(400)
+    expect(confirmControlledAction).not.toHaveBeenCalled()
+  })
 })

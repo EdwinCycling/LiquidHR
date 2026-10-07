@@ -175,6 +175,7 @@ function isActionId(value: string): value is ControlledActionId {
 function bindAuthorization(context: AuthContext): Record<string, Json> {
   return {
     tenantId: context.tenantId,
+    hrGroupId: context.hrGroupId ?? null,
     userId: context.userId,
     employeeId: context.employeeId,
     administrationId: context.administrationId,
