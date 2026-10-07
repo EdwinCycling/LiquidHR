@@ -1,8 +1,9 @@
 # APIAI-06 — Controlled Actions
 
-Status: **lokale implementatiekandidaat; niet geaccepteerd voor remote gebruik**
-Datum: 2026-10-06
+Status: **remote TEST-schema geverifieerd; volledige acceptatie geblokkeerd door ontbrekende officiële runtimeconfig en HeRa-providerconfig**
+Datum: 2026-10-07
 Baseline: `38ccbcac6423824a1dba7075f022f68771edf087`
+Implementation: `976a49853c3bbff54b12a9b04dcc50ebaa98b3e8` on `work/apiai-06-controlled-actions-20261006`
 
 ## Doel
 
@@ -24,7 +25,7 @@ Server-side Zod-validatie, de bestaande Talent-autorisatie, tenantmodulecontrole
 ## Lifecyclecontract
 
 - **Prepare:** valideer action-ID, payload, eigenaar/tenantconversatie en UUID-idempotency key; autoriseer de domeinactie; sla een servergegenereerde preview, payload en previewhash op. Een draft verloopt na 15 minuten.
-- **Preview:** lees de eigenaargebonden draft terug en herhaal autorisatie en previewberekening. Een hash bindt payload, preview, tenant, actor, administratie, rollen en permissions.
+- **Preview:** lees de eigenaargebonden draft terug en herhaal autorisatie en previewberekening. Een hash bindt payload, preview, tenant, actor, HR group, administratie, rollen en permissions.
 - **Confirm:** vereist expliciete bevestiging met de verwachte draftversie en previewhash. De write is compare-and-set.
 - **Execute:** herhaalt autorisatie en hashcontrole, claimt de draft atomair, voert uitsluitend de bestaande domeinservice uit en schrijft daarna de definitieve status. Een onbekende transportuitkomst blijft `EXECUTING` en mag niet automatisch opnieuw uitvoeren.
 - **Readback:** geeft na succes alleen een beperkte, opnieuw geautoriseerde projectie terug. Readbackfouten herhalen de business-write niet.
@@ -45,7 +46,7 @@ De bestaande `ai_action_drafts`-tabel wordt hergebruikt. De migratie:
 
 De Admin-client wordt uitsluitend in de server-only controlled-actionservice gebruikt. Mutaties worden aanvullend begrensd op tenant, eigenaar, draft-ID, status, verwachte versie en vervaltijd. De conversation wordt met de gewone RLS-client op tenant en eigenaar gevalideerd vóór de privileged insert. De domeinmutaties zelf blijven via de bestaande geautoriseerde Talent-services lopen.
 
-De migratie is code-only totdat Edwin een aparte remote apply expliciet autoriseert. Geen onbewezen databasecontract mag als basis voor hosted writes dienen. Supabase advisors, type-readback en RLS-matrix op de resulterende remote schema-versie blijven releasegates.
+De remote TEST-database bevat deze SQL-wijziging al onder migration history version `20261007054728_apiai06_controlled_actions`. De lokale migratiefile en contracttest zijn op die versie afgestemd en de SQL-inhoud is na normalisatie byte-identiek behouden. Voer deze SQL niet opnieuw uit, maak geen duplicaat en gebruik geen drop/recreate. De read-only geverifieerde RLS-, type-, advisor- en auditresultaten en resterende acceptatiegates staan in het [acceptatierapport](../../quality/acceptance/runs/APIAI-06-20261006.md). Deze TEST-migratie verleent geen toestemming voor productie-, publieke of externe activatie.
 
 ## Integraties en grenzen
 
@@ -57,6 +58,6 @@ De migratie is code-only totdat Edwin een aparte remote apply expliciet autorise
 
 ## Acceptatiegates
 
-Lokale unit-, route-, migratiecontract-, type-, lint-, i18n-, volledige regressie- en productiebuildgates zijn vereist. Tests moeten positieve en negatieve autorisatie voor Employee, Manager en HR Admin afdekken. Hosted personaacceptatie moet dezelfde drie bestaande identiteiten gebruiken en mag geen auth-bypass inzetten.
+Lokale unit-, route-, migratiecontract-, type-, lint-, i18n-, volledige regressie- en productiebuildgates zijn vereist. Tests moeten positieve en negatieve autorisatie voor Employee, Manager en HR Admin afdekken. Hosted personaacceptatie moet dezelfde drie bestaande identiteiten gebruiken en mag geen auth-bypass inzetten. De officiële lokale TEST-launcher leest alleen `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local`; er is geen repository-provisioningcommando voor die config. HeRa-provideracceptatie vereist de reeds bestaande providerconfig; voeg hiervoor geen dienst of kosten toe.
 
-Deze codekandidaat is pas remote-/release-geaccepteerd na remote migratiegoedkeuring, post-migration advisors/types/RLS-readback, geauthenticeerde Employee/Manager/HR Admin-acceptatie, HeRa- en lokale MCP-integratieacceptatie, regressies en fail-closed probes. Zie het [acceptatierapport](../../quality/acceptance/runs/APIAI-06-20261006.md) voor de actuele status.
+Deze codekandidaat is pas volledig convergence-ready na afgeronde Employee/Manager/HR Admin-acceptatie, echte HeRa-acceptatie, exacte PR-head regressies en fail-closed probes. De remote TEST-migratie is al toegepast en geverifieerd; die stap mag niet worden herhaald. Zie het [acceptatierapport](../../quality/acceptance/runs/APIAI-06-20261006.md) voor de actuele status. Publieke APIAI-01, publieke MCP, ChatGPT-registratie, Production-release en merge blijven buiten scope.
