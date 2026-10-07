@@ -11,13 +11,15 @@ import { getLocale } from '@/lib/i18n/server'
 import {
   CHATGPT_MCP_SERVER_INFO,
   CHATGPT_MCP_TOOL_METADATA,
+  CHATGPT_MCP_TOOL_SECURITY_SCHEMES,
+  CHATGPT_MCP_TOOLS,
   chatGptDevelopmentPlansInputSchema,
-  chatGptDevelopmentPlansOutputSchema,
   type ChatGptMcpToolMetadata,
 } from './mcp/chatgpt-metadata'
+import { REMOTE_MCP_RESOURCE_METADATA_URL } from './mcp/remote-config'
 import { dispatchWorkforceTool, WorkforceToolDispatchError } from './registry'
 import { WORKFORCE_TOOL_CATALOG } from './catalog'
-import type { WorkforceToolDefinition } from './contracts'
+import type { DelegatedWorkforceToolExecutionContext, WorkforceToolDefinition } from './contracts'
 import { requireAuthContext } from '@/lib/auth/permissions'
 import {
   controlledActions,
@@ -134,6 +136,9 @@ function registerWorkforceTool(
   server: McpServer,
   tool: WorkforceToolDefinition,
   chatGptMetadata?: ChatGptMcpToolMetadata,
+  executionContext?: DelegatedWorkforceToolExecutionContext,
+  dispatchTool?: (toolId: string, input: unknown) => Promise<unknown>,
+  remoteAuthenticationRequired = false,
 ): void {
   server.registerTool(
     tool.id,
@@ -141,7 +146,7 @@ function registerWorkforceTool(
       title: chatGptMetadata?.tool.title,
       description: chatGptMetadata?.tool.description ?? tool.description,
       inputSchema: boundedInputSchema(chatGptMetadata ? chatGptDevelopmentPlansInputSchema : tool.inputSchema),
-      outputSchema: chatGptMetadata ? chatGptDevelopmentPlansOutputSchema : tool.outputSchema,
+      outputSchema: chatGptMetadata?.outputSchemaSchema ?? tool.outputSchema,
       annotations: chatGptMetadata?.tool.annotations ?? {
         readOnlyHint: true,
         destructiveHint: false,
@@ -149,8 +154,22 @@ function registerWorkforceTool(
       },
     },
     async (input) => {
+      if (remoteAuthenticationRequired && !executionContext) {
+        return {
+          isError: true,
+          content: [{ type: 'text' as const, text: 'Authentication is required to read LiquidHR employee data.' }],
+          _meta: {
+            'mcp/www_authenticate': [
+              `Bearer resource_metadata="${REMOTE_MCP_RESOURCE_METADATA_URL}", error="insufficient_scope", error_description="Sign in to LiquidHR to continue."`,
+            ],
+          },
+        }
+      }
+
       try {
-        const internalOutput = await dispatchWorkforceTool(tool.id, input)
+        const internalOutput = dispatchTool
+          ? await dispatchTool(tool.id, input)
+          : await dispatchWorkforceTool(tool.id, input, executionContext)
         const output = chatGptMetadata
           ? chatGptMetadata.projectResult(internalOutput)
           : internalOutput
@@ -329,15 +348,18 @@ function registerControlledActionTools(server: McpServer): void {
 }
 
 /**
- * Builds the single-tool profile approved for a future ChatGPT host. It is
- * intentionally not mounted by the local Inspector route or any public route.
+ * Builds the small self-only profile for the authenticated ChatGPT TEST route.
  */
-export function createChatGptMcpServer(): McpServer {
+export function createChatGptMcpServer(
+  executionContext?: DelegatedWorkforceToolExecutionContext,
+  dispatchTool?: (toolId: string, input: unknown) => Promise<unknown>,
+  remoteAuthenticationRequired = false,
+): McpServer {
   const server = createMcpServer(CHATGPT_MCP_SERVER_INFO.instructions)
   for (const metadata of CHATGPT_MCP_TOOL_METADATA) {
     const tool = WORKFORCE_TOOL_CATALOG.find((entry) => entry.id === metadata.workforceToolId)
     if (!tool) throw new Error('CHATGPT_MCP_WORKFORCE_TOOL_NOT_FOUND')
-    registerWorkforceTool(server, tool, metadata)
+    registerWorkforceTool(server, tool, metadata, executionContext, dispatchTool, remoteAuthenticationRequired)
   }
   return server
 }
@@ -360,12 +382,74 @@ function createMcpServer(instructions: string): McpServer {
  * for that request only.
  */
 export function createWorkforceMcpHandler(): McpHttpHandler {
-  return createStatelessMcpHandler(createWorkforceMcpServer)
+  return createStatelessMcpHandler(() => createWorkforceMcpServer())
 }
 
 /** No route exposes this handler; it supports local protocol tests only. */
 export function createChatGptMcpHandler(): McpHttpHandler {
-  return createStatelessMcpHandler(createChatGptMcpServer)
+  return createStatelessMcpHandler(() => createChatGptMcpServer())
+}
+
+/** The public route exposes metadata without auth and gates every tool call. */
+export function createRemoteChatGptMcpHandler(
+  executionContext?: DelegatedWorkforceToolExecutionContext,
+  dispatchTool?: (toolId: string, input: unknown) => Promise<unknown>,
+): McpHttpHandler {
+  const handler = createStatelessMcpHandler(() => createChatGptMcpServer(executionContext, dispatchTool, true))
+  const fetch = handler.fetch.bind(handler)
+  return {
+    ...handler,
+    fetch: async (request) => {
+      const metadataRequest = request.clone()
+      const response = await fetch(request)
+      return addRemoteSecuritySchemes(response, metadataRequest)
+    },
+  }
+}
+
+async function addRemoteSecuritySchemes(response: Response, request: Request): Promise<Response> {
+  const rpcRequest: unknown = await request.json().catch(() => null)
+  if (!isRecord(rpcRequest) || rpcRequest.method !== 'tools/list' || !response.ok) return response
+
+  const responseText = await response.clone().text()
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
+  const isSse = contentType.includes('text/event-stream')
+  const eventData = isSse
+    ? responseText.match(/(?:^|\r?\n)data:\s?(.*?)(?:\r?\n|$)/)?.[1]
+    : undefined
+  const payloadText = isSse ? eventData : responseText
+  let payload: unknown = null
+  try {
+    if (payloadText) payload = JSON.parse(payloadText) as unknown
+  } catch {
+    return response
+  }
+  if (!isRecord(payload) || !isRecord(payload.result) || !Array.isArray(payload.result.tools)) return response
+
+  const securitySchemesByName = new Map(CHATGPT_MCP_TOOLS.map((tool) => [tool.name, CHATGPT_MCP_TOOL_SECURITY_SCHEMES]))
+  const tools = payload.result.tools.map((listedTool: unknown) => {
+    if (!isRecord(listedTool) || typeof listedTool.name !== 'string') return listedTool
+    const securitySchemes = securitySchemesByName.get(listedTool.name)
+    return securitySchemes ? { ...listedTool, securitySchemes } : listedTool
+  })
+  const updatedPayload = {
+    ...payload,
+    result: { ...payload.result, tools },
+  }
+  const serializedPayload = JSON.stringify(updatedPayload)
+  const updatedResponseText = isSse && eventData
+    ? responseText.replace(`data: ${eventData}`, `data: ${serializedPayload}`)
+    : serializedPayload
+  const headers = new Headers(response.headers)
+  headers.delete('content-length')
+  headers.delete('content-encoding')
+  headers.delete('transfer-encoding')
+
+  return new Response(updatedResponseText, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
 }
 
 function createStatelessMcpHandler(

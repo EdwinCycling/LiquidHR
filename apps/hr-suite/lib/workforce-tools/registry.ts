@@ -1,13 +1,20 @@
 import { ZodError, z } from 'zod'
-import { requireAuthContext, requirePermission } from '@/lib/auth/permissions'
+import { requireAuthContext, requirePermission, requirePermissionInContext } from '@/lib/auth/permissions'
 import { ContextSelectionRequiredError } from '@/lib/context/administration-context'
 import { ModuleError, requireTenantModule } from '@/lib/modules/module-service'
+import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import type { SupabaseBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
 import {
   getWorkforceTool,
   getWorkforceToolByHeRaName,
   WORKFORCE_TOOL_CATALOG,
 } from './catalog'
-import type { WorkforceToolDefinition, WorkforceToolScope, WorkforceToolAudience } from './contracts'
+import type {
+  DelegatedWorkforceToolExecutionContext,
+  WorkforceToolDefinition,
+  WorkforceToolScope,
+  WorkforceToolAudience,
+} from './contracts'
 
 export type WorkforceToolDispatchErrorCode =
   | 'TOOL_NOT_FOUND'
@@ -90,10 +97,41 @@ export function resolveWorkforceToolAudience(activeRoles: readonly string[]): Wo
   return null
 }
 
-async function authorizeWorkforceTool(tool: WorkforceToolDefinition): Promise<void> {
-  const context = await requireAuthContext()
+const DELEGATED_WORKFORCE_TOOL_IDS = new Set([
+  'employee.talent.development-plans.read',
+  'employee.talent.development-gaps.read',
+  'employee.talent.skills.read',
+  'employee.talent.competencies.read',
+])
+
+async function authorizeWorkforceTool(
+  tool: WorkforceToolDefinition,
+  delegated?: DelegatedWorkforceToolExecutionContext,
+): Promise<void> {
+  const context = delegated?.authContext ?? await requireAuthContext()
   const audience = resolveWorkforceToolAudience(context.activeRoles)
   if (!audience || !tool.audience.includes(audience)) throw new WorkforceToolDispatchError('ACCESS_DENIED')
+
+  if (delegated) {
+    if (
+      !DELEGATED_WORKFORCE_TOOL_IDS.has(tool.id)
+      || tool.operation !== 'READ'
+      || tool.scope !== 'SELF'
+      || !tool.delegatedHandler
+    ) throw new WorkforceToolDispatchError('ACCESS_DENIED')
+    try {
+      assertDelegatedBearerRlsClient<SupabaseBearerRlsClient>(delegated.rls, {
+        userId: context.userId,
+        issuer: delegated.rls.identity.issuer,
+        subject: delegated.rls.identity.subject,
+      })
+    } catch {
+      throw new WorkforceToolDispatchError('ACCESS_DENIED')
+    }
+    if (delegated.rls.userId !== context.userId || delegated.rls.identity.subject !== context.userId) {
+      throw new WorkforceToolDispatchError('ACCESS_DENIED')
+    }
+  }
 
   if (tool.scope === 'SELF' && (audience !== 'EMPLOYEE' || !context.employeeId)) {
     throw new WorkforceToolDispatchError('ACCESS_DENIED')
@@ -107,9 +145,12 @@ async function authorizeWorkforceTool(tool: WorkforceToolDefinition): Promise<vo
 
   const targetEmployeeId = tool.scope === 'SELF' ? context.employeeId ?? undefined : undefined
   for (const permission of [tool.permission, ...(tool.additionalPermissions ?? [])]) {
-    await requirePermission(permission, targetEmployeeId)
+    if (delegated) await requirePermissionInContext(delegated.rls.client, context, permission, targetEmployeeId)
+    else await requirePermission(permission, targetEmployeeId)
   }
-  await requireTenantModule(tool.module)
+  await requireTenantModule(tool.module, delegated
+    ? { auth: context, supabase: delegated.rls.client }
+    : undefined)
 }
 
 function mapExecutionError(error: unknown): WorkforceToolDispatchError {
@@ -123,7 +164,11 @@ function mapExecutionError(error: unknown): WorkforceToolDispatchError {
   return new WorkforceToolDispatchError('EXECUTION_FAILED')
 }
 
-export async function dispatchWorkforceTool(toolId: string, rawInput: unknown): Promise<unknown> {
+export async function dispatchWorkforceTool(
+  toolId: string,
+  rawInput: unknown,
+  delegated?: DelegatedWorkforceToolExecutionContext,
+): Promise<unknown> {
   const tool = getWorkforceTool(toolId)
   if (!tool) throw new WorkforceToolDispatchError('TOOL_NOT_FOUND')
 
@@ -131,8 +176,8 @@ export async function dispatchWorkforceTool(toolId: string, rawInput: unknown): 
   if (!parsedInput.success) throw new WorkforceToolDispatchError('INPUT_INVALID')
 
   try {
-    await authorizeWorkforceTool(tool)
-    return await tool.execute(parsedInput.data)
+    await authorizeWorkforceTool(tool, delegated)
+    return await tool.execute(parsedInput.data, delegated)
   } catch (error) {
     if (error instanceof WorkforceToolDispatchError) throw error
     throw mapExecutionError(error)

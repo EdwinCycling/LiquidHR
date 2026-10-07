@@ -34,16 +34,16 @@ describe('ChatGPT MCP metadata', () => {
     expect(serialized).not.toContain('service_role')
   })
 
-  it('advertises only the approved self-only Development Plans tool', () => {
-    expect(CHATGPT_MCP_TOOL_METADATA).toHaveLength(1)
-    expect(CHATGPT_MCP_TOOLS).toHaveLength(1)
+  it('advertises only the approved self-only read tools for the remote TEST server', () => {
+    expect(CHATGPT_MCP_TOOL_METADATA).toHaveLength(4)
+    expect(CHATGPT_MCP_TOOLS).toHaveLength(4)
 
     const metadata = CHATGPT_MCP_TOOL_METADATA[0]
     const tool = CHATGPT_MCP_TOOLS[0]
     expect(metadata).toBeDefined()
     expect(tool).toBeDefined()
     expect(metadata?.workforceToolId).toBe('employee.talent.development-plans.read')
-    expect(metadata?.exposure).toBe('LOCAL_TEST_ONLY')
+    expect(metadata?.exposure).toBe('REMOTE_TEST_ONLY')
     expect(metadata?.audience).toBe('EMPLOYEE')
     expect(metadata?.scope).toBe('SELF')
     expect(metadata?.operation).toBe('READ')
@@ -51,7 +51,8 @@ describe('ChatGPT MCP metadata', () => {
     const sourceTool = getWorkforceTool('employee.talent.development-plans.read')
     expect(sourceTool).toBeDefined()
     expect(metadata?.workforceToolId).toBe(sourceTool?.id)
-    expect(tool?.description).toContain(sourceTool?.description)
+    expect(tool?.description).toContain('Lees de status en voortgang van je eigen ontwikkelplannen.')
+    expect(tool?.description).toContain('De server bepaalt de actuele medewerkercontext; stuur geen employee-, tenant-, administratie- of rolselector mee.')
     expect(tool?.name).toBe(metadata?.workforceToolId)
     expect(tool?.annotations).toEqual({
       title: 'Eigen ontwikkelplannen lezen',
@@ -60,6 +61,7 @@ describe('ChatGPT MCP metadata', () => {
       idempotentHint: true,
       openWorldHint: false,
     })
+    expect(metadata?.tool.securitySchemes).toEqual([{ type: 'oauth2', scopes: ['openid'] }])
     expect(tool).not.toHaveProperty('_meta')
     expect(CHATGPT_MCP_TOOLS.map((entry) => entry.name)).not.toContain(
       'manager.talent.team-capability-matrix.read',

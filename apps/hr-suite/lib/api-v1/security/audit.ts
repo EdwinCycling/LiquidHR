@@ -11,7 +11,7 @@ export const API_READ_AUDIT_RPC_NAME = 'record_api_read_audit' as const
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const MAX_CLIENT_ID_LENGTH = 128
 
-export type ApiReadAuditOutcome = 'ALLOWED' | 'DENIED' | 'RATE_LIMITED'
+export type ApiReadAuditOutcome = 'ALLOWED' | 'DENIED' | 'RATE_LIMITED' | 'FAILED'
 
 type TrustedApiReadAuditRpcClient = {
   readonly role: 'service_role'
@@ -97,7 +97,9 @@ function validateInput(input: ApiReadAuditInput): void {
     ? input.statusCode >= 200 && input.statusCode < 300
     : input.outcome === 'DENIED'
       ? input.statusCode === 403 || input.statusCode === 404
-      : input.statusCode === 429
+      : input.outcome === 'RATE_LIMITED'
+        ? input.statusCode === 429
+        : input.statusCode >= 500 && input.statusCode < 600
   if (!isUuid(input.tenantId)
     || !isUuid(input.actorUserId)
     || !isUuid(input.hrGroupId)

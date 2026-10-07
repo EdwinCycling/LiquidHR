@@ -1,7 +1,9 @@
 import type { Database } from '@scope/db'
-import { requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { requireAuthContext, requirePermission, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
+import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
 import type { TalentComparisonOutcome } from './comparison-service'
 import type { TalentRoleExplorerListQuery } from './role-explorer-schemas'
 
@@ -142,7 +144,34 @@ function outcome(requirement: RequirementRow, capability: CapabilityRow | undefi
   })
 }
 
-async function authorize(mode: TalentRoleExplorerMode): Promise<AuthContext> {
+type TalentRoleExplorerReadDependencies = {
+  readonly authContext: AuthContext
+  readonly rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>
+}
+
+async function authorize(
+  mode: TalentRoleExplorerMode,
+  delegated?: TalentRoleExplorerReadDependencies,
+): Promise<AuthContext> {
+  if (delegated) {
+    if (mode !== 'self') throw new TalentRoleExplorerError('TALENT_ROLE_EXPLORER_FORBIDDEN', 403)
+    assertDelegatedBearerRlsClient(delegated.rls, {
+      userId: delegated.authContext.userId,
+      issuer: delegated.rls.identity.issuer,
+      subject: delegated.rls.identity.subject,
+    })
+    if (delegated.rls.userId !== delegated.authContext.userId
+      || delegated.rls.identity.subject !== delegated.authContext.userId) {
+      throw new TalentRoleExplorerError('TALENT_ROLE_EXPLORER_FORBIDDEN', 403)
+    }
+    if (!delegated.authContext.employeeId) throw new TalentRoleExplorerError('EMPLOYEE_CONTEXT_REQUIRED', 403)
+    return requirePermissionInContext(
+      delegated.rls.client,
+      delegated.authContext,
+      'self:talent-comparison:read',
+      delegated.authContext.employeeId,
+    )
+  }
   if (mode === 'admin') return requirePermission('talent:manage')
   if (mode !== 'self') return requirePermission('talent-comparison:read')
   const context = await requireAuthContext()
@@ -162,10 +191,11 @@ async function buildTalentRoleExplorerWorkspace(
   mode: TalentRoleExplorerMode,
   query: TalentRoleExplorerListQuery,
   compareCurrentProfileForSelf: boolean,
+  delegated?: TalentRoleExplorerReadDependencies,
 ): Promise<TalentRoleExplorerWorkspace> {
-  const context = await authorize(mode)
-  await requireTenantModule('TALENT')
-  const supabase = await createClient()
+  const context = await authorize(mode, delegated)
+  const supabase = delegated ? delegated.rls.client : await createClient()
+  await requireTenantModule('TALENT', delegated ? { auth: context, supabase } : undefined)
   const today = new Date().toISOString().slice(0, 10)
 
   const profilesQuery = supabase
@@ -330,6 +360,8 @@ export function listTalentRoleExplorerWorkspace(mode: TalentRoleExplorerMode, qu
   return buildTalentRoleExplorerWorkspace(mode, query, false)
 }
 
-export function listTalentCurrentRoleProfileWorkspace(): Promise<TalentRoleExplorerWorkspace> {
-  return buildTalentRoleExplorerWorkspace('self', {}, true)
+export function listTalentCurrentRoleProfileWorkspace(
+  delegated?: TalentRoleExplorerReadDependencies,
+): Promise<TalentRoleExplorerWorkspace> {
+  return buildTalentRoleExplorerWorkspace('self', {}, true, delegated)
 }

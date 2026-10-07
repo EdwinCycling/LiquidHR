@@ -3,7 +3,9 @@ import { listMyTalentGoalCheckIns, type TalentGoalCheckInMetadata } from '@/lib/
 import { listMyTalentEmployeeCapabilityRecords, type TalentEmployeeCapabilityRecord } from '@/lib/talent/employee-capability-service'
 import { listTalentGoals, type TalentGoal } from '@/lib/talent/goal-service'
 import { listTalentCurrentRoleProfileWorkspace, type TalentRoleExplorerAxis } from '@/lib/talent/role-explorer-service'
-import { defineWorkforceTool } from './contracts'
+import { readSelfDevelopmentPlans } from '@/lib/api-v1/resources/development-plans'
+import { selfDevelopmentPlansProjectionSchema } from '@/lib/api-v1/resources/projections'
+import { defineWorkforceTool, type DelegatedWorkforceToolExecutionContext } from './contracts'
 
 const uuidSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -83,6 +85,10 @@ const goalCheckInsInputSchema = z.object({ goalId: uuidSchema }).strict()
 
 export const employeeDevelopmentPlansOutputSchema = z.object({
   plans: z.array(developmentPlanSchema),
+}).strict()
+
+export const employeeRemoteDevelopmentPlansOutputSchema = z.object({
+  plans: selfDevelopmentPlansProjectionSchema,
 }).strict()
 
 export const employeeDevelopmentProgressOutputSchema = z.object({
@@ -192,10 +198,14 @@ export const employeeDevelopmentPlansTool = defineWorkforceTool({
   permission: 'self:talent-goal:read',
   inputSchema: emptyInputSchema,
   outputSchema: employeeDevelopmentPlansOutputSchema,
+  delegatedOutputSchema: employeeRemoteDevelopmentPlansOutputSchema,
   handler: async () => {
     const workspace = await listTalentGoals('self')
     return { plans: workspace.goals.map(mapDevelopmentPlan) }
   },
+  delegatedHandler: async (_input, context: DelegatedWorkforceToolExecutionContext) => ({
+    plans: await readSelfDevelopmentPlans({ authContext: context.authContext, rls: context.rls }),
+  }),
 })
 
 export const employeeDevelopmentProgressTool = defineWorkforceTool({
@@ -218,8 +228,17 @@ export const employeeSkillsTool = defineWorkforceTool({
   permission: 'self:talent-record:read',
   inputSchema: emptyInputSchema,
   outputSchema: employeeSkillsOutputSchema,
+  delegatedOutputSchema: employeeSkillsOutputSchema,
   handler: async () => {
     const records = await listMyTalentEmployeeCapabilityRecords()
+    return {
+      skills: records
+        .filter((record) => record.capabilityType === 'SKILL')
+        .map(mapCapability),
+    }
+  },
+  delegatedHandler: async (_input, context: DelegatedWorkforceToolExecutionContext) => {
+    const records = await listMyTalentEmployeeCapabilityRecords(context)
     return {
       skills: records
         .filter((record) => record.capabilityType === 'SKILL')
@@ -235,8 +254,17 @@ export const employeeCompetenciesTool = defineWorkforceTool({
   permission: 'self:talent-record:read',
   inputSchema: emptyInputSchema,
   outputSchema: employeeCompetenciesOutputSchema,
+  delegatedOutputSchema: employeeCompetenciesOutputSchema,
   handler: async () => {
     const records = await listMyTalentEmployeeCapabilityRecords()
+    return {
+      competencies: records
+        .filter((record) => record.capabilityType === 'COMPETENCY')
+        .map(mapCapability),
+    }
+  },
+  delegatedHandler: async (_input, context: DelegatedWorkforceToolExecutionContext) => {
+    const records = await listMyTalentEmployeeCapabilityRecords(context)
     return {
       competencies: records
         .filter((record) => record.capabilityType === 'COMPETENCY')
@@ -252,8 +280,19 @@ export const employeeDevelopmentGapsTool = defineWorkforceTool({
   permission: 'self:talent-comparison:read',
   inputSchema: emptyInputSchema,
   outputSchema: employeeDevelopmentGapsOutputSchema,
+  delegatedOutputSchema: employeeDevelopmentGapsOutputSchema,
   handler: async () => {
     const workspace = await listTalentCurrentRoleProfileWorkspace()
+    const axes = workspace.comparison?.axes ?? []
+    return {
+      asOf: workspace.asOf,
+      gaps: axes
+        .filter((axis) => axis.status !== 'MATCH')
+        .map(mapDevelopmentGap),
+    }
+  },
+  delegatedHandler: async (_input, context: DelegatedWorkforceToolExecutionContext) => {
+    const workspace = await listTalentCurrentRoleProfileWorkspace(context)
     const axes = workspace.comparison?.axes ?? []
     return {
       asOf: workspace.asOf,

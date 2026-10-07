@@ -1,7 +1,9 @@
 import type { Database, TablesInsert, TablesUpdate } from '@scope/db'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requirePermission, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
+import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
 import {
   type TalentEmployeeCapabilityAdminCreateInput,
   type TalentEmployeeCapabilityAdminUpdateInput,
@@ -15,6 +17,10 @@ type RecordRow = Database['public']['Tables']['talent_employee_capability_record
 type CapabilityRow = Database['public']['Tables']['talent_capabilities']['Row']
 type LevelRow = Database['public']['Tables']['talent_levels']['Row']
 type EmployeeRow = Database['public']['Tables']['employees']['Row']
+type TalentEmployeeCapabilityReadDependencies = {
+  readonly authContext: AuthContext
+  readonly rls: DelegatedBearerRlsClient<SupabaseBearerRlsClient>
+}
 type RecordReadRow = Pick<RecordRow, 'id' | 'employee_id' | 'capability_id' | 'talent_level_id' | 'language_level' | 'language_is_native' | 'certificate_status' | 'certificate_issuing_body' | 'certificate_code' | 'certificate_validity_months' | 'certificate_is_permanent' | 'certificate_renewal_required' | 'evidence_status' | 'qualification_responsible_user_id' | 'source_type' | 'status' | 'valid_from' | 'valid_until' | 'evidence_document_id' | 'version' | 'updated_at'>
 
 export type TalentEmployeeCapabilityRecord = {
@@ -158,12 +164,35 @@ function toRecord(
   }
 }
 
-async function readRecordRows(query: TalentEmployeeCapabilityListQuery, selfBound: boolean) {
-  const context = selfBound
-    ? await requirePermission('self:talent-record:read')
-    : await requirePermission('talent-record:read')
-  await requireTenantModule('TALENT')
-  const supabase = await createClient()
+async function readRecordRows(
+  query: TalentEmployeeCapabilityListQuery,
+  selfBound: boolean,
+  delegated?: TalentEmployeeCapabilityReadDependencies,
+) {
+  if (delegated && !selfBound) throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_FORBIDDEN', 403)
+  const supabase = delegated ? delegated.rls.client : await createClient()
+  if (delegated) {
+    assertDelegatedBearerRlsClient(delegated.rls, {
+      userId: delegated.authContext.userId,
+      issuer: delegated.rls.identity.issuer,
+      subject: delegated.rls.identity.subject,
+    })
+    if (delegated.rls.userId !== delegated.authContext.userId
+      || delegated.rls.identity.subject !== delegated.authContext.userId) {
+      throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_FORBIDDEN', 403)
+    }
+  }
+  const context = delegated
+    ? await requirePermissionInContext(
+      supabase,
+      delegated.authContext,
+      selfBound ? 'self:talent-record:read' : 'talent-record:read',
+      selfBound ? delegated.authContext.employeeId ?? undefined : query.employeeId,
+    )
+    : selfBound
+      ? await requirePermission('self:talent-record:read')
+      : await requirePermission('talent-record:read')
+  await requireTenantModule('TALENT', delegated ? { auth: context, supabase } : undefined)
   const targetEmployeeId = selfBound ? context.employeeId : query.employeeId
   if (selfBound && !targetEmployeeId) throw new TalentServiceError('EMPLOYEE_CONTEXT_REQUIRED', 403)
 
@@ -205,8 +234,8 @@ async function readRecordRows(query: TalentEmployeeCapabilityListQuery, selfBoun
     .filter((row) => (!query.status || row.status === query.status) && (!query.capabilityType || row.capabilityType === query.capabilityType))
 }
 
-export function listMyTalentEmployeeCapabilityRecords() {
-  return readRecordRows({}, true)
+export function listMyTalentEmployeeCapabilityRecords(delegated?: TalentEmployeeCapabilityReadDependencies) {
+  return readRecordRows({}, true, delegated)
 }
 
 export function listTalentEmployeeCapabilityRecords(query: TalentEmployeeCapabilityListQuery) {
