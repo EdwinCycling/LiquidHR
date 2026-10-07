@@ -1,9 +1,9 @@
 # APIAI-06 — Controlled Actions
 
-Status: **remote TEST-schema geverifieerd; volledige acceptatie geblokkeerd door ontbrekende officiële runtimeconfig en HeRa-providerconfig**
+Status: **lokale Employee-, Manager- en HR Admin-acceptatie en regressies geverifieerd; shared-TEST deployment/hosted smoke pending; HeRa-provideracceptatie afzonderlijk open**
 Datum: 2026-10-07
 Baseline: `38ccbcac6423824a1dba7075f022f68771edf087`
-Implementation: `976a49853c3bbff54b12a9b04dcc50ebaa98b3e8` on `work/apiai-06-controlled-actions-20261006`
+Implementation: `c37646e3e6033368080d0fad60a8bad9cdc91907` on `work/apiai-06-controlled-actions-20261006`
 
 ## Doel
 
@@ -58,6 +58,6 @@ De remote TEST-database bevat deze SQL-wijziging al onder migration history vers
 
 ## Acceptatiegates
 
-Lokale unit-, route-, migratiecontract-, type-, lint-, i18n-, volledige regressie- en productiebuildgates zijn vereist. Tests moeten positieve en negatieve autorisatie voor Employee, Manager en HR Admin afdekken. Hosted personaacceptatie moet dezelfde drie bestaande identiteiten gebruiken en mag geen auth-bypass inzetten. De officiële lokale TEST-launcher leest alleen `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local`; er is geen repository-provisioningcommando voor die config. HeRa-provideracceptatie vereist de reeds bestaande providerconfig; voeg hiervoor geen dienst of kosten toe.
+Lokale unit-, route-, migratiecontract-, type-, lint-, i18n-, volledige regressie- en productiebuildgates zijn vereist. Tests moeten positieve en negatieve autorisatie voor Employee, Manager en HR Admin afdekken. Hosted personaacceptatie gebruikt dezelfde drie bestaande identiteiten en mag geen auth-bypass inzetten. De 2026-10-07 lokale acceptance gebruikte eerder de officiële launcher en bestaande runtime; de protected canonical `.env.local` is niet gelezen, gekopieerd of gewijzigd. Een latere herstartpoging kon niet door preflight; de bestaande metadata-only provisioner weigerde een bezette bestemming te overschrijven die niet als canonical hardlink kon worden geverifieerd. Geen runtimefile veranderde en een extra logout/stale-context-browserrecheck blijft open. HeRa-provideracceptatie vereist de reeds bestaande providerconfig; voeg hiervoor geen dienst of kosten toe. Wanneer die configuratie ontbreekt, moet HeRa fail-closed blijven (`503 HERA_PROVIDER_UNAVAILABLE`) en mag geen mutation plaatsvinden zonder de expliciet geautoriseerde provider/tool lifecycle. Deze providercheck is een afzonderlijke integratiegate en blokkeert lokale convergence niet zolang dit fail-closed gedrag intact blijft.
 
-Deze codekandidaat is pas volledig convergence-ready na afgeronde Employee/Manager/HR Admin-acceptatie, echte HeRa-acceptatie, exacte PR-head regressies en fail-closed probes. De remote TEST-migratie is al toegepast en geverifieerd; die stap mag niet worden herhaald. Zie het [acceptatierapport](../../quality/acceptance/runs/APIAI-06-20261006.md) voor de actuele status. Publieke APIAI-01, publieke MCP, ChatGPT-registratie, Production-release en merge blijven buiten scope.
+Lokale convergence is ready na afgeronde Employee/Manager/HR Admin-acceptatie, exacte product-code regressies en fail-closed probes. De remote TEST-migratie is al toegepast en geverifieerd; die stap mag niet worden herhaald. De shared-TEST deployment en hosted personaacceptatie blijven aparte release gates; de actuele gebruiker heeft de deployment van de gemergde exacte main-SHA naar het bestaande `liquidhr` Production-target als gezamenlijke TEST expliciet geautoriseerd. Publieke APIAI-01, publieke MCP en ChatGPT-registratie blijven buiten APIAI-06-scope. Zie het [acceptatierapport](../../quality/acceptance/runs/APIAI-06-20261006.md) voor actuele status.
