@@ -46,4 +46,24 @@ describe('proxy login routing', () => {
 
     expect(response.headers.get('location')).toBe('https://liquidhr.test/')
   })
+
+  it.each(['/mcp', '/.well-known/oauth-protected-resource/mcp'])('lets the MCP protocol route %s reach its own authorization checks', async (path) => {
+    getClaims.mockResolvedValue({ data: { claims: null } })
+
+    const response = await proxy(new NextRequest(`https://liquidhr.test${path}`))
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('x-middleware-next')).toBe('1')
+    expect(response.headers.get('x-frame-options')).toBe('DENY')
+    expect(getClaims).not.toHaveBeenCalled()
+  })
+
+  it('does not exempt nested lookalike paths from normal session protection', async () => {
+    getClaims.mockResolvedValue({ data: { claims: null } })
+
+    const response = await proxy(new NextRequest('https://liquidhr.test/mcp/private'))
+
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('https://liquidhr.test/login?next=%2Fmcp%2Fprivate')
+  })
 })

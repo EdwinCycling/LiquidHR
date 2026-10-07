@@ -21,7 +21,16 @@ function withFramePolicy(response: NextResponse, pathname: string): NextResponse
   return response
 }
 
+function isRemoteMcpProtocolPath(pathname: string): boolean {
+  return pathname === '/mcp' || pathname === '/.well-known/oauth-protected-resource/mcp'
+}
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  if (isRemoteMcpProtocolPath(pathname)) {
+    return withFramePolicy(NextResponse.next({ request }), pathname)
+  }
+
   let response = NextResponse.next({ request })
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,7 +57,6 @@ export async function proxy(request: NextRequest) {
     hadInvalidRefreshToken = true
   }
   const isAuthenticated = Boolean(data?.claims)
-  const { pathname } = request.nextUrl
 
   if (isProtectedApplicationPath(pathname) && !isAuthenticated) {
     const url = request.nextUrl.clone()
