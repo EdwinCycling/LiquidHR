@@ -1,6 +1,6 @@
 # APIAI-07 — LiquidHR Workforce Remote MCP TEST
 
-**Status: implementation in progress; TEST deployment and hosted acceptance remain gated.**
+**Status: TEST deployment READY; hosted anonymous protocol and negative-security checks passed. Authenticated Employee reads, audit/limiter readback after a real call, and Edwin's personal ChatGPT connection remain open.**
 
 ## Doel en begrenzing
 
@@ -24,7 +24,7 @@ Progress wordt in de plannen getoond. Check-in- en andere tools die een opaque g
 ## Authenticatie, toestemming en autorisatie
 
 - Supabase OAuth 2.1/PKCE authenticeert de bestaande LiquidHR-gebruiker; de consentpagina toont clientnaam, exacte redirect-URI en gevraagde OIDC-scopes en biedt expliciet toestaan/weigeren.
-- Alleen na goedgekeurde consent registreert een smalle server-side service-role RPC de door Supabase gevalideerde OAuth `client_id` voor de vaste `employee-self-service`-resource. Er is geen client-selecteerbare resource, tenant, HR-groep, administratie of medewerker.
+- Supabase DCR kan tijdens het toevoegen van de connector een OAuth-client registreren. Alleen na goedgekeurde consent registreert een smalle server-side service-role RPC die door Supabase gevalideerde OAuth `client_id` in de interne LiquidHR-allowlist voor de vaste `employee-self-service`-resource. Er is geen client-selecteerbare resource, tenant, HR-groep, administratie of medewerker.
 - MCP-calls vereisen een geldige Supabase bearer met exacte issuer, `aud=authenticated`, role, subject, client ID en toekomstig expiry. Tokenclaims worden signature-geverifieerd en de user wordt live gevalideerd; de bearer wordt vervolgens aan dezelfde Supabase RLS-client gebonden.
 - De bestaande `AuthContext`, self-permissions, actieve TALENT-module en RLS bepalen per request de toegang. OAuth/OIDC-scopes geven op zichzelf geen LiquidHR-rechten.
 - Iedere geautoriseerde context-call consumeert de database-atomic limiter en schrijft een durable read-auditrecord. Auth, context, limiter, projectie of audit die niet betrouwbaar beschikbaar zijn, blokkeren de call.
@@ -35,7 +35,15 @@ Progress wordt in de plannen getoond. Check-in- en andere tools die een opaque g
 - Remote endpoint: `https://liquid-hr-hr-suite.vercel.app/mcp` op het bestaande `liquidhr` Vercel-project en uitsluitend de bestaande `production`-target die Edwin als gezamenlijke TEST heeft aangewezen.
 - Externe route en OAuth-config staan standaard uit en worden alleen op die target aangezet na lokale gates, remote readback en identiteit/configuratiecontrole.
 - De route controleert de exacte toegestane host, Vercel production-runtime, de bestaande Supabase TEST-project-URL en een afzonderlijke MCP-featureflag. Preview, localhost en andere projecten blijven dicht.
-- Kill switch: zet uitsluitend `LIQUIDHR_REMOTE_MCP_ENABLED=false` op de Vercel Production-target (de gezamenlijke TEST), redeploy of activeer de bestaande runtime-configwijziging. ChatGPT kan daarna geen toolcalls meer uitvoeren. Een gebruiker kan daarnaast de connector/disconnect en Supabase OAuth-consent intrekken.
+- Immediate TEST read kill switch: voer alleen op project `wnpfloqpjvaacobppbpk` deze update uit; de centrale limiter weigert daarna iedere Employee-self-service-call fail-closed. `initialize` en tool discovery kunnen nog antwoorden tot de deployment is uitgezet.
+
+  ```sql
+  update internal_security.api_rate_limit_policies
+  set is_active = false, updated_at = timezone('utc', now())
+  where resource_key = 'employee-self-service';
+  ```
+
+- Full route kill switch: zet uitsluitend `LIQUIDHR_REMOTE_MCP_ENABLED=false` op de Vercel Production-target van het bestaande `liquidhr`-project (de gezamenlijke TEST) en deploy die wijziging naar de bestaande TEST-alias. Bevestig dat zowel `/mcp` als de protected-resource-metadata `404` geven. Schakel ook Supabase OAuth Server en DCR uit om nieuwe clientregistraties en autorisaties te stoppen. De limiter uitschakelen is de directe maatregel voor reeds bestaande tokens; herstel van de policy vereist expliciete TEST-goedkeuring.
 - Rollback: herstel de vooraf geverifieerde bestaande READY-deployment/alias op hetzelfde Vercel-project. Geen nieuwe project, domein of service.
 
 ## Vereiste acceptatie
