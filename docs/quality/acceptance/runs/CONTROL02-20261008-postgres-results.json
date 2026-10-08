@@ -1,0 +1,97 @@
+{
+  "migration": "C:\\Users\\Edwin\\.codex\\worktrees\\control02-closeout-20261008\\LiquidHR\\apps\\hr-suite\\supabase\\migrations\\20261008154011_control02_test_final_writer_runtime_guards.sql",
+  "results": [
+    {
+      "name": "existing Employee + existing Employment + IKV create + completion + direct retry fenced",
+      "status": "PASS"
+    },
+    {
+      "name": "two IKVs with explicit separate Employments + dependency + half-open link",
+      "status": "PASS"
+    },
+    {
+      "name": "draft Employment with explicit terms",
+      "status": "PASS"
+    },
+    {
+      "name": "REUSE_EMPLOYEE",
+      "status": "PASS"
+    },
+    {
+      "name": "REUSE_EMPLOYMENT",
+      "status": "PASS"
+    },
+    {
+      "name": "LINK_INCOME_RELATIONSHIP existing IKV and completion",
+      "status": "PASS"
+    },
+    {
+      "name": "NO_CHANGE existing IKV and completion",
+      "status": "PASS"
+    },
+    {
+      "name": "missing employment action fails closed",
+      "status": "PASS"
+    },
+    {
+      "name": "employment period mismatch rejects IKV create",
+      "status": "PASS"
+    },
+    {
+      "name": "missing draft contract confirmation rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "wrong lease owner fenced",
+      "status": "PASS"
+    },
+    {
+      "name": "expired lease + normal RECOVERED + CLAIMED + completion",
+      "status": "PASS"
+    },
+    {
+      "name": "FAILED + RETRY + CLAIMED + completion",
+      "status": "PASS"
+    },
+    {
+      "name": "wrong state token rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "wrong contract version rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "incomplete dependency rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "foreign employment scope rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "missing match action fails closed",
+      "status": "PASS"
+    },
+    {
+      "name": "lease that expires inside a transaction is fenced",
+      "status": "PASS"
+    },
+    {
+      "name": "draft terms are verified after INSERT",
+      "status": "PASS"
+    },
+    {
+      "name": "overlapping second IKV fails explicitly and keeps first completion",
+      "status": "PASS"
+    },
+    {
+      "name": "completed Employee and draft Employment proofs are reused without duplicate Core records",
+      "status": "PASS"
+    },
+    {
+      "name": "completion event without explicit readbackVerified fails closed",
+      "status": "PASS"
+    }
+  ]
+}

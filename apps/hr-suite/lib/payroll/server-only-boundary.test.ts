@@ -88,29 +88,72 @@ function collectReExportSpecifiers(source: ts.SourceFile): string[] {
   )
 }
 
-function reExportsTarget(modulePath: string, targetPath: string, visited = new Set<string>()): boolean {
-  const resolvedModule = resolve(modulePath)
-  if (resolvedModule === targetPath) return true
-  if (visited.has(resolvedModule)) return false
-  visited.add(resolvedModule)
-  const source = getSourceFile(resolvedModule)
-  const isIndexBarrel = /^index\.[jt]sx?$/.test(basename(resolvedModule))
-  const reExportSpecifiers = isIndexBarrel ? collectModuleSpecifiers(source) : collectReExportSpecifiers(source)
-  return reExportSpecifiers.some((specifier) => {
-    const reExportPath = resolveModulePath(resolvedModule, specifier)
-    return reExportPath !== null && reExportsTarget(reExportPath, targetPath, visited)
-  })
+type BoundaryModuleGraph = {
+  sourceFiles: readonly string[]
+  directDependencies: ReadonlyMap<string, readonly string[]>
+  reverseReExports: ReadonlyMap<string, readonly string[]>
 }
 
-function findImporters(sourceFiles: string[], target: string): string[] {
+function buildBoundaryModuleGraph(sourceFiles: readonly string[]): BoundaryModuleGraph {
+  const directDependencies = new Map<string, readonly string[]>()
+  const mutableReverseReExports = new Map<string, Set<string>>()
+  const pendingIntermediateModules: string[] = []
+
+  for (const path of sourceFiles) {
+    if (/\.test\.[jt]sx?$/.test(path)) continue
+    const source = getSourceFile(path)
+    const direct = collectModuleSpecifiers(source)
+      .map((specifier) => resolveModulePath(path, specifier))
+      .filter((dependency): dependency is string => dependency !== null)
+    directDependencies.set(path, direct)
+    pendingIntermediateModules.push(...direct)
+  }
+
+  const scannedIntermediateModules = new Set<string>()
+  while (pendingIntermediateModules.length > 0) {
+    const path = resolve(pendingIntermediateModules.pop()!)
+    if (scannedIntermediateModules.has(path)) continue
+    scannedIntermediateModules.add(path)
+    const source = getSourceFile(path)
+    // Match the previous traversal semantics: ordinary modules expose only
+    // re-exports; index barrels also follow imports because they may re-export
+    // an imported binding. Build these edges once for all protected targets.
+    const intermediateSpecifiers = /^index\.[jt]sx?$/.test(basename(path))
+      ? collectModuleSpecifiers(source)
+      : collectReExportSpecifiers(source)
+    for (const specifier of intermediateSpecifiers) {
+      const dependency = resolveModulePath(path, specifier)
+      if (!dependency) continue
+      const reverse = mutableReverseReExports.get(resolve(dependency)) ?? new Set<string>()
+      reverse.add(path)
+      mutableReverseReExports.set(resolve(dependency), reverse)
+      pendingIntermediateModules.push(dependency)
+    }
+  }
+
+  return {
+    sourceFiles,
+    directDependencies,
+    reverseReExports: new Map([...mutableReverseReExports].map(([path, importers]) => [path, [...importers]])),
+  }
+}
+
+function findImporters(graph: BoundaryModuleGraph, target: string): string[] {
   const resolvedTarget = resolve(payrollDirectory, target)
-  return sourceFiles.filter((path) => {
-    if (/\.test\.[jt]sx?$/.test(path)) return false
-    return collectModuleSpecifiers(getSourceFile(path)).some((specifier) => {
-      const resolvedModule = resolveModulePath(path, specifier)
-      return resolvedModule !== null && reExportsTarget(resolvedModule, resolvedTarget)
-    })
-  }).sort()
+  const reachable = new Set<string>([resolvedTarget])
+  const pending = [resolvedTarget]
+  while (pending.length > 0) {
+    const dependency = pending.pop()!
+    for (const importer of graph.reverseReExports.get(dependency) ?? []) {
+      if (reachable.has(importer)) continue
+      reachable.add(importer)
+      pending.push(importer)
+    }
+  }
+
+  return graph.sourceFiles.filter((path) => (graph.directDependencies.get(path) ?? [])
+    .some((dependency) => reachable.has(resolve(dependency))))
+    .sort()
 }
 
 describe('Payroll Lab server-only boundary', () => {
@@ -151,10 +194,11 @@ describe('Payroll Lab server-only boundary', () => {
       ...collectSourceFiles(join(hrSuiteRoot, 'lib')),
       join(hrSuiteRoot, 'proxy.ts'),
     ]
-    const repositoryImporters = findImporters(sourceFiles, 'repository.ts')
-    const calculationRepositoryImporters = findImporters(sourceFiles, 'calculation-repository.ts')
-    const supabaseClientImporters = findImporters(sourceFiles, 'supabase-client.ts')
-    const draftRepositoryImporters = findImporters(sourceFiles, 'component-draft-repository.ts')
+    const moduleGraph = buildBoundaryModuleGraph(sourceFiles)
+    const repositoryImporters = findImporters(moduleGraph, 'repository.ts')
+    const calculationRepositoryImporters = findImporters(moduleGraph, 'calculation-repository.ts')
+    const supabaseClientImporters = findImporters(moduleGraph, 'supabase-client.ts')
+    const draftRepositoryImporters = findImporters(moduleGraph, 'component-draft-repository.ts')
 
     expect(resolveModulePath(join(payrollDirectory, 'access.ts'), './repository.js'))
       .toBe(resolve(payrollDirectory, 'repository.ts'))

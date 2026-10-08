@@ -1,5 +1,19 @@
 # Actuele overdracht Liquid HR
 
+## CONTROL02 gecombineerde final writer-audit — 2026-10-08
+
+**PARTIAL / NOT MERGE-READY / definitieve TEST-migration nog niet toegepast.** De volledige writer en eventrecorder zijn gecontroleerd en in echte lokale PostgreSQL 17.10 getest: 23/23 casussen PASS. Gerichte CONTROL02-regressie: 30 bestanden / 188 tests PASS; strict TypeScript en i18n PASS.
+
+Concrete blocker: rij 1 bevestigt IKV 1 (2026-01-01 zonder einddatum) en IKV 2 (2026-01-15 t/m 2026-12-31) op hetzelfde Employment. De live Core-constraint employment_income_relationships_no_overlap verbiedt deze overlappende links. De kandidaat detecteert dit vóór een IKV-write met PAYROLL_FINALIZATION_EMPLOYMENT_IKV_PERIOD_CONFLICT. Geen brondata, bevestigde mapping of Core-regel aangepast. Volledig herstel van de bestaande batch vereist eerst een expliciet passende domeintoewijzing.
+
+De bestaande TEST-batch ca8d6435-d953-44f3-ba68-77ec8d9e6d7c en plan e497300e-0921-418f-a2e1-b5f7bb1f84c6 behouden hun historie. Laatste authoritative readback: Employee 100023 en Employment 1 bestaan exact eenmaal; 2/7 acties COMPLETED, 1 FAILED, 4 PENDING; batch STAGED, 0 IKVs/links. INDEFINITE is expliciet opgeslagen als confirmed contractType in beide persoonsbeslissingen; geen impliciete XML-afleiding of UI-default.
+
+Definitieve forward-only kandidaat: 20261008154011_control02_test_final_writer_runtime_guards.sql. Canonical LF SHA-256: 715061C071F8F5E2E95AC341F7C80D36E7780B4F22ED351A67F3264BD31AB46D. Vervangt writer en eventrecorder, behoudt service_role-only toegang. De eerdere smalle 20261008150542-kandidaat is onvoldoende en wordt niet afzonderlijk toegepast. Geen remote apply zonder exact gebonden TEST-toestemming.
+
+Verliesvrije checkpoint: backup/control02-final-debug-20261008, c0cad9c2ca30c365cf2d2f33de1347f3fe80a180; volledige bundle en 122 oorspronkelijke bestandskopieën met checksums onder LiquidHR-AI1/.control02-checkpoints/20261008-final-debug. Originele HEAD, index en MERGE_HEAD behouden. Git herkent de worktree buiten de sandbox; eerdere toegangsfouten hangen samen met het worktreepad buiten writable roots. Schone integratiebranch codex/control02-closeout-20261008 is gestart op actuele origin/main 249c737941d682cb834e313097a9df009549c11b. Niet-CONTROL02 wijzigingen blijven alleen in de checkpoint. Zie [audit en gates](../quality/acceptance/runs/CONTROL02-FINAL-20261008.md).
+
+Open: definitieve TEST-apply, geldige bevestigde IKV/Employment-mapping, dezelfde batch naar 7/7 COMPLETED met authoritative readback, remote retry/concurrency/auth/scope en desktop/390px-acceptatie. Geen merge, Production-write, version bump of deploy.
+
 ## APIAI-06 final acceptance and release handoff — 2026-10-07
 
 - **Current main / shared TEST:** main remains `38ccbcac6423824a1dba7075f022f68771edf087`. Read-only Vercel preflight confirmed the existing `liquidhr` project (`prj_h3voMtzXGfqG6QTodR5d1VTcC1zP`), Production target, and alias `liquid-hr-hr-suite.vercel.app` on READY deployment `dpl_ArGD9NSVT7qaHSh1J5WzyaB8wkL5`. Project metadata says `live:false`. Prior READY deployment `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` is available in the same project for rollback. No deployment has been made for APIAI-06 yet.

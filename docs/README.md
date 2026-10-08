@@ -1,5 +1,10 @@
 # Liquid HR documentatie-index
 
+## CONTROL02 final writer — 2026-10-08
+
+**PARTIAL / NOT MERGE-READY.** 23 echte PostgreSQL-casussen groen; de bestaande TEST-batch heeft een bevestigde IKV/Employment-overlap die Core verbiedt. Definitieve forward-only writerkandidaat wacht op exacte TEST-toestemming. Zie [gecombineerde audit en resterende gates](quality/acceptance/runs/CONTROL02-FINAL-20261008.md).
+
+
 ## APIAI-06 final local acceptance — 2026-10-07
 
 **Local convergence is ready** on `work/apiai-06-controlled-actions-20261006`, based on main `38ccbcac6423824a1dba7075f022f68771edf087`, with product code at `c37646e3e6033368080d0fad60a8bad9cdc91907`. The existing TEST migration `20261007054728_apiai06_controlled_actions` is applied once and verified. Employee, Manager and HR Admin local authenticated acceptance, action idempotency/audit, regressions and the exact-source production build passed. The HR Admin fixture corruption was restored through the existing fixture process before acceptance; this run added no identity or permission.

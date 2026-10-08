@@ -2782,13 +2782,18 @@ export type Database = {
           action: string
           actor_user_id: string | null
           administration_id: string | null
+          api_client_id: string | null
+          api_outcome: string | null
+          api_resource_key: string | null
+          api_status_code: number | null
           change_set_id: string | null
           changes: Json
           correlation_id: string | null
           created_at: string
           employment_id: string | null
-          entity_id: string
+          entity_id: string | null
           entity_name: string
+          hr_group_id: string | null
           id: string
           subject_employee_id: string | null
           tenant_id: string
@@ -2797,13 +2802,18 @@ export type Database = {
           action: string
           actor_user_id?: string | null
           administration_id?: string | null
+          api_client_id?: string | null
+          api_outcome?: string | null
+          api_resource_key?: string | null
+          api_status_code?: number | null
           change_set_id?: string | null
           changes?: Json
           correlation_id?: string | null
           created_at?: string
           employment_id?: string | null
-          entity_id: string
+          entity_id?: string | null
           entity_name: string
+          hr_group_id?: string | null
           id?: string
           subject_employee_id?: string | null
           tenant_id: string
@@ -2812,13 +2822,18 @@ export type Database = {
           action?: string
           actor_user_id?: string | null
           administration_id?: string | null
+          api_client_id?: string | null
+          api_outcome?: string | null
+          api_resource_key?: string | null
+          api_status_code?: number | null
           change_set_id?: string | null
           changes?: Json
           correlation_id?: string | null
           created_at?: string
           employment_id?: string | null
-          entity_id?: string
+          entity_id?: string | null
           entity_name?: string
+          hr_group_id?: string | null
           id?: string
           subject_employee_id?: string | null
           tenant_id?: string
@@ -2837,6 +2852,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employment_change_sets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_hr_group_scope_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
           },
           {
             foreignKeyName: "audit_logs_tenant_id_fkey"
@@ -8774,6 +8796,9 @@ export type Database = {
           ends_on: string | null
           id: string
           ikv_number: number
+          payroll_tax_binding_hr_group_id: string | null
+          payroll_tax_binding_id: string | null
+          payroll_tax_number: string | null
           payroll_tax_subnumber: string
           relationship_type: Database["public"]["Enums"]["income_relationship_type"]
           reporting_status: Database["public"]["Enums"]["payroll_reporting_status"]
@@ -8789,6 +8814,9 @@ export type Database = {
           ends_on?: string | null
           id?: string
           ikv_number: number
+          payroll_tax_binding_hr_group_id?: string | null
+          payroll_tax_binding_id?: string | null
+          payroll_tax_number?: string | null
           payroll_tax_subnumber: string
           relationship_type?: Database["public"]["Enums"]["income_relationship_type"]
           reporting_status?: Database["public"]["Enums"]["payroll_reporting_status"]
@@ -8804,6 +8832,9 @@ export type Database = {
           ends_on?: string | null
           id?: string
           ikv_number?: number
+          payroll_tax_binding_hr_group_id?: string | null
+          payroll_tax_binding_id?: string | null
+          payroll_tax_number?: string | null
           payroll_tax_subnumber?: string
           relationship_type?: Database["public"]["Enums"]["income_relationship_type"]
           reporting_status?: Database["public"]["Enums"]["payroll_reporting_status"]
@@ -8825,6 +8856,23 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "income_relationships_payroll_tax_binding_scope_fkey"
+            columns: [
+              "tenant_id",
+              "payroll_tax_binding_hr_group_id",
+              "administration_id",
+              "payroll_tax_binding_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "administration_payroll_tax_numbers"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "id",
+            ]
           },
           {
             foreignKeyName: "income_relationships_tenant_id_fkey"
@@ -12469,6 +12517,512 @@ export type Database = {
           },
         ]
       }
+      payroll_import_decisions: {
+        Row: {
+          administration_id: string
+          analysis_hash: string
+          batch_id: string
+          confirmed_at: string
+          confirmer_user_id: string
+          contract_version: string | null
+          core_state_hash: string
+          created_at: string
+          decision_hash: string
+          decision_payload: Json
+          decision_version: number
+          hr_group_id: string
+          id: string
+          import_person_id: string
+          schema_version: string | null
+          source_hash: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          analysis_hash: string
+          batch_id: string
+          confirmed_at: string
+          confirmer_user_id: string
+          contract_version?: string | null
+          core_state_hash: string
+          created_at?: string
+          decision_hash: string
+          decision_payload: Json
+          decision_version: number
+          hr_group_id: string
+          id?: string
+          import_person_id: string
+          schema_version?: string | null
+          source_hash: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          analysis_hash?: string
+          batch_id?: string
+          confirmed_at?: string
+          confirmer_user_id?: string
+          contract_version?: string | null
+          core_state_hash?: string
+          created_at?: string
+          decision_hash?: string
+          decision_payload?: Json
+          decision_version?: number
+          hr_group_id?: string
+          id?: string
+          import_person_id?: string
+          schema_version?: string | null
+          source_hash?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_import_decisions_batch_scope_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "batch_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "payroll_import_batches"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "payroll_import_decisions_person_scope_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "batch_id",
+              "import_person_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "payroll_import_persons"
+            referencedColumns: ["tenant_id", "hr_group_id", "batch_id", "id"]
+          },
+        ]
+      }
+      payroll_import_finalization_action_events: {
+        Row: {
+          action_id: string
+          actor_user_id: string
+          analysis_hash: string
+          attempt_number: number
+          batch_id: string
+          checkpoint: Json
+          core_state_hash: string
+          created_at: string
+          error_code: string | null
+          event_key: string
+          event_type: string
+          hr_group_id: string
+          id: string
+          lease_owner: string | null
+          lease_until: string | null
+          source_hash: string
+          tenant_id: string
+        }
+        Insert: {
+          action_id: string
+          actor_user_id: string
+          analysis_hash: string
+          attempt_number: number
+          batch_id: string
+          checkpoint?: Json
+          core_state_hash: string
+          created_at?: string
+          error_code?: string | null
+          event_key: string
+          event_type: string
+          hr_group_id: string
+          id?: string
+          lease_owner?: string | null
+          lease_until?: string | null
+          source_hash: string
+          tenant_id: string
+        }
+        Update: {
+          action_id?: string
+          actor_user_id?: string
+          analysis_hash?: string
+          attempt_number?: number
+          batch_id?: string
+          checkpoint?: Json
+          core_state_hash?: string
+          created_at?: string
+          error_code?: string | null
+          event_key?: string
+          event_type?: string
+          hr_group_id?: string
+          id?: string
+          lease_owner?: string | null
+          lease_until?: string | null
+          source_hash?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_import_finalization_action_events_action_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "batch_id", "action_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_import_finalization_actions"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "batch_id",
+              "action_id",
+            ]
+          },
+        ]
+      }
+      payroll_import_finalization_actions: {
+        Row: {
+          action_id: string
+          action_type: string
+          administration_id: string
+          analysis_hash: string
+          attempt_count: number
+          batch_id: string
+          checkpoint: Json
+          completed_at: string | null
+          contract_version: string | null
+          core_state_hash: string
+          created_at: string
+          decision_hash: string
+          decision_id: string
+          depends_on_action_ids: string[]
+          draft_employment_contract_type: string | null
+          draft_employment_original_hire_date: string | null
+          draft_employment_seniority_date: string | null
+          draft_employment_starts_on: string | null
+          hr_group_id: string
+          id: string
+          idempotency_key: string
+          import_person_id: string
+          last_attempt_at: string | null
+          last_error_code: string | null
+          lease_owner: string | null
+          lease_token_hash: string | null
+          lease_until: string | null
+          plan_hash: string
+          plan_id: string
+          preconditions: Json
+          schema_version: string | null
+          sequence_no: number
+          source_ends_on: string | null
+          source_hash: string
+          source_ikv_number: number | null
+          source_income_ref: string | null
+          source_payroll_tax_number: string | null
+          source_person_ref: string
+          source_refs: Json
+          source_starts_on: string | null
+          status: string
+          target_employee_id: string | null
+          target_employee_ref: string | null
+          target_employment_id: string | null
+          target_employment_ref: string | null
+          target_income_relationship_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          action_id: string
+          action_type: string
+          administration_id: string
+          analysis_hash: string
+          attempt_count?: number
+          batch_id: string
+          checkpoint?: Json
+          completed_at?: string | null
+          contract_version?: string | null
+          core_state_hash: string
+          created_at?: string
+          decision_hash: string
+          decision_id: string
+          depends_on_action_ids?: string[]
+          draft_employment_contract_type?: string | null
+          draft_employment_original_hire_date?: string | null
+          draft_employment_seniority_date?: string | null
+          draft_employment_starts_on?: string | null
+          hr_group_id: string
+          id?: string
+          idempotency_key: string
+          import_person_id: string
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          lease_until?: string | null
+          plan_hash: string
+          plan_id: string
+          preconditions?: Json
+          schema_version?: string | null
+          sequence_no: number
+          source_ends_on?: string | null
+          source_hash: string
+          source_ikv_number?: number | null
+          source_income_ref?: string | null
+          source_payroll_tax_number?: string | null
+          source_person_ref: string
+          source_refs?: Json
+          source_starts_on?: string | null
+          status?: string
+          target_employee_id?: string | null
+          target_employee_ref?: string | null
+          target_employment_id?: string | null
+          target_employment_ref?: string | null
+          target_income_relationship_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          action_id?: string
+          action_type?: string
+          administration_id?: string
+          analysis_hash?: string
+          attempt_count?: number
+          batch_id?: string
+          checkpoint?: Json
+          completed_at?: string | null
+          contract_version?: string | null
+          core_state_hash?: string
+          created_at?: string
+          decision_hash?: string
+          decision_id?: string
+          depends_on_action_ids?: string[]
+          draft_employment_contract_type?: string | null
+          draft_employment_original_hire_date?: string | null
+          draft_employment_seniority_date?: string | null
+          draft_employment_starts_on?: string | null
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string
+          import_person_id?: string
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          lease_until?: string | null
+          plan_hash?: string
+          plan_id?: string
+          preconditions?: Json
+          schema_version?: string | null
+          sequence_no?: number
+          source_ends_on?: string | null
+          source_hash?: string
+          source_ikv_number?: number | null
+          source_income_ref?: string | null
+          source_payroll_tax_number?: string | null
+          source_person_ref?: string
+          source_refs?: Json
+          source_starts_on?: string | null
+          status?: string
+          target_employee_id?: string | null
+          target_employee_ref?: string | null
+          target_employment_id?: string | null
+          target_employment_ref?: string | null
+          target_income_relationship_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_import_finalization_actions_batch_scope_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "batch_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "payroll_import_batches"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "payroll_import_finalization_actions_decision_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "batch_id", "decision_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_import_decisions"
+            referencedColumns: ["tenant_id", "hr_group_id", "batch_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_import_finalization_actions_person_scope_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "batch_id",
+              "import_person_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "payroll_import_persons"
+            referencedColumns: ["tenant_id", "hr_group_id", "batch_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_import_finalization_actions_plan_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "batch_id", "plan_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_import_finalization_plans"
+            referencedColumns: ["tenant_id", "hr_group_id", "batch_id", "id"]
+          },
+        ]
+      }
+      payroll_import_finalization_plan_events: {
+        Row: {
+          actor_user_id: string
+          administration_id: string
+          analysis_hash: string
+          batch_id: string
+          core_state_hash: string
+          created_at: string
+          event_key: string
+          event_type: string
+          hr_group_id: string
+          id: string
+          plan_id: string
+          reason: string
+          source_hash: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          administration_id: string
+          analysis_hash: string
+          batch_id: string
+          core_state_hash: string
+          created_at?: string
+          event_key: string
+          event_type: string
+          hr_group_id: string
+          id?: string
+          plan_id: string
+          reason: string
+          source_hash: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          administration_id?: string
+          analysis_hash?: string
+          batch_id?: string
+          core_state_hash?: string
+          created_at?: string
+          event_key?: string
+          event_type?: string
+          hr_group_id?: string
+          id?: string
+          plan_id?: string
+          reason?: string
+          source_hash?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_import_finalization_plan_events_plan_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "batch_id", "plan_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_import_finalization_plans"
+            referencedColumns: ["tenant_id", "hr_group_id", "batch_id", "id"]
+          },
+        ]
+      }
+      payroll_import_finalization_plans: {
+        Row: {
+          administration_id: string
+          analysis_hash: string
+          batch_id: string
+          completed_action_count: number
+          contract_version: string | null
+          core_state_hash: string
+          created_at: string
+          created_by_user_id: string
+          expected_action_count: number
+          hr_group_id: string
+          id: string
+          invalidated_at: string | null
+          invalidated_by_user_id: string | null
+          invalidation_reason: string | null
+          plan_hash: string
+          schema_version: string | null
+          source_hash: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          analysis_hash: string
+          batch_id: string
+          completed_action_count?: number
+          contract_version?: string | null
+          core_state_hash: string
+          created_at?: string
+          created_by_user_id: string
+          expected_action_count: number
+          hr_group_id: string
+          id?: string
+          invalidated_at?: string | null
+          invalidated_by_user_id?: string | null
+          invalidation_reason?: string | null
+          plan_hash: string
+          schema_version?: string | null
+          source_hash: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          analysis_hash?: string
+          batch_id?: string
+          completed_action_count?: number
+          contract_version?: string | null
+          core_state_hash?: string
+          created_at?: string
+          created_by_user_id?: string
+          expected_action_count?: number
+          hr_group_id?: string
+          id?: string
+          invalidated_at?: string | null
+          invalidated_by_user_id?: string | null
+          invalidation_reason?: string | null
+          plan_hash?: string
+          schema_version?: string | null
+          source_hash?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_import_finalization_plans_batch_scope_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "batch_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "payroll_import_batches"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "id",
+            ]
+          },
+        ]
+      }
       payroll_import_income_relationships: {
         Row: {
           administration_id: string
@@ -12559,10 +13113,15 @@ export type Database = {
           },
           {
             foreignKeyName: "payroll_import_income_person_scope_fkey"
-            columns: ["tenant_id", "hr_group_id", "import_person_id"]
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "batch_id",
+              "import_person_id",
+            ]
             isOneToOne: false
             referencedRelation: "payroll_import_persons"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "batch_id", "id"]
           },
           {
             foreignKeyName: "payroll_import_income_relationship_scope_fkey"
@@ -12660,10 +13219,122 @@ export type Database = {
           },
           {
             foreignKeyName: "payroll_import_persons_employee_scope_fkey"
-            columns: ["tenant_id", "matched_employee_id"]
+            columns: ["tenant_id", "hr_group_id", "matched_employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      payroll_import_protected_identifiers: {
+        Row: {
+          batch_id: string
+          bsn_ciphertext: string
+          bsn_fingerprint: string
+          created_at: string
+          hr_group_id: string
+          import_person_id: string
+          tenant_id: string
+        }
+        Insert: {
+          batch_id: string
+          bsn_ciphertext: string
+          bsn_fingerprint: string
+          created_at?: string
+          hr_group_id: string
+          import_person_id: string
+          tenant_id: string
+        }
+        Update: {
+          batch_id?: string
+          bsn_ciphertext?: string
+          bsn_fingerprint?: string
+          created_at?: string
+          hr_group_id?: string
+          import_person_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_import_protected_identifiers_person_scope_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "batch_id",
+              "import_person_id",
+            ]
+            isOneToOne: true
+            referencedRelation: "payroll_import_persons"
+            referencedColumns: ["tenant_id", "hr_group_id", "batch_id", "id"]
+          },
+        ]
+      }
+      payroll_import_xml_provenance: {
+        Row: {
+          administration_id: string
+          batch_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          namespace_uri: string
+          release_page_url: string
+          schema_version: string
+          source_archive_sha256: string
+          source_hash: string
+          tenant_id: string
+          validated_at: string
+          xsd_filename: string
+          xsd_sha256: string
+        }
+        Insert: {
+          administration_id: string
+          batch_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          namespace_uri: string
+          release_page_url: string
+          schema_version: string
+          source_archive_sha256: string
+          source_hash: string
+          tenant_id: string
+          validated_at: string
+          xsd_filename: string
+          xsd_sha256: string
+        }
+        Update: {
+          administration_id?: string
+          batch_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          namespace_uri?: string
+          release_page_url?: string
+          schema_version?: string
+          source_archive_sha256?: string
+          source_hash?: string
+          tenant_id?: string
+          validated_at?: string
+          xsd_filename?: string
+          xsd_sha256?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_import_xml_provenance_batch_scope_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "batch_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "payroll_import_batches"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "id",
+            ]
           },
         ]
       }
@@ -20553,6 +21224,7 @@ export type Database = {
         Args: { requested_output_id: string }
         Returns: Json
       }
+      apiai07_custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       apply_combined_employment_timeline_mutation: {
         Args: {
           requested_acknowledgements?: Json
@@ -20876,6 +21548,19 @@ export type Database = {
           requested_time_mode: Database["public"]["Enums"]["leave_request_time_mode"]
         }
         Returns: string
+      }
+      consume_api_rate_limit: {
+        Args: {
+          requested_hr_group_id: string
+          requested_oauth_client_id: string
+          requested_resource_key: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      control02_test_finalization_schema_ready: {
+        Args: never
+        Returns: boolean
       }
       copy_job_profile_version_to_draft: {
         Args: {
@@ -21323,6 +22008,20 @@ export type Database = {
         Args: { requested_actor_user_id: string; requested_snapshot_id: string }
         Returns: Json
       }
+      execute_control02_test_payroll_finalization_action: {
+        Args: {
+          requested_action_id: string
+          requested_actor_user_id: string
+          requested_batch_id: string
+          requested_expected_versions: Json
+          requested_hr_group_id: string
+          requested_lease_owner: string
+          requested_lease_token_hash: string
+          requested_state_token: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
       expire_leave_buckets: {
         Args: { requested_as_of_date: string }
         Returns: number
@@ -21735,6 +22434,20 @@ export type Database = {
         }
         Returns: string
       }
+      invalidate_payroll_import_finalization_plan: {
+        Args: {
+          requested_actor_user_id: string
+          requested_batch_id: string
+          requested_hr_group_id: string
+          requested_plan_hash: string
+          requested_reason: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          plan_id: string
+          status: string
+        }[]
+      }
       list_employee_overviews: {
         Args: {
           requested_archive_filter?: string
@@ -21787,14 +22500,38 @@ export type Database = {
         }
         Returns: string
       }
-      match_payroll_import_employee_bsn_fingerprint: {
+      match_payroll_import_employee_bsn_fingerprint:
+        | {
+            Args: {
+              requested_administration_id: string
+              requested_bsn_fingerprint: string
+              requested_hr_group_id: string
+              requested_tenant_id: string
+            }
+            Returns: {
+              employee_id: string
+            }[]
+          }
+        | {
+            Args: {
+              requested_bsn_fingerprint: string
+              requested_hr_group_id: string
+              requested_tenant_id: string
+            }
+            Returns: {
+              employee_id: string
+            }[]
+          }
+      match_payroll_import_employee_bsn_fingerprints: {
         Args: {
-          requested_bsn_fingerprint: string
+          requested_administration_id: string
+          requested_bsn_fingerprints: string[]
           requested_hr_group_id: string
           requested_tenant_id: string
         }
         Returns: {
           employee_id: string
+          requested_bsn_fingerprint: string
         }[]
       }
       next_custom_field_value: {
@@ -22010,6 +22747,20 @@ export type Database = {
         Args: { requested_invocation_id: string }
         Returns: undefined
       }
+      record_api_read_audit: {
+        Args: {
+          requested_actor_user_id: string
+          requested_administration_id: string
+          requested_correlation_id: string
+          requested_hr_group_id: string
+          requested_oauth_client_id: string
+          requested_outcome: string
+          requested_resource_key: string
+          requested_status_code: number
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
       record_journey_topic_outcome: {
         Args: {
           requested_journey_id: string
@@ -22018,6 +22769,32 @@ export type Database = {
           requested_topic_id: string
         }
         Returns: Json
+      }
+      record_payroll_import_finalization_event: {
+        Args: {
+          requested_action_id: string
+          requested_actor_user_id: string
+          requested_analysis_hash: string
+          requested_attempt_number: number
+          requested_batch_id: string
+          requested_checkpoint?: Json
+          requested_core_state_hash: string
+          requested_error_code?: string
+          requested_event_key: string
+          requested_event_type: string
+          requested_hr_group_id: string
+          requested_lease_owner?: string
+          requested_lease_token_hash?: string
+          requested_lease_until?: string
+          requested_source_hash: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          action_id: string
+          attempt_count: number
+          event_id: string
+          status: string
+        }[]
       }
       recover_absence: {
         Args: {
@@ -22127,6 +22904,10 @@ export type Database = {
           requested_subject_employee_id?: string
         }
         Returns: string
+      }
+      register_apiai07_mcp_client: {
+        Args: { requested_client_id: string }
+        Returns: Json
       }
       release_ai_credits: {
         Args: {

@@ -27,17 +27,24 @@ export function validatePayrollPersons(input: {
   persons: readonly CanonicalPayrollPerson[]
   candidates: readonly ExistingPayrollEmployeeCandidate[]
   expectedPayrollTaxNumber?: string
+  sourceIssuesByRow?: readonly { sourceRowNumber: number; code: string; field?: string }[]
 }): PayrollImportAnalysis {
   const duplicateExternalNumbers = duplicateValues(input.persons.map((person) => person.externalEmployeeNumber ?? ''))
   const incomeKeys = input.persons.flatMap((person) => person.incomeRelationships.map((income) => payrollIncomeRelationshipKey(person, income.payrollTaxNumber, income.ikvNumber)))
   const duplicateIncomeKeys = duplicateValues(incomeKeys)
 
   const rows: ValidatedPayrollPerson[] = input.persons.map((person) => {
-    const issues: PayrollImportIssue[] = []
+    const issues: PayrollImportIssue[] = (input.sourceIssuesByRow ?? [])
+      .filter((sourceIssue) => sourceIssue.sourceRowNumber === person.sourceRowNumber)
+      .map((sourceIssue) => issue(sourceIssue.code, 'BLOCKING', sourceIssue.field))
     const firstName = person.firstName?.trim()
     const birthName = person.birthName?.trim()
-    if (!firstName) issues.push(issue('FIRST_NAME_REQUIRED', 'BLOCKING', 'firstName'))
-    if (!birthName) issues.push(issue('BIRTH_NAME_REQUIRED', 'BLOCKING', 'birthName'))
+    const isXmlSource = input.sourceType === 'LOONAANGIFTE_XML'
+    // Loonaangifte intentionally carries initials and a significant surname,
+    // not a given name. Stage a valid XML source and require HR to provide a
+    // given name explicitly only if they choose to create a new Employee.
+    if (!firstName && !isXmlSource) issues.push(issue('FIRST_NAME_REQUIRED', 'BLOCKING', 'firstName'))
+    if (!birthName && !isXmlSource) issues.push(issue('BIRTH_NAME_REQUIRED', 'BLOCKING', 'birthName'))
     if (person.birthDate && !isValidIsoDate(person.birthDate)) issues.push(issue('BIRTH_DATE_INVALID', 'BLOCKING', 'birthDate'))
     if (person.externalEmployeeNumber && duplicateExternalNumbers.has(person.externalEmployeeNumber)) {
       issues.push(issue('DUPLICATE_EXTERNAL_EMPLOYEE_NUMBER', 'BLOCKING', 'externalEmployeeNumber'))
@@ -57,7 +64,9 @@ export function validatePayrollPersons(input: {
       if (startsOnValid && endsOnValid && income.startsOn && income.endsOn && income.endsOn < income.startsOn) issues.push(issue('INCOME_DATE_RANGE_INVALID', 'BLOCKING', 'endsOn'))
     }
 
-    const match = matchPayrollPerson(person, input.candidates)
+    const match = input.sourceType === 'LOONAANGIFTE_XML'
+      ? { status: 'UNMATCHED' as const }
+      : matchPayrollPerson(person, input.candidates)
     if (match.status === 'MANUAL_REVIEW') issues.push(issue('AMBIGUOUS_EMPLOYEE_MATCH', 'BLOCKING'))
     if (match.status === 'PROPOSED') issues.push(issue('EMPLOYEE_MATCH_REQUIRES_CONFIRMATION', 'WARNING'))
     if (match.status === 'NEW' && !firstName) issues.push(issue('NEW_EMPLOYEE_INCOMPLETE', 'BLOCKING'))

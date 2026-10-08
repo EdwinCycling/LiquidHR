@@ -5,13 +5,16 @@ import { securityHeaders } from './lib/security/security-headers'
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@scope/db'],
-  serverExternalPackages: ['@sparticuz/chromium', 'playwright-core'],
+  serverExternalPackages: ['@sparticuz/chromium', 'playwright-core', 'libxml2-wasm'],
   outputFileTracingIncludes: {
     '/api/document-studio/generation/**': [
       '../../node_modules/playwright-core/browsers.json',
       '../../node_modules/@sparticuz/chromium/bin/**/*',
       '../../node_modules/@sparticuz/chromium/build/**/*',
       '../../node_modules/@fontsource/work-sans/files/*.woff2',
+    ],
+    '/api/payroll/import/analyze': [
+      'lib/payroll-import/xml/schemas/Loonaangifte2026v2.0.xsd',
     ],
   },
   turbopack: {
