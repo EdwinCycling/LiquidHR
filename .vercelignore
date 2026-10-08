@@ -1,5 +1,8 @@
 .artifacts/
 **/.artifacts/
+.npm-cache/
+.mcp.json
+.qoder/
 .playwright-cli/
 .playwright-state/
 playwright-report/
