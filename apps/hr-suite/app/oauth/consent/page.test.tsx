@@ -1,17 +1,17 @@
 import { isValidElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, getAuthorizationDetails, getClaims, getTranslator, redirect, requireAuthContext } = vi.hoisted(() => ({
+const { createClient, getAuthorizationDetails, getClaims, getTranslator, redirect, resolveEmployeeSelfContext } = vi.hoisted(() => ({
   createClient: vi.fn(),
   getAuthorizationDetails: vi.fn(),
   getClaims: vi.fn(),
   getTranslator: vi.fn(),
   redirect: vi.fn(),
-  requireAuthContext: vi.fn(),
+  resolveEmployeeSelfContext: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({ redirect }))
-vi.mock('@/lib/auth/permissions', () => ({ requireAuthContext }))
+vi.mock('@/lib/api-v1/auth/employee-self-context', () => ({ resolveEmployeeSelfContext }))
 vi.mock('@/lib/i18n/server', () => ({ getTranslator }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
@@ -46,24 +46,63 @@ describe('GET /oauth/consent page', () => {
     getTranslator.mockImplementation(async () => (key: string) => key)
     getAuthorizationDetails.mockResolvedValue({ data: response(), error: null })
     getClaims.mockResolvedValue({ data: { claims: { sub: 'synthetic-employee-user' } }, error: null })
-    requireAuthContext.mockResolvedValue({ employeeId: 'synthetic-employee', activeRoles: ['EMPLOYEE'] })
+    resolveEmployeeSelfContext.mockResolvedValue({
+      kind: 'resolved',
+      context: { employeeId: 'employee-fixture-id', activeRoles: ['EMPLOYEE'] },
+    })
     createClient.mockResolvedValue({ auth: { getClaims, oauth: { getAuthorizationDetails } } })
     redirect.mockImplementation((destination: string) => {
       throw new Error(`NEXT_REDIRECT:${destination}`)
     })
   })
 
-  it('loads pending details before checking login and shows metadata from Supabase even without pre-consent user_id', async () => {
+  it('authenticates before loading pending details and shows Supabase metadata with pre-consent user_id NULL', async () => {
     const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
     const text = pageText(page)
 
     expect(getAuthorizationDetails).toHaveBeenCalledWith(AUTHORIZATION_ID)
-    expect(getAuthorizationDetails.mock.invocationCallOrder[0]).toBeLessThan(getClaims.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
+    expect(getClaims.mock.invocationCallOrder[0]).toBeLessThan(getAuthorizationDetails.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
+    expect(resolveEmployeeSelfContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-employee-user')
     expect(text).toContain('ChatGPT')
     expect(text).toContain(CALLBACK_URL)
     expect(text).toContain('openid email offline_access')
     expect(text).toContain(RESOURCE_URL)
     expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it('allows a uniquely resolved Employee context without consulting a stale dashboard context cookie', async () => {
+    const supabaseClient = {
+      auth: {
+        getClaims,
+        oauth: { getAuthorizationDetails },
+      },
+    }
+    createClient.mockResolvedValue(supabaseClient)
+    resolveEmployeeSelfContext.mockResolvedValueOnce({
+      kind: 'resolved',
+      context: { tenantId: 'employee-tenant', hrGroupId: 'employee-group', administrationId: 'employee-administration', userId: 'synthetic-employee-user', employeeId: 'employee-fixture-id', activeRoles: ['EMPLOYEE'] },
+    })
+
+    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+    const text = pageText(page)
+
+    expect(resolveEmployeeSelfContext).toHaveBeenCalledWith(supabaseClient, 'synthetic-employee-user')
+    expect(text).toContain('oauthConsentApprove')
+    expect(text).toContain('ChatGPT')
+  })
+
+  it.each([
+    ['no Employee self context', { kind: 'none' }],
+    ['multiple Employee contexts', { kind: 'selection-required' }],
+  ] as const)('keeps Allow hidden for %s', async (_case, resolution) => {
+    resolveEmployeeSelfContext.mockResolvedValueOnce(resolution)
+
+    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+    const text = pageText(page)
+
+    expect(text).not.toContain('oauthConsentApprove')
+    expect(text).toContain(resolution.kind === 'none' ? 'oauthConsentNoEmployeeContext' : 'oauthConsentContextSelectionRequired')
+    expect(text).toContain('oauthConsentDeny')
   })
 
   it('sends an unauthenticated browser to login and preserves the same consent request', async () => {
@@ -73,7 +112,7 @@ describe('GET /oauth/consent page', () => {
     await expect(OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) }))
       .rejects.toThrow(`NEXT_REDIRECT:/login?next=${encodeURIComponent(`/oauth/consent?authorization_id=${AUTHORIZATION_ID}`)}`)
 
-    expect(getAuthorizationDetails).toHaveBeenCalledWith(AUTHORIZATION_ID)
+    expect(getAuthorizationDetails).not.toHaveBeenCalled()
   })
 
   it('does not display or follow an authorization response for a different browser flow', async () => {

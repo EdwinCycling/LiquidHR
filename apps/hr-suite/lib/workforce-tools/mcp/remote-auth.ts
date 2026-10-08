@@ -2,7 +2,8 @@ import 'server-only'
 
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@scope/db'
-import { loadBearerAuthContext, createSupabaseBearerRlsBinding } from '@/lib/api-v1/auth'
+import { assertDelegatedAuthContext, createSupabaseBearerRlsBinding } from '@/lib/api-v1/auth'
+import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
 import { DelegatedAuthError, parseBearerToken, type VerifiedDelegatedToken } from '@/lib/api-v1/auth/delegated'
 import type { DelegatedWorkforceToolExecutionContext } from '@/lib/workforce-tools/contracts'
 import {
@@ -128,14 +129,11 @@ export async function authenticateRemoteMcpRequest(request: Request): Promise<{
     verifiedToken,
   })
 
-  const authContext = await loadBearerAuthContext({
-    userId: verifiedToken.subject,
-    identity,
-    rls,
-  })
-  if (authContext.userId !== verifiedToken.subject) {
-    throw new DelegatedAuthError('AUTH_CONTEXT_MISMATCH')
-  }
+  const resolution = await resolveEmployeeSelfContext(rls.client, verifiedToken.subject)
+  if (resolution.kind === 'none') throw new DelegatedAuthError('DELEGATED_SELF_CONTEXT_REQUIRED')
+  if (resolution.kind === 'selection-required') throw new DelegatedAuthError('DELEGATED_CONTEXT_SELECTION_REQUIRED')
+  if (resolution.kind === 'unavailable') throw new DelegatedAuthError('AUTH_CONTEXT_UNAVAILABLE')
+  const authContext = assertDelegatedAuthContext(verifiedToken.subject, resolution.context)
 
   return {
     clientId: verifiedToken.clientId,

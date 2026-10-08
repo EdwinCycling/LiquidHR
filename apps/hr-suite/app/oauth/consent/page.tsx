@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import { AuthShell } from '@/components/auth/auth-shell'
-import { requireAuthContext } from '@/lib/auth/permissions'
+import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
 import { getTranslator } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
 import { approveChatGptMcpConsent, denyChatGptMcpConsent } from './actions'
@@ -45,6 +45,16 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
     message = t('oauthConsentInvalidRequest')
   } else {
     const supabase = await createClient()
+    let userId: string | null = null
+    try {
+      const { data, error } = await supabase.auth.getClaims()
+      const subject = data?.claims?.sub
+      if (!error && typeof subject === 'string' && subject.length > 0) userId = subject
+    } catch {
+      userId = null
+    }
+    if (!userId) redirect(buildConsentLoginHref(authorizationId))
+
     let authorizationResponse: unknown = null
     let authorizationError = false
     try {
@@ -55,16 +65,6 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
       authorizationError = true
     }
 
-    let authenticated = false
-    try {
-      const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
-      const subject = claimsData?.claims?.sub
-      authenticated = !claimsError && typeof subject === 'string' && subject.length > 0
-    } catch {
-      authenticated = false
-    }
-    if (!authenticated) redirect(buildConsentLoginHref(authorizationId))
-
     const authorization = authorizationError ? null : parseConsentAuthorization(authorizationResponse, authorizationId)
     if (!authorization) {
       message = t('oauthConsentInvalidRequest')
@@ -73,18 +73,16 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
     } else {
       const scopesSupported = isSupportedChatGptScope(authorization.scope)
       let canApprove = scopesSupported
-      try {
-        const context = await requireAuthContext()
-        const isEmployeeSelf = context.employeeId !== null
-          && context.activeRoles.includes('EMPLOYEE')
-          && !context.activeRoles.some((role) => role === 'DIRECT_MANAGER' || role.includes('HR') || role === 'TENANT_ADMIN')
-        if (!isEmployeeSelf) {
+      if (scopesSupported) {
+        const resolution = await resolveEmployeeSelfContext(supabase, userId)
+        if (resolution.kind !== 'resolved') {
           canApprove = false
-          message = t('oauthConsentEmployeeOnly')
+          message = resolution.kind === 'selection-required'
+            ? t('oauthConsentContextSelectionRequired')
+            : resolution.kind === 'unavailable'
+              ? t('oauthConsentContextUnavailable')
+              : t('oauthConsentNoEmployeeContext')
         }
-      } catch {
-        canApprove = false
-        message = t('oauthConsentEmployeeOnly')
       }
       if (!scopesSupported) message = t('oauthConsentUnsupportedScope')
       details = {
@@ -112,12 +110,13 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
         <p className="mt-3 text-sm leading-6 text-muted-foreground">{auth('oauthConsentDescription')}</p>
       </div>
 
-      {message ? (
+      {message && !details ? (
         <Surface className="p-5" role="alert">
           <p className="text-sm leading-6 text-foreground">{message}</p>
         </Surface>
       ) : details ? (
         <Surface className="space-y-5 p-5 sm:p-6">
+          {message ? <p className="text-sm leading-6 text-foreground" role="alert">{message}</p> : null}
           <div>
             <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentClientLabel')}</p>
             <p className="mt-1 break-words text-lg font-semibold text-foreground">{details.clientName}</p>

@@ -9,7 +9,7 @@ const {
   getAuthorizationDetails,
   getClaims,
   redirect,
-  requireAuthContext,
+  resolveEmployeeSelfContext,
   rpc,
 } = vi.hoisted(() => ({
   approveAuthorization: vi.fn(),
@@ -19,12 +19,12 @@ const {
   getAuthorizationDetails: vi.fn(),
   getClaims: vi.fn(),
   redirect: vi.fn(),
-  requireAuthContext: vi.fn(),
+  resolveEmployeeSelfContext: vi.fn(),
   rpc: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({ redirect }))
-vi.mock('@/lib/auth/permissions', () => ({ requireAuthContext }))
+vi.mock('@/lib/api-v1/auth/employee-self-context', () => ({ resolveEmployeeSelfContext }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
@@ -59,7 +59,10 @@ describe('APIAI-07 OAuth consent actions', () => {
     approveAuthorization.mockResolvedValue({ data: { redirect_url: CALLBACK_URL }, error: null })
     denyAuthorization.mockResolvedValue({ data: { redirect_url: DENY_URL }, error: null })
     rpc.mockResolvedValue({ data: 'dynamic-client-id', error: null })
-    requireAuthContext.mockResolvedValue({ employeeId: 'synthetic-employee', activeRoles: ['EMPLOYEE'] })
+    resolveEmployeeSelfContext.mockResolvedValue({
+      kind: 'resolved',
+      context: { tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1', userId: 'synthetic-employee-user', employeeId: 'synthetic-employee', activeRoles: ['EMPLOYEE'] },
+    })
     createAdminClient.mockReturnValue({ rpc })
     createClient.mockResolvedValue({
       auth: {
@@ -72,11 +75,12 @@ describe('APIAI-07 OAuth consent actions', () => {
     })
   })
 
-  it('uses Supabase details and current Employee auth without requiring a pre-consent user_id', async () => {
+  it('authenticates first and uses server-resolved Employee context without requiring a pre-consent user_id', async () => {
     await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${CALLBACK_URL}`)
 
     expect(getAuthorizationDetails).toHaveBeenCalledWith(AUTHORIZATION_ID)
-    expect(getAuthorizationDetails.mock.invocationCallOrder[0]).toBeLessThan(getClaims.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
+    expect(getClaims.mock.invocationCallOrder[0]).toBeLessThan(getAuthorizationDetails.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
+    expect(resolveEmployeeSelfContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-employee-user')
     expect(approveAuthorization).toHaveBeenCalledWith(AUTHORIZATION_ID, { skipBrowserRedirect: true })
     expect(approveAuthorization.mock.invocationCallOrder[0]).toBeLessThan(rpc.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
     expect(rpc).toHaveBeenCalledWith('register_apiai07_mcp_client', { requested_client_id: 'dynamic-client-id' })
@@ -117,7 +121,7 @@ describe('APIAI-07 OAuth consent actions', () => {
   })
 
   it('requires the Employee self context before calling Supabase approval', async () => {
-    requireAuthContext.mockResolvedValue({ employeeId: 'synthetic-employee', activeRoles: ['HR_ADMIN', 'EMPLOYEE'] })
+    resolveEmployeeSelfContext.mockResolvedValue({ kind: 'none' })
 
     await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${buildConsentPath(AUTHORIZATION_ID)}`)
 

@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { requireAuthContext } from '@/lib/auth/permissions'
+import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
 import {
   buildConsentLoginHref,
   buildConsentPath,
@@ -20,6 +20,7 @@ type AuthorizationLookup =
   | {
       readonly kind: 'ready'
       readonly supabase: Awaited<ReturnType<typeof createClient>>
+      readonly userId: string
       readonly clientId: string
       readonly scope: string
       readonly redirectUri: string
@@ -35,6 +36,16 @@ async function getCurrentAuthorization(authorizationId: string): Promise<Authori
     return { kind: 'invalid' }
   }
 
+  let userId: string | null = null
+  try {
+    const { data, error } = await supabase.auth.getClaims()
+    const subject = data?.claims?.sub
+    if (!error && typeof subject === 'string' && subject.length > 0) userId = subject
+  } catch {
+    userId = null
+  }
+  if (!userId) return { kind: 'unauthenticated' }
+
   let authorizationResponse: unknown = null
   let authorizationError = false
   try {
@@ -45,33 +56,26 @@ async function getCurrentAuthorization(authorizationId: string): Promise<Authori
     authorizationError = true
   }
 
-  let authenticated = false
-  try {
-    const { data, error } = await supabase.auth.getClaims()
-    authenticated = !error && typeof data?.claims?.sub === 'string' && data.claims.sub.length > 0
-  } catch {
-    authenticated = false
-  }
-  if (!authenticated) return { kind: 'unauthenticated' }
-
   const authorization = authorizationError ? null : parseConsentAuthorization(authorizationResponse, authorizationId)
   if (!authorization || !isAllowedChatGptRedirectUri(authorization.redirectUri)) return { kind: 'invalid' }
 
   return {
     kind: 'ready',
     supabase,
+    userId,
     clientId: authorization.clientId,
     scope: authorization.scope,
     redirectUri: authorization.redirectUri,
   }
 }
 
-async function requireEmployeeSelf(): Promise<boolean> {
+async function requireEmployeeSelf(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<boolean> {
   try {
-    const context = await requireAuthContext()
-    return context.employeeId !== null
-      && context.activeRoles.includes('EMPLOYEE')
-      && !context.activeRoles.some((role) => role === 'DIRECT_MANAGER' || role.includes('HR') || role === 'TENANT_ADMIN')
+    const resolution = await resolveEmployeeSelfContext(supabase, userId)
+    return resolution.kind === 'resolved'
   } catch {
     return false
   }
@@ -84,7 +88,7 @@ export async function approveChatGptMcpConsent(formData: FormData): Promise<neve
   const authorization = await getCurrentAuthorization(authorizationId)
   if (authorization.kind === 'unauthenticated') redirect(buildConsentLoginHref(authorizationId))
   if (authorization.kind !== 'ready') redirect(buildConsentPath(authorizationId))
-  if (!isSupportedChatGptScope(authorization.scope) || !(await requireEmployeeSelf())) {
+  if (!isSupportedChatGptScope(authorization.scope) || !(await requireEmployeeSelf(authorization.supabase, authorization.userId))) {
     redirect(buildConsentPath(authorizationId))
   }
 

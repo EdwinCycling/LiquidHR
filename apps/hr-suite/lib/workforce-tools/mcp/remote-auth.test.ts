@@ -4,7 +4,8 @@ const authMocks = vi.hoisted(() => ({
   getClaims: vi.fn(),
   getUser: vi.fn(),
   createBinding: vi.fn(),
-  loadContext: vi.fn(),
+  resolveContext: vi.fn(),
+  assertContext: vi.fn((_userId: string, context: unknown) => context),
   rls: {
     userId: '00000000-0000-4000-8000-000000000001',
     identity: {
@@ -19,9 +20,10 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({ auth: { getClaims: authMocks.getClaims, getUser: authMocks.getUser } }),
 }))
 vi.mock('@/lib/api-v1/auth', () => ({
+  assertDelegatedAuthContext: authMocks.assertContext,
   createSupabaseBearerRlsBinding: authMocks.createBinding,
-  loadBearerAuthContext: authMocks.loadContext,
 }))
+vi.mock('@/lib/api-v1/auth/employee-self-context', () => ({ resolveEmployeeSelfContext: authMocks.resolveContext }))
 
 import { authenticateRemoteMcpRequest } from './remote-auth'
 import {
@@ -65,7 +67,8 @@ describe('remote MCP Supabase bearer verification', () => {
     authMocks.getClaims.mockReset().mockResolvedValue({ data: { claims: validClaims() }, error: null })
     authMocks.getUser.mockReset().mockResolvedValue({ data: { user: { id: subject } }, error: null })
     authMocks.createBinding.mockReset().mockReturnValue(authMocks.rls)
-    authMocks.loadContext.mockReset().mockResolvedValue(authContext)
+    authMocks.resolveContext.mockReset().mockResolvedValue({ kind: 'resolved', context: authContext })
+    authMocks.assertContext.mockClear()
   })
 
   afterEach(() => vi.unstubAllEnvs())
@@ -81,7 +84,8 @@ describe('remote MCP Supabase bearer verification', () => {
       accessToken: token,
       supabaseUserId: subject,
     }))
-    expect(authMocks.loadContext).toHaveBeenCalledOnce()
+    expect(authMocks.resolveContext).toHaveBeenCalledWith(authMocks.rls.client, subject)
+    expect(authMocks.assertContext).toHaveBeenCalledWith(subject, authContext)
   })
 
   it('rejects tokens without the exact MCP resource audience before resolving LiquidHR context', async () => {
@@ -93,12 +97,30 @@ describe('remote MCP Supabase bearer verification', () => {
       code: 'INVALID_ACCESS_TOKEN',
     })
     expect(authMocks.createBinding).not.toHaveBeenCalled()
-    expect(authMocks.loadContext).not.toHaveBeenCalled()
+    expect(authMocks.resolveContext).not.toHaveBeenCalled()
   })
 
   it('rejects a mismatched Supabase user identity after token verification', async () => {
     authMocks.getUser.mockResolvedValueOnce({ data: { user: { id: '00000000-0000-4000-8000-000000000099' } }, error: null })
     await expect(authenticateRemoteMcpRequest(request())).rejects.toMatchObject({ code: 'INVALID_ACCESS_TOKEN' })
-    expect(authMocks.loadContext).not.toHaveBeenCalled()
+    expect(authMocks.resolveContext).not.toHaveBeenCalled()
+  })
+
+  it('rejects an ambiguous Employee context before any Workforce call', async () => {
+    authMocks.resolveContext.mockResolvedValueOnce({ kind: 'selection-required' })
+
+    await expect(authenticateRemoteMcpRequest(request())).rejects.toMatchObject({
+      code: 'DELEGATED_CONTEXT_SELECTION_REQUIRED',
+      status: 409,
+    })
+  })
+
+  it('rejects a non-Employee context', async () => {
+    authMocks.resolveContext.mockResolvedValueOnce({ kind: 'none' })
+
+    await expect(authenticateRemoteMcpRequest(request())).rejects.toMatchObject({
+      code: 'DELEGATED_SELF_CONTEXT_REQUIRED',
+      status: 403,
+    })
   })
 })
