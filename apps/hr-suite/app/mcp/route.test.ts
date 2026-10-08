@@ -56,13 +56,13 @@ describe('remote MCP route gates', () => {
     expect(wrongProject.status).toBe(404)
   })
 
-  it('allows OAuth discovery methods without a bearer and challenges a tool call in MCP metadata', async () => {
+  it('keeps OAuth discovery public even when ChatGPT sends a bearer and challenges unauthenticated calls', async () => {
     const list = await POST(request({
       jsonrpc: '2.0',
       id: 10,
       method: 'tools/list',
       params: {},
-    }))
+    }, 'Bearer malformed'))
     expect(list.status).toBe(200)
     expect(routeMocks.authenticate).not.toHaveBeenCalled()
     const listText = await list.text()
@@ -87,7 +87,12 @@ describe('remote MCP route gates', () => {
 
   it('rejects malformed or invalid bearer tokens with a resource metadata challenge', async () => {
     routeMocks.authenticate.mockRejectedValueOnce(new DelegatedAuthError('MALFORMED_AUTHORIZATION'))
-    const response = await POST(request({ jsonrpc: '2.0', id: 12, method: 'tools/list', params: {} }, 'bearer malformed'))
+    const response = await POST(request({
+      jsonrpc: '2.0',
+      id: 12,
+      method: 'tools/call',
+      params: { name: 'employee.talent.skills.read', arguments: {} },
+    }, 'bearer malformed'))
     expect(response.status).toBe(401)
     expect(response.headers.get('www-authenticate')).toContain(`resource_metadata="${REMOTE_MCP_RESOURCE_METADATA_URL}"`)
     expect(response.headers.get('www-authenticate')).toContain('invalid_request')

@@ -51,16 +51,17 @@ export async function POST(request: Request): Promise<Response> {
   const rpcRequest: unknown = await request.clone().json().catch(() => null)
   const rpcMethod = isRecord(rpcRequest) && typeof rpcRequest.method === 'string' ? rpcRequest.method : null
   const authorization = request.headers.get('authorization')
+  const publicDiscoveryMethod = ['initialize', 'notifications/initialized', 'tools/list'].includes(rpcMethod ?? '')
 
   let authenticated: Awaited<ReturnType<typeof authenticateRemoteMcpRequest>> | undefined
-  if (authorization) {
+  if (authorization && !publicDiscoveryMethod) {
     try {
       authenticated = await authenticateRemoteMcpRequest(request)
     } catch (error) {
       if (error instanceof DelegatedAuthError) return authFailure(error)
       return Response.json({ error: 'MCP_AUTHENTICATION_UNAVAILABLE' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
     }
-  } else if (!['initialize', 'notifications/initialized', 'tools/list', 'tools/call'].includes(rpcMethod ?? '')) {
+  } else if (!authorization && !['initialize', 'notifications/initialized', 'tools/list', 'tools/call'].includes(rpcMethod ?? '')) {
     return authenticationRequired()
   }
 
