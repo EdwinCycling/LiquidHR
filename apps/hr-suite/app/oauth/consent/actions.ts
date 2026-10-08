@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
+import { isRemoteMcpEnabled } from '@/lib/workforce-tools/mcp/remote-config'
 import {
   buildConsentLoginHref,
   buildConsentPath,
@@ -82,6 +83,76 @@ async function requireEmployeeSelf(
   }
 }
 
+function recordValue(value: unknown, key: string): unknown {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+  return (value as Record<string, unknown>)[key]
+}
+
+function safeDiagnosticCode(value: unknown): string | null {
+  return typeof value === 'string' && /^[A-Za-z0-9]{5,8}$/iu.test(value) ? value : null
+}
+
+function safeDiagnosticMessage(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  return value
+    .replace(/\bBearer\s+[^\s,;]+/giu, 'Bearer [redacted]')
+    .replace(/\b(?:sb_secret|sb_publishable)_[A-Za-z0-9_-]+\b/giu, '[redacted-key]')
+    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu, '[redacted-token]')
+    .replace(/\b((?:(?:access|refresh|authorization|auth)[_-]?)?(?:token|code)|client[_-]?secret|secret|password|api[_-]?key|state)\b\s*[:=]\s*[^,;\s]+/giu, '$1=[redacted]')
+    .replace(/([?&](?:code|access_token|refresh_token|client_secret|state)=)[^&\s]+/giu, '$1[redacted]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu, '[redacted-email]')
+    .replace(/\b[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\b/giu, '[redacted-id]')
+    .replace(/\b[A-Za-z0-9_~+/=-]{32,}\b/gu, '[redacted-value]')
+    .replace(/[\r\n\t]+/gu, ' ')
+    .slice(0, 240)
+}
+
+function reportClientRegistrationFailure(clientId: unknown, stage: string, error: unknown): void {
+  if (!isRemoteMcpEnabled()) return
+
+  const rawCode = recordValue(error, 'code')
+  const rawMessage = recordValue(error, 'message')
+  console.error('[APIAI07_CONSENT_CLIENT_REGISTRATION_FAILED]', {
+    clientIdentifierPresent: typeof clientId === 'string' && clientId.length > 0,
+    clientIdentifierType: typeof clientId,
+    failureStage: stage,
+    rpcErrorCode: safeDiagnosticCode(rawCode),
+    rpcErrorMessage: safeDiagnosticMessage(rawMessage),
+  })
+}
+
+async function registerChatGptMcpClient(clientId: string): Promise<boolean> {
+  let stage = 'admin-client'
+  try {
+    const admin = createAdminClient()
+    stage = 'registration-rpc'
+    const { data, error } = await admin.rpc('register_apiai07_mcp_client', {
+      requested_client_id: clientId,
+    })
+    if (error) {
+      reportClientRegistrationFailure(clientId, stage, error)
+      return false
+    }
+
+    if (
+      typeof data !== 'object'
+      || data === null
+      || Array.isArray(data)
+      || (data as Record<string, unknown>).registered !== true
+    ) {
+      reportClientRegistrationFailure(clientId, 'registration-unconfirmed', {
+        code: null,
+        message: 'registration_not_confirmed',
+      })
+      return false
+    }
+    return true
+  } catch (error) {
+    reportClientRegistrationFailure(clientId, stage, error)
+    return false
+  }
+}
+
 export async function approveChatGptMcpConsent(formData: FormData): Promise<never> {
   const authorizationId = formData.get('authorization_id')
   if (!isAuthorizationId(authorizationId)) redirect('/oauth/consent')
@@ -91,6 +162,10 @@ export async function approveChatGptMcpConsent(formData: FormData): Promise<neve
   if (authorization.kind !== 'ready') redirect(buildConsentPath(authorizationId))
   if (!isSupportedChatGptScope(authorization.scope) || !(await requireEmployeeSelf(authorization.supabase, authorization.userId))) {
     redirect(buildConsentPath(authorizationId))
+  }
+
+  if (!(await registerChatGptMcpClient(authorization.clientId))) {
+    redirect(OAUTH_DECISION_ERROR_PATH)
   }
 
   let approvalRedirectUrl: unknown = null
@@ -108,18 +183,6 @@ export async function approveChatGptMcpConsent(formData: FormData): Promise<neve
   if (approvalFailed || !isSupabaseAuthorizationRedirectUrl(approvalRedirectUrl, authorization.redirectUri)) {
     redirect(OAUTH_DECISION_ERROR_PATH)
   }
-
-  let registrationFailed = false
-  try {
-    const admin = createAdminClient()
-    const { error: registrationError } = await admin.rpc('register_apiai07_mcp_client', {
-      requested_client_id: authorization.clientId,
-    })
-    registrationFailed = registrationError !== null
-  } catch {
-    registrationFailed = true
-  }
-  if (registrationFailed) console.error('[APIAI07_CONSENT_CLIENT_REGISTRATION_FAILED]')
 
   redirect(approvalRedirectUrl)
 }

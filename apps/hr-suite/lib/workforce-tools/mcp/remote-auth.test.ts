@@ -88,6 +88,16 @@ describe('remote MCP Supabase bearer verification', () => {
     expect(authMocks.assertContext).toHaveBeenCalledWith(subject, authContext)
   })
 
+  it('rejects Supabase-revoked OAuth credentials before binding an RLS client', async () => {
+    authMocks.getUser.mockResolvedValueOnce({ data: { user: null }, error: { status: 401, message: 'invalid token' } })
+
+    await expect(authenticateRemoteMcpRequest(request())).rejects.toMatchObject({
+      code: 'INVALID_ACCESS_TOKEN',
+    })
+    expect(authMocks.createBinding).not.toHaveBeenCalled()
+    expect(authMocks.resolveContext).not.toHaveBeenCalled()
+  })
+
   it('rejects tokens without the exact MCP resource audience before resolving LiquidHR context', async () => {
     authMocks.getClaims.mockResolvedValueOnce({
       data: { claims: { ...validClaims(), aud: [REMOTE_MCP_TEST_AUDIENCE] } },

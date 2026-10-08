@@ -13,11 +13,12 @@ import {
 
 const AUTHORIZATION_ID = 'f6a4c2e8b1d3a5f70918273645546321'
 const CHATGPT_REDIRECT = 'https://chatgpt.com/connector/oauth/callback'
+const CHATGPT_CLIENT_ID = 'b7e6b5ae-33be-493f-8456-02fa41e307e8'
 
 function details(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     authorization_id: AUTHORIZATION_ID,
-    client: { id: 'dynamic-client-id', name: 'ChatGPT' },
+    client: { id: CHATGPT_CLIENT_ID, name: 'ChatGPT' },
     redirect_uri: CHATGPT_REDIRECT,
     scope: 'openid email offline_access',
     resource: CHATGPT_MCP_RESOURCE,
@@ -30,12 +31,20 @@ describe('OAuth consent authorization parsing', () => {
   it('accepts pending details with no pre-consent user binding and reads metadata only from the Supabase response', () => {
     expect(parseConsentAuthorization(details(), AUTHORIZATION_ID)).toEqual({
       authorizationId: AUTHORIZATION_ID,
-      clientId: 'dynamic-client-id',
+      clientId: CHATGPT_CLIENT_ID,
       clientName: 'ChatGPT',
       redirectUri: CHATGPT_REDIRECT,
       scope: 'openid email offline_access',
       resource: CHATGPT_MCP_RESOURCE,
     })
+  })
+
+  it.each([
+    ['missing OAuth client ID', details({ client: { name: 'ChatGPT' } })],
+    ['malformed OAuth client ID', details({ client: { id: 'not-a-uuid', name: 'ChatGPT' } })],
+    ['empty OAuth client ID', details({ client: { id: '', name: 'ChatGPT' } })],
+  ])('rejects %s', (_label, response) => {
+    expect(parseConsentAuthorization(response, AUTHORIZATION_ID)).toBeNull()
   })
 
   it.each([

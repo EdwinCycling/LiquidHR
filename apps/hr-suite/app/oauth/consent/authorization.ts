@@ -2,6 +2,7 @@ export const CHATGPT_MCP_RESOURCE = 'https://liquid-hr-hr-suite.vercel.app/mcp'
 export const OAUTH_DECISION_ERROR_PATH = '/oauth/decision-error'
 
 const AUTHORIZATION_ID_PATTERN = /^[A-Za-z0-9._~-]{1,256}$/
+const OAUTH_CLIENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
 const CHATGPT_CALLBACK_PATTERN = /^\/connector\/oauth\/[a-zA-Z0-9_-]{1,128}$/
 const ALLOWED_OAUTH_SCOPES = new Set(['openid', 'email', 'offline_access'])
 const ALLOWED_CALLBACK_QUERY_KEYS = new Set(['code', 'state', 'error', 'error_description', 'error_uri', 'iss'])
@@ -71,7 +72,7 @@ export function parseConsentAuthorization(data: unknown, expectedAuthorizationId
   if (
     !isRecord(client)
     || typeof client.id !== 'string'
-    || !client.id.trim()
+    || !OAUTH_CLIENT_ID_PATTERN.test(client.id)
     || typeof client.name !== 'string'
     || !client.name.trim()
     || typeof data.redirect_uri !== 'string'

@@ -20,6 +20,9 @@ describe('APIAI-07 remote MCP TEST migration contract', () => {
     expect(sql).toContain("array['employee-self-service']::text[]")
     expect(sql).toContain('grant execute on function public.register_apiai07_mcp_client(text)\n  to service_role')
     expect(sql).toContain('from public, anon, authenticated, service_role')
+    expect(sql).toContain('on conflict (issuer, audience, client_id) do update')
+    expect(sql).toContain('set allowed_resource_keys = excluded.allowed_resource_keys')
+    expect(sql).toContain('is_active = true')
   })
 
   it('binds only active consent-registered MCP clients to the resource audience', async () => {

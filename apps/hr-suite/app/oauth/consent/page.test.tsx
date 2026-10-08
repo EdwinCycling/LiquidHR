@@ -24,7 +24,7 @@ const RESOURCE_URL = 'https://liquid-hr-hr-suite.vercel.app/mcp'
 function response(authorizationId = AUTHORIZATION_ID, overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     authorization_id: authorizationId,
-    client: { id: 'dynamic-client-id', name: 'ChatGPT' },
+    client: { id: 'b7e6b5ae-33be-493f-8456-02fa41e307e8', name: 'ChatGPT' },
     redirect_uri: CALLBACK_URL,
     scope: 'openid email offline_access',
     resource: RESOURCE_URL,
