@@ -91,6 +91,18 @@ export function parseConsentAuthorization(data: unknown, expectedAuthorizationId
   }
 }
 
+export function parseSupabaseAuthorizationRedirect(data: unknown): string | null {
+  if (
+    !isRecord(data)
+    || Object.keys(data).length !== 1
+    || !Object.prototype.hasOwnProperty.call(data, 'redirect_url')
+    || typeof data.redirect_url !== 'string'
+    || !isAllowedChatGptRedirectUrl(data.redirect_url)
+  ) return null
+
+  return data.redirect_url
+}
+
 export function isAllowedChatGptRedirectUri(value: string): boolean {
   return isChatGptCallback(value, false) !== null
 }

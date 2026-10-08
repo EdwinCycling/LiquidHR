@@ -126,13 +126,48 @@ describe('GET /oauth/consent page', () => {
     expect(redirect).not.toHaveBeenCalled()
   })
 
-  it('fails closed when Supabase reports an already-resolved authorization', async () => {
-    getAuthorizationDetails.mockResolvedValue({ data: { redirect_url: `${CALLBACK_URL}?code=old&state=old` }, error: null })
+  it('follows the Supabase redirect when a valid Employee already consented', async () => {
+    const redirectUrl = `${CALLBACK_URL}?code=supabase-returned-code&state=chatgpt-state&iss=https%3A%2F%2Fwnpfloqpjvaacobppbpk.supabase.co%2Fauth%2Fv1`
+    getAuthorizationDetails.mockResolvedValue({ data: { redirect_url: redirectUrl }, error: null })
+
+    await expect(OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) }))
+      .rejects.toThrow(`NEXT_REDIRECT:${redirectUrl}`)
+
+    expect(resolveEmployeeSelfContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-employee-user')
+    expect(redirect).toHaveBeenCalledExactlyOnceWith(redirectUrl)
+  })
+
+  it('does not follow an auto-approved redirect to an untrusted callback', async () => {
+    getAuthorizationDetails.mockResolvedValue({ data: { redirect_url: 'https://attacker.example/callback?code=secret&state=chatgpt-state' }, error: null })
 
     const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
     const text = pageText(page)
 
     expect(text).toContain('oauthConsentInvalidRequest')
+    expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it('rejects a Supabase redirect response that does not match the redirect-only response contract', async () => {
+    getAuthorizationDetails.mockResolvedValue({
+      data: { redirect_url: `${CALLBACK_URL}?code=supabase-returned-code&state=chatgpt-state`, authorization_id: AUTHORIZATION_ID },
+      error: null,
+    })
+
+    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+    const text = pageText(page)
+
+    expect(text).toContain('oauthConsentInvalidRequest')
+    expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it('does not follow an auto-approved redirect when Employee self context is unavailable', async () => {
+    getAuthorizationDetails.mockResolvedValue({ data: { redirect_url: `${CALLBACK_URL}?code=supabase-returned-code&state=chatgpt-state` }, error: null })
+    resolveEmployeeSelfContext.mockResolvedValueOnce({ kind: 'none' })
+
+    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+    const text = pageText(page)
+
+    expect(text).toContain('oauthConsentNoEmployeeContext')
     expect(redirect).not.toHaveBeenCalled()
   })
 

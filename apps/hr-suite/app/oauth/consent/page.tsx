@@ -12,6 +12,7 @@ import {
   isAuthorizationId,
   isSupportedChatGptScope,
   parseConsentAuthorization,
+  parseSupabaseAuthorizationRedirect,
 } from './authorization'
 
 export const dynamic = 'force-dynamic'
@@ -31,6 +32,7 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
   const authorizationId = typeof params.authorization_id === 'string' ? params.authorization_id : ''
   const t = auth
   let message: string | null = null
+  let approvedRedirectUrl: string | null = null
   let details: {
     clientName: string
     authorizationId: string
@@ -65,8 +67,22 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
       authorizationError = true
     }
 
-    const authorization = authorizationError ? null : parseConsentAuthorization(authorizationResponse, authorizationId)
-    if (!authorization) {
+    const approvedRedirect = authorizationError ? null : parseSupabaseAuthorizationRedirect(authorizationResponse)
+    const authorization = authorizationError || approvedRedirect
+      ? null
+      : parseConsentAuthorization(authorizationResponse, authorizationId)
+    if (approvedRedirect) {
+      const resolution = await resolveEmployeeSelfContext(supabase, userId)
+      if (resolution.kind === 'resolved') {
+        approvedRedirectUrl = approvedRedirect
+      } else {
+        message = resolution.kind === 'selection-required'
+          ? t('oauthConsentContextSelectionRequired')
+          : resolution.kind === 'unavailable'
+            ? t('oauthConsentContextUnavailable')
+            : t('oauthConsentNoEmployeeContext')
+      }
+    } else if (!authorization) {
       message = t('oauthConsentInvalidRequest')
     } else if (!isAllowedChatGptRedirectUri(authorization.redirectUri)) {
       message = t('oauthConsentUnsupportedClient')
@@ -96,6 +112,8 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
       }
     }
   }
+
+  if (approvedRedirectUrl) redirect(approvedRedirectUrl)
 
   return (
     <AuthShell
