@@ -56,7 +56,7 @@ Schone integratieworktree control02-closeout-20261008, branch codex/control02-cl
 - NL/EN i18n: PASS, 41 namespaces.
 - Volledige suite: 587 bestanden PASS, 4 skipped; 2.613 tests PASS, 8 skipped. Bestaande React act-waarschuwingen zichtbaar; geen failures.
 - Changed-area ESLint: 0 errors, 5 bestaande service-test unused-variable warnings; git diff --check PASS.
-- Productiebuild: wordt op de schone codecommit via de officiële launcher uitgevoerd; exacte uitkomst staat in de Draft PR.
+- Officiële productiebuild: PASS op productcode-SHA f5c6b3d041c408ded70eaea62b065b454dc54fa6; 309/309 pagina's, Payroll negative control en 154 browser-assets PASS. Centrale TEST-config gebruikt zonder waarden te tonen. Latere documentatiecommit verandert geen productcode.
 - Definitieve TEST-migration: wacht op checksumgebonden toestemming.
 - Volledig herstel bestaande batch, authoritative completionreadback en duplicatevrije remote retry: BLOCKED op bevestigde IKV/Employment-overlap.
 - Remote auth/scope/concurrency, finale desktop en 390px: OPEN; lokale unit-/PostgreSQL-negatieven vervangen deze gates niet.

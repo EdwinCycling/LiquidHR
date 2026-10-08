@@ -2,7 +2,7 @@
 
 ## CONTROL02 gecombineerde final writer-audit — 2026-10-08
 
-**PARTIAL / NOT MERGE-READY / definitieve TEST-migration nog niet toegepast.** De volledige writer en eventrecorder zijn gecontroleerd en in echte lokale PostgreSQL 17.10 getest: 23/23 casussen PASS. Gerichte CONTROL02-regressie: 30 bestanden / 188 tests PASS; strict TypeScript en i18n PASS.
+**PARTIAL / NOT MERGE-READY / definitieve TEST-migration nog niet toegepast.** De volledige writer en eventrecorder zijn gecontroleerd en in echte lokale PostgreSQL 17.10 getest: 23/23 casussen PASS. Gerichte CONTROL02-regressie: 30 bestanden / 188 tests PASS; volledige suite 2.613 tests PASS, 8 skips; strict TypeScript, i18n en diffcheck PASS. ESLint 0 errors, 5 bestaande warnings. Officiële build op productcode-SHA f5c6b3d041c408ded70eaea62b065b454dc54fa6 PASS: 309/309 pagina's, Payroll negative control en 154 assets PASS.
 
 Concrete blocker: rij 1 bevestigt IKV 1 (2026-01-01 zonder einddatum) en IKV 2 (2026-01-15 t/m 2026-12-31) op hetzelfde Employment. De live Core-constraint employment_income_relationships_no_overlap verbiedt deze overlappende links. De kandidaat detecteert dit vóór een IKV-write met PAYROLL_FINALIZATION_EMPLOYMENT_IKV_PERIOD_CONFLICT. Geen brondata, bevestigde mapping of Core-regel aangepast. Volledig herstel van de bestaande batch vereist eerst een expliciet passende domeintoewijzing.
 
