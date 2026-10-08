@@ -8,9 +8,10 @@ import {
   buildConsentLoginHref,
   buildConsentPath,
   isAllowedChatGptRedirectUri,
-  isAllowedChatGptRedirectUrl,
   isAuthorizationId,
+  isSupabaseAuthorizationRedirectUrl,
   isSupportedChatGptScope,
+  OAUTH_DECISION_ERROR_PATH,
   parseConsentAuthorization,
 } from './authorization'
 
@@ -92,12 +93,20 @@ export async function approveChatGptMcpConsent(formData: FormData): Promise<neve
     redirect(buildConsentPath(authorizationId))
   }
 
-  const { data, error } = await authorization.supabase.auth.oauth.approveAuthorization(
-    authorizationId,
-    { skipBrowserRedirect: true },
-  )
-  if (error || !data?.redirect_url || !isAllowedChatGptRedirectUrl(data.redirect_url)) {
-    redirect(buildConsentPath(authorizationId))
+  let approvalRedirectUrl: unknown = null
+  let approvalFailed = false
+  try {
+    const response = await authorization.supabase.auth.oauth.approveAuthorization(
+      authorizationId,
+      { skipBrowserRedirect: true },
+    )
+    approvalFailed = response.error !== null
+    if (!approvalFailed) approvalRedirectUrl = response.data?.redirect_url
+  } catch {
+    approvalFailed = true
+  }
+  if (approvalFailed || !isSupabaseAuthorizationRedirectUrl(approvalRedirectUrl, authorization.redirectUri)) {
+    redirect(OAUTH_DECISION_ERROR_PATH)
   }
 
   let registrationFailed = false
@@ -110,9 +119,9 @@ export async function approveChatGptMcpConsent(formData: FormData): Promise<neve
   } catch {
     registrationFailed = true
   }
-  if (registrationFailed) redirect(buildConsentPath(authorizationId))
+  if (registrationFailed) console.error('[APIAI07_CONSENT_CLIENT_REGISTRATION_FAILED]')
 
-  redirect(data.redirect_url)
+  redirect(approvalRedirectUrl)
 }
 
 export async function denyChatGptMcpConsent(formData: FormData): Promise<never> {
@@ -123,13 +132,21 @@ export async function denyChatGptMcpConsent(formData: FormData): Promise<never> 
   if (authorization.kind === 'unauthenticated') redirect(buildConsentLoginHref(authorizationId))
   if (authorization.kind !== 'ready') redirect(buildConsentPath(authorizationId))
 
-  const { data, error } = await authorization.supabase.auth.oauth.denyAuthorization(
-    authorizationId,
-    { skipBrowserRedirect: true },
-  )
-  if (error || !data?.redirect_url || !isAllowedChatGptRedirectUrl(data.redirect_url)) {
-    redirect(buildConsentPath(authorizationId))
+  let denialRedirectUrl: unknown = null
+  let denialFailed = false
+  try {
+    const response = await authorization.supabase.auth.oauth.denyAuthorization(
+      authorizationId,
+      { skipBrowserRedirect: true },
+    )
+    denialFailed = response.error !== null
+    if (!denialFailed) denialRedirectUrl = response.data?.redirect_url
+  } catch {
+    denialFailed = true
+  }
+  if (denialFailed || !isSupabaseAuthorizationRedirectUrl(denialRedirectUrl, authorization.redirectUri)) {
+    redirect(OAUTH_DECISION_ERROR_PATH)
   }
 
-  redirect(data.redirect_url)
+  redirect(denialRedirectUrl)
 }

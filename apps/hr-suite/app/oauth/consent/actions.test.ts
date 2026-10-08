@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { buildConsentLoginHref, buildConsentPath } from './authorization'
+import { buildConsentLoginHref, buildConsentPath, OAUTH_DECISION_ERROR_PATH } from './authorization'
 
 const {
   approveAuthorization,
@@ -31,7 +31,8 @@ vi.mock('@/lib/supabase/server', () => ({ createClient }))
 import { approveChatGptMcpConsent, denyChatGptMcpConsent } from './actions'
 
 const AUTHORIZATION_ID = 'f6a4c2e8b1d3a5f70918273645546321'
-const CALLBACK_URL = 'https://chatgpt.com/connector/oauth/callback?code=issued-code&state=client-state'
+const DECISION_ERROR_PATH = OAUTH_DECISION_ERROR_PATH
+const CALLBACK_URL = 'https://chatgpt.com/connector/oauth/callback?code=issued-code&state=client-state&iss=https%3A%2F%2Fwnpfloqpjvaacobppbpk.supabase.co%2Fauth%2Fv1'
 const DENY_URL = 'https://chatgpt.com/connector/oauth/callback?error=access_denied&state=client-state'
 
 function authorizationDetails(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -75,15 +76,33 @@ describe('APIAI-07 OAuth consent actions', () => {
     })
   })
 
-  it('authenticates first and uses server-resolved Employee context without requiring a pre-consent user_id', async () => {
+  it('follows the exact Supabase approval redirect without loading the consumed authorization again', async () => {
     await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${CALLBACK_URL}`)
 
     expect(getAuthorizationDetails).toHaveBeenCalledWith(AUTHORIZATION_ID)
+    expect(getAuthorizationDetails).toHaveBeenCalledOnce()
     expect(getClaims.mock.invocationCallOrder[0]).toBeLessThan(getAuthorizationDetails.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
     expect(resolveEmployeeSelfContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-employee-user')
     expect(approveAuthorization).toHaveBeenCalledWith(AUTHORIZATION_ID, { skipBrowserRedirect: true })
+    expect(approveAuthorization).toHaveBeenCalledOnce()
     expect(approveAuthorization.mock.invocationCallOrder[0]).toBeLessThan(rpc.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
     expect(rpc).toHaveBeenCalledWith('register_apiai07_mcp_client', { requested_client_id: 'dynamic-client-id' })
+    expect(redirect).toHaveBeenCalledWith(CALLBACK_URL)
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining('/oauth/consent'))
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
+  })
+
+  it('still follows the Supabase redirect if the post-consent client registration RPC fails', async () => {
+    rpc.mockResolvedValue({ data: null, error: new Error('registration unavailable') })
+
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${CALLBACK_URL}`)
+
+    expect(approveAuthorization).toHaveBeenCalledOnce()
+    expect(rpc).toHaveBeenCalledOnce()
+    expect(getAuthorizationDetails).toHaveBeenCalledOnce()
+    expect(redirect).toHaveBeenCalledWith(CALLBACK_URL)
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining('/oauth/consent'))
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
   })
 
   it('preserves the same authorization_id when direct approval has no authenticated session', async () => {
@@ -120,6 +139,41 @@ describe('APIAI-07 OAuth consent actions', () => {
     expect(approveAuthorization).toHaveBeenCalledOnce()
   })
 
+  it('fails safely after an approval error without returning to the consumed consent URL', async () => {
+    approveAuthorization.mockResolvedValue({ data: { redirect_url: CALLBACK_URL }, error: new Error('approval failed') })
+
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${DECISION_ERROR_PATH}`)
+
+    expect(approveAuthorization).toHaveBeenCalledOnce()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(getAuthorizationDetails).toHaveBeenCalledOnce()
+    expect(redirect).toHaveBeenCalledWith(DECISION_ERROR_PATH)
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
+  })
+
+  it('fails safely if the approval SDK call throws', async () => {
+    approveAuthorization.mockRejectedValue(new Error('approval request failed'))
+
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${DECISION_ERROR_PATH}`)
+
+    expect(approveAuthorization).toHaveBeenCalledOnce()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(getAuthorizationDetails).toHaveBeenCalledOnce()
+    expect(redirect).toHaveBeenCalledWith(DECISION_ERROR_PATH)
+  })
+
+  it('fails safely when Supabase approval succeeds without a redirect_url', async () => {
+    approveAuthorization.mockResolvedValue({ data: {}, error: null })
+
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${DECISION_ERROR_PATH}`)
+
+    expect(approveAuthorization).toHaveBeenCalledOnce()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(getAuthorizationDetails).toHaveBeenCalledOnce()
+    expect(redirect).toHaveBeenCalledWith(DECISION_ERROR_PATH)
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
+  })
+
   it('requires the Employee self context before calling Supabase approval', async () => {
     resolveEmployeeSelfContext.mockResolvedValue({ kind: 'none' })
 
@@ -128,11 +182,27 @@ describe('APIAI-07 OAuth consent actions', () => {
     expect(approveAuthorization).not.toHaveBeenCalled()
   })
 
-  it('denies through Supabase and follows only its validated ChatGPT callback', async () => {
+  it('denies through Supabase and follows its exact returned redirect_url', async () => {
     await expect(denyChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${DENY_URL}`)
 
     expect(denyAuthorization).toHaveBeenCalledWith(AUTHORIZATION_ID, { skipBrowserRedirect: true })
+    expect(denyAuthorization).toHaveBeenCalledOnce()
     expect(approveAuthorization).not.toHaveBeenCalled()
+    expect(getAuthorizationDetails).toHaveBeenCalledOnce()
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining('/oauth/consent'))
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
+  })
+
+  it('fails safely after a denial response omits redirect_url', async () => {
+    denyAuthorization.mockResolvedValue({ data: {}, error: null })
+
+    await expect(denyChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${DECISION_ERROR_PATH}`)
+
+    expect(denyAuthorization).toHaveBeenCalledOnce()
+    expect(approveAuthorization).not.toHaveBeenCalled()
+    expect(getAuthorizationDetails).toHaveBeenCalledOnce()
+    expect(redirect).toHaveBeenCalledWith(DECISION_ERROR_PATH)
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
   })
 
   it('rejects callback responses with unexpected query parameters', async () => {
@@ -141,8 +211,10 @@ describe('APIAI-07 OAuth consent actions', () => {
       error: null,
     })
 
-    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${buildConsentPath(AUTHORIZATION_ID)}`)
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${DECISION_ERROR_PATH}`)
 
     expect(rpc).not.toHaveBeenCalled()
+    expect(getAuthorizationDetails).toHaveBeenCalledOnce()
+    expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
   })
 })

@@ -6,6 +6,7 @@ import {
   isAllowedChatGptRedirectUri,
   isAllowedChatGptRedirectUrl,
   isAuthorizationId,
+  isSupabaseAuthorizationRedirectUrl,
   isSupportedChatGptScope,
   parseConsentAuthorization,
 } from './authorization'
@@ -75,11 +76,23 @@ describe('OAuth consent callback validation', () => {
 
   it('allows only Supabase callback result parameters on the exact ChatGPT callback', () => {
     expect(isAllowedChatGptRedirectUrl(`${CHATGPT_REDIRECT}?code=issued&state=client-state`)).toBe(true)
+    expect(isAllowedChatGptRedirectUrl(`${CHATGPT_REDIRECT}?code=issued&state=client-state&iss=https%3A%2F%2Fwnpfloqpjvaacobppbpk.supabase.co%2Fauth%2Fv1`)).toBe(true)
     expect(isAllowedChatGptRedirectUrl(`${CHATGPT_REDIRECT}?error=access_denied&state=client-state`)).toBe(true)
     expect(isAllowedChatGptRedirectUrl(`${CHATGPT_REDIRECT}?code=&state=client-state`)).toBe(false)
     expect(isAllowedChatGptRedirectUrl(`${CHATGPT_REDIRECT}?code=issued&redirect_uri=https%3A%2F%2Fattacker.example`)).toBe(false)
     expect(isAllowedChatGptRedirectUrl(`${CHATGPT_REDIRECT}?code=one&code=two`)).toBe(false)
     expect(isAllowedChatGptRedirectUrl('https://attacker.example/callback?code=issued')).toBe(false)
+  })
+
+  it('keeps the complete Supabase result URL exact while binding its destination to the registered ChatGPT callback', () => {
+    const returnedUrl = `${CHATGPT_REDIRECT}?code=issued&state=client-state&iss=https%3A%2F%2Fwnpfloqpjvaacobppbpk.supabase.co%2Fauth%2Fv1&future_oauth_param=from-supabase`
+
+    expect(isSupabaseAuthorizationRedirectUrl(returnedUrl, CHATGPT_REDIRECT)).toBe(true)
+    expect(isSupabaseAuthorizationRedirectUrl(`${CHATGPT_REDIRECT}?error=access_denied&state=client-state`, CHATGPT_REDIRECT)).toBe(true)
+    expect(isSupabaseAuthorizationRedirectUrl('https://attacker.example/callback?code=issued', CHATGPT_REDIRECT)).toBe(false)
+    expect(isSupabaseAuthorizationRedirectUrl('https://chatgpt.com/connector/oauth/other?code=issued', CHATGPT_REDIRECT)).toBe(false)
+    expect(isSupabaseAuthorizationRedirectUrl(CHATGPT_REDIRECT, CHATGPT_REDIRECT)).toBe(false)
+    expect(isSupabaseAuthorizationRedirectUrl(null, CHATGPT_REDIRECT)).toBe(false)
   })
 })
 

@@ -1,9 +1,10 @@
 export const CHATGPT_MCP_RESOURCE = 'https://liquid-hr-hr-suite.vercel.app/mcp'
+export const OAUTH_DECISION_ERROR_PATH = '/oauth/decision-error'
 
 const AUTHORIZATION_ID_PATTERN = /^[A-Za-z0-9._~-]{1,256}$/
 const CHATGPT_CALLBACK_PATTERN = /^\/connector\/oauth\/[a-zA-Z0-9_-]{1,128}$/
 const ALLOWED_OAUTH_SCOPES = new Set(['openid', 'email', 'offline_access'])
-const ALLOWED_CALLBACK_QUERY_KEYS = new Set(['code', 'state', 'error', 'error_description', 'error_uri'])
+const ALLOWED_CALLBACK_QUERY_KEYS = new Set(['code', 'state', 'error', 'error_description', 'error_uri', 'iss'])
 
 export interface ChatGptConsentAuthorization {
   readonly authorizationId: string
@@ -96,6 +97,34 @@ export function isAllowedChatGptRedirectUri(value: string): boolean {
 
 export function isAllowedChatGptRedirectUrl(value: string): boolean {
   return isChatGptCallback(value, true) !== null
+}
+
+export function isSupabaseAuthorizationRedirectUrl(value: unknown, redirectUri: string): value is string {
+  if (typeof value !== 'string' || value.length === 0) return false
+
+  const registeredCallback = isChatGptCallback(redirectUri, false)
+  if (!registeredCallback) return false
+
+  try {
+    const returnedUrl = new URL(value)
+    if (
+      returnedUrl.protocol !== 'https:'
+      || returnedUrl.origin !== registeredCallback.origin
+      || returnedUrl.pathname !== registeredCallback.pathname
+      || returnedUrl.username
+      || returnedUrl.password
+      || returnedUrl.port
+      || returnedUrl.hash
+    ) return false
+
+    const codes = returnedUrl.searchParams.getAll('code')
+    const errors = returnedUrl.searchParams.getAll('error')
+    const hasCode = codes.length === 1 && codes[0].length > 0
+    const hasError = errors.length === 1 && errors[0].length > 0
+    return hasCode !== hasError && !returnedUrl.searchParams.has('redirect_uri')
+  } catch {
+    return false
+  }
 }
 
 export function isSupportedChatGptScope(scope: string): boolean {
