@@ -4,7 +4,8 @@ import { buildConsentLoginHref, buildConsentPath, OAUTH_DECISION_ERROR_PATH } fr
 
 const {
   approveAuthorization,
-  createAdminClient,
+  createAdminRpcClient,
+  getAdminCredentialMode,
   createClient,
   denyAuthorization,
   getAuthorizationDetails,
@@ -15,7 +16,8 @@ const {
   rpc,
 } = vi.hoisted(() => ({
   approveAuthorization: vi.fn(),
-  createAdminClient: vi.fn(),
+  createAdminRpcClient: vi.fn(),
+  getAdminCredentialMode: vi.fn(),
   createClient: vi.fn(),
   denyAuthorization: vi.fn(),
   getAuthorizationDetails: vi.fn(),
@@ -28,7 +30,7 @@ const {
 
 vi.mock('next/navigation', () => ({ redirect }))
 vi.mock('@/lib/api-v1/auth/employee-self-context', () => ({ resolveEmployeeSelfContext }))
-vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
+vi.mock('@/lib/supabase/admin', () => ({ createAdminRpcClient, getAdminCredentialMode }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/workforce-tools/mcp/remote-config', () => ({ isRemoteMcpEnabled }))
 
@@ -65,11 +67,12 @@ describe('APIAI-07 OAuth consent actions', () => {
     approveAuthorization.mockResolvedValue({ data: { redirect_url: CALLBACK_URL }, error: null })
     denyAuthorization.mockResolvedValue({ data: { redirect_url: DENY_URL }, error: null })
     rpc.mockResolvedValue({ data: { registered: true }, error: null })
+    getAdminCredentialMode.mockReturnValue('unknown-key-format')
     resolveEmployeeSelfContext.mockResolvedValue({
       kind: 'resolved',
       context: { tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1', userId: 'synthetic-employee-user', employeeId: 'synthetic-employee', activeRoles: ['EMPLOYEE'] },
     })
-    createAdminClient.mockReturnValue({ rpc })
+    createAdminRpcClient.mockReturnValue({ rpc })
     createClient.mockResolvedValue({
       auth: {
         getClaims,
@@ -136,13 +139,52 @@ describe('APIAI-07 OAuth consent actions', () => {
         clientIdentifierPresent: true,
         clientIdentifierType: 'string',
         failureStage: 'registration-rpc',
+        authorizationMethod: 'apikey-only',
+        credentialMode: 'unknown-key-format',
         rpcErrorCode: '42501',
+        rpcErrorClass: 'authorization-failure-unclassified',
         rpcErrorMessage: 'permission denied for client [redacted-id] and [redacted-email]; token=[redacted]; authorization_code=[redacted]',
       })
       expect(JSON.stringify(log.mock.calls)).not.toContain('b7e6b5ae-33be-493f-8456-02fa41e307e8')
       expect(JSON.stringify(log.mock.calls)).not.toContain('edwin@example.test')
       expect(JSON.stringify(log.mock.calls)).not.toContain('eyJabcdefgh')
       expect(JSON.stringify(log.mock.calls)).not.toContain('short-secret')
+    } finally {
+      log.mockRestore()
+    }
+  })
+
+  it.each([
+    ['explicit function guard', 'APIAI07_CLIENT_REGISTRATION_UNAVAILABLE', 'explicit-function-guard'],
+    ['database execute privilege', 'permission denied for function register_apiai07_mcp_client', 'execute-privilege-denied'],
+  ])('classifies a 42501 from the %s without logging client credentials', async (_label, message, errorClass) => {
+    isRemoteMcpEnabled.mockReturnValue(true)
+    rpc.mockResolvedValue({ data: null, error: { code: '42501', message } })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    try {
+      await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${DECISION_ERROR_PATH}`)
+      expect(log).toHaveBeenCalledWith('[APIAI07_CONSENT_CLIENT_REGISTRATION_FAILED]', expect.objectContaining({
+        rpcErrorCode: '42501',
+        rpcErrorClass: errorClass,
+        authorizationMethod: 'apikey-only',
+      }))
+    } finally {
+      log.mockRestore()
+    }
+  })
+
+  it('records only the safe credential mode and authorization method after registration succeeds', async () => {
+    isRemoteMcpEnabled.mockReturnValue(true)
+    const log = vi.spyOn(console, 'info').mockImplementation(() => {})
+
+    try {
+      await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${CALLBACK_URL}`)
+      expect(log).toHaveBeenCalledWith('[APIAI07_CONSENT_CLIENT_REGISTRATION_SUCCEEDED]', {
+        authorizationMethod: 'apikey-only',
+        credentialMode: 'unknown-key-format',
+      })
+      expect(JSON.stringify(log.mock.calls)).not.toContain('SUPABASE_SECRET_KEY')
     } finally {
       log.mockRestore()
     }
@@ -177,9 +219,11 @@ describe('APIAI-07 OAuth consent actions', () => {
     const adminSource = await readFile(new URL('../../../lib/supabase/admin.ts', import.meta.url), 'utf8')
 
     expect(actionSource.startsWith("'use server'")).toBe(true)
-    expect(actionSource).toContain("import { createAdminClient } from '@/lib/supabase/admin'")
+    expect(actionSource).toContain("import { createAdminRpcClient, getAdminCredentialMode } from '@/lib/supabase/admin'")
     expect(adminSource).toContain("import 'server-only'")
     expect(adminSource).toContain('SUPABASE_SECRET_KEY')
+    expect(adminSource).toContain('headers.delete(\'authorization\')')
+    expect(adminSource).toContain('headers.delete(\'cookie\')')
   })
 
   it('registers a newly issued ChatGPT DCR client ID from Supabase details', async () => {
@@ -201,7 +245,7 @@ describe('APIAI-07 OAuth consent actions', () => {
     await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${buildConsentLoginHref(AUTHORIZATION_ID)}`)
 
     expect(approveAuthorization).not.toHaveBeenCalled()
-    expect(createAdminClient).not.toHaveBeenCalled()
+    expect(createAdminRpcClient).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -217,7 +261,7 @@ describe('APIAI-07 OAuth consent actions', () => {
     await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${buildConsentPath(AUTHORIZATION_ID)}`)
 
     expect(approveAuthorization).not.toHaveBeenCalled()
-    expect(createAdminClient).not.toHaveBeenCalled()
+    expect(createAdminRpcClient).not.toHaveBeenCalled()
   })
 
   it('uses the Supabase callback and ignores a form-supplied redirect URI', async () => {

@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminRpcClient, getAdminCredentialMode } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
 import { isRemoteMcpEnabled } from '@/lib/workforce-tools/mcp/remote-config'
@@ -107,6 +107,17 @@ function safeDiagnosticMessage(value: unknown): string | null {
     .slice(0, 240)
 }
 
+function classifyRegistrationRpcError(error: unknown): string {
+  const code = recordValue(error, 'code')
+  const message = recordValue(error, 'message')
+  if (code !== '42501') return 'other'
+  if (message === 'APIAI07_CLIENT_REGISTRATION_UNAVAILABLE') return 'explicit-function-guard'
+  if (typeof message === 'string' && /permission denied for function/iu.test(message)) {
+    return 'execute-privilege-denied'
+  }
+  return 'authorization-failure-unclassified'
+}
+
 function reportClientRegistrationFailure(clientId: unknown, stage: string, error: unknown): void {
   if (!isRemoteMcpEnabled()) return
 
@@ -116,15 +127,26 @@ function reportClientRegistrationFailure(clientId: unknown, stage: string, error
     clientIdentifierPresent: typeof clientId === 'string' && clientId.length > 0,
     clientIdentifierType: typeof clientId,
     failureStage: stage,
+    authorizationMethod: 'apikey-only',
+    credentialMode: getAdminCredentialMode(),
     rpcErrorCode: safeDiagnosticCode(rawCode),
+    rpcErrorClass: classifyRegistrationRpcError(error),
     rpcErrorMessage: safeDiagnosticMessage(rawMessage),
+  })
+}
+
+function reportClientRegistrationSuccess(): void {
+  if (!isRemoteMcpEnabled()) return
+  console.info('[APIAI07_CONSENT_CLIENT_REGISTRATION_SUCCEEDED]', {
+    authorizationMethod: 'apikey-only',
+    credentialMode: getAdminCredentialMode(),
   })
 }
 
 async function registerChatGptMcpClient(clientId: string): Promise<boolean> {
   let stage = 'admin-client'
   try {
-    const admin = createAdminClient()
+    const admin = createAdminRpcClient()
     stage = 'registration-rpc'
     const { data, error } = await admin.rpc('register_apiai07_mcp_client', {
       requested_client_id: clientId,
@@ -146,6 +168,7 @@ async function registerChatGptMcpClient(clientId: string): Promise<boolean> {
       })
       return false
     }
+    reportClientRegistrationSuccess()
     return true
   } catch (error) {
     reportClientRegistrationFailure(clientId, stage, error)
