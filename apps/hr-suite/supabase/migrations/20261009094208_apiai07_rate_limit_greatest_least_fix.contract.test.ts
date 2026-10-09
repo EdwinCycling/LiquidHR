@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const migrationUrl = new URL('./20261009092739_apiai07_rate_limit_greatest_least_fix.sql', import.meta.url)
+const migrationUrl = new URL('./20261009094208_apiai07_rate_limit_greatest_least_fix.sql', import.meta.url)
 
 describe('APIAI-07 limiter expression fix contract', () => {
   it('keeps GREATEST and LEAST as PostgreSQL expressions under the empty search path', async () => {
