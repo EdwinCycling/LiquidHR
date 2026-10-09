@@ -102,6 +102,10 @@ const DELEGATED_WORKFORCE_TOOL_IDS = new Set([
   'employee.talent.development-gaps.read',
   'employee.talent.skills.read',
   'employee.talent.competencies.read',
+  'employee.leave.balance.read',
+  'employee.leave.next.read',
+  'employee.leave.requests.read',
+  'employee.reminders.read',
 ])
 
 async function authorizeWorkforceTool(

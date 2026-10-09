@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## APIAI-08 ESS Assistant — 2026-10-09
+
+**Status: lokale implementatie-, regressie-, typecheck-, lint-, i18n- en production-buildgates groen; niet hosted-geaccepteerd.** Branch `work/apiai-08-ess-assistant-20261009`, gestart vanaf exact ONE VERSION main `783999044de83c902e63fefb3587fdbbf99d4de3`. De volledige suite slaagde met 2 begrensde Vitest-workers. De kandidaatcommit is nog in voorbereiding.
+
+- Remote MCP behoudt de vier bestaande Talent-reads en biedt vier nieuwe Employee-reads voor verlofsaldo, volgende goedgekeurde vakantie, eigen aanvragen en persoonlijke reminders. Alle nieuwe reads gebruiken de OAuth Employee-identiteit, de gedelegeerde user-scoped RLS-client en bestaande permissies/services.
+- HeRa routeert nieuwe verlof- en reminderdrafts door het bestaande Prepare → Preview → Confirm → Execute → Readback-framework, met previewbinding, autorisatie, idempotency en readback. Remote ChatGPT Execute blijft uitgeschakeld; er is geen aantoonbare veilige confirmation primitive aangetoond.
+- Lokale checks: volledige hr-suite **567 bestanden geslaagd / 4 overgeslagen; 2.554 tests geslaagd / 8 overgeslagen**; strict TypeScript; ESLint 0 errors / 7 bestaande Payroll-testwaarschuwingen; NL/EN-pariteit **41 namespaces**; production build en Payroll negatieve boundary-control groen; **153 browser-assets** gescand.
+- Shared TEST preflight bevestigde de bestaande Supabase-projectidentiteit en huidige APIAI-06/07 migration-/policy-/triggerbaseline. De APIAI-08 forward-only migration is nog niet toegepast omdat auto-review de eerste DDL-call blokkeerde; expliciete goedkeuring is gevraagd. De huidige Vercel Production/shared-TEST deployment blijft `dpl_A9iNj25sybqbsS5zwghbYBSzYhUR` op main `783999044de83c902e63fefb3587fdbbf99d4de3`; alias `liquid-hr-hr-suite.vercel.app` en rollbackmogelijkheid zijn read-only bevestigd.
+- **OPEN:** TEST-migration approval, deployment van de APIAI-08-candidate, echte ChatGPT Employee-reads, hosted audit/limiter-readback en runtime/browser-error scan. Geen remote writeactie is uitgevoerd.
+
 ## APIAI-07 Remote MCP TEST — 2026-10-09
 
 **Status: hosted Employee-read acceptance GREEN; existing branch is pushed and Draft PR #10 is open; no merge.** The deployed source is `9679f73df27438cf37283360e92c236d655ae729` on existing branch `work/apiai-07-remote-mcp-test-20261007`. Supabase TEST is synthetic project `wnpfloqpjvaacobppbpk`.

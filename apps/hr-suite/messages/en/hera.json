@@ -61,5 +61,9 @@
   "memoryProposalPending": "I recognise this as a memory preference. Review and confirm the proposal below; nothing is stored, changed, or removed until then.",
   "currentValue": "Current value",
   "newValue": "Proposed value",
-  "groundingRequired": "I can only answer this with authorised Liquid HR data. Provide the missing scope or ask someone with the required access."
+  "groundingRequired": "I can only answer this with authorised Liquid HR data. Provide the missing scope or ask someone with the required access.",
+  "controlledLeaveRequestCreate": "Prepare the leave request and review its hours and balance impact.",
+  "controlledPersonalReminderCreate": "Prepare a personal reminder for review.",
+  "reminderClarifyDateTime": "What should I remind you about, and on what date and at what exact local time? If a time is ambiguous around a daylight-saving change, I will ask you to choose.",
+  "leaveClarifyDate": "Which leave date and leave type do you mean? I can prepare a request only when both are clear."
 }

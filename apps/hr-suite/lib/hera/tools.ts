@@ -9,6 +9,7 @@ import {
   addressChangeProposalSchema,
   employmentTimelineProposalSchema,
   placementChangeProposalSchema,
+  leaveRequestDraftSchema,
   reminderDraftSchema,
 } from './schemas'
 import type { HeRaToolCall } from './gemini'
@@ -18,7 +19,7 @@ export type HeRaToolResult =
   | { kind: 'REMINDERS'; reminders: ReminderItem[] }
   | {
     kind: 'DRAFT'
-    toolName: 'draft_personal_reminder' | 'draft_employee_address_change' | 'draft_employment_salary_change' | 'draft_employment_schedule_change' | 'draft_organization_placement_change' | 'draft_talent_development_goal' | 'draft_talent_goal_check_in'
+    toolName: 'draft_personal_reminder' | 'draft_leave_request' | 'draft_employee_address_change' | 'draft_employment_salary_change' | 'draft_employment_schedule_change' | 'draft_organization_placement_change' | 'draft_talent_development_goal' | 'draft_talent_goal_check_in'
     payload: Record<string, unknown>
     summary: string
     controlPayload: Record<string, unknown>
@@ -76,6 +77,19 @@ export async function executeHeRaTool(
       payload: draft,
       summary: `Persoonlijke reminder: ${draft.title} op ${draft.displayAt ?? new Date(draft.remindAt).toLocaleString('nl-NL')}.`,
       controlPayload: { oldValue: null, newValue: draft },
+    }
+  }
+
+  if (call.name === 'draft_leave_request') {
+    const parsed = leaveRequestDraftSchema.safeParse(call.args)
+    if (!parsed.success) throw new Error('HERA_TOOL_INPUT_INVALID')
+    const { displayDate, ...payload } = parsed.data
+    return {
+      kind: 'DRAFT',
+      toolName: 'draft_leave_request',
+      payload,
+      summary: `Verlofaanvraag voor ${payload.leaveTypeName} op ${displayDate ?? payload.startDate}.`,
+      controlPayload: { oldValue: null, newValue: payload },
     }
   }
 

@@ -1,6 +1,6 @@
 # APIAI-08 — ESS Assistant: Leave & Personal Reminders
 
-Status: **IMPLEMENTATION READY — NOT BUILT**. Source baseline: ONE VERSION `783999044de83c902e63fefb3587fdbbf99d4de3`. Branch: `work/apiai-08-ess-assistant-20261009`. This document captures user-approved scope and implementation/acceptance gates; no APIAI-08 functionality is claimed as delivered by this specification alone.
+Status: **IMPLEMENTED LOCALLY — HOSTED TEST ACCEPTANCE OPEN**. Source baseline: ONE VERSION `783999044de83c902e63fefb3587fdbbf99d4de3`. Branch: `work/apiai-08-ess-assistant-20261009`. Local implementation and regression gates pass. The additive TEST migration is awaiting explicit approval after the remote DDL call was blocked by auto-review; deployment and hosted MCP acceptance have not run. See [the APIAI-08 acceptance record](../../quality/acceptance/runs/APIAI-08-20261009.md).
 
 ## User value / ChatGPT conversations
 

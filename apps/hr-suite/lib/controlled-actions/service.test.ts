@@ -4,6 +4,7 @@ import type { AuthContext } from '@/lib/auth/permissions'
 import {
   createControlledActionService,
   ControlledActionError,
+  controlledActionPayloadSchemas,
   buildAuthorizedGoalPayload,
   type ControlledActionId,
   type ControlledActionDomain,
@@ -54,26 +55,34 @@ describe('authorized goal payload ordering', () => {
   })
 })
 
-function setup(previewAllowed = true) {
+const essActionMetadata = {
+  'talent.development-goal.create': { actionType: 'TALENT_DEVELOPMENT_GOAL_CREATE', toolName: 'draft_talent_development_goal' },
+  'talent.goal-check-in.create': { actionType: 'TALENT_GOAL_CHECK_IN_CREATE', toolName: 'draft_talent_goal_check_in' },
+  'employee.leave.request.create': { actionType: 'EMPLOYEE_LEAVE_REQUEST_CREATE', toolName: 'draft_leave_request' },
+  'employee.reminder.create': { actionType: 'EMPLOYEE_PERSONAL_REMINDER_CREATE', toolName: 'draft_personal_reminder' },
+} as const
+
+function setup(previewAllowed = true, selectedActionId: ControlledActionId = actionInput.actionId) {
   let draft: ControlledActionDraft | null = null
   let previewMarker = 'current'
   let currentTime = new Date('2026-10-06T09:00:00.000Z')
   const makePreview = (payload: unknown) => ({
-    actionId: actionInput.actionId,
-    actionType: 'TALENT_DEVELOPMENT_GOAL_CREATE' as const,
-    toolName: 'draft_talent_development_goal',
+    actionId: selectedActionId,
+    actionType: essActionMetadata[selectedActionId].actionType,
+    toolName: essActionMetadata[selectedActionId].toolName,
     payload: payload as Json,
-    summary: 'Ontwikkeldoel voorbereiden.',
+    summary: 'Actie voorbereiden.',
     preview: {
-      actionId: actionInput.actionId,
-      summary: 'Ontwikkeldoel voorbereiden.',
+      actionId: selectedActionId,
+      summary: 'Actie voorbereiden.',
       subject: 'self' as const,
       changes: { marker: previewMarker, payload: payload as Json },
     },
   })
   const domain: ControlledActionDomain = {
-    preview: vi.fn(async (_actor, _action, payload) => {
+    preview: vi.fn(async (_actor, actionId, payload) => {
       if (!previewAllowed) throw new Error('ACCESS_DENIED')
+      if (actionId !== selectedActionId) throw new Error('ACTION_MISMATCH')
       return makePreview(payload)
     }),
     execute: vi.fn(async () => '10000000-0000-4000-8000-000000000006'),
@@ -174,6 +183,85 @@ function setup(previewAllowed = true) {
 }
 
 describe('controlled action lifecycle', () => {
+  it.each([
+    {
+      actionId: 'employee.leave.request.create' as const,
+      actionType: 'EMPLOYEE_LEAVE_REQUEST_CREATE',
+      toolName: 'draft_leave_request',
+      payload: {
+        startDate: '2026-10-16',
+        endDate: '2026-10-16',
+        leaveTypeId: '10000000-0000-4000-8000-000000000009',
+      },
+      idempotencyKey: '10000000-0000-4000-8000-000000000009',
+    },
+    {
+      actionId: 'employee.reminder.create' as const,
+      actionType: 'EMPLOYEE_PERSONAL_REMINDER_CREATE',
+      toolName: 'draft_personal_reminder',
+      payload: { title: 'POP bijwerken', remindAt: '2026-10-12T08:00:00.000Z' },
+      idempotencyKey: '10000000-0000-4000-8000-000000000010',
+    },
+  ])('binds $actionId to its immutable preview, actor, and idempotency key', async ({
+    actionId, actionType, toolName, payload, idempotencyKey,
+  }) => {
+    const { service, storage, domain, setPreviewMarker } = setup(true, actionId)
+    const input = { ...actionInput, actionId, payload, idempotencyKey }
+    const prepared = await service.prepare(context, input)
+    const control = prepared.draft.controlPayload as Record<string, Json>
+    const previewHash = String(control.previewHash)
+
+    expect(prepared.draft.actionType).toBe(actionType)
+    expect(prepared.draft.toolName).toBe(toolName)
+    expect(prepared.preview?.actionId).toBe(actionId)
+
+    const repeated = await service.prepare(context, input)
+    expect(repeated.draft.id).toBe(prepared.draft.id)
+    expect(storage.insert).toHaveBeenCalledTimes(1)
+
+    const confirmed = await service.confirm(context, {
+      draftId: prepared.draft.id,
+      expectedVersion: prepared.draft.version,
+      expectedPreviewHash: previewHash,
+    })
+    setPreviewMarker('changed')
+    await expect(service.execute(context, {
+      draftId: prepared.draft.id,
+      expectedVersion: confirmed.draft.version,
+      expectedPreviewHash: previewHash,
+    })).rejects.toMatchObject({ code: 'CONTROLLED_ACTION_PREVIEW_STALE' })
+    expect(storage.claim).not.toHaveBeenCalled()
+    expect(domain.execute).not.toHaveBeenCalled()
+
+    setPreviewMarker('current')
+    const executed = await service.execute(context, {
+      draftId: prepared.draft.id,
+      expectedVersion: confirmed.draft.version,
+      expectedPreviewHash: previewHash,
+    })
+    expect(executed.draft.status).toBe('SUCCEEDED')
+    expect(domain.execute).toHaveBeenCalledWith(context, actionId, payload, idempotencyKey)
+  })
+
+  it('strictly rejects caller-selected identity and context in ESS action payloads', () => {
+    const leavePayload = {
+      startDate: '2026-10-16',
+      leaveTypeId: '10000000-0000-4000-8000-000000000009',
+    }
+    const reminderPayload = { title: 'POP bijwerken', remindAt: '2026-10-12T08:00:00.000Z' }
+    expect(controlledActionPayloadSchemas['employee.leave.request.create'].safeParse(leavePayload).success).toBe(true)
+    expect(controlledActionPayloadSchemas['employee.reminder.create'].safeParse(reminderPayload).success).toBe(true)
+
+    for (const selector of ['employeeId', 'tenantId', 'hrGroupId', 'administrationId', 'actor', 'role']) {
+      expect(controlledActionPayloadSchemas['employee.leave.request.create'].safeParse({
+        ...leavePayload, [selector]: 'attacker-selected',
+      }).success).toBe(false)
+      expect(controlledActionPayloadSchemas['employee.reminder.create'].safeParse({
+        ...reminderPayload, [selector]: 'attacker-selected',
+      }).success).toBe(false)
+    }
+  })
+
   it('runs prepare, preview, confirm, execute, and readback once with server-held preview binding', async () => {
     const { service, storage, domain } = setup()
     const prepared = await service.prepare(context, actionInput)

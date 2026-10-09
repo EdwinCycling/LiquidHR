@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## APIAI-08 ESS Assistant — 2026-10-09
+
+**Status: lokale implementatie en volledige regressiegates groen; shared-TEST migration, deployment en hosted Employee-acceptatie open.** APIAI-08 voegt vier Employee-self-service reads en twee interne HeRa Controlled Actions toe. Externe MCP blijft read-only zolang een server-verifieerbare ChatGPT-bevestiging ontbreekt. De bestaande APIAI-07-reads blijven behouden. Zie het [API contract](requirements/ai/APIAI-08_ESS_ASSISTANT.md), de [implementatiestatus](delivery/IMPLEMENTATION_STATUS.md) en het [acceptatierecord](quality/acceptance/runs/APIAI-08-20261009.md).
+
 ## APIAI-07 Remote MCP TEST — 2026-10-09
 
 **Status: hosted Employee MCP acceptance GREEN; [Draft PR #10](https://github.com/EdwinCycling/LiquidHR/pull/10) is open.** Existing branch `work/apiai-07-remote-mcp-test-20261007` is pushed to GitHub and not merged. Deployed code SHA `9679f73df27438cf37283360e92c236d655ae729` is READY in the existing `liquidhr` Vercel project. Edwin confirmed Supabase project `wnpfloqpjvaacobppbpk` is the synthetic TEST project and authorized its limited APIAI-07 use.

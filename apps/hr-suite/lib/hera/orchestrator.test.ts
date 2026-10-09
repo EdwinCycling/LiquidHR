@@ -167,6 +167,92 @@ describe('runHeRaTurn', () => {
     expect(result.draft?.summary).toContain('09:00')
   })
 
+  it('bereidt volgende vrijdag voor met het gekozen verloftype en de server-resolved lokale datum', async () => {
+    const dispatchTool = vi.fn().mockResolvedValue({
+      kind: 'DRAFT',
+      toolName: 'draft_leave_request',
+      payload: { startDate: '2026-10-16', leaveTypeName: 'Vakantie' },
+      summary: 'Verlofaanvraag voorbereiden.',
+      controlPayload: { oldValue: null, newValue: { startDate: '2026-10-16' } },
+    })
+    const result = await runHeRaTurn({
+      context,
+      userContext,
+      latestUserMessage: 'Ik wil volgende vrijdag vrij.',
+      modelContext: 'USER: Ik wil volgende vrijdag vrij.',
+      personaInstruction: 'Vraag naar ontbrekende details.',
+      groundingRequiredMessage: 'Alleen met geautoriseerde data.',
+      now: new Date('2026-10-09T13:00:00.000Z'),
+    }, {
+      generate: async () => ({
+        text: 'De aanvraag is ingediend.',
+        model: 'gemini-test',
+        toolCall: { name: 'draft_leave_request', args: { when: 'volgende vrijdag', leaveTypeName: 'Vakantie' } },
+      }),
+      dispatchTool,
+    })
+
+    expect(dispatchTool).toHaveBeenCalledWith(context, {
+      name: 'draft_leave_request',
+      args: {
+        leaveTypeName: 'Vakantie',
+        startDate: '2026-10-16',
+        displayDate: '16 oktober 2026',
+      },
+    })
+    expect(result.draft?.actionType).toBe('EMPLOYEE_LEAVE_REQUEST_CREATE')
+    expect(result.content).toBe('Verlofaanvraag voorbereiden.')
+    expect(result.content).not.toContain('ingediend')
+  })
+
+  it('vraagt eerst een verlofsoort wanneer die ontbreekt', async () => {
+    const dispatchTool = vi.fn()
+    const result = await runHeRaTurn({
+      context,
+      userContext,
+      latestUserMessage: 'Ik wil volgende vrijdag vrij.',
+      modelContext: 'USER: Ik wil volgende vrijdag vrij.',
+      personaInstruction: 'Vraag naar ontbrekende details.',
+      groundingRequiredMessage: 'Alleen met geautoriseerde data.',
+      now: new Date('2026-10-09T13:00:00.000Z'),
+    }, {
+      generate: async () => ({
+        text: '',
+        model: 'gemini-test',
+        toolCall: { name: 'draft_leave_request', args: { when: 'volgende vrijdag' } },
+      }),
+      dispatchTool,
+    })
+
+    expect(dispatchTool).not.toHaveBeenCalled()
+    expect(result.draft).toBeNull()
+    expect(result.content.toLowerCase()).toContain('verlofsoort')
+  })
+
+  it('vraagt een exacte tijd bij een reminder op maandag zonder tijd', async () => {
+    const dispatchTool = vi.fn()
+    const result = await runHeRaTurn({
+      context,
+      userContext,
+      latestUserMessage: 'Herinner me maandag om mijn POP bij te werken.',
+      modelContext: 'USER: Herinner me maandag om mijn POP bij te werken.',
+      personaInstruction: 'Vraag naar een exacte tijd.',
+      groundingRequiredMessage: 'Alleen met geautoriseerde data.',
+      now: new Date('2026-10-09T13:00:00.000Z'),
+    }, {
+      generate: async () => ({
+        text: '',
+        model: 'gemini-test',
+        toolCall: { name: 'draft_personal_reminder', args: { title: 'POP bijwerken', when: 'maandag' } },
+      }),
+      dispatchTool,
+    })
+
+    expect(dispatchTool).not.toHaveBeenCalled()
+    expect(result.draft).toBeNull()
+    expect(result.content.toLowerCase()).toContain('exact lokaal tijdstip')
+  })
+
   it('gebruikt voor een gecontroleerde Talent-actie de serverpreviewtekst in plaats van modelclaims', async () => {
     const result = await runHeRaTurn({
       context,

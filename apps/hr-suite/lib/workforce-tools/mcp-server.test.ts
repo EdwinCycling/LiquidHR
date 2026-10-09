@@ -324,12 +324,16 @@ describe('local Workforce MCP server', () => {
     if (!isRecord(listResult) || !Array.isArray(listResult.tools)) {
       throw new Error('ChatGPT MCP tools/list returned no tools')
     }
-    expect(listResult.tools).toHaveLength(4)
+    expect(listResult.tools).toHaveLength(8)
     expect(listResult.tools.map((tool) => (tool as Record<string, unknown>).name)).toEqual([
       'employee.talent.development-plans.read',
       'employee.talent.development-gaps.read',
       'employee.talent.skills.read',
       'employee.talent.competencies.read',
+      'employee.leave.balance.read',
+      'employee.leave.next.read',
+      'employee.leave.requests.read',
+      'employee.reminders.read',
     ])
     expect(listResult.tools[0]).toMatchObject({
       name: CHATGPT_MCP_TOOLS[0]?.name,
@@ -390,7 +394,7 @@ describe('local Workforce MCP server', () => {
     const listedResult = listedPayload.result
     expect(isRecord(listedResult) && Array.isArray(listedResult.tools)).toBe(true)
     if (!isRecord(listedResult) || !Array.isArray(listedResult.tools)) throw new Error('Remote tools/list returned no tools')
-    expect(listedResult.tools).toHaveLength(4)
+    expect(listedResult.tools).toHaveLength(8)
     for (const tool of listedResult.tools) {
       expect(tool).toMatchObject({ securitySchemes: [{ type: 'oauth2', scopes: ['openid'] }] })
     }

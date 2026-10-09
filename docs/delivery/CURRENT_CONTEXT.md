@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## APIAI-08 ESS Assistant — local GREEN / hosted TEST gates open — 2026-10-09
+
+- **Branch/baseline:** bestaande branch `work/apiai-08-ess-assistant-20261009`, exact gestart vanaf main `783999044de83c902e63fefb3587fdbbf99d4de3`. Code en tests zijn lokaal geïmplementeerd; commit/push en één Draft PR zijn nog open.
+- **Implemented:** vier Employee-self-service MCP reads (verlofsaldo, volgende goedgekeurde vakantie, aanvragen/statussen, persoonlijke reminders), plus HERA/Controlled Actions voor verlofaanvraag en persoonlijke reminder. Hergebruikt bestaande Workforce-dispatcher, OAuth bearer/RLS identity, leave/report/workflow/reminderservices, preview hash, confirmation, idempotency en readback. ChatGPT MCP blijft read-only omdat `confirmed: true` geen verifieerbare menselijke goedkeuring bewijst.
+- **Local evidence:** full suite `--maxWorkers=2`: 567 bestanden geslaagd / 4 overgeslagen; 2.554 tests geslaagd / 8 overgeslagen. Strict TypeScript groen; ESLint 0 errors / 7 bestaande Payroll-testwaarschuwingen; i18n 41 NL/EN namespaces gelijk; production build groen; Payroll negatieve boundary-control groen; 153 browser-assets gescand.
+- **External preflight:** synthetische TEST Supabase `wnpfloqpjvaacobppbpk` is ACTIVE_HEALTHY. Readback bevestigde bestaande action constraints, legacy client-write policies en audittrigger. APIAI-08 migration staat nog niet in de migrationlijst en is **niet** toegepast; auto-review blokkeerde de eerste remote DDL-call wegens ontbrekende expliciete toestemming, die is gevraagd. Geen records/grants/tabellen gewijzigd.
+- **Vercel:** bestaand project `liquidhr` (`prj_h3voMtzXGfqG6QTodR5d1VTcC1zP`), huidige Production/shared-TEST deployment `dpl_A9iNj25sybqbsS5zwghbYBSzYhUR` is READY op main-SHA `783999044de83c902e63fefb3587fdbbf99d4de3`. Alias `liquid-hr-hr-suite.vercel.app` aanwezig; huidige deployment is als rollback candidate bevestigd. Candidate deployment en hosted acceptatie zijn nog niet uitgevoerd.
+- **Next:** bij goedgekeurde migration toepassen, readback/advisors doen, branch pushen, exact-source candidate deployen naar dezelfde shared-TEST-target, echte Employee MCP reads en audit/limiter/runtime-verificatie doen, acceptance updaten en één Draft PR openen. Geen APIAI-08 remote writes of merge.
+- Volledige lokale en remote evidence: [APIAI-08 acceptance record](../quality/acceptance/runs/APIAI-08-20261009.md).
+
 ## APIAI-07 Remote MCP TEST handoff — 2026-10-09
 
 - **Code/deployment:** existing branch `work/apiai-07-remote-mcp-test-20261007` is pushed and has Draft PR #10 open; no merge. Worktree `C:\Users\Edwin\Documents\Apps\LiquidHR-AI1\work-apiai-06-controlled-actions-20261006`. Deployed source SHA `9679f73df27438cf37283360e92c236d655ae729`; deployment `dpl_EK2LjMRhmncXSgLzewecz1nBLY5a` is READY on the existing `liquidhr` Production target used as synthetic TEST. The alias `liquid-hr-hr-suite.vercel.app` points to it.
