@@ -2,7 +2,7 @@
 
 ## APIAI-07 Remote MCP TEST — 2026-10-09
 
-**Status: hosted Employee-read acceptance GREEN; branch is ready for its already-authorized push and one Draft PR.** The deployed source is `9679f73df27438cf37283360e92c236d655ae729` on existing branch `work/apiai-07-remote-mcp-test-20261007`. Supabase TEST is synthetic project `wnpfloqpjvaacobppbpk`.
+**Status: hosted Employee-read acceptance GREEN; existing branch is pushed and Draft PR #10 is open; no merge.** The deployed source is `9679f73df27438cf37283360e92c236d655ae729` on existing branch `work/apiai-07-remote-mcp-test-20261007`. Supabase TEST is synthetic project `wnpfloqpjvaacobppbpk`.
 
 The final forward migration `20261009112847_apiai07_service_role_postgrest_role_guard` fixes both server-only registration and audit RPC role guards for the actual PostgREST `service_role` setting. It preserves service-role-only EXECUTE grants. The rolled-back SQL matrix passed for service-role, authenticated, anon, malformed client ID and idempotent fixed-scope registration. No table or grant changes were made.
 

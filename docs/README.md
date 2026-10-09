@@ -2,7 +2,7 @@
 
 ## APIAI-07 Remote MCP TEST — 2026-10-09
 
-**Status: hosted Employee MCP acceptance GREEN.** On the existing branch `work/apiai-07-remote-mcp-test-20261007`, deployed code SHA `9679f73df27438cf37283360e92c236d655ae729` is READY in the existing `liquidhr` Vercel project. Edwin confirmed Supabase project `wnpfloqpjvaacobppbpk` is the synthetic TEST project and authorized its limited APIAI-07 use.
+**Status: hosted Employee MCP acceptance GREEN; Draft PR #10 is open.** Existing branch `work/apiai-07-remote-mcp-test-20261007` is pushed to GitHub and not merged. Deployed code SHA `9679f73df27438cf37283360e92c236d655ae729` is READY in the existing `liquidhr` Vercel project. Edwin confirmed Supabase project `wnpfloqpjvaacobppbpk` is the synthetic TEST project and authorized its limited APIAI-07 use.
 
 The final service-role guard migration `20261009112847_apiai07_service_role_postgrest_role_guard` is applied. Its registration-RPC transaction contract passed for service-role authorization, fixed issuer/audience/resource, idempotency and malformed UUID rejection; `authenticated` and `anon` were denied, and the verification transaction was rolled back. No table, grant or record was changed by the migration.
 
