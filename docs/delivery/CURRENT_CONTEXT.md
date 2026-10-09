@@ -1,6 +1,22 @@
 # Actuele overdracht Liquid HR
 
-## APIAI-06 final acceptance and release handoff — 2026-10-07
+## APIAI-07 Remote MCP TEST handoff — 2026-10-09
+
+- **Code/deployment:** existing branch `work/apiai-07-remote-mcp-test-20261007` is pushed and has Draft PR #10 open; no merge. Worktree `C:\Users\Edwin\Documents\Apps\LiquidHR-AI1\work-apiai-06-controlled-actions-20261006`. Deployed source SHA `9679f73df27438cf37283360e92c236d655ae729`; deployment `dpl_EK2LjMRhmncXSgLzewecz1nBLY5a` is READY on the existing `liquidhr` Production target used as synthetic TEST. The alias `liquid-hr-hr-suite.vercel.app` points to it.
+- **TEST database:** project `wnpfloqpjvaacobppbpk`. Migration `20261009112847_apiai07_service_role_postgrest_role_guard` is applied. A rolled-back RPC contract transaction proved service-role success, fixed registration scope, idempotency and malformed-ID rejection; `authenticated` and `anon` are denied.
+- **ChatGPT:** settings show `LiquidHR Workforce TEST` connected by OAuth to the existing `/mcp` alias for `employee.fixture@liquidhr.test`; the authenticated LiquidHR grants page lists a ChatGPT grant dated 9 Oct. Four real self-service reads succeeded: plans (9), gaps (4), skills (2), competencies (3).
+- **Readback/observability:** four `ALLOWED` API READ audit rows, HTTP 200; one updated Employee self-service limiter bucket. Four hosted `/mcp` calls returned 200; invalid bearer returned 401. Vercel runtime error scan and checked ChatGPT browser-console error/warning scan were clear.
+- **Local verification:** 565 test files passed / 4 skipped; 2,529 tests passed / 8 skipped. Strict TypeScript, changed-file ESLint, diff check and production Webpack build (310 pages) passed. Supabase advisors ran; tracked function type signatures match generated signatures, but the broader generated catalog differs from tracked types due unrelated remote/local drift.
+- **Residual evidence:** the old revoked bearer was not extracted or replayed; the invalid-bearer negative is verified. The initial ChatGPT request returned `MCP_SERVICE_UNAVAILABLE`, followed by the successful connection and all four reads. No APIAI-06 writes, public APIAI-01 activation, merge or APIAI-08 work is included.
+
+## APIAI-06 merged ONE VERSION and shared TEST — 2026-10-07
+
+- **Main:** PR #8 merged with regular merge commit `249c737941d682cb834e313097a9df009549c11b`; source product code was `c37646e3e6033368080d0fad60a8bad9cdc91907`, and acceptance documentation was `b69982d71fd5bc35f8d8b0f7ad8cf62fb3afb972`.
+- **Vercel shared TEST:** deployment `dpl_3VffaT5P8SN93Mx4K4a1PEzYftzC` is READY in existing project `liquidhr`, Production target, exact commit SHA `249c737941d682cb834e313097a9df009549c11b`. Existing alias `liquid-hr-hr-suite.vercel.app` points to it. Earlier READY deployment `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` remains available for rollback.
+- **Hosted scope:** anonymous `/login` smoke returned 200; `/api/internal/mcp`, `/api/v1/tools`, and `/api/v1/development-plans` returned 404. Authenticated hosted Employee/Manager/HR Admin, Workforce and business-flow acceptance remain OPEN.
+- **Local acceptance:** APIAI-06 local authenticated persona/action acceptance, idempotency/audit, regression suite, build and Pester evidence are retained in [APIAI-06 acceptance](../quality/acceptance/runs/APIAI-06-20261006.md). The extra logout/stale-context check remains open because the official launcher could not safely verify the existing runtime-config link. **HERA PROVIDER ACCEPTANCE OPEN**; no provider credentials were added or read.
+
+## Historical APIAI-06 pre-merge handoff — 2026-10-07
 
 - **Current main / shared TEST:** main remains `38ccbcac6423824a1dba7075f022f68771edf087`. Read-only Vercel preflight confirmed the existing `liquidhr` project (`prj_h3voMtzXGfqG6QTodR5d1VTcC1zP`), Production target, and alias `liquid-hr-hr-suite.vercel.app` on READY deployment `dpl_ArGD9NSVT7qaHSh1J5WzyaB8wkL5`. Project metadata says `live:false`. Prior READY deployment `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` is available in the same project for rollback. No deployment has been made for APIAI-06 yet.
 - **APIAI-06:** branch `work/apiai-06-controlled-actions-20261006`, exact base above, product code `c37646e3e6033368080d0fad60a8bad9cdc91907`. The branch includes the earlier two local commits and this preview-ordering/HeRa-floating fix. Remote TEST migration `20261007054728_apiai06_controlled_actions` is applied once and has verified RLS, types, advisors and audit. Never reapply it.

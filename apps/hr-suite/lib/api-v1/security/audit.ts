@@ -4,14 +4,14 @@ import {
   API_RATE_LIMIT_RESOURCE_KEYS,
   type ApiRateLimitResource,
 } from './rate-limit'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminRpcClient } from '@/lib/supabase/admin'
 
 export const API_READ_AUDIT_RPC_NAME = 'record_api_read_audit' as const
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_CLIENT_ID_LENGTH = 128
 
-export type ApiReadAuditOutcome = 'ALLOWED' | 'DENIED' | 'RATE_LIMITED'
+export type ApiReadAuditOutcome = 'ALLOWED' | 'DENIED' | 'RATE_LIMITED' | 'FAILED'
 
 type TrustedApiReadAuditRpcClient = {
   readonly role: 'service_role'
@@ -89,7 +89,7 @@ function isSafeClientId(value: string): boolean {
     && !/[\u0000-\u0020\u007f-\u009f]/u.test(value)
 }
 
-function validateInput(input: ApiReadAuditInput): void {
+function hasValidInput(input: ApiReadAuditInput): boolean {
   const validAdministration = input.administrationId === undefined
     || input.administrationId === null
     || isUuid(input.administrationId)
@@ -97,20 +97,24 @@ function validateInput(input: ApiReadAuditInput): void {
     ? input.statusCode >= 200 && input.statusCode < 300
     : input.outcome === 'DENIED'
       ? input.statusCode === 403 || input.statusCode === 404
-      : input.statusCode === 429
-  if (!isUuid(input.tenantId)
-    || !isUuid(input.actorUserId)
-    || !isUuid(input.hrGroupId)
-    || !validAdministration
-    || !isResource(input.resource)
-    || !isSafeClientId(input.oauthClientId)
-    || !isUuid(input.correlationId)
-    || !Number.isSafeInteger(input.statusCode)
-    || input.statusCode < 100
-    || input.statusCode > 599
-    || !validOutcomeStatus) {
-    throw new ApiReadAuditConfigurationError()
-  }
+      : input.outcome === 'RATE_LIMITED'
+        ? input.statusCode === 429
+        : input.statusCode >= 500 && input.statusCode < 600
+  return isUuid(input.tenantId)
+    && isUuid(input.actorUserId)
+    && isUuid(input.hrGroupId)
+    && validAdministration
+    && isResource(input.resource)
+    && isSafeClientId(input.oauthClientId)
+    && isUuid(input.correlationId)
+    && Number.isSafeInteger(input.statusCode)
+    && input.statusCode >= 100
+    && input.statusCode <= 599
+    && validOutcomeStatus
+}
+
+function validateInput(input: ApiReadAuditInput): void {
+  if (!hasValidInput(input)) throw new ApiReadAuditConfigurationError()
 }
 
 class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
@@ -138,19 +142,21 @@ class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
       throw new ApiReadAuditUnavailableError()
     }
 
-    if (result.error !== null && result.error !== undefined) throw new ApiReadAuditUnavailableError()
+    if (result.error !== null && result.error !== undefined) {
+      throw new ApiReadAuditUnavailableError()
+    }
   }
 }
 
 /**
- * Creates the narrowly wrapped privileged audit sink. This admin client is
+ * Creates the narrowly wrapped privileged audit sink. This isolated RPC client is
  * intentionally constructed only here and only its RPC method is retained;
  * the request-bound bearer RLS client remains the sole HR-data reader.
  */
 export function createPostgresApiReadAuditWriter(): ApiReadAuditWriter {
   let trustedClient: TrustedApiReadAuditRpcClient
   try {
-    const admin = createAdminClient()
+    const admin = createAdminRpcClient()
     if (typeof admin.rpc !== 'function') throw new Error('Audit RPC is unavailable.')
     const rpc = admin.rpc.bind(admin) as unknown as TrustedApiReadAuditRpcClient['rpc']
     trustedClient = {

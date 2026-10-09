@@ -39,6 +39,7 @@ vi.mock('@/lib/controlled-actions/service', async (importOriginal) => {
 
 import {
   createChatGptMcpHandler,
+  createRemoteChatGptMcpHandler,
   createWorkforceMcpHandler,
   createWorkforceMcpServer,
   isLoopbackMcpRequest,
@@ -49,6 +50,7 @@ import {
 } from './mcp-server'
 import { WORKFORCE_TOOL_CATALOG } from './catalog'
 import { WorkforceToolDispatchError } from './registry'
+import { RemoteMcpToolError } from './mcp/remote-errors'
 import {
   CHATGPT_MCP_SERVER_INFO,
   CHATGPT_MCP_TOOLS,
@@ -322,7 +324,13 @@ describe('local Workforce MCP server', () => {
     if (!isRecord(listResult) || !Array.isArray(listResult.tools)) {
       throw new Error('ChatGPT MCP tools/list returned no tools')
     }
-    expect(listResult.tools).toHaveLength(1)
+    expect(listResult.tools).toHaveLength(4)
+    expect(listResult.tools.map((tool) => (tool as Record<string, unknown>).name)).toEqual([
+      'employee.talent.development-plans.read',
+      'employee.talent.development-gaps.read',
+      'employee.talent.skills.read',
+      'employee.talent.competencies.read',
+    ])
     expect(listResult.tools[0]).toMatchObject({
       name: CHATGPT_MCP_TOOLS[0]?.name,
       description: CHATGPT_MCP_TOOLS[0]?.description,
@@ -367,7 +375,39 @@ describe('local Workforce MCP server', () => {
     expect(JSON.stringify(callPayload)).not.toContain('00000000-0000-0000-0000-000000000001')
     expect(JSON.stringify(callPayload)).not.toContain('Private development plan')
     expect(JSON.stringify(callPayload)).not.toContain('Private capability')
-    expect(mcpActionMocks.dispatchWorkforceTool).toHaveBeenCalledWith('employee.talent.development-plans.read', {})
+    expect(mcpActionMocks.dispatchWorkforceTool).toHaveBeenCalledWith('employee.talent.development-plans.read', {}, undefined)
+  })
+
+  it('exposes OAuth tool metadata and challenges unauthenticated remote calls without dispatch', async () => {
+    const handler = createRemoteChatGptMcpHandler()
+    const listed = await handler.fetch(rpcRequest({
+      jsonrpc: '2.0',
+      id: 10,
+      method: 'tools/list',
+      params: {},
+    }))
+    const listedPayload = await readResponse(listed)
+    const listedResult = listedPayload.result
+    expect(isRecord(listedResult) && Array.isArray(listedResult.tools)).toBe(true)
+    if (!isRecord(listedResult) || !Array.isArray(listedResult.tools)) throw new Error('Remote tools/list returned no tools')
+    expect(listedResult.tools).toHaveLength(4)
+    for (const tool of listedResult.tools) {
+      expect(tool).toMatchObject({ securitySchemes: [{ type: 'oauth2', scopes: ['openid'] }] })
+    }
+
+    const unauthenticated = await handler.fetch(rpcRequest({
+      jsonrpc: '2.0',
+      id: 11,
+      method: 'tools/call',
+      params: { name: 'employee.talent.development-plans.read', arguments: {} },
+    }))
+    const unauthorizedPayload = await readResponse(unauthenticated)
+    expect(unauthorizedPayload.result).toMatchObject({
+      isError: true,
+      _meta: { 'mcp/www_authenticate': [expect.stringContaining('resource_metadata=')] },
+    })
+    expect(JSON.stringify(unauthorizedPayload)).toContain('insufficient_scope')
+    expect(mcpActionMocks.dispatchWorkforceTool).not.toHaveBeenCalled()
   })
 
   it('calls a catalog tool through the shared dispatcher and returns bounded errors', async () => {
@@ -385,7 +425,7 @@ describe('local Workforce MCP server', () => {
     expect(response.status).toBe(200)
     const payload = await readResponse(response)
     expect(payload.result).toMatchObject({ structuredContent: { skills: [] } })
-    expect(mcpActionMocks.dispatchWorkforceTool).toHaveBeenCalledWith(toolId, {})
+    expect(mcpActionMocks.dispatchWorkforceTool).toHaveBeenCalledWith(toolId, {}, undefined)
 
     mcpActionMocks.dispatchWorkforceTool.mockRejectedValue(new Error('private database detail'))
     const failure = await handler.fetch(rpcRequest({
@@ -452,6 +492,30 @@ describe('local Workforce MCP server', () => {
       isError: true,
       content: [{ text: 'CONTEXT_SELECTION_REQUIRED' }],
     })
+  })
+
+  it('preserves only the bounded remote MCP error code for hosted tool failures', async () => {
+    const handler = createRemoteChatGptMcpHandler(
+      {} as never,
+      mcpActionMocks.dispatchWorkforceTool,
+    )
+    mcpActionMocks.dispatchWorkforceTool.mockRejectedValueOnce(
+      new RemoteMcpToolError('MCP_SERVICE_UNAVAILABLE'),
+    )
+
+    const response = await handler.fetch(rpcRequest({
+      jsonrpc: '2.0',
+      id: 9,
+      method: 'tools/call',
+      params: { name: 'employee.talent.skills.read', arguments: {} },
+    }))
+    const payload = await readResponse(response)
+
+    expect(payload.result).toMatchObject({
+      isError: true,
+      content: [{ text: 'MCP_SERVICE_UNAVAILABLE' }],
+    })
+    expect(JSON.stringify(payload)).not.toContain('database')
   })
 
   it('rejects malformed arguments and oversized bodies before dispatch', async () => {

@@ -26,7 +26,24 @@ export interface AccessibleContextOptions {
   tenants: TenantContextOption[]
 }
 
-export async function loadAccessibleContextOptions(userId?: string, existingClient?: SupabaseServerClient): Promise<AccessibleContextOptions> {
+export interface LoadAccessibleContextOptions {
+  /** Include confirmed future employments for flows that explicitly allow preboarding. */
+  includeFutureEmployment?: boolean
+  /** Refuse a context assembled from any query result that may have hit its safety limit. */
+  requireComplete?: boolean
+}
+
+function assertCompleteResult(enabled: boolean, table: string, rows: readonly unknown[], limit: number): void {
+  if (enabled && rows.length >= limit) {
+    throw new Error(`The ${table} result reached its context safety limit.`)
+  }
+}
+
+export async function loadAccessibleContextOptions(
+  userId?: string,
+  existingClient?: SupabaseServerClient,
+  options: LoadAccessibleContextOptions = {},
+): Promise<AccessibleContextOptions> {
   const supabase = existingClient ?? await createClient()
   let resolvedUserId = userId
 
@@ -59,6 +76,8 @@ export async function loadAccessibleContextOptions(userId?: string, existingClie
 
   if (groupAccessError) throw groupAccessError
   if (administrationAccessError) throw administrationAccessError
+  assertCompleteResult(options.requireComplete === true, 'user_hr_group_access', groupAccesses, 500)
+  assertCompleteResult(options.requireComplete === true, 'user_access', administrationAccesses, 500)
 
   const tenantIds = [...new Set(groupAccesses.map((access) => access.tenant_id))]
   if (tenantIds.length === 0) return { supabase, userId: resolvedUserId, tenants: [] }
@@ -71,6 +90,7 @@ export async function loadAccessibleContextOptions(userId?: string, existingClie
     .limit(500)
 
   if (roleError) throw roleError
+  assertCompleteResult(options.requireComplete === true, 'management_roles', roles, 500)
 
   const roleCodesById = new Map(roles.map((role) => [role.id, role.code]))
   const contextGroupAccesses = groupAccesses.map((access) => ({
@@ -94,22 +114,26 @@ export async function loadAccessibleContextOptions(userId?: string, existingClie
       .limit(500)
 
     if (actorError) throw actorError
+    assertCompleteResult(options.requireComplete === true, 'employees', actors, 500)
 
     const actorIds = actors.map((actor) => actor.id)
     if (actorIds.length > 0) {
       const today = new Date().toISOString().slice(0, 10)
-      const { data: employments, error: employmentError } = await supabase
+      let employmentQuery = supabase
         .from('employments')
         .select('hr_group_id, administration_id')
         .in('employee_id', actorIds)
         .in('hr_group_id', actorScopedGroupIds)
         .eq('record_status', 'CONFIRMED')
-        .lte('starts_on', today)
         .or(`ends_on.is.null,ends_on.gte.${today}`)
         .is('deleted_at', null)
-        .limit(1000)
+      if (options.includeFutureEmployment !== true) {
+        employmentQuery = employmentQuery.lte('starts_on', today)
+      }
+      const { data: employments, error: employmentError } = await employmentQuery.limit(1000)
 
       if (employmentError) throw employmentError
+      assertCompleteResult(options.requireComplete === true, 'employments', employments, 1000)
 
       for (const row of employments) {
         const administrationIds = actorAdministrationIdsByHrGroup.get(row.hr_group_id) ?? new Set<string>()
@@ -147,6 +171,9 @@ export async function loadAccessibleContextOptions(userId?: string, existingClie
   if (tenantError) throw tenantError
   if (groupError) throw groupError
   if (administrationError) throw administrationError
+  assertCompleteResult(options.requireComplete === true, 'tenants', tenants, 100)
+  assertCompleteResult(options.requireComplete === true, 'hr_groups', hrGroups, 500)
+  assertCompleteResult(options.requireComplete === true, 'administrations', administrations, 1000)
 
   const normalizedHrGroups = hrGroups.map((group) => ({
     ...group,
@@ -165,7 +192,6 @@ export async function loadAccessibleContextOptions(userId?: string, existingClie
     administrations,
     actorAdministrationIdsByHrGroup,
   })
-
   return { supabase, userId: resolvedUserId, tenants: tenantOptions }
 }
 

@@ -8,7 +8,7 @@ const { cookies, createClient } = vi.hoisted(() => ({
 vi.mock('next/headers', () => ({ cookies }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
-import { ContextAuthenticationError, loadActiveContext } from './server-context'
+import { ContextAuthenticationError, loadAccessibleContextOptions, loadActiveContext } from './server-context'
 
 interface QueryResult {
   data: unknown[]
@@ -120,5 +120,67 @@ describe('loadActiveContext', () => {
     createClient.mockResolvedValue(fakeClient(false))
 
     await expect(loadActiveContext()).rejects.toBeInstanceOf(ContextAuthenticationError)
+  })
+})
+
+describe('loadAccessibleContextOptions APIAI-07 employment option', () => {
+  it('includes confirmed future employment only when the caller explicitly allows it', async () => {
+    const today = new Date().toISOString().slice(0, 10)
+    const futureStart = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+    const queryDiagnostics: Array<{ table: string; filters: Array<{ method: string; column: string; value: unknown }> }> = []
+    const client = {
+      auth: { getClaims: vi.fn() },
+      from(table: string) {
+        const filters: Array<{ method: string; column: string; value: unknown }> = []
+        queryDiagnostics.push({ table, filters })
+        const builder = {
+          select: () => builder,
+          eq: (column: string, value: unknown) => { filters.push({ method: 'eq', column, value }); return builder },
+          in: (column: string, value: unknown) => { filters.push({ method: 'in', column, value }); return builder },
+          is: (column: string, value: unknown) => { filters.push({ method: 'is', column, value }); return builder },
+          lte: (column: string, value: unknown) => { filters.push({ method: 'lte', column, value }); return builder },
+          or: () => builder,
+          order: () => builder,
+          limit: async () => {
+            const rows: Record<string, unknown>[] = table === 'user_hr_group_access'
+              ? [{ user_id: 'employee-user', is_active: true, tenant_id: 'tenant-1', hr_group_id: 'group-1', management_role_id: 'employee-role' }]
+              : table === 'user_access'
+                ? [{ tenant_id: 'tenant-1', scope_type: 'ADMINISTRATION', administration_id: 'admin-1', hr_group_id: 'group-1' }]
+                : table === 'management_roles'
+                  ? [{ id: 'employee-role', code: 'EMPLOYEE' }]
+                  : table === 'employees'
+                    ? [{ id: 'employee-1', auth_user_id: 'employee-user', hr_group_id: 'group-1', deleted_at: null }]
+                    : table === 'employments'
+                      ? [{ employee_id: 'employee-1', tenant_id: 'tenant-1', hr_group_id: 'group-1', administration_id: 'admin-1', starts_on: futureStart, ends_on: null, record_status: 'CONFIRMED', deleted_at: null }]
+                      : table === 'tenants'
+                        ? [{ id: 'tenant-1', name: 'Synthetic', slug: 'synthetic', administration_mode: 'SEPARATE', sharing_mode: 'FULLY_ISOLATED' }]
+                        : table === 'hr_groups'
+                          ? [{ id: 'group-1', tenant_id: 'tenant-1', code: 'EMP', name: 'Employee', description: null, is_active: true }]
+                          : table === 'administrations'
+                            ? [{ id: 'admin-1', tenant_id: 'tenant-1', hr_group_id: 'group-1', code: 'A1', name: 'Admin', is_active: true }]
+                            : []
+            if (table === 'employments' && filters.some((filter) => filter.method === 'lte' && filter.column === 'starts_on' && filter.value === today)) {
+              return { data: [], error: null }
+            }
+            return { data: rows, error: null }
+          },
+        }
+        return builder
+      },
+    }
+    createClient.mockResolvedValue(client)
+
+    const defaults = await loadAccessibleContextOptions('employee-user', client as never)
+    const preboarding = await loadAccessibleContextOptions('employee-user', client as never, {
+      includeFutureEmployment: true,
+      requireComplete: true,
+    })
+
+    expect(defaults.tenants[0]?.hrGroups[0]?.administrations).toEqual([])
+    expect(preboarding.tenants[0]?.hrGroups[0]?.administrations.map((admin) => admin.id)).toEqual(['admin-1'])
+    expect(futureStart > today).toBe(true)
+    const employmentQueries = queryDiagnostics.filter((query) => query.table === 'employments')
+    expect(employmentQueries[0]?.filters).toContainEqual({ method: 'lte', column: 'starts_on', value: today })
+    expect(employmentQueries[1]?.filters).not.toContainEqual({ method: 'lte', column: 'starts_on', value: today })
   })
 })

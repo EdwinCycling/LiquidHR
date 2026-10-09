@@ -1,6 +1,22 @@
 # Implementatiestatus Liquid HR
 
-## APIAI-06 final acceptance and release handoff — 2026-10-07
+## APIAI-07 Remote MCP TEST — 2026-10-09
+
+**Status: hosted Employee-read acceptance GREEN; existing branch is pushed and Draft PR #10 is open; no merge.** The deployed source is `9679f73df27438cf37283360e92c236d655ae729` on existing branch `work/apiai-07-remote-mcp-test-20261007`. Supabase TEST is synthetic project `wnpfloqpjvaacobppbpk`.
+
+The final forward migration `20261009112847_apiai07_service_role_postgrest_role_guard` fixes both server-only registration and audit RPC role guards for the actual PostgREST `service_role` setting. It preserves service-role-only EXECUTE grants. The rolled-back SQL matrix passed for service-role, authenticated, anon, malformed client ID and idempotent fixed-scope registration. No table or grant changes were made.
+
+ChatGPT shows the synthetic Employee connected by OAuth to the TEST MCP URL. All four real ChatGPT reads succeeded and matched fixture records: 9 plans, 4 gaps, 2 skills and 3 competencies. Supabase readback shows four ALLOWED/200 API READ audit rows and one updated employee-self-service limiter bucket. Vercel logs show four authenticated MCP 200 responses; runtime errors and the checked browser error/warning list are empty. One earlier attempt returned `MCP_SERVICE_UNAVAILABLE` before later successful calls.
+
+Local verification: 565 test files passed / 4 skipped, 2,529 tests passed / 8 skipped; strict TypeScript, changed-file ESLint, `git diff --check`, and production Webpack build passed (310 pages). Supabase advisors ran. Generated API function signatures match tracked types; the broader generated catalog differs because of unrelated remote/local schema drift and was not copied over the tracked file. The old revoked raw token was not obtained/replayed; invalid-bearer denial is verified. See the [APIAI-07 acceptance report](../quality/acceptance/runs/APIAI-07-20261007.md) and [requirements](../requirements/ai/APIAI-07_REMOTE_MCP_TEST.md).
+
+## APIAI-06 merged ONE VERSION and shared TEST — 2026-10-07
+
+**Status: MERGED / VERCEL READY / HOSTED AUTHENTICATED ACCEPTANCE OPEN / HERA PROVIDER ACCEPTANCE OPEN.** PR #8 was merged via regular merge commit `249c737941d682cb834e313097a9df009549c11b`; the APIAI-06 product code SHA was `c37646e3e6033368080d0fad60a8bad9cdc91907`. Existing Vercel project `liquidhr`, Production/shared-TEST target, has READY deployment `dpl_3VffaT5P8SN93Mx4K4a1PEzYftzC` at the exact main SHA and existing alias `liquid-hr-hr-suite.vercel.app`. Previous READY deployment `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` remains available for rollback.
+
+The local persona/action acceptance, idempotency/audit and regression/build gates passed; details remain in the [APIAI-06 acceptance report](../quality/acceptance/runs/APIAI-06-20261006.md). Hosted anonymous smoke returned 200 from `/login` and 404 from `/api/internal/mcp`, `/api/v1/tools` and `/api/v1/development-plans`. Hosted authenticated Employee/Manager/HR Admin, Workforce and business-flow acceptance remains OPEN. Gemini provider acceptance remains OPEN; no provider configuration was added.
+
+## Historical APIAI-06 pre-merge acceptance handoff — 2026-10-07
 
 **Local convergence ready:** APIAI-06 branch `work/apiai-06-controlled-actions-20261006` is based on main `38ccbcac6423824a1dba7075f022f68771edf087`; product-code SHA `c37646e3e6033368080d0fad60a8bad9cdc91907`. It supports the shared Prepare → Preview → Confirm → Execute → Readback lifecycle for the two existing Talent services through HeRa and local-only MCP, with central authorization, preview binding, idempotency, bounded failures, readback and payload-free audit. Existing domain services remain the only business-write path.
 

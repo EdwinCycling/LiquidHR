@@ -6,7 +6,7 @@ const { adminRpc, adminFrom } = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/supabase/admin', () => ({
-  createAdminClient: () => ({
+  createAdminRpcClient: () => ({
     rpc: adminRpc,
     from: adminFrom,
   }),
@@ -83,6 +83,19 @@ describe('PostgresApiReadAuditWriter', () => {
     expect(adminFrom).not.toHaveBeenCalled()
   })
 
+  it('accepts PostgreSQL UUID values without RFC version or variant bits', async () => {
+    const administrationId = '00000000-0000-0000-0000-000000000001'
+
+    await expect(createPostgresApiReadAuditWriter().record({
+      ...validInput,
+      administrationId,
+    })).resolves.toBeUndefined()
+
+    expect(adminRpc).toHaveBeenCalledWith(API_READ_AUDIT_RPC_NAME, expect.objectContaining({
+      requested_administration_id: administrationId,
+    }))
+  })
+
   it('supports denied and rate limited outcomes without accepting free text metadata', async () => {
     const writer = createPostgresApiReadAuditWriter()
 
@@ -109,6 +122,7 @@ describe('PostgresApiReadAuditWriter', () => {
 
     await expect(writer.record({ ...validInput, actorUserId: 'not-a-uuid' })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
     await expect(writer.record({ ...validInput, correlationId: 'not-a-uuid' })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
+    await expect(writer.record({ ...validInput, administrationId: 'not-a-uuid' })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
     await expect(writer.record({ ...validInput, statusCode: 700 })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
     await expect(writer.record({ ...validInput, statusCode: 500 })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
     await expect(writer.record({ ...validInput, outcome: 'RATE_LIMITED', statusCode: 403 })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)

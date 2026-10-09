@@ -43,6 +43,20 @@ describe('GET /auth/callback', () => {
     )
   })
 
+  it('behoudt de authorization_id exact bij terugkeer van login naar consent', async () => {
+    exchangeCodeForSession.mockResolvedValue({ error: null })
+    const authorizationId = '1b72f03c-a41c-4b81-9d71-4f8a377b1064'
+    const consentPath = `/oauth/consent?authorization_id=${authorizationId}`
+    const request = new NextRequest(
+      `https://internal.vercel.app/auth/callback?code=oauth-code&next=${encodeURIComponent(consentPath)}`,
+      { headers: { 'x-forwarded-host': 'liquid-hr-hr-suite.vercel.app', 'x-forwarded-proto': 'https' } },
+    )
+
+    const response = await GET(request)
+
+    expect(response.headers.get('location')).toBe(`https://liquid-hr-hr-suite.vercel.app${consentPath}`)
+  })
+
   it('behoudt localhost na code-uitwisseling en stuurt door naar de gevraagde interne route', async () => {
     vi.stubEnv('NODE_ENV', 'development')
     vi.stubEnv('VERCEL_ENV', 'production')
