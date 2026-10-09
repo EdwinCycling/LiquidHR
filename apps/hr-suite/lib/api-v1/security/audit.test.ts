@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { adminRpc, adminFrom } = vi.hoisted(() => ({
+const { adminRpc, adminFrom, credentialMode } = vi.hoisted(() => ({
   adminRpc: vi.fn<(...args: unknown[]) => Promise<{ readonly data: unknown; readonly error: unknown }>>(),
   adminFrom: vi.fn(),
+  credentialMode: vi.fn(() => 'supabase-secret-key' as const),
 }))
 
 vi.mock('@/lib/supabase/admin', () => ({
@@ -10,6 +11,7 @@ vi.mock('@/lib/supabase/admin', () => ({
     rpc: adminRpc,
     from: adminFrom,
   }),
+  getAdminCredentialMode: credentialMode,
 }))
 
 import {
@@ -114,6 +116,47 @@ describe('PostgresApiReadAuditWriter', () => {
     await expect(writer.record({ ...validInput, outcome: 'RATE_LIMITED', statusCode: 403 })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
     await expect(writer.record({ ...validInput, resource: 'unknown' as typeof validInput.resource })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
     expect(adminRpc).not.toHaveBeenCalled()
+  })
+
+  it('logs only rejected field names and the credential mode for invalid input', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const privateValue = 'private-administration-value'
+
+    await expect(createPostgresApiReadAuditWriter().record({
+      ...validInput,
+      administrationId: privateValue,
+    })).rejects.toBeInstanceOf(ApiReadAuditConfigurationError)
+
+    expect(info).toHaveBeenCalledWith('[DEBUG-APIAI07-AUDIT-20261009]', {
+      stage: 'input-validation',
+      code: 'API_READ_AUDIT_CONFIGURATION_INVALID',
+      credentialMode: 'supabase-secret-key',
+      invalidFields: ['administrationId'],
+    })
+    expect(JSON.stringify(info.mock.calls)).not.toContain(privateValue)
+    expect(adminRpc).not.toHaveBeenCalled()
+    info.mockRestore()
+  })
+
+  it('logs only safe RPC error metadata without logging the error message', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const privateMessage = 'sb_secret_must_not_be_logged'
+    adminRpc.mockResolvedValueOnce({
+      data: null,
+      error: { code: '42501', status: 403, message: privateMessage },
+    })
+
+    await expect(createPostgresApiReadAuditWriter().record(validInput))
+      .rejects.toBeInstanceOf(ApiReadAuditUnavailableError)
+
+    expect(info).toHaveBeenCalledWith('[DEBUG-APIAI07-AUDIT-20261009]', {
+      stage: 'rpc-error',
+      code: '42501',
+      status: 403,
+      credentialMode: 'supabase-secret-key',
+    })
+    expect(JSON.stringify(info.mock.calls)).not.toContain(privateMessage)
+    info.mockRestore()
   })
 
   it('accepts UUIDv7 audit correlation identifiers', async () => {
