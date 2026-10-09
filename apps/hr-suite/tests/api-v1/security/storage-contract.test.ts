@@ -25,6 +25,10 @@ vi.mock('@/lib/supabase/admin', () => ({
     rpc: adminRpc,
     from: adminFrom,
   }),
+  createAdminRpcClient: () => ({
+    rpc: adminRpc,
+    from: adminFrom,
+  }),
 }))
 
 const tenantId = '11111111-1111-4111-8111-111111111111'
