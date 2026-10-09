@@ -4,7 +4,7 @@ import {
   API_RATE_LIMIT_RESOURCE_KEYS,
   type ApiRateLimitResource,
 } from './rate-limit'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminRpcClient } from '@/lib/supabase/admin'
 
 export const API_READ_AUDIT_RPC_NAME = 'record_api_read_audit' as const
 
@@ -145,14 +145,14 @@ class PostgresApiReadAuditWriter implements ApiReadAuditWriter {
 }
 
 /**
- * Creates the narrowly wrapped privileged audit sink. This admin client is
+ * Creates the narrowly wrapped privileged audit sink. This isolated RPC client is
  * intentionally constructed only here and only its RPC method is retained;
  * the request-bound bearer RLS client remains the sole HR-data reader.
  */
 export function createPostgresApiReadAuditWriter(): ApiReadAuditWriter {
   let trustedClient: TrustedApiReadAuditRpcClient
   try {
-    const admin = createAdminClient()
+    const admin = createAdminRpcClient()
     if (typeof admin.rpc !== 'function') throw new Error('Audit RPC is unavailable.')
     const rpc = admin.rpc.bind(admin) as unknown as TrustedApiReadAuditRpcClient['rpc']
     trustedClient = {

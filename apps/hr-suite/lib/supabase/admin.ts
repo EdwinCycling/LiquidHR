@@ -46,7 +46,7 @@ export function createAdminClient() {
 }
 
 /**
- * Isolated server-only client for the consent-time client-registration RPC.
+ * Isolated server-only client for privileged RPC calls.
  * The Supabase API key is sent as `apikey`; no user session, bearer token, or
  * cookie is allowed to reach PostgREST from this client.
  */

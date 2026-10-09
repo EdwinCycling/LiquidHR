@@ -6,7 +6,7 @@ const { adminRpc, adminFrom } = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/supabase/admin', () => ({
-  createAdminClient: () => ({
+  createAdminRpcClient: () => ({
     rpc: adminRpc,
     from: adminFrom,
   }),
