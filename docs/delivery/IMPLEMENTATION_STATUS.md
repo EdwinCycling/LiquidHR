@@ -2,7 +2,7 @@
 
 ## APIAI-08 ESS Assistant — 2026-10-09
 
-**Status: lokale implementatie-, regressie-, typecheck-, lint-, i18n- en production-buildgates groen; niet hosted-geaccepteerd.** Branch `work/apiai-08-ess-assistant-20261009`, gestart vanaf exact ONE VERSION main `783999044de83c902e63fefb3587fdbbf99d4de3`. De volledige suite slaagde met 2 begrensde Vitest-workers. De kandidaatcommit is nog in voorbereiding.
+**Status: lokale implementatie-, regressie-, typecheck-, lint-, i18n- en production-buildgates groen; niet hosted-geaccepteerd.** Source commit `d267f52729a8a1d4d348c4af4b0f13de3f162a0f` op bestaande branch `work/apiai-08-ess-assistant-20261009`, gestart vanaf exact ONE VERSION main `783999044de83c902e63fefb3587fdbbf99d4de3`. De volledige suite slaagde met 2 begrensde Vitest-workers.
 
 - Remote MCP behoudt de vier bestaande Talent-reads en biedt vier nieuwe Employee-reads voor verlofsaldo, volgende goedgekeurde vakantie, eigen aanvragen en persoonlijke reminders. Alle nieuwe reads gebruiken de OAuth Employee-identiteit, de gedelegeerde user-scoped RLS-client en bestaande permissies/services.
 - HeRa routeert nieuwe verlof- en reminderdrafts door het bestaande Prepare → Preview → Confirm → Execute → Readback-framework, met previewbinding, autorisatie, idempotency en readback. Remote ChatGPT Execute blijft uitgeschakeld; er is geen aantoonbare veilige confirmation primitive aangetoond.
