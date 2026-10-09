@@ -18,6 +18,7 @@ import {
 } from './mcp/chatgpt-metadata'
 import { REMOTE_MCP_RESOURCE_METADATA_URL } from './mcp/remote-config'
 import { dispatchWorkforceTool, WorkforceToolDispatchError } from './registry'
+import { RemoteMcpToolError } from './mcp/remote-errors'
 import { WORKFORCE_TOOL_CATALOG } from './catalog'
 import type { DelegatedWorkforceToolExecutionContext, WorkforceToolDefinition } from './contracts'
 import { requireAuthContext } from '@/lib/auth/permissions'
@@ -85,6 +86,7 @@ export function isLoopbackMcpRequest(request: Request): boolean {
 }
 
 function boundedToolError(error: unknown): string {
+  if (error instanceof RemoteMcpToolError) return error.code
   if (error instanceof WorkforceToolDispatchError) return error.code
   return 'MCP_TOOL_EXECUTION_FAILED'
 }

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DelegatedAuthError } from '@/lib/api-v1/auth/delegated'
+import { RemoteMcpToolError } from '@/lib/workforce-tools/mcp/remote-errors'
 import type { DelegatedWorkforceToolExecutionContext } from '@/lib/workforce-tools/contracts'
 import { REMOTE_MCP_ALLOWED_HOST, REMOTE_MCP_RESOURCE_METADATA_URL, REMOTE_MCP_TEST_SUPABASE_URL, REMOTE_MCP_URL } from '@/lib/workforce-tools/mcp/remote-config'
 import { GET, POST } from './route'
@@ -177,5 +178,42 @@ describe('remote MCP route gates', () => {
       oauthClientId: 'synthetic-chatgpt-client',
       execution,
     })
+  })
+
+  it('logs only an allowlisted remote tool error code, never tool data or credentials', async () => {
+    const log = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const execution = {
+      authContext: {
+        tenantId: '00000000-0000-4000-8000-000000000010',
+        hrGroupId: '00000000-0000-4000-8000-000000000011',
+        administrationId: null,
+        userId: '00000000-0000-4000-8000-000000000001',
+        employeeId: '00000000-0000-4000-8000-000000000012',
+        activeRoles: ['EMPLOYEE'],
+        permissions: ['self:talent-goal:read'],
+      },
+      rls: {},
+    } as unknown as DelegatedWorkforceToolExecutionContext
+    routeMocks.authenticate.mockResolvedValueOnce({ clientId: 'synthetic-chatgpt-client', execution })
+    routeMocks.dispatch.mockRejectedValueOnce(new RemoteMcpToolError('MCP_SERVICE_UNAVAILABLE'))
+
+    const response = await POST(request({
+      jsonrpc: '2.0',
+      id: 15,
+      method: 'tools/call',
+      params: { name: 'employee.talent.skills.read', arguments: {} },
+    }, 'Bearer synthetic-secret-token'))
+    const payloadText = await response.text()
+    const diagnostics = JSON.stringify(log.mock.calls)
+
+    expect(response.status).toBe(200)
+    expect(payloadText).toContain('MCP_SERVICE_UNAVAILABLE')
+    expect(diagnostics).toContain('"rpcResponseShape":"tool-error"')
+    expect(diagnostics).toContain('"rpcToolErrorCode":"MCP_SERVICE_UNAVAILABLE"')
+    expect(diagnostics).not.toContain('synthetic-secret-token')
+    expect(diagnostics).not.toContain('synthetic-chatgpt-client')
+    expect(diagnostics).not.toContain('employee.talent.skills.read')
+    expect(diagnostics).not.toContain('private employee record')
+    log.mockRestore()
   })
 })

@@ -50,6 +50,7 @@ import {
 } from './mcp-server'
 import { WORKFORCE_TOOL_CATALOG } from './catalog'
 import { WorkforceToolDispatchError } from './registry'
+import { RemoteMcpToolError } from './mcp/remote-errors'
 import {
   CHATGPT_MCP_SERVER_INFO,
   CHATGPT_MCP_TOOLS,
@@ -491,6 +492,30 @@ describe('local Workforce MCP server', () => {
       isError: true,
       content: [{ text: 'CONTEXT_SELECTION_REQUIRED' }],
     })
+  })
+
+  it('preserves only the bounded remote MCP error code for hosted tool failures', async () => {
+    const handler = createRemoteChatGptMcpHandler(
+      {} as never,
+      mcpActionMocks.dispatchWorkforceTool,
+    )
+    mcpActionMocks.dispatchWorkforceTool.mockRejectedValueOnce(
+      new RemoteMcpToolError('MCP_SERVICE_UNAVAILABLE'),
+    )
+
+    const response = await handler.fetch(rpcRequest({
+      jsonrpc: '2.0',
+      id: 9,
+      method: 'tools/call',
+      params: { name: 'employee.talent.skills.read', arguments: {} },
+    }))
+    const payload = await readResponse(response)
+
+    expect(payload.result).toMatchObject({
+      isError: true,
+      content: [{ text: 'MCP_SERVICE_UNAVAILABLE' }],
+    })
+    expect(JSON.stringify(payload)).not.toContain('database')
   })
 
   it('rejects malformed arguments and oversized bodies before dispatch', async () => {

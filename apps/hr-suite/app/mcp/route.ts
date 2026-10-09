@@ -7,7 +7,7 @@ import {
   REMOTE_MCP_RESOURCE_METADATA_URL,
 } from '@/lib/workforce-tools/mcp/remote-config'
 import { createRemoteChatGptMcpHandler } from '@/lib/workforce-tools/mcp-server'
-import { RemoteMcpToolError } from '@/lib/workforce-tools/mcp/remote-errors'
+import { RemoteMcpToolError, type RemoteMcpToolErrorCode } from '@/lib/workforce-tools/mcp/remote-errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -118,6 +118,12 @@ const SAFE_MCP_METHODS = new Set([
   'ping',
 ])
 
+const SAFE_MCP_TOOL_ERROR_CODES = new Set<RemoteMcpToolErrorCode>([
+  'MCP_RATE_LIMITED',
+  'MCP_AUTHORIZATION_DENIED',
+  'MCP_SERVICE_UNAVAILABLE',
+])
+
 async function reportMcpDiagnostic(request: Request, rpcMethod: string | null, response: Response): Promise<Response> {
   const protocolVersion = request.headers.get('mcp-protocol-version')
   const contentType = response.headers.get('content-type')?.split(';', 1)[0]?.toLowerCase()
@@ -144,9 +150,14 @@ function acceptsMediaType(acceptHeader: string, mediaType: string): boolean {
 async function getDiscoveryResponseShape(
   response: Response,
   rpcMethod: string | null,
-): Promise<{ rpcResponseShape: 'result' | 'error' | 'unparseable-or-empty' | 'not-inspected'; rpcErrorCode: number | null }> {
-  if (!['initialize', 'tools/list', 'prompts/list', 'resources/list'].includes(rpcMethod ?? '')) {
-    return { rpcResponseShape: 'not-inspected', rpcErrorCode: null }
+): Promise<{
+  rpcResponseShape: 'result' | 'error' | 'tool-error' | 'unparseable-or-empty' | 'not-inspected'
+  rpcErrorCode: number | null
+  rpcToolErrorCode: RemoteMcpToolErrorCode | null
+}> {
+  const inspectMethod = ['initialize', 'tools/list', 'prompts/list', 'resources/list', 'tools/call'].includes(rpcMethod ?? '')
+  if (!inspectMethod) {
+    return { rpcResponseShape: 'not-inspected', rpcErrorCode: null, rpcToolErrorCode: null }
   }
 
   try {
@@ -155,16 +166,30 @@ async function getDiscoveryResponseShape(
     const payloadText = dataLine ? dataLine.slice('data:'.length).trim() : responseText
     const payload: unknown = JSON.parse(payloadText)
     if (!isRecord(payload) || payload.jsonrpc !== '2.0') {
-      return { rpcResponseShape: 'unparseable-or-empty', rpcErrorCode: null }
+      return { rpcResponseShape: 'unparseable-or-empty', rpcErrorCode: null, rpcToolErrorCode: null }
     }
     if (isRecord(payload.error) && typeof payload.error.code === 'number' && Number.isInteger(payload.error.code)) {
-      return { rpcResponseShape: 'error', rpcErrorCode: payload.error.code }
+      return { rpcResponseShape: 'error', rpcErrorCode: payload.error.code, rpcToolErrorCode: null }
     }
-    if (isRecord(payload.result)) return { rpcResponseShape: 'result', rpcErrorCode: null }
+    if (isRecord(payload.result)) {
+      if (rpcMethod === 'tools/call' && payload.result.isError === true) {
+        let rpcToolErrorCode: RemoteMcpToolErrorCode | null = null
+        if (Array.isArray(payload.result.content)) {
+          for (const item of payload.result.content) {
+            if (isRecord(item) && typeof item.text === 'string' && SAFE_MCP_TOOL_ERROR_CODES.has(item.text as RemoteMcpToolErrorCode)) {
+              rpcToolErrorCode = item.text as RemoteMcpToolErrorCode
+              break
+            }
+          }
+        }
+        return { rpcResponseShape: 'tool-error', rpcErrorCode: null, rpcToolErrorCode }
+      }
+      return { rpcResponseShape: 'result', rpcErrorCode: null, rpcToolErrorCode: null }
+    }
   } catch {
     // Diagnostic parsing is best-effort and never affects the MCP response.
   }
-  return { rpcResponseShape: 'unparseable-or-empty', rpcErrorCode: null }
+  return { rpcResponseShape: 'unparseable-or-empty', rpcErrorCode: null, rpcToolErrorCode: null }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
