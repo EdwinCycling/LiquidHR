@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DelegatedAuthError } from '@/lib/api-v1/auth/delegated'
 import type { DelegatedWorkforceToolExecutionContext } from '@/lib/workforce-tools/contracts'
 import { REMOTE_MCP_ALLOWED_HOST, REMOTE_MCP_RESOURCE_METADATA_URL, REMOTE_MCP_TEST_SUPABASE_URL, REMOTE_MCP_URL } from '@/lib/workforce-tools/mcp/remote-config'
-import { POST } from './route'
+import { GET, POST } from './route'
 
 const routeMocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
@@ -83,6 +83,51 @@ describe('remote MCP route gates', () => {
     expect(JSON.stringify(body)).toContain('mcp/www_authenticate')
     expect(JSON.stringify(body)).toContain(REMOTE_MCP_RESOURCE_METADATA_URL)
     expect(routeMocks.dispatch).not.toHaveBeenCalled()
+  })
+
+  it('records bounded transport diagnostics for GET probes without logging credentials', async () => {
+    const log = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const response = await GET(new Request(REMOTE_MCP_URL, {
+      method: 'GET',
+      headers: {
+        host: REMOTE_MCP_ALLOWED_HOST,
+        authorization: 'Bearer synthetic-secret-that-must-not-be-logged',
+      },
+    }))
+
+    expect(response.status).toBe(405)
+    expect(response.headers.get('allow')).toBe('POST')
+    const diagnostics = JSON.stringify(log.mock.calls)
+    expect(diagnostics).toContain('[DEBUG-APIAI07-MCP-DISCOVERY-20261008]')
+    expect(diagnostics).toContain('"requestMethod":"GET"')
+    expect(diagnostics).toContain('"authorizationPresent":true')
+    expect(diagnostics).toContain('"requestAcceptsJson":false')
+    expect(diagnostics).toContain('"rpcResponseShape":"not-inspected"')
+    expect(diagnostics).not.toContain('synthetic-secret-that-must-not-be-logged')
+    log.mockRestore()
+    expect(routeMocks.authenticate).not.toHaveBeenCalled()
+    expect(routeMocks.dispatch).not.toHaveBeenCalled()
+  })
+
+  it('records only bounded response shape and Accept capabilities for public discovery', async () => {
+    const log = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const response = await POST(request({
+      jsonrpc: '2.0',
+      id: 14,
+      method: 'tools/list',
+      params: {},
+    }))
+
+    expect(response.status).toBe(200)
+    const diagnostics = JSON.stringify(log.mock.calls)
+    expect(diagnostics).toContain('"rpcMethod":"tools/list"')
+    expect(diagnostics).toContain('"requestAcceptsJson":true')
+    expect(diagnostics).toContain('"requestAcceptsEventStream":true')
+    expect(diagnostics).toContain('"rpcResponseShape":"result"')
+    expect(diagnostics).toContain('"rpcErrorCode":null')
+    expect(diagnostics).not.toContain('employee.talent.')
+    expect(diagnostics).not.toContain('periodStart')
+    log.mockRestore()
   })
 
   it('rejects malformed or invalid bearer tokens with a resource metadata challenge', async () => {

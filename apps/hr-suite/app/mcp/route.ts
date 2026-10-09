@@ -58,11 +58,17 @@ export async function POST(request: Request): Promise<Response> {
     try {
       authenticated = await authenticateRemoteMcpRequest(request)
     } catch (error) {
-      if (error instanceof DelegatedAuthError) return authFailure(error)
-      return Response.json({ error: 'MCP_AUTHENTICATION_UNAVAILABLE' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+      if (error instanceof DelegatedAuthError) {
+        return reportMcpDiagnostic(request, rpcMethod, authFailure(error))
+      }
+      return reportMcpDiagnostic(
+        request,
+        rpcMethod,
+        Response.json({ error: 'MCP_AUTHENTICATION_UNAVAILABLE' }, { status: 503, headers: { 'Cache-Control': 'no-store' } }),
+      )
     }
   } else if (!authorization && !['initialize', 'notifications/initialized', 'tools/list', 'tools/call'].includes(rpcMethod ?? '')) {
-    return authenticationRequired()
+    return reportMcpDiagnostic(request, rpcMethod, authenticationRequired())
   }
 
   try {
@@ -75,11 +81,90 @@ export async function POST(request: Request): Promise<Response> {
         execution: authenticated.execution,
       }) : undefined,
     )
-    return await handler.fetch(request)
+    return reportMcpDiagnostic(request, rpcMethod, await handler.fetch(request))
   } catch (error) {
     const code = error instanceof RemoteMcpToolError ? error.code : 'MCP_REQUEST_FAILED'
-    return Response.json({ error: code }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+    return reportMcpDiagnostic(
+      request,
+      rpcMethod,
+      Response.json({ error: code }, { status: 503, headers: { 'Cache-Control': 'no-store' } }),
+    )
   }
+}
+
+/** Temporary, allowlisted MCP transport diagnostics; never record request values or credentials. */
+export async function GET(request: Request): Promise<Response> {
+  if (!isRemoteMcpEnabled() || !isRemoteMcpRequestHostAllowed(request)) return unavailable()
+  return reportMcpDiagnostic(
+    request,
+    null,
+    Response.json(
+      { error: 'MCP_METHOD_NOT_SUPPORTED' },
+      { status: 405, headers: { Allow: 'POST', 'Cache-Control': 'no-store' } },
+    ),
+  )
+}
+
+const SAFE_MCP_METHODS = new Set([
+  'initialize',
+  'notifications/initialized',
+  'tools/list',
+  'tools/call',
+  'prompts/list',
+  'prompts/get',
+  'resources/list',
+  'resources/read',
+  'resources/templates/list',
+  'ping',
+])
+
+async function reportMcpDiagnostic(request: Request, rpcMethod: string | null, response: Response): Promise<Response> {
+  const protocolVersion = request.headers.get('mcp-protocol-version')
+  const contentType = response.headers.get('content-type')?.split(';', 1)[0]?.toLowerCase()
+  const acceptHeader = request.headers.get('accept')?.toLowerCase() ?? ''
+  const responseShape = await getDiscoveryResponseShape(response, rpcMethod)
+  console.info('[DEBUG-APIAI07-MCP-DISCOVERY-20261008]', {
+    requestMethod: request.method,
+    rpcMethod: rpcMethod && SAFE_MCP_METHODS.has(rpcMethod) ? rpcMethod : 'other',
+    requestAcceptsJson: acceptsMediaType(acceptHeader, 'application/json'),
+    requestAcceptsEventStream: acceptsMediaType(acceptHeader, 'text/event-stream'),
+    protocolVersion: protocolVersion && /^\d{4}-\d{2}-\d{2}$/.test(protocolVersion) ? protocolVersion : 'absent-or-other',
+    authorizationPresent: request.headers.has('authorization'),
+    responseStatus: response.status,
+    responseContentType: contentType === 'application/json' || contentType === 'text/event-stream' ? contentType : 'other',
+    ...responseShape,
+  })
+  return response
+}
+
+function acceptsMediaType(acceptHeader: string, mediaType: string): boolean {
+  return acceptHeader.split(',').some((value) => value.split(';', 1)[0]?.trim() === mediaType)
+}
+
+async function getDiscoveryResponseShape(
+  response: Response,
+  rpcMethod: string | null,
+): Promise<{ rpcResponseShape: 'result' | 'error' | 'unparseable-or-empty' | 'not-inspected'; rpcErrorCode: number | null }> {
+  if (!['initialize', 'tools/list', 'prompts/list', 'resources/list'].includes(rpcMethod ?? '')) {
+    return { rpcResponseShape: 'not-inspected', rpcErrorCode: null }
+  }
+
+  try {
+    const responseText = await response.clone().text()
+    const dataLine = responseText.split(/\r?\n/).find((line) => line.startsWith('data:'))
+    const payloadText = dataLine ? dataLine.slice('data:'.length).trim() : responseText
+    const payload: unknown = JSON.parse(payloadText)
+    if (!isRecord(payload) || payload.jsonrpc !== '2.0') {
+      return { rpcResponseShape: 'unparseable-or-empty', rpcErrorCode: null }
+    }
+    if (isRecord(payload.error) && typeof payload.error.code === 'number' && Number.isInteger(payload.error.code)) {
+      return { rpcResponseShape: 'error', rpcErrorCode: payload.error.code }
+    }
+    if (isRecord(payload.result)) return { rpcResponseShape: 'result', rpcErrorCode: null }
+  } catch {
+    // Diagnostic parsing is best-effort and never affects the MCP response.
+  }
+  return { rpcResponseShape: 'unparseable-or-empty', rpcErrorCode: null }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
