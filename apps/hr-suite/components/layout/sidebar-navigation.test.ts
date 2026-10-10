@@ -8,6 +8,8 @@ describe('sidebar navigation contract', () => {
     hrProcesses: 'HR-processen',
     steering: 'Sturen',
     payroll: 'Payroll',
+    selfService: 'Medewerker zelfservice',
+    payrollLab: 'Payroll Lab',
     management: 'Beheer',
   }
 
@@ -55,7 +57,22 @@ describe('sidebar navigation contract', () => {
     expect(sections[0]?.id).toBe('daily')
   })
 
-  it('shows Payroll Lab in its own main-menu section only when the server passes its guarded capability', () => {
+  it('keeps Payroll, employee self-service, and Payroll Lab in separate main-menu sections', () => {
+    const sections = buildSidebarSections([
+      { href: '/payroll', visible: true },
+      { href: '/my-salary', visible: true },
+      { href: '/payroll-lab', visible: true },
+    ], labels, [])
+
+    expect(sections.map((section) => section.id)).toEqual(['payroll', 'selfService', 'payrollLab'])
+    expect(sections.map((section) => section.items.map((item) => item.href))).toEqual([
+      ['/payroll'],
+      ['/my-salary'],
+      ['/payroll-lab'],
+    ])
+  })
+
+  it('shows Payroll Lab only when the server passes its guarded capability', () => {
     const hidden = buildSidebarSections([
       { href: '/payroll-lab', visible: false },
     ], labels, [])
@@ -64,7 +81,7 @@ describe('sidebar navigation contract', () => {
     ], labels, [])
 
     expect(hidden).toEqual([])
-    expect(visible).toEqual([{ id: 'payroll', label: labels.payroll, items: [{ href: '/payroll-lab', visible: true }] }])
+    expect(visible).toEqual([{ id: 'payrollLab', label: labels.payrollLab, items: [{ href: '/payroll-lab', visible: true }] }])
   })
 
   it('keeps Payroll Lab separate from management when both sections have visible items', () => {
@@ -74,7 +91,7 @@ describe('sidebar navigation contract', () => {
       { href: '/document-studio', visible: true },
     ], labels, [])
 
-    expect(sections.map((section) => section.id)).toEqual(['payroll', 'management'])
+    expect(sections.map((section) => section.id)).toEqual(['payrollLab', 'management'])
     expect(sections.map((section) => section.items.map((item) => item.href))).toEqual([
       ['/payroll-lab'],
       ['/settings', '/document-studio'],

@@ -32,6 +32,7 @@ export interface Payrun01PayslipPdfInput {
     readonly minimumHourlyWage: string
     readonly minimumHourlyWageEffectiveFrom: string
     readonly minimumHourlyWageAgeCategory: 'AGE_21_PLUS'
+    readonly pensionTreatment?: 'DISABLED' | 'EXCLUDED_SOURCE_GAP'
     readonly source: string
   }
   readonly components: readonly { readonly key: string; readonly amount: string }[]
@@ -92,17 +93,24 @@ function validateInput(input: Payrun01PayslipPdfInput): void {
     throw new Error('PAYRUN01_PAYSLIP_PROFILE_INVALID')
   }
   const amounts = new Map(input.components.map((component) => [component.key, component.amount]))
-  for (const key of EMPLOYEE_KEYS) {
+  const requiredKeys = input.profile.pensionTreatment === 'EXCLUDED_SOURCE_GAP'
+    ? EMPLOYEE_KEYS.filter((key) => key !== 'employee_pension')
+    : EMPLOYEE_KEYS
+  for (const key of requiredKeys) {
     const amount = amounts.get(key)
     if (!amount || !MONEY_PATTERN.test(amount)) throw new Error('PAYRUN01_PAYSLIP_RESULT_INCOMPLETE')
   }
 }
 
-function resultRows(input: Payrun01PayslipPdfInput, keys: readonly string[]): string {
+function resultRows(
+  input: Payrun01PayslipPdfInput,
+  keys: readonly string[],
+  labelOverrides: Readonly<Record<string, string>> = {},
+): string {
   const amounts = new Map(input.components.map((component) => [component.key, component.amount]))
   return keys.flatMap((key) => {
     const amount = amounts.get(key)
-    const label = COMPONENT_LABELS[key]
+    const label = labelOverrides[key] ?? COMPONENT_LABELS[key]
     return amount && label
       ? [`<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(money(amount))}</td></tr>`]
       : []
@@ -111,11 +119,14 @@ function resultRows(input: Payrun01PayslipPdfInput, keys: readonly string[]): st
 
 export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): string {
   validateInput(input)
-  const employeeRows = resultRows(input, EMPLOYEE_KEYS.filter((key) => key !== 'net_salary'))
+  const pensionExcluded = input.profile.pensionTreatment === 'EXCLUDED_SOURCE_GAP'
+  const employeeRows = resultRows(input, EMPLOYEE_KEYS.filter((key) => key !== 'net_salary' && (!pensionExcluded || key !== 'employee_pension')))
   const employerRows = resultRows(input, [
     'employer_pension', 'employer_insurance', 'holiday_allowance_reserve',
     'year_end_reserve', 'total_employer_cost',
-  ])
+  ].filter((key) => !pensionExcluded || key !== 'employer_pension'), pensionExcluded
+    ? { total_employer_cost: 'Totale werkgeverskosten vóór PFZW' }
+    : {})
   const month = String(input.period.month).padStart(2, '0')
   const payPeriod = `${input.period.year}-${month}`
   const contractType = input.profile.contractType === 'DEFINITE' ? 'Bepaalde tijd' : 'Onbepaalde tijd'
@@ -123,6 +134,10 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
   const onCall = input.profile.isOnCall ? 'Ja' : 'Nee'
   const contractHours = `${input.profile.contractHoursPerWeek} / ${input.profile.fulltimeHoursPerWeek} uur per week`
   const versions = [input.versions.sourceHash, input.versions.inputHash, input.versions.configurationHash, input.run.resultHash]
+  const netLabel = pensionExcluded ? 'Netto vóór niet-berekende PFZW-premie' : 'Netto loon na inhoudingen'
+  const pensionNotice = pensionExcluded
+    ? '<p class="pension-notice">PFZW is van toepassing op deze synthetische TEST-situatie, maar de maandpremie is niet berekend. De getoonde netto- en werkgeversbedragen sluiten PFZW uit en zijn geen definitieve loonbedragen.</p>'
+    : ''
 
   return `<!doctype html>
 <html lang="nl">
@@ -148,6 +163,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
     td { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
     .net th, .net td { border-top: 2px solid #17212b; font-size: 12pt; font-weight: 700; }
     .subtle { color: #52606d; font-size: 8pt; }
+    .pension-notice { background: #fff4cf; border: 1px solid #9b6a00; color: #442f00; font-weight: 700; padding: 8pt; }
     .mono { font-family: monospace; overflow-wrap: anywhere; }
     .versions { margin-top: 12pt; }
     .versions li { overflow-wrap: anywhere; margin: 2pt 0; }
@@ -156,6 +172,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
 <body>
   <main>
     <div class="banner">TEST ONLY — synthetische Payroll Lab-presentatie, geen loonstrook voor betaling of juridisch gebruik.</div>
+    ${pensionNotice}
     <h1>Loonstrook</h1>
     <p class="subtle">PAYRUN01 · definitieve, opgeslagen rekenuitkomst · periode ${escapeHtml(payPeriod)}</p>
     <dl class="metadata">
@@ -170,7 +187,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
     </dl>
     <section aria-labelledby="employee-heading">
       <h2 id="employee-heading">Loon en inhoudingen</h2>
-      <table><tbody>${employeeRows}<tr class="net"><th>Netto loon na inhoudingen</th><td>${escapeHtml(money(input.components.find((component) => component.key === 'net_salary')!.amount))}</td></tr></tbody></table>
+      <table><tbody>${employeeRows}<tr class="net"><th>${escapeHtml(netLabel)}</th><td>${escapeHtml(money(input.components.find((component) => component.key === 'net_salary')!.amount))}</td></tr></tbody></table>
     </section>
     <section aria-labelledby="employer-heading">
       <h2 id="employer-heading">Werkgeverskosten en reserveringen</h2>

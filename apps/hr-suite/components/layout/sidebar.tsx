@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   CalendarRange,
   ChartColumn,
+  CircleHelp,
   ChevronDown,
   House,
   ListTodo,
@@ -20,20 +21,25 @@ import {
   ClipboardList,
   Calculator,
   FileStack,
+  WalletCards,
   UserRound,
   Users,
   X,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
 import { HrGroupSwitcher } from '@/components/layout/hr-group-switcher'
 import { Clock } from '@/components/layout/clock'
 import { TestRoleSwitcher, type TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
 import { ProductUpdateDrawerTrigger, type ProductUpdateSurfaceLabels } from '@/components/product-updates/product-update-surfaces'
+import { announceAssistantOpen } from '@/components/layout/assistant-overlay-events'
 import type { ProductUpdate } from '@/lib/product-updates/service'
 import { buildSidebarSections, normalizeSidebarMenuOrder, type RecruitmentNavigationHref } from '@/components/layout/sidebar-navigation'
 import type {
+  AdministrationContextOption,
+  AdministrationSwitcherMode,
   HrGroupContextOption,
   HrGroupSwitcherMode,
 } from '@/lib/context/administration-context'
@@ -59,12 +65,17 @@ interface SidebarLabels {
   journeys: string
   documentStudio: string
   payrollLab: string
+  payroll: string
+  mySalary: string
   navigation: string
   openMenu: string
   closeMenu: string
   collapse: string
   expand: string
   hrGroup: string
+  administration: string
+  switchingAdministration: string
+  switchAdministrationFailed: string
   switchingHrGroup: string
   switchHrGroupFailed: string
   timeHub: string
@@ -73,6 +84,8 @@ interface SidebarLabels {
   sectionHrProcesses: string
   sectionSteering: string
   sectionPayroll: string
+  sectionSelfService: string
+  sectionPayrollLab: string
   sectionManagement: string
   signOut: string
 }
@@ -92,6 +105,9 @@ interface SidebarProps {
   canReadJourneys: boolean
   canReadDocumentStudio: boolean
   canReadPayrollLab: boolean
+  canReadMySalary: boolean
+  showSetupAssistant: boolean
+  setupAssistantOpenLabel: string
   labels: SidebarLabels
   preferences: UserPreferences
   profileFirstName: string
@@ -106,6 +122,9 @@ interface SidebarProps {
   activeHrGroupId: string
   hrGroups: HrGroupContextOption[]
   hrGroupSwitcherMode: HrGroupSwitcherMode
+  activeAdministrationId: string | null
+  administrations: AdministrationContextOption[]
+  administrationSwitcherMode: AdministrationSwitcherMode
   testRoleSwitch: {
     enabled: boolean
     currentEmail: string | null
@@ -134,6 +153,9 @@ export function Sidebar({
   canReadJourneys,
   canReadDocumentStudio,
   canReadPayrollLab,
+  canReadMySalary,
+  showSetupAssistant,
+  setupAssistantOpenLabel,
   labels,
   preferences,
   profileFirstName,
@@ -148,6 +170,9 @@ export function Sidebar({
   activeHrGroupId,
   hrGroups,
   hrGroupSwitcherMode,
+  activeAdministrationId,
+  administrations,
+  administrationSwitcherMode,
   testRoleSwitch,
 }: SidebarProps) {
   const pathname = usePathname()
@@ -168,7 +193,9 @@ export function Sidebar({
     { href: recruitmentHref, label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
     { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
     { href: '/document-studio', label: labels.documentStudio, icon: FileStack, visible: canReadDocumentStudio },
+    { href: '/payroll', label: labels.payroll, icon: Calculator, visible: canReadPayrollLab },
     { href: '/payroll-lab', label: labels.payrollLab, icon: Calculator, visible: canReadPayrollLab },
+    { href: '/my-salary', label: labels.mySalary, icon: WalletCards, visible: canReadMySalary },
     { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights },
     { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, exact: true },
@@ -210,6 +237,8 @@ export function Sidebar({
     hrProcesses: labels.sectionHrProcesses,
     steering: labels.sectionSteering,
     payroll: labels.sectionPayroll,
+    selfService: labels.sectionSelfService,
+    payrollLab: labels.sectionPayrollLab,
     management: labels.sectionManagement,
   }, menuOrder)
 
@@ -217,9 +246,14 @@ export function Sidebar({
     <>
       <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b bg-surface px-4 md:hidden">
         <span className="flex items-center gap-2 text-sm font-semibold tracking-tight text-primary">{preferences.companyBranding?.logoUrl ? <img alt="" className="max-h-8 max-w-28 object-contain" src={preferences.companyBranding.logoUrl} /> : null}{labels.appName}</span>
-        <button aria-label={labels.openMenu} className="grid size-10 place-items-center rounded-lg text-foreground hover:bg-muted" onClick={() => setMobileOpen(true)} type="button">
-          <Menu aria-hidden="true" size={21} />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {showSetupAssistant ? <button aria-label={setupAssistantOpenLabel} className="grid size-10 place-items-center rounded-lg text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" onClick={() => announceAssistantOpen('setup')} type="button">
+            <CircleHelp aria-hidden="true" size={21} />
+          </button> : null}
+          <button aria-label={labels.openMenu} className="grid size-10 place-items-center rounded-lg text-foreground hover:bg-muted" onClick={() => setMobileOpen(true)} type="button">
+            <Menu aria-hidden="true" size={21} />
+          </button>
+        </div>
       </header>
 
       {mobileOpen ? (
@@ -261,11 +295,26 @@ export function Sidebar({
           </div>
         ) : null}
 
+        {!collapsed && administrationSwitcherMode === 'SELECT' ? (
+          <div className="px-3 pb-3">
+            <AdministrationSwitcher
+              activeAdministrationId={activeAdministrationId}
+              administrations={administrations}
+              labels={{
+                administration: labels.administration,
+                switching: labels.switchingAdministration,
+                switchFailed: labels.switchAdministrationFailed,
+              }}
+              mode={administrationSwitcherMode}
+            />
+          </div>
+        ) : null}
+
         <nav aria-label={labels.navigation} className="min-h-0 flex-1 overflow-y-auto px-3">
           <div className="space-y-3 py-3">
             {sidebarSections.map((section) => (
-              <section aria-label={section.id === 'payroll' ? labels.payrollLab : undefined} aria-labelledby={!collapsed && section.id !== 'payroll' ? `sidebar-section-${section.id}` : undefined} key={section.id}>
-                {!collapsed && section.id !== 'payroll' ? <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-muted/75" id={`sidebar-section-${section.id}`}>{section.label}</h2> : null}
+              <section aria-labelledby={!collapsed ? `sidebar-section-${section.id}` : undefined} key={section.id}>
+                {!collapsed ? <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-muted/75" id={`sidebar-section-${section.id}`}>{section.label}</h2> : null}
                 <div className="space-y-0.5">
                   {section.items.map((link) => {
                     const active = link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`)

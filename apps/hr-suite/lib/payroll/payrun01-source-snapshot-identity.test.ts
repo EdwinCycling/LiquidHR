@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { derivePayrun01SourceSnapshotId } from './payrun01-service'
+import {
+  derivePayrun01SourceSnapshotId,
+  payrun01CalculationConfigEffectiveRange,
+  payrun01CalculationConfigVersionNumber,
+} from './payrun01-service'
 
 const input = {
   scope: {
@@ -21,6 +25,25 @@ const input = {
 }
 
 describe('PAYRUN01 source snapshot identity', () => {
+  it('scopes Frits October config version to October while preserving the September baseline', () => {
+    expect(payrun01CalculationConfigEffectiveRange('KINDEROPVANG_TEST', { year: 2026, month: 9 }, '2026-09-01'))
+      .toEqual({ effectiveFrom: '2026-09-01', effectiveTo: null })
+    expect(payrun01CalculationConfigEffectiveRange('KINDEROPVANG_TEST', { year: 2026, month: 10 }, '2026-09-01'))
+      .toEqual({ effectiveFrom: '2026-10-01', effectiveTo: '2026-10-31' })
+    expect(payrun01CalculationConfigEffectiveRange('DEMO_COMPANY_TEST', { year: 2026, month: 10 }, '2026-10-01'))
+      .toEqual({ effectiveFrom: '2026-10-01', effectiveTo: null })
+  })
+
+  it('assigns Frits October the next config version after preserving historical v41', () => {
+    expect(payrun01CalculationConfigVersionNumber('KINDEROPVANG_TEST', { year: 2026, month: 9 })).toBe(40)
+    expect(payrun01CalculationConfigVersionNumber('KINDEROPVANG_TEST', { year: 2026, month: 10 })).toBe(42)
+    expect(payrun01CalculationConfigVersionNumber('DEMO_COMPANY_TEST', { year: 2026, month: 10 })).toBe(5)
+  })
+
+  it('assigns Jaap a correction successor after preserving the existing version 1', () => {
+    expect(payrun01CalculationConfigVersionNumber('LEGACY_COMPANY_TEST', { year: 2026, month: 10 })).toBe(2)
+  })
+
   it('reuses identical source and projection content but separates a changed projection version', () => {
     const initialId = derivePayrun01SourceSnapshotId(input)
     const retryId = derivePayrun01SourceSnapshotId(input)
@@ -31,9 +54,20 @@ describe('PAYRUN01 source snapshot identity', () => {
         version: 3,
       },
     })
+    const updatedTaxProfileId = derivePayrun01SourceSnapshotId({
+      ...input,
+      taxProfile: {
+        ...input.taxProfile,
+        profileId: 'PAYRUN01_KINDEROPVANG_TEST_TAX_PROFILE',
+        profileVersion: '2',
+        provenance: 'PAYROLL_OWNED_BOUNDED_TEST_INPUT',
+        effectiveFrom: '2026-09-01',
+      },
+    })
 
     expect(retryId).toBe(initialId)
     expect(updatedConfigurationId).not.toBe(initialId)
+    expect(updatedTaxProfileId).not.toBe(initialId)
   })
 
   it('keeps source snapshots isolated by payroll scope and source version', () => {

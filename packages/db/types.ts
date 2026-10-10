@@ -21093,6 +21093,443 @@ export type Database = {
           },
         ]
       }
+      employment_pension_arrangement_assignments: {
+        Row: {
+          administration_id: string
+          assignment_reason: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          employment_id: string
+          hr_group_id: string
+          idempotency_key: string | null
+          id: string
+          participation_start_date: string
+          pension_arrangement_id: string
+          provenance_json: Json
+          supersedes_assignment_id: string | null
+          tenant_id: string
+          updated_at: string
+          version_number: number
+        }
+        Insert: {
+          administration_id: string
+          assignment_reason: string
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          employment_id: string
+          hr_group_id: string
+          idempotency_key?: string | null
+          id?: string
+          participation_start_date: string
+          pension_arrangement_id: string
+          provenance_json?: Json
+          supersedes_assignment_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          version_number?: number
+        }
+        Update: {
+          administration_id?: string
+          assignment_reason?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          employment_id?: string
+          hr_group_id?: string
+          idempotency_key?: string | null
+          id?: string
+          participation_start_date?: string
+          pension_arrangement_id?: string
+          provenance_json?: Json
+          supersedes_assignment_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_pension_arrangement_assi_pension_arrangement_id_fkey"
+            columns: ["pension_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "pension_arrangements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_pension_arrangement_assignments_employment_id_fkey"
+            columns: ["employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labor_condition_pension_arrangements: {
+        Row: {
+          administration_id: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          hr_group_id: string
+          id: string
+          idempotency_key: string | null
+          labor_condition_set_id: string
+          participant_group: string
+          pension_arrangement_id: string
+          provenance_json: Json
+          supersedes_mapping_id: string | null
+          tenant_id: string
+          version_number: number
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          hr_group_id: string
+          id?: string
+          idempotency_key?: string | null
+          labor_condition_set_id: string
+          participant_group: string
+          pension_arrangement_id: string
+          provenance_json?: Json
+          supersedes_mapping_id?: string | null
+          tenant_id: string
+          version_number?: number
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string | null
+          labor_condition_set_id?: string
+          participant_group?: string
+          pension_arrangement_id?: string
+          provenance_json?: Json
+          supersedes_mapping_id?: string | null
+          tenant_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_condition_pension_arrangement_labor_condition_set_id_fkey"
+            columns: ["labor_condition_set_id"]
+            isOneToOne: false
+            referencedRelation: "labor_condition_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_condition_pension_arrangement_pension_arrangement_id_fkey"
+            columns: ["pension_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "pension_arrangements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pension_arrangement_tiers: {
+        Row: {
+          administration_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          max_age: number
+          min_age: number
+          pension_arrangement_id: string
+          tenant_id: string
+          total_rate: number
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          max_age: number
+          min_age: number
+          pension_arrangement_id: string
+          tenant_id: string
+          total_rate: number
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          max_age?: number
+          min_age?: number
+          pension_arrangement_id?: string
+          tenant_id?: string
+          total_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pension_arrangement_tiers_pension_arrangement_id_fkey"
+            columns: ["pension_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "pension_arrangements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pension_arrangement_versions: {
+        Row: {
+          administration_id: string
+          annual_franchise: number
+          annual_pensionable_salary_cap: number | null
+          arrangement_type: string
+          code: string
+          contract_classification: string
+          contract_classification_provenance: Json
+          created_at: string
+          created_by_user_id: string | null
+          effective_from: string
+          effective_to: string | null
+          eligibility_rule: Json
+          employee_share_pct: number
+          employer_share_pct: number
+          flat_total_rate: number | null
+          grandfathering_mode: string
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          pension_arrangement_id: string
+          pensionable_salary_definition: Json
+          provenance_json: Json
+          supersedes_version_id: string | null
+          supersession_provenance: Json
+          supersession_reason: string | null
+          tenant_id: string
+          transition_date: string | null
+          version_number: number
+        }
+        Insert: {
+          administration_id: string
+          annual_franchise: number
+          annual_pensionable_salary_cap?: number | null
+          arrangement_type: string
+          code: string
+          contract_classification?: string
+          contract_classification_provenance?: Json
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_from: string
+          effective_to?: string | null
+          eligibility_rule?: Json
+          employee_share_pct: number
+          employer_share_pct: number
+          flat_total_rate?: number | null
+          grandfathering_mode: string
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          pension_arrangement_id: string
+          pensionable_salary_definition?: Json
+          provenance_json?: Json
+          supersedes_version_id?: string | null
+          supersession_provenance?: Json
+          supersession_reason?: string | null
+          tenant_id: string
+          transition_date?: string | null
+          version_number: number
+        }
+        Update: {
+          administration_id?: string
+          annual_franchise?: number
+          annual_pensionable_salary_cap?: number | null
+          arrangement_type?: string
+          code?: string
+          contract_classification?: string
+          contract_classification_provenance?: Json
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          eligibility_rule?: Json
+          employee_share_pct?: number
+          employer_share_pct?: number
+          flat_total_rate?: number | null
+          grandfathering_mode?: string
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          pension_arrangement_id?: string
+          pensionable_salary_definition?: Json
+          provenance_json?: Json
+          supersedes_version_id?: string | null
+          supersession_provenance?: Json
+          supersession_reason?: string | null
+          tenant_id?: string
+          transition_date?: string | null
+          version_number?: number
+        }
+        Relationships: []
+      }
+      pension_arrangement_version_tiers: {
+        Row: {
+          administration_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          max_age: number
+          min_age: number
+          pension_arrangement_id: string
+          pension_arrangement_version_id: string
+          tenant_id: string
+          total_rate: number
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          max_age: number
+          min_age: number
+          pension_arrangement_id: string
+          pension_arrangement_version_id: string
+          tenant_id: string
+          total_rate: number
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          max_age?: number
+          min_age?: number
+          pension_arrangement_id?: string
+          pension_arrangement_version_id?: string
+          tenant_id?: string
+          total_rate?: number
+        }
+        Relationships: []
+      }
+      pension_arrangement_version_audit: {
+        Row: {
+          actor_user_id: string | null
+          administration_id: string
+          created_at: string
+          event_type: string
+          hr_group_id: string
+          id: string
+          pension_arrangement_id: string
+          pension_arrangement_version_id: string
+          provenance_json: Json
+          reason: string
+          supersedes_version_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          administration_id: string
+          created_at?: string
+          event_type: string
+          hr_group_id: string
+          id?: string
+          pension_arrangement_id: string
+          pension_arrangement_version_id: string
+          provenance_json?: Json
+          reason: string
+          supersedes_version_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          administration_id?: string
+          created_at?: string
+          event_type?: string
+          hr_group_id?: string
+          id?: string
+          pension_arrangement_id?: string
+          pension_arrangement_version_id?: string
+          provenance_json?: Json
+          reason?: string
+          supersedes_version_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      pension_arrangements: {
+        Row: {
+          administration_id: string
+          annual_franchise: number
+          annual_pensionable_salary_cap: number | null
+          arrangement_type: string
+          code: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          eligibility_rule: Json
+          employee_share_pct: number
+          employer_share_pct: number
+          flat_total_rate: number | null
+          grandfathering_mode: string
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          pensionable_salary_definition: Json
+          provenance_json: Json
+          tenant_id: string
+          transition_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          annual_franchise: number
+          annual_pensionable_salary_cap?: number | null
+          arrangement_type: string
+          code: string
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          eligibility_rule?: Json
+          employee_share_pct: number
+          employer_share_pct: number
+          flat_total_rate?: number | null
+          grandfathering_mode?: string
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          pensionable_salary_definition?: Json
+          provenance_json?: Json
+          tenant_id: string
+          transition_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          annual_franchise?: number
+          annual_pensionable_salary_cap?: number | null
+          arrangement_type?: string
+          code?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          eligibility_rule?: Json
+          employee_share_pct?: number
+          employer_share_pct?: number
+          flat_total_rate?: number | null
+          grandfathering_mode?: string
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          pensionable_salary_definition?: Json
+          provenance_json?: Json
+          tenant_id?: string
+          transition_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       hr_change_events: {
@@ -23620,6 +24057,18 @@ export type Database = {
           requested_hash: string
         }
         Returns: Json
+      }
+      create_pension_arrangement_successor: {
+        Args: { p_predecessor_version_id: string; p_successor: Json }
+        Returns: string
+      }
+      apply_employment_pension_arrangement: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      resolve_pension_arrangement_versions: {
+        Args: { p_effective_date: string; p_pension_arrangement_ids: string[] }
+        Returns: Database["public"]["Tables"]["pension_arrangement_versions"]["Row"][]
       }
     }
     Enums: {

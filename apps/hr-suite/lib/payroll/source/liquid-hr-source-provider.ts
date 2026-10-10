@@ -11,7 +11,11 @@ import type {
 } from '@liquid-hr/payroll-engine'
 import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { listEmployeeEmployments } from '@/lib/employment/employment-service'
-import { getEmploymentDetail, getEmploymentIncomeRelationshipProjection } from '@/lib/employment/employment-detail-service'
+import {
+  getEmploymentIncomeRelationshipProjection,
+  getEmploymentPayrollSourceProjection,
+  type EmploymentPayrollSourceProjection,
+} from '@/lib/employment/employment-detail-service'
 import { isPayrollLabEnabled } from '../feature-flag'
 import { payrollScopeFromAuthContext } from '../scope'
 import { payrollSourceProviderInputSchema, payrollSourceSnapshotSchema } from './schemas'
@@ -40,6 +44,47 @@ export type PayrollSourceSchedule = Pick<ScheduleRow,
   | 'part_time_factor' | 'schedule_type' | 'is_on_call' | 'valid_from' | 'valid_until' | 'updated_at'
 >
 
+export type PayrollSourceContract = {
+  readonly id: string
+  readonly labor_condition_set_id: string
+  readonly fulltime_hours_per_week: number
+  readonly starts_on: string
+  readonly ends_on: string | null
+  readonly updated_at: string
+}
+
+export type PayrollSourceLaborCondition = {
+  readonly id: string
+  readonly condition_group: string
+  readonly labor_condition_set_id: string | null
+  readonly valid_from: string
+  readonly valid_until: string | null
+  readonly updated_at: string
+  readonly set: {
+    readonly id: string
+    readonly code: string
+    readonly name: string
+    readonly standard_hours_per_week: number
+    readonly is_active: boolean
+    readonly valid_from: string
+    readonly updated_at: string
+  } | null
+}
+
+export type PayrollSourceOrganization = {
+  readonly id: string
+  readonly department_id: string
+  readonly job_id: string | null
+  readonly job_code: string | null
+  readonly job_title: string | null
+  readonly job_revision_valid_from: string | null
+  readonly job_revision_valid_until: string | null
+  readonly job_revision_updated_at: string | null
+  readonly effective_from: string
+  readonly effective_to: string | null
+  readonly updated_at: string
+}
+
 export type PayrollSourceIncomeRelationship = {
   readonly id: string
   readonly incomeRelationshipId: string
@@ -57,12 +102,21 @@ export interface PayrollSourceTimeline {
   readonly salaries: readonly PayrollSourceSalary[]
   readonly schedules: readonly PayrollSourceSchedule[]
   readonly incomeRelationships?: readonly PayrollSourceIncomeRelationship[]
+  readonly contracts?: readonly PayrollSourceContract[]
+  readonly laborConditions?: readonly PayrollSourceLaborCondition[]
+  readonly organizations?: readonly PayrollSourceOrganization[]
+  readonly pensionAssignments?: EmploymentPayrollSourceProjection['pensionAssignments']
+  readonly laborConditionPensionArrangements?: EmploymentPayrollSourceProjection['laborConditionPensionArrangements']
 }
 
 export interface PayrollSourceProviderDependencies {
   readonly authorize: (employeeId: string) => Promise<Pick<AuthContext, 'tenantId' | 'hrGroupId' | 'administrationId'>>
   readonly listEmployments: (employeeId: string) => Promise<readonly PayrollSourceEmployment[]>
-  readonly loadTimeline: (employeeId: string, employmentId: string) => Promise<PayrollSourceTimeline>
+  readonly loadTimeline: (
+    employeeId: string,
+    employmentId: string,
+    payrollPeriod: PayrollSourceProviderInput['payrollPeriod'],
+  ) => Promise<PayrollSourceTimeline>
   readonly loadActualWork: (employeeId: string, employmentId: string, month: string) => Promise<ActualWorkPayrollProjection>
   readonly isEnabled: () => boolean
   readonly now?: () => Date
@@ -90,19 +144,26 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
       const salaryContext = await requirePermission('salary:read', employeeId)
       await requirePermission('contract:read', employeeId)
       await requirePermission('leave:read', employeeId)
+      await requirePermission('organization-placement:read', employeeId)
+      await requirePermission('job-catalog:read', employeeId)
       return salaryContext
     },
     listEmployments: async (employeeId) => await listEmployeeEmployments(employeeId),
     isEnabled: isPayrollLabEnabled,
-    loadTimeline: async (employeeId, employmentId) => {
-      const [detail, incomeRelationships] = await Promise.all([
-        getEmploymentDetail(employeeId, employmentId, 'salary'),
+    loadTimeline: async (employeeId, employmentId, payrollPeriod) => {
+      const [source, incomeRelationships] = await Promise.all([
+        getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod),
         getEmploymentIncomeRelationshipProjection(employeeId, employmentId),
       ])
       return {
-        employment: detail.employment,
-        salaries: detail.salaries,
-        schedules: detail.schedules,
+        employment: source.employment,
+        salaries: source.salaries,
+        schedules: source.schedules,
+        contracts: source.contracts,
+        laborConditions: source.laborConditions,
+        organizations: source.organizations,
+        pensionAssignments: source.pensionAssignments,
+        laborConditionPensionArrangements: source.laborConditionPensionArrangements,
         incomeRelationships,
       }
     },
@@ -391,7 +452,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     let actualWork: ActualWorkPayrollProjection
     try {
       [timeline, actualWork] = await Promise.all([
-        this.dependencies.loadTimeline(input.employeeId, employment.id),
+        this.dependencies.loadTimeline(input.employeeId, employment.id, input.payrollPeriod),
         this.dependencies.loadActualWork(input.employeeId, employment.id, `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`),
       ])
     } catch {
@@ -414,6 +475,24 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     const activeEndExclusive = employmentEndExclusive < bounds.endExclusive ? employmentEndExclusive : bounds.endExclusive
     const salaries = sortTimeline(timeline.salaries.filter((row) => effectiveRangeOverlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEndExclusive)))
     const schedules = sortTimeline(timeline.schedules.filter((row) => effectiveRangeOverlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEndExclusive)))
+    const contracts = [...(timeline.contracts ?? [])]
+      .filter((row) => row.starts_on < activeEndExclusive && (row.ends_on === null || dayAfter(row.ends_on) > activeStart))
+      .sort((left, right) => left.starts_on.localeCompare(right.starts_on) || left.id.localeCompare(right.id))
+    const laborConditions = sortTimeline((timeline.laborConditions ?? [])
+      .filter((row) => effectiveRangeOverlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEndExclusive)))
+    const organizations = [...(timeline.organizations ?? [])]
+      .filter((row) => row.effective_from < activeEndExclusive && (row.effective_to === null || dayAfter(row.effective_to) > activeStart))
+      .sort((left, right) => left.effective_from.localeCompare(right.effective_from) || left.id.localeCompare(right.id))
+    const pensionAssignments = [...(timeline.pensionAssignments ?? [])]
+      .filter((row) => effectiveRangeOverlapsPeriod(row.effective_from, row.effective_to, activeStart, activeEndExclusive))
+      .sort((left, right) => left.effective_from.localeCompare(right.effective_from) || left.id.localeCompare(right.id))
+    const activeLaborConditionSetIds = new Set(laborConditions.flatMap((row) =>
+      row.labor_condition_set_id ? [row.labor_condition_set_id] : [],
+    ))
+    const laborConditionPensionArrangements = [...(timeline.laborConditionPensionArrangements ?? [])]
+      .filter((row) => activeLaborConditionSetIds.has(row.labor_condition_set_id)
+        && effectiveRangeOverlapsPeriod(row.effective_from, row.effective_to, activeStart, activeEndExclusive))
+      .sort((left, right) => left.effective_from.localeCompare(right.effective_from) || left.id.localeCompare(right.id))
     const incomeRelationship = resolveIncomeRelationship(
       timeline.incomeRelationships ?? [],
       activeStart,
@@ -429,6 +508,47 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       [`employment:${employment.id}`, employment.updated_at],
       ...salaries.map((row) => [`employment_salary:${row.id}`, row.updated_at] as const),
       ...schedules.map((row) => [`employment_schedule:${row.id}`, row.updated_at] as const),
+      ...contracts.map((row) => [`employment_contract:${row.id}`, row.updated_at] as const),
+      ...laborConditions.flatMap((row) => [
+        [`employment_labor_condition:${row.id}`, row.updated_at] as const,
+        ...(row.set ? [[`labor_condition_set:${row.set.id}`, row.set.updated_at] as const] : []),
+      ]),
+      ...organizations.flatMap((row) => [
+        [`employee_organization:${row.id}`, row.updated_at] as const,
+        ...(row.job_id && row.job_revision_updated_at ? [[`job_revision:${row.job_id}:${row.job_revision_valid_from ?? ''}`, row.job_revision_updated_at] as const] : []),
+      ]),
+      ...pensionAssignments.flatMap((row) => [
+        [`employment_pension_assignment:${row.id}`, `${row.version_number}:${row.updated_at}`] as const,
+        ...(row.arrangement?.version_id
+          ? [[`pension_arrangement_version:${row.arrangement.version_id}`, row.arrangement.version_created_at ?? ''] as const]
+          : row.arrangement?.source_updated_at
+            ? [[`pension_arrangement:${row.arrangement.id}`, row.arrangement.source_updated_at] as const]
+            : []),
+        ...(row.arrangement?.tiers.map((tier) => [
+          `${row.arrangement?.version_id ? 'pension_arrangement_version_tier' : 'pension_arrangement_tier'}:${tier.id}`,
+          tier.created_at,
+        ] as const) ?? []),
+        ...row.arrangement_resolution_change_version_ids.map((versionId) => [
+          `pension_arrangement_version_change:${versionId}`,
+          'EFFECTIVE_WITHIN_PERIOD',
+        ] as const),
+      ]),
+      ...laborConditionPensionArrangements.flatMap((row) => [
+        [`labor_condition_pension_arrangement:${row.id}`, `${row.version_number}:${row.effective_from}`] as const,
+        ...(row.arrangement?.version_id
+          ? [[`pension_arrangement_version:${row.arrangement.version_id}`, row.arrangement.version_created_at ?? ''] as const]
+          : row.arrangement?.source_updated_at
+            ? [[`pension_arrangement:${row.arrangement.id}`, row.arrangement.source_updated_at] as const]
+            : []),
+        ...(row.arrangement?.tiers.map((tier) => [
+          `${row.arrangement?.version_id ? 'pension_arrangement_version_tier' : 'pension_arrangement_tier'}:${tier.id}`,
+          tier.created_at,
+        ] as const) ?? []),
+        ...row.arrangement_resolution_change_version_ids.map((versionId) => [
+          `pension_arrangement_version_change:${versionId}`,
+          'EFFECTIVE_WITHIN_PERIOD',
+        ] as const),
+      ]),
       ...(incomeRelationship.selected ? [
         [`employment_income_relationship:${incomeRelationship.selected.id}`, incomeRelationship.selected.linkUpdatedAt] as const,
         [`income_relationship:${incomeRelationship.selected.incomeRelationshipId}`, incomeRelationship.selected.incomeRelationshipUpdatedAt] as const,
@@ -436,8 +556,43 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       ...Object.entries(actualWorkSnapshot.sourceVersionVector),
     ])
 
+    const pensionArrangementCanonical = (
+      arrangement: NonNullable<(typeof pensionAssignments)[number]['arrangement']>,
+    ) => ({
+      id: arrangement.id,
+      versionId: arrangement.version_id,
+      versionNumber: arrangement.version_number,
+      code: arrangement.code,
+      name: arrangement.name,
+      arrangementType: arrangement.arrangement_type,
+      effectiveFrom: arrangement.effective_from,
+      arrangementEstablishedFrom: arrangement.arrangement_established_from,
+      effectiveTo: arrangement.effective_to,
+      transitionDate: arrangement.transition_date,
+      grandfatheringMode: arrangement.grandfathering_mode,
+      flatTotalRate: arrangement.flat_total_rate === null ? null : String(arrangement.flat_total_rate),
+      employerSharePercent: String(arrangement.employer_share_pct),
+      employeeSharePercent: String(arrangement.employee_share_pct),
+      annualFranchise: String(arrangement.annual_franchise),
+      annualPensionableSalaryCap: arrangement.annual_pensionable_salary_cap === null
+        ? null : String(arrangement.annual_pensionable_salary_cap),
+      pensionableSalaryDefinition: arrangement.pensionable_salary_definition,
+      eligibilityRule: arrangement.eligibility_rule,
+      contractClassification: arrangement.contract_classification,
+      contractClassificationProvenance: arrangement.contract_classification_provenance,
+      provenance: arrangement.provenance_json,
+      isActive: arrangement.is_active,
+      version: arrangement.version_id ?? arrangement.source_updated_at,
+      tiers: arrangement.tiers.map((tier) => ({
+        id: tier.id,
+        minAge: tier.min_age,
+        maxAge: tier.max_age,
+        totalRate: String(tier.total_rate),
+      })),
+    })
+
     const canonicalSource = {
-      schemaVersion: 'payroll-source-v1',
+      schemaVersion: 'payroll-source-v3',
       employment: {
         startsOn: employment.starts_on,
         endsOn: employment.ends_on,
@@ -446,6 +601,45 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         employmentType: employment.employment_type,
         contractType: employment.contract_type,
         recordStatus: employment.record_status,
+      },
+      contract: {
+        entries: contracts.map((row) => ({
+          id: row.id,
+          laborConditionSetId: row.labor_condition_set_id,
+          fulltimeHoursPerWeek: row.fulltime_hours_per_week,
+          validFrom: row.starts_on,
+          validUntil: row.ends_on === null ? null : dayAfter(row.ends_on),
+        })),
+      },
+      laborConditions: {
+        entries: laborConditions.map((row) => ({
+          id: row.id,
+          laborConditionSetId: row.labor_condition_set_id,
+          conditionGroup: row.set?.name ?? null,
+          set: row.set ? {
+            id: row.set.id,
+            code: row.set.code,
+            name: row.set.name,
+            standardHoursPerWeek: row.set.standard_hours_per_week,
+            isActive: row.set.is_active,
+            validFrom: row.set.valid_from,
+          } : null,
+          validFrom: row.valid_from,
+          validUntil: row.valid_until,
+        })),
+      },
+      organization: {
+        entries: organizations.map((row) => ({
+          id: row.id,
+          departmentId: row.department_id,
+          jobId: row.job_id,
+          jobCode: row.job_code,
+          jobTitle: row.job_title,
+          jobRevisionValidFrom: row.job_revision_valid_from,
+          jobRevisionValidUntil: row.job_revision_valid_until,
+          validFrom: row.effective_from,
+          validUntil: row.effective_to === null ? null : dayAfter(row.effective_to),
+        })),
       },
       compensation: {
         entries: salaries.map((row) => ({
@@ -498,6 +692,37 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           status: incomeRelationship.gap?.status ?? 'SOURCE_GAP',
           reasonCode: incomeRelationship.gap?.reasonCode ?? 'NO_LINKED_INCOME_RELATIONSHIP',
         },
+      pension: {
+        assignments: pensionAssignments.map((row) => ({
+          id: row.id,
+          pensionArrangementId: row.pension_arrangement_id,
+          effectiveFrom: row.effective_from,
+          effectiveTo: row.effective_to,
+          participationStartDate: row.participation_start_date,
+          assignmentVersion: row.version_number,
+          supersedesAssignmentId: row.supersedes_assignment_id,
+          assignmentReason: row.assignment_reason,
+          provenance: row.provenance_json,
+          ageForTier: row.age_for_tier,
+          arrangement: row.arrangement ? pensionArrangementCanonical(row.arrangement) : null,
+          arrangementResolutionReason: row.arrangement_resolution_reason,
+          arrangementResolutionChangeVersionIds: row.arrangement_resolution_change_version_ids,
+        })),
+        laborConditionArrangements: laborConditionPensionArrangements.map((row) => ({
+          id: row.id,
+          laborConditionSetId: row.labor_condition_set_id,
+          pensionArrangementId: row.pension_arrangement_id,
+          participantGroup: row.participant_group,
+          effectiveFrom: row.effective_from,
+          effectiveTo: row.effective_to,
+          mappingVersion: row.version_number,
+          supersedesMappingId: row.supersedes_mapping_id,
+          provenance: row.provenance_json,
+          arrangementResolutionReason: row.arrangement_resolution_reason,
+          arrangementResolutionChangeVersionIds: row.arrangement_resolution_change_version_ids,
+          arrangement: row.arrangement ? pensionArrangementCanonical(row.arrangement) : null,
+        })),
+      },
       fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
       actualWork: actualWorkSnapshot.canonicalSource,
     }

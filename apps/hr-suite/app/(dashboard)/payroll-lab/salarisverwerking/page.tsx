@@ -25,12 +25,17 @@ import {
   getLatestPayrun01Payroll,
   getPayrun01Lifecycle,
   listPayrun01Candidates,
+  PAYRUN01_PERIOD,
+  payrun01PeriodFromKey,
+  payrun01PeriodKey,
   type Payrun01Candidate,
 } from '@/lib/payroll/payrun01-service'
+import type { SyntheticPayrollPeriod } from '@/lib/payroll/synthetic-source'
 import type { SyntheticPayrollView } from '@/lib/payroll/synthetic-calculation-service'
 
 type Payrun01Query = Record<string, string | string[] | undefined>
 type Payrun01LifecycleView = Awaited<ReturnType<typeof getPayrun01Lifecycle>>
+const PAGE_PATH = '/payroll-lab/salarisverwerking'
 
 type CandidateRecord = {
   readonly candidate: Payrun01Candidate
@@ -139,7 +144,11 @@ function ActionMessage({ event, latest, lifecycle, requestedRun, requestedArtifa
   return messageKey ? <p className="mb-4 border-l-2 border-info-border pl-3 text-sm text-info" role="status">{t(messageKey)}</p> : null
 }
 
-function CandidatePanel({ record, canWrite, locale, t, event, requestedRun, requestedArtifact }: {
+function periodLabelKey(period: SyntheticPayrollPeriod): string {
+  return period.month === 9 ? 'payrun01PeriodSeptember2026' : 'payrun01PeriodOctober2026'
+}
+
+function CandidatePanel({ record, canWrite, locale, t, event, requestedRun, requestedArtifact, period }: {
   record: CandidateRecord
   canWrite: boolean
   locale: string
@@ -147,11 +156,14 @@ function CandidatePanel({ record, canWrite, locale, t, event, requestedRun, requ
   event: string | null
   requestedRun: string | null
   requestedArtifact: string | null
+  period: SyntheticPayrollPeriod
 }) {
   const { candidate, latest, lifecycle } = record
   const assignmentKey = candidate.scenarioKind === 'KINDEROPVANG_TEST'
     ? 'payrun01AssignmentKinderopvang'
-    : 'payrun01AssignmentDemo'
+    : candidate.scenarioKind === 'LEGACY_COMPANY_TEST'
+      ? 'payrun01AssignmentLegacyCompany'
+      : 'payrun01AssignmentDemo'
   const latestLifecycle = lifecycle?.latestEvent
   const lifecycleMatchesRun = latestLifecycle?.calculation_run_id === latest?.runId
   const canReview = Boolean(canWrite && latest?.status === 'SUCCEEDED' && lifecycleMatchesRun && latestLifecycle?.event_type === 'CONCEPT')
@@ -164,17 +176,23 @@ function CandidatePanel({ record, canWrite, locale, t, event, requestedRun, requ
       description={t(assignmentKey)}
       title={<span id={`payrun01-${eventName}`}>{candidate.firstName}</span>}
     />
+    {candidate.scenarioKind === 'KINDEROPVANG_TEST'
+      ? <p className="border-l-2 border-warning-border pl-3 text-sm text-warning">{t('payrun01PensionExcludedNotice')}</p>
+      : candidate.scenarioKind === 'LEGACY_COMPANY_TEST'
+        ? <p className="border-l-2 border-warning-border pl-3 text-sm text-warning">{t('payrun01PensionFiscalTreatmentUnverified')}</p>
+      : null}
     <ActionMessage event={event} latest={latest} lifecycle={lifecycle} requestedRun={requestedRun} requestedArtifact={requestedArtifact} technicalJsonAvailable={record.technicalJsonAvailable} payslipPdfAvailable={record.payslipPdfAvailable} t={t} />
 
     <dl className="grid gap-x-5 gap-y-3 sm:grid-cols-2">
       <MetadataItem label={t('payrun01Assignment')} value={t(assignmentKey)} />
-      <MetadataItem label={t('payrun01Period')} value={t('payrun01PeriodOctober2026')} />
-      <MetadataItem label={t('payrun01ConfirmedEmploymentCount')} value={String(candidate.confirmedOctoberEmploymentCount)} />
+      <MetadataItem label={t('payrun01Period')} value={t(periodLabelKey(period))} />
+      <MetadataItem label={t('payrun01ConfirmedEmploymentCount')} value={String(candidate.confirmedEmploymentCount)} />
     </dl>
 
     {canWrite ? <form action={runPayrun01Action}>
       <input name="employeeId" type="hidden" value={candidate.employeeId} />
       <input name="scenarioKind" type="hidden" value={candidate.scenarioKind} />
+      <input name="period" type="hidden" value={payrun01PeriodKey(period)} />
       <Button type="submit"><Play aria-hidden="true" />{t('payrun01RunCalculation')}</Button>
     </form> : <p className="text-sm text-muted-foreground">{t('payrun01WritePermissionRequired')}</p>}
 
@@ -224,16 +242,25 @@ function CandidatePanel({ record, canWrite, locale, t, event, requestedRun, requ
             </ul>}
         </div>
 
+        {latest.blockerReasons.length > 0 ? <div>
+          <h3 className="text-sm font-semibold">{t('payrun01BlockingReasons')}</h3>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-destructive">
+            {latest.blockerReasons.map((reason) => <li key={reason}><code className="break-all">{reason}</code></li>)}
+          </ul>
+        </div> : null}
+
         {canWrite && (canReview || canFinalize) ? <div className="flex flex-wrap gap-2 border-t border-subtle pt-4">
           {canReview ? <form action={reviewPayrun01Action}>
             <input name="employeeId" type="hidden" value={candidate.employeeId} />
             <input name="scenarioKind" type="hidden" value={candidate.scenarioKind} />
+            <input name="period" type="hidden" value={payrun01PeriodKey(period)} />
             <input name="runId" type="hidden" value={latest.runId} />
             <Button type="submit" variant="secondary"><ShieldCheck aria-hidden="true" />{t('payrun01Review')}</Button>
           </form> : null}
           {canFinalize ? <form action={finalizePayrun01Action}>
             <input name="employeeId" type="hidden" value={candidate.employeeId} />
             <input name="scenarioKind" type="hidden" value={candidate.scenarioKind} />
+            <input name="period" type="hidden" value={payrun01PeriodKey(period)} />
             <input name="runId" type="hidden" value={latest.runId} />
             <Button type="submit"><ShieldCheck aria-hidden="true" />{t('payrun01Finalize')}</Button>
           </form> : null}
@@ -270,6 +297,7 @@ function CandidatePanel({ record, canWrite, locale, t, event, requestedRun, requ
                   ? <form action={generatePayrun01TechnicalJsonAction}>
                     <input name="employeeId" type="hidden" value={candidate.employeeId} />
                     <input name="scenarioKind" type="hidden" value={candidate.scenarioKind} />
+                    <input name="period" type="hidden" value={payrun01PeriodKey(period)} />
                     <input name="runId" type="hidden" value={latest.runId} />
                     <Button type="submit" variant="secondary">{t('payrun01GenerateTechnicalJson')}</Button>
                   </form>
@@ -282,6 +310,7 @@ function CandidatePanel({ record, canWrite, locale, t, event, requestedRun, requ
                   ? <form action={generatePayrun01PayslipPdfAction}>
                     <input name="employeeId" type="hidden" value={candidate.employeeId} />
                     <input name="scenarioKind" type="hidden" value={candidate.scenarioKind} />
+                    <input name="period" type="hidden" value={payrun01PeriodKey(period)} />
                     <input name="runId" type="hidden" value={latest.runId} />
                     <Button type="submit" variant="secondary">{t('payrun01GeneratePayslipPdf')}</Button>
                   </form>
@@ -300,6 +329,11 @@ export default async function Payrun01Page({ searchParams }: { searchParams?: Pr
     searchParams ?? Promise.resolve<Payrun01Query>({}),
   ])
 
+  const requestedPeriod = singleQueryValue(query.period)
+  const selectedPeriod = requestedPeriod
+    ? payrun01PeriodFromKey(requestedPeriod, 'KINDEROPVANG_TEST') ?? PAYRUN01_PERIOD
+    : PAYRUN01_PERIOD
+
   let access: Awaited<ReturnType<typeof requireComponentLibraryAccess>> | null = null
   try {
     access = await requireComponentLibraryAccess(false)
@@ -317,7 +351,7 @@ export default async function Payrun01Page({ searchParams }: { searchParams?: Pr
   let candidates: readonly Payrun01Candidate[] = []
   let candidatesUnavailable = false
   try {
-    candidates = await listPayrun01Candidates()
+    candidates = await listPayrun01Candidates(selectedPeriod)
   } catch (error) {
     if (isAuthenticationError(error)) redirect('/login')
     if (isAuthorizationError(error)) redirect('/geen-toegang')
@@ -327,14 +361,20 @@ export default async function Payrun01Page({ searchParams }: { searchParams?: Pr
   let records: CandidateRecord[] = []
   let runReadsUnavailable = false
   try {
-    records = await Promise.all(candidates.map(async (candidate): Promise<CandidateRecord> => {
+    const periodCandidates = selectedPeriod.month === 9
+      ? candidates.filter((candidate) => candidate.scenarioKind === 'KINDEROPVANG_TEST')
+      : candidates
+    records = await Promise.all(periodCandidates.map(async (candidate): Promise<CandidateRecord> => {
       try {
         const latest = await getLatestPayrun01Payroll(
           access.scope,
           access.administration.id,
           candidate.scenarioKind,
+          undefined,
+          undefined,
+          selectedPeriod,
         )
-        if (!latest || latest.status !== 'SUCCEEDED') {
+        if (!latest) {
           return { candidate, latest, lifecycle: null, runReadFailed: false, lifecycleReadFailed: false, technicalJsonAvailable: false, technicalJsonReadFailed: false, payslipPdfAvailable: false, payslipPdfReadFailed: false }
         }
         try {
@@ -399,6 +439,10 @@ export default async function Payrun01Page({ searchParams }: { searchParams?: Pr
   const errorKey = rawError && Object.hasOwn(ERROR_KEYS, rawError)
     ? ERROR_KEYS[rawError as keyof typeof ERROR_KEYS]
     : null
+  const rawDiagnosticReason = singleQueryValue(query.reason)
+  const diagnosticReason = rawDiagnosticReason && /^(?:PAYROLL_SOURCE|PAYRUN01|PAYROLL)_[A-Z0-9_]+$/.test(rawDiagnosticReason)
+    ? rawDiagnosticReason
+    : null
   const event = singleQueryValue(query.event)
   const requestedRun = singleQueryValue(query.run)
   const requestedArtifact = singleQueryValue(query.artifact)
@@ -409,11 +453,22 @@ export default async function Payrun01Page({ searchParams }: { searchParams?: Pr
     </Link>
     <PageHeader title={t('payrun01Title')} description={t('payrun01Description')} />
     <Surface className="p-4 sm:p-5">
-      <SectionHeader title={t('payrun01PeriodHeading')} description={t('payrun01PeriodOctober2026')} />
+      <SectionHeader title={t('payrun01PeriodHeading')} description={t(periodLabelKey(selectedPeriod))} />
       <p className="mt-3 text-sm text-muted-foreground">{t('payrun01ScopeNote')}</p>
+      <nav aria-label={t('payrun01PeriodHeading')} className="mt-4 flex flex-wrap gap-2">
+        {(['2026-09', '2026-10'] as const).map((periodKey) => <Link
+          aria-current={payrun01PeriodKey(selectedPeriod) === periodKey ? 'page' : undefined}
+          className={buttonClasses({ variant: payrun01PeriodKey(selectedPeriod) === periodKey ? 'primary' : 'secondary' })}
+          href={`${PAGE_PATH}?period=${periodKey}`}
+          key={periodKey}
+        >{t(periodKey === '2026-09' ? 'payrun01PeriodSeptember2026' : 'payrun01PeriodOctober2026')}</Link>)}
+      </nav>
     </Surface>
 
-    {errorKey ? <Surface className="border-destructive/40 p-4 text-sm text-destructive" role="alert">{t(errorKey)}</Surface> : null}
+    {errorKey ? <Surface className="space-y-1 border-destructive/40 p-4 text-sm text-destructive" role="alert">
+      <p>{t(errorKey)}</p>
+      {diagnosticReason ? <p>{t('payrun01DiagnosticReason')}: <code>{diagnosticReason}</code></p> : null}
+    </Surface> : null}
     {candidatesUnavailable || runReadsUnavailable ? <Surface className="border-warning/40 p-4 text-sm" role="status">{t('payrun01DataUnavailable')}</Surface> : null}
 
     <section aria-labelledby="payrun01-personas" className="space-y-4">
@@ -429,6 +484,7 @@ export default async function Payrun01Page({ searchParams }: { searchParams?: Pr
             record={record}
             requestedRun={requestedRun}
             requestedArtifact={requestedArtifact}
+            period={selectedPeriod}
             t={t}
           />)}
         </div>}

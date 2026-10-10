@@ -157,8 +157,23 @@ function safeDatabaseCode(error: unknown): string | null {
   return error.code
 }
 
+function safeDatabaseDiagnosticCode(error: unknown): string | null {
+  if (isRecord(error) && error.code === '23514' && typeof error.message === 'string') {
+    if (error.message.includes('may not overlap without an explicit same-scope correction successor')) {
+      return 'PAYRUN01_OVERLAP_REQUIRES_EXPLICIT_SUCCESSOR'
+    }
+    if (error.message.includes('require a finalized successful run on the exact predecessor version and effective slice')) {
+      return 'PAYRUN01_SUCCESSOR_REQUIRES_FINALIZED_PREDECESSOR'
+    }
+  }
+  return safeDatabaseCode(error)
+}
+
 function throwOnReadError(error: unknown): void {
-  if (error) throw new PayrollCalculationRepositoryError()
+  if (error) {
+    const databaseCode = safeDatabaseDiagnosticCode(error)
+    throw new PayrollCalculationRepositoryError(databaseCode ? `PAYROLL_DB_${databaseCode}` : undefined)
+  }
 }
 
 function assertUuid(value: string): void {
@@ -265,7 +280,10 @@ async function selectRows<Row>(query: PromiseLike<{ data: Row[] | null; error: u
 async function insertOne<Row>(query: PromiseLike<{ data: Row | null; error: unknown }>): Promise<Row> {
   const { data, error } = await query
   if (isUniqueInsertConflict(error)) throw new UniqueInsertConflict()
-  if (error) throw new PayrollCalculationRepositoryError()
+  if (error) {
+    const databaseCode = safeDatabaseDiagnosticCode(error)
+    throw new PayrollCalculationRepositoryError(databaseCode ? `PAYROLL_DB_${databaseCode}` : undefined)
+  }
   if (!data) throw new PayrollCalculationRepositoryError()
   return data
 }
@@ -467,6 +485,7 @@ class SupabasePayrun01Repository implements Payrun01Repository {
       read,
       async () => await insertOne(this.client.from('payroll_individual_arrangement_assignment_versions').insert(row).select('*').single()),
       (stored) => hasSameContent(stored, row, fields),
+      'PAYRUN01_ASSIGNMENT_VERSION_CONFLICT',
     )
   }
 
@@ -514,6 +533,7 @@ class SupabasePayrun01Repository implements Payrun01Repository {
       read,
       async () => await insertOne(this.client.from('payroll_individual_calculation_config_versions').insert(row).select('*').single()),
       (stored) => hasSameContent(stored, row, fields),
+      'PAYRUN01_CONFIG_VERSION_CONFLICT',
     )
   }
 
@@ -565,6 +585,7 @@ class SupabasePayrun01Repository implements Payrun01Repository {
       read,
       async () => await insertOne(this.client.from('payroll_individual_arrangement_composition_snapshots').insert(row).select('*').single()),
       (stored) => hasSameContent(stored, row, fields),
+      'PAYRUN01_COMPOSITION_VERSION_CONFLICT',
     )
   }
 
@@ -617,6 +638,7 @@ class SupabasePayrun01Repository implements Payrun01Repository {
       read,
       async () => await insertOne(this.client.from('payroll_opening_cumulative_snapshots').insert(row).select('*').single()),
       (stored) => hasSameContent(stored, row, fields),
+      'PAYRUN01_OPENING_SNAPSHOT_CONFLICT',
     )
   }
 

@@ -77,7 +77,7 @@ export default async function EmploymentContractSettingsPage() {
           routes={settings.salaryApplicationSettings.routes}
           structureIds={settings.salaryApplicationSettings.structureIds}
           canWrite={settings.salaryApplicationSettings.canWrite}
-          structures={(settings.salaryStructureCatalog?.structures ?? []).map((structure) => ({
+          structures={settings.salaryApplicationSettings.structures.map((structure) => ({
             id: structure.id,
             code: structure.code,
             name: structure.name,

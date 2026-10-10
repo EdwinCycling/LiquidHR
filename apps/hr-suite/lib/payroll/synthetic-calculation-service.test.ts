@@ -192,6 +192,7 @@ function makeRepository(capabilityEnabled = true) {
       goldenCase = insertedGoldenCase
       return insertedGoldenCase
     }),
+    listPayrollRunSummaries: vi.fn(async () => []),
     getLatestSyntheticArtifacts: vi.fn(async (_scope, _payrollAdministrationId, _compositionId, _runId, _caseKey, runType) => {
       calls.push('get-latest')
       if (!run || !inputSet || !sourceSnapshot || !period || !trace || (runType !== 'INDIVIDUAL_PAYROLL' && !goldenCase)) return null
@@ -461,9 +462,9 @@ describe('NL-2026 scenario in the persisted calculation lifecycle', () => {
       expect(messages[`payrollLabTrace_${step.code.replaceAll('.', '_').replaceAll('-', '_')}`]).toBeDefined()
     }
     await service.getLatestSyntheticPayroll(scope, payrollAdministrationId)
-    expect(repository.getLatestSyntheticArtifacts).toHaveBeenCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, undefined, NL_2026_TEST_SCENARIO.caseKey, 'GOLDEN_CASE')
+    expect(repository.getLatestSyntheticArtifacts).toHaveBeenCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, undefined, NL_2026_TEST_SCENARIO.caseKey, 'GOLDEN_CASE', undefined)
     await service.getLatestSyntheticPayroll(scope, payrollAdministrationId, runId)
-    expect(repository.getLatestSyntheticArtifacts).toHaveBeenLastCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, runId, undefined, 'GOLDEN_CASE')
+    expect(repository.getLatestSyntheticArtifacts).toHaveBeenLastCalledWith(scope, payrollAdministrationId, NL_2026_TEST_SCENARIO.compositionId, runId, undefined, 'GOLDEN_CASE', undefined)
   })
   it('stores controlled UNSUPPORTED trace and no financial outputs', async () => {
     const { repository, getRun } = makeRepository()
@@ -476,14 +477,30 @@ describe('NL-2026 scenario in the persisted calculation lifecycle', () => {
 
   it('persists an individual run without a GoldenCase and binds lifecycle events to the source employment and period', async () => {
     const { repository, calls } = makeRepository()
-    const persistInputReference = vi.fn(async () => undefined)
+    const persistInputReference = vi.fn(async () => { calls.push('persist-reference') })
     const recordLifecycleEvent = vi.fn(async () => undefined)
+    const finalizeCalculationProvenance = vi.fn(async ({ inputSet, sourceSnapshot }: Parameters<NonNullable<PayrollTestScenario['finalizeCalculationProvenance']>>[0]) => {
+      calls.push('finalize-provenance')
+      expect(inputSet.source_snapshot_id).toBe(sourceSnapshot.id)
+      return {
+        pensionCalculation: {
+          status: 'CALCULATED',
+          inputSetId: inputSet.id,
+          inputHash: inputSet.input_hash,
+          sourceSnapshotId: sourceSnapshot.id,
+          sourceHash: sourceSnapshot.source_hash,
+          trace: [{ componentCode: 'PENSION_EMPLOYEE_SHARE', result: '1.00' }],
+        },
+      }
+    })
     const scenario: PayrollTestScenario = {
       runType: 'INDIVIDUAL_PAYROLL',
       compositionId: GC_NL_001_RULE_PACKAGE.compositionId,
       period: { year: 2026, month: 10 },
       createSnapshot: createSyntheticPayrollSnapshot,
+      resolveCalculationContext: async () => ({ provenance: { scenario: 'test' } }),
       persistInputReference,
+      finalizeCalculationProvenance,
       recordLifecycleEvent,
     }
     const service = createService(repository, makeEngine(), true, scenario)
@@ -492,6 +509,20 @@ describe('NL-2026 scenario in the persisted calculation lifecycle', () => {
     await service.getLatestSyntheticPayroll(scope, payrollAdministrationId)
 
     expect(result.caseKey).toBeNull()
+    expect(finalizeCalculationProvenance).toHaveBeenCalledTimes(1)
+    expect(calls.indexOf('finalize-provenance')).toBeGreaterThan(calls.indexOf('insert-input-set'))
+    expect(calls.indexOf('persist-reference')).toBeGreaterThan(calls.indexOf('finalize-provenance'))
+    expect(result.inputHash).toBe('b'.repeat(64))
+    expect(result.trace).toMatchObject({
+      calculationContext: {
+        scenario: 'test',
+        pensionCalculation: {
+          inputSetId,
+          inputHash: 'b'.repeat(64),
+          trace: [{ componentCode: 'PENSION_EMPLOYEE_SHARE', result: '1.00' }],
+        },
+      },
+    })
     expect(calls).not.toContain('insert-golden-case')
     expect(persistInputReference).toHaveBeenCalledWith(expect.objectContaining({
       scope,
@@ -514,6 +545,7 @@ describe('NL-2026 scenario in the persisted calculation lifecycle', () => {
       undefined,
       undefined,
       'INDIVIDUAL_PAYROLL',
+      undefined,
     )
   })
 

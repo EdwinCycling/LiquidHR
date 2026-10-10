@@ -191,12 +191,17 @@ function makeArtifactsClient(
       if (column === 'calculation_input_sets.rule_package_composition_id') {
         return rows.calculation_input_sets?.find((inputSet) => inputSet.id === row.calculation_input_set_id)?.rule_package_composition_id === value
       }
+      if (Array.isArray(value)) return value.includes(row[column])
       return row[column] === value
     })).slice(0, rowLimit ?? undefined)
     const query = {
       select: () => query,
       eq: (column: string, value: unknown) => {
         filters.push([column, value])
+        return query
+      },
+      in: (column: string, values: readonly unknown[]) => {
+        filters.push([column, [...values]])
         return query
       },
       order: () => query,
@@ -217,6 +222,43 @@ function makeArtifactsClient(
 }
 
 describe('Payroll calculation repository scope and lifecycle', () => {
+  it('lists persisted individual payroll runs within scope and binds self queries to the requested employee', async () => {
+    const employeeId = '10000000-0000-4000-8000-000000000010'
+    const { client, queryLog } = makeArtifactsClient(runId, 'UNUSED-CASE', 'PAYRUN01:TEST', 'INDIVIDUAL_PAYROLL', false)
+    const repository = createPayrollCalculationRepository(client)
+
+    const ownRuns = await repository.listPayrollRunSummaries(scope, payrollAdministrationId, {
+      employeeId,
+      runType: 'INDIVIDUAL_PAYROLL',
+      limit: 20,
+    })
+    const otherRuns = await repository.listPayrollRunSummaries(scope, payrollAdministrationId, {
+      employeeId: '10000000-0000-4000-8000-000000000099',
+      runType: 'INDIVIDUAL_PAYROLL',
+    })
+
+    expect(ownRuns).toHaveLength(1)
+    expect(ownRuns[0]?.run.id).toBe(runId)
+    expect(ownRuns[0]?.sourceSnapshot.source_employee_id).toBe(employeeId)
+    expect(ownRuns[0]?.payrollPeriod.period_month).toBe(7)
+    expect(otherRuns).toEqual([])
+    for (const entry of queryLog) {
+      expect(entry.filters).toContainEqual(['source_tenant_id', scope.tenantId])
+      expect(entry.filters).toContainEqual(['source_hr_group_id', scope.hrGroupId])
+      expect(entry.filters).toContainEqual(['source_administration_id', scope.administrationId])
+    }
+  })
+
+  it('rejects invalid employee identifiers and unbounded run limits', async () => {
+    const { client } = makeArtifactsClient(runId, 'UNUSED-CASE', 'PAYRUN01:TEST', 'INDIVIDUAL_PAYROLL', false)
+    const repository = createPayrollCalculationRepository(client)
+
+    await expect(repository.listPayrollRunSummaries(scope, payrollAdministrationId, { employeeId: 'not-an-id' }))
+      .rejects.toBeInstanceOf(PayrollCalculationRepositoryError)
+    await expect(repository.listPayrollRunSummaries(scope, payrollAdministrationId, { limit: 201 }))
+      .rejects.toMatchObject({ code: 'PAYROLL_RUN_LIMIT_INVALID' })
+  })
+
   it('reuses exact immutable source and calculation-input rows by deterministic IDs', async () => {
     const sourceSnapshotId = '10000000-0000-4000-8000-000000000008'
     const payrollPeriodId = '10000000-0000-4000-8000-000000000009'

@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Payrun01Page from './page'
 
-const PERSON_ID = '66ef22a5-5777-44dc-9bde-44a65d0a6d60'
+const PERSON_ID = '79091d14-ef66-41fe-a2d5-92df108727e5'
 const RUN_ID = '40000000-0000-4000-8000-000000000001'
 
 const { access, candidates, latestPayroll, lifecycle, technicalJson, payslipPdf, redirect } = vi.hoisted(() => ({
@@ -17,11 +17,19 @@ const { access, candidates, latestPayroll, lifecycle, technicalJson, payslipPdf,
 
 vi.mock('@/lib/payroll/component-library-access', () => ({ requireComponentLibraryAccess: access }))
 vi.mock('@/lib/payroll/payrun01-service', () => ({
+  PAYRUN01_PERIOD: { year: 2026, month: 10 },
   getLatestPayrun01Payroll: latestPayroll,
   getPayrun01Lifecycle: lifecycle,
   getPayrun01TechnicalJsonArtifact: technicalJson,
   getPayrun01PayslipPdfArtifactForRun: payslipPdf,
   listPayrun01Candidates: candidates,
+  payrun01PeriodFromKey: (value: string, kind: string) => {
+    if ((value === '2026-09' && kind === 'KINDEROPVANG_TEST') || value === '2026-10') {
+      return { year: 2026, month: Number(value.slice(-2)) }
+    }
+    return null
+  },
+  payrun01PeriodKey: (period: { year: number; month: number }) => `${period.year}-${String(period.month).padStart(2, '0')}`,
 }))
 vi.mock('@/lib/i18n/server', () => ({
   getLocale: vi.fn(async () => 'en'),
@@ -55,6 +63,7 @@ const latest = {
   components: [{ key: 'NL_GROSS_WAGE', amount: '3044.44', payload: { amount: '3044.44' } }],
   trace: null,
   controls: [{ key: 'SOURCE_MATCHES_PERSONA', status: 'PASS', details: { expected: 'Jan', actual: 'Jan' } }],
+  blockerReasons: [],
   startedAt: '2026-10-01T08:00:00.000Z',
   finishedAt: '2026-10-01T08:00:02.000Z',
   createdAt: '2026-10-01T08:00:00.000Z',
@@ -92,7 +101,7 @@ beforeEach(() => {
     employeeId: PERSON_ID,
     employeeNumber: 'TEST-01',
     firstName: 'Jan',
-    confirmedOctoberEmploymentCount: 1,
+    confirmedEmploymentCount: 1,
     scenarioKind: 'KINDEROPVANG_TEST',
   }])
   latestPayroll.mockResolvedValue(latest)

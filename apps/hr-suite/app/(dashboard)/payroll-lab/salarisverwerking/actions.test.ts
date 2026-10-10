@@ -8,7 +8,7 @@ import {
   runPayrun01Action,
 } from './actions'
 
-const PERSON_ID = '66ef22a5-5777-44dc-9bde-44a65d0a6d60'
+const PERSON_ID = '79091d14-ef66-41fe-a2d5-92df108727e5'
 const OTHER_PERSON_ID = '64ad3a23-f59a-4ed0-af41-26dda20ff067'
 const RUN_ID = '40000000-0000-4000-8000-000000000001'
 
@@ -29,6 +29,10 @@ vi.mock('@/lib/payroll/payrun01-service', () => ({
   finalizePayrun01Payroll: finalizePayroll,
   createPayrun01TechnicalJsonArtifact: createArtifact,
   createPayrun01PayslipPdfArtifact: createPdfArtifact,
+  payrun01PeriodFromKey: (period: string, kind: string) => period === '2026-10' || (period === '2026-09' && kind === 'KINDEROPVANG_TEST')
+    ? { year: 2026, month: Number(period.slice(-2)) }
+    : null,
+  payrun01PeriodKey: (period: { year: number; month: number }) => `${period.year}-${String(period.month).padStart(2, '0')}`,
   payrun01ScenarioForTestPersona: (employeeId: string) => {
     if (employeeId === PERSON_ID) return 'KINDEROPVANG_TEST'
     if (employeeId === OTHER_PERSON_ID) return 'DEMO_COMPANY_TEST'
@@ -52,11 +56,13 @@ function makeForm(fields: readonly (readonly [string, string])[]): FormData {
 const runForm = () => makeForm([
   ['employeeId', PERSON_ID],
   ['scenarioKind', 'KINDEROPVANG_TEST'],
+  ['period', '2026-10'],
 ])
 
 const lifecycleForm = () => makeForm([
   ['employeeId', PERSON_ID],
   ['scenarioKind', 'KINDEROPVANG_TEST'],
+  ['period', '2026-10'],
   ['runId', RUN_ID],
 ])
 
@@ -95,7 +101,7 @@ describe('PAYRUN01 server actions', () => {
 
   it('derives scope, administration, and actor from the authenticated access guard', async () => {
     await expect(runPayrun01Action(runForm())).rejects.toThrow(
-      `redirect:/payroll-lab/salarisverwerking?employee=${PERSON_ID}&event=run&run=${RUN_ID}`,
+      `redirect:/payroll-lab/salarisverwerking?employee=${PERSON_ID}&event=run&run=${RUN_ID}&period=2026-10`,
     )
 
     expect(access).toHaveBeenCalledWith(true)
@@ -105,6 +111,7 @@ describe('PAYRUN01 server actions', () => {
       actorUserId: 'authenticated-actor',
       employeeId: PERSON_ID,
       kind: 'KINDEROPVANG_TEST',
+      period: { year: 2026, month: 10 },
     })
     expect(revalidate).toHaveBeenCalledWith('/payroll-lab/salarisverwerking')
   })
@@ -114,7 +121,7 @@ describe('PAYRUN01 server actions', () => {
     ['finalize', finalizePayrun01Action, finalizePayroll, 'finalized'],
   ] as const)('uses the access guard and exact run reference for %s', async (_name, action, service, event) => {
     await expect(action(lifecycleForm())).rejects.toThrow(
-      `redirect:/payroll-lab/salarisverwerking?employee=${PERSON_ID}&event=${event}&run=${RUN_ID}`,
+      `redirect:/payroll-lab/salarisverwerking?employee=${PERSON_ID}&event=${event}&run=${RUN_ID}&period=2026-10`,
     )
     expect(access).toHaveBeenCalledWith(true)
     expect(service).toHaveBeenCalledWith({
@@ -129,7 +136,7 @@ describe('PAYRUN01 server actions', () => {
 
   it('generates technical JSON only through the authorized scoped lifecycle service', async () => {
     await expect(generatePayrun01TechnicalJsonAction(lifecycleForm())).rejects.toThrow(
-      `redirect:/payroll-lab/salarisverwerking?employee=${PERSON_ID}&event=artifact&run=${RUN_ID}&artifact=TECHNICAL_JSON`,
+      `redirect:/payroll-lab/salarisverwerking?employee=${PERSON_ID}&event=artifact&run=${RUN_ID}&period=2026-10&artifact=TECHNICAL_JSON`,
     )
     expect(access).toHaveBeenCalledWith(true)
     expect(createArtifact).toHaveBeenCalledWith({
@@ -144,7 +151,7 @@ describe('PAYRUN01 server actions', () => {
 
   it('generates the TEST payslip PDF only through the authorized scoped lifecycle service', async () => {
     await expect(generatePayrun01PayslipPdfAction(lifecycleForm())).rejects.toThrow(
-      `redirect:/payroll-lab/salarisverwerking?employee=${PERSON_ID}&event=artifact&run=${RUN_ID}&artifact=PAYSLIP_PDF`,
+      `redirect:/payroll-lab/salarisverwerking?employee=${PERSON_ID}&event=artifact&run=${RUN_ID}&period=2026-10&artifact=PAYSLIP_PDF`,
     )
     expect(access).toHaveBeenCalledWith(true)
     expect(createPdfArtifact).toHaveBeenCalledWith({

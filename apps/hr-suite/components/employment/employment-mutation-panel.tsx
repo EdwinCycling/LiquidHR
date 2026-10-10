@@ -26,6 +26,7 @@ interface EmploymentMutationPanelProps {
   latestEffectiveOn?: string
   costCenters?: Option[]
   costCarriers?: Option[]
+  laborConditionSets?: Option[]
   fulltimeHoursPerWeek?: number
   salaryRoutes?: Array<'MANUAL' | 'MINIMUM_WAGE' | 'SCALE_WITH_STEPS' | 'SALARY_BAND'>
   salaryScales?: SalaryScale[]
@@ -37,7 +38,7 @@ interface EmploymentMutationPanelProps {
   labels: Record<string, string>
 }
 
-export function EmploymentMutationPanel({ employmentId, timeline, canWrite, blockCount, latestEffectiveOn, costCenters = [], costCarriers = [], fulltimeHoursPerWeek = 40, salaryRoutes = ['MANUAL', 'MINIMUM_WAGE'], salaryScales = [], salaryScaleSteps = [], salaryBands = [], salaryBandLocale = 'nl-NL', salaryBandLabels, directPayloads = {}, labels }: EmploymentMutationPanelProps) {
+export function EmploymentMutationPanel({ employmentId, timeline, canWrite, blockCount, latestEffectiveOn, costCenters = [], costCarriers = [], laborConditionSets = [], fulltimeHoursPerWeek = 40, salaryRoutes = ['MANUAL', 'MINIMUM_WAGE'], salaryScales = [], salaryScaleSteps = [], salaryBands = [], salaryBandLocale = 'nl-NL', salaryBandLabels, directPayloads = {}, labels }: EmploymentMutationPanelProps) {
   const router = useRouter()
   const today = new Date().toISOString().slice(0, 10)
   const [dialog, setDialog] = useState<'change' | 'rollback' | null>(null)
@@ -68,7 +69,7 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
   }
 
   function payload(values: Record<string, FormDataEntryValue>) {
-    if (timeline === 'LABOR_CONDITIONS') return { conditionGroup: String(values.conditionGroup) }
+    if (timeline === 'LABOR_CONDITIONS') return { laborConditionSetId: String(values.laborConditionSetId) }
     if (timeline === 'SCHEDULE') return {
       scheduleType: String(values.scheduleType), startWeek: Number(values.startWeek),
       averageDaysPerWeek: Number(values.averageDaysPerWeek), averageHoursPerWeek: Number(values.averageHoursPerWeek),
@@ -150,7 +151,7 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
       {blockCount <= 1 && <p className="mt-2 text-xs text-muted-foreground">{labels.onlyBlockProtected}</p>}
       <form onSubmit={review} className="mt-5 grid gap-4 sm:grid-cols-2">
         <label className="grid gap-1.5 text-sm font-medium">{labels.effectiveOn}<input className="form-field" name="effectiveOn" type="date" required defaultValue={today} /></label>
-        {timeline === 'LABOR_CONDITIONS' && <label className="grid gap-1.5 text-sm font-medium">{labels.conditionGroup}<input className="form-field" name="conditionGroup" required /></label>}
+        {timeline === 'LABOR_CONDITIONS' && <label className="grid gap-1.5 text-sm font-medium">{labels.conditionGroup}<select className="form-field" name="laborConditionSetId" required defaultValue=""> <option disabled value="">{labels.conditionGroup}</option>{laborConditionSets.map((option) => <option key={option.id} value={option.id}>{option.code} · {option.name}</option>)}</select></label>}
         {timeline === 'SCHEDULE' && <>
           <label className="grid gap-1.5 text-sm font-medium">{labels.scheduleType}<select className="form-field" name="scheduleType"><option value="HOURS_AND_AVG_DAYS">{labels.hoursAndAverageDays}</option><option value="HOURS_PER_DAY">{labels.hoursPerDay}</option><option value="HOURS_AND_SPECIFIC_DAYS">{labels.hoursAndSpecificDays}</option><option value="TIMES_PER_DAY">{labels.timesPerDay}</option></select></label>
           <label className="grid gap-1.5 text-sm font-medium">{labels.fulltimeReference}<input className="form-field bg-muted/40" type="number" value={fulltimeHoursPerWeek} readOnly /></label>

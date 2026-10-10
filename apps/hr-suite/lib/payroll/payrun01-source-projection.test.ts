@@ -20,30 +20,47 @@ const ids = {
   opening: 'a0000000-0000-4000-8000-000000000001',
   workEntry: 'b0000000-0000-4000-8000-000000000001',
   additionalEntry: 'c0000000-0000-4000-8000-000000000001',
+  laborSet: 'd1000000-0000-4000-8000-000000000001',
+  structure: 'd2000000-0000-4000-8000-000000000001',
+  scale: 'd3000000-0000-4000-8000-000000000001',
+  step: 'd4000000-0000-4000-8000-000000000001',
+  job: 'd5000000-0000-4000-8000-000000000001',
+  department: 'd6000000-0000-4000-8000-000000000001',
 }
 
 const configHash = 'a'.repeat(64)
 const openingHash = 'b'.repeat(64)
 
-function sourceSnapshot(options: { readonly lisa?: boolean; readonly gaps?: PayrollSourceSnapshot['sourceGaps'] } = {}): PayrollSourceSnapshot {
+function sourceSnapshot(options: {
+  readonly lisa?: boolean
+  readonly gaps?: PayrollSourceSnapshot['sourceGaps']
+  readonly additionalHours?: string
+  readonly includeCoreFlatPension?: boolean
+  readonly includeCoreProgressivePension?: boolean
+  readonly includeCorePfzwPension?: boolean
+  readonly mappingReferenceMismatch?: boolean
+} = {}): PayrollSourceSnapshot {
   const lisa = options.lisa ?? false
+  const includeCoreProgressivePension = options.includeCoreProgressivePension ?? false
+  const includeCorePfzwPension = options.includeCorePfzwPension ?? false
   const canonicalSource = {
-    schemaVersion: 'payroll-source-v1',
+    schemaVersion: 'payroll-source-v3',
     employment: { startsOn: lisa ? '2026-01-01' : '2026-09-01', endsOn: null, recordStatus: 'CONFIRMED' },
     compensation: {
       entries: [{
         id: 'd0000000-0000-4000-8000-000000000001',
-        salaryBasis: lisa ? 'MANUAL' : 'CAO',
-        salaryRoute: lisa ? 'MANUAL' : 'CAO',
+        salaryBasis: lisa ? 'MANUAL' : 'CUSTOM_SCALE',
+        salaryRoute: lisa ? 'MANUAL' : 'SCALE_WITH_STEPS',
         paymentFrequency: 'MONTHLY',
         currencyCode: 'EUR',
-        fulltimeAmount: lisa ? 5500 : 3425,
+        fulltimeAmount: lisa ? 5500 : includeCorePfzwPension ? '3425.00' : 3425,
         parttimeAmount: lisa ? 5500 : 3044.44,
-        salaryScaleId: lisa ? null : 'scale-6-id',
-        salaryScaleStepId: lisa ? null : 'scale-6-step-20-id',
+        salaryStructureId: lisa ? null : ids.structure,
+        salaryScaleId: lisa ? null : ids.scale,
+        salaryScaleStepId: lisa ? null : ids.step,
         salaryStepCode: lisa ? null : '20',
-        caoScaleName: lisa ? null : '6',
-        caoStepName: lisa ? null : '20',
+        caoScaleName: null,
+        caoStepName: null,
         salaryBandId: null,
         validFrom: lisa ? '2026-01-01' : '2026-09-01',
         validUntil: null,
@@ -53,15 +70,139 @@ function sourceSnapshot(options: { readonly lisa?: boolean; readonly gaps?: Payr
       entries: [{
         averageHoursPerWeek: lisa ? 40 : 32,
         fulltimeHoursPerWeek: lisa ? 40 : 36,
-        partTimeFactor: lisa ? 1 : 0.8889,
-        scheduleType: 'HOURS_PER_DAY',
+        partTimeFactor: lisa ? 1 : 32 / 36,
+        scheduleType: lisa ? 'HOURS_PER_DAY' : 'HOURS_AND_AVG_DAYS',
         isOnCall: false,
         validFrom: lisa ? '2026-01-01' : '2026-09-01',
         validUntil: null,
       }],
     },
+    contract: {
+      entries: lisa ? [] : [{
+        id: 'e0000000-0000-4000-8000-000000000001', laborConditionSetId: ids.laborSet,
+        fulltimeHoursPerWeek: 36, validFrom: '2026-09-01', validUntil: null,
+      }],
+    },
+    laborConditions: {
+      entries: lisa ? [] : [{
+        id: 'e1000000-0000-4000-8000-000000000001', laborConditionSetId: ids.laborSet,
+        conditionGroup: 'Cao Kinderopvang 2025-2026',
+        set: {
+          id: ids.laborSet, code: 'CAO_KINDEROPVANG_2025_2026', name: 'Cao Kinderopvang 2025-2026',
+          standardHoursPerWeek: 36, isActive: true, validFrom: '2025-01-01',
+        },
+        validFrom: '2026-09-01', validUntil: null,
+      }],
+    },
+    organization: {
+      entries: lisa ? [] : [{
+        id: 'e2000000-0000-4000-8000-000000000001', departmentId: ids.department, jobId: ids.job,
+        jobCode: 'PAYRUN01_PEDAGOGISCH_PROFESSIONAL', jobTitle: 'Pedagogisch professional',
+        jobRevisionValidFrom: '2026-09-01', jobRevisionValidUntil: null,
+        validFrom: '2026-09-01', validUntil: null,
+      }],
+    },
     incomeRelationship: { id: ids.incomeRelationship, status: 'UNSUPPORTED', reasonCode: 'CONTROL02_CONTRACT_PENDING' },
     fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
+    ...(options.includeCoreFlatPension || includeCoreProgressivePension || includeCorePfzwPension ? {
+      pension: {
+        assignments: [{
+          id: 'e3000000-0000-4000-8000-000000000001',
+          pensionArrangementId: ids.arrangement,
+          effectiveFrom: includeCoreProgressivePension ? '2023-01-01' : includeCorePfzwPension ? '2026-09-01' : '2026-01-01',
+          effectiveTo: null,
+          participationStartDate: includeCoreProgressivePension ? '2018-01-01' : includeCorePfzwPension ? '2026-09-01' : '2026-01-01',
+          assignmentVersion: 1,
+          supersedesAssignmentId: null,
+          assignmentReason: 'EXPLICIT_TEST_ASSIGNMENT',
+          provenance: includeCorePfzwPension ? {
+            schemaVersion: 'EMPLOYMENT_PENSION_ASSIGNMENT_PROVENANCE_V1',
+            status: 'SYNTHETIC_TEST_FIXTURE',
+            sourceClassification: 'SYNTHETIC_TEST_FIXTURE — PAY-RULE-002 — FRITS_PFZW_2026',
+            assignmentVersion: 1,
+            laborConditionMappingId: 'f2000000-0000-4000-8000-000000000001',
+            laborConditionMappingVersion: options.mappingReferenceMismatch ? 2 : 1,
+            legalFiscalStatus: 'OPEN',
+            legalFiscalGap: 'PENSION_LEGAL_FISCAL_TREATMENT_UNVERIFIED',
+          } : {},
+          ageForTier: includeCoreProgressivePension ? 62 : null,
+          arrangement: {
+            id: ids.arrangement,
+            code: includeCoreProgressivePension ? 'COMPANY_LEGACY_PROGRESSIVE_EERBIEDIGD' : includeCorePfzwPension ? 'PFZW_2026_KINDEROPVANG' : 'COMPANY_WTP_FLAT_2026',
+            name: includeCoreProgressivePension ? 'Synthetic legacy progressive arrangement' : includeCorePfzwPension ? 'Synthetic PFZW 2026 Kinderopvang arrangement' : 'Synthetic flat arrangement fixture',
+            arrangementType: includeCoreProgressivePension ? 'PROGRESSIVE_PREMIUM' : 'FLAT_PREMIUM',
+            effectiveFrom: '2026-01-01',
+            arrangementEstablishedFrom: includeCoreProgressivePension ? '2023-01-01' : '2026-01-01',
+            effectiveTo: null,
+            transitionDate: includeCoreProgressivePension ? '2026-01-01' : null,
+            grandfatheringMode: includeCoreProgressivePension ? 'EERBIEDIGENDE_WERKING' : 'NONE',
+            flatTotalRate: includeCoreProgressivePension ? null : includeCorePfzwPension ? '25.9000' : '15.0000',
+            employerSharePercent: includeCorePfzwPension ? '13.0000' : '66.6667',
+            employeeSharePercent: includeCorePfzwPension ? '12.9000' : '33.3333',
+            annualFranchise: includeCoreProgressivePension ? '15308.00' : includeCorePfzwPension ? '17283.00' : '19172.00',
+            annualPensionableSalaryCap: '137800.00',
+            pensionableSalaryDefinition: {
+              ...(includeCoreProgressivePension ? { ageDetermination: 'AGE_AT_END_OF_CALENDAR_YEAR' } : {}),
+              basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
+              annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
+              floorAtZero: true,
+              ...(includeCorePfzwPension ? {
+                method: 'PFZW_2026_KINDEROPVANG',
+                pfzw2026: {
+                  monthlyPaymentsPerYear: 12,
+                  holidayAllowancePercent: '8',
+                  structuralYearEndAllowancePercent: '5.5',
+                  structuralYearEndAllowanceReferenceDate: '2025-12-31',
+                  structuralYearEndAllowanceSourceReference: 'https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/eindejaarsuitkering',
+                  structuralYearEndAllowanceSourceVersion: 'CAO Kinderopvang 2025-2026 article 5.7; PFZW article 5.2.4',
+                  additionalHoursUpliftPercent: '11.2179487179',
+                  additionalHoursUpliftEvidence: 'SYNTHETIC_TEST_ONLY_POLICY',
+                  additionalHoursUpliftSourceReference: 'https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/vakantie; https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/verlofbudget; https://www.pfzw.nl/content/dam/pfzw/web/werkgevers/pensioenaangifte/2026_Handleiding-aanlevering-UPA-gegevens.pdf',
+                  additionalHoursUpliftSourceVersion: 'SYNTHETIC_TEST_ONLY_EXTRA_HOURS_UPLIFT',
+                  monthlyAllocationPolicyStatus: 'SYNTHETIC_TEST_APPROVED',
+                  monthlyAllocationPolicyVersion: 'PFZW-2026-MONTHLY-ALLOCATION-TEST-APPROVED-1',
+                  monthlyAllocationPolicySourceReference: 'SYNTHETIC_TEST_POLICY:PAY-RULE-002; annual share divided by 12; separate HALF_UP cent rounding for employee and employer; synthetic TEST acceptance only.',
+                },
+              } : {}),
+            },
+            eligibilityRule: includeCoreProgressivePension ? {
+              participantGroup: 'GRANDFATHERED', transitionMethod: 'EERBIEDIGENDE_WERKING',
+              participationStartBefore: '2026-01-01', ageDetermination: 'AGE_AT_END_OF_CALENDAR_YEAR',
+            } : {
+              participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01',
+            },
+            contractClassification: includeCoreProgressivePension ? 'NON_SOLIDARITY' : 'UNKNOWN',
+            contractClassificationProvenance: includeCoreProgressivePension
+              ? { status: 'SYNTHETIC_TEST_ASSUMPTION_UNVERIFIED' } : { status: 'UNVERIFIED' },
+            provenance: { sourceReference: 'TEST_ONLY_APPROVED_COMPANY_POLICY' },
+            isActive: true,
+            versionId: 'f1000000-0000-4000-8000-000000000001',
+            versionNumber: includeCoreProgressivePension ? 2 : 1,
+            version: 'f1000000-0000-4000-8000-000000000001',
+            tiers: includeCoreProgressivePension ? [{ minAge: 60, maxAge: 64, totalRate: '20.0000' }] : [],
+          },
+          arrangementResolutionReason: null,
+          arrangementResolutionChangeVersionIds: [],
+        }],
+        laborConditionArrangements: includeCorePfzwPension ? [{
+          id: 'f2000000-0000-4000-8000-000000000001',
+          laborConditionSetId: ids.laborSet,
+          pensionArrangementId: ids.arrangement,
+          participantGroup: 'NEW_ENTRANT',
+          effectiveFrom: '2026-09-01',
+          effectiveTo: null,
+          mappingVersion: 1,
+          supersedesMappingId: null,
+          provenance: {
+            schemaVersion: 'PENSION_MAPPING_PROVENANCE_V1',
+            status: 'SYNTHETIC_TEST_FIXTURE',
+            sourceClassification: 'SYNTHETIC_TEST_FIXTURE — PAY-RULE-002 — FRITS_PFZW_2026',
+          },
+          arrangementResolutionReason: null,
+          arrangementResolutionChangeVersionIds: [],
+        }] : [],
+      },
+    } : {}),
     actualWork: {
       period: { startsOn: '2026-10-01', endsOn: '2026-11-01', status: 'CLOSED' },
       entries: lisa ? [] : [
@@ -85,7 +226,7 @@ function sourceSnapshot(options: { readonly lisa?: boolean; readonly gaps?: Payr
           subjectPeriodStart: '2026-10-06',
           subjectPeriodEnd: '2026-10-07',
           postingPeriodStart: '2026-10-01',
-          hours: '2.0000',
+          hours: options.additionalHours ?? '2.0000',
           status: 'APPROVED',
           approvedAt: '2026-10-07T10:00:00.000Z',
           typeValidFrom: '2026-01-01',
@@ -121,7 +262,9 @@ function projectionConfig(options: {
   readonly lisa?: boolean
   readonly allowIkvFallback?: boolean
   readonly additionalCompensation?: 'CASH_AT_ORDINARY_RATE' | 'TIME_OFF' | 'UNRESOLVED'
-  readonly additionalCashAmount?: string
+  readonly expectedAdditionalHours?: number
+  readonly expectedAdditionalEntryCount?: number
+  readonly requireCorePension?: boolean
 } = {}): Payrun01SourceProjectionConfig {
   const lisa = options.lisa ?? false
   return {
@@ -141,6 +284,13 @@ function projectionConfig(options: {
     asOf: '2026-10-05T10:00:00.000Z',
     maximumSnapshotAgeMilliseconds: 60 * 60 * 1000,
     expectedEmploymentStartDate: lisa ? '2026-01-01' : '2026-09-01',
+    ...(!lisa ? {
+      expectedLaborConditionSetId: ids.laborSet,
+      expectedLaborConditionSetCode: 'CAO_KINDEROPVANG_2025_2026',
+      expectedLaborConditionSetName: 'Cao Kinderopvang 2025-2026',
+      expectedJobCode: 'PAYRUN01_PEDAGOGISCH_PROFESSIONAL',
+      expectedJobTitle: 'Pedagogisch professional',
+    } : {}),
     expectedSalary: lisa
       ? {
         pricingMode: 'SOURCE_MONTHLY', monthlyGrossAmount: '5500.00', fulltimeMonthlyAmount: '5500.00',
@@ -148,14 +298,18 @@ function projectionConfig(options: {
       }
       : {
         pricingMode: 'CAO_PRORATION', fulltimeMonthlyAmount: '3425.00', currencyCode: 'EUR',
-        paymentFrequency: 'MONTHLY', salaryRoute: 'CAO', salaryBasis: 'CAO',
-        salaryScaleId: 'scale-6-id', salaryScaleStepId: 'scale-6-step-20-id',
-        salaryStepCode: '20', caoScaleName: '6', caoStepName: '20', salaryBandId: null,
+        paymentFrequency: 'MONTHLY', salaryRoute: 'SCALE_WITH_STEPS', salaryBasis: 'CUSTOM_SCALE',
+        salaryStructureId: ids.structure, salaryScaleId: ids.scale, salaryScaleStepId: ids.step,
+        salaryStepCode: '20', caoScaleName: null, caoStepName: null, salaryBandId: null,
       },
     expectedSchedule: lisa
       ? { contractHoursPerWeek: 40, fulltimeHoursPerWeek: 40, partTimeFactor: 1, scheduleType: 'HOURS_PER_DAY', isOnCall: false }
-      : { contractHoursPerWeek: 32, fulltimeHoursPerWeek: 36, partTimeFactor: 32 / 36, scheduleType: 'HOURS_PER_DAY', isOnCall: false },
+      : { contractHoursPerWeek: 32, fulltimeHoursPerWeek: 36, partTimeFactor: 32 / 36, scheduleType: 'HOURS_AND_AVG_DAYS', isOnCall: false },
     taxProfile: {
+      ...(!lisa ? {
+        profileId: 'PAYRUN01_KINDEROPVANG_TEST_TAX_PROFILE', profileVersion: '1',
+        provenance: 'PAYROLL_OWNED_BOUNDED_TEST_INPUT', effectiveFrom: '2026-09-01',
+      } : {}),
       fiscalYear: '2026', table: 'WHITE', residence: 'NL', ageCategory: 'UNDER_AOW', herleiding: 'STD',
       timePeriod: 'MONTH', payrollTaxCredit: true, regularWage: true, fullPeriod: true, hasSpecialSituation: false,
     },
@@ -164,9 +318,17 @@ function projectionConfig(options: {
     additionalHourCompensation: options.additionalCompensation === 'UNRESOLVED'
       ? { mode: 'UNRESOLVED' }
       : options.additionalCompensation === 'CASH_AT_ORDINARY_RATE'
-        ? { mode: 'CASH_AT_ORDINARY_RATE', cashAmount: options.additionalCashAmount ?? '37.94' }
-        : { mode: 'TIME_OFF', cashAmount: '0.00' },
-    pension: lisa ? { mode: 'DISABLED' } : { mode: 'UNSUPPORTED', reasonCode: 'PAYRUN01_PFZW_2026_MONTHLY_ALLOCATION_UNVERIFIED' },
+        ? {
+          mode: 'CASH_AT_ORDINARY_RATE',
+          ...(options.expectedAdditionalHours === undefined ? {} : { expectedHours: options.expectedAdditionalHours }),
+          ...(options.expectedAdditionalEntryCount === undefined ? {} : { expectedEntryCount: options.expectedAdditionalEntryCount }),
+        }
+        : { mode: 'TIME_OFF' },
+    pension: lisa
+      ? { mode: 'DISABLED' }
+      : options.requireCorePension
+        ? { mode: 'CORE_ARRANGEMENT' }
+        : { mode: 'UNSUPPORTED', reasonCode: 'PAYRUN01_PFZW_2026_MONTHLY_ALLOCATION_UNVERIFIED' },
     employerRates: { awf: '7.74', aof: '6.27', wko: '0.50', whk: '1.81', zvw: '6.10' },
     reserveRates: { holidayAllowance: '8.00', yearEnd: lisa ? '0.00' : '8.00' },
     openingCumulatives: {
@@ -193,6 +355,17 @@ function amount(snapshot: PayrollSourceSnapshot): string | null {
 }
 
 describe('PAYRUN01 Payroll-owned source projection', () => {
+  it('blocks PFZW projection when no effective participant assignment exists', () => {
+    const result = projectPayrun01SourceSnapshot(sourceSnapshot(), projectionConfig({ requireCorePension: true }))
+    const canonical = result.snapshot.canonicalSource as Readonly<Record<string, unknown>>
+    const payrollOwned = canonical.payrollOwned as Readonly<Record<string, unknown>>
+
+    expect(result.controls.pensionRuleReady).toBe(false)
+    expect(payrollOwned.pension).toMatchObject({ status: 'BLOCKED', reasonCode: 'PENSION_ASSIGNMENT_NOT_FOUND' })
+    expect(JSON.stringify(payrollOwned)).not.toContain('employeePension')
+    expect(JSON.stringify(payrollOwned)).not.toContain('employerPension')
+  })
+
   it('preserves approved WORK and ADDITIONAL hours without pricing them or paying normal hours twice', () => {
     const original = sourceSnapshot()
     const result = projectPayrun01SourceSnapshot(original, projectionConfig())
@@ -207,6 +380,15 @@ describe('PAYRUN01 Payroll-owned source projection', () => {
         fulltimeHoursPerWeek: '36',
         salaryPricingMode: 'CAO_PRORATION',
         projectionStatus: 'READY_FOR_ENGINE',
+      },
+      payrollOwned: {
+        taxProfile: {
+          profileId: 'PAYRUN01_KINDEROPVANG_TEST_TAX_PROFILE',
+          profileVersion: '1',
+          provenance: 'PAYROLL_OWNED_BOUNDED_TEST_INPUT',
+          effectiveFrom: '2026-09-01',
+          status: 'PAYROLL_OWNED_SCENARIO',
+        },
       },
     })
     expect(JSON.stringify(canonical)).not.toContain('grossAmount')
@@ -226,7 +408,6 @@ describe('PAYRUN01 Payroll-owned source projection', () => {
     expect(result.blockers).toContain('PAYRUN01_PFZW_2026_MONTHLY_ALLOCATION_UNVERIFIED')
     expect(result.snapshot.canonicalSource).toMatchObject({
       payrollOwned: {
-        additionalHoursCashAmount: '0.00',
         pension: { status: 'UNSUPPORTED', reasonCode: 'PAYRUN01_PFZW_2026_MONTHLY_ALLOCATION_UNVERIFIED' },
         amounts: {},
       },
@@ -259,6 +440,18 @@ describe('PAYRUN01 Payroll-owned source projection', () => {
     })
   })
 
+  it('includes the bounded PAYRUN01 tax profile in the projected source hash', () => {
+    const original = sourceSnapshot()
+    const baseConfig = projectionConfig()
+    const initial = projectPayrun01SourceSnapshot(original, baseConfig)
+    const changed = projectPayrun01SourceSnapshot(original, {
+      ...baseConfig,
+      taxProfile: { ...baseConfig.taxProfile, profileVersion: '2' },
+    })
+
+    expect(changed.snapshot.sourceHash).not.toBe(initial.snapshot.sourceHash)
+  })
+
   it('projects Lisa with no additional hours and an explicitly disabled pension', () => {
     const result = projectPayrun01SourceSnapshot(sourceSnapshot({ lisa: true }), projectionConfig({ lisa: true }))
 
@@ -266,6 +459,153 @@ describe('PAYRUN01 Payroll-owned source projection', () => {
     expect(result.provenance).toMatchObject({ additionalHours: '0.0000', additionalCompensationMode: 'NOT_APPLICABLE', pensionStatus: 'DISABLED_BY_SCENARIO' })
     expect(result.controls).toMatchObject({ additionalHoursSupported: true, pensionRuleReady: true })
     expect(result.blockers).toEqual([])
+  })
+
+  it('resolves an effective Core flat arrangement into pension amounts and fiscal assessment bases', () => {
+    const source = sourceSnapshot({ lisa: true, includeCoreFlatPension: true })
+    const projection = projectionConfig({ lisa: true })
+    const result = projectPayrun01SourceSnapshot(source, {
+      ...projection,
+      pension: { mode: 'CORE_ARRANGEMENT' },
+    })
+    const canonical = result.snapshot.canonicalSource as Readonly<Record<string, unknown>>
+    const payrollOwned = canonical.payrollOwned as Readonly<Record<string, unknown>>
+    const amounts = payrollOwned.amounts as Readonly<Record<string, unknown>>
+    const fiscalBases = payrollOwned.fiscalBases as Readonly<Record<string, unknown>>
+    const pension = payrollOwned.pension as Readonly<Record<string, unknown>>
+    const pensionResult = pension.result as Readonly<Record<string, unknown>>
+
+    expect(result.controls.pensionRuleReady).toBe(true)
+    expect(result.blockers).toEqual([])
+    expect(amounts).toMatchObject({ employeePension: '195.12', employerPension: '390.23' })
+    expect(fiscalBases).toMatchObject({
+      wageTax: '5304.88', employeeInsurance: '5304.88', zvw: '5304.88',
+      status: 'CALCULATED_FROM_PENSION_RULE',
+    })
+    expect(pension).toMatchObject({ status: 'CALCULATED', reasonCode: null })
+    expect(pensionResult).toMatchObject({
+      arrangementCode: 'COMPANY_WTP_FLAT_2026',
+      rate: '15.0000',
+      pensionableBase: '46828.00',
+      totalPremiumMonthly: '585.35',
+      employeePremiumMonthly: '195.12',
+      employerPremiumMonthly: '390.23',
+      allocationDifference: '0.00',
+    })
+    expect(payrollOwned.pensionCalculationInput).toMatchObject({
+      arrangement: { arrangementCode: 'COMPANY_WTP_FLAT_2026' },
+      fullTimeMonthlyPensionableSalary: '5500',
+      partTimeFactor: '1',
+    })
+    expect(payrollOwned.pensionCalculationTrace).toEqual(expect.arrayContaining([
+      expect.objectContaining({ componentCode: 'PENSION_PENSIONABLE_BASE' }),
+      expect.objectContaining({ componentCode: 'PENSION_EMPLOYEE_SHARE' }),
+      expect.objectContaining({ componentCode: 'PENSION_EMPLOYER_SHARE' }),
+    ]))
+  })
+
+  it('uses immutable arrangement inception when a later effective version is selected for grandfathering', () => {
+    const result = projectPayrun01SourceSnapshot(sourceSnapshot({
+      lisa: true,
+      includeCoreProgressivePension: true,
+    }), {
+      ...projectionConfig({ lisa: true }),
+      pension: { mode: 'CORE_ARRANGEMENT' },
+    })
+    const canonical = result.snapshot.canonicalSource as Readonly<Record<string, unknown>>
+    const payrollOwned = canonical.payrollOwned as Readonly<Record<string, unknown>>
+    const pension = payrollOwned.pension as Readonly<Record<string, unknown>>
+
+    expect(result.controls.pensionRuleReady).toBe(true)
+    expect(result.blockers).toEqual([])
+    expect(pension).toMatchObject({ status: 'CALCULATED', reasonCode: null })
+    expect(payrollOwned.pensionCalculationInput).toMatchObject({
+      arrangement: {
+        effectiveFrom: '2026-01-01',
+        arrangementEstablishedFrom: '2023-01-01',
+      },
+      participationStartDate: '2018-01-01',
+    })
+    expect(payrollOwned.pensionCalculationTrace).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        componentCode: 'PENSION_AGE_TIER_RATE',
+        inputs: expect.objectContaining({
+          arrangementEstablishedFrom: '2023-01-01',
+          versionEffectiveFrom: '2026-01-01',
+        }),
+      }),
+    ]))
+  })
+
+  it('projects the versioned PFZW TEST allocation and uplift policy into the pension calculation', () => {
+    const source = sourceSnapshot({ includeCorePfzwPension: true, additionalHours: '8.0000' })
+    const result = projectPayrun01SourceSnapshot(source, projectionConfig({
+      requireCorePension: true,
+      additionalCompensation: 'CASH_AT_ORDINARY_RATE',
+      expectedAdditionalHours: 8,
+      expectedAdditionalEntryCount: 1,
+    }))
+    const canonical = result.snapshot.canonicalSource as Readonly<Record<string, unknown>>
+    const payrollOwned = canonical.payrollOwned as Readonly<Record<string, unknown>>
+    const pension = payrollOwned.pension as Readonly<Record<string, unknown>>
+    const pensionResult = pension.result as Readonly<Record<string, unknown>>
+    const pensionInput = payrollOwned.pensionCalculationInput as Readonly<Record<string, unknown>>
+
+    expect(pension).toMatchObject({ status: 'CALCULATED', reasonCode: null })
+    expect(pensionResult).toMatchObject({
+      arrangementCode: 'PFZW_2026_KINDEROPVANG',
+      pensionableBase: '27780.24',
+      employeePremiumMonthly: '298.64',
+      employerPremiumMonthly: '300.95',
+    })
+    expect(pensionInput).toMatchObject({
+      pfzw2026: {
+        participationStartDate: '2026-09-01',
+        participationStatus: 'SYNTHETIC_TEST_FIXTURE',
+        participationEvidenceReference: expect.stringContaining(
+          `Core assignment e3000000-0000-4000-8000-000000000001 v1 [SYNTHETIC_TEST_FIXTURE — PAY-RULE-002 — FRITS_PFZW_2026]; effective labor-condition arrangement mapping f2000000-0000-4000-8000-000000000001 v1 [SYNTHETIC_TEST_FIXTURE — PAY-RULE-002 — FRITS_PFZW_2026]`,
+        ),
+        additionalWorkedHours: '8.0000',
+        additionalHoursUpliftPercent: '11.2179487179',
+        additionalHoursUpliftEvidence: 'SYNTHETIC_TEST_ONLY_POLICY',
+        additionalHoursUpliftSourceVersion: 'SYNTHETIC_TEST_ONLY_EXTRA_HOURS_UPLIFT',
+        calculationPolicy: {
+          status: 'SYNTHETIC_TEST_APPROVED',
+          version: 'PFZW-2026-MONTHLY-ALLOCATION-TEST-APPROVED-1',
+          sourceReference: expect.stringContaining('SYNTHETIC_TEST_POLICY:PAY-RULE-002;'),
+        },
+      },
+    })
+  })
+
+  it('blocks PFZW when the assignment does not point to the effective mapping version', () => {
+    const result = projectPayrun01SourceSnapshot(sourceSnapshot({
+      includeCorePfzwPension: true,
+      mappingReferenceMismatch: true,
+    }), projectionConfig({ requireCorePension: true }))
+
+    expect(result.controls.pensionRuleReady).toBe(false)
+    expect(result.snapshot.canonicalSource).toMatchObject({
+      payrollOwned: {
+        pension: { status: 'BLOCKED', reasonCode: 'PENSION_PARTICIPATION_PROVENANCE_GAP' },
+      },
+    })
+  })
+
+  it('keeps the PFZW source gap as a warning boundary while excluding pension amounts from the functional calculation', () => {
+    const result = projectPayrun01SourceSnapshot(sourceSnapshot(), {
+      ...projectionConfig(),
+      pension: { mode: 'EXCLUDED_SOURCE_GAP', reasonCode: 'PFZW_2026_MONTHLY_ALLOCATION_UNVERIFIED' },
+    })
+
+    expect(result.controls.pensionRuleReady).toBe(false)
+    expect(result.blockers).not.toContain('PFZW_2026_MONTHLY_ALLOCATION_UNVERIFIED')
+    expect(result.snapshot.canonicalSource).toMatchObject({
+      payrollOwned: {
+        pension: { status: 'EXCLUDED_SOURCE_GAP', reasonCode: 'PFZW_2026_MONTHLY_ALLOCATION_UNVERIFIED' },
+        amounts: {},
+      },
+    })
   })
 
   it('keeps projected hashes stable across retry time while preserving the projection timestamp as provenance', () => {
@@ -286,21 +626,42 @@ describe('PAYRUN01 Payroll-owned source projection', () => {
     expect(JSON.stringify(retried.snapshot.canonicalSource)).not.toContain('projectedAt')
   })
 
-  it('passes confirmed cash compensation to the engine without calculating its amount here', () => {
-    const result = projectPayrun01SourceSnapshot(sourceSnapshot(), projectionConfig({ additionalCompensation: 'CASH_AT_ORDINARY_RATE', additionalCashAmount: '37.94' }))
+  it('passes approved ordinary-rate hours to the engine so it calculates the cash amount', () => {
+    const result = projectPayrun01SourceSnapshot(sourceSnapshot(), projectionConfig({ additionalCompensation: 'CASH_AT_ORDINARY_RATE' }))
 
     expect(amount(result.snapshot)).toBeNull()
     expect(result.controls.additionalHoursSupported).toBe(true)
     expect(result.snapshot.canonicalSource).toMatchObject({
       payrollOwned: {
-        additionalHoursCashAmount: '37.94',
         actualWorkProjection: {
           additionalHours: '2.0000',
+          cashCompensatedHours: '2.0000',
           additionalCompensationMode: 'CASH_AT_ORDINARY_RATE',
           normalHoursPaidSeparately: false,
         },
       },
     })
+  })
+
+  it('requires exactly eight approved hours when the fixture pins one additional-hour event', () => {
+    const exactSource = sourceSnapshot({ additionalHours: '8.0000' })
+    const exact = projectPayrun01SourceSnapshot(exactSource, projectionConfig({
+      additionalCompensation: 'CASH_AT_ORDINARY_RATE',
+      expectedAdditionalHours: 8,
+      expectedAdditionalEntryCount: 1,
+    }))
+    const mismatched = projectPayrun01SourceSnapshot(sourceSnapshot(), projectionConfig({
+      additionalCompensation: 'CASH_AT_ORDINARY_RATE',
+      expectedAdditionalHours: 8,
+      expectedAdditionalEntryCount: 1,
+    }))
+
+    expect(exact.controls.additionalHoursSupported).toBe(true)
+    expect(exact.snapshot.canonicalSource).toMatchObject({
+      payrollOwned: { actualWorkProjection: { additionalHours: '8.0000', cashCompensatedHours: '8.0000' } },
+    })
+    expect(mismatched.controls.additionalHoursSupported).toBe(false)
+    expect(mismatched.blockers).toContain('PAYRUN01_ADDITIONAL_HOURS_FIXTURE_MISMATCH')
   })
 
   it('blocks positive additional hours when the scenario has no compensation agreement', () => {
@@ -322,6 +683,7 @@ describe('PAYRUN01 Payroll-owned source projection', () => {
       payrollOwned: {
         actualWorkProjection: {
           additionalHours: '2.0000',
+          cashCompensatedHours: '0.0000',
           additionalCompensationMode: 'TIME_OFF',
           normalHoursPaidSeparately: false,
         },

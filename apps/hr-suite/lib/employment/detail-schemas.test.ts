@@ -10,8 +10,12 @@ describe('timelineMutationSchema', () => {
   it('valideert arbeidsvoorwaarden, rooster en salaris per domein', () => {
     expect(timelineMutationSchema.safeParse({
       timeline: 'LABOR_CONDITIONS', effectiveOn: '2026-08-01', reason: 'Nieuwe CAO',
-      payload: { conditionGroup: 'CAO Metalektro' },
+      payload: { laborConditionSetId: crypto.randomUUID() },
     }).success).toBe(true)
+    expect(timelineMutationSchema.safeParse({
+      timeline: 'LABOR_CONDITIONS', effectiveOn: '2026-08-01', reason: 'Nieuwe CAO',
+      payload: { conditionGroup: 'CAO Metalektro' },
+    }).success).toBe(false)
     expect(timelineMutationSchema.safeParse({
       timeline: 'SCHEDULE', effectiveOn: '2026-08-01', reason: 'Meer uren',
       payload: { scheduleType: 'HOURS_AND_SPECIFIC_DAYS', averageDaysPerWeek: 4,
@@ -53,8 +57,8 @@ describe('combinedTimelineMutationSchema', () => {
     expect(combinedTimelineMutationSchema.safeParse({
       effectiveOn: '2026-08-01', reason: 'Dubbel',
       mutations: [
-        { timeline: 'LABOR_CONDITIONS', payload: { conditionGroup: 'A' } },
-        { timeline: 'LABOR_CONDITIONS', payload: { conditionGroup: 'B' } },
+        { timeline: 'LABOR_CONDITIONS', payload: { laborConditionSetId: crypto.randomUUID() } },
+        { timeline: 'LABOR_CONDITIONS', payload: { laborConditionSetId: crypto.randomUUID() } },
       ],
       warningCodes: [], acknowledgements: {},
     }).success).toBe(false)
@@ -64,7 +68,7 @@ describe('combinedTimelineMutationSchema', () => {
     expect(combinedTimelineMutationSchema.safeParse({
       effectiveOn: '2026-08-01', reason: 'Onvolledige verdeling',
       mutations: [
-        { timeline: 'LABOR_CONDITIONS', payload: { conditionGroup: 'CAO Metalektro' } },
+        { timeline: 'LABOR_CONDITIONS', payload: { laborConditionSetId: crypto.randomUUID() } },
         { timeline: 'COST_ALLOCATION', payload: { allocations: [{ costCenterId: crypto.randomUUID(), percentage: 90 }] } },
       ],
       warningCodes: [], acknowledgements: {},

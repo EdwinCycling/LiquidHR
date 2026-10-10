@@ -5,10 +5,10 @@ Momentopname: 2026-10-10 (release-evidence hieronder blijft historisch gedateerd
 
 ## ONE VERSION convergence candidate — 2026-10-10
 
-**Status: code lokaal geïntegreerd; acceptatie nog open; geen merge naar main of deployment.** De geïsoleerde kandidaat vanaf main `783999044de83c902e63fefb3587fdbbf99d4de3` bevat CONTROL02-cleanup PR #12, APIAI-08 PR #11 en Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9`. De geparkeerde Nmbrs/externe Payroll-branch `work/payroll-p0-p1` blijft onaangeraakt.
+**Status: code lokaal geïntegreerd; acceptatie nog open; geen merge naar main of deployment.** De geïsoleerde kandidaat vanaf main `783999044de83c902e63fefb3587fdbbf99d4de3` bevat CONTROL02-cleanup PR #12, APIAI-08 PR #11, Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9` en PAY-RULE-002-code. De geparkeerde Nmbrs/externe Payroll-branch `work/payroll-p0-p1` blijft onaangeraakt.
 
-- APIAI-08 TEST-migratie is al geregistreerd als `20261010064331_apiai08_employee_ess_controlled_actions`; lokale migratienaam moet worden afgestemd zonder SQL opnieuw toe te passen. De 0-versus-96 uur verlofsaldoafwijking en hosted ESS/audit/runtime-acceptatie blijven open.
-- PAY-RULE-002 code heeft eerdere lokale engineeringgates gehaald, maar de Frits-assignment/mapping en persistente successor-runs zijn niet aangemaakt. De centrale TEST-runtime en geschikte bestaande synthetic TEST-identiteit waren bij de laatste gecontroleerde run niet beschikbaar.
+- APIAI-08 TEST-migratie en lokale bestandsnaam zijn gelijk: `20261010064331_apiai08_employee_ess_controlled_actions`; SQL is niet opnieuw toegepast. De 0-versus-96 uur verlofsaldoafwijking en hosted ESS/audit/runtime-acceptatie blijven open.
+- PAY-RULE-002 workflowmigraties zijn op synthetic TEST geregistreerd als `20261010130013` en `20261010130140`. Bestaande mapping-/assignmentrijen zijn versiegegeven; de Frits-assignment en persistente successor-runs blijven niet aangemaakt.
 - Main-versie blijft `1.20261002.1` totdat de gebundelde acceptatie slaagt. De synthetic TEST-deployment, GitHub-main-merge en expliciete artefactcleanup zijn nog niet uitgevoerd.
 
 > **Actueel:** CONVERGENCE01 is als TEST-release vrijgegeven op 2026-10-02. Dit is **geen** claim dat de volledige live security-/persona-acceptatiematrix GREEN is.

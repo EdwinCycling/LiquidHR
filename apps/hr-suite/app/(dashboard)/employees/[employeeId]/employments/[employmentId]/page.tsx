@@ -475,6 +475,12 @@ export default async function EmploymentDetailPage({
         </ScrollableTabs>
       </nav>
 
+      <div className="mt-4">
+        <Link prefetch={false} className={buttonClasses({ variant: "secondary" })} href={`/employees/${employeeId}/employments/${employmentId}/pension`}>
+          {t("pensionManage")}
+        </Link>
+      </div>
+
       <div className="mt-6">
         {tab === "processes" && canReadProcesses && (
           <section className="space-y-5">
@@ -1015,6 +1021,7 @@ export default async function EmploymentDetailPage({
               latestEffectiveOn={detail.costAllocations[0]?.valid_from}
               costCenters={detail.options.costCenters}
               costCarriers={detail.options.costCarriers}
+              laborConditionSets={[...detail.options.laborConditionSets]}
               labels={mutationLabels}
             />
           </div>

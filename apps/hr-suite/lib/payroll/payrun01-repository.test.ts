@@ -202,7 +202,7 @@ describe('PAYRUN01 scoped repository', () => {
     const repository = createPayrun01Repository(fake.client)
 
     await expect(repository.getOrCreateAssignmentVersion(scope, payrollAdministrationId, assignmentInput()))
-      .rejects.toMatchObject({ code: 'PAYRUN01_VERSION_CONFLICT' })
+      .rejects.toMatchObject({ code: 'PAYRUN01_ASSIGNMENT_VERSION_CONFLICT' })
     expect(fake.rows.payroll_individual_arrangement_assignment_versions).toHaveLength(1)
   })
 
@@ -215,7 +215,7 @@ describe('PAYRUN01 scoped repository', () => {
       scope,
       payrollAdministrationId,
       compositionInput({ snapshot_json: { assignmentVersionId, composition: { pension: 'OTHER' } } }),
-    )).rejects.toMatchObject({ code: 'PAYRUN01_VERSION_CONFLICT' })
+    )).rejects.toMatchObject({ code: 'PAYRUN01_COMPOSITION_VERSION_CONFLICT' })
     expect(fake.rows.payroll_individual_arrangement_composition_snapshots).toHaveLength(1)
   })
 

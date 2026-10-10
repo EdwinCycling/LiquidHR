@@ -12,6 +12,8 @@ import {
   createPayrun01PayslipPdfArtifact,
   createPayrun01TechnicalJsonArtifact,
   finalizePayrun01Payroll,
+  payrun01PeriodFromKey,
+  payrun01PeriodKey,
   payrun01ScenarioForTestPersona,
   reviewPayrun01Payroll,
   runPayrun01Payroll,
@@ -19,13 +21,14 @@ import {
 
 const PAGE_PATH = '/payroll-lab/salarisverwerking'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const SCENARIO_KINDS = new Set<Payrun01CompositionKind>(['KINDEROPVANG_TEST', 'DEMO_COMPANY_TEST'])
+const SCENARIO_KINDS = new Set<Payrun01CompositionKind>(['KINDEROPVANG_TEST', 'DEMO_COMPANY_TEST', 'LEGACY_COMPANY_TEST'])
 
 class InvalidPayrun01FormError extends Error {}
 
 type Payrun01FormInput = {
   readonly employeeId: string
   readonly kind: Payrun01CompositionKind
+  readonly period: { readonly year: number; readonly month: number }
   readonly runId?: string
 }
 
@@ -45,15 +48,20 @@ function scalarField(formData: FormData, name: string, maximumLength: number): s
 }
 
 function parseForm(formData: FormData, includeRunId: boolean): Payrun01FormInput {
-  const expected = includeRunId ? ['employeeId', 'scenarioKind', 'runId'] : ['employeeId', 'scenarioKind']
+  const expected = includeRunId ? ['employeeId', 'scenarioKind', 'period', 'runId'] : ['employeeId', 'scenarioKind', 'period']
   if (!matchesExactFields(formData, expected)) throw new InvalidPayrun01FormError()
 
   const employeeId = scalarField(formData, 'employeeId', 36)
   const kind = scalarField(formData, 'scenarioKind', 32)
+  const periodKey = scalarField(formData, 'period', 7)
+  const period = SCENARIO_KINDS.has(kind as Payrun01CompositionKind)
+    ? payrun01PeriodFromKey(periodKey, kind as Payrun01CompositionKind)
+    : null
   const runId = includeRunId ? scalarField(formData, 'runId', 36) : undefined
   if (!UUID_PATTERN.test(employeeId)
     || !SCENARIO_KINDS.has(kind as Payrun01CompositionKind)
     || payrun01ScenarioForTestPersona(employeeId) !== kind
+    || !period
     || (runId !== undefined && !UUID_PATTERN.test(runId))) {
     throw new InvalidPayrun01FormError()
   }
@@ -61,6 +69,7 @@ function parseForm(formData: FormData, includeRunId: boolean): Payrun01FormInput
   return {
     employeeId,
     kind: kind as Payrun01CompositionKind,
+    period,
     ...(runId ? { runId } : {}),
   }
 }
@@ -88,15 +97,17 @@ function resultDestination(
   artifactType?: 'TECHNICAL_JSON' | 'PAYSLIP_PDF',
 ): string {
   if (!UUID_PATTERN.test(runId)) return `${PAGE_PATH}?error=failed`
-  const query = new URLSearchParams({ employee: input.employeeId, event, run: runId })
+  const query = new URLSearchParams({ employee: input.employeeId, event, run: runId, period: payrun01PeriodKey(input.period) })
   if (artifactType) query.set('artifact', artifactType)
   return `${PAGE_PATH}?${query.toString()}`
 }
 
 export async function runPayrun01Action(formData: FormData): Promise<never> {
   let destination = `${PAGE_PATH}?error=failed`
+  let parsedInput: Payrun01FormInput | null = null
   try {
     const input = parseForm(formData, false)
+    parsedInput = input
     const access = await requireComponentLibraryAccess(true)
     const result = await runPayrun01Payroll({
       scope: access.scope,
@@ -104,11 +115,29 @@ export async function runPayrun01Action(formData: FormData): Promise<never> {
       actorUserId: access.actorUserId,
       employeeId: input.employeeId,
       kind: input.kind,
+      period: input.period,
     })
     revalidatePath(PAGE_PATH)
     destination = resultDestination(input, 'run', result.runId)
   } catch (error) {
     destination = safeErrorDestination(error)
+    if (parsedInput && error instanceof SyntheticPayrollServiceError) {
+      const status = error.code === 'PAYROLL_CALCULATION_BLOCKED' ? 'blocked' : 'failed'
+      const reasonCandidate = error.reasonCode ?? error.code
+      const reason = /^(?:PAYROLL_SOURCE|PAYRUN01|PAYROLL)_[A-Z0-9_]+$/.test(reasonCandidate)
+        ? reasonCandidate
+        : null
+      if (error.runId && UUID_PATTERN.test(error.runId)) {
+        destination = `${resultDestination(parsedInput, 'run', error.runId)}&error=${status}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`
+      } else if (reason) {
+        const query = new URLSearchParams({
+          period: payrun01PeriodKey(parsedInput.period),
+          error: status,
+          reason,
+        })
+        destination = `${PAGE_PATH}?${query.toString()}`
+      }
+    }
   }
   redirect(destination)
 }

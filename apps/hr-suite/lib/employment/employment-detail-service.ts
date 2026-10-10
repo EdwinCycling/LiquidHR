@@ -15,9 +15,57 @@ import { isBlockingProbationValidation, validateProbation } from './probation-ru
 import type { CompanyLocationMutationInput } from './company-location-schemas'
 import { applySalaryApplicationChange as applySalaryApplicationRouteChange } from '@/lib/salary-application/service'
 import { resolveSalaryStructureIntersection } from '@/lib/salary-application/availability'
+import { getPensionArrangementEstablishedFrom, resolvePensionArrangementVersion } from './pension-arrangement-version'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
+type PensionArrangementSource = {
+  readonly id: string
+  readonly code: string
+  readonly name: string
+  readonly arrangement_type: string
+  readonly effective_from: string
+  readonly arrangement_established_from: string | null
+  readonly effective_to: string | null
+  readonly transition_date: string | null
+  readonly grandfathering_mode: string
+  readonly flat_total_rate: number | null
+  readonly employer_share_pct: number
+  readonly employee_share_pct: number
+  readonly annual_franchise: number
+  readonly annual_pensionable_salary_cap: number | null
+  readonly pensionable_salary_definition: Json
+  readonly eligibility_rule: Json
+  readonly contract_classification: 'SOLIDARITY' | 'NON_SOLIDARITY' | 'UNKNOWN'
+  readonly contract_classification_provenance: Json
+  readonly provenance_json: Json
+  readonly is_active: boolean
+  readonly version_id: string | null
+  readonly version_number: number | null
+  readonly version_created_at: string | null
+  readonly source_updated_at: string | null
+  readonly tiers: readonly {
+    readonly id: string
+    readonly min_age: number
+    readonly max_age: number
+    readonly total_rate: number
+    readonly created_at: string
+  }[]
+}
+type EmploymentMigrationRpcName =
+  | 'apply_employment_labor_condition_set_mutation'
+  | 'apply_combined_labor_condition_set_mutation'
+type EmploymentMigrationRpcClient = {
+  rpc: (functionName: EmploymentMigrationRpcName, args: Record<string, unknown>) => PromiseLike<{
+    data: string | null
+    error: { message: string } | null
+  }>
+}
+
+function employmentMigrationRpcClient(client: Awaited<ReturnType<typeof createClient>>): EmploymentMigrationRpcClient {
+  // The existing application-domain RPC signatures are narrower than generated Database metadata.
+  return client as unknown as EmploymentMigrationRpcClient
+}
 
 export class EmploymentDetailError extends Error {
   constructor(public readonly code: string, public readonly status: number) {
@@ -94,6 +142,386 @@ export async function getEmploymentIncomeRelationshipProjection(
       incomeRelationshipUpdatedAt: relationship.updated_at,
     }]
   })
+}
+
+export interface EmploymentPayrollSourceProjection {
+  readonly employment: Pick<Employment, 'id' | 'tenant_id' | 'hr_group_id' | 'administration_id' | 'employee_id' | 'starts_on' | 'ends_on' | 'record_status' | 'employment_type' | 'contract_type' | 'original_hire_date' | 'seniority_date' | 'updated_at' | 'deleted_at'>
+  readonly contracts: readonly {
+    readonly id: string
+    readonly labor_condition_set_id: string
+    readonly fulltime_hours_per_week: number
+    readonly starts_on: string
+    readonly ends_on: string | null
+    readonly updated_at: string
+  }[]
+  readonly laborConditions: readonly {
+    readonly id: string
+    readonly condition_group: string
+    readonly labor_condition_set_id: string | null
+    readonly valid_from: string
+    readonly valid_until: string | null
+    readonly updated_at: string
+    readonly set: {
+      readonly id: string
+      readonly code: string
+      readonly name: string
+      readonly standard_hours_per_week: number
+      readonly is_active: boolean
+      readonly valid_from: string
+      readonly updated_at: string
+    } | null
+  }[]
+  readonly organizations: readonly {
+    readonly id: string
+    readonly department_id: string
+    readonly job_id: string | null
+    readonly job_code: string | null
+    readonly job_title: string | null
+    readonly job_revision_valid_from: string | null
+    readonly job_revision_valid_until: string | null
+    readonly job_revision_updated_at: string | null
+    readonly effective_from: string
+    readonly effective_to: string | null
+    readonly updated_at: string
+  }[]
+  readonly salaries: readonly Pick<Tables['employment_salaries']['Row'],
+    'id' | 'salary_basis' | 'salary_route' | 'payment_type' | 'payment_frequency' | 'currency_code'
+    | 'fulltime_amount' | 'parttime_amount' | 'hourly_rate' | 'salary_structure_id' | 'salary_scale_id'
+    | 'salary_scale_step_id' | 'salary_step_code' | 'cao_scale_name' | 'cao_step_name' | 'salary_band_id'
+    | 'valid_from' | 'valid_until' | 'updated_at'>[]
+  readonly schedules: readonly Pick<Tables['employment_schedules']['Row'],
+    'id' | 'average_days_per_week' | 'average_hours_per_week' | 'fulltime_hours_per_week' | 'part_time_factor'
+    | 'schedule_type' | 'is_on_call' | 'start_week' | 'time_for_time_accrual' | 'monday_hours' | 'tuesday_hours'
+    | 'wednesday_hours' | 'thursday_hours' | 'friday_hours' | 'saturday_hours' | 'sunday_hours'
+    | 'valid_from' | 'valid_until' | 'updated_at'>[]
+  readonly pensionAssignments: readonly {
+    readonly id: string
+    readonly pension_arrangement_id: string
+    readonly effective_from: string
+    readonly effective_to: string | null
+    readonly participation_start_date: string
+    readonly assignment_reason: string
+    readonly provenance_json: Json
+    readonly updated_at: string
+    readonly version_number: number
+    readonly supersedes_assignment_id: string | null
+    readonly arrangement: PensionArrangementSource | null
+    readonly arrangement_resolution_reason: string | null
+    readonly arrangement_resolution_change_version_ids: readonly string[]
+    readonly age_for_tier: number | null
+  }[]
+  readonly laborConditionPensionArrangements: readonly {
+    readonly id: string
+    readonly labor_condition_set_id: string
+    readonly pension_arrangement_id: string
+    readonly participant_group: string
+    readonly effective_from: string
+    readonly effective_to: string | null
+    readonly provenance_json: Json
+    readonly version_number: number
+    readonly supersedes_mapping_id: string | null
+    readonly arrangement: PensionArrangementSource | null
+    readonly arrangement_resolution_reason: string | null
+    readonly arrangement_resolution_change_version_ids: readonly string[]
+  }[]
+}
+
+/** Bounded Payroll source projection. Progressive tier resolution reads only the DOB needed to derive age; raw DOB/contact data is never returned. */
+export async function getEmploymentPayrollSourceProjection(
+  employeeId: string,
+  employmentId: string,
+  payrollPeriod: { readonly year: number; readonly month: number },
+): Promise<EmploymentPayrollSourceProjection> {
+  const context = await requirePermission('salary:read', employeeId)
+  await Promise.all([
+    requirePermission('contract:read', employeeId),
+    requirePermission('organization-placement:read', employeeId),
+    requirePermission('job-catalog:read', employeeId),
+  ])
+  if (!context.administrationId || !context.hrGroupId) {
+    throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+  }
+
+  const supabase = await createClient()
+  const [employmentResult, contractResult, laborResult, organizationResult, salaryResult, scheduleResult, pensionAssignmentResult, laborPensionResult] = await Promise.all([
+    supabase.from('employments')
+      .select('id, tenant_id, hr_group_id, administration_id, employee_id, starts_on, ends_on, record_status, employment_type, contract_type, original_hire_date, seniority_date, updated_at, deleted_at')
+      .eq('id', employmentId).eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId)
+      .eq('administration_id', context.administrationId).eq('employee_id', employeeId).maybeSingle(),
+    supabase.from('employment_contracts')
+      .select('id, labor_condition_set_id, fulltime_hours_per_week, starts_on, ends_on, updated_at')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('employee_id', employeeId).eq('employment_id', employmentId).order('starts_on').limit(100),
+    supabase.from('employment_labor_conditions')
+      .select('id, employment_contract_id, condition_group, valid_from, valid_until, updated_at')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('employee_id', employeeId).eq('employment_id', employmentId).order('valid_from').limit(100),
+    supabase.from('employee_organizations')
+      .select('id, department_id, job_id, job_title, effective_from, effective_to, updated_at')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('employee_id', employeeId).eq('employment_id', employmentId).order('effective_from').limit(100),
+    supabase.from('employment_salaries')
+      .select('id, salary_basis, salary_route, payment_type, payment_frequency, currency_code, fulltime_amount, parttime_amount, hourly_rate, salary_structure_id, salary_scale_id, salary_scale_step_id, salary_step_code, cao_scale_name, cao_step_name, salary_band_id, valid_from, valid_until, updated_at')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('employee_id', employeeId).eq('employment_id', employmentId).order('valid_from').limit(100),
+    supabase.from('employment_schedules')
+      .select('id, average_days_per_week, average_hours_per_week, fulltime_hours_per_week, part_time_factor, schedule_type, is_on_call, start_week, time_for_time_accrual, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, sunday_hours, valid_from, valid_until, updated_at')
+      .eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId)
+      .eq('employee_id', employeeId).eq('employment_id', employmentId).order('valid_from').limit(100),
+    supabase.from('employment_pension_arrangement_assignments')
+      .select('id, pension_arrangement_id, effective_from, effective_to, participation_start_date, assignment_reason, provenance_json, updated_at, version_number, supersedes_assignment_id')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('employment_id', employmentId).order('effective_from').limit(100),
+    supabase.from('labor_condition_pension_arrangements')
+      .select('id, labor_condition_set_id, pension_arrangement_id, participant_group, effective_from, effective_to, provenance_json, version_number, supersedes_mapping_id')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .order('effective_from').limit(100),
+  ])
+  const failed = [employmentResult, contractResult, laborResult, organizationResult, salaryResult, scheduleResult, pensionAssignmentResult, laborPensionResult]
+    .find((result) => result.error)
+  if (failed?.error) throwDatabaseError(failed.error.message)
+  const employment = employmentResult.data
+  if (!employment || employment.deleted_at !== null) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+
+  const laborRows = laborResult.data ?? []
+  const contractRows = contractResult.data ?? []
+  const contractsById = new Map(contractRows.map((row) => [row.id, row]))
+  const laborSetIds = [...new Set(contractRows.flatMap((row) => row.labor_condition_set_id ? [row.labor_condition_set_id] : []))]
+  const jobIds = [...new Set((organizationResult.data ?? []).flatMap((row) => row.job_id ? [row.job_id] : []))]
+  const pensionArrangementIds = [...new Set([
+    ...(pensionAssignmentResult.data ?? []).map((row) => row.pension_arrangement_id),
+    ...(laborPensionResult.data ?? []).map((row) => row.pension_arrangement_id),
+  ])]
+  const payrollStart = `${payrollPeriod.year}-${String(payrollPeriod.month).padStart(2, '0')}-01`
+  const payrollEnd = new Date(Date.UTC(payrollPeriod.year, payrollPeriod.month, 0)).toISOString().slice(0, 10)
+  const [setsResult, jobsResult, revisionsResult, pensionArrangementsResult, pensionTiersResult,
+    pensionVersionsResult] = await Promise.all([
+    laborSetIds.length > 0
+      ? supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week, is_active, valid_from, updated_at')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId).in('id', laborSetIds)
+      : Promise.resolve({ data: [], error: null }),
+    jobIds.length > 0
+      ? supabase.from('jobs').select('id, code, updated_at')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).in('id', jobIds)
+      : Promise.resolve({ data: [], error: null }),
+    jobIds.length > 0
+      ? supabase.from('job_revisions').select('job_id, name, valid_from, valid_until, updated_at')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).in('job_id', jobIds).order('valid_from')
+      : Promise.resolve({ data: [], error: null }),
+    pensionArrangementIds.length > 0
+      ? supabase.from('pension_arrangements')
+        .select('id, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, provenance_json, is_active, updated_at')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+        .in('id', pensionArrangementIds)
+      : Promise.resolve({ data: [], error: null }),
+    pensionArrangementIds.length > 0
+      ? supabase.from('pension_arrangement_tiers')
+        .select('id, pension_arrangement_id, min_age, max_age, total_rate, created_at')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+        .in('pension_arrangement_id', pensionArrangementIds).order('min_age')
+      : Promise.resolve({ data: [], error: null }),
+    pensionArrangementIds.length > 0
+      ? supabase.from('pension_arrangement_versions')
+        .select('id, tenant_id, hr_group_id, administration_id, pension_arrangement_id, version_number, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, contract_classification, contract_classification_provenance, provenance_json, is_active, created_at')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+        .in('pension_arrangement_id', pensionArrangementIds).order('version_number')
+      : Promise.resolve({ data: [], error: null }),
+  ])
+  const pensionVersionIds = (pensionVersionsResult.data ?? []).map((version) => version.id)
+  const pensionVersionTiersLoaded = pensionVersionIds.length > 0
+    ? await supabase.from('pension_arrangement_version_tiers')
+      .select('id, tenant_id, hr_group_id, administration_id, pension_arrangement_id, pension_arrangement_version_id, min_age, max_age, total_rate, created_at')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .in('pension_arrangement_version_id', pensionVersionIds).order('min_age')
+    : { data: [], error: null }
+  const catalogFailure = [setsResult, jobsResult, revisionsResult, pensionArrangementsResult, pensionTiersResult,
+    pensionVersionsResult, pensionVersionTiersLoaded].find((result) => result.error)
+  if (catalogFailure?.error) throwDatabaseError(catalogFailure.error.message)
+  const setsById = new Map((setsResult.data ?? []).map((row) => [row.id, row]))
+  const jobsById = new Map((jobsResult.data ?? []).map((row) => [row.id, row]))
+  const tiersByArrangementId = new Map<string, Pick<Tables['pension_arrangement_tiers']['Row'], 'id' | 'min_age' | 'max_age' | 'total_rate' | 'created_at'>[]>()
+  for (const tier of pensionTiersResult.data ?? []) {
+    const tiers = tiersByArrangementId.get(tier.pension_arrangement_id) ?? []
+    tiers.push(tier)
+    tiersByArrangementId.set(tier.pension_arrangement_id, tiers)
+  }
+  const legacyArrangementsById = new Map((pensionArrangementsResult.data ?? []).map((row) => [row.id, {
+    ...row,
+    tiers: tiersByArrangementId.get(row.id) ?? [],
+  }]))
+  const versionTiersByVersionId = new Map<string, PensionArrangementSource['tiers'][number][]>()
+  for (const tier of pensionVersionTiersLoaded.data ?? []) {
+    const tiers = versionTiersByVersionId.get(tier.pension_arrangement_version_id) ?? []
+    tiers.push(tier)
+    versionTiersByVersionId.set(tier.pension_arrangement_version_id, tiers)
+  }
+  const pensionVersionsByArrangementId = new Map<string, typeof pensionVersionsResult.data>()
+  for (const version of pensionVersionsResult.data ?? []) {
+    const versions = pensionVersionsByArrangementId.get(version.pension_arrangement_id) ?? []
+    pensionVersionsByArrangementId.set(version.pension_arrangement_id, [...versions, version])
+  }
+  const resolveArrangement = (arrangementId: string): {
+    readonly arrangement: PensionArrangementSource | null
+    readonly reasonCode: string | null
+    readonly changeVersionIds: readonly string[]
+  } => {
+    const versions = pensionVersionsByArrangementId.get(arrangementId) ?? []
+    if (versions.length === 0) {
+      const legacy = legacyArrangementsById.get(arrangementId)
+      return {
+        arrangement: legacy ? {
+          ...legacy,
+          arrangement_established_from: legacy.effective_from,
+          contract_classification: 'UNKNOWN',
+          contract_classification_provenance: { status: 'UNVERIFIED' },
+          version_id: null,
+          version_number: null,
+          version_created_at: null,
+          source_updated_at: legacy.updated_at,
+        } : null,
+        reasonCode: null,
+        changeVersionIds: [],
+      }
+    }
+    const resolution = resolvePensionArrangementVersion(versions, arrangementId, payrollStart, payrollEnd)
+    const selected = resolution.selected
+    return {
+      arrangement: selected ? {
+        id: selected.pension_arrangement_id,
+        code: selected.code,
+        name: selected.name,
+        arrangement_type: selected.arrangement_type,
+        effective_from: selected.effective_from,
+        arrangement_established_from: getPensionArrangementEstablishedFrom(versions, arrangementId),
+        effective_to: selected.effective_to,
+        transition_date: selected.transition_date,
+        grandfathering_mode: selected.grandfathering_mode,
+        flat_total_rate: selected.flat_total_rate,
+        employer_share_pct: selected.employer_share_pct,
+        employee_share_pct: selected.employee_share_pct,
+        annual_franchise: selected.annual_franchise,
+        annual_pensionable_salary_cap: selected.annual_pensionable_salary_cap,
+        pensionable_salary_definition: selected.pensionable_salary_definition,
+        eligibility_rule: selected.eligibility_rule,
+        contract_classification: selected.contract_classification as PensionArrangementSource['contract_classification'],
+        contract_classification_provenance: selected.contract_classification_provenance,
+        provenance_json: selected.provenance_json,
+        is_active: selected.is_active,
+        version_id: selected.id,
+        version_number: selected.version_number,
+        version_created_at: selected.created_at,
+        source_updated_at: null,
+        tiers: versionTiersByVersionId.get(selected.id) ?? [],
+      } : null,
+      reasonCode: resolution.reasonCode,
+      changeVersionIds: resolution.changeVersionIds,
+    }
+  }
+  const activePensionAssignments = (pensionAssignmentResult.data ?? []).filter((row) =>
+    row.effective_from <= payrollEnd && (row.effective_to === null || row.effective_to >= payrollStart),
+  )
+  const activeAssignmentArrangements = activePensionAssignments.map((row) => resolveArrangement(row.pension_arrangement_id))
+  const progressiveActive = activeAssignmentArrangements.some((resolved) =>
+    resolved.reasonCode === null && resolved.arrangement?.arrangement_type === 'PROGRESSIVE_PREMIUM',
+  )
+  let birthDate: string | null = null
+  if (progressiveActive) {
+    const identityContext = await requirePermission('employee:read', employeeId)
+    if (identityContext.tenantId !== context.tenantId || identityContext.hrGroupId !== context.hrGroupId
+      || identityContext.administrationId !== context.administrationId) {
+      throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+    }
+    const birthDateResult = await supabase.from('employees').select('birth_date')
+      .eq('id', employeeId).eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId)
+      .is('deleted_at', null).maybeSingle()
+    if (birthDateResult.error) throwDatabaseError(birthDateResult.error.message)
+    birthDate = birthDateResult.data?.birth_date ?? null
+  }
+  const ageAt = (date: string): number | null => {
+    if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null
+    const [birthYear, birthMonth, birthDay] = birthDate.split('-').map(Number)
+    const [year, month, day] = date.split('-').map(Number)
+    if (birthYear === undefined || birthMonth === undefined || birthDay === undefined
+      || year === undefined || month === undefined || day === undefined) return null
+    const onOrBeforeBirthday = month > birthMonth || (month === birthMonth && day >= birthDay)
+    return year - birthYear - (onOrBeforeBirthday ? 0 : 1)
+  }
+  const pensionAge = (arrangement: {
+    readonly arrangement_type: string
+    readonly eligibility_rule: Json
+    readonly pensionable_salary_definition: Json
+  }): number | null => {
+    if (arrangement.arrangement_type !== 'PROGRESSIVE_PREMIUM' || !birthDate) return null
+    const eligibility = arrangement.eligibility_rule
+    const salaryDefinition = arrangement.pensionable_salary_definition
+    const eligibilityAgeDetermination = typeof eligibility === 'object' && eligibility !== null && !Array.isArray(eligibility)
+      ? eligibility.ageDetermination
+      : undefined
+    const salaryAgeDetermination = typeof salaryDefinition === 'object' && salaryDefinition !== null && !Array.isArray(salaryDefinition)
+      ? salaryDefinition.ageDetermination
+      : undefined
+    const ageDetermination = salaryAgeDetermination ?? eligibilityAgeDetermination
+    if (ageDetermination === 'AGE_AT_END_OF_CALENDAR_YEAR') return ageAt(`${payrollPeriod.year}-12-31`)
+    if (ageDetermination === 'AGE_AT_PERIOD_END') return ageAt(payrollEnd)
+    return null
+  }
+  const pensionAssignments = (pensionAssignmentResult.data ?? []).map((row) => {
+    const resolved = resolveArrangement(row.pension_arrangement_id)
+    const arrangement = resolved.arrangement
+    return {
+      ...row,
+      arrangement,
+      arrangement_resolution_reason: resolved.reasonCode,
+      arrangement_resolution_change_version_ids: resolved.changeVersionIds,
+      age_for_tier: arrangement ? pensionAge(arrangement) : null,
+    }
+  })
+  const laborConditionPensionArrangements = (laborPensionResult.data ?? []).map((row) => {
+    const resolved = resolveArrangement(row.pension_arrangement_id)
+    return {
+      ...row,
+      arrangement: resolved.arrangement,
+      arrangement_resolution_reason: resolved.reasonCode,
+      arrangement_resolution_change_version_ids: resolved.changeVersionIds,
+    }
+  })
+  const laborConditions = laborRows.map((row) => {
+    const linkedContract = row.employment_contract_id ? contractsById.get(row.employment_contract_id) : null
+    const laborConditionSetId = linkedContract?.labor_condition_set_id ?? null
+    return {
+      id: row.id,
+      condition_group: row.condition_group,
+      labor_condition_set_id: laborConditionSetId,
+      valid_from: row.valid_from,
+      valid_until: row.valid_until,
+      updated_at: row.updated_at,
+      set: laborConditionSetId ? setsById.get(laborConditionSetId) ?? null : null,
+    }
+  })
+
+  return {
+    employment,
+    contracts: contractRows,
+    laborConditions,
+    organizations: (organizationResult.data ?? []).map((row) => {
+      const revision = (revisionsResult.data ?? []).filter((item) => item.job_id === row.job_id
+        && item.valid_from <= row.effective_from && (item.valid_until === null || item.valid_until > row.effective_from))
+        .sort((left, right) => right.valid_from.localeCompare(left.valid_from))[0]
+      const job = row.job_id ? jobsById.get(row.job_id) : null
+      return {
+        ...row,
+        job_code: job?.code ?? null,
+        job_title: revision?.name ?? row.job_title,
+        job_revision_valid_from: revision?.valid_from ?? null,
+        job_revision_valid_until: revision?.valid_until ?? null,
+        job_revision_updated_at: revision?.updated_at ?? null,
+      }
+    }),
+    salaries: salaryResult.data ?? [],
+    schedules: scheduleResult.data ?? [],
+    pensionAssignments,
+    laborConditionPensionArrangements,
+  }
 }
 
 async function validateSelectedContract(
@@ -493,8 +921,11 @@ export async function getEmploymentDetail(
 
 export async function applyTimelineMutation(employmentId: string, input: TimelineMutationInput): Promise<string> {
   const permission = input.timeline === 'SALARY' ? 'salary:write' : 'contract:write'
-  await loadEmploymentForAction(employmentId, permission)
+  const employment = await loadEmploymentForAction(employmentId, permission)
   await validateSelectedContract(employmentId, input.contractId, input.effectiveOn)
+  if (input.timeline === 'LABOR_CONDITIONS') {
+    await validateLaborConditionSetSelection(employment, input.payload.laborConditionSetId, input.effectiveOn)
+  }
   if (input.timeline === 'SALARY' && input.payload.salaryRoute) {
     const result = await applySalaryApplicationRouteChange({
       employmentId,
@@ -516,7 +947,16 @@ export async function applyTimelineMutation(employmentId: string, input: Timelin
       requested_warning_codes: input.warningCodes,
       requested_acknowledgements: input.acknowledgements as Json,
     })
-    : await supabase.rpc('apply_employment_timeline_mutation', {
+    : input.timeline === 'LABOR_CONDITIONS'
+      ? await employmentMigrationRpcClient(supabase).rpc('apply_employment_labor_condition_set_mutation', {
+        requested_employment_id: employmentId,
+        requested_effective_on: input.effectiveOn,
+        requested_payload: input.payload as Json,
+        requested_reason: input.reason,
+        requested_warning_codes: input.warningCodes,
+        requested_acknowledgements: input.acknowledgements as Json,
+      })
+      : await supabase.rpc('apply_employment_timeline_mutation', {
       requested_employment_id: employmentId,
       requested_timeline: input.timeline,
       requested_effective_on: input.effectiveOn,
@@ -534,13 +974,17 @@ export async function applyCombinedTimelineMutation(
   input: CombinedTimelineMutationInput,
 ): Promise<string> {
   const requiresSalaryWrite = input.mutations.some((mutation) => mutation.timeline === 'SALARY')
-  await loadEmploymentForAction(employmentId, 'contract:write')
+  const employment = await loadEmploymentForAction(employmentId, 'contract:write')
   if (requiresSalaryWrite) await loadEmploymentForAction(employmentId, 'salary:write')
   await validateSelectedContract(employmentId, input.contractId, input.effectiveOn)
+  const laborMutation = input.mutations.find((mutation) => mutation.timeline === 'LABOR_CONDITIONS')
+  if (laborMutation?.timeline === 'LABOR_CONDITIONS') {
+    await validateLaborConditionSetSelection(employment, laborMutation.payload.laborConditionSetId, input.effectiveOn)
+  }
   const supabase = await createClient()
   const usesSalaryApplicationRoute = input.mutations.some((mutation) => mutation.timeline === 'SALARY' && Boolean(mutation.payload.salaryRoute))
-  const { data, error } = usesSalaryApplicationRoute
-    ? await supabase.rpc('apply_combined_salary_application_change', {
+  const { data, error } = laborMutation
+    ? await employmentMigrationRpcClient(supabase).rpc('apply_combined_labor_condition_set_mutation', {
       requested_employment_id: employmentId,
       requested_effective_on: input.effectiveOn,
       requested_mutations: input.mutations as Json,
@@ -548,7 +992,16 @@ export async function applyCombinedTimelineMutation(
       requested_warning_codes: input.warningCodes,
       requested_acknowledgements: input.acknowledgements as Json,
     })
-    : await supabase.rpc('apply_combined_employment_timeline_mutation', {
+    : usesSalaryApplicationRoute
+      ? await supabase.rpc('apply_combined_salary_application_change', {
+        requested_employment_id: employmentId,
+        requested_effective_on: input.effectiveOn,
+        requested_mutations: input.mutations as Json,
+        requested_reason: input.reason,
+        requested_warning_codes: input.warningCodes,
+        requested_acknowledgements: input.acknowledgements as Json,
+      })
+      : await supabase.rpc('apply_combined_employment_timeline_mutation', {
       requested_employment_id: employmentId,
       requested_effective_on: input.effectiveOn,
       requested_mutations: input.mutations as Json,
@@ -560,6 +1013,25 @@ export async function applyCombinedTimelineMutation(
   return data
 }
 
+async function validateLaborConditionSetSelection(
+  employment: Employment,
+  laborConditionSetId: string,
+  effectiveOn: string,
+): Promise<void> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('labor_condition_sets')
+    .select('id')
+    .eq('id', laborConditionSetId)
+    .eq('tenant_id', employment.tenant_id)
+    .eq('administration_id', employment.administration_id)
+    .eq('hr_group_id', employment.hr_group_id)
+    .eq('is_active', true)
+    .lte('valid_from', effectiveOn)
+    .maybeSingle()
+  if (error) throwDatabaseError(error.message)
+  if (!data) throw new EmploymentDetailError('LABOR_CONDITION_SET_SCOPE_MISMATCH', 400)
+}
+
 export async function manageEmploymentContract(
   employmentId: string,
   contractId: string | null,
@@ -569,10 +1041,12 @@ export async function manageEmploymentContract(
   const supabase = await createClient()
   const { data: laborCondition, error: laborConditionError } = await supabase
     .from('labor_condition_sets')
-    .select('*')
+    .select('id, probation_maximum_months')
     .eq('tenant_id', employment.tenant_id)
     .eq('administration_id', employment.administration_id)
+    .eq('hr_group_id', employment.hr_group_id)
     .eq('id', input.laborConditionSetId)
+    .lte('valid_from', input.startsOn)
     .maybeSingle()
   if (laborConditionError || !laborCondition) throw new EmploymentDetailError('LABOR_CONDITION_NOT_FOUND', 400)
   const probationError = validateProbation({

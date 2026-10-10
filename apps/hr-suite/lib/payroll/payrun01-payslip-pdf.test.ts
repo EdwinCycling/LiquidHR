@@ -63,6 +63,26 @@ describe('PAYRUN01 persisted TEST payslip PDF', () => {
     expect(() => renderPayrun01PayslipHtml(incomplete)).toThrow('PAYRUN01_PAYSLIP_RESULT_INCOMPLETE')
   })
 
+  it('excludes unresolved PFZW amounts and labels the net and employer total as provisional', () => {
+    const janInput: Payrun01PayslipPdfInput = {
+      ...input,
+      profile: { ...input.profile, pensionTreatment: 'EXCLUDED_SOURCE_GAP' },
+      components: [
+        ...input.components.filter((row) => row.key !== 'employee_pension' && row.key !== 'employer_pension'),
+        { key: 'employee_pension', amount: '0.00' },
+        { key: 'employer_pension', amount: '0.00' },
+      ],
+    }
+
+    const html = renderPayrun01PayslipHtml(janInput)
+
+    expect(html).toContain('PFZW is van toepassing op deze synthetische TEST-situatie, maar de maandpremie is niet berekend.')
+    expect(html).toContain('Netto vóór niet-berekende PFZW-premie')
+    expect(html).toContain('Totale werkgeverskosten vóór PFZW')
+    expect(html).not.toContain('Pensioenpremie werknemer')
+    expect(html).not.toContain('Werkgeverspremie pensioen')
+  })
+
   it('renders valid PDF bytes from the stored-result presentation', async () => {
     const bytes = await renderPayrun01PayslipPdf(input)
 

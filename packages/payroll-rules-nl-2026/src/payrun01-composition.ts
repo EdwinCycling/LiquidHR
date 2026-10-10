@@ -10,18 +10,24 @@ import {
 } from '@liquid-hr/payroll-engine'
 import { NL_2026_PACKAGE_ID, NL_2026_PACKAGE_VERSION, NL_2026_RULE_PACKAGE, NL_2026_RULE_REGISTRY } from './package-definition'
 
-export type Payrun01CompositionKind = 'KINDEROPVANG_TEST' | 'DEMO_COMPANY_TEST'
+export type Payrun01CompositionKind = 'KINDEROPVANG_TEST' | 'DEMO_COMPANY_TEST' | 'LEGACY_COMPANY_TEST'
+
+export interface Payrun01RulePackageOptions {
+  readonly pensionCalculation?: 'INCLUDED' | 'EXCLUDED'
+  readonly pensionCompliance?: 'VERIFIED' | 'TEST_ONLY_UNVERIFIED'
+}
 
 function source(
   code: string,
   outputName: string,
   valueType: PayrollComponentDefinition['outputs'][number]['valueType'],
   path: readonly (string | number)[],
+  version = '2026.1',
 ): PayrollComponentDefinition {
   return {
     id: `system:payrun01:${code.toLowerCase()}`,
     code,
-    version: '2026.1',
+    version,
     effectiveFrom: '2026-01-01',
     effectiveTo: '2026-12-31',
     ownership: { kind: 'SYSTEM' },
@@ -42,6 +48,11 @@ const contractualSalarySource = 'CAO Kinderopvang 2025-2026, article 4.2: part-t
 const contractualSalarySourceHash = sha256(stableSerialize({
   reference: contractualSalarySource,
   url: 'https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/aantal-uren',
+}))
+const additionalHoursCashSource = 'PAYRUN01 TEST scenario formula: full-time monthly salary multiplied by 12 and cash-compensated approved hours, divided by full-time weekly hours multiplied by 52.2; round the period total HALF_UP to cents.'
+const additionalHoursCashSourceHash = sha256(stableSerialize({
+  reference: additionalHoursCashSource,
+  formula: 'fullTimeMonthlySalary * 12 * cashCompensatedHours / (fulltimeHoursPerWeek * 52.2)',
 }))
 
 const contractualSalaryRounding: PayrollRoundingDefinition = {
@@ -105,11 +116,12 @@ function moneyComponent(
   inputs: readonly PayrollComponentInputDefinition[],
   dependencies: PayrollComponentDefinition['dependencies'],
   expression: PayrollExpression,
+  version = '2026.1',
 ): PayrollComponentDefinition {
   return {
     id: `system:payrun01:${code.toLowerCase()}`,
     code,
-    version: '2026.1',
+    version,
     effectiveFrom: '2026-01-01',
     effectiveTo: '2026-12-31',
     ownership: { kind: 'SYSTEM' },
@@ -122,19 +134,20 @@ function moneyComponent(
   }
 }
 
-function percentCost(code: string, rateCode: string): PayrollComponentDefinition {
+function percentCost(code: string, rateCode: string, assessmentBaseCode: string): PayrollComponentDefinition {
   return moneyComponent(
     code,
     'amount',
     [
-      { name: 'gross', valueType: 'MONEY', required: true },
+      { name: 'assessmentBase', valueType: 'MONEY', required: true },
       { name: 'rate', valueType: 'PERCENTAGE', required: true },
     ],
     [
-      { componentCode: 'NL_REGULAR_WAGE', outputName: 'grossSalary', inputName: 'gross' },
+      { componentCode: assessmentBaseCode, outputName: 'amount', inputName: 'assessmentBase' },
       { componentCode: rateCode, outputName: 'rate', inputName: 'rate' },
     ],
-    { kind: 'binary', operator: '*', left: output('NL_REGULAR_WAGE', 'grossSalary'), right: output(rateCode, 'rate') },
+    { kind: 'binary', operator: '*', left: output(assessmentBaseCode, 'amount'), right: output(rateCode, 'rate') },
+    '2026.2',
   )
 }
 
@@ -142,9 +155,12 @@ const valueSources = [
   source('PAYRUN01_FULLTIME_MONTHLY', 'amount', 'MONEY', ['regularWage', 'fulltimeMonthlyAmount']),
   source('PAYRUN01_CONTRACT_HOURS', 'hours', 'DECIMAL', ['regularWage', 'contractHoursPerWeek']),
   source('PAYRUN01_FULLTIME_HOURS', 'hours', 'DECIMAL', ['regularWage', 'fulltimeHoursPerWeek']),
-  source('PAYRUN01_ADDITIONAL_CASH_AMOUNT', 'amount', 'MONEY', ['payrollOwned', 'additionalHoursCashAmount']),
+  source('PAYRUN01_ADDITIONAL_CASH_HOURS', 'hours', 'DECIMAL', ['payrollOwned', 'actualWorkProjection', 'cashCompensatedHours']),
   source('PAYRUN01_EMPLOYEE_PENSION', 'amount', 'MONEY', ['payrollOwned', 'amounts', 'employeePension']),
   source('PAYRUN01_EMPLOYER_PENSION', 'amount', 'MONEY', ['payrollOwned', 'amounts', 'employerPension']),
+  source('PAYRUN01_WAGE_TAX_BASE', 'amount', 'MONEY', ['payrollOwned', 'fiscalBases', 'wageTax'], '2026.2'),
+  source('PAYRUN01_EMPLOYEE_INSURANCE_BASE', 'amount', 'MONEY', ['payrollOwned', 'fiscalBases', 'employeeInsurance'], '2026.2'),
+  source('PAYRUN01_ZVW_BASE', 'amount', 'MONEY', ['payrollOwned', 'fiscalBases', 'zvw'], '2026.2'),
   source('PAYRUN01_AWF_RATE', 'rate', 'PERCENTAGE', ['payrollOwned', 'employerRates', 'awf']),
   source('PAYRUN01_AOF_RATE', 'rate', 'PERCENTAGE', ['payrollOwned', 'employerRates', 'aof']),
   source('PAYRUN01_WKO_RATE', 'rate', 'PERCENTAGE', ['payrollOwned', 'employerRates', 'wko']),
@@ -170,6 +186,65 @@ const valueSources = [
   source('PAYRUN01_HOLIDAY_YTD_BASE', 'amount', 'MONEY', ['payrollOwned', 'cumulatives', 'holidayReserveBeforePeriod']),
   source('PAYRUN01_YEAR_END_YTD_BASE', 'amount', 'MONEY', ['payrollOwned', 'cumulatives', 'yearEndReserveBeforePeriod']),
 ] as const
+
+const additionalHoursCashRounding: PayrollRoundingDefinition = {
+  id: 'payrun01-additional-hours-total-cents-2026.1',
+  componentCode: 'PAYRUN01_ADDITIONAL_CASH_AMOUNT',
+  stage: 'ADDITIONAL_HOURS_TOTAL',
+  ruleVersion: '2026.1',
+  packageId: NL_2026_PACKAGE_ID,
+  packageVersion: NL_2026_PACKAGE_VERSION,
+  mode: 'ARITHMETIC',
+  decimalPlaces: 2,
+  effectiveFrom: '2026-01-01',
+  effectiveTo: '2026-12-31',
+  provenance: { sourceReference: additionalHoursCashSource, sourceHash: additionalHoursCashSourceHash },
+}
+
+const additionalHoursCashAmount: PayrollComponentDefinition = {
+  id: 'system:payrun01:additional-hours-cash-amount',
+  code: 'PAYRUN01_ADDITIONAL_CASH_AMOUNT',
+  version: '2026.1',
+  effectiveFrom: '2026-01-01',
+  effectiveTo: '2026-12-31',
+  ownership: { kind: 'SYSTEM' },
+  processingScope: 'INCOME_RELATIONSHIP',
+  inputs: [
+    { name: 'fullTimeMonthlySalary', valueType: 'MONEY', required: true },
+    { name: 'fulltimeHoursPerWeek', valueType: 'DECIMAL', required: true },
+    { name: 'cashCompensatedHours', valueType: 'DECIMAL', required: true },
+  ],
+  outputs: [{ name: 'amount', valueType: 'MONEY', rounding: { scale: 2, mode: 'HALF_UP' } }],
+  dependencies: [
+    { componentCode: 'PAYRUN01_FULLTIME_MONTHLY', outputName: 'amount', inputName: 'fullTimeMonthlySalary' },
+    { componentCode: 'PAYRUN01_FULLTIME_HOURS', outputName: 'hours', inputName: 'fulltimeHoursPerWeek' },
+    { componentCode: 'PAYRUN01_ADDITIONAL_CASH_HOURS', outputName: 'hours', inputName: 'cashCompensatedHours' },
+  ],
+  method: {
+    kind: 'expression',
+    outputs: {
+      amount: {
+        kind: 'ratio',
+        numerator: {
+          kind: 'binary', operator: '*',
+          left: {
+            kind: 'binary', operator: '*',
+            left: output('PAYRUN01_FULLTIME_MONTHLY', 'amount'),
+            right: { kind: 'literal', valueType: 'DECIMAL', value: '12' },
+          },
+          right: output('PAYRUN01_ADDITIONAL_CASH_HOURS', 'hours'),
+        },
+        denominator: {
+          kind: 'binary', operator: '*',
+          left: output('PAYRUN01_FULLTIME_HOURS', 'hours'),
+          right: { kind: 'literal', valueType: 'DECIMAL', value: '52.2' },
+        },
+        roundingDefinitionId: additionalHoursCashRounding.id,
+      },
+    },
+  },
+  tracePolicy: 'FULL',
+}
 
 const regularWage: PayrollComponentDefinition = {
   ...NL_2026_RULE_PACKAGE.components.find((component) => component.code === 'NL_REGULAR_WAGE')!,
@@ -200,24 +275,18 @@ const regularWage: PayrollComponentDefinition = {
 const taxableWage: PayrollComponentDefinition = {
   ...NL_2026_RULE_PACKAGE.components.find((component) => component.code === 'NL_TAXABLE_WAGE')!,
   id: 'system:nl-2026:nl-taxable-wage-payrun01',
-  version: '2026.1-payrun01',
+  version: '2026.2-payrun01',
   inputs: [
-    { name: 'grossSalary', valueType: 'MONEY', required: true },
-    { name: 'employeePension', valueType: 'MONEY', required: true },
+    { name: 'wageTaxBase', valueType: 'MONEY', required: true },
   ],
   outputs: [{ name: 'taxableWage', valueType: 'MONEY', rounding: { scale: 2, mode: 'HALF_UP' } }],
   dependencies: [
-    { componentCode: 'NL_REGULAR_WAGE', outputName: 'grossSalary', inputName: 'grossSalary' },
-    { componentCode: 'PAYRUN01_EMPLOYEE_PENSION', outputName: 'amount', inputName: 'employeePension' },
+    { componentCode: 'PAYRUN01_WAGE_TAX_BASE', outputName: 'amount', inputName: 'wageTaxBase' },
   ],
   method: {
     kind: 'expression',
     outputs: {
-      taxableWage: {
-        kind: 'binary', operator: '-',
-        left: output('NL_REGULAR_WAGE', 'grossSalary'),
-        right: output('PAYRUN01_EMPLOYEE_PENSION', 'amount'),
-      },
+      taxableWage: output('PAYRUN01_WAGE_TAX_BASE', 'amount'),
     },
   },
   tracePolicy: 'FULL',
@@ -231,15 +300,11 @@ const wageTax: PayrollComponentDefinition = {
     : dependency),
 }
 
-const payrun01SystemComponents = NL_2026_RULE_PACKAGE.components
-  .filter((component) => !['NL_REGULAR_WAGE', 'NL_TAXABLE_WAGE', 'NL_WAGE_TAX', 'NL_NET_PAY'].includes(component.code))
-  .concat([regularWage, taxableWage, wageTax])
-
-const awf = percentCost('PAYRUN01_AWF_COST', 'PAYRUN01_AWF_RATE')
-const aof = percentCost('PAYRUN01_AOF_COST', 'PAYRUN01_AOF_RATE')
-const wko = percentCost('PAYRUN01_WKO_COST', 'PAYRUN01_WKO_RATE')
-const whk = percentCost('PAYRUN01_WHK_COST', 'PAYRUN01_WHK_RATE')
-const zvw = percentCost('PAYRUN01_ZVW_COST', 'PAYRUN01_ZVW_RATE')
+const awf = percentCost('PAYRUN01_AWF_COST', 'PAYRUN01_AWF_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE')
+const aof = percentCost('PAYRUN01_AOF_COST', 'PAYRUN01_AOF_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE')
+const wko = percentCost('PAYRUN01_WKO_COST', 'PAYRUN01_WKO_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE')
+const whk = percentCost('PAYRUN01_WHK_COST', 'PAYRUN01_WHK_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE')
+const zvw = percentCost('PAYRUN01_ZVW_COST', 'PAYRUN01_ZVW_RATE', 'PAYRUN01_ZVW_BASE')
 
 const employerInsuranceDependencies = [
   { componentCode: awf.code, outputName: 'amount', inputName: 'awf' },
@@ -407,6 +472,64 @@ const totalEmployerCost = moneyComponent(
   },
 )
 
+const taxableWageWithoutPension: PayrollComponentDefinition = {
+  ...taxableWage,
+  id: 'system:nl-2026:nl-taxable-wage-payrun01-fiscal-base',
+}
+
+const netPayWithoutPension: PayrollComponentDefinition = {
+  ...netPay,
+  id: 'system:payrun01:net-pay-before-pfzw',
+  inputs: [
+    { name: 'gross', valueType: 'MONEY', required: true },
+    { name: 'tax', valueType: 'MONEY', required: true },
+  ],
+  dependencies: [
+    { componentCode: 'NL_REGULAR_WAGE', outputName: 'grossSalary', inputName: 'gross' },
+    { componentCode: 'NL_WAGE_TAX', outputName: 'wageTax', inputName: 'tax' },
+  ],
+  method: {
+    kind: 'expression',
+    outputs: {
+      amount: {
+        kind: 'binary', operator: '-',
+        left: output('NL_REGULAR_WAGE', 'grossSalary'),
+        right: output('NL_WAGE_TAX', 'wageTax'),
+      },
+    },
+  },
+}
+
+const totalEmployerCostBeforePfzw = moneyComponent(
+  'PAYRUN01_TOTAL_EMPLOYER_COST',
+  'amount',
+  [
+    { name: 'gross', valueType: 'MONEY', required: true },
+    { name: 'insurance', valueType: 'MONEY', required: true },
+    { name: 'holiday', valueType: 'MONEY', required: true },
+    { name: 'yearEnd', valueType: 'MONEY', required: true },
+  ],
+  [
+    { componentCode: 'NL_REGULAR_WAGE', outputName: 'grossSalary', inputName: 'gross' },
+    { componentCode: 'PAYRUN01_EMPLOYER_INSURANCE', outputName: 'amount', inputName: 'insurance' },
+    { componentCode: 'PAYRUN01_HOLIDAY_RESERVE', outputName: 'amount', inputName: 'holiday' },
+    { componentCode: 'PAYRUN01_YEAR_END_RESERVE', outputName: 'amount', inputName: 'yearEnd' },
+  ],
+  {
+    kind: 'binary', operator: '+',
+    left: {
+      kind: 'binary', operator: '+',
+      left: output('NL_REGULAR_WAGE', 'grossSalary'),
+      right: output('PAYRUN01_EMPLOYER_INSURANCE', 'amount'),
+    },
+    right: {
+      kind: 'binary', operator: '+',
+      left: output('PAYRUN01_HOLIDAY_RESERVE', 'amount'),
+      right: output('PAYRUN01_YEAR_END_RESERVE', 'amount'),
+    },
+  },
+)
+
 const zero: PayrollExpression = { kind: 'literal', valueType: 'MONEY', value: '0.00' }
 const check = (code: string, sourceCode: string): PayrollRulePackage['controls'][number] => ({
   code,
@@ -421,11 +544,11 @@ const controls = [
     'NL2026-CTRL-004-NONNEGATIVE-NET-PAY',
   ].includes(control.code)),
   {
-    code: 'PAYRUN01-CTRL-016-TAXABLE-WAGE-AFTER-PENSION', severity: 'BLOCKING' as const,
+    code: 'PAYRUN01-CTRL-016-TAXABLE-WAGE-FISCAL-BASE', severity: 'BLOCKING' as const,
     expression: {
       kind: 'binary' as const, operator: '=',
       left: output('NL_TAXABLE_WAGE', 'taxableWage'),
-      right: { kind: 'binary' as const, operator: '-', left: output('NL_REGULAR_WAGE', 'grossSalary'), right: output('PAYRUN01_EMPLOYEE_PENSION', 'amount') },
+      right: output('PAYRUN01_WAGE_TAX_BASE', 'amount'),
     },
   },
   check('PAYRUN01-CTRL-001-SOURCE-COMPLETE', 'PAYRUN01_SOURCE_READY'),
@@ -482,6 +605,7 @@ const resultMappings: readonly PayrollResultMapping[] = [
 
 const scenarioComponents: readonly PayrollComponentDefinition[] = [
   ...valueSources,
+  additionalHoursCashAmount,
   contractualSalaryComponent,
   awf,
   aof,
@@ -498,30 +622,109 @@ const scenarioComponents: readonly PayrollComponentDefinition[] = [
   totalEmployerCost,
 ]
 
+const scenarioComponentsWithoutPension: readonly PayrollComponentDefinition[] = [
+  ...valueSources.filter((component) => !['PAYRUN01_EMPLOYEE_PENSION', 'PAYRUN01_EMPLOYER_PENSION'].includes(component.code)),
+  additionalHoursCashAmount,
+  contractualSalaryComponent,
+  awf,
+  aof,
+  wko,
+  whk,
+  zvw,
+  employerInsurance,
+  holidayReserve,
+  yearEndReserve,
+  netPayWithoutPension,
+  cumulativeGross,
+  cumulativeHolidayReserve,
+  cumulativeYearEndReserve,
+  totalEmployerCostBeforePfzw,
+]
+
 /**
  * Add the same NL-2026 statutory wage engine to an explicit, versioned
  * Payroll arrangement composition. Scenario differences are input/config
  * differences, never employee-name checks or a second calculator.
  */
-export function createPayrun01RulePackage(kind: Payrun01CompositionKind): PayrollRulePackage {
-  const compositionId = `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-2026.1`
+export function createPayrun01RulePackage(
+  kind: Payrun01CompositionKind,
+  options: Payrun01RulePackageOptions = {},
+): PayrollRulePackage {
+  const pensionCalculation = options.pensionCalculation ?? (kind === 'KINDEROPVANG_TEST' ? 'EXCLUDED' : 'INCLUDED')
+  const pensionIncluded = pensionCalculation === 'INCLUDED'
+  const testOnlyPensionCompliance = pensionIncluded && options.pensionCompliance === 'TEST_ONLY_UNVERIFIED'
+  const compositionId = testOnlyPensionCompliance
+    ? `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-PENSION-TEST-UNVERIFIED-2026.3`
+    : kind === 'LEGACY_COMPANY_TEST' && !pensionIncluded
+      ? `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-PENSION-BLOCKED-2026.3`
+      : `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-2026.2`
+  const systemComponents = NL_2026_RULE_PACKAGE.components
+    .filter((component) => !['NL_REGULAR_WAGE', 'NL_TAXABLE_WAGE', 'NL_WAGE_TAX', 'NL_NET_PAY'].includes(component.code))
+    .concat([regularWage, pensionIncluded ? taxableWage : taxableWageWithoutPension, wageTax])
+  const selectedScenarioComponents = pensionIncluded ? scenarioComponents : scenarioComponentsWithoutPension
+  const scenarioControls = controls.map((control) => {
+      if (control.code === 'PAYRUN01-CTRL-009-PENSION-RULE-READY'
+        && (testOnlyPensionCompliance || (!pensionIncluded && kind === 'KINDEROPVANG_TEST'))) {
+        return { ...control, severity: 'WARNING' as const }
+      }
+      if (!pensionIncluded && control.code === 'PAYRUN01-CTRL-016-TAXABLE-WAGE-FISCAL-BASE') {
+        return {
+          ...control,
+            code: 'PAYRUN01-CTRL-016-TAXABLE-WAGE-FISCAL-BASE-RECONCILIATION',
+          expression: {
+            kind: 'binary' as const,
+            operator: '=' as const,
+            left: output('NL_TAXABLE_WAGE', 'taxableWage'),
+            right: output('PAYRUN01_WAGE_TAX_BASE', 'amount'),
+          },
+        }
+      }
+      if (!pensionIncluded && control.code === 'PAYRUN01-CTRL-017-GROSS-NET-PENSION-RECONCILIATION') {
+        return {
+          ...control,
+          code: 'PAYRUN01-CTRL-017-GROSS-NET-RECONCILIATION',
+          expression: {
+            kind: 'binary' as const,
+            operator: '=' as const,
+            left: output('PAYRUN01_NET_PAY', 'amount'),
+            right: {
+              kind: 'binary' as const,
+              operator: '-' as const,
+              left: output('NL_REGULAR_WAGE', 'grossSalary'),
+              right: output('NL_WAGE_TAX', 'wageTax'),
+            },
+          },
+        }
+      }
+      return control
+    })
+  const selectedResultMappings = !pensionIncluded
+    ? resultMappings.filter((row) => row.key !== 'employee_pension' && row.key !== 'employer_pension')
+    : resultMappings
+  const roundingDefinitions = [
+    ...(NL_2026_RULE_PACKAGE.roundingDefinitions ?? []),
+    contractualSalaryRounding,
+    additionalHoursCashRounding,
+  ]
   const packageHash = sha256(stableSerialize({
     basePackageHash: NL_2026_RULE_PACKAGE.metadata?.packageHash,
     compositionId,
     kind,
-    components: scenarioComponents,
-    controls,
-    resultMappings,
-    roundingDefinitions: [...(NL_2026_RULE_PACKAGE.roundingDefinitions ?? []), contractualSalaryRounding],
+    pensionCalculation,
+    pensionCompliance: options.pensionCompliance ?? 'VERIFIED',
+    components: [...systemComponents, ...selectedScenarioComponents],
+    controls: scenarioControls,
+    resultMappings: selectedResultMappings,
+    roundingDefinitions,
   }))
 
   return Object.freeze({
     ...NL_2026_RULE_PACKAGE,
     compositionId,
     metadata: Object.freeze({ ...NL_2026_RULE_PACKAGE.metadata!, packageHash }),
-    components: Object.freeze([...payrun01SystemComponents, ...scenarioComponents]),
-    controls: Object.freeze([...controls]),
-    roundingDefinitions: Object.freeze([...(NL_2026_RULE_PACKAGE.roundingDefinitions ?? []), contractualSalaryRounding]),
-    resultMappings: Object.freeze([...resultMappings]),
+    components: Object.freeze([...systemComponents, ...selectedScenarioComponents]),
+    controls: Object.freeze([...scenarioControls]),
+    roundingDefinitions: Object.freeze(roundingDefinitions),
+    resultMappings: Object.freeze([...selectedResultMappings]),
   })
 }

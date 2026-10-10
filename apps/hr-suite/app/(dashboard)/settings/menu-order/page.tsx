@@ -12,6 +12,8 @@ export default async function MenuOrderPage() {
     hrProcesses: navigation('sectionHrProcesses'),
     steering: navigation('sectionSteering'),
     payroll: navigation('sectionPayroll'),
+    selfService: navigation('sectionSelfService'),
+    payrollLab: navigation('sectionPayrollLab'),
     management: navigation('sectionManagement'),
   }
   const itemLabels: Record<string, string> = {

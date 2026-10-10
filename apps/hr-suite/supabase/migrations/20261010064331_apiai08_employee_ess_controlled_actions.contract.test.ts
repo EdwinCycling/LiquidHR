@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('./20261009142000_apiai08_employee_ess_controlled_actions.sql', import.meta.url), 'utf8').toLowerCase()
+const migration = readFileSync(new URL('./20261010064331_apiai08_employee_ess_controlled_actions.sql', import.meta.url), 'utf8').toLowerCase()
 
 describe('APIAI-08 controlled action migration', () => {
   it('adds only the two Employee ESS action identifiers to the existing draft constraints', () => {

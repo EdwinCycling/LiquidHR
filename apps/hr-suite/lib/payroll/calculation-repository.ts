@@ -35,6 +35,13 @@ export type PayrollCalculationArtifacts = {
   readonly goldenCase: PayrollGoldenCaseRunRow | null
 }
 
+export type PayrollRunSummary = {
+  readonly run: PayrollCalculationRunRow
+  readonly inputSet: PayrollCalculationInputSetRow
+  readonly sourceSnapshot: PayrollSourceSnapshotRow
+  readonly payrollPeriod: PayrollPeriodRow
+}
+
 type PayrollCalculationTraceRow = PayrollDatabase['public']['Tables']['calculation_traces']['Row']
 type PayrollInsert<Table extends keyof PayrollDatabase['public']['Tables']> = PayrollDatabase['public']['Tables'][Table]['Insert']
 
@@ -65,7 +72,24 @@ export interface PayrollCalculationRepository {
   insertCalculationTrace(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_traces'>): Promise<PayrollCalculationTraceRow>
   insertPayrollControls(scope: PayrollScope, payrollAdministrationId: string, rows: readonly PayrollInsert<'payroll_controls'>[]): Promise<readonly PayrollControlRow[]>
   insertGoldenCaseRun(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'golden_case_runs'>): Promise<PayrollGoldenCaseRunRow>
-  getLatestSyntheticArtifacts(scope: PayrollScope, payrollAdministrationId: string, compositionId?: string, runId?: string, caseKey?: string, runType?: PayrollCalculationRunType): Promise<PayrollCalculationArtifacts | null>
+  getLatestSyntheticArtifacts(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    compositionId?: string,
+    runId?: string,
+    caseKey?: string,
+    runType?: PayrollCalculationRunType,
+    period?: { readonly year: number; readonly month: number },
+  ): Promise<PayrollCalculationArtifacts | null>
+  listPayrollRunSummaries(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    options?: {
+      readonly employeeId?: string
+      readonly runType?: PayrollCalculationRunType
+      readonly limit?: number
+    },
+  ): Promise<readonly PayrollRunSummary[]>
 }
 
 export class PayrollCalculationRepositoryError extends Error {
@@ -138,8 +162,19 @@ function assertScopedInsert(
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function safeDatabaseErrorCode(error: unknown): string | null {
+  if (!isRecord(error) || typeof error.code !== 'string') return null
+  return /^(?:[0-9A-Z]{5}|PGRST[0-9]{3})$/.test(error.code) ? error.code : null
+}
+
 function throwOnError(error: unknown): void {
-  if (error) throw new PayrollCalculationRepositoryError()
+  if (!error) return
+  const databaseCode = safeDatabaseErrorCode(error)
+  throw new PayrollCalculationRepositoryError(databaseCode ? `PAYROLL_DB_${databaseCode}` : undefined)
 }
 
 class SupabasePayrollCalculationRepository implements PayrollCalculationRepository {
@@ -469,13 +504,28 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
     return data
   }
 
-  async getLatestSyntheticArtifacts(scope: PayrollScope, payrollAdministrationId: string, compositionId?: string, runId?: string, caseKey?: string, runType: PayrollCalculationRunType = 'GOLDEN_CASE'): Promise<PayrollCalculationArtifacts | null> {
+  async getLatestSyntheticArtifacts(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    compositionId?: string,
+    runId?: string,
+    caseKey?: string,
+    runType: PayrollCalculationRunType = 'GOLDEN_CASE',
+    period?: { readonly year: number; readonly month: number },
+  ): Promise<PayrollCalculationArtifacts | null> {
     const validatedScope = assertPayrollScope(scope)
     assertUuid(payrollAdministrationId)
 
     if (runId !== undefined) assertUuid(runId)
     if (caseKey !== undefined && !/^[A-Z0-9][A-Z0-9-]{0,63}$/.test(caseKey)) throw new PayrollCalculationRepositoryError()
     if (caseKey !== undefined && runType !== 'GOLDEN_CASE') throw new PayrollCalculationRepositoryError()
+
+    let periodId: string | undefined
+    if (period !== undefined) {
+      const periodRow = await this.getPayrollPeriod(scope, payrollAdministrationId, period.year, period.month)
+      if (!periodRow) return null
+      periodId = periodRow.id
+    }
 
     let selectedRunId = runId
     if (caseKey !== undefined && runId === undefined) {
@@ -491,10 +541,11 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
     }
 
     let query = this.client.from('calculation_runs')
-      .select('*, calculation_input_sets!calculation_runs_input_set_scope_fk!inner(rule_package_composition_id)')
+      .select('*, calculation_input_sets!calculation_runs_input_set_scope_fk!inner(rule_package_composition_id, payroll_period_id)')
       .eq('payroll_administration_id', payrollAdministrationId)
       .eq('run_type', runType)
     if (compositionId) query = query.eq('calculation_input_sets.rule_package_composition_id', compositionId)
+    if (periodId) query = query.eq('calculation_input_sets.payroll_period_id', periodId)
     if (selectedRunId !== undefined) query = query.eq('id', selectedRunId)
     const { data: run, error: runError } = await applyPayrollScopeFilter(
       query.order('created_at', { ascending: false }).limit(1), validatedScope,
@@ -554,6 +605,89 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
       controls: controlsResult.data,
       goldenCase: goldenCaseResult.data,
     }
+  }
+
+  async listPayrollRunSummaries(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    options: { readonly employeeId?: string; readonly runType?: PayrollCalculationRunType; readonly limit?: number } = {},
+  ): Promise<readonly PayrollRunSummary[]> {
+    const validatedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    if (options.employeeId !== undefined) assertUuid(options.employeeId)
+    const limit = options.limit ?? 100
+    if (!Number.isInteger(limit) || limit < 1 || limit > 200) throw new PayrollCalculationRepositoryError('PAYROLL_RUN_LIMIT_INVALID')
+
+    let employeeSnapshotIds: string[] | null = null
+    if (options.employeeId !== undefined) {
+      const { data: snapshots, error } = await applyPayrollScopeFilter(
+        this.client.from('source_snapshots').select('id')
+          .eq('payroll_administration_id', payrollAdministrationId)
+          .eq('source_employee_id', options.employeeId)
+          .order('created_at', { ascending: false })
+          .limit(limit * 10),
+        validatedScope,
+      ).returns<Array<Pick<PayrollSourceSnapshotRow, 'id'>>>()
+      throwOnError(error)
+      employeeSnapshotIds = (snapshots ?? []).map((snapshot) => snapshot.id)
+      if (employeeSnapshotIds.length === 0) return []
+    }
+
+    let inputSetQuery = this.client.from('calculation_input_sets').select('*')
+      .eq('payroll_administration_id', payrollAdministrationId)
+      .order('created_at', { ascending: false })
+      .limit(limit * 4)
+    if (employeeSnapshotIds) inputSetQuery = inputSetQuery.in('source_snapshot_id', employeeSnapshotIds)
+    const { data: inputSets, error: inputSetError } = await applyPayrollScopeFilter(inputSetQuery, validatedScope)
+      .returns<PayrollCalculationInputSetRow[]>()
+    throwOnError(inputSetError)
+    if (!inputSets?.length) return []
+
+    let runQuery = this.client.from('calculation_runs').select('*')
+      .eq('payroll_administration_id', payrollAdministrationId)
+      .in('calculation_input_set_id', inputSets.map((inputSet) => inputSet.id))
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (options.runType) runQuery = runQuery.eq('run_type', options.runType)
+    const { data: runs, error: runError } = await applyPayrollScopeFilter(runQuery, validatedScope)
+      .returns<PayrollCalculationRunRow[]>()
+    throwOnError(runError)
+    if (!runs?.length) return []
+
+    const selectedInputSets = new Map(inputSets.map((inputSet) => [inputSet.id, inputSet]))
+    const snapshotIds = [...new Set(runs.flatMap((run) => {
+      const inputSet = selectedInputSets.get(run.calculation_input_set_id)
+      return inputSet ? [inputSet.source_snapshot_id] : []
+    }))]
+    const periodIds = [...new Set(runs.flatMap((run) => {
+      const inputSet = selectedInputSets.get(run.calculation_input_set_id)
+      return inputSet ? [inputSet.payroll_period_id] : []
+    }))]
+    if (snapshotIds.length !== new Set(runs.map((run) => selectedInputSets.get(run.calculation_input_set_id)?.source_snapshot_id)).size
+      || periodIds.length !== new Set(runs.map((run) => selectedInputSets.get(run.calculation_input_set_id)?.payroll_period_id)).size) {
+      throw new PayrollCalculationRepositoryError()
+    }
+
+    const [snapshotsResult, periodsResult] = await Promise.all([
+      applyPayrollScopeFilter(this.client.from('source_snapshots').select('*')
+        .eq('payroll_administration_id', payrollAdministrationId).in('id', snapshotIds), validatedScope)
+        .returns<PayrollSourceSnapshotRow[]>(),
+      applyPayrollScopeFilter(this.client.from('payroll_periods').select('*')
+        .eq('payroll_administration_id', payrollAdministrationId).in('id', periodIds), validatedScope)
+        .returns<PayrollPeriodRow[]>(),
+    ])
+    throwOnError(snapshotsResult.error)
+    throwOnError(periodsResult.error)
+    const snapshots = new Map((snapshotsResult.data ?? []).map((snapshot) => [snapshot.id, snapshot]))
+    const periods = new Map((periodsResult.data ?? []).map((period) => [period.id, period]))
+
+    return runs.map((run) => {
+      const inputSet = selectedInputSets.get(run.calculation_input_set_id)
+      const sourceSnapshot = inputSet ? snapshots.get(inputSet.source_snapshot_id) : undefined
+      const payrollPeriod = inputSet ? periods.get(inputSet.payroll_period_id) : undefined
+      if (!inputSet || !sourceSnapshot || !payrollPeriod) throw new PayrollCalculationRepositoryError()
+      return { run, inputSet, sourceSnapshot, payrollPeriod }
+    })
   }
 
   private async updateCalculationRun(

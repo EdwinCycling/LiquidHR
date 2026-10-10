@@ -1,0 +1,76 @@
+# PAYRUN01 implementation checkpoint — 2026-10-07
+
+> Historical Lisa v3 checkpoint. The current Kinderopvang persona is Frits; Jan is unchanged legacy TEST. Use [the Frits checkpoint](PAYRUN01-FRITS-TEST-PERSONA-20261007.md) for current PAYRUN01 status. The Jan route described below was abandoned; the Jan-specific source-supersession proposal must not be resubmitted or applied.
+
+## Decision
+
+`LISA CALCULATION = GREEN`; `RELEASE: NO-GO / NOT RELEASE-READY`. The ignored `.next` cache was removed only after confirming no tracked files, no dev lock, and no owned PAYRUN01 process retaining the directory; the approved launcher regenerated it and served port 3013 without the prior chunk-directory `EPERM`. Lisa v3 now has a persisted successful run, 19 passing controls, a complete lifecycle, and separate verified JSON/PDF artifacts. The account menu shows the Edwin profile, but does not expose the email address, so this browser view does not independently prove the exact email `edwin@editsolutions.nl`. No credentials or account settings were changed.
+
+## Candidate and code changes
+
+- Worktree: `Integration-PAY-CONVERGE-20261004`
+- Branch: `integration/pay-converge-20261004`
+- Lisa baseline commit / current HEAD: `0337af89d01ea072936b8894e01f46f09f7b3be9` (`Freeze PAYRUN01 Lisa TEST baseline`). Later PAYRUN01 and Jan-fixture changes remain uncommitted in the dirty worktree. No push, merge, version bump, deployment, identity provisioning, payment, or declaration submission occurred. The central TEST runtime configuration was not restored, recreated, copied, relinked, modified, or read for values.
+- The forward migration replaces only `public.guard_individual_payroll_input_reference()`. It qualifies assignment, config, and opening-balance columns so the PL/pgSQL variable `source_employment_id` no longer collides with table columns.
+- TEST migration `20261007091338_payrun01_test_version_supersession.sql` permits an explicit, consecutive TEST_ONLY successor when no successful run overlaps; v2 rows and run history remain immutable. Lisa v3 hashes its `supersedesVersion: 2` assignment/configuration identity. The payslip generator now reads the presentation profile from the input-reference-pinned assignment version and validates its ID and hash.
+- PAYRUN01 now derives stable source-snapshot and calculation-input-set IDs from scoped source/content hashes, verifies exact persisted content before reusing those rows, and safely reuses an identical input reference. Projected-at time stays in provenance but no longer churns the hashed canonical source. A same-ID/different-content result fails closed.
+- The input-reference failure logger records only a fixed event name and a validated five-character SQLSTATE. It does not emit raw database text or payroll values.
+
+## Failure diagnosis
+
+The earlier Lisa POST to `individual_payroll_input_references` failed in `guard_individual_payroll_input_reference()` with SQLSTATE `42702` (`ambiguous_column`). The function selected unqualified `source_employment_id` columns while also declaring a PL/pgSQL variable of that name. The TEST source and effective-version prerequisites had passed their read-only checks; the trigger failed before inserting the reference or creating a run. PostgreSQL documents that ambiguous names between PL/pgSQL variables and table columns must be qualified or otherwise disambiguated.
+
+The first post-migration Lisa action through the application inserted the input reference and created a run, so the original guarded persistence failure is repaired. That run later failed controls because the TEST scenario expected the invalid schedule type `FIXED` while the effective source schedule is `HOURS_PER_DAY`; the salary consistency failure followed that mismatch. The TEST scenario was advanced to version 3 with the valid source schedule type. The input-reference and run rows from the failed v2 calculation were preserved; no cleanup or direct SQL business-data insert was performed.
+
+The next v3 attempt first exposed the open-ended v2 assignment/configuration guard. The TEST-only successor migration fixed that concrete conflict without changing the v2 records. The v3 calculation then succeeded as run `b6a83047-f8ed-4547-b893-1c8e249cec2b`. A lifecycle read initially rejected the reference because `versions.sourceSnapshotHash` is the upstream source hash while top-level `sourceHash` is the projected, persisted snapshot hash; validation now checks both fields against their respective identities, and source-freshness checks continue to use the upstream hash. Review and finalization were then recorded on the same run. The unrelated v2 run `dc5b3902-3b46-465f-b487-fd4336899119` remains `FAILED` with its `BLOCKED` event.
+
+## Payroll Lab TEST database
+
+- Project `jhgeriucbkfarxiudzfy` (`LiquidHR-Payroll-Lab`) received migration `payrun01_fix_input_reference_guard`, server version `20261007064350`. No Core project or Production database was touched.
+- Readback confirms the qualified function body, empty `search_path`, invoker security, original `postgres` owner/execute ACL, and the same BEFORE INSERT trigger binding.
+- `individual_payroll_input_references` still has RLS enabled and one policy; `authenticated` has no direct SELECT/INSERT privilege while `service_role` has both. The migration changed no table policies, grants, or types.
+- Read-only TEST readback confirms the old v2 run/reference remain and v3 uses configuration version 3, source snapshot `45af24c0-384f-5d3a-8ee9-67c8a6a43e05`, and input set `92946f86-f5b6-5488-a62a-2455c3f17b1b`. V3 source/input/result hashes are `b453fca263533f5d875894213f9bff2e2da799f83e461e292257a9fd7efc8e4e`, `7c06b678d88792c109dfc933e3328761897241db89a7156357a942d9adaef55a`, and `279bc3d71728e96969d48f4a7dbbe012ea9dccb98d93fa3ea2789d405e66d1b2`; v2 was not reused.
+- V3 has 15 persisted component results, 19/19 passing controls, and one persisted trace object with 15 entries. Exact amounts: gross and taxable wage €5,500.00; wage tax €1,577.17; net €3,922.83; employee/employer pension €0.00; employer insurance €1,233.10; holiday reserve €440.00; year-end reserve €0.00; cumulative gross €55,000.00; cumulative holiday reserve €4,400.00; total employer cost €7,173.10.
+- Lifecycle readback is `CONCEPT → REVIEWED → FINALIZED` on v3 revision 2, sequences 1–3. `TECHNICAL_JSON` and `PAYSLIP_PDF` were generated and downloaded separately. Download SHA-256 matches each stored artifact hash: JSON `98b11c9b2f72a89de20f1bc6b08ad9c5c4e4e834e434e0bbbe827c1c8f921c1d`; PDF `156f7fdf141fd7878aec54ff94ec22043ef42f89a2606429999c2cef44e24194`. JSON contains the v3 source/input/result hashes, 15 components, 19 passing controls, and trace. The PDF is a legible one-page A4 TEST presentation; visual review confirms gross, deductions, net, employer costs, and reserves match the stored result.
+- Post-migration advisors report two unrelated mutable-search-path functions, the existing `public.rls_auto_enable()` SECURITY DEFINER warning, 27 unindexed-FK information findings, and three unused-index information findings. No finding names the replaced trigger function.
+
+## Local verification
+
+| Check | Result |
+| --- | --- |
+| Focused PAYRUN01 migration/source-identity/artifact tests | 18/18 passed across 3 files after correcting the test-fixture event type |
+| Earlier targeted payroll tests | 7 files, 81 tests passed before the v3 browser retry |
+| PAYRUN01 server-only boundary contract | 5 tests passed after adding the new guarded service/repository imports to the expected boundary |
+| Full HR-suite tests | 533 files passed, 3 skipped; one untouched `lib/document-generation/pdf.test.ts` test timed out at its 5-second limit (2,301 tests passed, 3 skipped) |
+| Changed-source ESLint | passed |
+| NL/EN parity | passed, 41 namespaces |
+| `git diff --check` | passed; Git reported existing LF-to-CRLF normalization notices for two docs |
+| Strict TypeScript | blocked only by untouched `components/payroll/component-library-entry-detail.tsx:76:57` (`TS2366`); the PAYRUN01 test-fixture typing issue found in the first run was fixed and is absent from the final check |
+| Production build | not run |
+
+The first Vitest attempt hit a Windows sandbox rename restriction under the OS temp directory; rerunning with the test temp directory inside the worktree passed.
+
+## Runtime, browser, and remaining gates
+
+The approved launcher command `scripts/start-test-worktree.ps1 -PayrollAcceptance -Port 3013` passed preflight using process-scoped normal user-profile paths; runtime config values were not read or printed. The app stayed on 3013; port 3000 and unrelated Chrome processes/tabs were untouched. Browser reload after finalization retained the v3 result and both download links. Desktop 1440×900 and iPhone 16 393×852 views have no horizontal overflow; both artifact links fit on mobile. The floating global Setup rail overlays the right edge of lifecycle timestamps at 393 px, so that detail remains a small mobile presentation limitation; it was not changed as unrelated shell UI. The tab was subsequently navigated to Jan's employment detail for the source-path investigation below.
+
+The active Payroll Lab account menu shows `Edwin` but not the exact email address. No credential was entered and no user/account was changed. The browser remains on the finalized v3 result.
+
+## Jan source verification — read-only Core/DEV
+
+Before the user-created CAO and the salary-structure setup below, Core/DEV project `wnpfloqpjvaacobppbpk` was read through the Supabase connector only, scoped to the Jan persona UUID already pinned in the PAYRUN01 code and its single October-overlapping employment. The employee row is active, not archived or deleted; the matching employment is primary and `CONFIRMED`, effective 2026-09-01 through 2026-11-30. Opaque source references: employee `66ef22a5-5777-44dc-9bde-44a65d0a6d60`, employment `b058d882-47a9-43ff-853e-0e05237214af`, salary `b31c9818-2e46-4317-84b5-fe16e27e3478`, schedule `36d03ad2-f058-432c-bdd6-dc820087e2c7`, organization assignment `d6196270-c5a4-4013-9fdb-3b30c6fe6882`, and income relationship `686104a1-4f9f-4387-a22c-e0a784dcd4bc` (IKV 1).
+
+The effective October source does not match the synthetic Kinderopvang configuration: the salary is manual, €4,250.00 full-time and €3,400.00 part-time per month; the schedule is 32/40 hours (`HOURS_PER_DAY`, 0.8); the organization job is `Monteur` / `M1`; and the labor-condition group is `Bedrijfseigen regeling`. The linked income relationship is `DRAFT`, has no payroll-tax number or binding, and no effective administration payroll-tax-number metadata row was found. Payroll tax-number values, secure identifiers, bank data, and unrelated employee rows were not selected. This was a read-only baseline check; the subsequent setup and current source blocker are recorded below.
+
+## Jan CAO/salary setup and remaining source blocker — 2026-10-07
+
+- The user created active Jupiter BV CAO `Cao Kinderopvang 2025-2026` (`a67b0731-6e0b-4c4f-8086-41a444528ccb`), effective 2025-01-01 with 36 full-time hours. Codex did not change that record.
+- Through the normal Jupiter settings UI, Codex created and published PAYRUN01 TEST salary structure `Cao Kinderopvang 2025-2026 — PAYRUN01 TEST` (`2116ec84-78ad-447d-80f7-8e49d240ab3f`), revision `64dec4a9-0df6-44fc-8375-41166ff46536`, effective 2026-09-01: scale 6, salary number 20, €3,425.00 monthly at 36 hours. Publication validation had no errors or warnings. The structure is enabled in Jupiter salary application and linked to the new CAO; reloading the settings page retained the selected “Gekoppeld” state. The pre-existing company-regulation/demo link remained unchanged.
+- A salary-structure filtering defect in the PAYRUN01 worktree was fixed: the UI now receives all readable structures as choices for administration salary application, while the CAO-link editor remains filtered to structures enabled for that administration. The focused regression file passes 2/2 tests and targeted ESLint passes.
+- Jan's employment remains unchanged and still reads `Bedrijfseigen regeling`, 32 hours/week, and `Monteur`; it remains the primary employment. After the user enabled the new Jupiter CAO, the normal `CAO aanpassen` wizard showed `Cao Kinderopvang 2025-2026`, but submission effective 2026-09-01 failed. A scoped DEV Postgres log readback at 2026-10-07 11:41:44 UTC showed SQLSTATE `P0001` in `apply_employment_timeline_mutation(...)`, `line 39 at RAISE`. The matching migration guard maps to `TIMELINE_EFFECTIVE_DATE_CONFLICT`: an existing `LABOR_CONDITIONS` row already starts 2026-09-01. The UI route sends a condition-group name, not the selected CAO set ID; the `employment_contracts.labor_condition_set_id` remains guarded by `prevent_employment_cao_change()` / `EMPLOYMENT_CAO_IMMUTABLE`. Reload confirmed the old values; the failed transaction wrote no Jan source change. A new contract begins after the current contract ends (2026-12-01), and an overlapping second primary is excluded by `employments_one_overlapping_primary`. No second non-primary employment was created because that would change the explicitly specified single-employment fixture. No direct database write or guard bypass was used.
+- Authorized read-only Core/DEV source verification for Jan found: existing primary employment number 1 in Jupiter, 2026-09-01–2026-11-30, definite-term; `Monteur` / Directie; September manual monthly salary €4,000 full-time / €3,200 part-time, changing 2026-10-01 to €4,250 / €3,400; schedule `HOURS_PER_DAY`, 32/40 hours, 80%, 4 average days, with no published repeating work pattern. The linked IKV is opaque id `686104a1-4f9f-4387-a22c-e0a784dcd4bc`, IKV 1, `EMPLOYMENT`, `DRAFT`, 2026-09-01–2026-11-30; its subnumber value was not read. A metadata-only query found zero employer payroll-tax-number records overlapping September–October and zero primary records; the tax-number values were not selected. No accepted employee tax profile was established. See the [fixture readback ledger](PAYRUN01-JAN-KINDEROPVANG-FIXTURE-20261007.md).
+- Strict TypeScript remains blocked only by the pre-existing `components/payroll/component-library-entry-detail.tsx:76:57` (`TS2366`). The previously reported full-suite timeout in untouched `lib/document-generation/pdf.test.ts` remains an independent 5-second timeout; it was not changed or retried in this follow-up. `PAY-RULE-002` PFZW monthly allocation/new-joiner basis remains open and separate from Lisa's green calculation.
+
+Official PFZW material confirms the 2026 annual premium formula/rates and that the part-time factor is rounded to four decimal places, but the reviewed sources do not specify the October monthly allocation and cent-rounding sequence for Jan's scenario. Keep `PAY-RULE-002` open and Jan's calculation blocked until that rule is authoritative. Sources: [PFZW premium calculation](https://www.pfzw.nl/werkgevers/premie-en-factuur/premie-berekenen/hoe-bereken-ik.html) and [2026 UPA guide](https://www.pfzw.nl/content/dam/pfzw/web/werkgevers/pensioenaangifte/2026_Handleiding-aanlevering-UPA-gegevens.pdf).
+
+`ENV-PREVIEW-010`, other open acceptance/security gates, and downstream payment/Loonaangifte remain out of scope. No result is release-ready.

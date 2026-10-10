@@ -4,6 +4,7 @@ import {
   PayrollSourceProviderError,
   type PayrollSourceEmployment,
   type PayrollSourceIncomeRelationship,
+  type PayrollSourceTimeline,
   type PayrollSourceProviderDependencies,
   type PayrollSourceSalary,
   type PayrollSourceSchedule,
@@ -201,6 +202,184 @@ describe('LiquidHR Payroll source provider', () => {
       [`employment_schedule:${scheduleId}`]: schedule().updated_at,
       [`actual_work_period:${actualWorkPeriodId}`]: actualWork().period?.updated_at,
     })
+  })
+
+  it('includes the canonical labor-condition set and effective function in hashed source identity', async () => {
+    const timeline = (setId: string, jobCode: string): PayrollSourceTimeline => ({
+      employment: employment(),
+      salaries: [salary()],
+      schedules: [schedule()],
+      contracts: [{
+        id: '86000000-0000-4000-8000-000000000008', labor_condition_set_id: setId,
+        fulltime_hours_per_week: 36, starts_on: '2026-09-01', ends_on: null,
+        updated_at: '2026-09-01T10:01:00.000Z',
+      }],
+      laborConditions: [{
+        id: '87000000-0000-4000-8000-000000000008', condition_group: 'legacy label',
+        labor_condition_set_id: setId, valid_from: '2026-09-01', valid_until: null,
+        updated_at: '2026-09-01T10:02:00.000Z',
+        set: {
+          id: setId, code: 'CAO_KINDEROPVANG_2025_2026', name: 'Cao Kinderopvang 2025-2026',
+          standard_hours_per_week: 36, is_active: true, valid_from: '2025-01-01',
+          updated_at: '2026-09-01T10:03:00.000Z',
+        },
+      }],
+      organizations: [{
+        id: '88000000-0000-4000-8000-000000000008', department_id: '89000000-0000-4000-8000-000000000008',
+        job_id: '8a000000-0000-4000-8000-000000000008', job_code: jobCode,
+        job_title: 'Pedagogisch professional', job_revision_valid_from: '2026-09-01',
+        job_revision_valid_until: null, job_revision_updated_at: '2026-09-01T10:04:00.000Z',
+        effective_from: '2026-09-01', effective_to: null, updated_at: '2026-09-01T10:05:00.000Z',
+      }],
+    })
+    const setId = '8b000000-0000-4000-8000-000000000008'
+    const first = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => timeline(setId, 'PAYRUN01-KO-PP-TEST')),
+    })).getPayrollSourceSnapshot(request)
+    const changedSet = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => timeline('8c000000-0000-4000-8000-000000000008', 'PAYRUN01-KO-PP-TEST')),
+    })).getPayrollSourceSnapshot(request)
+    const changedJob = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => timeline(setId, 'OTHER-JOB')),
+    })).getPayrollSourceSnapshot(request)
+    expect(first.canonicalSource).toMatchObject({
+      contract: { entries: [{ laborConditionSetId: setId, fulltimeHoursPerWeek: 36 }] },
+      laborConditions: { entries: [{ laborConditionSetId: setId, set: { code: 'CAO_KINDEROPVANG_2025_2026' } }] },
+      organization: { entries: [{ jobCode: 'PAYRUN01-KO-PP-TEST', jobTitle: 'Pedagogisch professional' }] },
+    })
+    expect(first.sourceHash).not.toBe(changedSet.sourceHash)
+    expect(first.sourceHash).not.toBe(changedJob.sourceHash)
+    expect(first.sourceVersionVector).toMatchObject({
+      [`employment_contract:86000000-0000-4000-8000-000000000008`]: '2026-09-01T10:01:00.000Z',
+      [`labor_condition_set:${setId}`]: '2026-09-01T10:03:00.000Z',
+      [`employee_organization:88000000-0000-4000-8000-000000000008`]: '2026-09-01T10:05:00.000Z',
+    })
+  })
+
+  it('includes scoped Core pension assignment, arrangement, tier, and versions in source identity', async () => {
+    type Assignment = NonNullable<PayrollSourceTimeline['pensionAssignments']>[number]
+    type Mapping = NonNullable<PayrollSourceTimeline['laborConditionPensionArrangements']>[number]
+    const mappingId = '8c000000-0000-4000-8000-000000000008'
+    const laborSetId = '8b000000-0000-4000-8000-000000000008'
+    const mapping: Mapping = {
+      id: mappingId,
+      labor_condition_set_id: laborSetId,
+      pension_arrangement_id: '8e000000-0000-4000-8000-000000000008',
+      participant_group: 'NEW_ENTRANT',
+      effective_from: '2026-01-01',
+      effective_to: null,
+      provenance_json: { status: 'USER_RECORDED', sourceClassification: 'CORE_PENSION_ASSIGNMENT_WORKFLOW' },
+      version_number: 2,
+      supersedes_mapping_id: '8c000000-0000-4000-8000-000000000007',
+      arrangement: null,
+      arrangement_resolution_reason: null,
+      arrangement_resolution_change_version_ids: [],
+    }
+    const assignmentFor = (rate: number, establishedFrom = '2026-01-01'): Assignment => ({
+      id: '8d000000-0000-4000-8000-000000000008',
+      pension_arrangement_id: '8e000000-0000-4000-8000-000000000008',
+      effective_from: '2026-01-01',
+      effective_to: null,
+      participation_start_date: '2026-01-01',
+      assignment_reason: 'TEST_SOURCE',
+      provenance_json: {
+        source: 'synthetic test arrangement',
+        laborConditionMappingId: mappingId,
+        laborConditionMappingVersion: 2,
+      },
+      updated_at: '2026-01-01T00:00:00.000Z',
+      version_number: 1,
+      supersedes_assignment_id: null,
+      age_for_tier: null,
+      arrangement_resolution_reason: null,
+      arrangement_resolution_change_version_ids: [],
+      arrangement: {
+        id: '8e000000-0000-4000-8000-000000000008',
+        code: 'COMPANY_WTP_FLAT_2026',
+        name: 'Flat 2026',
+        arrangement_type: 'FLAT_PREMIUM',
+        effective_from: '2026-01-01',
+        arrangement_established_from: establishedFrom,
+        effective_to: null,
+        transition_date: null,
+        grandfathering_mode: 'NONE',
+        flat_total_rate: rate,
+        employer_share_pct: 66.6667,
+        employee_share_pct: 33.3333,
+        annual_franchise: 19172,
+        annual_pensionable_salary_cap: 137800,
+        pensionable_salary_definition: {
+          annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
+          basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true,
+        },
+        eligibility_rule: { participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01' },
+        contract_classification: 'UNKNOWN',
+        contract_classification_provenance: { status: 'UNVERIFIED' },
+        provenance_json: { authority: 'synthetic' },
+        is_active: true,
+        version_id: rate === 15
+          ? '8f000000-0000-4000-8000-000000000008'
+          : '8f000000-0000-4000-8000-000000000009',
+        version_number: 1,
+        version_created_at: '2026-01-01T00:00:00.000Z',
+        source_updated_at: null,
+        tiers: [],
+      },
+    })
+    const snapshotFor = (rate: number, establishedFrom?: string) => new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(), salaries: [salary()], schedules: [schedule()],
+        pensionAssignments: [assignmentFor(rate, establishedFrom)],
+        contracts: [{
+          id: '8a000000-0000-4000-8000-000000000008',
+          labor_condition_set_id: laborSetId,
+          fulltime_hours_per_week: 40,
+          starts_on: '2026-01-01',
+          ends_on: null,
+          updated_at: '2026-01-01T00:00:00.000Z',
+        }],
+        laborConditions: [{
+          id: '8a000000-0000-4000-8000-000000000009',
+          condition_group: 'Company',
+          labor_condition_set_id: laborSetId,
+          valid_from: '2026-01-01',
+          valid_until: null,
+          updated_at: '2026-01-01T00:00:00.000Z',
+          set: null,
+        }],
+        laborConditionPensionArrangements: [mapping],
+      })),
+    })).getPayrollSourceSnapshot(request)
+    const first = await snapshotFor(15)
+    const changed = await snapshotFor(16)
+    const changedBaselineDate = await snapshotFor(15, '2025-12-31')
+
+    expect(first.canonicalSource).toMatchObject({
+      pension: { assignments: [{
+        id: '8d000000-0000-4000-8000-000000000008',
+        assignmentVersion: 1,
+        supersedesAssignmentId: null,
+        provenance: { laborConditionMappingId: mappingId, laborConditionMappingVersion: 2 },
+        arrangement: {
+          code: 'COMPANY_WTP_FLAT_2026', flatTotalRate: '15', annualFranchise: '19172',
+          arrangementEstablishedFrom: '2026-01-01',
+        },
+      }], laborConditionArrangements: [{
+        id: mappingId,
+        laborConditionSetId: laborSetId,
+        participantGroup: 'NEW_ENTRANT',
+        mappingVersion: 2,
+        supersedesMappingId: '8c000000-0000-4000-8000-000000000007',
+        provenance: { status: 'USER_RECORDED', sourceClassification: 'CORE_PENSION_ASSIGNMENT_WORKFLOW' },
+      }] },
+    })
+    expect(first.sourceVersionVector).toMatchObject({
+      'employment_pension_assignment:8d000000-0000-4000-8000-000000000008': '1:2026-01-01T00:00:00.000Z',
+      [`labor_condition_pension_arrangement:${mappingId}`]: '2:2026-01-01',
+      'pension_arrangement_version:8f000000-0000-4000-8000-000000000008': '2026-01-01T00:00:00.000Z',
+    })
+    expect(first.sourceHash).not.toBe(changed.sourceHash)
+    expect(first.sourceHash).not.toBe(changedBaselineDate.sourceHash)
   })
 
   it('preserves an explicitly linked DRAFT IKV as an opaque source ID without treating it as a finalized Core contract', async () => {

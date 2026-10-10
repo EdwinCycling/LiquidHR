@@ -137,6 +137,7 @@ function makeView(overrides: Partial<SyntheticPayrollView> = {}): SyntheticPayro
       steps: [],
     },
     controls: [{ key: 'result_hash_present', status: 'PASS', details: { resultHash: RESULT_HASH } }],
+    blockerReasons: [],
     startedAt: '2026-10-03T09:00:00.000Z',
     finishedAt: '2026-10-03T09:00:01.000Z',
     createdAt: '2026-10-03T09:00:00.000Z',

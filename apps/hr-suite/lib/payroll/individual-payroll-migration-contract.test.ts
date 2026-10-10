@@ -17,7 +17,7 @@ const guardRepairMigrationPath = join(
   'migrations',
   '20261007064350_payrun01_fix_input_reference_guard.sql',
 )
-const guardRepairMigration = readFileSync(guardRepairMigrationPath, 'utf8').toLowerCase()
+const guardRepairMigration = readFileSync(guardRepairMigrationPath, 'utf8').toLowerCase().replace(/\r\n/g, '\n')
 const versionSupersessionMigrationPath = join(
   payrollSource,
   'supabase',
@@ -25,6 +25,27 @@ const versionSupersessionMigrationPath = join(
   '20261007091338_payrun01_test_version_supersession.sql',
 )
 const versionSupersessionMigration = readFileSync(versionSupersessionMigrationPath, 'utf8').toLowerCase()
+const successfulVersionSupersessionMigrationPath = join(
+  payrollSource,
+  'supabase',
+  'migrations',
+  '20261007175209_payrun01_test_successful_version_supersession.sql',
+)
+const successfulVersionSupersessionMigration = readFileSync(successfulVersionSupersessionMigrationPath, 'utf8').toLowerCase()
+const initialFixtureSuccessorMigrationPath = join(
+  payrollSource,
+  'supabase',
+  'migrations',
+  '20261008170000_payrun01_test_initial_fixture_successor.sql',
+)
+const initialFixtureSuccessorMigration = readFileSync(initialFixtureSuccessorMigrationPath, 'utf8').toLowerCase()
+const failedAttemptSuccessorMigrationPath = join(
+  payrollSource,
+  'supabase',
+  'migrations',
+  '20261009100000_payrun01_test_failed_attempt_successor.sql',
+)
+const failedAttemptSuccessorMigration = readFileSync(failedAttemptSuccessorMigrationPath, 'utf8').toLowerCase()
 
 const tables = [
   'payroll_individual_arrangement_assignment_versions',
@@ -191,6 +212,94 @@ describe('PAYRUN01 individual payroll migration contract', () => {
     expect(guard).toContain('payroll_period.starts_on <= coalesce(new.effective_to, \'infinity\'::date)')
     expect(guard).toContain('payroll_period.ends_on >= new.effective_from')
     expect(guard).toContain('pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(')
+  })
+
+  it('allows only an explicit same-slice TEST correction successor after finalized success', () => {
+    const guard = successfulVersionSupersessionMigration.match(
+      /create or replace function public\.guard_payroll_individual_effective_version\(\)[\s\S]*?\$\$;/,
+    )?.[0] ?? ''
+
+    expect(successfulVersionSupersessionMigrationPath.replaceAll('\\', '/')).toContain('/apps/hr-suite/lib/payroll/supabase/migrations/')
+    expect(guard).toContain("new.provenance_status is distinct from 'test_only'")
+    expect(guard).toContain("new.assignment_json ->> 'versionintent' is distinct from 'correction_successor'")
+    expect(guard).toContain("new.config_json ->> 'versionintent' is distinct from 'correction_successor'")
+    expect(guard).toContain("new.assignment_json ->> 'supersedesversion' is distinct from latest_version::text")
+    expect(guard).toContain("new.config_json ->> 'supersedesversion' is distinct from latest_version::text")
+    expect(guard).toContain("existing.config_json ->> 'scenario' is distinct from new.config_json ->> 'scenario'")
+    expect(guard).toContain('new.assignment_version <> latest_version + 1')
+    expect(guard).toContain('new.config_version <> latest_version + 1')
+    expect(guard).toContain('new.effective_from is distinct from predecessor_effective_from')
+    expect(guard).toContain('new.effective_to is distinct from predecessor_effective_to')
+    expect(guard).toContain("new.config_json ->> 'supersedesconfigversionid' is distinct from predecessor_id::text")
+    expect(guard).toContain("calculation_run.status = 'succeeded'")
+    expect(guard).toContain("finalized_event.event_type = 'finalized'")
+    expect(guard).toContain("calculation_run.run_type = 'individual_payroll'")
+    expect(guard).toContain('new.config_hash = (')
+
+    const inputReferenceGuard = successfulVersionSupersessionMigration.match(
+      /create or replace function public\.guard_payroll_individual_correction_input_reference\(\)[\s\S]*?\$\$;/,
+    )?.[0] ?? ''
+    expect(inputReferenceGuard).toContain("successor_metadata ->> 'kind' is distinct from 'correction_successor'")
+    expect(inputReferenceGuard).toContain("successor_metadata ->> 'supersedesconfigversionid' is distinct from predecessor_config.id::text")
+    expect(inputReferenceGuard).toContain("successor_metadata ->> 'successorconfigversionid' is distinct from current_config.id::text")
+    expect(inputReferenceGuard).toContain("new.input_provenance_json ->> 'inputhash' is distinct from current_input.input_hash")
+    expect(inputReferenceGuard).toContain('current_input.input_hash = predecessor_input_hash')
+    expect(inputReferenceGuard).toContain('current_source.source_hash is distinct from predecessor_source_hash')
+    expect(inputReferenceGuard).toContain('current_input.source_snapshot_id = predecessor_snapshot_id')
+    expect(inputReferenceGuard).toContain("successor_metadata ->> 'supersedesrunid'")
+    expect(inputReferenceGuard).toContain("successor_metadata ->> 'supersedesinputsetid'")
+    expect(inputReferenceGuard).toContain("successor_metadata ->> 'supersedesresulthash'")
+    expect(inputReferenceGuard).toContain("finalized_event.event_type = 'finalized'")
+    expect(successfulVersionSupersessionMigration).toContain('create trigger individual_payroll_correction_reference_guard')
+
+    expect(successfulVersionSupersessionMigration).not.toMatch(/\b(update|delete)\s+public\.(payroll_individual_|individual_payroll_|calculation_runs)/)
+    expect(successfulVersionSupersessionMigration).not.toMatch(/\b(create policy|alter table public\.[a-z_]+ enable row level security|grant [^;]* on table)\b/)
+    expect(successfulVersionSupersessionMigration).toContain('revoke all on function public.guard_payroll_individual_correction_input_reference() from public, anon, authenticated, service_role;')
+    expect(guard).toContain('pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(')
+  })
+
+  it('allows an explicit first TEST successor only when the predecessor has no input references', () => {
+    const guard = initialFixtureSuccessorMigration.match(
+      /create or replace function public\.guard_payroll_individual_effective_version\(\)[\s\S]*?\$\$;/,
+    )?.[0] ?? ''
+    const inputReferenceGuard = initialFixtureSuccessorMigration.match(
+      /create or replace function public\.guard_payroll_individual_correction_input_reference\(\)[\s\S]*?\$\$;/,
+    )?.[0] ?? ''
+
+    expect(initialFixtureSuccessorMigrationPath.replaceAll('\\', '/')).toContain('/apps/hr-suite/lib/payroll/supabase/migrations/')
+    expect(guard).toContain("new.assignment_json ->> 'versionintent' is distinct from 'correction_successor'")
+    expect(guard).toContain("new.config_json ->> 'versionintent' is distinct from 'correction_successor'")
+    expect(guard).toContain("predecessor_input_ref.assignment_version_id = predecessor_id")
+    expect(guard).toContain("predecessor_input_ref.config_version_id = predecessor_id")
+    expect(guard).toContain("finalized_event.event_type = 'finalized'")
+    expect(inputReferenceGuard).toContain("'initial_fixture_successor'")
+    expect(inputReferenceGuard).toContain("successor_metadata ->> 'kind' = 'correction_successor'")
+    expect(inputReferenceGuard).toContain("successor_metadata ->> 'kind' = 'initial_fixture_successor'")
+    expect(inputReferenceGuard).toContain("predecessor_input_ref.config_version_id = predecessor_config.id")
+    expect(inputReferenceGuard).toContain("new.input_provenance_json ->> 'inputhash' is distinct from current_input.input_hash")
+    expect(inputReferenceGuard).toContain('current_input.input_hash = predecessor_input_hash')
+    expect(initialFixtureSuccessorMigration).toContain('revoke all on function public.guard_payroll_individual_effective_version() from public, anon, authenticated, service_role;')
+    expect(initialFixtureSuccessorMigration).toContain('revoke all on function public.guard_payroll_individual_correction_input_reference() from public, anon, authenticated, service_role;')
+    expect(initialFixtureSuccessorMigration).not.toMatch(/\b(create policy|alter table public\.[a-z_]+ enable row level security|grant [^;]* on table|create trigger)\b/)
+    expect(initialFixtureSuccessorMigration).not.toMatch(/\b(update|delete)\s+public\.(payroll_individual_|individual_payroll_|calculation_runs)/)
+  })
+
+  it('allows an explicit successor after failed attempts only when no result or later lifecycle state was persisted', () => {
+    const guard = failedAttemptSuccessorMigration.match(
+      /create or replace function public\.guard_payroll_individual_effective_version\(\)[\s\S]*?\$\$;/,
+    )?.[0] ?? ''
+
+    expect(failedAttemptSuccessorMigrationPath.replaceAll('\\', '/')).toContain('/apps/hr-suite/lib/payroll/supabase/migrations/')
+    expect(guard).toContain("new.assignment_json ->> 'versionintent' is distinct from 'correction_successor'")
+    expect(guard).toContain("predecessor_run.status is distinct from 'failed'")
+    expect(guard).toContain('predecessor_run.result_hash is not null')
+    expect(guard).toContain('from public.component_results as prior_result')
+    expect(guard).toContain("prior_event.event_type is distinct from 'blocked'")
+    expect(guard).toContain("finalized_event.event_type = 'finalized'")
+    expect(failedAttemptSuccessorMigration).toContain("alter function public.guard_payroll_individual_effective_version()\n  set search_path = '';")
+    expect(failedAttemptSuccessorMigration).toContain('revoke all on function public.guard_payroll_individual_effective_version() from public, anon, authenticated, service_role;')
+    expect(failedAttemptSuccessorMigration).not.toMatch(/\b(create policy|alter table public\.[a-z_]+ enable row level security|grant [^;]* on table)\b/)
+    expect(failedAttemptSuccessorMigration).not.toMatch(/\b(update|delete)\s+public\.(payroll_individual_|individual_payroll_|calculation_runs)/)
   })
 
   it('pins one employment, period, assignment, and config that cover the complete payroll period', () => {
