@@ -13,6 +13,7 @@ type PayrollImportBatchRow = {
   tenant_id: string
   hr_group_id: string
   administration_id: string
+  // Alleen voor historische readback; nieuwe requests accepteren uitsluitend INTERNAL_REPRESENTATIVE.
   source_type: 'LOONAANGIFTE_XML' | 'INTERNAL_REPRESENTATIVE'
   source_filename: string
   source_hash: string

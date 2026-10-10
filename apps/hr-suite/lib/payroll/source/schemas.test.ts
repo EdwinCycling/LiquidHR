@@ -33,7 +33,7 @@ describe('Payroll source runtime schemas', () => {
       periodReference: { year: 2026, month: 9 },
       canonicalSource: { employment: { startsOn: '2026-09-01' } },
       sourceVersionVector: { 'employment:50000000-0000-4000-8000-000000000005': '2026-09-01T10:00:00.000Z' },
-      sourceGaps: [{ field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'CONTROL02_CONTRACT_PENDING' }],
+      sourceGaps: [{ field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED' }],
       sourceHash: 'a'.repeat(64),
       createdAt: '2026-09-30T12:00:00.000Z',
     }

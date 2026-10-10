@@ -108,11 +108,11 @@ describe('LiquidHR Payroll source provider', () => {
       employment: { startsOn: '2026-09-01', endsOn: null, recordStatus: 'CONFIRMED' },
       compensation: { entries: [{ salaryBasis: 'MANUAL', fulltimeAmount: 3200, currencyCode: 'EUR' }] },
       schedule: { entries: [{ averageHoursPerWeek: 40, fulltimeHoursPerWeek: 40 }] },
-      incomeRelationship: { status: 'UNSUPPORTED', reasonCode: 'CONTROL02_CONTRACT_PENDING' },
+      incomeRelationship: { status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED' },
       fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
     })
     expect(snapshot.sourceGaps).toContainEqual({
-      field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'CONTROL02_CONTRACT_PENDING',
+      field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED',
     })
     expect(snapshot.sourceGaps).toContainEqual({
       field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT',

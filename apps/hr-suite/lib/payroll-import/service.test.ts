@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PayrollImportAnalysis } from './model'
 import { createEmployment } from '@/lib/employment/employment-service'
-import { finalizePayrollImport, stagePayrollImport } from './service'
+import { finalizePayrollImport, listRecoverablePayrollImports, stagePayrollImport } from './service'
 
 const mocks = vi.hoisted(() => {
   class MockEmploymentServiceError extends Error {
@@ -38,7 +38,7 @@ vi.mock('@/lib/employment/employment-number', () => ({ nextAvailableEmploymentNu
 type DbRow = Record<string, unknown>
 type DbState = { tables: Record<string, DbRow[]>; nextId: number }
 type QueryResult = { data: DbRow[] | null; error: null }
-type Filter = { column: string; kind: 'eq' | 'in' | 'is' | 'lte'; value: unknown }
+type Filter = { column: string; kind: 'eq' | 'in' | 'is' | 'lte' | 'not_is'; value: unknown }
 
 class MemoryQuery {
   private operation: 'select' | 'insert' | 'update' = 'select'
@@ -51,6 +51,7 @@ class MemoryQuery {
   eq(column: string, value: unknown): this { this.filters.push({ column, kind: 'eq', value }); return this }
   in(column: string, value: readonly unknown[]): this { this.filters.push({ column, kind: 'in', value }); return this }
   is(column: string, value: unknown): this { this.filters.push({ column, kind: 'is', value }); return this }
+  not(column: string, operator: 'is', value: unknown): this { this.filters.push({ column, kind: 'not_is', value }); return this }
   lte(column: string, value: unknown): this { this.filters.push({ column, kind: 'lte', value }); return this }
   or(_expression: string): this { return this }
   order(_column: string, _options?: { ascending?: boolean }): this { return this }
@@ -90,6 +91,7 @@ class MemoryQuery {
       const value = row[filter.column]
       if (filter.kind === 'in') return Array.isArray(filter.value) && filter.value.includes(value)
       if (filter.kind === 'lte') return typeof value === 'string' && typeof filter.value === 'string' && value <= filter.value
+      if (filter.kind === 'not_is') return value !== filter.value
       return value === filter.value
     }))
 
@@ -245,6 +247,61 @@ beforeEach(() => {
 })
 
 describe('payroll import staging and finalization', () => {
+  it('toont historische XML-batches niet als hervatbare interne imports', async () => {
+    state.tables.payroll_import_batches.push({
+      id: 'legacy-xml-batch',
+      tenant_id: 'tenant-1',
+      hr_group_id: 'group-1',
+      administration_id: 'admin-1',
+      source_type: 'LOONAANGIFTE_XML',
+      status: 'FAILED',
+      preview_confirmed_at: '2026-10-01T00:00:00.000Z',
+    })
+    state.tables.payroll_import_persons.push({
+      id: 'legacy-xml-person',
+      tenant_id: 'tenant-1',
+      hr_group_id: 'group-1',
+      batch_id: 'legacy-xml-batch',
+      source_row_number: 1,
+      status: 'WARNING',
+      match_status: 'EXACT',
+      matched_employee_id: 'existing-employee',
+    })
+    state.tables.payroll_import_income_relationships.push({
+      id: 'legacy-xml-income',
+      batch_id: 'legacy-xml-batch',
+      import_person_id: 'legacy-xml-person',
+      ikv_number: 1,
+      starts_on: '2026-01-01',
+      status: 'GREEN',
+    })
+
+    await expect(listRecoverablePayrollImports('admin-1')).resolves.toEqual([])
+  })
+
+  it('weigert historische XML-batches vóór een finalization-claim of Core-write', async () => {
+    state.tables.payroll_import_batches.push({
+      id: 'legacy-xml-batch',
+      tenant_id: 'tenant-1',
+      hr_group_id: 'group-1',
+      administration_id: 'admin-1',
+      source_type: 'LOONAANGIFTE_XML',
+      status: 'STAGED',
+      preview_confirmed_at: '2026-10-01T00:00:00.000Z',
+    })
+
+    await expect(finalizePayrollImport({
+      batchId: 'legacy-xml-batch',
+      administrationId: 'admin-1',
+      selectedRowNumbers: [1],
+    })).rejects.toMatchObject({ code: 'PAYROLL_IMPORT_SOURCE_DISABLED', status: 409 })
+
+    expect(state.tables.payroll_import_batches[0]?.status).toBe('STAGED')
+    expect(state.tables.employees).toHaveLength(0)
+    expect(state.tables.employments).toHaveLength(0)
+    expect(state.tables.income_relationships).toHaveLength(0)
+  })
+
   it('houdt preview-staging idempotent en schrijft geen domeinrecords of raw BSN', async () => {
     const rawMarker = 'SYNTHETIC_RAW_BSN_MARKER'
     const analysis = makeAnalysis({ status: 'NEW' }, { rawMarker })

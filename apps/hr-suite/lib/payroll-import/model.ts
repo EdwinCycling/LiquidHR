@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const payrollImportSourceTypeSchema = z.enum(['LOONAANGIFTE_XML', 'INTERNAL_REPRESENTATIVE'])
+export const payrollImportSourceTypeSchema = z.literal('INTERNAL_REPRESENTATIVE')
 export type PayrollImportSourceType = z.infer<typeof payrollImportSourceTypeSchema>
 
 export type PayrollImportRowStatus = 'GREEN' | 'WARNING' | 'BLOCKING'
