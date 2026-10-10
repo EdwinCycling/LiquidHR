@@ -90,6 +90,10 @@ export function toEmployeeBankAccountUpdate(tenantId: string, input: BankAccount
   return row
 }
 
+export function isPrimaryForNewBankAccount(activeAccountCount: number, requestedPrimary: boolean): boolean {
+  return activeAccountCount === 0 || requestedPrimary
+}
+
 export function toPublicEmployee(employee: PublicEmployeeSource): PublicEmployee {
   return {
     id: employee.id, tenantId: employee.tenant_id, employeeNumber: employee.employee_number,

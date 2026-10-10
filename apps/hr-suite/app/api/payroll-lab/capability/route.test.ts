@@ -17,10 +17,10 @@ import { POST } from './route'
 
 const APPLICATION_URL = 'http://localhost:3000'
 
-function capabilityRequest(body: string, origin = APPLICATION_URL): NextRequest {
-  return new NextRequest(`${APPLICATION_URL}/api/payroll-lab/capability`, {
+function capabilityRequest(body: string, origin = APPLICATION_URL, requestUrl = APPLICATION_URL): NextRequest {
+  return new NextRequest(`${requestUrl}/api/payroll-lab/capability`, {
     method: 'POST',
-    headers: { origin, 'content-type': 'application/json' },
+    headers: { origin, host: new URL(requestUrl).host, 'content-type': 'application/json' },
     body,
   })
 }
@@ -46,6 +46,19 @@ describe('POST /api/payroll-lab/capability', () => {
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(await response.json()).toEqual({ data: { capabilityEnabled: true } })
     expect(updateCapability).toHaveBeenCalledOnce()
+    expect(updateCapability).toHaveBeenCalledWith(true)
+  })
+
+  it('preserves local same-origin requests when Next.js normalizes request.nextUrl', async () => {
+    const browserOrigin = 'http://127.0.0.1:3010'
+    const request = capabilityRequest('{"enabled":true}', browserOrigin, browserOrigin)
+
+    expect(request.headers.get('origin')).toBe(browserOrigin)
+    expect(request.nextUrl.origin).toBe('http://localhost:3010')
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
     expect(updateCapability).toHaveBeenCalledWith(true)
   })
 

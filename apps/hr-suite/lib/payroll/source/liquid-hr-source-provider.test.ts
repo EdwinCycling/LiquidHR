@@ -3,11 +3,13 @@ import {
   LiquidHrPayrollSourceProvider,
   PayrollSourceProviderError,
   type PayrollSourceEmployment,
+  type PayrollSourceIncomeRelationship,
   type PayrollSourceProviderDependencies,
   type PayrollSourceSalary,
   type PayrollSourceSchedule,
 } from './liquid-hr-source-provider'
 import type { PayrollSourceProviderInput } from '@liquid-hr/payroll-engine'
+import type { ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
 
 const tenantId = '10000000-0000-4000-8000-000000000001'
 const hrGroupId = '20000000-0000-4000-8000-000000000002'
@@ -17,6 +19,11 @@ const employeeId = '40000000-0000-4000-8000-000000000004'
 const employmentId = '50000000-0000-4000-8000-000000000005'
 const salaryId = '60000000-0000-4000-8000-000000000006'
 const scheduleId = '70000000-0000-4000-8000-000000000007'
+const incomeLinkId = '81000000-0000-4000-8000-000000000008'
+const incomeRelationshipId = '82000000-0000-4000-8000-000000000008'
+const actualWorkPeriodId = '83000000-0000-4000-8000-000000000008'
+const actualWorkTypeId = '84000000-0000-4000-8000-000000000008'
+const actualWorkEntryId = '85000000-0000-4000-8000-000000000008'
 
 const request: PayrollSourceProviderInput = {
   tenantId,
@@ -57,6 +64,13 @@ function salary(overrides: Partial<PayrollSourceSalary> = {}): PayrollSourceSala
     fulltime_amount: 3200,
     parttime_amount: 3200,
     hourly_rate: null,
+    salary_structure_id: null,
+    salary_scale_id: null,
+    salary_scale_step_id: null,
+    salary_step_code: null,
+    cao_scale_name: null,
+    cao_step_name: null,
+    salary_band_id: null,
     valid_from: '2026-09-01',
     valid_until: null,
     updated_at: '2026-09-01T10:05:00.000Z',
@@ -71,11 +85,71 @@ function schedule(overrides: Partial<PayrollSourceSchedule> = {}): PayrollSource
     average_hours_per_week: 40,
     fulltime_hours_per_week: 40,
     part_time_factor: 1,
-    schedule_type: 'FIXED' as PayrollSourceSchedule['schedule_type'],
+    schedule_type: 'HOURS_PER_DAY',
     is_on_call: false,
     valid_from: '2026-09-01',
     valid_until: null,
     updated_at: '2026-09-01T10:10:00.000Z',
+    ...overrides,
+  }
+}
+
+function incomeRelationship(overrides: Partial<PayrollSourceIncomeRelationship> = {}): PayrollSourceIncomeRelationship {
+  return {
+    id: incomeLinkId,
+    incomeRelationshipId,
+    validFrom: '2026-09-01',
+    validUntil: null,
+    linkUpdatedAt: '2026-09-01T10:15:00.000Z',
+    reportingStatus: 'DRAFT',
+    startsOn: '2026-09-01',
+    endsOn: null,
+    incomeRelationshipUpdatedAt: '2026-09-01T10:20:00.000Z',
+    ...overrides,
+  }
+}
+
+function actualWork(overrides: Partial<ActualWorkPayrollProjection> = {}): ActualWorkPayrollProjection {
+  return {
+    period: {
+      id: actualWorkPeriodId,
+      period_start: '2026-09-01',
+      period_end: '2026-10-01',
+      status: 'CLOSED',
+      updated_at: '2026-10-01T10:00:00.000Z',
+    },
+    entries: [],
+    types: [],
+    ...overrides,
+  }
+}
+
+function actualWorkEntry(overrides: Partial<ActualWorkPayrollProjection['entries'][number]> = {}): ActualWorkPayrollProjection['entries'][number] {
+  return {
+    id: actualWorkEntryId,
+    employment_id: employmentId,
+    work_hour_type_id: actualWorkTypeId,
+    work_date: '2026-09-10',
+    entry_granularity: 'DAY',
+    subject_period_start: '2026-09-10',
+    subject_period_end: '2026-09-11',
+    posting_period_start: '2026-09-01',
+    hours: 8,
+    status: 'APPROVED',
+    approved_at: '2026-09-11T10:00:00.000Z',
+    updated_at: '2026-09-11T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function actualWorkType(overrides: Partial<ActualWorkPayrollProjection['types'][number]> = {}): ActualWorkPayrollProjection['types'][number] {
+  return {
+    id: actualWorkTypeId,
+    family: 'WORK',
+    valid_from: '2026-01-01',
+    valid_until: null,
+    approval_required: true,
+    updated_at: '2026-01-01T10:00:00.000Z',
     ...overrides,
   }
 }
@@ -85,6 +159,7 @@ function dependencies(overrides: Partial<PayrollSourceProviderDependencies> = {}
     authorize: vi.fn(async () => ({ tenantId, hrGroupId, administrationId })),
     listEmployments: vi.fn(async () => [employment()]),
     loadTimeline: vi.fn(async () => ({ employment: employment(), salaries: [salary()], schedules: [schedule()] })),
+    loadActualWork: vi.fn(async () => actualWork()),
     isEnabled: vi.fn(() => true),
     now: () => new Date('2026-09-30T12:00:00.000Z'),
     createId: () => '80000000-0000-4000-8000-000000000008',
@@ -108,11 +183,11 @@ describe('LiquidHR Payroll source provider', () => {
       employment: { startsOn: '2026-09-01', endsOn: null, recordStatus: 'CONFIRMED' },
       compensation: { entries: [{ salaryBasis: 'MANUAL', fulltimeAmount: 3200, currencyCode: 'EUR' }] },
       schedule: { entries: [{ averageHoursPerWeek: 40, fulltimeHoursPerWeek: 40 }] },
-      incomeRelationship: { status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED' },
+      incomeRelationship: { status: 'SOURCE_GAP', reasonCode: 'NO_LINKED_INCOME_RELATIONSHIP' },
       fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
     })
     expect(snapshot.sourceGaps).toContainEqual({
-      field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED',
+      field: 'incomeRelationship', status: 'SOURCE_GAP', reasonCode: 'NO_LINKED_INCOME_RELATIONSHIP',
     })
     expect(snapshot.sourceGaps).toContainEqual({
       field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT',
@@ -124,6 +199,128 @@ describe('LiquidHR Payroll source provider', () => {
       [`employment:${employmentId}`]: employment().updated_at,
       [`employment_salary:${salaryId}`]: salary().updated_at,
       [`employment_schedule:${scheduleId}`]: schedule().updated_at,
+      [`actual_work_period:${actualWorkPeriodId}`]: actualWork().period?.updated_at,
+    })
+  })
+
+  it('preserves an explicitly linked DRAFT IKV as an opaque source ID without treating it as a finalized Core contract', async () => {
+    const provider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary()],
+        schedules: [schedule()],
+        incomeRelationships: [incomeRelationship()],
+      })),
+    }))
+
+    const snapshot = await provider.getPayrollSourceSnapshot(request)
+
+    expect(snapshot.sourceIncomeRelationshipId).toBe(incomeRelationshipId)
+    expect(snapshot.canonicalSource).toMatchObject({
+      incomeRelationship: {
+        id: incomeRelationshipId,
+        reportingStatus: 'DRAFT',
+        status: 'UNSUPPORTED',
+        reasonCode: 'CONTROL02_CONTRACT_PENDING',
+      },
+    })
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'CONTROL02_CONTRACT_PENDING',
+    })
+    expect(snapshot.sourceVersionVector).toMatchObject({
+      [`employment_income_relationship:${incomeLinkId}`]: incomeRelationship().linkUpdatedAt,
+      [`income_relationship:${incomeRelationshipId}`]: incomeRelationship().incomeRelationshipUpdatedAt,
+    })
+  })
+
+  it('fails closed on overlapping linked IKVs instead of choosing one', async () => {
+    const provider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary()],
+        schedules: [schedule()],
+        incomeRelationships: [
+          incomeRelationship(),
+          incomeRelationship({ id: '81000000-0000-4000-8000-000000000009', incomeRelationshipId: '82000000-0000-4000-8000-000000000009' }),
+        ],
+      })),
+    }))
+
+    const snapshot = await provider.getPayrollSourceSnapshot(request)
+
+    expect(snapshot.sourceIncomeRelationshipId).toBeNull()
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_AMBIGUOUS',
+    })
+  })
+
+  it('pins approved WORK and ADDITIONAL entries and omits notes and approver identifiers', async () => {
+    const approvedWork = actualWork({
+      entries: [
+        actualWorkEntry(),
+        actualWorkEntry({
+          id: '85000000-0000-4000-8000-000000000009',
+          work_hour_type_id: '84000000-0000-4000-8000-000000000009',
+          work_date: '2026-09-12',
+          subject_period_start: '2026-09-12',
+          subject_period_end: '2026-09-13',
+          hours: 2,
+        }),
+      ],
+      types: [
+        actualWorkType(),
+        actualWorkType({ id: '84000000-0000-4000-8000-000000000009', family: 'ADDITIONAL' }),
+      ],
+    })
+    const provider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadActualWork: vi.fn(async () => approvedWork),
+    }))
+
+    const snapshot = await provider.getPayrollSourceSnapshot(request)
+    const payload = JSON.stringify(snapshot.canonicalSource)
+
+    expect(snapshot.canonicalSource).toMatchObject({
+      actualWork: {
+        period: { status: 'CLOSED', startsOn: '2026-09-01', endsOn: '2026-10-01' },
+        entries: [
+          { family: 'WORK', hours: '8.0000', status: 'APPROVED' },
+          { family: 'ADDITIONAL', hours: '2.0000', status: 'APPROVED' },
+        ],
+      },
+    })
+    expect(snapshot.sourceVersionVector).toMatchObject({
+      [`actual_work_period:${actualWorkPeriodId}`]: approvedWork.period?.updated_at,
+      [`actual_work_entry:${actualWorkEntryId}`]: approvedWork.entries[0]?.updated_at,
+      [`work_hour_type:${actualWorkTypeId}`]: approvedWork.types[0]?.updated_at,
+    })
+    expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({ field: 'actualWork' }))
+    expect(payload).not.toMatch(/note|approvedBy|approved_by|firstName|birthName|iban|bsn/i)
+  })
+
+  it('blocks pending payable hours and approved overtime until an explicit payroll rule is configured', async () => {
+    const pendingProvider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadActualWork: vi.fn(async () => actualWork({
+        entries: [actualWorkEntry({ status: 'PENDING', approved_at: null })],
+        types: [actualWorkType({ family: 'ADDITIONAL' })],
+      })),
+    }))
+    const overtimeProvider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadActualWork: vi.fn(async () => actualWork({
+        entries: [actualWorkEntry()],
+        types: [actualWorkType({ family: 'OVERTIME' })],
+      })),
+    }))
+
+    const [pendingSnapshot, overtimeSnapshot] = await Promise.all([
+      pendingProvider.getPayrollSourceSnapshot(request),
+      overtimeProvider.getPayrollSourceSnapshot(request),
+    ])
+
+    expect(pendingSnapshot.sourceGaps).toContainEqual({
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'PAYABLE_ACTUAL_WORK_NOT_APPROVED',
+    })
+    expect(overtimeSnapshot.sourceGaps).toContainEqual({
+      field: 'actualWork', status: 'UNSUPPORTED', reasonCode: 'OVERTIME_RULE_NOT_CONFIGURED',
     })
   })
 
@@ -220,7 +417,7 @@ describe('LiquidHR Payroll source provider', () => {
     const earlySalary = salary({
       id: '60000000-0000-4000-8000-000000000016',
       valid_from: '2026-09-01',
-      valid_until: '2026-09-14',
+      valid_until: '2026-09-15',
     })
     const lateSalary = salary({
       id: '60000000-0000-4000-8000-000000000017',
@@ -238,6 +435,48 @@ describe('LiquidHR Payroll source provider', () => {
 
     expect(first.sourceHash).toBe(reversed.sourceHash)
     expect(first.sourceGaps.some((gap) => gap.field === 'contractualSalary')).toBe(false)
+  })
+
+  it('treats salary and schedule valid_until as exclusive at an adjacent month boundary', async () => {
+    const octoberRequest = { ...request, payrollPeriod: { year: 2026, month: 10 } }
+    const salaryBeforeBoundary = salary({
+      id: '60000000-0000-4000-8000-000000000036',
+      valid_from: '2026-09-01',
+      valid_until: '2026-10-01',
+    })
+    const salaryFromBoundary = salary({
+      id: '60000000-0000-4000-8000-000000000037',
+      fulltime_amount: 4250,
+      valid_from: '2026-10-01',
+      valid_until: '2026-11-01',
+    })
+    const scheduleBeforeBoundary = schedule({
+      id: '70000000-0000-4000-8000-000000000036',
+      valid_from: '2026-09-01',
+      valid_until: '2026-10-01',
+    })
+    const scheduleFromBoundary = schedule({
+      id: '70000000-0000-4000-8000-000000000037',
+      average_hours_per_week: 32,
+      valid_from: '2026-10-01',
+      valid_until: '2026-11-01',
+    })
+
+    const october = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salaryBeforeBoundary, salaryFromBoundary],
+        schedules: [scheduleBeforeBoundary, scheduleFromBoundary],
+      })),
+    })).getPayrollSourceSnapshot(octoberRequest)
+
+    const canonicalSource = october.canonicalSource as {
+      readonly compensation: { readonly entries: readonly { readonly id: string }[] }
+      readonly schedule: { readonly entries: readonly { readonly id: string }[] }
+    }
+    expect(canonicalSource.compensation.entries.map((entry) => entry.id)).toEqual([salaryFromBoundary.id])
+    expect(canonicalSource.schedule.entries.map((entry) => entry.id)).toEqual([scheduleFromBoundary.id])
+    expect(october.sourceGaps.some((gap) => ['contractualSalary', 'contractualHours'].includes(gap.field))).toBe(false)
   })
 
   it('marks missing and overlapping source timelines explicitly', async () => {

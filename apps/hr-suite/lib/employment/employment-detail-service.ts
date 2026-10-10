@@ -48,6 +48,54 @@ async function loadEmploymentForAction(employmentId: string, permission: string)
   return data
 }
 
+export type EmploymentIncomeRelationshipProjection = {
+  readonly id: string
+  readonly incomeRelationshipId: string
+  readonly validFrom: string
+  readonly validUntil: string | null
+  readonly linkUpdatedAt: string
+  readonly reportingStatus: Database['public']['Enums']['payroll_reporting_status']
+  readonly startsOn: string
+  readonly endsOn: string | null
+  readonly incomeRelationshipUpdatedAt: string
+}
+
+/** Minimal, permission-checked IKV identity and effective link projection for Payroll source snapshots. */
+export async function getEmploymentIncomeRelationshipProjection(
+  employeeId: string,
+  employmentId: string,
+): Promise<readonly EmploymentIncomeRelationshipProjection[]> {
+  const employment = await loadEmploymentForAction(employmentId, 'contract:read')
+  if (employment.employee_id !== employeeId) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('employment_income_relationships')
+    .select('id, income_relationship_id, valid_from, valid_until, updated_at, income_relationships!inner(id, reporting_status, starts_on, ends_on, deleted_at, updated_at)')
+    .eq('tenant_id', employment.tenant_id)
+    .eq('administration_id', employment.administration_id)
+    .eq('employee_id', employeeId)
+    .eq('employment_id', employment.id)
+    .order('valid_from', { ascending: true })
+    .limit(100)
+  if (error) throwDatabaseError(error.message)
+
+  return (data ?? []).flatMap((row) => {
+    const relationship = row.income_relationships
+    if (!relationship || relationship.deleted_at !== null) return []
+    return [{
+      id: row.id,
+      incomeRelationshipId: relationship.id,
+      validFrom: row.valid_from,
+      validUntil: row.valid_until,
+      linkUpdatedAt: row.updated_at,
+      reportingStatus: relationship.reporting_status,
+      startsOn: relationship.starts_on,
+      endsOn: relationship.ends_on,
+      incomeRelationshipUpdatedAt: relationship.updated_at,
+    }]
+  })
+}
+
 async function validateSelectedContract(
   employmentId: string,
   contractId: string | null | undefined,

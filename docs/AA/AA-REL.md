@@ -116,7 +116,7 @@ Voor een uitsluitend synthetische, operationele TEST-omgeving mag Edwin bewust e
 - volledige passende kwaliteitsgate met eerlijke registratie van eventuele omgevingsgebonden timeouts;
 - exacte release-SHA, local/main/origin synchronisatie en schone deploymentcheckout;
 - hosted READY/safety smoke;
-- expliciete afzonderlijke OPEN-matrix, niet vermommen als volledig ACCEPTANCE GREEN.
+- expliciete afzonderlijke OPEN-matrix, niet vermommen als volledig ACCEPTANCE GREEN. Gebruik `AA-OPEN.md` als **index** van relevante nog openstaande punten, met de gedateerde testrapporten als onderliggend bewijs.
 
 Vercel `production` is hier alleen het deploymentchannel, **geen** claim van operationele productieklaarheid. Deployment Protection is geen afgesproken extra voorwaarde voor deze TEST-release; dit ontslaat ons niet van server-side autorisatie of het gericht bewijzen van de openstaande negatieve controles.
 
@@ -155,3 +155,4 @@ Na succesvolle release:
 - Na een echte defectfix: targeted regressie; alleen bij brede blast radius opnieuw bredere gates.
 - Stop wanneer afgesproken scope GREEN is.
 - Nieuwe ideeën gaan naar AA-NEXT/AA-ROAD of backlog, niet automatisch dezelfde release in.
+- Reeds verklaarde externe bewijs-/fixtureafhankelijkheden gaan met eigenaar en concrete heropeningsvoorwaarde naar AA-OPEN. Dit verlaagt nooit de vereiste veiligheidsgates en geeft geen zelfstandige deploytoestemming.

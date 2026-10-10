@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPayrollMoney } from './format-money'
+import { formatPayrollMoney, formatPayrollMoneyForDisplay } from './format-money'
 
 describe('formatPayrollMoney', () => {
   it('groups a decimal larger than Number.MAX_SAFE_INTEGER without losing cents', () => {
@@ -14,5 +14,14 @@ describe('formatPayrollMoney', () => {
     expect(formatPayrollMoney('3175.001', 'en-US')).toBe('—')
     expect(formatPayrollMoney('not-an-amount', 'en-US')).toBe('—')
     expect(formatPayrollMoney(null, 'en-US')).toBe('—')
+  })
+})
+
+describe('formatPayrollMoneyForDisplay', () => {
+  it('rounds exact decimals half-up for presentation and retains currency grouping', () => {
+    expect(formatPayrollMoneyForDisplay('1911.735632183908045976', 'en-US')).toBe('€1,911.74')
+    expect(formatPayrollMoneyForDisplay('1605.792505', 'nl-NL')).toBe('€ 1.605,79')
+    expect(formatPayrollMoneyForDisplay('-0.005', 'en-US')).toBe('-€0.01')
+    expect(formatPayrollMoneyForDisplay(null, 'en-US')).toBe('—')
   })
 })

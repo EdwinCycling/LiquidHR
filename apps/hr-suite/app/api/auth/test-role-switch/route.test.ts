@@ -12,16 +12,19 @@ vi.mock('@/lib/auth/permissions', () => ({ getRequestAuthorizationContext, permi
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 
 import { NextRequest } from 'next/server'
+import { ACTIVE_ADMINISTRATION_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_TENANT_COOKIE } from '@/lib/context/context-cookies'
 import { POST } from './route'
 
 const CANONICAL_SUPABASE_URL = 'https://wnpfloqpjvaacobppbpk.supabase.co'
 const APPLICATION_URL = 'https://liquid-hr-hr-suite.vercel.app'
 
-function switchRequest(target: string): NextRequest {
-  return new NextRequest(`${APPLICATION_URL}/api/auth/test-role-switch`, {
+function switchRequest(target: string, next?: string, requestUrl = APPLICATION_URL): NextRequest {
+  const body = new URLSearchParams({ target })
+  if (next !== undefined) body.set('next', next)
+  return new NextRequest(`${requestUrl}/api/auth/test-role-switch`, {
     method: 'POST',
-    headers: { origin: APPLICATION_URL },
-    body: new URLSearchParams({ target }),
+    headers: { origin: requestUrl, host: new URL(requestUrl).host },
+    body,
   })
 }
 
@@ -127,9 +130,58 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(handoffCookie).toContain('Max-Age=60')
     expect(handoffCookie).toContain('SameSite=lax')
     expect(handoffCookie).toContain('Secure')
+    for (const cookieName of [ACTIVE_TENANT_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_ADMINISTRATION_COOKIE]) {
+      expect(response.cookies.get(cookieName)?.value).toBe('')
+    }
+    expect(handoffCookie).toContain('Max-Age=0')
     expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'manager.fixture@liquidhr.test' })
     expect(signOut).toHaveBeenCalledOnce()
   })
+
+  it('behoudt de same-origin rolwissel als Next.js request.nextUrl normaliseert', async () => {
+    enableSwitcher()
+    const browserOrigin = 'http://127.0.0.1:3010'
+    const request = switchRequest('manager', undefined, browserOrigin)
+
+    expect(request.headers.get('origin')).toBe(browserOrigin)
+    expect(request.nextUrl.origin).toBe('http://localhost:3010')
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(303)
+    expect(response.headers.get('location')).toBe(`${browserOrigin}/auth/test-role-switch/confirm`)
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'manager.fixture@liquidhr.test' })
+  })
+
+  it('bewaart een gevalideerde relatieve route in een kortlevende HttpOnly-cookie', async () => {
+    enableSwitcher()
+
+    const response = await POST(switchRequest('manager', '/employees?tab=profile'))
+
+    expect(response.status).toBe(303)
+    expect(response.headers.get('location')).toBe(APPLICATION_URL + '/auth/test-role-switch/confirm')
+    const cookies = response.headers.get('set-cookie') ?? ''
+    expect(cookies).toContain('liquidhr-test-role-switch-next=')
+    expect(cookies).toContain('HttpOnly')
+    expect(cookies).toContain('Max-Age=60')
+    expect(cookies).not.toContain('/employees?tab=profile')
+    expect(generateLink).toHaveBeenCalledOnce()
+  })
+
+  it.each(['https://attacker.example', '//attacker.example', '/\\attacker.example'])(
+    'stores only the safe fallback for an unsafe role-switch redirect %s',
+    async (next) => {
+      enableSwitcher()
+
+      const response = await POST(switchRequest('manager', next))
+
+      expect(response.status).toBe(303)
+      const cookies = response.headers.get('set-cookie') ?? ''
+      expect(cookies).toMatch(/liquidhr-test-role-switch-next=(?:%2Fdashboard%2Fstart|\/dashboard\/start)/i)
+      expect(cookies).not.toContain('attacker.example')
+      expect(generateLink).toHaveBeenCalledOnce()
+    },
+  )
 
   it('laat een HR_ADMIN-systeemrol de bestaande allowlisted targets gebruiken', async () => {
     enableSwitcher()

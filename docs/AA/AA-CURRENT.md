@@ -3,6 +3,14 @@
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-10 (release-evidence hieronder blijft historisch gedateerd)
 
+## ONE VERSION convergence candidate — 2026-10-10
+
+**Status: code lokaal geïntegreerd; acceptatie nog open; geen merge naar main of deployment.** De geïsoleerde kandidaat vanaf main `783999044de83c902e63fefb3587fdbbf99d4de3` bevat CONTROL02-cleanup PR #12, APIAI-08 PR #11 en Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9`. De geparkeerde Nmbrs/externe Payroll-branch `work/payroll-p0-p1` blijft onaangeraakt.
+
+- APIAI-08 TEST-migratie is al geregistreerd als `20261010064331_apiai08_employee_ess_controlled_actions`; lokale migratienaam moet worden afgestemd zonder SQL opnieuw toe te passen. De 0-versus-96 uur verlofsaldoafwijking en hosted ESS/audit/runtime-acceptatie blijven open.
+- PAY-RULE-002 code heeft eerdere lokale engineeringgates gehaald, maar de Frits-assignment/mapping en persistente successor-runs zijn niet aangemaakt. De centrale TEST-runtime en geschikte bestaande synthetic TEST-identiteit waren bij de laatste gecontroleerde run niet beschikbaar.
+- Main-versie blijft `1.20261002.1` totdat de gebundelde acceptatie slaagt. De synthetic TEST-deployment, GitHub-main-merge en expliciete artefactcleanup zijn nog niet uitgevoerd.
+
 > **Actueel:** CONVERGENCE01 is als TEST-release vrijgegeven op 2026-10-02. Dit is **geen** claim dat de volledige live security-/persona-acceptatiematrix GREEN is.
 
 > **Statusupdate 2026-10-10:** CONTROL02 en de officiële Loonaangifte-XML-import zijn CANCELLED. Er komt geen vervolgontwikkeling, herstelmigratie of E2E-acceptatie. De interne representatieve import en CONTROL01 blijven behouden; TEST-data en databaseobjecten zijn read-only geïnventariseerd en blijven staan totdat een exact cleanupvoorstel apart is goedgekeurd.
@@ -17,12 +25,12 @@ Momentopname: 2026-10-10 (release-evidence hieronder blijft historisch gedateerd
 - Canonieke Supabase TEST/projectomgeving: `wnpfloqpjvaacobppbpk`
 - Eén operationele LiquidHR-omgeving; Vercel “Production” is deploymentchannelnaam.
 
-## Actuele canonieke LiquidHR TEST-release — 2026-10-02
+## Actuele canonieke LiquidHR TEST-baseline vóór convergence — 2026-10-10
 
-- Appversie: `1.20260928.1`.
-- `main` / `origin/main`: `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; lokale `main`-gelijkheid bevestigd in de Codex-releasehandoff.
-- Vercel `liquidhr`: deployment `dpl_CANMAQydQcYGy9Xe7JhNm8grJuvH`, READY, targetlabel `production` = onze enige operationele TEST-omgeving.
-- Alias: https://liquid-hr-hr-suite.vercel.app/.
+- Appversie: `1.20261002.1`.
+- `origin/main`: `783999044de83c902e63fefb3587fdbbf99d4de3`.
+- Vercel-project `liquidhr` (`prj_h3voMtzXGfqG6QTodR5d1VTcC1zP`): deployment `dpl_A9iNj25sybqbsS5zwghbYBSzYhUR` is READY op exact dezelfde main-SHA. Het targetlabel is `production`; dit project is de bestaande synthetic TEST-omgeving.
+- Alias `liquid-hr-hr-suite.vercel.app` wijst naar die deployment; de huidige deployment is als rollback candidate gemarkeerd.
 - GitHub main-SHA en Vercel deploymentstatus/alias zijn onafhankelijk gecontroleerd. Vercel CLI-upload toont zelf geen Git-SHA; de schone checkout en gebruikte release-SHA zijn in de Codex-handoff vastgelegd.
 - Historische ABS02-baseline vóór convergence: `3a0fc67f84bc7dab0acff732afab597142d59ea9`, appversie `1.20260927.3`.
 - **Status:** TEST RELEASED; resterende live security-/persona-/exportacceptatie OPEN, dus geen volledige acceptance GREEN.

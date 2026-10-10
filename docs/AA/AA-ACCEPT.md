@@ -1,9 +1,17 @@
 # AA-ACCEPT — Accepted Baseline
 
 Status: **LIVING INDEX**
-Bijgewerkt: 2026-10-02
+Bijgewerkt: 2026-10-05
 
 Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte index van wat we als actuele baseline accepteren.
+
+**Open punten en openstaande bewijslast:** zie [AA-OPEN](AA-OPEN.md). Een punt in dat register is geen nieuw GREEN-verdict; de gedateerde acceptance reports en exacte codeprovenance blijven bepalend. Nieuwe lokale feature-overdrachten zijn pas geïntegreerde baseline na gecontroleerde convergence.
+
+**PAY-CONVERGE 2026-10-04:** de CAO-BENCH02-productcode is lokaal geïntegreerd vanaf main 6349d025 en de passende lokale codegates zijn PASS. De integratieacceptatie is PARTIAL en de release-aanbeveling is HOLD: SEC-PAY-001, PAY-RULE-002 en ENV-PREVIEW-010 zijn OPEN; er is geen hosted kandidaatacceptatie of release. Zie het [PAY-CONVERGE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md). Dit voegt geen nieuwe accepted TEST-release toe.
+
+**PAY-RELEASE-01 pre-harness voortzetting 2026-10-05:** de extra suite/type/lint/i18n-gates, guarded build op codecommit `0f792665`, directe K1/K2-PDF-rendering en lokale Production-smoke zijn bewijs voor die pre-harness kandidaat. Zie de huidige kandidaatstatus hieronder.
+
+**PAYRUN01 closeout — 2026-10-05:** de lokale geïntegreerde kandidaat c04d8e615afd3d1f42067c38840f8c83f43c3b3f slaagde voor guarded build/provenance, Production-smoke, de geauthenticeerde matrix 6/6 en Payroll Lab Admin-matrix 2/2. De serial suite slaagde met 523 bestanden, 2.217 tests; 3 overgeslagen. Individuele Jan/Lisa payroll-DoD blijft OPEN/UNSUPPORTED wegens geaccepteerde bron-, autorisatie-, CAO-/bedrijfs-, YTD-, kosten- en result lifecycle-gaten. Geen kandidaatdeployment en geen nieuwe TEST-release. Zie het [PAYRUN01-readinessrapport](../quality/acceptance/runs/PAYRUN01-READINESS-20261005.md) en [AA-OPEN](AA-OPEN.md).
 
 ## Verdictdefinities
 

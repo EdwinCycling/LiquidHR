@@ -3,6 +3,12 @@
 Status: **LEIDEND VOOR PAYROLL ZODRA GEMERGED OP `main`**
 Eerste opzet: 2026-09-30
 
+## CAO-BENCH02 Phase 1 execution boundary — 2026-10-03
+
+Voor de kandidaatbranch `work/cao-bench02-20261003` geldt de actuele scope van [CAO-BENCH02 acceptance](../payroll/acceptance/CAO-BENCH02-20261003.md): uitsluitend synthetische arrangementconfiguratie en versiecompositie in de aparte Payroll Lab-database. Dit geeft geen autorisatie voor Core-reads/writes, CONTROL02, echte salarisruns, version bump, merge, push of deployment.
+
+Hoofdstuk 13 hieronder blijft de gezaghebbende vaststelling van de oorspronkelijke QA-groep: Planeten → Jupiter BV → Directie. De groep is niet gebruikt als Payroll Phase 1-fixture en geen van de hier beschreven bronrecords is gewijzigd. §13 vervangt oudere, onjuiste Test Operations-selecties.
+
 Dit document legt de structurele product-, architectuur- en ontwikkelafspraken voor LiquidHR Payroll vast. Detailrequirements, fiscale bronbestanden en gedateerde acceptance evidence blijven elders staan.
 
 ## 1. Productgrens

@@ -7,10 +7,17 @@ import {
 } from '@/lib/context/administration-context'
 import type { PortalMode } from '@/lib/context/administration-context'
 import { createClient } from '@/lib/supabase/server'
+import {
+  ACTIVE_ADMINISTRATION_COOKIE,
+  ACTIVE_HR_GROUP_COOKIE,
+  ACTIVE_TENANT_COOKIE,
+} from '@/lib/context/context-cookies'
 
-export const ACTIVE_TENANT_COOKIE = 'liquid-hr-tenant'
-export const ACTIVE_HR_GROUP_COOKIE = 'liquid-hr-hr-group'
-export const ACTIVE_ADMINISTRATION_COOKIE = 'liquid-hr-administration'
+export {
+  ACTIVE_ADMINISTRATION_COOKIE,
+  ACTIVE_HR_GROUP_COOKIE,
+  ACTIVE_TENANT_COOKIE,
+} from '@/lib/context/context-cookies'
 
 export class ContextAuthenticationError extends Error {
   readonly status = 401

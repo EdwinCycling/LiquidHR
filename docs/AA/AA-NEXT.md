@@ -5,9 +5,9 @@ Bijgewerkt: 2026-10-10
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
 
-## Current release — ONE VERSION / PAYLAB00–04
+## Current release — ONE VERSION convergence — 2026-10-10
 
-De geïntegreerde PAYLAB00–04-kandidaat is MERGE-READY op `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; de huidige opdracht rondt de gecontroleerde TEST-release af met versie `1.20261002.1`. Er komt in deze release geen Payroll-feature, migratie, CAO-implementatie of nieuwe ontwikkelronde. Houd de reeds geaccepteerde desktop-/mobiele payroll-browserresultaten en hashes intact.
+De geïsoleerde kandidaat vanaf main `783999044de83c902e63fefb3587fdbbf99d4de3` combineert CONTROL02-cleanup, APIAI-08 en Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9`. PAY-RULE-002 dirty changes en migrationlineage moeten nog worden verwerkt. De main-versie is nog `1.20261002.1`; volledige acceptatie, version bump, GitHub-main-merge en synthetic-TEST deployment blijven afhankelijk van groene gates. Houd `work/payroll-p0-p1` als enige aparte Nmbrs/externe Payroll-branch geparkeerd.
 
 ## CURRENT — CONVERGENCE01 post-release TEST-acceptatie
 

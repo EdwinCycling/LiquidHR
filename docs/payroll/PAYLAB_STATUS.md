@@ -1,5 +1,16 @@
 # Payroll Lab status
 
+## PAYLAB05 — CAO-BENCH02 Phase 1 — 2026-10-03
+
+**Status: lokale codegates en synthetic Payroll Lab browserflow GREEN; totale acceptatie PARTIAL door een incidentele Core-dashboardread na de loginredirect; geen merge- of releasestatus.** Branch `work/cao-bench02-20261003` start vanaf exact `6349d02538351cd01fc51f298c6e6fa0ba88006c`; de bestaande PAYLAB00–04-integratie en appversie `1.20261002.1` blijven onveranderd.
+
+- De arrangementfoundation bevat alleen metadata voor Kinderopvang, Retail Non-Food Mode en een expliciet synthetisch open-bandbeleid. Drie synthetic fixtures representeren schaal/trede, open band en individueel overeengekomen loon. Er zijn geen bedragen, uitvoerbare loontabellen of berekeningen.
+- De QA-groep Planeten → Jupiter BV → Directie blijft de latere Core-referentie volgens planhoofdstuk 13; haar personen/dienstverbanden zijn niet als fixtures gebruikt en CONTROL02 bleef onaangeraakt. Na `/login` werd door de bestaande TEST-sessie de Core-startpagina met employee/absence-samenvattingen en een avatar geladen; zie het acceptanceverslag.
+- Payroll Lab Supabase `jhgeriucbkfarxiudzfy` ontving drie additive migrations: `20261003122457`, `20261003122705` en `20261003124346`. Na lokale browseracceptatie staan er 3 beschikbaarheden, 3 synthetic assignments en 3 snapshots. RLS en beperkte service_role-grants blijven gelden; er zijn geen Core-FK's.
+- De bron van de al toegepaste derde migration is na toepassing veilig gehard met een tijdelijk default/drop-default-patroon; remote niet opnieuw toegepast. Post-migration advisor-uitkomsten en de scope staan in het acceptanceverslag.
+- Lokale verificatie: 35 tests in vijf gerichte bestanden PASS; strict TypeScript, changed-area ESLint, NL/EN i18n (41 namespaces) en `git diff --check` PASS. Geen volledige suite/build. De laatste LUNA MAX-review vond geen P1/P2.
+- Exacte browserstatus, onafhankelijke review en overige open gates staan in [CAO-BENCH02 acceptance](acceptance/CAO-BENCH02-20261003.md). Besluit: [ADR-PAYLAB-002](../decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md).
+
 ## PAYLAB00–04 integration handoff — 2026-10-02
 
 **NOT MERGE-READY.** Earlier code/test gates passed; integrated authenticated desktop/mobile acceptance is blocked because the normal Next runtime had no Supabase URL/publishable key in this checkout. Branch `integration/payroll-foundation-20261002` starts at fetched baseline `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; codecommit `2cba7457d57ce41d941ef482117559bbe9319946`. Relevant HR regressions passed `196` with `3` skipped; payroll-engine/rules `44/44`; strict typecheck, ESLint (zero errors, seven existing warnings), i18n, production build (`308/308 routes`), and marker-only browser asset scan passed. No merge, push, version bump, deployment, Core/Control migration, or Lab migration apply occurred. Full evidence and exact next gate: [PAYLAB integration acceptance](acceptance/PAYLAB-FOUNDATION-INTEGRATION-20261002.md).

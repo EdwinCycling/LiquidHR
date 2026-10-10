@@ -2,11 +2,11 @@
 
 ## ONE VERSION convergence — TEST — 2026-10-10
 
-**Status: kandidaat in opbouw; niet naar main gemerged en niet gedeployed.** De geïsoleerde branch `work/one-version-test-20261010` start vanaf `783999044de83c902e63fefb3587fdbbf99d4de3`. CONTROL02 PR #12 is lokaal opgenomen; APIAI-08 PR #11 wordt lokaal geïntegreerd. `work/payroll-p0-p1` blijft ongewijzigd geparkeerd.
+**Status: kandidaat lokaal geïntegreerd; volledige acceptatie nog open; niet naar main gepusht/gemerged en niet gedeployed.** De geïsoleerde branch `work/one-version-test-20261010` start vanaf `783999044de83c902e63fefb3587fdbbf99d4de3` en bevat CONTROL02 PR #12, APIAI-08 PR #11 en de vastgelegde Payroll-integratiebranch-head `0337af89d01ea072936b8894e01f46f09f7b3be9`. `work/payroll-p0-p1` blijft ongewijzigd geparkeerd.
 
 - CONTROL02 is geannuleerd. De officiële XML-import is uitgeschakeld; interne representatieve imports, CONTROL01 en gedeelde Core/Payroll/Nmbrs/APIAI blijven behouden. De TEST-database-inventaris blijft read-only.
 - APIAI-08 code is lokaal geverifieerd. De migration is al toegepast op synthetic TEST onder versie `20261010064331` met naam `apiai08_employee_ess_controlled_actions`; lijn de lokale migratiebestandsnaam hierop uit en pas de SQL niet opnieuw toe. Hosted Employee-acceptatie, audit/limiter-readback en runtime/browsercontrole blijven open. De 0-versus-96 uur saldoafwijking blijft expliciet open.
-- PAY-RULE-002 heeft eerder lokale engineeringchecks gehaald, maar de persistente Frits TEST-lifecycle is uitgesteld omdat de vereiste centrale TEST-runtime en identiteit ontbraken. Geen persistente payrollrun of uitbetaling wordt verondersteld.
+- PAY-RULE-002 heeft eerder lokale engineeringchecks gehaald, maar de persistente Frits TEST-lifecycle is uitgesteld omdat de vereiste centrale TEST-runtime en identiteit ontbraken. De niet-vastgelegde PAY-RULE-002-wijzigingen moeten nog zorgvuldig worden overgezet. Geen persistente payrollrun of uitbetaling wordt verondersteld.
 - Bundelacceptatie, code-/scopecontrole, versieophoging en de bestaande shared-TEST Vercel-deployment volgen pas na oplossing van de vereiste gates. Er worden geen productiegebruikers, klantgegevens of productiedata gebruikt.
 
 ## CONTROL02 — CANCELLED — 2026-10-10

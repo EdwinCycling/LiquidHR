@@ -2,7 +2,11 @@
 
 ## APIAI-08 ESS Assistant — 2026-10-09
 
-**Status: lokale implementatie en volledige regressiegates groen; shared-TEST migration, deployment en hosted Employee-acceptatie open.** APIAI-08 voegt vier Employee-self-service reads en twee interne HeRa Controlled Actions toe. Externe MCP blijft read-only zolang een server-verifieerbare ChatGPT-bevestiging ontbreekt. De bestaande APIAI-07-reads blijven behouden. Zie het [API contract](requirements/ai/APIAI-08_ESS_ASSISTANT.md), de [implementatiestatus](delivery/IMPLEMENTATION_STATUS.md) en het [acceptatierecord](quality/acceptance/runs/APIAI-08-20261009.md).
+**Status: lokale implementatie en regressiegates groen; TEST-migratie toegepast, candidate deployment en hosted Employee-acceptatie open.** APIAI-08 voegt vier Employee-self-service reads en twee interne HeRa Controlled Actions toe. Externe MCP blijft read-only zolang een server-verifieerbare ChatGPT-bevestiging ontbreekt. De migratie staat in synthetic TEST als `20261010064331_apiai08_employee_ess_controlled_actions`; stem de bronbestandsnaam hierop af en pas SQL niet opnieuw toe. De bestaande APIAI-07-reads blijven behouden. Zie het [API contract](requirements/ai/APIAI-08_ESS_ASSISTANT.md), de [implementatiestatus](delivery/IMPLEMENTATION_STATUS.md) en het [acceptatierecord](quality/acceptance/runs/APIAI-08-20261009.md).
+
+## ONE VERSION TEST convergence — 2026-10-10
+
+De geïsoleerde kandidaat combineert CONTROL02-cleanup, APIAI-08 en de vastgelegde PAYLAB/CAO-BENCH02/PAYRUN01-integratie. De niet-vastgelegde PAY-RULE-002-wijzigingen worden apart gescopeerd; de Nmbrs/externe Payroll-branch `work/payroll-p0-p1` blijft ongewijzigd geparkeerd. De volledige acceptatie, versieophoging en synthetic-TEST deployment zijn nog niet afgerond. Zie [actuele overdracht](delivery/CURRENT_CONTEXT.md), [PAYRUN01 readiness](quality/acceptance/runs/PAYRUN01-READINESS-20261005.md) en [PAY-CONVERGE acceptatie](payroll/acceptance/PAY-CONVERGE-20261004.md).
 
 ## APIAI-07 Remote MCP TEST — 2026-10-09
 

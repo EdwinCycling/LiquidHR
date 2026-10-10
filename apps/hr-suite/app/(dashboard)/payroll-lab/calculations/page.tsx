@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { PageHeader } from '@/components/patterns/page-header'
 import { SectionHeader } from '@/components/patterns/section-header'
+import { CaoBench02CalculationExperience } from '@/components/payroll/cao-bench02-calculation-experience'
 import { PageShell } from '@/components/layout/page-shell'
 import { AuthenticationError, AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { ContextAccessError } from '@/lib/context/administration-context'
@@ -16,6 +17,11 @@ import { PayrollLabUnavailableError, resolvePayrollLabAdministration } from '@/l
 import { payrollScopeFromAuthContext } from '@/lib/payroll/scope'
 import type { PayrollJson } from '@/lib/payroll/database'
 import type { SyntheticPayrollView } from '@/lib/payroll/synthetic-calculation-service'
+import {
+  getLatestCaoBench02Payroll,
+  isCaoBench02CalculationCase,
+  type CaoBench02CaseKey,
+} from '@/lib/payroll/cao-bench02-calculation-service'
 import { getLatestSyntheticPayroll } from '@/lib/payroll/synthetic-calculation-service'
 import { getLatestNl2026Payroll } from '@/lib/payroll/nl-2026-calculation-service'
 import { runNl2026PayrollAction, runSyntheticPayrollAction } from '../actions'
@@ -146,6 +152,12 @@ function payrollLabCase(value: string | string[] | undefined): PayrollLabCase | 
   return typeof value === 'string' && PAYROLL_LAB_CASES.includes(value as PayrollLabCase) ? value as PayrollLabCase : null
 }
 
+function caoBench02Case(value: string | string[] | undefined): CaoBench02CaseKey | null {
+  if (typeof value !== 'string') return null
+  if (value === 'CAO-BENCH02-H1' || isCaoBench02CalculationCase(value)) return value
+  return null
+}
+
 function AmountList({
   fields,
   amounts,
@@ -220,6 +232,51 @@ export default async function PayrollLabPage({
     searchParams ?? Promise.resolve<PayrollLabQuery>({}),
   ])
   const canRun = context.permissions.includes('salary:write')
+  const requestedBenchCase = caoBench02Case(query.case)
+  if (requestedBenchCase) {
+    const isApplicabilityOnly = requestedBenchCase === 'CAO-BENCH02-H1'
+    const requestedBenchRun = validRunId(query.run) ? query.run : undefined
+    let benchLatest: SyntheticPayrollView | null = null
+    let benchLoadFailed = false
+    let benchRunUnavailable = query.run !== undefined && requestedBenchRun === undefined
+    if (!isApplicabilityOnly && !benchRunUnavailable) {
+      const benchRead = await readLatestPayroll(() => getLatestCaoBench02Payroll(scope, administration.id, requestedBenchCase, requestedBenchRun))
+      benchLatest = benchRead.value
+      benchLoadFailed = benchRead.failed
+      if (requestedBenchRun && benchLatest?.runId !== requestedBenchRun) {
+        benchRunUnavailable = !benchLoadFailed
+        benchLatest = null
+      }
+    }
+    const queryError = typeof query.error === 'string' ? query.error : null
+    const failureCode = isPayrollLabErrorCode(queryError)
+      ? queryError
+      : benchLatest?.status === 'FAILED'
+        ? benchLatest.errorCode
+        : null
+    const benchErrorMessage = benchLoadFailed
+      ? t('payrollLabRunUnavailable')
+      : benchRunUnavailable
+        ? t('payrollLabRequestedRunUnavailable')
+        : queryError === 'unavailable'
+          ? t('payrollLabRunUnavailable')
+          : failureCode
+            ? t(payrollLabErrorMessageKey(failureCode))
+            : null
+    return (
+      <PageShell className="space-y-6 py-6 sm:py-8" width="standard">
+        <CaoBench02CalculationExperience
+          administrationName={administration.displayName}
+          canRun={canRun}
+          caseKey={requestedBenchCase}
+          errorMessage={benchErrorMessage}
+          latest={benchLatest}
+          locale={locale}
+          t={t}
+        />
+      </PageShell>
+    )
+  }
   const requestedCase = payrollLabCase(query.case)
   const requestedRunId = validRunId(query.run) ? query.run : null
   const hasRequestedRun = requestedRunId !== null
@@ -309,6 +366,7 @@ export default async function PayrollLabPage({
       <nav aria-label={t('payrollLabCaseSelector')} className="flex flex-wrap gap-2">
         <Link aria-current={!showingSyntheticGc ? 'page' : undefined} className={buttonClasses({ size: 'sm', variant: showingSyntheticGc ? 'secondary' : 'primary' })} href="/payroll-lab/calculations?case=CC-NL-2026-001">{t('payrollLabViewNl2026')}</Link>
         <Link aria-current={showingSyntheticGc ? 'page' : undefined} className={buttonClasses({ size: 'sm', variant: showingSyntheticGc ? 'primary' : 'secondary' })} href="/payroll-lab/calculations?case=GC-NL-001">{t('payrollLabViewGcNl001')}</Link>
+        <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/payroll-lab/calculations?case=CAO-BENCH02-K1">{t('payrollLabBenchTitle')}</Link>
       </nav>
 
       {errorMessage ? (

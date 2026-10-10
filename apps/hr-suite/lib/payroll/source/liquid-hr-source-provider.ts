@@ -2,6 +2,7 @@ import 'server-only'
 
 import { randomUUID } from 'node:crypto'
 import type { Database } from '@scope/db'
+import { getActualWorkPayrollProjection, type ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
 import type {
   PayrollSourceGap,
   PayrollSourceProvider,
@@ -10,7 +11,7 @@ import type {
 } from '@liquid-hr/payroll-engine'
 import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { listEmployeeEmployments } from '@/lib/employment/employment-service'
-import { getEmploymentDetail } from '@/lib/employment/employment-detail-service'
+import { getEmploymentDetail, getEmploymentIncomeRelationshipProjection } from '@/lib/employment/employment-detail-service'
 import { isPayrollLabEnabled } from '../feature-flag'
 import { payrollScopeFromAuthContext } from '../scope'
 import { payrollSourceProviderInputSchema, payrollSourceSnapshotSchema } from './schemas'
@@ -29,6 +30,8 @@ export type PayrollSourceEmployment = Pick<EmploymentRow,
 export type PayrollSourceSalary = Pick<SalaryRow,
   | 'id' | 'salary_basis' | 'salary_route' | 'payment_type' | 'payment_frequency'
   | 'currency_code' | 'fulltime_amount' | 'parttime_amount' | 'hourly_rate'
+  | 'salary_structure_id' | 'salary_scale_id' | 'salary_scale_step_id' | 'salary_step_code'
+  | 'cao_scale_name' | 'cao_step_name' | 'salary_band_id'
   | 'valid_from' | 'valid_until' | 'updated_at'
 >
 
@@ -37,16 +40,30 @@ export type PayrollSourceSchedule = Pick<ScheduleRow,
   | 'part_time_factor' | 'schedule_type' | 'is_on_call' | 'valid_from' | 'valid_until' | 'updated_at'
 >
 
+export type PayrollSourceIncomeRelationship = {
+  readonly id: string
+  readonly incomeRelationshipId: string
+  readonly validFrom: string
+  readonly validUntil: string | null
+  readonly linkUpdatedAt: string
+  readonly reportingStatus: 'DRAFT' | 'READY' | 'REPORTED' | 'CLOSED'
+  readonly startsOn: string
+  readonly endsOn: string | null
+  readonly incomeRelationshipUpdatedAt: string
+}
+
 export interface PayrollSourceTimeline {
   readonly employment: PayrollSourceEmployment
   readonly salaries: readonly PayrollSourceSalary[]
   readonly schedules: readonly PayrollSourceSchedule[]
+  readonly incomeRelationships?: readonly PayrollSourceIncomeRelationship[]
 }
 
 export interface PayrollSourceProviderDependencies {
   readonly authorize: (employeeId: string) => Promise<Pick<AuthContext, 'tenantId' | 'hrGroupId' | 'administrationId'>>
   readonly listEmployments: (employeeId: string) => Promise<readonly PayrollSourceEmployment[]>
   readonly loadTimeline: (employeeId: string, employmentId: string) => Promise<PayrollSourceTimeline>
+  readonly loadActualWork: (employeeId: string, employmentId: string, month: string) => Promise<ActualWorkPayrollProjection>
   readonly isEnabled: () => boolean
   readonly now?: () => Date
   readonly createId?: () => string
@@ -72,29 +89,140 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
     authorize: async (employeeId) => {
       const salaryContext = await requirePermission('salary:read', employeeId)
       await requirePermission('contract:read', employeeId)
+      await requirePermission('leave:read', employeeId)
       return salaryContext
     },
     listEmployments: async (employeeId) => await listEmployeeEmployments(employeeId),
     isEnabled: isPayrollLabEnabled,
     loadTimeline: async (employeeId, employmentId) => {
-      const detail = await getEmploymentDetail(employeeId, employmentId, 'salary')
+      const [detail, incomeRelationships] = await Promise.all([
+        getEmploymentDetail(employeeId, employmentId, 'salary'),
+        getEmploymentIncomeRelationshipProjection(employeeId, employmentId),
+      ])
       return {
         employment: detail.employment,
         salaries: detail.salaries,
         schedules: detail.schedules,
+        incomeRelationships,
       }
     },
+    loadActualWork: async (employeeId, employmentId, month) =>
+      await getActualWorkPayrollProjection({ employeeId, employmentId, month }),
   }
 }
 
-function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { start: string; end: string } {
-  const start = `${period.year}-${String(period.month).padStart(2, '0')}-01`
-  const end = new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
-  return { start, end }
+type PayrollSourceActualWorkType = ActualWorkPayrollProjection['types'][number]
+
+function actualWorkForPeriod(
+  projection: ActualWorkPayrollProjection,
+  periodStart: string,
+  periodEndExclusive: string,
+): {
+  readonly canonicalSource: PayrollSourceSnapshot['canonicalSource']
+  readonly sourceVersionVector: Readonly<Record<string, string>>
+  readonly sourceGaps: readonly PayrollSourceGap[]
+} {
+  const typeById = new Map<string, PayrollSourceActualWorkType>(projection.types.map((type) => [type.id, type]))
+  const entries = [...projection.entries].sort((left, right) =>
+    left.work_date.localeCompare(right.work_date) || left.id.localeCompare(right.id),
+  )
+  const gaps: PayrollSourceGap[] = []
+  const versionVector: Record<string, string> = {}
+  if (projection.period) versionVector[`actual_work_period:${projection.period.id}`] = projection.period.updated_at
+  if (projection.entries.length > 2000) gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_TIMELINE_LIMIT_REACHED'))
+
+  const mappedEntries = entries.map((entry) => {
+    const type = typeById.get(entry.work_hour_type_id)
+    if (!type) {
+      gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_TYPE_NOT_FOUND'))
+      versionVector[`actual_work_entry:${entry.id}`] = entry.updated_at
+      return {
+        id: entry.id,
+        workHourTypeId: entry.work_hour_type_id,
+        family: 'UNKNOWN',
+        workDate: entry.work_date,
+        subjectPeriodStart: entry.subject_period_start,
+        subjectPeriodEnd: entry.subject_period_end,
+        postingPeriodStart: entry.posting_period_start,
+        entryGranularity: entry.entry_granularity,
+        hours: entry.hours.toFixed(4),
+        status: entry.status,
+        approvedAt: entry.approved_at,
+      }
+    }
+
+    versionVector[`work_hour_type:${type.id}`] = type.updated_at
+    versionVector[`actual_work_entry:${entry.id}`] = entry.updated_at
+    if (type.valid_from > entry.work_date || (type.valid_until !== null && type.valid_until <= entry.work_date)) {
+      gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_TYPE_NOT_EFFECTIVE_ON_WORK_DATE'))
+    }
+    if (entry.status === 'APPROVED' && entry.approved_at === null) {
+      gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'APPROVED_ACTUAL_WORK_MISSING_APPROVAL_TIMESTAMP'))
+    }
+    if (entry.status === 'PENDING' && type.family !== 'TRANSPARENT') {
+      gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'PAYABLE_ACTUAL_WORK_NOT_APPROVED'))
+    }
+    if (entry.status === 'APPROVED' && type.family === 'OVERTIME') {
+      gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'OVERTIME_RULE_NOT_CONFIGURED'))
+    }
+    if (entry.posting_period_start !== periodStart
+      || entry.subject_period_start >= periodEndExclusive
+      || entry.subject_period_end <= entry.subject_period_start) {
+      gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_PERIOD_MAPPING_INVALID'))
+    }
+    return {
+      id: entry.id,
+      workHourTypeId: type.id,
+      family: type.family,
+      workDate: entry.work_date,
+      subjectPeriodStart: entry.subject_period_start,
+      subjectPeriodEnd: entry.subject_period_end,
+      postingPeriodStart: entry.posting_period_start,
+      entryGranularity: entry.entry_granularity,
+      hours: entry.hours.toFixed(4),
+      status: entry.status,
+      approvedAt: entry.approved_at,
+      typeValidFrom: type.valid_from,
+      typeValidUntil: type.valid_until,
+      approvalRequired: type.approval_required,
+    }
+  })
+
+  if (projection.entries.length > 0 && !projection.period) {
+    gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_PERIOD_NOT_FOUND'))
+  }
+  if (projection.period && (projection.period.period_start !== periodStart || projection.period.period_end !== periodEndExclusive)) {
+    gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_PERIOD_RANGE_MISMATCH'))
+  }
+
+  const period = projection.period
+    ? {
+      id: projection.period.id,
+      startsOn: projection.period.period_start,
+      endsOn: projection.period.period_end,
+      status: projection.period.status,
+      updatedAt: projection.period.updated_at,
+    }
+    : { status: 'NOT_CONFIGURED' }
+  return {
+    canonicalSource: { period, entries: mappedEntries },
+    sourceVersionVector: versionVector,
+    sourceGaps: gaps,
+  }
 }
 
-function overlapsPeriod(validFrom: string, validUntil: string | null, start: string, end: string): boolean {
-  return validFrom <= end && (validUntil === null || validUntil >= start)
+function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { start: string; endInclusive: string; endExclusive: string } {
+  const start = `${period.year}-${String(period.month).padStart(2, '0')}-01`
+  const endInclusive = new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
+  return { start, endInclusive, endExclusive: dayAfter(endInclusive) }
+}
+
+function employmentOverlapsPeriod(startsOn: string, endsOn: string | null, start: string, endInclusive: string): boolean {
+  return startsOn <= endInclusive && (endsOn === null || endsOn >= start)
+}
+
+function effectiveRangeOverlapsPeriod(validFrom: string, validUntil: string | null, start: string, endExclusive: string): boolean {
+  return validFrom < endExclusive && (validUntil === null || validUntil > start)
 }
 
 function sortTimeline<T extends { readonly valid_from: string; readonly id: string }>(rows: readonly T[]): T[] {
@@ -105,30 +233,38 @@ function dayAfter(date: string): string {
   return new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10)
 }
 
+function dayBefore(date: string): string {
+  return new Date(Date.parse(`${date}T00:00:00.000Z`) - 86_400_000).toISOString().slice(0, 10)
+}
+
+function laterDate(current: string | null, candidate: string): string {
+  return current === null || candidate > current ? candidate : current
+}
+
 function timelineCoverage(
   rows: readonly { readonly valid_from: string; readonly valid_until: string | null }[],
   requiredStart: string,
-  requiredEnd: string,
+  requiredEndExclusive: string,
 ): 'COMPLETE' | 'GAP' | 'OVERLAP' {
   let previousEnd: string | null = null
   for (const row of rows) {
     const rowStart = row.valid_from < requiredStart ? requiredStart : row.valid_from
-    const rawEnd = row.valid_until ?? requiredEnd
-    const rowEnd = rawEnd > requiredEnd ? requiredEnd : rawEnd
-    if (rowStart <= rowEnd && previousEnd !== null && rowStart <= previousEnd) return 'OVERLAP'
-    if (rowStart <= rowEnd) previousEnd = rowEnd
+    const rawEnd = row.valid_until ?? requiredEndExclusive
+    const rowEnd = rawEnd > requiredEndExclusive ? requiredEndExclusive : rawEnd
+    if (rowStart < rowEnd && previousEnd !== null && rowStart < previousEnd) return 'OVERLAP'
+    if (rowStart < rowEnd) previousEnd = laterDate(previousEnd, rowEnd)
   }
 
   let nextRequiredDate = requiredStart
   for (const row of rows) {
     const rowStart = row.valid_from < requiredStart ? requiredStart : row.valid_from
-    const rawEnd = row.valid_until ?? requiredEnd
-    const rowEnd = rawEnd > requiredEnd ? requiredEnd : rawEnd
-    if (rowEnd < nextRequiredDate) continue
+    const rawEnd = row.valid_until ?? requiredEndExclusive
+    const rowEnd = rawEnd > requiredEndExclusive ? requiredEndExclusive : rawEnd
+    if (rowEnd <= nextRequiredDate) continue
     if (rowStart > nextRequiredDate) return 'GAP'
     if (rowStart < nextRequiredDate) return 'OVERLAP'
-    if (rowEnd >= requiredEnd) return 'COMPLETE'
-    nextRequiredDate = dayAfter(rowEnd)
+    if (rowEnd >= requiredEndExclusive) return 'COMPLETE'
+    nextRequiredDate = rowEnd
   }
   return 'GAP'
 }
@@ -140,13 +276,12 @@ function makeGap(field: string, status: PayrollSourceGap['status'], reasonCode: 
 function sourceGapsFor(
   salaryRows: readonly PayrollSourceSalary[],
   scheduleRows: readonly PayrollSourceSchedule[],
+  incomeRelationshipGap: PayrollSourceGap | null,
   coverageStart: string,
   coverageEnd: string,
 ): PayrollSourceGap[] {
-  const gaps: PayrollSourceGap[] = [
-    makeGap('incomeRelationship', 'UNSUPPORTED', 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED'),
-    makeGap('taxProfile', 'SOURCE_GAP', 'NO_ACCEPTED_SOURCE_CONTRACT'),
-  ]
+  const gaps: PayrollSourceGap[] = [makeGap('taxProfile', 'SOURCE_GAP', 'NO_ACCEPTED_SOURCE_CONTRACT')]
+  if (incomeRelationshipGap) gaps.push(incomeRelationshipGap)
 
   const salaryCoverage = timelineCoverage(salaryRows, coverageStart, coverageEnd)
   if (salaryCoverage !== 'COMPLETE') {
@@ -169,6 +304,41 @@ function sourceGapsFor(
   if (scheduleRows.length >= 100) gaps.push(makeGap('contractualHours', 'UNSUPPORTED', 'SOURCE_TIMELINE_LIMIT_REACHED'))
 
   return gaps
+}
+
+function resolveIncomeRelationship(
+  rows: readonly PayrollSourceIncomeRelationship[],
+  coverageStart: string,
+  coverageEndExclusive: string,
+  coverageEndInclusive: string,
+): { readonly selected: PayrollSourceIncomeRelationship | null; readonly gap: PayrollSourceGap | null } {
+  const overlapping = rows
+    .filter((row) => effectiveRangeOverlapsPeriod(row.validFrom, row.validUntil, coverageStart, coverageEndExclusive))
+    .sort((left, right) => left.validFrom.localeCompare(right.validFrom) || left.id.localeCompare(right.id))
+
+  if (overlapping.length === 0) {
+    return { selected: null, gap: makeGap('incomeRelationship', 'SOURCE_GAP', 'NO_LINKED_INCOME_RELATIONSHIP') }
+  }
+  if (overlapping.length > 1) {
+    return { selected: null, gap: makeGap('incomeRelationship', 'UNSUPPORTED', 'INCOME_RELATIONSHIP_AMBIGUOUS') }
+  }
+
+  const selected = overlapping[0]
+  if (!selected) {
+    return { selected: null, gap: makeGap('incomeRelationship', 'SOURCE_GAP', 'NO_LINKED_INCOME_RELATIONSHIP') }
+  }
+  if (
+    selected.validFrom > coverageStart
+    || (selected.validUntil !== null && selected.validUntil < coverageEndExclusive)
+    || selected.startsOn > coverageStart
+    || (selected.endsOn !== null && selected.endsOn < coverageEndInclusive)
+  ) {
+    return { selected, gap: makeGap('incomeRelationship', 'SOURCE_GAP', 'INCOME_RELATIONSHIP_TIMELINE_GAP') }
+  }
+  if (selected.reportingStatus === 'DRAFT') {
+    return { selected, gap: makeGap('incomeRelationship', 'UNSUPPORTED', 'CONTROL02_CONTRACT_PENDING') }
+  }
+  return { selected, gap: null }
 }
 
 export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
@@ -210,7 +380,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       && employment.employee_id === input.employeeId
       && employment.deleted_at === null
       && employment.record_status === 'CONFIRMED'
-      && overlapsPeriod(employment.starts_on, employment.ends_on, bounds.start, bounds.end),
+      && employmentOverlapsPeriod(employment.starts_on, employment.ends_on, bounds.start, bounds.endInclusive),
     )
     if (candidates.length === 0) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
     if (candidates.length > 1) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS', 409)
@@ -218,8 +388,12 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     if (!employment) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
 
     let timeline: PayrollSourceTimeline
+    let actualWork: ActualWorkPayrollProjection
     try {
-      timeline = await this.dependencies.loadTimeline(input.employeeId, employment.id)
+      [timeline, actualWork] = await Promise.all([
+        this.dependencies.loadTimeline(input.employeeId, employment.id),
+        this.dependencies.loadActualWork(input.employeeId, employment.id, `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`),
+      ])
     } catch {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503)
     }
@@ -236,14 +410,30 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     }
 
     const activeStart = employment.starts_on > bounds.start ? employment.starts_on : bounds.start
-    const activeEnd = employment.ends_on && employment.ends_on < bounds.end ? employment.ends_on : bounds.end
-    const salaries = sortTimeline(timeline.salaries.filter((row) => overlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEnd)))
-    const schedules = sortTimeline(timeline.schedules.filter((row) => overlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEnd)))
-    const sourceGaps = sourceGapsFor(salaries, schedules, activeStart, activeEnd)
+    const employmentEndExclusive = employment.ends_on === null ? bounds.endExclusive : dayAfter(employment.ends_on)
+    const activeEndExclusive = employmentEndExclusive < bounds.endExclusive ? employmentEndExclusive : bounds.endExclusive
+    const salaries = sortTimeline(timeline.salaries.filter((row) => effectiveRangeOverlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEndExclusive)))
+    const schedules = sortTimeline(timeline.schedules.filter((row) => effectiveRangeOverlapsPeriod(row.valid_from, row.valid_until, activeStart, activeEndExclusive)))
+    const incomeRelationship = resolveIncomeRelationship(
+      timeline.incomeRelationships ?? [],
+      activeStart,
+      activeEndExclusive,
+      dayBefore(activeEndExclusive),
+    )
+    const actualWorkSnapshot = actualWorkForPeriod(actualWork, bounds.start, bounds.endExclusive)
+    const sourceGaps = [
+      ...sourceGapsFor(salaries, schedules, incomeRelationship.gap, activeStart, activeEndExclusive),
+      ...actualWorkSnapshot.sourceGaps,
+    ]
     const sourceVersionVector = Object.fromEntries([
       [`employment:${employment.id}`, employment.updated_at],
       ...salaries.map((row) => [`employment_salary:${row.id}`, row.updated_at] as const),
       ...schedules.map((row) => [`employment_schedule:${row.id}`, row.updated_at] as const),
+      ...(incomeRelationship.selected ? [
+        [`employment_income_relationship:${incomeRelationship.selected.id}`, incomeRelationship.selected.linkUpdatedAt] as const,
+        [`income_relationship:${incomeRelationship.selected.incomeRelationshipId}`, incomeRelationship.selected.incomeRelationshipUpdatedAt] as const,
+      ] : []),
+      ...Object.entries(actualWorkSnapshot.sourceVersionVector),
     ])
 
     const canonicalSource = {
@@ -268,6 +458,13 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           fulltimeAmount: row.fulltime_amount,
           parttimeAmount: row.parttime_amount,
           hourlyRate: row.hourly_rate,
+          salaryStructureId: row.salary_structure_id,
+          salaryScaleId: row.salary_scale_id,
+          salaryScaleStepId: row.salary_scale_step_id,
+          salaryStepCode: row.salary_step_code,
+          caoScaleName: row.cao_scale_name,
+          caoStepName: row.cao_step_name,
+          salaryBandId: row.salary_band_id,
           validFrom: row.valid_from,
           validUntil: row.valid_until,
         })),
@@ -285,8 +482,24 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           validUntil: row.valid_until,
         })),
       },
-      incomeRelationship: { status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED' },
+      incomeRelationship: incomeRelationship.selected
+        ? {
+          id: incomeRelationship.selected.incomeRelationshipId,
+          reportingStatus: incomeRelationship.selected.reportingStatus,
+          startsOn: incomeRelationship.selected.startsOn,
+          endsOn: incomeRelationship.selected.endsOn,
+          validFrom: incomeRelationship.selected.validFrom,
+          validUntil: incomeRelationship.selected.validUntil,
+          ...(incomeRelationship.gap
+            ? { status: incomeRelationship.gap.status, reasonCode: incomeRelationship.gap.reasonCode }
+            : { status: 'LINKED' }),
+        }
+        : {
+          status: incomeRelationship.gap?.status ?? 'SOURCE_GAP',
+          reasonCode: incomeRelationship.gap?.reasonCode ?? 'NO_LINKED_INCOME_RELATIONSHIP',
+        },
       fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
+      actualWork: actualWorkSnapshot.canonicalSource,
     }
     const hashInput = {
       sourceTenantId: input.tenantId,
@@ -294,7 +507,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       sourceAdministrationId: input.administrationId,
       sourceEmployeeId: input.employeeId,
       sourceEmploymentId: employment.id,
-      sourceIncomeRelationshipId: null,
+      sourceIncomeRelationshipId: incomeRelationship.selected?.incomeRelationshipId ?? null,
       periodReference: input.payrollPeriod,
       canonicalSource,
       sourceVersionVector,
