@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { Database } from '@scope/db'
 
-import { getSelfPermissions, requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { getSelfPermissions, requireAuthContext, requirePermission, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { getProcessWorkItemDetail, type ProcessWorkDetail } from '@/lib/process-automation/work-service'
 
@@ -71,7 +71,7 @@ function throwRpcError(message: string): never {
   throw new LeaveServiceError(code, status)
 }
 
-type WorkflowDependencies = { context: AuthContext; supabase: Awaited<ReturnType<typeof createClient>> }
+export interface WorkflowDependencies { context: AuthContext; supabase: Awaited<ReturnType<typeof createClient>> }
 
 async function selectedEmployment(input: LeaveWorkflowStartInput, dependencies?: WorkflowDependencies) {
   const supabase = dependencies?.supabase ?? await createClient()
@@ -115,6 +115,18 @@ async function startLeaveRequestWorkflowWithDependencies(input: LeaveWorkflowSta
 
 export async function startLeaveRequestWorkflow(input: LeaveWorkflowStartInput): Promise<LeaveWorkflowStartResult> {
   return startLeaveRequestWorkflowWithDependencies(input)
+}
+
+export async function startEmployeeSelfLeaveRequestWorkflow(
+  input: Omit<LeaveWorkflowStartInput, 'employeeId'>,
+  dependencies: WorkflowDependencies,
+): Promise<LeaveWorkflowStartResult> {
+  const employeeId = dependencies.context.employeeId
+  if (!employeeId) throw new LeaveServiceError('LEAVE_REQUEST_PERMISSION_REQUIRED', 403)
+  await requirePermissionInContext(dependencies.supabase, dependencies.context, 'self:leave:request', employeeId)
+  const parsed = leaveRequestConfirmSchema.safeParse({ ...input, employeeId })
+  if (!parsed.success) throw new LeaveServiceError('LEAVE_INPUT_INVALID', 400)
+  return startLeaveRequestWorkflowWithDependencies(parsed.data, dependencies)
 }
 
 export async function startFocusLeaveRequestWorkflow(

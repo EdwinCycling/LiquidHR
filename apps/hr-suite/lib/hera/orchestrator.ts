@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { AuthContext } from '@/lib/auth/permissions'
 import { buildHeRaSystemInstruction, type HeRaEvidenceEnvelope } from './data-contract'
-import { resolveHeRaDateTime } from './date-time'
+import { HeRaDateTimeError, resolveHeRaDate, resolveHeRaDateTime } from './date-time'
 import {
   generateHeRaResponse,
   type GenerateHeRaResponseInput,
@@ -12,6 +12,7 @@ import { dispatchHeRaTool, HeRaToolRegistryError } from './tool-registry'
 import { isHeRaWorkforceToolName } from '@/lib/workforce-tools/registry'
 import { executeHeRaTool } from './tools'
 import type { HeRaUserContext } from './types'
+import { getTranslator } from '@/lib/i18n/server'
 
 interface RunHeRaTurnInput {
   context: AuthContext
@@ -24,8 +25,8 @@ interface RunHeRaTurnInput {
 }
 
 interface HeRaDraftProposal {
-  actionType: 'PERSONAL_REMINDER' | 'EMPLOYEE_ADDRESS_CHANGE' | 'EMPLOYMENT_SALARY_CHANGE' | 'EMPLOYMENT_SCHEDULE_CHANGE' | 'ORGANIZATION_PLACEMENT_CHANGE' | 'TALENT_DEVELOPMENT_GOAL_CREATE' | 'TALENT_GOAL_CHECK_IN_CREATE'
-  toolName: 'draft_personal_reminder' | 'draft_employee_address_change' | 'draft_employment_salary_change' | 'draft_employment_schedule_change' | 'draft_organization_placement_change' | 'draft_talent_development_goal' | 'draft_talent_goal_check_in'
+  actionType: 'EMPLOYEE_PERSONAL_REMINDER_CREATE' | 'EMPLOYEE_LEAVE_REQUEST_CREATE' | 'EMPLOYEE_ADDRESS_CHANGE' | 'EMPLOYMENT_SALARY_CHANGE' | 'EMPLOYMENT_SCHEDULE_CHANGE' | 'ORGANIZATION_PLACEMENT_CHANGE' | 'TALENT_DEVELOPMENT_GOAL_CREATE' | 'TALENT_GOAL_CHECK_IN_CREATE'
+  toolName: 'draft_personal_reminder' | 'draft_leave_request' | 'draft_employee_address_change' | 'draft_employment_salary_change' | 'draft_employment_schedule_change' | 'draft_organization_placement_change' | 'draft_talent_development_goal' | 'draft_talent_goal_check_in'
   payload: Record<string, unknown>
   summary: string
   controlPayload: Record<string, unknown>
@@ -41,6 +42,12 @@ interface HeRaTurnResult {
 interface RunHeRaTurnDependencies {
   generate?: (input: GenerateHeRaResponseInput) => Promise<HeRaGeneration>
   dispatchTool?: (context: AuthContext, call: HeRaToolCall) => Promise<unknown>
+}
+
+class HeRaClarificationRequired extends Error {
+  constructor(readonly messageKey: 'reminderClarifyDateTime' | 'leaveClarifyDate') {
+    super(messageKey)
+  }
 }
 
 const evidenceSchema = z.object({
@@ -98,7 +105,8 @@ async function dispatchTool(context: AuthContext, call: HeRaToolCall): Promise<u
 function draftFromToolResult(toolResult: Record<string, unknown>): HeRaDraftProposal | null {
   if (toolResult.kind !== 'DRAFT' || typeof toolResult.toolName !== 'string') return null
   const actionTypes = {
-    draft_personal_reminder: 'PERSONAL_REMINDER',
+    draft_personal_reminder: 'EMPLOYEE_PERSONAL_REMINDER_CREATE',
+    draft_leave_request: 'EMPLOYEE_LEAVE_REQUEST_CREATE',
     draft_employee_address_change: 'EMPLOYEE_ADDRESS_CHANGE',
     draft_employment_salary_change: 'EMPLOYMENT_SALARY_CHANGE',
     draft_employment_schedule_change: 'EMPLOYMENT_SCHEDULE_CHANGE',
@@ -125,21 +133,31 @@ function normalizeToolCall(
   call: HeRaToolCall,
   input: Pick<RunHeRaTurnInput, 'now' | 'userContext'>,
 ): HeRaToolCall {
-  if (call.name !== 'draft_personal_reminder') return call
-  const when = call.args.when
-  if (typeof when !== 'string') throw new Error('HERA_DATE_INPUT_INVALID')
-  const resolved = resolveHeRaDateTime(
-    when,
-    input.now,
-    input.userContext.timeZone,
-    input.userContext.locale,
-  )
-  const { when: _when, ...args } = call.args
-  void _when
-  return {
-    ...call,
-    args: { ...args, remindAt: resolved.iso, displayAt: resolved.display },
+  if (call.name === 'draft_personal_reminder') {
+    const title = call.args.title
+    if (typeof title !== 'string' || title.trim().length === 0) {
+      throw new HeRaClarificationRequired('reminderClarifyDateTime')
+    }
+    const when = call.args.when
+    if (typeof when !== 'string') throw new HeRaDateTimeError('HERA_DATE_INPUT_INVALID')
+    const resolved = resolveHeRaDateTime(when, input.now, input.userContext.timeZone, input.userContext.locale)
+    const { when: _when, ...args } = call.args
+    void _when
+    return { ...call, args: { ...args, remindAt: resolved.iso, displayAt: resolved.display } }
   }
+  if (call.name === 'draft_leave_request') {
+    const leaveTypeName = call.args.leaveTypeName
+    if (typeof leaveTypeName !== 'string' || leaveTypeName.trim().length === 0) {
+      throw new HeRaClarificationRequired('leaveClarifyDate')
+    }
+    const when = call.args.when
+    if (typeof when !== 'string') throw new HeRaDateTimeError('HERA_DATE_INPUT_INVALID')
+    const resolved = resolveHeRaDate(when, input.now, input.userContext.timeZone, input.userContext.locale)
+    const { when: _when, ...args } = call.args
+    void _when
+    return { ...call, args: { ...args, startDate: resolved.date, displayDate: resolved.display } }
+  }
+  return call
 }
 
 function isUnsupportedToolSelection(error: unknown): boolean {
@@ -148,6 +166,7 @@ function isUnsupportedToolSelection(error: unknown): boolean {
     'HERA_TOOL_NOT_ALLOWED',
     'HERA_TOOL_INPUT_INVALID',
     'HERA_DATE_INPUT_INVALID',
+    'HERA_DATE_TIME_AMBIGUOUS',
   ].includes(error.message)
 }
 
@@ -188,6 +207,20 @@ export async function runHeRaTurn(
     const normalizedToolCall = normalizeToolCall(first.toolCall, input)
     rawToolResult = await (dependencies.dispatchTool ?? dispatchTool)(input.context, normalizedToolCall)
   } catch (error) {
+    if (error instanceof HeRaDateTimeError || error instanceof HeRaClarificationRequired) {
+      const translate = await getTranslator('hera', input.userContext.locale)
+      const messageKey = error instanceof HeRaClarificationRequired
+        ? error.messageKey
+        : first.toolCall.name === 'draft_personal_reminder'
+          ? 'reminderClarifyDateTime'
+          : 'leaveClarifyDate'
+      return {
+        content: translate(messageKey),
+        model: first.model,
+        evidence: null,
+        draft: null,
+      }
+    }
     if (!isUnsupportedToolSelection(error)) throw error
     console.warn('HERA_TOOL_SELECTION_REJECTED', {
       toolName: first.toolCall.name,
@@ -212,6 +245,8 @@ export async function runHeRaTurn(
       // user reviewed and confirmed the controlled action.
       content: draft.actionType === 'TALENT_DEVELOPMENT_GOAL_CREATE'
         || draft.actionType === 'TALENT_GOAL_CHECK_IN_CREATE'
+        || draft.actionType === 'EMPLOYEE_PERSONAL_REMINDER_CREATE'
+        || draft.actionType === 'EMPLOYEE_LEAVE_REQUEST_CREATE'
         ? draft.summary
         : first.text || draft.summary,
       model: first.model,

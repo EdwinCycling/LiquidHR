@@ -5,11 +5,17 @@ import { listTalentGoals, type TalentGoal } from '@/lib/talent/goal-service'
 import { listTalentCurrentRoleProfileWorkspace, type TalentRoleExplorerAxis } from '@/lib/talent/role-explorer-service'
 import { readSelfDevelopmentPlans } from '@/lib/api-v1/resources/development-plans'
 import { selfDevelopmentPlansProjectionSchema } from '@/lib/api-v1/resources/projections'
+import { getLeaveBalanceReport, LeaveServiceError } from '@/lib/leave/leave-service'
+import { getMyNextApprovedLeave, listMyLeaveRequests } from '@/lib/leave/employee-self-service'
+import { listMyReminders } from '@/lib/reminders/reminder-service'
 import { defineWorkforceTool, type DelegatedWorkforceToolExecutionContext } from './contracts'
 
 const uuidSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const timestampSchema = z.string().min(1)
+const leaveStatusSchema = z.enum(['PENDING', 'CHANGES_REQUESTED', 'APPROVED', 'REJECTED', 'CANCELLED'])
+const leaveTimeModeSchema = z.enum(['FULL_DAY', 'MORNING', 'AFTERNOON', 'SPECIFIC_HOURS'])
+const leaveEntitlementSchema = z.enum(['ACCRUAL', 'UNLIMITED', 'ANNUAL_HOURS_CAP', 'ANNUAL_HOURS_FTE_CAP', 'OVERTIME_HOURS'])
 
 const goalStatusSchema = z.enum(['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED', 'ARCHIVED'])
 const goalSourceTypeSchema = z.enum(['SELF_ENTERED', 'HR_ENTERED', 'MANAGER_ENTERED'])
@@ -112,6 +118,76 @@ export const employeeGoalCheckInsOutputSchema = z.object({
   checkIns: z.array(checkInSchema),
 }).strict()
 
+const leaveBalanceEntrySchema = z.object({
+  leaveType: z.string().min(1),
+  availableHours: z.number().finite().nullable(),
+  unit: z.literal('hours'),
+  entitlementMode: leaveEntitlementSchema,
+  expiring: z.array(z.object({
+    expiresOn: dateSchema,
+    remainingHours: z.number().finite(),
+    daysUntilExpiration: z.number().int(),
+  }).strict()),
+}).strict()
+
+const leaveEmploymentOptionSchema = z.object({
+  id: uuidSchema,
+  employmentNumber: z.string().nullable(),
+  startsOn: dateSchema,
+  endsOn: dateSchema.nullable(),
+  administrationName: z.string().nullable(),
+  departmentName: z.string().nullable(),
+  functionName: z.string().nullable(),
+}).strict()
+
+export const employeeLeaveBalanceOutputSchema = z.discriminatedUnion('selectionRequired', [
+  z.object({
+    selectionRequired: z.literal(false),
+    asOf: dateSchema,
+    sourceTruncated: z.boolean(),
+    employmentId: uuidSchema,
+    balances: z.array(leaveBalanceEntrySchema),
+  }).strict(),
+  z.object({
+    selectionRequired: z.literal(true),
+    asOf: dateSchema,
+    employmentOptions: z.array(leaveEmploymentOptionSchema).min(2),
+  }).strict(),
+])
+
+const employeeLeaveRequestSchema = z.object({
+  requestId: uuidSchema,
+  startDate: dateSchema,
+  endDate: dateSchema,
+  requestedHours: z.number().finite().nonnegative(),
+  status: leaveStatusSchema,
+  timeMode: leaveTimeModeSchema,
+  leaveTypes: z.array(z.object({ name: z.string().min(1), hours: z.number().finite().nonnegative() }).strict()),
+}).strict()
+
+export const employeeLeaveRequestsOutputSchema = z.object({
+  asOf: dateSchema,
+  requests: z.array(employeeLeaveRequestSchema),
+  sourceTruncated: z.boolean(),
+}).strict()
+
+export const employeeNextLeaveOutputSchema = z.object({
+  asOf: dateSchema,
+  nextLeave: employeeLeaveRequestSchema.nullable(),
+}).strict()
+
+export const employeeRemindersOutputSchema = z.object({
+  timeZone: z.literal('Europe/Amsterdam'),
+  reminders: z.array(z.object({
+    title: z.string().min(1),
+    description: z.string().nullable(),
+    remindAt: timestampSchema,
+    originalRemindAt: timestampSchema,
+    status: z.enum(['PENDING', 'COMPLETED', 'DISMISSED']),
+    isOverdue: z.boolean(),
+  }).strict()),
+}).strict()
+
 function mapDevelopmentPlan(goal: TalentGoal): z.infer<typeof developmentPlanSchema> {
   return {
     goalId: goal.id,
@@ -189,6 +265,105 @@ const employeeToolMetadata = {
   scope: 'SELF' as const,
   operation: 'READ' as const,
   module: 'TALENT' as const,
+}
+
+const employeeLeaveToolMetadata = {
+  audience: ['EMPLOYEE'] as const,
+  scope: 'SELF' as const,
+  operation: 'READ' as const,
+  module: 'HERA' as const,
+}
+
+const employeeReminderToolMetadata = {
+  audience: ['EMPLOYEE'] as const,
+  scope: 'SELF' as const,
+  operation: 'READ' as const,
+  module: 'REMINDERS' as const,
+}
+
+const leaveBalanceInputSchema = z.object({ employmentId: uuidSchema.optional() }).strict()
+
+async function readEmployeeLeaveBalance(
+  input: z.output<typeof leaveBalanceInputSchema>,
+  delegated?: DelegatedWorkforceToolExecutionContext,
+) {
+  const dependencies = delegated
+    ? { context: delegated.authContext, supabase: delegated.rls.client }
+    : undefined
+  try {
+    const result = await getLeaveBalanceReport({ employmentId: input.employmentId }, dependencies)
+    return {
+      selectionRequired: false as const,
+      asOf: result.report.asOfDate,
+      sourceTruncated: result.sourceTruncated,
+      employmentId: result.report.employmentId,
+      balances: result.report.leaveTypes.map((type) => ({
+        leaveType: type.name,
+        availableHours: type.currentBalance,
+        unit: 'hours' as const,
+        entitlementMode: type.entitlementMode,
+        expiring: type.expirationBuckets.map((bucket) => ({
+          expiresOn: bucket.expirationDate,
+          remainingHours: bucket.remainingHours,
+          daysUntilExpiration: bucket.daysUntilExpiration,
+        })),
+      })),
+    }
+  } catch (error) {
+    if (!(error instanceof LeaveServiceError) || error.code !== 'LEAVE_EMPLOYMENT_SELECTION_REQUIRED') throw error
+    const selection = z.object({ options: z.array(leaveEmploymentOptionSchema).min(2) }).safeParse(error.details)
+    if (!selection.success) throw error
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Amsterdam', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(new Date())
+    const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((value) => value.type === type)?.value
+    const year = part('year')
+    const month = part('month')
+    const day = part('day')
+    if (!year || !month || !day) throw new Error('LEAVE_AS_OF_UNAVAILABLE')
+    return {
+      selectionRequired: true as const,
+      asOf: `${year}-${month}-${day}`,
+      employmentOptions: selection.data.options,
+    }
+  }
+}
+
+async function readEmployeeLeaveRequests(delegated?: DelegatedWorkforceToolExecutionContext) {
+  const dependencies = delegated
+    ? { context: delegated.authContext, supabase: delegated.rls.client }
+    : undefined
+  const result = await listMyLeaveRequests(dependencies)
+  return { asOf: result.asOfDate, requests: result.requests, sourceTruncated: result.sourceTruncated }
+}
+
+async function readEmployeeNextLeave(delegated?: DelegatedWorkforceToolExecutionContext) {
+  const dependencies = delegated
+    ? { context: delegated.authContext, supabase: delegated.rls.client }
+    : undefined
+  const result = await getMyNextApprovedLeave(dependencies)
+  return { asOf: result.asOfDate, nextLeave: result.nextLeave }
+}
+
+async function readEmployeeReminders(delegated?: DelegatedWorkforceToolExecutionContext) {
+  const now = new Date()
+  const dependencies = delegated
+    ? { context: delegated.authContext, supabase: delegated.rls.client }
+    : undefined
+  const reminders = await listMyReminders(100, dependencies)
+  return {
+    timeZone: 'Europe/Amsterdam' as const,
+    reminders: reminders
+      .filter((item) => item.type === 'PERSONAL' && item.recipientStatus === 'PENDING' && item.reminderStatus !== 'CANCELLED')
+      .map((item) => ({
+        title: item.title,
+        description: item.description,
+        remindAt: item.remindAt,
+        originalRemindAt: item.originalRemindAt,
+        status: item.recipientStatus,
+        isOverdue: new Date(item.remindAt).getTime() < now.getTime(),
+      })),
+  }
 }
 
 export const employeeDevelopmentPlansTool = defineWorkforceTool({
@@ -315,6 +490,50 @@ export const employeeGoalCheckInsTool = defineWorkforceTool({
   }),
 })
 
+export const employeeLeaveBalanceTool = defineWorkforceTool({
+  ...employeeLeaveToolMetadata,
+  id: 'employee.leave.balance.read',
+  description: 'Lees je eigen actuele verlofsaldo per verloftype, met peildatum en beschikbare vervalinformatie.',
+  permission: 'self:leave:read',
+  inputSchema: leaveBalanceInputSchema,
+  outputSchema: employeeLeaveBalanceOutputSchema,
+  handler: async (input) => readEmployeeLeaveBalance(input),
+  delegatedHandler: async (input, context) => readEmployeeLeaveBalance(input, context),
+})
+
+export const employeeNextLeaveTool = defineWorkforceTool({
+  ...employeeLeaveToolMetadata,
+  id: 'employee.leave.next.read',
+  description: 'Lees je eerstvolgende toekomstige, goedgekeurde verlofaanvraag.',
+  permission: 'self:leave:read',
+  inputSchema: emptyInputSchema,
+  outputSchema: employeeNextLeaveOutputSchema,
+  handler: async () => readEmployeeNextLeave(),
+  delegatedHandler: async (_input, context) => readEmployeeNextLeave(context),
+})
+
+export const employeeLeaveRequestsTool = defineWorkforceTool({
+  ...employeeLeaveToolMetadata,
+  id: 'employee.leave.requests.read',
+  description: 'Lees je eigen lopende en goedgekeurde verlofaanvragen met status en periode.',
+  permission: 'self:leave:read',
+  inputSchema: emptyInputSchema,
+  outputSchema: employeeLeaveRequestsOutputSchema,
+  handler: async () => readEmployeeLeaveRequests(),
+  delegatedHandler: async (_input, context) => readEmployeeLeaveRequests(context),
+})
+
+export const employeeRemindersTool = defineWorkforceTool({
+  ...employeeReminderToolMetadata,
+  id: 'employee.reminders.read',
+  description: 'Lees alleen je eigen persoonlijke reminders en hun actuele status.',
+  permission: 'self:reminder:read',
+  inputSchema: emptyInputSchema,
+  outputSchema: employeeRemindersOutputSchema,
+  handler: async () => readEmployeeReminders(),
+  delegatedHandler: async (_input, context) => readEmployeeReminders(context),
+})
+
 export const EMPLOYEE_WORKFORCE_TOOLS = [
   employeeDevelopmentPlansTool,
   employeeDevelopmentProgressTool,
@@ -322,6 +541,10 @@ export const EMPLOYEE_WORKFORCE_TOOLS = [
   employeeCompetenciesTool,
   employeeDevelopmentGapsTool,
   employeeGoalCheckInsTool,
+  employeeLeaveBalanceTool,
+  employeeNextLeaveTool,
+  employeeLeaveRequestsTool,
+  employeeRemindersTool,
 ] as const
 
 export const employeeWorkforceTools = EMPLOYEE_WORKFORCE_TOOLS

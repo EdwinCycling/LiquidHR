@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## ONE VERSION TEST convergence — 2026-10-10
+
+- Geïsoleerde kandidaat: `work/one-version-test-20261010`, gestart vanaf `main` `783999044de83c902e63fefb3587fdbbf99d4de3`. CONTROL02 PR #12 is lokaal opgenomen; APIAI-08 PR #11 wordt nu toegevoegd. Er is nog niets naar GitHub `main` gemerged of naar Vercel gedeployed.
+- CONTROL02 is geannuleerd; de officiële Loonaangifte XML-route is verwijderd en de interne representatieve fixture, CONTROL01, Core HR/Payroll, Nmbrs en APIAI blijven behouden. De read-only TEST-inventaris en afzonderlijk te beoordelen decommissionvoorstellen staan in [CONTROL02 cancellation inventory](../quality/acceptance/runs/CONTROL02-CANCELLED-20261010.md).
+- APIAI-08 blijft TEST-only. De migratie staat al in TEST als `20261010064331_apiai08_employee_ess_controlled_actions`; de bronbestandsnaam gebruikt nog `20261009142000` en moet daarmee worden uitgelijnd zonder SQL opnieuw toe te passen. De verlofsaldoservice rapporteerde 0 uur waar eerder 96 uur demo-saldo was genoemd. Hosted ESS-, audit-, limiter- en runtimeacceptatie blijft open.
+- PAY-RULE-002 is in de bestaande payrollcheckout als **ENGINEERING GREEN / PERSISTENCE DEFERRED** vastgelegd. De Nmbrs/externe Payroll-branch `work/payroll-p0-p1` blijft als enige aparte payrollbranch geparkeerd en wordt niet aangepast. PAY-RULE-002 wordt alleen na scope- en migratielineagecontrole in deze kandidaat opgenomen.
+- Er geldt TEST-only: geen productiegebruikers, klanten, productiegegevens of productie-databasewijzigingen. De bestaande Vercel shared-TEST alias mag pas na groene acceptatie worden gebruikt; de huidige READY-deployment blijft beschikbaar als rollbackkandidaat.
+
 ## CONTROL02 cancelled cleanup — 2026-10-10
 
 - CONTROL02 and the official Loonaangifte XML import are cancelled. The cleanup candidate is based on `origin/main` `783999044de83c902e63fefb3587fdbbf99d4de3`; it removes the official page route, restricts shared analyze/stage APIs to `INTERNAL_REPRESENTATIVE`, and blocks historical XML finalization before a claim or Core write. The internal representative importer, CONTROL01, Core HR/Payroll, Nmbrs, and APIAI remain.

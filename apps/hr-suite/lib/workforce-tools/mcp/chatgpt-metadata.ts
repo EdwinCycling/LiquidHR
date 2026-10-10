@@ -7,6 +7,10 @@ import {
   employeeDevelopmentGapsOutputSchema,
   employeeRemoteDevelopmentPlansOutputSchema,
   employeeSkillsOutputSchema,
+  employeeLeaveBalanceOutputSchema,
+  employeeNextLeaveOutputSchema,
+  employeeLeaveRequestsOutputSchema,
+  employeeRemindersOutputSchema,
 } from '../employee-tools'
 import {
   selfDevelopmentPlanStatusSchema,
@@ -18,6 +22,10 @@ const EXTERNAL_WORKFORCE_TOOL_IDS = [
   'employee.talent.development-gaps.read',
   'employee.talent.skills.read',
   'employee.talent.competencies.read',
+  'employee.leave.balance.read',
+  'employee.leave.next.read',
+  'employee.leave.requests.read',
+  'employee.reminders.read',
 ] as const
 
 const plansToolId = EXTERNAL_WORKFORCE_TOOL_IDS[0]
@@ -35,7 +43,7 @@ export const CHATGPT_MCP_SERVER_METADATA = Object.freeze({
   name: 'liquid-hr-workforce',
   version: APP_VERSION,
   instructions:
-    'LiquidHR Workforce biedt uitsluitend read-only informatie over je eigen ontwikkelplannen, ontwikkelgaps, skills en competenties. De server bepaalt je medewerkercontext en weigert iedere poging om medewerker-, tenant-, administratie- of rolcontext te kiezen. Deze MCP biedt geen schrijfacties.',
+    'LiquidHR Workforce biedt uitsluitend read-only informatie over je eigen ontwikkelplannen, ontwikkelgaps, skills, competenties, verlofsaldo, verlofaanvragen, goedgekeurd verlof en persoonlijke reminders. De server bepaalt je medewerkercontext en weigert iedere poging om medewerker-, tenant-, HR-groep-, administratie- of rolcontext te kiezen. Deze MCP biedt geen schrijfacties.',
 } as const)
 
 export const CHATGPT_MCP_SERVER_INFO = CHATGPT_MCP_SERVER_METADATA
@@ -92,7 +100,7 @@ function createExternalTool(definition: ExternalToolDefinition): ChatGptMcpToolM
     || workforceTool.operation !== 'READ'
     || workforceTool.permission !== definition.permission
     || workforceTool.additionalPermissions?.length
-    || workforceTool.module !== 'TALENT'
+    || !['TALENT', 'HERA', 'REMINDERS'].includes(workforceTool.module)
     || !workforceTool.delegatedHandler
   ) {
     throw new Error('CHATGPT_MCP_WORKFORCE_TOOL_SCOPE_CHANGED')
@@ -194,6 +202,38 @@ const externalToolDefinitions: readonly ExternalToolDefinition[] = [
     permission: 'self:talent-record:read',
     outputSchema: employeeCompetenciesOutputSchema,
     projectResult: (result) => employeeCompetenciesOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_WORKFORCE_TOOL_IDS[4],
+    title: 'Eigen verlofsaldo lezen',
+    description: 'Lees je eigen verlofsaldo per verloftype, met peildatum en relevante vervalinformatie. Als er meerdere actieve dienstverbanden zijn, kies uitsluitend uit de teruggegeven eigen opties.',
+    permission: 'self:leave:read',
+    outputSchema: employeeLeaveBalanceOutputSchema,
+    projectResult: (result) => employeeLeaveBalanceOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_WORKFORCE_TOOL_IDS[5],
+    title: 'Volgende goedgekeurde vakantie lezen',
+    description: 'Lees de eerstvolgende toekomstige eigen verlofaanvraag met status GOEDGEKEURD.',
+    permission: 'self:leave:read',
+    outputSchema: employeeNextLeaveOutputSchema,
+    projectResult: (result) => employeeNextLeaveOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_WORKFORCE_TOOL_IDS[6],
+    title: 'Eigen verlofaanvragen lezen',
+    description: 'Lees je eigen lopende en goedgekeurde verlofaanvragen met periode, uren en status.',
+    permission: 'self:leave:read',
+    outputSchema: employeeLeaveRequestsOutputSchema,
+    projectResult: (result) => employeeLeaveRequestsOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_WORKFORCE_TOOL_IDS[7],
+    title: 'Persoonlijke reminders lezen',
+    description: 'Lees alleen je eigen persoonlijke reminders met vervaldatum en status.',
+    permission: 'self:reminder:read',
+    outputSchema: employeeRemindersOutputSchema,
+    projectResult: (result) => employeeRemindersOutputSchema.parse(result),
   },
 ]
 

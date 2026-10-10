@@ -159,10 +159,12 @@ async function requireReminderContext(): Promise<{
   }
 }
 
-type ReminderReadDependencies = {
+export interface ReminderReadDependencies {
   context: Pick<AuthContext, 'tenantId' | 'administrationId' | 'userId'>
   supabase: Awaited<ReturnType<typeof createClient>>
 }
+
+export type PersonalReminderWriteDependencies = ReminderReadDependencies
 
 export async function listMyReminders(limit = 100, dependencies?: ReminderReadDependencies): Promise<ReminderItem[]> {
   const context = dependencies?.context ?? await requireReminderContext()
@@ -219,9 +221,9 @@ export async function listEmployeeReminders(employeeId: string, limit = 100): Pr
     .slice(0, boundedLimit)
 }
 
-export async function createPersonalReminder(input: PersonalReminderCreateInput): Promise<string> {
-  const context = await requireReminderContext()
-  const supabase = await createClient()
+export async function createPersonalReminder(input: PersonalReminderCreateInput, dependencies?: PersonalReminderWriteDependencies): Promise<string> {
+  const context = dependencies?.context ?? await requireReminderContext()
+  const supabase = dependencies?.supabase ?? await createClient()
   const { data, error } = await supabase.rpc('create_personal_reminder', {
     requested_tenant_id: context.tenantId,
     requested_administration_id: context.administrationId!,
@@ -231,6 +233,31 @@ export async function createPersonalReminder(input: PersonalReminderCreateInput)
   })
   if (error) throw reminderDatabaseError(error)
   return data
+}
+
+export async function getMyPersonalReminder(
+  reminderId: string,
+  dependencies?: ReminderReadDependencies,
+): Promise<ReminderItem> {
+  const context = dependencies?.context ?? await requireReminderContext()
+  const supabase = dependencies?.supabase ?? await createClient()
+  let query = supabase
+    .from('reminder_recipients')
+    .select(`id, status, effective_remind_at, employee_id, employees(id, first_name, birth_name), reminders!inner(
+      id, title, description, remind_at, reminder_type, target_type, status, created_by_user_id
+    )`)
+    .eq('tenant_id', context.tenantId)
+    .eq('user_id', context.userId)
+    .eq('reminder_id', reminderId)
+    .eq('reminders.reminder_type', 'PERSONAL')
+    .eq('reminders.created_by_user_id', context.userId)
+  query = context.administrationId
+    ? query.eq('reminders.administration_id', context.administrationId)
+    : query.is('reminders.administration_id', null)
+  const { data, error } = await query.limit(1).maybeSingle()
+  if (error) throw reminderDatabaseError(error)
+  if (!data) throw new ReminderServiceError('REMINDER_NOT_FOUND', 404)
+  return toReminderItem(data as ReminderRecipientResult)
 }
 
 export async function updatePersonalReminder(id: string, input: ReminderUpdateInput): Promise<void> {

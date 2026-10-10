@@ -29,6 +29,13 @@ export const reminderDraftSchema = z.object({
   description: z.string().trim().max(2_000).optional(),
 })
 
+export const leaveRequestDraftSchema = z.object({
+  leaveTypeName: z.string().trim().min(1).max(160),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  employmentId: z.string().uuid().optional(),
+  displayDate: z.string().trim().min(1).max(120).optional(),
+}).strict()
+
 export const addressChangeDraftSchema = z.object({
   employeeId: z.string().uuid(),
   addressId: z.string().uuid(),
@@ -66,3 +73,4 @@ export type CreateConversationInput = z.infer<typeof createConversationSchema>
 export type RenameConversationInput = z.infer<typeof renameConversationSchema>
 export type MemoryItemInput = z.infer<typeof memoryItemSchema>
 export type ReminderDraftInput = z.infer<typeof reminderDraftSchema>
+export type LeaveRequestDraftInput = z.infer<typeof leaveRequestDraftSchema>

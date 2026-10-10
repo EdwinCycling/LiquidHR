@@ -4,6 +4,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { Json } from '@scope/db'
 import { z } from 'zod'
 import type { AuthContext } from '@/lib/auth/permissions'
+import { requirePermissionInContext } from '@/lib/auth/permissions'
 import type { Locale } from '@/lib/i18n/config'
 import { getTranslator } from '@/lib/i18n/server'
 import { requireTenantModule } from '@/lib/modules/module-service'
@@ -11,8 +12,22 @@ import { createTalentGoalCheckIn, authorizeTalentGoalCheckIn, listMyTalentGoalCh
 import { talentCheckInCreateSchema } from '@/lib/talent/check-in-schemas'
 import { authorizeTalentGoalCreate, createTalentGoal, getTalentGoal, TalentGoalError } from '@/lib/talent/goal-service'
 import { talentGoalCreateSchema, type TalentGoalCreateInput } from '@/lib/talent/goal-schemas'
+import { getLeaveRequestPreview } from '@/lib/leave/request-service'
+import { LeaveServiceError } from '@/lib/leave/leave-service'
+import { getMyLeaveRequest } from '@/lib/leave/employee-self-service'
+import { startEmployeeSelfLeaveRequestWorkflow } from '@/lib/leave/workflow-service'
+import { createPersonalReminder, getMyPersonalReminder, ReminderServiceError } from '@/lib/reminders/reminder-service'
+import { personalReminderCreateSchema } from '@/lib/reminders/schemas'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+const leaveRequestActionSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  employmentId: z.string().uuid().optional(),
+  leaveTypeId: z.string().uuid().optional(),
+  leaveTypeName: z.string().trim().min(1).max(160).optional(),
+}).strict().refine((value) => Boolean(value.leaveTypeId || value.leaveTypeName), 'LEAVE_TYPE_REQUIRED')
 
 export const controlledActionPayloadSchemas = {
   'talent.development-goal.create': talentGoalCreateSchema,
@@ -20,10 +35,16 @@ export const controlledActionPayloadSchemas = {
     goalId: z.string().uuid(),
     input: talentCheckInCreateSchema,
   }).strict(),
+  'employee.leave.request.create': leaveRequestActionSchema,
+  'employee.reminder.create': personalReminderCreateSchema,
 } as const
 
 export type ControlledActionId = keyof typeof controlledActionPayloadSchemas
-export type ControlledActionType = 'TALENT_DEVELOPMENT_GOAL_CREATE' | 'TALENT_GOAL_CHECK_IN_CREATE'
+export type ControlledActionType =
+  | 'TALENT_DEVELOPMENT_GOAL_CREATE'
+  | 'TALENT_GOAL_CHECK_IN_CREATE'
+  | 'EMPLOYEE_LEAVE_REQUEST_CREATE'
+  | 'EMPLOYEE_PERSONAL_REMINDER_CREATE'
 export type ControlledActionChannel = 'HERA' | 'LOCAL_MCP'
 export type ControlledActionStatus = 'AWAITING_CONFIRMATION' | 'EXECUTING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
 
@@ -132,7 +153,7 @@ export interface ControlledActionStorage {
 
 export interface ControlledActionDomain {
   preview(context: AuthContext, actionId: ControlledActionId, payload: unknown, locale: Locale): Promise<AuthorizedPreview>
-  execute(context: AuthContext, actionId: ControlledActionId, payload: Json): Promise<string>
+  execute(context: AuthContext, actionId: ControlledActionId, payload: Json, idempotencyKey: string): Promise<string>
   readback(context: AuthContext, actionId: ControlledActionId, payload: Json, entityId: string): Promise<Json>
 }
 
@@ -165,19 +186,28 @@ function toJson(value: unknown): Json {
 }
 
 function actionTypeFor(actionId: ControlledActionId): ControlledActionType {
-  return actionId === 'talent.development-goal.create'
-    ? 'TALENT_DEVELOPMENT_GOAL_CREATE'
-    : 'TALENT_GOAL_CHECK_IN_CREATE'
+  switch (actionId) {
+    case 'talent.development-goal.create': return 'TALENT_DEVELOPMENT_GOAL_CREATE'
+    case 'talent.goal-check-in.create': return 'TALENT_GOAL_CHECK_IN_CREATE'
+    case 'employee.leave.request.create': return 'EMPLOYEE_LEAVE_REQUEST_CREATE'
+    case 'employee.reminder.create': return 'EMPLOYEE_PERSONAL_REMINDER_CREATE'
+  }
 }
 
 function toolNameFor(actionId: ControlledActionId): string {
-  return actionId === 'talent.development-goal.create'
-    ? 'draft_talent_development_goal'
-    : 'draft_talent_goal_check_in'
+  switch (actionId) {
+    case 'talent.development-goal.create': return 'draft_talent_development_goal'
+    case 'talent.goal-check-in.create': return 'draft_talent_goal_check_in'
+    case 'employee.leave.request.create': return 'draft_leave_request'
+    case 'employee.reminder.create': return 'draft_personal_reminder'
+  }
 }
 
 export function isControlledActionType(value: string): value is ControlledActionType {
-  return value === 'TALENT_DEVELOPMENT_GOAL_CREATE' || value === 'TALENT_GOAL_CHECK_IN_CREATE'
+  return value === 'TALENT_DEVELOPMENT_GOAL_CREATE'
+    || value === 'TALENT_GOAL_CHECK_IN_CREATE'
+    || value === 'EMPLOYEE_LEAVE_REQUEST_CREATE'
+    || value === 'EMPLOYEE_PERSONAL_REMINDER_CREATE'
 }
 
 export function isControlledActionId(value: string): value is ControlledActionId {
@@ -215,10 +245,97 @@ export function controlledActionPreviewHash(
 
 async function defaultPreview(context: AuthContext, actionId: ControlledActionId, rawPayload: unknown, locale: Locale): Promise<AuthorizedPreview> {
   await requireTenantModule('HERA')
-  await requireTenantModule('TALENT')
+  if (actionId.startsWith('talent.')) await requireTenantModule('TALENT')
+  if (actionId === 'employee.reminder.create') await requireTenantModule('REMINDERS')
   const schema = controlledActionPayloadSchemas[actionId]
   const parsed = schema.safeParse(rawPayload)
   if (!parsed.success) throw new ControlledActionError('CONTROLLED_ACTION_INPUT_INVALID', 400)
+
+  if (actionId === 'employee.reminder.create') {
+    const input = personalReminderCreateSchema.parse(parsed.data)
+    if (!context.employeeId) throw new ControlledActionError('CONTROLLED_ACTION_NOT_SUPPORTED', 403)
+    const supabase = await createClient()
+    await requirePermissionInContext(supabase, context, 'self:reminder:write', context.employeeId)
+    const translate = await getTranslator('hera', locale)
+    const summary = translate('controlledPersonalReminderCreate')
+    const payload = personalReminderCreateSchema.parse(input)
+    const preview: ControlledActionPreview = {
+      actionId,
+      summary,
+      subject: 'self',
+      changes: toJson({
+        title: payload.title,
+        description: payload.description ?? null,
+        remindAt: payload.remindAt,
+        timeZone: 'Europe/Amsterdam',
+      }),
+    }
+    return { actionId, actionType: actionTypeFor(actionId), toolName: toolNameFor(actionId), payload: toJson(payload), summary, preview }
+  }
+
+  if (actionId === 'employee.leave.request.create') {
+    const input = leaveRequestActionSchema.parse(parsed.data)
+    if (!context.employeeId || !context.hrGroupId) throw new ControlledActionError('CONTROLLED_ACTION_NOT_SUPPORTED', 403)
+    const supabase = await createClient()
+    await requirePermissionInContext(supabase, context, 'self:leave:request', context.employeeId)
+    await requirePermissionInContext(supabase, context, 'self:leave:read', context.employeeId)
+    const endDate = input.endDate ?? input.startDate
+    const [requestPreview, leaveTypes] = await Promise.all([
+      getLeaveRequestPreview({
+        employeeId: context.employeeId,
+        employmentId: input.employmentId,
+        startDate: input.startDate,
+        endDate,
+        mode: 'DIRECT',
+      }, 'self:leave:request', { context, supabase }),
+      supabase.from('leave_types').select('id,name,family')
+        .eq('tenant_id', context.tenantId)
+        .eq('hr_group_id', context.hrGroupId)
+        .eq('is_active', true)
+        .eq('is_self_service', true)
+        .limit(500),
+    ])
+    if (leaveTypes.error) throw new LeaveServiceError('LEAVE_OPERATION_FAILED', 500)
+    const options = leaveTypes.data
+    const matching = input.leaveTypeId
+      ? options.filter((type) => type.id === input.leaveTypeId)
+      : options.filter((type) => type.name.trim().toLocaleLowerCase() === input.leaveTypeName?.trim().toLocaleLowerCase())
+    if (matching.length !== 1) throw new ControlledActionError('CONTROLLED_ACTION_INPUT_INVALID', 400)
+    const selectedType = matching[0]
+    if (!selectedType || (input.leaveTypeName && selectedType.name.trim().toLocaleLowerCase() !== input.leaveTypeName.trim().toLocaleLowerCase())) {
+      throw new ControlledActionError('CONTROLLED_ACTION_INPUT_INVALID', 400)
+    }
+    const previewType = requestPreview.types.find((type) => type.id === selectedType.id)
+    if (!previewType) throw new ControlledActionError('CONTROLLED_ACTION_INPUT_INVALID', 400)
+    const requestedHours = requestPreview.fullDayMinutes / 60
+    const summary = `${selectedType.name}: ${input.startDate}${endDate === input.startDate ? '' : ` – ${endDate}`}`
+    const payload = {
+      startDate: input.startDate,
+      endDate,
+      employmentId: requestPreview.employmentId,
+      leaveTypeId: selectedType.id,
+      leaveTypeName: selectedType.name,
+    }
+    const translate = await getTranslator('hera', locale)
+    const preview: ControlledActionPreview = {
+      actionId,
+      summary: translate('controlledLeaveRequestCreate'),
+      subject: 'self',
+      changes: toJson({
+        period: { startDate: input.startDate, endDate },
+        leaveType: selectedType.name,
+        timeMode: 'FULL_DAY',
+        requestedHours,
+        unit: 'hours',
+        balanceBeforeHours: previewType.currentBalanceHours,
+        expectedBalanceAfterRequestHours: previewType.currentBalanceHours === null ? null : previewType.currentBalanceHours - requestedHours,
+        balanceStatus: previewType.status,
+        employmentId: requestPreview.employmentId,
+        summary,
+      }),
+    }
+    return { actionId, actionType: actionTypeFor(actionId), toolName: toolNameFor(actionId), payload: toJson(payload), summary: preview.summary, preview }
+  }
 
   if (actionId === 'talent.development-goal.create') {
     const input = talentGoalCreateSchema.parse(parsed.data)
@@ -268,16 +385,43 @@ async function defaultPreview(context: AuthContext, actionId: ControlledActionId
 }
 
 function failureCode(error: unknown): string {
-  if (error instanceof TalentGoalError || error instanceof TalentCheckInError) return error.code.slice(0, 120)
+  if (error instanceof TalentGoalError) return error.code.slice(0, 120)
+  if (error instanceof TalentCheckInError) return error.code.slice(0, 120)
+  if (error instanceof LeaveServiceError) return error.code.slice(0, 120)
+  if (error instanceof ReminderServiceError) return error.code.slice(0, 120)
   return 'EXECUTION_OUTCOME_UNKNOWN'
 }
 
-async function defaultExecute(_context: AuthContext, actionId: ControlledActionId, rawPayload: Json): Promise<string> {
+async function defaultExecute(context: AuthContext, actionId: ControlledActionId, rawPayload: Json, idempotencyKey: string): Promise<string> {
   if (actionId === 'talent.development-goal.create') {
     return createTalentGoal(talentGoalCreateSchema.parse(rawPayload))
   }
-  const input = controlledActionPayloadSchemas['talent.goal-check-in.create'].parse(rawPayload)
-  return createTalentGoalCheckIn(input.goalId, input.input)
+  if (actionId === 'talent.goal-check-in.create') {
+    const input = controlledActionPayloadSchemas['talent.goal-check-in.create'].parse(rawPayload)
+    return createTalentGoalCheckIn(input.goalId, input.input)
+  }
+  const supabase = await createClient()
+  if (actionId === 'employee.reminder.create') {
+    const input = personalReminderCreateSchema.parse(rawPayload)
+    if (!context.employeeId) throw new ControlledActionError('CONTROLLED_ACTION_NOT_SUPPORTED', 403)
+    await requirePermissionInContext(supabase, context, 'self:reminder:write', context.employeeId)
+    return createPersonalReminder(input, {
+      context: { tenantId: context.tenantId, administrationId: context.administrationId, userId: context.userId },
+      supabase,
+    })
+  }
+  const input = leaveRequestActionSchema.parse(rawPayload)
+  if (!context.employeeId) throw new ControlledActionError('CONTROLLED_ACTION_NOT_SUPPORTED', 403)
+  const result = await startEmployeeSelfLeaveRequestWorkflow({
+    employmentId: input.employmentId,
+    mode: 'DIRECT',
+    leaveTypeId: input.leaveTypeId,
+    startDate: input.startDate,
+    endDate: input.endDate ?? input.startDate,
+    timeMode: 'FULL_DAY',
+    idempotencyKey,
+  }, { context, supabase })
+  return result.requestId
 }
 
 async function defaultReadback(context: AuthContext, actionId: ControlledActionId, rawPayload: Json, entityId: string): Promise<Json> {
@@ -300,25 +444,37 @@ async function defaultReadback(context: AuthContext, actionId: ControlledActionI
       progressPercent: goal.progress_percent,
     })
   }
-  const input = controlledActionPayloadSchemas['talent.goal-check-in.create'].parse(rawPayload)
-  const authorized = await authorizeTalentGoalCheckIn(input.goalId, input.input)
-  const isSelfOnlyContext = authorized.employeeId === context.employeeId
-    && !context.permissions.includes('talent-goal:read')
-    && !context.permissions.includes('talent-goal:manage')
-  const records = isSelfOnlyContext
-    ? await listMyTalentGoalCheckIns(input.goalId)
-    : await listTalentGoalCheckIns(input.goalId)
-  const checkIn = records.find((item) => item.id === entityId)
-  if (!checkIn) throw new ControlledActionError('CONTROLLED_ACTION_READBACK_UNAVAILABLE', 503)
-  return toJson({
-    entityId: checkIn.id,
-    goalId: checkIn.goal_id,
-    employeeId: checkIn.employee_id,
-    entryType: checkIn.entry_type,
-    status: checkIn.status,
-    createdAt: checkIn.created_at,
-    completedAt: checkIn.completed_at,
-  })
+  if (actionId === 'talent.goal-check-in.create') {
+    const input = controlledActionPayloadSchemas['talent.goal-check-in.create'].parse(rawPayload)
+    const authorized = await authorizeTalentGoalCheckIn(input.goalId, input.input)
+    const isSelfOnlyContext = authorized.employeeId === context.employeeId
+      && !context.permissions.includes('talent-goal:read')
+      && !context.permissions.includes('talent-goal:manage')
+    const records = isSelfOnlyContext
+      ? await listMyTalentGoalCheckIns(input.goalId)
+      : await listTalentGoalCheckIns(input.goalId)
+    const checkIn = records.find((item) => item.id === entityId)
+    if (!checkIn) throw new ControlledActionError('CONTROLLED_ACTION_READBACK_UNAVAILABLE', 503)
+    return toJson({
+      entityId: checkIn.id,
+      goalId: checkIn.goal_id,
+      employeeId: checkIn.employee_id,
+      entryType: checkIn.entry_type,
+      status: checkIn.status,
+      createdAt: checkIn.created_at,
+      completedAt: checkIn.completed_at,
+    })
+  }
+  const supabase = await createClient()
+  if (actionId === 'employee.reminder.create') {
+    const reminder = await getMyPersonalReminder(entityId, {
+      context: { tenantId: context.tenantId, administrationId: context.administrationId, userId: context.userId },
+      supabase,
+    })
+    return toJson({ entityId: reminder.reminderId, title: reminder.title, description: reminder.description, remindAt: reminder.remindAt, status: reminder.recipientStatus })
+  }
+  const request = await getMyLeaveRequest(entityId, { context, supabase })
+  return toJson(request)
 }
 
 function mapRow(row: {
@@ -343,9 +499,13 @@ function mapRow(row: {
   if (!['AWAITING_CONFIRMATION', 'EXECUTING', 'SUCCEEDED', 'FAILED', 'CANCELLED'].includes(row.status)) {
     throw new ControlledActionError('CONTROLLED_ACTION_NOT_SUPPORTED', 400)
   }
-  const actionId = row.action_type === 'TALENT_DEVELOPMENT_GOAL_CREATE'
+  const actionId: ControlledActionId = row.action_type === 'TALENT_DEVELOPMENT_GOAL_CREATE'
     ? 'talent.development-goal.create'
-    : 'talent.goal-check-in.create'
+    : row.action_type === 'TALENT_GOAL_CHECK_IN_CREATE'
+      ? 'talent.goal-check-in.create'
+      : row.action_type === 'EMPLOYEE_LEAVE_REQUEST_CREATE'
+        ? 'employee.leave.request.create'
+        : 'employee.reminder.create'
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -547,9 +707,18 @@ export function createControlledActionService(dependencies: ControlledActionServ
 
     let entityId: string
     try {
-      entityId = await domain.execute(context, claimed.actionId, claimed.payload)
+      entityId = await domain.execute(context, claimed.actionId, claimed.payload, claimed.idempotencyKey)
     } catch (error) {
-      if (error instanceof TalentGoalError || error instanceof TalentCheckInError) {
+      if (error instanceof TalentGoalError || error instanceof TalentCheckInError || error instanceof LeaveServiceError || error instanceof ReminderServiceError) {
+        const status = error instanceof TalentGoalError
+          ? error.status
+          : error instanceof TalentCheckInError
+            ? error.status
+            : error instanceof LeaveServiceError
+              ? error.status
+              : error instanceof ReminderServiceError
+                ? error.status
+                : 500
         let failed: ControlledActionDraft | null
         try {
           failed = await storage.fail(context, claimed, failureCode(error), correlationIdFor(claimed))
@@ -557,7 +726,7 @@ export function createControlledActionService(dependencies: ControlledActionServ
           throw new ControlledActionError('CONTROLLED_ACTION_EXECUTION_OUTCOME_UNKNOWN', 503)
         }
         if (!failed) throw new ControlledActionError('CONTROLLED_ACTION_EXECUTION_OUTCOME_UNKNOWN', 503)
-        throw new ControlledActionError('CONTROLLED_ACTION_EXECUTION_FAILED', error.status)
+        throw new ControlledActionError('CONTROLLED_ACTION_EXECUTION_FAILED', status)
       }
       // The domain call may have committed before a transport error. Keep the
       // draft EXECUTING so it cannot be retried as if failure were certain.

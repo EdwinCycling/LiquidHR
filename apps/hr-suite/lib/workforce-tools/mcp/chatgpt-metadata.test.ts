@@ -35,8 +35,32 @@ describe('ChatGPT MCP metadata', () => {
   })
 
   it('advertises only the approved self-only read tools for the remote TEST server', () => {
-    expect(CHATGPT_MCP_TOOL_METADATA).toHaveLength(4)
-    expect(CHATGPT_MCP_TOOLS).toHaveLength(4)
+    const expectedIds = [
+      'employee.talent.development-plans.read',
+      'employee.talent.development-gaps.read',
+      'employee.talent.skills.read',
+      'employee.talent.competencies.read',
+      'employee.leave.balance.read',
+      'employee.leave.next.read',
+      'employee.leave.requests.read',
+      'employee.reminders.read',
+    ]
+    expect(CHATGPT_MCP_TOOL_METADATA).toHaveLength(8)
+    expect(CHATGPT_MCP_TOOLS).toHaveLength(8)
+    expect(CHATGPT_MCP_TOOL_METADATA.map((entry) => entry.workforceToolId)).toEqual(expectedIds)
+    expect(CHATGPT_MCP_TOOLS.map((entry) => entry.name)).toEqual(expectedIds)
+
+    for (const entry of CHATGPT_MCP_TOOL_METADATA) {
+      const source = getWorkforceTool(entry.workforceToolId)
+      expect(source).toBeDefined()
+      expect(entry.exposure).toBe('REMOTE_TEST_ONLY')
+      expect(entry.audience).toBe('EMPLOYEE')
+      expect(entry.scope).toBe('SELF')
+      expect(entry.operation).toBe('READ')
+      expect(entry.permission).toMatch(/^self:/)
+      expect(entry.tool.annotations?.readOnlyHint).toBe(true)
+      expect(entry.tool.securitySchemes).toEqual([{ type: 'oauth2', scopes: ['openid'] }])
+    }
 
     const metadata = CHATGPT_MCP_TOOL_METADATA[0]
     const tool = CHATGPT_MCP_TOOLS[0]
@@ -105,6 +129,21 @@ describe('ChatGPT MCP metadata', () => {
       'status',
       'completedAt',
     ])
+  })
+
+  it('allows only the optional own-employment selector for the leave balance tool', () => {
+    const balanceTool = CHATGPT_MCP_TOOLS.find((entry) => entry.name === 'employee.leave.balance.read')
+    expect(balanceTool).toBeDefined()
+    const inputSchema = record(balanceTool?.inputSchema)
+    expect(Object.keys(record(inputSchema.properties))).toEqual(['employmentId'])
+    expect(inputSchema.additionalProperties).toBe(false)
+
+    const balanceDefinition = getWorkforceTool('employee.leave.balance.read')
+    expect(balanceDefinition?.inputSchema.safeParse({}).success).toBe(true)
+    expect(balanceDefinition?.inputSchema.safeParse({ employmentId: '00000000-0000-0000-0000-000000000001' }).success).toBe(true)
+    for (const selector of ['employeeId', 'tenantId', 'hrGroupId', 'administrationId', 'role']) {
+      expect(balanceDefinition?.inputSchema.safeParse({ [selector]: 'attacker-selected' }).success).toBe(false)
+    }
   })
 
   it('rejects caller-selected context and internal fields at runtime', () => {

@@ -61,5 +61,9 @@
   "memoryProposalPending": "Ik herken dit als een geheugenvoorkeur. Controleer en bevestig het voorstel hieronder; tot die tijd is niets opgeslagen, gewijzigd of verwijderd.",
   "currentValue": "Huidige waarde",
   "newValue": "Voorgestelde waarde",
-  "groundingRequired": "Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data. Geef de ontbrekende scope aan of vraag iemand met de juiste toegang."
+  "groundingRequired": "Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data. Geef de ontbrekende scope aan of vraag iemand met de juiste toegang.",
+  "controlledLeaveRequestCreate": "Verlofaanvraag voorbereiden en de uren en saldo-impact controleren.",
+  "controlledPersonalReminderCreate": "Persoonlijke reminder voorbereiden ter controle.",
+  "reminderClarifyDateTime": "Wat wil je onthouden, en op welke datum en hoe laat? Geef één exact lokaal tijdstip. Bij een dubbelzinnig tijdstip rond de overgang van zomer- en wintertijd vraag ik om een keuze.",
+  "leaveClarifyDate": "Welke verlofdatum en verlofsoort bedoel je precies? Ik kan alleen een aanvraag voorbereiden als beide duidelijk zijn."
 }

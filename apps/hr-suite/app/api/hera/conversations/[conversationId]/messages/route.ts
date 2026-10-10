@@ -106,7 +106,11 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
         ? 'talent.development-goal.create'
         : turn.draft.actionType === 'TALENT_GOAL_CHECK_IN_CREATE'
           ? 'talent.goal-check-in.create'
-          : null
+          : turn.draft.actionType === 'EMPLOYEE_LEAVE_REQUEST_CREATE'
+            ? 'employee.leave.request.create'
+            : turn.draft.actionType === 'EMPLOYEE_PERSONAL_REMINDER_CREATE'
+              ? 'employee.reminder.create'
+              : null
       if (controlledActionId && isControlledActionId(controlledActionId)) {
         const prepared = await controlledActions.prepare(context, {
           conversationId,
