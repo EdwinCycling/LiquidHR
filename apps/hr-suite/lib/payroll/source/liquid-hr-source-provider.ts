@@ -144,7 +144,7 @@ function sourceGapsFor(
   coverageEnd: string,
 ): PayrollSourceGap[] {
   const gaps: PayrollSourceGap[] = [
-    makeGap('incomeRelationship', 'UNSUPPORTED', 'CONTROL02_CONTRACT_PENDING'),
+    makeGap('incomeRelationship', 'UNSUPPORTED', 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED'),
     makeGap('taxProfile', 'SOURCE_GAP', 'NO_ACCEPTED_SOURCE_CONTRACT'),
   ]
 
@@ -285,7 +285,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           validUntil: row.valid_until,
         })),
       },
-      incomeRelationship: { status: 'UNSUPPORTED', reasonCode: 'CONTROL02_CONTRACT_PENDING' },
+      incomeRelationship: { status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED' },
       fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
     }
     const hashInput = {

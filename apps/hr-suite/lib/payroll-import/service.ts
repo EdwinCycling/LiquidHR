@@ -465,6 +465,7 @@ export async function listRecoverablePayrollImports(administrationId: string): P
     .eq('tenant_id', authorization.tenantId)
     .eq('hr_group_id', authorization.hrGroupId)
     .eq('administration_id', administrationId)
+    .eq('source_type', 'INTERNAL_REPRESENTATIVE')
     .in('status', ['FAILED', 'COMPLETED_WITH_WARNINGS'])
     .not('preview_confirmed_at', 'is', null)
     .order('created_at', { ascending: false })
@@ -495,6 +496,7 @@ export async function finalizePayrollImport(input: {
     .maybeSingle()
   if (batchError || !batch) throw new PayrollImportError('PAYROLL_IMPORT_BATCH_NOT_FOUND', 404)
   if (batch.administration_id !== input.administrationId) throw new PayrollImportError('PAYROLL_IMPORT_SCOPE_INVALID', 403)
+  if (batch.source_type !== 'INTERNAL_REPRESENTATIVE') throw new PayrollImportError('PAYROLL_IMPORT_SOURCE_DISABLED', 409)
   if (!input.selectedRowNumbers.length) throw new PayrollImportError('PAYROLL_IMPORT_ROWS_REQUIRED', 422)
   if (batch.status === 'FAILED' && !batch.preview_confirmed_at) throw new PayrollImportError('PAYROLL_IMPORT_BATCH_NOT_FINALIZABLE', 409)
   if (!['STAGED', 'READY', 'FAILED', 'COMPLETED_WITH_WARNINGS'].includes(batch.status)) {

@@ -1,9 +1,11 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-02
+Momentopname: 2026-10-10 (release-evidence hieronder blijft historisch gedateerd)
 
 > **Actueel:** CONVERGENCE01 is als TEST-release vrijgegeven op 2026-10-02. Dit is **geen** claim dat de volledige live security-/persona-acceptatiematrix GREEN is.
+
+> **Statusupdate 2026-10-10:** CONTROL02 en de officiële Loonaangifte-XML-import zijn CANCELLED. Er komt geen vervolgontwikkeling, herstelmigratie of E2E-acceptatie. De interne representatieve import en CONTROL01 blijven behouden; TEST-data en databaseobjecten zijn read-only geïnventariseerd en blijven staan totdat een exact cleanupvoorstel apart is goedgekeurd.
 
 > **PAYLAB update 2026-10-02:** die oudere branchstatus is superseded. PAYLAB00–04 zijn geïntegreerd en browser-geaccepteerd op `integration/payroll-foundation-20261002`, exact accepted HEAD `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`. De onafhankelijke LUNA MAX-review en desktop/390 px productie-acceptatie zijn GREEN. ONE VERSION gebruikt kandidaatversie `1.20261002.1`; de gezamenlijke TEST-release blijft pas RELEASED nadat main, Vercel en hosted smoke exact zijn geverifieerd. Zie `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
 
@@ -27,7 +29,7 @@ Momentopname: 2026-10-02
 
 ### Bewezen bij release
 
-- CONTROL01 payrollruntime: synthetische interne JSON-fixture met IKV 1 en 2 verwerkt; één employee, één conceptdienstverband met `EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING`, twee IKV's. 20/20 gerichte payrolltests inclusief veilige resume zonder dubbele employee. Officiële XML/XSD-adapter blijft CONTROL02.
+- CONTROL01 payrollruntime: synthetische interne JSON-fixture met IKV 1 en 2 verwerkt; één employee, één conceptdienstverband met `EMPLOYMENT_DRAFT_REQUIRES_CONTRACT_MAPPING`, twee IKV's. 20/20 gerichte payrolltests inclusief veilige resume zonder dubbele employee. De officiële XML/XSD-import is CANCELLED; de interne fixture blijft apart.
 - INS01: HR Admin 19 rapporten, Manager 7, Employee 0; directe Bradford-route geeft Manager/Employee geen rapport. CSV-download is gemeld; de laatste inhoudelijke rijscope/filter/formulecontrole blijft OPEN.
 - AI01-A: 7 bestanden / 37 gerichte tests GREEN; eerdere remote durability/concurrency-evidence behouden. Live toggle/revocation- en persona-negatives OPEN.
 - Control: OWNER werkt; 2 bestanden / 11 tests GREEN. AUDITOR write, invitation reuse/revoke, forged scopes en cross-tenant bootstrap live nog OPEN.
@@ -57,7 +59,7 @@ PAYLAB01:
 - **PARTIAL**;
 - server-only source adapter + canonical source snapshot gebouwd;
 - live Core→snapshot browserbewijs bleef buiten die slice/open door eerdere auth/environmentissues;
-- IncomeRelationship/CONTROL02 en fiscale source gaps blijven expliciet.
+- IncomeRelationship blijft een expliciet onopgeloste Payroll/Core-source gap; CONTROL02 is CANCELLED.
 
 PAYLAB02 / Engine M0:
 - **GREEN voor synthetic M0-scope** op 2026-09-30;
@@ -99,6 +101,6 @@ Acceptancebron (lokaal op de Payroll worktree, nog niet op GitHub): `docs/payrol
 
 De vroegere werkstatus, debugging en checkpoints zijn historische informatie en staan in het gedateerde convergence-acceptatierapport. De actueel geldige toestand is hierboven vastgelegd.
 
-**Eerstvolgende taak:** sluit uitsluitend de openstaande Control-, Insights- en AI-live-negatives op de vastgepinde releasebaseline; registreer nieuwe gerichte bugfixes traceerbaar. Daarna pas shared Control-/Core-integratie van CONTROL02 en Payroll Lab plannen. Pure `packages/payroll-engine`-ontwikkeling kan na dependencycheck afzonderlijk parallel.
+**Eerstvolgende taak:** hervat Nmbrs vanuit de bestaande P0/P1-basis en de bijbehorende acceptatiedocumentatie. CONTROL02 wordt niet hervat. Losse `packages/payroll-engine`-ontwikkeling blijft alleen na dependencycheck afzonderlijk te plannen.
 
 **Belangrijk:** `docs/AA/` staat nog op een afzonderlijke documentatiebranch. Rebase/cherry-pick alleen de definitieve AA-bestanden bovenop de nieuwste `main` wanneer integratie expliciet wordt gepland; merge geen oude baselines blind.

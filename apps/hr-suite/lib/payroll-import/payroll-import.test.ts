@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  PayrollImportError,
   isValidIsoDate,
   isValidPayrollIkvNumber,
   isValidLoonaangifteLhNr,
   payrollImportEmploymentLinkId,
+  payrollImportSourceTypeSchema,
   toSafeDatabaseDate,
   type CanonicalPayrollPerson,
   type ExistingPayrollEmployeeCandidate,
@@ -92,10 +92,9 @@ describe('payroll import contract', () => {
     expect(toSafeDatabaseDate(undefined)).toBeNull()
   })
 
-  it('weigert echte XML zolang de officiële adapter niet beschikbaar is', () => {
-    expect(() => adaptPayrollSource({ sourceType: 'LOONAANGIFTE_XML', bytes: new TextEncoder().encode('<xml />') })).toThrowError(
-      expect.objectContaining<Partial<PayrollImportError>>({ code: 'REAL_XML_PENDING', status: 409 }),
-    )
+  it('accepteert uitsluitend de interne representatieve importbron', () => {
+    expect(payrollImportSourceTypeSchema.safeParse('INTERNAL_REPRESENTATIVE').success).toBe(true)
+    expect(payrollImportSourceTypeSchema.safeParse('LOONAANGIFTE_XML').success).toBe(false)
   })
 
   it('accepteert alleen de synthetische interne representatieve fixture', () => {
