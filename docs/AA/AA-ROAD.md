@@ -5,6 +5,12 @@ Bijgewerkt: 2026-09-29
 
 De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
 
+### AI-roadmap (actuele productbesluiten 2026-10-10)
+
+De volledige AI-productvolgorde, evidence-status, implementatie-/acceptatiegates en iteratieraming staan in de **[LiquidHR AI Master Roadmap](../requirements/ai/LIQUIDHR_AI_MASTER_ROADMAP.md)**. Deze is de AI-specifieke detailroadmap; AA-ROAD blijft de algemene productroadmap en AA-NEXT bepaalt de eerstvolgende uitvoeringswave.
+
+Actuele beoogde volgorde: ONE VERSION stabiliseren → APIAI-08 ESS afmaken → APIAI-09 MSS in één grote bouwslag → APIAI-10 Focus Plugin Extensions voor ChatGPT → APIAI-11 Trusted Actions. Brede HR Admin-/publieke API-/agentuitbreiding is geparkeerd. De huidige technische/release-status moet vóór iedere bouwslag opnieuw tegen main, Vercel en acceptance evidence worden vastgesteld.
+
 ## COMMITTED FOUNDATIONS
 
 ### Core HR
