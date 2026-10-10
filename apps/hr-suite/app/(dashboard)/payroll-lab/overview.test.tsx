@@ -3,17 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthenticationError, AuthorizationError } from '@/lib/auth/permissions'
 import PayrollLabOverview from './page'
 
-const { access } = vi.hoisted(() => ({ access: vi.fn() }))
+const { access, arrangementStorageReady } = vi.hoisted(() => ({ access: vi.fn(), arrangementStorageReady: vi.fn() }))
 vi.mock('@/lib/payroll/component-library-access', () => ({ requireComponentLibraryAccess: access }))
+vi.mock('@/lib/payroll/arrangement-service', () => ({ isArrangementFoundationStorageReady: arrangementStorageReady }))
 vi.mock('@/lib/i18n/server', () => ({ getTranslator: async () => (key: string) => key }))
 vi.mock('next/navigation', () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`) } }))
 
 describe('single Payroll Lab overview', () => {
-  beforeEach(() => { vi.clearAllMocks(); access.mockResolvedValue({}) })
-  it('contains exactly two functional window links and no future empty modules', async () => {
+  beforeEach(() => { vi.clearAllMocks(); access.mockResolvedValue({}); arrangementStorageReady.mockResolvedValue(false) })
+  it('contains the calculation, individual payroll, and component windows without empty modules', async () => {
     const markup = renderToStaticMarkup(await PayrollLabOverview({}))
-    expect(markup.match(/href=/g)).toHaveLength(2)
+    expect(markup.match(/href=/g)).toHaveLength(3)
     expect(markup).toContain('href="/payroll-lab/calculations"')
+    expect(markup).toContain('href="/payroll-lab/salarisverwerking"')
     expect(markup).toContain('href="/payroll-components"')
     expect(markup).toContain('lg:grid-cols-2')
     expect(markup).not.toContain('md:grid-cols-2')
@@ -27,6 +29,14 @@ describe('single Payroll Lab overview', () => {
       run: '40000000-0000-4000-8000-000000000002',
       case: 'GC-NL-001',
     }) })).rejects.toThrow('redirect:/payroll-lab/calculations?run=40000000-0000-4000-8000-000000000002&case=GC-NL-001')
+  })
+  it('shows the arrangements window only when scoped Payroll storage is available', async () => {
+    arrangementStorageReady.mockResolvedValue(true)
+    const markup = renderToStaticMarkup(await PayrollLabOverview({}))
+    expect(markup.match(/href=/g)).toHaveLength(4)
+    expect(markup).toContain('href="/payroll-lab/arrangements"')
+    expect(access).toHaveBeenCalledOnce()
+    expect(arrangementStorageReady).toHaveBeenCalledWith(await access.mock.results[0]?.value)
   })
   it('ignores untrusted invalid legacy query values', async () => {
     const markup = renderToStaticMarkup(await PayrollLabOverview({ searchParams: Promise.resolve({ run: 'forged', error: '<private>' }) }))

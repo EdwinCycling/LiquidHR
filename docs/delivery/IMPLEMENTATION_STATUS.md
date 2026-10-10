@@ -1,5 +1,26 @@
 # Implementatiestatus Liquid HR
 
+## ONE VERSION convergence — TEST — 2026-10-10
+
+**Status: lokaal geïntegreerd; codechecks groen; build/browseracceptatie ENVIRONMENT-GATED; niet naar main gepusht/gemerged en niet gedeployed.** De geïsoleerde branch `work/one-version-test-20261010` start vanaf `783999044de83c902e63fefb3587fdbbf99d4de3` en bevat CONTROL02 PR #12, APIAI-08 PR #11, Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9` en gecontroleerd overgezette PAY-RULE-002-code. `work/payroll-p0-p1` blijft als enige aparte Payroll-branch ongewijzigd geparkeerd. Zie [gebundelde ONE VERSION-acceptatie](../quality/acceptance/runs/ONE-VERSION-20261010.md) voor heads, lokale gates, TEST-status, PR-authenticatieblok, bestaande Vercel-deployment en resterende gates.
+
+- CONTROL02 is geannuleerd. De officiële XML-import is uitgeschakeld; interne representatieve imports, CONTROL01 en gedeelde Core/Payroll/Nmbrs/APIAI blijven behouden. De TEST-database-inventaris blijft read-only.
+- APIAI-08 code is lokaal geverifieerd. De synthetic-TEST-migratie `20261010064331_apiai08_employee_ess_controlled_actions` heeft nu dezelfde lokale bestandsnaam; SQL is niet opnieuw toegepast. Hosted Employee-acceptatie, audit/limiter-readback en runtime/browsercontrole blijven open. De 0-versus-96 uur saldoafwijking blijft expliciet open.
+- PAY-RULE-002-code is gecontroleerd overgezet en de workflowmigration `20261010130013_core_pension_assignment_workflow` plus FK-indexmigration `20261010130140_core_pension_assignment_supersession_fk_indexes` zijn alleen op synthetic TEST toegepast. De bestaande twee mappings en twee assignments zijn versiegegeven; geen Frits-assignment, fixture of opvolgende payrollrun is aangemaakt.
+- Bundelacceptatie, code-/scopecontrole, versieophoging en de bestaande shared-TEST Vercel-deployment volgen pas na oplossing van de vereiste gates. Er worden geen productiegebruikers, klantgegevens of productiedata gebruikt.
+
+## CONTROL02 — CANCELLED — 2026-10-10
+
+De officiële Loonaangifte-XML-import, CONTROL02-finalisatie en bijbehorende
+E2E-acceptatie zijn gestopt. De UI biedt alleen de afzonderlijke interne
+representatieve JSON-fixture aan. Analyze- en stage-API's accepteren alleen
+die interne bron; de shared finalizer weigert historische XML-batches vóór
+een finalization-claim of Core-write. De read-only TEST-inventaris en
+decommissionvoorstellen staan in
+[`CONTROL02-CANCELLED-20261010.md`](../quality/acceptance/runs/CONTROL02-CANCELLED-20261010.md).
+CONTROL01, bestaande Payroll/Core-functionaliteit, Nmbrs en APIAI blijven
+behouden.
+
 ## APIAI-07 Remote MCP TEST — 2026-10-09
 
 **Status: hosted Employee-read acceptance GREEN; existing branch is pushed and Draft PR #10 is open; no merge.** The deployed source is `9679f73df27438cf37283360e92c236d655ae729` on existing branch `work/apiai-07-remote-mcp-test-20261007`. Supabase TEST is synthetic project `wnpfloqpjvaacobppbpk`.
@@ -78,7 +99,7 @@ PAYLAB04 was GREEN op de bronbranch en alle code/tests zijn lokaal geïntegreerd
 
 
 - **INS01:** HR Admin/Manager/Employee zijn lokaal authenticated bekeken. HR Admin filtered Frequent Absence en Bradford hadden KPI/tabel-pariteit; Manager zag zeven toegestane rapporten en alleen twee scoped Upcoming Events; forged department filter leidde tot een lege view; Employee zag nul managementrapporten. Bradford-/Frequent Absence-export is gegenereerd. Directe HR Admin/Manager API-, cross-tenant/context-cookie-, volledige export- en historische-labelmatrix blijft deels onbewezen.
-- **CONTROL01:** TEST migration/type/security-gates blijven groen. Runtimeconfig werkte zonder protected-file read/copy, maar er was geen lokale OWNER/OPERATOR-identiteit en TEST OAuth stuurde de bestaande accountflow naar de hosted login in plaats van de lokale callback. Full-circle invitation/contextselector, Control UX en synthetic payroll import zijn daarom niet uitgevoerd. Officiële Loonaangifte blijft bewust XSD_PENDING / REAL_XML_PENDING.
+- **CONTROL01:** TEST migration/type/security-gates blijven groen. Runtimeconfig werkte zonder protected-file read/copy, maar er was geen lokale OWNER/OPERATOR-identiteit en TEST OAuth stuurde de bestaande accountflow naar de hosted login in plaats van de lokale callback. Full-circle invitation/contextselector, Control UX en synthetic payroll import zijn daarom niet uitgevoerd. CONTROL02 en officiële Loonaangifte-XML zijn per 2026-10-10 CANCELLED; de bestaande interne representatieve importer blijft apart behouden.
 - **AI01-A:** remote synthetic TEST lifecycle/concurrency is bewezen: settlement/release/legacy recovery/reconciliation leverden één effectieve economische overgang en één business audit per terminale invocation; expired voice werd eenmaal afgerekend en een tweede reaper was no-op. Geen provider-call. Disabled-feature/scope-revocation persona-acceptatie blijft niet live bewezen. Voice hard-crash rekent af tot de opgeslagen serverdeadline; korter werkelijk gebruik is niet reconstrueerbaar.
 
 De eerste start miste Supabase-configuratie; het runtime-addendum loste alleen het laden van de bestaande config op en bouwde geen auth-bypass. Door de ontbrekende veilige Control testidentiteit/OAuth-callback en niet-uitgevoerde full-circle/importgates zijn version bump, main-update/push, release-checkout, Vercel Production en hosted smoke niet uitgevoerd. De HR-codefix is nog een lokale worktree-wijziging. Zie [CONVERGENCE01 acceptance](../quality/acceptance/runs/CONVERGENCE01-20260928.md) voor volledige evidence en open gates.

@@ -1,13 +1,13 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-02
+Bijgewerkt: 2026-10-10
 
 Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
 
-## Current release — ONE VERSION / PAYLAB00–04
+## Current release — ONE VERSION convergence — 2026-10-10
 
-De geïntegreerde PAYLAB00–04-kandidaat is MERGE-READY op `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; de huidige opdracht rondt de gecontroleerde TEST-release af met versie `1.20261002.1`. Er komt in deze release geen Payroll-feature, migratie, CAO-implementatie of nieuwe ontwikkelronde. Houd de reeds geaccepteerde desktop-/mobiele payroll-browserresultaten en hashes intact.
+De geïsoleerde kandidaat vanaf main `783999044de83c902e63fefb3587fdbbf99d4de3` combineert CONTROL02-cleanup, APIAI-08 en Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9`. PAY-RULE-002 dirty changes en migrationlineage moeten nog worden verwerkt. De main-versie is nog `1.20261002.1`; volledige acceptatie, version bump, GitHub-main-merge en synthetic-TEST deployment blijven afhankelijk van groene gates. Houd `work/payroll-p0-p1` als enige aparte Nmbrs/externe Payroll-branch geparkeerd.
 
 ## CURRENT — CONVERGENCE01 post-release TEST-acceptatie
 
@@ -21,44 +21,17 @@ Nu uitsluitend een **bounded follow-up**, niet nóg een brede convergence- of re
 3. Bradford CSV-download echt parsen en rijscope/filter/formuleveiligheid vastleggen; resterende kritieke Insights-API/scope-gaten gericht testen;
 4. Alleen echte gevonden defecten minimaal fixen met regression en afzonderlijke traceerbare commits; laat elk deel OPEN tot bewijs.
 
-De synthetische payrollfinalisatie is runtime-bewezen (employee + conceptemployment + twee IKV's), dus **niet opnieuw onderzoeken**. Officiële XML/XSD-support blijft CONTROL02.
+De officiële XML/XSD-import en CONTROL02 zijn op 2026-10-10 geannuleerd. Eerdere notities over synthetische payrollfinalisatie zijn geen CONTROL02-releaseacceptatie en leiden niet tot vervolgonderzoek. De interne representatieve import van CONTROL01 blijft afzonderlijk beschikbaar.
 
-**Integratiegrens:** bevries de releasebaseline voordat Payroll Lab/CONTROL02 shared Control/Core code aanraken. Eerst diff/migrationlineage/dependencyplan, nooit blind mergen of bestaande TEST-migrations opnieuw toepassen.
+**Integratiegrens:** houd gedeelde Core-/Payroll-integratie apart gescopeerd; herstart CONTROL02 niet. Controleer altijd diff en migrationlineage voordat gedeelde code wordt gewijzigd.
 
 **Parallelstrategie:** pure `packages/payroll-engine`/losse Payroll Lab database-experimenten kunnen na branchinventaris parallel met onafhankelijke tracks. Shared Control, payrollimport, employee/employment/IKV en migrations blijven geserialiseerd totdat expliciet geïntegreerd.
 
-## NEXT — CONTROL02
+## NEXT — Nmbrs
 
-**Loonaangifte XML Import V1 + Readiness UI**
-
-Doel:
-- HR Admin importscherm onder **Instellingen → Medewerkers & dienstverband → Loonaangifte XML importeren**;
-- server-side readiness-paneel dat actuele stamdata controleert;
-- groen = gereed, oranje = import kan met draft/follow-up, rood = veilige import geblokkeerd, grijs = niet vereist;
-- readiness minimaal voor actieve HR-groep, actieve administratie, importrechten en na parsing LhNr/jaar/tijdvak/source support;
-- arbeidsvoorwaarden/contractinrichting mogen als oranje ontbreken en leiden dan tot veilige draft/follow-up;
-- afdelingen, functies, kostenplaatsen en salarisstructuur zijn niet automatisch blockers;
-- upload → detect → analyse → matching → preview → confirm → result;
-- bestaande medewerkers veilig herkennen en aanvullen: EXACT / PROPOSED / MANUAL REVIEW / NEW;
-- bestaande medewerker nooit dupliceren omdat dezelfde persoon opnieuw via XML binnenkomt;
-- bron-/LiquidHR-verschillen op veldniveau zichtbaar maken; niet blind overschrijven;
-- één persoon met meerdere IKV's correct behandelen;
-- geen voornaam uit initialen verzinnen;
-- BSN uitsluitend via bestaande secure identifier/fingerprintarchitectuur;
-- geen fictieve stamdata aanmaken;
-- preview = nul definitieve domain writes;
-- ontbrekende niet-blokkerende inrichting leidt tot draft/follow-up;
-- jaar-/namespaceadapterarchitectuur;
-- representative synthetic XML + geanonimiseerde real-world fixture;
-- formele XSD-validatie alleen claimen voor jaren met de bijpassende officiële XSD;
-- volledige gerichte import/security/UI acceptance, inclusief readiness-statussen en refresh na stamdatawijziging.
-
-Belangrijke input:
-- bestaande CONTROL01 stagingtabellen/services;
-- echte Exact-achtige 2025 Loonaangifte;
-- 2026 gegevensspecificatie;
-- 2027 XSD;
-- officiële 2026 XSD toevoegen zodra beschikbaar voor formele 2026 XSD-validatie.
+CONTROL02 is op 2026-10-10 geannuleerd. Hervat Nmbrs vanuit de bestaande
+P0/P1-basis en de bijbehorende acceptatiedocumentatie. Laat CONTROL01 en de
+interne representatieve import intact.
 
 ## THEN — WVP01
 
@@ -135,7 +108,7 @@ Voorgesteld volgende productonderwerp, pas definitief maken na expliciete scopek
 - De bedoelde oorspronkelijke vier QA-medewerkers zijn inmiddels geverifieerd in **Planeten → Jupiter BV → Directie**: Jan, Frank, Piet en manager Lisa Test. Zij vervangen de eerdere foutieve aanname over Test Operations. Jan heeft een salaris-/roostergrens op 2026-10-01; Piet twee employments/IKV's; Frank einddatum 2026-10-01; Lisa heeft een auth-linked account maar geen bewezen Payroll-managerrechten. Eric Oproeper rapporteert ook aan Lisa maar mist een salarisrecord. Voer de gerichte cao-testreset uit op deze cohort met expliciete employment- en tijdvakselectie, waar nodig aangevuld met zuiver synthetic Lab-cases; zie CAO-BENCH02 §13.
 - CAO-BENCH02 aanvullende toepasselijkheid: CEO-scenario C1 met individuele directieregeling binnen dezelfde bedrijfseigen primaire regeling (**buiten de cao**, niet automatisch Metalektro HP); aparte geïsoleerde HP-eligibility fixture H1 voor Metalektro senior specialist, zonder derde volwaardige cao-run. Jupiter Directie/BOARD heeft 5 organisatorisch gekoppelde profielen, maar geen aantoonbaar CEO-functielabel; Codex benoemt gericht een **test-CEO** na inventarisatie zonder auth/DGA/KvK-writes. Officiële Metalektro HP sluit bestuurders/beleidsbepalers uit (Staatscourant 2026 nr. 22083).
 - afzonderlijke fiscale vervolgslices: pensioen, werkgeverspremies/VCR, Zvw, bijzondere beloning en overige 2026-situaties op basis van officiële bron- en compliancecases;
-- CONTROL02/Core IncomeRelationship-contract expliciet vastleggen vóór echte multi-IKV-integratie;
+- CONTROL02/Core IncomeRelationship-integratie en de bijbehorende multi-IKV-acceptatie zijn CANCELLED; herstart vereist een nieuw projectbesluit;
 - iteratieve clusters en gedeelde IKV-grondslagen blijven gereserveerde architectuurinvarianten totdat een afgesproken slice ze implementeert.
 
 Geen van deze onderwerpen is reeds geaccepteerd door PAYLAB03.

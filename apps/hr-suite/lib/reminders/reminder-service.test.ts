@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { reminderActionUrl, reminderDatabaseError, toEmployeeTargetReminderItem, toReminderItem } from './reminder-service'
+import { describe, expect, it, vi } from 'vitest'
+import { createPersonalReminder, reminderActionUrl, reminderDatabaseError, toEmployeeTargetReminderItem, toReminderItem, type PersonalReminderWriteDependencies } from './reminder-service'
 
 describe('reminderDatabaseError', () => {
   it.each([
@@ -15,6 +15,35 @@ describe('reminderDatabaseError', () => {
 
   it('lekt geen onbekende databasefout naar de client', () => {
     expect(reminderDatabaseError({ message: 'connection details' }).code).toBe('REMINDER_OPERATION_FAILED')
+  })
+})
+
+describe('createPersonalReminder', () => {
+  it('uses the authenticated user client and supports the canonical null-administration context', async () => {
+    const reminderId = '10000000-0000-4000-8000-000000000001'
+    const rpc = vi.fn().mockResolvedValue({ data: reminderId, error: null })
+    const supabase = { rpc } as unknown as PersonalReminderWriteDependencies['supabase']
+    const dependencies: PersonalReminderWriteDependencies = {
+      context: {
+        tenantId: '10000000-0000-4000-8000-000000000002',
+        administrationId: null,
+        userId: '10000000-0000-4000-8000-000000000003',
+      },
+      supabase,
+    }
+
+    await expect(createPersonalReminder({
+      title: 'POP bijwerken',
+      remindAt: '2026-10-12T08:00:00.000Z',
+    }, dependencies)).resolves.toBe(reminderId)
+
+    expect(rpc).toHaveBeenCalledWith('create_personal_reminder', {
+      requested_tenant_id: dependencies.context.tenantId,
+      requested_administration_id: null,
+      requested_title: 'POP bijwerken',
+      requested_description: '',
+      requested_remind_at: '2026-10-12T08:00:00.000Z',
+    })
   })
 })
 

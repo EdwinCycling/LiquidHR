@@ -63,14 +63,14 @@ describe('LoginForm local test harness', () => {
     mounted.unmount()
   })
 
-  it('posts only the fixed persona and exposes no test credential in the browser form', () => {
+  it('posts the fixed persona and provided return path without exposing credentials in the browser form', () => {
     const mounted = mount(true)
     const form = mounted.host.querySelector('form[action="/api/auth/test-login"]')
 
     expect(form).not.toBeNull()
-    expect(form?.querySelectorAll('input')).toHaveLength(1)
-    expect(form?.querySelector('input')?.name).toBe('persona')
-    expect(form?.querySelector('input')?.value).toBe('hr-admin')
+    expect(form?.querySelectorAll('input')).toHaveLength(2)
+    expect(form?.querySelector<HTMLInputElement>('input[name="persona"]')?.value).toBe('hr-admin')
+    expect(form?.querySelector<HTMLInputElement>('input[name="next"]')?.value).toBe('/dashboard/start')
     expect(form?.querySelector('input[name="password"]')).toBeNull()
     expect(form?.querySelector('input[name="email"]')).toBeNull()
     expect(form?.textContent).toContain(labels.testLoginAsHrAdmin)

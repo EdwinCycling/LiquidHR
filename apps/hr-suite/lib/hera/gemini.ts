@@ -200,15 +200,28 @@ export async function generateHeRaResponse(input: GenerateHeRaResponseInput): Pr
         },
         {
           name: 'draft_personal_reminder',
-          description: 'Bereid uitsluitend een persoonlijk reminderconcept voor; voer niets uit.',
+          description: 'Bereid een persoonlijke reminder voor ter controle in LiquidHR. Vraag om een exacte lokale tijd als die ontbreekt; gebruik Europe/Amsterdam en voer nooit zelf uit.',
           parameters: {
             type: 'OBJECT',
             properties: {
               title: { type: 'STRING' },
-              when: { type: 'STRING', description: 'Relatieve datum en lokale tijd exact uit de gebruikersvraag, bijvoorbeeld morgen om 09:00.' },
+              when: { type: 'STRING', description: 'Natuurlijke datum en exact lokaal tijdstip, bijvoorbeeld maandag om 09:00 of morgen om 09:00.' },
               description: { type: 'STRING' },
             },
             required: ['title', 'when'],
+          },
+        },
+        {
+          name: 'draft_leave_request',
+          description: 'Bereid een volledige verlofaanvraag voor ter controle in LiquidHR. Vraag eerst naar verloftype of periode als die ontbreken. Voer nooit zelf uit.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              when: { type: 'STRING', description: 'Een datum of periode in gewone taal, bijvoorbeeld volgende vrijdag.' },
+              leaveTypeName: { type: 'STRING', description: 'De door de gebruiker gekozen verlofsoort.' },
+              employmentId: { type: 'STRING', description: 'Alleen een eigen dienstverbandoptie die LiquidHR eerder heeft teruggegeven.' },
+            },
+            required: ['when', 'leaveTypeName'],
           },
         },
         {

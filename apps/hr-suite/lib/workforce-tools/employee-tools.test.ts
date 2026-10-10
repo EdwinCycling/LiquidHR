@@ -1,19 +1,39 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { listTalentGoals, listMyTalentEmployeeCapabilityRecords, listTalentCurrentRoleProfileWorkspace, listMyTalentGoalCheckIns } = vi.hoisted(() => ({
+const {
+  listTalentGoals, listMyTalentEmployeeCapabilityRecords, listTalentCurrentRoleProfileWorkspace,
+  listMyTalentGoalCheckIns, getLeaveBalanceReport, getMyNextApprovedLeave, listMyLeaveRequests,
+  listMyReminders,
+} = vi.hoisted(() => ({
   listTalentGoals: vi.fn(),
   listMyTalentEmployeeCapabilityRecords: vi.fn(),
   listTalentCurrentRoleProfileWorkspace: vi.fn(),
   listMyTalentGoalCheckIns: vi.fn(),
+  getLeaveBalanceReport: vi.fn(),
+  getMyNextApprovedLeave: vi.fn(),
+  listMyLeaveRequests: vi.fn(),
+  listMyReminders: vi.fn(),
 }))
 
 vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals }))
 vi.mock('@/lib/talent/employee-capability-service', () => ({ listMyTalentEmployeeCapabilityRecords }))
 vi.mock('@/lib/talent/role-explorer-service', () => ({ listTalentCurrentRoleProfileWorkspace }))
 vi.mock('@/lib/talent/check-in-service', () => ({ listMyTalentGoalCheckIns }))
+vi.mock('@/lib/leave/leave-service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/leave/leave-service')>()
+  return { ...actual, getLeaveBalanceReport }
+})
+vi.mock('@/lib/leave/employee-self-service', () => ({ getMyNextApprovedLeave, listMyLeaveRequests }))
+vi.mock('@/lib/reminders/reminder-service', () => ({ listMyReminders }))
 
+import type { AuthContext } from '@/lib/auth/permissions'
+import type { DelegatedWorkforceToolExecutionContext } from './contracts'
 import {
   EMPLOYEE_WORKFORCE_TOOLS,
+  employeeLeaveBalanceTool,
+  employeeLeaveRequestsTool,
+  employeeNextLeaveTool,
+  employeeRemindersTool,
   employeeCompetenciesTool,
   employeeDevelopmentGapsTool,
   employeeDevelopmentPlansTool,
@@ -42,6 +62,22 @@ describe('employee workforce tool definitions', () => {
       comparison: null,
     })
     listMyTalentGoalCheckIns.mockResolvedValue([])
+    getLeaveBalanceReport.mockResolvedValue({
+      report: {
+        asOfDate: '2026-10-09',
+        employmentId: '00000000-0000-4000-8000-000000000008',
+        leaveTypes: [{
+          name: 'Vakantie',
+          currentBalance: 96,
+          entitlementMode: 'ACCRUAL',
+          expirationBuckets: [{ expirationDate: '2027-01-01', remainingHours: 8, daysUntilExpiration: 84 }],
+        }],
+      },
+      sourceTruncated: false,
+    })
+    getMyNextApprovedLeave.mockResolvedValue({ asOfDate: '2026-10-09', nextLeave: null })
+    listMyLeaveRequests.mockResolvedValue({ asOfDate: '2026-10-09', requests: [], sourceTruncated: false })
+    listMyReminders.mockResolvedValue([])
   })
 
   it('registers only read-only, self-bound tools with strict scope-free inputs', () => {
@@ -52,19 +88,104 @@ describe('employee workforce tool definitions', () => {
       'employee.talent.competencies.read',
       'employee.talent.development-gaps.read',
       'employee.talent.goal-check-ins.read',
+      'employee.leave.balance.read',
+      'employee.leave.next.read',
+      'employee.leave.requests.read',
+      'employee.reminders.read',
     ])
 
     for (const tool of EMPLOYEE_WORKFORCE_TOOLS) {
       expect(tool.scope).toBe('SELF')
       expect(tool.operation).toBe('READ')
       expect(tool.audience).toEqual(['EMPLOYEE'])
-      expect(tool.module).toBe('TALENT')
+      expect(tool.module).toBe(tool.id.startsWith('employee.leave.') ? 'HERA' : tool.id === 'employee.reminders.read' ? 'REMINDERS' : 'TALENT')
       expect(tool.inputSchema.safeParse({ employeeId: 'attacker-selected' }).success).toBe(false)
       expect(tool.inputSchema.safeParse({ tenantId: 'attacker-selected' }).success).toBe(false)
+      expect(tool.inputSchema.safeParse({ hrGroupId: 'attacker-selected' }).success).toBe(false)
+      expect(tool.inputSchema.safeParse({ administrationId: 'attacker-selected' }).success).toBe(false)
       expect(tool.inputSchema.safeParse({ actor: 'attacker-selected' }).success).toBe(false)
     }
 
+    const balanceTool = EMPLOYEE_WORKFORCE_TOOLS.find((tool) => tool.id === 'employee.leave.balance.read')
+    expect(balanceTool?.inputSchema.safeParse({}).success).toBe(true)
+    expect(balanceTool?.inputSchema.safeParse({ employmentId: '00000000-0000-0000-0000-000000000001' }).success).toBe(true)
+    expect(balanceTool?.inputSchema.safeParse({ employmentId: 'not-a-uuid' }).success).toBe(false)
     expect(employeeGoalCheckInsTool.inputSchema.safeParse({ goalId, employeeId: 'attacker-selected' }).success).toBe(false)
+  })
+
+  it('uses the bearer RLS client and server-derived Employee context for all new ESS reads', async () => {
+    const authContext: AuthContext = {
+      tenantId: '10000000-0000-4000-8000-000000000001',
+      hrGroupId: '10000000-0000-4000-8000-000000000002',
+      administrationId: '10000000-0000-4000-8000-000000000003',
+      userId: '10000000-0000-4000-8000-000000000004',
+      employeeId: '10000000-0000-4000-8000-000000000005',
+      activeRoles: ['EMPLOYEE'],
+      permissions: ['self:leave:read', 'self:reminder:read'],
+    }
+    const bearerClient = {} as unknown as DelegatedWorkforceToolExecutionContext['rls']['client']
+    const execution = {
+      authContext,
+      rls: { kind: 'supabase-bearer', client: bearerClient, userId: authContext.userId, identity: { issuer: 'test', subject: authContext.userId } },
+    } as unknown as DelegatedWorkforceToolExecutionContext
+
+    await expect(employeeLeaveBalanceTool.execute({}, execution)).resolves.toMatchObject({
+      selectionRequired: false,
+      asOf: '2026-10-09',
+      balances: [{ leaveType: 'Vakantie', availableHours: 96, unit: 'hours', expiring: [{ expiresOn: '2027-01-01', remainingHours: 8 }] }],
+    })
+    await expect(employeeNextLeaveTool.execute({}, execution)).resolves.toMatchObject({ asOf: '2026-10-09', nextLeave: null })
+    await expect(employeeLeaveRequestsTool.execute({}, execution)).resolves.toMatchObject({ asOf: '2026-10-09', requests: [] })
+    await expect(employeeRemindersTool.execute({}, execution)).resolves.toMatchObject({ timeZone: 'Europe/Amsterdam', reminders: [] })
+
+    expect(getLeaveBalanceReport).toHaveBeenCalledWith({}, { context: authContext, supabase: bearerClient })
+    expect(getMyNextApprovedLeave).toHaveBeenCalledWith({ context: authContext, supabase: bearerClient })
+    expect(listMyLeaveRequests).toHaveBeenCalledWith({ context: authContext, supabase: bearerClient })
+    expect(listMyReminders).toHaveBeenCalledWith(100, { context: authContext, supabase: bearerClient })
+  })
+
+  it('keeps only own pending personal reminders and drops HR, completed, and cancelled records', async () => {
+    const authContext: AuthContext = {
+      tenantId: '10000000-0000-4000-8000-000000000001',
+      hrGroupId: '10000000-0000-4000-8000-000000000002',
+      administrationId: null,
+      userId: '10000000-0000-4000-8000-000000000004',
+      employeeId: '10000000-0000-4000-8000-000000000005',
+      activeRoles: ['EMPLOYEE'],
+      permissions: ['self:reminder:read'],
+    }
+    const bearerClient = {} as unknown as DelegatedWorkforceToolExecutionContext['rls']['client']
+    const execution = {
+      authContext,
+      rls: { kind: 'supabase-bearer', client: bearerClient, userId: authContext.userId, identity: { issuer: 'test', subject: authContext.userId } },
+    } as unknown as DelegatedWorkforceToolExecutionContext
+    const base = {
+      recipientId: 'recipient',
+      employeeId: authContext.employeeId,
+      employeeName: null,
+      reminderId: 'reminder',
+      title: 'POP bijwerken',
+      description: null,
+      remindAt: '2026-10-12T08:00:00.000Z',
+      originalRemindAt: '2026-10-12T08:00:00.000Z',
+      targetType: 'SELF',
+      createdByUserId: authContext.userId,
+    } as const
+    listMyReminders.mockResolvedValueOnce([
+      { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
+      { ...base, type: 'HR', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
+      { ...base, type: 'PERSONAL', recipientStatus: 'COMPLETED', reminderStatus: 'PUBLISHED' },
+      { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'CANCELLED' },
+    ])
+
+    const result = await employeeRemindersTool.execute({}, execution)
+    expect(result.reminders).toHaveLength(1)
+    expect(result.reminders[0]).toMatchObject({
+      title: 'POP bijwerken',
+      status: 'PENDING',
+      isOverdue: false,
+    })
+    expect(JSON.stringify(result)).not.toContain('createdByUserId')
   })
 
   it('reads own development plans through the self goal service and strips descriptions and scope identifiers', async () => {

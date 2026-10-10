@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
 import { randomUUID } from 'node:crypto'
 import { Sidebar } from '@/components/layout/sidebar'
-import { AuthenticationError, getRequestAuthorizationContext, getSelfPermissions } from '@/lib/auth/permissions'
+import { AuthenticationError, AuthorizationError, getRequestAuthorizationContext, getSelfPermissions, requirePermission } from '@/lib/auth/permissions'
 import { readEmployeeEssAccess } from '@/lib/auth/employee-ess-access'
 import { isFullPortalAllowed } from '@/lib/focus/access-state'
 import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
 import { ANALYSIS_PERMISSION } from '@/lib/insights/analysis-contract'
 import { ContextAccessError, ContextSelectionRequiredError } from '@/lib/context/administration-context'
-import { getHrGroupSwitcherMode } from '@/lib/context/administration-context'
+import { getAdministrationSwitcherMode, getHrGroupSwitcherMode } from '@/lib/context/administration-context'
 import { getTranslator } from '@/lib/i18n/server'
 import { APP_VERSION } from '@/lib/app-version'
 import { getRequestUserPreferences } from '@/lib/preferences/server'
@@ -69,6 +69,15 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     canReadPayrollLab = Boolean(await resolvePayrollLabAdministration(authContext))
   } catch (error) {
     if (!(error instanceof PayrollLabUnavailableError)) throw error
+  }
+  let canReadMySalary = false
+  if (authContext.employeeId) {
+    try {
+      const salaryContext = await requirePermission('salary:read', authContext.employeeId)
+      canReadMySalary = salaryContext.employeeId === authContext.employeeId
+    } catch (error) {
+      if (!(error instanceof AuthorizationError)) throw error
+    }
   }
   const canShowSetupAssistant = canUseSetupAssistant(authContext)
   const researchAccess = resolveResearchAccess(authContext)
@@ -149,6 +158,9 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         activeHrGroupId={context.activeHrGroup.id}
         hrGroups={context.hrGroups}
         hrGroupSwitcherMode={getHrGroupSwitcherMode(context)}
+        activeAdministrationId={context.activeAdministration?.id ?? null}
+        administrations={context.administrationsInActiveHrGroup}
+        administrationSwitcherMode={getAdministrationSwitcherMode(context)}
         canReadEmployees={canReadEmployees}
         canReadStartPage={canReadStartPage}
         canReadWorkforce={canReadWorkforce}
@@ -163,6 +175,9 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadJourneys={authContext.permissions.includes('journey:read') && enabledModules.includes('JOURNEYS')}
         canReadDocumentStudio={canReadDocumentStudio}
         canReadPayrollLab={canReadPayrollLab}
+        canReadMySalary={canReadMySalary}
+        showSetupAssistant={Boolean(setupAssistant?.isEnabled)}
+        setupAssistantOpenLabel={setupAssistantLabels.edgeOpen}
         labels={{
           appName: common('appName'),
           startPage: navigation('startPage'),
@@ -180,12 +195,17 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           journeys: navigation('journeys'),
           documentStudio: navigation('documentStudio'),
           payrollLab: navigation('payrollLab'),
+          payroll: navigation('payroll'),
+          mySalary: navigation('mySalary'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),
           collapse: navigation('collapse'),
           expand: navigation('expand'),
           hrGroup: navigation('hrGroup'),
+          administration: navigation('administration'),
+          switchingAdministration: navigation('switchingAdministration'),
+          switchAdministrationFailed: navigation('switchAdministrationFailed'),
           switchingHrGroup: navigation('switchingHrGroup'),
           switchHrGroupFailed: navigation('switchHrGroupFailed'),
           timeHub: navigation('timeHub'),
@@ -194,6 +214,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           sectionHrProcesses: navigation('sectionHrProcesses'),
           sectionSteering: navigation('sectionSteering'),
           sectionPayroll: navigation('sectionPayroll'),
+          sectionSelfService: navigation('sectionSelfService'),
+          sectionPayrollLab: navigation('sectionPayrollLab'),
           sectionManagement: navigation('sectionManagement'),
           signOut: auth('signOut'),
         }}

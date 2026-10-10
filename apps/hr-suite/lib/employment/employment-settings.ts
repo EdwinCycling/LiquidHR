@@ -4,6 +4,7 @@ import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/a
 import { listSalaryStructureCatalog } from '@/lib/salary-structures/service'
 import { createClient } from '@/lib/supabase/server'
 import { buildEmploymentRegulationTimelines } from './employment-regulation-model'
+import { buildEmploymentSalaryStructureModel } from './employment-salary-structure-model'
 
 export type EmploymentCatalog = 'LABOR_CONDITION_SET' | 'FLEX_PHASE' | 'SALARY_FREQUENCY' | 'COST_CARRIER' | 'COST_CENTER'
 
@@ -80,28 +81,16 @@ export async function getEmploymentSettings() {
   if ([settings, labor, flex, frequencies, carriers, centers].some((result) => result.error) || !settings.data) {
     throw new EmploymentSettingsError('EMPLOYMENT_SETTINGS_READ_FAILED', 500)
   }
-  const enabledSalaryStructureIds = new Set(settings.data.salary_structure_ids ?? [])
-  const administrationSalaryStructureCatalog = salaryStructureCatalog
-    ? {
-      ...salaryStructureCatalog,
-      structures: salaryStructureCatalog.structures.filter((structure) => enabledSalaryStructureIds.has(structure.id)),
-      revisions: salaryStructureCatalog.revisions.filter((revision) => enabledSalaryStructureIds.has(revision.salary_structure_id)),
-      scales: salaryStructureCatalog.scales.filter((scale) => enabledSalaryStructureIds.has(scale.salary_structure_id)),
-      scaleValues: salaryStructureCatalog.scaleValues.filter((value) => salaryStructureCatalog.revisions.some((revision) => revision.id === value.salary_structure_revision_id && enabledSalaryStructureIds.has(revision.salary_structure_id))),
-      steps: salaryStructureCatalog.steps.filter((step) => salaryStructureCatalog.revisions.some((revision) => revision.id === step.salary_structure_revision_id && enabledSalaryStructureIds.has(revision.salary_structure_id))),
-      bands: salaryStructureCatalog.bands.filter((band) => enabledSalaryStructureIds.has(band.salary_structure_id)),
-      bandValues: salaryStructureCatalog.bandValues.filter((value) => salaryStructureCatalog.revisions.some((revision) => revision.id === value.salary_structure_revision_id && enabledSalaryStructureIds.has(revision.salary_structure_id))),
-      laborConditionRelations: salaryStructureCatalog.laborConditionRelations.filter((relation) => enabledSalaryStructureIds.has(relation.salary_structure_id)),
-    }
-    : null
+  const salaryStructureModel = buildEmploymentSalaryStructureModel(salaryStructureCatalog, settings.data.salary_structure_ids ?? [])
   return {
     defaultCountryCode: settings.data.default_employment_country_code,
     laborConditionSets: labor.data ?? [],
     laborConditionTimelines: buildEmploymentRegulationTimelines(labor.data ?? []),
-    salaryStructureCatalog: administrationSalaryStructureCatalog,
+    salaryStructureCatalog: salaryStructureModel.administrationCatalog,
     salaryApplicationSettings: {
       routes: settings.data.salary_routes,
       structureIds: settings.data.salary_structure_ids,
+      structures: salaryStructureModel.applicationOptions,
       canWrite: canWriteSalaryApplication,
     },
     flexPhases: flex.data ?? [],

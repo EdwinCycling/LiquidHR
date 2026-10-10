@@ -1,14 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { AuthenticationError, AuthorizationError } from '@/lib/auth/permissions'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { ContextAccessError } from '@/lib/context/administration-context'
 import { ContextAuthenticationError } from '@/lib/context/server-context'
 import { redirect } from 'next/navigation'
-import { runSyntheticPayrollAction } from './actions'
+import { runCaoBench02PayrollAction, runSyntheticPayrollAction } from './actions'
 
-const { requirePermission, resolvePayrollLabAdministration, runSyntheticPayroll } = vi.hoisted(() => ({
+const { requirePermission, resolvePayrollLabAdministration, runSyntheticPayroll, runCaoBench02Payroll } = vi.hoisted(() => ({
   requirePermission: vi.fn(),
   resolvePayrollLabAdministration: vi.fn(),
   runSyntheticPayroll: vi.fn(),
+  runCaoBench02Payroll: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -30,6 +31,11 @@ vi.mock('@/lib/payroll/synthetic-calculation-service', () => ({
   SyntheticPayrollServiceError: class SyntheticPayrollServiceError extends Error {
     constructor(readonly code: string, readonly runId: string | null = null) { super(code) }
   },
+}))
+
+vi.mock('@/lib/payroll/cao-bench02-calculation-service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/payroll/cao-bench02-calculation-service')>()),
+  runCaoBench02Payroll,
 }))
 
 const hrAdminContext = {
@@ -134,5 +140,49 @@ describe('run synthetic Payroll Lab server action', () => {
 
     await expect(runSyntheticPayrollAction()).rejects.toThrow('redirect:/payroll-lab?error=PAYROLL_CALCULATION_FAILED&run=40000000-0000-4000-8000-000000000001')
     expect(redirect).toHaveBeenCalledWith('/payroll-lab?error=PAYROLL_CALCULATION_FAILED&run=40000000-0000-4000-8000-000000000001')
+  })
+})
+
+describe('run CAO-BENCH02 Payroll Lab server action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubEnv('PAYROLL_LAB_ENABLED', 'true')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  function form(caseKey: string): FormData {
+    const value = new FormData()
+    value.set('caseKey', caseKey)
+    return value
+  }
+
+  it('rejects caller supplied cases outside the fixed benchmark allowlist', async () => {
+    await expect(runCaoBench02PayrollAction(form('CAO-BENCH02-CEO-OVERRIDE')))
+      .rejects.toThrow('redirect:/payroll-lab/calculations?error=PAYROLL_INPUT_INVALID')
+    expect(requirePermission).not.toHaveBeenCalled()
+    expect(runCaoBench02Payroll).not.toHaveBeenCalled()
+  })
+
+  it('requires salary:write and the active Payroll administration before running a fixed case', async () => {
+    requirePermission.mockResolvedValue(hrAdminContext)
+    resolvePayrollLabAdministration.mockResolvedValue({
+      id: '30000000-0000-4000-8000-000000000004',
+      displayName: 'Synthetic Payroll Lab',
+      capabilityEnabled: true,
+      status: 'ACTIVE',
+    })
+    runCaoBench02Payroll.mockResolvedValue({ runId: '40000000-0000-4000-8000-000000000001' })
+
+    await expect(runCaoBench02PayrollAction(form('CAO-BENCH02-K1')))
+      .rejects.toThrow('redirect:/payroll-lab/calculations?case=CAO-BENCH02-K1&run=40000000-0000-4000-8000-000000000001')
+    expect(requirePermission).toHaveBeenCalledWith('salary:write')
+    expect(runCaoBench02Payroll).toHaveBeenCalledWith({
+      tenantId: hrAdminContext.tenantId,
+      hrGroupId: hrAdminContext.hrGroupId,
+      administrationId: hrAdminContext.administrationId,
+    }, '30000000-0000-4000-8000-000000000004', hrAdminContext.userId, 'CAO-BENCH02-K1')
   })
 })

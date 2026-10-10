@@ -15,7 +15,7 @@ const commonMutation = {
 const laborConditionMutation = z.object({
   timeline: z.literal('LABOR_CONDITIONS'),
   ...commonMutation,
-  payload: z.object({ conditionGroup: z.string().trim().min(1).max(160) }).strict(),
+  payload: z.object({ laborConditionSetId: databaseUuid }).strict(),
 }).strict()
 
 const scheduleMutation = z.object({
@@ -103,7 +103,7 @@ export const timelineMutationSchema = z.discriminatedUnion('timeline', [
 ])
 
 const combinedTimelineMutationItemSchema = z.discriminatedUnion('timeline', [
-  z.object({ timeline: z.literal('LABOR_CONDITIONS'), payload: z.object({ conditionGroup: z.string().trim().min(1).max(160) }).strict() }).strict(),
+  z.object({ timeline: z.literal('LABOR_CONDITIONS'), payload: z.object({ laborConditionSetId: databaseUuid }).strict() }).strict(),
   z.object({ timeline: z.literal('SCHEDULE'), payload: z.object({
     scheduleType: z.enum(['HOURS_PER_DAY', 'HOURS_AND_AVG_DAYS', 'HOURS_AND_SPECIFIC_DAYS', 'TIMES_PER_DAY']),
     startWeek: z.number().int().min(1).max(53).default(1), averageDaysPerWeek: z.number().min(0).max(7), averageHoursPerWeek: z.number().min(0).max(168), partTimeFactor: z.number().min(0).max(1), timeForTimeAccrual: z.number().min(0).default(0),

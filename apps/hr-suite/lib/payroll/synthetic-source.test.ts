@@ -44,7 +44,7 @@ describe('synthetic Payroll source snapshot', () => {
     expect(first.periodReference).toEqual(period)
     expect(entries[0].parttimeAmount).toBe('4000.00')
     expect(first.sourceGaps).toEqual([
-      { field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'CONTROL02_CONTRACT_PENDING' },
+      { field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED' },
       { field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
     ])
   })

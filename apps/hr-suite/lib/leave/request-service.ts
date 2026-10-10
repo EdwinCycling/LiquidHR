@@ -1,5 +1,5 @@
 import type { Database } from '@scope/db'
-import { requirePermission, requireAuthContext } from '@/lib/auth/permissions'
+import { requirePermission, requireAuthContext, requirePermissionInContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 import { getEffectiveEmploymentSchedule, type EmploymentScheduleRow } from '@/lib/employment/schedule-resolver'
@@ -164,6 +164,7 @@ export async function getLeaveRequestPreview(
 ): Promise<LeaveRequestPreview> {
   const supabase = dependencies?.supabase ?? await createClient()
   const context = dependencies?.context ?? await requirePermission(permission, input.employeeId)
+  if (dependencies) await requirePermissionInContext(supabase, context, permission, input.employeeId)
   const selection = await loadEmployment(supabase, context, input)
   const employment = selection.employment
   const endDate = input.endDate ?? input.startDate

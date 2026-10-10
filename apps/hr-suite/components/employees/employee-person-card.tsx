@@ -377,7 +377,7 @@ function PersonalPanel({ employee, initialEdit, capabilities, labels, roleAssign
         <PersonalInfoSection title={labels.privateContact} items={[{ label: labels.privateEmail, value: employee.privateEmail, isEmail: true }, { label: labels.privatePhone, value: employee.privatePhone }, { label: labels.privateMobile, value: employee.privateMobile }]} />
         <PersonalInfoSection title={labels.workContact} items={[{ label: labels.workEmail, value: employee.workEmail, isEmail: true }, { label: labels.workPhone, value: employee.workPhone }, { label: labels.workPhoneExtension, value: employee.workPhoneExt }, { label: labels.workMobile, value: employee.workMobile }]} />
       </div>
-      {capabilities.canReadBsn && <BsnReveal employeeId={employee.id} labels={labels} />}
+      {(capabilities.canReadBsn || capabilities.canWriteBsn) && <BsnManager employeeId={employee.id} canReadBsn={capabilities.canReadBsn} canWriteBsn={capabilities.canWriteBsn} labels={labels} />}
     </div>
   )
 }
@@ -396,27 +396,68 @@ function genderLabel(value: NonNullable<EmployeeDetailViewModel['employee']['gen
   return value === 'MALE' ? labels.genderMale : value === 'FEMALE' ? labels.genderFemale : value === 'OTHER' ? labels.genderOther : labels.genderUndisclosed
 }
 
-function BsnReveal({ employeeId, labels }: { employeeId: string; labels: EmployeePersonCardLabels }) {
-  const [state, setState] = useState<'hidden' | 'loading' | 'visible' | 'failed'>('hidden')
+function BsnManager({ employeeId, canReadBsn, canWriteBsn, labels }: { employeeId: string; canReadBsn: boolean; canWriteBsn: boolean; labels: EmployeePersonCardLabels }) {
+  const router = useRouter()
+  const [readState, setReadState] = useState<'hidden' | 'loading' | 'visible' | 'failed'>('hidden')
   const [bsn, setBsn] = useState<string | null>(null)
+  const [writeState, setWriteState] = useState<MutationState>('idle')
+  const [editing, setEditing] = useState(false)
+
   async function reveal(): Promise<void> {
-    setState('loading')
+    setReadState('loading')
     try {
       const response = await fetch(`/api/employees/${employeeId}/bsn`, { method: 'POST' })
-      if (!response.ok) { setState('failed'); return }
+      if (!response.ok) { setReadState('failed'); return }
       const payload: { data: { bsn: string | null } } = await response.json()
-      setBsn(payload.data.bsn); setState('visible')
+      setBsn(payload.data.bsn); setReadState('visible')
     } catch {
-      setState('failed')
+      setReadState('failed')
     }
   }
+
+  async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    const succeeded = await runJsonMutation(setWriteState, `/api/employees/${employeeId}/bsn`, 'PATCH', { bsn: value(formData, 'bsn') })
+    if (!succeeded) return
+    setEditing(false)
+    setBsn(null)
+    setReadState('hidden')
+    router.refresh()
+  }
+
+  function startEditing(): void {
+    setBsn(null)
+    setReadState('hidden')
+    setWriteState('idle')
+    setEditing(true)
+  }
+
   return (
     <section className="mt-8 border-t border-border-subtle pt-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3"><ShieldCheck aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h3 className="font-semibold">{labels.bsnTitle}</h3><p className="mt-1 text-sm text-muted-foreground">{labels.bsnAuditHelp}</p></div></div>
-        {state === 'visible' ? <output className="rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2 font-semibold tabular-nums">{bsn ?? labels.bsnNotRecorded}</output> : <Button type="button" onClick={reveal} loading={state === 'loading'} variant="secondary" className="shrink-0"><Eye aria-hidden="true" className="h-4 w-4" />{state === 'loading' ? labels.revealingBsn : labels.revealBsn}</Button>}
+        <div className="flex flex-wrap items-center gap-2">
+          {canReadBsn && (readState === 'visible'
+            ? <output className="rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2 font-semibold tabular-nums">{bsn ?? labels.bsnNotRecorded}</output>
+            : <Button type="button" onClick={reveal} loading={readState === 'loading'} variant="secondary" className="shrink-0"><Eye aria-hidden="true" className="h-4 w-4" />{readState === 'loading' ? labels.revealingBsn : labels.revealBsn}</Button>)}
+          {canWriteBsn && !editing && <Button type="button" onClick={startEditing} variant="secondary" className="shrink-0"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</Button>}
+        </div>
       </div>
-      {state === 'failed' && <InlineState kind="failed">{labels.genericError}</InlineState>}
+      {readState === 'failed' && <InlineState kind="failed">{labels.genericError}</InlineState>}
+      {editing && <form className="mt-5 grid gap-4 sm:max-w-md" onSubmit={(event) => void save(event)}>
+        <label className="grid gap-1.5 text-sm font-medium" htmlFor={`employee-bsn-${employeeId}`}>
+          <span>{labels.bsnTitle}</span>
+          <TextInput id={`employee-bsn-${employeeId}`} name="bsn" inputMode="numeric" autoComplete="off" maxLength={9} pattern="[0-9]{9}" required />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" loading={writeState === 'saving'}>{writeState === 'saving' ? labels.saving : labels.save}</Button>
+          <Button type="button" variant="secondary" disabled={writeState === 'saving'} onClick={() => setEditing(false)}>{labels.cancel}</Button>
+        </div>
+      </form>}
+      {writeState === 'failed' && <div className="mt-3"><InlineState kind="failed">{labels.genericError}</InlineState></div>}
+      {writeState === 'saved' && <div className="mt-3"><InlineState kind="saved">{labels.saved}</InlineState></div>}
     </section>
   )
 }
@@ -626,13 +667,13 @@ function BankAccountsPanel({ employeeId, accounts, canManage, labels }: { employ
     {canManage && <div className="mt-6"><Button onClick={openCreate} type="button" variant="secondary"><Plus aria-hidden="true" />{labels.addBank}</Button></div>}
   </section>
   <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.close} description={drawerAccount ? labels.editResource : labels.addBank} dirty={dirty} dirtyProtection={{ description: labels.discardDescription, discardLabel: labels.discardConfirm, keepEditingLabel: labels.discardCancel, title: labels.discardTitle }} onDiscard={closeDrawer} onOpenChange={(open) => { if (!open) closeDrawer() }} onSubmit={(event) => { event.preventDefault(); void accountSubmit?.(event) }} open={drawerOpen} saveLabel={drawerAccount ? labels.editResource : labels.saveBank} saving={saving} title={drawerAccount ? labels.editResource : labels.addBank}>
-    <div className="grid min-w-0 gap-4" onInput={() => setDirty(true)}>{failed && <InlineState kind="failed">{labels.genericError}</InlineState>}<BankAccountForm account={drawerAccount ?? undefined} employeeId={employeeId} labels={labels} onSaved={closeDrawer} onStateChange={(nextState) => { setSaving(nextState === 'saving'); setFailed(nextState === 'failed') }} onSubmitReady={registerAccountSubmit} /></div>
+    <div className="grid min-w-0 gap-4" onInput={() => setDirty(true)}>{failed && <InlineState kind="failed">{labels.genericError}</InlineState>}<BankAccountForm account={drawerAccount ?? undefined} employeeId={employeeId} isFirstAccount={accounts.length === 0} labels={labels} onSaved={closeDrawer} onStateChange={(nextState) => { setSaving(nextState === 'saving'); setFailed(nextState === 'failed') }} onSubmitReady={registerAccountSubmit} /></div>
   </FormDrawer>
   <ConfirmDialog cancelLabel={labels.discardCancel} confirmLabel={labels.deleteResource} description={labels.confirmDelete} destructive onConfirm={remove} onOpenChange={(open) => { if (!open && !deleting) setDeleteCandidate(null) }} open={deleteCandidate !== null} pending={deleting} title={labels.deleteResource} />
   </>
 }
 
-function BankAccountForm({ employeeId, account, labels, onSaved, onStateChange, onSubmitReady }: { employeeId: string; account?: EmployeeBankAccount; labels: EmployeePersonCardLabels; onSaved?: () => void; onStateChange?: (state: MutationState) => void; onSubmitReady?: (handler: ResourceFormSubmit) => void }) {
+function BankAccountForm({ employeeId, account, isFirstAccount, labels, onSaved, onStateChange, onSubmitReady }: { employeeId: string; account?: EmployeeBankAccount; isFirstAccount: boolean; labels: EmployeePersonCardLabels; onSaved?: () => void; onStateChange?: (state: MutationState) => void; onSubmitReady?: (handler: ResourceFormSubmit) => void }) {
   const router = useRouter(); const [, setState] = useState<MutationState>('idle'); const submitRef = useRef<ResourceFormSubmit | null>(null)
   const submit = useCallback(async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement)
@@ -644,7 +685,7 @@ function BankAccountForm({ employeeId, account, labels, onSaved, onStateChange, 
   }, [account, employeeId, onSaved, onStateChange, router])
   useEffect(() => { submitRef.current = submit }, [submit])
   useEffect(() => { onSubmitReady?.((event) => submitRef.current?.(event) ?? Promise.resolve()) }, [onSubmitReady])
-  return <div className="grid min-w-0 gap-3 sm:grid-cols-2"><Field label={labels.iban}><TextInput name="iban" required={!account} autoComplete="off" placeholder={account?.maskedIban} className="uppercase" />{account && <span className="text-xs font-normal text-muted-foreground">{labels.ibanEditHelp}</span>}</Field><Field label={labels.bic}><TextInput name="bic" maxLength={11} defaultValue={account?.bic ?? ''} className="uppercase" /></Field><Field label={labels.accountHolder}><TextInput name="accountHolder" required defaultValue={account?.accountHolder ?? ''} /></Field><Field label={labels.description}><TextInput name="description" defaultValue={account?.description ?? ''} /></Field><label className="flex items-center gap-2 text-sm font-medium sm:col-span-2"><input name="isPrimary" type="checkbox" defaultChecked={account?.isPrimary} className="h-4 w-4 accent-primary" />{labels.makePrimary}</label></div>
+  return <div className="grid min-w-0 gap-3 sm:grid-cols-2"><Field label={labels.iban}><TextInput name="iban" required={!account} autoComplete="off" placeholder={account?.maskedIban} className="uppercase" />{account && <span className="text-xs font-normal text-muted-foreground">{labels.ibanEditHelp}</span>}</Field><Field label={labels.bic}><TextInput name="bic" maxLength={11} defaultValue={account?.bic ?? ''} className="uppercase" /></Field><Field label={labels.accountHolder}><TextInput name="accountHolder" required defaultValue={account?.accountHolder ?? ''} /></Field><Field label={labels.description}><TextInput name="description" defaultValue={account?.description ?? ''} /></Field><label className="flex items-center gap-2 text-sm font-medium sm:col-span-2"><input name="isPrimary" type="checkbox" defaultChecked={account?.isPrimary ?? isFirstAccount} className="h-4 w-4 accent-primary" />{labels.makePrimary}</label></div>
 }
 
 function RelationsPanel({ employeeId, relations, relationTypes, locale, canManage, labels }: { employeeId: string; relations: NonNullable<EmployeeDetailViewModel['relations']>; relationTypes: EmployeeRelationTypeOption[]; locale: string; canManage: boolean; labels: EmployeePersonCardLabels }) {

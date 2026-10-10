@@ -1,7 +1,7 @@
 # AA-ROAD — Long-Term Product Roadmap
 
 Status: **STRATEGISCH / LIVING**
-Bijgewerkt: 2026-09-29
+Bijgewerkt: 2026-10-10
 
 De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
 
@@ -38,16 +38,18 @@ De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvol
 - employee/team sessions/tools;
 - voice foundation.
 
-## PLANNED
+## CANCELLED
 
-### Loonaangifte onboarding/import
-CONTROL02 en vervolgstappen:
-- jaaradapters;
-- readiness;
-- matching/upsert;
-- IKV/dienstverbandimport;
-- gecontroleerde mapping en drafts;
-- officiële schemaondersteuning per aangiftejaar.
+### Loonaangifte onboarding/import — CONTROL02
+
+**Status: CANCELLED — 2026-10-10.** De officiële Loonaangifte-XML-import,
+CONTROL02-finalisatie en bijbehorende E2E-acceptatie zijn beëindigd. Een
+eventuele herstart vereist een nieuw projectbesluit. De bestaande interne
+representatieve import en CONTROL01 blijven afzonderlijke functionaliteit.
+TEST-records en CONTROL02-databaseobjecten blijven behouden totdat een exact
+decommissionplan afzonderlijk is goedgekeurd.
+
+## PLANNED
 
 ### WvP / Verzuim
 - volledige WvP case workspace;

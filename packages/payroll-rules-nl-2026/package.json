@@ -13,6 +13,7 @@
     "@liquid-hr/payroll-engine": "0.0.0"
   },
   "scripts": {
+    "test": "vitest run --config vitest.config.ts",
     "type-check": "tsc --noEmit --project tsconfig.json"
   }
 }

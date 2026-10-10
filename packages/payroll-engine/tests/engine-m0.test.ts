@@ -133,6 +133,40 @@ describe('PAYLAB M0 payroll engine', () => {
     expect(first.trace).toEqual(second.trace)
   })
 
+  it('pins typed Payroll-owned source values and context hashes into the calculation input hash', () => {
+    const sourceComponentDefinition = sourceSalaryComponent()
+    const packageDefinition = simplePackage([sourceComponentDefinition])
+    const base = buildCalculationInputs(sourceSnapshot(), packageDefinition)
+    const withPayrollValues = buildCalculationInputs(sourceSnapshot(), packageDefinition, {
+      sourceValueOverrides: {
+        'gross_salary.Amount': { valueType: 'MONEY', value: '2630.22' },
+      },
+      calculationContextHash: 'b'.repeat(64),
+    })
+    const withChangedContext = buildCalculationInputs(sourceSnapshot(), packageDefinition, {
+      sourceValueOverrides: {
+        'gross_salary.Amount': { valueType: 'MONEY', value: '2630.22' },
+      },
+      calculationContextHash: 'c'.repeat(64),
+    })
+
+    expect(withPayrollValues.resolvedSourceValues['gross_salary.Amount']).toEqual({ valueType: 'MONEY', value: '2630.22' })
+    expect(withPayrollValues.sourceValueOverrides).toEqual({
+      'gross_salary.Amount': { valueType: 'MONEY', value: '2630.22' },
+    })
+    expect(withPayrollValues.inputHash).not.toBe(base.inputHash)
+    expect(withPayrollValues.inputHash).not.toBe(withChangedContext.inputHash)
+    expect(() => buildCalculationInputs(sourceSnapshot(), packageDefinition, {
+      sourceValueOverrides: { 'gross_salary.Amount': { valueType: 'STRING', value: '2630.22' } },
+    })).toThrow(/value type/i)
+    expect(() => buildCalculationInputs(sourceSnapshot(), packageDefinition, {
+      sourceValueOverrides: { 'unknown.Amount': { valueType: 'MONEY', value: '1.00' } },
+    })).toThrow(/active source component/i)
+    expect(() => buildCalculationInputs(sourceSnapshot(), packageDefinition, {
+      calculationContextHash: 'invalid',
+    })).toThrow(/SHA-256 hash/i)
+  })
+
   it('does not include generated snapshot identity or capture time in result hashes', () => {
     const originalSnapshot = sourceSnapshot()
     const replaySnapshot = {

@@ -678,8 +678,10 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
         await post(`/api/employments/${employmentId}/organization`, { contractId: selectedContract.id, effectiveOn, departmentId: organization.departmentId, jobId: organization.jobId, placementId: existingPlacement?.id ?? null })
         await post(`/api/employments/${employmentId}/timeline/COST_ALLOCATION`, { ...common, payload: { allocations: allocations.map((allocation) => ({ costCenterId: allocation.costCenterId, costCarrierId: allocation.costCarrierId, percentage: asNumber(allocation.percentage) })) } })
       } else if (mode === 'LABOR_CONDITIONS') {
-        const conditionGroup = data.options.laborConditionSets.find((item) => item.id === laborConditionSetId)?.name ?? selectedContract.laborConditionName
-        await post(`/api/employments/${employmentId}/timeline/LABOR_CONDITIONS`, { ...common, payload: { conditionGroup } })
+        await post(`/api/employments/${employmentId}/timeline/LABOR_CONDITIONS`, {
+          ...common,
+          payload: { laborConditionSetId },
+        })
       } else if (mode === 'CONTRACT') {
         await request(`/api/employments/${employmentId}/contracts`, 'PATCH', {
           contractId: selectedContract.id,

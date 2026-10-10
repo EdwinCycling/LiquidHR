@@ -44,7 +44,8 @@
     "recharts": "^3.9.2",
     "sharp": "0.35.4",
     "zod": "^4.4.3",
-    "@liquid-hr/payroll-rules-nl-2026": "0.0.0"
+    "@liquid-hr/payroll-rules-nl-2026": "0.0.0",
+    "@liquid-hr/payroll-rules-cao-bench02": "0.0.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",

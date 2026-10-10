@@ -73,7 +73,7 @@ export function createSyntheticPayrollSnapshot(
         validUntil: null,
       }],
     },
-    incomeRelationship: { status: 'UNSUPPORTED', reasonCode: 'CONTROL02_CONTRACT_PENDING' },
+    incomeRelationship: { status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED' },
     fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
   }
   const sourceVersionVector = {
@@ -82,7 +82,7 @@ export function createSyntheticPayrollSnapshot(
     [`employment_schedule:${SYNTHETIC_PAYROLL_SCHEDULE_ID}`]: 'PAYLAB-GC-NL-001-v1',
   }
   const sourceGaps = [
-    { field: 'incomeRelationship', status: 'UNSUPPORTED' as const, reasonCode: 'CONTROL02_CONTRACT_PENDING' },
+    { field: 'incomeRelationship', status: 'UNSUPPORTED' as const, reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED' },
     { field: 'taxProfile', status: 'SOURCE_GAP' as const, reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
   ]
   const hashInput = {

@@ -1,0 +1,30 @@
+# ONE VERSION TEST convergence — gebundelde acceptatie — 2026-10-10
+
+**Status: LOCAL BUILD EN BROWSERCONTROLE GESLAAGD; gedeelde TEST-release pending.** Appversie `1.20261010.1` is eenmaal verhoogd. Er is nog niets gepusht, gemerged of naar Vercel gedeployed. Geen payrollrun of databasefixture gewijzigd.
+
+## Kandidaat en scope
+
+- Gebruik uitsluitend `work/one-version-test-20261010`, gebaseerd op `main` / `origin/main` `783999044de83c902e63fefb3587fdbbf99d4de3`.
+- De kandidaat bevat CONTROL02 PR #12 (`0976c21981b36526ccd6db1342a953fd32990eb1`), APIAI-08 PR #11 (`21e03291181f5f0f2f0dc1cfefdfbfb26f6e6abc`) en Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9`; alle drie zijn ancestors van de kandidaat.
+- `work/payroll-p0-p1` blijft apart en geparkeerd. Laatst geverifieerd: remote `70db447ad15843cac9be75abeaca785136a2e174`, lokaal `4f99b04eab6cc7a79fd86048ccad1cd3dafc3cbe`. Deze branch is niet gewijzigd.
+- GitHub-connector bevestigt PR #11 en #12 nog als Draft/open en mergeable naar `main`; beide hebben geen gecombineerde statuschecks of reviewbewijs. De repository meldt admin/pushrechten, default branch `main`, merge commits toegestaan.
+- Edwin heeft de officiële GitHub device-flow in zijn terminal afgerond. De `gh`-store in deze toolrunner blijft ongeldig tonen; GitHub-connector API-read werkt. Geen nieuwe login of token aangevraagd.
+
+## Lokale checks
+
+- Bestaande finale suite: 608 testbestanden geslaagd, 4 overgeslagen; 2.887 tests geslaagd, 8 overgeslagen. HR Suite- en Control-typechecks, i18n (42 namespaces), lint (0 errors, 7 warnings) en `git diff --check` waren groen. De suite is niet opnieuw gedraaid na alleen de appversie- en acceptatiedocumentwijziging.
+- Metadata-only controle: canonical `.env.local` bestaat en het centrale TEST-pad heeft hetzelfde NTFS-file-ID. Waarden zijn niet gelezen, gekopieerd of gelogd. Officiële Development- en Production-preflights slaagden met de Payroll TEST-configuratie.
+- Officiële Next.js 16.3.6 Turbopack-productiebuild is geslaagd: TypeScript groen, 319 routes gegenereerd, Payroll-clientbundle negatieve controle en scan groen (154 browserassets), provenance geschreven voor de exacte kandidaatcommit. De eerste sandboxbuild werd door junctionrechten geblokkeerd; de goedgekeurde build buiten de sandbox slaagde.
+- Lokale Production-runtime via de officiële launcher gebruikte loopbackpoort 3011 en de centrale synthetische TEST-backend. Desktop 1440×900 en mobiel 390×844: dashboard en Payroll-pagina zonder horizontale overflow.
+- Synthetische `hradmin.fixture`-sessie bleef bruikbaar. Interne route `/imports/interne-representatieve-fixture` laadde en vermeldt dat alleen de synthetische interne JSON-fixture wordt verwerkt; niets is geüpload of verwerkt. Serverguard vereist `payroll-import:write`, actieve administratie en tenant/HR-groepsscope; de tabellen hebben overeenkomstige RLS.
+- Ingelogde `/imports/loonaangifte` gaf 404. Analyze/stage-contracttests bewijzen dat `LOONAANGIFTE_XML` vóór servicecalls wordt geweigerd. De route ontbreekt ook in de productie-buildmanifest.
+- Payroll Lab-pagina `/payroll-lab/salarisverwerking` gaf 200, maar voor september en oktober ontbreken bevestigde dienstverbanden voor Lisa, Frits en Jaap. Dit blijft OPEN TEST-acceptatiebewijs; er is niets aangemaakt of gewijzigd.
+- HeRa-paneel laadde in de lokale Production-build; de development-smoke gaf 200 voor conversatie-read APIs. Er is geen prompt verstuurd of model-/externe MCP-actie uitgevoerd. Hosted OAuth/MCP-, audit- en limiter-readback blijft OPEN.
+- Een Next.js HMR-router-/webpackfout trad alleen op bij Development-navigatie. De relevante interne importroute, dashboard-, Payroll- en HeRa-weergaven zijn op de productiebuild geladen; geen vergelijkbare productieruntimefout gezien.
+
+## Releasegrens en vervolg
+
+- Geen kritieke auth-, security- of data-integriteitsfout vastgesteld in de uitgevoerde lokale suite/build en read-only browsercontrole. De open Payroll-persona- en hosted AI-acceptatiepunten worden niet als GREEN gerapporteerd.
+- De bestaande Vercel-projectafspraak noemt de `Production`-target de gezamenlijke synthetische TEST-release. Geen Production-database benaderd of gewijzigd.
+- Resterend: kandidaat commit afronden, push en één gebundelde PR naar actuele `main`; commitprovenance en heads opnieuw controleren; gecontroleerd mergen; Vercel READY/SHA/alias en beperkte hosted TEST-smoke verifiëren.
+- Pas na de deploy de volledige lokale/remote/Vercel-inventaris maken en per artefact aangeven wat veilig te verwijderen is. Tot die review zijn geen worktrees, branches, PR's, deployments of buildartefacten verwijderd. Geen bulkcleanup of databasecleanup.

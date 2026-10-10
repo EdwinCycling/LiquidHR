@@ -200,6 +200,7 @@ export function LoginForm({ labels, nextPath, authError, providerError, testLogi
           ) : null}
           <form action="/api/auth/test-login" className="mt-3" method="post">
             <input name="persona" type="hidden" value="hr-admin" />
+            <input name="next" type="hidden" value={nextPath} />
             <button
               className="inline-flex h-11 w-full items-center justify-center rounded-lg border bg-surface-raised px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               data-testid="test-login-hr-admin"

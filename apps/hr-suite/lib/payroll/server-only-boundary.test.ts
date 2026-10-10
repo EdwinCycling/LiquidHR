@@ -63,11 +63,19 @@ function resolveModulePath(importer: string, specifier: string): string | null {
 function collectModuleSpecifiers(source: ts.SourceFile): string[] {
   const specifiers: string[] = []
   const visit = (node: ts.Node) => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
-      specifiers.push(node.moduleSpecifier.text)
-    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
-      specifiers.push(node.argument.literal.text)
-    } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression && ts.isStringLiteral(node.moduleReference.expression)) {
+    if (ts.isImportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+      const clause = node.importClause
+      const namedBindingsAreTypeOnly = clause?.namedBindings && ts.isNamedImports(clause.namedBindings)
+        && !clause.name
+        && clause.namedBindings.elements.length > 0
+        && clause.namedBindings.elements.every((element) => element.isTypeOnly)
+      if (!clause?.isTypeOnly && !namedBindingsAreTypeOnly) specifiers.push(node.moduleSpecifier.text)
+    } else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+      const namedExportsAreTypeOnly = node.exportClause && ts.isNamedExports(node.exportClause)
+        && node.exportClause.elements.length > 0
+        && node.exportClause.elements.every((element) => element.isTypeOnly)
+      if (!node.isTypeOnly && !namedExportsAreTypeOnly) specifiers.push(node.moduleSpecifier.text)
+    } else if (ts.isImportEqualsDeclaration(node) && !node.isTypeOnly && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression && ts.isStringLiteral(node.moduleReference.expression)) {
       specifiers.push(node.moduleReference.expression.text)
     } else if (ts.isCallExpression(node) && node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0])) {
       if (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require')) {
@@ -144,7 +152,7 @@ describe('Payroll Lab server-only boundary', () => {
     expect(sidebarModule).not.toContain('PAYROLL_SUPABASE')
   })
 
-  it('keeps repository imports behind the Payroll access service', () => {
+  it('keeps calculation repository imports inside server-only Payroll services', () => {
     const sourceFiles = [
       ...collectSourceFiles(join(hrSuiteRoot, 'app')),
       ...collectSourceFiles(join(hrSuiteRoot, 'components')),
@@ -158,16 +166,28 @@ describe('Payroll Lab server-only boundary', () => {
 
     expect(resolveModulePath(join(payrollDirectory, 'access.ts'), './repository.js'))
       .toBe(resolve(payrollDirectory, 'repository.ts'))
-    expect(repositoryImporters).toEqual([join(payrollDirectory, 'access.ts')])
-    expect(calculationRepositoryImporters).toEqual([join(payrollDirectory, 'nl-2026-calculation-service.ts'), join(payrollDirectory, 'synthetic-calculation-service.ts')])
+    expect(repositoryImporters).toEqual([
+      join(payrollDirectory, 'access.ts'),
+      join(payrollDirectory, 'payroll-professional-service.ts'),
+    ])
+    expect(repositoryImporters.every((path) => readFileSync(path, 'utf8').startsWith("import 'server-only'"))).toBe(true)
+    expect(calculationRepositoryImporters).toEqual([
+      join(payrollDirectory, 'cao-bench02-calculation-service.ts'),
+      join(payrollDirectory, 'nl-2026-calculation-service.ts'),
+      join(payrollDirectory, 'payroll-professional-service.ts'),
+      join(payrollDirectory, 'payrun01-repository.ts'),
+      join(payrollDirectory, 'payrun01-service.ts'),
+      join(payrollDirectory, 'synthetic-calculation-service.ts'),
+    ])
+    expect(calculationRepositoryImporters.every((path) => readFileSync(path, 'utf8').startsWith("import 'server-only'"))).toBe(true)
     expect(supabaseClientImporters).toEqual([
+      join(payrollDirectory, 'arrangement-repository.ts'),
       join(payrollDirectory, 'calculation-repository.ts'),
       join(payrollDirectory, 'component-draft-repository.ts'),
+      join(payrollDirectory, 'payrun01-repository.ts'),
       join(payrollDirectory, 'repository.ts'),
     ])
-    expect(draftRepositoryImporters).toEqual([
-      join(payrollDirectory, 'component-draft-service.ts'),
-      join(payrollDirectory, 'component-library.ts'),
-    ])
-  }, 20_000)
+    expect(supabaseClientImporters.every((path) => readFileSync(path, 'utf8').startsWith("import 'server-only'"))).toBe(true)
+    expect(draftRepositoryImporters).toEqual([join(payrollDirectory, 'component-library.ts')])
+  }, 60_000)
 })

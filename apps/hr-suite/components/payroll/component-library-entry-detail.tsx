@@ -83,6 +83,7 @@ function expressionText(expression: PayrollExpression): string {
     case 'parameter': return `parameter.${expression.name}`
     case 'unary': return `${expression.operator}(${expressionText(expression.operand)})`
     case 'binary': return `(${expressionText(expression.left)} ${expression.operator} ${expressionText(expression.right)})`
+    case 'ratio': return `RATIO(${expressionText(expression.numerator)} / ${expressionText(expression.denominator)}, roundingDefinitionId=${expression.roundingDefinitionId})`
     case 'if': return `IF(${expressionText(expression.condition)}, ${expressionText(expression.then)}, ${expressionText(expression.else)})`
     case 'call': return `${expression.operator}(${expression.arguments.map(expressionText).join(', ')})`
   }

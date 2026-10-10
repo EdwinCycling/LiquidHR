@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { Database, Json, Tables } from '@scope/db'
-import { AuthorizationError, permissionErrorResponse, requireAnyPermission, requireAuthContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, permissionErrorResponse, requireAuthContext, requireHrGroupId, requirePermission, requirePermissionInContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
@@ -118,7 +118,17 @@ async function loadEmployment(
     }
     throw new LeaveServiceError(employmentId ? 'LEAVE_EMPLOYMENT_NOT_FOUND' : 'LEAVE_EMPLOYMENT_REQUIRED', employmentId ? 404 : 400)
   }
-  await requireAnyPermission(['leave:read', 'employee:read'], selection.employment.employee_id)
+  let authorized = false
+  for (const permission of ['leave:read', 'employee:read']) {
+    try {
+      await requirePermissionInContext(supabase, context, permission, selection.employment.employee_id)
+      authorized = true
+      break
+    } catch (error) {
+      if (!(error instanceof AuthorizationError)) throw error
+    }
+  }
+  if (!authorized) throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
   return { employment: selection.employment, options: selection.options }
 }
 
@@ -136,7 +146,7 @@ async function queryReportRows(
     .eq('hr_group_id', employment.hr_group_id)
     .eq('employee_id', employment.employee_id)
     .eq('employment_id', employment.id)
-    .limit(1000)
+    .limit(1001)
   const transactionQuery = supabase
     .from('leave_accrual_transactions')
     .select('id, bucket_id, leave_type_id, transaction_type, amount, transaction_date, reason, actor_user_id, actor_display_name, created_at, source_type')
@@ -145,13 +155,13 @@ async function queryReportRows(
     .eq('employee_id', employment.employee_id)
     .eq('employment_id', employment.id)
     .lte('transaction_date', String(calendarYear + 1) + '-01-01')
-    .limit(5000)
+    .limit(5001)
   const leaveTypesQuery = supabase
     .from('leave_types')
     .select('id, name, color_code, entitlement_mode, annual_hours_cap, annual_hours_fte_cap')
     .eq('tenant_id', context.tenantId)
     .eq('hr_group_id', employment.hr_group_id)
-    .limit(500)
+    .limit(501)
   const scheduleQuery = supabase
     .from('employment_schedules')
     .select('average_hours_per_week, fulltime_hours_per_week')
@@ -169,7 +179,7 @@ async function queryReportRows(
     .eq('tenant_id', context.tenantId)
     .eq('hr_group_id', employment.hr_group_id)
     .lte('to_year', calendarYear)
-    .limit(100)
+    .limit(101)
 
   const [buckets, transactions, leaveTypes, schedule, rollovers] = await Promise.all([
     bucketQuery,
@@ -184,6 +194,11 @@ async function queryReportRows(
   if (schedule.error) databaseError(schedule.error)
   if (rollovers.error) databaseError(rollovers.error)
 
+  let rolloverItemsTruncated = false
+  const sourceTruncated = buckets.data.length > 1000
+    || transactions.data.length > 5000
+    || leaveTypes.data.length > 500
+    || rollovers.data.length > 100
   let rolloverItems: Tables<'leave_year_rollover_items'>[] = []
   if (rollovers.data.length > 0) {
     const items = await supabase
@@ -192,13 +207,14 @@ async function queryReportRows(
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', employment.hr_group_id)
       .eq('employment_id', employment.id)
-      .in('rollover_id', rollovers.data.map((row) => row.id))
-      .limit(5000)
+      .in('rollover_id', rollovers.data.slice(0, 100).map((row) => row.id))
+      .limit(5001)
     if (items.error) databaseError(items.error)
-    rolloverItems = items.data
+    rolloverItemsTruncated = items.data.length > 5000
+    rolloverItems = items.data.slice(0, 5000)
   }
 
-  const bucketRows: ReportBucket[] = buckets.data.map((row) => ({
+  const bucketRows: ReportBucket[] = buckets.data.slice(0, 1000).map((row) => ({
     id: row.id,
     leaveTypeId: row.leave_type_id,
     accrualYear: row.accrual_year,
@@ -206,7 +222,7 @@ async function queryReportRows(
     cohortKey: row.cohort_key,
     sourceAccrualYear: row.source_accrual_year,
   }))
-  const transactionsRows: ReportTransaction[] = transactions.data.map((row) => ({
+  const transactionsRows: ReportTransaction[] = transactions.data.slice(0, 5000).map((row) => ({
     id: row.id,
     bucketId: row.bucket_id,
     leaveTypeId: row.leave_type_id,
@@ -219,7 +235,7 @@ async function queryReportRows(
     createdAt: row.created_at,
     sourceType: row.source_type,
   }))
-  const leaveTypeRows: ReportLeaveType[] = leaveTypes.data.map((row) => {
+  const leaveTypeRows: ReportLeaveType[] = leaveTypes.data.slice(0, 500).map((row) => {
     if (row.entitlement_mode === 'WEEKLY_HOURS_FACTOR_CAP') throw new LeaveServiceError('LEAVE_OPERATION_FAILED', 500)
     const partTimeFactor = schedule.data
       ? calculateCappedPartTimeFactor(
@@ -250,7 +266,7 @@ async function queryReportRows(
     .filter((row) => row.transactionType === 'TAKEN' && row.transactionDate > asOfDate && row.transactionDate <= String(calendarYear) + '-12-31')
     .map((row) => ({ leaveTypeId: row.leaveTypeId, amount: Math.abs(row.amount), transactionDate: row.transactionDate }))
 
-  return { bucketRows, transactionsRows, leaveTypeRows, carryForwards, projectedTaken }
+  return { bucketRows, transactionsRows, leaveTypeRows, carryForwards, projectedTaken, sourceTruncated: sourceTruncated || rolloverItemsTruncated }
 }
 
 export async function getLeaveBalanceReport(input: { employmentId?: string; asOfDate?: string }, dependencies?: LeaveReadDependencies) {
@@ -274,6 +290,7 @@ export async function getLeaveBalanceReport(input: { employmentId?: string; asOf
   })
   return {
     report,
+    sourceTruncated: rows.sourceTruncated,
     employmentSelection: {
       required: selection.options.length > 1,
       selectedEmploymentId: selection.employment.id,

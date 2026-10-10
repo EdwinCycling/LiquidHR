@@ -1,3 +1,5 @@
+import type { ArrangementSalaryStrategy } from './arrangement-foundation'
+
 export type PayrollJson =
   | string
   | number
@@ -8,7 +10,7 @@ export type PayrollJson =
 
 export type PayrollAdministrationStatus = 'ACTIVE' | 'SUSPENDED'
 export type PayrollPeriodStatus = 'DRAFT' | 'OPEN' | 'CLOSED'
-export type PayrollCalculationRunType = 'PREVIEW' | 'RECALCULATION' | 'GOLDEN_CASE'
+export type PayrollCalculationRunType = 'PREVIEW' | 'RECALCULATION' | 'GOLDEN_CASE' | 'INDIVIDUAL_PAYROLL'
 export type PayrollCalculationRunStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED'
 export type PayrollControlStatus = 'PASS' | 'WARN' | 'FAIL'
 
@@ -167,6 +169,170 @@ export type PayrollCustomerComponentVersionRow = {
   created_by_user_id: string
 }
 
+export type PayrollArrangementAvailabilityRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  package_id: string
+  effective_from: string
+  effective_to: string | null
+  updated_at: string | null
+  updated_by_user_id: string | null
+}
+
+export type PayrollArrangementAvailabilityHistoryRow = {
+  id: string
+  availability_id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  package_id: string
+  previous_effective_from: string
+  previous_effective_to: string | null
+  new_effective_from: string
+  new_effective_to: string | null
+  changed_at: string
+  changed_by_user_id: string
+  change_kind: 'START_EXTENDED' | 'END_SHORTENED' | 'START_EXTENDED_AND_END_SHORTENED'
+}
+
+export type PayrollArrangementAssignmentRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  source_employment_id: string
+  fixture_code: string
+  package_id: string
+  salary_strategy: ArrangementSalaryStrategy
+  effective_from: string
+  effective_to: string | null
+  is_primary: true
+}
+
+export type PayrollArrangementCompositionSnapshotRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  source_employment_id: string
+  assignment_id: string
+  as_of_date: string
+  snapshot_json: PayrollJson
+  snapshot_hash: string
+}
+
+export type PayrollIndividualArrangementAssignmentVersionRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  assignment_id: string
+  assignment_version: number
+  source_employment_id: string
+  effective_from: string
+  effective_to: string | null
+  assignment_json: PayrollJson
+  assignment_hash: string
+  provenance_status: 'TEST_ONLY' | 'PAYROLL_OWNED'
+  provenance_source: string
+}
+
+export type PayrollIndividualCalculationConfigVersionRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  source_employment_id: string
+  config_version: number
+  effective_from: string
+  effective_to: string | null
+  config_json: PayrollJson
+  config_hash: string
+  provenance_status: 'TEST_ONLY' | 'PAYROLL_OWNED'
+  provenance_source: string
+}
+
+export type PayrollIndividualArrangementCompositionSnapshotRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  assignment_version_id: string
+  source_employment_id: string
+  as_of_date: string
+  snapshot_json: PayrollJson
+  snapshot_hash: string
+}
+
+export type PayrollOpeningCumulativeSnapshotRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  source_employment_id: string
+  snapshot_version: number
+  as_of_date: string
+  opening_balance_json: PayrollJson
+  snapshot_hash: string
+  provenance_status: 'TEST_OPENING_BALANCE' | 'RECONSTRUCTED_PAYROLL'
+  provenance_source: string
+}
+
+export type IndividualPayrollInputReferenceRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  calculation_input_set_id: string
+  source_employment_id: string
+  assignment_version_id: string
+  arrangement_snapshot_id: string
+  config_version_id: string
+  opening_cumulative_snapshot_id: string
+  input_provenance_json: PayrollJson
+}
+
+export type IndividualPayrollLifecycleEventRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  payroll_period_id: string
+  source_employment_id: string
+  calculation_run_id: string
+  revision: number
+  event_sequence: number
+  event_type: 'BLOCKED' | 'CONCEPT' | 'REVIEWED' | 'FINALIZED'
+  event_payload: PayrollJson
+}
+
+export type PayrollIndividualArtifactRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  calculation_run_id: string
+  artifact_type: 'PAYSLIP_PDF' | 'TECHNICAL_JSON'
+  file_name: string
+  content_type: string
+  artifact_bytes: string
+  artifact_hash: string
+  provenance_json: PayrollJson
+}
+
 type PayrollTable<Row, Insert, Update = Partial<Insert>> = {
   Row: Row
   Insert: Insert
@@ -282,9 +448,95 @@ export interface PayrollDatabase {
         },
         never
       >
+      payroll_arrangement_availability: PayrollTable<
+        PayrollArrangementAvailabilityRow,
+        Omit<PayrollArrangementAvailabilityRow, 'id' | 'created_at' | 'updated_at' | 'updated_by_user_id'> & {
+          id?: string
+          created_at?: string
+          updated_at?: string | null
+          updated_by_user_id?: string | null
+        },
+        Partial<PayrollArrangementAvailabilityRow>
+      >
+      payroll_arrangement_availability_history: PayrollTable<
+        PayrollArrangementAvailabilityHistoryRow,
+        Omit<PayrollArrangementAvailabilityHistoryRow, 'id'> & { id?: string },
+        never
+      >
+      payroll_arrangement_assignments: PayrollTable<
+        PayrollArrangementAssignmentRow,
+        Omit<PayrollArrangementAssignmentRow, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        },
+        never
+      >
+      payroll_arrangement_composition_snapshots: PayrollTable<
+        PayrollArrangementCompositionSnapshotRow,
+        Omit<PayrollArrangementCompositionSnapshotRow, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        },
+        never
+      >
+      payroll_individual_arrangement_assignment_versions: PayrollTable<
+        PayrollIndividualArrangementAssignmentVersionRow,
+        Omit<PayrollIndividualArrangementAssignmentVersionRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
+      payroll_individual_calculation_config_versions: PayrollTable<
+        PayrollIndividualCalculationConfigVersionRow,
+        Omit<PayrollIndividualCalculationConfigVersionRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
+      payroll_individual_arrangement_composition_snapshots: PayrollTable<
+        PayrollIndividualArrangementCompositionSnapshotRow,
+        Omit<PayrollIndividualArrangementCompositionSnapshotRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
+      payroll_opening_cumulative_snapshots: PayrollTable<
+        PayrollOpeningCumulativeSnapshotRow,
+        Omit<PayrollOpeningCumulativeSnapshotRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
+      individual_payroll_input_references: PayrollTable<
+        IndividualPayrollInputReferenceRow,
+        Omit<IndividualPayrollInputReferenceRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
+      individual_payroll_lifecycle_events: PayrollTable<
+        IndividualPayrollLifecycleEventRow,
+        Omit<IndividualPayrollLifecycleEventRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
+      payroll_individual_artifacts: PayrollTable<
+        PayrollIndividualArtifactRow,
+        Omit<PayrollIndividualArtifactRow, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        },
+        never
+      >
     }
     Views: { [_ in never]: never }
-    Functions: { [_ in never]: never }
+    Functions: {
+      payrun01_mark_succeeded_with_concept: {
+        Args: {
+          p_payroll_administration_id: string
+          p_source_tenant_id: string
+          p_source_hr_group_id: string
+          p_source_administration_id: string
+          p_calculation_run_id: string
+          p_payroll_period_id: string
+          p_source_employment_id: string
+          p_actor_user_id: string
+          p_finished_at: string
+          p_result_hash: string
+          p_event_payload: PayrollJson
+        }
+        Returns: PayrollCalculationRunRow[]
+      }
+    }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
   }

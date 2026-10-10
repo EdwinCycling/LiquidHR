@@ -1,5 +1,5 @@
 import type { PayrollSourceSnapshot } from '../domain/payroll-contracts'
-import { FixedDecimal, PayrollEngineError } from './decimal'
+import { applyPayrollRoundingToRatio, FixedDecimal, PayrollEngineError } from './decimal'
 import { sha256, stableSerialize } from './hash'
 import type {
   PayrollCalculationBuildOptions,
@@ -70,6 +70,7 @@ interface ExpressionContext {
   readonly componentOutputs: ReadonlyMap<string, Readonly<Record<string, RuntimeValue>>>
   readonly allowInputs: boolean
   readonly allowParameters: boolean
+  readonly roundingDefinitions: readonly PayrollRoundingDefinition[]
 }
 
 /** Selects effective rules from an immutable source snapshot and computes the persistence input hash. */
@@ -86,6 +87,9 @@ export function buildCalculationInputs(
 
   const effectiveDate = options.effectiveDate ?? periodStartDate(sourceSnapshot.periodReference)
   if (!isIsoDate(effectiveDate)) throw new PayrollEngineError('EFFECTIVE_DATE_INVALID', 'Effective date must be a valid ISO calendar date.')
+  if (options.calculationContextHash !== undefined && !/^[0-9a-f]{64}$/.test(options.calculationContextHash)) {
+    throw new PayrollEngineError('CALCULATION_CONTEXT_HASH_INVALID', 'Payroll-owned calculation context must be pinned by a SHA-256 hash.')
+  }
 
   const allComponents = rulePackage.components.map(cloneAndFreezePlain)
   const controls = rulePackage.controls.map(cloneAndFreezePlain)
@@ -116,20 +120,40 @@ export function buildCalculationInputs(
   }
 
   validateComponentGraph(activeComponents, componentsByCode)
+  validateComponentRoundingReferences(activeComponents, roundingDefinitions)
   validateControls(controls, componentsByCode)
   validateResultMappings(resultMappings, componentsByCode)
 
+  const activeSourceKeys = new Set(activeComponents.flatMap((component) => {
+    if (component.method.kind !== 'source') return []
+    const output = component.outputs[0]
+    return output ? [outputKey(component.code, output.name)] : []
+  }))
+  const suppliedOverrideKeys = Object.keys(options.sourceValueOverrides ?? {})
+  const unknownOverrideKey = suppliedOverrideKeys.find((key) => !activeSourceKeys.has(key))
+  if (unknownOverrideKey) {
+    throw new PayrollEngineError('SOURCE_OVERRIDE_UNKNOWN', `Payroll source override ${unknownOverrideKey} does not match an active source component.`)
+  }
+
   const snapshot = deepFreeze(cloneAndFreezePlain(sourceSnapshot))
   const resolvedSourceValues: Record<string, PayrollSerializedValue> = {}
+  const resolvedSourceOverrides: Record<string, PayrollSerializedValue> = {}
   for (const component of activeComponents) {
     if (component.method.kind !== 'source') continue
     const output = component.outputs[0]
     if (!output) throw new PayrollEngineError('SOURCE_OUTPUT_REQUIRED', `Source component ${component.code} must define one output.`)
-    const raw = readPath(snapshot.canonicalSource, component.method.path)
+    const key = outputKey(component.code, output.name)
+    const sourceOverride = options.sourceValueOverrides?.[key]
+    if (sourceOverride && sourceOverride.valueType !== output.valueType) {
+      throw new PayrollEngineError('SOURCE_OVERRIDE_TYPE_MISMATCH', `Payroll source override ${key} does not match the declared value type.`)
+    }
+    const raw = sourceOverride ? sourceOverride.value : readPath(snapshot.canonicalSource, component.method.path)
     if (raw === undefined || raw === null) {
       throw new PayrollEngineError('REQUIRED_INPUT_MISSING', `Required source value for ${component.code}.${output.name} is missing.`)
     }
-    resolvedSourceValues[outputKey(component.code, output.name)] = serializeValue(parseExternalValue(raw, output.valueType))
+    const resolved = serializeValue(parseExternalValue(raw, output.valueType))
+    resolvedSourceValues[key] = resolved
+    if (sourceOverride) resolvedSourceOverrides[key] = resolved
   }
 
   const compositionValue = {
@@ -147,6 +171,8 @@ export function buildCalculationInputs(
     engineVersion: PAYROLL_ENGINE_VERSION,
     rulePackageCompositionId: rulePackage.compositionId,
     rulePackageCompositionHash,
+    ...(Object.keys(resolvedSourceOverrides).length > 0 ? { sourceValueOverrides: resolvedSourceOverrides } : {}),
+    ...(options.calculationContextHash ? { calculationContextHash: options.calculationContextHash } : {}),
     ...(scopeInstanceIds ? { scopeInstanceIds } : {}),
   }))
 
@@ -162,6 +188,8 @@ export function buildCalculationInputs(
     rulePackageCompositionId: rulePackage.compositionId,
     rulePackageCompositionHash,
     inputHash,
+    ...(Object.keys(resolvedSourceOverrides).length > 0 ? { sourceValueOverrides: resolvedSourceOverrides } : {}),
+    ...(options.calculationContextHash ? { calculationContextHash: options.calculationContextHash } : {}),
     components: activeComponents,
     controls: controls.sort((left, right) => left.code.localeCompare(right.code)),
     resultMappings,
@@ -184,6 +212,7 @@ export function calculatePayroll(inputs: PayrollCalculationInputs, registry: rea
     packageMetadata,
     inputs.effectiveDate,
   )
+  validateComponentRoundingReferences(inputs.components, roundingDefinitions)
   validateOwnershipIdentities(inputs.components)
   for (const component of inputs.components) validateComponentDefinition(component)
   const componentsByCode = new Map(inputs.components.map((component) => [component.code, component]))
@@ -246,6 +275,7 @@ export function calculatePayroll(inputs: PayrollCalculationInputs, registry: rea
           componentOutputs: outputsByCode,
           allowInputs: true,
           allowParameters: true,
+          roundingDefinitions,
         })
         componentOutputs[output.name] = value
       }
@@ -307,7 +337,7 @@ export function calculatePayroll(inputs: PayrollCalculationInputs, registry: rea
     })
   }
 
-  const controls = evaluateControls(inputs.controls, componentsByCode, outputsByCode)
+  const controls = evaluateControls(inputs.controls, componentsByCode, outputsByCode, roundingDefinitions)
   const status = controls.some((control) => control.status === 'FAIL') ? 'BLOCKED' : 'CALCULATED'
   const resultRows = mapResultRows(inputs.resultMappings, outputsByCode)
   const resultHash = sha256(stableSerialize({
@@ -799,6 +829,12 @@ function inferExpressionType(
     if (expression.operator === '*') return multiplicationType(left, right)
     if (expression.operator === '/') return divisionType(left, right)
   }
+  if (expression.kind === 'ratio') {
+    if (!expression.roundingDefinitionId || expression.roundingDefinitionId.length > 128) {
+      throw new PayrollEngineError('EXPRESSION_RATIO_ROUNDING_INVALID', 'Rational expressions must reference a bounded rounding-definition id.')
+    }
+    return divisionType(recurse(expression.numerator), recurse(expression.denominator))
+  }
   if (expression.kind === 'if') {
     if (recurse(expression.condition) !== 'BOOLEAN') throw new PayrollEngineError('EXPRESSION_IF_CONDITION_INVALID', 'IF condition must be Boolean.')
     const thenType = recurse(expression.then)
@@ -958,6 +994,19 @@ function evaluateExpression(expression: PayrollExpression, context: ExpressionCo
     const right = recurse(expression.right)
     return evaluateBinary(expression.operator, left, right)
   }
+  if (expression.kind === 'ratio') {
+    const numerator = recurse(expression.numerator)
+    const denominator = recurse(expression.denominator)
+    const definition = context.roundingDefinitions.find((candidate) => candidate.id === expression.roundingDefinitionId)
+    if (!context.component || !definition || definition.componentCode !== context.component.code
+      || definition.ruleVersion !== context.component.version) {
+      throw new PayrollEngineError('EXPRESSION_RATIO_ROUNDING_UNAVAILABLE', 'The pinned ratio rounding definition is missing or does not match this component version.')
+    }
+    return {
+      valueType: divisionType(numerator.valueType, denominator.valueType),
+      value: applyPayrollRoundingToRatio(asDecimal(numerator), asDecimal(denominator), definition),
+    }
+  }
   if (expression.kind === 'if') {
     return asBoolean(recurse(expression.condition)) ? recurse(expression.then) : recurse(expression.else)
   }
@@ -1039,6 +1088,7 @@ function evaluateControls(
   controls: readonly PayrollControlDefinition[],
   componentsByCode: ReadonlyMap<string, PayrollComponentDefinition>,
   outputsByCode: ReadonlyMap<string, Readonly<Record<string, RuntimeValue>>>,
+  roundingDefinitions: readonly PayrollRoundingDefinition[],
 ): PayrollControlResult[] {
   return controls.map((control) => {
     const actual = evaluateExpression(control.expression, {
@@ -1048,6 +1098,7 @@ function evaluateControls(
       componentOutputs: outputsByCode,
       allowInputs: false,
       allowParameters: false,
+      roundingDefinitions,
     })
     const passed = actual.valueType === 'BOOLEAN' && actual.value === true
     const status: PayrollControlResult['status'] = passed ? 'PASS' : control.severity === 'WARNING' ? 'WARNING' : 'FAIL'
@@ -1115,7 +1166,7 @@ function selectEffectiveRoundingDefinitions(
   for (let index = 0; index < sorted.length; index += 1) {
     const definition = sorted[index]!
     const component = allComponents.find((candidate) => candidate.code === definition.componentCode
-      && candidate.method.kind === 'registeredRule' && candidate.method.ruleVersion === definition.ruleVersion)
+      && candidate.version === definition.ruleVersion)
     if (!component || definition.effectiveFrom < component.effectiveFrom
       || (component.effectiveTo !== null && (definition.effectiveTo === null || definition.effectiveTo > component.effectiveTo))) {
       throw new PayrollEngineError('ROUNDING_RULE_VERSION_MISMATCH', 'Rounding definitions must fit an effective registered component version.')
@@ -1131,7 +1182,40 @@ function selectEffectiveRoundingDefinitions(
   return deepFreeze(sorted.filter((definition) => definition.effectiveFrom <= effectiveDate
     && (definition.effectiveTo === null || effectiveDate <= definition.effectiveTo)
     && activeComponents.some((component) => component.code === definition.componentCode
-      && component.method.kind === 'registeredRule' && component.method.ruleVersion === definition.ruleVersion)))
+      && component.version === definition.ruleVersion)))
+}
+
+function validateComponentRoundingReferences(
+  components: readonly PayrollComponentDefinition[],
+  roundingDefinitions: readonly PayrollRoundingDefinition[],
+): void {
+  const visit = (component: PayrollComponentDefinition, expression: PayrollExpression): void => {
+    if (expression.kind === 'ratio') {
+      const matches = roundingDefinitions.filter((definition) => definition.id === expression.roundingDefinitionId)
+      if (matches.length !== 1 || matches[0]!.componentCode !== component.code || matches[0]!.ruleVersion !== component.version) {
+        throw new PayrollEngineError('EXPRESSION_RATIO_ROUNDING_UNAVAILABLE', 'Each ratio expression must reference exactly one effective rounding definition pinned to its component version.')
+      }
+      visit(component, expression.numerator)
+      visit(component, expression.denominator)
+      return
+    }
+    if (expression.kind === 'unary') visit(component, expression.operand)
+    else if (expression.kind === 'binary') {
+      visit(component, expression.left)
+      visit(component, expression.right)
+    } else if (expression.kind === 'if') {
+      visit(component, expression.condition)
+      visit(component, expression.then)
+      visit(component, expression.else)
+    } else if (expression.kind === 'call') {
+      for (const argument of expression.arguments) visit(component, argument)
+    }
+  }
+
+  for (const component of components) {
+    if (component.method.kind !== 'expression') continue
+    for (const expression of Object.values(component.method.outputs)) visit(component, expression)
+  }
 }
 
 function validateActiveRoundingDefinitions(

@@ -1,7 +1,7 @@
 'use client'
 
 import { FlaskConical, Undo2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { IconButton } from '@/components/ui/icon-button'
 import type { TestRoleSwitchTargetKey } from '@/lib/auth/test-role-switch'
 
@@ -9,6 +9,13 @@ export interface TestRoleSwitchOption {
   key: TestRoleSwitchTargetKey
   email: string
   label: string
+}
+
+function preserveCurrentPath(event: FormEvent<HTMLFormElement>): void {
+  const nextInput = event.currentTarget.elements.namedItem('next')
+  if (nextInput instanceof HTMLInputElement) {
+    nextInput.value = window.location.pathname + window.location.search
+  }
 }
 
 interface TestRoleSwitcherProps {
@@ -31,6 +38,9 @@ export function TestRoleSwitcher({ collapsed = false, currentEmail, enabled, lab
   const wasOpenRef = useRef(false)
   const normalizedCurrentEmail = currentEmail.trim().toLowerCase()
   const currentOption = options.find((option) => option.email === normalizedCurrentEmail)
+  const personaMarkerProps = currentOption
+    ? { 'data-persona': currentOption.key, 'data-testid': 'test-role-current-persona' }
+    : {}
 
   useEffect(() => {
     if (!open) return
@@ -67,7 +77,7 @@ export function TestRoleSwitcher({ collapsed = false, currentEmail, enabled, lab
   }, [open])
 
   return (
-    <div className="relative">
+    <div className="relative" {...personaMarkerProps}>
       {enabled ? (
         <IconButton
           aria-controls={open ? 'test-role-switch-popover' : undefined}
@@ -87,8 +97,9 @@ export function TestRoleSwitcher({ collapsed = false, currentEmail, enabled, lab
         </IconButton>
       ) : null}
       {returnToAdmin ? (
-        <form action="/api/auth/test-login" method="post">
+        <form action="/api/auth/test-login" method="post" onSubmit={preserveCurrentPath}>
           <input name="persona" type="hidden" value="hr-admin" />
+          <input name="next" type="hidden" value="/dashboard/start" />
           <IconButton
             className="!bg-transparent !text-sidebar-muted hover:!bg-sidebar-accent hover:!text-sidebar-foreground"
             data-testid="test-role-return-to-admin"
@@ -114,7 +125,8 @@ export function TestRoleSwitcher({ collapsed = false, currentEmail, enabled, lab
         >
           <p className="text-xs font-semibold uppercase tracking-[0.12em]" id="test-role-switch-title">{labels.title}</p>
           <p className="mt-1 text-xs leading-4 text-sidebar-muted" id="test-role-switch-hint">{labels.hint}</p>
-          <form action="/api/auth/test-role-switch" className="mt-3" method="post">
+          <form action="/api/auth/test-role-switch" className="mt-3" method="post" onSubmit={preserveCurrentPath}>
+            <input name="next" type="hidden" value="/dashboard/start" />
             <label className="sr-only" htmlFor="test-role-switch-target">{labels.title}</label>
             <select
               className="h-10 w-full rounded-lg border border-sidebar-border bg-sidebar px-2.5 text-sm text-sidebar-foreground outline-none focus:border-sidebar-foreground"

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Blocks, Calculator, ArrowUpRight } from 'lucide-react'
+import { Blocks, Calculator, ArrowUpRight, Scale, WalletCards } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
@@ -9,24 +9,28 @@ import { ContextAccessError } from '@/lib/context/administration-context'
 import { ContextAuthenticationError } from '@/lib/context/server-context'
 import { getTranslator } from '@/lib/i18n/server'
 import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
+import { isArrangementFoundationStorageReady } from '@/lib/payroll/arrangement-service'
 
 type LegacyCalculationQuery = { run?: string | string[]; error?: string | string[]; case?: string | string[] }
 
 // Reserve extension space without rendering empty modules.
 const PAYROLL_LAB_WINDOWS = [
   { href: '/payroll-lab/calculations', title: 'payrollLabCalculations', icon: Calculator },
+  { href: '/payroll-lab/salarisverwerking', title: 'payrollLabIndividualPayroll', icon: WalletCards },
   { href: '/payroll-components', title: 'payrollLabComponents', icon: Blocks },
 ] as const
 
 export default async function PayrollLabOverview({ searchParams }: { searchParams?: Promise<LegacyCalculationQuery> }) {
   let unavailable = false
+  let access: Awaited<ReturnType<typeof requireComponentLibraryAccess>> | null = null
   try {
-    await requireComponentLibraryAccess()
+    access = await requireComponentLibraryAccess()
   } catch (error) {
     if (error instanceof AuthenticationError || error instanceof ContextAuthenticationError) redirect('/login')
     if (error instanceof AuthorizationError || error instanceof ContextAccessError) redirect('/geen-toegang')
     unavailable = true
   }
+  const arrangementReady = access ? await isArrangementFoundationStorageReady(access) : false
   const t = await getTranslator('navigation')
   if (unavailable) return <PageShell className="space-y-6 py-6 sm:py-8" role="status"><PageHeader title={t('payrollLab')} description={t('payrollLabUnavailable')} /></PageShell>
 
@@ -40,7 +44,7 @@ export default async function PayrollLabOverview({ searchParams }: { searchParam
   return <PageShell className="space-y-6 py-6 sm:py-8">
     <PageHeader title={t('payrollLab')} description={t('payrollLabOverviewDescription')} />
     <div className="grid gap-4 lg:grid-cols-2">
-      {PAYROLL_LAB_WINDOWS.map(window => {
+      {[...PAYROLL_LAB_WINDOWS, ...(arrangementReady ? [{ href: '/payroll-lab/arrangements', title: 'payrollArrangements', icon: Scale }] : [])].map(window => {
         const Icon = window.icon
         return <Surface key={window.href}>
           <Link className="flex min-h-36 items-start gap-4 rounded-[var(--radius-surface)] p-5 transition-colors hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={window.href}>

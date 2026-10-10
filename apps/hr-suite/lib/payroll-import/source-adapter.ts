@@ -60,9 +60,6 @@ export function adaptPayrollSource(input: {
   bytes: Uint8Array
 }): AdaptedPayrollSource {
   const sourceHash = hashPayrollSource(input.bytes)
-  if (input.sourceType === 'LOONAANGIFTE_XML') {
-    throw new PayrollImportError('REAL_XML_PENDING', 409)
-  }
 
   let decoded: unknown
   try {
