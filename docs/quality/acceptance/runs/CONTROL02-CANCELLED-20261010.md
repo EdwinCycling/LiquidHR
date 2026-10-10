@@ -210,3 +210,11 @@ rewritten in this closeout.
 - Remote state checked read-only on TEST project
   `wnpfloqpjvaacobppbpk`; no Production/Preview database, database mutation,
   migration apply, deployment, merge, or TEST-record cleanup occurred.
+
+## Cleanup PR handoff
+
+- Implementation commit: `6d6a3dcbd1566a9853a8836aed7baff46d4bf522`.
+- Draft PR #12: https://github.com/EdwinCycling/LiquidHR/pull/12, base
+  `main`, head `codex/control02-stop-cleanup-20261010`.
+- The PR is a review candidate only. It is not merged or deployed; PRs #4,
+  #6, and #9 remain closed and unmerged.
