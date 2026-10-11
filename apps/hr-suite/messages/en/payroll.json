@@ -1,0 +1,46 @@
+{
+  "title": "Payroll integrations",
+  "description": "Manage Nmbrs access and map Nmbrs companies to administrations in the active HR group.",
+  "connection": "Connection",
+  "provider": "Provider",
+  "lastChecked": "Last checked",
+  "noConnection": "There is no Nmbrs connection for this HR group yet.",
+  "status": {
+    "NOT_CONNECTED": "Not connected",
+    "CONNECTING": "Authorization started",
+    "CONNECTED": "Connected",
+    "ACTION_REQUIRED": "Action required",
+    "ERROR": "Error",
+    "DISCONNECTED": "Not connected",
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive"
+  },
+  "callback": {
+    "connected": "Nmbrs authorization completed.",
+    "error": "Nmbrs authorization did not complete. Start the connection again."
+  },
+  "companies": "Discovered Nmbrs companies",
+  "bindings": "Administration bindings",
+  "emptyBindings": "No Nmbrs companies are mapped to administrations yet.",
+  "actions": {
+    "connect": "Connect Nmbrs",
+    "reconnect": "Reconnect",
+    "check": "Check connection",
+    "discover": "Fetch companies",
+    "bind": "Map company",
+    "unbind": "Remove mapping",
+    "disconnect": "Disconnect",
+    "confirmDisconnect": "Disconnect and remove locally stored access tokens?",
+    "selectCompany": "Select an Nmbrs company",
+    "selectAdministration": "Select an administration",
+    "search": "Search",
+    "noCompanies": "No active Nmbrs companies found",
+    "noAdministrations": "No active administrations in this HR group",
+    "noBinding": "No active mappings",
+    "succeeded": "Action completed.",
+    "failed": "Action failed. Check the connection and try again.",
+    "discoveredCompanies": "Available Nmbrs companies",
+    "bindingHint": "Map each Nmbrs company to the correct administration in this HR group.",
+    "remoteRevocationWarning": "The local connection is closed, but Nmbrs did not confirm revocation. Revoke app access in Nmbrs as well."
+  }
+}

@@ -44,6 +44,7 @@ export const MESSAGE_NAMESPACES = [
   'focus',
   'context',
   'payrollImport',
+  'payroll',
   'payrollProfessional',
 ] as const
 

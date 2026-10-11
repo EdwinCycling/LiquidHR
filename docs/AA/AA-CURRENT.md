@@ -5,11 +5,11 @@ Momentopname: 2026-10-11 (historische acceptance-evidence blijft ongewijzigd)
 
 ## Actuele releasebaseline — 1.20261011.1
 
-- Appversie `1.20261011.1`; `origin/main` en GitHub `main`: `c90275c5775a276d5ccd62f563b44372ee78ae11`.
-- Vercel `liquidhr`, deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV`: **READY** op exact dezelfde SHA. Target `production` is de deploymentchannel van de bestaande synthetic TEST-omgeving.
+- Appversie `1.20261011.1`; lokale branchref `main`, `origin/main` en GitHub `main` staan alle op `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865` (0 ahead/behind). Er is geen lokale `main`-worktree gemount.
+- De nieuwste read-only waargenomen Vercel `liquidhr`-deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is **READY** op de oudere SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`; deployment op de huidige main-SHA is niet bewezen. Target `production` is de deploymentchannel van de bestaande synthetic TEST-omgeving.
 - SEC-01 migrationbron `20261011120317_secure_continuous_appraisal_attachment_storage_keys`; read-only TEST-migrationlijst registreert dezelfde naam als `20261011130922`. De historische versies verschillen; niet hernoemen, herschrijven of opnieuw toepassen.
 - De geauthenticeerde hosted security-/persona-acceptatie voor SEC-01 blijft **OPEN**. Deployment READY en toepassing op TEST zijn daarvoor geen vervangend bewijs; zie [AA-OPEN](AA-OPEN.md).
-- CONTROL02 en de officiële Loonaangifte-XML-import blijven **CANCELLED**. `work/payroll-p0-p1` en de Nmbrs-worktree blijven als afzonderlijk geparkeerd spoor behouden.
+- CONTROL02 en de officiële Loonaangifte-XML-import blijven **CANCELLED**. Nmbrs P0/P1 is selectief geïntegreerd op `work/NMBRS-01-20261011`; exact kandidaat `ceb7df9c973920b382af9ed8d02037c09cc373bd`, appversie `1.20261011.2`, gebaseerd op `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. Lokale quality gates zijn **GREEN**; Edwin heeft de beperkte synthetische TEST-release volgens AA-REL §8 expliciet geautoriseerd. Isolated Preview, live OAuth en live company E2E blijven **OPEN**; post-merge Vercel/safety checks staan nog open. `work/payroll-p0-p1` blijft behouden omdat de unieke lokale P2-readinessdocumentatie nog niet is verzoend. Zie [NMBRS-01 convergence acceptance](../quality/acceptance/runs/NMBRS-01-CONVERGENCE-20261011.md).
 - PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51` en bracht de selectief bijgewerkte roadmap/Focus-context mee. PR #13 en de niet-goedgekeurde PR #2 zijn niet gemerged; zie [PR #16](https://github.com/EdwinCycling/LiquidHR/pull/16).
 
 De kandidaatstatus van ONE VERSION op 2026-10-10 is historisch vastgelegd in [het acceptatierapport](../quality/acceptance/runs/ONE-VERSION-20261010.md); die status is niet de actuele main-/deploymentstatus.

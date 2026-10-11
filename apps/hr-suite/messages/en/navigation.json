@@ -50,6 +50,8 @@
   "testRoleSwitchEmployee": "Test Employee",
   "testRoleSwitchReturnToAdmin": "Return to Test HR Admin",
   "payrollLab": "Payroll Lab",
+  "payrollLabProfessional": "Professional payroll",
+  "payrollLabIntegrations": "Payroll integrations",
   "payroll": "Payroll",
   "mySalary": "My salary",
   "payrollLabDescription": "Isolated Payroll Lab environment.",
