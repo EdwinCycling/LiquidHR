@@ -5,6 +5,10 @@ Bijgewerkt: 2026-10-10
 
 De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
 
+### AI-roadmap
+
+De actuele AI-productvolgorde en status staan in de [LiquidHR AI Master Roadmap](../requirements/ai/LIQUIDHR_AI_MASTER_ROADMAP.md). AA-ROAD blijft de brede productroadmap; AA-NEXT bepaalt de eerstvolgende concrete uitvoeringswave. Technische acceptatie blijft leidend in AA-CURRENT, AA-ACCEPT en de gedateerde runrapporten.
+
 ## COMMITTED FOUNDATIONS
 
 ### Core HR
