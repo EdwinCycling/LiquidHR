@@ -4,6 +4,8 @@
 
 **Verdict: LOCAL QUALITY GREEN; LIMITED SYNTHETIC TEST RELEASE AUTHORIZED; hosted release checks pending.** Selective Nmbrs P0/P1 code is based directly on verified `origin/main` `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. Code candidate `ceb7df9c973920b382af9ed8d02037c09cc373bd` includes the minimal migration-contract newline fix and the one-time version bump to `1.20261011.2`. At this quality-gate checkpoint, no push, PR, merge, deployment, or remote database write had occurred.
 
+Post-merge closeout: PR #19 was merged at 2026-10-11 17:33Z as main SHA `deba6c0d5489bbe1ab15a77e1f60169661121816`; the local `main` ref, `origin/main`, and GitHub `main` now match. As of 17:43Z no automatic Vercel deployment existed for that SHA; the latest READY deployment remained on older SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`. Hosted smoke was not run against the old deployment, and the required hosted closeout remains OPEN.
+
 The migration text-contract failure was caused by CRLF in the unchanged checked-out SQL compared with an LF assertion. The test now normalizes line endings before evaluating the same contract; no security assertion or migration history changed. The complete applicable local gates are green. Isolated Preview, real Nmbrs OAuth, and live company-discovery/binding acceptance remain OPEN under the explicit AA-REL §8 limited TEST decision.
 
 ## 2. Coverage
@@ -60,7 +62,7 @@ No browser or responsive acceptance was run. The isolated Preview gate was unava
 | NL/EN i18n | PASS on final versioned SHA; 43 namespaces have matching keys |
 | Production build | PASS on exact versioned candidate SHA `ceb7df9c973920b382af9ed8d02037c09cc373bd` with Next.js Webpack; 323 static pages generated |
 | Client boundary | PASS; negative control and scan of 666 browser assets |
-| Build provenance | PASS; `.next` provenance records exact candidate SHA and build ID `y8V4Wj3BvhxkmOOjlgQSk`, without runtime values |
+| Build provenance | PASS; `.next` provenance records exact candidate SHA and build ID `VlpsZI4OOaphJeeiCkhZN`, without runtime values |
 | Diff/framework drift | PASS; `git diff --check` clean; `next-env.d.ts` matches `origin/main`; no SQL migration or generated database type changed |
 
 The default Turbopack build could not create a junction under the restricted Windows run. The production build completed with `next build --webpack`; no project configuration was changed to work around the junction restriction.
@@ -84,9 +86,9 @@ The default Turbopack build could not create a junction under the restricted Win
 | Real Nmbrs OAuth | OPEN, accepted for this limited release | Historical consent-host HTTP 502; no successful live OAuth callback. |
 | Live company discovery and binding | OPEN, accepted for this limited release | No real-provider or hosted company-discovery/binding end-to-end proof. |
 | Limited TEST scope | AUTHORIZED | User explicitly approved code integration and deployment only in the existing shared synthetic TEST installation. This does not authorize real customer access, live payroll operations, external payroll writes, or employee synchronization. No employee sync/apply or payroll-export/write route was added; provider flows remain configuration- and permission-gated and no real provider action was performed or accepted. |
-| Hosted main safety smoke and Vercel provenance | PENDING | Must pass after merge before the verdict can be `TEST RELEASED — LIMITED / NMBRS OAUTH ACCEPTANCE OPEN`. |
+| Hosted main safety smoke and Vercel provenance | OPEN — deployment absent | At 17:43Z the linked Vercel project had no deployment after the merge; latest READY was `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` on older SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`. No hosted smoke was run. Require an automatic READY deployment with exact current-main provenance and canonical alias, then run the anonymous/auth safety smoke before reporting `TEST RELEASED — LIMITED / NMBRS OAUTH ACCEPTANCE OPEN`. No manual deployment was initiated. |
 
-These open items do not block the explicitly approved limited TEST release by themselves. They remain OPEN and must not be reported as fully accepted. Any remote schema application requires separate authorization.
+Isolated Preview, real OAuth, and live company-discovery/binding remain OPEN under the explicitly approved limited TEST exception. The absent post-merge Vercel deployment and hosted safety smoke are mandatory closeout gates, so the release cannot yet be reported as released. Any remote schema application requires separate authorization.
 
 ## 11. PRODUCT DECISIONS
 
@@ -113,12 +115,12 @@ These open items do not block the explicitly approved limited TEST release by th
 
 ## 14. Commits/Remote Head
 
-- Verified pre-release `main`/`origin/main`/GitHub `main`: `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`; remote main was unchanged at last read. No local main worktree is mounted.
+- Verified pre-release `main`: `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. PR #19 (`https://github.com/EdwinCycling/LiquidHR/pull/19`) merged at 17:33Z to `deba6c0d5489bbe1ab15a77e1f60169661121816`; local `main` ref, `origin/main`, and GitHub `main` were verified equal. No local `main` worktree is mounted.
 - Selective integration commit: `a49c5130470146c6bcdf4bfbe95d7db7ced7d5f9`; migration test-only fix: `8668e36332618e5b3735d57c8afeaacff641ef5c`; versioned candidate SHA: `ceb7df9c973920b382af9ed8d02037c09cc373bd`, version `1.20261011.2`.
-- Local Webpack build and provenance are for exact candidate `ceb7df9c973920b382af9ed8d02037c09cc373bd`; build ID is `VlpsZI4OOaphJeeiCkhZN`. The latest previously observed READY Vercel deployment is `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` on older SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`.
+- Local Webpack build and provenance are for exact candidate `ceb7df9c973920b382af9ed8d02037c09cc373bd`; build ID is `VlpsZI4OOaphJeeiCkhZN`. At 17:43Z no Vercel deployment existed for the merge SHA; latest READY is `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` on older SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`.
 - Legacy `work/payroll-p0-p1` is at local `4f99b04eab6cc7a79fd86048ccad1cd3dafc3cbe`; remote branch was `70db447ad15843cac9be75abeaca785136a2e174`. The local-only commit adds `docs/requirements/payroll/LIQUIDHR_PAYROLL_P2_READINESS.md`. That unique artifact is not in the candidate or current main. The protected legacy worktree could not be accessed for a status check from this sandbox, so it remains untouched and cleanup is not ready.
 - Before branch publication, no PR, push, merge, deployment, remote schema write, or remote business-data write had occurred. The limited TEST release is explicitly authorized; hosted release checks were pending.
 
 ## 15. Final Verdict
 
-**LOCAL QUALITY GREEN — LIMITED TEST RELEASE AUTHORIZED; merge/deployment pending.** Final versioned candidate `ceb7df9c973920b382af9ed8d02037c09cc373bd` passed the complete non-live HR and Payroll gates, TypeScript, ESLint, i18n, production build, client-boundary scan, and provenance. Preview isolation/configuration, real OAuth, and live company discovery/binding remain OPEN by explicit AA-REL §8 decision. Complete the required PR/main/Vercel safety checks before reporting `TEST RELEASED — LIMITED / NMBRS OAUTH ACCEPTANCE OPEN`. Retain `work/payroll-p0-p1`; its unique P2 readiness document and worktree status have not been reconciled.
+**LOCAL QUALITY GREEN — MERGED TO MAIN; LIMITED TEST RELEASE NOT YET VERIFIED.** Final versioned candidate `ceb7df9c973920b382af9ed8d02037c09cc373bd` passed the complete non-live HR and Payroll gates, TypeScript, ESLint, i18n, production build, client-boundary scan, and provenance; PR #19 merged to main SHA `deba6c0d5489bbe1ab15a77e1f60169661121816`. As of 17:43Z Vercel had not created a deployment for that SHA, so hosted provenance and anonymous/auth safety smoke remain OPEN and the exact release verdict `TEST RELEASED — LIMITED / NMBRS OAUTH ACCEPTANCE OPEN` is not yet earned. Preview isolation/configuration, real OAuth, and live company discovery/binding remain OPEN under AA-REL §8. Retain `work/payroll-p0-p1`; its unique P2 readiness document and worktree status have not been reconciled.
