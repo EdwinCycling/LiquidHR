@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { StartPage } from '@/components/startpage/start-page'
 import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
-import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { getTranslator } from '@/lib/i18n/server'
 import { getRequestUserPreferences } from '@/lib/preferences/server'
 import { getStartPagePreferences } from '@/lib/preferences/start-page'
 import { createServerPerformanceTrace } from '@/lib/performance/server-trace'
@@ -33,22 +33,24 @@ export default async function StartPageRoute({ searchParams }: StartPageRoutePro
   }
 
   const scope: StartPageScope | undefined = requestedScope === 'company' || requestedScope === 'team' ? requestedScope : undefined
-  const locale = await performanceTrace.measure('i18n.locale', getLocale)
+  const preferencesPromise = getRequestUserPreferences()
+  const localePromise = performanceTrace.measure('i18n.locale', async () => (await preferencesPromise).locale)
   const dataPromise = getStartPageData(scope, {
     supabase: requestContext.supabase,
     auth: requestContext.context,
     activeContext: requestContext.activeContext,
-    locale,
+    localePromise,
     performance: performanceTrace,
     journeyOnly,
     journeys: journeyOnlyJourneys,
   })
-  const [data, preferences, translate, deadlineT, startPagePreferences] = await performanceTrace.measure('page.parallel', () => Promise.all([
+  const [data, preferences, translate, deadlineT, startPagePreferences, locale] = await performanceTrace.measure('page.parallel', () => Promise.all([
     dataPromise,
-    getRequestUserPreferences(),
-    getTranslator('startpage'),
-    getTranslator('processAutomation', locale),
+    preferencesPromise,
+    preferencesPromise.then(({ locale: userLocale }) => getTranslator('startpage', userLocale)),
+    preferencesPromise.then(({ locale: userLocale }) => getTranslator('processAutomation', userLocale)),
     getStartPagePreferences({ supabase: requestContext.supabase, userId: requestContext.context.userId }),
+    localePromise,
   ]))
   const now = new Date()
   const hour = now.getHours()

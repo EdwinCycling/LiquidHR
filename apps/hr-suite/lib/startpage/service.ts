@@ -27,6 +27,7 @@ export interface StartPageDependencies {
   auth: AuthContext
   activeContext: ActiveContext
   locale?: Locale
+  localePromise?: Promise<Locale>
   performance?: ServerPerformanceTrace
   journeyOnly?: boolean
   journeys?: JourneyProjectionList
@@ -566,7 +567,12 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     employeeScopePromise.then((employeeScope) => measure('recurringAbsence', () => countRecurringAbsence(auth, employeeScope, supabase))),
     measure('countdowns', () => getStartPageCountdowns(auth, supabase)),
     measure('continuousAppraisal', () => getStartPageContinuousAppraisal({ context: auth, supabase })),
-    measure('processWork', () => getStartPageProcessWork(auth, supabase, dependencies?.locale ?? 'nl')),
+    measure('processWork', async () => {
+      const locale = dependencies?.localePromise
+        ? await dependencies.localePromise
+        : dependencies?.locale ?? 'nl'
+      return getStartPageProcessWork(auth, supabase, locale)
+    }),
     isManager && scope === 'team'
       ? managerTeamEmployeeIdsPromise.then((managerTeamEmployeeIds) => measure('teamAvailability', () => loadTeamAvailability(auth, managerTeamEmployeeIds, supabase)))
       : Promise.resolve(null),
