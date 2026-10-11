@@ -10,7 +10,7 @@ Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailr
 1. **AA-LEAN-01 — LiquidHR Codex Operating Model v2.** P0 workflow-/governance-refactor vóór de volgende parallelle productwave. Alleen documentatie/tooling; geen functionele code, schema, runtimeconfig of versieophoging.
 2. **PERF01-A — requestkosten, dashboard en dynamische AI/voice-componenten.** Verlaag overbodige requests en houd dynamische AI-/voice-code buiten de initiële dashboardpayload.
 3. **PERF01-B — gescopeerde aggregaties en employee-pagination.** Verminder omvangrijke employee-lijsten en gebruik server-side aggregaties binnen bestaande autorisatiescope.
-4. **Nmbrs — afzonderlijk plannen vanuit de bestaande** `work/payroll-p0-p1`-branch en bijbehorende worktree. Behoud de huidige branch als geparkeerd; geen automatische convergence met andere Core-waves.
+4. **NMBRS-02 — read-only employee synchronization preview.** Plan een aparte preview-only slice na de huidige releasecloseout. Geen employee writes, matching/apply, payroll export of externe payrollmutaties in die slice. Behoud `work/payroll-p0-p1` en de unieke P2-readinessdocumentatie tot behoud is bewezen; dit roadmap-item start geen implementatie in NMBRS-01.
 5. **Geauthenticeerde security- en persona-acceptatie blijft OPEN.** SEC-01 hosted positives/negatives en bestaande Control-, Insights- en AI-persona-negatives blijven expliciet in [AA-OPEN](AA-OPEN.md); een READY deployment verandert die verdicts niet.
 
 AA-CURRENT beschrijft de actuele main-/deploymentbaseline. De ONE VERSION-2026-10-10 voorstatus blijft historisch in het acceptance report en wordt niet opnieuw als huidige releasebeslissing gebruikt.
