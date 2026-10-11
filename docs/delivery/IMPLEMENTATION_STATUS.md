@@ -1,6 +1,12 @@
 # Implementatiestatus Liquid HR
 
-## ONE VERSION convergence — TEST — 2026-10-10
+## Current release — 2026-10-11
+
+**Status: TEST RELEASED; hosted geauthenticeerde security-/persona-acceptatie OPEN.** App `1.20261011.1`; GitHub `main` `c90275c5775a276d5ccd62f563b44372ee78ae11`; Vercel `liquidhr` deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is READY op dezelfde SHA. SEC-01 bronmigratie `20261011120317_secure_continuous_appraisal_attachment_storage_keys.sql` is op TEST toegepast met geregistreerde versie `20261011130922`; deze historische mismatch wordt niet herschreven of opnieuw toegepast. Zie [AA-CURRENT](../AA/AA-CURRENT.md), [AA-ACCEPT](../AA/AA-ACCEPT.md) en [AA-OPEN](../AA/AA-OPEN.md).
+
+De onderstaande release-/integratiestatussen behouden hun oorspronkelijke datum en bewijs; ze zijn geen actuele main-status wanneer zij een eerdere kandidaat beschrijven.
+
+## Historisch: ONE VERSION convergence — TEST — 2026-10-10
 
 **Status: lokaal geïntegreerd; codechecks groen; build/browseracceptatie ENVIRONMENT-GATED; niet naar main gepusht/gemerged en niet gedeployed.** De geïsoleerde branch `work/one-version-test-20261010` start vanaf `783999044de83c902e63fefb3587fdbbf99d4de3` en bevat CONTROL02 PR #12, APIAI-08 PR #11, Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9` en gecontroleerd overgezette PAY-RULE-002-code. `work/payroll-p0-p1` blijft als enige aparte Payroll-branch ongewijzigd geparkeerd. Zie [gebundelde ONE VERSION-acceptatie](../quality/acceptance/runs/ONE-VERSION-20261010.md) voor heads, lokale gates, TEST-status, PR-authenticatieblok, bestaande Vercel-deployment en resterende gates.
 

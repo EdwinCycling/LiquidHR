@@ -1,9 +1,15 @@
 # AA-ACCEPT — Accepted Baseline
 
 Status: **LIVING INDEX**
-Bijgewerkt: 2026-10-05
+Bijgewerkt: 2026-10-11
 
 Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte index van wat we als actuele baseline accepteren.
+
+## Actuele releasebaseline — 1.20261011.1
+
+GitHub `main` is `c90275c5775a276d5ccd62f563b44372ee78ae11`. Vercel `liquidhr` deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is **READY** op dezelfde SHA in het bestaande synthetic TEST-kanaal. SEC-01 migration `20261011120317_secure_continuous_appraisal_attachment_storage_keys` is op TEST toegepast en staat in de remote registratie als `20261011130922_secure_continuous_appraisal_attachment_storage_keys`; bewaar beide historische versies, herschrijf of herhaal de migratie niet. De hosted geauthenticeerde security-/persona-acceptatie is **OPEN** en wordt niet door deploymentstatus of TEST-migratie-readback gesloten.
+
+PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51`; alleen de geselecteerde, bijgewerkte roadmap/Focus-context is overgenomen. PR #13 is gesloten zonder merge; de niet-goedgekeurde PR #2 is niet gemerged. Oude ONE VERSION-voorstatussen hieronder blijven gedateerde historie en worden niet retroactief gewijzigd.
 
 **Open punten en openstaande bewijslast:** zie [AA-OPEN](AA-OPEN.md). Een punt in dat register is geen nieuw GREEN-verdict; de gedateerde acceptance reports en exacte codeprovenance blijven bepalend. Nieuwe lokale feature-overdrachten zijn pas geïntegreerde baseline na gecontroleerde convergence.
 
@@ -24,6 +30,7 @@ Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte
 
 | Slice | Status | Bewijs / opmerking |
 | --- | --- | --- |
+| Release 1.20261011.1 | **TEST RELEASED; HOSTED SECURITY/PERSONA ACCEPTANCE OPEN** | GitHub `main` `c90275c5775a276d5ccd62f563b44372ee78ae11`; Vercel `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` READY op dezelfde SHA; SEC-01 TEST-applied, bron-/registratieversies `20261011120317` / `20261011130922` |
 | ABS02 | GREEN | `docs/quality/acceptance/runs/ABS02-20260927.md` |
 | INS01 | TEST RELEASED; ACCEPTANCE PARTIAL | Persona-catalogus/live Bradford-route bewezen; volledige API-/scope-/exportmatrix en laatste CSV-inhoudcontrole nog OPEN |
 | CONTROL01 | TEST RELEASED; ACCEPTANCE PARTIAL | Full-circle/OWNER en nieuwe synthetische payroll-import met employment draft runtime-bewezen; live actor-/invite-/cross-tenant-negatives OPEN |

@@ -33,43 +33,43 @@ $commands = @(
         Example = '.\scripts\start-test-worktree.ps1 -Mode Production -PayrollAcceptance -Build'
     },
     [pscustomobject]@{
-        Name = 'Maak Git backup'
+        Name = 'Git backup (uitgefaseerd)'
         Aliases = @('git backup', 'backup')
-        Description = 'Maakt lokaal een backup-commit en werkt last-good bij.'
+        Description = 'Fail-closed legacycommando; maakt geen commit, tag of branch.'
         Source = '.\scripts\backup.ps1'
-        Risk = 'Commit lokaal; geen push'
+        Risk = 'Read-only foutmelding; geen Git-mutatie'
         Example = 'Maak Git backup'
     },
     [pscustomobject]@{
-        Name = 'Zet Git backup terug'
+        Name = 'Git restore (uitgefaseerd)'
         Aliases = @('git restore', 'restore')
-        Description = 'Zet tracked bestanden terug naar last-good na bevestiging.'
+        Description = 'Fail-closed legacycommando; reset of clean is uitgeschakeld.'
         Source = '.\scripts\restore.ps1'
-        Risk = 'Destructief; bevestiging vereist'
+        Risk = 'Read-only foutmelding; geen bestanden of refs wijzigen/verwijderen'
         Example = 'Zet Git backup terug'
     },
     [pscustomobject]@{
         Name = 'Nieuwe feature: <naam>'
         Aliases = @('nieuwe feature', 'feature starten')
-        Description = 'Maakt een genormaliseerde featurebranch vanaf last-good.'
+        Description = 'Vereist schone lokale main gelijk aan actuele origin/main; maakt lokaal work/<run-id>-<YYYYMMDD> zonder worktree.'
         Source = '.\scripts\new-feature.ps1'
         Risk = 'Lokale branch; dirty tree wordt geweigerd'
-        Example = 'Nieuwe feature: Split Screen'
+        Example = '.\scripts\new-feature.ps1 -Name AA-LEAN-01'
     },
     [pscustomobject]@{
         Name = 'Feature afgerond'
         Aliases = @('feature finish', 'feature klaar')
-        Description = 'Draait tests, maakt lokaal een commit en toont een mergevoorstel.'
+        Description = 'Accepteert work/<run-id>-<YYYYMMDD>, vereist expliciete paden en commit alleen die paden; docs/tooling starten geen hr-suite.'
         Source = '.\scripts\finish-feature.ps1'
         Risk = 'Commit lokaal; geen merge of push'
-        Example = 'Feature afgerond'
+        Example = '.\scripts\finish-feature.ps1 -Path docs/AA/AA-OP.md,scripts/new-feature.ps1'
     },
     [pscustomobject]@{
         Name = 'Feature samenvoegen'
         Aliases = @('feature merge', 'merge feature')
-        Description = 'Controleert de releasegate, merge-t naar main, pusht main en ruimt tijdelijke refs pas veilig op.'
-        Source = 'AGENTS.md: Feature worktree workflow in Codex-chat'
-        Risk = 'Merge, push en opruimen; stopt bij iedere veiligheidsvoorwaarde'
+        Description = 'Voer gecontroleerd uit als de oorspronkelijke opdracht merge/push autoriseert; verwijder alleen de eigen tijdelijke branch na bevestigde integratie.'
+        Source = 'docs\AA\AA-REL.md'
+        Risk = 'Externe GitHub-mutatie; vereist passend mandaat en groene gates'
         Example = 'Feature samenvoegen'
     },
     [pscustomobject]@{

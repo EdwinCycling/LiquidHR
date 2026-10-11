@@ -3,22 +3,32 @@
 Status: **LEIDEND**
 Eerste opzet: 2026-09-29
 
-Doel: hoge zekerheid zonder na iedere kleine wijziging ~2.000 tests opnieuw te draaien.
+Doel: proportioneel bewijs zonder na iedere kleine wijziging de volledige HR-suite opnieuw te draaien.
 
-## 1. Testprincipe
+## 1. Risicoklassen en testminimum
+
+| Risico | Voorbeelden | Minimum |
+| --- | --- | --- |
+| **LOW** | Documentatie, workflow-/configuratietekst, beperkte statische wijziging zonder runtimegedrag | Controleer geraakte verwijzingen/inconsistenties, diff-check en zo nodig een gerichte document-/scriptcheck. Geen volledige HR-suite; geen browser zonder runtimewijziging. |
+| **MEDIUM** | Gewone feature of bugfix | Direct geraakte tests plus aangrenzende contracttests; toepasselijke scope-typecheck/lint; gerichte browsercontrole wanneer UI-gedrag verandert. |
+| **HIGH** | Auth, tenant/RLS, Payroll, schema, security of cross-cutting wijziging | Positieve én negatieve autorisatie-/scopegevallen; domein-, regressie- en integriteitschecks; relevante databasecontracten; productiebuild waar toepasselijk; volledige suite volgens de releasegate. Remote readback/mutatie alleen binnen afzonderlijk toegestaan bereik. |
+
+**Releasegate:** voer één finale volledige relevante suite uit op de definitieve runtime-/schemacode. Koppel bewijs aan de exacte commit-SHA. Herhaal de suite niet na uitsluitend documentatie- of versiemetadatawijzigingen. `OPEN` is niet `GREEN`; eerder bewijs geldt niet vanzelf na wijziging van runtimecode of schema.
+
+## 2. Testprincipe
 
 Test **risicogestuurd en bounded**.
 
 | Wijziging | Minimum |
 | --- | --- |
-| Kleine component-/bugfix | betrokken tests + regressietest |
-| Nieuwe feature/slice | featuretests + aangrenzende contracts/security |
-| DB/migration | migrationcontract + readback + RLS/grants + types |
-| Auth/RLS/scope | gerichte authorization/securitymatrix |
-| Shared core met brede blast radius | bredere relevante suite, zo nodig full suite |
-| Featurebranch afronding | relevante feature-/integrationgates |
-| Convergence/release | één volledige suite + production build |
-| Alleen docs/version metadata na bewezen code | full suite niet opnieuw |
+| Kleine component-/bugfix | LOW/MEDIUM volgens runtime- en security-impact |
+| Nieuwe feature/slice | MEDIUM of HIGH volgens scope; featuretests + aangrenzende contracten |
+| DB/migration | HIGH: contract, readback, RLS/grants en types na geautoriseerde wijziging |
+| Auth/RLS/scope | HIGH: gerichte positieve én negatieve autorisatiematrix |
+| Shared core met brede blast radius | passende bredere suite; full suite als releasebeleid dit vereist |
+| Feature afronden | relevante feature-/integratiegates; geen automatische full suite |
+| Convergence/release | één volledige finale suite + passende build |
+| Alleen docs/versionmetadata na bewezen code | geen full suite opnieuw |
 
 Een full suite is geen ritueel. Gebruik hem waar het bewijs toevoegt.
 
@@ -29,7 +39,7 @@ Praktische regel:
 - na uitsluitend docs/versionmetadata: niet opnieuw;
 - zodra ná een eerdere full suite nog productcode, UI-code, schema of runtimegedrag wijzigt, geldt die eerdere full-suite-GREEN niet automatisch als releasebewijs voor de nieuwe worktree.
 
-## 2. Persona's
+## 3. Persona's
 
 De vaste functionele testpersona's zijn:
 
@@ -76,7 +86,7 @@ Gebruik de bestaande geconfigureerde identities/harness. Documenteer geen wachtw
 
 Een test mag nooit groen worden gemaakt door tijdens acceptance een extra rol, platformoperator of tweede identity te creëren die het product normaal niet zou hebben.
 
-## 3. Test Auth versus normale OAuth
+## 4. Test Auth versus normale OAuth
 
 Test Auth:
 - uitsluitend lokale development/test;
@@ -101,7 +111,7 @@ Control:
 - De launcher bouwt of installeert niets en stopt geen bestaand proces. Een nieuwe worktree mag zonder lokale `.env.local` starten; een bestaande lokale file wordt alleen toegestaan wanneer de centrale hardlink aantoonbaar is.
 - Leg voor browseracceptatie de exacte worktree-HEAD, status, URL, viewport en relevante browser/networkresultaten vast. De volledige werkwijze staat in `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
 
-## 4. Synthetic testdata
+## 5. Synthetic testdata
 
 - Gebruik synthetische, duidelijk herkenbare TEST-records.
 - Gebruik geen echte persoonsgegevens in repositoryfixtures.
@@ -110,7 +120,7 @@ Control:
 - Waar cleanup veilig onderdeel van het productcontract is: cleanup/neutralisatie na de run.
 - Waar cleanup niet passend is: markeer records herkenbaar als synthetic acceptance fixture en documenteer ze.
 
-## 5. Authorization matrix
+## 6. Authorization matrix
 
 Bij securitygevoelige features minimaal waar relevant:
 - happy path juiste persona;
@@ -124,7 +134,7 @@ Bij securitygevoelige features minimaal waar relevant:
 - read versus write;
 - direct API/RPC, niet alleen UI.
 
-## 6. Browser en API
+## 7. Browser en API
 
 Browseracceptatie bewijst:
 - werkelijke navigatie;
@@ -147,7 +157,7 @@ Exports:
 - controleer content-type/formaat;
 - controleer spreadsheet-formuleprefixbescherming waar relevant.
 
-## 7. DB en concurrency
+## 8. DB en concurrency
 
 Bij databasekritieke flows:
 - inspecteer readback, niet alleen HTTP 200;
@@ -167,7 +177,7 @@ Voor staged imports die meerdere domainwrites doen, test minimaal:
 - foutdiagnostiek is voldoende voor root-cause zonder PII/secrets;
 - batchstatus maskeert geen ontbrekende kernrecord.
 
-## 8. UI en i18n
+## 9. UI en i18n
 
 Waar relevant:
 - loading;
@@ -179,7 +189,7 @@ Waar relevant:
 - narrow/mobile viewport;
 - NL/EN parity.
 
-## 9. Payroll Lab / payroll engine
+## 10. Payroll Lab / payroll engine
 
 Voor Payroll geldt aanvullend `AA-PAYROLL.md`.
 
@@ -210,7 +220,7 @@ Browseracceptatie mag bestaande lokale Test Auth/testidentities gebruiken. Maak 
 
 Een Payroll Lab-auth/environmentprobleem mag als `ENVIRONMENT-GATED` worden geregistreerd wanneer engine/persistencebewijs onafhankelijk beschikbaar is; heropen geen eindeloze auth-RCA buiten de afgesproken slice.
 
-## 10. Full-suite beleid
+## 11. Full-suite beleid
 
 Draai een volledige hr-suite:
 - aan het eind van convergence/release;
@@ -226,7 +236,7 @@ Als één ongerelateerde test timeout:
 3. bepaal flaky/performance/root cause;
 4. release vereist uiteindelijk een verdedigbare GREEN gate volgens AA-REL.
 
-## 11. Acceptance verdicts
+## 12. Acceptance verdicts
 
 Volg `docs/quality/acceptance/REPORTING-STANDARD.md`.
 

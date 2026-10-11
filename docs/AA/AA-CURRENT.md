@@ -1,17 +1,18 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-10 (release-evidence hieronder blijft historisch gedateerd)
+Momentopname: 2026-10-11 (historische acceptance-evidence blijft ongewijzigd)
 
-## ONE VERSION convergence candidate — 2026-10-10
+## Actuele releasebaseline — 1.20261011.1
 
-**Status: code lokaal geïntegreerd; acceptatie nog open; geen merge naar main of deployment.** De geïsoleerde kandidaat vanaf main `783999044de83c902e63fefb3587fdbbf99d4de3` bevat CONTROL02-cleanup PR #12, APIAI-08 PR #11, Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9` en PAY-RULE-002-code. De geparkeerde Nmbrs/externe Payroll-branch `work/payroll-p0-p1` blijft onaangeraakt.
+- Appversie `1.20261011.1`; `origin/main` en GitHub `main`: `c90275c5775a276d5ccd62f563b44372ee78ae11`.
+- Vercel `liquidhr`, deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV`: **READY** op exact dezelfde SHA. Target `production` is de deploymentchannel van de bestaande synthetic TEST-omgeving.
+- SEC-01 migrationbron `20261011120317_secure_continuous_appraisal_attachment_storage_keys`; read-only TEST-migrationlijst registreert dezelfde naam als `20261011130922`. De historische versies verschillen; niet hernoemen, herschrijven of opnieuw toepassen.
+- De geauthenticeerde hosted security-/persona-acceptatie voor SEC-01 blijft **OPEN**. Deployment READY en toepassing op TEST zijn daarvoor geen vervangend bewijs; zie [AA-OPEN](AA-OPEN.md).
+- CONTROL02 en de officiële Loonaangifte-XML-import blijven **CANCELLED**. `work/payroll-p0-p1` en de Nmbrs-worktree blijven als afzonderlijk geparkeerd spoor behouden.
+- PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51` en bracht de selectief bijgewerkte roadmap/Focus-context mee. PR #13 en de niet-goedgekeurde PR #2 zijn niet gemerged; zie [PR #16](https://github.com/EdwinCycling/LiquidHR/pull/16).
 
-- APIAI-08 TEST-migratie en lokale bestandsnaam zijn gelijk: `20261010064331_apiai08_employee_ess_controlled_actions`; SQL is niet opnieuw toegepast. De 0-versus-96 uur verlofsaldoafwijking en hosted ESS/audit/runtime-acceptatie blijven open.
-- PAY-RULE-002 workflowmigraties zijn op synthetic TEST geregistreerd als `20261010130013` en `20261010130140`. Bestaande mapping-/assignmentrijen zijn versiegegeven; de Frits-assignment en persistente successor-runs blijven niet aangemaakt.
-- Main-versie blijft `1.20261002.1` totdat de gebundelde acceptatie slaagt. De synthetic TEST-deployment, GitHub-main-merge en expliciete artefactcleanup zijn nog niet uitgevoerd.
-
-> **Actueel:** CONVERGENCE01 is als TEST-release vrijgegeven op 2026-10-02. Dit is **geen** claim dat de volledige live security-/persona-acceptatiematrix GREEN is.
+De kandidaatstatus van ONE VERSION op 2026-10-10 is historisch vastgelegd in [het acceptatierapport](../quality/acceptance/runs/ONE-VERSION-20261010.md); die status is niet de actuele main-/deploymentstatus.
 
 > **Statusupdate 2026-10-10:** CONTROL02 en de officiële Loonaangifte-XML-import zijn CANCELLED. Er komt geen vervolgontwikkeling, herstelmigratie of E2E-acceptatie. De interne representatieve import en CONTROL01 blijven behouden; TEST-data en databaseobjecten zijn read-only geïnventariseerd en blijven staan totdat een exact cleanupvoorstel apart is goedgekeurd.
 
@@ -25,7 +26,9 @@ Momentopname: 2026-10-10 (release-evidence hieronder blijft historisch gedateerd
 - Canonieke Supabase TEST/projectomgeving: `wnpfloqpjvaacobppbpk`
 - Eén operationele LiquidHR-omgeving; Vercel “Production” is deploymentchannelnaam.
 
-## Actuele canonieke LiquidHR TEST-baseline vóór convergence — 2026-10-10
+## Historische canonieke baseline vóór release 1.20261011.1 — 2026-10-10
+
+De volgende deploymentgegevens beschrijven de baseline vóór de release hierboven en zijn behouden als historische context.
 
 - Appversie: `1.20261002.1`.
 - `origin/main`: `783999044de83c902e63fefb3587fdbbf99d4de3`.

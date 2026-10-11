@@ -1,27 +1,44 @@
 # Codex Developer Toolkit
 
-Deze toolkit geeft LiquidHR vaste, natuurlijke werkcommando's. `EdwinHelp` is het actuele startpunt; de scripts werken lokaal in Git en voeren nooit vanzelf een push of merge uit.
+De scripts zijn kleine, lokale helpers. De canonieke uitvoering staat in [`AGENTS.md`](../AGENTS.md), [`AA-OP.md`](AA/AA-OP.md), [`AA-TEST.md`](AA/AA-TEST.md) en [`AA-REL.md`](AA/AA-REL.md). Geen script voert ongemerkt brede staging, branch-/tagverplaatsing, reset, clean, merge of push uit.
 
-## Commando's
+## Huidige Git-workflow
 
-| Natuurlijk commando | Lokale actie |
+| Commando | Gedrag |
 | --- | --- |
-| `EdwinHelp` | Read-only overzicht van alle commando's, bronnen, risico's en voorbeelden. |
-| `Provision lokale TEST-runtimeconfig` | Maakt de centrale runtimeconfig als metadata-geverifieerde hardlink naar de beschermde canonical config; leest, kopieert of overschrijft geen configuratiebestand. |
-| `Start lokale TEST-runtime` | Preflight of start de centrale lokale TEST-runtime vanuit iedere geschikte worktree; kopieert geen config, installeert niets en bouwt alleen na expliciet `-Build`. |
-| `Maak Git backup` | Stage alle lokale wijzigingen, maak zo nodig een backup-commit en verplaats `last-good` en `backup/last-good` naar de actuele commit. |
-| `Zet Git backup terug` | Vraag een expliciete bevestiging en zet tracked bestanden terug naar `last-good`; nieuwe ongetrackte bestanden blijven standaard behouden. |
-| `Nieuwe feature: <naam>` | Weigert een dirty werkboom, normaliseert `<naam>` naar `feature/<slug>` en maakt die branch vanaf `last-good`. |
-| `Feature afgerond` | Controleert diff en kwaliteit, commit op de featurebranch en synchroniseert veilig met de nieuwste `main`. |
-| `Feature samenvoegen` | Merge't en pusht `main`, controleert commit/deployment en ruimt worktree en branches pas daarna op. |
-| `Maak project overview` | Gebruikt de project-overview-skill voor actuele lokale KPI's en optioneel geaggregeerde live Supabase-cijfers. |
-| `Meet Next geheugen` | Meet een draaiende Next-server en schrijft de opgegeven CSV-meting. |
-| `Schrijf blog` | Schrijft of redigeert Nederlandse blogs en professionele teksten in Edwin-stijl, vanuit chat of bestanden in `work`. |
-| `Redesign LiquidHR scherm` | Analyseert en herontwerpt één scherm volgens de Liquid Flow-skill en werkt requirements, status en delivery-context bij. |
+| `EdwinHelp` | Read-only overzicht van actuele commando's en risico's. |
+| `Nieuwe feature: <run-id>` | `new-feature.ps1 -Name <run-id>` vereist een schone lokale `main`, haalt `origin/main` non-interactief op, stopt bij een afwijkende SHA of ontbrekende Git-toegang en maakt lokaal `work/<slug>-<YYYYMMDD>`. Geen loginprompt, worktree, backupref of push. |
+| `Feature afgerond` | `finish-feature.ps1 -Path <paden>` accepteert alleen `work/<run-id>-<YYYYMMDD>`, controleert scope en beschermde paden, en commit uitsluitend de expliciet genoemde bestanden. Docs-/tooling-only draait geen HR-suite. Codebestanden vereisen één expliciete gerichte `-Verify`-opdracht; er start nooit automatisch een volledige suite. |
+| `Git backup` / `Git restore` | `backup.ps1` en `restore.ps1` zijn uitgefaseerd en fail-closed. Ze maken geen commits/refs en overschrijven/verwijderen niets, ook niet met oude switches. |
+| `Feature samenvoegen` | Alleen uitvoeren als de oorspronkelijke opdracht merge/push autoriseert. Volg de toepasselijke gates uit `AA-REL.md`; verifieer daarna main en de eventueel automatisch gestarte deployment. |
 
-De natuurlijke commando's zijn vastgelegd in [`AGENTS.md`](../AGENTS.md). Codex vertaalt ze naar de scripts in [`scripts/`](../scripts/).
+Kleine, veilige werkzaamheden gebruiken waar passend de bestaande schone checkout. Een branch en aparte worktree zijn geen standaardvereiste. De enige branchvorm is `work/<RUN-ID>-<YYYYMMDD>`; `last-good` is geen baseline.
 
-## EdwinHelp gebruiken
+## Voorbeelden
+
+```powershell
+EdwinHelp
+EdwinHelp -Detailed
+EdwinHelp -Command 'nieuwe feature'
+.\scripts\new-feature.ps1 -Name 'AA-LEAN-01'
+```
+
+Docs-/toolingwijzigingen afronden:
+
+```powershell
+.\scripts\finish-feature.ps1 -Path @('AGENTS.md', 'docs/AA/AA-OP.md', 'scripts/new-feature.ps1') -Message 'chore: align Codex operating model'
+```
+
+Een codewijziging vereist de concrete gerichte check. Geef de uitvoerbare opdracht als array door; selecteer de juiste test volgens `AA-TEST.md`:
+
+```powershell
+$verify = @('npm.cmd', 'test', '--workspace', '@liquid-hr/hr-suite', '--', '--run', 'lib/feature.test.ts')
+.\scripts\finish-feature.ps1 -Path @('apps/hr-suite/lib/feature.ts', 'apps/hr-suite/lib/feature.test.ts') -Verify $verify
+```
+
+Voer alle overige toepasselijke typecheck-, lint-, i18n-, browser- of buildgates apart uit vóór afronding. Een `-Verify`-opdracht vervangt die gates niet.
+
+## EdwinHelp
 
 ```powershell
 .\scripts\edwin-help.ps1
@@ -29,67 +46,13 @@ De natuurlijke commando's zijn vastgelegd in [`AGENTS.md`](../AGENTS.md). Codex 
 .\scripts\edwin-help.ps1 -Command 'backup'
 ```
 
-In Codex is `EdwinHelp` voldoende. De catalogus staat centraal in [`scripts/edwin-help.ps1`](../scripts/edwin-help.ps1), zodat een nieuw commando op één plek kan worden toegevoegd met naam, aliassen, beschrijving, bron, veiligheidsniveau en voorbeeld.
+`EdwinHelp` voert zelf geen tests, commits, branch-, database-, merge-, push- of deploymentactie uit. De canonieke lokale TEST-runtimecommando's zijn `provision-test-runtime.ps1` en `start-test-worktree.ps1`; ze volgen de bescherming van `.env.local` en de centrale hardlink. Zie [`TEST_RUNTIME_AND_VERCEL_PREVIEW.md`](delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md).
 
-## Schrijven vanuit chat, work en Codex
+## Andere vaste hulpmiddelen
 
-De schrijfmodus staat in [`docs/skills/edwinhelp-writing/SKILL.md`](skills/edwinhelp-writing/SKILL.md). Gebruik hem met één van deze ingangen:
+- Redesign: [`docs/skills/edwinhelp-screen-redesign/SKILL.md`](skills/edwinhelp-screen-redesign/SKILL.md).
+- Projectinventaris: [`docs/skills/project-overview/SKILL.md`](skills/project-overview/SKILL.md).
+- Schrijf-/redigeerwerk: [`docs/skills/edwinhelp-writing/SKILL.md`](skills/edwinhelp-writing/SKILL.md).
+- Next-geheugenmeting: `scripts/measure-next-memory.ps1`.
 
-- **Chat:** zeg `Gebruik EdwinHelp. Schrijf een blog over ...` en plak observaties, bronnen of een concept in de chat.
-- **work:** zet bronbestanden in de actuele `work`-map en zeg `Gebruik EdwinHelp. Lees de bestanden in work en schrijf een blog. Sla het resultaat op in outputs.`
-- **Codex vanuit de repository:** zeg `Lees AGENTS.md en ga verder vanaf CURRENT_CONTEXT.md. Gebruik EdwinHelp en schrijf ...`.
-
-De schrijfmodus mag tekstbestanden lezen en nieuwe tekstbestanden maken, maar voert geen code-, Git-, database-, merge-, push- of deploymentactie uit. Voor projectstatus, branches en Git blijft het bestaande EdwinHelp-commando leidend.
-
-## Schermen redesignen vanuit EdwinHelp
-
-De vaste werkwijze staat in [`docs/skills/edwinhelp-screen-redesign/SKILL.md`](skills/edwinhelp-screen-redesign/SKILL.md). De afgeronde schermen en de volgende pagina staan in [`docs/requirements/ux/SCHERM_REDESIGN_STATUS.md`](requirements/ux/SCHERM_REDESIGN_STATUS.md).
-
-Gebruik bijvoorbeeld:
-
-```text
-Gebruik EdwinHelp. Redesign de pagina Rollen en autorisatie op /authorization. Lees eerst de bestaande autorisatie-requirements en het UX-statusdocument. Maak eerst het requirementsdocument en een ontwerpvoorstel.
-```
-
-## Veiligheidsregels
-
-- De huidige werkboom wordt bij restore standaard beschermd; `-Force` is nodig om dirty tracked wijzigingen te overschrijven.
-- Restore vraagt altijd om exact `HERSTEL`, ook wanneer `-Force` is gebruikt.
-- Restore verwijdert standaard geen nieuwe bestanden. Gebruik `.\scripts\restore.ps1 -Force -Clean` alleen na controle van de lijst met ongetrackte bestanden.
-- Een nieuwe feature start alleen vanuit een schone werkboom en weigert een bestaande branchnaam.
-- Backup en finish werken alleen lokale refs bij. Ze pushen niet naar GitHub en mergen niet naar `main`.
-- `Feature afgerond` maakt alleen een commit wanneer de tests slagen. Bij testfalen wordt niets gecommit of getagd.
-- `EdwinHelp` is read-only; het commando voert geen backup, restore, tests, merge of push uit.
-
-## Handmatig gebruik
-
-```powershell
-.\scripts\backup.ps1
-.\scripts\restore.ps1
-.\scripts\provision-test-runtime.ps1
-.\scripts\new-feature.ps1 -Name 'Split Screen'
-.\scripts\finish-feature.ps1
-```
-
-Voor een expliciete commitboodschap:
-
-```powershell
-.\scripts\backup.ps1 -Message 'backup: voor split screen'
-.\scripts\finish-feature.ps1 -Message 'feat: voeg split screen toe'
-```
-
-## Eerste gebruik
-
-Omdat de huidige werkboom niet automatisch door deze taak wordt gecommit, voert Edwin vóór de eerste feature zelf uit:
-
-```powershell
-.\scripts\backup.ps1 -Message 'backup: start Codex Developer Toolkit'
-```
-
-Controleer daarna `git status`, `git log --oneline --decorate -3` en `git tag --list last-good` voordat je een featurebranch start.
-
-Als de lokale PowerShell Execution Policy directe `.ps1`-uitvoering blokkeert, gebruik dan een tijdelijke procesoptie; deze wijzigt de machinebeleidinstelling niet:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\backup.ps1 -Message 'backup: start Codex Developer Toolkit'
-```
+Schrijfmodus, projectinventaris en geheugenmeting zijn afzonderlijke taken en verruimen geen Git-, database-, security-, merge- of deploymandaat.

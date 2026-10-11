@@ -1,144 +1,63 @@
-# AA — LiquidHR Canonical Guidance
+# AA — canonieke documentatierouter
 
-Status: **LEIDEND ZODRA GEMERGED OP `main`**
-Eerste opzet: 2026-09-29
+Status: **LEIDEND** · levende afspraken worden in deze bestaande documenten bijgewerkt; Git bewaart de geschiedenis.
 
-De `docs/AA`-map bevat een kleine set **living documents** voor productsturing, Codex-uitvoering, testbeleid, releasebeleid en roadmap. De documenten worden bijgewerkt in plaats van gekopieerd naar nieuwe versies; Git is de versiehistorie.
+## Verantwoordelijkheid per document
 
-## Doel
-
-De AA-set voorkomt dat actuele afspraken verspreid raken over oude prompts, losse chats en historische runrapporten.
-
-- Requirements zeggen **wat** het product moet doen.
-- AA-REQ bevat de **fundamentele product- en architectuurregels**.
-- AA-OP bepaalt **hoe Codex werkt**.
-- AA-TEST bepaalt **hoe we bewijs verzamelen**.
-- AA-PAYROLL bevat de **leidende payrollarchitectuur en ontwikkelafspraken**.
-- AA-REL bepaalt **hoe convergence, release, deployment en cleanup verlopen**.
-- AA-NEXT bepaalt **wat direct hierna komt**.
-- AA-ROAD bevat de **langere productkoers**.
-- AA-CURRENT beschrijft **waar de actuele code/release staat**.
-- AA-ACCEPT beschrijft **wat aantoonbaar accepted/GREEN is** en verwijst naar detailrapporten.
-- AA-OPEN registreert **welke benoemde bewijs-, fixture- en besluitpunten nog openstaan**, zodat gedocumenteerde externe blokkades niet opnieuw dezelfde ontwikkellus starten.
-
-## Canonieke documenten
-
-| Document | Functie |
+| Bestand | Verantwoordelijkheid |
 | --- | --- |
-| [AA-REQ](AA-REQ.md) | Niet-onderhandelbare product-, data-, security- en architectuurregels |
-| [AA-OP](AA-OP.md) | Codex operating model: branches, worktrees, implementatie, migrations, stopcriteria |
-| [AA-TEST](AA-TEST.md) | Teststrategie, persona's, testdata en risicogestuurde gates |
-| [AA-PAYROLL](AA-PAYROLL.md) | Payroll bounded context, componentengine, ownership, test-/UI-regels |
-| [AA-REL](AA-REL.md) | Convergence, versioning, deployment, provenance en cleanup |
-| [AA-NEXT](AA-NEXT.md) | Korte-termijnroadmap |
-| [AA-ROAD](AA-ROAD.md) | Lange-termijnroadmap |
-| [AA-CURRENT](AA-CURRENT.md) | Actuele technische/productstatus |
-| [AA-ACCEPT](AA-ACCEPT.md) | Actuele accepted baseline |
-| [AA-OPEN](AA-OPEN.md) | Openstaand bewijs, uitgestelde controles, afhankelijkheden, eigenaar en heropeningsvoorwaarden |
+| [`AGENTS.md`](../../AGENTS.md) | Compact, bindend uitvoeringscontract en niet-onderhandelbare grenzen |
+| `AA-README.md` | Deze router: wat lees je voor welke taak? |
+| [`AA-OP.md`](AA-OP.md) | Codex-mandaat, bounded execution en Git-/parallelregels |
+| [`AA-TEST.md`](AA-TEST.md) | Risicogestuurde teststrategie en verdicts |
+| [`AA-REL.md`](AA-REL.md) | PR, integratie, merge, deployment, provenance en cleanup |
+| [`AA-CURRENT.md`](AA-CURRENT.md) | Compacte actuele bewezen baseline; richtlijn maximaal 100–150 regels |
+| [`AA-NEXT.md`](AA-NEXT.md) | Eerstvolgende productwaves en hun volgorde |
+| [`AA-OPEN.md`](AA-OPEN.md) | Open beslissingen, bewijs-/fixturegaten, eigenaar en afsluitproef |
+| [`AA-ACCEPT.md`](AA-ACCEPT.md) | Index van accepted baselines; geen vervanging van gedateerde rapporten |
+| [`AA-REQ.md`](AA-REQ.md) | Fundamentele product-, data-, security- en architectuurinvarianten |
+| [`AA-PAYROLL.md`](AA-PAYROLL.md) | Payrollbounded context, precisie, wettelijke regels, provenance en gates |
+| [`AA-ROAD.md`](AA-ROAD.md) | Langetermijnproductrichting |
+| `docs/requirements/`, ADR/FDR en domeindocumenten | Alleen requirements en architectuur die de feitelijke wijziging raakt |
 
-## Leesmatrix voor Codex
+## Standaard leesroute
 
-### Nieuwe feature / productwave
-Lees minimaal:
-1. `AA-REQ.md`
-2. `AA-OP.md`
-3. `AA-TEST.md`
-4. `AA-CURRENT.md`
-5. `AA-NEXT.md`
-6. de domeinspecifieke requirements waarnaar de wave verwijst
+1. Lees `AGENTS.md` en de concrete opdracht/acceptatiecriteria.
+2. Lees de actuele samenvatting bovenaan `AA-CURRENT.md`.
+3. Gebruik deze tabel en taakmatrix om alleen de toepasselijke AA-secties te openen.
+4. Lees alleen domeinrequirements, ADR/FDR's en tests die door de feitelijke wijziging worden geraakt.
+5. Zoek in historische documenten gericht op een route, identifier, datum of bewijsclaim; laad een heel historisch bestand alleen als de taak dat nodig maakt.
 
-### Payroll feature / Payroll Lab
-Lees minimaal:
-1. `AA-PAYROLL.md`
-2. `AA-OP.md`
-3. `AA-TEST.md`
-4. `AA-CURRENT.md`
-5. relevante payrollrequirements/ADR/FDR/acceptance evidence
-6. `AA-OPEN.md` voor relevante bestaande Payroll-gates en extern afhankelijke fixturepunten
+De AA-CURRENT-startcontext blijft compact. Een nieuwe taak hoeft niet standaard het volledige `docs/README.md`, `docs/delivery/CURRENT_CONTEXT.md`, `docs/delivery/IMPLEMENTATION_STATUS.md`, `AA-ACCEPT.md`, `AA-OPEN.md` of de volledige AA-set te lezen.
 
-### Bugfix
-Lees minimaal:
-1. `AA-OP.md`
-2. `AA-TEST.md`
-3. `AA-CURRENT.md`
+## Taakmatrix
 
-### Database / migration / security
-Lees minimaal:
-1. `AA-REQ.md`
-2. `AA-OP.md`
-3. `AA-TEST.md`
-4. `AA-CURRENT.md`
-5. relevante ADR/FDR en domeinrequirements
+| Taak | Leesroute |
+| --- | --- |
+| Gewone bugfix/feature | `AGENTS.md`, opdracht, relevante delen van `AA-OP.md` en `AA-TEST.md`, huidige status alleen waar relevant, geraakte domeinrequirement |
+| Toolkit-/proceswijziging | `AGENTS.md`, `AA-OP.md`, `AA-TEST.md`, `AA-REL.md` voor integratie, de toolkitbestanden en relevante tests |
+| Auth, security, tenant, schema of RLS | Bovenstaande plus relevante delen van `AA-REQ.md`, toepasselijke domeinrequirements/ADR en exacte bestaande acceptance-evidence |
+| Payroll | Alleen voor zover geraakt `AA-PAYROLL.md`, `AA-OP.md`, `AA-TEST.md` en relevante Payroll-requirements/evidence |
+| Merge/release/deployment | `AA-OP.md`, `AA-TEST.md`, `AA-REL.md`, actuele `AA-CURRENT.md`; alleen relevante rijen uit `AA-ACCEPT.md`/`AA-OPEN.md` en het exacte runrapport |
+| Roadmapbesluit | `AA-NEXT.md`, relevante `AA-ROAD.md`-sectie en alleen de benodigde `AA-CURRENT.md`/`AA-OPEN.md`-status |
 
-### Convergence / release
-Lees minimaal:
-1. `AA-OP.md`
-2. `AA-TEST.md`
-3. `AA-REL.md`
-4. `AA-CURRENT.md`
-5. `AA-ACCEPT.md`
-6. `AA-OPEN.md` — bespreek ieder relevant OPEN-punt expliciet; geen stilzwijgende GREEN
+Voor lokale TEST-runtime of geïsoleerde Vercel Preview: raadpleeg gericht [`docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`](../delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md).
 
-Gebruik voor de centrale lokale TEST-runtime en geïsoleerde Vercel Preview daarnaast `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
+## Instructieprioriteit
 
-### Roadmapplanning
-Lees:
-1. `AA-NEXT.md`
-2. `AA-ROAD.md`
-3. `AA-CURRENT.md`
-4. `AA-ACCEPT.md`
-5. `AA-OPEN.md` voor relevante evidencegaps en beslissingen
+1. Huidige expliciete opdracht en het daarin gegeven mandaat.
+2. Niet-onderhandelbare privacy-, security- en data-integriteitsgrenzen.
+3. `AGENTS.md` als operationeel contract.
+4. Alleen de toepasselijke uitvoeringsregels uit `AA-OP.md`, `AA-TEST.md`, `AA-REL.md` en eventueel `AA-PAYROLL.md`.
+5. Goedgekeurde domeinrequirements en architectuur.
+6. Historische acceptance-/deliveryrapporten als bewijs of context, nooit als actuele werkinstructie zonder controle.
 
-## Bronnen en prioriteit
+Bij conflict: stel vast welk document verantwoordelijk is, herstel de afspraak daar en verwijder de tegenstrijdige instructie waar die ontstond. Verander geen historische verdicts retroactief. Een aanname of implementatieclaim wordt niet stilzwijgend `GETEST`, `GREEN` of `RELEASED`.
 
-Bij conflict geldt in deze volgorde:
+## Onderhoud
 
-1. expliciet, actueel besluit in een ADR/FDR of leidend requirement;
-2. AA-REQ / AA-OP / AA-TEST / AA-PAYROLL / AA-REL;
-3. AA-CURRENT / AA-ACCEPT;
-4. domeinspecifieke requirements;
-5. actuele acceptance reports;
-6. oudere delivery/handoff-documenten;
-7. historische prompts of chatnotities.
-
-Een oud document wordt nooit stilzwijgend als actueler behandeld dan een later vastgelegd besluit.
-
-## Scherpteprotocol
-
-De AA-set is ook bedoeld om Edwin, ChatGPT en Codex elkaar inhoudelijk scherp te laten houden.
-
-Maak bij iedere relevante conclusie onderscheid tussen:
-- **BEDOELD** — productwens of requirement;
-- **GEBOUWD** — aantoonbaar in code/schema aanwezig;
-- **GETEST** — het specifieke gedrag is daadwerkelijk bewezen;
-- **RELEASED** — de bewezen code staat op de canonieke release/main/deployment.
-
-Regels:
-- Zet een aanname nooit stilzwijgend om in een feit.
-- Een grote groene regressiesuite bewijst niet automatisch dat elk scherm of businessscenario handmatig is geaccepteerd.
-- Een catalogus van 19 rapporten bewijst niet dat alle 19 rapporten volledig geharmoniseerd zijn.
-- Een parser/stagingcontract bewijst niet automatisch een live end-to-end import.
-- Als een gebruikersaanname, Codex-rapport of ouder document botst met actuele code/evidence: benoem het verschil en corrigeer de AA-baseline.
-- Als tijdens een run een herhaalbare procesles ontstaat, leg die in AA vast in plaats van dezelfde uitleg in toekomstige prompts te herhalen.
-
-## Updatebeleid
-
-- Geen `v2-final-final`-bestanden; werk het canonieke AA-bestand bij.
-- Codex wijzigt AA-documenten alleen wanneer de run dit expliciet toestaat.
-- Roadmapwijzigingen zijn productbesluiten en worden niet autonoom door Codex verzonnen.
-- Na een GREEN release worden minimaal `AA-CURRENT`, `AA-ACCEPT` en `AA-NEXT` gecontroleerd.
-- Nieuwe structurele werkafspraken gaan naar AA-OP/AA-TEST/AA-REL, niet alleen naar een runrapport.
-- Gedateerde acceptance evidence blijft onder `docs/quality/acceptance/runs/`.
-- Zet vastgestelde externe fixture-/bewijs-/besluitpunten met eigenaar en afsluitproef in `AA-OPEN.md`; het vervangt geen regressietest, releasebesluit of acceptatierapport.
-
-## Relatie met bestaande documenten
-
-Bestaande documenten blijven geldig voor detail en historie, onder andere:
-- `docs/delivery/CURRENT_CONTEXT.md`
-- `docs/delivery/IMPLEMENTATION_STATUS.md`
-- `docs/quality/acceptance/REPORTING-STANDARD.md`
-- `docs/architecture/ENVIRONMENT_AND_AI_RULES.md`
-- `docs/decisions/`
-- `docs/requirements/`
-
-De AA-set vervangt die documenten niet; hij maakt duidelijk **wat Codex eerst moet lezen en welke afspraken actueel leidend zijn**.
+- Werk het canonieke document bij; maak geen `v2-final-final`-kopieën of parallelle archieven.
+- Houd `AA-CURRENT.md` op actuele status en compacte links; detailbewijs blijft in het bestaande gedateerde rapport.
+- Wijzig `AA-NEXT.md` alleen met de expliciete actuele productvolgorde; verplaats geen onuitgevoerd item stilzwijgend naar `GREEN`.
+- Voeg een `AA-OPEN.md`-item alleen toe voor een concreet vastgesteld bewijs-, beslis- of omgevingsgat, met eigenaar, bestaand bewijs, heropeningsvoorwaarde en afsluitproef.
+- Bewaar historische rapporten en unieke bewijsvoering; corrigeer een actuele index met een nieuwe verwijzing of status in plaats van een historisch verdict te herschrijven.
