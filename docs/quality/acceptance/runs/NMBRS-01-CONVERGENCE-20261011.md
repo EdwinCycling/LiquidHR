@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-**Verdict: LOCAL QUALITY GREEN; LIMITED SYNTHETIC TEST RELEASE AUTHORIZED; hosted release checks pending.** Selective Nmbrs P0/P1 code is based directly on verified `origin/main` `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. Code candidate `ceb7df9c973920b382af9ed8d02037c09cc373bd` includes the minimal migration-contract newline fix and the one-time version bump to `1.20261011.2`. No push, PR, merge, deployment, or remote database write has yet occurred.
+**Verdict: LOCAL QUALITY GREEN; LIMITED SYNTHETIC TEST RELEASE AUTHORIZED; hosted release checks pending.** Selective Nmbrs P0/P1 code is based directly on verified `origin/main` `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. Code candidate `ceb7df9c973920b382af9ed8d02037c09cc373bd` includes the minimal migration-contract newline fix and the one-time version bump to `1.20261011.2`. At this quality-gate checkpoint, no push, PR, merge, deployment, or remote database write had occurred.
 
 The migration text-contract failure was caused by CRLF in the unchanged checked-out SQL compared with an LF assertion. The test now normalizes line endings before evaluating the same contract; no security assertion or migration history changed. The complete applicable local gates are green. Isolated Preview, real Nmbrs OAuth, and live company-discovery/binding acceptance remain OPEN under the explicit AA-REL §8 limited TEST decision.
 
@@ -115,9 +115,9 @@ These open items do not block the explicitly approved limited TEST release by th
 
 - Verified pre-release `main`/`origin/main`/GitHub `main`: `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`; remote main was unchanged at last read. No local main worktree is mounted.
 - Selective integration commit: `a49c5130470146c6bcdf4bfbe95d7db7ced7d5f9`; migration test-only fix: `8668e36332618e5b3735d57c8afeaacff641ef5c`; versioned candidate SHA: `ceb7df9c973920b382af9ed8d02037c09cc373bd`, version `1.20261011.2`.
-- Local Webpack build and provenance are for exact candidate `ceb7df9c973920b382af9ed8d02037c09cc373bd`; build ID is `y8V4Wj3BvhxkmOOjlgQSk`. The latest previously observed READY Vercel deployment is `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` on older SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`.
+- Local Webpack build and provenance are for exact candidate `ceb7df9c973920b382af9ed8d02037c09cc373bd`; build ID is `VlpsZI4OOaphJeeiCkhZN`. The latest previously observed READY Vercel deployment is `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` on older SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`.
 - Legacy `work/payroll-p0-p1` is at local `4f99b04eab6cc7a79fd86048ccad1cd3dafc3cbe`; remote branch was `70db447ad15843cac9be75abeaca785136a2e174`. The local-only commit adds `docs/requirements/payroll/LIQUIDHR_PAYROLL_P2_READINESS.md`. That unique artifact is not in the candidate or current main. The protected legacy worktree could not be accessed for a status check from this sandbox, so it remains untouched and cleanup is not ready.
-- At this documentation update, no PR, push, merge, deployment, remote schema write, or remote business-data write has occurred. The limited TEST release is explicitly authorized; hosted release checks remain pending.
+- Before branch publication, no PR, push, merge, deployment, remote schema write, or remote business-data write had occurred. The limited TEST release is explicitly authorized; hosted release checks were pending.
 
 ## 15. Final Verdict
 
