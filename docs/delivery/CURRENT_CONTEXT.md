@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## CLEANUP03 — 2026-10-11
+
+- Kandidaat gestart vanaf `origin/main` `ffdca4822fb4cca6e675d9c969b59a12ca664c51`. De vier lokale security-contextregels zijn gereconcilieerd in deze actuele overdracht; historische release-SHA's hieronder zijn ongewijzigd.
+- Appversie is eenmaal verhoogd van `1.20261010.1` naar `1.20261011.1`. PR #2/#13-documentatie, AA-roadmapverwijzing, Focus-preview en CAO-BENCH02-code zijn al aanwezig op de uitgangs-main; de geannuleerde CONTROL02 XML-import blijft verwijderd.
+- SEC-01 is lokaal aangescherpt: nieuwe attachment-sleutels moeten naar exact dezelfde tenant, item en bijlage-id verwijzen; de storage-readpolicy en admin-downloadroute blokkeren afwijkende historische sleutels zonder records te verwijderen. Migratie `20261011120317_secure_continuous_appraisal_attachment_storage_keys.sql` is toegevoegd maar niet remote toegepast; PostgreSQL/RLS-acceptatie en deployment blijven OPEN.
+- Gerichte bijlage-/workspace-/versietests slaagden `14/14`; gewijzigde bestanden linten groen en TypeScript slaagde nadat ontbrekende workspace-links en verouderde `.next/dev`-route-types waren hersteld. Production build slaagde voor de kandidaat met 319 routes en 154 gecontroleerde browser-assets; de Payroll-clientgrensscan slaagde. Vercel-project `liquidhr` is bevestigd als `prj_h3voMtzXGfqG6QTodR5d1VTcC1zP`, root `apps/hr-suite`, Node 24.x; hosted smoke en deployment blijven OPEN.
+- Geen remote databasewijzigingen uitgevoerd. Protected `.env.local`, TEST-configuratie, Nmbrs-branch/worktree en de 140 documenten blijven behouden. Open unique code, waaronder Payroll P2 en AI/APIAI-prototypes, wordt niet stilzwijgend in deze kandidaat opgenomen; zie de ene gecombineerde beslislijst bij release-afronding.
+
 ## ONE VERSION TEST convergence — 2026-10-10
 
 - De actuele AI-productvolgorde staat in [LiquidHR AI Master Roadmap](../requirements/ai/LIQUIDHR_AI_MASTER_ROADMAP.md), gekoppeld vanuit [AA-ROAD](../AA/AA-ROAD.md). De release-/snapshotstatus is bijgewerkt naar main `09b38ea63e4b6c07f305de8eb917e17b10a2de8`; hosted APIAI-08-acceptatie blijft OPEN.

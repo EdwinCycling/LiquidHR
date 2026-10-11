@@ -6,6 +6,7 @@ import { AuthorizationError, requireAuthContext, requirePermission, type AuthCon
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { isContinuousAppraisalAttachmentStorageKey } from './attachment-storage-key'
 import type {
   ContinuousAppraisalCommentInput,
   ContinuousAppraisalCreateInput,
@@ -466,11 +467,14 @@ export async function getContinuousAppraisalAttachmentDownload(attachmentId: str
   const supabase = await createClient()
   const { data: attachment, error } = await supabase
     .from('continuous_appraisal_attachments')
-    .select('storage_key')
+    .select('id, tenant_id, item_id, storage_key')
     .eq('id', attachmentId)
     .maybeSingle()
   if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
   if (!attachment) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_NOT_FOUND', 404)
+  if (!isContinuousAppraisalAttachmentStorageKey(attachment)) {
+    throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_NOT_FOUND', 404)
+  }
 
   const { data: signed, error: signedError } = await createAdminClient().storage
     .from(CONTINUOUS_APPRAISAL_ATTACHMENT_BUCKET)
