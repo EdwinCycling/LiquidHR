@@ -4,6 +4,12 @@
 
 **Status: TEST RELEASED; hosted geauthenticeerde security-/persona-acceptatie OPEN.** App `1.20261011.1`; GitHub `main` `c90275c5775a276d5ccd62f563b44372ee78ae11`; Vercel `liquidhr` deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is READY op dezelfde SHA. SEC-01 bronmigratie `20261011120317_secure_continuous_appraisal_attachment_storage_keys.sql` is op TEST toegepast met geregistreerde versie `20261011130922`; deze historische mismatch wordt niet herschreven of opnieuw toegepast. Zie [AA-CURRENT](../AA/AA-CURRENT.md), [AA-ACCEPT](../AA/AA-ACCEPT.md) en [AA-OPEN](../AA/AA-OPEN.md).
 
+## NMBRS-01 — limited TEST release — 2026-10-11
+
+**Status: lokale kwaliteitsgate GREEN; beperkte synthetische TEST-release expliciet geautoriseerd; PR/merge en hosted verificatie pending.** Kandidaat `ceb7df9c973920b382af9ed8d02037c09cc373bd`, versie `1.20261011.2`, gebaseerd op `main` `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. Full non-live HR suite op code SHA `8668e36332618e5b3735d57c8afeaacff641ef5c`: 612 bestanden geslaagd, 1 suite overgeslagen; 2.884 tests geslaagd, 5 overgeslagen. De enige daaropvolgende codewijziging is versiemetadata. Payroll-subset 438/438; TypeScript, ESLint zonder errors, NL/EN i18n, Webpack-build (323 routes), client-boundary scan en buildprovenance zijn groen.
+
+OPEN by approved limited-release decision: isolated Preview/configuration, real Nmbrs OAuth (consent-host 502), live company discovery/binding and post-merge hosted smoke. No migration/schema write or external payroll write is authorized. `work/payroll-p0-p1` blijft behouden omdat de unieke lokale commit `4f99b04eab6cc7a79fd86048ccad1cd3dafc3cbe` het niet-geïntegreerde document `LIQUIDHR_PAYROLL_P2_READINESS.md` bevat; cleanup volgt alleen na expliciete behoudsreconciliatie.
+
 De onderstaande release-/integratiestatussen behouden hun oorspronkelijke datum en bewijs; ze zijn geen actuele main-status wanneer zij een eerdere kandidaat beschrijven.
 
 ## Historisch: ONE VERSION convergence — TEST — 2026-10-10
