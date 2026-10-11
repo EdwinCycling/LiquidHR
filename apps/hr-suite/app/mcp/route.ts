@@ -7,6 +7,7 @@ import {
   REMOTE_MCP_RESOURCE_METADATA_URL,
 } from '@/lib/workforce-tools/mcp/remote-config'
 import { createRemoteChatGptMcpHandler } from '@/lib/workforce-tools/mcp-server'
+import { getWorkforceTool } from '@/lib/workforce-tools/catalog'
 import { RemoteMcpToolError, type RemoteMcpToolErrorCode } from '@/lib/workforce-tools/mcp/remote-errors'
 
 export const runtime = 'nodejs'
@@ -50,13 +51,14 @@ export async function POST(request: Request): Promise<Response> {
 
   const rpcRequest: unknown = await request.clone().json().catch(() => null)
   const rpcMethod = isRecord(rpcRequest) && typeof rpcRequest.method === 'string' ? rpcRequest.method : null
+  const remoteAudience = resolveRemoteAudience(rpcRequest)
   const authorization = request.headers.get('authorization')
   const publicDiscoveryMethod = ['initialize', 'notifications/initialized', 'tools/list'].includes(rpcMethod ?? '')
 
   let authenticated: Awaited<ReturnType<typeof authenticateRemoteMcpRequest>> | undefined
   if (authorization && !publicDiscoveryMethod) {
     try {
-      authenticated = await authenticateRemoteMcpRequest(request)
+      authenticated = await authenticateRemoteMcpRequest(request, remoteAudience)
     } catch (error) {
       if (error instanceof DelegatedAuthError) {
         return reportMcpDiagnostic(request, rpcMethod, authFailure(error))
@@ -194,4 +196,11 @@ async function getDiscoveryResponseShape(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function resolveRemoteAudience(requestValue: unknown): 'EMPLOYEE' | 'MANAGER' {
+  if (!isRecord(requestValue) || requestValue.method !== 'tools/call' || !isRecord(requestValue.params)) return 'EMPLOYEE'
+  const toolName = requestValue.params.name
+  if (typeof toolName !== 'string') return 'EMPLOYEE'
+  return getWorkforceTool(toolName)?.scope === 'MANAGER_SCOPE' ? 'MANAGER' : 'EMPLOYEE'
 }

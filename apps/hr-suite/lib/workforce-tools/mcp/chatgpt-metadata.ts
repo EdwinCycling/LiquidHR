@@ -13,11 +13,19 @@ import {
   employeeRemindersOutputSchema,
 } from '../employee-tools'
 import {
+  managerDevelopmentPlansOutputSchema,
+  managerFollowUpsOutputSchema,
+  managerLeaveCalendarOutputSchema,
+  managerPendingWorkOutputSchema,
+  managerTeamCapabilityMatrixOutputSchema,
+  managerTeamOverviewOutputSchema,
+} from '../manager-tools'
+import {
   selfDevelopmentPlanStatusSchema,
 } from '@/lib/api-v1/resources/projections'
 import { getWorkforceTool } from '../catalog'
 
-const EXTERNAL_WORKFORCE_TOOL_IDS = [
+const EXTERNAL_EMPLOYEE_WORKFORCE_TOOL_IDS = [
   'employee.talent.development-plans.read',
   'employee.talent.development-gaps.read',
   'employee.talent.skills.read',
@@ -28,7 +36,21 @@ const EXTERNAL_WORKFORCE_TOOL_IDS = [
   'employee.reminders.read',
 ] as const
 
-const plansToolId = EXTERNAL_WORKFORCE_TOOL_IDS[0]
+const EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS = [
+  'manager.team.overview.read',
+  'manager.work.pending.read',
+  'manager.leave.calendar.read',
+  'manager.talent.development-plans.read',
+  'manager.talent.follow-ups.read',
+  'manager.talent.team-capability-matrix.read',
+] as const
+
+const EXTERNAL_WORKFORCE_TOOL_IDS = [
+  ...EXTERNAL_EMPLOYEE_WORKFORCE_TOOL_IDS,
+  ...EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS,
+] as const
+
+const plansToolId = EXTERNAL_EMPLOYEE_WORKFORCE_TOOL_IDS[0]
 
 export const CHATGPT_MCP_TOOL_SECURITY_SCHEMES = Object.freeze([
   Object.freeze({ type: 'oauth2' as const, scopes: Object.freeze(['openid'] as const) }),
@@ -43,7 +65,7 @@ export const CHATGPT_MCP_SERVER_METADATA = Object.freeze({
   name: 'liquid-hr-workforce',
   version: APP_VERSION,
   instructions:
-    'LiquidHR Workforce biedt uitsluitend read-only informatie over je eigen ontwikkelplannen, ontwikkelgaps, skills, competenties, verlofsaldo, verlofaanvragen, goedgekeurd verlof en persoonlijke reminders. De server bepaalt je medewerkercontext en weigert iedere poging om medewerker-, tenant-, HR-groep-, administratie- of rolcontext te kiezen. Deze MCP biedt geen schrijfacties.',
+    'LiquidHR Workforce biedt uitsluitend read-only informatie over je eigen gegevens als medewerker of je eigen directe team als direct manager. De server bepaalt je actuele rol- en teamcontext en weigert iedere poging om medewerker-, team-, tenant-, HR-groep-, administratie- of rolcontext te kiezen. Managerresultaten bevatten alleen toegestane teamgegevens. Deze MCP biedt geen schrijfacties.',
 } as const)
 
 export const CHATGPT_MCP_SERVER_INFO = CHATGPT_MCP_SERVER_METADATA
@@ -71,8 +93,8 @@ export type ChatGptMcpToolExposure = 'REMOTE_TEST_ONLY'
 export interface ChatGptMcpToolMetadata {
   readonly workforceToolId: (typeof EXTERNAL_WORKFORCE_TOOL_IDS)[number]
   readonly exposure: ChatGptMcpToolExposure
-  readonly audience: 'EMPLOYEE'
-  readonly scope: 'SELF'
+  readonly audience: 'EMPLOYEE' | 'MANAGER'
+  readonly scope: 'SELF' | 'MANAGER_SCOPE'
   readonly operation: 'READ'
   readonly permission: string
   readonly outputSchemaSchema: z.ZodType
@@ -82,6 +104,8 @@ export interface ChatGptMcpToolMetadata {
 
 type ExternalToolDefinition = {
   readonly id: (typeof EXTERNAL_WORKFORCE_TOOL_IDS)[number]
+  readonly audience: 'EMPLOYEE' | 'MANAGER'
+  readonly scope: 'SELF' | 'MANAGER_SCOPE'
   readonly title: string
   readonly description: string
   readonly permission: string
@@ -95,8 +119,8 @@ function createExternalTool(definition: ExternalToolDefinition): ChatGptMcpToolM
   if (
     workforceTool.id !== definition.id
     || workforceTool.audience.length !== 1
-    || workforceTool.audience[0] !== 'EMPLOYEE'
-    || workforceTool.scope !== 'SELF'
+    || workforceTool.audience[0] !== definition.audience
+    || workforceTool.scope !== definition.scope
     || workforceTool.operation !== 'READ'
     || workforceTool.permission !== definition.permission
     || workforceTool.additionalPermissions?.length
@@ -107,10 +131,11 @@ function createExternalTool(definition: ExternalToolDefinition): ChatGptMcpToolM
   }
 
   if (
-    !workforceTool.inputSchema.safeParse({}).success
-    || workforceTool.inputSchema.safeParse({ employeeId: 'caller-selected' }).success
+    workforceTool.inputSchema.safeParse({ employeeId: 'caller-selected' }).success
+    || workforceTool.inputSchema.safeParse({ teamId: 'caller-selected' }).success
     || workforceTool.inputSchema.safeParse({ tenantId: 'caller-selected' }).success
     || workforceTool.inputSchema.safeParse({ administrationId: 'caller-selected' }).success
+    || workforceTool.inputSchema.safeParse({ hrGroupId: 'caller-selected' }).success
   ) {
     throw new Error('CHATGPT_MCP_WORKFORCE_TOOL_INPUT_CHANGED')
   }
@@ -118,8 +143,8 @@ function createExternalTool(definition: ExternalToolDefinition): ChatGptMcpToolM
   return Object.freeze({
     workforceToolId: definition.id,
     exposure: 'REMOTE_TEST_ONLY',
-    audience: 'EMPLOYEE',
-    scope: 'SELF',
+    audience: definition.audience,
+    scope: definition.scope,
     operation: 'READ',
     permission: definition.permission,
     outputSchemaSchema: definition.outputSchema,
@@ -129,7 +154,7 @@ function createExternalTool(definition: ExternalToolDefinition): ChatGptMcpToolM
       securitySchemes: CHATGPT_MCP_TOOL_SECURITY_SCHEMES,
       title: definition.title,
       description:
-        `${definition.description} De server bepaalt de actuele medewerkercontext; stuur geen employee-, tenant-, administratie- of rolselector mee.`,
+        `${definition.description} De server bepaalt de actuele ${definition.audience === 'MANAGER' ? 'manager- en directe teamscope' : 'medewerkercontext'}; stuur geen medewerker-, team-, tenant-, administratie- of rolselector mee.`,
       inputSchema: toMcpInputSchema(workforceTool.inputSchema),
       outputSchema: z.toJSONSchema(definition.outputSchema),
       annotations: {
@@ -173,6 +198,8 @@ export function projectChatGptDevelopmentPlansResult(rawResult: unknown): z.outp
 const externalToolDefinitions: readonly ExternalToolDefinition[] = [
   {
     id: plansToolId,
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     title: 'Eigen ontwikkelplannen lezen',
     description: 'Lees de status en voortgang van je eigen ontwikkelplannen.',
     permission: 'self:talent-goal:read',
@@ -181,6 +208,8 @@ const externalToolDefinitions: readonly ExternalToolDefinition[] = [
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[1],
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     title: 'Eigen ontwikkelgaps lezen',
     description: 'Lees je eigen ontwikkelpunten uit het actuele functieprofiel.',
     permission: 'self:talent-comparison:read',
@@ -189,6 +218,8 @@ const externalToolDefinitions: readonly ExternalToolDefinition[] = [
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[2],
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     title: 'Eigen skills lezen',
     description: 'Lees je eigen geregistreerde vaardigheden.',
     permission: 'self:talent-record:read',
@@ -197,6 +228,8 @@ const externalToolDefinitions: readonly ExternalToolDefinition[] = [
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[3],
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     title: 'Eigen competenties lezen',
     description: 'Lees je eigen geregistreerde competenties.',
     permission: 'self:talent-record:read',
@@ -205,6 +238,8 @@ const externalToolDefinitions: readonly ExternalToolDefinition[] = [
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[4],
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     title: 'Eigen verlofsaldo lezen',
     description: 'Lees je eigen verlofsaldo per verloftype, met peildatum en relevante vervalinformatie. Als er meerdere actieve dienstverbanden zijn, kies uitsluitend uit de teruggegeven eigen opties.',
     permission: 'self:leave:read',
@@ -213,6 +248,8 @@ const externalToolDefinitions: readonly ExternalToolDefinition[] = [
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[5],
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     title: 'Volgende goedgekeurde vakantie lezen',
     description: 'Lees de eerstvolgende toekomstige eigen verlofaanvraag met status GOEDGEKEURD.',
     permission: 'self:leave:read',
@@ -221,6 +258,8 @@ const externalToolDefinitions: readonly ExternalToolDefinition[] = [
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[6],
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     title: 'Eigen verlofaanvragen lezen',
     description: 'Lees je eigen lopende en goedgekeurde verlofaanvragen met periode, uren en status.',
     permission: 'self:leave:read',
@@ -229,11 +268,73 @@ const externalToolDefinitions: readonly ExternalToolDefinition[] = [
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[7],
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     title: 'Persoonlijke reminders lezen',
     description: 'Lees alleen je eigen persoonlijke reminders met vervaldatum en status.',
     permission: 'self:reminder:read',
     outputSchema: employeeRemindersOutputSchema,
     projectResult: (result) => employeeRemindersOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[0],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    title: 'Direct team overview lezen',
+    description: 'Lees namen van actieve medewerkers in je directe team.',
+    permission: 'talent-team:read',
+    outputSchema: managerTeamOverviewOutputSchema,
+    projectResult: (result) => managerTeamOverviewOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[1],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    title: 'Openstaand teamwerk lezen',
+    description: 'Lees openstaande, actiegerichte taken en verlofaanvragen van je directe team.',
+    permission: 'process-task:read',
+    outputSchema: managerPendingWorkOutputSchema,
+    projectResult: (result) => managerPendingWorkOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[2],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    title: 'Goedgekeurde teamvakantie lezen',
+    description: 'Lees goedgekeurde vakantie van je directe team in de komende 90 dagen.',
+    permission: 'leave:read',
+    outputSchema: managerLeaveCalendarOutputSchema,
+    projectResult: (result) => managerLeaveCalendarOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[3],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    title: 'Teamontwikkelplannen lezen',
+    description: 'Lees de voortgangsstatus van ontwikkelplannen in je directe team.',
+    permission: 'talent-goal:read',
+    outputSchema: managerDevelopmentPlansOutputSchema,
+    projectResult: (result) => managerDevelopmentPlansOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[4],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    title: 'Teamopvolging lezen',
+    description: 'Lees openstaande opvolgdatums in je directe team zonder notitieteksten.',
+    permission: 'talent-goal:read',
+    outputSchema: managerFollowUpsOutputSchema,
+    projectResult: (result) => managerFollowUpsOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[5],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    title: 'Teamvaardigheden lezen',
+    description: 'Lees de bestaande capabilitymatrix van je directe team.',
+    permission: 'talent-team:read',
+    outputSchema: managerTeamCapabilityMatrixOutputSchema,
+    projectResult: (result) => managerTeamCapabilityMatrixOutputSchema.parse(result),
   },
 ]
 

@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { requireHrGroupId, type AuthContext } from '@/lib/auth/permissions'
-import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
+import { listDirectTeamEmployeeIds, listDirectTeamEmployeeScope } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -238,4 +238,184 @@ export async function loadFocusManagerHomeForContext(
     week,
   })
   return { weekStart: week.start, weekEnd: week.end, sick, vacation, vacationTotal: vacation.length }
+}
+
+export interface FocusManagerTeamOverview {
+  readonly members: ReadonlyArray<{ employeeId: string; employeeName: string }>
+  readonly total: number
+  readonly sourceTruncated: boolean
+}
+
+export interface FocusManagerApprovedVacationCalendar {
+  readonly windowStart: string
+  readonly windowEnd: string
+  readonly events: ReadonlyArray<FocusManagerVacationItem>
+  readonly sourceTruncated: boolean
+}
+
+function assertDirectManagerContext(
+  context: AuthContext,
+): asserts context is AuthContext & { employeeId: string; administrationId: string } {
+  if (!context.activeRoles.includes('DIRECT_MANAGER') || !context.employeeId || !context.administrationId) {
+    throw new Error('MANAGER_CONTEXT_REQUIRED')
+  }
+  requireHrGroupId(context)
+}
+
+function employeeName(firstName: string | null, birthName: string | null): string {
+  return [firstName, birthName].filter((value): value is string => Boolean(value?.trim())).join(' ').trim()
+}
+
+/** Reads only active direct reports in the request's selected tenant, group, and administration. */
+export async function listFocusManagerTeamOverviewForContext(
+  context: AuthContext,
+  existingClient?: SupabaseServerClient,
+): Promise<FocusManagerTeamOverview> {
+  assertDirectManagerContext(context)
+  const supabase = existingClient ?? await createClient()
+  const hrGroupId = requireHrGroupId(context)
+  const scope = await listDirectTeamEmployeeScope(context, supabase, 5_000)
+  if (scope.employeeIds.length === 0) {
+    return { members: [], total: 0, sourceTruncated: scope.sourceTruncated }
+  }
+
+  const { data, error, count } = await supabase
+    .from('employees')
+    .select('id,first_name,birth_name', { count: 'exact' })
+    .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .in('id', [...scope.employeeIds])
+    .eq('is_active', true)
+    .eq('is_archived', false)
+    .is('deleted_at', null)
+    .order('birth_name', { ascending: true })
+    .order('first_name', { ascending: true })
+    .limit(5_000)
+
+  if (error) throw error
+  if (count === null) throw new Error('MANAGER_TEAM_OVERVIEW_COUNT_UNAVAILABLE')
+  const members = (data ?? []).flatMap((employee) => {
+    const name = employeeName(employee.first_name, employee.birth_name)
+    return name ? [{ employeeId: employee.id, employeeName: name }] : []
+  })
+  return {
+    members,
+    total: count,
+    sourceTruncated: scope.sourceTruncated
+      || count > (data?.length ?? 0)
+      || members.length < (data?.length ?? 0),
+  }
+}
+
+/** Reads the existing Focus annual-leave projection for the next 90 days, without absence data or leave notes. */
+export async function listFocusManagerUpcomingApprovedVacationForContext(
+  context: AuthContext,
+  today: string,
+  existingClient?: SupabaseServerClient,
+): Promise<FocusManagerApprovedVacationCalendar> {
+  assertDirectManagerContext(context)
+  const supabase = existingClient ?? await createClient()
+  const hrGroupId = requireHrGroupId(context)
+  const window = { start: today, end: addDays(today, 89) }
+  const scope = await listDirectTeamEmployeeScope(context, supabase, 5_000)
+  if (scope.employeeIds.length === 0) {
+    return { windowStart: window.start, windowEnd: window.end, events: [], sourceTruncated: scope.sourceTruncated }
+  }
+
+  const [employeesResult, leaveRequestsResult] = await Promise.all([
+    supabase
+      .from('employees')
+      .select('id,first_name,birth_name')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .in('id', [...scope.employeeIds])
+      .eq('is_active', true)
+      .eq('is_archived', false)
+      .is('deleted_at', null)
+      .limit(5_000),
+    supabase
+      .from('leave_requests')
+      .select('id,employee_id,start_date,end_date,time_mode,specific_start,specific_end', { count: 'exact' })
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .eq('administration_id', context.administrationId)
+      .eq('status', 'APPROVED')
+      .in('employee_id', [...scope.employeeIds])
+      .lte('start_date', window.end)
+      .gte('end_date', window.start)
+      .order('start_date', { ascending: true })
+      .order('employee_id', { ascending: true })
+      .limit(5_000),
+  ])
+  if (employeesResult.error) throw employeesResult.error
+  if (leaveRequestsResult.error) throw leaveRequestsResult.error
+  if (leaveRequestsResult.count === null) throw new Error('MANAGER_LEAVE_CALENDAR_COUNT_UNAVAILABLE')
+
+  const employeeNames = new Map(
+    (employeesResult.data ?? []).flatMap((employee) => {
+      const name = employeeName(employee.first_name, employee.birth_name)
+      return name ? [[employee.id, name] as const] : []
+    }),
+  )
+  const leaveRequests = (leaveRequestsResult.data ?? []).flatMap((request): FocusManagerVacationCandidate[] => {
+    const name = employeeNames.get(request.employee_id)
+    return name ? [{
+      id: request.id,
+      employeeId: request.employee_id,
+      employeeName: name,
+      startDate: request.start_date,
+      endDate: request.end_date,
+      timeMode: request.time_mode,
+      specificStart: request.specific_start,
+      specificEnd: request.specific_end,
+    }] : []
+  })
+  const omittedLeaveRequestCount = (leaveRequestsResult.data?.length ?? 0) - leaveRequests.length
+  const requestIds = leaveRequests.map((request) => request.id)
+  const allocationsResult = requestIds.length === 0
+    ? { data: [], error: null, count: 0 }
+    : await supabase
+      .from('leave_request_allocations')
+      .select('request_id,leave_type_id', { count: 'exact' })
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .eq('administration_id', context.administrationId)
+      .in('request_id', requestIds)
+      .limit(10_000)
+  if (allocationsResult.error) throw allocationsResult.error
+  if (allocationsResult.count === null) throw new Error('MANAGER_LEAVE_ALLOCATIONS_COUNT_UNAVAILABLE')
+
+  const allocationRows = allocationsResult.data ?? []
+  const allocationTypeIds = [...new Set(allocationRows.map((allocation) => allocation.leave_type_id))]
+  const leaveTypesResult = allocationTypeIds.length === 0
+    ? { data: [], error: null }
+    : await supabase
+      .from('leave_types')
+      .select('id,family')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .in('id', allocationTypeIds)
+      .limit(1_000)
+  if (leaveTypesResult.error) throw leaveTypesResult.error
+
+  const events = selectVacationItems({
+    candidates: leaveRequests,
+    allocations: allocationRows.map((allocation) => ({ requestId: allocation.request_id, leaveTypeId: allocation.leave_type_id })),
+    leaveTypes: (leaveTypesResult.data ?? []).flatMap((type) => (
+      type.family === 'VACATION' || type.family === 'OTHER'
+        ? [{ id: type.id, family: type.family }]
+        : []
+    )),
+    week: window,
+  })
+  return {
+    windowStart: window.start,
+    windowEnd: window.end,
+    events,
+    sourceTruncated: scope.sourceTruncated
+      || leaveRequestsResult.count > (leaveRequestsResult.data?.length ?? 0)
+      || omittedLeaveRequestCount > 0
+      || allocationsResult.count > allocationRows.length
+      || allocationTypeIds.length > (leaveTypesResult.data?.length ?? 0),
+  }
 }

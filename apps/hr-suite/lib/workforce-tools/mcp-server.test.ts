@@ -295,7 +295,7 @@ describe('local Workforce MCP server', () => {
     expect(mcpActionMocks.prepare).not.toHaveBeenCalled()
   })
 
-  it('serves the ChatGPT profile with one approved tool and projects its output', async () => {
+  it('serves the approved Employee and Manager read tools and projects Employee output', async () => {
     const handler = createChatGptMcpHandler()
     const initializeResponse = await handler.fetch(rpcRequest({
       jsonrpc: '2.0',
@@ -324,7 +324,7 @@ describe('local Workforce MCP server', () => {
     if (!isRecord(listResult) || !Array.isArray(listResult.tools)) {
       throw new Error('ChatGPT MCP tools/list returned no tools')
     }
-    expect(listResult.tools).toHaveLength(8)
+    expect(listResult.tools).toHaveLength(14)
     expect(listResult.tools.map((tool) => (tool as Record<string, unknown>).name)).toEqual([
       'employee.talent.development-plans.read',
       'employee.talent.development-gaps.read',
@@ -334,6 +334,12 @@ describe('local Workforce MCP server', () => {
       'employee.leave.next.read',
       'employee.leave.requests.read',
       'employee.reminders.read',
+      'manager.team.overview.read',
+      'manager.work.pending.read',
+      'manager.leave.calendar.read',
+      'manager.talent.development-plans.read',
+      'manager.talent.follow-ups.read',
+      'manager.talent.team-capability-matrix.read',
     ])
     expect(listResult.tools[0]).toMatchObject({
       name: CHATGPT_MCP_TOOLS[0]?.name,
@@ -341,7 +347,7 @@ describe('local Workforce MCP server', () => {
       inputSchema: CHATGPT_MCP_TOOLS[0]?.inputSchema,
       outputSchema: CHATGPT_MCP_TOOLS[0]?.outputSchema,
     })
-    expect(JSON.stringify(listResult.tools)).not.toContain('manager.talent.team-capability-matrix.read')
+    expect(JSON.stringify(listResult.tools)).toContain('manager.talent.team-capability-matrix.read')
     expect(JSON.stringify(listResult.tools)).not.toContain('hr.talent.tenant-capability-matrix.read')
 
     mcpActionMocks.dispatchWorkforceTool.mockResolvedValue({
@@ -394,7 +400,7 @@ describe('local Workforce MCP server', () => {
     const listedResult = listedPayload.result
     expect(isRecord(listedResult) && Array.isArray(listedResult.tools)).toBe(true)
     if (!isRecord(listedResult) || !Array.isArray(listedResult.tools)) throw new Error('Remote tools/list returned no tools')
-    expect(listedResult.tools).toHaveLength(8)
+    expect(listedResult.tools).toHaveLength(14)
     for (const tool of listedResult.tools) {
       expect(tool).toMatchObject({ securitySchemes: [{ type: 'oauth2', scopes: ['openid'] }] })
     }

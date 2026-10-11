@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@scope/db'
 import { assertDelegatedAuthContext, createSupabaseBearerRlsBinding } from '@/lib/api-v1/auth'
 import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
+import { resolveDirectManagerContext } from '@/lib/api-v1/auth/manager-context'
 import { DelegatedAuthError, parseBearerToken, type VerifiedDelegatedToken } from '@/lib/api-v1/auth/delegated'
 import type { DelegatedWorkforceToolExecutionContext } from '@/lib/workforce-tools/contracts'
 import {
@@ -75,7 +76,10 @@ function verifiedTokenFromClaims(claims: Record<string, unknown>): VerifiedDeleg
  * same bearer to the RLS client, then resolves LiquidHR's server-derived
  * current context. Email and cookies are not consulted.
  */
-export async function authenticateRemoteMcpRequest(request: Request): Promise<{
+export async function authenticateRemoteMcpRequest(
+  request: Request,
+  audience: 'EMPLOYEE' | 'MANAGER' = 'EMPLOYEE',
+): Promise<{
   readonly clientId: string
   readonly execution: DelegatedWorkforceToolExecutionContext
 }> {
@@ -129,7 +133,9 @@ export async function authenticateRemoteMcpRequest(request: Request): Promise<{
     verifiedToken,
   })
 
-  const resolution = await resolveEmployeeSelfContext(rls.client, verifiedToken.subject)
+  const resolution = audience === 'MANAGER'
+    ? await resolveDirectManagerContext(rls.client, verifiedToken.subject)
+    : await resolveEmployeeSelfContext(rls.client, verifiedToken.subject)
   if (resolution.kind === 'none') throw new DelegatedAuthError('DELEGATED_SELF_CONTEXT_REQUIRED')
   if (resolution.kind === 'selection-required') throw new DelegatedAuthError('DELEGATED_CONTEXT_SELECTION_REQUIRED')
   if (resolution.kind === 'unavailable') throw new DelegatedAuthError('AUTH_CONTEXT_UNAVAILABLE')

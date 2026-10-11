@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const authState = vi.hoisted(() => ({
   context: {
     tenantId: 'tenant-1',
-    administrationId: null,
+    administrationId: null as string | null,
     userId: 'user-1',
     employeeId: 'employee-1',
     activeRoles: ['EMPLOYEE'],
@@ -15,9 +15,19 @@ const authState = vi.hoisted(() => ({
     'self:talent-comparison:read',
   ],
 }))
-const { listTalentGoals, listMyTalentGoalCheckIns, requireAuthContext, requirePermission, requireTenantModule } = vi.hoisted(() => ({
+const {
+  listTalentGoals,
+  listMyTalentGoalCheckIns,
+  listFocusManagerTeamOverviewForContext,
+  createClient,
+  requireAuthContext,
+  requirePermission,
+  requireTenantModule,
+} = vi.hoisted(() => ({
   listTalentGoals: vi.fn(),
   listMyTalentGoalCheckIns: vi.fn(),
+  listFocusManagerTeamOverviewForContext: vi.fn(),
+  createClient: vi.fn(async () => ({ marker: 'manager-supabase-client' })),
   requireAuthContext: vi.fn(async () => authState.context),
   requirePermission: vi.fn(async (permission: string, targetEmployeeId?: string) => {
     const isSelf = targetEmployeeId === authState.context.employeeId
@@ -35,7 +45,13 @@ vi.mock('@/lib/modules/module-service', () => ({
   requireTenantModule,
 }))
 vi.mock('@/lib/talent/check-in-service', () => ({ listMyTalentGoalCheckIns }))
-vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals }))
+vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals, listManagerTeamDevelopmentPlans: vi.fn() }))
+vi.mock('@/lib/focus/manager-home-service', () => ({ listFocusManagerTeamOverviewForContext }))
+vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/organization/team-scope', () => ({
+  listDirectTeamEmployeeIds: vi.fn(),
+  listDirectTeamEmployeeScope: vi.fn(),
+}))
 
 import { workforceToolHeRaName, WORKFORCE_TOOL_CATALOG } from './catalog'
 import { createLocalWorkforceMcpHarness } from './mcp-local'
@@ -98,8 +114,16 @@ describe('provider-neutral workforce catalog and adapters', () => {
   beforeEach(() => {
     authState.context.activeRoles = ['EMPLOYEE']
     authState.context.permissions = []
+    authState.context.administrationId = null
+    authState.context.employeeId = 'employee-1'
     listTalentGoals.mockReset().mockResolvedValue({ goals: [mockGoal], employees: [], capabilities: [] })
     listMyTalentGoalCheckIns.mockReset().mockResolvedValue([])
+    listFocusManagerTeamOverviewForContext.mockReset().mockResolvedValue({
+      members: [{ employeeId: 'team-employee', employeeName: 'Eva Jansen' }],
+      total: 1,
+      sourceTruncated: false,
+    })
+    createClient.mockClear()
     requireAuthContext.mockClear()
     requirePermission.mockClear()
     requireTenantModule.mockReset().mockResolvedValue(undefined)
@@ -181,6 +205,32 @@ describe('provider-neutral workforce catalog and adapters', () => {
       .rejects.toMatchObject({ code: 'ACCESS_DENIED' })
     expect(requirePermission).toHaveBeenCalledWith('talent-team:read', undefined)
     expect(requirePermission).toHaveBeenCalledWith('talent:manage', undefined)
+  })
+
+  it('denies Manager reads to Employee and HR-only contexts', async () => {
+    authState.context.permissions = ['talent-team:read', 'talent:manage']
+    for (const role of ['EMPLOYEE', 'HR_ADMIN']) {
+      authState.context.activeRoles = [role]
+      await expect(dispatchWorkforceTool('manager.team.overview.read', {}))
+        .rejects.toMatchObject({ code: 'ACCESS_DENIED' })
+    }
+    expect(listFocusManagerTeamOverviewForContext).not.toHaveBeenCalled()
+  })
+
+  it('authorizes a direct Manager from server context even with HR permissions without expanding to tenant scope', async () => {
+    authState.context.activeRoles = ['DIRECT_MANAGER', 'HR_ADMIN']
+    authState.context.permissions = ['talent-team:read', 'talent:manage']
+    authState.context.administrationId = 'administration-1'
+
+    await expect(dispatchWorkforceTool('manager.team.overview.read', {})).resolves.toMatchObject({
+      members: [{ employeeName: 'Eva Jansen' }],
+      total: 1,
+    })
+    expect(listFocusManagerTeamOverviewForContext).toHaveBeenCalledWith(
+      authState.context,
+      { marker: 'manager-supabase-client' },
+    )
+    expect(requirePermission).toHaveBeenCalledWith('talent-team:read', undefined)
   })
 
   it('maps a disabled module to a stable inactive-module result', async () => {

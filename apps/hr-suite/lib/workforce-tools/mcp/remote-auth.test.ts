@@ -5,6 +5,7 @@ const authMocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   createBinding: vi.fn(),
   resolveContext: vi.fn(),
+  resolveManagerContext: vi.fn(),
   assertContext: vi.fn((_userId: string, context: unknown) => context),
   rls: {
     userId: '00000000-0000-4000-8000-000000000001',
@@ -24,6 +25,7 @@ vi.mock('@/lib/api-v1/auth', () => ({
   createSupabaseBearerRlsBinding: authMocks.createBinding,
 }))
 vi.mock('@/lib/api-v1/auth/employee-self-context', () => ({ resolveEmployeeSelfContext: authMocks.resolveContext }))
+vi.mock('@/lib/api-v1/auth/manager-context', () => ({ resolveDirectManagerContext: authMocks.resolveManagerContext }))
 
 import { authenticateRemoteMcpRequest } from './remote-auth'
 import {
@@ -68,6 +70,12 @@ describe('remote MCP Supabase bearer verification', () => {
     authMocks.getUser.mockReset().mockResolvedValue({ data: { user: { id: subject } }, error: null })
     authMocks.createBinding.mockReset().mockReturnValue(authMocks.rls)
     authMocks.resolveContext.mockReset().mockResolvedValue({ kind: 'resolved', context: authContext })
+    authMocks.resolveManagerContext.mockReset().mockResolvedValue({ kind: 'resolved', context: {
+      ...authContext,
+      administrationId: '00000000-0000-4000-8000-000000000013',
+      activeRoles: ['DIRECT_MANAGER'],
+      permissions: ['talent-team:read'],
+    } })
     authMocks.assertContext.mockClear()
   })
 
@@ -86,6 +94,18 @@ describe('remote MCP Supabase bearer verification', () => {
     }))
     expect(authMocks.resolveContext).toHaveBeenCalledWith(authMocks.rls.client, subject)
     expect(authMocks.assertContext).toHaveBeenCalledWith(subject, authContext)
+  })
+
+  it('resolves Manager tool calls through the same request-bound RLS identity and current direct-manager context', async () => {
+    const authenticated = await authenticateRemoteMcpRequest(request(), 'MANAGER')
+    expect(authenticated.execution.rls).toBe(authMocks.rls)
+    expect(authenticated.execution.authContext.activeRoles).toEqual(['DIRECT_MANAGER'])
+    expect(authMocks.resolveManagerContext).toHaveBeenCalledWith(authMocks.rls.client, subject)
+    expect(authMocks.resolveContext).not.toHaveBeenCalled()
+    expect(authMocks.createBinding).toHaveBeenCalledWith(expect.objectContaining({
+      accessToken: token,
+      supabaseUserId: subject,
+    }))
   })
 
   it('rejects Supabase-revoked OAuth credentials before binding an RLS client', async () => {

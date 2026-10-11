@@ -34,8 +34,8 @@ describe('ChatGPT MCP metadata', () => {
     expect(serialized).not.toContain('service_role')
   })
 
-  it('advertises only the approved self-only read tools for the remote TEST server', () => {
-    const expectedIds = [
+  it('preserves eight Employee tools and adds six bounded direct-team Manager reads for Remote MCP', () => {
+    const expectedEmployeeIds = [
       'employee.talent.development-plans.read',
       'employee.talent.development-gaps.read',
       'employee.talent.skills.read',
@@ -45,21 +45,37 @@ describe('ChatGPT MCP metadata', () => {
       'employee.leave.requests.read',
       'employee.reminders.read',
     ]
-    expect(CHATGPT_MCP_TOOL_METADATA).toHaveLength(8)
-    expect(CHATGPT_MCP_TOOLS).toHaveLength(8)
-    expect(CHATGPT_MCP_TOOL_METADATA.map((entry) => entry.workforceToolId)).toEqual(expectedIds)
+    const expectedManagerIds = [
+      'manager.team.overview.read',
+      'manager.work.pending.read',
+      'manager.leave.calendar.read',
+      'manager.talent.development-plans.read',
+      'manager.talent.follow-ups.read',
+      'manager.talent.team-capability-matrix.read',
+    ]
+    const expectedIds = [...expectedEmployeeIds, ...expectedManagerIds]
+    expect(CHATGPT_MCP_TOOL_METADATA).toHaveLength(14)
+    expect(CHATGPT_MCP_TOOLS).toHaveLength(14)
+    expect(CHATGPT_MCP_TOOL_METADATA.slice(0, 8).map((entry) => entry.workforceToolId)).toEqual(expectedEmployeeIds)
+    expect(CHATGPT_MCP_TOOL_METADATA.slice(8).map((entry) => entry.workforceToolId)).toEqual(expectedManagerIds)
     expect(CHATGPT_MCP_TOOLS.map((entry) => entry.name)).toEqual(expectedIds)
 
     for (const entry of CHATGPT_MCP_TOOL_METADATA) {
       const source = getWorkforceTool(entry.workforceToolId)
       expect(source).toBeDefined()
       expect(entry.exposure).toBe('REMOTE_TEST_ONLY')
-      expect(entry.audience).toBe('EMPLOYEE')
-      expect(entry.scope).toBe('SELF')
       expect(entry.operation).toBe('READ')
-      expect(entry.permission).toMatch(/^self:/)
       expect(entry.tool.annotations?.readOnlyHint).toBe(true)
       expect(entry.tool.securitySchemes).toEqual([{ type: 'oauth2', scopes: ['openid'] }])
+      if (entry.workforceToolId.startsWith('employee.')) {
+        expect(entry.audience).toBe('EMPLOYEE')
+        expect(entry.scope).toBe('SELF')
+        expect(entry.permission).toMatch(/^self:/)
+      } else {
+        expect(entry.audience).toBe('MANAGER')
+        expect(entry.scope).toBe('MANAGER_SCOPE')
+        expect(entry.permission).not.toMatch(/^self:/)
+      }
     }
 
     const metadata = CHATGPT_MCP_TOOL_METADATA[0]
@@ -76,7 +92,7 @@ describe('ChatGPT MCP metadata', () => {
     expect(sourceTool).toBeDefined()
     expect(metadata?.workforceToolId).toBe(sourceTool?.id)
     expect(tool?.description).toContain('Lees de status en voortgang van je eigen ontwikkelplannen.')
-    expect(tool?.description).toContain('De server bepaalt de actuele medewerkercontext; stuur geen employee-, tenant-, administratie- of rolselector mee.')
+    expect(tool?.description).toContain('De server bepaalt de actuele medewerkercontext; stuur geen medewerker-, team-, tenant-, administratie- of rolselector mee.')
     expect(tool?.name).toBe(metadata?.workforceToolId)
     expect(tool?.annotations).toEqual({
       title: 'Eigen ontwikkelplannen lezen',
@@ -87,7 +103,7 @@ describe('ChatGPT MCP metadata', () => {
     })
     expect(metadata?.tool.securitySchemes).toEqual([{ type: 'oauth2', scopes: ['openid'] }])
     expect(tool).not.toHaveProperty('_meta')
-    expect(CHATGPT_MCP_TOOLS.map((entry) => entry.name)).not.toContain(
+    expect(CHATGPT_MCP_TOOLS.map((entry) => entry.name)).toContain(
       'manager.talent.team-capability-matrix.read',
     )
     expect(CHATGPT_MCP_TOOLS.map((entry) => entry.name)).not.toContain(
@@ -144,6 +160,32 @@ describe('ChatGPT MCP metadata', () => {
     for (const selector of ['employeeId', 'tenantId', 'hrGroupId', 'administrationId', 'role']) {
       expect(balanceDefinition?.inputSchema.safeParse({ [selector]: 'attacker-selected' }).success).toBe(false)
     }
+  })
+
+  it('publishes strict Manager schemas without arbitrary selectors or protected output fields', () => {
+    const managerTool = CHATGPT_MCP_TOOLS.find((entry) => entry.name === 'manager.talent.team-capability-matrix.read')
+    expect(managerTool).toBeDefined()
+    const inputSchema = record(managerTool?.inputSchema)
+    expect(Object.keys(record(inputSchema.properties))).toEqual(['q', 'type', 'status', 'source', 'limit', 'offset'])
+    expect(inputSchema.additionalProperties).toBe(false)
+
+    const managerDefinition = getWorkforceTool('manager.talent.team-capability-matrix.read')
+    expect(managerDefinition?.inputSchema.safeParse({ q: 'planning', type: 'SKILL', limit: 20, offset: 0 }).success).toBe(true)
+    for (const selector of ['employeeId', 'teamId', 'tenantId', 'hrGroupId', 'administrationId', 'role']) {
+      expect(managerDefinition?.inputSchema.safeParse({ [selector]: 'attacker-selected' }).success).toBe(false)
+    }
+    expect(managerDefinition?.outputSchema.safeParse({
+      rows: [{ employeeLabel: 'Eva Jansen', capabilitiesTruncated: false, capabilities: [] }],
+      hasMore: false,
+      nextOffset: null,
+      sourceTruncated: false,
+    }).success).toBe(true)
+    expect(managerDefinition?.outputSchema.safeParse({
+      rows: [{ employeeLabel: 'Eva Jansen', employeeId: 'internal-id', capabilitiesTruncated: false, capabilities: [] }],
+      hasMore: false,
+      nextOffset: null,
+      sourceTruncated: false,
+    }).success).toBe(false)
   })
 
   it('rejects caller-selected context and internal fields at runtime', () => {

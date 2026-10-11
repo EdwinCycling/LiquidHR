@@ -13,7 +13,6 @@ import {
   CHATGPT_MCP_TOOL_METADATA,
   CHATGPT_MCP_TOOL_SECURITY_SCHEMES,
   CHATGPT_MCP_TOOLS,
-  chatGptDevelopmentPlansInputSchema,
   type ChatGptMcpToolMetadata,
 } from './mcp/chatgpt-metadata'
 import { REMOTE_MCP_RESOURCE_METADATA_URL } from './mcp/remote-config'
@@ -147,7 +146,7 @@ function registerWorkforceTool(
     {
       title: chatGptMetadata?.tool.title,
       description: chatGptMetadata?.tool.description ?? tool.description,
-      inputSchema: boundedInputSchema(chatGptMetadata ? chatGptDevelopmentPlansInputSchema : tool.inputSchema),
+      inputSchema: boundedInputSchema(tool.inputSchema),
       outputSchema: chatGptMetadata?.outputSchemaSchema ?? tool.outputSchema,
       annotations: chatGptMetadata?.tool.annotations ?? {
         readOnlyHint: true,
@@ -159,7 +158,7 @@ function registerWorkforceTool(
       if (remoteAuthenticationRequired && !executionContext) {
         return {
           isError: true,
-          content: [{ type: 'text' as const, text: 'Authentication is required to read LiquidHR employee data.' }],
+          content: [{ type: 'text' as const, text: 'Authentication is required to read LiquidHR workforce data.' }],
           _meta: {
             'mcp/www_authenticate': [
               `Bearer resource_metadata="${REMOTE_MCP_RESOURCE_METADATA_URL}", error="insufficient_scope", error_description="Sign in to LiquidHR to continue."`,
@@ -350,7 +349,7 @@ function registerControlledActionTools(server: McpServer): void {
 }
 
 /**
- * Builds the small self-only profile for the authenticated ChatGPT TEST route.
+ * Builds the Employee self-service and Direct Manager team-read profile for the authenticated ChatGPT TEST route.
  */
 export function createChatGptMcpServer(
   executionContext?: DelegatedWorkforceToolExecutionContext,
