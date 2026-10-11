@@ -108,6 +108,19 @@ describe('remote MCP Supabase bearer verification', () => {
     }))
   })
 
+  it('rejects an expired Manager bearer before binding RLS or resolving team context', async () => {
+    authMocks.getClaims.mockResolvedValueOnce({
+      data: { claims: { ...validClaims(), exp: Math.floor(Date.now() / 1000) - 1 } },
+      error: null,
+    })
+
+    await expect(authenticateRemoteMcpRequest(request(), 'MANAGER')).rejects.toMatchObject({
+      code: 'INVALID_ACCESS_TOKEN',
+    })
+    expect(authMocks.createBinding).not.toHaveBeenCalled()
+    expect(authMocks.resolveManagerContext).not.toHaveBeenCalled()
+  })
+
   it('rejects Supabase-revoked OAuth credentials before binding an RLS client', async () => {
     authMocks.getUser.mockResolvedValueOnce({ data: { user: null }, error: { status: 401, message: 'invalid token' } })
 
