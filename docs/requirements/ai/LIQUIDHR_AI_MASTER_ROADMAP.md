@@ -55,8 +55,8 @@ Het Vercel-label Production is bij LiquidHR de deployment-targetnaam voor de **s
 | APIAI-05 | WebMCP progressive enhancement in bestaande HR-webapp | Platform-/browserafhankelijke acceptatie gescheiden houden |
 | APIAI-06 | Intern Controlled Actions-framework met Talent-acties, autorisatie, previewhash, idempotentie en audit | ChatGPT Execute blijft UIT zonder betrouwbare menselijke confirm |
 | APIAI-07 | OAuth Remote MCP TEST; 4 echte Talent-reads via ChatGPT met audit/limiter; in huidige main | Aanvullende revoke/persona-negatives waar open |
-| APIAI-08 | 4 ESS-reads en HeRa verlof/reminderacties gebouwd en in main geïntegreerd | Hosted ESS, saldo-fixture en scope-/browsernegatieven blijven open |
-| APIAI-09 | Zes Manager READ-tools op `work/APIAI-09-MSS-20261011`; lokale code-, test- en buildgates groen | Hosted Manager OAuth/MCP, directe-team-negatieven en duurzame audit-/limiterreadback blijven open |
+| APIAI-08 | ESS-code staat in main; TEST-migratie is read-only bevestigd als `20261010064331` | 0/8 actuele hosted reads bevestigd; ESS-tools ontbreken in connectorcatalogus, Talent-calls falen; saldo 96/0 en audit-/limiterreadback OPEN |
+| APIAI-09 | Zes Manager READ-tools op Draft PR #18; runtimecode lokaal gebouwd | Hosted Manager-identiteit en scopeproeven ontbreken; full-suite-run had twee failures; geen merge/deploy |
 
 ## 3. Prioriteit en iteratieraming
 
@@ -81,6 +81,8 @@ De migrationele registratie voor APIAI-08 op Core TEST is al teruggelezen. Herha
 
 ### 3.2 APIAI-08 CLOSE — Employee Self Service
 
+**Uitvoeringsstatus 2026-10-11:** remote migration `20261010064331_apiai08_employee_ess_controlled_actions` is al geregistreerd; herhaal haar niet. De beschikbare connector leverde **0/8 succesvolle ESS/Talent-reads** op: de vier ESS-tools ontbraken in de catalogus en de beschikbare Talent-calls faalden via MCP. De canonicale saldoquery en audit-/limiterreadback zijn daardoor niet uitgevoerd; het 96-versus-0-saldoverschil blijft OPEN. Geen leave-data of schema is aangepast. Zie [APIAI-08 follow-up](../../quality/acceptance/runs/APIAI-08-20261009.md).
+
 **Remote READ:** behoud 4 bestaande Talent-reads en accepteer 4 ESS-tools:
 
 1. employee.leave.balance.read — canoniek eigen saldo.
@@ -96,7 +98,7 @@ De migrationele registratie voor APIAI-08 op Core TEST is al teruggelezen. Herha
 
 ### 3.3 APIAI-09 — Manager Self Service in één bouwslag
 
-**Status 2026-10-11:** GEBOUWD op runtime-commit `6f92c66c019eec4d8fb780f340b966edff755cd2`, met test-only vervolgcommit `701f738ad2933e683dbc73a6303afe43883ad89f` op branch `work/APIAI-09-MSS-20261011`, gebaseerd op remote main `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. De zes bounded Manager-reads, 82 gerichte tests, strict TypeScript, relevante ESLint, i18n en lokale Webpack-productiebuild zijn groen. Dit is geen TEST-release: hosted OAuth/MCP-calls, echte persona-/RLS-negatieven, audit-/limiterreadback en actuele Vercel-SHA-pariteit blijven OPEN. Zie [APIAI-09 acceptance](../../quality/acceptance/runs/APIAI-09-20261011.md).
+**Status 2026-10-11 — HOLD / NOT RELEASED:** runtimecommit `6f92c66c019eec4d8fb780f340b966edff755cd2`; test-only follow-up `5c18c80568e8fc91891877cb235c18bf598f8782` op `work/APIAI-09-MSS-20261011`, gebaseerd op remote main `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. De gerichte APIAI-tests (82) en bijgewerkte WebMCP-test (10/10), TypeScript, ESLint en i18n zijn groen. De volledige suite rapporteerde 605 bestanden geslaagd, 4 overgeslagen en 2 failures; na de WebMCP-testcorrectie is de volledige suite niet opnieuw gedraaid, en een ongewijzigde Payroll-migratiecontracttest blijft als CRLF/LF-failure vastgesteld. Twee buildherhalingen strandden op Windows `EPERM` onder `.next`; de eerdere runtimebuild op `6f92c66` is bewaard als historisch bewijs. Hosted Manager-OAuth, persona-/scope-negatieven, audit-/limiterreadback en actuele deploymentpariteit ontbreken. PR #18 blijft Draft; geen merge of deployment. Zie [APIAI-09 follow-up](../../quality/acceptance/runs/APIAI-09-20261011.md).
 
 **Businessdoel:** manager vraagt in ChatGPT of HeRa naar het eigen team, werkvoorraad en ontwikkeling. Bestaande Focus MSS en Workforce Manager-services blijven de bron.
 

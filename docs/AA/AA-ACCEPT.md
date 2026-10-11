@@ -7,11 +7,13 @@ Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte
 
 ## Actuele releasebaseline — 1.20261011.1
 
-GitHub `main` is `c90275c5775a276d5ccd62f563b44372ee78ae11`. Vercel `liquidhr` deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is **READY** op dezelfde SHA in het bestaande synthetic TEST-kanaal. SEC-01 migration `20261011120317_secure_continuous_appraisal_attachment_storage_keys` is op TEST toegepast en staat in de remote registratie als `20261011130922_secure_continuous_appraisal_attachment_storage_keys`; bewaar beide historische versies, herschrijf of herhaal de migratie niet. De hosted geauthenticeerde security-/persona-acceptatie is **OPEN** en wordt niet door deploymentstatus of TEST-migratie-readback gesloten.
+GitHub `main` is op 2026-10-11 read-only bevestigd op `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. Vercel `liquidhr` deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is **READY** op SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`; de alias `liquid-hr-hr-suite.vercel.app` is aan die deployment gekoppeld. De deployment-SHA loopt niet gelijk met actuele `main`. SEC-01 migration `20261011120317_secure_continuous_appraisal_attachment_storage_keys` is op TEST toegepast en staat in de remote registratie als `20261011130922_secure_continuous_appraisal_attachment_storage_keys`; bewaar beide historische versies, herschrijf of herhaal de migratie niet. De hosted geauthenticeerde security-/persona-acceptatie is **OPEN** en wordt niet door deploymentstatus of TEST-migratie-readback gesloten.
 
 PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51`; alleen de geselecteerde, bijgewerkte roadmap/Focus-context is overgenomen. PR #13 is gesloten zonder merge; de niet-goedgekeurde PR #2 is niet gemerged. Oude ONE VERSION-voorstatussen hieronder blijven gedateerde historie en worden niet retroactief gewijzigd.
 
 **Open punten en openstaande bewijslast:** zie [AA-OPEN](AA-OPEN.md). Een punt in dat register is geen nieuw GREEN-verdict; de gedateerde acceptance reports en exacte codeprovenance blijven bepalend. Nieuwe lokale feature-overdrachten zijn pas geïntegreerde baseline na gecontroleerde convergence.
+
+**APIAI-CONVERGENCE 2026-10-11 — HOLD / NOT RELEASED:** APIAI-08 blijft hosted OPEN (0/8 actuele MCP-reads bevestigd; canoniek saldo niet opnieuw gelezen). APIAI-09 blijft in Draft PR #18; de Manager-hosted securitymatrix is niet uitvoerbaar via de beschikbare connector. De full-suite-run had twee failures; na herstel van de WebMCP-catalogustest is alleen die gerichte test herhaald, terwijl de ongewijzigde Payroll-migratiecontracttest nog faalde op CRLF/LF. De actuele Vercel-TEST-deployment-SHA verschilt van `main`. Geen merge, version bump of deployment is uitgevoerd. Zie [APIAI-08](../quality/acceptance/runs/APIAI-08-20261009.md), [APIAI-09](../quality/acceptance/runs/APIAI-09-20261011.md) en [AA-OPEN](AA-OPEN.md).
 
 **PAY-CONVERGE 2026-10-04:** de CAO-BENCH02-productcode is lokaal geïntegreerd vanaf main 6349d025 en de passende lokale codegates zijn PASS. De integratieacceptatie is PARTIAL en de release-aanbeveling is HOLD: SEC-PAY-001, PAY-RULE-002 en ENV-PREVIEW-010 zijn OPEN; er is geen hosted kandidaatacceptatie of release. Zie het [PAY-CONVERGE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md). Dit voegt geen nieuwe accepted TEST-release toe.
 
@@ -30,7 +32,7 @@ PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51`; alleen de gese
 
 | Slice | Status | Bewijs / opmerking |
 | --- | --- | --- |
-| Release 1.20261011.1 | **TEST RELEASED; HOSTED SECURITY/PERSONA ACCEPTANCE OPEN** | GitHub `main` `c90275c5775a276d5ccd62f563b44372ee78ae11`; Vercel `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` READY op dezelfde SHA; SEC-01 TEST-applied, bron-/registratieversies `20261011120317` / `20261011130922` |
+| Laatste TEST-release 1.20261011.1 | **TEST RELEASED; HOSTED SECURITY/PERSONA ACCEPTANCE OPEN** | READY-deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` op release-SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`; actuele GitHub `main` is `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865` en wijkt af. SEC-01 TEST-applied, bron-/registratieversies `20261011120317` / `20261011130922` |
 | ABS02 | GREEN | `docs/quality/acceptance/runs/ABS02-20260927.md` |
 | INS01 | TEST RELEASED; ACCEPTANCE PARTIAL | Persona-catalogus/live Bradford-route bewezen; volledige API-/scope-/exportmatrix en laatste CSV-inhoudcontrole nog OPEN |
 | CONTROL01 | TEST RELEASED; ACCEPTANCE PARTIAL | Full-circle/OWNER en nieuwe synthetische payroll-import met employment draft runtime-bewezen; live actor-/invite-/cross-tenant-negatives OPEN |
