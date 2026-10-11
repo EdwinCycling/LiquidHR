@@ -193,7 +193,6 @@ export function Sidebar({
     { href: recruitmentHref, label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
     { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
     { href: '/document-studio', label: labels.documentStudio, icon: FileStack, visible: canReadDocumentStudio },
-    { href: '/payroll', label: labels.payroll, icon: Calculator, visible: canReadPayrollLab },
     { href: '/payroll-lab', label: labels.payrollLab, icon: Calculator, visible: canReadPayrollLab },
     { href: '/my-salary', label: labels.mySalary, icon: WalletCards, visible: canReadMySalary },
     { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch },

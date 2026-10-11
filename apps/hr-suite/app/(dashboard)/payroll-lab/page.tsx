@@ -1,12 +1,13 @@
 import Link from 'next/link'
-import { Blocks, Calculator, ArrowUpRight, Scale, WalletCards } from 'lucide-react'
+import { Blocks, Calculator, ArrowUpRight, Scale, Settings2, WalletCards } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { Surface } from '@/components/ui/surface'
-import { AuthenticationError, AuthorizationError } from '@/lib/auth/permissions'
+import { AuthenticationError, AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { ContextAccessError } from '@/lib/context/administration-context'
 import { ContextAuthenticationError } from '@/lib/context/server-context'
+import { ModuleError, requireTenantModule } from '@/lib/modules/module-service'
 import { getTranslator } from '@/lib/i18n/server'
 import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
 import { isArrangementFoundationStorageReady } from '@/lib/payroll/arrangement-service'
@@ -15,6 +16,7 @@ type LegacyCalculationQuery = { run?: string | string[]; error?: string | string
 
 // Reserve extension space without rendering empty modules.
 const PAYROLL_LAB_WINDOWS = [
+  { href: '/payroll', title: 'payrollLabProfessional', icon: Calculator },
   { href: '/payroll-lab/calculations', title: 'payrollLabCalculations', icon: Calculator },
   { href: '/payroll-lab/salarisverwerking', title: 'payrollLabIndividualPayroll', icon: WalletCards },
   { href: '/payroll-components', title: 'payrollLabComponents', icon: Blocks },
@@ -31,6 +33,21 @@ export default async function PayrollLabOverview({ searchParams }: { searchParam
     unavailable = true
   }
   const arrangementReady = access ? await isArrangementFoundationStorageReady(access) : false
+  let payrollSettingsAvailable = false
+  if (access) {
+    try {
+      await requirePermission('payroll:read')
+      await requireTenantModule('PAYROLL')
+      payrollSettingsAvailable = true
+    } catch (error) {
+      if (error instanceof AuthenticationError || error instanceof ContextAuthenticationError) redirect('/login')
+      if (error instanceof AuthorizationError || (error instanceof ModuleError && error.status === 404)) {
+        payrollSettingsAvailable = false
+      } else {
+        throw error
+      }
+    }
+  }
   const t = await getTranslator('navigation')
   if (unavailable) return <PageShell className="space-y-6 py-6 sm:py-8" role="status"><PageHeader title={t('payrollLab')} description={t('payrollLabUnavailable')} /></PageShell>
 
@@ -44,7 +61,7 @@ export default async function PayrollLabOverview({ searchParams }: { searchParam
   return <PageShell className="space-y-6 py-6 sm:py-8">
     <PageHeader title={t('payrollLab')} description={t('payrollLabOverviewDescription')} />
     <div className="grid gap-4 lg:grid-cols-2">
-      {[...PAYROLL_LAB_WINDOWS, ...(arrangementReady ? [{ href: '/payroll-lab/arrangements', title: 'payrollArrangements', icon: Scale }] : [])].map(window => {
+      {[...PAYROLL_LAB_WINDOWS, ...(arrangementReady ? [{ href: '/payroll-lab/arrangements', title: 'payrollArrangements', icon: Scale }] : []), ...(payrollSettingsAvailable ? [{ href: '/payroll-lab/integrations', title: 'payrollLabIntegrations', icon: Settings2 }] : [])].map(window => {
         const Icon = window.icon
         return <Surface key={window.href}>
           <Link className="flex min-h-36 items-start gap-4 rounded-[var(--radius-surface)] p-5 transition-colors hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={window.href}>

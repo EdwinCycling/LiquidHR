@@ -1,0 +1,46 @@
+{
+  "title": "Payroll-integraties",
+  "description": "Beheer Nmbrs-toegang en koppel Nmbrs-bedrijven aan administraties binnen de actieve HR-groep.",
+  "connection": "Verbinding",
+  "provider": "Provider",
+  "lastChecked": "Laatst gecontroleerd",
+  "noConnection": "Er is nog geen Nmbrs-verbinding voor deze HR-groep.",
+  "status": {
+    "NOT_CONNECTED": "Niet verbonden",
+    "CONNECTING": "Autorisatie gestart",
+    "CONNECTED": "Verbonden",
+    "ACTION_REQUIRED": "Actie vereist",
+    "ERROR": "Fout",
+    "DISCONNECTED": "Niet verbonden",
+    "ACTIVE": "Actief",
+    "INACTIVE": "Inactief"
+  },
+  "callback": {
+    "connected": "De Nmbrs-autorisatie is voltooid.",
+    "error": "De Nmbrs-autorisatie is niet voltooid. Start de verbinding opnieuw."
+  },
+  "companies": "Ontdekte Nmbrs-bedrijven",
+  "bindings": "Administratiekoppelingen",
+  "emptyBindings": "Er zijn nog geen Nmbrs-bedrijven aan administraties gekoppeld.",
+  "actions": {
+    "connect": "Nmbrs verbinden",
+    "reconnect": "Opnieuw verbinden",
+    "check": "Verbinding controleren",
+    "discover": "Bedrijven ophalen",
+    "bind": "Bedrijf koppelen",
+    "unbind": "Koppeling verwijderen",
+    "disconnect": "Verbinding verbreken",
+    "confirmDisconnect": "Verbinding verbreken en lokaal opgeslagen toegangstokens verwijderen?",
+    "selectCompany": "Kies een Nmbrs-bedrijf",
+    "selectAdministration": "Kies een administratie",
+    "search": "Zoeken",
+    "noCompanies": "Geen actieve Nmbrs-bedrijven gevonden",
+    "noAdministrations": "Geen actieve administraties in deze HR-groep",
+    "noBinding": "Geen actieve koppelingen",
+    "succeeded": "Actie voltooid.",
+    "failed": "Actie mislukt. Controleer de verbinding en probeer het opnieuw.",
+    "discoveredCompanies": "Beschikbare Nmbrs-bedrijven",
+    "bindingHint": "Koppel ieder Nmbrs-bedrijf aan de juiste administratie binnen deze HR-groep.",
+    "remoteRevocationWarning": "De lokale verbinding is verbroken, maar Nmbrs heeft de toegang niet bevestigd als ingetrokken. Trek de app-toegang ook in Nmbrs in."
+  }
+}
