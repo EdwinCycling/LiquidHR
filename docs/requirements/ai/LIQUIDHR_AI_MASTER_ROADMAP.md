@@ -1,7 +1,7 @@
 # LiquidHR AI — Master Roadmap
 
 **Status:** PRODUCTKOERS 2026-10-10 / LIVING DOCUMENT
-**Bijgewerkt:** 10 oktober 2026
+**Bijgewerkt:** 11 oktober 2026
 **Owner:** LiquidHR Product
 **Functie:** centraal AI-roadmapdocument; AA-ROAD blijft de brede productroadmap, AA-NEXT bepaalt de eerstvolgende concrete Codex-runs.
 
@@ -56,6 +56,7 @@ Het Vercel-label Production is bij LiquidHR de deployment-targetnaam voor de **s
 | APIAI-06 | Intern Controlled Actions-framework met Talent-acties, autorisatie, previewhash, idempotentie en audit | ChatGPT Execute blijft UIT zonder betrouwbare menselijke confirm |
 | APIAI-07 | OAuth Remote MCP TEST; 4 echte Talent-reads via ChatGPT met audit/limiter; in huidige main | Aanvullende revoke/persona-negatives waar open |
 | APIAI-08 | 4 ESS-reads en HeRa verlof/reminderacties gebouwd en in main geïntegreerd | Hosted ESS, saldo-fixture en scope-/browsernegatieven blijven open |
+| APIAI-09 | Zes Manager READ-tools op `work/APIAI-09-MSS-20261011`; lokale code-, test- en buildgates groen | Hosted Manager OAuth/MCP, directe-team-negatieven en duurzame audit-/limiterreadback blijven open |
 
 ## 3. Prioriteit en iteratieraming
 
@@ -94,6 +95,8 @@ De migrationele registratie voor APIAI-08 op Core TEST is al teruggelezen. Herha
 **Definition of Done:** remote migratieregistratie controleren zonder SQL-herhaling; acht geauthenticeerde ChatGPT MCP reads met synthetische TEST-data; Employee auth/RLS/logout/revoke/forged-scope-negatieven; audit, limiter en runtime/browser-smoke; saldo consistent of expliciet geclassificeerde acceptatiegrens. PR #11 is al geïntegreerd; hosted acceptatie blijft open totdat het genoemde bewijs op de huidige release is vastgelegd.
 
 ### 3.3 APIAI-09 — Manager Self Service in één bouwslag
+
+**Status 2026-10-11:** GEBOUWD op runtime-commit `6f92c66c019eec4d8fb780f340b966edff755cd2`, met test-only vervolgcommit `701f738ad2933e683dbc73a6303afe43883ad89f` op branch `work/APIAI-09-MSS-20261011`, gebaseerd op remote main `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`. De zes bounded Manager-reads, 82 gerichte tests, strict TypeScript, relevante ESLint, i18n en lokale Webpack-productiebuild zijn groen. Dit is geen TEST-release: hosted OAuth/MCP-calls, echte persona-/RLS-negatieven, audit-/limiterreadback en actuele Vercel-SHA-pariteit blijven OPEN. Zie [APIAI-09 acceptance](../../quality/acceptance/runs/APIAI-09-20261011.md).
 
 **Businessdoel:** manager vraagt in ChatGPT of HeRa naar het eigen team, werkvoorraad en ontwikkeling. Bestaande Focus MSS en Workforce Manager-services blijven de bron.
 

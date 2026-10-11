@@ -5,8 +5,9 @@ Momentopname: 2026-10-11 (historische acceptance-evidence blijft ongewijzigd)
 
 ## Actuele releasebaseline — 1.20261011.1
 
-- Appversie `1.20261011.1`; `origin/main` en GitHub `main`: `c90275c5775a276d5ccd62f563b44372ee78ae11`.
-- Vercel `liquidhr`, deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV`: **READY** op exact dezelfde SHA. Target `production` is de deploymentchannel van de bestaande synthetic TEST-omgeving.
+- Appversie `1.20261011.1`; `origin/main` en GitHub `main` zijn op 2026-10-11 read-only bevestigd op `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865`.
+- Laatst eerder gedocumenteerde Vercel `liquidhr`-deployment: `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV`, **READY** op SHA `c90275c5775a276d5ccd62f563b44372ee78ae11`. Pariteit met de actuele main-SHA is in deze run niet gecontroleerd. Target `production` is de deploymentchannel van de bestaande synthetic TEST-omgeving.
+- APIAI-09 featurebranch `work/APIAI-09-MSS-20261011`: runtime-implementatie `6f92c66c019eec4d8fb780f340b966edff755cd2`, test-only vervolgcommit `701f738ad2933e683dbc73a6303afe43883ad89f`. Lokaal gerichte tests, TypeScript, ESLint, i18n en Webpack-productiebuild zijn groen; hosted Manager-auth-/scopeacceptatie en Vercel-readback blijven OPEN. Zie [APIAI-09 acceptance](../quality/acceptance/runs/APIAI-09-20261011.md). Niet gemerged of gedeployed.
 - SEC-01 migrationbron `20261011120317_secure_continuous_appraisal_attachment_storage_keys`; read-only TEST-migrationlijst registreert dezelfde naam als `20261011130922`. De historische versies verschillen; niet hernoemen, herschrijven of opnieuw toepassen.
 - De geauthenticeerde hosted security-/persona-acceptatie voor SEC-01 blijft **OPEN**. Deployment READY en toepassing op TEST zijn daarvoor geen vervangend bewijs; zie [AA-OPEN](AA-OPEN.md).
 - CONTROL02 en de officiële Loonaangifte-XML-import blijven **CANCELLED**. `work/payroll-p0-p1` en de Nmbrs-worktree blijven als afzonderlijk geparkeerd spoor behouden.
