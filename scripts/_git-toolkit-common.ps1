@@ -19,8 +19,16 @@ function Invoke-Git {
         [string[]]$Arguments
     )
 
-    $output = (& git -C $script:RepositoryRoot @Arguments 2>&1 | Out-String).TrimEnd()
-    if ($LASTEXITCODE -ne 0) {
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = (& git -C $script:RepositoryRoot @Arguments 2>&1 | Out-String).TrimEnd()
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($exitCode -ne 0) {
         $detail = if ([string]::IsNullOrWhiteSpace($output)) { 'Geen aanvullende foutmelding.' } else { $output }
         throw "Git-commando mislukt: git $($Arguments -join ' ')`n$detail"
     }
@@ -36,8 +44,16 @@ function Get-GitOutput {
         [string[]]$Arguments
     )
 
-    $output = (& git -C $script:RepositoryRoot @Arguments 2>&1 | Out-String).TrimEnd()
-    if ($LASTEXITCODE -ne 0) {
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = (& git -C $script:RepositoryRoot @Arguments 2>&1 | Out-String).TrimEnd()
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($exitCode -ne 0) {
         $detail = if ([string]::IsNullOrWhiteSpace($output)) { 'Geen aanvullende foutmelding.' } else { $output }
         throw "Git-commando mislukt: git $($Arguments -join ' ')`n$detail"
     }
@@ -56,7 +72,7 @@ function Assert-CleanWorkingTree {
 
     $status = Get-WorkingTreeStatus
     if (-not [string]::IsNullOrWhiteSpace($status)) {
-        throw "$Operation vereist een schone werkboom. Er zijn nog niet-opgeslagen wijzigingen. Controleer eerst 'git status' of maak een backup. Gebruik geen force-optie tenzij je het risico bewust accepteert."
+        throw "$Operation vereist een schone werkboom. Er zijn niet-opgeslagen wijzigingen; er is niets aangepast. Bewaar of integreer die wijzigingen eerst. Dit script maakt geen backupref."
     }
 }
 

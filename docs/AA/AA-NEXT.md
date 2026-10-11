@@ -1,37 +1,19 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-10
+Bijgewerkt: 2026-10-11
 
-Deze roadmap bevat alleen de komende concrete productwaves. Detailrequirements staan elders.
+Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 
-## Current release — ONE VERSION convergence — 2026-10-10
+## Eerstvolgende volgorde
 
-De geïsoleerde kandidaat vanaf main `783999044de83c902e63fefb3587fdbbf99d4de3` combineert CONTROL02-cleanup, APIAI-08 en Payroll-integratiehead `0337af89d01ea072936b8894e01f46f09f7b3be9`. PAY-RULE-002 dirty changes en migrationlineage moeten nog worden verwerkt. De main-versie is nog `1.20261002.1`; volledige acceptatie, version bump, GitHub-main-merge en synthetic-TEST deployment blijven afhankelijk van groene gates. Houd `work/payroll-p0-p1` als enige aparte Nmbrs/externe Payroll-branch geparkeerd.
+1. **AA-LEAN-01 — LiquidHR Codex Operating Model v2.** P0 workflow-/governance-refactor vóór de volgende parallelle productwave. Alleen documentatie/tooling; geen functionele code, schema, runtimeconfig of versieophoging.
+2. **PERF01-A — requestkosten, dashboard en dynamische AI/voice-componenten.** Verlaag overbodige requests en houd dynamische AI-/voice-code buiten de initiële dashboardpayload.
+3. **PERF01-B — gescopeerde aggregaties en employee-pagination.** Verminder omvangrijke employee-lijsten en gebruik server-side aggregaties binnen bestaande autorisatiescope.
+4. **Nmbrs — afzonderlijk plannen vanuit de bestaande** `work/payroll-p0-p1`-branch en bijbehorende worktree. Behoud de huidige branch als geparkeerd; geen automatische convergence met andere Core-waves.
+5. **Geauthenticeerde security- en persona-acceptatie blijft OPEN.** SEC-01 hosted positives/negatives en bestaande Control-, Insights- en AI-persona-negatives blijven expliciet in [AA-OPEN](AA-OPEN.md); een READY deployment verandert die verdicts niet.
 
-## CURRENT — CONVERGENCE01 post-release TEST-acceptatie
-
-**Status: TEST RELEASED; beveiligingsacceptatie OPEN.**
-
-App `1.20260928.1`; canonical `main` `cb73260ff0cd83d19fa29e44c9f0b93749fb10af`; Vercel `liquidhr` deployment `dpl_CANMAQydQcYGy9Xe7JhNm8grJuvH` READY.
-
-Nu uitsluitend een **bounded follow-up**, niet nóg een brede convergence- of release-loop:
-1. Control bestaande acteurs: AUDITOR write, invitation reuse/revoke, forged tenant/group/admin, tweede en cross-tenant bootstrap;
-2. AI live: na sessiestart feature disable en scope revoke, plus noodzakelijke forged persona-negatives;
-3. Bradford CSV-download echt parsen en rijscope/filter/formuleveiligheid vastleggen; resterende kritieke Insights-API/scope-gaten gericht testen;
-4. Alleen echte gevonden defecten minimaal fixen met regression en afzonderlijke traceerbare commits; laat elk deel OPEN tot bewijs.
-
-De officiële XML/XSD-import en CONTROL02 zijn op 2026-10-10 geannuleerd. Eerdere notities over synthetische payrollfinalisatie zijn geen CONTROL02-releaseacceptatie en leiden niet tot vervolgonderzoek. De interne representatieve import van CONTROL01 blijft afzonderlijk beschikbaar.
-
-**Integratiegrens:** houd gedeelde Core-/Payroll-integratie apart gescopeerd; herstart CONTROL02 niet. Controleer altijd diff en migrationlineage voordat gedeelde code wordt gewijzigd.
-
-**Parallelstrategie:** pure `packages/payroll-engine`/losse Payroll Lab database-experimenten kunnen na branchinventaris parallel met onafhankelijke tracks. Shared Control, payrollimport, employee/employment/IKV en migrations blijven geserialiseerd totdat expliciet geïntegreerd.
-
-## NEXT — Nmbrs
-
-CONTROL02 is op 2026-10-10 geannuleerd. Hervat Nmbrs vanuit de bestaande
-P0/P1-basis en de bijbehorende acceptatiedocumentatie. Laat CONTROL01 en de
-interne representatieve import intact.
+AA-CURRENT beschrijft de actuele main-/deploymentbaseline. De ONE VERSION-2026-10-10 voorstatus blijft historisch in het acceptance report en wordt niet opnieuw als huidige releasebeslissing gebruikt.
 
 ## THEN — WVP01
 

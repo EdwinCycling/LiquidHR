@@ -1,10 +1,16 @@
 # Liquid HR documentatie-index
 
+## Actuele releasebaseline — 2026-10-11
+
+Appversie `1.20261011.1`; GitHub `main` `c90275c5775a276d5ccd62f563b44372ee78ae11`; Vercel `liquidhr` deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is READY op dezelfde SHA. SEC-01 is op TEST toegepast; hosted geauthenticeerde security-/persona-acceptatie blijft OPEN. Bronmigratie `20261011120317` en TEST-registratie `20261011130922` verschillen en worden niet herschreven of opnieuw toegepast. Raadpleeg de compacte [AA-documentatierouter](AA/AA-README.md), [AA-CURRENT](AA/AA-CURRENT.md), [AA-NEXT](AA/AA-NEXT.md) en [AA-OPEN](AA/AA-OPEN.md) voor de actuele status; de rest van deze index bevat gedateerde domein- en historische handoffs.
+
 ## APIAI-08 ESS Assistant — 2026-10-09
 
 **Status: lokale implementatie en regressiegates groen; TEST-migratie toegepast, candidate deployment en hosted Employee-acceptatie open.** APIAI-08 voegt vier Employee-self-service reads en twee interne HeRa Controlled Actions toe. Externe MCP blijft read-only zolang een server-verifieerbare ChatGPT-bevestiging ontbreekt. De migratie staat in synthetic TEST als `20261010064331_apiai08_employee_ess_controlled_actions`; de lokale bronbestandsnaam is hiermee gelijk en SQL wordt niet opnieuw toegepast. De bestaande APIAI-07-reads blijven behouden. Zie het [API contract](requirements/ai/APIAI-08_ESS_ASSISTANT.md), de [implementatiestatus](delivery/IMPLEMENTATION_STATUS.md) en het [acceptatierecord](quality/acceptance/runs/APIAI-08-20261009.md).
 
-## ONE VERSION TEST convergence — 2026-10-10
+## Historische ONE VERSION TEST-voorstatus — 2026-10-10
+
+De onderstaande kandidaatstatus is tijdgebonden aan 10 oktober en is vervangen door de actuele main-/deploymentbaseline bovenaan deze index. Het gedateerde acceptance report blijft historisch bewijs; zijn verdict wordt niet achteraf gewijzigd.
 
 De geïsoleerde kandidaat combineert CONTROL02-cleanup, APIAI-08, PAYLAB/CAO-BENCH02/PAYRUN01 en de gecontroleerd opgenomen PAY-RULE-002-code. Er is geen Frits-assignment of opvolgende payrollrun opgeslagen. De Nmbrs/externe Payroll-branch `work/payroll-p0-p1` blijft ongewijzigd geparkeerd. De gebundelde acceptatie, versieophoging en synthetic-TEST deployment zijn nog niet afgerond. Zie [actuele overdracht](delivery/CURRENT_CONTEXT.md), [PAYRUN01 readiness](quality/acceptance/runs/PAYRUN01-READINESS-20261005.md) en [PAY-CONVERGE acceptatie](payroll/acceptance/PAY-CONVERGE-20261004.md).
 

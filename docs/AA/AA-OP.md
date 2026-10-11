@@ -1,147 +1,77 @@
-# AA-OP — Codex Operating Model
+# AA-OP — Codex operating model
 
-Status: **LEIDEND**
-Eerste opzet: 2026-09-29
+Status: **LEIDEND** · doel: een afgebakende opdracht zelfstandig en met zo weinig mogelijk onnodige context afronden.
 
-## 1. Canonieke repository en baseline
+## 1. Mandaat binnen scope
 
-- Repository: `EdwinCycling/LiquidHR`.
-- Canonieke branch: `main`.
-- Start een nieuwe productwave pas nadat de bedoelde baseline op `origin/main` is bevestigd.
-- Lees vóór implementatie de relevante AA-documenten en domeinrequirements.
-- Scan de actuele code eerst; bouw nooit een tweede versie van iets dat al bestaat zonder die bestaande laag te begrijpen.
-- Start een run met een korte statusclassificatie: wat is BEDOELD, GEBOUWD, GETEST en RELEASED.
-- Corrigeer expliciet wanneer een prompt of ouder document meer claimt dan repo/acceptance evidence ondersteunt.
+Codex mag zelfstandig:
 
-## 2. Branches en worktrees
+- relevante code, documentatie, tests en afhankelijkheden onderzoeken en een kleine aanpak kiezen;
+- een concreet defect reproduceren, de oorzaak vaststellen, in scope repareren en gericht hertesten;
+- tests toevoegen en passende typecheck-, lint-, build- of browserchecks uitvoeren;
+- bestaande synthetische TEST-fixtures lezen/gebruiken binnen expliciet toegestane scope;
+- alleen expliciet geselecteerde eigen wijzigingen committen en een Draft PR openen indien de bestaande workflow dat vereist;
+- een merge-/releaseworkflow uitvoeren wanneer de **oorspronkelijke opdracht** dat expliciet autoriseert.
 
-Voor substantiële Codex-runs:
-- branchnaam: `work/<RUN-ID>-<YYYYMMDD>`;
-- externe worktree, bijvoorbeeld `C:\Users\Edwin\.codex\worktrees\<run>\LiquidHR`;
-- geen Codex-worktrees onder de canonical repository;
-- worktree start exact vanaf de afgesproken baseline;
-- leg baseline SHA, branch en worktree in het runrapport vast.
+Vraag niet na iedere normale handeling om toestemming. Een technisch herstelbare fout is geen reden om de opdracht terug te geven.
 
-Parallelle runs:
-- mogen onafhankelijk werken als de scopes voldoende gescheiden zijn;
-- mergen niet zelf naar `main`;
-- doen geen version bump;
-- deployen niet;
-- muteren gedeelde remote schema's alleen wanneer dit expliciet bij die wave hoort en convergenceconflicten zijn voorkomen.
+Afzonderlijke expliciete toestemming blijft nodig voor nieuwe remote database/schemawrites, inclusief TEST; destructieve businessdatawijzigingen; Production-data of echte klantgegevens; secret-/credentialwijzigingen; materiële securityrechten- of tenanttoegangsverruiming buiten scope; het definitief weggooien van unieke niet-geïntegreerde wijzigingen; en merge/deployment/release zonder mandaat uit de oorspronkelijke opdracht. Zie `AGENTS.md` voor de harde grenzen.
 
-## 3. Geen containerworkarounds
+## 2. Bounded execution en herstel
 
-Gebruik voor LiquidHR:
-- Node/npm;
-- Vitest;
-- TypeScript;
-- ESLint;
-- bestaande scripts;
-- geautoriseerde remote Supabase tooling;
-- Vercel tooling/browser waar passend.
+Normale cyclus: **Understand → Implement → Fix → Targeted Test → Verify → Deliver**.
 
-Gebruik **geen**:
-- Docker;
-- Docker Desktop;
-- docker compose;
-- lokale containerized Supabase;
-- devcontainers;
-- WSL/containerworkarounds.
+Bij een falende check:
 
-## 4. Environment en secrets
+1. Reproduceer de concrete fout en identificeer de oorzaak.
+2. Herstel binnen scope.
+3. Herhaal de relevante gerichte controle en bewijs dat de fout weg is.
+4. Ga door met de resterende opdracht.
 
-- `apps/hr-suite/.env.local` wordt nooit handmatig geopend, geprint, gekopieerd, verwijderd, aangepast of gelogd.
-- Normale frameworkprocessen mogen het bestand als runtimeconfig laden.
-- Als een externe worktree runtimeconfig nodig heeft, gebruik een tijdelijke in-memory/direct-load aanpak die secrets niet toont of persistent kopieert.
-- Publieke envwaarden mogen alleen gericht worden doorgegeven wanneer dat expliciet nodig is.
-- Nooit brede administratorrechten vragen als een normale user-level oplossing bestaat.
+Maximaal **twee gerichte herstelcycli per afzonderlijke blocker**. Daarna volgt één compact bericht met oorzaak, geprobeerd herstel, bewijs en de benodigde menselijke beslissing. Geen identieke herdiagnose, onveranderde testherhaling, volledige docs-herlezing, nieuwe branch voor een herstelbare fout of brede architectuurstudie bij een gewone bugfix. Schrijf volledige logs naar een taaklokaal bestand wanneer nodig; geef alleen relevante foutregels/conclusies terug.
 
-Voor de centrale lokale TEST-runtime op Windows:
-- gebruik `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` uitsluitend als runtimebron;
-- start vanuit de repositoryroot met `scripts/start-test-worktree.ps1`;
-- het script controleert centrale config-aanwezigheid, workspace-dependencies, loopback-poort en bij Production-modus de bestaande build;
-- de config wordt alleen door het child-proces geladen. Kopieer of print geen waarden en commit geen configbestand;
-- het script installeert, bouwt, stopt of verwijdert niets. Herstel ontbrekende dependencies apart vanaf de repository-lockfile;
-- zie `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md` voor commando's en Preview-scheiding.
+Registreer een punt in `AA-OPEN.md` alleen wanneer een vastgestelde externe afhankelijkheid, expliciete beslissing of bewijsgrens de laatste verplichte stap echt verhindert. Normale reproduceerbare bugs blijven in de fix-/hertestcyclus.
 
-## 5. Implementatiepatroon
+## 3. Git, branch en worktree
 
-Voor iedere feature:
-1. bevestig actuele baseline;
-2. lees AA + relevante requirements/ADR/FDR;
-3. inventariseer bestaande code, tabellen, routes en tests;
-4. definieer concrete scope en non-goals;
-5. implementeer minimaal binnen bestaande architectuur;
-6. voeg relevante tests toe;
-7. voer risicogestuurde gates uit volgens AA-TEST;
-8. update domeindocumentatie/acceptance evidence waar nodig;
-9. commit een schone, afgebakende feature;
-10. STOP wanneer scope bewezen is.
+- `origin/main` is de enige nieuwe-ontwikkelingbaseline. Bevestig de actuele SHA vóór een aparte branch. Gebruik nooit `last-good` als bron.
+- Werk op de bestaande veilige checkout wanneer dat kan. Maak alleen een tijdelijke branch wanneer scope-isolatie of PR-workflow nodig is; naam `work/<RUN-ID>-<YYYYMMDD>`. `scripts/new-feature.ps1` start vanaf schone lokale `main` die gelijk is aan de opgehaalde `origin/main`.
+- Maak geen automatische tweede worktree. Onderzoek of review vereist geen checkout. Bij expliciet geautoriseerde parallelle ontwikkeling heeft ieder traject een afgebakende eigenaar/bestandscope en dezelfde bevestigde main-SHA; één integrator doet de eindgate.
+- Bescherm `work/payroll-p0-p1` en de bestaande Nmbrs-worktree. Neem bestaande unieke commits en wijzigingen niet stilzwijgend over of weg.
+- Stage expliciete paden; nooit `git add -A`/`.` voor gemengde werkbomen. Gebruik geen permanente backup-, rescue- of archivebranch/tag.
+- Geen automatische force-push, force-tag/branch, reset of clean. Oude `backup.ps1`/`restore.ps1` zijn fail-closed en maken of verwijderen niets.
+- Een dirty werkboom wordt eerst geïnventariseerd. Behoud alle wijzigingen; voer geen branch-start uit op een dirty boom en commit niets buiten de opgegeven scope.
 
-Geen opportunistische redesigns of unrelated cleanup in dezelfde run.
+## 4. Geen containers; veilige lokale omgeving
 
-### Subagents bij grotere runs
+Gebruik de bestaande Node/npm-, Vitest-, TypeScript-, ESLint-, PowerShell- en geautoriseerde browser-/Vercel/Supabase-middelen. Gebruik geen Docker, Docker Desktop, compose, lokale containerized Supabase, devcontainer of WSL-workaround.
 
-Bij substantiële, goed afgebakende runs mogen subagents expliciet worden ingezet wanneer parallelisering of onafhankelijke controle aantoonbaar waarde toevoegt, bijvoorbeeld voor implementatie, security/scope-review, database/migration-review, UI-consistentie, teststrategie of domeinregelcontrole. De hoofdagent blijft orchestrator: verdeelt werk, beoordeelt resultaten, lost conflicten op, laat fixes uitvoeren en rapporteert pas daarna geïntegreerd. Laat niet meerdere agents hetzelfde werk dupliceren zonder duidelijke reden.
+Bescherm `apps/hr-suite/.env.local` en de centrale TEST-hardlink `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local`. Toon of lees geen waarden, kopieer/vervang/verplaats/verwijder geen config. Controleer alleen metadata. Gebruik de bestaande provisioner/launcher alleen wanneer de taak de lokale runtime nodig heeft; de launcher stopt geen bestaand proces en gebruikt geen fallbackconfig. Zie `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
 
-**Vaste modelkeuze:** wanneer de runtime/modelselector subagents ondersteunt, gebruikt iedere subagent **LUNA MAX**. Gebruik geen automatische, lagere of alternatieve subagentconfiguratie. Als LUNA MAX niet beschikbaar/selecteerbaar is, vervang dit niet stilzwijgend door een ander model; meld de beperking aan de orchestrator en ga alleen verder wanneer de taak zonder subagent verantwoord kan worden uitgevoerd.
+Vercel `production` is de deploymentchannel van de bestaande synthetic TEST-omgeving, niet live productiedata. Een geautoriseerde merge kan de build starten; controleer die deployment en start geen extra handmatige deployment.
 
-Voor Payroll geldt aanvullend `AA-PAYROLL.md`.
+## 5. Bestaande architectuur en data-integriteit
 
-Framework-generated bestanden zoals `next-env.d.ts` zijn geen productwijziging. Commit onbedoelde generated drift niet; herstel die vóór checkpoint/release.
+- Respecteer serverautorisatie én RLS; beperk elke read/write tot de geauthenticeerde tenant, HR-groep, administratie, actor, rol/capability en relevante werknemer/team/case. Forged clientinput mag scope niet verruimen.
+- Gebruik bestaande services, schema's, routes en tests voordat je een alternatief bouwt. Geen service-role/SQL-bypass, verzonnen fallback of geforceerde lifecycle-state om acceptatie groen te maken.
+- Migrations zijn additive/forward-only. Een migration als code maken mag binnen de expliciete feature-scope; remote toepassen vereist aparte toestemming. Controleer lineage en bestaande objecten vóór een migratie. Pas niets toe of herschrijf geen history om alleen versies gelijk te maken.
+- Na een toegestane schemawijziging: relevante readback, RLS/grants/policies/RPC's, advisors en `packages/db/types.ts` controleren/regenereren. Behoud bestaande waarschuwingen buiten scope.
+- Behoud auditability, privacy, Payroll-precisie/wettelijke rounding/versionering/immutable history en ESS/MSS-/Focus-rolgrenzen. SEC-01 is uitsluitend op TEST geaccepteerd; wijzig of herhaal die migratie niet. CONTROL02 en de officiële Loonaangifte-XML-import zijn geannuleerd.
+- `apps/hr-suite/next-env.d.ts` wordt nooit handmatig gewijzigd of gecommit.
 
-## 6. Defecten tijdens een run
+## 6. Scope- en bewijsdiscipline
 
-Gebruik:
-`reproduce → root cause → minimale fix → regressietest → retest`.
+- Geen opportunistische redesign, unrelated cleanup, feature-uitbreiding of statusclaim buiten de opdracht.
+- Houd onderscheid tussen **BEDOELD**, **GEBOUWD**, **GETEST** en **RELEASED**. Een test op een andere SHA of een lokale mock bewijst geen huidige hosted/RLS-acceptatie.
+- Werk requirements bij onder `docs/requirements/<domein>/`, duurzame besluiten in ADR/FDR, en acceptance evidence in bestaande gedateerde rapporten. Werk voor een afgeronde verticale slice alleen de relevante levende indexen bij; herschrijf oud evidence niet retroactief.
+- Framework-generated drift, waaronder `next-env.d.ts`, blijft buiten de diff.
 
-- Geen workaround zonder root cause als die workaround security/data-integrity raakt.
-- Geen “even alles herbouwen” voor een lokaal defect.
-- Een niet-reproduceerbare incidentele dev-runtimefout wordt gedocumenteerd en alleen gefixt als bewijs een productoorzaak aanwijst.
-- Stop test-looping zodra gewijzigd gedrag en relevante regressies bewezen GREEN zijn.
-- Wanneer een concreet vastgestelde externe fixture, goedkeuringsbeslissing of omgevingsafhankelijkheid het **laatste** verplichte bewijs verhindert: registreer één item in `AA-OPEN.md` met eigenaar, bestaand bewijs, echte blocker, heropeningsvoorwaarde en afsluitproef. Rond de feature eerlijk af als PARTIAL/ENVIRONMENT-GATED. Heropen dezelfde diagnose niet bij ieder vervolgbericht; gewone reproduceerbare productbugs blijven wel in de normale fix/retestcyclus.
+Voor Payroll gelden aanvullend `AA-PAYROLL.md` en de feitelijk geraakte Payroll-requirements. Voor verificatie en release gelden `AA-TEST.md` en `AA-REL.md`.
 
-## 7. Supabase en migrations
+## 7. Token-efficiëntie
 
-Voor schemawijziging:
-- inspecteer huidige remote migration history;
-- controleer of het gewenste object al bestaat;
-- schrijf een nieuwe forward-only migration;
-- pas alleen nieuwe migrations toe;
-- lees resultaat terug;
-- controleer relevante RLS/grants/policies/RPC's;
-- draai relevante advisors;
-- genereer/verifieer types na schemawijziging;
-- leg afwijkingen/bestaande advisorwarnings vast zonder projectbrede schoonmaak tenzij in scope.
-
-Geen history-edit/reapply om cosmetische lokale bestandsnamen gelijk te trekken.
-
-## 8. Context en scope
-
-Iedere servermutatie/-query die klantdata raakt controleert waar relevant:
-- tenant;
-- HR-groep;
-- administratie;
-- rol/capability;
-- subject/employee/team/case scope.
-
-Een forged clientparameter mag nooit autorisatiescope verruimen.
-
-## 9. Documentatie tijdens een wave
-
-- Detailrequirements blijven onder `docs/requirements`.
-- Product-/architectuurbesluiten gaan naar ADR/FDR wanneer duurzaam.
-- Acceptance evidence gaat naar `docs/quality/acceptance/runs`.
-- AA-documenten alleen wijzigen wanneer expliciet gevraagd of wanneer de run de actuele baseline/roadmap formeel verandert.
-- Absolute lokale machinepaden horen niet in definitieve acceptance reports.
-
-## 10. Stopcriteria
-
-Een gewone featurebranch:
-- targeted/relevante gates GREEN;
-- bekende limitations expliciet;
-- schone commit;
-- geen deploy/version bump;
-- STOP.
-
-Een featurebranch wordt niet eindeloos opengehouden door nice-to-haves die buiten de afgesproken Definition of Done vallen.
+- Lees alleen de noodzakelijke bronnen en toepasselijke secties. Hergebruik geldige context, analyses en groene testresultaten; vermijd dubbele toolcalls, volledige herlezingen en onnodig grote terminaluitvoer.
+- Gebruik standaard één uitvoerende agent; start geen automatische subagents.
+- Richtbudget per taak, indicatief als sturingsmiddel en geen harde limiet of veiligheidsgrens: LOW circa **2.000**, MEDIUM **6.000**, HIGH **15.000** tokens. Pas dit aan als aantoonbare complexiteit dat vraagt; verkort nooit security-, integriteits- of vereiste verificatie.
+- Rapporteer input-, output-, cached tokens en kosten alleen als de runtime die betrouwbaar levert; anders vermeld **niet meetbaar**.
+- Rapporteer bij grotere runs kort het aantal herstelcycli, de uitgevoerde tests, meetbaar tokengebruik en de belangrijkste bron van verspilling.

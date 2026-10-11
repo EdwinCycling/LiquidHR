@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory, Position = 0)]
-    [string]$Name
+    [string]$Name,
+
+    [string]$Date = (Get-Date -Format 'yyyyMMdd')
 )
 
 . (Join-Path $PSScriptRoot '_git-toolkit-common.ps1')
@@ -9,20 +11,40 @@ param(
 Write-ToolkitHeader -Title 'Nieuwe feature'
 Assert-CleanWorkingTree -Operation 'Een nieuwe feature starten'
 
-if (-not (Test-GitReference -Reference 'refs/tags/last-good')) {
-    throw "De backup-tag 'last-good' bestaat niet. Maak eerst een backup met .\scripts\backup.ps1."
+if ((Get-CurrentBranch) -ne 'main') {
+    throw "Een nieuwe branch start alleen vanaf de schone lokale 'main'. Er is niets gewijzigd."
 }
 
+if ($Date -notmatch '^\d{8}$') {
+    throw "Datum '$Date' is ongeldig. Gebruik YYYYMMDD. Er is niets gewijzigd."
+}
+
+$null = [DateTime]::ParseExact($Date, 'yyyyMMdd', [Globalization.CultureInfo]::InvariantCulture)
 $slug = ConvertTo-GitSlug -Name $Name
-$featureBranch = "feature/$slug"
-if (Test-GitReference -Reference "refs/heads/$featureBranch") {
-    throw "Branch '$featureBranch' bestaat al. Kies een andere naam of ga er bewust naartoe met Git."
+$branch = "work/$slug-$Date"
+if (Test-GitReference -Reference "refs/heads/$branch") {
+    throw "Branch '$branch' bestaat al. Kies een andere run-id; er is niets gewijzigd."
 }
 
-$base = Get-GitOutput -Arguments @('rev-parse', '--short', 'last-good')
-Invoke-Git -Arguments @('switch', '--create', $featureBranch, 'last-good')
+$previousGitTerminalPrompt = [System.Environment]::GetEnvironmentVariable('GIT_TERMINAL_PROMPT', 'Process')
+$previousGcmInteractive = [System.Environment]::GetEnvironmentVariable('GCM_INTERACTIVE', 'Process')
+try {
+    [System.Environment]::SetEnvironmentVariable('GIT_TERMINAL_PROMPT', '0', 'Process')
+    [System.Environment]::SetEnvironmentVariable('GCM_INTERACTIVE', 'Never', 'Process')
+    Invoke-Git -Arguments @('fetch', '--no-tags', 'origin', 'refs/heads/main:refs/remotes/origin/main')
+} finally {
+    [System.Environment]::SetEnvironmentVariable('GIT_TERMINAL_PROMPT', $previousGitTerminalPrompt, 'Process')
+    [System.Environment]::SetEnvironmentVariable('GCM_INTERACTIVE', $previousGcmInteractive, 'Process')
+}
+$localMain = Get-GitOutput -Arguments @('rev-parse', 'refs/heads/main')
+$originMain = Get-GitOutput -Arguments @('rev-parse', 'refs/remotes/origin/main')
+if ($localMain -ne $originMain) {
+    throw "Lokale main ($localMain) wijkt af van actuele origin/main ($originMain). Synchroniseer main bewust en probeer opnieuw; er is geen branch aangemaakt."
+}
 
-Write-Host "`nFeaturebranch aangemaakt: $featureBranch" -ForegroundColor Green
-Write-Host "Basis: last-good ($base)"
-Write-Host 'De branch is alleen lokaal aangemaakt; er is niets gepusht.'
+Invoke-Git -Arguments @('switch', '--create', $branch, 'refs/remotes/origin/main')
+
+Write-Host "`nTijdelijke branch aangemaakt: $branch" -ForegroundColor Green
+Write-Host "Basis: origin/main ($originMain)"
+Write-Host 'Er is geen worktree, backupbranch of tag aangemaakt en er is niets gepusht.'
 Write-WorkingTreeSummary

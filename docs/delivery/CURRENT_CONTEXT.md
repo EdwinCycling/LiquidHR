@@ -1,12 +1,14 @@
 # Actuele overdracht Liquid HR
 
-## CLEANUP03 — 2026-10-11
+## Actuele overdracht — 2026-10-11
 
-- Kandidaat gestart vanaf `origin/main` `ffdca4822fb4cca6e675d9c969b59a12ca664c51`. De vier lokale security-contextregels zijn gereconcilieerd in deze actuele overdracht; historische release-SHA's hieronder zijn ongewijzigd.
-- Appversie is eenmaal verhoogd van `1.20261010.1` naar `1.20261011.1`. PR #2/#13-documentatie, AA-roadmapverwijzing, Focus-preview en CAO-BENCH02-code zijn al aanwezig op de uitgangs-main; de geannuleerde CONTROL02 XML-import blijft verwijderd.
-- SEC-01 is lokaal aangescherpt: nieuwe attachment-sleutels moeten naar exact dezelfde tenant, item en bijlage-id verwijzen; de storage-readpolicy en admin-downloadroute blokkeren afwijkende historische sleutels zonder records te verwijderen. Migratie `20261011120317_secure_continuous_appraisal_attachment_storage_keys.sql` is toegevoegd maar niet remote toegepast; PostgreSQL/RLS-acceptatie en deployment blijven OPEN.
-- Gerichte bijlage-/workspace-/versietests slaagden `14/14`; gewijzigde bestanden linten groen en TypeScript slaagde nadat ontbrekende workspace-links en verouderde `.next/dev`-route-types waren hersteld. Production build slaagde voor de kandidaat met 319 routes en 154 gecontroleerde browser-assets; de Payroll-clientgrensscan slaagde. Vercel-project `liquidhr` is bevestigd als `prj_h3voMtzXGfqG6QTodR5d1VTcC1zP`, root `apps/hr-suite`, Node 24.x; hosted smoke en deployment blijven OPEN.
-- Geen remote databasewijzigingen uitgevoerd. Protected `.env.local`, TEST-configuratie, Nmbrs-branch/worktree en de 140 documenten blijven behouden. Open unique code, waaronder Payroll P2 en AI/APIAI-prototypes, wordt niet stilzwijgend in deze kandidaat opgenomen; zie de ene gecombineerde beslislijst bij release-afronding.
+- Baseline op `main` en `origin/main`: `c90275c5775a276d5ccd62f563b44372ee78ae11`; appversie `1.20261011.1`.
+- Vercel `liquidhr` deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is read-only gecontroleerd als **READY** op dezelfde SHA. Het `production`-target is de bestaande synthetic TEST-channel.
+- SEC-01 bronbestand `20261011120317_secure_continuous_appraisal_attachment_storage_keys.sql`; de read-only TEST-migrationlijst registreert `20261011130922_secure_continuous_appraisal_attachment_storage_keys`. De versies verschillen en blijven ongewijzigd. Hosted geauthenticeerde security-/persona-acceptatie blijft **OPEN**.
+- PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51` en integreerde alleen geselecteerde roadmap/Focus-context. PR #13 is gesloten zonder merge; PR #2 is niet gemerged. CONTROL02 en de officiële Loonaangifte-XML-import blijven geannuleerd.
+- `work/payroll-p0-p1` en de Nmbrs-worktree blijven geparkeerd. `docs/_local-incoming` bevat 140 bestanden en is beschermd. Canonical `apps/hr-suite/.env.local` bestaat; er zijn geen waarden gelezen. De centrale TEST-hardlink ontbrak bij controle op `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local`; er is niets geprovisioned of gewijzigd.
+- AA-LEAN-01 is lokaal geïmplementeerd op `work/aa-lean-01-20261011`; de gerichte PowerShell/Git-contracttest slaagde eenmaal met synthetische repositories onder `%TEMP%`. Het token-efficiencycontract staat in `AA-OP.md`. Er was geen databasewrite, runtimeconfiguratiemutatie, production-data of applicatieversie-update; GitHub-integratie wacht op geldige CLI-authenticatie.
+- De CLEANUP03-code-, test- en builddetails blijven als historische overdracht hieronder en in [ONE VERSION acceptance](../quality/acceptance/runs/ONE-VERSION-20261010.md); oudere beweringen over nog niet gemergede main/deployment zijn tijdgebonden en geen huidige status.
 
 ## ONE VERSION TEST convergence — 2026-10-10
 

@@ -10,16 +10,15 @@ Doel: één gecontroleerde releaseflow en geen iteratiehel.
 Featurebranches:
 - implementeren;
 - targeted/relevante tests;
-- commit;
-- geen version bump;
-- geen Vercel Production deploy;
-- geen merge naar main door parallelle worker;
-- stop na bewezen scope.
+- expliciet geselecteerde in-scope bestanden committen;
+- geen version bump of handmatige deployment voor docs/tooling;
+- mergen/pushen alleen wanneer de oorspronkelijke opdracht dat expliciet autoriseert;
+- stoppen zodra scope en toepasselijke gates bewezen zijn.
 
 Convergence:
 - integreert expliciet geselecteerde featurecommits;
 - lost integratieconflicten op;
-- past alleen nog niet toegepaste migrations éénmaal toe;
+- past alleen nieuwe migrations éénmaal toe na de vereiste aparte toestemming;
 - voert gezamenlijke runtime/securityacceptatie uit;
 - sluit met één complete releasegate.
 
@@ -32,7 +31,7 @@ Convergence:
 5. readback + typegen + RLS/grants/advisors;
 6. targeted integration tests;
 7. runtime/persona/securityacceptatie;
-8. één volledige suite op uiteindelijke productcode, ná de laatste product-/UI-/schemawijziging; herhaal die niet na uitsluitend docs/versionmetadata;
+8. bij runtime-/schemawijzigingen één volledige relevante suite op de definitieve code ná de laatste wijziging; herhaal die niet na uitsluitend docs/versionmetadata;
 9. strict TypeScript;
 10. ESLint;
 11. i18n indien relevant;
@@ -61,9 +60,9 @@ Voor release moet bewezen worden:
 
 ## 5. Release checkout
 
-Deploy nooit vanuit een dirty canonical checkout.
+Gebruik geen extra checkout/worktree als de bestaande veilige checkout schoon en geschikt is. Een afzonderlijke releasecheckout is alleen nodig wanneer isolatie of een aantoonbaar schone releasecontext dat vereist. Deploy nooit vanuit een dirty checkout.
 
-Gebruik een nieuwe externe releasecheckout/worktree:
+Als een aparte checkout noodzakelijk is, baseer die op:
 - exact `origin/main`;
 - clean;
 - geen `.env.local`;
@@ -72,6 +71,12 @@ Gebruik een nieuwe externe releasecheckout/worktree:
 - geen nested worktrees;
 - geen onbedoelde framework-generated drift zoals gewijzigde `next-env.d.ts`;
 - sane upload footprint.
+
+Docs-/tooling-only PR zonder runtime-, schema-, configuratie- of UI-gedrag:
+- volstaan relevante document-/scriptchecks en `git diff --check`;
+- geen volledige HR-suite, productiebuild, Preview of browseracceptatie vereisen;
+- geen version bump;
+- een merge kan de Git-integratiebuild starten; controleer die uitkomst en start geen tweede handmatige deployment.
 
 ## 6. Vercel
 
@@ -87,10 +92,10 @@ Canoniek HR-project: `liquidhr`.
 
 ### Preview → gezamenlijke TEST
 
-- Elke pull request wordt op een immutable Preview-deployment van de bedoelde commit geaccepteerd.
+- Elke pull request met runtime-, schema-, configuratie- of UI-gedrag wordt op een immutable Preview-deployment van de bedoelde commit geaccepteerd. De docs-/tooling-only uitzondering staat in §5.
 - Vercel Preview gebruikt alleen eigen Preview-scoped variabelen en geïsoleerde synthetische Core/Payroll-backends; het leent geen lokale of gezamenlijke TEST-config.
 - Voer op de Preview-commit de vereiste browsermatrix uit, inclusief normale auth, relevante console/networkcontroles en 390 px waar van toepassing. Leg deployment-ID/URL, SHA, READY-status en resultaten vast.
-- Na GREEN review/Preview-acceptatie wordt de PR gecontroleerd naar `main` gemerged. De Git-integratie bouwt de exacte `main`-SHA naar het bestaande `liquidhr` TEST-kanaal; bevestig daarna READY, alias, SHA-pariteit en hosted TEST-smoke.
+- Na groene toepasselijke review-/acceptatiegates wordt een PR alleen binnen expliciet merge-mandaat gecontroleerd naar `main` gemerged. De Git-integratie kan de exacte `main`-SHA naar het bestaande `liquidhr` TEST-kanaal bouwen; controleer daarna READY, alias, SHA-pariteit en relevante hosted smoke.
 - Promoot voor deze flow geen Preview-deployment handmatig met `vercel promote`: Vercel voert daarbij een nieuwe build met Production-variabelen uit. Gebruik de gecontroleerde merge naar `main` voor releaseprovenance.
 - Een nog niet ingerichte Preview-backend/config blokkeert de Preview-gate voor nieuwe PR's; leg de ontbrekende eenmalige inrichting vast. Zij blokkeert een andere, al geaccepteerde TEST-release niet automatisch.
 
@@ -139,11 +144,12 @@ Geen automatische blocker:
 
 ## 10. Cleanup
 
-Na succesvolle release:
+Na succesvolle integratie/release:
 - stop lokale servers;
 - controleer poorten/processen;
 - verwijder tijdelijke generated artifacts;
-- ruim obsolete worktrees/branches alleen op na bewijs dat ze geen unieke commits of waardevolle untracked/ignored bestanden bevatten;
+- verwijder alleen de eigen tijdelijke branch/worktree na bewezen integratie en behoud van benodigde bestanden;
+- ruim andere obsolete worktrees/branches uitsluitend in een afzonderlijk geautoriseerde cleanup-scope op;
 - nooit `git worktree remove --force` blind gebruiken wanneer secrets of unieke artifacts mogelijk aanwezig zijn;
 - behoud worktrees met unieke payroll/migrationlineagecommits tot expliciete reconciliatie;
 - verwijder remote branches pas nadat merge/provenance bewezen is.
