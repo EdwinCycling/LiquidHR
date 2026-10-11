@@ -45,7 +45,9 @@ const failedAttemptSuccessorMigrationPath = join(
   'migrations',
   '20261009100000_payrun01_test_failed_attempt_successor.sql',
 )
-const failedAttemptSuccessorMigration = readFileSync(failedAttemptSuccessorMigrationPath, 'utf8').toLowerCase()
+const failedAttemptSuccessorMigration = readFileSync(failedAttemptSuccessorMigrationPath, 'utf8')
+  .replace(/\r\n/g, '\n')
+  .toLowerCase()
 
 const tables = [
   'payroll_individual_arrangement_assignment_versions',

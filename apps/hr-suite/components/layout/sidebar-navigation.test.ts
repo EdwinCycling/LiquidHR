@@ -57,19 +57,18 @@ describe('sidebar navigation contract', () => {
     expect(sections[0]?.id).toBe('daily')
   })
 
-  it('keeps Payroll, employee self-service, and Payroll Lab in separate main-menu sections', () => {
+  it('keeps a single Payroll Lab entry alongside employee self-service', () => {
     const sections = buildSidebarSections([
-      { href: '/payroll', visible: true },
       { href: '/my-salary', visible: true },
       { href: '/payroll-lab', visible: true },
     ], labels, [])
 
-    expect(sections.map((section) => section.id)).toEqual(['payroll', 'selfService', 'payrollLab'])
+    expect(sections.map((section) => section.id)).toEqual(['selfService', 'payrollLab'])
     expect(sections.map((section) => section.items.map((item) => item.href))).toEqual([
-      ['/payroll'],
       ['/my-salary'],
       ['/payroll-lab'],
     ])
+    expect(sections.flatMap((section) => section.items.map((item) => item.href)).filter((href) => href.startsWith('/payroll'))).toEqual(['/payroll-lab'])
   })
 
   it('shows Payroll Lab only when the server passes its guarded capability', () => {

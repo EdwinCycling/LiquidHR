@@ -50,6 +50,8 @@
   "testRoleSwitchEmployee": "Test Medewerker",
   "testRoleSwitchReturnToAdmin": "Terug naar Test HR Admin",
   "payrollLab": "Payroll Lab",
+  "payrollLabProfessional": "Professionele salarisverwerking",
+  "payrollLabIntegrations": "Payroll-integraties",
   "payroll": "Salarisadministratie",
   "mySalary": "Mijn salaris",
   "payrollLabDescription": "Geïsoleerde Payroll Lab-omgeving.",

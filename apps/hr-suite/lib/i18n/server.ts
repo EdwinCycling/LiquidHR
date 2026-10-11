@@ -78,6 +78,8 @@ import contextNl from '@/messages/nl/context.json'
 import contextEn from '@/messages/en/context.json'
 import payrollImportNl from '@/messages/nl/payrollImport.json'
 import payrollImportEn from '@/messages/en/payrollImport.json'
+import payrollNl from '@/messages/nl/payroll.json'
+import payrollEn from '@/messages/en/payroll.json'
 import payrollProfessionalNl from '@/messages/nl/payrollProfessional.json'
 import payrollProfessionalEn from '@/messages/en/payrollProfessional.json'
 import { getUserPreferences } from '@/lib/preferences/server'
@@ -128,6 +130,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     focus: focusNl,
     context: contextNl,
     payrollImport: payrollImportNl,
+    payroll: payrollNl,
     payrollProfessional: payrollProfessionalNl,
   },
   en: {
@@ -170,6 +173,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     focus: focusEn,
     context: contextEn,
     payrollImport: payrollImportEn,
+    payroll: payrollEn,
     payrollProfessional: payrollProfessionalEn,
   },
 }
