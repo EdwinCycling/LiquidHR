@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { BriefcaseBusiness, CalendarDays, ClipboardList, FileText, Home, Route, UserRound, UsersRound } from 'lucide-react'
+import { BriefcaseBusiness, CalendarDays, ClipboardList, FileText, Home, Route, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { PageShell, type PageShellWidth } from '@/components/layout/page-shell'
 import { focusActAsHref } from '@/lib/focus/url'
 import { FocusPreviewClose } from './focus-preview-close'
 import { FocusActAsStop } from './focus-act-as-stop'
+import { focusPreviewHref, isFocusPreviewActionKey, type FocusPreviewActionKey } from './focus-preview'
 import type { FocusActionKey, FocusHomeData } from '@/lib/focus/service'
 
 interface FocusShellLabels {
@@ -28,6 +29,33 @@ function FocusBottomNavigation({ actions, activeKey, labels, readOnly }: { actio
   return <nav aria-label={labels.menu} className="fixed inset-x-0 bottom-0 z-30 flex justify-center px-0 pb-[env(safe-area-inset-bottom)]"><div className="w-full max-w-3xl border-t border-border-subtle bg-surface/95 px-2 backdrop-blur"><div className={`mx-auto grid gap-1 py-2 ${columns}`}>{visibleItems.map((item) => { const Icon = item.icon; const active = item.key === 'home' ? activeKey === undefined : item.key === activeKey; const className = `flex min-h-11 flex-col items-center justify-center gap-1 rounded-[var(--radius-control)] px-1 text-[11px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-surface-subtle hover:text-foreground'}`; return readOnly ? <span aria-current={active ? 'page' : undefined} className={className} key={item.key}><Icon aria-hidden="true" className="size-4" />{item.label}</span> : <Link aria-current={active ? 'page' : undefined} className={className} href={focusActAsHref(item.href)} key={item.key} prefetch={false}><Icon aria-hidden="true" className="size-4" />{item.label}</Link> })}</div></div></nav>
 }
 
+const previewActionIcons: Record<FocusPreviewActionKey, LucideIcon> = {
+  journey: Route, profile: UserRound, documents: FileText, leave: CalendarDays,
+  requests: ClipboardList, work: BriefcaseBusiness, team: UsersRound,
+}
+
+function FocusPreviewNavigation({ actions, activeKey, labels, employeeId }: {
+  actions: readonly FocusHomeData['actions'][number][]
+  activeKey?: FocusActionKey | 'more'
+  labels: FocusShellLabels
+  employeeId: string
+}) {
+  const previewActions = actions.filter((action) => isFocusPreviewActionKey(action.key))
+  return (
+    <nav aria-label={labels.menu} className="tabs-scroll flex min-w-0 items-center gap-2 overflow-x-auto py-1">
+      <Link aria-current={activeKey === undefined ? 'page' : undefined} className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-[var(--radius-control)] px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${activeKey === undefined ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-surface-subtle hover:text-foreground'}`} href={focusPreviewHref(employeeId)} prefetch={false}>
+        <Home aria-hidden="true" className="size-4" />{labels.home}
+      </Link>
+      {previewActions.map((action) => {
+        const key = action.key as FocusPreviewActionKey
+        const Icon = previewActionIcons[key]
+        const active = activeKey === key
+        return <Link aria-current={active ? 'page' : undefined} className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-[var(--radius-control)] px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-surface-subtle hover:text-foreground'}`} href={focusPreviewHref(employeeId, key)} key={key} prefetch={false}><Icon aria-hidden="true" className="size-4" />{labels.actions[key]}</Link>
+      })}
+    </nav>
+  )
+}
+
 export function FocusShell({
   actions,
   activeKey,
@@ -44,15 +72,17 @@ export function FocusShell({
   labels: FocusShellLabels
   width?: PageShellWidth
   readOnly?: boolean
-  preview?: { title: string; status: string; closeLabel: string; returnHref: string }
+  preview?: { title: string; status: string; closeLabel: string; returnHref: string; employeeId?: string }
   actAs?: { subjectName: string; title: string; description: string; stopLabel: string } | null
 }) {
+  const productHref = readOnly && preview?.employeeId ? focusPreviewHref(preview.employeeId) : focusActAsHref('/focus')
   return (
     <main className="min-h-dvh bg-workspace">
       <div className="mx-auto min-h-dvh w-full max-w-3xl bg-workspace">
         <div className="sticky top-0 z-20 border-b border-subtle bg-surface/95 backdrop-blur">
           <PageShell className="flex min-h-14 items-center gap-4" width="standard">
-            <Link className="shrink-0 text-sm font-bold tracking-tight text-foreground" href={focusActAsHref('/focus')} prefetch={false}>{labels.product}</Link>
+            <Link className="shrink-0 text-sm font-bold tracking-tight text-foreground" href={productHref} prefetch={false}>{labels.product}</Link>
+            {readOnly && preview?.employeeId ? <div className="min-w-0 flex-1"><FocusPreviewNavigation actions={actions} activeKey={activeKey} labels={labels} employeeId={preview.employeeId} /></div> : null}
           </PageShell>
         </div>
         <PageShell className="space-y-6 pb-28 pt-6 sm:pt-8" width={width}>
@@ -61,7 +91,7 @@ export function FocusShell({
           {children}
         </PageShell>
       </div>
-      {labels.bottom ? <FocusBottomNavigation actions={actions} activeKey={activeKey} labels={labels.bottom} readOnly={readOnly} /> : null}
+      {labels.bottom && !preview?.employeeId ? <FocusBottomNavigation actions={actions} activeKey={activeKey} labels={labels.bottom} readOnly={readOnly} /> : null}
     </main>
   )
 }
