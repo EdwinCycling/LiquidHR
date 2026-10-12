@@ -3,6 +3,12 @@
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-12 (historische acceptance-evidence blijft ongewijzigd)
 
+## PAYCOMP-EDIT-01 — controlled synthetic TEST candidate (1.20261012.3)
+
+- Feature source `625eabcc93992f71beb6f143341bb15adf9b8c1c` has the component editor, save/reopen/version history, safe formula validation, and traced previews. Authenticated Payroll Admin scope is resolved server-side. Exactly three synthetic DRAFT records were created through application services; no schema or historical-data changes.
+- Editor acceptance: fork v1/v2 and custom v1 saved and reopened; v2 preview `643.92`, custom preview `105.00`, with calculation traces and all four NL 2026 controls passing. Relevant Vitest suites: 92 tests passed. TypeScript, changed-area ESLint, 43-namespace i18n, client-boundary production build and `git diff --check` passed.
+- Full hr-suite is **OPEN**: a final run with two workers and a unique safe temp directory emitted no collected tests/results within four minutes and was stopped. This is not a full-suite pass; see [PAYCOMP-EDIT-01 acceptance](../quality/acceptance/runs/PAYCOMP-EDIT-01-20261012-TEST.md) and [AA-OPEN](AA-OPEN.md). Limited TEST release status is recorded after the automatic Git deployment is verified.
+
 ## Actuele releasebaseline — 1.20261011.2 (TEST RELEASED — LIMITED; APIAI-08/09 ACCEPTANCE OPEN)
 
 - PR #18 is op 2026-10-12 gemerged: code/test-SHA `27d534fd06fee7868b3bf0534bc3fdb9a3736cd1` (PR-head `c5906d7469ef47fd5b9edf36c412772e9ac98a30`; de latere delta was documentatie), merge/main-SHA `a5d1b3ff61e8c1d1af05a0c89b08a4fe73472495`. Vercel `liquidhr`-deployment `dpl_7HBAyX61sjs1YNtmMZJU55NpNii6` is **READY** op exact main-SHA, source Git, met canonieke alias `liquid-hr-hr-suite.vercel.app`. Vercel `production` is hier de deploymentchannel van de bestaande synthetische TEST-omgeving.
