@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getPatternDay, type WorkPatternDay } from '@/lib/work-patterns/work-pattern-model'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+const DIRECTORY_DETAIL_CONCURRENCY = 8
 
 export type TeamAvailabilityStatus = 'AVAILABLE' | 'OFF' | 'LEAVE' | 'ABSENT'
 
@@ -67,6 +68,15 @@ function scheduledMinutesFromLegacySchedule(schedule: {
   return Math.max(0, Math.round(Number(hours) * 60))
 }
 
+function addDateRangeToIndex(index: Map<string, Set<string>>, employeeId: string, startDate: string, endDate: string, dates: string[]): void {
+  for (const date of dates) {
+    if (date < startDate || date > endDate) continue
+    const employeeDates = index.get(employeeId) ?? new Set<string>()
+    employeeDates.add(date)
+    index.set(employeeId, employeeDates)
+  }
+}
+
 export async function loadTeamAvailability(auth: AuthContext, requestedTeamEmployeeIds?: string[], existingClient?: SupabaseServerClient): Promise<StartPageTeamAvailability> {
   const range = availabilityDateRange()
   const teamEmployeeIds = requestedTeamEmployeeIds ?? await listDirectTeamEmployeeIds(auth, existingClient)
@@ -108,12 +118,26 @@ export async function loadTeamAvailability(auth: AuthContext, requestedTeamEmplo
       return employeeId ? [{ employeeId, startedOn: spell.started_on, recoveredOn: spell.recovered_on }] : []
     })
     const employmentsByEmployee = new Map<string, typeof employments>()
-    for (const employment of employments) employmentsByEmployee.set(employment.employee_id, [...(employmentsByEmployee.get(employment.employee_id) ?? []), employment])
+    for (const employment of employments) {
+      const employeeEmployments = employmentsByEmployee.get(employment.employee_id) ?? []
+      employeeEmployments.push(employment)
+      employmentsByEmployee.set(employment.employee_id, employeeEmployments)
+    }
+    for (const employeeEmployments of employmentsByEmployee.values()) {
+      employeeEmployments.sort((left, right) => Number(right.is_primary) - Number(left.is_primary) || right.starts_on.localeCompare(left.starts_on))
+    }
     const patternsByEmployment = new Map<string, NonNullable<typeof patternsResult.data>>()
     for (const pattern of patternsResult.data ?? []) patternsByEmployment.set(pattern.employment_id, [...(patternsByEmployment.get(pattern.employment_id) ?? []), pattern])
     const schedulesByEmployment = new Map<string, NonNullable<typeof schedulesResult.data>>()
     for (const schedule of schedulesResult.data ?? []) schedulesByEmployment.set(schedule.employment_id, [...(schedulesByEmployment.get(schedule.employment_id) ?? []), schedule])
-    const leaveRequests = leaveResult.data ?? []
+    const leaveDatesByEmployee = new Map<string, Set<string>>()
+    for (const request of leaveResult.data ?? []) {
+      addDateRangeToIndex(leaveDatesByEmployee, request.employee_id, request.start_date, request.end_date, range.dates)
+    }
+    const absenceDatesByEmployee = new Map<string, Set<string>>()
+    for (const spell of absenceSpells) {
+      addDateRangeToIndex(absenceDatesByEmployee, spell.employeeId, spell.startedOn, spell.recoveredOn ?? range.endDate, range.dates)
+    }
     const collator = new Intl.Collator('nl-NL', { sensitivity: 'base' })
     const employees = [...(employeesResult.data ?? [])].sort((left, right) => collator.compare([left.first_name, left.birth_name].filter(Boolean).join(' '), [right.first_name, right.birth_name].filter(Boolean).join(' ')))
     const directorySchedulesByEmployee = new Map<string, NonNullable<EmployeeDirectoryDetail['schedule']>>()
@@ -121,21 +145,24 @@ export async function loadTeamAvailability(auth: AuthContext, requestedTeamEmplo
       const employeeEmploymentIds = (employmentsByEmployee.get(employee.id) ?? []).map((employment) => employment.id)
       return !employeeEmploymentIds.some((employmentId) => (patternsByEmployment.get(employmentId)?.length ?? 0) > 0 || (schedulesByEmployment.get(employmentId)?.length ?? 0) > 0)
     })
-    await Promise.all(employeesNeedingRosterFallback.map(async (employee) => {
-      try {
-        const detail = await getEmployeeDirectoryDetail(employee.id, { context: auth, supabase })
-        if (detail.schedule?.length) directorySchedulesByEmployee.set(employee.id, detail.schedule)
-      } catch {
-        // De startpagina blijft bruikbaar als de bestaande directoryprojectie niet beschikbaar is.
-      }
-    }))
+    for (let index = 0; index < employeesNeedingRosterFallback.length; index += DIRECTORY_DETAIL_CONCURRENCY) {
+      const batch = employeesNeedingRosterFallback.slice(index, index + DIRECTORY_DETAIL_CONCURRENCY)
+      await Promise.all(batch.map(async (employee) => {
+        try {
+          const detail = await getEmployeeDirectoryDetail(employee.id, { context: auth, supabase })
+          if (detail.schedule?.length) directorySchedulesByEmployee.set(employee.id, detail.schedule)
+        } catch {
+          // De startpagina blijft bruikbaar als de bestaande directoryprojectie niet beschikbaar is.
+        }
+      }))
+    }
 
     return {
       dates: range.dates,
       members: employees.map((employee) => {
         const employeeEmployments = employmentsByEmployee.get(employee.id) ?? []
         const cells = range.dates.map((date): StartPageTeamAvailabilityCell => {
-          const employment = [...employeeEmployments].sort((left, right) => Number(right.is_primary) - Number(left.is_primary) || right.starts_on.localeCompare(left.starts_on)).find((item) => isActiveOn(date, item.starts_on, item.ends_on))
+          const employment = employeeEmployments.find((item) => isActiveOn(date, item.starts_on, item.ends_on))
           const pattern = employment
             ? (patternsByEmployment.get(employment.id) ?? []).find((item) => isActiveOn(date, item.valid_from, item.valid_until))
             : undefined
@@ -151,8 +178,8 @@ export async function loadTeamAvailability(auth: AuthContext, requestedTeamEmplo
           const scheduledMinutes = projected
             ? projected.isWorkingDay ? Math.max(0, projected.scheduledMinutes) : 0
             : legacySchedule ? scheduledMinutesFromLegacySchedule(legacySchedule, date) : directoryDay?.isWorkingDay ? Math.max(0, directoryDay.scheduledMinutes) : 0
-          const hasLeave = leaveRequests.some((request) => request.employee_id === employee.id && request.start_date <= date && request.end_date >= date)
-          const hasAbsence = absenceSpells.some((spell) => spell.employeeId === employee.id && spell.startedOn <= date && (spell.recoveredOn === null || spell.recoveredOn >= date))
+          const hasLeave = leaveDatesByEmployee.get(employee.id)?.has(date) ?? false
+          const hasAbsence = absenceDatesByEmployee.get(employee.id)?.has(date) ?? false
           const status: TeamAvailabilityStatus = hasAbsence ? 'ABSENT' : hasLeave ? 'LEAVE' : scheduledMinutes > 0 ? 'AVAILABLE' : 'OFF'
           return { status, scheduledMinutes }
         })

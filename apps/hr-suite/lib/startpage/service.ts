@@ -392,50 +392,40 @@ async function listUpcomingEvents(auth: AuthContext, employeeScope: StartPageEmp
   return events.sort((a, b) => a.date.localeCompare(b.date) || a.employeeName.localeCompare(b.employeeName, 'nl'))
 }
 
-async function countEmployees(auth: AuthContext, employeeScope: StartPageEmployeeScope, supabase: SupabaseServerClient): Promise<number | null> {
+export async function countEmployees(auth: AuthContext, employeeScope: StartPageEmployeeScope, supabase: SupabaseServerClient): Promise<number | null> {
   if (!auth.permissions.includes('employee:read')) return null
   if (employeeScope !== null && employeeScope.length === 0) return 0
   if (!auth.hrGroupId) return 0
   const today = new Date().toISOString().slice(0, 10)
-  let employeeQuery = supabase.from('employees').select('id')
+  let employeeQuery = supabase.from('employees').select('id,employments!employments_employee_hr_group_fkey!inner(id)', { count: 'exact', head: true })
     .eq('tenant_id', auth.tenantId)
     .eq('hr_group_id', auth.hrGroupId)
     .eq('is_archived', false)
     .is('deleted_at', null)
-  let employmentQuery = supabase.from('employments').select('employee_id')
-    .eq('tenant_id', auth.tenantId)
-    .eq('hr_group_id', auth.hrGroupId)
-    .neq('record_status', 'CANCELLED')
-    .lte('starts_on', today)
-    .or(`ends_on.is.null,ends_on.gte.${today}`)
-    .is('deleted_at', null)
+    .eq('employments.tenant_id', auth.tenantId)
+    .eq('employments.hr_group_id', auth.hrGroupId)
+    .neq('employments.record_status', 'CANCELLED')
+    .lte('employments.starts_on', today)
+    .or(`ends_on.is.null,ends_on.gte.${today}`, { referencedTable: 'employments' })
+    .is('employments.deleted_at', null)
   if (employeeScope !== null) {
     employeeQuery = employeeQuery.in('id', employeeScope)
-    employmentQuery = employmentQuery.in('employee_id', employeeScope)
   }
-  const [employeesResult, employmentsResult] = await Promise.all([
-    employeeQuery.limit(10000),
-    employmentQuery.limit(10000),
-  ])
-  if (employeesResult.error || employmentsResult.error) return null
-  const activeEmployeeIds = new Set((employeesResult.data ?? []).map((employee) => employee.id))
-  const employeesWithActiveEmployment = new Set<string>()
-  for (const employment of employmentsResult.data ?? []) {
-    if (activeEmployeeIds.has(employment.employee_id)) employeesWithActiveEmployment.add(employment.employee_id)
-  }
-  return employeesWithActiveEmployment.size
+  const { count, error } = await employeeQuery
+  if (error) return null
+  return count
 }
 
-async function countRecurringAbsence(auth: AuthContext, employeeScope: StartPageEmployeeScope, supabase: SupabaseServerClient): Promise<number | null> {
+export async function countRecurringAbsence(auth: AuthContext, employeeScope: StartPageEmployeeScope, supabase: SupabaseServerClient): Promise<number | null> {
   if (!auth.permissions.includes('absence:read')) return null
   if (employeeScope !== null && employeeScope.length === 0) return 0
   const hrGroupId = requireHrGroupId(auth)
   // Medewerkers met meer dan 1 verzuimcasus (recurring)
-  let query = supabase.from('absence_cases').select('employee_id')
+  let query = supabase.from('absence_cases').select('employee_id', { count: 'exact' })
     .eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('pending_confirmation', false).is('archived_at', null)
   if (employeeScope !== null) query = query.in('employee_id', employeeScope)
-  const { data, error } = await query.limit(10000)
-  if (error || !data) return null
+  const { data, count, error } = await query.limit(10000)
+  if (error || !data || count === null || data.length !== count) return null
   const counts = new Map<string, number>()
   for (const row of data) counts.set(row.employee_id, (counts.get(row.employee_id) ?? 0) + 1)
   return [...counts.values()].filter((count) => count > 1).length
