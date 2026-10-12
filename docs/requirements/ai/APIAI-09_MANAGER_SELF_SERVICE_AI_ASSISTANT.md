@@ -1,6 +1,6 @@
 # APIAI-09 — Manager Self-Service AI Assistant
 
-**Status:** implemented candidate; independent consent review is complete with corrections applied; exact-SHA tests/build, controlled TEST release and hosted acceptance remain gated. This requirement supersedes APIAI-07's original statement that Manager tools are not externally advertised; it does not authorize HR tools or any write tool.
+**Status:** final code/test candidate `27d534fd06fee7868b3bf0534bc3fdb9a3736cd1` is on PR #18. Independent spec and standards reviews found no remaining blocker in the reviewed code paths. Strict TypeScript, targeted ESLint, i18n, diff-check, 19 focused files/180 tests, and the full HR suite (616 files passed, 4 skipped; 2,930 tests passed, 8 skipped) are green. Vercel Preview `dpl_4wdGu1WWCbjqbLqRV5qbhZfKCCkz` is READY with exact-SHA provenance. **HOLD / NOT RELEASED:** Preview backend isolation and hosted Employee/Manager authorization, audit, limiter, canonical-balance, and revoke/reconnect acceptance remain open. PR #18 stays Draft and unmerged. This requirement supersedes APIAI-07's original statement that Manager tools are not externally advertised; it does not authorize HR tools or any write tool.
 
 ## User value
 
