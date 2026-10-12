@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createAdminRpcClient, getAdminCredentialMode } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
+import { resolveDirectManagerContext } from '@/lib/api-v1/auth/manager-context'
 import { isRemoteMcpEnabled } from '@/lib/workforce-tools/mcp/remote-config'
 import {
   buildConsentLoginHref,
@@ -77,6 +78,20 @@ async function requireEmployeeSelf(
 ): Promise<boolean> {
   try {
     const resolution = await resolveEmployeeSelfContext(supabase, userId)
+    return resolution.kind === 'resolved'
+  } catch {
+    return false
+  }
+}
+
+async function requireEmployeeOrDirectManager(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<boolean> {
+  if (await requireEmployeeSelf(supabase, userId)) return true
+
+  try {
+    const resolution = await resolveDirectManagerContext(supabase, userId)
     return resolution.kind === 'resolved'
   } catch {
     return false
@@ -183,7 +198,7 @@ export async function approveChatGptMcpConsent(formData: FormData): Promise<neve
   const authorization = await getCurrentAuthorization(authorizationId)
   if (authorization.kind === 'unauthenticated') redirect(buildConsentLoginHref(authorizationId))
   if (authorization.kind !== 'ready') redirect(buildConsentPath(authorizationId))
-  if (!isSupportedChatGptScope(authorization.scope) || !(await requireEmployeeSelf(authorization.supabase, authorization.userId))) {
+  if (!isSupportedChatGptScope(authorization.scope) || !(await requireEmployeeOrDirectManager(authorization.supabase, authorization.userId))) {
     redirect(buildConsentPath(authorizationId))
   }
 

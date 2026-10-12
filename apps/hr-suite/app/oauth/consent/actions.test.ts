@@ -13,6 +13,7 @@ const {
   isRemoteMcpEnabled,
   redirect,
   resolveEmployeeSelfContext,
+  resolveDirectManagerContext,
   rpc,
 } = vi.hoisted(() => ({
   approveAuthorization: vi.fn(),
@@ -25,11 +26,13 @@ const {
   isRemoteMcpEnabled: vi.fn(),
   redirect: vi.fn(),
   resolveEmployeeSelfContext: vi.fn(),
+  resolveDirectManagerContext: vi.fn(),
   rpc: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({ redirect }))
 vi.mock('@/lib/api-v1/auth/employee-self-context', () => ({ resolveEmployeeSelfContext }))
+vi.mock('@/lib/api-v1/auth/manager-context', () => ({ resolveDirectManagerContext }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminRpcClient, getAdminCredentialMode }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/workforce-tools/mcp/remote-config', () => ({ isRemoteMcpEnabled }))
@@ -72,6 +75,7 @@ describe('APIAI-07 OAuth consent actions', () => {
       kind: 'resolved',
       context: { tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1', userId: 'synthetic-employee-user', employeeId: 'synthetic-employee', activeRoles: ['EMPLOYEE'] },
     })
+    resolveDirectManagerContext.mockResolvedValue({ kind: 'none' })
     createAdminRpcClient.mockReturnValue({ rpc })
     createClient.mockResolvedValue({
       auth: {
@@ -99,6 +103,45 @@ describe('APIAI-07 OAuth consent actions', () => {
     expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining('/oauth/consent'))
     expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
   })
+
+  it('allows a current direct Manager context to approve read-only Workforce MCP consent', async () => {
+    resolveEmployeeSelfContext.mockResolvedValue({ kind: 'none' })
+    resolveDirectManagerContext.mockResolvedValue({
+      kind: 'resolved',
+      context: { tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1', userId: 'synthetic-manager-user', employeeId: 'synthetic-manager', activeRoles: ['DIRECT_MANAGER'] },
+    })
+    getClaims.mockResolvedValue({ data: { claims: { sub: 'synthetic-manager-user' } }, error: null })
+
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${CALLBACK_URL}`)
+
+    expect(resolveDirectManagerContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-manager-user')
+    expect(rpc).toHaveBeenCalledWith('register_apiai07_mcp_client', { requested_client_id: 'b7e6b5ae-33be-493f-8456-02fa41e307e8' })
+    expect(approveAuthorization).toHaveBeenCalledOnce()
+  })
+
+  it('does not approve consent for an HR-only subject without Employee-self or direct Manager context', async () => {
+    resolveEmployeeSelfContext.mockResolvedValue({ kind: 'none' })
+    resolveDirectManagerContext.mockResolvedValue({ kind: 'none' })
+
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${buildConsentPath(AUTHORIZATION_ID)}`)
+
+    expect(resolveDirectManagerContext).toHaveBeenCalledOnce()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(approveAuthorization).not.toHaveBeenCalled()
+  })
+
+  it.each(['selection-required', 'unavailable'] as const)(
+    'fails closed when direct Manager context resolution is %s',
+    async (kind) => {
+      resolveEmployeeSelfContext.mockResolvedValue({ kind: 'none' })
+      resolveDirectManagerContext.mockResolvedValue({ kind })
+
+      await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${buildConsentPath(AUTHORIZATION_ID)}`)
+
+      expect(rpc).not.toHaveBeenCalled()
+      expect(approveAuthorization).not.toHaveBeenCalled()
+    },
+  )
 
   it('fails closed before approval when trusted client registration fails', async () => {
     rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'APIAI07_CLIENT_REGISTRATION_UNAVAILABLE' } })
