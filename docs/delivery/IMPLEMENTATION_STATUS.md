@@ -1,6 +1,16 @@
 # Implementatiestatus Liquid HR
 
-## Current release — 2026-10-11
+## Current release — APIAI-09 — 2026-10-12
+
+**Status: TEST RELEASED — LIMITED.** PR #18 code/test-SHA `27d534fd06fee7868b3bf0534bc3fdb9a3736cd1` (PR head `c5906d7469ef47fd5b9edf36c412772e9ac98a30`) is merged as main-SHA `a5d1b3ff61e8c1d1af05a0c89b08a4fe73472495`. App version remains `1.20261011.2`; the missing bump required by AA-REL §3 is recorded OPEN in AA-OPEN.
+
+Automatic Vercel TEST-channel deployment `dpl_7HBAyX61sjs1YNtmMZJU55NpNii6` is **READY** on the exact main-SHA and owns canonical alias `liquid-hr-hr-suite.vercel.app`. Previous READY deployment `dpl_841Lz4YpcDrPUQ6aTzNA9KLjS7Ka` on `db23b12446b4d04c823710ae48780dd0b47cc5b8` is the rollback candidate. Anonymous `/login` 200, `/dashboard/start` 307, `/api/context` / `/api/employees` 401; MCP initialize/tools-list 200, anonymous Manager call denied. Authenticated login/session and hosted regression smoke for existing functions were not run.
+
+Pre-release code/test gates: TypeScript, scoped ESLint, i18n (43 namespaces), diff-check, 19 files/180 tests and full suite (616 files, 2,930 passed; 4 files/8 tests skipped) GREEN. Preview `dpl_4wdGu1WWCbjqbLqRV5qbhZfKCCkz` is READY on the candidate SHA; Preview isolation remains OPEN. Local spec/standards reviews found no scoped blocker; no formal GitHub review submissions, none required by repo rules.
+
+**APIAI-08 ACCEPTANCE OPEN (0/8 Employee)** and **APIAI-09 ACCEPTANCE OPEN (0/6 Manager)**. Connector refresh again failed; four existing Talent calls returned `-32603`. Root cause is unproven. Canonical 96/0-hour readback, authenticated login/session and existing hosted regression smoke, RLS/tenant/team scope, consent/revoke/reconnect, audit and limiter remain OPEN. Manager opt-in stays fail-closed and Remote Execute OFF; no full ACCEPTANCE GREEN claim. See [APIAI-09 closeout](../quality/acceptance/runs/APIAI-09-20261012-TEST-RELEASE.md).
+
+## Previous release — NMBRS-01 — 2026-10-11
 
 **Status: beperkte hosted synthetische TEST-release `1.20261011.2` is READY en safety-smoke geverifieerd op exact `main` SHA `58dc758c950b4e6da45c43a1692f45eb0fc019e9`.** Lokale `main`, `origin/main` en GitHub `main` zijn gelijk. Automatische Vercel-deployment `dpl_BVuywDYacYZk2DXn9ZNkgVRgkvkp` heeft de canonieke alias `liquid-hr-hr-suite.vercel.app`; loginmethoden, authredirect en anonieme API-/MCP-/Test Auth-negatives zijn gecontroleerd zonder auth-bypass. Preview/Nmbrs OAuth/company-discovery en SEC-01 hosted personaacceptatie blijven OPEN. SEC-01 bronmigratie `20261011120317_secure_continuous_appraisal_attachment_storage_keys.sql` is op TEST toegepast met geregistreerde versie `20261011130922`; deze historische mismatch wordt niet herschreven of opnieuw toegepast. Zie [AA-CURRENT](../AA/AA-CURRENT.md), [AA-ACCEPT](../AA/AA-ACCEPT.md) en [AA-OPEN](../AA/AA-OPEN.md).
 
