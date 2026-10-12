@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { sha256, stableSerialize } from '@liquid-hr/payroll-engine'
 import type { ComponentCatalogEntry } from './component-catalog'
 import { SYSTEM_COMPONENT_CATALOG } from './component-catalog'
+import type { ComponentDraftEditorInput } from './component-draft-service'
 import type { PayrollCustomerComponentVersionRow, PayrollDatabase } from './database'
 import {
   ComponentDraftServiceError,
@@ -19,7 +20,6 @@ const scope = {
 const payrollAdministrationId = '10000000-0000-4000-8000-000000000004'
 const actorUserId = '10000000-0000-4000-8000-000000000005'
 const componentId = '10000000-0000-4000-8000-000000000010'
-const rowId = '20000000-0000-4000-8000-000000000001'
 const now = '2026-10-01T10:00:00.000Z'
 const sourceEntry = SYSTEM_COMPONENT_CATALOG.find((entry) => entry.forkable && entry.ownership === 'SYSTEM')
 const registeredRuleEntry = SYSTEM_COMPONENT_CATALOG.find((entry) => entry.definition.method.kind === 'registeredRule')
@@ -30,10 +30,11 @@ type ComponentDraftInsert = PayrollDatabase['public']['Tables']['customer_compon
 
 class InMemoryComponentDraftRepository implements ComponentDraftRepository {
   readonly rows: PayrollCustomerComponentVersionRow[] = []
+  private nextGeneratedId = 1
   readonly insert = vi.fn(async (_scope: typeof scope, _adminId: string, row: ComponentDraftInsert) => {
     const saved: PayrollCustomerComponentVersionRow = {
       ...row,
-      id: row.id ?? rowId,
+      id: row.id ?? `20000000-0000-4000-8000-${String(this.nextGeneratedId++).padStart(12, '0')}`,
       created_at: row.created_at ?? now,
     }
     this.rows.push(saved)
@@ -65,6 +66,28 @@ function createService(repository = new InMemoryComponentDraftRepository(), entr
       now: () => now,
       createId: () => componentId,
     }),
+  }
+}
+
+function editorInput(row: PayrollCustomerComponentVersionRow, requestId: string, displayName: string): ComponentDraftEditorInput {
+  const entry = toDraftCatalogEntry(row)
+  const definition = toDraftDefinition(row)
+  return {
+    draftId: row.id,
+    requestId,
+    displayName,
+    displayCode: entry.displayCode ?? row.component_code,
+    description: entry.description ?? '',
+    category: entry.category ?? 'expression',
+    effectiveFrom: definition.effectiveFrom,
+    effectiveTo: definition.effectiveTo,
+    processingScope: definition.processingScope,
+    inputs: definition.inputs,
+    outputs: definition.outputs,
+    dependencies: definition.dependencies,
+    parameters: definition.parameters ?? {},
+    method: null,
+    tracePolicy: definition.tracePolicy,
   }
 }
 
@@ -102,6 +125,63 @@ describe('Payroll customer component draft service', () => {
     expect(repository.rows).toHaveLength(1)
     await expect(service.get(scope, payrollAdministrationId, saved.id)).resolves.toEqual(saved)
     await expect(service.list(scope, payrollAdministrationId)).resolves.toEqual([saved])
+  })
+
+  it('appends a new immutable fork version and returns the same saved row for a repeated request', async () => {
+    const { repository, service } = createService()
+    const systemBefore = stableSerialize(sourceEntry.definition)
+    const first = await service.forkSystemComponent(scope, payrollAdministrationId, actorUserId, sourceEntry.key)
+    const input = editorInput(first, '30000000-0000-4000-8000-000000000001', 'Edited fork')
+
+    const saved = await service.saveVersion(scope, payrollAdministrationId, actorUserId, input)
+    const repeated = await service.saveVersion(scope, payrollAdministrationId, actorUserId, input)
+
+    expect(saved.id).not.toBe(first.id)
+    expect(saved.component_version).toBe('2')
+    expect(toDraftCatalogEntry(saved).displayName).toBe('Edited fork')
+    expect(repeated).toEqual(saved)
+    expect(repository.insert).toHaveBeenCalledTimes(2)
+    expect(repository.rows[0]).toEqual(first)
+    expect(stableSerialize(sourceEntry.definition)).toBe(systemBefore)
+    await expect(service.get(scope, payrollAdministrationId, saved.id)).resolves.toEqual(saved)
+  })
+
+  it('creates CUSTOMER_CUSTOM without SYSTEM provenance and keeps repeated submissions idempotent', async () => {
+    const { repository, service } = createService()
+    const input: ComponentDraftEditorInput = {
+      requestId: '30000000-0000-4000-8000-000000000002',
+      packageCompositionId: sourceEntry.package.compositionId,
+      displayName: 'Fixed allowance',
+      displayCode: 'FIXED_ALLOWANCE',
+      description: 'Synthetic fixed amount.',
+      category: 'Allowance',
+      effectiveFrom: '2026-01-01',
+      effectiveTo: null,
+      processingScope: 'PAYROLL_RUN',
+      inputs: [],
+      outputs: [{ name: 'amount', valueType: 'MONEY' }],
+      dependencies: [],
+      parameters: {},
+      method: { kind: 'expression', outputs: { amount: { kind: 'literal', valueType: 'MONEY', value: '10.00' } } },
+      tracePolicy: 'FULL',
+    }
+
+    const saved = await service.createCustomerCustom(scope, payrollAdministrationId, actorUserId, input)
+    const repeated = await service.createCustomerCustom(scope, payrollAdministrationId, actorUserId, {
+      ...input,
+      requestId: '30000000-0000-4000-8000-000000000003',
+    })
+
+    expect(saved.ownership).toBe('CUSTOMER_CUSTOM')
+    expect(saved.component_code).toMatch(/^CUSTOM_[A-F0-9]{32}$/)
+    expect(saved.component_id).toBe(saved.component_code)
+    expect(saved.component_version).toBe('1')
+    expect(saved.origin_component_id).toBeNull()
+    expect(saved.origin_component_code).toBeNull()
+    expect(saved.forked_at).toBeNull()
+    expect(repeated).toEqual(saved)
+    expect(repository.insert).toHaveBeenCalledTimes(1)
+    await expect(service.get(scope, payrollAdministrationId, saved.id)).resolves.toEqual(saved)
   })
 
   it('rejects a RegisteredRule even when presented by the injected catalog and performs no insert', async () => {

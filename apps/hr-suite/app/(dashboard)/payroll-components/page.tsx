@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { ArrowLeft, Blocks, Copy, Search } from 'lucide-react'
+import { ArrowLeft, Blocks, Copy, Pencil, Plus, Search } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { ComponentLibraryEntryDetail, payrollComponentCategory, payrollComponentName, payrollComponentStatus } from '@/components/payroll/component-library-entry-detail'
+import { ComponentEditor } from '@/components/payroll/component-editor'
 import { DetailColumns } from '@/components/layout/detail-columns'
 import { PageShell } from '@/components/layout/page-shell'
 import { FilterBar } from '@/components/patterns/filter-bar'
@@ -21,6 +22,7 @@ import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getComponentLibrary } from '@/lib/payroll/component-library'
 import { PayrollLabUnavailableError } from '@/lib/payroll/access'
 import type { ComponentCatalogEntry } from '@/lib/payroll/component-catalog'
+import { componentEditorStateFromEntry, newComponentEditorState } from '@/lib/payroll/component-editor-state'
 import { copySystemComponentAction } from './actions'
 
 type ComponentLibraryQuery = {
@@ -30,6 +32,9 @@ type ComponentLibraryQuery = {
   status?: string | string[]
   component?: string | string[]
   saved?: string | string[]
+  copied?: string | string[]
+  edit?: string | string[]
+  new?: string | string[]
   error?: string | string[]
 }
 
@@ -39,6 +44,40 @@ type Filters = {
   ownership: 'all' | 'system' | 'customer'
   status: 'all' | 'packaged' | 'draft'
 }
+
+const EDITOR_LABEL_KEYS = [
+  'payrollComponentsEditorActionFailed', 'payrollComponentsEditorAddDependency', 'payrollComponentsEditorAddInput',
+  'payrollComponentsEditorAddOutput', 'payrollComponentsEditorAddParameter', 'payrollComponentsEditorAggregateInputs',
+  'payrollComponentsEditorAggregateOperation', 'payrollComponentsEditorCalculation', 'payrollComponentsEditorCalculationContext',
+  'payrollComponentsEditorCalculationMethod', 'payrollComponentsEditorTracePolicy_FULL', 'payrollComponentsEditorTracePolicy_OUTPUTS',
+  'payrollComponentsEditorTracePolicy_NONE', 'payrollComponentsEditorStatus', 'payrollComponentsEditorCalculated', 'payrollComponentsEditorBlocked',
+  'payrollComponentsEditorCategory', 'payrollComponentsEditorCode', 'payrollComponentsEditorCodeHelp',
+  'payrollComponentsEditorComponentOutput', 'payrollComponentsEditorControls', 'payrollComponentsEditorDecimalPlaces',
+  'payrollComponentsEditorDependencies', 'payrollComponentsEditorDescription', 'payrollComponentsEditorEffectiveFrom',
+  'payrollComponentsEditorEffectiveTo', 'payrollComponentsEditorFormula', 'payrollComponentsEditorFormulaHelp',
+  'payrollComponentsEditorGeneral', 'payrollComponentsEditorInputName', 'payrollComponentsEditorInputs',
+  'payrollComponentsEditorMethod', 'payrollComponentsEditorName', 'payrollComponentsEditorNoDependencies',
+  'payrollComponentsEditorNoInputs', 'payrollComponentsEditorNoParameters', 'payrollComponentsEditorNoPreviewInputs',
+  'payrollComponentsEditorOutputName', 'payrollComponentsEditorOutputs', 'payrollComponentsEditorOwnership',
+  'payrollComponentsEditorParameterName', 'payrollComponentsEditorParameters', 'payrollComponentsEditorParameterValue',
+  'payrollComponentsEditorPreviewInput', 'payrollComponentsEditorPreviewInputHelp', 'payrollComponentsEditorPreviewInputs',
+  'payrollComponentsEditorProvenance', 'payrollComponentsEditorReadOnly', 'payrollComponentsEditorRemove',
+  'payrollComponentsEditorRequired', 'payrollComponentsEditorResult', 'payrollComponentsEditorRounding',
+  'payrollComponentsEditorRoundingMode', 'payrollComponentsEditorRunPreview', 'payrollComponentsEditorSaveDraft',
+  'payrollComponentsEditorSaveFailed', 'payrollComponentsEditorScope', 'payrollComponentsEditorSelectInput',
+  'payrollComponentsEditorSourceMethod', 'payrollComponentsEditorSourceMethodReadOnly', 'payrollComponentsEditorTrace',
+  'payrollComponentsEditorTracePolicy', 'payrollComponentsEditorUseRounding', 'payrollComponentsEditorValidate',
+  'payrollComponentsEditorValueType', 'payrollComponentsEditorValueTypeHelp', 'payrollComponentsMethod_aggregate',
+  'payrollComponentsMethod_expression', 'payrollComponentsMethod_passThrough', 'payrollComponentsMethod_source',
+  'payrollComponentsScope_EMPLOYMENT', 'payrollComponentsScope_PAYROLL_RUN',
+  'payrollComponentsScope_INCOME_RELATIONSHIP', 'payrollComponentsScope_ASSESSMENT_BASE_GROUP', 'payrollComponentsScope_EMPLOYEE',
+  'payrollComponentsScope_PAYROLL_PERIOD', 'payrollComponentsScope_EMPLOYER', 'payrollComponentsValueType_MONEY',
+  'payrollComponentsValueType_DECIMAL', 'payrollComponentsValueType_PERCENTAGE', 'payrollComponentsValueType_BOOLEAN',
+  'payrollComponentsValueType_STRING', 'payrollComponentsEditorWritePermissionRequired', 'payrollComponentsEditorIssueDate',
+  'payrollComponentsEditorIssueStaleVersion', 'payrollComponentsEditorIssueDependency', 'payrollComponentsEditorIssueCycle',
+  'payrollComponentsEditorIssueDivisionByZero', 'payrollComponentsEditorIssueRounding', 'payrollComponentsEditorIssueType',
+  'payrollComponentsEditorIssueFormula', 'payrollComponentsEditorIssueCodeDuplicate', 'payrollComponentsEditorIssueGeneric',
+] as const
 
 function queryValue(value: string | string[] | undefined): string {
   return typeof value === 'string' ? value : ''
@@ -70,6 +109,8 @@ function filterEntries(entries: readonly ComponentCatalogEntry[], filters: Filte
     return [
       payrollComponentName(entry, t),
       entry.definition.code,
+      entry.displayCode,
+      entry.description,
       entry.definition.version,
       entry.definition.method.kind,
       entryCategoryKey(entry),
@@ -115,8 +156,8 @@ function ComponentList({
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="break-words text-sm font-semibold text-foreground">{payrollComponentName(entry, t)}</p>
-                <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{entry.definition.code} · v{entry.definition.version}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{t('payrollComponentsDescriptionUnavailable')}</p>
+                <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{entry.displayCode && entry.displayCode !== entry.definition.code ? `${entry.displayCode} · ` : ''}{entry.definition.code} · v{entry.definition.version}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{entry.description?.trim() || t('payrollComponentsDescriptionUnavailable')}</p>
                 <p className="mt-2 break-words text-xs text-muted-foreground">{payrollComponentCategory(entry, t)} · {t(`payrollComponentsScope_${entry.definition.processingScope}`)}</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
@@ -204,7 +245,7 @@ function CopyAction({
   return <div className="flex flex-col items-start gap-2">
     <form action={copySystemComponentAction}>
       <input name="catalogKey" type="hidden" value={entry.key} />
-      <Button aria-describedby={reason ? 'payroll-component-copy-reason' : undefined} disabled={Boolean(reason)} type="submit"><Copy aria-hidden="true" />{t('payrollComponentsCopy')}</Button>
+      <Button aria-describedby={reason ? 'payroll-component-copy-reason' : undefined} disabled={Boolean(reason)} type="submit"><Copy aria-hidden="true" />{t('payrollComponentsCopyAndEdit')}</Button>
     </form>
     {reason ? <p className="max-w-prose text-xs text-muted-foreground" id="payroll-component-copy-reason">{reason}</p> : null}
   </div>
@@ -241,11 +282,25 @@ export default async function PayrollComponentsPage({
   const filters = currentFilters(query)
   const selectedKey = queryValue(query.component)
   const selected = library.components.find((entry) => entry.key === selectedKey) ?? null
+  const newRequested = queryValue(query.new) === '1'
+  const editRequested = queryValue(query.edit) === '1'
+  const selectedIsDraft = Boolean(selected && selected.status === 'DRAFT' && selected.ownership !== 'SYSTEM')
+  const selectedVersions = selectedIsDraft
+    ? library.components.filter((entry) => entry.definition.code === selected!.definition.code && entry.status === 'DRAFT')
+    : []
+  const latestSelected = selectedVersions.reduce<ComponentCatalogEntry | null>((latest, entry) => {
+    if (!latest) return entry
+    return Number(entry.definition.version) > Number(latest.definition.version) ? entry : latest
+  }, null)
+  const canEditSelected = Boolean(selectedIsDraft && latestSelected?.key === selected?.key)
+  const editDraft = Boolean(editRequested && selectedIsDraft && selected)
+  const showEditor = newRequested || editDraft
   const filtered = filterEntries(library.components, filters, locale, t).sort((left, right) =>
     payrollComponentName(left, t).localeCompare(payrollComponentName(right, t), locale)
       || left.definition.code.localeCompare(right.definition.code, locale)
       || left.definition.version.localeCompare(right.definition.version, locale))
   const saved = queryValue(query.saved) === '1'
+  const copied = queryValue(query.copied) === '1'
   const error = queryValue(query.error)
   const errorMessage = error === 'copy-not-allowed'
     ? t('payrollComponentsCopyUnavailable')
@@ -260,19 +315,66 @@ export default async function PayrollComponentsPage({
     : selectedKey
       ? <EmptyState description={t('payrollComponentsNotFound')} icon={<Blocks aria-hidden="true" />} title={t('payrollComponentsNotFound')} />
       : <EmptyState description={t('payrollComponentsNoSelection')} icon={<Blocks aria-hidden="true" />} title={t('payrollComponentsDetail')} />
+  const packageOptions = library.packageOptions ?? []
+  const initial = editDraft && selected
+    ? componentEditorStateFromEntry(selected, selected.key.slice('draft::'.length), payrollComponentName(selected, t), entryCategoryKey(selected))
+    : newComponentEditorState(packageOptions[0]?.compositionId ?? '', new Date().toISOString().slice(0, 10), t('payrollComponentsEditorNewName'), t('payrollComponentsEditorDefaultCategory'))
+  const dependencyOptions = library.components.filter((entry) => entry.ownership === 'SYSTEM')
+    .flatMap((entry) => entry.definition.outputs.map((output) => ({
+      componentCode: entry.definition.code,
+      outputName: output.name,
+      valueType: output.valueType,
+      label: `${payrollComponentName(entry, t)} · ${entry.definition.code}.${output.name} · ${output.valueType}`,
+    })))
+  const editorLabels = Object.fromEntries(EDITOR_LABEL_KEYS.map((key) => [key, t(key)]))
+  const sourcePath = editDraft && selected?.definition.method.kind === 'source' ? selected.definition.method.path.join('.') : undefined
+  const provenanceLabel = editDraft && selected?.definition.ownership.kind === 'CUSTOMER_FORK'
+    ? `${selected.definition.ownership.origin.code} v${selected.definition.ownership.origin.version}`
+    : editDraft ? t('payrollComponentsEditorCustomerCustom') : ''
+  const editorPanel = <div className="space-y-4">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 className="text-xl font-semibold text-foreground">{editDraft && selected ? payrollComponentName(selected, t) : t('payrollComponentsNew')}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t('payrollComponentsEditorDraftNotice')}</p>
+      </div>
+      <Link className={buttonClasses({ variant: 'secondary' })} href={selected ? libraryHref(filters, selected.key) : libraryHref(filters)}>{t('payrollComponentsEditorCancel')}</Link>
+    </div>
+    {selectedIsDraft && !canEditSelected ? <Surface className="border-warning bg-warning-surface p-3 text-sm text-foreground" role="status">{t('payrollComponentsEditorOlderVersionReadOnly')}</Surface> : null}
+    {!library.canCopy ? <Surface className="border-warning bg-warning-surface p-3 text-sm text-foreground" role="status">{t('payrollComponentsEditorWritePermissionRequired')}</Surface> : null}
+    <ComponentEditor
+      key={editDraft && selected ? selected.key : 'new-component'}
+      canSave={library.canCopy && (newRequested ? packageOptions.length > 0 : canEditSelected)}
+      dependencyOptions={dependencyOptions}
+      initial={initial}
+      labels={editorLabels}
+      ownershipLabel={editDraft && selected ? t(`payrollComponentsOwnership_${selected.ownership}`) : t('payrollComponentsEditorCustomerCustom')}
+      packageOptions={packageOptions}
+      provenanceLabel={provenanceLabel}
+      readOnly={!library.canCopy || (editDraft && !canEditSelected)}
+      sourcePath={sourcePath}
+    />
+  </div>
 
   return <PageShell className="space-y-6 py-6 sm:py-8" width="standard">
-    <PageHeader actions={<Link className={buttonClasses({ variant: 'secondary' })} href="/payroll-lab"><ArrowLeft aria-hidden="true" />{t('payrollLabBackToOverview')}</Link>} description={t('payrollComponentsDescription')} title={t('payrollComponents')} />
-    {saved ? <Surface className="border-success bg-success-surface p-3 text-sm text-success" role="status">{t('payrollComponentsCopied')}</Surface> : null}
+    <PageHeader actions={<div className="flex flex-wrap gap-2">
+      {library.canCopy ? <Link className={buttonClasses({ variant: 'primary' })} href="/payroll-components?new=1"><Plus aria-hidden="true" />{t('payrollComponentsNew')}</Link> : null}
+      <Link className={buttonClasses({ variant: 'secondary' })} href="/payroll-lab"><ArrowLeft aria-hidden="true" />{t('payrollLabBackToOverview')}</Link>
+    </div>} description={t('payrollComponentsDescription')} title={t('payrollComponents')} />
+    {copied ? <Surface className="border-success bg-success-surface p-3 text-sm text-success" role="status">{t('payrollComponentsCopied')}</Surface> : null}
+    {saved ? <Surface className="border-success bg-success-surface p-3 text-sm text-success" role="status">{t('payrollComponentsEditorSaved')}</Surface> : null}
     {errorMessage ? <Surface className="border-destructive/40 p-3 text-sm text-destructive" role="alert">{errorMessage}</Surface> : null}
     <ComponentFilters entries={library.components} filters={filters} locale={locale} selectedKey={selectedKey} t={t} />
-    <SectionHeader title={t('payrollComponents')} description={t('payrollComponentsResultCount', { count: filtered.length })} />
-    {selected ? <DetailColumns className="items-start" main={<div className="space-y-4">
+    {showEditor ? <DetailColumns className="items-start" main={editorPanel} aside={<div className="space-y-3">
+      <SectionHeader title={t('payrollComponentsResultCount', { count: filtered.length })} />
+      {list}
+      {selected ? <ComponentLibraryEntryDetail components={library.components} entry={selected} locale={locale} t={t} /> : null}
+    </div>} /> : selected ? <DetailColumns className="items-start" main={<div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="break-words text-xl font-semibold text-foreground">{payrollComponentName(selected, t)}</h2>
+        <div className="min-w-0"><h2 className="break-words text-xl font-semibold text-foreground">{payrollComponentName(selected, t)}</h2></div>
+        <div className="flex flex-wrap gap-2">
+          {selectedIsDraft && canEditSelected ? <Link className={buttonClasses({ variant: 'secondary' })} href={`${libraryHref(filters, selected.key)}&edit=1`}><Pencil aria-hidden="true" />{t('payrollComponentsEdit')}</Link> : null}
+          <CopyAction canCopy={library.canCopy} entry={selected} t={t} />
         </div>
-        <CopyAction canCopy={library.canCopy} entry={selected} t={t} />
       </div>
       <ComponentLibraryEntryDetail components={library.components} entry={selected} locale={locale} t={t} />
     </div>} aside={<div className="space-y-3">

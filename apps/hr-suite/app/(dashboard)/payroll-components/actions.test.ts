@@ -8,9 +8,9 @@ vi.mock('next/navigation', () => ({ redirect: (path: string) => { throw new Erro
 function form(key: string) { const result = new FormData(); result.set('catalogKey', key); return result }
 describe('component copy action', () => {
   beforeEach(() => vi.clearAllMocks())
-  it('submits only the selected exact server catalog key and opens the saved draft', async () => {
+  it('submits only the selected exact server catalog key and opens the editor for the saved draft', async () => {
     copy.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000099' })
-    await expect(copySystemComponentAction(form('NL-PAYROLL-2026:2026.1::NL_NET_PAY::1'))).rejects.toThrow('redirect:/payroll-components?component=draft%3A%3A10000000-0000-4000-8000-000000000099&ownership=customer&saved=1')
+    await expect(copySystemComponentAction(form('NL-PAYROLL-2026:2026.1::NL_NET_PAY::1'))).rejects.toThrow('redirect:/payroll-components?component=draft%3A%3A10000000-0000-4000-8000-000000000099&ownership=customer&edit=1&copied=1')
     expect(copy).toHaveBeenCalledWith('NL-PAYROLL-2026:2026.1::NL_NET_PAY::1')
   })
   it.each(['tenantId', 'hrGroupId', 'administrationId', 'definition', 'ownership', 'status'])('rejects forged %s fields before copying', async field => {

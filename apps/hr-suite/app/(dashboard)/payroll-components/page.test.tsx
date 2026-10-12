@@ -13,7 +13,7 @@ const { getComponentLibrary, redirect } = vi.hoisted(() => ({
   redirect: vi.fn((path: string): never => { throw new Error(`redirect:${path}`) }),
 }))
 
-vi.mock('next/navigation', () => ({ redirect }))
+vi.mock('next/navigation', () => ({ redirect, useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/lib/payroll/component-library', () => ({ getComponentLibrary }))
 vi.mock('./actions', () => ({ copySystemComponentAction: vi.fn() }))
 vi.mock('@/lib/i18n/server', () => ({
@@ -158,6 +158,39 @@ describe('Payroll component library route', () => {
     expect(markup).toContain('Bronpakketchecksum')
     expect(markup).toContain('De kopie is opgeslagen als eigen concept.')
     expect(markup).not.toContain('name="catalogKey"')
+  })
+
+  it('opens the customer draft editor and returns to its saved version history', async () => {
+    const page = await PayrollComponentsPage({ searchParams: Promise.resolve({
+      ownership: 'customer',
+      component: draftEntry.key,
+      edit: '1',
+    }) })
+    const markup = renderToStaticMarkup(page)
+
+    expect(markup).toContain('payrollComponentsEditorGeneral')
+    expect(markup).toContain('payrollComponentsEditorSaveDraft')
+    expect(markup).toContain('payrollComponentsEditorSourceMethodReadOnly')
+    expect(markup).toContain('CUSTOM_30000000000040008000000000000001')
+    expect(markup).not.toContain('name="tenantId"')
+    expect(markup).not.toContain('name="definition"')
+  })
+
+  it('opens a new customer component editor inside the component library', async () => {
+    getComponentLibrary.mockResolvedValueOnce({
+      components: [systemEntry],
+      canCopy: true,
+      packageOptions: [{ compositionId: 'NL-PAYROLL-2026', packageId: 'NL-PAYROLL-2026', version: '2026.1' }],
+    })
+    const page = await PayrollComponentsPage({ searchParams: Promise.resolve({ new: '1' }) })
+    const markup = renderToStaticMarkup(page)
+
+    expect(markup).toContain('payrollComponentsNew')
+    expect(markup).toContain('payrollComponentsEditorCalculationContext')
+    expect(markup).toContain('NL-PAYROLL-2026')
+    expect(markup).toContain('payrollComponentsEditorSaveDraft')
+    expect(markup).not.toContain('name="tenantId"')
+    expect(markup).not.toContain('name="definition"')
   })
 
   it('does not label a customer-owned component as registered in a system source without a recorded status', async () => {

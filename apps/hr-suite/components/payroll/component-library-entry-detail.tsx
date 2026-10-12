@@ -175,7 +175,7 @@ export function ComponentLibraryEntryDetail({
     <section aria-labelledby="payroll-component-overview">
       <SectionHeader title={<span id="payroll-component-overview">{t('payrollComponentsOverview')}</span>} />
       <InfoList className="mt-4" columns={2} items={[
-        { label: t('payrollComponentsCode'), value: <code className="break-all font-mono text-xs">{definition.code}</code> },
+        { label: t('payrollComponentsCode'), value: <span className="space-y-1"><code className="block break-all font-mono text-xs">{definition.code}</code>{entry.displayCode && entry.displayCode !== definition.code ? <span className="block text-xs text-muted-foreground">{t('payrollComponentsEditorDisplayCode')}: {entry.displayCode}</span> : null}</span> },
         { label: t('payrollComponentsType'), value: t(`payrollComponentsMethod_${methodKind}`) },
         { label: t('payrollComponentsOwnership'), value: t(`payrollComponentsOwnership_${entry.ownership}`) },
         { label: t('payrollComponentsStatus'), value: t(`payrollComponentsStatus_${payrollComponentStatus(entry)}`) },
@@ -185,7 +185,7 @@ export function ComponentLibraryEntryDetail({
         { label: t('payrollComponentsEffectiveTo'), value: formatDate(definition.effectiveTo, locale) },
         { label: t('payrollComponentsExecutionScope'), value: t(`payrollComponentsScope_${definition.processingScope}`) },
       ]} />
-      <p className="mt-4 text-sm text-muted-foreground">{t('payrollComponentsDescriptionUnavailable')}</p>
+      <p className="mt-4 text-sm text-muted-foreground">{entry.description?.trim() || t('payrollComponentsDescriptionUnavailable')}</p>
     </section>
 
     <section aria-labelledby="payroll-component-inputs" className="border-t border-border-subtle pt-5">

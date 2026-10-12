@@ -6,11 +6,18 @@ import {
   sha256,
   stableSerialize,
   type PayrollComponentDefinition,
+  type PayrollComponentInputDefinition,
+  type PayrollComponentOutputDefinition,
+  type PayrollDependencyDefinition,
+  type PayrollProcessingScope,
+  type PayrollRulePackage,
   type PayrollRoundingDefinition,
+  type PayrollTracePolicy,
   type PayrollTypedParameter,
 } from '@liquid-hr/payroll-engine'
 import {
   createComponentCatalogEntry,
+  getSystemRulePackageByCompositionId,
   type ComponentCatalogEntry,
   type ComponentCatalogParameterMetadata,
   type ComponentCatalogPackageIdentity,
@@ -30,6 +37,7 @@ const SAFE_METHODS = new Set(['source', 'passThrough', 'expression', 'aggregate'
 
 export interface ComponentDraftCatalog {
   getSystemComponentByKey(key: string): ComponentCatalogEntry | null
+  getSystemRulePackageByCompositionId?(compositionId: string): PayrollRulePackage | null
 }
 
 export interface ComponentDraftServiceOptions {
@@ -44,6 +52,32 @@ export class ComponentDraftServiceError extends Error {
     super(code)
     this.name = 'ComponentDraftServiceError'
   }
+}
+
+export interface ComponentDraftEditorInput {
+  readonly requestId: string
+  readonly draftId?: string
+  readonly packageCompositionId?: string
+  readonly displayName: string
+  readonly displayCode: string
+  readonly description: string
+  readonly category: string
+  readonly effectiveFrom: string
+  readonly effectiveTo: string | null
+  readonly processingScope: PayrollProcessingScope
+  readonly inputs: readonly PayrollComponentInputDefinition[]
+  readonly outputs: readonly PayrollComponentOutputDefinition[]
+  readonly dependencies: readonly PayrollDependencyDefinition[]
+  readonly parameters: Readonly<Record<string, PayrollTypedParameter>>
+  /** Null means retain a trusted, read-only source path from the selected base version. */
+  readonly method: PayrollComponentDefinition['method'] | null
+  readonly tracePolicy: PayrollTracePolicy
+}
+
+export interface PreparedComponentDraft {
+  readonly definition: PayrollComponentDefinition
+  readonly entry: ComponentCatalogEntry
+  readonly requestId: string
 }
 
 function assertUuid(value: string): void {
@@ -62,7 +96,17 @@ function toDefinitionJson(definition: PayrollComponentDefinition): PayrollJson {
   return asPayrollJson(definition)
 }
 
-function toCatalogMetadataJson(entry: ComponentCatalogEntry): PayrollJson {
+function editorMetadata(entry: ComponentCatalogEntry) {
+  return {
+    displayName: entry.displayName ?? '',
+    displayCode: entry.displayCode ?? entry.definition.code,
+    description: entry.description ?? '',
+    category: entry.category ?? entry.definition.method.kind,
+  }
+}
+
+function toCatalogMetadataJson(entry: ComponentCatalogEntry, requestId?: string): PayrollJson {
+  const userMetadata = editorMetadata(entry)
   return asPayrollJson({
     key: entry.key,
     package: entry.package,
@@ -76,8 +120,9 @@ function toCatalogMetadataJson(entry: ComponentCatalogEntry): PayrollJson {
       downstream: entry.downstream ?? [],
     },
     validation: entry.validation,
-    displayName: entry.displayName ?? null,
-    category: entry.category ?? null,
+    ...userMetadata,
+    editorMetadataHash: sha256(stableSerialize(userMetadata)),
+    editorRequestId: requestId ?? null,
     snapshotOnly: true,
   })
 }
@@ -159,6 +204,7 @@ function assertDraftDefinitionRow(row: PayrollCustomerComponentVersionRow): Payr
   const candidate = definitionJson as unknown as PayrollComponentDefinition
   const validated = appendPayrollComponentVersion([], candidate)[0]
   if (!validated) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_SNAPSHOT_INVALID')
+  readStoredCatalogMetadata(row)
   return validated
 }
 
@@ -176,7 +222,10 @@ function readStoredCatalogMetadata(row: PayrollCustomerComponentVersionRow): {
   readonly upstream: readonly ComponentCatalogReference[]
   readonly validation: ComponentCatalogValidation
   readonly displayName?: string
+  readonly displayCode?: string
+  readonly description?: string
   readonly category?: string
+  readonly editorRequestId?: string
 } {
   const metadata = isRecord(row.catalog_metadata_json) ? row.catalog_metadata_json : null
   const packageValue = metadata && isRecord(metadata.package) ? metadata.package : null
@@ -189,7 +238,11 @@ function readStoredCatalogMetadata(row: PayrollCustomerComponentVersionRow): {
   const upstreamValue = graph?.upstream
   const validationValue = metadata?.validation
   const displayNameValue = metadata?.displayName
+  const displayCodeValue = metadata?.displayCode
+  const descriptionValue = metadata?.description
   const categoryValue = metadata?.category
+  const editorMetadataHashValue = metadata?.editorMetadataHash
+  const editorRequestIdValue = metadata?.editorRequestId
 
   if (typeof packageCompositionId !== 'string' || !packageCompositionId.trim()
     || !Array.isArray(roundingDefinitionsValue)
@@ -239,6 +292,21 @@ function readStoredCatalogMetadata(row: PayrollCustomerComponentVersionRow): {
     }
     parameterMetadata = Object.fromEntries(entries) as unknown as Record<string, ComponentCatalogParameterMetadata>
   }
+  const normalizedEditorMetadata = {
+    displayName: typeof displayNameValue === 'string' ? displayNameValue : '',
+    displayCode: typeof displayCodeValue === 'string' ? displayCodeValue : row.component_code,
+    description: typeof descriptionValue === 'string' ? descriptionValue : '',
+    category: typeof categoryValue === 'string' ? categoryValue : 'expression',
+  }
+  if ((displayNameValue !== null && displayNameValue !== undefined && typeof displayNameValue !== 'string')
+    || (displayCodeValue !== null && displayCodeValue !== undefined && typeof displayCodeValue !== 'string')
+    || (descriptionValue !== null && descriptionValue !== undefined && typeof descriptionValue !== 'string')
+    || (categoryValue !== null && categoryValue !== undefined && typeof categoryValue !== 'string')
+    || (typeof editorMetadataHashValue === 'string' && editorMetadataHashValue !== sha256(stableSerialize(normalizedEditorMetadata)))
+    || (editorMetadataHashValue !== undefined && editorMetadataHashValue !== null && typeof editorMetadataHashValue !== 'string')
+    || (editorRequestIdValue !== undefined && editorRequestIdValue !== null && (typeof editorRequestIdValue !== 'string' || !UUID_PATTERN.test(editorRequestIdValue)))) {
+    throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_METADATA_INVALID')
+  }
   const roundingDefinitions = roundingDefinitionsValue as unknown as readonly PayrollRoundingDefinition[]
   const upstream = upstreamValue as unknown as readonly ComponentCatalogReference[]
   const validation = validationValue as unknown as ComponentCatalogValidation
@@ -252,7 +320,10 @@ function readStoredCatalogMetadata(row: PayrollCustomerComponentVersionRow): {
     upstream,
     validation,
     ...(typeof displayNameValue === 'string' ? { displayName: displayNameValue } : {}),
+    ...(typeof displayCodeValue === 'string' ? { displayCode: displayCodeValue } : {}),
+    ...(typeof descriptionValue === 'string' ? { description: descriptionValue } : {}),
     ...(typeof categoryValue === 'string' ? { category: categoryValue } : {}),
+    ...(typeof editorRequestIdValue === 'string' ? { editorRequestId: editorRequestIdValue } : {}),
   }
 }
 
@@ -273,6 +344,8 @@ export function toDraftCatalogEntry(row: PayrollCustomerComponentVersionRow): Co
     key: `draft::${row.id}`,
     status: 'DRAFT',
     ...(metadata.displayName ? { displayName: metadata.displayName } : {}),
+    ...(metadata.displayCode ? { displayCode: metadata.displayCode } : {}),
+    ...(metadata.description ? { description: metadata.description } : {}),
     ...(metadata.category ? { category: metadata.category } : {}),
   })
 
@@ -300,6 +373,22 @@ function buildInsert(
   })
   const ownership = definition.ownership
   if (ownership.kind !== 'CUSTOMER_FORK') throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_SOURCE_INVALID')
+  const draftEntry = createComponentCatalogEntry({
+    definition,
+    packageIdentity: entry.package,
+    ...(entry.sourceMetadata ? { sourceMetadata: entry.sourceMetadata } : {}),
+    roundingDefinitions: entry.roundingDefinitions,
+    parameters: definition.parameters ?? entry.parameters,
+    ...(entry.parameterMetadata ? { parameterMetadata: entry.parameterMetadata } : {}),
+    upstream: entry.upstream,
+    downstream: [],
+    validation: entry.validation,
+    status: 'DRAFT',
+    displayName: entry.displayName ?? entry.definition.code,
+    displayCode: definition.code,
+    description: entry.description ?? '',
+    category: entry.category ?? entry.definition.method.kind,
+  })
   const validatedScope = assertPayrollScope(scope)
   const definitionJson = toDefinitionJson(definition)
 
@@ -323,11 +412,229 @@ function buildInsert(
     origin_package_version: entry.package.version ?? null,
     origin_package_hash: entry.package.packageHash ?? null,
     forked_at: ownership.forkedAt,
-    catalog_metadata_json: toCatalogMetadataJson(entry),
+    catalog_metadata_json: toCatalogMetadataJson({ ...draftEntry, roundingDefinitions: entry.roundingDefinitions }),
     definition_json: definitionJson,
     definition_hash: sha256(stableSerialize(definition)),
     created_by_user_id: actorUserId,
   }
+}
+
+function assertTimestamp(timestamp: string): void {
+  if (!Number.isFinite(Date.parse(timestamp)) || !/[zZ]|[+-]\d{2}:?\d{2}$/.test(timestamp)) {
+    throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_TIMESTAMP_INVALID')
+  }
+}
+
+function assertEditorInput(input: ComponentDraftEditorInput): void {
+  assertUuid(input.requestId)
+  if (input.draftId) assertUuid(input.draftId)
+  if (!input.displayName.trim() || input.displayName.length > 120
+    || !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(input.displayCode)
+    || input.description.length > 800
+    || !input.category.trim() || input.category.length > 80
+    || !/^\d{4}-\d{2}-\d{2}$/.test(input.effectiveFrom)
+    || (input.effectiveTo !== null && !/^\d{4}-\d{2}-\d{2}$/.test(input.effectiveTo))
+    || (input.effectiveTo !== null && input.effectiveTo < input.effectiveFrom)
+    || input.outputs.length === 0) {
+    throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_INPUT_INVALID')
+  }
+}
+
+function toRulePackageIdentity(rulePackage: PayrollRulePackage): ComponentCatalogPackageIdentity {
+  return {
+    compositionId: rulePackage.compositionId,
+    ...(rulePackage.metadata ? {
+      packageId: rulePackage.metadata.packageId,
+      version: rulePackage.metadata.version,
+      packageHash: rulePackage.metadata.packageHash,
+      parameterSetHash: rulePackage.metadata.parameterSetHash,
+    } : {}),
+  }
+}
+
+function createDraftEntry(
+  definition: PayrollComponentDefinition,
+  rulePackage: PayrollRulePackage,
+  input: ComponentDraftEditorInput,
+  options: {
+    readonly sourceMetadata?: Readonly<Record<string, string>>
+    readonly parameterMetadata?: Readonly<Record<string, ComponentCatalogParameterMetadata>>
+    readonly capturedRoundingDefinitions?: readonly PayrollRoundingDefinition[]
+    readonly packageIdentity?: ComponentCatalogPackageIdentity
+  } = {},
+): ComponentCatalogEntry {
+  const created = createComponentCatalogEntry({
+    definition,
+    packageIdentity: options.packageIdentity ?? toRulePackageIdentity(rulePackage),
+    ...(options.sourceMetadata ? { sourceMetadata: options.sourceMetadata } : {}),
+    roundingDefinitions: rulePackage.roundingDefinitions ?? [],
+    parameters: definition.parameters ?? {},
+    ...(options.parameterMetadata ? {
+      parameterMetadata: Object.fromEntries(Object.entries(options.parameterMetadata)
+        .filter(([name]) => definition.parameters?.[name] !== undefined)),
+    } : {}),
+    components: [...rulePackage.components.filter((component) => component.code !== definition.code), definition],
+    status: 'DRAFT',
+    displayName: input.displayName.trim(),
+    displayCode: input.displayCode.trim(),
+    description: input.description.trim(),
+    category: input.category.trim(),
+  })
+  return {
+    ...created,
+    roundingDefinitions: options.capturedRoundingDefinitions ?? created.roundingDefinitions,
+  }
+}
+
+function buildVersionDefinition(
+  previous: PayrollComponentDefinition,
+  input: ComponentDraftEditorInput,
+  version: string,
+): PayrollComponentDefinition {
+  const method = input.method ?? previous.method
+  if (method.kind === 'source' && stableSerialize(method) !== stableSerialize(previous.method)) {
+    throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_SOURCE_METHOD_READ_ONLY')
+  }
+  if (method.kind === 'registeredRule') throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_METHOD_UNSUPPORTED')
+  const candidate: PayrollComponentDefinition = {
+    id: previous.id,
+    code: previous.code,
+    version,
+    effectiveFrom: input.effectiveFrom,
+    effectiveTo: input.effectiveTo,
+    ownership: previous.ownership,
+    processingScope: input.processingScope,
+    inputs: input.inputs,
+    outputs: input.outputs,
+    dependencies: input.dependencies,
+    ...(Object.keys(input.parameters).length > 0 ? { parameters: input.parameters } : {}),
+    method,
+    tracePolicy: input.tracePolicy,
+  }
+  const validated = appendPayrollComponentVersion([], candidate)[0]
+  if (!validated) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_DEFINITION_INVALID')
+  return validated
+}
+
+function buildCustomDefinition(
+  componentCode: string,
+  input: ComponentDraftEditorInput,
+): PayrollComponentDefinition {
+  if (!input.method || input.method.kind === 'source' || input.method.kind === 'registeredRule') {
+    throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_METHOD_UNSUPPORTED')
+  }
+  const candidate: PayrollComponentDefinition = {
+    id: componentCode,
+    code: componentCode,
+    version: '1',
+    effectiveFrom: input.effectiveFrom,
+    effectiveTo: input.effectiveTo,
+    ownership: { kind: 'CUSTOMER_CUSTOM' },
+    processingScope: input.processingScope,
+    inputs: input.inputs,
+    outputs: input.outputs,
+    dependencies: input.dependencies,
+    ...(Object.keys(input.parameters).length > 0 ? { parameters: input.parameters } : {}),
+    method: input.method,
+    tracePolicy: input.tracePolicy,
+  }
+  const validated = appendPayrollComponentVersion([], candidate)[0]
+  if (!validated) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_DEFINITION_INVALID')
+  return validated
+}
+
+function buildVersionInsert(
+  scope: PayrollScope,
+  payrollAdministrationId: string,
+  actorUserId: string,
+  definition: PayrollComponentDefinition,
+  entry: ComponentCatalogEntry,
+  requestId: string,
+): ComponentDraftInsert {
+  const validatedScope = assertPayrollScope(scope)
+  const ownership = definition.ownership
+  if (ownership.kind !== 'CUSTOMER_FORK' && ownership.kind !== 'CUSTOMER_CUSTOM') {
+    throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_OWNERSHIP_INVALID')
+  }
+  const isFork = ownership.kind === 'CUSTOMER_FORK'
+  const definitionJson = toDefinitionJson(definition)
+  return {
+    payroll_administration_id: payrollAdministrationId,
+    source_tenant_id: validatedScope.tenantId,
+    source_hr_group_id: validatedScope.hrGroupId,
+    source_administration_id: validatedScope.administrationId,
+    component_id: definition.id,
+    component_code: definition.code,
+    component_version: definition.version,
+    status: 'DRAFT',
+    ownership: ownership.kind,
+    effective_from: definition.effectiveFrom,
+    effective_to: definition.effectiveTo,
+    origin_component_id: isFork ? ownership.origin.id : null,
+    origin_component_code: isFork ? ownership.origin.code : null,
+    origin_component_version: isFork ? ownership.origin.version : null,
+    origin_composition_id: isFork ? entry.package.compositionId : null,
+    origin_package_id: isFork ? entry.package.packageId ?? null : null,
+    origin_package_version: isFork ? entry.package.version ?? null : null,
+    origin_package_hash: isFork ? entry.package.packageHash ?? null : null,
+    forked_at: isFork ? ownership.forkedAt : null,
+    catalog_metadata_json: toCatalogMetadataJson(entry, requestId),
+    definition_json: definitionJson,
+    definition_hash: sha256(stableSerialize(definition)),
+    created_by_user_id: actorUserId,
+  }
+}
+
+function metadataRequestId(row: PayrollCustomerComponentVersionRow): string | undefined {
+  return readStoredCatalogMetadata(row).editorRequestId
+}
+
+function metadataHash(row: PayrollCustomerComponentVersionRow): string {
+  const metadata = isRecord(row.catalog_metadata_json) ? row.catalog_metadata_json : null
+  const hash = metadata?.editorMetadataHash
+  if (typeof hash === 'string') return hash
+  const entry = toDraftCatalogEntry(row)
+  return sha256(stableSerialize(editorMetadata(entry)))
+}
+
+function isSameDraftContent(
+  row: PayrollCustomerComponentVersionRow,
+  definition: PayrollComponentDefinition,
+  entry: ComponentCatalogEntry,
+): boolean {
+  return row.definition_hash === sha256(stableSerialize(definition))
+    && metadataHash(row) === sha256(stableSerialize(editorMetadata(entry)))
+}
+
+function assertUniqueDisplayCode(
+  rows: readonly PayrollCustomerComponentVersionRow[],
+  displayCode: string,
+  componentCode?: string,
+): void {
+  const normalized = displayCode.trim().toLocaleLowerCase('en-US')
+  const duplicate = rows.some((row) => row.component_code !== componentCode
+    && toDraftCatalogEntry(row).displayCode?.trim().toLocaleLowerCase('en-US') === normalized)
+  if (duplicate) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_CODE_DUPLICATE')
+}
+
+function nextVersion(rows: readonly PayrollCustomerComponentVersionRow[]): string {
+  const versions = rows.map((row) => row.component_version)
+  if (versions.some((version) => !/^\d+$/.test(version))) {
+    throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_VERSION_SEQUENCE_UNSUPPORTED')
+  }
+  return String(Math.max(...versions.map(Number), 0) + 1)
+}
+
+function findRowForVersion(
+  rows: readonly PayrollCustomerComponentVersionRow[],
+  code: string,
+  version: string,
+): PayrollCustomerComponentVersionRow | undefined {
+  return rows.find((row) => row.component_code === code && row.component_version === version)
+}
+
+function assertTimestampWithZone(timestamp: string): void {
+  assertTimestamp(timestamp)
 }
 
 function isForkableSystemEntry(entry: ComponentCatalogEntry | null, key: string): entry is ComponentCatalogEntry {
@@ -345,6 +652,92 @@ function isForkableSystemEntry(entry: ComponentCatalogEntry | null, key: string)
 export function createComponentDraftService(options: ComponentDraftServiceOptions) {
   const now = options.now ?? (() => new Date().toISOString())
   const createId = options.createId ?? (() => crypto.randomUUID())
+
+  function getRulePackage(compositionId: string): PayrollRulePackage {
+    const selected = options.catalog.getSystemRulePackageByCompositionId?.(compositionId)
+      ?? getSystemRulePackageByCompositionId(compositionId)
+    if (!selected) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_PACKAGE_UNAVAILABLE')
+    return selected
+  }
+
+  async function prepareVersion(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    input: ComponentDraftEditorInput,
+    versionOverride?: string,
+  ): Promise<{
+    readonly prepared: PreparedComponentDraft
+    readonly base: PayrollCustomerComponentVersionRow
+    readonly rows: readonly PayrollCustomerComponentVersionRow[]
+  }> {
+    assertEditorInput(input)
+    if (!input.draftId) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_ID_REQUIRED')
+    assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    const base = await options.repository.get(scope, payrollAdministrationId, input.draftId)
+    if (!base) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_NOT_FOUND')
+    const previous = toDraftDefinition(base)
+    const allRows = await options.repository.list(scope, payrollAdministrationId)
+    const rows = allRows.filter((row) => row.component_code === base.component_code)
+    const definition = buildVersionDefinition(previous, input, versionOverride ?? nextVersion(rows))
+    const metadata = readStoredCatalogMetadata(base)
+    const packageForComponent = getRulePackage(metadata.packageIdentity.compositionId)
+    const entry = createDraftEntry(definition, packageForComponent, input, {
+      ...(metadata.sourceMetadata ? { sourceMetadata: metadata.sourceMetadata } : {}),
+      ...(metadata.parameterMetadata ? { parameterMetadata: metadata.parameterMetadata } : {}),
+      capturedRoundingDefinitions: metadata.roundingDefinitions,
+      packageIdentity: metadata.packageIdentity,
+    })
+    return { prepared: { definition, entry, requestId: input.requestId }, base, rows }
+  }
+
+  async function prepareCustom(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    input: ComponentDraftEditorInput,
+  ): Promise<{ readonly prepared: PreparedComponentDraft; readonly rows: readonly PayrollCustomerComponentVersionRow[] }> {
+    assertEditorInput(input)
+    if (input.draftId) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_ID_INVALID')
+    assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    const compositionId = input.packageCompositionId
+    if (!compositionId?.trim()) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_PACKAGE_REQUIRED')
+    const packageForComponent = getRulePackage(compositionId)
+    const identitySeed = stableSerialize({
+      tenantId: scope.tenantId,
+      hrGroupId: scope.hrGroupId,
+      administrationId: scope.administrationId,
+      payrollAdministrationId,
+      displayCode: input.displayCode.trim().toLocaleLowerCase('en-US'),
+    })
+    const componentCode = `CUSTOM_${sha256(identitySeed).slice(0, 32).toUpperCase()}`
+    const definition = buildCustomDefinition(componentCode, input)
+    const entry = createDraftEntry(definition, packageForComponent, input)
+    const rows = await options.repository.list(scope, payrollAdministrationId)
+    assertUniqueDisplayCode(rows, input.displayCode, componentCode)
+    return { prepared: { definition, entry, requestId: input.requestId }, rows }
+  }
+
+  async function insertAndReadBack(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    row: ComponentDraftInsert,
+    expectedDefinition: PayrollComponentDefinition,
+    expectedEntry: ComponentCatalogEntry,
+  ): Promise<PayrollCustomerComponentVersionRow> {
+    try {
+      const inserted = await options.repository.insert(scope, payrollAdministrationId, row)
+      const reread = await options.repository.get(scope, payrollAdministrationId, inserted.id)
+      if (!reread) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_READBACK_FAILED')
+      toDraftDefinition(reread)
+      return reread
+    } catch (error) {
+      const rereadRows = await options.repository.list(scope, payrollAdministrationId)
+      const duplicate = findRowForVersion(rereadRows, row.component_code, row.component_version)
+      if (duplicate && isSameDraftContent(duplicate, expectedDefinition, expectedEntry)) return duplicate
+      throw error
+    }
+  }
 
   return {
     async list(scope: PayrollScope, payrollAdministrationId: string): Promise<readonly PayrollCustomerComponentVersionRow[]> {
@@ -382,15 +775,83 @@ export function createComponentDraftService(options: ComponentDraftServiceOption
       const id = createId()
       assertUuid(id)
       const createdAt = now()
-      if (!Number.isFinite(Date.parse(createdAt)) || !/[zZ]|[+-]\d{2}:?\d{2}$/.test(createdAt)) {
-        throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_TIMESTAMP_INVALID')
-      }
+      assertTimestampWithZone(createdAt)
       const row = buildInsert(scope, payrollAdministrationId, actorUserId, entry, id, createdAt)
       const inserted = await options.repository.insert(scope, payrollAdministrationId, row)
       const reread = await options.repository.get(scope, payrollAdministrationId, inserted.id)
       if (!reread) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_READBACK_FAILED')
       toDraftDefinition(reread)
       return reread
+    },
+
+    async prepareVersion(
+      scope: PayrollScope,
+      payrollAdministrationId: string,
+      input: ComponentDraftEditorInput,
+    ): Promise<PreparedComponentDraft> {
+      return (await prepareVersion(scope, payrollAdministrationId, input)).prepared
+    },
+
+    async prepareCustomerCustom(
+      scope: PayrollScope,
+      payrollAdministrationId: string,
+      input: ComponentDraftEditorInput,
+    ): Promise<PreparedComponentDraft> {
+      return (await prepareCustom(scope, payrollAdministrationId, input)).prepared
+    },
+
+    async saveVersion(
+      scope: PayrollScope,
+      payrollAdministrationId: string,
+      actorUserId: string,
+      input: ComponentDraftEditorInput,
+    ): Promise<PayrollCustomerComponentVersionRow> {
+      assertUuid(actorUserId)
+      const initial = await prepareVersion(scope, payrollAdministrationId, input)
+      const sameRequest = initial.rows.find((row) => row.component_code === initial.base.component_code
+        && metadataRequestId(row) === input.requestId)
+      if (sameRequest) {
+        const duplicate = await prepareVersion(scope, payrollAdministrationId, input, sameRequest.component_version)
+        if (isSameDraftContent(sameRequest, duplicate.prepared.definition, duplicate.prepared.entry)) return sameRequest
+        throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_IDEMPOTENCY_CONFLICT')
+      }
+
+      const latest = [...initial.rows].sort((left, right) => Number(right.component_version) - Number(left.component_version))[0]
+      if (!latest || latest.id !== initial.base.id) throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_VERSION_STALE')
+      assertUniqueDisplayCode(initial.rows, input.displayCode, initial.base.component_code)
+      const sameVersionCandidate = await prepareVersion(scope, payrollAdministrationId, input, latest.component_version)
+      if (isSameDraftContent(latest, sameVersionCandidate.prepared.definition, sameVersionCandidate.prepared.entry)) return latest
+
+      const row = buildVersionInsert(scope, payrollAdministrationId, actorUserId,
+        initial.prepared.definition, initial.prepared.entry, input.requestId)
+      return insertAndReadBack(scope, payrollAdministrationId, row,
+        initial.prepared.definition, initial.prepared.entry)
+    },
+
+    async createCustomerCustom(
+      scope: PayrollScope,
+      payrollAdministrationId: string,
+      actorUserId: string,
+      input: ComponentDraftEditorInput,
+    ): Promise<PayrollCustomerComponentVersionRow> {
+      assertUuid(actorUserId)
+      const initial = await prepareCustom(scope, payrollAdministrationId, input)
+      const sameRequest = initial.rows.find((row) => row.component_code === initial.prepared.definition.code
+        && metadataRequestId(row) === input.requestId)
+      if (sameRequest) {
+        if (isSameDraftContent(sameRequest, initial.prepared.definition, initial.prepared.entry)) return sameRequest
+        throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_IDEMPOTENCY_CONFLICT')
+      }
+      const existingVersion = findRowForVersion(initial.rows, initial.prepared.definition.code, '1')
+      if (existingVersion) {
+        if (isSameDraftContent(existingVersion, initial.prepared.definition, initial.prepared.entry)) return existingVersion
+        throw new ComponentDraftServiceError('PAYROLL_COMPONENT_DRAFT_VERSION_CONFLICT')
+      }
+
+      const row = buildVersionInsert(scope, payrollAdministrationId, actorUserId,
+        initial.prepared.definition, initial.prepared.entry, input.requestId)
+      return insertAndReadBack(scope, payrollAdministrationId, row,
+        initial.prepared.definition, initial.prepared.entry)
     },
   }
 }

@@ -81,6 +81,9 @@ export interface ComponentCatalogEntry {
   readonly status?: string
   /** Supplied only when backed by an existing product label; the packages do not currently define names. */
   readonly displayName?: string
+  /** Customer-facing identifier. The engine code remains stable once a component is created. */
+  readonly displayCode?: string
+  readonly description?: string
   /** Supplied only when backed by real metadata; consumers may derive a filter category from method.kind. */
   readonly category?: string
   readonly package: ComponentCatalogPackageIdentity
@@ -116,6 +119,8 @@ export interface CreateComponentCatalogEntryInput {
   readonly key?: string
   readonly status?: string
   readonly displayName?: string
+  readonly displayCode?: string
+  readonly description?: string
   readonly category?: string
 }
 
@@ -494,6 +499,8 @@ export function createComponentCatalogEntry(input: CreateComponentCatalogEntryIn
     ownership: definition.ownership.kind,
     ...(input.status === undefined ? {} : { status: input.status }),
     ...(input.displayName === undefined ? {} : { displayName: input.displayName }),
+    ...(input.displayCode === undefined ? {} : { displayCode: input.displayCode }),
+    ...(input.description === undefined ? {} : { description: input.description }),
     ...(input.category === undefined ? {} : { category: input.category }),
     package: packageInfo,
     ...(input.sourceMetadata === undefined ? {} : { sourceMetadata: input.sourceMetadata }),
@@ -538,6 +545,14 @@ export const SYSTEM_COMPONENT_CATALOG: readonly ComponentCatalogEntry[] = deepPl
 
 export function getSystemComponentCatalog(): readonly ComponentCatalogEntry[] {
   return SYSTEM_COMPONENT_CATALOG
+}
+
+export function getSystemRulePackages(): readonly PayrollRulePackage[] {
+  return SYSTEM_RULE_PACKAGES
+}
+
+export function getSystemRulePackageByCompositionId(compositionId: string): PayrollRulePackage | null {
+  return SYSTEM_RULE_PACKAGES.find((rulePackage) => rulePackage.compositionId === compositionId) ?? null
 }
 
 export function findSystemComponentCatalogEntry(
