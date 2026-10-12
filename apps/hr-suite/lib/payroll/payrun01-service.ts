@@ -30,7 +30,7 @@ import {
   type Payrun01Repository,
 } from './payrun01-repository'
 import { deriveKinderopvangOpeningBalance, type Payrun01OpeningBalance, type Payrun01PriorRunEvidence } from './payrun01-cumulative'
-import { renderPayrun01PayslipPdf, type Payrun01PayslipPdfInput } from './payrun01-payslip-pdf'
+import type { Payrun01PayslipPdfInput } from './payrun01-payslip-pdf'
 import {
   projectPayrun01SourceSnapshot,
   type Payrun01AdditionalHourCompensation,
@@ -1753,6 +1753,7 @@ export async function createPayrun01PayslipPdfArtifact(
   })
   let bytes: Uint8Array
   try {
+    const { renderPayrun01PayslipPdf } = await import('./payrun01-payslip-pdf')
     bytes = await renderPayrun01PayslipPdf({
       period: {
         year: artifacts.payrollPeriod.period_year,

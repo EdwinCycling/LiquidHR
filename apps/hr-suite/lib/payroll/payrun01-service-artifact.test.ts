@@ -4,8 +4,11 @@ import type { Payrun01ArtifactMetadata } from './payrun01-repository'
 import type { PayrollScope } from './scope'
 import type { PayrollControlStatus, PayrollJson } from './database'
 
-const { renderPdf } = vi.hoisted(() => ({ renderPdf: vi.fn() }))
-vi.mock('./payrun01-payslip-pdf', () => ({ renderPayrun01PayslipPdf: renderPdf }))
+const { renderPdf, pdfModuleLoads } = vi.hoisted(() => ({ renderPdf: vi.fn(), pdfModuleLoads: { count: 0 } }))
+vi.mock('./payrun01-payslip-pdf', () => {
+  pdfModuleLoads.count += 1
+  return { renderPayrun01PayslipPdf: renderPdf }
+})
 
 import {
   createPayrun01PayslipPdfArtifact,
@@ -129,6 +132,22 @@ function fixture(events: LifecycleEventFixture[] = [
 }
 
 describe('PAYRUN01 lifecycle source identity', () => {
+  it('does not load the Chromium PDF runtime while reading lifecycle data', async () => {
+    expect(pdfModuleLoads.count).toBe(0)
+    const { dependencies } = fixture([{ calculation_run_id: runId, event_type: 'CONCEPT', event_sequence: 1 }])
+
+    await getPayrun01Lifecycle({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      employeeId,
+      kind: 'DEMO_COMPANY_TEST',
+      runId,
+    }, dependencies)
+
+    expect(pdfModuleLoads.count).toBe(0)
+  })
+
   it('validates the persisted projected snapshot hash separately from the upstream source hash', async () => {
     const { dependencies } = fixture([{ calculation_run_id: runId, event_type: 'CONCEPT', event_sequence: 1 }])
 
