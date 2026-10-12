@@ -33,6 +33,10 @@ export default async function ContextSelectionPage({ searchParams }: { searchPar
       <ContextSelectionForm
         initialError={query.error === 'invalid' ? translate('invalid') : query.error === 'failed' ? translate('failed') : undefined}
         labels={{
+          tenantLabel: translate('tenantLabel'),
+          tenantPlaceholder: translate('tenantPlaceholder'),
+          hrGroupLabel: translate('hrGroupLabel'),
+          hrGroupPlaceholder: translate('hrGroupPlaceholder'),
           contextLabel: translate('contextLabel'),
           contextPlaceholder: translate('contextPlaceholder'),
           formTitle: translate('formTitle'),

@@ -243,8 +243,9 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
             </ul>
           </div>
 
-          <p className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground">
-            {auth('oauthConsentAccountRoleScope')}
+          <p className="flex items-start gap-2.5 rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground">
+            <ShieldCheck aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />
+            <span>{auth('oauthConsentAccountRoleScope')}</span>
           </p>
 
           <div className="flex items-start gap-2.5 rounded-[var(--radius-control)] border border-subtle p-3">

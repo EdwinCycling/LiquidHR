@@ -16,9 +16,17 @@ const tenants = [{
   id: '11111111-1111-4111-8111-111111111111',
   name: 'De Sterren holding',
   hrGroups: [{ id: '22222222-2222-4222-8222-222222222222', name: 'Planeten', code: 'PLANETEN' }],
+}, {
+  id: '33333333-3333-4333-8333-333333333333',
+  name: 'Sterren service',
+  hrGroups: [{ id: '44444444-4444-4444-8444-444444444444', name: 'Nebula', code: 'NEBULA' }],
 }]
 
 const labels = {
+  tenantLabel: 'Klantomgeving',
+  tenantPlaceholder: 'Selecteer een omgeving',
+  hrGroupLabel: 'HR-groep',
+  hrGroupPlaceholder: 'Selecteer een HR-groep',
   contextLabel: 'Klantomgeving en HR-groep',
   contextPlaceholder: 'Selecteer een werkcontext',
   formTitle: 'Selecteer je omgeving',
@@ -36,7 +44,7 @@ describe('ContextSelectionForm', () => {
     push.mockReset()
   })
 
-  it('renders a native, named form that can submit without client hydration', () => {
+  it('renders a native fallback form that can submit without client hydration', () => {
     const host = document.createElement('div')
     host.innerHTML = renderToString(<ContextSelectionForm labels={labels} tenants={tenants} />)
 
@@ -48,10 +56,11 @@ describe('ContextSelectionForm', () => {
     expect(select?.required).toBe(true)
     expect(select?.options[1]?.value).toBe(`${tenants[0].id}|${tenants[0].hrGroups[0].id}`)
     expect(select?.options[1]?.textContent).toBe('De Sterren holding · Planeten')
+    expect(select?.options[2]?.textContent).toBe('Sterren service · Nebula')
     expect(host.textContent).not.toContain('PLANETEN')
   })
 
-  it('keeps the selected accessible context on the existing JSON flow after hydration', async () => {
+  it('selects a tenant and HR group before submitting through the existing JSON flow', async () => {
     const element = <ContextSelectionForm labels={labels} tenants={tenants} />
     const host = document.createElement('div')
     host.innerHTML = renderToString(element)
@@ -63,18 +72,20 @@ describe('ContextSelectionForm', () => {
     const root = await act(async () => hydrateRoot(host, element))
 
     try {
-      const select = host.querySelector<HTMLSelectElement>('#context-selection')
       const form = host.querySelector<HTMLFormElement>('form')
-      expect(select).not.toBeNull()
+      let selects = Array.from(host.querySelectorAll<HTMLSelectElement>('select[aria-hidden="true"]'))
+      expect(selects).toHaveLength(2)
 
-      select!.value = `${tenants[0].id}|${tenants[0].hrGroups[0].id}`
-      await act(async () => select!.dispatchEvent(new Event('change', { bubbles: true })))
+      selects[0]!.value = tenants[1].id
+      await act(async () => selects[0]!.dispatchEvent(new Event('change', { bubbles: true })))
+      selects = Array.from(host.querySelectorAll<HTMLSelectElement>('select[aria-hidden="true"]'))
+      expect(selects[1]?.value).toBe(tenants[1].hrGroups[0].id)
       await act(async () => form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
 
       expect(fetchMock).toHaveBeenCalledWith('/api/context/select', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ tenantId: tenants[0].id, hrGroupId: tenants[0].hrGroups[0].id }),
+        body: JSON.stringify({ tenantId: tenants[1].id, hrGroupId: tenants[1].hrGroups[0].id }),
       })
       expect(push).toHaveBeenCalledWith('/dashboard/start')
       expect(consoleError.mock.calls.flat().join(' ')).not.toMatch(/hydration failed|did not match|server rendered html/i)
