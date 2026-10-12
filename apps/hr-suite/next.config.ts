@@ -3,6 +3,14 @@ import path from 'node:path'
 import { MAX_DOCUMENT_REQUEST_BYTES } from './lib/documents/file-rules'
 import { securityHeaders } from './lib/security/security-headers'
 
+const serverlessPdfRuntimeFiles = [
+  '../../node_modules/playwright-core/browsers.json',
+  '../../node_modules/@sparticuz/chromium/bin/*.br',
+  '../../node_modules/@sparticuz/chromium/build/*.js',
+  '../../node_modules/@fontsource/work-sans/files/work-sans-latin-400-normal.woff2',
+  '../../node_modules/@fontsource/work-sans/files/work-sans-latin-700-normal.woff2',
+]
+
 const nextConfig: NextConfig = {
   distDir: process.env.LIQUIDHR_NEXT_DIST_DIR === '.next/payrun01-acceptance-20261009'
     ? '.next/payrun01-acceptance-20261009'
@@ -13,11 +21,10 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@sparticuz/chromium', 'playwright-core'],
   outputFileTracingIncludes: {
     '/api/document-studio/generation/**': [
-      '../../node_modules/playwright-core/browsers.json',
-      '../../node_modules/@sparticuz/chromium/bin/**/*',
-      '../../node_modules/@sparticuz/chromium/build/**/*',
-      '../../node_modules/@fontsource/work-sans/files/*.woff2',
+      ...serverlessPdfRuntimeFiles,
     ],
+    '/payroll-lab/salarisverwerking': serverlessPdfRuntimeFiles,
+    '/api/payroll-lab/validation-pack': serverlessPdfRuntimeFiles,
   },
   turbopack: {
     root: path.resolve(__dirname, '../..'),
