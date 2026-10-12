@@ -1,5 +1,8 @@
 {
   "title": "HeRa",
+  "loading": "Loading HeRa…",
+  "loadFailed": "HeRa could not be loaded. Try again.",
+  "retry": "Try again",
   "subtitle": "Your personal HR partner",
   "newConversation": "New conversation",
   "emptyTitle": "How can I help?",

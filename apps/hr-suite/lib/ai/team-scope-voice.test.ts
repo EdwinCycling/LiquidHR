@@ -22,7 +22,7 @@ vi.mock('./settings-service', () => ({
   SupabaseAiSettingsPort: class { assertVoiceAllowed = assertVoiceAllowed },
 }))
 
-import { assertTeamAiSessionMembersCurrent, assertTeamAiVoiceAllowed, TeamAiScopeError } from './team-scope'
+import { assertTeamAiSessionMembersCurrent, assertTeamAiVoiceAllowed, canUseTeamAi, TeamAiScopeError } from './team-scope'
 
 const auth: AuthContext = {
   tenantId: 'tenant-1',
@@ -41,6 +41,12 @@ beforeEach(() => {
 })
 
 describe('Team AI voice tool authorization', () => {
+  it('keeps Team AI visibility behind the existing permission and role boundary', () => {
+    expect(canUseTeamAi(auth)).toBe(true)
+    expect(canUseTeamAi({ ...auth, permissions: ['start-page:read'] })).toBe(false)
+    expect(canUseTeamAi({ ...auth, activeRoles: ['EMPLOYEE'] })).toBe(false)
+  })
+
   it('checks the current group voice policy for the current actor', async () => {
     await assertTeamAiVoiceAllowed(auth)
 

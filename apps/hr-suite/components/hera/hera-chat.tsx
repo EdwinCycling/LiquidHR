@@ -11,6 +11,9 @@ import { HeRaSettings, type HeRaSettingsLabels } from './hera-settings'
 
 export interface HeRaLabels extends HeRaSettingsLabels {
   title: string
+  loading: string
+  loadFailed: string
+  retry: string
   subtitle: string
   newConversation: string
   emptyTitle: string

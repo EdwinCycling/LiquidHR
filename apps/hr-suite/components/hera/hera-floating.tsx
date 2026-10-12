@@ -1,9 +1,10 @@
 'use client'
 
 import { MessageCircleHeart, PanelRight, PanelRightClose, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { announceAssistantOpen, subscribeToAssistantOpen } from '@/components/layout/assistant-overlay-events'
-import { HeRaChat, type HeRaLabels } from './hera-chat'
+import { buttonClasses } from '@/components/ui/button'
+import type { HeRaLabels } from './hera-chat'
 import { clampHeRaWidth, parseHeRaDockState, type HeRaDockState } from './hera-floating-state'
 
 const DOCK_KEY = 'liquid-hr:hera:dock'
@@ -11,6 +12,8 @@ const WIDTH_KEY = 'liquid-hr:hera:width'
 
 export function HeRaFloating({ labels }: { labels: HeRaLabels }) {
   const [open, setOpen] = useState(false)
+  const [Chat, setChat] = useState<ComponentType<{ labels: HeRaLabels; layout: 'floating' }> | null>(null)
+  const [chatLoadState, setChatLoadState] = useState<'idle' | 'loading' | 'failed'>('idle')
   const [dock, setDock] = useState<HeRaDockState>('overlay')
   const [width, setWidth] = useState(420)
 
@@ -42,6 +45,18 @@ export function HeRaFloating({ labels }: { labels: HeRaLabels }) {
   function openHeRa() {
     announceAssistantOpen('hera')
     setOpen(true)
+    if (!Chat) void loadHeRaChat()
+  }
+
+  async function loadHeRaChat() {
+    setChatLoadState('loading')
+    try {
+      const chatChunk = await import('./hera-chat')
+      setChat(() => chatChunk.HeRaChat)
+      setChatLoadState('idle')
+    } catch {
+      setChatLoadState('failed')
+    }
   }
 
   return (
@@ -59,7 +74,9 @@ export function HeRaFloating({ labels }: { labels: HeRaLabels }) {
               {dock === 'docked' ? <input aria-label={labels.title} className="w-20 accent-primary" max={760} min={320} onChange={(event) => changeWidth(Number(event.target.value))} type="range" value={width} /> : null}
               <button aria-label={labels.cancel} className="grid size-8 place-items-center rounded-lg hover:bg-muted" onClick={() => setOpen(false)} type="button"><X aria-hidden="true" size={16} /></button>
             </div>
-            <div className="min-h-0 flex-1"><HeRaChat labels={labels} layout="floating" /></div>
+            <div className="min-h-0 flex-1">
+              {Chat ? <Chat labels={labels} layout="floating" /> : chatLoadState === 'failed' ? <div className="grid h-full place-content-center gap-3 p-6 text-center"><p aria-live="assertive" role="alert">{labels.loadFailed}</p><button className={buttonClasses({ variant: 'secondary' })} onClick={() => void loadHeRaChat()} type="button">{labels.retry}</button></div> : <p aria-live="polite" className="grid h-full place-content-center gap-2 p-6 text-center text-sm text-muted-foreground" role="status"><span className="mx-auto size-5 animate-spin rounded-full border-2 border-current border-r-transparent" />{labels.loading}</p>}
+            </div>
           </section>
         </div>
       ) : null}

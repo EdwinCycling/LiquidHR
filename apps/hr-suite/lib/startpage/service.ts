@@ -15,7 +15,7 @@ import { getUpcomingCalendarItems, type CalendarHeaderItem } from '@/lib/company
 import { listJourneyProjectionsForContext } from '@/lib/journeys/projection-service'
 import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 import { resolveStoredImageUrl } from '@/lib/storage/image-url'
-import { getTeamAiStartPageData, type StartPageTeamAiData } from '@/lib/ai/team-scope'
+import { canUseTeamAi } from '@/lib/ai/team-scope'
 import { getPersonalLogbookSummary, type PersonalLogbookSummary } from '@/lib/logbook/service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -60,7 +60,7 @@ export interface StartPageData {
   scope: StartPageScope
   canReportAbsence: boolean
   journeys: JourneyProjectionList
-  teamAi: StartPageTeamAiData | null
+  canLoadTeamAi: boolean
   logbook: PersonalLogbookSummary
   journeyOnly: boolean
 }
@@ -510,7 +510,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
       scope: 'company',
       canReportAbsence: false,
       journeys: dependencies.journeys ?? [],
-      teamAi: null,
+      canLoadTeamAi: false,
       logbook: { totalCount: 0, latestCreatedAt: null, manualCount: 0, aiCount: 0 },
       journeyOnly: true,
     }
@@ -521,6 +521,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
   const personalOnly = auth.employeeId !== null && !auth.permissions.includes('workforce:read')
   const isManager = auth.activeRoles.includes('DIRECT_MANAGER')
   const isHrAdmin = auth.activeRoles.includes('TENANT_ADMIN')
+  const canLoadTeamAi = canUseTeamAi(auth)
   const canSwitchScope = isManager && isHrAdmin
   const scope: StartPageScope = isManager ? (isHrAdmin && requestedScope === 'company' ? 'company' : 'team') : 'company'
   // Start the team-scope lookup together with the independent startpage reads.
@@ -537,7 +538,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     ? Promise.resolve(supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle())
     : Promise.resolve(null)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, pendingSigningCount, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys, teamAi, logbook] = await measure('data.parallel', () => Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, pendingSigningCount, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys, logbook] = await measure('data.parallel', () => Promise.all([
     measure('employee', () => employeePromise),
     employeeScopePromise.then((employeeScope) => measure('leave', () => listLeaveAbsences(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('absence', () => listActiveAbsences(auth, employeeScope, supabase))),
@@ -556,7 +557,6 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     measure('journeys', () => auth.hrGroupId
       ? listJourneyProjectionsForContext(supabase, auth).catch((): JourneyProjectionList => [])
       : Promise.resolve<JourneyProjectionList>([])),
-    measure('teamAi', () => getTeamAiStartPageData(auth, supabase)),
     measure('logbook', () => getPersonalLogbookSummary({ context: auth, supabase }).catch(() => ({ totalCount: 0, latestCreatedAt: null, manualCount: 0, aiCount: 0 }))),
   ]))
 
@@ -590,7 +590,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     scope,
     canReportAbsence: auth.permissions.includes('absence:write'),
     journeys,
-    teamAi,
+    canLoadTeamAi,
     logbook,
     journeyOnly: false,
   }

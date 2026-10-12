@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { DEFAULT_START_PAGE_WINDOW_LAYOUT } from '@/lib/preferences/start-page-layout'
 import type { StartPageData } from '@/lib/startpage/service'
 import { StartPage } from './start-page'
+import { TeamAiWindow } from './team-ai-window'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 
@@ -78,7 +79,7 @@ const data: StartPageData = {
   recurringAbsenceCount: 0,
   reminders: [],
   scope: 'company',
-  teamAi: null,
+  canLoadTeamAi: false,
   teamAvailability: null,
   tenantName: 'Tenant',
   upcomingEvents: [],
@@ -143,10 +144,19 @@ describe('StartPage view modes', () => {
     }
   })
 
-  it('renders the Team AI and personal logbook surfaces without expanding employee scope', () => {
+  it('shows a light Team AI action without loading Team AI data on the initial render', () => {
     const markup = render('full', {
       ...data,
-      teamAi: {
+      canLoadTeamAi: true,
+    })
+
+    expect(markup).toContain('teamAiOpen')
+    expect(markup).not.toContain('data-testid="startpage-team-ai"')
+  })
+
+  it('keeps the Team AI panel ready for interaction without loading the voice component', () => {
+    const markup = renderToStaticMarkup(createElement(TeamAiWindow, {
+      data: {
         mode: 'DIRECT_TEAM',
         scopeType: 'DIRECT_TEAM',
         contextName: 'Mijn team',
@@ -157,17 +167,13 @@ describe('StartPage view modes', () => {
         aiEnabled: true,
         voiceEnabled: true,
       },
-      logbook: { totalCount: 1, latestCreatedAt: '2026-08-29T10:00:00.000Z', manualCount: 0, aiCount: 1 },
-    })
+      labels,
+      locale: 'nl',
+    }))
 
     expect(markup).toContain('data-testid="startpage-team-ai"')
-    expect(markup).toContain('GPT-Live')
-    expect(markup).toContain('Maya Bos')
-    expect(markup).toContain('data-testid="startpage-logbook"')
-    expect(markup).toContain('Toon recente notities')
-    expect(markup).toContain('Privénotitie verborgen')
-    expect(markup).not.toContain('Teamgesprek')
-    expect(markup).not.toContain('Vervolgactie.')
+    expect(markup).toContain('teamAiOpenVoice')
+    expect(markup).not.toContain('Start GPT-Live')
   })
 
   it('keeps hidden logbook content compact until the user reveals it', () => {
@@ -218,9 +224,8 @@ describe('StartPage view modes', () => {
   })
 
   it('does not offer GPT-Live for a selected department without current team members', () => {
-    const markup = render('full', {
-      ...data,
-      teamAi: {
+    const panel = renderToStaticMarkup(createElement(TeamAiWindow, {
+      data: {
         mode: 'DEPARTMENT_SELECTION',
         scopeType: 'DEPARTMENT',
         contextName: null,
@@ -231,9 +236,11 @@ describe('StartPage view modes', () => {
         aiEnabled: true,
         voiceEnabled: true,
       },
-    })
+      labels,
+      locale: 'nl',
+    }))
 
-    expect(markup).not.toContain('teamAiStart')
-    expect(markup).toContain('teamAiNoActiveMembers')
+    expect(panel).not.toContain('teamAiOpenVoice')
+    expect(panel).toContain('teamAiNoActiveMembers')
   })
 })
