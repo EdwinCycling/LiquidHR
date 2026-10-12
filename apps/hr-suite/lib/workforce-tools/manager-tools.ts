@@ -5,7 +5,7 @@ import { listDirectTeamEmployeeScope } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
 import { listProcessWork, type ProcessWorkItem } from '@/lib/process-automation/work-service'
 import { listManagerTeamFollowUps } from '@/lib/talent/check-in-service'
-import { listManagerTeamDevelopmentPlans } from '@/lib/talent/goal-service'
+import { listManagerTeamDevelopmentPlans, MANAGER_DEVELOPMENT_PLAN_STATUSES } from '@/lib/talent/goal-service'
 import { listManagerTalentTeamMatrix, listTalentTeamMatrix, type TalentTeamMatrixCapability, type TalentTeamMatrixRow } from '@/lib/talent/team-service'
 import { talentTeamMatrixQuerySchema, type TalentTeamMatrixFilters } from '@/lib/talent/team-schemas'
 import { defineWorkforceTool, type DelegatedWorkforceToolExecutionContext } from './contracts'
@@ -80,7 +80,7 @@ const managerDevelopmentPlanSchema = z.object({
   periodStart: dateSchema,
   periodEnd: dateSchema.nullable(),
   progressPercent: z.number().int().min(0).max(100),
-  status: z.enum(['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED']),
+  status: z.enum(MANAGER_DEVELOPMENT_PLAN_STATUSES),
   completedAt: z.string().nullable(),
 }).strict()
 

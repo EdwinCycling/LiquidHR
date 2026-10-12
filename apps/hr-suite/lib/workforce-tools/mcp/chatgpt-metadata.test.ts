@@ -9,6 +9,8 @@ import {
   CHATGPT_MCP_TOOLS,
   chatGptDevelopmentPlansInputSchema,
   chatGptDevelopmentPlansOutputSchema,
+  getChatGptMcpServerMetadata,
+  getChatGptMcpToolMetadata,
   projectChatGptDevelopmentPlansResult,
 } from './chatgpt-metadata'
 
@@ -147,17 +149,37 @@ describe('ChatGPT MCP metadata', () => {
     ])
   })
 
-  it('allows only the optional own-employment selector for the leave balance tool', () => {
+  it('localizes the public Remote MCP instructions and tool descriptions in Dutch and English', () => {
+    const dutchManager = CHATGPT_MCP_TOOL_METADATA.find((entry) => entry.audience === 'MANAGER')
+    const englishManager = getChatGptMcpToolMetadata('en').find((entry) => entry.audience === 'MANAGER')
+    expect(getChatGptMcpServerMetadata('nl').instructions).toContain('read-only')
+    expect(getChatGptMcpServerMetadata('en').instructions).toContain('read-only information')
+    expect(dutchManager?.tool.title).toBe('Overzicht van het directe team lezen')
+    expect(englishManager?.tool.title).toBe('Read your direct-team overview')
+    expect(englishManager?.tool.description).toContain('The server determines the current manager and direct-team scope')
+  })
+
+  it('preserves Employee tool metadata and the existing empty route input contract', () => {
     const balanceTool = CHATGPT_MCP_TOOLS.find((entry) => entry.name === 'employee.leave.balance.read')
     expect(balanceTool).toBeDefined()
     const inputSchema = record(balanceTool?.inputSchema)
     expect(Object.keys(record(inputSchema.properties))).toEqual(['employmentId'])
     expect(inputSchema.additionalProperties).toBe(false)
 
+    for (const entry of CHATGPT_MCP_TOOL_METADATA.filter((item) => item.audience === 'EMPLOYEE')) {
+      const employeeInputSchema = record(entry.tool.inputSchema)
+      expect(employeeInputSchema.additionalProperties).toBe(false)
+      expect(employeeInputSchema.properties).not.toHaveProperty('employeeId')
+      expect(employeeInputSchema.properties).not.toHaveProperty('teamId')
+      expect(employeeInputSchema.properties).not.toHaveProperty('tenantId')
+      expect(employeeInputSchema.properties).not.toHaveProperty('administrationId')
+      expect(employeeInputSchema.properties).not.toHaveProperty('hrGroupId')
+    }
+
     const balanceDefinition = getWorkforceTool('employee.leave.balance.read')
     expect(balanceDefinition?.inputSchema.safeParse({}).success).toBe(true)
     expect(balanceDefinition?.inputSchema.safeParse({ employmentId: '00000000-0000-0000-0000-000000000001' }).success).toBe(true)
-    for (const selector of ['employeeId', 'tenantId', 'hrGroupId', 'administrationId', 'role']) {
+    for (const selector of ['employeeId', 'teamId', 'tenantId', 'hrGroupId', 'administrationId', 'role']) {
       expect(balanceDefinition?.inputSchema.safeParse({ [selector]: 'attacker-selected' }).success).toBe(false)
     }
   })

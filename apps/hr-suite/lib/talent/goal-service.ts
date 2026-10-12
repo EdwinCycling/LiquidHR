@@ -85,9 +85,11 @@ export interface TalentManagerDevelopmentPlan {
   readonly periodStart: string
   readonly periodEnd: string | null
   readonly progressPercent: number
-  readonly status: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'
+  readonly status: typeof MANAGER_DEVELOPMENT_PLAN_STATUSES[number]
   readonly completedAt: string | null
 }
+
+export const MANAGER_DEVELOPMENT_PLAN_STATUSES = ['DRAFT', 'ACTIVE'] as const
 
 export interface TalentManagerDevelopmentPlans {
   readonly plans: ReadonlyArray<TalentManagerDevelopmentPlan>
@@ -284,7 +286,7 @@ export async function listManagerTeamDevelopmentPlans(
       .eq('tenant_id', context.tenantId)
       .in('employee_id', [...scope.employeeIds])
       .is('archived_at', null)
-      .neq('status', 'ARCHIVED')
+      .in('status', [...MANAGER_DEVELOPMENT_PLAN_STATUSES])
       .order('period_start', { ascending: false })
       .order('employee_id', { ascending: true })
       .limit(1_000),
@@ -296,7 +298,7 @@ export async function listManagerTeamDevelopmentPlans(
     const name = managerEmployeeName(employee.first_name, employee.birth_name)
     return name ? [[employee.id, name] as const] : []
   }))
-  const validStatuses = new Set(['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED'])
+  const validStatuses = new Set<string>(MANAGER_DEVELOPMENT_PLAN_STATUSES)
   let omittedRows = 0
   const plans = (goalsResult.data ?? []).flatMap((goal): TalentManagerDevelopmentPlan[] => {
     const name = employeeNames.get(goal.employee_id)

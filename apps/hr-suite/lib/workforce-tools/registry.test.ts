@@ -136,7 +136,10 @@ describe('provider-neutral workforce catalog and adapters', () => {
   })
 
   it('returns plain JSON data for the WebMCP Server/Client boundary', () => {
-    const descriptors = toWorkforceWebMcpClientDescriptors(listWorkforceToolDescriptors())
+    const workforceDescriptors = listWorkforceToolDescriptors()
+    expect(workforceDescriptors.map((descriptor) => descriptor.id)).not.toContain('manager.team.overview.read')
+    expect(workforceDescriptors.map((descriptor) => descriptor.scope)).not.toContain('MANAGER_SCOPE')
+    const descriptors = toWorkforceWebMcpClientDescriptors(workforceDescriptors)
     const issue = descriptors.map((descriptor) => findNonPlainWebMcpProp(descriptor)).find((value) => value !== null) ?? null
     expect(issue).toBeNull()
     expect(Object.getOwnPropertyNames(descriptors[0]?.inputSchema ?? {})).not.toContain('~standard')
@@ -217,20 +220,15 @@ describe('provider-neutral workforce catalog and adapters', () => {
     expect(listFocusManagerTeamOverviewForContext).not.toHaveBeenCalled()
   })
 
-  it('authorizes a direct Manager from server context even with HR permissions without expanding to tenant scope', async () => {
+  it('denies Manager tools through the cookie-authenticated dispatcher even when the current role matches', async () => {
     authState.context.activeRoles = ['DIRECT_MANAGER', 'HR_ADMIN']
     authState.context.permissions = ['talent-team:read', 'talent:manage']
     authState.context.administrationId = 'administration-1'
 
-    await expect(dispatchWorkforceTool('manager.team.overview.read', {})).resolves.toMatchObject({
-      members: [{ employeeName: 'Eva Jansen' }],
-      total: 1,
-    })
-    expect(listFocusManagerTeamOverviewForContext).toHaveBeenCalledWith(
-      authState.context,
-      { marker: 'manager-supabase-client' },
-    )
-    expect(requirePermission).toHaveBeenCalledWith('talent-team:read', undefined)
+    await expect(dispatchWorkforceTool('manager.team.overview.read', {}))
+      .rejects.toMatchObject({ code: 'ACCESS_DENIED' })
+    expect(listFocusManagerTeamOverviewForContext).not.toHaveBeenCalled()
+    expect(requirePermission).not.toHaveBeenCalled()
   })
 
   it('maps a disabled module to a stable inactive-module result', async () => {

@@ -167,20 +167,20 @@ describe('registerWorkforceWebMcp', () => {
       fetchImpl: async () => jsonResponse({ data: {} }),
     })
 
-    expect(registration.registeredToolNames).toHaveLength(17)
-    expect(tools).toHaveLength(17)
+    expect(registration.registeredToolNames).toHaveLength(11)
+    expect(tools).toHaveLength(11)
     expect(registration.registeredToolNames).toEqual(expect.arrayContaining([
       'liquidhr_employee_leave_balance_read',
       'liquidhr_employee_leave_next_read',
       'liquidhr_employee_leave_requests_read',
       'liquidhr_employee_reminders_read',
-      'liquidhr_manager_team_overview_read',
-      'liquidhr_manager_work_pending_read',
-      'liquidhr_manager_leave_calendar_read',
-      'liquidhr_manager_talent_development_plans_read',
-      'liquidhr_manager_talent_follow_ups_read',
-      'liquidhr_manager_talent_team_capability_matrix_read',
     ]))
+    expect(registration.registeredToolNames).not.toContain('liquidhr_manager_team_overview_read')
+    expect(registration.registeredToolNames).not.toContain('liquidhr_manager_work_pending_read')
+    expect(registration.registeredToolNames).not.toContain('liquidhr_manager_leave_calendar_read')
+    expect(registration.registeredToolNames).not.toContain('liquidhr_manager_talent_development_plans_read')
+    expect(registration.registeredToolNames).not.toContain('liquidhr_manager_talent_follow_ups_read')
+    expect(registration.registeredToolNames).not.toContain('liquidhr_manager_talent_team_capability_matrix_read')
     expect(registration.registeredToolNames).toContain('liquidhr_hr_talent_tenant_capability_matrix_read')
   })
 

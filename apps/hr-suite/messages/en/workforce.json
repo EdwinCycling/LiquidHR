@@ -14,7 +14,28 @@
   "talentProfilesDescription": "View active job profiles from the tenant-wide job framework.",
   "teamCompassTitle": "Team Compass",
   "teamCompassDescription": "Compare natural preferences with work behaviour and discover privacy-safe collaboration insights.",
-  "comingSoon": "Coming soon"
-  ,"available": "Available",
-  "openWorkspace": "Open"
+  "comingSoon": "Coming soon",
+  "available": "Available",
+  "openWorkspace": "Open",
+  "mcp": {
+    "instructions": "LiquidHR Workforce provides read-only information about your own data as an employee or your own direct team as a direct manager. The server determines your current role and team context and rejects attempts to choose an employee, team, tenant, HR group, administration, or role context. Manager results contain only permitted team data. This MCP has no write actions.",
+    "employeeScopeDisclosure": "The server determines the current employee context; do not send an employee, team, tenant, administration, or role selector.",
+    "managerScopeDisclosure": "The server determines the current manager and direct-team scope; do not send an employee, team, tenant, administration, or role selector.",
+    "tools": {
+      "employee.talent.development-plans.read": { "title": "Read your development plans", "description": "Read the status and progress of your own development plans." },
+      "employee.talent.development-gaps.read": { "title": "Read your development gaps", "description": "Read your own development points from the current job profile." },
+      "employee.talent.skills.read": { "title": "Read your skills", "description": "Read your own registered skills." },
+      "employee.talent.competencies.read": { "title": "Read your competencies", "description": "Read your own registered competencies." },
+      "employee.leave.balance.read": { "title": "Read your leave balance", "description": "Read your own balance by leave type, as of date, and relevant expiry details. If you have multiple active employments, choose only from the returned options for your own employments." },
+      "employee.leave.next.read": { "title": "Read your next approved leave", "description": "Read your next future leave request with APPROVED status." },
+      "employee.leave.requests.read": { "title": "Read your leave requests", "description": "Read your own pending and approved leave requests, with dates, hours, and status." },
+      "employee.reminders.read": { "title": "Read your personal reminders", "description": "Read only your own personal reminders, due dates, and status." },
+      "manager.team.overview.read": { "title": "Read your direct-team overview", "description": "Read the names of active employees in your own direct team." },
+      "manager.work.pending.read": { "title": "Read pending team work", "description": "Read outstanding actionable tasks and leave requests for your own direct team." },
+      "manager.leave.calendar.read": { "title": "Read approved team leave", "description": "Read approved leave for your own direct team over the next 90 days." },
+      "manager.talent.development-plans.read": { "title": "Read team development plans", "description": "Read progress status for development plans in your own direct team that still need follow-up." },
+      "manager.talent.follow-ups.read": { "title": "Read team follow-ups", "description": "Read open follow-up dates in your own direct team without note text." },
+      "manager.talent.team-capability-matrix.read": { "title": "Read team capabilities", "description": "Read the permitted capability data for your direct team." }
+    }
+  }
 }

@@ -47,7 +47,9 @@ export interface WorkforceToolDescriptor {
 }
 
 export function listWorkforceToolDescriptors(): WorkforceToolDescriptor[] {
-  return WORKFORCE_TOOL_CATALOG.map((tool) => ({
+  // Manager MCP tools are available only through the consent-gated OAuth path.
+  // Cookie-authenticated browser/local MCP surfaces must not publish them.
+  return WORKFORCE_TOOL_CATALOG.filter((tool) => tool.scope !== 'MANAGER_SCOPE').map((tool) => ({
     id: tool.id,
     description: tool.description,
     audience: tool.audience,
@@ -122,7 +124,9 @@ async function authorizeWorkforceTool(
   const audience = resolveWorkforceToolAudience(context.activeRoles)
   const hasDirectManagerRole = context.activeRoles.includes('DIRECT_MANAGER')
   if (tool.scope === 'MANAGER_SCOPE') {
-    if (!hasDirectManagerRole || !tool.audience.includes('MANAGER')) {
+    // Only the Remote MCP route can pass a verified OAuth-bound RLS execution
+    // context, after it has checked the current client grant and consent marker.
+    if (!delegated || !hasDirectManagerRole || !tool.audience.includes('MANAGER')) {
       throw new WorkforceToolDispatchError('ACCESS_DENIED')
     }
   } else if (!audience || !tool.audience.includes(audience)) {
