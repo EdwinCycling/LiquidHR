@@ -45,7 +45,11 @@ vi.mock('@/lib/modules/module-service', () => ({
   requireTenantModule,
 }))
 vi.mock('@/lib/talent/check-in-service', () => ({ listMyTalentGoalCheckIns }))
-vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals, listManagerTeamDevelopmentPlans: vi.fn() }))
+vi.mock('@/lib/talent/goal-service', () => ({
+  MANAGER_DEVELOPMENT_PLAN_STATUSES: ['DRAFT', 'ACTIVE'],
+  listTalentGoals,
+  listManagerTeamDevelopmentPlans: vi.fn(),
+}))
 vi.mock('@/lib/focus/manager-home-service', () => ({ listFocusManagerTeamOverviewForContext }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/organization/team-scope', () => ({

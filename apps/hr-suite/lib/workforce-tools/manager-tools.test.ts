@@ -22,7 +22,10 @@ vi.mock('@/lib/focus/manager-home-service', () => ({
 vi.mock('@/lib/organization/team-scope', () => ({ listDirectTeamEmployeeScope: mocks.listDirectTeamEmployeeScope }))
 vi.mock('@/lib/process-automation/work-service', () => ({ listProcessWork: mocks.listProcessWork }))
 vi.mock('@/lib/talent/check-in-service', () => ({ listManagerTeamFollowUps: mocks.listManagerTeamFollowUps }))
-vi.mock('@/lib/talent/goal-service', () => ({ listManagerTeamDevelopmentPlans: mocks.listManagerTeamDevelopmentPlans }))
+vi.mock('@/lib/talent/goal-service', () => ({
+  MANAGER_DEVELOPMENT_PLAN_STATUSES: ['DRAFT', 'ACTIVE'],
+  listManagerTeamDevelopmentPlans: mocks.listManagerTeamDevelopmentPlans,
+}))
 vi.mock('@/lib/talent/team-service', () => ({
   listManagerTalentTeamMatrix: mocks.listManagerTalentTeamMatrix,
   listTalentTeamMatrix: mocks.listTalentTeamMatrix,
