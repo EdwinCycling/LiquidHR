@@ -1,19 +1,24 @@
 import { isValidElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, getAuthorizationDetails, getClaims, getTranslator, redirect, resolveEmployeeSelfContext } = vi.hoisted(() => ({
+const { createClient, getAuthorizationDetails, getClaims, getTranslator, listGrants, redirect, resolveDirectManagerContext, resolveEmployeeSelfContext, setManagerMcpConsentMarker } = vi.hoisted(() => ({
   createClient: vi.fn(),
   getAuthorizationDetails: vi.fn(),
   getClaims: vi.fn(),
   getTranslator: vi.fn(),
+  listGrants: vi.fn(),
   redirect: vi.fn(),
+  resolveDirectManagerContext: vi.fn(),
   resolveEmployeeSelfContext: vi.fn(),
+  setManagerMcpConsentMarker: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({ redirect }))
 vi.mock('@/lib/api-v1/auth/employee-self-context', () => ({ resolveEmployeeSelfContext }))
+vi.mock('@/lib/api-v1/auth/manager-context', () => ({ resolveDirectManagerContext }))
 vi.mock('@/lib/i18n/server', () => ({ getTranslator }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/workforce-tools/mcp/manager-consent-admin', () => ({ setManagerMcpConsentMarker }))
 
 import OAuthConsentPage from './page'
 
@@ -46,11 +51,18 @@ describe('GET /oauth/consent page', () => {
     getTranslator.mockImplementation(async () => (key: string) => key)
     getAuthorizationDetails.mockResolvedValue({ data: response(), error: null })
     getClaims.mockResolvedValue({ data: { claims: { sub: 'synthetic-employee-user' } }, error: null })
+    listGrants.mockResolvedValue({ data: [{
+      client: { id: 'b7e6b5ae-33be-493f-8456-02fa41e307e8', name: 'ChatGPT' },
+      scopes: ['openid', 'email', 'offline_access'],
+      granted_at: '2026-10-08T09:00:00.000Z',
+    }], error: null })
+    setManagerMcpConsentMarker.mockResolvedValue(true)
+    resolveDirectManagerContext.mockResolvedValue({ kind: 'none' })
     resolveEmployeeSelfContext.mockResolvedValue({
       kind: 'resolved',
       context: { employeeId: 'employee-fixture-id', activeRoles: ['EMPLOYEE'] },
     })
-    createClient.mockResolvedValue({ auth: { getClaims, oauth: { getAuthorizationDetails } } })
+    createClient.mockResolvedValue({ auth: { getClaims, oauth: { getAuthorizationDetails, listGrants } } })
     redirect.mockImplementation((destination: string) => {
       throw new Error(`NEXT_REDIRECT:${destination}`)
     })
@@ -89,6 +101,43 @@ describe('GET /oauth/consent page', () => {
     expect(resolveEmployeeSelfContext).toHaveBeenCalledWith(supabaseClient, 'synthetic-employee-user')
     expect(text).toContain('oauthConsentApprove')
     expect(text).toContain('ChatGPT')
+    expect(text).toContain('oauthConsentDevelopmentGaps')
+    expect(text).toContain('oauthConsentManagerTeamOverview')
+    expect(text).toContain('oauthConsentAccountRoleScope')
+  })
+
+  it('allows a unique direct Manager context when no Employee-self context exists', async () => {
+    const supabaseClient = {
+      auth: {
+        getClaims,
+        oauth: { getAuthorizationDetails },
+      },
+    }
+    createClient.mockResolvedValue(supabaseClient)
+    resolveEmployeeSelfContext.mockResolvedValueOnce({ kind: 'none' })
+    resolveDirectManagerContext.mockResolvedValueOnce({
+      kind: 'resolved',
+      context: {
+        tenantId: 'manager-tenant',
+        hrGroupId: 'manager-group',
+        administrationId: 'manager-administration',
+        userId: 'synthetic-employee-user',
+        employeeId: 'manager-employee-id',
+        activeRoles: ['DIRECT_MANAGER'],
+      },
+    })
+
+    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+    const text = pageText(page)
+
+    expect(resolveDirectManagerContext).toHaveBeenCalledWith(supabaseClient, 'synthetic-employee-user')
+    expect(text).toContain('oauthConsentApprove')
+    expect(text).toContain('oauthConsentManagerTeamOverview')
+    expect(text).toContain('oauthConsentManagerCapabilityMatrix')
+    expect(text).toContain('oauthConsentAccountRoleScope')
+    expect(text).toContain('oauthConsentDevelopmentGaps')
+    expect(text).toContain('oauthConsentAccountRoleScope')
+    expect(text).not.toContain('oauthConsentNoEmployeeContext')
   })
 
   it.each([
@@ -101,7 +150,28 @@ describe('GET /oauth/consent page', () => {
     const text = pageText(page)
 
     expect(text).not.toContain('oauthConsentApprove')
+    expect(text).toContain('oauthConsentDataTitle')
+    expect(text).toContain('oauthConsentManagerTeamOverview')
+    expect(text).toContain('oauthConsentDevelopmentGaps')
     expect(text).toContain(resolution.kind === 'none' ? 'oauthConsentNoEmployeeContext' : 'oauthConsentContextSelectionRequired')
+    expect(text).toContain('oauthConsentDeny')
+  })
+
+  it.each([
+    ['ambiguous direct Manager context', 'selection-required', 'oauthConsentContextSelectionRequired'],
+    ['unavailable direct Manager context', 'unavailable', 'oauthConsentContextUnavailable'],
+  ] as const)('keeps Allow hidden for %s', async (_case, kind, messageKey) => {
+    resolveEmployeeSelfContext.mockResolvedValueOnce({ kind: 'none' })
+    resolveDirectManagerContext.mockResolvedValueOnce({ kind })
+
+    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+    const text = pageText(page)
+
+    expect(text).not.toContain('oauthConsentApprove')
+    expect(text).toContain('oauthConsentDataTitle')
+    expect(text).toContain('oauthConsentManagerTeamOverview')
+    expect(text).toContain('oauthConsentDevelopmentGaps')
+    expect(text).toContain(messageKey)
     expect(text).toContain('oauthConsentDeny')
   })
 
@@ -134,7 +204,55 @@ describe('GET /oauth/consent page', () => {
       .rejects.toThrow(`NEXT_REDIRECT:${redirectUrl}`)
 
     expect(resolveEmployeeSelfContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-employee-user')
+    expect(setManagerMcpConsentMarker).toHaveBeenCalledWith(
+      'synthetic-employee-user',
+      'b7e6b5ae-33be-493f-8456-02fa41e307e8',
+      false,
+    )
     expect(redirect).toHaveBeenCalledExactlyOnceWith(redirectUrl)
+    expect(setManagerMcpConsentMarker.mock.invocationCallOrder[0]).toBeLessThan(redirect.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
+  })
+
+  it('follows an already-approved Supabase redirect for a current direct Manager', async () => {
+    const redirectUrl = `${CALLBACK_URL}?code=supabase-returned-code&state=chatgpt-state&iss=https%3A%2F%2Fwnpfloqpjvaacobppbpk.supabase.co%2Fauth%2Fv1`
+    getAuthorizationDetails.mockResolvedValue({ data: { redirect_url: redirectUrl }, error: null })
+    resolveEmployeeSelfContext.mockResolvedValueOnce({ kind: 'none' })
+    resolveDirectManagerContext.mockResolvedValueOnce({ kind: 'resolved', context: { activeRoles: ['DIRECT_MANAGER'] } })
+
+    await expect(OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) }))
+      .rejects.toThrow(`NEXT_REDIRECT:${redirectUrl}`)
+
+    expect(resolveDirectManagerContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-employee-user')
+    expect(setManagerMcpConsentMarker).toHaveBeenCalledWith(
+      'synthetic-employee-user',
+      'b7e6b5ae-33be-493f-8456-02fa41e307e8',
+      false,
+    )
+    expect(redirect).toHaveBeenCalledExactlyOnceWith(redirectUrl)
+  })
+
+  it('does not follow an already-approved redirect when prior Manager consent cannot be cleared', async () => {
+    const redirectUrl = `${CALLBACK_URL}?code=supabase-returned-code&state=chatgpt-state`
+    getAuthorizationDetails.mockResolvedValue({ data: { redirect_url: redirectUrl }, error: null })
+    setManagerMcpConsentMarker.mockResolvedValueOnce(false)
+
+    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+
+    expect(pageText(page)).toContain('oauthConsentManagerReconnectResetFailed')
+    expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it('does not follow an already-approved redirect when current OAuth grants cannot be read', async () => {
+    const redirectUrl = `${CALLBACK_URL}?code=supabase-returned-code&state=chatgpt-state`
+    getAuthorizationDetails.mockResolvedValue({ data: { redirect_url: redirectUrl }, error: null })
+    listGrants.mockResolvedValueOnce({ data: null, error: new Error('grant read unavailable') })
+
+    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+
+    expect(pageText(page)).toContain('oauthConsentManagerReconnectResetFailed')
+    expect(resolveEmployeeSelfContext).not.toHaveBeenCalled()
+    expect(setManagerMcpConsentMarker).not.toHaveBeenCalled()
+    expect(redirect).not.toHaveBeenCalled()
   })
 
   it('does not follow an auto-approved redirect to an untrusted callback', async () => {
@@ -168,6 +286,13 @@ describe('GET /oauth/consent page', () => {
     const text = pageText(page)
 
     expect(text).toContain('oauthConsentNoEmployeeContext')
+    expect(setManagerMcpConsentMarker).toHaveBeenCalledWith(
+      'synthetic-employee-user',
+      'b7e6b5ae-33be-493f-8456-02fa41e307e8',
+      false,
+    )
+    const contextResolutionOrder = resolveEmployeeSelfContext.mock.invocationCallOrder.slice(-1)[0] ?? Number.MAX_SAFE_INTEGER
+    expect(listGrants.mock.invocationCallOrder[0]).toBeLessThan(contextResolutionOrder)
     expect(redirect).not.toHaveBeenCalled()
   })
 

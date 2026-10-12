@@ -66,7 +66,7 @@ function fakeClient(employmentRows: Array<Record<string, unknown>>) {
 }
 
 function employment(administrationId: string, startsOn: string, endsOn: string | null = null) {
-  return { administration_id: administrationId, starts_on: startsOn, ends_on: endsOn }
+  return { employee_id: EMPLOYEE_ID, administration_id: administrationId, starts_on: startsOn, ends_on: endsOn }
 }
 
 describe('direct Manager context resolution', () => {
@@ -117,6 +117,72 @@ describe('direct Manager context resolution', () => {
     expect(calls).toContainEqual({ method: 'eq', column: 'record_status', value: 'CONFIRMED' })
     expect(calls).toContainEqual({ method: 'lte', column: 'starts_on', value: TODAY })
     expect(calls).toContainEqual({ method: 'is', column: 'deleted_at', value: null })
+  })
+
+  it('finds the direct Manager role in a later administration of the same HR group', async () => {
+    authMocks.loadAccessibleContextOptions.mockImplementationOnce(async (userId: string) => ({
+      userId,
+      tenants: contextOptions(['admin-employee', 'admin-manager']),
+    }))
+    authMocks.requireAuthContext.mockImplementation(async (_client: unknown, activeContext: {
+      tenant: { id: string }
+      activeHrGroup: { id: string }
+      activeAdministration: { id: string }
+    }) => ({
+      tenantId: activeContext.tenant.id,
+      hrGroupId: activeContext.activeHrGroup.id,
+      administrationId: activeContext.activeAdministration.id,
+      userId: USER_ID,
+      employeeId: EMPLOYEE_ID,
+      activeRoles: activeContext.activeAdministration.id === 'admin-manager' ? ['DIRECT_MANAGER'] : ['EMPLOYEE'],
+      permissions: activeContext.activeAdministration.id === 'admin-manager' ? ['talent-team:read'] : [],
+      focusExperience: 'EMPLOYEE',
+    }))
+    const { client } = fakeClient([employment('admin-manager', '2026-01-01')])
+
+    await expect(resolveDirectManagerContext(client as never, USER_ID)).resolves.toMatchObject({
+      kind: 'resolved',
+      context: {
+        tenantId: 'tenant-1',
+        hrGroupId: 'group-1',
+        administrationId: 'admin-manager',
+        employeeId: EMPLOYEE_ID,
+        activeRoles: ['DIRECT_MANAGER'],
+      },
+    })
+  })
+
+  it('continues to a later administration when the first administration has no employee identity', async () => {
+    authMocks.loadAccessibleContextOptions.mockImplementationOnce(async (userId: string) => ({
+      userId,
+      tenants: contextOptions(['admin-without-employee', 'admin-manager']),
+    }))
+    authMocks.requireAuthContext.mockImplementation(async (_client: unknown, activeContext: {
+      tenant: { id: string }
+      activeHrGroup: { id: string }
+      activeAdministration: { id: string }
+    }) => ({
+      tenantId: activeContext.tenant.id,
+      hrGroupId: activeContext.activeHrGroup.id,
+      administrationId: activeContext.activeAdministration.id,
+      userId: USER_ID,
+      employeeId: activeContext.activeAdministration.id === 'admin-manager' ? EMPLOYEE_ID : null,
+      activeRoles: activeContext.activeAdministration.id === 'admin-manager' ? ['DIRECT_MANAGER'] : ['EMPLOYEE'],
+      permissions: activeContext.activeAdministration.id === 'admin-manager' ? ['talent-team:read'] : [],
+      focusExperience: 'EMPLOYEE',
+    }))
+    const { client } = fakeClient([employment('admin-manager', '2026-01-01')])
+
+    await expect(resolveDirectManagerContext(client as never, USER_ID)).resolves.toMatchObject({
+      kind: 'resolved',
+      context: {
+        tenantId: 'tenant-1',
+        hrGroupId: 'group-1',
+        administrationId: 'admin-manager',
+        employeeId: EMPLOYEE_ID,
+        activeRoles: ['DIRECT_MANAGER'],
+      },
+    })
   })
 
   it('requires a unique current administration and fails closed on ambiguous scope', async () => {

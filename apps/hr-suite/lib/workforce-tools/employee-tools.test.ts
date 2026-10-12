@@ -166,8 +166,8 @@ describe('employee workforce tool definitions', () => {
       reminderId: 'reminder',
       title: 'POP bijwerken',
       description: null,
-      remindAt: '2026-10-12T08:00:00.000Z',
-      originalRemindAt: '2026-10-12T08:00:00.000Z',
+      remindAt: '2099-01-01T08:00:00.000Z',
+      originalRemindAt: '2099-01-01T08:00:00.000Z',
       targetType: 'SELF',
       createdByUserId: authContext.userId,
     } as const

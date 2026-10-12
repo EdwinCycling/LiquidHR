@@ -37,6 +37,12 @@ function authenticationRequired(error?: DelegatedAuthError): Response {
 
 function authFailure(error: DelegatedAuthError): Response {
   if (error.status === 401) return authenticationRequired(error)
+  if (error.code === 'MANAGER_CONSENT_REQUIRED') {
+    return Response.json(
+      { error: 'MCP_MANAGER_CONSENT_REQUIRED', manage_connections: '/oauth/connections' },
+      { status: 403, headers: { 'Cache-Control': 'no-store' } },
+    )
+  }
   if (error.status === 409) {
     return Response.json({ error: 'MCP_CONTEXT_SELECTION_REQUIRED' }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
   }

@@ -1,11 +1,16 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createAdminRpcClient, getAdminCredentialMode } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
 import { resolveDirectManagerContext } from '@/lib/api-v1/auth/manager-context'
 import { isRemoteMcpEnabled } from '@/lib/workforce-tools/mcp/remote-config'
+import { managerMcpConsentMetadataPatch } from '@/lib/workforce-tools/mcp/manager-consent'
+import { setManagerMcpConsentMarker } from '@/lib/workforce-tools/mcp/manager-consent-admin'
+import { isChatGptOAuthGrant, readUserOAuthGrants } from '@/lib/oauth/user-grants'
+import type { OAuthManagerConsentActionState } from '../connections/grant-state'
 import {
   buildConsentLoginHref,
   buildConsentPath,
@@ -90,6 +95,18 @@ async function requireEmployeeOrDirectManager(
 ): Promise<boolean> {
   if (await requireEmployeeSelf(supabase, userId)) return true
 
+  try {
+    const resolution = await resolveDirectManagerContext(supabase, userId)
+    return resolution.kind === 'resolved'
+  } catch {
+    return false
+  }
+}
+
+async function requireDirectManager(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<boolean> {
   try {
     const resolution = await resolveDirectManagerContext(supabase, userId)
     return resolution.kind === 'resolved'
@@ -206,6 +223,12 @@ export async function approveChatGptMcpConsent(formData: FormData): Promise<neve
     redirect(OAUTH_DECISION_ERROR_PATH)
   }
 
+  // A fresh OAuth approval can follow an external revoke. Reset prior Manager
+  // opt-in before issuing a new grant so reconnecting cannot revive it.
+  if (!(await setManagerMcpConsentMarker(authorization.userId, authorization.clientId, false))) {
+    redirect(OAUTH_DECISION_ERROR_PATH)
+  }
+
   let approvalRedirectUrl: unknown = null
   let approvalFailed = false
   try {
@@ -223,6 +246,46 @@ export async function approveChatGptMcpConsent(formData: FormData): Promise<neve
   }
 
   redirect(approvalRedirectUrl)
+}
+
+/** Explicitly enable Manager reads for one already-authorized ChatGPT OAuth client. */
+export async function grantChatGptManagerMcpConsent(
+  _previousState: OAuthManagerConsentActionState,
+  formData: FormData,
+): Promise<OAuthManagerConsentActionState> {
+  const requestedClientId = formData.get('clientId')
+  if (typeof requestedClientId !== 'string' || !managerMcpConsentMetadataPatch(requestedClientId, true)) {
+    return { status: 'error' }
+  }
+
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  try {
+    supabase = await createClient()
+  } catch {
+    return { status: 'error' }
+  }
+
+  let userId: string | null = null
+  try {
+    const { data, error } = await supabase.auth.getClaims()
+    const subject = data?.claims?.sub
+    if (!error && typeof subject === 'string' && subject.length > 0) userId = subject
+  } catch {
+    userId = null
+  }
+  if (!userId) redirect('/login?next=%2Foauth%2Fconnections')
+
+  const grants = await readUserOAuthGrants(supabase.auth.oauth)
+  if (
+    grants.status !== 'ready'
+    || !grants.grants.some((grant) => grant.clientId === requestedClientId && isChatGptOAuthGrant(grant))
+    || !(await requireDirectManager(supabase, userId))
+  ) return { status: 'error' }
+
+  if (!(await setManagerMcpConsentMarker(userId, requestedClientId, true))) return { status: 'error' }
+
+  revalidatePath('/oauth/connections')
+  return { status: 'consented', clientId: requestedClientId }
 }
 
 export async function denyChatGptMcpConsent(formData: FormData): Promise<never> {

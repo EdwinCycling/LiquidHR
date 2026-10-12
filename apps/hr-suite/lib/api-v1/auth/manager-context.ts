@@ -79,6 +79,7 @@ export async function resolveDirectManagerContext(
 
       const firstAdministration = administrations[0]
       if (!firstAdministration) continue
+      const contextsByAdministration = new Map<string, AuthContext>()
       const firstActiveContext = selectActiveContext({
         tenants: [findTenantGroup(accessible.tenants, tenant.id, hrGroup.id) ?? tenant],
         requestedTenantId: tenant.id,
@@ -88,17 +89,42 @@ export async function resolveDirectManagerContext(
       const firstContext = await requireAuthContext(supabase, firstActiveContext)
       if (
         firstContext.userId !== userId
-        || !firstContext.employeeId
-        || firstContext.hrGroupId !== hrGroup.id
         || firstContext.tenantId !== tenant.id
-        || !firstContext.activeRoles.includes('DIRECT_MANAGER')
+        || firstContext.hrGroupId !== hrGroup.id
+        || firstContext.administrationId !== firstAdministration.id
       ) continue
+      contextsByAdministration.set(firstAdministration.id, firstContext)
+
+      let employeeId = firstContext.employeeId
+      if (!employeeId) {
+        for (const administration of administrations.slice(1)) {
+          const activeContext = selectActiveContext({
+            tenants: [findTenantGroup(accessible.tenants, tenant.id, hrGroup.id) ?? tenant],
+            requestedTenantId: tenant.id,
+            requestedHrGroupId: hrGroup.id,
+            requestedAdministrationId: administration.id,
+          })
+          const context = await requireAuthContext(supabase, activeContext)
+          if (
+            context.userId !== userId
+            || context.tenantId !== tenant.id
+            || context.hrGroupId !== hrGroup.id
+            || context.administrationId !== administration.id
+          ) continue
+          contextsByAdministration.set(administration.id, context)
+          if (context.employeeId) {
+            employeeId = context.employeeId
+            break
+          }
+        }
+      }
+      if (!employeeId) continue
 
       const administrationIds = administrations.map((administration) => administration.id)
       const { data: employments, error } = await supabase
         .from('employments')
         .select('administration_id,starts_on,ends_on')
-        .eq('employee_id', firstContext.employeeId)
+        .eq('employee_id', employeeId)
         .eq('tenant_id', tenant.id)
         .eq('hr_group_id', hrGroup.id)
         .in('administration_id', administrationIds)
@@ -109,24 +135,23 @@ export async function resolveDirectManagerContext(
         .limit(1_000)
       if (error || employments.length >= 1_000) return { kind: 'unavailable' }
 
-      const assignedAdministrationIds = new Set(
+      const currentAdministrationIds = new Set(
         (employments as CurrentEmployment[])
           .filter((employment) => isCurrentEmployment(employment, today))
           .map((employment) => employment.administration_id),
       )
-      for (const administration of administrations) {
-        if (!assignedAdministrationIds.has(administration.id)) continue
-        const activeContext = selectActiveContext({
+      for (const administrationId of currentAdministrationIds) {
+        const administration = administrations.find((candidate) => candidate.id === administrationId)
+        if (!administration) continue
+        const cachedContext = contextsByAdministration.get(administrationId)
+        const context = cachedContext ?? await requireAuthContext(supabase, selectActiveContext({
           tenants: [findTenantGroup(accessible.tenants, tenant.id, hrGroup.id) ?? tenant],
           requestedTenantId: tenant.id,
           requestedHrGroupId: hrGroup.id,
           requestedAdministrationId: administration.id,
-        })
-        const context = administration.id === firstAdministration.id
-          ? firstContext
-          : await requireAuthContext(supabase, activeContext)
-        if (isDirectManagerContext(context, userId, tenant.id, hrGroup.id, administration.id, firstContext.employeeId)) {
-          candidates.set(`${tenant.id}\u0000${hrGroup.id}\u0000${administration.id}`, context)
+        }))
+        if (isDirectManagerContext(context, userId, tenant.id, hrGroup.id, administrationId, employeeId)) {
+          candidates.set(`${tenant.id}\u0000${hrGroup.id}\u0000${administrationId}`, context)
         }
       }
     }

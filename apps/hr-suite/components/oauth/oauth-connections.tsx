@@ -6,14 +6,12 @@ import { Surface } from '@/components/ui/surface'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { isChatGptOAuthGrant, type UserOAuthGrantSummary } from '@/lib/oauth/user-grants'
 import type { Locale } from '@/lib/i18n/config'
-import { initialOAuthGrantActionState } from '@/app/oauth/connections/grant-state'
+import {
+  initialOAuthGrantActionState,
+  initialOAuthManagerConsentActionState,
+} from '@/app/oauth/connections/grant-state'
 import { revokeChatGptOAuthGrant } from '@/app/oauth/connections/actions'
-
-interface OAuthConnectionsProps {
-  readonly grants: readonly UserOAuthGrantSummary[]
-  readonly locale: Locale
-  readonly labels: OAuthConnectionsLabels
-}
+import { grantChatGptManagerMcpConsent } from '@/app/oauth/consent/actions'
 
 export interface OAuthConnectionsLabels {
   readonly application: string
@@ -28,15 +26,48 @@ export interface OAuthConnectionsLabels {
   readonly revoked: string
   readonly revokeFailed: string
   readonly empty: string
+  readonly managerConsentHeading: string
+  readonly managerConsentDescription: string
+  readonly managerConsentItemsHeading: string
+  readonly managerConsentItems: readonly string[]
+  readonly managerConsentReadOnly: string
+  readonly managerConsentEnabled: string
+  readonly managerConsentGrant: string
+  readonly managerConsentUnavailable: string
+  readonly managerConsentConfirmTitle: string
+  readonly managerConsentConfirmDescription: string
+  readonly managerConsentConfirm: string
+  readonly managerConsentSuccess: string
+  readonly managerConsentFailed: string
 }
 
-export function OAuthConnections({ grants, labels, locale }: OAuthConnectionsProps) {
+interface OAuthConnectionsProps {
+  readonly grants: readonly UserOAuthGrantSummary[]
+  readonly locale: Locale
+  readonly labels: OAuthConnectionsLabels
+  readonly managerConsentClientIds: readonly string[]
+  readonly managerConsentCheckAvailable: boolean
+}
+
+export function OAuthConnections({
+  grants,
+  labels,
+  locale,
+  managerConsentClientIds,
+  managerConsentCheckAvailable,
+}: OAuthConnectionsProps) {
   const [state, formAction, pending] = useActionState(
     revokeChatGptOAuthGrant,
     initialOAuthGrantActionState,
   )
+  const [consentState, consentFormAction, consentPending] = useActionState(
+    grantChatGptManagerMcpConsent,
+    initialOAuthManagerConsentActionState,
+  )
   const [confirmGrant, setConfirmGrant] = useState<UserOAuthGrantSummary | null>(null)
+  const [consentGrant, setConsentGrant] = useState<UserOAuthGrantSummary | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const consentFormRef = useRef<HTMLFormElement>(null)
   const visibleGrants = state.status === 'revoked'
     ? grants.filter((grant) => grant.clientId !== state.clientId)
     : grants
@@ -51,6 +82,16 @@ export function OAuthConnections({ grants, labels, locale }: OAuthConnectionsPro
       {state.status === 'error' ? (
         <Surface className="p-4" role="alert">
           <p className="text-sm leading-6 text-foreground">{labels.revokeFailed}</p>
+        </Surface>
+      ) : null}
+      {consentState.status === 'consented' ? (
+        <Surface className="p-4" role="status">
+          <p className="text-sm leading-6 text-foreground">{labels.managerConsentSuccess}</p>
+        </Surface>
+      ) : null}
+      {consentState.status === 'error' ? (
+        <Surface className="p-4" role="alert">
+          <p className="text-sm leading-6 text-foreground">{labels.managerConsentFailed}</p>
         </Surface>
       ) : null}
 
@@ -79,15 +120,41 @@ export function OAuthConnections({ grants, labels, locale }: OAuthConnectionsPro
                 </time>
               </div>
               {isChatGptOAuthGrant(grant) ? (
-                <Button
-                  disabled={pending}
-                  onClick={() => setConfirmGrant(grant)}
-                  size="sm"
-                  type="button"
-                  variant="danger"
-                >
-                  {labels.revoke}
-                </Button>
+                <div className="space-y-3 border-t border-subtle pt-3">
+                  <h3 className="text-sm font-semibold text-foreground">{labels.managerConsentHeading}</h3>
+                  <p className="text-sm leading-6 text-muted-foreground">{labels.managerConsentDescription}</p>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{labels.managerConsentItemsHeading}</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+                      {labels.managerConsentItems.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                  <p className="text-sm leading-6 text-muted-foreground">{labels.managerConsentReadOnly}</p>
+                  {managerConsentClientIds.includes(grant.clientId)
+                    || consentState.status === 'consented' && consentState.clientId === grant.clientId ? (
+                      <p className="text-sm font-medium text-foreground" role="status">{labels.managerConsentEnabled}</p>
+                    ) : managerConsentCheckAvailable ? (
+                      <Button
+                        disabled={consentPending}
+                        onClick={() => setConsentGrant(grant)}
+                        size="sm"
+                        type="button"
+                      >
+                        {labels.managerConsentGrant}
+                      </Button>
+                    ) : (
+                      <p className="text-sm leading-6 text-muted-foreground" role="status">{labels.managerConsentUnavailable}</p>
+                    )}
+                  <Button
+                    disabled={pending}
+                    onClick={() => setConfirmGrant(grant)}
+                    size="sm"
+                    type="button"
+                    variant="danger"
+                  >
+                    {labels.revoke}
+                  </Button>
+                </div>
               ) : null}
             </Surface>
           ))}
@@ -96,6 +163,9 @@ export function OAuthConnections({ grants, labels, locale }: OAuthConnectionsPro
 
       <form action={formAction} className="hidden" ref={formRef}>
         <input name="clientId" type="hidden" value={confirmGrant?.clientId ?? ''} />
+      </form>
+      <form action={consentFormAction} className="hidden" ref={consentFormRef}>
+        <input name="clientId" type="hidden" value={consentGrant?.clientId ?? ''} />
       </form>
       <ConfirmDialog
         cancelLabel={labels.cancel}
@@ -110,6 +180,19 @@ export function OAuthConnections({ grants, labels, locale }: OAuthConnectionsPro
         open={confirmGrant !== null}
         pending={pending}
         title={labels.confirmTitle}
+      />
+      <ConfirmDialog
+        cancelLabel={labels.cancel}
+        confirmLabel={labels.managerConsentConfirm}
+        description={labels.managerConsentConfirmDescription}
+        onConfirm={() => {
+          consentFormRef.current?.requestSubmit()
+          setConsentGrant(null)
+        }}
+        onOpenChange={(open) => { if (!open && !consentPending) setConsentGrant(null) }}
+        open={consentGrant !== null}
+        pending={consentPending}
+        title={labels.managerConsentConfirmTitle}
       />
     </div>
   )

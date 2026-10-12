@@ -145,6 +145,23 @@ describe('remote MCP route gates', () => {
     expect(routeMocks.dispatch).not.toHaveBeenCalled()
   })
 
+  it('returns a dedicated re-consent action when an existing grant lacks Manager consent', async () => {
+    routeMocks.authenticate.mockRejectedValueOnce(new DelegatedAuthError('MANAGER_CONSENT_REQUIRED'))
+    const response = await POST(request({
+      jsonrpc: '2.0',
+      id: 18,
+      method: 'tools/call',
+      params: { name: 'manager.team.overview.read', arguments: {} },
+    }, 'Bearer synthetic-test-access-token'))
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({
+      error: 'MCP_MANAGER_CONSENT_REQUIRED',
+      manage_connections: '/oauth/connections',
+    })
+    expect(routeMocks.dispatch).not.toHaveBeenCalled()
+  })
+
   it('dispatches an authenticated Employee self-read through the request-bound execution context', async () => {
     const execution = {
       authContext: {
