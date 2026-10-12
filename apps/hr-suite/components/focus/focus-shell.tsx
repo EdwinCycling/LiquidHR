@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { BriefcaseBusiness, CalendarDays, ClipboardList, FileText, Home, Route, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { PageShell, type PageShellWidth } from '@/components/layout/page-shell'
+import { LiquidHRLogo } from '@/components/layout/liquidhr-logo'
 import { focusActAsHref } from '@/lib/focus/url'
 import { FocusPreviewClose } from './focus-preview-close'
 import { FocusActAsStop } from './focus-act-as-stop'
@@ -81,7 +82,9 @@ export function FocusShell({
       <div className="mx-auto min-h-dvh w-full max-w-3xl bg-workspace">
         <div className="sticky top-0 z-20 border-b border-subtle bg-surface/95 backdrop-blur">
           <PageShell className="flex min-h-14 items-center gap-4" width="standard">
-            <Link className="shrink-0 text-sm font-bold tracking-tight text-foreground" href={productHref} prefetch={false}>{labels.product}</Link>
+            <Link aria-label={labels.product} className="shrink-0 rounded-[var(--radius-control)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2" href={productHref} prefetch={false}>
+              <LiquidHRLogo decorative size="sm" variant="horizontal" />
+            </Link>
             {readOnly && preview?.employeeId ? <div className="min-w-0 flex-1"><FocusPreviewNavigation actions={actions} activeKey={activeKey} labels={labels} employeeId={preview.employeeId} /></div> : null}
           </PageShell>
         </div>
