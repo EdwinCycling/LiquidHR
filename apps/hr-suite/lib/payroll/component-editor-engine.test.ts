@@ -3,6 +3,7 @@ import type { PayrollComponentDefinition } from '@liquid-hr/payroll-engine'
 import { NL_2026_RULE_PACKAGE } from '@liquid-hr/payroll-rules-nl-2026'
 import { createComponentCatalogEntry } from './component-catalog'
 import { validatePreparedComponentDraft } from './component-editor-engine'
+import { parsePayrollExpression } from './component-expression-dsl'
 
 const definition: PayrollComponentDefinition = {
   id: 'CUSTOM_00000000000040008000000000000001',
@@ -49,5 +50,42 @@ describe('Payroll component editor synthetic engine preview', () => {
     expect(result.result?.rounding).toEqual([{ componentCode: definition.code, outputName: 'amount', scale: 2, mode: 'HALF_UP' }])
     expect(result.result?.trace.some((step) => step.componentCode === definition.code)).toBe(true)
     expect(result.result?.trace[0]?.outputs.amount).toEqual({ valueType: 'MONEY', value: '105.00' })
+  })
+
+  it.each([
+    ['MONEY(1250.00)', 'MONEY'],
+    ['IF(TRUE, MONEY(1250.00), MONEY(0.00))', 'MONEY'],
+    ['MAX(DECIMAL(1.00), DECIMAL(2.00))', 'DECIMAL'],
+  ] as const)('accepts the formula-help example %s through existing server validation', (formula, valueType) => {
+    const candidateDefinition: PayrollComponentDefinition = {
+      ...definition,
+      outputs: [{
+        name: 'amount',
+        valueType,
+        ...(valueType === 'MONEY' ? { rounding: { scale: 2, mode: 'HALF_UP' as const } } : {}),
+      }],
+      method: { kind: 'expression', outputs: { amount: parsePayrollExpression(formula) } },
+    }
+    const entry = createComponentCatalogEntry({
+      definition: candidateDefinition,
+      packageIdentity: {
+        compositionId: NL_2026_RULE_PACKAGE.compositionId,
+        packageId: NL_2026_RULE_PACKAGE.metadata?.packageId,
+        version: NL_2026_RULE_PACKAGE.metadata?.version,
+        packageHash: NL_2026_RULE_PACKAGE.metadata?.packageHash,
+        parameterSetHash: NL_2026_RULE_PACKAGE.metadata?.parameterSetHash,
+      },
+      components: [...NL_2026_RULE_PACKAGE.components.filter((component) => component.code !== candidateDefinition.code), candidateDefinition],
+      status: 'DRAFT',
+      displayName: 'Formula help example',
+    })
+
+    const result = validatePreparedComponentDraft({
+      definition: candidateDefinition,
+      entry,
+      requestId: '30000000-0000-4000-8000-000000000002',
+    })
+
+    expect(result.valid, result.issues.join(', ')).toBe(true)
   })
 })
