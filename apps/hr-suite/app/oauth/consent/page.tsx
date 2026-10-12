@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation'
+import { ArrowRight, Check, MessageSquareText, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import { AuthShell } from '@/components/auth/auth-shell'
+import { LiquidHRLogo } from '@/components/layout/liquidhr-logo'
 import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
 import { resolveDirectManagerContext } from '@/lib/api-v1/auth/manager-context'
 import { getTranslator } from '@/lib/i18n/server'
@@ -175,67 +177,122 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
         </Surface>
       ) : details ? (
         <Surface className="space-y-5 p-5 sm:p-6">
-          {message ? <p className="text-sm leading-6 text-foreground" role="alert">{message}</p> : null}
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentClientLabel')}</p>
-            <p className="mt-1 break-words text-lg font-semibold text-foreground">{details.clientName}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentRedirectLabel')}</p>
-            <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.redirectUri}</p>
-          </div>
-          {details.resource ? (
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentResourceLabel')}</p>
-              <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.resource}</p>
+          <div className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-4">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
+              <div className="flex min-w-0 items-center gap-2">
+                <LiquidHRLogo decorative size="sm" variant="mark" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{common('appName')}</p>
+                  <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentConnectedAccount')}</p>
+                </div>
+              </div>
+              <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground" />
+              <div className="flex min-w-0 items-center gap-2">
+                <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)] border border-border-subtle bg-surface text-foreground">
+                  <MessageSquareText className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{details.clientName}</p>
+                  <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentClientLabel')}</p>
+                </div>
+              </div>
             </div>
-          ) : null}
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">{auth('oauthConsentDataTitle')}</h2>
-            <h3 className="mt-2 text-sm font-medium text-foreground">{auth('oauthConsentEmployeeDataTitle')}</h3>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
-              <li>{auth('oauthConsentDevelopmentPlans')}</li>
-              <li>{auth('oauthConsentDevelopmentGaps')}</li>
-              <li>{auth('oauthConsentSkills')}</li>
-              <li>{auth('oauthConsentCompetencies')}</li>
-            </ul>
-            <h3 className="mt-4 text-sm font-medium text-foreground">{auth('oauthConsentManagerDataTitle')}</h3>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
-              <li>{auth('oauthConsentManagerTeamOverview')}</li>
-              <li>{auth('oauthConsentManagerPendingWork')}</li>
-              <li>{auth('oauthConsentManagerLeaveCalendar')}</li>
-              <li>{auth('oauthConsentManagerDevelopmentPlans')}</li>
-              <li>{auth('oauthConsentManagerFollowUps')}</li>
-              <li>{auth('oauthConsentManagerCapabilityMatrix')}</li>
-            </ul>
           </div>
-          <p className="text-sm leading-6 text-muted-foreground">{auth('oauthConsentAccountRoleScope')}</p>
-          <p className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground">
-            {auth('oauthConsentReadOnly')}
-          </p>
-          <p className="text-sm leading-6 text-muted-foreground">
-            <span className="font-medium text-foreground">{auth('oauthConsentScopesLabel')}: </span>
-            <span>{details.scope}</span>
-          </p>
-          {details.scope.split(/\s+/u).includes('email') ? (
-            <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentEmailScope')}</p>
-          ) : null}
-          {details.scope.split(/\s+/u).includes('offline_access') ? (
-            <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentOfflineAccessScope')}</p>
+
+          {message ? (
+            <p className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground" role="alert">
+              {message}
+            </p>
           ) : null}
 
-          {details.canApprove ? (
-            <form action={approveChatGptMcpConsent}>
-              <input name="authorization_id" type="hidden" value={details.authorizationId} />
-              <Button className="w-full" type="submit">{auth('oauthConsentApprove')}</Button>
-            </form>
-          ) : null}
-          {details.canDeny ? (
-            <form action={denyChatGptMcpConsent}>
-              <input name="authorization_id" type="hidden" value={details.authorizationId} />
-              <Button className="w-full" type="submit" variant="secondary">{auth('oauthConsentDeny')}</Button>
-            </form>
-          ) : null}
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">{auth('oauthConsentDataTitle')}</h2>
+            <h3 className="mt-3 text-sm font-medium text-foreground">{auth('oauthConsentEmployeeDataTitle')}</h3>
+            <ul className="mt-2 space-y-2.5 text-sm leading-6 text-muted-foreground">
+              {[
+                auth('oauthConsentDevelopmentPlans'),
+                auth('oauthConsentDevelopmentGaps'),
+                auth('oauthConsentSkills'),
+                auth('oauthConsentCompetencies'),
+                auth('oauthConsentLeaveBalance'),
+                auth('oauthConsentNextLeave'),
+                auth('oauthConsentLeaveRequests'),
+                auth('oauthConsentReminders'),
+              ].map((item) => (
+                <li className="flex items-start gap-2.5" key={item}>
+                  <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <h3 className="mt-5 text-sm font-medium text-foreground">{auth('oauthConsentManagerDataTitle')}</h3>
+            <ul className="mt-2 space-y-2.5 text-sm leading-6 text-muted-foreground">
+              {[
+                auth('oauthConsentManagerTeamOverview'),
+                auth('oauthConsentManagerPendingWork'),
+                auth('oauthConsentManagerLeaveCalendar'),
+                auth('oauthConsentManagerDevelopmentPlans'),
+                auth('oauthConsentManagerFollowUps'),
+                auth('oauthConsentManagerCapabilityMatrix'),
+              ].map((item) => (
+                <li className="flex items-start gap-2.5" key={item}>
+                  <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <p className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground">
+            {auth('oauthConsentAccountRoleScope')}
+          </p>
+
+          <div className="flex items-start gap-2.5 rounded-[var(--radius-control)] border border-subtle p-3">
+            <ShieldCheck aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">{auth('oauthConsentAccessType')}</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">{auth('oauthConsentReadOnly')}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 border-t border-border-subtle pt-4">
+            <h2 className="text-sm font-semibold text-foreground">{auth('oauthConsentRequestDetailsLabel')}</h2>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentRedirectLabel')}</p>
+              <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.redirectUri}</p>
+            </div>
+            {details.resource ? (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentResourceLabel')}</p>
+                <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.resource}</p>
+              </div>
+            ) : null}
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentScopesLabel')}</p>
+              <p className="mt-1 break-all font-mono text-xs leading-5 text-foreground">{details.scope}</p>
+            </div>
+            {details.scope.split(/\s+/u).includes('email') ? (
+              <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentEmailScope')}</p>
+            ) : null}
+            {details.scope.split(/\s+/u).includes('offline_access') ? (
+              <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentOfflineAccessScope')}</p>
+            ) : null}
+          </div>
+
+          <div className="grid gap-3 pt-1">
+            {details.canApprove ? (
+              <form action={approveChatGptMcpConsent}>
+                <input name="authorization_id" type="hidden" value={details.authorizationId} />
+                <Button className="w-full" type="submit">{auth('oauthConsentApprove')}</Button>
+              </form>
+            ) : null}
+            {details.canDeny ? (
+              <form action={denyChatGptMcpConsent}>
+                <input name="authorization_id" type="hidden" value={details.authorizationId} />
+                <Button className="w-full" type="submit" variant="secondary">{auth('oauthConsentDeny')}</Button>
+              </form>
+            ) : null}
+          </div>
         </Surface>
       ) : (
         <Surface className="p-5" role="alert">
