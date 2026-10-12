@@ -153,23 +153,25 @@ function ComponentList({
         const status = payrollComponentStatus(entry)
         return <li key={entry.key}>
           <Link aria-current={selected ? 'page' : undefined} className={`block min-w-0 px-4 py-4 transition-colors hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus sm:px-5 ${selected ? 'bg-surface-subtle' : ''}`.trim()} href={libraryHref(filters, entry.key)}>
-            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="w-full min-w-0">
                 <p className="break-words text-sm font-semibold text-foreground">{payrollComponentName(entry, t)}</p>
-                <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{entry.displayCode && entry.displayCode !== entry.definition.code ? `${entry.displayCode} · ` : ''}{entry.definition.code} · v{entry.definition.version}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{entry.description?.trim() || t('payrollComponentsDescriptionUnavailable')}</p>
-                <p className="mt-2 break-words text-xs text-muted-foreground">{payrollComponentCategory(entry, t)} · {t(`payrollComponentsScope_${entry.definition.processingScope}`)}</p>
+                <p className="mt-1 break-words font-mono text-xs text-muted-foreground">{entry.displayCode && entry.displayCode !== entry.definition.code ? `${entry.displayCode} · ` : ''}{entry.definition.code} · v{entry.definition.version}</p>
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="flex w-full min-w-0 flex-wrap gap-2">
                 <Badge tone={entry.ownership === 'SYSTEM' ? 'info' : 'neutral'}>{t(`payrollComponentsOwnership_${entry.ownership}`)}</Badge>
                 <Badge tone={status === 'DRAFT' ? 'warning' : 'neutral'}>{t(`payrollComponentsStatus_${status}`)}</Badge>
                 {!entry.validation.valid ? <Badge tone="warning">{t('payrollComponentsValidationWarning')}</Badge> : null}
               </div>
+              <div className="w-full min-w-0">
+                <p className="break-words text-xs text-muted-foreground">{entry.description?.trim() || t('payrollComponentsDescriptionUnavailable')}</p>
+                <p className="mt-2 break-words text-xs text-muted-foreground">{payrollComponentCategory(entry, t)} · {t(`payrollComponentsScope_${entry.definition.processingScope}`)}</p>
+              </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>{t('payrollComponentsEffectiveFrom')}: {formatDate(entry.definition.effectiveFrom, locale)}</span>
-              <span>{t('payrollComponentsEffectiveTo')}: {formatDate(entry.definition.effectiveTo, locale)}</span>
-              <span>{t(entry.ownership === 'CUSTOMER_FORK' ? 'payrollComponentsSourcePackage' : 'payrollComponentsPackage')}: {entry.package.version ?? entry.package.compositionId}</span>
+              <span className="min-w-0 break-words">{t('payrollComponentsEffectiveFrom')}: {formatDate(entry.definition.effectiveFrom, locale)}</span>
+              <span className="min-w-0 break-words">{t('payrollComponentsEffectiveTo')}: {formatDate(entry.definition.effectiveTo, locale)}</span>
+              <span className="min-w-0 break-words">{t(entry.ownership === 'CUSTOMER_FORK' ? 'payrollComponentsSourcePackage' : 'payrollComponentsPackage')}: {entry.package.version ?? entry.package.compositionId}</span>
             </div>
           </Link>
         </li>
