@@ -21,6 +21,31 @@
     "instructions": "LiquidHR Workforce provides read-only information about your own data as an employee or your own direct team as a direct manager. The server determines your current role and team context and rejects attempts to choose an employee, team, tenant, HR group, administration, or role context. Manager results contain only permitted team data. This MCP has no write actions.",
     "employeeScopeDisclosure": "The server determines the current employee context; do not send an employee, team, tenant, administration, or role selector.",
     "managerScopeDisclosure": "The server determines the current manager and direct-team scope; do not send an employee, team, tenant, administration, or role selector.",
+    "focusWidget": {
+      "title": "My development plans",
+      "description": "Review your plans. Choose one plan to share its permitted status context with ChatGPT.",
+      "loading": "Loading your development plans…",
+      "refresh": "Refresh",
+      "authRequired": "Your plans are unavailable. Sign in to LiquidHR or reconnect, then try again.",
+      "error": "Your plans could not be loaded. Try again.",
+      "noPlans": "No plans are available.",
+      "choosePlan": "Choose one plan. Nothing is shared until you select Share with ChatGPT.",
+      "plan": "Development plan",
+      "progress": "Progress",
+      "completedAt": "Completed",
+      "share": "Share with ChatGPT",
+      "clear": "Clear context",
+      "working": "Working…",
+      "contextReady": "One selected plan is available to ChatGPT as context.",
+      "contextCleared": "The shared plan context was cleared.",
+      "status": {
+        "DRAFT": "Draft",
+        "ACTIVE": "Active",
+        "COMPLETED": "Completed",
+        "CANCELLED": "Cancelled",
+        "ARCHIVED": "Archived"
+      }
+    },
     "tools": {
       "employee.talent.development-plans.read": { "title": "Read your development plans", "description": "Read the status and progress of your own development plans." },
       "employee.talent.development-gaps.read": { "title": "Read your development gaps", "description": "Read your own development points from the current job profile." },

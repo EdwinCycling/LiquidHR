@@ -1,0 +1,52 @@
+@import "tailwindcss" source(none);
+@import "../../app/styles/tokens.css";
+@import "../../app/styles/themes.css";
+@import "../../app/styles/components.css";
+
+@source "./chatgpt-widget.tsx";
+@source "../ui/surface.tsx";
+@source "../ui/badge.tsx";
+@source "../ui/button.tsx";
+@source "../patterns/section-header.tsx";
+
+:root {
+  color-scheme: light dark;
+  --background: var(--color-background-primary, Canvas);
+  --foreground: var(--color-text-primary, CanvasText);
+  --surface: var(--color-background-secondary, Canvas);
+  --surface-raised: var(--color-background-tertiary, Canvas);
+  --muted: var(--color-background-tertiary, Canvas);
+  --muted-foreground: var(--color-text-secondary, GrayText);
+  --border: var(--color-border-primary, currentColor);
+}
+
+html,
+body,
+#root {
+  min-width: 20rem;
+  min-height: 100%;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  text-rendering: optimizeLegibility;
+}
+
+.mcp-focus-widget {
+  box-sizing: border-box;
+}
+
+.mcp-focus-widget [data-selected="true"] {
+  border-color: var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

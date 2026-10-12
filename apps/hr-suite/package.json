@@ -3,9 +3,12 @@
   "version": "0.1.2",
   "private": true,
   "scripts": {
+    "predev": "npm run build:chatgpt-focus-widget",
+    "predev:turbopack": "npm run build:chatgpt-focus-widget",
+    "build:chatgpt-focus-widget": "node scripts/build-chatgpt-focus-widget.mjs",
     "dev": "next dev --webpack --port 3000",
     "dev:turbopack": "next dev --port 3000",
-    "build": "next build && node lib/payroll/verify-client-bundle.mjs --self-test && node scripts/write-build-provenance.mjs",
+    "build": "npm run build:chatgpt-focus-widget && next build && node lib/payroll/verify-client-bundle.mjs --self-test && node scripts/write-build-provenance.mjs",
     "start": "next start --port 3000",
     "lint": "eslint .",
     "check:i18n": "node scripts/check-i18n.mjs",
@@ -21,6 +24,7 @@
     "@liquid-hr/payroll-engine": "0.0.0",
     "@fontsource/work-sans": "5.3.0",
     "@modelcontextprotocol/server": "2.3.0",
+    "@modelcontextprotocol/ext-apps": "2.0.3",
     "@scope/db": "0.1.0",
     "@sparticuz/chromium": "149.0.0",
     "@supabase/ssr": "latest",
@@ -56,8 +60,10 @@
     "@types/react-dom": "latest",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.6",
+    "esbuild": "0.28.2",
     "happy-dom": "^20.11.6",
     "tailwindcss": "latest",
+    "postcss": "8.5.24",
     "typescript": "latest",
     "vitest": "^4.1.10"
   }

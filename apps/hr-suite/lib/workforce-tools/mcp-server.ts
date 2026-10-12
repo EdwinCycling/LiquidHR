@@ -24,6 +24,11 @@ import { dispatchWorkforceTool, WorkforceToolDispatchError } from './registry'
 import { RemoteMcpToolError } from './mcp/remote-errors'
 import { WORKFORCE_TOOL_CATALOG } from './catalog'
 import type { DelegatedWorkforceToolExecutionContext, WorkforceToolDefinition } from './contracts'
+import {
+  CHATGPT_FOCUS_OPEN_TOOL_ID,
+  CHATGPT_FOCUS_PLANS_TOOL_ID,
+  registerChatGptFocusApp,
+} from './mcp/focus-app'
 import { requireAuthContext } from '@/lib/auth/permissions'
 import {
   controlledActions,
@@ -371,6 +376,9 @@ export function createChatGptMcpServer(
     if (!tool) throw new Error('CHATGPT_MCP_WORKFORCE_TOOL_NOT_FOUND')
     registerWorkforceTool(server, tool, metadata, executionContext, dispatchTool, remoteAuthenticationRequired)
   }
+  if (remoteAuthenticationRequired) {
+    registerChatGptFocusApp(server, dispatchTool, remoteAuthenticationRequired, locale)
+  }
   return server
 }
 
@@ -446,7 +454,11 @@ async function addRemoteSecuritySchemes(response: Response, request: Request): P
   }
   if (!isRecord(payload) || !isRecord(payload.result) || !Array.isArray(payload.result.tools)) return response
 
-  const securitySchemesByName = new Map(CHATGPT_MCP_TOOLS.map((tool) => [tool.name, CHATGPT_MCP_TOOL_SECURITY_SCHEMES]))
+  const securitySchemesByName = new Map([
+    ...CHATGPT_MCP_TOOLS.map((tool) => [tool.name, CHATGPT_MCP_TOOL_SECURITY_SCHEMES] as const),
+    [CHATGPT_FOCUS_OPEN_TOOL_ID, CHATGPT_MCP_TOOL_SECURITY_SCHEMES] as const,
+    [CHATGPT_FOCUS_PLANS_TOOL_ID, CHATGPT_MCP_TOOL_SECURITY_SCHEMES] as const,
+  ])
   const tools = payload.result.tools.map((listedTool: unknown) => {
     if (!isRecord(listedTool) || typeof listedTool.name !== 'string') return listedTool
     const securitySchemes = securitySchemesByName.get(listedTool.name)
