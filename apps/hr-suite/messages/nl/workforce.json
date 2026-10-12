@@ -14,7 +14,28 @@
   "talentProfilesDescription": "Bekijk de actieve functieprofielen binnen het tenant-brede functiehuis.",
   "teamCompassTitle": "Teamkompas",
   "teamCompassDescription": "Vergelijk natuurlijke voorkeuren met werkgedrag en ontdek privacyveilige inzichten voor samenwerking.",
-  "comingSoon": "Binnenkort beschikbaar"
-  ,"available": "Beschikbaar",
-  "openWorkspace": "Openen"
+  "comingSoon": "Binnenkort beschikbaar",
+  "available": "Beschikbaar",
+  "openWorkspace": "Openen",
+  "mcp": {
+    "instructions": "LiquidHR Workforce biedt uitsluitend read-only informatie over je eigen gegevens als medewerker of je eigen directe team als direct manager. De server bepaalt je actuele rol- en teamcontext en weigert iedere poging om medewerker-, team-, tenant-, HR-groep-, administratie- of rolcontext te kiezen. Managerresultaten bevatten alleen toegestane teamgegevens. Deze MCP biedt geen schrijfacties.",
+    "employeeScopeDisclosure": "De server bepaalt de actuele medewerkercontext; stuur geen medewerker-, team-, tenant-, administratie- of rolselector mee.",
+    "managerScopeDisclosure": "De server bepaalt de actuele manager- en directe teamscope; stuur geen medewerker-, team-, tenant-, administratie- of rolselector mee.",
+    "tools": {
+      "employee.talent.development-plans.read": { "title": "Eigen ontwikkelplannen lezen", "description": "Lees de status en voortgang van je eigen ontwikkelplannen." },
+      "employee.talent.development-gaps.read": { "title": "Eigen ontwikkelgaps lezen", "description": "Lees je eigen ontwikkelpunten uit het actuele functieprofiel." },
+      "employee.talent.skills.read": { "title": "Eigen skills lezen", "description": "Lees je eigen geregistreerde vaardigheden." },
+      "employee.talent.competencies.read": { "title": "Eigen competenties lezen", "description": "Lees je eigen geregistreerde competenties." },
+      "employee.leave.balance.read": { "title": "Eigen verlofsaldo lezen", "description": "Lees je eigen verlofsaldo per verloftype, met peildatum en relevante vervalinformatie. Als er meerdere actieve dienstverbanden zijn, kies uitsluitend uit de teruggegeven eigen opties." },
+      "employee.leave.next.read": { "title": "Volgende goedgekeurde vakantie lezen", "description": "Lees de eerstvolgende toekomstige eigen verlofaanvraag met status GOEDGEKEURD." },
+      "employee.leave.requests.read": { "title": "Eigen verlofaanvragen lezen", "description": "Lees je eigen lopende en goedgekeurde verlofaanvragen met periode, uren en status." },
+      "employee.reminders.read": { "title": "Persoonlijke reminders lezen", "description": "Lees alleen je eigen persoonlijke reminders met vervaldatum en status." },
+      "manager.team.overview.read": { "title": "Overzicht van het directe team lezen", "description": "Lees namen van actieve medewerkers in je eigen directe team." },
+      "manager.work.pending.read": { "title": "Openstaand teamwerk lezen", "description": "Lees openstaande, actiegerichte taken en verlofaanvragen van je eigen directe team." },
+      "manager.leave.calendar.read": { "title": "Goedgekeurde teamvakantie lezen", "description": "Lees goedgekeurde vakantie van je eigen directe team in de komende 90 dagen." },
+      "manager.talent.development-plans.read": { "title": "Teamontwikkelplannen lezen", "description": "Lees de voortgangsstatus van ontwikkelplannen in je eigen directe team die nog opvolging nodig hebben." },
+      "manager.talent.follow-ups.read": { "title": "Teamopvolging lezen", "description": "Lees openstaande opvolgdatums in je eigen directe team zonder notitieteksten." },
+      "manager.talent.team-capability-matrix.read": { "title": "Teamvaardigheden lezen", "description": "Lees de toegestane capabilitygegevens van het directe team." }
+    }
+  }
 }

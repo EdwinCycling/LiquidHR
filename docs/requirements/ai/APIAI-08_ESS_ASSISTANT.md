@@ -1,6 +1,6 @@
 # APIAI-08 — ESS Assistant: Leave & Personal Reminders
 
-Status: **IMPLEMENTED LOCALLY — HOSTED TEST ACCEPTANCE OPEN**. Source baseline: ONE VERSION `783999044de83c902e63fefb3587fdbbf99d4de3`. Branch: `work/apiai-08-ess-assistant-20261009`. Local implementation and regression gates pass. The additive TEST migration is awaiting explicit approval after the remote DDL call was blocked by auto-review; deployment and hosted MCP acceptance have not run. See [the APIAI-08 acceptance record](../../quality/acceptance/runs/APIAI-08-20261009.md).
+Status: **IMPLEMENTED IN MAIN — TEST MIGRATION REGISTERED — HOSTED TEST ACCEPTANCE OPEN**. The original implementation used ONE VERSION `783999044de83c902e63fefb3587fdbbf99d4de3` on `work/apiai-08-ess-assistant-20261009`; its migration-approval note below is historical. Read-only Supabase inventory on 2026-10-11 confirmed remote registration `20261010064331_apiai08_employee_ess_controlled_actions`; do not reapply it. Recovery evidence on 2026-10-12 confirmed public server discovery returns all eight Employee tools, while the available connector catalog exposes only four; the four calls failed with MCP `-32603` without reaching the Vercel route. Hosted acceptance remains 0/8, and canonical balance, audit/limiter and authenticated scope evidence remain OPEN. See [the APIAI-08 acceptance record](../../quality/acceptance/runs/APIAI-08-20261009.md).
 
 ## User value / ChatGPT conversations
 

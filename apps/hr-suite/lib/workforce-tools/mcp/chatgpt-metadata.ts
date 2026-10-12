@@ -13,11 +13,21 @@ import {
   employeeRemindersOutputSchema,
 } from '../employee-tools'
 import {
+  managerDevelopmentPlansOutputSchema,
+  managerFollowUpsOutputSchema,
+  managerLeaveCalendarOutputSchema,
+  managerPendingWorkOutputSchema,
+  managerTeamCapabilityMatrixOutputSchema,
+  managerTeamOverviewOutputSchema,
+} from '../manager-tools'
+import {
   selfDevelopmentPlanStatusSchema,
 } from '@/lib/api-v1/resources/projections'
 import { getWorkforceTool } from '../catalog'
+import nlWorkforceMessages from '../../../messages/nl/workforce.json'
+import enWorkforceMessages from '../../../messages/en/workforce.json'
 
-const EXTERNAL_WORKFORCE_TOOL_IDS = [
+const EXTERNAL_EMPLOYEE_WORKFORCE_TOOL_IDS = [
   'employee.talent.development-plans.read',
   'employee.talent.development-gaps.read',
   'employee.talent.skills.read',
@@ -28,23 +38,47 @@ const EXTERNAL_WORKFORCE_TOOL_IDS = [
   'employee.reminders.read',
 ] as const
 
-const plansToolId = EXTERNAL_WORKFORCE_TOOL_IDS[0]
+const EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS = [
+  'manager.team.overview.read',
+  'manager.work.pending.read',
+  'manager.leave.calendar.read',
+  'manager.talent.development-plans.read',
+  'manager.talent.follow-ups.read',
+  'manager.talent.team-capability-matrix.read',
+] as const
+
+const EXTERNAL_WORKFORCE_TOOL_IDS = [
+  ...EXTERNAL_EMPLOYEE_WORKFORCE_TOOL_IDS,
+  ...EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS,
+] as const
+
+const plansToolId = EXTERNAL_EMPLOYEE_WORKFORCE_TOOL_IDS[0]
 
 export const CHATGPT_MCP_TOOL_SECURITY_SCHEMES = Object.freeze([
   Object.freeze({ type: 'oauth2' as const, scopes: Object.freeze(['openid'] as const) }),
 ])
 
+export type ChatGptMcpLocale = 'nl' | 'en'
+
+const chatGptMcpMessages = {
+  nl: nlWorkforceMessages.mcp,
+  en: enWorkforceMessages.mcp,
+} as const
+
 type ChatGptMcpSecuredTool = Tool & {
   readonly securitySchemes: typeof CHATGPT_MCP_TOOL_SECURITY_SCHEMES
 }
 
-/** Shared metadata for local contract tests and the gated Remote MCP server. */
-export const CHATGPT_MCP_SERVER_METADATA = Object.freeze({
-  name: 'liquid-hr-workforce',
-  version: APP_VERSION,
-  instructions:
-    'LiquidHR Workforce biedt uitsluitend read-only informatie over je eigen ontwikkelplannen, ontwikkelgaps, skills, competenties, verlofsaldo, verlofaanvragen, goedgekeurd verlof en persoonlijke reminders. De server bepaalt je medewerkercontext en weigert iedere poging om medewerker-, tenant-, HR-groep-, administratie- of rolcontext te kiezen. Deze MCP biedt geen schrijfacties.',
-} as const)
+/** Shared localized metadata for contract tests and the gated Remote MCP server. */
+export function getChatGptMcpServerMetadata(locale: ChatGptMcpLocale = 'nl') {
+  return Object.freeze({
+    name: 'liquid-hr-workforce',
+    version: APP_VERSION,
+    instructions: chatGptMcpMessages[locale].instructions,
+  })
+}
+
+export const CHATGPT_MCP_SERVER_METADATA = getChatGptMcpServerMetadata()
 
 export const CHATGPT_MCP_SERVER_INFO = CHATGPT_MCP_SERVER_METADATA
 
@@ -71,8 +105,8 @@ export type ChatGptMcpToolExposure = 'REMOTE_TEST_ONLY'
 export interface ChatGptMcpToolMetadata {
   readonly workforceToolId: (typeof EXTERNAL_WORKFORCE_TOOL_IDS)[number]
   readonly exposure: ChatGptMcpToolExposure
-  readonly audience: 'EMPLOYEE'
-  readonly scope: 'SELF'
+  readonly audience: 'EMPLOYEE' | 'MANAGER'
+  readonly scope: 'SELF' | 'MANAGER_SCOPE'
   readonly operation: 'READ'
   readonly permission: string
   readonly outputSchemaSchema: z.ZodType
@@ -82,21 +116,21 @@ export interface ChatGptMcpToolMetadata {
 
 type ExternalToolDefinition = {
   readonly id: (typeof EXTERNAL_WORKFORCE_TOOL_IDS)[number]
-  readonly title: string
-  readonly description: string
+  readonly audience: 'EMPLOYEE' | 'MANAGER'
+  readonly scope: 'SELF' | 'MANAGER_SCOPE'
   readonly permission: string
   readonly outputSchema: z.ZodType
   readonly projectResult: (rawResult: unknown) => unknown
 }
 
-function createExternalTool(definition: ExternalToolDefinition): ChatGptMcpToolMetadata {
+function createExternalTool(definition: ExternalToolDefinition, locale: ChatGptMcpLocale): ChatGptMcpToolMetadata {
   const workforceTool = getWorkforceTool(definition.id)
   if (!workforceTool) throw new Error('CHATGPT_MCP_WORKFORCE_TOOL_NOT_FOUND')
   if (
     workforceTool.id !== definition.id
     || workforceTool.audience.length !== 1
-    || workforceTool.audience[0] !== 'EMPLOYEE'
-    || workforceTool.scope !== 'SELF'
+    || workforceTool.audience[0] !== definition.audience
+    || workforceTool.scope !== definition.scope
     || workforceTool.operation !== 'READ'
     || workforceTool.permission !== definition.permission
     || workforceTool.additionalPermissions?.length
@@ -107,19 +141,24 @@ function createExternalTool(definition: ExternalToolDefinition): ChatGptMcpToolM
   }
 
   if (
-    !workforceTool.inputSchema.safeParse({}).success
-    || workforceTool.inputSchema.safeParse({ employeeId: 'caller-selected' }).success
+    workforceTool.inputSchema.safeParse({ employeeId: 'caller-selected' }).success
+    || workforceTool.inputSchema.safeParse({ teamId: 'caller-selected' }).success
     || workforceTool.inputSchema.safeParse({ tenantId: 'caller-selected' }).success
     || workforceTool.inputSchema.safeParse({ administrationId: 'caller-selected' }).success
+    || workforceTool.inputSchema.safeParse({ hrGroupId: 'caller-selected' }).success
   ) {
     throw new Error('CHATGPT_MCP_WORKFORCE_TOOL_INPUT_CHANGED')
   }
 
+  const localizedTool = chatGptMcpMessages[locale].tools[definition.id]
+  const scopeDisclosure = definition.audience === 'MANAGER'
+    ? chatGptMcpMessages[locale].managerScopeDisclosure
+    : chatGptMcpMessages[locale].employeeScopeDisclosure
   return Object.freeze({
     workforceToolId: definition.id,
     exposure: 'REMOTE_TEST_ONLY',
-    audience: 'EMPLOYEE',
-    scope: 'SELF',
+    audience: definition.audience,
+    scope: definition.scope,
     operation: 'READ',
     permission: definition.permission,
     outputSchemaSchema: definition.outputSchema,
@@ -127,13 +166,12 @@ function createExternalTool(definition: ExternalToolDefinition): ChatGptMcpToolM
     tool: Object.freeze({
       name: definition.id,
       securitySchemes: CHATGPT_MCP_TOOL_SECURITY_SCHEMES,
-      title: definition.title,
-      description:
-        `${definition.description} De server bepaalt de actuele medewerkercontext; stuur geen employee-, tenant-, administratie- of rolselector mee.`,
+      title: localizedTool.title,
+      description: `${localizedTool.description} ${scopeDisclosure}`,
       inputSchema: toMcpInputSchema(workforceTool.inputSchema),
       outputSchema: z.toJSONSchema(definition.outputSchema),
       annotations: {
-        title: definition.title,
+        title: localizedTool.title,
         readOnlyHint: true,
         destructiveHint: false,
         idempotentHint: true,
@@ -173,73 +211,123 @@ export function projectChatGptDevelopmentPlansResult(rawResult: unknown): z.outp
 const externalToolDefinitions: readonly ExternalToolDefinition[] = [
   {
     id: plansToolId,
-    title: 'Eigen ontwikkelplannen lezen',
-    description: 'Lees de status en voortgang van je eigen ontwikkelplannen.',
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     permission: 'self:talent-goal:read',
     outputSchema: employeeRemoteDevelopmentPlansOutputSchema,
     projectResult: projectChatGptDevelopmentPlansResult,
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[1],
-    title: 'Eigen ontwikkelgaps lezen',
-    description: 'Lees je eigen ontwikkelpunten uit het actuele functieprofiel.',
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     permission: 'self:talent-comparison:read',
     outputSchema: employeeDevelopmentGapsOutputSchema,
     projectResult: (result) => employeeDevelopmentGapsOutputSchema.parse(result),
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[2],
-    title: 'Eigen skills lezen',
-    description: 'Lees je eigen geregistreerde vaardigheden.',
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     permission: 'self:talent-record:read',
     outputSchema: employeeSkillsOutputSchema,
     projectResult: (result) => employeeSkillsOutputSchema.parse(result),
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[3],
-    title: 'Eigen competenties lezen',
-    description: 'Lees je eigen geregistreerde competenties.',
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     permission: 'self:talent-record:read',
     outputSchema: employeeCompetenciesOutputSchema,
     projectResult: (result) => employeeCompetenciesOutputSchema.parse(result),
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[4],
-    title: 'Eigen verlofsaldo lezen',
-    description: 'Lees je eigen verlofsaldo per verloftype, met peildatum en relevante vervalinformatie. Als er meerdere actieve dienstverbanden zijn, kies uitsluitend uit de teruggegeven eigen opties.',
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     permission: 'self:leave:read',
     outputSchema: employeeLeaveBalanceOutputSchema,
     projectResult: (result) => employeeLeaveBalanceOutputSchema.parse(result),
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[5],
-    title: 'Volgende goedgekeurde vakantie lezen',
-    description: 'Lees de eerstvolgende toekomstige eigen verlofaanvraag met status GOEDGEKEURD.',
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     permission: 'self:leave:read',
     outputSchema: employeeNextLeaveOutputSchema,
     projectResult: (result) => employeeNextLeaveOutputSchema.parse(result),
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[6],
-    title: 'Eigen verlofaanvragen lezen',
-    description: 'Lees je eigen lopende en goedgekeurde verlofaanvragen met periode, uren en status.',
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     permission: 'self:leave:read',
     outputSchema: employeeLeaveRequestsOutputSchema,
     projectResult: (result) => employeeLeaveRequestsOutputSchema.parse(result),
   },
   {
     id: EXTERNAL_WORKFORCE_TOOL_IDS[7],
-    title: 'Persoonlijke reminders lezen',
-    description: 'Lees alleen je eigen persoonlijke reminders met vervaldatum en status.',
+    audience: 'EMPLOYEE',
+    scope: 'SELF',
     permission: 'self:reminder:read',
     outputSchema: employeeRemindersOutputSchema,
     projectResult: (result) => employeeRemindersOutputSchema.parse(result),
   },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[0],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    permission: 'talent-team:read',
+    outputSchema: managerTeamOverviewOutputSchema,
+    projectResult: (result) => managerTeamOverviewOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[1],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    permission: 'process-task:read',
+    outputSchema: managerPendingWorkOutputSchema,
+    projectResult: (result) => managerPendingWorkOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[2],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    permission: 'leave:read',
+    outputSchema: managerLeaveCalendarOutputSchema,
+    projectResult: (result) => managerLeaveCalendarOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[3],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    permission: 'talent-goal:read',
+    outputSchema: managerDevelopmentPlansOutputSchema,
+    projectResult: (result) => managerDevelopmentPlansOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[4],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    permission: 'talent-goal:read',
+    outputSchema: managerFollowUpsOutputSchema,
+    projectResult: (result) => managerFollowUpsOutputSchema.parse(result),
+  },
+  {
+    id: EXTERNAL_MANAGER_WORKFORCE_TOOL_IDS[5],
+    audience: 'MANAGER',
+    scope: 'MANAGER_SCOPE',
+    permission: 'talent-team:read',
+    outputSchema: managerTeamCapabilityMatrixOutputSchema,
+    projectResult: (result) => managerTeamCapabilityMatrixOutputSchema.parse(result),
+  },
 ]
 
-export const CHATGPT_MCP_TOOL_METADATA: readonly ChatGptMcpToolMetadata[] = Object.freeze(
-  externalToolDefinitions.map(createExternalTool),
-)
+export function getChatGptMcpToolMetadata(locale: ChatGptMcpLocale = 'nl'): readonly ChatGptMcpToolMetadata[] {
+  return Object.freeze(externalToolDefinitions.map((definition) => createExternalTool(definition, locale)))
+}
+
+export const CHATGPT_MCP_TOOL_METADATA = getChatGptMcpToolMetadata()
 
 export const CHATGPT_MCP_TOOLS: readonly Tool[] = Object.freeze(
   CHATGPT_MCP_TOOL_METADATA.map(({ tool }) => tool),

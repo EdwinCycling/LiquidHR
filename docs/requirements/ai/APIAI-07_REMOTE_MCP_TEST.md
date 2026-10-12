@@ -12,14 +12,16 @@ De reeds toegepaste APIAI-01-migratie staat in de remote historie als versie `20
 
 ## Externe tools
 
-De Remote MCP-catalogus bevat uitsluitend bestaande read-only Employee self-service-tools:
+APIAI-07 introduceerde uitsluitend bestaande read-only Employee self-service-tools. APIAI-09 is de latere, afzonderlijk gated uitbreiding voor Manager READ-tools; de actuele Manager-eisen en toestemmingsgrens staan in [APIAI-09 Manager Self-Service](APIAI-09_MANAGER_SELF_SERVICE_AI_ASSISTANT.md). HR-tools blijven buiten de externe catalogus.
+
+De APIAI-07 Employee-tools zijn:
 
 - `employee.talent.development-plans.read` — eigen plannen, met de bestaande minimale APIAI-01-projectie;
 - `employee.talent.development-gaps.read` — eigen gaps uit het actuele functieprofiel, zonder interne rationale of bronrecord-ID's;
 - `employee.talent.skills.read` — eigen skills, zonder bewijsdocument-ID's of vrije tekst;
 - `employee.talent.competencies.read` — eigen competenties, zonder bewijsdocument-ID's of vrije tekst.
 
-Progress wordt in de plannen getoond. Check-in- en andere tools die een opaque goal-ID vereisen, Manager/HR-tools, alle schrijf-/controlled-action-tools en lokale-only MCP-tools worden niet extern geadverteerd.
+Deze historische APIAI-07-catalogus bevatte de vier Employee-tools hierboven. Manager READ-toolnamen mogen via APIAI-09 in discovery staan; discovery verleent geen toegang en iedere Manager-call wordt server-side door de APIAI-09 consent gate geautoriseerd. Check-in- en andere tools die een opaque goal-ID vereisen, HR-tools, alle schrijf-/controlled-action-tools en lokale-only MCP-tools blijven buiten de externe catalogus.
 
 ## Authenticatie, toestemming en autorisatie
 

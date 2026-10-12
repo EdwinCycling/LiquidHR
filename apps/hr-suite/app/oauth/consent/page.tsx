@@ -3,8 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import { AuthShell } from '@/components/auth/auth-shell'
 import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
+import { resolveDirectManagerContext } from '@/lib/api-v1/auth/manager-context'
 import { getTranslator } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
+import { isChatGptOAuthGrant, readUserOAuthGrants } from '@/lib/oauth/user-grants'
+import { setManagerMcpConsentMarker } from '@/lib/workforce-tools/mcp/manager-consent-admin'
 import { approveChatGptMcpConsent, denyChatGptMcpConsent } from './actions'
 import {
   buildConsentLoginHref,
@@ -21,6 +24,35 @@ interface OAuthConsentPageProps {
   readonly searchParams: Promise<{
     readonly authorization_id?: string | string[]
   }>
+}
+
+type ConsentContextResolution =
+  | { readonly kind: 'employee' | 'manager' }
+  | { readonly kind: 'none' | 'selection-required' | 'unavailable' }
+
+async function resolveConsentContext(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<ConsentContextResolution> {
+  const employee = await resolveEmployeeSelfContext(supabase, userId)
+  if (employee.kind === 'resolved') return { kind: 'employee' }
+
+  const manager = await resolveDirectManagerContext(supabase, userId)
+  if (manager.kind === 'resolved') return { kind: 'manager' }
+  if (employee.kind === 'selection-required' || manager.kind === 'selection-required') {
+    return { kind: 'selection-required' }
+  }
+  if (employee.kind === 'unavailable' || manager.kind === 'unavailable') return { kind: 'unavailable' }
+  return { kind: 'none' }
+}
+
+function contextMessage(
+  kind: Exclude<ConsentContextResolution['kind'], 'employee' | 'manager'>,
+  translate: (key: string) => string,
+): string {
+  if (kind === 'selection-required') return translate('oauthConsentContextSelectionRequired')
+  if (kind === 'unavailable') return translate('oauthConsentContextUnavailable')
+  return translate('oauthConsentNoEmployeeContext')
 }
 
 export default async function OAuthConsentPage({ searchParams }: OAuthConsentPageProps) {
@@ -72,15 +104,23 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
       ? null
       : parseConsentAuthorization(authorizationResponse, authorizationId)
     if (approvedRedirect) {
-      const resolution = await resolveEmployeeSelfContext(supabase, userId)
-      if (resolution.kind === 'resolved') {
-        approvedRedirectUrl = approvedRedirect
+      const grants = await readUserOAuthGrants(supabase.auth.oauth)
+      const chatGptGrants = grants.status === 'ready'
+        ? grants.grants.filter(isChatGptOAuthGrant)
+        : []
+      let cleared = grants.status === 'ready' && chatGptGrants.length > 0
+      for (const grant of chatGptGrants) {
+        if (!(await setManagerMcpConsentMarker(userId, grant.clientId, false))) cleared = false
+      }
+      if (!cleared) {
+        message = t('oauthConsentManagerReconnectResetFailed')
       } else {
-        message = resolution.kind === 'selection-required'
-          ? t('oauthConsentContextSelectionRequired')
-          : resolution.kind === 'unavailable'
-            ? t('oauthConsentContextUnavailable')
-            : t('oauthConsentNoEmployeeContext')
+        const resolution = await resolveConsentContext(supabase, userId)
+        if (resolution.kind === 'employee' || resolution.kind === 'manager') {
+          approvedRedirectUrl = approvedRedirect
+        } else {
+          message = contextMessage(resolution.kind, t)
+        }
       }
     } else if (!authorization) {
       message = t('oauthConsentInvalidRequest')
@@ -90,14 +130,10 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
       const scopesSupported = isSupportedChatGptScope(authorization.scope)
       let canApprove = scopesSupported
       if (scopesSupported) {
-        const resolution = await resolveEmployeeSelfContext(supabase, userId)
-        if (resolution.kind !== 'resolved') {
+        const resolution = await resolveConsentContext(supabase, userId)
+        if (resolution.kind !== 'employee' && resolution.kind !== 'manager') {
           canApprove = false
-          message = resolution.kind === 'selection-required'
-            ? t('oauthConsentContextSelectionRequired')
-            : resolution.kind === 'unavailable'
-              ? t('oauthConsentContextUnavailable')
-              : t('oauthConsentNoEmployeeContext')
+          message = contextMessage(resolution.kind, t)
         }
       }
       if (!scopesSupported) message = t('oauthConsentUnsupportedScope')
@@ -119,7 +155,12 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
     <AuthShell
       brand={common('appName')}
       visualBody={auth('oauthConsentVisualBody')}
-      visualPoints={[auth('oauthConsentVisualPointSelf'), auth('oauthConsentVisualPointReadOnly'), auth('oauthConsentVisualPointDeny')]}
+      visualPoints={[
+        auth('oauthConsentVisualPointSelf'),
+        auth('oauthConsentVisualPointManager'),
+        auth('oauthConsentVisualPointReadOnly'),
+        auth('oauthConsentVisualPointDeny'),
+      ]}
       visualTitle={auth('oauthConsentVisualTitle')}
     >
       <div className="mb-6 px-1">
@@ -151,14 +192,24 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
           ) : null}
           <div>
             <h2 className="text-sm font-semibold text-foreground">{auth('oauthConsentDataTitle')}</h2>
+            <h3 className="mt-2 text-sm font-medium text-foreground">{auth('oauthConsentEmployeeDataTitle')}</h3>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
               <li>{auth('oauthConsentDevelopmentPlans')}</li>
               <li>{auth('oauthConsentDevelopmentGaps')}</li>
               <li>{auth('oauthConsentSkills')}</li>
               <li>{auth('oauthConsentCompetencies')}</li>
             </ul>
+            <h3 className="mt-4 text-sm font-medium text-foreground">{auth('oauthConsentManagerDataTitle')}</h3>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+              <li>{auth('oauthConsentManagerTeamOverview')}</li>
+              <li>{auth('oauthConsentManagerPendingWork')}</li>
+              <li>{auth('oauthConsentManagerLeaveCalendar')}</li>
+              <li>{auth('oauthConsentManagerDevelopmentPlans')}</li>
+              <li>{auth('oauthConsentManagerFollowUps')}</li>
+              <li>{auth('oauthConsentManagerCapabilityMatrix')}</li>
+            </ul>
           </div>
-          <p className="text-sm leading-6 text-muted-foreground">{auth('oauthConsentSelfOnly')}</p>
+          <p className="text-sm leading-6 text-muted-foreground">{auth('oauthConsentAccountRoleScope')}</p>
           <p className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground">
             {auth('oauthConsentReadOnly')}
           </p>

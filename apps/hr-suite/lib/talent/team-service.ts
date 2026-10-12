@@ -1,7 +1,8 @@
 import type { Database } from '@scope/db'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requirePermission, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
+import { listDirectTeamEmployeeScope } from '@/lib/organization/team-scope'
 import type { TalentTeamMatrixFilters } from './team-schemas'
 import { filterTalentTeamMatrixRows, type TalentTeamMatrix, type TalentTeamMatrixCapability } from './team-model'
 
@@ -15,6 +16,12 @@ export class TalentTeamError extends Error {
 }
 
 type Placement = Pick<Database['public']['Tables']['employee_organizations']['Row'], 'employee_id' | 'job_title' | 'department_id' | 'job_id' | 'effective_from'>
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+export interface TalentTeamMatrixDependencies {
+  readonly context: AuthContext
+  readonly supabase: SupabaseServerClient
+}
 
 function label(firstName: string, birthName: string, employeeNumber: string): string {
   return [firstName, birthName].filter((value) => value.trim().length > 0).join(' ').trim() || employeeNumber
@@ -24,36 +31,18 @@ function emptyTalentTeamMatrix(scopeType: 'TEAM' | 'TENANT', sourceTruncated = f
   return { rows: [], sourceTruncated, scopeCount: 0, scopeType, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5, aggregateDisabled: true }
 }
 
-export async function listTalentTeamMatrix(filters: TalentTeamMatrixFilters = {}): Promise<TalentTeamMatrix> {
-  const context = await requirePermission('talent-team:read')
-  await requireTenantModule('TALENT')
-  const supabase = await createClient()
-  const today = new Date().toISOString().slice(0, 10)
-  const canReadTenant = context.permissions.includes('talent:manage')
-  const scopeType = canReadTenant ? 'TENANT' : 'TEAM'
-  let placementQuery = supabase
-    .from('employee_organizations')
-    .select('employee_id,job_title,department_id,job_id,effective_from', { count: 'exact' })
-    .eq('tenant_id', context.tenantId)
-    .lte('effective_from', today)
-    .or(`effective_to.is.null,effective_to.gte.${today}`)
-    .order('effective_from', { ascending: false })
-    .limit(5000)
-  if (!canReadTenant) {
-    if (!context.employeeId) throw new TalentTeamError('EMPLOYEE_CONTEXT_REQUIRED', 403)
-    placementQuery = placementQuery.eq('direct_manager_id', context.employeeId)
-  }
-  const { data: placementRows, error: placementError, count: placementCount } = await placementQuery
-  if (placementError || placementCount === null) throw new TalentTeamError('TALENT_TEAM_SCOPE_READ_FAILED')
-  const placementSourceTruncated = placementCount > (placementRows?.length ?? 0)
-  const placements = new Map<string, Placement>()
-  for (const placement of placementRows ?? []) {
-    if (!placements.has(placement.employee_id)) placements.set(placement.employee_id, placement)
-  }
+async function readTalentTeamMatrixForPlacements(
+  context: AuthContext,
+  supabase: SupabaseServerClient,
+  filters: TalentTeamMatrixFilters,
+  placements: Map<string, Placement>,
+  scopeType: 'TEAM' | 'TENANT',
+  placementSourceTruncated: boolean,
+): Promise<TalentTeamMatrix> {
   const employeeIds = [...placements.keys()]
   if (employeeIds.length === 0) return emptyTalentTeamMatrix(scopeType, placementSourceTruncated)
 
-  const visibleStatuses = canReadTenant ? ['DRAFT', 'RELEASED', 'EXPIRED'] : ['RELEASED', 'EXPIRED']
+  const visibleStatuses = scopeType === 'TENANT' ? ['DRAFT', 'RELEASED', 'EXPIRED'] : ['RELEASED', 'EXPIRED']
   const [employeesResult, recordsResult] = await Promise.all([
     supabase.from('employees').select('id,employee_number,first_name,birth_name').eq('tenant_id', context.tenantId).in('id', employeeIds).is('deleted_at', null),
     supabase.from('talent_employee_capability_records').select('id,employee_id,capability_id,status,source_type,valid_from,valid_until,certificate_status,evidence_status,certificate_code', { count: 'exact' }).eq('tenant_id', context.tenantId).in('employee_id', employeeIds).in('status', visibleStatuses).order('valid_from', { ascending: false }).limit(10000),
@@ -102,4 +91,62 @@ export async function listTalentTeamMatrix(filters: TalentTeamMatrixFilters = {}
     }]
   })
   return { rows: filterTalentTeamMatrixRows(rows, filters), sourceTruncated: placementSourceTruncated || capabilitySourceTruncated, scopeCount: rows.length, scopeType, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5, aggregateDisabled: true }
+}
+
+function assertDirectManagerContext(context: AuthContext): void {
+  if (!context.activeRoles.includes('DIRECT_MANAGER') || !context.employeeId || !context.administrationId || !context.hrGroupId) {
+    throw new TalentTeamError('TALENT_TEAM_MANAGER_SCOPE_REQUIRED', 403)
+  }
+}
+
+/** Always resolves this matrix from the current manager's direct team, even when the actor also has HR permissions. */
+export async function listManagerTalentTeamMatrix(
+  filters: TalentTeamMatrixFilters = {},
+  dependencies?: TalentTeamMatrixDependencies,
+): Promise<TalentTeamMatrix> {
+  const supabase = dependencies?.supabase ?? await createClient()
+  const context = dependencies
+    ? await requirePermissionInContext(supabase, dependencies.context, 'talent-team:read')
+    : await requirePermission('talent-team:read')
+  await requireTenantModule('TALENT', dependencies ? { auth: context, supabase } : undefined)
+  assertDirectManagerContext(context)
+
+  const scope = await listDirectTeamEmployeeScope(context, supabase, 5_000)
+  const placements = new Map<string, Placement>()
+  for (const placement of scope.members) {
+    if (!placements.has(placement.employee_id)) placements.set(placement.employee_id, placement)
+  }
+  return readTalentTeamMatrixForPlacements(context, supabase, filters, placements, 'TEAM', scope.sourceTruncated)
+}
+
+export async function listTalentTeamMatrix(filters: TalentTeamMatrixFilters = {}): Promise<TalentTeamMatrix> {
+  const context = await requirePermission('talent-team:read')
+  await requireTenantModule('TALENT')
+  const supabase = await createClient()
+  const canReadTenant = context.permissions.includes('talent:manage')
+  if (!canReadTenant) return listManagerTalentTeamMatrix(filters, { context, supabase })
+
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: placementRows, error: placementError, count: placementCount } = await supabase
+    .from('employee_organizations')
+    .select('employee_id,job_title,department_id,job_id,effective_from', { count: 'exact' })
+    .eq('tenant_id', context.tenantId)
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
+    .order('effective_from', { ascending: false })
+    .limit(5_000)
+  if (placementError || placementCount === null) throw new TalentTeamError('TALENT_TEAM_SCOPE_READ_FAILED')
+
+  const placements = new Map<string, Placement>()
+  for (const placement of placementRows ?? []) {
+    if (!placements.has(placement.employee_id)) placements.set(placement.employee_id, placement)
+  }
+  return readTalentTeamMatrixForPlacements(
+    context,
+    supabase,
+    filters,
+    placements,
+    'TENANT',
+    placementCount > (placementRows?.length ?? 0),
+  )
 }

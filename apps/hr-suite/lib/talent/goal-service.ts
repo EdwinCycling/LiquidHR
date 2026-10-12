@@ -4,6 +4,7 @@ import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
 import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
 import type { DelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import { listDirectTeamEmployeeScope } from '@/lib/organization/team-scope'
 import type { TalentGoalCreateInput, TalentGoalListQuery, TalentGoalUpdateInput } from './goal-schemas'
 import { createTalentGoalNotification } from './notification-service'
 
@@ -72,6 +73,27 @@ async function authorizeList(mode: 'admin' | 'manager' | 'self'): Promise<AuthCo
 export interface TalentGoalListDependencies {
   readonly authContext: AuthContext
   readonly rls: DelegatedBearerRlsClient<Awaited<ReturnType<typeof createClient>>>
+}
+
+export interface TalentManagerReadDependencies {
+  readonly authContext: AuthContext
+  readonly rls: DelegatedBearerRlsClient<Awaited<ReturnType<typeof createClient>>>
+}
+
+export interface TalentManagerDevelopmentPlan {
+  readonly employeeName: string
+  readonly periodStart: string
+  readonly periodEnd: string | null
+  readonly progressPercent: number
+  readonly status: typeof MANAGER_DEVELOPMENT_PLAN_STATUSES[number]
+  readonly completedAt: string | null
+}
+
+export const MANAGER_DEVELOPMENT_PLAN_STATUSES = ['DRAFT', 'ACTIVE'] as const
+
+export interface TalentManagerDevelopmentPlans {
+  readonly plans: ReadonlyArray<TalentManagerDevelopmentPlan>
+  readonly sourceTruncated: boolean
 }
 
 function delegatedSupabaseClient(
@@ -214,6 +236,91 @@ export async function listSelfDevelopmentPlans(
 
   if (error) throw new TalentGoalError('TALENT_GOAL_READ_FAILED')
   return data ?? []
+}
+
+function managerEmployeeName(firstName: string | null, birthName: string | null): string {
+  return [firstName, birthName].filter((value): value is string => Boolean(value?.trim())).join(' ').trim()
+}
+
+async function authorizeManagerTalentRead(dependencies?: TalentManagerReadDependencies): Promise<{
+  context: AuthContext
+  supabase: Awaited<ReturnType<typeof createClient>>
+}> {
+  const supabase = dependencies
+    ? delegatedSupabaseClient(dependencies)
+    : await createClient()
+  const context = dependencies
+    ? await requirePermissionInContext(supabase, dependencies.authContext, 'talent-goal:read')
+    : await requirePermission('talent-goal:read')
+  await requireTenantModule('TALENT', dependencies ? { auth: context, supabase } : undefined)
+  if (!context.activeRoles.includes('DIRECT_MANAGER') || !context.employeeId || !context.administrationId) {
+    throw new TalentGoalError('TALENT_GOAL_MANAGER_SCOPE_REQUIRED', 403)
+  }
+  requireHrGroupId(context)
+  return { context, supabase }
+}
+
+/** Minimal direct-team plan projection for a Manager READ tool; excludes titles, descriptions, and goal identifiers. */
+export async function listManagerTeamDevelopmentPlans(
+  dependencies?: TalentManagerReadDependencies,
+): Promise<TalentManagerDevelopmentPlans> {
+  const { context, supabase } = await authorizeManagerTalentRead(dependencies)
+  const hrGroupId = requireHrGroupId(context)
+  const scope = await listDirectTeamEmployeeScope(context, supabase, 5_000)
+  if (scope.employeeIds.length === 0) return { plans: [], sourceTruncated: scope.sourceTruncated }
+
+  const [employeesResult, goalsResult] = await Promise.all([
+    supabase
+      .from('employees')
+      .select('id,first_name,birth_name')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .in('id', [...scope.employeeIds])
+      .eq('is_active', true)
+      .eq('is_archived', false)
+      .is('deleted_at', null)
+      .limit(5_000),
+    supabase
+      .from('talent_development_goals')
+      .select('employee_id,period_start,period_end,progress_percent,status,completed_at', { count: 'exact' })
+      .eq('tenant_id', context.tenantId)
+      .in('employee_id', [...scope.employeeIds])
+      .is('archived_at', null)
+      .in('status', [...MANAGER_DEVELOPMENT_PLAN_STATUSES])
+      .order('period_start', { ascending: false })
+      .order('employee_id', { ascending: true })
+      .limit(1_000),
+  ])
+  if (employeesResult.error) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_READ_FAILED')
+  if (goalsResult.error || goalsResult.count === null) throw new TalentGoalError('TALENT_GOAL_READ_FAILED')
+
+  const employeeNames = new Map((employeesResult.data ?? []).flatMap((employee) => {
+    const name = managerEmployeeName(employee.first_name, employee.birth_name)
+    return name ? [[employee.id, name] as const] : []
+  }))
+  const validStatuses = new Set<string>(MANAGER_DEVELOPMENT_PLAN_STATUSES)
+  let omittedRows = 0
+  const plans = (goalsResult.data ?? []).flatMap((goal): TalentManagerDevelopmentPlan[] => {
+    const name = employeeNames.get(goal.employee_id)
+    if (!name || !validStatuses.has(goal.status)) {
+      omittedRows += 1
+      return []
+    }
+    return [{
+      employeeName: name,
+      periodStart: goal.period_start,
+      periodEnd: goal.period_end,
+      progressPercent: goal.progress_percent,
+      status: goal.status as TalentManagerDevelopmentPlan['status'],
+      completedAt: goal.completed_at,
+    }]
+  })
+  return {
+    plans,
+    sourceTruncated: scope.sourceTruncated
+      || goalsResult.count > (goalsResult.data?.length ?? 0)
+      || omittedRows > 0,
+  }
 }
 
 export async function getTalentGoal(goalId: string, mode: 'admin' | 'manager' | 'self'): Promise<TalentGoal> {

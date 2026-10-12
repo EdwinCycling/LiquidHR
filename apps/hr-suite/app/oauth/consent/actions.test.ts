@@ -13,7 +13,11 @@ const {
   isRemoteMcpEnabled,
   redirect,
   resolveEmployeeSelfContext,
+  resolveDirectManagerContext,
   rpc,
+  revalidatePath,
+  setManagerMcpConsentMarker,
+  listGrants,
 } = vi.hoisted(() => ({
   approveAuthorization: vi.fn(),
   createAdminRpcClient: vi.fn(),
@@ -25,26 +29,35 @@ const {
   isRemoteMcpEnabled: vi.fn(),
   redirect: vi.fn(),
   resolveEmployeeSelfContext: vi.fn(),
+  resolveDirectManagerContext: vi.fn(),
   rpc: vi.fn(),
+  revalidatePath: vi.fn(),
+  setManagerMcpConsentMarker: vi.fn(),
+  listGrants: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({ redirect }))
+vi.mock('next/cache', () => ({ revalidatePath }))
 vi.mock('@/lib/api-v1/auth/employee-self-context', () => ({ resolveEmployeeSelfContext }))
+vi.mock('@/lib/api-v1/auth/manager-context', () => ({ resolveDirectManagerContext }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminRpcClient, getAdminCredentialMode }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/workforce-tools/mcp/remote-config', () => ({ isRemoteMcpEnabled }))
+vi.mock('@/lib/workforce-tools/mcp/manager-consent-admin', () => ({ setManagerMcpConsentMarker }))
 
-import { approveChatGptMcpConsent, denyChatGptMcpConsent } from './actions'
+import { approveChatGptMcpConsent, denyChatGptMcpConsent, grantChatGptManagerMcpConsent } from './actions'
+import { initialOAuthManagerConsentActionState } from '../connections/grant-state'
 
 const AUTHORIZATION_ID = 'f6a4c2e8b1d3a5f70918273645546321'
 const DECISION_ERROR_PATH = OAUTH_DECISION_ERROR_PATH
 const CALLBACK_URL = 'https://chatgpt.com/connector/oauth/callback?code=issued-code&state=client-state&iss=https%3A%2F%2Fwnpfloqpjvaacobppbpk.supabase.co%2Fauth%2Fv1'
 const DENY_URL = 'https://chatgpt.com/connector/oauth/callback?error=access_denied&state=client-state'
+const CLIENT_ID = 'b7e6b5ae-33be-493f-8456-02fa41e307e8'
 
 function authorizationDetails(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     authorization_id: AUTHORIZATION_ID,
-    client: { id: 'b7e6b5ae-33be-493f-8456-02fa41e307e8', name: 'ChatGPT' },
+    client: { id: CLIENT_ID, name: 'ChatGPT' },
     redirect_uri: 'https://chatgpt.com/connector/oauth/callback',
     scope: 'openid email offline_access',
     user: { id: null, email: null },
@@ -68,15 +81,22 @@ describe('APIAI-07 OAuth consent actions', () => {
     denyAuthorization.mockResolvedValue({ data: { redirect_url: DENY_URL }, error: null })
     rpc.mockResolvedValue({ data: { registered: true }, error: null })
     getAdminCredentialMode.mockReturnValue('unknown-key-format')
+    setManagerMcpConsentMarker.mockResolvedValue(true)
+    listGrants.mockResolvedValue({ data: [{
+      client: { id: CLIENT_ID, name: 'ChatGPT' },
+      scopes: ['openid', 'email', 'offline_access'],
+      granted_at: '2026-10-08T09:00:00.000Z',
+    }], error: null })
     resolveEmployeeSelfContext.mockResolvedValue({
       kind: 'resolved',
       context: { tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1', userId: 'synthetic-employee-user', employeeId: 'synthetic-employee', activeRoles: ['EMPLOYEE'] },
     })
+    resolveDirectManagerContext.mockResolvedValue({ kind: 'none' })
     createAdminRpcClient.mockReturnValue({ rpc })
     createClient.mockResolvedValue({
       auth: {
         getClaims,
-        oauth: { getAuthorizationDetails, approveAuthorization, denyAuthorization },
+        oauth: { getAuthorizationDetails, approveAuthorization, denyAuthorization, listGrants },
       },
     })
     redirect.mockImplementation((destination: string) => {
@@ -95,10 +115,106 @@ describe('APIAI-07 OAuth consent actions', () => {
     expect(approveAuthorization).toHaveBeenCalledOnce()
     expect(rpc.mock.invocationCallOrder[0]).toBeLessThan(approveAuthorization.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
     expect(rpc).toHaveBeenCalledWith('register_apiai07_mcp_client', { requested_client_id: 'b7e6b5ae-33be-493f-8456-02fa41e307e8' })
+    expect(setManagerMcpConsentMarker).toHaveBeenCalledWith('synthetic-employee-user', CLIENT_ID, false)
+    expect(setManagerMcpConsentMarker.mock.invocationCallOrder[0]).toBeLessThan(approveAuthorization.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
     expect(redirect).toHaveBeenCalledWith(CALLBACK_URL)
     expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining('/oauth/consent'))
     expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
   })
+
+  it('requires current Direct Manager context before allowing explicit Manager consent', async () => {
+    const form = new FormData()
+    form.set('clientId', CLIENT_ID)
+
+    resolveDirectManagerContext.mockResolvedValue({
+      kind: 'resolved',
+      context: { tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1', userId: 'synthetic-employee-user', employeeId: 'synthetic-employee', activeRoles: ['DIRECT_MANAGER'] },
+    })
+    await expect(grantChatGptManagerMcpConsent(initialOAuthManagerConsentActionState, form)).resolves.toEqual({
+      status: 'consented',
+      clientId: CLIENT_ID,
+    })
+
+    expect(listGrants).toHaveBeenCalledOnce()
+    expect(resolveDirectManagerContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-employee-user')
+    expect(resolveEmployeeSelfContext).not.toHaveBeenCalled()
+    expect(setManagerMcpConsentMarker).toHaveBeenCalledWith('synthetic-employee-user', CLIENT_ID, true)
+    expect(revalidatePath).toHaveBeenCalledWith('/oauth/connections')
+  })
+
+  it('does not let an Employee-self session grant Manager consent', async () => {
+    const form = new FormData()
+    form.set('clientId', CLIENT_ID)
+
+    const result = await grantChatGptManagerMcpConsent(initialOAuthManagerConsentActionState, form)
+
+    expect(result).toEqual({ status: 'error' })
+    expect(resolveEmployeeSelfContext).not.toHaveBeenCalled()
+    expect(resolveDirectManagerContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-employee-user')
+    expect(setManagerMcpConsentMarker).not.toHaveBeenCalled()
+  })
+
+  it.each(['selection-required', 'unavailable'] as const)(
+    'fails closed when Manager consent context is %s',
+    async (kind) => {
+      resolveDirectManagerContext.mockResolvedValue({ kind })
+      const form = new FormData()
+      form.set('clientId', CLIENT_ID)
+
+      const result = await grantChatGptManagerMcpConsent(initialOAuthManagerConsentActionState, form)
+
+      expect(result).toEqual({ status: 'error' })
+      expect(setManagerMcpConsentMarker).not.toHaveBeenCalled()
+    },
+  )
+
+  it('does not write consent for an OAuth client without a current ChatGPT grant', async () => {
+    listGrants.mockResolvedValueOnce({ data: [], error: null })
+    const form = new FormData()
+    form.set('clientId', CLIENT_ID)
+
+    await expect(grantChatGptManagerMcpConsent(initialOAuthManagerConsentActionState, form)).resolves.toEqual({ status: 'error' })
+    expect(setManagerMcpConsentMarker).not.toHaveBeenCalled()
+  })
+
+  it('allows a current direct Manager context to approve read-only Workforce MCP consent', async () => {
+    resolveEmployeeSelfContext.mockResolvedValue({ kind: 'none' })
+    resolveDirectManagerContext.mockResolvedValue({
+      kind: 'resolved',
+      context: { tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1', userId: 'synthetic-manager-user', employeeId: 'synthetic-manager', activeRoles: ['DIRECT_MANAGER'] },
+    })
+    getClaims.mockResolvedValue({ data: { claims: { sub: 'synthetic-manager-user' } }, error: null })
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${CALLBACK_URL}`)
+
+    expect(resolveDirectManagerContext).toHaveBeenCalledWith(expect.any(Object), 'synthetic-manager-user')
+    expect(rpc).toHaveBeenCalledWith('register_apiai07_mcp_client', { requested_client_id: 'b7e6b5ae-33be-493f-8456-02fa41e307e8' })
+    expect(approveAuthorization).toHaveBeenCalledOnce()
+    expect(setManagerMcpConsentMarker).toHaveBeenCalledWith('synthetic-manager-user', CLIENT_ID, false)
+  })
+
+  it('does not approve consent for an HR-only subject without Employee-self or direct Manager context', async () => {
+    resolveEmployeeSelfContext.mockResolvedValue({ kind: 'none' })
+    resolveDirectManagerContext.mockResolvedValue({ kind: 'none' })
+
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${buildConsentPath(AUTHORIZATION_ID)}`)
+
+    expect(resolveDirectManagerContext).toHaveBeenCalledOnce()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(approveAuthorization).not.toHaveBeenCalled()
+  })
+
+  it.each(['selection-required', 'unavailable'] as const)(
+    'fails closed when direct Manager context resolution is %s',
+    async (kind) => {
+      resolveEmployeeSelfContext.mockResolvedValue({ kind: 'none' })
+      resolveDirectManagerContext.mockResolvedValue({ kind })
+
+      await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${buildConsentPath(AUTHORIZATION_ID)}`)
+
+      expect(rpc).not.toHaveBeenCalled()
+      expect(approveAuthorization).not.toHaveBeenCalled()
+    },
+  )
 
   it('fails closed before approval when trusted client registration fails', async () => {
     rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'APIAI07_CLIENT_REGISTRATION_UNAVAILABLE' } })
@@ -110,6 +226,15 @@ describe('APIAI-07 OAuth consent actions', () => {
     expect(approveAuthorization).not.toHaveBeenCalled()
     expect(redirect).toHaveBeenCalledWith(DECISION_ERROR_PATH)
     expect(redirect).not.toHaveBeenCalledWith(expect.stringContaining(AUTHORIZATION_ID))
+  })
+
+  it('does not issue a fresh OAuth grant if a previous Manager consent cannot be cleared', async () => {
+    setManagerMcpConsentMarker.mockResolvedValueOnce(false)
+
+    await expect(approveChatGptMcpConsent(formData())).rejects.toThrow(`NEXT_REDIRECT:${DECISION_ERROR_PATH}`)
+
+    expect(setManagerMcpConsentMarker).toHaveBeenCalledWith('synthetic-employee-user', CLIENT_ID, false)
+    expect(approveAuthorization).not.toHaveBeenCalled()
   })
 
   it('fails closed when the RPC does not confirm registration', async () => {
@@ -219,7 +344,7 @@ describe('APIAI-07 OAuth consent actions', () => {
     const adminSource = await readFile(new URL('../../../lib/supabase/admin.ts', import.meta.url), 'utf8')
 
     expect(actionSource.startsWith("'use server'")).toBe(true)
-    expect(actionSource).toContain("import { createAdminRpcClient, getAdminCredentialMode } from '@/lib/supabase/admin'")
+    expect(actionSource).toContain("import { setManagerMcpConsentMarker } from '@/lib/workforce-tools/mcp/manager-consent-admin'")
     expect(adminSource).toContain("import 'server-only'")
     expect(adminSource).toContain('SUPABASE_SECRET_KEY')
     expect(adminSource).toContain('headers.delete(\'authorization\')')

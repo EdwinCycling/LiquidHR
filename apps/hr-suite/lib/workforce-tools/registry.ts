@@ -47,7 +47,9 @@ export interface WorkforceToolDescriptor {
 }
 
 export function listWorkforceToolDescriptors(): WorkforceToolDescriptor[] {
-  return WORKFORCE_TOOL_CATALOG.map((tool) => ({
+  // Manager MCP tools are available only through the consent-gated OAuth path.
+  // Cookie-authenticated browser/local MCP surfaces must not publish them.
+  return WORKFORCE_TOOL_CATALOG.filter((tool) => tool.scope !== 'MANAGER_SCOPE').map((tool) => ({
     id: tool.id,
     description: tool.description,
     audience: tool.audience,
@@ -98,6 +100,12 @@ export function resolveWorkforceToolAudience(activeRoles: readonly string[]): Wo
 }
 
 const DELEGATED_WORKFORCE_TOOL_IDS = new Set([
+  'manager.team.overview.read',
+  'manager.work.pending.read',
+  'manager.leave.calendar.read',
+  'manager.talent.development-plans.read',
+  'manager.talent.follow-ups.read',
+  'manager.talent.team-capability-matrix.read',
   'employee.talent.development-plans.read',
   'employee.talent.development-gaps.read',
   'employee.talent.skills.read',
@@ -114,13 +122,22 @@ async function authorizeWorkforceTool(
 ): Promise<void> {
   const context = delegated?.authContext ?? await requireAuthContext()
   const audience = resolveWorkforceToolAudience(context.activeRoles)
-  if (!audience || !tool.audience.includes(audience)) throw new WorkforceToolDispatchError('ACCESS_DENIED')
+  const hasDirectManagerRole = context.activeRoles.includes('DIRECT_MANAGER')
+  if (tool.scope === 'MANAGER_SCOPE') {
+    // Only the Remote MCP route can pass a verified OAuth-bound RLS execution
+    // context, after it has checked the current client grant and consent marker.
+    if (!delegated || !hasDirectManagerRole || !tool.audience.includes('MANAGER')) {
+      throw new WorkforceToolDispatchError('ACCESS_DENIED')
+    }
+  } else if (!audience || !tool.audience.includes(audience)) {
+    throw new WorkforceToolDispatchError('ACCESS_DENIED')
+  }
 
   if (delegated) {
     if (
       !DELEGATED_WORKFORCE_TOOL_IDS.has(tool.id)
       || tool.operation !== 'READ'
-      || tool.scope !== 'SELF'
+      || !['SELF', 'MANAGER_SCOPE'].includes(tool.scope)
       || !tool.delegatedHandler
     ) throw new WorkforceToolDispatchError('ACCESS_DENIED')
     try {
@@ -140,7 +157,7 @@ async function authorizeWorkforceTool(
   if (tool.scope === 'SELF' && (audience !== 'EMPLOYEE' || !context.employeeId)) {
     throw new WorkforceToolDispatchError('ACCESS_DENIED')
   }
-  if (tool.scope === 'MANAGER_SCOPE' && (audience !== 'MANAGER' || context.permissions.includes('talent:manage'))) {
+  if (tool.scope === 'MANAGER_SCOPE' && !hasDirectManagerRole) {
     throw new WorkforceToolDispatchError('ACCESS_DENIED')
   }
   if (tool.scope === 'TENANT' && audience !== 'HR') {

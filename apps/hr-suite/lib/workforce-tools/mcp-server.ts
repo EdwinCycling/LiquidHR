@@ -14,6 +14,9 @@ import {
   CHATGPT_MCP_TOOL_SECURITY_SCHEMES,
   CHATGPT_MCP_TOOLS,
   chatGptDevelopmentPlansInputSchema,
+  getChatGptMcpServerMetadata,
+  getChatGptMcpToolMetadata,
+  type ChatGptMcpLocale,
   type ChatGptMcpToolMetadata,
 } from './mcp/chatgpt-metadata'
 import { REMOTE_MCP_RESOURCE_METADATA_URL } from './mcp/remote-config'
@@ -147,7 +150,11 @@ function registerWorkforceTool(
     {
       title: chatGptMetadata?.tool.title,
       description: chatGptMetadata?.tool.description ?? tool.description,
-      inputSchema: boundedInputSchema(chatGptMetadata ? chatGptDevelopmentPlansInputSchema : tool.inputSchema),
+      inputSchema: boundedInputSchema(
+        chatGptMetadata?.audience === 'EMPLOYEE'
+          ? chatGptDevelopmentPlansInputSchema
+          : tool.inputSchema,
+      ),
       outputSchema: chatGptMetadata?.outputSchemaSchema ?? tool.outputSchema,
       annotations: chatGptMetadata?.tool.annotations ?? {
         readOnlyHint: true,
@@ -159,7 +166,7 @@ function registerWorkforceTool(
       if (remoteAuthenticationRequired && !executionContext) {
         return {
           isError: true,
-          content: [{ type: 'text' as const, text: 'Authentication is required to read LiquidHR employee data.' }],
+          content: [{ type: 'text' as const, text: 'Authentication is required to read LiquidHR workforce data.' }],
           _meta: {
             'mcp/www_authenticate': [
               `Bearer resource_metadata="${REMOTE_MCP_RESOURCE_METADATA_URL}", error="insufficient_scope", error_description="Sign in to LiquidHR to continue."`,
@@ -191,7 +198,7 @@ function registerWorkforceTool(
 
 export function createWorkforceMcpServer(): McpServer {
   const server = createMcpServer(WORKFORCE_MCP_LOCAL_INSTRUCTIONS)
-  for (const tool of WORKFORCE_TOOL_CATALOG) {
+  for (const tool of WORKFORCE_TOOL_CATALOG.filter((entry) => entry.scope !== 'MANAGER_SCOPE')) {
     const chatGptMetadata = CHATGPT_MCP_TOOL_METADATA.find((entry) => entry.workforceToolId === tool.id)
     registerWorkforceTool(server, tool, chatGptMetadata)
   }
@@ -350,15 +357,16 @@ function registerControlledActionTools(server: McpServer): void {
 }
 
 /**
- * Builds the small self-only profile for the authenticated ChatGPT TEST route.
+ * Builds the Employee self-service and Direct Manager team-read profile for the authenticated ChatGPT TEST route.
  */
 export function createChatGptMcpServer(
   executionContext?: DelegatedWorkforceToolExecutionContext,
   dispatchTool?: (toolId: string, input: unknown) => Promise<unknown>,
   remoteAuthenticationRequired = false,
+  locale: ChatGptMcpLocale = 'nl',
 ): McpServer {
-  const server = createMcpServer(CHATGPT_MCP_SERVER_INFO.instructions)
-  for (const metadata of CHATGPT_MCP_TOOL_METADATA) {
+  const server = createMcpServer(getChatGptMcpServerMetadata(locale).instructions)
+  for (const metadata of getChatGptMcpToolMetadata(locale)) {
     const tool = WORKFORCE_TOOL_CATALOG.find((entry) => entry.id === metadata.workforceToolId)
     if (!tool) throw new Error('CHATGPT_MCP_WORKFORCE_TOOL_NOT_FOUND')
     registerWorkforceTool(server, tool, metadata, executionContext, dispatchTool, remoteAuthenticationRequired)
@@ -397,16 +405,26 @@ export function createRemoteChatGptMcpHandler(
   executionContext?: DelegatedWorkforceToolExecutionContext,
   dispatchTool?: (toolId: string, input: unknown) => Promise<unknown>,
 ): McpHttpHandler {
-  const handler = createStatelessMcpHandler(() => createChatGptMcpServer(executionContext, dispatchTool, true))
-  const fetch = handler.fetch.bind(handler)
+  const defaultHandler = createStatelessMcpHandler(
+    () => createChatGptMcpServer(executionContext, dispatchTool, true, 'nl'),
+  )
   return {
-    ...handler,
+    ...defaultHandler,
     fetch: async (request) => {
       const metadataRequest = request.clone()
-      const response = await fetch(request)
+      const locale = resolveChatGptMcpLocale(request.headers.get('accept-language'))
+      const handler = locale === 'nl'
+        ? defaultHandler
+        : createStatelessMcpHandler(() => createChatGptMcpServer(executionContext, dispatchTool, true, locale))
+      const response = await handler.fetch(request)
       return addRemoteSecuritySchemes(response, metadataRequest)
     },
   }
+}
+
+function resolveChatGptMcpLocale(acceptLanguage: string | null): ChatGptMcpLocale {
+  const preferredLanguage = acceptLanguage?.split(',')[0]?.split(';')[0]?.trim().toLowerCase()
+  return preferredLanguage === 'en' || preferredLanguage?.startsWith('en-') ? 'en' : 'nl'
 }
 
 async function addRemoteSecuritySchemes(response: Response, request: Request): Promise<Response> {

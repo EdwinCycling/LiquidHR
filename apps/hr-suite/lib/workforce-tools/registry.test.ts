@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const authState = vi.hoisted(() => ({
   context: {
     tenantId: 'tenant-1',
-    administrationId: null,
+    administrationId: null as string | null,
     userId: 'user-1',
     employeeId: 'employee-1',
     activeRoles: ['EMPLOYEE'],
@@ -15,9 +15,19 @@ const authState = vi.hoisted(() => ({
     'self:talent-comparison:read',
   ],
 }))
-const { listTalentGoals, listMyTalentGoalCheckIns, requireAuthContext, requirePermission, requireTenantModule } = vi.hoisted(() => ({
+const {
+  listTalentGoals,
+  listMyTalentGoalCheckIns,
+  listFocusManagerTeamOverviewForContext,
+  createClient,
+  requireAuthContext,
+  requirePermission,
+  requireTenantModule,
+} = vi.hoisted(() => ({
   listTalentGoals: vi.fn(),
   listMyTalentGoalCheckIns: vi.fn(),
+  listFocusManagerTeamOverviewForContext: vi.fn(),
+  createClient: vi.fn(async () => ({ marker: 'manager-supabase-client' })),
   requireAuthContext: vi.fn(async () => authState.context),
   requirePermission: vi.fn(async (permission: string, targetEmployeeId?: string) => {
     const isSelf = targetEmployeeId === authState.context.employeeId
@@ -35,7 +45,17 @@ vi.mock('@/lib/modules/module-service', () => ({
   requireTenantModule,
 }))
 vi.mock('@/lib/talent/check-in-service', () => ({ listMyTalentGoalCheckIns }))
-vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals }))
+vi.mock('@/lib/talent/goal-service', () => ({
+  MANAGER_DEVELOPMENT_PLAN_STATUSES: ['DRAFT', 'ACTIVE'],
+  listTalentGoals,
+  listManagerTeamDevelopmentPlans: vi.fn(),
+}))
+vi.mock('@/lib/focus/manager-home-service', () => ({ listFocusManagerTeamOverviewForContext }))
+vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/organization/team-scope', () => ({
+  listDirectTeamEmployeeIds: vi.fn(),
+  listDirectTeamEmployeeScope: vi.fn(),
+}))
 
 import { workforceToolHeRaName, WORKFORCE_TOOL_CATALOG } from './catalog'
 import { createLocalWorkforceMcpHarness } from './mcp-local'
@@ -98,8 +118,16 @@ describe('provider-neutral workforce catalog and adapters', () => {
   beforeEach(() => {
     authState.context.activeRoles = ['EMPLOYEE']
     authState.context.permissions = []
+    authState.context.administrationId = null
+    authState.context.employeeId = 'employee-1'
     listTalentGoals.mockReset().mockResolvedValue({ goals: [mockGoal], employees: [], capabilities: [] })
     listMyTalentGoalCheckIns.mockReset().mockResolvedValue([])
+    listFocusManagerTeamOverviewForContext.mockReset().mockResolvedValue({
+      members: [{ employeeId: 'team-employee', employeeName: 'Eva Jansen' }],
+      total: 1,
+      sourceTruncated: false,
+    })
+    createClient.mockClear()
     requireAuthContext.mockClear()
     requirePermission.mockClear()
     requireTenantModule.mockReset().mockResolvedValue(undefined)
@@ -112,7 +140,10 @@ describe('provider-neutral workforce catalog and adapters', () => {
   })
 
   it('returns plain JSON data for the WebMCP Server/Client boundary', () => {
-    const descriptors = toWorkforceWebMcpClientDescriptors(listWorkforceToolDescriptors())
+    const workforceDescriptors = listWorkforceToolDescriptors()
+    expect(workforceDescriptors.map((descriptor) => descriptor.id)).not.toContain('manager.team.overview.read')
+    expect(workforceDescriptors.map((descriptor) => descriptor.scope)).not.toContain('MANAGER_SCOPE')
+    const descriptors = toWorkforceWebMcpClientDescriptors(workforceDescriptors)
     const issue = descriptors.map((descriptor) => findNonPlainWebMcpProp(descriptor)).find((value) => value !== null) ?? null
     expect(issue).toBeNull()
     expect(Object.getOwnPropertyNames(descriptors[0]?.inputSchema ?? {})).not.toContain('~standard')
@@ -181,6 +212,27 @@ describe('provider-neutral workforce catalog and adapters', () => {
       .rejects.toMatchObject({ code: 'ACCESS_DENIED' })
     expect(requirePermission).toHaveBeenCalledWith('talent-team:read', undefined)
     expect(requirePermission).toHaveBeenCalledWith('talent:manage', undefined)
+  })
+
+  it('denies Manager reads to Employee and HR-only contexts', async () => {
+    authState.context.permissions = ['talent-team:read', 'talent:manage']
+    for (const role of ['EMPLOYEE', 'HR_ADMIN']) {
+      authState.context.activeRoles = [role]
+      await expect(dispatchWorkforceTool('manager.team.overview.read', {}))
+        .rejects.toMatchObject({ code: 'ACCESS_DENIED' })
+    }
+    expect(listFocusManagerTeamOverviewForContext).not.toHaveBeenCalled()
+  })
+
+  it('denies Manager tools through the cookie-authenticated dispatcher even when the current role matches', async () => {
+    authState.context.activeRoles = ['DIRECT_MANAGER', 'HR_ADMIN']
+    authState.context.permissions = ['talent-team:read', 'talent:manage']
+    authState.context.administrationId = 'administration-1'
+
+    await expect(dispatchWorkforceTool('manager.team.overview.read', {}))
+      .rejects.toMatchObject({ code: 'ACCESS_DENIED' })
+    expect(listFocusManagerTeamOverviewForContext).not.toHaveBeenCalled()
+    expect(requirePermission).not.toHaveBeenCalled()
   })
 
   it('maps a disabled module to a stable inactive-module result', async () => {

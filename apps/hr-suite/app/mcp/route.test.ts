@@ -145,6 +145,23 @@ describe('remote MCP route gates', () => {
     expect(routeMocks.dispatch).not.toHaveBeenCalled()
   })
 
+  it('returns a dedicated re-consent action when an existing grant lacks Manager consent', async () => {
+    routeMocks.authenticate.mockRejectedValueOnce(new DelegatedAuthError('MANAGER_CONSENT_REQUIRED'))
+    const response = await POST(request({
+      jsonrpc: '2.0',
+      id: 18,
+      method: 'tools/call',
+      params: { name: 'manager.team.overview.read', arguments: {} },
+    }, 'Bearer synthetic-test-access-token'))
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({
+      error: 'MCP_MANAGER_CONSENT_REQUIRED',
+      manage_connections: '/oauth/connections',
+    })
+    expect(routeMocks.dispatch).not.toHaveBeenCalled()
+  })
+
   it('dispatches an authenticated Employee self-read through the request-bound execution context', async () => {
     const execution = {
       authContext: {
@@ -178,6 +195,46 @@ describe('remote MCP route gates', () => {
       oauthClientId: 'synthetic-chatgpt-client',
       execution,
     })
+  })
+
+  it('selects the direct Manager context from the catalog scope for a Manager read tool', async () => {
+    const execution = {
+      authContext: {
+        tenantId: '00000000-0000-4000-8000-000000000010',
+        hrGroupId: '00000000-0000-4000-8000-000000000011',
+        administrationId: '00000000-0000-4000-8000-000000000013',
+        userId: '00000000-0000-4000-8000-000000000001',
+        employeeId: '00000000-0000-4000-8000-000000000012',
+        activeRoles: ['DIRECT_MANAGER'],
+        permissions: ['talent-team:read'],
+      },
+      rls: {},
+    } as unknown as DelegatedWorkforceToolExecutionContext
+    routeMocks.authenticate.mockResolvedValueOnce({ clientId: 'synthetic-chatgpt-client', execution })
+    routeMocks.dispatch.mockResolvedValueOnce({
+      members: [{ employeeName: 'Eva Jansen' }],
+      total: 1,
+      hasMore: false,
+      nextOffset: null,
+      sourceTruncated: false,
+    })
+
+    const response = await POST(request({
+      jsonrpc: '2.0',
+      id: 16,
+      method: 'tools/call',
+      params: { name: 'manager.team.overview.read', arguments: {} },
+    }, 'Bearer synthetic-test-access-token'))
+    expect(response.status).toBe(200)
+    expect(routeMocks.authenticate).toHaveBeenCalledWith(expect.any(Request), 'MANAGER')
+    expect(routeMocks.dispatch).toHaveBeenCalledWith({
+      toolId: 'manager.team.overview.read',
+      toolInput: {},
+      oauthClientId: 'synthetic-chatgpt-client',
+      execution,
+    })
+    const responseText = await response.text()
+    expect(responseText).toContain('Eva Jansen')
   })
 
   it('logs only an allowlisted remote tool error code, never tool data or credentials', async () => {

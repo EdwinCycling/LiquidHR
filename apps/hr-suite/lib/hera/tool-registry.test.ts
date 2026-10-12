@@ -34,7 +34,11 @@ vi.mock('@/lib/modules/module-service', () => ({
   },
   requireTenantModule,
 }))
-vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals }))
+vi.mock('@/lib/talent/goal-service', () => ({
+  MANAGER_DEVELOPMENT_PLAN_STATUSES: ['DRAFT', 'ACTIVE'],
+  listTalentGoals,
+  listManagerTeamDevelopmentPlans: vi.fn(),
+}))
 
 const context: AuthContext = {
   tenantId: 'tenant-1',

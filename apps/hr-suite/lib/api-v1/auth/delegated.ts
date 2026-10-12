@@ -119,6 +119,7 @@ export type DelegatedAuthErrorCode =
   | 'DELEGATED_SELF_CONTEXT_REQUIRED'
   | 'DELEGATED_CONTEXT_SELECTION_REQUIRED'
   | 'DELEGATED_CONTEXT_FORBIDDEN'
+  | 'MANAGER_CONSENT_REQUIRED'
 
 function defaultStatus(code: DelegatedAuthErrorCode): number {
   if (code === 'TOKEN_VERIFIER_UNAVAILABLE'
@@ -134,7 +135,8 @@ function defaultStatus(code: DelegatedAuthErrorCode): number {
   ) return 500
   if (code === 'DELEGATED_PERMISSION_DENIED'
     || code === 'DELEGATED_SELF_CONTEXT_REQUIRED'
-    || code === 'DELEGATED_CONTEXT_FORBIDDEN') return 403
+    || code === 'DELEGATED_CONTEXT_FORBIDDEN'
+    || code === 'MANAGER_CONSENT_REQUIRED') return 403
   if (code === 'DELEGATED_CONTEXT_SELECTION_REQUIRED') return 409
   return 401
 }

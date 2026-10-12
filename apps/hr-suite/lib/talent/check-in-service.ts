@@ -1,7 +1,10 @@
 import type { Database } from '@scope/db'
-import { AuthorizationError, requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { AuthorizationError, requireAuthContext, requirePermission, requirePermissionInContext, requireHrGroupId, type AuthContext } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
+import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import type { DelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import { listDirectTeamEmployeeScope } from '@/lib/organization/team-scope'
 import type { TalentCheckInCreateInput, TalentCheckInUpdateInput } from './check-in-schemas'
 
 type CheckInRow = Database['public']['Tables']['talent_goal_check_ins']['Row']
@@ -15,6 +18,106 @@ export class TalentCheckInError extends Error {
   constructor(public readonly code: string, public readonly status = 500) {
     super(code)
     this.name = 'TalentCheckInError'
+  }
+}
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+export interface TalentManagerFollowUpDependencies {
+  readonly authContext: AuthContext
+  readonly rls: DelegatedBearerRlsClient<SupabaseServerClient>
+}
+
+export interface TalentManagerFollowUp {
+  readonly employeeName: string
+  readonly dueOn: string
+}
+
+export interface TalentManagerFollowUps {
+  readonly followUps: ReadonlyArray<TalentManagerFollowUp>
+  readonly sourceTruncated: boolean
+}
+
+function managerEmployeeName(firstName: string | null, birthName: string | null): string {
+  return [firstName, birthName].filter((value): value is string => Boolean(value?.trim())).join(' ').trim()
+}
+
+async function authorizeManagerFollowUpRead(dependencies?: TalentManagerFollowUpDependencies): Promise<{
+  context: AuthContext
+  supabase: SupabaseServerClient
+}> {
+  let supabase: SupabaseServerClient
+  let context: AuthContext
+  if (dependencies) {
+    assertDelegatedBearerRlsClient<SupabaseServerClient>(dependencies.rls)
+    if (dependencies.rls.userId !== dependencies.authContext.userId) throw new TalentCheckInError('TALENT_CHECKIN_FORBIDDEN', 403)
+    supabase = dependencies.rls.client
+    context = await requirePermissionInContext(supabase, dependencies.authContext, 'talent-goal:read')
+  } else {
+    context = await requirePermission('talent-goal:read')
+    supabase = await createClient()
+  }
+  await requireTenantModule('TALENT', dependencies ? { auth: context, supabase } : undefined)
+  if (!context.activeRoles.includes('DIRECT_MANAGER') || !context.employeeId || !context.administrationId) {
+    throw new TalentCheckInError('TALENT_CHECKIN_MANAGER_SCOPE_REQUIRED', 403)
+  }
+  requireHrGroupId(context)
+  return { context, supabase }
+}
+
+/** Returns due dates for open follow-ups only; never returns check-in titles or note bodies. */
+export async function listManagerTeamFollowUps(
+  dependencies?: TalentManagerFollowUpDependencies,
+): Promise<TalentManagerFollowUps> {
+  const { context, supabase } = await authorizeManagerFollowUpRead(dependencies)
+  const hrGroupId = requireHrGroupId(context)
+  const scope = await listDirectTeamEmployeeScope(context, supabase, 5_000)
+  if (scope.employeeIds.length === 0) return { followUps: [], sourceTruncated: scope.sourceTruncated }
+
+  const [employeesResult, checkInsResult] = await Promise.all([
+    supabase
+      .from('employees')
+      .select('id,first_name,birth_name')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .in('id', [...scope.employeeIds])
+      .eq('is_active', true)
+      .eq('is_archived', false)
+      .is('deleted_at', null)
+      .limit(5_000),
+    supabase
+      .from('talent_goal_check_ins')
+      .select('employee_id,follow_up_due_on', { count: 'exact' })
+      .eq('tenant_id', context.tenantId)
+      .in('employee_id', [...scope.employeeIds])
+      .eq('entry_type', 'FOLLOW_UP')
+      .eq('status', 'OPEN')
+      .not('follow_up_due_on', 'is', null)
+      .order('follow_up_due_on', { ascending: true })
+      .order('employee_id', { ascending: true })
+      .limit(1_000),
+  ])
+  if (employeesResult.error) throw new TalentCheckInError('TALENT_CHECKIN_EMPLOYEE_READ_FAILED')
+  if (checkInsResult.error || checkInsResult.count === null) throw new TalentCheckInError('TALENT_CHECKIN_READ_FAILED')
+
+  const employeeNames = new Map((employeesResult.data ?? []).flatMap((employee) => {
+    const name = managerEmployeeName(employee.first_name, employee.birth_name)
+    return name ? [[employee.id, name] as const] : []
+  }))
+  let omittedRows = 0
+  const followUps = (checkInsResult.data ?? []).flatMap((checkIn): TalentManagerFollowUp[] => {
+    const employeeName = employeeNames.get(checkIn.employee_id)
+    if (!employeeName || !checkIn.follow_up_due_on) {
+      omittedRows += 1
+      return []
+    }
+    return [{ employeeName, dueOn: checkIn.follow_up_due_on }]
+  })
+  return {
+    followUps,
+    sourceTruncated: scope.sourceTruncated
+      || checkInsResult.count > (checkInsResult.data?.length ?? 0)
+      || omittedRows > 0,
   }
 }
 

@@ -1,17 +1,19 @@
 # AA-ACCEPT — Accepted Baseline
 
 Status: **LIVING INDEX**
-Bijgewerkt: 2026-10-11
+Bijgewerkt: 2026-10-12
 
 Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte index van wat we als actuele baseline accepteren.
 
-## Actuele releasebaseline — 1.20261011.1
+## Actuele main-codebaseline — 1.20261011.2
 
-GitHub `main` is `c90275c5775a276d5ccd62f563b44372ee78ae11`. Vercel `liquidhr` deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is **READY** op dezelfde SHA in het bestaande synthetic TEST-kanaal. SEC-01 migration `20261011120317_secure_continuous_appraisal_attachment_storage_keys` is op TEST toegepast en staat in de remote registratie als `20261011130922_secure_continuous_appraisal_attachment_storage_keys`; bewaar beide historische versies, herschrijf of herhaal de migratie niet. De hosted geauthenticeerde security-/persona-acceptatie is **OPEN** en wordt niet door deploymentstatus of TEST-migratie-readback gesloten.
+Lokale/origin/GitHub `main` staat op `db23b12446b4d04c823710ae48780dd0b47cc5b8`; appversie `1.20261011.2` bevat de gemergede NMBRS-01-integratie. Automatische Vercel-deployment `dpl_841Lz4YpcDrPUQ6aTzNA9KLjS7Ka` is **READY** op exact dezelfde SHA met de main-aliases. Hosted safety smoke is geslaagd; de release is beperkt tot de bestaande synthetische TEST-omgeving. SEC-01 migration `20261011120317_secure_continuous_appraisal_attachment_storage_keys` is op TEST toegepast en staat in de remote registratie als `20261011130922_secure_continuous_appraisal_attachment_storage_keys`; bewaar beide historische versies, herschrijf of herhaal de migratie niet. De geauthenticeerde SEC-01 security-/persona-acceptatie blijft **OPEN** en wordt niet door deploymentstatus of TEST-migratie-readback gesloten.
 
 PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51`; alleen de geselecteerde, bijgewerkte roadmap/Focus-context is overgenomen. PR #13 is gesloten zonder merge; de niet-goedgekeurde PR #2 is niet gemerged. Oude ONE VERSION-voorstatussen hieronder blijven gedateerde historie en worden niet retroactief gewijzigd.
 
 **Open punten en openstaande bewijslast:** zie [AA-OPEN](AA-OPEN.md). Een punt in dat register is geen nieuw GREEN-verdict; de gedateerde acceptance reports en exacte codeprovenance blijven bepalend. Nieuwe lokale feature-overdrachten zijn pas geïntegreerde baseline na gecontroleerde convergence.
+
+**APIAI-MASTER-RUN 2026-10-12 — HOLD / NOT RELEASED:** huidige main `db23b12446b4d04c823710ae48780dd0b47cc5b8` en Vercel `dpl_841Lz4YpcDrPUQ6aTzNA9KLjS7Ka` zijn READY op dezelfde SHA. ChatGPT toont vier Talent-tools; Employee blijft **0/8**. De refresh faalde en de gecorreleerde `/mcp`-POST op main was ongeauthenticeerd, niet als MCP herkend en eindigde in HTTP 401; eerdere calls gaven `-32603` vóór de route. De exacte connectoroorzaak is niet zichtbaar. APIAI-09-code/test-SHA `27d534fd06fee7868b3bf0534bc3fdb9a3736cd1` op PR #18 heeft gesloten reviewbevindingen voor cookie/WebMCP-toegang, Employee-routecontract, Manager-planstatussen en NL/EN MCP-metadata. Onafhankelijke spec- en standaardenreviews vonden na correctie geen open blocker in de beoordeelde codepaden. TypeScript (alle workspaces), gerichte ESLint, i18n (43 namespaces), diff-check, 19 gerichte bestanden/180 tests en finale full-suite (616 bestanden/2.930 tests geslaagd; 4 bestanden/8 tests overgeslagen) zijn groen. Preview `dpl_4wdGu1WWCbjqbLqRV5qbhZfKCCkz` is READY met `target=null`, source `git`, exact op die SHA; build en provenance zijn bevestigd. Preview-isolatie en geauthenticeerde Preview-tests ontbreken. Employee/Manager hosted reads blijven 0/8 en 0/6; canonical balance, RLS/scope, audit/limiter en consent-/revoke-/reconnectbewijs ontbreken. Geen remote data-, Auth- of schemawrite; geen merge/deployment. Zie [APIAI-08](../quality/acceptance/runs/APIAI-08-20261009.md), [APIAI-09](../quality/acceptance/runs/APIAI-09-20261011.md) en [AA-OPEN](AA-OPEN.md).
 
 **PAY-CONVERGE 2026-10-04:** de CAO-BENCH02-productcode is lokaal geïntegreerd vanaf main 6349d025 en de passende lokale codegates zijn PASS. De integratieacceptatie is PARTIAL en de release-aanbeveling is HOLD: SEC-PAY-001, PAY-RULE-002 en ENV-PREVIEW-010 zijn OPEN; er is geen hosted kandidaatacceptatie of release. Zie het [PAY-CONVERGE-rapport](../payroll/acceptance/PAY-CONVERGE-20261004.md). Dit voegt geen nieuwe accepted TEST-release toe.
 
@@ -30,7 +32,7 @@ PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51`; alleen de gese
 
 | Slice | Status | Bewijs / opmerking |
 | --- | --- | --- |
-| Release 1.20261011.1 | **TEST RELEASED; HOSTED SECURITY/PERSONA ACCEPTANCE OPEN** | GitHub `main` `c90275c5775a276d5ccd62f563b44372ee78ae11`; Vercel `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` READY op dezelfde SHA; SEC-01 TEST-applied, bron-/registratieversies `20261011120317` / `20261011130922` |
+| Laatste TEST-release 1.20261011.2 | **TEST RELEASED — LIMITED; NMBRS OAUTH/PREVIEW AND SEC-01 HOSTED ACCEPTANCE OPEN** | Automatic READY `dpl_BVuywDYacYZk2DXn9ZNkgVRgkvkp` on exact main SHA `58dc758c950b4e6da45c43a1692f45eb0fc019e9`; canonical alias `liquid-hr-hr-suite.vercel.app`; AA-REL §7 smoke passed. SEC-01 TEST-applied, source/registration versions `20261011120317` / `20261011130922` |
 | ABS02 | GREEN | `docs/quality/acceptance/runs/ABS02-20260927.md` |
 | INS01 | TEST RELEASED; ACCEPTANCE PARTIAL | Persona-catalogus/live Bradford-route bewezen; volledige API-/scope-/exportmatrix en laatste CSV-inhoudcontrole nog OPEN |
 | CONTROL01 | TEST RELEASED; ACCEPTANCE PARTIAL | Full-circle/OWNER en nieuwe synthetische payroll-import met employment draft runtime-bewezen; live actor-/invite-/cross-tenant-negatives OPEN |

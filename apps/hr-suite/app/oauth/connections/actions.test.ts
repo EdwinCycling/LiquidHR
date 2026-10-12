@@ -1,23 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, getClaims, listGrants, redirect, revalidatePath, revokeGrant } = vi.hoisted(() => ({
+const { createClient, getClaims, listGrants, redirect, revalidatePath, revokeGrant, setManagerMcpConsentMarker } = vi.hoisted(() => ({
   createClient: vi.fn(),
   getClaims: vi.fn(),
   listGrants: vi.fn(),
   redirect: vi.fn(),
   revalidatePath: vi.fn(),
   revokeGrant: vi.fn(),
+  setManagerMcpConsentMarker: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({ redirect }))
 vi.mock('next/cache', () => ({ revalidatePath }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/workforce-tools/mcp/manager-consent-admin', () => ({ setManagerMcpConsentMarker }))
 
 import { revokeChatGptOAuthGrant } from './actions'
 import { initialOAuthGrantActionState } from './grant-state'
 
-const CHATGPT_CLIENT_ID = 'chatgpt-client-id'
-
+const CHATGPT_CLIENT_ID = 'b7e6b5ae-33be-493f-8456-02fa41e307e8'
 function formData(clientId: string): FormData {
   const form = new FormData()
   form.set('clientId', clientId)
@@ -36,6 +37,7 @@ describe('OAuth TEST connection revocation', () => {
     getClaims.mockResolvedValue({ data: { claims: { sub: 'synthetic-employee-user' } }, error: null })
     listGrants.mockResolvedValue({ data: [chatGptGrant], error: null })
     revokeGrant.mockResolvedValue({ data: {}, error: null })
+    setManagerMcpConsentMarker.mockResolvedValue(true)
     createClient.mockResolvedValue({
       auth: {
         getClaims,
@@ -88,7 +90,9 @@ describe('OAuth TEST connection revocation', () => {
     const result = await revokeChatGptOAuthGrant(initialOAuthGrantActionState, formData(CHATGPT_CLIENT_ID))
 
     expect(result).toEqual({ status: 'revoked', clientId: CHATGPT_CLIENT_ID })
+    expect(setManagerMcpConsentMarker).toHaveBeenCalledWith('synthetic-employee-user', CHATGPT_CLIENT_ID, false)
     expect(revokeGrant).toHaveBeenCalledWith({ clientId: CHATGPT_CLIENT_ID })
+    expect(setManagerMcpConsentMarker.mock.invocationCallOrder[0]).toBeLessThan(revokeGrant.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER)
     expect(listGrants).toHaveBeenCalledTimes(2)
     expect(revalidatePath).toHaveBeenCalledWith('/oauth/connections')
   })
@@ -110,6 +114,17 @@ describe('OAuth TEST connection revocation', () => {
 
     expect(result).toEqual({ status: 'error' })
     expect(listGrants).toHaveBeenCalledOnce()
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it('does not revoke Employee access when Manager consent cannot first be cleared', async () => {
+    setManagerMcpConsentMarker.mockResolvedValueOnce(false)
+
+    const result = await revokeChatGptOAuthGrant(initialOAuthGrantActionState, formData(CHATGPT_CLIENT_ID))
+
+    expect(result).toEqual({ status: 'error' })
+    expect(setManagerMcpConsentMarker).toHaveBeenCalledOnce()
+    expect(revokeGrant).not.toHaveBeenCalled()
     expect(revalidatePath).not.toHaveBeenCalled()
   })
 })

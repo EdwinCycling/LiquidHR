@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isChatGptOAuthGrant, readUserOAuthGrants } from '@/lib/oauth/user-grants'
+import { setManagerMcpConsentMarker } from '@/lib/workforce-tools/mcp/manager-consent-admin'
 import type { OAuthGrantActionState } from './grant-state'
 
 function isClientId(value: FormDataEntryValue | null): value is string {
@@ -27,15 +28,15 @@ export async function revokeChatGptOAuthGrant(
     return { status: 'error' }
   }
 
-  let userIsAuthenticated = false
+  let userId: string | null = null
   try {
     const { data, error } = await supabase.auth.getClaims()
     const subject = data?.claims?.sub
-    userIsAuthenticated = !error && typeof subject === 'string' && subject.length > 0
+    if (!error && typeof subject === 'string' && subject.length > 0) userId = subject
   } catch {
-    userIsAuthenticated = false
+    userId = null
   }
-  if (!userIsAuthenticated) redirect('/login?next=%2Foauth%2Fconnections')
+  if (!userId) redirect('/login?next=%2Foauth%2Fconnections')
 
   const currentGrants = await readUserOAuthGrants(supabase.auth.oauth)
   if (currentGrants.status !== 'ready') return { status: 'error' }
@@ -44,6 +45,8 @@ export async function revokeChatGptOAuthGrant(
     candidate.clientId === requestedClientId && isChatGptOAuthGrant(candidate)
   ))
   if (!grant) return { status: 'error' }
+
+  if (!(await setManagerMcpConsentMarker(userId, grant.clientId, false))) return { status: 'error' }
 
   try {
     const { error } = await supabase.auth.oauth.revokeGrant({ clientId: grant.clientId })

@@ -31,7 +31,11 @@ vi.mock('@/lib/modules/module-service', () => ({
   },
   requireTenantModule,
 }))
-vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals }))
+vi.mock('@/lib/talent/goal-service', () => ({
+  MANAGER_DEVELOPMENT_PLAN_STATUSES: ['DRAFT', 'ACTIVE'],
+  listTalentGoals,
+  listManagerTeamDevelopmentPlans: vi.fn(),
+}))
 vi.mock('@/lib/talent/check-in-service', () => ({ listMyTalentGoalCheckIns }))
 vi.mock('@/lib/talent/team-service', () => ({ listTalentTeamMatrix }))
 

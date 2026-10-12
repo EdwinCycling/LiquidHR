@@ -199,7 +199,7 @@ describe('controlled action lifecycle', () => {
       actionId: 'employee.reminder.create' as const,
       actionType: 'EMPLOYEE_PERSONAL_REMINDER_CREATE',
       toolName: 'draft_personal_reminder',
-      payload: { title: 'POP bijwerken', remindAt: '2026-10-12T08:00:00.000Z' },
+      payload: { title: 'POP bijwerken', remindAt: '2099-01-01T08:00:00.000Z' },
       idempotencyKey: '10000000-0000-4000-8000-000000000010',
     },
   ])('binds $actionId to its immutable preview, actor, and idempotency key', async ({
@@ -248,7 +248,7 @@ describe('controlled action lifecycle', () => {
       startDate: '2026-10-16',
       leaveTypeId: '10000000-0000-4000-8000-000000000009',
     }
-    const reminderPayload = { title: 'POP bijwerken', remindAt: '2026-10-12T08:00:00.000Z' }
+    const reminderPayload = { title: 'POP bijwerken', remindAt: '2099-01-01T08:00:00.000Z' }
     expect(controlledActionPayloadSchemas['employee.leave.request.create'].safeParse(leavePayload).success).toBe(true)
     expect(controlledActionPayloadSchemas['employee.reminder.create'].safeParse(reminderPayload).success).toBe(true)
 

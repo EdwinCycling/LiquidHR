@@ -52,6 +52,15 @@ function parseGrant(value: unknown): UserOAuthGrantSummary | null {
   }
 }
 
+export function parseUserOAuthGrants(value: unknown): UserOAuthGrantReadResult {
+  if (!Array.isArray(value)) return { status: 'failed' }
+
+  const grants = value.map(parseGrant)
+  if (grants.some((grant) => grant === null)) return { status: 'failed' }
+
+  return { status: 'ready', grants: grants.filter((grant) => grant !== null) }
+}
+
 export async function readUserOAuthGrants(
   oauth: UserOAuthGrantReader,
 ): Promise<UserOAuthGrantReadResult> {
@@ -60,12 +69,8 @@ export async function readUserOAuthGrants(
 
   try {
     const response = await getUserGrants.call(oauth)
-    if (response.error || !Array.isArray(response.data)) return { status: 'failed' }
-
-    const grants = response.data.map(parseGrant)
-    if (grants.some((grant) => grant === null)) return { status: 'failed' }
-
-    return { status: 'ready', grants: grants.filter((grant) => grant !== null) }
+    if (response.error) return { status: 'failed' }
+    return parseUserOAuthGrants(response.data)
   } catch {
     return { status: 'failed' }
   }
