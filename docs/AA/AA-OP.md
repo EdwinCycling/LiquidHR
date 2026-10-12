@@ -17,6 +17,28 @@ Vraag niet na iedere normale handeling om toestemming. Een technisch herstelbare
 
 Afzonderlijke expliciete toestemming blijft nodig voor nieuwe remote database/schemawrites, inclusief TEST; destructieve businessdatawijzigingen; Production-data of echte klantgegevens; secret-/credentialwijzigingen; materiële securityrechten- of tenanttoegangsverruiming buiten scope; het definitief weggooien van unieke niet-geïntegreerde wijzigingen; en merge/deployment/release zonder mandaat uit de oorspronkelijke opdracht. Zie `AGENTS.md` voor de harde grenzen.
 
+## 1a. AA-LEAN-02 — TEST Fast Delivery (2026-10-12)
+
+**Context:** de huidige LiquidHR-doelomgeving is synthetische TEST; het Vercel-kanaal `production` betekent niet klantproductie. Dit rechtvaardigt een lichtere *leverroute*, niet lichtere tenant-/persoonsdata-/securitygrenzen.
+
+Kies vóór de eerste codewijziging **één route op basis van de effectieve diff en risico's**, niet op basis van bestandsnaam of omvang van het gehele project:
+
+| Route | Wanneer | Uitvoering en evidence |
+| --- | --- | --- |
+| **FAST** | Logo, icoon, statische tekst, beperkte CSS/layout zonder auth-, privacy-, scope- of businesscontractwijziging | Kleine patch; direct geraakte controle(s), lint/type/i18n indien relevant; **één gerichte visuele smoke** bij zichtbare UI. Geen standaard volledige suite, alle persona's, alle thema's of Preview. |
+| **STANDARD** | Gewone afgebakende functionaliteit of niet-gevoelige bugfix | Gerichte unit/contract-/integratietests, relevante type/lint/build waar de wijziging dat vraagt en één representatieve browserflow voor gewijzigd UI-gedrag. |
+| **CONTROLLED** | Autorisatie, OAuth-toestemmingssemantiek of scopes, tenant/RLS, schema, security, Payroll, gevoelige gegevens of aantoonbaar brede shared-core-impact | Positieve én negatieve scope-/autorisatietests, toepasselijke integriteits- en runtimecontroles; volledige finale relevante releasegate. |
+
+Een puur visuele wijziging **op een OAuth-scherm** kan FAST zijn, zolang toestemmingsinhoud, rechten en serverlogica ongewijzigd blijven. Wijzigingen in de **betekenis** van consenttekst vragen minimaal gerichte inhoudelijke/security-contractcontrole en worden bij risico CONTROLLED. Een mergeconflict mag nooit nieuwe rechten verwijderen of verruimen.
+
+**Standaardflow:** actuele main/safe checkout → kleinste patch → gerichte checks → commit → (alleen binnen het oorspronkelijke mandaat) direct naar synthetische TEST-`main` → automatische buildstatus en gerichte hosted smoke → klaar. Een PR of Preview is geen verplichte tussenstap voor geautoriseerde FAST/STANDARD TEST-integratie. Claim geen volledige productieacceptatie.
+
+Geen nieuwe worktree wanneer een veilige bestaande checkout voldoet; bij aantoonbaar alleen beschermde of dirty checkouts is **één** tijdelijke schone integratie-worktree verdedigbaar. De aanwezigheid van framework-generated drift elders vereist geen destructieve cleanup of wijziging aan beschermd `next-env.d.ts`.
+
+Voor normale FAST/STANDARD-opdrachten volstaat een beknopt eindbericht (wat, gerichte checks, commit/deployment, echte OPEN-punten). Geen automatische nieuwe uitgebreide acceptance-rapporten of AA-indexwijzigingen bij een kleine wijziging, tenzij risico of releasecontract dat vereist. Gepland repository-/worktreeonderhoud staat los van featurelevering.
+
+Zie `AA-TEST.md` voor het testminimum en `AA-REL.md` voor TEST-integratie versus formele releaseacceptatie.
+
 ## 2. Bounded execution en herstel
 
 Normale cyclus: **Understand → Implement → Fix → Targeted Test → Verify → Deliver**.

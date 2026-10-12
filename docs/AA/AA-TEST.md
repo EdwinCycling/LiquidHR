@@ -13,7 +13,9 @@ Doel: proportioneel bewijs zonder na iedere kleine wijziging de volledige HR-sui
 | **MEDIUM** | Gewone feature of bugfix | Direct geraakte tests plus aangrenzende contracttests; toepasselijke scope-typecheck/lint; gerichte browsercontrole wanneer UI-gedrag verandert. |
 | **HIGH** | Auth, tenant/RLS, Payroll, schema, security of cross-cutting wijziging | Positieve én negatieve autorisatie-/scopegevallen; domein-, regressie- en integriteitschecks; relevante databasecontracten; productiebuild waar toepasselijk; volledige suite volgens de releasegate. Remote readback/mutatie alleen binnen afzonderlijk toegestaan bereik. |
 
-**Releasegate:** voer één finale volledige relevante suite uit op de definitieve runtime-/schemacode. Koppel bewijs aan de exacte commit-SHA. Herhaal de suite niet na uitsluitend documentatie- of versiemetadatawijzigingen. `OPEN` is niet `GREEN`; eerder bewijs geldt niet vanzelf na wijziging van runtimecode of schema.
+**AA-LEAN-02-routering:** FAST = beperkte LOW/MEDIUM-presentatiewijziging zonder contractimpact; STANDARD = MEDIUM; CONTROLLED = HIGH of aantoonbaar brede shared-core-impact. Classificeer de **feitelijke wijziging**, niet automatisch de hele route of het hele bestand als HIGH. Bij onduidelijke security-impact eerst gericht controleren.
+
+**TEST-integratiegate:** voor expliciet geautoriseerde **FAST/STANDARD-pushes naar uitsluitend synthetische TEST** volstaat passend gericht bewijs (plus lokale/hosted smoke waar relevant). Een volledige 2.000+-testsuite is **niet verplicht per kleine TEST-push**. Voor **CONTROLLED** en formele/gezamenlijke releaseacceptatie blijft één finale volledige relevante suite op de definitieve runtime-/schemacode verplicht. Documenteer SHA, bewijs en OPEN-punten; herhaal niet na alleen docs/versionmetadata. `OPEN` is niet `GREEN`, en een TEST-release met OPEN acceptatie is geen productieacceptatie.
 
 ## 2. Testprincipe
 
@@ -27,7 +29,8 @@ Test **risicogestuurd en bounded**.
 | Auth/RLS/scope | HIGH: gerichte positieve én negatieve autorisatiematrix |
 | Shared core met brede blast radius | passende bredere suite; full suite als releasebeleid dit vereist |
 | Feature afronden | relevante feature-/integratiegates; geen automatische full suite |
-| Convergence/release | één volledige finale suite + passende build |
+| FAST/STANDARD-integratie naar synthetic TEST, met expliciet mandaat | Gerichte gates, relevante smoke; geen automatische volledige suite of complete browsermatrix |
+| CONTROLLED of formele gezamenlijke release | Eén volledige finale relevante suite + passende build |
 | Alleen docs/versionmetadata na bewezen code | geen full suite opnieuw |
 
 Een full suite is geen ritueel. Gebruik hem waar het bewijs toevoegt.
@@ -35,7 +38,8 @@ Een full suite is geen ritueel. Gebruik hem waar het bewijs toevoegt.
 Praktische regel:
 - tijdens bouwen: targeted;
 - bij een defect: defecttest + relevante regressie;
-- bij convergence/release: één full suite op de **uiteindelijke productcode**;
+- bij CONTROLLED-/formele gezamenlijke release: één full suite op de **uiteindelijke productcode**;
+- bij FAST/STANDARD TEST-integratie: alleen gerichte checks en passende smoke, met expliciet besluit over resterende niet-kritieke OPEN-punten;
 - na uitsluitend docs/versionmetadata: niet opnieuw;
 - zodra ná een eerdere full suite nog productcode, UI-code, schema of runtimegedrag wijzigt, geldt die eerdere full-suite-GREEN niet automatisch als releasebewijs voor de nieuwe worktree.
 
@@ -148,7 +152,9 @@ API-acceptatie:
 - stuur een echte HTTP/API-request;
 - een browser die navigatie zelf blokkeert is geen bewijs van een server-side 403.
 
-Voor Vercel Preview hoort de pull request een commit-specifieke Preview-URL te krijgen. Test daar alleen met Preview-scoped variabelen naar geïsoleerde synthetische backends; voer de relevante browsermatrix uit op de immutabele deploymentcommit en controleer deploymentstatus, console en requests. Test Auth blijft fail-closed buiten lokale development. Preview-omgeving ontbreekt of faalt: `BLOCKED BY ENVIRONMENT` of `RED` op basis van de concrete evidence, niet een TEST/Production-backend als vervanging gebruiken. Zie `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
+**Browseromvang per route:** FAST controleert alleen de werkelijk gewijzigde zichtbare plek in één representatief formaat/thema, met zo nodig een tweede smalle viewport; STANDARD test de geraakte flow en relevante rollen; CONTROLLED gebruikt de risicorelevante volledige positieve/negatieve matrix. Geen verplichte reeks screenshots van alle bestaande pagina's, rollen en thema's bij een kleine brandingwijziging. Een runner zonder rapport is geen geslaagde browserassertion; registreer een niet-kritieke ontbrekende capture als OPEN waar de TEST-releaseflow dat toestaat.
+
+**Vercel Preview:** uitsluitend verplicht wanneer het gekozen CONTROLLED-/PR-contract of de specifieke risicobeoordeling dat vraagt. Indien Preview vereist is, gebruik commit-specifieke Preview-URL en uitsluitend geïsoleerde Preview-scoped synthetische backends; leen nooit de gezamenlijke TEST-database. Ontbrekende Preview-inrichting blijft dan een omgevingsgrens. Voor geautoriseerde FAST/STANDARD-integratie rechtstreeks naar synthetische TEST geldt de gerichte lokale plus gehoste smoke volgens `AA-REL.md`. Test Auth blijft fail-closed buiten lokale development. Zie `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
 
 Exports:
 - download echte output;
@@ -222,9 +228,10 @@ Een Payroll Lab-auth/environmentprobleem mag als `ENVIRONMENT-GATED` worden gere
 
 ## 11. Full-suite beleid
 
-Draai een volledige hr-suite:
-- aan het eind van convergence/release;
-- eerder alleen bij aantoonbaar brede shared-core blast radius.
+Draai een volledige relevante hr-suite:
+- bij CONTROLLED-convergence en formele/gezamenlijke releaseacceptatie;
+- eerder alleen bij aantoonbaar brede shared-core blast radius;
+- **niet** standaard bij ieder FAST/STANDARD-commit of iedere expliciet geautoriseerde synthetische TEST-push.
 
 Als een full suite GREEN is op exact dezelfde productcode en daarna alleen docs/versionmetadata wijzigt:
 - hergebruik het bewijs;
@@ -234,7 +241,7 @@ Als één ongerelateerde test timeout:
 1. run geïsoleerd;
 2. herhaal bounded;
 3. bepaal flaky/performance/root cause;
-4. release vereist uiteindelijk een verdedigbare GREEN gate volgens AA-REL.
+4. voor een formele/CONTROLLED-release geldt de GREEN-gate van AA-REL; voor een geautoriseerde beperkte synthetische TEST-release rapporteer je de ongerelateerde afwijking expliciet als OPEN en pas je §8 AA-REL toe zonder tests kunstmatig groen te maken.
 
 ## 12. Acceptance verdicts
 
