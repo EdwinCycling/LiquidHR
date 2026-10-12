@@ -41,7 +41,7 @@ describe('Payroll component editor synthetic engine preview', () => {
 
     const result = validatePreparedComponentDraft({ definition, entry, requestId: '30000000-0000-4000-8000-000000000001' })
 
-    expect(result.valid).toBe(true)
+    expect(result.valid, result.issues.join(', ')).toBe(true)
     expect(result.result?.outputs).toEqual([{ name: 'amount', valueType: 'MONEY', value: '105.00' }])
     expect(result.result?.method).toBe('expression')
     expect(result.result?.formulas[0]?.formula).toContain('parameter.bonus')

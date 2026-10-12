@@ -78,10 +78,41 @@ function readInputValue(value: string | boolean | undefined, valueType: PayrollV
   return { valueType, value: value.trim() }
 }
 
+function readCanonicalSourceValue(source: unknown, path: readonly (string | number)[]): unknown {
+  let value: unknown = source
+  for (const segment of path) {
+    if (Array.isArray(value)) {
+      if (typeof segment !== 'number') return undefined
+      value = value[segment]
+    } else if (typeof value === 'object' && value !== null && typeof segment === 'string') {
+      value = (value as Readonly<Record<string, unknown>>)[segment]
+    } else {
+      return undefined
+    }
+  }
+  return value
+}
+
 function previewSnapshot(prepared: PreparedComponentDraft): PayrollSourceSnapshot {
   const date = prepared.definition.effectiveFrom
   const [year = 2026, month = 1] = date.split('-').map(Number)
-  const canonicalSource = { preview: true }
+  const canonicalSource = {
+    preview: true,
+    regularWage: {
+      fiscalYear: String(year),
+      table: 'WHITE',
+      residence: 'NL',
+      ageCategory: 'UNDER_AOW',
+      herleiding: 'STD',
+      timePeriod: 'MONTH',
+      payrollTaxCredit: false,
+      regularWage: true,
+      fullPeriod: true,
+      hasSpecialSituation: false,
+      incomeRelationshipCount: '1',
+      grossAmount: '1000.00',
+    },
+  }
   return {
     id: 'component-editor-preview',
     sourceTenantId: 'synthetic-preview-tenant',
@@ -89,7 +120,7 @@ function previewSnapshot(prepared: PreparedComponentDraft): PayrollSourceSnapsho
     sourceAdministrationId: 'synthetic-preview-administration',
     sourceEmployeeId: 'synthetic-preview-employee',
     sourceEmploymentId: 'synthetic-preview-employment',
-    sourceIncomeRelationshipId: null,
+    sourceIncomeRelationshipId: 'synthetic-preview-income-relationship',
     periodReference: { year: year!, month: month! },
     canonicalSource,
     sourceVersionVector: { source: 'synthetic-component-editor-preview-v1' },
@@ -137,12 +168,17 @@ function runPreview(
   const date = prepared.definition.effectiveFrom
   const effectiveComponents = packageDefinition.components.filter((component) => component.effectiveFrom <= date
     && (component.effectiveTo === null || date <= component.effectiveTo))
+  const snapshot = previewSnapshot(prepared)
   const sourceValueOverrides: Record<string, PayrollSerializedValue> = {}
   for (const component of effectiveComponents) {
     if (component.method.kind !== 'source') continue
     const output = component.outputs[0]
     if (!output) continue
-    sourceValueOverrides[`${component.code}.${output.name}`] = defaultValue(output.valueType)
+    const rawValue = readCanonicalSourceValue(snapshot.canonicalSource, component.method.path)
+    const canonicalValue = typeof rawValue === 'string' || typeof rawValue === 'boolean'
+      ? readInputValue(rawValue, output.valueType)
+      : null
+    sourceValueOverrides[`${component.code}.${output.name}`] = canonicalValue ?? defaultValue(output.valueType)
   }
 
   for (const dependency of prepared.definition.dependencies) {
@@ -165,7 +201,7 @@ function runPreview(
   }
 
   const packageWithCandidate = candidatePackage(packageDefinition, prepared)
-  const inputs = buildCalculationInputs(previewSnapshot(prepared), packageWithCandidate, {
+  const inputs = buildCalculationInputs(snapshot, packageWithCandidate, {
     effectiveDate: date,
     sourceValueOverrides,
   })

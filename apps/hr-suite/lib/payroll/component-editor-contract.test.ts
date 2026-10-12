@@ -35,7 +35,7 @@ describe('Payroll component editor payload', () => {
     expect(parseComponentEditorPayload({ ...validPayload, tenantId: '30000000-0000-4000-8000-000000000099' }).success).toBe(false)
     expect(parseComponentEditorPayload({ ...validPayload, outputs: [...validPayload.outputs, validPayload.outputs[0]] }).success).toBe(false)
     expect(parseComponentEditorPayload({ ...validPayload, method: { kind: 'expression', formulas: { amount: 'process.exit()' } } }).success).toBe(false)
-    expect(parseComponentEditorPayload({ ...validPayload, dependencies: [] }).success).toBe(false)
+    expect(parseComponentEditorPayload({ ...validPayload, dependencies: [{ ...validPayload.dependencies[0], inputName: 'missing' }] }).success).toBe(false)
   })
 
   it('accepts source as a sentinel without allowing a browser-supplied source path', () => {

@@ -143,7 +143,7 @@ describe('Payroll component library route', () => {
       ownership: 'customer',
       status: 'draft',
       component: draftEntry.key,
-      saved: '1',
+      copied: '1',
     }) })
     const markup = renderToStaticMarkup(page)
 
