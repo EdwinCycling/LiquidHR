@@ -1,7 +1,7 @@
 # LiquidHR AI — Master Roadmap
 
 **Status:** PRODUCTKOERS 2026-10-10 / LIVING DOCUMENT
-**Bijgewerkt:** 11 oktober 2026
+**Bijgewerkt:** 12 oktober 2026
 **Owner:** LiquidHR Product
 **Functie:** centraal AI-roadmapdocument; AA-ROAD blijft de brede productroadmap, AA-NEXT bepaalt de eerstvolgende concrete Codex-runs.
 
@@ -31,10 +31,10 @@ Dit document gebruikt vier bewijsniveaus:
 
 Het Vercel-label Production is bij LiquidHR de deployment-targetnaam voor de **synthetische gezamenlijke TEST**, geen claim over echte klantproductie.
 
-**Momentopname na ONE VERSION-release op 2026-10-10:**
+**Momentopname actuele main/TEST op 2026-10-12:**
 
-- GitHub main: **09b38ea63e4b6c07f305de8eb917e17b10a2de8b**; appversie **1.20261010.1**.
-- Vercel-alias https://liquid-hr-hr-suite.vercel.app: deployment **dpl_AQNLvckVuKebP2knAdBAor6yorAU**, READY op dezelfde SHA. De Vercel-targetnaam Production staat hier voor de synthetische gezamenlijke TEST.
+- Lokale `main`, `origin/main` en GitHub `main`: **db23b12446b4d04c823710ae48780dd0b47cc5b8**; appversie **1.20261011.2**.
+- Vercel-alias https://liquid-hr-hr-suite.vercel.app: deployment **dpl_841Lz4YpcDrPUQ6aTzNA9KLjS7Ka**, READY op dezelfde SHA. De Vercel-targetnaam Production staat hier voor de synthetische gezamenlijke TEST.
 - Supabase Core TEST: **wnpfloqpjvaacobppbpk**. Payroll Lab is een apart project en mag niet onbedoeld worden gewijzigd.
 - APIAI-08 is geïntegreerd in main; product-code SHA **d267f52729a8a1d4d348c4af4b0f13de3f162a0f** en documentatie-HEAD **21e03291181f5f0f2f0dc1cfefdfbfb26f6e6abc** zijn opgenomen. Volledige geauthenticeerde hosted ESS-acceptatie blijft open.
 - **APIAI-08 SQL is wel al op TEST toegepast:** oorspronkelijke bestandsnaam 20261009142000_apiai08_employee_ess_controlled_actions.sql, remote migratieregistratie **20261010064331_apiai08_employee_ess_controlled_actions**. De twee CHECK-constraints, drie legacy-RLS-policies en audittrigger zijn teruggelezen; anon/authenticated kunnen de trigger niet direct uitvoeren. **Niet nogmaals toepassen.** Reconcileer bestandsnaam, contracttests en remote history via ondersteunde workflow; geen ad-hoc geschiedenisaanpassingen.
@@ -55,8 +55,8 @@ Het Vercel-label Production is bij LiquidHR de deployment-targetnaam voor de **s
 | APIAI-05 | WebMCP progressive enhancement in bestaande HR-webapp | Platform-/browserafhankelijke acceptatie gescheiden houden |
 | APIAI-06 | Intern Controlled Actions-framework met Talent-acties, autorisatie, previewhash, idempotentie en audit | ChatGPT Execute blijft UIT zonder betrouwbare menselijke confirm |
 | APIAI-07 | OAuth Remote MCP TEST; 4 echte Talent-reads via ChatGPT met audit/limiter; in huidige main | Aanvullende revoke/persona-negatives waar open |
-| APIAI-08 | ESS-code staat in main; TEST-migratie is read-only bevestigd als `20261010064331` | 0/8 actuele hosted reads bevestigd; ESS-tools ontbreken in connectorcatalogus, Talent-calls falen; saldo 96/0 en audit-/limiterreadback OPEN |
-| APIAI-09 | Zes Manager READ-tools op Draft PR #18; lokale suite/type/lint/i18n groen na main-convergentie | Hosted Manager-identiteit en scopeproeven ontbreken; production build bleef door Windows `EPERM` onvoltooid; geen merge/deploy |
+| APIAI-08 | ESS-code staat in main; TEST-migratie is read-only bevestigd als `20261010064331`; huidige server `tools/list` publiceert acht tools | Beschikbare connectorcatalogus toont vier Talent-tools; vier calls geven `-32603` zonder corresponderende Vercel-routecalls; 0/8, saldo-, audit- en limiterreadback OPEN |
+| APIAI-09 | Zes Manager READ-tools op Draft PR #18; Manager-consentcontract lokaal hersteld in `5876b297`; geïntegreerde kandidaat `bfab8920` slaagde voor volledige suite, TypeScript, ESLint en i18n | Nieuwe kandidaatbuild, geïsoleerde Preview en bestaande Manager OAuth-identiteit ontbreken; geen hosted Manager-scope-/audit-/limiterbewijs; niet naar main gemerged of gedeployed |
 
 ## 3. Prioriteit en iteratieraming
 
@@ -81,7 +81,7 @@ De migrationele registratie voor APIAI-08 op Core TEST is al teruggelezen. Herha
 
 ### 3.2 APIAI-08 CLOSE — Employee Self Service
 
-**Uitvoeringsstatus 2026-10-11:** remote migration `20261010064331_apiai08_employee_ess_controlled_actions` is al geregistreerd; herhaal haar niet. De beschikbare connector leverde **0/8 succesvolle ESS/Talent-reads** op: de vier ESS-tools ontbraken in de catalogus en de beschikbare Talent-calls faalden via MCP. De canonicale saldoquery en audit-/limiterreadback zijn daardoor niet uitgevoerd; het 96-versus-0-saldoverschil blijft OPEN. Geen leave-data of schema is aangepast. Zie [APIAI-08 follow-up](../../quality/acceptance/runs/APIAI-08-20261009.md).
+**Uitvoeringsstatus 2026-10-12:** remote migration `20261010064331_apiai08_employee_ess_controlled_actions` is al geregistreerd; herhaal haar niet. De actuele server `initialize`/`tools/list` slagen en publiceren acht Employee-tools, terwijl de beschikbare connectorcatalogus vier Talent-tools toont. Alle vier connectorcalls gaven `-32603` zonder corresponderende Vercel `/mcp`-requests. Er zijn **0/8 geauthenticeerde reads**; canonical balance en audit-/limiterreadback ontbreken. De bekende 96-versus-0-uurdemo-afwijking past bij een niet-canonieke fixture/source/projectie maar is niet opnieuw live gelezen. Geen leave-data of schema is aangepast. Zie [APIAI-08 recovery follow-up](../../quality/acceptance/runs/APIAI-08-20261009.md).
 
 **Remote READ:** behoud 4 bestaande Talent-reads en accepteer 4 ESS-tools:
 
@@ -98,7 +98,7 @@ De migrationele registratie voor APIAI-08 op Core TEST is al teruggelezen. Herha
 
 ### 3.3 APIAI-09 — Manager Self Service in één bouwslag
 
-**Status 2026-10-11 — HOLD / NOT RELEASED:** runtimecommit `6f92c66c019eec4d8fb780f340b966edff755cd2`; APIAI-09-branch bevat actuele `main` `fae79d8ef1d3d186ff254c0f1032f4b9674bc2dd` (runtime-main `deba6c0d5489bbe1ab15a77e1f60169661121816`; PR #20 was docs-only). De huidige full suite slaagde: 613 bestanden en 2.896 tests, met respectievelijk 4 en 8 overgeslagen. TypeScript en ESLint zijn groen (0 errors, 7 bestaande Payroll-waarschuwingen); i18n is groen met 43 NL/EN-namespaces. De versieassertie is bijgewerkt naar `1.20261011.2`. Twee `next build --webpack`-pogingen strandden op Windows `EPERM` onder `.next`; er is geen buildbewijs op de geïntegreerde kandidaat. Hosted Manager-OAuth, persona-/scope-negatieven, audit-/limiterreadback en actuele deploymentpariteit ontbreken. PR #18 blijft Draft; geen merge naar main of deployment. Zie [APIAI-09 follow-up](../../quality/acceptance/runs/APIAI-09-20261011.md).
+**Status 2026-10-12 — HOLD / NOT RELEASED:** PR #18 is lokaal geïntegreerd met huidige main `db23b12446b4d04c823710ae48780dd0b47cc5b8`. De consentflow vereiste eerder alleen Employee-self-context en weigerde daardoor een Manager; commit `5876b297` laat nu uitsluitend een resolved directe Manager-context of Employee-self-context toe en behoudt fail-closed gedrag voor HR-only, ontbrekende of ambigue context. Op geïntegreerde code/test-SHA `bfab89200daa3b98ad95539e6958d7997fb4843f` slaagde de volledige suite: 613 bestanden, 2.900 tests, 4 bestanden en 8 tests overgeslagen. TypeScript slaagde; ESLint had 0 errors en 7 bestaande Payroll-waarschuwingen; i18n slaagde met 43 namespaces. Vercel Preview `dpl_5PEptUpPCVbJaSTNkimHS9hoqNHf` is READY en buildprovenance is bewezen voor de oudere SHA `42459e61`; de gewijzigde kandidaatbuild volgt na PR-push. Preview-backendisolatie en bestaande Manager OAuth-identiteit zijn niet bewezen. Geen hosted Manager-scopeproef, audit-/limiterreadback, merge naar main of deployment. Zie [APIAI-09 recovery follow-up](../../quality/acceptance/runs/APIAI-09-20261011.md).
 
 **Businessdoel:** manager vraagt in ChatGPT of HeRa naar het eigen team, werkvoorraad en ontwikkeling. Bestaande Focus MSS en Workforce Manager-services blijven de bron.
 
