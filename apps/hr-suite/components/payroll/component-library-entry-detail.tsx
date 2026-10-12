@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { InfoList } from '@/components/patterns/info-list'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { Surface } from '@/components/ui/surface'
+import { ProvenanceCopyButton } from '@/components/payroll/provenance-copy-button'
 import type { ComponentCatalogEntry, ComponentCatalogReference } from '@/lib/payroll/component-catalog'
 import type { PayrollExpression } from '@liquid-hr/payroll-engine'
 
@@ -142,12 +143,118 @@ function ReferenceList({
   })}</ul>
 }
 
-function MetadataValue({ name, value }: { name: string; value: string }) {
-  const isUrl = /^https?:\/\//i.test(value)
+const SOURCE_LINK_FIELDS = [
+  { titleKey: 'calculationRulesTitle', urlKey: 'calculationRulesUrl', labelKey: 'payrollComponentsCalculationRules' },
+  { titleKey: 'parameterAppendixTitle', urlKey: 'parameterAppendixUrl', labelKey: 'payrollComponentsParameterAppendix' },
+  { titleKey: 'handbookTitle', urlKey: 'handbookUrl', labelKey: 'payrollComponentsHandbook' },
+  { titleKey: 'whiteMonthlyTableTitle', urlKey: 'whiteMonthlyTableUrl', labelKey: 'payrollComponentsWhiteMonthlyTable' },
+  { titleKey: 'officialSourceTitle', urlKey: 'officialSourceUrl', labelKey: 'payrollComponentsOfficialSource' },
+  { titleKey: 'sourceTitle', urlKey: 'sourceUrl', labelKey: 'payrollComponentsOfficialSource' },
+] as const
+
+const METADATA_LABEL_KEYS: Readonly<Record<string, string>> = {
+  packageHash: 'payrollComponentsPackageSha256',
+  parameterSetHash: 'payrollComponentsMetadataParameterSetSha256',
+  checkedAt: 'payrollComponentsMetadataCheckedAt',
+  calculationRulesSha256: 'payrollComponentsMetadataCalculationRulesSha256',
+  parameterAppendixSha256: 'payrollComponentsMetadataParameterAppendixSha256',
+  handbookSha256: 'payrollComponentsMetadataHandbookSha256',
+  parameterSetSha256: 'payrollComponentsMetadataParameterSetSha256',
+  parameterMappingSha256: 'payrollComponentsMetadataParameterMappingSha256',
+  implementationSha256: 'payrollComponentsMetadataImplementationSha256',
+  implementationHash: 'payrollComponentsMetadataImplementationSha256',
+  algorithmMap: 'payrollComponentsMetadataAlgorithmMap',
+  independentOracle: 'payrollComponentsMetadataIndependentOracle',
+  packageEffectiveFrom: 'payrollComponentsMetadataPackageEffectiveFrom',
+  packageEffectiveTo: 'payrollComponentsMetadataPackageEffectiveTo',
+  rulePackageVersion: 'payrollComponentsSourcePackageVersion',
+  officialSourceIdentifier: 'payrollComponentsMetadataOfficialSourceIdentifier',
+  sourcePublishedOn: 'payrollComponentsMetadataSourcePublishedOn',
+  sourceDecisionEffectiveFrom: 'payrollComponentsMetadataSourceDecisionEffectiveFrom',
+  sourceDecisionExpiresOn: 'payrollComponentsMetadataSourceDecisionExpiresOn',
+  sourceDecisionNoRetroactivity: 'payrollComponentsMetadataSourceDecisionNoRetroactivity',
+  sourceRateBasis: 'payrollComponentsMetadataSourceRateBasis',
+}
+
+function safeExternalUrl(value: string): string | null {
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'https:' || !url.hostname || url.username || url.password) return null
+    return value
+  } catch {
+    return null
+  }
+}
+
+function sourceLinks(metadata: Readonly<Record<string, string>>, t: Translator): readonly {
+  readonly key: string
+  readonly title: string
+  readonly url: string | null
+  readonly originalUrl: string | null
+}[] {
+  return SOURCE_LINK_FIELDS.flatMap(({ titleKey, urlKey, labelKey }) => {
+    const title = metadata[titleKey]
+    const originalUrl = metadata[urlKey]
+    if ((!title || !title.trim()) && (!originalUrl || !originalUrl.trim())) return []
+    return [{
+      key: `${titleKey}:${urlKey}`,
+      title: title?.trim() ? title : t(labelKey),
+      url: originalUrl ? safeExternalUrl(originalUrl) : null,
+      originalUrl: originalUrl ?? null,
+    }]
+  })
+}
+
+type TechnicalMetadataField = {
+  readonly key: string
+  readonly label: string
+  readonly value: string
+}
+
+function technicalMetadataFields(entry: ComponentCatalogEntry, metadata: Readonly<Record<string, string>>, t: Translator): readonly TechnicalMetadataField[] {
+  const summarizedKeys = new Set<string>(['publisher'])
+  const summaryPackageVersion = entry.package.version?.trim() || metadata.rulePackageVersion?.trim()
+  for (const { titleKey, urlKey } of SOURCE_LINK_FIELDS) {
+    if (metadata[titleKey]?.trim()) summarizedKeys.add(titleKey)
+    const url = metadata[urlKey]
+    if (url && safeExternalUrl(url)) summarizedKeys.add(urlKey)
+  }
+
+  const fields: TechnicalMetadataField[] = []
+  if (entry.package.packageHash?.trim()) {
+    fields.push({
+      key: 'package.packageHash',
+      label: t(entry.ownership === 'CUSTOMER_FORK' ? 'payrollComponentsSourcePackageSha256' : 'payrollComponentsPackageSha256'),
+      value: entry.package.packageHash,
+    })
+  }
+  const parameterSetHash = entry.package.parameterSetHash
+  if (parameterSetHash?.trim() && metadata.parameterSetSha256 !== parameterSetHash) {
+    fields.push({ key: 'package.parameterSetHash', label: t('payrollComponentsMetadataParameterSetSha256'), value: parameterSetHash })
+  }
+
+  for (const [name, value] of Object.entries(metadata)) {
+    if (summarizedKeys.has(name)) continue
+    if (name === 'rulePackageVersion' && value === summaryPackageVersion) continue
+    if (name === 'packageHash' && value === entry.package.packageHash) continue
+    if (name === 'parameterSetHash' && value === entry.package.parameterSetHash) continue
+    const labelKey = METADATA_LABEL_KEYS[name]
+    const label = name === 'packageHash' && entry.ownership === 'CUSTOMER_FORK'
+      ? t('payrollComponentsSourcePackageSha256')
+      : labelKey ? t(labelKey) : name
+    fields.push({ key: `sourceMetadata.${name}`, label, value })
+  }
+
+  return fields
+}
+
+function MetadataValue({ field, t }: { field: TechnicalMetadataField; t: Translator }) {
+  const url = safeExternalUrl(field.value)
   return <div className="min-w-0">
-    <dt className="break-words text-xs font-medium text-muted-foreground">{name}</dt>
-    <dd className="mt-1 break-all text-sm text-foreground">
-      {isUrl ? <a className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-focus" href={value} rel="noreferrer" target="_blank">{value}</a> : value}
+    <dt className="min-w-0 break-words text-xs font-medium text-muted-foreground">{field.label}</dt>
+    <dd className="mt-1 flex min-w-0 items-start gap-1 text-sm text-foreground">
+      {url ? <a className="max-h-32 min-w-0 flex-1 overflow-auto break-all underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-focus" href={url} rel="noopener noreferrer" target="_blank">{field.value}</a> : <span className="max-h-32 min-w-0 flex-1 overflow-auto whitespace-pre-wrap break-all">{field.value}</span>}
+      <ProvenanceCopyButton copiedLabel={t('payrollComponentsCopiedProvenanceValue')} copyLabel={`${t('payrollComponentsCopyProvenanceValue')} ${field.label}`} failedLabel={t('payrollComponentsCopyProvenanceFailed')} value={field.value} />
     </dd>
   </div>
 }
@@ -165,10 +272,26 @@ export function ComponentLibraryEntryDetail({
 }) {
   const definition = entry.definition
   const ownership = definition.ownership
+  const provenanceMetadata = entry.sourceMetadata ?? {}
   const versions = components
     .filter((candidate) => candidate.definition.code === definition.code)
     .sort((left, right) => left.definition.version.localeCompare(right.definition.version))
   const methodKind = definition.method.kind
+  const sourceDocuments = sourceLinks(provenanceMetadata, t)
+  const technicalFields = technicalMetadataFields(entry, provenanceMetadata, t)
+  const packageId = entry.package.packageId?.trim() || entry.package.compositionId.trim()
+  const packageVersion = entry.package.version?.trim() || provenanceMetadata.rulePackageVersion?.trim()
+  const publisher = provenanceMetadata.publisher?.trim() ? provenanceMetadata.publisher : null
+  const forkOrigin = ownership.kind === 'CUSTOMER_FORK' ? `${ownership.origin.code} v${ownership.origin.version}` : null
+  const forkedAt = ownership.kind === 'CUSTOMER_FORK' ? ownership.forkedAt : null
+  const provenanceItems = [
+    { label: t('payrollComponentsOwnership'), value: t(`payrollComponentsOwnership_${entry.ownership}`) },
+    ...(packageId ? [{ label: t(entry.ownership === 'CUSTOMER_FORK' ? 'payrollComponentsSourcePackage' : 'payrollComponentsPackage'), value: <span className="break-all font-mono text-xs">{packageId}</span> }] : []),
+    ...(packageVersion ? [{ label: t(entry.ownership === 'CUSTOMER_FORK' ? 'payrollComponentsSourcePackageVersion' : 'payrollComponentsPackageVersion'), value: <span className="font-mono text-xs">{packageVersion}</span> }] : []),
+    ...(forkOrigin ? [{ label: t('payrollComponentsOrigin'), value: <span className="break-all font-mono text-xs">{forkOrigin}</span> }] : []),
+    ...(forkedAt ? [{ label: t('payrollComponentsForkedAt'), value: formatDateTime(forkedAt, locale) }] : []),
+    ...(publisher ? [{ label: t('payrollComponentsPublisher'), value: publisher }] : []),
+  ]
 
   return <Surface className="space-y-6 p-4 sm:p-6">
     {entry.status === 'DRAFT' ? <p className="rounded-[var(--radius-surface)] border border-info/30 bg-info-surface p-3 text-sm text-foreground" role="status">{t('payrollComponentsDraftInactive')}</p> : null}
@@ -177,7 +300,6 @@ export function ComponentLibraryEntryDetail({
       <InfoList className="mt-4" columns={2} items={[
         { label: t('payrollComponentsCode'), value: <span className="space-y-1"><code className="block break-all font-mono text-xs">{definition.code}</code>{entry.displayCode && entry.displayCode !== definition.code ? <span className="block text-xs text-muted-foreground">{t('payrollComponentsEditorDisplayCode')}: {entry.displayCode}</span> : null}</span> },
         { label: t('payrollComponentsType'), value: t(`payrollComponentsMethod_${methodKind}`) },
-        { label: t('payrollComponentsOwnership'), value: t(`payrollComponentsOwnership_${entry.ownership}`) },
         { label: t('payrollComponentsStatus'), value: t(`payrollComponentsStatus_${payrollComponentStatus(entry)}`) },
         { label: t('payrollComponentsVersion'), value: <span className="font-mono">{definition.version}</span> },
         { label: t('payrollComponentsCategory'), value: payrollComponentCategory(entry, t) },
@@ -262,23 +384,27 @@ export function ComponentLibraryEntryDetail({
       {versions.length ? <ul className="mt-4 space-y-2">{versions.map((version) => <li className="flex min-w-0 flex-wrap items-center gap-2" key={version.key}>
         {version.key === entry.key ? <Badge tone="info">v{version.definition.version}</Badge> : <Link className="font-mono text-sm text-accent-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={`/payroll-components?component=${encodeURIComponent(version.key)}`}>v{version.definition.version}</Link>}
         <span className="break-all text-xs text-muted-foreground">{formatDate(version.definition.effectiveFrom, locale)} – {formatDate(version.definition.effectiveTo, locale)}</span>
-        <span className="break-all text-xs text-muted-foreground">{version.package.version ?? version.package.compositionId}</span>
+        {version.key !== entry.key ? <span className="break-all text-xs text-muted-foreground">{version.package.version ?? version.package.compositionId}</span> : null}
       </li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">{t('payrollComponentsNoVersions')}</p>}
     </section>
 
     <section aria-labelledby="payroll-component-provenance" className="border-t border-border-subtle pt-5">
       <SectionHeader title={<span id="payroll-component-provenance">{t('payrollComponentsProvenance')}</span>} />
-      <InfoList className="mt-4" columns={2} items={[
-        { label: t('payrollComponentsOwnership'), value: t(`payrollComponentsOwnership_${entry.ownership}`) },
-        { label: t(ownership.kind === 'CUSTOMER_FORK' ? 'payrollComponentsSourcePackage' : 'payrollComponentsPackage'), value: entry.package.packageId ?? entry.package.compositionId },
-        { label: t(ownership.kind === 'CUSTOMER_FORK' ? 'payrollComponentsSourcePackageVersion' : 'payrollComponentsPackageVersion'), value: entry.package.version ?? '—' },
-        { label: t(ownership.kind === 'CUSTOMER_FORK' ? 'payrollComponentsSourcePackageHash' : 'payrollComponentsPackageHash'), value: entry.package.packageHash ? <code className="break-all font-mono text-xs">{entry.package.packageHash}</code> : '—' },
-        ...(ownership.kind === 'CUSTOMER_FORK' ? [
-          { label: t('payrollComponentsOrigin'), value: <span className="break-all font-mono text-xs">{ownership.origin.code} v{ownership.origin.version}</span> },
-          { label: t('payrollComponentsForkedAt'), value: formatDateTime(ownership.forkedAt, locale) },
-        ] : []),
-      ]} />
-      {entry.sourceMetadata && Object.keys(entry.sourceMetadata).length ? <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">{Object.entries(entry.sourceMetadata).map(([name, value]) => <MetadataValue key={name} name={name} value={value} />)}</dl> : <p className="mt-4 text-sm text-muted-foreground">{t('payrollComponentsNoSourceMetadata')}</p>}
+      <div className="@container min-w-0">
+        <InfoList className="mt-4 @md:grid-cols-2" columns={1} items={provenanceItems} />
+        {sourceDocuments.length ? <div className="mt-4 min-w-0">
+          <p className="text-xs font-medium text-muted-foreground">{t('payrollComponentsOfficialSources')}</p>
+          <ul className="mt-2 grid min-w-0 grid-cols-1 gap-2 @md:grid-cols-2">{sourceDocuments.map((source) => <li className="flex min-w-0 items-start gap-1" key={source.key}>
+            {source.url ? <a aria-label={`${source.title} (${t('payrollComponentsOpensInNewTab')})`} className="min-w-0 flex-1 break-words text-sm text-accent-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-focus" href={source.url} rel="noopener noreferrer" target="_blank">{source.title}</a> : <span className="min-w-0 flex-1 break-words text-sm">{source.title}</span>}
+            {source.originalUrl && source.url ? <ProvenanceCopyButton copiedLabel={t('payrollComponentsCopiedProvenanceValue')} copyLabel={`${t('payrollComponentsCopyProvenanceValue')} ${source.title}`} failedLabel={t('payrollComponentsCopyProvenanceFailed')} value={source.originalUrl} /> : null}
+          </li>)}</ul>
+        </div> : null}
+        {technicalFields.length ? <details className="mt-4 min-w-0 rounded-[var(--radius-surface)] border border-border-subtle bg-surface-subtle">
+          <summary className="cursor-pointer rounded-[var(--radius-surface)] px-3 py-2 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{t('payrollComponentsTechnicalProvenance')}</summary>
+          <dl className="grid min-w-0 grid-cols-1 gap-x-6 gap-y-3 border-t border-border-subtle px-3 py-3 @md:grid-cols-2">{technicalFields.map((field) => <MetadataValue field={field} key={field.key} t={t} />)}</dl>
+        </details> : null}
+        {!Object.keys(provenanceMetadata).length && !packageId && !packageVersion && !technicalFields.length ? <p className="mt-4 text-sm text-muted-foreground">{t('payrollComponentsNoSourceMetadata')}</p> : null}
+      </div>
     </section>
   </Surface>
 }

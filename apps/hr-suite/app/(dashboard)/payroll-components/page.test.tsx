@@ -34,6 +34,8 @@ vi.mock('@/lib/i18n/server', () => ({
       payrollComponentsSourcePackage: 'Bronregelpakket',
       payrollComponentsSourcePackageVersion: 'Bronpakketversie',
       payrollComponentsSourcePackageHash: 'Bronpakketchecksum',
+      payrollComponentsPackageSha256: 'Pakket SHA-256',
+      payrollComponentsSourcePackageSha256: 'Bronpakket SHA-256',
       payrollComponentsScope_INCOME_RELATIONSHIP: 'Inkomstenverhouding',
       payrollComponentsValueType_MONEY: 'Bedrag',
       payrollComponentsValueType_DECIMAL: 'Decimaal getal',
@@ -71,7 +73,7 @@ const systemEntry: ComponentCatalogEntry = {
     tracePolicy: 'FULL',
   },
   ownership: 'SYSTEM',
-  package: { compositionId: 'NL-PAYROLL-2026', packageId: 'NL-PAYROLL-2026', version: '2026.1', packageHash: 'package-hash' },
+  package: { compositionId: 'NL-PAYROLL-2026', packageId: 'NL-PAYROLL-2026', version: '2026.1', packageHash: 'a'.repeat(64) },
   sourceMetadata: { calculationRulesTitle: 'Belastingplan 2026', sourceUrl: 'https://example.test/source' },
   roundingDefinitions: [],
   parameters: {},
@@ -94,7 +96,8 @@ const draftEntry: ComponentCatalogEntry = {
   },
   ownership: 'CUSTOMER_FORK',
   status: 'DRAFT',
-  package: { compositionId: 'customer-drafts', packageId: 'customer-drafts' },
+  package: { ...systemEntry.package },
+  sourceMetadata: systemEntry.sourceMetadata,
   roundingDefinitions: [],
   parameters: {},
   dependencies: [],
@@ -102,6 +105,22 @@ const draftEntry: ComponentCatalogEntry = {
   downstream: [],
   validation: { valid: true, issues: [] },
   forkable: false,
+}
+
+const detailNavigation = navigationNl as unknown as Readonly<Record<string, unknown>>
+const translateDetail = (key: string): string => {
+  const value = detailNavigation[key]
+  return typeof value === 'string' ? value : key
+}
+
+function renderProvenance(entry: ComponentCatalogEntry, components: readonly ComponentCatalogEntry[] = [entry]): string {
+  return renderToStaticMarkup(<ComponentLibraryEntryDetail components={components} entry={entry} locale="nl" t={translateDetail} />)
+}
+
+function provenanceMarkup(markup: string): string {
+  const start = markup.indexOf('<section aria-labelledby="payroll-component-provenance"')
+  const end = markup.indexOf('</section>', start)
+  return start >= 0 && end >= 0 ? markup.slice(start, end + '</section>'.length) : ''
 }
 
 beforeEach(() => {
@@ -155,9 +174,139 @@ describe('Payroll component library route', () => {
     expect(markup).toContain('Dit concept wordt niet gebruikt in berekeningen. Het ontvangt geen systeemupdates.')
     expect(markup).toContain('Bronregelpakket')
     expect(markup).toContain('Bronpakketversie')
-    expect(markup).toContain('Bronpakketchecksum')
+    expect(markup).toContain('Bronpakket SHA-256')
     expect(markup).toContain('De kopie is opgeslagen als eigen concept.')
     expect(markup).not.toContain('name="catalogKey"')
+  })
+
+  it('shows compact SYSTEM provenance and descriptive official source links by default', () => {
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      sourceMetadata: {
+        publisher: 'Belastingdienst',
+        calculationRulesTitle: 'Rekenvoorschriften voor de geautomatiseerde loonadministratie 2026',
+        calculationRulesUrl: 'https://example.test/rekenvoorschriften-2026.pdf',
+        calculationRulesSha256: 'a'.repeat(64),
+      },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('Systeemcomponent')
+    expect(markup).toContain('NL-PAYROLL-2026')
+    expect(markup).toContain('2026.1')
+    expect(markup).toContain('Belastingdienst')
+    expect(markup).toContain('Rekenvoorschriften voor de geautomatiseerde loonadministratie 2026')
+    expect(markup).toContain('href="https://example.test/rekenvoorschriften-2026.pdf"')
+    expect(markup).toContain('rel="noopener noreferrer"')
+    expect(markup).not.toMatch(/<details[^>]*\sopen(?:=|\s|>)/)
+    expect(markup).toContain('a'.repeat(64))
+    expect(markup).not.toContain('payrollComponentsOwnership')
+  })
+
+  it('shows a CUSTOMER_FORK origin and copy date without repeating ownership elsewhere', () => {
+    const entry: ComponentCatalogEntry = {
+      ...draftEntry,
+      package: { compositionId: 'customer-drafts', packageId: 'NL-PAYROLL-2026', version: '2026.1' },
+      sourceMetadata: { publisher: 'Belastingdienst' },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry, [entry, systemEntry]))
+
+    expect(markup).toContain('Eigen kopie')
+    expect(markup).toContain('Oorspronkelijke systeemcomponent')
+    expect(markup).toContain('NL_NET_PAY v2026.1')
+    expect(markup).toContain('Gekopieerd op')
+    expect(markup).toContain('1 okt 2026')
+    expect(markup.match(/Eigen kopie/g)).toHaveLength(1)
+  })
+
+  it('keeps a CUSTOMER_CUSTOM entry compact when package metadata is absent', () => {
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      key: 'customer::CUSTOM_001::1.0.0',
+      definition: {
+        ...systemEntry.definition,
+        id: 'customer:custom:001',
+        code: 'CUSTOM_001',
+        version: '1.0.0',
+        ownership: { kind: 'CUSTOMER_CUSTOM' },
+      },
+      ownership: 'CUSTOMER_CUSTOM',
+      package: { compositionId: '' },
+      sourceMetadata: undefined,
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('Eigen component')
+    expect(markup).toContain('Er is geen bronmetadata vastgelegd.')
+    expect(markup).not.toContain('Regelpakket')
+    expect(markup).not.toContain('Pakketversie')
+    expect(markup).not.toContain('<details')
+  })
+
+  it('keeps extra metadata visible under the collapsed technical provenance disclosure', () => {
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      sourceMetadata: {
+        publisher: 'Belastingdienst',
+        checkedAt: '2026-09-30',
+        algorithmMap: 'docs/payroll/research/regular-wage.md',
+        independentOracle: 'docs/payroll/research/oracle.md',
+        parameterSetSha256: 'b'.repeat(64),
+        auditFieldFromNewerPackage: 'preserve this exact value',
+      },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('<summary')
+    expect(markup).toContain('Technische herkomst en auditgegevens')
+    expect(markup).toContain('Gecontroleerd op')
+    expect(markup).toContain('Algoritmekoppeling')
+    expect(markup).toContain('Onafhankelijke referentieberekening')
+    expect(markup).toContain('Parameterset SHA-256')
+    expect(markup).toContain('auditFieldFromNewerPackage')
+    expect(markup).toContain('preserve this exact value')
+    expect(markup).not.toMatch(/<details[^>]*\sopen(?:=|\s|>)/)
+  })
+
+  it('wraps long hashes, paths and URLs and refuses unsafe external links', () => {
+    const hash = 'f'.repeat(64)
+    const technicalPath = `docs/payroll/${'nested/'.repeat(24)}algorithm-map.md`
+    const longUrl = `https://example.test/${'official-source/'.repeat(24)}handbook.pdf`
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      package: { ...systemEntry.package, packageHash: hash, parameterSetHash: '1'.repeat(64) },
+      sourceMetadata: {
+        parameterSetSha256: '1'.repeat(64),
+        officialSourceTitle: 'Handboek loonheffingen',
+        officialSourceUrl: longUrl,
+        algorithmMap: technicalPath,
+        uncheckedSourceUrl: 'javascript:alert(1)',
+      },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('f'.repeat(64))
+    expect(markup.split('1'.repeat(64))).toHaveLength(2)
+    expect(markup).toContain(technicalPath)
+    expect(markup).toContain(`href="${longUrl}"`)
+    expect(markup).toContain('aria-label="Kopieer waarde Pakket SHA-256"')
+    expect(markup).toContain('aria-label="Kopieer waarde Parameterset SHA-256"')
+    expect(markup).toContain('min-w-0 flex-1')
+    expect(markup).toContain('break-all')
+    expect(markup).not.toContain('href="javascript:alert(1)"')
+    expect(markup).toContain('javascript:alert(1)')
+  })
+
+  it('uses container-responsive one or two column layouts for narrow detail views', () => {
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      sourceMetadata: { publisher: 'Belastingdienst', checkedAt: '2026-09-30' },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('@container')
+    expect(markup).toContain('@md:grid-cols-2')
+    expect(markup).toContain('grid-cols-1')
   })
 
   it('opens the customer draft editor and returns to its saved version history', async () => {
