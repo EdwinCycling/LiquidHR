@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Payrun01ServiceDependencies } from './payrun01-service'
-import type { Payrun01ArtifactMetadata } from './payrun01-repository'
+import type { Payrun01Artifact, Payrun01ArtifactMetadata } from './payrun01-repository'
 import type { PayrollScope } from './scope'
 import type { PayrollControlStatus, PayrollJson } from './database'
 
 const { renderPdf, pdfModuleLoads } = vi.hoisted(() => ({ renderPdf: vi.fn(), pdfModuleLoads: { count: 0 } }))
 vi.mock('./payrun01-payslip-pdf', () => {
   pdfModuleLoads.count += 1
-  return { renderPayrun01PayslipPdf: renderPdf }
+  return {
+    LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID: 'LIQUIDHR_STANDARD_V1',
+    renderPayrun01PayslipPdf: renderPdf,
+  }
 })
 
 import {
@@ -15,6 +18,7 @@ import {
   createPayrun01TechnicalJsonArtifact,
   finalizePayrun01Payroll,
   getPayrun01Lifecycle,
+  renderPayrun01PayslipPdfPreviewForRun,
   reviewPayrun01Payroll,
 } from './payrun01-service'
 
@@ -113,7 +117,7 @@ function fixture(events: LifecycleEventFixture[] = [
     insertLifecycleEvent: vi.fn(async (_scope: PayrollScope, _administrationId: string, row: Record<string, unknown>) => row),
     getAssignmentVersion: vi.fn(async () => assignmentVersion),
     getCalculationConfigVersion: vi.fn(async () => configVersion),
-    getArtifact: vi.fn(async () => null),
+    getArtifact: vi.fn(async (): Promise<Payrun01Artifact | null> => null),
     insertArtifact: vi.fn(async (_scope: PayrollScope, _administrationId: string, metadata: Payrun01ArtifactMetadata, bytes: Uint8Array) => ({
       ...metadata,
       id: 'b0000000-0000-4000-8000-000000000001',
@@ -217,7 +221,7 @@ describe('PAYRUN01 persisted payslip PDF artifact', () => {
     renderPdf.mockResolvedValue(pdfBytes)
   })
 
-  it('renders from the finalized stored amounts and pins the artifact to the persisted versions', async () => {
+  it('renders the finalized stored components with the standard template before inserting the artifact', async () => {
     const { payrunRepository, dependencies } = fixture()
     const artifact = await createPayrun01PayslipPdfArtifact({
       scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
@@ -229,14 +233,15 @@ describe('PAYRUN01 persisted payslip PDF artifact', () => {
     }, dependencies)
 
     expect(renderPdf).toHaveBeenCalledWith(expect.objectContaining({
-      run: { id: runId, resultHash },
-      profile: expect.objectContaining({ contractType: 'INDEFINITE' }),
-      versions: expect.objectContaining({ sourceHash, inputHash, configurationHash: configHash }),
-      components: expect.arrayContaining([
-        { key: 'gross_salary', amount: '5500.00' },
-        { key: 'wage_tax', amount: '1577.17' },
-        { key: 'net_salary', amount: '3922.83' },
-      ]),
+      presentation: { templateId: 'LIQUIDHR_STANDARD_V1' },
+      data: expect.objectContaining({
+        profile: expect.objectContaining({ contractType: 'INDEFINITE' }),
+        components: expect.arrayContaining([
+          { key: 'gross_salary', amount: '5500.00' },
+          { key: 'wage_tax', amount: '1577.17' },
+          { key: 'net_salary', amount: '3922.83' },
+        ]),
+      }),
     }))
     expect(payrunRepository.insertArtifact).toHaveBeenCalledWith(
       expect.any(Object),
@@ -245,6 +250,79 @@ describe('PAYRUN01 persisted payslip PDF artifact', () => {
       pdfBytes,
     )
     expect(artifact.artifact_type).toBe('PAYSLIP_PDF')
+  })
+
+  it('returns a historical PDF unchanged without rendering or inserting a replacement', async () => {
+    const { payrunRepository, dependencies } = fixture()
+    const originalBytes = Buffer.from('%PDF-1.4\nhistorical payslip bytes')
+    const historicalArtifact = {
+      artifact_type: 'PAYSLIP_PDF',
+      artifact_bytes: originalBytes,
+      file_name: 'existing-payroll-payslip.pdf',
+    } as unknown as Payrun01Artifact
+    payrunRepository.getArtifact.mockResolvedValue(historicalArtifact)
+
+    const artifact = await createPayrun01PayslipPdfArtifact({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      employeeId,
+      kind: 'DEMO_COMPANY_TEST',
+      runId,
+    }, dependencies)
+
+    expect(artifact).toBe(historicalArtifact)
+    expect(Buffer.from(artifact.artifact_bytes)).toEqual(originalBytes)
+    expect(renderPdf).not.toHaveBeenCalled()
+    expect(payrunRepository.insertArtifact).not.toHaveBeenCalled()
+  })
+
+  it('renders an authorized preview from the finalized stored data without inserting an artifact', async () => {
+    const { artifacts, dependencies, payrunRepository } = fixture()
+    artifacts.sourceSnapshot.source_payload = {
+      employment: { contractType: 'INDEFINITE' },
+      incomeRelationship: { status: 'UNSUPPORTED' },
+      payrollOwned: {
+        provenance: {
+          resolvedSourceGaps: [
+            { field: 'taxProfile', status: 'SOURCE_GAP' },
+            { field: 'incomeRelationship', status: 'UNSUPPORTED' },
+          ],
+        },
+      },
+    }
+
+    const preview = await renderPayrun01PayslipPdfPreviewForRun({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      runId,
+    }, dependencies)
+
+    expect(preview).toMatchObject({ content_type: 'application/pdf', artifact_bytes: pdfBytes })
+    expect(renderPdf).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        sourceWarnings: expect.arrayContaining([
+          'Fiscale brongegevens zijn niet bevestigd in de bron.',
+          'Gegevens over de inkomensverhouding zijn niet volledig bevestigd in de bron.',
+        ]),
+      }),
+    }))
+    expect(payrunRepository.insertArtifact).not.toHaveBeenCalled()
+  })
+
+  it('does not render a preview when the requested run is out of scope', async () => {
+    const { dependencies, payrunRepository } = fixture()
+    dependencies.payrollRepository.getLatestSyntheticArtifacts = vi.fn(async () => null)
+
+    await expect(renderPayrun01PayslipPdfPreviewForRun({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      runId,
+    }, dependencies)).rejects.toMatchObject({ code: 'PAYROLL_INPUT_INVALID' })
+    expect(renderPdf).not.toHaveBeenCalled()
+    expect(payrunRepository.insertArtifact).not.toHaveBeenCalled()
   })
 
   it('passes the excluded-pension boundary into the PDF presentation', async () => {
@@ -279,7 +357,9 @@ describe('PAYRUN01 persisted payslip PDF artifact', () => {
     )
 
     expect(renderPdf).toHaveBeenCalledWith(expect.objectContaining({
-      profile: expect.objectContaining({ pensionTreatment: 'EXCLUDED_SOURCE_GAP' }),
+      data: expect.objectContaining({
+        profile: expect.objectContaining({ pensionTreatment: 'EXCLUDED_SOURCE_GAP' }),
+      }),
     }))
   })
 

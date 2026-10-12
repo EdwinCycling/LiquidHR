@@ -113,6 +113,11 @@ const labels: Readonly<Record<string, string>> = {
   notFinalized: 'Not finalized',
   conceptStatus: 'Concept — not final',
   notSucceeded: 'Not succeeded',
+  downloadJson: 'Download JSON',
+  downloadPdf: 'Download stored PDF',
+  viewStandardPayslip: 'View standard payslip',
+  downloadStandardPayslip: 'Download standard payslip',
+  compare: 'Compare',
   reconciliationFlow: 'Reconciliation',
   employeeReconciliationFormula: 'Employee calculation formula',
   employerReconciliationFormula: 'Employer calculation formula',
@@ -198,8 +203,11 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     expect(conceptMarkup).toContain('Concept — not final')
     expect(conceptMarkup).toContain('Not finalized')
     expect(conceptMarkup).not.toContain('/artifact/TECHNICAL_JSON')
+    expect(conceptMarkup).not.toContain('/payslip-preview')
     expect(finalizedMarkup).toContain('Finalized')
     expect(finalizedMarkup).toContain('/artifact/TECHNICAL_JSON')
+    expect(finalizedMarkup).toContain('/payslip-preview')
+    expect(finalizedMarkup).toContain('/payslip-preview?download=1')
   })
 
   it('shows the PFZW source gap and non-definitive net without inventing a zero pension', () => {

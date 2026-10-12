@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
     ],
     '/payroll-lab/salarisverwerking': serverlessPdfRuntimeFiles,
     '/api/payroll-lab/validation-pack': serverlessPdfRuntimeFiles,
+    '/api/payroll/runs/*/payslip-preview': [
+      ...serverlessPdfRuntimeFiles,
+      './public/brand/logo/branding/logo-horizontal.png',
+    ],
   },
   turbopack: {
     root: path.resolve(__dirname, '../..'),

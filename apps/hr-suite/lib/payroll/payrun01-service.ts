@@ -1650,24 +1650,74 @@ export async function createPayrun01TechnicalJsonArtifact(
   }
 }
 
-export async function createPayrun01PayslipPdfArtifact(
+type Payrun01PayslipLifecycleEvidence = Awaited<ReturnType<typeof loadLifecycleEvidence>>
+
+async function loadFinalizedPayslipEvidence(
   input: Payrun01LifecycleInput,
-  dependencies = defaultDependencies(),
-) {
-  const { artifacts, inputReference, events } = await loadLifecycleEvidence(input, dependencies, false)
-  assertPayrun01Finalized(events, input.runId)
-  if (artifacts.run.status !== 'SUCCEEDED' || artifacts.controls.some((control) => control.status === 'FAIL')) {
+  dependencies: Payrun01ServiceDependencies,
+): Promise<Payrun01PayslipLifecycleEvidence> {
+  const evidence = await loadLifecycleEvidence(input, dependencies, false)
+  assertPayrun01Finalized(evidence.events, input.runId)
+  if (evidence.artifacts.run.status !== 'SUCCEEDED'
+    || evidence.artifacts.controls.some((control) => control.status === 'FAIL')) {
     throw new SyntheticPayrollServiceError('PAYROLL_CALCULATION_BLOCKED', input.runId)
   }
+  return evidence
+}
 
-  const existing = await dependencies.payrunRepository.getArtifact(
-    input.scope,
-    input.payrollAdministrationId,
-    input.runId,
-    'PAYSLIP_PDF',
-  )
-  if (existing) return existing
+const PAYSLIP_SOURCE_GAP_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  fiscalProfile: 'Fiscale profielgegevens zijn niet bevestigd in de bron.',
+  taxProfile: 'Fiscale brongegevens zijn niet bevestigd in de bron.',
+  incomeRelationship: 'Gegevens over de inkomensverhouding zijn niet volledig bevestigd in de bron.',
+  regularWage: 'Gegevens over het reguliere loon zijn niet volledig bevestigd in de bron.',
+  schedule: 'Roostergegevens zijn niet volledig bevestigd in de bron.',
+  actualWork: 'Gegevens over gewerkte uren zijn niet volledig bevestigd in de bron.',
+  employment: 'Dienstverbandgegevens zijn niet volledig bevestigd in de bron.',
+  contract: 'Contractgegevens zijn niet volledig bevestigd in de bron.',
+  pension: 'Pensioengegevens zijn niet volledig bevestigd in de bron.',
+})
 
+function payrun01PayslipSourceWarnings(
+  sourcePayload: PayrollJson,
+  controls: Payrun01PayslipLifecycleEvidence['artifacts']['controls'],
+  pensionTreatment: 'DISABLED' | 'EXCLUDED_SOURCE_GAP' | undefined,
+): string[] {
+  const warnings = new Set<string>()
+  if (isJsonObject(sourcePayload)) {
+    for (const [field, value] of Object.entries(sourcePayload)) {
+      if (!isJsonObject(value)) continue
+      const status = jsonString(value.status)
+      if (status !== 'SOURCE_GAP' && status !== 'EXCLUDED_SOURCE_GAP' && status !== 'UNSUPPORTED') continue
+      warnings.add(PAYSLIP_SOURCE_GAP_LABELS[field] ?? 'Een brongegeven is niet bevestigd.')
+    }
+    const payrollOwned = isJsonObject(sourcePayload.payrollOwned) ? sourcePayload.payrollOwned : undefined
+    const pension = isJsonObject(payrollOwned?.pension) ? payrollOwned.pension : undefined
+    const pensionStatus = jsonString(pension?.status)
+    if (pensionStatus === 'SOURCE_GAP' || pensionStatus === 'EXCLUDED_SOURCE_GAP' || pensionTreatment === 'EXCLUDED_SOURCE_GAP') {
+      warnings.add(PAYSLIP_SOURCE_GAP_LABELS.pension)
+    }
+    const provenance = isJsonObject(payrollOwned?.provenance) ? payrollOwned.provenance : undefined
+    const resolvedSourceGaps = Array.isArray(provenance?.resolvedSourceGaps) ? provenance.resolvedSourceGaps : []
+    for (const gap of resolvedSourceGaps) {
+      if (!isJsonObject(gap)) continue
+      const status = jsonString(gap.status)
+      if (status !== 'SOURCE_GAP' && status !== 'EXCLUDED_SOURCE_GAP' && status !== 'UNSUPPORTED') continue
+      const field = jsonString(gap.field)
+      warnings.add(field ? PAYSLIP_SOURCE_GAP_LABELS[field] ?? 'Een brongegeven is niet bevestigd.' : 'Een brongegeven is niet bevestigd.')
+    }
+  }
+  if (controls.some((control) => control.status === 'WARN')) {
+    warnings.add('Een payrollcontrole vraagt om aandacht en moet door HR worden beoordeeld.')
+  }
+  return [...warnings]
+}
+
+async function renderPayrun01Payslip(
+  input: Payrun01LifecycleInput,
+  evidence: Payrun01PayslipLifecycleEvidence,
+  dependencies: Payrun01ServiceDependencies,
+) {
+  const { artifacts, inputReference, events } = evidence
   const reference = inputReference.input_provenance_json
   const versions = isJsonObject(reference) && isJsonObject(reference.versions) ? reference.versions : null
   const assignmentVersionNumber = jsonNumber(versions?.assignmentVersionNumber)
@@ -1715,10 +1765,6 @@ export async function createPayrun01PayslipPdfArtifact(
   const isOnCall = jsonBoolean(rawProfile.isOnCall)
   const contractHoursPerWeek = jsonNumber(rawProfile.contractHoursPerWeek)
   const fulltimeHoursPerWeek = jsonNumber(rawProfile.fulltimeHoursPerWeek)
-  const minimumHourlyWage = jsonString(rawProfile.minimumHourlyWage)
-  const minimumHourlyWageEffectiveFrom = jsonString(rawProfile.minimumHourlyWageEffectiveFrom)
-  const ageCategory = jsonString(rawProfile.minimumHourlyWageAgeCategory)
-  const profileSource = jsonString(rawProfile.source)
   const pensionConfig = isJsonObject(configVersion.config_json.pension) ? configVersion.config_json.pension : undefined
   const pensionMode = jsonString(pensionConfig?.mode)
   const pensionTreatment = pensionMode === 'EXCLUDED_SOURCE_GAP'
@@ -1726,12 +1772,10 @@ export async function createPayrun01PayslipPdfArtifact(
     : pensionMode === 'DISABLED' ? 'DISABLED' : undefined
   if (status !== 'SYNTHETIC_TEST_PROFILE' || !employerName || !employeeName || writtenContract === null
     || (contractType !== 'DEFINITE' && contractType !== 'INDEFINITE') || isOnCall === null
-    || contractHoursPerWeek === null || fulltimeHoursPerWeek === null
-    || !minimumHourlyWage || !minimumHourlyWageEffectiveFrom
-    || ageCategory !== 'AGE_21_PLUS' || !profileSource) {
+    || contractHoursPerWeek === null || fulltimeHoursPerWeek === null) {
     throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', input.runId)
   }
-  const profile: Payrun01PayslipPdfInput['profile'] = {
+  const profile: Payrun01PayslipPdfInput['data']['profile'] = {
     status,
     employerName,
     employeeName,
@@ -1740,37 +1784,30 @@ export async function createPayrun01PayslipPdfArtifact(
     isOnCall,
     contractHoursPerWeek,
     fulltimeHoursPerWeek,
-    minimumHourlyWage,
-    minimumHourlyWageEffectiveFrom,
-    minimumHourlyWageAgeCategory: ageCategory,
     ...(pensionTreatment ? { pensionTreatment } : {}),
-    source: profileSource,
   }
   const components = artifacts.componentResults.flatMap((row) => {
     if (!isJsonObject(row.result_payload)) return []
     const amount = jsonString(row.result_payload.amount)
     return amount === null ? [] : [{ key: row.component_key, amount }]
   })
+  const sourcePayload = artifacts.sourceSnapshot.source_payload
   let bytes: Uint8Array
+  const { renderPayrun01PayslipPdf, LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID } = await import('./payrun01-payslip-pdf')
   try {
-    const { renderPayrun01PayslipPdf } = await import('./payrun01-payslip-pdf')
     bytes = await renderPayrun01PayslipPdf({
-      period: {
-        year: artifacts.payrollPeriod.period_year,
-        month: artifacts.payrollPeriod.period_month,
-        startsOn: artifacts.payrollPeriod.starts_on,
-        endsOn: artifacts.payrollPeriod.ends_on,
+      data: {
+        period: {
+          year: artifacts.payrollPeriod.period_year,
+          month: artifacts.payrollPeriod.period_month,
+          startsOn: artifacts.payrollPeriod.starts_on,
+          endsOn: artifacts.payrollPeriod.ends_on,
+        },
+        profile,
+        components,
+        sourceWarnings: payrun01PayslipSourceWarnings(sourcePayload, artifacts.controls, pensionTreatment),
       },
-      run: { id: artifacts.run.id, resultHash: artifacts.run.result_hash ?? '' },
-      versions: {
-        sourceHash: artifacts.sourceSnapshot.source_hash,
-        inputHash: artifacts.inputSet.input_hash,
-        configurationHash: configVersion.config_hash,
-        compositionId: artifacts.inputSet.rule_package_composition_id,
-        engineVersion: artifacts.inputSet.engine_version,
-      },
-      profile,
-      components,
+      presentation: { templateId: LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID },
     })
   } catch (error) {
     if (error instanceof Error && error.message.startsWith('PAYRUN01_PAYSLIP_')) {
@@ -1781,14 +1818,16 @@ export async function createPayrun01PayslipPdfArtifact(
 
   const pdfHash = createHash('sha256').update(bytes).digest('hex')
   const finalizedEvent = events.find((event) => event.calculation_run_id === input.runId && event.event_type === 'FINALIZED')
+  const fileName = `liquidhr-loonstrook-${artifacts.payrollPeriod.period_year}-${String(artifacts.payrollPeriod.period_month).padStart(2, '0')}.pdf`
   const metadata = {
     ...payrollScopeRecord(input.scope, input.payrollAdministrationId),
     calculation_run_id: input.runId,
     artifact_type: 'PAYSLIP_PDF' as const,
-    file_name: `payrun01-${artifacts.payrollPeriod.period_year}-${String(artifacts.payrollPeriod.period_month).padStart(2, '0')}-${input.kind.toLowerCase()}-${input.runId}.pdf`,
+    file_name: fileName,
     content_type: 'application/pdf',
     provenance_json: jsonRecord({
       schemaVersion: 'PAYRUN01_TEST_PAYSLIP_PDF_PROVENANCE_V1',
+      templateId: LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID,
       inputHash: artifacts.inputSet.input_hash,
       resultHash: artifacts.run.result_hash,
       pdfHash,
@@ -1799,8 +1838,43 @@ export async function createPayrun01PayslipPdfArtifact(
     }) as Exclude<PayrollJson, null>,
     created_by_user_id: input.actorUserId,
   }
+  return { bytes, fileName, metadata }
+}
+
+export async function renderPayrun01PayslipPdfPreview(
+  input: Payrun01LifecycleInput,
+  dependencies = defaultDependencies(),
+) {
+  const evidence = await loadFinalizedPayslipEvidence(input, dependencies)
+  const rendered = await renderPayrun01Payslip(input, evidence, dependencies)
+  return {
+    artifact_bytes: rendered.bytes,
+    content_type: 'application/pdf' as const,
+    file_name: rendered.fileName,
+  }
+}
+
+export async function createPayrun01PayslipPdfArtifact(
+  input: Payrun01LifecycleInput,
+  dependencies = defaultDependencies(),
+) {
+  const evidence = await loadFinalizedPayslipEvidence(input, dependencies)
+  const existing = await dependencies.payrunRepository.getArtifact(
+    input.scope,
+    input.payrollAdministrationId,
+    input.runId,
+    'PAYSLIP_PDF',
+  )
+  if (existing) return existing
+
+  const rendered = await renderPayrun01Payslip(input, evidence, dependencies)
   try {
-    return await dependencies.payrunRepository.insertArtifact(input.scope, input.payrollAdministrationId, metadata, bytes)
+    return await dependencies.payrunRepository.insertArtifact(
+      input.scope,
+      input.payrollAdministrationId,
+      rendered.metadata,
+      rendered.bytes,
+    )
   } catch (error) {
     if (!(error instanceof PayrollCalculationRepositoryError) || error.code !== 'PAYRUN01_ARTIFACT_ALREADY_EXISTS') throw error
     const concurrent = await dependencies.payrunRepository.getArtifact(input.scope, input.payrollAdministrationId, input.runId, 'PAYSLIP_PDF')
@@ -1860,15 +1934,17 @@ export async function getPayrun01TechnicalJsonArtifactForRun(
   return await getPayrun01TechnicalJsonArtifact({ ...input, employeeId, kind }, dependencies)
 }
 
-export async function getPayrun01PayslipPdfArtifactForRun(
-  input: {
-    readonly scope: PayrollScope
-    readonly payrollAdministrationId: string
-    readonly actorUserId: string
-    readonly runId: string
-  },
-  dependencies = defaultDependencies(),
-) {
+type Payrun01ArtifactForRunInput = {
+  readonly scope: PayrollScope
+  readonly payrollAdministrationId: string
+  readonly actorUserId: string
+  readonly runId: string
+}
+
+async function payrun01LifecycleInputForRun(
+  input: Payrun01ArtifactForRunInput,
+  dependencies: Payrun01ServiceDependencies,
+): Promise<Payrun01LifecycleInput> {
   if (!isUuid(input.runId) || !isUuid(input.payrollAdministrationId) || !isUuid(input.actorUserId)) {
     throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID')
   }
@@ -1885,7 +1961,23 @@ export async function getPayrun01PayslipPdfArtifactForRun(
   const employeeId = artifacts.sourceSnapshot.source_employee_id
   const kind = payrun01ScenarioForTestPersona(employeeId)
   if (!kind) throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', input.runId)
-  return await getPayrun01PayslipPdfArtifact({ ...input, employeeId, kind, runId: input.runId }, dependencies)
+  return { ...input, employeeId, kind, runId: input.runId }
+}
+
+export async function getPayrun01PayslipPdfArtifactForRun(
+  input: Payrun01ArtifactForRunInput,
+  dependencies = defaultDependencies(),
+) {
+  const lifecycleInput = await payrun01LifecycleInputForRun(input, dependencies)
+  return await getPayrun01PayslipPdfArtifact(lifecycleInput, dependencies)
+}
+
+export async function renderPayrun01PayslipPdfPreviewForRun(
+  input: Payrun01ArtifactForRunInput,
+  dependencies = defaultDependencies(),
+) {
+  const lifecycleInput = await payrun01LifecycleInputForRun(input, dependencies)
+  return await renderPayrun01PayslipPdfPreview(lifecycleInput, dependencies)
 }
 
 export async function reviewPayrun01Payroll(
