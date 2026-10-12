@@ -60,6 +60,8 @@ const EDITOR_LABEL_KEYS = [
   'payrollComponentsEditorAggregateOperation', 'payrollComponentsEditorCalculation', 'payrollComponentsEditorCalculationContext',
   'payrollComponentsEditorCalculationMethod', 'payrollComponentsEditorTracePolicy_FULL', 'payrollComponentsEditorTracePolicy_OUTPUTS',
   'payrollComponentsEditorTracePolicy_NONE', 'payrollComponentsEditorStatus', 'payrollComponentsEditorCalculated', 'payrollComponentsEditorBlocked',
+  'payrollComponentsEditorConcept', 'payrollComponentsEditorConceptInactive', 'payrollComponentsEditorConvertSourceToFormula',
+  'payrollComponentsEditorConvertSourceToFormulaHelp', 'payrollComponentsEditorDraftStatus',
   'payrollComponentsEditorCategory', 'payrollComponentsEditorCode', 'payrollComponentsEditorCodeHelp',
   'payrollComponentsEditorComponentOutput', 'payrollComponentsEditorControls', 'payrollComponentsEditorDecimalPlaces',
   'payrollComponentsEditorDependencies', 'payrollComponentsEditorDescription', 'payrollComponentsEditorEffectiveFrom',
@@ -71,6 +73,9 @@ const EDITOR_LABEL_KEYS = [
   'payrollComponentsEditorParameterName', 'payrollComponentsEditorParameters', 'payrollComponentsEditorParameterValue',
   'payrollComponentsEditorPreviewInput', 'payrollComponentsEditorPreviewInputHelp', 'payrollComponentsEditorPreviewInputs',
   'payrollComponentsEditorProvenance', 'payrollComponentsEditorReadOnly', 'payrollComponentsEditorRemove',
+  'payrollComponentsEditorSourceField', 'payrollComponentsEditorOwnCalculation',
+  'payrollComponentsEditorOwnCalculationEditable', 'payrollComponentsEditorOwnCalculationNotConverted',
+  'payrollComponentsEditorOwnCalculationReadOnly',
   'payrollComponentsEditorRequired', 'payrollComponentsEditorResult', 'payrollComponentsEditorRounding',
   'payrollComponentsEditorRoundingMode', 'payrollComponentsEditorRunPreview', 'payrollComponentsEditorSaveDraft',
   'payrollComponentsEditorSaveFailed', 'payrollComponentsEditorScope', 'payrollComponentsEditorSelectInput',
@@ -156,6 +161,20 @@ function searchableMetadataValues(value: unknown): string[] {
     return Object.entries(value).flatMap(([key, item]) => [key, ...searchableMetadataValues(item)])
   }
   return []
+}
+
+function trustedSourcePath(entry: ComponentCatalogEntry, components: readonly ComponentCatalogEntry[]): string | undefined {
+  if (entry.definition.ownership.kind !== 'CUSTOMER_FORK') {
+    return entry.definition.method.kind === 'source' ? entry.definition.method.path.join('.') : undefined
+  }
+  const origin = entry.definition.ownership.origin
+  const source = components.find((candidate) => candidate.definition.ownership.kind === 'SYSTEM'
+    && candidate.definition.id === origin.id
+    && candidate.definition.code === origin.code
+    && candidate.definition.version === origin.version
+    && candidate.package.compositionId === entry.package.compositionId
+    && (entry.package.packageHash === undefined || candidate.package.packageHash === entry.package.packageHash))
+  return source?.definition.method.kind === 'source' ? source.definition.method.path.join('.') : undefined
 }
 
 function filterEntries(entries: readonly ComponentCatalogEntry[], filters: Filters, locale: string, t: (key: string) => string): ComponentCatalogEntry[] {
@@ -447,7 +466,7 @@ export default async function PayrollComponentsPage({
       label: `${payrollComponentName(entry, t)} · ${entry.definition.code}.${output.name} · ${output.valueType}`,
     })))
   const editorLabels = Object.fromEntries(EDITOR_LABEL_KEYS.map((key) => [key, t(key)]))
-  const sourcePath = editDraft && selected?.definition.method.kind === 'source' ? selected.definition.method.path.join('.') : undefined
+  const sourcePath = editDraft && selected ? trustedSourcePath(selected, library.components) : undefined
   const provenanceLabel = editDraft && selected?.definition.ownership.kind === 'CUSTOMER_FORK'
     ? `${selected.definition.ownership.origin.code} v${selected.definition.ownership.origin.version}`
     : editDraft ? t('payrollComponentsEditorCustomerCustom') : ''

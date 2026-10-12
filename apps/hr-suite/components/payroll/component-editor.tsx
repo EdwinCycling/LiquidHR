@@ -7,7 +7,12 @@ import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import type { ComponentEditorPayload, ComponentEditorMethodPayload } from '@/lib/payroll/component-editor-contract'
-import type { ComponentEditorState } from '@/lib/payroll/component-editor-state'
+import {
+  componentEditorPayloadFromState,
+  convertCustomerForkSourceToFormula,
+  expressionMethodForOutputs,
+  type ComponentEditorState,
+} from '@/lib/payroll/component-editor-state'
 import type { ComponentEditorValidationResult } from '@/lib/payroll/component-editor-engine'
 import type { PayrollValueType } from '@liquid-hr/payroll-engine'
 import {
@@ -83,11 +88,7 @@ function methodForOutputs(kind: ComponentEditorMethodPayload['kind'], state: Com
   }
   if (kind === 'aggregate') return { kind, operation: 'SUM', inputNames: state.inputs.map((input) => input.name) }
   return {
-    kind: 'expression',
-    formulas: Object.fromEntries(state.outputs.map((output) => [
-      output.name,
-      output.valueType === 'BOOLEAN' ? 'false' : output.valueType === 'STRING' ? '""' : `${output.valueType}(0)`,
-    ])),
+    ...expressionMethodForOutputs(state.outputs),
   }
 }
 
@@ -113,6 +114,8 @@ export function ComponentEditor({
   const requestId = useRef<string | null>(null)
   const router = useRouter()
   const label = (key: string) => labels[key] ?? key
+  const canConvertSourceToFormula = Boolean(canSave && !readOnly && state.draftId
+    && state.ownershipKind === 'CUSTOMER_FORK' && state.method.kind === 'source')
   const formatIssues = (issues: readonly string[]) => issues.map((issue) => (
     label(VALIDATION_ISSUE_KEYS[issue] ?? 'payrollComponentsEditorIssueGeneric')
   )).join(' ')
@@ -139,7 +142,15 @@ export function ComponentEditor({
   }
 
   function validationPayload(): ComponentEditorPayload {
-    return { ...state, requestId: requestId.current ?? crypto.randomUUID() }
+    return componentEditorPayloadFromState(state, requestId.current ?? crypto.randomUUID())
+  }
+
+  function convertSourceToFormula(): void {
+    if (!canConvertSourceToFormula) return
+    requestId.current = null
+    setState((current) => convertCustomerForkSourceToFormula(current))
+    setResult(null)
+    setMessage(null)
   }
 
   function runValidation(preview: boolean): void {
@@ -219,6 +230,18 @@ export function ComponentEditor({
 
   return <fieldset disabled={readOnly} className="m-0 min-w-0 space-y-4 border-0 p-0">
     <Surface className="space-y-6 p-4 sm:p-6">
+      <section aria-labelledby="component-editor-draft-status" className="space-y-2 rounded-[var(--radius-surface)] border border-border-subtle p-3">
+        <h3 className="text-sm font-semibold text-foreground" id="component-editor-draft-status">{label('payrollComponentsEditorDraftStatus')}</h3>
+        <p className="text-sm text-muted-foreground"><strong className="text-foreground">{label('payrollComponentsEditorConcept')}:</strong> {label('payrollComponentsEditorConceptInactive')}</p>
+        {sourcePath ? <p className="break-words text-sm text-muted-foreground"><strong className="text-foreground">{label('payrollComponentsEditorSourceField')}:</strong> <code className="break-all">{sourcePath}</code> ({label('payrollComponentsEditorReadOnly')})</p> : null}
+        <p className="text-sm text-muted-foreground"><strong className="text-foreground">{label('payrollComponentsEditorOwnCalculation')}:</strong> {state.method.kind === 'source'
+          ? label('payrollComponentsEditorOwnCalculationNotConverted')
+          : readOnly ? label('payrollComponentsEditorOwnCalculationReadOnly') : label('payrollComponentsEditorOwnCalculationEditable')}</p>
+        {canConvertSourceToFormula ? <div className="space-y-2">
+          <Button onClick={convertSourceToFormula} type="button" variant="secondary">{label('payrollComponentsEditorConvertSourceToFormula')}</Button>
+          <p className="text-xs text-muted-foreground">{label('payrollComponentsEditorConvertSourceToFormulaHelp')}</p>
+        </div> : null}
+      </section>
       <section aria-labelledby="component-editor-general" className="space-y-4">
         <h3 className="text-base font-semibold text-foreground" id="component-editor-general">{label('payrollComponentsEditorGeneral')}</h3>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -254,7 +277,6 @@ export function ComponentEditor({
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
           <span>{label('payrollComponentsEditorOwnership')}: {ownershipLabel}</span>
           {provenanceLabel ? <span>{label('payrollComponentsEditorProvenance')}: {provenanceLabel}</span> : null}
-          {sourcePath ? <span>{label('payrollComponentsEditorSourceMethod')}: <code className="break-all">{sourcePath}</code> ({label('payrollComponentsEditorReadOnly')})</span> : null}
         </div>
       </section>
 

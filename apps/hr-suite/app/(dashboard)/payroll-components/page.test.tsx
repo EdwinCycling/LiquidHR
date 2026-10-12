@@ -43,6 +43,16 @@ vi.mock('@/lib/i18n/server', () => ({
       payrollComponentsRoundingMode_HALF_UP: 'Afronden: half omhoog',
       payrollComponentsCopyBlockedRegisteredRule: 'Deze wettelijke systeemregel is in deze versie niet kopieerbaar. De vertrouwde systeemimplementatie blijft uitsluitend systeemcode.',
       payrollComponentsCopied: 'De kopie is opgeslagen als eigen concept.',
+      payrollComponentsEditorDraftStatus: 'Status concept',
+      payrollComponentsEditorConcept: 'Concept',
+      payrollComponentsEditorConceptInactive: 'nog niet actief in salarisberekeningen',
+      payrollComponentsEditorSourceField: 'Bronveld',
+      payrollComponentsEditorOwnCalculation: 'Eigen berekening',
+      payrollComponentsEditorOwnCalculationNotConverted: 'nog niet omgezet; de bronmethode blijft alleen-lezen',
+      payrollComponentsEditorOwnCalculationEditable: 'formule aanpasbaar',
+      payrollComponentsEditorOwnCalculationReadOnly: 'formule alleen-lezen',
+      payrollComponentsEditorConvertSourceToFormula: 'Omzetten naar eigen berekening',
+      payrollComponentsEditorConvertSourceToFormulaHelp: 'De kopie wordt een zelfstandige formulecomponent. De originele SYSTEM-bron en het bronpad blijven ongewijzigd.',
       payrollComponentsOfficialSymbol: 'Officieel symbool',
       payrollComponentsSourceValue: 'Bronwaarde',
       payrollComponentsParameterSource: 'Bronverwijzing',
@@ -182,6 +192,42 @@ function provenanceMarkup(markup: string): string {
   const start = markup.indexOf('<section aria-labelledby="payroll-component-provenance"')
   const end = markup.indexOf('</section>', start)
   return start >= 0 && end >= 0 ? markup.slice(start, end + '</section>'.length) : ''
+}
+
+const grossSalarySystemEntry = getSystemComponentCatalog().find((entry) => entry.definition.code === 'NL_REGULAR_WAGE')
+if (!grossSalarySystemEntry || grossSalarySystemEntry.definition.method.kind !== 'source') {
+  throw new Error('NL_REGULAR_WAGE source component test fixture is missing.')
+}
+const grossSalaryOutput = grossSalarySystemEntry.definition.outputs[0]
+if (!grossSalaryOutput) throw new Error('NL_REGULAR_WAGE output test fixture is missing.')
+
+const convertedGrossSalaryDraftEntry: ComponentCatalogEntry = {
+  ...draftEntry,
+  key: 'draft::30000000-0000-4000-8000-000000000012',
+  displayName: 'Bruto salaris eigen berekening',
+  displayCode: 'CUSTOM_GROSS_SALARY_FORK',
+  definition: {
+    ...grossSalarySystemEntry.definition,
+    id: 'customer:draft:30000000-0000-4000-8000-000000000012',
+    code: 'CUSTOM_GROSS_SALARY_FORK',
+    version: '2',
+    ownership: {
+      kind: 'CUSTOMER_FORK',
+      origin: {
+        id: grossSalarySystemEntry.definition.id,
+        code: grossSalarySystemEntry.definition.code,
+        version: grossSalarySystemEntry.definition.version,
+      },
+      forkedAt: '2026-10-01T10:00:00.000Z',
+    },
+    inputs: [{ name: 'baseGross', valueType: 'MONEY', required: true }],
+    dependencies: [],
+    method: { kind: 'expression', outputs: { [grossSalaryOutput.name]: { kind: 'input', name: 'baseGross' } } },
+  },
+  ownership: 'CUSTOMER_FORK',
+  status: 'DRAFT',
+  package: grossSalarySystemEntry.package,
+  sourceMetadata: grossSalarySystemEntry.sourceMetadata,
 }
 
 beforeEach(() => {
@@ -504,9 +550,34 @@ describe('Payroll component library route', () => {
     expect(markup).toContain('payrollComponentsEditorGeneral')
     expect(markup).toContain('payrollComponentsEditorSaveDraft')
     expect(markup).toContain('payrollComponentsEditorSourceMethodReadOnly')
+    expect(markup).toContain('Omzetten naar eigen berekening')
+    expect(markup).toContain('nog niet actief in salarisberekeningen')
     expect(markup).toContain('CUSTOM_30000000000040008000000000000001')
     expect(markup).not.toContain('name="tenantId"')
     expect(markup).not.toContain('name="definition"')
+  })
+
+  it('reopens a formula fork with its trusted original gross salary source path and editable formula status', async () => {
+    getComponentLibrary.mockResolvedValueOnce({ components: [grossSalarySystemEntry, convertedGrossSalaryDraftEntry], canCopy: true })
+    const page = await PayrollComponentsPage({ searchParams: Promise.resolve({
+      ownership: 'customer',
+      component: convertedGrossSalaryDraftEntry.key,
+      edit: '1',
+    }) })
+    const markup = renderToStaticMarkup(page)
+
+    expect(markup).toContain('Bronveld:')
+    expect(markup).toContain('regularWage.grossAmount')
+    expect(markup).toContain('Eigen berekening')
+    expect(markup).toContain('formule aanpasbaar')
+    expect(markup).toContain('nog niet actief in salarisberekeningen')
+    expect(markup).toContain('input.baseGross')
+    expect(markup).toContain('payrollComponentsEditorAddInput')
+    expect(markup).toContain('payrollComponentsEditorAddOutput')
+    expect(markup).toContain('payrollComponentsEditorAddDependency')
+    expect(markup).toContain('payrollComponentsEditorAddParameter')
+    expect(markup).not.toMatch(/<fieldset[^>]*disabled/)
+    expect(markup).not.toContain('Omzetten naar eigen berekening')
   })
 
   it('opens a new customer component editor inside the component library', async () => {
