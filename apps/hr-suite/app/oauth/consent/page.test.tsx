@@ -1,5 +1,7 @@
 import { isValidElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import enAuthMessages from '../../../messages/en/auth.json'
+import nlAuthMessages from '../../../messages/nl/auth.json'
 
 const { createClient, getAuthorizationDetails, getClaims, getTranslator, listGrants, redirect, resolveDirectManagerContext, resolveEmployeeSelfContext, setManagerMcpConsentMarker } = vi.hoisted(() => ({
   createClient: vi.fn(),
@@ -20,11 +22,29 @@ vi.mock('@/lib/i18n/server', () => ({ getTranslator }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/workforce-tools/mcp/manager-consent-admin', () => ({ setManagerMcpConsentMarker }))
 
+import { CHATGPT_MCP_TOOLS } from '@/lib/workforce-tools/mcp/chatgpt-metadata'
 import OAuthConsentPage from './page'
 
 const AUTHORIZATION_ID = 'f6a4c2e8b1d3a5f70918273645546321'
 const CALLBACK_URL = 'https://chatgpt.com/connector/oauth/callback'
 const RESOURCE_URL = 'https://liquid-hr-hr-suite.vercel.app/mcp'
+
+const consentCategoryByTool = {
+  'employee.talent.development-plans.read': 'oauthConsentDevelopmentPlans',
+  'employee.talent.development-gaps.read': 'oauthConsentDevelopmentGaps',
+  'employee.talent.skills.read': 'oauthConsentSkills',
+  'employee.talent.competencies.read': 'oauthConsentCompetencies',
+  'employee.leave.balance.read': 'oauthConsentLeaveBalance',
+  'employee.leave.next.read': 'oauthConsentNextLeave',
+  'employee.leave.requests.read': 'oauthConsentLeaveRequests',
+  'employee.reminders.read': 'oauthConsentReminders',
+  'manager.team.overview.read': 'oauthConsentManagerTeamOverview',
+  'manager.work.pending.read': 'oauthConsentManagerPendingWork',
+  'manager.leave.calendar.read': 'oauthConsentManagerLeaveCalendar',
+  'manager.talent.development-plans.read': 'oauthConsentManagerDevelopmentPlans',
+  'manager.talent.follow-ups.read': 'oauthConsentManagerFollowUps',
+  'manager.talent.team-capability-matrix.read': 'oauthConsentManagerCapabilityMatrix',
+} as const
 
 function response(authorizationId = AUTHORIZATION_ID, overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -46,6 +66,14 @@ function pageText(node: ReactNode): string[] {
 }
 
 describe('GET /oauth/consent page', () => {
+  it('keeps the user-facing connection copy free of environment labels in Dutch and English', () => {
+    const consentCopy = [...Object.entries(nlAuthMessages), ...Object.entries(enAuthMessages)]
+      .filter(([key]) => key.startsWith('oauthConsent'))
+      .map(([, value]) => value)
+      .join(' ')
+
+    expect(consentCopy).not.toMatch(/\btest\b/iu)
+  })
   beforeEach(() => {
     vi.resetAllMocks()
     getTranslator.mockImplementation(async () => (key: string) => key)
@@ -66,6 +94,20 @@ describe('GET /oauth/consent page', () => {
     redirect.mockImplementation((destination: string) => {
       throw new Error(`NEXT_REDIRECT:${destination}`)
     })
+  })
+
+  it('discloses each read category exposed by the ChatGPT MCP catalog', async () => {
+    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+    const copy = pageText(page).join(' ')
+    const toolNames = CHATGPT_MCP_TOOLS.map((tool) => tool.name).sort()
+    const disclosedToolNames = Object.keys(consentCategoryByTool).sort()
+
+    expect(disclosedToolNames).toEqual(toolNames)
+    for (const key of Object.values(consentCategoryByTool)) {
+      expect(copy).toContain(key)
+      expect(nlAuthMessages[key]).toBeTruthy()
+      expect(enAuthMessages[key]).toBeTruthy()
+    }
   })
 
   it('authenticates before loading pending details and shows Supabase metadata with pre-consent user_id NULL', async () => {

@@ -31,6 +31,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
 import { HrGroupSwitcher } from '@/components/layout/hr-group-switcher'
 import { Clock } from '@/components/layout/clock'
+import { LiquidHRLogo } from '@/components/layout/liquidhr-logo'
 import { TestRoleSwitcher, type TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
 import { ProductUpdateDrawerTrigger, type ProductUpdateSurfaceLabels } from '@/components/product-updates/product-update-surfaces'
@@ -243,8 +244,15 @@ export function Sidebar({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b bg-surface px-4 md:hidden">
-        <span className="flex items-center gap-2 text-sm font-semibold tracking-tight text-primary">{preferences.companyBranding?.logoUrl ? <img alt="" className="max-h-8 max-w-28 object-contain" src={preferences.companyBranding.logoUrl} /> : null}{labels.appName}</span>
+      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b bg-surface px-3 md:hidden">
+        <div className="flex min-w-0 items-center gap-2">
+          <Link aria-label={labels.appName} className="inline-flex shrink-0 rounded-[var(--radius-control)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2" href="/dashboard/start" prefetch={false}>
+            <LiquidHRLogo decorative size="sm" variant="horizontal" />
+          </Link>
+          {preferences.companyBranding?.logoUrl ? <span aria-hidden="true" className="flex h-9 max-w-14 shrink-0 items-center border-l border-border pl-2">
+            <img alt="" className="max-h-7 max-w-12 object-contain" src={preferences.companyBranding.logoUrl} />
+          </span> : null}
+        </div>
         <div className="flex shrink-0 items-center gap-1">
           {showSetupAssistant ? <button aria-label={setupAssistantOpenLabel} className="grid size-10 place-items-center rounded-lg text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" onClick={() => announceAssistantOpen('setup')} type="button">
             <CircleHelp aria-hidden="true" size={21} />
@@ -260,13 +268,20 @@ export function Sidebar({
       ) : null}
 
       <aside className={`fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,transform] duration-200 md:sticky md:top-0 md:z-20 md:min-h-0 md:translate-x-0 md:overflow-visible ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'md:w-20' : 'md:w-72'}`}>
-        <div className={`flex min-h-16 items-center gap-2 border-b border-sidebar-border ${collapsed ? 'justify-center px-2' : 'px-3'}`}>
+        <div className={`flex min-h-16 border-b border-sidebar-border ${collapsed ? 'flex-col items-center justify-start gap-1 px-2 py-2' : 'items-center gap-2 px-3 py-2'}`}>
           {!collapsed ? (
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              {preferences.companyBranding?.logoUrl ? <img alt="" className="max-h-9 max-w-32 shrink-0 object-contain" src={preferences.companyBranding.logoUrl} /> : <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-lg border border-sidebar-border bg-sidebar-accent text-xs font-semibold">LH</span>}
-              <span className="truncate text-sm font-semibold tracking-tight">{labels.appName}</span>
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+              <Link aria-label={labels.appName} className="inline-flex w-fit rounded-[var(--radius-control)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2" href="/dashboard/start" prefetch={false}>
+                <LiquidHRLogo decorative size="sm" variant="horizontal" />
+              </Link>
+              {preferences.companyBranding?.logoUrl ? <div className="flex min-w-0 items-center gap-1.5 pl-1">
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-sidebar-muted">{labels.hrGroup}</span>
+                <img alt="" className="max-h-6 max-w-20 object-contain" src={preferences.companyBranding.logoUrl} />
+              </div> : null}
             </div>
-          ) : null}
+          ) : <Link aria-label={labels.appName} className="inline-flex rounded-[var(--radius-control)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2" href="/dashboard/start" prefetch={false}>
+            <LiquidHRLogo decorative size="sm" variant="mark" />
+          </Link>}
           <div className={`relative flex shrink-0 items-center gap-0.5 ${collapsed ? 'flex-col gap-1' : ''}`}>
             <ProductUpdateDrawerTrigger collapsed={collapsed} labels={productUpdateLabels} locale={locale} onClose={() => setMobileOpen(false)} unreadCount={currentProductUpdateUnreadCount} updates={productUpdates} />
             {(testRoleSwitch.enabled || testRoleSwitch.returnToAdmin) && testRoleSwitch.currentEmail ? <TestRoleSwitcher collapsed={collapsed} currentEmail={testRoleSwitch.currentEmail} enabled={testRoleSwitch.enabled} labels={testRoleSwitch.labels} options={testRoleSwitch.options} returnToAdmin={testRoleSwitch.returnToAdmin} /> : null}

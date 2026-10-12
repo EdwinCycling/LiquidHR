@@ -69,7 +69,7 @@
   "noReminders": "Geen openstaande reminders. Je lijst is rustig.",
   "moreReminders": "Bekijk alle reminders",
   "workInProgress": "Werk in uitvoering",
-  "workInProgressBody": "Deze gegevensbron bestaat nog niet in Liquid HR. Daarom tonen we geen voorbeelddata.",
+  "workInProgressBody": "Deze gegevensbron bestaat nog niet in LiquidHR. Daarom tonen we geen voorbeelddata.",
   "processWorkTitle": "Mijn proceswerk",
   "processWorkDescription": "Urgente werkitems en de eerstvolgende processtappen binnen jouw rechten.",
   "processWorkOverdue": "achterstallig",

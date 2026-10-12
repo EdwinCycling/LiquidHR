@@ -3,7 +3,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Check, Trash2 } from 'lucide-react'
+import { Building2, Check, Trash2 } from 'lucide-react'
 import type { CompanyBranding } from '@/lib/preferences/user-preferences'
 import { Button, buttonClasses } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/text-input'
@@ -89,7 +89,7 @@ export function CompanyBrandingPanel({ initialBranding, labels }: { initialBrand
             <h2 className="font-semibold">{labels.logoTitle}</h2>
             <p className="mt-1 text-sm leading-6 text-sidebar-muted">{labels.logoHelp}</p>
             <div className="mt-5 flex min-h-20 items-center justify-center rounded-[var(--radius-control)] border border-sidebar-border bg-sidebar-accent p-4">
-              {logoPreviewUrl ? <img alt="" className="max-h-12 max-w-full object-contain" src={logoPreviewUrl} /> : logoUrl && !removeLogo ? <img alt="" className="max-h-12 max-w-full object-contain" src={logoUrl} /> : <span className="text-sm font-semibold text-sidebar-muted">LH</span>}
+              {logoPreviewUrl ? <img alt="" className="max-h-12 max-w-full object-contain" src={logoPreviewUrl} /> : logoUrl && !removeLogo ? <img alt="" className="max-h-12 max-w-full object-contain" src={logoUrl} /> : <Building2 aria-hidden="true" className="text-sidebar-muted" size={18} />}
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <label className={`${buttonClasses({ size: 'sm', variant: 'secondary' })} cursor-pointer bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent`}><span>{labels.upload}</span><input accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { const file = event.target.files?.[0] ?? null; setLogo(file); setLogoPreviewUrl(null); setRemoveLogo(false); event.currentTarget.value = '' }} type="file" /></label>

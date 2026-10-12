@@ -1,12 +1,21 @@
 {
-  "title": "Choose where to work",
-  "description": "You can access multiple customer environments or HR groups. Choose the context for this session.",
+  "eyebrow": "Work context",
+  "title": "Choose your work context",
+  "description": "Your account can access multiple customer environments or HR groups. Select the environment and group you want to work in.",
+  "visualTitle": "Continue in the right context.",
+  "visualBody": "LiquidHR tailors the information and features shown to the customer environment and HR group you select.",
+  "visualPointAccess": "You can choose from contexts your account can access.",
+  "visualPointContext": "The selected HR group determines which information is available.",
+  "visualPointPermissions": "Your existing access permissions remain in effect.",
+  "formTitle": "Select your environment",
+  "formDescription": "Choose a customer environment and the HR group you want to work in.",
+  "contextNote": "LiquidHR uses your choice to show the related information and features.",
   "tenantLabel": "Customer environment",
-  "tenantPlaceholder": "Choose a customer environment",
+  "tenantPlaceholder": "Select a customer environment",
   "hrGroupLabel": "HR group",
-  "hrGroupPlaceholder": "Choose an HR group",
-  "continue": "Continue",
+  "hrGroupPlaceholder": "Select an HR group",
+  "continue": "Continue to LiquidHR",
   "noAccess": "No active HR context is available.",
   "failed": "The context could not be saved. Choose again.",
-  "invalid": "Choose a valid customer environment and HR group."
+  "invalid": "Select a valid customer environment and HR group."
 }

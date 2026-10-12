@@ -1,0 +1,21 @@
+{
+  "name": "LiquidHR",
+  "short_name": "LiquidHR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f5f9",
+  "theme_color": "#14264a",
+  "icons": [
+    {
+      "src": "/brand/logo/pwa-mobile/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/logo/pwa-mobile/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

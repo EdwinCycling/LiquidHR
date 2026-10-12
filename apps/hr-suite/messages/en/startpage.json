@@ -69,7 +69,7 @@
   "noReminders": "No open reminders. Your list is clear.",
   "moreReminders": "View all reminders",
   "workInProgress": "Work in progress",
-  "workInProgressBody": "This data source does not exist in Liquid HR yet. We therefore show no sample data.",
+  "workInProgressBody": "This data source does not exist in LiquidHR yet. We therefore show no sample data.",
   "processWorkTitle": "My process work",
   "processWorkDescription": "Urgent work items and the next process steps within your permissions.",
   "processWorkOverdue": "overdue",

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { Building2 } from 'lucide-react'
 import { z } from 'zod'
 import { getTranslator } from '@/lib/i18n/server'
 import { PublicApplicationForm, type PublicApplicationFieldMode } from '@/components/recruitment/public-application-form'
@@ -26,7 +27,7 @@ export default async function PublicVacancyBoundaryPage({ params }: { params: Pr
     <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12">
       <script dangerouslySetInnerHTML={{ __html: jobPosting }} type="application/ld+json" />
       <div className="mx-auto w-full max-w-5xl">
-        <header className="flex items-center justify-between border-b pb-5"><div><p className="text-sm font-semibold tracking-tight">{companyName}</p><p className="mt-1 text-xs text-muted-foreground">{t('public.brandLine')}</p></div><span aria-hidden="true" className="grid size-10 place-items-center rounded-lg border bg-surface text-xs font-semibold">LH</span></header>
+        <header className="flex items-center justify-between border-b pb-5"><div><p className="text-sm font-semibold tracking-tight">{companyName}</p><p className="mt-1 text-xs text-muted-foreground">{t('public.brandLine')}</p></div><span aria-hidden="true" className="grid size-10 place-items-center rounded-lg border bg-surface"><Building2 aria-hidden="true" size={18} /></span></header>
         <section className="grid gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_18rem] lg:py-16">
           <div><p className="eyebrow">{t('public.eyebrow')}</p><h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">{vacancy.title}</h1><div className="mt-5 flex flex-wrap gap-2 text-sm text-muted-foreground">{vacancy.location ? <span className="rounded-full border bg-surface px-3 py-1.5">{vacancy.location}</span> : null}<span className="rounded-full border bg-surface px-3 py-1.5">{t('public.hybrid')}</span></div></div>
           <aside className="h-fit rounded-xl border bg-surface p-5"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t('public.quickFacts')}</p><p className="mt-4 text-sm leading-6 text-muted-foreground">{t('public.quickFactsDescription')}</p><a className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground" href="#apply">{t('public.apply')}</a></aside>
