@@ -54,6 +54,10 @@ export function payrollComponentStatus(entry: ComponentCatalogEntry): 'PACKAGED'
   return entry.ownership === 'SYSTEM' ? 'PACKAGED' : 'UNSPECIFIED'
 }
 
+function componentIdentityKey(entry: ComponentCatalogEntry): string {
+  return JSON.stringify([entry.ownership, entry.package.compositionId, entry.definition.id])
+}
+
 function formatDate(value: string | null, locale: string): string {
   if (!value) return '—'
   const date = new Date(`${value}T00:00:00Z`)
@@ -122,11 +126,13 @@ function ReferenceList({
   components,
   t,
   emptyLabel,
+  entryHref,
 }: {
   references: readonly ComponentCatalogReference[]
   components: readonly ComponentCatalogEntry[]
   t: Translator
   emptyLabel: string
+  entryHref?: (key: string) => string
 }) {
   if (!references.length) return <p className="text-sm text-muted-foreground">{emptyLabel}</p>
   return <ul className="space-y-2">{references.map((reference) => {
@@ -136,7 +142,7 @@ function ReferenceList({
       .join(' · ')
     return <li className="min-w-0" key={`${reference.key}:${reference.inputName ?? ''}:${reference.outputName ?? ''}`}>
       {linked
-        ? <Link className="break-all text-sm font-medium text-accent-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={`/payroll-components?component=${encodeURIComponent(reference.key)}`}>{referenceLabel(reference, components, t)}</Link>
+        ? <Link className="break-all text-sm font-medium text-accent-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={entryHref?.(reference.key) ?? `/payroll-components?component=${encodeURIComponent(reference.key)}`}>{referenceLabel(reference, components, t)}</Link>
         : <span className="break-all text-sm font-medium">{referenceLabel(reference, components, t)}</span>}
       {detail ? <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p> : null}
     </li>
@@ -264,18 +270,20 @@ export function ComponentLibraryEntryDetail({
   components,
   locale,
   t,
+  entryHref,
 }: {
   entry: ComponentCatalogEntry
   components: readonly ComponentCatalogEntry[]
   locale: string
   t: Translator
+  entryHref?: (key: string) => string
 }) {
   const definition = entry.definition
   const ownership = definition.ownership
   const provenanceMetadata = entry.sourceMetadata ?? {}
   const versions = components
-    .filter((candidate) => candidate.definition.code === definition.code)
-    .sort((left, right) => left.definition.version.localeCompare(right.definition.version))
+    .filter((candidate) => componentIdentityKey(candidate) === componentIdentityKey(entry))
+    .sort((left, right) => left.definition.version.localeCompare(right.definition.version, undefined, { numeric: true, sensitivity: 'base' }))
   const methodKind = definition.method.kind
   const sourceDocuments = sourceLinks(provenanceMetadata, t)
   const technicalFields = technicalMetadataFields(entry, provenanceMetadata, t)
@@ -369,8 +377,8 @@ export function ComponentLibraryEntryDetail({
     <section aria-labelledby="payroll-component-dependencies" className="border-t border-border-subtle pt-5">
       <SectionHeader title={<span id="payroll-component-dependencies">{t('payrollComponentsDependencies')}</span>} />
       <div className="mt-4 grid gap-5 sm:grid-cols-2">
-        <div><p className="text-xs font-medium text-muted-foreground">{t('payrollComponentsUpstream')}</p><div className="mt-2"><ReferenceList components={components} emptyLabel={t('payrollComponentsNoUpstream')} references={entry.upstream} t={t} /></div></div>
-        <div><p className="text-xs font-medium text-muted-foreground">{t('payrollComponentsDownstream')}</p><div className="mt-2"><ReferenceList components={components} emptyLabel={t('payrollComponentsNoDownstream')} references={entry.downstream} t={t} /></div></div>
+        <div><p className="text-xs font-medium text-muted-foreground">{t('payrollComponentsUpstream')}</p><div className="mt-2"><ReferenceList components={components} emptyLabel={t('payrollComponentsNoUpstream')} entryHref={entryHref} references={entry.upstream} t={t} /></div></div>
+        <div><p className="text-xs font-medium text-muted-foreground">{t('payrollComponentsDownstream')}</p><div className="mt-2"><ReferenceList components={components} emptyLabel={t('payrollComponentsNoDownstream')} entryHref={entryHref} references={entry.downstream} t={t} /></div></div>
       </div>
       {!entry.dependencies.length ? <p className="mt-4 text-sm text-muted-foreground">{t('payrollComponentsNoDependencies')}</p> : null}
       {!entry.validation.valid ? <div className="mt-4 rounded-[var(--radius-surface)] border border-warning bg-warning-surface p-3" role="status">
@@ -382,7 +390,7 @@ export function ComponentLibraryEntryDetail({
     <section aria-labelledby="payroll-component-versions" className="border-t border-border-subtle pt-5">
       <SectionHeader title={<span id="payroll-component-versions">{t('payrollComponentsVersions')}</span>} />
       {versions.length ? <ul className="mt-4 space-y-2">{versions.map((version) => <li className="flex min-w-0 flex-wrap items-center gap-2" key={version.key}>
-        {version.key === entry.key ? <Badge tone="info">v{version.definition.version}</Badge> : <Link className="font-mono text-sm text-accent-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={`/payroll-components?component=${encodeURIComponent(version.key)}`}>v{version.definition.version}</Link>}
+        {version.key === entry.key ? <Badge tone="info">v{version.definition.version}</Badge> : <Link className="font-mono text-sm text-accent-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={entryHref?.(version.key) ?? `/payroll-components?component=${encodeURIComponent(version.key)}`}>v{version.definition.version}</Link>}
         <span className="break-all text-xs text-muted-foreground">{formatDate(version.definition.effectiveFrom, locale)} – {formatDate(version.definition.effectiveTo, locale)}</span>
         {version.key !== entry.key ? <span className="break-all text-xs text-muted-foreground">{version.package.version ?? version.package.compositionId}</span> : null}
       </li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">{t('payrollComponentsNoVersions')}</p>}
