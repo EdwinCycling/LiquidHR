@@ -34,6 +34,8 @@ vi.mock('@/lib/i18n/server', () => ({
       payrollComponentsSourcePackage: 'Bronregelpakket',
       payrollComponentsSourcePackageVersion: 'Bronpakketversie',
       payrollComponentsSourcePackageHash: 'Bronpakketchecksum',
+      payrollComponentsPackageSha256: 'Pakket SHA-256',
+      payrollComponentsSourcePackageSha256: 'Bronpakket SHA-256',
       payrollComponentsScope_INCOME_RELATIONSHIP: 'Inkomstenverhouding',
       payrollComponentsValueType_MONEY: 'Bedrag',
       payrollComponentsValueType_DECIMAL: 'Decimaal getal',
@@ -46,6 +48,21 @@ vi.mock('@/lib/i18n/server', () => ({
       payrollComponentsParameterSource: 'Bronverwijzing',
       payrollComponentsInput: 'Invoer',
       payrollComponentsOutput: 'Uitvoer',
+      payrollComponentsResultCount: '{count} componenten gevonden',
+      payrollComponentsNoResults: 'Geen componenten gevonden',
+      payrollComponentsAccessibleCount: '{count} toegankelijke componenten',
+      payrollComponentsActiveFilters: 'Actieve filters',
+      payrollComponentsSort: 'Sorteren op',
+      payrollComponentsSortName: 'Naam',
+      payrollComponentsSortCode: 'Technische code',
+      payrollComponentsSortCategory: 'Categorie',
+      payrollComponentsVersionCount: '{count} versies',
+      payrollComponentsPagination: 'Paginering componenten',
+      payrollComponentsPreviousPage: 'Vorige',
+      payrollComponentsNextPage: 'Volgende',
+      payrollComponentsPageStatus: 'Pagina {page} van {total}',
+      payrollComponentsBackToLibrary: 'Terug naar overzicht',
+      payrollComponentsBackToDetails: 'Terug naar componentdetails',
     }
     return (labels[key] ?? key).replace(/\{([a-zA-Z0-9_]+)\}/g, (_match, name: string) => String(values[name] ?? `{${name}}`))
   }),
@@ -71,7 +88,7 @@ const systemEntry: ComponentCatalogEntry = {
     tracePolicy: 'FULL',
   },
   ownership: 'SYSTEM',
-  package: { compositionId: 'NL-PAYROLL-2026', packageId: 'NL-PAYROLL-2026', version: '2026.1', packageHash: 'package-hash' },
+  package: { compositionId: 'NL-PAYROLL-2026', packageId: 'NL-PAYROLL-2026', version: '2026.1', packageHash: 'a'.repeat(64) },
   sourceMetadata: { calculationRulesTitle: 'Belastingplan 2026', sourceUrl: 'https://example.test/source' },
   roundingDefinitions: [],
   parameters: {},
@@ -94,7 +111,8 @@ const draftEntry: ComponentCatalogEntry = {
   },
   ownership: 'CUSTOMER_FORK',
   status: 'DRAFT',
-  package: { compositionId: 'customer-drafts', packageId: 'customer-drafts' },
+  package: { ...systemEntry.package },
+  sourceMetadata: systemEntry.sourceMetadata,
   roundingDefinitions: [],
   parameters: {},
   dependencies: [],
@@ -102,6 +120,68 @@ const draftEntry: ComponentCatalogEntry = {
   downstream: [],
   validation: { valid: true, issues: [] },
   forkable: false,
+}
+
+function fixtureEntry({
+  identity,
+  code,
+  version = '1.0',
+  name,
+  ownership = 'SYSTEM',
+  description = 'Fixture description',
+  category = 'expression',
+  sourceMetadata,
+}: {
+  identity: string
+  code: string
+  version?: string
+  name: string
+  ownership?: 'SYSTEM' | 'CUSTOMER_FORK' | 'CUSTOMER_CUSTOM'
+  description?: string
+  category?: string
+  sourceMetadata?: Readonly<Record<string, string>>
+}): ComponentCatalogEntry {
+  const definitionOwnership = ownership === 'SYSTEM'
+    ? { kind: 'SYSTEM' as const }
+    : ownership === 'CUSTOMER_FORK'
+      ? { kind: 'CUSTOMER_FORK' as const, origin: { id: `source:${identity}`, code: `SOURCE_${identity}`, version: '1.0' }, forkedAt: '2026-10-01T10:00:00.000Z' }
+      : { kind: 'CUSTOMER_CUSTOM' as const }
+  const compositionId = ownership === 'SYSTEM' ? 'fixture-system-package' : `fixture-customer-${identity}`
+  return {
+    ...systemEntry,
+    key: `${compositionId}::${identity}::${code}::${version}`,
+    definition: {
+      ...systemEntry.definition,
+      id: `fixture:${identity}`,
+      code,
+      version,
+      ownership: definitionOwnership,
+    },
+    ownership,
+    status: ownership === 'SYSTEM' ? undefined : 'DRAFT',
+    displayName: name,
+    displayCode: code,
+    description,
+    category,
+    package: { compositionId, packageId: compositionId, version: '1.0' },
+    sourceMetadata,
+  }
+}
+
+const detailNavigation = navigationNl as unknown as Readonly<Record<string, unknown>>
+const translateDetail = (key: string): string => {
+  const value = detailNavigation[key]
+  return typeof value === 'string' ? value : key
+}
+
+function renderProvenance(entry: ComponentCatalogEntry, components: readonly ComponentCatalogEntry[] = [entry]): string {
+  return renderToStaticMarkup(<ComponentLibraryEntryDetail components={components} entry={entry} locale="nl" t={translateDetail} />)
+}
+
+function provenanceMarkup(markup: string): string {
+  const start = markup.indexOf('<section aria-labelledby="payroll-component-provenance"')
+  const end = markup.indexOf('</section>', start)
+  return start >= 0 && end >= 0 ? markup.slice(start, end + '</section>'.length) : ''
 }
 
 beforeEach(() => {
@@ -138,6 +218,129 @@ describe('Payroll component library route', () => {
     expect(markup).not.toContain('Klantconcept')
   })
 
+  it('shows empty, 3-item and 25-item catalogs with bounded page sizes and accessible totals', async () => {
+    for (const count of [0, 3, 25]) {
+      const entries = Array.from({ length: count }, (_, index) => fixtureEntry({
+        identity: `count-${count}-${index}`,
+        code: `COUNT_${count}_${index}`,
+        name: `Component ${index}`,
+      }))
+      getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+      const page = await PayrollComponentsPage({ searchParams: Promise.resolve({}) })
+      const markup = renderToStaticMarkup(page)
+
+      expect(markup).toContain(`${count} componenten gevonden`)
+      expect(markup).toContain(`${count} toegankelijke componenten`)
+      if (count === 0) {
+        expect(markup).toContain('Geen componenten gevonden')
+        expect(markup).not.toContain('Pagina 1 van 1')
+      } else {
+        expect(markup.match(/href="\/payroll-components\?[^\"]*component=/g)).toHaveLength(count)
+        expect(markup).toContain('Pagina 1 van 1')
+      }
+    }
+  })
+
+  it('groups versions by component identity and keeps same-name customer copies separate in a 120-component catalog', async () => {
+    const versionOne = fixtureEntry({ identity: 'stable-versioned-id', code: 'VERSIONED', version: '1.0', name: 'Versioned component' })
+    const versionTwo = fixtureEntry({ identity: 'stable-versioned-id', code: 'VERSIONED', version: '2.0', name: 'Versioned component' })
+    const copies = [
+      fixtureEntry({ identity: 'copy-a', code: 'CUSTOM_COPY_A', name: 'Repeated name', ownership: 'CUSTOMER_FORK' }),
+      fixtureEntry({ identity: 'copy-b', code: 'CUSTOM_COPY_B', name: 'Repeated name', ownership: 'CUSTOMER_FORK' }),
+    ]
+    const remaining = Array.from({ length: 117 }, (_, index) => fixtureEntry({
+      identity: `synthetic-${index}`,
+      code: `SYNTH_${String(index).padStart(3, '0')}`,
+      name: `Synthetic ${index}`,
+    }))
+    const entries = [versionOne, versionTwo, ...copies, ...remaining]
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+
+    const firstPage = await PayrollComponentsPage({ searchParams: Promise.resolve({ sort: 'code' }) })
+    const firstMarkup = renderToStaticMarkup(firstPage)
+    expect(firstMarkup).toContain('120 toegankelijke componenten')
+    expect(firstMarkup).toContain('120 componenten gevonden')
+    expect(firstMarkup).toContain('Pagina 1 van 5')
+    expect(firstMarkup.match(/href="\/payroll-components\?[^\"]*component=/g)).toHaveLength(25)
+    expect(firstMarkup).toContain('sort=code&amp;page=2')
+
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+    const lastPage = await PayrollComponentsPage({ searchParams: Promise.resolve({ sort: 'code', page: '5' }) })
+    const lastMarkup = renderToStaticMarkup(lastPage)
+    expect(lastMarkup).toContain('Pagina 5 van 5')
+    expect(lastMarkup.match(/href="\/payroll-components\?[^\"]*component=/g)).toHaveLength(20)
+    expect(lastMarkup).toContain('sort=code&amp;page=4')
+
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+    const sameNamePage = await PayrollComponentsPage({ searchParams: Promise.resolve({ q: 'Repeated name' }) })
+    const sameNameMarkup = renderToStaticMarkup(sameNamePage)
+    expect(sameNameMarkup).toContain('2 componenten gevonden')
+    expect(sameNameMarkup).toContain('CUSTOM_COPY_A')
+    expect(sameNameMarkup).toContain('CUSTOM_COPY_B')
+
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+    const versionPage = await PayrollComponentsPage({ searchParams: Promise.resolve({ q: 'VERSIONED' }) })
+    const versionMarkup = renderToStaticMarkup(versionPage)
+    expect(versionMarkup).toContain('1 componenten gevonden')
+    expect(versionMarkup).toContain('2 versies')
+    expect(versionMarkup).toContain('v2.0')
+    expect(versionMarkup).not.toContain('v1.0</span>')
+
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+    const versionDetail = await PayrollComponentsPage({ searchParams: Promise.resolve({ sort: 'category', page: '2', component: versionOne.key }) })
+    const versionDetailMarkup = renderToStaticMarkup(versionDetail)
+    expect(versionDetailMarkup).toContain(`href="/payroll-components?sort=category&amp;page=2&amp;component=${encodeURIComponent(versionTwo.key)}"`)
+  })
+
+  it('searches descriptions and captured metadata, sorts by code, and preserves list state on detail return', async () => {
+    const entries = [
+      fixtureEntry({ identity: 'sort-z', code: 'SORT_Z', name: 'Zeta', category: 'alpha' }),
+      fixtureEntry({ identity: 'sort-a', code: 'SORT_A', name: 'Alpha', category: 'zeta', description: 'Needle in the description' }),
+      fixtureEntry({ identity: 'sort-m', code: 'SORT_M', name: 'Middle', category: 'middle', sourceMetadata: { auditTag: 'needle-in-metadata' } }),
+    ]
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+    const searchedPage = await PayrollComponentsPage({ searchParams: Promise.resolve({ q: 'needle in the description' }) })
+    const searchedMarkup = renderToStaticMarkup(searchedPage)
+    expect(searchedMarkup).toContain('1 componenten gevonden')
+    expect(searchedMarkup).toContain('Alpha')
+    expect(searchedMarkup).toContain('Actieve filters')
+
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+    const sortedPage = await PayrollComponentsPage({ searchParams: Promise.resolve({ sort: 'code' }) })
+    const sortedMarkup = renderToStaticMarkup(sortedPage)
+    expect(sortedMarkup.indexOf('SORT_A')).toBeLessThan(sortedMarkup.indexOf('SORT_M'))
+    expect(sortedMarkup.indexOf('SORT_M')).toBeLessThan(sortedMarkup.indexOf('SORT_Z'))
+
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+    const namePage = await PayrollComponentsPage({ searchParams: Promise.resolve({ sort: 'name' }) })
+    const nameMarkup = renderToStaticMarkup(namePage)
+    expect(nameMarkup.indexOf('SORT_A')).toBeLessThan(nameMarkup.indexOf('SORT_M'))
+    expect(nameMarkup.indexOf('SORT_M')).toBeLessThan(nameMarkup.indexOf('SORT_Z'))
+
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+    const categoryPage = await PayrollComponentsPage({ searchParams: Promise.resolve({ sort: 'category' }) })
+    const categoryMarkup = renderToStaticMarkup(categoryPage)
+    expect(categoryMarkup.indexOf('SORT_Z')).toBeLessThan(categoryMarkup.indexOf('SORT_M'))
+    expect(categoryMarkup.indexOf('SORT_M')).toBeLessThan(categoryMarkup.indexOf('SORT_A'))
+
+    getComponentLibrary.mockResolvedValueOnce({ components: entries, canCopy: true })
+    const metadataPage = await PayrollComponentsPage({ searchParams: Promise.resolve({ q: 'needle-in-metadata' }) })
+    expect(renderToStaticMarkup(metadataPage)).toContain('1 componenten gevonden')
+
+    const statefulEntries = Array.from({ length: 30 }, (_, index) => fixtureEntry({
+      identity: `back-state-${index}`,
+      code: `BACK_${String(index).padStart(2, '0')}`,
+      name: `Back state ${index}`,
+    }))
+    getComponentLibrary.mockResolvedValueOnce({ components: statefulEntries, canCopy: true })
+    const detailPage = await PayrollComponentsPage({ searchParams: Promise.resolve({
+      q: 'Back state', category: 'expression', ownership: 'system', status: 'packaged', sort: 'code', page: '2', component: statefulEntries[25].key,
+    }) })
+    const detailMarkup = renderToStaticMarkup(detailPage)
+    expect(detailMarkup).toContain('q=Back+state&amp;category=expression&amp;ownership=system&amp;status=packaged&amp;sort=code&amp;page=2')
+    expect(detailMarkup).toContain('Terug naar overzicht')
+  })
+
   it('keeps a returned customer draft selected and presents its captured provenance', async () => {
     const page = await PayrollComponentsPage({ searchParams: Promise.resolve({
       ownership: 'customer',
@@ -155,9 +358,139 @@ describe('Payroll component library route', () => {
     expect(markup).toContain('Dit concept wordt niet gebruikt in berekeningen. Het ontvangt geen systeemupdates.')
     expect(markup).toContain('Bronregelpakket')
     expect(markup).toContain('Bronpakketversie')
-    expect(markup).toContain('Bronpakketchecksum')
+    expect(markup).toContain('Bronpakket SHA-256')
     expect(markup).toContain('De kopie is opgeslagen als eigen concept.')
     expect(markup).not.toContain('name="catalogKey"')
+  })
+
+  it('shows compact SYSTEM provenance and descriptive official source links by default', () => {
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      sourceMetadata: {
+        publisher: 'Belastingdienst',
+        calculationRulesTitle: 'Rekenvoorschriften voor de geautomatiseerde loonadministratie 2026',
+        calculationRulesUrl: 'https://example.test/rekenvoorschriften-2026.pdf',
+        calculationRulesSha256: 'a'.repeat(64),
+      },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('Systeemcomponent')
+    expect(markup).toContain('NL-PAYROLL-2026')
+    expect(markup).toContain('2026.1')
+    expect(markup).toContain('Belastingdienst')
+    expect(markup).toContain('Rekenvoorschriften voor de geautomatiseerde loonadministratie 2026')
+    expect(markup).toContain('href="https://example.test/rekenvoorschriften-2026.pdf"')
+    expect(markup).toContain('rel="noopener noreferrer"')
+    expect(markup).not.toMatch(/<details[^>]*\sopen(?:=|\s|>)/)
+    expect(markup).toContain('a'.repeat(64))
+    expect(markup).not.toContain('payrollComponentsOwnership')
+  })
+
+  it('shows a CUSTOMER_FORK origin and copy date without repeating ownership elsewhere', () => {
+    const entry: ComponentCatalogEntry = {
+      ...draftEntry,
+      package: { compositionId: 'customer-drafts', packageId: 'NL-PAYROLL-2026', version: '2026.1' },
+      sourceMetadata: { publisher: 'Belastingdienst' },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry, [entry, systemEntry]))
+
+    expect(markup).toContain('Eigen kopie')
+    expect(markup).toContain('Oorspronkelijke systeemcomponent')
+    expect(markup).toContain('NL_NET_PAY v2026.1')
+    expect(markup).toContain('Gekopieerd op')
+    expect(markup).toContain('1 okt 2026')
+    expect(markup.match(/Eigen kopie/g)).toHaveLength(1)
+  })
+
+  it('keeps a CUSTOMER_CUSTOM entry compact when package metadata is absent', () => {
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      key: 'customer::CUSTOM_001::1.0.0',
+      definition: {
+        ...systemEntry.definition,
+        id: 'customer:custom:001',
+        code: 'CUSTOM_001',
+        version: '1.0.0',
+        ownership: { kind: 'CUSTOMER_CUSTOM' },
+      },
+      ownership: 'CUSTOMER_CUSTOM',
+      package: { compositionId: '' },
+      sourceMetadata: undefined,
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('Eigen component')
+    expect(markup).toContain('Er is geen bronmetadata vastgelegd.')
+    expect(markup).not.toContain('Regelpakket')
+    expect(markup).not.toContain('Pakketversie')
+    expect(markup).not.toContain('<details')
+  })
+
+  it('keeps extra metadata visible under the collapsed technical provenance disclosure', () => {
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      sourceMetadata: {
+        publisher: 'Belastingdienst',
+        checkedAt: '2026-09-30',
+        algorithmMap: 'docs/payroll/research/regular-wage.md',
+        independentOracle: 'docs/payroll/research/oracle.md',
+        parameterSetSha256: 'b'.repeat(64),
+        auditFieldFromNewerPackage: 'preserve this exact value',
+      },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('<summary')
+    expect(markup).toContain('Technische herkomst en auditgegevens')
+    expect(markup).toContain('Gecontroleerd op')
+    expect(markup).toContain('Algoritmekoppeling')
+    expect(markup).toContain('Onafhankelijke referentieberekening')
+    expect(markup).toContain('Parameterset SHA-256')
+    expect(markup).toContain('auditFieldFromNewerPackage')
+    expect(markup).toContain('preserve this exact value')
+    expect(markup).not.toMatch(/<details[^>]*\sopen(?:=|\s|>)/)
+  })
+
+  it('wraps long hashes, paths and URLs and refuses unsafe external links', () => {
+    const hash = 'f'.repeat(64)
+    const technicalPath = `docs/payroll/${'nested/'.repeat(24)}algorithm-map.md`
+    const longUrl = `https://example.test/${'official-source/'.repeat(24)}handbook.pdf`
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      package: { ...systemEntry.package, packageHash: hash, parameterSetHash: '1'.repeat(64) },
+      sourceMetadata: {
+        parameterSetSha256: '1'.repeat(64),
+        officialSourceTitle: 'Handboek loonheffingen',
+        officialSourceUrl: longUrl,
+        algorithmMap: technicalPath,
+        uncheckedSourceUrl: 'javascript:alert(1)',
+      },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('f'.repeat(64))
+    expect(markup.split('1'.repeat(64))).toHaveLength(2)
+    expect(markup).toContain(technicalPath)
+    expect(markup).toContain(`href="${longUrl}"`)
+    expect(markup).toContain('aria-label="Kopieer waarde Pakket SHA-256"')
+    expect(markup).toContain('aria-label="Kopieer waarde Parameterset SHA-256"')
+    expect(markup).toContain('min-w-0 flex-1')
+    expect(markup).toContain('break-all')
+    expect(markup).not.toContain('href="javascript:alert(1)"')
+    expect(markup).toContain('javascript:alert(1)')
+  })
+
+  it('uses container-responsive one or two column layouts for narrow detail views', () => {
+    const entry: ComponentCatalogEntry = {
+      ...systemEntry,
+      sourceMetadata: { publisher: 'Belastingdienst', checkedAt: '2026-09-30' },
+    }
+    const markup = provenanceMarkup(renderProvenance(entry))
+
+    expect(markup).toContain('@container')
+    expect(markup).toContain('@md:grid-cols-2')
+    expect(markup).toContain('grid-cols-1')
   })
 
   it('opens the customer draft editor and returns to its saved version history', async () => {

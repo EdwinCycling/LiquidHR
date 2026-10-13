@@ -4,13 +4,14 @@
 import Link from 'next/link'
 import { ArrowDown, ArrowRight, ArrowUp, CalendarDays, CircleDashed, ClipboardPlus, Eye, EyeOff, FileText, Gift, GripVertical, HeartPulse, ListTodo, LoaderCircle, LockKeyhole, Maximize2, MessageSquareText, Minimize2, PartyPopper, UserPlus, UserRound, Users, UsersRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, type DragEvent, type ReactNode } from 'react'
+import { useState, type ComponentType, type DragEvent, type ReactNode } from 'react'
 import { formatDateTime } from '@/lib/preferences/formatters'
 import type { DateFormat, TimeFormat } from '@/lib/preferences/user-preferences'
 import type { StartPagePreferences, StartPageViewMode } from '@/lib/preferences/start-page'
 import type { StartPageNarrowWindow, StartPageWideWindow } from '@/lib/preferences/start-page-layout'
 import type { Locale } from '@/lib/i18n/config'
 import type { StartPageData, StartPageLeavePerson, StartPageScope } from '@/lib/startpage/service'
+import type { StartPageTeamAiData } from '@/lib/ai/team-scope'
 import type { PersonalLogbookEntry } from '@/lib/logbook/service'
 import type { StartPageTeamAvailability, StartPageTeamAvailabilityCell } from '@/lib/startpage/team-availability-service'
 import { employeeListMyTeamHref } from '@/lib/preferences/employee-list-state'
@@ -18,15 +19,18 @@ import { journeyProgressPercent, localizedValue, type JourneyProjection } from '
 import { Badge } from '@/components/ui/badge'
 import { buttonClasses } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
-import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { SectionHeader } from '@/components/patterns/section-header'
-import { TeamLiveVoice, type TeamLiveVoiceLabels } from './team-live-voice'
+import type { TeamAiWindowProps } from './team-ai-window'
 
 interface StartPageAppraisalLabels { continuousAppraisalTitle: string; continuousAppraisalDescription: string; openContinuousAppraisal: string; openManagerAppraisal: string; appraisalLatest: string; appraisalOpenActions: string; appraisalNoItems: string }
 
 interface StartPageSigningLabels { signingTitle: string; signingDescription: string; openSigning: string }
 
-interface StartPageLabels extends StartPageAppraisalLabels, StartPageSigningLabels {
+interface TeamAiLoadingLabels { teamAiOpen: string; teamAiLoading: string; teamAiLoadFailed: string; teamAiRetry: string; teamAiOpenVoice: string; teamAiVoiceLoading: string; teamAiVoiceLoadFailed: string }
+
+interface StartPageAbsenceLabels { absencePercentageSick: string }
+
+export interface StartPageLabels extends StartPageAppraisalLabels, StartPageSigningLabels, TeamAiLoadingLabels, StartPageAbsenceLabels {
   nextLeave: string; nextHoliday: string; nextCompanyActivity: string; eyebrow: string; headline: string; subtitle: string; activeScope: string; administration: string; tenant: string; peopleInScope: string; operationalTitle: string; operationalTitleTeam: string; operationalTitleCompany: string; scopeSwitchLabel: string; scopeTeam: string; scopeCompany: string; openTeamEmployees: string; liveSource: string; documentsTitle: string; documentsDescription: string; openDocuments: string; notAvailable: string; yourPriorities: string; prioritiesBody: string; remindersTitle: string; remindersDescription: string; openReminders: string; noReminders: string; moreReminders: string; workInProgress: string; workInProgressBody: string; futureDeclarations: string; futureContracts: string; futureAssets: string; futureTasks: string; futureSource: string; processWorkTitle: string; processWorkDescription: string; processWorkOverdue: string; processWorkDueToday: string; processWorkBlocked: string; processWorkNoItems: string; processWorkOpen: string; processWorkSubject: string; openAnalysis: string; quickLinks: string; workforceDescription: string; openWorkforce: string; workforceOpenItem: string; workforceNineGrid: string; workforceNineGridDescription: string; workforceContinuousAppraisal: string; workforceContinuousAppraisalDescription: string; workforceTalentProfiles: string; workforceTalentProfilesDescription: string; workforceStarPerformers: string; workforceStarPerformersDescription: string; workforceStarPerformerTags: string; workforceStarPerformerTagsDescription: string; quickActionsTitle: string; myData: string; myDataDescription: string; myTeam: string; myTeamDescription: string; newAbsence: string; newAbsenceDescription: string; calendar: string; insights: string; updated: string; fallbackName: string; journeysTitle: string; journeysDescription: string; journeysEmpty: string; journeyMine: string; journeyParticipants: string; journeyProgress: string; journeyNextAction: string; journeyOpen: string; journeyPlanned: string; journeyActive: string; journeyPaused: string; journeyCompleted: string; absenceCasesTitle: string; absenceCasesDescription: string; noActiveAbsences: string; absenceSince: string; absenceDays: string; openAbsenceDossier: string;  absenceRecovery: string; absenceMore: string; openAbsenceOverview: string; leaveTitle: string; leaveToday: string; leaveTomorrow: string; leavePersons: string; leavePerson: string; leaveNoAbsences: string; openCalendar: string; eventsTitle: string; eventsToday: string; eventsTomorrow: string; eventsNoEvents: string; openAllEvents: string; eventBirthday: string; eventAnniversary: string; eventStarter: string; eventYears: string; kpiEmployees: string; kpiRecurringAbsence: string; kpiLongTermSick: string; openEmployees: string; teamAvailabilityTitle: string; teamAvailabilityDescription: string; teamAvailabilityPeople: string; teamAvailabilityPresence: string; teamAvailabilityHours: string; teamAvailabilityModeLabel: string; teamAvailabilityAvailable: string; teamAvailabilityNotAvailable: string; teamAvailabilityOff: string; teamAvailabilityLeave: string; teamAvailabilityAbsent: string; teamAvailabilityNoMembers: string; teamAvailabilityHoursUnit: string; layoutLabel: string; full: string; compact: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; moveUp: string; moveDown: string; drag: string; teamAiTitle: string; teamAiDescription: string; teamAiDirectScope: string; teamAiDepartmentScope: string; teamAiDepartmentLabel: string; teamAiSelectPlaceholder: string; teamAiNoDepartments: string; teamAiNoActiveMembers: string; teamAiMembers: string; teamAiMemberPreview: string; teamAiStart: string; teamAiConnecting: string; teamAiListening: string; teamAiSpeaking: string; teamAiProcessing: string; teamAiMute: string; teamAiUnmute: string; teamAiElapsed: string; teamAiPaused: string; teamAiInputLevel: string; teamAiInputMuted: string; teamAiDisabled: string; teamAiPrivacy: string; teamAiScope: string; teamAiSummaryTitle: string; teamAiSummaryDescription: string; teamAiSummaryDefaultTitle: string; teamAiSummaryTitleLabel: string; teamAiSummaryBodyLabel: string; teamAiSummarySave: string; teamAiSummarySaving: string; teamAiSummarySaved: string; teamAiSummaryFailed: string; teamAiClose: string; logbookTitle: string; logbookDescription: string; logbookOpen: string; logbookNew: string; logbookEmpty: string; logbookSourceManual: string; logbookSourceAi: string; logbookShowRecent: string; logbookHideRecent: string; logbookRecentCount: string; logbookLatest: string; logbookNoRecent: string; logbookPrivatePlaceholder: string; logbookPrivatePlaceholderDescription: string; logbookRevealFailed: string
 }
 
@@ -87,59 +91,6 @@ function StartPageViewToggle({ viewMode, labels, onChange }: { viewMode: StartPa
   return <button aria-label={`${labels.layoutLabel}: ${label}`} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground transition-colors hover:bg-primary-foreground/20" onClick={() => onChange(nextViewMode)} title={label} type="button"><Icon aria-hidden="true" size={18} /></button>
 }
 
-function TeamAiWindow({ data, labels, locale }: { data: StartPageData['teamAi']; labels: StartPageLabels; locale: Locale }) {
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState(data?.departmentId ?? '')
-  if (!data) return null
-  const selectedDepartment = data.departments.find((department) => department.id === selectedDepartmentId)
-  const selectedMemberCount = selectedDepartment?.memberCount ?? 0
-  const contextName = data.mode === 'DIRECT_TEAM' ? data.contextName ?? labels.teamAiDirectScope : selectedDepartment?.name ?? labels.teamAiDepartmentScope
-  const teamVoiceLabels: TeamLiveVoiceLabels = {
-    title: labels.teamAiTitle,
-    description: labels.teamAiDescription,
-    start: labels.teamAiStart,
-    stop: labels.teamAiClose,
-    connecting: labels.teamAiConnecting,
-    listening: labels.teamAiListening,
-    speaking: labels.teamAiSpeaking,
-    processing: labels.teamAiProcessing,
-    microphoneDenied: labels.teamAiDisabled,
-    connectionFailed: labels.teamAiDisabled,
-    disabled: labels.teamAiDisabled,
-    toolFailed: labels.teamAiDisabled,
-    mute: labels.teamAiMute,
-    unmute: labels.teamAiUnmute,
-    muted: labels.teamAiPaused,
-    elapsed: labels.teamAiElapsed,
-    paused: labels.teamAiPaused,
-    inputLevel: labels.teamAiInputLevel,
-    inputMuted: labels.teamAiInputMuted,
-    closing: labels.teamAiClose,
-    privacy: labels.teamAiPrivacy,
-    scope: labels.teamAiScope,
-    summaryTitle: labels.teamAiSummaryTitle,
-    summaryDescription: labels.teamAiSummaryDescription,
-    summaryDefaultTitle: labels.teamAiSummaryDefaultTitle,
-    summaryTitleLabel: labels.teamAiSummaryTitleLabel,
-    summaryBodyLabel: labels.teamAiSummaryBodyLabel,
-    summarySave: labels.teamAiSummarySave,
-    summarySaving: labels.teamAiSummarySaving,
-    summarySaved: labels.teamAiSummarySaved,
-    summaryFailed: labels.teamAiSummaryFailed,
-    close: labels.teamAiClose,
-  }
-  const canStart = data.mode === 'DIRECT_TEAM' ? data.totalMemberCount > 0 : selectedMemberCount > 0
-  const selectedDepartmentIsEmpty = data.mode === 'DEPARTMENT_SELECTION' && Boolean(selectedDepartmentId) && selectedMemberCount === 0
-  return <section aria-labelledby="startpage-team-ai-title" className="mt-6 overflow-hidden rounded-[var(--radius-surface)] border bg-surface" data-testid="startpage-team-ai">
-    <header className="border-b bg-accent/45 p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.teamAiTitle}</p><h2 className="mt-1 text-lg font-semibold" id="startpage-team-ai-title">{contextName}</h2></div><Badge tone="info">GPT-Live</Badge></div><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.teamAiDescription}</p></header>
-    <div className="grid gap-5 p-5 sm:p-6">
-      {data.mode === 'DEPARTMENT_SELECTION' ? <label className="grid gap-1.5 text-sm font-medium" htmlFor="startpage-team-ai-department">{labels.teamAiDepartmentLabel}<DropdownSelect aria-label={labels.teamAiDepartmentLabel} id="startpage-team-ai-department" onChange={(event) => setSelectedDepartmentId(event.target.value)} placeholder={labels.teamAiSelectPlaceholder} searchable searchPlaceholder={labels.teamAiSelectPlaceholder} value={selectedDepartmentId}><option disabled value="">{labels.teamAiSelectPlaceholder}</option>{data.departments.map((department) => <option disabled={department.memberCount === 0} key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label> : null}
-      {data.mode === 'DIRECT_TEAM' ? <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{labels.teamAiMemberPreview}</p><p className="mt-1 text-sm font-semibold">{labels.teamAiMembers.replace('{count}', String(data.totalMemberCount))}</p><ul className="mt-3 flex flex-wrap gap-2">{data.members.slice(0, 8).map((member) => <li className="rounded-full border bg-surface-subtle px-3 py-1 text-xs text-muted-foreground" key={member.employeeId}>{member.employeeName}</li>)}</ul></div> : null}
-      {data.voiceEnabled && data.aiEnabled && canStart ? <TeamLiveVoice contextName={contextName} departmentId={data.mode === 'DEPARTMENT_SELECTION' ? selectedDepartmentId : undefined} enabled={canStart} labels={teamVoiceLabels} locale={locale} /> : <p className="text-sm text-muted-foreground">{selectedDepartmentIsEmpty ? labels.teamAiNoActiveMembers : data.mode === 'DEPARTMENT_SELECTION' && !canStart ? labels.teamAiDepartmentScope : labels.teamAiDisabled}</p>}
-      {data.mode === 'DEPARTMENT_SELECTION' && data.departments.length === 0 ? <p className="text-sm text-muted-foreground">{labels.teamAiNoDepartments}</p> : null}
-    </div>
-  </section>
-}
-
 function LogbookWindow({ data, labels, locale }: { data: StartPageData['logbook']; labels: StartPageLabels; locale: Locale }) {
   const dateLocale = locale === 'nl' ? 'nl-NL' : 'en-GB'
   const [revealedEntries, setRevealedEntries] = useState<PersonalLogbookEntry[] | null>(null)
@@ -194,10 +145,6 @@ function LogbookWindow({ data, labels, locale }: { data: StartPageData['logbook'
 function StartPageCalendarTiles(_props: { data: StartPageData; labels: Pick<StartPageLabels, 'nextLeave' | 'nextHoliday'>; nextCompanyActivityLabel: string | null }) {
   void _props
   return null
-}
-
-interface StartPageLabels {
-  absencePercentageSick: string
 }
 
 function ProcessWorkWindow({ data, dateLocale, labels }: { data: StartPageData['processWork']; dateLocale: string; labels: StartPageLabels }) {
@@ -275,6 +222,33 @@ function TeamAvailabilityWindow({ data, dateLocale, labels }: { data: StartPageT
   </section>
 }
 
+function isTeamAiStartPageData(value: unknown): value is StartPageTeamAiData {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const candidate = value as Record<string, unknown>
+  const validMember = (member: unknown): boolean => {
+    if (!member || typeof member !== 'object' || Array.isArray(member)) return false
+    const item = member as Record<string, unknown>
+    return typeof item.employeeId === 'string'
+      && typeof item.employeeName === 'string'
+      && (item.jobTitle === null || typeof item.jobTitle === 'string')
+      && (item.departmentName === null || typeof item.departmentName === 'string')
+  }
+  const validDepartment = (department: unknown): boolean => {
+    if (!department || typeof department !== 'object' || Array.isArray(department)) return false
+    const item = department as Record<string, unknown>
+    return typeof item.id === 'string' && typeof item.name === 'string' && Number.isInteger(item.memberCount) && Number(item.memberCount) >= 0
+  }
+  return (candidate.mode === 'DIRECT_TEAM' || candidate.mode === 'DEPARTMENT_SELECTION')
+    && (candidate.scopeType === 'DIRECT_TEAM' || candidate.scopeType === 'DEPARTMENT')
+    && (candidate.contextName === null || typeof candidate.contextName === 'string')
+    && (candidate.departmentId === null || typeof candidate.departmentId === 'string')
+    && Array.isArray(candidate.members) && candidate.members.every(validMember)
+    && Number.isInteger(candidate.totalMemberCount) && Number(candidate.totalMemberCount) >= 0
+    && Array.isArray(candidate.departments) && candidate.departments.every(validDepartment)
+    && typeof candidate.aiEnabled === 'boolean'
+    && typeof candidate.voiceEnabled === 'boolean'
+}
+
 export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labels, initialPreferences, today }: StartPageProps) {
   const router = useRouter()
   const name = data.firstName ?? labels.fallbackName
@@ -290,6 +264,28 @@ export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labe
   const [windowLayout, setWindowLayout] = useState(initialPreferences.layout)
   const [dragged, setDragged] = useState<{ column: 'wide' | 'narrow'; id: string } | null>(null)
   const [layoutStatus, setLayoutStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  const [teamAiData, setTeamAiData] = useState<StartPageTeamAiData | null>(null)
+  const [TeamAiWindowComponent, setTeamAiWindowComponent] = useState<ComponentType<TeamAiWindowProps> | null>(null)
+  const [teamAiStatus, setTeamAiStatus] = useState<'idle' | 'loading' | 'failed'>('idle')
+
+  async function openTeamAi(): Promise<void> {
+    if (!data.canLoadTeamAi || teamAiData || teamAiStatus === 'loading') return
+    setTeamAiStatus('loading')
+    try {
+      const response = await fetch('/api/team-ai/start-page', { cache: 'no-store' })
+      if (!response.ok) throw new Error('team_ai_read_failed')
+      const payload: unknown = await response.json()
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('team_ai_read_failed')
+      const candidate = (payload as Record<string, unknown>).data
+      if (!isTeamAiStartPageData(candidate)) throw new Error('team_ai_read_failed')
+      const teamAiChunk = await import('./team-ai-window')
+      setTeamAiData(candidate)
+      setTeamAiWindowComponent(() => teamAiChunk.TeamAiWindow)
+      setTeamAiStatus('idle')
+    } catch {
+      setTeamAiStatus('failed')
+    }
+  }
 
   async function saveWindowLayout(nextLayout: typeof windowLayout): Promise<void> {
     setLayoutStatus('saving')
@@ -356,7 +352,15 @@ export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labe
         {data.canReportAbsence ? <QuickAction description={labels.newAbsenceDescription} href="/absence/new" icon={ClipboardPlus} label={labels.newAbsence} /> : null}
       </div></section> : null}
 
-      {data.teamAi ? <TeamAiWindow data={data.teamAi} labels={labels} locale={locale} /> : null}
+      {data.canLoadTeamAi ? TeamAiWindowComponent && teamAiData
+        ? <TeamAiWindowComponent data={teamAiData} labels={labels} locale={locale} />
+        : <section aria-labelledby="startpage-team-ai-open-title" className="mt-6 grid justify-items-start gap-3 rounded-[var(--radius-surface)] border bg-surface p-5 sm:p-6">
+          <div><h2 className="text-lg font-semibold" id="startpage-team-ai-open-title">{labels.teamAiTitle}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.teamAiDescription}</p></div>
+          {teamAiStatus === 'loading' ? <p aria-live="polite" className="flex items-center gap-2 text-sm text-muted-foreground" role="status"><span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />{labels.teamAiLoading}</p> : null}
+          {teamAiStatus === 'failed' ? <p className="text-sm text-destructive" role="alert">{labels.teamAiLoadFailed}</p> : null}
+          {teamAiStatus === 'loading' ? null : <button className={buttonClasses({ variant: 'secondary' })} onClick={() => void openTeamAi()} type="button">{teamAiStatus === 'failed' ? labels.teamAiRetry : labels.teamAiOpen}</button>}
+        </section>
+        : null}
       <LogbookWindow data={data.logbook} labels={labels} locale={locale} />
 
       <Surface aria-labelledby="startpage-operational-title" className="mt-10 w-full max-w-none overflow-hidden p-0" data-testid="startpage-team-overview" role="region">

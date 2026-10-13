@@ -77,7 +77,7 @@ function isDepartmentSelector(auth: AuthContext): boolean {
   return auth.activeRoles.some((role) => departmentSelectorRoles.has(role))
 }
 
-function canUseTeamAi(auth: AuthContext): boolean {
+export function canUseTeamAi(auth: AuthContext): boolean {
   return auth.permissions.includes('start-page:read') && auth.permissions.includes('ai:use') && auth.activeRoles.some((role) => teamAiRoles.has(role))
 }
 

@@ -6,7 +6,7 @@ import messagesNl from '@/messages/nl/hera.json'
 export function createHeRaLabels(locale: 'nl' | 'en'): HeRaLabels {
   const translate = createTranslator(locale === 'en' ? messagesEn : messagesNl)
   return {
-    title: translate('title'), subtitle: translate('subtitle'), newConversation: translate('newConversation'),
+    title: translate('title'), loading: translate('loading'), loadFailed: translate('loadFailed'), retry: translate('retry'), subtitle: translate('subtitle'), newConversation: translate('newConversation'),
     emptyTitle: translate('emptyTitle'), emptyDescription: translate('emptyDescription'), composerPlaceholder: translate('composerPlaceholder'),
     send: translate('send'), sending: translate('sending'), deleteConversation: translate('deleteConversation'), exportConversation: translate('exportConversation'),
     renameConversation: translate('renameConversation'), memoryConsent: translate('memoryConsent'), saveMemory: translate('saveMemory'),
