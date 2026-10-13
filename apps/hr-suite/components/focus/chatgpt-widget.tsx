@@ -15,7 +15,7 @@ import { Surface } from '@/components/ui/surface'
 
 type WidgetLabels = typeof nlMessages.mcp.focusWidget
 type WidgetApp = Pick<App, 'callServerTool' | 'getHostContext' | 'updateModelContext' | 'addEventListener' | 'removeEventListener'>
-type ToolResultSubscription = (listener: (result: unknown) => void) => () => void
+const FOCUS_PLANS_TOOL_ID = 'liquidhr.focus.development-plans.read'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -51,7 +51,7 @@ function projectFromResult(result: unknown): ChatGptFocusPlan[] | null {
   }
 }
 
-export function ChatGptFocusWidget({ app, subscribeToolResults }: { app: WidgetApp; subscribeToolResults: ToolResultSubscription }) {
+export function ChatGptFocusWidget({ app }: { app: WidgetApp }) {
   const locale: 'nl' | 'en' = app.getHostContext()?.locale?.toLowerCase().startsWith('nl') ? 'nl' : 'en'
   const labels: WidgetLabels = locale === 'nl' ? nlMessages.mcp.focusWidget : enMessages.mcp.focusWidget
   const [plans, setPlans] = useState<ChatGptFocusPlan[]>([])
@@ -74,36 +74,49 @@ export function ChatGptFocusWidget({ app, subscribeToolResults }: { app: WidgetA
         setMessage(labels.contextCleared)
       }
     }
-    const onToolResult = (result: unknown) => {
-      if (!mounted) return
-      const resultError = errorTextFromResult(result)
-      const loadedPlans = projectFromResult(result)
-      if (resultError || !loadedPlans) {
-        sharedRef.current = false
-        setPlans([])
-        setSelectedIndex(null)
-        setShared(false)
-        setState(resultError ?? 'error')
-        return
-      }
+    app.addEventListener('hostcontextchanged', onHostContextChanged)
+    const loadPlans = async () => {
+      setBusy(true)
+      setState('loading')
       sharedRef.current = false
-      setPlans(loadedPlans)
       setSelectedIndex(null)
       setShared(false)
-      setState('ready')
       setMessage('')
+      try {
+        await app.updateModelContext({ content: [] })
+        const result = await app.callServerTool({ name: FOCUS_PLANS_TOOL_ID, arguments: {} })
+        const resultError = errorTextFromResult(result)
+        const loadedPlans = projectFromResult(result)
+        if (resultError || !loadedPlans) {
+          if (!mounted) return
+          setPlans([])
+          setState(resultError ?? 'error')
+          return
+        }
+        if (!mounted) return
+        setPlans(loadedPlans)
+        setState('ready')
+      } catch {
+        if (!mounted) return
+        try {
+          await app.updateModelContext({ content: [] })
+        } catch {
+          // The host may be closing the app; no personal values are logged or retained here.
+        }
+        setPlans([])
+        setState('auth')
+      } finally {
+        if (mounted) setBusy(false)
+      }
     }
 
-    app.addEventListener('hostcontextchanged', onHostContextChanged)
-    const unsubscribeToolResults = subscribeToolResults(onToolResult)
-    void app.updateModelContext({ content: [] }).catch(() => undefined)
+    void loadPlans()
 
     return () => {
       mounted = false
-      unsubscribeToolResults()
       app.removeEventListener('hostcontextchanged', onHostContextChanged)
     }
-  }, [app, labels.contextCleared, subscribeToolResults])
+  }, [app, labels.contextCleared])
 
 
   const shareSelection = async () => {
@@ -111,7 +124,7 @@ export function ChatGptFocusWidget({ app, subscribeToolResults }: { app: WidgetA
     setBusy(true)
     setMessage('')
     try {
-      const result = await app.callServerTool({ name: 'employee.talent.development-plans.read', arguments: {} })
+      const result = await app.callServerTool({ name: FOCUS_PLANS_TOOL_ID, arguments: {} })
       const resultError = errorTextFromResult(result)
       const currentPlans = projectFromResult(result)
       if (resultError || !currentPlans) {
@@ -194,7 +207,7 @@ export function ChatGptFocusWidget({ app, subscribeToolResults }: { app: WidgetA
     setMessage('')
     try {
       await app.updateModelContext({ content: [] })
-      const result = await app.callServerTool({ name: 'employee.talent.development-plans.read', arguments: {} })
+      const result = await app.callServerTool({ name: FOCUS_PLANS_TOOL_ID, arguments: {} })
       const resultError = errorTextFromResult(result)
       const loadedPlans = projectFromResult(result)
       if (resultError || !loadedPlans) {

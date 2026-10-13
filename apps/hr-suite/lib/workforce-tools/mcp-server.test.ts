@@ -52,8 +52,9 @@ import { WORKFORCE_TOOL_CATALOG } from './catalog'
 import { WorkforceToolDispatchError } from './registry'
 import { RemoteMcpToolError } from './mcp/remote-errors'
 import {
+  CHATGPT_FOCUS_OPEN_TOOL_ID,
+  CHATGPT_FOCUS_PLANS_TOOL_ID,
   CHATGPT_FOCUS_RESOURCE_URI,
-  CHATGPT_FOCUS_TOOL_ID,
 } from './mcp/focus-app'
 import {
   CHATGPT_MCP_SERVER_INFO,
@@ -420,19 +421,28 @@ describe('local Workforce MCP server', () => {
     const listedResult = listedPayload.result
     expect(isRecord(listedResult) && Array.isArray(listedResult.tools), JSON.stringify(listedPayload)).toBe(true)
     if (!isRecord(listedResult) || !Array.isArray(listedResult.tools)) throw new Error('Remote tools/list returned no tools')
-    expect(listedResult.tools).toHaveLength(14)
+    expect(listedResult.tools).toHaveLength(16)
     for (const tool of listedResult.tools) {
       expect(tool).toMatchObject({ securitySchemes: [{ type: 'oauth2', scopes: ['openid'] }] })
     }
     const listedNames = listedResult.tools.flatMap((tool) => isRecord(tool) && typeof tool.name === 'string' ? [tool.name] : [])
-    expect(listedNames).toEqual(CHATGPT_MCP_TOOLS.map((tool) => tool.name))
-    const focusReader = listedResult.tools.find((tool) => isRecord(tool) && tool.name === CHATGPT_FOCUS_TOOL_ID)
-    expect(focusReader).toMatchObject({
+    expect(listedNames.slice(0, CHATGPT_MCP_TOOLS.length)).toEqual(CHATGPT_MCP_TOOLS.map((tool) => tool.name))
+    expect(listedNames.slice(CHATGPT_MCP_TOOLS.length)).toEqual([
+      CHATGPT_FOCUS_OPEN_TOOL_ID,
+      CHATGPT_FOCUS_PLANS_TOOL_ID,
+    ])
+    const openTool = listedResult.tools.find((tool) => isRecord(tool) && tool.name === CHATGPT_FOCUS_OPEN_TOOL_ID)
+    expect(openTool).toMatchObject({
       inputSchema: { type: 'object', properties: {} },
       _meta: {
-        ui: { resourceUri: CHATGPT_FOCUS_RESOURCE_URI, visibility: ['app'] },
+        ui: { resourceUri: CHATGPT_FOCUS_RESOURCE_URI, visibility: ['model'] },
         'openai/ui': { entrypoints: [{ type: 'global' }, { type: 'thread' }] },
       },
+    })
+    const appOnlyReader = listedResult.tools.find((tool) => isRecord(tool) && tool.name === CHATGPT_FOCUS_PLANS_TOOL_ID)
+    expect(appOnlyReader).toMatchObject({
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      _meta: { ui: { resourceUri: CHATGPT_FOCUS_RESOURCE_URI, visibility: ['app'] } },
     })
 
     const uiResource = await handler.fetch(rpcRequest({
@@ -466,6 +476,17 @@ describe('local Workforce MCP server', () => {
     })
     expect(JSON.stringify(unauthorizedPayload)).toContain('insufficient_scope')
 
+    const appOnlyUnauthenticated = await handler.fetch(rpcRequest({
+      jsonrpc: '2.0',
+      id: 13,
+      method: 'tools/call',
+      params: { name: CHATGPT_FOCUS_PLANS_TOOL_ID, arguments: {} },
+    }))
+    expect((await readResponse(appOnlyUnauthenticated)).result).toMatchObject({
+      isError: true,
+      _meta: { 'mcp/www_authenticate': [expect.stringContaining('resource_metadata=')] },
+    })
+
     expect(mcpActionMocks.dispatchWorkforceTool).not.toHaveBeenCalled()
   })
 
@@ -489,7 +510,7 @@ describe('local Workforce MCP server', () => {
       jsonrpc: '2.0',
       id: 14,
       method: 'tools/call',
-      params: { name: CHATGPT_FOCUS_TOOL_ID, arguments: {} },
+      params: { name: CHATGPT_FOCUS_PLANS_TOOL_ID, arguments: {} },
     }))
     const payload = await readResponse(response)
     expect(dispatch).toHaveBeenCalledWith('employee.talent.development-plans.read', {})
@@ -504,6 +525,17 @@ describe('local Workforce MCP server', () => {
         }],
       },
     })
+    const plans = isRecord(payload.result) && isRecord(payload.result.structuredContent) && Array.isArray(payload.result.structuredContent.plans)
+      ? payload.result.structuredContent.plans
+      : []
+    expect(plans).toHaveLength(1)
+    expect(Object.keys(plans[0] as Record<string, unknown>).sort()).toEqual([
+      'completedAt',
+      'periodEnd',
+      'periodStart',
+      'progressPercent',
+      'status',
+    ])
     expect(JSON.stringify(payload)).not.toContain('00000000-0000-4000-8000-000000000001')
     expect(JSON.stringify(payload)).not.toContain('Private')
   })
