@@ -316,6 +316,9 @@ export type GenericPayrollInputReferenceRow = AuditColumns & {
   employment_income_relationship_id: string
   tax_profile_id: string
   tax_profile_version: number
+  core_source_contract_version: 'payroll-source-v4'
+  core_validated_at: string
+  source_version_vector: PayrollJson
   source_hash: string
   input_hash: string
   input_reference_json: PayrollJson

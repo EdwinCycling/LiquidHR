@@ -724,14 +724,18 @@ class SupabasePayrun01Repository implements Payrun01Repository {
     assertUuid(row.employment_income_relationship_id)
     assertUuid(row.tax_profile_id)
     assertVersion(row.tax_profile_version)
+    if (row.core_source_contract_version !== 'payroll-source-v4' || !Number.isFinite(Date.parse(row.core_validated_at))) {
+      throw new PayrollCalculationRepositoryError('PAYROLL_INPUT_REFERENCE_INVALID')
+    }
+    assertJsonObject(row.source_version_vector)
     assertHash(row.source_hash)
     assertHash(row.input_hash)
     assertJsonObject(row.input_reference_json)
     const fields = [
       'payroll_administration_id', 'source_tenant_id', 'source_hr_group_id', 'source_administration_id',
       'calculation_input_set_id', 'source_employee_id', 'source_employment_id', 'source_income_relationship_id',
-      'employment_income_relationship_id', 'tax_profile_id', 'tax_profile_version', 'source_hash', 'input_hash',
-      'input_reference_json',
+      'employment_income_relationship_id', 'tax_profile_id', 'tax_profile_version', 'core_source_contract_version',
+      'source_version_vector', 'source_hash', 'input_hash', 'input_reference_json',
     ] as const
     const read = () => this.getGenericInputReference(scope, payrollAdministrationId, row.calculation_input_set_id)
     return await getOrCreateImmutable(

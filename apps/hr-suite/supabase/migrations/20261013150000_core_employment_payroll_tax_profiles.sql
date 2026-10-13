@@ -149,11 +149,13 @@ DECLARE
   v_idempotency_key uuid;
   v_employment public.employments%ROWTYPE;
   v_income public.income_relationships%ROWTYPE;
+  v_income_link public.employment_income_relationships%ROWTYPE;
   v_previous public.employment_payroll_tax_profiles%ROWTYPE;
   v_existing public.employment_payroll_tax_profiles%ROWTYPE;
   v_profile public.employment_payroll_tax_profiles%ROWTYPE;
   v_version integer;
   v_duplicate_credit boolean;
+  v_income_link_count integer;
 BEGIN
   IF v_actor IS NULL THEN
     RAISE EXCEPTION 'PAYROLL_TAX_PROFILE_AUTHENTICATION_REQUIRED' USING ERRCODE = '42501';
@@ -203,6 +205,8 @@ BEGIN
           OR (assignment.scope_type = 'ADMINISTRATION' AND assignment.administration_id = v_employment.administration_id)
         )
         AND (role.tenant_id IS NULL OR role.tenant_id = v_employment.tenant_id)
+        AND role.is_active
+        AND role.deleted_at IS NULL
         AND role.code IN ('HR_ADMIN', 'TENANT_ADMIN')
     ) THEN
     RAISE EXCEPTION 'PAYROLL_TAX_PROFILE_FORBIDDEN' USING ERRCODE = '42501';
@@ -240,7 +244,7 @@ BEGIN
     RAISE EXCEPTION 'PAYROLL_TAX_PROFILE_IKV_NOT_READY' USING ERRCODE = '23514';
   END IF;
 
-  SELECT link.id INTO v_income_link_id
+  SELECT count(*)::integer INTO v_income_link_count
   FROM public.employment_income_relationships AS link
   WHERE link.tenant_id = v_employment.tenant_id
     AND link.administration_id = v_employment.administration_id
@@ -249,10 +253,27 @@ BEGIN
     AND link.income_relationship_id = v_income_relationship_id
     AND link.valid_from <= v_effective_from
     AND (link.valid_until IS NULL OR link.valid_until > v_effective_from)
+    AND (v_effective_to IS NOT NULL AND (link.valid_until IS NULL OR link.valid_until > v_effective_to)
+      OR v_effective_to IS NULL AND link.valid_until IS NULL);
+  IF v_income_link_count IS DISTINCT FROM 1 THEN
+    RAISE EXCEPTION 'PAYROLL_TAX_PROFILE_IKV_LINK_INVALID' USING ERRCODE = '23503';
+  END IF;
+  SELECT link.* INTO v_income_link
+  FROM public.employment_income_relationships AS link
+  WHERE link.tenant_id = v_employment.tenant_id
+    AND link.administration_id = v_employment.administration_id
+    AND link.employee_id = v_employee_id
+    AND link.employment_id = v_employment_id
+    AND link.income_relationship_id = v_income_relationship_id
+    AND link.valid_from <= v_effective_from
+    AND (link.valid_until IS NULL OR link.valid_until > v_effective_from)
+    AND (v_effective_to IS NOT NULL AND (link.valid_until IS NULL OR link.valid_until > v_effective_to)
+      OR v_effective_to IS NULL AND link.valid_until IS NULL)
   FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'PAYROLL_TAX_PROFILE_IKV_LINK_INVALID' USING ERRCODE = '23503';
   END IF;
+  v_income_link_id := v_income_link.id;
 
   SELECT profile.* INTO v_existing
   FROM public.employment_payroll_tax_profiles AS profile
@@ -265,6 +286,7 @@ BEGIN
     IF v_existing.employee_id <> v_employee_id
       OR v_existing.employment_id <> v_employment_id
       OR v_existing.income_relationship_id <> v_income_relationship_id
+      OR v_existing.employment_income_relationship_id <> v_income_link_id
       OR v_existing.effective_from <> v_effective_from
       OR v_existing.effective_to IS DISTINCT FROM v_effective_to
       OR v_existing.payroll_tax_credit_applies <> v_credit_applies
@@ -294,28 +316,36 @@ BEGIN
   END IF;
 
   IF v_credit_applies THEN
-    SELECT EXISTS (
-      SELECT 1
+    WITH latest_at_start AS (
+      SELECT DISTINCT ON (profile.income_relationship_id, profile.effective_from) profile.*
       FROM public.employment_payroll_tax_profiles AS profile
       WHERE profile.tenant_id = v_employment.tenant_id
         AND profile.hr_group_id = v_employment.hr_group_id
         AND profile.administration_id = v_employment.administration_id
         AND profile.employee_id = v_employee_id
         AND profile.income_relationship_id <> v_income_relationship_id
-        AND profile.payroll_tax_credit_applies
-        AND profile.effective_from <= v_effective_from
-        AND (profile.effective_to IS NULL OR profile.effective_to >= v_effective_from)
-        AND NOT EXISTS (
-          SELECT 1
-          FROM public.employment_payroll_tax_profiles AS newer
-          WHERE newer.tenant_id = profile.tenant_id
-            AND newer.hr_group_id = profile.hr_group_id
-            AND newer.administration_id = profile.administration_id
-            AND newer.income_relationship_id = profile.income_relationship_id
-            AND newer.effective_from <= v_effective_from
-            AND (newer.effective_from > profile.effective_from
-              OR (newer.effective_from = profile.effective_from AND newer.version_number > profile.version_number))
-        )
+      ORDER BY profile.income_relationship_id, profile.effective_from, profile.version_number DESC
+    ), fiscal_slices AS (
+      SELECT profile.income_relationship_id,
+        profile.payroll_tax_credit_applies,
+        profile.effective_from,
+        CASE
+          WHEN next_start IS NULL THEN profile.effective_to
+          WHEN profile.effective_to IS NULL OR profile.effective_to >= next_start THEN next_start - 1
+          ELSE profile.effective_to
+        END AS effective_to
+      FROM (
+        SELECT latest.*, lead(latest.effective_from) OVER (
+          PARTITION BY latest.income_relationship_id ORDER BY latest.effective_from
+        ) AS next_start
+        FROM latest_at_start AS latest
+      ) AS profile
+    )
+    SELECT EXISTS (
+      SELECT 1 FROM fiscal_slices AS slice
+      WHERE slice.payroll_tax_credit_applies
+        AND slice.effective_from <= coalesce(v_effective_to, 'infinity'::date)
+        AND coalesce(slice.effective_to, 'infinity'::date) >= v_effective_from
     ) INTO v_duplicate_credit;
     IF v_duplicate_credit THEN
       RAISE EXCEPTION 'PAYROLL_TAX_PROFILE_CREDIT_ALREADY_APPLIES' USING ERRCODE = '23514';
