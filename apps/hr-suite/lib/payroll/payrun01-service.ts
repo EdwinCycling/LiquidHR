@@ -29,7 +29,7 @@ import {
   createPayrun01Repository,
   type Payrun01Repository,
 } from './payrun01-repository'
-import { deriveKinderopvangOpeningBalance, type Payrun01OpeningBalance, type Payrun01PriorRunEvidence } from './payrun01-cumulative'
+import { deriveKinderopvangOpeningBalance, type Payrun01PriorRunEvidence } from './payrun01-cumulative'
 import type { Payrun01PayslipPdfInput } from './payrun01-payslip-pdf'
 import {
   projectPayrun01SourceSnapshot,
@@ -114,6 +114,14 @@ type Payrun01RunInput = {
 }
 
 export type Payrun01LifecycleInput = Payrun01RunInput & { readonly runId: string }
+
+export type FinalizedEmployeePayslipInput = {
+  readonly scope: PayrollScope
+  readonly payrollAdministrationId: string
+  readonly actorUserId: string
+  readonly employeeId: string
+  readonly runId: string
+}
 
 type PersistedPayrun01Versions = {
   readonly assignmentVersionId: string
@@ -1419,11 +1427,11 @@ export async function getLatestPayrun01Payroll(
   }).getLatestSyntheticPayroll(scope, payrollAdministrationId, runId, period)
 }
 
-function assertLifecycleActor(input: Payrun01LifecycleInput): void {
+function assertLifecycleActor(input: Payrun01LifecycleInput, enforceTestPersona = true): void {
   if (!isUuid(input.payrollAdministrationId) || !isUuid(input.actorUserId) || !isUuid(input.employeeId) || !isUuid(input.runId)) {
     throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID')
   }
-  if (payrun01ScenarioForTestPersona(input.employeeId) !== input.kind) {
+  if (enforceTestPersona && payrun01ScenarioForTestPersona(input.employeeId) !== input.kind) {
     throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', input.runId)
   }
 }
@@ -1433,8 +1441,9 @@ async function loadLifecycleEvidence(
   dependencies: Payrun01ServiceDependencies,
   requireCurrentSource = true,
   allowBlockedRun = false,
+  enforceTestPersona = true,
 ) {
-  assertLifecycleActor(input)
+  assertLifecycleActor(input, enforceTestPersona)
   if (!dependencies.enabled()) throw new SyntheticPayrollServiceError('PAYROLL_SYNTHETIC_MODE_DISABLED')
   const rulePackage = rulePackageForScenario(scenarioKey(input.kind))
   const artifacts = await dependencies.payrollRepository.getLatestSyntheticArtifacts(
@@ -1655,8 +1664,9 @@ type Payrun01PayslipLifecycleEvidence = Awaited<ReturnType<typeof loadLifecycleE
 async function loadFinalizedPayslipEvidence(
   input: Payrun01LifecycleInput,
   dependencies: Payrun01ServiceDependencies,
+  enforceTestPersona = true,
 ): Promise<Payrun01PayslipLifecycleEvidence> {
-  const evidence = await loadLifecycleEvidence(input, dependencies, false)
+  const evidence = await loadLifecycleEvidence(input, dependencies, false, false, enforceTestPersona)
   assertPayrun01Finalized(evidence.events, input.runId)
   if (evidence.artifacts.run.status !== 'SUCCEEDED'
     || evidence.artifacts.controls.some((control) => control.status === 'FAIL')) {
@@ -1978,6 +1988,75 @@ export async function renderPayrun01PayslipPdfPreviewForRun(
 ) {
   const lifecycleInput = await payrun01LifecycleInputForRun(input, dependencies)
   return await renderPayrun01PayslipPdfPreview(lifecycleInput, dependencies)
+}
+
+/**
+ * Read-only employee-scoped rendering. The caller must already have checked
+ * the employee permission and scope; this boundary independently binds the
+ * selected run to that employee and requires the complete FINALIZED lifecycle.
+ */
+export async function renderFinalizedEmployeePayslipPdf(
+  input: FinalizedEmployeePayslipInput,
+  dependencies = defaultDependencies(),
+) {
+  if (!isUuid(input.payrollAdministrationId) || !isUuid(input.actorUserId)
+    || !isUuid(input.employeeId) || !isUuid(input.runId)) {
+    throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID')
+  }
+  if (!dependencies.enabled()) throw new SyntheticPayrollServiceError('PAYROLL_SYNTHETIC_MODE_DISABLED')
+
+  const artifacts = await dependencies.payrollRepository.getLatestSyntheticArtifacts(
+    input.scope,
+    input.payrollAdministrationId,
+    undefined,
+    input.runId,
+    undefined,
+    'INDIVIDUAL_PAYROLL',
+  )
+  if (!artifacts || artifacts.run.id !== input.runId
+    || artifacts.run.status !== 'SUCCEEDED' || !artifacts.run.result_hash
+    || artifacts.sourceSnapshot.source_employee_id !== input.employeeId) {
+    throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', input.runId)
+  }
+
+  const inputReference = await dependencies.payrunRepository.getInputReference(
+    input.scope,
+    input.payrollAdministrationId,
+    artifacts.inputSet.id,
+  )
+  if (!inputReference || inputReference.source_employment_id !== artifacts.sourceSnapshot.source_employment_id
+    || !isJsonObject(inputReference.input_provenance_json)) {
+    throw new SyntheticPayrollServiceError('PAYROLL_PERSISTENCE_FAILED', input.runId)
+  }
+
+  const scenario = jsonString(inputReference.input_provenance_json.scenario)
+  const kind = scenarioKey(scenario as Payrun01CompositionKind)
+  const lifecycleInput: Payrun01LifecycleInput = { ...input, kind }
+  const evidence = await loadFinalizedPayslipEvidence(lifecycleInput, dependencies, false)
+  const existing = await dependencies.payrunRepository.getArtifact(
+    input.scope,
+    input.payrollAdministrationId,
+    input.runId,
+    'PAYSLIP_PDF',
+  )
+  if (existing) {
+    if (existing.calculation_run_id !== input.runId || existing.artifact_type !== 'PAYSLIP_PDF'
+      || existing.content_type !== 'application/pdf') {
+      throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', input.runId)
+    }
+    return {
+      artifact_bytes: existing.artifact_bytes,
+      content_type: 'application/pdf' as const,
+      file_name: existing.file_name,
+    }
+  }
+  const rendered = await renderPayrun01Payslip(lifecycleInput, evidence, dependencies)
+
+  return {
+    artifact_bytes: rendered.bytes,
+    content_type: 'application/pdf' as const,
+    file_name: rendered.fileName,
+  }
 }
 
 export async function reviewPayrun01Payroll(

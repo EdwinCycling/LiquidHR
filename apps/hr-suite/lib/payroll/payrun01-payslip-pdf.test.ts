@@ -41,12 +41,12 @@ const input: Payrun01PayslipPdfInput = {
 }
 
 describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
-  it('renders stored TEST amounts, contract details, and source warnings without technical provenance', () => {
+  it('renders saved amounts and warnings in the standard employee-facing format without synthetic labels or provenance', () => {
     const html = renderPayrun01PayslipHtml(input)
 
     expect(html).toContain('LiquidHR Standard')
-    expect(html).toContain('TEST · synthetische loondata')
-    expect(html).toContain('&lt;Lisa TEST&gt;')
+    expect(html).toContain('&lt;Lisa&gt;')
+    expect(html).toContain('LiquidHR Company')
     expect(html).toContain('Onbepaalde tijd')
     expect(html).toContain('Schriftelijke overeenkomst')
     expect(html).toContain('40 / 40 uur per week')
@@ -57,7 +57,8 @@ describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
     expect(html).toContain('€\u00a07.519,59')
     expect(html).toContain('€\u00a055.000,00')
     expect(html).toContain('Fiscale profielgegevens zijn niet bevestigd in de bron.')
-    expect(html).not.toContain('<Lisa TEST>')
+    expect(html).not.toMatch(/test|synthetisch|demo/i)
+    expect(html).not.toContain('<Lisa>')
     expect(html).not.toContain('resultHash')
     expect(html).not.toContain('engineVersion')
     expect(html).not.toContain('BSN')
@@ -72,11 +73,18 @@ describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
       },
     })
     expect(branded).toContain('alt="LiquidHR"')
-    expect(branded).toContain('alt="LiquidHR Demo Company TEST"')
+    expect(branded).toContain('alt="LiquidHR Company"')
 
     const fallback = renderPayrun01PayslipHtml({ ...input, branding: { liquidHrLogoDataUrl: null } })
     expect(fallback).toContain('class="wordmark-fallback">LiquidHR</span>')
-    expect(fallback).toContain('class="employer-wordmark">LiquidHR Demo Company TEST</span>')
+    expect(fallback).toContain('class="employer-wordmark">LiquidHR Company</span>')
+  })
+
+  it('does not invent a name when only a synthetic marker remains', () => {
+    expect(() => renderPayrun01PayslipHtml({
+      ...input,
+      data: { ...input.data, profile: { ...input.data.profile, employeeName: 'Testmedewerker' } },
+    })).toThrow('PAYRUN01_PAYSLIP_PROFILE_INVALID')
   })
 
   it('requires a complete saved monetary result', () => {
