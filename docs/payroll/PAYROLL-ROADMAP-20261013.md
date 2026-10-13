@@ -107,7 +107,7 @@
 - [AA-PAYROLL — regels en harde engine-invarianten](../AA/AA-PAYROLL.md)
 - [AA-OPEN — release-/security-/acceptatiegaten](../AA/AA-OPEN.md)
 - [PAY-RULE-002 finale technische checkpoint](acceptance/PAY-RULE-002-FINAL-CLOSURE-20261010.md)
-- [PAYESS-01 acceptatierapport](../quality/acceptance/runs/PAYESS-01-20261013.md) (**alleen aanwezig op PAYESS-featurebranch**)
+- [PAYESS-01 acceptatierapport op featurebranch](https://github.com/EdwinCycling/LiquidHR/blob/work/PAYESS-01-20261013/docs/quality/acceptance/runs/PAYESS-01-20261013.md)
 - [PAYDOC-STD-01A limited TEST-release](../quality/acceptance/runs/PAYDOC-STD-01A-20261013-LIMITED-TEST.md)
 - [AI Master Roadmap — afzonderlijk productspoor](../requirements/ai/LIQUIDHR_AI_MASTER_ROADMAP.md)
 
