@@ -43,18 +43,18 @@ export type PayrollCycleProjection = {
 export const PAYROLL_CALCULATION_COVERAGE = [
   {
     category: 'NL_2026_REGULAR_WAGE_TAX',
-    status: 'BOUNDED_RULE_ONLY',
-    reasonCode: 'CORE_SOURCE_MAPPING_NOT_ACCEPTED',
+    status: 'SUPPORTED_BOUNDED',
+    reasonCode: 'NL_2026_WHITE_MONTHLY_UNDER_AOW_REGULAR_FULL_PERIOD',
   },
   {
     category: 'CORE_FISCAL_PROFILE',
-    status: 'SOURCE_GAP',
-    reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT',
+    status: 'SUPPORTED_BOUNDED',
+    reasonCode: 'HR_ADMIN_CONFIRMED_EFFECTIVE_DATED_PROFILE',
   },
   {
     category: 'INCOME_RELATIONSHIP_IKV',
-    status: 'PARTIAL',
-    reasonCode: 'MULTI_IKV_ALLOCATION_UNSUPPORTED',
+    status: 'SUPPORTED_BOUNDED',
+    reasonCode: 'EXACTLY_ONE_ACTIVE_LINKED_IKV_REQUIRED',
   },
   {
     category: 'CUMULATIVE_TAX',
@@ -68,8 +68,8 @@ export const PAYROLL_CALCULATION_COVERAGE = [
   },
   {
     category: 'EMPLOYER_SOCIAL_COSTS',
-    status: 'TEST_ONLY',
-    reasonCode: 'PAYRUN01_ASSUMPTIONS_NOT_PRODUCTION_RULES',
+    status: 'UNSUPPORTED',
+    reasonCode: 'GENERAL_EMPLOYER_COST_RULES_NOT_IMPLEMENTED',
   },
   {
     category: 'VARIABLE_AND_NON_REGULAR_WAGE',

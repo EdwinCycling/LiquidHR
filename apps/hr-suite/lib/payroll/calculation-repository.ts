@@ -61,6 +61,7 @@ export interface PayrollCalculationRepository {
   insertCalculationInputSet(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_input_sets'>): Promise<PayrollCalculationInputSetRow>
   getOrCreateCalculationInputSet?(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_input_sets'>): Promise<PayrollCalculationInputSetRow>
   insertCalculationRun(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_runs'>): Promise<PayrollCalculationRunRow>
+  getOrCreateCalculationRun?(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_runs'>): Promise<{ readonly run: PayrollCalculationRunRow; readonly created: boolean }>
   markCalculationRunRunning(scope: PayrollScope, payrollAdministrationId: string, runId: string, actorUserId: string, startedAt: string): Promise<PayrollCalculationRunRow>
   markCalculationRunSucceeded(scope: PayrollScope, payrollAdministrationId: string, runId: string, actorUserId: string, finishedAt: string, resultHash: string): Promise<PayrollCalculationRunRow>
   markCalculationRunSucceededWithConcept?(
@@ -392,6 +393,58 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
     throwOnError(error)
     if (!data) throw new PayrollCalculationRepositoryError()
     return data
+  }
+
+  async getOrCreateCalculationRun(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    row: PayrollInsert<'calculation_runs'>,
+  ): Promise<{ readonly run: PayrollCalculationRunRow; readonly created: boolean }> {
+    assertScopedInsert(scope, payrollAdministrationId, row)
+    if (!row.id) throw new PayrollCalculationRepositoryError('PAYROLL_RUN_ID_INVALID')
+    assertUuid(row.id)
+    assertUuid(row.calculation_input_set_id)
+    assertUuid(row.created_by_user_id ?? '')
+    if (row.status !== 'PENDING' || row.started_at !== null || row.finished_at !== null || row.result_hash !== null) {
+      throw new PayrollCalculationRepositoryError('PAYROLL_RUN_INITIAL_STATE_INVALID')
+    }
+    const validatedScope = assertPayrollScope(scope)
+    const fields = [
+      'id', 'payroll_administration_id', 'source_tenant_id', 'source_hr_group_id', 'source_administration_id',
+      'calculation_input_set_id', 'run_type',
+    ] as const
+    const read = async (): Promise<PayrollCalculationRunRow | null> => {
+      const { data, error } = await applyPayrollScopeFilter(
+        this.client.from('calculation_runs').select('*')
+          .eq('id', row.id!)
+          .eq('payroll_administration_id', payrollAdministrationId),
+        validatedScope,
+      ).maybeSingle()
+      throwOnError(error)
+      if (data) assertScopedInsert(scope, payrollAdministrationId, data)
+      return data
+    }
+    const matches = (stored: PayrollCalculationRunRow) => hasSameContent(
+      stored as unknown as Record<string, unknown>,
+      row as Record<string, unknown>,
+      fields,
+    )
+    const existing = await read()
+    if (existing) {
+      if (!matches(existing)) throw new PayrollCalculationRepositoryError('PAYROLL_RUN_IDEMPOTENCY_CONFLICT')
+      return { run: existing, created: false }
+    }
+    const { data, error } = await this.client.from('calculation_runs').insert(row).select('*').single()
+    if (isUniqueViolation(error)) {
+      const raced = await read()
+      if (raced && matches(raced)) return { run: raced, created: false }
+      throw new PayrollCalculationRepositoryError('PAYROLL_RUN_IDEMPOTENCY_CONFLICT')
+    }
+    throwOnError(error)
+    if (!data) throw new PayrollCalculationRepositoryError()
+    assertScopedInsert(scope, payrollAdministrationId, data)
+    if (!matches(data)) throw new PayrollCalculationRepositoryError('PAYROLL_RUN_IDEMPOTENCY_CONFLICT')
+    return { run: data, created: true }
   }
 
   async markCalculationRunRunning(

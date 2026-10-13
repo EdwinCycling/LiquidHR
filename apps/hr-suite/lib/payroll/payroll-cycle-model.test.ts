@@ -139,7 +139,8 @@ describe('PayrollCycle projection', () => {
       stale: false,
     })
     expect(projected.calculationCoverage).toEqual(expect.arrayContaining([
-      expect.objectContaining({ category: 'CORE_FISCAL_PROFILE', status: 'SOURCE_GAP' }),
+      expect.objectContaining({ category: 'CORE_FISCAL_PROFILE', status: 'SUPPORTED_BOUNDED' }),
+      expect.objectContaining({ category: 'NL_2026_REGULAR_WAGE_TAX', status: 'SUPPORTED_BOUNDED' }),
       expect.objectContaining({ category: 'PFZW_MONTHLY_ALLOCATION', status: 'SOURCE_GAP' }),
       expect.objectContaining({ category: 'CUMULATIVE_TAX', status: 'UNSUPPORTED' }),
     ]))
