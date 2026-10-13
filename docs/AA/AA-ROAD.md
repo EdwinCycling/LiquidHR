@@ -1,9 +1,11 @@
 # AA-ROAD — Long-Term Product Roadmap
 
 Status: **STRATEGISCH / LIVING**
-Bijgewerkt: 2026-10-10
+Bijgewerkt: 2026-10-13 (alleen Core/PERF-prioriteiten)
 
 De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
+
+**Core-productbesluit 2026-10-13:** rond PERF01-B2 (CONTROLLED server-side medewerkerpagination) eerst af. Daarna volgt **WVP01**, vervolgens **INS02**. Dashboardoptimalisaties zijn op synthetische TEST geïntegreerd; AI on-demand bestaat al, maar zonder gekwantificeerde winst. De AI-, Payroll- en Nmbrs-roadmaps worden in andere threads bijgewerkt.
 
 ### AI-roadmap
 
@@ -55,16 +57,17 @@ decommissionplan afzonderlijk is goedgekeurd.
 
 ## PLANNED
 
-### WvP / Verzuim
-- volledige WvP case workspace;
-- milestones/taken;
-- case manager;
-- re-integratie/dossier;
-- RIV;
-- reminders en inzichten.
+### WvP / Verzuim — WVP01, volgende Core-wave na PERF01-B2
+- hergebruik bestaande `absence_tasks`, milestone-/generator- en casemanagerfoundation;
+- volledige caseworkspace: Overzicht / Tijdlijn / Acties / Dossier / Re-integratie / Historie;
+- versieerbare SYSTEM-milestones, custom/recurring taken en toekomstprojectie;
+- expliciete casemanagerautorisatie, HR-groepoptie en veilige backfill voor actieve cases;
+- RIV-readiness, werkvoorraad, reminders en inzichten;
+- verifieer de actuele wettelijke bronset vóór de eerste implementatieslice.
 
-### Workforce Insights
-- Headcount/FTE;
+### Workforce Insights — INS02, na WVP01
+- Report Consistency Contract voor filters, definities, KPI/chart/tabel/drilldown/export en scopes;
+- Headcount/FTE als referentierapport;
 - hires/exits;
 - turnover;
 - tenure;
