@@ -10,6 +10,7 @@ Codex mag zelfstandig:
 - een concreet defect reproduceren, de oorzaak vaststellen, in scope repareren en gericht hertesten;
 - tests toevoegen en passende typecheck-, lint-, build- of browserchecks uitvoeren;
 - bestaande synthetische TEST-fixtures lezen/gebruiken binnen expliciet toegestane scope;
+- gebruik in de canonieke lokale LiquidHR TEST-runtime bestaande synthetische accounts en hun beveiligd geconfigureerde credentials zelfstandig via Test Auth en de bestaande role-switch, inclusief normale Supabase Auth login/logout/sessionhandelingen en geauthenticeerde read-only browser-, API- en documentchecks. Dit geeft geen toestemming voor nieuwe accounts/rechten/fixtures, businessdatawrites, secrets, bypasses of gebruik buiten lokale TEST;
 - alleen expliciet geselecteerde eigen wijzigingen committen en een Draft PR openen indien de bestaande workflow dat vereist;
 - een merge-/releaseworkflow uitvoeren wanneer de **oorspronkelijke opdracht** dat expliciet autoriseert.
 

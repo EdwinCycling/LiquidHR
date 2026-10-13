@@ -236,6 +236,7 @@
   "salaryChartTitle": "Gross and net by month",
   "salaryChartDescription": "The chart includes only available finalized pay periods.",
   "salaryChartRange": "Chart period",
+  "month": "Month",
   "salaryRange6": "Latest 6 periods",
   "salaryRange12": "Latest 12 periods",
   "salaryRange24": "Latest 24 periods",

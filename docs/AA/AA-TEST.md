@@ -97,6 +97,8 @@ Test Auth:
 - fail-closed buiten lokale dev;
 - nooit zichtbaar of bruikbaar op Vercel Production/Preview;
 - mag geen rollen creëren of escaleren om een scenario groen te krijgen.
+- Blijvende werkafspraak: bestaande synthetische TEST-accounts en hun beveiligd/geconfigureerde gebruikersnaam-wachtwoord mogen zonder nieuwe toestemmingsvraag via Test Auth en de bestaande role-switch worden gebruikt voor normale ontwikkel- en acceptatietests. Dit dekt in-/uitloggen, de gewone Supabase Auth-sessionhandelingen, wisselen naar bestaande Employee-, Manager- en HR Admin-identiteiten en geauthenticeerde read-only browser-, API- en documentcontroles.
+- Dit is geen toestemming voor nieuwe accounts, rollen, rechten of fixtures, writes naar businessdata/schema, securitybypass of gebruik buiten de canonieke lokale TEST-runtime. Toon, log of commit nooit de inloggegevens, tokens, cookies of magic links; de accountmapping blijft in de beveiligde runtimeconfiguratie.
 
 Normale OAuth:
 - gebruiken wanneer echte identity/callback/sessiongedrag onderdeel van acceptance is;

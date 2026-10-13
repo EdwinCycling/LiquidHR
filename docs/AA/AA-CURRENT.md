@@ -5,9 +5,9 @@ Momentopname: 2026-10-13 (historische acceptance-evidence blijft ongewijzigd)
 
 ## PAYESS-01 — final acceptance candidate (2026-10-13)
 
-- Source candidate `47e42505` merges PAYESS-01 with current `origin/main` `1c435021124e036f9b6177b669b2c385f64550c9` via clean non-force merges. The latest main update changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; no other Payroll branch was included.
-- AA-LEAN-02 impact: **CONTROLLED**. The final product-code gates passed on runtime candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`: 630 HR files, 3,027 tests; type-check; changed-file ESLint; 43-namespace i18n parity; diff-check; and production build (323 routes, Payroll boundary scan 163 assets). The later main integration and evidence update changed documentation only; the final documentation diff check passed.
-- Authenticated Employee TEST acceptance is **BLOCKED pending explicit Auth approval**. Local route redirects to login; the existing Test Auth entry is HR Admin and switching to the configured Employee target requires a Supabase Auth handoff. No Auth request or Payroll data read was made. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
+- Source candidate includes PAYESS-01 and current `origin/main` `1c435021124e036f9b6177b669b2c385f64550c9` via clean non-force merges. The latest main update changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; no other Payroll branch was included.
+- AA-LEAN-02 impact: **CONTROLLED**. The prior full product-code gates passed on runtime candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`: 630 HR files, 3,027 tests; type-check; changed-file ESLint; 43-namespace i18n parity; diff-check; and production build (323 routes, Payroll boundary scan 163 assets). Acceptance found and fixed the missing NL/EN `month` labels; targeted JSON validation and the authenticated route render passed.
+- The existing local Test Auth/role-switch flow opened `/my-salary` as Noah in tenant `liquid-hr-demo-holding`, HR group `Planeten · DEFAULT`; the page returned 200 and showed no finalized periods or available payslips. **DATA/EVIDENCE GAP; not ready for TEST release.** Amounts, chart, comparison, documents, dossier parity, live negative probes, employee administration and 390 px remain OPEN. The missing NL/EN `month` label was fixed and the page now renders. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
 
