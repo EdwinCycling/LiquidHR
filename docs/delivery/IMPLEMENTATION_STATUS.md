@@ -2,9 +2,9 @@
 
 ## PAYESS-01 — controlled feature candidate — 2026-10-13
 
-**Status: LOCAL IMPLEMENTATION GREEN / AUTHENTICATED TEST ACCEPTANCE OPEN.** Code commit `e0fc0e97f843d744097687b5db9ff26dd63b8bd5` is on `work/PAYESS-01-20261013`, created from the then-current `main` SHA `73cb370539770711544637962c4e897ea4cd6265`. The branch is not merged or deployed. `origin/main` has since advanced to `f7db482b19b81d9c5aa5517c66394faa5f628e1b`; PAYLAB-UX-01 was deliberately not imported.
+**Status: LOCAL CONTROLLED GATES GREEN / AUTHENTICATED EMPLOYEE ACCEPTANCE BLOCKED PENDING AUTH APPROVAL.** Source candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e` merges PAYESS-01 with `origin/main` `f7db482b19b81d9c5aa5517c66394faa5f628e1b` via a clean non-force merge. No other Payroll branch was included; nothing was merged to main or deployed.
 
-The employee dashboard, multi-period self service, read-only Payroll PDF access and unified imported/Payroll payslip list are implemented. Focused authorization and history tests, the full HR suite (630 files; 3,027 tests passed, 8 skipped), type-check, scoped lint, i18n parity and production build passed. Local anonymous browser checks redirected `/my-salary` to login at 1440×900 and 390×844. Authenticated self-only TEST browser/data/PDF acceptance remains open; no application or Payroll writes were performed. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
+The 12 tests covering merged PAYLAB-UX-01 files, prior 55 PAYESS-focused tests, final HR suite (630 files; 3,027 passed, 8 skipped), type-check, changed-file ESLint, 43-namespace i18n, diff-check and production build passed. The local TEST-runtime preflight passed without printing configuration values. Local `/my-salary` redirects to login. The configured Test Employee fixture target is present, but no authenticated session was available to verify its employee row, administration, finalized periods or either payslip source. The required Auth handoff was not submitted pending explicit approval. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
 
 ## Current release — APIAI-09 — 2026-10-12
 
