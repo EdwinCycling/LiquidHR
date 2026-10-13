@@ -9,6 +9,9 @@ export const TEST_ROLE_SWITCH_TARGETS = [
   { key: 'hr-admin', email: TEST_HR_ADMIN_EMAIL },
   { key: 'manager', email: 'manager.fixture@liquidhr.test' },
   { key: 'employee', email: 'employee.fixture@liquidhr.test' },
+  { key: 'payroll-lisa', email: 'lisa.test@liquidhr.test' },
+  { key: 'payroll-jaap', email: 'jaap.test@liquidhr.test' },
+  { key: 'payroll-frits', email: 'frits.test@liquidhr.test' },
 ] as const
 
 export type TestRoleSwitchTargetKey = (typeof TEST_ROLE_SWITCH_TARGETS)[number]['key']
@@ -41,8 +44,13 @@ export function getTestAuthHarnessCredentials(
 
 export function canReturnToTestHrAdmin(email: string | null | undefined): boolean {
   const candidate = normalizedEmail(email)
-  return candidate === TEST_ROLE_SWITCH_TARGETS[2].email
-    || candidate === TEST_ROLE_SWITCH_TARGETS[3].email
+  return TEST_ROLE_SWITCH_TARGETS.some((target) => (
+    target.key === 'manager'
+    || target.key === 'employee'
+    || target.key === 'payroll-lisa'
+    || target.key === 'payroll-jaap'
+    || target.key === 'payroll-frits'
+  ) && target.email === candidate)
 }
 
 export interface TestRoleSwitchEnvironment {

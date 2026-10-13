@@ -97,3 +97,11 @@ Voor Payroll gelden aanvullend `AA-PAYROLL.md` en de feitelijk geraakte Payroll-
 - Richtbudget per taak, indicatief als sturingsmiddel en geen harde limiet of veiligheidsgrens: LOW circa **2.000**, MEDIUM **6.000**, HIGH **15.000** tokens. Pas dit aan als aantoonbare complexiteit dat vraagt; verkort nooit security-, integriteits- of vereiste verificatie.
 - Rapporteer input-, output-, cached tokens en kosten alleen als de runtime die betrouwbaar levert; anders vermeld **niet meetbaar**.
 - Rapporteer bij grotere runs kort het aantal herstelcycli, de uitgevoerde tests, meetbaar tokengebruik en de belangrijkste bron van verspilling.
+
+## Permanente lokale Payroll-persona's
+
+- Start met `docs/quality/acceptance/PAYROLL-TEST-PERSONAS.md` en de machinecatalogus ernaast. De catalogus is de vaste bron voor persona-key, login, employee/employment, scope, role-switch-key en run-lifecycle.
+- Voer `scripts/check-test-personas.ps1` uit voordat je Payroll-, ESS-, MSS- of PDF-acceptatie begint. Gebruik ontbrekende omgevingsvariabelen als exacte preflight-uitkomst; vraag niet opnieuw naar bekende accounts of de bekende loginflow.
+- De optionele launcherflag `-PayrollPersonaAcceptance` laadt de ACL-gecontroleerde persona-env uitsluitend in de lokale Development-testserver. Gebruik hem nooit voor Production-mode, Build of Vercel. Houd wachtwoorden uit logs, screenshots, traces, rapporten en Git; de beveiligde role-switch verstuurt geen persona-wachtwoord.
+- Wissel alleen naar de vaste catalogusdoelen. Ontbrekende Auth-accounts worden geweigerd en niet via magiclink-aanmaak of een service-role-/SQL-pad geïmproviseerd.
+- Houd `READY_WITH_EXPECTED_GAP` en `BLOCKED` zichtbaar. Geen GREEN zonder alle account-, scope-, lifecycle-, security-, terugkeer-, document- en onafhankelijke-worktreegates.

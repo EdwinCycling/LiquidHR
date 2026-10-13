@@ -54,3 +54,10 @@ Motto: **It takes a genius to keep it simple.**
 - De huidige LiquidHR-releasebestemming bevat uitsluitend **synthetische TEST-data**, ook wanneer Vercel het kanaal `production` noemt. Voor een expliciet geautoriseerde TEST-push volstaan bij FAST/STANDARD de passende gerichte gates; de full-suite-/alle-persona-/alle-theme-eis geldt daar **niet standaard**. Niet-kritieke ontbrekende QA wordt eerlijk als OPEN geregistreerd. Dit is geen claim van productieacceptatie of toestemming om harde veiligheidsgrenzen te passeren.
 - Eén wijziging = één afgebakende implementatie- en verificatiecyclus. Geen automatisch tweede worktree, nieuwe closeout-wave, uitgebreide documentatieset of werkboomcleanup. Hergebruik geldig bewijs; meld blokkades alleen als zij de gekozen gate werkelijk raken.
 - Gebruik [`docs/DEVELOPER_TOOLKIT.md`](docs/DEVELOPER_TOOLKIT.md) voor de huidige veilige scripts. Backup/restore legacy-scripts zijn fail-closed.
+
+## Canonieke Payroll TEST-persona's
+
+- Gebruik voor alle lokale LiquidHR-TEST-acceptatie de canonieke catalogus [`PAYROLL-TEST-PERSONAS.json`](docs/quality/acceptance/PAYROLL-TEST-PERSONAS.json) en voer [`check-test-personas.ps1`](scripts/check-test-personas.ps1) uit.
+- Vraag niet opnieuw welke vaste Payroll-testaccounts, credentiallocatie of role-switchflow beschikbaar zijn. Rapporteer ontbrekende configuratie met alleen de variabelenaam.
+- Gebruik alleen bestaande, geautoriseerde TEST-identiteiten en hun feitelijke tenant-, HR-groep-, administratie-, employee- en rolrechten. Role-switch is geen privilege-escalatie. Ken Lisa geen Manager-rechten toe zonder bewijs en verbreed de Test HR Admin-scope niet.
+- Houd de acceptance `BLOCKED` of `PARTIAL` zolang een persona, bronkoppeling, lifecycle-, security-, document- of onafhankelijke-worktreegate niet is bewezen.

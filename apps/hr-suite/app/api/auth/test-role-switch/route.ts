@@ -4,6 +4,7 @@ import {
   getTestRoleSwitchTarget,
   isTestRoleSwitchAccount,
   isTestRoleSwitchEnabled,
+  normalizedEmail,
 } from '@/lib/auth/test-role-switch'
 import { getRequestAuthorizationContext, permissionErrorResponse, requirePermission } from '@/lib/auth/permissions'
 import { safeNextPath } from '@/lib/auth/login-rules'
@@ -14,6 +15,19 @@ import { createAdminClient } from '@/lib/supabase/admin'
 const HANDOFF_COOKIE = 'liquidhr-test-role-switch'
 const NEXT_PATH_COOKIE = 'liquidhr-test-role-switch-next'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const AUTH_USER_PAGE_SIZE = 1000
+const MAX_AUTH_USER_PAGES = 100
+
+async function hasExistingAuthUser(admin: ReturnType<typeof createAdminClient>, email: string): Promise<boolean> {
+  const expectedEmail = normalizedEmail(email)
+  for (let page = 1; page <= MAX_AUTH_USER_PAGES; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: AUTH_USER_PAGE_SIZE })
+    if (error) return false
+    if (data.users.some((user) => normalizedEmail(user.email) === expectedEmail)) return true
+    if (data.lastPage <= page) return false
+  }
+  return false
+}
 
 export async function POST(request: NextRequest) {
   if (!isTestRoleSwitchEnabled()) {
@@ -119,6 +133,12 @@ export async function POST(request: NextRequest) {
   }
 
   admin ??= createAdminClient()
+  if (target?.key.startsWith('payroll-')) {
+    if (!await hasExistingAuthUser(admin, targetEmail)) {
+      return NextResponse.json({ error: 'TEST_ROLE_SWITCH_UNAVAILABLE' }, { status: 503 })
+    }
+  }
+
   const { data: generated, error: generateError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email: targetEmail,

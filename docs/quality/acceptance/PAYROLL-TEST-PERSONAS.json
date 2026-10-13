@@ -1,0 +1,173 @@
+{
+  "catalogVersion": 1,
+  "reviewedAt": "2026-10-13",
+  "coreTestProjectRef": "wnpfloqpjvaacobppbpk",
+  "payrollLabTestProjectRef": "jhgeriucbkfarxiudzfy",
+  "credentialFile": "%LOCALAPPDATA%\\LiquidHR\\TestRuntime\\payroll-test-personas.env",
+  "scope": {
+    "tenant": {
+      "id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+      "name": "De Sterren holding"
+    },
+    "hrGroup": {
+      "id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+      "code": "DEFAULT",
+      "name": "Planeten"
+    },
+    "administration": {
+      "id": "8483abc9-f275-c80b-5a23-fedc54ce9f0a",
+      "code": "OPERATIONS",
+      "name": "Jupiter BV"
+    }
+  },
+  "roleSwitch": {
+    "localDevelopmentOnly": true,
+    "allowedKeys": [
+      "payroll-lisa",
+      "payroll-jaap",
+      "payroll-frits"
+    ],
+    "preservedExistingKeys": [
+      "edwin",
+      "hr-admin",
+      "manager",
+      "employee"
+    ],
+    "returnKey": "hr-admin",
+    "requiresExistingAuthUser": true,
+    "doesNotGrantRolesOrAdministrationAccess": true,
+    "vercelPreview": "CLOSED",
+    "vercelProduction": "CLOSED"
+  },
+  "personas": [
+    {
+      "key": "lisa",
+      "label": "Lisa",
+      "email": "lisa.test@liquidhr.test",
+      "employeeId": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+      "employmentId": "b7391845-77d4-407c-bfe6-555a8a3d463b",
+      "roleSwitchKey": "payroll-lisa",
+      "accountState": "EXISTING_LINK_CONFIRMED",
+      "employeeAuthLink": "CONFIRMED_BY_SCOPE_GATED_LOCAL_HANDOFF",
+      "essAccess": "ACTIVE_CONFIRMED",
+      "employmentAndAdministrationBinding": "CONFIRMED_IN_JUPITER_CONTEXT",
+      "verifiedCapabilities": [
+        "self:salary:read"
+      ],
+      "managerRole": "UNVERIFIED; DO NOT GRANT OR ASSUME",
+      "payrollRuns": [
+        {
+          "id": "57ac6c10-7a02-49c4-a588-2ca244e621d9",
+          "period": "2026-10",
+          "lifecycle": "FINALIZED",
+          "sourceStatus": "EXISTING_FINALIZED_REFERENCE"
+        }
+      ],
+      "positiveScenarios": [
+        "Open Lisa's own /my-salary page and see the 2026-10 finalized statement."
+      ],
+      "negativeScenarios": [
+        "Verify another employee's salary and dossier remain inaccessible; not yet independently exercised in this run."
+      ],
+      "knownGaps": [
+        "The /my-salary page did not expose a PDF or download control during the 2026-10-13 local browser check.",
+        "Manager/MSS rights were not verified and are not added."
+      ],
+      "evidence": [
+        "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md",
+        "docs/quality/acceptance/runs/PAYDOC-STD-01A-20261013-LIMITED-TEST.md"
+      ]
+    },
+    {
+      "key": "jaap",
+      "label": "Jaap",
+      "email": "jaap.test@liquidhr.test",
+      "employeeId": "dd9bde02-76bb-4f7c-8add-db544a148f3f",
+      "employmentId": "29058c73-5cfa-409d-b9d4-80dd30f36962",
+      "roleSwitchKey": "payroll-jaap",
+      "accountState": "NOT_LINKED",
+      "employeeAuthLink": "NO_LINKED_AUTH_USER_OBSERVED",
+      "essAccess": "NOT_CONFIRMED",
+      "employmentAndAdministrationBinding": "CORE_RECORD_VERIFIED; AUTH_CONTEXT_NOT_AVAILABLE",
+      "verifiedCapabilities": [],
+      "roleCodes": "NOT_VERIFIED; EXPECTED EMPLOYEE ONLY",
+      "payrollRuns": [
+        {
+          "id": "e20e0345-90ac-489b-9fee-7610b2d8f6a3",
+          "period": "2026-10",
+          "calculationStatus": "SUCCEEDED",
+          "lifecycle": "CONCEPT",
+          "sourceStatus": "EXISTING_CONCEPT_REFERENCE"
+        }
+      ],
+      "positiveScenarios": [
+        "After account linkage, open Jaap's own /my-salary route."
+      ],
+      "negativeScenarios": [
+        "The CONCEPT run must not appear as a finalized payslip.",
+        "Verify other employees' salary and dossiers are inaccessible."
+      ],
+      "knownGaps": [
+        "Dedicated @liquidhr.test account and credential are not provisioned.",
+        "The existing CONCEPT must not be finalized or recalculated for this acceptance."
+      ],
+      "evidence": [
+        "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md"
+      ]
+    },
+    {
+      "key": "frits",
+      "label": "Frits",
+      "email": "frits.test@liquidhr.test",
+      "employeeId": "79091d14-ef66-41fe-a2d5-92df108727e5",
+      "employmentId": "d19bace9-bb97-4822-a462-eed22821ed05",
+      "roleSwitchKey": "payroll-frits",
+      "accountState": "NOT_LINKED",
+      "employeeAuthLink": "NO_LINKED_AUTH_USER_OBSERVED",
+      "essAccess": "NOT_CONFIRMED",
+      "employmentAndAdministrationBinding": "CORE_RECORD_VERIFIED; AUTH_CONTEXT_NOT_AVAILABLE",
+      "verifiedCapabilities": [],
+      "roleCodes": "NOT_VERIFIED; EXPECTED EMPLOYEE ONLY",
+      "payrollRuns": [
+        {
+          "id": "338ef391-fbf6-435a-a4d7-e28a8024ebc2",
+          "period": "2026-10",
+          "lifecycle": "FINALIZED",
+          "pensionStatus": "PFZW_SOURCE_GAP",
+          "netStatus": "NON_DEFINITIVE",
+          "sourceStatus": "IDENTITY_MISMATCH_OPEN",
+          "sourceLabelObserved": "Jan"
+        },
+        {
+          "id": "131a5fcb-c92a-416f-8fdf-bc87e2d3ae47",
+          "period": "2026-09",
+          "lifecycle": "FINALIZED",
+          "sourceStatus": "HISTORICAL_REFERENCE_NOT_REVALIDATED"
+        },
+        {
+          "id": "2d8057f1-92a9-4e0b-bfc6-09806c81ced5",
+          "period": "2026-10",
+          "lifecycle": "FINALIZED",
+          "sourceStatus": "HISTORICAL_REFERENCE_NOT_REVALIDATED"
+        }
+      ],
+      "positiveScenarios": [
+        "After account linkage, open only Frits's own existing historical results where the current source allows it.",
+        "Show PFZW source verification as open and net as non-definitive."
+      ],
+      "negativeScenarios": [
+        "Do not claim a definitive net while PFZW source is unresolved.",
+        "Verify other employees' salary and dossiers are inaccessible."
+      ],
+      "knownGaps": [
+        "Dedicated @liquidhr.test account and credential are not provisioned.",
+        "The current run's employee header identifies Frits, but its persisted calculation trace labels the source persona Jan. Exact source identity and the correct historical run remain unresolved.",
+        "PFZW is not calculated; source verification is required and net remains non-definitive."
+      ],
+      "evidence": [
+        "docs/payroll/acceptance/PAYRUN01-FRITS-TEST-PERSONA-20261007.md",
+        "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md"
+      ]
+    }
+  ]
+}
