@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import type { PayrollSourceProvider, PayrollSourceSnapshot } from '@liquid-hr/payroll-engine'
 import type { PayrollCalculationArtifacts, PayrollCalculationRepository } from './calculation-repository'
@@ -41,6 +41,11 @@ const employmentId = '77000000-0000-4000-8000-000000000007'
 const ikvId = '88000000-0000-4000-8000-000000000008'
 const linkId = '99000000-0000-4000-8000-000000000009'
 const taxProfileId = 'aa000000-0000-4000-8000-00000000000a'
+const secondEmployeeId = 'bb000000-0000-4000-8000-00000000000b'
+const secondEmploymentId = 'cc000000-0000-4000-8000-00000000000c'
+const secondIncomeRelationshipId = 'dd000000-0000-4000-8000-00000000000d'
+const secondIncomeLinkId = 'ee000000-0000-4000-8000-00000000000e'
+const secondTaxProfileId = 'ff000000-0000-4000-8000-00000000000f'
 const period = { year: 2026, month: 9 }
 const runTime = '2026-10-01T12:00:00.000Z'
 
@@ -147,7 +152,7 @@ function openPeriod(): PayrollPeriodRow {
   }
 }
 
-function harness(options: Parameters<typeof provider>[0] = {}) {
+function harness(options: Parameters<typeof provider>[0] = {}, sourceProviderOverride?: PayrollSourceProvider) {
   const snapshots = new Map<string, PayrollSourceSnapshotRow>()
   const inputs = new Map<string, PayrollCalculationInputSetRow>()
   const runs = new Map<string, PayrollCalculationRunRow>()
@@ -258,7 +263,7 @@ function harness(options: Parameters<typeof provider>[0] = {}) {
     requireAccess: async () => ({ scope, administration: { id: payrollAdminId, status: 'ACTIVE', capabilityEnabled: true }, actorUserId: actorId }),
     createCalculationRepository: () => calculationRepository,
     createLifecycleRepository: () => lifecycleRepository,
-    sourceProvider: provider(options), enabled: () => true, now: () => new Date(runTime),
+    sourceProvider: sourceProviderOverride ?? provider(options), enabled: () => true, now: () => new Date(runTime),
   })
   return { service, snapshots, inputs, runs, components, controls, traces, references, events, calcWrites, calculationRepository }
 }
@@ -297,6 +302,55 @@ describe('Core-backed employee payroll calculation', () => {
     expect(state.snapshots.size).toBe(2)
     expect(state.inputs.size).toBe(2)
     expect(state.events.map((event) => event.event_type)).toEqual(['CONCEPT', 'CONCEPT'])
+  })
+
+  it('keeps two employees in one payroll period on independent concept revisions and results', async () => {
+    const firstProvider = provider()
+    const firstSource = await firstProvider.getPayrollSourceSnapshot({ ...scope, employeeId, employmentId, payrollPeriod: period })
+    const canonical = firstSource.canonicalSource as Record<string, unknown>
+    const fiscalProfile = canonical.fiscalProfile as Record<string, unknown>
+    const incomeRelationship = canonical.incomeRelationship as Record<string, unknown>
+    const regularWage = canonical.regularWage as Record<string, unknown>
+    const secondSource: PayrollSourceSnapshot = {
+      ...firstSource,
+      id: id(),
+      sourceEmployeeId: secondEmployeeId,
+      sourceEmploymentId: secondEmploymentId,
+      sourceIncomeRelationshipId: secondIncomeRelationshipId,
+      sourceHash: createHash('sha256').update(`${firstSource.sourceHash}:${secondEmployeeId}:${secondEmploymentId}`).digest('hex'),
+      canonicalSource: {
+        ...canonical,
+        fiscalProfile: { ...fiscalProfile, id: secondTaxProfileId, incomeRelationshipId: secondIncomeRelationshipId },
+        incomeRelationship: { ...incomeRelationship, id: secondIncomeRelationshipId, employmentIncomeRelationshipId: secondIncomeLinkId },
+        regularWage: { ...regularWage, grossAmount: '5000.00' },
+      },
+      sourceVersionVector: {
+        ...firstSource.sourceVersionVector,
+        [`employment:${secondEmploymentId}`]: runTime,
+        [`employment_salary:${secondEmploymentId}`]: runTime,
+      },
+    }
+    const sourceProvider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: vi.fn(async (input) => {
+        if (input.employeeId === employeeId && input.employmentId === employmentId) return firstSource
+        if (input.employeeId === secondEmployeeId && input.employmentId === secondEmploymentId) return secondSource
+        throw new Error('Unexpected employee scope')
+      }),
+    }
+    const state = harness({}, sourceProvider)
+
+    const first = await state.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+    const second = await state.service.calculateEmployeePayroll({ employeeId: secondEmployeeId, employmentId: secondEmploymentId, period })
+
+    expect(first).toMatchObject({ businessStatus: 'CONCEPT', revision: 1, grossAmount: '4000.00' })
+    expect(second).toMatchObject({ businessStatus: 'CONCEPT', revision: 1, grossAmount: '5000.00' })
+    expect(second.runId).not.toBe(first.runId)
+    expect(state.runs.size).toBe(2)
+    expect(state.snapshots.size).toBe(2)
+    expect(state.inputs.size).toBe(2)
+    expect(state.events.map((event) => event.source_employment_id)).toEqual([employmentId, secondEmploymentId])
+    expect(state.components.get(first.runId!)?.find((row) => row.component_key === 'gross_salary')?.amount).toBe('4000.00')
+    expect(state.components.get(second.runId!)?.find((row) => row.component_key === 'gross_salary')?.amount).toBe('5000.00')
   })
 
   it('returns a concrete tax-profile source gap and persists no fabricated calculation', async () => {
