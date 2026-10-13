@@ -16,6 +16,7 @@ export interface PayrollSourceProviderInput {
   readonly hrGroupId: string
   readonly administrationId: string
   readonly employeeId: string
+  readonly employmentId?: string
   readonly payrollPeriod: PayrollPeriodReference
 }
 

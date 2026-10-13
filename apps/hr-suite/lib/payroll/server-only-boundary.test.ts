@@ -174,6 +174,7 @@ describe('Payroll Lab server-only boundary', () => {
     expect(calculationRepositoryImporters).toEqual([
       join(payrollDirectory, 'cao-bench02-calculation-service.ts'),
       join(payrollDirectory, 'nl-2026-calculation-service.ts'),
+      join(payrollDirectory, 'payroll-cycle-service.ts'),
       join(payrollDirectory, 'payroll-professional-service.ts'),
       join(payrollDirectory, 'payrun01-repository.ts'),
       join(payrollDirectory, 'payrun01-service.ts'),

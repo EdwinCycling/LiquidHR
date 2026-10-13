@@ -553,6 +553,31 @@ describe('LiquidHR Payroll source provider', () => {
       .rejects.toMatchObject({ code: 'PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS', status: 409 })
   })
 
+  it('selects one explicitly authorized employment when an employee has multiple employments', async () => {
+    const secondEmploymentId = '50000000-0000-4000-8000-000000000055'
+    const deps = dependencies({
+      listEmployments: vi.fn(async () => [employment(), employment({ id: secondEmploymentId })]),
+      loadTimeline: vi.fn(async () => ({ employment: employment({ id: secondEmploymentId }), salaries: [salary()], schedules: [schedule()] })),
+    })
+    const provider = new LiquidHrPayrollSourceProvider(deps)
+
+    const snapshot = await provider.getPayrollSourceSnapshot({ ...request, employmentId: secondEmploymentId })
+
+    expect(snapshot.sourceEmploymentId).toBe(secondEmploymentId)
+    expect(deps.loadTimeline).toHaveBeenCalledWith(employeeId, secondEmploymentId, request.payrollPeriod)
+  })
+
+  it('does not let an employment id escape the authorized employee selection', async () => {
+    const deps = dependencies({ listEmployments: vi.fn(async () => [employment()]) })
+    const provider = new LiquidHrPayrollSourceProvider(deps)
+
+    await expect(provider.getPayrollSourceSnapshot({
+      ...request,
+      employmentId: '50000000-0000-4000-8000-000000000055',
+    })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', status: 404 })
+    expect(deps.loadTimeline).not.toHaveBeenCalled()
+  })
+
   it('rejects a service read that changes the employment scope between selection and detail load', async () => {
     const deps = dependencies({
       loadTimeline: vi.fn(async () => ({

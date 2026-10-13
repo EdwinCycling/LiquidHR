@@ -31,6 +31,7 @@ export const payrollSourceProviderInputSchema = z.object({
   hrGroupId: opaqueUuidSchema,
   administrationId: opaqueUuidSchema,
   employeeId: opaqueUuidSchema,
+  employmentId: opaqueUuidSchema.optional(),
   payrollPeriod: payrollPeriodReferenceSchema,
 }).strict() satisfies z.ZodType<PayrollSourceProviderInput>
 

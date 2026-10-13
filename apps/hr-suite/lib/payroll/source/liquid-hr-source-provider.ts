@@ -439,6 +439,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       && employment.hr_group_id === input.hrGroupId
       && employment.administration_id === input.administrationId
       && employment.employee_id === input.employeeId
+      && (input.employmentId === undefined || employment.id === input.employmentId)
       && employment.deleted_at === null
       && employment.record_status === 'CONFIRMED'
       && employmentOverlapsPeriod(employment.starts_on, employment.ends_on, bounds.start, bounds.endInclusive),
