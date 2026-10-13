@@ -10,7 +10,7 @@ vi.mock('@/lib/context/server-context', () => ({ loadActiveContext }))
 
 import { AuthorizationError, requireAuthContext, requirePermission } from '@/lib/auth/permissions'
 import type { PayrollCalculationArtifacts, PayrollRunSummary } from './calculation-repository'
-import { getMySalaryStatement, type EmployeePayrollDependencies } from './payroll-professional-service'
+import { getMySalaryStatement, listEmployeePayrollPayslipPeriods, renderEmployeePayrollPayslipPdf, type EmployeePayrollDependencies } from './payroll-professional-service'
 
 const identities = {
   lisa: {
@@ -214,7 +214,11 @@ function makeDependencies(
   const listLifecycleEvents = vi.fn(async (_scope: typeof fixtureScope, _administrationId: string, _periodId: string, employmentId: string) => {
     const runId = employmentId === employmentIds.lisa ? runIds.lisa : runIds.jaap
     return finalizedByRun.has(runId)
-      ? [{ calculation_run_id: runId, event_type: 'FINALIZED' }]
+      ? [
+        { calculation_run_id: runId, event_type: 'CONCEPT', event_sequence: 1 },
+        { calculation_run_id: runId, event_type: 'REVIEWED', event_sequence: 2 },
+        { calculation_run_id: runId, event_type: 'FINALIZED', event_sequence: 3 },
+      ]
       : [{ calculation_run_id: runId, event_type: 'CONCEPT' }]
   })
   const dependencies = {
@@ -296,6 +300,13 @@ describe('My Salary authorization with the production permission guard', () => {
     activeIdentity = { ...identities.lisa, selfPermissions: [] }
     const { dependencies, listPayrollRunSummaries } = makeDependencies()
     await expect(getMySalaryStatement(dependencies)).rejects.toBeInstanceOf(AuthorizationError)
+    expect(listPayrollRunSummaries).not.toHaveBeenCalled()
+  })
+
+  it('denies the employee dossier and PDF endpoints without salary:read for that employee', async () => {
+    const { dependencies, listPayrollRunSummaries } = makeDependencies()
+    await expect(listEmployeePayrollPayslipPeriods(identities.jaap.employeeId, dependencies)).rejects.toBeInstanceOf(AuthorizationError)
+    await expect(renderEmployeePayrollPayslipPdf(identities.jaap.employeeId, 2026, 10, dependencies)).rejects.toBeInstanceOf(AuthorizationError)
     expect(listPayrollRunSummaries).not.toHaveBeenCalled()
   })
 

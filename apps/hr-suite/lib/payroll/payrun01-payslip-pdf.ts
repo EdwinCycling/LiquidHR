@@ -82,6 +82,14 @@ function escapeHtml(value: string): string {
   })[character] ?? character)
 }
 
+function professionalDisplayName(value: string): string {
+  return value
+    .replace(/\b(?:synthetic|synthetisch(?:e|en)?|test(?:medewerker)?|demo)\b/gi, ' ')
+    .replace(/\s+([,.;>])/g, '$1')
+    .replace(/[\s\u00a0]+/g, ' ')
+    .replace(/^[\s|,./·:–—-]+|[\s|,./·:–—-]+$/g, '')
+}
+
 function money(value: string): string {
   if (!MONEY_PATTERN.test(value)) throw new Error('PAYRUN01_PAYSLIP_MONEY_INVALID')
   const [whole, fraction = '00'] = value.split('.')
@@ -167,6 +175,9 @@ async function liquidHrBranding(): Promise<Payrun01PayslipBranding> {
 export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): string {
   validateInput(input)
   const { data } = input
+  const employerName = professionalDisplayName(data.profile.employerName)
+  const employeeName = professionalDisplayName(data.profile.employeeName)
+  if (!employerName || !employeeName) throw new Error('PAYRUN01_PAYSLIP_PROFILE_INVALID')
   const pensionExcluded = data.profile.pensionTreatment === 'EXCLUDED_SOURCE_GAP'
   const period = `${data.period.year}-${String(data.period.month).padStart(2, '0')}`
   const earningsRows = resultRows(data, EARNINGS_KEYS)
@@ -177,8 +188,8 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
   if (!netAmount) throw new Error('PAYRUN01_PAYSLIP_RESULT_INCOMPLETE')
 
   const liquidHrLogo = safeLogo(input.branding?.liquidHrLogoDataUrl, 'LiquidHR')
-  const employerLogo = safeLogo(input.branding?.employerLogoDataUrl, data.profile.employerName)
-  const employerBrand = employerLogo || `<span class="employer-wordmark">${escapeHtml(data.profile.employerName)}</span>`
+  const employerLogo = safeLogo(input.branding?.employerLogoDataUrl, employerName)
+  const employerBrand = employerLogo || `<span class="employer-wordmark">${escapeHtml(employerName)}</span>`
   const warnings = data.sourceWarnings.length > 0
     ? `<aside class="source-warnings" aria-label="Bronwaarschuwingen"><strong>Aandachtspunt bij brongegevens</strong><ul>${data.sourceWarnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join('')}</ul></aside>`
     : ''
@@ -186,7 +197,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
   const contractHours = `${data.profile.contractHoursPerWeek} / ${data.profile.fulltimeHoursPerWeek} uur per week`
   const netLabel = pensionExcluded ? 'Netto vóór niet-berekende pensioenpremie' : 'Netto-uitbetaling'
   const pensionNotice = pensionExcluded
-    ? '<p class="pension-notice">De pensioenpremie is niet berekend. De getoonde bedragen volgen de opgeslagen TEST-uitkomst en zijn niet definitief voor uitbetaling.</p>'
+    ? '<p class="pension-notice">De pensioenpremie is niet berekend. Het nettobedrag is niet definitief zolang de pensioenbron niet is geverifieerd.</p>'
     : ''
   const noEmployerRows = '<tr><td colspan="2" class="empty-row">Geen werkgeverskosten of reserveringen vastgelegd</td></tr>'
   const noCumulativeRows = '<tr><td colspan="2" class="empty-row">Geen cumulatieven vastgelegd</td></tr>'
@@ -213,7 +224,6 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
     .title-row { align-items: end; display: flex; gap: 12pt; justify-content: space-between; margin: 13pt 0 10pt; }
     .subtitle { color: #526777; font-size: 8pt; margin-top: 3pt; }
     .period { border: 1px solid #c6e4e3; border-radius: 4pt; color: #0a666a; font-size: 8pt; font-weight: 700; padding: 6pt 8pt; white-space: nowrap; }
-    .test-label { background: #e8f6f4; border-left: 3px solid #16a6aa; color: #14505c; font-size: 8pt; font-weight: 700; margin-bottom: 9pt; padding: 6pt 8pt; }
     .metadata { border-bottom: 1px solid #d5e0e5; display: grid; gap: 8pt 17pt; grid-template-columns: 1fr 1fr; margin: 0 0 11pt; padding: 0 0 10pt; }
     .meta-label { color: #526777; display: block; font-size: 7pt; }
     .meta-value { display: block; font-size: 9pt; font-weight: 600; margin-top: 1pt; overflow-wrap: anywhere; }
@@ -245,10 +255,9 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
       <div><h1>Loonstrook</h1><p class="subtitle">LiquidHR Standard</p></div>
       <div class="period">LOONPERIODE&nbsp;&nbsp;${escapeHtml(period)}</div>
     </div>
-    <p class="test-label">TEST · synthetische loondata</p>
     <dl class="metadata">
-      <div><dt class="meta-label">Werknemer</dt><dd class="meta-value">${escapeHtml(data.profile.employeeName)}</dd></div>
-      <div><dt class="meta-label">Werkgever</dt><dd class="meta-value">${escapeHtml(data.profile.employerName)}</dd></div>
+      <div><dt class="meta-label">Werknemer</dt><dd class="meta-value">${escapeHtml(employeeName)}</dd></div>
+      <div><dt class="meta-label">Werkgever</dt><dd class="meta-value">${escapeHtml(employerName)}</dd></div>
       <div><dt class="meta-label">Periode</dt><dd class="meta-value">${escapeHtml(data.period.startsOn)} t/m ${escapeHtml(data.period.endsOn)}</dd></div>
       <div><dt class="meta-label">Contract</dt><dd class="meta-value">${escapeHtml(contractType)} · ${escapeHtml(contractHours)}${data.profile.isOnCall ? ' · oproep' : ''}</dd></div>
       <div><dt class="meta-label">Schriftelijke overeenkomst</dt><dd class="meta-value">${data.profile.writtenContract ? 'Ja' : 'Nee'}</dd></div>

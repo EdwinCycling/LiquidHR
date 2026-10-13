@@ -5,8 +5,9 @@ import { createPayrollCalculationRepository, type PayrollCalculationArtifacts, t
 import { requireComponentLibraryAccess } from './component-library-access'
 import { createPayrollRepository, type PayrollRepository } from './repository'
 import { createPayrun01Repository } from './payrun01-repository'
+import { renderFinalizedEmployeePayslipPdf, type FinalizedEmployeePayslipInput } from './payrun01-service'
 import { isPayrollLabEnabled } from './feature-flag'
-import { payrollScopeFromAuthContext } from './scope'
+import { payrollScopeFromAuthContext, type PayrollScope } from './scope'
 
 export type PayrollProfessionalRun = PayrollCalculationArtifacts & {
   readonly lifecycleEvents: Awaited<ReturnType<ReturnType<typeof createPayrun01Repository>['listLifecycleEvents']>>
@@ -49,6 +50,8 @@ export type EmployeePayrollStatement = {
   readonly pension: EmployeePensionSummary | null
   readonly pensionReadiness: 'CALCULATED' | 'REVIEW_REQUIRED' | 'SOURCE_VERIFICATION_REQUIRED'
 }
+
+export type EmployeePayrollPeriod = Pick<EmployeePayrollStatement, 'periodYear' | 'periodMonth'>
 
 export type EmployeePayrollComponent = {
   readonly key: string
@@ -125,6 +128,7 @@ export type EmployeePayrollDependencies = {
   readonly createPayrollRepository: () => Pick<PayrollRepository, 'getPayrollAdministration'>
   readonly createCalculationRepository: typeof createPayrollCalculationRepository
   readonly createPayrunRepository: typeof createPayrun01Repository
+  readonly renderPayslipPdf: typeof renderFinalizedEmployeePayslipPdf
 }
 
 const defaultEmployeePayrollDependencies: EmployeePayrollDependencies = {
@@ -134,60 +138,204 @@ const defaultEmployeePayrollDependencies: EmployeePayrollDependencies = {
   createPayrollRepository,
   createCalculationRepository: createPayrollCalculationRepository,
   createPayrunRepository: createPayrun01Repository,
+  renderPayslipPdf: renderFinalizedEmployeePayslipPdf,
 }
 
-export async function getMySalaryStatement(
-  dependencies: EmployeePayrollDependencies = defaultEmployeePayrollDependencies,
-): Promise<EmployeePayrollStatement | null> {
-  const initialContext = await dependencies.requireAuthContext()
-  const employeeId = initialContext.employeeId
-  if (!employeeId) throw new AuthorizationError('Persoonlijke salarisgegevens zijn niet beschikbaar.')
+type EmployeePayrollAccess = {
+  readonly employeeId: string
+  readonly actorUserId: string
+  readonly scope: PayrollScope
+  readonly payrollAdministrationId: string
+}
 
-  const context = await dependencies.requirePermission('salary:read', employeeId)
-  if (context.employeeId !== employeeId || context.tenantId !== initialContext.tenantId
-    || context.hrGroupId !== initialContext.hrGroupId || context.administrationId !== initialContext.administrationId) {
-    throw new AuthorizationError('Persoonlijke salarisgegevens zijn niet beschikbaar.')
-  }
+type VerifiedEmployeePayrollPeriod = {
+  readonly statement: EmployeePayrollStatement
+  readonly runId: string
+}
+
+function isFinalizedRun(
+  events: readonly Awaited<ReturnType<ReturnType<typeof createPayrun01Repository>['listLifecycleEvents']>>[number][],
+  runId: string,
+): boolean {
+  const runEvents = events.filter((event) => event.calculation_run_id === runId)
+  const expected = [
+    { event_type: 'CONCEPT', event_sequence: 1 },
+    { event_type: 'REVIEWED', event_sequence: 2 },
+    { event_type: 'FINALIZED', event_sequence: 3 },
+  ] as const
+  return runEvents.length === expected.length && expected.every((event, index) =>
+    runEvents[index]?.event_type === event.event_type && runEvents[index]?.event_sequence === event.event_sequence)
+}
+
+async function createEmployeePayrollAccess(
+  context: Awaited<ReturnType<typeof requirePermission>>,
+  employeeId: string,
+  dependencies: EmployeePayrollDependencies,
+): Promise<EmployeePayrollAccess | null> {
   const scope = payrollScopeFromAuthContext(context)
   if (!scope || !dependencies.isEnabled()) return null
 
   const administration = await dependencies.createPayrollRepository().getPayrollAdministration(scope)
   if (!administration || administration.status !== 'ACTIVE' || !administration.capabilityEnabled) return null
 
-  const calculations = dependencies.createCalculationRepository()
-  const summaries = await calculations.listPayrollRunSummaries(scope, administration.id, {
+  return {
     employeeId,
+    actorUserId: context.userId,
+    scope,
+    payrollAdministrationId: administration.id,
+  }
+}
+
+async function authorizeMySalary(
+  dependencies: EmployeePayrollDependencies,
+): Promise<EmployeePayrollAccess | null> {
+  const initialContext = await dependencies.requireAuthContext()
+  const employeeId = initialContext.employeeId
+  if (!employeeId) throw new AuthorizationError('Persoonlijke salarisgegevens zijn niet beschikbaar.')
+
+  const context = await dependencies.requirePermission('salary:read', employeeId)
+  if (context.employeeId !== employeeId || context.userId !== initialContext.userId || context.tenantId !== initialContext.tenantId
+    || context.hrGroupId !== initialContext.hrGroupId || context.administrationId !== initialContext.administrationId) {
+    throw new AuthorizationError('Persoonlijke salarisgegevens zijn niet beschikbaar.')
+  }
+  return await createEmployeePayrollAccess(context, employeeId, dependencies)
+}
+
+async function authorizeEmployeeSalary(
+  employeeId: string,
+  dependencies: EmployeePayrollDependencies,
+): Promise<EmployeePayrollAccess | null> {
+  const context = await dependencies.requirePermission('salary:read', employeeId)
+  return await createEmployeePayrollAccess(context, employeeId, dependencies)
+}
+
+async function listFinalizedEmployeePeriods(
+  access: EmployeePayrollAccess,
+  dependencies: EmployeePayrollDependencies,
+): Promise<readonly VerifiedEmployeePayrollPeriod[]> {
+  const calculations = dependencies.createCalculationRepository()
+  const summaries = await calculations.listPayrollRunSummaries(access.scope, access.payrollAdministrationId, {
+    employeeId: access.employeeId,
     runType: 'INDIVIDUAL_PAYROLL',
-    limit: 100,
+    limit: 200,
   })
   const payrun = dependencies.createPayrunRepository()
+  const periods = new Map<string, VerifiedEmployeePayrollPeriod>()
 
-  for (const summary of summaries) {
-    if (summary.run.status !== 'SUCCEEDED') continue
-    const artifacts = await calculations.getLatestSyntheticArtifacts(
-      scope,
-      administration.id,
-      undefined,
-      summary.run.id,
-      undefined,
-      'INDIVIDUAL_PAYROLL',
-    )
-    if (!artifacts || artifacts.sourceSnapshot.source_employee_id !== employeeId) continue
-    const events = await payrun.listLifecycleEvents(
-      scope,
-      administration.id,
-      artifacts.payrollPeriod.id,
-      artifacts.sourceSnapshot.source_employment_id,
-    )
-    if (!events.some((event) => event.calculation_run_id === summary.run.id && event.event_type === 'FINALIZED')) continue
-    const pension = projectEmployeePensionSummary(artifacts)
-    return {
-      periodYear: artifacts.payrollPeriod.period_year,
-      periodMonth: artifacts.payrollPeriod.period_month,
-      components: projectEmployeeComponents(artifacts),
-      pension,
-      pensionReadiness: projectEmployeePensionReadiness(artifacts, pension),
+  for (let offset = 0; offset < summaries.length; offset += 10) {
+    const batch = summaries.slice(offset, offset + 10)
+    const verifiedBatch = await Promise.all(batch.map(async (summary) => {
+      if (summary.run.status !== 'SUCCEEDED' || summary.sourceSnapshot.source_employee_id !== access.employeeId) return null
+      const artifacts = await calculations.getLatestSyntheticArtifacts(
+        access.scope,
+        access.payrollAdministrationId,
+        undefined,
+        summary.run.id,
+        undefined,
+        'INDIVIDUAL_PAYROLL',
+      )
+      if (!artifacts || artifacts.run.id !== summary.run.id
+        || artifacts.sourceSnapshot.source_employee_id !== access.employeeId) return null
+      const periodYear = artifacts.payrollPeriod.period_year
+      const periodMonth = artifacts.payrollPeriod.period_month
+      if (!Number.isInteger(periodYear) || !Number.isInteger(periodMonth) || periodMonth < 1 || periodMonth > 12) return null
+
+      const events = await payrun.listLifecycleEvents(
+        access.scope,
+        access.payrollAdministrationId,
+        artifacts.payrollPeriod.id,
+        artifacts.sourceSnapshot.source_employment_id,
+      )
+      if (!isFinalizedRun(events, summary.run.id)) return null
+      const pension = projectEmployeePensionSummary(artifacts)
+      return {
+        periodKey: `${periodYear}-${String(periodMonth).padStart(2, '0')}`,
+        verified: {
+          runId: summary.run.id,
+          statement: {
+            periodYear,
+            periodMonth,
+            components: projectEmployeeComponents(artifacts),
+            pension,
+            pensionReadiness: projectEmployeePensionReadiness(artifacts, pension),
+          },
+        } satisfies VerifiedEmployeePayrollPeriod,
+      }
+    }))
+    for (const result of verifiedBatch) {
+      if (result && !periods.has(result.periodKey)) periods.set(result.periodKey, result.verified)
     }
   }
-  return null
+
+  return [...periods.values()].sort((left, right) =>
+    right.statement.periodYear - left.statement.periodYear
+      || right.statement.periodMonth - left.statement.periodMonth)
+}
+
+export async function getMySalaryStatements(
+  dependencies: EmployeePayrollDependencies = defaultEmployeePayrollDependencies,
+): Promise<readonly EmployeePayrollStatement[]> {
+  const access = await authorizeMySalary(dependencies)
+  if (!access) return []
+  return (await listFinalizedEmployeePeriods(access, dependencies)).map((period) => period.statement)
+}
+
+export async function getMySalaryStatement(
+  dependencies: EmployeePayrollDependencies = defaultEmployeePayrollDependencies,
+): Promise<EmployeePayrollStatement | null> {
+  return (await getMySalaryStatements(dependencies))[0] ?? null
+}
+
+export async function listEmployeePayrollPayslipPeriods(
+  employeeId: string,
+  dependencies: EmployeePayrollDependencies = defaultEmployeePayrollDependencies,
+): Promise<readonly EmployeePayrollPeriod[]> {
+  const access = await authorizeEmployeeSalary(employeeId, dependencies)
+  if (!access) return []
+  return (await listFinalizedEmployeePeriods(access, dependencies)).map(({ statement }) => ({
+    periodYear: statement.periodYear,
+    periodMonth: statement.periodMonth,
+  }))
+}
+
+async function renderEmployeePayslipPdf(
+  employeeId: string,
+  periodYear: number,
+  periodMonth: number,
+  access: EmployeePayrollAccess | null,
+  dependencies: EmployeePayrollDependencies,
+) {
+  if (!access) return null
+  const period = (await listFinalizedEmployeePeriods(access, dependencies)).find(({ statement }) =>
+    statement.periodYear === periodYear && statement.periodMonth === periodMonth)
+  if (!period) return null
+
+  const input: FinalizedEmployeePayslipInput = {
+    scope: access.scope,
+    payrollAdministrationId: access.payrollAdministrationId,
+    actorUserId: access.actorUserId,
+    employeeId,
+    runId: period.runId,
+  }
+  return await dependencies.renderPayslipPdf(input)
+}
+
+export async function renderMySalaryPayslipPdf(
+  periodYear: number,
+  periodMonth: number,
+  dependencies: EmployeePayrollDependencies = defaultEmployeePayrollDependencies,
+) {
+  const access = await authorizeMySalary(dependencies)
+  if (!access) return null
+  return await renderEmployeePayslipPdf(access.employeeId, periodYear, periodMonth, access, dependencies)
+}
+
+export async function renderEmployeePayrollPayslipPdf(
+  employeeId: string,
+  periodYear: number,
+  periodMonth: number,
+  dependencies: EmployeePayrollDependencies = defaultEmployeePayrollDependencies,
+) {
+  const access = await authorizeEmployeeSalary(employeeId, dependencies)
+  return await renderEmployeePayslipPdf(employeeId, periodYear, periodMonth, access, dependencies)
 }
