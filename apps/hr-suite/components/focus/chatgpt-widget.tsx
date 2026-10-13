@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { App, McpUiHostContext } from '@modelcontextprotocol/ext-apps'
 import {
-  projectChatGptFocusPlan,
   projectChatGptFocusPlans,
   projectSelectedChatGptFocusPlan,
   sameChatGptFocusPlan,
@@ -16,15 +15,10 @@ import { Surface } from '@/components/ui/surface'
 
 type WidgetLabels = typeof nlMessages.mcp.focusWidget
 type WidgetApp = Pick<App, 'callServerTool' | 'getHostContext' | 'updateModelContext' | 'addEventListener' | 'removeEventListener'>
+type ToolResultSubscription = (listener: (result: unknown) => void) => () => void
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function hostSelectedPlan(app: WidgetApp): ChatGptFocusPlan | null {
-  const context = app.getHostContext()?.['openai/modelContext']
-  if (!isRecord(context) || !isRecord(context.structuredContent)) return null
-  return projectChatGptFocusPlan(context.structuredContent)
 }
 
 function formatDate(value: string | null, locale: 'nl' | 'en'): string {
@@ -57,7 +51,7 @@ function projectFromResult(result: unknown): ChatGptFocusPlan[] | null {
   }
 }
 
-export function ChatGptFocusWidget({ app }: { app: WidgetApp }) {
+export function ChatGptFocusWidget({ app, subscribeToolResults }: { app: WidgetApp; subscribeToolResults: ToolResultSubscription }) {
   const locale: 'nl' | 'en' = app.getHostContext()?.locale?.toLowerCase().startsWith('nl') ? 'nl' : 'en'
   const labels: WidgetLabels = locale === 'nl' ? nlMessages.mcp.focusWidget : enMessages.mcp.focusWidget
   const [plans, setPlans] = useState<ChatGptFocusPlan[]>([])
@@ -72,7 +66,6 @@ export function ChatGptFocusWidget({ app }: { app: WidgetApp }) {
 
   useEffect(() => {
     let mounted = true
-    const candidate = hostSelectedPlan(app)
     const onHostContextChanged = (context: McpUiHostContext) => {
       if (context['openai/modelContext'] === null && sharedRef.current) {
         sharedRef.current = false
@@ -81,76 +74,68 @@ export function ChatGptFocusWidget({ app }: { app: WidgetApp }) {
         setMessage(labels.contextCleared)
       }
     }
-    app.addEventListener('hostcontextchanged', onHostContextChanged)
-
-    const loadPlans = async () => {
-      setBusy(true)
-      setState('loading')
+    const onToolResult = (result: unknown) => {
+      if (!mounted) return
+      const resultError = errorTextFromResult(result)
+      const loadedPlans = projectFromResult(result)
+      if (resultError || !loadedPlans) {
+        sharedRef.current = false
+        setPlans([])
+        setSelectedIndex(null)
+        setShared(false)
+        setState(resultError ?? 'error')
+        return
+      }
       sharedRef.current = false
+      setPlans(loadedPlans)
       setSelectedIndex(null)
       setShared(false)
+      setState('ready')
       setMessage('')
-      try {
-        await app.updateModelContext({ content: [] })
-        const result = await app.callServerTool({ name: 'liquidhr.focus.development-plans.read', arguments: {} })
-        const resultError = errorTextFromResult(result)
-        if (resultError) {
-          if (!mounted) return
-          setState(resultError)
-          return
-        }
-        const loadedPlans = projectFromResult(result)
-        if (!loadedPlans) throw new Error('INVALID_PLAN_PROJECTION')
-        if (!mounted) return
-        setPlans(loadedPlans)
-        setState('ready')
-        const restoredIndex = candidate ? loadedPlans.findIndex((plan) => sameChatGptFocusPlan(plan, candidate)) : -1
-        if (restoredIndex >= 0) {
-          const restored = loadedPlans[restoredIndex]
-          await app.updateModelContext({ structuredContent: restored })
-          if (!mounted) return
-          sharedRef.current = true
-          setSelectedIndex(restoredIndex)
-          setShared(true)
-          setMessage(labels.contextReady)
-        }
-      } catch {
-        if (!mounted) return
-        try {
-          await app.updateModelContext({ content: [] })
-        } catch {
-          // The host may be closing the app; no personal values are logged or retained here.
-        }
-        setState('auth')
-      } finally {
-        if (mounted) setBusy(false)
-      }
     }
 
-    void loadPlans()
+    app.addEventListener('hostcontextchanged', onHostContextChanged)
+    const unsubscribeToolResults = subscribeToolResults(onToolResult)
+    void app.updateModelContext({ content: [] }).catch(() => undefined)
+
     return () => {
       mounted = false
+      unsubscribeToolResults()
       app.removeEventListener('hostcontextchanged', onHostContextChanged)
     }
-  }, [app, labels.contextCleared, labels.contextReady])
+  }, [app, labels.contextCleared, subscribeToolResults])
+
 
   const shareSelection = async () => {
     if (!selectedPlan || busy) return
     setBusy(true)
     setMessage('')
     try {
-      const result = await app.callServerTool({ name: 'liquidhr.focus.development-plans.read', arguments: {} })
+      const result = await app.callServerTool({ name: 'employee.talent.development-plans.read', arguments: {} })
       const resultError = errorTextFromResult(result)
       const currentPlans = projectFromResult(result)
-      if (resultError || !currentPlans || !currentPlans.some((plan) => sameChatGptFocusPlan(plan, selectedPlan))) {
+      if (resultError || !currentPlans) {
         await app.updateModelContext({ content: [] })
+        sharedRef.current = false
         setSelectedIndex(null)
         setShared(false)
-        setState(resultError ?? 'auth')
+        setPlans([])
+        setState(resultError ?? 'error')
         return
       }
-      // The widget sends only the schema-approved five-field record for this user-selected row.
-      await app.updateModelContext({ structuredContent: projectSelectedChatGptFocusPlan(selectedPlan) })
+      const validatedPlan = currentPlans.find((plan) => sameChatGptFocusPlan(plan, selectedPlan))
+      if (!validatedPlan) {
+        await app.updateModelContext({ content: [] })
+        sharedRef.current = false
+        setSelectedIndex(null)
+        setShared(false)
+        setPlans(currentPlans)
+        setState('ready')
+        setMessage(labels.contextCleared)
+        return
+      }
+      // Revalidate with the existing self reader, then share only the five approved fields.
+      await app.updateModelContext({ structuredContent: projectSelectedChatGptFocusPlan(validatedPlan) })
       sharedRef.current = true
       setShared(true)
       setMessage(labels.contextReady)
@@ -163,11 +148,13 @@ export function ChatGptFocusWidget({ app }: { app: WidgetApp }) {
       sharedRef.current = false
       setSelectedIndex(null)
       setShared(false)
+      setPlans([])
       setState('auth')
     } finally {
       setBusy(false)
     }
   }
+
 
   const clearSelection = async () => {
     setBusy(true)
@@ -203,14 +190,16 @@ export function ChatGptFocusWidget({ app }: { app: WidgetApp }) {
     sharedRef.current = false
     setSelectedIndex(null)
     setShared(false)
+    setPlans([])
     setMessage('')
     try {
       await app.updateModelContext({ content: [] })
-      const result = await app.callServerTool({ name: 'liquidhr.focus.development-plans.read', arguments: {} })
+      const result = await app.callServerTool({ name: 'employee.talent.development-plans.read', arguments: {} })
       const resultError = errorTextFromResult(result)
       const loadedPlans = projectFromResult(result)
       if (resultError || !loadedPlans) {
         setState(resultError ?? 'error')
+        setPlans([])
         return
       }
       setPlans(loadedPlans)
@@ -223,6 +212,7 @@ export function ChatGptFocusWidget({ app }: { app: WidgetApp }) {
       setBusy(false)
     }
   }
+
 
   return (
     <main className="mcp-focus-widget mx-auto w-full max-w-3xl p-3 sm:p-5">

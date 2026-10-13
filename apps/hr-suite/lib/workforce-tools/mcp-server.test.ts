@@ -52,9 +52,8 @@ import { WORKFORCE_TOOL_CATALOG } from './catalog'
 import { WorkforceToolDispatchError } from './registry'
 import { RemoteMcpToolError } from './mcp/remote-errors'
 import {
-  CHATGPT_FOCUS_OPEN_TOOL_ID,
-  CHATGPT_FOCUS_PLANS_TOOL_ID,
   CHATGPT_FOCUS_RESOURCE_URI,
+  CHATGPT_FOCUS_TOOL_ID,
 } from './mcp/focus-app'
 import {
   CHATGPT_MCP_SERVER_INFO,
@@ -421,22 +420,20 @@ describe('local Workforce MCP server', () => {
     const listedResult = listedPayload.result
     expect(isRecord(listedResult) && Array.isArray(listedResult.tools), JSON.stringify(listedPayload)).toBe(true)
     if (!isRecord(listedResult) || !Array.isArray(listedResult.tools)) throw new Error('Remote tools/list returned no tools')
-    expect(listedResult.tools).toHaveLength(16)
+    expect(listedResult.tools).toHaveLength(14)
     for (const tool of listedResult.tools) {
       expect(tool).toMatchObject({ securitySchemes: [{ type: 'oauth2', scopes: ['openid'] }] })
     }
     const listedNames = listedResult.tools.flatMap((tool) => isRecord(tool) && typeof tool.name === 'string' ? [tool.name] : [])
-    expect(listedNames).toEqual(expect.arrayContaining(CHATGPT_MCP_TOOLS.map((tool) => tool.name)))
-    const openTool = listedResult.tools.find((tool) => isRecord(tool) && tool.name === CHATGPT_FOCUS_OPEN_TOOL_ID)
-    expect(openTool).toMatchObject({
+    expect(listedNames).toEqual(CHATGPT_MCP_TOOLS.map((tool) => tool.name))
+    const focusReader = listedResult.tools.find((tool) => isRecord(tool) && tool.name === CHATGPT_FOCUS_TOOL_ID)
+    expect(focusReader).toMatchObject({
       inputSchema: { type: 'object', properties: {} },
       _meta: {
-        ui: { resourceUri: CHATGPT_FOCUS_RESOURCE_URI },
+        ui: { resourceUri: CHATGPT_FOCUS_RESOURCE_URI, visibility: ['app'] },
         'openai/ui': { entrypoints: [{ type: 'global' }, { type: 'thread' }] },
       },
     })
-    const appOnlyReader = listedResult.tools.find((tool) => isRecord(tool) && tool.name === CHATGPT_FOCUS_PLANS_TOOL_ID)
-    expect(appOnlyReader).toMatchObject({ _meta: { ui: { visibility: ['app'], resourceUri: CHATGPT_FOCUS_RESOURCE_URI } } })
 
     const uiResource = await handler.fetch(rpcRequest({
       jsonrpc: '2.0',
@@ -469,16 +466,6 @@ describe('local Workforce MCP server', () => {
     })
     expect(JSON.stringify(unauthorizedPayload)).toContain('insufficient_scope')
 
-    const appOnlyUnauthenticated = await handler.fetch(rpcRequest({
-      jsonrpc: '2.0',
-      id: 13,
-      method: 'tools/call',
-      params: { name: CHATGPT_FOCUS_PLANS_TOOL_ID, arguments: {} },
-    }))
-    expect((await readResponse(appOnlyUnauthenticated)).result).toMatchObject({
-      isError: true,
-      _meta: { 'mcp/www_authenticate': [expect.stringContaining('resource_metadata=')] },
-    })
     expect(mcpActionMocks.dispatchWorkforceTool).not.toHaveBeenCalled()
   })
 
@@ -502,7 +489,7 @@ describe('local Workforce MCP server', () => {
       jsonrpc: '2.0',
       id: 14,
       method: 'tools/call',
-      params: { name: CHATGPT_FOCUS_PLANS_TOOL_ID, arguments: {} },
+      params: { name: CHATGPT_FOCUS_TOOL_ID, arguments: {} },
     }))
     const payload = await readResponse(response)
     expect(dispatch).toHaveBeenCalledWith('employee.talent.development-plans.read', {})

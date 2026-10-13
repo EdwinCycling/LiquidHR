@@ -10,6 +10,20 @@ import { ChatGptFocusWidget } from './chatgpt-widget'
 
 const app = new App({ name: 'LiquidHR Focus', version: '1.0.0' })
 const root = document.getElementById('root')
+type ToolResultListener = (result: unknown) => void
+const toolResultListeners = new Set<ToolResultListener>()
+let latestToolResult: unknown = null
+
+app.addEventListener('toolresult', (result) => {
+  latestToolResult = result
+  for (const listener of toolResultListeners) listener(result)
+})
+
+function subscribeToolResults(listener: ToolResultListener): () => void {
+  toolResultListeners.add(listener)
+  if (latestToolResult !== null) listener(latestToolResult)
+  return () => toolResultListeners.delete(listener)
+}
 
 function applyHostContext(context: McpUiHostContext | undefined): void {
   if (context?.theme) applyDocumentTheme(context.theme)
@@ -26,7 +40,7 @@ async function start(): Promise<void> {
   try {
     await app.connect(new PostMessageTransport(window, window.parent))
     applyHostContext(app.getHostContext())
-    createRoot(root).render(<ChatGptFocusWidget app={app} />)
+    createRoot(root).render(<ChatGptFocusWidget app={app} subscribeToolResults={subscribeToolResults} />)
   } catch {
     root.textContent = navigator.language.toLowerCase().startsWith('nl')
       ? 'LiquidHR Focus kan geen verbinding maken met ChatGPT.'
