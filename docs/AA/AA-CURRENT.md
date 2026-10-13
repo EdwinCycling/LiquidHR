@@ -5,8 +5,8 @@ Momentopname: 2026-10-13 (historische acceptance-evidence blijft ongewijzigd)
 
 ## PAYESS-01 — final acceptance candidate (2026-10-13)
 
-- Source candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e` merges PAYESS-01 with current `origin/main` `f7db482b19b81d9c5aa5517c66394faa5f628e1b` via a clean non-force merge. No other Payroll branch was included.
-- AA-LEAN-02 impact: **CONTROLLED**. Final gates on the merged candidate passed: 630 HR files, 3,027 tests; type-check; changed-file ESLint; 43-namespace i18n parity; diff-check; and production build (323 routes, Payroll boundary scan 163 assets).
+- Source candidate `47e42505` merges PAYESS-01 with current `origin/main` `1c435021124e036f9b6177b669b2c385f64550c9` via clean non-force merges. The latest main update changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; no other Payroll branch was included.
+- AA-LEAN-02 impact: **CONTROLLED**. The final product-code gates passed on runtime candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`: 630 HR files, 3,027 tests; type-check; changed-file ESLint; 43-namespace i18n parity; diff-check; and production build (323 routes, Payroll boundary scan 163 assets). The later main integration and evidence update changed documentation only; the final documentation diff check passed.
 - Authenticated Employee TEST acceptance is **BLOCKED pending explicit Auth approval**. Local route redirects to login; the existing Test Auth entry is HR Admin and switching to the configured Employee target requires a Supabase Auth handoff. No Auth request or Payroll data read was made. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
