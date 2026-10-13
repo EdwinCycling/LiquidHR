@@ -6924,6 +6924,141 @@ export type Database = {
           },
         ]
       }
+      employment_payroll_tax_profile_audit: {
+        Row: {
+          action: string
+          actor_user_id: string
+          administration_id: string
+          audit_payload: Json
+          employee_id: string
+          employment_id: string
+          hr_group_id: string
+          id: string
+          income_relationship_id: string
+          recorded_at: string
+          request_key: string
+          tax_profile_id: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          administration_id: string
+          audit_payload: Json
+          employee_id: string
+          employment_id: string
+          hr_group_id: string
+          id?: string
+          income_relationship_id: string
+          recorded_at?: string
+          request_key: string
+          tax_profile_id: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          administration_id?: string
+          audit_payload?: Json
+          employee_id?: string
+          employment_id?: string
+          hr_group_id?: string
+          id?: string
+          income_relationship_id?: string
+          recorded_at?: string
+          request_key?: string
+          tax_profile_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      employment_payroll_tax_profiles: {
+        Row: {
+          administration_id: string
+          confirmed_at: string
+          confirmed_by_user_id: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          employee_id: string
+          employment_id: string
+          employment_income_relationship_id: string
+          full_period_only: boolean
+          has_special_situation: boolean
+          herleiding_code: string
+          hr_group_id: string
+          id: string
+          idempotency_key: string
+          income_relationship_id: string
+          payroll_tax_credit_applies: boolean
+          regular_wage_only: boolean
+          residence_country_code: string
+          source_classification: string
+          source_reference: string
+          supersedes_profile_id: string | null
+          tenant_id: string
+          time_period: string
+          version_number: number
+          wage_tax_table: string
+        }
+        Insert: {
+          administration_id: string
+          confirmed_at?: string
+          confirmed_by_user_id: string
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          employee_id: string
+          employment_id: string
+          employment_income_relationship_id: string
+          full_period_only?: boolean
+          has_special_situation?: boolean
+          herleiding_code?: string
+          hr_group_id: string
+          id?: string
+          idempotency_key: string
+          income_relationship_id: string
+          payroll_tax_credit_applies: boolean
+          regular_wage_only?: boolean
+          residence_country_code?: string
+          source_classification?: string
+          source_reference: string
+          supersedes_profile_id?: string | null
+          tenant_id: string
+          time_period?: string
+          version_number: number
+          wage_tax_table?: string
+        }
+        Update: {
+          administration_id?: string
+          confirmed_at?: string
+          confirmed_by_user_id?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          employee_id?: string
+          employment_id?: string
+          employment_income_relationship_id?: string
+          full_period_only?: boolean
+          has_special_situation?: boolean
+          herleiding_code?: string
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string
+          income_relationship_id?: string
+          payroll_tax_credit_applies?: boolean
+          regular_wage_only?: boolean
+          residence_country_code?: string
+          source_classification?: string
+          source_reference?: string
+          supersedes_profile_id?: string | null
+          tenant_id?: string
+          time_period?: string
+          version_number?: number
+          wage_tax_table?: string
+        }
+        Relationships: []
+      }
       employment_labor_conditions: {
         Row: {
           administration_id: string
@@ -21949,6 +22084,10 @@ export type Database = {
       confirm_employment_termination: {
         Args: { requested_termination_id: string }
         Returns: undefined
+      }
+      confirm_employment_payroll_tax_profile: {
+        Args: { p_input: Json }
+        Returns: Json
       }
       confirm_group_leave_request: {
         Args: {

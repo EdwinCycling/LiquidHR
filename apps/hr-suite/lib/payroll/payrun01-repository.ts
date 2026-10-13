@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import type {
   IndividualPayrollInputReferenceRow,
   IndividualPayrollLifecycleEventRow,
+  GenericPayrollInputReferenceRow,
   PayrollDatabase,
   PayrollIndividualArrangementAssignmentVersionRow,
   PayrollIndividualArrangementCompositionSnapshotRow,
@@ -44,6 +45,10 @@ export type Payrun01OpeningCumulativeInput = Omit<
 >
 export type Payrun01InputReferenceInput = Omit<
   PayrollInsert<'individual_payroll_input_references'>,
+  'id' | 'created_at'
+>
+export type GenericPayrollInputReferenceInput = Omit<
+  PayrollInsert<'generic_payroll_input_references'>,
   'id' | 'created_at'
 >
 export type Payrun01LifecycleEventInput = Omit<
@@ -113,6 +118,16 @@ export interface Payrun01Repository {
     payrollAdministrationId: string,
     row: Payrun01InputReferenceInput,
   ): Promise<IndividualPayrollInputReferenceRow>
+  getGenericInputReference(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    calculationInputSetId: string,
+  ): Promise<GenericPayrollInputReferenceRow | null>
+  getOrCreateGenericInputReference(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    row: GenericPayrollInputReferenceInput,
+  ): Promise<GenericPayrollInputReferenceRow>
   insertLifecycleEvent(
     scope: PayrollScope,
     payrollAdministrationId: string,
@@ -668,6 +683,62 @@ class SupabasePayrun01Repository implements Payrun01Repository {
       },
       (stored) => hasSameContent(stored, row, fields),
       'PAYRUN01_INPUT_REFERENCE_CONFLICT',
+    )
+  }
+
+  async getGenericInputReference(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    calculationInputSetId: string,
+  ): Promise<GenericPayrollInputReferenceRow | null> {
+    const checkedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    assertUuid(calculationInputSetId)
+    const row = await selectOne<GenericPayrollInputReferenceRow>(applyPayrollScopeFilter(
+      this.client.from('generic_payroll_input_references').select('*')
+        .eq('payroll_administration_id', payrollAdministrationId)
+        .eq('calculation_input_set_id', calculationInputSetId),
+      checkedScope,
+    ).maybeSingle())
+    if (!row) return null
+    assertStoredScope(checkedScope, payrollAdministrationId, row)
+    if (row.calculation_input_set_id !== calculationInputSetId) {
+      throw new PayrollCalculationRepositoryError('PAYROLL_INPUT_REFERENCE_INVALID')
+    }
+    assertJsonObject(row.input_reference_json)
+    assertHash(row.source_hash)
+    assertHash(row.input_hash)
+    return row
+  }
+
+  async getOrCreateGenericInputReference(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    row: GenericPayrollInputReferenceInput,
+  ): Promise<GenericPayrollInputReferenceRow> {
+    assertScopedRow(scope, payrollAdministrationId, row)
+    assertUuid(row.calculation_input_set_id)
+    assertUuid(row.source_employee_id)
+    assertUuid(row.source_employment_id)
+    assertUuid(row.source_income_relationship_id)
+    assertUuid(row.employment_income_relationship_id)
+    assertUuid(row.tax_profile_id)
+    assertVersion(row.tax_profile_version)
+    assertHash(row.source_hash)
+    assertHash(row.input_hash)
+    assertJsonObject(row.input_reference_json)
+    const fields = [
+      'payroll_administration_id', 'source_tenant_id', 'source_hr_group_id', 'source_administration_id',
+      'calculation_input_set_id', 'source_employee_id', 'source_employment_id', 'source_income_relationship_id',
+      'employment_income_relationship_id', 'tax_profile_id', 'tax_profile_version', 'source_hash', 'input_hash',
+      'input_reference_json',
+    ] as const
+    const read = () => this.getGenericInputReference(scope, payrollAdministrationId, row.calculation_input_set_id)
+    return await getOrCreateImmutable(
+      read,
+      async () => await insertOne(this.client.from('generic_payroll_input_references').insert(row).select('*').single()),
+      (stored) => hasSameContent(stored, row, fields),
+      'PAYROLL_INPUT_REFERENCE_CONFLICT',
     )
   }
 

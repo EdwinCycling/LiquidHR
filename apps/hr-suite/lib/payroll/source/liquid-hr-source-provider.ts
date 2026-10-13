@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type { Database } from '@scope/db'
 import { getActualWorkPayrollProjection, type ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
 import type {
@@ -9,8 +9,13 @@ import type {
   PayrollSourceProviderInput,
   PayrollSourceSnapshot,
 } from '@liquid-hr/payroll-engine'
+import { FixedDecimal } from '@liquid-hr/payroll-engine'
 import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { listEmployeeEmployments } from '@/lib/employment/employment-service'
+import {
+  getEmploymentPayrollTaxSourceProjection,
+  type EmploymentPayrollTaxSourceProjection,
+} from '@/lib/employment/employment-payroll-tax-profile-service'
 import {
   getEmploymentIncomeRelationshipProjection,
   getEmploymentPayrollSourceProjection,
@@ -97,11 +102,14 @@ export type PayrollSourceIncomeRelationship = {
   readonly incomeRelationshipUpdatedAt: string
 }
 
+export type PayrollSourceTaxProfileProjection = EmploymentPayrollTaxSourceProjection
+
 export interface PayrollSourceTimeline {
   readonly employment: PayrollSourceEmployment
   readonly salaries: readonly PayrollSourceSalary[]
   readonly schedules: readonly PayrollSourceSchedule[]
   readonly incomeRelationships?: readonly PayrollSourceIncomeRelationship[]
+  readonly taxProfileProjection?: PayrollSourceTaxProfileProjection
   readonly contracts?: readonly PayrollSourceContract[]
   readonly laborConditions?: readonly PayrollSourceLaborCondition[]
   readonly organizations?: readonly PayrollSourceOrganization[]
@@ -151,9 +159,10 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
     listEmployments: async (employeeId) => await listEmployeeEmployments(employeeId),
     isEnabled: isPayrollLabEnabled,
     loadTimeline: async (employeeId, employmentId, payrollPeriod) => {
-      const [source, incomeRelationships] = await Promise.all([
+      const [source, incomeRelationships, taxProfileProjection] = await Promise.all([
         getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod),
         getEmploymentIncomeRelationshipProjection(employeeId, employmentId),
+        getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod),
       ])
       return {
         employment: source.employment,
@@ -165,6 +174,7 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
         pensionAssignments: source.pensionAssignments,
         laborConditionPensionArrangements: source.laborConditionPensionArrangements,
         incomeRelationships,
+        taxProfileProjection,
       }
     },
     loadActualWork: async (employeeId, employmentId, month) =>
@@ -334,14 +344,226 @@ function makeGap(field: string, status: PayrollSourceGap['status'], reasonCode: 
   return { field, status, reasonCode }
 }
 
+type TaxProfileSlice = {
+  readonly profile: PayrollSourceTaxProfileProjection['taxProfiles'][number]
+  readonly effectiveFrom: string
+  readonly effectiveTo: string | null
+}
+
+type PayrollTaxCanonicalProfile = {
+  readonly status: 'CONFIRMED' | 'SOURCE_GAP' | 'UNSUPPORTED'
+  readonly reasonCode?: string
+  readonly reasonCodes?: readonly string[]
+  readonly id?: string
+  readonly incomeRelationshipId?: string
+  readonly effectiveFrom?: string
+  readonly effectiveTo?: string | null
+  readonly versionNumber?: number
+  readonly supersedesProfileId?: string | null
+  readonly residenceCountryCode?: string
+  readonly wageTaxTable?: string
+  readonly herleiding?: string
+  readonly timePeriod?: string
+  readonly regularWageOnly?: boolean
+  readonly fullPeriodOnly?: boolean
+  readonly hasSpecialSituation?: boolean
+  readonly payrollTaxCreditApplies?: boolean
+  readonly sourceClassification?: string
+  readonly sourceReferenceHash?: string
+  readonly confirmedByUserId?: string
+  readonly confirmedAt?: string
+  readonly createdAt?: string
+  readonly ageCategory?: string | null
+  readonly activeIncomeRelationshipCount?: number
+}
+
+function taxProfileSlices(profiles: PayrollSourceTaxProfileProjection['taxProfiles']): TaxProfileSlice[] {
+  const byScope = new Map<string, typeof profiles[number][]>()
+  for (const profile of profiles) {
+    const scopeKey = `${profile.employment_id}:${profile.income_relationship_id}`
+    const rows = byScope.get(scopeKey) ?? []
+    rows.push(profile)
+    byScope.set(scopeKey, rows)
+  }
+  const slices: TaxProfileSlice[] = []
+  for (const rows of byScope.values()) {
+    const sorted = [...rows].sort((left, right) =>
+      left.effective_from.localeCompare(right.effective_from)
+      || left.version_number - right.version_number
+      || left.id.localeCompare(right.id),
+    )
+    const latestByStart = new Map<string, typeof sorted[number]>()
+    for (const row of sorted) latestByStart.set(row.effective_from, row)
+    const effectiveRows = [...latestByStart.values()].sort((left, right) => left.effective_from.localeCompare(right.effective_from))
+    effectiveRows.forEach((profile, index) => {
+      const next = effectiveRows[index + 1]
+      const successorEnd = next ? dayBefore(next.effective_from) : null
+      const explicitEnd = profile.effective_to
+      const effectiveTo = explicitEnd === null
+        ? successorEnd
+        : successorEnd === null || explicitEnd < successorEnd ? explicitEnd : successorEnd
+      slices.push({ profile, effectiveFrom: profile.effective_from, effectiveTo })
+    })
+  }
+  return slices.sort((left, right) =>
+    left.effectiveFrom.localeCompare(right.effectiveFrom)
+    || left.profile.id.localeCompare(right.profile.id),
+  )
+}
+
+function resolvePayrollTaxProfile(
+  projection: PayrollSourceTaxProfileProjection | undefined,
+  employmentId: string,
+  incomeRelationshipId: string | null,
+  employmentIncomeRelationshipId: string | null,
+  periodStart: string,
+  periodEndExclusive: string,
+): {
+  readonly canonical: PayrollTaxCanonicalProfile
+  readonly sourceGaps: readonly PayrollSourceGap[]
+  readonly sourceVersionVector: Readonly<Record<string, string>>
+} {
+  const sourceGaps: PayrollSourceGap[] = []
+  const sourceVersionVector: Record<string, string> = {}
+  if (!projection) {
+    return {
+      canonical: { status: 'SOURCE_GAP', reasonCode: 'CORE_FISCAL_PROFILE_SOURCE_UNAVAILABLE' },
+      sourceGaps: [makeGap('taxProfile', 'SOURCE_GAP', 'CORE_FISCAL_PROFILE_SOURCE_UNAVAILABLE')],
+      sourceVersionVector,
+    }
+  }
+  if (!projection.ageCategory) {
+    sourceGaps.push(makeGap('taxProfile', 'SOURCE_GAP', 'EMPLOYEE_BIRTH_DATE_REQUIRED_FOR_TAX_CLASSIFICATION'))
+  } else if (projection.ageCategory !== 'UNDER_AOW') {
+    sourceGaps.push(makeGap('taxProfile', 'UNSUPPORTED', 'NL_2026_RULES_REQUIRE_UNDER_AOW_AGE'))
+  }
+  sourceVersionVector.employee_tax_classification = `${projection.ageCategory ?? 'MISSING'}:${projection.ageSourceUpdatedAt ?? 'MISSING'}`
+  for (const relationship of projection.incomeRelationships) {
+    sourceVersionVector[`income_relationship:${relationship.id}`] = relationship.updatedAt
+  }
+  const slices = taxProfileSlices(projection.taxProfiles)
+  for (const slice of slices) {
+    const { profile } = slice
+    sourceVersionVector[`employment_payroll_tax_profile:${profile.id}`] = `${profile.version_number}:${profile.created_at}`
+  }
+
+  if (projection.incomeRelationshipLinkGap) {
+    sourceGaps.push(makeGap('incomeRelationship', 'SOURCE_GAP', 'ACTIVE_IKV_LINK_MISSING_OR_AMBIGUOUS'))
+  } else if (projection.activeIncomeRelationshipCount !== 1) {
+    sourceGaps.push(makeGap(
+      'incomeRelationship',
+      projection.activeIncomeRelationshipCount > 1 ? 'UNSUPPORTED' : 'SOURCE_GAP',
+      projection.activeIncomeRelationshipCount > 1 ? 'MULTIPLE_ACTIVE_IKV_UNSUPPORTED' : 'NO_ACTIVE_IKV_FOR_FULL_PERIOD',
+    ))
+  }
+
+  if (!incomeRelationshipId || !employmentIncomeRelationshipId) {
+    sourceGaps.push(makeGap('taxProfile', 'SOURCE_GAP', 'TAX_PROFILE_REQUIRES_LINKED_IKV'))
+    return {
+      canonical: { status: sourceGaps.some((gap) => gap.status === 'UNSUPPORTED') ? 'UNSUPPORTED' : 'SOURCE_GAP', reasonCodes: sourceGaps.map((gap) => gap.reasonCode) },
+      sourceGaps,
+      sourceVersionVector,
+    }
+  }
+
+  const periodEnd = dayBefore(periodEndExclusive)
+  const matching = slices.filter((slice) => slice.profile.employment_id === employmentId
+    && slice.profile.income_relationship_id === incomeRelationshipId)
+  const covering = matching.filter((slice) => slice.effectiveFrom <= periodStart
+    && (slice.effectiveTo === null || slice.effectiveTo >= periodEnd))
+  const overlapping = matching.filter((slice) => effectiveRangeOverlapsPeriod(
+    slice.effectiveFrom,
+    slice.effectiveTo === null ? null : dayAfter(slice.effectiveTo),
+    periodStart,
+    periodEndExclusive,
+  ))
+  let selected: TaxProfileSlice | null = null
+  if (covering.length === 1) selected = covering[0] ?? null
+  else if (covering.length > 1) {
+    sourceGaps.push(makeGap('taxProfile', 'UNSUPPORTED', 'FISCAL_PROFILE_CONFLICT'))
+  } else if (overlapping.length > 0) {
+    sourceGaps.push(makeGap('taxProfile', 'UNSUPPORTED', 'FISCAL_PROFILE_CHANGES_WITHIN_PERIOD'))
+  } else {
+    sourceGaps.push(makeGap('taxProfile', 'SOURCE_GAP', matching.length === 0
+      ? 'NO_CONFIRMED_FISCAL_PROFILE'
+      : 'FISCAL_PROFILE_NOT_EFFECTIVE_FOR_FULL_PERIOD'))
+  }
+
+  const activeCreditClaims = slices.filter((slice) => slice.profile.payroll_tax_credit_applies
+    && slice.profile.income_relationship_id !== incomeRelationshipId
+    && slice.effectiveFrom <= periodEnd
+    && (slice.effectiveTo === null || slice.effectiveTo >= periodStart))
+  if (activeCreditClaims.length > 0) {
+    sourceGaps.push(makeGap('taxProfile', 'UNSUPPORTED', 'PAYROLL_TAX_CREDIT_ALREADY_APPLIES_TO_OTHER_IKV'))
+  }
+
+  if (!selected) {
+    const unsupported = sourceGaps.some((gap) => gap.status === 'UNSUPPORTED')
+    return {
+      canonical: { status: unsupported ? 'UNSUPPORTED' : 'SOURCE_GAP', reasonCodes: sourceGaps.map((gap) => gap.reasonCode) },
+      sourceGaps,
+      sourceVersionVector,
+    }
+  }
+
+  const profile = selected.profile
+  if (profile.employment_income_relationship_id !== employmentIncomeRelationshipId) {
+    sourceGaps.push(makeGap('taxProfile', 'UNSUPPORTED', 'FISCAL_PROFILE_IKV_LINK_SOURCE_MISMATCH'))
+  }
+  const supportedCombination = profile.residence_country_code === 'NL'
+    && profile.wage_tax_table === 'WHITE'
+    && profile.herleiding_code === 'STD'
+    && profile.time_period === 'MONTH'
+    && profile.regular_wage_only
+    && profile.full_period_only
+    && !profile.has_special_situation
+    && profile.source_classification === 'EMPLOYEE_DECLARATION'
+    && projection.ageCategory === 'UNDER_AOW'
+  if (!supportedCombination) sourceGaps.push(makeGap('taxProfile', 'UNSUPPORTED', 'FISCAL_PROFILE_COMBINATION_UNSUPPORTED'))
+
+  return {
+    canonical: {
+      status: supportedCombination && !sourceGaps.some((gap) => gap.field === 'taxProfile' || gap.field === 'incomeRelationship')
+        ? 'CONFIRMED'
+        : 'UNSUPPORTED',
+      id: profile.id,
+      incomeRelationshipId: profile.income_relationship_id,
+      effectiveFrom: selected.effectiveFrom,
+      effectiveTo: selected.effectiveTo,
+      versionNumber: profile.version_number,
+      supersedesProfileId: profile.supersedes_profile_id,
+      residenceCountryCode: profile.residence_country_code,
+      wageTaxTable: profile.wage_tax_table,
+      herleiding: profile.herleiding_code,
+      timePeriod: profile.time_period,
+      regularWageOnly: profile.regular_wage_only,
+      fullPeriodOnly: profile.full_period_only,
+      hasSpecialSituation: profile.has_special_situation,
+      payrollTaxCreditApplies: profile.payroll_tax_credit_applies,
+      sourceClassification: profile.source_classification,
+      sourceReferenceHash: createHash('sha256').update(profile.source_reference, 'utf8').digest('hex').slice(0, 24),
+      confirmedByUserId: profile.confirmed_by_user_id,
+      confirmedAt: profile.confirmed_at,
+      createdAt: profile.created_at,
+      ageCategory: projection.ageCategory,
+      activeIncomeRelationshipCount: projection.activeIncomeRelationshipCount,
+    },
+    sourceGaps,
+    sourceVersionVector,
+  }
+}
+
 function sourceGapsFor(
   salaryRows: readonly PayrollSourceSalary[],
   scheduleRows: readonly PayrollSourceSchedule[],
+  contractRows: readonly PayrollSourceContract[],
+  laborConditionRows: readonly PayrollSourceLaborCondition[],
   incomeRelationshipGap: PayrollSourceGap | null,
+  taxProfileGaps: readonly PayrollSourceGap[],
   coverageStart: string,
   coverageEnd: string,
 ): PayrollSourceGap[] {
-  const gaps: PayrollSourceGap[] = [makeGap('taxProfile', 'SOURCE_GAP', 'NO_ACCEPTED_SOURCE_CONTRACT')]
+  const gaps: PayrollSourceGap[] = [...taxProfileGaps]
   if (incomeRelationshipGap) gaps.push(incomeRelationshipGap)
 
   const salaryCoverage = timelineCoverage(salaryRows, coverageStart, coverageEnd)
@@ -364,7 +586,83 @@ function sourceGapsFor(
   }
   if (scheduleRows.length >= 100) gaps.push(makeGap('contractualHours', 'UNSUPPORTED', 'SOURCE_TIMELINE_LIMIT_REACHED'))
 
+  const contractTimeline = contractRows.map((row) => ({
+    valid_from: row.starts_on,
+    valid_until: row.ends_on === null ? null : dayAfter(row.ends_on),
+  }))
+  const contractCoverage = timelineCoverage(contractTimeline, coverageStart, coverageEnd)
+  if (contractCoverage !== 'COMPLETE') {
+    gaps.push(makeGap('contract', contractCoverage === 'OVERLAP' ? 'UNSUPPORTED' : 'SOURCE_GAP',
+      contractRows.length === 0 ? 'NO_EFFECTIVE_CONTRACT' : `CONTRACT_TIMELINE_${contractCoverage}`))
+  }
+  if (contractRows.length > 1) gaps.push(makeGap('contract', 'UNSUPPORTED', 'CONTRACT_CHANGES_WITHIN_PERIOD'))
+
+  const laborCoverage = timelineCoverage(laborConditionRows, coverageStart, coverageEnd)
+  if (laborCoverage !== 'COMPLETE') {
+    gaps.push(makeGap('laborCondition', laborCoverage === 'OVERLAP' ? 'UNSUPPORTED' : 'SOURCE_GAP',
+      laborConditionRows.length === 0 ? 'NO_EFFECTIVE_LABOR_CONDITION' : `LABOR_CONDITION_TIMELINE_${laborCoverage}`))
+  }
+  if (laborConditionRows.length > 1) gaps.push(makeGap('laborCondition', 'UNSUPPORTED', 'LABOR_CONDITION_CHANGES_WITHIN_PERIOD'))
+  const conditionSet = laborConditionRows[0]?.set
+  if (laborConditionRows.length === 1 && (!conditionSet || !conditionSet.is_active
+    || conditionSet.valid_from > coverageStart)) {
+    gaps.push(makeGap('laborCondition', 'SOURCE_GAP', 'EFFECTIVE_LABOR_CONDITION_SET_UNAVAILABLE'))
+  }
+
   return gaps
+}
+
+function payrollMoneySource(value: number | null): string | null {
+  if (value === null || !Number.isFinite(value)) return null
+  try {
+    const amount = FixedDecimal.parse(String(value))
+    if (amount.scale > 2 || amount.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) return null
+    return amount.toString(2)
+  } catch {
+    return null
+  }
+}
+
+function regularWageInput(
+  salaries: readonly PayrollSourceSalary[],
+  schedules: readonly PayrollSourceSchedule[],
+  period: PayrollSourceProviderInput['payrollPeriod'],
+  start: string,
+  endExclusive: string,
+  incomeRelationshipId: string | null,
+  fiscalProfile: PayrollTaxCanonicalProfile,
+): Record<string, string | boolean> | null {
+  if (salaries.length !== 1 || schedules.length !== 1
+    || incomeRelationshipId === null || fiscalProfile.status !== 'CONFIRMED') return null
+  if (typeof fiscalProfile.wageTaxTable !== 'string'
+    || typeof fiscalProfile.residenceCountryCode !== 'string'
+    || typeof fiscalProfile.ageCategory !== 'string'
+    || typeof fiscalProfile.herleiding !== 'string'
+    || typeof fiscalProfile.timePeriod !== 'string'
+    || typeof fiscalProfile.payrollTaxCreditApplies !== 'boolean'
+    || typeof fiscalProfile.hasSpecialSituation !== 'boolean'
+    || typeof fiscalProfile.activeIncomeRelationshipCount !== 'number') return null
+  const salary = salaries[0]
+  const schedule = schedules[0]
+  if (!salary || !schedule
+    || salary.valid_from > start || (salary.valid_until !== null && salary.valid_until < endExclusive)
+    || schedule.valid_from > start || (schedule.valid_until !== null && schedule.valid_until < endExclusive)) return null
+  const grossAmount = payrollMoneySource(salary.parttime_amount)
+  if (!grossAmount) return null
+  return {
+    fiscalYear: String(period.year),
+    table: fiscalProfile.wageTaxTable,
+    residence: fiscalProfile.residenceCountryCode,
+    ageCategory: fiscalProfile.ageCategory,
+    herleiding: fiscalProfile.herleiding,
+    timePeriod: fiscalProfile.timePeriod,
+    payrollTaxCredit: fiscalProfile.payrollTaxCreditApplies,
+    regularWage: true,
+    fullPeriod: true,
+    hasSpecialSituation: fiscalProfile.hasSpecialSituation,
+    incomeRelationshipCount: String(fiscalProfile.activeIncomeRelationshipCount),
+    grossAmount,
+  }
 }
 
 function resolveIncomeRelationship(
@@ -398,6 +696,9 @@ function resolveIncomeRelationship(
   }
   if (selected.reportingStatus === 'DRAFT') {
     return { selected, gap: makeGap('incomeRelationship', 'UNSUPPORTED', 'CONTROL02_CONTRACT_PENDING') }
+  }
+  if (selected.reportingStatus !== 'READY' && selected.reportingStatus !== 'REPORTED') {
+    return { selected, gap: makeGap('incomeRelationship', 'UNSUPPORTED', 'INCOME_RELATIONSHIP_NOT_PAYROLL_ACTIVE') }
   }
   return { selected, gap: null }
 }
@@ -500,11 +801,40 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       activeEndExclusive,
       dayBefore(activeEndExclusive),
     )
+    const fiscalProfile = resolvePayrollTaxProfile(
+      timeline.taxProfileProjection,
+      employment.id,
+      incomeRelationship.selected?.incomeRelationshipId ?? null,
+      incomeRelationship.selected?.id ?? null,
+      activeStart,
+      activeEndExclusive,
+    )
     const actualWorkSnapshot = actualWorkForPeriod(actualWork, bounds.start, bounds.endExclusive)
     const sourceGaps = [
-      ...sourceGapsFor(salaries, schedules, incomeRelationship.gap, activeStart, activeEndExclusive),
+      ...sourceGapsFor(
+        salaries,
+        schedules,
+        contracts,
+        laborConditions,
+        incomeRelationship.gap,
+        fiscalProfile.sourceGaps,
+        activeStart,
+        activeEndExclusive,
+      ),
       ...actualWorkSnapshot.sourceGaps,
     ]
+    if (activeStart !== bounds.start || activeEndExclusive !== bounds.endExclusive) {
+      sourceGaps.push(makeGap('employment', 'UNSUPPORTED', 'PARTIAL_EMPLOYMENT_PERIOD_UNSUPPORTED'))
+    }
+    const regularWage = regularWageInput(
+      salaries,
+      schedules,
+      input.payrollPeriod,
+      activeStart,
+      activeEndExclusive,
+      incomeRelationship.selected?.incomeRelationshipId ?? null,
+      fiscalProfile.canonical,
+    )
     const sourceVersionVector = Object.fromEntries([
       [`employment:${employment.id}`, employment.updated_at],
       ...salaries.map((row) => [`employment_salary:${row.id}`, row.updated_at] as const),
@@ -554,6 +884,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         [`employment_income_relationship:${incomeRelationship.selected.id}`, incomeRelationship.selected.linkUpdatedAt] as const,
         [`income_relationship:${incomeRelationship.selected.incomeRelationshipId}`, incomeRelationship.selected.incomeRelationshipUpdatedAt] as const,
       ] : []),
+      ...Object.entries(fiscalProfile.sourceVersionVector),
       ...Object.entries(actualWorkSnapshot.sourceVersionVector),
     ])
 
@@ -593,7 +924,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     })
 
     const canonicalSource = {
-      schemaVersion: 'payroll-source-v3',
+      schemaVersion: 'payroll-source-v4',
       employment: {
         startsOn: employment.starts_on,
         endsOn: employment.ends_on,
@@ -680,6 +1011,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       incomeRelationship: incomeRelationship.selected
         ? {
           id: incomeRelationship.selected.incomeRelationshipId,
+          employmentIncomeRelationshipId: incomeRelationship.selected.id,
           reportingStatus: incomeRelationship.selected.reportingStatus,
           startsOn: incomeRelationship.selected.startsOn,
           endsOn: incomeRelationship.selected.endsOn,
@@ -724,7 +1056,8 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           arrangement: row.arrangement ? pensionArrangementCanonical(row.arrangement) : null,
         })),
       },
-      fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
+      fiscalProfile: fiscalProfile.canonical,
+      ...(regularWage ? { regularWage } : {}),
       actualWork: actualWorkSnapshot.canonicalSource,
     }
     const hashInput = {

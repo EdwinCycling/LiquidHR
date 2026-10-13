@@ -303,6 +303,24 @@ export type IndividualPayrollInputReferenceRow = AuditColumns & {
   input_provenance_json: PayrollJson
 }
 
+export type GenericPayrollInputReferenceRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  calculation_input_set_id: string
+  source_employee_id: string
+  source_employment_id: string
+  source_income_relationship_id: string
+  employment_income_relationship_id: string
+  tax_profile_id: string
+  tax_profile_version: number
+  source_hash: string
+  input_hash: string
+  input_reference_json: PayrollJson
+}
+
 export type IndividualPayrollLifecycleEventRow = AuditColumns & {
   id: string
   payroll_administration_id: string
@@ -502,6 +520,11 @@ export interface PayrollDatabase {
       individual_payroll_input_references: PayrollTable<
         IndividualPayrollInputReferenceRow,
         Omit<IndividualPayrollInputReferenceRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
+      generic_payroll_input_references: PayrollTable<
+        GenericPayrollInputReferenceRow,
+        Omit<GenericPayrollInputReferenceRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
         never
       >
       individual_payroll_lifecycle_events: PayrollTable<
