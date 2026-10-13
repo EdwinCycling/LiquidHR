@@ -163,6 +163,7 @@ function recoveryActions(gaps: readonly PayrollSourceGap[], incomplete: readonly
     else if (gap.field === 'contractualSalary') actions.add('Voer een positieve, effectieve vaste maandbeloning in EUR in die de volledige loonperiode dekt.')
     else if (gap.field === 'contractualHours') actions.add('Herstel roosteruren, deeltijdfactor en voltijdsnorm voor de volledige loonperiode.')
     else if (gap.field === 'actualWork') actions.add('Beoordeel en verwerk ontbrekende of niet-ondersteunde variabele uren voordat de salarisperiode wordt afgerond.')
+    else if (gap.field === 'sourceSnapshot') actions.add('Lees de actuele Core-bronnen opnieuw en start de conceptberekening opnieuw nadat de bronwijziging is verwerkt.')
   }
   if (incomplete.some((code) => code.startsWith('PENSION_'))) {
     actions.add('Valideer de toepasselijke pensioenregeling en maandallocatie voordat de salarisuitkomst definitief kan worden.')
@@ -481,6 +482,50 @@ function assertOpaqueId(value: string): void {
   if (!UUID.test(value)) throw new EmployeePayrollCalculationError('PAYROLL_INPUT_INVALID', 400)
 }
 
+function sameValidatedCoreSource(
+  original: PayrollSourceSnapshot,
+  current: PayrollSourceSnapshot,
+  scope: PayrollScope,
+  employeeId: string,
+  employmentId: string,
+): boolean {
+  return current.sourceEmployeeId === employeeId
+    && current.sourceEmploymentId === employmentId
+    && current.sourceTenantId === scope.tenantId
+    && current.sourceHrGroupId === scope.hrGroupId
+    && current.sourceAdministrationId === scope.administrationId
+    && current.sourceIncomeRelationshipId === original.sourceIncomeRelationshipId
+    && current.sourceHash === original.sourceHash
+    && stableSerialize(current.canonicalSource) === stableSerialize(original.canonicalSource)
+    && stableSerialize(current.sourceVersionVector) === stableSerialize(original.sourceVersionVector)
+    && stableSerialize(current.sourceGaps) === stableSerialize(original.sourceGaps)
+}
+
+async function revalidateCoreSource(
+  sourceProvider: SourceProvider,
+  original: PayrollSourceSnapshot,
+  scope: PayrollScope,
+  employeeId: string,
+  employmentId: string,
+  period: EmployeePayrollPeriod,
+): Promise<{ readonly source: PayrollSourceSnapshot } | { readonly reasonCode: string }> {
+  let current: PayrollSourceSnapshot
+  try {
+    current = await sourceProvider.getPayrollSourceSnapshot({ ...scope, employeeId, employmentId, payrollPeriod: period })
+  } catch (error) {
+    if (record(error)?.status === 403) throw new EmployeePayrollCalculationError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+    return { reasonCode: 'CORE_SOURCE_REVALIDATION_FAILED' }
+  }
+  if (current.sourceEmployeeId !== employeeId || current.sourceEmploymentId !== employmentId
+    || current.sourceTenantId !== scope.tenantId || current.sourceHrGroupId !== scope.hrGroupId
+    || current.sourceAdministrationId !== scope.administrationId) {
+    throw new EmployeePayrollCalculationError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+  }
+  return sameValidatedCoreSource(original, current, scope, employeeId, employmentId)
+    ? { source: current }
+    : { reasonCode: 'CORE_SOURCE_CHANGED_BEFORE_SAVE' }
+}
+
 function sourceGapsResult(snapshot: PayrollSourceSnapshot, gaps: readonly PayrollSourceGap[], employeeId: string, employmentId: string, period: EmployeePayrollPeriod): EmployeePayrollCalculationView {
   const blocking = gaps.filter(isBlockingGap)
   const status = blocking.some((gap) => gap.status === 'UNSUPPORTED') ? 'UNSUPPORTED' : 'SOURCE_GAP'
@@ -615,6 +660,19 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     if (!calculations.getOrCreateCalculationInputSet || !calculations.getOrCreateCalculationRun) {
       throw new EmployeePayrollCalculationError('PAYROLL_IDEMPOTENT_REPOSITORY_REQUIRED', 503)
     }
+    const sourceValidation = await revalidateCoreSource(
+      dependencies.sourceProvider, snapshot, scope, input.employeeId, input.employmentId, input.period,
+    )
+    if (!('source' in sourceValidation)) {
+      return resultView({
+        status: 'SOURCE_GAP', employeeId: input.employeeId, employmentId: input.employmentId, period: input.period,
+        runId: null, sourceSnapshotId: persistedSnapshot.id, inputSetId: null, revision: null, businessStatus: null,
+        sourceHash: snapshot.sourceHash, inputHash: null, resultHash: null,
+        grossAmount: null, wageTaxAmount: null, netAfterWageTax: null,
+        gaps: [{ field: 'sourceSnapshot', status: 'SOURCE_GAP', reasonCode: sourceValidation.reasonCode }],
+      })
+    }
+    const revalidatedSource = sourceValidation.source
     const inputSetRow = {
       id: deterministicUuid(`input:${scope.tenantId}:${scope.hrGroupId}:${scope.administrationId}:${administrationId}:${persistedSnapshot.id}:${periodRow.id}:${inputs.rulePackageCompositionId}:${inputs.engineVersion}:${inputs.inputHash}`),
       ...sourceColumns(scope, administrationId),
@@ -637,6 +695,9 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       employment_income_relationship_id: linkedIncomeRelationshipId,
       tax_profile_id: taxProfileId,
       tax_profile_version: taxProfileVersion,
+      core_source_contract_version: 'payroll-source-v4',
+      core_validated_at: revalidatedSource.createdAt,
+      source_version_vector: toPayrollJson(snapshot.sourceVersionVector),
       source_hash: snapshot.sourceHash,
       input_hash: inputs.inputHash,
       input_reference_json: toPayrollJson({
@@ -645,6 +706,8 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         inputHash: inputs.inputHash,
         taxProfileId,
         taxProfileVersion,
+        coreSourceContractVersion: 'payroll-source-v4',
+        sourceVersionVector: snapshot.sourceVersionVector,
         employmentIncomeRelationshipId: linkedIncomeRelationshipId,
         incompleteComponents: INCOMPLETE_COMPONENTS,
         netAmountMeaning: 'GROSS_MINUS_WAGE_TAX_BEFORE_PENSION_AND_OTHER_DEDUCTIONS',
@@ -715,6 +778,27 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         revision: null, businessStatus: null, sourceHash: snapshot.sourceHash, inputHash: inputs.inputHash,
         resultHash: null, grossAmount: null, wageTaxAmount: null, netAfterWageTax: null,
         incompleteComponents: INCOMPLETE_COMPONENTS, errorCode: 'PAYROLL_ENGINE_RESULT_INVALID',
+      })
+    }
+    let finalSourceValidation: Awaited<ReturnType<typeof revalidateCoreSource>>
+    try {
+      finalSourceValidation = await revalidateCoreSource(
+        dependencies.sourceProvider, snapshot, scope, input.employeeId, input.employmentId, input.period,
+      )
+    } catch (error) {
+      await calculations.markCalculationRunFailed(scope, administrationId, run.id, access.actorUserId,
+        (dependencies.now ?? (() => new Date()))().toISOString())
+      throw error
+    }
+    if (!('source' in finalSourceValidation)) {
+      await calculations.markCalculationRunFailed(scope, administrationId, run.id, access.actorUserId,
+        (dependencies.now ?? (() => new Date()))().toISOString())
+      return resultView({
+        status: 'SOURCE_GAP', employeeId: input.employeeId, employmentId: input.employmentId, period: input.period,
+        runId: run.id, sourceSnapshotId: persistedSnapshot.id, inputSetId: inputSet.id,
+        revision: null, businessStatus: null, sourceHash: snapshot.sourceHash, inputHash: inputs.inputHash,
+        resultHash: null, grossAmount: null, wageTaxAmount: null, netAfterWageTax: null,
+        gaps: [{ field: 'sourceSnapshot', status: 'SOURCE_GAP', reasonCode: finalSourceValidation.reasonCode }],
       })
     }
     const componentRows = result.resultRows.map((row) => ({

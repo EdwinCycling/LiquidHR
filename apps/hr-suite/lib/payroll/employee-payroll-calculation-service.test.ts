@@ -289,6 +289,12 @@ describe('Core-backed employee payroll calculation', () => {
     expect(state.traces.has(first.runId!)).toBe(true)
     expect(state.calcWrites).toHaveLength(1)
     expect(state.references.has(first.inputSetId!)).toBe(true)
+    expect(state.references.get(first.inputSetId!)).toMatchObject({
+      core_source_contract_version: 'payroll-source-v4',
+      source_version_vector: expect.objectContaining({ employee_tax_classification: expect.any(String) }),
+      source_hash: first.sourceHash,
+      input_hash: first.inputHash,
+    })
     expect(state.controls.get(first.runId!)?.some((control) => control.control_key.includes('PENSION_EMPLOYEE_ALLOCATION'))).toBe(true)
 
     salary = 4400
@@ -368,6 +374,61 @@ describe('Core-backed employee payroll calculation', () => {
     expect(persistedSnapshot?.source_payload).toMatchObject({
       sourceGaps: [expect.objectContaining({ field: 'taxProfile', reasonCode: 'NO_CONFIRMED_FISCAL_PROFILE' })],
     })
+  })
+
+  it('revalidates Core source versions before saving the input reference and fails closed when they changed', async () => {
+    const baseProvider = provider()
+    let reads = 0
+    const sourceProvider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: vi.fn(async (input) => {
+        reads += 1
+        const current = await baseProvider.getPayrollSourceSnapshot(input)
+        return reads === 2
+          ? { ...current, sourceHash: 'f'.repeat(64) }
+          : current
+      }),
+    }
+    const state = harness({}, sourceProvider)
+    const result = await state.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+
+    expect(result.status).toBe('SOURCE_GAP')
+    expect(result.gaps).toContainEqual(expect.objectContaining({
+      field: 'sourceSnapshot', status: 'SOURCE_GAP', reasonCode: 'CORE_SOURCE_CHANGED_BEFORE_SAVE',
+    }))
+    expect(result.grossAmount).toBeNull()
+    expect(state.inputs.size).toBe(0)
+    expect(state.references.size).toBe(0)
+    expect(state.runs.size).toBe(0)
+    expect(state.calcWrites).toHaveLength(0)
+    expect(reads).toBe(2)
+  })
+
+  it('does not persist a concept when Core source changes while the engine is calculating', async () => {
+    const baseProvider = provider()
+    let reads = 0
+    const sourceProvider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: vi.fn(async (input) => {
+        reads += 1
+        const current = await baseProvider.getPayrollSourceSnapshot(input)
+        return reads === 3
+          ? { ...current, sourceVersionVector: { ...current.sourceVersionVector, late_core_update: 'new-version' } }
+          : current
+      }),
+    }
+    const state = harness({}, sourceProvider)
+    const result = await state.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+
+    expect(result.status).toBe('SOURCE_GAP')
+    expect(result.gaps).toContainEqual(expect.objectContaining({
+      field: 'sourceSnapshot', status: 'SOURCE_GAP', reasonCode: 'CORE_SOURCE_CHANGED_BEFORE_SAVE',
+    }))
+    expect(state.runs.size).toBe(1)
+    expect([...state.runs.values()][0]?.status).toBe('FAILED')
+    expect(state.components.size).toBe(0)
+    expect(state.controls.size).toBe(0)
+    expect(state.traces.size).toBe(0)
+    expect(state.events).toHaveLength(0)
+    expect(reads).toBe(3)
   })
 
   it('rejects unsupported fiscal and IKV combinations before calculation', async () => {

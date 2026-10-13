@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
     "eslint": "9.39.5"
   },
   "scripts": {

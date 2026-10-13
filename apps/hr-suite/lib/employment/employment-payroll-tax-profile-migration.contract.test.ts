@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('../../supabase/migrations/20261013110000_core_employment_payroll_tax_profiles.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../../supabase/migrations/20261013150000_core_employment_payroll_tax_profiles.sql', import.meta.url), 'utf8')
 
 describe('Core employment payroll tax profile migration contract', () => {
   it('limits stored profiles to the supported, explicit Dutch monthly wage combination', () => {
@@ -19,11 +19,17 @@ describe('Core employment payroll tax profile migration contract', () => {
     expect(migration).toMatch(/CREATE FUNCTION public\.confirm_employment_payroll_tax_profile\(p_input jsonb\)[\s\S]*?SECURITY DEFINER\s+SET search_path = ''/i)
     expect(migration).toContain("current_user_has_permission(v_employment.tenant_id, v_employment.administration_id, 'salary:write'::text)")
     expect(migration).toContain("role.code IN ('HR_ADMIN', 'TENANT_ADMIN')")
+    expect(migration).toContain('AND role.is_active')
+    expect(migration).toContain('AND role.deleted_at IS NULL')
     expect(migration).toContain('employment_income_relationships AS link')
     expect(migration).toContain('public.user_access AS assignment')
     expect(migration).not.toContain('public.user_management_roles')
     expect(migration).toContain('PAYROLL_TAX_PROFILE_IKV_LINK_INVALID')
+    expect(migration).toContain('v_income_link_count IS DISTINCT FROM 1')
+    expect(migration).toContain('link.valid_until > v_effective_to')
     expect(migration).toContain('PAYROLL_TAX_PROFILE_CREDIT_ALREADY_APPLIES')
+    expect(migration).toContain('latest_at_start AS')
+    expect(migration).toContain('coalesce(slice.effective_to, \'infinity\'::date) >= v_effective_from')
     expect(migration).toContain('pg_advisory_xact_lock')
   })
 

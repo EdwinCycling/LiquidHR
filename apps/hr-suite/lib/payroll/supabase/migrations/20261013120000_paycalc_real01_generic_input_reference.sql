@@ -1,8 +1,8 @@
 BEGIN;
 
--- A minimal immutable bridge for Core-backed calculations. The existing
--- PAYRUN01 input-reference contract remains unchanged and continues to guard
--- its versioned test/correction inputs.
+-- A Payroll-local immutable reference to a Core-validated source snapshot.
+-- Core authorization and source validation stay in the Core server layer;
+-- these databases do not share tables or foreign keys.
 CREATE TABLE public.generic_payroll_input_references (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   payroll_administration_id uuid NOT NULL,
@@ -16,6 +16,9 @@ CREATE TABLE public.generic_payroll_input_references (
   employment_income_relationship_id uuid NOT NULL,
   tax_profile_id uuid NOT NULL,
   tax_profile_version integer NOT NULL CHECK (tax_profile_version > 0),
+  core_source_contract_version text NOT NULL CHECK (core_source_contract_version = 'payroll-source-v4'),
+  core_validated_at timestamptz NOT NULL,
+  source_version_vector jsonb NOT NULL CHECK (jsonb_typeof(source_version_vector) = 'object'),
   source_hash text NOT NULL CHECK (source_hash ~ '^[0-9a-f]{64}$'),
   input_hash text NOT NULL CHECK (input_hash ~ '^[0-9a-f]{64}$'),
   input_reference_json jsonb NOT NULL CHECK (jsonb_typeof(input_reference_json) = 'object'),
@@ -27,16 +30,6 @@ CREATE TABLE public.generic_payroll_input_references (
   CONSTRAINT generic_payroll_input_reference_input_set_fk
     FOREIGN KEY (calculation_input_set_id, source_tenant_id, source_hr_group_id, source_administration_id)
     REFERENCES public.calculation_input_sets (id, source_tenant_id, source_hr_group_id, source_administration_id),
-  CONSTRAINT generic_payroll_input_reference_employment_fk
-    FOREIGN KEY (source_tenant_id, source_administration_id, source_employee_id, source_employment_id)
-    REFERENCES public.employments (tenant_id, administration_id, employee_id, id),
-  CONSTRAINT generic_payroll_input_reference_income_fk
-    FOREIGN KEY (source_tenant_id, source_administration_id, source_employee_id, source_income_relationship_id)
-    REFERENCES public.income_relationships (tenant_id, administration_id, employee_id, id),
-  CONSTRAINT generic_payroll_input_reference_tax_profile_fk
-    FOREIGN KEY (tax_profile_id, source_tenant_id, source_hr_group_id, source_administration_id, source_employment_id, source_income_relationship_id)
-    REFERENCES public.employment_payroll_tax_profiles
-      (id, tenant_id, hr_group_id, administration_id, employment_id, income_relationship_id),
   CONSTRAINT generic_payroll_input_reference_once UNIQUE (calculation_input_set_id)
 );
 
@@ -59,8 +52,6 @@ DECLARE
   input_set public.calculation_input_sets%ROWTYPE;
   source_snapshot public.source_snapshots%ROWTYPE;
   payroll_period public.payroll_periods%ROWTYPE;
-  tax_profile public.employment_payroll_tax_profiles%ROWTYPE;
-  income_link public.employment_income_relationships%ROWTYPE;
 BEGIN
   IF TG_OP <> 'INSERT' THEN
     RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'Generic payroll input references are immutable.';
@@ -91,45 +82,22 @@ BEGIN
     AND candidate.source_tenant_id = NEW.source_tenant_id
     AND candidate.source_hr_group_id = NEW.source_hr_group_id
     AND candidate.source_administration_id = NEW.source_administration_id;
-  SELECT * INTO tax_profile
-  FROM public.employment_payroll_tax_profiles AS candidate
-  WHERE candidate.id = NEW.tax_profile_id
-    AND candidate.tenant_id = NEW.source_tenant_id
-    AND candidate.hr_group_id = NEW.source_hr_group_id
-    AND candidate.administration_id = NEW.source_administration_id
-    AND candidate.employee_id = NEW.source_employee_id
-    AND candidate.employment_id = NEW.source_employment_id
-    AND candidate.income_relationship_id = NEW.source_income_relationship_id;
-
-  SELECT * INTO income_link
-  FROM public.employment_income_relationships AS candidate
-  WHERE candidate.id = NEW.employment_income_relationship_id
-    AND candidate.tenant_id = NEW.source_tenant_id
-    AND candidate.administration_id = NEW.source_administration_id
-    AND candidate.employee_id = NEW.source_employee_id
-    AND candidate.employment_id = NEW.source_employment_id
-    AND candidate.income_relationship_id = NEW.source_income_relationship_id;
-
-  IF source_snapshot.id IS NULL OR payroll_period.id IS NULL OR tax_profile.id IS NULL OR income_link.id IS NULL
+  IF source_snapshot.id IS NULL OR payroll_period.id IS NULL
     OR source_snapshot.source_employee_id IS DISTINCT FROM NEW.source_employee_id
     OR source_snapshot.source_employment_id IS DISTINCT FROM NEW.source_employment_id
     OR source_snapshot.source_income_relationship_id IS DISTINCT FROM NEW.source_income_relationship_id
     OR source_snapshot.source_hash IS DISTINCT FROM NEW.source_hash
+    OR source_snapshot.source_version_vector IS DISTINCT FROM NEW.source_version_vector
     OR input_set.input_hash IS DISTINCT FROM NEW.input_hash
-    OR tax_profile.version_number IS DISTINCT FROM NEW.tax_profile_version
-    OR tax_profile.employment_income_relationship_id IS DISTINCT FROM income_link.id
-    OR income_link.valid_from > payroll_period.starts_on
-    OR (income_link.valid_until IS NOT NULL AND income_link.valid_until <= payroll_period.ends_on)
-    OR tax_profile.effective_from > payroll_period.starts_on
-    OR (tax_profile.effective_to IS NOT NULL AND tax_profile.effective_to < payroll_period.ends_on)
-    OR tax_profile.residence_country_code <> 'NL'
-    OR tax_profile.wage_tax_table <> 'WHITE'
-    OR tax_profile.herleiding_code <> 'STD'
-    OR tax_profile.time_period <> 'MONTH'
-    OR NOT tax_profile.regular_wage_only
-    OR NOT tax_profile.full_period_only
-    OR tax_profile.has_special_situation THEN
-    RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'PAYROLL_INPUT_REFERENCE_CORE_SOURCE_MISMATCH';
+    OR NEW.input_reference_json ->> 'schemaVersion' IS DISTINCT FROM 'PAYCALC-REAL-01B-COMPLETENESS-1'
+    OR NEW.input_reference_json ->> 'sourceHash' IS DISTINCT FROM NEW.source_hash
+    OR NEW.input_reference_json ->> 'inputHash' IS DISTINCT FROM NEW.input_hash
+    OR NEW.input_reference_json ->> 'taxProfileId' IS DISTINCT FROM NEW.tax_profile_id::text
+    OR NEW.input_reference_json ->> 'taxProfileVersion' IS DISTINCT FROM NEW.tax_profile_version::text
+    OR NEW.input_reference_json ->> 'employmentIncomeRelationshipId' IS DISTINCT FROM NEW.employment_income_relationship_id::text
+    OR NEW.input_reference_json ->> 'coreSourceContractVersion' IS DISTINCT FROM NEW.core_source_contract_version
+    OR NEW.input_reference_json -> 'sourceVersionVector' IS DISTINCT FROM NEW.source_version_vector THEN
+    RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'PAYROLL_INPUT_REFERENCE_LOCAL_SNAPSHOT_MISMATCH';
   END IF;
   RETURN NEW;
 END;
@@ -245,8 +213,12 @@ BEGIN
             AND input_ref.source_hr_group_id = p_source_hr_group_id
             AND input_ref.source_administration_id = p_source_administration_id
             AND input_ref.source_employment_id = p_source_employment_id
+            AND input_ref.source_employee_id = source_snapshot.source_employee_id
+            AND input_ref.source_income_relationship_id = source_snapshot.source_income_relationship_id
             AND input_ref.source_hash = source_snapshot.source_hash
             AND input_ref.input_hash = input_set.input_hash
+            AND input_ref.source_version_vector = source_snapshot.source_version_vector
+            AND input_ref.core_source_contract_version = 'payroll-source-v4'
         )
       )
   ) THEN
