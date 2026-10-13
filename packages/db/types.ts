@@ -22885,6 +22885,25 @@ export type Database = {
           status: string
         }[]
       }
+      list_employee_overviews_page: {
+        Args: {
+          requested_administration_id: string
+          requested_archive_filter: string
+          requested_hr_group_id: string
+          requested_page: number
+          requested_scope: string
+          requested_search: string
+          requested_sort: string
+          requested_status_filter: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          directory_access: boolean
+          directory_visibility: Json
+          employees: Json
+          total_count: number
+        }[]
+      }
       list_employee_overviews: {
         Args: {
           requested_archive_filter?: string

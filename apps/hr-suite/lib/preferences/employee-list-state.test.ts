@@ -169,3 +169,29 @@ describe('matchesEmployeeStatus', () => {
     expect(matchesEmployeeStatus('FORMER_EMPLOYEE', ACTIVE_FUTURE_EXTERNAL_STATUS)).toBe(false)
   })
 })
+
+describe('employeeListHref pagination', () => {
+  it('behoudt de huidige filters wanneer een ander paginanummer wordt geopend', () => {
+    expect(employeeListHref({
+      search: 'Lina',
+      status: 'all',
+      archive: 'archived',
+      sort: 'first-name',
+      view: 'compact',
+      scope: 'team',
+      page: 2,
+    })).toBe('/employees?search=Lina&status=all&archive=archived&sort=first-name&view=compact&scope=team&page=2')
+  })
+
+  it('laat pagina een weg uit de URL zodat filterwijzigingen teruggaan naar het begin', () => {
+    expect(employeeListHref({
+      search: '',
+      status: 'ACTIVE_EMPLOYEE',
+      archive: 'active',
+      sort: 'last-name',
+      view: 'detail',
+      scope: 'all',
+      page: 1,
+    })).toBe('/employees?scope=all')
+  })
+})

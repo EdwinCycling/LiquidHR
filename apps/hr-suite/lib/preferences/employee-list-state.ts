@@ -83,6 +83,7 @@ export function employeeListHref(filters: {
   sort: EmployeeListSort
   view: EmployeeListView
   scope?: EmployeeListScope
+  page?: number
 }): string {
   const params = new URLSearchParams()
   const search = filters.search.trim()
@@ -94,6 +95,7 @@ export function employeeListHref(filters: {
   if (filters.sort !== 'last-name') params.set('sort', filters.sort)
   if (filters.view !== 'detail') params.set('view', filters.view)
   if (filters.scope === 'team' || filters.scope === 'all') params.set('scope', filters.scope)
+  if (filters.page !== undefined && Number.isSafeInteger(filters.page) && filters.page > 1) params.set('page', String(filters.page))
   const query = params.toString()
   return query ? `/employees?${query}` : '/employees'
 }

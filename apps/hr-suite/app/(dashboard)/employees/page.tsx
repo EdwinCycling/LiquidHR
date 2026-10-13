@@ -7,17 +7,18 @@ import { EmployeeFilterPanel } from '@/components/employees/employee-filter-pane
 import { EmployeeList } from '@/components/employees/employee-list'
 import { buttonClasses } from '@/components/ui/button'
 import { getRequestAuthorizationContext, requireAnyPermission } from '@/lib/auth/permissions'
-import { getEmployeeDirectoryAccess, getEmployeeDirectoryVisibility } from '@/lib/employee-directory/service'
-import { listEmployeesOverview } from '@/lib/employment/employment-service'
+import { listEmployeesOverviewPage } from '@/lib/employment/employment-service'
+import { getEmployeeOverviewPageRange } from '@/lib/employment/employee-overview'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import { getTranslator } from '@/lib/i18n/server'
-import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { getStoredEmployeesListPreferences } from '@/lib/preferences/employees'
-import { ACTIVE_FUTURE_EXTERNAL_STATUS, matchesEmployeeStatus, type EmployeeArchiveFilter, type EmployeeListScope, type EmployeeListSort, type EmployeeListView, type EmployeeStatusFilter } from '@/lib/preferences/employee-list-state'
+import { ACTIVE_FUTURE_EXTERNAL_STATUS, employeeListHref, type EmployeeArchiveFilter, type EmployeeListScope, type EmployeeListSort, type EmployeeListView, type EmployeeStatusFilter } from '@/lib/preferences/employee-list-state'
 
 interface EmployeesPageProps {
-  searchParams: Promise<{ search?: string; status?: string; archive?: string; sort?: string; view?: string; scope?: string }>
+  searchParams: Promise<{ search?: string; status?: string; archive?: string; sort?: string; view?: string; scope?: string; page?: string }>
 }
+
+const PAGE_SIZE = 50
 
 const STATUSES: EmploymentStatus[] = [
   'ACTIVE_EMPLOYEE',
@@ -26,41 +27,38 @@ const STATUSES: EmploymentStatus[] = [
   'NEVER_EMPLOYED',
 ]
 
+function parsePage(value: string | undefined): number {
+  const page = Number(value)
+  return Number.isSafeInteger(page) && page >= 1 && page <= 1_000_000 ? page : 1
+}
+
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
-  const { search = '', status, archive, sort, view, scope } = await searchParams
+  const { search = '', status, archive, sort, view, scope, page } = await searchParams
   const requestContext = await getRequestAuthorizationContext()
   const authContext = await requireAnyPermission(['employee:read', 'employee-directory:read'])
   const directoryMode = !authContext.permissions.includes('employee:read')
   if (directoryMode && !authContext.administrationId) redirect('/geen-toegang')
-  const directoryDependencies = { context: authContext, supabase: requestContext.supabase }
   const canSelectTeamScope = authContext.activeRoles.includes('DIRECT_MANAGER')
   const limitsManagerDetails = canSelectTeamScope && !authContext.activeRoles.includes('TENANT_ADMIN')
-  const storedPreferencesPromise = getStoredEmployeesListPreferences({ supabase: requestContext.supabase, userId: authContext.userId })
-  const directoryAccessPromise = directoryMode ? getEmployeeDirectoryAccess(directoryDependencies) : Promise.resolve(true)
-  const directoryVisibilityPromise = getEmployeeDirectoryVisibility(directoryDependencies)
-  const translationsPromise = Promise.all([getTranslator('employees'), getTranslator('employment')])
-  const directTeamEmployeeIdsPromise = canSelectTeamScope ? listDirectTeamEmployeeIds(authContext, requestContext.supabase) : Promise.resolve([])
-  const storedPreferences = await storedPreferencesPromise
-  const requestedArchiveFilter: EmployeeArchiveFilter = archive === 'archived' || archive === 'all' ? archive : archive === 'active' ? 'active' : scope === 'team' ? 'active' : storedPreferences.archive
+  const [storedPreferences, [tEmployees, tEmployment]] = await Promise.all([
+    getStoredEmployeesListPreferences({ supabase: requestContext.supabase, userId: authContext.userId }),
+    Promise.all([getTranslator('employees'), getTranslator('employment')]),
+  ])
+
+  const requestedArchiveFilter: EmployeeArchiveFilter = archive === 'archived' || archive === 'all'
+    ? archive
+    : archive === 'active'
+      ? 'active'
+      : scope === 'team'
+        ? 'active'
+        : storedPreferences.archive
   const archiveFilter: EmployeeArchiveFilter = directoryMode ? 'active' : requestedArchiveFilter
   const requestedScope: EmployeeListScope | null = scope === 'team' || scope === 'all' ? scope : null
   const employeeScope: EmployeeListScope = canSelectTeamScope ? (requestedScope ?? 'team') : 'all'
-  const employeesPromise = listEmployeesOverview(archiveFilter, employeeScope, { activeDirectoryOnly: directoryMode }, {
-    context: authContext,
-    supabase: requestContext.supabase,
-    teamEmployeeIds: canSelectTeamScope ? directTeamEmployeeIdsPromise : undefined,
-  })
-  const [directoryAccess, directoryVisibility, [tEmployees, tEmployment], directTeamEmployeeIds, employees] = await Promise.all([
-    directoryAccessPromise,
-    directoryVisibilityPromise,
-    translationsPromise,
-    directTeamEmployeeIdsPromise,
-    employeesPromise,
-  ])
-  if (directoryMode && !directoryAccess) redirect('/geen-toegang')
-  const canCreateEmployee = authContext.permissions.includes('employee:write')
   const sortOrder: EmployeeListSort = sort === 'first-name' || sort === 'last-name' ? sort : storedPreferences.sort
-  const viewMode: EmployeeListView = view === 'compact' || view === 'detail' || view === 'card' || view === 'photo-large' || view === 'photo' || view === 'photo-small' || view === 'photo-only' || view === 'photo-collage' ? view : storedPreferences.view
+  const viewMode: EmployeeListView = view === 'compact' || view === 'detail' || view === 'card' || view === 'photo-large' || view === 'photo' || view === 'photo-small' || view === 'photo-only' || view === 'photo-collage'
+    ? view
+    : storedPreferences.view
   const statusFilter: EmployeeStatusFilter = directoryMode
     ? 'ACTIVE_EMPLOYEE'
     : status === 'all'
@@ -72,31 +70,45 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           : scope === 'team'
             ? ACTIVE_FUTURE_EXTERNAL_STATUS
             : storedPreferences.status
-  const collator = new Intl.Collator('nl', { sensitivity: 'base' })
-  const normalizedQuery = search.trim().toLocaleLowerCase('nl')
-  const filtered = employees.filter((employee) => {
-    const matchesStatus = matchesEmployeeStatus(employee.status, statusFilter)
-    const limitedDirectoryEmployee = directoryMode || (limitsManagerDetails && employee.id !== authContext.employeeId && !directTeamEmployeeIds.includes(employee.id))
-    const haystack = `${employee.firstName} ${employee.birthNamePrefix ?? ''} ${employee.birthName} ${limitedDirectoryEmployee ? '' : employee.employeeNumber} ${directoryVisibility.showJobDepartment ? `${employee.departmentName ?? ''} ${employee.jobTitle ?? ''}` : ''} ${directoryVisibility.showWorkEmail ? employee.workEmail ?? '' : ''}`.toLocaleLowerCase('nl')
-    return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
+  const requestedPage = parsePage(page)
+  const employeesPage = await listEmployeesOverviewPage({
+    archiveFilter,
+    statusFilter,
+    search,
+    sort: sortOrder,
+    scope: employeeScope,
+    page: requestedPage,
+  }, {
+    context: authContext,
+    supabase: requestContext.supabase,
   })
-  const sorted = [...filtered].sort((left, right) => {
-    if (sortOrder === 'first-name') {
-      const firstNameComparison = collator.compare(left.firstName, right.firstName)
-      if (firstNameComparison !== 0) return firstNameComparison
-      return collator.compare(left.birthName, right.birthName)
-    }
 
-    const lastNameComparison = collator.compare(left.birthName, right.birthName)
-    if (lastNameComparison !== 0) return lastNameComparison
-    return collator.compare(left.firstName, right.firstName)
-  })
+  if (directoryMode && !employeesPage.directoryAccess) redirect('/geen-toegang')
+  const pageRange = getEmployeeOverviewPageRange(employeesPage.totalCount, requestedPage, PAGE_SIZE)
+  const pageCount = pageRange.pageCount
+  const listState = {
+    search,
+    status: statusFilter,
+    archive: archiveFilter,
+    sort: sortOrder,
+    view: viewMode,
+    scope: employeeScope,
+  }
+  if (requestedPage > pageCount) redirect(employeeListHref({ ...listState, page: pageCount }))
+
+  const canCreateEmployee = authContext.permissions.includes('employee:write')
   const labels: Record<EmploymentStatus, string> = {
     ACTIVE_EMPLOYEE: tEmployment('active'),
     FUTURE_EMPLOYEE: tEmployment('future'),
     FORMER_EMPLOYEE: tEmployees('former'),
     NEVER_EMPLOYED: tEmployees('external'),
   }
+  const visiblePageCount = Math.min(5, pageCount)
+  const firstVisiblePage = Math.max(1, Math.min(pageCount - visiblePageCount + 1, requestedPage - Math.floor(visiblePageCount / 2)))
+  const visiblePages = Array.from({ length: visiblePageCount }, (_, index) => firstVisiblePage + index)
+  const rangeStart = pageRange.from
+  const rangeEnd = pageRange.to
+  const pageHref = (targetPage: number) => employeeListHref({ ...listState, page: targetPage })
 
   return (
     <PageShell width="standard" className="py-6 lg:py-8">
@@ -155,7 +167,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           departmentLabel={tEmployees('department')}
           employeeNumberLabel={tEmployees('employeeNumber')}
           emptyLabel={tEmployees('empty')}
-          employees={sorted}
+          employees={employeesPage.employees}
           employeeTypeLabel={(employmentType, employmentStatus) => employmentType === 'EMPLOYEE'
             ? tEmployment('workerEmployee')
             : employmentType === 'INTERN' || employmentType === 'APPRENTICE'
@@ -176,14 +188,42 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           view={viewMode}
           directoryMode={directoryMode}
           currentEmployeeId={authContext.employeeId}
-          directoryVisibility={directoryVisibility}
-          limitedDetailEmployeeIds={limitsManagerDetails ? sorted.filter((employee) => employee.id !== authContext.employeeId && !directTeamEmployeeIds.includes(employee.id)).map((employee) => employee.id) : []}
+          directoryVisibility={employeesPage.directoryVisibility}
+          limitedDetailEmployeeIds={limitsManagerDetails ? employeesPage.limitedDetailEmployeeIds : []}
           directoryLabels={{ loading: tEmployees('directoryLoading'), close: tEmployees('directoryClose'), unavailable: tEmployees('directoryUnavailable'), job: tEmployees('jobTitle'), department: tEmployees('department'), email: tEmployees('workEmail'), phone: tEmployees('workPhone'), presence: tEmployees('directoryPresence'), schedule: tEmployees('directorySchedule'), working: tEmployees('directoryWorking'), off: tEmployees('directoryOff'), absent: tEmployees('directoryAbsent'), noDetails: tEmployees('directoryEyebrow') }}
         />
       </div>
-      <div className="mt-4 flex items-center justify-end gap-2 px-1 text-sm font-medium text-muted-foreground">
-        <UsersRound aria-hidden="true" className="h-4 w-4" />
-        {tEmployees('resultCount', { count: sorted.length })}
+
+      <div className="mt-4 flex flex-col gap-3 px-1 text-sm font-medium text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <p className="flex items-center gap-2">
+          <UsersRound aria-hidden="true" className="h-4 w-4 shrink-0" />
+          {tEmployees('resultRange', { from: rangeStart, to: rangeEnd, count: employeesPage.totalCount })}
+        </p>
+        {pageCount > 1 ? (
+          <nav aria-label={tEmployees('paginationLabel')} className="flex items-center gap-1 overflow-x-auto">
+            {requestedPage > 1 ? (
+              <Link href={pageHref(requestedPage - 1)} rel="prev" className="inline-flex min-h-10 shrink-0 items-center rounded-md border px-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{tEmployees('previous')}</Link>
+            ) : (
+              <span aria-disabled="true" className="inline-flex min-h-10 shrink-0 items-center rounded-md border px-3 opacity-50">{tEmployees('previous')}</span>
+            )}
+            {visiblePages.map((pageNumber) => (
+              <Link
+                key={pageNumber}
+                href={pageHref(pageNumber)}
+                aria-current={pageNumber === requestedPage ? 'page' : undefined}
+                aria-label={tEmployees('pageNumber', { page: pageNumber })}
+                className="inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-md border px-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
+              >
+                {pageNumber}
+              </Link>
+            ))}
+            {requestedPage < pageCount ? (
+              <Link href={pageHref(requestedPage + 1)} rel="next" className="inline-flex min-h-10 shrink-0 items-center rounded-md border px-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{tEmployees('next')}</Link>
+            ) : (
+              <span aria-disabled="true" className="inline-flex min-h-10 shrink-0 items-center rounded-md border px-3 opacity-50">{tEmployees('next')}</span>
+            )}
+          </nav>
+        ) : null}
       </div>
     </PageShell>
   )

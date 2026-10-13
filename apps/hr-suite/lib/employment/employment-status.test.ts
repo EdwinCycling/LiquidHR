@@ -17,6 +17,17 @@ describe('deriveEmploymentStatus', () => {
     )
   })
 
+  it('houdt de begin- en einddatum inclusief en telt DRAFT mee zoals het statuscontract voorschrijft', () => {
+    expect(deriveEmploymentStatus([
+      { startsOn: today, endsOn: today, recordStatus: 'DRAFT' },
+    ], today)).toBe('ACTIVE_EMPLOYEE')
+    expect(deriveEmploymentStatus([
+      { startsOn: '2026-07-16', endsOn: null, recordStatus: 'DRAFT' },
+    ], today)).toBe('FUTURE_EMPLOYEE')
+    expect(deriveEmploymentStatus([
+      { startsOn: '2026-07-14', endsOn: '2026-07-14', recordStatus: 'CONFIRMED' },
+    ], today)).toBe('FORMER_EMPLOYEE')
+  })
   it('houdt een medewerker actief zolang één parallel dienstverband actief is', () => {
     expect(
       deriveEmploymentStatus(

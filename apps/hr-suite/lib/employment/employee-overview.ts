@@ -80,3 +80,125 @@ export function mapEmployeeOverviewRpcRow(row: EmployeeOverviewRpcRow, today: st
     hrGroupAdministrationCount: 0,
   }
 }
+
+export interface EmployeeOverviewPageMappedRows {
+  employees: EmployeeOverview[]
+  limitedDetailEmployeeIds: string[]
+}
+
+const PAGE_EMPLOYMENT_TYPES = [
+  'EMPLOYEE',
+  'INTERN',
+  'APPRENTICE',
+  'CONTRACTOR',
+  'TEMPORARY_AGENCY',
+  'FREELANCER',
+  'VOLUNTEER',
+  'NO_PAYROLL',
+] as const
+
+function pageRecord(value: Json): Record<string, Json | undefined> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('EMPLOYEE_OVERVIEW_PAGE_ROW_INVALID')
+  return value
+}
+
+function pageString(record: Record<string, Json | undefined>, key: string): string {
+  const value = record[key]
+  if (typeof value !== 'string') throw new Error('EMPLOYEE_OVERVIEW_PAGE_ROW_INVALID')
+  return value
+}
+
+function pageNullableString(record: Record<string, Json | undefined>, key: string): string | null {
+  const value = record[key]
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'string') throw new Error('EMPLOYEE_OVERVIEW_PAGE_ROW_INVALID')
+  return value
+}
+
+function pageCount(record: Record<string, Json | undefined>, key: string): number {
+  const value = record[key]
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) throw new Error('EMPLOYEE_OVERVIEW_PAGE_ROW_INVALID')
+  return value
+}
+
+export function mapEmployeeOverviewPageRows(value: Json): EmployeeOverviewPageMappedRows {
+  if (!Array.isArray(value) || value.length > 50) throw new Error('EMPLOYEE_OVERVIEW_PAGE_ROWS_INVALID')
+
+  const employees: EmployeeOverview[] = []
+  const limitedDetailEmployeeIds: string[] = []
+  const seenIds = new Set<string>()
+
+  for (const item of value) {
+    const record = pageRecord(item)
+    const id = pageString(record, 'id')
+    const employmentStatus = pageString(record, 'status')
+    if (
+      employmentStatus !== 'ACTIVE_EMPLOYEE'
+      && employmentStatus !== 'FUTURE_EMPLOYEE'
+      && employmentStatus !== 'FORMER_EMPLOYEE'
+      && employmentStatus !== 'NEVER_EMPLOYED'
+    ) throw new Error('EMPLOYEE_OVERVIEW_PAGE_ROW_INVALID')
+    if (seenIds.has(id)) throw new Error('EMPLOYEE_OVERVIEW_PAGE_DUPLICATE_EMPLOYEE')
+    seenIds.add(id)
+
+    const rawEmploymentType = record.employment_type
+    const employmentType = rawEmploymentType === null || rawEmploymentType === undefined
+      ? null
+      : typeof rawEmploymentType === 'string' && PAGE_EMPLOYMENT_TYPES.includes(rawEmploymentType as typeof PAGE_EMPLOYMENT_TYPES[number])
+        ? rawEmploymentType as Database['public']['Enums']['employment_type']
+        : (() => { throw new Error('EMPLOYEE_OVERVIEW_PAGE_ROW_INVALID') })()
+    const rawAdministrationNames = record.administration_names
+    if (!Array.isArray(rawAdministrationNames) || rawAdministrationNames.some((name) => typeof name !== 'string')) {
+      throw new Error('EMPLOYEE_OVERVIEW_PAGE_ROW_INVALID')
+    }
+    if (typeof record.is_archived !== 'boolean' || typeof record.limited_detail !== 'boolean') {
+      throw new Error('EMPLOYEE_OVERVIEW_PAGE_ROW_INVALID')
+    }
+
+    employees.push({
+      id,
+      employeeNumber: pageNullableString(record, 'employee_number') ?? '',
+      firstName: pageString(record, 'first_name'),
+      birthNamePrefix: pageNullableString(record, 'birth_name_prefix'),
+      birthName: pageString(record, 'birth_name'),
+      departmentName: pageNullableString(record, 'department_name'),
+      jobTitle: pageNullableString(record, 'job_title'),
+      workEmail: pageNullableString(record, 'work_email'),
+      avatarUrl: resolveStoredImageUrl(pageNullableString(record, 'avatar_url'), { kind: 'employee-avatar', employeeId: id }),
+      isArchived: record.is_archived,
+      status: employmentStatus,
+      employmentCount: pageCount(record, 'employment_count'),
+      employmentType,
+      administrationNames: rawAdministrationNames as string[],
+      hrGroupAdministrationCount: pageCount(record, 'hr_group_administration_count'),
+    })
+    if (record.limited_detail) limitedDetailEmployeeIds.push(id)
+  }
+
+  return { employees, limitedDetailEmployeeIds }
+}
+
+export interface EmployeeOverviewPageRange {
+  from: number
+  to: number
+  pageCount: number
+}
+
+export function getEmployeeOverviewPageRange(totalCount: number, page: number, pageSize = 50): EmployeeOverviewPageRange {
+  if (
+    !Number.isSafeInteger(totalCount)
+    || totalCount < 0
+    || !Number.isSafeInteger(page)
+    || page < 1
+    || !Number.isSafeInteger(pageSize)
+    || pageSize < 1
+  ) throw new Error('EMPLOYEE_OVERVIEW_PAGE_RANGE_INVALID')
+
+  const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
+  if (totalCount === 0 || page > pageCount) return { from: 0, to: 0, pageCount }
+  return {
+    from: (page - 1) * pageSize + 1,
+    to: Math.min(page * pageSize, totalCount),
+    pageCount,
+  }
+}

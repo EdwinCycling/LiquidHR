@@ -1,0 +1,58 @@
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+
+const migration = readFileSync(new URL('../../supabase/migrations/20261013143616_employee_overview_server_pagination.sql', import.meta.url), 'utf8')
+const normalized = migration.toLowerCase()
+
+describe('employee overview pagination migration contract', () => {
+  it('keeps the old RPC and limits the new session-bound entrypoint to authenticated callers', () => {
+    expect(normalized).toMatch(/create or replace function public\.list_employee_overviews_page/)
+    expect(normalized).toMatch(/security definer\s+set search_path = pg_catalog, public, internal_security, auth/)
+    expect(normalized).toContain('auth.uid() is null')
+    expect(normalized).toContain('v_as_of := (statement_timestamp() at time zone')
+    expect(normalized).not.toContain('requested_as_of')
+    expect(normalized).toContain('current_user_has_hr_group_permission(')
+    expect(normalized).toContain('current_user_has_permission(')
+    expect(normalized).toContain('internal_security.has_administration_access')
+    expect(normalized).toContain("requested_scope = 'team' and not v_is_manager")
+    expect(normalized).toContain('override_role.is_active')
+    expect(normalized).toContain('requested_tenant_id')
+    expect(normalized).toContain('public.get_employee_directory_access')
+    expect(normalized).toContain('from public, anon, service_role')
+    expect(normalized).toMatch(/to authenticated;/)
+    expect(normalized).not.toMatch(/drop function|grant execute on function[^;]*\bto\s+(public|anon|service_role)\b/)
+  })
+
+  it('applies tenant, HR group, administration, manager team, archive and search filters before the 50-row page', () => {
+    expect(normalized).toContain('employee.tenant_id = requested_tenant_id')
+    expect(normalized).toContain('employee.hr_group_id = requested_hr_group_id')
+    expect(normalized).toContain('requested_administration_id')
+    expect(normalized).toContain('direct_team as materialized')
+    expect(normalized).toContain("requested_scope = 'all' or team.employee_id is not null")
+    expect(normalized).toContain('requested_archive_filter')
+    expect(normalized).toContain('filtered_employees as materialized')
+    expect(normalized).toContain('select count(*) from filtered_employees')
+    expect(normalized).toContain('limit 50')
+    expect(normalized).toContain('requested_page > 1000000')
+    expect(normalized).toContain('offset ((requested_page::bigint - 1) * 50)')
+    expect(normalized).toContain('page.id')
+    expect(normalized).not.toContain('employment_history')
+  })
+
+  it('preserves inclusive employment boundaries and limits search to visible fields', () => {
+    expect(normalized).toContain("record_status <> 'cancelled'")
+    expect(normalized).toContain('starts_on <= v_as_of')
+    expect(normalized).toContain('ends_on >= v_as_of')
+    expect(normalized).toContain('requested_status_filter')
+    expect(normalized).toContain('v_directory_only')
+    expect(normalized).toContain('v_limited_manager')
+    expect(normalized).toContain('v_show_job_department')
+    expect(normalized).toContain('v_show_work_email')
+    expect(normalized).toContain('employee.employee_number')
+    expect(normalized).toContain('filtered.department_name')
+    expect(normalized).toContain('filtered.work_email')
+    expect(normalized).toContain('page.employee_number')
+    expect(normalized).toContain('not v_directory_only')
+    expect(normalized).toContain('case when v_show_work_email then employee.work_email else null end')
+  })
+})

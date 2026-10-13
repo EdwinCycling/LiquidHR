@@ -9,9 +9,10 @@ import { employeeDetailReadFailureCode } from './detail-errors'
 import { deriveEmploymentStatus, isRehire, type EmploymentStatus } from './employment-status'
 import { selectCurrentEmploymentSummary, type CurrentEmployeeSummary } from './employee-summary'
 import { isEmployeeOutsideDirectManagerScope, listDirectTeamEmployeeIds, type EmployeeScope } from '@/lib/organization/team-scope'
-import { mapEmployeeOverviewRpcRow, type EmployeeOverview } from './employee-overview'
+import { mapEmployeeOverviewPageRows, mapEmployeeOverviewRpcRow, type EmployeeOverview } from './employee-overview'
 import { nextAvailableEmploymentNumber } from './employment-number'
 import { isBlockingProbationValidation, validateProbation } from './probation-rules'
+import { ACTIVE_FUTURE_EXTERNAL_STATUS, type EmployeeListSort, type EmployeeStatusFilter } from '@/lib/preferences/employee-list-state'
 import type {
   CompleteEmploymentCreateInput,
   CreateEmploymentInput,
@@ -1506,4 +1507,95 @@ export async function terminateEmployment(
     throw new EmploymentServiceError(code, code.includes('CONFLICT') ? 409 : 400)
   }
   return termination.id
+}
+
+export interface EmployeeOverviewPageRequest {
+  archiveFilter: 'active' | 'archived' | 'all'
+  statusFilter: EmployeeStatusFilter
+  search: string
+  sort: EmployeeListSort
+  scope: EmployeeScope
+  page: number
+}
+
+export interface EmployeeOverviewPage {
+  employees: EmployeeOverview[]
+  totalCount: number
+  page: number
+  pageSize: 50
+  limitedDetailEmployeeIds: string[]
+  directoryVisibility: {
+    showJobDepartment: boolean
+    showWorkEmail: boolean
+  }
+  directoryAccess: boolean
+}
+
+function parseEmployeeOverviewPageVisibility(value: Json): EmployeeOverviewPage['directoryVisibility'] {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_PAGE_INVALID', 500)
+  }
+  const showJobDepartment = value.showJobDepartment
+  const showWorkEmail = value.showWorkEmail
+  if (typeof showJobDepartment !== 'boolean' || typeof showWorkEmail !== 'boolean') {
+    throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_PAGE_INVALID', 500)
+  }
+  return { showJobDepartment, showWorkEmail }
+}
+
+export async function listEmployeesOverviewPage(
+  request: EmployeeOverviewPageRequest,
+  dependencies?: EmployeeOverviewReadDependencies,
+): Promise<EmployeeOverviewPage> {
+  const context = dependencies?.context ?? await requireAnyPermission(['employee:read', 'employee-directory:read'])
+  if (dependencies && !context.permissions.includes('employee:read') && !context.permissions.includes('employee-directory:read')) {
+    throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
+  }
+  if (!context.administrationId) throw new EmploymentServiceError('ADMINISTRATION_REQUIRED', 400)
+  if (request.page < 1 || request.page > 1_000_000 || !Number.isSafeInteger(request.page)) {
+    throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_PAGE_INVALID', 400)
+  }
+  if (request.scope === 'team' && !context.activeRoles.includes('DIRECT_MANAGER')) {
+    throw new AuthorizationError('Je hebt geen toegang tot de teamscope.')
+  }
+
+  const supabase = dependencies?.supabase ?? await createClient()
+  const { data, error } = await supabase.rpc('list_employee_overviews_page', {
+    requested_tenant_id: context.tenantId,
+    requested_hr_group_id: requireHrGroupId(context),
+    requested_administration_id: context.administrationId,
+    requested_archive_filter: request.archiveFilter,
+    requested_status_filter: request.statusFilter === ACTIVE_FUTURE_EXTERNAL_STATUS
+      ? 'ACTIVE_FUTURE_EXTERNAL'
+      : request.statusFilter,
+    requested_search: request.search.trim(),
+    requested_sort: request.sort,
+    requested_scope: request.scope,
+    requested_page: request.page,
+  })
+  if (error) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_PAGE_FAILED', 500, error.code)
+
+  const result = data?.[0]
+  if (
+    !result
+    || !Number.isSafeInteger(result.total_count)
+    || result.total_count < 0
+    || typeof result.directory_access !== 'boolean'
+  ) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_PAGE_INVALID', 500)
+
+  try {
+    const mapped = mapEmployeeOverviewPageRows(result.employees)
+    return {
+      employees: mapped.employees,
+      totalCount: result.total_count,
+      page: request.page,
+      pageSize: 50,
+      limitedDetailEmployeeIds: mapped.limitedDetailEmployeeIds,
+      directoryVisibility: parseEmployeeOverviewPageVisibility(result.directory_visibility),
+      directoryAccess: result.directory_access,
+    }
+  } catch (error) {
+    if (error instanceof EmploymentServiceError) throw error
+    throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_PAGE_INVALID', 500)
+  }
 }
