@@ -18,8 +18,14 @@ vi.mock('@/lib/payroll/access', async (importOriginal) => ({
   resolvePayrollLabAdministration: vi.fn(),
 }))
 
-vi.mock('@/lib/payroll/nl-2026-calculation-service', () => ({ getLatestNl2026Payroll: vi.fn() }))
-vi.mock('@/lib/payroll/synthetic-calculation-service', () => ({ getLatestSyntheticPayroll: vi.fn() }))
+vi.mock('@/lib/payroll/nl-2026-calculation-service', () => ({
+  getLatestNl2026Payroll: vi.fn(),
+  NL_2026_TEST_SCENARIO: { period: { year: 2026, month: 9 }, compositionId: 'NL-PAYROLL-2026:2026.1' },
+}))
+vi.mock('@/lib/payroll/synthetic-calculation-service', () => ({
+  getLatestSyntheticPayroll: vi.fn(),
+  GC_NL_001_PERIOD: { year: 2026, month: 9 },
+}))
 vi.mock('./actions', () => ({ runNl2026PayrollAction: vi.fn(), runSyntheticPayrollAction: vi.fn() }))
 
 vi.mock('@/lib/i18n/server', () => ({
@@ -37,8 +43,16 @@ vi.mock('@/lib/i18n/server', () => ({
     payrollLabAmountEmployerZvw: 'Werkgeversbijdrage Zvw',
     payrollLabAmountHolidayAllowanceAccrual: 'Opbouw vakantiegeld',
     payrollLabAmountTotalEmployerCost: 'Totale werkgeverslasten',
-    payrollLabNl2026Run: 'Bereken NL-2026 test payroll',
-    payrollLabGcNl001Run: 'Bereken synthetische case GC-NL-001',
+    payrollLabTrialRunTitle: 'Beschikbare proefscenario’s',
+    payrollLabTrialRunDescription: 'Kies een bestaande ondersteunde testcase.',
+    payrollLabRunContext: 'Runcontext',
+    payrollLabActiveAdministration: 'Actieve administratie',
+    payrollLabPeriod: 'Periode',
+    payrollLabCase: 'Payrollcase',
+    payrollLabRulePackageContext: 'Regelpakket en versie',
+    payrollLabStartTrialRun: 'Proefberekening starten',
+    payrollLabRunRequiresWrite: 'Geen schrijfrecht.',
+    payrollLabOtherSupportedScenarios: 'Andere beschikbare scenario’s:',
     payrollLabGcNl001Description: 'Synthetische GC-NL-001-testcase. Geen fiscale NL-2026-berekening.',
     payrollLabNl2026Description: 'Nederlandse wettelijke loonheffing voor 2026.',
     payrollLabCaseSelector: 'Payrollcase selecteren',
@@ -171,7 +185,9 @@ describe('Payroll Lab protected shell route', () => {
     expect(markup).toContain('payrollLabTrace')
     expect(markup).toContain('payrollLabControls')
     expect(markup).toContain('GOLDEN_CASE')
-    expect(markup).toContain('PAYLAB Test Employee · September 2026')
+    expect(markup).toContain('PAYLAB Test Employee')
+    expect(markup).toContain('September 2026')
+    expect(markup).toContain('Runcontext')
     expect(markup).not.toContain('total_employer_cost')
     expect(markup).not.toContain('employer_pension')
     expect(markup.indexOf('PAYLAB Test Employee')).toBeLessThan(markup.indexOf('payrollLabRunStatus'))
@@ -183,16 +199,19 @@ describe('Payroll Lab protected shell route', () => {
 
     const nlPage = await PayrollLabPage({ searchParams: Promise.resolve({}) })
     const nlMarkup = renderToStaticMarkup(nlPage)
-    expect(nlMarkup).toContain('Bereken NL-2026 test payroll')
-    expect(nlMarkup).toContain('Bereken synthetische case GC-NL-001')
+    expect(nlMarkup).toContain('Proefberekening starten')
+    expect(nlMarkup).not.toContain('Synthetische TEST')
+    expect(nlMarkup).toContain('NL-2026-berekening')
+    expect(nlMarkup).toContain('GC-NL-001 (synthetisch)')
     expect(nlMarkup).toContain('Nederlandse wettelijke loonheffing voor 2026.')
-    expect(nlMarkup).not.toContain('Synthetische GC-NL-001-testcase. Geen fiscale NL-2026-berekening.')
 
     vi.mocked(getLatestSyntheticPayroll).mockResolvedValue(gcNl001Result as never)
     const syntheticPage = await PayrollLabPage({ searchParams: Promise.resolve({ case: 'GC-NL-001' }) })
     const syntheticMarkup = renderToStaticMarkup(syntheticPage)
-    expect(syntheticMarkup).toContain('Bereken NL-2026 test payroll')
-    expect(syntheticMarkup).toContain('Bereken synthetische case GC-NL-001')
+    expect(syntheticMarkup).toContain('Proefberekening starten')
+    expect(syntheticMarkup).not.toContain('Synthetische TEST')
+    expect(syntheticMarkup).toContain('NL-2026-berekening')
+    expect(syntheticMarkup).toContain('GC-NL-001 (synthetisch)')
     expect(syntheticMarkup).toContain('Synthetische GC-NL-001-testcase. Geen fiscale NL-2026-berekening.')
     expect(syntheticMarkup).toContain('3175.00')
     expect(syntheticMarkup).toContain('4910.00')
@@ -267,7 +286,6 @@ describe('Payroll Lab protected shell route', () => {
     expect(getLatestSyntheticPayroll).not.toHaveBeenCalled()
     expect(markup).toContain('De gevraagde berekening is niet beschikbaar voor deze case.')
     expect(markup).toContain('Nederlandse wettelijke loonheffing voor 2026.')
-    expect(markup).not.toContain('Synthetische GC-NL-001-testcase. Geen fiscale NL-2026-berekening.')
     expect(markup).not.toContain('3175.00')
     expect(markup).not.toContain('4910.00')
   })

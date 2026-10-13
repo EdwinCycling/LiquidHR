@@ -8,6 +8,8 @@ import { Surface } from '@/components/ui/surface'
 import { PageHeader } from '@/components/patterns/page-header'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { CaoBench02CalculationExperience } from '@/components/payroll/cao-bench02-calculation-experience'
+import { PayrollLabControls } from '@/components/payroll/payroll-lab-controls'
+import { PayrollLabRunContext } from '@/components/payroll/payroll-lab-run-context'
 import { PageShell } from '@/components/layout/page-shell'
 import { AuthenticationError, AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { ContextAccessError } from '@/lib/context/administration-context'
@@ -22,11 +24,13 @@ import {
   isCaoBench02CalculationCase,
   type CaoBench02CaseKey,
 } from '@/lib/payroll/cao-bench02-calculation-service'
-import { getLatestSyntheticPayroll } from '@/lib/payroll/synthetic-calculation-service'
-import { getLatestNl2026Payroll } from '@/lib/payroll/nl-2026-calculation-service'
+import { GC_NL_001_PERIOD, getLatestSyntheticPayroll } from '@/lib/payroll/synthetic-calculation-service'
+import { getLatestNl2026Payroll, NL_2026_TEST_SCENARIO } from '@/lib/payroll/nl-2026-calculation-service'
 import { runNl2026PayrollAction, runSyntheticPayrollAction } from '../actions'
 import { isPayrollLabErrorCode, payrollLabErrorMessageKey } from '../error-codes'
 import { formatPayrollMoney } from '../format-money'
+import { GC_NL_001_RULE_PACKAGE } from '@liquid-hr/payroll-engine'
+import { NL_2026_RULE_PACKAGE } from '@liquid-hr/payroll-rules-nl-2026'
 
 const PAYROLL_AMOUNT_FIELDS = {
   nl2026: [
@@ -50,6 +54,19 @@ const PAYROLL_AMOUNT_FIELDS = {
 
 const PAYROLL_LAB_CASES = ['CC-NL-2026-001', 'GC-NL-001'] as const
 type PayrollLabCase = (typeof PAYROLL_LAB_CASES)[number]
+
+const PAYROLL_LAB_SCENARIOS: Readonly<Record<PayrollLabCase, { readonly period: SyntheticPayrollView['payrollPeriod']; readonly rulePackage: string }>> = Object.freeze({
+  'CC-NL-2026-001': {
+    period: NL_2026_TEST_SCENARIO.period,
+    rulePackage: `${NL_2026_RULE_PACKAGE.metadata?.packageId ?? NL_2026_TEST_SCENARIO.compositionId} · ${NL_2026_RULE_PACKAGE.metadata?.version ?? '—'}`,
+  },
+  'GC-NL-001': {
+    period: GC_NL_001_PERIOD,
+    rulePackage: GC_NL_001_RULE_PACKAGE.compositionId,
+  },
+})
+
+type ComponentCatalogLink = { readonly href: string; readonly ariaLabel: string }
 
 type PayrollLabQuery = {
   run?: string | string[]
@@ -84,18 +101,6 @@ function statusTone(status: SyntheticPayrollView['status']): 'neutral' | 'info' 
   return 'neutral'
 }
 
-function controlTone(status: SyntheticPayrollView['controls'][number]['status']): 'success' | 'warning' | 'danger' {
-  if (status === 'PASS') return 'success'
-  if (status === 'FAIL') return 'danger'
-  return 'warning'
-}
-
-function controlStatusLabel(status: SyntheticPayrollView['controls'][number]['status'], t: Awaited<ReturnType<typeof getTranslator>>): string {
-  if (status === 'PASS') return t('payrollLabControlPassed')
-  if (status === 'FAIL') return t('payrollLabControlFailed')
-  return t('payrollLabControlWarning')
-}
-
 function MetadataItem({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="min-w-0">
@@ -116,6 +121,45 @@ function traceText(trace: SyntheticPayrollView['trace']): string | null {
 
 function traceRecord(value: PayrollJson | undefined): value is { readonly [key: string]: PayrollJson | undefined } {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
+}
+
+function componentCatalogLinks(latest: SyntheticPayrollView | null): ReadonlyMap<string, ComponentCatalogLink> {
+  if (!latest || !traceRecord(latest.trace)) return new Map()
+  const packageMetadata = traceRecord(latest.trace.packageMetadata) ? latest.trace.packageMetadata : null
+  const packageId = typeof packageMetadata?.packageId === 'string' ? packageMetadata.packageId : ''
+  const packageVersion = typeof packageMetadata?.version === 'string' ? packageMetadata.version : ''
+  const links = new Map<string, ComponentCatalogLink>()
+
+  for (const result of latest.components) {
+    if (!traceRecord(result.payload) || !traceRecord(result.payload.component)) continue
+    const component = result.payload.component
+    const ownership = traceRecord(component.ownership) ? component.ownership : null
+    const code = typeof component.code === 'string' ? component.code : ''
+    const version = typeof component.version === 'string' ? component.version : ''
+    if (ownership?.kind !== 'SYSTEM' || !code || !version) continue
+
+    const catalogKey = [packageId, packageVersion, latest.rulePackageCompositionId, code, version]
+      .map((part) => encodeURIComponent(part))
+      .join('::')
+    links.set(result.key, {
+      href: `/payroll-components?component=${encodeURIComponent(catalogKey)}`,
+      ariaLabel: `${code} · ${version}`,
+    })
+  }
+
+  return links
+}
+
+function packageContextValue(
+  latest: SyntheticPayrollView | null,
+  scenario: PayrollLabCase,
+  packageMetadata: { readonly [key: string]: PayrollJson | undefined } | null,
+): string {
+  if (!latest) return PAYROLL_LAB_SCENARIOS[scenario].rulePackage
+  const packageId = typeof packageMetadata?.packageId === 'string' ? packageMetadata.packageId : null
+  const version = typeof packageMetadata?.version === 'string' ? packageMetadata.version : null
+  if (packageId && version) return `${packageId} · ${version}`
+  return latest.rulePackageCompositionId
 }
 
 function CalculationTrace({ trace, t }: { trace: SyntheticPayrollView['trace']; t: Awaited<ReturnType<typeof getTranslator>> }) {
@@ -161,11 +205,15 @@ function caoBench02Case(value: string | string[] | undefined): CaoBench02CaseKey
 function AmountList({
   fields,
   amounts,
+  componentLinks,
+  viewComponentLabel,
   locale,
   featured = false,
 }: {
   fields: readonly { key: string; label: string }[]
   amounts: ReadonlyMap<string, string | null>
+  componentLinks: ReadonlyMap<string, ComponentCatalogLink>
+  viewComponentLabel: string
   locale: string
   featured?: boolean
 }) {
@@ -173,11 +221,15 @@ function AmountList({
     <dl className={`grid gap-x-6 gap-y-4 ${featured ? 'sm:grid-cols-2 xl:grid-cols-4' : 'sm:grid-cols-2 xl:grid-cols-4'}`}>
       {fields.map(({ key, label }) => {
         const amount = amounts.get(key) ?? null
+        const componentLink = componentLinks.get(key)
         return (
           <div className="min-w-0" data-component-key={key} key={key}>
             <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className={`${featured ? 'mt-1 text-2xl sm:text-3xl' : 'mt-1 text-lg'} break-all font-semibold tabular-nums text-foreground`} data-amount={amount ?? ''}>
-              {formatPayrollMoney(amount, locale)}
+            <dd className="min-w-0" data-amount={amount ?? ''}>
+              <span className={`${featured ? 'mt-1 block text-2xl sm:text-3xl' : 'mt-1 block text-lg'} break-all font-semibold tabular-nums text-foreground`}>
+                {formatPayrollMoney(amount, locale)}
+              </span>
+              {componentLink ? <Link className="mt-1 inline-flex max-w-full flex-wrap gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline" href={componentLink.href} aria-label={`${viewComponentLabel}: ${componentLink.ariaLabel}`}>{viewComponentLabel}<code className="break-all">{componentLink.ariaLabel}</code></Link> : null}
             </dd>
           </div>
         )
@@ -348,18 +400,20 @@ export default async function PayrollLabPage({
   const amounts = new Map<string, string | null>(latest?.components.map((component) => [component.key, component.amount]) ?? [])
   const packageMetadata = latest && traceRecord(latest.trace) && traceRecord(latest.trace.packageMetadata) ? latest.trace.packageMetadata : null
   const sourceMetadata = packageMetadata && traceRecord(packageMetadata.sourceMetadata) ? packageMetadata.sourceMetadata : null
-  const periodHeading = latest ? formatPeriodHeading(latest.payrollPeriod, locale) : ''
+  const selectedScenario = PAYROLL_LAB_SCENARIOS[selectedCase]
+  const periodHeading = formatPeriodHeading(latest?.payrollPeriod ?? selectedScenario.period, locale)
   const showingSyntheticGc = selectedCase === 'GC-NL-001'
   const summaryFields = showingSyntheticGc ? PAYROLL_AMOUNT_FIELDS.gcNl001 : PAYROLL_AMOUNT_FIELDS.nl2026
+  const contextCase = latest?.caseKey ?? selectedCase
+  const contextScenario = contextCase === 'GC-NL-001'
+    ? `${contextCase} · ${t('payrollLabViewGcNl001')}`
+    : `${contextCase} · ${t('payrollLabViewNl2026')}`
+  const componentLinks = componentCatalogLinks(latest)
 
   return (
     <PageShell className="space-y-6 py-6 sm:py-8" width="standard">
       <Link href="/payroll-lab" className="text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus">{t('payrollLabBackToOverview')}</Link>
       <PageHeader
-        actions={canRun ? <div className="flex flex-wrap gap-2">
-          <form action={runNl2026PayrollAction}><Button type="submit"><Play aria-hidden="true" />{t('payrollLabNl2026Run')}</Button></form>
-          <form action={runSyntheticPayrollAction}><Button variant="secondary" type="submit"><Play aria-hidden="true" />{t('payrollLabGcNl001Run')}</Button></form>
-        </div> : undefined}
         description={t(showingSyntheticGc ? 'payrollLabGcNl001Description' : 'payrollLabNl2026Description')}
         title={t('payrollLabCalculations')}
       />
@@ -369,15 +423,55 @@ export default async function PayrollLabPage({
         <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/payroll-lab/calculations?case=CAO-BENCH02-K1">{t('payrollLabBenchTitle')}</Link>
       </nav>
 
+      <Surface className="p-4 sm:p-6">
+        <SectionHeader
+          description={t('payrollLabTrialRunDescription')}
+          title={t('payrollLabTrialRunTitle')}
+        />
+        <p className="mt-4 text-sm text-muted-foreground"><span className="font-medium text-foreground">{t('payrollLabActiveAdministration')}:</span> {administration.displayName}</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {[
+            { caseKey: 'CC-NL-2026-001' as const, title: t('payrollLabViewNl2026'), description: t('payrollLabNl2026Description'), action: runNl2026PayrollAction },
+            { caseKey: 'GC-NL-001' as const, title: t('payrollLabViewGcNl001'), description: t('payrollLabGcNl001Description'), action: runSyntheticPayrollAction },
+          ].map((scenario) => (
+            <article className="min-w-0 rounded-[var(--radius-surface)] border border-border-subtle p-4" key={scenario.caseKey}>
+              <h3 className="text-sm font-semibold text-foreground">{scenario.title} <span className="font-mono text-xs font-normal text-muted-foreground">· {scenario.caseKey}</span></h3>
+              <p className="mt-2 text-sm text-muted-foreground">{scenario.description}</p>
+              <dl className="mt-4 grid gap-3 border-t border-border-subtle pt-3 sm:grid-cols-2">
+                <MetadataItem label={t('payrollLabPeriod')} value={formatPeriodHeading(PAYROLL_LAB_SCENARIOS[scenario.caseKey].period, locale)} />
+                <MetadataItem label={t('payrollLabRulePackageContext')} value={PAYROLL_LAB_SCENARIOS[scenario.caseKey].rulePackage} />
+              </dl>
+              {canRun ? <form action={scenario.action} className="mt-4"><Button type="submit"><Play aria-hidden="true" />{t('payrollLabStartTrialRun')}</Button></form> : <p className="mt-4 text-xs text-muted-foreground">{t('payrollLabRunRequiresWrite')}</p>}
+            </article>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-muted-foreground">{t('payrollLabOtherSupportedScenarios')} <Link className="font-medium text-primary underline-offset-4 hover:underline" href="/payroll-lab/calculations?case=CAO-BENCH02-K1">{t('payrollLabBenchTitle')}</Link></p>
+      </Surface>
+
       {errorMessage ? (
         <Surface className="border-destructive/40 p-4 text-sm text-destructive" role="alert">
           <p>{errorMessage}</p>
-          {failedLatestRun?.unsupportedReason ? <p className="mt-2 break-all">{failedLatestRun.unsupportedReason}</p> : null}
-          {failureCode ? <p className="mt-2"><span className="font-medium">{t('payrollLabErrorCode')}:</span> <code>{failureCode}</code></p> : null}
-          {runReference ? <p className="mt-1"><span className="font-medium">{t('payrollLabRunReference')}:</span> <code>{runReference}</code></p> : null}
+          {failedLatestRun?.unsupportedReason || failureCode || runReference ? <details className="mt-3 rounded-[var(--radius-control)] border border-destructive/30 p-3">
+            <summary className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-focus">{t('payrollLabTechnicalDetails')}</summary>
+            {failedLatestRun?.unsupportedReason ? <p className="mt-2 break-all">{failedLatestRun.unsupportedReason}</p> : null}
+            {failureCode ? <p className="mt-2"><span className="font-medium">{t('payrollLabErrorCode')}:</span> <code>{failureCode}</code></p> : null}
+            {runReference ? <p className="mt-1"><span className="font-medium">{t('payrollLabRunReference')}:</span> <code>{runReference}</code></p> : null}
+          </details> : null}
         </Surface>
       ) : null}
       {runCompleted ? <Surface className="border-success/50 p-4 text-sm text-success" role="status">{t('payrollLabRunCompleted')}</Surface> : null}
+
+      {latest ? <PayrollLabRunContext
+        administration={administration.displayName}
+        administrationLabel={t('payrollLabActiveAdministration')}
+        contextLabel={t('payrollLabRunContext')}
+        period={periodHeading}
+        periodLabel={t('payrollLabPeriod')}
+        rulePackage={packageContextValue(latest, selectedCase, packageMetadata)}
+        rulePackageLabel={t('payrollLabRulePackageContext')}
+        scenario={contextScenario}
+        scenarioLabel={t('payrollLabCase')}
+      /> : null}
 
       {!latest ? (
         <EmptyState
@@ -390,13 +484,14 @@ export default async function PayrollLabPage({
           <Surface className="p-4 sm:p-6">
             <SectionHeader
               actions={<Badge tone={statusTone(latest.status)}>{latest.status}</Badge>}
-              description={`${t('payrollLabPayrollAdministration')}: ${administration.displayName}`}
-              title={`${t('payrollLabTestEmployee')} · ${periodHeading}`}
+              title={t('payrollLabTestEmployee')}
             />
             <div className="mt-6">
               <AmountList
                 fields={summaryFields.map(({ key, label }) => ({ key, label: t(label) }))}
                 amounts={amounts}
+                componentLinks={componentLinks}
+                viewComponentLabel={t('payrollLabViewComponentVersion')}
                 locale={locale}
                 featured
               />
@@ -405,46 +500,35 @@ export default async function PayrollLabPage({
 
           <Surface className="p-4 sm:p-6">
             <SectionHeader title={t('payrollLabRunStatus')} />
-            <dl className="mt-4 grid gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-              <MetadataItem label={t('payrollLabPeriod')} value={formatPeriod(latest.payrollPeriod)} />
-              <MetadataItem label={t('payrollLabCase')} value={latest.caseKey ?? selectedCase} />
-              <MetadataItem label={t('payrollLabRunType')} value={latest.runType} />
-              <MetadataItem label={t('payrollLabRunId')} value={latest.runId} mono />
-              <MetadataItem label={t('payrollLabEmployee')} value={latest.employeeId} mono />
-              <MetadataItem label={t('payrollLabRuleComposition')} value={latest.rulePackageCompositionId} mono />
-              <MetadataItem label={t('payrollLabEngineVersion')} value={latest.engineVersion} mono />
-              <MetadataItem label={t('payrollLabPackageVersion')} value={String(packageMetadata?.version ?? '—')} />
-              <MetadataItem label={t('payrollLabPackageHash')} value={String(packageMetadata?.packageHash ?? '—')} mono />
-              <MetadataItem label={t('payrollLabStatutorySource')} value={String(sourceMetadata?.calculationRulesTitle ?? '—')} />
-              <MetadataItem label={t('payrollLabSourceHash')} value={latest.sourceHash} mono />
-              <MetadataItem label={t('payrollLabInputHash')} value={latest.inputHash} mono />
-              <MetadataItem label={t('payrollLabResultHash')} value={latest.resultHash ?? '—'} mono />
-              <MetadataItem label={t('payrollLabCreatedAt')} value={formatDateTime(latest.createdAt, locale)} />
-              <MetadataItem label={t('payrollLabStartedAt')} value={formatDateTime(latest.startedAt, locale)} />
-              <MetadataItem label={t('payrollLabFinishedAt')} value={formatDateTime(latest.finishedAt, locale)} />
-            </dl>
+            <details className="mt-4 rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3">
+              <summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-focus">{t('payrollLabTechnicalDetails')}</summary>
+              <dl className="mt-4 grid gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                <MetadataItem label={t('payrollLabPeriod')} value={formatPeriod(latest.payrollPeriod)} />
+                <MetadataItem label={t('payrollLabCase')} value={latest.caseKey ?? selectedCase} />
+                <MetadataItem label={t('payrollLabRunType')} value={latest.runType} />
+                <MetadataItem label={t('payrollLabRunId')} value={latest.runId} mono />
+                <MetadataItem label={t('payrollLabEmployee')} value={latest.employeeId} mono />
+                <MetadataItem label={t('payrollLabRuleComposition')} value={latest.rulePackageCompositionId} mono />
+                <MetadataItem label={t('payrollLabEngineVersion')} value={latest.engineVersion} mono />
+                <MetadataItem label={t('payrollLabPackageVersion')} value={String(packageMetadata?.version ?? '—')} />
+                <MetadataItem label={t('payrollLabPackageHash')} value={String(packageMetadata?.packageHash ?? '—')} mono />
+                <MetadataItem label={t('payrollLabStatutorySource')} value={String(sourceMetadata?.calculationRulesTitle ?? '—')} />
+                <MetadataItem label={t('payrollLabSourceHash')} value={latest.sourceHash} mono />
+                <MetadataItem label={t('payrollLabInputHash')} value={latest.inputHash} mono />
+                <MetadataItem label={t('payrollLabResultHash')} value={latest.resultHash ?? '—'} mono />
+                <MetadataItem label={t('payrollLabCreatedAt')} value={formatDateTime(latest.createdAt, locale)} />
+                <MetadataItem label={t('payrollLabStartedAt')} value={formatDateTime(latest.startedAt, locale)} />
+                <MetadataItem label={t('payrollLabFinishedAt')} value={formatDateTime(latest.finishedAt, locale)} />
+              </dl>
+              {renderedTrace ? <details className="mt-4 rounded-[var(--radius-control)] border border-border-subtle p-3">
+                <summary className="cursor-pointer text-xs font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-focus">{t('payrollLabDebugTrace')}</summary>
+                <pre className="mt-3 max-h-[34rem] overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{renderedTrace}</pre>
+              </details> : null}
+            </details>
           </Surface>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Surface className="min-w-0 p-4 sm:p-6">
-              <SectionHeader title={t('payrollLabControls')} />
-              {latest.controls.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">{t('payrollLabNoControls')}</p>
-              ) : (
-                <ul className="mt-4 space-y-3">
-                  {latest.controls.map((control) => (
-                    <li className="flex min-w-0 flex-col gap-2 border-t border-subtle pt-3 sm:flex-row sm:items-start sm:justify-between" key={control.key}>
-                      <div className="min-w-0">
-                        <p className="break-all text-sm font-medium text-foreground">{control.key}</p>
-                        {traceRecord(control.details) ? <dl className="mt-2 text-xs text-muted-foreground">{['actual', 'expected'].map((key) => control.details && traceRecord(control.details) && control.details[key] !== undefined ? <div className="break-all" key={key}><dt className="inline">{t(key === 'actual' ? 'payrollLabActual' : 'payrollLabExpected')}: </dt><dd className="inline font-mono">{String(control.details[key])}</dd></div> : null)}</dl> : null}
-
-                      </div>
-                      <Badge tone={controlTone(control.status)}>{controlStatusLabel(control.status, t)}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Surface>
+            <PayrollLabControls controls={latest.controls} t={t} />
 
             <Surface className="min-w-0 p-4 sm:p-6">
               <SectionHeader title={t('payrollLabTrace')} />
@@ -452,10 +536,6 @@ export default async function PayrollLabPage({
                 <details className="mt-4 rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3">
                   <summary className="cursor-pointer text-sm font-medium text-foreground">{t('payrollLabTrace')}</summary>
                   <CalculationTrace trace={latest.trace} t={t} />
-                  <details className="mt-4">
-                    <summary className="cursor-pointer text-xs text-muted-foreground">{t('payrollLabDebugTrace')}</summary>
-                    <pre className="mt-3 max-h-[34rem] overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{renderedTrace}</pre>
-                  </details>
                 </details>
               ) : <p className="mt-4 text-sm text-muted-foreground">{t('payrollLabNoTrace')}</p>}
             </Surface>

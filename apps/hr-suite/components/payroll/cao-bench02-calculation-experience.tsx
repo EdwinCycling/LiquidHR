@@ -6,6 +6,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { PayrollGrossOnlyConceptSlip, type PayrollGrossOnlyConceptSlipData, type PayrollGrossOnlyConceptSlipTranslator } from '@/components/payroll/gross-only-concept-slip'
+import { PayrollLabControls } from '@/components/payroll/payroll-lab-controls'
+import { PayrollLabRunContext } from '@/components/payroll/payroll-lab-run-context'
 import {
   getCaoBench02H1Examples,
   getCaoBench02RuleMetadata,
@@ -129,6 +131,12 @@ function basisKey(caseKey: CaoBench02CalculationCaseKey): string {
 
 function methodKey(caseKey: CaoBench02CalculationCaseKey): string {
   return `payrollLabBenchMethod_${caseKey.slice(-2)}`
+}
+
+function formatPeriodHeading(period: SyntheticPayrollView['payrollPeriod'], locale: string): string {
+  const month = new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' })
+    .format(new Date(Date.UTC(period.year, period.month - 1, 1)))
+  return `${month.charAt(0).toLocaleUpperCase(locale)}${month.slice(1)} ${period.year}`
 }
 
 function makeSlipData(
@@ -290,23 +298,44 @@ export function CaoBench02CalculationExperience({
 
     {errorMessage ? <Surface className="border-destructive/40 p-4 text-sm text-destructive" role="alert">{errorMessage}</Surface> : null}
     {isH1 ? <H1Examples t={t} /> : <>
-      {selectedMetadata ? <Surface className="p-4 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <SectionHeader title={`${t(selectedMetadata.displayNameKey)} · ${caseKey}`} description={`${t(selectedMetadata.arrangementNameKey)} · ${selectedMetadata.arrangementVersion} · ${selectedMetadata.effectiveDate}`} />
-            <p className="mt-3 text-sm text-muted-foreground">{t('payrollLabBenchSelectedAdministration')}: {administrationName} · {t('payrollLabBenchFixture')}: {selectedMetadata.fixtureCode}</p>
-            {caseKey.startsWith('CAO-BENCH02-R') ? <p className="mt-4 rounded-[var(--radius-control)] border border-warning/40 bg-warning/10 p-3 text-sm text-foreground" role="note">{t('payrollLabBenchRetailScopeNotice')}</p> : null}
-          </div>
-          {canRun ? <form action={runCaoBench02PayrollAction}>
-            <input name="caseKey" type="hidden" value={caseKey} />
-            <Button type="submit"><Play aria-hidden="true" />{t('payrollLabBenchRun')}</Button>
-          </form> : null}
-        </div>
-      </Surface> : null}
+    {selectedMetadata ? <Surface className="space-y-4 p-4 sm:p-6">
+      <SectionHeader title={`${t(selectedMetadata.displayNameKey)} · ${caseKey}`} description={`${t(selectedMetadata.arrangementNameKey)} · ${selectedMetadata.arrangementVersion} · ${selectedMetadata.effectiveDate}`} />
+      <PayrollLabRunContext
+        administration={administrationName}
+        administrationLabel={t('payrollLabActiveAdministration')}
+        contextLabel={t('payrollLabRunContext')}
+        period={formatPeriodHeading(selectedMetadata.period, locale)}
+        periodLabel={t('payrollLabPeriod')}
+        rulePackage={`${selectedMetadata.rulePackageId} · ${selectedMetadata.rulePackageVersion}`}
+        rulePackageLabel={t('payrollLabRulePackageContext')}
+        scenario={`${caseKey} · ${t(selectedMetadata.displayNameKey)}`}
+        scenarioLabel={t('payrollLabCase')}
+      />
+      <p className="text-sm text-muted-foreground">{t('payrollLabBenchFixture')}: {selectedMetadata.fixtureCode}</p>
+      {caseKey.startsWith('CAO-BENCH02-R') ? <p className="rounded-[var(--radius-control)] border border-warning/40 bg-warning/10 p-3 text-sm text-foreground" role="note">{t('payrollLabBenchRetailScopeNotice')}</p> : null}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {canRun ? <form action={runCaoBench02PayrollAction}>
+          <input name="caseKey" type="hidden" value={caseKey} />
+          <Button type="submit"><Play aria-hidden="true" />{t('payrollLabStartTrialRun')}</Button>
+        </form> : <p className="text-xs text-muted-foreground">{t('payrollLabRunRequiresWrite')}</p>}
+      </div>
+    </Surface> : null}
 
       {!latest ? <EmptyState description={t('payrollLabBenchNoRun')} icon={<Download />} title={t('payrollLabBenchNoRunTitle')} /> : null}
       {latest && runOk ? <>
+        {selectedMetadata ? <PayrollLabRunContext
+          administration={administrationName}
+          administrationLabel={t('payrollLabActiveAdministration')}
+          contextLabel={t('payrollLabRunContext')}
+          period={formatPeriodHeading(latest.payrollPeriod, locale)}
+          periodLabel={t('payrollLabPeriod')}
+          rulePackage={`${selectedMetadata.rulePackageId} · ${selectedMetadata.rulePackageVersion}`}
+          rulePackageLabel={t('payrollLabRulePackageContext')}
+          scenario={`${caseKey} · ${t(selectedMetadata.displayNameKey)}`}
+          scenarioLabel={t('payrollLabCase')}
+        /> : null}
         <PayrollGrossOnlyConceptSlip data={makeSlipData(caseKey as CaoBench02CalculationCaseKey, latest, locale, administrationName, t)} t={t} />
+        <PayrollLabControls controls={latest.controls} t={t} />
         <Surface className="p-4 sm:p-6">
           <SectionHeader title={t('payrollLabBenchCalculationResults')} description={t('payrollLabBenchExactValuesNote')} />
           <dl className="mt-4 divide-y divide-border-subtle">
@@ -327,17 +356,23 @@ export function CaoBench02CalculationExperience({
             </a>
           </div>
         </Surface>
-      </> : latest ? <Surface className="space-y-3 border-warning/50 p-4 text-sm" role="status">
-        <p>{t('payrollLabBenchRunNotSuccessful')}</p>
-        <dl className="grid gap-2 sm:grid-cols-2">
-          <div><dt className="text-xs text-muted-foreground">{t('payrollLabBenchFailedRunId')}</dt><dd className="break-all font-mono text-xs">{latest.runId}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">{t('payrollLabBenchFailedRunCode')}</dt><dd className="font-mono text-xs">{latest.errorCode ?? latest.outcome ?? '—'}</dd></div>
-        </dl>
-        {latest.trace ? <details>
-          <summary className="cursor-pointer font-medium underline underline-offset-2">{t('payrollLabBenchFailedRunTrace')}</summary>
-          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle p-3 font-mono text-xs">{JSON.stringify(latest.trace, null, 2)}</pre>
-        </details> : null}
-      </Surface> : null}
+      </> : latest ? <div className="space-y-4">
+        <Surface className="space-y-3 border-warning/50 p-4 text-sm" role="status">
+          <p>{t('payrollLabBenchRunNotSuccessful')}</p>
+          <details>
+            <summary className="cursor-pointer font-medium underline underline-offset-2">{t('payrollLabTechnicalDetails')}</summary>
+            <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div><dt className="text-xs text-muted-foreground">{t('payrollLabBenchFailedRunId')}</dt><dd className="break-all font-mono text-xs">{latest.runId}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">{t('payrollLabBenchFailedRunCode')}</dt><dd className="font-mono text-xs">{latest.errorCode ?? latest.outcome ?? '—'}</dd></div>
+            </dl>
+            {latest.trace ? <details className="mt-3">
+              <summary className="cursor-pointer font-medium underline underline-offset-2">{t('payrollLabBenchFailedRunTrace')}</summary>
+              <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle p-3 font-mono text-xs">{JSON.stringify(latest.trace, null, 2)}</pre>
+            </details> : null}
+          </details>
+        </Surface>
+        {latest.controls.length ? <PayrollLabControls controls={latest.controls} t={t} /> : null}
+      </div> : null}
     </>}
   </div>
 }
