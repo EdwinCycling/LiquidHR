@@ -282,13 +282,13 @@ export function Sidebar({
           ) : <Link aria-label={labels.appName} className="inline-flex rounded-[var(--radius-control)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2" href="/dashboard/start" prefetch={false}>
             <LiquidHRLogo decorative size="sm" variant="mark" />
           </Link>}
-          <div className={`relative flex shrink-0 items-center gap-0.5 ${collapsed ? 'flex-col gap-1' : ''}`}>
+          <div className={`relative flex shrink-0 items-center gap-2 ${collapsed ? 'flex-col gap-2' : 'flex-row'} [&>button]:!size-9 [&>button]:!rounded-md [&>form>button]:!size-9 [&>form>button]:!rounded-md`}>
             <ProductUpdateDrawerTrigger collapsed={collapsed} labels={productUpdateLabels} locale={locale} onClose={() => setMobileOpen(false)} unreadCount={currentProductUpdateUnreadCount} updates={productUpdates} />
             {(testRoleSwitch.enabled || testRoleSwitch.returnToAdmin) && testRoleSwitch.currentEmail ? <TestRoleSwitcher collapsed={collapsed} currentEmail={testRoleSwitch.currentEmail} enabled={testRoleSwitch.enabled} labels={testRoleSwitch.labels} options={testRoleSwitch.options} returnToAdmin={testRoleSwitch.returnToAdmin} /> : null}
             <button aria-label={labels.closeMenu} className="grid size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden" onClick={() => setMobileOpen(false)} type="button">
               <X aria-hidden="true" size={19} />
             </button>
-            <button aria-label={collapsed ? labels.expand : labels.collapse} className="hidden size-11 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:grid" onClick={() => { setAccountMenuOpen(false); setCollapsed((value) => !value) }} type="button">
+            <button aria-label={collapsed ? labels.expand : labels.collapse} className="hidden size-9 place-items-center rounded-md text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:grid" onClick={() => { setAccountMenuOpen(false); setCollapsed((value) => !value) }} type="button">
               {collapsed ? <PanelLeftOpen aria-hidden="true" size={19} /> : <PanelLeftClose aria-hidden="true" size={19} />}
             </button>
           </div>
