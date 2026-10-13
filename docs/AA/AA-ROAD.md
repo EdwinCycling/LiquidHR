@@ -48,7 +48,7 @@ De Payroll-foundation is niet langer slechts een verkenning. Reeds op de gezamen
 
 - Bounded context in dezelfde HR-suite en monorepo, met pure componentgraph-engine (`packages/payroll-engine`) en eigen Payroll Supabase-database; geen tweede gebruikersapp of browser→Payroll-DB.
 - Immutable source snapshots, inputsets, calculation runs, controls, trace, componentversies en FINALIZED-documenten.
-- **PAYESS-01** medewerkerdashboard, maandhistorie en gecombineerd geïmporteerd/gegeneerd loonstrokendossier: gebouwd/gepusht, geauthenticeerde security-acceptatie en TEST-release nog OPEN.
+- **PAYESS-01** medewerkerdashboard, maandhistorie en gecombineerd geïmporteerd/gegenereerd loonstrokendossier: gebouwd/gepusht, geauthenticeerde security-acceptatie en TEST-release nog OPEN.
 - **PAYCALC-REAL-01** PayrollCycle/werklijst: uitsluitend lokale foundation; generieke Core-backed bruto/netto is geblokkeerd op ontbrekend geaccepteerd fiscaal broncontract.
 - Voorgenomen richting: daadwerkelijke generieke berekening → meerdere conceptrevisies/uitzonderingen per periode → review/finalisatie → eventgedreven continuous payroll, nooit automatische betaling/aangifte.
 
