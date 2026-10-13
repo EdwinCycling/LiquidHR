@@ -28,6 +28,7 @@ describe('CAO-BENCH02 Retail calculation scope notice', () => {
 
     expect(markup).toContain('Alleen de volwassen Mode-tabelrijen C/1 (R2) en I/15 (R1) zijn geïmplementeerd.')
     expect(markup).toContain('geen vakantietoeslag van 8%')
+    expect(markup).not.toContain('Synthetische TEST')
   })
 
   it('shows the matching scope notice in English', () => {
