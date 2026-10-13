@@ -1,7 +1,13 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-12 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-13 (historische acceptance-evidence blijft ongewijzigd)
+
+## PAYESS-01 — controlled feature candidate (2026-10-13)
+
+- Code commit `e0fc0e97f843d744097687b5db9ff26dd63b8bd5` is on `work/PAYESS-01-20261013`, based on the verified `main` SHA `73cb370539770711544637962c4e897ea4cd6265` when work began. `origin/main` later advanced to `f7db482b19b81d9c5aa5517c66394faa5f628e1b` with PAYLAB-UX-01; that change was kept out of this feature branch as requested.
+- AA-LEAN-02 impact: **CONTROLLED**. The local targeted suite, full HR suite, type-check, lint, i18n check and production build passed. Anonymous `/my-salary` browser requests redirected to login at desktop and mobile sizes.
+- Authenticated TEST browser/data/PDF acceptance remains **OPEN**. No Test Auth sign-in, application database write, migration, salary run or deployment was performed. This is a pre-release candidate, not a TEST release. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
 

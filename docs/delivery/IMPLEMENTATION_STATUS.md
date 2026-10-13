@@ -1,5 +1,11 @@
 # Implementatiestatus Liquid HR
 
+## PAYESS-01 — controlled feature candidate — 2026-10-13
+
+**Status: LOCAL IMPLEMENTATION GREEN / AUTHENTICATED TEST ACCEPTANCE OPEN.** Code commit `e0fc0e97f843d744097687b5db9ff26dd63b8bd5` is on `work/PAYESS-01-20261013`, created from the then-current `main` SHA `73cb370539770711544637962c4e897ea4cd6265`. The branch is not merged or deployed. `origin/main` has since advanced to `f7db482b19b81d9c5aa5517c66394faa5f628e1b`; PAYLAB-UX-01 was deliberately not imported.
+
+The employee dashboard, multi-period self service, read-only Payroll PDF access and unified imported/Payroll payslip list are implemented. Focused authorization and history tests, the full HR suite (630 files; 3,027 tests passed, 8 skipped), type-check, scoped lint, i18n parity and production build passed. Local anonymous browser checks redirected `/my-salary` to login at 1440×900 and 390×844. Authenticated self-only TEST browser/data/PDF acceptance remains open; no application or Payroll writes were performed. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
+
 ## Current release — APIAI-09 — 2026-10-12
 
 **Status: TEST RELEASED — LIMITED.** PR #18 code/test-SHA `27d534fd06fee7868b3bf0534bc3fdb9a3736cd1` (PR head `c5906d7469ef47fd5b9edf36c412772e9ac98a30`) is merged as main-SHA `a5d1b3ff61e8c1d1af05a0c89b08a4fe73472495`. App version remains `1.20261011.2`; the missing bump required by AA-REL §3 is recorded OPEN in AA-OPEN.

@@ -4,6 +4,7 @@ This log contains only known historical outcomes. Detailed screenshots, traces a
 
 | Run | Result | Proven scope | Open boundary |
 |---|---|---|---|
+| PAYESS-01-20261013 | PARTIAL / CONTROLLED | Local feature gates, self/scope/lifecycle negative tests, and anonymous desktop/mobile route redirect | Authenticated TEST employee history and PDF flow; remote data readback and final release acceptance |
 | A01 | GREEN | Full DEV persona acceptance for Focus, Absence and Leave | Regression maintenance |
 | GJ01 | PARTIAL / EXTERNAL_BLOCKER | HR journey, preview, restrictions and responsive checks | Authenticated future Employee leg; DEV Auth mail delivery returned HTTP 502 |
 | GJ02 | GREEN | Canonical batch → snapshot → dossier → signing → SIGNED lifecycle | DOC02 rendering follow-up |
