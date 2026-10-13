@@ -127,10 +127,13 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const currentEmail = typeof email === 'string' ? email.trim().toLowerCase() : null
   const testHarnessAccountEnabled = isTestRoleSwitchEnabled() && isTestRoleSwitchAccount(currentEmail)
   const testRoleSwitchOptions: TestRoleSwitchOption[] = [
-    { key: TEST_ROLE_SWITCH_TARGETS[0].key, email: TEST_ROLE_SWITCH_TARGETS[0].email, label: navigation('testRoleSwitchEdwin') },
-    { key: TEST_ROLE_SWITCH_TARGETS[1].key, email: TEST_ROLE_SWITCH_TARGETS[1].email, label: navigation('testRoleSwitchHrAdmin') },
-    { key: TEST_ROLE_SWITCH_TARGETS[2].key, email: TEST_ROLE_SWITCH_TARGETS[2].email, label: navigation('testRoleSwitchManager') },
-    { key: TEST_ROLE_SWITCH_TARGETS[3].key, email: TEST_ROLE_SWITCH_TARGETS[3].email, label: navigation('testRoleSwitchEmployee') },
+    { key: 'edwin', email: TEST_ROLE_SWITCH_TARGETS[0].email, label: navigation('testRoleSwitchEdwin') },
+    { key: 'hr-admin', email: TEST_ROLE_SWITCH_TARGETS[1].email, label: navigation('testRoleSwitchHrAdmin') },
+    { key: 'manager', email: TEST_ROLE_SWITCH_TARGETS[2].email, label: navigation('testRoleSwitchManager') },
+    { key: 'employee', email: TEST_ROLE_SWITCH_TARGETS[3].email, label: navigation('testRoleSwitchEmployee') },
+    { key: 'payroll-lisa', email: TEST_ROLE_SWITCH_TARGETS[4].email, label: navigation('testRoleSwitchPayrollLisa') },
+    { key: 'payroll-jaap', email: TEST_ROLE_SWITCH_TARGETS[5].email, label: navigation('testRoleSwitchPayrollJaap') },
+    { key: 'payroll-frits', email: TEST_ROLE_SWITCH_TARGETS[6].email, label: navigation('testRoleSwitchPayrollFrits') },
   ]
   const updateSurfaceLabels = {
     title: productUpdateMessages('title'),

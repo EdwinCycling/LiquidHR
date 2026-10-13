@@ -5,6 +5,7 @@ param(
     [ValidateRange(0, 65535)]
     [int]$Port = 0,
     [switch]$PayrollAcceptance,
+    [switch]$PayrollPersonaAcceptance,
     [switch]$Build,
     [switch]$PreflightOnly
 )
@@ -18,6 +19,12 @@ if ($Build -and $Mode -ne 'Production') {
 if ($Build -and $PreflightOnly) {
     throw '-Build en -PreflightOnly mogen niet tegelijk worden gebruikt.'
 }
+if ($PayrollPersonaAcceptance -and -not $PayrollAcceptance) {
+    throw '-PayrollPersonaAcceptance vereist -PayrollAcceptance.'
+}
+if ($PayrollPersonaAcceptance -and ($Mode -ne 'Development' -or $Build)) {
+    throw 'Payroll-personacredentials mogen alleen voor een lokale Development-test worden geladen; Production-mode en Build blijven gesloten.'
+}
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $appRoot = Join-Path $repoRoot 'apps/hr-suite'
 $centralConfigRoot = [Environment]::GetEnvironmentVariable('LOCALAPPDATA')
@@ -28,6 +35,82 @@ if ([string]::IsNullOrWhiteSpace($centralConfigRoot)) {
 $centralConfig = Join-Path $centralConfigRoot 'LiquidHR/TestRuntime/.env.local'
 if (-not (Test-Path -LiteralPath $centralConfig -PathType Leaf)) {
     throw 'De centrale lokale TEST-configuratie ontbreekt. Voer .\scripts\provision-test-runtime.ps1 uit; er is geen alternatieve configuratie gemaakt of gebruikt.'
+}
+
+$personaConfig = Join-Path $centralConfigRoot 'LiquidHR/TestRuntime/payroll-test-personas.env'
+if ($PayrollPersonaAcceptance) {
+    $personaVariableNames = @(
+        'PAYROLL_TEST_LISA_EMAIL', 'PAYROLL_TEST_LISA_PASSWORD',
+        'PAYROLL_TEST_JAAP_EMAIL', 'PAYROLL_TEST_JAAP_PASSWORD',
+        'PAYROLL_TEST_FRITS_EMAIL', 'PAYROLL_TEST_FRITS_PASSWORD'
+    )
+    if (-not (Test-Path -LiteralPath $personaConfig -PathType Leaf)) {
+        throw "De lokale persona-credentialbron ontbreekt. Ontbrekende variabelen: $($personaVariableNames -join ', '). Er zijn geen waarden getoond of aangemaakt."
+    }
+
+    $personaAcl = Get-Acl -LiteralPath $personaConfig
+    $currentUserSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    $ownerSid = $null
+    try {
+        $ownerSid = ([Security.Principal.NTAccount]$personaAcl.Owner).Translate([Security.Principal.SecurityIdentifier]).Value
+    } catch {
+        throw 'De eigenaar van de persona-credentialbron kon niet als de huidige Windows-gebruiker worden geverifieerd.'
+    }
+    $otherAllowRules = @($personaAcl.Access | Where-Object {
+        if ($_.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow -or
+            $_.FileSystemRights.ToString() -notmatch 'Read|Write|Modify|FullControl') { return $false }
+        try {
+            $ruleSid = $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+            return $ruleSid -ne $currentUserSid
+        } catch {
+            return $true
+        }
+    })
+    $currentUserHasFullControl = @($personaAcl.Access | Where-Object {
+        if ($_.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow -or
+            $_.FileSystemRights.ToString() -notmatch 'FullControl') { return $false }
+        try {
+            return $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -eq $currentUserSid
+        } catch {
+            return $false
+        }
+    }).Count -gt 0
+    if ($ownerSid -ne $currentUserSid -or -not $personaAcl.AreAccessRulesProtected -or
+        $otherAllowRules.Count -gt 0 -or -not $currentUserHasFullControl) {
+        throw 'De persona-credentialbron moet een beschermde ACL met alleen de huidige Windows-gebruiker als lezer/eigenaar hebben.'
+    }
+
+    $personaCredentialProbe = @'
+const required = [
+  'PAYROLL_TEST_LISA_EMAIL', 'PAYROLL_TEST_LISA_PASSWORD',
+  'PAYROLL_TEST_JAAP_EMAIL', 'PAYROLL_TEST_JAAP_PASSWORD',
+  'PAYROLL_TEST_FRITS_EMAIL', 'PAYROLL_TEST_FRITS_PASSWORD',
+];
+const expectedEmails = {
+  PAYROLL_TEST_LISA_EMAIL: 'lisa.test@liquidhr.test',
+  PAYROLL_TEST_JAAP_EMAIL: 'jaap.test@liquidhr.test',
+  PAYROLL_TEST_FRITS_EMAIL: 'frits.test@liquidhr.test',
+};
+const missing = required.filter((name) => !(process.env[name] ?? '').trim());
+const invalid = required.filter((name) => name.endsWith('_PASSWORD') && (process.env[name] ?? '').length < 24);
+const invalidEmails = Object.entries(expectedEmails)
+  .filter(([name, email]) => (process.env[name] ?? '').trim().toLowerCase() !== email)
+  .map(([name]) => name);
+const passwords = required.filter((name) => name.endsWith('_PASSWORD')).map((name) => process.env[name]);
+if (missing.length || invalid.length || invalidEmails.length || new Set(passwords).size !== passwords.length) {
+  const reasons = [...missing, ...invalid, ...invalidEmails].filter((name, index, names) => names.indexOf(name) === index);
+  if (new Set(passwords).size !== passwords.length) reasons.push('PAYROLL_TEST_*_PASSWORD (waarden moeten uniek zijn)');
+  console.error(`Ongeldige persona-credentialconfiguratie; controleer alleen: ${reasons.join(', ')}`);
+  process.exitCode = 2;
+} else {
+  console.log('Persona-credentialvelden aanwezig en geldig; waarden verborgen.');
+}
+'@
+    $personaProbeNode = Get-Command node.exe -ErrorAction Stop
+    & $personaProbeNode.Source "--env-file=$personaConfig" -e $personaCredentialProbe
+    if ($LASTEXITCODE -ne 0) {
+        throw 'De lokale persona-credentialconfiguratie is ongeldig; waarden zijn niet getoond.'
+    }
 }
 
 # Next.js can load several .env* files after Node has loaded the central config.
@@ -327,10 +410,11 @@ $nextArguments += @('--hostname', '127.0.0.1', '--port', [string]$resolvedPort)
 # Next.js kopieert process.execArgv naar zijn Development-child.
 # --env-file zou daar onterecht NODE_OPTIONS worden, waar Node de vlag weigert.
 $runtimeBridge = @'
-const [configFile, nextEntry, ...nextArgs] = process.argv.slice(1);
+const [configFile, personaConfigFile, nextEntry, ...nextArgs] = process.argv.slice(1);
 if (!configFile || !nextEntry) throw new Error('TEST-runtimeconfiguratie of Next.js CLI ontbreekt.');
 if (typeof process.loadEnvFile === 'function') {
     process.loadEnvFile(configFile);
+    if (personaConfigFile) process.loadEnvFile(personaConfigFile);
 } else if (!process.execArgv.some((argument) => argument.startsWith('--env-file='))) {
     throw new Error('Deze Node.js-versie kan de TEST-runtimeconfiguratie niet laden.');
 }
@@ -338,10 +422,14 @@ process.execArgv = [];
 process.argv = [process.argv[0], nextEntry, ...nextArgs];
 require(nextEntry);
 '@
-$runtimeArguments = @($centralConfig, $nextCli) + $nextArguments
+$personaConfigArgument = if ($PayrollPersonaAcceptance) { $personaConfig } else { '' }
+$runtimeArguments = @($centralConfig, $personaConfigArgument, $nextCli) + $nextArguments
 $hasLoadEnvFileApi = $nodeVersion.Major -ge 22 -or
     ($nodeVersion.Major -eq 21 -and $nodeVersion.Minor -ge 7) -or
     ($nodeVersion.Major -eq 20 -and $nodeVersion.Minor -ge 12)
+if ($PayrollPersonaAcceptance -and -not $hasLoadEnvFileApi) {
+    throw 'Payroll-personacredentials vereisen Node.js met process.loadEnvFile (Node 20.12+). Er zijn geen waarden geladen.'
+}
 
 Write-Host "Start $Mode op http://127.0.0.1:$resolvedPort met de centrale TEST-configuratie. Configwaarden worden niet getoond of gekopieerd."
 Push-Location $appRoot
