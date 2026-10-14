@@ -2,7 +2,7 @@
 
 ## Integratievooruitblik — 2026-10-14
 
-**PAYFULL-01 is GEPLAND / NIET GESTART.** Het eerstvolgende grotere Payroll-productdoel is een complete **afgebakende** NL-2026-verwerkingsketen voor meerdere synthetische medewerkers: echte Core-bron → generieke berekening → concepts/revisies → control/review/finalize → Standard PDF → eigen ESS. Zie [PAYFULL-01-plan en lokale meekijkafspraak](PAYFULL-01-EXECUTION-PLAN-20261014.md). Dit is geen acceptatie of release.
+**PAYFULL-01 is GESTART / IN PROGRESS (14 oktober 2026).** Lokale HR Suite / Payroll Lab is in de browser zichtbaar op `127.0.0.1:3010` (screenshotbewijs gebruiker); integratie, complete salarisrun en remote TEST-acceptatie blijven OPEN. Het eerstvolgende grotere Payroll-productdoel is een complete **afgebakende** NL-2026-verwerkingsketen voor meerdere synthetische medewerkers: echte Core-bron → generieke berekening → concepts/revisies → control/review/finalize → Standard PDF → eigen ESS. Zie [PAYFULL-01-plan en lokale meekijkafspraak](PAYFULL-01-EXECUTION-PLAN-20261014.md). Dit is geen acceptatie of release.
 
 De generieke Core-backed berekenservice staat op de afzonderlijke PAYCALC-REAL-01-featurebranch (laatst vastgesteld `432acdf7`), met beperkte witte-maandtabelberekening en geteste concept-/idempotentiecontracten. De twee gescheiden Core/Lab-migraties zijn volgens de laatste read-only TEST-controle nog **niet toegepast**; er is nog geen persistente generieke Core-TEST-run bewezen. Bestaande Lisa/Jaap/Frits-runhistorie blijft ongemoeid. PAYTEST-AUTH-01B/PR #31 heeft nog open persona-/ESS-acceptatiepunten. Nieuwe voortgang altijd tegen actuele branch- en database-evidence verifiëren.
 
