@@ -104,10 +104,30 @@ async function contextMatches(page, expectedAdministrationId) {
 
 async function chooseContext(page, expectedAdministrationId, usePayrollScope) {
   if (new URL(page.url()).pathname === '/context/select') {
-    const tenantChosen = await chooseDropdownOption(page, '#context-tenant', usePayrollScope ? scope.tenant.name : null)
-    if (!tenantChosen.ok) return { ok: false, cause: `tenant-${tenantChosen.cause}` }
-    const groupChosen = await chooseDropdownOption(page, '#context-hr-group', usePayrollScope ? scope.hrGroup.name : null)
-    if (!groupChosen.ok) return { ok: false, cause: `hr-group-${groupChosen.cause}` }
+    const combinedContext = page.locator('#context-selection')
+    if (await combinedContext.count()) {
+      const desktopOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
+      await page.setViewportSize({ width: 390, height: 852 })
+      const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
+      if (desktopOverflow || mobileOverflow) return { ok: false, cause: 'context-viewport-overflow' }
+
+      const options = combinedContext.locator('option')
+      const target = usePayrollScope
+        ? options.filter({ hasText: `${scope.tenant.name} · ${scope.hrGroup.name}` }).first()
+        : options.nth(1)
+      const value = await target.getAttribute('value').catch(() => null)
+      if (!value) return { ok: false, cause: 'context-option-missing' }
+      try {
+        await combinedContext.selectOption(value)
+      } catch {
+        return { ok: false, cause: 'context-selection-failed' }
+      }
+    } else {
+      const tenantChosen = await chooseDropdownOption(page, '#context-tenant', usePayrollScope ? scope.tenant.name : null)
+      if (!tenantChosen.ok) return { ok: false, cause: `tenant-${tenantChosen.cause}` }
+      const groupChosen = await chooseDropdownOption(page, '#context-hr-group', usePayrollScope ? scope.hrGroup.name : null)
+      if (!groupChosen.ok) return { ok: false, cause: `hr-group-${groupChosen.cause}` }
+    }
     try {
       await Promise.all([
         page.waitForURL((url) => url.pathname !== '/context/select', { timeout: 15000 }),
@@ -251,8 +271,7 @@ async function checkEss(page, persona) {
   const ownDocuments = await page.context().request.get(new URL(`/api/employees/${persona.employeeId}/documents`, origin).toString()).catch(() => null)
   if (!ownDocuments || ownDocuments.status() !== 200) addReason(persona.key, 'De eigen dossierroute /api/employees/{id}/documents is niet beschikbaar.')
 
-  const otherPersona = personas.find((candidate) => candidate.key !== persona.key)
-  if (otherPersona) {
+  for (const otherPersona of personas.filter((candidate) => candidate.key !== persona.key)) {
     await expectCrossEmployeeDenied(page, persona.key, 'salaris-API', `/api/employees/${otherPersona.employeeId}/salary?employmentId=${otherPersona.employmentId}`)
     await expectCrossEmployeeDenied(page, persona.key, 'dossierroute', `/api/employees/${otherPersona.employeeId}/documents`)
   }
@@ -263,6 +282,10 @@ async function checkEss(page, persona) {
 }
 
 async function directLogin(persona) {
+  if (persona.accountState !== 'EXISTING_LINK_CONFIRMED') {
+    addReason(persona.key, 'Directe aanmelding is overgeslagen omdat een bestaande Auth-koppeling niet is bevestigd.')
+    return
+  }
   if (!credentials) {
     addReason(persona.key, 'De ACL-beveiligde credentialconfiguratie ontbreekt of is ongeldig; directe persona-login is niet bewezen.')
     return

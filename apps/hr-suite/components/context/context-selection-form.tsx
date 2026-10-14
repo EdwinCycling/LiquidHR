@@ -2,23 +2,19 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Building2, ShieldCheck, UsersRound } from 'lucide-react'
+import { Building2, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { Surface } from '@/components/ui/surface'
 
 interface ContextSelectionFormProps {
   tenants: Array<{
     id: string
     name: string
-    slug: string
     hrGroups: Array<{ id: string; name: string; code: string }>
   }>
   labels: {
-    tenantLabel: string
-    tenantPlaceholder: string
-    hrGroupLabel: string
-    hrGroupPlaceholder: string
+    contextLabel: string
+    contextPlaceholder: string
     formTitle: string
     formDescription: string
     contextNote: string
@@ -26,26 +22,29 @@ interface ContextSelectionFormProps {
     invalid: string
     failed: string
   }
+  initialError?: string
 }
 
-export function ContextSelectionForm({ tenants, labels }: ContextSelectionFormProps) {
-  const router = useRouter()
-  const [tenantId, setTenantId] = useState(tenants.length === 1 ? tenants[0].id : '')
-  const [hrGroupId, setHrGroupId] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
-  const groups = useMemo(() => tenants.find((tenant) => tenant.id === tenantId)?.hrGroups ?? [], [tenantId, tenants])
+function contextKey(tenantId: string, hrGroupId: string): string {
+  return `${tenantId}|${hrGroupId}`
+}
 
-  function handleTenantChange(value: string): void {
-    setTenantId(value)
-    const tenant = tenants.find((option) => option.id === value)
-    setHrGroupId(tenant?.hrGroups.length === 1 ? tenant.hrGroups[0].id : '')
-    setError(null)
-  }
+export function ContextSelectionForm({ tenants, labels, initialError }: ContextSelectionFormProps) {
+  const router = useRouter()
+  const contexts = useMemo(() => tenants.flatMap((tenant) => tenant.hrGroups.map((group) => ({
+    key: contextKey(tenant.id, group.id),
+    label: `${tenant.name} · ${group.name}`,
+    tenantId: tenant.id,
+    hrGroupId: group.id,
+  }))), [tenants])
+  const [selection, setSelection] = useState(contexts.length === 1 ? contexts[0].key : '')
+  const [error, setError] = useState<string | null>(initialError ?? null)
+  const [pending, setPending] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
-    if (!tenantId || !hrGroupId) {
+    const selectedContext = contexts.find((context) => context.key === selection)
+    if (!selectedContext) {
       setError(labels.invalid)
       return
     }
@@ -55,7 +54,7 @@ export function ContextSelectionForm({ tenants, labels }: ContextSelectionFormPr
       const response = await fetch('/api/context/select', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ tenantId, hrGroupId }),
+        body: JSON.stringify({ tenantId: selectedContext.tenantId, hrGroupId: selectedContext.hrGroupId }),
       })
       if (!response.ok) {
         setError(response.status === 400 || response.status === 403 ? labels.invalid : labels.failed)
@@ -70,7 +69,7 @@ export function ContextSelectionForm({ tenants, labels }: ContextSelectionFormPr
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form action="/api/context/select" method="post" onSubmit={handleSubmit}>
       <Surface className="space-y-6 p-5 sm:p-6">
         <div className="flex items-start gap-4 border-b border-border-subtle pb-5">
           <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle text-accent-foreground">
@@ -82,27 +81,24 @@ export function ContextSelectionForm({ tenants, labels }: ContextSelectionFormPr
           </div>
         </div>
 
-        <div className="space-y-5">
-          <label className="block text-sm font-medium text-foreground" htmlFor="context-tenant">
+        <div>
+          <label className="block text-sm font-medium text-foreground" htmlFor="context-selection">
             <span className="inline-flex items-center gap-2">
               <Building2 aria-hidden="true" className="size-4 text-muted-foreground" />
-              {labels.tenantLabel}
+              {labels.contextLabel}
             </span>
-            <DropdownSelect className="mt-2" id="context-tenant" onChange={(event) => handleTenantChange(event.target.value)} searchable value={tenantId}>
-              <option value="">{labels.tenantPlaceholder}</option>
-              {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.slug}</option>)}
-            </DropdownSelect>
-          </label>
-
-          <label className="block text-sm font-medium text-foreground" htmlFor="context-hr-group">
-            <span className="inline-flex items-center gap-2">
-              <UsersRound aria-hidden="true" className="size-4 text-muted-foreground" />
-              {labels.hrGroupLabel}
-            </span>
-            <DropdownSelect className="mt-2" id="context-hr-group" onChange={(event) => { setHrGroupId(event.target.value); setError(null) }} searchable value={hrGroupId}>
-              <option value="">{labels.hrGroupPlaceholder}</option>
-              {groups.map((group) => <option key={group.id} value={group.id}>{group.name} · {group.code}</option>)}
-            </DropdownSelect>
+            <select
+              aria-invalid={error ? 'true' : undefined}
+              className="mt-2 min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus-visible:border-focus focus-visible:outline-2 focus-visible:outline-focus/50"
+              id="context-selection"
+              name="selection"
+              onChange={(event) => { setSelection(event.target.value); setError(null) }}
+              required
+              value={selection}
+            >
+              <option value="">{labels.contextPlaceholder}</option>
+              {contexts.map((context) => <option key={context.key} value={context.key}>{context.label}</option>)}
+            </select>
           </label>
         </div>
 
