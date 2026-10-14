@@ -73,6 +73,18 @@ Doel:
 - capabilitymodel verfijnen;
 - commerciële tierwaarden pas vastleggen na expliciet productbesluit.
 
+## PARALLELLE PAYROLLTRACK — PAYFULL-01 en pensioen/UPA-roadmap (aanvulling 2026-10-14)
+
+**PAYFULL-01 is IN PROGRESS**, met de lokale Payroll UI aantoonbaar op poort 3010 maar zonder complete persistente fiscale end-to-end-acceptatie. Uitgangspunt: grotere geïntegreerde stappen, geen automatische database-/releasetoestemming. Leidende actuele scope: [PAYFULL-01-uitvoeringsplan](../payroll/PAYFULL-01-EXECUTION-PLAN-20261014.md).
+
+**Nieuwe bron/route: PAYPENS / PAYUPA 2027.** De aangeleverde PGB/SIVI-UPA-referentie bevat 136 regelingvarianten / 33 kolommen, waarvan 79 conceptregels voor 2027. Het volledige originele XLSX, de machineleesbare brondata-snapshot en het onderzoeksrapport zijn privé opgeslagen onder `/LiquidHR/Payroll/Pensioen-UPA-2027/`, niet in deze openbare Git-repo. Zie de [pensioen- en UPA-roadmap](../payroll/PAYPENS-UPA-2027-ROADMAP-20261014.md) voor bronhash, mapping, caveats en testcases.
+
+- **In PAYFULL-01:** gebruik de bron als ontwerp-/testinput voor premiegrondslagen, werknemer-/werkgeverspensioenpremies en fiscale verwerking binnen één **bewezen ondersteunde** regeling, zonder concepttarieven te activeren.
+- **P1 daarna:** `PAYPENS-CATALOG-01` (quarantaine/staging, versie- en contractvalidatie), `PAYPENS-CALC-01` (franchise, cap, deeltijd, primo/ultimo, premiestaffels) en `PAYPENS-WTP-01` (versieovergang 2026→2027).
+- **P2:** `PAYUPA-01` (SIVI-UPA-berichtvalidatie/correcties) en `PAYPENS-RECON-01` (berekend/aangegeven/gefactureerd afstemmen); daarna andere uitvoerders inclusief PFZW op afzonderlijke geverifieerde bronnen.
+
+De bovenstaande aanvulling is toekomstig plan, geen implementatiestatus of nieuwe Codex-run. Historische onderstaande Payroll-besluitregels zijn momentopnamen en worden pas op actualiteit gereconcilieerd bij integratie.
+
 ## PARALLELLE PAYROLLTRACK — na PAYLAB04
 
 PAYLAB00–04 zijn geïntegreerd en geaccepteerd; de bestaande source-/featureworktrees blijven behouden. CAO-BENCH02 is voorbereid maar niet geïmplementeerd en valt buiten de ONE VERSION-release. Voor een volgende Payroll-productwave wordt de dan actuele main-baseline eerst bewust gereconcilieerd, zonder blind te mergen.
