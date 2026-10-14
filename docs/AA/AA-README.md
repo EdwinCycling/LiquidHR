@@ -16,7 +16,7 @@ Status: **LEIDEND** · levende afspraken worden in deze bestaande documenten bij
 | [`AA-OPEN.md`](AA-OPEN.md) | Open beslissingen, bewijs-/fixturegaten, eigenaar en afsluitproef |
 | [`AA-ACCEPT.md`](AA-ACCEPT.md) | Index van accepted baselines; geen vervanging van gedateerde rapporten |
 | [`AA-REQ.md`](AA-REQ.md) | Fundamentele product-, data-, security- en architectuurinvarianten |
-| [`AA-PAYROLL.md`](AA-PAYROLL.md) | Payrollbounded context, precisie, wettelijke regels, provenance en gates |
+| [`AA-PAYROLL.md`](AA-PAYROLL.md) | Payrollbounded context, precisie, wettelijke regels, provenance en gates; pensioen/UPA-databronnen: [PAYPENS-UPA-2027-roadmap](../payroll/PAYPENS-UPA-2027-ROADMAP-20261014.md) |
 | [`AA-ROAD.md`](AA-ROAD.md) | Langetermijnproductrichting |
 | `docs/requirements/`, ADR/FDR en domeindocumenten | Alleen requirements en architectuur die de feitelijke wijziging raakt |
 
