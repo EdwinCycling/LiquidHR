@@ -44,18 +44,24 @@ De browseracceptatie gebruikt de exacte actieve worktree/HEAD, een normale Test 
 
 ## Pull request en Vercel Preview
 
-1. Push een kandidaatbranch en maak de bedoelde pull request. Het Vercel-project `liquidhr` hoort daarvoor een Preview-deployment met een immutable commit-URL te leveren.
+1. Open de Preview-gate alleen als het risico- of releasebesluit die vereist. `vercel.json` schakelt Git-deployments alleen voor `main` in (`*`: false), dus gewone pull requests maken geen Preview. Als een Preview nodig is, gebruik dan een immutable commit-URL.
 2. Preview gebruikt uitsluitend Preview-scoped omgevingsvariabelen naar afzonderlijke synthetische Preview-backends. Gebruik geen lokale TEST- of gezamenlijke TEST-waarden. Minimaal benodigde namen zijn `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, en voor Payroll `PAYROLL_SUPABASE_URL`, `PAYROLL_SUPABASE_SECRET_KEY`, `PAYROLL_LAB_ENABLED`.
 3. Voer op de exacte Preview-commit de normale browseracceptatie uit: publieke login, beveiligde route/authgedrag, relevante HR-scenario's, console/networkcontrole, styles, en mobiel 390 px. Payroll-Preview omvat daarnaast de voor de PR verplichte Payroll-routes en autorisatie-/scopecontroles. Test Auth mag niet publiek beschikbaar zijn.
-4. Leg deployment-ID/URL, Preview-omgeving, commit-SHA, READY-status en browserresultaat vast in de PR-/acceptatie-evidence. Voor toekomstige PR-releases is ontbrekende of mislukte Preview-acceptatie een blokkade. De huidige ONE VERSION-release gebruikt de reeds geslaagde browseracceptatie op de exacte geïntegreerde lokale productiebuild; ontbrekende nieuwe Preview-instellingen blokkeren deze release niet.
-5. Na onafhankelijke review en GREEN Preview-acceptatie wordt de PR gecontroleerd naar `main` gemerged. De Git-integratie bouwt vervolgens de exacte `main`-commit voor de bestaande gezamenlijke TEST-release. In dit project heet die Vercel-deploymentomgeving `Production`; dat label verandert de operationele TEST-grens niet.
+4. Als de Preview-gate vereist is: leg deployment-ID/URL, Preview-omgeving, commit-SHA, READY-status en browserresultaat vast in de PR-/acceptatie-evidence. Ontbrekende of mislukte Preview-acceptatie blokkeert alleen wanneer die gate van toepassing is. De huidige ONE VERSION-release gebruikt de reeds geslaagde browseracceptatie op de exacte geïntegreerde lokale productiebuild; ontbrekende Preview-instellingen blokkeren die release niet.
+5. Na onafhankelijke review en groene toepasselijke gates (Preview indien vereist) wordt de PR gecontroleerd naar `main` gemerged. De Git-integratie bouwt vervolgens de exacte `main`-commit voor de bestaande gezamenlijke TEST-release. In dit project heet die Vercel-deploymentomgeving `Production`; dat label verandert de operationele TEST-grens niet.
 6. Controleer dat de `liquidhr`-deployment READY is, dat Git-commit-SHA exact overeenkomt met `origin/main`, dat de bestaande TEST-alias naar die deployment wijst, en voer de beperkte hosted TEST-smoke uit. Bewaar Preview- en TEST-releasebewijs afzonderlijk.
 
 Promoveer niet handmatig een Preview-deployment met `vercel promote` voor deze route. Vercel bouwt bij die actie opnieuw met Production-omgevingsvariabelen; de gecontroleerde PR-merge naar `main` levert hier de releasecommit en herhaalbare Git-provenance. Zie [Vercel Git deployments](https://vercel.com/docs/git), [Vercel environments](https://vercel.com/docs/deployments/environments), [environment variables](https://vercel.com/docs/environment-variables) en [promotion behavior](https://vercel.com/docs/deployments/promote-preview-to-production).
 
+## Deploymentminima en Function Storage
+
+- De `ignoreCommand` slaat alleen een niet-lege, geverifieerde docs-only Markdown-diff over. Ontbrekende of ongeldige SHAs, een lege diff, Git-fout of andere bestanden laten Vercel bouwen.
+- Bij Chromium-, Playwright- of PDF-tracingwijzigingen: productiebuild plus `apps/hr-suite/scripts/check-function-trace-size.mjs`; leg dezelfde NFT-routepakketten vóór en na vast.
+- Waarschuw vanaf 6 GB van de Hobby-limiet van 10 GB. Bescherm de actieve canonieke TEST-deployment en beheer retentie expliciet; geen automatische deploymentverwijdering. Zie `docs/AA/AA-REL.md` §6.
+
 ## Eenmalige inrichting door Edwin voor Preview
 
-Preview-configuratie is nog geen voorwaarde voor de huidige gezamenlijke TEST-release. Richt dit eenmalig in voordat een volgende PR Preview-browseracceptatie vereist:
+Preview-configuratie is nog geen voorwaarde voor de huidige gezamenlijke TEST-release. Richt dit eenmalig in voordat een Preview expliciet als releasegate wordt vereist:
 
 1. Provision een aparte, geïsoleerde synthetische Core Preview-backend en een aparte Payroll Preview-backend; gebruik geen productie- of gezamenlijke TEST-database.
 2. Voeg in Vercel-project `liquidhr` de hierboven genoemde variabelen toe aan de **Preview**-omgeving, met waarden van uitsluitend deze geïsoleerde Preview-backends. Zet dezelfde Preview-configuratie niet op Production of Development en kopieer geen lokale configuratiebestanden.

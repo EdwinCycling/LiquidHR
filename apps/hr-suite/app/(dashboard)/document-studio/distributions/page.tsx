@@ -6,7 +6,7 @@ import { DistributionHistory } from '@/components/document-studio/distribution-h
 import { DistributionWorkbench } from '@/components/document-studio/distribution-workbench'
 import { Button } from '@/components/ui/button'
 import { AuthorizationError } from '@/lib/auth/permissions'
-import { listDistributionHistory, listDistributionOptions } from '@/lib/document-generation/batch-service'
+import { listDistributionHistory, listDistributionOptions } from '@/lib/document-generation/distribution-read-service'
 import { getTranslator } from '@/lib/i18n/server'
 
 export default async function DocumentDistributionPage() {

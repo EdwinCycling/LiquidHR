@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { listDistributionItems } from '@/lib/document-generation/batch-service'
+import { listDistributionItems } from '@/lib/document-generation/distribution-read-service'
 import { documentGenerationErrorResponse } from '@/lib/document-generation/api'
 
 export const runtime = 'nodejs'

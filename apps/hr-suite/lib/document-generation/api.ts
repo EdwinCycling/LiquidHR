@@ -1,8 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
-import { DocumentSigningError } from './signing-service'
-import { DocumentGenerationError } from './service'
+import { DocumentGenerationError, DocumentSigningError } from './errors'
 
 export function documentGenerationErrorResponse(error: unknown): NextResponse | null {
   const permission = permissionErrorResponse(error)

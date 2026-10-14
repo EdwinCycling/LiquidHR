@@ -10,8 +10,11 @@ import { type CanonicalBlock, type CanonicalRegion, validateDocumentBodyForActiv
 import { resolveGenerationSnapshot, assertActiveComponentVersions, type GenerationAsset, type GenerationContext, type ResolvedGenerationSnapshot } from './domain'
 import { parseGenerationDocument, type GenerationDocument } from './generation-document'
 import { GenerationResolutionError, resolveRequiredGenerationValues } from './resolver'
-import { DG1_RENDERER_VERSION, pdfHash, renderResolvedSnapshotToPdf } from './pdf'
+import { DocumentGenerationError } from './errors'
+import { DG1_RENDERER_VERSION, pdfHash } from './pdf-contract'
 import { renderResolvedSnapshotToHtml } from './html'
+
+export { DocumentGenerationError } from './errors'
 
 const inputSchema = z.object({
   templateVersionId: z.string().uuid(),
@@ -20,13 +23,6 @@ const inputSchema = z.object({
   freeInputs: z.record(z.string(), z.string()).default({}),
   temporalInputs: z.record(z.string(), z.string()).default({}),
 }).strict()
-
-export class DocumentGenerationError extends Error {
-  constructor(readonly code: string, readonly status: number, readonly details?: readonly string[]) {
-    super(code)
-    this.name = 'DocumentGenerationError'
-  }
-}
 
 type QueryClient = Awaited<ReturnType<typeof createClient>>
 
@@ -761,6 +757,7 @@ export async function finalizeGeneration(snapshotId: string, requestedIdempotenc
     const resolvedDocument = parseGenerationDocument(snapshot.resolved_document_json)
     const context = snapshotContext(snapshot, resolvedDocument)
     const resolvedAssets = await assetUrls(admin, request.tenantId, request.hrGroupId, context.assets)
+    const { renderResolvedSnapshotToPdf } = await import('./pdf')
     const pdf = await renderResolvedSnapshotToPdf(context, { assetUrls: resolvedAssets })
     const hash = pdfHash(pdf)
     await ensurePdfArtifact(admin, key, pdf, hash)

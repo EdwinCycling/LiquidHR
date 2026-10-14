@@ -116,6 +116,15 @@ Canoniek HR-project: `liquidhr`.
 
 De uitvoerbare lokale start- en Preview-procedure staat in `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
 
+### Function Storage, tracing en retentie
+
+- Vercel Hobby heeft 10 GB Deployment Storage; waarschuw vanaf 6 GB (60%). Controleer gebruik vóór en na een storage- of deploymentretentiewijziging.
+- Bij elke wijziging aan Chromium, Playwright of PDF-tracing: productiebuild voert `prepare-function-traces.mjs` en `check-function-trace-size.mjs` uit. Bewaar top 10, totale tracebytes en route-assets vóór/na. Houd de exacte renderer-allowlist in `function-trace-policy.mjs` en de verwachte route-index synchroon; alleen die routes mogen Chromium/Playwright bevatten. Controleer alle Chromium-`.br`-bestanden, Playwright `browsers.json`, Chromium-buildbestanden, gebruikte Work Sans-fonts en PAYRUN-logo's.
+- De checker waarschuwt boven 150 MiB en faalt boven 225 MiB aan ongecomprimeerde tracebytes per functie; dat houdt marge onder Vercels maximum van 250 MB ongecomprimeerd. Tracebytes zijn geen ZIP- of Dashboard-opslagmeting.
+- `vercel.json` laat Git-deployments alleen voor `main` toe. Maak een Preview alleen wanneer de toepasselijke risk-/releasegate die vereist. De docs-only `ignoreCommand` slaat alleen een niet-lege, SHA-geverifieerde set Markdown-documentatie over; ontbrekende SHAs, mislukte Git-vergelijking, lege diff of andere bestanden laten de build doorgaan. Een overgeslagen build kan nog steeds deploymentquota gebruiken.
+- Beheer retentie expliciet: Hobby bewaart momenteel de drie nieuwste Production-deployments plus de drie nieuwste deployments van elk type; Preview heeft geen eigen retentiebescherming. Zie [Vercel Hobby-retentie](https://vercel.com/changelog/hobby-projects-now-retain-fewer-deployments-to-free-up-storage).
+- Bescherm de actieve canonieke TEST-deployment waar `liquid-hr-hr-suite.vercel.app` naar verwijst. Verwijder nooit deployments automatisch; opruimen vereist een afzonderlijk mandaat en voorafgaande controle van SHA en aliases.
+
 ## 7. Hosted safety smoke
 
 Minimaal:

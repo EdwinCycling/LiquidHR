@@ -5,7 +5,10 @@ import { z } from 'zod'
 import { requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { createGenerationPreview, DocumentGenerationError, finalizeGeneration, listGenerationOptions } from './service'
+import { createGenerationPreview, finalizeGeneration, listGenerationOptions } from './service'
+import { DocumentGenerationError } from './errors'
+
+export { listDistributionHistory, listDistributionItems, listDistributionOptions } from './distribution-read-service'
 
 const postgresUuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
 
@@ -171,10 +174,6 @@ async function runBatch(batchId: string, parsed: z.infer<typeof batchInputSchema
   return status
 }
 
-export async function listDistributionOptions() {
-  return listGenerationOptions()
-}
-
 export async function createDocumentDistribution(value: unknown): Promise<{ readonly id: string; readonly status: string }> {
   const parsed = input(value)
   const request = await authz('document-distribution:write')
@@ -199,42 +198,4 @@ export async function createDocumentDistribution(value: unknown): Promise<{ read
   if (!batchId) throw new Error('DOCUMENT_DISTRIBUTION_RESPONSE_INVALID')
   const status = await runBatch(batchId, parsed, request)
   return { id: batchId, status }
-}
-
-export async function listDistributionHistory(): Promise<readonly Record<string, unknown>[]> {
-  const request = await authz('document-distribution:read')
-  const batchesResult = await table(request.client, 'document_generation_batches')
-    .select('id,template_id,template_version_id,requested_count,final_count,failed_count,status,created_at,completed_at')
-    .eq('tenant_id', request.tenantId)
-    .eq('hr_group_id', request.hrGroupId)
-    .order('created_at', { ascending: false })
-    .limit(100)
-  if (batchesResult.error || !Array.isArray(batchesResult.data)) throw new Error('DOCUMENT_DISTRIBUTION_READ_FAILED')
-  return batchesResult.data as readonly Record<string, unknown>[]
-}
-
-export async function listDistributionItems(batchId: string): Promise<readonly Record<string, unknown>[]> {
-  const request = await authz('document-distribution:read')
-  const items = await table(request.client, 'document_generation_batch_items')
-    .select('id,employee_id,snapshot_id,status,error_code,created_at,completed_at')
-    .eq('tenant_id', request.tenantId)
-    .eq('hr_group_id', request.hrGroupId)
-    .eq('batch_id', batchId)
-    .order('created_at', { ascending: true })
-    .limit(200)
-  if (items.error || !Array.isArray(items.data)) throw new Error('DOCUMENT_DISTRIBUTION_READ_FAILED')
-  const rows = items.data as Array<Record<string, unknown>>
-  const employeeIds = rows.map((item) => typeof item.employee_id === 'string' ? item.employee_id : '').filter(Boolean)
-  const employees = employeeIds.length === 0 ? { data: [], error: null } : await table(request.client, 'employees')
-    .select('id,first_name,birth_name,employee_number')
-    .eq('tenant_id', request.tenantId)
-    .eq('hr_group_id', request.hrGroupId)
-    .in('id', employeeIds)
-    .limit(200)
-  if (employees.error || !Array.isArray(employees.data)) throw new Error('DOCUMENT_DISTRIBUTION_READ_FAILED')
-  const names = new Map((employees.data as Array<Record<string, unknown>>).map((employee) => [String(employee.id), {
-    name: [employee.first_name, employee.birth_name].filter((part): part is string => typeof part === 'string' && part.length > 0).join(' '),
-    number: typeof employee.employee_number === 'string' ? employee.employee_number : null,
-  }]))
-  return rows.map((item) => ({ ...item, employee_name: names.get(String(item.employee_id))?.name ?? item.employee_id, employee_number: names.get(String(item.employee_id))?.number ?? null }))
 }

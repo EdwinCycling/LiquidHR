@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { PDFDict, PDFDocument, PDFName, PDFRawStream } from 'pdf-lib'
 import {
   LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID,
   renderPayrun01PayslipHtml,
@@ -38,6 +39,21 @@ const input: Payrun01PayslipPdfInput = {
     sourceWarnings: ['Fiscale profielgegevens zijn niet bevestigd in de bron.'],
   },
   presentation: { templateId: LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID },
+}
+
+function hasEmbeddedImage(document: PDFDocument): boolean {
+  return document.getPages().some((page) => {
+    const resources = page.node.Resources()
+    const xObjects = resources?.lookupMaybe(PDFName.of('XObject'), PDFDict)
+    if (!xObjects) return false
+
+    return xObjects.entries().some(([, reference]) => {
+      const image = document.context.lookup(reference)
+      return image instanceof PDFRawStream
+        && image.dict.get(PDFName.of('Subtype'))?.toString() === '/Image'
+        && image.contents.length > 0
+    })
+  })
 }
 
 describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
@@ -88,12 +104,11 @@ describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
   })
 
   it('renders valid A4 PDF bytes from the saved-result presentation', async () => {
-    const bytes = await renderPayrun01PayslipPdf({
-      ...input,
-      branding: { liquidHrLogoDataUrl: null },
-    })
+    const bytes = await renderPayrun01PayslipPdf(input)
 
     expect(Buffer.from(bytes).subarray(0, 5).toString('ascii')).toBe('%PDF-')
     expect(bytes.byteLength).toBeGreaterThan(1000)
+    const parsed = await PDFDocument.load(bytes, { updateMetadata: false })
+    expect(hasEmbeddedImage(parsed)).toBe(true)
   })
 })

@@ -1,18 +1,11 @@
 import 'server-only'
-import { createHash } from 'node:crypto'
 import { existsSync, readFileSync as readFile } from 'node:fs'
 import { resolve } from 'node:path'
 import serverlessChromium from '@sparticuz/chromium'
 import { chromium as playwrightChromium, type Browser } from 'playwright-core'
 import { renderResolvedSnapshotToHtml, type HtmlRenderOptions } from './html'
 import type { ResolvedGenerationSnapshot } from './domain'
-
-export const DG1_RENDERER_VERSION = 'dg1-html-css-chromium-a4-work-sans-1'
-
-function fontFace(fontPath: string, weight: number, style: 'normal' | 'italic'): string {
-  const encoded = readFile(fontPath).toString('base64')
-  return `@font-face{font-family:'Work Sans';font-style:${style};font-weight:${weight};font-display:block;src:url(data:font/woff2;base64,${encoded}) format('woff2');}`
-}
+export { DG1_RENDERER_VERSION, pdfHash } from './pdf-contract'
 
 function resolveWorkSansFont(fileName: string): string {
   const candidates = Array.from({ length: 5 }, (_, level) => {
@@ -25,12 +18,16 @@ function resolveWorkSansFont(fileName: string): string {
   return path
 }
 
-function workSansFontCss(): string {
+function workSansFontData(): { weight: number; style: 'normal' | 'italic'; data: string }[] {
   return [
-    fontFace(resolveWorkSansFont('work-sans-latin-400-normal.woff2'), 400, 'normal'),
-    fontFace(resolveWorkSansFont('work-sans-latin-400-italic.woff2'), 400, 'italic'),
-    fontFace(resolveWorkSansFont('work-sans-latin-700-normal.woff2'), 700, 'normal'),
-  ].join('')
+    { fileName: 'work-sans-latin-400-normal.woff2', weight: 400, style: 'normal' as const },
+    { fileName: 'work-sans-latin-400-italic.woff2', weight: 400, style: 'italic' as const },
+    { fileName: 'work-sans-latin-700-normal.woff2', weight: 700, style: 'normal' as const },
+  ].map(({ fileName, weight, style }) => ({
+    weight,
+    style,
+    data: readFile(resolveWorkSansFont(fileName)).toString('base64'),
+  }))
 }
 
 function localExecutablePath(): string | null {
@@ -72,16 +69,31 @@ export async function renderResolvedSnapshotToPdf(snapshot: ResolvedGenerationSn
   const browser = await launchBrowser()
   try {
     const page = await browser.newPage({ viewport: { width: 794, height: 1123 } })
-    await page.setContent(renderResolvedSnapshotToHtml(snapshot, { ...options, fontFaceCss: workSansFontCss() }), { waitUntil: 'load' })
+    await page.setContent(renderResolvedSnapshotToHtml(snapshot, options), { waitUntil: 'load' })
     await page.emulateMedia({ media: 'print' })
-    await page.evaluate(() => document.fonts.ready)
+    const fontStatuses = await page.evaluate(async (fonts) => {
+      const loadResults = await Promise.all(fonts.map(async ({ weight, style, data }) => {
+        const binary = atob(data)
+        const bytes = new Uint8Array(binary.length)
+        for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+        const face = new FontFace('Work Sans', bytes.buffer, { weight: String(weight), style })
+        document.fonts.add(face)
+        try {
+          await face.load()
+          return face.status
+        } catch {
+          return 'error'
+        }
+      }))
+      await document.fonts.ready
+      return loadResults
+    }, workSansFontData())
+    if (fontStatuses.length !== 3 || fontStatuses.some((status) => status !== 'loaded')) {
+      throw new Error('DG1_WORK_SANS_FONT_LOAD_FAILED')
+    }
     const bytes = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true })
     return normalizePdfMetadata(bytes)
   } finally {
     await browser.close()
   }
-}
-
-export function pdfHash(pdf: Uint8Array): string {
-  return createHash('sha256').update(pdf).digest('hex')
 }

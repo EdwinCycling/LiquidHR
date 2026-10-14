@@ -4,13 +4,9 @@ import { z } from 'zod'
 import { requirePermission, requireAuthContext, requireHrGroupId, type AuthContext } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { DocumentSigningError } from './errors'
 
-export class DocumentSigningError extends Error {
-  constructor(readonly code: string, readonly status: number) {
-    super(code)
-    this.name = 'DocumentSigningError'
-  }
-}
+export { DocumentSigningError } from './errors'
 
 type QueryClient = Awaited<ReturnType<typeof createClient>>
 

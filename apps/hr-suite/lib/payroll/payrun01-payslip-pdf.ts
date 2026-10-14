@@ -139,29 +139,19 @@ function safeLogo(dataUrl: string | null | undefined, alt: string): string {
     : ''
 }
 
-function logoCandidates(): string[] {
-  const candidates: string[] = []
-  let root = resolve(process.cwd())
-  for (let level = 0; level < 6; level += 1) {
-    candidates.push(
-      resolve(root, 'public/brand/logo/branding/logo-horizontal.png'),
-      resolve(root, 'apps/hr-suite/public/brand/logo/branding/logo-horizontal.png'),
-    )
-    root = resolve(root, '..')
-  }
-  return [...new Set(candidates)]
-}
-
 async function liquidHrBranding(): Promise<Payrun01PayslipBranding> {
-  for (const path of logoCandidates()) {
+  try {
+    const bytes = await readFile(resolve(process.cwd(), 'public/brand/logo/branding/logo-horizontal.png'))
+    return { liquidHrLogoDataUrl: `data:image/png;base64,${bytes.toString('base64')}` }
+  } catch {
     try {
-      const bytes = await readFile(path)
+      const bytes = await readFile(resolve(process.cwd(), 'apps/hr-suite/public/brand/logo/branding/logo-horizontal.png'))
       return { liquidHrLogoDataUrl: `data:image/png;base64,${bytes.toString('base64')}` }
     } catch {
       // Missing branding assets use the wordmark fallback below.
+      return { liquidHrLogoDataUrl: null }
     }
   }
-  return { liquidHrLogoDataUrl: null }
 }
 
 export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): string {

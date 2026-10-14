@@ -5,7 +5,7 @@ import { PageShell } from '@/components/layout/page-shell'
 import { DistributionItems } from '@/components/document-studio/distribution-items'
 import { Button } from '@/components/ui/button'
 import { AuthorizationError } from '@/lib/auth/permissions'
-import { listDistributionItems } from '@/lib/document-generation/batch-service'
+import { listDistributionItems } from '@/lib/document-generation/distribution-read-service'
 import { getTranslator } from '@/lib/i18n/server'
 
 export default async function DocumentDistributionDetailPage({ params }: { params: Promise<{ batchId: string }> }) {

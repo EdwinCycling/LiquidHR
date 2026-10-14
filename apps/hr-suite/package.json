@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack --port 3000",
     "dev:turbopack": "next dev --port 3000",
-    "build": "next build && node lib/payroll/verify-client-bundle.mjs --self-test && node scripts/write-build-provenance.mjs",
+    "build": "next build && node lib/payroll/verify-client-bundle.mjs --self-test && node scripts/prepare-function-traces.mjs && node scripts/check-function-trace-size.mjs && node scripts/write-build-provenance.mjs",
     "start": "next start --port 3000",
     "lint": "eslint .",
     "check:i18n": "node scripts/check-i18n.mjs",
@@ -57,6 +57,8 @@
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.6",
     "happy-dom": "^20.11.6",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "4.10.38",
     "tailwindcss": "latest",
     "typescript": "latest",
     "vitest": "^4.1.10"

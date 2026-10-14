@@ -90,6 +90,8 @@ Vercel `production` is de deploymentchannel van de bestaande synthetic TEST-omge
 
 Voor Payroll gelden aanvullend `AA-PAYROLL.md` en de feitelijk geraakte Payroll-requirements. Voor verificatie en release gelden `AA-TEST.md` en `AA-REL.md`.
 
+- Wijzigingen aan Chromium, Playwright of PDF-tracing vereisen een productiebuild met de top-10 NFT-pakketcontrole; controleer dezelfde route-/assetmethode voor en na de wijziging. Zie `AA-REL.md` §6.
+
 ## 7. Token-efficiëntie
 
 - Lees alleen de noodzakelijke bronnen en toepasselijke secties. Hergebruik geldige context, analyses en groene testresultaten; vermijd dubbele toolcalls, volledige herlezingen en onnodig grote terminaluitvoer.
