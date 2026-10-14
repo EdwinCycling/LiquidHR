@@ -1,6 +1,6 @@
 # PAYFULL-01 — eerste geïntegreerde, volledige Payroll-verwerkingsflow
 
-**Status per 14 oktober 2026: GEPLAND / NIET GESTART.** Dit is een product- en uitvoeringsafspraak, **geen** Codex-startopdracht, remote-write-mandaat, releasebesluit of claim dat een volledige salarisrun reeds werkt.
+**Status per 14 oktober 2026: IN PROGRESS / LOKAAL UI BEREIKBAAR.** De gebruiker heeft PAYFULL-01 expliciet gestart en via screenshots aangetoond dat de lokale HR Suite op `127.0.0.1:3010` het Payroll Lab en salarisadministratieschermen toont. Dit bewijst **niet** dat batchberekening, integratie of live payrollacceptatie voltooid is. Dit plan is geen zelfstandig remote-write-mandaat of releasebesluit.
 
 **Besluit:** grotere verticale bouwslagen in plaats van steeds één losse migration/service/test. Eén Payroll-werkstroom binnen `apps/hr-suite`, lokaal zichtbaar en te accepteren vóór een gezamenlijke Vercel TEST-release. Geen Docker, geen tweede Payroll-productapp. Leidende architectuur: [AA-PAYROLL](../AA/AA-PAYROLL.md); uitvoering en gates: `AGENTS.md`, [AA-OP](../AA/AA-OP.md), [AA-TEST](../AA/AA-TEST.md), [AA-REL](../AA/AA-REL.md). Dit plan vervangt geen gedateerde acceptance evidence.
 
