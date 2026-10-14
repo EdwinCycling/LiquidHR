@@ -31,7 +31,7 @@ Eén **volledig ondersteunde en correct afgebakende** NL-2026-verwerking voor ee
 
 **Definitie 'volledige run':** volledige reken- en verwerkingsketen voor het **bewezen ondersteunde scenario**, niet volledige Nederlandse landelijke dekking. `bruto - loonheffing` zonder bevestigde overige componenten mag niet als volledig nettoloon worden verkocht.
 
-## 3. Grotere geïntegreerde uitvoeringsblokken (pas starten na gebruikersbesluit)
+## 3. Grotere geïntegreerde uitvoeringsblokken (bouwslag gestart; deelstappen vereisen de passende gates)
 
 ### A — Engineering-integratie en gecontroleerde TEST-foundation
 
