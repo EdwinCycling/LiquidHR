@@ -88,7 +88,7 @@ Zie [lokale TEST-runtime](../delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md) en de 
 
 ## 6. Handoff en documentatie-eigenaarschap
 
-- Deze pagina beschrijft **de nog niet gestarte PAYFULL-01-bouwslag**. De huidige PAYCALC-run mag eerst veilig afronden.
+- PAYFULL-01 is door de gebruiker gestart en de lokale app is zichtbaar. Dit is **geen** bewijs van volledige batchrun of fiscale acceptatie. PAYCALC-REAL-01 is als apart docs-checkpoint afgerond.
 - Bewijs van uitgevoerde slices hoort in `docs/quality/acceptance/runs/`, niet als achteraf herschreven 'GREEN' in dit plan.
 - Gedateerde PAYRUN01-, PAYESS-, PAYCALC- en PAYTEST-acceptatierapporten blijven de waarheid voor hun eigen branch/commit.
 - De bestaande Draft [Payroll-roadmap PR #28](https://github.com/EdwinCycling/LiquidHR/pull/28) is een eerdere momentopname; deze nieuwe planstatus is een aanvulling. Reconcileer de roadmap bij latere integratie, zonder een lopende Codex-run te overschrijven.
