@@ -1,13 +1,13 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-13 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-14 (historische acceptance-evidence blijft ongewijzigd)
 
-## PAYTEST-AUTH-01 — PARTIAL / BLOCKED
+## PAYTEST-AUTH-01B — PARTIAL / BLOCKED
 
-- Canonieke persona-catalogus, beveiligde launcherflag en herbruikbare persona-preflight/browserchecker zijn kandidaatcode. Lisa's bestaande self-service-link en 2026-10 FINALIZED-weergave zijn eerder lokaal bevestigd; de laatste herhaalrun bereikte de Jupiter-context niet.
-- De lokale Admin→Edwin-handoff bereikte `/context/select`, maar de bestaande sessie kon de catalogus-tenant De Sterren niet kiezen. Geen context-, rol- of Payroll-data aangepast; zie het acceptancebewijs voor de actuele blokker.
-- Jaap en Frits zijn nog niet Auth-gekoppeld; de persona-env ontbreekt. Frits' actuele trace bevat bovendien een onopgelost `Jan`-bronlabel. Geen GREEN; zie [acceptance](../quality/acceptance/runs/PAYTEST-AUTH-01-20261013.md).
+- Canonieke harness, vaste directe role-switchkeys en ACL-beveiligde credentialbron zijn aanwezig; Lisa's lokale wachtwoord is ververst. De lokale browsercheck bevestigde geen Lisa-handoff of FINALIZED-weergave en de cross-employee-salaryprobe gaf HTTP 200 met niet-lege/onbekende data. Haar bestaande DIRECT_MANAGER-groepen blijven ongewijzigd.
+- Jaap en Frits zijn niet Auth-gekoppeld; directe role-switch gaf 503. De Mars-gebonden Test HR Admin kreeg 403 op de ondersteunde Core-koppelroute; geen employee-link was geschreven. Frits' drie run-ID's/hashes sluiten aan, maar de trace-labels blijven `Jan`.
+- Preview-deployment voor PR-branch niet gevonden. Production-login toont geen Test Auth/role-switch. Geen GREEN; zie [PAYTEST-AUTH-01B](../quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md).
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
 

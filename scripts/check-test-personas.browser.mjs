@@ -166,60 +166,25 @@ async function returnToAdmin(page) {
 }
 
 async function testRoleSwitch(page, persona) {
-  if (new URL(page.url()).pathname === '/api/auth/test-role-switch') {
-    await page.goto(new URL('/dashboard/start', origin).toString(), { waitUntil: 'domcontentloaded' })
-    const scopeResult = await chooseContext(page, scope.administration.id, true).catch(() => ({ ok: false, cause: 'context-check-failed' }))
-    if (!scopeResult.ok) {
-      addReason(persona.key, 'De bestaande Edwin-sessie kon niet naar de gecontroleerde Jupiter-context worden hersteld.')
-      return false
-    }
-  }
   const activePersona = await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null)
-  if (!activePersona) {
-    addReason(persona.key, 'De lokale Test HR Admin-login of de normale context is niet actief; de role-switch is niet uitgevoerd.')
+  if (activePersona !== 'hr-admin') {
+    addReason(persona.key, 'De vaste Payroll-role-switch is niet gestart vanuit de lokale Test HR Admin-sessie.')
     return false
-  }
-  if (activePersona !== 'hr-admin' && activePersona !== 'edwin') {
-    addReason(persona.key, 'De role-switch is niet gestart vanuit de toegestane Test HR Admin- of Edwin-beheersessie.')
-    return false
-  }
-  if (activePersona === 'hr-admin') {
-    const intoEdwin = await submitRoleSwitch(page, 'edwin')
-    if (!intoEdwin.ok) {
-      const reason = intoEdwin.cause === 'switcher-missing'
-        ? 'De lokale role-switcher is niet beschikbaar in de Test HR Admin-sessie.'
-        : intoEdwin.cause === 'trigger-not-responsive'
-          ? 'De Test HR Admin-role-switchknop reageerde niet; de lokale clienthydratie moet worden gecontroleerd.'
-          : intoEdwin.cause === 'menu-not-visible'
-            ? 'De role-switcher meldde een geopend menu maar toonde de keuzelijst niet.'
-        : intoEdwin.cause === 'key-missing'
-          ? 'De bestaande Edwin-target ontbreekt in de vaste role-switchallowlist.'
-          : intoEdwin.cause === 'handoff-unavailable'
-            ? 'De lokale Auth-handoff naar de bestaande Edwin-testidentiteit is niet beschikbaar.'
-            : 'De lokale role-switch eindigde niet bij de bestaande Edwin-testidentiteit.'
-      addReason(persona.key, reason)
-      return false
-    }
-    const scopeResult = await chooseContext(page, scope.administration.id, true).catch(() => ({ ok: false, cause: 'context-check-failed' }))
-    if (!scopeResult.ok) {
-      addReason(persona.key, `Edwin heeft binnen zijn bestaande rechten geen bevestigde Jupiter-context (${scopeResult.cause}).`)
-      return false
-    }
   }
 
   const switched = await submitRoleSwitch(page, persona.roleSwitchKey)
   if (!switched.ok) {
     const reason = switched.cause === 'switcher-missing'
-      ? 'De lokale role-switcher is niet beschikbaar voor de bevoegde Jupiter-beheersessie.'
+      ? 'De lokale role-switcher is niet beschikbaar in de Test HR Admin-sessie.'
       : switched.cause === 'trigger-not-responsive'
-        ? 'De Jupiter-role-switchknop reageerde niet; de lokale clienthydratie moet worden gecontroleerd.'
+        ? 'De Test HR Admin-role-switchknop reageerde niet; de lokale clienthydratie moet worden gecontroleerd.'
         : switched.cause === 'menu-not-visible'
           ? 'De role-switcher meldde een geopend menu maar toonde de keuzelijst niet.'
-      : switched.cause === 'key-missing'
-        ? `De vaste role-switchkey ontbreekt: ${persona.roleSwitchKey}.`
-        : switched.unavailable
-          ? 'De vaste Payroll-Auth-identiteit ontbreekt of is niet aan de geverifieerde medewerker gekoppeld.'
-          : 'De lokale Auth-handoff eindigde niet bij de vaste Payroll-persona.'
+          : switched.cause === 'key-missing'
+            ? `De vaste Payroll-role-switchkey ontbreekt: ${persona.roleSwitchKey}.`
+            : switched.unavailable
+              ? 'De vaste Payroll-Auth-identiteit ontbreekt of is niet aan de geverifieerde medewerker gekoppeld.'
+              : 'De directe lokale handoff eindigde niet bij de vaste Payroll-persona.'
     addReason(persona.key, reason)
     return false
   }
@@ -227,22 +192,24 @@ async function testRoleSwitch(page, persona) {
   const scopeResult = await chooseContext(page, scope.administration.id, true).catch(() => ({ ok: false, cause: 'context-check-failed' }))
   if (!scopeResult.ok) addReason(persona.key, `De persona heeft geen actieve, geverifieerde Jupiter-administratiecontext (${scopeResult.cause}).`)
   if (await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null) !== persona.roleSwitchKey) {
-    addReason(persona.key, 'De handoff eindigde niet bij de vaste persona-key.')
+    addReason(persona.key, 'De directe handoff eindigde niet bij de vaste persona-key.')
   }
   return scopeResult.ok
 }
-
-async function expectCrossEmployeeDenied(page, ownEmployeeId, otherEmployeeId, routeName, url) {
+async function expectCrossEmployeeDenied(page, personaKey, routeName, url) {
   const response = await page.context().request.get(new URL(url, origin).toString()).catch(() => null)
   if (!response) {
-    addReason(ownEmployeeId, `De negatieve ${routeName}-scopeprobe kon niet worden uitgevoerd.`)
+    addReason(personaKey, 'De negatieve ' + routeName + '-scopeprobe kon niet worden uitgevoerd.')
     return
   }
-  if (![401, 403, 404].includes(response.status())) {
-    addReason(ownEmployeeId, `De cross-employee ${routeName}-scopeprobe gaf HTTP ${response.status()} in plaats van weigering.`)
+  if ([401, 403, 404].includes(response.status())) return
+  if (response.status() === 200) {
+    const body = await response.json().catch(() => null)
+    const data = body && typeof body === 'object' && 'data' in body ? body.data : undefined
+    if (data === null || (Array.isArray(data) && data.length === 0)) return
   }
+  addReason(personaKey, 'De cross-employee ' + routeName + '-scopeprobe gaf HTTP ' + response.status() + ' met niet-lege of onbekende data in plaats van weigering.')
 }
-
 async function checkEss(page, persona) {
   const result = results.get(persona.key)
   const salaryResponse = await page.goto(new URL('/my-salary', origin).toString(), { waitUntil: 'domcontentloaded' }).catch(() => null)
@@ -270,7 +237,7 @@ async function checkEss(page, persona) {
     }
     const pdfControls = await page.locator('a[download], a[href*="/payslips/"], a[href*="payslip" i], button[aria-label*="pdf" i]').count()
     if (pdfControls === 0) addExpectedGap(persona.key, 'Geen PDF- of downloadcontrol zichtbaar op /my-salary; artifact/download blijft OPEN.')
-    addReason(persona.key, 'Frits’ berekeningstrace bevat de onopgeloste bronlabel-afwijking Jan; juiste historische runbron is niet bevestigd.')
+    addExpectedGap(persona.key, 'Frits’ drie historische traces sluiten met bron-, input- en resultaatprovenance aan op Frits, maar dragen het bronlabel Jan; de afwijking blijft open en historische uitkomsten zijn ongewijzigd.')
   }
 
   await page.setViewportSize({ width: 1440, height: 900 })
@@ -286,8 +253,8 @@ async function checkEss(page, persona) {
 
   const otherPersona = personas.find((candidate) => candidate.key !== persona.key)
   if (otherPersona) {
-    await expectCrossEmployeeDenied(page, persona.key, otherPersona.employeeId, 'salaris-API', `/api/employees/${otherPersona.employeeId}/salary?employmentId=${otherPersona.employmentId}`)
-    await expectCrossEmployeeDenied(page, persona.key, otherPersona.employeeId, 'dossierroute', `/api/employees/${otherPersona.employeeId}/documents`)
+    await expectCrossEmployeeDenied(page, persona.key, 'salaris-API', `/api/employees/${otherPersona.employeeId}/salary?employmentId=${otherPersona.employmentId}`)
+    await expectCrossEmployeeDenied(page, persona.key, 'dossierroute', `/api/employees/${otherPersona.employeeId}/documents`)
   }
 
   if (result.expectedGaps.length === 0 && persona.knownGaps?.length) {

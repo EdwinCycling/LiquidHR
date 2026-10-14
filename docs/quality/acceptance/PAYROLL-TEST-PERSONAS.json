@@ -1,6 +1,6 @@
 {
   "catalogVersion": 1,
-  "reviewedAt": "2026-10-13",
+  "reviewedAt": "2026-10-14",
   "coreTestProjectRef": "wnpfloqpjvaacobppbpk",
   "payrollLabTestProjectRef": "jhgeriucbkfarxiudzfy",
   "credentialFile": "%LOCALAPPDATA%\\LiquidHR\\TestRuntime\\payroll-test-personas.env",
@@ -35,6 +35,8 @@
     ],
     "returnKey": "hr-admin",
     "requiresExistingAuthUser": true,
+    "directFromHrAdmin": true,
+    "usesEdwinIntermediatePersona": false,
     "doesNotGrantRolesOrAdministrationAccess": true,
     "vercelPreview": "CLOSED",
     "vercelProduction": "CLOSED"
@@ -49,12 +51,12 @@
       "roleSwitchKey": "payroll-lisa",
       "accountState": "EXISTING_LINK_CONFIRMED",
       "employeeAuthLink": "CONFIRMED_BY_SCOPE_GATED_LOCAL_HANDOFF",
-      "essAccess": "ACTIVE_CONFIRMED",
+      "essAccess": "ACTIVE_CONFIRMED; LATEST_FINALIZED_PAGE_STATE_UNCONFIRMED",
       "employmentAndAdministrationBinding": "CONFIRMED_IN_JUPITER_CONTEXT",
       "verifiedCapabilities": [
         "self:salary:read"
       ],
-      "managerRole": "UNVERIFIED; DO NOT GRANT OR ASSUME",
+      "managerRole": "PRE-EXISTING DIRECT_MANAGER ACCESS IN PLANETEN AND OTHER GROUPS; NOT GRANTED HERE; CROSS-EMPLOYEE SCOPE OPEN",
       "payrollRuns": [
         {
           "id": "57ac6c10-7a02-49c4-a588-2ca244e621d9",
@@ -64,18 +66,20 @@
         }
       ],
       "positiveScenarios": [
-        "Open Lisa's own /my-salary page and see the 2026-10 finalized statement."
+        "Local direct login reached /my-salary and Lisa's own salary API returned HTTP 200; the latest browser pass did not confirm the visible 2026-10 FINALIZED statement."
       ],
       "negativeScenarios": [
-        "Verify another employee's salary and dossier remain inaccessible; not yet independently exercised in this run."
+        "Cross-employee salary and dossier denial is unproven: the salary API returned HTTP 200 with non-empty or unknown data; inspect the pre-existing DIRECT_MANAGER assignment and response contract without logging response bodies."
       ],
       "knownGaps": [
-        "The /my-salary page did not expose a PDF or download control during the 2026-10-13 local browser check.",
-        "Manager/MSS rights were not verified and are not added."
+        "Direct Test HR Admin to payroll-lisa handoff and the latest visible 2026-10 FINALIZED page state remain unconfirmed.",
+        "No PDF or download control was visible on /my-salary.",
+        "Pre-existing DIRECT_MANAGER access includes Planeten and other groups; no role was granted in this task, and the required cross-employee denial is not proven."
       ],
       "evidence": [
         "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md",
-        "docs/quality/acceptance/runs/PAYDOC-STD-01A-20261013-LIMITED-TEST.md"
+        "docs/quality/acceptance/runs/PAYDOC-STD-01A-20261013-LIMITED-TEST.md",
+        "docs/quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md"
       ]
     },
     {
@@ -87,8 +91,8 @@
       "roleSwitchKey": "payroll-jaap",
       "accountState": "NOT_LINKED",
       "employeeAuthLink": "NO_LINKED_AUTH_USER_OBSERVED",
-      "essAccess": "NOT_CONFIRMED",
-      "employmentAndAdministrationBinding": "CORE_RECORD_VERIFIED; AUTH_CONTEXT_NOT_AVAILABLE",
+      "essAccess": "ACTIVE_CORE_RECORD; AUTHENTICATED_SELF_ROUTE_UNVERIFIED",
+      "employmentAndAdministrationBinding": "CORE_RECORD_CONFIRMED_IN_JUPITER; AUTH_CONTEXT_UNAVAILABLE",
       "verifiedCapabilities": [],
       "roleCodes": "NOT_VERIFIED; EXPECTED EMPLOYEE ONLY",
       "payrollRuns": [
@@ -108,7 +112,8 @@
         "Verify other employees' salary and dossiers are inaccessible."
       ],
       "knownGaps": [
-        "Dedicated @liquidhr.test account and credential are not provisioned.",
+        "No Auth identity or employee link exists; the fixed role-switch returned HTTP 503. The credential entry is prepared but unusable until an authorized supported link path is available.",
+        "The current Test HR Admin is Mars-bound; its supported Core mutation returned 403 before writes, and no existing employee-link RPC was found. Do not add Jupiter access or insert Edwin as an intermediate persona.",
         "The existing CONCEPT must not be finalized or recalculated for this acceptance."
       ],
       "evidence": [
@@ -124,8 +129,8 @@
       "roleSwitchKey": "payroll-frits",
       "accountState": "NOT_LINKED",
       "employeeAuthLink": "NO_LINKED_AUTH_USER_OBSERVED",
-      "essAccess": "NOT_CONFIRMED",
-      "employmentAndAdministrationBinding": "CORE_RECORD_VERIFIED; AUTH_CONTEXT_NOT_AVAILABLE",
+      "essAccess": "ACTIVE_CORE_RECORD; AUTHENTICATED_SELF_ROUTE_UNVERIFIED",
+      "employmentAndAdministrationBinding": "CORE_RECORD_CONFIRMED_IN_JUPITER; AUTH_CONTEXT_UNAVAILABLE",
       "verifiedCapabilities": [],
       "roleCodes": "NOT_VERIFIED; EXPECTED EMPLOYEE ONLY",
       "payrollRuns": [
@@ -135,22 +140,34 @@
           "lifecycle": "FINALIZED",
           "pensionStatus": "PFZW_SOURCE_GAP",
           "netStatus": "NON_DEFINITIVE",
-          "sourceStatus": "IDENTITY_MISMATCH_OPEN",
+          "sourceStatus": "TRACE_LABEL_MISMATCH_OPEN",
           "sourceLabelObserved": "Jan"
         },
         {
           "id": "131a5fcb-c92a-416f-8fdf-bc87e2d3ae47",
           "period": "2026-09",
           "lifecycle": "FINALIZED",
-          "sourceStatus": "HISTORICAL_REFERENCE_NOT_REVALIDATED"
+          "sourceStatus": "TRACE_LABEL_MISMATCH_OPEN",
+          "sourceLabelObserved": "Jan"
         },
         {
           "id": "2d8057f1-92a9-4e0b-bfc6-09806c81ced5",
           "period": "2026-10",
           "lifecycle": "FINALIZED",
-          "sourceStatus": "HISTORICAL_REFERENCE_NOT_REVALIDATED"
+          "sourceStatus": "TRACE_LABEL_MISMATCH_OPEN",
+          "sourceLabelObserved": "Jan"
         }
       ],
+      "traceProvenanceReview": {
+        "reviewedAt": "2026-10-14",
+        "assessment": "TRACE_LABEL_MISMATCH_OPEN",
+        "sourceEmployeeAndEmploymentIds": "MATCH",
+        "sourceSnapshotHash": "MATCHES",
+        "calculationInputHash": "MATCHES",
+        "resultHash": "MATCHES",
+        "tracePersonaLabel": "Jan",
+        "historyChanged": false
+      },
       "positiveScenarios": [
         "After account linkage, open only Frits's own existing historical results where the current source allows it.",
         "Show PFZW source verification as open and net as non-definitive."
@@ -160,13 +177,15 @@
         "Verify other employees' salary and dossiers are inaccessible."
       ],
       "knownGaps": [
-        "Dedicated @liquidhr.test account and credential are not provisioned.",
-        "The current run's employee header identifies Frits, but its persisted calculation trace labels the source persona Jan. Exact source identity and the correct historical run remain unresolved.",
+        "No Auth identity or employee link exists; the fixed role-switch returned HTTP 503. The credential entry is prepared but unusable until an authorized supported link path is available.",
+        "The current Test HR Admin is Mars-bound; its supported Core mutation returned 403 before writes, and no existing employee-link RPC was found. Do not add Jupiter access or insert Edwin as an intermediate persona.",
+        "All three persisted traces have Frits's source employee/employment IDs and matching source, input, and result hashes, while each trace persona label is Jan. This remains a trace-label mismatch; historical output was not changed.",
         "PFZW is not calculated; source verification is required and net remains non-definitive."
       ],
       "evidence": [
         "docs/payroll/acceptance/PAYRUN01-FRITS-TEST-PERSONA-20261007.md",
-        "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md"
+        "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md",
+        "docs/quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md"
       ]
     }
   ]

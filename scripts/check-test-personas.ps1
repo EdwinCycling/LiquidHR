@@ -19,7 +19,7 @@ $actualKeys = @($catalog.personas | ForEach-Object { $_.key })
 $expectedRuns = @{
     lisa = @{ Id = '57ac6c10-7a02-49c4-a588-2ca244e621d9'; Lifecycle = 'FINALIZED' }
     jaap = @{ Id = 'e20e0345-90ac-489b-9fee-7610b2d8f6a3'; Lifecycle = 'CONCEPT' }
-    frits = @{ Id = '338ef391-fbf6-435a-a4d7-e28a8024ebc2'; Lifecycle = 'FINALIZED'; SourceStatus = 'IDENTITY_MISMATCH_OPEN' }
+    frits = @{ Id = '338ef391-fbf6-435a-a4d7-e28a8024ebc2'; Lifecycle = 'FINALIZED'; SourceStatus = 'TRACE_LABEL_MISMATCH_OPEN' }
 }
 if ($catalog.coreTestProjectRef -ne 'wnpfloqpjvaacobppbpk' -or
     $catalog.payrollLabTestProjectRef -ne 'jhgeriucbkfarxiudzfy' -or
@@ -114,7 +114,8 @@ if (-not $SkipBrowser) {
         } else {
             $localAppData = [Environment]::GetEnvironmentVariable('LOCALAPPDATA')
             $personaConfigPath = if ([string]::IsNullOrWhiteSpace($localAppData)) { '' } else { Join-Path $localAppData 'LiquidHR/TestRuntime/payroll-test-personas.env' }
-            $browserOutput = @(& $node.Source $browserCheckPath $catalogPath $BaseUrl $personaConfigPath ([string]$credentialsReady) 2>$null)
+            $credentialReadyFlag = if ($credentialsReady) { 'true' } else { 'false' }
+            $browserOutput = @(& $node.Source $browserCheckPath $catalogPath $BaseUrl $personaConfigPath $credentialReadyFlag 2>$null)
             $browserExitCode = $LASTEXITCODE
             foreach ($line in $browserOutput) {
                 $value = [string]$line
