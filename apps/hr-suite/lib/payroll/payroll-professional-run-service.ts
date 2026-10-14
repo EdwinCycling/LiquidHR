@@ -194,6 +194,13 @@ function stateForCalculation(result: EmployeePayrollCalculationView): PayrollPro
   return 'FAILED'
 }
 
+function displayMissingFields(gaps: readonly { field: string; status: string; reasonCode: string }[]) {
+  const fiscalProfileMissing = gaps.some((gap) => gap.field === 'taxProfile')
+  return gaps
+    .filter((gap) => !(fiscalProfileMissing && gap.reasonCode === 'SUPPORTED_REGULAR_WAGE_INPUT_UNAVAILABLE'))
+    .map((gap) => ({ field: gap.field, unsupported: gap.status === 'UNSUPPORTED' }))
+}
+
 function toRunItem(
   employee: PayrollProfessionalEmployee,
   result: EmployeePayrollCalculationView,
@@ -207,7 +214,7 @@ function toRunItem(
     wageTaxAmount: result.wageTaxAmount,
     remainingAfterWageTax: result.netAfterWageTax,
     employerCosts: null,
-    missingFields: result.gaps.map((gap) => ({ field: gap.field, unsupported: gap.status === 'UNSUPPORTED' })),
+    missingFields: displayMissingFields(result.gaps),
     incompleteComponents: [...result.incompleteComponents],
   }
 }
@@ -226,7 +233,7 @@ function toPreflightItem(
     wageTaxAmount: null,
     remainingAfterWageTax: null,
     employerCosts: null,
-    missingFields: result.gaps.map((gap) => ({ field: gap.field, unsupported: gap.status === 'UNSUPPORTED' })),
+    missingFields: displayMissingFields(result.gaps),
     incompleteComponents: [],
   }
 }

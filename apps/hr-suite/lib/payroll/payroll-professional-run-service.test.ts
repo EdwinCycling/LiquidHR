@@ -145,6 +145,22 @@ describe('Payroll Professional multi-employee calculation', () => {
     expect(calculateEmployee).not.toHaveBeenCalled()
   })
 
+  it('does not describe derived wage input as a missing salary when the fiscal profile is absent', async () => {
+    inspectSource.mockImplementation(async ({ employeeId, employmentId, period }) => ({
+      employeeId, employmentId, period, eligibleForCalculation: false,
+      gaps: [
+        { field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_CONFIRMED_FISCAL_PROFILE' },
+        { field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SUPPORTED_REGULAR_WAGE_INPUT_UNAVAILABLE' },
+      ],
+    }))
+
+    const result = await calculatePayrollProfessionalBatch({ periodKey: '2026-10', employmentIds })
+
+    expect(result.items.every((item) => item.missingFields.length === 1
+      && item.missingFields[0]?.field === 'taxProfile')).toBe(true)
+    expect(calculateEmployee).not.toHaveBeenCalled()
+  })
+
   it('rejects an employment outside the selected administration before preflight or writes', async () => {
     const result = await calculatePayrollProfessionalBatch({
       periodKey: '2026-10',
