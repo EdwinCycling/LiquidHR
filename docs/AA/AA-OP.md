@@ -19,19 +19,19 @@ Afzonderlijke expliciete toestemming blijft nodig voor nieuwe remote database/sc
 
 ## 1a. AA-LEAN-02 — TEST Fast Delivery (2026-10-12)
 
-**Context:** de huidige LiquidHR-doelomgeving is synthetische TEST; het Vercel-kanaal `production` betekent niet klantproductie. Dit rechtvaardigt een lichtere *leverroute*, niet lichtere tenant-/persoonsdata-/securitygrenzen.
+**Context:** LiquidHR werkt **LOCAL FIRST → GITHUB CONTINUOUS → VERCEL ON DEMAND**. GitHub `main` is de Development-baseline; Vercel `production` blijft de bestaande synthetische TEST-baseline tot expliciete release. Dit verandert geen tenant-/persoonsdata-/securitygrenzen.
 
 Kies vóór de eerste codewijziging **één route op basis van de effectieve diff en risico's**, niet op basis van bestandsnaam of omvang van het gehele project:
 
-| Route | Wanneer | Uitvoering en evidence |
+| Route | Wanneer | GitHub-integratie en bewijs |
 | --- | --- | --- |
 | **FAST** | Logo, icoon, statische tekst, beperkte CSS/layout zonder auth-, privacy-, scope- of businesscontractwijziging | Kleine patch; direct geraakte controle(s), lint/type/i18n indien relevant; **één gerichte visuele smoke** bij zichtbare UI. Geen standaard volledige suite, alle persona's, alle thema's of Preview. |
-| **STANDARD** | Gewone afgebakende functionaliteit of niet-gevoelige bugfix | Gerichte unit/contract-/integratietests, relevante type/lint/build waar de wijziging dat vraagt en één representatieve browserflow voor gewijzigd UI-gedrag. |
-| **CONTROLLED** | Autorisatie, OAuth-toestemmingssemantiek of scopes, tenant/RLS, schema, security, Payroll, gevoelige gegevens of aantoonbaar brede shared-core-impact | Positieve én negatieve scope-/autorisatietests, toepasselijke integriteits- en runtimecontroles; volledige finale relevante releasegate. |
+| **STANDARD** | Gewone afgebakende functionaliteit of niet-gevoelige bugfix | Gerichte unit/contract-/integratietests, relevante type/lint/build waar de wijziging dat vraagt en één representatieve lokale browserflow voor gewijzigd UI-gedrag. |
+| **CONTROLLED** | Autorisatie, OAuth-toestemmingssemantiek of scopes, tenant/RLS, schema, security, Payroll, gevoelige gegevens of aantoonbaar brede shared-core-impact | Positieve én negatieve scope-/autorisatietests, toepasselijke integriteits- en runtimecontroles; volledige finale relevante releasegate. Een gehoste gate vereist ook een expliciet releasebesluit. |
 
 Een puur visuele wijziging **op een OAuth-scherm** kan FAST zijn, zolang toestemmingsinhoud, rechten en serverlogica ongewijzigd blijven. Wijzigingen in de **betekenis** van consenttekst vragen minimaal gerichte inhoudelijke/security-contractcontrole en worden bij risico CONTROLLED. Een mergeconflict mag nooit nieuwe rechten verwijderen of verruimen.
 
-**Standaardflow:** actuele main/safe checkout → kleinste patch → gerichte checks → commit → (alleen binnen het oorspronkelijke mandaat) direct naar synthetische TEST-`main` → automatische buildstatus en gerichte hosted smoke → klaar. Een PR of Preview is geen verplichte tussenstap voor geautoriseerde FAST/STANDARD TEST-integratie. Claim geen volledige productieacceptatie.
+**Standaardflow:** actuele main/safe checkout → kleinste patch → gerichte lokale checks → commit → push/merge alleen binnen het oorspronkelijke Git-mandaat → alleen GitHub Development-baseline bijwerken. Geen Vercel-build, Preview of hosted smoke starten vanuit een gewone integratie. Gebruik de aparte `RELEASE LIQUIDHR TEST`-procedure alleen na expliciet verzoek; zie `AA-REL.md` §6. Een GitHub-merge is geen release.
 
 Geen nieuwe worktree wanneer een veilige bestaande checkout voldoet; bij aantoonbaar alleen beschermde of dirty checkouts is **één** tijdelijke schone integratie-worktree verdedigbaar. De aanwezigheid van framework-generated drift elders vereist geen destructieve cleanup of wijziging aan beschermd `next-env.d.ts`.
 
@@ -66,11 +66,11 @@ Registreer een punt in `AA-OPEN.md` alleen wanneer een vastgestelde externe afha
 
 ## 4. Geen containers; veilige lokale omgeving
 
-Gebruik de bestaande Node/npm-, Vitest-, TypeScript-, ESLint-, PowerShell- en geautoriseerde browser-/Vercel/Supabase-middelen. Gebruik geen Docker, Docker Desktop, compose, lokale containerized Supabase, devcontainer of WSL-workaround.
+Gebruik de bestaande Node/npm-, Vitest-, TypeScript-, ESLint-, PowerShell- en geautoriseerde browser-/Vercel/Supabase-middelen. Kies per worktree een vrije localhost-poort; stop nooit een bestaand proces om die vrij te maken. Gebruik geen Docker, Docker Desktop, compose, lokale containerized Supabase, devcontainer of WSL-workaround.
 
 Bescherm `apps/hr-suite/.env.local` en de centrale TEST-hardlink `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local`. Toon of lees geen waarden, kopieer/vervang/verplaats/verwijder geen config. Controleer alleen metadata. Gebruik de bestaande provisioner/launcher alleen wanneer de taak de lokale runtime nodig heeft; de launcher stopt geen bestaand proces en gebruikt geen fallbackconfig. Zie `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
 
-Vercel `production` is de deploymentchannel van de bestaande synthetic TEST-omgeving, niet live productiedata. Een geautoriseerde merge kan de build starten; controleer die deployment en start geen extra handmatige deployment.
+Vercel `production` is de deploymentchannel van de bestaande synthetic TEST-omgeving, niet live productiedata. Een GitHub-merge mag geen build starten; een afzonderlijk expliciet TEST-releasebesluit is vereist.
 
 ## 5. Bestaande architectuur en data-integriteit
 

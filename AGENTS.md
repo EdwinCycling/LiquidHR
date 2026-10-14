@@ -21,7 +21,8 @@ Motto: **It takes a genius to keep it simple.**
 - Maak alleen een tijdelijke branch wanneer isolatie of PR-workflow nodig is. Verifieer de actuele `origin/main`; gebruik `work/<run-id>-<YYYYMMDD>`. Maak niet automatisch een tweede worktree.
 - Stage uitsluitend expliciet geselecteerde, in-scope bestanden. Gebruik geen brede staging, permanente backup-/rescue-/archivebranches of verplaatsbare `last-good`-refs. Geen automatische force, reset, clean of branch/tagverplaatsing.
 - Raak `docs/_local-incoming` (140 lokaal geconsolideerde bestanden) niet aan. Wijzig nooit `apps/hr-suite/next-env.d.ts`.
-- Integratie, push, merge en deployment gebeuren alleen wanneer de oorspronkelijke opdracht dat mandaat expliciet geeft. Na merge-gestarte Vercel-build controleer je die build; start geen extra handmatige deployment.
+- LiquidHR is **LOCAL FIRST → GITHUB CONTINUOUS → VERCEL ON DEMAND**. GitHub-pushes, PR's en merges zijn nooit een Vercel-release; alleen het expliciete verzoek `RELEASE LIQUIDHR TEST` autoriseert die. Zie `docs/AA/AA-REL.md` §6. Houd de effectieve Vercel Git/Preview-triggers uit vóór een policy-push; als dat niet betrouwbaar te bevestigen is, stop vóór push.
+- Integratie, push, merge en deployment vereisen het mandaat uit de oorspronkelijke opdracht. Een GitHub-integratie wijzigt alleen de Development-baseline. Controleer READY, SHA, alias en smoke uitsluitend na een afzonderlijk geautoriseerde Vercel-release.
 
 ## Beschermde handelingen en omgeving
 
@@ -29,7 +30,7 @@ Motto: **It takes a genius to keep it simple.**
 - Bestaande synthetische TEST-fixtures zijn binnen expliciete scope bruikbaar. Geen directe SQL/service-role-bypass, verzonnen fallback, kunstmatig afgedwongen lifecycle-succes of wijzigingen aan Payroll-history om groen te fabriceren.
 - Nooit secrets, tokens, cookies, magic links, plaintext BSN of IBAN printen, loggen, vragen of committen.
 - Beschermde canonical config: `apps/hr-suite/.env.local`. Lees of toon de waarden nooit; kopieer, vervang, verplaats of verwijder het bestand niet. De centrale TEST-config `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` is volgens de provisioner een hardlink naar diezelfde file. Controleer alleen bestaan/linkmetadata; maak of herstel de link alleen wanneer de opdracht lokale runtimeconfiguratie vereist. Nooit `git clean -x/-X`.
-- Vercel `production` is de deploymentchannelnaam van de bestaande synthetic TEST-omgeving; het is geen toestemming voor writes naar live productiedata. Geen Docker, lokale containers of WSL-workaround.
+- Vercel `production` is de deploymentchannelnaam van de bestaande synthetic TEST-omgeving; het is geen toestemming voor writes naar live productiedata. GitHub `main` en Vercel TEST zijn aparte baselines. Geen Docker, lokale containers of WSL-workaround.
 - De geaccepteerde SEC-01-migratie is uitsluitend op TEST toegepast. Wijzig of herhaal haar niet; dit mandaat staat geen nieuwe migratie toe. CONTROL02 en de officiële Loonaangifte-XML-import blijven geannuleerd.
 
 ## Technische en domeininvarianten
@@ -50,8 +51,8 @@ Motto: **It takes a genius to keep it simple.**
 - Nieuwe requirements: `docs/requirements/<domein>/`; duurzame architectuur-/productbesluiten: ADR/FDR; acceptance evidence: `docs/quality/acceptance/runs/`.
 - Houd `AA-CURRENT.md` compact (richtlijn 100–150 regels) en actueel. Werk na een afgeronde verticale slice de relevante index en implementation status bij; bewaar historische acceptance-evidence onveranderd en verwijs ernaar.
 - Kies de kleinste passende gate volgens `AA-TEST.md`. Alleen wijzigingen aan zichtbare tekst/taalmodules vereisen `check:i18n`; een volledige suite/build/browserrun is geen ritueel voor docs/tooling.
-- Wijzigingen aan Chromium, Playwright of PDF-tracing volgen de Function Storage-gate in `docs/AA/AA-REL.md` §6.
+- Wijzigingen aan Chromium, Playwright of PDF-tracing volgen de Function Storage-gate in `docs/AA/AA-REL.md` §6. Documentatiecommits mogen geen Vercel-build starten; de veilige `ignoreCommand` is alleen een extra buildfilter, geen deploymentblokkade.
 - **AA-LEAN-02 / TEST Fast Delivery:** classificeer op **feitelijk gewijzigd gedrag**, niet op de map waarin een bestand staat: FAST (kleine cosmetische/tekstuele UI zonder contractwijziging), STANDARD (gewone feature/bugfix), CONTROLLED (auth-/OAuth-rechten of toestemmingsemantiek, tenant/RLS, schema, Payroll, security of brede shared-core-impact). De precieze minimumgates staan in `AA-TEST.md` en `AA-REL.md`.
-- De huidige LiquidHR-releasebestemming bevat uitsluitend **synthetische TEST-data**, ook wanneer Vercel het kanaal `production` noemt. Voor een expliciet geautoriseerde TEST-push volstaan bij FAST/STANDARD de passende gerichte gates; de full-suite-/alle-persona-/alle-theme-eis geldt daar **niet standaard**. Niet-kritieke ontbrekende QA wordt eerlijk als OPEN geregistreerd. Dit is geen claim van productieacceptatie of toestemming om harde veiligheidsgrenzen te passeren.
+- FAST/STANDARD/CONTROLLED blijven de risicogestuurde testgates; integratie naar GitHub `main` deployt niet. De actieve Vercel TEST-baseline blijft staan tot een expliciet geautoriseerde release. Niet-kritieke ontbrekende QA blijft OPEN; dit versoepelt geen privacy-, security- of datagrenzen.
 - Eén wijziging = één afgebakende implementatie- en verificatiecyclus. Geen automatisch tweede worktree, nieuwe closeout-wave, uitgebreide documentatieset of werkboomcleanup. Hergebruik geldig bewijs; meld blokkades alleen als zij de gekozen gate werkelijk raken.
 - Gebruik [`docs/DEVELOPER_TOOLKIT.md`](docs/DEVELOPER_TOOLKIT.md) voor de huidige veilige scripts. Backup/restore legacy-scripts zijn fail-closed.

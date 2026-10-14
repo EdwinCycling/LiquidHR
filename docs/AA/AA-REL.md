@@ -5,13 +5,13 @@ Eerste opzet: 2026-09-29
 
 Doel: één gecontroleerde releaseflow en geen iteratiehel.
 
-**AA-LEAN-02 (2026-10-12):** LiquidHR heeft momenteel één uitsluitend synthetische TEST-doelomgeving. Een geautoriseerde TEST-push is niet hetzelfde als een formele productieacceptatie. De omvang van de levering volgt het **risico van de diff**, niet de omvang van LiquidHR.
+**Releasebeleid:** LiquidHR werkt **LOCAL FIRST → GITHUB CONTINUOUS → VERCEL ON DEMAND**. GitHub `main` is de Development-baseline; de bestaande Vercel `production`-deployment is de synthetische TEST-baseline. Push, PR of merge is nooit een release. De omvang van de codegate volgt het **risico van de diff**, niet de omvang van LiquidHR.
 
-| Route | TEST-integratie bij expliciet mandaat | Bewijs |
+| Route | GitHub-integratie | Bewijs |
 | --- | --- | --- |
-| **FAST** — zuiver cosmetische UI, logo, tekst of icoon zonder contractimpact | Rechtstreeks op veilige main/integratiecontext, geen verplichte PR/Preview | Gerichte checks en korte visuele/hosted smoke |
-| **STANDARD** — afgebakende gewone feature of bugfix | Gecontroleerde integratie naar synthetic TEST, geen verplichte PR/Preview | Gerichte module-/contractchecks en toepasselijke browser-/hosted smoke |
-| **CONTROLLED** — auth-/OAuth-toestemmingssemantiek, tenant/RLS, schema, Payroll, security, brede shared core | Volledige gecontroleerde convergence- en acceptatieflow | Positieve/negatieve scopechecks, volledige finale relevante suite en vereiste omgevings-/browsergate |
+| **FAST** — zuiver cosmetische UI, logo, tekst of icoon zonder contractimpact | Binnen expliciet Git-mandaat; geen Preview of Vercel-build | Gerichte lokale checks en korte visuele smoke; hosted bewijs blijft OPEN tot een release |
+| **STANDARD** — afgebakende gewone feature of bugfix | Gecontroleerde GitHub-integratie; geen automatische TEST-deployment | Gerichte module-/contractchecks en toepasselijke lokale browserflow |
+| **CONTROLLED** — auth-/OAuth-toestemmingssemantiek, tenant/RLS, schema, Payroll, security, brede shared core | Volledige gecontroleerde convergence- en acceptatieflow; deployment blijft afzonderlijk | Positieve/negatieve scopechecks, volledige finale relevante suite en vereiste lokale gates; gehoste gate alleen na expliciete release |
 
 Alle routes behouden privacy, audit, RLS, secrets, migratiebescherming en een non-force integratie met exacte SHA-provenance. Een FAST-aanpassing aan enkel de **presentatie** van een consent-scherm is niet automatisch CONTROLLED; wijziging van weergegeven rechten, scopes of betekenis kan dat wel zijn.
 
@@ -25,7 +25,7 @@ Featurebranches:
 - mergen/pushen alleen wanneer de oorspronkelijke opdracht dat expliciet autoriseert;
 - stoppen zodra scope en toepasselijke gates bewezen zijn.
 
-**FAST/STANDARD synthetische TEST-flow (geen formele productieacceptatie):** bevestig actuele main en diff → gerichte tests/lint/type/i18n waar relevant → één toepasselijke UI-smoke → commit/integratie/push **alleen met expliciet voorafgaand mandaat** → automatische Vercel-build op exacte SHA controleren → minimale hosted smoke → afsluiten; niet-kritieke ontbrekende QA eerlijk OPEN. Geen standaard full suite, Preview, uitgebreide screenshots of aparte closeout-run.
+**FAST/STANDARD GitHub-flow:** bevestig actuele main en diff → gerichte tests/lint/type/i18n waar relevant → één toepasselijke lokale UI-smoke → commit/integratie/push **alleen met expliciet voorafgaand Git-mandaat** → registreer alleen de Development-baseline. Geen Vercel-build, Preview of hosted smoke; niet-kritieke ontbrekende QA blijft eerlijk OPEN. Geen standaard full suite, uitgebreide screenshots of aparte closeout-run.
 
 **CONTROLLED/formele convergence:**
 - integreert expliciet geselecteerde featurecommits;
@@ -90,7 +90,7 @@ Docs-/tooling-only PR zonder runtime-, schema-, configuratie- of UI-gedrag:
 - volstaan relevante document-/scriptchecks en `git diff --check`;
 - geen volledige HR-suite, productiebuild, Preview of browseracceptatie vereisen;
 - geen version bump;
-- een merge kan de Git-integratiebuild starten; controleer die uitkomst en start geen tweede handmatige deployment.
+- geen Vercel-build of deployment starten. De docs-only `ignoreCommand` is een fail-open buildfilter als een build toch wordt aangevraagd; hij is geen deployment-triggerblokkade.
 
 ## 6. Vercel
 
@@ -104,26 +104,44 @@ Canoniek HR-project: `liquidhr`.
 - Controleer waar tooling dit exposeert de commitprovenance.
 - Een ontbrekend hostingmetadata-veld is evidencegap, niet automatisch productdefect.
 
-### Preview versus directe synthetic TEST-integratie
+### Baselines en Git-deploymentblokkade
 
-- **FAST/STANDARD:** wanneer de gebruiker de directe TEST-integratie vooraf expliciet heeft geautoriseerd, is een voorafgaande Preview of PR **geen verplichte gate**. Controleer de echte auto-deployment en relevante hosted smoke ná de push. Een niet-kritieke, niet-uitgevoerde visuele check kan OPEN blijven als het releasebesluit dat dekt; een bekende kritieke regressie nooit.
-- **CONTROLLED of expliciete Preview-/PR-opdracht:** gebruik commit-specifieke immutable Preview-acceptatie indien de toepasselijke risk/releasegate dit vereist.
-- Vercel Preview gebruikt alleen eigen Preview-scoped variabelen en geïsoleerde synthetische Core/Payroll-backends; het leent geen lokale of gezamenlijke TEST-config.
-- Voer op de Preview-commit de vereiste browsermatrix uit, inclusief normale auth, relevante console/networkcontroles en 390 px waar van toepassing. Leg deployment-ID/URL, SHA, READY-status en resultaten vast.
-- Na groene toepasselijke review-/acceptatiegates wordt een PR alleen binnen expliciet merge-mandaat gecontroleerd naar `main` gemerged. De Git-integratie kan de exacte `main`-SHA naar het bestaande `liquidhr` TEST-kanaal bouwen; controleer daarna READY, alias, SHA-pariteit en relevante hosted smoke.
-- Promoot voor deze flow geen Preview-deployment handmatig met `vercel promote`: Vercel voert daarbij een nieuwe build met Production-variabelen uit. Gebruik de gecontroleerde merge naar `main` voor releaseprovenance.
-- Een nog niet ingerichte Preview-backend/config blokkeert de Preview-gate voor nieuwe PR's; leg de ontbrekende eenmalige inrichting vast. Zij blokkeert een andere, al geaccepteerde TEST-release niet automatisch.
+- **Development-baseline:** actuele GitHub `main`-SHA en geïntegreerde ontwikkelcode.
+- **Deployed TEST-baseline:** actieve Vercel deployment-ID, daadwerkelijk gebruikte source-SHA, appversie, releasedatum en release-/smokeresultaten. `main` mag vooruitlopen; een nieuwe commit is geen release.
+- Houd de GitHub-repository gekoppeld. `vercel.json` gebruikt `"git": { "deploymentEnabled": false }`; volgens [Vercel Git configuration](https://vercel.com/docs/project-configuration/git-configuration) schakelt dit automatische Git-deployments voor alle branches uit. Gewone PR's krijgen geen Preview en docs-only commits starten geen Vercel-build.
+- Vóór de eerste push van deze beleidsconfiguratie moeten de effectieve Vercel Git/Preview-projecttriggers al uitgeschakeld zijn. Controleer ook branchinstellingen, Actions/workflows, Deploy Hooks en externe callers; verifieer dat geen push/merge een deployment kan maken. Alleen `vercel.json` of `ignoreCommand` bewijst niet dat de eerste config-push veilig is. Als dit niet betrouwbaar is vastgesteld: **stop vóór push**.
+- Schakel de Git-integratie niet uit. Behoud alleen expliciet geautoriseerde on-demand CLI-deploys. Een Deploy Hook of externe automation mag uitsluitend een apart geautoriseerde release kunnen starten; onbekende callers blijven een blokkade voor GREEN.
 
-De uitvoerbare lokale start- en Preview-procedure staat in `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
+### Previewbeleid
+
+- Gewone PR's maken geen Preview. Een Preview bestaat alleen na expliciet verzoek en toepasselijke risk-/releasegate; gebruik een commit-specifieke immutable URL.
+- Vercel Preview gebruikt uitsluitend eigen Preview-scoped variabelen en geïsoleerde synthetische Core/Payroll-backends, nooit lokale of gezamenlijke TEST-config.
+- Start een Preview alleen met Vercel CLI (`vercel deploy`) vanaf de expliciet gekozen schone commit; geen PR- of branch-trigger.
+- Voer bij een expliciet vereiste Preview de toepasselijke browsermatrix uit, inclusief normale auth, relevante console/networkcontroles en 390 px waar van toepassing. Leg ID/URL, SHA, READY en resultaten vast.
+- Behoud de mogelijkheid voor een later expliciet geautoriseerde Preview via de gecontroleerde on-demand route; zet automatische PR-triggers niet als standaard aan.
+- Promoveer geen Preview met `vercel promote`: die actie bouwt opnieuw met Production-variabelen.
+
+### Expliciete release: `RELEASE LIQUIDHR TEST`
+
+Alleen het expliciete verzoek **“Release LiquidHR TEST.”** autoriseert een deployment. Push, merge, PR, tag of documentatie-update doen dat niet.
+
+1. Verifieer de schone, actuele GitHub `main`, de vaste source-SHA en databasecompatibiliteit. Lees de actieve canonical TEST-deployment en leg vooraf ID, SHA, appversie en alias vast; verwijder of wijzig die baseline niet.
+2. Voer de gates uit die bij de release-risico's horen. Verhoog `apps/hr-suite/lib/app-version.ts` alleen indien nodig, exact eenmaal; commit de versie en fixeer daarna de definitieve source-SHA.
+3. Bouw/deploy vanuit een schone checkout van die SHA met de gekoppelde `liquidhr`-projectconfiguratie en Vercel Production-buildinstellingen. Start de deployment expliciet met de Vercel CLI (`vercel deploy --prod`); voer dit nooit uit als onderdeel van een gewone GitHub-integratie en gebruik geen andere Vercel-projecten.
+4. Controleer deployment-ID, READY, project, bron-SHA waar beschikbaar, canonical alias en gerapporteerde appversie. Voer één toepasselijke hosted smoke uit.
+5. Als Vercel geen betrouwbare Git-SHA-metadata geeft, registreer een controleerbaar manifest in `docs/quality/acceptance/runs/` met source-SHA en tree-SHA, deployment-ID/URL en buildlog, appversie, tijdstip, alias-readback en smoke-uitkomst. Noem dit manifestprovenance; claim geen metadata-SHA-pariteit die niet is aangetoond.
+6. Werk Deployed TEST-baseline en opslagmeting bij. Start geen opschoning als deel van de release.
+
+De exacte lokale runtime- en releasecommando's en Preview-gates staan in `docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md`.
 
 ### Function Storage, tracing en retentie
 
-- Vercel Hobby heeft 10 GB Deployment Storage; waarschuw vanaf 6 GB (60%). Controleer gebruik vóór en na een storage- of deploymentretentiewijziging.
+- Vercel Hobby heeft momenteel 10 GB Deployment Storage; waarschuw vanaf 60% van de toepasselijke planlimiet. Meet vóór en na elke expliciete release of afzonderlijk geautoriseerde retentiewijziging.
 - Bij elke wijziging aan Chromium, Playwright of PDF-tracing: productiebuild voert `prepare-function-traces.mjs` en `check-function-trace-size.mjs` uit. Bewaar top 10, totale tracebytes en route-assets vóór/na. Houd de exacte renderer-allowlist in `function-trace-policy.mjs` en de verwachte route-index synchroon; alleen die routes mogen Chromium/Playwright bevatten. Controleer alle Chromium-`.br`-bestanden, Playwright `browsers.json`, Chromium-buildbestanden, gebruikte Work Sans-fonts en PAYRUN-logo's.
 - De checker waarschuwt boven 150 MiB en faalt boven 225 MiB aan ongecomprimeerde tracebytes per functie; dat houdt marge onder Vercels maximum van 250 MB ongecomprimeerd. Tracebytes zijn geen ZIP- of Dashboard-opslagmeting.
-- `vercel.json` laat Git-deployments alleen voor `main` toe. Maak een Preview alleen wanneer de toepasselijke risk-/releasegate die vereist. De docs-only `ignoreCommand` slaat alleen een niet-lege, SHA-geverifieerde set Markdown-documentatie over; ontbrekende SHAs, mislukte Git-vergelijking, lege diff of andere bestanden laten de build doorgaan. Een overgeslagen build kan nog steeds deploymentquota gebruiken.
-- Beheer retentie expliciet: Hobby bewaart momenteel de drie nieuwste Production-deployments plus de drie nieuwste deployments van elk type; Preview heeft geen eigen retentiebescherming. Zie [Vercel Hobby-retentie](https://vercel.com/changelog/hobby-projects-now-retain-fewer-deployments-to-free-up-storage).
-- Bescherm de actieve canonieke TEST-deployment waar `liquid-hr-hr-suite.vercel.app` naar verwijst. Verwijder nooit deployments automatisch; opruimen vereist een afzonderlijk mandaat en voorafgaande controle van SHA en aliases.
+- `vercel.json` zet Git-deployments uit voor alle branches. De docs-only `ignoreCommand` slaat alleen een niet-lege, SHA-geverifieerde set Markdown-documentatie over; ontbrekende SHAs, mislukte Git-vergelijking, lege diff of andere bestanden laten een aangevraagde build doorgaan. Deze filter vervangt de Git-triggerblokkade niet.
+- Houd Preview-deployments minimaal: gewone PR's maken er geen; iedere expliciete Preview heeft een reden, eigenaar en retentieplan. Controleer actuele Vercel-retentie-instellingen en leg beheer daarvan vast. Zie [Vercel Hobby-retentie](https://vercel.com/changelog/hobby-projects-now-retain-fewer-deployments-to-free-up-storage).
+- Bescherm altijd de actieve canonieke TEST-deployment waar `liquid-hr-hr-suite.vercel.app` naar verwijst. Nooit automatische of destructieve deploymentopruiming. Alleen na afzonderlijk mandaat, nadat automatische Git-triggers uit staan, en uitsluitend volgens de bewezen PowerShell V4-procedure met voorafgaande SHA-/aliascontrole.
 
 ## 7. Hosted safety smoke
 
