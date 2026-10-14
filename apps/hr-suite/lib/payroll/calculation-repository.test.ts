@@ -49,6 +49,14 @@ function makeClient(seed: Record<string, Array<Record<string, unknown>>>) {
       operation,
     }
     queryLog.push(entry)
+    const matches = (candidate: Record<string, unknown>) => filters.every(([column, value]) => {
+      if (column.startsWith('not:')) {
+        const [, field, operator] = column.split(':')
+        if (operator === 'is' && value === null) return candidate[field ?? ''] !== null && candidate[field ?? ''] !== undefined
+        return true
+      }
+      return candidate[column] === value
+    })
     const query = {
       select: vi.fn(() => query),
       insert: vi.fn((values: Record<string, unknown>) => {
@@ -68,12 +76,23 @@ function makeClient(seed: Record<string, Array<Record<string, unknown>>>) {
         filters.push([column, value])
         return query
       }),
+      not: vi.fn((column: string, operator: string, value: unknown) => {
+        filters.push([`not:${column}:${operator}`, value])
+        return query
+      }),
       order: vi.fn(() => query),
       limit: vi.fn(() => query),
       returns: vi.fn(() => query),
+      then: <TResult1 = { data: Array<Record<string, unknown>>; error: null }, TResult2 = never>(
+        onfulfilled?: ((value: { data: Array<Record<string, unknown>>; error: null }) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+      ) => {
+        const matchingRows = (rows[table] ?? []).filter(matches)
+        return Promise.resolve({ data: matchingRows, error: null }).then(onfulfilled, onrejected)
+      },
       maybeSingle: vi.fn(async () => {
         const tableRows = rows[table] ?? []
-        const rowIndex = tableRows.findIndex((candidate) => filters.every(([column, value]) => candidate[column] === value))
+        const rowIndex = tableRows.findIndex(matches)
         if (rowIndex < 0) return { data: null, error: null }
         const currentRow = tableRows[rowIndex]
         if (!currentRow) return { data: null, error: null }
@@ -495,6 +514,142 @@ describe('Payroll calculation repository scope and lifecycle', () => {
     const tamperedClient = makeClient({ payroll_periods: [{ ...period, ends_on: '2028-02-28' }] })
     await expect(createPayrollCalculationRepository(tamperedClient.client).getPayrollPeriod(scope, payrollAdministrationId, 2028, 2))
       .rejects.toMatchObject({ code: 'PAYROLL_PERIOD_BOUNDARIES_INVALID' })
+  })
+
+  it('keeps the legacy year-month adapter isolated from weekly calendar periods', async () => {
+    const monthly = {
+      id: '10000000-0000-4000-8000-000000000041',
+      payroll_administration_id: payrollAdministrationId,
+      source_tenant_id: scope.tenantId,
+      source_hr_group_id: scope.hrGroupId,
+      source_administration_id: scope.administrationId,
+      period_year: 2026,
+      period_month: 12,
+      starts_on: '2026-12-01',
+      ends_on: '2026-12-31',
+      status: 'OPEN',
+      created_at: '2026-10-05T10:00:00.000Z',
+      created_by_user_id: actorUserId,
+      updated_at: '2026-10-05T10:00:00.000Z',
+      updated_by_user_id: actorUserId,
+      periodicity: 'MONTHLY',
+      period_kind: 'REGULAR',
+    }
+    const weekly = {
+      ...monthly,
+      id: '10000000-0000-4000-8000-000000000042',
+      period_month: null,
+      period_number: 53,
+      periodicity: 'WEEKLY',
+      starts_on: '2026-12-25',
+      ends_on: '2026-12-31',
+    }
+    const { client, queryLog } = makeClient({ payroll_periods: [weekly, monthly] })
+    const repository = createPayrollCalculationRepository(client)
+
+    await expect(repository.getPayrollPeriod(scope, payrollAdministrationId, 2026, 12)).resolves.toMatchObject({ id: monthly.id })
+    await expect(repository.listPayrollPeriods(scope, payrollAdministrationId)).resolves.toEqual([monthly])
+    await expect(repository.listCalendarPeriods!(scope, payrollAdministrationId)).resolves.toEqual([
+      expect.objectContaining({
+        period_year: 2026,
+        period_month: null,
+        period_number: 53,
+        periodicity: 'WEEKLY',
+        period_kind: 'REGULAR',
+        starts_on: '2026-12-25',
+        ends_on: '2026-12-31',
+      }),
+      expect.objectContaining({
+        period_year: 2026,
+        period_month: 12,
+        periodicity: 'MONTHLY',
+        period_kind: 'REGULAR',
+        starts_on: '2026-12-01',
+        ends_on: '2026-12-31',
+      }),
+    ])
+    expect(queryLog.at(-1)?.filters).toEqual(expect.arrayContaining([
+      ['payroll_administration_id', payrollAdministrationId],
+      ['source_tenant_id', scope.tenantId],
+      ['source_hr_group_id', scope.hrGroupId],
+      ['source_administration_id', scope.administrationId],
+    ]))
+  })
+
+  it('uses the scoped monthly adapter while the additive calendar schema is not installed', async () => {
+    const period = {
+      id: '10000000-0000-4000-8000-000000000043',
+      payroll_administration_id: payrollAdministrationId,
+      source_tenant_id: scope.tenantId,
+      source_hr_group_id: scope.hrGroupId,
+      source_administration_id: scope.administrationId,
+      period_year: 2026,
+      period_month: 10,
+      starts_on: '2026-10-01',
+      ends_on: '2026-10-31',
+      status: 'DRAFT',
+      created_at: '2026-10-05T10:00:00.000Z',
+      created_by_user_id: actorUserId,
+      updated_at: '2026-10-05T10:00:00.000Z',
+      updated_by_user_id: actorUserId,
+    }
+    const from = vi.fn(() => {
+      let selected = '*'
+      const query = {
+        select: vi.fn((columns?: string) => { selected = columns ?? '*'; return query }),
+        eq: vi.fn(() => query),
+        not: vi.fn(() => query),
+        order: vi.fn(() => query),
+        limit: vi.fn(() => query),
+        returns: vi.fn(() => Promise.resolve(selected.includes('period_number')
+          ? { data: null, error: { code: 'PGRST204' } }
+          : { data: [period], error: null })),
+      }
+      return query
+    })
+    const repository = createPayrollCalculationRepository({ from } as unknown as PayrollSupabaseClient)
+
+    await expect(repository.listCalendarPeriods!(scope, payrollAdministrationId)).resolves.toEqual([{
+      period_year: 2026,
+      period_month: 10,
+      period_number: 10,
+      periodicity: 'MONTHLY',
+      period_kind: 'REGULAR',
+      starts_on: '2026-10-01',
+      ends_on: '2026-10-31',
+      planned_payment_date: null,
+      status: 'DRAFT',
+    }])
+    expect(from).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not open a non-monthly period through the legacy monthly cycle action', async () => {
+    const weekly = {
+      id: '10000000-0000-4000-8000-000000000044',
+      payroll_administration_id: payrollAdministrationId,
+      source_tenant_id: scope.tenantId,
+      source_hr_group_id: scope.hrGroupId,
+      source_administration_id: scope.administrationId,
+      period_year: 2026,
+      period_month: null,
+      period_number: 53,
+      periodicity: 'WEEKLY',
+      period_kind: 'REGULAR',
+      starts_on: '2026-12-25',
+      ends_on: '2026-12-31',
+      status: 'DRAFT',
+      created_at: '2026-10-05T10:00:00.000Z',
+      created_by_user_id: actorUserId,
+      updated_at: '2026-10-05T10:00:00.000Z',
+      updated_by_user_id: actorUserId,
+    }
+    const { client, queryLog } = makeClient({ payroll_periods: [weekly] })
+    const repository = createPayrollCalculationRepository(client)
+
+    await expect(repository.openPayrollPeriod!(scope, payrollAdministrationId, weekly.id, actorUserId, '2026-10-14T12:00:00.000Z'))
+      .rejects.toMatchObject({ code: 'PAYROLL_PERIOD_BOUNDARIES_INVALID' })
+    expect(queryLog).toHaveLength(1)
+    expect(queryLog[0]?.operation).toBe('select')
   })
 
   it('rejects period inserts whose dates do not exactly cover the requested month before querying', async () => {
