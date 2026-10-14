@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('../../supabase/migrations/20261013150000_core_employment_payroll_tax_profiles.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../../supabase/migrations/20261014091918_20261013150000_core_employment_payroll_tax_profiles.sql', import.meta.url), 'utf8')
 
 describe('Core employment payroll tax profile migration contract', () => {
   it('limits stored profiles to the supported, explicit Dutch monthly wage combination', () => {

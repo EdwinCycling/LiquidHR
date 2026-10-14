@@ -41,7 +41,6 @@
   "saveFailed": "Could not save your settings.",
   "invalid": "Check your language and theme selection.",
   "unauthenticated": "Sign in again to save your settings.",
-  "employeeSettings": { "title": "Employee settings", "description": "Employee settings will be added here later. Employee management remains available through Employees in the main menu.", "comingSoon": "Coming later", "close": "Close" },
   "administrationSelection": {
     "eyebrow": "Administration setup",
     "title": "Choose an administration",
@@ -80,12 +79,10 @@
       "starPerformerTags": "Cloud tags", "starPerformerTagsDescription": "Manage tenant-wide cloud tags that can be reused across multiple modules.",
       "jobs": "Jobs and job groups", "jobsDescription": "Maintain jobs and job groups within the active HR group over time.",
       "starPerformers": "Star performers", "starPerformersDescription": "Assess which employees are crucial per job or job group and assign expertise tags.",
-      "pendingActivation": "Not active yet",
-      "pendingActivationDescription": "This tile becomes fully active once the related Supabase migration has been applied.",
       "salary": "Scales and steps", "salaryDescription": "Manage effective salary scales, revisions and steps.",
       "holidays": "Holidays and Company Activities", "holidaysDescription": "Manage national and local holidays and company activities for the active HR group.",
       "talentFoundation": "Talent Management", "talentFoundationDescription": "Manage the talent library, levels and job profiles linked to the existing job architecture.", "teamCompass": "Team Compass", "teamCompassDescription": "Manage team campaigns, target groups and privacy-safe group insights for the active HR group.", "journeys": "Journeys", "journeysDescription": "Design HR group-wide Journey templates and publish immutable versions.",
-      "masterData": "Master data", "masterDataDescription": "Manage HR-group-wide termination reasons by country, administration-specific document categories and tenant-wide relation types.", "employmentContracts": "Employments and contracts", "employmentContractsDescription": "For the chosen administration, manage the default country, employment conditions, flex phases, salary frequencies and cost carriers.", "leave": "Leave accrual", "leaveDescription": "Manage HR-group-wide leave types, work hours, overtime and accrual rules.", "absence": "Absence", "absenceDescription": "Manage the HR-group-wide absence threshold and administration-specific custom WvP tasks.", "anniversaryRules": "Anniversary rules", "anniversaryRulesDescription": "Choose after how many service years work anniversaries appear in reports.", "companyDocuments": "Company documents", "companyDocumentsDescription": "Upload and delete documents for the active HR group.", "processAutomation": "Workflows and forms", "processAutomationDescription": "Build, test, publish and retire HR processes and forms without code.",
+      "masterData": "Master data", "masterDataDescription": "Manage HR-group-wide termination reasons by country, administration-specific document categories and tenant-wide relation types.", "employmentContracts": "Employments and contracts", "employmentContractsDescription": "For the chosen administration, manage the default country, employment conditions, flex phases, salary frequencies and cost carriers.", "leave": "Leave accrual", "leaveDescription": "Manage HR-group-wide leave types, work hours, overtime and accrual rules.", "absence": "Absence", "absenceDescription": "Manage the HR-group-wide absence threshold and administration-specific custom WvP tasks.", "anniversaryRules": "Anniversary rules", "anniversaryRulesDescription": "Choose after how many service years work anniversaries appear in reports.", "companyDocuments": "Company documents", "companyDocumentsDescription": "Upload and delete documents for the active HR group.", "processAutomation": "Workflows and forms", "processAutomationDescription": "Build, review, publish and retire HR processes and forms without code.",
       "research": "Surveys and eNPS", "researchDescription": "Create campaigns, manage audiences and track response and anonymised results.",
       "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide.", "companyBranding": "Company settings", "companyBrandingDescription": "Set company colors and logo for the active HR group.",
       "recruitment": "Recruitment", "recruitmentDescription": "Manage the recruitment pipeline, library, interview sets and privacy.", "ai": "AI & Automation", "aiDescription": "Manage AI, GPT-Live, roles, capabilities and conversation settings for this HR group."
@@ -124,7 +121,7 @@
   },
   "modules": {
     "title": "Active modules", "subtitle": "Choose which extra modules are available across the customer environment. Core functionality always remains active.",
-    "saved": "Modules saved.", "failed": "Could not save modules.", "comingSoon": "Coming soon",
+    "saved": "Modules saved.", "failed": "Could not save modules.",
     "items": {
       "HERA": { "name": "HeRa", "description": "The secure HR assistant for analysis and guided actions." },
       "DOCUMENTS": { "name": "Document files", "description": "Documents, metadata, audiences and expiry reminders per employee." },

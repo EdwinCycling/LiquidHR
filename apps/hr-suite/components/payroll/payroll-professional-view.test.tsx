@@ -147,7 +147,7 @@ const labels: Readonly<Record<string, string>> = {
   grossToNetExplanation: 'Gross to net',
   employerContributions: 'Employer contributions',
   pensionReadinessTitle: 'Pension source needs review',
-  pensionSourceVerificationRequired: 'Pension not calculated / source verification required',
+  pensionSourceVerificationRequired: 'Pension has not been calculated because the required source information could not be confirmed.',
   netNotDefinitive: 'The displayed net pay is not definitive while the pension source is missing.',
   event_CONCEPT: 'Concept',
 }
@@ -231,7 +231,7 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     const markup = renderToStaticMarkup(<PayrollRunReconciliation run={fritsRun} locale="nl-NL" labels={labels} />)
 
     expect(markup).toContain('Pension source needs review')
-    expect(markup).toContain('Pension not calculated / source verification required')
+    expect(markup).toContain('Pension has not been calculated because the required source information could not be confirmed.')
     expect(markup).toContain('The displayed net pay is not definitive while the pension source is missing.')
     expect(markup).not.toMatch(/Employee pension.{0,40}€\s*0,00/)
   })

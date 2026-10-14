@@ -4,7 +4,7 @@
   "presentation": { "label": "Presentation", "focus": "Focus", "full": "Full workspace" },
   "preview": { "title": "You are viewing LiquidHR as an employee", "status": "Preview · read-only", "close": "Close preview" },
   "actAs": { "title": "ON BEHALF OF EMPLOYEE", "description": "You are acting as {name}. Actions are recorded under your name as HR Admin.", "label": "You are acting as", "stop": "Stop", "start": "KIDHV", "tooltip": "KIDHV: temporarily open the employee workspace in this employee's role. Actions are recorded under your HR Admin account.", "starting": "Opening KIDHV…", "failed": "Act-as could not be started." },
-  "floating": { "label": "Quick actions", "open": "Open quick actions", "close": "Close quick actions", "leave": "Request leave", "sickness": "Report sickness", "employeeSickness": "Report employee sickness", "declaration": "New expense claim", "newRequest": "New request", "comingSoon": "Expense claims will be available later." },
+  "floating": { "label": "Quick actions", "open": "Open quick actions", "close": "Close quick actions", "leave": "Request leave", "sickness": "Report sickness", "employeeSickness": "Report employee sickness", "newRequest": "New request" },
   "experience": { "EMPLOYEE": "My Focus", "MANAGER": "My Focus · manager", "PREBOARDING": "Before your first day", "tooltip": "My Focus: your personal Focus workspace. The presentation switch is next to it." },
   "home": {
     "title": "Focus", "hello": "Hello {name}", "welcome": "Welcome {name}",
@@ -13,8 +13,8 @@
     "nextUp": "Your next step", "quickActions": "Quick access",
     "noEmploymentTitle": "No active employment yet",
     "noEmploymentDescription": "Focus becomes available once your employment is linked and confirmed. Contact HR if you have any questions.",
-    "noActionsTitle": "No actions available yet",
-    "noActionsDescription": "The areas available to you will appear here. Contact HR if you have any questions.",
+    "noActionsTitle": "No actions available",
+    "noActionsDescription": "There are currently no actions available for your account. Contact HR if you have any questions.",
     "blockedTitle": "Employee access is blocked",
     "blockedDescription": "Your Employee workspace is currently unavailable. Contact HR."
   },
@@ -47,8 +47,8 @@
     "progress": "Progress", "completed": "{completed} of {total} completed", "nextAction": "Next action",
     "available": "Available", "upcoming": "Coming up", "availableOn": "Available from {date}",
     "openAction": "Open this action", "openJourney": "View your journey", "noNextAction": "There is no next action for you right now.",
-    "emptyTitle": "No journey available yet", "emptyDescription": "Your assigned journey and next step will appear here when available.",
-    "preboardingEmptyDescription": "Your preparation will appear here once HR sets up your onboarding. There is nothing you need to do right now.",
+    "emptyTitle": "No journey has been assigned to you", "emptyDescription": "There is currently no journey assigned to you.",
+    "preboardingEmptyDescription": "HR has not assigned any onboarding steps to you. Contact HR if you need help.",
     "status": { "PLANNED": "Planned", "ACTIVE": "Active", "PAUSED": "Paused", "COMPLETED": "Completed", "CANCELLED": "Cancelled" }
   },
   "actions": {
@@ -74,7 +74,7 @@
     "name": "Name", "startDate": "First day", "openOnboarding": "View your onboarding",
     "preboardingProfile": "These are your details for your start. Complete your information through the assigned steps in your onboarding. Contact HR to make a correction.",
     "documentsPendingTitle": "Documents for your start", "preboardingDocuments": "Open assigned documents and signing requests from your onboarding. If there is no step yet, there is nothing you need to do right now.",
-    "requestsPendingTitle": "Your requests overview will appear here", "requestsPendingDescription": "This overview is not available yet. Find your leave requests via My leave on Focus. Contact HR about other requests.",
+    "requestsPendingTitle": "Other requests", "requestsPendingDescription": "Find your leave requests under My leave on Focus. Contact HR about other requests.",
     "leaveDescription": "View your current balance, planned leave and request leave easily.", "leaveOpen": "Request leave",
     "hoursDescription": "View your recorded and expected hours for this week.", "hoursOpen": "View hours",
     "requestsDescription": "See what you requested and what needs attention now.", "requestsOpen": "Open requests",

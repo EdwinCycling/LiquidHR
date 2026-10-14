@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('./supabase/migrations/20261013120000_paycalc_real01_generic_input_reference.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('./supabase/migrations/20261014091926_20261013120000_paycalc_real01_generic_input_reference.sql', import.meta.url), 'utf8')
 
 describe('PAYCALC-REAL-01 generic input reference migration contract', () => {
   it('stores an immutable, version-bound Core reference without cross-database relations', () => {

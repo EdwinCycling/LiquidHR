@@ -41,7 +41,6 @@
   "saveFailed": "Opslaan is niet gelukt.",
   "invalid": "Controleer je taal- en themakeuze.",
   "unauthenticated": "Log opnieuw in om je instellingen op te slaan.",
-  "employeeSettings": { "title": "Medewerkerinstellingen", "description": "Hier komen later de instellingen voor medewerkers. Het medewerkersbeheer zelf blijft bereikbaar via Medewerkers in het hoofdmenu.", "comingSoon": "Komt later", "close": "Sluiten" },
   "administrationSelection": {
     "eyebrow": "Administratie-inrichting",
     "title": "Kies een administratie",
@@ -80,12 +79,10 @@
       "starPerformerTags": "Cloud tags", "starPerformerTagsDescription": "Beheer tenantbrede cloud tags die in meerdere modules hergebruikt kunnen worden.",
       "jobs": "Functies en functiegroepen", "jobsDescription": "Onderhoud functies en functiegroepen binnen de actieve HR-groep en door de tijd.",
       "starPerformers": "Star performers", "starPerformersDescription": "Beoordeel per functie of functiegroep welke medewerkers cruciaal zijn en koppel expertise-tags.",
-      "pendingActivation": "Nog niet actief",
-      "pendingActivationDescription": "Deze tegel wordt volledig actief zodra de bijbehorende Supabase-migratie is uitgevoerd.",
       "salary": "Schalen en treden", "salaryDescription": "Beheer effectieve salarisschalen, revisies en treden.",
       "holidays": "Feestdagen en Bedrijfsactiviteiten", "holidaysDescription": "Beheer landelijke en lokale feestdagen en bedrijfsactiviteiten voor de actieve HR-groep.",
       "talentFoundation": "Talent Management", "talentFoundationDescription": "Beheer talentbibliotheek, niveaus en functieprofielen die aan het bestaande functiehuis zijn gekoppeld.", "teamCompass": "Teamkompas", "teamCompassDescription": "Beheer teamcampagnes, doelgroepen en privacyveilige groepsinzichten voor de actieve HR-groep.", "journeys": "Journeys", "journeysDescription": "Ontwerp HR-groepbrede Journey-templates en publiceer immutable versies.",
-      "masterData": "Stamtabellen", "masterDataDescription": "Beheer HR-groepbrede eindredenen per land, administratiegebonden documentcategorieÃ«n en tenantbrede relatietypen.", "employmentContracts": "Dienstverbanden en contracten", "employmentContractsDescription": "Beheer voor de gekozen administratie het standaardland, arbeidsvoorwaarden, flexfasen, salarisfrequenties en kostendragers.", "leave": "Verlofopbouw", "leaveDescription": "Beheer HR-groepbrede verloftypen, werkuren, overuren en opbouwregels.", "absence": "Verzuim", "absenceDescription": "Beheer de HR-groepbrede verzuimdrempel en administratiegebonden eigen WvP-taken.", "anniversaryRules": "Jubileumregels", "anniversaryRulesDescription": "Bepaal na hoeveel dienstjaren werkjubilea in rapportages verschijnen.", "companyDocuments": "Bedrijfsdocumenten", "companyDocumentsDescription": "Upload en verwijder documenten voor de actieve HR-groep.", "processAutomation": "Workflows en formulieren", "processAutomationDescription": "Bouw, test, publiceer en archiveer HR-processen en formulieren zonder code.",
+      "masterData": "Stamtabellen", "masterDataDescription": "Beheer HR-groepbrede eindredenen per land, administratiegebonden documentcategorieÃ«n en tenantbrede relatietypen.", "employmentContracts": "Dienstverbanden en contracten", "employmentContractsDescription": "Beheer voor de gekozen administratie het standaardland, arbeidsvoorwaarden, flexfasen, salarisfrequenties en kostendragers.", "leave": "Verlofopbouw", "leaveDescription": "Beheer HR-groepbrede verloftypen, werkuren, overuren en opbouwregels.", "absence": "Verzuim", "absenceDescription": "Beheer de HR-groepbrede verzuimdrempel en administratiegebonden eigen WvP-taken.", "anniversaryRules": "Jubileumregels", "anniversaryRulesDescription": "Bepaal na hoeveel dienstjaren werkjubilea in rapportages verschijnen.", "companyDocuments": "Bedrijfsdocumenten", "companyDocumentsDescription": "Upload en verwijder documenten voor de actieve HR-groep.", "processAutomation": "Workflows en formulieren", "processAutomationDescription": "Bouw, beoordeel, publiceer en archiveer HR-processen en formulieren zonder code.",
       "research": "Surveys en eNPS", "researchDescription": "Maak campagnes, beheer doelgroepen en volg respons en geanonimiseerde resultaten.",
       "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit.", "companyBranding": "Bedrijfsinstellingen", "companyBrandingDescription": "Stel bedrijfskleuren en het logo in voor de actieve HR-groep.",
       "recruitment": "Recruitment", "recruitmentDescription": "Beheer pipeline, bibliotheek, gesprekssets en privacy voor recruitment.", "ai": "AI & Automatisering", "aiDescription": "Beheer AI, GPT-Live, rollen, capabilities en gesprekseigenschappen voor deze HR-groep."
@@ -124,7 +121,7 @@
   },
   "modules": {
     "title": "Actieve modules", "subtitle": "Kies welke extra modules in de hele klantomgeving beschikbaar zijn. Kernfunctionaliteit blijft altijd actief.",
-    "saved": "Modules opgeslagen.", "failed": "Opslaan is niet gelukt.", "comingSoon": "Komt later",
+    "saved": "Modules opgeslagen.", "failed": "Opslaan is niet gelukt.",
     "items": {
       "HERA": { "name": "HeRa", "description": "De beveiligde HR-assistent voor analyse en begeleide acties." },
       "DOCUMENTS": { "name": "Documentdossiers", "description": "Documenten, metadata, doelgroepen en vervalreminders per medewerker." },

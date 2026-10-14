@@ -77,6 +77,14 @@ export type EmployeePayrollCalculationView = {
   readonly errorCode: string | null
 }
 
+export type EmployeePayrollPreflightView = {
+  readonly employeeId: string
+  readonly employmentId: string
+  readonly period: EmployeePayrollPeriod
+  readonly eligibleForCalculation: boolean
+  readonly gaps: readonly PayrollSourceGap[]
+}
+
 export class EmployeePayrollCalculationError extends Error {
   constructor(readonly code: string, readonly status: 400 | 403 | 404 | 409 | 503 = 409) {
     super(code)
@@ -550,6 +558,47 @@ function sourceGapsResult(snapshot: PayrollSourceSnapshot, gaps: readonly Payrol
 }
 
 export function createEmployeePayrollCalculationService(dependencies: EmployeePayrollCalculationDependencies = defaults) {
+  async function inspectEmployeePayrollSource(input: {
+    readonly employeeId: string
+    readonly employmentId: string
+    readonly period: EmployeePayrollPeriod
+  }): Promise<EmployeePayrollPreflightView> {
+    assertPeriod(input.period)
+    assertOpaqueId(input.employeeId)
+    assertOpaqueId(input.employmentId)
+    if (!dependencies.enabled()) throw new EmployeePayrollCalculationError('PAYROLL_SERVICE_UNAVAILABLE', 503)
+    const access = await dependencies.requireAccess(false)
+    const { scope, administration } = access
+    const periodRow = await dependencies.createCalculationRepository().getPayrollPeriod(
+      scope,
+      administration.id,
+      input.period.year,
+      input.period.month,
+    )
+    if (!periodRow) throw new EmployeePayrollCalculationError('PAYROLL_CYCLE_NOT_FOUND', 404)
+    if (periodRow.status !== 'OPEN') throw new EmployeePayrollCalculationError('PAYROLL_CYCLE_NOT_OPEN')
+
+    const snapshot = await dependencies.sourceProvider.getPayrollSourceSnapshot({
+      ...scope,
+      employeeId: input.employeeId,
+      employmentId: input.employmentId,
+      payrollPeriod: input.period,
+    })
+    if (snapshot.sourceEmployeeId !== input.employeeId || snapshot.sourceEmploymentId !== input.employmentId
+      || snapshot.sourceTenantId !== scope.tenantId || snapshot.sourceHrGroupId !== scope.hrGroupId
+      || snapshot.sourceAdministrationId !== scope.administrationId) {
+      throw new EmployeePayrollCalculationError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+    }
+    const gaps = [...snapshot.sourceGaps, ...validateSupportedRegularMonth(snapshot)]
+    return {
+      employeeId: input.employeeId,
+      employmentId: input.employmentId,
+      period: input.period,
+      eligibleForCalculation: !gaps.some(isBlockingGap),
+      gaps,
+    }
+  }
+
   async function calculateEmployeePayroll(input: {
     readonly employeeId: string
     readonly employmentId: string
@@ -942,10 +991,18 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     return { runId: input.runId, eventType, revision: latest.revision }
   }
 
-  return { calculateEmployeePayroll, reviewEmployeePayroll, finalizeEmployeePayroll }
+  return { inspectEmployeePayrollSource, calculateEmployeePayroll, reviewEmployeePayroll, finalizeEmployeePayroll }
 }
 
 const defaultService = () => createEmployeePayrollCalculationService()
+
+export async function inspectEmployeePayrollSource(input: {
+  readonly employeeId: string
+  readonly employmentId: string
+  readonly period: EmployeePayrollPeriod
+}): Promise<EmployeePayrollPreflightView> {
+  return await defaultService().inspectEmployeePayrollSource(input)
+}
 
 export async function calculateEmployeePayroll(input: {
   readonly employeeId: string

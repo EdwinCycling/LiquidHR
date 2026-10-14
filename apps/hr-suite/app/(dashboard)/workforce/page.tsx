@@ -66,7 +66,7 @@ export default async function WorkforcePage() {
       <section aria-labelledby="workforce-windows-title" className="mt-8">
         <h2 className="sr-only" id="workforce-windows-title">{t('title')}</h2>
         <div className="grid gap-5 lg:grid-cols-2">
-          {windows.map(({ icon: Icon, title, description, href, status = t('workInProgress'), footer = t('comingSoon') }) => (
+          {windows.map(({ icon: Icon, title, description, href, status, footer }) => (
             <article className={`group min-h-64 rounded-[1.5rem] border ${href ? 'bg-surface' : 'border-dashed border-primary/25 bg-surface'} p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-md sm:p-7`} key={title}>
               <div className="flex items-start justify-between gap-4">
                 <span className="grid size-12 place-items-center rounded-2xl bg-accent text-primary">

@@ -269,6 +269,23 @@ function harness(options: Parameters<typeof provider>[0] = {}, sourceProviderOve
 }
 
 describe('Core-backed employee payroll calculation', () => {
+  it('preflights source eligibility without writing payroll snapshots, runs, or results', async () => {
+    const eligible = harness()
+    const ready = await eligible.service.inspectEmployeePayrollSource({ employeeId, employmentId, period })
+    expect(ready.eligibleForCalculation).toBe(true)
+    expect(eligible.snapshots.size).toBe(0)
+    expect(eligible.runs.size).toBe(0)
+    expect(eligible.inputs.size).toBe(0)
+
+    const missingFiscalProfile = harness({ includeTaxProfile: false })
+    const blocked = await missingFiscalProfile.service.inspectEmployeePayrollSource({ employeeId, employmentId, period })
+    expect(blocked.eligibleForCalculation).toBe(false)
+    expect(blocked.gaps).toContainEqual(expect.objectContaining({ field: 'taxProfile', status: 'SOURCE_GAP' }))
+    expect(missingFiscalProfile.snapshots.size).toBe(0)
+    expect(missingFiscalProfile.runs.size).toBe(0)
+    expect(missingFiscalProfile.inputs.size).toBe(0)
+  })
+
   it('calculates a supported regular month, persists a concept, reuses retries, and creates a new revision after salary change', async () => {
     let salary = 4000
     let salaryUpdatedAt = runTime

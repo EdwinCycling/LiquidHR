@@ -1,113 +1,103 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  getTestRoleSwitchTarget,
-  TEST_ROLE_SWITCH_TARGETS,
-  getTestAuthHarnessCredentials,
-  canReturnToTestHrAdmin,
   canInitiateTestRoleSwitch,
+  canReturnToLocalPersonaOwner,
+  canUseLocalPersonaSwitcher,
+  getAvailableTestRoleSwitchTarget,
+  getTestRoleSwitchTarget,
+  isLocalhostHost,
+  isLocalPersonaRuntime,
   isTestRoleSwitchAccount,
   isTestRoleSwitchEnabled,
   resolveSupabaseProjectRef,
+  TEST_ROLE_SWITCH_TARGETS,
 } from '@/lib/auth/test-role-switch'
 
 const CANONICAL_SUPABASE_URL = 'https://wnpfloqpjvaacobppbpk.supabase.co'
+const localEnvironment = {
+  nodeEnv: 'development',
+  vercel: '',
+  vercelEnv: '',
+  vercelUrl: '',
+  explicitFlag: 'true',
+  supabaseUrl: CANONICAL_SUPABASE_URL,
+}
 
-describe('test role switch', () => {
-  it('beperkt de wisselaar tot de vaste accounts uit de TEST-harness', () => {
-    expect(isTestRoleSwitchAccount('EDWIN@EDITSOLUTIONS.NL')).toBe(true)
-    expect(isTestRoleSwitchAccount('hradmin.fixture@liquidhr.test')).toBe(true)
-    expect(isTestRoleSwitchAccount('lisa.test@liquidhr.test')).toBe(true)
-    expect(isTestRoleSwitchAccount('jaap.test@liquidhr.test')).toBe(true)
-    expect(isTestRoleSwitchAccount('frits.test@liquidhr.test')).toBe(true)
-    expect(isTestRoleSwitchAccount('other@example.com')).toBe(false)
+describe('local persona switch authorization', () => {
+  it('uses the fixed supported account keys and marks Jaap and Frits unavailable', () => {
     expect(TEST_ROLE_SWITCH_TARGETS.map((target) => target.key)).toEqual([
       'edwin', 'hr-admin', 'manager', 'employee', 'payroll-lisa', 'payroll-jaap', 'payroll-frits',
     ])
-  })
-
-  it('vindt alleen een allowlisted target key', () => {
+    expect(TEST_ROLE_SWITCH_TARGETS.filter((target) => !target.available).map((target) => target.key)).toEqual([
+      'payroll-jaap', 'payroll-frits',
+    ])
     expect(getTestRoleSwitchTarget('manager')?.email).toBe('manager.fixture@liquidhr.test')
-    expect(getTestRoleSwitchTarget('arbitrary-email')).toBeNull()
+    expect(getAvailableTestRoleSwitchTarget('payroll-jaap')).toBeNull()
+    expect(getTestRoleSwitchTarget('unknown')).toBeNull()
   })
 
-  it('beperkt het starten van de wissel tot een bevoegde beheerrol', () => {
+  it('recognizes only the fixed identities', () => {
+    expect(isTestRoleSwitchAccount('EDWIN@EDITSOLUTIONS.NL')).toBe(true)
+    expect(isTestRoleSwitchAccount('hradmin.fixture@liquidhr.test')).toBe(true)
+    expect(isTestRoleSwitchAccount('other@example.com')).toBe(false)
+  })
+
+  it('keeps the former business-role guard distinct from the local owner capability', () => {
     expect(canInitiateTestRoleSwitch(['HR_ADMIN'])).toBe(true)
     expect(canInitiateTestRoleSwitch(['TENANT_ADMIN'])).toBe(true)
-    expect(canInitiateTestRoleSwitch(['DIRECT_MANAGER'])).toBe(false)
+    expect(canInitiateTestRoleSwitch(['MANAGER'])).toBe(false)
     expect(canInitiateTestRoleSwitch(['EMPLOYEE'])).toBe(false)
     expect(canInitiateTestRoleSwitch([])).toBe(false)
+    expect(canUseLocalPersonaSwitcher('127.0.0.1:3010', {
+      email: 'edwin@editsolutions.nl',
+      emailVerified: true,
+    }, localEnvironment)).toBe(true)
   })
 
-  it('biedt Manager, Employee en Payroll-testpersonas een terugkeer naar Test HR Admin', () => {
-    expect(canReturnToTestHrAdmin('manager.fixture@liquidhr.test')).toBe(true)
-    expect(canReturnToTestHrAdmin('employee.fixture@liquidhr.test')).toBe(true)
-    expect(canReturnToTestHrAdmin('lisa.test@liquidhr.test')).toBe(true)
-    expect(canReturnToTestHrAdmin('jaap.test@liquidhr.test')).toBe(true)
-    expect(canReturnToTestHrAdmin('frits.test@liquidhr.test')).toBe(true)
-    expect(canReturnToTestHrAdmin('hradmin.fixture@liquidhr.test')).toBe(false)
-    expect(canReturnToTestHrAdmin('other@example.com')).toBe(false)
+  it('requires a verified owner and the exact local Development environment', () => {
+    const owner = { email: 'edwin@editsolutions.nl', emailVerified: true }
+    expect(canUseLocalPersonaSwitcher('localhost:3010', owner, localEnvironment)).toBe(true)
+    expect(canUseLocalPersonaSwitcher('localhost:3010', { ...owner, emailVerified: false }, localEnvironment)).toBe(false)
+    expect(canUseLocalPersonaSwitcher('localhost:3010', { ...owner, email: 'other@example.com' }, localEnvironment)).toBe(false)
+    expect(canUseLocalPersonaSwitcher('app.example.com', owner, localEnvironment)).toBe(false)
+    expect(canUseLocalPersonaSwitcher('localhost:3010', owner, { ...localEnvironment, explicitFlag: 'false' })).toBe(false)
+    expect(canUseLocalPersonaSwitcher('localhost:3010', owner, { ...localEnvironment, supabaseUrl: 'https://other-project.supabase.co' })).toBe(false)
+    expect(canUseLocalPersonaSwitcher('localhost:3010', owner, { ...localEnvironment, vercelEnv: 'preview' })).toBe(false)
+    expect(canUseLocalPersonaSwitcher('localhost:3010', owner, { ...localEnvironment, nodeEnv: 'production' })).toBe(false)
   })
 
-  it('vereist de expliciete flag en de canonieke LiquidHR Supabase-projectref', () => {
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'development', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(true)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'development', explicitFlag: 'false', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'development', explicitFlag: 'true' })).toBe(false)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'development', explicitFlag: 'true', supabaseUrl: 'https://other-project.supabase.co' })).toBe(false)
+  it('allows a verified fixed persona only to return to Edwin', () => {
+    const manager = { email: 'manager.fixture@liquidhr.test', emailVerified: true }
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', manager, localEnvironment)).toBe(true)
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', { ...manager, emailVerified: false }, localEnvironment)).toBe(false)
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', { ...manager, email: 'other@example.com' }, localEnvironment)).toBe(false)
+    expect(canReturnToLocalPersonaOwner('preview.example.com', manager, localEnvironment)).toBe(false)
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', { email: 'edwin@editsolutions.nl', emailVerified: true }, localEnvironment)).toBe(false)
   })
 
-  it('resolveert alleen een kale Supabase-project-URL naar een ref', () => {
+  it('accepts loopback hosts and rejects lookalike or forwarded host values', () => {
+    expect(isLocalhostHost('localhost:3010')).toBe(true)
+    expect(isLocalhostHost('127.0.0.1:3010')).toBe(true)
+    expect(isLocalhostHost('[::1]:3000')).toBe(true)
+    expect(isLocalhostHost('localhost.example.com')).toBe(false)
+    expect(isLocalhostHost('localhost:3010, attacker.example')).toBe(false)
+    expect(isLocalhostHost('attacker.example')).toBe(false)
+  })
+
+  it('requires the explicit flag, local Development, no Vercel runtime and the canonical Core TEST project', () => {
+    expect(isTestRoleSwitchEnabled(localEnvironment)).toBe(true)
+    expect(isLocalPersonaRuntime('127.0.0.1:3010', localEnvironment)).toBe(true)
+    expect(isTestRoleSwitchEnabled({ ...localEnvironment, explicitFlag: 'false' })).toBe(false)
+    expect(isTestRoleSwitchEnabled({ ...localEnvironment, supabaseUrl: 'https://other-project.supabase.co' })).toBe(false)
+    expect(isTestRoleSwitchEnabled({ ...localEnvironment, nodeEnv: 'production' })).toBe(false)
+    expect(isTestRoleSwitchEnabled({ ...localEnvironment, vercelEnv: 'preview' })).toBe(false)
+    expect(isTestRoleSwitchEnabled({ ...localEnvironment, vercel: '1' })).toBe(false)
+    expect(isTestRoleSwitchEnabled({ ...localEnvironment, vercelUrl: 'local-override.vercel.app' })).toBe(false)
+  })
+
+  it('resolves only a bare Supabase project URL', () => {
     expect(resolveSupabaseProjectRef(CANONICAL_SUPABASE_URL)).toBe('wnpfloqpjvaacobppbpk')
-    expect(resolveSupabaseProjectRef('https://other-project.supabase.co')).toBe('other-project')
     expect(resolveSupabaseProjectRef('https://wnpfloqpjvaacobppbpk.supabase.co/rest/v1')).toBeNull()
     expect(resolveSupabaseProjectRef('not-a-url')).toBeNull()
-  })
-
-  it('houdt een productie-build zonder Vercel-context gesloten', () => {
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production' })).toBe(false)
-  })
-
-  it('houdt test-login en rolwissel uit iedere production-runtime', () => {
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'production', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'production', explicitFlag: 'false', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'production', explicitFlag: 'true', supabaseUrl: 'https://real-production.supabase.co' })).toBe(false)
-  })
-
-  it('houdt test-login en rolwissel uit Vercel Preview en lokale Vercel-runtime', () => {
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: ' TRUE ', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: 'true', supabaseUrl: 'https://real-production.supabase.co' })).toBe(false)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'development', vercel: '1', explicitFlag: 'true', supabaseUrl: CANONICAL_SUPABASE_URL })).toBe(false)
-  })
-
-  it('is disabled by default in test runtime', () => {
-    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', '')
-    vi.stubEnv('NODE_ENV', 'test')
-    vi.stubEnv('VERCEL_ENV', '')
-    vi.stubEnv('VERCEL', '')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', CANONICAL_SUPABASE_URL)
-    expect(isTestRoleSwitchEnabled()).toBe(false)
-    vi.unstubAllEnvs()
-  })
-
-  it('blijft gesloten met een stale flag in de productieomgeving', () => {
-    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
-    vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('VERCEL_ENV', 'production')
-    vi.stubEnv('VERCEL', '1')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', CANONICAL_SUPABASE_URL)
-    expect(isTestRoleSwitchEnabled()).toBe(false)
-    vi.unstubAllEnvs()
-  })
-
-  it('gebruikt alleen de vaste synthetische HR Admin met een servercredential', () => {
-    expect(getTestAuthHarnessCredentials('hr-admin', 'synthetic-password')).toEqual({
-      email: 'hradmin.fixture@liquidhr.test',
-      password: 'synthetic-password',
-    })
-    expect(getTestAuthHarnessCredentials('hr-admin', '')).toBeNull()
-    expect(getTestAuthHarnessCredentials('manager', 'synthetic-password')).toBeNull()
-    expect(getTestAuthHarnessCredentials('employee', 'synthetic-password')).toBeNull()
-    expect(getTestAuthHarnessCredentials('edwin', 'synthetic-password')).toBeNull()
-    expect(getTestAuthHarnessCredentials('arbitrary-user', 'synthetic-password')).toBeNull()
   })
 })

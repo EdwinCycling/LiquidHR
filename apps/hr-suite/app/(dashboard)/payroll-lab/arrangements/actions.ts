@@ -45,11 +45,16 @@ function safeErrorCode(error: unknown): string {
   return 'save-failed'
 }
 
-function errorLocation(error: unknown): string {
+function errorLocation(error: unknown, development = false): string {
   const code = safeErrorCode(error)
   if (code === 'login') return '/login'
   if (code === 'access') return '/geen-toegang'
-  return `/payroll-lab/arrangements?error=${encodeURIComponent(code)}`
+  const route = development ? '/payroll-lab/development/arrangements' : '/payroll-lab/arrangements'
+  return `${route}?error=${encodeURIComponent(code)}`
+}
+
+function requireDevelopmentRoute(): void {
+  if (process.env.NODE_ENV === 'production') throw new AuthorizationError('Payroll development tools unavailable.')
 }
 
 export async function makeArrangementPackagesAvailableAction(formData: FormData): Promise<never> {
@@ -96,8 +101,9 @@ export async function extendArrangementPackageAvailabilityStartAction(formData: 
 }
 
 export async function createSyntheticArrangementAssignmentAction(formData: FormData): Promise<never> {
-  let destination = '/payroll-lab/arrangements?error=save-failed'
+  let destination = '/payroll-lab/development/arrangements?error=save-failed'
   try {
+    requireDevelopmentRoute()
     if (!fieldsMatch(formData, ['fixtureCode', 'packageId'])) throw new Error('Invalid form.')
     const fixtureCode = stringField(formData, 'fixtureCode', 80)
     const packageId = stringField(formData, 'packageId', 120)
@@ -110,24 +116,25 @@ export async function createSyntheticArrangementAssignmentAction(formData: FormD
       effectiveFrom: fixture.effectiveFrom,
       effectiveTo: null,
     })
-    destination = `/payroll-lab/arrangements?saved=1&fixture=${encodeURIComponent(assignment.fixture_code)}`
+    destination = `/payroll-lab/development/arrangements?saved=1&fixture=${encodeURIComponent(assignment.fixture_code)}`
   } catch (error) {
-    destination = errorLocation(error)
+    destination = errorLocation(error, true)
   }
   redirect(destination)
 }
 
 export async function resolveArrangementCompositionAction(formData: FormData): Promise<never> {
-  let destination = '/payroll-lab/arrangements?error=save-failed'
+  let destination = '/payroll-lab/development/arrangements?error=save-failed'
   try {
+    requireDevelopmentRoute()
     if (!fieldsMatch(formData, ['fixtureCode', 'asOfDate'])) throw new Error('Invalid form.')
     const fixtureCode = stringField(formData, 'fixtureCode', 80)
     const asOfDate = stringField(formData, 'asOfDate', 10)
     if (!fixtureCode || !asOfDate) throw new Error('Invalid form.')
     const snapshot = await createArrangementCompositionSnapshot({ fixtureCode, asOfDate })
-    destination = `/payroll-lab/arrangements?snapshot=1&fixture=${encodeURIComponent(fixtureCode)}&snapshotId=${encodeURIComponent(snapshot.id)}`
+    destination = `/payroll-lab/development/arrangements?snapshot=1&fixture=${encodeURIComponent(fixtureCode)}&snapshotId=${encodeURIComponent(snapshot.id)}`
   } catch (error) {
-    destination = errorLocation(error)
+    destination = errorLocation(error, true)
   }
   redirect(destination)
 }

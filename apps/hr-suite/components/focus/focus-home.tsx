@@ -122,7 +122,7 @@ export function FocusHome(props: FocusPageData) {
             </div>
           </>
         )}
-         {!data.readOnly && (data.canRequestLeave || data.canReportAbsence || data.canReportEmployeeAbsence) ? <FocusFloatingActions canRequestLeave={data.canRequestLeave} canReportEmployeeSickness={data.canReportEmployeeAbsence} canReportSickness={data.canReportAbsence} employeeSicknessHref="/focus/team" labels={{ label: t('floating.label'), openLabel: t('floating.open'), closeLabel: t('floating.close'), leave: t('floating.leave'), sickness: t('floating.sickness'), employeeSickness: t('floating.employeeSickness'), declaration: t('floating.declaration'), comingSoon: t('floating.comingSoon') }} /> : null}
+         {!data.readOnly && (data.canRequestLeave || data.canReportAbsence || data.canReportEmployeeAbsence) ? <FocusFloatingActions canRequestLeave={data.canRequestLeave} canReportEmployeeSickness={data.canReportEmployeeAbsence} canReportSickness={data.canReportAbsence} employeeSicknessHref="/focus/team" labels={{ label: t('floating.label'), openLabel: t('floating.open'), closeLabel: t('floating.close'), leave: t('floating.leave'), sickness: t('floating.sickness'), employeeSickness: t('floating.employeeSickness') }} /> : null}
     </FocusShell>
   )
 }

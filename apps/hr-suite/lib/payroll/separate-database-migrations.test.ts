@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
-const coreMigration = readFileSync(new URL('../../supabase/migrations/20261013150000_core_employment_payroll_tax_profiles.sql', import.meta.url), 'utf8')
-const payrollMigration = readFileSync(new URL('./supabase/migrations/20261013120000_paycalc_real01_generic_input_reference.sql', import.meta.url), 'utf8')
+const coreMigration = readFileSync(new URL('../../supabase/migrations/20261014091918_20261013150000_core_employment_payroll_tax_profiles.sql', import.meta.url), 'utf8')
+const payrollMigration = readFileSync(new URL('./supabase/migrations/20261014091926_20261013120000_paycalc_real01_generic_input_reference.sql', import.meta.url), 'utf8')
 
 // These are business-data-free subsets of the actual Core TEST and Payroll Lab TEST
 // catalogs read on 2026-10-13. Composite keys and columns used by the two migrations

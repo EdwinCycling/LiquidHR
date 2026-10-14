@@ -48,6 +48,7 @@ type PayrollInsert<Table extends keyof PayrollDatabase['public']['Tables']> = Pa
 export interface PayrollCalculationRepository {
   getPayrollAdministrationGate(scope: PayrollScope, payrollAdministrationId: string): Promise<PayrollAdministrationGate | null>
   getPayrollPeriod(scope: PayrollScope, payrollAdministrationId: string, year: number, month: number): Promise<PayrollPeriodRow | null>
+  listPayrollPeriods(scope: PayrollScope, payrollAdministrationId: string, limit?: number): Promise<readonly PayrollPeriodRow[]>
   insertPayrollPeriod(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'payroll_periods'>): Promise<PayrollPeriodRow>
   openPayrollPeriod?(
     scope: PayrollScope,
@@ -224,6 +225,27 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
     throwOnError(error)
     if (data) assertPayrollPeriodBoundaries(data)
     return data
+  }
+
+  async listPayrollPeriods(scope: PayrollScope, payrollAdministrationId: string, limit = 24): Promise<readonly PayrollPeriodRow[]> {
+    const validatedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_LIMIT_INVALID')
+    }
+
+    const { data, error } = await applyPayrollScopeFilter(
+      this.client.from('payroll_periods').select('*')
+        .eq('payroll_administration_id', payrollAdministrationId)
+        .order('period_year', { ascending: false })
+        .order('period_month', { ascending: false })
+        .limit(limit),
+      validatedScope,
+    ).returns<PayrollPeriodRow[]>()
+    throwOnError(error)
+    const periods = data ?? []
+    periods.forEach(assertPayrollPeriodBoundaries)
+    return periods
   }
 
   async openPayrollPeriod(

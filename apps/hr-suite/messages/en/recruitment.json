@@ -1,9 +1,5 @@
 {
   "eyebrow": "Applications",
-  "foundationTitle": "Applications",
-  "foundationDescription": "The secure recruitment foundation is available to authorized HR users.",
-  "foundationReadyTitle": "Foundation ready",
-  "foundationReadyDescription": "Vacancies and applications will be connected to this protected foundation in the next build step.",
   "overview": {
     "title": "Recruitment",
     "description": "Manage vacancies, candidates, and application progress from one calm workspace.",

@@ -80,6 +80,20 @@ describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
     expect(fallback).toContain('class="employer-wordmark">LiquidHR Company</span>')
   })
 
+  it('keeps the pension blocker and non-final net amount clear on the employee payslip', () => {
+    const html = renderPayrun01PayslipHtml({
+      ...input,
+      data: {
+        ...input.data,
+        profile: { ...input.data.profile, pensionTreatment: 'EXCLUDED_SOURCE_GAP' },
+        sourceWarnings: [],
+      },
+    })
+
+    expect(html).toContain('De pensioenpremie is niet berekend. Het nettobedrag is niet definitief zolang de pensioenbron niet is geverifieerd.')
+    expect(html).toContain('Netto vóór niet-berekende pensioenpremie')
+  })
+
   it('does not invent a name when only a synthetic marker remains', () => {
     expect(() => renderPayrun01PayslipHtml({
       ...input,

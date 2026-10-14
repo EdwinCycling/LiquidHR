@@ -1,17 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createAdminClient, generateLink, listUsers, getUserById, getRequestAuthorizationContext, permissionErrorResponse, requirePermission, signOut } = vi.hoisted(() => ({
+const { createClient, createAdminClient, getClaims, signOut, generateLink, listUsers } = vi.hoisted(() => ({
+  createClient: vi.fn(),
   createAdminClient: vi.fn(),
+  getClaims: vi.fn(),
+  signOut: vi.fn(),
   generateLink: vi.fn(),
   listUsers: vi.fn(),
-  getUserById: vi.fn(),
-  getRequestAuthorizationContext: vi.fn(),
-  permissionErrorResponse: vi.fn(),
-  requirePermission: vi.fn(),
-  signOut: vi.fn(),
 }))
 
-vi.mock('@/lib/auth/permissions', () => ({ getRequestAuthorizationContext, permissionErrorResponse, requirePermission }))
+vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 
 import { NextRequest } from 'next/server'
@@ -19,23 +17,27 @@ import { ACTIVE_ADMINISTRATION_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_TENANT_COO
 import { POST } from './route'
 
 const CANONICAL_SUPABASE_URL = 'https://wnpfloqpjvaacobppbpk.supabase.co'
-const APPLICATION_URL = 'https://liquid-hr-hr-suite.vercel.app'
+const LOCAL_ORIGIN = 'http://127.0.0.1:3010'
+type AuthTestUser = { id: string; email: string; email_confirmed_at: string | null; is_anonymous: boolean }
+const TARGET_EMAILS: AuthTestUser[] = [
+  'edwin@editsolutions.nl',
+  'hradmin.fixture@liquidhr.test',
+  'manager.fixture@liquidhr.test',
+  'employee.fixture@liquidhr.test',
+  'lisa.test@liquidhr.test',
+].map((email, index) => ({
+  id: `user-${index + 1}`,
+  email,
+  email_confirmed_at: '2026-01-01T00:00:00.000Z',
+  is_anonymous: false,
+}))
 
-function switchRequest(target: string, next?: string, requestUrl = APPLICATION_URL): NextRequest {
+function switchRequest(target: string, next?: string, origin = LOCAL_ORIGIN, requestUrl = origin): NextRequest {
   const body = new URLSearchParams({ target })
   if (next !== undefined) body.set('next', next)
   return new NextRequest(`${requestUrl}/api/auth/test-role-switch`, {
     method: 'POST',
-    headers: { origin: requestUrl, host: new URL(requestUrl).host },
-    body,
-  })
-}
-
-function switchEmployeeRequest(employeeId: string, requestUrl = APPLICATION_URL): NextRequest {
-  const body = new URLSearchParams({ target: 'scoped-employee', employeeId })
-  return new NextRequest(`${requestUrl}/api/auth/test-role-switch`, {
-    method: 'POST',
-    headers: { origin: requestUrl, host: new URL(requestUrl).host },
+    headers: { origin, host: new URL(requestUrl).host },
     body,
   })
 }
@@ -44,311 +46,193 @@ function enableSwitcher(supabaseUrl = CANONICAL_SUPABASE_URL): void {
   vi.stubEnv('NODE_ENV', 'development')
   vi.stubEnv('VERCEL_ENV', '')
   vi.stubEnv('VERCEL', '')
-  vi.stubEnv('VERCEL_URL', 'liquid-hr-hr-suite.vercel.app')
+  vi.stubEnv('VERCEL_URL', '')
   vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', supabaseUrl)
 }
 
-function setAuthorizationContext(email: string, activeRoles: string[]) {
-  const supabase = { auth: { signOut }, from: vi.fn() }
-  getRequestAuthorizationContext.mockResolvedValue({
-    supabase,
-    context: { activeRoles, tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1' },
-    email,
+function setIdentity(email: string, emailVerified = true) {
+  getClaims.mockResolvedValue({
+    data: { claims: { sub: `auth-${email}`, email, email_verified: emailVerified } },
+    error: null,
   })
-  return supabase
+  return { auth: { getClaims, signOut } }
 }
 
-function queryResult(result: { data: unknown; error: null }) {
-  const query = {
-    select: vi.fn(() => query),
-    eq: vi.fn(() => query),
-    is: vi.fn(() => query),
-    lte: vi.fn(() => query),
-    or: vi.fn(() => query),
-    limit: vi.fn(() => query),
-    maybeSingle: vi.fn(async () => result),
-  }
-  return query
+function authAdmin(users: AuthTestUser[] = TARGET_EMAILS) {
+  createAdminClient.mockReturnValue({ auth: { admin: { generateLink, listUsers } } })
+  listUsers.mockResolvedValue({ data: { users, lastPage: 1 }, error: null })
 }
 
 describe('POST /api/auth/test-role-switch', () => {
   beforeEach(() => {
+    createClient.mockReset()
     createAdminClient.mockReset()
-    generateLink.mockReset()
-    getUserById.mockReset()
-    listUsers.mockReset()
-    getRequestAuthorizationContext.mockReset()
-    permissionErrorResponse.mockReset()
-    requirePermission.mockReset()
+    getClaims.mockReset()
     signOut.mockReset()
-    permissionErrorResponse.mockReturnValue(null)
-    setAuthorizationContext('hradmin.fixture@liquidhr.test', ['TENANT_ADMIN'])
-    createAdminClient.mockReturnValue({ auth: { admin: { generateLink, listUsers, getUserById } } })
-    generateLink.mockResolvedValue({ data: { properties: { hashed_token: 'hashed-token' } }, error: null })
-    listUsers.mockImplementation(async () => ({ data: { users: [{ email: 'lisa.test@liquidhr.test' }, { email: 'jaap.test@liquidhr.test' }, { email: 'frits.test@liquidhr.test' }], lastPage: 1 }, error: null }))
-    getUserById.mockResolvedValue({ data: { user: { email: 'employee.test@liquidhr.test' } }, error: null })
+    generateLink.mockReset()
+    listUsers.mockReset()
+    enableSwitcher()
+    createClient.mockImplementation(async () => setIdentity('edwin@editsolutions.nl'))
+    authAdmin()
+    generateLink.mockResolvedValue({ data: { properties: { hashed_token: 'one-time-hash' } }, error: null })
     signOut.mockResolvedValue({ error: null })
-    requirePermission.mockResolvedValue({ tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1' })
   })
 
-  afterEach(() => {
-    vi.unstubAllEnvs()
-  })
+  afterEach(() => vi.unstubAllEnvs())
 
-  it('weigert een niet-canoniek Supabase-project voordat de sessie wordt gelezen', async () => {
+  it('rejects a noncanonical TEST project before reading identity or creating an admin client', async () => {
     enableSwitcher('https://other-project.supabase.co')
 
     const response = await POST(switchRequest('manager'))
 
     expect(response.status).toBe(404)
-    await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_DISABLED' })
-    expect(getRequestAuthorizationContext).not.toHaveBeenCalled()
+    expect(getClaims).not.toHaveBeenCalled()
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 
-  it('weigert een cross-origin verzoek voordat de sessie of adminclient wordt gelezen', async () => {
-    enableSwitcher()
-    const request = new NextRequest(`${APPLICATION_URL}/api/auth/test-role-switch`, {
+  it('rejects hosted Preview and Production even if the feature flag is set', async () => {
+    for (const vercelEnv of ['preview', 'production']) {
+      vi.stubEnv('NODE_ENV', 'production')
+      vi.stubEnv('VERCEL', '1')
+      vi.stubEnv('VERCEL_ENV', vercelEnv)
+      vi.stubEnv('VERCEL_URL', 'liquid-hr-preview.vercel.app')
+
+      const request = switchRequest('manager', undefined, 'https://liquid-hr-preview.vercel.app', 'https://liquid-hr-preview.vercel.app')
+      const response = await POST(request)
+
+      expect(response.status).toBe(404)
+      expect(getClaims).not.toHaveBeenCalled()
+      expect(createAdminClient).not.toHaveBeenCalled()
+      enableSwitcher()
+    }
+  })
+
+  it('rejects nonlocal hosts in local Development', async () => {
+    const response = await POST(switchRequest('manager', undefined, 'https://app.example.com', 'https://app.example.com'))
+
+    expect(response.status).toBe(404)
+    expect(getClaims).not.toHaveBeenCalled()
+    expect(createAdminClient).not.toHaveBeenCalled()
+  })
+
+  it('rejects cross-origin requests even when forwarded host headers try to override the request', async () => {
+    const request = new NextRequest(`${LOCAL_ORIGIN}/api/auth/test-role-switch`, {
       method: 'POST',
-      headers: { origin: 'https://attacker.example' },
+      headers: {
+        origin: 'https://attacker.example',
+        host: '127.0.0.1:3010',
+        'x-forwarded-host': 'attacker.example',
+        'x-forwarded-proto': 'https',
+      },
       body: new URLSearchParams({ target: 'manager' }),
     })
 
     const response = await POST(request)
 
-    expect(response.status).toBe(403)
-    expect(getRequestAuthorizationContext).not.toHaveBeenCalled()
-    expect(createAdminClient).not.toHaveBeenCalled()
-  })
-
-  it('blijft lokaal in een productie-build zonder Vercel-context gesloten', async () => {
-    vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('VERCEL_ENV', '')
-    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', CANONICAL_SUPABASE_URL)
-
-    const response = await POST(switchRequest('manager'))
-
     expect(response.status).toBe(404)
-    await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_DISABLED' })
-    expect(getRequestAuthorizationContext).not.toHaveBeenCalled()
+    expect(getClaims).not.toHaveBeenCalled()
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 
-  it.each(['production', 'preview'])('blijft gesloten in Vercel %s', async (vercelEnv) => {
-    vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('VERCEL_ENV', vercelEnv)
-    vi.stubEnv('VERCEL', '1')
-    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', CANONICAL_SUPABASE_URL)
-
-    const response = await POST(switchRequest('manager'))
-
-    expect(response.status).toBe(404)
-    expect(getRequestAuthorizationContext).not.toHaveBeenCalled()
-    expect(createAdminClient).not.toHaveBeenCalled()
-  })
-
-  it('houdt de bestaande HR Admin-handoff en de kortlevende beveiligde cookie intact', async () => {
-    enableSwitcher()
+  it('allows verified Edwin without any HR or tenant administrator role', async () => {
+    createClient.mockImplementation(async () => setIdentity('edwin@editsolutions.nl'))
 
     const response = await POST(switchRequest('manager'))
 
     expect(response.status).toBe(303)
-    expect(response.headers.get('location')).toBe(`${APPLICATION_URL}/auth/test-role-switch/confirm`)
-    const handoffCookie = response.headers.get('set-cookie') ?? ''
-    expect(handoffCookie).toContain('liquidhr-test-role-switch=hashed-token')
-    expect(handoffCookie).toContain('HttpOnly')
-    expect(handoffCookie).toContain('Max-Age=60')
-    expect(handoffCookie).toContain('SameSite=lax')
-    expect(handoffCookie).toContain('Secure')
-    for (const cookieName of [ACTIVE_TENANT_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_ADMINISTRATION_COOKIE]) {
-      expect(response.cookies.get(cookieName)?.value).toBe('')
-    }
-    expect(handoffCookie).toContain('Max-Age=0')
+    expect(response.headers.get('location')).toBe(`${LOCAL_ORIGIN}/auth/test-role-switch/confirm`)
     expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'manager.fixture@liquidhr.test' })
     expect(signOut).toHaveBeenCalledOnce()
   })
 
-  it('behoudt de same-origin rolwissel als Next.js request.nextUrl normaliseert', async () => {
-    enableSwitcher()
-    const browserOrigin = 'http://127.0.0.1:3010'
-    const request = switchRequest('manager', undefined, browserOrigin)
+  it('rejects an unverified Edwin identity', async () => {
+    createClient.mockImplementation(async () => setIdentity('edwin@editsolutions.nl', false))
 
-    expect(request.headers.get('origin')).toBe(browserOrigin)
-    expect(request.nextUrl.origin).toBe('http://localhost:3010')
+    const response = await POST(switchRequest('manager'))
 
-    const response = await POST(request)
-
-    expect(response.status).toBe(303)
-    expect(response.headers.get('location')).toBe(`${browserOrigin}/auth/test-role-switch/confirm`)
-    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'manager.fixture@liquidhr.test' })
+    expect(response.status).toBe(403)
+    expect(createAdminClient).not.toHaveBeenCalled()
+    expect(generateLink).not.toHaveBeenCalled()
   })
 
-  it('bewaart een gevalideerde relatieve route in een kortlevende HttpOnly-cookie', async () => {
-    enableSwitcher()
+  it('rejects a nonallowlisted identity even when its business role is an administrator', async () => {
+    createClient.mockImplementation(async () => setIdentity('other@example.com'))
 
-    const response = await POST(switchRequest('manager', '/employees?tab=profile'))
+    const response = await POST(switchRequest('manager'))
 
-    expect(response.status).toBe(303)
-    expect(response.headers.get('location')).toBe(APPLICATION_URL + '/auth/test-role-switch/confirm')
-    const cookies = response.headers.get('set-cookie') ?? ''
-    expect(cookies).toContain('liquidhr-test-role-switch-next=')
-    expect(cookies).toContain('HttpOnly')
-    expect(cookies).toContain('Max-Age=60')
-    expect(cookies).not.toContain('/employees?tab=profile')
-    expect(generateLink).toHaveBeenCalledOnce()
+    expect(response.status).toBe(403)
+    expect(createAdminClient).not.toHaveBeenCalled()
+    expect(generateLink).not.toHaveBeenCalled()
   })
 
-  it.each(['https://attacker.example', '//attacker.example', '/\\attacker.example'])(
-    'stores only the safe fallback for an unsafe role-switch redirect %s',
-    async (next) => {
-      enableSwitcher()
+  it('allows an authenticated persona to return only to Edwin', async () => {
+    createClient.mockImplementation(async () => setIdentity('manager.fixture@liquidhr.test'))
 
-      const response = await POST(switchRequest('manager', next))
-
-      expect(response.status).toBe(303)
-      const cookies = response.headers.get('set-cookie') ?? ''
-      expect(cookies).toMatch(/liquidhr-test-role-switch-next=(?:%2Fdashboard%2Fstart|\/dashboard\/start)/i)
-      expect(cookies).not.toContain('attacker.example')
-      expect(generateLink).toHaveBeenCalledOnce()
-    },
-  )
-
-  it('laat een HR_ADMIN-systeemrol de bestaande allowlisted targets gebruiken', async () => {
-    enableSwitcher()
-    setAuthorizationContext('edwin@editsolutions.nl', ['HR_ADMIN'])
-
-    const response = await POST(switchRequest('employee'))
+    const response = await POST(switchRequest('edwin'))
 
     expect(response.status).toBe(303)
-    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'employee.fixture@liquidhr.test' })
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'edwin@editsolutions.nl' })
   })
 
-  it.each([
-    ['payroll-lisa', 'lisa.test@liquidhr.test'],
-    ['payroll-jaap', 'jaap.test@liquidhr.test'],
-    ['payroll-frits', 'frits.test@liquidhr.test'],
-  ])('switcht alleen naar de vooraf vastgelegde bestaande Auth-identiteit %s', async (target, email) => {
-    enableSwitcher()
+  it('does not let a persona switch to another persona', async () => {
+    createClient.mockImplementation(async () => setIdentity('manager.fixture@liquidhr.test'))
 
+    const response = await POST(switchRequest('payroll-lisa'))
+
+    expect(response.status).toBe(403)
+    expect(createAdminClient).not.toHaveBeenCalled()
+  })
+
+  it.each(['payroll-jaap', 'payroll-frits'])('keeps %s unavailable before any Auth operation', async (target) => {
     const response = await POST(switchRequest(target))
 
-    expect(response.status).toBe(303)
-    expect(listUsers).toHaveBeenCalledWith({ page: 1, perPage: 1000 })
-    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email })
-  })
-
-  it('vindt een bestaande Auth-identiteit ook op een volgende pagina', async () => {
-    enableSwitcher()
-    listUsers.mockImplementation(async ({ page }: { page: number }) => page === 1
-      ? { data: { users: [{ email: 'unrelated.test@liquidhr.test' }], lastPage: 2 }, error: null }
-      : { data: { users: [{ email: 'lisa.test@liquidhr.test' }], lastPage: 2 }, error: null })
-
-    const response = await POST(switchRequest('payroll-lisa'))
-
-    expect(response.status).toBe(303)
-    expect(listUsers).toHaveBeenNthCalledWith(1, { page: 1, perPage: 1000 })
-    expect(listUsers).toHaveBeenNthCalledWith(2, { page: 2, perPage: 1000 })
-    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'lisa.test@liquidhr.test' })
-  })
-
-  it('maakt geen ontbrekende Payroll-Auth-identiteit aan via de role-switchroute', async () => {
-    enableSwitcher()
-    listUsers.mockResolvedValue({ data: { users: [], lastPage: 1 }, error: null })
-
-    const response = await POST(switchRequest('payroll-jaap'))
-
     expect(response.status).toBe(503)
-    await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_UNAVAILABLE' })
-    expect(generateLink).not.toHaveBeenCalled()
-    expect(signOut).not.toHaveBeenCalled()
-  })
-
-  it('faalt gesloten wanneer de Auth-identiteitslookup een fout geeft', async () => {
-    enableSwitcher()
-    listUsers.mockResolvedValue({ data: { users: [] }, error: new Error('lookup failed') })
-
-    const response = await POST(switchRequest('payroll-lisa'))
-
-    expect(response.status).toBe(503)
-    expect(generateLink).not.toHaveBeenCalled()
-    expect(signOut).not.toHaveBeenCalled()
-  })
-
-  it('uses the linked employee identity only after same-scope ESS and current employment checks', async () => {
-    enableSwitcher()
-    const supabase = setAuthorizationContext('hradmin.fixture@liquidhr.test', ['TENANT_ADMIN'])
-    supabase.from.mockImplementation((table: string) => {
-      if (table === 'employees') return queryResult({ data: { auth_user_id: 'linked-auth-user' }, error: null })
-      if (table === 'employee_ess_access') return queryResult({ data: { status: 'ACTIVE' }, error: null })
-      if (table === 'employments') return queryResult({ data: { id: 'confirmed-employment' }, error: null })
-      throw new Error(`Unexpected table: ${table}`)
-    })
-
-    const response = await POST(switchEmployeeRequest('64ad3a23-f59a-4ed0-af41-26dda20ff067'))
-
-    expect(response.status).toBe(303)
-    expect(requirePermission).toHaveBeenCalledWith('employee:read', '64ad3a23-f59a-4ed0-af41-26dda20ff067')
-    expect(getUserById).toHaveBeenCalledWith('linked-auth-user')
-    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'employee.test@liquidhr.test' })
-    expect(signOut).toHaveBeenCalledOnce()
-  })
-
-  it('rejects a scoped employee target outside the active tenant, group or administration', async () => {
-    enableSwitcher()
-    setAuthorizationContext('hradmin.fixture@liquidhr.test', ['TENANT_ADMIN'])
-    requirePermission.mockResolvedValue({ tenantId: 'tenant-1', hrGroupId: 'other-group', administrationId: 'admin-1' })
-
-    const response = await POST(switchEmployeeRequest('64ad3a23-f59a-4ed0-af41-26dda20ff067'))
-
-    expect(response.status).toBe(403)
     expect(createAdminClient).not.toHaveBeenCalled()
+    expect(generateLink).not.toHaveBeenCalled()
   })
 
-  it('weigert Manager als bron voordat de admin-handoff wordt aangemaakt', async () => {
-    enableSwitcher()
-    setAuthorizationContext('manager.fixture@liquidhr.test', ['DIRECT_MANAGER'])
+  it('refuses to generate a link for a missing or unconfirmed Auth identity', async () => {
+    authAdmin([{ ...TARGET_EMAILS[1]!, email_confirmed_at: null }])
 
     const response = await POST(switchRequest('hr-admin'))
 
-    expect(response.status).toBe(403)
-    await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' })
-    expect(createAdminClient).not.toHaveBeenCalled()
+    expect(response.status).toBe(503)
+    expect(generateLink).not.toHaveBeenCalled()
+    expect(signOut).not.toHaveBeenCalled()
   })
 
-  it('weigert Employee als bron voor Manager- en HR Admin-sessies', async () => {
-    enableSwitcher()
-    setAuthorizationContext('employee.fixture@liquidhr.test', ['EMPLOYEE'])
+  it('keeps the one-time Auth handoff in a short-lived HttpOnly cookie only', async () => {
+    const response = await POST(switchRequest('hr-admin'))
 
-    for (const target of ['manager', 'hr-admin']) {
-      const response = await POST(switchRequest(target))
-      expect(response.status).toBe(403)
-      await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' })
+    expect(response.status).toBe(303)
+    const cookie = response.headers.get('set-cookie') ?? ''
+    expect(cookie).toContain('liquidhr-local-persona-handoff=one-time-hash')
+    expect(cookie).toContain('HttpOnly')
+    expect(cookie).toContain('Max-Age=60')
+    expect(cookie).toContain('SameSite=lax')
+    expect(cookie).not.toContain('access_token')
+    expect(cookie).not.toContain('refresh_token')
+    for (const name of [ACTIVE_TENANT_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_ADMINISTRATION_COOKIE]) {
+      expect(response.cookies.get(name)?.value).toBe('')
     }
-
-    expect(createAdminClient).not.toHaveBeenCalled()
   })
 
-  it('weigert een niet-allowlisted bron ook met een beheerrol', async () => {
-    enableSwitcher()
-    setAuthorizationContext('outsider@example.com', ['TENANT_ADMIN'])
+  it('stores only a validated relative post-switch path', async () => {
+    const response = await POST(switchRequest('manager', 'https://attacker.example'))
 
-    const response = await POST(switchRequest('manager'))
-
-    expect(response.status).toBe(403)
-    await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' })
-    expect(createAdminClient).not.toHaveBeenCalled()
+    expect(response.status).toBe(303)
+    const cookies = response.headers.get('set-cookie') ?? ''
+    expect(cookies).not.toContain('attacker.example')
+    expect(generateLink).toHaveBeenCalledOnce()
   })
 
-  it('weigert een vervalste target voordat de admin-handoff wordt aangemaakt', async () => {
-    enableSwitcher()
+  it('does not mint a new link when the current user selects their own account', async () => {
+    const response = await POST(switchRequest('edwin'))
 
-    const response = await POST(switchRequest('hr-admin%00'))
-
-    expect(response.status).toBe(403)
-    await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' })
+    expect(response.status).toBe(303)
+    expect(response.headers.get('location')).toBe(`${LOCAL_ORIGIN}/dashboard/start`)
     expect(createAdminClient).not.toHaveBeenCalled()
+    expect(signOut).not.toHaveBeenCalled()
   })
 })

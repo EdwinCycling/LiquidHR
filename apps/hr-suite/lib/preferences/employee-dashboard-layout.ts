@@ -1,7 +1,7 @@
 import type { Json } from '@scope/db'
 
-export const EMPLOYEE_DASHBOARD_WIDE_WIDGETS = ['aiSupport', 'personal', 'customFields', 'leave', 'absence', 'budgets', 'contracts', 'activity'] as const
-export const EMPLOYEE_DASHBOARD_NARROW_WIDGETS = ['employment', 'profileLinks', 'reminders', 'journeys', 'workflows', 'assets', 'vehicles', 'software', 'education', 'documents', 'performance'] as const
+export const EMPLOYEE_DASHBOARD_WIDE_WIDGETS = ['aiSupport', 'personal', 'customFields', 'leave', 'absence', 'contracts', 'activity'] as const
+export const EMPLOYEE_DASHBOARD_NARROW_WIDGETS = ['employment', 'profileLinks', 'reminders', 'journeys', 'workflows', 'documents'] as const
 export type EmployeeDashboardWideWidget = (typeof EMPLOYEE_DASHBOARD_WIDE_WIDGETS)[number]
 export type EmployeeDashboardNarrowWidget = (typeof EMPLOYEE_DASHBOARD_NARROW_WIDGETS)[number]
 export interface EmployeeDashboardLayout { wide: EmployeeDashboardWideWidget[]; narrow: EmployeeDashboardNarrowWidget[] }

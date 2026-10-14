@@ -21,6 +21,7 @@ describe('GET /auth/test-role-switch/confirm', () => {
     verifyOtp.mockResolvedValue({ error: null })
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('VERCEL_URL', 'liquid-hr-hr-suite.vercel.app')
     vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://real-production.supabase.co')
     vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://liquid-hr-hr-suite.vercel.app')
@@ -41,8 +42,8 @@ describe('GET /auth/test-role-switch/confirm', () => {
 
     const response = await GET(request)
 
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('https://liquid-hr-hr-suite.vercel.app/login?error=test-role-switch')
+    expect(response.status).toBe(404)
+    expect(response.headers.get('location')).toBeNull()
     expect(cookies).not.toHaveBeenCalled()
     expect(createClient).not.toHaveBeenCalled()
   })
@@ -51,10 +52,11 @@ describe('GET /auth/test-role-switch/confirm', () => {
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('VERCEL_ENV', 'preview')
     vi.stubEnv('VERCEL', '1')
+    vi.stubEnv('VERCEL_URL', 'preview.example')
 
     const response = await GET(new NextRequest('https://preview.example/auth/test-role-switch/confirm'))
 
-    expect(response.status).toBe(307)
+    expect(response.status).toBe(404)
     expect(cookies).not.toHaveBeenCalled()
     expect(createClient).not.toHaveBeenCalled()
   })
@@ -63,12 +65,13 @@ describe('GET /auth/test-role-switch/confirm', () => {
     vi.stubEnv('NODE_ENV', 'development')
     vi.stubEnv('VERCEL_ENV', '')
     vi.stubEnv('VERCEL', '')
+    vi.stubEnv('VERCEL_URL', '')
     vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://wnpfloqpjvaacobppbpk.supabase.co')
     cookies.mockResolvedValue({
       get: (name: string) => {
-        if (name === 'liquidhr-test-role-switch') return { value: 'fixture-handoff-token' }
-        if (name === 'liquidhr-test-role-switch-next') return { value: '/employees?tab=profile' }
+        if (name === 'liquidhr-local-persona-handoff') return { value: 'fixture-handoff-token' }
+        if (name === 'liquidhr-local-persona-next') return { value: '/employees?tab=profile' }
         return undefined
       },
     })
@@ -79,8 +82,8 @@ describe('GET /auth/test-role-switch/confirm', () => {
     expect(response.headers.get('location')).toBe('http://localhost:3000/employees?tab=profile')
     expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'fixture-handoff-token', type: 'magiclink' })
     const clearedCookies = response.headers.get('set-cookie') ?? ''
-    expect(clearedCookies).toContain('liquidhr-test-role-switch=;')
-    expect(clearedCookies).toContain('liquidhr-test-role-switch-next=;')
+    expect(clearedCookies).toContain('liquidhr-local-persona-handoff=;')
+    expect(clearedCookies).toContain('liquidhr-local-persona-next=;')
     expect(response.headers.get('location')).not.toContain('fixture-handoff-token')
   })
 
@@ -90,12 +93,13 @@ describe('GET /auth/test-role-switch/confirm', () => {
       vi.stubEnv('NODE_ENV', 'development')
       vi.stubEnv('VERCEL_ENV', '')
       vi.stubEnv('VERCEL', '')
+      vi.stubEnv('VERCEL_URL', '')
       vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
       vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://wnpfloqpjvaacobppbpk.supabase.co')
       cookies.mockResolvedValue({
         get: (name: string) => {
-          if (name === 'liquidhr-test-role-switch') return { value: 'fixture-handoff-token' }
-          if (name === 'liquidhr-test-role-switch-next') return { value: nextPath }
+          if (name === 'liquidhr-local-persona-handoff') return { value: 'fixture-handoff-token' }
+          if (name === 'liquidhr-local-persona-next') return { value: nextPath }
           return undefined
         },
       })
