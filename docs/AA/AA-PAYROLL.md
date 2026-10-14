@@ -11,6 +11,8 @@ Hoofdstuk 13 hieronder blijft de gezaghebbende vaststelling van de oorspronkelij
 
 Dit document legt de structurele product-, architectuur- en ontwikkelafspraken voor LiquidHR Payroll vast. Detailrequirements, fiscale bronbestanden en gedateerde acceptance evidence blijven elders staan.
 
+**Actuele productrichting (14 oktober 2026):** [PAYFULL-01 — eerste geïntegreerde Payroll-verwerkingsflow](../payroll/PAYFULL-01-EXECUTION-PLAN-20261014.md) is **GEPLAND / NIET GESTART**. Het combineert Core-backed berekening, multi-medewerkerworklist, review/finalisatie, PDF en ESS tot één verticale acceptatie, maar verleent geen database-/releasemandaat. Vanaf de expliciete start is de werkafspraak: Codex start zelf een lokale Development-TEST-server via de beschermde launcher; de gebruiker kan in de browser meekijken zonder iedere codewijziging naar Vercel te deployen. De nog lopende PAYCALC-REAL-01-taak eerst veilig checkpointen. Bestaande beperkingen op fiscale dekking, bronprovenance, immutable historie en remote writes blijven gelden.
+
 ## 1. Productgrens
 
 Payroll is onderdeel van dezelfde LiquidHR-app en dezelfde repository.
