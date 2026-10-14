@@ -21,6 +21,31 @@
     "instructions": "LiquidHR Workforce biedt uitsluitend read-only informatie over je eigen gegevens als medewerker of je eigen directe team als direct manager. De server bepaalt je actuele rol- en teamcontext en weigert iedere poging om medewerker-, team-, tenant-, HR-groep-, administratie- of rolcontext te kiezen. Managerresultaten bevatten alleen toegestane teamgegevens. Deze MCP biedt geen schrijfacties.",
     "employeeScopeDisclosure": "De server bepaalt de actuele medewerkercontext; stuur geen medewerker-, team-, tenant-, administratie- of rolselector mee.",
     "managerScopeDisclosure": "De server bepaalt de actuele manager- en directe teamscope; stuur geen medewerker-, team-, tenant-, administratie- of rolselector mee.",
+    "focusWidget": {
+      "title": "Mijn ontwikkelplannen",
+      "description": "Bekijk je plannen. Kies één plan om de toegestane statuscontext met ChatGPT te delen.",
+      "loading": "Je ontwikkelplannen laden…",
+      "refresh": "Vernieuwen",
+      "authRequired": "Je plannen zijn niet beschikbaar. Meld je aan bij LiquidHR of vernieuw de verbinding en probeer het opnieuw.",
+      "error": "Je plannen konden niet worden geladen. Probeer het opnieuw.",
+      "noPlans": "Er zijn geen plannen beschikbaar.",
+      "choosePlan": "Kies één plan. Er wordt niets gedeeld totdat je op ‘Deel met ChatGPT’ klikt.",
+      "plan": "Ontwikkelplan",
+      "progress": "Voortgang",
+      "completedAt": "Afgerond op",
+      "share": "Deel met ChatGPT",
+      "clear": "Context wissen",
+      "working": "Bezig…",
+      "contextReady": "Eén geselecteerd plan is beschikbaar als context voor ChatGPT.",
+      "contextCleared": "De gedeelde plancontext is gewist.",
+      "status": {
+        "DRAFT": "Concept",
+        "ACTIVE": "Actief",
+        "COMPLETED": "Afgerond",
+        "CANCELLED": "Geannuleerd",
+        "ARCHIVED": "Gearchiveerd"
+      }
+    },
     "tools": {
       "employee.talent.development-plans.read": { "title": "Eigen ontwikkelplannen lezen", "description": "Lees de status en voortgang van je eigen ontwikkelplannen." },
       "employee.talent.development-gaps.read": { "title": "Eigen ontwikkelgaps lezen", "description": "Lees je eigen ontwikkelpunten uit het actuele functieprofiel." },
