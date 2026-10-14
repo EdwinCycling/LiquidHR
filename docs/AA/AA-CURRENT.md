@@ -7,7 +7,7 @@ Momentopname: 2026-10-14 (historische acceptance-evidence blijft ongewijzigd)
 
 - Canonieke harness, vaste directe role-switchkeys en ACL-beveiligde credentialbron zijn aanwezig; Lisa's lokale wachtwoord is ververst. De lokale browsercheck bevestigde geen Lisa-handoff of FINALIZED-weergave en de cross-employee-salaryprobe gaf HTTP 200 met niet-lege/onbekende data. Haar bestaande DIRECT_MANAGER-groepen blijven ongewijzigd.
 - Jaap en Frits zijn niet Auth-gekoppeld; directe role-switch gaf 503. De Mars-gebonden Test HR Admin kreeg 403 op de ondersteunde Core-koppelroute; geen employee-link was geschreven. Frits' drie run-ID's/hashes sluiten aan, maar de trace-labels blijven `Jan`.
-- Preview-deployment voor PR-branch niet gevonden. Production-login toont geen Test Auth/role-switch. Geen GREEN; zie [PAYTEST-AUTH-01B](../quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md).
+- Vercel Preview `dpl_BPSoLrZTpFN37t9AeStaqb1TkAyf` is READY op exact PR-head `5869191f3d2e3badc8815b6f86fcd4b6fa50a2fe`; anonieme Preview- en Production-login tonen geen Test Auth/role-switch. Geen GREEN; zie [PAYTEST-AUTH-01B](../quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md).
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
 

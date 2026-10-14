@@ -25,7 +25,7 @@ Voor de runs `338ef391-fbf6-435a-a4d7-e28a8024ebc2`, `131a5fcb-c92a-416f-8fdf-bc
 
 ## Hosted veiligheid en checks
 
-- Vercel vond geen Preview-deployment voor PR-branch `work/paytest-auth-01-current-20261013`; Preview-UI-acceptatie is niet beschikbaar in deze run.
+- Vercel Preview `dpl_BPSoLrZTpFN37t9AeStaqb1TkAyf` werd na de push READY op exact commit `5869191f3d2e3badc8815b6f86fcd4b6fa50a2fe`, branch `work/paytest-auth-01-current-20261013`, alias `liquidhr-git-work-paytest-auth-01-curre-3735cc-edwinitsolutions.vercel.app`. De anonieme `/login` toonde de normale uitnodigingslogin; Test Auth en role-switch waren niet zichtbaar.
 - De gecontroleerde Production-deployment was READY op `main`-SHA `8c585f8397e059070e2107cdbec57ab7fbe3757e`. De publieke login toonde de normale invite-only flow; Test Auth en role-switch waren niet zichtbaar. Dit bewijst geen Preview-acceptatie.
 - `node --check scripts/check-test-personas.browser.mjs`, PowerShell-parser en JSON-validatie: PASS. De checker `-SkipBrowser` bevestigde statische/runtime/config/credential-preflight maar eindigde bewust met code 2 omdat browseracceptatie was overgeslagen; geen persona kreeg `READY`.
 - `git -c core.whitespace=cr-at-eol diff --check`: PASS. De reguliere Windows-worktree heeft CRLF; de EOL-bewuste check bevestigt dat er geen inhoudelijke trailing whitespace is.
