@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createAdminClient, generateLink, getUserById, getRequestAuthorizationContext, permissionErrorResponse, requirePermission, signOut } = vi.hoisted(() => ({
+const { createAdminClient, generateLink, listUsers, getUserById, getRequestAuthorizationContext, permissionErrorResponse, requirePermission, signOut } = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
   generateLink: vi.fn(),
+  listUsers: vi.fn(),
   getUserById: vi.fn(),
   getRequestAuthorizationContext: vi.fn(),
   permissionErrorResponse: vi.fn(),
@@ -76,14 +77,16 @@ describe('POST /api/auth/test-role-switch', () => {
     createAdminClient.mockReset()
     generateLink.mockReset()
     getUserById.mockReset()
+    listUsers.mockReset()
     getRequestAuthorizationContext.mockReset()
     permissionErrorResponse.mockReset()
     requirePermission.mockReset()
     signOut.mockReset()
     permissionErrorResponse.mockReturnValue(null)
     setAuthorizationContext('hradmin.fixture@liquidhr.test', ['TENANT_ADMIN'])
-    createAdminClient.mockReturnValue({ auth: { admin: { generateLink, getUserById } } })
+    createAdminClient.mockReturnValue({ auth: { admin: { generateLink, listUsers, getUserById } } })
     generateLink.mockResolvedValue({ data: { properties: { hashed_token: 'hashed-token' } }, error: null })
+    listUsers.mockImplementation(async () => ({ data: { users: [{ email: 'lisa.test@liquidhr.test' }, { email: 'jaap.test@liquidhr.test' }, { email: 'frits.test@liquidhr.test' }], lastPage: 1 }, error: null }))
     getUserById.mockResolvedValue({ data: { user: { email: 'employee.test@liquidhr.test' } }, error: null })
     signOut.mockResolvedValue({ error: null })
     requirePermission.mockResolvedValue({ tenantId: 'tenant-1', hrGroupId: 'group-1', administrationId: 'admin-1' })
@@ -221,6 +224,57 @@ describe('POST /api/auth/test-role-switch', () => {
 
     expect(response.status).toBe(303)
     expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'employee.fixture@liquidhr.test' })
+  })
+
+  it.each([
+    ['payroll-lisa', 'lisa.test@liquidhr.test'],
+    ['payroll-jaap', 'jaap.test@liquidhr.test'],
+    ['payroll-frits', 'frits.test@liquidhr.test'],
+  ])('switcht alleen naar de vooraf vastgelegde bestaande Auth-identiteit %s', async (target, email) => {
+    enableSwitcher()
+
+    const response = await POST(switchRequest(target))
+
+    expect(response.status).toBe(303)
+    expect(listUsers).toHaveBeenCalledWith({ page: 1, perPage: 1000 })
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email })
+  })
+
+  it('vindt een bestaande Auth-identiteit ook op een volgende pagina', async () => {
+    enableSwitcher()
+    listUsers.mockImplementation(async ({ page }: { page: number }) => page === 1
+      ? { data: { users: [{ email: 'unrelated.test@liquidhr.test' }], lastPage: 2 }, error: null }
+      : { data: { users: [{ email: 'lisa.test@liquidhr.test' }], lastPage: 2 }, error: null })
+
+    const response = await POST(switchRequest('payroll-lisa'))
+
+    expect(response.status).toBe(303)
+    expect(listUsers).toHaveBeenNthCalledWith(1, { page: 1, perPage: 1000 })
+    expect(listUsers).toHaveBeenNthCalledWith(2, { page: 2, perPage: 1000 })
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'lisa.test@liquidhr.test' })
+  })
+
+  it('maakt geen ontbrekende Payroll-Auth-identiteit aan via de role-switchroute', async () => {
+    enableSwitcher()
+    listUsers.mockResolvedValue({ data: { users: [], lastPage: 1 }, error: null })
+
+    const response = await POST(switchRequest('payroll-jaap'))
+
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toEqual({ error: 'TEST_ROLE_SWITCH_UNAVAILABLE' })
+    expect(generateLink).not.toHaveBeenCalled()
+    expect(signOut).not.toHaveBeenCalled()
+  })
+
+  it('faalt gesloten wanneer de Auth-identiteitslookup een fout geeft', async () => {
+    enableSwitcher()
+    listUsers.mockResolvedValue({ data: { users: [] }, error: new Error('lookup failed') })
+
+    const response = await POST(switchRequest('payroll-lisa'))
+
+    expect(response.status).toBe(503)
+    expect(generateLink).not.toHaveBeenCalled()
+    expect(signOut).not.toHaveBeenCalled()
   })
 
   it('uses the linked employee identity only after same-scope ESS and current employment checks', async () => {

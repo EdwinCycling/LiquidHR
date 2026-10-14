@@ -253,3 +253,11 @@ Volg `docs/quality/acceptance/REPORTING-STANDARD.md`.
 - **ENVIRONMENT-GATED**: productcode niet afgekeurd, maar bewijs door externe/runtimegrens niet beschikbaar.
 
 Rapporteer alleen wat werkelijk is waargenomen.
+
+## Canonieke Payroll-testpersona's
+
+- Gebruik voor alle lokale Payroll-, ESS-, MSS- en PDF-acceptatie de canonieke persona-catalogus en de centrale persona-preflight: `docs/quality/acceptance/PAYROLL-TEST-PERSONAS.json` en `scripts/check-test-personas.ps1`.
+- De preflight controleert de canonieke Core TEST- en Payroll Lab TEST-projectref, de lokale ACL-beveiligde credentialbron, de vaste role-switchallowlist, Auth/employee/ESS/context en de verwachte run-lifecycle. Hij rapporteert per persona `READY`, `READY_WITH_EXPECTED_GAP` of `BLOCKED` met een concrete reden.
+- Gebruik uitsluitend bestaande TEST-identiteiten en feitelijke scope. De role-switcher mag geen rechten, Auth-gebruikers, employee-koppelingen of administratiecontext maken of aanpassen. Een ontbrekende account blijft BLOCKED.
+- Behoud concept- en definitieve lifecycle zoals opgeslagen. Een CONCEPT is geen loonstrook; SOURCE_GAP maakt netto niet-definitief; een ontbrekend PDF-artifact of ontbrekende downloadroute blijft OPEN.
+- Vereis voor GREEN de onafhankelijke schone-worktree-eindtest, inclusief terugkeer naar Test HR Admin, self-only en negatieve scopeprobes. Test Auth blijft op Vercel Preview en Production gesloten.

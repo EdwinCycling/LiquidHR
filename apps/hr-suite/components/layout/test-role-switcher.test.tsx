@@ -21,6 +21,9 @@ const options: TestRoleSwitchOption[] = [
   { key: 'hr-admin', email: 'hradmin.fixture@liquidhr.test', label: 'Test HR Admin' },
   { key: 'manager', email: 'manager.fixture@liquidhr.test', label: 'Test Manager' },
   { key: 'employee', email: 'employee.fixture@liquidhr.test', label: 'Test Medewerker' },
+  { key: 'payroll-lisa', email: 'lisa.test@liquidhr.test', label: 'Payroll · Lisa' },
+  { key: 'payroll-jaap', email: 'jaap.test@liquidhr.test', label: 'Payroll · Jaap' },
+  { key: 'payroll-frits', email: 'frits.test@liquidhr.test', label: 'Payroll · Frits' },
 ]
 
 describe('TestRoleSwitcher', () => {
@@ -39,6 +42,7 @@ describe('TestRoleSwitcher', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain(labels.title)
     expect(select.value).toBe('manager')
+    expect(Array.from(select.options).map((option) => option.value)).toContain('payroll-frits')
     expect(document.activeElement).toBe(select)
 
     act(() => {
@@ -55,9 +59,15 @@ describe('TestRoleSwitcher', () => {
     mounted.unmount()
   })
 
-  it('renders a server-posted return to Test HR Admin without a browser credential', () => {
+  it.each([
+    'manager.fixture@liquidhr.test',
+    'employee.fixture@liquidhr.test',
+    'lisa.test@liquidhr.test',
+    'jaap.test@liquidhr.test',
+    'frits.test@liquidhr.test',
+  ])('renders a server-posted return to Test HR Admin for %s without a browser credential', (email) => {
     const mounted = mount(createElement(TestRoleSwitcher, {
-      currentEmail: 'manager.fixture@liquidhr.test',
+      currentEmail: email,
       enabled: false,
       labels,
       options,

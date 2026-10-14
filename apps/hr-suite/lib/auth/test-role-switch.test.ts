@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   getTestRoleSwitchTarget,
+  TEST_ROLE_SWITCH_TARGETS,
   getTestAuthHarnessCredentials,
   canReturnToTestHrAdmin,
   canInitiateTestRoleSwitch,
@@ -12,10 +13,16 @@ import {
 const CANONICAL_SUPABASE_URL = 'https://wnpfloqpjvaacobppbpk.supabase.co'
 
 describe('test role switch', () => {
-  it('beperkt de wisselaar tot de vier afgesproken accounts', () => {
+  it('beperkt de wisselaar tot de vaste accounts uit de TEST-harness', () => {
     expect(isTestRoleSwitchAccount('EDWIN@EDITSOLUTIONS.NL')).toBe(true)
     expect(isTestRoleSwitchAccount('hradmin.fixture@liquidhr.test')).toBe(true)
+    expect(isTestRoleSwitchAccount('lisa.test@liquidhr.test')).toBe(true)
+    expect(isTestRoleSwitchAccount('jaap.test@liquidhr.test')).toBe(true)
+    expect(isTestRoleSwitchAccount('frits.test@liquidhr.test')).toBe(true)
     expect(isTestRoleSwitchAccount('other@example.com')).toBe(false)
+    expect(TEST_ROLE_SWITCH_TARGETS.map((target) => target.key)).toEqual([
+      'edwin', 'hr-admin', 'manager', 'employee', 'payroll-lisa', 'payroll-jaap', 'payroll-frits',
+    ])
   })
 
   it('vindt alleen een allowlisted target key', () => {
@@ -31,9 +38,12 @@ describe('test role switch', () => {
     expect(canInitiateTestRoleSwitch([])).toBe(false)
   })
 
-  it('biedt alleen de twee lagere testpersonas een terugkeer naar Test HR Admin', () => {
+  it('biedt Manager, Employee en Payroll-testpersonas een terugkeer naar Test HR Admin', () => {
     expect(canReturnToTestHrAdmin('manager.fixture@liquidhr.test')).toBe(true)
     expect(canReturnToTestHrAdmin('employee.fixture@liquidhr.test')).toBe(true)
+    expect(canReturnToTestHrAdmin('lisa.test@liquidhr.test')).toBe(true)
+    expect(canReturnToTestHrAdmin('jaap.test@liquidhr.test')).toBe(true)
+    expect(canReturnToTestHrAdmin('frits.test@liquidhr.test')).toBe(true)
     expect(canReturnToTestHrAdmin('hradmin.fixture@liquidhr.test')).toBe(false)
     expect(canReturnToTestHrAdmin('other@example.com')).toBe(false)
   })
