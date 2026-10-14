@@ -3,13 +3,15 @@ import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
 const migration = readFileSync(new URL('../../supabase/migrations/20261014155924_core_local_payroll_persona_link.sql', import.meta.url), 'utf8')
+const tenantScopeFix = readFileSync(new URL('../../supabase/migrations/20261014223000_core_local_payroll_persona_tenant_scope_fix.sql', import.meta.url), 'utf8')
+const auditFix = readFileSync(new URL('../../supabase/migrations/20261014224500_core_local_payroll_persona_audit_fix.sql', import.meta.url), 'utf8')
 
 const actorId = '11111111-1111-4111-8111-111111111111'
 const otherActorId = '11111111-1111-4111-8111-111111111112'
 const authUserId = '22222222-2222-4222-8222-222222222222'
 const employeeId = 'dd9bde02-76bb-4f7c-8add-db544a148f3f'
 const employmentId = '29058c73-5cfa-409d-b9d4-80dd30f36962'
-const tenantId = '07249eb9-545c-883b-b26d-d52f83b4f4a1'
+const tenantId = '07249eb9-545c-883b-b26b-d52f83b4f4a1'
 const hrGroupId = '6ba6f1df-e376-40f2-abff-ffdf000172e1'
 const administrationId = '8483abc9-f275-c80b-5a23-fedc54ce9f0a'
 const projectIssuer = 'https://wnpfloqpjvaacobppbpk.supabase.co/auth/v1'
@@ -69,10 +71,13 @@ async function createDatabase() {
       employment_id uuid,
       actor_user_id uuid,
       action text NOT NULL CHECK (action IN ('CREATE', 'UPDATE', 'ARCHIVE', 'DELETE', 'REVEAL')),
-      changes jsonb NOT NULL
+      changes jsonb NOT NULL,
+      CONSTRAINT audit_logs_api_read_entity_contract CHECK (action = 'READ' OR hr_group_id IS NULL)
     );
   `)
   await db.exec(migration)
+  await db.exec(tenantScopeFix)
+  await db.exec(auditFix)
   await db.query(
     `INSERT INTO auth.users (id, email, email_confirmed_at, is_anonymous) VALUES
       ($1, 'hradmin.fixture@liquidhr.test', now(), false),
@@ -191,5 +196,8 @@ describe('Local Payroll persona link migration', () => {
     expect(migration).toContain("'LOCAL_PAYROLL_PERSONA_LINK_CREATED'")
     expect(migration).not.toMatch(/INSERT\s+INTO\s+public\.(user_access|user_management_roles|permissions)/i)
     expect(migration).not.toMatch(/GRANT\s+.*(?:HR_ADMIN|TENANT_ADMIN|salary:write)/i)
+    expect(auditFix).toContain(tenantId)
+    expect(auditFix).not.toContain('b26d-d52f83b4f4a1')
+    expect(auditFix).not.toMatch(/INSERT INTO public\.audit_logs \(\s*tenant_id,\s*hr_group_id,/)
   })
 })

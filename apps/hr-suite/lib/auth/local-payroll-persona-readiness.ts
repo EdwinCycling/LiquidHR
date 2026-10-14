@@ -28,7 +28,7 @@ export const LOCAL_PAYROLL_PERSONA_RECORDS = {
 export type LocalPayrollPersonaKey = keyof typeof LOCAL_PAYROLL_PERSONA_RECORDS
 export type LocalPayrollPersonaReadiness = {
   readonly key: LocalPayrollPersonaKey
-  readonly status: 'account-required' | 'link-required' | 'first-sign-in-required' | 'available' | 'conflict' | 'unavailable'
+  readonly status: 'account-required' | 'link-required' | 'context-access-required' | 'first-sign-in-required' | 'available' | 'conflict' | 'unavailable'
   readonly available: boolean
   readonly canStartSignIn: boolean
   readonly canProvision: boolean
@@ -60,9 +60,10 @@ export async function getLocalPayrollPersonaReadiness(
   const record = LOCAL_PAYROLL_PERSONA_RECORDS[key]
   const [authUser, employeeResult] = await Promise.all([
     findAuthUserByEmail(admin, record.email),
-    admin.from('employees').select('auth_user_id').eq('id', record.employeeId).is('deleted_at', null).maybeSingle(),
+    admin.from('employees').select('auth_user_id, tenant_id, hr_group_id').eq('id', record.employeeId).is('deleted_at', null).maybeSingle(),
   ])
   if (employeeResult.error || !employeeResult.data) throw new Error('LOCAL_PERSONA_STATUS_UNAVAILABLE')
+  const employee = employeeResult.data
 
   const linkedEmployeeIds = authUser
     ? await admin.from('employees').select('id').eq('auth_user_id', authUser.id).is('deleted_at', null).limit(1000)
@@ -100,6 +101,31 @@ export async function getLocalPayrollPersonaReadiness(
       available: false,
       canStartSignIn: false,
       canProvision: record.provisionable,
+      authUserId: authUser.id,
+    }
+  }
+
+  const [employment, groupAccess, administrationAccess] = await Promise.all([
+    admin.from('employments').select('administration_id').eq('id', record.employmentId).eq('employee_id', record.employeeId).eq('record_status', 'CONFIRMED').is('deleted_at', null).maybeSingle(),
+    admin.from('user_hr_group_access').select('id').eq('user_id', authUser.id).eq('tenant_id', employee.tenant_id).eq('hr_group_id', employee.hr_group_id).eq('is_active', true).limit(1),
+    admin.from('user_access').select('scope_type, administration_id, hr_group_id').eq('user_id', authUser.id).eq('tenant_id', employee.tenant_id).eq('is_active', true).limit(500),
+  ])
+  if (employment.error || !employment.data || groupAccess.error || administrationAccess.error || (administrationAccess.data?.length ?? 0) >= 500) {
+    throw new Error('LOCAL_PERSONA_STATUS_UNAVAILABLE')
+  }
+  const linkedEmployment = employment.data
+  const hasAdministrationAccess = administrationAccess.data?.some((access) =>
+    access.scope_type === 'TENANT'
+    || (access.scope_type === 'ADMINISTRATION'
+      && access.hr_group_id === employee.hr_group_id
+      && access.administration_id === linkedEmployment.administration_id))
+  if (!groupAccess.data?.length || !hasAdministrationAccess) {
+    return {
+      key,
+      status: 'context-access-required',
+      available: false,
+      canStartSignIn: false,
+      canProvision: false,
       authUserId: authUser.id,
     }
   }

@@ -99,6 +99,25 @@ describe('/local/personas', () => {
     expect(markup).toContain('localPersonaProvisionDescription')
   })
 
+  it('does not offer a linked payroll account without customer context access', async () => {
+    setIdentity('hradmin.fixture@liquidhr.test', true, 'auth-hr-admin')
+    getLocalPayrollPersonaReadiness.mockImplementation(async (key: string) => ({
+      key,
+      status: key === 'payroll-lisa' ? 'available' : 'context-access-required',
+      available: key === 'payroll-lisa',
+      canStartSignIn: key === 'payroll-lisa',
+      canProvision: false,
+      authUserId: 'existing-auth-user',
+    }))
+
+    const markup = await renderPage()
+
+    expect(markup).toContain('localPersonaContextAccessRequired')
+    expect(markup).toMatch(/<option disabled="" value="payroll-jaap"/)
+    expect(markup).toMatch(/<option disabled="" value="payroll-frits"/)
+    expect(markup).not.toContain('action="/api/local/personas/provision"')
+  })
+
   it('does not render for an unverified allowlisted identity', async () => {
     setIdentity('edwin@editsolutions.nl', false)
 

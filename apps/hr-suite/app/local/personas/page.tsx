@@ -72,6 +72,7 @@ export default async function LocalPersonasPage() {
   const availabilityCopyKeys = {
     'account-required': 'localPersonaAccountRequired',
     'link-required': 'localPersonaLinkRequired',
+    'context-access-required': 'localPersonaContextAccessRequired',
     'first-sign-in-required': 'localPersonaFirstSignInRequired',
     available: 'localPersonaReady',
     conflict: 'localPersonaNeedsReview',

@@ -73,6 +73,7 @@
   "localPersonaAccountRequired": "Account ontbreekt",
   "localPersonaLinkRequired": "Koppeling vereist",
   "localPersonaFirstSignInRequired": "Eerste aanmelding vereist",
+  "localPersonaContextAccessRequired": "Geen toegang tot klantomgeving",
   "localPersonaReady": "Beschikbaar",
   "localPersonaNeedsReview": "Controle vereist",
   "localPersonaStatusUnavailable": "Status niet beschikbaar",

@@ -73,6 +73,7 @@
   "localPersonaAccountRequired": "Account missing",
   "localPersonaLinkRequired": "Link required",
   "localPersonaFirstSignInRequired": "First sign-in required",
+  "localPersonaContextAccessRequired": "No customer environment access",
   "localPersonaReady": "Available",
   "localPersonaNeedsReview": "Review required",
   "localPersonaStatusUnavailable": "Status unavailable",

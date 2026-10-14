@@ -102,6 +102,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!authUserId) {
     const { data, error } = await admin.auth.admin.createUser({ email: record.email, email_confirm: true })
     if (error || !data.user) {
+      console.warn('LOCAL_PERSONA_PROVISION_AUTH_CREATE_FAILED', { code: error?.code ?? 'NO_USER' })
       try {
         readiness = await getLocalPayrollPersonaReadiness(key, admin)
       } catch {
@@ -126,6 +127,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     p_auth_user_id: authUserId,
   })
   if (linkError) {
+    console.warn('LOCAL_PERSONA_PROVISION_CORE_LINK_FAILED', { code: linkError.code })
     if (createdAuthUser) {
       const { error: deleteError } = await admin.auth.admin.deleteUser(authUserId)
       if (deleteError) return errorResponse('LOCAL_PERSONA_CLEANUP_REQUIRES_REVIEW', 503)
