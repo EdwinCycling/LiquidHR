@@ -42,6 +42,22 @@ Het script laadt het centrale bestand rechtstreeks in het Next child-proces via 
 
 De browseracceptatie gebruikt de exacte actieve worktree/HEAD, een normale Test HR Admin-login en de afgesproken desktop- en 390 px-matrix. Test Auth blijft uitsluitend lokaal beschikbaar en faalt buiten lokale ontwikkeling gesloten.
 
+## Lokale live-meekijkmodus voor toekomstige Payroll-bouwslagen
+
+**Werkafspraak 14 oktober 2026 — PAYFULL-01 is nog niet gestart.** Voor een expliciet gestarte Payroll-build kan Codex zelf de beveiligde launcher gebruiken. Edwin hoeft de PowerShell-instructie niet handmatig uit te voeren; de launcher blijft wel de gecontroleerde manier om juiste TEST-config en loopbackguard te gebruiken.
+
+```powershell
+.\scripts\start-test-worktree.ps1 -Mode Development -PayrollAcceptance -Port 3010
+```
+
+- Na geslaagde start test de gebruiker rechtstreeks in de browser op `http://127.0.0.1:3010`. Bij een bezette poort kiest Codex bewust een vrije poort met `-Port`; een bestaande server wordt niet gestopt. De **werkelijk** actieve URL en worktree/head-SHA moeten worden gemeld; zonder succesvolle start is er geen localhost-website beschikbaar.
+- Codex moet de server in een beheerde, blijvende Windows-terminal/sessie laten draaien; het script blokkeert als foreground-server. Zodra die terminal/sessie eindigt kan de server stoppen. Een afgeronde agentrun garandeert geen eeuwig actief proces.
+- De Next.js Development-modus laat tussentijds lokaal testen en code-refresh toe, dus normale iteraties hebben geen Vercel-deployment nodig. Dit is dezelfde HR Suite inclusief de bestaande Payroll-routes, geen tweede Payroll-app of Docker.
+- Core TEST en Payroll Lab TEST blijven afzonderlijke **remote Supabase-databases**. Lokaal draaien of een geslaagde browserstart verleent géén toestemming om daar migraties, fiscale brondata, rollen of Payroll-historie te wijzigen. Volg de expliciete TEST-write- en acceptatiegates uit `AGENTS.md` en AA-PAYROLL.
+- Lokale Test Auth/role-switch blijft onder Development/loopback/projectguards. Hosted Preview/Production is geen route voor Test Auth. Een Payroll-persona is pas bruikbaar zodra zijn Auth-, employment- en ESS-scope afzonderlijk bewezen zijn.
+
+Zie [PAYFULL-01-uitvoeringsplan](../payroll/PAYFULL-01-EXECUTION-PLAN-20261014.md); de startopdracht wordt **later** gegeven door de gebruiker.
+
 ## Pull request en Vercel Preview
 
 1. Push een kandidaatbranch en maak de bedoelde pull request. Het Vercel-project `liquidhr` hoort daarvoor een Preview-deployment met een immutable commit-URL te leveren.

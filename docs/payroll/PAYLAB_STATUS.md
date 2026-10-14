@@ -1,5 +1,13 @@
 # Payroll Lab status
 
+## Integratievooruitblik — 2026-10-14
+
+**PAYFULL-01 is GESTART / IN PROGRESS (14 oktober 2026).** Lokale HR Suite / Payroll Lab is in de browser zichtbaar op `127.0.0.1:3010` (screenshotbewijs gebruiker); integratie, complete salarisrun en remote TEST-acceptatie blijven OPEN. Het eerstvolgende grotere Payroll-productdoel is een complete **afgebakende** NL-2026-verwerkingsketen voor meerdere synthetische medewerkers: echte Core-bron → generieke berekening → concepts/revisies → control/review/finalize → Standard PDF → eigen ESS. Zie [PAYFULL-01-plan en lokale meekijkafspraak](PAYFULL-01-EXECUTION-PLAN-20261014.md). Dit is geen acceptatie of release.
+
+De generieke Core-backed berekenservice staat op de afzonderlijke PAYCALC-REAL-01-featurebranch (laatst vastgesteld `432acdf7`), met beperkte witte-maandtabelberekening en geteste concept-/idempotentiecontracten. De twee gescheiden Core/Lab-migraties zijn volgens de laatste read-only TEST-controle nog **niet toegepast**; er is nog geen persistente generieke Core-TEST-run bewezen. Bestaande Lisa/Jaap/Frits-runhistorie blijft ongemoeid. PAYTEST-AUTH-01B/PR #31 heeft nog open persona-/ESS-acceptatiepunten. Nieuwe voortgang altijd tegen actuele branch- en database-evidence verifiëren.
+
+**Lokaal testen:** vanaf een latere expliciete start kan Codex de bestaande beveiligde Development-launcher zelf draaien (voorkeur `127.0.0.1:3010`), zodat de gebruiker zelf live kan meekijken zonder telkens Vercel. De server draait nu **niet** op grond van dit document; remote databasewrites vereisen afzonderlijk geborgd mandaat.
+
 ## PAYLAB05 — CAO-BENCH02 Phase 1 — 2026-10-03
 
 **Status: lokale codegates en synthetic Payroll Lab browserflow GREEN; totale acceptatie PARTIAL door een incidentele Core-dashboardread na de loginredirect; geen merge- of releasestatus.** Branch `work/cao-bench02-20261003` start vanaf exact `6349d02538351cd01fc51f298c6e6fa0ba88006c`; de bestaande PAYLAB00–04-integratie en appversie `1.20261002.1` blijven onveranderd.

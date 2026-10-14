@@ -11,6 +11,22 @@ Hoofdstuk 13 hieronder blijft de gezaghebbende vaststelling van de oorspronkelij
 
 Dit document legt de structurele product-, architectuur- en ontwikkelafspraken voor LiquidHR Payroll vast. Detailrequirements, fiscale bronbestanden en gedateerde acceptance evidence blijven elders staan.
 
+**Actuele productrichting (14 oktober 2026):** [PAYFULL-01 — eerste geïntegreerde Payroll-verwerkingsflow](../payroll/PAYFULL-01-EXECUTION-PLAN-20261014.md) is sinds 14 oktober **GESTART / IN PROGRESS**, met lokaal aangetoonde Payroll Lab-UI op `127.0.0.1:3010`, maar zonder geaccepteerde volledige salarisrun. Het combineert Core-backed berekening, multi-medewerkerworklist, review/finalisatie, PDF en ESS tot één verticale acceptatie, maar verleent geen database-/releasemandaat. Vanaf de expliciete start is de werkafspraak: Codex start zelf een lokale Development-TEST-server via de beschermde launcher; de gebruiker kan in de browser meekijken zonder iedere codewijziging naar Vercel te deployen. De nog lopende PAYCALC-REAL-01-taak eerst veilig checkpointen. Bestaande beperkingen op fiscale dekking, bronprovenance, immutable historie en remote writes blijven gelden.
+
+## Pensioenregelingdata en UPA — aanvullende bron 2027 (14 oktober 2026)
+
+Voor pensioenregeling-, werkgeversovereenkomst-, grondslag- en UPA-contracten geldt de nieuwe [PAYPENS/UPA-roadmap met 33-veld mapping](../payroll/PAYPENS-UPA-2027-ROADMAP-20261014.md). Het door de gebruiker aangeleverde PGB/SIVI-regelingenwerkboek plus machineleesbare complete snapshot staan uitsluitend in de privé Library (`/LiquidHR/Payroll/Pensioen-UPA-2027/`), **niet** in deze openbare repository; bron-SHA-256 en validatiebevindingen staan in het document.
+
+Hergebruik de bestaande `pensionAssignments` / `laborConditionPensionArrangements` Core-projectie, effectieve versies en engine-`EmployeePensionScheme`/assessment-bases. Eerst één volledig geverifieerde pensioenpremiecase binnen de lopende PAYFULL-01, dan PAYPENS-catalogus/grondslagen, Wtp-overgang en later SIVI UPA. `C2027..`-conceptregels niet automatisch als finale tarieven activeren, `zie overeenkomst` niet als nul behandelen en geen PFZW-dekking uit PGB-bronnen concluderen. Deze documentatie creëert geen remote-write-, release- of inzendmandaat.
+
+## Productwaardige Payroll-presentatie (besluit 14 oktober 2026)
+
+**Bindende UX-regel:** volg [AA-REQ §5](AA-REQ.md). Het feit dat de app momenteel uitsluitend een synthetische TEST-omgeving bedient, mag geen zichtbare ontwikkel-/demo-uitstraling geven. Product-UI, menus, labels, formulieren, meldingen en salarisdocumenten spreken de taal van de salarisprofessional; geen `synthetische testdienstverbanden`, `Arrangement Foundation`, `fixture`, `benchmark`, `demo` of technische packagecode in de reguliere UI. Testdata en acceptatiebewijs blijven **intern** herkenbaar en bewaard.
+
+**Cao's en regelingen:** toon een compacte, filterbare, sorteerbare lijst met details en versiehistorie. Scheid catalogusbestaan, administratiegebonden beschikbaarheid en werkelijk ondersteunde berekeningsdekking; toon geen testfixture-lijsten of beheersknop `Drie testregelingen beschikbaar maken` op een productpagina. Laat historische Lab-fixtures onaangeroerd en onderzoek administratie-scope wanneer fixtures van Jupiter zichtbaar zijn bij Mars. Behandel een bedrijfseigen benchmarkregeling niet als een werkelijk geldige werknemersregeling. Activeren is een expliciete bevoegdheids-/beheerhandeling.
+
+**Geen schijnzekerheid:** de productpresentatie is professioneel maar blijft feitelijk juist. Onvolledige looncomponenten, fiscale bronhiaten, ontoereikende data en ontbrekende rechten blijven operationele blokkades; maak geen fictief volledig nettoloon of definitieve loonstrook.
+
 ## 1. Productgrens
 
 Payroll is onderdeel van dezelfde LiquidHR-app en dezelfde repository.

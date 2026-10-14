@@ -16,7 +16,7 @@ Status: **LEIDEND** · levende afspraken worden in deze bestaande documenten bij
 | [`AA-OPEN.md`](AA-OPEN.md) | Open beslissingen, bewijs-/fixturegaten, eigenaar en afsluitproef |
 | [`AA-ACCEPT.md`](AA-ACCEPT.md) | Index van accepted baselines; geen vervanging van gedateerde rapporten |
 | [`AA-REQ.md`](AA-REQ.md) | Fundamentele product-, data-, security- en architectuurinvarianten |
-| [`AA-PAYROLL.md`](AA-PAYROLL.md) | Payrollbounded context, precisie, wettelijke regels, provenance en gates |
+| [`AA-PAYROLL.md`](AA-PAYROLL.md) | Payrollbounded context, precisie, wettelijke regels, provenance en gates; pensioen/UPA-databronnen: [PAYPENS-UPA-2027-roadmap](../payroll/PAYPENS-UPA-2027-ROADMAP-20261014.md) |
 | [`AA-ROAD.md`](AA-ROAD.md) | Langetermijnproductrichting |
 | `docs/requirements/`, ADR/FDR en domeindocumenten | Alleen requirements en architectuur die de feitelijke wijziging raakt |
 
@@ -37,7 +37,7 @@ De AA-CURRENT-startcontext blijft compact. Een nieuwe taak hoeft niet standaard 
 | Gewone bugfix/feature | `AGENTS.md`, opdracht, relevante delen van `AA-OP.md` en `AA-TEST.md`, huidige status alleen waar relevant, geraakte domeinrequirement |
 | Toolkit-/proceswijziging | `AGENTS.md`, `AA-OP.md`, `AA-TEST.md`, `AA-REL.md` voor integratie, de toolkitbestanden en relevante tests |
 | Auth, security, tenant, schema of RLS | Bovenstaande plus relevante delen van `AA-REQ.md`, toepasselijke domeinrequirements/ADR en exacte bestaande acceptance-evidence |
-| Payroll | Alleen voor zover geraakt `AA-PAYROLL.md`, `AA-OP.md`, `AA-TEST.md` en relevante Payroll-requirements/evidence |
+| Payroll | Alleen voor zover geraakt `AA-PAYROLL.md`, [PAYFULL-01-uitvoeringsplan](../payroll/PAYFULL-01-EXECUTION-PLAN-20261014.md) (gepland, nog niet gestart), `AA-OP.md`, `AA-TEST.md` en relevante Payroll-requirements/evidence |
 | Merge/release/deployment | `AA-OP.md`, `AA-TEST.md`, `AA-REL.md`, actuele `AA-CURRENT.md`; alleen relevante rijen uit `AA-ACCEPT.md`/`AA-OPEN.md` en het exacte runrapport |
 | Roadmapbesluit | `AA-NEXT.md`, relevante `AA-ROAD.md`-sectie en alleen de benodigde `AA-CURRENT.md`/`AA-OPEN.md`-status |
 
