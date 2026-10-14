@@ -5,7 +5,7 @@ import { LocalPersonaSwitcher, type LocalPersonaOption } from '@/components/auth
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { Surface } from '@/components/ui/surface'
-import { canInitiateTestRoleSwitch, canReturnToLocalPersonaOwner, getLocalPersonaOwnerKey, getLocalPersonaOperatorTargetKeys, isLocalPersonaRuntime, readLocalPersonaOwnerMarker, TEST_ROLE_SWITCH_OWNER_COOKIE, TEST_ROLE_SWITCH_TARGETS } from '@/lib/auth/test-role-switch'
+import { canInitiateTestRoleSwitch, canReturnToLocalPersonaOwner, getLocalPersonaOwnerKey, getLocalPersonaOperatorTargetKeys, getVerifiedLocalPersonaIdentity, isLocalPersonaRuntime, readLocalPersonaOwnerMarker, TEST_ROLE_SWITCH_OWNER_COOKIE, TEST_ROLE_SWITCH_TARGETS } from '@/lib/auth/test-role-switch'
 import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getLocalPayrollPersonaReadiness, type LocalPayrollPersonaKey, type LocalPayrollPersonaReadiness } from '@/lib/auth/local-payroll-persona-readiness'
 import { getTranslator } from '@/lib/i18n/server'
@@ -30,25 +30,21 @@ export default async function LocalPersonasPage() {
   const ownerMarker = cookieStore.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value ?? null
 
   const supabase = await createClient()
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
-  const claims = claimsData?.claims
-  const identity = {
-    email: typeof claims?.email === 'string' ? claims.email : null,
-    emailVerified: claims?.email_verified === true,
-  }
-  const ownerKey = !claimsError && Boolean(claims?.sub) ? getLocalPersonaOwnerKey(host, identity) : null
+  const verified = await getVerifiedLocalPersonaIdentity(supabase)
+  const identity = verified?.identity ?? { email: null, emailVerified: false }
+  const ownerKey = verified ? getLocalPersonaOwnerKey(host, identity) : null
   const isOwner = ownerKey !== null
-  const canReturnToOwner = !claimsError && Boolean(claims?.sub)
+  const canReturnToOwner = Boolean(verified)
     && canReturnToLocalPersonaOwner(host, identity, ownerMarker)
   if (!isOwner && !canReturnToOwner) notFound()
   const returnTargetKey = isOwner ? 'edwin' : readLocalPersonaOwnerMarker(ownerMarker) ?? 'edwin'
 
   const t = await getTranslator('navigation')
   const roleCodes = await (async (): Promise<string[] | null> => {
-    if (!isOwner || !claims?.sub) return null
+    if (!isOwner || !verified) return null
     try {
       const requestContext = await getRequestAuthorizationContext()
-      return requestContext.context.userId === claims.sub ? [...requestContext.context.activeRoles] : null
+      return requestContext.context.userId === verified.userId ? [...requestContext.context.activeRoles] : null
     } catch {
       return null
     }

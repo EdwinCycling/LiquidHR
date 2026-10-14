@@ -27,6 +27,7 @@ const labelKeys = [
   'localAcceptanceProvenance','localAcceptanceRunId','localAcceptanceSourceSnapshotId','localAcceptanceInputSetId',
   'localAcceptanceInputReferenceId','localAcceptanceTraceId','localAcceptanceConceptEventId',
   'localAcceptanceComponentCount','localAcceptanceControlCount','localAcceptanceControls','localAcceptanceStatus',
+  'control_PASS','control_WARN','control_FAIL',
   'localAcceptanceSourceHash','localAcceptanceCoreSourceHash','localAcceptanceAssumptionsHash',
   'localAcceptanceInputHash','localAcceptanceResultHash','localAcceptanceMissing',
   'localAcceptanceMissingEmployeePension','localAcceptanceMissingEmployerPension',

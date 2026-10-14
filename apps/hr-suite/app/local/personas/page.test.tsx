@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { cookies, headers, notFound, createClient, createAdminClient, getLocalPayrollPersonaReadiness, getClaims, getRequestAuthorizationContext } = vi.hoisted(() => ({
+const { cookies, headers, notFound, createClient, createAdminClient, getLocalPayrollPersonaReadiness, getClaims, getUser, getRequestAuthorizationContext } = vi.hoisted(() => ({
   cookies: vi.fn(),
   headers: vi.fn(),
   notFound: vi.fn(() => { throw new Error('NOT_FOUND') }),
@@ -8,6 +8,7 @@ const { cookies, headers, notFound, createClient, createAdminClient, getLocalPay
   createAdminClient: vi.fn(),
   getLocalPayrollPersonaReadiness: vi.fn(),
   getClaims: vi.fn(),
+  getUser: vi.fn(),
   getRequestAuthorizationContext: vi.fn(),
 }))
 
@@ -30,7 +31,8 @@ function setIdentity(email: string, emailVerified = true, sub = 'auth-owner') {
     data: { claims: { sub, email, email_verified: emailVerified } },
     error: null,
   })
-  createClient.mockResolvedValue({ auth: { getClaims } })
+  getUser.mockResolvedValue({ data: { user: { id: sub, email, email_confirmed_at: emailVerified ? '2026-01-01T00:00:00Z' : null, is_anonymous: false } }, error: null })
+  createClient.mockResolvedValue({ auth: { getClaims, getUser } })
 }
 
 async function renderPage(): Promise<string> {
@@ -52,6 +54,7 @@ describe('/local/personas', () => {
     createAdminClient.mockReset()
     getLocalPayrollPersonaReadiness.mockReset()
     getClaims.mockReset()
+    getUser.mockReset()
     getRequestAuthorizationContext.mockReset()
     getRequestAuthorizationContext.mockResolvedValue({ context: { userId: 'auth-owner', activeRoles: ['EMPLOYEE'] } })
     createAdminClient.mockReturnValue({})

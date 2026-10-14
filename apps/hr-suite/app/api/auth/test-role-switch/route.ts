@@ -8,6 +8,7 @@ import {
   normalizedEmail,
   readLocalPersonaOwnerMarker,
   getTestRoleSwitchTarget,
+  getVerifiedLocalPersonaIdentity,
   TEST_ROLE_SWITCH_OWNER_COOKIE,
 } from '@/lib/auth/test-role-switch'
 import { getLocalPayrollPersonaReadiness } from '@/lib/auth/local-payroll-persona-readiness'
@@ -85,18 +86,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!target) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
 
   const supabase = await createClient()
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
-  const claims = claimsData?.claims
-  const identity = {
-    email: typeof claims?.email === 'string' ? claims.email : null,
-    emailVerified: claims?.email_verified === true,
-  }
+  const verified = await getVerifiedLocalPersonaIdentity(supabase)
+  const identity = verified?.identity ?? { email: null, emailVerified: false }
   const host = request.headers.get('host')
-  const ownerKey = !claimsError && Boolean(claims?.sub) ? getLocalPersonaOwnerKey(host, identity) : null
+  const ownerKey = verified ? getLocalPersonaOwnerKey(host, identity) : null
   const ownerMarker = request.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value ?? null
   const returnOwnerKey = readLocalPersonaOwnerMarker(ownerMarker)
   const isOwner = ownerKey !== null
-  const canReturnToOwner = !claimsError && Boolean(claims?.sub)
+  const canReturnToOwner = Boolean(verified)
     && canReturnToLocalPersonaOwner(host, identity, ownerMarker)
 
   if (!isOwner && !canReturnToOwner) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)

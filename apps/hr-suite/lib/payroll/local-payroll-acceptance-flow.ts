@@ -95,7 +95,7 @@ function money(value: string | null): string | null {
 
 function hasExpectedBlockedException(result: EmployeePayrollPreflightView): boolean {
   return !result.eligibleForCalculation
-    && result.gaps.some((gap) => gap.status === 'SOURCE_GAP'
+    && result.gaps.some((gap) => (gap.status === 'SOURCE_GAP' || gap.status === 'UNSUPPORTED')
       && gap.reasonCode === 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR')
 }
 

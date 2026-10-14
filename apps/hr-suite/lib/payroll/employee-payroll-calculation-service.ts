@@ -47,6 +47,7 @@ export interface EmployeePayrollCalculationDependencies {
   readonly createLifecycleRepository: () => Payrun01Repository
   readonly sourceProvider: SourceProvider
   readonly enabled: () => boolean
+  readonly allowIsolatedTestScenario?: boolean
   readonly now?: () => Date
   readonly createId?: () => string
 }
@@ -221,7 +222,7 @@ function recoveryActions(gaps: readonly PayrollSourceGap[], incomplete: readonly
   return [...actions]
 }
 
-function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot): PayrollSourceGap[] {
+function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIsolatedTestScenario = false): PayrollSourceGap[] {
   const gaps: PayrollSourceGap[] = []
   const source = record(snapshot.canonicalSource)
   const compensation = record(source?.compensation)
@@ -290,7 +291,14 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot): Payroll
     gaps.push({ field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SUPPORTED_REGULAR_WAGE_INPUT_UNAVAILABLE' })
   }
   const fiscalProfile = record(source?.fiscalProfile)
-  if (fiscalProfile?.status !== 'CONFIRMED' || typeof fiscalProfile.id !== 'string'
+  const testScenario = record(source?.testScenario)
+  const isolatedTestProfile = allowIsolatedTestScenario
+    && testScenario?.sourceClassification === 'PAYROLL_TEST_SCENARIO'
+    && fiscalProfile?.status === 'TEST_SCENARIO'
+    && fiscalProfile.sourceClassification === 'PAYROLL_TEST_SCENARIO'
+    && typeof testScenario.assumptionsHash === 'string'
+    && fiscalProfile.sourceReferenceHash === testScenario.assumptionsHash
+  if ((!isolatedTestProfile && fiscalProfile?.status !== 'CONFIRMED') || typeof fiscalProfile?.id !== 'string'
     || typeof fiscalProfile.versionNumber !== 'number') {
     gaps.push({ field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'VALIDATED_FISCAL_PROFILE_REQUIRED' })
   } else if (fiscalProfile.incomeRelationshipId !== snapshot.sourceIncomeRelationshipId) {
@@ -619,7 +627,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       || snapshot.sourceAdministrationId !== scope.administrationId) {
       throw new EmployeePayrollCalculationError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
-    const gaps = [...snapshot.sourceGaps, ...validateSupportedRegularMonth(snapshot)]
+    const gaps = [...snapshot.sourceGaps, ...validateSupportedRegularMonth(snapshot, dependencies.allowIsolatedTestScenario)]
     return {
       employeeId: input.employeeId,
       employmentId: input.employmentId,
@@ -724,7 +732,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     if (!calculations.getOrCreateSourceSnapshot) throw new EmployeePayrollCalculationError('PAYROLL_IDEMPOTENT_REPOSITORY_REQUIRED', 503)
     const persistedSnapshot = await calculations.getOrCreateSourceSnapshot(scope, administrationId, sourceRow)
     const storedSourceSnapshot = { ...snapshot, id: persistedSnapshot.id }
-    const gaps = [...snapshot.sourceGaps, ...validateSupportedRegularMonth(snapshot)]
+    const gaps = [...snapshot.sourceGaps, ...validateSupportedRegularMonth(snapshot, dependencies.allowIsolatedTestScenario)]
     if (gaps.some(isBlockingGap)) return sourceGapsResult(storedSourceSnapshot, gaps, input.employeeId, input.employmentId, input.period)
 
     const calculationSnapshot = { ...snapshot, id: persistedSnapshot.id }
@@ -1062,6 +1070,7 @@ export function createLocalPayrollAcceptanceCalculationService(host: string | nu
   const service = createEmployeePayrollCalculationService({
     ...scopedDependencies,
     sourceProvider: createPayrollAcceptanceScenarioSourceProvider(defaults.sourceProvider),
+    allowIsolatedTestScenario: true,
   })
   const sourceOnlyService = createEmployeePayrollCalculationService(scopedDependencies)
 

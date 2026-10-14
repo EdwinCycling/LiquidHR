@@ -6,7 +6,7 @@ export const PAYROLL_ACCEPTANCE_SCENARIO_CODE = 'NL-2026-MONTHLY-WHITE-REGULAR-T
 export const PAYROLL_ACCEPTANCE_SCENARIO_VERSION = '1'
 
 const sourceScope = {
-  tenantId: '07249eb9-545c-883b-b26d-d52f83b4f4a1',
+  tenantId: '07249eb9-545c-883b-b26b-d52f83b4f4a1',
   hrGroupId: '6ba6f1df-e376-40f2-abff-ffdf000172e1',
   administrationId: '2057f6ec-cd3e-3c28-9126-c41235d4ffae',
 } as const

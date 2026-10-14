@@ -9,7 +9,7 @@ import {
 } from './payroll-acceptance-scenario'
 
 const first = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[0]!
-const tenantId = '07249eb9-545c-883b-b26d-d52f83b4f4a1'
+const tenantId = '07249eb9-545c-883b-b26b-d52f83b4f4a1'
 const hrGroupId = '6ba6f1df-e376-40f2-abff-ffdf000172e1'
 const administrationId = '2057f6ec-cd3e-3c28-9126-c41235d4ffae'
 const incomeRelationshipId = 'a1111111-1111-4111-8111-111111111111'

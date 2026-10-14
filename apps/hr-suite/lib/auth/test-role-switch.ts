@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import type { createClient } from '@/lib/supabase/server'
 
 export const TEST_ROLE_SWITCH_OWNER_EMAIL = 'edwin@editsolutions.nl'
 export const TEST_ROLE_SWITCH_OWNER_COOKIE = 'liquidhr-local-persona-owner'
@@ -37,6 +38,22 @@ export interface TestRoleSwitchEnvironment {
 export interface LocalPersonaIdentity {
   email: string | null | undefined
   emailVerified: boolean
+}
+
+export async function getVerifiedLocalPersonaIdentity(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<{ userId: string; identity: LocalPersonaIdentity } | null> {
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
+  const subject = claimsData?.claims?.sub
+  if (claimsError || typeof subject !== 'string') return null
+
+  const { data: userData, error: userError } = await supabase.auth.getUser()
+  const user = userData.user
+  if (userError || !user || user.id !== subject || user.is_anonymous === true) return null
+  return {
+    userId: subject,
+    identity: { email: user.email, emailVerified: Boolean(user.email_confirmed_at) },
+  }
 }
 
 function normalizedEnvironment(value: string | undefined): string {

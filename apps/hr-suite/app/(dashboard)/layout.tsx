@@ -194,6 +194,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           hrGroup: navigation('hrGroup'),
           administration: navigation('administration'),
           switchingAdministration: navigation('switchingAdministration'),
+          confirmAdministration: navigation('confirmAdministration'),
           switchAdministrationFailed: navigation('switchAdministrationFailed'),
           switchingHrGroup: navigation('switchingHrGroup'),
           switchHrGroupFailed: navigation('switchHrGroupFailed'),

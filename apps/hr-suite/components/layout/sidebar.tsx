@@ -73,6 +73,7 @@ interface SidebarLabels {
   expand: string
   hrGroup: string
   administration: string
+  confirmAdministration: string
   switchingAdministration: string
   switchAdministrationFailed: string
   switchingHrGroup: string
@@ -299,6 +300,7 @@ export function Sidebar({
               administrations={administrations}
               labels={{
                 administration: labels.administration,
+                confirm: labels.confirmAdministration,
                 switching: labels.switchingAdministration,
                 switchFailed: labels.switchAdministrationFailed,
               }}

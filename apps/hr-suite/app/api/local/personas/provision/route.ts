@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   getLocalPersonaOwnerKey,
+  getVerifiedLocalPersonaIdentity,
   isLocalPersonaRuntime,
   normalizedEmail,
 } from '@/lib/auth/test-role-switch'
@@ -73,13 +74,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const supabase = await createClient()
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
-  const claims = claimsData?.claims
-  const actorEmail = typeof claims?.email === 'string' ? claims.email : null
-  const actorIdentity = { email: actorEmail, emailVerified: claims?.email_verified === true }
-  const ownerKey = !claimsError && typeof claims?.sub === 'string'
-    ? getLocalPersonaOwnerKey(request.headers.get('host'), actorIdentity)
-    : null
+  const verified = await getVerifiedLocalPersonaIdentity(supabase)
+  const actorEmail = verified?.identity.email ?? null
+  const ownerKey = verified ? getLocalPersonaOwnerKey(request.headers.get('host'), verified.identity) : null
 
   if (ownerKey !== 'hr-admin' || normalizedEmail(actorEmail) !== OPERATOR_EMAIL) {
     return errorResponse('LOCAL_PERSONA_PROVISION_FORBIDDEN', 403)

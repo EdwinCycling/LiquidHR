@@ -4,6 +4,7 @@ const {
   createClient,
   createAdminClient,
   getClaims,
+  getUser,
   rpc,
   createUser,
   deleteUser,
@@ -12,6 +13,7 @@ const {
   createClient: vi.fn(),
   createAdminClient: vi.fn(),
   getClaims: vi.fn(),
+  getUser: vi.fn(),
   rpc: vi.fn(),
   createUser: vi.fn(),
   deleteUser: vi.fn(),
@@ -96,6 +98,7 @@ describe('POST /api/local/personas/provision', () => {
     createClient.mockReset()
     createAdminClient.mockReset()
     getClaims.mockReset()
+    getUser.mockReset()
     rpc.mockReset()
     createUser.mockReset()
     deleteUser.mockReset()
@@ -105,10 +108,11 @@ describe('POST /api/local/personas/provision', () => {
       data: { claims: { sub: 'verified-hr-admin-user', email: 'hradmin.fixture@liquidhr.test', email_verified: true } },
       error: null,
     })
+    getUser.mockResolvedValue({ data: { user: { id: 'verified-hr-admin-user', email: 'hradmin.fixture@liquidhr.test', email_confirmed_at: '2026-01-01T00:00:00Z', is_anonymous: false } }, error: null })
     rpc.mockResolvedValue({ data: { status: 'LINKED', changed: true }, error: null })
     createUser.mockResolvedValue({ data: { user: { id: 'new-auth-user' } }, error: null })
     deleteUser.mockResolvedValue({ error: null })
-    createClient.mockResolvedValue({ auth: { getClaims }, rpc })
+    createClient.mockResolvedValue({ auth: { getClaims, getUser }, rpc })
     createAdminClient.mockReturnValue({ auth: { admin: { createUser, deleteUser } } })
   })
 

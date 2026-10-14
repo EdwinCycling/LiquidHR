@@ -4,7 +4,7 @@ import type { PayrollScope } from './scope'
 export const PAYROLL_LAB_TEST_PROJECT_REF = 'jhgeriucbkfarxiudzfy'
 export const LOCAL_PAYROLL_ACCEPTANCE_PERIOD = { year: 2026, month: 10 } as const
 export const LOCAL_PAYROLL_ACCEPTANCE_SCOPE = {
-  tenantId: '07249eb9-545c-883b-b26d-d52f83b4f4a1',
+  tenantId: '07249eb9-545c-883b-b26b-d52f83b4f4a1',
   hrGroupId: '6ba6f1df-e376-40f2-abff-ffdf000172e1',
   sourceAdministrationId: '2057f6ec-cd3e-3c28-9126-c41235d4ffae',
   payrollAdministrationId: '932ff7c3-e1ca-44b7-8980-387c9efdd9e3',

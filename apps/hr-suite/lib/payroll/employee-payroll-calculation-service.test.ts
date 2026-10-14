@@ -162,7 +162,7 @@ function openPeriod(): PayrollPeriodRow {
   }
 }
 
-function harness(options: Parameters<typeof provider>[0] = {}, sourceProviderOverride?: PayrollSourceProvider) {
+function harness(options: Parameters<typeof provider>[0] = {}, sourceProviderOverride?: PayrollSourceProvider, allowIsolatedTestScenario = false) {
   const snapshots = new Map<string, PayrollSourceSnapshotRow>()
   const inputs = new Map<string, PayrollCalculationInputSetRow>()
   const runs = new Map<string, PayrollCalculationRunRow>()
@@ -274,11 +274,42 @@ function harness(options: Parameters<typeof provider>[0] = {}, sourceProviderOve
     createCalculationRepository: () => calculationRepository,
     createLifecycleRepository: () => lifecycleRepository,
     sourceProvider: sourceProviderOverride ?? provider(options), enabled: () => true, now: () => new Date(runTime),
+    allowIsolatedTestScenario,
   })
   return { service, snapshots, inputs, runs, components, controls, traces, references, events, calcWrites, calculationRepository }
 }
 
 describe('Core-backed employee payroll calculation', () => {
+  it('accepts a marked scenario profile only in the isolated calculation service', async () => {
+    const base = provider()
+    const scenarioProvider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: async (input) => {
+        const snapshot = await base.getPayrollSourceSnapshot(input)
+        const source = snapshot.canonicalSource as Record<string, unknown>
+        const fiscalProfile = source.fiscalProfile as Record<string, unknown>
+        return {
+          ...snapshot,
+          canonicalSource: {
+            ...source,
+            fiscalProfile: { ...fiscalProfile, status: 'TEST_SCENARIO', sourceClassification: 'PAYROLL_TEST_SCENARIO', sourceReferenceHash: 'assumptions-hash' },
+            testScenario: { sourceClassification: 'PAYROLL_TEST_SCENARIO', assumptionsHash: 'assumptions-hash' },
+          },
+        }
+      },
+    }
+    const input = { employeeId, employmentId, period }
+    expect((await harness({}, scenarioProvider).service.inspectEmployeePayrollSource(input)).eligibleForCalculation).toBe(false)
+    expect((await harness({}, scenarioProvider, true).service.inspectEmployeePayrollSource(input)).eligibleForCalculation).toBe(true)
+    const mismatchedProvider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: async (sourceInput) => {
+        const snapshot = await scenarioProvider.getPayrollSourceSnapshot(sourceInput)
+        const source = snapshot.canonicalSource as Record<string, unknown>
+        return { ...snapshot, canonicalSource: { ...source, testScenario: { sourceClassification: 'PAYROLL_TEST_SCENARIO', assumptionsHash: 'different-hash' } } }
+      },
+    }
+    expect((await harness({}, mismatchedProvider, true).service.inspectEmployeePayrollSource(input)).eligibleForCalculation).toBe(false)
+  })
+
   it('preflights source eligibility without writing payroll snapshots, runs, or results', async () => {
     const eligible = harness()
     const ready = await eligible.service.inspectEmployeePayrollSource({ employeeId, employmentId, period })

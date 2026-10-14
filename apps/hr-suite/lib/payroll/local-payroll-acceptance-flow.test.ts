@@ -91,7 +91,7 @@ function serviceWithReadySources(): LocalPayrollAcceptanceService {
       return calculation(index)
     }),
     inspectExceptionCandidate: vi.fn(async (input) => preflight(input.employeeId, input.employmentId, false, [
-      { field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR' },
+      { field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR' },
     ])),
     readBackScenarioCalculation: vi.fn(async (input) => {
       const index = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES.findIndex((candidate) => candidate.employeeId === input.employeeId)

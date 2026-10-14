@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, createAdminClient, getClaims, signOut, generateLink, listUsers, getLocalPayrollPersonaReadiness } = vi.hoisted(() => ({
+const { createClient, createAdminClient, getClaims, getUser, signOut, generateLink, listUsers, getLocalPayrollPersonaReadiness } = vi.hoisted(() => ({
   createClient: vi.fn(),
   createAdminClient: vi.fn(),
   getClaims: vi.fn(),
+  getUser: vi.fn(),
   signOut: vi.fn(),
   generateLink: vi.fn(),
   listUsers: vi.fn(),
@@ -66,7 +67,8 @@ function setIdentity(email: string, emailVerified = true) {
     data: { claims: { sub: `auth-${email}`, email, email_verified: emailVerified } },
     error: null,
   })
-  return { auth: { getClaims, signOut } }
+  getUser.mockResolvedValue({ data: { user: { id: `auth-${email}`, email, email_confirmed_at: emailVerified ? '2026-01-01T00:00:00Z' : null, is_anonymous: false } }, error: null })
+  return { auth: { getClaims, getUser, signOut } }
 }
 
 function authAdmin(users: AuthTestUser[] = TARGET_EMAILS) {
@@ -79,6 +81,7 @@ describe('POST /api/auth/test-role-switch', () => {
     createClient.mockReset()
     createAdminClient.mockReset()
     getClaims.mockReset()
+    getUser.mockReset()
     signOut.mockReset()
     generateLink.mockReset()
     listUsers.mockReset()
@@ -106,6 +109,16 @@ describe('POST /api/auth/test-role-switch', () => {
 
     expect(response.status).toBe(404)
     expect(getClaims).not.toHaveBeenCalled()
+    expect(createAdminClient).not.toHaveBeenCalled()
+  })
+
+  it('rejects a verified Auth user whose ID differs from the signed claim', async () => {
+    createClient.mockResolvedValue(setIdentity('edwin@editsolutions.nl'))
+    getUser.mockResolvedValue({ data: { user: { id: 'different-user', email: 'edwin@editsolutions.nl', email_confirmed_at: '2026-01-01T00:00:00Z', is_anonymous: false } }, error: null })
+
+    const response = await POST(switchRequest('hr-admin'))
+
+    expect(response.status).toBe(403)
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 
