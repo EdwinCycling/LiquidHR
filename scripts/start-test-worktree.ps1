@@ -144,25 +144,28 @@ if ($unexpectedEnvFiles.Count -gt 0) {
 $worktreeConfig = Join-Path $appRoot '.env.local'
 if (Test-Path -LiteralPath $worktreeConfig -PathType Leaf) {
     $configItem = Get-Item -LiteralPath $worktreeConfig -Force
-    # Query the protected central source. On some Windows filesystems fsutil
-    # can enumerate a hard link from its source but returns ERROR_NOT_SUPPORTED
-    # when the same file is addressed through the destination path.
-    $hardLinkPaths = @(& fsutil.exe hardlink list $centralConfig 2>$null)
-    $hardLinkExitCode = $LASTEXITCODE
+    # Query both paths because Windows may reject fsutil for either the central
+    # source or the worktree link, depending on the filesystem context.
     $volumeRoot = [IO.Path]::GetPathRoot($centralConfig)
     $canonicalRelativePath = $centralConfig.Substring($volumeRoot.Length).TrimStart('\')
     $worktreeRelativePath = $worktreeConfig.Substring($volumeRoot.Length).TrimStart('\')
     $expectedCanonicalPath = '\' + $canonicalRelativePath
     $expectedWorktreePath = '\' + $worktreeRelativePath
-    $isCentralLink = $hardLinkExitCode -eq 0 -and @(
-        $hardLinkPaths |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ -ieq $expectedCanonicalPath }
-    ).Count -gt 0 -and @(
-        $hardLinkPaths |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ -ieq $expectedWorktreePath }
-    ).Count -gt 0
+    $hardLinkQuerySucceeded = $false
+    $isCentralLink = $false
+    foreach ($hardLinkCandidate in @($centralConfig, $worktreeConfig)) {
+        $hardLinkPaths = @(& fsutil.exe hardlink list $hardLinkCandidate 2>$null)
+        $hardLinkExitCode = $LASTEXITCODE
+        if ($hardLinkExitCode -ne 0) { continue }
+        $hardLinkQuerySucceeded = $true
+        $normalizedHardLinkPaths = @($hardLinkPaths | ForEach-Object { $_.Trim() })
+        $hasCanonicalLink = @($normalizedHardLinkPaths | Where-Object { $_ -ieq $expectedCanonicalPath }).Count -gt 0
+        $hasWorktreeLink = @($normalizedHardLinkPaths | Where-Object { $_ -ieq $expectedWorktreePath }).Count -gt 0
+        if ($hasCanonicalLink -and $hasWorktreeLink) {
+            $isCentralLink = $true
+            break
+        }
+    }
 
     if (-not $isCentralLink -and ($configItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
         $linkTarget = @($configItem.Target)[0]
@@ -180,7 +183,7 @@ if (Test-Path -LiteralPath $worktreeConfig -PathType Leaf) {
     }
 
     if (-not $isCentralLink) {
-        if ($hardLinkExitCode -ne 0 -and -not ($configItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        if (-not $hardLinkQuerySucceeded -and -not ($configItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
             throw 'De worktree-configuratie kon niet als centrale hardlink worden geverifieerd. Het bestand is niet geopend of gewijzigd.'
         } else {
             throw 'De worktree-configuratie verwijst niet naar de centrale TEST-configuratie. Er is niets gestart of gewijzigd.'
