@@ -23,4 +23,9 @@ Describe 'start-test-worktree runtime bridge' {
         $launcherSource | Should Match 'provision-test-runtime\.ps1'
         $launcherSource | Should Match 'er is geen alternatieve configuratie gemaakt of gebruikt'
     }
+
+    It 'behoudt een expliciete optionele persona-argumentpositie bij de Next.js bridge' {
+        $launcherSource | Should Match '__NO_PAYROLL_PERSONA_CONFIG__'
+        $launcherSource | Should Match 'process\.loadEnvFile\(personaConfigFile\)'
+    }
 }

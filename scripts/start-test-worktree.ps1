@@ -245,9 +245,11 @@ if ($PayrollAcceptance) {
     $requiredGroupsJson += ', ["PAYROLL_SUPABASE_URL"], ["PAYROLL_SUPABASE_SECRET_KEY"], ["PAYROLL_LAB_ENABLED"]'
 }
 $requiredGroupsJson += ' ]'
+$requiredGroupsBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($requiredGroupsJson))
 $requirePayrollJson = if ($PayrollAcceptance) { 'true' } else { 'false' }
 $configProbe = @'
-const groups = JSON.parse(process.argv[1]);
+const requiredGroupsJson = Buffer.from(process.argv[1], 'base64').toString('utf8');
+const groups = JSON.parse(requiredGroupsJson);
 const requirePayroll = process.argv[2] === 'true';
 const missing = groups
   .filter((group) => !group.some((name) => (process.env[name] ?? '').trim().length > 0))
@@ -285,7 +287,7 @@ if (missing.length > 0 || invalidTargets.length > 0) {
   console.log('Centrale TEST-configuratie: vereiste variabelen aanwezig; waarden verborgen.');
 }
 '@
-& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsJson $requirePayrollJson
+& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsBase64 $requirePayrollJson
 if ($LASTEXITCODE -ne 0) {
     throw 'De centrale TEST-configuratie bevat niet alle vereiste runtimevelden; waarden zijn niet getoond.'
 }
@@ -414,7 +416,7 @@ const [configFile, personaConfigFile, nextEntry, ...nextArgs] = process.argv.sli
 if (!configFile || !nextEntry) throw new Error('TEST-runtimeconfiguratie of Next.js CLI ontbreekt.');
 if (typeof process.loadEnvFile === 'function') {
     process.loadEnvFile(configFile);
-    if (personaConfigFile) process.loadEnvFile(personaConfigFile);
+    if (personaConfigFile !== '__NO_PAYROLL_PERSONA_CONFIG__') process.loadEnvFile(personaConfigFile);
 } else if (!process.execArgv.some((argument) => argument.startsWith('--env-file='))) {
     throw new Error('Deze Node.js-versie kan de TEST-runtimeconfiguratie niet laden.');
 }
@@ -422,7 +424,7 @@ process.execArgv = [];
 process.argv = [process.argv[0], nextEntry, ...nextArgs];
 require(nextEntry);
 '@
-$personaConfigArgument = if ($PayrollPersonaAcceptance) { $personaConfig } else { '' }
+$personaConfigArgument = if ($PayrollPersonaAcceptance) { $personaConfig } else { '__NO_PAYROLL_PERSONA_CONFIG__' }
 $runtimeArguments = @($centralConfig, $personaConfigArgument, $nextCli) + $nextArguments
 $hasLoadEnvFileApi = $nodeVersion.Major -ge 22 -or
     ($nodeVersion.Major -eq 21 -and $nodeVersion.Minor -ge 7) -or
