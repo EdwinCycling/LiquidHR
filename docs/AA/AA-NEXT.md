@@ -1,18 +1,17 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-13 (Core/PERF; overige productsporen inhoudelijk ongewijzigd)
+Bijgewerkt: 2026-10-14 (Core/PERF; overige productsporen inhoudelijk ongewijzigd)
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 
-## Eerstvolgende Core-volgorde — besluit 2026-10-13
+## Eerstvolgende Core-volgorde — besluit 2026-10-14
 
-1. **PERF01-B2 — server-side medewerkerpagination (LOOPT / CONTROLLED).** Nieuwe, correct gescopeerde RPC/migratie voor 50 medewerkers per pagina, exact totaal en server-side zoeken/filteren/sorteren; toepassing op synthetische Supabase TEST is expliciet geautoriseerd. Niet als afgerond markeren vóór een bewezen Codex-oplevering en vereiste autorisatie-/releasegates.
-2. **WVP01 — Wet verbetering poortwachter Case Management (VOLGENDE CORE-WAVE).** Direct na PERF01-B2. Bouw bovenop de bestaande absence-/taak-/milestonefoundation; geen herbouw van bestaande services. Controleer vóór de implementatie de actuele wettelijke bronset en bewaak case-manager-/HR-groepscope.
-3. **INS02 — Report Consistency + Headcount/FTE (DAARNA).** Eén consistente rapportagestandaard, dezelfde querysemantiek voor KPI/chart/tabel/drilldown/export en het Headcount/FTE-referentierapport.
-4. **AW02 — Actual Work vervolg (LATER).** Herprioriteer op actuele requirements na de bovenstaande Core-waves.
+1. **WVP01 — Wet verbetering poortwachter Case Management (VOLGENDE CORE-WAVE).** PERF01-B2 is geleverd; bouw bovenop de bestaande absence-/taak-/milestonefoundation. Controleer vóór implementatie de actuele wettelijke bronset en bewaak case-manager-/HR-groepscope.
+2. **INS02 — Report Consistency + Headcount/FTE (DAARNA).** Eén consistente rapportagestandaard, dezelfde querysemantiek voor KPI/chart/tabel/drilldown/export en het Headcount/FTE-referentierapport.
+3. **AW02 — Actual Work vervolg (LATER).** Herprioriteer op actuele requirements na de bovenstaande Core-waves.
 
-**PERF01-status en bewijsgrens:** AA-LEAN-02 is ingevoerd. PERF01-B1a en PERF01-B (dashboardqueries en aggregaties) zijn geïntegreerd en als synthetische TEST-release geleverd; de representatieve end-to-end-tijdmeting blijft OPEN onder `PERF01-B-019`. PERF01-A2 (HeRa-chat/geschiedenis, Team AI-data en voicechunks pas bij gebruik laden) is reeds in de actuele code aanwezig; geen nieuwe A2-bouwrun nodig, maar bundle-/request-/latencywinst is niet gemeten. PERF01-B2 loopt en is nog niet als RELEASED bevestigd.
+**PERF01-status en bewijsgrens:** AA-LEAN-02 is ingevoerd. PERF01-B1a en PERF01-B (dashboardqueries en aggregaties) zijn geïntegreerd en als synthetische TEST-release geleverd; de representatieve end-to-end-tijdmeting blijft OPEN onder `PERF01-B-019`. PERF01-A2 (HeRa-chat/geschiedenis, Team AI-data en voicechunks pas bij gebruik laden) is reeds in de actuele code aanwezig; geen nieuwe A2-bouwrun nodig, maar bundle-/request-/latencywinst is niet gemeten. PERF01-B2 is geïntegreerd op `main` `8c585f8397e059070e2107cdbec57ab7fbe3757e`, Vercel TEST READY. De gebruiker rapporteerde een ingelogde `/employees`-browser-smoke met **7/7 PASS** op 2026-10-14. Afzonderlijke Manager-browser-negatives en end-to-end-latency zijn niet door deze run bewezen. Zie [PERF01-B2 handmatige acceptatie](../quality/acceptance/runs/PERF01-B2-20261014-MANUAL-EMPLOYEES.md).
 
 **Parallelle planningen blijven ongewijzigd:** NMBRS-02 blijft een aparte read-only employee-synchronisatiepreview, met eigen provider- en acceptatieafhankelijkheden; geen employee writes, matching/apply, payroll export of externe payrollmutaties. Bescherm `work/payroll-p0-p1` en unieke P2-readinessdocumentatie. AI, Payroll en Nmbrs worden inhoudelijk vanuit hun eigen threads bijgewerkt; het Core-besluit herschikt deze sporen niet.
 
@@ -20,7 +19,7 @@ Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailr
 
 AA-CURRENT beschrijft de actuele main-/deploymentbaseline. De ONE VERSION-2026-10-10 voorstatus blijft historisch in het acceptance report; die geldt niet als huidige releasebeslissing.
 
-## VOLGENDE CORE-WAVE — WVP01 (na PERF01-B2)
+## VOLGENDE CORE-WAVE — WVP01 (PERF01-B2 geleverd)
 
 **Wet verbetering poortwachter Case Management**
 
