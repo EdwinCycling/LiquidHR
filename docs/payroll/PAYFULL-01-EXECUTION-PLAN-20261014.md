@@ -59,6 +59,12 @@ Eén **volledig ondersteunde en correct afgebakende** NL-2026-verwerking voor ee
 
 **PAYFULL-02:** bredere pensioen-/cao-regelingen, variabele mutaties, meerdere IKV's, bijzonder loon, werkgeverspremies/VCR en aanvullende NL-fiscale situaties. **PAYFULL-03:** Continuous Payroll / Payroll by Exception met bron-events, opnieuw rekenen, uitzonderingenbak, correcties en serverless scheduling. Die opvolgers zijn **gepland, niet gestart**.
 
+## Nieuwe pensioendata als input — niet als nieuwe zelfstandige bouwslag (14 oktober 2026)
+
+De gebruiker leverde het PGB/SIVI-UPA-regelingenoverzicht 2027 aan. Bron, volledige machineleesbare snapshot (136 regelvarianten, 33 kolommen, 79 concept 2027-rijen) en onderzoeksrapport zijn privé opgeslagen in `/LiquidHR/Payroll/Pensioen-UPA-2027/`. **Gebruik het werkboek niet als direct actieve tarievenbibliotheek.** Zie [PAYPENS-UPA-2027-ROADMAP-20261014.md](PAYPENS-UPA-2027-ROADMAP-20261014.md).
+
+Voor PAYFULL-01 zijn de bruikbare casus-/contractaspecten: pensioengevend loon, franchise/cap, berekeningsfrequentie en deeltijd, werknemers-/werkgeverspremies, fiscale aftrekbehandeling, regelingversies en bronherkomst. Werk deze in de bestaande generieke Component Graph Engine uit voor één onafhankelijk bewezen ondersteunde case. Regels met `zie overeenkomst`, ontbrekende parameters of conceptstatus blijven `SOURCE_GAP`/`UNSUPPORTED`, nooit automatisch netto/finaal. De brede Wtp 2027-catalogus, UPA XML en pensioennota-reconciliatie volgen in PAYPENS/PAYUPA na PAYFULL. Bestaande PFZW-brongaten blijven open; PGB-bron is geen PFZW-bron.
+
 ## 4. Lokale live-meekijkafspraak (zonder Vercel per codewijziging)
 
 De gebruiker hoeft geen PowerShell-commando's handmatig te bedienen. **Na expliciete start van PAYFULL-01** start Codex zelf in zijn Windows-worktree de bestaande beveiligde lokale launcher in een **blijvende terminal**:
