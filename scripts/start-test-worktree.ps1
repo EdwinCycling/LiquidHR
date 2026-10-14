@@ -61,14 +61,24 @@ if ($unexpectedEnvFiles.Count -gt 0) {
 $worktreeConfig = Join-Path $appRoot '.env.local'
 if (Test-Path -LiteralPath $worktreeConfig -PathType Leaf) {
     $configItem = Get-Item -LiteralPath $worktreeConfig -Force
-    $hardLinkPaths = @(& fsutil.exe hardlink list $worktreeConfig 2>$null)
+    # Query the protected central source. On some Windows filesystems fsutil
+    # can enumerate a hard link from its source but returns ERROR_NOT_SUPPORTED
+    # when the same file is addressed through the destination path.
+    $hardLinkPaths = @(& fsutil.exe hardlink list $centralConfig 2>$null)
     $hardLinkExitCode = $LASTEXITCODE
-    $canonicalRelativePath = $centralConfig.Substring([IO.Path]::GetPathRoot($centralConfig).Length).TrimStart('\')
-    $expectedHardLinkPath = '\' + $canonicalRelativePath
+    $volumeRoot = [IO.Path]::GetPathRoot($centralConfig)
+    $canonicalRelativePath = $centralConfig.Substring($volumeRoot.Length).TrimStart('\')
+    $worktreeRelativePath = $worktreeConfig.Substring($volumeRoot.Length).TrimStart('\')
+    $expectedCanonicalPath = '\' + $canonicalRelativePath
+    $expectedWorktreePath = '\' + $worktreeRelativePath
     $isCentralLink = $hardLinkExitCode -eq 0 -and @(
         $hardLinkPaths |
             ForEach-Object { $_.Trim() } |
-            Where-Object { $_ -ieq $expectedHardLinkPath }
+            Where-Object { $_ -ieq $expectedCanonicalPath }
+    ).Count -gt 0 -and @(
+        $hardLinkPaths |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ -ieq $expectedWorktreePath }
     ).Count -gt 0
 
     if (-not $isCentralLink -and ($configItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
