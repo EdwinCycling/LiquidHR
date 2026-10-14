@@ -13,6 +13,14 @@ Dit document legt de structurele product-, architectuur- en ontwikkelafspraken v
 
 **Actuele productrichting (14 oktober 2026):** [PAYFULL-01 — eerste geïntegreerde Payroll-verwerkingsflow](../payroll/PAYFULL-01-EXECUTION-PLAN-20261014.md) is **GEPLAND / NIET GESTART**. Het combineert Core-backed berekening, multi-medewerkerworklist, review/finalisatie, PDF en ESS tot één verticale acceptatie, maar verleent geen database-/releasemandaat. Vanaf de expliciete start is de werkafspraak: Codex start zelf een lokale Development-TEST-server via de beschermde launcher; de gebruiker kan in de browser meekijken zonder iedere codewijziging naar Vercel te deployen. De nog lopende PAYCALC-REAL-01-taak eerst veilig checkpointen. Bestaande beperkingen op fiscale dekking, bronprovenance, immutable historie en remote writes blijven gelden.
 
+## Productwaardige Payroll-presentatie (besluit 14 oktober 2026)
+
+**Bindende UX-regel:** volg [AA-REQ §5](AA-REQ.md). Het feit dat de app momenteel uitsluitend een synthetische TEST-omgeving bedient, mag geen zichtbare ontwikkel-/demo-uitstraling geven. Product-UI, menus, labels, formulieren, meldingen en salarisdocumenten spreken de taal van de salarisprofessional; geen `synthetische testdienstverbanden`, `Arrangement Foundation`, `fixture`, `benchmark`, `demo` of technische packagecode in de reguliere UI. Testdata en acceptatiebewijs blijven **intern** herkenbaar en bewaard.
+
+**Cao's en regelingen:** toon een compacte, filterbare, sorteerbare lijst met details en versiehistorie. Scheid catalogusbestaan, administratiegebonden beschikbaarheid en werkelijk ondersteunde berekeningsdekking; toon geen testfixture-lijsten of beheersknop `Drie testregelingen beschikbaar maken` op een productpagina. Laat historische Lab-fixtures onaangeroerd en onderzoek administratie-scope wanneer fixtures van Jupiter zichtbaar zijn bij Mars. Behandel een bedrijfseigen benchmarkregeling niet als een werkelijk geldige werknemersregeling. Activeren is een expliciete bevoegdheids-/beheerhandeling.
+
+**Geen schijnzekerheid:** de productpresentatie is professioneel maar blijft feitelijk juist. Onvolledige looncomponenten, fiscale bronhiaten, ontoereikende data en ontbrekende rechten blijven operationele blokkades; maak geen fictief volledig nettoloon of definitieve loonstrook.
+
 ## 1. Productgrens
 
 Payroll is onderdeel van dezelfde LiquidHR-app en dezelfde repository.
