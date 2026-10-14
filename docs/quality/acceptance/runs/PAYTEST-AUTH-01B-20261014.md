@@ -1,6 +1,6 @@
 # PAYTEST-AUTH-01B — vaste Payroll-testaccounts en harness
 
-**Verdict: PARTIAL / BLOCKED — geen volledige persona-acceptatie.** Datum: 2026-10-14. Uitgevoerd in `work/paytest-auth-01-current-20261013`, vanaf kandidaat-HEAD `86fb4a47912977c9123b542694298b7b3d3090a1`; op het moment van controle wees `origin/main` naar `8c585f8397e059070e2107cdbec57ab7fbe3757e`. Geen merge of deployment uitgevoerd.
+**Verdict: PARTIAL / BLOCKED — geen volledige persona-acceptatie.** Datum: 2026-10-14. Uitgevoerd in `work/paytest-auth-01-current-20261013`, vanaf kandidaat-HEAD `86fb4a47912977c9123b542694298b7b3d3090a1`; op het moment van controle wees `origin/main` naar `8c585f8397e059070e2107cdbec57ab7fbe3757e`. Geen merge of handmatige deployment uitgevoerd; PR-pushes startten automatisch Preview-deployments. Production is niet gedeployed.
 
 ## Afgeronde acties
 
@@ -25,7 +25,7 @@ Voor de runs `338ef391-fbf6-435a-a4d7-e28a8024ebc2`, `131a5fcb-c92a-416f-8fdf-bc
 
 ## Hosted veiligheid en checks
 
-- Vercel Preview `dpl_BPSoLrZTpFN37t9AeStaqb1TkAyf` werd READY op runtime-codecommit `5869191f3d2e3badc8815b6f86fcd4b6fa50a2fe`. De latere docs-only commit `2a8e9d40b9e04e9caf9692232994d7fdc12b4389` kreeg ook READY Preview `dpl_3FPWDFqZW3NvxSeB1MhBTYQSAUxc` op dezelfde branch en alias `liquidhr-git-work-paytest-auth-01-curre-3735cc-edwinitsolutions.vercel.app`; er wijzigde geen app-runtimecode tussen die commits. De anonieme `/login` op beide previews toonde de normale uitnodigingslogin; Test Auth en role-switch waren niet zichtbaar.
+- Vercel Preview `dpl_BPSoLrZTpFN37t9AeStaqb1TkAyf` werd READY op runtime-codecommit `5869191f3d2e3badc8815b6f86fcd4b6fa50a2fe`. De docs-only commits `2a8e9d40b9e04e9caf9692232994d7fdc12b4389` (Preview `dpl_3FPWDFqZW3NvxSeB1MhBTYQSAUxc`) en `9e50df333a9c4091748fdb480870d5fc33f2b6bc` (Preview `dpl_5vC61jPpnMboXBZu1raZP6j8Vkdd`) kregen ook READY op dezelfde branch en alias `liquidhr-git-work-paytest-auth-01-curre-3735cc-edwinitsolutions.vercel.app`; er wijzigde geen app-runtimecode tussen die commits. De anonieme `/login` op previews van runtimecommit `5869191f` en docs-only commit `9e50df33` toonde de normale uitnodigingslogin; Test Auth en role-switch waren niet zichtbaar.
 - De gecontroleerde Production-deployment was READY op `main`-SHA `8c585f8397e059070e2107cdbec57ab7fbe3757e`. De publieke login toonde de normale invite-only flow; Test Auth en role-switch waren niet zichtbaar. Dit bewijst geen Preview-acceptatie.
 - `node --check scripts/check-test-personas.browser.mjs`, PowerShell-parser en JSON-validatie: PASS. De checker `-SkipBrowser` bevestigde statische/runtime/config/credential-preflight maar eindigde bewust met code 2 omdat browseracceptatie was overgeslagen; geen persona kreeg `READY`.
 - `git -c core.whitespace=cr-at-eol diff --check`: PASS. De reguliere Windows-worktree heeft CRLF; de EOL-bewuste check bevestigt dat er geen inhoudelijke trailing whitespace is.
