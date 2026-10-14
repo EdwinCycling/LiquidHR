@@ -18,6 +18,15 @@ import { requireComponentLibraryAccess } from './component-library-access'
 import { createPayrollCalculationRepository, type PayrollCalculationArtifacts, type PayrollCalculationRepository } from './calculation-repository'
 import type { PayrollDatabase, PayrollJson, IndividualPayrollLifecycleEventRow } from './database'
 import { isPayrollLabEnabled } from './feature-flag'
+import {
+  isLocalPayrollAcceptanceRuntime,
+  isLocalPayrollAcceptanceScope,
+  LOCAL_PAYROLL_ACCEPTANCE_PERIOD,
+} from './local-payroll-acceptance-runtime'
+import {
+  createPayrollAcceptanceScenarioSourceProvider,
+  isPayrollAcceptanceScenarioReference,
+} from './payroll-acceptance-scenario'
 import { createPayrun01Repository, type GenericPayrollInputReferenceInput, type Payrun01Repository } from './payrun01-repository'
 import { createLiquidHrPayrollSourceProvider } from './source/liquid-hr-source-provider'
 import type { PayrollScope } from './scope'
@@ -83,6 +92,27 @@ export type EmployeePayrollPreflightView = {
   readonly period: EmployeePayrollPeriod
   readonly eligibleForCalculation: boolean
   readonly gaps: readonly PayrollSourceGap[]
+}
+
+export type LocalPayrollAcceptanceReadback = {
+  readonly confirmed: boolean
+  readonly runId: string
+  readonly sourceSnapshotId: string | null
+  readonly inputSetId: string | null
+  readonly inputReferenceId: string | null
+  readonly payrollPeriodId: string | null
+  readonly componentResultCount: number
+  readonly controlCount: number
+  readonly traceId: string | null
+  readonly conceptEventId: string | null
+  readonly runStatus: string | null
+  readonly sourceHash: string | null
+  readonly coreSourceHash: string | null
+  readonly assumptionsHash: string | null
+  readonly inputHash: string | null
+  readonly resultHash: string | null
+  readonly scenarioCode: string | null
+  readonly controls: readonly { readonly key: string; readonly status: string }[]
 }
 
 export class EmployeePayrollCalculationError extends Error {
@@ -627,7 +657,21 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       throw new EmployeePayrollCalculationError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
     const lifecycle = dependencies.createLifecycleRepository()
-    const events = await lifecycle.listLifecycleEvents(scope, administrationId, periodRow.id, input.employmentId)
+    let events = await lifecycle.listLifecycleEvents(scope, administrationId, periodRow.id, input.employmentId)
+    const canonicalSource = record(snapshot.canonicalSource)
+    const acceptanceScenario = record(canonicalSource?.testScenario)?.sourceClassification === 'PAYROLL_TEST_SCENARIO'
+    if (!acceptanceScenario) {
+      const scenarioRunIds = new Set<string>()
+      for (const runId of new Set(events.map((event) => event.calculation_run_id))) {
+        const artifacts = await calculations.getLatestSyntheticArtifacts(
+          scope, administrationId, undefined, runId, undefined, 'INDIVIDUAL_PAYROLL', input.period,
+        )
+        if (!artifacts) continue
+        const reference = await lifecycle.getGenericInputReference(scope, administrationId, artifacts.inputSet.id)
+        if (isPayrollAcceptanceScenarioReference(reference?.input_reference_json)) scenarioRunIds.add(runId)
+      }
+      events = events.filter((event) => !scenarioRunIds.has(event.calculation_run_id))
+    }
     const latest = lifecycleStatus(events)
     if (latest?.event_type === 'FINALIZED') {
       const previous = await calculations.getLatestSyntheticArtifacts(scope, administrationId, undefined,
@@ -661,7 +705,6 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       })
     }
 
-    const canonicalSource = record(snapshot.canonicalSource)
     const sourcePayload = toPayrollJson({
       ...(canonicalSource ?? {}),
       sourceGaps: snapshot.sourceGaps,
@@ -699,6 +742,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     const source = record(snapshot.canonicalSource)
     const fiscalProfile = record(source?.fiscalProfile)
     const income = record(source?.incomeRelationship)
+    const testScenario = record(source?.testScenario)
     const taxProfileId = typeof fiscalProfile?.id === 'string' ? fiscalProfile.id : null
     const taxProfileVersion = typeof fiscalProfile?.versionNumber === 'number' ? fiscalProfile.versionNumber : null
     const linkedIncomeRelationshipId = typeof income?.employmentIncomeRelationshipId === 'string' ? income.employmentIncomeRelationshipId : null
@@ -760,6 +804,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         employmentIncomeRelationshipId: linkedIncomeRelationshipId,
         incompleteComponents: INCOMPLETE_COMPONENTS,
         netAmountMeaning: 'GROSS_MINUS_WAGE_TAX_BEFORE_PENSION_AND_OTHER_DEDUCTIONS',
+        ...(testScenario ? { sourceClassification: 'PAYROLL_TEST_SCENARIO', testScenario } : {}),
       }),
       created_by_user_id: access.actorUserId,
     }
@@ -955,6 +1000,10 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       || artifacts.payrollPeriod.id !== periodRow.id || artifacts.run.status !== 'SUCCEEDED') {
       throw new EmployeePayrollCalculationError('PAYROLL_RUN_SCOPE_OR_STATUS_INVALID', 403)
     }
+    const reference = await lifecycle.getGenericInputReference(access.scope, access.administration.id, artifacts.inputSet.id)
+    if (isPayrollAcceptanceScenarioReference(reference?.input_reference_json)) {
+      throw new EmployeePayrollCalculationError('PAYROLL_TEST_SCENARIO_CANNOT_TRANSITION', 409)
+    }
     if (currentSource.sourceHash !== artifacts.sourceSnapshot.source_hash) {
       throw new EmployeePayrollCalculationError('PAYROLL_SOURCE_CHANGED_RECALCULATE_REQUIRED')
     }
@@ -964,7 +1013,6 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       throw new EmployeePayrollCalculationError('PAYROLL_LIFECYCLE_TRANSITION_INVALID')
     }
     if (eventType === 'FINALIZED') {
-      const reference = await lifecycle.getGenericInputReference(access.scope, access.administration.id, artifacts.inputSet.id)
       const referenceJson = record(reference?.input_reference_json)
       const incomplete = Array.isArray(referenceJson?.incompleteComponents) ? referenceJson.incompleteComponents : INCOMPLETE_COMPONENTS
       if (incomplete.length > 0 || artifacts.controls.some((control) => control.status !== 'PASS')) {
@@ -995,6 +1043,115 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
 }
 
 const defaultService = () => createEmployeePayrollCalculationService()
+
+export function createLocalPayrollAcceptanceCalculationService(host: string | null) {
+  if (!isLocalPayrollAcceptanceRuntime(host)) {
+    throw new EmployeePayrollCalculationError('PAYROLL_SERVICE_UNAVAILABLE', 404)
+  }
+
+  const scopedDependencies = {
+    ...defaults,
+    requireAccess: async (write: boolean) => {
+      const access = await defaults.requireAccess(write)
+      if (!isLocalPayrollAcceptanceScope(access.scope, access.administration.id)) {
+        throw new EmployeePayrollCalculationError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+      }
+      return access
+    },
+  }
+  const service = createEmployeePayrollCalculationService({
+    ...scopedDependencies,
+    sourceProvider: createPayrollAcceptanceScenarioSourceProvider(defaults.sourceProvider),
+  })
+  const sourceOnlyService = createEmployeePayrollCalculationService(scopedDependencies)
+
+  async function readBackScenarioCalculation(input: {
+    readonly employeeId: string
+    readonly employmentId: string
+    readonly runId: string
+  }): Promise<LocalPayrollAcceptanceReadback | null> {
+    const access = await scopedDependencies.requireAccess(false)
+    const period = LOCAL_PAYROLL_ACCEPTANCE_PERIOD
+    const calculations = defaults.createCalculationRepository()
+    const payrollPeriod = await calculations.getPayrollPeriod(
+      access.scope, access.administration.id, period.year, period.month,
+    )
+    if (!payrollPeriod) return null
+    const artifacts = await calculations.getLatestSyntheticArtifacts(
+      access.scope, access.administration.id, undefined, input.runId, undefined, 'INDIVIDUAL_PAYROLL', period,
+    )
+    if (!artifacts || artifacts.run.id !== input.runId
+      || artifacts.sourceSnapshot.source_employee_id !== input.employeeId
+      || artifacts.sourceSnapshot.source_employment_id !== input.employmentId) return null
+
+    const lifecycle = defaults.createLifecycleRepository()
+    const [reference, events] = await Promise.all([
+      lifecycle.getGenericInputReference(access.scope, access.administration.id, artifacts.inputSet.id),
+      lifecycle.listLifecycleEvents(access.scope, access.administration.id, payrollPeriod.id, input.employmentId),
+    ])
+    const conceptEvent = events.find((event) => event.calculation_run_id === input.runId && event.event_type === 'CONCEPT') ?? null
+    const laterFinalization = events.some((event) => event.calculation_run_id === input.runId
+      && (event.event_type === 'REVIEWED' || event.event_type === 'FINALIZED'))
+    const sourcePayload = record(artifacts.sourceSnapshot.source_payload)
+    const sourceScenario = record(sourcePayload?.testScenario)
+    const inputReference = record(reference?.input_reference_json)
+    const referenceScenario = record(inputReference?.testScenario)
+    const scenarioCode = typeof sourceScenario?.code === 'string' ? sourceScenario.code : null
+    const coreSourceHash = typeof sourceScenario?.coreSourceHash === 'string' ? sourceScenario.coreSourceHash : null
+    const assumptionsHash = typeof sourceScenario?.assumptionsHash === 'string' ? sourceScenario.assumptionsHash : null
+    const sourceHash = artifacts.sourceSnapshot.source_hash
+    const inputHash = artifacts.inputSet.input_hash
+    const resultHash = artifacts.run.result_hash
+    const confirmed = artifacts.run.status === 'SUCCEEDED'
+      && artifacts.run.calculation_input_set_id === artifacts.inputSet.id
+      && artifacts.inputSet.source_snapshot_id === artifacts.sourceSnapshot.id
+      && artifacts.payrollPeriod.id === payrollPeriod.id
+      && reference !== null
+      && reference.source_hash === sourceHash
+      && reference.input_hash === inputHash
+      && artifacts.componentResults.length > 0
+      && artifacts.controls.length > 0
+      && artifacts.trace !== null
+      && conceptEvent !== null
+      && !laterFinalization
+      && sourceScenario?.sourceClassification === 'PAYROLL_TEST_SCENARIO'
+      && referenceScenario?.sourceClassification === 'PAYROLL_TEST_SCENARIO'
+      && referenceScenario?.code === scenarioCode
+      && referenceScenario?.coreSourceHash === coreSourceHash
+      && referenceScenario?.assumptionsHash === assumptionsHash
+      && typeof sourceHash === 'string'
+      && typeof inputHash === 'string'
+      && typeof resultHash === 'string'
+
+    return {
+      confirmed,
+      runId: artifacts.run.id,
+      sourceSnapshotId: artifacts.sourceSnapshot.id,
+      inputSetId: artifacts.inputSet.id,
+      inputReferenceId: reference?.id ?? null,
+      payrollPeriodId: artifacts.payrollPeriod.id,
+      componentResultCount: artifacts.componentResults.length,
+      controlCount: artifacts.controls.length,
+      traceId: artifacts.trace?.id ?? null,
+      conceptEventId: conceptEvent?.id ?? null,
+      runStatus: artifacts.run.status,
+      sourceHash,
+      coreSourceHash,
+      assumptionsHash,
+      inputHash,
+      resultHash,
+      scenarioCode,
+      controls: artifacts.controls.map((control) => ({ key: control.control_key, status: control.status })),
+    }
+  }
+
+  return {
+    inspectScenarioCandidate: service.inspectEmployeePayrollSource,
+    calculateScenarioCandidate: service.calculateEmployeePayroll,
+    inspectExceptionCandidate: sourceOnlyService.inspectEmployeePayrollSource,
+    readBackScenarioCalculation,
+  }
+}
 
 export async function inspectEmployeePayrollSource(input: {
   readonly employeeId: string

@@ -231,7 +231,7 @@ function makeDependencies(
         : null,
     }),
     createCalculationRepository: () => ({ listPayrollRunSummaries, getLatestSyntheticArtifacts }),
-    createPayrunRepository: () => ({ listLifecycleEvents }),
+    createPayrunRepository: () => ({ listLifecycleEvents, getGenericInputReference: async () => null }),
   } as unknown as EmployeePayrollDependencies
   return { dependencies, listPayrollRunSummaries, listLifecycleEvents }
 }

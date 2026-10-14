@@ -8,6 +8,7 @@ import { createPayrun01Repository } from './payrun01-repository'
 import { renderFinalizedEmployeePayslipPdf, type FinalizedEmployeePayslipInput } from './payrun01-service'
 import { isPayrollLabEnabled } from './feature-flag'
 import { payrollScopeFromAuthContext, type PayrollScope } from './scope'
+import { filterPayrollAcceptanceScenarioRuns, isPayrollAcceptanceScenarioReference } from './payroll-acceptance-scenario'
 
 export type PayrollProfessionalRun = PayrollCalculationArtifacts & {
   readonly lifecycleEvents: Awaited<ReturnType<ReturnType<typeof createPayrun01Repository>['listLifecycleEvents']>>
@@ -16,10 +17,14 @@ export type PayrollProfessionalRun = PayrollCalculationArtifacts & {
 export async function listPayrollProfessionalRuns(): Promise<readonly PayrollRunSummary[]> {
   const access = await requireComponentLibraryAccess(false)
   const repository = createPayrollCalculationRepository()
-  return repository.listPayrollRunSummaries(access.scope, access.administration.id, {
+  const summaries = await repository.listPayrollRunSummaries(access.scope, access.administration.id, {
     runType: 'INDIVIDUAL_PAYROLL',
     limit: 100,
   })
+  if (summaries.length === 0) return summaries
+  const lifecycle = createPayrun01Repository()
+  return await filterPayrollAcceptanceScenarioRuns(summaries, async (inputSetId) =>
+    await lifecycle.getGenericInputReference(access.scope, access.administration.id, inputSetId))
 }
 
 export async function getPayrollProfessionalRun(runId: string): Promise<PayrollProfessionalRun | null> {
@@ -34,6 +39,12 @@ export async function getPayrollProfessionalRun(runId: string): Promise<PayrollP
     'INDIVIDUAL_PAYROLL',
   )
   if (!artifacts) return null
+  const inputReference = await createPayrun01Repository().getGenericInputReference(
+    access.scope,
+    access.administration.id,
+    artifacts.inputSet.id,
+  )
+  if (isPayrollAcceptanceScenarioReference(inputReference?.input_reference_json)) return null
   const lifecycleEvents = await createPayrun01Repository().listLifecycleEvents(
     access.scope,
     access.administration.id,
@@ -220,10 +231,12 @@ async function listFinalizedEmployeePeriods(
     limit: 200,
   })
   const payrun = dependencies.createPayrunRepository()
+  const visibleSummaries = await filterPayrollAcceptanceScenarioRuns(summaries, async (inputSetId) =>
+    await payrun.getGenericInputReference(access.scope, access.payrollAdministrationId, inputSetId))
   const periods = new Map<string, VerifiedEmployeePayrollPeriod>()
 
-  for (let offset = 0; offset < summaries.length; offset += 10) {
-    const batch = summaries.slice(offset, offset + 10)
+  for (let offset = 0; offset < visibleSummaries.length; offset += 10) {
+    const batch = visibleSummaries.slice(offset, offset + 10)
     const verifiedBatch = await Promise.all(batch.map(async (summary) => {
       if (summary.run.status !== 'SUCCEEDED' || summary.sourceSnapshot.source_employee_id !== access.employeeId) return null
       const artifacts = await calculations.getLatestSyntheticArtifacts(

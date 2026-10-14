@@ -9,6 +9,8 @@ import { getPayrollProfessionalRunWorkspace } from '@/lib/payroll/payroll-profes
 
 const workbenchLabelKeys = [
   'runWorkspaceTitle','runWorkspaceDescription','administration','period','noSelectedPeriod','selectPeriod','showPeriod',
+  'openPeriodTitle','openPeriodDescription','openPeriodMonth','openPeriodAction','openPeriodOpening','openPeriodInvalid',
+  'openPeriodClosed','openPeriodAccessDenied','openPeriodFailed',
   'period_OPEN','period_DRAFT','period_CLOSED','periodStatusUnknown','noPeriods','periodNotOpen','selectEmployees',
   'employmentNumber','noEmployeesForPeriod','rosterTooLarge','calculating','calculateSelected','conceptRunHint',
   'batchResults','incompleteNetNotice','gross','wageTaxWithheld','remainingAfterWageTax','employerCost','notCalculated',
@@ -47,6 +49,7 @@ export default async function PayrollRunsPage({
       selectedPeriod={workspace.selectedPeriod}
       employees={workspace.employees}
       rosterComplete={workspace.rosterComplete}
+      canOpenPayrollCycle={workspace.canOpenPayrollCycle}
       locale={locale}
       labels={Object.fromEntries(workbenchLabelKeys.map((key) => [key, t(key)]))}
     />

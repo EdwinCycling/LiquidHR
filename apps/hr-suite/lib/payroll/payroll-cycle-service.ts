@@ -1,15 +1,21 @@
 import 'server-only'
 
 import type { PayrollSourceProvider } from '@liquid-hr/payroll-engine'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { createPayrollCalculationRepository, PayrollCalculationRepositoryError } from './calculation-repository'
 import type { PayrollCalculationRepository } from './calculation-repository'
 import { isPayrollLabEnabled } from './feature-flag'
 import { createPayrun01Repository, type Payrun01Repository } from './payrun01-repository'
 import { createLiquidHrPayrollSourceProvider } from './source/liquid-hr-source-provider'
 import { requireComponentLibraryAccess } from './component-library-access'
+import {
+  isLocalPayrollAcceptanceRuntime,
+  isLocalPayrollAcceptanceScope,
+} from './local-payroll-acceptance-runtime'
 import type { PayrollPeriodRow } from './database'
 import type { PayrollScope } from './scope'
 import { projectPayrollCycle, type PayrollCycleProjection, type PayrollCycleWorkItem } from './payroll-cycle-model'
+import { filterPayrollAcceptanceScenarioRuns } from './payroll-acceptance-scenario'
 
 export type PayrollCyclePeriod = { readonly year: number; readonly month: number }
 
@@ -145,12 +151,17 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
       period,
       limit: 200,
     })
-    const runs = allRuns.filter((summary) => summary.payrollPeriod.id === cycle.id)
-    const employmentIds = [...new Set(runs.map((summary) => summary.sourceSnapshot.source_employment_id))]
     const lifecycleRepository = dependencies.createLifecycleRepository()
+    const visibleRuns = await filterPayrollAcceptanceScenarioRuns(allRuns, async (inputSetId) =>
+      await lifecycleRepository.getGenericInputReference(access.scope, access.administration.id, inputSetId))
+    const visibleRunIds = new Set(visibleRuns.map((summary) => summary.run.id))
+    const scenarioRunIds = new Set(allRuns.flatMap((summary) => visibleRunIds.has(summary.run.id) ? [] : [summary.run.id]))
+    const runs = visibleRuns.filter((summary) => summary.payrollPeriod.id === cycle.id)
+    const employmentIds = [...new Set(runs.map((summary) => summary.sourceSnapshot.source_employment_id))]
     const eventPairs = await Promise.all(employmentIds.map(async (employmentId) => [
       employmentId,
-      await lifecycleRepository.listLifecycleEvents(access.scope, access.administration.id, cycle.id, employmentId),
+      (await lifecycleRepository.listLifecycleEvents(access.scope, access.administration.id, cycle.id, employmentId))
+        .filter((event) => !scenarioRunIds.has(event.calculation_run_id)),
     ] as const))
     const lifecycleEventsByEmployment = Object.fromEntries(eventPairs)
     return projectPayrollCycle({ cycle, runs, lifecycleEventsByEmployment })
@@ -185,14 +196,19 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
       period: input.period,
       limit: 200,
     })
-    const runs = allRuns.filter((summary) => summary.payrollPeriod.id === cycle.id
+    const lifecycleRepository = dependencies.createLifecycleRepository()
+    const visibleRuns = await filterPayrollAcceptanceScenarioRuns(allRuns, async (inputSetId) =>
+      await lifecycleRepository.getGenericInputReference(access.scope, access.administration.id, inputSetId))
+    const visibleRunIds = new Set(visibleRuns.map((summary) => summary.run.id))
+    const scenarioRunIds = new Set(allRuns.flatMap((summary) => visibleRunIds.has(summary.run.id) ? [] : [summary.run.id]))
+    const runs = visibleRuns.filter((summary) => summary.payrollPeriod.id === cycle.id
       && summary.sourceSnapshot.source_employment_id === input.employmentId)
-    const events = await dependencies.createLifecycleRepository().listLifecycleEvents(
+    const events = (await lifecycleRepository.listLifecycleEvents(
       access.scope,
       access.administration.id,
       cycle.id,
       input.employmentId,
-    )
+    )).filter((event) => !scenarioRunIds.has(event.calculation_run_id))
     const projection = projectPayrollCycle({
       cycle,
       runs,
@@ -229,6 +245,22 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
 }
 
 const defaultService = () => createPayrollCycleService()
+
+export function createLocalPayrollAcceptanceCycleService(host: string | null) {
+  if (!isLocalPayrollAcceptanceRuntime(host)) throw new AuthorizationError('Payroll library unavailable.')
+
+  const dependencies: PayrollCycleServiceDependencies = {
+    ...defaultDependencies,
+    requireAccess: async (write) => {
+      const access = await defaultDependencies.requireAccess(write)
+      if (!isLocalPayrollAcceptanceScope(access.scope, access.administration.id)) {
+        throw new AuthorizationError('Payroll library unavailable.')
+      }
+      return access
+    },
+  }
+  return createPayrollCycleService(dependencies)
+}
 
 export async function openPayrollCycle(period: PayrollCyclePeriod): Promise<PayrollPeriodRow> {
   return await defaultService().openPayrollCycle(period)

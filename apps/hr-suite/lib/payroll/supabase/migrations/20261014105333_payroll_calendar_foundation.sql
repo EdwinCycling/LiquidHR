@@ -51,6 +51,7 @@ create unique index payroll_calendars_one_active_version_per_year
 create function public.enforce_payroll_calendar_activation_range()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   if new.status <> 'ACTIVE' then
@@ -235,6 +236,7 @@ create table public.payroll_declaration_period_payroll_periods (
 create function public.validate_payroll_period_calendar_and_lineage()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 declare
   calendar public.payroll_calendars%rowtype;
@@ -457,6 +459,7 @@ $$;
 create function public.prevent_payroll_calendar_config_rewrite_after_periods()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   if exists (select 1 from public.payroll_periods where calendar_id = old.id)
@@ -480,6 +483,7 @@ $$;
 create function public.prevent_payroll_period_rewrite_after_input()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   if exists (select 1 from public.calculation_input_sets where payroll_period_id = old.id)
@@ -503,6 +507,7 @@ $$;
 create function public.record_payroll_calendar_event()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 declare
   recorded_event text;

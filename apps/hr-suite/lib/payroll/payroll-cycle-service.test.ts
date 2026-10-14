@@ -76,6 +76,7 @@ function makeService(overrides: {
     ...overrides.repository,
   } as unknown as PayrollCalculationRepository
   const lifecycleRepository = {
+    getGenericInputReference: vi.fn(async () => null),
     listLifecycleEvents: vi.fn(async () => []),
   } as unknown as Payrun01Repository
   const sourceProvider: PayrollSourceProvider = overrides.provider ?? {

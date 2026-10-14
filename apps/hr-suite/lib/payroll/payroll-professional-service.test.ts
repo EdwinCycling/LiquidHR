@@ -82,8 +82,9 @@ function makeDependencies(
       ]
       : []
   })
+  const getGenericInputReference = vi.fn(async () => null)
   const createCalculationRepository = vi.fn(() => ({ listPayrollRunSummaries, getLatestSyntheticArtifacts }))
-  const createPayrunRepository = vi.fn(() => ({ listLifecycleEvents }))
+  const createPayrunRepository = vi.fn(() => ({ listLifecycleEvents, getGenericInputReference }))
   const dependencies = {
     requireAuthContext: vi.fn(async () => authContext),
     requirePermission: vi.fn(async () => ({ ...authContext, employeeId: permissionEmployeeId })),

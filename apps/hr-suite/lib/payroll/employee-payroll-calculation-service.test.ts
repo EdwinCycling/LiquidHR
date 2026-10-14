@@ -84,6 +84,9 @@ function linkedIncome(overrides: Partial<PayrollSourceIncomeRelationship> = {}):
 
 function provider(overrides: {
   readonly amount?: () => number
+  readonly parttimeAmount?: number
+  readonly partTimeFactor?: number
+  readonly payrollTaxCreditApplies?: boolean
   readonly salaryUpdatedAt?: () => string
   readonly scheduleHours?: () => number
   readonly fiscalTable?: string
@@ -98,10 +101,16 @@ function provider(overrides: {
     listEmployments: vi.fn(async () => [sourceEmployment()]),
     loadTimeline: vi.fn(async (): Promise<PayrollSourceTimeline> => ({
       employment: sourceEmployment(),
-      salaries: [monthlySalary(amount(), overrides.salaryUpdatedAt?.() ?? runTime)],
+      salaries: [
+        {
+          ...monthlySalary(amount(), overrides.salaryUpdatedAt?.() ?? runTime),
+          parttime_amount: overrides.parttimeAmount ?? amount(),
+        },
+      ],
       schedules: [{
         id: 'bc000000-0000-4000-8000-00000000000c', average_days_per_week: 5,
-        average_hours_per_week: overrides.scheduleHours?.() ?? 40, fulltime_hours_per_week: 40, part_time_factor: 1,
+        average_hours_per_week: overrides.scheduleHours?.() ?? 40, fulltime_hours_per_week: 40,
+        part_time_factor: overrides.partTimeFactor ?? 1,
         schedule_type: 'HOURS_PER_DAY', is_on_call: false, valid_from: '2026-01-01', valid_until: null, updated_at: runTime,
       }],
       contracts: [{
@@ -125,7 +134,8 @@ function provider(overrides: {
           income_relationship_id: ikvId, employment_income_relationship_id: linkId,
           residence_country_code: 'NL', wage_tax_table: overrides.fiscalTable ?? 'WHITE', herleiding_code: 'STD',
           time_period: 'MONTH', regular_wage_only: true, full_period_only: true, has_special_situation: false,
-          payroll_tax_credit_applies: true, source_classification: 'EMPLOYEE_DECLARATION',
+          payroll_tax_credit_applies: overrides.payrollTaxCreditApplies ?? true,
+          source_classification: 'EMPLOYEE_DECLARATION',
           source_reference: 'employee declaration reference', effective_from: '2026-01-01', effective_to: null,
           version_number: 1, supersedes_profile_id: null, confirmed_by_user_id: actorId,
           confirmed_at: runTime, created_at: runTime,
@@ -327,6 +337,31 @@ describe('Core-backed employee payroll calculation', () => {
     expect(state.events.map((event) => event.event_type)).toEqual(['CONCEPT', 'CONCEPT'])
   })
 
+  it('matches the published 2026 white monthly table without tax credit for the proposed full-time wages', async () => {
+    // Belastingdienst white monthly table 2026, Netherlands standard, under AOW, without tax credit.
+    // Published rows: EUR 3,514.50 -> 1,261.33; EUR 3,532.50 -> 1,268.08.
+    const cases = [
+      { gross: 3517, wageTax: '1261.33', netAfterWageTax: '2255.67' },
+      { gross: 3534, wageTax: '1268.08', netAfterWageTax: '2265.92' },
+    ] as const
+
+    for (const testCase of cases) {
+      const state = harness({
+        amount: () => testCase.gross,
+        parttimeAmount: testCase.gross,
+        payrollTaxCreditApplies: false,
+      })
+      const result = await state.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+
+      expect(result).toMatchObject({
+        status: 'INCOMPLETE',
+        grossAmount: testCase.gross.toFixed(2),
+        wageTaxAmount: testCase.wageTax,
+        netAfterWageTax: testCase.netAfterWageTax,
+      })
+    }
+  })
+
   it('keeps two employees in one payroll period on independent concept revisions and results', async () => {
     const firstProvider = provider()
     const firstSource = await firstProvider.getPayrollSourceSnapshot({ ...scope, employeeId, employmentId, payrollPeriod: period })
@@ -472,6 +507,19 @@ describe('Core-backed employee payroll calculation', () => {
     expect(schedule.status).toBe('UNSUPPORTED')
     expect(schedule.gaps).toContainEqual(expect.objectContaining({ reasonCode: 'SCHEDULE_HOURS_DO_NOT_RECONCILE_TO_PART_TIME_FACTOR' }))
     expect(invalidSchedule.runs.size).toBe(0)
+
+    const salaryMismatch = harness({
+      amount: () => 3585,
+      parttimeAmount: 3585,
+      partTimeFactor: 0.95,
+      scheduleHours: () => 38,
+    })
+    const mismatchedSalary = await salaryMismatch.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+    expect(mismatchedSalary.status).toBe('UNSUPPORTED')
+    expect(mismatchedSalary.gaps).toContainEqual(expect.objectContaining({
+      reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR',
+    }))
+    expect(salaryMismatch.runs.size).toBe(0)
   })
 
   it('requires explicit review, blocks incomplete finalization, and preserves a finalized historical result after source changes', async () => {

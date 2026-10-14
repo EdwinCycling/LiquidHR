@@ -38,6 +38,7 @@ export type PayrollProfessionalRunWorkspace = {
   readonly selectedPeriod: PayrollProfessionalPeriod | null
   readonly employees: readonly PayrollProfessionalEmployee[]
   readonly rosterComplete: boolean
+  readonly canOpenPayrollCycle: boolean
 }
 
 export type PayrollProfessionalRunItem = {
@@ -160,7 +161,14 @@ export async function getPayrollProfessionalRunWorkspace(periodKey?: string): Pr
   if (!administration) throw new Error('Active payroll administration is unavailable.')
 
   if (!selectedPeriod) {
-    return { administrationName: administration.name, periods, selectedPeriod: null, employees: [], rosterComplete: true }
+    return {
+      administrationName: administration.name,
+      periods,
+      selectedPeriod: null,
+      employees: [],
+      rosterComplete: true,
+      canOpenPayrollCycle: access.canCopy,
+    }
   }
   const roster = await listScopedEmployments(access.scope, selectedPeriod)
   const employees = await projectScopedEmployees(access.scope, roster.rows)
@@ -170,6 +178,7 @@ export async function getPayrollProfessionalRunWorkspace(periodKey?: string): Pr
     selectedPeriod,
     employees,
     rosterComplete: roster.complete,
+    canOpenPayrollCycle: access.canCopy,
   }
 }
 

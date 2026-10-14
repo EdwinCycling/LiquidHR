@@ -1,7 +1,12 @@
 'use client'
 
 import { useActionState } from 'react'
-import { calculateSelectedPayroll, type PayrollProfessionalBatchActionState } from '@/app/(dashboard)/payroll/runs/actions'
+import {
+  calculateSelectedPayroll,
+  openSelectedPayrollPeriod,
+  type PayrollPeriodActionState,
+  type PayrollProfessionalBatchActionState,
+} from '@/app/(dashboard)/payroll/runs/actions'
 import type {
   PayrollProfessionalEmployee,
   PayrollProfessionalPeriod,
@@ -13,11 +18,13 @@ type WorkbenchProps = {
   readonly selectedPeriod: PayrollProfessionalPeriod | null
   readonly employees: readonly PayrollProfessionalEmployee[]
   readonly rosterComplete: boolean
+  readonly canOpenPayrollCycle: boolean
   readonly locale: string
   readonly labels: Readonly<Record<string, string>>
 }
 
 const initialState: PayrollProfessionalBatchActionState = { message: null, items: [] }
+const initialPeriodState: PayrollPeriodActionState = { message: null }
 
 const sourceFieldLabels: Readonly<Record<string, string>> = {
   contractualSalary: 'missingSalary',
@@ -55,10 +62,12 @@ export function PayrollProfessionalRunWorkbench({
   selectedPeriod,
   employees,
   rosterComplete,
+  canOpenPayrollCycle,
   locale,
   labels,
 }: WorkbenchProps) {
   const [state, action, pending] = useActionState(calculateSelectedPayroll, initialState)
+  const [periodState, openPeriodAction, openingPeriod] = useActionState(openSelectedPayrollPeriod, initialPeriodState)
   const canCalculate = selectedPeriod?.status === 'OPEN' && employees.length > 0 && rosterComplete
 
   return <div className="space-y-6">
@@ -94,6 +103,32 @@ export function PayrollProfessionalRunWorkbench({
       </form>
       {periods.length === 0 ? <p className="text-sm text-muted-foreground">{labels.noPeriods}</p> : null}
       {selectedPeriod && selectedPeriod.status !== 'OPEN' ? <p className="text-sm text-muted-foreground">{labels.periodNotOpen}</p> : null}
+      {canOpenPayrollCycle ? <section className="space-y-3 border-t border-border-subtle pt-4">
+        <div>
+          <h3 className="text-sm font-semibold">{labels.openPeriodTitle}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{labels.openPeriodDescription}</p>
+        </div>
+        <form action={openPeriodAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <label htmlFor="open-payroll-period" className="mb-1 block text-sm font-medium">{labels.openPeriodMonth}</label>
+            <input
+              id="open-payroll-period"
+              name="period"
+              type="month"
+              min="2000-01"
+              max="2200-12"
+              defaultValue={selectedPeriod?.status === 'DRAFT' ? selectedPeriod.key : ''}
+              required
+              disabled={openingPeriod}
+              className="min-h-11 w-full rounded-[var(--radius-control)] border border-border-subtle bg-surface px-3 text-sm focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50"
+            />
+          </div>
+          <button type="submit" disabled={openingPeriod} className="min-h-11 rounded-[var(--radius-control)] border border-border-subtle px-4 text-sm font-medium hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50">
+            {openingPeriod ? labels.openPeriodOpening : labels.openPeriodAction}
+          </button>
+        </form>
+        {periodState.message ? <p role="status" aria-live="polite" className="text-sm text-muted-foreground">{labels[`openPeriod${periodState.message[0]?.toUpperCase()}${periodState.message.slice(1)}`] ?? labels.openPeriodFailed}</p> : null}
+      </section> : null}
     </section>
 
     {selectedPeriod ? <form action={action} className="space-y-5">
