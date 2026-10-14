@@ -1,0 +1,27 @@
+name: PERF01-B2 Linux production build
+
+on:
+  push:
+    branches:
+      - work/PERF01-B2-20261013
+
+permissions:
+  contents: read
+
+jobs:
+  production-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://build-only.invalid
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_build_only_not_a_credential
+      NEXT_PUBLIC_APP_URL: https://liquidhr-build-only.invalid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run build --workspace @liquid-hr/hr-suite
