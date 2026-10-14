@@ -48,6 +48,7 @@
     "@liquid-hr/payroll-rules-cao-bench02": "0.0.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.9",
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "latest",

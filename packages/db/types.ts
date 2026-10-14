@@ -22089,6 +22089,19 @@ export type Database = {
         Args: { p_input: Json }
         Returns: Json
       }
+      confirm_employment_payroll_tax_profile_v2: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      link_local_test_payroll_persona_v1: {
+        Args: {
+          p_auth_user_id: string
+          p_employee_id: string
+          p_employment_id: string
+          p_persona_key: string
+        }
+        Returns: Json
+      }
       confirm_group_leave_request: {
         Args: {
           requested_employee_id: string

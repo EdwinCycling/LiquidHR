@@ -128,7 +128,7 @@ function provider(overrides: {
       taxProfileProjection: {
         ageCategory: 'UNDER_AOW', ageSourceUpdatedAt: runTime, activeIncomeRelationshipCount: 1,
         incomeRelationshipLinkGap: false,
-        incomeRelationships: [{ id: ikvId, updatedAt: runTime, reportingStatus: 'READY', startsOn: '2026-01-01', endsOn: null }],
+        incomeRelationships: [{ id: ikvId, updatedAt: runTime, ikvNumber: 1, reportingStatus: 'READY', startsOn: '2026-01-01', endsOn: null }],
         taxProfiles: overrides.includeTaxProfile === false ? [] : [{
           id: taxProfileId, employee_id: employeeId, employment_id: employmentId,
           income_relationship_id: ikvId, employment_income_relationship_id: linkId,

@@ -127,7 +127,7 @@ function taxProfile(overrides: Partial<PayrollSourceTaxProfileProjection['taxPro
     full_period_only: true,
     has_special_situation: false,
     payroll_tax_credit_applies: true,
-    source_classification: 'EMPLOYEE_DECLARATION',
+    source_classification: 'HR_ADMIN_CONFIRMED',
     source_reference: 'declaration-ref',
     effective_from: '2026-09-01',
     effective_to: null,
@@ -150,6 +150,7 @@ function taxProjection(overrides: Partial<PayrollSourceTaxProfileProjection> = {
       id: incomeRelationshipId,
       updatedAt: '2026-08-28T08:00:00.000Z',
       reportingStatus: 'READY',
+      ikvNumber: 1,
       startsOn: '2026-01-01',
       endsOn: null,
     }],
@@ -299,7 +300,7 @@ describe('LiquidHR Payroll source provider', () => {
         herleiding: 'STD',
         timePeriod: 'MONTH',
         payrollTaxCreditApplies: true,
-        sourceClassification: 'EMPLOYEE_DECLARATION',
+        sourceClassification: 'HR_ADMIN_CONFIRMED',
       },
       regularWage: {
         fiscalYear: '2026',
@@ -319,6 +320,48 @@ describe('LiquidHR Payroll source provider', () => {
     })
     expect(snapshot.sourceVersionVector[`employment_payroll_tax_profile:${taxProfileId}`]).toBe('1:2026-08-28T09:00:00.000Z')
     expect(JSON.stringify(snapshot.canonicalSource)).not.toContain('declaration-ref')
+  })
+
+  it('continues to accept an actual employee declaration as a fiscal source', async () => {
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({ parttime_amount: 4000, fulltime_amount: 4000 })],
+        schedules: [schedule()],
+        contracts: [{
+          id: '8b000000-0000-4000-8000-000000000008',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          fulltime_hours_per_week: 40,
+          starts_on: '2026-09-01',
+          ends_on: null,
+          updated_at: '2026-09-01T10:01:00.000Z',
+        }],
+        laborConditions: [{
+          id: '8d000000-0000-4000-8000-000000000008',
+          condition_group: 'COMPANY',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          valid_from: '2026-09-01',
+          valid_until: null,
+          updated_at: '2026-09-01T10:02:00.000Z',
+          set: {
+            id: '8c000000-0000-4000-8000-000000000008',
+            code: 'COMPANY',
+            name: 'Company labor conditions',
+            standard_hours_per_week: 40,
+            is_active: true,
+            valid_from: '2026-01-01',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        }],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({ source_classification: 'EMPLOYEE_DECLARATION' })] }),
+      })),
+    })).getPayrollSourceSnapshot({ ...request, employmentId })
+
+    expect(snapshot.sourceGaps).toEqual([])
+    expect(snapshot.canonicalSource).toMatchObject({
+      fiscalProfile: { status: 'CONFIRMED', sourceClassification: 'EMPLOYEE_DECLARATION' },
+    })
   })
 
   it('blocks an expired profile, conflicting credit claim, and unsupported age class', async () => {

@@ -517,7 +517,8 @@ function resolvePayrollTaxProfile(
     && profile.regular_wage_only
     && profile.full_period_only
     && !profile.has_special_situation
-    && profile.source_classification === 'EMPLOYEE_DECLARATION'
+    && (profile.source_classification === 'EMPLOYEE_DECLARATION'
+      || profile.source_classification === 'HR_ADMIN_CONFIRMED')
     && projection.ageCategory === 'UNDER_AOW'
   if (!supportedCombination) sourceGaps.push(makeGap('taxProfile', 'UNSUPPORTED', 'FISCAL_PROFILE_COMBINATION_UNSUPPORTED'))
 

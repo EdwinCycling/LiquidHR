@@ -479,6 +479,9 @@ export default async function EmploymentDetailPage({
         <Link prefetch={false} className={buttonClasses({ variant: "secondary" })} href={`/employees/${employeeId}/employments/${employmentId}/pension`}>
           {t("pensionManage")}
         </Link>
+        <Link prefetch={false} className={buttonClasses({ variant: "secondary" })} href={`/employees/${employeeId}/employments/${employmentId}/fiscal`}>
+          {t("fiscalManage")}
+        </Link>
       </div>
 
       <div className="mt-6">

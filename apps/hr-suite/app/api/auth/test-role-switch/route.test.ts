@@ -1,19 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, createAdminClient, getClaims, signOut, generateLink, listUsers } = vi.hoisted(() => ({
+const { createClient, createAdminClient, getClaims, signOut, generateLink, listUsers, getLocalPayrollPersonaReadiness } = vi.hoisted(() => ({
   createClient: vi.fn(),
   createAdminClient: vi.fn(),
   getClaims: vi.fn(),
   signOut: vi.fn(),
   generateLink: vi.fn(),
   listUsers: vi.fn(),
+  getLocalPayrollPersonaReadiness: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
+vi.mock('@/lib/auth/local-payroll-persona-readiness', () => ({ getLocalPayrollPersonaReadiness }))
 
 import { NextRequest } from 'next/server'
 import { ACTIVE_ADMINISTRATION_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_TENANT_COOKIE } from '@/lib/context/context-cookies'
+import { createLocalPersonaOwnerMarker, readLocalPersonaOwnerMarker, TEST_ROLE_SWITCH_OWNER_COOKIE } from '@/lib/auth/test-role-switch'
 import { POST } from './route'
 
 const CANONICAL_SUPABASE_URL = 'https://wnpfloqpjvaacobppbpk.supabase.co'
@@ -25,6 +28,8 @@ const TARGET_EMAILS: AuthTestUser[] = [
   'manager.fixture@liquidhr.test',
   'employee.fixture@liquidhr.test',
   'lisa.test@liquidhr.test',
+  'jaap.test@liquidhr.test',
+  'frits.test@liquidhr.test',
 ].map((email, index) => ({
   id: `user-${index + 1}`,
   email,
@@ -32,12 +37,16 @@ const TARGET_EMAILS: AuthTestUser[] = [
   is_anonymous: false,
 }))
 
-function switchRequest(target: string, next?: string, origin = LOCAL_ORIGIN, requestUrl = origin): NextRequest {
+function switchRequest(target: string, next?: string, origin = LOCAL_ORIGIN, requestUrl = origin, ownerMarker?: string | null): NextRequest {
   const body = new URLSearchParams({ target })
   if (next !== undefined) body.set('next', next)
   return new NextRequest(`${requestUrl}/api/auth/test-role-switch`, {
     method: 'POST',
-    headers: { origin, host: new URL(requestUrl).host },
+    headers: {
+      origin,
+      host: new URL(requestUrl).host,
+      ...(ownerMarker ? { cookie: `${TEST_ROLE_SWITCH_OWNER_COOKIE}=${ownerMarker}` } : {}),
+    },
     body,
   })
 }
@@ -49,6 +58,7 @@ function enableSwitcher(supabaseUrl = CANONICAL_SUPABASE_URL): void {
   vi.stubEnv('VERCEL_URL', '')
   vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', supabaseUrl)
+  vi.stubEnv('SUPABASE_SECRET_KEY', 'unit-test-only-owner-marker-secret')
 }
 
 function setIdentity(email: string, emailVerified = true) {
@@ -75,6 +85,14 @@ describe('POST /api/auth/test-role-switch', () => {
     enableSwitcher()
     createClient.mockImplementation(async () => setIdentity('edwin@editsolutions.nl'))
     authAdmin()
+    getLocalPayrollPersonaReadiness.mockImplementation(async (key: string) => ({
+      key,
+      status: key === 'payroll-lisa' ? 'available' : 'account-required',
+      available: key === 'payroll-lisa',
+      canStartSignIn: key === 'payroll-lisa',
+      canProvision: key !== 'payroll-lisa',
+      authUserId: key === 'payroll-lisa' ? 'user-5' : null,
+    }))
     generateLink.mockResolvedValue({ data: { properties: { hashed_token: 'one-time-hash' } }, error: null })
     signOut.mockResolvedValue({ error: null })
   })
@@ -144,6 +162,17 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(response.headers.get('location')).toBe(`${LOCAL_ORIGIN}/auth/test-role-switch/confirm`)
     expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'manager.fixture@liquidhr.test' })
     expect(signOut).toHaveBeenCalledOnce()
+    expect(readLocalPersonaOwnerMarker(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value)).toBe('edwin')
+  })
+
+  it('allows the verified Test HR Admin operator directly and binds the return to that account', async () => {
+    createClient.mockImplementation(async () => setIdentity('hradmin.fixture@liquidhr.test'))
+
+    const response = await POST(switchRequest('payroll-lisa'))
+
+    expect(response.status).toBe(303)
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'lisa.test@liquidhr.test' })
+    expect(readLocalPersonaOwnerMarker(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value)).toBe('hr-admin')
   })
 
   it('rejects an unverified Edwin identity', async () => {
@@ -166,13 +195,34 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(generateLink).not.toHaveBeenCalled()
   })
 
-  it('allows an authenticated persona to return only to Edwin', async () => {
+  it('allows a persona to return only to its signed initiating account', async () => {
     createClient.mockImplementation(async () => setIdentity('manager.fixture@liquidhr.test'))
+    const ownerMarker = createLocalPersonaOwnerMarker('edwin')
 
-    const response = await POST(switchRequest('edwin'))
+    const response = await POST(switchRequest('edwin', undefined, LOCAL_ORIGIN, LOCAL_ORIGIN, ownerMarker))
 
     expect(response.status).toBe(303)
     expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'edwin@editsolutions.nl' })
+  })
+
+  it('returns a persona to Test HR Admin only when that account started the local session', async () => {
+    createClient.mockImplementation(async () => setIdentity('manager.fixture@liquidhr.test'))
+    const ownerMarker = createLocalPersonaOwnerMarker('hr-admin')
+
+    const response = await POST(switchRequest('hr-admin', undefined, LOCAL_ORIGIN, LOCAL_ORIGIN, ownerMarker))
+
+    expect(response.status).toBe(303)
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'hradmin.fixture@liquidhr.test' })
+  })
+
+  it('does not allow a persona to change its initiating account', async () => {
+    createClient.mockImplementation(async () => setIdentity('manager.fixture@liquidhr.test'))
+    const ownerMarker = createLocalPersonaOwnerMarker('edwin')
+
+    const response = await POST(switchRequest('hr-admin', undefined, LOCAL_ORIGIN, LOCAL_ORIGIN, ownerMarker))
+
+    expect(response.status).toBe(403)
+    expect(createAdminClient).not.toHaveBeenCalled()
   })
 
   it('does not let a persona switch to another persona', async () => {
@@ -188,8 +238,30 @@ describe('POST /api/auth/test-role-switch', () => {
     const response = await POST(switchRequest(target))
 
     expect(response.status).toBe(503)
-    expect(createAdminClient).not.toHaveBeenCalled()
+    expect(createAdminClient).toHaveBeenCalledOnce()
+    expect(getLocalPayrollPersonaReadiness).toHaveBeenCalledWith(target, expect.any(Object))
     expect(generateLink).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['payroll-jaap', 'jaap.test@liquidhr.test'],
+    ['payroll-frits', 'frits.test@liquidhr.test'],
+  ])('starts a one-time first sign-in for %s only after its Core link is ready', async (target, email) => {
+    createClient.mockImplementation(async () => setIdentity('hradmin.fixture@liquidhr.test'))
+    getLocalPayrollPersonaReadiness.mockImplementation(async (key: string) => ({
+      key,
+      status: key === target ? 'first-sign-in-required' : 'account-required',
+      available: false,
+      canStartSignIn: key === target,
+      canProvision: false,
+      authUserId: key === target ? 'linked-target-user' : null,
+    }))
+
+    const response = await POST(switchRequest(target))
+
+    expect(response.status).toBe(303)
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email })
+    expect(response.cookies.get('liquidhr-local-persona-handoff')?.httpOnly).toBe(true)
   })
 
   it('refuses to generate a link for a missing or unconfirmed Auth identity', async () => {
@@ -211,6 +283,9 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(cookie).toContain('HttpOnly')
     expect(cookie).toContain('Max-Age=60')
     expect(cookie).toContain('SameSite=lax')
+    expect(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.httpOnly).toBe(true)
+    expect(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.sameSite).toBe('strict')
+    expect(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.maxAge).toBe(60 * 60 * 8)
     expect(cookie).not.toContain('access_token')
     expect(cookie).not.toContain('refresh_token')
     for (const name of [ACTIVE_TENANT_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_ADMINISTRATION_COOKIE]) {

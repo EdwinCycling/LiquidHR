@@ -1,13 +1,15 @@
 import Link from 'next/link'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { LocalPersonaSwitcher, type LocalPersonaOption } from '@/components/auth/local-persona-switcher'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { Surface } from '@/components/ui/surface'
-import { canInitiateTestRoleSwitch, canReturnToLocalPersonaOwner, canUseLocalPersonaSwitcher, isLocalPersonaRuntime, TEST_ROLE_SWITCH_TARGETS } from '@/lib/auth/test-role-switch'
+import { canInitiateTestRoleSwitch, canReturnToLocalPersonaOwner, getLocalPersonaOwnerKey, getLocalPersonaOperatorTargetKeys, isLocalPersonaRuntime, readLocalPersonaOwnerMarker, TEST_ROLE_SWITCH_OWNER_COOKIE, TEST_ROLE_SWITCH_TARGETS } from '@/lib/auth/test-role-switch'
 import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
+import { getLocalPayrollPersonaReadiness, type LocalPayrollPersonaKey, type LocalPayrollPersonaReadiness } from '@/lib/auth/local-payroll-persona-readiness'
 import { getTranslator } from '@/lib/i18n/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
 const PERSONA_LABEL_KEYS = {
@@ -24,6 +26,8 @@ export default async function LocalPersonasPage() {
   const requestHeaders = await headers()
   const host = requestHeaders.get('host')
   if (!isLocalPersonaRuntime(host)) notFound()
+  const cookieStore = await cookies()
+  const ownerMarker = cookieStore.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value ?? null
 
   const supabase = await createClient()
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
@@ -32,9 +36,12 @@ export default async function LocalPersonasPage() {
     email: typeof claims?.email === 'string' ? claims.email : null,
     emailVerified: claims?.email_verified === true,
   }
-  const isOwner = !claimsError && Boolean(claims?.sub) && canUseLocalPersonaSwitcher(host, identity)
-  const canReturnToOwner = !claimsError && Boolean(claims?.sub) && canReturnToLocalPersonaOwner(host, identity)
+  const ownerKey = !claimsError && Boolean(claims?.sub) ? getLocalPersonaOwnerKey(host, identity) : null
+  const isOwner = ownerKey !== null
+  const canReturnToOwner = !claimsError && Boolean(claims?.sub)
+    && canReturnToLocalPersonaOwner(host, identity, ownerMarker)
   if (!isOwner && !canReturnToOwner) notFound()
+  const returnTargetKey = isOwner ? 'edwin' : readLocalPersonaOwnerMarker(ownerMarker) ?? 'edwin'
 
   const t = await getTranslator('navigation')
   const roleCodes = await (async (): Promise<string[] | null> => {
@@ -46,11 +53,56 @@ export default async function LocalPersonasPage() {
       return null
     }
   })()
-  const options: LocalPersonaOption[] = TEST_ROLE_SWITCH_TARGETS.map((target) => ({
-    ...target,
-    label: t(PERSONA_LABEL_KEYS[target.key]),
-    availabilityLabel: target.available ? undefined : t('localPersonaUnavailable'),
-  }))
+  const allowedTargets = ownerKey ? getLocalPersonaOperatorTargetKeys(ownerKey) : []
+  const payrollReadiness = new Map<LocalPayrollPersonaKey, LocalPayrollPersonaReadiness>()
+  if (isOwner) {
+    const admin = createAdminClient()
+    const payrollKeys: readonly LocalPayrollPersonaKey[] = ['payroll-lisa', 'payroll-jaap', 'payroll-frits']
+    await Promise.all(payrollKeys.map(async (key) => {
+      try {
+        payrollReadiness.set(key, await getLocalPayrollPersonaReadiness(key, admin))
+      } catch {
+        payrollReadiness.set(key, {
+          key,
+          status: 'unavailable',
+          available: false,
+          canStartSignIn: false,
+          canProvision: false,
+          authUserId: null,
+        })
+      }
+    }))
+  }
+  const availabilityCopyKeys = {
+    'account-required': 'localPersonaAccountRequired',
+    'link-required': 'localPersonaLinkRequired',
+    'first-sign-in-required': 'localPersonaFirstSignInRequired',
+    available: 'localPersonaReady',
+    conflict: 'localPersonaNeedsReview',
+    unavailable: 'localPersonaStatusUnavailable',
+  } as const
+  const options: LocalPersonaOption[] = TEST_ROLE_SWITCH_TARGETS.filter((target) => allowedTargets.includes(target.key)).map((target) => {
+    const payrollKey = target.key === 'payroll-lisa' || target.key === 'payroll-jaap' || target.key === 'payroll-frits'
+      ? target.key
+      : null
+    const readiness = payrollKey ? payrollReadiness.get(payrollKey) : null
+    if (readiness) {
+      return {
+        ...target,
+        available: readiness.available,
+        canSwitch: readiness.canStartSignIn,
+        canProvision: ownerKey === 'hr-admin' && readiness.canProvision,
+        availabilityLabel: t(availabilityCopyKeys[readiness.status]),
+        label: t(PERSONA_LABEL_KEYS[target.key]),
+      }
+    }
+    return {
+      ...target,
+      canSwitch: target.available,
+      label: t(PERSONA_LABEL_KEYS[target.key]),
+      availabilityLabel: target.available ? undefined : t('localPersonaUnavailable'),
+    }
+  })
   const roleGuardAllowed = canInitiateTestRoleSwitch(roleCodes ?? [])
 
   return <PageShell className="mx-auto w-full max-w-3xl space-y-6 py-6 sm:py-10">
@@ -67,12 +119,16 @@ export default async function LocalPersonasPage() {
     </Surface> : null}
     <LocalPersonaSwitcher
       isOwner={isOwner}
+      returnTargetKey={returnTargetKey}
       labels={{
         choosePersona: t('localPersonaChoose'),
         switchAccount: t('localPersonaSwitch'),
         returnToOwner: t('localPersonaReturn'),
         unavailable: t('localPersonaUnavailable'),
         returnDescription: t('localPersonaReturnDescription'),
+        provisionTitle: t('localPersonaProvisionTitle'),
+        provisionDescription: t('localPersonaProvisionDescription'),
+        provisionAccount: t('localPersonaProvisionAccount'),
       }}
       options={options}
     />

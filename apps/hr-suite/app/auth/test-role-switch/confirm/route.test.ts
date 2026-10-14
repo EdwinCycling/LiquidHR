@@ -1,15 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { cookies, createClient, verifyOtp } = vi.hoisted(() => ({
+const { cookies, createClient, verifyOtp, getClaims } = vi.hoisted(() => ({
   cookies: vi.fn(),
   createClient: vi.fn(),
   verifyOtp: vi.fn(),
+  getClaims: vi.fn(),
 }))
 
 vi.mock('next/headers', () => ({ cookies }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
 import { NextRequest } from 'next/server'
+import { createLocalPersonaOwnerMarker, TEST_ROLE_SWITCH_OWNER_COOKIE } from '@/lib/auth/test-role-switch'
 import { GET } from './route'
 
 describe('GET /auth/test-role-switch/confirm', () => {
@@ -17,8 +19,10 @@ describe('GET /auth/test-role-switch/confirm', () => {
     cookies.mockReset()
     createClient.mockReset()
     verifyOtp.mockReset()
-    createClient.mockResolvedValue({ auth: { verifyOtp } })
+    getClaims.mockReset()
+    createClient.mockResolvedValue({ auth: { verifyOtp, getClaims } })
     verifyOtp.mockResolvedValue({ error: null })
+    getClaims.mockResolvedValue({ data: { claims: { email: 'manager.fixture@liquidhr.test' } }, error: null })
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('VERCEL_ENV', 'production')
     vi.stubEnv('VERCEL_URL', 'liquid-hr-hr-suite.vercel.app')
@@ -85,6 +89,30 @@ describe('GET /auth/test-role-switch/confirm', () => {
     expect(clearedCookies).toContain('liquidhr-local-persona-handoff=;')
     expect(clearedCookies).toContain('liquidhr-local-persona-next=;')
     expect(response.headers.get('location')).not.toContain('fixture-handoff-token')
+  })
+
+  it('clears the signed owner marker only after the initiating account completes sign-in', async () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('VERCEL_ENV', '')
+    vi.stubEnv('VERCEL', '')
+    vi.stubEnv('VERCEL_URL', '')
+    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://wnpfloqpjvaacobppbpk.supabase.co')
+    vi.stubEnv('SUPABASE_SECRET_KEY', 'unit-test-only-owner-marker-secret')
+    const marker = createLocalPersonaOwnerMarker('hr-admin')
+    cookies.mockResolvedValue({
+      get: (name: string) => {
+        if (name === 'liquidhr-local-persona-handoff') return { value: 'fixture-handoff-token' }
+        if (name === TEST_ROLE_SWITCH_OWNER_COOKIE && marker) return { value: marker }
+        return undefined
+      },
+    })
+    getClaims.mockResolvedValue({ data: { claims: { email: 'hradmin.fixture@liquidhr.test' } }, error: null })
+
+    const response = await GET(new NextRequest('http://localhost:3000/auth/test-role-switch/confirm'))
+
+    expect(getClaims).toHaveBeenCalledOnce()
+    expect(response.headers.get('set-cookie')).toContain(`${TEST_ROLE_SWITCH_OWNER_COOKIE}=;`)
   })
 
   it.each(['https://attacker.example', '//attacker.example', '/\\attacker.example'])(

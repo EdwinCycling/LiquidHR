@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   canReturnToLocalPersonaOwner,
-  canUseLocalPersonaSwitcher,
-  getAvailableTestRoleSwitchTarget,
+  createLocalPersonaOwnerMarker,
+  getLocalPersonaOwnerKey,
+  getLocalPersonaOperatorTargetKeys,
   isLocalPersonaRuntime,
   normalizedEmail,
+  readLocalPersonaOwnerMarker,
+  getTestRoleSwitchTarget,
+  TEST_ROLE_SWITCH_OWNER_COOKIE,
 } from '@/lib/auth/test-role-switch'
+import { getLocalPayrollPersonaReadiness } from '@/lib/auth/local-payroll-persona-readiness'
 import { safeNextPath } from '@/lib/auth/login-rules'
 import { clearActiveContextCookies } from '@/lib/context/context-cookies'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -76,11 +81,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const targetKey = String(formData.get('target') ?? '')
-  const target = getAvailableTestRoleSwitchTarget(targetKey)
-  if (!target) {
-    const unavailable = targetKey === 'payroll-jaap' || targetKey === 'payroll-frits'
-    return jsonError(unavailable ? 'LOCAL_PERSONA_UNAVAILABLE' : 'LOCAL_PERSONA_SWITCH_FORBIDDEN', unavailable ? 503 : 403)
-  }
+  const target = getTestRoleSwitchTarget(targetKey)
+  if (!target) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
 
   const supabase = await createClient()
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
@@ -90,24 +92,47 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     emailVerified: claims?.email_verified === true,
   }
   const host = request.headers.get('host')
-  const isOwner = !claimsError && Boolean(claims?.sub) && canUseLocalPersonaSwitcher(host, identity)
-  const canReturnToOwner = !claimsError && Boolean(claims?.sub) && canReturnToLocalPersonaOwner(host, identity)
+  const ownerKey = !claimsError && Boolean(claims?.sub) ? getLocalPersonaOwnerKey(host, identity) : null
+  const ownerMarker = request.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value ?? null
+  const returnOwnerKey = readLocalPersonaOwnerMarker(ownerMarker)
+  const isOwner = ownerKey !== null
+  const canReturnToOwner = !claimsError && Boolean(claims?.sub)
+    && canReturnToLocalPersonaOwner(host, identity, ownerMarker)
 
   if (!isOwner && !canReturnToOwner) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
-  if (!isOwner && target.key !== 'edwin') return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
+  if (isOwner && ownerKey && target.key !== ownerKey && !getLocalPersonaOperatorTargetKeys(ownerKey).includes(target.key)) {
+    return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
+  }
+  if (!isOwner && target.key !== returnOwnerKey) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
 
   const requestedNextPath = formData.get('next')
   const nextPath = typeof requestedNextPath === 'string' && requestedNextPath.length <= 2048
     ? safeNextPath(requestedNextPath)
     : '/dashboard/start'
+
   if (normalizedEmail(identity.email) === target.email) {
     const response = NextResponse.redirect(new URL(nextPath, origin), { status: 303 })
+    response.cookies.set(TEST_ROLE_SWITCH_OWNER_COOKIE, '', { expires: new Date(0), maxAge: 0, path: '/' })
     response.headers.set('Cache-Control', 'no-store')
     response.headers.set('Referrer-Policy', 'no-referrer')
     return response
   }
 
   const admin = createAdminClient()
+  if (target.key === 'payroll-lisa' || target.key === 'payroll-jaap' || target.key === 'payroll-frits') {
+    try {
+      const readiness = await getLocalPayrollPersonaReadiness(target.key, admin)
+      if (!readiness.canStartSignIn) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
+    } catch {
+      return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
+    }
+  } else if (!target.available) {
+    return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
+  }
+
+  const ownerMarkerValue = isOwner && ownerKey ? createLocalPersonaOwnerMarker(ownerKey) : ownerMarker
+  if (!ownerMarkerValue) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
+
   if (!await hasExistingVerifiedAuthUser(admin, target.email)) {
     return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
   }
@@ -136,6 +161,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     maxAge: 60,
     path: '/',
     sameSite: 'lax',
+    secure: origin.startsWith('https:'),
+  })
+  response.cookies.set(TEST_ROLE_SWITCH_OWNER_COOKIE, ownerMarkerValue, {
+    httpOnly: true,
+    maxAge: 60 * 60 * 8,
+    path: '/',
+    sameSite: 'strict',
     secure: origin.startsWith('https:'),
   })
   response.headers.set('Cache-Control', 'no-store')

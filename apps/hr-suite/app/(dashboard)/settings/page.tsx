@@ -119,6 +119,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('journey-template:read'),
       allowed('recruitment-settings:manage'),
       allowed('ai:manage'),
+      allowed('salary:read'),
     ]),
     getEnabledTenantModules(),
   ])
@@ -144,8 +145,11 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     journeyTemplateRead,
     recruitmentSettings,
     aiManage,
+    payrollFiscalRead,
   ] = capabilities
   const canUseSetupAssistant = canReadSetupAssistant(settingsAuth)
+  const payrollFiscalSettings = payrollFiscalRead
+    && (settingsAuth.activeRoles.includes('HR_ADMIN') || settingsAuth.activeRoles.includes('TENANT_ADMIN'))
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
     {
@@ -275,6 +279,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.salary'),
           description: messages('admin.tiles.salaryDescription'),
           visible: salary,
+        },
+        {
+          kind: 'link',
+          href: '/settings/payroll/fiscal',
+          icon: FileSliders,
+          title: messages('payrollFiscal.title'),
+          description: messages('payrollFiscal.description'),
+          visible: payrollFiscalSettings,
         },
         {
           kind: 'link',

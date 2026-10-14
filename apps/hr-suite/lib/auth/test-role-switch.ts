@@ -1,7 +1,16 @@
 import 'server-only'
 
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
 export const TEST_ROLE_SWITCH_OWNER_EMAIL = 'edwin@editsolutions.nl'
+export const TEST_ROLE_SWITCH_OWNER_COOKIE = 'liquidhr-local-persona-owner'
 export const TEST_ROLE_SWITCH_SUPABASE_PROJECT_REF = 'wnpfloqpjvaacobppbpk'
+
+export const TEST_ROLE_SWITCH_OWNER_IDENTITIES = [
+  { key: 'edwin', email: TEST_ROLE_SWITCH_OWNER_EMAIL },
+  { key: 'hr-admin', email: 'hradmin.fixture@liquidhr.test' },
+] as const
+export type TestRoleSwitchOwnerKey = (typeof TEST_ROLE_SWITCH_OWNER_IDENTITIES)[number]['key']
 
 export const TEST_ROLE_SWITCH_TARGETS = [
   { key: 'edwin', email: TEST_ROLE_SWITCH_OWNER_EMAIL, available: true },
@@ -108,6 +117,43 @@ export function isTestRoleSwitchAccount(email: string | null | undefined): boole
   return TEST_ROLE_SWITCH_TARGETS.some((target) => target.email === candidate)
 }
 
+export function getLocalPersonaOwnerKey(
+  host: string | null | undefined,
+  identity: LocalPersonaIdentity,
+  environment: TestRoleSwitchEnvironment = {},
+): TestRoleSwitchOwnerKey | null {
+  if (!isLocalPersonaRuntime(host, environment) || !identity.emailVerified) return null
+  return TEST_ROLE_SWITCH_OWNER_IDENTITIES.find((owner) => owner.email === normalizedEmail(identity.email))?.key ?? null
+}
+
+export function getLocalPersonaOwnerEmail(ownerKey: string | null | undefined): string | null {
+  return TEST_ROLE_SWITCH_OWNER_IDENTITIES.find((owner) => owner.key === ownerKey)?.email ?? null
+}
+
+export function getLocalPersonaOperatorTargetKeys(ownerKey: TestRoleSwitchOwnerKey): readonly TestRoleSwitchTargetKey[] {
+  if (ownerKey === 'hr-admin') return ['payroll-lisa', 'payroll-jaap', 'payroll-frits']
+  return TEST_ROLE_SWITCH_TARGETS.filter((target) => target.key !== ownerKey).map((target) => target.key)
+}
+
+export function createLocalPersonaOwnerMarker(ownerKey: TestRoleSwitchOwnerKey): string | null {
+  const secret = process.env.SUPABASE_SECRET_KEY
+  if (!secret) return null
+  const payload = `local-persona-owner:v1:${ownerKey}`
+  const signature = createHmac('sha256', secret).update(payload).digest('base64url')
+  return `${payload}.${signature}`
+}
+
+export function readLocalPersonaOwnerMarker(marker: string | null | undefined): TestRoleSwitchOwnerKey | null {
+  if (!marker) return null
+  const match = /^local-persona-owner:v1:(edwin|hr-admin)\.([A-Za-z0-9_-]+)$/.exec(marker)
+  const secret = process.env.SUPABASE_SECRET_KEY
+  if (!match || !secret) return null
+  const ownerKey = match[1] as TestRoleSwitchOwnerKey
+  const expected = createHmac('sha256', secret).update(`local-persona-owner:v1:${ownerKey}`).digest()
+  const actual = Buffer.from(match[2] ?? '', 'base64url')
+  return actual.length === expected.length && timingSafeEqual(actual, expected) ? ownerKey : null
+}
+
 export function canInitiateTestRoleSwitch(activeRoles: readonly string[]): boolean {
   return activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
 }
@@ -117,20 +163,22 @@ export function canUseLocalPersonaSwitcher(
   identity: LocalPersonaIdentity,
   environment: TestRoleSwitchEnvironment = {},
 ): boolean {
-  return isLocalPersonaRuntime(host, environment)
-    && identity.emailVerified
-    && normalizedEmail(identity.email) === TEST_ROLE_SWITCH_OWNER_EMAIL
+  return getLocalPersonaOwnerKey(host, identity, environment) !== null
 }
 
 export function canReturnToLocalPersonaOwner(
   host: string | null | undefined,
   identity: LocalPersonaIdentity,
+  ownerMarker: string | null | undefined,
   environment: TestRoleSwitchEnvironment = {},
 ): boolean {
-  return isLocalPersonaRuntime(host, environment)
+  const ownerKey = readLocalPersonaOwnerMarker(ownerMarker)
+  const ownerEmail = getLocalPersonaOwnerEmail(ownerKey)
+  return Boolean(ownerEmail)
+    && isLocalPersonaRuntime(host, environment)
     && identity.emailVerified
     && isTestRoleSwitchAccount(identity.email)
-    && normalizedEmail(identity.email) !== TEST_ROLE_SWITCH_OWNER_EMAIL
+    && normalizedEmail(identity.email) !== ownerEmail
 }
 
 export function getTestRoleSwitchTarget(value: string | null | undefined): TestRoleSwitchTarget | null {

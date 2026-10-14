@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   canInitiateTestRoleSwitch,
   canReturnToLocalPersonaOwner,
   canUseLocalPersonaSwitcher,
+  createLocalPersonaOwnerMarker,
+  getLocalPersonaOperatorTargetKeys,
+  getLocalPersonaOwnerKey,
   getAvailableTestRoleSwitchTarget,
   getTestRoleSwitchTarget,
   isLocalhostHost,
@@ -42,6 +45,18 @@ describe('local persona switch authorization', () => {
     expect(isTestRoleSwitchAccount('other@example.com')).toBe(false)
   })
 
+  it('keeps the local operator grant identity-bound and separate from business roles', () => {
+    expect(getLocalPersonaOwnerKey('localhost:3010', {
+      email: 'hradmin.fixture@liquidhr.test',
+      emailVerified: true,
+    }, localEnvironment)).toBe('hr-admin')
+    expect(getLocalPersonaOwnerKey('localhost:3010', {
+      email: 'other@example.com',
+      emailVerified: true,
+    }, localEnvironment)).toBeNull()
+    expect(getLocalPersonaOperatorTargetKeys('hr-admin')).toEqual(['payroll-lisa', 'payroll-jaap', 'payroll-frits'])
+  })
+
   it('keeps the former business-role guard distinct from the local owner capability', () => {
     expect(canInitiateTestRoleSwitch(['HR_ADMIN'])).toBe(true)
     expect(canInitiateTestRoleSwitch(['TENANT_ADMIN'])).toBe(true)
@@ -66,13 +81,19 @@ describe('local persona switch authorization', () => {
     expect(canUseLocalPersonaSwitcher('localhost:3010', owner, { ...localEnvironment, nodeEnv: 'production' })).toBe(false)
   })
 
-  it('allows a verified fixed persona only to return to Edwin', () => {
+  it('allows a verified fixed persona to return only to the signed initiating account', () => {
+    vi.stubEnv('SUPABASE_SECRET_KEY', 'unit-test-only-owner-marker-secret')
     const manager = { email: 'manager.fixture@liquidhr.test', emailVerified: true }
-    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', manager, localEnvironment)).toBe(true)
-    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', { ...manager, emailVerified: false }, localEnvironment)).toBe(false)
-    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', { ...manager, email: 'other@example.com' }, localEnvironment)).toBe(false)
-    expect(canReturnToLocalPersonaOwner('preview.example.com', manager, localEnvironment)).toBe(false)
-    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', { email: 'edwin@editsolutions.nl', emailVerified: true }, localEnvironment)).toBe(false)
+    const edwinMarker = createLocalPersonaOwnerMarker('edwin')
+    const hrAdminMarker = createLocalPersonaOwnerMarker('hr-admin')
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', manager, edwinMarker, localEnvironment)).toBe(true)
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', manager, hrAdminMarker, localEnvironment)).toBe(true)
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', manager, null, localEnvironment)).toBe(false)
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', manager, `${edwinMarker}x`, localEnvironment)).toBe(false)
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', { ...manager, emailVerified: false }, edwinMarker, localEnvironment)).toBe(false)
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', { ...manager, email: 'other@example.com' }, edwinMarker, localEnvironment)).toBe(false)
+    expect(canReturnToLocalPersonaOwner('preview.example.com', manager, edwinMarker, localEnvironment)).toBe(false)
+    expect(canReturnToLocalPersonaOwner('127.0.0.1:3010', { email: 'edwin@editsolutions.nl', emailVerified: true }, edwinMarker, localEnvironment)).toBe(false)
   })
 
   it('accepts loopback hosts and rejects lookalike or forwarded host values', () => {
@@ -101,3 +122,5 @@ describe('local persona switch authorization', () => {
     expect(resolveSupabaseProjectRef('not-a-url')).toBeNull()
   })
 })
+
+afterEach(() => vi.unstubAllEnvs())
