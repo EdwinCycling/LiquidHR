@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('./20261015111658_payikv01b_payroll_tax_registration_and_readiness.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('./20261015125424_payikv01b_payroll_tax_registration_and_readiness.sql', import.meta.url), 'utf8')
 
 describe('PAYIKV-01B payroll tax registration and readiness contract', () => {
   it('keeps the employer number, employer suffix, and employee IKV number separate', () => {
