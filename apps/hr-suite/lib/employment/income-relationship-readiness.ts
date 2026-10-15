@@ -1,5 +1,6 @@
 export type IncomeRelationshipReadinessBlocker =
   | 'employee_identifier_missing'
+  | 'income_relationship_number_invalid'
   | 'employer_tax_number_missing'
   | 'employer_tax_subnumber_invalid'
   | 'employer_tax_number_period_gap'
@@ -15,6 +16,7 @@ export type IncomeRelationshipReadinessBlocker =
 
 export type IncomeRelationshipReadinessInput = {
   readonly reportingStatus: 'DRAFT' | 'READY' | 'REPORTED' | 'CLOSED'
+  readonly ikvNumber: number
   readonly relationshipType: string
   readonly startsOn: string
   readonly endsOn: string | null
@@ -24,7 +26,6 @@ export type IncomeRelationshipReadinessInput = {
   readonly payrollTaxBindingHrGroupId: string | null
   readonly administrationId: string
   readonly hrGroupId: string
-  readonly employeeNumber: string | null
   readonly hasVerifiedBsn: boolean
   readonly links: readonly {
     readonly validFrom: string
@@ -80,12 +81,13 @@ function payrollTaxNumberMatches(
   if (boundNumbers.length !== 1) return 'mismatch'
 
   const registration = boundNumbers[0]
-  const allowedSubnumbers = [registration.payrollTaxNumber.slice(-2), registration.payrollTaxNumber.slice(-3)]
+  const registeredSubnumber = registration.payrollTaxNumber.slice(-3)
   if (input.payrollTaxBindingHrGroupId !== input.hrGroupId
     || registration.hrGroupId !== input.hrGroupId
     || registration.administrationId !== input.administrationId
     || registration.payrollTaxNumber !== input.payrollTaxNumber
-    || !allowedSubnumbers.includes(input.payrollTaxSubnumber)) return 'mismatch'
+    || !/^[0-9]{9}L(?:0[1-9]|[1-9][0-9])$/.test(registration.payrollTaxNumber)
+    || input.payrollTaxSubnumber !== registeredSubnumber) return 'mismatch'
 
   const coveringNumbers = boundNumbers.filter((number) => coversInclusivePeriod(
     number.validFrom,
@@ -151,10 +153,13 @@ export function evaluateIncomeRelationshipReadiness(
 ): IncomeRelationshipReadiness {
   const blockers = new Set<IncomeRelationshipReadinessBlocker>()
 
-  if (!input.employeeNumber?.trim() && !input.hasVerifiedBsn) blockers.add('employee_identifier_missing')
+  if (!input.hasVerifiedBsn) blockers.add('employee_identifier_missing')
+  if (!Number.isInteger(input.ikvNumber) || input.ikvNumber < 1 || input.ikvNumber > 99) {
+    blockers.add('income_relationship_number_invalid')
+  }
   if (input.relationshipType !== 'EMPLOYMENT') blockers.add('income_relationship_type_invalid')
   if (input.endsOn !== null && input.endsOn < input.startsOn) blockers.add('income_relationship_dates_invalid')
-  if (!/^(L)?(0[1-9]|[1-9][0-9])$/.test(input.payrollTaxSubnumber)) blockers.add('employer_tax_subnumber_invalid')
+  if (!/^L(?:0[1-9]|[1-9][0-9])$/.test(input.payrollTaxSubnumber)) blockers.add('employer_tax_subnumber_invalid')
 
   const taxNumberResult = payrollTaxNumberMatches(input)
   if (taxNumberResult === 'missing') {

@@ -19,6 +19,9 @@ export class IncomeRelationshipReadinessError extends Error {
 export type IncomeRelationshipReadinessRecord = {
   readonly id: string
   readonly ikvNumber: number
+  readonly payrollTaxNumber: string | null
+  readonly payrollTaxSubnumber: string
+  readonly payrollTaxBindingId: string | null
   readonly relationshipType: string
   readonly reportingStatus: ReportingStatus
   readonly startsOn: string
@@ -30,6 +33,15 @@ export type IncomeRelationshipReadinessRecord = {
   }[]
   readonly blockers: readonly IncomeRelationshipReadinessBlocker[]
   readonly canMarkReady: boolean
+  readonly payrollTaxNumberOptions: readonly {
+    readonly id: string
+    readonly payrollTaxNumber: string
+    readonly payrollTaxSubnumber: string
+    readonly validFrom: string
+    readonly validUntil: string | null
+    readonly canMarkReady: boolean
+    readonly blockers: readonly IncomeRelationshipReadinessBlocker[]
+  }[]
   readonly fiscalProfilePresent: boolean
   readonly auditHistory: readonly {
     readonly id: string
@@ -85,19 +97,17 @@ export async function getIncomeRelationshipReadiness(
       .eq('id', employmentId).eq('employee_id', employeeId)
       .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
       .eq('administration_id', administrationId).is('deleted_at', null).maybeSingle(),
-    supabase.from('employees').select('id, employee_number')
+    supabase.from('employees').select('id')
       .eq('id', employeeId).eq('tenant_id', salaryContext.tenantId)
       .eq('hr_group_id', hrGroupId).is('deleted_at', null).maybeSingle(),
     supabase.from('income_relationships')
       .select('id, ikv_number, relationship_type, reporting_status, starts_on, ends_on, payroll_tax_subnumber, payroll_tax_number, payroll_tax_binding_id, payroll_tax_binding_hr_group_id')
       .eq('tenant_id', salaryContext.tenantId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).is('deleted_at', null).order('starts_on').limit(200),
-    salaryContext.permissions.includes('payroll-import:read')
-      ? supabase.from('administration_payroll_tax_numbers')
-        .select('id, hr_group_id, administration_id, payroll_tax_number, valid_from, valid_until')
-        .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
-        .eq('administration_id', administrationId).order('valid_from').limit(200)
-      : Promise.resolve({ data: null, error: null }),
+    supabase.from('administration_payroll_tax_numbers')
+      .select('id, hr_group_id, administration_id, payroll_tax_number, valid_from, valid_until')
+      .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
+      .eq('administration_id', administrationId).order('valid_from').limit(200),
     salaryContext.permissions.includes('employee-bsn:read')
       ? supabase.from('employee_secure_identifiers').select('employee_id')
         .eq('tenant_id', salaryContext.tenantId).eq('employee_id', employeeId)
@@ -165,15 +175,24 @@ export async function getIncomeRelationshipReadiness(
     auditByIncomeId.set(audit.entity_id, rows)
   }
   const hasVerifiedBsn = Boolean(secureIdentifierResult.data?.employee_id)
-  const payrollTaxNumberSourceAvailable = salaryContext.permissions.includes('payroll-import:read')
+  const payrollTaxNumberSourceAvailable = true
+  const payrollTaxNumberRows = payrollTaxNumbers.map((number) => ({
+    id: number.id,
+    hrGroupId: number.hr_group_id,
+    administrationId: number.administration_id,
+    payrollTaxNumber: number.payroll_tax_number,
+    validFrom: number.valid_from,
+    validUntil: number.valid_until,
+  }))
 
   return allRelationships.flatMap((relationship) => {
     const relationshipLinks = links.filter((link) => link.income_relationship_id === relationship.id)
     const currentEmploymentLinks = relationshipLinks.filter((link) => link.employment_id === employment.id)
     if (currentEmploymentLinks.length === 0) return []
 
-    const readiness = evaluateIncomeRelationshipReadiness({
+    const readinessInput = {
       reportingStatus: relationship.reporting_status,
+      ikvNumber: relationship.ikv_number,
       relationshipType: relationship.relationship_type,
       startsOn: relationship.starts_on,
       endsOn: relationship.ends_on,
@@ -183,17 +202,9 @@ export async function getIncomeRelationshipReadiness(
       payrollTaxBindingHrGroupId: relationship.payroll_tax_binding_hr_group_id,
       administrationId,
       hrGroupId,
-      employeeNumber: employee.employee_number,
       hasVerifiedBsn,
       payrollTaxNumberSourceAvailable,
-      payrollTaxNumbers: payrollTaxNumbers.map((number) => ({
-        id: number.id,
-        hrGroupId: number.hr_group_id,
-        administrationId: number.administration_id,
-        payrollTaxNumber: number.payroll_tax_number,
-        validFrom: number.valid_from,
-        validUntil: number.valid_until,
-      })),
+      payrollTaxNumbers: payrollTaxNumberRows,
       links: relationshipLinks.map((link) => {
         const linkedEmployment = employmentById.get(link.employment_id)
         return {
@@ -210,6 +221,25 @@ export async function getIncomeRelationshipReadiness(
           } : null,
         }
       }),
+    } as const
+    const readiness = evaluateIncomeRelationshipReadiness(readinessInput)
+    const payrollTaxNumberOptions = payrollTaxNumbers.map((number) => {
+      const candidateReadiness = evaluateIncomeRelationshipReadiness({
+        ...readinessInput,
+        payrollTaxSubnumber: number.payroll_tax_number.slice(-3),
+        payrollTaxNumber: number.payroll_tax_number,
+        payrollTaxBindingId: number.id,
+        payrollTaxBindingHrGroupId: number.hr_group_id,
+      })
+      return {
+        id: number.id,
+        payrollTaxNumber: number.payroll_tax_number,
+        payrollTaxSubnumber: number.payroll_tax_number.slice(-3),
+        validFrom: number.valid_from,
+        validUntil: number.valid_until,
+        canMarkReady: candidateReadiness.canMarkReady,
+        blockers: candidateReadiness.blockers,
+      }
     })
     const auditHistory = (auditByIncomeId.get(relationship.id) ?? []).map((audit) => ({
       id: audit.id,
@@ -222,6 +252,9 @@ export async function getIncomeRelationshipReadiness(
     return [{
       id: relationship.id,
       ikvNumber: relationship.ikv_number,
+      payrollTaxNumber: relationship.payroll_tax_number,
+      payrollTaxSubnumber: relationship.payroll_tax_subnumber,
+      payrollTaxBindingId: relationship.payroll_tax_binding_id,
       relationshipType: relationship.relationship_type,
       reportingStatus: relationship.reporting_status,
       startsOn: relationship.starts_on,
@@ -236,6 +269,7 @@ export async function getIncomeRelationshipReadiness(
       }),
       blockers: readiness.blockers,
       canMarkReady: readiness.canMarkReady,
+      payrollTaxNumberOptions,
       fiscalProfilePresent: profileIncomeIds.has(relationship.id),
       auditHistory,
       auditHistoryAvailable: salaryContext.permissions.includes('audit:read'),
@@ -247,6 +281,7 @@ export async function markIncomeRelationshipReady(
   employeeId: string,
   employmentId: string,
   incomeRelationshipId: string,
+  payrollTaxBindingId: string,
 ): Promise<void> {
   const writeContext = await requirePermission('salary:write', employeeId)
   if (!writeContext.administrationId || !writeContext.hrGroupId || !isPayrollAdministrator(writeContext)) {
@@ -258,11 +293,20 @@ export async function markIncomeRelationshipReady(
   if (!record || record.reportingStatus !== 'DRAFT') {
     throw new IncomeRelationshipReadinessError('PAYROLL_IKV_NOT_DRAFT', 409)
   }
-  if (!record.canMarkReady) throw new IncomeRelationshipReadinessError('PAYROLL_IKV_SOURCE_BLOCKED', 409)
+  const selectedRegistration = record.payrollTaxNumberOptions.find((option) => option.id === payrollTaxBindingId)
+  if (!selectedRegistration?.canMarkReady) {
+    throw new IncomeRelationshipReadinessError('PAYROLL_IKV_SOURCE_BLOCKED', 409)
+  }
 
   const supabase = await createClient()
   const { data, error } = await supabase.from('income_relationships')
-    .update({ reporting_status: 'READY' })
+    .update({
+      payroll_tax_subnumber: selectedRegistration.payrollTaxSubnumber,
+      payroll_tax_number: selectedRegistration.payrollTaxNumber,
+      payroll_tax_binding_hr_group_id: writeContext.hrGroupId,
+      payroll_tax_binding_id: selectedRegistration.id,
+      reporting_status: 'READY',
+    })
     .eq('id', incomeRelationshipId)
     .eq('tenant_id', writeContext.tenantId)
     .eq('administration_id', writeContext.administrationId)

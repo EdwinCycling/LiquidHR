@@ -22093,6 +22093,16 @@ export type Database = {
         Args: { p_input: Json }
         Returns: Json
       }
+      register_administration_payroll_tax_number: {
+        Args: {
+          requested_administration_id: string
+          requested_is_primary: boolean
+          requested_payroll_tax_number: string
+          requested_valid_from: string
+          requested_valid_until: string | null
+        }
+        Returns: string
+      }
       link_local_test_payroll_persona_v1: {
         Args: {
           p_auth_user_id: string

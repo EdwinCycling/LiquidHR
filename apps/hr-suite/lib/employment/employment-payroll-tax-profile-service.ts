@@ -78,12 +78,21 @@ export type EmploymentPayrollTaxDossier = {
 
 export type PayrollFiscalAdministrationSettings = {
   readonly administration: { readonly id: string; readonly name: string }
+  readonly canManagePayrollTaxNumbers: boolean
   readonly payrollTaxNumbers: readonly {
     readonly id: string
     readonly payrollTaxNumber: string
+    readonly payrollTaxSubnumber: string
     readonly isPrimary: boolean
     readonly validFrom: string
     readonly validUntil: string | null
+    readonly linkedIncomeRelationships: readonly {
+      readonly employeeId: string
+      readonly employeeName: string
+      readonly employeeNumber: string
+      readonly ikvNumber: number
+      readonly reportingStatus: string
+    }[]
   }[]
   readonly rows: readonly {
     readonly employeeId: string
@@ -399,7 +408,7 @@ export async function getPayrollFiscalAdministrationSettings(): Promise<PayrollF
   }
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
-  const [administrationResult, employmentResult, taxNumberResult] = await Promise.all([
+  const [administrationResult, employmentResult, taxNumberResult, boundIncomeRelationshipsResult] = await Promise.all([
     supabase.from('administrations').select('id, name')
       .eq('id', context.administrationId).eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).maybeSingle(),
     supabase.from('employments').select('id, employee_id, employment_number, starts_on, ends_on')
@@ -408,24 +417,40 @@ export async function getPayrollFiscalAdministrationSettings(): Promise<PayrollF
     supabase.from('administration_payroll_tax_numbers').select('id, payroll_tax_number, is_primary, valid_from, valid_until')
       .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
       .order('valid_from', { ascending: false }).limit(200),
+    supabase.from('income_relationships').select('id, employee_id, ikv_number, payroll_tax_binding_id, reporting_status')
+      .eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId)
+      .is('deleted_at', null).not('payroll_tax_binding_id', 'is', null).limit(5000),
   ])
-  if (administrationResult.error || employmentResult.error || taxNumberResult.error) {
+  if (administrationResult.error || employmentResult.error || taxNumberResult.error || boundIncomeRelationshipsResult.error) {
     throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_SOURCE_UNAVAILABLE', 503)
   }
   if (!administrationResult.data) throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_SCOPE_UNAVAILABLE', 404)
 
   const employments = employmentResult.data ?? []
+  const boundIncomeRelationships = boundIncomeRelationshipsResult.data ?? []
   const employmentIds = employments.map((employment) => employment.id)
-  const employeeIds = [...new Set(employments.map((employment) => employment.employee_id))]
+  const employeeIds = [...new Set([
+    ...employments.map((employment) => employment.employee_id),
+    ...boundIncomeRelationships.map((relationship) => relationship.employee_id),
+  ])]
   if (employmentIds.length === 0) {
     return {
       administration: administrationResult.data,
+      canManagePayrollTaxNumbers: context.permissions.includes('salary:write') && isHrPayrollAdmin(context),
       payrollTaxNumbers: (taxNumberResult.data ?? []).map((row) => ({
         id: row.id,
         payrollTaxNumber: row.payroll_tax_number,
+        payrollTaxSubnumber: row.payroll_tax_number.slice(-3),
         isPrimary: row.is_primary,
         validFrom: row.valid_from,
         validUntil: row.valid_until,
+        linkedIncomeRelationships: boundIncomeRelationships.filter((relationship) => relationship.payroll_tax_binding_id === row.id).map((relationship) => ({
+          employeeId: relationship.employee_id,
+          employeeName: '',
+          employeeNumber: '',
+          ikvNumber: relationship.ikv_number,
+          reportingStatus: relationship.reporting_status,
+        })),
       })),
       rows: [],
     }
@@ -451,7 +476,7 @@ export async function getPayrollFiscalAdministrationSettings(): Promise<PayrollF
   const incomeResult = incomeRelationshipIds.length === 0
     ? { data: [], error: null }
     : await supabase.from('income_relationships')
-      .select('id, relationship_type, reporting_status, starts_on, ends_on, deleted_at')
+      .select('id, employee_id, ikv_number, payroll_tax_binding_id, relationship_type, reporting_status, starts_on, ends_on, deleted_at')
       .eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId)
       .is('deleted_at', null).in('id', incomeRelationshipIds).limit(5000)
   if (incomeResult.error) throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_SOURCE_UNAVAILABLE', 503)
@@ -501,12 +526,26 @@ export async function getPayrollFiscalAdministrationSettings(): Promise<PayrollF
 
   return {
     administration: administrationResult.data,
+    canManagePayrollTaxNumbers: context.permissions.includes('salary:write') && isHrPayrollAdmin(context),
     payrollTaxNumbers: (taxNumberResult.data ?? []).map((row) => ({
       id: row.id,
       payrollTaxNumber: row.payroll_tax_number,
+      payrollTaxSubnumber: row.payroll_tax_number.slice(-3),
       isPrimary: row.is_primary,
       validFrom: row.valid_from,
       validUntil: row.valid_until,
+      linkedIncomeRelationships: boundIncomeRelationships.filter((relationship) => relationship.payroll_tax_binding_id === row.id).map((relationship) => {
+        const employee = employeeById.get(relationship.employee_id)
+        return {
+          employeeId: relationship.employee_id,
+          employeeName: employee
+            ? [employee.first_name, employee.birth_name_prefix, employee.birth_name].filter((part): part is string => Boolean(part?.trim())).join(' ')
+            : '',
+          employeeNumber: employee?.employee_number ?? '',
+          ikvNumber: relationship.ikv_number,
+          reportingStatus: relationship.reporting_status,
+        }
+      }),
     })),
     rows,
   }

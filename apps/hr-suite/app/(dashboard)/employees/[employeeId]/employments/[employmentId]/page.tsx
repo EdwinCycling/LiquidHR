@@ -562,6 +562,9 @@ export default async function EmploymentDetailPage({
                     </div>
                     <InfoList className="mt-4" columns={2} items={[
                       { label: t('ikvReadiness.reportingStatus'), value: statusLabel },
+                      { label: t('ikvReadiness.ikvNumber'), value: String(relationship.ikvNumber).padStart(4, '0') },
+                      { label: t('ikvReadiness.payrollTaxNumber'), value: relationship.payrollTaxNumber ?? t('fiscalDossier.notRecorded') },
+                      { label: t('ikvReadiness.payrollTaxSubnumber'), value: relationship.payrollTaxSubnumber || t('fiscalDossier.notRecorded') },
                       { label: t('ikvReadiness.validPeriod'), value: periodLabel(relationship.startsOn, relationship.endsOn, locale, preferences.dateFormat, t('fiscalDossier.openEnded')) },
                       { label: t('ikvReadiness.linkedEmployment'), value: linkedEmploymentNumbers.join(', ') || t('notRecorded') },
                       { label: t('fiscalDossier.classificationStatus'), value: relationship.fiscalProfilePresent ? t('ikvReadiness.fiscalProfilePresent') : t('ikvReadiness.fiscalProfileMissing') },
@@ -571,18 +574,33 @@ export default async function EmploymentDetailPage({
                         {t('ikvReadiness.linkedEmployment')} {link.employmentNumber} · {t('ikvReadiness.linkPeriod')}: {periodLabel(link.validFrom, inclusiveEndFromExclusive(link.validUntil), locale, preferences.dateFormat, t('fiscalDossier.openEnded'))}
                       </li>)}
                     </ul>
-                    {relationship.blockers.length > 0 ? <div className="mt-4 rounded-md border border-warning/40 bg-warning-surface p-4">
+                    {(() => {
+                      const hasEligibleTaxNumber = relationship.payrollTaxNumberOptions.some((option) => option.canMarkReady)
+                      const displayedBlockers = hasEligibleTaxNumber
+                        ? relationship.blockers.filter((blocker) => !['employer_tax_number_missing', 'employer_tax_number_mismatch', 'employer_tax_subnumber_invalid'].includes(blocker))
+                        : relationship.blockers
+                      return displayedBlockers.length > 0 ? <div className="mt-4 rounded-md border border-warning/40 bg-warning-surface p-4">
                       <p className="text-sm font-medium">{t('ikvReadiness.blockedTitle')}</p>
                       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                        {relationship.blockers.map((blocker) => <li key={blocker}>{t(`ikvReadiness.blockers.${blocker}`)}</li>)}
+                        {displayedBlockers.map((blocker) => <li key={blocker}>{t(`ikvReadiness.blockers.${blocker}`)}</li>)}
                       </ul>
-                    </div> : null}
+                    </div> : null
+                    })()}
                     {canWriteIncomeRelationships && relationship.reportingStatus === 'DRAFT' ? <form action={markIncomeRelationshipReadyAction} className="mt-4 flex flex-wrap items-center gap-3">
                       <input type="hidden" name="employeeId" value={employeeId} />
                       <input type="hidden" name="employmentId" value={employmentId} />
                       <input type="hidden" name="incomeRelationshipId" value={relationship.id} />
-                      <button className={`${buttonClasses({ size: 'sm' })} disabled:cursor-not-allowed disabled:opacity-60`} disabled={!relationship.canMarkReady} type="submit">{t('ikvReadiness.markReady')}</button>
-                      <span className="text-sm text-muted-foreground">{relationship.canMarkReady ? t('ikvReadiness.markReadyHelp') : t('ikvReadiness.markReadyDisabled')}</span>
+                      {relationship.payrollTaxNumberOptions.some((option) => option.canMarkReady) ? <label className="grid min-w-64 gap-1 text-sm font-medium">
+                        {t('ikvReadiness.selectPayrollTaxNumber')}
+                        <select className="min-h-10 rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm" defaultValue={relationship.payrollTaxBindingId ?? ''} name="payrollTaxBindingId" required>
+                          <option value="">{t('ikvReadiness.selectPayrollTaxNumberPlaceholder')}</option>
+                          {relationship.payrollTaxNumberOptions.map((option) => <option disabled={!option.canMarkReady} key={option.id} value={option.id}>
+                            {option.payrollTaxNumber} · {option.payrollTaxSubnumber} · {periodLabel(option.validFrom, option.validUntil, locale, preferences.dateFormat, t('fiscalDossier.openEnded'))}
+                          </option>)}
+                        </select>
+                      </label> : null}
+                      <button className={`${buttonClasses({ size: 'sm' })} disabled:cursor-not-allowed disabled:opacity-60`} disabled={!relationship.payrollTaxNumberOptions.some((option) => option.canMarkReady)} type="submit">{t('ikvReadiness.markReady')}</button>
+                      <span className="text-sm text-muted-foreground">{relationship.payrollTaxNumberOptions.some((option) => option.canMarkReady) ? t('ikvReadiness.markReadyHelp') : t('ikvReadiness.markReadyDisabled')}</span>
                     </form> : null}
                     <div className="mt-5 border-t border-subtle pt-4">
                       <h4 className="text-sm font-medium">{t('ikvReadiness.auditTitle')}</h4>

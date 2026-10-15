@@ -13,8 +13,9 @@ import {
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getUserPreferences } from '@/lib/preferences/server'
 import { formatDate } from '@/lib/preferences/formatters'
+import { registerPayrollTaxNumberAction } from './actions'
 
-type PageProps = { searchParams: Promise<{ q?: string; status?: string }> }
+type PageProps = { searchParams: Promise<{ q?: string; status?: string; registration?: string }> }
 type FiscalFilter = 'all' | 'present' | 'missing'
 
 export default async function PayrollFiscalSettingsPage({ searchParams }: PageProps) {
@@ -44,13 +45,29 @@ export default async function PayrollFiscalSettingsPage({ searchParams }: PagePr
     return searchMatch && statusMatch
   })
   const activeRows = data.rows.filter((row) => row.active)
-  const activeNumbers = data.payrollTaxNumbers.filter((row) => row.validFrom <= today && (row.validUntil === null || row.validUntil >= today))
   const dateLabel = (value: string | null) => value ? formatDate(value, { locale, dateFormat: preferences.dateFormat }) : copy('notRecorded')
-  const periodLabel = (from: string, to: string | null) => `${dateLabel(from)} – ${to ? dateLabel(to) : t('payrollFiscal.numberPrimary')}`
+  const periodLabel = (from: string, to: string | null) => `${dateLabel(from)} – ${to ? dateLabel(to) : copy('openEnded')}`
+  const registrationResult = ['saved', 'invalid', 'conflict', 'forbidden', 'unavailable'].includes(query.registration ?? '')
+    ? query.registration
+    : null
+  const registrationMessage = registrationResult === 'saved' ? copy('registrationSaved')
+    : registrationResult === 'invalid' ? copy('registrationInvalid')
+      : registrationResult === 'conflict' ? copy('registrationConflict')
+        : registrationResult === 'forbidden' ? copy('registrationForbidden')
+          : registrationResult === 'unavailable' ? copy('registrationUnavailable')
+            : null
+  const incomeRelationshipStatus = (status: string) => status === 'DRAFT' ? copy('incomeRelationshipDraft')
+    : status === 'READY' ? copy('incomeRelationshipReady')
+      : status === 'REPORTED' ? copy('incomeRelationshipReported')
+        : status === 'CLOSED' ? copy('incomeRelationshipClosed')
+          : copy('incomeRelationshipStatusUnavailable')
 
   return <PageShell className="space-y-6 py-6 lg:py-9">
     <PageHeader title={copy('title')} description={copy('description')} />
     <p className="rounded-[var(--radius-control)] border border-warning-border bg-warning-surface p-4 text-sm">{copy('scopeNotice')}</p>
+    {registrationMessage ? <p className={`rounded-[var(--radius-control)] border p-4 text-sm ${registrationResult === 'saved' ? 'border-success/30 bg-success-surface text-success' : 'border-warning/40 bg-warning-surface text-warning'}`} role={registrationResult === 'saved' ? 'status' : 'alert'}>
+      {registrationMessage}
+    </p> : null}
 
     <section aria-label={copy('administration')} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Surface className="p-4"><p className="text-xs font-medium text-muted-foreground">{copy('administration')}</p><p className="mt-1 font-semibold">{data.administration.name}</p></Surface>
@@ -61,11 +78,33 @@ export default async function PayrollFiscalSettingsPage({ searchParams }: PagePr
 
     <Surface className="space-y-4 p-5 sm:p-6">
       <h2 className="text-lg font-semibold">{copy('payrollNumberSource')}</h2>
-      {activeNumbers.length === 0 ? <p className="text-sm text-muted-foreground">{copy('taxNumberMissing')}</p> : <ul className="divide-y divide-subtle border-y border-subtle">{activeNumbers.map((number) => <li className="grid gap-2 py-3 text-sm sm:grid-cols-3" key={number.id}>
-        <p className="font-semibold">{number.payrollTaxNumber}{number.isPrimary ? ` · ${copy('numberPrimary')}` : ` · ${copy('numberOther')}`}</p>
+      <p className="text-sm text-muted-foreground">{copy('taxNumberHistoryDescription')}</p>
+      {data.payrollTaxNumbers.length === 0 ? <p className="text-sm text-muted-foreground">{copy('taxNumberMissing')}</p> : <ul className="divide-y divide-subtle border-y border-subtle">{data.payrollTaxNumbers.map((number) => <li className="grid gap-3 py-4 text-sm lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_minmax(16rem,1.5fr)]" key={number.id}>
+        <div>
+          <p className="font-semibold">{number.payrollTaxNumber}{number.isPrimary ? ` · ${copy('numberPrimary')}` : ` · ${copy('numberOther')}`}</p>
+          <p className="mt-1 text-muted-foreground">{copy('taxNumberSubnumber')}: {number.payrollTaxSubnumber}</p>
+        </div>
         <p className="text-muted-foreground">{copy('taxNumberPeriod')}: {periodLabel(number.validFrom, number.validUntil)}</p>
-        <p className="text-muted-foreground">{copy('supportedRules')}: {copy('supportedRulesValue')}</p>
+        <div>
+          <p className="font-medium">{number.linkedIncomeRelationships.length} {copy('linkedIncomeRelationships')}</p>
+          {number.linkedIncomeRelationships.length > 0 ? <ul className="mt-2 space-y-1">{number.linkedIncomeRelationships.map((relationship) => <li key={`${number.id}-${relationship.employeeId}-${relationship.ikvNumber}`}>
+            <Link className="text-primary hover:underline" href={`/employees/${relationship.employeeId}`}>
+              {relationship.employeeName || relationship.employeeNumber || copy('employee')}
+              {' · '}{copy('incomeRelationshipNumber')} {String(relationship.ikvNumber).padStart(4, '0')}
+            </Link>
+            <span className="text-muted-foreground">{' · '}{incomeRelationshipStatus(relationship.reportingStatus)}</span>
+          </li>)}</ul> : <p className="mt-1 text-muted-foreground">{copy('noLinkedIncomeRelationships')}</p>}
+        </div>
       </li>)}</ul>}
+      {data.canManagePayrollTaxNumbers ? <form action={registerPayrollTaxNumberAction} className="grid gap-3 border-t border-subtle pt-4 sm:grid-cols-2 xl:grid-cols-5">
+        <label className="grid gap-1 text-sm font-medium">{copy('taxNumber')}<TextInput autoComplete="off" maxLength={12} name="payrollTaxNumber" pattern="[0-9]{9}L(0[1-9]|[1-9][0-9])" placeholder={copy('taxNumberPlaceholder')} required /></label>
+        <label className="grid gap-1 text-sm font-medium">{copy('taxNumberValidFrom')}<TextInput name="validFrom" required type="date" defaultValue={today} /></label>
+        <label className="grid gap-1 text-sm font-medium">{copy('taxNumberValidUntil')}<TextInput name="validUntil" type="date" /></label>
+        <label className="grid gap-1 text-sm font-medium">{copy('taxNumberPriority')}<select className="min-h-10 rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm" defaultValue="true" name="isPrimary"><option value="true">{copy('numberPrimary')}</option><option value="false">{copy('numberOther')}</option></select></label>
+        <div className="flex items-end"><Button type="submit">{copy('addOrChangeTaxNumber')}</Button></div>
+        <p className="text-sm text-muted-foreground sm:col-span-2 xl:col-span-5">{copy('taxNumberHistoryHelp')}</p>
+      </form> : null}
+      <p className="border-t border-subtle pt-4 text-sm text-muted-foreground">{copy('supportedRules')}: {copy('supportedRulesValue')}</p>
     </Surface>
 
     <Surface className="space-y-4 p-5 sm:p-6">

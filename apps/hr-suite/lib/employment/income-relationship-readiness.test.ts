@@ -3,17 +3,17 @@ import { evaluateIncomeRelationshipReadiness, type IncomeRelationshipReadinessIn
 
 const validInput: IncomeRelationshipReadinessInput = {
   reportingStatus: 'DRAFT',
+  ikvNumber: 1,
   relationshipType: 'EMPLOYMENT',
   startsOn: '2026-01-01',
   endsOn: null,
-  payrollTaxSubnumber: '01',
+  payrollTaxSubnumber: 'L01',
   payrollTaxNumber: '123456789L01',
   payrollTaxBindingId: 'tax-number-1',
   payrollTaxBindingHrGroupId: 'hr-group-1',
   administrationId: 'admin-1',
   hrGroupId: 'hr-group-1',
-  employeeNumber: 'EMP-001',
-  hasVerifiedBsn: false,
+  hasVerifiedBsn: true,
   links: [{
     validFrom: '2026-01-01',
     validUntil: null,
@@ -52,9 +52,26 @@ describe('evaluateIncomeRelationshipReadiness', () => {
     expect(result.blockers).toContain('employer_tax_number_missing')
   })
 
-  it('accepts the registered tax subnumber with or without its L prefix', () => {
-    expect(evaluateIncomeRelationshipReadiness({ ...validInput, payrollTaxSubnumber: '01' }).canMarkReady).toBe(true)
+  it('accepts the exact registered employer subnumber including its L prefix', () => {
     expect(evaluateIncomeRelationshipReadiness({ ...validInput, payrollTaxSubnumber: 'L01' }).canMarkReady).toBe(true)
+  })
+
+  it('does not confuse an employer subnumber with the employee IKV number', () => {
+    const result = evaluateIncomeRelationshipReadiness({ ...validInput, payrollTaxSubnumber: '01' })
+    expect(result.canMarkReady).toBe(false)
+    expect(result.blockers).toContain('employer_tax_number_mismatch')
+  })
+
+  it('requires a verified BSN fingerprint even when an employee number exists', () => {
+    const result = evaluateIncomeRelationshipReadiness({ ...validInput, hasVerifiedBsn: false })
+    expect(result.canMarkReady).toBe(false)
+    expect(result.blockers).toContain('employee_identifier_missing')
+  })
+
+  it('validates the IKV number independently from the employer subnumber', () => {
+    const result = evaluateIncomeRelationshipReadiness({ ...validInput, ikvNumber: 0 })
+    expect(result.canMarkReady).toBe(false)
+    expect(result.blockers).toContain('income_relationship_number_invalid')
   })
 
   it('blocks an invalid tax subnumber without normalizing source data', () => {

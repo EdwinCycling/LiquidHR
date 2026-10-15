@@ -271,7 +271,7 @@ async function importIncomeRelationships(
   let importedCount = 0
   for (const income of incomeRows) {
     if (income.status === 'BLOCKING' || income.status === 'MANUAL_REVIEW' || !income.starts_on) continue
-    const payrollTaxSubnumber = income.payroll_tax_number.slice(-2)
+    const payrollTaxSubnumber = income.payroll_tax_number.slice(-3)
     const existing = await authorization.client
       .from('income_relationships')
       .select('id')

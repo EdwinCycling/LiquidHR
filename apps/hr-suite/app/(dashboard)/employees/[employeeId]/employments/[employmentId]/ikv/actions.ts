@@ -26,17 +26,18 @@ export async function markIncomeRelationshipReadyAction(formData: FormData): Pro
   let result: 'saved' | 'blocked' | 'forbidden' | 'unavailable' = 'unavailable'
   try {
     const fields = Array.from(formData.keys()).filter((key) => !key.startsWith('$ACTION_')).sort()
-    if (fields.join('|') !== ['employeeId', 'employmentId', 'incomeRelationshipId'].sort().join('|')) {
+    if (fields.join('|') !== ['employeeId', 'employmentId', 'incomeRelationshipId', 'payrollTaxBindingId'].sort().join('|')) {
       throw new Error('INVALID_INPUT')
     }
     employeeId = scalar(formData, 'employeeId')
     employmentId = scalar(formData, 'employmentId')
     const incomeRelationshipId = scalar(formData, 'incomeRelationshipId')
-    if (![employeeId, employmentId, incomeRelationshipId].every((value) => UUID_PATTERN.test(value))) {
+    const payrollTaxBindingId = scalar(formData, 'payrollTaxBindingId')
+    if (![employeeId, employmentId, incomeRelationshipId, payrollTaxBindingId].every((value) => UUID_PATTERN.test(value))) {
       throw new Error('INVALID_INPUT')
     }
 
-    await markIncomeRelationshipReady(employeeId, employmentId, incomeRelationshipId)
+    await markIncomeRelationshipReady(employeeId, employmentId, incomeRelationshipId, payrollTaxBindingId)
     result = 'saved'
     revalidatePath(`/employees/${employeeId}/employments/${employmentId}`)
     revalidatePath(`/employees/${employeeId}/employments/${employmentId}/fiscal`)
