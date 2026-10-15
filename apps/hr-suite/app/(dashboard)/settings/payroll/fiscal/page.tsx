@@ -73,7 +73,7 @@ export default async function PayrollFiscalSettingsPage({ searchParams }: PagePr
       <form action="/settings/payroll/fiscal" className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem_auto]" method="get">
         <label className="grid gap-1 text-sm font-medium">{copy('search')}<TextInput autoComplete="off" defaultValue={search} maxLength={120} name="q" placeholder={copy('searchPlaceholder')} /></label>
         <label className="grid gap-1 text-sm font-medium">{copy('filter')}<select className="min-h-10 rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm" defaultValue={filter} name="status"><option value="all">{copy('all')}</option><option value="present">{copy('presentOnly')}</option><option value="missing">{copy('missingOnly')}</option></select></label>
-        <div className="flex items-end"><Button type="submit">{t('search')}</Button></div>
+        <div className="flex items-end"><Button type="submit">{copy('applyFilter')}</Button></div>
       </form>
 
       {filteredRows.length === 0 ? <p className="rounded-[var(--radius-control)] border border-subtle p-4 text-sm text-muted-foreground">{copy('noResults')}</p> : <>

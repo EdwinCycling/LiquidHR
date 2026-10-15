@@ -2,5 +2,7 @@ const publicPrefixes = ['/login', '/invite', '/auth', '/api', '/geen-toegang', '
 
 export function isProtectedApplicationPath(pathname: string): boolean {
   if (pathname === '/') return false
+  // The page itself enforces the canonical localhost Development gates.
+  if (pathname === '/local/sign-in') return false
   return !publicPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
 }

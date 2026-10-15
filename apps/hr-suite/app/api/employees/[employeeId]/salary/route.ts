@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
-import { getEmployeeSalarySummary } from '@/lib/employment/employment-service'
+import { getEmployeeSalarySummary, EmploymentServiceError } from '@/lib/employment/employment-service'
 
 interface Context { params: Promise<{ employeeId: string }> }
 
@@ -12,6 +12,9 @@ export async function GET(request: Request, context: Context) {
   } catch (error) {
     const permission = permissionErrorResponse(error)
     if (permission) return permission
+    if (error instanceof EmploymentServiceError && error.status === 404) {
+      return NextResponse.json({ error: 'EMPLOYEE_NOT_FOUND' }, { status: 404 })
+    }
     return NextResponse.json({ error: 'EMPLOYEE_SALARY_READ_FAILED' }, { status: 500 })
   }
 }

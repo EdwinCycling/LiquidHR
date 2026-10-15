@@ -174,7 +174,7 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(response.status).toBe(303)
     expect(response.headers.get('location')).toBe(`${LOCAL_ORIGIN}/auth/test-role-switch/confirm`)
     expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'manager.fixture@liquidhr.test' })
-    expect(signOut).toHaveBeenCalledOnce()
+    expect(signOut).not.toHaveBeenCalled()
     expect(readLocalPersonaOwnerMarker(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value)).toBe('edwin')
   })
 

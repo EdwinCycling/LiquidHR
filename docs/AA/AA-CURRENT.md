@@ -3,11 +3,12 @@
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-14 (historische acceptance-evidence blijft ongewijzigd)
 
-## PAYTEST-AUTH-01B — PARTIAL / BLOCKED
+## PAYTAX-UI-01B / PAYTEST-PERSONAS-CLOSEOUT — PARTIAL, lokaal bewezen 2026-10-15
 
-- Canonieke harness, vaste directe role-switchkeys en ACL-beveiligde credentialbron zijn aanwezig; Lisa's lokale wachtwoord is ververst. De lokale browsercheck bevestigde geen Lisa-handoff of FINALIZED-weergave en de cross-employee-salaryprobe gaf HTTP 200 met niet-lege/onbekende data. Haar bestaande DIRECT_MANAGER-groepen blijven ongewijzigd.
-- Jaap en Frits zijn niet Auth-gekoppeld; directe role-switch gaf 503. De Mars-gebonden Test HR Admin kreeg 403 op de ondersteunde Core-koppelroute; geen employee-link was geschreven. Frits' drie run-ID's/hashes sluiten aan, maar de trace-labels blijven `Jan`.
-- Preview-deployment voor PR-branch niet gevonden. Production-login toont geen Test Auth/role-switch. Geen GREEN; zie [PAYTEST-AUTH-01B](../quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md).
+- Bestaande PAYFULL-branch/PR33; geen merge/deployment. Lokale HR Admin-knop hersteld met echte Auth-login. Rechtstreekse Lisa/Jaap/Frits-handoff, ESS-self en negatieve salaris-/documentscope gecontroleerd; bestaande Lisa-Managerrechten behouden.
+- Exact twee Jupiter EMPLOYEE-toewijzingen via begrensde eenmalige idempotente datamigratie; geen permanente functie of ruimere policy.27 fiscale profielen toegevoegd via bestaande geautoriseerde service: Mars8 totaal, Jupiter21. Replay voegde geen versies toe. Andere administraties zonder schrijfscope en ontbrekende IKVs blijven expliciete uitzonderingen.
+- Alle52 bestaande Payroll-runs/componenten/traces/lifecycle onveranderd; twee Mars-runs blijven CONCEPT. Frits' historische Jan-label en volledige-nettogaten blijven open. TypeScript/gerichte tests/i18n groen; guarded build blokkeert op bestaande beschermde dirty configuratie.
+- Zie [closeoutbewijs](../quality/acceptance/runs/PAYTAX-UI-01B-PAYTEST-CLOSEOUT-20261015.md). Dit is geen hosted of volledige populatieacceptatie.
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
 

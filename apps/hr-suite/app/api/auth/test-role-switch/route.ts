@@ -140,9 +140,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })
   if (generateError || !generated.properties.hashed_token) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
 
-  const { error: signOutError } = await supabase.auth.signOut()
-  if (signOutError) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
-
+  // Keep the current session until the one-time handoff is verified. Closing
+  // or navigating away from the confirmation page must not log the user out.
   const callbackUrl = new URL('/auth/test-role-switch/confirm', origin)
   const response = NextResponse.redirect(callbackUrl, { status: 303 })
   clearActiveContextCookies(response)

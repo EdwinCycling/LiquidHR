@@ -1,6 +1,6 @@
 {
   "catalogVersion": 1,
-  "reviewedAt": "2026-10-14",
+  "reviewedAt": "2026-10-15",
   "coreTestProjectRef": "wnpfloqpjvaacobppbpk",
   "payrollLabTestProjectRef": "jhgeriucbkfarxiudzfy",
   "credentialFile": "%LOCALAPPDATA%\\LiquidHR\\TestRuntime\\payroll-test-personas.env",
@@ -51,12 +51,12 @@
       "roleSwitchKey": "payroll-lisa",
       "accountState": "EXISTING_LINK_CONFIRMED",
       "employeeAuthLink": "CONFIRMED_BY_SCOPE_GATED_LOCAL_HANDOFF",
-      "essAccess": "ACTIVE_CONFIRMED; LATEST_FINALIZED_PAGE_STATE_UNCONFIRMED",
+      "essAccess": "AUTHENTICATED_SELF_READ_CONFIRMED",
       "employmentAndAdministrationBinding": "CONFIRMED_IN_JUPITER_CONTEXT",
       "verifiedCapabilities": [
         "self:salary:read"
       ],
-      "managerRole": "PRE-EXISTING DIRECT_MANAGER ACCESS IN PLANETEN AND OTHER GROUPS; NOT GRANTED HERE; CROSS-EMPLOYEE SCOPE OPEN",
+      "managerRole": "PRE_EXISTING_DIRECT_MANAGER_UNCHANGED; DIRECT_REPORT_ALLOWED; UNRELATED_AND_OTHER_ADMIN_DENIED",
       "payrollRuns": [
         {
           "id": "57ac6c10-7a02-49c4-a588-2ca244e621d9",
@@ -66,20 +66,19 @@
         }
       ],
       "positiveScenarios": [
-        "Local direct login reached /my-salary and Lisa's own salary API returned HTTP 200; the latest browser pass did not confirm the visible 2026-10 FINALIZED statement."
+        "Direct HR Admin handoff and own salary API verified in local Chrome; /my-salary renders without missing translations."
       ],
       "negativeScenarios": [
-        "Cross-employee salary and dossier denial is unproven: the salary API returned HTTP 200 with non-empty or unknown data; inspect the pre-existing DIRECT_MANAGER assignment and response contract without logging response bodies."
+        "Unrelated employee salary read denied without data; unrelated employee documents return an empty list."
       ],
       "knownGaps": [
-        "Direct Test HR Admin to payroll-lisa handoff and the latest visible 2026-10 FINALIZED page state remain unconfirmed.",
-        "No PDF or download control was visible on /my-salary.",
-        "Pre-existing DIRECT_MANAGER access includes Planeten and other groups; no role was granted in this task, and the required cross-employee denial is not proven."
+        "PDF download was not revalidated in this closeout."
       ],
       "evidence": [
         "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md",
         "docs/quality/acceptance/runs/PAYDOC-STD-01A-20261013-LIMITED-TEST.md",
-        "docs/quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md"
+        "docs/quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md",
+        "docs/quality/acceptance/runs/PAYTAX-UI-01B-PAYTEST-CLOSEOUT-20261015.md"
       ]
     },
     {
@@ -89,12 +88,14 @@
       "employeeId": "dd9bde02-76bb-4f7c-8add-db544a148f3f",
       "employmentId": "29058c73-5cfa-409d-b9d4-80dd30f36962",
       "roleSwitchKey": "payroll-jaap",
-      "accountState": "NOT_LINKED",
-      "employeeAuthLink": "NO_LINKED_AUTH_USER_OBSERVED",
-      "essAccess": "ACTIVE_CORE_RECORD; AUTHENTICATED_SELF_ROUTE_UNVERIFIED",
-      "employmentAndAdministrationBinding": "CORE_RECORD_CONFIRMED_IN_JUPITER; AUTH_CONTEXT_UNAVAILABLE",
-      "verifiedCapabilities": [],
-      "roleCodes": "NOT_VERIFIED; EXPECTED EMPLOYEE ONLY",
+      "accountState": "EXISTING_LINK_CONFIRMED",
+      "employeeAuthLink": "CONFIRMED_BY_SCOPE_GATED_LOCAL_HANDOFF",
+      "essAccess": "AUTHENTICATED_SELF_READ_CONFIRMED",
+      "employmentAndAdministrationBinding": "CONFIRMED_IN_JUPITER_CONTEXT",
+      "verifiedCapabilities": [
+        "self:salary:read"
+      ],
+      "roleCodes": "EMPLOYEE",
       "payrollRuns": [
         {
           "id": "e20e0345-90ac-489b-9fee-7610b2d8f6a3",
@@ -105,19 +106,17 @@
         }
       ],
       "positiveScenarios": [
-        "After account linkage, open Jaap's own /my-salary route."
+        "Direct HR Admin handoff and own salary API verified in local Chrome; /my-salary renders without missing translations."
       ],
       "negativeScenarios": [
-        "The CONCEPT run must not appear as a finalized payslip.",
-        "Verify other employees' salary and dossiers are inaccessible."
+        "Unrelated employee salary read denied without data; unrelated employee documents return an empty list."
       ],
       "knownGaps": [
-        "No Auth identity or employee link exists; the fixed role-switch returned HTTP 503. The credential entry is prepared but unusable until an authorized supported link path is available.",
-        "The current Test HR Admin is Mars-bound; its supported Core mutation returned 403 before writes, and no existing employee-link RPC was found. Do not add Jupiter access or insert Edwin as an intermediate persona.",
-        "The existing CONCEPT must not be finalized or recalculated for this acceptance."
+        "No valid October Core IKV link; no new fiscal profile fabricated. Existing concept remains unchanged."
       ],
       "evidence": [
-        "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md"
+        "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md",
+        "docs/quality/acceptance/runs/PAYTAX-UI-01B-PAYTEST-CLOSEOUT-20261015.md"
       ]
     },
     {
@@ -127,12 +126,14 @@
       "employeeId": "79091d14-ef66-41fe-a2d5-92df108727e5",
       "employmentId": "d19bace9-bb97-4822-a462-eed22821ed05",
       "roleSwitchKey": "payroll-frits",
-      "accountState": "NOT_LINKED",
-      "employeeAuthLink": "NO_LINKED_AUTH_USER_OBSERVED",
-      "essAccess": "ACTIVE_CORE_RECORD; AUTHENTICATED_SELF_ROUTE_UNVERIFIED",
-      "employmentAndAdministrationBinding": "CORE_RECORD_CONFIRMED_IN_JUPITER; AUTH_CONTEXT_UNAVAILABLE",
-      "verifiedCapabilities": [],
-      "roleCodes": "NOT_VERIFIED; EXPECTED EMPLOYEE ONLY",
+      "accountState": "EXISTING_LINK_CONFIRMED",
+      "employeeAuthLink": "CONFIRMED_BY_SCOPE_GATED_LOCAL_HANDOFF",
+      "essAccess": "AUTHENTICATED_SELF_READ_CONFIRMED",
+      "employmentAndAdministrationBinding": "CONFIRMED_IN_JUPITER_CONTEXT",
+      "verifiedCapabilities": [
+        "self:salary:read"
+      ],
+      "roleCodes": "EMPLOYEE",
       "payrollRuns": [
         {
           "id": "338ef391-fbf6-435a-a4d7-e28a8024ebc2",
@@ -169,23 +170,20 @@
         "historyChanged": false
       },
       "positiveScenarios": [
-        "After account linkage, open only Frits's own existing historical results where the current source allows it.",
-        "Show PFZW source verification as open and net as non-definitive."
+        "Direct HR Admin handoff and own salary API verified in local Chrome; /my-salary renders without missing translations."
       ],
       "negativeScenarios": [
-        "Do not claim a definitive net while PFZW source is unresolved.",
-        "Verify other employees' salary and dossiers are inaccessible."
+        "Unrelated employee salary read denied without data; unrelated employee documents return an empty list."
       ],
       "knownGaps": [
-        "No Auth identity or employee link exists; the fixed role-switch returned HTTP 503. The credential entry is prepared but unusable until an authorized supported link path is available.",
-        "The current Test HR Admin is Mars-bound; its supported Core mutation returned 403 before writes, and no existing employee-link RPC was found. Do not add Jupiter access or insert Edwin as an intermediate persona.",
-        "All three persisted traces have Frits's source employee/employment IDs and matching source, input, and result hashes, while each trace persona label is Jan. This remains a trace-label mismatch; historical output was not changed.",
-        "PFZW is not calculated; source verification is required and net remains non-definitive."
+        "Historical trace persona label remains Jan; all run/component/trace/lifecycle digests unchanged.",
+        "PFZW source verification remains open; net is non-definitive."
       ],
       "evidence": [
         "docs/payroll/acceptance/PAYRUN01-FRITS-TEST-PERSONA-20261007.md",
         "docs/payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md",
-        "docs/quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md"
+        "docs/quality/acceptance/runs/PAYTEST-AUTH-01B-20261014.md",
+        "docs/quality/acceptance/runs/PAYTAX-UI-01B-PAYTEST-CLOSEOUT-20261015.md"
       ]
     }
   ]

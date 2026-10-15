@@ -98,6 +98,7 @@
   "backToRuns": "Terug naar salarisruns",
   "gross": "Bruto loon",
   "net": "Netto loon",
+  "month": "Maand",
   "netAfterTaxIncomplete": "Na loonheffing (nog geen nettoloon)",
   "sourceHash": "Bronhash",
   "inputHash": "Invoerhash",
