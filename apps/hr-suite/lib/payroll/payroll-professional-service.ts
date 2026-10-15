@@ -1,17 +1,28 @@
 import 'server-only'
 
 import { AuthorizationError, requireAuthContext, requirePermission } from '@/lib/auth/permissions'
+import { createClient } from '@/lib/supabase/server'
 import { createPayrollCalculationRepository, type PayrollCalculationArtifacts, type PayrollRunSummary } from './calculation-repository'
 import { requireComponentLibraryAccess } from './component-library-access'
 import { createPayrollRepository, type PayrollRepository } from './repository'
 import { createPayrun01Repository } from './payrun01-repository'
-import { renderFinalizedEmployeePayslipPdf, type FinalizedEmployeePayslipInput } from './payrun01-service'
+import {
+  renderFinalizedEmployeePayslipPdf,
+  renderPayrun01PayslipPdfPreviewForRun,
+  type FinalizedEmployeePayslipInput,
+} from './payrun01-service'
 import { isPayrollLabEnabled } from './feature-flag'
 import { payrollScopeFromAuthContext, type PayrollScope } from './scope'
-import { filterPayrollAcceptanceScenarioRuns, isPayrollAcceptanceScenarioReference } from './payroll-acceptance-scenario'
+import {
+  filterPayrollAcceptanceScenarioRuns,
+  isCompletePayfull02ScenarioReference,
+  isPayrollAcceptanceScenarioReference,
+} from './payroll-acceptance-scenario'
 
 export type PayrollProfessionalRun = PayrollCalculationArtifacts & {
   readonly lifecycleEvents: Awaited<ReturnType<ReturnType<typeof createPayrun01Repository>['listLifecycleEvents']>>
+  readonly canTransition: boolean
+  readonly hasGenericInputReference: boolean
 }
 
 export async function listPayrollProfessionalRuns(): Promise<readonly PayrollRunSummary[]> {
@@ -44,14 +55,55 @@ export async function getPayrollProfessionalRun(runId: string): Promise<PayrollP
     access.administration.id,
     artifacts.inputSet.id,
   )
-  if (isPayrollAcceptanceScenarioReference(inputReference?.input_reference_json)) return null
+  if (isPayrollAcceptanceScenarioReference(inputReference?.input_reference_json)
+    && !isCompletePayfull02ScenarioReference(inputReference?.input_reference_json)) return null
   const lifecycleEvents = await createPayrun01Repository().listLifecycleEvents(
     access.scope,
     access.administration.id,
     artifacts.payrollPeriod.id,
     artifacts.sourceSnapshot.source_employment_id,
   )
-  return { ...artifacts, lifecycleEvents }
+  return { ...artifacts, lifecycleEvents, canTransition: access.canCopy, hasGenericInputReference: inputReference !== null }
+}
+
+/**
+ * Renders a finalized Payroll run through the standard Dutch payslip template.
+ * Generic Core-backed runs use the already scoped Core display profile and
+ * the employee payslip renderer; legacy PAYRUN01 scenarios keep their
+ * versioned assignment renderer.
+ */
+export async function renderPayrollProfessionalPayslipPreviewForRun(input: {
+  readonly scope: PayrollScope
+  readonly payrollAdministrationId: string
+  readonly actorUserId: string
+  readonly runId: string
+}) {
+  const artifacts = await createPayrollCalculationRepository().getLatestSyntheticArtifacts(
+    input.scope,
+    input.payrollAdministrationId,
+    undefined,
+    input.runId,
+    undefined,
+    'INDIVIDUAL_PAYROLL',
+  )
+  if (!artifacts || artifacts.run.id !== input.runId) return null
+
+  const genericReference = await createPayrun01Repository().getGenericInputReference(
+    input.scope,
+    input.payrollAdministrationId,
+    artifacts.inputSet.id,
+  )
+  if (!genericReference) return await renderPayrun01PayslipPdfPreviewForRun(input)
+
+  const employeeId = artifacts.sourceSnapshot.source_employee_id
+  const genericPayslipProfile = await loadScopedPayslipDisplayProfile(input.scope, employeeId)
+  if (!genericPayslipProfile) throw new Error('PAYROLL_PAYSLIP_PROFILE_UNAVAILABLE')
+  const payslipInput: FinalizedEmployeePayslipInput = {
+    ...input,
+    employeeId,
+    genericPayslipProfile,
+  }
+  return await renderFinalizedEmployeePayslipPdf(payslipInput)
 }
 
 export type EmployeePayrollStatement = {
@@ -63,6 +115,11 @@ export type EmployeePayrollStatement = {
 }
 
 export type EmployeePayrollPeriod = Pick<EmployeePayrollStatement, 'periodYear' | 'periodMonth'>
+
+export type EmployeePayslipDisplayProfile = {
+  readonly employeeName: string
+  readonly employerName: string
+}
 
 export type EmployeePayrollComponent = {
   readonly key: string
@@ -85,8 +142,15 @@ function asString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value : null
 }
 
+const EMPLOYEE_VISIBLE_COMPONENT_KEYS = new Set([
+  'contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'variable_regular_wage',
+  'gross_salary', 'employee_pension', 'taxable_wage', 'employee_insurance_base', 'zvw_base', 'wage_tax',
+  'net_reimbursement', 'net_deduction', 'net_correction', 'net_salary',
+  'cumulative_gross', 'cumulative_taxable_wage', 'cumulative_wage_tax',
+])
+
 function projectEmployeeComponents(artifacts: PayrollCalculationArtifacts): readonly EmployeePayrollComponent[] {
-  return artifacts.componentResults.map((row) => {
+  return artifacts.componentResults.filter((row) => EMPLOYEE_VISIBLE_COMPONENT_KEYS.has(row.component_key)).map((row) => {
     const payload = asRecord(row.result_payload)
     const value = typeof row.amount === 'number' ? row.amount : payload?.amount
     const amount = typeof value === 'number' && Number.isFinite(value)
@@ -140,6 +204,37 @@ export type EmployeePayrollDependencies = {
   readonly createCalculationRepository: typeof createPayrollCalculationRepository
   readonly createPayrunRepository: typeof createPayrun01Repository
   readonly renderPayslipPdf: typeof renderFinalizedEmployeePayslipPdf
+  readonly loadPayslipDisplayProfile: (scope: PayrollScope, employeeId: string) => Promise<EmployeePayslipDisplayProfile | null>
+}
+
+async function loadScopedPayslipDisplayProfile(
+  scope: PayrollScope,
+  employeeId: string,
+): Promise<EmployeePayslipDisplayProfile | null> {
+  const supabase = await createClient()
+  const [employeeResult, administrationResult] = await Promise.all([
+    supabase.from('employees').select('id,first_name,birth_name_prefix,birth_name')
+      .eq('tenant_id', scope.tenantId)
+      .eq('hr_group_id', scope.hrGroupId)
+      .eq('id', employeeId)
+      .eq('is_archived', false)
+      .is('deleted_at', null)
+      .maybeSingle(),
+    supabase.from('administrations').select('id,name')
+      .eq('tenant_id', scope.tenantId)
+      .eq('hr_group_id', scope.hrGroupId)
+      .eq('id', scope.administrationId)
+      .eq('is_active', true)
+      .maybeSingle(),
+  ])
+  if (employeeResult.error || administrationResult.error) throw new Error('PAYROLL_PAYSLIP_PROFILE_UNAVAILABLE')
+  const employee = employeeResult.data
+  const employerName = administrationResult.data?.name?.trim()
+  if (!employee || !employerName) return null
+  const employeeName = [employee.first_name, employee.birth_name_prefix, employee.birth_name]
+    .filter((part): part is string => typeof part === 'string' && part.trim() !== '')
+    .join(' ')
+  return employeeName ? { employeeName, employerName } : null
 }
 
 const defaultEmployeePayrollDependencies: EmployeePayrollDependencies = {
@@ -150,6 +245,7 @@ const defaultEmployeePayrollDependencies: EmployeePayrollDependencies = {
   createCalculationRepository: createPayrollCalculationRepository,
   createPayrunRepository: createPayrun01Repository,
   renderPayslipPdf: renderFinalizedEmployeePayslipPdf,
+  loadPayslipDisplayProfile: loadScopedPayslipDisplayProfile,
 }
 
 type EmployeePayrollAccess = {
@@ -323,13 +419,30 @@ async function renderEmployeePayslipPdf(
     statement.periodYear === periodYear && statement.periodMonth === periodMonth)
   if (!period) return null
 
+  const artifacts = await dependencies.createCalculationRepository().getLatestSyntheticArtifacts(
+    access.scope,
+    access.payrollAdministrationId,
+    undefined,
+    period.runId,
+    undefined,
+    'INDIVIDUAL_PAYROLL',
+  )
+  const genericReference = artifacts
+    ? await dependencies.createPayrunRepository().getGenericInputReference(access.scope, access.payrollAdministrationId, artifacts.inputSet.id)
+    : null
+  const genericPayslipProfile = genericReference
+    ? await dependencies.loadPayslipDisplayProfile(access.scope, employeeId) ?? undefined
+    : undefined
+
   const input: FinalizedEmployeePayslipInput = {
     scope: access.scope,
     payrollAdministrationId: access.payrollAdministrationId,
     actorUserId: access.actorUserId,
     employeeId,
     runId: period.runId,
+    genericPayslipProfile,
   }
+  if (genericReference && !input.genericPayslipProfile) throw new Error('PAYROLL_PAYSLIP_PROFILE_UNAVAILABLE')
   return await dependencies.renderPayslipPdf(input)
 }
 

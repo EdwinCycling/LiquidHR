@@ -24,6 +24,8 @@ const input: Payrun01PayslipPdfInput = {
       { key: 'gross_salary', amount: '5500.00' },
       { key: 'employee_pension', amount: '195.12' },
       { key: 'taxable_wage', amount: '5304.88' },
+      { key: 'employee_insurance_base', amount: '5304.88' },
+      { key: 'zvw_base', amount: '5304.88' },
       { key: 'wage_tax', amount: '1477.33' },
       { key: 'net_salary', amount: '3827.55' },
       { key: 'employer_pension', amount: '390.23' },
@@ -31,9 +33,12 @@ const input: Payrun01PayslipPdfInput = {
       { key: 'holiday_reserve', amount: '440.00' },
       { key: 'year_end_reserve', amount: '0.00' },
       { key: 'total_employer_cost', amount: '7519.59' },
+      { key: 'net_reimbursement', amount: '125.00' },
+      { key: 'net_deduction', amount: '20.00' },
+      { key: 'net_correction', amount: '0.00' },
       { key: 'cumulative_gross', amount: '55000.00' },
-      { key: 'cumulative_holiday_reserve', amount: '4400.00' },
-      { key: 'cumulative_year_end_reserve', amount: '0.00' },
+      { key: 'cumulative_taxable_wage', amount: '53048.80' },
+      { key: 'cumulative_wage_tax', amount: '14773.30' },
     ],
     sourceWarnings: ['Fiscale profielgegevens zijn niet bevestigd in de bron.'],
   },
@@ -54,8 +59,13 @@ describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
     expect(html).toContain('€\u00a0195,12')
     expect(html).toContain('€\u00a01.477,33')
     expect(html).toContain('€\u00a03.827,55')
-    expect(html).toContain('€\u00a07.519,59')
     expect(html).toContain('€\u00a055.000,00')
+    expect(html).toContain('Fiscale grondslagen')
+    expect(html).toContain('Netto vergoedingen en correcties')
+    expect(html).toContain('€\u00a0125,00')
+    expect(html).not.toContain('Werkgeverskosten en reserveringen')
+    expect(html).not.toContain('Totale werkgeverskosten')
+    expect(html).not.toContain('€\u00a07.519,59')
     expect(html).toContain('Fiscale profielgegevens zijn niet bevestigd in de bron.')
     expect(html).not.toMatch(/test|synthetisch|demo/i)
     expect(html).not.toContain('<Lisa>')
@@ -78,6 +88,28 @@ describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
     const fallback = renderPayrun01PayslipHtml({ ...input, branding: { liquidHrLogoDataUrl: null } })
     expect(fallback).toContain('class="wordmark-fallback">LiquidHR</span>')
     expect(fallback).toContain('class="employer-wordmark">LiquidHR Company</span>')
+  })
+
+  it('renders generic payroll source profiles without synthetic contract facts or employer-cost rows', () => {
+    const html = renderPayrun01PayslipHtml({
+      ...input,
+      data: {
+        ...input.data,
+        profile: {
+          status: 'PAYROLL_SOURCE_PROFILE',
+          employeeName: 'Mars Werknemer',
+          employerName: 'Mars Administratie',
+        },
+      },
+    })
+
+    expect(html).toContain('Mars Werknemer')
+    expect(html).toContain('Mars Administratie')
+    expect(html).not.toContain('Schriftelijke overeenkomst')
+    expect(html).not.toContain('Contract</dt>')
+    expect(html).not.toContain('Werkgeverskosten')
+    expect(html).not.toContain('Totale werkgeverskosten')
+    expect(html).not.toContain('€\u00a07.519,59')
   })
 
   it('keeps the pension blocker and non-final net amount clear on the employee payslip', () => {

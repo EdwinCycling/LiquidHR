@@ -525,8 +525,10 @@ export function PayrollRunReconciliation({
     <p className="text-sm text-muted-foreground">{succeeded ? finalized ? labels.finalized : labels.notFinalized : labels.notSucceeded}</p>
     <div className="flex flex-wrap gap-3">
       {finalized ? <>
-        <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/TECHNICAL_JSON`}>{labels.downloadJson}</Link>
-        <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/PAYSLIP_PDF`}>{labels.downloadPdf}</Link>
+        {!run.hasGenericInputReference ? <>
+          <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/TECHNICAL_JSON`}>{labels.downloadJson}</Link>
+          <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/PAYSLIP_PDF`}>{labels.downloadPdf}</Link>
+        </> : null}
         <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/payslip-preview`} target="_blank" rel="noreferrer">{labels.viewStandardPayslip}</Link>
         <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/payslip-preview?download=1`}>{labels.downloadStandardPayslip}</Link>
       </> : null}

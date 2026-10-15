@@ -213,6 +213,26 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     expect(finalizedMarkup).toContain('/payslip-preview?download=1')
   })
 
+  it('offers the read-only standard payslip for generic runs without linking to absent stored artifacts', () => {
+    const genericRun = {
+      ...pensionRun,
+      hasGenericInputReference: true,
+      lifecycleEvents: [{
+        id: 'event-finalized-generic',
+        calculation_run_id: pensionRun.run.id,
+        event_type: 'FINALIZED',
+        created_at: '2026-10-31T12:00:00.000Z',
+      }],
+    } as unknown as PayrollProfessionalRun
+
+    const markup = renderToStaticMarkup(<PayrollRunReconciliation run={genericRun} locale="en-GB" labels={labels} />)
+
+    expect(markup).toContain('/payslip-preview')
+    expect(markup).toContain('/payslip-preview?download=1')
+    expect(markup).not.toContain('/artifact/TECHNICAL_JSON')
+    expect(markup).not.toContain('/artifact/PAYSLIP_PDF')
+  })
+
   it('shows the PFZW source gap and non-definitive net without inventing a zero pension', () => {
     const fritsRun = {
       ...employerPremiumRun,

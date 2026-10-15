@@ -13,7 +13,12 @@ import {
   type PayrollSourceProvider,
   type PayrollSourceSnapshot,
 } from '@liquid-hr/payroll-engine'
-import { NL_2026_RULE_PACKAGE, NL_2026_RULE_REGISTRY } from '@liquid-hr/payroll-rules-nl-2026'
+import {
+  PAYFULL02_RULE_REGISTRY,
+  createPayfull02RulePackage,
+  NL_2026_RULE_PACKAGE,
+  NL_2026_RULE_REGISTRY,
+} from '@liquid-hr/payroll-rules-nl-2026'
 import { requireComponentLibraryAccess } from './component-library-access'
 import { createPayrollCalculationRepository, type PayrollCalculationArtifacts, type PayrollCalculationRepository } from './calculation-repository'
 import type { PayrollDatabase, PayrollJson, IndividualPayrollLifecycleEventRow } from './database'
@@ -25,13 +30,19 @@ import {
 } from './local-payroll-acceptance-runtime'
 import {
   createPayrollAcceptanceScenarioSourceProvider,
+  isCompletePayfull02ScenarioReference,
   isPayrollAcceptanceScenarioReference,
+  PAYROLL_ACCEPTANCE_SCENARIO_CODE,
+  PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE,
 } from './payroll-acceptance-scenario'
 import { createPayrun01Repository, type GenericPayrollInputReferenceInput, type Payrun01Repository } from './payrun01-repository'
 import { createLiquidHrPayrollSourceProvider } from './source/liquid-hr-source-provider'
 import type { PayrollScope } from './scope'
 
 export type EmployeePayrollPeriod = { readonly year: number; readonly month: number }
+export type PayrollSuccessorReasonCode =
+  | 'PAYFULL02_IMPLEMENTATION_VERSIONED_RECALCULATION'
+  | 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION'
 
 type Access = {
   readonly scope: PayrollScope
@@ -61,6 +72,31 @@ export type EmployeePayrollCalculationStatus =
   | 'INCOMPLETE'
   | 'CORRECTION_REQUIRED'
 
+export type Payfull02CalculationAmounts = {
+  readonly taxableWage: string | null
+  readonly employeePension: string | null
+  readonly employerPension: string | null
+  readonly netReimbursement: string | null
+  readonly netDeduction: string | null
+  readonly netCorrection: string | null
+  readonly employerAwf: string | null
+  readonly employerAof: string | null
+  readonly employerWko: string | null
+  readonly employerWhk: string | null
+  readonly employerZvw: string | null
+  readonly employerPremiums: string | null
+  readonly holidayReserve: string | null
+  readonly yearEndReserve: string | null
+  readonly totalEmployerCost: string | null
+  readonly cumulativeTaxableWage: string | null
+  readonly cumulativeWageTax: string | null
+  readonly cumulativeEmployeeInsuranceWage: string | null
+  readonly cumulativeZvwWage: string | null
+  readonly cumulativeGross: string | null
+  readonly cumulativeHolidayReserve: string | null
+  readonly cumulativeYearEndReserve: string | null
+}
+
 export type EmployeePayrollCalculationView = {
   readonly status: EmployeePayrollCalculationStatus
   readonly completeness: 'COMPLETE' | 'INCOMPLETE' | null
@@ -77,8 +113,9 @@ export type EmployeePayrollCalculationView = {
   readonly resultHash: string | null
   readonly grossAmount: string | null
   readonly wageTaxAmount: string | null
-  /** Gross less statutory wage withholding; does not include pension or other deductions. */
+  /** PAYFULL-02 runs return fully calculated net pay here; legacy runs return gross less wage tax only. */
   readonly netAfterWageTax: string | null
+  readonly payfull02: Payfull02CalculationAmounts | null
   readonly gaps: readonly PayrollSourceGap[]
   readonly incompleteComponents: readonly string[]
   readonly recoveryActions: readonly string[]
@@ -107,9 +144,12 @@ export type LocalPayrollAcceptanceReadback = {
   readonly traceId: string | null
   readonly conceptEventId: string | null
   readonly runStatus: string | null
+  readonly lifecycleStatus: string | null
   readonly sourceHash: string | null
   readonly coreSourceHash: string | null
   readonly assumptionsHash: string | null
+  readonly payrollSetupHash: string | null
+  readonly openingBalanceSourceHash: string | null
   readonly inputHash: string | null
   readonly resultHash: string | null
   readonly scenarioCode: string | null
@@ -135,6 +175,7 @@ const INCOMPLETE_COMPONENTS = [
   'CUMULATIVE_WAGE_TAX',
   'VARIABLE_AND_NON_REGULAR_WAGE',
 ] as const
+const PAYFULL02_SETUP_CODE = 'TEST_SETUP_PAYFULL_02'
 const COMPLETENESS_CONTRACT = 'PAYCALC-REAL-01B-COMPLETENESS-1'
 
 const defaults: EmployeePayrollCalculationDependencies = {
@@ -171,6 +212,22 @@ function toPayrollJson(value: unknown): PayrollJson {
 
 function record(value: unknown): Record<string, unknown> | null {
   return isRecord(value) ? value : null
+}
+
+function isPayfull02Source(value: unknown): boolean {
+  const source = record(value)
+  const scenario = record(source?.testScenario)
+  const payrollOwned = record(source?.payrollOwned)
+  const setup = record(payrollOwned?.setup)
+  return scenario?.sourceClassification === 'PAYROLL_TEST_SCENARIO'
+    && (scenario.code === PAYROLL_ACCEPTANCE_SCENARIO_CODE
+      || scenario.code === PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE)
+    && setup?.code === PAYFULL02_SETUP_CODE
+    && setup.version === '1.0'
+}
+
+function incompleteComponentsForSource(value: unknown): readonly string[] {
+  return isPayfull02Source(value) ? [] : INCOMPLETE_COMPONENTS
 }
 
 function entries(value: unknown): Record<string, unknown>[] | null {
@@ -362,6 +419,38 @@ function resultAmount(result: PayrollCalculationResult, key: string): string | n
   return row && typeof row.value === 'string' ? row.value : null
 }
 
+function payfull02Amounts(getAmount: (key: string) => string | null): Payfull02CalculationAmounts {
+  const premiumKeys = ['employer_awf', 'employer_aof', 'employer_wko', 'employer_whk', 'employer_zvw'] as const
+  const premiumValues = premiumKeys.map(getAmount)
+  const employerPremiums = premiumValues.every((value): value is string => value !== null)
+    ? premiumValues.reduce((total, value) => total.add(FixedDecimal.parse(value)), FixedDecimal.parse('0.00')).toString(2)
+    : null
+  return {
+    taxableWage: getAmount('taxable_wage'),
+    employeePension: getAmount('employee_pension'),
+    employerPension: getAmount('employer_pension'),
+    netReimbursement: getAmount('net_reimbursement'),
+    netDeduction: getAmount('net_deduction'),
+    netCorrection: getAmount('net_correction'),
+    employerAwf: getAmount('employer_awf'),
+    employerAof: getAmount('employer_aof'),
+    employerWko: getAmount('employer_wko'),
+    employerWhk: getAmount('employer_whk'),
+    employerZvw: getAmount('employer_zvw'),
+    employerPremiums,
+    holidayReserve: getAmount('holiday_allowance_reserve'),
+    yearEndReserve: getAmount('year_end_reserve'),
+    totalEmployerCost: getAmount('total_employer_cost'),
+    cumulativeTaxableWage: getAmount('cumulative_taxable_wage'),
+    cumulativeWageTax: getAmount('cumulative_wage_tax'),
+    cumulativeEmployeeInsuranceWage: getAmount('cumulative_employee_insurance_wage'),
+    cumulativeZvwWage: getAmount('cumulative_zvw_wage'),
+    cumulativeGross: getAmount('cumulative_gross'),
+    cumulativeHolidayReserve: getAmount('cumulative_holiday_reserve'),
+    cumulativeYearEndReserve: getAmount('cumulative_year_end_reserve'),
+  }
+}
+
 function resultView(input: {
   readonly status: EmployeePayrollCalculationStatus
   readonly employeeId: string
@@ -378,6 +467,7 @@ function resultView(input: {
   readonly grossAmount: string | null
   readonly wageTaxAmount: string | null
   readonly netAfterWageTax: string | null
+  readonly payfull02?: Payfull02CalculationAmounts | null
   readonly gaps?: readonly PayrollSourceGap[]
   readonly incompleteComponents?: readonly string[]
   readonly previousRunId?: string | null
@@ -388,6 +478,7 @@ function resultView(input: {
   return {
     ...input,
     completeness: input.status === 'CALCULATED' ? 'COMPLETE' : input.status === 'INCOMPLETE' ? 'INCOMPLETE' : null,
+    payfull02: input.payfull02 ?? null,
     gaps,
     incompleteComponents: input.incompleteComponents ?? [],
     recoveryActions: recoveryActions(gaps, input.incompleteComponents ?? []),
@@ -400,7 +491,7 @@ function resultView(input: {
 function viewFromArtifacts(
   artifacts: PayrollCalculationArtifacts,
   events: readonly IndividualPayrollLifecycleEventRow[],
-  incompletes: readonly string[] = INCOMPLETE_COMPONENTS,
+  incompletes: readonly string[] = incompleteComponentsForSource(record(artifacts.sourceSnapshot.source_payload)),
 ): EmployeePayrollCalculationView {
   const latest = lifecycleStatus(events)
   const amountFor = (key: string) => {
@@ -426,6 +517,7 @@ function viewFromArtifacts(
     grossAmount: amountFor('gross_salary'),
     wageTaxAmount: amountFor('wage_tax'),
     netAfterWageTax: amountFor('net_salary'),
+    payfull02: incompletes.length === 0 ? payfull02Amounts(amountFor) : null,
     incompleteComponents: incompletes,
     gaps: persistedSourceGaps(artifacts),
     previousRunId: eventText(event ?? null, 'previousRunId'),
@@ -464,7 +556,14 @@ function persistedControlStatus(status: PayrollCalculationResult['controls'][num
   return status === 'PASS' ? 'PASS' : status === 'WARNING' ? 'WARN' : 'FAIL'
 }
 
-function controlRows(scope: PayrollScope, adminId: string, actorUserId: string, runId: string, result: PayrollCalculationResult) {
+function controlRows(
+  scope: PayrollScope,
+  adminId: string,
+  actorUserId: string,
+  runId: string,
+  result: PayrollCalculationResult,
+  incompletes: readonly string[] = INCOMPLETE_COMPONENTS,
+) {
   const base = result.controls.map((control) => ({
     ...sourceColumns(scope, adminId),
     calculation_run_id: runId,
@@ -474,7 +573,7 @@ function controlRows(scope: PayrollScope, adminId: string, actorUserId: string, 
     created_by_user_id: actorUserId,
     updated_by_user_id: actorUserId,
   }))
-  const incomplete = INCOMPLETE_COMPONENTS.map((code) => ({
+  const incomplete = incompletes.map((code) => ({
     ...sourceColumns(scope, adminId),
     calculation_run_id: runId,
     control_key: `PAYCALC-CTRL-INCOMPLETE-${code}`,
@@ -486,7 +585,11 @@ function controlRows(scope: PayrollScope, adminId: string, actorUserId: string, 
   return [...base, ...incomplete]
 }
 
-function tracePayload(result: PayrollCalculationResult, inputs: ReturnType<typeof buildCalculationInputs>): PayrollJson {
+function tracePayload(
+  result: PayrollCalculationResult,
+  inputs: ReturnType<typeof buildCalculationInputs>,
+  incompletes: readonly string[] = INCOMPLETE_COMPONENTS,
+): PayrollJson {
   return toPayrollJson({
     schemaVersion: COMPLETENESS_CONTRACT,
     status: result.status,
@@ -507,7 +610,7 @@ function tracePayload(result: PayrollCalculationResult, inputs: ReturnType<typeo
     })),
     steps: result.trace,
     components: result.componentResults,
-    incompleteComponents: INCOMPLETE_COMPONENTS,
+    incompleteComponents: incompletes,
   })
 }
 
@@ -641,6 +744,8 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     readonly employeeId: string
     readonly employmentId: string
     readonly period: EmployeePayrollPeriod
+    readonly successorReasonCode?: PayrollSuccessorReasonCode
+    readonly requireFinalizedPredecessor?: boolean
   }): Promise<EmployeePayrollCalculationView> {
     assertPeriod(input.period)
     assertOpaqueId(input.employeeId)
@@ -668,6 +773,10 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     let events = await lifecycle.listLifecycleEvents(scope, administrationId, periodRow.id, input.employmentId)
     const canonicalSource = record(snapshot.canonicalSource)
     const acceptanceScenario = record(canonicalSource?.testScenario)?.sourceClassification === 'PAYROLL_TEST_SCENARIO'
+    const payfull02 = isPayfull02Source(canonicalSource)
+    const rulePackage = payfull02 ? createPayfull02RulePackage('DEMO_COMPANY_TEST') : NL_2026_RULE_PACKAGE
+    const ruleRegistry = payfull02 ? PAYFULL02_RULE_REGISTRY : NL_2026_RULE_REGISTRY
+    const incompleteComponents = incompleteComponentsForSource(canonicalSource)
     if (!acceptanceScenario) {
       const scenarioRunIds = new Set<string>()
       for (const runId of new Set(events.map((event) => event.calculation_run_id))) {
@@ -681,28 +790,95 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       events = events.filter((event) => !scenarioRunIds.has(event.calculation_run_id))
     }
     const latest = lifecycleStatus(events)
-    if (latest?.event_type === 'FINALIZED') {
-      const previous = await calculations.getLatestSyntheticArtifacts(scope, administrationId, undefined,
-        latest.calculation_run_id, undefined, 'INDIVIDUAL_PAYROLL', input.period)
-      if (previous && (latestEventSourceHash(latest) ?? previous.sourceSnapshot.source_hash) === snapshot.sourceHash) {
-        return viewFromArtifacts(previous, events)
+    if (input.requireFinalizedPredecessor && latest?.event_type !== 'FINALIZED') {
+      let exactVariableRetry: PayrollCalculationArtifacts | null = null
+      if (latest && (latest.event_type === 'CONCEPT' || latest.event_type === 'REVIEWED')
+        && input.successorReasonCode === 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION'
+        && acceptanceScenario
+        && isPayrollAcceptanceScenarioReference(canonicalSource)
+        && record(canonicalSource?.testScenario)?.code === PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE) {
+        try {
+          // Build the current hash before any payroll write. A repeated request is
+          // idempotent only when the persisted run is the exact current result.
+          const candidateSnapshotId = deterministicUuid(
+            `source:${scope.tenantId}:${scope.hrGroupId}:${scope.administrationId}:${administrationId}:${input.employeeId}:${input.employmentId}:${input.period.year}-${input.period.month}:${snapshot.sourceHash}`,
+          )
+          const candidateInputs = buildCalculationInputs({ ...snapshot, id: candidateSnapshotId }, rulePackage, {
+            effectiveDate: periodStart(input.period),
+            scopeInstanceIds: {
+              EMPLOYEE: input.employeeId,
+              EMPLOYMENT: input.employmentId,
+              INCOME_RELATIONSHIP: snapshot.sourceIncomeRelationshipId ?? '',
+            },
+          })
+          const latestArtifacts = await calculations.getLatestSyntheticArtifacts(scope, administrationId, undefined,
+            latest.calculation_run_id, undefined, 'INDIVIDUAL_PAYROLL', input.period)
+          const storedScenario = record(record(latestArtifacts?.sourceSnapshot.source_payload)?.testScenario)
+          if (latestArtifacts
+            && latestArtifacts.run.id === latest.calculation_run_id
+            && latestArtifacts.sourceSnapshot.source_hash === snapshot.sourceHash
+            && latestEventSourceHash(latest) === snapshot.sourceHash
+            && storedScenario?.code === PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE
+            && candidateInputs.engineVersion === PAYROLL_ENGINE_VERSION
+            && candidateInputs.rulePackageCompositionId === rulePackage.compositionId
+            && latestArtifacts.inputSet.input_hash === candidateInputs.inputHash
+            && latestArtifacts.inputSet.engine_version === candidateInputs.engineVersion
+            && latestArtifacts.inputSet.rule_package_composition_id === candidateInputs.rulePackageCompositionId) {
+            exactVariableRetry = latestArtifacts
+          }
+        } catch {
+          // Invalid or unsupported current inputs cannot qualify as a retry.
+        }
       }
+      if (exactVariableRetry) return viewFromArtifacts(exactVariableRetry, events)
       return resultView({
         status: 'CORRECTION_REQUIRED',
         employeeId: input.employeeId, employmentId: input.employmentId, period: input.period,
-        runId: latest.calculation_run_id, sourceSnapshotId: previous?.sourceSnapshot.id ?? null,
-        inputSetId: previous?.inputSet.id ?? null, revision: latest.revision, businessStatus: 'FINALIZED',
-        sourceHash: snapshot.sourceHash, inputHash: previous?.inputSet.input_hash ?? null,
-        resultHash: previous?.run.result_hash ?? null,
-        ...previous ? artifactAmounts(previous) : { grossAmount: null, wageTaxAmount: null, netAfterWageTax: null },
-        gaps: [], incompleteComponents: INCOMPLETE_COMPONENTS,
-        errorCode: 'PAYRUN01_SUCCESSOR_REQUIRES_FINALIZED_PREDECESSOR',
+        runId: latest?.calculation_run_id ?? null, sourceSnapshotId: null, inputSetId: null,
+        revision: latest?.revision ?? null,
+        businessStatus: latest?.event_type === 'CONCEPT' || latest?.event_type === 'REVIEWED'
+          ? latest.event_type
+          : null,
+        sourceHash: snapshot.sourceHash, inputHash: null, resultHash: null,
+        grossAmount: null, wageTaxAmount: null, netAfterWageTax: null,
+        gaps: [], errorCode: 'PAYFULL02_VARIABLE_REVISION_REQUIRES_FINALIZED_BASE',
       })
+    }
+    if (latest?.event_type === 'FINALIZED') {
+      const previous = await calculations.getLatestSyntheticArtifacts(scope, administrationId, undefined,
+        latest.calculation_run_id, undefined, 'INDIVIDUAL_PAYROLL', input.period)
+      const sourceUnchanged = previous
+        && (latestEventSourceHash(latest) ?? previous.sourceSnapshot.source_hash) === snapshot.sourceHash
+      const calculationVersionUnchanged = previous
+        && previous.inputSet.rule_package_composition_id === rulePackage.compositionId
+        && previous.inputSet.engine_version === PAYROLL_ENGINE_VERSION
+      if (previous && sourceUnchanged && calculationVersionUnchanged) {
+        return viewFromArtifacts(previous, events)
+      }
+      const validAcceptanceSuccessor = dependencies.allowIsolatedTestScenario === true
+        && acceptanceScenario
+        && isPayrollAcceptanceScenarioReference(canonicalSource)
+        && (input.successorReasonCode === 'PAYFULL02_IMPLEMENTATION_VERSIONED_RECALCULATION'
+          || (input.successorReasonCode === 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION'
+            && record(canonicalSource?.testScenario)?.code === PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE))
+      if (!validAcceptanceSuccessor) {
+        return resultView({
+          status: 'CORRECTION_REQUIRED',
+          employeeId: input.employeeId, employmentId: input.employmentId, period: input.period,
+          runId: latest.calculation_run_id, sourceSnapshotId: previous?.sourceSnapshot.id ?? null,
+          inputSetId: previous?.inputSet.id ?? null, revision: latest.revision, businessStatus: 'FINALIZED',
+          sourceHash: snapshot.sourceHash, inputHash: previous?.inputSet.input_hash ?? null,
+          resultHash: previous?.run.result_hash ?? null,
+          ...previous ? artifactAmounts(previous) : { grossAmount: null, wageTaxAmount: null, netAfterWageTax: null },
+          gaps: [], incompleteComponents: incompleteComponentsForSource(previous?.sourceSnapshot.source_payload),
+          errorCode: 'PAYRUN01_SUCCESSOR_REQUIRES_FINALIZED_PREDECESSOR',
+        })
+      }
     }
     if (periodRow.status !== 'OPEN') throw new EmployeePayrollCalculationError('PAYROLL_CYCLE_NOT_OPEN')
     const yearSupported = input.period.year === 2026
-      && NL_2026_RULE_PACKAGE.metadata?.packageId === 'NL-PAYROLL-2026'
-      && NL_2026_RULE_PACKAGE.metadata.version === '2026.1'
+      && rulePackage.metadata?.packageId === 'NL-PAYROLL-2026'
+      && rulePackage.metadata.version === '2026.1'
     if (!yearSupported) {
       return resultView({
         status: 'UNSUPPORTED', employeeId: input.employeeId, employmentId: input.employmentId, period: input.period,
@@ -736,7 +912,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     if (gaps.some(isBlockingGap)) return sourceGapsResult(storedSourceSnapshot, gaps, input.employeeId, input.employmentId, input.period)
 
     const calculationSnapshot = { ...snapshot, id: persistedSnapshot.id }
-    const inputs = buildCalculationInputs(calculationSnapshot, NL_2026_RULE_PACKAGE, {
+    const inputs = buildCalculationInputs(calculationSnapshot, rulePackage, {
       effectiveDate: periodStart(input.period),
       scopeInstanceIds: {
         EMPLOYEE: input.employeeId,
@@ -744,7 +920,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         INCOME_RELATIONSHIP: snapshot.sourceIncomeRelationshipId ?? '',
       },
     })
-    if (inputs.engineVersion !== PAYROLL_ENGINE_VERSION || inputs.rulePackageCompositionId !== NL_2026_RULE_PACKAGE.compositionId) {
+    if (inputs.engineVersion !== PAYROLL_ENGINE_VERSION || inputs.rulePackageCompositionId !== rulePackage.compositionId) {
       throw new EmployeePayrollCalculationError('PAYROLL_RULE_PACKAGE_UNSUPPORTED')
     }
     const source = record(snapshot.canonicalSource)
@@ -810,9 +986,13 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         coreSourceContractVersion: 'payroll-source-v4',
         sourceVersionVector: snapshot.sourceVersionVector,
         employmentIncomeRelationshipId: linkedIncomeRelationshipId,
-        incompleteComponents: INCOMPLETE_COMPONENTS,
-        netAmountMeaning: 'GROSS_MINUS_WAGE_TAX_BEFORE_PENSION_AND_OTHER_DEDUCTIONS',
+        incompleteComponents,
+        netAmountMeaning: payfull02
+          ? 'GROSS_MINUS_EMPLOYEE_PENSION_WAGE_TAX_AND_AUTHORIZED_NET_ITEMS'
+          : 'GROSS_MINUS_WAGE_TAX_BEFORE_PENSION_AND_OTHER_DEDUCTIONS',
+        ...(payfull02 ? { payfull02Setup: record(canonicalSource?.payrollOwned) } : {}),
         ...(testScenario ? { sourceClassification: 'PAYROLL_TEST_SCENARIO', testScenario } : {}),
+        ...(input.successorReasonCode ? { successorReasonCode: input.successorReasonCode } : {}),
       }),
       created_by_user_id: access.actorUserId,
     }
@@ -850,7 +1030,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         runId: run.id, sourceSnapshotId: persistedSnapshot.id, inputSetId: inputSet.id,
         revision: null, businessStatus: null, sourceHash: snapshot.sourceHash, inputHash: inputs.inputHash,
         resultHash: run.result_hash, grossAmount: null, wageTaxAmount: null, netAfterWageTax: null,
-        incompleteComponents: INCOMPLETE_COMPONENTS,
+        incompleteComponents,
         errorCode: run.status === 'FAILED' ? 'CALCULATION_RUN_FAILED' : null,
       })
     }
@@ -859,7 +1039,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     await calculations.markCalculationRunRunning(scope, administrationId, run.id, access.actorUserId, now)
     let result: PayrollCalculationResult
     try {
-      result = calculatePayroll(inputs, NL_2026_RULE_REGISTRY)
+      result = calculatePayroll(inputs, ruleRegistry)
     } catch {
       await calculations.markCalculationRunFailed(scope, administrationId, run.id, access.actorUserId,
         (dependencies.now ?? (() => new Date()))().toISOString())
@@ -868,7 +1048,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         runId: run.id, sourceSnapshotId: persistedSnapshot.id, inputSetId: inputSet.id,
         revision: null, businessStatus: null, sourceHash: snapshot.sourceHash, inputHash: inputs.inputHash,
         resultHash: null, grossAmount: null, wageTaxAmount: null, netAfterWageTax: null,
-        incompleteComponents: INCOMPLETE_COMPONENTS, errorCode: 'PAYROLL_ENGINE_EXECUTION_FAILED',
+        incompleteComponents, errorCode: 'PAYROLL_ENGINE_EXECUTION_FAILED',
       })
     }
     if (result.status !== 'CALCULATED' || result.sourceHash !== snapshot.sourceHash || result.inputHash !== inputs.inputHash) {
@@ -879,7 +1059,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         runId: run.id, sourceSnapshotId: persistedSnapshot.id, inputSetId: inputSet.id,
         revision: null, businessStatus: null, sourceHash: snapshot.sourceHash, inputHash: inputs.inputHash,
         resultHash: null, grossAmount: null, wageTaxAmount: null, netAfterWageTax: null,
-        incompleteComponents: INCOMPLETE_COMPONENTS, errorCode: 'PAYROLL_ENGINE_RESULT_INVALID',
+        incompleteComponents, errorCode: 'PAYROLL_ENGINE_RESULT_INVALID',
       })
     }
     let finalSourceValidation: Awaited<ReturnType<typeof revalidateCoreSource>>
@@ -915,17 +1095,17 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       updated_by_user_id: access.actorUserId,
     })) satisfies readonly PayrollDatabase['public']['Tables']['component_results']['Insert'][]
     await calculations.insertComponentResults(scope, administrationId, componentRows)
-    await calculations.insertPayrollControls(scope, administrationId, controlRows(scope, administrationId, access.actorUserId, run.id, result))
+    await calculations.insertPayrollControls(scope, administrationId, controlRows(scope, administrationId, access.actorUserId, run.id, result, incompleteComponents))
     await calculations.insertCalculationTrace(scope, administrationId, {
       ...sourceColumns(scope, administrationId),
       calculation_run_id: run.id,
-      trace_payload: tracePayload(result, inputs),
+      trace_payload: tracePayload(result, inputs, incompleteComponents),
       created_by_user_id: access.actorUserId,
     })
     const resultHash = sha256(stableSerialize({
       ruleResultHash: result.resultHash,
       completenessContract: COMPLETENESS_CONTRACT,
-      incompleteComponents: INCOMPLETE_COMPONENTS,
+      incompleteComponents,
       sourceGaps: gaps,
     }))
     const sourceVersions = record(snapshot.sourceVersionVector) ?? {}
@@ -949,7 +1129,8 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         ruleResultHash: result.resultHash,
         previousRunId: predecessorRunId,
         changedSourceKeys,
-        incompleteComponents: INCOMPLETE_COMPONENTS,
+        incompleteComponents,
+        ...(input.successorReasonCode ? { successorReasonCode: input.successorReasonCode } : {}),
       }),
     )
     const savedArtifacts = await calculations.getLatestSyntheticArtifacts(scope, administrationId,
@@ -964,7 +1145,8 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       revision: (latest?.revision ?? 0) + 1, businessStatus: 'CONCEPT', sourceHash: snapshot.sourceHash,
       inputHash: inputs.inputHash, resultHash, grossAmount: resultAmount(result, 'gross_salary'),
       wageTaxAmount: resultAmount(result, 'wage_tax'), netAfterWageTax: resultAmount(result, 'net_salary'),
-      incompleteComponents: INCOMPLETE_COMPONENTS, previousRunId: predecessorRunId, changedSourceKeys,
+      payfull02: payfull02 ? payfull02Amounts((key) => resultAmount(result, key)) : null,
+      incompleteComponents, previousRunId: predecessorRunId, changedSourceKeys,
       gaps: gaps.filter((gap) => !isBlockingGap(gap)),
     })
   }
@@ -1009,10 +1191,45 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       throw new EmployeePayrollCalculationError('PAYROLL_RUN_SCOPE_OR_STATUS_INVALID', 403)
     }
     const reference = await lifecycle.getGenericInputReference(access.scope, access.administration.id, artifacts.inputSet.id)
-    if (isPayrollAcceptanceScenarioReference(reference?.input_reference_json)) {
-      throw new EmployeePayrollCalculationError('PAYROLL_TEST_SCENARIO_CANNOT_TRANSITION', 409)
-    }
-    if (currentSource.sourceHash !== artifacts.sourceSnapshot.source_hash) {
+    const isAcceptanceScenario = isPayrollAcceptanceScenarioReference(reference?.input_reference_json)
+    if (isAcceptanceScenario) {
+      const referenceJson = record(reference?.input_reference_json)
+      const referencePayfull02 = record(referenceJson?.payfull02Setup)
+      const referenceSetup = record(referencePayfull02?.setup)
+      const referenceOpening = record(referencePayfull02?.openingBalance)
+      const sourcePayload = record(artifacts.sourceSnapshot.source_payload)
+      const sourcePayfull02 = record(sourcePayload?.payrollOwned)
+      const sourceSetup = record(sourcePayfull02?.setup)
+      const sourceOpening = record(sourcePayfull02?.openingBalance)
+      const sourceScenario = record(sourcePayload?.testScenario)
+      const referenceScenario = record(referenceJson?.testScenario)
+      const coreSourceHash = typeof sourceScenario?.coreSourceHash === 'string'
+        ? sourceScenario.coreSourceHash
+        : null
+      if (!isCompletePayfull02ScenarioReference(reference?.input_reference_json)
+        || !isPayfull02Source(sourcePayload)
+        || sourceScenario?.sourceClassification !== 'PAYROLL_TEST_SCENARIO'
+        || (sourceScenario.code !== PAYROLL_ACCEPTANCE_SCENARIO_CODE
+          && sourceScenario.code !== PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE)
+        || referenceScenario?.code !== sourceScenario.code
+        || referenceScenario.assumptionsHash !== sourceScenario.assumptionsHash
+        || typeof coreSourceHash !== 'string'
+        || !/^[0-9a-f]{64}$/.test(coreSourceHash)
+        || referenceSetup?.sourceHash !== sourceSetup?.sourceHash
+        || referenceOpening?.sourceHash !== sourceOpening?.sourceHash
+        || sourceSetup?.classification !== 'TEST_ONLY_NOT_AN_EXTERNAL_PENSION_CONTRACT_OR_EMPLOYER_DECISION'
+        || record(sourcePayfull02?.pension)?.classification !== 'SYNTHETIC_TEST_PLAN_NOT_EXTERNAL_FUND_CONTRACT'
+        || typeof sourceOpening?.source !== 'string'
+        || !sourceOpening.source.startsWith('TEST_SETUP_PAYFULL_02 synthetic opening balances')) {
+        throw new EmployeePayrollCalculationError('PAYROLL_TEST_SCENARIO_CANNOT_TRANSITION', 409)
+      }
+      // The persisted scenario snapshot includes payroll-owned TEST assumptions, so it
+      // cannot be compared directly with Core's current source hash. Bind review to the
+      // unchanged Core hash captured before that overlay instead.
+      if (currentSource.sourceHash !== coreSourceHash) {
+        throw new EmployeePayrollCalculationError('PAYROLL_SOURCE_CHANGED_RECALCULATE_REQUIRED')
+      }
+    } else if (currentSource.sourceHash !== artifacts.sourceSnapshot.source_hash) {
       throw new EmployeePayrollCalculationError('PAYROLL_SOURCE_CHANGED_RECALCULATE_REQUIRED')
     }
     const expectedPrevious = eventType === 'REVIEWED' ? 'CONCEPT' : 'REVIEWED'
@@ -1020,10 +1237,14 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     if (!latest || latest.calculation_run_id !== input.runId || latest.event_type !== expectedPrevious) {
       throw new EmployeePayrollCalculationError('PAYROLL_LIFECYCLE_TRANSITION_INVALID')
     }
+    const referenceJson = record(reference?.input_reference_json)
+    const incomplete = Array.isArray(referenceJson?.incompleteComponents) ? referenceJson.incompleteComponents : INCOMPLETE_COMPONENTS
+    const controlsPassed = artifacts.controls.every((control) => control.status === 'PASS')
+    if (eventType === 'REVIEWED' && (incomplete.length > 0 || !controlsPassed)) {
+      throw new EmployeePayrollCalculationError('PAYROLL_REVIEW_INCOMPLETE')
+    }
     if (eventType === 'FINALIZED') {
-      const referenceJson = record(reference?.input_reference_json)
-      const incomplete = Array.isArray(referenceJson?.incompleteComponents) ? referenceJson.incompleteComponents : INCOMPLETE_COMPONENTS
-      if (incomplete.length > 0 || artifacts.controls.some((control) => control.status !== 'PASS')) {
+      if (incomplete.length > 0 || !controlsPassed) {
         throw new EmployeePayrollCalculationError('PAYROLL_FINALIZATION_INCOMPLETE')
       }
     }
@@ -1040,7 +1261,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         inputHash: artifacts.inputSet.input_hash,
         resultHash: artifacts.run.result_hash,
         runId: input.runId,
-        completeness: eventType === 'FINALIZED' ? 'COMPLETE' : 'INCOMPLETE',
+        completeness: 'COMPLETE',
       }),
       created_by_user_id: access.actorUserId,
     })
@@ -1072,6 +1293,11 @@ export function createLocalPayrollAcceptanceCalculationService(host: string | nu
     sourceProvider: createPayrollAcceptanceScenarioSourceProvider(defaults.sourceProvider),
     allowIsolatedTestScenario: true,
   })
+  const variableScenarioService = createEmployeePayrollCalculationService({
+    ...scopedDependencies,
+    sourceProvider: createPayrollAcceptanceScenarioSourceProvider(defaults.sourceProvider, 'VARIABLE_BONUS_DEMO_001'),
+    allowIsolatedTestScenario: true,
+  })
   const sourceOnlyService = createEmployeePayrollCalculationService(scopedDependencies)
 
   async function readBackScenarioCalculation(input: {
@@ -1099,15 +1325,28 @@ export function createLocalPayrollAcceptanceCalculationService(host: string | nu
       lifecycle.listLifecycleEvents(access.scope, access.administration.id, payrollPeriod.id, input.employmentId),
     ])
     const conceptEvent = events.find((event) => event.calculation_run_id === input.runId && event.event_type === 'CONCEPT') ?? null
-    const laterFinalization = events.some((event) => event.calculation_run_id === input.runId
-      && (event.event_type === 'REVIEWED' || event.event_type === 'FINALIZED'))
+    const runEvents = events.filter((event) => event.calculation_run_id === input.runId)
+      .sort((left, right) => left.event_sequence - right.event_sequence)
+    const lifecycleEvents = runEvents.map((event) => event.event_type)
+    const validLifecycle = lifecycleEvents[0] === 'CONCEPT'
+      && lifecycleEvents.length <= 3
+      && lifecycleEvents.every((event, index) => event === ['CONCEPT', 'REVIEWED', 'FINALIZED'][index])
+    const lifecycleStatus = validLifecycle ? lifecycleEvents.at(-1) ?? null : null
     const sourcePayload = record(artifacts.sourceSnapshot.source_payload)
     const sourceScenario = record(sourcePayload?.testScenario)
     const inputReference = record(reference?.input_reference_json)
     const referenceScenario = record(inputReference?.testScenario)
+    const sourcePayrollOwned = record(sourcePayload?.payrollOwned)
+    const sourceSetup = record(sourcePayrollOwned?.setup)
+    const sourceOpeningBalance = record(sourcePayrollOwned?.openingBalance)
+    const referencePayrollOwned = record(inputReference?.payfull02Setup)
+    const referenceSetup = record(referencePayrollOwned?.setup)
+    const referenceOpeningBalance = record(referencePayrollOwned?.openingBalance)
     const scenarioCode = typeof sourceScenario?.code === 'string' ? sourceScenario.code : null
     const coreSourceHash = typeof sourceScenario?.coreSourceHash === 'string' ? sourceScenario.coreSourceHash : null
     const assumptionsHash = typeof sourceScenario?.assumptionsHash === 'string' ? sourceScenario.assumptionsHash : null
+    const payrollSetupHash = typeof sourceSetup?.sourceHash === 'string' ? sourceSetup.sourceHash : null
+    const openingBalanceSourceHash = typeof sourceOpeningBalance?.sourceHash === 'string' ? sourceOpeningBalance.sourceHash : null
     const sourceHash = artifacts.sourceSnapshot.source_hash
     const inputHash = artifacts.inputSet.input_hash
     const resultHash = artifacts.run.result_hash
@@ -1122,12 +1361,16 @@ export function createLocalPayrollAcceptanceCalculationService(host: string | nu
       && artifacts.controls.length > 0
       && artifacts.trace !== null
       && conceptEvent !== null
-      && !laterFinalization
+      && validLifecycle
       && sourceScenario?.sourceClassification === 'PAYROLL_TEST_SCENARIO'
       && referenceScenario?.sourceClassification === 'PAYROLL_TEST_SCENARIO'
       && referenceScenario?.code === scenarioCode
       && referenceScenario?.coreSourceHash === coreSourceHash
       && referenceScenario?.assumptionsHash === assumptionsHash
+      && typeof payrollSetupHash === 'string'
+      && referenceSetup?.sourceHash === payrollSetupHash
+      && typeof openingBalanceSourceHash === 'string'
+      && referenceOpeningBalance?.sourceHash === openingBalanceSourceHash
       && typeof sourceHash === 'string'
       && typeof inputHash === 'string'
       && typeof resultHash === 'string'
@@ -1144,9 +1387,12 @@ export function createLocalPayrollAcceptanceCalculationService(host: string | nu
       traceId: artifacts.trace?.id ?? null,
       conceptEventId: conceptEvent?.id ?? null,
       runStatus: artifacts.run.status,
+      lifecycleStatus,
       sourceHash,
       coreSourceHash,
       assumptionsHash,
+      payrollSetupHash,
+      openingBalanceSourceHash,
       inputHash,
       resultHash,
       scenarioCode,
@@ -1156,7 +1402,15 @@ export function createLocalPayrollAcceptanceCalculationService(host: string | nu
 
   return {
     inspectScenarioCandidate: service.inspectEmployeePayrollSource,
-    calculateScenarioCandidate: service.calculateEmployeePayroll,
+    calculateScenarioCandidate: (input: { readonly employeeId: string; readonly employmentId: string; readonly period: EmployeePayrollPeriod }) =>
+      service.calculateEmployeePayroll({ ...input, successorReasonCode: 'PAYFULL02_IMPLEMENTATION_VERSIONED_RECALCULATION' }),
+    inspectVariableScenarioCandidate: variableScenarioService.inspectEmployeePayrollSource,
+    calculateVariableScenarioCandidate: (input: { readonly employeeId: string; readonly employmentId: string; readonly period: EmployeePayrollPeriod }) =>
+      variableScenarioService.calculateEmployeePayroll({
+        ...input,
+        successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+        requireFinalizedPredecessor: true,
+      }),
     inspectExceptionCandidate: sourceOnlyService.inspectEmployeePayrollSource,
     readBackScenarioCalculation,
   }

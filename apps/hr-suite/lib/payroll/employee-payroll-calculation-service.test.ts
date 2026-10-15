@@ -21,6 +21,10 @@ import {
   createEmployeePayrollCalculationService,
 } from './employee-payroll-calculation-service'
 import {
+  PAYROLL_ACCEPTANCE_SCENARIO_CODE,
+  PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE,
+} from './payroll-acceptance-scenario'
+import {
   LiquidHrPayrollSourceProvider,
   type PayrollSourceEmployment,
   type PayrollSourceIncomeRelationship,
@@ -151,6 +155,128 @@ function provider(overrides: {
     createId: id,
   }
   return new LiquidHrPayrollSourceProvider(sourceDeps)
+}
+
+function payfullScenarioProvider(state: {
+  variant: 'REGULAR' | 'VARIABLE'
+  variableWage?: string
+}): PayrollSourceProvider {
+  const base = provider()
+  return {
+    getPayrollSourceSnapshot: async (input) => {
+      const snapshot = await base.getPayrollSourceSnapshot(input)
+      const source = snapshot.canonicalSource as Record<string, unknown>
+      const originalFiscalProfile = source.fiscalProfile as Record<string, unknown>
+      const originalPayrollOwned = (source.payrollOwned ?? {}) as Record<string, unknown>
+      const originalAmounts = (originalPayrollOwned.amounts ?? {}) as Record<string, unknown>
+      const originalControls = (originalPayrollOwned.controls ?? {}) as Record<string, unknown>
+      const originalTaxProfile = (originalPayrollOwned.taxProfile ?? {}) as Record<string, unknown>
+      const originalCumulatives = (originalPayrollOwned.cumulatives ?? {}) as Record<string, unknown>
+      const originalRegularWage = (source.regularWage ?? {}) as Record<string, unknown>
+      const code = state.variant === 'VARIABLE'
+        ? PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE
+        : PAYROLL_ACCEPTANCE_SCENARIO_CODE
+      const variableWage = state.variant === 'VARIABLE' ? state.variableWage ?? '500.00' : '0.00'
+      const assumptionsHash = 'e'.repeat(64)
+      const payrollOwned = {
+        ...originalPayrollOwned,
+        setup: { code: 'TEST_SETUP_PAYFULL_02', version: '1.0' },
+        amounts: {
+          ...originalAmounts,
+          variableRegularWage: variableWage,
+          specialRewardWage: '0.00',
+          netReimbursement: '45.00',
+          netDeduction: '0.00',
+          netCorrection: '0.00',
+        },
+        controls: {
+          ...originalControls,
+          sourceReady: true,
+          employmentStartConsistent: true,
+          ikvUnambiguous: true,
+          salaryConsistent: true,
+          hoursConsistent: true,
+          normalHoursNotDuplicated: true,
+          additionalHoursSupported: true,
+          sourceFresh: true,
+          compositionSupported: true,
+          pensionRuleReady: true,
+          socialWageCapClear: true,
+          cumulativeContinuity: true,
+          reservationContinuity: true,
+          hashesConsistent: true,
+          variableWageIsRegular: true,
+          netReimbursementsTaxFree: true,
+          netDeductionsAuthorized: true,
+          specialRewardPensionable: false,
+          specialRewardIncludedInHolidayReserve: false,
+          specialRewardIncludedInYearEndReserve: false,
+        },
+        taxProfile: {
+          ...originalTaxProfile,
+          specialRewardAnnualWage: '0.00',
+          specialRewardAnnualWageResolved: false,
+        },
+        pension: {
+          monthlyFranchise: '0.00',
+          monthlyMaximum: '11483.33',
+          employeeRate: '10.00',
+          employerRate: '15.00',
+          active: true,
+        },
+        employerRates: { awf: '7.74', aof: '6.27', wko: '0.50', whk: '1.81', zvw: '6.10' },
+        reserveRates: { holidayAllowance: '8.00', yearEnd: '0.00' },
+        parameters: { annualSocialWageMaximum: '79409.00' },
+        actualWorkProjection: { additionalHours: '0.0000', cashCompensatedHours: '0.0000' },
+        fiscalBases: { wageTax: '4000.00', employeeInsurance: '4000.00', zvw: '4000.00' },
+        cumulatives: {
+          ...originalCumulatives,
+          grossWageBeforePeriod: '0.00',
+          holidayReserveBeforePeriod: '0.00',
+          yearEndReserveBeforePeriod: '0.00',
+          taxableWageBeforePeriod: '0.00',
+          wageTaxBeforePeriod: '0.00',
+          employeeInsuranceWageBeforePeriod: '0.00',
+          zvwWageBeforePeriod: '0.00',
+        },
+      }
+      const canonicalSource = {
+        ...source,
+        regularWage: {
+          ...originalRegularWage,
+          grossAmount: '4000.00',
+          fulltimeMonthlyAmount: '4000.00',
+          contractHoursPerWeek: '40',
+          fulltimeHoursPerWeek: '40',
+        },
+        fiscalProfile: {
+          ...originalFiscalProfile,
+          status: 'TEST_SCENARIO',
+          sourceClassification: 'PAYROLL_TEST_SCENARIO',
+          sourceReferenceHash: assumptionsHash,
+        },
+        testScenario: {
+          sourceClassification: 'PAYROLL_TEST_SCENARIO',
+          code,
+          version: '1',
+          assumptionsHash,
+        },
+        payrollOwned,
+      }
+      const variantHash = createHash('sha256')
+        .update(`${snapshot.sourceHash}:${code}:${variableWage}`)
+        .digest('hex')
+      return {
+        ...snapshot,
+        canonicalSource: canonicalSource as PayrollSourceSnapshot['canonicalSource'],
+        sourceVersionVector: {
+          ...snapshot.sourceVersionVector,
+          [`payroll_test_scenario:${code}`]: `${code}:${variableWage}`,
+        },
+        sourceHash: variantHash,
+      }
+    },
+  }
 }
 
 function openPeriod(): PayrollPeriodRow {
@@ -325,6 +451,128 @@ describe('Core-backed employee payroll calculation', () => {
     expect(missingFiscalProfile.snapshots.size).toBe(0)
     expect(missingFiscalProfile.runs.size).toBe(0)
     expect(missingFiscalProfile.inputs.size).toBe(0)
+  })
+
+  it('requires a finalized regular predecessor before the variable-wage scenario can create a run', async () => {
+    const state = harness({}, payfullScenarioProvider({ variant: 'VARIABLE' }), true)
+    const result = await state.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+      requireFinalizedPredecessor: true,
+    })
+
+    expect(result).toMatchObject({
+      status: 'CORRECTION_REQUIRED',
+      errorCode: 'PAYFULL02_VARIABLE_REVISION_REQUIRES_FINALIZED_BASE',
+    })
+    expect(state.runs.size).toBe(0)
+    expect(state.snapshots.size).toBe(0)
+    expect(state.inputs.size).toBe(0)
+    expect(state.calcWrites).toHaveLength(0)
+  })
+
+  it('reuses only an exact variable-scenario retry and blocks mismatched input hashes or engine versions', async () => {
+    const exactState = harness({}, payfullScenarioProvider({ variant: 'VARIABLE' }), true)
+    const first = await exactState.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+    })
+    const retry = await exactState.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+      requireFinalizedPredecessor: true,
+    })
+
+    expect(first.businessStatus).toBe('CONCEPT')
+    expect(retry.runId).toBe(first.runId)
+    expect(retry.inputHash).toBe(first.inputHash)
+    expect(exactState.runs.size).toBe(1)
+    expect(exactState.calcWrites).toHaveLength(1)
+
+    const hashState = harness({}, payfullScenarioProvider({ variant: 'VARIABLE' }), true)
+    const hashFirst = await hashState.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+    })
+    const savedInput = hashState.inputs.get(hashFirst.inputSetId!)!
+    hashState.inputs.set(savedInput.id, { ...savedInput, input_hash: 'f'.repeat(64) })
+    const mismatchedHashRetry = await hashState.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+      requireFinalizedPredecessor: true,
+    })
+
+    expect(hashFirst.businessStatus).toBe('CONCEPT')
+    expect(mismatchedHashRetry).toMatchObject({
+      status: 'CORRECTION_REQUIRED',
+      businessStatus: 'CONCEPT',
+      errorCode: 'PAYFULL02_VARIABLE_REVISION_REQUIRES_FINALIZED_BASE',
+    })
+    expect(hashState.runs.size).toBe(1)
+    expect(hashState.calcWrites).toHaveLength(1)
+
+    const versionState = harness({}, payfullScenarioProvider({ variant: 'VARIABLE' }), true)
+    const versionFirst = await versionState.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+    })
+    const versionInput = versionState.inputs.get(versionFirst.inputSetId!)!
+    versionState.inputs.set(versionInput.id, { ...versionInput, engine_version: 'PAYROLL_ENGINE_VERSION_OLD' })
+    const staleVersionRetry = await versionState.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+      requireFinalizedPredecessor: true,
+    })
+
+    expect(staleVersionRetry).toMatchObject({
+      status: 'CORRECTION_REQUIRED',
+      businessStatus: 'CONCEPT',
+      errorCode: 'PAYFULL02_VARIABLE_REVISION_REQUIRES_FINALIZED_BASE',
+    })
+    expect(versionState.runs.size).toBe(1)
+    expect(versionState.calcWrites).toHaveLength(1)
+  })
+
+  it('creates a variable successor only after the regular predecessor is finalized and preserves its artifacts', async () => {
+    const variant: { variant: 'REGULAR' | 'VARIABLE'; variableWage: string } = {
+      variant: 'REGULAR', variableWage: '0.00',
+    }
+    const state = harness({}, payfullScenarioProvider(variant), true)
+    const first = await state.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_IMPLEMENTATION_VERSIONED_RECALCULATION',
+    })
+    const previousComponents = structuredClone(state.components.get(first.runId!) ?? [])
+    const previousHashes = {
+      sourceHash: first.sourceHash,
+      inputHash: first.inputHash,
+      resultHash: first.resultHash,
+    }
+    const concept = state.events[0]!
+    state.events.push({ ...concept, event_sequence: 2, event_type: 'REVIEWED', created_at: '2026-10-01T12:04:00.000Z' })
+    state.events.push({ ...concept, event_sequence: 3, event_type: 'FINALIZED', created_at: '2026-10-01T12:05:00.000Z' })
+    variant.variant = 'VARIABLE'
+    variant.variableWage = '500.00'
+
+    const revised = await state.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+      requireFinalizedPredecessor: true,
+    })
+
+    expect(revised).toMatchObject({
+      businessStatus: 'CONCEPT',
+      revision: 2,
+      previousRunId: first.runId,
+      grossAmount: '4500.00',
+    })
+    expect(revised.runId).not.toBe(first.runId)
+    expect(state.runs.size).toBe(2)
+    expect(state.components.get(first.runId!)).toEqual(previousComponents)
+    expect(first).toMatchObject(previousHashes)
+    expect(state.events.map((event) => [event.revision, event.event_type])).toEqual([
+      [1, 'CONCEPT'], [1, 'REVIEWED'], [1, 'FINALIZED'], [2, 'CONCEPT'],
+    ])
   })
 
   it('calculates a supported regular month, persists a concept, reuses retries, and creates a new revision after salary change', async () => {
@@ -553,7 +801,7 @@ describe('Core-backed employee payroll calculation', () => {
     expect(salaryMismatch.runs.size).toBe(0)
   })
 
-  it('requires explicit review, blocks incomplete finalization, and preserves a finalized historical result after source changes', async () => {
+  it('blocks incomplete review and finalization, and preserves a finalized historical result after source changes', async () => {
     let salary = 4000
     const state = harness({ amount: () => salary })
     const first = await state.service.calculateEmployeePayroll({ employeeId, employmentId, period })
@@ -564,13 +812,19 @@ describe('Core-backed employee payroll calculation', () => {
     salary = 4000
     await expect(state.service.finalizeEmployeePayroll({ employeeId, employmentId, period, runId: first.runId! }))
       .rejects.toMatchObject({ code: 'PAYROLL_LIFECYCLE_TRANSITION_INVALID' })
-    await state.service.reviewEmployeePayroll({ employeeId, employmentId, period, runId: first.runId! })
+    await expect(state.service.reviewEmployeePayroll({ employeeId, employmentId, period, runId: first.runId! }))
+      .rejects.toMatchObject({ code: 'PAYROLL_REVIEW_INCOMPLETE' })
+    expect(state.events).toHaveLength(1)
+    await expect(state.service.finalizeEmployeePayroll({ employeeId, employmentId, period, runId: first.runId! }))
+      .rejects.toMatchObject({ code: 'PAYROLL_LIFECYCLE_TRANSITION_INVALID' })
+
+    state.events.push({
+      ...state.events[0]!, event_sequence: 2, event_type: 'REVIEWED', created_at: '2026-10-01T12:04:00.000Z',
+    })
     await expect(state.service.finalizeEmployeePayroll({ employeeId, employmentId, period, runId: first.runId! }))
       .rejects.toMatchObject({ code: 'PAYROLL_FINALIZATION_INCOMPLETE' })
 
-    state.events.push({
-      ...state.events[state.events.length - 1]!, event_sequence: 3, event_type: 'FINALIZED', created_at: '2026-10-01T12:05:00.000Z',
-    })
+    state.events.push({ ...state.events[1]!, event_sequence: 3, event_type: 'FINALIZED', created_at: '2026-10-01T12:05:00.000Z' })
     const savedAmount = state.components.get(first.runId!)?.find((row) => row.component_key === 'gross_salary')?.amount
     salary = 4400
     const correction = await state.service.calculateEmployeePayroll({ employeeId, employmentId, period })

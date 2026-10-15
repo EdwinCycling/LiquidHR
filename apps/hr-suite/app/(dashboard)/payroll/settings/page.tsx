@@ -1,3 +1,5 @@
+import 'server-only'
+
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'

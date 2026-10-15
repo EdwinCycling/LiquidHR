@@ -15,8 +15,8 @@ import {
 } from '@liquid-hr/payroll-rules-nl-2026'
 import { requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { createPayrollCalculationRepository, PayrollCalculationRepositoryError, type PayrollCalculationRepository } from './calculation-repository'
-import type { PayrollJson } from './database'
+import { createPayrollCalculationRepository, PayrollCalculationRepositoryError, type PayrollCalculationArtifacts, type PayrollCalculationRepository } from './calculation-repository'
+import type { GenericPayrollInputReferenceRow, PayrollJson } from './database'
 import { isPayrollLabEnabled } from './feature-flag'
 import type { SyntheticPayrollPeriod } from './synthetic-source'
 import {
@@ -121,7 +121,20 @@ export type FinalizedEmployeePayslipInput = {
   readonly actorUserId: string
   readonly employeeId: string
   readonly runId: string
+  /** Display names resolved by the already-authorized employee salary service. */
+  readonly genericPayslipProfile?: {
+    readonly employeeName: string
+    readonly employerName: string
+  }
 }
+
+const GENERIC_PAYROLL_INPUT_REFERENCE_SCHEMA = 'PAYCALC-REAL-01B-COMPLETENESS-1'
+const EMPLOYEE_PAYSLIP_COMPONENT_KEYS = new Set([
+  'contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'variable_regular_wage',
+  'gross_salary', 'employee_pension', 'taxable_wage', 'employee_insurance_base', 'zvw_base',
+  'wage_tax', 'net_reimbursement', 'net_deduction', 'net_correction', 'net_salary',
+  'cumulative_gross', 'cumulative_taxable_wage', 'cumulative_wage_tax',
+])
 
 type PersistedPayrun01Versions = {
   readonly assignmentVersionId: string
@@ -1990,6 +2003,108 @@ export async function renderPayrun01PayslipPdfPreviewForRun(
   return await renderPayrun01PayslipPdfPreview(lifecycleInput, dependencies)
 }
 
+function assertGenericPayslipReference(
+  reference: GenericPayrollInputReferenceRow,
+  artifacts: PayrollCalculationArtifacts,
+  employeeId: string,
+  runId: string,
+): void {
+  const metadata = reference.input_reference_json
+  if (!isJsonObject(metadata)
+    || reference.source_employee_id !== employeeId
+    || reference.source_employment_id !== artifacts.sourceSnapshot.source_employment_id
+    || reference.source_hash !== artifacts.sourceSnapshot.source_hash
+    || reference.input_hash !== artifacts.inputSet.input_hash
+    || metadata.schemaVersion !== GENERIC_PAYROLL_INPUT_REFERENCE_SCHEMA
+    || metadata.sourceHash !== artifacts.sourceSnapshot.source_hash
+    || metadata.inputHash !== artifacts.inputSet.input_hash
+    || !Array.isArray(metadata.incompleteComponents)
+    || metadata.incompleteComponents.length > 0
+    || artifacts.controls.length === 0
+    || artifacts.controls.some((control) => control.status !== 'PASS')) {
+    throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', runId)
+  }
+}
+
+function assertEmployeePayslipFinalized(
+  events: readonly import('./database').IndividualPayrollLifecycleEventRow[],
+  runId: string,
+): void {
+  const runEvents = events.filter((event) => event.calculation_run_id === runId)
+  const expected = [
+    { event_type: 'CONCEPT', event_sequence: 1 },
+    { event_type: 'REVIEWED', event_sequence: 2 },
+    { event_type: 'FINALIZED', event_sequence: 3 },
+  ] as const
+  const revision = runEvents[0]?.revision
+  if (!Number.isInteger(revision) || revision === undefined || revision < 1
+    || runEvents.length !== expected.length
+    || !expected.every((event, index) => runEvents[index]?.event_type === event.event_type
+      && runEvents[index]?.event_sequence === event.event_sequence
+      && runEvents[index]?.revision === revision)) {
+    throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', runId)
+  }
+}
+
+async function renderGenericEmployeePayslipPdf(
+  input: FinalizedEmployeePayslipInput,
+  artifacts: PayrollCalculationArtifacts,
+  reference: GenericPayrollInputReferenceRow,
+  dependencies: Payrun01ServiceDependencies,
+) {
+  assertGenericPayslipReference(reference, artifacts, input.employeeId, input.runId)
+  if (!input.genericPayslipProfile
+    || !input.genericPayslipProfile.employeeName.trim()
+    || !input.genericPayslipProfile.employerName.trim()) {
+    throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', input.runId)
+  }
+  const events = await dependencies.payrunRepository.listLifecycleEvents(
+    input.scope,
+    input.payrollAdministrationId,
+    artifacts.payrollPeriod.id,
+    artifacts.sourceSnapshot.source_employment_id,
+  )
+  assertEmployeePayslipFinalized(events, input.runId)
+
+  const components = artifacts.componentResults.flatMap((row) => {
+    if (!EMPLOYEE_PAYSLIP_COMPONENT_KEYS.has(row.component_key) || !isJsonObject(row.result_payload)) return []
+    const amount = jsonString(row.result_payload.amount)
+    return amount === null ? [] : [{ key: row.component_key, amount }]
+  })
+  const { renderPayrun01PayslipPdf, LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID } = await import('./payrun01-payslip-pdf')
+  let bytes: Uint8Array
+  try {
+    bytes = await renderPayrun01PayslipPdf({
+      data: {
+        period: {
+          year: artifacts.payrollPeriod.period_year,
+          month: artifacts.payrollPeriod.period_month,
+          startsOn: artifacts.payrollPeriod.starts_on,
+          endsOn: artifacts.payrollPeriod.ends_on,
+        },
+        profile: {
+          status: 'PAYROLL_SOURCE_PROFILE',
+          employeeName: input.genericPayslipProfile.employeeName,
+          employerName: input.genericPayslipProfile.employerName,
+        },
+        components,
+        sourceWarnings: payrun01PayslipSourceWarnings(artifacts.sourceSnapshot.source_payload, artifacts.controls, undefined),
+      },
+      presentation: { templateId: LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID },
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('PAYRUN01_PAYSLIP_')) {
+      throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', input.runId)
+    }
+    throw error
+  }
+  return {
+    artifact_bytes: bytes,
+    content_type: 'application/pdf' as const,
+    file_name: `liquidhr-loonstrook-${artifacts.payrollPeriod.period_year}-${String(artifacts.payrollPeriod.period_month).padStart(2, '0')}.pdf`,
+  }
+}
+
 /**
  * Read-only employee-scoped rendering. The caller must already have checked
  * the employee permission and scope; this boundary independently binds the
@@ -2017,6 +2132,15 @@ export async function renderFinalizedEmployeePayslipPdf(
     || artifacts.run.status !== 'SUCCEEDED' || !artifacts.run.result_hash
     || artifacts.sourceSnapshot.source_employee_id !== input.employeeId) {
     throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', input.runId)
+  }
+
+  const genericInputReference = await dependencies.payrunRepository.getGenericInputReference(
+    input.scope,
+    input.payrollAdministrationId,
+    artifacts.inputSet.id,
+  )
+  if (genericInputReference) {
+    return await renderGenericEmployeePayslipPdf(input, artifacts, genericInputReference, dependencies)
   }
 
   const inputReference = await dependencies.payrunRepository.getInputReference(

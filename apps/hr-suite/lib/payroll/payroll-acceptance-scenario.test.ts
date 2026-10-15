@@ -5,6 +5,8 @@ import {
   filterPayrollAcceptanceScenarioRuns,
   PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES,
   PAYROLL_ACCEPTANCE_SCENARIO_CODE,
+  PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE,
+  PAYROLL_ACCEPTANCE_VARIABLE_WAGE_AMOUNT,
   PayrollAcceptanceScenarioError,
 } from './payroll-acceptance-scenario'
 
@@ -64,6 +66,9 @@ describe('Payroll acceptance scenario source adapter', () => {
     const fiscalProfile = canonical.fiscalProfile as Record<string, unknown>
     const testScenario = canonical.testScenario as Record<string, unknown>
     const regularWage = canonical.regularWage as Record<string, unknown>
+    const payrollOwned = canonical.payrollOwned as Record<string, unknown>
+    const setup = payrollOwned.setup as Record<string, unknown>
+    const openingBalance = payrollOwned.openingBalance as Record<string, unknown>
 
     expect(result.sourceHash).not.toBe(coreSnapshot.sourceHash)
     expect(result.sourceGaps).toEqual([])
@@ -76,6 +81,11 @@ describe('Payroll acceptance scenario source adapter', () => {
       assumptions: { ageCategory: 'UNDER_AOW', wageTaxTable: 'WHITE', payrollTaxCreditApplies: false },
     })
     expect(regularWage).toMatchObject({ table: 'WHITE', grossAmount: '3517.00', payrollTaxCredit: false, incomeRelationshipCount: '1' })
+    expect(setup).toMatchObject({ code: 'TEST_SETUP_PAYFULL_02', version: '1.0', validFrom: '2026-01-01', validTo: '2026-12-31' })
+    expect(setup.sourceHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(openingBalance).toMatchObject({ effectiveFrom: '2026-01-01', effectiveTo: '2026-09-30', periodCount: 9 })
+    expect(openingBalance.sourceHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(payrollOwned.pension).toMatchObject({ classification: 'SYNTHETIC_TEST_PLAN_NOT_EXTERNAL_FUND_CONTRACT', employeeRate: '10.00', employerRate: '15.00' })
     expect(JSON.stringify(canonical)).not.toContain('EMPLOYEE_DECLARATION')
     expect(JSON.stringify(canonical)).not.toMatch(/birth.?date|geboortedatum/i)
     expect((coreSnapshot.canonicalSource as Record<string, unknown>).fiscalProfile).toMatchObject({ status: 'SOURCE_GAP' })
@@ -91,6 +101,57 @@ describe('Payroll acceptance scenario source adapter', () => {
       const source = createPayrollAcceptanceScenarioSourceProvider({ getPayrollSourceSnapshot: vi.fn(async () => invalidSnapshot) })
       await expect(source.getPayrollSourceSnapshot(input)).rejects.toMatchObject({ code: 'PAYROLL_ACCEPTANCE_SCENARIO_SOURCE_CHANGED' })
     }
+  })
+
+  it('adds the variable DEMO-001 amount as a separately hashed, regular-wage TEST revision', async () => {
+    const regular = await createPayrollAcceptanceScenarioSourceProvider({
+      getPayrollSourceSnapshot: vi.fn(async () => snapshot()),
+    }).getPayrollSourceSnapshot(input)
+    const variable = await createPayrollAcceptanceScenarioSourceProvider({
+      getPayrollSourceSnapshot: vi.fn(async () => snapshot()),
+    }, 'VARIABLE_BONUS_DEMO_001').getPayrollSourceSnapshot(input)
+    const canonical = variable.canonicalSource as Record<string, unknown>
+    const testScenario = canonical.testScenario as Record<string, unknown>
+    const fiscalProfile = canonical.fiscalProfile as Record<string, unknown>
+    const payrollOwned = canonical.payrollOwned as Record<string, unknown>
+    const amounts = payrollOwned.amounts as Record<string, unknown>
+
+    expect(variable.sourceHash).not.toBe(regular.sourceHash)
+    expect(testScenario).toMatchObject({
+      code: PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE,
+      variant: 'VARIABLE_BONUS_DEMO_001',
+      variableRegularWage: PAYROLL_ACCEPTANCE_VARIABLE_WAGE_AMOUNT,
+      sourceClassification: 'PAYROLL_TEST_SCENARIO',
+    })
+    expect(fiscalProfile.scenarioCode).toBe(PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE)
+    expect(amounts.variableRegularWage).toBe(PAYROLL_ACCEPTANCE_VARIABLE_WAGE_AMOUNT)
+    expect(variable.sourceVersionVector[`payroll_test_scenario:${PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE}`]).toContain(':500.00')
+  })
+
+  it('does not allow the variable bonus revision for DEMO-002', async () => {
+    const second = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[1]!
+    const secondSource = snapshot()
+    const secondCanonical = secondSource.canonicalSource as Record<string, unknown>
+    const source = createPayrollAcceptanceScenarioSourceProvider({
+      getPayrollSourceSnapshot: vi.fn(async () => snapshot({
+        sourceEmployeeId: second.employeeId,
+        sourceEmploymentId: second.employmentId,
+        canonicalSource: {
+          ...secondCanonical,
+          compensation: { entries: [{ paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY', currencyCode: 'EUR', fulltimeAmount: 3534, parttimeAmount: 3534 }] },
+          incomeRelationship: {
+            ...(secondCanonical.incomeRelationship as Record<string, unknown>),
+            id: incomeRelationshipId,
+          },
+        },
+      })),
+    }, 'VARIABLE_BONUS_DEMO_001')
+
+    await expect(source.getPayrollSourceSnapshot({
+      ...input,
+      employeeId: second.employeeId,
+      employmentId: second.employmentId,
+    })).rejects.toMatchObject({ code: 'PAYROLL_ACCEPTANCE_SCENARIO_NOT_AVAILABLE' })
   })
 
   it('does not offer DEMO-005 or any other employee for the test scenario', async () => {

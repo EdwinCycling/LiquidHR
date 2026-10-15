@@ -1,11 +1,13 @@
 'use client'
 
 import { useActionState } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import {
   openLocalPayrollAcceptancePeriod,
   runLocalPayrollAcceptance,
+  runLocalPayrollAcceptanceVariableRevision,
   type LocalPayrollAcceptanceOpenState,
   type LocalPayrollAcceptanceRunState,
 } from './actions'
@@ -18,7 +20,7 @@ type WorkbenchProps = {
 }
 
 const initialOpenState: LocalPayrollAcceptanceOpenState = { message: 'idle' }
-const initialRunState: LocalPayrollAcceptanceRunState = { message: 'idle', result: null }
+const initialRunState: LocalPayrollAcceptanceRunState = { message: 'idle', result: null, failureCode: null, sourceChecks: null }
 
 const missingComponentLabels: Readonly<Record<string, string>> = {
   PENSION_EMPLOYEE_ALLOCATION: 'localAcceptanceMissingEmployeePension',
@@ -59,6 +61,11 @@ function HashValue({ label, value }: { readonly label: string; readonly value: s
 export function LocalPayrollAcceptanceWorkbench({ periodStatus, periodStatusLabel, locale, labels }: WorkbenchProps) {
   const [openState, openAction, opening] = useActionState(openLocalPayrollAcceptancePeriod, initialOpenState)
   const [runState, runAction, running] = useActionState(runLocalPayrollAcceptance, initialRunState)
+  const [variableState, variableAction, variableRunning] = useActionState(runLocalPayrollAcceptanceVariableRevision, initialRunState)
+  const calculations = [
+    ...(runState.result?.calculations ?? []),
+    ...(variableState.result?.calculations ?? []),
+  ]
   const periodOpen = periodStatus === 'OPEN' || openState.message === 'opened'
   const statusMessage = openState.message === 'opened'
     ? labels.localAcceptancePeriodOpened
@@ -117,12 +124,27 @@ export function LocalPayrollAcceptanceWorkbench({ periodStatus, periodStatusLabe
             {running ? labels.localAcceptanceRunning : labels.localAcceptanceRun}
           </Button>
         </form>
+        <form action={variableAction}>
+          <Button type="submit" variant="secondary" loading={variableRunning} disabled={variableRunning || !periodOpen}>
+            {variableRunning ? labels.localAcceptanceVariableRevisionRunning : labels.localAcceptanceVariableRevisionRun}
+          </Button>
+        </form>
       </div>
-      {statusMessage ? <p className="text-sm" role="status" aria-live="polite">{statusMessage}</p> : null}
+      <p className="text-xs leading-5 text-muted-foreground">{labels.localAcceptanceVariableRevisionHelp}</p>
+      {statusMessage ? <p className="text-sm" role="status" aria-live="polite">{statusMessage}{runState.failureCode ? <code className="ml-2 font-mono text-xs">{runState.failureCode}</code> : null}{runState.sourceChecks?.length ? <code className="ml-2 font-mono text-xs">source checks: {runState.sourceChecks.join(', ')}</code> : null}</p> : null}
+      {variableState.message !== 'idle' ? <p className="text-sm" role="status" aria-live="polite">
+        {variableState.message === 'saved' ? labels.localAcceptanceVariableRevisionSaved
+          : variableState.message === 'partial' ? labels.localAcceptancePartial
+            : variableState.message === 'preflightBlocked' ? labels.localAcceptancePreflightBlocked
+              : variableState.message === 'accessDenied' ? labels.localAcceptanceAccessDenied
+                : variableState.message === 'unavailable' ? labels.localAcceptanceUnavailable
+                  : labels.localAcceptanceFailed}
+        {variableState.failureCode ? <code className="ml-2 font-mono text-xs">{variableState.failureCode}</code> : null}
+      </p> : null}
     </Surface>
 
-    {runState.result ? <>
-      <section className="space-y-3" aria-labelledby="local-acceptance-preflight">
+    {runState.result || variableState.result ? <>
+      {runState.result ? <section className="space-y-3" aria-labelledby="local-acceptance-preflight">
         <h2 className="text-base font-semibold" id="local-acceptance-preflight">{labels.localAcceptancePreflight}</h2>
         <ul className="divide-y divide-border-subtle rounded-[var(--radius-surface)] border border-border-subtle">
           {runState.result.preflight.map((item) => <li key={item.key} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:justify-between">
@@ -137,29 +159,60 @@ export function LocalPayrollAcceptanceWorkbench({ periodStatus, periodStatusLabe
               : item.eligibleForCalculation ? labels.localAcceptanceEligible : labels.localAcceptanceGaps}</span>
           </li>)}
         </ul>
-      </section>
+      </section> : null}
 
-      {runState.result.calculations.length > 0 ? <section className="space-y-3" aria-labelledby="local-acceptance-results">
+      {calculations.length > 0 ? <section className="space-y-3" aria-labelledby="local-acceptance-results">
         <h2 className="text-base font-semibold" id="local-acceptance-results">{labels.localAcceptanceResults}</h2>
-        <p className="text-sm text-muted-foreground">{labels.localAcceptanceNotNet}</p>
+        <p className="text-sm text-muted-foreground">{labels.localAcceptanceTestNature}</p>
         <div className="space-y-4">
-          {runState.result.calculations.map((item) => <Surface key={item.key} className="space-y-4 p-4 sm:p-5">
+          {calculations.map((item) => <Surface key={item.key} className="space-y-4 p-4 sm:p-5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="text-base font-semibold">{labels.localAcceptanceCandidate} {item.key}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{item.businessStatus === 'CONCEPT'
                   ? labels.localAcceptanceConcept
-                  : item.status === 'FAILED' ? labels.calculation_FAILED : labels.localAcceptanceFailed}</p>
+                  : item.businessStatus === 'REVIEWED' ? labels.localAcceptanceReviewed
+                    : item.businessStatus === 'FINALIZED' ? labels.localAcceptanceFinalized
+                      : item.status === 'CORRECTION_REQUIRED' ? labels.localAcceptanceCorrectionRequired
+                        : item.status === 'FAILED' ? labels.calculation_FAILED : labels.localAcceptanceFailed}</p>
+                {item.errorCode ? <code className="mt-1 block break-words text-xs text-muted-foreground">{item.errorCode}</code> : null}
               </div>
-              <p className="text-sm font-medium">{item.completeness === 'INCOMPLETE' ? labels.localAcceptanceIncomplete : item.completeness}</p>
+              <p className="text-sm font-medium">{item.completeness === 'COMPLETE' ? labels.localAcceptanceComplete : labels.localAcceptanceIncomplete}</p>
             </div>
-            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {item.runId ? <Link className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline" href={`/payroll/runs/${encodeURIComponent(item.runId)}`}>
+              {labels.localAcceptanceOpenRun}
+            </Link> : null}
+            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceGross}</dt><dd className="mt-1 text-sm font-semibold">{formatMoney(item.grossAmount, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceTaxableWage}</dt><dd className="mt-1 text-sm font-semibold">{formatMoney(item.payfull02?.taxableWage ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
               <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceWageTax}</dt><dd className="mt-1 text-sm font-semibold">{formatMoney(item.wageTaxAmount, locale, labels.localAcceptanceMissing)}</dd></div>
-              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceAfterWageTax}</dt><dd className="mt-1 text-sm font-semibold">{formatMoney(item.remainingAfterWageTax, locale, labels.localAcceptanceMissing)}</dd></div>
-              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceNoEmployerCosts}</dt><dd className="mt-1 text-sm">{labels.localAcceptanceMissing}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceEmployeePension}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.employeePension ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceNetReimbursement}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.netReimbursement ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceNetDeduction}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.netDeduction ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceNetPay}</dt><dd className="mt-1 text-sm font-bold">{formatMoney(item.remainingAfterWageTax, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceEmployerPension}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.employerPension ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceEmployerAwf}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.employerAwf ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceEmployerAof}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.employerAof ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceEmployerWko}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.employerWko ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceEmployerWhk}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.employerWhk ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceEmployerZvw}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.employerZvw ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceEmployerPremiums}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.employerPremiums ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceHolidayReserve}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.holidayReserve ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceYearEndReserve}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02?.yearEndReserve ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
+              <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceTotalEmployerCost}</dt><dd className="mt-1 text-sm font-bold">{formatMoney(item.payfull02?.totalEmployerCost ?? null, locale, labels.localAcceptanceMissing)}</dd></div>
             </dl>
-            <p className="border-l-2 border-warning pl-3 text-sm text-muted-foreground">{labels.localAcceptanceNotNet}</p>
+            {item.payfull02 ? <div className="space-y-2 border-t border-border-subtle pt-4">
+              <h4 className="text-sm font-semibold">{labels.localAcceptanceCumulative}</h4>
+              <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceCumulativeGross}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02.cumulativeGross, locale, labels.localAcceptanceMissing)}</dd></div>
+                <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceCumulativeTaxableWage}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02.cumulativeTaxableWage, locale, labels.localAcceptanceMissing)}</dd></div>
+                <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceCumulativeWageTax}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02.cumulativeWageTax, locale, labels.localAcceptanceMissing)}</dd></div>
+                <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceCumulativeEmployeeInsurance}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02.cumulativeEmployeeInsuranceWage, locale, labels.localAcceptanceMissing)}</dd></div>
+                <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceCumulativeZvw}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02.cumulativeZvwWage, locale, labels.localAcceptanceMissing)}</dd></div>
+                <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceCumulativeHolidayReserve}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02.cumulativeHolidayReserve, locale, labels.localAcceptanceMissing)}</dd></div>
+                <div><dt className="text-xs font-medium text-muted-foreground">{labels.localAcceptanceCumulativeYearEndReserve}</dt><dd className="mt-1 text-sm">{formatMoney(item.payfull02.cumulativeYearEndReserve, locale, labels.localAcceptanceMissing)}</dd></div>
+              </dl>
+            </div> : null}
             <p className="text-sm"><span className="font-medium">{labels.localAcceptanceIdempotent}:</span> {item.idempotencyVerified ? labels.localAcceptanceIdempotentYes : labels.localAcceptanceIdempotentNo}</p>
             <p className={`text-sm ${item.oracleMatches ? 'text-muted-foreground' : 'text-warning'}`}>{item.oracleMatches ? labels.localAcceptanceOracleMatches : labels.localAcceptanceOracleMismatch}</p>
             {item.incompleteComponents.length > 0 ? <div>
@@ -180,6 +233,8 @@ export function LocalPayrollAcceptanceWorkbench({ periodStatus, periodStatusLabe
                 <HashValue label={labels.localAcceptanceSourceHash} value={item.sourceHash} />
                 <HashValue label={labels.localAcceptanceCoreSourceHash} value={item.readback?.coreSourceHash ?? null} />
                 <HashValue label={labels.localAcceptanceAssumptionsHash} value={item.readback?.assumptionsHash ?? null} />
+                <HashValue label={labels.localAcceptancePayrollSetupHash} value={item.readback?.payrollSetupHash ?? null} />
+                <HashValue label={labels.localAcceptanceOpeningBalanceHash} value={item.readback?.openingBalanceSourceHash ?? null} />
                 <HashValue label={labels.localAcceptanceInputHash} value={item.inputHash} />
                 <HashValue label={labels.localAcceptanceResultHash} value={item.resultHash} />
               </dl>

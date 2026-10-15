@@ -1,5 +1,8 @@
+import 'server-only'
+
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
+
 import { PageHeader } from '@/components/patterns/page-header'
 import { PageShell } from '@/components/layout/page-shell'
 import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
@@ -19,16 +22,27 @@ const labelKeys = [
   'localAcceptanceOpenPeriod','localAcceptanceOpeningPeriod','localAcceptancePeriodOpened','localAcceptancePeriodAlreadyOpen',
   'localAcceptanceOpenFailed','localAcceptanceAccessDenied','localAcceptanceUnavailable','localAcceptanceFailed',
   'localAcceptanceRun','localAcceptanceRunning','localAcceptancePreflightBlocked','localAcceptanceSaved',
+  'localAcceptanceVariableRevisionRun','localAcceptanceVariableRevisionRunning','localAcceptanceVariableRevisionHelp',
+  'localAcceptanceVariableRevisionSaved','localAcceptanceOpenRun',
   'localAcceptancePartial','localAcceptancePreflight','localAcceptanceCandidate','localAcceptanceEligible',
   'calculation_FAILED',
   'localAcceptanceBlockedReadOnly','localAcceptanceGaps','localAcceptanceResults','localAcceptanceConcept',
-  'localAcceptanceIncomplete','localAcceptanceGross','localAcceptanceWageTax','localAcceptanceAfterWageTax',
-  'localAcceptanceNotNet','localAcceptanceIdempotent','localAcceptanceIdempotentYes','localAcceptanceIdempotentNo',
+  'localAcceptanceReviewed','localAcceptanceFinalized','localAcceptanceCorrectionRequired',
+  'localAcceptanceIncomplete','localAcceptanceComplete','localAcceptanceGross','localAcceptanceTaxableWage',
+  'localAcceptanceWageTax','localAcceptanceEmployeePension','localAcceptanceNetReimbursement','localAcceptanceNetDeduction',
+  'localAcceptanceNetPay','localAcceptanceEmployerPension','localAcceptanceEmployerAwf','localAcceptanceEmployerAof',
+  'localAcceptanceEmployerWko','localAcceptanceEmployerWhk','localAcceptanceEmployerZvw','localAcceptanceEmployerPremiums',
+  'localAcceptanceHolidayReserve','localAcceptanceYearEndReserve','localAcceptanceTotalEmployerCost',
+  'localAcceptanceCumulative','localAcceptanceCumulativeGross','localAcceptanceCumulativeTaxableWage',
+  'localAcceptanceCumulativeWageTax','localAcceptanceCumulativeEmployeeInsurance','localAcceptanceCumulativeZvw',
+  'localAcceptanceCumulativeHolidayReserve','localAcceptanceCumulativeYearEndReserve',
+  'localAcceptanceTestNature','localAcceptanceNotNet','localAcceptanceIdempotent','localAcceptanceIdempotentYes','localAcceptanceIdempotentNo',
   'localAcceptanceProvenance','localAcceptanceRunId','localAcceptanceSourceSnapshotId','localAcceptanceInputSetId',
   'localAcceptanceInputReferenceId','localAcceptanceTraceId','localAcceptanceConceptEventId',
   'localAcceptanceComponentCount','localAcceptanceControlCount','localAcceptanceControls','localAcceptanceStatus',
   'control_PASS','control_WARN','control_FAIL',
   'localAcceptanceSourceHash','localAcceptanceCoreSourceHash','localAcceptanceAssumptionsHash',
+  'localAcceptancePayrollSetupHash','localAcceptanceOpeningBalanceHash',
   'localAcceptanceInputHash','localAcceptanceResultHash','localAcceptanceMissing',
   'localAcceptanceMissingEmployeePension','localAcceptanceMissingEmployerPension',
   'localAcceptanceMissingEmployerCosts','localAcceptanceMissingReserves','localAcceptanceMissingCumulativeTax',

@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   requireComponentLibraryAccess: vi.fn(),
-  renderPayrun01PayslipPdfPreviewForRun: vi.fn(),
+  renderPayrollProfessionalPayslipPreviewForRun: vi.fn(),
   permissionErrorResponse: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/permissions', () => ({ permissionErrorResponse: mocks.permissionErrorResponse }))
 vi.mock('@/lib/payroll/component-library-access', () => ({ requireComponentLibraryAccess: mocks.requireComponentLibraryAccess }))
-vi.mock('@/lib/payroll/payrun01-service', () => ({ renderPayrun01PayslipPdfPreviewForRun: mocks.renderPayrun01PayslipPdfPreviewForRun }))
+vi.mock('@/lib/payroll/payroll-professional-service', () => ({ renderPayrollProfessionalPayslipPreviewForRun: mocks.renderPayrollProfessionalPayslipPreviewForRun }))
 
 import { GET } from './route'
 import { SyntheticPayrollServiceError } from '@/lib/payroll/synthetic-calculation-service'
@@ -29,7 +29,7 @@ describe('PAYRUN01 standard payslip preview route', () => {
       administration: { id: '50000000-0000-4000-8000-000000000001' },
       actorUserId: '60000000-0000-4000-8000-000000000001',
     })
-    mocks.renderPayrun01PayslipPdfPreviewForRun.mockResolvedValue({
+    mocks.renderPayrollProfessionalPayslipPreviewForRun.mockResolvedValue({
       artifact_bytes: bytes,
       content_type: 'application/pdf',
       file_name: `liquidhr-loonstrook-2026-10.pdf`,
@@ -41,7 +41,7 @@ describe('PAYRUN01 standard payslip preview route', () => {
 
     expect(response.status).toBe(400)
     expect(mocks.requireComponentLibraryAccess).not.toHaveBeenCalled()
-    expect(mocks.renderPayrun01PayslipPdfPreviewForRun).not.toHaveBeenCalled()
+    expect(mocks.renderPayrollProfessionalPayslipPreviewForRun).not.toHaveBeenCalled()
   })
 
   it('serves the authorized finalized payslip inline or as a download with no-store headers', async () => {
@@ -56,7 +56,7 @@ describe('PAYRUN01 standard payslip preview route', () => {
 
     const download = await GET(new Request('https://local.test?download=1'), { params: Promise.resolve({ runId }) })
     expect(download.headers.get('content-disposition')).toBe('attachment; filename="liquidhr-loonstrook-2026-10.pdf"')
-    expect(mocks.renderPayrun01PayslipPdfPreviewForRun).toHaveBeenCalledWith(expect.objectContaining({ runId }))
+    expect(mocks.renderPayrollProfessionalPayslipPreviewForRun).toHaveBeenCalledWith(expect.objectContaining({ runId }))
   })
 
   it('rejects anonymous callers before rendering', async () => {
@@ -66,11 +66,19 @@ describe('PAYRUN01 standard payslip preview route', () => {
 
     expect(response.status).toBe(401)
     expect(response.headers.get('cache-control')).toBe('no-store')
-    expect(mocks.renderPayrun01PayslipPdfPreviewForRun).not.toHaveBeenCalled()
+    expect(mocks.renderPayrollProfessionalPayslipPreviewForRun).not.toHaveBeenCalled()
   })
 
   it('returns not found for a run outside the caller payroll scope', async () => {
-    mocks.renderPayrun01PayslipPdfPreviewForRun.mockRejectedValue(new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', runId))
+    mocks.renderPayrollProfessionalPayslipPreviewForRun.mockRejectedValue(new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', runId))
+
+    const response = await GET(new Request('https://local.test'), { params: Promise.resolve({ runId }) })
+
+    expect(response.status).toBe(404)
+  })
+
+  it('returns not found when the selected run does not exist in the authorized scope', async () => {
+    mocks.renderPayrollProfessionalPayslipPreviewForRun.mockResolvedValue(null)
 
     const response = await GET(new Request('https://local.test'), { params: Promise.resolve({ runId }) })
 

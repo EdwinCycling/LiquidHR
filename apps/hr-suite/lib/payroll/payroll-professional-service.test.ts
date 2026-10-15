@@ -52,12 +52,16 @@ function makeDependencies(
       run: { ...run, id },
       sourceSnapshot,
       payrollPeriod,
-      inputSet: { input_hash: 'a'.repeat(64) },
+      inputSet: { id: `80000000-0000-4000-8000-${String(month).padStart(12, '0')}`, input_hash: 'a'.repeat(64) },
       componentResults: [
         { component_key: 'gross_salary', amount: null, result_payload: { amount: `${5500 + (month - 10) * 100}.00` } },
         { component_key: 'net_salary', amount: null, result_payload: { amount: `${4200 + (month - 10) * 80}.00` } },
         ...(pensionSummaryPresent ? [{ component_key: 'employee_pension', amount: null, result_payload: { amount: '195.12' } }] : []),
         { component_key: 'cumulative_gross', amount: null, result_payload: { amount: '55000.00' } },
+        { component_key: 'employer_pension', amount: null, result_payload: { amount: '390.23' } },
+        { component_key: 'employer_awf', amount: null, result_payload: { amount: '425.70' } },
+        { component_key: 'total_employer_cost', amount: null, result_payload: { amount: '7519.59' } },
+        { component_key: 'holiday_reserve', amount: null, result_payload: { amount: '440.00' } },
       ],
       trace: { trace_payload: { privateValue: 'must-not-be-returned' } },
       controls: pensionWarning ? [{ control_key: 'PAYRUN01-CTRL-009-PENSION-RULE-READY', status: 'WARN', detail_payload: {} }] : [],
@@ -83,6 +87,7 @@ function makeDependencies(
       : []
   })
   const getGenericInputReference = vi.fn(async () => null)
+  const loadPayslipDisplayProfile = vi.fn(async () => ({ employeeName: 'Mars Werknemer', employerName: 'Mars Administratie' }))
   const createCalculationRepository = vi.fn(() => ({ listPayrollRunSummaries, getLatestSyntheticArtifacts }))
   const createPayrunRepository = vi.fn(() => ({ listLifecycleEvents, getGenericInputReference }))
   const dependencies = {
@@ -94,6 +99,7 @@ function makeDependencies(
     })),
     createCalculationRepository,
     createPayrunRepository,
+    loadPayslipDisplayProfile,
     renderPayslipPdf: vi.fn(async (input: { employeeId: string; runId: string }) => ({
       artifact_bytes: Buffer.from('pdf'),
       content_type: 'application/pdf' as const,
@@ -102,7 +108,7 @@ function makeDependencies(
       runId: input.runId,
     })),
   } as unknown as EmployeePayrollDependencies
-  return { dependencies, listPayrollRunSummaries, listLifecycleEvents, createPayrunRepository }
+  return { dependencies, listPayrollRunSummaries, listLifecycleEvents, createPayrunRepository, getGenericInputReference, loadPayslipDisplayProfile }
 }
 
 describe('employee My Salary read model', () => {
@@ -142,6 +148,10 @@ describe('employee My Salary read model', () => {
       },
       pensionReadiness: 'CALCULATED',
     })
+    expect(statement?.components.map((component) => component.key)).not.toContain('employer_pension')
+    expect(statement?.components.map((component) => component.key)).not.toContain('employer_awf')
+    expect(statement?.components.map((component) => component.key)).not.toContain('total_employer_cost')
+    expect(statement?.components.map((component) => component.key)).not.toContain('holiday_reserve')
     expect(JSON.stringify(statement)).not.toMatch(/sourceSnapshotId|inputHash|privateValue|must-not-be-returned/i)
     expect(createPayrunRepository).toHaveBeenCalledOnce()
   })
@@ -176,10 +186,34 @@ describe('employee My Salary read model', () => {
   })
 
   it('renders only a server-selected finalized self payslip for the requested available period', async () => {
-    const { dependencies } = makeDependencies(selfEmployeeId, selfEmployeeId, true, true, false, [9, 10])
+    const { dependencies, loadPayslipDisplayProfile } = makeDependencies(selfEmployeeId, selfEmployeeId, true, true, false, [9, 10])
     const result = await renderMySalaryPayslipPdf(2026, 9, dependencies)
     expect(result).toMatchObject({ employeeId: selfEmployeeId, runId: '30000000-0000-4000-8000-000000000009' })
     expect(dependencies.renderPayslipPdf).toHaveBeenCalledWith(expect.objectContaining({ employeeId: selfEmployeeId, runId: '30000000-0000-4000-8000-000000000009' }))
+    expect(loadPayslipDisplayProfile).not.toHaveBeenCalled()
+  })
+
+  it('loads scoped display names only for a finalized generic input_reference_json payslip', async () => {
+    const { dependencies, getGenericInputReference, loadPayslipDisplayProfile } = makeDependencies(selfEmployeeId, selfEmployeeId, true)
+    getGenericInputReference.mockResolvedValue({
+      source_employee_id: selfEmployeeId,
+      source_employment_id: employmentId,
+      source_hash: 'b'.repeat(64),
+      input_hash: 'a'.repeat(64),
+      input_reference_json: { schemaVersion: 'PAYCALC-REAL-01B-COMPLETENESS-1', incompleteComponents: [] },
+    } as never)
+
+    const result = await renderMySalaryPayslipPdf(2026, 10, dependencies)
+
+    expect(result).toMatchObject({ employeeId: selfEmployeeId, runId })
+    expect(loadPayslipDisplayProfile).toHaveBeenCalledWith(expect.objectContaining({
+      tenantId: '50000000-0000-4000-8000-000000000001',
+      hrGroupId: '50000000-0000-4000-8000-000000000002',
+      administrationId: '50000000-0000-4000-8000-000000000003',
+    }), selfEmployeeId)
+    expect(dependencies.renderPayslipPdf).toHaveBeenCalledWith(expect.objectContaining({
+      genericPayslipProfile: { employeeName: 'Mars Werknemer', employerName: 'Mars Administratie' },
+    }))
   })
 
   it('does not render a requested month when it has no finalized self run', async () => {
