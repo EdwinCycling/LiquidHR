@@ -1,7 +1,13 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-14 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-15 (historische acceptance-evidence blijft ongewijzigd)
+
+## PAYFULL-02 — PARTIAL, TEST-resultaat bevestigd 2026-10-15
+
+- Code-SHA af6854abd81c79143fcfbc9fb7224ac8d3ffdaca. Twee nieuwe Mars-runs zijn via HR Admin gevalideerd (32/32 controles), REVIEWED en FINALIZED; bruto/netto/werkgeverskosten: DEMO-001 €3.517,00 / €2.181,49 / €4.876,74; DEMO-002 €3.534,00 / €2.141,36 / €4.836,83. De historische concept-runs zijn behouden.
+- De effectieve TEST-configuraties en januari-september-openingsbalansen zijn als synthetisch TEST_SETUP_PAYFULL_02 geversioneerd en gehasht; dit zijn geen bevestigde pensioenfondscontracten of historische FINALIZED-runs. Een aparte variabel-loonrevisie blijft CONCEPT.
+- PARTIAL: standaard-PDF-endpoints antwoordden 200; lokale PDF-artifactreadback en ESS self-only/negatieve readback ontbreken. Exacte Webpack-productionbuild, bundlecheck en provenance zijn geslaagd; de default Turbopack-runner kreeg Windows-junction-EPERM. Mobiel 390 px blijft OPEN. Zie [PAYFULL-02 acceptance](../quality/acceptance/runs/PAYFULL-02-20261015.md) en [open bewijsregister](AA-OPEN.md).
 
 ## PAYTAX-UI-01B / PAYTEST-PERSONAS-CLOSEOUT — PARTIAL, lokaal bewezen 2026-10-15
 
