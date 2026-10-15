@@ -44,11 +44,13 @@ import { getRequestAuthorizationContext } from "@/lib/auth/permissions";
 import { listProcessWork } from "@/lib/process-automation/work-service";
 import { resolveSalaryBandAtDate, resolveSalaryScaleStepAtDate } from "@/lib/salary-application/resolution";
 import { employmentMutationTranslationKey } from "@/lib/employment/employment-mutation-labels";
+import { getIncomeRelationshipReadiness } from "@/lib/employment/income-relationship-readiness-service";
+import { markIncomeRelationshipReadyAction } from "./ikv/actions";
 import type { Translator } from "@/lib/i18n/translator";
 
 interface PageProps {
   params: Promise<{ employeeId: string; employmentId: string }>;
-  searchParams: Promise<{ tab?: string; view?: string; date?: string; status?: string; lane?: string; fromTab?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string; date?: string; status?: string; lane?: string; fromTab?: string; ikv?: string }>;
 }
 
 const tabs = [
@@ -75,6 +77,23 @@ function periodLabel(
   const format = (value: string) =>
     formatDate(value, { locale, dateFormat });
   return `${format(from)} — ${until ? format(until) : open}`;
+}
+
+function inclusiveEndFromExclusive(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function incomeRelationshipStatusLabel(status: string, t: Translator): string {
+  switch (status) {
+    case 'DRAFT': return t('ikvReadiness.statusDraft');
+    case 'READY': return t('ikvReadiness.statusReady');
+    case 'REPORTED': return t('ikvReadiness.statusReported');
+    case 'CLOSED': return t('ikvReadiness.statusClosed');
+    default: return t('ikvReadiness.statusUnknown');
+  }
 }
 
 type EmploymentDetail = Awaited<ReturnType<typeof getEmploymentDetail>>;
@@ -227,6 +246,12 @@ export default async function EmploymentDetailPage({
     employmentId,
     dataScope,
   );
+  const canReviewIncomeRelationships = (authContext.activeRoles.includes('HR_ADMIN') || authContext.activeRoles.includes('TENANT_ADMIN'))
+    && authContext.permissions.includes('salary:read');
+  const incomeReadiness = tab === 'overview' && canReviewIncomeRelationships
+    ? await getIncomeRelationshipReadiness(employeeId, employmentId)
+    : [];
+  const canWriteIncomeRelationships = canReviewIncomeRelationships && authContext.permissions.includes('salary:write');
   const tProcess = await getTranslator('processAutomation');
   const processWork = tab === 'processes' && canReadProcesses
     ? await listProcessWork({ subjectEmploymentId: employmentId, administrationId: detail.administration.id, tab: 'ALL', language: locale }).catch(() => null)
@@ -519,6 +544,63 @@ export default async function EmploymentDetailPage({
                 </div>
               </> : null}
             </Surface>
+            {canReviewIncomeRelationships ? <Surface className="p-5 sm:p-6">
+              <SectionHeader title={t('ikvReadiness.title')} description={t('ikvReadiness.description')} />
+              {query.ikv === 'saved' ? <p className="mt-4 border border-success/30 bg-success-surface p-3 text-sm text-success" role="status">{t('ikvReadiness.readySaved')}</p> : null}
+              {query.ikv === 'blocked' ? <p className="mt-4 border border-warning/40 bg-warning-surface p-3 text-sm text-warning" role="status">{t('ikvReadiness.readyBlocked')}</p> : null}
+              {query.ikv === 'forbidden' ? <p className="mt-4 border border-destructive/30 bg-destructive-surface p-3 text-sm text-destructive" role="alert">{t('ikvReadiness.readyForbidden')}</p> : null}
+              {query.ikv === 'unavailable' ? <p className="mt-4 border border-destructive/30 bg-destructive-surface p-3 text-sm text-destructive" role="alert">{t('ikvReadiness.readyUnavailable')}</p> : null}
+              {incomeReadiness.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">{t('ikvReadiness.empty')}</p> : <div className="mt-5 divide-y divide-border/70 border-t border-subtle">
+                {incomeReadiness.map((relationship) => {
+                  const statusLabel = incomeRelationshipStatusLabel(relationship.reportingStatus, t);
+                  const statusTone = relationship.reportingStatus === 'READY' ? 'success' : relationship.reportingStatus === 'DRAFT' ? 'warning' : 'neutral';
+                  const linkedEmploymentNumbers = [...new Set(relationship.linkedEmployments.map((link) => link.employmentNumber))];
+                  return <div className="py-5 first:pt-5 last:pb-0" key={relationship.id}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <h3 className="font-semibold">{t('ikvReadiness.ikvNumber')} {relationship.ikvNumber}</h3>
+                      <Badge tone={statusTone}>{statusLabel}</Badge>
+                    </div>
+                    <InfoList className="mt-4" columns={2} items={[
+                      { label: t('ikvReadiness.reportingStatus'), value: statusLabel },
+                      { label: t('ikvReadiness.validPeriod'), value: periodLabel(relationship.startsOn, relationship.endsOn, locale, preferences.dateFormat, t('fiscalDossier.openEnded')) },
+                      { label: t('ikvReadiness.linkedEmployment'), value: linkedEmploymentNumbers.join(', ') || t('notRecorded') },
+                      { label: t('fiscalDossier.classificationStatus'), value: relationship.fiscalProfilePresent ? t('ikvReadiness.fiscalProfilePresent') : t('ikvReadiness.fiscalProfileMissing') },
+                    ]} />
+                    <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                      {relationship.linkedEmployments.map((link, index) => <li key={`${relationship.id}-${link.employmentNumber}-${link.validFrom}-${index}`}>
+                        {t('ikvReadiness.linkedEmployment')} {link.employmentNumber} · {t('ikvReadiness.linkPeriod')}: {periodLabel(link.validFrom, inclusiveEndFromExclusive(link.validUntil), locale, preferences.dateFormat, t('fiscalDossier.openEnded'))}
+                      </li>)}
+                    </ul>
+                    {relationship.blockers.length > 0 ? <div className="mt-4 rounded-md border border-warning/40 bg-warning-surface p-4">
+                      <p className="text-sm font-medium">{t('ikvReadiness.blockedTitle')}</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                        {relationship.blockers.map((blocker) => <li key={blocker}>{t(`ikvReadiness.blockers.${blocker}`)}</li>)}
+                      </ul>
+                    </div> : null}
+                    {canWriteIncomeRelationships && relationship.reportingStatus === 'DRAFT' ? <form action={markIncomeRelationshipReadyAction} className="mt-4 flex flex-wrap items-center gap-3">
+                      <input type="hidden" name="employeeId" value={employeeId} />
+                      <input type="hidden" name="employmentId" value={employmentId} />
+                      <input type="hidden" name="incomeRelationshipId" value={relationship.id} />
+                      <button className={`${buttonClasses({ size: 'sm' })} disabled:cursor-not-allowed disabled:opacity-60`} disabled={!relationship.canMarkReady} type="submit">{t('ikvReadiness.markReady')}</button>
+                      <span className="text-sm text-muted-foreground">{relationship.canMarkReady ? t('ikvReadiness.markReadyHelp') : t('ikvReadiness.markReadyDisabled')}</span>
+                    </form> : null}
+                    <div className="mt-5 border-t border-subtle pt-4">
+                      <h4 className="text-sm font-medium">{t('ikvReadiness.auditTitle')}</h4>
+                      {!relationship.auditHistoryAvailable ? <p className="mt-2 text-sm text-muted-foreground">{t('ikvReadiness.auditUnavailable')}</p>
+                        : relationship.auditHistory.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">{t('ikvReadiness.auditEmpty')}</p>
+                          : <ul className="mt-2 divide-y divide-border/70">
+                            {relationship.auditHistory.map((entry) => <li className="py-2 first:pt-0" key={entry.id}>
+                              <p className="text-sm">{entry.beforeStatus && entry.afterStatus
+                                ? t('ikvReadiness.auditStatusChanged', { from: incomeRelationshipStatusLabel(entry.beforeStatus, t), to: incomeRelationshipStatusLabel(entry.afterStatus, t) })
+                                : t('ikvReadiness.auditStatusChanged', { from: t('ikvReadiness.statusUnknown'), to: t('ikvReadiness.statusUnknown') })}</p>
+                              <time className="mt-1 block text-xs text-muted-foreground" dateTime={entry.createdAt}>{formatDateTime(entry.createdAt, { locale, dateFormat: preferences.dateFormat, timeFormat: preferences.timeFormat })}</time>
+                            </li>)}
+                          </ul>}
+                    </div>
+                  </div>;
+                })}
+              </div>}
+            </Surface> : null}
             {currentContract && <EmploymentOverviewActions
               labels={{
                 sectionTitle: t("changeActionsTitle"),
