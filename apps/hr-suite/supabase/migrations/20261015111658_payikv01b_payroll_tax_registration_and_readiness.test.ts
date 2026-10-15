@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+const priorMigration = readFileSync(new URL('./20261015100000_payikv01_income_relationship_readiness.sql', import.meta.url), 'utf8')
 const migration = readFileSync(new URL('./20261015111658_payikv01b_payroll_tax_registration_and_readiness.sql', import.meta.url), 'utf8')
 
 const tenantId = '10000000-0000-0000-0000-000000000001'
@@ -243,6 +244,7 @@ describe('PAYIKV-01B migration behavior', () => {
         ('80000000-0000-0000-0000-000000000001', '${tenantId}', '${administrationId}', '70000000-0000-0000-0000-000000000001', '0001', 1, 'EMPLOYMENT', DATE '2018-01-01', 'READY'),
         ('80000000-0000-0000-0000-000000000002', '${tenantId}', '${administrationId}', '70000000-0000-0000-0000-000000000002', '0002', 1, 'EMPLOYMENT', DATE '2018-01-01', 'CLOSED');
     `)
+    await db.exec(priorMigration)
     await db.exec(migration)
   })
 
