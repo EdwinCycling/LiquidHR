@@ -327,19 +327,21 @@ function Grid({ canPlace, displayMode, dragTarget, labels, members, onDragTarget
   scores: TalentReviewScore[]
   selectedEmployeeId: string | null
 }) {
-  return <div aria-label={labels.grid} className="min-w-0" role="group">
-    <div className="mb-2 grid grid-cols-[minmax(3.5rem,.62fr)_repeat(3,minmax(0,1fr))] gap-2 sm:grid-cols-[minmax(4.5rem,.62fr)_repeat(3,minmax(0,1fr))]">
-      <span className="self-end pb-1 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.potential} →</span>
-      {GRID_COLUMNS.map((value) => <span className="text-center text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground sm:text-xs" key={value}>{valueLabel(value, labels)}</span>)}
-    </div>
-    <div className="space-y-2 sm:space-y-3">
-      {GRID_ROWS.map((performance) => <div className="grid grid-cols-[minmax(3.5rem,.62fr)_repeat(3,minmax(0,1fr))] items-stretch gap-2 sm:grid-cols-[minmax(4.5rem,.62fr)_repeat(3,minmax(0,1fr))] sm:gap-3" key={performance}>
-        <div className="flex min-w-0 flex-col justify-center border-r border-subtle pr-2 text-right"><span className="break-words text-xs font-semibold sm:text-sm">{valueLabel(performance, labels)}</span><span className="mt-1 text-[0.6rem] text-muted-foreground">{labels.performance} ↓</span></div>
-        {GRID_COLUMNS.map((potential) => {
-          const cell = `${performance}_${potential}` as GridCell
-          return <GridCell canPlace={canPlace} cell={cell} displayMode={displayMode} dragTarget={dragTarget} key={cell} labels={labels} members={members} onDragTarget={onDragTarget} onPlace={onPlace} onSelect={onSelect} placementLabel={placementLabel} scores={scores} selectedEmployeeId={selectedEmployeeId} />
-        })}
-      </div>)}
+  return <div aria-label={labels.grid} className="overflow-x-auto overscroll-x-contain rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" role="region" tabIndex={0}>
+    <div className="min-w-[32rem]">
+      <div className="mb-2 grid grid-cols-[minmax(3.5rem,.62fr)_repeat(3,minmax(0,1fr))] gap-2 sm:grid-cols-[minmax(4.5rem,.62fr)_repeat(3,minmax(0,1fr))]">
+        <span className="self-end pb-1 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.potential} →</span>
+        {GRID_COLUMNS.map((value) => <span className="text-center text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground sm:text-xs" key={value}>{valueLabel(value, labels)}</span>)}
+      </div>
+      <div className="space-y-2 sm:space-y-3">
+        {GRID_ROWS.map((performance) => <div className="grid grid-cols-[minmax(3.5rem,.62fr)_repeat(3,minmax(0,1fr))] items-stretch gap-2 sm:grid-cols-[minmax(4.5rem,.62fr)_repeat(3,minmax(0,1fr))] sm:gap-3" key={performance}>
+          <div className="flex min-w-0 flex-col justify-center border-r border-subtle pr-2 text-right"><span className="break-words text-xs font-semibold sm:text-sm">{valueLabel(performance, labels)}</span><span className="mt-1 text-[0.6rem] text-muted-foreground">{labels.performance} ↓</span></div>
+          {GRID_COLUMNS.map((potential) => {
+            const cell = `${performance}_${potential}` as GridCell
+            return <GridCell canPlace={canPlace} cell={cell} displayMode={displayMode} dragTarget={dragTarget} key={cell} labels={labels} members={members} onDragTarget={onDragTarget} onPlace={onPlace} onSelect={onSelect} placementLabel={placementLabel} scores={scores} selectedEmployeeId={selectedEmployeeId} />
+          })}
+        </div>)}
+      </div>
     </div>
   </div>
 }
