@@ -173,6 +173,48 @@ describe('TalentReviewWorkspace score draft', () => {
     }
   })
 
+  it('counts only the selected assignment scores in the team grid', () => {
+    const firstAssignment = workspace.assignments[0]!
+    const secondAssignmentId = '00000000-0000-4000-8000-000000000007'
+    const secondManagerId = '00000000-0000-4000-8000-000000000008'
+    const secondAssignmentWorkspace: ReviewWorkspace = {
+      ...workspace,
+      campaigns: workspace.campaigns.map((campaign) => ({ ...campaign, review_mode: 'HYBRID' })),
+      assignments: [
+        { ...firstAssignment, employee_count: 1, managerLabel: 'First manager' },
+        { ...firstAssignment, id: secondAssignmentId, manager_employee_id: secondManagerId, employee_count: 1, managerLabel: 'Other manager' },
+      ],
+      members: [
+        { ...workspace.members[0]!, assignmentId: firstAssignment.id },
+        { ...workspace.members[1]!, assignmentId: secondAssignmentId, managerEmployeeId: secondManagerId },
+      ],
+      scores: [{
+        id: '00000000-0000-4000-8000-000000000009',
+        campaign_id: campaignId,
+        assignment_id: secondAssignmentId,
+        employee_id: secondEmployeeId,
+        manager_employee_id: secondManagerId,
+        performance_score: 'HIGH',
+        potential_score: 'HIGH',
+        grid_cell: 'HIGH_HIGH',
+        note: null,
+        acting_reason: null,
+        status: 'DRAFT',
+        version: 1,
+        updated_at: '2026-10-01T10:00:00Z',
+      }],
+    }
+    const { host, root } = mount(createElement(TalentReviewWorkspace, { initial: secondAssignmentWorkspace, labels, mode: 'hr', initialTab: 'review' }))
+    try {
+      choose(host, 'selectManager', 'First manager · inProgress')
+      const grid = host.querySelector<HTMLElement>('[role="region"][aria-label="grid"]')
+      const highHighCell = grid?.querySelector<HTMLElement>('[role="group"][aria-label^="cellHighHigh"]')
+      expect(highHighCell?.getAttribute('aria-label')).toBe('cellHighHigh, 0 employees')
+      expect(highHighCell?.querySelector('button[aria-label="Second employee"]')).toBeNull()
+    } finally {
+      unmount(host, root)
+    }
+  })
   it('shows only the review tab to managers and locks a submitted assignment', () => {
     const assignmentId = '00000000-0000-4000-8000-000000000004'
     const submittedScore: TalentReviewScore = {

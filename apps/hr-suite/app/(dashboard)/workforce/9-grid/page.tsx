@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { TalentReviewWorkspace, type TalentReviewLabels } from '@/components/talent/talent-review-workspace'
-import { listTalentReviewWorkspace } from '@/lib/talent-review/service'
+import { listTalentReviewWorkspace, TalentReviewError } from '@/lib/talent-review/service'
 import { getTranslator } from '@/lib/i18n/server'
 import { PageHeader } from '@/components/patterns/page-header'
 import { PageShell } from '@/components/layout/page-shell'
@@ -25,7 +25,13 @@ async function resolveMode(): Promise<'hr' | 'manager'> {
 export default async function TalentReviewPage({ searchParams }: { searchParams: Promise<{ campaignId?: string; tab?: string }> }) {
   const [mode, t] = await Promise.all([resolveMode(), getTranslator('talentReview')])
   const params = await searchParams
-  const initial = await listTalentReviewWorkspace(mode, params.campaignId ? { campaignId: params.campaignId } : {})
+  let initial: Awaited<ReturnType<typeof listTalentReviewWorkspace>>
+  try {
+    initial = await listTalentReviewWorkspace(mode, params.campaignId ? { campaignId: params.campaignId } : {})
+  } catch (error) {
+    if (error instanceof TalentReviewError && error.status === 404) notFound()
+    throw error
+  }
   const initialTab = params.tab === 'campaigns' || params.tab === 'results' ? params.tab : 'review'
   const labels: TalentReviewLabels = {
     title: t('title'), subtitle: t('subtitle'), campaignsTab: t('campaignsTab'), reviewTab: t('reviewTab'), resultsTab: t('resultsTab'), newCampaign: t('newCampaign'), campaignName: t('campaignName'), description: t('description'), startsOn: t('startsOn'), endsOn: t('endsOn'), previousCampaign: t('previousCampaign'), noPreviousCampaign: t('noPreviousCampaign'), reviewMode: t('reviewMode'), managerOnly: t('managerOnly'), hrOnly: t('hrOnly'), hybrid: t('hybrid'), create: t('create'), start: t('start'), close: t('close'), reopen: t('reopen'), remind: t('remind'), campaigns: t('campaigns'), noCampaigns: t('noCampaigns'), selectCampaign: t('selectCampaign'), selectManager: t('selectManager'), active: t('active'), scheduled: t('scheduled'), draft: t('draft'), hrReview: t('hrReview'), closed: t('closed'), archived: t('archived'), filterDraft: t('filterDraft'), filterRunning: t('filterRunning'), filterClosed: t('filterClosed'), progress: t('progress'), placed: t('placed'), managers: t('managers'), manager: t('manager'), team: t('team'), employees: t('employees'), searchEmployees: t('searchEmployees'), searchCampaigns: t('searchCampaigns'), dropHere: t('dropHere'), grid: t('grid'), performance: t('performance'), potential: t('potential'), low: t('low'), normal: t('normal'), high: t('high'), cellHighLow: t('cellHighLow'), cellHighNormal: t('cellHighNormal'), cellHighHigh: t('cellHighHigh'), cellNormalLow: t('cellNormalLow'), cellNormalNormal: t('cellNormalNormal'), cellNormalHigh: t('cellNormalHigh'), cellLowLow: t('cellLowLow'), cellLowNormal: t('cellLowNormal'), cellLowHigh: t('cellLowHigh'), selectedEmployee: t('selectedEmployee'), noEmployeeSelected: t('noEmployeeSelected'), previousScore: t('previousScore'), currentScore: t('currentScore'), note: t('note'), notePlaceholder: t('notePlaceholder'), saveDraft: t('saveDraft'), submitTeam: t('submitTeam'), submitted: t('submitted'), notStarted: t('notStarted'), inProgress: t('inProgress'), returned: t('returned'), reminderSent: t('reminderSent'), noTeam: t('noTeam'), noScores: t('noScores'), companyGrid: t('companyGrid'), teamGrid: t('teamGrid'), history: t('history'), noHistory: t('noHistory'), readOnly: t('readOnly'), modeNotAllowed: t('modeNotAllowed'), saved: t('saved'), failed: t('failed'), openProfile: t('openProfile'), place: t('place'), selectEmployeeFirst: t('selectEmployeeFirst'), emptyCell: t('emptyCell'), movement: t('movement'), movementUp: t('movementUp'), movementDown: t('movementDown'), movementStable: t('movementStable'), movementNew: t('movementNew'), confirmAction: t('confirmAction'), cancelAction: t('cancelAction'), confirmStartDescription: t('confirmStartDescription'), confirmCloseDescription: t('confirmCloseDescription'), confirmReopenDescription: t('confirmReopenDescription'), confirmSubmitTitle: t('confirmSubmitTitle'), confirmSubmitDescription: t('confirmSubmitDescription'), confirmSubmit: t('confirmSubmit'), photoView: t('photoView'), nameView: t('nameView'), closeRequirements: t('closeRequirements'), closeBlocked: t('closeBlocked'), closeReady: t('closeReady'), returnAssignment: t('returnAssignment'), returnReason: t('returnReason'), returnReasonPlaceholder: t('returnReasonPlaceholder'), confirmReturn: t('confirmReturn'), lastSubmitted: t('lastSubmitted'), resultsSummary: t('resultsSummary'), selectionCount: t('selectionCount'), tabs: t('tabs'),

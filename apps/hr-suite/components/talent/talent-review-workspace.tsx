@@ -254,7 +254,7 @@ function GridCell({ canPlace, cell, displayMode, dragTarget, labels, members, on
   selectedEmployeeId: string | null
 }) {
   const membersById = new Map(members.map((member) => [member.id, member]))
-  const cellScores = scores.filter((score) => asGridCell(score.grid_cell) === cell)
+  const cellScores = scores.filter((score) => membersById.has(score.employee_id) && asGridCell(score.grid_cell) === cell)
   const accent = CELL_ACCENTS[cell]
   const isDropTarget = dragTarget === cell
   const style = {
