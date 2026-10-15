@@ -29,6 +29,13 @@ export function componentAmount(row: PayrollComponentResultRow): number | null {
   return null
 }
 
+function componentStoredMoney(row: PayrollComponentResultRow | undefined): string | null {
+  if (!row) return null
+  const amount = asRecord(row.result_payload)?.amount
+  if (typeof amount === 'string' && /^-?\d{1,12}(?:\.\d{1,2})?$/.test(amount)) return amount
+  return typeof row.amount === 'number' && Number.isFinite(row.amount) ? row.amount.toFixed(2) : null
+}
+
 function asRecord(value: PayrollJson): Record<string, PayrollJson | undefined> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, PayrollJson | undefined>
@@ -452,15 +459,28 @@ export function PayrollRunReconciliation({
   const tracePayload = run.trace?.trace_payload
   const engineSteps = payrollTraceSteps(tracePayload)
   const pensionSteps = payrollPensionCalculationSteps(run.sourceSnapshot.source_payload)
-  const fiscalBases = payrollFiscalBases(run.sourceSnapshot.source_payload)
+  const fiscalBaseComponentKeys = {
+    wageTax: 'taxable_wage',
+    employeeInsurance: 'employee_insurance_base',
+    zvw: 'zvw_base',
+  } as const
+  const fiscalBases = payrollFiscalBases(run.sourceSnapshot.source_payload).map((base) => ({
+    ...base,
+    amount: base.amount ?? componentStoredMoney(byKey.get(fiscalBaseComponentKeys[base.key])),
+  }))
   const payrollOwned = payrollExplanationRecord(payrollExplanationRecord(run.sourceSnapshot.source_payload)?.payrollOwned)
   const pensionSummary = payrollExplanationRecord(payrollOwned?.pensionCalculationSummary)
   const finalized = run.lifecycleEvents.some((event) => event.calculation_run_id === run.run.id && event.event_type === 'FINALIZED')
   const groups = [
-    { title: labels.employeeArithmetic, keys: ['contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'gross_salary', 'employee_pension', 'taxable_wage', 'employee_insurance_wage', 'zvw_wage', 'wage_tax', 'net_salary'] },
+    { title: labels.employeeArithmetic, keys: ['contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'variable_regular_wage', 'special_reward_wage', 'gross_salary', 'pensionable_wage', 'employee_pension', 'taxable_wage', 'employee_insurance_wage', 'zvw_wage', 'wage_tax', 'special_reward_wage_tax', 'net_reimbursement', 'net_deduction', 'net_correction', 'net_salary'] },
     { title: labels.employerCost, keys: ['employer_insurance', 'employer_pension', 'holiday_allowance_reserve', 'holiday_reserve', 'year_end_reserve', 'total_employer_cost'] },
-    { title: labels.cumulative, keys: ['cumulative_gross', 'cumulative_holiday_reserve', 'cumulative_year_end_reserve'] },
+    { title: labels.cumulative, keys: ['cumulative_gross', 'cumulative_taxable_wage', 'cumulative_wage_tax', 'cumulative_employee_insurance_wage', 'cumulative_zvw_wage', 'cumulative_holiday_reserve', 'cumulative_year_end_reserve'] },
   ]
+  const separatelyPresentedComponents = new Set([
+    'cumulative_gross_wage', 'employee_insurance_base', 'zvw_base',
+    'employer_aof', 'employer_awf', 'employer_whk', 'employer_wko', 'employer_zvw',
+    'special_reward_tax_rate', 'variable_regular_wage_source',
+  ])
   const renderRow = (row: PayrollComponentResultRow) => {
     const resultPayload = payrollExplanationRecord(row.result_payload)
     const component = payrollExplanationRecord(resultPayload?.component)
@@ -512,8 +532,8 @@ export function PayrollRunReconciliation({
         <div className="mt-3">{rows.map(renderRow)}</div>
       </details>
     })}
-      {components.filter((row) => !groups.some((group) => group.keys.includes(row.component_key))).length > 0
-        ? <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.otherComponents}</summary><div className="mt-3">{components.filter((row) => !groups.some((group) => group.keys.includes(row.component_key))).map(renderRow)}</div></details>
+      {components.filter((row) => !groups.some((group) => group.keys.includes(row.component_key)) && !separatelyPresentedComponents.has(row.component_key)).length > 0
+        ? <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.otherComponents}</summary><div className="mt-3">{components.filter((row) => !groups.some((group) => group.keys.includes(row.component_key)) && !separatelyPresentedComponents.has(row.component_key)).map(renderRow)}</div></details>
         : null}
     </div>
     {pensionSteps.length > 0 ? <PensionCalculationTrace sourcePayload={run.sourceSnapshot.source_payload} locale={locale} labels={labels} /> : null}

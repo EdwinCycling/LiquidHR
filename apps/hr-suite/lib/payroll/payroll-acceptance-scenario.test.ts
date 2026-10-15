@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { PayrollSourceSnapshot } from '@liquid-hr/payroll-engine'
+import { sha256, stableSerialize, type PayrollSourceSnapshot } from '@liquid-hr/payroll-engine'
 import {
   createPayrollAcceptanceScenarioSourceProvider,
   filterPayrollAcceptanceScenarioRuns,
+  getPayrollAcceptanceScenarioSetupDefinition,
   PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES,
   PAYROLL_ACCEPTANCE_SCENARIO_CODE,
   PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE,
@@ -28,9 +29,10 @@ function snapshot(overrides: Partial<PayrollSourceSnapshot> = {}): PayrollSource
     sourceIncomeRelationshipId: incomeRelationshipId,
     periodReference: { year: 2026, month: 10 },
     canonicalSource: {
-      contract: { entries: [{ fulltimeHoursPerWeek: 40 }] },
-      compensation: { entries: [{ paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY', currencyCode: 'EUR', fulltimeAmount: 3517, parttimeAmount: 3517 }] },
-      schedule: { entries: [{ averageHoursPerWeek: 40, fulltimeHoursPerWeek: 40, partTimeFactor: 1 }] },
+      employment: { startsOn: '2020-01-01', endsOn: null, recordStatus: 'CONFIRMED' },
+      contract: { entries: [{ fulltimeHoursPerWeek: 40, validFrom: '2020-01-01', validUntil: null }] },
+      compensation: { entries: [{ paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY', currencyCode: 'EUR', fulltimeAmount: 3517, parttimeAmount: 3517, validFrom: '2020-01-01', validUntil: null }] },
+      schedule: { entries: [{ averageHoursPerWeek: 40, fulltimeHoursPerWeek: 40, partTimeFactor: 1, validFrom: '2020-01-01', validUntil: null }] },
       incomeRelationship: { id: incomeRelationshipId, employmentIncomeRelationshipId: linkId, reportingStatus: 'READY', status: 'LINKED' },
       fiscalProfile: { status: 'SOURCE_GAP', reasonCodes: ['NO_CONFIRMED_FISCAL_PROFILE', 'EMPLOYEE_BIRTH_DATE_REQUIRED_FOR_TAX_CLASSIFICATION'] },
     },
@@ -45,6 +47,29 @@ function snapshot(overrides: Partial<PayrollSourceSnapshot> = {}): PayrollSource
   }
 }
 
+function januaryThroughSeptemberSourceHistory(
+  employeeId: string = first.employeeId,
+  employmentId: string = first.employmentId,
+  grossAmount: string = '3517.00',
+) {
+  const hashCharacters = ['a', 'b', 'c', 'd', 'e', 'f', '1', '2', '3']
+  return Array.from({ length: 9 }, (_, index) => {
+    const month = index + 1
+    const source = snapshot()
+    const canonical = source.canonicalSource as Record<string, unknown>
+    return snapshot({
+      sourceEmployeeId: employeeId,
+      sourceEmploymentId: employmentId,
+      periodReference: { year: 2026, month },
+      sourceHash: hashCharacters[index]!.repeat(64),
+      canonicalSource: {
+        ...canonical,
+        compensation: { entries: [{ paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY', currencyCode: 'EUR', fulltimeAmount: grossAmount, parttimeAmount: grossAmount, validFrom: '2020-01-01', validUntil: null }] },
+      },
+    })
+  })
+}
+
 const input = {
   tenantId,
   hrGroupId,
@@ -54,12 +79,62 @@ const input = {
   payrollPeriod: { year: 2026, month: 10 },
 }
 
+function persistedSetup(employeeId: string = first.employeeId, employmentId: string = first.employmentId) {
+  const scenario = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES.find((candidate) => candidate.employeeId === employeeId && candidate.employmentId === employmentId)
+  const grossAmount = scenario?.key === 'DEMO-002' ? '3534.00' : '3517.00'
+  const definition = getPayrollAcceptanceScenarioSetupDefinition(employeeId, employmentId,
+    januaryThroughSeptemberSourceHistory(employeeId, employmentId, grossAmount))
+  const configHash = sha256(stableSerialize(definition.configJson))
+  const openingHash = sha256(stableSerialize(definition.openingBalanceJson))
+  return {
+    configVersionId: `dddddddd-dddd-4ddd-8ddd-${employeeId.slice(-12)}`,
+    configHash,
+    configJson: definition.configJson,
+    openingSnapshotId: `eeeeeeee-eeee-4eee-8eee-${employeeId.slice(-12)}`,
+    openingHash,
+    openingBalanceJson: definition.openingBalanceJson,
+  }
+}
+
+function persistedSetupReader(employeeId: string, employmentId: string) {
+  return Promise.resolve(persistedSetup(employeeId, employmentId))
+}
+
 describe('Payroll acceptance scenario source adapter', () => {
+  it('binds the explicit opening balance to all nine effective source periods', () => {
+    const history = januaryThroughSeptemberSourceHistory()
+    const definition = getPayrollAcceptanceScenarioSetupDefinition(first.employeeId, first.employmentId, history)
+    const sourcePeriods = definition.openingBalanceJson.sourcePeriods as readonly Record<string, unknown>[]
+
+    expect(sourcePeriods).toHaveLength(9)
+    expect(sourcePeriods.map((item) => item.month)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    expect(sourcePeriods.map((item) => item.sourceHash)).toEqual(history.map((item) => item.sourceHash))
+    expect(definition.openingBalanceJson.classification).toBe('EXPLICIT_TEST_OPENING_BALANCE_NOT_FINALIZED_HISTORICAL_PAYROLL')
+  })
+
+  it('refuses an opening balance when a prior month does not match its effective salary source', () => {
+    const history = januaryThroughSeptemberSourceHistory().map((item) => {
+      if (item.periodReference.month !== 5) return item
+      const canonical = item.canonicalSource as Record<string, unknown>
+      const compensation = canonical.compensation as { entries: readonly Record<string, unknown>[] }
+      return {
+        ...item,
+        canonicalSource: {
+          ...canonical,
+          compensation: { entries: [{ ...compensation.entries[0], parttimeAmount: 3599, fulltimeAmount: 3599 }] },
+        },
+      }
+    })
+
+    expect(() => getPayrollAcceptanceScenarioSetupDefinition(first.employeeId, first.employmentId, history))
+      .toThrowError(expect.objectContaining({ sourceChecks: ['opening_history_2026_05'] }))
+  })
+
   it('adds a hash-bound fictitious tax scenario only to the exact Mars source snapshot', async () => {
     const coreSnapshot = snapshot()
     const source = createPayrollAcceptanceScenarioSourceProvider({
       getPayrollSourceSnapshot: vi.fn(async () => coreSnapshot),
-    })
+    }, 'REGULAR', persistedSetupReader)
 
     const result = await source.getPayrollSourceSnapshot(input)
     const canonical = result.canonicalSource as Record<string, unknown>
@@ -81,9 +156,17 @@ describe('Payroll acceptance scenario source adapter', () => {
       assumptions: { ageCategory: 'UNDER_AOW', wageTaxTable: 'WHITE', payrollTaxCreditApplies: false },
     })
     expect(regularWage).toMatchObject({ table: 'WHITE', grossAmount: '3517.00', payrollTaxCredit: false, incomeRelationshipCount: '1' })
-    expect(setup).toMatchObject({ code: 'TEST_SETUP_PAYFULL_02', version: '1.0', validFrom: '2026-01-01', validTo: '2026-12-31' })
+    expect(setup).toMatchObject({
+      code: 'TEST_SETUP_PAYFULL_02', version: '1.0', validFrom: '2026-01-01', validTo: '2026-12-31',
+      configVersionId: persistedSetup().configVersionId,
+      configHash: persistedSetup().configHash,
+    })
     expect(setup.sourceHash).toMatch(/^[0-9a-f]{64}$/)
-    expect(openingBalance).toMatchObject({ effectiveFrom: '2026-01-01', effectiveTo: '2026-09-30', periodCount: 9 })
+    expect(openingBalance).toMatchObject({
+      effectiveFrom: '2026-01-01', effectiveTo: '2026-09-30', periodCount: 9,
+      openingSnapshotId: persistedSetup().openingSnapshotId,
+      openingHash: persistedSetup().openingHash,
+    })
     expect(openingBalance.sourceHash).toMatch(/^[0-9a-f]{64}$/)
     expect(payrollOwned.pension).toMatchObject({ classification: 'SYNTHETIC_TEST_PLAN_NOT_EXTERNAL_FUND_CONTRACT', employeeRate: '10.00', employerRate: '15.00' })
     expect(JSON.stringify(canonical)).not.toContain('EMPLOYEE_DECLARATION')
@@ -98,7 +181,7 @@ describe('Payroll acceptance scenario source adapter', () => {
       snapshot({ sourceAdministrationId: '99999999-9999-4999-8999-999999999999' }),
       snapshot({ sourceEmployeeId: '88888888-8888-4888-8888-888888888888' }),
     ]) {
-      const source = createPayrollAcceptanceScenarioSourceProvider({ getPayrollSourceSnapshot: vi.fn(async () => invalidSnapshot) })
+      const source = createPayrollAcceptanceScenarioSourceProvider({ getPayrollSourceSnapshot: vi.fn(async () => invalidSnapshot) }, 'REGULAR', persistedSetupReader)
       await expect(source.getPayrollSourceSnapshot(input)).rejects.toMatchObject({ code: 'PAYROLL_ACCEPTANCE_SCENARIO_SOURCE_CHANGED' })
     }
   })
@@ -106,10 +189,10 @@ describe('Payroll acceptance scenario source adapter', () => {
   it('adds the variable DEMO-001 amount as a separately hashed, regular-wage TEST revision', async () => {
     const regular = await createPayrollAcceptanceScenarioSourceProvider({
       getPayrollSourceSnapshot: vi.fn(async () => snapshot()),
-    }).getPayrollSourceSnapshot(input)
+    }, 'REGULAR', persistedSetupReader).getPayrollSourceSnapshot(input)
     const variable = await createPayrollAcceptanceScenarioSourceProvider({
       getPayrollSourceSnapshot: vi.fn(async () => snapshot()),
-    }, 'VARIABLE_BONUS_DEMO_001').getPayrollSourceSnapshot(input)
+    }, 'VARIABLE_BONUS_DEMO_001', persistedSetupReader).getPayrollSourceSnapshot(input)
     const canonical = variable.canonicalSource as Record<string, unknown>
     const testScenario = canonical.testScenario as Record<string, unknown>
     const fiscalProfile = canonical.fiscalProfile as Record<string, unknown>
@@ -145,7 +228,7 @@ describe('Payroll acceptance scenario source adapter', () => {
           },
         },
       })),
-    }, 'VARIABLE_BONUS_DEMO_001')
+    }, 'VARIABLE_BONUS_DEMO_001', persistedSetupReader)
 
     await expect(source.getPayrollSourceSnapshot({
       ...input,
@@ -156,11 +239,20 @@ describe('Payroll acceptance scenario source adapter', () => {
 
   it('does not offer DEMO-005 or any other employee for the test scenario', async () => {
     const getPayrollSourceSnapshot = vi.fn(async () => snapshot())
-    const source = createPayrollAcceptanceScenarioSourceProvider({ getPayrollSourceSnapshot })
+    const source = createPayrollAcceptanceScenarioSourceProvider({ getPayrollSourceSnapshot }, 'REGULAR', persistedSetupReader)
 
     await expect(source.getPayrollSourceSnapshot({ ...input, employeeId: '6de31a0a-362a-55e4-5168-b2134f68132a', employmentId: '8ec508af-8277-7ab7-aa9a-081cc320177f' }))
       .rejects.toBeInstanceOf(PayrollAcceptanceScenarioError)
     expect(getPayrollSourceSnapshot).not.toHaveBeenCalled()
+  })
+
+  it('requires persisted effective-dated configuration and opening rows before constructing a calculation source', async () => {
+    const source = createPayrollAcceptanceScenarioSourceProvider({
+      getPayrollSourceSnapshot: vi.fn(async () => snapshot()),
+    }, 'REGULAR', async () => null)
+
+    await expect(source.getPayrollSourceSnapshot(input))
+      .rejects.toMatchObject({ code: 'PAYFULL02_TEST_SETUP_NOT_PERSISTED' })
   })
 })
 

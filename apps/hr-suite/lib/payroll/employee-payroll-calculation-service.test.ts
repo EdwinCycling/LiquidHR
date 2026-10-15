@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
-import type { PayrollSourceProvider, PayrollSourceSnapshot } from '@liquid-hr/payroll-engine'
+import { sha256, stableSerialize, type PayrollSourceProvider, type PayrollSourceSnapshot } from '@liquid-hr/payroll-engine'
 import type { PayrollCalculationArtifacts, PayrollCalculationRepository } from './calculation-repository'
 import type {
   GenericPayrollInputReferenceRow,
@@ -178,9 +178,35 @@ function payfullScenarioProvider(state: {
         : PAYROLL_ACCEPTANCE_SCENARIO_CODE
       const variableWage = state.variant === 'VARIABLE' ? state.variableWage ?? '500.00' : '0.00'
       const assumptionsHash = 'e'.repeat(64)
+      const configVersionId = '9a000000-0000-4000-8000-000000000009'
+      const openingSnapshotId = '9b000000-0000-4000-8000-000000000009'
+      const configHash = sha256(stableSerialize({
+        schemaVersion: 'PAYFULL02_TEST_CALCULATION_CONFIG_V1',
+        source: 'TEST_SETUP_PAYFULL_02',
+        effectiveFrom: '2026-01-01',
+        effectiveTo: '2026-12-31',
+        employeeId,
+        employmentId,
+      }))
+      const openingBalanceValues = {
+        effectiveFrom: '2026-01-01', effectiveTo: '2026-09-30', periodCount: 9,
+        cumulativeBalances: { grossWageBeforePeriod: '36000.00', taxableWageBeforePeriod: '32000.00' },
+        source: 'TEST_SETUP_PAYFULL_02 synthetic opening balances for the calculation-service fixture.',
+      }
+      const openingHash = sha256(stableSerialize(openingBalanceValues))
+      const setupHash = sha256(stableSerialize({
+        code: 'TEST_SETUP_PAYFULL_02', version: '1.0', configVersionId, configHash, openingSnapshotId, openingHash,
+      }))
       const payrollOwned = {
         ...originalPayrollOwned,
-        setup: { code: 'TEST_SETUP_PAYFULL_02', version: '1.0' },
+        setup: {
+          code: 'TEST_SETUP_PAYFULL_02', version: '1.0', sourceHash: setupHash,
+          configVersionId, configHash,
+        },
+        openingBalance: {
+          ...openingBalanceValues,
+          sourceHash: openingHash, openingSnapshotId, openingHash,
+        },
         amounts: {
           ...originalAmounts,
           variableRegularWage: variableWage,
@@ -220,6 +246,7 @@ function payfullScenarioProvider(state: {
         pension: {
           monthlyFranchise: '0.00',
           monthlyMaximum: '11483.33',
+          partTimeFactor: '1.0000',
           employeeRate: '10.00',
           employerRate: '15.00',
           active: true,
@@ -453,6 +480,56 @@ describe('Core-backed employee payroll calculation', () => {
     expect(missingFiscalProfile.inputs.size).toBe(0)
   })
 
+  it.each([
+    {
+      missing: 'persisted Payroll Lab config',
+      expected: 'PAYFULL02_CALCULATION_COMPONENTS',
+      other: 'CUMULATIVE_WAGE_TAX',
+      remove: 'config' as const,
+    },
+    {
+      missing: 'persisted cumulative opening snapshot',
+      expected: 'CUMULATIVE_WAGE_TAX',
+      other: 'PAYFULL02_CALCULATION_COMPONENTS',
+      remove: 'opening' as const,
+    },
+  ])('requires $missing provenance even when the source carries the PAYFULL02 scenario marker', async ({ expected, other, remove }) => {
+    const completeProvider = payfullScenarioProvider({ variant: 'REGULAR' })
+    const sourceProvider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: async (input) => {
+        const snapshot = await completeProvider.getPayrollSourceSnapshot(input)
+        const source = snapshot.canonicalSource as Record<string, unknown>
+        const payrollOwned = source.payrollOwned as Record<string, unknown>
+        const setup = payrollOwned.setup as Record<string, unknown>
+        const openingBalance = payrollOwned.openingBalance as Record<string, unknown>
+        const incompleteSetup = remove === 'config'
+          ? { ...setup, configVersionId: undefined, configHash: undefined }
+          : setup
+        const incompleteOpening = remove === 'opening'
+          ? { ...openingBalance, openingSnapshotId: undefined, openingHash: undefined }
+          : openingBalance
+        return {
+          ...snapshot,
+          canonicalSource: {
+            ...source,
+            payrollOwned: {
+              ...payrollOwned,
+              setup: incompleteSetup,
+              openingBalance: incompleteOpening,
+            },
+          } as PayrollSourceSnapshot['canonicalSource'],
+        }
+      },
+    }
+    const state = harness({}, sourceProvider, true)
+    const result = await state.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+
+    expect(result).toMatchObject({ status: 'INCOMPLETE', completeness: 'INCOMPLETE' })
+    expect(result.incompleteComponents).toContain(expected)
+    expect(result.incompleteComponents).not.toContain(other)
+    expect(state.runs.size).toBe(1)
+  })
+
   it('requires a finalized regular predecessor before the variable-wage scenario can create a run', async () => {
     const state = harness({}, payfullScenarioProvider({ variant: 'VARIABLE' }), true)
     const result = await state.service.calculateEmployeePayroll({
@@ -471,6 +548,38 @@ describe('Core-backed employee payroll calculation', () => {
     expect(state.calcWrites).toHaveLength(0)
   })
 
+  it('does not accept a regular concept as the finalized predecessor for a variable-wage revision', async () => {
+    const variant: { variant: 'REGULAR' | 'VARIABLE'; variableWage: string } = {
+      variant: 'REGULAR', variableWage: '0.00',
+    }
+    const state = harness({}, payfullScenarioProvider(variant), true)
+    const regular = await state.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_IMPLEMENTATION_VERSIONED_RECALCULATION',
+    })
+    variant.variant = 'VARIABLE'
+    variant.variableWage = '500.00'
+
+    const variable = await state.service.calculateEmployeePayroll({
+      employeeId, employmentId, period,
+      successorReasonCode: 'PAYFULL02_VARIABLE_WAGE_TEST_REVISION',
+      requireFinalizedPredecessor: true,
+    })
+
+    expect(regular).toMatchObject({ businessStatus: 'CONCEPT', revision: 1 })
+    expect(variable).toMatchObject({
+      status: 'CORRECTION_REQUIRED',
+      businessStatus: 'CONCEPT',
+      revision: 1,
+      errorCode: 'PAYFULL02_VARIABLE_REVISION_REQUIRES_FINALIZED_BASE',
+    })
+    expect(state.runs.size).toBe(1)
+    expect(state.snapshots.size).toBe(1)
+    expect(state.inputs.size).toBe(1)
+    expect(state.calcWrites).toHaveLength(1)
+    expect(state.events.map((event) => [event.revision, event.event_type])).toEqual([[1, 'CONCEPT']])
+  })
+
   it('reuses only an exact variable-scenario retry and blocks mismatched input hashes or engine versions', async () => {
     const exactState = harness({}, payfullScenarioProvider({ variant: 'VARIABLE' }), true)
     const first = await exactState.service.calculateEmployeePayroll({
@@ -483,6 +592,7 @@ describe('Core-backed employee payroll calculation', () => {
       requireFinalizedPredecessor: true,
     })
 
+    expect(first).toMatchObject({ status: 'CALCULATED', completeness: 'COMPLETE', incompleteComponents: [] })
     expect(first.businessStatus).toBe('CONCEPT')
     expect(retry.runId).toBe(first.runId)
     expect(retry.inputHash).toBe(first.inputHash)
@@ -586,6 +696,10 @@ describe('Core-backed employee payroll calculation', () => {
       status: 'INCOMPLETE', completeness: 'INCOMPLETE', businessStatus: 'CONCEPT', revision: 1,
       grossAmount: '4000.00', wageTaxAmount: '818.67', netAfterWageTax: '3181.33',
     })
+    expect(first.incompleteComponents).toEqual(expect.arrayContaining([
+      'PENSION_EMPLOYEE_ALLOCATION', 'PENSION_EMPLOYER_ALLOCATION', 'EMPLOYER_SOCIAL_COSTS',
+      'HOLIDAY_AND_YEAR_END_RESERVES', 'CUMULATIVE_WAGE_TAX', 'VARIABLE_AND_NON_REGULAR_WAGE',
+    ]))
     expect(retry.runId).toBe(first.runId)
     expect(state.snapshots.size).toBe(1)
     expect(state.inputs.size).toBe(1)

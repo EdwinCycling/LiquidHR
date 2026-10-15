@@ -28,6 +28,7 @@ type CandidateInput = {
 }
 
 export interface LocalPayrollAcceptanceService {
+  readonly prepareScenarioSetup: (input: { readonly employeeId: string; readonly employmentId: string }) => Promise<void>
   readonly inspectScenarioCandidate: (input: CandidateInput) => Promise<EmployeePayrollPreflightView>
   readonly calculateScenarioCandidate: (input: CandidateInput) => Promise<EmployeePayrollCalculationView>
   readonly inspectVariableScenarioCandidate: (input: CandidateInput) => Promise<EmployeePayrollPreflightView>
@@ -197,6 +198,10 @@ export async function runLocalPayrollAcceptanceFlow(
   const scenarioPreflights: LocalPayrollAcceptancePreflight[] = []
 
   for (const candidate of PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES) {
+    await service.prepareScenarioSetup({ employeeId: candidate.employeeId, employmentId: candidate.employmentId })
+  }
+
+  for (const candidate of PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES) {
     const result = await service.inspectScenarioCandidate({
       employeeId: candidate.employeeId,
       employmentId: candidate.employmentId,
@@ -307,6 +312,7 @@ export async function runLocalPayrollAcceptanceVariableRevisionFlow(
   const period = LOCAL_PAYROLL_ACCEPTANCE_PERIOD
   const candidate = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[0]!
   const input = { employeeId: candidate.employeeId, employmentId: candidate.employmentId, period }
+  await service.prepareScenarioSetup({ employeeId: candidate.employeeId, employmentId: candidate.employmentId })
   const preflightResult = await service.inspectVariableScenarioCandidate(input)
   const preflight = [simplifyPreflight(candidate.key, preflightResult, false)]
   if (!preflightResult.eligibleForCalculation) {

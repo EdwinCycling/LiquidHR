@@ -9,6 +9,8 @@ import {
   sha256,
   stableSerialize,
   type PayrollCalculationResult,
+  type PayrollRulePackage,
+  type PayrollComponentDefinition,
   type PayrollSourceGap,
   type PayrollSourceProvider,
   type PayrollSourceSnapshot,
@@ -36,6 +38,7 @@ import {
   PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE,
 } from './payroll-acceptance-scenario'
 import { createPayrun01Repository, type GenericPayrollInputReferenceInput, type Payrun01Repository } from './payrun01-repository'
+import { ensurePayfull02TestSetup, readPayfull02TestSetup } from './payfull02-test-setup'
 import { createLiquidHrPayrollSourceProvider } from './source/liquid-hr-source-provider'
 import type { PayrollScope } from './scope'
 
@@ -167,16 +170,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const REQUIRED_SOURCE_FIELDS = new Set([
   'employment', 'contractualSalary', 'contractualHours', 'contract', 'laborCondition', 'incomeRelationship', 'taxProfile',
 ])
-const INCOMPLETE_COMPONENTS = [
-  'PENSION_EMPLOYEE_ALLOCATION',
-  'PENSION_EMPLOYER_ALLOCATION',
-  'EMPLOYER_SOCIAL_COSTS',
-  'HOLIDAY_AND_YEAR_END_RESERVES',
-  'CUMULATIVE_WAGE_TAX',
-  'VARIABLE_AND_NON_REGULAR_WAGE',
-] as const
 const PAYFULL02_SETUP_CODE = 'TEST_SETUP_PAYFULL_02'
 const COMPLETENESS_CONTRACT = 'PAYCALC-REAL-01B-COMPLETENESS-1'
+const PAYFULL02_COMPLETENESS_PACKAGE = createPayfull02RulePackage('DEMO_COMPANY_TEST')
 
 const defaults: EmployeePayrollCalculationDependencies = {
   requireAccess: async (write) => await requireComponentLibraryAccess(write),
@@ -226,8 +222,174 @@ function isPayfull02Source(value: unknown): boolean {
     && setup.version === '1.0'
 }
 
-function incompleteComponentsForSource(value: unknown): readonly string[] {
-  return isPayfull02Source(value) ? [] : INCOMPLETE_COMPONENTS
+function sourcePathValue(value: unknown, path: readonly (string | number)[]): unknown {
+  let current: unknown = value
+  for (const segment of path) {
+    if (typeof segment === 'number') {
+      if (!Array.isArray(current)) return undefined
+      current = current[segment]
+    } else {
+      const object = record(current)
+      if (!object) return undefined
+      current = object[segment]
+    }
+  }
+  return current
+}
+
+function sourceValueMatchesType(value: unknown, valueType: PayrollComponentDefinition['outputs'][number]['valueType']): boolean {
+  if (value === undefined || value === null) return false
+  if (valueType === 'BOOLEAN') return typeof value === 'boolean'
+  if (valueType === 'STRING') return typeof value === 'string' && value.length > 0
+  if (valueType === 'MONEY' || valueType === 'DECIMAL' || valueType === 'PERCENTAGE') {
+    if (typeof value !== 'string' && typeof value !== 'number') return false
+    try {
+      FixedDecimal.parse(String(value))
+      return true
+    } catch {
+      return false
+    }
+  }
+  return false
+}
+
+function completenessCategoriesForComponent(code: string): readonly string[] {
+  const normalized = code.toUpperCase()
+  if (normalized.includes('EMPLOYER_PENSION') || normalized.includes('EMPLOYER_PENSION_RATE')) return ['PENSION_EMPLOYER_ALLOCATION']
+  if (normalized.includes('EMPLOYEE_PENSION') || normalized.includes('EMPLOYEE_PENSION_RATE')) return ['PENSION_EMPLOYEE_ALLOCATION']
+  if (normalized.includes('PENSION')) return ['PENSION_EMPLOYEE_ALLOCATION', 'PENSION_EMPLOYER_ALLOCATION']
+  if (['AWF', 'AOF', 'WHK', 'WKO', 'ZVW', 'EMPLOYER_COST'].some((part) => normalized.includes(part))) {
+    return ['EMPLOYER_SOCIAL_COSTS']
+  }
+  if (['RESERVE', 'HOLIDAY', 'YEAR_END'].some((part) => normalized.includes(part))) return ['HOLIDAY_AND_YEAR_END_RESERVES']
+  if (['CUMULATIVE', 'OPENING_', 'YTD_'].some((part) => normalized.includes(part))) return ['CUMULATIVE_WAGE_TAX']
+  if (['VARIABLE', 'SPECIAL_REWARD'].some((part) => normalized.includes(part))) return ['VARIABLE_AND_NON_REGULAR_WAGE']
+  return ['PAYFULL02_CALCULATION_COMPONENTS']
+}
+
+function payfull02SetupGaps(source: Record<string, unknown>, inputReference?: unknown): readonly string[] {
+  const scenario = record(source.testScenario)
+  if (scenario?.sourceClassification !== 'PAYROLL_TEST_SCENARIO') return []
+
+  const payrollOwned = record(source.payrollOwned)
+  const setup = record(payrollOwned?.setup)
+  const openingBalance = record(payrollOwned?.openingBalance)
+  const reference = inputReference === undefined
+    ? { testScenario: scenario, payfull02Setup: payrollOwned }
+    : inputReference
+  const referenceRecord = record(reference)
+  const referenceScenario = record(referenceRecord?.testScenario)
+  const referenceOwned = record(referenceRecord?.payfull02Setup)
+  const referenceSetup = record(referenceOwned?.setup)
+  const referenceOpening = record(referenceOwned?.openingBalance)
+  const gaps = new Set<string>()
+  const validHash = (value: unknown) => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value)
+  const matchingScenarioReference = isPayrollAcceptanceScenarioReference(reference)
+    && referenceScenario?.code === scenario.code
+    && referenceScenario?.assumptionsHash === scenario.assumptionsHash
+    && referenceScenario?.coreSourceHash === scenario.coreSourceHash
+  const setupComplete = setup?.code === PAYFULL02_SETUP_CODE
+    && setup.version === '1.0'
+    && validHash(setup.sourceHash)
+    && typeof setup.configVersionId === 'string'
+    && UUID.test(setup.configVersionId)
+    && validHash(setup.configHash)
+  const referenceSetupComplete = referenceSetup?.code === PAYFULL02_SETUP_CODE
+    && referenceSetup.version === '1.0'
+    && validHash(referenceSetup.sourceHash)
+    && typeof referenceSetup.configVersionId === 'string'
+    && UUID.test(referenceSetup.configVersionId)
+    && validHash(referenceSetup.configHash)
+  const openingComplete = openingBalance?.effectiveFrom === '2026-01-01'
+    && openingBalance?.effectiveTo === '2026-09-30'
+    && validHash(openingBalance?.sourceHash)
+    && typeof openingBalance?.openingSnapshotId === 'string'
+    && UUID.test(openingBalance.openingSnapshotId)
+    && validHash(openingBalance?.openingHash)
+    && openingBalance.openingHash === openingBalance.sourceHash
+  const referenceOpeningComplete = referenceOpening?.effectiveFrom === '2026-01-01'
+    && referenceOpening?.effectiveTo === '2026-09-30'
+    && validHash(referenceOpening?.sourceHash)
+    && typeof referenceOpening?.openingSnapshotId === 'string'
+    && UUID.test(referenceOpening.openingSnapshotId)
+    && validHash(referenceOpening?.openingHash)
+    && referenceOpening.openingHash === referenceOpening.sourceHash
+
+  if (!matchingScenarioReference
+    || !setupComplete
+    || !referenceSetupComplete
+    || setup?.sourceHash !== referenceSetup?.sourceHash
+    || setup?.configVersionId !== referenceSetup?.configVersionId
+    || setup?.configHash !== referenceSetup?.configHash) {
+    gaps.add('PAYFULL02_CALCULATION_COMPONENTS')
+  }
+  if (!matchingScenarioReference
+    || !openingComplete
+    || !referenceOpeningComplete
+    || openingBalance?.sourceHash !== referenceOpening?.sourceHash
+    || openingBalance?.openingSnapshotId !== referenceOpening?.openingSnapshotId
+    || openingBalance?.openingHash !== referenceOpening?.openingHash) {
+    gaps.add('CUMULATIVE_WAGE_TAX')
+  }
+  return [...gaps]
+}
+
+function incompleteComponentsForSource(
+  value: unknown,
+  selectedPackage?: PayrollRulePackage,
+  evidence: {
+    readonly inputReference?: unknown
+    readonly executedComponents?: readonly { readonly componentCode: string; readonly outputs: readonly { readonly name: string }[] }[]
+  } = {},
+): readonly string[] {
+  const source = record(value)
+  const packageForSource = selectedPackage ?? (isPayfull02Source(source)
+    ? PAYFULL02_COMPLETENESS_PACKAGE
+    : NL_2026_RULE_PACKAGE)
+  const selectedByCode = new Map(packageForSource.components.map((component) => [component.code, component]))
+  const executedByCode = evidence.executedComponents
+    ? new Map(evidence.executedComponents.map((component) => [component.componentCode, new Set(component.outputs.map((output) => output.name))]))
+    : null
+  const gaps = new Set<string>()
+
+  for (const expected of PAYFULL02_COMPLETENESS_PACKAGE.components) {
+    const selected = selectedByCode.get(expected.code)
+    if (!selected || stableSerialize(selected) !== stableSerialize(expected)) {
+      for (const gap of completenessCategoriesForComponent(expected.code)) gaps.add(gap)
+    }
+    if (expected.method.kind === 'source' && expected.outputs[0]
+      && !sourceValueMatchesType(sourcePathValue(source, expected.method.path), expected.outputs[0].valueType)) {
+      for (const gap of completenessCategoriesForComponent(expected.code)) gaps.add(gap)
+    }
+    const executedOutputs = executedByCode?.get(expected.code)
+    if (executedByCode && expected.outputs.some((output) => !executedOutputs?.has(output.name))) {
+      for (const gap of completenessCategoriesForComponent(expected.code)) gaps.add(gap)
+    }
+  }
+
+  if (source) for (const gap of payfull02SetupGaps(source, evidence.inputReference)) gaps.add(gap)
+  return [...gaps].sort()
+}
+
+function executedComponentsFromTrace(value: unknown): readonly {
+  readonly componentCode: string
+  readonly outputs: readonly { readonly name: string }[]
+}[] | undefined {
+  const trace = record(value)
+  const components = trace?.components
+  if (!Array.isArray(components)) return undefined
+  return components.flatMap((item) => {
+    const component = record(item)
+    const outputs = component?.outputs
+    if (typeof component?.componentCode !== 'string' || !Array.isArray(outputs)) return []
+    return [{
+      componentCode: component.componentCode,
+      outputs: outputs.flatMap((output) => {
+        const member = record(output)
+        return typeof member?.name === 'string' ? [{ name: member.name }] : []
+      }),
+    }]
+  })
 }
 
 function entries(value: unknown): Record<string, unknown>[] | null {
@@ -275,6 +437,9 @@ function recoveryActions(gaps: readonly PayrollSourceGap[], incomplete: readonly
   }
   if (incomplete.includes('VARIABLE_AND_NON_REGULAR_WAGE')) {
     actions.add('Beoordeel variabel en niet-regulier loon en verwerk alleen ondersteunde componenten.')
+  }
+  if (incomplete.includes('PAYFULL02_CALCULATION_COMPONENTS')) {
+    actions.add('Controleer de effectieve componentversies en de vastgelegde Payroll Lab-configuratie voor deze berekening.')
   }
   return [...actions]
 }
@@ -491,8 +656,22 @@ function resultView(input: {
 function viewFromArtifacts(
   artifacts: PayrollCalculationArtifacts,
   events: readonly IndividualPayrollLifecycleEventRow[],
-  incompletes: readonly string[] = incompleteComponentsForSource(record(artifacts.sourceSnapshot.source_payload)),
 ): EmployeePayrollCalculationView {
+  const sourcePayload = record(artifacts.sourceSnapshot.source_payload)
+  const selectedPackage = artifacts.inputSet.rule_package_composition_id.includes('+PAYFULL02-')
+    ? PAYFULL02_COMPLETENESS_PACKAGE
+    : NL_2026_RULE_PACKAGE
+  const tracePayloadValue = artifacts.trace?.trace_payload
+  const trace = record(tracePayloadValue)
+  const storedIncomplete = Array.isArray(trace?.incompleteComponents)
+    ? trace.incompleteComponents.filter((value): value is string => typeof value === 'string')
+    : []
+  const incompletes = [...new Set([
+    ...storedIncomplete,
+    ...incompleteComponentsForSource(sourcePayload, selectedPackage, {
+      executedComponents: executedComponentsFromTrace(tracePayloadValue),
+    }),
+  ])].sort()
   const latest = lifecycleStatus(events)
   const amountFor = (key: string) => {
     const row = artifacts.componentResults.find((candidate) => candidate.component_key === key)
@@ -562,7 +741,7 @@ function controlRows(
   actorUserId: string,
   runId: string,
   result: PayrollCalculationResult,
-  incompletes: readonly string[] = INCOMPLETE_COMPONENTS,
+  incompletes: readonly string[] = [],
 ) {
   const base = result.controls.map((control) => ({
     ...sourceColumns(scope, adminId),
@@ -578,7 +757,7 @@ function controlRows(
     calculation_run_id: runId,
     control_key: `PAYCALC-CTRL-INCOMPLETE-${code}`,
     status: 'WARN' as const,
-    detail_payload: toPayrollJson({ status: 'INCOMPLETE', reason: `${code}_NOT_IN_BASE_RULE_PACKAGE` }),
+    detail_payload: toPayrollJson({ status: 'INCOMPLETE', reason: 'REQUIRED_COMPONENT_OR_SOURCE_EVIDENCE_MISSING', component: code }),
     created_by_user_id: actorUserId,
     updated_by_user_id: actorUserId,
   }))
@@ -588,7 +767,7 @@ function controlRows(
 function tracePayload(
   result: PayrollCalculationResult,
   inputs: ReturnType<typeof buildCalculationInputs>,
-  incompletes: readonly string[] = INCOMPLETE_COMPONENTS,
+  incompletes: readonly string[] = [],
 ): PayrollJson {
   return toPayrollJson({
     schemaVersion: COMPLETENESS_CONTRACT,
@@ -776,7 +955,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     const payfull02 = isPayfull02Source(canonicalSource)
     const rulePackage = payfull02 ? createPayfull02RulePackage('DEMO_COMPANY_TEST') : NL_2026_RULE_PACKAGE
     const ruleRegistry = payfull02 ? PAYFULL02_RULE_REGISTRY : NL_2026_RULE_REGISTRY
-    const incompleteComponents = incompleteComponentsForSource(canonicalSource)
+    const incompleteComponents = incompleteComponentsForSource(canonicalSource, rulePackage)
     if (!acceptanceScenario) {
       const scenarioRunIds = new Set<string>()
       for (const runId of new Set(events.map((event) => event.calculation_run_id))) {
@@ -1238,7 +1417,19 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       throw new EmployeePayrollCalculationError('PAYROLL_LIFECYCLE_TRANSITION_INVALID')
     }
     const referenceJson = record(reference?.input_reference_json)
-    const incomplete = Array.isArray(referenceJson?.incompleteComponents) ? referenceJson.incompleteComponents : INCOMPLETE_COMPONENTS
+    const storedIncomplete = Array.isArray(referenceJson?.incompleteComponents)
+      ? referenceJson.incompleteComponents.filter((value): value is string => typeof value === 'string')
+      : []
+    const selectedPackage = artifacts.inputSet.rule_package_composition_id.includes('+PAYFULL02-')
+      ? PAYFULL02_COMPLETENESS_PACKAGE
+      : NL_2026_RULE_PACKAGE
+    const incomplete = [...new Set([
+      ...storedIncomplete,
+      ...incompleteComponentsForSource(artifacts.sourceSnapshot.source_payload, selectedPackage, {
+        inputReference: reference?.input_reference_json,
+        executedComponents: executedComponentsFromTrace(artifacts.trace?.trace_payload),
+      }),
+    ])]
     const controlsPassed = artifacts.controls.every((control) => control.status === 'PASS')
     if (eventType === 'REVIEWED' && (incomplete.length > 0 || !controlsPassed)) {
       throw new EmployeePayrollCalculationError('PAYROLL_REVIEW_INCOMPLETE')
@@ -1288,17 +1479,68 @@ export function createLocalPayrollAcceptanceCalculationService(host: string | nu
       return access
     },
   }
+  const openingSourceHistoryCache = new Map<string, Promise<readonly PayrollSourceSnapshot[]>>()
+  const readOpeningSourceHistory = async (access: Access, employeeId: string, employmentId: string) => {
+    const cacheKey = `${employeeId}:${employmentId}`
+    const cached = openingSourceHistoryCache.get(cacheKey)
+    if (cached) return await cached
+    const history = Promise.all(Array.from({ length: 9 }, async (_, index) => {
+      const month = index + 1
+      return await defaults.sourceProvider.getPayrollSourceSnapshot({
+        ...access.scope,
+        employeeId,
+        employmentId,
+        payrollPeriod: { year: 2026, month },
+      })
+    }))
+    openingSourceHistoryCache.set(cacheKey, history)
+    return await history
+  }
+  const readPersistedSetup = async (employeeId: string, employmentId: string) => {
+    const access = await scopedDependencies.requireAccess(false)
+    return await readPayfull02TestSetup({
+      repository: defaults.createLifecycleRepository(),
+      scope: access.scope,
+      payrollAdministrationId: access.administration.id,
+      employeeId,
+      employmentId,
+      januaryThroughSeptemberSourceSnapshots: await readOpeningSourceHistory(access, employeeId, employmentId),
+    })
+  }
+  const scenarioSourceProvider = createPayrollAcceptanceScenarioSourceProvider(
+    defaults.sourceProvider,
+    'REGULAR',
+    readPersistedSetup,
+  )
+  const variableScenarioSourceProvider = createPayrollAcceptanceScenarioSourceProvider(
+    defaults.sourceProvider,
+    'VARIABLE_BONUS_DEMO_001',
+    readPersistedSetup,
+  )
   const service = createEmployeePayrollCalculationService({
     ...scopedDependencies,
-    sourceProvider: createPayrollAcceptanceScenarioSourceProvider(defaults.sourceProvider),
+    sourceProvider: scenarioSourceProvider,
     allowIsolatedTestScenario: true,
   })
   const variableScenarioService = createEmployeePayrollCalculationService({
     ...scopedDependencies,
-    sourceProvider: createPayrollAcceptanceScenarioSourceProvider(defaults.sourceProvider, 'VARIABLE_BONUS_DEMO_001'),
+    sourceProvider: variableScenarioSourceProvider,
     allowIsolatedTestScenario: true,
   })
   const sourceOnlyService = createEmployeePayrollCalculationService(scopedDependencies)
+
+  async function prepareScenarioSetup(input: { readonly employeeId: string; readonly employmentId: string }) {
+    const access = await scopedDependencies.requireAccess(true)
+    await ensurePayfull02TestSetup({
+      repository: defaults.createLifecycleRepository(),
+      scope: access.scope,
+      payrollAdministrationId: access.administration.id,
+      actorUserId: access.actorUserId,
+      employeeId: input.employeeId,
+      employmentId: input.employmentId,
+      januaryThroughSeptemberSourceSnapshots: await readOpeningSourceHistory(access, input.employeeId, input.employmentId),
+    })
+  }
 
   async function readBackScenarioCalculation(input: {
     readonly employeeId: string
@@ -1401,6 +1643,7 @@ export function createLocalPayrollAcceptanceCalculationService(host: string | nu
   }
 
   return {
+    prepareScenarioSetup,
     inspectScenarioCandidate: service.inspectEmployeePayrollSource,
     calculateScenarioCandidate: (input: { readonly employeeId: string; readonly employmentId: string; readonly period: EmployeePayrollPeriod }) =>
       service.calculateEmployeePayroll({ ...input, successorReasonCode: 'PAYFULL02_IMPLEMENTATION_VERSIONED_RECALCULATION' }),

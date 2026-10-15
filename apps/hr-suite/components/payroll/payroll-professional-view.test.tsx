@@ -126,6 +126,20 @@ const labels: Readonly<Record<string, string>> = {
   fiscalBaseWageTax: 'Wage-tax base',
   fiscalBaseEmployeeInsurance: 'Employee-insurance base',
   fiscalBaseZvw: 'Zvw base',
+  cumulative_gross: 'Gross year to date',
+  cumulative_taxable_wage: 'Taxable wage year to date',
+  cumulative_wage_tax: 'Wage tax year to date',
+  cumulative_employee_insurance_wage: 'Employee-insurance wage year to date',
+  cumulative_zvw_wage: 'Zvw wage year to date',
+  cumulative_holiday_reserve: 'Holiday reserve year to date',
+  cumulative_year_end_reserve: 'Year-end reserve year to date',
+  net_reimbursement: 'Net reimbursement',
+  net_deduction: 'Net deduction',
+  net_correction: 'Net correction',
+  variable_regular_wage: 'Variable regular wage',
+  special_reward_wage: 'Special reward',
+  special_reward_wage_tax: 'Special-reward tax',
+  pensionable_wage: 'Pensionable wage',
   notCalculated: 'Not calculated',
   notRecorded: 'Not recorded',
   noComponentTrace: 'No component trace',
@@ -176,6 +190,34 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     expect(markup).toContain('system:payrun01:payrun01_awf_cost · Trace step 21 · INCOME_RELATIONSHIP')
     expect(markup).toContain('PAYRUN01_AWF_RATE')
     expect(markup).toContain('PAYRUN01_EMPLOYEE_INSURANCE_BASE')
+  })
+
+  it('shows fiscal bases from persisted calculation components and the complete cumulative wage and tax rows', () => {
+    const calculationRun = {
+      ...pensionRun,
+      componentResults: [
+        ['taxable_wage', '3325.07'],
+        ['employee_insurance_base', '3325.07'],
+        ['zvw_base', '3325.07'],
+        ['cumulative_taxable_wage', '29925.63'],
+        ['cumulative_wage_tax', '10697.22'],
+        ['cumulative_employee_insurance_wage', '29925.63'],
+        ['cumulative_zvw_wage', '29925.63'],
+      ].map(([component_key, amount]) => ({
+        component_key,
+        amount: Number(amount),
+        result_payload: { amount },
+      })),
+    } as unknown as PayrollProfessionalRun
+
+    const markup = renderToStaticMarkup(<PayrollRunReconciliation run={calculationRun} locale="nl-NL" labels={labels} />)
+
+    expect(markup).toContain('€ 3.325,07')
+    expect(markup).toContain('Taxable wage year to date')
+    expect(markup).toContain('Wage tax year to date')
+    expect(markup).toContain('Employee-insurance wage year to date')
+    expect(markup).toContain('Zvw wage year to date')
+    expect(markup).not.toContain('Not calculated')
   })
 
   it('distinguishes a CONCEPT run from FINALIZED and withholds payslip downloads until finalization', () => {

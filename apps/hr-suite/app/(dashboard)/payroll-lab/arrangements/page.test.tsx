@@ -108,6 +108,7 @@ describe('Payroll arrangements catalogue', () => {
     loadPage.mockResolvedValue(pageData(false))
     const readOnly = renderToStaticMarkup(await PayrollArrangementsPage({ searchParams: Promise.resolve({}) }))
     expect(readOnly).not.toContain('arrangementsMakeAvailableAction')
+    expect(readOnly).not.toContain('/payroll-lab/development/arrangements')
     expect(readOnly).toContain('arrangementsAdminPermissionRequired')
   })
 

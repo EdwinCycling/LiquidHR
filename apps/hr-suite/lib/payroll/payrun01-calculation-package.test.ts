@@ -454,6 +454,7 @@ describe('PAYFULL-02 component graph extensions', () => {
     payrollOwned.pension = {
       monthlyFranchise: '0.00',
       monthlyMaximum: '11483.33',
+      partTimeFactor: '1.0000',
       employeeRate: '0.00',
       employerRate: '0.00',
       active: true,
@@ -462,7 +463,7 @@ describe('PAYFULL-02 component graph extensions', () => {
     sourceSnapshot = { ...sourceSnapshot, canonicalSource: canonicalSource as typeof sourceSnapshot.canonicalSource }
     const rulePackage = createPayfull02RulePackage('DEMO_COMPANY_TEST')
     const inputs = buildCalculationInputs(sourceSnapshot, rulePackage, {
-      effectiveDate: '2026-10-01',
+      effectiveDate: `${sourceSnapshot.periodReference.year}-${String(sourceSnapshot.periodReference.month).padStart(2, '0')}-01`,
       scopeInstanceIds: {
         EMPLOYEE: sourceSnapshot.sourceEmployeeId,
         EMPLOYMENT: sourceSnapshot.sourceEmploymentId,
@@ -533,6 +534,7 @@ describe('PAYFULL-02 component graph extensions', () => {
     payrollOwned.pension = {
       monthlyFranchise: '0.00',
       monthlyMaximum: '11483.33',
+      partTimeFactor: '1.0000',
       employeeRate: '4.00',
       employerRate: '8.00',
       active: true,
@@ -739,6 +741,15 @@ describe('PAYFULL-02 component graph extensions', () => {
       specialRewardIncludedInHolidayReserve: true,
       specialRewardIncludedInYearEndReserve: false,
     }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '49500.00',
+      holidayReserveBeforePeriod: '3960.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '49500.00',
+      wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '49500.00',
+      zvwWageBeforePeriod: '49500.00',
+    }
     const { result: reserveable } = calculatePayfull02({
       ...lisaSnapshot,
       canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
@@ -760,5 +771,118 @@ describe('PAYFULL-02 component graph extensions', () => {
     expect(pensionable.status).toBe('BLOCKED')
     expect(pensionable.controls.find((control) => control.code === 'PAYFULL02-CTRL-012-PENSIONABLE-SPECIAL-REWARD-UNSUPPORTED')?.status)
       .toBe('FAIL')
+  })
+
+  it('prorates the full-time pension franchise and cap by the effective part-time factor', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    regularWage.contractHoursPerWeek = '20'
+    regularWage.fulltimeHoursPerWeek = '40'
+    payrollOwned.amounts = {
+      ...(payrollOwned.amounts as Record<string, unknown>),
+      variableRegularWage: '0.00',
+      specialRewardWage: '0.00',
+      netReimbursement: '0.00',
+      netDeduction: '0.00',
+      netCorrection: '0.00',
+    }
+    payrollOwned.pension = {
+      monthlyFranchise: '1597.67',
+      monthlyMaximum: '11483.33',
+      partTimeFactor: '0.5000',
+      employeeRate: '10.00',
+      employerRate: '8.00',
+      active: true,
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+      specialRewardPensionable: false,
+      specialRewardIncludedInHolidayReserve: false,
+      specialRewardIncludedInYearEndReserve: false,
+    }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '49500.00',
+      holidayReserveBeforePeriod: '3960.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '49500.00',
+      wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '49500.00',
+      zvwWageBeforePeriod: '49500.00',
+    }
+
+    const { result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+
+    expect(resultAmount(result, 'contractual_salary')).toBe('2750.00')
+    expect(resultAmount(result, 'pensionable_wage')).toBe('1951.17')
+    expect(resultAmount(result, 'employee_pension')).toBe('195.12')
+    expect(resultAmount(result, 'employer_pension')).toBe('156.09')
+    expect(resultAmount(result, 'taxable_wage')).toBe('2554.88')
+    expect(result.controls.find((control) => control.code === 'PAYFULL02-CTRL-013-PENSION-PART-TIME-FACTOR-IN-RANGE')?.status).toBe('PASS')
+  })
+
+  it('blocks invalid pension part-time factors instead of treating them as a full-time pension basis', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    payrollOwned.amounts = {
+      ...(payrollOwned.amounts as Record<string, unknown>),
+      variableRegularWage: '0.00',
+      specialRewardWage: '0.00',
+      netReimbursement: '0.00',
+      netDeduction: '0.00',
+      netCorrection: '0.00',
+    }
+    payrollOwned.pension = {
+      monthlyFranchise: '1597.67',
+      monthlyMaximum: '11483.33',
+      partTimeFactor: '1.2500',
+      employeeRate: '4.00',
+      employerRate: '8.00',
+      active: true,
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+      specialRewardPensionable: false,
+      specialRewardIncludedInHolidayReserve: false,
+      specialRewardIncludedInYearEndReserve: false,
+    }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '49500.00',
+      holidayReserveBeforePeriod: '3960.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '49500.00',
+      wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '49500.00',
+      zvwWageBeforePeriod: '49500.00',
+    }
+
+    const { result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+
+    expect(result.controls.find((control) => control.code === 'PAYFULL02-CTRL-013-PENSION-PART-TIME-FACTOR-IN-RANGE')?.status).toBe('FAIL')
+    expect(result.status).toBe('BLOCKED')
+  })
+
+  it('blocks the 2027 boundary until an effective 2027 parameter set exists instead of carrying 2026 rules forward', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    regularWage.fiscalYear = '2027'
+
+    expect(() => calculatePayfull02({
+      ...lisaSnapshot,
+      periodReference: { year: 2027, month: 1 },
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })).toThrow('No payroll component is effective on the requested date.')
   })
 })

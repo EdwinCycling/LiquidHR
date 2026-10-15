@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { PageHeader } from '@/components/patterns/page-header'
 import { PageShell } from '@/components/layout/page-shell'
 import { Surface } from '@/components/ui/surface'
@@ -78,6 +79,7 @@ export default async function PayrollArrangementsPage({
 
   return <PageShell className="space-y-5 py-6 sm:py-8">
     <PageHeader title={t('payrollArrangements')} description={t('arrangementsDescription', { administration: pageData.administrationName })} />
+    {process.env.NODE_ENV !== 'production' && pageData.canWrite ? <Link className="inline-flex min-h-10 items-center text-sm font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href="/payroll-lab/development/arrangements">{t('arrangementsDevelopmentTitle')}</Link> : null}
     {errorKey ? <Surface className="border border-border p-4" role="alert"><p>{t(errorKey)}</p></Surface> : null}
     {successKey ? <Surface className="border border-border p-4" role="status"><p>{t(successKey)}</p></Surface> : null}
     <Surface className="border border-info-border bg-info-surface p-4">

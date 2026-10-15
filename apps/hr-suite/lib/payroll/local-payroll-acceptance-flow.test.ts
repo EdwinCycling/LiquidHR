@@ -138,6 +138,7 @@ function variableCalculation(): EmployeePayrollCalculationView {
 
 function serviceWithReadySources(): LocalPayrollAcceptanceService {
   return {
+    prepareScenarioSetup: vi.fn(async () => undefined),
     inspectScenarioCandidate: vi.fn(async (input) => preflight(input.employeeId, input.employmentId, true)),
     calculateScenarioCandidate: vi.fn(async (input) => {
       const index = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES.findIndex((candidate) => candidate.employeeId === input.employeeId)
@@ -158,7 +159,7 @@ function serviceWithReadySources(): LocalPayrollAcceptanceService {
 }
 
 describe('isolated local payroll acceptance flow', () => {
-  it('preflights both selected candidates and the blocked candidate before writing either scenario', async () => {
+  it('persists only the approved TEST setup, then preflights all candidates before creating a payroll run', async () => {
     const service = serviceWithReadySources()
     vi.mocked(service.inspectScenarioCandidate).mockImplementationOnce(async (input) =>
       preflight(input.employeeId, input.employmentId, false, [
@@ -169,6 +170,7 @@ describe('isolated local payroll acceptance flow', () => {
 
     expect(result.message).toBe('preflightBlocked')
     expect(result.calculations).toEqual([])
+    expect(service.prepareScenarioSetup).toHaveBeenCalledTimes(2)
     expect(service.inspectScenarioCandidate).toHaveBeenCalledTimes(2)
     expect(service.inspectExceptionCandidate).toHaveBeenCalledWith({
       employeeId: PAYROLL_ACCEPTANCE_EXCEPTION_CANDIDATE.employeeId,
@@ -186,6 +188,7 @@ describe('isolated local payroll acceptance flow', () => {
     const result = await runLocalPayrollAcceptanceFlow(service)
 
     expect(result.message).toBe('saved')
+    expect(service.prepareScenarioSetup).toHaveBeenCalledTimes(2)
     expect(result.calculations).toHaveLength(2)
     expect(result.calculations.map((item) => item.key)).toEqual(['DEMO-001', 'DEMO-002'])
     expect(result.calculations.map((item) => item.remainingAfterWageTax)).toEqual(['2181.49', '2141.36'])
@@ -233,6 +236,10 @@ describe('isolated local payroll acceptance flow', () => {
       employeeId: PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[0]!.employeeId,
       employmentId: PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[0]!.employmentId,
       period,
+    })
+    expect(service.prepareScenarioSetup).toHaveBeenCalledWith({
+      employeeId: PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[0]!.employeeId,
+      employmentId: PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[0]!.employmentId,
     })
     expect(service.calculateScenarioCandidate).not.toHaveBeenCalled()
     expect(service.calculateVariableScenarioCandidate).toHaveBeenCalledTimes(2)

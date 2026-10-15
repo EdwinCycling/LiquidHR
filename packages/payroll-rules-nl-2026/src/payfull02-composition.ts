@@ -108,6 +108,7 @@ const inputSources = [
   source('PAYFULL02_ANNUAL_SOCIAL_WAGE_MAX', 'amount', 'MONEY', ['payrollOwned', 'parameters', 'annualSocialWageMaximum']),
   source('PAYFULL02_PENSION_FRANCHISE_MONTHLY', 'amount', 'MONEY', ['payrollOwned', 'pension', 'monthlyFranchise']),
   source('PAYFULL02_PENSION_MAXIMUM_MONTHLY', 'amount', 'MONEY', ['payrollOwned', 'pension', 'monthlyMaximum']),
+  source('PAYFULL02_PENSION_PART_TIME_FACTOR', 'factor', 'DECIMAL', ['payrollOwned', 'pension', 'partTimeFactor']),
   source('PAYFULL02_EMPLOYEE_PENSION_RATE', 'rate', 'PERCENTAGE', ['payrollOwned', 'pension', 'employeeRate']),
   source('PAYFULL02_EMPLOYER_PENSION_RATE', 'rate', 'PERCENTAGE', ['payrollOwned', 'pension', 'employerRate']),
   source('PAYFULL02_PENSION_PLAN_ACTIVE', 'value', 'BOOLEAN', ['payrollOwned', 'pension', 'active']),
@@ -322,17 +323,25 @@ const pensionableBase: PayrollComponentDefinition = {
     { name: 'gross', valueType: 'MONEY', required: true },
     { name: 'franchise', valueType: 'MONEY', required: true },
     { name: 'maximum', valueType: 'MONEY', required: true },
+    { name: 'partTimeFactor', valueType: 'DECIMAL', required: true },
   ],
   outputs: [{ name: 'amount', valueType: 'MONEY', rounding: { scale: 2, mode: 'HALF_UP' } }],
   dependencies: [
     { componentCode: 'NL_REGULAR_WAGE', outputName: 'grossSalary', inputName: 'gross' },
     { componentCode: 'PAYFULL02_PENSION_FRANCHISE_MONTHLY', outputName: 'amount', inputName: 'franchise' },
     { componentCode: 'PAYFULL02_PENSION_MAXIMUM_MONTHLY', outputName: 'amount', inputName: 'maximum' },
+    { componentCode: 'PAYFULL02_PENSION_PART_TIME_FACTOR', outputName: 'factor', inputName: 'partTimeFactor' },
   ],
   method: { kind: 'expression', outputs: { amount: {
     kind: 'call', operator: 'MIN', arguments: [
-      { kind: 'call', operator: 'MAX', arguments: [zero, subtract(output('NL_REGULAR_WAGE', 'grossSalary'), output('PAYFULL02_PENSION_FRANCHISE_MONTHLY', 'amount'))] },
-      { kind: 'call', operator: 'MAX', arguments: [zero, subtract(output('PAYFULL02_PENSION_MAXIMUM_MONTHLY', 'amount'), output('PAYFULL02_PENSION_FRANCHISE_MONTHLY', 'amount'))] },
+      { kind: 'call', operator: 'MAX', arguments: [zero, subtract(
+        output('NL_REGULAR_WAGE', 'grossSalary'),
+        { kind: 'binary', operator: '*', left: output('PAYFULL02_PENSION_FRANCHISE_MONTHLY', 'amount'), right: output('PAYFULL02_PENSION_PART_TIME_FACTOR', 'factor') },
+      )] },
+      { kind: 'call', operator: 'MAX', arguments: [zero, subtract(
+        { kind: 'binary', operator: '*', left: output('PAYFULL02_PENSION_MAXIMUM_MONTHLY', 'amount'), right: output('PAYFULL02_PENSION_PART_TIME_FACTOR', 'factor') },
+        { kind: 'binary', operator: '*', left: output('PAYFULL02_PENSION_FRANCHISE_MONTHLY', 'amount'), right: output('PAYFULL02_PENSION_PART_TIME_FACTOR', 'factor') },
+      )] },
     ],
   } } },
   tracePolicy: 'FULL',
@@ -499,6 +508,13 @@ const controls: PayrollRulePackage['controls'] = [
     expression: { kind: 'binary', operator: 'AND',
       left: { kind: 'binary', operator: '>=', left: output('PAYFULL02_EMPLOYEE_PENSION_RATE', 'rate'), right: { kind: 'literal', valueType: 'PERCENTAGE', value: '0.00' } },
       right: { kind: 'binary', operator: '>=', left: output('PAYFULL02_EMPLOYER_PENSION_RATE', 'rate'), right: { kind: 'literal', valueType: 'PERCENTAGE', value: '0.00' } } },
+  },
+  {
+    code: 'PAYFULL02-CTRL-013-PENSION-PART-TIME-FACTOR-IN-RANGE',
+    severity: 'BLOCKING',
+    expression: { kind: 'binary', operator: 'AND',
+      left: { kind: 'binary', operator: '>', left: output('PAYFULL02_PENSION_PART_TIME_FACTOR', 'factor'), right: { kind: 'literal', valueType: 'DECIMAL', value: '0' } },
+      right: { kind: 'binary', operator: '<=', left: output('PAYFULL02_PENSION_PART_TIME_FACTOR', 'factor'), right: { kind: 'literal', valueType: 'DECIMAL', value: '1' } } },
   },
 ]
 
