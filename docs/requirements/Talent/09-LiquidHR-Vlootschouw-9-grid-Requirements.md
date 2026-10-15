@@ -2,7 +2,7 @@
 
 **Status:** Leidende product- en implementatierequirement voor de 9-grid-slice
 
-**Actuele V2-acceptatie (2026-10-15): HOLD.** De geautoriseerde TEST-migratie werd door de officiële Supabase-migratieconnector geweigerd met Invalid or expired requestState. Lokale codegates zijn vastgelegd in [de acceptatierun](../../quality/acceptance/runs/TALENT-9GRID-UX-V2-20261015.md); TEST-schema-, RLS-, advisor- en browsergates zijn niet bewezen.
+**Actuele V2-acceptatie (2026-10-15 rerun): HOLD.** Schema, RLS, grants, manager HYBRID placement/submit, HR return with reason, correction/resubmission, and Employee server denial are proven in the [rerun evidence](../../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261015-RERUN.md). Live HR_ONLY/HR-side scoring, close/reopen, and the full interaction/accessibility matrix remain open.
 **Datum:** 3 augustus 2026
 **Bronnen:** `C:\Users\Edwin\Downloads\vlootschouw.md` en de vier aangeleverde WhatsApp-referenties
 **Gerelateerd:** Talent Blueprint v2.0, Decision Register & Glossary, FDR-0003

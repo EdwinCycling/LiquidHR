@@ -3,16 +3,16 @@
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-15 (historische acceptance-evidence blijft ongewijzigd)
 
-## TALENT-CONVERGENCE-01 — lokaal geïntegreerd; engineering groen; persona-acceptatie OPEN (2026-10-15)
+## TALENT-CONVERGENCE-01 — lokaal geïntegreerd; Appraisal TEST-flow geaccepteerd; 9-grid V2 HOLD (2026-10-15)
 
-- Lokale main bevat de geverifieerde remote-basis 0708d25190562e43a96417ba406648fd04207266, de merges voor 9-grid en Continuous Appraisal en mobiele layoutfix 44ab1d8bbb8ba601557c3aec41cd9627fc7a57c5. Geen GitHub-push, PR-merge of deployment.
-- Supabase TEST wnpfloqpjvaacobppbpk is ACTIVE_HEALTHY. Officiële migraties: 20261015163728_talent_review_ux_v2_modes_and_audit en 20261015163934_continuous_appraisal_status_soft_delete_grants; remote kop is 20261015163934. Lokale versies zijn hiermee in lijn; beide SQL-contracten en schema/grant-readback slaagden.
-- De zeven betrokken tabellen behielden hun rij-ID-fingerprints: 9-grid 4/8/31/15; Appraisal 32/6/2. RLS bleef actief. Authenticated heeft geen effectieve DELETE/TRUNCATE op Appraisal-items; anon is geweigerd en de bedoelde service_role-toegang blijft bestaan.
-- Security-advisors tonen 114 → 121 authenticated SECURITY DEFINER-waarschuwingen (+7). De zeven nieuwe Talent-routines zijn op search_path, scopechecks en EXECUTE-grants gecontroleerd; de toename blijft expliciet open geregistreerd.
-- Definitieve code-SHA 44ab1d8b: volledige suite 632 bestanden / 3.066 tests groen, 4 bestanden / 8 tests overgeslagen; production Webpack-build en TypeScript groen (323 statische routes), Payroll client-boundary/traces groen, i18n 43 namespaces en gewijzigde-file ESLint groen. Volledige ESLint blijft rood op de bestaande ongegerelateerde prefer-const in lib/document-generation/distribution-read-service.test.ts:47 plus acht bestaande warnings.
-- Read-only browser-smoke op exact die build: 9-grid 390 px en 1280 px; Continuous Appraisal 390 px; zes categorieën selecteerbaar; 0 browserconsole-errors. Er zijn geen records geplaatst, ingediend, aangemaakt, aangepast of verwijderd; geen netwerktrace vastgelegd.
-- Volledige persona-/scope- en businessflowacceptatie blijft OPEN: alleen een bestaande Manager-sessie was beschikbaar, niet de gevraagde Maya/Yara/Noah-contexten. Zie het [TALENT-CONVERGENCE-01-rapport](../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261015-FINAL.md) en de twee open IDs in AA-OPEN.
-- Verdict: LOCAL MAIN INTEGRATED / ENGINEERING GREEN / FULL ACCEPTANCE HOLD. Geen TEST-release of hosted acceptatieclaim.
+- Lokale main bevat code-SHA 44ab1d8bbb8ba601557c3aec41cd9627fc7a57c5, geïntegreerd op de geverifieerde main-basis. Geen GitHub-push, PR-merge of Vercel-deployment.
+- Supabase TEST wnpfloqpjvaacobppbpk is ACTIVE_HEALTHY. Na de twee geautoriseerde featuremigraties en twee gecontroleerde triggerreparaties is de geregistreerde remote kop 20261015182721 (558 migraties). Alle vier migratiebestanden zijn lokaal aanwezig; geen geschiedenis is herschreven.
+- De initiële score-writefout SQLSTATE 42501 en submit-triggerfout zijn met officiële, forward-only migrations hersteld; latere score-write, submit, return, correctie en resubmit gaven HTTP 200.
+- Via de bestaande UI zijn Maya, Yara en Noah als HR Admin, Manager en Employee gebruikt. De nieuwe geïsoleerde HYBRID-campagne heeft 6 scores in 6 cellen; Yara's team doorliep submit → HR return met reden → correctie → resubmit. Twee andere teams bleven NOT_STARTED. De Employee HR-workspaceaanvraag werd server-side geweigerd met HTTP 403.
+- Continuous Appraisal: alle zes type-tabs/preselecties zijn gecontroleerd; Manager create/status/soft-delete, HR read, en Employee eigen timeline/create zijn bewezen. De soft-deleted rij blijft bestaan met audit-events; er was geen fysieke delete. TALENT-APPRAISAL-V2-TEST-020 is gesloten op basis van de [rerun-evidence](../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261015-RERUN.md).
+- Engineering evidence blijft gekoppeld aan product-SHA 44ab1d8: volledige hr-suite 632 bestanden / 3.066 tests geslaagd en 8 overgeslagen; TypeScript, Webpack-build, i18n en gerichte checks geslaagd. Volledige ESLint houdt de bestaande ongegerelateerde prefer-const-fout op lib/document-generation/distribution-read-service.test.ts:47.
+- 9-grid V2 blijft **HOLD**: live HR_ONLY-modus, HR score-invoer, close/reopen en de volledige interactie-/toegankelijkheidsmatrix zijn niet bewezen. Bestaande records bleven behouden; de exact gerapporteerde synthetische delta staat in de rerun.
+- Verdict: **LOCAL MAIN INTEGRATED / ENGINEERING GREEN / CONTINUOUS APPRAISAL TEST ACCEPTED / 9-GRID V2 FULL ACCEPTANCE HOLD**. Geen hosted TEST-release of Production-acceptatieclaim. Zie ook de [eerste closeout](../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261015-FINAL.md), die als historische evidence ongewijzigd blijft.
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
 

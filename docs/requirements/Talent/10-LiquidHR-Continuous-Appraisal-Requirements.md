@@ -2,7 +2,7 @@
 
 **Status:** LEIDEND; V2-addendum aangevuld op 14 oktober 2026
 
-**Actuele V2-acceptatie (2026-10-15): HOLD.** De opdracht autoriseert de TEST-migratie, maar de voorafgaande 9-grid-uitvoering is door de officiële Supabase-migratieconnector geweigerd met Invalid or expired requestState. Zie [de acceptatierun](../../quality/acceptance/runs/TALENT-CONTINUOUS-APPRAISAL-UX-V2-20261015.md); post-migratiebeveiliging en persona-browsergates blijven open.
+**Actuele V2-acceptatie (2026-10-15 rerun): TEST PERSONA / BUSINESS-FLOW ACCEPTED.** HR Admin, Manager and Employee timelines, all six type-tab preselection states, status transition, maker-scoped auditable soft delete with retained database row, and RLS/grant boundaries passed on local main against Supabase TEST. This is not a hosted release. See the [rerun evidence](../../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261015-RERUN.md).
 **Datum:** 3 augustus 2026
 **Bron:** `C:\Users\Edwin\Downloads\Employee_timeline.md` en de aangeleverde referentieschermen
 **Productbeschrijving:** één gedeelde geschiedenis voor notities, acties, afspraken, feedback, doelen/ontwikkeling en gespreksverslagen.
@@ -33,7 +33,7 @@ Bijlagen/screenshot-opslag is bewust een vervolgslice. De referentieafbeeldingen
 - kan geen `FEEDBACK` namens een manager plaatsen;
 - kan toekomstige eigen items wijzigen;
 - kan op ieder zichtbaar item commentaar toevoegen;
-- kan geen item of commentaar verwijderen en geen historische inhoud wijzigen.
+- kan geen commentaar of historische inhoud wijzigen; de V2-addendum staat uitsluitend expliciete, auditeerbare soft delete toe op het eigen item binnen de maker- en datumgrens.
 
 ### Manager
 
