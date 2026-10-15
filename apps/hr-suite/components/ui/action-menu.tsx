@@ -10,6 +10,7 @@ type ActionMenuItemBase = {
   icon?: ReactNode
   disabled?: boolean
   destructive?: boolean
+  tone?: 'success' | 'warning'
 }
 
 export type ActionMenuItem = ActionMenuItemBase & ({ href: string; onSelect?: never } | { href?: never; onSelect: () => void })
@@ -101,7 +102,14 @@ export function ActionMenu({ className, items, label }: ActionMenuProps) {
       {open ? (
         <div aria-label={label} className="absolute right-0 z-20 mt-1 min-w-48 rounded-[var(--radius-overlay)] border border-border bg-surface-overlay p-1 shadow-lg" onKeyDown={handleMenuKeyDown} role="menu">
           {items.map((item, index) => {
-            const itemClass = `flex min-h-9 w-full items-center gap-2 rounded-[var(--radius-control)] px-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50 ${item.destructive ? 'text-destructive hover:bg-destructive-surface' : 'text-foreground hover:bg-surface-raised'}`.trim()
+            const toneClass = item.destructive
+              ? 'text-destructive hover:bg-destructive-surface'
+              : item.tone === 'success'
+                ? 'bg-success-surface text-success hover:bg-success/20'
+                : item.tone === 'warning'
+                  ? 'bg-warning-surface text-warning hover:bg-warning/20'
+                  : 'text-foreground hover:bg-surface-raised'
+            const itemClass = `flex min-h-9 w-full items-center gap-2 rounded-[var(--radius-control)] px-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50 ${toneClass}`.trim()
             const content = <>{item.icon ? <span aria-hidden="true" className="[&_svg]:size-4">{item.icon}</span> : null}<span>{item.label}</span></>
             return 'href' in item ? (
               <a

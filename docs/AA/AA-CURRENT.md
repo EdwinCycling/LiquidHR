@@ -1,7 +1,20 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-12 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-15 (historische acceptance-evidence blijft ongewijzigd)
+
+## TALENT-CONVERGENCE-01 — TEST-migraties toegepast; lokale main-QA loopt (2026-10-15)
+
+- Beide featurebranches zijn gebaseerd op geverifieerde origin/main 0708d25190562e43a96417ba406648fd04207266. De lokale code is nog niet geïntegreerd.
+- Supabase TEST wnpfloqpjvaacobppbpk is ACTIVE_HEALTHY. Read-only preflight bevestigde remote kop 20261015125424; de officiële migratieconnector registreerde 9-grid 20261015163728 en Continuous Appraisal 20261015163934. Er zijn geen andere migraties toegepast of migration-historyregels herschreven.
+- Definitieve SQL SHA-256: 9-grid 9F2CF458EF8618D9371EC8E4BA6A815ADFD2BEE81977D89F255D95418F8D8F45; Continuous Appraisal 11F8766A01A0723CE746D5E3E2BED474FFBDD6E4F410A159A427F167F1C5F8D5.
+- Alle zeven relevante tabel-fingerprints zijn gelijk gebleven: 9-grid 4 campagnes / 8 assignments / 31 leden / 15 scores; Appraisal 32 items / 6 reacties / 2 bijlagen. RLS bleef aan; beide SQL-contracttests slaagden via read-only TEST-uitvoering.
+- Schema-readback bevestigde de 9-grid modi/retour-/acting-reason-velden en Appraisal soft-deletevelden/policy. Effectieve authenticated DELETE en TRUNCATE op continuous_appraisal_items zijn beide false; anon blijft geweigerd en service_role behoudt de bedoelde toegang.
+- Gegenereerde TEST-types bevatten beide sets velden. Security-advisors tonen 114 → 121 authenticated SECURITY DEFINER-waarschuwingen; de zeven nieuwe Talent-routines zijn gecontroleerd op search_path, beperkte EXECUTE-grants en scopechecks. Anon/public EXECUTE is voor deze routines uitgeschakeld; de advisor-toename blijft expliciet geregistreerd.
+- Branchreferentie: 9-grid 3.032 tests geslaagd / 8 overgeslagen; Appraisal 3.062 geslaagd / 8 overgeslagen. TypeScript, gerichte ESLint, NL/EN-pariteit (43 namespaces) en production build slaagden. Volledige ESLint blijft geblokkeerd door dezelfde bestaande, niet-gerelateerde prefer-const-fout in lib/document-generation/distribution-read-service.test.ts:47 (plus acht bestaande warnings).
+- Read-only lokale browser-smoke op de 9-grid-route gaf HTTP 200 en toonde de bestaande managercampagne; er is niets ingediend of gewijzigd. De browsermatrix voor de afgesproken Maya/Yara/Noah-persona's en Continuous Appraisal is nog open.
+- Lokale main is schoon op f7db482b19b81d9c5aa5517c66394faa5f628e1b, zes commits achter origin/main 0708d25190562e43a96417ba406648fd04207266. Er is nog geen commit, merge, push of deployment uitgevoerd.
+- Verdict: OPEN — migraties en remote contractgates zijn groen; integreer pas na de resterende engineeringgates en voer daarna de volledige gecombineerde lokale-main-acceptatie uit. Zie de twee wave-runs en het uiteindelijke gecombineerde rapport.
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
 

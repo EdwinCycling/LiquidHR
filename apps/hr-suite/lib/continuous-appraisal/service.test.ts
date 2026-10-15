@@ -16,7 +16,8 @@ vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 
 import type { createClient as createServerClient } from '@/lib/supabase/server'
-import { getContinuousAppraisalAttachmentDownload } from './service'
+import { requirePermission } from '@/lib/auth/permissions'
+import { getContinuousAppraisalAttachmentDownload, softDeleteContinuousAppraisalItem, transitionContinuousAppraisalItemStatus } from './service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createServerClient>>
 
@@ -32,6 +33,22 @@ class AttachmentQuery {
   select(columns: string) { this.selectedColumns = columns; return this }
   eq() { return this }
   maybeSingle() { return Promise.resolve({ data: this.row, error: null }) }
+}
+
+const actor = {
+  tenantId,
+  administrationId: null,
+  userId: 'user-actor',
+  employeeId: 'employee-actor',
+  activeRoles: [],
+  permissions: ['continuous-appraisal:write'],
+}
+
+function mutationClient(item: object, rpc = vi.fn(), context = actor) {
+  const query = new AttachmentQuery(item)
+  createClient.mockResolvedValue({ from: vi.fn(() => query), rpc } as unknown as SupabaseServerClient)
+  vi.mocked(requirePermission).mockResolvedValue(context)
+  return rpc
 }
 
 describe('continuous appraisal attachment download security', () => {
@@ -72,5 +89,52 @@ describe('continuous appraisal attachment download security', () => {
 
     await expect(getContinuousAppraisalAttachmentDownload(attachmentId)).resolves.toBe(signedUrl)
     expect(createSignedUrl).toHaveBeenCalledWith(storageKey, 60)
+  })
+})
+
+describe('continuous appraisal status and soft-delete authorization', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  const item = (overrides: Record<string, unknown> = {}) => ({
+    employee_id: actor.employeeId,
+    created_by_employee_id: actor.employeeId,
+    item_type: 'ACTION',
+    item_status: 'OPEN',
+    ...overrides,
+  })
+
+  it('uses an optimistic status-transition RPC for a maker-authorized item', async () => {
+    const rpc = mutationClient(item(), vi.fn().mockResolvedValue({ data: { id: itemId, version: 3 }, error: null }))
+
+    await expect(transitionContinuousAppraisalItemStatus(itemId, { version: 2, itemStatus: 'DONE' })).resolves.toEqual({ id: itemId, version: 3 })
+    expect(rpc).toHaveBeenCalledWith('transition_continuous_appraisal_item_status', { p_item_id: itemId, p_expected_version: 2, p_item_status: 'DONE' })
+  })
+
+  it('allows a scoped manager to transition an open item after manager handover', async () => {
+    const rpc = mutationClient(item({ employee_id: 'employee-target', created_by_employee_id: 'old-manager' }), vi.fn().mockResolvedValue({ data: { id: itemId, version: 3 }, error: null }), { ...actor, employeeId: 'new-manager', permissions: ['continuous-appraisal:manage'] })
+
+    await expect(transitionContinuousAppraisalItemStatus(itemId, { version: 1, itemStatus: 'NOT_RELEVANT' })).resolves.toEqual({ id: itemId, version: 3 })
+    expect(rpc).toHaveBeenCalledWith('transition_continuous_appraisal_item_status', { p_item_id: itemId, p_expected_version: 1, p_item_status: 'NOT_RELEVANT' })
+  })
+
+  it('surfaces an optimistic version conflict without retrying or rewriting content', async () => {
+    const rpc = mutationClient(item(), vi.fn().mockResolvedValue({ data: null, error: { message: 'CONTINUOUS_APPRAISAL_VERSION_CONFLICT' } }))
+
+    await expect(transitionContinuousAppraisalItemStatus(itemId, { version: 1, itemStatus: 'NOT_RELEVANT' })).rejects.toMatchObject({ code: 'CONTINUOUS_APPRAISAL_VERSION_CONFLICT', status: 409 })
+    expect(rpc).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls the explicit soft-delete RPC with the expected version', async () => {
+    const rpc = mutationClient(item(), vi.fn().mockResolvedValue({ data: { id: itemId, version: 2 }, error: null }))
+
+    await expect(softDeleteContinuousAppraisalItem(itemId, { version: 1 })).resolves.toEqual({ id: itemId, version: 2 })
+    expect(rpc).toHaveBeenCalledWith('soft_delete_continuous_appraisal_item', { p_item_id: itemId, p_expected_version: 1 })
+  })
+
+  it('allows the assigned owner to soft-delete their item through the RPC', async () => {
+    const rpc = mutationClient(item({ created_by_employee_id: 'manager-creator', owner_employee_id: actor.employeeId }), vi.fn().mockResolvedValue({ data: { id: itemId, version: 2 }, error: null }))
+
+    await expect(softDeleteContinuousAppraisalItem(itemId, { version: 1 })).resolves.toEqual({ id: itemId, version: 2 })
+    expect(rpc).toHaveBeenCalledWith('soft_delete_continuous_appraisal_item', { p_item_id: itemId, p_expected_version: 1 })
   })
 })

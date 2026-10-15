@@ -10,7 +10,9 @@ import { isContinuousAppraisalAttachmentStorageKey } from './attachment-storage-
 import type {
   ContinuousAppraisalCommentInput,
   ContinuousAppraisalCreateInput,
+  ContinuousAppraisalDeleteInput,
   ContinuousAppraisalListQuery,
+  ContinuousAppraisalStatusTransitionInput,
   ContinuousAppraisalUpdateInput,
 } from './schemas'
 
@@ -35,6 +37,7 @@ export type ContinuousAppraisalErrorCode =
   | 'CONTINUOUS_APPRAISAL_FEEDBACK_MANAGER_ONLY'
   | 'CONTINUOUS_APPRAISAL_OWNER_INVALID'
   | 'CONTINUOUS_APPRAISAL_VERSION_CONFLICT'
+  | 'CONTINUOUS_APPRAISAL_ITEM_FORBIDDEN'
   | 'CONTINUOUS_APPRAISAL_READ_FAILED'
   | 'CONTINUOUS_APPRAISAL_WRITE_FAILED'
   | 'CONTINUOUS_APPRAISAL_ATTACHMENT_INVALID'
@@ -58,6 +61,9 @@ export type ContinuousAppraisalItem = Pick<ItemRow, 'id' | 'employee_id' | 'mana
   comments: ContinuousAppraisalComment[]
   attachments: ContinuousAppraisalAttachment[]
   canEdit: boolean
+  canMarkDone: boolean
+  canMarkNotRelevant: boolean
+  canDelete: boolean
 }
 
 export type ContinuousAppraisalEmployeeOption = {
@@ -175,7 +181,7 @@ async function currentManagerId(context: AuthContext, employeeId: string): Promi
   return data?.direct_manager_id ?? null
 }
 
-function toItem(row: ItemRow, comments: ContinuousAppraisalComment[], attachments: ContinuousAppraisalAttachment[], actorEmployeeId: string): ContinuousAppraisalItem {
+function toItem(row: ItemRow, comments: ContinuousAppraisalComment[], attachments: ContinuousAppraisalAttachment[], actorEmployeeId: string, canWrite: boolean): ContinuousAppraisalItem {
   const today = new Date().toISOString().slice(0, 10)
   return {
     id: row.id,
@@ -201,7 +207,10 @@ function toItem(row: ItemRow, comments: ContinuousAppraisalComment[], attachment
     updated_at: row.updated_at,
     comments,
     attachments,
-    canEdit: row.created_by_employee_id === actorEmployeeId && row.occurred_on >= today && row.item_type !== 'SYSTEM_EVENT',
+    canEdit: canWrite && row.created_by_employee_id === actorEmployeeId && row.occurred_on >= today && row.item_type !== 'SYSTEM_EVENT' && row.deleted_at === null,
+    canMarkDone: canWrite && ['ACTION', 'AGREEMENT', 'GOAL'].includes(row.item_type) && ['PLANNED', 'OPEN', 'WAITING', 'ACTIVE'].includes(row.item_status) && row.deleted_at === null,
+    canMarkNotRelevant: canWrite && ['ACTION', 'AGREEMENT', 'GOAL'].includes(row.item_type) && ['PLANNED', 'OPEN', 'WAITING', 'ACTIVE'].includes(row.item_status) && row.deleted_at === null,
+    canDelete: canWrite && (row.created_by_employee_id === actorEmployeeId || row.owner_employee_id === actorEmployeeId) && row.occurred_on >= today && row.item_type !== 'SYSTEM_EVENT' && row.deleted_at === null,
   }
 }
 
@@ -283,7 +292,7 @@ export async function listContinuousAppraisalWorkspace(targetEmployeeId: string,
   return {
     employeeId: targetEmployeeId,
     employee: toEmployeeOption(employee),
-    items: filteredRows.map((row) => toItem(row, commentsByItem.get(row.id) ?? [], attachmentsByItem.get(row.id) ?? [], context.employeeId ?? '')),
+    items: filteredRows.map((row) => toItem(row, commentsByItem.get(row.id) ?? [], attachmentsByItem.get(row.id) ?? [], context.employeeId ?? '', canWrite)),
     canWrite,
     canCreateFeedback: context.employeeId !== null && context.permissions.includes('continuous-appraisal:write'),
   }
@@ -373,7 +382,6 @@ export async function updateContinuousAppraisalItem(itemId: string, input: Conti
     body: input.body,
     due_on: input.dueOn,
     next_meeting_on: input.nextMeetingOn,
-    item_status: input.itemStatus,
     priority: input.priority,
     owner_employee_id: input.ownerEmployeeId,
     owner_label: ownerProfile ? employeeLabel(ownerProfile) : input.ownerEmployeeId === null ? null : undefined,
@@ -382,6 +390,39 @@ export async function updateContinuousAppraisalItem(itemId: string, input: Conti
   if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_WRITE_FAILED')
   if (!data) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_VERSION_CONFLICT', 409)
   return data
+}
+
+function rpcResult(data: unknown): { id: string; version: number } {
+  if (!data || typeof data !== 'object' || !('id' in data) || typeof data.id !== 'string' || !('version' in data) || typeof data.version !== 'number') {
+    throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_WRITE_FAILED')
+  }
+  return { id: data.id, version: data.version }
+}
+
+export async function transitionContinuousAppraisalItemStatus(itemId: string, input: ContinuousAppraisalStatusTransitionInput): Promise<{ id: string; version: number }> {
+  const supabase = await createClient()
+  const { data: item, error: itemError } = await supabase.from('continuous_appraisal_items').select('employee_id, created_by_employee_id, item_type, item_status').eq('id', itemId).maybeSingle()
+  if (itemError) databaseError(itemError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+  if (!item) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_NOT_FOUND', 404)
+  const context = await requirePermission('continuous-appraisal:write', item.employee_id)
+  await assertContinuousAppraisalTargetAccess(context, item.employee_id, 'continuous-appraisal:write')
+  if (!context.employeeId || item.item_type === 'SYSTEM_EVENT') throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_FORBIDDEN', 403)
+  const { data, error } = await supabase.rpc('transition_continuous_appraisal_item_status', { p_item_id: itemId, p_expected_version: input.version, p_item_status: input.itemStatus })
+  if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_WRITE_FAILED')
+  return rpcResult(data)
+}
+
+export async function softDeleteContinuousAppraisalItem(itemId: string, input: ContinuousAppraisalDeleteInput): Promise<{ id: string; version: number }> {
+  const supabase = await createClient()
+  const { data: item, error: itemError } = await supabase.from('continuous_appraisal_items').select('employee_id, created_by_employee_id, owner_employee_id, item_type').eq('id', itemId).maybeSingle()
+  if (itemError) databaseError(itemError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+  if (!item) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_NOT_FOUND', 404)
+  const context = await requirePermission('continuous-appraisal:write', item.employee_id)
+  await assertContinuousAppraisalTargetAccess(context, item.employee_id, 'continuous-appraisal:write')
+  if (!context.employeeId || (item.created_by_employee_id !== context.employeeId && item.owner_employee_id !== context.employeeId) || item.item_type === 'SYSTEM_EVENT') throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_FORBIDDEN', 403)
+  const { data, error } = await supabase.rpc('soft_delete_continuous_appraisal_item', { p_item_id: itemId, p_expected_version: input.version })
+  if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_WRITE_FAILED')
+  return rpcResult(data)
 }
 
 export async function addContinuousAppraisalComment(itemId: string, input: ContinuousAppraisalCommentInput): Promise<{ id: string }> {
@@ -416,7 +457,7 @@ export async function createContinuousAppraisalAttachment(itemId: string, file: 
   const supabase = await createClient()
   const { data: item, error: itemError } = await supabase
     .from('continuous_appraisal_items')
-    .select('tenant_id, employee_id, occurred_on')
+    .select('tenant_id, employee_id, occurred_on, created_by_employee_id, item_type, deleted_at')
     .eq('id', itemId)
     .maybeSingle()
   if (itemError) databaseError(itemError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
@@ -424,6 +465,7 @@ export async function createContinuousAppraisalAttachment(itemId: string, file: 
 
   const context = await requirePermission('continuous-appraisal:write', item.employee_id)
   await assertContinuousAppraisalTargetAccess(context, item.employee_id, 'continuous-appraisal:write')
+  if (!context.employeeId || item.created_by_employee_id !== context.employeeId || item.item_type === 'SYSTEM_EVENT' || item.deleted_at !== null) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_FORBIDDEN', 403)
   if (item.occurred_on < new Date().toISOString().slice(0, 10)) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_PAST_IMMUTABLE', 409)
   if (!context.employeeId) throw new AuthorizationError('Je hebt geen gekoppelde medewerker voor deze actie.')
   if (!file.name.trim() || file.size < 1 || file.size > CONTINUOUS_APPRAISAL_ATTACHMENT_MAX_SIZE || !CONTINUOUS_APPRAISAL_ATTACHMENT_TYPES.has(file.type) || file.name.length > 255) {
