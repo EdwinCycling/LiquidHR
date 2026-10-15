@@ -610,7 +610,7 @@ function payfull02Amounts(getAmount: (key: string) => string | null): Payfull02C
     cumulativeWageTax: getAmount('cumulative_wage_tax'),
     cumulativeEmployeeInsuranceWage: getAmount('cumulative_employee_insurance_wage'),
     cumulativeZvwWage: getAmount('cumulative_zvw_wage'),
-    cumulativeGross: getAmount('cumulative_gross'),
+    cumulativeGross: getAmount('cumulative_gross_wage'),
     cumulativeHolidayReserve: getAmount('cumulative_holiday_reserve'),
     cumulativeYearEndReserve: getAmount('cumulative_year_end_reserve'),
   }

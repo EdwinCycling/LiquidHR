@@ -160,6 +160,7 @@ function provider(overrides: {
 function payfullScenarioProvider(state: {
   variant: 'REGULAR' | 'VARIABLE'
   variableWage?: string
+  specialRewardWage?: string
 }): PayrollSourceProvider {
   const base = provider()
   return {
@@ -177,6 +178,7 @@ function payfullScenarioProvider(state: {
         ? PAYROLL_ACCEPTANCE_VARIABLE_SCENARIO_CODE
         : PAYROLL_ACCEPTANCE_SCENARIO_CODE
       const variableWage = state.variant === 'VARIABLE' ? state.variableWage ?? '500.00' : '0.00'
+      const specialRewardWage = state.specialRewardWage ?? '0.00'
       const assumptionsHash = 'e'.repeat(64)
       const configVersionId = '9a000000-0000-4000-8000-000000000009'
       const openingSnapshotId = '9b000000-0000-4000-8000-000000000009'
@@ -210,7 +212,7 @@ function payfullScenarioProvider(state: {
         amounts: {
           ...originalAmounts,
           variableRegularWage: variableWage,
-          specialRewardWage: '0.00',
+          specialRewardWage,
           netReimbursement: '45.00',
           netDeduction: '0.00',
           netCorrection: '0.00',
@@ -240,8 +242,8 @@ function payfullScenarioProvider(state: {
         },
         taxProfile: {
           ...originalTaxProfile,
-          specialRewardAnnualWage: '0.00',
-          specialRewardAnnualWageResolved: false,
+          specialRewardAnnualWage: specialRewardWage === '0.00' ? '0.00' : '66000.00',
+          specialRewardAnnualWageResolved: specialRewardWage !== '0.00',
         },
         pension: {
           monthlyFranchise: '0.00',
@@ -528,6 +530,18 @@ describe('Core-backed employee payroll calculation', () => {
     expect(result.incompleteComponents).toContain(expected)
     expect(result.incompleteComponents).not.toContain(other)
     expect(state.runs.size).toBe(1)
+  })
+
+  it('maps cumulative gross including a special reward from the complete PAYFULL02 output', async () => {
+    const state = harness({}, payfullScenarioProvider({ variant: 'REGULAR', specialRewardWage: '500.00' }), true)
+    const result = await state.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+
+    expect(result).toMatchObject({
+      status: 'CALCULATED',
+      completeness: 'COMPLETE',
+      grossAmount: '4500.00',
+    })
+    expect(result.payfull02?.cumulativeGross).toBe('4500.00')
   })
 
   it('requires a finalized regular predecessor before the variable-wage scenario can create a run', async () => {
