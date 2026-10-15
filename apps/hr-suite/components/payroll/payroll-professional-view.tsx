@@ -455,6 +455,7 @@ export function PayrollRunReconciliation({
   const fiscalBases = payrollFiscalBases(run.sourceSnapshot.source_payload)
   const payrollOwned = payrollExplanationRecord(payrollExplanationRecord(run.sourceSnapshot.source_payload)?.payrollOwned)
   const pensionSummary = payrollExplanationRecord(payrollOwned?.pensionCalculationSummary)
+  const finalized = run.lifecycleEvents.some((event) => event.calculation_run_id === run.run.id && event.event_type === 'FINALIZED')
   const groups = [
     { title: labels.employeeArithmetic, keys: ['contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'gross_salary', 'employee_pension', 'taxable_wage', 'employee_insurance_wage', 'zvw_wage', 'wage_tax', 'net_salary'] },
     { title: labels.employerCost, keys: ['employer_insurance', 'employer_pension', 'holiday_allowance_reserve', 'holiday_reserve', 'year_end_reserve', 'total_employer_cost'] },
@@ -469,14 +470,13 @@ export function PayrollRunReconciliation({
       : row.component_key === 'employer_pension' ? 'PENSION_EMPLOYER_SHARE' : null
     const pensionStep = pensionStepCode ? pensionSteps.find((step) => step.componentCode === pensionStepCode) ?? null : null
     return <div key={row.component_key} className="border-t border-border-subtle py-3 first:border-t-0">
-      <PayrollComponentDetail row={row} step={payrollTraceStepByCode(engineSteps, code)} pensionStep={pensionStep} tracePayload={tracePayload} locale={locale} labels={labels} />
+      <PayrollComponentDetail row={row} step={payrollTraceStepByCode(engineSteps, code)} pensionStep={pensionStep} tracePayload={tracePayload} locale={locale} labels={row.component_key === 'net_salary' && !finalized ? { ...labels, net_salary: labels.netAfterTaxIncomplete } : labels} />
       {row.component_key === 'employer_insurance' ? <div className="mt-3"><EmployerPremiumBreakdown tracePayload={tracePayload} locale={locale} labels={labels} /></div> : null}
     </div>
   }
   const succeeded = run.run.status === 'SUCCEEDED'
   const gross = byKey.has('gross_salary') ? componentAmount(byKey.get('gross_salary')!) : null
   const net = byKey.has('net_salary') ? componentAmount(byKey.get('net_salary')!) : null
-  const finalized = run.lifecycleEvents.some((event) => event.calculation_run_id === run.run.id && event.event_type === 'FINALIZED')
   const concept = run.lifecycleEvents.some((event) => event.calculation_run_id === run.run.id && event.event_type === 'CONCEPT')
   const pensionReadinessWarning = run.controls.some((control) => control.status === 'WARN' && /PENSION-RULE-READY/i.test(control.control_key))
   const pensionMissing = !byKey.has('employee_pension') && !byKey.has('employer_pension') && pensionSteps.length === 0 && !pensionSummary
@@ -485,7 +485,7 @@ export function PayrollRunReconciliation({
   return <div className="space-y-5">
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="rounded-xl border border-border-subtle bg-surface-subtle p-4"><p className="text-xs text-muted-foreground">{labels.gross}</p><p className="mt-2 text-xl font-semibold tabular-nums">{formatPayrollMoney(gross, locale)}</p></div>
-      <div className="rounded-xl border border-border-subtle bg-surface-subtle p-4"><p className="text-xs text-muted-foreground">{labels.net}</p><p className="mt-2 text-xl font-semibold tabular-nums">{formatPayrollMoney(net, locale)}</p></div>
+      <div className="rounded-xl border border-border-subtle bg-surface-subtle p-4"><p className="text-xs text-muted-foreground">{finalized ? labels.net : labels.netAfterTaxIncomplete}</p><p className="mt-2 text-xl font-semibold tabular-nums">{formatPayrollMoney(net, locale)}</p></div>
     </div>
     <p className={`rounded-lg border px-4 py-3 text-sm font-medium ${finalized ? 'border-border-subtle bg-surface-subtle' : 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100'}`}>{savedState}</p>
     {pensionReadinessWarning ? <div role="status" className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm"><p className="font-semibold">{labels.pensionReadinessTitle}</p><p className="mt-1">{pensionSteps.length > 0 ? labels.pensionReadinessWarning : labels.pensionSourceVerificationRequired}</p>{pensionMissing ? <p className="mt-1 font-medium">{labels.netNotDefinitive}</p> : null}</div> : pensionMissing ? <div role="status" className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm"><p className="font-semibold">{labels.pensionSourceVerificationRequired}</p><p className="mt-1 font-medium">{labels.netNotDefinitive}</p></div> : null}

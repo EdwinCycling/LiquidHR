@@ -98,6 +98,7 @@
   "backToRuns": "Back to payroll runs",
   "gross": "Gross pay",
   "net": "Net pay",
+  "netAfterTaxIncomplete": "After wage tax (not final net pay)",
   "sourceHash": "Source hash",
   "inputHash": "Input hash",
   "resultHash": "Result hash",

@@ -94,6 +94,7 @@ const employerPremiumRun = {
 const labels: Readonly<Record<string, string>> = {
   gross: 'Gross',
   net: 'Net',
+  netAfterTaxIncomplete: 'After wage tax (not final net pay)',
   employeeArithmetic: 'Employee calculation',
   employerCost: 'Employer cost',
   cumulative: 'Cumulative',
@@ -201,10 +202,12 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     const finalizedMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={finalizedRun} locale="en-GB" labels={labels} />)
 
     expect(conceptMarkup).toContain('Concept — not final')
+    expect(conceptMarkup).toContain('After wage tax (not final net pay)')
     expect(conceptMarkup).toContain('Not finalized')
     expect(conceptMarkup).not.toContain('/artifact/TECHNICAL_JSON')
     expect(conceptMarkup).not.toContain('/payslip-preview')
     expect(finalizedMarkup).toContain('Finalized')
+    expect(finalizedMarkup).toContain('Net')
     expect(finalizedMarkup).toContain('/artifact/TECHNICAL_JSON')
     expect(finalizedMarkup).toContain('/payslip-preview')
     expect(finalizedMarkup).toContain('/payslip-preview?download=1')
@@ -231,6 +234,7 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     const markup = renderToStaticMarkup(<PayrollRunReconciliation run={fritsRun} locale="nl-NL" labels={labels} />)
 
     expect(markup).toContain('Pension source needs review')
+    expect(markup).toContain('After wage tax (not final net pay)')
     expect(markup).toContain('Pension has not been calculated because the required source information could not be confirmed.')
     expect(markup).toContain('The displayed net pay is not definitive while the pension source is missing.')
     expect(markup).not.toMatch(/Employee pension.{0,40}€\s*0,00/)
