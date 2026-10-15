@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Latest local integration — TALENT-CONVERGENCE-01 — 2026-10-15
+
+**Status: local main integrated; engineering GREEN; full persona/business-flow acceptance HOLD.** The 9-grid V2 and Continuous Appraisal V2 branches are merged, and the final mobile 9-grid correction is code SHA 44ab1d8bbb8ba601557c3aec41cd9627fc7a57c5. The complete hr-suite run passed on that SHA (632 files; 3,066 passed, 8 skipped), and the Webpack production build passed TypeScript, 323 static routes, Payroll bundle/tracing checks and exact-SHA build provenance.
+
+Both explicitly approved migrations are registered on synthetic Supabase TEST: 9-grid 20261015163728 and Continuous Appraisal 20261015163934. Schema/contracts/RLS/grants were read back and all seven data fingerprints are unchanged. The authenticated SECURITY DEFINER advisor count increased from 114 to 121 and the seven new Talent routines were reviewed; this remains documented. No GitHub push, PR merge, Vercel deployment or business-record write occurred.
+
+Local read-only browser smoke covered the 9-grid at 390/1280 px and Continuous Appraisal at 390 px; all six appraisal category filters worked and browser console errors were zero. The named Maya/Yara/Noah role and scope matrix, lifecycle writes and network evidence remain OPEN because only an existing Manager session was available. Full ESLint retains one unrelated existing prefer-const error at lib/document-generation/distribution-read-service.test.ts:47 and eight existing warnings. See the [combined closeout](../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261015-FINAL.md).
+
 ## Current release — APIAI-09 — 2026-10-12
 
 **Status: TEST RELEASED — LIMITED.** PR #18 code/test-SHA `27d534fd06fee7868b3bf0534bc3fdb9a3736cd1` (PR head `c5906d7469ef47fd5b9edf36c412772e9ac98a30`) is merged as main-SHA `a5d1b3ff61e8c1d1af05a0c89b08a4fe73472495`. App version remains `1.20261011.2`; the missing bump required by AA-REL §3 is recorded OPEN in AA-OPEN.

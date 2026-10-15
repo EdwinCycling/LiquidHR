@@ -3,18 +3,16 @@
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-15 (historische acceptance-evidence blijft ongewijzigd)
 
-## TALENT-CONVERGENCE-01 — TEST-migraties toegepast; lokale main-QA loopt (2026-10-15)
+## TALENT-CONVERGENCE-01 — lokaal geïntegreerd; engineering groen; persona-acceptatie OPEN (2026-10-15)
 
-- Beide featurebranches zijn gebaseerd op geverifieerde origin/main 0708d25190562e43a96417ba406648fd04207266. De lokale code is nog niet geïntegreerd.
-- Supabase TEST wnpfloqpjvaacobppbpk is ACTIVE_HEALTHY. Read-only preflight bevestigde remote kop 20261015125424; de officiële migratieconnector registreerde 9-grid 20261015163728 en Continuous Appraisal 20261015163934. Er zijn geen andere migraties toegepast of migration-historyregels herschreven.
-- Definitieve SQL SHA-256: 9-grid 9F2CF458EF8618D9371EC8E4BA6A815ADFD2BEE81977D89F255D95418F8D8F45; Continuous Appraisal 11F8766A01A0723CE746D5E3E2BED474FFBDD6E4F410A159A427F167F1C5F8D5.
-- Alle zeven relevante tabel-fingerprints zijn gelijk gebleven: 9-grid 4 campagnes / 8 assignments / 31 leden / 15 scores; Appraisal 32 items / 6 reacties / 2 bijlagen. RLS bleef aan; beide SQL-contracttests slaagden via read-only TEST-uitvoering.
-- Schema-readback bevestigde de 9-grid modi/retour-/acting-reason-velden en Appraisal soft-deletevelden/policy. Effectieve authenticated DELETE en TRUNCATE op continuous_appraisal_items zijn beide false; anon blijft geweigerd en service_role behoudt de bedoelde toegang.
-- Gegenereerde TEST-types bevatten beide sets velden. Security-advisors tonen 114 → 121 authenticated SECURITY DEFINER-waarschuwingen; de zeven nieuwe Talent-routines zijn gecontroleerd op search_path, beperkte EXECUTE-grants en scopechecks. Anon/public EXECUTE is voor deze routines uitgeschakeld; de advisor-toename blijft expliciet geregistreerd.
-- Branchreferentie: 9-grid 3.032 tests geslaagd / 8 overgeslagen; Appraisal 3.062 geslaagd / 8 overgeslagen. TypeScript, gerichte ESLint, NL/EN-pariteit (43 namespaces) en production build slaagden. Volledige ESLint blijft geblokkeerd door dezelfde bestaande, niet-gerelateerde prefer-const-fout in lib/document-generation/distribution-read-service.test.ts:47 (plus acht bestaande warnings).
-- Read-only lokale browser-smoke op de 9-grid-route gaf HTTP 200 en toonde de bestaande managercampagne; er is niets ingediend of gewijzigd. De browsermatrix voor de afgesproken Maya/Yara/Noah-persona's en Continuous Appraisal is nog open.
-- Lokale main is schoon op f7db482b19b81d9c5aa5517c66394faa5f628e1b, zes commits achter origin/main 0708d25190562e43a96417ba406648fd04207266. Er is nog geen commit, merge, push of deployment uitgevoerd.
-- Verdict: OPEN — migraties en remote contractgates zijn groen; integreer pas na de resterende engineeringgates en voer daarna de volledige gecombineerde lokale-main-acceptatie uit. Zie de twee wave-runs en het uiteindelijke gecombineerde rapport.
+- Lokale main bevat de geverifieerde remote-basis 0708d25190562e43a96417ba406648fd04207266, de merges voor 9-grid en Continuous Appraisal en mobiele layoutfix 44ab1d8bbb8ba601557c3aec41cd9627fc7a57c5. Geen GitHub-push, PR-merge of deployment.
+- Supabase TEST wnpfloqpjvaacobppbpk is ACTIVE_HEALTHY. Officiële migraties: 20261015163728_talent_review_ux_v2_modes_and_audit en 20261015163934_continuous_appraisal_status_soft_delete_grants; remote kop is 20261015163934. Lokale versies zijn hiermee in lijn; beide SQL-contracten en schema/grant-readback slaagden.
+- De zeven betrokken tabellen behielden hun rij-ID-fingerprints: 9-grid 4/8/31/15; Appraisal 32/6/2. RLS bleef actief. Authenticated heeft geen effectieve DELETE/TRUNCATE op Appraisal-items; anon is geweigerd en de bedoelde service_role-toegang blijft bestaan.
+- Security-advisors tonen 114 → 121 authenticated SECURITY DEFINER-waarschuwingen (+7). De zeven nieuwe Talent-routines zijn op search_path, scopechecks en EXECUTE-grants gecontroleerd; de toename blijft expliciet open geregistreerd.
+- Definitieve code-SHA 44ab1d8b: volledige suite 632 bestanden / 3.066 tests groen, 4 bestanden / 8 tests overgeslagen; production Webpack-build en TypeScript groen (323 statische routes), Payroll client-boundary/traces groen, i18n 43 namespaces en gewijzigde-file ESLint groen. Volledige ESLint blijft rood op de bestaande ongegerelateerde prefer-const in lib/document-generation/distribution-read-service.test.ts:47 plus acht bestaande warnings.
+- Read-only browser-smoke op exact die build: 9-grid 390 px en 1280 px; Continuous Appraisal 390 px; zes categorieën selecteerbaar; 0 browserconsole-errors. Er zijn geen records geplaatst, ingediend, aangemaakt, aangepast of verwijderd; geen netwerktrace vastgelegd.
+- Volledige persona-/scope- en businessflowacceptatie blijft OPEN: alleen een bestaande Manager-sessie was beschikbaar, niet de gevraagde Maya/Yara/Noah-contexten. Zie het [TALENT-CONVERGENCE-01-rapport](../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261015-FINAL.md) en de twee open IDs in AA-OPEN.
+- Verdict: LOCAL MAIN INTEGRATED / ENGINEERING GREEN / FULL ACCEPTANCE HOLD. Geen TEST-release of hosted acceptatieclaim.
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
 
