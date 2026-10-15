@@ -1,6 +1,8 @@
 # LiquidHR Continuous Appraisal / Doorlopende beoordeling
 
-**Status:** LEIDEND voor de eerste medewerker-manager-slice
+**Status:** LEIDEND; V2-addendum aangevuld op 14 oktober 2026
+
+**Actuele V2-acceptatie (2026-10-15): HOLD.** De opdracht autoriseert de TEST-migratie, maar de voorafgaande 9-grid-uitvoering is door de officiële Supabase-migratieconnector geweigerd met Invalid or expired requestState. Zie [de acceptatierun](../../quality/acceptance/runs/TALENT-CONTINUOUS-APPRAISAL-UX-V2-20261015.md); post-migratiebeveiliging en persona-browsergates blijven open.
 **Datum:** 3 augustus 2026
 **Bron:** `C:\Users\Edwin\Downloads\Employee_timeline.md` en de aangeleverde referentieschermen
 **Productbeschrijving:** één gedeelde geschiedenis voor notities, acties, afspraken, feedback, doelen/ontwikkeling en gespreksverslagen.
@@ -16,7 +18,7 @@ De eerste slice bevat:
 - maximaal 100 tekens per commentaarregel onder ieder item;
 - zoek-, type-, status-, eigenaar- en periodefilters;
 - toekomstige eigen items wijzigen; inhoud uit het verleden blijft onveranderlijk;
-- een item nooit verwijderen: context wordt aangevuld met commentaar en audit blijft behouden;
+- reguliere itemverwijdering is niet beschikbaar; het V2-addendum staat uitsluitend auditeerbare soft delete toe binnen de maker- en historiegrens;
 - een medewerkerweergave op de startpagina en een volledige Workforce-werkruimte voor de manager;
 - managerwissel als zichtbaar systeemitem en veilige historische handovergrens.
 
@@ -80,14 +82,15 @@ Een latere instelling kan deze handover uitbreiden naar historische deling met e
 | Meeting summary | titel, datum, beschrijving, eventueel volgende meeting | medewerker/manager |
 | Systeemgebeurtenis | titel, datum, beschrijving | alleen database-trigger |
 
-Statuswaarden zijn `PLANNED`, `OPEN`, `WAITING`, `ACTIVE`, `DONE`, `CANCELLED` en `ARCHIVED`. Een actie is een first-class item en wordt niet als los tekstblok gemodelleerd.
+Statuswaarden zijn `PLANNED`, `OPEN`, `WAITING`, `ACTIVE`, `DONE`, `NOT_RELEVANT`, `CANCELLED` en `ARCHIVED`. `NOT_RELEVANT` is een echte status en blijft gescheiden van `CANCELLED`. Een actie is een first-class item en wordt niet als los tekstblok gemodelleerd.
 
 ## 5. Historische integriteit
 
 - Een item waarvan de datum al vóór vandaag ligt, kan niet inhoudelijk worden gewijzigd; items van vandaag en toekomstige items zijn nog bewerkbaar voor de maker.
 - Een toekomstig item mag alleen door de maker worden gewijzigd.
 - De database bewaakt identiteit, maker, datum en optimistic-lock `version`.
-- Er is geen delete-grant en geen delete-route.
+- Er is geen fysieke delete-route of delete-grant. De V2 soft-delete-route registreert maker, actor, tijdstip, versie en audit-event; soft-deleted items verdwijnen uit de normale timeline maar blijven in audit/historie. Alleen de maker mag een niet-systeemitem verwijderen als de datumgrens dit toestaat.
+- Statusovergangen `DONE` en `NOT_RELEVANT` lopen via een aparte geautoriseerde statusroute/RPC met optimistic locking. Zij wijzigen geen titel, beschrijving of andere historische inhoud. Alleen passende open acties, afspraken en doelen tonen deze acties.
 - Commentaren zijn immutable append-only records van maximaal 100 karakters.
 - Mutaties worden naar de bestaande `audit_logs` geschreven; de module maakt geen tweede auditwereld.
 
@@ -98,7 +101,9 @@ De referentieschermen zijn richtinggevend voor de informatiehiërarchie:
 - duidelijke modal met verticale oranje accentlijn, titel, sluitknop, labels, velden, annuleren en primaire actie;
 - lijst/timeline met datum, omschrijving, categorie, eigenaar en actiekolom;
 - visuele categorie-badges voor actie, afspraak, feedback, doel en meeting;
-- zoekveld, tabs/filters en sortering op datum;
+- zoekveld, tabs/filters en sortering op datum; iedere tab houdt een vaste typegerichte toevoegknop, ook bij lege of gevulde resultaten;
+- `Alles` opent een typekeuze; toevoegen vanuit een categorie selecteert het betreffende type vooraf. Feedback toevoegen blijft rolgebonden;
+- `Klaar` en `Niet meer relevant` tonen afzonderlijke, semantisch leesbare statusbadges. Verwijderen vereist een bevestigingsdialoog met titel en waarschuwing;
 - een item toont commentaar ingeklapt; openen toont de bestaande regels en een compact invoerveld met `0/100`;
 - mobiele weergave stapelt velden en kaartinhoud zonder horizontaal scrollen;
 - lege, fout-, laad- en geen-toegangstoestanden zijn Nederlandstalig en Engelstalig beschikbaar;

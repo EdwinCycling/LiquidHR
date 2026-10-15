@@ -28,6 +28,9 @@ function item(overrides: Partial<ContinuousAppraisalItem> = {}): ContinuousAppra
     comments: [],
     attachments: [],
     canEdit: true,
+    canMarkDone: true,
+    canMarkNotRelevant: true,
+    canDelete: true,
     ...overrides,
   }
 }
@@ -50,5 +53,25 @@ describe('Continuous Appraisal collection filtering', () => {
 
     expect(filterContinuousAppraisalItems([first, second], { fromDate: '', oldestFirst: false, owner: 'ALL', search: '', status: 'ALL', toDate: '', type: 'ALL' }).map((entry) => entry.id)).toEqual([second.id, first.id])
     expect(filterContinuousAppraisalItems([first, second], { fromDate: '', oldestFirst: true, owner: 'ALL', search: '', status: 'ALL', toDate: '', type: 'ALL' }).map((entry) => entry.id)).toEqual([first.id, second.id])
+  })
+
+  it('keeps NOT_RELEVANT distinct from cancelled in status filters', () => {
+    const notRelevant = item({ item_status: 'NOT_RELEVANT' })
+    const cancelled = item({ id: '00000000-0000-0000-0000-000000000006', item_status: 'CANCELLED' })
+
+    expect(filterContinuousAppraisalItems([notRelevant, cancelled], { fromDate: '', oldestFirst: false, owner: 'ALL', search: '', status: 'NOT_RELEVANT', toDate: '', type: 'ALL' })).toEqual([notRelevant])
+    expect(filterContinuousAppraisalItems([notRelevant, cancelled], { fromDate: '', oldestFirst: false, owner: 'ALL', search: '', status: 'CANCELLED', toDate: '', type: 'ALL' })).toEqual([cancelled])
+  })
+
+  it('defines upcoming follow-up only from action deadlines, agreement dates, goals and next meeting dates', () => {
+    const action = item({ due_on: '2026-10-20' })
+    const agreement = item({ id: '00000000-0000-0000-0000-000000000007', item_type: 'AGREEMENT', item_status: 'OPEN', due_on: null, occurred_on: '2026-10-22' })
+    const goal = item({ id: '00000000-0000-0000-0000-000000000008', item_type: 'GOAL', item_status: 'ACTIVE', due_on: '2026-10-25' })
+    const meeting = item({ id: '00000000-0000-0000-0000-000000000009', item_type: 'MEETING_SUMMARY', item_status: 'ACTIVE', due_on: null, next_meeting_on: '2026-10-30' })
+    const datedNote = item({ id: '00000000-0000-0000-0000-00000000000a', item_type: 'NOTE', item_status: 'ACTIVE', due_on: null, occurred_on: '2026-10-21' })
+
+    const results = filterContinuousAppraisalItems([action, agreement, goal, meeting, datedNote], { asOf: '2026-10-14', fromDate: '', oldestFirst: false, owner: 'ALL', quickView: 'UPCOMING', search: '', status: 'ALL', toDate: '', type: 'ALL' })
+    expect(results).toHaveLength(4)
+    expect(results).not.toContain(datedNote)
   })
 })

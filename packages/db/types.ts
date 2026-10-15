@@ -3116,6 +3116,8 @@ export type Database = {
           created_by_employee_id: string
           created_by_label: string
           created_by_user_id: string | null
+          deleted_at: string | null
+          deleted_by_user_id: string | null
           due_on: string | null
           employee_id: string
           feedback_direction: string | null
@@ -21610,6 +21612,14 @@ export type Database = {
       }
     }
     Functions: {
+      soft_delete_continuous_appraisal_item: {
+        Args: { p_expected_version: number; p_item_id: string }
+        Returns: Json
+      }
+      transition_continuous_appraisal_item_status: {
+        Args: { p_expected_version: number; p_item_id: string; p_item_status: string }
+        Returns: Json
+      }
       accept_user_invitation: {
         Args: {
           accepted_email: string
