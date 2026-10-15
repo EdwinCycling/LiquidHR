@@ -19665,6 +19665,9 @@ export type Database = {
           last_reminded_at: string | null
           manager_employee_id: string
           reminder_id: string | null
+          return_reason: string | null
+          returned_at: string | null
+          returned_by_user_id: string | null
           scored_count: number
           status: string
           submitted_at: string | null
@@ -19681,6 +19684,9 @@ export type Database = {
           last_reminded_at?: string | null
           manager_employee_id: string
           reminder_id?: string | null
+          return_reason?: string | null
+          returned_at?: string | null
+          returned_by_user_id?: string | null
           scored_count?: number
           status?: string
           submitted_at?: string | null
@@ -19697,6 +19703,9 @@ export type Database = {
           last_reminded_at?: string | null
           manager_employee_id?: string
           reminder_id?: string | null
+          return_reason?: string | null
+          returned_at?: string | null
+          returned_by_user_id?: string | null
           scored_count?: number
           status?: string
           submitted_at?: string | null
@@ -19749,6 +19758,7 @@ export type Database = {
           name: string
           previous_campaign_id: string | null
           reopened_at: string | null
+          review_mode: string
           started_at: string | null
           starts_on: string
           status: string
@@ -19769,6 +19779,7 @@ export type Database = {
           name: string
           previous_campaign_id?: string | null
           reopened_at?: string | null
+          review_mode?: string
           started_at?: string | null
           starts_on: string
           status?: string
@@ -19789,6 +19800,7 @@ export type Database = {
           name?: string
           previous_campaign_id?: string | null
           reopened_at?: string | null
+          review_mode?: string
           started_at?: string | null
           starts_on?: string
           status?: string
@@ -19824,6 +19836,7 @@ export type Database = {
       talent_review_scores: {
         Row: {
           assignment_id: string
+          acting_reason: string | null
           campaign_id: string
           created_at: string
           created_by_user_id: string | null
@@ -19843,6 +19856,7 @@ export type Database = {
         }
         Insert: {
           assignment_id: string
+          acting_reason?: string | null
           campaign_id: string
           created_at?: string
           created_by_user_id?: string | null
@@ -19862,6 +19876,7 @@ export type Database = {
         }
         Update: {
           assignment_id?: string
+          acting_reason?: string | null
           campaign_id?: string
           created_at?: string
           created_by_user_id?: string | null
@@ -21626,7 +21641,7 @@ export type Database = {
         Returns: Json
       }
       activate_due_talent_review_campaigns: {
-        Args: { requested_tenant_id: string }
+        Args: { requested_administration_id: string; requested_tenant_id: string }
         Returns: number
       }
       activate_job_profile_version: {
@@ -23399,7 +23414,7 @@ export type Database = {
         Returns: Json
       }
       reopen_talent_review_campaign: {
-        Args: { requested_campaign_id: string }
+        Args: { requested_campaign_id: string; requested_reason: string }
         Returns: string
       }
       replace_document_studio_template_tags: {
@@ -23873,6 +23888,14 @@ export type Database = {
       }
       start_talent_review_campaign: {
         Args: { requested_campaign_id: string }
+        Returns: string
+      }
+      submit_talent_review_assignment: {
+        Args: { requested_assignment_id: string; requested_campaign_id: string }
+        Returns: string
+      }
+      return_talent_review_assignment: {
+        Args: { requested_assignment_id: string; requested_campaign_id: string; requested_reason: string }
         Returns: string
       }
       start_team_compass_campaign: {

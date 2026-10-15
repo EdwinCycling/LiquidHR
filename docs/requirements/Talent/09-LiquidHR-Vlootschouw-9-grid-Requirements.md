@@ -1,6 +1,8 @@
 # LiquidHR Vlootschouw / 9-grid
 
 **Status:** Leidende product- en implementatierequirement voor de 9-grid-slice
+
+**Actuele V2-acceptatie (2026-10-15): HOLD.** De geautoriseerde TEST-migratie werd door de officiële Supabase-migratieconnector geweigerd met Invalid or expired requestState. Lokale codegates zijn vastgelegd in [de acceptatierun](../../quality/acceptance/runs/TALENT-9GRID-UX-V2-20261015.md); TEST-schema-, RLS-, advisor- en browsergates zijn niet bewezen.
 **Datum:** 3 augustus 2026
 **Bronnen:** `C:\Users\Edwin\Downloads\vlootschouw.md` en de vier aangeleverde WhatsApp-referenties
 **Gerelateerd:** Talent Blueprint v2.0, Decision Register & Glossary, FDR-0003
@@ -185,3 +187,41 @@ De service valideert alle UUID's, datums, statuses, concurrencyversies en scope.
 ## 12. Bewust uitgestelde uitbreidingen
 
 Deze requirementsbron beschrijft ook mogelijke vervolgstappen, maar ze zijn geen verborgen MVP-acceptatiecriteria: vitaliteit als derde dimensie, salaris- en leeftijdfilters, employee compare, uitgebreide notitietypen, actieplannen, performance-integratie, custom fields, trenddashboard en Excel-export. Voor elk daarvan is een afzonderlijk productbesluit of een expliciete uitbreiding van deze requirement nodig.
+
+## 13. Addendum TALENT-9GRID-UX-V2 — 14 oktober 2026
+
+Dit addendum vult de bestaande requirements aan. Waar de eerdere tekst tenantbrede HR-scope, manager-only invoer, het oude indien-/sluitmoment of een automatisch zichtbare campagnehistorie noemt, geldt dit addendum als actuele productregel. Het bestaande audit-, snapshot-, self-scope-, reminder- en privacycontract blijft van kracht.
+
+### 13.1 Campagne en autorisatie
+
+- Elke campagne is gekoppeld aan de actieve administratie en kan geen vorige campagne uit een andere administratie selecteren.
+- Een campagne legt één van de beoordelingsmodi vast: `MANAGER_ONLY`, `HR_ONLY` of `HYBRID`.
+- Managers zien uitsluitend hun eigen assignments en alleen wanneer de campagne managerinvoer toestaat. `HR_ONLY` is voor managers volledig verborgen.
+- HR Admin ziet Campagnes, Beoordelen en Resultaten binnen de actieve administratie. Invoer en namens een manager indienen zijn alleen toegestaan bij `HR_ONLY` en `HYBRID`; in `MANAGER_ONLY` blijft HR-invoer read-only.
+- De assignment behoudt de verantwoordelijke manager. `submitted_by_user_id` en `audit_logs.actor_user_id` bevatten de werkelijke ingelogde actor, ook wanneer HR namens de manager indient.
+
+### 13.2 Lifecycle en historie
+
+- Na indienen zijn alle scores en assignmentgegevens read-only. Alleen HR Admin mag een ingediende assignment met een verplichte correctiereden terugsturen.
+- Terugsturen maakt die assignment opnieuw bewerkbaar en brengt de campagne terug naar de open reviewstatus. Heropenen van een gesloten campagne vereist eveneens een reden en markeert de assignments als teruggestuurd.
+- Sluiten vereist ten minste één assignment, een ingediende status voor iedere assignment en twee scores voor iedere toegewezen medewerker. Service en database-RPC handhaven dezelfde voorwaarden.
+- Historie verschijnt pas in de context van een bewust geselecteerde medewerker en gebruikt alleen een vorige campagne uit dezelfde administratie.
+
+### 13.3 Gebruikerservaring en uiterlijk
+
+- HR gebruikt afzonderlijke tabs Campagnes, Beoordelen en Resultaten. Het nieuwe campagneformulier is inklapbaar en loopt over de beschikbare paginabreedte.
+- Campagnes zijn te filteren op Concept, Lopend en Afgesloten.
+- Beoordelen en Resultaten geven de 3×3-matrix de meeste schermruimte. Cellen hebben zachte, theme-token-gebaseerde kleuren; aslabels en celnamen blijven altijd tekstueel zichtbaar.
+- De gebruiker kan Foto's of Namen tonen, medewerkers selecteren en plaatsen via klikken of drag-and-drop. Dropdoelen, selectie, focus-visible en reduced-motion zijn ondersteund.
+- De matrix blijft responsive, toetsenbordbedienbaar en bruikbaar in light- en dark-mode.
+
+### 13.4 V2-acceptatie
+
+- [ ] Alle drie de modi werken met de juiste manager-, HR- en actieve-administratiescope.
+- [ ] HR kan in toegestane modi een managerassignment invullen en indienen met juiste actorprovenance; managerwijzigingen na indienen zijn geblokkeerd.
+- [ ] HR kan een ingediende assignment met reden terugsturen; score-invoer is daarna opnieuw beschikbaar en geaudit.
+- [ ] Sluiten wordt geweigerd zolang één assignment of score onvolledig is; sluiten en heropenen zijn geaudit.
+- [ ] Campagnes, Beoordelen en Resultaten werken als gescheiden tabs; statusfilters en het inklapbare campagneformulier zijn bruikbaar.
+- [ ] Matrix, Foto's/Namen, klikplaatsing, drag-and-drop, toetsenbord, reduced-motion, desktop, laptop, mobiel, light- en dark-mode zijn browsergetest.
+- [ ] Nederlandse en Engelse message-namespaces hebben identieke keys.
+- [ ] TEST-schema-, RLS/RPC-, API-, audit- en browseracceptatie zijn uitgevoerd met uitsluitend geïsoleerde campagnes voor Maya Bos, Yara Meijer en Noah Hendriks; bestaande beoordelingen zijn behouden.

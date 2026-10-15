@@ -7,11 +7,12 @@ describe('talent review schemas', () => {
   })
 
   it('accepts an incomplete draft and rejects unknown fields', () => {
-    expect(talentReviewScoreSaveSchema.safeParse({ employeeId: '00000000-0000-4000-8000-000000000001', status: 'DRAFT' }).success).toBe(true)
+    expect(talentReviewScoreSaveSchema.safeParse({ employeeId: '00000000-0000-4000-8000-000000000001' }).success).toBe(true)
     expect(talentReviewScoreSaveSchema.safeParse({ employeeId: '00000000-0000-4000-8000-000000000001', unexpected: true }).success).toBe(false)
+    expect(talentReviewScoreSaveSchema.safeParse({ employeeId: '00000000-0000-4000-8000-000000000001', status: 'SUBMITTED' }).success).toBe(false)
   })
 
   it('accepts canonical PostgreSQL fixture UUIDs without an RFC version label', () => {
-    expect(talentReviewScoreSaveSchema.safeParse({ employeeId: '01c349f0-be6f-01dc-4d96-b5bf66085a56', performanceScore: 'LOW', potentialScore: 'LOW', status: 'DRAFT' }).success).toBe(true)
+    expect(talentReviewScoreSaveSchema.safeParse({ employeeId: '01c349f0-be6f-01dc-4d96-b5bf66085a56', performanceScore: 'LOW', potentialScore: 'LOW' }).success).toBe(true)
   })
 })
