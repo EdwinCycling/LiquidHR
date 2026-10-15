@@ -1,7 +1,25 @@
 export const GRID_VALUES = ['LOW', 'NORMAL', 'HIGH'] as const
 export type GridValue = (typeof GRID_VALUES)[number]
 
+export const TALENT_REVIEW_MODES = ['MANAGER_ONLY', 'HR_ONLY', 'HYBRID'] as const
+export type TalentReviewMode = (typeof TALENT_REVIEW_MODES)[number]
+export type TalentReviewCampaignFilter = 'DRAFT' | 'RUNNING' | 'CLOSED'
+
 export type GridCell = `${GridValue}_${GridValue}`
+
+export function canManagerReviewMode(mode: TalentReviewMode): boolean {
+  return mode !== 'HR_ONLY'
+}
+
+export function canHrReviewMode(mode: TalentReviewMode): boolean {
+  return mode !== 'MANAGER_ONLY'
+}
+
+export function campaignFilterGroup(status: string): TalentReviewCampaignFilter {
+  if (status === 'DRAFT') return 'DRAFT'
+  if (status === 'CLOSED' || status === 'ARCHIVED') return 'CLOSED'
+  return 'RUNNING'
+}
 
 export function canManagerAccessReviewSubject(managerEmployeeId: string, employeeId: string): boolean {
   return managerEmployeeId !== employeeId

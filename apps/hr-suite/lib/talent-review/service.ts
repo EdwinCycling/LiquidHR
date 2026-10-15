@@ -8,9 +8,10 @@ import type {
   TalentReviewCampaignUpdateInput,
   TalentReviewListQuery,
   TalentReviewReminderInput,
+  TalentReviewReturnInput,
   TalentReviewScoreSaveInput,
 } from './schemas'
-import { canEditTalentReviewAssignment, canManagerAccessReviewSubject, deriveGridCell, type GridValue } from './rules'
+import { canEditTalentReviewAssignment, canHrReviewMode, canManagerAccessReviewSubject, canManagerReviewMode, deriveGridCell, type GridValue } from './rules'
 
 type CampaignRow = Database['public']['Tables']['talent_review_campaigns']['Row']
 type AssignmentRow = Database['public']['Tables']['talent_review_assignments']['Row']
@@ -29,6 +30,9 @@ export type TalentReviewErrorCode =
   | 'TALENT_REVIEW_VERSION_CONFLICT'
   | 'TALENT_REVIEW_ASSIGNMENT_INCOMPLETE'
   | 'TALENT_REVIEW_SCORE_INCOMPLETE'
+  | 'TALENT_REVIEW_RETURN_REASON_REQUIRED'
+  | 'TALENT_REVIEW_RETURN_INVALID'
+  | 'TALENT_REVIEW_ADMINISTRATION_REQUIRED'
   | 'TALENT_REVIEW_REMINDER_TARGET_INVALID'
   | 'TALENT_REVIEW_SELF_SCOPE_INVALID'
   | 'TALENT_REVIEW_READ_FAILED'
@@ -41,7 +45,7 @@ export class TalentReviewError extends Error {
   }
 }
 
-export type TalentReviewCampaign = Pick<CampaignRow, 'id' | 'name' | 'description' | 'starts_on' | 'ends_on' | 'status' | 'previous_campaign_id' | 'version' | 'started_at' | 'closed_at' | 'reopened_at'>
+export type TalentReviewCampaign = Pick<CampaignRow, 'id' | 'name' | 'description' | 'starts_on' | 'ends_on' | 'status' | 'review_mode' | 'previous_campaign_id' | 'version' | 'started_at' | 'closed_at' | 'reopened_at'>
 
 export type TalentReviewEmployee = {
   id: string
@@ -50,13 +54,15 @@ export type TalentReviewEmployee = {
   jobTitle: string | null
   avatarUrl: string | null
   snapshot: Json
+  assignmentId: string
+  managerEmployeeId: string
 }
 
-export type TalentReviewAssignment = Pick<AssignmentRow, 'id' | 'campaign_id' | 'manager_employee_id' | 'status' | 'employee_count' | 'scored_count' | 'submitted_at' | 'last_reminded_at' | 'version'> & {
+export type TalentReviewAssignment = Pick<AssignmentRow, 'id' | 'campaign_id' | 'manager_employee_id' | 'status' | 'employee_count' | 'scored_count' | 'submitted_at' | 'submitted_by_user_id' | 'return_reason' | 'returned_at' | 'returned_by_user_id' | 'last_reminded_at' | 'version'> & {
   managerLabel: string
 }
 
-export type TalentReviewScore = Pick<ScoreRow, 'id' | 'campaign_id' | 'assignment_id' | 'employee_id' | 'manager_employee_id' | 'performance_score' | 'potential_score' | 'grid_cell' | 'note' | 'status' | 'version' | 'updated_at'>
+export type TalentReviewScore = Pick<ScoreRow, 'id' | 'campaign_id' | 'assignment_id' | 'employee_id' | 'manager_employee_id' | 'performance_score' | 'potential_score' | 'grid_cell' | 'note' | 'acting_reason' | 'status' | 'version' | 'updated_at'>
 
 export type TalentReviewWorkspace = {
   campaigns: TalentReviewCampaign[]
@@ -92,6 +98,7 @@ function toCampaign(row: CampaignRow): TalentReviewCampaign {
     starts_on: row.starts_on,
     ends_on: row.ends_on,
     status: row.status,
+    review_mode: row.review_mode,
     previous_campaign_id: row.previous_campaign_id,
     version: row.version,
     started_at: row.started_at,
@@ -111,6 +118,7 @@ function toScore(row: ScoreRow): TalentReviewScore {
     potential_score: row.potential_score,
     grid_cell: row.grid_cell,
     note: row.note,
+    acting_reason: row.acting_reason,
     status: row.status,
     version: row.version,
     updated_at: row.updated_at,
@@ -132,16 +140,29 @@ async function reviewContext(mode: 'hr' | 'manager'): Promise<AuthContext> {
   return mode === 'hr' ? requirePermission('talent-review:manage') : requirePermission('talent-review:read')
 }
 
+function requireAdministrationId(context: AuthContext): string {
+  if (!context.administrationId) throw new TalentReviewError('TALENT_REVIEW_ADMINISTRATION_REQUIRED', 400)
+  return context.administrationId
+}
+
+async function validatePreviousCampaignScope(supabase: Awaited<ReturnType<typeof createClient>>, tenantId: string, administrationId: string, previousCampaignId: string | null | undefined): Promise<void> {
+  if (!previousCampaignId) return
+  const { data, error } = await supabase.from('talent_review_campaigns').select('id').eq('tenant_id', tenantId).eq('administration_id', administrationId).eq('id', previousCampaignId).in('status', ['CLOSED', 'ARCHIVED']).maybeSingle()
+  if (error) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
+  if (!data) throw new TalentReviewError('TALENT_REVIEW_CAMPAIGN_NOT_FOUND', 404)
+}
+
 export async function listTalentReviewWorkspace(mode: 'hr' | 'manager', query: TalentReviewListQuery = {}): Promise<TalentReviewWorkspace> {
   const context = await reviewContext(mode)
+  const administrationId = requireAdministrationId(context)
   await requireTenantModule('TALENT')
   const supabase = await createClient()
-  const { error: activationError } = await supabase.rpc('activate_due_talent_review_campaigns', { requested_tenant_id: context.tenantId })
+  const { error: activationError } = await supabase.rpc('activate_due_talent_review_campaigns', { requested_tenant_id: context.tenantId, requested_administration_id: administrationId })
   if (activationError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
 
   let campaignRows: CampaignRow[] = []
   if (mode === 'hr') {
-    const campaignsQuery = supabase.from('talent_review_campaigns').select('*').eq('tenant_id', context.tenantId).order('starts_on', { ascending: false }).limit(100)
+    const campaignsQuery = supabase.from('talent_review_campaigns').select('*').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('starts_on', { ascending: false }).limit(100)
     const { data, error } = await campaignsQuery
     if (error) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
     campaignRows = data ?? []
@@ -151,7 +172,7 @@ export async function listTalentReviewWorkspace(mode: 'hr' | 'manager', query: T
     if (assignmentError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
     const campaignIds = [...new Set((assignments ?? []).map((assignment) => assignment.campaign_id))]
     if (campaignIds.length > 0) {
-      const campaignsQuery = supabase.from('talent_review_campaigns').select('*').eq('tenant_id', context.tenantId).in('id', campaignIds).order('starts_on', { ascending: false }).limit(100)
+      const campaignsQuery = supabase.from('talent_review_campaigns').select('*').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).in('id', campaignIds).order('starts_on', { ascending: false }).limit(100)
       const { data, error } = await campaignsQuery
       if (error) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
       campaignRows = data ?? []
@@ -203,6 +224,10 @@ export async function listTalentReviewWorkspace(mode: 'hr' | 'manager', query: T
       employee_count: assignment.employee_count,
       scored_count: assignment.scored_count,
       submitted_at: assignment.submitted_at,
+      submitted_by_user_id: assignment.submitted_by_user_id,
+      return_reason: assignment.return_reason,
+      returned_at: assignment.returned_at,
+      returned_by_user_id: assignment.returned_by_user_id,
       last_reminded_at: assignment.last_reminded_at,
       version: assignment.version,
       managerLabel: managerLabels.get(assignment.manager_employee_id) ?? assignment.manager_employee_id,
@@ -214,6 +239,8 @@ export async function listTalentReviewWorkspace(mode: 'hr' | 'manager', query: T
       jobTitle: snapshotText(member.employee_snapshot, 'job_title'),
       avatarUrl: employeeAvatarHref(member.employee_id, snapshotText(member.employee_snapshot, 'avatar_url')),
       snapshot: member.employee_snapshot,
+      assignmentId: member.assignment_id,
+      managerEmployeeId: member.manager_employee_id,
     })),
     scores: scoreRows.map(toScore),
     previousScores: previousScoreRows.map(toScore),
@@ -222,16 +249,19 @@ export async function listTalentReviewWorkspace(mode: 'hr' | 'manager', query: T
 
 export async function createTalentReviewCampaign(input: TalentReviewCampaignCreateInput): Promise<string> {
   const context = await requirePermission('talent-review:manage')
+  const administrationId = requireAdministrationId(context)
   await requireTenantModule('TALENT')
   const supabase = await createClient()
+  await validatePreviousCampaignScope(supabase, context.tenantId, administrationId, input.previousCampaignId)
   const { data, error } = await supabase.from('talent_review_campaigns').insert({
     tenant_id: context.tenantId,
-    administration_id: context.administrationId,
+    administration_id: administrationId,
     name: input.name,
     description: input.description ?? null,
     starts_on: input.startsOn,
     ends_on: input.endsOn,
     previous_campaign_id: input.previousCampaignId ?? null,
+    review_mode: input.reviewMode,
     created_by_user_id: context.userId,
     updated_by_user_id: context.userId,
   }).select('id').single()
@@ -241,52 +271,55 @@ export async function createTalentReviewCampaign(input: TalentReviewCampaignCrea
 
 export async function updateTalentReviewCampaign(campaignId: string, input: TalentReviewCampaignUpdateInput): Promise<string> {
   const context = await requirePermission('talent-review:manage')
+  const administrationId = requireAdministrationId(context)
   await requireTenantModule('TALENT')
   const supabase = await createClient()
+  await validatePreviousCampaignScope(supabase, context.tenantId, administrationId, input.previousCampaignId)
   const { data, error } = await supabase.from('talent_review_campaigns').update({
     ...(input.name !== undefined ? { name: input.name } : {}),
     ...(input.description !== undefined ? { description: input.description } : {}),
     ...(input.startsOn !== undefined ? { starts_on: input.startsOn } : {}),
     ...(input.endsOn !== undefined ? { ends_on: input.endsOn } : {}),
     ...(input.previousCampaignId !== undefined ? { previous_campaign_id: input.previousCampaignId } : {}),
+    ...(input.reviewMode !== undefined ? { review_mode: input.reviewMode } : {}),
     version: input.version + 1,
     updated_by_user_id: context.userId,
-  }).eq('tenant_id', context.tenantId).eq('id', campaignId).eq('status', 'DRAFT').eq('version', input.version).select('id').maybeSingle()
+  }).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', campaignId).eq('status', 'DRAFT').eq('version', input.version).select('id').maybeSingle()
   if (error) databaseError(error.message, 'TALENT_REVIEW_WRITE_FAILED')
   if (!data) throw new TalentReviewError('TALENT_REVIEW_VERSION_CONFLICT', 409)
   return data.id
 }
 
-async function commandCampaign(campaignId: string, command: 'start_talent_review_campaign' | 'close_talent_review_campaign' | 'reopen_talent_review_campaign'): Promise<string> {
-  await requirePermission('talent-review:manage')
+async function commandCampaign(campaignId: string, command: 'start_talent_review_campaign' | 'close_talent_review_campaign' | 'reopen_talent_review_campaign', reason?: string): Promise<string> {
+  const context = await requirePermission('talent-review:manage')
+  const administrationId = requireAdministrationId(context)
   await requireTenantModule('TALENT')
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc(command, { requested_campaign_id: campaignId })
+  const { data: campaign, error: campaignError } = await supabase.from('talent_review_campaigns').select('id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', campaignId).maybeSingle()
+  if (campaignError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
+  if (!campaign) throw new TalentReviewError('TALENT_REVIEW_CAMPAIGN_NOT_FOUND', 404)
+  const result = command === 'reopen_talent_review_campaign'
+    ? await supabase.rpc(command, { requested_campaign_id: campaignId, requested_reason: reason ?? '' })
+    : await supabase.rpc(command, { requested_campaign_id: campaignId })
+  const { data, error } = result
   if (error || !data) databaseError(error?.message ?? 'TALENT_REVIEW_WRITE_FAILED', 'TALENT_REVIEW_WRITE_FAILED')
   return data
 }
 
 export function startTalentReviewCampaign(campaignId: string): Promise<string> { return commandCampaign(campaignId, 'start_talent_review_campaign') }
 export function closeTalentReviewCampaign(campaignId: string): Promise<string> { return commandCampaign(campaignId, 'close_talent_review_campaign') }
-export function reopenTalentReviewCampaign(campaignId: string): Promise<string> { return commandCampaign(campaignId, 'reopen_talent_review_campaign') }
-
-async function scoreMutationContext(employeeId: string): Promise<AuthContext> {
-  const context = await requireAuthContext()
-  if (!context.permissions.includes('talent-review:manage') && context.employeeId && !canManagerAccessReviewSubject(context.employeeId, employeeId)) {
-    throw new TalentReviewError('TALENT_REVIEW_SELF_SCOPE_INVALID', 403)
-  }
-  if (!context.permissions.includes('talent-review:manage')) await requirePermission('talent-review:write', employeeId)
-  return context
-}
+export function reopenTalentReviewCampaign(campaignId: string, reason: string): Promise<string> { return commandCampaign(campaignId, 'reopen_talent_review_campaign', reason) }
 
 export async function saveTalentReviewScore(campaignId: string, input: TalentReviewScoreSaveInput): Promise<string> {
-  const context = await scoreMutationContext(input.employeeId)
+  const context = await requireAuthContext()
+  const administrationId = requireAdministrationId(context)
   await requireTenantModule('TALENT')
   const supabase = await createClient()
-  const { data: campaign, error: campaignError } = await supabase.from('talent_review_campaigns').select('status').eq('tenant_id', context.tenantId).eq('id', campaignId).maybeSingle()
+  const { data: campaign, error: campaignError } = await supabase.from('talent_review_campaigns').select('status,review_mode,administration_id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', campaignId).maybeSingle()
   if (campaignError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!campaign) throw new TalentReviewError('TALENT_REVIEW_CAMPAIGN_NOT_FOUND', 404)
   if (campaign.status !== 'ACTIVE') throw new TalentReviewError('TALENT_REVIEW_CAMPAIGN_LOCKED', 409)
+  if (context.employeeId === input.employeeId) throw new TalentReviewError('TALENT_REVIEW_SELF_SCOPE_INVALID', 403)
   const { data: member, error: memberError } = await supabase.from('talent_review_assignment_members').select('assignment_id,manager_employee_id,employee_snapshot').eq('tenant_id', context.tenantId).eq('campaign_id', campaignId).eq('employee_id', input.employeeId).maybeSingle()
   if (memberError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!member) throw new TalentReviewError('TALENT_REVIEW_MEMBER_NOT_FOUND', 404)
@@ -294,6 +327,9 @@ export async function saveTalentReviewScore(campaignId: string, input: TalentRev
   if (assignmentError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!assignment) throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_NOT_FOUND', 404)
   if (!canEditTalentReviewAssignment(assignment.status)) throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_LOCKED', 409)
+  const isHr = context.permissions.includes('talent-review:manage') && canHrReviewMode(campaign.review_mode as 'MANAGER_ONLY' | 'HR_ONLY' | 'HYBRID')
+  const isManager = Boolean(context.employeeId && canManagerAccessReviewSubject(context.employeeId, input.employeeId) && member.manager_employee_id === context.employeeId && canManagerReviewMode(campaign.review_mode as 'MANAGER_ONLY' | 'HR_ONLY' | 'HYBRID') && context.permissions.includes('talent-review:write'))
+  if (!isHr && !isManager) throw new TalentReviewError('TALENT_REVIEW_FORBIDDEN', 403)
   const { data: existing, error: existingError } = await supabase.from('talent_review_scores').select('*').eq('tenant_id', context.tenantId).eq('campaign_id', campaignId).eq('employee_id', input.employeeId).maybeSingle()
   if (existingError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   const performanceScore = input.performanceScore ?? null
@@ -301,7 +337,7 @@ export async function saveTalentReviewScore(campaignId: string, input: TalentRev
   const gridCell = deriveGridCell(performanceScore as GridValue | null, potentialScore as GridValue | null)
   if (existing) {
     if (input.version === undefined || input.version !== existing.version) throw new TalentReviewError('TALENT_REVIEW_VERSION_CONFLICT', 409)
-    const { data, error } = await supabase.from('talent_review_scores').update({ performance_score: performanceScore, potential_score: potentialScore, grid_cell: gridCell, note: input.note ?? null, status: input.status, version: existing.version + 1, updated_by_user_id: context.userId }).eq('tenant_id', context.tenantId).eq('id', existing.id).eq('version', existing.version).select('id').maybeSingle()
+    const { data, error } = await supabase.from('talent_review_scores').update({ performance_score: performanceScore, potential_score: potentialScore, grid_cell: gridCell, note: input.note ?? null, version: existing.version + 1, updated_by_user_id: context.userId }).eq('tenant_id', context.tenantId).eq('id', existing.id).eq('version', existing.version).select('id').maybeSingle()
     if (error) databaseError(error.message, 'TALENT_REVIEW_WRITE_FAILED')
     if (!data) throw new TalentReviewError('TALENT_REVIEW_VERSION_CONFLICT', 409)
     return data.id
@@ -316,7 +352,6 @@ export async function saveTalentReviewScore(campaignId: string, input: TalentRev
     potential_score: potentialScore,
     grid_cell: gridCell,
     note: input.note ?? null,
-    status: input.status,
     employee_snapshot: member.employee_snapshot,
     created_by_user_id: context.userId,
     updated_by_user_id: context.userId,
@@ -325,53 +360,71 @@ export async function saveTalentReviewScore(campaignId: string, input: TalentRev
   return data.id
 }
 
-export async function submitTalentReviewAssignment(campaignId: string): Promise<string> {
-  const context = await requirePermission('talent-review:write')
-  if (!context.employeeId) throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_NOT_FOUND', 404)
+export async function submitTalentReviewAssignment(campaignId: string, assignmentId?: string): Promise<string> {
+  const context = await requireAuthContext()
+  const administrationId = requireAdministrationId(context)
+  await requireTenantModule('TALENT')
   const supabase = await createClient()
-  const { data: campaign, error: campaignError } = await supabase.from('talent_review_campaigns').select('status').eq('tenant_id', context.tenantId).eq('id', campaignId).maybeSingle()
+  const { data: campaign, error: campaignError } = await supabase.from('talent_review_campaigns').select('status,review_mode').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', campaignId).maybeSingle()
   if (campaignError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!campaign) throw new TalentReviewError('TALENT_REVIEW_CAMPAIGN_NOT_FOUND', 404)
   if (campaign.status !== 'ACTIVE') throw new TalentReviewError('TALENT_REVIEW_CAMPAIGN_LOCKED', 409)
-  const { data: assignment, error: assignmentError } = await supabase.from('talent_review_assignments').select('*').eq('tenant_id', context.tenantId).eq('campaign_id', campaignId).eq('manager_employee_id', context.employeeId).maybeSingle()
+
+  let assignmentsQuery = supabase.from('talent_review_assignments').select('id,manager_employee_id,status').eq('tenant_id', context.tenantId).eq('campaign_id', campaignId)
+  assignmentsQuery = assignmentId ? assignmentsQuery.eq('id', assignmentId) : assignmentsQuery.eq('manager_employee_id', context.employeeId ?? '')
+  const { data: assignment, error: assignmentError } = await assignmentsQuery.maybeSingle()
   if (assignmentError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!assignment) throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_NOT_FOUND', 404)
+
+  const mode = campaign.review_mode as 'MANAGER_ONLY' | 'HR_ONLY' | 'HYBRID'
+  const isHr = context.permissions.includes('talent-review:manage') && canHrReviewMode(mode)
+  const isManager = Boolean(context.employeeId && assignment.manager_employee_id === context.employeeId && context.permissions.includes('talent-review:write') && canManagerReviewMode(mode))
+  if (!isHr && !isManager) throw new TalentReviewError('TALENT_REVIEW_FORBIDDEN', 403)
   if (assignment.status === 'SUBMITTED') throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_ALREADY_SUBMITTED', 409)
-  const [membersResult, scoresResult] = await Promise.all([
-    supabase.from('talent_review_assignment_members').select('employee_id').eq('tenant_id', context.tenantId).eq('assignment_id', assignment.id),
-    supabase.from('talent_review_scores').select('employee_id,performance_score,potential_score').eq('tenant_id', context.tenantId).eq('assignment_id', assignment.id),
-  ])
-  if (membersResult.error || scoresResult.error) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
-  const scores = new Map((scoresResult.data ?? []).map((score) => [score.employee_id, score]))
-  const incomplete = (membersResult.data ?? []).some((member) => {
-    const score = scores.get(member.employee_id)
-    return !score || !score.performance_score || !score.potential_score
+
+  const { data, error } = await supabase.rpc('submit_talent_review_assignment', {
+    requested_campaign_id: campaignId,
+    requested_assignment_id: assignment.id,
   })
-  if (incomplete) throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_INCOMPLETE', 400)
-  const { data, error } = await supabase.from('talent_review_assignments').update({ status: 'SUBMITTED', submitted_at: new Date().toISOString(), submitted_by_user_id: context.userId, version: assignment.version + 1 }).eq('tenant_id', context.tenantId).eq('id', assignment.id).eq('version', assignment.version).select('id').maybeSingle()
-  if (error) databaseError(error.message, 'TALENT_REVIEW_WRITE_FAILED')
-  if (!data) throw new TalentReviewError('TALENT_REVIEW_VERSION_CONFLICT', 409)
-  return data.id
+  if (error || !data) databaseError(error?.message ?? 'TALENT_REVIEW_WRITE_FAILED', 'TALENT_REVIEW_WRITE_FAILED')
+  return data
+}
+
+export async function returnTalentReviewAssignment(campaignId: string, input: TalentReviewReturnInput): Promise<string> {
+  const context = await requirePermission('talent-review:manage')
+  const administrationId = requireAdministrationId(context)
+  await requireTenantModule('TALENT')
+  const supabase = await createClient()
+  const { data: campaign, error: campaignError } = await supabase.from('talent_review_campaigns').select('id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', campaignId).maybeSingle()
+  if (campaignError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
+  if (!campaign) throw new TalentReviewError('TALENT_REVIEW_CAMPAIGN_NOT_FOUND', 404)
+  const { data, error } = await supabase.rpc('return_talent_review_assignment', {
+    requested_campaign_id: campaignId,
+    requested_assignment_id: input.assignmentId,
+    requested_reason: input.reason,
+  })
+  if (error || !data) databaseError(error?.message ?? 'TALENT_REVIEW_WRITE_FAILED', 'TALENT_REVIEW_WRITE_FAILED')
+  return data
 }
 
 export async function sendTalentReviewReminder(campaignId: string, input: TalentReviewReminderInput): Promise<string> {
   const context = await requirePermission('talent-review:manage')
+  const administrationId = requireAdministrationId(context)
   await requireTenantModule('TALENT')
   const supabase = await createClient()
   const { data: assignment, error: assignmentError } = await supabase.from('talent_review_assignments').select('id, campaign_id, manager_employee_id, status, version').eq('tenant_id', context.tenantId).eq('campaign_id', campaignId).eq('id', input.assignmentId).maybeSingle()
   if (assignmentError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!assignment) throw new TalentReviewError('TALENT_REVIEW_ASSIGNMENT_NOT_FOUND', 404)
   if (assignment.status === 'SUBMITTED') throw new TalentReviewError('TALENT_REVIEW_REMINDER_TARGET_INVALID', 400)
-  const { data: campaign, error: campaignError } = await supabase.from('talent_review_campaigns').select('name, ends_on, status').eq('tenant_id', context.tenantId).eq('id', assignment.campaign_id).maybeSingle()
+  const { data: campaign, error: campaignError } = await supabase.from('talent_review_campaigns').select('name, ends_on, status, review_mode').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', assignment.campaign_id).maybeSingle()
   if (campaignError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
-  if (!campaign || !['ACTIVE', 'SCHEDULED', 'HR_REVIEW'].includes(campaign.status)) throw new TalentReviewError('TALENT_REVIEW_REMINDER_TARGET_INVALID', 400)
+  if (!campaign || campaign.review_mode === 'HR_ONLY' || !['ACTIVE', 'SCHEDULED', 'HR_REVIEW'].includes(campaign.status)) throw new TalentReviewError('TALENT_REVIEW_REMINDER_TARGET_INVALID', 400)
   const { data: manager, error: managerError } = await supabase.from('employees').select('auth_user_id').eq('tenant_id', context.tenantId).eq('id', assignment.manager_employee_id).is('deleted_at', null).maybeSingle()
   if (managerError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!manager?.auth_user_id) throw new TalentReviewError('TALENT_REVIEW_REMINDER_TARGET_INVALID', 400)
-  if (!context.administrationId) throw new TalentReviewError('TALENT_REVIEW_ADMINISTRATION_REQUIRED', 400)
   const { data: reminderId, error: reminderError } = await supabase.rpc('create_hr_reminder', {
     requested_tenant_id: context.tenantId,
-    requested_administration_id: context.administrationId,
+    requested_administration_id: administrationId,
     requested_title: `Vlootschouw invullen: ${campaign.name}`,
     requested_description: `Vul de 9-grid voor je team in vóór ${campaign.ends_on}.`,
     requested_remind_at: new Date(Date.now() + 60 * 1000).toISOString(),

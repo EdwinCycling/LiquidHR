@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateCampaignReminderAt, canEditTalentReviewAssignment, canManagerAccessReviewSubject, deriveGridCell, movementDirection } from './rules'
+import { calculateCampaignReminderAt, campaignFilterGroup, canEditTalentReviewAssignment, canHrReviewMode, canManagerAccessReviewSubject, canManagerReviewMode, deriveGridCell, movementDirection } from './rules'
 
 describe('talent review rules', () => {
   it('uses seven days before the deadline when that is after the campaign start', () => {
@@ -34,5 +34,20 @@ describe('talent review rules', () => {
     expect(canEditTalentReviewAssignment('IN_PROGRESS')).toBe(true)
     expect(canEditTalentReviewAssignment('RETURNED')).toBe(true)
     expect(canEditTalentReviewAssignment('SUBMITTED')).toBe(false)
+  })
+
+  it('enforces the three campaign review modes and groups campaign filters', () => {
+    expect(canManagerReviewMode('MANAGER_ONLY')).toBe(true)
+    expect(canHrReviewMode('MANAGER_ONLY')).toBe(false)
+    expect(canManagerReviewMode('HR_ONLY')).toBe(false)
+    expect(canHrReviewMode('HR_ONLY')).toBe(true)
+    expect(canManagerReviewMode('HYBRID')).toBe(true)
+    expect(canHrReviewMode('HYBRID')).toBe(true)
+    expect(campaignFilterGroup('DRAFT')).toBe('DRAFT')
+    expect(campaignFilterGroup('SCHEDULED')).toBe('RUNNING')
+    expect(campaignFilterGroup('ACTIVE')).toBe('RUNNING')
+    expect(campaignFilterGroup('HR_REVIEW')).toBe('RUNNING')
+    expect(campaignFilterGroup('CLOSED')).toBe('CLOSED')
+    expect(campaignFilterGroup('ARCHIVED')).toBe('CLOSED')
   })
 })
