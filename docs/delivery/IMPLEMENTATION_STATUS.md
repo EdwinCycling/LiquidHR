@@ -8,6 +8,12 @@ On that code SHA, strict type-check, changed-file ESLint, i18n parity (43 namesp
 
 Read-only browser evidence covers the core 9-grid results, existing synthetic records, 1280/1024/390 px and light/dark themes, plus Continuous Appraisal type tabs and defaults; no records were changed and the browser console was clean. Those checks preceded the final navigation-only permission filter. The in-app browser could not connect after the server restart, and reduced-motion emulation was unavailable. TALENT-9GRID-V2-TEST-021 remains OPEN. See the [2026-10-16 local acceptance report](../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261016-LOCAL.md).
 
+## Latest local UX follow-up — TALENT-UX-V2 — 2026-10-16
+
+**Status: local main integrated; focused Talent UX gates pass; package type-check partial.** `/workforce/talent` now groups the existing workflows into four areas and carries selected employee context into comparison and radar. Existing profile-management V2 was retained. No permission, RLS, schema, data, Payroll, push or deployment changes.
+
+Code commit: `5bd12558d930f6a806ead6880fcabc22a254c43b`; local fast-forward completed. Three targeted test files passed (7 tests), changed-file ESLint passed, and i18n parity passed (43 namespaces). The app-wide typecheck reports only unresolved `pdf-lib` and `pdfjs-dist` imports from existing PDF tests. Full suite, build and browser acceptance were not run.
+
 ## Previous integrated state — TALENT-CONVERGENCE-01 — 2026-10-15
 
 **Status: local main integrated; engineering GREEN; full persona/business-flow acceptance HOLD.** The 9-grid V2 and Continuous Appraisal V2 branches are merged, and the final mobile 9-grid correction is code SHA 44ab1d8bbb8ba601557c3aec41cd9627fc7a57c5. The complete hr-suite run passed on that SHA (632 files; 3,066 passed, 8 skipped), and the Webpack production build passed TypeScript, 323 static routes, Payroll bundle/tracing checks and exact-SHA build provenance.
