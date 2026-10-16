@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { cookies, headers, notFound, createClient, createAdminClient, getLocalPayrollPersonaReadiness, getClaims, getUser, getRequestAuthorizationContext } = vi.hoisted(() => ({
+const { cookies, headers, notFound, createClient, createAdminClient, getLocalPayrollPersonaReadiness, getClaims, getUser, getRequestAuthorizationContext, requireComponentLibraryAccess } = vi.hoisted(() => ({
   cookies: vi.fn(),
   headers: vi.fn(),
   notFound: vi.fn(() => { throw new Error('NOT_FOUND') }),
@@ -10,14 +10,23 @@ const { cookies, headers, notFound, createClient, createAdminClient, getLocalPay
   getClaims: vi.fn(),
   getUser: vi.fn(),
   getRequestAuthorizationContext: vi.fn(),
+  requireComponentLibraryAccess: vi.fn(),
 }))
 
 vi.mock('next/headers', () => ({ cookies, headers }))
 vi.mock('next/navigation', () => ({ notFound }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
-vi.mock('@/lib/auth/local-payroll-persona-readiness', () => ({ getLocalPayrollPersonaReadiness }))
+vi.mock('@/lib/auth/local-payroll-persona-readiness', () => ({
+  getLocalPayrollPersonaReadiness,
+  PAYFULL02_MARS_SCOPE: {
+    tenantId: '07249eb9-545c-883b-b26b-d52f83b4f4a1',
+    hrGroupId: '6ba6f1df-e376-40f2-abff-ffdf000172e1',
+    administrationId: '2057f6ec-cd3e-3c28-9126-c41235d4ffae',
+  },
+}))
 vi.mock('@/lib/auth/permissions', () => ({ getRequestAuthorizationContext }))
+vi.mock('@/lib/payroll/component-library-access', () => ({ requireComponentLibraryAccess }))
 vi.mock('@/lib/i18n/server', () => ({ getTranslator: async () => (key: string) => key }))
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -56,6 +65,7 @@ describe('/local/personas', () => {
     getClaims.mockReset()
     getUser.mockReset()
     getRequestAuthorizationContext.mockReset()
+    requireComponentLibraryAccess.mockReset()
     getRequestAuthorizationContext.mockResolvedValue({ context: { userId: 'auth-owner', activeRoles: ['EMPLOYEE'] } })
     createAdminClient.mockReturnValue({})
     getLocalPayrollPersonaReadiness.mockImplementation(async (key: string) => ({
@@ -116,6 +126,21 @@ describe('/local/personas', () => {
     expect(markup).toMatch(/<option disabled="" value="payroll-jaap"/)
     expect(markup).toMatch(/<option disabled="" value="payroll-frits"/)
     expect(markup).not.toContain('action="/api/local/personas/provision"')
+  })
+
+  it('does not offer DEMO-002 provisioning to a different Mars admin than the RPC-authorized fixture operator', async () => {
+    setIdentity('mars.hradmin@liquidhr.test', true, 'auth-other-mars-admin')
+    requireComponentLibraryAccess.mockResolvedValue({ scope: {
+      tenantId: '07249eb9-545c-883b-b26b-d52f83b4f4a1',
+      hrGroupId: '6ba6f1df-e376-40f2-abff-ffdf000172e1',
+      administrationId: '2057f6ec-cd3e-3c28-9126-c41235d4ffae',
+    } })
+
+    const markup = await renderPage()
+
+    expect(markup).toContain('localPersonaPayrollDemo002')
+    expect(markup).not.toContain('action="/api/local/personas/provision"')
+    expect(requireComponentLibraryAccess).toHaveBeenCalledWith(true)
   })
 
   it('does not render for an unverified allowlisted identity', async () => {

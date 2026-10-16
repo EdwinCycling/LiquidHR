@@ -303,4 +303,25 @@ describe('POST /api/local/personas/provision', () => {
     expect(createUser).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
+
+  it('rejects a different Mars admin before Auth creation because the Core link RPC accepts only the fixture operator', async () => {
+    const otherMarsAdmin = 'mars.hradmin@liquidhr.test'
+    getClaims.mockResolvedValueOnce({
+      data: { claims: { sub: 'other-mars-admin', email: otherMarsAdmin, email_verified: true } },
+      error: null,
+    })
+    getUser.mockResolvedValueOnce({
+      data: { user: { id: 'other-mars-admin', email: otherMarsAdmin, email_confirmed_at: '2026-01-01T00:00:00Z', is_anonymous: false } },
+      error: null,
+    })
+    requireComponentLibraryAccess.mockResolvedValue({ scope: MARS_SCOPE })
+
+    const response = await POST(request('payroll-demo-002'))
+
+    expect(response.status).toBe(403)
+    expect(requireComponentLibraryAccess).not.toHaveBeenCalled()
+    expect(createAdminClient).not.toHaveBeenCalled()
+    expect(createUser).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+  })
 })

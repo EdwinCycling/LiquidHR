@@ -1,5 +1,12 @@
 # PAYFULL-02 — gecontroleerde TEST-closeout 2026-10-16
 
+## PAYFULL-02C hercontrole — 2026-10-16
+
+- De meegeleverde PAYFULL-02C-hercontrole meldt **nul** `payroll_individual_artifacts`-records voor de twee onderstaande FINALIZED-run-ID's. Dat botst met de artifact-ID's en hashes die in de eerste closeout zijn vastgelegd. Die eerdere metadata blijven hieronder behouden als historisch gerapporteerde uitkomst, maar gelden niet als actuele, bevestigde persistentie-readback zolang de botsing niet via de normale geautoriseerde Payroll-route is opgelost.
+- De in-app browser weigerde de lokale `127.0.0.1:3022`-pagina te observeren via haar URL-beleid. Er is geen alternatieve browser-, CDP- of directe database-route gebruikt om die acceptatie te omzeilen. Daardoor zijn de opgeslagen bytes, PDF-inhoud, retry-idempotentie en ESS-self-/negatieve-readback in deze hercontrole **niet geverifieerd**.
+- De ACL-beschermde lokale runtimeconfiguratie slaagde eerder voor de canonieke preflight, maar deze hercontrole heeft DEMO-002 niet geprovisioneerd of ingelogd. Bestaande DEMO-001-identiteit en -rechten zijn niet gewijzigd.
+- De route `/api/local/personas/provision` is aanvullend fail-closed gemaakt voor DEMO-002: naast geverifieerde identiteit en exacte Mars-scope vereist de route nu dezelfde vaste HR Admin-identiteit die de Core-link-RPC autoriseert. De alternatieve Mars-admin wordt vóór Auth-creatie geweigerd. Gerichte route-tests, TypeScript en ESLint slagen; live autorisatie-/browseracceptatie blijft open.
+
 - Status: **PARTIAL**. De twee gecontroleerde Mars-runs zijn volledig berekend, REVIEWED en FINALIZED; de volledige live ESS-/privacyacceptatie en leesbare PDF-contentreadback zijn niet aangetoond.
 - Branch/PR: `work/PAYFULL-01-20261014`, Draft PR #33. Geen merge, deployment, aangifte of bankbetaling.
 - Exacte implementatie- en buildcode: `9df1187a3bcd5a4b703bda37021f6dfa7742f015`. De latere delta wijzigt alleen de lokale migratiebestandsnaam/testverwijzing en documentatie; de SQL-inhoud/runtimeberekening is niet veranderd.
@@ -69,14 +76,14 @@ De onafhankelijke vaste oracle importeert geen payroll-engine of rule package. D
 | DEMO-001 `731e2a73-af7c-59d6-af88-5d0455c68374` | `0c7d2c519ff230bd06e77a361fa920983c18235c4c8aacf9685f1495bca4e571` | `ebe480708e1e2fa51b9c898b353dfa9e4668d3909d3e8f7c0dc843b05884919c` | `8e990f74cca21c2b500958757d2dea426237e14e47cf6b34952303acef4058c5` |
 | DEMO-002 `48f47ffd-191c-5cbb-a22a-9061a2b7e5c3` | `202fc2dd37b989e1871e83d9944c64949c05a0b46cce4e42a96f8ac50d2250d0` | `5ada019bf722da383c119fb4631efbf3fc47b1abbb81bb1ffb3d3f8bff999ff7` | `667a40a57a14e13903214a807a93fbfe5b3270ad70529d4ff96103c72477fd0a` |
 
-Voor beide FINALIZED-runs is een gebonden PDF-artifactrecord met SHA-256 teruggelezen:
+De eerste PAYFULL-02-closeout rapporteerde voor beide FINALIZED-runs een gebonden PDF-artifactrecord met SHA-256. De PAYFULL-02C-hercontrole hierboven meldt nul records voor deze run-ID's. Onderstaande waarden zijn daarom uitsluitend de eerder gerapporteerde metadata en geen bewijs van de huidige opgeslagen staat:
 
 | Run | Artifact ID | Grootte | PDF SHA-256 |
 |---|---|---:|---|
 | DEMO-001 | `cc3066c6-dd1d-4fc4-8503-8bdf3fa2c673` | 513.704 bytes | `6d1499151d79ea1ea470dfe5bac1a73b0cecbd34a3ae41ded48acefefe108a2b` |
 | DEMO-002 | `94cc630b-f8f0-4085-99ce-3126bcce893d` | 513.406 bytes | `51b8c513b4c6f9b0c5a9e74e36086099d493ec08b9228b997779ae6cee56d977` |
 
-De normale PDF-endpoints antwoordden eerder HTTP 200 met `application/pdf`; deze closeout bewijst geen visuele/tekstuele inhoudscontrole van de bytes en geen PDF-download via een Employee-sessie. De run-detailtrace, componenten, controles en cumulatieven staan op runniveau; de oorspronkelijke evidence bevat aanvullende configuratie- en tracegegevens.
+De normale PDF-endpoints antwoordden volgens de eerste closeout eerder HTTP 200 met `application/pdf`; de nieuwe tegenstrijdige nul-rijenmelding maakt actuele persistentie nog onbewezen. Er was geen visuele/tekstuele inhoudscontrole van de bytes en geen PDF-download via een Employee-sessie. De run-detailtrace, componenten, controles en cumulatieven staan op runniveau; de oorspronkelijke evidence bevat aanvullende configuratie- en tracegegevens.
 
 ## 4. Migratie en autorisatie
 
@@ -97,11 +104,11 @@ De finale run-detailpagina van DEMO-001 is op Development bij 390×844 gecontrol
 
 ## 6. Open browser- en ESS-acceptatie
 
-De canonieke lokale Payroll Employee-persona-authenticatie ontbreekt en de geïsoleerde Playwright-context is uitgelogd. Daardoor zijn deze live controles **OPEN**:
+Een DEMO-002 Employee-account-/sessie-readback is in deze hercontrole niet uitgevoerd. De ACL-beschermde runtimeconfiguratie slaagde voor preflight, maar de in-app browser blokkeerde observatie van het lokale adres via URL-beleid. Daardoor zijn deze live controles **OPEN**:
 
 - ESS-positive: de medewerker leest uitsluitend de eigen definitieve loonstrook;
 - ESS-negative: een andere medewerker krijgt geen PDF-inhoud;
 - live Manager/Employee lifecycle-weigering en cross-administration browserprobe;
 - PDF-inhoud visueel/tekstueel en PDF/ESS op 390 px.
 
-Er is geen account buiten het bestaande auditbare linkpad gemaakt, geen credential geraden of aangepast, geen scope verruimd en geen RLS/autorisatie omzeild. De bestaande open items staan in [AA-OPEN](../../../AA/AA-OPEN.md). Daarom is de eindstatus **PARTIAL**, niet volledige end-to-end acceptatie.
+Er is geen DEMO-002-account buiten het bestaande auditbare linkpad gemaakt, geen credential geraden of aangepast, geen scope verruimd en geen RLS/autorisatie omzeild. De bestaande open items staan in [AA-OPEN](../../../AA/AA-OPEN.md). Daarom is de eindstatus **PARTIAL**, niet volledige end-to-end acceptatie.

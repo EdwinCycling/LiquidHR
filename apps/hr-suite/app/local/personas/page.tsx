@@ -6,7 +6,7 @@ import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { Surface } from '@/components/ui/surface'
 import { buttonClasses } from '@/components/ui/button'
-import { canInitiateTestRoleSwitch, canReturnToLocalPersonaOwner, getLocalPersonaOwnerKey, getLocalPersonaOperatorTargetKeys, getVerifiedLocalPersonaIdentity, isLocalPersonaRuntime, readLocalPersonaOwnerMarker, TEST_ROLE_SWITCH_OWNER_COOKIE, TEST_ROLE_SWITCH_TARGETS } from '@/lib/auth/test-role-switch'
+import { canInitiateTestRoleSwitch, canReturnToLocalPersonaOwner, getLocalPersonaOwnerKey, getLocalPersonaOperatorTargetKeys, getVerifiedLocalPersonaIdentity, isLocalPersonaRuntime, normalizedEmail, readLocalPersonaOwnerMarker, TEST_ROLE_SWITCH_OWNER_COOKIE, TEST_ROLE_SWITCH_TARGETS } from '@/lib/auth/test-role-switch'
 import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getLocalPayrollPersonaReadiness, type LocalPayrollPersonaKey, type LocalPayrollPersonaReadiness } from '@/lib/auth/local-payroll-persona-readiness'
 import { getTranslator } from '@/lib/i18n/server'
@@ -25,6 +25,8 @@ const PERSONA_LABEL_KEYS = {
   'payroll-frits': 'localPersonaPayrollFrits',
   'payroll-demo-002': 'localPersonaPayrollDemo002',
 } as const
+
+const DEMO_002_PROVISION_OPERATOR_EMAIL = 'hradmin.fixture@liquidhr.test'
 
 export default async function LocalPersonasPage() {
   const requestHeaders = await headers()
@@ -119,6 +121,8 @@ export default async function LocalPersonasPage() {
   })
   const roleGuardAllowed = canInitiateTestRoleSwitch(roleCodes ?? [])
   const demo002Readiness = payrollReadiness.get('payroll-demo-002')
+  const canProvisionDemo002 = demo002Readiness?.canProvision === true
+    && normalizedEmail(identity.email) === DEMO_002_PROVISION_OPERATOR_EMAIL
 
   return <PageShell className="mx-auto w-full max-w-3xl space-y-6 py-6 sm:py-10">
     <PageHeader title={t('localPersonaTitle')} description={t('localPersonaDescription')} />
@@ -154,7 +158,7 @@ export default async function LocalPersonasPage() {
         <p className="text-sm text-muted-foreground">{t(availabilityCopyKeys[demo002Readiness.status])}</p>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row">
-        {demo002Readiness.canProvision ? <form action="/api/local/personas/provision" method="post">
+        {canProvisionDemo002 ? <form action="/api/local/personas/provision" method="post">
           <input name="target" type="hidden" value="payroll-demo-002" />
           <button className={buttonClasses({ size: 'md', variant: 'secondary' })} type="submit">{t('localPersonaProvisionAccount')}</button>
         </form> : null}

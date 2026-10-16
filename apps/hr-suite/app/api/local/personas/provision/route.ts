@@ -83,7 +83,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const key = targetValue as LocalPayrollPersonaKey
   const record = LOCAL_PAYROLL_PERSONA_RECORDS[key]
   if (key === 'payroll-demo-002') {
-    if (!verified?.identity.emailVerified) return errorResponse('LOCAL_PERSONA_PROVISION_FORBIDDEN', 403)
+    if (!verified?.identity.emailVerified || normalizedEmail(actorEmail) !== OPERATOR_EMAIL) {
+      return errorResponse('LOCAL_PERSONA_PROVISION_FORBIDDEN', 403)
+    }
     try {
       const access = await requireComponentLibraryAccess(true)
       if (
