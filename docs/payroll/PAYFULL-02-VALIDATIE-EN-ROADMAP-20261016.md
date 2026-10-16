@@ -26,43 +26,23 @@ Gebruik de werkelijk lopende `127.0.0.1:<poort>`-URL van de PAYFULL-worktree. Ee
 2. Open `/payroll/runs?period=2026-10`, kies **Mars BV** en oktober 2026. De historische/nieuwe revisies staan naast elkaar.
 3. Open de exacte run-details `/payroll/runs/731e2a73-af7c-59d6-af88-5d0455c68374` en `/payroll/runs/48f47ffd-191c-5cbb-a22a-9061a2b7e5c3`. Controleer bruto, alle werknemerscomponenten, netto, werkgeverskosten, cumulatieven, trace, 32/32 controles en FINALIZED.
 4. Kies op de run-detailpagina **Opgeslagen PDF downloaden**. De bestaande beveiligde artifactroute is `/api/payroll/runs/<runId>/artifact/PAYSLIP_PDF`; gebruik de normale UI/auth in plaats van een losse ongeauthenticeerde aanroep.
-5. Voor ESS: vanuit de lokale Test HR Admin naar `/local/personas`, kies `payroll-demo-002` (beschikbaar), open `/my-salary`; oktober 2026 toont DEMO-002 €2.141,36 en de knop **Downloaden**. Deze gedownloade PDF was 513.406 bytes en byte-identiek aan de HR Admin-PDF. **Bekijken** in de inline viewer blijft OPEN; DEMO-001 heeft geen zelfstandige Employee-persona, omdat diens Core-employee al gekoppeld is aan een bestaand account met TENANT_ADMIN-rechten. Die identiteit nooit automatisch vervangen.
+5. Voor ESS: vanuit de lokale Test HR Admin naar `/local/personas`, kies `payroll-demo-002` (beschikbaar), open `/my-salary`; oktober 2026 toont DEMO-002 €2.141,36 en de knop **Downloaden**. De eerdere ESS-download was 513.406 bytes en byte-identiek aan de toenmalige HR Admin-PDF, maar gebruikte volgens PAYFULL-02D nog de dynamische renderer en bewijst niet de nieuwe persistente artifactroute. In PAYFULL-02D levert de route opgeslagen bytes volgens 61 geslaagde gerichte tests; live download/inline preview werd in de ondersteunde in-app browser geblokkeerd. De viewer toont nu na timeout een foutmelding met **Opnieuw proberen**. **Bekijken** blijft dus OPEN; DEMO-001 heeft geen zelfstandige Employee-persona, omdat diens Core-employee al gekoppeld is aan een bestaand account met TENANT_ADMIN-rechten. Die identiteit nooit automatisch vervangen.
 6. Het extra €500-geval is **CONCEPT**: alleen via HR Admin-runinformatie beoordelen, niet als definitieve ESS-strook.
 
 Dit is lokale branchfunctionaliteit; PR #33 is Draft, niet naar `main` gemerged en niet opnieuw op Vercel gedeployed.
 
-## 3. Zelf controleren in een ander salarispakket
-
-Maak in het andere pakket twee **afzonderlijke oktober-2026-medewerkers** met dezelfde uitgangspunten. Gebruik geen echte BSN's of persoonsidentiteiten. Kies **2026**, loonperiode **maand**, volledig tijdvak, wit/NL/standaard, onder AOW, **loonheffingskorting UIT**, contractueel bruto €3.517 en €3.534, deeltijdfactor 1,0. De variabele €500 in scenario 3 is **regulier** loon, geen bijzondere beloning.
-
-Testpensioen: jaarfranchise €19.172 (rekenmaandfranchise €1.597,67), fictief jaarmaximum €137.800; DEMO-001 premies werknemer 10% / werkgever 15%, DEMO-002 werknemer 13% / werkgever 13%, op de pensioengrondslag na franchise. Pensioen verlaagt eenmaal de fiscale grondslag. Nettovergoedingen respectievelijk €45 en €32,50.
-
-Werkgeverskosten alleen eerlijk vergelijken als dezelfde werkgeversclassificaties en fictieve Whk-beschikking zijn ingevoerd: AWf hoog 7,74%, Aof laag 6,27%, Whk 1,81%, Wko 0,50%, werkgeversheffing Zvw 6,10%, vakantiereserve 8%, eindejaarsreserve 0%. Laat toepasselijke grondslagen/maxima/afrondingen door beide systemen verklaren. De eigen pensioen-/Whk-configuratie zijn **expliciet synthetisch**, niet 'officieel geverifieerde contractdata'.
-
-Voor oktober zijn **aparte synthetische cumulatieve openingsbalansen januari–september** geconfigureerd. Zet in het vergelijkingspakket dezelfde opening op (of vergelijk eerst alleen de oktoberberekening en verklaar cumulatiefverschillen). Voor DEMO-001: opening bruto €31.653, fiscaal €29.925,63, loonheffing €10.697,22. Voor DEMO-002: opening bruto €31.806, fiscaal €29.540,52, loonheffing €10.560,78.
-
-Vergelijk **per component** (niet alleen netto):
-1. Bruto, pensioen werknemer en fiscale grondslag.
-2. Tabelmatige loonheffing 2026: DEMO-001 €1.188,58 en DEMO-002 €1.173,42, onafhankelijk gepind aan de officiële witte maandtabel.
-3. Nettoloon met nettovergoeding; werkgeverspremies, werkgeverspensioen en vakantiereserve **niet** op nettoloon inhouden.
-4. Werkgeverskosten: DEMO-001 €4.876,74; DEMO-002 €4.836,83.
-5. Cumulatieven, maximale jaarpremiegrondslagen, geldigheidsdatums en het resultaat van een nieuwe herberekening.
-
-Bij een afwijking: leg de **eerste afwijkende component**, gebruikte grondslag, percentage, afronding en periodevaststelling vast. Vervang geen oorspronkelijke FINALIZED-run, maar maak na bewezen oorzaak een nieuwe revisie.
-
-## 4. Dekkingsgrens
+## 3. Dekkingsgrens
 
 - **Voor twee specifieke scenario's ja:** reguliere volledige maand, witte tabel, standaard Nederland/onder AOW, geen LHK, versiebewuste synthetische pensioen- en werkgeverslasten, cumulatieven en PDF.
 - **Voor derde variabele testcase gedeeltelijk:** berekening is opgeslagen maar alleen CONCEPT, geen geaccepteerde definitieve loonstrook.
 - **Voor Lisa/Jaap/Frits (Jupiter): niet bewezen als PAYFULL-02 full-net cases.** Bestaande HR/IKV/ESS- en historische runs vormen niet automatisch een volledige nettoloonacceptatie.
 - **Nog geen generieke NL-complianceclaim:** deeltijd/gebroken tijdvak, andere tabellen, LHK aan, bijzondere beloning, CAO, ziekte/ZW, oproep, meer IKV's, correctie/TWK, jaaropgaaf, wettelijke aangiften en betalingen missen op deze nieuwe verticale keten brede onafhankelijke end-to-end acceptatie. 2027 heeft geen actief rule package.
 
-## 5. Roadmap na PAYFULL-02 (afgebakend, Luna-Max/één agent)
+## 4. Roadmap na PAYFULL-02 (afgebakend, Luna-Max/één agent)
 
 | Prio | Wave | Resultaat en exit |
 | --- | --- | --- |
-| P0 | **PAYFULL-02D — ESS/PDF-closeout** | Inline viewer toont PDF of expliciete fout, artifactreadback/idempotentie en relevante negatieve toegangscontroles; DEMO-001 eigen ESS-identiteit is apart besluit, geen admin-omkoppeling. |
-| P0 | **PAYVAL-EXT-01 — onafhankelijke pakketvergelijking** | Handmatige vergelijking van DEMO-001/002 tegen een ander NL-salarissysteem met exact gelijke fiscale en pensioengrondslagen; elke afwijking reproduceerbaar. Alleen de derde CONCEPT-revisie vergelijken, niet als definitief presenteren. |
+| P0 | **PAYFULL-02D — ESS/PDF-closeout (PARTIAL)** | Twee persistente artifactrecords geverifieerd. Route levert opgeslagen PDF-bytes en viewer toont bij timeout een foutmelding met retry; echte inline PDF-render en live downloadgelijkheid van de nieuwe route blijven OPEN door browserbeperking. DEMO-001 eigen ESS-identiteit is een apart besluit, geen admin-omkoppeling. |
 | P1 | **PAYCASE-03 — variaties** | Nieuwe gecontroleerde TEST-medewerkers/cases: LHK aan/uit, deeltijd/gebroken tijdvak, reguliere variabele beloning en bijzondere beloning, meerdere IKV's; officiële onafhankelijke fiscale oracles en run-/PDF-regressies. |
 | P1 | **PAYRUN-03 — payroll by exception** | Herhaalbare maandcyclus, controles/werkvoorraad, correcties en revisies; stabiele manager-/HR Admin-/ESS-grenzen. |
 | P2 | **PAYDOC-02 en fiscale jaarafsluiting** | Jaaropgaaf, periodeoverstijgende cumulatieven en 2027-regels na officiële bronset/independent oracle. |
