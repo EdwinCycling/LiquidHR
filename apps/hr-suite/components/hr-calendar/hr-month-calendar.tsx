@@ -62,7 +62,6 @@ interface Labels {
   generalReminders: string;
   dayDetails: string;
   employeeDayDetails: string;
-  actionsLater: string;
   close: string;
   week: string;
   weekShort: string;
@@ -676,15 +675,6 @@ export function HrMonthCalendar({
                     ))}
                   </div>
                 </CalendarSidePanelSection>
-                <CalendarSidePanelSection title={labels.actionsSection}>
-                  <button
-                    className="w-full rounded-xl border border-dashed p-4 text-sm font-semibold text-muted-foreground"
-                    disabled
-                    type="button"
-                  >
-                    {labels.actionsLater}
-                  </button>
-                </CalendarSidePanelSection>
               </div>
             </>
           ) : (
@@ -771,15 +761,6 @@ export function HrMonthCalendar({
                       ),
                     )}
                   </div>
-                </CalendarSidePanelSection>
-                <CalendarSidePanelSection title={labels.actionsSection}>
-                  <button
-                    className="w-full rounded-xl border border-dashed p-4 text-sm font-semibold text-muted-foreground"
-                    disabled
-                    type="button"
-                  >
-                    {labels.actionsLater}
-                  </button>
                 </CalendarSidePanelSection>
               </div>
             </>

@@ -1,4 +1,4 @@
-export type SidebarSectionId = 'daily' | 'peopleOrganization' | 'hrProcesses' | 'steering' | 'payroll' | 'selfService' | 'payrollLab' | 'management'
+export type SidebarSectionId = 'daily' | 'peopleOrganization' | 'hrProcesses' | 'steering' | 'payroll' | 'selfService' | 'management'
 
 export type RecruitmentNavigationHref = '/recruitment' | '/recruitment/assigned'
 
@@ -16,7 +16,6 @@ export const SIDEBAR_SECTION_DEFINITIONS: readonly { id: SidebarSectionId; hrefs
   { id: 'steering', hrefs: ['/insights'] },
   { id: 'payroll', hrefs: ['/payroll', '/payroll/runs', '/payroll/corrections', '/payroll/compare', '/payroll/arrangements', '/payroll/settings'] },
   { id: 'selfService', hrefs: ['/my-salary'] },
-  { id: 'payrollLab', hrefs: ['/payroll-lab'] },
   { id: 'management', hrefs: ['/settings', '/document-studio'] },
 ]
 

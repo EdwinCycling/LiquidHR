@@ -9,7 +9,6 @@ describe('sidebar navigation contract', () => {
     steering: 'Sturen',
     payroll: 'Payroll',
     selfService: 'Medewerker zelfservice',
-    payrollLab: 'Payroll Lab',
     management: 'Beheer',
   }
 
@@ -57,21 +56,21 @@ describe('sidebar navigation contract', () => {
     expect(sections[0]?.id).toBe('daily')
   })
 
-  it('keeps a single Payroll Lab entry alongside employee self-service', () => {
+  it('keeps a single professional Payroll entry alongside employee self-service', () => {
     const sections = buildSidebarSections([
       { href: '/my-salary', visible: true },
+      { href: '/payroll', visible: true },
       { href: '/payroll-lab', visible: true },
     ], labels, [])
 
-    expect(sections.map((section) => section.id)).toEqual(['selfService', 'payrollLab'])
+    expect(sections.map((section) => section.id)).toEqual(['payroll', 'selfService'])
     expect(sections.map((section) => section.items.map((item) => item.href))).toEqual([
+      ['/payroll'],
       ['/my-salary'],
-      ['/payroll-lab'],
     ])
-    expect(sections.flatMap((section) => section.items.map((item) => item.href)).filter((href) => href.startsWith('/payroll'))).toEqual(['/payroll-lab'])
   })
 
-  it('shows Payroll Lab only when the server passes its guarded capability', () => {
+  it('does not put internal Payroll Lab routes in ordinary navigation', () => {
     const hidden = buildSidebarSections([
       { href: '/payroll-lab', visible: false },
     ], labels, [])
@@ -80,19 +79,19 @@ describe('sidebar navigation contract', () => {
     ], labels, [])
 
     expect(hidden).toEqual([])
-    expect(visible).toEqual([{ id: 'payrollLab', label: labels.payrollLab, items: [{ href: '/payroll-lab', visible: true }] }])
+    expect(visible).toEqual([])
   })
 
-  it('keeps Payroll Lab separate from management when both sections have visible items', () => {
+  it('keeps professional Payroll separate from management', () => {
     const sections = buildSidebarSections([
-      { href: '/payroll-lab', visible: true },
+      { href: '/payroll', visible: true },
       { href: '/settings', visible: true },
       { href: '/document-studio', visible: true },
     ], labels, [])
 
-    expect(sections.map((section) => section.id)).toEqual(['payrollLab', 'management'])
+    expect(sections.map((section) => section.id)).toEqual(['payroll', 'management'])
     expect(sections.map((section) => section.items.map((item) => item.href))).toEqual([
-      ['/payroll-lab'],
+      ['/payroll'],
       ['/settings', '/document-studio'],
     ])
   })

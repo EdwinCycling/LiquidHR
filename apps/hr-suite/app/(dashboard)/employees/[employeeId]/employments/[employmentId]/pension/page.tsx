@@ -94,7 +94,7 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
     </Surface>
 
     {data.canWrite ? <Surface className="space-y-4 p-5 sm:p-6">
-      <SectionHeader title={t('pensionAssignTitle')} description={t('pensionSyntheticPolicyNotice')} />
+      <SectionHeader title={t('pensionAssignTitle')} description={t('pensionAssignmentNotice')} />
       {data.assignments.some((row) => row.effective_to === null || row.effective_to >= today)
         ? <p className="text-sm text-muted-foreground">{t('pensionAssignmentOverlapPresent')}</p>
         : null}
@@ -146,20 +146,8 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
                 <option value="GRANDFATHERED">{t('pensionGrandfathered')}</option>
               </select>
             </label>
-            <label className="grid gap-1 text-sm font-medium">
-              {t('pensionProvenanceMode')}
-              <select name="provenanceMode" required defaultValue="USER_RECORDED" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
-                <option value="USER_RECORDED">{t('pensionUserRecorded')}</option>
-                {data.canCreateSyntheticFixture ? <option value="SYNTHETIC_TEST_FIXTURE">{t('pensionSyntheticTestFixture')}</option> : null}
-              </select>
-            </label>
-            {data.canCreateSyntheticFixture
-              ? <label className="grid gap-1 text-sm font-medium">
-                {t('pensionTestScenario')}
-                <input name="testScenario" type="text" maxLength={180} className="min-h-10 rounded-md border border-border bg-background px-3 font-normal" />
-                <span className="text-xs font-normal text-muted-foreground">{t('pensionTestScenarioHelp')}</span>
-              </label>
-              : <input type="hidden" name="testScenario" value="" />}
+            <input type="hidden" name="provenanceMode" value="USER_RECORDED" />
+            <input type="hidden" name="testScenario" value="" />
             <label className="flex items-start gap-3 text-sm">
               <input name="confirmMapping" type="checkbox" value="yes" required className="mt-1" />
               <span>{t('pensionConfirmCaoMapping', { conditionSet: data.laborConditionSet.name })}</span>

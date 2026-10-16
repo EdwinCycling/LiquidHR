@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createSyntheticArrangementAssignmentAction,
   endArrangementPackageAvailabilityAction,
@@ -31,8 +31,11 @@ vi.mock('next/navigation', () => ({
 }))
 
 describe('Payroll arrangement actions', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.unstubAllEnvs()
     assign.mockResolvedValue({ fixture_code: 'CAO-BENCH02-SCALE-STEP' })
     resolve.mockResolvedValue({ id: 'a1e00000-0000-4000-8000-000000000099' })
   })
@@ -73,7 +76,7 @@ describe('Payroll arrangement actions', () => {
     form.set('sourceTenantId', 'b1e00000-0000-4000-8000-000000000001')
 
     await expect(createSyntheticArrangementAssignmentAction(form))
-      .rejects.toThrow('redirect:/payroll-lab/arrangements?error=save-failed')
+      .rejects.toThrow('redirect:/payroll-lab/development/arrangements?error=save-failed')
     expect(assign).not.toHaveBeenCalled()
   })
 
@@ -83,7 +86,7 @@ describe('Payroll arrangement actions', () => {
     form.set('packageId', 'KINDEROPVANG_2025_2026')
 
     await expect(createSyntheticArrangementAssignmentAction(form))
-      .rejects.toThrow('redirect:/payroll-lab/arrangements?saved=1&fixture=CAO-BENCH02-SCALE-STEP')
+      .rejects.toThrow('redirect:/payroll-lab/development/arrangements?saved=1&fixture=CAO-BENCH02-SCALE-STEP')
     expect(assign).toHaveBeenCalledWith({
       fixtureCode: 'CAO-BENCH02-SCALE-STEP',
       packageId: 'KINDEROPVANG_2025_2026',
@@ -98,7 +101,17 @@ describe('Payroll arrangement actions', () => {
     form.set('asOfDate', '2026-09-30')
 
     await expect(resolveArrangementCompositionAction(form))
-      .rejects.toThrow('redirect:/payroll-lab/arrangements?snapshot=1&fixture=CAO-BENCH02-OPEN-BAND&snapshotId=a1e00000-0000-4000-8000-000000000099')
+      .rejects.toThrow('redirect:/payroll-lab/development/arrangements?snapshot=1&fixture=CAO-BENCH02-OPEN-BAND&snapshotId=a1e00000-0000-4000-8000-000000000099')
     expect(resolve).toHaveBeenCalledWith({ fixtureCode: 'CAO-BENCH02-OPEN-BAND', asOfDate: '2026-09-30' })
+  })
+
+  it('rejects direct synthetic fixture writes in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    const form = new FormData()
+    form.set('fixtureCode', 'CAO-BENCH02-SCALE-STEP')
+    form.set('packageId', 'KINDEROPVANG_2025_2026')
+
+    await expect(createSyntheticArrangementAssignmentAction(form)).rejects.toThrow('redirect:/geen-toegang')
+    expect(assign).not.toHaveBeenCalled()
   })
 })

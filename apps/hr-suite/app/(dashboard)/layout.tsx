@@ -18,8 +18,6 @@ import { createHeRaLabels } from '@/lib/hera/labels'
 import { getProductUpdateDashboardData } from '@/lib/product-updates/service'
 import { ProductUpdateBanner, ProductUpdateLoginPopup } from '@/components/product-updates/product-update-surfaces'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
-import { TEST_ROLE_SWITCH_TARGETS, canInitiateTestRoleSwitch, canReturnToTestHrAdmin, isTestRoleSwitchAccount, isTestRoleSwitchEnabled } from '@/lib/auth/test-role-switch'
-import type { TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { resolveResearchAccess } from '@/lib/research/access'
 import { SetupAssistantFloating } from '@/components/setup-assistant/setup-assistant-floating'
 import { canUseSetupAssistant, getSetupAssistantState } from '@/lib/setup-assistant/service'
@@ -124,14 +122,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const workforceWebMcpLifecycleKey = randomUUID()
   const profileFirstName = profile?.first_name?.trim() || (typeof email === 'string' ? email.split('@')[0] : '') || common('appName')
   const profileAvatarUrl = authContext.employeeId ? employeeAvatarHref(authContext.employeeId, profile?.avatar_url ?? null) : null
-  const currentEmail = typeof email === 'string' ? email.trim().toLowerCase() : null
-  const testHarnessAccountEnabled = isTestRoleSwitchEnabled() && isTestRoleSwitchAccount(currentEmail)
-  const testRoleSwitchOptions: TestRoleSwitchOption[] = [
-    { key: TEST_ROLE_SWITCH_TARGETS[0].key, email: TEST_ROLE_SWITCH_TARGETS[0].email, label: navigation('testRoleSwitchEdwin') },
-    { key: TEST_ROLE_SWITCH_TARGETS[1].key, email: TEST_ROLE_SWITCH_TARGETS[1].email, label: navigation('testRoleSwitchHrAdmin') },
-    { key: TEST_ROLE_SWITCH_TARGETS[2].key, email: TEST_ROLE_SWITCH_TARGETS[2].email, label: navigation('testRoleSwitchManager') },
-    { key: TEST_ROLE_SWITCH_TARGETS[3].key, email: TEST_ROLE_SWITCH_TARGETS[3].email, label: navigation('testRoleSwitchEmployee') },
-  ]
   const updateSurfaceLabels = {
     title: productUpdateMessages('title'),
     subtitle: productUpdateMessages('subtitle'),
@@ -194,7 +184,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           recruitment: navigation('recruitment'),
           journeys: navigation('journeys'),
           documentStudio: navigation('documentStudio'),
-          payrollLab: navigation('payrollLab'),
           payroll: navigation('payroll'),
           mySalary: navigation('mySalary'),
           navigation: navigation('navigation'),
@@ -205,6 +194,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           hrGroup: navigation('hrGroup'),
           administration: navigation('administration'),
           switchingAdministration: navigation('switchingAdministration'),
+          confirmAdministration: navigation('confirmAdministration'),
           switchAdministrationFailed: navigation('switchAdministrationFailed'),
           switchingHrGroup: navigation('switchingHrGroup'),
           switchHrGroupFailed: navigation('switchHrGroupFailed'),
@@ -215,7 +205,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           sectionSteering: navigation('sectionSteering'),
           sectionPayroll: navigation('sectionPayroll'),
           sectionSelfService: navigation('sectionSelfService'),
-          sectionPayrollLab: navigation('sectionPayrollLab'),
           sectionManagement: navigation('sectionManagement'),
           signOut: auth('signOut'),
         }}
@@ -255,17 +244,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         productUpdates={productUpdates.updates}
         productUpdateLabels={updateSurfaceLabels}
         productUpdateUnreadCount={productUpdates.unreadGiftCount}
-        testRoleSwitch={{
-          currentEmail,
-          enabled: testHarnessAccountEnabled && canInitiateTestRoleSwitch(authContext.activeRoles),
-          returnToAdmin: testHarnessAccountEnabled && canReturnToTestHrAdmin(currentEmail),
-          labels: {
-            title: navigation('testRoleSwitchTitle'),
-            hint: navigation('testRoleSwitchHint'),
-            returnToAdmin: navigation('testRoleSwitchReturnToAdmin'),
-          },
-          options: testRoleSwitchOptions,
-        }}
       />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pt-16 md:h-dvh md:pt-0"><ProductUpdateBanner labels={updateSurfaceLabels} updates={productUpdates.bannerUpdates} />{children}</main>
       <WorkforceWebMcpBootstrap descriptors={workforceWebMcpDescriptors} lifecycleKey={workforceWebMcpLifecycleKey} />

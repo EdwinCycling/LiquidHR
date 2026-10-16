@@ -36,6 +36,8 @@ import { listEmployeeActivity } from '@/lib/employees/employee-activity-service'
 import { getDocumentOptions, listEmployeeDashboardDocuments, listEmployeeDocuments } from '@/lib/documents/document-service'
 import { listEmployeePayslips } from '@/lib/documents/payslip-service'
 import { EmployeePayslips } from '@/components/documents/employee-payslips'
+import { parseImportedPayslipMonth, type EmployeePayslipDocument } from '@/components/documents/payslip-periods'
+import { listEmployeePayrollPayslipPeriods } from '@/lib/payroll/payroll-professional-service'
 import { listEmployeeReminders } from '@/lib/reminders/reminder-service'
 import { EmployeeReminders } from '@/components/employees/employee-reminders'
 import { listEmployeeRoleAssignments } from '@/lib/organization/management-service'
@@ -105,7 +107,11 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
       canWriteDocuments ? getDocumentOptions(employeeId) : Promise.resolve(null),
     ]) : [[], null]
     const canReadPayslips = tab === 'payslips' ? await permissionAllowed('payslip:read', employeeId) : false
+    const canReadPayrollPayslips = tab === 'payslips' ? await permissionAllowed('salary:read', employeeId) : false
     const payslips = tab === 'payslips' && canReadPayslips ? await listEmployeePayslips(employeeId) : []
+    const payrollPayslipPeriods = tab === 'payslips' && canReadPayrollPayslips
+      ? await listEmployeePayrollPayslipPeriods(employeeId)
+      : []
     const [dashboardDocuments, absenceCases, selfReport, journeys, canReadNotes] = await performance.measure('overview.parallel', () => Promise.all([
       tab === 'overview' && canReadDashboardDocuments ? listEmployeeDashboardDocuments(employeeId) : Promise.resolve([]),
       tab === 'overview' || tab === 'absence' ? listEmployeeAbsence(employeeId).catch(() => []) : Promise.resolve([]),
@@ -113,7 +119,32 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
       tab === 'overview' ? getEmployeeJourneyProjections(employeeId).catch((): JourneyProjectionList => []) : Promise.resolve<JourneyProjectionList>([]),
       tab === 'notes' ? employeeNotesPermissionAllowed(employeeId) : Promise.resolve(false),
     ]))
-    const base = [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, journeys] as const
+    const payslipDocuments: EmployeePayslipDocument[] = [
+      ...(canReadPayslips ? payslips.map((payslip) => ({
+        id: `imported:${payslip.id}`,
+        periodYear: payslip.calendar_year,
+        periodMonth: parseImportedPayslipMonth(payslip.period_label, payslip.calendar_year),
+        source: 'IMPORTED' as const,
+        contentType: payslip.content_type,
+        viewHref: `/api/employees/${encodeURIComponent(employeeId)}/payslips/${encodeURIComponent(payslip.id)}/download`,
+        downloadHref: `/api/employees/${encodeURIComponent(employeeId)}/payslips/${encodeURIComponent(payslip.id)}/download`,
+      })) : []),
+      ...payrollPayslipPeriods.map((period) => {
+        const periodKey = `${period.periodYear}-${String(period.periodMonth).padStart(2, '0')}`
+        const path = `/api/employees/${encodeURIComponent(employeeId)}/payslips/payroll/${periodKey}`
+        return {
+          id: `payroll:${periodKey}`,
+          periodYear: period.periodYear,
+          periodMonth: period.periodMonth,
+          source: 'PAYROLL' as const,
+          contentType: 'application/pdf',
+          viewHref: path,
+          downloadHref: `${path}?download=1`,
+        }
+      }),
+    ]
+    const canReadAnyPayslips = canReadPayslips || canReadPayrollPayslips
+    const base = [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslipDocuments, canReadAnyPayslips, absenceCases, selfReport, journeys] as const
     const [canWriteNotes, canDeleteNotes, canUseAi, notes] = canReadNotes
       ? await performance.measure('notes.parallel', () => Promise.all([
         permissionAllowed('employee-note:write', employeeId),
@@ -178,7 +209,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     getPrivateWeatherForEmployee(authContext, employeeId, requestContext.supabase),
     getUpcomingCalendarItems(authContext, requestContext.supabase),
   ]))
-  const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, journeys, notes, canReadNotes, canWriteNotes, canDeleteNotes, canUseAi] = pageData
+  const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslipDocuments, canReadAnyPayslips, absenceCases, selfReport, journeys, notes, canReadNotes, canWriteNotes, canDeleteNotes, canUseAi] = pageData
   performanceTrace.finish()
   const tProcess = await getTranslator('processAutomation', locale)
   const tFocus = await getTranslator('focus', locale)
@@ -317,7 +348,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         <nav className="mt-6" aria-label={tEmployees('tabsLabel')}>
           <ScrollableTabs ariaLabel={tEmployees('tabsLabel')} leftLabel={tEmployees('previous')} rightLabel={tEmployees('next')} contentProps={{ role: 'tablist' }}>
-            {(['overview', 'personal', 'employments', 'reminders', 'documents', 'absence', ...(canReadProcesses ? ['processes' as const] : []), ...(canReadPayslips ? ['payslips' as const] : []), ...(canReadNotes ? ['notes' as const] : [])] as const).map((item) => {
+            {(['overview', 'personal', 'employments', 'reminders', 'documents', 'absence', ...(canReadProcesses ? ['processes' as const] : []), ...(canReadAnyPayslips ? ['payslips' as const] : []), ...(canReadNotes ? ['notes' as const] : [])] as const).map((item) => {
               const active = tab === item
               const label = item === 'overview' ? tEmployees('tabDashboard') : item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : item === 'documents' ? tEmployees('tabDocuments') : item === 'absence' ? tEmployees('absenceTab') : item === 'processes' ? tProcess('processesTab') : item === 'payslips' ? tDocuments('payslipsTab') : tEmployees('tabNotes')
               return <Link prefetch={false} key={item} href={`/employees/${employeeId}?tab=${item}&view=${compact ? 'compact' : 'expanded'}`} aria-current={active ? 'page' : undefined} className={tabLinkClasses({ active })}>{label}</Link>
@@ -396,7 +427,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         {tab === 'documents' && canReadDocuments && <EmployeeDocumentDossier locale={locale} employeeId={employeeId} documents={documents} options={documentOptions} canWrite={canWriteDocuments} canDelete={canDeleteDocuments} labels={{ title: tDocuments('title'), subtitle: tDocuments('subtitle'), upload: tDocuments('upload'), uploadAdvanced: tDocuments('uploadAdvanced'), file: tDocuments('file'), fileDropTitle: tDocuments('fileDropTitle'), fileDropHelp: tDocuments('fileDropHelp'), fileSelected: tDocuments('fileSelected'), fileReplace: tDocuments('fileReplace'), fileRemove: tDocuments('fileRemove'), fileRules: tDocuments('fileRules'), documentTitle: tDocuments('documentTitle'), description: tDocuments('description'), tags: tDocuments('tags'), noCloudTags: tDocuments('noCloudTags'), category: tDocuments('category'), customMetadata: tDocuments('customMetadata'), automaticValue: tDocuments('automaticValue'), requiredFields: tDocuments('requiredFields'), advancedSettings: tDocuments('advancedSettings'), visibleToTitle: tDocuments('visibleToTitle'), visibleToEmployee: tDocuments('visibleToEmployee'), visibleToRole: tDocuments('visibleToRole'), visibleToDepartment: tDocuments('visibleToDepartment'), visibilityDefault: tDocuments('visibilityDefault'), reminderTitle: tDocuments('reminderTitle'), expiresOn: tDocuments('expiresOn'), reminderAt: tDocuments('reminderAt'), reminderForEmployee: tDocuments('reminderForEmployee'), reminderForRole: tDocuments('reminderForRole'), save: tDocuments('save'), saving: tDocuments('saving'), failed: tDocuments('failed'), empty: tDocuments('empty'), download: tDocuments('download'), delete: tDocuments('delete'), restore: tDocuments('restore'), deletedDocuments: tDocuments('deletedDocuments'), activeDocuments: tDocuments('activeDocuments'), deleteReason: tDocuments('deleteReason'), deleted: tDocuments('deleted'), expires: tDocuments('expires'), reminderActive: tDocuments('reminderActive'), addedOn: tDocuments('addedOn'), employeeVisibilityAllowed: tDocuments('employeeVisibilityAllowed'), employeeVisibilityBlocked: tDocuments('employeeVisibilityBlocked'), additionalRoles: tDocuments('additionalRoles'), additionalDepartments: tDocuments('additionalDepartments'), noExtraVisibility: tDocuments('noExtraVisibility'), noReminderRecipients: tDocuments('noReminderRecipients'), invalidType: tDocuments('invalidType'), invalidSize: tDocuments('invalidSize'), emptyFile: tDocuments('emptyFile'), invalidInput: tDocuments('invalidInput'), audienceRequired: tDocuments('audienceRequired'), expiryRequired: tDocuments('expiryRequired'), reminderTargetRequired: tDocuments('reminderTargetRequired'), singleFileOnly: tDocuments('singleFileOnly'), view: tDocuments('view'), viewerClose: tDocuments('viewerClose'), viewerUnsupported: tDocuments('viewerUnsupported'), viewerPreviewLoading: tDocuments('viewerPreviewLoading'), viewerPreviewUnavailable: tDocuments('viewerPreviewUnavailable'), cancel: tDocuments('cancel'), close: tDocuments('viewerClose'), moreActions: tDocuments('moreActions'), discardTitle: tDocuments('discardTitle'), discardDescription: tDocuments('discardDescription'), discardConfirm: tDocuments('discardConfirm'), discardCancel: tDocuments('discardCancel'), deleteTitle: tDocuments('deleteTitle'), deleteDescription: tDocuments('deleteDescription'), deleteConfirm: tDocuments('deleteConfirm'), deleteCancel: tDocuments('deleteCancel'), restoreTitle: tDocuments('restoreTitle'), restoreDescription: tDocuments('restoreDescription'), restoreConfirm: tDocuments('restoreConfirm'), restoreCancel: tDocuments('restoreCancel'), editMetadata: tDocuments('editMetadata'), saveChanges: tDocuments('saveChanges'), salarySensitive: tDocuments('salarySensitive'), salaryPermissionRequired: tDocuments('salaryPermissionRequired'), customFieldsInvalid: tDocuments('customFieldsInvalid'), customFieldsRequired: tDocuments('customFieldsRequired') }} />}
 
-        {tab === 'payslips' && canReadPayslips && <EmployeePayslips employeeId={employeeId} payslips={payslips} labels={{ title: tDocuments('payslipsTitle'), subtitle: tDocuments('payslipsSubtitle'), empty: tDocuments('payslipsEmpty'), view: tDocuments('view'), download: tDocuments('download'), close: tDocuments('viewerClose'), unsupported: tDocuments('viewerUnsupported'), source: tDocuments('payslipSource'), imported: tDocuments('payslipImported') }} />}
+        {tab === 'payslips' && canReadAnyPayslips && <EmployeePayslips documents={payslipDocuments} locale={locale} labels={{ title: tDocuments('payslipsTitle'), subtitle: tDocuments('payslipsSubtitle'), empty: tDocuments('payslipsEmpty'), view: tDocuments('view'), download: tDocuments('download'), close: tDocuments('viewerClose'), unsupported: tDocuments('viewerUnsupported'), previewLoading: tDocuments('viewerPreviewLoading'), previewUnavailable: tDocuments('viewerPreviewUnavailable'), imported: tDocuments('payslipImported'), payroll: tDocuments('payslipPayroll'), unspecifiedPeriod: tDocuments('payslipUnspecifiedPeriod'), document: tDocuments('payslipDocument') }} />}
 
         {tab === 'reminders' && <EmployeeReminders employeeId={employeeId} mode={authContext.employeeId === employeeId ? 'PERSONAL' : 'HR'} canManageHr={authContext.permissions.includes('reminder:write')} reminders={reminders} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('remindersTitle'), empty: tEmployees('remindersEmpty'), add: tEmployees('addReminder'), edit: tEmployees('editReminder'), remove: tEmployees('deleteReminder'), titleLabel: tEmployees('reminderTitle'), descriptionLabel: tEmployees('reminderDescription'), dateLabel: tEmployees('reminderDate'), save: tEmployees('saveReminder'), saved: tEmployees('reminderSaved'), failed: tErrors('generic'), futureTime: tEmployees('reminderFutureTime'), cancel: tEmployees('cancel'), close: tEmployees('reminderClose'), moreActions: tEmployees('reminderMoreActions'), personalReminder: tEmployees('personalReminder'), hrReminder: tEmployees('hrReminder'), discardTitle: tEmployees('reminderDiscardTitle'), discardDescription: tEmployees('reminderDiscardDescription'), discardConfirm: tEmployees('reminderDiscardConfirm'), discardCancel: tEmployees('reminderDiscardCancel'), deleteTitle: tEmployees('reminderDeleteTitle'), deleteDescription: tEmployees('reminderDeleteDescription'), deleteConfirm: tEmployees('reminderDeleteConfirm'), deleteCancel: tEmployees('reminderDeleteCancel'), shiftDayBack: tEmployees('reminderDayBack'), shiftDayForward: tEmployees('reminderDayForward'), shiftWeekForward: tEmployees('reminderWeekForward'), shiftMonthForward: tEmployees('reminderMonthForward') }} />}
 

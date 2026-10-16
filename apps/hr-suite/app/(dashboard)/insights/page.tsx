@@ -8,7 +8,7 @@ import { getFrequentAbsenceReport } from '@/lib/insights/frequent-absence-report
 import { parseFrequentAbsenceQuery } from '@/lib/insights/frequent-absence-query'
 import { getEmployeeInsightReport } from '@/lib/insights/employee-report-service'
 import { parseEmployeeInsightQuery } from '@/lib/insights/query'
-import { INSIGHT_REPORTS, isEmployeeInsightReportId } from '@/lib/insights/report-catalog'
+import { visibleInsightReports, isEmployeeInsightReportId } from '@/lib/insights/report-catalog'
 import { ANALYSIS_PERMISSION } from '@/lib/insights/analysis-contract'
 import { getUpcomingEventsReport } from '@/lib/insights/upcoming-events'
 import { parseUpcomingEventsQuery } from '@/lib/insights/upcoming-events-query'
@@ -40,7 +40,7 @@ export default async function InsightsPage({ searchParams }: InsightsPageProps) 
   const requestedReport = canonicalInsightReportId(params.get('report'))
   const isHrAdmin = context.activeRoles.includes('TENANT_ADMIN') || context.activeRoles.includes('HR_ADMIN')
   const canReadAnalysis = context.permissions.includes(ANALYSIS_PERMISSION)
-  const reports = INSIGHT_REPORTS.filter((report) => context.permissions.includes(report.permission) && (report.id !== 'salary-internal-position' || isHrAdmin))
+  const reports = visibleInsightReports(context.permissions, isHrAdmin)
   const query = parseEmployeeInsightQuery(params)
   const reportData = query && reports.some((report) => report.id === query.report) && isEmployeeInsightReportId(query.report) ? await getEmployeeInsightReport(query) : null
   const absenceQuery = parseAbsenceInsightQuery(params)

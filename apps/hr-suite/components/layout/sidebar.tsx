@@ -32,7 +32,6 @@ import { AdministrationSwitcher } from '@/components/layout/administration-switc
 import { HrGroupSwitcher } from '@/components/layout/hr-group-switcher'
 import { Clock } from '@/components/layout/clock'
 import { LiquidHRLogo } from '@/components/layout/liquidhr-logo'
-import { TestRoleSwitcher, type TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
 import { ProductUpdateDrawerTrigger, type ProductUpdateSurfaceLabels } from '@/components/product-updates/product-update-surfaces'
 import { announceAssistantOpen } from '@/components/layout/assistant-overlay-events'
@@ -65,7 +64,6 @@ interface SidebarLabels {
   recruitment: string
   journeys: string
   documentStudio: string
-  payrollLab: string
   payroll: string
   mySalary: string
   navigation: string
@@ -75,6 +73,7 @@ interface SidebarLabels {
   expand: string
   hrGroup: string
   administration: string
+  confirmAdministration: string
   switchingAdministration: string
   switchAdministrationFailed: string
   switchingHrGroup: string
@@ -86,7 +85,6 @@ interface SidebarLabels {
   sectionSteering: string
   sectionPayroll: string
   sectionSelfService: string
-  sectionPayrollLab: string
   sectionManagement: string
   signOut: string
 }
@@ -126,17 +124,6 @@ interface SidebarProps {
   activeAdministrationId: string | null
   administrations: AdministrationContextOption[]
   administrationSwitcherMode: AdministrationSwitcherMode
-  testRoleSwitch: {
-    enabled: boolean
-    currentEmail: string | null
-    returnToAdmin: boolean
-    options: TestRoleSwitchOption[]
-    labels: {
-      title: string
-      hint: string
-      returnToAdmin: string
-    }
-  }
 }
 
 export function Sidebar({
@@ -174,7 +161,6 @@ export function Sidebar({
   activeAdministrationId,
   administrations,
   administrationSwitcherMode,
-  testRoleSwitch,
 }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
@@ -194,7 +180,7 @@ export function Sidebar({
     { href: recruitmentHref, label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
     { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
     { href: '/document-studio', label: labels.documentStudio, icon: FileStack, visible: canReadDocumentStudio },
-    { href: '/payroll-lab', label: labels.payrollLab, icon: Calculator, visible: canReadPayrollLab },
+    { href: '/payroll', label: labels.payroll, icon: Calculator, visible: canReadPayrollLab },
     { href: '/my-salary', label: labels.mySalary, icon: WalletCards, visible: canReadMySalary },
     { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights },
@@ -238,7 +224,6 @@ export function Sidebar({
     steering: labels.sectionSteering,
     payroll: labels.sectionPayroll,
     selfService: labels.sectionSelfService,
-    payrollLab: labels.sectionPayrollLab,
     management: labels.sectionManagement,
   }, menuOrder)
 
@@ -284,7 +269,6 @@ export function Sidebar({
           </Link>}
           <div className={`relative flex shrink-0 items-center gap-2 ${collapsed ? 'flex-col gap-2' : 'flex-row'} [&>button]:!size-9 [&>button]:!rounded-md [&>form>button]:!size-9 [&>form>button]:!rounded-md`}>
             <ProductUpdateDrawerTrigger collapsed={collapsed} labels={productUpdateLabels} locale={locale} onClose={() => setMobileOpen(false)} unreadCount={currentProductUpdateUnreadCount} updates={productUpdates} />
-            {(testRoleSwitch.enabled || testRoleSwitch.returnToAdmin) && testRoleSwitch.currentEmail ? <TestRoleSwitcher collapsed={collapsed} currentEmail={testRoleSwitch.currentEmail} enabled={testRoleSwitch.enabled} labels={testRoleSwitch.labels} options={testRoleSwitch.options} returnToAdmin={testRoleSwitch.returnToAdmin} /> : null}
             <button aria-label={labels.closeMenu} className="grid size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden" onClick={() => setMobileOpen(false)} type="button">
               <X aria-hidden="true" size={19} />
             </button>
@@ -316,6 +300,7 @@ export function Sidebar({
               administrations={administrations}
               labels={{
                 administration: labels.administration,
+                confirm: labels.confirmAdministration,
                 switching: labels.switchingAdministration,
                 switchFailed: labels.switchAdministrationFailed,
               }}

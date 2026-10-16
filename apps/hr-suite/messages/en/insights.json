@@ -5,16 +5,13 @@
   "analysisEyebrow": "Liquid Analysis",
   "analysisTitle": "Analysis",
   "analysisIntro": "Choose how you want to explore HR information.",
-  "analysisNewTitle": "New analysis",
-  "analysisNewDescription": "Ask a question and let LiquidHR build an analysis.",
   "analysisExploreTitle": "Explore",
   "analysisExploreDescription": "Start with an employee, department, job or another HR entity.",
   "analysisMyAnalysesTitle": "My analyses",
   "analysisMyAnalysesDescription": "Open your saved personal analyses.",
   "analysisReportsTitle": "Reports",
   "analysisReportsDescription": "Open fixed, certified HR reports.",
-  "analysisPlanned": "Planned",
-  "analysisActive": "Active",
+  "analysisActive": "Available",
   "analysisOpenReports": "Open reports",
   "analysisOpenExplore": "Open explore",
   "analysisOpenMyAnalyses": "Open my analyses",
@@ -59,7 +56,7 @@
   "analysisExploreExecute": "Run analysis",
   "analysisExploreExecuting": "Running analysis…",
   "analysisExploreExecutionFailed": "The analysis could not be run.",
-  "analysisExploreResultTitle": "Your result will appear here",
+  "analysisExploreResultTitle": "Results appear here after you run the analysis",
   "analysisExploreSaveTitle": "Save this analysis",
   "analysisExploreSaveDescription": "Only the validated definition is saved. Opening it retrieves current authorised data again.",
   "analysisExploreName": "Name",
@@ -368,8 +365,8 @@
   "filterStatus": "{count} selected",
   "visualReadyTitle": "This report view is ready",
   "visualReadyDescription": "Filters, sorting, URL state and visual structure are ready. The verified data source will be connected in a future slice; no sample figures are shown here.",
-  "noDataSourceTitle": "The data source will follow later",
-  "noDataSourceDescription": "This report is part of the fixed report catalogue. Once the required source data, authorisation and privacy rules are ready, the analysis will appear here automatically.",
+  "noDataSourceTitle": "Report data is unavailable",
+  "noDataSourceDescription": "There is no report data for the selected administration or period, or you do not have access to it.",
   "activeFilters": "Active selection",
   "exportLater": "Export will follow with the validated data source",
   "privacyHint": "Aggregated personal data is suppressed for small groups.",
@@ -657,7 +654,7 @@
   ,"aiUsageUnknown": "Unknown"
   ,"aiUsageCompletedRequests": "Completed requests"
   ,"aiUsageNoUsageTitle": "No AI usage yet"
-  ,"aiUsageNoUsageDescription": "Usage will appear here when AI features are used."
+  ,"aiUsageNoUsageDescription": "No AI usage was recorded in the selected period."
   ,"aiUsageCreditsAccountingNote": "Used credits are only credits actually settled; released reservations are excluded."
   ,"leaveAnalyticalThreshold": "Analytical threshold; not a legal or collective-agreement limit."
   ,"leaveKpiFuturePlanned": "Future planned"

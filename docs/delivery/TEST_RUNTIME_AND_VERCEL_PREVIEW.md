@@ -80,3 +80,9 @@ Preview-configuratie is alleen nodig wanneer een Preview expliciet als gate word
 4. Bevestig dat gewone PR's geen Preview starten en dat een expliciet aangevraagde Preview met de on-demand route kan worden gemaakt; controleer of deploymentmetadata de commit-SHA toont.
 
 Deze instellingen worden hier alleen beschreven; dit document bevat geen waarden en voert geen externe configuratiewijziging uit. Ontbreekt een afzonderlijke Preview-backend of Vercel Preview-instelling, registreer de Preview-gate als `BLOCKED BY ENVIRONMENT` en voer geen browserauthenticatie tegen een gedeelde/Production-database uit.
+
+## Permanente Payroll-testpersona's
+
+Gebruik `docs/quality/acceptance/PAYROLL-TEST-PERSONAS.md` en voer `scripts/check-test-personas.ps1` uit. De gedeelde lokale persona-credentialbron staat buiten Git op `%LOCALAPPDATA%\LiquidHR\TestRuntime\payroll-test-personas.env`; hij is gescheiden van de beschermde centrale `.env.local`.
+
+Voor een lokale browseracceptatie die de persona-configuratie nodig heeft, start je `scripts/start-test-worktree.ps1 -Mode Development -PayrollAcceptance -PayrollPersonaAcceptance`. De launcher controleert de ACL, variabelenamen, niet-lege waarden en minimale wachtwoordlengte zonder waarden te tonen; hij weigert de optie in Production-mode of tijdens Build. De role-switch zelf gebruikt de bestaande lokale Auth-handoff en verstuurt geen persona-wachtwoord vanuit de browser.

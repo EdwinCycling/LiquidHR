@@ -274,7 +274,6 @@ export default async function HrCalendarPage({ searchParams }: Props) {
           generalReminders: t('generalReminders'),
           dayDetails: t('dayDetails'),
           employeeDayDetails: t('employeeDayDetails'),
-          actionsLater: t('actionsLater'),
           close: t('close'),
           week: t('week'),
           weekShort: t('weekShort'),

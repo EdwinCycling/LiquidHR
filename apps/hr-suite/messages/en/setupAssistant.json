@@ -31,7 +31,7 @@
   "markReady": "Mark as ready",
   "notYet": "Not yet",
   "categories": {
-    "organization": { "title": "Organization", "description": "Lay the foundation for your organization structure." },
+    "organization": { "title": "Organization", "description": "Set up your organization structure." },
     "base": { "title": "Basics", "description": "Complete the details for your HR group and company." },
     "configuration": { "title": "Configuration", "description": "Choose what employees and administrators see and use in LiquidHR." },
     "employment": { "title": "Employment", "description": "Set up employment, leave and absence settings." }

@@ -4,11 +4,12 @@ import { AuthShell } from '@/components/auth/auth-shell'
 import { loadAccessibleContextOptions } from '@/lib/context/server-context'
 import { getTranslator } from '@/lib/i18n/server'
 
-export default async function ContextSelectionPage() {
-  const [{ tenants }, translate, common] = await Promise.all([
+export default async function ContextSelectionPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const [{ tenants }, translate, common, query] = await Promise.all([
     loadAccessibleContextOptions(),
     getTranslator('context'),
     getTranslator('common'),
+    searchParams,
   ])
   if (tenants.length === 0) redirect('/geen-toegang')
 
@@ -30,11 +31,10 @@ export default async function ContextSelectionPage() {
       </div>
 
       <ContextSelectionForm
+        initialError={query.error === 'invalid' ? translate('invalid') : query.error === 'failed' ? translate('failed') : undefined}
         labels={{
-          tenantLabel: translate('tenantLabel'),
-          tenantPlaceholder: translate('tenantPlaceholder'),
-          hrGroupLabel: translate('hrGroupLabel'),
-          hrGroupPlaceholder: translate('hrGroupPlaceholder'),
+          contextLabel: translate('contextLabel'),
+          contextPlaceholder: translate('contextPlaceholder'),
           formTitle: translate('formTitle'),
           formDescription: translate('formDescription'),
           contextNote: translate('contextNote'),
@@ -45,7 +45,6 @@ export default async function ContextSelectionPage() {
         tenants={tenants.map((tenant) => ({
           id: tenant.id,
           name: tenant.name,
-          slug: tenant.slug,
           hrGroups: tenant.hrGroups.map((group) => ({
             id: group.id,
             name: group.name,

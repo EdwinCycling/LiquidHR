@@ -1,6 +1,7 @@
 import type { Database } from '@scope/db'
 import { AuthorizationError, requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { isProductAudienceUpdate } from './product-visibility'
 import type { ProductUpdateInput, ProductUpdateSurfaceSeenInput } from './schemas'
 
 type ProductUpdateRow = Database['public']['Tables']['product_updates']['Row']
@@ -75,7 +76,7 @@ async function listVisibleProductUpdates(dependencies?: ReadDependencies): Promi
     supabase.from('product_update_surface_dismissals').select('product_update_id,channel').eq('tenant_id', context.tenantId).eq('user_id', context.userId),
   ])
   if (error || stateError || dismissalsError) throw new ProductUpdateServiceError('PRODUCT_UPDATES_READ_FAILED', 500)
-  const updates = (data ?? []).map(toProductUpdate)
+  const updates = (data ?? []).map(toProductUpdate).filter(update => isProductAudienceUpdate(update.title))
   const dismissalKeys = new Set((dismissals ?? []).map((dismissal) => `${dismissal.product_update_id}:${dismissal.channel}`))
   const notDismissed = (update: ProductUpdate, channel: ProductUpdateSurfaceChannel): boolean => !dismissalKeys.has(`${update.id}:${channel}`)
   return {

@@ -1,135 +1,160 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  canInitiateTestRoleSwitch,
+  canReturnToLocalPersonaOwner,
+  createLocalPersonaOwnerMarker,
+  getLocalPersonaOwnerKey,
+  getLocalPersonaOperatorTargetKeys,
+  isLocalPersonaRuntime,
+  normalizedEmail,
+  readLocalPersonaOwnerMarker,
   getTestRoleSwitchTarget,
-  isTestRoleSwitchAccount,
-  isTestRoleSwitchEnabled,
+  getVerifiedLocalPersonaIdentity,
+  TEST_ROLE_SWITCH_OWNER_COOKIE,
 } from '@/lib/auth/test-role-switch'
-import { getRequestAuthorizationContext, permissionErrorResponse, requirePermission } from '@/lib/auth/permissions'
+import { getLocalPayrollPersonaReadiness, PAYFULL02_MARS_SCOPE } from '@/lib/auth/local-payroll-persona-readiness'
 import { safeNextPath } from '@/lib/auth/login-rules'
-import { resolveRequestOrigin } from '@/lib/auth/request-origin'
 import { clearActiveContextCookies } from '@/lib/context/context-cookies'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
+import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
 
-const HANDOFF_COOKIE = 'liquidhr-test-role-switch'
-const NEXT_PATH_COOKIE = 'liquidhr-test-role-switch-next'
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const HANDOFF_COOKIE = 'liquidhr-local-persona-handoff'
+const NEXT_PATH_COOKIE = 'liquidhr-local-persona-next'
+const AUTH_USER_PAGE_SIZE = 1000
+const MAX_AUTH_USER_PAGES = 100
 
-export async function POST(request: NextRequest) {
-  if (!isTestRoleSwitchEnabled()) {
-    return NextResponse.json({ error: 'TEST_ROLE_SWITCH_DISABLED' }, { status: 404 })
-  }
+function isSameLocalOriginRequest(request: NextRequest): string | null {
+  const host = request.headers.get('host')
+  const origin = request.headers.get('origin')
+  if (!isLocalPersonaRuntime(host) || !origin) return null
 
-  const origin = resolveRequestOrigin({
-    canonicalUrl: process.env.NEXT_PUBLIC_APP_URL,
-    fallbackUrl: request.url,
-    forwardedHost: request.headers.get('x-forwarded-host'),
-    forwardedProtocol: request.headers.get('x-forwarded-proto'),
-    host: request.headers.get('host') ?? request.nextUrl.host,
-  })
-  if (request.headers.get('origin') !== origin) {
-    return NextResponse.json({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' }, { status: 403 })
-  }
-
-  let requestContext: Awaited<ReturnType<typeof getRequestAuthorizationContext>>
   try {
-    requestContext = await getRequestAuthorizationContext()
-  } catch (error) {
-    const response = permissionErrorResponse(error)
-    if (response) return response
-    throw error
-  }
+    const parsedOrigin = new URL(origin)
+    if (
+      !['http:', 'https:'].includes(parsedOrigin.protocol)
+      || parsedOrigin.username
+      || parsedOrigin.password
+      || parsedOrigin.pathname !== '/'
+      || parsedOrigin.search
+      || parsedOrigin.hash
+      || !isLocalPersonaRuntime(parsedOrigin.host)
+      || parsedOrigin.host.toLowerCase() !== host?.trim().toLowerCase()
+      || !isLocalPersonaRuntime(request.nextUrl.host)
+    ) return null
 
-  const currentEmail = typeof requestContext.email === 'string' ? requestContext.email : null
+    return parsedOrigin.origin
+  } catch {
+    return null
+  }
+}
+
+async function hasExistingVerifiedAuthUser(admin: ReturnType<typeof createAdminClient>, email: string): Promise<boolean> {
+  const expectedEmail = normalizedEmail(email)
+  for (let page = 1; page <= MAX_AUTH_USER_PAGES; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: AUTH_USER_PAGE_SIZE })
+    if (error) return false
+    if (data.users.some((user) => (
+      normalizedEmail(user.email) === expectedEmail
+      && Boolean(user.email_confirmed_at)
+      && user.is_anonymous !== true
+    ))) return true
+    if (data.lastPage <= page) return false
+  }
+  return false
+}
+
+function jsonError(error: string, status: number): NextResponse {
+  const response = NextResponse.json({ error }, { status })
+  response.headers.set('Cache-Control', 'no-store')
+  response.headers.set('Referrer-Policy', 'no-referrer')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  return response
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const origin = isSameLocalOriginRequest(request)
+  if (!origin) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 404)
+
   let formData: FormData
   try {
     formData = await request.formData()
   } catch {
-    return NextResponse.json({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' }, { status: 403 })
+    return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
   }
-  const target = getTestRoleSwitchTarget(String(formData.get('target') ?? ''))
+
   const targetKey = String(formData.get('target') ?? '')
-  const employeeId = String(formData.get('employeeId') ?? '')
-  const scopedEmployeeTarget = targetKey === 'scoped-employee' && UUID_PATTERN.test(employeeId)
+  const target = getTestRoleSwitchTarget(targetKey)
+  if (!target) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
+
+  const supabase = await createClient()
+  const verified = await getVerifiedLocalPersonaIdentity(supabase)
+  const identity = verified?.identity ?? { email: null, emailVerified: false }
+  const host = request.headers.get('host')
+  const ownerKey = verified ? getLocalPersonaOwnerKey(host, identity) : null
+  const ownerMarker = request.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value ?? null
+  const returnOwnerKey = readLocalPersonaOwnerMarker(ownerMarker)
+  const isOwner = ownerKey !== null
+  const canReturnToOwner = Boolean(verified)
+    && canReturnToLocalPersonaOwner(host, identity, ownerMarker)
+
+  let isMarsDemo002Operator = false
+  if (!isOwner && !canReturnToOwner && target.key === 'payroll-demo-002' && verified?.identity.emailVerified) {
+    try {
+      const access = await requireComponentLibraryAccess(true)
+      isMarsDemo002Operator = access.scope.tenantId === PAYFULL02_MARS_SCOPE.tenantId
+        && access.scope.hrGroupId === PAYFULL02_MARS_SCOPE.hrGroupId
+        && access.scope.administrationId === PAYFULL02_MARS_SCOPE.administrationId
+    } catch {
+      isMarsDemo002Operator = false
+    }
+  }
+
+  if (!isOwner && !canReturnToOwner && !isMarsDemo002Operator) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
+  if (isOwner && ownerKey && target.key !== ownerKey && !getLocalPersonaOperatorTargetKeys(ownerKey).includes(target.key)) {
+    return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
+  }
+  if (!isOwner && !isMarsDemo002Operator && target.key !== returnOwnerKey) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
+
   const requestedNextPath = formData.get('next')
   const nextPath = typeof requestedNextPath === 'string' && requestedNextPath.length <= 2048
     ? safeNextPath(requestedNextPath)
     : '/dashboard/start'
 
-  if (
-    !isTestRoleSwitchAccount(currentEmail)
-    || !canInitiateTestRoleSwitch(requestContext.context.activeRoles)
-    || (!target && !scopedEmployeeTarget)
-  ) {
-    return NextResponse.json({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' }, { status: 403 })
+  if (normalizedEmail(identity.email) === target.email) {
+    const response = NextResponse.redirect(new URL(nextPath, origin), { status: 303 })
+    response.cookies.set(TEST_ROLE_SWITCH_OWNER_COOKIE, '', { expires: new Date(0), maxAge: 0, path: '/' })
+    response.headers.set('Cache-Control', 'no-store')
+    response.headers.set('Referrer-Policy', 'no-referrer')
+    return response
   }
 
-  let targetEmail: string | null = target?.email ?? null
-  let admin: ReturnType<typeof createAdminClient> | null = null
-  if (scopedEmployeeTarget) {
-    let employeeContext: Awaited<ReturnType<typeof requirePermission>>
+  const admin = createAdminClient()
+  if (target.key === 'payroll-lisa' || target.key === 'payroll-jaap' || target.key === 'payroll-frits' || target.key === 'payroll-demo-002') {
     try {
-      employeeContext = await requirePermission('employee:read', employeeId)
-    } catch (error) {
-      const response = permissionErrorResponse(error)
-      if (response) return response
-      throw error
+      const readiness = await getLocalPayrollPersonaReadiness(target.key, admin)
+      if (!readiness.canStartSignIn) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
+    } catch {
+      return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
     }
-
-    const tenantId = requestContext.context.tenantId
-    const hrGroupId = requestContext.context.hrGroupId
-    const administrationId = requestContext.context.administrationId
-    if (!hrGroupId || !administrationId
-      || employeeContext.tenantId !== tenantId
-      || employeeContext.hrGroupId !== hrGroupId
-      || employeeContext.administrationId !== administrationId) {
-      return NextResponse.json({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' }, { status: 403 })
-    }
-
-    const today = new Date().toISOString().slice(0, 10)
-    const [employeeResult, essResult, employmentResult] = await Promise.all([
-      requestContext.supabase.from('employees').select('auth_user_id')
-        .eq('id', employeeId).eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId)
-        .eq('is_active', true).eq('is_archived', false).is('deleted_at', null).maybeSingle(),
-      requestContext.supabase.from('employee_ess_access').select('status')
-        .eq('employee_id', employeeId).eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId)
-        .eq('status', 'ACTIVE').maybeSingle(),
-      requestContext.supabase.from('employments').select('id')
-        .eq('employee_id', employeeId).eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId)
-        .eq('administration_id', administrationId).eq('record_status', 'CONFIRMED')
-        .is('deleted_at', null).lte('starts_on', today).or(`ends_on.is.null,ends_on.gte.${today}`)
-        .limit(1).maybeSingle(),
-    ])
-    const authUserId = employeeResult.data?.auth_user_id
-    if (employeeResult.error || essResult.error || employmentResult.error
-      || !authUserId || !essResult.data || !employmentResult.data) {
-      return NextResponse.json({ error: 'TEST_ROLE_SWITCH_FORBIDDEN' }, { status: 403 })
-    }
-
-    admin = createAdminClient()
-    const { data: userResult, error: userError } = await admin.auth.admin.getUserById(authUserId)
-    if (userError || !userResult.user?.email) {
-      return NextResponse.json({ error: 'TEST_ROLE_SWITCH_UNAVAILABLE' }, { status: 503 })
-    }
-    targetEmail = userResult.user.email
+  } else if (!target.available) {
+    return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
   }
 
-  if (!targetEmail) {
-    return NextResponse.json({ error: 'TEST_ROLE_SWITCH_UNAVAILABLE' }, { status: 503 })
+  const ownerMarkerValue = isOwner && ownerKey ? createLocalPersonaOwnerMarker(ownerKey) : ownerMarker
+  if (!ownerMarkerValue && !isMarsDemo002Operator) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
+
+  if (!await hasExistingVerifiedAuthUser(admin, target.email)) {
+    return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
   }
 
-  admin ??= createAdminClient()
   const { data: generated, error: generateError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
-    email: targetEmail,
+    email: target.email,
   })
+  if (generateError || !generated.properties.hashed_token) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
 
-  if (generateError || !generated.properties.hashed_token) {
-    return NextResponse.json({ error: 'TEST_ROLE_SWITCH_UNAVAILABLE' }, { status: 503 })
-  }
-
-  await requestContext.supabase.auth.signOut()
-
+  // Keep the current session until the one-time handoff is verified. Closing
+  // or navigating away from the confirmation page must not log the user out.
   const callbackUrl = new URL('/auth/test-role-switch/confirm', origin)
   const response = NextResponse.redirect(callbackUrl, { status: 303 })
   clearActiveContextCookies(response)
@@ -138,15 +163,26 @@ export async function POST(request: NextRequest) {
     maxAge: 60,
     path: '/',
     sameSite: 'lax',
-    secure: request.nextUrl.protocol === 'https:',
+    secure: origin.startsWith('https:'),
   })
   response.cookies.set(NEXT_PATH_COOKIE, nextPath, {
     httpOnly: true,
     maxAge: 60,
     path: '/',
     sameSite: 'lax',
-    secure: request.nextUrl.protocol === 'https:',
+    secure: origin.startsWith('https:'),
   })
+  if (ownerMarkerValue) {
+    response.cookies.set(TEST_ROLE_SWITCH_OWNER_COOKIE, ownerMarkerValue, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 8,
+      path: '/',
+      sameSite: 'strict',
+      secure: origin.startsWith('https:'),
+    })
+  } else {
+    response.cookies.set(TEST_ROLE_SWITCH_OWNER_COOKIE, '', { expires: new Date(0), maxAge: 0, path: '/' })
+  }
   response.headers.set('Cache-Control', 'no-store')
   response.headers.set('Referrer-Policy', 'no-referrer')
   return response

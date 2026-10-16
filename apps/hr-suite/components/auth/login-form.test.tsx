@@ -18,9 +18,6 @@ const labels: LoginFormLabels = {
   password: 'Wachtwoord',
   signIn: 'Inloggen',
   signingIn: 'Bezig met inloggen',
-  testLogin: 'Alleen lokaal testen',
-  testLoginAsHrAdmin: 'Inloggen als Test HR Admin',
-  testLoginFailed: 'Testinloggen is niet gelukt',
   signInWithGoogle: 'Doorgaan met Google',
   or: 'of',
   forgotPassword: 'Wachtwoord vergeten?',
@@ -36,7 +33,7 @@ const labels: LoginFormLabels = {
   invitationOnly: 'Alleen toegankelijk op uitnodiging.',
 }
 
-function mount(testLoginEnabled: boolean) {
+function mount() {
   const host = document.createElement('div')
   document.body.append(host)
   const root = createRoot(host)
@@ -45,36 +42,21 @@ function mount(testLoginEnabled: boolean) {
     labels,
     nextPath: '/dashboard/start',
     providerError: false,
-    testLoginEnabled,
-    testLoginError: false,
   })))
   return { host, unmount: () => act(() => root.unmount()) }
 }
 
-describe('LoginForm local test harness', () => {
-  it('keeps the test login absent when the server-side gate is closed and retains normal sign-in', () => {
-    const mounted = mount(false)
+describe('LoginForm', () => {
+  it('keeps ordinary sign-in available without a developer login action', () => {
+    const mounted = mount()
 
     expect(mounted.host.querySelector('form[action="/api/auth/test-login"]')).toBeNull()
     expect(mounted.host.querySelector('input[name="email"]')).not.toBeNull()
     expect(mounted.host.querySelector('input[name="password"]')).not.toBeNull()
     expect(mounted.host.textContent).toContain(labels.signInWithGoogle)
+    expect(mounted.host.textContent).not.toMatch(/test|fixture|demo|development/i)
 
     mounted.unmount()
   })
 
-  it('posts the fixed persona and provided return path without exposing credentials in the browser form', () => {
-    const mounted = mount(true)
-    const form = mounted.host.querySelector('form[action="/api/auth/test-login"]')
-
-    expect(form).not.toBeNull()
-    expect(form?.querySelectorAll('input')).toHaveLength(2)
-    expect(form?.querySelector<HTMLInputElement>('input[name="persona"]')?.value).toBe('hr-admin')
-    expect(form?.querySelector<HTMLInputElement>('input[name="next"]')?.value).toBe('/dashboard/start')
-    expect(form?.querySelector('input[name="password"]')).toBeNull()
-    expect(form?.querySelector('input[name="email"]')).toBeNull()
-    expect(form?.textContent).toContain(labels.testLoginAsHrAdmin)
-
-    mounted.unmount()
-  })
 })

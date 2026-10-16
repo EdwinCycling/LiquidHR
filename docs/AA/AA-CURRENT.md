@@ -1,7 +1,21 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-12 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
+
+## PAYFULL-02 — PARTIAL, gecontroleerde TEST 2026-10-16
+
+- Reken-/productiebuildbaseline `9df1187a3bcd5a4b703bda37021f6dfa7742f015`; Draft PR #33, geen merge of deployment. Beide nieuwe Mars-runs zijn via HR Admin gevalideerd (32/32), REVIEWED en FINALIZED. Bruto/netto/totale werkgeverskosten: DEMO-001 €3.517,00 / €2.181,49 / €4.876,74; DEMO-002 €3.534,00 / €2.141,36 / €4.836,83. De PAYFULL-02C follow-up voegt een fail-closed actorgrens toe aan DEMO-002-provisioning; de eerdere productiebuild dekt die follow-up niet. Historische concept-runs zijn behouden.
+- TEST-configuraties en januari-september-openingsbalansen zijn effectief gedateerd, geversioneerd en gehasht met `TEST_SETUP_PAYFULL_02`; ze stellen geen officieel pensioenfondscontract of echte historische FINALIZED-run voor. De afzonderlijke €500-variabele DEMO-001-revisie blijft CONCEPT.
+- De eerste closeout noteert PDF-artifactmetadata en hashes; PAYFULL-02C meldt nul artifactrecords voor dezelfde twee run-ID's. De HR Admin-runpagina's tonen beide een opgeslagen-PDF-actie, maar huidige persistentie en bytes zijn daarmee niet bewezen. Na expliciete toestemming is DEMO-002 via de begrensde bestaande Mars TEST-route aan een eigen ESS-account gekoppeld. De ingelogde `/my-salary`-pagina toont alleen DEMO-002's eigen definitieve bedragen en TEST-pensioenmelding. De ESS-viewer blijft visueel leeg; de downloadactie gaf geen leesbare inhoud, en een nieuw tabblad naar de zichtbare downloadlink werd vóór de app door de in-app-browser-URL-policy geblokkeerd. Geen alternatieve browser, API- of database-route is gebruikt. DEMO-001 ESS-self, andere-werknemer-weigering en Manager/Employee/cross-administration browserbewijs blijven OPEN. Core TEST registreert migratie `20261016065512`.
+- Op implementatiecode `9df1187a3bcd5a4b703bda37021f6dfa7742f015` slaagden de finale relevante Payroll-suite (68 files, 480 geslaagd / 3 overgeslagen), typecheck, ESLint, i18n, migratiecontracttests en Turbopack-productionbuild. De latere ESS-viewerdelta passeert gericht 5 testfiles / 20 tests, TypeScript, gewijzigde-bestanden-ESLint, i18n (43 namespaces) en diff-check; daarop is geen volledige productionbuild uitgevoerd. De Supabase advisor meldt de nieuwe authenticated SECURITY DEFINER-RPC; vaste Mars-identiteiten/scope zijn begrensd en anon heeft geen EXECUTE. Zie [PAYFULL-02 closeout 2026-10-16](../quality/acceptance/runs/PAYFULL-02-20261016-CLOSEOUT.md), [oorspronkelijke run-evidence](../quality/acceptance/runs/PAYFULL-02-20261015.md) en [open bewijsregister](AA-OPEN.md).
+
+## PAYTAX-UI-01B / PAYTEST-PERSONAS-CLOSEOUT — PARTIAL, lokaal bewezen 2026-10-15
+
+- Bestaande PAYFULL-branch/PR33; geen merge/deployment. Lokale HR Admin-knop hersteld met echte Auth-login. Rechtstreekse Lisa/Jaap/Frits-handoff, ESS-self en negatieve salaris-/documentscope gecontroleerd; bestaande Lisa-Managerrechten behouden.
+- Exact twee Jupiter EMPLOYEE-toewijzingen via begrensde eenmalige idempotente datamigratie; geen permanente functie of ruimere policy.27 fiscale profielen toegevoegd via bestaande geautoriseerde service: Mars8 totaal, Jupiter21. Replay voegde geen versies toe. Andere administraties zonder schrijfscope en ontbrekende IKVs blijven expliciete uitzonderingen.
+- Alle52 bestaande Payroll-runs/componenten/traces/lifecycle onveranderd; twee Mars-runs blijven CONCEPT. Frits' historische Jan-label en volledige-nettogaten blijven open. TypeScript/gerichte tests/i18n groen; guarded build blokkeert op bestaande beschermde dirty configuratie.
+- Zie [closeoutbewijs](../quality/acceptance/runs/PAYTAX-UI-01B-PAYTEST-CLOSEOUT-20261015.md). Dit is geen hosted of volledige populatieacceptatie.
 
 ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
 

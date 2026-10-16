@@ -14,6 +14,7 @@ import {
   type PayrollExplanationRecord,
 } from '@/lib/payroll/payroll-professional-explanations'
 import { PayrollComparisonForm, type PayrollComparisonLine } from './payroll-comparison-form'
+import { PayrollPayslipPdfArtifactAction } from './payroll-payslip-pdf-artifact-action'
 
 export function formatPayrollMoney(amount: number | null, locale: string): string {
   if (amount === null || !Number.isFinite(amount)) return '—'
@@ -27,6 +28,13 @@ export function componentAmount(row: PayrollComponentResultRow): number | null {
   if (typeof amount === 'number' && Number.isFinite(amount)) return amount
   if (typeof amount === 'string' && /^-?\d{1,12}(?:\.\d{1,4})?$/.test(amount)) return Number(amount)
   return null
+}
+
+function componentStoredMoney(row: PayrollComponentResultRow | undefined): string | null {
+  if (!row) return null
+  const amount = asRecord(row.result_payload)?.amount
+  if (typeof amount === 'string' && /^-?\d{1,12}(?:\.\d{1,2})?$/.test(amount)) return amount
+  return typeof row.amount === 'number' && Number.isFinite(row.amount) ? row.amount.toFixed(2) : null
 }
 
 function asRecord(value: PayrollJson): Record<string, PayrollJson | undefined> | null {
@@ -452,14 +460,28 @@ export function PayrollRunReconciliation({
   const tracePayload = run.trace?.trace_payload
   const engineSteps = payrollTraceSteps(tracePayload)
   const pensionSteps = payrollPensionCalculationSteps(run.sourceSnapshot.source_payload)
-  const fiscalBases = payrollFiscalBases(run.sourceSnapshot.source_payload)
+  const fiscalBaseComponentKeys = {
+    wageTax: 'taxable_wage',
+    employeeInsurance: 'employee_insurance_base',
+    zvw: 'zvw_base',
+  } as const
+  const fiscalBases = payrollFiscalBases(run.sourceSnapshot.source_payload).map((base) => ({
+    ...base,
+    amount: base.amount ?? componentStoredMoney(byKey.get(fiscalBaseComponentKeys[base.key])),
+  }))
   const payrollOwned = payrollExplanationRecord(payrollExplanationRecord(run.sourceSnapshot.source_payload)?.payrollOwned)
   const pensionSummary = payrollExplanationRecord(payrollOwned?.pensionCalculationSummary)
+  const finalized = run.lifecycleEvents.some((event) => event.calculation_run_id === run.run.id && event.event_type === 'FINALIZED')
   const groups = [
-    { title: labels.employeeArithmetic, keys: ['contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'gross_salary', 'employee_pension', 'taxable_wage', 'employee_insurance_wage', 'zvw_wage', 'wage_tax', 'net_salary'] },
+    { title: labels.employeeArithmetic, keys: ['contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'variable_regular_wage', 'special_reward_wage', 'gross_salary', 'pensionable_wage', 'employee_pension', 'taxable_wage', 'employee_insurance_wage', 'zvw_wage', 'wage_tax', 'special_reward_wage_tax', 'net_reimbursement', 'net_deduction', 'net_correction', 'net_salary'] },
     { title: labels.employerCost, keys: ['employer_insurance', 'employer_pension', 'holiday_allowance_reserve', 'holiday_reserve', 'year_end_reserve', 'total_employer_cost'] },
-    { title: labels.cumulative, keys: ['cumulative_gross', 'cumulative_holiday_reserve', 'cumulative_year_end_reserve'] },
+    { title: labels.cumulative, keys: ['cumulative_gross', 'cumulative_taxable_wage', 'cumulative_wage_tax', 'cumulative_employee_insurance_wage', 'cumulative_zvw_wage', 'cumulative_holiday_reserve', 'cumulative_year_end_reserve'] },
   ]
+  const separatelyPresentedComponents = new Set([
+    'cumulative_gross_wage', 'employee_insurance_base', 'zvw_base',
+    'employer_aof', 'employer_awf', 'employer_whk', 'employer_wko', 'employer_zvw',
+    'special_reward_tax_rate', 'variable_regular_wage_source',
+  ])
   const renderRow = (row: PayrollComponentResultRow) => {
     const resultPayload = payrollExplanationRecord(row.result_payload)
     const component = payrollExplanationRecord(resultPayload?.component)
@@ -469,14 +491,13 @@ export function PayrollRunReconciliation({
       : row.component_key === 'employer_pension' ? 'PENSION_EMPLOYER_SHARE' : null
     const pensionStep = pensionStepCode ? pensionSteps.find((step) => step.componentCode === pensionStepCode) ?? null : null
     return <div key={row.component_key} className="border-t border-border-subtle py-3 first:border-t-0">
-      <PayrollComponentDetail row={row} step={payrollTraceStepByCode(engineSteps, code)} pensionStep={pensionStep} tracePayload={tracePayload} locale={locale} labels={labels} />
+      <PayrollComponentDetail row={row} step={payrollTraceStepByCode(engineSteps, code)} pensionStep={pensionStep} tracePayload={tracePayload} locale={locale} labels={row.component_key === 'net_salary' && !finalized ? { ...labels, net_salary: labels.netAfterTaxIncomplete } : labels} />
       {row.component_key === 'employer_insurance' ? <div className="mt-3"><EmployerPremiumBreakdown tracePayload={tracePayload} locale={locale} labels={labels} /></div> : null}
     </div>
   }
   const succeeded = run.run.status === 'SUCCEEDED'
   const gross = byKey.has('gross_salary') ? componentAmount(byKey.get('gross_salary')!) : null
   const net = byKey.has('net_salary') ? componentAmount(byKey.get('net_salary')!) : null
-  const finalized = run.lifecycleEvents.some((event) => event.calculation_run_id === run.run.id && event.event_type === 'FINALIZED')
   const concept = run.lifecycleEvents.some((event) => event.calculation_run_id === run.run.id && event.event_type === 'CONCEPT')
   const pensionReadinessWarning = run.controls.some((control) => control.status === 'WARN' && /PENSION-RULE-READY/i.test(control.control_key))
   const pensionMissing = !byKey.has('employee_pension') && !byKey.has('employer_pension') && pensionSteps.length === 0 && !pensionSummary
@@ -485,7 +506,7 @@ export function PayrollRunReconciliation({
   return <div className="space-y-5">
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="rounded-xl border border-border-subtle bg-surface-subtle p-4"><p className="text-xs text-muted-foreground">{labels.gross}</p><p className="mt-2 text-xl font-semibold tabular-nums">{formatPayrollMoney(gross, locale)}</p></div>
-      <div className="rounded-xl border border-border-subtle bg-surface-subtle p-4"><p className="text-xs text-muted-foreground">{labels.net}</p><p className="mt-2 text-xl font-semibold tabular-nums">{formatPayrollMoney(net, locale)}</p></div>
+      <div className="rounded-xl border border-border-subtle bg-surface-subtle p-4"><p className="text-xs text-muted-foreground">{finalized ? labels.net : labels.netAfterTaxIncomplete}</p><p className="mt-2 text-xl font-semibold tabular-nums">{formatPayrollMoney(net, locale)}</p></div>
     </div>
     <p className={`rounded-lg border px-4 py-3 text-sm font-medium ${finalized ? 'border-border-subtle bg-surface-subtle' : 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100'}`}>{savedState}</p>
     {pensionReadinessWarning ? <div role="status" className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm"><p className="font-semibold">{labels.pensionReadinessTitle}</p><p className="mt-1">{pensionSteps.length > 0 ? labels.pensionReadinessWarning : labels.pensionSourceVerificationRequired}</p>{pensionMissing ? <p className="mt-1 font-medium">{labels.netNotDefinitive}</p> : null}</div> : pensionMissing ? <div role="status" className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm"><p className="font-semibold">{labels.pensionSourceVerificationRequired}</p><p className="mt-1 font-medium">{labels.netNotDefinitive}</p></div> : null}
@@ -512,8 +533,8 @@ export function PayrollRunReconciliation({
         <div className="mt-3">{rows.map(renderRow)}</div>
       </details>
     })}
-      {components.filter((row) => !groups.some((group) => group.keys.includes(row.component_key))).length > 0
-        ? <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.otherComponents}</summary><div className="mt-3">{components.filter((row) => !groups.some((group) => group.keys.includes(row.component_key))).map(renderRow)}</div></details>
+      {components.filter((row) => !groups.some((group) => group.keys.includes(row.component_key)) && !separatelyPresentedComponents.has(row.component_key)).length > 0
+        ? <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.otherComponents}</summary><div className="mt-3">{components.filter((row) => !groups.some((group) => group.keys.includes(row.component_key)) && !separatelyPresentedComponents.has(row.component_key)).map(renderRow)}</div></details>
         : null}
     </div>
     {pensionSteps.length > 0 ? <PensionCalculationTrace sourcePayload={run.sourceSnapshot.source_payload} locale={locale} labels={labels} /> : null}
@@ -525,10 +546,24 @@ export function PayrollRunReconciliation({
     <p className="text-sm text-muted-foreground">{succeeded ? finalized ? labels.finalized : labels.notFinalized : labels.notSucceeded}</p>
     <div className="flex flex-wrap gap-3">
       {finalized ? <>
-        <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/TECHNICAL_JSON`}>{labels.downloadJson}</Link>
-        <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/PAYSLIP_PDF`}>{labels.downloadPdf}</Link>
+        {!run.hasGenericInputReference ? <>
+          <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/TECHNICAL_JSON`}>{labels.downloadJson}</Link>
+          <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/PAYSLIP_PDF`}>{labels.downloadPdf}</Link>
+        </> : null}
         <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/payslip-preview`} target="_blank" rel="noreferrer">{labels.viewStandardPayslip}</Link>
         <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/payslip-preview?download=1`}>{labels.downloadStandardPayslip}</Link>
+        {run.hasGenericInputReference ? <PayrollPayslipPdfArtifactAction
+          canCreate={run.canTransition}
+          hasArtifact={run.hasPayslipPdfArtifact}
+          labels={{
+            downloadPdf: labels.downloadPdf,
+            payslipPdfUnavailable: labels.payslipPdfUnavailable,
+            savePayslipPdf: labels.savePayslipPdf,
+            savingPayslipPdf: labels.savingPayslipPdf,
+            storedPayslipPdf: labels.storedPayslipPdf,
+          }}
+          runId={run.run.id}
+        /> : null}
       </> : null}
       <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/payroll/compare?run=${encodeURIComponent(run.run.id)}`}>{labels.compare}</Link>
     </div>

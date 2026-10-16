@@ -1,0 +1,226 @@
+[
+  {
+    "administration": "Mars",
+    "employeeId": "4141b2b5-5922-4a67-af51-40620d21b839",
+    "employmentId": "82e919be-781a-4202-9509-6075c2d9717e",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "35b21583-52b1-d4b5-b2bf-84624081e92b",
+    "employmentId": "a833d98c-f52e-20f0-4fce-06d4e6818f7f",
+    "incomeRelationshipId": null,
+    "status": "EMPLOYEE_INACTIVE_OR_UNAVAILABLE"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "d3e3ce4e-1952-408c-bdd2-468ab0eeff94",
+    "employmentId": "3f88827d-00c7-4f09-eaf1-5b5807dbe50c",
+    "incomeRelationshipId": null,
+    "status": "EMPLOYEE_INACTIVE_OR_UNAVAILABLE"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "dd9bde02-76bb-4f7c-8add-db544a148f3f",
+    "employmentId": "29058c73-5cfa-409d-b9d4-80dd30f36962",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "826110a8-ea24-c663-0649-c1532c3f229f",
+    "employmentId": "71ab4469-3808-25dd-eeef-a25c6166ada0",
+    "incomeRelationshipId": null,
+    "status": "EMPLOYEE_INACTIVE_OR_UNAVAILABLE"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "a074536d-c25b-1222-e1e7-61d7e22bcdea",
+    "employmentId": "ce9bef2a-c25c-be41-4bdd-970980cdd11d",
+    "incomeRelationshipId": null,
+    "status": "OUTSIDE_OCTOBER_2026"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "a609feff-d963-8007-b62b-3ae36d26e28b",
+    "employmentId": "69c192e2-8fac-26e4-971e-9473e8221eb8",
+    "incomeRelationshipId": null,
+    "status": "EMPLOYEE_INACTIVE_OR_UNAVAILABLE"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "2f63799d-bf96-96e9-175e-2c97a9dc1e1e",
+    "employmentId": "c4130d34-118e-40e9-9baf-1c980dfc1891",
+    "incomeRelationshipId": null,
+    "status": "OUTSIDE_OCTOBER_2026"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+    "employmentId": "b407c312-3293-7830-5c49-f2c8514ac32f",
+    "incomeRelationshipId": null,
+    "status": "WRITE_SCOPE_DENIED"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "7aa840f6-0ab3-50d1-1448-c13cb61342d0",
+    "employmentId": "bf42387a-646b-3be8-799b-a52ca83bad5b",
+    "incomeRelationshipId": null,
+    "status": "OUTSIDE_OCTOBER_2026"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "237affe2-7f4c-3c7f-b9bf-a37b2365eb6d",
+    "employmentId": "dac1749b-ce82-2131-9d0a-656794ff75c5",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "e5f9ab2d-109f-7420-cbe5-23090fc9e19b",
+    "employmentId": "ec25a03c-fe86-c8bf-529e-e83e127e42af",
+    "incomeRelationshipId": null,
+    "status": "OUTSIDE_OCTOBER_2026"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "48acad81-006a-ae0d-c20e-4143a0656eee",
+    "employmentId": "6159dc40-da2c-1b41-eebe-83f1a8a053dc",
+    "incomeRelationshipId": null,
+    "status": "OUTSIDE_OCTOBER_2026"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "72ef0cc1-1cee-da99-fd76-055ec3946147",
+    "employmentId": "bc166e72-39b8-05e1-f1ac-0d72474ff048",
+    "incomeRelationshipId": null,
+    "status": "OUTSIDE_OCTOBER_2026"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "8c887fa8-eb9b-971b-c5c1-3677b5521770",
+    "employmentId": "05a76755-a3b4-acb1-7b95-831e02e04ef4",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "0d02ecf8-8f7f-401e-0f0f-184196bdbf31",
+    "employmentId": "b2de9a5e-dc81-315c-beb0-fa1c05ebc4a6",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "e0513d1e-5b39-8ddc-cbf4-02251fc7c993",
+    "employmentId": "c57051d4-124e-bee1-c9ae-ab267f7d9ffa",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "b131601f-f116-2ad6-7018-ae02e849ae14",
+    "employmentId": "d11f5c44-1a37-accc-a5b0-d5dab12f0f5e",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "174eb4b2-20ef-4aef-b5aa-835f5e1664b1",
+    "employmentId": "1e2ab2fc-2beb-414a-84c6-7faeb2fa8912",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "069d8067-4577-4edd-9528-e01da9b8dc04",
+    "employmentId": "9c3c07d2-2361-40bf-8157-9836f1d19cc2",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "64ad3a23-f59a-4ed0-af41-26dda20ff067",
+    "employmentId": "b7391845-77d4-407c-bfe6-555a8a3d463b",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "72ef0cc1-1cee-da99-fd76-055ec3946147",
+    "employmentId": "425ec14f-b8f7-24eb-e967-c377dfd68996",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "48acad81-006a-ae0d-c20e-4143a0656eee",
+    "employmentId": "4b4d9ef4-c7f7-ff4a-ee89-21b84dffd2ff",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "237affe2-7f4c-3c7f-b9bf-a37b2365eb6d",
+    "employmentId": "61576c43-149c-febe-ca9d-e3ef947295f8",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "e5f9ab2d-109f-7420-cbe5-23090fc9e19b",
+    "employmentId": "6d6f6510-449f-15d3-5d5a-25af8d436326",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "7aa840f6-0ab3-50d1-1448-c13cb61342d0",
+    "employmentId": "74102314-bdcf-6c4c-588e-af12f28098f0",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "088e7ee3-e08e-4372-adaa-560338c397ef",
+    "employmentId": "c1c70315-446f-4975-85bd-f6026457af61",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "d4f398e2-2557-4efb-9bc9-d48cd6e215bb",
+    "employmentId": "55e1666b-208e-4f59-97d1-716bab9f555f",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "66ef22a5-5777-44dc-9bde-44a65d0a6d60",
+    "employmentId": "b058d882-47a9-43ff-853e-0e05237214af",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "79091d14-ef66-41fe-a2d5-92df108727e5",
+    "employmentId": "d19bace9-bb97-4822-a462-eed22821ed05",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "9569dc52-1af6-3bc8-3f00-133533d392f2",
+    "employmentId": "3a8d987a-c526-4d6d-d2d4-8587075dd0c0",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  },
+  {
+    "administration": "Jupiter",
+    "employeeId": "a6ef0ba0-440b-4b3d-8bf5-f7ef07f7baa5",
+    "employmentId": "3ae243ae-8c2d-4047-96df-b995ab4907ed",
+    "incomeRelationshipId": null,
+    "status": "VALID_IKV_LINK_MISSING"
+  }
+]

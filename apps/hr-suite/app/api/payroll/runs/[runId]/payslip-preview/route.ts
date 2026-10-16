@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
-import { renderPayrun01PayslipPdfPreviewForRun } from '@/lib/payroll/payrun01-service'
+import { renderPayrollProfessionalPayslipPreviewForRun } from '@/lib/payroll/payroll-professional-service'
 import { SyntheticPayrollServiceError } from '@/lib/payroll/synthetic-calculation-service'
 
 export const runtime = 'nodejs'
@@ -33,12 +33,13 @@ export async function GET(
 
   try {
     const access = await requireComponentLibraryAccess(false)
-    const preview = await renderPayrun01PayslipPdfPreviewForRun({
+    const preview = await renderPayrollProfessionalPayslipPreviewForRun({
       scope: access.scope,
       payrollAdministrationId: access.administration.id,
       actorUserId: access.actorUserId,
       runId,
     })
+    if (!preview) return unavailable(404)
     const fileName = preview.file_name.replace(/[\r\n"\\]/g, '_')
     const disposition = new URL(request.url).searchParams.get('download') === '1' ? 'attachment' : 'inline'
     return secure(new NextResponse(Buffer.from(preview.artifact_bytes), {

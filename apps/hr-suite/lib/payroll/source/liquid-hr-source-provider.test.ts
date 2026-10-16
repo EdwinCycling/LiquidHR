@@ -8,6 +8,7 @@ import {
   type PayrollSourceProviderDependencies,
   type PayrollSourceSalary,
   type PayrollSourceSchedule,
+  type PayrollSourceTaxProfileProjection,
 } from './liquid-hr-source-provider'
 import type { PayrollSourceProviderInput } from '@liquid-hr/payroll-engine'
 import type { ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
@@ -25,6 +26,7 @@ const incomeRelationshipId = '82000000-0000-4000-8000-000000000008'
 const actualWorkPeriodId = '83000000-0000-4000-8000-000000000008'
 const actualWorkTypeId = '84000000-0000-4000-8000-000000000008'
 const actualWorkEntryId = '85000000-0000-4000-8000-000000000008'
+const taxProfileId = '86000000-0000-4000-8000-000000000008'
 
 const request: PayrollSourceProviderInput = {
   tenantId,
@@ -110,6 +112,53 @@ function incomeRelationship(overrides: Partial<PayrollSourceIncomeRelationship> 
   }
 }
 
+function taxProfile(overrides: Partial<PayrollSourceTaxProfileProjection['taxProfiles'][number]> = {}): PayrollSourceTaxProfileProjection['taxProfiles'][number] {
+  return {
+    id: taxProfileId,
+    employee_id: employeeId,
+    employment_id: employmentId,
+    income_relationship_id: incomeRelationshipId,
+    employment_income_relationship_id: incomeLinkId,
+    residence_country_code: 'NL',
+    wage_tax_table: 'WHITE',
+    herleiding_code: 'STD',
+    time_period: 'MONTH',
+    regular_wage_only: true,
+    full_period_only: true,
+    has_special_situation: false,
+    payroll_tax_credit_applies: true,
+    source_classification: 'HR_ADMIN_CONFIRMED',
+    source_reference: 'declaration-ref',
+    effective_from: '2026-09-01',
+    effective_to: null,
+    version_number: 1,
+    supersedes_profile_id: null,
+    confirmed_by_user_id: '87000000-0000-4000-8000-000000000008',
+    confirmed_at: '2026-08-28T09:00:00.000Z',
+    created_at: '2026-08-28T09:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function taxProjection(overrides: Partial<PayrollSourceTaxProfileProjection> = {}): PayrollSourceTaxProfileProjection {
+  return {
+    ageCategory: 'UNDER_AOW',
+    ageSourceUpdatedAt: '2026-08-28T08:00:00.000Z',
+    activeIncomeRelationshipCount: 1,
+    incomeRelationshipLinkGap: false,
+    incomeRelationships: [{
+      id: incomeRelationshipId,
+      updatedAt: '2026-08-28T08:00:00.000Z',
+      reportingStatus: 'READY',
+      ikvNumber: 1,
+      startsOn: '2026-01-01',
+      endsOn: null,
+    }],
+    taxProfiles: [taxProfile()],
+    ...overrides,
+  }
+}
+
 function actualWork(overrides: Partial<ActualWorkPayrollProjection> = {}): ActualWorkPayrollProjection {
   return {
     period: {
@@ -185,13 +234,13 @@ describe('LiquidHR Payroll source provider', () => {
       compensation: { entries: [{ salaryBasis: 'MANUAL', fulltimeAmount: 3200, currencyCode: 'EUR' }] },
       schedule: { entries: [{ averageHoursPerWeek: 40, fulltimeHoursPerWeek: 40 }] },
       incomeRelationship: { status: 'SOURCE_GAP', reasonCode: 'NO_LINKED_INCOME_RELATIONSHIP' },
-      fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
+      fiscalProfile: { status: 'SOURCE_GAP', reasonCode: 'CORE_FISCAL_PROFILE_SOURCE_UNAVAILABLE' },
     })
     expect(snapshot.sourceGaps).toContainEqual({
       field: 'incomeRelationship', status: 'SOURCE_GAP', reasonCode: 'NO_LINKED_INCOME_RELATIONSHIP',
     })
     expect(snapshot.sourceGaps).toContainEqual({
-      field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT',
+      field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'CORE_FISCAL_PROFILE_SOURCE_UNAVAILABLE',
     })
     const payload = JSON.stringify(snapshot.canonicalSource)
     expect(payload).not.toMatch(/firstName|birthName|bsn|iban|email|phone/i)
@@ -202,6 +251,143 @@ describe('LiquidHR Payroll source provider', () => {
       [`employment_schedule:${scheduleId}`]: schedule().updated_at,
       [`actual_work_period:${actualWorkPeriodId}`]: actualWork().period?.updated_at,
     })
+  })
+
+  it('uses an effective HR Admin confirmed Core tax profile to build the regular wage engine input', async () => {
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({ parttime_amount: 4000, fulltime_amount: 4000 })],
+        schedules: [schedule()],
+        contracts: [{
+          id: '8b000000-0000-4000-8000-000000000008',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          fulltime_hours_per_week: 40,
+          starts_on: '2026-09-01',
+          ends_on: null,
+          updated_at: '2026-09-01T10:01:00.000Z',
+        }],
+        laborConditions: [{
+          id: '8d000000-0000-4000-8000-000000000008',
+          condition_group: 'COMPANY',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          valid_from: '2026-09-01',
+          valid_until: null,
+          updated_at: '2026-09-01T10:02:00.000Z',
+          set: {
+            id: '8c000000-0000-4000-8000-000000000008',
+            code: 'COMPANY',
+            name: 'Company labor conditions',
+            standard_hours_per_week: 40,
+            is_active: true,
+            valid_from: '2026-01-01',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        }],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection(),
+      })),
+    })).getPayrollSourceSnapshot({ ...request, employmentId })
+
+    expect(snapshot.sourceGaps).toEqual([])
+    expect(snapshot.canonicalSource).toMatchObject({
+      fiscalProfile: {
+        status: 'CONFIRMED',
+        id: taxProfileId,
+        versionNumber: 1,
+        residenceCountryCode: 'NL',
+        wageTaxTable: 'WHITE',
+        herleiding: 'STD',
+        timePeriod: 'MONTH',
+        payrollTaxCreditApplies: true,
+        sourceClassification: 'HR_ADMIN_CONFIRMED',
+      },
+      regularWage: {
+        fiscalYear: '2026',
+        table: 'WHITE',
+        residence: 'NL',
+        ageCategory: 'UNDER_AOW',
+        herleiding: 'STD',
+        timePeriod: 'MONTH',
+        payrollTaxCredit: true,
+        regularWage: true,
+        fullPeriod: true,
+        hasSpecialSituation: false,
+        incomeRelationshipCount: '1',
+        grossAmount: '4000.00',
+      },
+      incomeRelationship: { employmentIncomeRelationshipId: incomeLinkId },
+    })
+    expect(snapshot.sourceVersionVector[`employment_payroll_tax_profile:${taxProfileId}`]).toBe('1:2026-08-28T09:00:00.000Z')
+    expect(JSON.stringify(snapshot.canonicalSource)).not.toContain('declaration-ref')
+  })
+
+  it('continues to accept an actual employee declaration as a fiscal source', async () => {
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({ parttime_amount: 4000, fulltime_amount: 4000 })],
+        schedules: [schedule()],
+        contracts: [{
+          id: '8b000000-0000-4000-8000-000000000008',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          fulltime_hours_per_week: 40,
+          starts_on: '2026-09-01',
+          ends_on: null,
+          updated_at: '2026-09-01T10:01:00.000Z',
+        }],
+        laborConditions: [{
+          id: '8d000000-0000-4000-8000-000000000008',
+          condition_group: 'COMPANY',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          valid_from: '2026-09-01',
+          valid_until: null,
+          updated_at: '2026-09-01T10:02:00.000Z',
+          set: {
+            id: '8c000000-0000-4000-8000-000000000008',
+            code: 'COMPANY',
+            name: 'Company labor conditions',
+            standard_hours_per_week: 40,
+            is_active: true,
+            valid_from: '2026-01-01',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        }],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({ source_classification: 'EMPLOYEE_DECLARATION' })] }),
+      })),
+    })).getPayrollSourceSnapshot({ ...request, employmentId })
+
+    expect(snapshot.sourceGaps).toEqual([])
+    expect(snapshot.canonicalSource).toMatchObject({
+      fiscalProfile: { status: 'CONFIRMED', sourceClassification: 'EMPLOYEE_DECLARATION' },
+    })
+  })
+
+  it('blocks an expired profile, conflicting credit claim, and unsupported age class', async () => {
+    const load = (projection: PayrollSourceTaxProfileProjection) => vi.fn(async (): Promise<PayrollSourceTimeline> => ({
+      employment: employment(),
+      salaries: [salary()],
+      schedules: [schedule()],
+      incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+      taxProfileProjection: projection,
+    }))
+    const expired = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: load(taxProjection({ taxProfiles: [taxProfile({ effective_to: '2026-08-31' })] })),
+    })).getPayrollSourceSnapshot({ ...request, employmentId })
+    const conflicting = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: load(taxProjection({ taxProfiles: [
+        taxProfile(),
+        taxProfile({ id: '88000000-0000-4000-8000-000000000008', employment_id: '89000000-0000-4000-8000-000000000008', income_relationship_id: '8a000000-0000-4000-8000-000000000008' }),
+      ] })),
+    })).getPayrollSourceSnapshot({ ...request, employmentId })
+    const ageUnsupported = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: load(taxProjection({ ageCategory: 'AT_OR_ABOVE_AOW' })),
+    })).getPayrollSourceSnapshot({ ...request, employmentId })
+
+    expect(expired.sourceGaps).toContainEqual(expect.objectContaining({ reasonCode: 'FISCAL_PROFILE_NOT_EFFECTIVE_FOR_FULL_PERIOD' }))
+    expect(conflicting.sourceGaps).toContainEqual(expect.objectContaining({ reasonCode: 'PAYROLL_TAX_CREDIT_ALREADY_APPLIES_TO_OTHER_IKV' }))
+    expect(ageUnsupported.sourceGaps).toContainEqual(expect.objectContaining({ reasonCode: 'NL_2026_RULES_REQUIRE_UNDER_AOW_AGE' }))
   })
 
   it('includes the canonical labor-condition set and effective function in hashed source identity', async () => {
@@ -551,6 +737,31 @@ describe('LiquidHR Payroll source provider', () => {
 
     await expect(provider.getPayrollSourceSnapshot(request))
       .rejects.toMatchObject({ code: 'PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS', status: 409 })
+  })
+
+  it('selects one explicitly authorized employment when an employee has multiple employments', async () => {
+    const secondEmploymentId = '50000000-0000-4000-8000-000000000055'
+    const deps = dependencies({
+      listEmployments: vi.fn(async () => [employment(), employment({ id: secondEmploymentId })]),
+      loadTimeline: vi.fn(async () => ({ employment: employment({ id: secondEmploymentId }), salaries: [salary()], schedules: [schedule()] })),
+    })
+    const provider = new LiquidHrPayrollSourceProvider(deps)
+
+    const snapshot = await provider.getPayrollSourceSnapshot({ ...request, employmentId: secondEmploymentId })
+
+    expect(snapshot.sourceEmploymentId).toBe(secondEmploymentId)
+    expect(deps.loadTimeline).toHaveBeenCalledWith(employeeId, secondEmploymentId, request.payrollPeriod)
+  })
+
+  it('does not let an employment id escape the authorized employee selection', async () => {
+    const deps = dependencies({ listEmployments: vi.fn(async () => [employment()]) })
+    const provider = new LiquidHrPayrollSourceProvider(deps)
+
+    await expect(provider.getPayrollSourceSnapshot({
+      ...request,
+      employmentId: '50000000-0000-4000-8000-000000000055',
+    })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', status: 404 })
+    expect(deps.loadTimeline).not.toHaveBeenCalled()
   })
 
   it('rejects a service read that changes the employment scope between selection and detail load', async () => {
