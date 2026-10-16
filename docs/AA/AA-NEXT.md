@@ -5,6 +5,19 @@ Bijgewerkt: 2026-10-13 (Core/PERF; overige productsporen inhoudelijk ongewijzigd
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 
+## PARALLEL: Payroll na PAYFULL-02 — besluit 2026-10-16
+
+**Bewezen in TEST, niet gemerged/deployed:** twee volledige Mars-maandcases voor oktober 2026 zijn `FINALIZED` (DEMO-001 netto €2.181,49; DEMO-002 netto €2.141,36), met werknemerspensioen, tabelmatige loonheffing, werkgeverspremies, reserveringen, cumulatieven, 32/32 PASS-controles en twee in Payroll Lab TEST teruggevonden persistente PDF-artifacts. Extra +€500 regulier-variabel-looncase is alleen `CONCEPT`. Een algemene NL-payroll-complianceclaim is niet onderbouwd. De bekende Jupiter-persona's Lisa/Jaap/Frits zijn **niet** alle drie full-net PAYFULL-02-testcases.
+
+**Volgorde binnen het zelfstandige Payroll-spoor:**
+1. **PAYFULL-02D (P0):** bestaande inline ESS-PDF-viewer en ontbrekend artifact-/negatief browserbewijs gericht sluiten; géén omkoppeling van DEMO-001's bestaande Edwin/TENANT_ADMIN-Auth-identiteit.
+2. **PAYVAL-EXT-01 (P0):** laat de gebruiker de twee Mars-stroken tegen een ander NL-salarispakket controleren met **exact dezelfde oktober-2026 fiscale, pensioen- en werkgeversinstellingen**; documenteer de eerste afwijkende component, niet alleen eindnetto.
+3. **PAYCASE-03 (P1):** gevarieerde echte nieuwe rekenproeven (LHK aan, deeltijd/gebroken tijdvak, bijzondere vs reguliere variabele beloning, meerdere IKV's, enz.) en onafhankelijke oracles.
+4. **PAYRUN-03 (P1):** robuuste periodieke cyclus, revisie/TWK en payroll by exception.
+5. **PAYDOC-02 / 2027 (P2):** jaaropgave en nieuwe fiscale jaarpakket na officiële bronnen; betaling en officiële aangifte apart besluiten.
+
+**Handmatige controle, run-ID's, looncomponenten en exacte status:** [PAYFULL-02 validatie en roadmap](../payroll/PAYFULL-02-VALIDATIE-EN-ROADMAP-20261016.md). Historisch bewijs: [PAYFULL-02 closeout](../quality/acceptance/runs/PAYFULL-02-20261016-CLOSEOUT.md). De oudere sectie 'na PAYLAB04' hieronder is een historisch productvoorstel en vervangt dit actuele PAYFULL-02-besluit niet.
+
 ## Eerstvolgende Core-volgorde — besluit 2026-10-13
 
 1. **PERF01-B2 — server-side medewerkerpagination (LOOPT / CONTROLLED).** Nieuwe, correct gescopeerde RPC/migratie voor 50 medewerkers per pagina, exact totaal en server-side zoeken/filteren/sorteren; toepassing op synthetische Supabase TEST is expliciet geautoriseerd. Niet als afgerond markeren vóór een bewezen Codex-oplevering en vereiste autorisatie-/releasegates.
