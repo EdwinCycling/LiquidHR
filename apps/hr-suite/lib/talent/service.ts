@@ -1,3 +1,5 @@
+import { getProfileActivationIssues, getProfileVersionPeriodState } from './profile-management'
+import type { ProfileCapabilityReference, ProfileRequirementReference } from './profile-management'
 import type { Database, Json } from '@scope/db'
 import { requirePermission } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
@@ -733,6 +735,120 @@ export async function listTalentProfileManagement() {
   return readTalentProfileManagement(context)
 }
 
+export type TalentProfileDashboardData = {
+  invalidProfileIds: string[]
+  auditStatus: 'available' | 'permission_missing' | 'read_failed'
+  recentChanges: {
+    id: string
+    action: string
+    entityName: string
+    entityId: string
+    objectName: string
+    actorUserId: string | null
+    createdAt: string
+  }[]
+}
+
+export async function getTalentProfileDashboard(): Promise<TalentProfileDashboardData> {
+  const context = await requirePermission('talent:manage')
+  await requireTenantModule('TALENT')
+  const supabase = await createClient()
+  const profiles = await readTalentProfileManagement(context)
+  const today = new Date().toISOString().slice(0, 10)
+  const currentVersions = profiles.flatMap((profile) => profile.versions
+    .filter((version) => getProfileVersionPeriodState(version, today) === 'CURRENT')
+    .map((version) => ({ profileId: profile.profile.id, versionId: version.id })))
+  const versionIdByRequirementId = new Map<string, string>()
+  let requirements: ProfileRequirementReference[] = []
+
+  if (currentVersions.length > 0) {
+    const { data, error } = await supabase.from('job_profile_capability_requirements')
+      .select('id,profile_version_id,capability_id,target_level_id,language_level,certificate_details')
+      .eq('tenant_id', context.tenantId)
+      .in('profile_version_id', currentVersions.map((version) => version.versionId))
+      .order('sort_order')
+    if (error) throw new TalentServiceError('TALENT_PROFILE_DASHBOARD_READ_FAILED')
+    requirements = data ?? []
+    for (const requirement of data ?? []) versionIdByRequirementId.set(requirement.id, requirement.profile_version_id)
+  }
+
+  const capabilityIds = [...new Set(requirements.map((requirement) => requirement.capability_id))]
+  const levelIds = [...new Set(requirements.flatMap((requirement) => requirement.target_level_id ? [requirement.target_level_id] : []))]
+  let capabilities: ProfileCapabilityReference[] = []
+  let availableLevelIds = new Set<string>()
+  if (capabilityIds.length > 0) {
+    const { data, error } = await supabase.from('talent_capabilities')
+      .select('id,capability_type,status')
+      .eq('tenant_id', context.tenantId)
+      .in('id', capabilityIds)
+    if (error) throw new TalentServiceError('TALENT_PROFILE_DASHBOARD_READ_FAILED')
+    capabilities = data ?? []
+  }
+  if (levelIds.length > 0) {
+    const { data, error } = await supabase.from('talent_levels')
+      .select('id')
+      .eq('tenant_id', context.tenantId)
+      .in('id', levelIds)
+    if (error) throw new TalentServiceError('TALENT_PROFILE_DASHBOARD_READ_FAILED')
+    availableLevelIds = new Set((data ?? []).map((level) => level.id))
+  }
+
+  const issues = getProfileActivationIssues({
+    validFrom: '2000-01-01',
+    validUntil: null,
+    requirements,
+    capabilities,
+    levelIds: availableLevelIds,
+  })
+  const invalidVersionIds = new Set(issues.flatMap((issue) => issue.requirementId
+    ? [versionIdByRequirementId.get(issue.requirementId)].filter((versionId): versionId is string => Boolean(versionId))
+    : []))
+  const profileIdByVersionId = new Map(currentVersions.map((version) => [version.versionId, version.profileId]))
+  const invalidProfileIds = [...new Set([...invalidVersionIds]
+    .map((versionId) => profileIdByVersionId.get(versionId))
+    .filter((profileId): profileId is string => Boolean(profileId)))]
+
+  const profileObjectNames = new Map<string, string>()
+  for (const profile of profiles) {
+    profileObjectNames.set(profile.profile.id, profile.job.code)
+    for (const version of profile.versions) profileObjectNames.set(version.id, profile.job.code)
+  }
+  for (const [requirementId, versionId] of versionIdByRequirementId) {
+    const profileId = profileIdByVersionId.get(versionId)
+    const profileName = profileId ? profileObjectNames.get(profileId) : null
+    if (profileName) profileObjectNames.set(requirementId, profileName)
+  }
+
+  let auditStatus: TalentProfileDashboardData['auditStatus'] = 'permission_missing'
+  let recentChanges: TalentProfileDashboardData['recentChanges'] = []
+  if (context.permissions.includes('audit:read')) {
+    const { data, error } = await supabase.from('audit_logs')
+      .select('id,action,entity_name,entity_id,actor_user_id,created_at')
+      .eq('tenant_id', context.tenantId)
+      .in('entity_name', ['job_profiles', 'job_profile_versions', 'job_profile_capability_requirements'])
+      .order('created_at', { ascending: false })
+      .limit(8)
+    if (error) {
+      auditStatus = 'read_failed'
+    } else {
+      auditStatus = 'available'
+      recentChanges = (data ?? []).flatMap((change) => {
+        if (!change.entity_id) return []
+        return [{
+          id: change.id,
+          action: change.action,
+          entityName: change.entity_name,
+          entityId: change.entity_id,
+          objectName: profileObjectNames.get(change.entity_id) ?? change.entity_id,
+          actorUserId: change.actor_user_id,
+          createdAt: change.created_at,
+        }]
+      })
+    }
+  }
+
+  return { invalidProfileIds, auditStatus, recentChanges }
+}
 export async function getTalentProfileEditor(profileId: string): Promise<TalentProfileEditor> {
   const context = await requirePermission('talent:manage')
   await requireTenantModule('TALENT')
@@ -826,12 +942,36 @@ export async function activateJobProfileVersion(versionId: string, input: JobPro
   if (!current) throw new TalentServiceError('JOB_PROFILE_VERSION_NOT_FOUND', 404)
   if (current.status !== 'DRAFT') throw new TalentServiceError('JOB_PROFILE_VERSION_READ_ONLY', 409)
   if (input.updatedAt && input.updatedAt !== current.updated_at) throw new TalentServiceError('JOB_PROFILE_VERSION_CONCURRENCY_CONFLICT', 409)
-  const { error: updateError } = await supabase.from('job_profile_versions').update({
-    valid_from: input.validFrom ?? current.valid_from,
-    valid_until: input.validUntil ?? current.valid_until,
+
+  const [requirements, capabilities, levels] = await Promise.all([
+    supabase.from('job_profile_capability_requirements')
+      .select('id,capability_id,target_level_id,language_level,certificate_details')
+      .eq('tenant_id', context.tenantId)
+      .eq('profile_version_id', versionId)
+      .order('sort_order'),
+    supabase.from('talent_capabilities').select('id,capability_type,status').eq('tenant_id', context.tenantId).limit(1000),
+    supabase.from('talent_levels').select('id').eq('tenant_id', context.tenantId).limit(100),
+  ])
+  if (requirements.error || capabilities.error || levels.error) throw new TalentServiceError('JOB_PROFILE_ACTIVATION_CHECK_FAILED')
+  const validFrom = input.validFrom ?? current.valid_from
+  const validUntil = input.validUntil ?? current.valid_until
+  const issues = getProfileActivationIssues({
+    validFrom,
+    validUntil,
+    requirements: requirements.data ?? [],
+    capabilities: capabilities.data ?? [],
+    levelIds: new Set((levels.data ?? []).map((level) => level.id)),
+  })
+  if (issues.length > 0) throw new TalentServiceError('JOB_PROFILE_ACTIVATION_CHECKLIST_INCOMPLETE', 422)
+
+  const { data: updated, error: updateError } = await supabase.from('job_profile_versions').update({
+    valid_from: validFrom,
+    valid_until: validUntil,
     updated_by_user_id: context.userId,
-  }).eq('tenant_id', context.tenantId).eq('id', versionId).eq('updated_at', current.updated_at)
+  }).eq('tenant_id', context.tenantId).eq('id', versionId).eq('updated_at', current.updated_at).select('id').maybeSingle()
   if (updateError) databaseError(updateError.message, 'JOB_PROFILE_VERSION_UPDATE_FAILED')
+  if (!updated) throw new TalentServiceError('JOB_PROFILE_VERSION_CONCURRENCY_CONFLICT', 409)
+
   const { data, error } = await supabase.rpc('activate_job_profile_version', { requested_tenant_id: context.tenantId, requested_version_id: versionId })
   if (error || !data) databaseError(error?.message ?? 'JOB_PROFILE_ACTIVATION_FAILED', 'JOB_PROFILE_ACTIVATION_FAILED')
   return data

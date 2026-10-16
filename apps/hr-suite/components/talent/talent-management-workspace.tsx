@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { SettingsAccordion } from '@/components/settings/settings-accordion'
 import { buttonClasses } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
@@ -10,11 +10,12 @@ import { TalentFoundationManager } from '@/components/talent/talent-foundation-m
 import { TalentNotificationPanel } from '@/components/talent/talent-notification-panel'
 import { TalentProfileManagement } from '@/components/talent/talent-profile-management'
 import type { TalentEmployeeCapabilityOptions, TalentEmployeeCapabilityRecord, listTalentEmployeeCapabilityRecords, getTalentEmployeeCapabilityOptions } from '@/lib/talent/employee-capability-service'
-import type { listTalentFoundation, listTalentProfileCreateOptions, listTalentProfileManagement } from '@/lib/talent/service'
+import type { getTalentProfileDashboard, listTalentFoundation, listTalentProfileCreateOptions, listTalentProfileManagement } from '@/lib/talent/service'
 
 type Foundation = Awaited<ReturnType<typeof listTalentFoundation>>
 type Profiles = Awaited<ReturnType<typeof listTalentProfileManagement>>
 type ProfileCreateOptions = Awaited<ReturnType<typeof listTalentProfileCreateOptions>>
+type Dashboard = Awaited<ReturnType<typeof getTalentProfileDashboard>>
 type Records = Awaited<ReturnType<typeof listTalentEmployeeCapabilityRecords>>
 type Options = Awaited<ReturnType<typeof getTalentEmployeeCapabilityOptions>>
 type LoadedSection = 'profiles' | 'records' | 'foundation'
@@ -29,13 +30,12 @@ type WorkspaceState = {
   foundation: Foundation | null
   profiles: Profiles | null
   profileCreateOptions: ProfileCreateOptions | null
+  dashboard: Dashboard | null
   records: Records | null
   options: Options | null
 }
 
 export type TalentManagementWorkspaceLabels = {
-  startTitle: string
-  startDescription: string
   startNavigationTitle: string
   profilesSection: string
   profilesDescription: string
@@ -49,7 +49,6 @@ export type TalentManagementWorkspaceLabels = {
   teamMatrixTitle: string
   comparisonTitle: string
   roleExplorerTitle: string
-  importTitle: string
   goalTitle: string
   reportTitle: string
   foundation: FoundationLabels
@@ -63,6 +62,7 @@ const initialState: WorkspaceState = {
   foundation: null,
   profiles: null,
   profileCreateOptions: null,
+  dashboard: null,
   records: null,
   options: null,
 }
@@ -75,29 +75,36 @@ function loadMessage(status: LoadStatus, labels: TalentManagementWorkspaceLabels
 
 export function TalentManagementWorkspace({ labels }: { labels: TalentManagementWorkspaceLabels }) {
   const [state, setState] = useState<WorkspaceState>(initialState)
+  const stateRef = useRef(state)
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
   const loadingSections = useRef(new Set<LoadedSection>())
 
-  async function loadSection(section: LoadedSection) {
+  const loadSection = useCallback(async (section: LoadedSection) => {
+    const current = stateRef.current
     const alreadyLoaded = section === 'profiles'
-      ? Boolean(state.profiles && state.profileCreateOptions && state.foundation)
+      ? Boolean(current.profiles && current.profileCreateOptions && current.foundation && current.dashboard)
       : section === 'records'
-        ? Boolean(state.records && state.options)
-        : Boolean(state.foundation)
+        ? Boolean(current.records && current.options)
+        : Boolean(current.foundation)
     if (alreadyLoaded || loadingSections.current.has(section)) return
     loadingSections.current.add(section)
     setState((current) => ({ ...current, status: { ...current.status, [section]: 'loading' } }))
     try {
       if (section === 'profiles') {
-        const [foundationResponse, profilesResponse, profileOptionsResponse] = await Promise.all([
+        const [foundationResponse, profilesResponse, profileOptionsResponse, dashboardResponse] = await Promise.all([
           fetch('/api/talent', { cache: 'no-store' }),
           fetch('/api/talent/job-profiles', { cache: 'no-store' }),
           fetch('/api/talent/job-profiles/options', { cache: 'no-store' }),
+          fetch('/api/talent/job-profiles/dashboard', { cache: 'no-store' }),
         ])
-        if (!foundationResponse.ok || !profilesResponse.ok || !profileOptionsResponse.ok) throw new Error('TALENT_PROFILE_MANAGEMENT_READ_FAILED')
+        if (!foundationResponse.ok || !profilesResponse.ok || !profileOptionsResponse.ok || !dashboardResponse.ok) throw new Error('TALENT_PROFILE_MANAGEMENT_READ_FAILED')
         const foundationPayload = await foundationResponse.json() as { data: Foundation }
         const profilesPayload = await profilesResponse.json() as { data: Profiles }
         const profileOptionsPayload = await profileOptionsResponse.json() as { data: ProfileCreateOptions }
-        setState((current) => ({ ...current, foundation: foundationPayload.data, profiles: profilesPayload.data, profileCreateOptions: profileOptionsPayload.data, status: { ...current.status, foundation: 'loaded', profiles: 'loaded' } }))
+        const dashboardPayload = await dashboardResponse.json() as { data: Dashboard }
+        setState((current) => ({ ...current, foundation: foundationPayload.data, profiles: profilesPayload.data, profileCreateOptions: profileOptionsPayload.data, dashboard: dashboardPayload.data, status: { ...current.status, foundation: 'loaded', profiles: 'loaded' } }))
         return
       }
       if (section === 'records') {
@@ -119,16 +126,18 @@ export function TalentManagementWorkspace({ labels }: { labels: TalentManagement
     } finally {
       loadingSections.current.delete(section)
     }
-  }
+  }, [])
 
-  function handleOpenChange(sectionId: string | null) {
-    if (sectionId === 'profiles' || sectionId === 'records' || sectionId === 'foundation') void loadSection(sectionId)
-  }
+  const handleOpenChange = useCallback((sectionId: string | null) => {
+    if (sectionId === 'library') void loadSection('foundation')
+    if (sectionId === 'framework') void loadSection('profiles')
+    if (sectionId === 'management') void loadSection('records')
+  }, [loadSection])
 
   function renderProfiles() {
     const status = state.status.profiles
-    if (status !== 'loaded' || !state.profiles || !state.profileCreateOptions || !state.foundation) return loadMessage(status, labels)
-    return <div className="space-y-4"><p className="text-sm text-muted-foreground">{labels.profilesDescription}</p><TalentProfileManagement createOptions={state.profileCreateOptions} foundation={state.foundation} initial={state.profiles} labels={labels.profiles} /></div>
+    if (status !== 'loaded' || !state.profiles || !state.profileCreateOptions || !state.dashboard || !state.foundation) return loadMessage(status, labels)
+    return <div className="space-y-4"><p className="text-sm text-muted-foreground">{labels.profilesDescription}</p><TalentProfileManagement createOptions={state.profileCreateOptions} dashboard={state.dashboard} foundation={state.foundation} initial={state.profiles} labels={labels.profiles} /></div>
   }
 
   function renderRecords() {
@@ -143,10 +152,9 @@ export function TalentManagementWorkspace({ labels }: { labels: TalentManagement
     return <div className="space-y-4"><p className="text-sm text-muted-foreground">{labels.foundationDescription}</p><TalentFoundationManager initial={state.foundation} labels={labels.foundation} /></div>
   }
 
-  return <SettingsAccordion initialOpen="start" onOpenChange={handleOpenChange} sections={[
-    { id: 'start', title: labels.startTitle, children: <div className="space-y-5"><p className="text-sm text-muted-foreground">{labels.startDescription}</p><nav aria-label={labels.startNavigationTitle} className="flex flex-wrap gap-2"><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/assessments">{labels.assessmentTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/team">{labels.teamMatrixTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/comparison">{labels.comparisonTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/role-explorer">{labels.roleExplorerTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/import">{labels.importTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/goals">{labels.goalTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/reports">{labels.reportTitle}</Link></nav><TalentNotificationPanel labels={labels.notifications} /></div> },
-    { id: 'profiles', title: labels.profilesSection, children: renderProfiles() },
-    { id: 'records', title: labels.recordsSection, children: renderRecords() },
-    { id: 'foundation', title: labels.foundationSection, children: renderFoundation() },
+  return <SettingsAccordion initialOpen="framework" onOpenChange={handleOpenChange} sections={[
+    { id: 'library', title: labels.profiles.library, children: renderFoundation() },
+    { id: 'framework', title: labels.profiles.framework, children: renderProfiles() },
+    { id: 'management', title: labels.profiles.management, children: <div className="space-y-5">{renderRecords()}<nav aria-label={labels.startNavigationTitle} className="flex flex-wrap gap-2"><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/assessments">{labels.assessmentTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/team">{labels.teamMatrixTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/comparison">{labels.comparisonTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/role-explorer">{labels.roleExplorerTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/goals">{labels.goalTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/reports">{labels.reportTitle}</Link></nav><TalentNotificationPanel labels={labels.notifications} /></div> },
   ]} />
 }
