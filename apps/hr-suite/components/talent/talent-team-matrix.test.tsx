@@ -56,6 +56,7 @@ const data: TalentTeamMatrixData = {
     employeeLabel: 'Mila de Vries',
     jobTitle: 'Teamleider',
     departmentId: 'department-1',
+    departmentName: 'People & Culture',
     capabilities: [{
       id: 'record-1',
       capability_id: 'capability-1',

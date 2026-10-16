@@ -15,6 +15,7 @@ export type TalentTeamMatrixRow = {
   employeeLabel: string
   jobTitle: string | null
   departmentId: string
+  departmentName: string | null
   capabilities: TalentTeamMatrixCapability[]
 }
 

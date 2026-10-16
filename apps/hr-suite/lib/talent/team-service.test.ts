@@ -20,9 +20,9 @@ function capability(overrides: Partial<TalentTeamMatrixCapability> = {}): Talent
 }
 
 const rows: TalentTeamMatrixRow[] = [
-  { employeeId: 'employee-1', employeeNumber: 'EMP-001', employeeLabel: 'Mila de Vries', jobTitle: 'Teamleider', departmentId: 'department-1', capabilities: [capability()] },
-  { employeeId: 'employee-2', employeeNumber: 'EMP-002', employeeLabel: 'Noah Jansen', jobTitle: 'Planner', departmentId: 'department-1', capabilities: [capability({ id: 'record-2', capabilityName: 'Excel', capabilityCode: 'SKILL-EXCEL', source_type: 'SELF_ENTERED' })] },
-  { employeeId: 'employee-3', employeeNumber: 'EMP-003', employeeLabel: 'Yara Smit', jobTitle: 'HR-assistent', departmentId: 'department-2', capabilities: [] },
+  { employeeId: 'employee-1', employeeNumber: 'EMP-001', employeeLabel: 'Mila de Vries', jobTitle: 'Teamleider', departmentId: 'department-1', departmentName: 'People & Culture', capabilities: [capability()] },
+  { employeeId: 'employee-2', employeeNumber: 'EMP-002', employeeLabel: 'Noah Jansen', jobTitle: 'Planner', departmentId: 'department-1', departmentName: 'People & Culture', capabilities: [capability({ id: 'record-2', capabilityName: 'Excel', capabilityCode: 'SKILL-EXCEL', source_type: 'SELF_ENTERED' })] },
+  { employeeId: 'employee-3', employeeNumber: 'EMP-003', employeeLabel: 'Yara Smit', jobTitle: 'HR-assistent', departmentId: 'department-2', departmentName: 'HR', capabilities: [] },
 ]
 
 describe('Talent Team Matrix filtering', () => {

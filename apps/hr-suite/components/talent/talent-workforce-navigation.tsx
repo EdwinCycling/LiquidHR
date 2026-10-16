@@ -24,10 +24,13 @@ const routes: Array<{ href: string; key: keyof Omit<Labels, 'navTitle'>; permiss
   { href: '/workforce/talent/goals', key: 'goals', permission: 'talent-goal:read' },
   { href: '/workforce/talent/reports', key: 'reports', permission: 'talent-report:read' },
 ]
+const overviewAreaRoutes = new Set(['/workforce/talent/team', '/workforce/talent/comparison', '/workforce/talent/role-explorer'])
 
 export function TalentWorkforceNavigation({ labels, permissions }: { labels: Labels; permissions: readonly string[] }) {
   const pathname = usePathname()
-  const visibleRoutes = routes.filter(({ permission }) => permissions.includes(permission))
+  const visibleRoutes = routes
+    .filter(({ permission }) => permissions.includes(permission))
+    .filter(({ href }) => pathname !== '/workforce/talent' || !overviewAreaRoutes.has(href))
 
   return <nav aria-label={labels.navTitle} className="flex flex-wrap gap-2">
     {visibleRoutes.map(({ href, key }) => {
