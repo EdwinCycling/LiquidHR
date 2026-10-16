@@ -1,6 +1,14 @@
 # Implementatiestatus Liquid HR
 
-## Latest local integration — TALENT-CONVERGENCE-01 — 2026-10-15
+## Latest local integration — TALENT-CONVERGENCE-01 — 2026-10-16
+
+**Status: local main code integrated; engineering checks GREEN; final build and 9-grid browser matrix HOLD.** The Talent profile options endpoint/dialog and permission-filtered Workforce navigation are integrated on code SHA 1d175ae4ee6cece9b44c26f22ff728c9a75f1ea1. No migration, database write, push, PR merge or deployment was performed in this follow-up. Read-only Supabase TEST identity and migration head remain project wnpfloqpjvaacobppbpk / 20261015182721.
+
+On that code SHA, strict type-check, changed-file ESLint, i18n parity (43 namespaces) and the complete hr-suite suite passed (632 files; 3,067 passed, 8 skipped). No production build was run: auto-review rejected restoring the dev-generated apps/hr-suite/next-env.d.ts change under the repository instruction never to modify that file.
+
+Read-only browser evidence covers the core 9-grid results, existing synthetic records, 1280/1024/390 px and light/dark themes, plus Continuous Appraisal type tabs and defaults; no records were changed and the browser console was clean. Those checks preceded the final navigation-only permission filter. The in-app browser could not connect after the server restart, and reduced-motion emulation was unavailable. TALENT-9GRID-V2-TEST-021 remains OPEN. See the [2026-10-16 local acceptance report](../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261016-LOCAL.md).
+
+## Previous integrated state — TALENT-CONVERGENCE-01 — 2026-10-15
 
 **Status: local main integrated; engineering GREEN; full persona/business-flow acceptance HOLD.** The 9-grid V2 and Continuous Appraisal V2 branches are merged, and the final mobile 9-grid correction is code SHA 44ab1d8bbb8ba601557c3aec41cd9627fc7a57c5. The complete hr-suite run passed on that SHA (632 files; 3,066 passed, 8 skipped), and the Webpack production build passed TypeScript, 323 static routes, Payroll bundle/tracing checks and exact-SHA build provenance.
 

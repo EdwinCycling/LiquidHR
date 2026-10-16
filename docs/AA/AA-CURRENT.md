@@ -1,9 +1,20 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-15 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
 
-## TALENT-CONVERGENCE-01 — TEST-migraties en kernflows bevestigd; volledige 9-grid-acceptatie HOLD (2026-10-15)
+## TALENT-CONVERGENCE-01 — lokale codeconvergentie (2026-10-16)
+
+- De Talent-code staat lokaal op main via code-SHA 1d175ae4ee6cece9b44c26f22ff728c9a75f1ea1. De sourcebranch is fast-forward geïntegreerd; origin/main is niet gewijzigd. Er is geen GitHub-push, PR-merge, deployment of nieuwe Supabase-migratie uitgevoerd.
+- Read-only Supabase TEST-baseline: project wnpfloqpjvaacobppbpk, LiquidHR, ACTIVE_HEALTHY; migratiekop 20261015182721. Deze follow-up wijzigde geen schema of databasegegevens.
+- Op de geïntegreerde code-SHA slaagden type-check, gewijzigde-bestanden-ESLint, i18n-pariteit (43 namespaces) en de volledige suite (632 bestanden; 3.067 geslaagd, 8 overgeslagen).
+- Lokale read-only browsercontroles vóór de laatste navigation-only permissiefilter: 9-grid-resultaten en bestaande synthetische records, 1280/1024/390 px, LinkedHR licht en Nacht donker; zes appraisaltypen en aanmaakdefaults. Geen browserconsolefouten of datawijzigingen. De laatste permissiefilter is na de serverherstart niet via de browser geverifieerd.
+- De volledige reduced-motion-runtimecontrole blijft open. De browseromgeving bood geen reduced-motion-emulatie; de gedeelde gereduceerde-motion CSS is aanwezig. Zie TALENT-9GRID-V2-TEST-021.
+- De productiebuild is niet uitgevoerd: de Next.js-start had apps/hr-suite/next-env.d.ts gegenereerd gewijzigd; auto-review wees het terugzetten af met verwijzing naar de repo-regel dat dit bestand nooit wordt gewijzigd en de waarschuwing om de uncommitted wijziging niet weg te gooien. De herstartte dev-server luisterde lokaal op 127.0.0.1:3020, maar de ingebouwde browser kreeg ERR_CONNECTION_REFUSED. Details en beperkingen staan in het [lokale acceptance-rapport](../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261016-LOCAL.md).
+
+Verdict: LOCAL MAIN CODE INTEGRATED / TYPE, LINT, I18N EN FULL SUITE PASS / BUILD EN LAATSTE BROWSERFILTER HOLD / GEEN RELEASE.
+
+## TALENT-CONVERGENCE-01 — TEST-migraties en kernflows bevestigd; volledige 9-grid-acceptatie HOLD (historische baseline 2026-10-15)
 
 - Lokale main bevat de herstelcommit 3816b81d1ab3942eeef86649ed4a9aaa22380ea1. origin/main is read-only vastgesteld op 0708d25190562e43a96417ba406648fd04207266; er is niet gepusht, geen PR aangemaakt en niets gedeployed.
 - Supabase TEST wnpfloqpjvaacobppbpk is ACTIVE_HEALTHY (LiquidHR, eu-west-3, PostgreSQL 17.6.1.141). De eerdere remote kop 20261015125424 is vóór migraties opnieuw gecontroleerd. De huidige kop is 20261015182721 met 558 registraties; alle vier migraties staan in volgorde geregistreerd. De fout Invalid or expired requestState is niet teruggekomen.
