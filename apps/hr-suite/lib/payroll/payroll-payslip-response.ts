@@ -5,6 +5,8 @@ import { SyntheticPayrollServiceError } from './synthetic-calculation-service'
 type PayslipPdf = {
   readonly artifact_bytes: Uint8Array
   readonly content_type: 'application/pdf'
+  readonly id?: string
+  readonly artifact_hash?: string
 }
 
 const NO_STORE_HEADERS = {
@@ -49,6 +51,8 @@ export async function servePayrollPayslip(
         ...NO_STORE_HEADERS,
         'Content-Type': pdf.content_type,
         'Content-Disposition': `${disposition}; filename="${filename}"`,
+        ...(pdf.id ? { 'X-Artifact-Id': pdf.id } : {}),
+        ...(pdf.artifact_hash ? { 'X-Artifact-SHA256': pdf.artifact_hash } : {}),
       },
     }))
   } catch (error) {

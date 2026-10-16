@@ -558,6 +558,8 @@ export function PayrollRunReconciliation({
           labels={{
             downloadPdf: labels.downloadPdf,
             payslipPdfUnavailable: labels.payslipPdfUnavailable,
+            payslipPdfMetadata: labels.payslipPdfMetadata,
+            verifyPayslipPdf: labels.verifyPayslipPdf,
             savePayslipPdf: labels.savePayslipPdf,
             savingPayslipPdf: labels.savingPayslipPdf,
             storedPayslipPdf: labels.storedPayslipPdf,

@@ -131,6 +131,8 @@
   "savePayslipPdf": "Save payslip PDF",
   "savingPayslipPdf": "Saving PDF…",
   "storedPayslipPdf": "Payslip PDF is stored for this finalized run.",
+  "verifyPayslipPdf": "Verify stored PDF",
+  "payslipPdfMetadata": "Artifact details",
   "payslipPdfUnavailable": "The payslip PDF could not be stored.",
   "control_PASS": "Passed",
   "control_WARN": "Warning",

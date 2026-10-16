@@ -60,6 +60,7 @@ describe('payroll payslip artifact route', () => {
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toBe('application/pdf')
     expect(response.headers.get('content-length')).toBe(String(bytes.byteLength))
+    expect(response.headers.get('x-artifact-id')).toBe(artifact.id)
     expect(response.headers.get('x-artifact-sha256')).toBe('a'.repeat(64))
     expect(response.headers.get('content-disposition')).toBe('attachment; filename="liquidhr-loonstrook-2026-10.pdf"')
     expect(response.headers.get('cache-control')).toBe('no-store')

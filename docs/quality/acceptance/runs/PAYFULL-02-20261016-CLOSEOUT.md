@@ -123,3 +123,20 @@ De resterende live controles zijn **OPEN**:
 - PDF-weergave op 390 px.
 
 Daarom blijft de eindstatus **PARTIAL**, niet volledige end-to-end acceptatie. De bestaande open items staan in [AA-OPEN](../../../AA/AA-OPEN.md).
+
+## 7. PAYFULL-02D — ESS-documentketen, vervolg 2026-10-16
+
+- De normale HR Admin artifact-readback is voor beide bestaande FINALIZED-runs herhaald. De huidige repositoryrijen bevestigen de eerder gerapporteerde ID's, bytes en SHA-256:
+
+  | Run | Artifact-ID | Bytes | SHA-256 |
+  |---|---|---:|---|
+  | DEMO-001 `731e2a73-af7c-59d6-af88-5d0455c68374` | `cc3066c6-dd1d-4fc4-8503-8bdf3fa2c673` | 513.704 | `6d1499151d79ea1ea470dfe5bac1a73b0cecbd34a3ae41ded48acefefe108a2b` |
+  | DEMO-002 `48f47ffd-191c-5cbb-a22a-9061a2b7e5c3` | `94cc630b-f8f0-4085-99ce-3126bcce893d` | 513.406 | `51b8c513b4c6f9b0c5a9e74e36086099d493ec08b9228b997779ae6cee56d977` |
+
+- De ESS-route selecteert na `salary:read`-self-autorisatie uitsluitend de eigen FINALIZED-periode en leest het bestaande `PAYSLIP_PDF` via de Payroll-service/repository. De route serveert dezelfde opgeslagen bytes voor inline en download en geeft artifact-ID/hash als responseheaders. De viewer controleert `X-Artifact-SHA256` tegen de opgehaalde bytes.
+- Gerichte codechecks: **7 testbestanden / 61 tests geslaagd**, waaronder self-scope/non-finalized weigering, herhaalde readback met gelijke inline/downloadbytes, artifact-readback, hashcontrole, retry bij mislukte/hangende request en retry bij een niet geladen frame. TypeScript en scoped ESLint zijn geslaagd. De eerdere brede Payroll-suite en build zijn niet herhaald.
+- In de ondersteunde in-app browser liet de bestaande DEMO-002 ESS-identiteit Sophie alleen haar eigen oktoberbedragen en loonstrookkaart zien. De direct geopende attachment-URL werd door de browser geblokkeerd (`ERR_BLOCKED_BY_CLIENT`, “127.0.0.1 is blocked by ChatGPT”). De inline viewer eindigde vanuit de laadstaat in de zichtbare melding **“Het documentvoorbeeld kon niet worden geladen. Probeer het bestand te downloaden.”** met **Opnieuw proberen**. De browsergrens is niet omzeild.
+- De eerdere downloadhash uit PAYFULL-02C is historisch bewijs voor de oude ESS-renderroute. Code-inspectie toonde dat die route de PDF opnieuw renderde; die oude uitkomst bewijst daarom niet dat de toenmalige ESS-download de persistente artifactbytes gebruikte. De nieuwe service-/route-tests bewijzen de codebinding, maar een live byte-voor-byte ESS-download is door de browserblokkade niet opnieuw bevestigd.
+- De bestaande lokale persona-selectie bood geen DEMO-001-werknemersidentiteit. `edwin@editsolutions.nl` is in deze sessie niet als werknemer geopend; accountkoppeling en beheerdersrechten zijn niet gewijzigd. Deze specifieke DEMO-001 self-servicecontrole blijft **OPEN**. Een opgeslagen-artifact-cross-employee-probe en leesbare PDF-weergave blijven eveneens onbewezen.
+
+Status voor PAYFULL-02D: **PARTIAL / browser-boundary hold**. De repository-artifacts zijn bevestigd en de ESS-route is op persistente bytes aangesloten; succesvolle PDF-weergave en live ESS-downloadgelijkheid wachten op de ondersteunde browser-/identiteitsroute. Runbedragen, hashes en FINALIZED-historie zijn niet gewijzigd.

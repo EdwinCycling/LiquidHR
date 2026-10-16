@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { act } from 'react'
+import { createHash } from 'node:crypto'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PayrollPayslipPdfArtifactAction } from './payroll-payslip-pdf-artifact-action'
@@ -11,6 +12,8 @@ const runId = '48f47ffd-191c-5cbb-a22a-9061a2b7e5c3'
 const labels = {
   downloadPdf: 'Opgeslagen PDF downloaden',
   payslipPdfUnavailable: 'De loonstrook-PDF kon niet worden opgeslagen.',
+  payslipPdfMetadata: 'Artifactgegevens',
+  verifyPayslipPdf: 'PDF-opslag controleren',
   savePayslipPdf: 'Loonstrook-PDF opslaan',
   savingPayslipPdf: 'PDF wordt opgeslagen…',
   storedPayslipPdf: 'Loonstrook-PDF is opgeslagen voor deze definitieve run.',
@@ -43,6 +46,7 @@ describe('Payroll payslip PDF artifact action', () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
+        id: '94cc630b-f8f0-4085-99ce-3126bcce893d',
         runId,
         artifactType: 'PAYSLIP_PDF',
         contentType: 'application/pdf',
@@ -66,7 +70,46 @@ describe('Payroll payslip PDF artifact action', () => {
         headers: { Accept: 'application/json' },
       })
       expect(view.host.querySelector('[role="status"]')?.textContent).toBe(labels.storedPayslipPdf)
+      expect(view.host.textContent).toContain('Artifact-ID: 94cc630b-f8f0-4085-99ce-3126bcce893d')
+      expect(view.host.textContent).toContain(`SHA-256: ${'a'.repeat(64)}`)
       expect(view.host.querySelector('a')?.getAttribute('href')).toBe(`/api/payroll/runs/${runId}/artifact/PAYSLIP_PDF`)
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('reads an existing PDF through the repository route and verifies its ID, hash, and bytes', async () => {
+    const pdfBytes = new TextEncoder().encode('%PDF-1.7\nTEST')
+    const pdfHash = createHash('sha256').update(pdfBytes).digest('hex')
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({
+        'Content-Type': 'application/pdf',
+        'Content-Length': String(pdfBytes.byteLength),
+        'Content-Disposition': 'attachment; filename="liquidhr-loonstrook-2026-10.pdf"',
+        'X-Artifact-Id': '94cc630b-f8f0-4085-99ce-3126bcce893d',
+        'X-Artifact-SHA256': pdfHash,
+      }),
+      arrayBuffer: async () => pdfBytes.buffer,
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const view = mountAction({ canCreate: true, hasArtifact: true })
+
+    try {
+      expect(view.host.querySelector('button')?.textContent).toBe(labels.verifyPayslipPdf)
+      await act(async () => {
+        view.host.querySelector('button')?.click()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(fetchMock).toHaveBeenCalledWith(`/api/payroll/runs/${runId}/artifact/PAYSLIP_PDF`, {
+        method: 'GET',
+        headers: { Accept: 'application/pdf' },
+      })
+      expect(view.host.textContent).toContain('Artifact-ID: 94cc630b-f8f0-4085-99ce-3126bcce893d')
+      expect(view.host.textContent).toContain(`SHA-256: ${pdfHash}`)
+      expect(view.host.textContent).toContain(`${pdfBytes.byteLength} bytes`)
     } finally {
       view.unmount()
     }
@@ -82,7 +125,7 @@ describe('Payroll payslip PDF artifact action', () => {
     }
   })
 
-  it('offers read-only download of an existing artifact without a create action', () => {
+  it('offers read-only download of an existing artifact without a verify action', () => {
     const view = mountAction({ canCreate: false, hasArtifact: true })
     try {
       expect(view.host.querySelector('button')).toBeNull()

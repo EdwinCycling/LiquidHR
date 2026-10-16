@@ -383,6 +383,7 @@ export type EmployeePayrollDependencies = {
   readonly createPayrollRepository: () => Pick<PayrollRepository, 'getPayrollAdministration'>
   readonly createCalculationRepository: typeof createPayrollCalculationRepository
   readonly createPayrunRepository: typeof createPayrun01Repository
+  readonly getPayslipPdfArtifactForRun: typeof getPersistedPayrollProfessionalPayslipPdfArtifactForRun
   readonly renderPayslipPdf: typeof renderFinalizedEmployeePayslipPdf
   readonly loadPayslipDisplayProfile: (scope: PayrollScope, employeeId: string) => Promise<EmployeePayslipDisplayProfile | null>
 }
@@ -424,6 +425,7 @@ const defaultEmployeePayrollDependencies: EmployeePayrollDependencies = {
   createPayrollRepository,
   createCalculationRepository: createPayrollCalculationRepository,
   createPayrunRepository: createPayrun01Repository,
+  getPayslipPdfArtifactForRun: getPersistedPayrollProfessionalPayslipPdfArtifactForRun,
   renderPayslipPdf: renderFinalizedEmployeePayslipPdf,
   loadPayslipDisplayProfile: loadScopedPayslipDisplayProfile,
 }
@@ -634,6 +636,25 @@ export async function renderMySalaryPayslipPdf(
   const access = await authorizeMySalary(dependencies)
   if (!access) return null
   return await renderEmployeePayslipPdf(access.employeeId, periodYear, periodMonth, access, dependencies)
+}
+
+export async function getMySalaryPayslipPdfArtifact(
+  periodYear: number,
+  periodMonth: number,
+  dependencies: EmployeePayrollDependencies = defaultEmployeePayrollDependencies,
+) {
+  const access = await authorizeMySalary(dependencies)
+  if (!access) return null
+  const period = (await listFinalizedEmployeePeriods(access, dependencies)).find(({ statement }) =>
+    statement.periodYear === periodYear && statement.periodMonth === periodMonth)
+  if (!period) return null
+
+  return await dependencies.getPayslipPdfArtifactForRun({
+    scope: access.scope,
+    payrollAdministrationId: access.payrollAdministrationId,
+    actorUserId: access.actorUserId,
+    runId: period.runId,
+  })
 }
 
 export async function renderEmployeePayrollPayslipPdf(

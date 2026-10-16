@@ -55,6 +55,7 @@ export async function GET(
         'Content-Type': artifact.content_type,
         'Content-Length': String(artifact.artifact_bytes.byteLength),
         'Content-Disposition': `attachment; filename="${fileName}"`,
+        'X-Artifact-Id': artifact.id,
         'X-Artifact-SHA256': artifact.artifact_hash,
       },
     }))

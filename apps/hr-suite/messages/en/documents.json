@@ -58,6 +58,7 @@
   "viewerUnsupported": "No inline preview is available for this file type. Download the file to open it.",
   "viewerPreviewLoading": "Loading document preview…",
   "viewerPreviewUnavailable": "The document preview could not be loaded. Try downloading the file.",
+  "viewerPreviewRetry": "Try again",
   "backToDashboard": "Back to dashboard",
   "companyTitle": "Company documents",
   "companySubtitle": "A list of documents for the active HR group, available to every signed-in user.",

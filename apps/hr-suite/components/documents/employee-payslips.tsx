@@ -29,6 +29,7 @@ export function EmployeePayslips({
     unsupported: string
     previewLoading: string
     previewUnavailable: string
+    previewRetry?: string
     imported: string
     payroll: string
     unspecifiedPeriod: string
@@ -117,6 +118,7 @@ export function EmployeePayslips({
           unsupported: labels.unsupported,
           previewLoading: labels.previewLoading,
           previewUnavailable: labels.previewUnavailable,
+          previewRetry: labels.previewRetry,
         }}
         useBlobPreview
       /> : null}

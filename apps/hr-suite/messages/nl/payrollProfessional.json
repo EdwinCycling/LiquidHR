@@ -131,6 +131,8 @@
   "savePayslipPdf": "Loonstrook-PDF opslaan",
   "savingPayslipPdf": "PDF wordt opgeslagen…",
   "storedPayslipPdf": "Loonstrook-PDF is opgeslagen voor deze definitieve run.",
+  "verifyPayslipPdf": "PDF-opslag controleren",
+  "payslipPdfMetadata": "Artifactgegevens",
   "payslipPdfUnavailable": "De loonstrook-PDF kon niet worden opgeslagen.",
   "control_PASS": "Geslaagd",
   "control_WARN": "Waarschuwing",

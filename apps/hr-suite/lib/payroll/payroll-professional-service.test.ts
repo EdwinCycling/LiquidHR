@@ -4,6 +4,7 @@ import type { PayrollCalculationArtifacts, PayrollRunSummary } from './calculati
 import {
   getMySalaryStatements,
   getMySalaryStatement,
+  getMySalaryPayslipPdfArtifact,
   renderMySalaryPayslipPdf,
   type EmployeePayrollDependencies,
 } from './payroll-professional-service'
@@ -26,6 +27,7 @@ function makeDependencies(
 ) {
   const payfull02Source = payfull02PensionState !== 'none'
   const authContext = {
+    userId: '90000000-0000-4000-8000-000000000001',
     tenantId: '50000000-0000-4000-8000-000000000001',
     hrGroupId: '50000000-0000-4000-8000-000000000002',
     administrationId: '50000000-0000-4000-8000-000000000003',
@@ -160,6 +162,7 @@ function makeDependencies(
       : []
   })
   const getGenericInputReference = vi.fn(async () => null)
+  const getPayslipPdfArtifactForRun = vi.fn(async () => null)
   const loadPayslipDisplayProfile = vi.fn(async () => ({ employeeName: 'Mars Werknemer', employerName: 'Mars Administratie' }))
   const createCalculationRepository = vi.fn(() => ({ listPayrollRunSummaries, getLatestSyntheticArtifacts }))
   const createPayrunRepository = vi.fn(() => ({ listLifecycleEvents, getGenericInputReference }))
@@ -172,6 +175,7 @@ function makeDependencies(
     })),
     createCalculationRepository,
     createPayrunRepository,
+    getPayslipPdfArtifactForRun,
     loadPayslipDisplayProfile,
     renderPayslipPdf: vi.fn(async (input: { employeeId: string; runId: string }) => ({
       artifact_bytes: Buffer.from('pdf'),
@@ -181,7 +185,7 @@ function makeDependencies(
       runId: input.runId,
     })),
   } as unknown as EmployeePayrollDependencies
-  return { dependencies, listPayrollRunSummaries, listLifecycleEvents, createPayrunRepository, getGenericInputReference, loadPayslipDisplayProfile }
+  return { dependencies, listPayrollRunSummaries, listLifecycleEvents, createPayrunRepository, getGenericInputReference, getPayslipPdfArtifactForRun, loadPayslipDisplayProfile }
 }
 
 describe('employee My Salary read model', () => {
@@ -293,6 +297,42 @@ describe('employee My Salary read model', () => {
     expect(result).toMatchObject({ employeeId: selfEmployeeId, runId: '30000000-0000-4000-8000-000000000009' })
     expect(dependencies.renderPayslipPdf).toHaveBeenCalledWith(expect.objectContaining({ employeeId: selfEmployeeId, runId: '30000000-0000-4000-8000-000000000009' }))
     expect(loadPayslipDisplayProfile).not.toHaveBeenCalled()
+  })
+
+  it('returns the persisted PDF artifact for the authenticated finalized self period without rendering', async () => {
+    const { dependencies, getPayslipPdfArtifactForRun } = makeDependencies(selfEmployeeId, selfEmployeeId, true)
+    const artifact = {
+      id: '91000000-0000-4000-8000-000000000001',
+      artifact_hash: 'a'.repeat(64),
+      artifact_bytes: new Uint8Array([37, 80, 68, 70]),
+      content_type: 'application/pdf',
+    }
+    getPayslipPdfArtifactForRun.mockResolvedValue(artifact as never)
+
+    await expect(getMySalaryPayslipPdfArtifact(2026, 10, dependencies)).resolves.toBe(artifact)
+    expect(getPayslipPdfArtifactForRun).toHaveBeenCalledWith({
+      scope: {
+        tenantId: '50000000-0000-4000-8000-000000000001',
+        hrGroupId: '50000000-0000-4000-8000-000000000002',
+        administrationId: '50000000-0000-4000-8000-000000000003',
+      },
+      payrollAdministrationId: 'payroll-admin',
+      actorUserId: '90000000-0000-4000-8000-000000000001',
+      runId,
+    })
+    expect(dependencies.renderPayslipPdf).not.toHaveBeenCalled()
+  })
+
+  it('does not read an artifact when self authorization resolves to another employee', async () => {
+    const { dependencies, getPayslipPdfArtifactForRun } = makeDependencies(otherEmployeeId, selfEmployeeId, true)
+    await expect(getMySalaryPayslipPdfArtifact(2026, 10, dependencies)).rejects.toBeInstanceOf(AuthorizationError)
+    expect(getPayslipPdfArtifactForRun).not.toHaveBeenCalled()
+  })
+
+  it('does not read an artifact for a missing or non-finalized self period', async () => {
+    const { dependencies, getPayslipPdfArtifactForRun } = makeDependencies(selfEmployeeId, selfEmployeeId, false)
+    await expect(getMySalaryPayslipPdfArtifact(2026, 10, dependencies)).resolves.toBeNull()
+    expect(getPayslipPdfArtifactForRun).not.toHaveBeenCalled()
   })
 
   it('loads scoped display names only for a finalized generic input_reference_json payslip', async () => {
