@@ -8,16 +8,18 @@ import {
 import {
   getLocalPayrollPersonaReadiness,
   LOCAL_PAYROLL_PERSONA_RECORDS,
+  PAYFULL02_MARS_SCOPE,
   type LocalPayrollPersonaReadiness,
   type LocalPayrollPersonaKey,
 } from '@/lib/auth/local-payroll-persona-readiness'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
 
 export const runtime = 'nodejs'
 
 const OPERATOR_EMAIL = 'hradmin.fixture@liquidhr.test'
-const ALLOWED_TARGETS = ['payroll-jaap', 'payroll-frits'] as const
+const ALLOWED_TARGETS = ['payroll-jaap', 'payroll-frits', 'payroll-demo-002'] as const
 type ProvisionTarget = (typeof ALLOWED_TARGETS)[number]
 
 function sameLocalOrigin(request: NextRequest): string | null {
@@ -78,12 +80,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const actorEmail = verified?.identity.email ?? null
   const ownerKey = verified ? getLocalPersonaOwnerKey(request.headers.get('host'), verified.identity) : null
 
-  if (ownerKey !== 'hr-admin' || normalizedEmail(actorEmail) !== OPERATOR_EMAIL) {
-    return errorResponse('LOCAL_PERSONA_PROVISION_FORBIDDEN', 403)
-  }
-
   const key = targetValue as LocalPayrollPersonaKey
   const record = LOCAL_PAYROLL_PERSONA_RECORDS[key]
+  if (key === 'payroll-demo-002') {
+    if (!verified?.identity.emailVerified) return errorResponse('LOCAL_PERSONA_PROVISION_FORBIDDEN', 403)
+    try {
+      const access = await requireComponentLibraryAccess(true)
+      if (
+        access.scope.tenantId !== PAYFULL02_MARS_SCOPE.tenantId
+        || access.scope.hrGroupId !== PAYFULL02_MARS_SCOPE.hrGroupId
+        || access.scope.administrationId !== PAYFULL02_MARS_SCOPE.administrationId
+      ) return errorResponse('LOCAL_PERSONA_PROVISION_FORBIDDEN', 403)
+    } catch {
+      return errorResponse('LOCAL_PERSONA_PROVISION_FORBIDDEN', 403)
+    }
+  } else if (ownerKey !== 'hr-admin' || normalizedEmail(actorEmail) !== OPERATOR_EMAIL) {
+    return errorResponse('LOCAL_PERSONA_PROVISION_FORBIDDEN', 403)
+  }
   const admin = createAdminClient()
   let readiness: LocalPayrollPersonaReadiness
   try {
@@ -120,15 +133,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (!authUserId) return errorResponse('LOCAL_PERSONA_PROVISION_UNAVAILABLE', 503)
 
-  const { error: linkError } = await supabase.rpc('link_local_test_payroll_persona_v1', {
-    p_persona_key: key,
-    p_employee_id: record.employeeId,
-    p_employment_id: record.employmentId,
-    p_auth_user_id: authUserId,
-  })
+  const linkRpc = key === 'payroll-demo-002'
+    ? 'link_local_test_payroll_demo_002_v1'
+    : 'link_local_test_payroll_persona_v1'
+  const linkArguments = key === 'payroll-demo-002'
+    ? {
+      p_employee_id: record.employeeId,
+      p_employment_id: record.employmentId,
+      p_auth_user_id: authUserId,
+    }
+    : {
+      p_persona_key: key,
+      p_employee_id: record.employeeId,
+      p_employment_id: record.employmentId,
+      p_auth_user_id: authUserId,
+    }
+  const { error: linkError } = await supabase.rpc(linkRpc, linkArguments)
   if (linkError) {
     console.warn('LOCAL_PERSONA_PROVISION_CORE_LINK_FAILED', { code: linkError.code })
     if (createdAuthUser) {
+      let failureReadback: LocalPayrollPersonaReadiness
+      try {
+        failureReadback = await getLocalPayrollPersonaReadiness(key, admin)
+      } catch {
+        return errorResponse('LOCAL_PERSONA_LINK_STATE_UNAVAILABLE', 503)
+      }
+      if (failureReadback.status === 'first-sign-in-required' || failureReadback.status === 'available') {
+        const response = NextResponse.redirect(new URL(`/local/personas?linked=${key}`, origin), { status: 303 })
+        response.headers.set('Cache-Control', 'no-store')
+        response.headers.set('Referrer-Policy', 'no-referrer')
+        return response
+      }
+      if (failureReadback.status !== 'link-required' || !failureReadback.canProvision) {
+        return errorResponse('LOCAL_PERSONA_LINK_STATE_REQUIRES_REVIEW', 503)
+      }
       const { error: deleteError } = await admin.auth.admin.deleteUser(authUserId)
       if (deleteError) return errorResponse('LOCAL_PERSONA_CLEANUP_REQUIRES_REVIEW', 503)
     }
@@ -139,18 +177,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     linkedReadback = await getLocalPayrollPersonaReadiness(key, admin)
   } catch {
-    if (createdAuthUser) {
-      const { error: deleteError } = await admin.auth.admin.deleteUser(authUserId)
-      if (deleteError) return errorResponse('LOCAL_PERSONA_CLEANUP_REQUIRES_REVIEW', 503)
-    }
     return errorResponse('LOCAL_PERSONA_READBACK_UNAVAILABLE', 503)
   }
 
   if (linkedReadback.status !== 'first-sign-in-required' && linkedReadback.status !== 'available') {
-    if (createdAuthUser) {
-      const { error: deleteError } = await admin.auth.admin.deleteUser(authUserId)
-      if (deleteError) return errorResponse('LOCAL_PERSONA_CLEANUP_REQUIRES_REVIEW', 503)
-    }
     return errorResponse('LOCAL_PERSONA_READBACK_UNAVAILABLE', 503)
   }
 

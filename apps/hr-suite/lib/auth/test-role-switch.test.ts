@@ -29,10 +29,10 @@ const localEnvironment = {
 describe('local persona switch authorization', () => {
   it('uses the fixed supported account keys and marks Jaap and Frits unavailable', () => {
     expect(TEST_ROLE_SWITCH_TARGETS.map((target) => target.key)).toEqual([
-      'edwin', 'hr-admin', 'manager', 'employee', 'payroll-lisa', 'payroll-jaap', 'payroll-frits',
+      'edwin', 'hr-admin', 'manager', 'employee', 'payroll-lisa', 'payroll-jaap', 'payroll-frits', 'payroll-demo-002',
     ])
     expect(TEST_ROLE_SWITCH_TARGETS.filter((target) => !target.available).map((target) => target.key)).toEqual([
-      'payroll-jaap', 'payroll-frits',
+      'payroll-jaap', 'payroll-frits', 'payroll-demo-002',
     ])
     expect(getTestRoleSwitchTarget('manager')?.email).toBe('manager.fixture@liquidhr.test')
     expect(getAvailableTestRoleSwitchTarget('payroll-jaap')).toBeNull()
@@ -54,7 +54,7 @@ describe('local persona switch authorization', () => {
       email: 'other@example.com',
       emailVerified: true,
     }, localEnvironment)).toBeNull()
-    expect(getLocalPersonaOperatorTargetKeys('hr-admin')).toEqual(['payroll-lisa', 'payroll-jaap', 'payroll-frits'])
+    expect(getLocalPersonaOperatorTargetKeys('hr-admin')).toEqual(['payroll-lisa', 'payroll-jaap', 'payroll-frits', 'payroll-demo-002'])
   })
 
   it('keeps the former business-role guard distinct from the local owner capability', () => {

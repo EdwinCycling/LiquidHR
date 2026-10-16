@@ -7,6 +7,9 @@ import { requireComponentLibraryAccess } from './component-library-access'
 import { createPayrollRepository, type PayrollRepository } from './repository'
 import { createPayrun01Repository } from './payrun01-repository'
 import {
+  createFinalizedEmployeePayslipPdfArtifact,
+  createPayrun01PayslipPdfArtifactForRun,
+  getPayrollProfessionalPayslipPdfArtifactForRun as getPersistedPayrollProfessionalPayslipPdfArtifactForRun,
   renderFinalizedEmployeePayslipPdf,
   renderPayrun01PayslipPdfPreviewForRun,
   type FinalizedEmployeePayslipInput,
@@ -104,6 +107,50 @@ export async function renderPayrollProfessionalPayslipPreviewForRun(input: {
     genericPayslipProfile,
   }
   return await renderFinalizedEmployeePayslipPdf(payslipInput)
+}
+
+export async function createPayrollProfessionalPayslipPdfArtifactForRun(input: {
+  readonly scope: PayrollScope
+  readonly payrollAdministrationId: string
+  readonly actorUserId: string
+  readonly runId: string
+}) {
+  const artifacts = await createPayrollCalculationRepository().getLatestSyntheticArtifacts(
+    input.scope,
+    input.payrollAdministrationId,
+    undefined,
+    input.runId,
+    undefined,
+    'INDIVIDUAL_PAYROLL',
+  )
+  if (!artifacts || artifacts.run.id !== input.runId) return null
+  const reference = await createPayrun01Repository().getGenericInputReference(
+    input.scope,
+    input.payrollAdministrationId,
+    artifacts.inputSet.id,
+  )
+  if (!reference) {
+    return await createPayrun01PayslipPdfArtifactForRun(input)
+  }
+
+  const employeeId = artifacts.sourceSnapshot.source_employee_id
+  const genericPayslipProfile = await loadScopedPayslipDisplayProfile(input.scope, employeeId)
+  if (!genericPayslipProfile) throw new Error('PAYROLL_PAYSLIP_PROFILE_UNAVAILABLE')
+  const payslipInput: FinalizedEmployeePayslipInput = {
+    ...input,
+    employeeId,
+    genericPayslipProfile,
+  }
+  return await createFinalizedEmployeePayslipPdfArtifact(payslipInput)
+}
+
+export async function getPayrollProfessionalPayslipPdfArtifactForRun(input: {
+  readonly scope: PayrollScope
+  readonly payrollAdministrationId: string
+  readonly actorUserId: string
+  readonly runId: string
+}) {
+  return await getPersistedPayrollProfessionalPayslipPdfArtifactForRun(input)
 }
 
 export type EmployeePayrollStatement = {

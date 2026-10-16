@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Payrun01ServiceDependencies } from './payrun01-service'
 import type { Payrun01Artifact, Payrun01ArtifactMetadata } from './payrun01-repository'
@@ -16,8 +17,10 @@ vi.mock('./payrun01-payslip-pdf', () => {
 import {
   createPayrun01PayslipPdfArtifact,
   createPayrun01TechnicalJsonArtifact,
+  createFinalizedEmployeePayslipPdfArtifact,
   finalizePayrun01Payroll,
   getPayrun01Lifecycle,
+  getPayrollProfessionalPayslipPdfArtifactForRun,
   renderFinalizedEmployeePayslipPdf,
   renderPayrun01PayslipPdfPreviewForRun,
   reviewPayrun01Payroll,
@@ -57,7 +60,15 @@ type LifecycleEventFixture = {
   event_sequence: number
   id?: string
   revision?: number
+  created_at?: string
+  event_payload?: Record<string, unknown>
 }
+
+const genericLifecycleEvents: LifecycleEventFixture[] = [
+  { calculation_run_id: runId, event_type: 'CONCEPT', event_sequence: 1, revision: 4, id: 'concept-event', created_at: '2026-10-01T09:00:00.000Z', event_payload: { sourceHash, inputHash, resultHash } },
+  { calculation_run_id: runId, event_type: 'REVIEWED', event_sequence: 2, revision: 4, id: 'review-event', created_at: '2026-10-01T10:00:00.000Z', event_payload: { sourceHash, inputHash, resultHash } },
+  { calculation_run_id: runId, event_type: 'FINALIZED', event_sequence: 3, revision: 4, id: 'final-event', created_at: '2026-10-01T11:00:00.000Z', event_payload: { sourceHash, inputHash, resultHash } },
+]
 
 function fixture(events: LifecycleEventFixture[] = [
   { calculation_run_id: runId, event_type: 'CONCEPT', event_sequence: 1 },
@@ -343,11 +354,7 @@ describe('PAYRUN01 persisted payslip PDF artifact', () => {
 
   it('renders a complete generic input_reference_json run with the employee-facing component allowlist', async () => {
     const genericEmployeeId = 'fb7a3aa1-9b22-44f1-8d8c-d519260230bb'
-    const { artifacts, dependencies, genericInputReference, payrunRepository } = fixture([
-      { calculation_run_id: runId, event_type: 'CONCEPT', event_sequence: 1, revision: 4 },
-      { calculation_run_id: runId, event_type: 'REVIEWED', event_sequence: 2, revision: 4 },
-      { calculation_run_id: runId, event_type: 'FINALIZED', event_sequence: 3, revision: 4 },
-    ], genericEmployeeId)
+    const { artifacts, dependencies, genericInputReference, payrunRepository } = fixture(genericLifecycleEvents, genericEmployeeId)
     payrunRepository.getGenericInputReference.mockResolvedValue(genericInputReference as never)
     artifacts.componentResults.push(
       { component_key: 'contractual_salary', result_payload: { amount: '5500.00' } },
@@ -394,6 +401,97 @@ describe('PAYRUN01 persisted payslip PDF artifact', () => {
       'employer_pension', 'employer_awf', 'holiday_allowance_reserve', 'total_employer_cost',
     ]))
     expect(payrunRepository.insertArtifact).not.toHaveBeenCalled()
+  })
+
+  it('persists a generic finalized payslip with run hashes and exact FINALIZED event provenance, then retries idempotently', async () => {
+    const genericEmployeeId = 'fb7a3aa1-9b22-44f1-8d8c-d519260230bb'
+    const { dependencies, genericInputReference, payrunRepository } = fixture(genericLifecycleEvents, genericEmployeeId)
+    payrunRepository.getGenericInputReference.mockResolvedValue(genericInputReference as never)
+    const pdfHash = createHash('sha256').update(pdfBytes).digest('hex')
+    payrunRepository.insertArtifact.mockImplementation(async (_scope, _administrationId, metadata, bytes) => ({
+      ...metadata,
+      id: 'b0000000-0000-4000-8000-000000000001',
+      artifact_hash: createHash('sha256').update(bytes).digest('hex'),
+      artifact_bytes: Uint8Array.from(bytes),
+      created_at: '2026-10-16T10:00:00.000Z',
+    }))
+    const input = {
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      employeeId: genericEmployeeId,
+      runId,
+      genericPayslipProfile: { employeeName: 'Mars Werknemer', employerName: 'Mars Administratie' },
+    }
+
+    const created = await createFinalizedEmployeePayslipPdfArtifact(input, dependencies)
+    expect(created.artifact_hash).toBe(pdfHash)
+    expect(created.provenance_json).toMatchObject({
+      schemaVersion: 'PAYFULL02_GENERIC_PAYSLIP_PDF_V1',
+      templateId: 'LIQUIDHR_STANDARD_V1',
+      sourceHash,
+      inputHash,
+      resultHash,
+      finalizedEventId: 'final-event',
+      finalizedAt: '2026-10-01T11:00:00.000Z',
+      sizeBytes: pdfBytes.byteLength,
+      pdfHash,
+    })
+    expect(payrunRepository.insertArtifact).toHaveBeenCalledOnce()
+    expect(payrunRepository.insertArtifact.mock.calls[0]?.[2]).toMatchObject({
+      calculation_run_id: runId,
+      artifact_type: 'PAYSLIP_PDF',
+      content_type: 'application/pdf',
+      created_by_user_id: input.actorUserId,
+    })
+
+    payrunRepository.getArtifact.mockResolvedValue(created)
+    const retry = await createFinalizedEmployeePayslipPdfArtifact(input, dependencies)
+    expect(retry.artifact_bytes).toEqual(created.artifact_bytes)
+    expect(retry.artifact_hash).toBe(pdfHash)
+    expect(payrunRepository.insertArtifact).toHaveBeenCalledOnce()
+    expect(renderPdf).toHaveBeenCalledOnce()
+
+    const readback = await getPayrollProfessionalPayslipPdfArtifactForRun({
+      scope: input.scope,
+      payrollAdministrationId: input.payrollAdministrationId,
+      actorUserId: input.actorUserId,
+      runId,
+    }, dependencies)
+    expect(readback?.artifact_bytes).toEqual(created.artifact_bytes)
+    expect(readback?.artifact_hash).toBe(pdfHash)
+  })
+
+  it('does not persist a generic PDF for CONCEPT or lifecycle events with different source/input/result hashes', async () => {
+    const genericEmployeeId = 'fb7a3aa1-9b22-44f1-8d8c-d519260230bb'
+    const concept = fixture([{ calculation_run_id: runId, event_type: 'CONCEPT', event_sequence: 1, revision: 4 }], genericEmployeeId)
+    concept.payrunRepository.getGenericInputReference.mockResolvedValue(concept.genericInputReference as never)
+    await expect(createFinalizedEmployeePayslipPdfArtifact({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      employeeId: genericEmployeeId,
+      runId,
+      genericPayslipProfile: { employeeName: 'Mars Werknemer', employerName: 'Mars Administratie' },
+    }, concept.dependencies)).rejects.toMatchObject({ code: 'PAYROLL_INPUT_INVALID' })
+    expect(concept.payrunRepository.insertArtifact).not.toHaveBeenCalled()
+
+    const mismatchEvents = genericLifecycleEvents.map((event) => ({
+      ...event,
+      event_payload: { sourceHash: 'e'.repeat(64), inputHash, resultHash },
+    }))
+    const mismatch = fixture(mismatchEvents, genericEmployeeId)
+    mismatch.payrunRepository.getGenericInputReference.mockResolvedValue(mismatch.genericInputReference as never)
+    await expect(createFinalizedEmployeePayslipPdfArtifact({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      employeeId: genericEmployeeId,
+      runId,
+      genericPayslipProfile: { employeeName: 'Mars Werknemer', employerName: 'Mars Administratie' },
+    }, mismatch.dependencies)).rejects.toMatchObject({ code: 'PAYROLL_INPUT_INVALID' })
+    expect(mismatch.payrunRepository.insertArtifact).not.toHaveBeenCalled()
+    expect(renderPdf).not.toHaveBeenCalled()
   })
 
   it('rejects incomplete generic input references before rendering a finalized employee PDF', async () => {

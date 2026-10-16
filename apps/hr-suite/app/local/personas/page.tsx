@@ -5,12 +5,15 @@ import { LocalPersonaSwitcher, type LocalPersonaOption } from '@/components/auth
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { Surface } from '@/components/ui/surface'
+import { buttonClasses } from '@/components/ui/button'
 import { canInitiateTestRoleSwitch, canReturnToLocalPersonaOwner, getLocalPersonaOwnerKey, getLocalPersonaOperatorTargetKeys, getVerifiedLocalPersonaIdentity, isLocalPersonaRuntime, readLocalPersonaOwnerMarker, TEST_ROLE_SWITCH_OWNER_COOKIE, TEST_ROLE_SWITCH_TARGETS } from '@/lib/auth/test-role-switch'
 import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getLocalPayrollPersonaReadiness, type LocalPayrollPersonaKey, type LocalPayrollPersonaReadiness } from '@/lib/auth/local-payroll-persona-readiness'
 import { getTranslator } from '@/lib/i18n/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
+import { PAYFULL02_MARS_SCOPE } from '@/lib/auth/local-payroll-persona-readiness'
 
 const PERSONA_LABEL_KEYS = {
   edwin: 'localPersonaEdwin',
@@ -20,6 +23,7 @@ const PERSONA_LABEL_KEYS = {
   'payroll-lisa': 'localPersonaPayrollLisa',
   'payroll-jaap': 'localPersonaPayrollJaap',
   'payroll-frits': 'localPersonaPayrollFrits',
+  'payroll-demo-002': 'localPersonaPayrollDemo002',
 } as const
 
 export default async function LocalPersonasPage() {
@@ -36,7 +40,18 @@ export default async function LocalPersonasPage() {
   const isOwner = ownerKey !== null
   const canReturnToOwner = Boolean(verified)
     && canReturnToLocalPersonaOwner(host, identity, ownerMarker)
-  if (!isOwner && !canReturnToOwner) notFound()
+  let canManageMarsDemo002 = false
+  if (!isOwner && verified?.identity.emailVerified) {
+    try {
+      const access = await requireComponentLibraryAccess(true)
+      canManageMarsDemo002 = access.scope.tenantId === PAYFULL02_MARS_SCOPE.tenantId
+        && access.scope.hrGroupId === PAYFULL02_MARS_SCOPE.hrGroupId
+        && access.scope.administrationId === PAYFULL02_MARS_SCOPE.administrationId
+    } catch {
+      canManageMarsDemo002 = false
+    }
+  }
+  if (!isOwner && !canReturnToOwner && !canManageMarsDemo002) notFound()
   const returnTargetKey = isOwner ? 'edwin' : readLocalPersonaOwnerMarker(ownerMarker) ?? 'edwin'
 
   const t = await getTranslator('navigation')
@@ -51,9 +66,11 @@ export default async function LocalPersonasPage() {
   })()
   const allowedTargets = ownerKey ? getLocalPersonaOperatorTargetKeys(ownerKey) : []
   const payrollReadiness = new Map<LocalPayrollPersonaKey, LocalPayrollPersonaReadiness>()
-  if (isOwner) {
+  if (isOwner || canManageMarsDemo002) {
     const admin = createAdminClient()
-    const payrollKeys: readonly LocalPayrollPersonaKey[] = ['payroll-lisa', 'payroll-jaap', 'payroll-frits']
+    const payrollKeys: readonly LocalPayrollPersonaKey[] = isOwner
+      ? ['payroll-lisa', 'payroll-jaap', 'payroll-frits', 'payroll-demo-002']
+      : ['payroll-demo-002']
     await Promise.all(payrollKeys.map(async (key) => {
       try {
         payrollReadiness.set(key, await getLocalPayrollPersonaReadiness(key, admin))
@@ -79,7 +96,7 @@ export default async function LocalPersonasPage() {
     unavailable: 'localPersonaStatusUnavailable',
   } as const
   const options: LocalPersonaOption[] = TEST_ROLE_SWITCH_TARGETS.filter((target) => allowedTargets.includes(target.key)).map((target) => {
-    const payrollKey = target.key === 'payroll-lisa' || target.key === 'payroll-jaap' || target.key === 'payroll-frits'
+    const payrollKey = target.key === 'payroll-lisa' || target.key === 'payroll-jaap' || target.key === 'payroll-frits' || target.key === 'payroll-demo-002'
       ? target.key
       : null
     const readiness = payrollKey ? payrollReadiness.get(payrollKey) : null
@@ -101,6 +118,7 @@ export default async function LocalPersonasPage() {
     }
   })
   const roleGuardAllowed = canInitiateTestRoleSwitch(roleCodes ?? [])
+  const demo002Readiness = payrollReadiness.get('payroll-demo-002')
 
   return <PageShell className="mx-auto w-full max-w-3xl space-y-6 py-6 sm:py-10">
     <PageHeader title={t('localPersonaTitle')} description={t('localPersonaDescription')} />
@@ -114,7 +132,7 @@ export default async function LocalPersonasPage() {
       <p className="text-sm text-muted-foreground">{t('localPersonaBusinessRoleGuard')}: <span className="font-medium text-foreground">{t(roleGuardAllowed ? 'localPersonaGuardWouldAllow' : 'localPersonaGuardWouldDeny')}</span></p>
       <p className="text-sm text-muted-foreground">{t('localPersonaLocalGuard')}: <span className="font-medium text-foreground">{t('localPersonaGuardAllowed')}</span></p>
     </Surface> : null}
-    <LocalPersonaSwitcher
+    {isOwner || canReturnToOwner ? <LocalPersonaSwitcher
       isOwner={isOwner}
       returnTargetKey={returnTargetKey}
       labels={{
@@ -128,7 +146,25 @@ export default async function LocalPersonasPage() {
         provisionAccount: t('localPersonaProvisionAccount'),
       }}
       options={options}
-    />
+    /> : null}
+    {canManageMarsDemo002 && demo002Readiness ? <Surface className="space-y-3 p-4 sm:p-5">
+      <div className="space-y-1">
+        <h2 className="text-sm font-semibold">{t('localPersonaPayrollDemo002')}</h2>
+        <p className="text-sm text-muted-foreground">{t('localPersonaProvisionDescription')}</p>
+        <p className="text-sm text-muted-foreground">{t(availabilityCopyKeys[demo002Readiness.status])}</p>
+      </div>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {demo002Readiness.canProvision ? <form action="/api/local/personas/provision" method="post">
+          <input name="target" type="hidden" value="payroll-demo-002" />
+          <button className={buttonClasses({ size: 'md', variant: 'secondary' })} type="submit">{t('localPersonaProvisionAccount')}</button>
+        </form> : null}
+        {demo002Readiness.canStartSignIn ? <form action="/api/auth/test-role-switch" method="post">
+          <input name="target" type="hidden" value="payroll-demo-002" />
+          <input name="next" type="hidden" value="/my-salary" />
+          <button className={buttonClasses({ size: 'md', variant: 'primary' })} type="submit">{t('localPersonaSwitch')}</button>
+        </form> : null}
+      </div>
+    </Surface> : null}
     <Link className="inline-flex min-h-10 items-center text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href="/dashboard/start">{t('localPersonaBackToApp')}</Link>
   </PageShell>
 }

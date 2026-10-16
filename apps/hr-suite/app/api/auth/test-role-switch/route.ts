@@ -11,11 +11,12 @@ import {
   getVerifiedLocalPersonaIdentity,
   TEST_ROLE_SWITCH_OWNER_COOKIE,
 } from '@/lib/auth/test-role-switch'
-import { getLocalPayrollPersonaReadiness } from '@/lib/auth/local-payroll-persona-readiness'
+import { getLocalPayrollPersonaReadiness, PAYFULL02_MARS_SCOPE } from '@/lib/auth/local-payroll-persona-readiness'
 import { safeNextPath } from '@/lib/auth/login-rules'
 import { clearActiveContextCookies } from '@/lib/context/context-cookies'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
 
 const HANDOFF_COOKIE = 'liquidhr-local-persona-handoff'
 const NEXT_PATH_COOKIE = 'liquidhr-local-persona-next'
@@ -96,11 +97,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const canReturnToOwner = Boolean(verified)
     && canReturnToLocalPersonaOwner(host, identity, ownerMarker)
 
-  if (!isOwner && !canReturnToOwner) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
+  let isMarsDemo002Operator = false
+  if (!isOwner && !canReturnToOwner && target.key === 'payroll-demo-002' && verified?.identity.emailVerified) {
+    try {
+      const access = await requireComponentLibraryAccess(true)
+      isMarsDemo002Operator = access.scope.tenantId === PAYFULL02_MARS_SCOPE.tenantId
+        && access.scope.hrGroupId === PAYFULL02_MARS_SCOPE.hrGroupId
+        && access.scope.administrationId === PAYFULL02_MARS_SCOPE.administrationId
+    } catch {
+      isMarsDemo002Operator = false
+    }
+  }
+
+  if (!isOwner && !canReturnToOwner && !isMarsDemo002Operator) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
   if (isOwner && ownerKey && target.key !== ownerKey && !getLocalPersonaOperatorTargetKeys(ownerKey).includes(target.key)) {
     return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
   }
-  if (!isOwner && target.key !== returnOwnerKey) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
+  if (!isOwner && !isMarsDemo002Operator && target.key !== returnOwnerKey) return jsonError('LOCAL_PERSONA_SWITCH_FORBIDDEN', 403)
 
   const requestedNextPath = formData.get('next')
   const nextPath = typeof requestedNextPath === 'string' && requestedNextPath.length <= 2048
@@ -116,7 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const admin = createAdminClient()
-  if (target.key === 'payroll-lisa' || target.key === 'payroll-jaap' || target.key === 'payroll-frits') {
+  if (target.key === 'payroll-lisa' || target.key === 'payroll-jaap' || target.key === 'payroll-frits' || target.key === 'payroll-demo-002') {
     try {
       const readiness = await getLocalPayrollPersonaReadiness(target.key, admin)
       if (!readiness.canStartSignIn) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
@@ -128,7 +141,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const ownerMarkerValue = isOwner && ownerKey ? createLocalPersonaOwnerMarker(ownerKey) : ownerMarker
-  if (!ownerMarkerValue) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
+  if (!ownerMarkerValue && !isMarsDemo002Operator) return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
 
   if (!await hasExistingVerifiedAuthUser(admin, target.email)) {
     return jsonError('LOCAL_PERSONA_UNAVAILABLE', 503)
@@ -159,13 +172,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     sameSite: 'lax',
     secure: origin.startsWith('https:'),
   })
-  response.cookies.set(TEST_ROLE_SWITCH_OWNER_COOKIE, ownerMarkerValue, {
-    httpOnly: true,
-    maxAge: 60 * 60 * 8,
-    path: '/',
-    sameSite: 'strict',
-    secure: origin.startsWith('https:'),
-  })
+  if (ownerMarkerValue) {
+    response.cookies.set(TEST_ROLE_SWITCH_OWNER_COOKIE, ownerMarkerValue, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 8,
+      path: '/',
+      sameSite: 'strict',
+      secure: origin.startsWith('https:'),
+    })
+  } else {
+    response.cookies.set(TEST_ROLE_SWITCH_OWNER_COOKIE, '', { expires: new Date(0), maxAge: 0, path: '/' })
+  }
   response.headers.set('Cache-Control', 'no-store')
   response.headers.set('Referrer-Policy', 'no-referrer')
   return response

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, createAdminClient, getClaims, getUser, signOut, generateLink, listUsers, getLocalPayrollPersonaReadiness } = vi.hoisted(() => ({
+const { createClient, createAdminClient, getClaims, getUser, signOut, generateLink, listUsers, getLocalPayrollPersonaReadiness, requireComponentLibraryAccess } = vi.hoisted(() => ({
   createClient: vi.fn(),
   createAdminClient: vi.fn(),
   getClaims: vi.fn(),
@@ -9,11 +9,20 @@ const { createClient, createAdminClient, getClaims, getUser, signOut, generateLi
   generateLink: vi.fn(),
   listUsers: vi.fn(),
   getLocalPayrollPersonaReadiness: vi.fn(),
+  requireComponentLibraryAccess: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
-vi.mock('@/lib/auth/local-payroll-persona-readiness', () => ({ getLocalPayrollPersonaReadiness }))
+vi.mock('@/lib/auth/local-payroll-persona-readiness', () => ({
+  getLocalPayrollPersonaReadiness,
+  PAYFULL02_MARS_SCOPE: {
+    tenantId: '07249eb9-545c-883b-b26b-d52f83b4f4a1',
+    hrGroupId: '6ba6f1df-e376-40f2-abff-ffdf000172e1',
+    administrationId: '2057f6ec-cd3e-3c28-9126-c41235d4ffae',
+  },
+}))
+vi.mock('@/lib/payroll/component-library-access', () => ({ requireComponentLibraryAccess }))
 
 import { NextRequest } from 'next/server'
 import { ACTIVE_ADMINISTRATION_COOKIE, ACTIVE_HR_GROUP_COOKIE, ACTIVE_TENANT_COOKIE } from '@/lib/context/context-cookies'
@@ -22,6 +31,11 @@ import { POST } from './route'
 
 const CANONICAL_SUPABASE_URL = 'https://wnpfloqpjvaacobppbpk.supabase.co'
 const LOCAL_ORIGIN = 'http://127.0.0.1:3010'
+const MARS_SCOPE = {
+  tenantId: '07249eb9-545c-883b-b26b-d52f83b4f4a1',
+  hrGroupId: '6ba6f1df-e376-40f2-abff-ffdf000172e1',
+  administrationId: '2057f6ec-cd3e-3c28-9126-c41235d4ffae',
+}
 type AuthTestUser = { id: string; email: string; email_confirmed_at: string | null; is_anonymous: boolean }
 const TARGET_EMAILS: AuthTestUser[] = [
   'edwin@editsolutions.nl',
@@ -31,6 +45,7 @@ const TARGET_EMAILS: AuthTestUser[] = [
   'lisa.test@liquidhr.test',
   'jaap.test@liquidhr.test',
   'frits.test@liquidhr.test',
+  'demo-002.payroll@liquidhr.test',
 ].map((email, index) => ({
   id: `user-${index + 1}`,
   email,
@@ -85,6 +100,8 @@ describe('POST /api/auth/test-role-switch', () => {
     signOut.mockReset()
     generateLink.mockReset()
     listUsers.mockReset()
+    requireComponentLibraryAccess.mockReset()
+    requireComponentLibraryAccess.mockResolvedValue({ scope: MARS_SCOPE })
     enableSwitcher()
     createClient.mockImplementation(async () => setIdentity('edwin@editsolutions.nl'))
     authAdmin()
@@ -247,7 +264,7 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 
-  it.each(['payroll-jaap', 'payroll-frits'])('keeps %s unavailable before any Auth operation', async (target) => {
+  it.each(['payroll-jaap', 'payroll-frits', 'payroll-demo-002'])('keeps %s unavailable before any Auth operation', async (target) => {
     const response = await POST(switchRequest(target))
 
     expect(response.status).toBe(503)
@@ -259,6 +276,7 @@ describe('POST /api/auth/test-role-switch', () => {
   it.each([
     ['payroll-jaap', 'jaap.test@liquidhr.test'],
     ['payroll-frits', 'frits.test@liquidhr.test'],
+    ['payroll-demo-002', 'demo-002.payroll@liquidhr.test'],
   ])('starts a one-time first sign-in for %s only after its Core link is ready', async (target, email) => {
     createClient.mockImplementation(async () => setIdentity('hradmin.fixture@liquidhr.test'))
     getLocalPayrollPersonaReadiness.mockImplementation(async (key: string) => ({
@@ -275,6 +293,35 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(response.status).toBe(303)
     expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email })
     expect(response.cookies.get('liquidhr-local-persona-handoff')?.httpOnly).toBe(true)
+  })
+
+  it('allows a verified Mars Payroll Admin to open only the DEMO-002 ESS identity', async () => {
+    createClient.mockImplementation(async () => setIdentity('mars.hradmin@liquidhr.test'))
+    getLocalPayrollPersonaReadiness.mockResolvedValue({
+      key: 'payroll-demo-002',
+      status: 'first-sign-in-required',
+      available: false,
+      canStartSignIn: true,
+      canProvision: false,
+      authUserId: 'linked-target-user',
+    })
+
+    const response = await POST(switchRequest('payroll-demo-002'))
+
+    expect(response.status).toBe(303)
+    expect(requireComponentLibraryAccess).toHaveBeenCalledWith(true)
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'demo-002.payroll@liquidhr.test' })
+    expect(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value).toBe('')
+  })
+
+  it('denies a non-Mars administrator before creating a DEMO-002 handoff', async () => {
+    createClient.mockImplementation(async () => setIdentity('mars.hradmin@liquidhr.test'))
+    requireComponentLibraryAccess.mockResolvedValue({ scope: { ...MARS_SCOPE, administrationId: 'another-administration' } })
+
+    const response = await POST(switchRequest('payroll-demo-002'))
+
+    expect(response.status).toBe(403)
+    expect(generateLink).not.toHaveBeenCalled()
   })
 
   it('refuses to generate a link for a missing or unconfirmed Auth identity', async () => {

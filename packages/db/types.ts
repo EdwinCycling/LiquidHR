@@ -22112,6 +22112,14 @@ export type Database = {
         }
         Returns: Json
       }
+      link_local_test_payroll_demo_002_v1: {
+        Args: {
+          p_auth_user_id: string
+          p_employee_id: string
+          p_employment_id: string
+        }
+        Returns: Json
+      }
       confirm_group_leave_request: {
         Args: {
           requested_employee_id: string
