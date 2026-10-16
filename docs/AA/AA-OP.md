@@ -17,6 +17,39 @@ Vraag niet na iedere normale handeling om toestemming. Een technisch herstelbare
 
 Afzonderlijke expliciete toestemming blijft nodig voor nieuwe remote database/schemawrites, inclusief TEST; destructieve businessdatawijzigingen; Production-data of echte klantgegevens; secret-/credentialwijzigingen; materiële securityrechten- of tenanttoegangsverruiming buiten scope; het definitief weggooien van unieke niet-geïntegreerde wijzigingen; en merge/deployment/release zonder mandaat uit de oorspronkelijke opdracht. Zie `AGENTS.md` voor de harde grenzen.
 
+## AA-LEAN-03 — autonoom uitvoeren en goedkeuringsverzoeken (2026-10-13)
+
+**Probleem:** herhaalde lokale sandboxprompts voor `git add`/`git commit`/`.git/index.lock`, tests, cachewerk, browsertests en sessiewisselingen maakten normale taken onnodig interactief. Dit is een operationele afspraak voor **alle** volgende Codex-runs, niet een uitzondering voor PAYESS-01.
+
+### Binnen het bestaande opdrachtmandaat: geen handmatige tussenstop
+
+- Zelfstandig (met veilig commando en exacte scope) bestanden lezen/schrijven, gewone git fetch/status/diff/staging/commits, gevraagde branch-push/PR, tests/typecheck/lint/build, gerichte UI-/API-smoke en geverifieerde taaklokale tijdelijke runnerbestanden beheren. Stage uitsluitend in-scope paden; verwijder geen onbekende/untracked gebruikersbestanden.
+- De reeds bestaande, afgeschermde synthetische TEST-identiteiten mogen via de normale lokale Test Auth- en rolwisselharness worden gebruikt. `auth.signOut`, `auth.signInWithPassword`, server-side test-magiclink-generatie en `auth.verifyOtp` horen uitsluitend **binnen die bestaande gecontroleerde TEST-flow** en zijn als sessiehandelingen vooraf toegestaan. De applicatie mag hiervoor geen nieuwe identiteit, rol, permission of fixture aanmaken of veranderen. Tokens/cookies/secrets blijven vertrouwelijk.
+- Een expliciet opgegeven deliveryscope bepaalt of push/PR/merge/deploy is toegestaan; 'geen nieuwe toestemming voor routine' creëert **geen** extra release- of remotedatamandaat.
+- Als een check tijdens de uitvoering groen was op exact dezelfde code en slechts docs wijzigen, herhaal de 3.000+ tests niet vanwege een goedkeuringsmoment.
+
+### Client- en sandboxinstellingen: afzonderlijk technisch mechanisme
+
+Documenteer aan de gebruiker eenmaal dat AGENTS-instructies de lokale Codex-client niet kunnen herconfigureren. Adviseer **éénmalig** de interactieve Codex-permissionkeuze *Approve for me* waar beschikbaar, of configureer in de vertrouwde gebruikers-/projectinstellingen bijvoorbeeld:
+
+```toml
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+```
+
+`auto_review` kan **alleen daarvoor geschikte** goedkeuringen behandelen; het overrulet geen sandbox/managed policy. Stel deze instelling niet ongevraagd zelf in, overschrijf andere `config.toml`-instellingen niet, en gebruik nooit `danger-full-access` als standaardoplossing. `approval_policy = "never"` schakelt verzoeken uit maar kan toegangsacties fail-closed laten; het is niet hetzelfde als toestemming. Een organisatie- of systeembeleid kan hogere prioriteit hebben.
+
+Als `.git`-locks of tijdelijke paden ondanks deze configuratie buiten de writegrens vallen: gebruik ondersteunde gerichte permissies of verplaats de taaklokale runnercache naar een reeds schrijfbare locatie; niet met blind brede shellmacht, `git reset --hard`, `git clean -x` of globale ownership-/ACL-wijzigingen werken.
+
+### Echte menselijke goedkeuring, eenmaal en concreet
+
+Stop alleen voor een handeling die nog **niet expliciet** is gemandateerd en veiligheids-, integriteits- of externe gevolgen heeft: nieuwe remote schema-/datawrites (ook TEST), destructieve handelingen, echte klant-/productiedata, wijzigen van permissions/auth-identiteiten, secrets/rotatie, definitief verlies van unieke wijzigingen, of release/merge/deploy zonder eerder mandaat.
+
+In zo'n geval geef één bericht met de precieze actie, concrete scope, risico en gewenste beslissing; blijf met de rest van de geautoriseerde taak doorgaan. Herhaal geen identieke toestemming. **Niet** een menselijke goedkeuring vervalsen, securitycheck uitschakelen of logs/secrets lekken om onbemand te blijven.
+
+**Acceptatiecriterium voor volgende Codex-opdrachten:** géén overbodige gebruikersprompts voor normaal lokaal werk of bestaande synthetische TEST-sessies; elke resterende prompt is een daadwerkelijk begrensde, niet reeds geautoriseerde handeling óf een aantoonbare client-/platformbeperking, compact gerapporteerd.
+
 ## 1a. AA-LEAN-02 — TEST Fast Delivery (2026-10-12)
 
 **Context:** LiquidHR werkt **LOCAL FIRST → GITHUB CONTINUOUS → VERCEL ON DEMAND**. GitHub `main` is de Development-baseline; Vercel `production` blijft de bestaande synthetische TEST-baseline tot expliciete release. Dit verandert geen tenant-/persoonsdata-/securitygrenzen.
