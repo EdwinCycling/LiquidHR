@@ -902,3 +902,91 @@ export async function getMyTalentProfile() {
   if (requirementError) throw new TalentServiceError('MY_TALENT_PROFILE_READ_FAILED')
   return { ...data, requirements: requirements ?? [] } satisfies MyTalentProfile
 }
+
+
+export type TalentProfileCreateOption = {
+  jobId: string
+  jobCode: string
+  groupName: string | null
+  familyName: string | null
+  seniorityName: string | null
+  employees: TalentWorkforceEmployee[]
+}
+
+export async function listTalentProfileCreateOptions(): Promise<TalentProfileCreateOption[]> {
+  const context = await requirePermission('talent:manage')
+  await requireTenantModule('TALENT')
+  const supabase = await createClient()
+  const [jobs, groups, families, seniorities] = await Promise.all([
+    supabase.from('jobs').select('*').eq('tenant_id', context.tenantId).eq('is_active', true).order('code').limit(500),
+    supabase.from('job_groups').select('*').eq('tenant_id', context.tenantId).limit(500),
+    supabase.from('job_families').select('*').eq('tenant_id', context.tenantId).limit(500),
+    supabase.from('talent_seniorities').select('*').eq('tenant_id', context.tenantId).limit(500),
+  ])
+  if (jobs.error || groups.error || families.error || seniorities.error) {
+    throw new TalentServiceError('TALENT_PROFILE_CREATE_OPTIONS_READ_FAILED')
+  }
+
+  const listedJobs = jobs.data ?? []
+  if (listedJobs.length === 0) return []
+  const { data: profiles, error: profilesError } = await supabase
+    .from('job_profiles')
+    .select('job_id')
+    .eq('tenant_id', context.tenantId)
+    .in('job_id', listedJobs.map((job) => job.id))
+  if (profilesError) throw new TalentServiceError('TALENT_PROFILE_CREATE_OPTIONS_READ_FAILED')
+
+  const profiledJobIds = new Set((profiles ?? []).map((profile) => profile.job_id))
+  const availableJobs = listedJobs.filter((job) => !profiledJobIds.has(job.id))
+  if (availableJobs.length === 0) return []
+
+  const jobIds = availableJobs.map((job) => job.id)
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: organizations, error: organizationsError } = await supabase
+    .from('employee_organizations')
+    .select('employee_id,job_id')
+    .eq('tenant_id', context.tenantId)
+    .in('job_id', jobIds)
+    .lte('effective_from', today)
+    .or('effective_to.is.null,effective_to.gt.' + today)
+  if (organizationsError) throw new TalentServiceError('TALENT_PROFILE_CREATE_OPTIONS_READ_FAILED')
+
+  const organizationRows = organizations ?? []
+  const employeeIds = [...new Set(organizationRows.map((organization) => organization.employee_id))]
+  const employeesResult = employeeIds.length > 0
+    ? await supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).eq('is_active', true).is('deleted_at', null).in('id', employeeIds)
+    : { data: [], error: null }
+  if (employeesResult.error) throw new TalentServiceError('TALENT_PROFILE_CREATE_OPTIONS_READ_FAILED')
+
+  const employeesById = new Map((employeesResult.data ?? []).map((employee) => [employee.id, employee]))
+  const employeesByJob = new Map<string, TalentWorkforceEmployee[]>()
+  for (const organization of organizationRows) {
+    if (!organization.job_id) continue
+    const employee = employeesById.get(organization.employee_id)
+    if (!employee) continue
+    const current = employeesByJob.get(organization.job_id) ?? []
+    if (current.some((item) => item.id === employee.id)) continue
+    current.push({
+      id: employee.id,
+      label: [employee.first_name, employee.birth_name].filter((value) => value.trim().length > 0).join(' ') || employee.employee_number,
+      employeeNumber: employee.employee_number,
+      jobId: organization.job_id,
+    })
+    employeesByJob.set(organization.job_id, current)
+  }
+
+  const groupsById = new Map((groups.data ?? []).map((item) => [item.id, item]))
+  const familiesById = new Map((families.data ?? []).map((item) => [item.id, item]))
+  const senioritiesById = new Map((seniorities.data ?? []).map((item) => [item.id, item]))
+  return availableJobs.map((job) => {
+    const group = groupsById.get(job.job_group_id) ?? null
+    return {
+      jobId: job.id,
+      jobCode: job.code,
+      groupName: group?.name ?? null,
+      familyName: group?.job_family_id ? familiesById.get(group.job_family_id)?.name ?? null : null,
+      seniorityName: job.seniority_id ? senioritiesById.get(job.seniority_id)?.name ?? null : null,
+      employees: employeesByJob.get(job.id) ?? [],
+    }
+  })
+}

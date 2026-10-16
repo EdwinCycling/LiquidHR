@@ -10,10 +10,11 @@ import { TalentFoundationManager } from '@/components/talent/talent-foundation-m
 import { TalentNotificationPanel } from '@/components/talent/talent-notification-panel'
 import { TalentProfileManagement } from '@/components/talent/talent-profile-management'
 import type { TalentEmployeeCapabilityOptions, TalentEmployeeCapabilityRecord, listTalentEmployeeCapabilityRecords, getTalentEmployeeCapabilityOptions } from '@/lib/talent/employee-capability-service'
-import type { listTalentFoundation, listTalentProfileManagement } from '@/lib/talent/service'
+import type { listTalentFoundation, listTalentProfileCreateOptions, listTalentProfileManagement } from '@/lib/talent/service'
 
 type Foundation = Awaited<ReturnType<typeof listTalentFoundation>>
 type Profiles = Awaited<ReturnType<typeof listTalentProfileManagement>>
+type ProfileCreateOptions = Awaited<ReturnType<typeof listTalentProfileCreateOptions>>
 type Records = Awaited<ReturnType<typeof listTalentEmployeeCapabilityRecords>>
 type Options = Awaited<ReturnType<typeof getTalentEmployeeCapabilityOptions>>
 type LoadedSection = 'profiles' | 'records' | 'foundation'
@@ -27,6 +28,7 @@ type WorkspaceState = {
   status: Record<LoadedSection, LoadStatus>
   foundation: Foundation | null
   profiles: Profiles | null
+  profileCreateOptions: ProfileCreateOptions | null
   records: Records | null
   options: Options | null
 }
@@ -60,6 +62,7 @@ const initialState: WorkspaceState = {
   status: { profiles: 'idle', records: 'idle', foundation: 'idle' },
   foundation: null,
   profiles: null,
+  profileCreateOptions: null,
   records: null,
   options: null,
 }
@@ -76,7 +79,7 @@ export function TalentManagementWorkspace({ labels }: { labels: TalentManagement
 
   async function loadSection(section: LoadedSection) {
     const alreadyLoaded = section === 'profiles'
-      ? Boolean(state.profiles && state.foundation)
+      ? Boolean(state.profiles && state.profileCreateOptions && state.foundation)
       : section === 'records'
         ? Boolean(state.records && state.options)
         : Boolean(state.foundation)
@@ -85,14 +88,16 @@ export function TalentManagementWorkspace({ labels }: { labels: TalentManagement
     setState((current) => ({ ...current, status: { ...current.status, [section]: 'loading' } }))
     try {
       if (section === 'profiles') {
-        const [foundationResponse, profilesResponse] = await Promise.all([
+        const [foundationResponse, profilesResponse, profileOptionsResponse] = await Promise.all([
           fetch('/api/talent', { cache: 'no-store' }),
           fetch('/api/talent/job-profiles', { cache: 'no-store' }),
+          fetch('/api/talent/job-profiles/options', { cache: 'no-store' }),
         ])
-        if (!foundationResponse.ok || !profilesResponse.ok) throw new Error('TALENT_PROFILE_MANAGEMENT_READ_FAILED')
+        if (!foundationResponse.ok || !profilesResponse.ok || !profileOptionsResponse.ok) throw new Error('TALENT_PROFILE_MANAGEMENT_READ_FAILED')
         const foundationPayload = await foundationResponse.json() as { data: Foundation }
         const profilesPayload = await profilesResponse.json() as { data: Profiles }
-        setState((current) => ({ ...current, foundation: foundationPayload.data, profiles: profilesPayload.data, status: { ...current.status, foundation: 'loaded', profiles: 'loaded' } }))
+        const profileOptionsPayload = await profileOptionsResponse.json() as { data: ProfileCreateOptions }
+        setState((current) => ({ ...current, foundation: foundationPayload.data, profiles: profilesPayload.data, profileCreateOptions: profileOptionsPayload.data, status: { ...current.status, foundation: 'loaded', profiles: 'loaded' } }))
         return
       }
       if (section === 'records') {
@@ -122,8 +127,8 @@ export function TalentManagementWorkspace({ labels }: { labels: TalentManagement
 
   function renderProfiles() {
     const status = state.status.profiles
-    if (status !== 'loaded' || !state.profiles || !state.foundation) return loadMessage(status, labels)
-    return <div className="space-y-4"><p className="text-sm text-muted-foreground">{labels.profilesDescription}</p><TalentProfileManagement foundation={state.foundation} initial={state.profiles} labels={labels.profiles} /></div>
+    if (status !== 'loaded' || !state.profiles || !state.profileCreateOptions || !state.foundation) return loadMessage(status, labels)
+    return <div className="space-y-4"><p className="text-sm text-muted-foreground">{labels.profilesDescription}</p><TalentProfileManagement createOptions={state.profileCreateOptions} foundation={state.foundation} initial={state.profiles} labels={labels.profiles} /></div>
   }
 
   function renderRecords() {

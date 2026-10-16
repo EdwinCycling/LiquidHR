@@ -1,10 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { CheckCircle2, Copy, Plus, Save, Trash2 } from 'lucide-react'
-import type { listTalentFoundation, listTalentProfileManagement } from '@/lib/talent/service'
+import { Button } from '@/components/ui/button'
+import { Dialog } from '@/components/ui/dialog'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import type { listTalentFoundation, listTalentProfileCreateOptions, listTalentProfileManagement } from '@/lib/talent/service'
 
 type Profiles = Awaited<ReturnType<typeof listTalentProfileManagement>>
+type CreateOptions = Awaited<ReturnType<typeof listTalentProfileCreateOptions>>
 type Foundation = Awaited<ReturnType<typeof listTalentFoundation>>
 type Profile = Profiles[number]
 type Version = Profile['versions'][number]
@@ -72,6 +76,17 @@ interface Labels {
   remove: string
   noRequirements: string
   profileRequired: string
+  profileCreateOpen: string
+  profileCreateTitle: string
+  profileCreateDescription: string
+  profileCreateSelectJob: string
+  profileCreateEmployees: string
+  profileCreateNoEmployees: string
+  profileCreatePurpose: string
+  profileCreateSummary: string
+  profileCreateUnavailable: string
+  profileCreateRefreshFailed: string
+  profileCreateCancel: string
 }
 
 function listText(value: unknown): string {
@@ -89,8 +104,13 @@ function statusLabel(status: string, labels: Labels): string {
   return status === 'DRAFT' ? labels.draft : status === 'ACTIVE' ? labels.active : labels.inactive
 }
 
-export function TalentProfileManagement({ initial, foundation, labels }: { initial: Profiles; foundation: Foundation; labels: Labels }) {
+export function TalentProfileManagement({ initial, foundation, createOptions, labels }: { initial: Profiles; foundation: Foundation; createOptions: CreateOptions; labels: Labels }) {
   const [profiles, setProfiles] = useState(initial)
+  const [profileOptions, setProfileOptions] = useState(createOptions)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createJobId, setCreateJobId] = useState(createOptions[0]?.jobId ?? '')
+  const [createPurpose, setCreatePurpose] = useState('')
+  const [createSummary, setCreateSummary] = useState('')
   const [selectedProfileId, setSelectedProfileId] = useState(initial[0]?.profile.id ?? '')
   const [editor, setEditor] = useState<Awaited<ReturnType<typeof import('@/lib/talent/service').getTalentProfileEditor>> | null>(null)
   const [versionId, setVersionId] = useState('')
@@ -104,6 +124,7 @@ export function TalentProfileManagement({ initial, foundation, labels }: { initi
     return profiles.filter((item) => !query || [item.job.code, item.group?.name ?? '', item.family?.name ?? '', item.seniority?.name ?? ''].some((value) => value.toLocaleLowerCase('nl-NL').includes(query)))
   }, [profiles, search])
   const selected = profiles.find((item) => item.profile.id === selectedProfileId) ?? visibleProfiles[0]
+  const selectedCreateOption = profileOptions.find((item) => item.jobId === createJobId)
   const selectedVersion = editor?.versions.find((version) => version.id === versionId) ?? editor?.versions.find((version) => version.status === 'DRAFT') ?? editor?.versions[0]
   const selectedRequirements = selectedVersion ? editor?.requirements[selectedVersion.id] ?? [] : []
   const activeCount = profiles.reduce((count, item) => count + item.versions.filter((version) => version.status === 'ACTIVE' && version.valid_from && (!version.valid_until || version.valid_until > new Date().toISOString().slice(0, 10))).length, 0)
@@ -120,28 +141,39 @@ export function TalentProfileManagement({ initial, foundation, labels }: { initi
     setVersionId(payload.data.versions.find((version) => version.status === 'DRAFT')?.id ?? payload.data.versions[0]?.id ?? '')
   }
 
-  async function refresh(profileId = selectedProfileId) {
-    const [profilesResponse, editorResponse] = await Promise.all([
+  async function refresh(profileId = selectedProfileId): Promise<boolean> {
+    const [profilesResponse, editorResponse, optionsResponse] = await Promise.all([
       fetch('/api/talent/job-profiles', { cache: 'no-store' }),
       profileId ? fetch(`/api/talent/job-profiles/${profileId}`, { cache: 'no-store' }) : Promise.resolve(null),
+      fetch('/api/talent/job-profiles/options', { cache: 'no-store' }),
     ])
-    if (!profilesResponse.ok || (editorResponse && !editorResponse.ok)) { setMessage(labels.failed); return }
+    if (!profilesResponse.ok || !optionsResponse.ok || (editorResponse && !editorResponse.ok)) { setMessage(labels.failed); return false }
     const profilePayload = await profilesResponse.json() as { data: Profiles }
+    const optionsPayload = await optionsResponse.json() as { data: CreateOptions }
     setProfiles(profilePayload.data)
+    setProfileOptions(optionsPayload.data)
+    if (profileId) setSelectedProfileId(profileId)
     if (editorResponse) {
       const editorPayload = await editorResponse.json() as { data: Awaited<ReturnType<typeof import('@/lib/talent/service').getTalentProfileEditor>> }
       setEditor(editorPayload.data)
       setVersionId((current) => editorPayload.data.versions.some((version) => version.id === current) ? current : editorPayload.data.versions.find((version) => version.status === 'DRAFT')?.id ?? editorPayload.data.versions[0]?.id ?? '')
     }
+    return true
   }
 
   async function request(url: string, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown) {
     setSaving(true); setMessage(null)
-    const response = await fetch(url, { method, headers: body === undefined ? undefined : { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })
-    setSaving(false)
-    if (!response.ok) { setMessage(labels.failed); return null }
-    setMessage(labels.saved)
-    return response
+    try {
+      const response = await fetch(url, { method, headers: body === undefined ? undefined : { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })
+      if (!response.ok) { setMessage(labels.failed); return null }
+      setMessage(labels.saved)
+      return response
+    } catch {
+      setMessage(labels.failed)
+      return null
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function saveVersion(version: Version) {
@@ -194,7 +226,31 @@ export function TalentProfileManagement({ initial, foundation, labels }: { initi
     if (await request(`/api/talent/profile-requirements/${requirementId}`, 'DELETE')) await refresh()
   }
 
+  async function createProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!createJobId) return
+    setSaving(true)
+    setMessage(null)
+    try {
+      const response = await fetch('/api/talent/job-profiles', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jobId: createJobId, purpose: createPurpose.trim() || null, summary: createSummary.trim() || null }) })
+      if (!response.ok) { setMessage(labels.failed); return }
+      const payload = await response.json() as { data: { id: string } }
+      const refreshed = await refresh(payload.data.id)
+      setCreateOpen(false)
+      setCreatePurpose('')
+      setCreateSummary('')
+      setCreateJobId('')
+      setMessage(refreshed ? labels.saved : labels.profileCreateRefreshFailed)
+    } catch {
+      setMessage(labels.failed)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return <div className="space-y-6">
+    <div className="flex flex-col gap-3 border-b border-subtle pb-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="eyebrow">{labels.dashboard}</p><h2 className="text-xl font-semibold">{labels.profiles}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.profileCreateDescription}</p></div><Button disabled={profileOptions.length === 0 || saving} onClick={() => { setMessage(null); setCreateJobId(profileOptions[0]?.jobId ?? ''); setCreateOpen(true) }} size="sm" type="button"><Plus aria-hidden="true" />{labels.profileCreateOpen}</Button></div>
+    {profileOptions.length === 0 ? <p className="text-sm text-muted-foreground">{labels.profileCreateUnavailable}</p> : null}
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
       {[['functions', profiles.length], ['capabilities', foundation.capabilities.length], ['activeProfiles', activeCount], ['draftVersions', draftCount], ['missingActive', missingActiveCount], ['versions', profiles.reduce((count, item) => count + item.versions.length, 0)]].map(([key, value]) => <article className="rounded-2xl border bg-surface p-4 shadow-sm" key={key as string}><p className="text-sm font-medium text-foreground">{labels[key as keyof Labels]}</p><p className="mt-2 text-2xl font-semibold">{value}</p></article>)}
     </div>
@@ -214,5 +270,14 @@ export function TalentProfileManagement({ initial, foundation, labels }: { initi
         {message ? <p className="text-sm text-muted-foreground" role="status">{message}</p> : null}
       </div> : <p className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">{labels.empty}</p>}
     </section>
+  <Dialog closeLabel={labels.profileCreateCancel} description={labels.profileCreateDescription} footer={<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button disabled={saving} onClick={() => setCreateOpen(false)} size="sm" type="button" variant="secondary">{labels.profileCreateCancel}</Button><Button disabled={!createJobId || saving} form="talent-profile-create-form" loading={saving} size="sm" type="submit">{labels.profileCreateOpen}</Button></div>} onOpenChange={(open) => { if (!saving) setCreateOpen(open) }} open={createOpen} panelClassName="max-w-2xl" title={labels.profileCreateTitle}>
+      <form className="grid gap-4" id="talent-profile-create-form" onSubmit={(event) => void createProfile(event)}>
+        <label className="grid gap-1.5 text-sm font-medium"><span>{labels.job}</span><DropdownSelect aria-label={labels.job} onChange={(event) => setCreateJobId(event.target.value)} searchable searchPlaceholder={labels.search} value={createJobId}><option value="">{labels.profileCreateSelectJob}</option>{profileOptions.map((option) => <option key={option.jobId} value={option.jobId}>{option.jobCode}{option.groupName ? ' · ' + option.groupName : ''}{option.seniorityName ? ' · ' + option.seniorityName : ''}</option>)}</DropdownSelect></label>
+        {selectedCreateOption ? <div className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3"><h3 className="text-sm font-semibold">{labels.profileCreateEmployees}</h3>{selectedCreateOption.employees.length > 0 ? <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">{selectedCreateOption.employees.map((employee) => <li key={employee.id}>{employee.label} · {employee.employeeNumber}</li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">{labels.profileCreateNoEmployees}</p>}</div> : null}
+        <label className="grid gap-1.5 text-sm font-medium"><span>{labels.profileCreatePurpose}</span><textarea className="form-field min-h-20" maxLength={4000} onChange={(event) => setCreatePurpose(event.target.value)} value={createPurpose} /></label>
+        <label className="grid gap-1.5 text-sm font-medium"><span>{labels.profileCreateSummary}</span><textarea className="form-field min-h-20" maxLength={4000} onChange={(event) => setCreateSummary(event.target.value)} value={createSummary} /></label>
+        {message ? <p aria-live="polite" className="text-sm text-muted-foreground" role="status">{message}</p> : null}
+      </form>
+    </Dialog>
   </div>
 }
