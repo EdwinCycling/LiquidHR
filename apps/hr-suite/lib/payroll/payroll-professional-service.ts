@@ -153,6 +153,21 @@ export async function getPayrollProfessionalPayslipPdfArtifactForRun(input: {
   return await getPersistedPayrollProfessionalPayslipPdfArtifactForRun(input)
 }
 
+export async function getPayrollProfessionalPayslipPdfArtifactStatusForRun(runId: string) {
+  const access = await requireComponentLibraryAccess(false)
+  const artifact = await getPersistedPayrollProfessionalPayslipPdfArtifactForRun({
+    scope: access.scope,
+    payrollAdministrationId: access.administration.id,
+    actorUserId: access.actorUserId,
+    runId,
+  })
+  return artifact ? {
+    fileName: artifact.file_name,
+    sizeBytes: artifact.artifact_bytes.byteLength,
+    sha256: artifact.artifact_hash,
+  } : null
+}
+
 export type EmployeePayrollStatement = {
   readonly periodYear: number
   readonly periodMonth: number

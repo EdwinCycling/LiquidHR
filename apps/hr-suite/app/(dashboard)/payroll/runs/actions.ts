@@ -11,6 +11,8 @@ import {
   type PayrollProfessionalBatchResult,
 } from '@/lib/payroll/payroll-professional-run-service'
 import { openPayrollCycle } from '@/lib/payroll/payroll-cycle-service'
+import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
+import { createPayrollProfessionalPayslipPdfArtifactForRun as createPayslipPdfArtifact } from '@/lib/payroll/payroll-professional-service'
 
 export type PayrollProfessionalBatchActionState = {
   readonly message: PayrollProfessionalBatchResult['message'] | null
@@ -112,4 +114,29 @@ export async function reviewPayrollRun(formData: FormData): Promise<never> {
 
 export async function finalizePayrollRun(formData: FormData): Promise<never> {
   return await transitionPayrollRun(formData, 'FINALIZED')
+}
+
+export async function generatePayrollPayslipPdfArtifact(formData: FormData): Promise<never> {
+  const runId = formData.get('runId')
+  const target = typeof runId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(runId)
+    ? `/payroll/runs/${encodeURIComponent(runId)}`
+    : '/payroll/runs'
+  if (target === '/payroll/runs') redirect(`${target}?artifact=invalid`)
+
+  let outcome: 'created' | 'failed' = 'failed'
+  try {
+    const access = await requireComponentLibraryAccess(true)
+    const artifact = await createPayslipPdfArtifact({
+      scope: access.scope,
+      payrollAdministrationId: access.administration.id,
+      actorUserId: access.actorUserId,
+      runId: runId as string,
+    })
+    if (artifact) outcome = 'created'
+  } catch {
+    outcome = 'failed'
+  }
+
+  revalidatePath(target)
+  redirect(`${target}?artifact=${outcome}`)
 }

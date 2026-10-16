@@ -23,8 +23,10 @@ function calculation(
 ): EmployeePayrollCalculationView {
   const candidate = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[candidateIndex]!
   const id = String(candidateIndex + 1).padStart(12, '0')
+  const demo001 = candidate.key === 'DEMO-001'
+  const demo003 = candidate.key === 'DEMO-003'
   const grossAmount = candidate.grossAmount
-  const wageTaxAmount = candidateIndex === 0 ? '1188.58' : '1173.42'
+  const wageTaxAmount = demo001 ? '1188.58' : demo003 ? '518.42' : '1173.42'
   return {
     status: 'CALCULATED',
     completeness: 'COMPLETE',
@@ -41,27 +43,27 @@ function calculation(
     resultHash: `${String(candidateIndex + 5).repeat(64)}`,
     grossAmount,
     wageTaxAmount,
-    netAfterWageTax: candidateIndex === 0 ? '2181.49' : '2141.36',
+    netAfterWageTax: demo001 ? '2181.49' : demo003 ? '2851.65' : '2141.36',
     payfull02: {
-      taxableWage: candidateIndex === 0 ? '3325.07' : '3282.28',
-      employeePension: candidateIndex === 0 ? '191.93' : '251.72',
-      employerPension: candidateIndex === 0 ? '287.90' : '251.72',
-      netReimbursement: candidateIndex === 0 ? '45.00' : '32.50',
+      taxableWage: demo001 || demo003 ? '3325.07' : '3282.28',
+      employeePension: demo001 || demo003 ? '191.93' : '251.72',
+      employerPension: demo001 || demo003 ? '287.90' : '251.72',
+      netReimbursement: demo001 || demo003 ? '45.00' : '32.50',
       netDeduction: '0.00', netCorrection: '0.00',
-      employerAwf: candidateIndex === 0 ? '257.36' : '254.05',
-      employerAof: candidateIndex === 0 ? '208.48' : '205.80',
-      employerWko: candidateIndex === 0 ? '16.63' : '16.41',
-      employerWhk: candidateIndex === 0 ? '60.18' : '59.41',
-      employerZvw: candidateIndex === 0 ? '202.83' : '200.22',
-      employerPremiums: candidateIndex === 0 ? '745.48' : '735.89',
-      holidayReserve: candidateIndex === 0 ? '281.36' : '282.72', yearEndReserve: '0.00',
-      totalEmployerCost: candidateIndex === 0 ? '4876.74' : '4836.83',
-      cumulativeTaxableWage: candidateIndex === 0 ? '33250.70' : '32822.80',
-      cumulativeWageTax: candidateIndex === 0 ? '11885.80' : '11734.20',
-      cumulativeEmployeeInsuranceWage: candidateIndex === 0 ? '33250.70' : '32822.80',
-      cumulativeZvwWage: candidateIndex === 0 ? '33250.70' : '32822.80',
-      cumulativeGross: candidateIndex === 0 ? '35170.00' : '35340.00',
-      cumulativeHolidayReserve: candidateIndex === 0 ? '2813.60' : '2827.20', cumulativeYearEndReserve: '0.00',
+      employerAwf: demo001 || demo003 ? '257.36' : '254.05',
+      employerAof: demo001 || demo003 ? '208.48' : '205.80',
+      employerWko: demo001 || demo003 ? '16.63' : '16.41',
+      employerWhk: demo001 || demo003 ? '60.18' : '59.41',
+      employerZvw: demo001 || demo003 ? '202.83' : '200.22',
+      employerPremiums: demo001 || demo003 ? '745.48' : '735.89',
+      holidayReserve: demo001 || demo003 ? '281.36' : '282.72', yearEndReserve: '0.00',
+      totalEmployerCost: demo001 || demo003 ? '4876.74' : '4836.83',
+      cumulativeTaxableWage: demo003 ? '33526.10' : demo001 ? '33250.70' : '32822.80',
+      cumulativeWageTax: demo003 ? '11322.20' : demo001 ? '11885.80' : '11734.20',
+      cumulativeEmployeeInsuranceWage: demo003 ? '33526.10' : demo001 ? '33250.70' : '32822.80',
+      cumulativeZvwWage: demo003 ? '33526.10' : demo001 ? '33250.70' : '32822.80',
+      cumulativeGross: demo003 ? '35476.00' : demo001 ? '35170.00' : '35340.00',
+      cumulativeHolidayReserve: demo003 ? '2838.08' : demo001 ? '2813.60' : '2827.20', cumulativeYearEndReserve: '0.00',
     },
     gaps: [],
     incompleteComponents: [],
@@ -170,8 +172,8 @@ describe('isolated local payroll acceptance flow', () => {
 
     expect(result.message).toBe('preflightBlocked')
     expect(result.calculations).toEqual([])
-    expect(service.prepareScenarioSetup).toHaveBeenCalledTimes(2)
-    expect(service.inspectScenarioCandidate).toHaveBeenCalledTimes(2)
+    expect(service.prepareScenarioSetup).toHaveBeenCalledTimes(3)
+    expect(service.inspectScenarioCandidate).toHaveBeenCalledTimes(3)
     expect(service.inspectExceptionCandidate).toHaveBeenCalledWith({
       employeeId: PAYROLL_ACCEPTANCE_EXCEPTION_CANDIDATE.employeeId,
       employmentId: PAYROLL_ACCEPTANCE_EXCEPTION_CANDIDATE.employmentId,
@@ -179,23 +181,23 @@ describe('isolated local payroll acceptance flow', () => {
     })
     expect(service.calculateScenarioCandidate).not.toHaveBeenCalled()
     expect(service.readBackScenarioCalculation).not.toHaveBeenCalled()
-    expect(result.preflight[2]).toMatchObject({ key: 'DEMO-005', expectedException: true, eligibleForCalculation: false })
+    expect(result.preflight[3]).toMatchObject({ key: 'DEMO-005', expectedException: true, eligibleForCalculation: false })
   })
 
-  it('saves only DEMO-001 and DEMO-002, proves idempotency, and keeps DEMO-005 read-only', async () => {
+  it('saves DEMO-001, DEMO-002 and DEMO-003, proves idempotency, and keeps DEMO-005 read-only', async () => {
     const service = serviceWithReadySources()
 
     const result = await runLocalPayrollAcceptanceFlow(service)
 
     expect(result.message).toBe('saved')
-    expect(service.prepareScenarioSetup).toHaveBeenCalledTimes(2)
-    expect(result.calculations).toHaveLength(2)
-    expect(result.calculations.map((item) => item.key)).toEqual(['DEMO-001', 'DEMO-002'])
-    expect(result.calculations.map((item) => item.remainingAfterWageTax)).toEqual(['2181.49', '2141.36'])
+    expect(service.prepareScenarioSetup).toHaveBeenCalledTimes(3)
+    expect(result.calculations).toHaveLength(3)
+    expect(result.calculations.map((item) => item.key)).toEqual(['DEMO-001', 'DEMO-002', 'DEMO-003'])
+    expect(result.calculations.map((item) => item.remainingAfterWageTax)).toEqual(['2181.49', '2141.36', '2851.65'])
     expect(result.calculations.every((item) => item.idempotencyVerified && item.oracleMatches)).toBe(true)
     expect(result.calculations.every((item) => item.businessStatus === 'CONCEPT' && item.completeness === 'COMPLETE')).toBe(true)
-    expect(service.calculateScenarioCandidate).toHaveBeenCalledTimes(4)
-    expect(service.readBackScenarioCalculation).toHaveBeenCalledTimes(2)
+    expect(service.calculateScenarioCandidate).toHaveBeenCalledTimes(6)
+    expect(service.readBackScenarioCalculation).toHaveBeenCalledTimes(3)
     expect(service.inspectExceptionCandidate).toHaveBeenCalledTimes(1)
     expect(result.calculations[0]?.readback).toMatchObject({
       confirmed: true,
@@ -203,6 +205,33 @@ describe('isolated local payroll acceptance flow', () => {
       controlCount: 4,
       controls: [{ key: 'CONTROL-A', status: 'PASS' }, { key: 'CONTROL-B', status: 'PASS' }],
     })
+  })
+
+  it('calculates only DEMO-003 when the third-candidate flow is selected', async () => {
+    const service = serviceWithReadySources()
+
+    const result = await runLocalPayrollAcceptanceFlow(service, ['DEMO-003'])
+
+    expect(result.message).toBe('saved')
+    expect(result.preflight).toEqual([expect.objectContaining({ key: 'DEMO-003', eligibleForCalculation: true })])
+    expect(result.calculations).toHaveLength(1)
+    expect(result.calculations[0]).toMatchObject({
+      key: 'DEMO-003',
+      grossAmount: '3517.00',
+      wageTaxAmount: '518.42',
+      remainingAfterWageTax: '2851.65',
+      idempotencyVerified: true,
+      oracleMatches: true,
+    })
+    expect(service.prepareScenarioSetup).toHaveBeenCalledTimes(1)
+    expect(service.prepareScenarioSetup).toHaveBeenCalledWith({
+      employeeId: PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[2]!.employeeId,
+      employmentId: PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES[2]!.employmentId,
+    })
+    expect(service.inspectScenarioCandidate).toHaveBeenCalledTimes(1)
+    expect(service.calculateScenarioCandidate).toHaveBeenCalledTimes(2)
+    expect(service.readBackScenarioCalculation).toHaveBeenCalledTimes(1)
+    expect(service.inspectExceptionCandidate).not.toHaveBeenCalled()
   })
 
   it('does not claim idempotency if a repeat calculation changes persisted identity', async () => {

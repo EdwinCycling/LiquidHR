@@ -40,8 +40,9 @@ function sourceChecks(error: unknown): readonly string[] | null {
   const allowed = new Set([
     'source_scope', 'employee_employment', 'period', 'income_relationship', 'fiscal_source', 'salary', 'schedule', 'contract',
     'candidate_DEMO-001', 'candidate_DEMO-002', 'fiscal_profile_source_supported', 'fiscal_confirmed_profile',
+    'candidate_DEMO-003',
     'fiscal_admin_confirmation', 'fiscal_profile_gap_free', 'fiscal_regular_profile', 'fiscal_credit_match',
-    'fiscal_single_income_relationship',
+    'fiscal_single_income_relationship', 'awf_high_rate_source_basis',
   ])
   if (!Array.isArray(checks)) return null
   return checks.filter((check): check is string => typeof check === 'string' && allowed.has(check))
@@ -80,6 +81,27 @@ export async function runLocalPayrollAcceptance(
   try {
     const service = createLocalPayrollAcceptanceCalculationService(host)
     const result = await runLocalPayrollAcceptanceFlow(service)
+    revalidatePath('/local/payroll-acceptance')
+    return { message: result.message, result, failureCode: null, sourceChecks: null }
+  } catch (error) {
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return { message: 'accessDenied', result: null, failureCode: null, sourceChecks: null }
+    }
+    return { message: 'failed', result: null, failureCode: failureCode(error), sourceChecks: sourceChecks(error) }
+  }
+}
+
+export async function runLocalPayrollAcceptanceDemo003(
+  _previousState: LocalPayrollAcceptanceRunState,
+  _formData: FormData,
+): Promise<LocalPayrollAcceptanceRunState> {
+  void _previousState
+  void _formData
+  const host = await requestHost()
+  if (!isLocalPayrollAcceptanceRuntime(host)) return { message: 'unavailable', result: null, failureCode: null, sourceChecks: null }
+  try {
+    const service = createLocalPayrollAcceptanceCalculationService(host)
+    const result = await runLocalPayrollAcceptanceFlow(service, ['DEMO-003'])
     revalidatePath('/local/payroll-acceptance')
     return { message: result.message, result, failureCode: null, sourceChecks: null }
   } catch (error) {

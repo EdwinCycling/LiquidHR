@@ -22,6 +22,11 @@ const scenarios = [
     employmentId: '8b0ceb1c-1aa1-84f4-9231-87ec2be1ff94',
     incomeRelationshipNumber: '1',
     grossAmount: '3517.00',
+    openingGrossAmount: '3517.00',
+    openingEmployeePensionAmount: '191.93',
+    openingEmployerPensionAmount: '287.90',
+    openingTaxableWageAmount: '3325.07',
+    openingWageTaxAmount: '1188.58',
     payrollTaxCreditApplies: false,
     employeePensionRate: '10.00',
     employerPensionRate: '15.00',
@@ -33,14 +38,36 @@ const scenarios = [
     employmentId: '6236ee34-182d-1676-6635-ad8eed4c21f3',
     incomeRelationshipNumber: '2',
     grossAmount: '3534.00',
+    openingGrossAmount: '3534.00',
+    openingEmployeePensionAmount: '251.72',
+    openingEmployerPensionAmount: '251.72',
+    openingTaxableWageAmount: '3282.28',
+    openingWageTaxAmount: '1173.42',
     payrollTaxCreditApplies: false,
     employeePensionRate: '13.00',
     employerPensionRate: '13.00',
     netReimbursement: '32.50',
   },
+  {
+    key: 'DEMO-003',
+    employeeId: '77646ba9-09dc-141a-e1f9-048a4744112a',
+    employmentId: '48821180-bde8-153e-d9bb-e67c4d02ff48',
+    incomeRelationshipNumber: '3',
+    grossAmount: '3517.00',
+    openingGrossAmount: '3551.00',
+    openingEmployeePensionAmount: '195.33',
+    openingEmployerPensionAmount: '293.00',
+    openingTaxableWageAmount: '3355.67',
+    openingWageTaxAmount: '1200.42',
+    payrollTaxCreditApplies: true,
+    employeePensionRate: '10.00',
+    employerPensionRate: '15.00',
+    netReimbursement: '45.00',
+  },
 ] as const
 
 type Scenario = (typeof scenarios)[number]
+export type PayrollAcceptanceScenarioCandidateKey = Scenario['key']
 
 export class PayrollAcceptanceScenarioError extends Error {
   constructor(
@@ -178,7 +205,7 @@ function derivedScenarioControls(input: {
   const actualWork = isRecord(payrollOwnedValues.actualWorkProjection) ? payrollOwnedValues.actualWorkProjection : {}
   const currentVariable = decimal(variableRegularWage)
   const monthlyGross = decimal(scenario.grossAmount)
-  const baseEmployeePension = decimal(scenario.key === 'DEMO-001' ? '191.93' : '251.72')
+  const baseEmployeePension = decimal(scenario.key === 'DEMO-001' || scenario.key === 'DEMO-003' ? '191.93' : '251.72')
   const employeeRate = decimal(pension.employeeRate)
   const variableEmployeePension = currentVariable && employeeRate
     ? currentVariable.multiply(employeeRate).divideExact(FixedDecimal.parse('100')).round(2, 'HALF_UP')
@@ -219,18 +246,18 @@ function derivedScenarioControls(input: {
       && typeof value.sourceHash === 'string'
       && /^[0-9a-f]{64}$/.test(value.sourceHash)
       && value.provenance === 'CORE_TEST_SOURCE_SNAPSHOT'
-      && equalsMoney(value.monthlyGross, scenario.grossAmount)
+      && equalsMoney(value.monthlyGross, scenario.openingGrossAmount)
   })
   const cumulativeMatchesNinePeriods = cumulativePeriodCount === 9
     && sourceHistoryMatchesNinePeriods
-    && equalsMoney(opening.grossWageBeforePeriod, decimalProduct(scenario.grossAmount, 9))
-    && equalsMoney(opening.taxableWageBeforePeriod, decimalProduct(scenario.key === 'DEMO-001' ? '3325.07' : '3282.28', 9))
-    && equalsMoney(opening.wageTaxBeforePeriod, decimalProduct(scenario.key === 'DEMO-001' ? '1188.58' : '1173.42', 9))
-    && equalsMoney(opening.employeePensionBeforePeriod, decimalProduct(scenario.key === 'DEMO-001' ? '191.93' : '251.72', 9))
-    && equalsMoney(opening.employerPensionBeforePeriod, decimalProduct(scenario.key === 'DEMO-001' ? '287.90' : '251.72', 9))
+    && equalsMoney(opening.grossWageBeforePeriod, decimalProduct(scenario.openingGrossAmount, 9))
+    && equalsMoney(opening.taxableWageBeforePeriod, decimalProduct(scenario.openingTaxableWageAmount, 9))
+    && equalsMoney(opening.wageTaxBeforePeriod, decimalProduct(scenario.openingWageTaxAmount, 9))
+    && equalsMoney(opening.employeePensionBeforePeriod, decimalProduct(scenario.openingEmployeePensionAmount, 9))
+    && equalsMoney(opening.employerPensionBeforePeriod, decimalProduct(scenario.openingEmployerPensionAmount, 9))
   const holidayReserveOpeningMatches = equalsMoney(
     opening.holidayReserveBeforePeriod,
-    decimalProduct(FixedDecimal.parse(scenario.grossAmount).multiply(FixedDecimal.parse('0.08')).toString(2), 9),
+    decimalProduct(FixedDecimal.parse(scenario.openingGrossAmount).multiply(FixedDecimal.parse('0.08')).round(2, 'HALF_UP').toString(2), 9),
   )
   const deductionAmount = decimal(amounts.netDeduction)
   const deductionsAuthorized = deductionAmount !== null && deductionAmount.compare(FixedDecimal.parse('0')) >= 0
@@ -272,6 +299,7 @@ function derivedScenarioControls(input: {
 
 function expectedRegularSourceGaps(snapshot: PayrollSourceSnapshot, scenario: Scenario): string[] {
   const source = isRecord(snapshot.canonicalSource) ? snapshot.canonicalSource : null
+  const employment = source && isRecord(source.employment) ? source.employment : null
   const compensation = source && isRecord(source.compensation) ? source.compensation : null
   const schedule = source && isRecord(source.schedule) ? source.schedule : null
   const contract = source && isRecord(source.contract) ? source.contract : null
@@ -339,28 +367,34 @@ function expectedRegularSourceGaps(snapshot: PayrollSourceSnapshot, scenario: Sc
       && roster.fulltimeHoursPerWeek === 40
       && roster.partTimeFactor === 1],
     ['contract', contractRow?.fulltimeHoursPerWeek === 40],
+    ['awf_high_rate_source_basis', scenario.key !== 'DEMO-003' || (
+      (employment?.contractType === 'PERMANENT' || employment?.contractType === 'INDEFINITE')
+      && roster?.isOnCall === false
+      && employment.writtenContract !== true
+    )],
   ]
   return checks.filter(([, passes]) => !passes).map(([key]) => key)
 }
 
 function payfull02PayrollOwned(scenario: Scenario, variant: PayrollAcceptanceScenarioVariant) {
   const demo001 = scenario.key === 'DEMO-001'
+  const demo003 = scenario.key === 'DEMO-003'
   const variableRegularWage = variant === 'VARIABLE_BONUS_DEMO_001' && demo001
     ? PAYROLL_ACCEPTANCE_VARIABLE_WAGE_AMOUNT
     : '0.00'
-  const employeePension = demo001 ? '191.93' : '251.72'
-  const employerPension = demo001 ? '287.90' : '251.72'
-  const taxableWage = demo001 ? '3325.07' : '3282.28'
   const opening = {
-    grossWageBeforePeriod: demo001 ? '31653.00' : '31806.00',
-    holidayReserveBeforePeriod: demo001 ? '2532.24' : '2544.48',
+    grossWageBeforePeriod: decimalProduct(scenario.openingGrossAmount, 9)!,
+    holidayReserveBeforePeriod: decimalProduct(
+      FixedDecimal.parse(scenario.openingGrossAmount).multiply(FixedDecimal.parse('0.08')).round(2, 'HALF_UP').toString(2),
+      9,
+    )!,
     yearEndReserveBeforePeriod: '0.00',
-    taxableWageBeforePeriod: demo001 ? '29925.63' : '29540.52',
-    wageTaxBeforePeriod: demo001 ? '10697.22' : '10560.78',
-    employeeInsuranceWageBeforePeriod: demo001 ? '29925.63' : '29540.52',
-    zvwWageBeforePeriod: demo001 ? '29925.63' : '29540.52',
-    employeePensionBeforePeriod: demo001 ? '1727.37' : '2265.48',
-    employerPensionBeforePeriod: demo001 ? '2591.10' : '2265.48',
+    taxableWageBeforePeriod: decimalProduct(scenario.openingTaxableWageAmount, 9)!,
+    wageTaxBeforePeriod: decimalProduct(scenario.openingWageTaxAmount, 9)!,
+    employeeInsuranceWageBeforePeriod: decimalProduct(scenario.openingTaxableWageAmount, 9)!,
+    zvwWageBeforePeriod: decimalProduct(scenario.openingTaxableWageAmount, 9)!,
+    employeePensionBeforePeriod: decimalProduct(scenario.openingEmployeePensionAmount, 9)!,
+    employerPensionBeforePeriod: decimalProduct(scenario.openingEmployerPensionAmount, 9)!,
   }
   const payrollOwnedValues = {
     amounts: {
@@ -407,9 +441,9 @@ function payfull02PayrollOwned(scenario: Scenario, variant: PayrollAcceptanceSce
       annualPensionableMaximum: '137800.00',
       monthlyMaximum: '11483.33',
       partTimeFactor: '1.0000',
-      totalPremiumRate: demo001 ? '25.00' : '26.00',
-      employeeSharePercent: demo001 ? '40.00' : '50.00',
-      employerSharePercent: demo001 ? '60.00' : '50.00',
+      totalPremiumRate: demo001 || demo003 ? '25.00' : '26.00',
+      employeeSharePercent: demo001 || demo003 ? '40.00' : '50.00',
+      employerSharePercent: demo001 || demo003 ? '60.00' : '50.00',
       employeeRate: scenario.employeePensionRate,
       employerRate: scenario.employerPensionRate,
       active: true,
@@ -418,7 +452,12 @@ function payfull02PayrollOwned(scenario: Scenario, variant: PayrollAcceptanceSce
     },
     employerRates: { awf: '7.74', aof: '6.27', wko: '0.50', whk: '1.81', zvw: '6.10' },
     employerClassifications: {
-      awf: { code: 'HIGH', reason: 'Synthetic fixed-term contract classification for TEST setup' },
+      awf: {
+        code: 'HIGH',
+        reason: demo003
+          ? 'High rate default: source records an indefinite, non-call contract, but written-contract evidence is not recorded; eligibility for the low rate is therefore not established.'
+          : 'Synthetic fixed-term contract classification for TEST setup',
+      },
       aof: { code: 'LOW', reason: 'Synthetic small-employer class for TEST setup' },
       whk: { code: 'TEST_RATE', reason: 'Synthetic employer rate; not represented as a real beschikking' },
       zvw: { code: 'EMPLOYER_LEVY', reason: 'Synthetic employee class subject to employer levy' },
@@ -468,11 +507,11 @@ function payfull02PayrollOwned(scenario: Scenario, variant: PayrollAcceptanceSce
     effectiveFrom: '2026-01-01',
     effectiveTo: '2026-09-30',
     periodCount: 9,
-    monthlyGross: scenario.grossAmount,
-    monthlyEmployeePension: employeePension,
-    monthlyEmployerPension: employerPension,
-    monthlyTaxableWage: taxableWage,
-    monthlyWageTax: demo001 ? '1188.58' : '1173.42',
+    monthlyGross: scenario.openingGrossAmount,
+    monthlyEmployeePension: scenario.openingEmployeePensionAmount,
+    monthlyEmployerPension: scenario.openingEmployerPensionAmount,
+    monthlyTaxableWage: scenario.openingTaxableWageAmount,
+    monthlyWageTax: scenario.openingWageTaxAmount,
     cumulativeBalances: opening,
     source: 'TEST_SETUP_PAYFULL_02 synthetic opening balances calculated from the same effective-dated setup; no prior finalized runs are asserted.',
   }
@@ -563,8 +602,8 @@ export function getPayrollAcceptanceScenarioSetupDefinition(
       && salary?.paymentType === 'PERIODIC_FIXED'
       && salary.paymentFrequency === 'MONTHLY'
       && salary.currencyCode === 'EUR'
-      && money(salary.parttimeAmount) === scenario.grossAmount
-      && money(salary.fulltimeAmount) === scenario.grossAmount
+      && money(salary.parttimeAmount) === scenario.openingGrossAmount
+      && money(salary.fulltimeAmount) === scenario.openingGrossAmount
       && dateCovers(salary, periodEndExclusive)
       && roster?.averageHoursPerWeek === 40
       && roster.fulltimeHoursPerWeek === 40
@@ -585,7 +624,7 @@ export function getPayrollAcceptanceScenarioSetupDefinition(
       employmentEndsOn: employment.endsOn,
       salaryValidFrom: salary.validFrom,
       salaryValidUntil: salary.validUntil,
-      monthlyGross: scenario.grossAmount,
+      monthlyGross: scenario.openingGrossAmount,
       provenance: 'CORE_TEST_SOURCE_SNAPSHOT',
     })
   }
@@ -626,8 +665,10 @@ export function getPayrollAcceptanceScenarioSetupDefinition(
       fullPeriodOnly: true,
       hasSpecialSituation: false,
       payrollTaxCreditApplies: scenario.payrollTaxCreditApplies,
-      classification: 'SYNTHETIC_TEST_SCENARIO_NOT_AN_EMPLOYEE_DECLARATION',
-      provenance: 'TEST_SETUP_PAYFULL_02',
+      classification: scenario.key === 'DEMO-003'
+        ? 'CORE_TEST_HR_ADMIN_CONFIRMED_SOURCE'
+        : 'SYNTHETIC_TEST_SCENARIO_NOT_AN_EMPLOYEE_DECLARATION',
+      provenance: scenario.key === 'DEMO-003' ? 'CORE_TEST_HR_ADMIN_CONFIRMED_SOURCE' : 'TEST_SETUP_PAYFULL_02',
     },
     values: configuration,
     openingCumulativeBalances: cumulatives,
@@ -645,11 +686,11 @@ export function getPayrollAcceptanceScenarioSetupDefinition(
     effectiveFrom: '2026-01-01',
     effectiveTo: '2026-09-30',
     periodCount: 9,
-    monthlyGross: scenario.grossAmount,
-    monthlyEmployeePension: scenario.key === 'DEMO-001' ? '191.93' : '251.72',
-    monthlyEmployerPension: scenario.key === 'DEMO-001' ? '287.90' : '251.72',
-    monthlyTaxableWage: scenario.key === 'DEMO-001' ? '3325.07' : '3282.28',
-    monthlyWageTax: scenario.key === 'DEMO-001' ? '1188.58' : '1173.42',
+    monthlyGross: scenario.openingGrossAmount,
+    monthlyEmployeePension: scenario.openingEmployeePensionAmount,
+    monthlyEmployerPension: scenario.openingEmployerPensionAmount,
+    monthlyTaxableWage: scenario.openingTaxableWageAmount,
+    monthlyWageTax: scenario.openingWageTaxAmount,
     cumulativeBalances: cumulatives,
     source: openingBalance.source,
     provenance: openingBalance.provenance,
@@ -739,7 +780,9 @@ function scenarioSnapshot(
     coreSourceHash: snapshot.sourceHash,
     assumptions,
     assumptionsHash,
-    note: 'Synthetic TEST-only calculation inputs. The pension arrangement is not a confirmed external fund contract and the tax choice is not an employee declaration.',
+    note: scenario.key === 'DEMO-003'
+      ? 'Synthetic TEST-only payroll inputs. The October tax choice comes from the HR-admin-confirmed Core TEST fiscal profile; the pension arrangement is not a confirmed external fund contract.'
+      : 'Synthetic TEST-only calculation inputs. The pension arrangement is not a confirmed external fund contract and the tax choice is not an employee declaration.',
   }
   const payrollOwnedConfig = isRecord(persistedSetup.configJson.values)
     ? persistedSetup.configJson.values
@@ -793,9 +836,10 @@ function scenarioSnapshot(
       openingHash,
     },
   }
-  const canonicalSource = payrollJson({
-    ...(snapshot.canonicalSource as Record<string, unknown>),
-    fiscalProfile: {
+  const originalFiscalProfile = (snapshot.canonicalSource as Record<string, unknown>).fiscalProfile
+  const fiscalProfile = scenario.key === 'DEMO-003'
+    ? originalFiscalProfile
+    : {
       status: 'TEST_SCENARIO',
       id: scenarioProfileId,
       incomeRelationshipId: snapshot.sourceIncomeRelationshipId,
@@ -808,7 +852,10 @@ function scenarioSnapshot(
       sourceReferenceHash: assumptionsHash,
       scenarioCode,
       scenarioVersion: PAYROLL_ACCEPTANCE_SCENARIO_VERSION,
-    },
+    }
+  const canonicalSource = payrollJson({
+    ...(snapshot.canonicalSource as Record<string, unknown>),
+    fiscalProfile,
     regularWage: {
       fiscalYear: '2026',
       table: assumptions.wageTaxTable,

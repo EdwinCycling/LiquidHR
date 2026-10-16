@@ -10,6 +10,12 @@ Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
 - Cumulatieve brutogrondslag leest nu `cumulative_gross_wage`; de vaste regressie met €500 bijzondere beloning controleert €4.500 cumulatief. Gerichte service/package-tests zijn 32/32 geslaagd.
 - PARTIAL: de standaard-PDF-endpoints antwoordden 200. De geauthenticeerde run-detailpagina is op Development 390×844 getest zonder horizontale overflow; mobiele PDF, live ESS self-only/negatieve readback en persistente PDF-artifactreadback blijven OPEN. De exacte Turbopack-productionbuild en Payroll-bundlescan/provenance zijn geslaagd; een bestaande dynamische logo-padzoeker gaf een niet-fatale tracingwaarschuwing. Zie [PAYFULL-02 acceptance](../quality/acceptance/runs/PAYFULL-02-20261015.md) en [open bewijsregister](AA-OPEN.md).
 
+## PAYCASE-03A — PASS voor één synthetische TEST-berekening, 2026-10-16
+
+- DEMO-003, Mars BV, oktober 2026, loonheffingskorting AAN, FINALIZED via HR Admin; run `c0851b89-5f92-5bd4-95b6-b5d8520cf5dc`. 32/32 toepasselijke controles PASS, volledige trace en cumulatieven opgeslagen. Uitkomst: bruto €3.517,00; fiscaal loon €3.325,07; loonheffing €518,42; werknemerspensioen €191,93; netto €2.851,65; totale werkgeverskosten €4.876,74.
+- Persistente loonstrook-PDF via HR Admin opgeslagen en teruggelezen: `liquidhr-loonstrook-2026-10.pdf`, 513.667 bytes, SHA-256 `2996b1447ff304c5583ebe7e7a34b3040f5f1bcb3b131f070a8e9aacd2e380cd`; downloadroute HTTP 200. Onafhankelijke Belastingdienst-witte maandtabelcontrole met korting: €518,42. Zie [PAYCASE-03A-bewijs](../quality/acceptance/runs/PAYCASE-03A-20261016.md).
+- Lokale featurecommit blijft apart en bouwt op PAYFULL-02 in Draft PR #33; geen merge of deployment. Bestaande FINALIZED-runs zijn ongewijzigd. Geen Employee-login/ESS-acceptatie uitgevoerd.
+
 ## PAYTAX-UI-01B / PAYTEST-PERSONAS-CLOSEOUT — PARTIAL, lokaal bewezen 2026-10-15
 
 - Bestaande PAYFULL-branch/PR33; geen merge/deployment. Lokale HR Admin-knop hersteld met echte Auth-login. Rechtstreekse Lisa/Jaap/Frits-handoff, ESS-self en negatieve salaris-/documentscope gecontroleerd; bestaande Lisa-Managerrechten behouden.

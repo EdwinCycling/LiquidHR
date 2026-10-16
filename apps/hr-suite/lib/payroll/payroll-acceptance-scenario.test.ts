@@ -29,10 +29,10 @@ function snapshot(overrides: Partial<PayrollSourceSnapshot> = {}): PayrollSource
     sourceIncomeRelationshipId: incomeRelationshipId,
     periodReference: { year: 2026, month: 10 },
     canonicalSource: {
-      employment: { startsOn: '2020-01-01', endsOn: null, recordStatus: 'CONFIRMED' },
+      employment: { startsOn: '2020-01-01', endsOn: null, recordStatus: 'CONFIRMED', contractType: 'PERMANENT' },
       contract: { entries: [{ fulltimeHoursPerWeek: 40, validFrom: '2020-01-01', validUntil: null }] },
       compensation: { entries: [{ paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY', currencyCode: 'EUR', fulltimeAmount: 3517, parttimeAmount: 3517, validFrom: '2020-01-01', validUntil: null }] },
-      schedule: { entries: [{ averageHoursPerWeek: 40, fulltimeHoursPerWeek: 40, partTimeFactor: 1, validFrom: '2020-01-01', validUntil: null }] },
+      schedule: { entries: [{ averageHoursPerWeek: 40, fulltimeHoursPerWeek: 40, partTimeFactor: 1, isOnCall: false, validFrom: '2020-01-01', validUntil: null }] },
       incomeRelationship: { id: incomeRelationshipId, employmentIncomeRelationshipId: linkId, reportingStatus: 'READY', status: 'LINKED' },
       fiscalProfile: { status: 'SOURCE_GAP', reasonCodes: ['NO_CONFIRMED_FISCAL_PROFILE', 'EMPLOYEE_BIRTH_DATE_REQUIRED_FOR_TAX_CLASSIFICATION'] },
     },
@@ -81,7 +81,7 @@ const input = {
 
 function persistedSetup(employeeId: string = first.employeeId, employmentId: string = first.employmentId) {
   const scenario = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES.find((candidate) => candidate.employeeId === employeeId && candidate.employmentId === employmentId)
-  const grossAmount = scenario?.key === 'DEMO-002' ? '3534.00' : '3517.00'
+  const grossAmount = scenario?.key === 'DEMO-002' ? '3534.00' : scenario?.key === 'DEMO-003' ? '3551.00' : '3517.00'
   const definition = getPayrollAcceptanceScenarioSetupDefinition(employeeId, employmentId,
     januaryThroughSeptemberSourceHistory(employeeId, employmentId, grossAmount))
   const configHash = sha256(stableSerialize(definition.configJson))
@@ -110,6 +110,35 @@ describe('Payroll acceptance scenario source adapter', () => {
     expect(sourcePeriods.map((item) => item.month)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
     expect(sourcePeriods.map((item) => item.sourceHash)).toEqual(history.map((item) => item.sourceHash))
     expect(definition.openingBalanceJson.classification).toBe('EXPLICIT_TEST_OPENING_BALANCE_NOT_FINALIZED_HISTORICAL_PAYROLL')
+  })
+
+  it('builds DEMO-003 opening balances from its effective January–September source salary', () => {
+    const candidate = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES.find((item) => item.key === 'DEMO-003')!
+    const history = januaryThroughSeptemberSourceHistory(candidate.employeeId, candidate.employmentId, '3551.00')
+    const definition = getPayrollAcceptanceScenarioSetupDefinition(candidate.employeeId, candidate.employmentId, history)
+    const cumulative = definition.openingBalanceJson.cumulativeBalances as Record<string, unknown>
+    const values = definition.configJson.values as Record<string, unknown>
+    const employerClassifications = values.employerClassifications as Record<string, Record<string, unknown>>
+
+    expect(definition.openingBalanceJson).toMatchObject({
+      monthlyGross: '3551.00',
+      monthlyEmployeePension: '195.33',
+      monthlyEmployerPension: '293.00',
+      monthlyTaxableWage: '3355.67',
+      monthlyWageTax: '1200.42',
+    })
+    expect(cumulative).toMatchObject({
+      grossWageBeforePeriod: '31959.00',
+      taxableWageBeforePeriod: '30201.03',
+      wageTaxBeforePeriod: '10803.78',
+      employeePensionBeforePeriod: '1757.97',
+      employerPensionBeforePeriod: '2637.00',
+      holidayReserveBeforePeriod: '2556.72',
+    })
+    expect(employerClassifications.awf).toMatchObject({
+      code: 'HIGH',
+      reason: expect.stringContaining('written-contract evidence is not recorded'),
+    })
   })
 
   it('refuses an opening balance when a prior month does not match its effective salary source', () => {
@@ -172,6 +201,51 @@ describe('Payroll acceptance scenario source adapter', () => {
     expect(JSON.stringify(canonical)).not.toContain('EMPLOYEE_DECLARATION')
     expect(JSON.stringify(canonical)).not.toMatch(/birth.?date|geboortedatum/i)
     expect((coreSnapshot.canonicalSource as Record<string, unknown>).fiscalProfile).toMatchObject({ status: 'SOURCE_GAP' })
+  })
+
+  it('preserves DEMO-003 confirmed October tax profile and its loonheffingskorting choice', async () => {
+    const candidate = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES.find((item) => item.key === 'DEMO-003')!
+    const core = snapshot({
+      sourceEmployeeId: candidate.employeeId,
+      sourceEmploymentId: candidate.employmentId,
+      canonicalSource: {
+        ...snapshot().canonicalSource as Record<string, unknown>,
+        employment: { startsOn: '2020-01-01', endsOn: null, recordStatus: 'CONFIRMED', contractType: 'PERMANENT' },
+        compensation: { entries: [{ paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY', currencyCode: 'EUR', fulltimeAmount: 3517, parttimeAmount: 3517, validFrom: '2026-10-01', validUntil: null }] },
+        fiscalProfile: {
+          status: 'CONFIRMED',
+          residenceCountryCode: 'NL',
+          wageTaxTable: 'WHITE',
+          ageCategory: 'UNDER_AOW',
+          herleiding: 'STD',
+          timePeriod: 'MONTH',
+          regularWageOnly: true,
+          fullPeriodOnly: true,
+          hasSpecialSituation: false,
+          payrollTaxCreditApplies: true,
+          sourceClassification: 'HR_ADMIN_CONFIRMED',
+          activeIncomeRelationshipCount: 1,
+        },
+      },
+      sourceGaps: [],
+    })
+    const provider = createPayrollAcceptanceScenarioSourceProvider({
+      getPayrollSourceSnapshot: vi.fn(async () => core),
+    }, 'REGULAR', persistedSetupReader)
+    const result = await provider.getPayrollSourceSnapshot({
+      ...input,
+      employeeId: candidate.employeeId,
+      employmentId: candidate.employmentId,
+    })
+    const canonical = result.canonicalSource as Record<string, unknown>
+    const fiscalProfile = canonical.fiscalProfile as Record<string, unknown>
+    const payrollOwned = canonical.payrollOwned as Record<string, unknown>
+    const pension = payrollOwned.pension as Record<string, unknown>
+
+    expect(fiscalProfile).toEqual((core.canonicalSource as Record<string, unknown>).fiscalProfile)
+    expect(fiscalProfile).toMatchObject({ status: 'CONFIRMED', payrollTaxCreditApplies: true, sourceClassification: 'HR_ADMIN_CONFIRMED' })
+    expect((canonical.regularWage as Record<string, unknown>)).toMatchObject({ payrollTaxCredit: true, grossAmount: '3517.00' })
+    expect(pension).toMatchObject({ annualFranchise: '19172.00', employeeRate: '10.00', employerRate: '15.00' })
   })
 
   it('refuses an existing fiscal profile, an unsupported tax gap, and a source mismatch', async () => {

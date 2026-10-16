@@ -20,6 +20,7 @@ describe('independent PAYFULL-02 Mars payroll oracle', () => {
       cumulativeGross: '35170.00', cumulativeTaxableWage: '33250.70',
       cumulativeWageTax: '11885.80', cumulativeEmployeeInsuranceWage: '33250.70',
       cumulativeZvwWage: '33250.70', cumulativeHolidayReserve: '2813.60',
+      cumulativeEmployeePension: '1919.30', cumulativeEmployerPension: '2879.00',
     })
   })
 
@@ -37,6 +38,25 @@ describe('independent PAYFULL-02 Mars payroll oracle', () => {
       cumulativeGross: '35340.00', cumulativeTaxableWage: '32822.80',
       cumulativeWageTax: '11734.20', cumulativeEmployeeInsuranceWage: '32822.80',
       cumulativeZvwWage: '32822.80', cumulativeHolidayReserve: '2827.20',
+      cumulativeEmployeePension: '2517.20', cumulativeEmployerPension: '2517.20',
+    })
+  })
+
+  it('checks DEMO-003 with loonheffingskorting against the published 2026 table and its distinct opening basis', () => {
+    expect(derivePayfull02MarsOracle('DEMO-003')).toEqual({
+      source: PAYFULL02_MARS_ORACLE_SOURCE,
+      printedPage: 20,
+      candidate: 'DEMO-003',
+      grossAmount: '3517.00', taxableWage: '3325.07', wageTax: '518.42',
+      employeePension: '191.93', employerPension: '287.90', netReimbursement: '45.00',
+      netDeduction: '0.00', netCorrection: '0.00', netPay: '2851.65',
+      employerAwf: '257.36', employerAof: '208.48', employerWko: '16.63',
+      employerWhk: '60.18', employerZvw: '202.83', employerPremiums: '745.48',
+      holidayReserve: '281.36', yearEndReserve: '0.00', totalEmployerCost: '4876.74',
+      cumulativeGross: '35476.00', cumulativeTaxableWage: '33526.10',
+      cumulativeWageTax: '11322.20', cumulativeEmployeeInsuranceWage: '33526.10',
+      cumulativeZvwWage: '33526.10', cumulativeHolidayReserve: '2838.08',
+      cumulativeEmployeePension: '1949.90', cumulativeEmployerPension: '2924.90',
     })
   })
 
@@ -54,6 +74,7 @@ describe('independent PAYFULL-02 Mars payroll oracle', () => {
       cumulativeGross: '35670.00', cumulativeTaxableWage: '33700.70',
       cumulativeWageTax: '12054.89', cumulativeEmployeeInsuranceWage: '33700.70',
       cumulativeZvwWage: '33700.70', cumulativeHolidayReserve: '2853.60',
+      cumulativeEmployeePension: '1969.30', cumulativeEmployerPension: '2954.00',
     })
   })
 
