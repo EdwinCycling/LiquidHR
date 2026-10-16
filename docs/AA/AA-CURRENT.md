@@ -3,12 +3,12 @@
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
 
-## PAYFULL-02 — PARTIAL, TEST-resultaat bevestigd 2026-10-16
+## PAYFULL-02 — PARTIAL, gecontroleerde TEST 2026-10-16
 
-- Code-/build-SHA b9c6a8f80b5b073495f61251c86054ed0a1057e3. Twee nieuwe Mars-runs zijn via HR Admin gevalideerd (32/32 controles), REVIEWED en FINALIZED; bruto/netto/werkgeverskosten: DEMO-001 €3.517,00 / €2.181,49 / €4.876,74; DEMO-002 €3.534,00 / €2.141,36 / €4.836,83. De historische concept-runs zijn behouden. PR #33 blijft Draft; geen merge of deployment.
-- De effectieve TEST-configuraties en januari-september-openingsbalansen zijn als synthetisch TEST_SETUP_PAYFULL_02 geversioneerd en gehasht; dit zijn geen bevestigde pensioenfondscontracten of historische FINALIZED-runs. Een aparte variabel-loonrevisie blijft CONCEPT.
-- Cumulatieve brutogrondslag leest nu `cumulative_gross_wage`; de vaste regressie met €500 bijzondere beloning controleert €4.500 cumulatief. Gerichte service/package-tests zijn 32/32 geslaagd.
-- PARTIAL: de standaard-PDF-endpoints antwoordden 200. De geauthenticeerde run-detailpagina is op Development 390×844 getest zonder horizontale overflow; mobiele PDF, live ESS self-only/negatieve readback en persistente PDF-artifactreadback blijven OPEN. De exacte Turbopack-productionbuild en Payroll-bundlescan/provenance zijn geslaagd; een bestaande dynamische logo-padzoeker gaf een niet-fatale tracingwaarschuwing. Zie [PAYFULL-02 acceptance](../quality/acceptance/runs/PAYFULL-02-20261015.md) en [open bewijsregister](AA-OPEN.md).
+- Implementatie/build-SHA `9df1187a3bcd5a4b703bda37021f6dfa7742f015`; Draft PR #33, geen merge of deployment. Beide nieuwe Mars-runs zijn via HR Admin gevalideerd (32/32), REVIEWED en FINALIZED. Bruto/netto/totale werkgeverskosten: DEMO-001 €3.517,00 / €2.181,49 / €4.876,74; DEMO-002 €3.534,00 / €2.141,36 / €4.836,83. Historische concept-runs zijn behouden.
+- TEST-configuraties en januari-september-openingsbalansen zijn effectief gedateerd, geversioneerd en gehasht met `TEST_SETUP_PAYFULL_02`; ze stellen geen officieel pensioenfondscontract of echte historische FINALIZED-run voor. De afzonderlijke €500-variabele DEMO-001-revisie blijft CONCEPT.
+- De gebonden PDF-artifactmetadata en SHA-256 zijn voor beide runs teruggelezen. De leesbare PDF-inhoud en live ESS-self-/andere-werknemer-readback zijn niet bewezen. Lokale Employee-persona-authenticatie ontbreekt; er is geen account of bredere autorisatie aangemaakt. De Core TEST-migratie staat geregistreerd als `20261016065512`.
+- De finale relevante Payroll-suite, gerichte migratietest, TypeScript, ESLint, i18n en Turbopack-productionbuild zijn geslaagd op de implementatiecode. De Supabase advisor meldt de nieuwe authenticated SECURITY DEFINER-RPC; de functie is op vaste Mars-identiteiten/scope begrensd en niet uitvoerbaar door anon. Zie [PAYFULL-02 closeout 2026-10-16](../quality/acceptance/runs/PAYFULL-02-20261016-CLOSEOUT.md), [oorspronkelijke run-evidence](../quality/acceptance/runs/PAYFULL-02-20261015.md) en [open bewijsregister](AA-OPEN.md).
 
 ## PAYTAX-UI-01B / PAYTEST-PERSONAS-CLOSEOUT — PARTIAL, lokaal bewezen 2026-10-15
 

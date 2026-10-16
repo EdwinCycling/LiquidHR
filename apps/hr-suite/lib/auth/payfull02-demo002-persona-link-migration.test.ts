@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('../../supabase/migrations/20261016064505_payfull02_demo002_employee_persona_link.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../../supabase/migrations/20261016065512_payfull02_demo002_employee_persona_link.sql', import.meta.url), 'utf8')
 
 const actorId = '11111111-1111-4111-8111-111111111111'
 const otherActorId = '11111111-1111-4111-8111-111111111112'
