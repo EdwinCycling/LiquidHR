@@ -13,6 +13,15 @@ Motto: **It takes a genius to keep it simple.**
 - Maak de in-scope taak zelfstandig af: onderzoek, kleine aanpak, implementatie, reproduceerbare bugfixes, gerichte regressietests, passende type/lint/buildchecks, eigen expliciete commits en de door de opdracht geautoriseerde PR-, merge- of releaseacties. Vraag geen toestemming voor normale ontwikkelstappen.
 - Volg één bounded cyclus: **Understand → Implement → Fix → Targeted Test → Verify → Deliver**. Reproduceer een mislukking, stel oorzaak vast, herstel en hertest. Maximaal twee gerichte herstelcycli per blocker; rapporteer daarna kort oorzaak, herstel, bewijs en de benodigde menselijke beslissing.
 - Eén uitvoerende agent is standaard. Start geen subagents of parallelle implementatie tenzij de gebruiker dat expliciet autoriseert. Onderzoeks- of reviewwerk maakt op zichzelf geen extra Git-checkout nodig.
+
+### Codex-model, /doel en verbruik (besluit 2026-10-16)
+
+- **Standaardmodel: Luna-Max** voor LiquidHR-Codex-sessies. Selecteer Luna-Max handmatig in de Codex-interface; dit repositorydocument kan de modelselectie niet technisch afdwingen. Gebruik geen zwaarder model zonder expliciete gebruikerskeuze. Meld kort wanneer Luna-Max niet beschikbaar is.
+- **Eén hoofdagent. Geen subagents** bij normale featurebouw, debugging, review of tests. Alleen als er een concrete, aantoonbare noodzaak is die één agent niet redelijk kan oplossen: benoem de noodzaak, taakafbakening en verwachte meerwaarde en vraag vooraf expliciete toestemming. Zet ze niet automatisch aan.
+- **`/doel` is één helder, begrensd resultaat**, geen opdracht om impliciet de hele roadmap, alle administraties, alle bugs of een complete release mee te nemen. Werk zelfstandig binnen het gegeven mandaat en de vastgelegde veiligheidsgrenzen; voorkom eindeloze analyse- en herstelrondes.
+- **Test risicogestuurd:** tijdens ontwikkeling eerst alleen direct relevante tests; hertest alleen geraakt gedrag na een fix. Draai een brede suite of productiebuild op de finale kandidaat alleen als `AA-TEST.md` / `AA-REL.md` die gate vereist of de wijzigingsimpact het rechtvaardigt. Herhaal geldige, onveranderde groene gates niet; sla verplichte Payroll-, security- en RLS-gates nooit over om tokens te besparen.
+- **Context en output klein houden:** gerichte bestanden/secties lezen, bestaande bewijsvoering per SHA hergebruiken, geen volledige logs of herhaalde architectuuranalyses. Eindrapport compact: geleverd resultaat, relevante checks, feitelijke blockers, commit/PR. Een HOLD is alleen voor een echte grens, geen nieuw plan als vervanging voor uitvoerbaar werk.
+- Tokenbudget is een optimalisatiedoel, nooit een reden om de juistheid van een loonberekening, toestemming, tenantisolatie, privacy of data-integriteit te schenden. Zie `docs/AA/AA-OP.md` §7.
 - Raadpleeg [`AA-OP.md`](docs/AA/AA-OP.md), [`AA-TEST.md`](docs/AA/AA-TEST.md) en [`AA-REL.md`](docs/AA/AA-REL.md) voor de toepasselijke workflow, test- en releaseregels.
 
 ## Git en scope
