@@ -70,6 +70,7 @@
   "cancel": "Cancel",
   "close": "Close",
   "edit": "Edit",
+  "commentSingular": "Comment",
   "comments": "Comments",
   "addComment": "Reply",
   "commentPlaceholder": "Write a short reply...",
