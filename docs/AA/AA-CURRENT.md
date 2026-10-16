@@ -1,13 +1,14 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-15 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
 
-## PAYFULL-02 — PARTIAL, TEST-resultaat bevestigd 2026-10-15
+## PAYFULL-02 — PARTIAL, TEST-resultaat bevestigd 2026-10-16
 
-- Code-SHA af6854abd81c79143fcfbc9fb7224ac8d3ffdaca. Twee nieuwe Mars-runs zijn via HR Admin gevalideerd (32/32 controles), REVIEWED en FINALIZED; bruto/netto/werkgeverskosten: DEMO-001 €3.517,00 / €2.181,49 / €4.876,74; DEMO-002 €3.534,00 / €2.141,36 / €4.836,83. De historische concept-runs zijn behouden.
+- Code-/build-SHA b9c6a8f80b5b073495f61251c86054ed0a1057e3. Twee nieuwe Mars-runs zijn via HR Admin gevalideerd (32/32 controles), REVIEWED en FINALIZED; bruto/netto/werkgeverskosten: DEMO-001 €3.517,00 / €2.181,49 / €4.876,74; DEMO-002 €3.534,00 / €2.141,36 / €4.836,83. De historische concept-runs zijn behouden. PR #33 blijft Draft; geen merge of deployment.
 - De effectieve TEST-configuraties en januari-september-openingsbalansen zijn als synthetisch TEST_SETUP_PAYFULL_02 geversioneerd en gehasht; dit zijn geen bevestigde pensioenfondscontracten of historische FINALIZED-runs. Een aparte variabel-loonrevisie blijft CONCEPT.
-- PARTIAL: standaard-PDF-endpoints antwoordden 200; lokale PDF-artifactreadback en ESS self-only/negatieve readback ontbreken. Exacte Webpack-productionbuild, bundlecheck en provenance zijn geslaagd; de default Turbopack-runner kreeg Windows-junction-EPERM. Mobiel 390 px blijft OPEN. Zie [PAYFULL-02 acceptance](../quality/acceptance/runs/PAYFULL-02-20261015.md) en [open bewijsregister](AA-OPEN.md).
+- Cumulatieve brutogrondslag leest nu `cumulative_gross_wage`; de vaste regressie met €500 bijzondere beloning controleert €4.500 cumulatief. Gerichte service/package-tests zijn 32/32 geslaagd.
+- PARTIAL: de standaard-PDF-endpoints antwoordden 200. De geauthenticeerde run-detailpagina is op Development 390×844 getest zonder horizontale overflow; mobiele PDF, live ESS self-only/negatieve readback en persistente PDF-artifactreadback blijven OPEN. De exacte Turbopack-productionbuild en Payroll-bundlescan/provenance zijn geslaagd; een bestaande dynamische logo-padzoeker gaf een niet-fatale tracingwaarschuwing. Zie [PAYFULL-02 acceptance](../quality/acceptance/runs/PAYFULL-02-20261015.md) en [open bewijsregister](AA-OPEN.md).
 
 ## PAYTAX-UI-01B / PAYTEST-PERSONAS-CLOSEOUT — PARTIAL, lokaal bewezen 2026-10-15
 
