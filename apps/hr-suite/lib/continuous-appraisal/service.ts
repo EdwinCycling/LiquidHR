@@ -425,7 +425,7 @@ export async function softDeleteContinuousAppraisalItem(itemId: string, input: C
   return rpcResult(data)
 }
 
-export async function addContinuousAppraisalComment(itemId: string, input: ContinuousAppraisalCommentInput): Promise<{ id: string }> {
+export async function addContinuousAppraisalComment(itemId: string, input: ContinuousAppraisalCommentInput): Promise<ContinuousAppraisalComment> {
   const supabase = await createClient()
   const { data: item, error: itemError } = await supabase.from('continuous_appraisal_items').select('tenant_id, employee_id').eq('id', itemId).maybeSingle()
   if (itemError) databaseError(itemError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
@@ -433,8 +433,22 @@ export async function addContinuousAppraisalComment(itemId: string, input: Conti
   const context = await requirePermission('continuous-appraisal:write', item.employee_id)
   await assertContinuousAppraisalTargetAccess(context, item.employee_id, 'continuous-appraisal:write')
   if (!context.employeeId) throw new AuthorizationError('Je hebt geen gekoppelde medewerker voor deze actie.')
+  const commentId = input.id ?? randomUUID()
+  const selectedColumns = 'id, tenant_id, item_id, author_employee_id, author_user_id, author_label, author_avatar_url, body, created_at'
+  const findExisting = async () => {
+    const { data, error } = await supabase.from('continuous_appraisal_item_comments').select(selectedColumns).eq('id', commentId).maybeSingle()
+    if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+    return data
+  }
+  const matchesRequest = (row: NonNullable<Awaited<ReturnType<typeof findExisting>>>) => row.tenant_id === item.tenant_id && row.item_id === itemId && row.author_employee_id === context.employeeId && row.author_user_id === context.userId && row.body === input.body
+  const existing = await findExisting()
+  if (existing) {
+    if (!matchesRequest(existing)) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_REQUEST_ID_CONFLICT', 409)
+    return { id: existing.id, author_employee_id: existing.author_employee_id, author_label: existing.author_label, author_avatar_url: existing.author_avatar_url, body: existing.body, created_at: existing.created_at }
+  }
   const actor = await employeeProfile(context, context.employeeId)
   const { data, error } = await supabase.from('continuous_appraisal_item_comments').insert({
+    id: commentId,
     tenant_id: item.tenant_id,
     item_id: itemId,
     author_employee_id: context.employeeId,
@@ -442,9 +456,13 @@ export async function addContinuousAppraisalComment(itemId: string, input: Conti
     author_label: employeeLabel(actor),
     author_avatar_url: employeeAvatarHref(actor.id, actor.avatar_url),
     body: input.body,
-  }).select('id').maybeSingle()
-  if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_WRITE_FAILED')
-  if (!data) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_WRITE_FAILED')
+  }).select('id, author_employee_id, author_label, author_avatar_url, body, created_at').maybeSingle()
+  if (error || !data) {
+    const committed = await findExisting()
+    if (committed && matchesRequest(committed)) return { id: committed.id, author_employee_id: committed.author_employee_id, author_label: committed.author_label, author_avatar_url: committed.author_avatar_url, body: committed.body, created_at: committed.created_at }
+    if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_WRITE_FAILED')
+    throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_WRITE_FAILED')
+  }
   return data
 }
 
@@ -453,7 +471,19 @@ function safeAttachmentFilename(filename: string): string {
   return normalized || 'attachment'
 }
 
-export async function createContinuousAppraisalAttachment(itemId: string, file: File): Promise<ContinuousAppraisalAttachment> {
+function toContinuousAppraisalAttachment(row: Pick<AttachmentRow, "id" | "item_id" | "original_filename" | "content_type" | "file_size" | "created_at">): ContinuousAppraisalAttachment {
+  return {
+    id: row.id,
+    item_id: row.item_id,
+    original_filename: row.original_filename,
+    content_type: row.content_type,
+    file_size: row.file_size,
+    created_at: row.created_at,
+    href: '/api/continuous-appraisal/attachments/' + row.id,
+  }
+}
+
+export async function createContinuousAppraisalAttachment(itemId: string, file: File, requestedAttachmentId?: string): Promise<ContinuousAppraisalAttachment> {
   const supabase = await createClient()
   const { data: item, error: itemError } = await supabase
     .from('continuous_appraisal_items')
@@ -467,18 +497,31 @@ export async function createContinuousAppraisalAttachment(itemId: string, file: 
   await assertContinuousAppraisalTargetAccess(context, item.employee_id, 'continuous-appraisal:write')
   if (!context.employeeId || item.created_by_employee_id !== context.employeeId || item.item_type === 'SYSTEM_EVENT' || item.deleted_at !== null) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_FORBIDDEN', 403)
   if (item.occurred_on < new Date().toISOString().slice(0, 10)) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_PAST_IMMUTABLE', 409)
-  if (!context.employeeId) throw new AuthorizationError('Je hebt geen gekoppelde medewerker voor deze actie.')
   if (!file.name.trim() || file.size < 1 || file.size > CONTINUOUS_APPRAISAL_ATTACHMENT_MAX_SIZE || !CONTINUOUS_APPRAISAL_ATTACHMENT_TYPES.has(file.type) || file.name.length > 255) {
     throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ATTACHMENT_INVALID', 400)
   }
 
+  const attachmentId = requestedAttachmentId ?? randomUUID()
   const bytes = Buffer.from(await file.arrayBuffer())
-  const attachmentId = randomUUID()
-  const storageKey = `${context.tenantId}/${itemId}/${attachmentId}/${safeAttachmentFilename(file.name)}`
+  const checksum = createHash('sha256').update(bytes).digest('hex')
+  const storageKey = context.tenantId + "/" + itemId + "/" + attachmentId + "/" + safeAttachmentFilename(file.name)
+  const selectedColumns = 'id, tenant_id, item_id, uploaded_by_employee_id, uploaded_by_user_id, storage_key, original_filename, content_type, file_size, checksum_sha256, created_at'
+  const matchesRequest = (row: Pick<AttachmentRow, "id" | "tenant_id" | "item_id" | "uploaded_by_employee_id" | "uploaded_by_user_id" | "storage_key" | "original_filename" | "content_type" | "file_size" | "checksum_sha256" | "created_at">) => row.tenant_id === context.tenantId && row.item_id === itemId && row.uploaded_by_employee_id === context.employeeId && row.uploaded_by_user_id === context.userId && row.storage_key === storageKey && row.original_filename === file.name && row.content_type === file.type && row.file_size === file.size && row.checksum_sha256 === checksum
+  const findExisting = async () => {
+    const { data, error } = await supabase.from('continuous_appraisal_attachments').select(selectedColumns).eq('id', attachmentId).maybeSingle()
+    if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+    return data
+  }
+  const existing = await findExisting()
+  if (existing) {
+    if (!matchesRequest(existing)) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_REQUEST_ID_CONFLICT', 409)
+    return toContinuousAppraisalAttachment(existing)
+  }
+
   const admin = createAdminClient()
   const { error: uploadError } = await admin.storage
     .from(CONTINUOUS_APPRAISAL_ATTACHMENT_BUCKET)
-    .upload(storageKey, bytes, { contentType: file.type, upsert: false })
+    .upload(storageKey, bytes, { contentType: file.type, upsert: true })
   if (uploadError) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ATTACHMENT_UPLOAD_FAILED')
 
   const { data: attachment, error: metadataError } = await supabase
@@ -493,16 +536,16 @@ export async function createContinuousAppraisalAttachment(itemId: string, file: 
       original_filename: file.name,
       content_type: file.type,
       file_size: file.size,
-      checksum_sha256: createHash('sha256').update(bytes).digest('hex'),
-    })
-    .select('id, item_id, original_filename, content_type, file_size, created_at')
-    .maybeSingle()
+      checksum_sha256: checksum,
+    }).select('id, item_id, original_filename, content_type, file_size, created_at').maybeSingle()
   if (metadataError || !attachment) {
+    const committed = await findExisting()
+    if (committed && matchesRequest(committed)) return toContinuousAppraisalAttachment(committed)
     await admin.storage.from(CONTINUOUS_APPRAISAL_ATTACHMENT_BUCKET).remove([storageKey])
     if (metadataError) databaseError(metadataError.message, 'CONTINUOUS_APPRAISAL_ATTACHMENT_UPLOAD_FAILED')
     throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ATTACHMENT_UPLOAD_FAILED')
   }
-  return { ...attachment, href: `/api/continuous-appraisal/attachments/${attachment.id}` }
+  return toContinuousAppraisalAttachment(attachment)
 }
 
 export async function getContinuousAppraisalAttachmentDownload(attachmentId: string): Promise<string> {

@@ -17,7 +17,8 @@ vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 
 import type { createClient as createServerClient } from '@/lib/supabase/server'
 import { requirePermission } from '@/lib/auth/permissions'
-import { getContinuousAppraisalAttachmentDownload, softDeleteContinuousAppraisalItem, transitionContinuousAppraisalItemStatus } from './service'
+import { employeeAvatarHref } from '@/lib/employees/employee-service'
+import { addContinuousAppraisalComment, createContinuousAppraisalAttachment, getContinuousAppraisalAttachmentDownload, softDeleteContinuousAppraisalItem, transitionContinuousAppraisalItemStatus } from './service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createServerClient>>
 
@@ -32,6 +33,7 @@ class AttachmentQuery {
 
   select(columns: string) { this.selectedColumns = columns; return this }
   eq() { return this }
+  is() { return this }
   maybeSingle() { return Promise.resolve({ data: this.row, error: null }) }
 }
 
@@ -136,5 +138,76 @@ describe('continuous appraisal status and soft-delete authorization', () => {
 
     await expect(softDeleteContinuousAppraisalItem(itemId, { version: 1 })).resolves.toEqual({ id: itemId, version: 2 })
     expect(rpc).toHaveBeenCalledWith('soft_delete_continuous_appraisal_item', { p_item_id: itemId, p_expected_version: 1 })
+  })
+})
+
+
+describe('continuous appraisal authenticated comment and attachment retries', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns the persisted comment for a repeated request ID without a second insert', async () => {
+    const commentId = '44444444-4444-4444-8444-444444444444'
+    let storedComment: Record<string, unknown> | null = null
+    const itemQuery = new AttachmentQuery({ tenant_id: tenantId, employee_id: actor.employeeId })
+    const employeeQuery = new AttachmentQuery({ id: actor.employeeId, first_name: 'Yara', birth_name: 'Meijer', employee_number: 'E-001', avatar_url: null })
+    const commentQuery = {
+      select: vi.fn(() => commentQuery),
+      eq: vi.fn(() => commentQuery),
+      maybeSingle: vi.fn(async () => ({ data: storedComment, error: null })),
+      insert: vi.fn((payload: Record<string, unknown>) => {
+        storedComment = { ...payload, created_at: '2026-10-16T09:00:00.000Z' }
+        const saved = { id: storedComment.id, author_employee_id: storedComment.author_employee_id, author_label: storedComment.author_label, author_avatar_url: storedComment.author_avatar_url, body: storedComment.body, created_at: storedComment.created_at }
+        return { select: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: saved, error: null })) })) }
+      }),
+    }
+    createClient.mockResolvedValue({ from: vi.fn((table: string) => table === "continuous_appraisal_items" ? itemQuery : table === "employees" ? employeeQuery : commentQuery) } as unknown as SupabaseServerClient)
+    vi.mocked(requirePermission).mockResolvedValue(actor)
+    vi.mocked(employeeAvatarHref).mockReturnValue(null)
+    const input = { id: commentId, body: 'APPRAISAL-FIX-01 retry-safe comment' }
+    const first = await addContinuousAppraisalComment(itemId, input)
+    const retry = await addContinuousAppraisalComment(itemId, input)
+    expect(first).toEqual(retry)
+    expect(first).toMatchObject({ id: commentId, author_employee_id: actor.employeeId, body: input.body })
+    expect(commentQuery.insert).toHaveBeenCalledTimes(1)
+    expect(commentQuery.insert).toHaveBeenCalledWith(expect.objectContaining({ id: commentId, item_id: itemId, author_user_id: actor.userId, body: input.body }))
+  })
+
+  it('blocks a comment before insert when the authenticated actor lacks target scope', async () => {
+    const itemQuery = new AttachmentQuery({ tenant_id: tenantId, employee_id: 'employee-target' })
+    const commentInsert = vi.fn()
+    const commentQuery = { select: vi.fn(() => commentQuery), eq: vi.fn(() => commentQuery), maybeSingle: vi.fn(async () => ({ data: null, error: null })), insert: commentInsert }
+    createClient.mockResolvedValue({ from: vi.fn((table: string) => table === "continuous_appraisal_items" ? itemQuery : commentQuery) } as unknown as SupabaseServerClient)
+    vi.mocked(requirePermission).mockResolvedValue({ ...actor, employeeId: 'out-of-scope-manager', permissions: [] })
+    await expect(addContinuousAppraisalComment(itemId, { id: '55555555-5555-4555-8555-555555555555', body: 'Blocked comment' })).rejects.toMatchObject({ message: 'Je hebt geen toegang tot deze medewerker.' })
+    expect(commentInsert).not.toHaveBeenCalled()
+  })
+
+  it('returns the same authorized attachment when the client retries its request ID', async () => {
+    const requestId = '66666666-6666-4666-8666-666666666666'
+    let storedAttachment: Record<string, unknown> | null = null
+    const itemQuery = new AttachmentQuery({ tenant_id: tenantId, employee_id: actor.employeeId, occurred_on: new Date().toISOString().slice(0, 10), created_by_employee_id: actor.employeeId, item_type: 'NOTE', deleted_at: null })
+    const attachmentQuery = {
+      select: vi.fn(() => attachmentQuery),
+      eq: vi.fn(() => attachmentQuery),
+      maybeSingle: vi.fn(async () => ({ data: storedAttachment, error: null })),
+      insert: vi.fn((payload: Record<string, unknown>) => {
+        storedAttachment = { ...payload, created_at: '2026-10-16T09:00:00.000Z' }
+        const saved = { id: storedAttachment.id, item_id: storedAttachment.item_id, original_filename: storedAttachment.original_filename, content_type: storedAttachment.content_type, file_size: storedAttachment.file_size, created_at: storedAttachment.created_at }
+        return { select: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: saved, error: null })) })) }
+      }),
+    }
+    createClient.mockResolvedValue({ from: vi.fn((table: string) => table === "continuous_appraisal_items" ? itemQuery : attachmentQuery) } as unknown as SupabaseServerClient)
+    vi.mocked(requirePermission).mockResolvedValue(actor)
+    const upload = vi.fn().mockResolvedValue({ data: { path: 'unused' }, error: null })
+    const remove = vi.fn().mockResolvedValue({ data: [], error: null })
+    createAdminClient.mockReturnValue({ storage: { from: vi.fn(() => ({ upload, remove })) } })
+    const file = new File(['fixture'], 'fixture.pdf', { type: 'application/pdf' })
+    const first = await createContinuousAppraisalAttachment(itemId, file, requestId)
+    const retry = await createContinuousAppraisalAttachment(itemId, file, requestId)
+    expect(first).toEqual(retry)
+    expect(first).toMatchObject({ id: requestId, item_id: itemId, original_filename: file.name })
+    expect(attachmentQuery.insert).toHaveBeenCalledTimes(1)
+    expect(upload).toHaveBeenCalledTimes(1)
+    expect(remove).not.toHaveBeenCalled()
   })
 })

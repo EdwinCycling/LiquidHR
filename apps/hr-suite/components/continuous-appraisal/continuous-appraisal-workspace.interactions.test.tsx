@@ -11,7 +11,7 @@ import { ContinuousAppraisalWorkspace, type ContinuousAppraisalLabels, type Cont
 const labelValues: Partial<ContinuousAppraisalLabels> = {
   all: 'Alles', notes: 'Notities', actions: 'Acties', agreements: 'Afspraken', feedback: 'Feedback', goals: 'Doelen', meetings: 'Gesprekken',
   newEntry: 'Nieuw item', addNote: 'Notitie', addAction: 'Actie', addAgreement: 'Afspraak', addFeedback: 'Feedback', addGoal: 'Doel', addMeeting: 'Gespreksverslag',
-  selectEmployee: 'Medewerker', search: 'Zoeken', itemCount: 'items', activeFollowUp: 'Openstaande acties', upcomingItems: 'Aankomende afspraken en deadlines', filterByType: 'Filter op type',
+  selectEmployee: 'Medewerker', search: 'Zoeken', itemCount: 'items', itemCountSingular: 'item', loadingEmployee: 'Medewerker laden…', activeFollowUp: 'Openstaande acties', upcomingItems: 'Aankomende afspraken en deadlines', filterByType: 'Filter op type',
   edit: 'Bewerken', moreActions: 'Meer acties', title: 'Doorlopende beoordeling', managerSubtitle: 'Gedeelde tijdlijn', subtitle: 'Mijn tijdlijn', employee: 'Medewerker', newest: 'Nieuwste eerst', oldest: 'Oudste eerst', note: 'Notitie', action: 'Actie', agreement: 'Afspraak', goal: 'Doel', development: 'Ontwikkelpunt', meeting: 'Gespreksverslag', entryType: 'Type item', titleLabel: 'Titel', bodyLabel: 'Beschrijving', dateLabel: 'Datum', dueDate: 'Einddatum', nextMeeting: 'Volgend gesprek', owner: 'Eigenaar', status: 'Status', priority: 'Prioriteit', goalKind: 'Soort doel', open: 'Open', waiting: 'Wacht op reactie', active: 'Actief', done: 'Afgerond', notRelevant: 'Niet meer relevant', cancelled: 'Geannuleerd', planned: 'Gepland', archived: 'Gearchiveerd', low: 'Laag', medium: 'Gemiddeld', high: 'Hoog', save: 'Opslaan', cancel: 'Annuleren', close: 'Sluiten', comments: 'Reacties', addComment: 'Reageren', commentPlaceholder: 'Schrijf een korte reactie', commentLimit: 'maximaal 100 tekens', noItems: 'Nog geen items', noItemsDescription: 'Voeg iets toe.', noResults: 'Geen resultaten', noResultsDescription: 'Pas filters aan.', pastItem: 'Verleden', futureItem: 'Toekomst', createdBy: 'Aangemaakt door', irrelevant: 'Niet meer relevant', saveFailed: 'Opslaan mislukt', saved: 'Opgeslagen', systemEvent: 'Systeemgebeurtenis', addDescription: 'Item toevoegen', editDescription: 'Item bewerken', attachments: 'Bijlagen', addAttachment: 'Bijlage toevoegen', attachmentTypes: 'PNG, JPG, WEBP of PDF', attachmentUploadFailed: 'Upload mislukt', attachmentPartialFailure: 'Het item is opgeslagen, maar niet alle bijlagen zijn geüpload. Probeer de resterende bijlagen opnieuw.', attachmentInvalidType: 'Ongeldig bestandstype.', attachmentInvalidSize: 'Bestand te groot.', removeFile: 'Bijlage verwijderen', retryUpload: 'Bijlagen opnieuw proberen', itemSavedPendingAttachments: 'Upload de resterende bijlagen.', selectedAttachments: 'Geselecteerde bijlagen', filters: 'Filters', filterByStatus: 'Filter op status', filterByOwner: 'Filter op eigenaar', fromDate: 'Vanaf', toDate: 'Tot en met', clearFilters: 'Filters wissen', quickAdd: 'Snel toevoegen', canWrite: 'Bewerkbaar', readOnly: 'Alleen lezen', readOnlyDescription: 'Alleen lezen', noActiveFollowUp: 'Geen open acties.', employeeNumber: 'Personeelsnummer', jobTitle: 'Functie', discardTitle: 'Wijzigingen negeren?', discardDescription: 'Wijzigingen gaan verloren.', discardConfirm: 'Wijzigingen negeren', discardCancel: 'Terug', attachmentUnavailable: 'Bijlagen niet beschikbaar.', leftTabs: 'Vorige typen', rightTabs: 'Volgende typen', markDone: 'Klaar', deleteAction: 'Verwijderen', deleteTitle: 'Item verwijderen?', deleteDescription: 'Dit item verdwijnt uit de normale tijdlijn. De wijziging wordt in de historie vastgelegd:', deleteConfirm: 'Verwijderen', deleted: 'Het item is uit de tijdlijn verwijderd.', deleteFailed: 'Verwijderen mislukt.', statusMarkedDone: 'Het item is als afgerond gemarkeerd.', statusMarkedNotRelevant: 'Het item is als niet meer relevant gemarkeerd.', statusActionFailed: 'De status is niet gewijzigd.', versionConflict: 'Dit item is ondertussen gewijzigd. Vernieuw de tijdlijn en probeer het opnieuw.', filtersActive: 'actief', followUpDescription: 'Open acties en toekomstige afspraken of deadlines', viewDetails: 'Details bekijken', viewItem: 'Item bekijken',
 }
 const labels = new Proxy(labelValues as ContinuousAppraisalLabels, { get: (target, key: string | symbol) => typeof key === 'string' ? target[key as keyof ContinuousAppraisalLabels] ?? key : '' })
@@ -233,9 +233,13 @@ describe('Continuous Appraisal drawer attachments', () => {
       if (url === '/api/continuous-appraisal' && init?.method === 'POST') return new Response(JSON.stringify({ id: 'item-created' }), { status: 201 })
       if (url.includes('/attachments')) {
         attachmentCount += 1
-        return new Response('{}', { status: attachmentCount === 2 ? 500 : 201 })
+        const formData = init?.body instanceof FormData ? init.body : null
+        const attachmentId = String(formData?.get('attachmentId') ?? '')
+        if (attachmentCount === 2) return new Response('{}', { status: 500 })
+        return new Response(JSON.stringify({ id: attachmentId, item_id: 'item-created', original_filename: 'fixture.pdf', content_type: 'application/pdf', file_size: 3, created_at: '2026-10-16T09:00:00.000Z', href: '/api/continuous-appraisal/attachments/' + attachmentId }), { status: 201 })
       }
-      return new Response(JSON.stringify(workspace([createItem('NOTE')])), { status: 200 })
+      const created = createItem('NOTE'); created.id = 'item-created'
+      return new Response(JSON.stringify(workspace([created])), { status: 200 })
     })
     vi.stubGlobal('fetch', fetchMock)
     const { host, root } = mount(<ContinuousAppraisalWorkspace initial={workspace([])} labels={labels} locale="nl" mode="manager" />)
@@ -267,7 +271,77 @@ describe('Continuous Appraisal drawer attachments', () => {
     const uploadCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes('/attachments'))
     expect(createCalls).toHaveLength(1)
     expect(uploadCalls).toHaveLength(3)
+    const uploadedIds = uploadCalls.map(([, init]) => String((init?.body as FormData).get('attachmentId')))
+    expect(uploadedIds[0]).not.toBe(uploadedIds[1])
+    expect(uploadedIds[1]).toBe(uploadedIds[2])
     expect(document.querySelector('[role="dialog"]')).toBeNull()
+    unmount(host, root)
+  })
+})
+
+describe('Continuous Appraisal comments and employee context', () => {
+  it('retries an ambiguous comment with the same request ID and shows the saved reply', async () => {
+    const item = createItem('NOTE')
+    const requestIds: string[] = []
+    let savedComment: ContinuousAppraisalItem['comments'][number] | null = null
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/comments') && init?.method === 'POST') {
+        const payload = JSON.parse(String(init.body)) as { id: string; body: string }
+        requestIds.push(payload.id)
+        if (requestIds.length === 1) throw new TypeError('connection lost after send')
+        savedComment = { id: payload.id, author_employee_id: 'manager-1', author_label: 'Yara Meijer', author_avatar_url: null, body: payload.body, created_at: '2026-10-16T09:00:00.000Z' }
+        return new Response(JSON.stringify(savedComment), { status: 201 })
+      }
+      const persistedItem = { ...item, comments: savedComment ? [savedComment] : [] }
+      return new Response(JSON.stringify(workspace([persistedItem])), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { host, root } = mount(<ContinuousAppraisalWorkspace initial={workspace([item])} labels={labels} locale="nl" mode="manager" />)
+    await act(async () => { host.querySelector('summary')?.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    const reply = host.querySelector<HTMLInputElement>('input[aria-label="Reageren"]')
+    expect(reply).not.toBeNull()
+    await act(async () => { if (reply) setTextValue(reply, 'APPRAISAL-FIX-01 reply') })
+    const send = () => Array.from(host.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent?.trim() === 'Reageren')
+    expect(send()?.className).toContain('min-h-10')
+    await act(async () => { send()?.click(); await new Promise((resolve) => setTimeout(resolve, 0)) })
+    expect(requestIds).toHaveLength(1)
+    expect(host.querySelector<HTMLInputElement>('input[aria-label="Reageren"]')?.value).toBe('APPRAISAL-FIX-01 reply')
+    await act(async () => { send()?.click(); await new Promise((resolve) => setTimeout(resolve, 0)) })
+    expect(requestIds).toHaveLength(2)
+    expect(requestIds[1]).toBe(requestIds[0])
+    expect(host.textContent).toContain('APPRAISAL-FIX-01 reply')
+    expect(host.textContent).toContain('1 item')
+    unmount(host, root)
+  })
+
+  it('clears the old employee timeline immediately and disambiguates duplicate names by employee number', async () => {
+    const nextEmployee = { ...employee, id: 'employee-2', employeeNumber: 'E-002' }
+    const previousItem = createItem('NOTE'); previousItem.title = 'Alleen in eerste context'
+    const nextItem = createItem('NOTE'); nextItem.id = 'item-next'; nextItem.employee_id = nextEmployee.id; nextItem.owner_employee_id = nextEmployee.id; nextItem.owner_label = nextEmployee.label; nextItem.title = 'Alleen in tweede context'
+    let finishRequest: ((response: Response) => void) | undefined
+    const fetchMock = vi.fn(() => new Promise<Response>((resolve) => { finishRequest = resolve }))
+    vi.stubGlobal('fetch', fetchMock)
+    const initial = workspace([previousItem])
+    const { host, root } = mount(<ContinuousAppraisalWorkspace employeeOptions={[employee, nextEmployee]} initial={initial} initialFilters={{ owner: employee.id }} labels={labels} locale="nl" mode="manager" />)
+    const trigger = host.querySelector<HTMLButtonElement>('#appraisal-employee')
+    await act(async () => { trigger?.click() })
+    const options = Array.from(document.querySelectorAll<HTMLButtonElement>('[role="option"]'))
+    expect(options.map((option) => option.textContent?.trim())).toContain('Noah Hendriks · E-001')
+    expect(options.map((option) => option.textContent?.trim())).toContain('Noah Hendriks · E-002')
+    const nextOption = options.find((option) => option.textContent?.includes('E-002'))
+    await act(async () => { nextOption?.click(); await Promise.resolve() })
+    expect(host.textContent).not.toContain('Alleen in eerste context')
+    expect(host.textContent).toContain('Medewerker laden…')
+    expect(host.textContent).toContain('E-002')
+    await act(async () => {
+      finishRequest?.(new Response(JSON.stringify({ ...workspace([nextItem]), employeeId: nextEmployee.id, employee: nextEmployee }), { status: 200 }))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    expect(host.textContent).toContain('Alleen in tweede context')
+    expect(host.textContent).not.toContain('Alleen in eerste context')
+    expect(new URL(window.location.href).searchParams.get('employeeId')).toBe(nextEmployee.id)
+    expect(new URL(window.location.href).searchParams.has('owner')).toBe(false)
     unmount(host, root)
   })
 })

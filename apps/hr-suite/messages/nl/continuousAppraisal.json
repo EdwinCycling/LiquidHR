@@ -86,6 +86,8 @@
   "saved": "Opgeslagen",
   "managerOnly": "Alleen de manager kan feedback toevoegen.",
   "itemCount": "items",
+  "itemCountSingular": "item",
+  "loadingEmployee": "Medewerker laden…",
   "addDescription": "Leg een concreet moment, afspraak of ontwikkelpunt vast.",
   "editDescription": "Toekomstige inhoud kan worden bijgewerkt; historische inhoud blijft onveranderlijk.",
   "noEmployee": "Geen medewerkers beschikbaar binnen jouw scope.",

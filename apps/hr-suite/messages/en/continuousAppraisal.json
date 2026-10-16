@@ -86,6 +86,8 @@
   "saved": "Saved",
   "managerOnly": "Only the manager can add feedback.",
   "itemCount": "entries",
+  "itemCountSingular": "entry",
+  "loadingEmployee": "Loading employee…",
   "addDescription": "Capture a concrete moment, agreement, or development point.",
   "editDescription": "Future content can be updated; historical content remains immutable.",
   "noEmployee": "No employees are available in your scope.",

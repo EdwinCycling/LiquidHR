@@ -48,8 +48,11 @@ export const continuousAppraisalStatusTransitionSchema = z.object({
 export const continuousAppraisalDeleteSchema = z.object({ version: z.number().int().min(1) }).strict()
 
 export const continuousAppraisalCommentSchema = z.object({
+  id: uuid.optional(),
   body: z.string().trim().min(1).max(100),
 }).strict()
+
+export const continuousAppraisalAttachmentIdSchema = uuid.optional()
 
 export const continuousAppraisalListQuerySchema = z.object({
   employeeId: uuid.optional(),
