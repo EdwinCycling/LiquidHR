@@ -10,9 +10,11 @@ Read-only browser evidence covers the core 9-grid results, existing synthetic re
 
 ## Latest local UX follow-up — TALENT-UX-V2 — 2026-10-16
 
-**Status: local main integrated; focused Talent UX gates pass; package type-check partial.** `/workforce/talent` now groups the existing workflows into four areas and carries selected employee context into comparison and radar. Existing profile-management V2 was retained. No permission, RLS, schema, data, Payroll, push or deployment changes.
+**Status: local main integrated; focused Talent UX gates pass; package type-check partial.** Local `main` includes the active-area lazy-loading correction in code commit `cd21d01f2e53fe4a0475b113afe58deef488a728`. The existing authorization, scoped data, profile-management V2, comparison and radar flows remain in place.
 
-Code commit: `5bd12558d930f6a806ead6880fcabc22a254c43b`; local fast-forward completed. Three targeted test files passed (7 tests), changed-file ESLint passed, and i18n parity passed (43 namespaces). The app-wide typecheck reports only unresolved `pdf-lib` and `pdfjs-dist` imports from existing PDF tests. Full suite, build and browser acceptance were not run.
+The cause of the stale browser result was port 3020 serving the protected Talent convergence worktree at SHA `18d2ed3bc0d2c05c3d309266e7228aa4a3cfb4cb`; that worktree was left untouched. The local test URL is `http://127.0.0.1:3021/workforce/talent`. No build was started.
+
+Three targeted test files passed (7 tests), changed-file ESLint passed, and i18n parity passed (43 namespaces). The app-wide typecheck reports only unresolved `pdf-lib` and `pdfjs-dist` imports from existing PDF tests. Full suite, build and authenticated browser acceptance were not run. No push or deployment was performed.
 
 ## Previous integrated state — TALENT-CONVERGENCE-01 — 2026-10-15
 

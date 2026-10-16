@@ -16,10 +16,11 @@ Verdict: LOCAL MAIN CODE INTEGRATED / TYPE, LINT, I18N EN FULL SUITE PASS / BUIL
 
 ## TALENT-UX-V2 — lokale Workforce-UX (2026-10-16)
 
-- `/workforce/talent` heeft vier tabgebieden, medewerkercontext met functie en afdeling, compacte details en toegang tot de bestaande profiel-, vaardigheden/bewijs-, vergelijking- en radarflows. De bestaande V2-beheereditor is behouden.
-- Bestaande autorisatie en scoped gegevens bleven intact; geen schema-, databank- of Payroll-wijziging. Lokale `main` bevat codecommit `5bd12558`; er is niet gepusht of gedeployed.
-- Gerichte controles: 7 tests in 3 bestanden, ESLint op gewijzigde TS-bestanden en i18n-pariteit (43 namespaces) geslaagd. De app-typecheck stopt alleen op ontbrekende `pdf-lib`/`pdfjs-dist`-afhankelijkheden in bestaande PDF-tests; volledige suite, build en browserrun zijn niet uitgevoerd.
-- Verdict: LOCAL UX INTEGRATED / TARGETED CHECKS PASS / TYPECHECK PARTIAL / NO RELEASE.
+- `/workforce/talent` mount alleen het actieve tabgebied. Medewerkers laden in pagina's van 25; functieprofielen laden samenvattingen en halen het gekozen profieldetail op; vaardigheden/bewijs laden pas bij openen en tonen details via uitklappen. Talentmeldingen staan achter een compacte teller en apart venster. De bestaande V2-beheereditor en vergelijkings-/radarflows zijn behouden.
+- De oorzaak van de trage browsertest was een oude serverbron op poort 3020: de listener kwam uit de beschermde Talent-worktree op SHA `18d2ed3b`; die worktree bleef onaangeroerd. De actuele lokale codecommit `cd21d01f` draait voor browsertest op `http://127.0.0.1:3021/workforce/talent`; er is geen build gestart.
+- Bestaande autorisatie en scoped gegevens bleven intact; geen schema-, databank- of Payroll-wijziging. Geen push of deployment.
+- Gerichte controles: 7 tests in 3 bestanden, ESLint op gewijzigde TS-bestanden en i18n-pariteit (43 namespaces) geslaagd. De app-typecheck stopt alleen op ontbrekende `pdf-lib`/`pdfjs-dist`-afhankelijkheden in bestaande PDF-tests; volledige suite, build en geauthenticeerde browseracceptatie zijn niet uitgevoerd.
+- Verdict: LOCAL UX INTEGRATED / ACTIVE-AREA LAZY LOAD / TARGETED CHECKS PASS / TYPECHECK PARTIAL / NO RELEASE.
 
 ## TALENT-CONVERGENCE-01 — TEST-migraties en kernflows bevestigd; volledige 9-grid-acceptatie HOLD (historische baseline 2026-10-15)
 
