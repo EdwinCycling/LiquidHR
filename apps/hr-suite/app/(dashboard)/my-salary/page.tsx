@@ -125,7 +125,8 @@ export default async function MySalaryPage({ searchParams }: MySalaryPageProps) 
       labels={{
         title: tDocuments('payslipsTitle'), subtitle: tDocuments('payslipsSubtitle'), empty: tDocuments('payslipsEmpty'),
         view: tDocuments('view'), download: tDocuments('download'), close: tDocuments('viewerClose'),
-        unsupported: tDocuments('viewerUnsupported'), imported: tDocuments('payslipImported'),
+        unsupported: tDocuments('viewerUnsupported'), previewLoading: tDocuments('viewerPreviewLoading'),
+        previewUnavailable: tDocuments('viewerPreviewUnavailable'), imported: tDocuments('payslipImported'),
         payroll: tDocuments('payslipPayroll'), unspecifiedPeriod: tDocuments('payslipUnspecifiedPeriod'),
         document: tDocuments('payslipDocument'),
       }}

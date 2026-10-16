@@ -27,6 +27,8 @@ export function EmployeePayslips({
     download: string
     close: string
     unsupported: string
+    previewLoading: string
+    previewUnavailable: string
     imported: string
     payroll: string
     unspecifiedPeriod: string
@@ -105,11 +107,18 @@ export function EmployeePayslips({
       {preview ? <DocumentViewer
         contentType={preview.document.contentType}
         filename={preview.filename}
-        labels={{ close: labels.close, download: labels.download, unsupported: labels.unsupported }}
         onClose={() => setPreview(null)}
         downloadHref={preview.document.downloadHref}
         previewHref={preview.document.viewHref}
         title={preview.title}
+        labels={{
+          close: labels.close,
+          download: labels.download,
+          unsupported: labels.unsupported,
+          previewLoading: labels.previewLoading,
+          previewUnavailable: labels.previewUnavailable,
+        }}
+        useBlobPreview
       /> : null}
     </Surface>
   )

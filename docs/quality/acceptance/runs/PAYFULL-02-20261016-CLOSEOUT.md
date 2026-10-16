@@ -99,6 +99,7 @@ De Supabase security advisor signaleert de nieuwe authenticated `SECURITY DEFINE
 - Exacte productionbuild op `9df1187a3bcd5a4b703bda37021f6dfa7742f015`: Next.js 16.4.0 Turbopack, TypeScript en 332 statische pagina's geslaagd; Payroll-client-boundary negative control, 167 assetscan en source/runtimeprovenance geslaagd. Niet-fatale tracingwaarschuwing: dynamische logo-padzoeker in `payrun01-payslip-pdf.ts:156`.
 - Geïsoleerde `npm ci` meldde dat `@sparticuz/chromium@149` Node `^22.17.0 || >=24` verwacht terwijl de buildomgeving Node 22.14 gebruikt, en 10 dependency-auditmeldingen (2 moderate, 8 high). Er is geen `npm audit fix` uitgevoerd. De build zelf eindigde succesvol.
 - `git diff --check` is vóór commit gecontroleerd; geen test- of buildresultaat is afgeleid uit een skip als pass.
+- De latere ESS-viewerwijziging is gericht getest: 5 testbestanden / 20 tests, TypeScript, gewijzigde-bestanden-ESLint, i18n (43 gelijke NL/EN-namespaces) en `git diff --check` zijn geslaagd. De volledige productionbuild is na deze UI-delta niet opnieuw uitgevoerd: de in-use developmentruntime op poort 3022 gebruikt de lokale Next-output, en `next-env.d.ts`/`next.config.ts` bevatten beschermde bestaande werkboomwijzigingen. De vorige build blijft bewezen op `9df1187a3bcd5a4b703bda37021f6dfa7742f015`.
 
 De finale run-detailpagina van DEMO-001 is op Development bij 390×844 gecontroleerd zonder horizontale overflow. Mobiele PDF- en ESS-schermen zijn niet gecontroleerd.
 
@@ -108,13 +109,13 @@ De PAYFULL-02C-hercontrole hierboven documenteert de toenmalige blokkade. Na de 
 
 De daaropvolgende geauthenticeerde in-app sessie liet op `/my-salary` uitsluitend DEMO-002's eigen definitieve oktoberresultaat zien: bruto €3.534,00, pensioen werknemer €251,72, fiscaal loon €3.282,28, loonheffing €1.173,42, netto €2.141,36 en de cumulatieven. De pagina toonde ook de melding dat de pensioenberekening synthetische TEST-instellingen gebruikt en geen extern pensioenfondscontract bevestigt. Deze ESS-weergave is op 390 px gecontroleerd.
 
-De normale HR Admin-runpagina's voor DEMO-001 en DEMO-002 tonen nu elk de actie **Opgeslagen PDF downloaden** voor hun definitieve run. Daarmee herkent de Payroll-weergave een opgeslagen PDF-artifact voor beide runs. De standaard-PDF-preview in de bestaande employee-sessie toonde voor DEMO-002 een éénpagina-loonstrook met de verwachte inhoud en €2.141,36 netto-uitbetaling. Dit is een leesbare preview, geen byte-/hash-readback van het opgeslagen artifact.
+De normale HR Admin-runpagina's voor DEMO-001 en DEMO-002 tonen nu elk de actie **Opgeslagen PDF downloaden** voor hun definitieve run. Daarmee herkent de Payroll-weergave een opgeslagen PDF-artifact voor beide runs. De standaard-PDF-preview die eerder in de bestaande employee-sessie openstond toonde voor DEMO-002 een éénpagina-loonstrook met de verwachte inhoud en €2.141,36 netto-uitbetaling. Dit is een leesbare run-preview, geen byte-/hash-readback van het opgeslagen artifact of bewijs dat de ESS-modal de PDF-inhoud rendert.
 
-Een poging om dezelfde standaardpreview vanuit de HR Admin-sessie te openen via de zichtbare Payroll-link kreeg de bestaande autorisatiefout “Je hebt onvoldoende rechten voor deze actie.” De autorisatie is niet omzeild; er is geen direct HTTP-, database- of andere-browserpad gebruikt. De link voor het opgeslagen PDF-artifact toonde in de browser geen leesbare bestandsinhoud of downloadbevestiging.
+Een poging om dezelfde standaardpreview vanuit de HR Admin-sessie te openen via de zichtbare Payroll-link kreeg de bestaande autorisatiefout “Je hebt onvoldoende rechten voor deze actie.” De gewone ESS-knop **Bekijken** opent de documentviewer, maar de PDF-kaderinhoud blijft in de huidige Codex-browser leeg, ook nadat de ESS-preview dezelfde origin-blobroute gebruikt. De zichtbare ESS-downloadactie leverde geen browserdownload of leesbare inhoud op. Een nieuwe in-app-tab naar precies de in de ESS-knop getoonde downloadlink werd vóór de app geblokkeerd door de browser-URL-policy; dit is geen serverrespons of bewijs van een 403. Er is geen andere browser, directe HTTP/API- of database-route gebruikt.
 
 De resterende live controles zijn **OPEN**:
 
-- bytes, bestandshash en inhoud van het opgeslagen PDF-artifact via de normale toegestane downloadreadback;
+- inline ESS-PDF-weergave en bytes, bestandshash en inhoud van het opgeslagen PDF-artifact via de normale toegestane downloadreadback;
 - ESS-eigen loonstrookreadback voor DEMO-001;
 - ESS-negative: aantonen dat de andere werknemer geen PDF-inhoud kan lezen;
 - live Manager/Employee lifecycle-weigering en cross-administration browserprobe;
