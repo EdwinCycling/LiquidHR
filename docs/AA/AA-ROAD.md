@@ -132,6 +132,8 @@ De inmiddels gekozen richting is **niet** een aparte kopie van LiquidHR of een z
 
 Bestaand lokaal bewijs: PAYLAB02 synthetic M0 GREEN en PAYLAB03 beperkte NL-2026 reguliere maandcase GREEN; de Payroll-code is nog **niet** in de canonieke `main` geïntegreerd. Verdere PAYLAB04-componentcatalogus en cao-/benchmarkvoorstellen zijn details in `AA-NEXT`; geen algemene NL-payrollcomplianceclaim.
 
+**CAO-PAYFULL-01 — besloten P1-mijlpaal 2026-10-16:** selecteer één bestaande Kinderopvang K2-fixture (2026-09, 24/36 uur, schaal 6/salarisnummer 12, vier zondaguren à 45%; bruto-display €1.911,74) en maak uitsluitend die verticale keten af tot volledig onafhankelijk gecontroleerd nettoresultaat en opgeslagen PDF. CAO-BENCH02-fase 2 leverde bruto-oracles en conceptpack in afzonderlijke lokale branch maar bewijst geen volledige cao-ondersteuning of integratie met PAYFULL-02. Geen generieke cao-dekkingsclaim. Leid dit af van [AA-NEXT](AA-NEXT.md) en de originele [CAO-BENCH02 fase-2 acceptance](../payroll/acceptance/CAO-BENCH02-PHASE2-20261003.md).
+
 **Parallelisering:** engine en geïsoleerde Lab-database mogelijk onafhankelijk ontwikkelen; shared Control-/Core-/IKV-contracten en migrations alleen na expliciete dependencycheck/integratie. Geen blinde merge van payrollworktrees of migrationlineage.
 
 Onderzoek/vervolg:
