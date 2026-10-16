@@ -109,16 +109,17 @@ De PAYFULL-02C-hercontrole hierboven documenteert de toenmalige blokkade. Na de 
 
 De daaropvolgende geauthenticeerde in-app sessie liet op `/my-salary` uitsluitend DEMO-002's eigen definitieve oktoberresultaat zien: bruto €3.534,00, pensioen werknemer €251,72, fiscaal loon €3.282,28, loonheffing €1.173,42, netto €2.141,36 en de cumulatieven. De pagina toonde ook de melding dat de pensioenberekening synthetische TEST-instellingen gebruikt en geen extern pensioenfondscontract bevestigt. Deze ESS-weergave is op 390 px gecontroleerd.
 
-De normale HR Admin-runpagina's voor DEMO-001 en DEMO-002 tonen nu elk de actie **Opgeslagen PDF downloaden** voor hun definitieve run. Daarmee herkent de Payroll-weergave een opgeslagen PDF-artifact voor beide runs. De standaard-PDF-preview die eerder in de bestaande employee-sessie openstond toonde voor DEMO-002 een éénpagina-loonstrook met de verwachte inhoud en €2.141,36 netto-uitbetaling. Dit is een leesbare run-preview, geen byte-/hash-readback van het opgeslagen artifact of bewijs dat de ESS-modal de PDF-inhoud rendert.
+De normale HR Admin-runpagina's voor DEMO-001 en DEMO-002 tonen elk **Opgeslagen PDF downloaden** voor hun definitieve run. De oorspronkelijke run-preview voor DEMO-002 toonde een éénpagina-loonstrook met de verwachte inhoud en €2.141,36 netto-uitbetaling.
 
-Een poging om dezelfde standaardpreview vanuit de HR Admin-sessie te openen via de zichtbare Payroll-link kreeg de bestaande autorisatiefout “Je hebt onvoldoende rechten voor deze actie.” De gewone ESS-knop **Bekijken** opent de documentviewer, maar de PDF-kaderinhoud blijft in de huidige Codex-browser leeg, ook nadat de ESS-preview dezelfde origin-blobroute gebruikt. De zichtbare ESS-downloadactie leverde geen browserdownload of leesbare inhoud op. Een nieuwe in-app-tab naar precies de in de ESS-knop getoonde downloadlink werd vóór de app geblokkeerd door de browser-URL-policy; dit is geen serverrespons of bewijs van een 403. Er is geen andere browser, directe HTTP/API- of database-route gebruikt.
+Bij hervatting op 16 oktober 2026 opende de bestaande TEST-persona DEMO-002 via de lokale accountwisselaar als werknemer Sophie. De status was al **Beschikbaar**; er is geen Auth-account aangemaakt en geen rol of administratie gewijzigd. `/my-salary` toonde uitsluitend de eigen definitieve periode oktober 2026 met bruto €3.534,00 en netto €2.141,36. De normale ESS-download is gelukt: het bestand was 513.406 bytes met SHA-256 `51b8c513b4c6f9b0c5a9e74e36086099d493ec08b9228b997779ae6cee56d977`, exact gelijk aan het eerder opgeslagen HR Admin-artifact. De éénpagina-A4-PDF is visueel gecontroleerd op bruto, pensioen werknemer, loonheffing, nettovergoeding, uitbetaling en cumulatieven. Dit bewijst ESS-download/readback en artifact-bytegelijkheid, maar niet de inline viewer.
+
+De gewone ESS-knop **Bekijken** opent de documentviewer, maar de PDF-kaderinhoud blijft `Documentvoorbeeld laden…`. Vanuit dezelfde DEMO-002 ESS-sessie gaf de reeds geopende DEMO-001-previewroute expliciet `Je hebt onvoldoende rechten voor deze actie` terug en geen PDF-inhoud. Dit is negatieve preview-autorisatie voor een andere werknemer; de opgeslagen-artifactroute en cross-administration zijn hiermee niet getest. Er is geen andere browser, directe HTTP-tool of database-route gebruikt.
 
 De resterende live controles zijn **OPEN**:
 
-- inline ESS-PDF-weergave en bytes, bestandshash en inhoud van het opgeslagen PDF-artifact via de normale toegestane downloadreadback;
-- ESS-eigen loonstrookreadback voor DEMO-001;
-- ESS-negative: aantonen dat de andere werknemer geen PDF-inhoud kan lezen;
-- live Manager/Employee lifecycle-weigering en cross-administration browserprobe;
+- inline ESS-PDF-weergave;
+- ESS-eigen loonstrookreadback en normale download-hashreadback voor DEMO-001; de ondersteunde lokale personawisselaar biedt geen DEMO-001-identiteit, dus er is geen Auth-account of extra toegang aangemaakt;
+- aanvullende negatieve controle op opgeslagen artifacts, lifecycle-weigering voor Manager/Employee en cross-administration browserprobe;
 - PDF-weergave op 390 px.
 
 Daarom blijft de eindstatus **PARTIAL**, niet volledige end-to-end acceptatie. De bestaande open items staan in [AA-OPEN](../../../AA/AA-OPEN.md).

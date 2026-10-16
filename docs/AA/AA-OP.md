@@ -92,6 +92,13 @@ Voor Payroll gelden aanvullend `AA-PAYROLL.md` en de feitelijk geraakte Payroll-
 
 ## 7. Token-efficiëntie
 
+**Vaste LiquidHR-Codex-standaard (2026-10-16): Luna-Max, één hoofdagent, één afgebakend doel.** Het model moet bij het starten in de Codex-interface gekozen worden; documentatie schakelt geen model om. Geen automatische zwaardere modelkeuze. Een subagent is uitsluitend na concrete noodzaak, expliciete motivatie en voorafgaande toestemming toegestaan.
+
+- Geef `/doel` één toetsbaar eindresultaat en een duidelijke in-scope grens. Een ruim TEST-uitvoeringsmandaat betekent niet automatisch dat alle modules, alle historische uitzonderingen, alle administraties of een volledige release in dezelfde run moeten.
+- Gebruik **gerichte tests tijdens implementatie** en passende eindgates op de definitieve kandidaat; geen herhaalde volledige suite of build na elke kleine fix. Houd CONTROLLED/Payroll/RLS-gates uit `AA-TEST.md` onverkort van kracht.
+- Hergebruik exact-SHA-bewijs en stop herhaalde onproductieve analyses. Geef een bondige eindrapportage met resultaat, tests, blockers en commit/PR, geen logdump.
+
+
 - Lees alleen de noodzakelijke bronnen en toepasselijke secties. Hergebruik geldige context, analyses en groene testresultaten; vermijd dubbele toolcalls, volledige herlezingen en onnodig grote terminaluitvoer.
 - Gebruik standaard één uitvoerende agent; start geen automatische subagents.
 - Richtbudget per taak, indicatief als sturingsmiddel en geen harde limiet of veiligheidsgrens: LOW circa **2.000**, MEDIUM **6.000**, HIGH **15.000** tokens. Pas dit aan als aantoonbare complexiteit dat vraagt; verkort nooit security-, integriteits- of vereiste verificatie.
