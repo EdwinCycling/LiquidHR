@@ -44,7 +44,7 @@ function statusTone(status: NotificationStatus): BadgeTone {
   return 'warning'
 }
 
-export function TalentNotificationPanel({ labels }: { labels: NotificationLabels }) {
+export function TalentNotificationPanel({ compact = false, labels, onOpenCountChange }: { compact?: boolean; labels: NotificationLabels; onOpenCountChange?: (count: number) => void }) {
   const [notifications, setNotifications] = useState<TalentNotification[]>([])
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [pendingId, setPendingId] = useState<string | null>(null)
@@ -61,6 +61,7 @@ export function TalentNotificationPanel({ labels }: { labels: NotificationLabels
       }
       const payload = await response.json() as { data: TalentNotification[] }
       setNotifications(payload.data)
+      onOpenCountChange?.(payload.data.filter((notification) => notification.status === 'OPEN' || notification.status === 'READ').length)
       setState('ready')
       return true
     } catch {
@@ -71,27 +72,23 @@ export function TalentNotificationPanel({ labels }: { labels: NotificationLabels
   }
 
   useEffect(() => {
-    let cancelled = false
-    void fetch('/api/talent/notifications', { cache: 'no-store' }).then(async (response) => {
-      if (cancelled) return
+    const controller = new AbortController()
+    void fetch('/api/talent/notifications', { cache: 'no-store', signal: controller.signal }).then(async (response) => {
       if (!response.ok) {
         setState('error')
         setMessage(labels.failed)
         return
       }
       const payload = await response.json() as { data: TalentNotification[] }
-      if (!cancelled) {
-        setNotifications(payload.data)
-        setState('ready')
-      }
+      if (controller.signal.aborted) return
+      setNotifications(payload.data)
+      onOpenCountChange?.(payload.data.filter((notification) => notification.status === 'OPEN' || notification.status === 'READ').length)
+      setState('ready')
     }).catch(() => {
-      if (!cancelled) {
-        setState('error')
-        setMessage(labels.failed)
-      }
+      if (!controller.signal.aborted) { setState('error'); setMessage(labels.failed) }
     })
-    return () => { cancelled = true }
-  }, [labels.failed])
+    return () => controller.abort()
+  }, [labels.failed, onOpenCountChange])
 
   async function update(notification: TalentNotification, status: Exclude<NotificationStatus, 'OPEN'>) {
     if (pendingId) return
@@ -114,9 +111,9 @@ export function TalentNotificationPanel({ labels }: { labels: NotificationLabels
 
   const openCount = notifications.filter((notification) => notification.status === 'OPEN' || notification.status === 'READ').length
 
-  return <section className="mt-6">
+  return <section className={compact ? '' : 'mt-6'}>
     <Surface className="p-4 sm:p-5">
-      <SectionHeader actions={<Badge tone={openCount > 0 ? 'warning' : 'success'}>{openCount}</Badge>} description={labels.intro} title={labels.title} />
+      {compact ? null : <SectionHeader actions={<Badge tone={openCount > 0 ? 'warning' : 'success'}>{openCount}</Badge>} description={labels.intro} title={labels.title} />}
       {message ? <p aria-live="polite" className="mt-3 text-sm text-muted-foreground" role="status">{message}</p> : null}
       {state === 'loading' ? <EmptyState className="mt-4" icon={<RotateCw className="animate-spin" />} title={labels.loading ?? labels.intro} /> : state === 'error' ? <EmptyState actions={<Button onClick={() => { setMessage(null); void loadNotifications() }} size="sm" type="button" variant="secondary"><RotateCw />{labels.retry ?? labels.failed}</Button>} className="mt-4" icon={<Bell />} title={labels.failed} /> : notifications.length === 0 ? <EmptyState className="mt-4" icon={<Bell />} title={labels.empty} /> : <ul className="mt-4 grid gap-3">{notifications.map((notification) => {
         const action = talentNotificationActionHref(notification.event_type)

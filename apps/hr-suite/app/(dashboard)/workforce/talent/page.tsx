@@ -1,12 +1,9 @@
 import { redirect } from 'next/navigation'
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
-import { TalentNotificationPanel } from '@/components/talent/talent-notification-panel'
+import { TalentNotificationCenter } from '@/components/talent/talent-notification-center'
 import { TalentWorkforceOverview } from '@/components/talent/talent-workforce-overview'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
-import { listTalentEmployeeCapabilityRecords } from '@/lib/talent/employee-capability-service'
-import { listTalentProfilesForWorkforce } from '@/lib/talent/service'
-import { listTalentTeamMatrix } from '@/lib/talent/team-service'
 
 export default async function WorkforceTalentPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const context = await requirePermission('talent:manager-read').catch((error: unknown) => { if (error instanceof AuthorizationError) redirect('/geen-toegang'); throw error })
@@ -15,18 +12,7 @@ export default async function WorkforceTalentPage({ searchParams }: { searchPara
   const canCompare = context.permissions.includes('talent-comparison:read')
   const canManage = context.permissions.includes('talent:manage')
 
-  const [t, results] = await Promise.all([
-    getTranslator('talent'),
-    Promise.allSettled([listTalentProfilesForWorkforce(), listTalentEmployeeCapabilityRecords({}), canTeam ? listTalentTeamMatrix({}, { includeCapabilities: false }) : Promise.resolve(null)]),
-  ])
-  const profileResult = results[0]
-  const recordResult = results[1]
-  const teamResult = results[2]
-  const initial = profileResult.status === 'fulfilled' ? profileResult.value : []
-  const records = recordResult.status === 'fulfilled' ? recordResult.value : []
-  const team = teamResult.status === 'fulfilled' ? teamResult.value : null
-  const employees = canTeam && team ? team.rows.map(({ employeeId, employeeNumber, employeeLabel, jobTitle, departmentName }) => ({ employeeId, employeeNumber, employeeLabel, jobTitle, departmentName })) : []
-  const employeeState = !canTeam || teamResult.status === 'fulfilled' ? 'ready' : 'error'
+  const t = await getTranslator('talent')
   const overview = {
     searchPlaceholder: t('overview.searchPlaceholder'),
     employeeFilter: t('overview.employeeFilter'),
@@ -62,6 +48,10 @@ export default async function WorkforceTalentPage({ searchParams }: { searchPara
       noEmployees: t('overview.noEmployeesAvailable'),
       noResults: t('overview.noEmployeeResults'),
       loadError: overview.loadError,
+      loading: t('overview.profilesLoading'),
+      paginationAriaLabel: t('overview.paginationAriaLabel'),
+      previousPage: t('overview.previousPage'),
+      nextPage: t('overview.nextPage'),
     },
     development: {
       title: t('overview.developmentTitle'),
@@ -77,15 +67,15 @@ export default async function WorkforceTalentPage({ searchParams }: { searchPara
       roleExplorerDescription: t('roleExplorerManagerSubtitle'),
       openRoleExplorer: t('overview.openRoleExplorer'),
     },
-    profileLabels: { ...overview, search: t('search'), profiles: t('profiles'), empty: t('workforceEmpty'), noResults: t('noResults'), selectProfile: t('selectProfile'), managerReadOnlyHint: t('managerReadOnlyHint'), profileDetails: t('profileDetails'), profileContent: t('profileContent'), requirements: t('requirements'), purpose: t('purpose'), summary: t('summary'), organizationalContext: t('organizationalContext'), tasks: t('tasks'), responsibilities: t('responsibilities'), resultAreas: t('resultAreas'), capabilityType: t('type'), required: t('required'), important: t('important'), optional: t('optional'), targetLevel: t('targetLevel'), languageLevel: t('languageLevel'), rationale: t('rationale'), noContent: t('noContent'), noRequirements: t('noRequirements'), readOnly: t('readOnly'), active: t('active'), validFrom: t('validFrom'), validUntil: t('validUntil'), family: t('family'), seniority: t('seniority'), notAvailable: t('notAvailable') },
-    recordLabels,
+    profileLabels: { ...overview, search: t('search'), profiles: t('profiles'), empty: t('workforceEmpty'), noResults: t('noResults'), selectProfile: t('selectProfile'), managerReadOnlyHint: t('managerReadOnlyHint'), profileDetails: t('profileDetails'), profileContent: t('profileContent'), requirements: t('requirements'), purpose: t('purpose'), summary: t('summary'), organizationalContext: t('organizationalContext'), tasks: t('tasks'), responsibilities: t('responsibilities'), resultAreas: t('resultAreas'), capabilityType: t('type'), required: t('required'), important: t('important'), optional: t('optional'), targetLevel: t('targetLevel'), languageLevel: t('languageLevel'), rationale: t('rationale'), noContent: t('noContent'), noRequirements: t('noRequirements'), readOnly: t('readOnly'), active: t('active'), validFrom: t('validFrom'), validUntil: t('validUntil'), family: t('family'), seniority: t('seniority'), notAvailable: t('notAvailable'), loadingProfiles: t('overview.profilesLoading'), profileDetailsLoading: t('overview.profileDetailsLoading'), paginationAriaLabel: t('overview.paginationAriaLabel'), previousPage: t('overview.previousPage'), nextPage: t('overview.nextPage') },
+    recordLabels: { ...recordLabels, paginationAriaLabel: t('overview.paginationAriaLabel'), previousPage: t('overview.previousPage'), nextPage: t('overview.nextPage') },
     manageProfiles: t('overview.manageProfiles'),
     manageSkills: t('overview.manageSkills'),
   }
 
   return <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
     <AdminSettingsPageHeader backHref="/workforce" backLabel={t('backToWorkforce')} eyebrow={t('workforceTitle')} subtitle={t('workforceSubtitle')} title={t('workforceTitle')} />
-    <TalentNotificationPanel labels={{ title: t('notificationTitle'), intro: t('notificationIntro'), empty: t('notificationEmpty'), loading: t('overview.notificationLoading'), retry: t('overview.notificationRetry'), markRead: t('notificationMarkRead'), complete: t('notificationComplete'), dismiss: t('notificationDismiss'), openAction: t('overview.notificationOpenAction'), saved: t('notificationSaved'), failed: t('notificationFailed'), statusOpen: t('overview.notificationStatusOpen'), statusRead: t('overview.notificationStatusRead'), statusDone: t('overview.notificationStatusDone'), statusDismissed: t('overview.notificationStatusDismissed') }} />
-    <TalentWorkforceOverview canCompare={canCompare} canManage={canManage} canTeam={canTeam} employeeState={employeeState} employees={employees} initialArea={typeof params.area === 'string' ? params.area : undefined} initialEmployeeId={typeof params.employeeId === 'string' ? params.employeeId : undefined} labels={workforceOverviewLabels} profileState={profileResult.status === 'fulfilled' ? 'ready' : 'error'} profiles={initial} recordState={recordResult.status === 'fulfilled' ? 'ready' : 'error'} records={records} />
+    <TalentNotificationCenter closeLabel={t('personalRecordClose')} counterLabel={t('notificationCounter')} labels={{ title: t('notificationTitle'), intro: t('notificationIntro'), empty: t('notificationEmpty'), loading: t('overview.notificationLoading'), retry: t('overview.notificationRetry'), markRead: t('notificationMarkRead'), complete: t('notificationComplete'), dismiss: t('notificationDismiss'), openAction: t('overview.notificationOpenAction'), saved: t('notificationSaved'), failed: t('notificationFailed'), statusOpen: t('overview.notificationStatusOpen'), statusRead: t('overview.notificationStatusRead'), statusDone: t('overview.notificationStatusDone'), statusDismissed: t('overview.notificationStatusDismissed') }} />
+    <TalentWorkforceOverview canCompare={canCompare} canManage={canManage} canTeam={canTeam} initialArea={typeof params.area === 'string' ? params.area : undefined} initialEmployeeId={typeof params.employeeId === 'string' ? params.employeeId : undefined} labels={workforceOverviewLabels} />
   </section>
 }

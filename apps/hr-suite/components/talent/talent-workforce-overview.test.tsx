@@ -37,6 +37,10 @@ const labels: TalentWorkforceOverviewLabels = {
     noEmployees: 'Geen medewerkers.',
     noResults: 'Geen resultaten.',
     loadError: 'Laden mislukt.',
+    loading: 'Laden…',
+    paginationAriaLabel: "Pagina's",
+    previousPage: 'Vorige pagina',
+    nextPage: 'Volgende pagina',
   },
   development: {
     title: 'Vergelijken & ontwikkelen',
@@ -64,25 +68,21 @@ describe('Talent workforce overview', () => {
       canCompare
       canManage={false}
       canTeam
-      employeeState="ready"
-      employees={[employee]}
       initialArea="develop"
       initialEmployeeId={employee.employeeId}
       labels={labels}
-      profileState="ready"
-      profiles={[]}
-      recordState="ready"
-      records={[]}
     />)
 
     expect(markup.match(/role="tab"/g)).toHaveLength(4)
     expect(markup).toContain('aria-label="Talentwerkgebieden"')
     expect(markup).toContain('aria-selected="true"')
-    expect(markup).toContain('Mila de Vries')
-    expect(markup).toContain('Teamleider · People &amp; Culture')
     expect(markup).toContain('href="/workforce/talent/comparison?employeeId=employee-1"')
     expect(markup).toContain('href="/workforce/talent/role-explorer?employeeId=employee-1"')
     expect(markup).toContain('id="talent-workforce-panel-develop"')
+    expect(markup.match(/role="tabpanel"/g)).toHaveLength(1)
+    expect(markup).not.toContain('id="talent-workforce-panel-employees"')
+    expect(markup).not.toContain('id="talent-workforce-panel-profiles"')
+    expect(markup).not.toContain('id="talent-workforce-panel-skills"')
   })
 
   it('shows only work areas allowed by the caller permissions', () => {
@@ -90,14 +90,8 @@ describe('Talent workforce overview', () => {
       canCompare={false}
       canManage={false}
       canTeam={false}
-      employeeState="ready"
-      employees={[employee]}
       initialArea="employees"
       labels={labels}
-      profileState="ready"
-      profiles={[]}
-      recordState="ready"
-      records={[]}
     />)
 
     expect(markup.match(/role="tab"/g)).toHaveLength(2)
@@ -106,5 +100,6 @@ describe('Talent workforce overview', () => {
     expect(markup).toContain('Vaardigheden &amp; bewijs')
     expect(markup).not.toContain('id="talent-workforce-panel-employees"')
     expect(markup).not.toContain('id="talent-workforce-panel-develop"')
+    expect(markup.match(/role="tabpanel"/g)).toHaveLength(1)
   })
 })

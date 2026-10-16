@@ -126,11 +126,18 @@ export type TalentWorkforceProfile = {
   employees: TalentWorkforceEmployee[]
 }
 
+export type TalentWorkforceProfileSummary = {
+  profile: Pick<TalentProfileReadModelRow, 'tenant_id' | 'job_profile_id' | 'profile_version_id' | 'job_id' | 'job_code' | 'job_group_code' | 'job_group_name' | 'job_family_name' | 'seniority_name' | 'status' | 'valid_from' | 'valid_until'>
+  employees: TalentWorkforceEmployee[]
+}
+
+type TalentWorkforceProfileReadOptions = { profileVersionId?: string; includeRequirements?: boolean }
+
 export type MyTalentProfile = Database['public']['Functions']['get_my_talent_profile']['Returns'][number] & {
   requirements: Database['public']['Functions']['get_my_talent_profile_requirements']['Returns']
 }
 
-export async function listTalentProfilesForWorkforce(): Promise<TalentWorkforceProfile[]> {
+export async function listTalentProfilesForWorkforce(options: TalentWorkforceProfileReadOptions = {}): Promise<TalentWorkforceProfile[]> {
   const context = await requirePermission('talent:manager-read')
   await requireTenantModule('TALENT')
 
@@ -161,6 +168,7 @@ export async function listTalentProfilesForWorkforce(): Promise<TalentWorkforceP
     .not('profile_version_id', 'is', null)
     .order('job_code')
     .limit(500)
+  if (options.profileVersionId) profilesQuery = profilesQuery.eq('profile_version_id', options.profileVersionId)
   if (scopedJobIds) profilesQuery = profilesQuery.in('job_id', scopedJobIds)
   const { data: profiles, error: profileError } = await profilesQuery
   if (profileError) throw new TalentServiceError('TALENT_WORKFORCE_READ_FAILED')
@@ -171,7 +179,7 @@ export async function listTalentProfilesForWorkforce(): Promise<TalentWorkforceP
   const profileJobIds = [...new Set(profileRows.flatMap((profile) => profile.job_id ? [profile.job_id] : []))]
   const today = new Date().toISOString().slice(0, 10)
   const [requirementsResult, organizationsResult] = await Promise.all([
-    supabase
+    options.includeRequirements === false ? Promise.resolve({ data: [], error: null }) : supabase
       .from('job_profile_capability_requirements')
       .select('*')
       .eq('tenant_id', context.tenantId)
@@ -244,6 +252,27 @@ export async function listTalentProfilesForWorkforce(): Promise<TalentWorkforceP
     profile,
     requirements: requirementsByVersion.get(profile.profile_version_id as string) ?? [],
     employees: profile.job_id ? employeesByJob.get(profile.job_id) ?? [] : [],
+  }))
+}
+
+export async function listTalentWorkforceProfileSummariesForWorkforce(): Promise<TalentWorkforceProfileSummary[]> {
+  const profiles = await listTalentProfilesForWorkforce({ includeRequirements: false })
+  return profiles.map(({ profile, employees }) => ({
+    profile: {
+      tenant_id: profile.tenant_id,
+      job_profile_id: profile.job_profile_id,
+      profile_version_id: profile.profile_version_id,
+      job_id: profile.job_id,
+      job_code: profile.job_code,
+      job_group_code: profile.job_group_code,
+      job_group_name: profile.job_group_name,
+      job_family_name: profile.job_family_name,
+      seniority_name: profile.seniority_name,
+      status: profile.status,
+      valid_from: profile.valid_from,
+      valid_until: profile.valid_until,
+    },
+    employees,
   }))
 }
 

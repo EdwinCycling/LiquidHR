@@ -43,6 +43,25 @@ export async function listTalentNotifications(): Promise<TalentNotification[]> {
   return (data ?? []) as TalentNotification[]
 }
 
+export async function countTalentNotifications(): Promise<number> {
+  const context = await requireAuthContext()
+  if (!canReadNotifications(context)) throw new AuthorizationError('Je hebt geen toegang tot Talentmeldingen.')
+  await requireTenantModule('TALENT')
+  const supabase = await createClient()
+  let query = supabase
+    .from('talent_notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', context.tenantId)
+    .in('status', ['OPEN', 'READ'])
+  const canReadTenantNotifications = context.permissions.includes('talent:manage')
+    || context.permissions.includes('talent:read')
+    || context.permissions.includes('talent-goal:manage')
+  if (!canReadTenantNotifications) query = query.eq('recipient_user_id', context.userId)
+  const { count, error } = await query
+  if (error) throw new TalentNotificationError('TALENT_NOTIFICATION_READ_FAILED')
+  return count ?? 0
+}
+
 export async function updateTalentNotification(notificationId: string, status: Exclude<NotificationStatus, 'OPEN'>): Promise<void> {
   const context = await requireAuthContext()
   if (!canReadNotifications(context)) throw new AuthorizationError('Je hebt geen toegang tot Talentmeldingen.')

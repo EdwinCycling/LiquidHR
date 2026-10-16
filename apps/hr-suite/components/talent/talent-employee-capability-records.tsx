@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Pagination } from '@/components/ui/pagination'
 import { TextInput } from '@/components/ui/text-input'
 import type { TalentEmployeeCapabilityOptions, TalentEmployeeCapabilityRecord } from '@/lib/talent/employee-capability-service'
 
@@ -77,6 +78,9 @@ export type TalentEmployeeCapabilityRecordLabels = {
   certificateRevoked: string
   close: string
   loadError?: string
+  paginationAriaLabel?: string
+  previousPage?: string
+  nextPage?: string
 }
 
 type Draft = {
@@ -232,6 +236,21 @@ function toDraft(record: TalentEmployeeCapabilityRecord): Draft {
   }
 }
 
+function TalentCapabilityRecordContent({ mode, record, labels }: { mode: Mode; record: TalentEmployeeCapabilityRecord; labels: TalentEmployeeCapabilityRecordLabels }) {
+  const heading = <>
+    <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{record.capabilityName}</h3><Badge tone="info">{typeLabel(record.capabilityType, labels)}</Badge><Badge tone={record.status === 'RELEASED' ? 'success' : record.status === 'EXPIRED' ? 'warning' : 'neutral'}>{statusLabel(record.status, labels)}</Badge><Badge tone={record.evidenceStatus === 'VERIFIED' ? 'success' : record.evidenceStatus === 'REJECTED' || record.evidenceStatus === 'EXPIRED' ? 'danger' : 'warning'}>{evidenceStatusLabel(record.evidenceStatus ?? 'NOT_PROVIDED', labels)}</Badge></div>
+    <p className="mt-1 text-xs text-muted-foreground">{record.capabilityCode}{mode !== 'self' ? ` · ${record.employeeLabel}` : ''}</p>
+  </>
+  const details = <>
+    <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4"><div><dt className="text-muted-foreground">{labels.level}</dt><dd className="mt-1 font-medium">{record.talentLevelName ?? record.languageLevel ?? (record.languageIsNative ? labels.nativeLanguage : record.certificateStatus ? certificateStatusLabel(record.certificateStatus, labels) : '—')}</dd></div><div><dt className="text-muted-foreground">{labels.source}</dt><dd className="mt-1 font-medium">{sourceLabel(record.sourceType, labels)}</dd></div><div><dt className="text-muted-foreground">{labels.validFrom}</dt><dd className="mt-1 font-medium">{record.validFrom}</dd></div><div><dt className="text-muted-foreground">{labels.validUntil}</dt><dd className="mt-1 font-medium">{record.validUntil ?? '—'}</dd></div></dl>
+    <p className="mt-3 text-xs text-muted-foreground">{labels.evidence}: {record.evidenceDocumentId ? labels.evidencePresent : labels.noEvidence}</p>
+  </>
+
+  return mode === 'manager'
+    ? <details className="min-w-0 flex-1"><summary className="cursor-pointer rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{heading}</summary><div className="pt-2">{details}</div></details>
+    : <div className="min-w-0 flex-1">{heading}{details}</div>
+}
+
 export function TalentEmployeeCapabilityRecords({ mode, initial, options, labels, state = 'ready' }: Props) {
   const [records, setRecords] = useState(initial)
   const [query, setQuery] = useState('')
@@ -239,6 +258,8 @@ export function TalentEmployeeCapabilityRecords({ mode, initial, options, labels
   const [statusFilter, setStatusFilter] = useState<RecordStatus | ''>('')
   const [typeFilter, setTypeFilter] = useState('')
   const [validityFilter, setValidityFilter] = useState<'EXPIRING_SOON' | ''>('')
+  const [page, setPage] = useState(1)
+  const pageSize = 25
   const [modal, setModal] = useState<Draft | null>(null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -262,6 +283,7 @@ export function TalentEmployeeCapabilityRecords({ mode, initial, options, labels
 
   const selectedCapability = options?.capabilities.find((capability) => capability.id === modal?.capabilityId)
   const endpoint = mode === 'self' ? '/api/talent/my-capability-records' : '/api/talent/capability-records'
+  const visiblePage = visible.slice((page - 1) * pageSize, page * pageSize)
 
   async function refresh() {
     const response = await fetch(endpoint, { cache: 'no-store' })
@@ -314,20 +336,21 @@ export function TalentEmployeeCapabilityRecords({ mode, initial, options, labels
     </div>
     <div className="mt-6 rounded-2xl border border-border/80 bg-surface-raised/70 p-3 sm:p-4">
       <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))]">
-        <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-muted-foreground"><span className="truncate">{labels.search}</span><TextInput aria-label={labels.search} leadingIcon={<Search aria-hidden="true" />} onChange={(event) => setQuery(event.target.value)} placeholder={labels.searchPlaceholder} value={query} /></label>
-        {mode !== 'self' ? <FilterSelect label={labels.employee} onChange={setEmployeeId} options={[{ value: '', label: labels.all }, ...employeeOptions.map((employee) => ({ value: employee.id, label: `${employee.label} · ${employee.employeeNumber}` }))]} value={employeeId} /> : null}
-        <FilterSelect label={labels.status} onChange={(value) => setStatusFilter(value as RecordStatus | '')} options={[{ value: '', label: labels.all }, { value: 'DRAFT', label: labels.statusDraft }, { value: 'RELEASED', label: labels.statusReleased }, { value: 'EXPIRED', label: labels.statusExpired }, { value: 'ARCHIVED', label: labels.statusArchived }]} value={statusFilter} />
-        <FilterSelect label={labels.validityFilter} onChange={(value) => setValidityFilter(value as 'EXPIRING_SOON' | '')} options={[{ value: '', label: labels.all }, { value: 'EXPIRING_SOON', label: labels.expiringSoon }]} value={validityFilter} />
-        <FilterSelect label={labels.type} onChange={setTypeFilter} options={[{ value: '', label: labels.all }, ...['COMPETENCY', 'SKILL', 'KNOWLEDGE', 'LANGUAGE', 'CERTIFICATE'].map((type) => ({ value: type, label: typeLabel(type, labels) }))]} value={typeFilter} />
+        <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-muted-foreground"><span className="truncate">{labels.search}</span><TextInput aria-label={labels.search} leadingIcon={<Search aria-hidden="true" />} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder={labels.searchPlaceholder} value={query} /></label>
+        {mode !== 'self' ? <FilterSelect label={labels.employee} onChange={(value) => { setEmployeeId(value); setPage(1) }} options={[{ value: '', label: labels.all }, ...employeeOptions.map((employee) => ({ value: employee.id, label: `${employee.label} · ${employee.employeeNumber}` }))]} value={employeeId} /> : null}
+        <FilterSelect label={labels.status} onChange={(value) => { setStatusFilter(value as RecordStatus | ''); setPage(1) }} options={[{ value: '', label: labels.all }, { value: 'DRAFT', label: labels.statusDraft }, { value: 'RELEASED', label: labels.statusReleased }, { value: 'EXPIRED', label: labels.statusExpired }, { value: 'ARCHIVED', label: labels.statusArchived }]} value={statusFilter} />
+        <FilterSelect label={labels.validityFilter} onChange={(value) => { setValidityFilter(value as 'EXPIRING_SOON' | ''); setPage(1) }} options={[{ value: '', label: labels.all }, { value: 'EXPIRING_SOON', label: labels.expiringSoon }]} value={validityFilter} />
+        <FilterSelect label={labels.type} onChange={(value) => { setTypeFilter(value); setPage(1) }} options={[{ value: '', label: labels.all }, ...['COMPETENCY', 'SKILL', 'KNOWLEDGE', 'LANGUAGE', 'CERTIFICATE'].map((type) => ({ value: type, label: typeLabel(type, labels) }))]} value={typeFilter} />
       </div>
     </div>
     {state === 'error' ? <EmptyState className="mt-5" description={labels.loadError ?? labels.failed} title={labels.loadError ?? labels.failed} /> : <div className="mt-5 divide-y rounded-xl border">
-      {visible.map((record) => <article className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between" key={record.id}>
-        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{record.capabilityName}</h3><Badge tone="info">{typeLabel(record.capabilityType, labels)}</Badge><Badge tone={record.status === 'RELEASED' ? 'success' : record.status === 'EXPIRED' ? 'warning' : 'neutral'}>{statusLabel(record.status, labels)}</Badge><Badge tone={record.evidenceStatus === 'VERIFIED' ? 'success' : record.evidenceStatus === 'REJECTED' || record.evidenceStatus === 'EXPIRED' ? 'danger' : 'warning'}>{evidenceStatusLabel(record.evidenceStatus ?? 'NOT_PROVIDED', labels)}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{record.capabilityCode}{mode !== 'self' ? ` · ${record.employeeLabel}` : ''}</p><dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4"><div><dt className="text-muted-foreground">{labels.level}</dt><dd className="mt-1 font-medium">{record.talentLevelName ?? record.languageLevel ?? (record.languageIsNative ? labels.nativeLanguage : record.certificateStatus ? certificateStatusLabel(record.certificateStatus, labels) : '—')}</dd></div><div><dt className="text-muted-foreground">{labels.source}</dt><dd className="mt-1 font-medium">{sourceLabel(record.sourceType, labels)}</dd></div><div><dt className="text-muted-foreground">{labels.validFrom}</dt><dd className="mt-1 font-medium">{record.validFrom}</dd></div><div><dt className="text-muted-foreground">{labels.validUntil}</dt><dd className="mt-1 font-medium">{record.validUntil ?? '—'}</dd></div></dl><p className="mt-3 text-xs text-muted-foreground">{labels.evidence}: {record.evidenceDocumentId ? labels.evidencePresent : labels.noEvidence}</p></div>
+      {visiblePage.map((record) => <article className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between" key={record.id}>
+        <TalentCapabilityRecordContent labels={labels} mode={mode} record={record} />
         {canEdit(record) ? <button aria-label={`${labels.edit}: ${record.capabilityName}`} className="button-secondary inline-flex w-fit items-center gap-2" onClick={() => setModal(toDraft(record))} type="button"><Pencil size={15} />{labels.edit}</button> : null}
       </article>)}
       {visible.length === 0 ? <p className="p-5 text-sm text-muted-foreground">{records.length > 0 ? labels.noResults : labels.empty}</p> : null}
     </div>}
+    {labels.paginationAriaLabel && labels.previousPage && labels.nextPage ? <div className="mt-4"><Pagination ariaLabel={labels.paginationAriaLabel} currentPage={page} nextLabel={labels.nextPage} onPageChange={setPage} previousLabel={labels.previousPage} totalPages={Math.ceil(visible.length / pageSize)} /></div> : null}
     {mode === 'manager' ? <p className="mt-4 text-xs text-muted-foreground">{labels.readOnly}</p> : null}
     {message ? <p aria-live="polite" className="mt-4 text-sm text-destructive">{message}</p> : null}
 

@@ -38,6 +38,7 @@ export function filterTalentTeamMatrixRows(rows: TalentTeamMatrixRow[], filters:
       row.employeeLabel,
       row.employeeNumber,
       row.jobTitle ?? '',
+      row.departmentName ?? '',
       ...row.capabilities.flatMap((capability) => [capability.capabilityName, capability.capabilityCode]),
     ].some((value) => value.toLocaleLowerCase('nl-NL').includes(normalizedQuery))
     if (!employeeMatch) return []
