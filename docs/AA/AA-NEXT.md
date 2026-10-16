@@ -1,7 +1,7 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-13 (Core/PERF; overige productsporen inhoudelijk ongewijzigd)
+Bijgewerkt: 2026-10-16 (Payroll PAYFULL-02D; Core/PERF-volgorde ongewijzigd)
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 
@@ -10,13 +10,12 @@ Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailr
 **Bewezen in TEST, niet gemerged/deployed:** twee volledige Mars-maandcases voor oktober 2026 zijn `FINALIZED` (DEMO-001 netto €2.181,49; DEMO-002 netto €2.141,36), met werknemerspensioen, tabelmatige loonheffing, werkgeverspremies, reserveringen, cumulatieven, 32/32 PASS-controles en twee in Payroll Lab TEST teruggevonden persistente PDF-artifacts. Extra +€500 regulier-variabel-looncase is alleen `CONCEPT`. Een algemene NL-payroll-complianceclaim is niet onderbouwd. De bekende Jupiter-persona's Lisa/Jaap/Frits zijn **niet** alle drie full-net PAYFULL-02-testcases.
 
 **Volgorde binnen het zelfstandige Payroll-spoor:**
-1. **PAYFULL-02D (P0):** bestaande inline ESS-PDF-viewer en ontbrekend artifact-/negatief browserbewijs gericht sluiten; géén omkoppeling van DEMO-001's bestaande Edwin/TENANT_ADMIN-Auth-identiteit.
-2. **PAYVAL-EXT-01 (P0):** laat de gebruiker de twee Mars-stroken tegen een ander NL-salarispakket controleren met **exact dezelfde oktober-2026 fiscale, pensioen- en werkgeversinstellingen**; documenteer de eerste afwijkende component, niet alleen eindnetto.
-3. **PAYCASE-03 (P1):** gevarieerde echte nieuwe rekenproeven (LHK aan, deeltijd/gebroken tijdvak, bijzondere vs reguliere variabele beloning, meerdere IKV's, enz.) en onafhankelijke oracles.
-4. **PAYRUN-03 (P1):** robuuste periodieke cyclus, revisie/TWK en payroll by exception.
-5. **PAYDOC-02 / 2027 (P2):** jaaropgave en nieuwe fiscale jaarpakket na officiële bronnen; betaling en officiële aangifte apart besluiten.
+1. **PAYFULL-02D (P0, PARTIAL):** twee persistente PDF-artifacts bevestigd; ESS-route serveert na self-autorisatie de opgeslagen bytes. Inline viewer geeft na timeout foutmelding + retry, maar zichtbaar PDF-renderen is nog OPEN. DEMO-001 eigen ESS en overige live negatieve probes blijven OPEN; geen wijziging aan bestaande Edwin/TENANT_ADMIN-Auth-koppeling. Laatste PAYFULL-02D-bewijs: 7 bestanden / 61 gerichte tests PASS; in-app attachment-URL geblokkeerd.
+2. **PAYCASE-03 (P1):** nieuwe volledige rekenproeven (LHK aan, deeltijd/gebroken tijdvak, bijzondere vs reguliere variabele beloning, meerdere IKV's) met onafhankelijke wettelijke rekenoracles; géén externe pakketintegratie.
+3. **PAYRUN-03 (P1):** robuuste periodieke cyclus, revisie/TWK en payroll by exception.
+4. **PAYDOC-02 / 2027 (P2):** jaaropgaaf en nieuwe fiscale jaarpakket na officiële bronnen; betaling en officiële aangifte apart besluiten.
 
-**Handmatige controle, run-ID's, looncomponenten en exacte status:** [PAYFULL-02 validatie en roadmap](../payroll/PAYFULL-02-VALIDATIE-EN-ROADMAP-20261016.md). Historisch bewijs: [PAYFULL-02 closeout](../quality/acceptance/runs/PAYFULL-02-20261016-CLOSEOUT.md). De oudere sectie 'na PAYLAB04' hieronder is een historisch productvoorstel en vervangt dit actuele PAYFULL-02-besluit niet.
+**TEST-berekeningen, run-ID's, looncomponenten en exacte status:** [PAYFULL-02 validatie en roadmap](../payroll/PAYFULL-02-VALIDATIE-EN-ROADMAP-20261016.md). Historisch bewijs: [PAYFULL-02 closeout](../quality/acceptance/runs/PAYFULL-02-20261016-CLOSEOUT.md). De oudere sectie 'na PAYLAB04' hieronder is een historisch productvoorstel en vervangt dit actuele PAYFULL-02-besluit niet.
 
 ## Eerstvolgende Core-volgorde — besluit 2026-10-13
 
