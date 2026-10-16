@@ -21,6 +21,8 @@ const ESS_LABELS: Readonly<Record<string, string>> = {
   zvw_wage: 'zvwWage', wage_tax: 'tax', net_salary: 'net', employer_insurance: 'employerInsurance',
   employer_pension: 'employerPension', holiday_allowance_reserve: 'holidayReserve', holiday_reserve: 'holidayReserve',
   year_end_reserve: 'yearEndReserve', total_employer_cost: 'totalEmployerCost', cumulative_gross: 'cumulative_gross',
+  cumulative_taxable_wage: 'cumulative_taxable_wage', cumulative_wage_tax: 'cumulative_wage_tax',
+  cumulative_employee_insurance_wage: 'cumulative_employee_insurance_wage', cumulative_zvw_wage: 'cumulative_zvw_wage',
   cumulative_holiday_reserve: 'cumulative_holiday_reserve', cumulative_year_end_reserve: 'cumulative_year_end_reserve',
 }
 
@@ -108,6 +110,7 @@ export default async function MySalaryPage({ searchParams }: MySalaryPageProps) 
         employerContributions: t('salaryEmployerContributions'), grossToNetExplanation: t('grossToNetExplanation'),
         grossToNetIntro: t('grossToNetIntro'), pensionDetails: t('salaryPensionDetails'),
         pensionSourceGap: t('salaryPensionSourceGap'), pensionReview: t('salaryPensionReview'),
+        pensionTestAssumptions: t('salaryPensionTestAssumptions'),
         pensionExplanationText: t('pensionExplanationText'), netNotDefinitive: t('netNotDefinitive'),
         salaryAmountMissing: t('salaryAmountMissing'),
         changeUp: t('salaryChangeUp'), changeDown: t('salaryChangeDown'), notComparable: t('salaryChangeNotComparable'),

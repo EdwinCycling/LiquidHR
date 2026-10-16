@@ -21,7 +21,10 @@ function makeDependencies(
   pensionSummaryPresent = true,
   pensionWarning = false,
   periodMonths: readonly number[] = [10],
+  pensionRuleReady = false,
+  payfull02PensionState: 'none' | 'valid' | 'warning' | 'missing-controls' | 'invalid-source' = 'none',
 ) {
+  const payfull02Source = payfull02PensionState !== 'none'
   const authContext = {
     tenantId: '50000000-0000-4000-8000-000000000001',
     hrGroupId: '50000000-0000-4000-8000-000000000002',
@@ -30,18 +33,66 @@ function makeDependencies(
   }
   const run = { id: runId, status: 'SUCCEEDED' }
   const sourceSnapshot = {
+    id: '70000000-0000-4000-8000-000000000001',
     source_employee_id: sourceEmployeeId,
     source_employment_id: employmentId,
+    source_hash: 'a'.repeat(64),
     source_payload: {
       pension: { assignments: [{ arrangement: { id: arrangementId, name: 'Bedrijfseigen Pensioenregeling' } }] },
-      payrollOwned: pensionSummaryPresent ? {
-        pensionCalculationSummary: {
-          arrangementId,
-          pensionableBase: '46828.00',
-          rate: '15.0000',
-          sourceSnapshotId: 'must-not-be-returned',
+      ...(payfull02Source ? {
+        testScenario: {
+          sourceClassification: 'PAYROLL_TEST_SCENARIO',
+          code: 'NL-2026-MONTHLY-WHITE-REGULAR-TEST',
         },
-      } : {},
+      } : {}),
+      payrollOwned: {
+        ...(pensionSummaryPresent ? {
+          pensionCalculationSummary: {
+            arrangementId,
+            pensionableBase: '46828.00',
+            rate: '15.0000',
+            sourceSnapshotId: 'must-not-be-returned',
+          },
+        } : {}),
+        ...(payfull02Source ? {
+          setup: {
+            code: 'TEST_SETUP_PAYFULL_02',
+            version: '1.0',
+            validFrom: '2026-01-01',
+            validTo: '2026-12-31',
+            classification: 'TEST_ONLY_NOT_AN_EXTERNAL_PENSION_CONTRACT_OR_EMPLOYER_DECISION',
+            provenance: 'Controlled synthetic Payroll Lab TEST configuration for the Mars acceptance scope.',
+            configVersionId: '90000000-0000-4000-8000-000000000001',
+            configHash: payfull02PensionState === 'invalid-source' ? 'not-a-hash' : 'b'.repeat(64),
+            sourceHash: 'c'.repeat(64),
+          },
+          openingBalance: {
+            effectiveFrom: '2026-01-01',
+            effectiveTo: '2026-09-30',
+            openingSnapshotId: '90000000-0000-4000-8000-000000000002',
+            sourceHash: 'd'.repeat(64),
+            openingHash: 'd'.repeat(64),
+            provenance: 'Explicit effective-dated TEST opening balance. It is not represented as actual finalized January-September payroll history.',
+          },
+          pension: {
+            planId: 'TEST-PENSION-DEMO-001',
+            planVersion: '1.0',
+            effectiveFrom: '2026-01-01',
+            effectiveTo: '2026-12-31',
+            monthlyFranchise: '1597.67',
+            monthlyMaximum: '11483.33',
+            partTimeFactor: '1.0000',
+            totalPremiumRate: '25.00',
+            employeeSharePercent: '40.00',
+            employerSharePercent: '60.00',
+            employeeRate: '10.00',
+            employerRate: '15.00',
+            active: true,
+            classification: 'SYNTHETIC_TEST_PLAN_NOT_EXTERNAL_FUND_CONTRACT',
+            provenance: 'TEST_SETUP_PAYFULL_02',
+          },
+        } : {}),
+      },
     },
   }
   const artifactsByRun = new Map<string, PayrollCalculationArtifacts>()
@@ -52,11 +103,15 @@ function makeDependencies(
       run: { ...run, id },
       sourceSnapshot,
       payrollPeriod,
-      inputSet: { id: `80000000-0000-4000-8000-${String(month).padStart(12, '0')}`, input_hash: 'a'.repeat(64) },
+      inputSet: {
+        id: `80000000-0000-4000-8000-${String(month).padStart(12, '0')}`,
+        source_snapshot_id: sourceSnapshot.id,
+        input_hash: 'e'.repeat(64),
+      },
       componentResults: [
         { component_key: 'gross_salary', amount: null, result_payload: { amount: `${5500 + (month - 10) * 100}.00` } },
         { component_key: 'net_salary', amount: null, result_payload: { amount: `${4200 + (month - 10) * 80}.00` } },
-        ...(pensionSummaryPresent ? [{ component_key: 'employee_pension', amount: null, result_payload: { amount: '195.12' } }] : []),
+        ...(pensionSummaryPresent || pensionRuleReady || payfull02Source ? [{ component_key: 'employee_pension', amount: null, result_payload: { amount: '195.12' } }] : []),
         { component_key: 'cumulative_gross', amount: null, result_payload: { amount: '55000.00' } },
         { component_key: 'employer_pension', amount: null, result_payload: { amount: '390.23' } },
         { component_key: 'employer_awf', amount: null, result_payload: { amount: '425.70' } },
@@ -64,7 +119,25 @@ function makeDependencies(
         { component_key: 'holiday_reserve', amount: null, result_payload: { amount: '440.00' } },
       ],
       trace: { trace_payload: { privateValue: 'must-not-be-returned' } },
-      controls: pensionWarning ? [{ control_key: 'PAYRUN01-CTRL-009-PENSION-RULE-READY', status: 'WARN', detail_payload: {} }] : [],
+      controls: payfull02Source
+        ? payfull02PensionState === 'missing-controls'
+          ? []
+          : [
+            'PAYFULL02-CTRL-009-EMPLOYEE-PENSION-WITHIN-GROSS',
+            'PAYFULL02-CTRL-010-PENSION-PLAN-ACTIVE',
+            'PAYFULL02-CTRL-011-PENSION-SHARES-NONNEGATIVE',
+            'PAYFULL02-CTRL-012-PENSIONABLE-SPECIAL-REWARD-UNSUPPORTED',
+            'PAYFULL02-CTRL-013-PENSION-PART-TIME-FACTOR-IN-RANGE',
+          ].map((control_key) => ({
+            control_key,
+            status: payfull02PensionState === 'warning' ? 'WARN' : 'PASS',
+            detail_payload: {},
+          }))
+        : pensionWarning
+        ? [{ control_key: 'PAYRUN01-CTRL-009-PENSION-RULE-READY', status: 'WARN', detail_payload: {} }]
+        : pensionRuleReady
+          ? [{ control_key: 'PAYRUN01-CTRL-009-PENSION-RULE-READY', status: 'PASS', detail_payload: {} }]
+          : [],
       goldenCase: null,
     } as unknown as PayrollCalculationArtifacts)
   }
@@ -163,6 +236,35 @@ describe('employee My Salary read model', () => {
     expect(statement?.pensionReadiness).toBe('SOURCE_VERIFICATION_REQUIRED')
     expect(statement?.components.some((component) => component.key.includes('pension'))).toBe(false)
   })
+
+  it('trusts the saved pension result when the immutable readiness control passed without a legacy summary', async () => {
+    const { dependencies } = makeDependencies(selfEmployeeId, selfEmployeeId, true, false, false, [10], true)
+    const statement = await getMySalaryStatement(dependencies)
+    expect(statement?.pension).toBeNull()
+    expect(statement?.components).toContainEqual({ key: 'employee_pension', amount: 195.12 })
+    expect(statement?.pensionReadiness).toBe('CALCULATED')
+  })
+
+  it('identifies a complete PAYFULL02 pension as calculated under disclosed TEST assumptions', async () => {
+    const { dependencies } = makeDependencies(selfEmployeeId, selfEmployeeId, true, false, false, [10], false, 'valid')
+    const statement = await getMySalaryStatement(dependencies)
+    expect(statement?.components).toContainEqual({ key: 'employee_pension', amount: 195.12 })
+    expect(statement?.pension).toBeNull()
+    expect(statement?.pensionReadiness).toBe('CALCULATED_TEST_ASSUMPTIONS')
+  })
+
+  it.each([
+    ['a warning control', 'warning', 'REVIEW_REQUIRED'],
+    ['missing PAYFULL02 pension controls', 'missing-controls', 'SOURCE_VERIFICATION_REQUIRED'],
+    ['an invalid setup hash', 'invalid-source', 'SOURCE_VERIFICATION_REQUIRED'],
+  ] as const)(
+    'does not present PAYFULL02 pension as verified when it has %s',
+    async (_condition, state, expectedReadiness) => {
+      const { dependencies } = makeDependencies(selfEmployeeId, selfEmployeeId, true, false, false, [10], false, state)
+      const statement = await getMySalaryStatement(dependencies)
+      expect(statement?.pensionReadiness).toBe(expectedReadiness)
+    },
+  )
 
   it('preserves a pension readiness warning for the employee explanation', async () => {
     const { dependencies } = makeDependencies(selfEmployeeId, selfEmployeeId, true, true, true)

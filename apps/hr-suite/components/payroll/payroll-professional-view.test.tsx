@@ -118,6 +118,9 @@ const labels: Readonly<Record<string, string>> = {
   downloadPdf: 'Download stored PDF',
   viewStandardPayslip: 'View standard payslip',
   downloadStandardPayslip: 'Download standard payslip',
+  savePayslipPdf: 'Save standard payslip PDF',
+  storedPayslipPdf: 'Standard payslip PDF is stored',
+  payslipPdfUnavailable: 'Payslip PDF could not be stored',
   compare: 'Compare',
   reconciliationFlow: 'Reconciliation',
   employeeReconciliationFormula: 'Employee calculation formula',
@@ -273,6 +276,33 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     expect(markup).toContain('/payslip-preview?download=1')
     expect(markup).not.toContain('/artifact/TECHNICAL_JSON')
     expect(markup).not.toContain('/artifact/PAYSLIP_PDF')
+  })
+
+  it('offers PDF persistence only to payroll writers and links a stored generic PDF for readback', () => {
+    const genericRun = {
+      ...pensionRun,
+      canTransition: true,
+      hasGenericInputReference: true,
+      hasPayslipPdfArtifact: false,
+      lifecycleEvents: [{
+        id: 'event-finalized-generic-pdf',
+        calculation_run_id: pensionRun.run.id,
+        event_type: 'FINALIZED',
+        created_at: '2026-10-31T12:00:00.000Z',
+      }],
+    } as unknown as PayrollProfessionalRun
+
+    const writerMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={genericRun} locale="en-GB" labels={labels} />)
+    const readOnlyRun = { ...genericRun, canTransition: false } as PayrollProfessionalRun
+    const readOnlyMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={readOnlyRun} locale="en-GB" labels={labels} />)
+    const storedRun = { ...genericRun, canTransition: false, hasPayslipPdfArtifact: true } as PayrollProfessionalRun
+    const storedMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={storedRun} locale="en-GB" labels={labels} />)
+
+    expect(writerMarkup).toContain('Save standard payslip PDF')
+    expect(writerMarkup).not.toContain('/artifact/PAYSLIP_PDF')
+    expect(readOnlyMarkup).not.toContain('Save standard payslip PDF')
+    expect(storedMarkup).toContain('Standard payslip PDF is stored')
+    expect(storedMarkup).toContain('/artifact/PAYSLIP_PDF')
   })
 
   it('shows the PFZW source gap and non-definitive net without inventing a zero pension', () => {

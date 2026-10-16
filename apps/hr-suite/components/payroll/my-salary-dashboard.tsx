@@ -62,6 +62,7 @@ type Labels = {
   readonly pensionDetails: string
   readonly pensionSourceGap: string
   readonly pensionReview: string
+  readonly pensionTestAssumptions: string
   readonly pensionExplanationText: string
   readonly netNotDefinitive: string
   readonly salaryAmountMissing: string
@@ -225,6 +226,7 @@ export function MySalaryDashboard({
 
       {selectedStatement.pensionReadiness === 'SOURCE_VERIFICATION_REQUIRED' ? <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm" role="status"><p className="font-semibold">{labels.pensionSourceGap}</p><p className="mt-1">{labels.netNotDefinitive}</p></div> : null}
       {selectedStatement.pensionReadiness === 'REVIEW_REQUIRED' ? <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm" role="status"><p className="font-semibold">{labels.pensionReview}</p><p className="mt-1">{labels.pensionExplanationText}</p></div> : null}
+      {selectedStatement.pensionReadiness === 'CALCULATED_TEST_ASSUMPTIONS' ? <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm" role="status">{labels.pensionTestAssumptions}</div> : null}
 
       <Surface className="min-w-0 p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

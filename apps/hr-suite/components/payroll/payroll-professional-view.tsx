@@ -14,6 +14,7 @@ import {
   type PayrollExplanationRecord,
 } from '@/lib/payroll/payroll-professional-explanations'
 import { PayrollComparisonForm, type PayrollComparisonLine } from './payroll-comparison-form'
+import { PayrollPayslipPdfArtifactAction } from './payroll-payslip-pdf-artifact-action'
 
 export function formatPayrollMoney(amount: number | null, locale: string): string {
   if (amount === null || !Number.isFinite(amount)) return '—'
@@ -551,6 +552,18 @@ export function PayrollRunReconciliation({
         </> : null}
         <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/payslip-preview`} target="_blank" rel="noreferrer">{labels.viewStandardPayslip}</Link>
         <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/payslip-preview?download=1`}>{labels.downloadStandardPayslip}</Link>
+        {run.hasGenericInputReference ? <PayrollPayslipPdfArtifactAction
+          canCreate={run.canTransition}
+          hasArtifact={run.hasPayslipPdfArtifact}
+          labels={{
+            downloadPdf: labels.downloadPdf,
+            payslipPdfUnavailable: labels.payslipPdfUnavailable,
+            savePayslipPdf: labels.savePayslipPdf,
+            savingPayslipPdf: labels.savingPayslipPdf,
+            storedPayslipPdf: labels.storedPayslipPdf,
+          }}
+          runId={run.run.id}
+        /> : null}
       </> : null}
       <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/payroll/compare?run=${encodeURIComponent(run.run.id)}`}>{labels.compare}</Link>
     </div>

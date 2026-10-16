@@ -26,6 +26,7 @@ export type PayrollProfessionalRun = PayrollCalculationArtifacts & {
   readonly lifecycleEvents: Awaited<ReturnType<ReturnType<typeof createPayrun01Repository>['listLifecycleEvents']>>
   readonly canTransition: boolean
   readonly hasGenericInputReference: boolean
+  readonly hasPayslipPdfArtifact: boolean
 }
 
 export async function listPayrollProfessionalRuns(): Promise<readonly PayrollRunSummary[]> {
@@ -66,7 +67,22 @@ export async function getPayrollProfessionalRun(runId: string): Promise<PayrollP
     artifacts.payrollPeriod.id,
     artifacts.sourceSnapshot.source_employment_id,
   )
-  return { ...artifacts, lifecycleEvents, canTransition: access.canCopy, hasGenericInputReference: inputReference !== null }
+  const isFinalized = lifecycleEvents.some((event) => event.calculation_run_id === runId && event.event_type === 'FINALIZED')
+  const hasPayslipPdfArtifact = inputReference !== null && isFinalized
+    ? (await getPersistedPayrollProfessionalPayslipPdfArtifactForRun({
+      scope: access.scope,
+      payrollAdministrationId: access.administration.id,
+      actorUserId: access.actorUserId,
+      runId,
+    })) !== null
+    : false
+  return {
+    ...artifacts,
+    lifecycleEvents,
+    canTransition: access.canCopy,
+    hasGenericInputReference: inputReference !== null,
+    hasPayslipPdfArtifact,
+  }
 }
 
 /**
@@ -158,7 +174,7 @@ export type EmployeePayrollStatement = {
   readonly periodMonth: number
   readonly components: readonly EmployeePayrollComponent[]
   readonly pension: EmployeePensionSummary | null
-  readonly pensionReadiness: 'CALCULATED' | 'REVIEW_REQUIRED' | 'SOURCE_VERIFICATION_REQUIRED'
+  readonly pensionReadiness: 'CALCULATED' | 'CALCULATED_TEST_ASSUMPTIONS' | 'REVIEW_REQUIRED' | 'SOURCE_VERIFICATION_REQUIRED'
 }
 
 export type EmployeePayrollPeriod = Pick<EmployeePayrollStatement, 'periodYear' | 'periodMonth'>
@@ -189,6 +205,103 @@ function asString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value : null
 }
 
+function asPayrollDecimal(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value !== 'string' || !/^-?\d{1,12}(?:\.\d{1,4})?$/.test(value)) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const PAYFULL02_PENSION_CONTROLS = [
+  'PAYFULL02-CTRL-009-EMPLOYEE-PENSION-WITHIN-GROSS',
+  'PAYFULL02-CTRL-010-PENSION-PLAN-ACTIVE',
+  'PAYFULL02-CTRL-011-PENSION-SHARES-NONNEGATIVE',
+  'PAYFULL02-CTRL-012-PENSIONABLE-SPECIAL-REWARD-UNSUPPORTED',
+  'PAYFULL02-CTRL-013-PENSION-PART-TIME-FACTOR-IN-RANGE',
+] as const
+
+function hasCompletePayfull02PensionEvidence(artifacts: PayrollCalculationArtifacts): boolean {
+  const sourcePayload = asRecord(artifacts.sourceSnapshot.source_payload)
+  const testScenario = asRecord(sourcePayload?.testScenario)
+  const payrollOwned = asRecord(sourcePayload?.payrollOwned)
+  const setup = asRecord(payrollOwned?.setup)
+  const pension = asRecord(payrollOwned?.pension)
+  const openingBalance = asRecord(payrollOwned?.openingBalance)
+  const validHash = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value)
+  const validUuid = (value: unknown): value is string => typeof value === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+
+  if (!testScenario || !payrollOwned || !setup || !pension || !openingBalance
+    || !isCompletePayfull02ScenarioReference({ testScenario, payfull02Setup: payrollOwned })) return false
+
+  const sourceSnapshotId = artifacts.sourceSnapshot.id
+  const periodStart = `${artifacts.payrollPeriod.period_year}-${String(artifacts.payrollPeriod.period_month).padStart(2, '0')}-01`
+  const periodEnd = new Date(Date.UTC(artifacts.payrollPeriod.period_year, artifacts.payrollPeriod.period_month, 0))
+    .toISOString().slice(0, 10)
+  const monthlyFranchise = asPayrollDecimal(pension.monthlyFranchise)
+  const monthlyMaximum = asPayrollDecimal(pension.monthlyMaximum)
+  const partTimeFactor = asPayrollDecimal(pension.partTimeFactor)
+  const employeeRate = asPayrollDecimal(pension.employeeRate)
+  const employerRate = asPayrollDecimal(pension.employerRate)
+  const employeeShare = asPayrollDecimal(pension.employeeSharePercent)
+  const employerShare = asPayrollDecimal(pension.employerSharePercent)
+  const premiumRate = asPayrollDecimal(pension.totalPremiumRate)
+  const pensionRow = artifacts.componentResults.find((row) => row.component_key === 'employee_pension')
+  const pensionPayload = asRecord(pensionRow?.result_payload)
+  const savedEmployeePension = asPayrollDecimal(pensionRow?.amount ?? pensionPayload?.amount)
+
+  const controls = new Map(artifacts.controls.map((control) => [control.control_key, control.status]))
+  const allPensionControlsPass = PAYFULL02_PENSION_CONTROLS.every((key) => controls.get(key) === 'PASS')
+  const setupIsSyntheticAndVersioned = setup.code === 'TEST_SETUP_PAYFULL_02'
+    && setup.version === '1.0'
+    && setup.classification === 'TEST_ONLY_NOT_AN_EXTERNAL_PENSION_CONTRACT_OR_EMPLOYER_DECISION'
+    && setup.validFrom === '2026-01-01'
+    && setup.validTo === '2026-12-31'
+    && setup.provenance === 'Controlled synthetic Payroll Lab TEST configuration for the Mars acceptance scope.'
+    && validUuid(setup.configVersionId)
+    && validHash(setup.configHash)
+    && validHash(setup.sourceHash)
+  const openingIsBound = openingBalance.effectiveFrom === '2026-01-01'
+    && openingBalance.effectiveTo === '2026-09-30'
+    && validUuid(openingBalance.openingSnapshotId)
+    && validHash(openingBalance.sourceHash)
+    && validHash(openingBalance.openingHash)
+    && openingBalance.openingHash === openingBalance.sourceHash
+    && openingBalance.provenance === 'Explicit effective-dated TEST opening balance. It is not represented as actual finalized January-September payroll history.'
+  const sourceAndInputAreBound = validHash(artifacts.sourceSnapshot.source_hash)
+    && validHash(artifacts.inputSet.input_hash)
+    && artifacts.inputSet.source_snapshot_id === sourceSnapshotId
+  const pensionConfigurationIsValid = typeof pension.planId === 'string'
+    && /^TEST-PENSION-DEMO-00[12]$/.test(pension.planId)
+    && pension.planVersion === '1.0'
+    && pension.classification === 'SYNTHETIC_TEST_PLAN_NOT_EXTERNAL_FUND_CONTRACT'
+    && pension.provenance === 'TEST_SETUP_PAYFULL_02'
+    && pension.active === true
+    && typeof pension.effectiveFrom === 'string' && pension.effectiveFrom <= periodStart
+    && typeof pension.effectiveTo === 'string' && pension.effectiveTo >= periodEnd
+    && monthlyFranchise !== null && monthlyFranchise > 0
+    && monthlyMaximum !== null && monthlyMaximum >= monthlyFranchise
+    && partTimeFactor !== null && partTimeFactor > 0 && partTimeFactor <= 1
+    && employeeRate !== null && employeeRate >= 0 && employeeRate <= 100
+    && employerRate !== null && employerRate >= 0 && employerRate <= 100
+    && employeeShare !== null && employeeShare >= 0 && employeeShare <= 100
+    && employerShare !== null && employerShare >= 0 && employerShare <= 100
+    && employeeShare + employerShare === 100
+    && premiumRate !== null && premiumRate > 0 && premiumRate <= 100
+    && employeeRate !== null && employerRate !== null
+    && Math.abs(employeeRate + employerRate - premiumRate) < 0.0001
+    && Math.abs((employeeRate / premiumRate) * 100 - employeeShare) < 0.01
+    && Math.abs((employerRate / premiumRate) * 100 - employerShare) < 0.01
+
+  return setupIsSyntheticAndVersioned
+    && openingIsBound
+    && sourceAndInputAreBound
+    && pensionConfigurationIsValid
+    && savedEmployeePension !== null
+    && savedEmployeePension >= 0
+    && allPensionControlsPass
+}
+
 const EMPLOYEE_VISIBLE_COMPONENT_KEYS = new Set([
   'contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'variable_regular_wage',
   'gross_salary', 'employee_pension', 'taxable_wage', 'employee_insurance_base', 'zvw_base', 'wage_tax',
@@ -214,6 +327,7 @@ function projectEmployeePensionSummary(artifacts: PayrollCalculationArtifacts): 
   const payrollOwned = asRecord(payload?.payrollOwned)
   const summary = asRecord(payrollOwned?.pensionCalculationSummary)
   if (!summary) return null
+  if (isPayrollAcceptanceScenarioReference({ testScenario: asRecord(payload?.testScenario) })) return null
 
   const arrangementId = asString(summary.arrangementId)
   const canonicalPension = asRecord(payload?.pension)
@@ -234,12 +348,31 @@ function projectEmployeePensionReadiness(
   artifacts: PayrollCalculationArtifacts,
   pension: EmployeePensionSummary | null,
 ): EmployeePayrollStatement['pensionReadiness'] {
-  if (!pension || !artifacts.componentResults.some((row) => row.component_key === 'employee_pension')) {
+  const sourcePayload = asRecord(artifacts.sourceSnapshot.source_payload)
+  const testScenario = asRecord(sourcePayload?.testScenario)
+  if (isPayrollAcceptanceScenarioReference({ testScenario })) {
+    const pensionControls = artifacts.controls.filter((control) => PAYFULL02_PENSION_CONTROLS.includes(
+      control.control_key as typeof PAYFULL02_PENSION_CONTROLS[number],
+    ))
+    if (pensionControls.some((control) => control.status !== 'PASS')) return 'REVIEW_REQUIRED'
+    if (pensionControls.length !== PAYFULL02_PENSION_CONTROLS.length
+      || !hasCompletePayfull02PensionEvidence(artifacts)) return 'SOURCE_VERIFICATION_REQUIRED'
+    return 'CALCULATED_TEST_ASSUMPTIONS'
+  }
+
+  const hasEmployeePension = artifacts.componentResults.some((row) => row.component_key === 'employee_pension')
+  if (!hasEmployeePension) {
     return 'SOURCE_VERIFICATION_REQUIRED'
   }
-  if (artifacts.controls.some((control) => control.status === 'WARN' && /PENSION-RULE-READY/i.test(control.control_key))) {
+
+  const pensionRuleReadiness = artifacts.controls.find((control) =>
+    control.control_key === 'PAYRUN01-CTRL-009-PENSION-RULE-READY')
+  if (pensionRuleReadiness?.status === 'PASS') return 'CALCULATED'
+  if (pensionRuleReadiness?.status === 'WARN' || pensionRuleReadiness?.status === 'FAIL'
+    || artifacts.controls.some((control) => control.status === 'WARN' && /PENSION-RULE-READY/i.test(control.control_key))) {
     return 'REVIEW_REQUIRED'
   }
+  if (!pension) return 'SOURCE_VERIFICATION_REQUIRED'
   return 'CALCULATED'
 }
 

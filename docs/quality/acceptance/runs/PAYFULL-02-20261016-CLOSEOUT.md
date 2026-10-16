@@ -102,13 +102,22 @@ De Supabase security advisor signaleert de nieuwe authenticated `SECURITY DEFINE
 
 De finale run-detailpagina van DEMO-001 is op Development bij 390×844 gecontroleerd zonder horizontale overflow. Mobiele PDF- en ESS-schermen zijn niet gecontroleerd.
 
-## 6. Open browser- en ESS-acceptatie
+## 6. Browser- en ESS-acceptatie
 
-Een DEMO-002 Employee-account-/sessie-readback is in deze hercontrole niet uitgevoerd. De ACL-beschermde runtimeconfiguratie slaagde voor preflight, maar de in-app browser blokkeerde observatie van het lokale adres via URL-beleid. Daardoor zijn deze live controles **OPEN**:
+De PAYFULL-02C-hercontrole hierboven documenteert de toenmalige blokkade. Na de expliciete gebruikersautorisatie is DEMO-002 via de bestaande Mars TEST-route aan een eigen TEST-authaccount gekoppeld; geen rol of administratiescope is uitgebreid.
 
-- ESS-positive: de medewerker leest uitsluitend de eigen definitieve loonstrook;
-- ESS-negative: een andere medewerker krijgt geen PDF-inhoud;
+De daaropvolgende geauthenticeerde in-app sessie liet op `/my-salary` uitsluitend DEMO-002's eigen definitieve oktoberresultaat zien: bruto €3.534,00, pensioen werknemer €251,72, fiscaal loon €3.282,28, loonheffing €1.173,42, netto €2.141,36 en de cumulatieven. De pagina toonde ook de melding dat de pensioenberekening synthetische TEST-instellingen gebruikt en geen extern pensioenfondscontract bevestigt. Deze ESS-weergave is op 390 px gecontroleerd.
+
+De normale HR Admin-runpagina's voor DEMO-001 en DEMO-002 tonen nu elk de actie **Opgeslagen PDF downloaden** voor hun definitieve run. Daarmee herkent de Payroll-weergave een opgeslagen PDF-artifact voor beide runs. De standaard-PDF-preview in de bestaande employee-sessie toonde voor DEMO-002 een éénpagina-loonstrook met de verwachte inhoud en €2.141,36 netto-uitbetaling. Dit is een leesbare preview, geen byte-/hash-readback van het opgeslagen artifact.
+
+Een poging om dezelfde standaardpreview vanuit de HR Admin-sessie te openen via de zichtbare Payroll-link kreeg de bestaande autorisatiefout “Je hebt onvoldoende rechten voor deze actie.” De autorisatie is niet omzeild; er is geen direct HTTP-, database- of andere-browserpad gebruikt. De link voor het opgeslagen PDF-artifact toonde in de browser geen leesbare bestandsinhoud of downloadbevestiging.
+
+De resterende live controles zijn **OPEN**:
+
+- bytes, bestandshash en inhoud van het opgeslagen PDF-artifact via de normale toegestane downloadreadback;
+- ESS-eigen loonstrookreadback voor DEMO-001;
+- ESS-negative: aantonen dat de andere werknemer geen PDF-inhoud kan lezen;
 - live Manager/Employee lifecycle-weigering en cross-administration browserprobe;
-- PDF-inhoud visueel/tekstueel en PDF/ESS op 390 px.
+- PDF-weergave op 390 px.
 
-Er is geen DEMO-002-account buiten het bestaande auditbare linkpad gemaakt, geen credential geraden of aangepast, geen scope verruimd en geen RLS/autorisatie omzeild. De bestaande open items staan in [AA-OPEN](../../../AA/AA-OPEN.md). Daarom is de eindstatus **PARTIAL**, niet volledige end-to-end acceptatie.
+Daarom blijft de eindstatus **PARTIAL**, niet volledige end-to-end acceptatie. De bestaande open items staan in [AA-OPEN](../../../AA/AA-OPEN.md).
