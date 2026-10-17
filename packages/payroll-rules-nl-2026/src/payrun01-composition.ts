@@ -15,6 +15,12 @@ export type Payrun01CompositionKind = 'KINDEROPVANG_TEST' | 'DEMO_COMPANY_TEST' 
 export interface Payrun01RulePackageOptions {
   readonly pensionCalculation?: 'INCLUDED' | 'EXCLUDED'
   readonly pensionCompliance?: 'VERIFIED' | 'TEST_ONLY_UNVERIFIED'
+  /**
+   * Use the period-gross source for a non-full payroll period. The source
+   * provider must supply an explicit, hash-bound period gross and full-period
+   * marker; the package never infers a partial amount from a contract factor.
+   */
+  readonly supportPartialPeriods?: boolean
 }
 
 function source(
@@ -69,6 +75,12 @@ const contractualSalaryRounding: PayrollRoundingDefinition = {
   provenance: { sourceReference: contractualSalarySource, sourceHash: contractualSalarySourceHash },
 }
 
+const contractualSalaryPartialPeriodRounding: PayrollRoundingDefinition = {
+  ...contractualSalaryRounding,
+  id: 'payrun01-contractual-period-salary-cents-2026.2',
+  ruleVersion: '2026.2',
+}
+
 const contractualSalaryInputs: readonly PayrollComponentInputDefinition[] = [
   { name: 'fullTimeMonthlyAmount', valueType: 'MONEY', required: true },
   { name: 'contractHoursPerWeek', valueType: 'DECIMAL', required: true },
@@ -106,6 +118,47 @@ const contractualSalaryComponent: PayrollComponentDefinition = {
     },
   },
   tracePolicy: 'FULL',
+}
+
+const partialPeriodSources: readonly PayrollComponentDefinition[] = [
+  source('PAYRUN01_PERIOD_GROSS', 'amount', 'MONEY', ['regularWage', 'grossAmount'], '2026.2'),
+  source('PAYRUN01_FULL_PERIOD', 'value', 'BOOLEAN', ['regularWage', 'fullPeriod'], '2026.2'),
+]
+
+const contractualSalaryWithPartialPeriods: PayrollComponentDefinition = {
+  ...contractualSalaryComponent,
+  id: 'system:payrun01:contractual-salary-period-aware',
+  version: '2026.2',
+  inputs: [
+    ...contractualSalaryInputs,
+    { name: 'periodGross', valueType: 'MONEY', required: true },
+    { name: 'fullPeriod', valueType: 'BOOLEAN', required: true },
+  ],
+  dependencies: [
+    ...contractualSalaryComponent.dependencies,
+    { componentCode: 'PAYRUN01_PERIOD_GROSS', outputName: 'amount', inputName: 'periodGross' },
+    { componentCode: 'PAYRUN01_FULL_PERIOD', outputName: 'value', inputName: 'fullPeriod' },
+  ],
+  method: {
+    kind: 'expression',
+    outputs: {
+      amount: {
+        kind: 'if',
+        condition: output('PAYRUN01_FULL_PERIOD', 'value'),
+        then: {
+          kind: 'ratio',
+          numerator: {
+            kind: 'binary', operator: '*',
+            left: { kind: 'output', componentCode: 'PAYRUN01_FULLTIME_MONTHLY', outputName: 'amount' },
+            right: { kind: 'output', componentCode: 'PAYRUN01_CONTRACT_HOURS', outputName: 'hours' },
+          },
+          denominator: { kind: 'output', componentCode: 'PAYRUN01_FULLTIME_HOURS', outputName: 'hours' },
+          roundingDefinitionId: contractualSalaryPartialPeriodRounding.id,
+        },
+        else: output('PAYRUN01_PERIOD_GROSS', 'amount'),
+      },
+    },
+  },
 }
 
 export const PAYRUN01_RULE_REGISTRY = NL_2026_RULE_REGISTRY
@@ -603,43 +656,49 @@ const resultMappings: readonly PayrollResultMapping[] = [
   { key: 'total_employer_cost', componentCode: 'PAYRUN01_TOTAL_EMPLOYER_COST', outputName: 'amount' },
 ]
 
-const scenarioComponents: readonly PayrollComponentDefinition[] = [
-  ...valueSources,
-  additionalHoursCashAmount,
-  contractualSalaryComponent,
-  awf,
-  aof,
-  wko,
-  whk,
-  zvw,
-  employerInsurance,
-  holidayReserve,
-  yearEndReserve,
-  netPay,
-  cumulativeGross,
-  cumulativeHolidayReserve,
-  cumulativeYearEndReserve,
-  totalEmployerCost,
-]
+function scenarioComponentsFor(supportPartialPeriods: boolean): readonly PayrollComponentDefinition[] {
+  return [
+    ...valueSources,
+    ...(supportPartialPeriods ? partialPeriodSources : []),
+    additionalHoursCashAmount,
+    supportPartialPeriods ? contractualSalaryWithPartialPeriods : contractualSalaryComponent,
+    awf,
+    aof,
+    wko,
+    whk,
+    zvw,
+    employerInsurance,
+    holidayReserve,
+    yearEndReserve,
+    netPay,
+    cumulativeGross,
+    cumulativeHolidayReserve,
+    cumulativeYearEndReserve,
+    totalEmployerCost,
+  ]
+}
 
-const scenarioComponentsWithoutPension: readonly PayrollComponentDefinition[] = [
-  ...valueSources.filter((component) => !['PAYRUN01_EMPLOYEE_PENSION', 'PAYRUN01_EMPLOYER_PENSION'].includes(component.code)),
-  additionalHoursCashAmount,
-  contractualSalaryComponent,
-  awf,
-  aof,
-  wko,
-  whk,
-  zvw,
-  employerInsurance,
-  holidayReserve,
-  yearEndReserve,
-  netPayWithoutPension,
-  cumulativeGross,
-  cumulativeHolidayReserve,
-  cumulativeYearEndReserve,
-  totalEmployerCostBeforePfzw,
-]
+function scenarioComponentsWithoutPensionFor(supportPartialPeriods: boolean): readonly PayrollComponentDefinition[] {
+  return [
+    ...valueSources.filter((component) => !['PAYRUN01_EMPLOYEE_PENSION', 'PAYRUN01_EMPLOYER_PENSION'].includes(component.code)),
+    ...(supportPartialPeriods ? partialPeriodSources : []),
+    additionalHoursCashAmount,
+    supportPartialPeriods ? contractualSalaryWithPartialPeriods : contractualSalaryComponent,
+    awf,
+    aof,
+    wko,
+    whk,
+    zvw,
+    employerInsurance,
+    holidayReserve,
+    yearEndReserve,
+    netPayWithoutPension,
+    cumulativeGross,
+    cumulativeHolidayReserve,
+    cumulativeYearEndReserve,
+    totalEmployerCostBeforePfzw,
+  ]
+}
 
 /**
  * Add the same NL-2026 statutory wage engine to an explicit, versioned
@@ -653,15 +712,19 @@ export function createPayrun01RulePackage(
   const pensionCalculation = options.pensionCalculation ?? (kind === 'KINDEROPVANG_TEST' ? 'EXCLUDED' : 'INCLUDED')
   const pensionIncluded = pensionCalculation === 'INCLUDED'
   const testOnlyPensionCompliance = pensionIncluded && options.pensionCompliance === 'TEST_ONLY_UNVERIFIED'
+  const supportPartialPeriods = options.supportPartialPeriods === true
   const compositionId = testOnlyPensionCompliance
     ? `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-PENSION-TEST-UNVERIFIED-2026.3`
     : kind === 'LEGACY_COMPANY_TEST' && !pensionIncluded
       ? `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-PENSION-BLOCKED-2026.3`
       : `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-2026.2`
+  const effectiveCompositionId = supportPartialPeriods ? `${compositionId}+PARTIAL-PERIODS-2026.1` : compositionId
   const systemComponents = NL_2026_RULE_PACKAGE.components
     .filter((component) => !['NL_REGULAR_WAGE', 'NL_TAXABLE_WAGE', 'NL_WAGE_TAX', 'NL_NET_PAY'].includes(component.code))
     .concat([regularWage, pensionIncluded ? taxableWage : taxableWageWithoutPension, wageTax])
-  const selectedScenarioComponents = pensionIncluded ? scenarioComponents : scenarioComponentsWithoutPension
+  const selectedScenarioComponents = pensionIncluded
+    ? scenarioComponentsFor(supportPartialPeriods)
+    : scenarioComponentsWithoutPensionFor(supportPartialPeriods)
   const scenarioControls = controls.map((control) => {
       if (control.code === 'PAYRUN01-CTRL-009-PENSION-RULE-READY'
         && (testOnlyPensionCompliance || (!pensionIncluded && kind === 'KINDEROPVANG_TEST'))) {
@@ -703,15 +766,16 @@ export function createPayrun01RulePackage(
     : resultMappings
   const roundingDefinitions = [
     ...(NL_2026_RULE_PACKAGE.roundingDefinitions ?? []),
-    contractualSalaryRounding,
+    supportPartialPeriods ? contractualSalaryPartialPeriodRounding : contractualSalaryRounding,
     additionalHoursCashRounding,
   ]
   const packageHash = sha256(stableSerialize({
     basePackageHash: NL_2026_RULE_PACKAGE.metadata?.packageHash,
-    compositionId,
+    compositionId: effectiveCompositionId,
     kind,
     pensionCalculation,
     pensionCompliance: options.pensionCompliance ?? 'VERIFIED',
+    supportPartialPeriods,
     components: [...systemComponents, ...selectedScenarioComponents],
     controls: scenarioControls,
     resultMappings: selectedResultMappings,
@@ -720,7 +784,7 @@ export function createPayrun01RulePackage(
 
   return Object.freeze({
     ...NL_2026_RULE_PACKAGE,
-    compositionId,
+    compositionId: effectiveCompositionId,
     metadata: Object.freeze({ ...NL_2026_RULE_PACKAGE.metadata!, packageHash }),
     components: Object.freeze([...systemComponents, ...selectedScenarioComponents]),
     controls: Object.freeze([...scenarioControls]),

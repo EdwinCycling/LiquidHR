@@ -161,8 +161,9 @@ function payfullScenarioProvider(state: {
   variant: 'REGULAR' | 'VARIABLE'
   variableWage?: string
   specialRewardWage?: string
+  payrollTaxCreditApplies?: boolean
 }): PayrollSourceProvider {
-  const base = provider()
+  const base = provider({ payrollTaxCreditApplies: state.payrollTaxCreditApplies ?? true })
   return {
     getPayrollSourceSnapshot: async (input) => {
       const snapshot = await base.getPayrollSourceSnapshot(input)
@@ -542,6 +543,36 @@ describe('Core-backed employee payroll calculation', () => {
       grossAmount: '4500.00',
     })
     expect(result.payfull02?.cumulativeGross).toBe('4500.00')
+  })
+
+  it('selects the versioned partial-period PAYFULL02 composition for an explicit composite wage source', async () => {
+    const completeProvider = payfullScenarioProvider({ variant: 'REGULAR', payrollTaxCreditApplies: false })
+    const sourceProvider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: async (input) => {
+        const snapshot = await completeProvider.getPayrollSourceSnapshot(input)
+        const source = snapshot.canonicalSource as Record<string, unknown>
+        const regularWage = source.regularWage as Record<string, unknown>
+        return {
+          ...snapshot,
+          canonicalSource: {
+            ...source,
+            regularWage: {
+              ...regularWage,
+              grossAmount: '2000.00',
+              timePeriod: 'WEEK_DAY_2_1',
+              fullPeriod: false,
+            },
+          } as PayrollSourceSnapshot['canonicalSource'],
+        }
+      },
+    }
+    const state = harness({}, sourceProvider, true)
+    const result = await state.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+
+    expect(result).toMatchObject({ status: 'CALCULATED', completeness: 'COMPLETE', grossAmount: '2000.00' })
+    expect(result.payfull02?.cumulativeGross).toBe('2000.00')
+    const inputSet = [...state.inputs.values()][0]
+    expect(inputSet?.rule_package_composition_id).toContain('+PARTIAL-PERIODS-2026.1')
   })
 
   it('requires a finalized regular predecessor before the variable-wage scenario can create a run', async () => {

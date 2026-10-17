@@ -11,12 +11,15 @@ import type {
   PayrollSerializedValue,
   PayrollTypedParameter,
 } from '@liquid-hr/payroll-engine'
+import { compositePaidWorkdays, parseNl2026CompositeTimePeriod, type Nl2026CompositePeriod } from './period'
 
 const ZERO = FixedDecimal.fromInteger(BigInt(0))
 const ONE_HUNDRED = FixedDecimal.fromInteger(BigInt(100))
 
 type NumericParameterName =
   | 'monthFactor'
+  | 'weekFactor'
+  | 'dayFactor'
   | 'annualTableStep'
   | 'maximumAnnualTableWage'
   | 'bracket1Offset'
@@ -189,19 +192,27 @@ function roundingDefinition(
   return matching[0]!
 }
 
-function requiredScope(inputs: Readonly<Record<string, PayrollSerializedValue>>): void {
+function requiredScope(inputs: Readonly<Record<string, PayrollSerializedValue>>): Nl2026CompositePeriod | null {
   const fiscalYear = inputDecimal(inputs, 'fiscalYear')
   if (fiscalYear.compare(FixedDecimal.fromInteger(BigInt(2026))) !== 0) unsupported('FISCAL_YEAR')
   if (inputString(inputs, 'table') !== 'WHITE') unsupported('TABLE')
   if (inputString(inputs, 'residence') !== 'NL') unsupported('RESIDENCE')
   if (inputString(inputs, 'ageCategory') !== 'UNDER_AOW') unsupported('AGE_CATEGORY')
   if (inputString(inputs, 'herleiding') !== 'STD') unsupported('HERLEIDING')
-  if (inputString(inputs, 'timePeriod') !== 'MONTH') unsupported('TIME_PERIOD')
+  const timePeriod = inputString(inputs, 'timePeriod')
+  const compositePeriod = parseNl2026CompositeTimePeriod(timePeriod)
   if (!inputBoolean(inputs, 'regularWage')) unsupported('NON_REGULAR_WAGE')
-  if (!inputBoolean(inputs, 'fullPeriod')) unsupported('INCOMPLETE_PERIOD')
+  const fullPeriod = inputBoolean(inputs, 'fullPeriod')
+  if (timePeriod !== 'MONTH' && compositePeriod === null) unsupported('TIME_PERIOD')
+  if (timePeriod === 'MONTH' && !fullPeriod) unsupported('INCOMPLETE_PERIOD')
+  if (compositePeriod !== null && fullPeriod) unsupported('COMPOSITE_PERIOD_FULL_PERIOD')
+  if (compositePeriod !== null && inputBoolean(inputs, 'payrollTaxCredit')) {
+    unsupported('COMPOSITE_PERIOD_WITH_TAX_CREDIT')
+  }
   if (inputBoolean(inputs, 'hasSpecialSituation')) unsupported('SPECIAL_SITUATION')
   const incomeRelationshipCount = inputDecimal(inputs, 'incomeRelationshipCount')
   if (incomeRelationshipCount.compare(FixedDecimal.fromInteger(BigInt(1))) !== 0) unsupported('MULTIPLE_INCOME_RELATIONSHIPS')
+  return compositePeriod
 }
 
 function bracketParameters(parameters: Readonly<Record<string, PayrollTypedParameter>>, annualWage: FixedDecimal): {
@@ -422,6 +433,123 @@ function monthlyRounded(
   return rounded
 }
 
+function calculateCompositePeriodWithholding(context: {
+  readonly period: Nl2026CompositePeriod
+  readonly taxableWage: FixedDecimal
+  readonly parameters: Readonly<Record<string, PayrollTypedParameter>>
+  readonly roundingDefinitions: readonly PayrollRoundingDefinition[]
+  readonly trace: PayrollRegisteredRuleTraceStep[]
+}): { readonly outputs: Readonly<Record<string, PayrollSerializedValue>>; readonly trace: readonly PayrollRegisteredRuleTraceStep[] } {
+  const { period, taxableWage, parameters, roundingDefinitions, trace } = context
+  const paidWorkdays = compositePaidWorkdays(period)
+  const weekFactor = parameterDecimal(parameters, 'weekFactor')
+  const dayFactor = parameterDecimal(parameters, 'dayFactor')
+  const annualTableStep = parameterDecimal(parameters, 'annualTableStep')
+  const maximumAnnualTableWage = parameterDecimal(parameters, 'maximumAnnualTableWage')
+  const dailyWage = taxableWage.divideToScale(
+    FixedDecimal.fromInteger(BigInt(paidWorkdays)),
+    12,
+    'ARITHMETIC',
+  )
+  const segments = [
+    ...(period.fullWeeks > 0 ? [{ kind: 'WEEK' as const, count: period.fullWeeks, factor: weekFactor, wage: dailyWage.multiply(FixedDecimal.fromInteger(BigInt(5))) }] : []),
+    ...(period.remainingDays > 0 ? [{ kind: 'DAY' as const, count: period.remainingDays, factor: dayFactor, wage: dailyWage }] : []),
+  ]
+  const annualTableRounding = roundingDefinition(roundingDefinitions, 'ANNUAL_TABLE_WAGE')
+  if (!annualTableRounding.targetMultiple
+    || FixedDecimal.parse(annualTableRounding.targetMultiple).compare(annualTableStep) !== 0) {
+    throw new PayrollEngineError('NL2026_ROUNDING_PARAMETER_MISMATCH', 'The annual table-step parameter does not match its pinned rounding definition.')
+  }
+  const taxAfterCreditsRounding = roundingDefinition(roundingDefinitions, 'ANNUAL_TAX_AFTER_CREDITS')
+  const tablePeriodRounding = roundingDefinition(roundingDefinitions, 'PERIOD_TABLE_WAGE')
+  const periodTaxRounding = roundingDefinition(roundingDefinitions, 'PERIOD_WAGE_TAX')
+  let totalWageTax = ZERO
+
+  trace.push({
+    code: 'period.composite-segment-plan',
+    values: {
+      fullWeeks: decimalValue(FixedDecimal.fromInteger(BigInt(period.fullWeeks))),
+      remainingDays: decimalValue(FixedDecimal.fromInteger(BigInt(period.remainingDays))),
+      paidWorkdays: decimalValue(FixedDecimal.fromInteger(BigInt(paidWorkdays))),
+      dailyWage: decimalValue(dailyWage, 12),
+      payrollTaxCredit: booleanValue(false),
+    },
+    sourceReference: 'Handboek Loonheffingen 2026, §9.3.4; Rekenvoorschriften 2026 v2, §2.2.1 table 1b, p.8',
+  })
+
+  for (const segment of segments) {
+    const segmentName = segment.kind.toLowerCase()
+    const annualizedWageRaw = segment.wage.multiply(segment.factor)
+    if (annualizedWageRaw.compare(maximumAnnualTableWage) > 0) unsupported('ABOVE_LMAX')
+    const annualTableWage = applyPayrollRounding(annualizedWageRaw, annualTableRounding)
+    trace.push(roundingTrace({
+      code: `rounding.annual-table-wage.${segmentName}`,
+      definition: annualTableRounding,
+      unrounded: annualizedWageRaw,
+      rounded: annualTableWage,
+    }))
+
+    const annualTaxBeforeCredits = calculateAnnualTaxBeforeCredits(parameters, annualTableWage, roundingDefinitions, trace)
+    const annualTaxAfterCredits = maximum(ZERO, applyPayrollRounding(annualTaxBeforeCredits, taxAfterCreditsRounding))
+    trace.push({
+      code: `credit.application-and-cap.${segmentName}`,
+      values: {
+        annualTaxBeforeCredits: moneyValue(annualTaxBeforeCredits),
+        theoreticalGeneralCredit: moneyValue(ZERO),
+        theoreticalLabourCredit: moneyValue(ZERO),
+        appliedLabourCredit: moneyValue(ZERO),
+        appliedGeneralCredit: moneyValue(ZERO),
+        annualTaxAfterCredits: moneyValue(annualTaxAfterCredits),
+      },
+      sourceReference: 'Rekenvoorschriften 2026 v2, §2.2.4, p.13; loonheffingskorting not applied',
+    })
+    trace.push(roundingTrace({
+      code: `rounding.tax-after-credits.${segmentName}`,
+      definition: taxAfterCreditsRounding,
+      unrounded: annualTaxBeforeCredits,
+      rounded: annualTaxAfterCredits,
+    }))
+
+    const tablePeriodWage = applyPayrollRoundingToRatio(annualTableWage, segment.factor, tablePeriodRounding)
+    trace.push(roundingTrace({
+      code: `rounding.period-table-wage.${segmentName}`,
+      definition: tablePeriodRounding,
+      ratio: { numerator: annualTableWage, denominator: segment.factor },
+      rounded: tablePeriodWage,
+    }))
+    const segmentWageTax = applyPayrollRoundingToRatio(annualTaxAfterCredits, segment.factor, periodTaxRounding)
+    trace.push(roundingTrace({
+      code: `rounding.period-wage-tax.${segmentName}`,
+      definition: periodTaxRounding,
+      ratio: { numerator: annualTaxAfterCredits, denominator: segment.factor },
+      rounded: segmentWageTax,
+    }))
+    trace.push({
+      code: `result.period-values.${segmentName}`,
+      values: {
+        segmentCount: decimalValue(FixedDecimal.fromInteger(BigInt(segment.count))),
+        annualTableWage: decimalValue(annualTableWage),
+        tablePeriodWage: moneyValue(tablePeriodWage),
+        annualTaxBeforeCredits: moneyValue(annualTaxBeforeCredits),
+        annualTaxAfterCredits: moneyValue(annualTaxAfterCredits),
+        wageTax: moneyValue(segmentWageTax),
+      },
+      sourceReference: 'Rekenvoorschriften 2026 v2, §§2.2.4-2.2.5, pp.13-16; composite week/day time-period selection',
+    })
+    totalWageTax = totalWageTax.add(segmentWageTax.multiply(FixedDecimal.fromInteger(BigInt(segment.count))))
+  }
+
+  trace.push({
+    code: 'result.composite-period-values',
+    values: {
+      paidWorkdays: decimalValue(FixedDecimal.fromInteger(BigInt(paidWorkdays))),
+      wageTax: moneyValue(totalWageTax),
+    },
+    sourceReference: 'Handboek Loonheffingen 2026, §9.3.4; composite week/day table aggregation',
+  })
+  return { outputs: { wageTax: moneyValue(totalWageTax) }, trace }
+}
+
 export function calculateNl2026RegularWageWithholding(context: {
   readonly inputs: Readonly<Record<string, PayrollSerializedValue>>
   readonly parameters: Readonly<Record<string, PayrollTypedParameter>>
@@ -435,17 +563,11 @@ export function calculateNl2026RegularWageWithholding(context: {
   if (!roundingDefinitions) {
     throw new PayrollEngineError('NL2026_RULE_ROUNDING_REQUIRED', 'Pinned rounding definitions are required for Dutch 2026 payroll calculation.')
   }
-  requiredScope(inputs)
+  const compositePeriod = requiredScope(inputs)
   const grossSalary = inputMoney(inputs, 'grossSalary')
   const taxableWage = inputMoney(inputs, 'taxableWage')
   if (grossSalary.compare(taxableWage) !== 0) unsupported('TAXABLE_WAGE_ADJUSTMENT')
   const payrollTaxCredit = inputBoolean(inputs, 'payrollTaxCredit')
-  const monthFactor = parameterDecimal(parameters, 'monthFactor')
-  const annualTableStep = parameterDecimal(parameters, 'annualTableStep')
-  const maximumAnnualTableWage = parameterDecimal(parameters, 'maximumAnnualTableWage')
-  const annualizedWageRaw = taxableWage.multiply(monthFactor)
-  if (annualizedWageRaw.compare(maximumAnnualTableWage) > 0) unsupported('ABOVE_LMAX')
-
   const trace: PayrollRegisteredRuleTraceStep[] = []
   trace.push({
     code: 'classification.accepted',
@@ -466,6 +588,20 @@ export function calculateNl2026RegularWageWithholding(context: {
     },
     sourceReference: 'PAYLAB03 first compliance scope; Belastingdienst parameter appendix 2026 p.4 and Handboek 2026 §§9.3.1-9.3.4',
   })
+  if (compositePeriod) {
+    return calculateCompositePeriodWithholding({
+      period: compositePeriod,
+      taxableWage,
+      parameters,
+      roundingDefinitions,
+      trace,
+    })
+  }
+  const monthFactor = parameterDecimal(parameters, 'monthFactor')
+  const annualTableStep = parameterDecimal(parameters, 'annualTableStep')
+  const maximumAnnualTableWage = parameterDecimal(parameters, 'maximumAnnualTableWage')
+  const annualizedWageRaw = taxableWage.multiply(monthFactor)
+  if (annualizedWageRaw.compare(maximumAnnualTableWage) > 0) unsupported('ABOVE_LMAX')
 
   const annualTableRounding = roundingDefinition(roundingDefinitions, 'ANNUAL_TABLE_WAGE')
   if (!annualTableRounding.targetMultiple

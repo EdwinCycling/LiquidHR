@@ -10,6 +10,11 @@ import type {
   PayrollSourceSnapshot,
 } from '@liquid-hr/payroll-engine'
 import { FixedDecimal } from '@liquid-hr/payroll-engine'
+import {
+  calculateNl2026PeriodSegments,
+  encodeNl2026CompositeTimePeriod,
+  prorateMonthlySalary,
+} from '@liquid-hr/payroll-rules-nl-2026'
 import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { listEmployeeEmployments } from '@/lib/employment/employment-service'
 import {
@@ -624,6 +629,17 @@ function payrollMoneySource(value: number | null): string | null {
   }
 }
 
+function payrollDecimalSource(value: number | null): string | null {
+  if (value === null || !Number.isFinite(value)) return null
+  try {
+    const amount = FixedDecimal.parse(String(value))
+    if (amount.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) return null
+    return amount.toString(4)
+  } catch {
+    return null
+  }
+}
+
 function regularWageInput(
   salaries: readonly PayrollSourceSalary[],
   schedules: readonly PayrollSourceSchedule[],
@@ -648,21 +664,50 @@ function regularWageInput(
   if (!salary || !schedule
     || salary.valid_from > start || (salary.valid_until !== null && salary.valid_until < endExclusive)
     || schedule.valid_from > start || (schedule.valid_until !== null && schedule.valid_until < endExclusive)) return null
-  const grossAmount = payrollMoneySource(salary.parttime_amount)
-  if (!grossAmount) return null
+  const monthlyAmount = payrollMoneySource(salary.parttime_amount)
+  const fulltimeMonthlyAmount = payrollMoneySource(salary.fulltime_amount)
+  const contractHoursPerWeek = payrollDecimalSource(schedule.average_hours_per_week)
+  const fulltimeHoursPerWeek = payrollDecimalSource(schedule.fulltime_hours_per_week)
+  if (!monthlyAmount || !fulltimeMonthlyAmount || !contractHoursPerWeek || !fulltimeHoursPerWeek) return null
+  const periodBoundsForWage = periodBounds(period)
+  const fullPeriod = start === periodBoundsForWage.start && endExclusive === periodBoundsForWage.endExclusive
+  let grossAmount = monthlyAmount
+  let timePeriod = fiscalProfile.timePeriod
+  if (!fullPeriod) {
+    let segments: ReturnType<typeof calculateNl2026PeriodSegments>
+    try {
+      segments = calculateNl2026PeriodSegments({
+        periodStart: periodBoundsForWage.start,
+        periodEndExclusive: periodBoundsForWage.endExclusive,
+        paidStart: start,
+        paidEndExclusive: endExclusive,
+      })
+      grossAmount = prorateMonthlySalary(
+        FixedDecimal.parse(monthlyAmount),
+        segments.paidWorkdays,
+        segments.periodWorkdays,
+      ).toString(2)
+      timePeriod = encodeNl2026CompositeTimePeriod(segments)
+    } catch {
+      return null
+    }
+  }
   return {
     fiscalYear: String(period.year),
     table: fiscalProfile.wageTaxTable,
     residence: fiscalProfile.residenceCountryCode,
     ageCategory: fiscalProfile.ageCategory,
     herleiding: fiscalProfile.herleiding,
-    timePeriod: fiscalProfile.timePeriod,
+    timePeriod,
     payrollTaxCredit: fiscalProfile.payrollTaxCreditApplies,
     regularWage: true,
-    fullPeriod: true,
+    fullPeriod,
     hasSpecialSituation: fiscalProfile.hasSpecialSituation,
     incomeRelationshipCount: String(fiscalProfile.activeIncomeRelationshipCount),
     grossAmount,
+    fulltimeMonthlyAmount,
+    contractHoursPerWeek,
+    fulltimeHoursPerWeek,
   }
 }
 
@@ -824,9 +869,6 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       ),
       ...actualWorkSnapshot.sourceGaps,
     ]
-    if (activeStart !== bounds.start || activeEndExclusive !== bounds.endExclusive) {
-      sourceGaps.push(makeGap('employment', 'UNSUPPORTED', 'PARTIAL_EMPLOYMENT_PERIOD_UNSUPPORTED'))
-    }
     const regularWage = regularWageInput(
       salaries,
       schedules,

@@ -322,6 +322,74 @@ describe('LiquidHR Payroll source provider', () => {
     expect(JSON.stringify(snapshot.canonicalSource)).not.toContain('declaration-ref')
   })
 
+  it('projects a mid-month employment into a 11/22 gross and week/day tax period', async () => {
+    const partialEmployment = employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' })
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      listEmployments: vi.fn(async () => [partialEmployment]),
+      loadActualWork: vi.fn(async () => actualWork({ period: {
+        id: actualWorkPeriodId,
+        period_start: '2026-10-01',
+        period_end: '2026-11-01',
+        status: 'CLOSED',
+        updated_at: '2026-11-01T10:00:00.000Z',
+      } })),
+      loadTimeline: vi.fn(async () => ({
+        employment: partialEmployment,
+        salaries: [salary({ fulltime_amount: 3517, parttime_amount: 3517, valid_from: '2026-10-01' })],
+        schedules: [schedule({ valid_from: '2026-10-01' })],
+        contracts: [{
+          id: '8b000000-0000-4000-8000-000000000008',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          fulltime_hours_per_week: 40,
+          starts_on: '2026-10-01',
+          ends_on: null,
+          updated_at: '2026-10-01T10:01:00.000Z',
+        }],
+        laborConditions: [{
+          id: '8d000000-0000-4000-8000-000000000008',
+          condition_group: 'COMPANY',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          valid_from: '2026-01-01',
+          valid_until: null,
+          updated_at: '2026-01-01T10:02:00.000Z',
+          set: {
+            id: '8c000000-0000-4000-8000-000000000008',
+            code: 'COMPANY',
+            name: 'Company labor conditions',
+            standard_hours_per_week: 40,
+            is_active: true,
+            valid_from: '2026-01-01',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        }],
+        incomeRelationships: [incomeRelationship({ validFrom: '2026-10-01', startsOn: '2026-10-01', reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({
+          effective_from: '2026-10-01',
+          payroll_tax_credit_applies: false,
+        })] }),
+      })),
+    })).getPayrollSourceSnapshot({
+      ...request,
+      employmentId,
+      payrollPeriod: { year: 2026, month: 10 },
+    })
+
+    expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({ reasonCode: 'PARTIAL_EMPLOYMENT_PERIOD_UNSUPPORTED' }))
+    expect(snapshot.sourceGaps).toEqual([])
+    expect(snapshot.canonicalSource).toMatchObject({
+      regularWage: {
+        grossAmount: '1758.50',
+        timePeriod: 'WEEK_DAY_2_1',
+        fullPeriod: false,
+        payrollTaxCredit: false,
+        fulltimeMonthlyAmount: '3517.00',
+        contractHoursPerWeek: '40.0000',
+        fulltimeHoursPerWeek: '40.0000',
+      },
+      fiscalProfile: { status: 'CONFIRMED', timePeriod: 'MONTH' },
+    })
+  })
+
   it('continues to accept an actual employee declaration as a fiscal source', async () => {
     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
       loadTimeline: vi.fn(async () => ({

@@ -439,7 +439,10 @@ describe('PAYRUN01 composition on the shared NL-2026 payroll engine', () => {
 })
 
 describe('PAYFULL-02 component graph extensions', () => {
-  function calculatePayfull02(sourceSnapshot: PayrollSourceSnapshot) {
+  function calculatePayfull02(
+    sourceSnapshot: PayrollSourceSnapshot,
+    options: { readonly supportPartialPeriods?: boolean } = {},
+  ) {
     const canonicalSource = structuredClone(sourceSnapshot.canonicalSource) as Record<string, unknown>
     const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
     payrollOwned.cumulatives = {
@@ -461,7 +464,7 @@ describe('PAYFULL-02 component graph extensions', () => {
       ...((payrollOwned.pension as Record<string, unknown> | undefined) ?? {}),
     }
     sourceSnapshot = { ...sourceSnapshot, canonicalSource: canonicalSource as typeof sourceSnapshot.canonicalSource }
-    const rulePackage = createPayfull02RulePackage('DEMO_COMPANY_TEST')
+    const rulePackage = createPayfull02RulePackage('DEMO_COMPANY_TEST', options)
     const inputs = buildCalculationInputs(sourceSnapshot, rulePackage, {
       effectiveDate: `${sourceSnapshot.periodReference.year}-${String(sourceSnapshot.periodReference.month).padStart(2, '0')}-01`,
       scopeInstanceIds: {
@@ -524,6 +527,59 @@ describe('PAYFULL-02 component graph extensions', () => {
     expect(resultAmount(result, 'total_employer_cost')).toBe('7298.10')
     expect(result.controls.every((control) => control.status === 'PASS')).toBe(true)
     expect(rulePackage.metadata?.packageHash).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('uses an explicit composite-period gross for a full-time employment that starts mid-month', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    regularWage.fulltimeMonthlyAmount = '3517.00'
+    regularWage.contractHoursPerWeek = '40'
+    regularWage.fulltimeHoursPerWeek = '40'
+    regularWage.grossAmount = '1758.50'
+    regularWage.timePeriod = 'WEEK_DAY_2_1'
+    regularWage.fullPeriod = false
+    regularWage.payrollTaxCredit = false
+    payrollOwned.amounts = {
+      employeePension: '0.00',
+      employerPension: '0.00',
+      variableRegularWage: '0.00',
+      specialRewardWage: '0.00',
+      netReimbursement: '0.00',
+      netDeduction: '0.00',
+      netCorrection: '0.00',
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+    }
+    payrollOwned.fiscalBases = { wageTax: '1758.50', employeeInsurance: '1758.50', zvw: '1758.50' }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '0.00',
+      holidayReserveBeforePeriod: '0.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '0.00',
+      wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '0.00',
+      zvwWageBeforePeriod: '0.00',
+    }
+    const { rulePackage, result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    }, { supportPartialPeriods: true })
+
+    expect(result.status).toBe('CALCULATED')
+    expect(rulePackage.compositionId).toContain('+PARTIAL-PERIODS-2026.1')
+    expect(resultAmount(result, 'contractual_salary')).toBe('1758.50')
+    expect(resultAmount(result, 'gross_salary')).toBe('1758.50')
+    expect(result.trace.find((step) => step.componentCode === 'PAYRUN01_CONTRACTUAL_SALARY')?.inputs)
+      .toEqual(expect.objectContaining({
+        periodGross: { valueType: 'MONEY', value: '1758.50' },
+        fullPeriod: { valueType: 'BOOLEAN', value: false },
+      }))
+    expect(result.controls.every((control) => control.status === 'PASS')).toBe(true)
   })
 
   it('reduces each applicable fiscal base by an actual employee pension deduction and subtracts that share from net exactly once', () => {

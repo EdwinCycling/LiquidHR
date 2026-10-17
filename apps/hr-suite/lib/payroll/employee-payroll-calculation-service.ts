@@ -20,6 +20,7 @@ import {
   createPayfull02RulePackage,
   NL_2026_RULE_PACKAGE,
   NL_2026_RULE_REGISTRY,
+  parseNl2026CompositeTimePeriod,
 } from '@liquid-hr/payroll-rules-nl-2026'
 import { requireComponentLibraryAccess } from './component-library-access'
 import { createPayrollCalculationRepository, type PayrollCalculationArtifacts, type PayrollCalculationRepository } from './calculation-repository'
@@ -222,6 +223,21 @@ function isPayfull02Source(value: unknown): boolean {
     && setup.version === '1.0'
 }
 
+function isCompositeRegularWage(value: unknown): boolean {
+  const source = record(value)
+  const regularWage = record(source?.regularWage)
+  return regularWage?.fullPeriod === false
+    && typeof regularWage.timePeriod === 'string'
+    && parseNl2026CompositeTimePeriod(regularWage.timePeriod) !== null
+}
+
+function payfull02PackageForSource(value: unknown): PayrollRulePackage | null {
+  if (!isPayfull02Source(value)) return null
+  return createPayfull02RulePackage('DEMO_COMPANY_TEST', {
+    supportPartialPeriods: isCompositeRegularWage(value),
+  })
+}
+
 function sourcePathValue(value: unknown, path: readonly (string | number)[]): unknown {
   let current: unknown = value
   for (const segment of path) {
@@ -343,16 +359,17 @@ function incompleteComponentsForSource(
   } = {},
 ): readonly string[] {
   const source = record(value)
-  const packageForSource = selectedPackage ?? (isPayfull02Source(source)
-    ? PAYFULL02_COMPLETENESS_PACKAGE
-    : NL_2026_RULE_PACKAGE)
+  const packageForSource = selectedPackage ?? (payfull02PackageForSource(source) ?? NL_2026_RULE_PACKAGE)
+  const expectedPackage = packageForSource.compositionId.includes('+PAYFULL02-')
+    ? packageForSource
+    : PAYFULL02_COMPLETENESS_PACKAGE
   const selectedByCode = new Map(packageForSource.components.map((component) => [component.code, component]))
   const executedByCode = evidence.executedComponents
     ? new Map(evidence.executedComponents.map((component) => [component.componentCode, new Set(component.outputs.map((output) => output.name))]))
     : null
   const gaps = new Set<string>()
 
-  for (const expected of PAYFULL02_COMPLETENESS_PACKAGE.components) {
+  for (const expected of expectedPackage.components) {
     const selected = selectedByCode.get(expected.code)
     if (!selected || stableSerialize(selected) !== stableSerialize(expected)) {
       for (const gap of completenessCategoriesForComponent(expected.code)) gaps.add(gap)
@@ -509,8 +526,19 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIso
     }
   }
   const wage = record(source?.regularWage)
-  if (!wage || wage.fiscalYear !== String(snapshot.periodReference.year) || typeof wage.grossAmount !== 'string') {
+  const compositeTimePeriod = typeof wage?.timePeriod === 'string'
+    ? parseNl2026CompositeTimePeriod(wage.timePeriod)
+    : null
+  const supportedWagePeriod = wage?.timePeriod === 'MONTH' && wage.fullPeriod === true
+    || compositeTimePeriod !== null && wage?.fullPeriod === false
+  if (!wage || wage.fiscalYear !== String(snapshot.periodReference.year) || typeof wage.grossAmount !== 'string'
+    || !supportedWagePeriod) {
     gaps.push({ field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SUPPORTED_REGULAR_WAGE_INPUT_UNAVAILABLE' })
+  }
+  if (compositeTimePeriod !== null && (!sourceValueMatchesType(wage?.fulltimeMonthlyAmount, 'MONEY')
+    || !sourceValueMatchesType(wage?.contractHoursPerWeek, 'DECIMAL')
+    || !sourceValueMatchesType(wage?.fulltimeHoursPerWeek, 'DECIMAL'))) {
+    gaps.push({ field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'PARTIAL_PERIOD_SALARY_BASIS_UNAVAILABLE' })
   }
   const fiscalProfile = record(source?.fiscalProfile)
   const testScenario = record(source?.testScenario)
@@ -659,7 +687,7 @@ function viewFromArtifacts(
 ): EmployeePayrollCalculationView {
   const sourcePayload = record(artifacts.sourceSnapshot.source_payload)
   const selectedPackage = artifacts.inputSet.rule_package_composition_id.includes('+PAYFULL02-')
-    ? PAYFULL02_COMPLETENESS_PACKAGE
+    ? (payfull02PackageForSource(sourcePayload) ?? PAYFULL02_COMPLETENESS_PACKAGE)
     : NL_2026_RULE_PACKAGE
   const tracePayloadValue = artifacts.trace?.trace_payload
   const trace = record(tracePayloadValue)
@@ -952,8 +980,9 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
     let events = await lifecycle.listLifecycleEvents(scope, administrationId, periodRow.id, input.employmentId)
     const canonicalSource = record(snapshot.canonicalSource)
     const acceptanceScenario = record(canonicalSource?.testScenario)?.sourceClassification === 'PAYROLL_TEST_SCENARIO'
-    const payfull02 = isPayfull02Source(canonicalSource)
-    const rulePackage = payfull02 ? createPayfull02RulePackage('DEMO_COMPANY_TEST') : NL_2026_RULE_PACKAGE
+    const payfull02Package = payfull02PackageForSource(canonicalSource)
+    const payfull02 = payfull02Package !== null
+    const rulePackage = payfull02Package ?? NL_2026_RULE_PACKAGE
     const ruleRegistry = payfull02 ? PAYFULL02_RULE_REGISTRY : NL_2026_RULE_REGISTRY
     const incompleteComponents = incompleteComponentsForSource(canonicalSource, rulePackage)
     if (!acceptanceScenario) {
@@ -1421,7 +1450,7 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       ? referenceJson.incompleteComponents.filter((value): value is string => typeof value === 'string')
       : []
     const selectedPackage = artifacts.inputSet.rule_package_composition_id.includes('+PAYFULL02-')
-      ? PAYFULL02_COMPLETENESS_PACKAGE
+      ? (payfull02PackageForSource(artifacts.sourceSnapshot.source_payload) ?? PAYFULL02_COMPLETENESS_PACKAGE)
       : NL_2026_RULE_PACKAGE
     const incomplete = [...new Set([
       ...storedIncomplete,
