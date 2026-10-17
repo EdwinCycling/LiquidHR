@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { selectLatestApprovedGridSignals } from './v2-service'
+import { restrictStarPerformersEmployeeIds, selectLatestApprovedGridSignals } from './v2-service'
 
 describe('star performers v2 grid signals', () => {
   it('selects the latest closed high/high signal and derives movement from the previous campaign', () => {
@@ -26,5 +26,13 @@ describe('star performers v2 grid signals', () => {
     )
 
     expect(signals.size).toBe(0)
+  })
+})
+
+describe('star performers manager scope', () => {
+  it('intersects forged search results with the server-derived direct-team scope', () => {
+    expect(restrictStarPerformersEmployeeIds(['outside-team', 'team-2'], ['team-1', 'team-2'])).toEqual(['team-2'])
+    expect(restrictStarPerformersEmployeeIds(null, ['team-1', 'team-2'])).toEqual(['team-1', 'team-2'])
+    expect(restrictStarPerformersEmployeeIds(['company-employee'], null)).toEqual(['company-employee'])
   })
 })

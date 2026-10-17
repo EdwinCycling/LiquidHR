@@ -81,6 +81,7 @@ const data: StartPageData = {
   scope: 'company',
   canLoadTeamAi: false,
   teamAvailability: null,
+  talentInsights: null,
   tenantName: 'Tenant',
   upcomingEvents: [],
   workforceLinks: [],

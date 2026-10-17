@@ -17,6 +17,7 @@ import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 import { resolveStoredImageUrl } from '@/lib/storage/image-url'
 import { canUseTeamAi } from '@/lib/ai/team-scope'
 import { getPersonalLogbookSummary, type PersonalLogbookSummary } from '@/lib/logbook/service'
+import { getStarPerformersDashboardSummary, type StarPerformersDashboardSummary } from '@/lib/star-performers/v2-service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -62,6 +63,7 @@ export interface StartPageData {
   journeys: JourneyProjectionList
   canLoadTeamAi: boolean
   logbook: PersonalLogbookSummary
+  talentInsights: StarPerformersDashboardSummary | null
   journeyOnly: boolean
 }
 
@@ -512,6 +514,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
       journeys: dependencies.journeys ?? [],
       canLoadTeamAi: false,
       logbook: { totalCount: 0, latestCreatedAt: null, manualCount: 0, aiCount: 0 },
+      talentInsights: null,
       journeyOnly: true,
     }
   }
@@ -522,6 +525,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
   const isManager = auth.activeRoles.includes('DIRECT_MANAGER')
   const isHrAdmin = auth.activeRoles.includes('TENANT_ADMIN')
   const canLoadTeamAi = canUseTeamAi(auth)
+  const canLoadTalentInsights = !personalOnly && auth.permissions.some((permission) => permission === 'star-performer:read' || permission === 'star-performer:manager-read')
   const canSwitchScope = isManager && isHrAdmin
   const scope: StartPageScope = isManager ? (isHrAdmin && requestedScope === 'company' ? 'company' : 'team') : 'company'
   // Start the team-scope lookup together with the independent startpage reads.
@@ -534,11 +538,18 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     ? employeeScopePromise.then((employeeScope) => employeeScope ?? [])
     : Promise.resolve([])
   const workforceLinks = listStartPageWorkforceLinks(auth.permissions, personalOnly)
+  const talentInsightsPromise = canLoadTalentInsights
+    ? employeeScopePromise.then((employeeScope) => measure('talentInsights', () => getStarPerformersDashboardSummary({
+      auth,
+      supabase,
+      scopeEmployeeIds: scope === 'team' && !isHrAdmin ? employeeScope ?? [] : null,
+    })).catch(() => null))
+    : Promise.resolve<StarPerformersDashboardSummary | null>(null)
   const employeePromise = auth.employeeId
     ? Promise.resolve(supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle())
     : Promise.resolve(null)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, pendingSigningCount, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys, logbook] = await measure('data.parallel', () => Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, pendingSigningCount, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys, logbook, talentInsights] = await measure('data.parallel', () => Promise.all([
     measure('employee', () => employeePromise),
     employeeScopePromise.then((employeeScope) => measure('leave', () => listLeaveAbsences(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('absence', () => listActiveAbsences(auth, employeeScope, supabase))),
@@ -558,6 +569,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
       ? listJourneyProjectionsForContext(supabase, auth).catch((): JourneyProjectionList => [])
       : Promise.resolve<JourneyProjectionList>([])),
     measure('logbook', () => getPersonalLogbookSummary({ context: auth, supabase }).catch(() => ({ totalCount: 0, latestCreatedAt: null, manualCount: 0, aiCount: 0 }))),
+    talentInsightsPromise,
   ]))
 
   return {
@@ -592,6 +604,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     journeys,
     canLoadTeamAi,
     logbook,
+    talentInsights,
     journeyOnly: false,
   }
 }

@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requirePermission, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
 import { listContinuousAppraisalItemsForEmployees, listContinuousAppraisalWorkspace } from '@/lib/continuous-appraisal/service'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { listTalentEmployeeCapabilityRecords } from '@/lib/talent/employee-capability-service'
@@ -8,6 +8,7 @@ import { listTalentGoals } from '@/lib/talent/goal-service'
 import { evaluateTalentRoleExplorerOutcome, listTalentRoleExplorerWorkspace, type TalentRoleExplorerComparison } from '@/lib/talent/role-explorer-service'
 import { getTalentLevelModel, listTalentProfilesForWorkforce } from '@/lib/talent/service'
 import { movementDirection, type GridCell } from '@/lib/talent-review/rules'
+import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
 import type { StarPerformerAssessment, StarPerformerTag } from './service'
 import type { StarPerformerWorkspaceQuery } from './schemas'
@@ -30,6 +31,24 @@ const MAX_GRID_CAMPAIGNS = 100
 const PAGE_SIZE = 20
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+export interface StarPerformersReadDependencies {
+  readonly auth: AuthContext
+  readonly supabase: SupabaseServerClient
+  /**
+   * A server-derived dashboard scope. The report route omits this and lets
+   * the access resolver derive the direct-team scope for Managers.
+   */
+  readonly scopeEmployeeIds?: readonly string[] | null
+}
+
+export interface StarPerformersReadAccess {
+  readonly auth: AuthContext
+  readonly supabase: SupabaseServerClient
+  readonly employeeIds: readonly string[] | null
+  readonly isManager: boolean
+  readonly isAdmin: boolean
+}
 
 type PlacementRow = {
   employee_id: string
@@ -204,6 +223,45 @@ function currentDate(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+export async function resolveStarPerformersReadAccess(
+  dependencies?: StarPerformersReadDependencies,
+): Promise<StarPerformersReadAccess> {
+  const requestContext = dependencies ? null : await getRequestAuthorizationContext()
+  const auth = dependencies?.auth ?? requestContext!.context
+  const supabase = dependencies?.supabase ?? requestContext!.supabase
+  const isAdmin = auth.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
+
+  if (isAdmin) {
+    await requirePermissionInContext(supabase, auth, 'star-performer:read')
+    return {
+      auth,
+      supabase,
+      employeeIds: dependencies?.scopeEmployeeIds === undefined ? null : dependencies.scopeEmployeeIds,
+      isManager: false,
+      isAdmin: true,
+    }
+  }
+
+  if (!auth.activeRoles.includes('DIRECT_MANAGER')) {
+    throw new AuthorizationError('Je hebt geen toegang tot Star Performers-inzichten.')
+  }
+  await requirePermissionInContext(supabase, auth, 'star-performer:manager-read')
+  const employeeIds = dependencies?.scopeEmployeeIds === undefined
+    ? await listDirectTeamEmployeeIds(auth, supabase)
+    : [...(dependencies.scopeEmployeeIds ?? [])]
+  return { auth, supabase, employeeIds, isManager: true, isAdmin: false }
+}
+
+export function restrictStarPerformersEmployeeIds(
+  searchIds: string[] | null,
+  allowedEmployeeIds: readonly string[] | null,
+): string[] | null {
+  if (allowedEmployeeIds === null) return searchIds
+  if (searchIds === null) return [...allowedEmployeeIds]
+  const allowed = new Set(allowedEmployeeIds)
+  return searchIds.filter((employeeId) => allowed.has(employeeId))
+}
+
 function gridCell(value: string | null): GridCell | null {
   if (value === 'LOW_LOW' || value === 'LOW_NORMAL' || value === 'LOW_HIGH' || value === 'NORMAL_LOW' || value === 'NORMAL_NORMAL' || value === 'NORMAL_HIGH' || value === 'HIGH_LOW' || value === 'HIGH_NORMAL' || value === 'HIGH_HIGH') return value
   return null
@@ -302,16 +360,20 @@ export function selectLatestApprovedGridSignals(
   return result
 }
 
-async function readReferenceData(supabase: SupabaseServerClient, tenantId: string, today: string) {
-  const [departmentsResult, jobsResult, jobGroupsResult, revisionsResult, tagsResult] = await Promise.all([
+async function readReferenceData(supabase: SupabaseServerClient, tenantId: string, today: string, includeTags = true) {
+  const [departmentsResult, jobsResult, jobGroupsResult, revisionsResult] = await Promise.all([
     supabase.from('departments').select('id, name').eq('tenant_id', tenantId).eq('is_active', true).order('name').limit(500),
     supabase.from('jobs').select('id, code, job_group_id').eq('tenant_id', tenantId).eq('is_active', true).order('code').limit(2000),
     supabase.from('job_groups').select('id, name').eq('tenant_id', tenantId).eq('is_active', true).order('name').limit(500),
     supabase.from('job_revisions').select('job_id, name, valid_from').eq('tenant_id', tenantId).lte('valid_from', today).or(`valid_until.is.null,valid_until.gt.${today}`).order('valid_from', { ascending: false }).limit(4000),
-    supabase.from('star_performer_tags').select('id, name, is_active').eq('tenant_id', tenantId).order('name').limit(500),
   ])
-  const failed = [departmentsResult, jobsResult, jobGroupsResult, revisionsResult, tagsResult].find((result) => result.error)
+  const failed = [departmentsResult, jobsResult, jobGroupsResult, revisionsResult].find((result) => result.error)
   if (failed?.error) databaseError(failed.error.message)
+
+  const tagsResult = includeTags
+    ? await supabase.from('star_performer_tags').select('id, name, is_active').eq('tenant_id', tenantId).order('name').limit(500)
+    : { data: [], error: null }
+  if (tagsResult.error) databaseError(tagsResult.error.message)
 
   const departmentById = new Map((departmentsResult.data ?? []).map((department) => [department.id, department.name]))
   const jobById = new Map((jobsResult.data ?? []).map((job) => [job.id, job]))
@@ -483,13 +545,15 @@ function toWorkspaceRow(
 
 export async function listStarPerformersWorkspacePage(
   query: StarPerformerWorkspaceQuery,
+  dependencies?: StarPerformersReadDependencies,
 ): Promise<StarPerformersWorkspacePage> {
-  const auth = await requirePermission('star-performer:read')
+  const access = await resolveStarPerformersReadAccess(dependencies)
+  const auth = access.auth
   if (!auth.administrationId) throw new StarPerformerError('ADMINISTRATION_REQUIRED', 400)
-  const supabase = await createClient()
+  const supabase = access.supabase
   const today = currentDate()
-  const refs = await readReferenceData(supabase, auth.tenantId, today)
-  const searchIds = await searchEmployeeIds(supabase, auth.tenantId, query.q)
+  const refs = await readReferenceData(supabase, auth.tenantId, today, access.isAdmin)
+  const searchIds = restrictStarPerformersEmployeeIds(await searchEmployeeIds(supabase, auth.tenantId, query.q), access.employeeIds)
   if (searchIds?.length === 0) {
     return emptyWorkspacePage(query, refs)
   }
@@ -556,7 +620,7 @@ export async function listStarPerformersWorkspacePage(
   const assessmentIds = assessmentRows
     .filter((assessment) => pageEmployeeIds.includes(assessment.employee_id))
     .map((assessment) => assessment.id)
-  const { data: tagLinks, error: tagLinksError } = assessmentIds.length
+  const { data: tagLinks, error: tagLinksError } = access.isAdmin && assessmentIds.length
     ? await supabase.from('star_performer_assessment_tags').select('assessment_id, tag_id').in('assessment_id', assessmentIds).limit(5000)
     : { data: [], error: null }
   if (tagLinksError) databaseError(tagLinksError.message)
@@ -966,13 +1030,14 @@ type InsightAppraisalItem = {
 async function readInsightDevelopment(
   employeeIds: readonly string[],
   employeeLabels: ReadonlyMap<string, string>,
+  mode: 'admin' | 'manager',
 ): Promise<StarPerformersInsights['development']> {
   if (!employeeIds.length) return { state: 'no-data', activePlansCount: 0, employeesWithActivePlans: 0, averageProgress: null, openActionCount: 0, plans: [], actions: [], trendAvailable: false }
 
   let goalsAvailable = false
   let goals: Awaited<ReturnType<typeof listTalentGoals>>['goals'] = []
   try {
-    const workspace = await listTalentGoals('admin', {}, { includeOptions: false, includeEmployeeOptions: false, includeCapabilityOptions: false })
+    const workspace = await listTalentGoals(mode, {}, { includeOptions: false, includeEmployeeOptions: false, includeCapabilityOptions: false })
     goalsAvailable = true
     goals = workspace.goals.filter((goal) => goal.status === 'ACTIVE' && employeeIds.includes(goal.employee_id))
   } catch {
@@ -1033,13 +1098,22 @@ function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsigh
   }
 }
 
-export async function getStarPerformersInsights(query: StarPerformerWorkspaceQuery): Promise<StarPerformersInsights> {
-  const auth = await requirePermission('star-performer:read')
+type StarPerformersInsightsOptions = {
+  readonly includeSkills?: boolean
+  readonly includeDevelopment?: boolean
+}
+
+async function readStarPerformersInsights(
+  query: StarPerformerWorkspaceQuery,
+  access: StarPerformersReadAccess,
+  options: StarPerformersInsightsOptions = {},
+): Promise<StarPerformersInsights> {
+  const auth = access.auth
   if (!auth.administrationId) throw new StarPerformerError('ADMINISTRATION_REQUIRED', 400)
-  const supabase = await createClient()
+  const supabase = access.supabase
   const today = currentDate()
-  const refs = await readReferenceData(supabase, auth.tenantId, today)
-  const searchIds = await searchEmployeeIds(supabase, auth.tenantId, query.q)
+  const refs = await readReferenceData(supabase, auth.tenantId, today, access.isAdmin)
+  const searchIds = restrictStarPerformersEmployeeIds(await searchEmployeeIds(supabase, auth.tenantId, query.q), access.employeeIds)
   if (searchIds?.length === 0) return emptyInsights(query)
 
   const jobIdsForGroup = query.jobGroupId
@@ -1114,11 +1188,11 @@ export async function getStarPerformersInsights(query: StarPerformerWorkspaceQue
   const overlapCount = [...highHighIds].filter((employeeId) => highCriticalIds.has(employeeId) && filteredIds.includes(employeeId)).length
   const keyEmployees = scopeRows.filter((row) => row.employee.criticalityLevel !== null && row.employee.criticalityLevel !== undefined).sort((left, right) => (right.employee.criticalityLevel ?? 0) - (left.employee.criticalityLevel ?? 0) || left.employee.label.localeCompare(right.employee.label, 'nl')).map((row) => row.employee)
   const employeeLabels = new Map(scopeRows.map((row) => [row.employee.employeeId, row.employee.label]))
-  const skills = query.insight === 'skills'
+  const skills = (options.includeSkills ?? query.insight === 'skills')
     ? await readInsightSkills(filteredIds, refs)
     : { state: 'no-data' as const, evaluatedEmployees: 0, roles: [], topGaps: [] }
-  const development = query.insight === 'development'
-    ? await readInsightDevelopment(filteredIds, employeeLabels)
+  const development = (options.includeDevelopment ?? query.insight === 'development')
+    ? await readInsightDevelopment(filteredIds, employeeLabels, access.isManager ? 'manager' : 'admin')
     : { state: 'no-data' as const, activePlansCount: 0, employeesWithActivePlans: 0, averageProgress: null, openActionCount: 0, plans: [], actions: [], trendAvailable: false }
   const periods = [...gridHistory.campaigns].sort((left, right) => (right.closed_at ?? right.starts_on).localeCompare(left.closed_at ?? left.starts_on)).map((campaign) => ({ id: campaign.id, name: campaign.name, closedAt: campaign.closed_at, startsOn: campaign.starts_on }))
 
@@ -1147,5 +1221,75 @@ export async function getStarPerformersInsights(query: StarPerformerWorkspaceQue
     },
     skills,
     development,
+  }
+}
+
+export async function getStarPerformersInsights(
+  query: StarPerformerWorkspaceQuery,
+  dependencies?: StarPerformersReadDependencies,
+): Promise<StarPerformersInsights> {
+  const access = await resolveStarPerformersReadAccess(dependencies)
+  return readStarPerformersInsights(query, access)
+}
+
+export type StarPerformersDashboardSummary = {
+  scope: 'company' | 'team'
+  employeesInScope: number
+  assessedGrid: number
+  gridCoveragePercent: number | null
+  highHighCount: number
+  highCriticalCount: number
+  highCriticalPercent: number | null
+  skillState: StarPerformersInsights['skills']['state']
+  skillGapCount: number
+  topSkillGap: { label: string; occurrences: number } | null
+  developmentState: StarPerformersInsights['development']['state']
+  openActionCount: number
+  links: {
+    topTalent: string
+    keyEmployees: string
+    skills: string
+    development: string
+  }
+}
+
+export async function getStarPerformersDashboardSummary(
+  dependencies?: StarPerformersReadDependencies,
+): Promise<StarPerformersDashboardSummary> {
+  const access = await resolveStarPerformersReadAccess(dependencies)
+  const query: StarPerformerWorkspaceQuery = {
+    perspective: 'top-talent',
+    area: 'insights',
+    insight: 'top-talent',
+    q: '',
+    departmentId: undefined,
+    jobId: undefined,
+    jobGroupId: undefined,
+    period: undefined,
+    status: 'all',
+    page: 1,
+    pageSize: PAGE_SIZE,
+  }
+  const insights = await readStarPerformersInsights(query, access, { includeSkills: true, includeDevelopment: true })
+  const reportPath = '/workforce/talent/reports/star-performers'
+  return {
+    scope: access.employeeIds === null ? 'company' : 'team',
+    employeesInScope: insights.population.employeesInScope,
+    assessedGrid: insights.topTalent.assessedCount,
+    gridCoveragePercent: insights.topTalent.coveragePercent,
+    highHighCount: insights.topTalent.highHigh.length,
+    highCriticalCount: insights.keyEmployees.highCriticalCount,
+    highCriticalPercent: insights.keyEmployees.highCriticalPercent,
+    skillState: insights.skills.state,
+    skillGapCount: insights.skills.topGaps.reduce((total, gap) => total + gap.occurrences, 0),
+    topSkillGap: insights.skills.topGaps[0] ? { label: insights.skills.topGaps[0].label, occurrences: insights.skills.topGaps[0].occurrences } : null,
+    developmentState: insights.development.state,
+    openActionCount: insights.development.openActionCount,
+    links: {
+      topTalent: `${reportPath}?report=top-talent`,
+      keyEmployees: `${reportPath}?report=key-employees`,
+      skills: `${reportPath}?report=skills`,
+      development: `${reportPath}?report=development`,
+    },
   }
 }
