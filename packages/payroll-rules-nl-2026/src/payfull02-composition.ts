@@ -171,6 +171,51 @@ const grossWithRegularVariableWage: PayrollComponentDefinition = {
   tracePolicy: 'FULL',
 }
 
+const caoExactGrossAppliedSource = source(
+  'PAYFULL02_CAO_EXACT_GROSS_APPLIED',
+  'value',
+  'BOOLEAN',
+  ['regularWage', 'caoApplied'],
+)
+
+const caoExactGrossAmountSource = source(
+  'PAYFULL02_CAO_EXACT_GROSS_AMOUNT',
+  'amount',
+  'MONEY',
+  ['regularWage', 'caoGrossAmount'],
+)
+
+function createCaoAwareRegularWageComponent(): PayrollComponentDefinition {
+  const baseExpression = add(
+    add(output('PAYRUN01_CONTRACTUAL_SALARY', 'amount'), output('PAYRUN01_ADDITIONAL_CASH_AMOUNT', 'amount')),
+    output('PAYFULL02_CLASSIFIED_REGULAR_VARIABLE_WAGE', 'amount'),
+  )
+  return {
+    ...grossWithRegularVariableWage,
+    inputs: [
+      ...grossWithRegularVariableWage.inputs,
+      { name: 'caoApplied', valueType: 'BOOLEAN', required: true },
+      { name: 'caoGrossAmount', valueType: 'MONEY', required: true },
+    ],
+    dependencies: [
+      ...grossWithRegularVariableWage.dependencies,
+      { componentCode: caoExactGrossAppliedSource.code, outputName: 'value', inputName: 'caoApplied' },
+      { componentCode: caoExactGrossAmountSource.code, outputName: 'amount', inputName: 'caoGrossAmount' },
+    ],
+    method: {
+      kind: 'expression',
+      outputs: {
+        grossSalary: {
+          kind: 'if',
+          condition: output(caoExactGrossAppliedSource.code, 'value'),
+          then: output(caoExactGrossAmountSource.code, 'amount'),
+          else: baseExpression,
+        },
+      },
+    },
+  }
+}
+
 const specialRewardTax: PayrollComponentDefinition = {
   id: 'system:payfull02:special-reward-tax',
   code: 'PAYFULL02_SPECIAL_REWARD_TAX',
@@ -554,7 +599,8 @@ export function createPayfull02RulePackage(
   options: Payrun01RulePackageOptions = {},
 ): PayrollRulePackage {
   const base = createPayrun01RulePackage(kind, options)
-  const compositionId = `${base.compositionId}+PAYFULL02-${kind}-NET-EMPLOYER-2026.3`
+  const supportCaoExactGross = options.supportCaoExactGross === true
+  const compositionId = `${base.compositionId}+PAYFULL02-${kind}-NET-EMPLOYER-2026.3${supportCaoExactGross ? '+CAO-GROSS-TOTAL-2026.1' : ''}`
   const replacedComponents = new Set([
     'NL_REGULAR_WAGE', 'PAYRUN01_WAGE_TAX_BASE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE', 'PAYRUN01_ZVW_BASE',
     'PAYRUN01_EMPLOYEE_PENSION', 'PAYRUN01_EMPLOYER_PENSION', 'PAYRUN01_HOLIDAY_RESERVE', 'PAYRUN01_YEAR_END_RESERVE',
@@ -570,8 +616,10 @@ export function createPayfull02RulePackage(
   const components = [
     ...baseComponents,
     classifiedRegularVariableWage,
-    grossWithRegularVariableWage,
-    ...inputSources,
+    supportCaoExactGross ? createCaoAwareRegularWageComponent() : grossWithRegularVariableWage,
+    ...(supportCaoExactGross
+      ? [...inputSources, caoExactGrossAppliedSource, caoExactGrossAmountSource]
+      : inputSources),
     specialRewardTax,
     grossIncludingSpecialReward,
     taxableWageIncludingSpecialReward,

@@ -11,7 +11,15 @@ import {
   type PayrollSourceSchedule,
   type PayrollSourceTaxProfileProjection,
 } from './liquid-hr-source-provider'
-import type { PayrollSourceProviderInput } from '@liquid-hr/payroll-engine'
+import {
+  buildCalculationInputs,
+  calculatePayroll,
+  sha256,
+  stableSerialize,
+  type PayrollSourceProviderInput,
+  type PayrollSourceSnapshot,
+} from '@liquid-hr/payroll-engine'
+import { createPayfull02RulePackage, PAYFULL02_RULE_REGISTRY } from '@liquid-hr/payroll-rules-nl-2026'
 import type { ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
 import { assertActivePayrollEmployerConfiguration, hashPayrollEmployerConfiguration } from '../payroll-setup'
 
@@ -219,7 +227,373 @@ function dependencies(overrides: Partial<PayrollSourceProviderDependencies> = {}
   }
 }
 
+function completePayrollSetup(): PayrollSourceSetup {
+  const configuration = assertActivePayrollEmployerConfiguration({
+    schemaVersion: 'payroll-employer-configuration-v1',
+    effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', sourceReference: 'Mars BV payroll decision 2026',
+    employer: {
+      sectorCode: '001', whkDecisionReference: 'WHK-2026', awfClassification: 'LOW',
+      aofClassification: 'AOF-01', wkoClassification: 'WKO-01', zvwClassification: 'EMPLOYER_LEVY',
+    },
+    employerRates: { awf: '1.00', aof: '2.00', wko: '0.50', whk: '1.50', zvw: '6.10' },
+    reserves: { holidayAllowanceRate: '8.00', yearEndApplies: false, yearEndRate: null },
+    pension: { partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA', methodSourceReference: 'MARS-PENSION-2026 v1' },
+  })
+  const configurationRow = {
+    id: '91000000-0000-4000-8000-000000000009',
+    payroll_administration_id: administrationId,
+    source_tenant_id: tenantId,
+    source_hr_group_id: hrGroupId,
+    source_administration_id: administrationId,
+    configuration_version: 1,
+    effective_from: '2026-01-01',
+    effective_to: null,
+    configuration_json: configuration,
+    configuration_hash: hashPayrollEmployerConfiguration(configuration),
+    status: 'ACTIVE' as const,
+    source_reference: configuration.sourceReference,
+    created_at: '2026-01-01T00:00:00.000Z',
+    created_by_user_id: employeeId,
+  }
+  const openingBalanceJson = {
+    schemaVersion: 'payroll-opening-cumulative-v1',
+    sourcePeriodFrom: '2026-01-01',
+    sourcePeriodTo: '2026-08-31',
+    asOfDate: '2026-08-31',
+    meaning: {
+      grossWageBeforePeriod: '0.00',
+      holidayReserveBeforePeriod: '0.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '0.00',
+      wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '0.00',
+      zvwWageBeforePeriod: '0.00',
+    },
+    sourceReference: 'Mars BV HR opening cumulative statement 2026',
+  }
+  const openingBalance = {
+    id: '94000000-0000-4000-8000-000000000009',
+    payroll_administration_id: administrationId,
+    source_tenant_id: tenantId,
+    source_hr_group_id: hrGroupId,
+    source_administration_id: administrationId,
+    source_employment_id: employmentId,
+    snapshot_version: 1,
+    as_of_date: '2026-08-31',
+    opening_balance_json: openingBalanceJson,
+    snapshot_hash: sha256(stableSerialize(openingBalanceJson)),
+    provenance_status: 'CUSTOMER_OPENING_BALANCE' as const,
+    provenance_source: 'Mars BV HR opening cumulative statement 2026',
+    created_at: '2026-01-01T00:00:00.000Z',
+    created_by_user_id: employeeId,
+  }
+  return { configurationRows: [configurationRow], configurationRow, configuration, openingBalance }
+}
+
 describe('LiquidHR Payroll source provider', () => {
+  it('projects a supported Kinderopvang source into the regular Payroll-owned wage component', async () => {
+    const setup = completePayrollSetup()
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({
+          salary_basis: 'CAO_SCALE',
+          fulltime_amount: 2819,
+          parttime_amount: 1879.33,
+          cao_scale_name: 'Schaal 6',
+          cao_step_name: 'Salarisnummer 12',
+          salary_step_code: '12',
+        })],
+        schedules: [schedule({ average_hours_per_week: 24, fulltime_hours_per_week: 36, part_time_factor: 2 / 3 })],
+        contracts: [{
+          id: '8b000000-0000-4000-8000-000000000008',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          fulltime_hours_per_week: 36,
+          starts_on: '2026-09-01',
+          ends_on: null,
+          updated_at: '2026-09-01T10:01:00.000Z',
+        }],
+        laborConditions: [{
+          id: '8d000000-0000-4000-8000-000000000008',
+          condition_group: 'CAO',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
+          valid_from: '2026-01-01',
+          valid_until: null,
+          updated_at: '2026-01-01T10:02:00.000Z',
+          set: {
+            id: '8c000000-0000-4000-8000-000000000008',
+            code: 'CAO_KINDEROPVANG_2025_2026',
+            name: 'Cao Kinderopvang 2025-2026',
+            standard_hours_per_week: 36,
+            is_active: true,
+            valid_from: '2025-01-01',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        }],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection(),
+        pensionAssignments: [{
+          id: '92000000-0000-4000-8000-000000000009', pension_arrangement_id: 'MARS-PENSION-2026',
+          effective_from: '2026-01-01', effective_to: null, participation_start_date: '2026-09-01',
+          assignment_reason: 'CORE', provenance_json: {}, updated_at: '2026-01-01T00:00:00.000Z', version_number: 1,
+          supersedes_assignment_id: null, arrangement_resolution_reason: null, arrangement_resolution_change_version_ids: [], age_for_tier: null,
+          arrangement: {
+            id: 'MARS-PENSION-2026', code: 'MARS-PENSION-2026', name: 'Mars pension 2026', arrangement_type: 'FLAT_PREMIUM',
+            effective_from: '2026-01-01', arrangement_established_from: '2026-01-01', effective_to: null, transition_date: null,
+            grandfathering_mode: 'NONE', flat_total_rate: 25, employer_share_pct: 60, employee_share_pct: 40,
+            annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
+            pensionable_salary_definition: { annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY', basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true },
+            eligibility_rule: { participantGroup: 'NEW_ENTRANT' },
+            contract_classification: 'SOLIDARITY' as const, contract_classification_provenance: {}, provenance_json: {}, is_active: true,
+            version_id: '93000000-0000-4000-8000-000000000009', version_number: 1, version_created_at: '2026-01-01T00:00:00.000Z',
+            source_updated_at: '2026-01-01T00:00:00.000Z', tiers: [],
+          },
+        }],
+      })),
+      loadActualWork: vi.fn(async () => actualWork({
+        entries: [actualWorkEntry({ hours: 4 })],
+        types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
+      })),
+      loadPayrollSetup: vi.fn(async () => setup),
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+
+    const source = snapshot.canonicalSource as Record<string, unknown>
+    expect(snapshot.sourceGaps).toEqual([])
+    const cao = source.caoCalculation as Record<string, unknown>
+    const regularWage = source.regularWage as Record<string, unknown>
+    const payrollOwned = source.payrollOwned as Record<string, unknown>
+    const amounts = payrollOwned.amounts as Record<string, unknown>
+    const controls = payrollOwned.controls as Record<string, unknown>
+
+    expect(cao).toMatchObject({ status: 'CALCULATED', family: 'KINDEROPVANG', grossAmount: '1911.735632183908045976' })
+    expect(regularWage).toMatchObject({ grossAmount: '1879.333333333333333333', fulltimeMonthlyAmount: '2819', caoApplied: true })
+    expect(amounts.variableRegularWage).toBe('32.402298850574712643')
+    expect(controls.additionalHoursSupported).toBe(true)
+
+    const calculationInputs = buildCalculationInputs(snapshot as PayrollSourceSnapshot, createPayfull02RulePackage('CUSTOMER_STANDARD', {
+      supportCaoExactGross: true,
+    }), {
+      effectiveDate: '2026-09-01',
+      scopeInstanceIds: {
+        EMPLOYEE: snapshot.sourceEmployeeId,
+        EMPLOYMENT: snapshot.sourceEmploymentId,
+        INCOME_RELATIONSHIP: snapshot.sourceIncomeRelationshipId ?? '',
+      },
+      calculationContextHash: 'a'.repeat(64),
+    })
+    const calculation = calculatePayroll(calculationInputs, PAYFULL02_RULE_REGISTRY)
+    const resultAmount = (key: string) => calculation.resultRows.find((row) => row.key === key)?.value
+    expect(calculation.status).toBe('CALCULATED')
+    expect(resultAmount('gross_salary')).toBe('1911.74')
+    expect(resultAmount('variable_regular_wage')).toBe('32.40')
+    expect(resultAmount('net_salary')).toBeTypeOf('string')
+    expect(resultAmount('total_employer_cost')).toBeTypeOf('string')
+    expect(calculation.controls.every((control) => control.status === 'PASS')).toBe(true)
+  })
+
+  it('passes a Core-recorded PFZW Kinderopvang arrangement into the regular pension calculation', async () => {
+    const setup = completePayrollSetup()
+    const laborConditionSetId = '8c000000-0000-4000-8000-000000000028'
+    const mappingId = '8e000000-0000-4000-8000-000000000028'
+    const arrangementId = '8f000000-0000-4000-8000-000000000028'
+    const arrangementVersionId = '90000000-0000-4000-8000-000000000028'
+    const assignmentId = '91000000-0000-4000-8000-000000000028'
+    const mapping = {
+      id: mappingId,
+      labor_condition_set_id: laborConditionSetId,
+      pension_arrangement_id: arrangementId,
+      participant_group: 'NEW_ENTRANT',
+      effective_from: '2026-01-01',
+      effective_to: null,
+      provenance_json: { status: 'USER_RECORDED', sourceClassification: 'CORE_PENSION_ASSIGNMENT_WORKFLOW' },
+      version_number: 1,
+      supersedes_mapping_id: null,
+      arrangement: null,
+      arrangement_resolution_reason: null,
+      arrangement_resolution_change_version_ids: [],
+    }
+    const assignment = {
+      id: assignmentId,
+      pension_arrangement_id: arrangementId,
+      effective_from: '2026-01-01',
+      effective_to: null,
+      participation_start_date: '2026-09-01',
+      assignment_reason: 'CORE_PENSION_ASSIGNMENT_WORKFLOW',
+      provenance_json: {
+        status: 'USER_RECORDED',
+        sourceClassification: 'CORE_PENSION_ASSIGNMENT_WORKFLOW',
+        laborConditionMappingId: mappingId,
+        laborConditionMappingVersion: 1,
+      },
+      updated_at: '2026-01-01T00:00:00.000Z',
+      version_number: 1,
+      supersedes_assignment_id: null,
+      arrangement_resolution_reason: null,
+      arrangement_resolution_change_version_ids: [],
+      age_for_tier: null,
+      arrangement: {
+        id: arrangementId,
+        code: 'PFZW_2026_KINDEROPVANG',
+        name: 'PFZW Kinderopvang 2026',
+        arrangement_type: 'FLAT_PREMIUM',
+        effective_from: '2026-01-01',
+        arrangement_established_from: '2026-01-01',
+        effective_to: null,
+        transition_date: null,
+        grandfathering_mode: 'NONE',
+        flat_total_rate: 25.9,
+        employer_share_pct: 13.0,
+        employee_share_pct: 12.9,
+        annual_franchise: 17283,
+        annual_pensionable_salary_cap: 137800,
+        pensionable_salary_definition: {
+          method: 'PFZW_2026_KINDEROPVANG',
+          annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
+          basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
+          floorAtZero: true,
+          pfzw2026: {
+            monthlyPaymentsPerYear: 12,
+            holidayAllowancePercent: '8',
+            structuralYearEndAllowancePercent: '5.5',
+            structuralYearEndAllowanceReferenceDate: '2025-12-31',
+            structuralYearEndAllowanceEligibleAnnualBase: '33828',
+            structuralYearEndAllowanceSourceReference: 'https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/eindejaarsuitkering',
+            structuralYearEndAllowanceSourceVersion: 'Cao Kinderopvang 2025-2026 art. 5.7; PFZW 2026 art. 5.2.4',
+            monthlyAllocationPolicyStatus: 'VERIFIED_EMPLOYER_POLICY',
+            monthlyAllocationPolicyVersion: 'MARS-PFZW-2026-MONTHLY-ALLOCATION-1',
+            monthlyAllocationPolicySourceReference: 'Mars BV payroll policy 2026; PFZW UPA 2026',
+          },
+        },
+        eligibility_rule: { participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01' },
+        contract_classification: 'SOLIDARITY' as const,
+        contract_classification_provenance: { status: 'USER_RECORDED', sourceReference: 'PFZW 2026 pension arrangement' },
+        provenance_json: { sourceReference: 'PFZW 2026 pension arrangement' },
+        is_active: true,
+        version_id: arrangementVersionId,
+        version_number: 1,
+        version_created_at: '2026-01-01T00:00:00.000Z',
+        source_updated_at: '2026-01-01T00:00:00.000Z',
+        tiers: [],
+      },
+    }
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({
+          salary_basis: 'CAO_SCALE',
+          fulltime_amount: 2819,
+          parttime_amount: 1879.33,
+          cao_scale_name: 'Schaal 6',
+          cao_step_name: 'Salarisnummer 12',
+          salary_step_code: '12',
+        })],
+        schedules: [schedule({ average_hours_per_week: 24, fulltime_hours_per_week: 36, part_time_factor: 2 / 3 })],
+        contracts: [{
+          id: '92000000-0000-4000-8000-000000000028',
+          labor_condition_set_id: laborConditionSetId,
+          fulltime_hours_per_week: 36,
+          starts_on: '2026-09-01',
+          ends_on: null,
+          updated_at: '2026-09-01T10:01:00.000Z',
+        }],
+        laborConditions: [{
+          id: '93000000-0000-4000-8000-000000000028',
+          condition_group: 'CAO',
+          labor_condition_set_id: laborConditionSetId,
+          valid_from: '2026-01-01',
+          valid_until: null,
+          updated_at: '2026-01-01T10:02:00.000Z',
+          set: {
+            id: laborConditionSetId,
+            code: 'CAO_KINDEROPVANG_2025_2026',
+            name: 'Cao Kinderopvang 2025-2026',
+            standard_hours_per_week: 36,
+            is_active: true,
+            valid_from: '2025-01-01',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        }],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection(),
+        pensionAssignments: [assignment],
+        laborConditionPensionArrangements: [mapping],
+      })),
+      loadActualWork: vi.fn(async () => actualWork({
+        entries: [actualWorkEntry({ hours: 4 })],
+        types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
+      })),
+      loadPayrollSetup: vi.fn(async () => setup),
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+
+    const source = snapshot.canonicalSource as Record<string, unknown>
+    const payrollOwned = source.payrollOwned as Record<string, unknown>
+    const pension = payrollOwned.pension as Record<string, unknown>
+    const amounts = payrollOwned.amounts as Record<string, unknown>
+    expect(snapshot.sourceGaps).toEqual([])
+    expect(pension).toMatchObject({ planCode: 'PFZW_2026_KINDEROPVANG', calculationStatus: 'CALCULATED' })
+    expect(amounts.employeePension).toBeTypeOf('string')
+    expect(amounts.employerPension).toBeTypeOf('string')
+    expect(pension.calculationTrace).toEqual(expect.arrayContaining([
+      expect.objectContaining({ componentCode: 'PFZW_REGELINGLOON_CONSTRUCTION' }),
+    ]))
+  })
+
+  it('projects a supported Retail Mode source and does not substitute Mars pension data when Retail pension evidence is absent', async () => {
+    const setup = completePayrollSetup()
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({
+          salary_basis: 'CAO_SCALE',
+          fulltime_amount: 4767.2,
+          parttime_amount: 4767.2,
+          hourly_rate: 28.9,
+          cao_scale_name: 'I',
+          cao_step_name: '15',
+          salary_step_code: '15',
+        })],
+        schedules: [schedule({ average_hours_per_week: 38, fulltime_hours_per_week: 38 })],
+        contracts: [{
+          id: '8b000000-0000-4000-8000-000000000018',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000018',
+          fulltime_hours_per_week: 38,
+          starts_on: '2026-07-01',
+          ends_on: null,
+          updated_at: '2026-07-01T10:01:00.000Z',
+        }],
+        laborConditions: [{
+          id: '8d000000-0000-4000-8000-000000000018',
+          condition_group: 'CAO',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000018',
+          valid_from: '2026-07-01',
+          valid_until: null,
+          updated_at: '2026-07-01T10:02:00.000Z',
+          set: {
+            id: '8c000000-0000-4000-8000-000000000018',
+            code: 'RETAIL_NON_FOOD_MODE_2026_2027',
+            name: 'Retail Non-Food / Mode 2026-2027',
+            standard_hours_per_week: 38,
+            is_active: true,
+            valid_from: '2026-01-01',
+            updated_at: '2026-07-01T00:00:00.000Z',
+          },
+        }],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection(),
+        pensionAssignments: [],
+      })),
+      loadPayrollSetup: vi.fn(async () => setup),
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+
+    const source = snapshot.canonicalSource as Record<string, unknown>
+    const cao = source.caoCalculation as Record<string, unknown>
+    expect(cao).toMatchObject({ status: 'CALCULATED', family: 'RETAIL_MODE', grossAmount: '4767.20' })
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'pension', status: 'SOURCE_GAP', reasonCode: 'NO_EFFECTIVE_PENSION_ASSIGNMENT',
+    })
+    expect(source.payrollOwned).toBeUndefined()
+  })
+
   it('uses the regular employer configuration and explicit calendar-day pension method for a new joiner', async () => {
     const configuration = assertActivePayrollEmployerConfiguration({
       schemaVersion: 'payroll-employer-configuration-v1',

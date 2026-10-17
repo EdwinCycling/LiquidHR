@@ -15,6 +15,8 @@ import {
   encodeNl2026CompositeTimePeriod,
   prorateMonthlySalary,
   calculatePension,
+  PFZW_2026_KINDEROPVANG_METHOD,
+  type Pfzw2026CalculationInput,
   type PensionArrangementInput,
   type PensionCalculationResult,
 } from '@liquid-hr/payroll-rules-nl-2026'
@@ -46,6 +48,11 @@ import {
   type PayrollSetupRepository,
 } from '../payroll-setup-repository'
 import { mapCorePensionEligibilityRule } from '../pension-eligibility-source-mapping'
+import {
+  calculateCaoPayroll,
+  type CaoPayrollActualWorkEntry,
+  type CaoPayrollCalculation,
+} from '../cao-payroll-integration'
 import type {
   PayrollEmployerConfigurationVersionRow,
   PayrollOpeningCumulativeSnapshotRow,
@@ -270,6 +277,8 @@ function actualWorkForPeriod(
         id: entry.id,
         workHourTypeId: entry.work_hour_type_id,
         family: 'UNKNOWN',
+        typeCode: null,
+        typeName: null,
         workDate: entry.work_date,
         subjectPeriodStart: entry.subject_period_start,
         subjectPeriodEnd: entry.subject_period_end,
@@ -304,6 +313,8 @@ function actualWorkForPeriod(
       id: entry.id,
       workHourTypeId: type.id,
       family: type.family,
+      typeCode: type.code ?? null,
+      typeName: type.name ?? null,
       workDate: entry.work_date,
       subjectPeriodStart: entry.subject_period_start,
       subjectPeriodEnd: entry.subject_period_end,
@@ -897,6 +908,191 @@ function actualPensionRate(totalRate: string | null, sharePercent: string): stri
   }
 }
 
+function sourceText(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim().length > 0) return value.trim()
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return null
+}
+
+function monthlyPayrollGrossForPension(
+  regularWage: Record<string, string | boolean>,
+  caoCalculation: CaoPayrollCalculation,
+): string {
+  try {
+    const base = FixedDecimal.parse(String(regularWage.grossAmount))
+    const premium = caoCalculation.status === 'CALCULATED' && caoCalculation.premiumAmount
+      ? FixedDecimal.parse(caoCalculation.premiumAmount)
+      : FixedDecimal.fromInteger(BigInt(0))
+    return base.add(premium).round(2, 'HALF_UP').toString(2)
+  } catch {
+    return String(regularWage.grossAmount)
+  }
+}
+
+function buildPfzw2026Input(input: {
+  readonly arrangement: PensionArrangementInput
+  readonly assignment: NonNullable<PayrollSourceTimeline['pensionAssignments']>[number]
+  readonly laborConditionPensionArrangements: readonly NonNullable<PayrollSourceTimeline['laborConditionPensionArrangements']>[number][]
+  readonly laborConditionSetId: string | null
+  readonly regularWage: Record<string, string | boolean>
+  readonly salary: PayrollSourceSalary | undefined
+  readonly monthlyPayrollGross: string
+  readonly period: PayrollSourceProviderInput['payrollPeriod']
+  readonly actualEntries: readonly unknown[]
+  readonly sourceId: string
+  readonly sourceHash: string
+}): Pfzw2026CalculationInput | null {
+  const definition = input.arrangement.pensionableSalaryDefinition
+  if (sourceText(definition.method) !== PFZW_2026_KINDEROPVANG_METHOD) return null
+  const pfzw = asRecord(definition.pfzw2026) ?? definition
+  const salary = input.salary
+  const participationStart = input.assignment.participation_start_date
+  const salaryBasisDate = participationStart < `${input.period.year}-01-01`
+    ? `${input.period.year}-01-01`
+    : participationStart
+  if (!salary || salary.valid_from > salaryBasisDate
+    || (salary.valid_until !== null && salary.valid_until <= salaryBasisDate)) return null
+
+  const eligibility = asRecord(input.arrangement.eligibilityRule)
+  const participantGroup = sourceText(eligibility?.participantGroup)
+  const mappings = input.laborConditionPensionArrangements.filter((mapping) =>
+    participantGroup === null || mapping.participant_group === participantGroup,
+  )
+  if (mappings.length !== 1) return null
+  const mapping = mappings[0]!
+  if (input.laborConditionSetId === null
+    || mapping.labor_condition_set_id !== input.laborConditionSetId
+    || mapping.pension_arrangement_id !== input.assignment.pension_arrangement_id
+    || mapping.pension_arrangement_id !== input.arrangement.arrangementId) return null
+  const assignmentProvenance = asRecord(input.assignment.provenance_json)
+  const mappingProvenance = asRecord(mapping.provenance_json)
+  if (sourceText(assignmentProvenance?.status) !== 'USER_RECORDED'
+    || sourceText(mappingProvenance?.status) !== 'USER_RECORDED') return null
+  if (sourceText(assignmentProvenance?.laborConditionMappingId) !== mapping.id
+    || sourceText(assignmentProvenance?.laborConditionMappingVersion) !== String(mapping.version_number)) return null
+  const assignmentSourceClassification = sourceText(assignmentProvenance?.sourceClassification)
+  const mappingSourceClassification = sourceText(mappingProvenance?.sourceClassification)
+  if (!assignmentSourceClassification || !mappingSourceClassification) return null
+
+  let fullTimeMonthlySalary: FixedDecimal
+  let contractHours: FixedDecimal
+  let fullTimeHours: FixedDecimal
+  let fullTimePeriodHours: FixedDecimal
+  try {
+    fullTimeMonthlySalary = FixedDecimal.parse(String(input.regularWage.fulltimeMonthlyAmount))
+    contractHours = FixedDecimal.parse(String(input.regularWage.contractHoursPerWeek))
+    fullTimeHours = FixedDecimal.parse(String(input.regularWage.fulltimeHoursPerWeek))
+    fullTimePeriodHours = fullTimeHours.multiply(FixedDecimal.parse('52'))
+      .divideToScale(FixedDecimal.parse('12'), 2, 'ARITHMETIC')
+  } catch {
+    return null
+  }
+  const paymentPeriodsRaw = sourceText(pfzw.monthlyPaymentsPerYear)
+  const monthlyPaymentsPerYear = paymentPeriodsRaw === '13'
+    ? 13 as const
+    : paymentPeriodsRaw === '12'
+      ? 12 as const
+        : salary.payment_frequency === 'FOUR_WEEKLY'
+        ? 13 as const
+        : salary.payment_frequency === 'MONTHLY'
+          ? 12 as const
+          : null
+  if (monthlyPaymentsPerYear === null) return null
+
+  const holidayAllowancePercent = sourceText(pfzw.holidayAllowancePercent)
+  const structuralYearEndAllowancePercent = sourceText(pfzw.structuralYearEndAllowancePercent)
+  if (!holidayAllowancePercent || !structuralYearEndAllowancePercent) return null
+  const structuralYearEndAllowanceReferenceDate = sourceText(pfzw.structuralYearEndAllowanceReferenceDate)
+  const structuralYearEndAllowanceSourceReference = sourceText(pfzw.structuralYearEndAllowanceSourceReference)
+  const structuralYearEndAllowanceSourceVersion = sourceText(pfzw.structuralYearEndAllowanceSourceVersion)
+  const annualSalaryBase = fullTimeMonthlySalary.multiply(FixedDecimal.fromInteger(BigInt(monthlyPaymentsPerYear)))
+
+  const additionalStructuralSalaryComponents: {
+    code: string
+    annualAmount: string
+    sourceVersion: string
+    sourceReference: string
+  }[] = []
+  const componentRows = Array.isArray(pfzw.additionalStructuralSalaryComponents)
+    ? pfzw.additionalStructuralSalaryComponents : []
+  for (const value of componentRows) {
+    const row = asRecord(value)
+    const code = sourceText(row?.code)
+    const annualAmount = sourceText(row?.annualAmount)
+    const sourceVersion = sourceText(row?.sourceVersion)
+    const sourceReference = sourceText(row?.sourceReference)
+    if (!code || !annualAmount || !sourceVersion || !sourceReference) return null
+    additionalStructuralSalaryComponents.push({ code, annualAmount, sourceVersion, sourceReference })
+  }
+
+  let additionalWorkedHours = FixedDecimal.fromInteger(BigInt(0))
+  for (const value of input.actualEntries) {
+    const row = asRecord(value)
+    if (row?.family !== 'ADDITIONAL' || row.status !== 'APPROVED') continue
+    try {
+      additionalWorkedHours = additionalWorkedHours.add(FixedDecimal.parse(String(row.hours)))
+    } catch {
+      return null
+    }
+  }
+  const explicitAdditionalHours = sourceText(pfzw.additionalWorkedHours)
+  if (explicitAdditionalHours !== null) {
+    try { additionalWorkedHours = FixedDecimal.parse(explicitAdditionalHours) } catch { return null }
+  }
+  if (additionalWorkedHours.compare(FixedDecimal.fromInteger(BigInt(0))) < 0) return null
+
+  const upliftEvidence = sourceText(pfzw.additionalHoursUpliftEvidence)
+  const upliftEvidenceValue = upliftEvidence === 'VERIFIED_CAO_OR_EMPLOYER_RULE'
+    || upliftEvidence === 'SYNTHETIC_TEST_ONLY_POLICY'
+    || upliftEvidence === 'PROVISIONAL_CAO_ENTITLEMENT_DERIVATION'
+    || upliftEvidence === 'NOT_APPLICABLE'
+    ? upliftEvidence : additionalWorkedHours.compare(FixedDecimal.fromInteger(BigInt(0))) === 0 ? 'NOT_APPLICABLE' : null
+  const policyStatus = sourceText(pfzw.monthlyAllocationPolicyStatus)
+  const calculationPolicyStatus = policyStatus === 'VERIFIED_EMPLOYER_POLICY'
+    ? 'VERIFIED_EMPLOYER_POLICY'
+    : policyStatus === 'SYNTHETIC_TEST_APPROVED'
+      ? 'SYNTHETIC_TEST_APPROVED'
+      : 'PROVISIONAL_PREVIEW'
+
+  return {
+    period: input.period,
+    participationStatus: 'CONFIRMED',
+    participationStartDate: participationStart,
+    participationEvidenceReference: `Core participation assignment ${input.assignment.id} v${input.assignment.version_number} [${assignmentSourceClassification}]; effective labor-condition arrangement mapping ${mapping.id} v${mapping.version_number} [${mappingSourceClassification}]`,
+    arrangementVersion: input.arrangement.arrangementVersion,
+    salaryBasisDate,
+    salaryBasisSourceId: salary.id,
+    salaryBasisSourceVersion: salary.valid_from,
+    fullTimeMonthlySalary: fullTimeMonthlySalary.toString(),
+    monthlyPaymentsPerYear,
+    holidayAllowancePercent,
+    structuralYearEndAllowancePercent,
+    structuralYearEndAllowanceReferenceDate,
+    structuralYearEndAllowanceEligibleAnnualBase: sourceText(pfzw.structuralYearEndAllowanceEligibleAnnualBase) ?? annualSalaryBase.toString(),
+    structuralYearEndAllowanceSourceReference,
+    structuralYearEndAllowanceSourceVersion,
+    additionalStructuralSalaryComponents,
+    contractHoursPerWeek: contractHours.toString(),
+    fullTimeHoursPerWeek: fullTimeHours.toString(),
+    additionalWorkedHours: additionalWorkedHours.toString(4),
+    additionalHoursUpliftPercent: sourceText(pfzw.additionalHoursUpliftPercent),
+    additionalHoursUpliftEvidence: upliftEvidenceValue,
+    additionalHoursUpliftSourceReference: sourceText(pfzw.additionalHoursUpliftSourceReference),
+    additionalHoursUpliftSourceVersion: sourceText(pfzw.additionalHoursUpliftSourceVersion),
+    fullTimePeriodHours: fullTimePeriodHours.toString(2),
+    monthlyPayrollGross: input.monthlyPayrollGross,
+    calculationPolicy: {
+      status: calculationPolicyStatus,
+      version: sourceText(pfzw.monthlyAllocationPolicyVersion) ?? 'UNVERIFIED',
+      sourceReference: sourceText(pfzw.monthlyAllocationPolicySourceReference),
+      monthlyMethod: 'ANNUAL_RATE_DIVIDED_BY_12',
+      shareRounding: 'HALF_UP_CENTS_PER_EMPLOYEE_AND_EMPLOYER_SHARE',
+    },
+    sourceSnapshotId: input.sourceId,
+    sourceSnapshotHash: input.sourceHash,
+  }
+}
+
 function buildRegularPayrollOwned(input: {
   readonly configuration: PayrollEmployerConfiguration | null
   readonly configurationRow: PayrollEmployerConfigurationVersionRow | null
@@ -909,9 +1105,13 @@ function buildRegularPayrollOwned(input: {
   readonly periodStart: string
   readonly periodEndExclusive: string
   readonly regularWage: Record<string, string | boolean> | null
+  readonly salary: PayrollSourceSalary | undefined
   readonly schedule: PayrollSourceSchedule | undefined
+  readonly laborConditionSetId: string | null
   readonly pensionAssignments: readonly NonNullable<PayrollSourceTimeline['pensionAssignments']>[number][]
+  readonly laborConditionPensionArrangements: readonly NonNullable<PayrollSourceTimeline['laborConditionPensionArrangements']>[number][]
   readonly actualWorkSnapshot: ReturnType<typeof actualWorkForPeriod>
+  readonly caoCalculation: CaoPayrollCalculation
   readonly sourceId: string
   readonly coreSourceHash: string
   readonly sourceGaps: PayrollSourceGap[]
@@ -937,7 +1137,9 @@ function buildRegularPayrollOwned(input: {
 
   const actualWorkRecord = asRecord(input.actualWorkSnapshot.canonicalSource)
   const actualEntries = Array.isArray(actualWorkRecord?.entries) ? actualWorkRecord.entries : []
-  if (actualEntries.some((entry) => asRecord(entry)?.family !== 'TRANSPARENT')) {
+  const caoConsumesActualWork = input.caoCalculation.status === 'CALCULATED'
+    && input.caoCalculation.actualWorkConsumed === true
+  if (actualEntries.some((entry) => asRecord(entry)?.family !== 'TRANSPARENT') && !caoConsumesActualWork) {
     gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'PAYROLL_VARIABLE_WAGE_NOT_CONFIGURED'))
   }
 
@@ -954,7 +1156,10 @@ function buildRegularPayrollOwned(input: {
   let effectivePartTimeFactor: string | null = null
   if (scheduleFactor !== undefined) {
     try {
-      effectivePartTimeFactor = FixedDecimal.parse(String(scheduleFactor)).multiply(FixedDecimal.parse(periodFactor)).toString(4)
+      effectivePartTimeFactor = FixedDecimal.parse(String(scheduleFactor))
+        .multiply(FixedDecimal.parse(periodFactor))
+        .round(4, 'HALF_UP')
+        .toString(4)
     } catch {
       effectivePartTimeFactor = null
     }
@@ -964,16 +1169,31 @@ function buildRegularPayrollOwned(input: {
 
   let pensionResult: PensionCalculationResult | null = null
   if (arrangementInput && input.regularWage && effectivePartTimeFactor && assignment) {
+    const monthlyPayrollGross = monthlyPayrollGrossForPension(input.regularWage, input.caoCalculation)
+    const pfzw2026 = buildPfzw2026Input({
+      arrangement: arrangementInput,
+      assignment,
+      laborConditionPensionArrangements: input.laborConditionPensionArrangements,
+      laborConditionSetId: input.laborConditionSetId,
+      regularWage: input.regularWage,
+      salary: input.salary,
+      monthlyPayrollGross,
+      period: input.period,
+      actualEntries,
+      sourceId: input.sourceId,
+      sourceHash: input.coreSourceHash,
+    })
     pensionResult = calculatePension({
       arrangement: arrangementInput,
       period: input.period,
       fullTimeMonthlyPensionableSalary: String(input.regularWage.fulltimeMonthlyAmount),
-      monthlyPayrollGross: String(input.regularWage.grossAmount),
+      monthlyPayrollGross,
       partTimeFactor: effectivePartTimeFactor,
       ageForTier: assignment.age_for_tier,
       participationStartDate: assignment.participation_start_date,
       sourceSnapshotId: input.sourceId,
       sourceSnapshotHash: input.coreSourceHash,
+      ...(pfzw2026 ? { pfzw2026 } : {}),
     })
     if (pensionResult.status !== 'CALCULATED') gaps.push(makeGap('pension', 'SOURCE_GAP', pensionResult.reasonCode ?? 'PENSION_CALCULATION_BLOCKED'))
   }
@@ -1006,7 +1226,9 @@ function buildRegularPayrollOwned(input: {
         sourceReference: input.configurationRow.source_reference,
       },
       amounts: {
-        variableRegularWage: '0.00',
+        variableRegularWage: input.caoCalculation.status === 'CALCULATED'
+          ? input.caoCalculation.premiumAmount ?? '0.00'
+          : '0.00',
         specialRewardWage: '0.00',
         netReimbursement: '0.00',
         netDeduction: '0.00',
@@ -1020,8 +1242,8 @@ function buildRegularPayrollOwned(input: {
         ikvUnambiguous: true,
         salaryConsistent: input.regularWage !== null,
         hoursConsistent: input.schedule !== undefined,
-        normalHoursNotDuplicated: actualEntries.length === 0,
-        additionalHoursSupported: actualEntries.length === 0,
+        normalHoursNotDuplicated: actualEntries.length === 0 || caoConsumesActualWork,
+        additionalHoursSupported: actualEntries.length === 0 || caoConsumesActualWork,
         sourceFresh: true,
         compositionSupported: true,
         pensionRuleReady: pensionResult.status === 'CALCULATED',
@@ -1197,6 +1419,49 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       activeEndExclusive,
     )
     const actualWorkSnapshot = actualWorkForPeriod(actualWork, bounds.start, bounds.endExclusive)
+    const actualWorkRecord = asRecord(actualWorkSnapshot.canonicalSource)
+    const caoActualWorkEntries: CaoPayrollActualWorkEntry[] = (Array.isArray(actualWorkRecord?.entries)
+      ? actualWorkRecord.entries : []).flatMap((entry) => {
+        const record = asRecord(entry)
+        if (!record || typeof record.family !== 'string'
+          || (typeof record.hours !== 'string' && typeof record.hours !== 'number')
+          || typeof record.status !== 'string') return []
+        return [{
+          family: record.family,
+          typeCode: typeof record.typeCode === 'string' ? record.typeCode : null,
+          typeName: typeof record.typeName === 'string' ? record.typeName : null,
+          hours: record.hours,
+          status: record.status,
+        }]
+      })
+    const activeLaborConditionSet = laborConditions.length === 1 ? laborConditions[0]?.set ?? null : null
+    const caoCalculation = calculateCaoPayroll({
+      tenantId: input.tenantId,
+      hrGroupId: input.hrGroupId,
+      administrationId: input.administrationId,
+      employeeId: input.employeeId,
+      employmentId: employment.id,
+      incomeRelationshipId: incomeRelationship.selected?.incomeRelationshipId ?? null,
+      period: input.payrollPeriod,
+      activeStart,
+      activeEndExclusive,
+      laborConditionCode: activeLaborConditionSet?.code ?? null,
+      laborConditionName: activeLaborConditionSet?.name ?? null,
+      salary: salaries.length === 1 ? {
+        id: salaries[0]!.id,
+        salaryBasis: salaries[0]!.salary_basis,
+        caoScaleName: salaries[0]!.cao_scale_name,
+        caoStepName: salaries[0]!.cao_step_name,
+        salaryStepCode: salaries[0]!.salary_step_code,
+        hourlyRate: salaries[0]!.hourly_rate,
+        validFrom: salaries[0]!.valid_from,
+      } : null,
+      schedule: schedules.length === 1 ? {
+        contractHoursPerWeek: schedules[0]!.average_hours_per_week,
+        fullTimeHoursPerWeek: schedules[0]!.fulltime_hours_per_week,
+      } : null,
+      actualWorkEntries: caoActualWorkEntries,
+    })
     const sourceGaps: PayrollSourceGap[] = [
       ...sourceGapsFor(
         salaries,
@@ -1210,7 +1475,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       ),
       ...actualWorkSnapshot.sourceGaps,
     ]
-    const regularWage = regularWageInput(
+    if (caoCalculation.status === 'BLOCKED' && caoCalculation.reasonCode) {
+      sourceGaps.push(makeGap('cao', caoCalculation.blockingStatus ?? 'SOURCE_GAP', caoCalculation.reasonCode))
+    }
+    const baseRegularWage = regularWageInput(
       salaries,
       schedules,
       input.payrollPeriod,
@@ -1219,6 +1487,16 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       incomeRelationship.selected?.incomeRelationshipId ?? null,
       fiscalProfile.canonical,
     )
+    const regularWage = caoCalculation.status === 'CALCULATED' && baseRegularWage && caoCalculation.baseAmount
+      && caoCalculation.fullTimeMonthlyAmount && caoCalculation.grossAmount
+      ? {
+        ...baseRegularWage,
+        grossAmount: caoCalculation.baseAmount,
+        fulltimeMonthlyAmount: caoCalculation.fullTimeMonthlyAmount,
+        caoGrossAmount: caoCalculation.grossAmount,
+        caoApplied: true,
+      }
+      : baseRegularWage
     let payrollSetup: PayrollSourceSetup | null = null
     if (this.dependencies.loadPayrollSetup) {
       try {
@@ -1292,6 +1570,12 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         `${payrollSetup.openingBalance.snapshot_version}:${payrollSetup.openingBalance.snapshot_hash}`,
       ] as const] : []),
     ])
+    if (caoCalculation.status === 'CALCULATED' && caoCalculation.compositionId && caoCalculation.packageHash) {
+      sourceVersionVector[`cao:rule-package:${caoCalculation.compositionId}`] = `${caoCalculation.packageVersion ?? ''}:${caoCalculation.packageHash}`
+      sourceVersionVector[`cao:input:${employment.id}`] = `${caoCalculation.inputHash ?? ''}:${caoCalculation.sourceHash ?? ''}`
+    } else if (caoCalculation.status === 'BLOCKED') {
+      sourceVersionVector[`cao:blocked:${employment.id}`] = caoCalculation.reasonCode ?? 'UNKNOWN'
+    }
 
     const pensionArrangementCanonical = (
       arrangement: NonNullable<(typeof pensionAssignments)[number]['arrangement']>,
@@ -1464,6 +1748,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       fiscalProfile: fiscalProfile.canonical,
       ...(regularWage ? { regularWage } : {}),
       actualWork: actualWorkSnapshot.canonicalSource,
+      ...(caoCalculation.status !== 'NOT_APPLICABLE' ? { caoCalculation } : {}),
     }
     const coreHashInput = {
       sourceTenantId: input.tenantId,
@@ -1496,9 +1781,13 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           periodStart: bounds.start,
           periodEndExclusive: bounds.endExclusive,
           regularWage,
+          salary: salaries.length === 1 ? salaries[0] : undefined,
           schedule: schedules.length === 1 ? schedules[0] : undefined,
+          laborConditionSetId: activeLaborConditionSet?.id ?? null,
           pensionAssignments,
+          laborConditionPensionArrangements,
           actualWorkSnapshot,
+          caoCalculation,
           sourceId: calculationSourceId,
           coreSourceHash,
           sourceGaps,

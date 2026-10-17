@@ -242,10 +242,17 @@ function isCompositeRegularWage(value: unknown): boolean {
     && parseNl2026CompositeTimePeriod(regularWage.timePeriod) !== null
 }
 
+function isCaoExactGrossSource(value: unknown): boolean {
+  const source = record(value)
+  const regularWage = record(source?.regularWage)
+  return regularWage?.caoApplied === true && typeof regularWage.caoGrossAmount === 'string'
+}
+
 function payfull02PackageForSource(value: unknown): PayrollRulePackage | null {
   if (!isPayfull02Source(value) && !isCustomerStandardSource(value)) return null
   return createPayfull02RulePackage(isCustomerStandardSource(value) ? 'CUSTOMER_STANDARD' : 'DEMO_COMPANY_TEST', {
     supportPartialPeriods: isCompositeRegularWage(value),
+    supportCaoExactGross: isCaoExactGrossSource(value),
   })
 }
 

@@ -262,7 +262,8 @@ export type ActualWorkPayrollProjection = {
     | 'subject_period_start' | 'subject_period_end' | 'posting_period_start' | 'hours'
     | 'status' | 'approved_at' | 'updated_at'
   >[]
-  types: Pick<ActualWorkType, 'id' | 'family' | 'valid_from' | 'valid_until' | 'approval_required' | 'updated_at'>[]
+  types: (Pick<ActualWorkType, 'id' | 'family' | 'valid_from' | 'valid_until' | 'approval_required' | 'updated_at'>
+    & Partial<Pick<ActualWorkType, 'code' | 'name'>> )[]
 }
 
 /** Reads only payroll-relevant work metadata; notes and person data stay out of the payroll source snapshot. */
@@ -298,7 +299,7 @@ export async function getActualWorkPayrollProjection(
   const typeIds = [...new Set(entries.map((entry) => entry.work_hour_type_id))]
   const typesResult = typeIds.length
     ? await supabase.from('work_hour_types')
-      .select('id,family,valid_from,valid_until,approval_required,updated_at')
+      .select('id,code,name,family,valid_from,valid_until,approval_required,updated_at')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', hrGroupId)
       .in('id', typeIds)

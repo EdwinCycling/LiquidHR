@@ -25,6 +25,12 @@ export interface Payrun01RulePackageOptions {
    * marker; the package never infers a partial amount from a contract factor.
    */
   readonly supportPartialPeriods?: boolean
+  /**
+   * Preserve an explicitly sourced CAO period gross through the customer
+   * PAYFULL02 graph. The source provider sets this only for a supported CAO
+   * calculation; ordinary salaries keep the existing component composition.
+   */
+  readonly supportCaoExactGross?: boolean
 }
 
 function source(
