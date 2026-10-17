@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function LegacyStarPerformerTagsPage() {
-  redirect('/workforce/star-performer-tags')
+  redirect('/settings/talent?area=star-performer-tags')
 }

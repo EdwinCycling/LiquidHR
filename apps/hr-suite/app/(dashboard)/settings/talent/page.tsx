@@ -3,8 +3,29 @@ import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-pa
 import { TalentManagementWorkspace, type TalentManagementWorkspaceLabels } from '@/components/talent/talent-management-workspace'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
+import { listStarPerformerTagCatalog } from '@/lib/star-performers/service'
+import { StarPerformerTagManager } from '@/components/settings/star-performer-tag-manager'
 
-export default async function TalentSettingsPage() {
+function queryValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value
+}
+
+async function StarPerformerTagsSettingsPage() {
+  let canWrite = false
+  try {
+    const authContext = await requirePermission('star-performer:read')
+    canWrite = authContext.permissions.includes('star-performer:write')
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
+  const [tags, t] = await Promise.all([listStarPerformerTagCatalog(), getTranslator('starPerformers')])
+  return <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10"><AdminSettingsPageHeader backHref="/workforce/star-performers" backLabel={t('backToWorkforce')} eyebrow={t('tagsEyebrow')} title={t('tagsTitle')} subtitle={t('tagsSubtitle')} /><StarPerformerTagManager canWrite={canWrite} initialTags={tags} labels={{ activate: t('activate'), cancel: t('cancel'), close: t('close'), createTag: t('createTag'), deactivate: t('deactivate'), deactivateConfirm: t('deactivateConfirm'), deactivateDescription: t('deactivateDescription'), deactivateTitle: t('deactivateTitle'), discardCancel: t('discardCancel'), discardConfirm: t('discardConfirm'), discardDescription: t('discardDescription'), discardTitle: t('discardTitle'), editTag: t('editTag'), inactive: t('inactive'), moreActions: t('moreActions'), newTag: t('newTag'), saving: t('saving'), tagActive: t('tagActive'), tagEmpty: t('tagEmpty'), tagListTitle: t('tagListTitle'), tagManagerCardTitle: t('tagManagerCardTitle'), tagName: t('tagName'), tagSaved: t('tagSaved'), tagSaveFailed: t('tagSaveFailed'), tagSearchPlaceholder: t('tagSearchPlaceholder'), updateTag: t('updateTag'), usageCount: t('usageCount'), writeRequired: t('writeRequired') }} /></section>
+}
+
+export default async function TalentSettingsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+  const rawQuery = searchParams ? await searchParams : {}
+  if (queryValue(rawQuery.area) === 'star-performer-tags') return <StarPerformerTagsSettingsPage />
   try { await requirePermission('talent:manage') } catch (error) { if (error instanceof AuthorizationError) redirect('/geen-toegang'); throw error }
   const t = await getTranslator('talent')
   const foundationLabels = {
