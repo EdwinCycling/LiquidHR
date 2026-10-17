@@ -1,16 +1,28 @@
 import 'server-only'
 
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
-import { listContinuousAppraisalWorkspace } from '@/lib/continuous-appraisal/service'
+import { listContinuousAppraisalItemsForEmployees, listContinuousAppraisalWorkspace } from '@/lib/continuous-appraisal/service'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { listTalentEmployeeCapabilityRecords } from '@/lib/talent/employee-capability-service'
 import { listTalentGoals } from '@/lib/talent/goal-service'
-import { listTalentRoleExplorerWorkspace, type TalentRoleExplorerComparison } from '@/lib/talent/role-explorer-service'
+import { evaluateTalentRoleExplorerOutcome, listTalentRoleExplorerWorkspace, type TalentRoleExplorerComparison } from '@/lib/talent/role-explorer-service'
+import { getTalentLevelModel, listTalentProfilesForWorkforce } from '@/lib/talent/service'
 import { movementDirection, type GridCell } from '@/lib/talent-review/rules'
 import { createClient } from '@/lib/supabase/server'
 import type { StarPerformerAssessment, StarPerformerTag } from './service'
 import type { StarPerformerWorkspaceQuery } from './schemas'
 import { StarPerformerError } from './service'
+import {
+  buildCriticalityDistribution,
+  buildGridDistribution,
+  buildMovementSummary,
+  buildSkillCoverage,
+  percentageOf,
+  type InsightBreakdown,
+  type InsightEmployee,
+  type SkillComparisonInput,
+  type StarPerformersInsights,
+} from './insights-service'
 
 const MAX_SCOPE_EMPLOYEES = 5000
 const MAX_ASSESSMENTS = 5000
@@ -333,7 +345,17 @@ async function readGridSignals(
   administrationId: string,
   employeeIds: string[],
 ): Promise<Map<string, StarPerformersGridSignal>> {
-  if (!employeeIds.length) return new Map()
+  const history = await readGridHistory(supabase, tenantId, administrationId, employeeIds)
+  return selectLatestApprovedGridSignals(history.campaigns, history.scores)
+}
+
+async function readGridHistory(
+  supabase: SupabaseServerClient,
+  tenantId: string,
+  administrationId: string,
+  employeeIds: string[],
+): Promise<{ campaigns: GridCampaignRow[]; scores: GridScoreRow[] }> {
+  if (!employeeIds.length) return { campaigns: [], scores: [] }
   const { data: campaigns, error: campaignsError } = await supabase
     .from('talent_review_campaigns')
     .select('id, name, status, closed_at, starts_on, previous_campaign_id')
@@ -344,9 +366,9 @@ async function readGridSignals(
     .limit(MAX_GRID_CAMPAIGNS)
   if (campaignsError) databaseError(campaignsError.message)
 
-  const campaignRows = campaigns ?? []
+  const campaignRows: GridCampaignRow[] = campaigns ?? []
   const campaignIds = campaignRows.map((campaign) => campaign.id)
-  if (!campaignIds.length) return new Map()
+  if (!campaignIds.length) return { campaigns: campaignRows, scores: [] }
   const { data: scores, error: scoresError } = await supabase
     .from('talent_review_scores')
     .select('employee_id, campaign_id, performance_score, potential_score, grid_cell, status, updated_at')
@@ -356,7 +378,7 @@ async function readGridSignals(
     .eq('status', 'CLOSED')
     .limit(MAX_ASSESSMENTS)
   if (scoresError) databaseError(scoresError.message)
-  return selectLatestApprovedGridSignals(campaignRows, scores ?? [])
+  return { campaigns: campaignRows, scores: scores ?? [] }
 }
 
 async function searchEmployeeIds(
@@ -734,5 +756,396 @@ export async function getStarPerformersDetail(employeeId: string): Promise<StarP
       appraisal: detailLink('/workforce/continuous-appraisal', employeeId),
       employee: `/employees/${employeeId}`,
     },
+  }
+}
+
+type InsightScopeRow = {
+  employee: InsightEmployee
+  departmentId: string
+  jobId: string | null
+  jobGroupId: string | null
+}
+
+type InsightMovement = 'UP' | 'DOWN' | 'STABLE' | 'NEW' | null
+
+function insightEmployeeFromRow(row: StarPerformersWorkspaceRow, gridSignal: StarPerformersGridSignal | null, criticalityLevel: number | null): InsightEmployee {
+  return {
+    employeeId: row.employeeId,
+    employeeNumber: row.employeeNumber,
+    label: [row.firstName, row.birthName].filter(Boolean).join(' '),
+    departmentName: row.departmentName,
+    jobName: row.jobName,
+    jobGroupName: row.jobGroupName,
+    sourceCampaignName: gridSignal?.campaignName ?? null,
+    sourceClosedAt: gridSignal?.closedAt ?? null,
+    gridCell: gridSignal?.gridCell ?? null,
+    criticalityLevel,
+    href: `/employees/${encodeURIComponent(row.employeeId)}`,
+  }
+}
+
+function workspaceFilterHref(query: StarPerformerWorkspaceQuery, key: 'departmentId' | 'jobGroupId' | 'jobId', value: string): string {
+  const params = new URLSearchParams()
+  params.set('perspective', 'key-employees')
+  params.set('area', 'insights')
+  params.set('insight', 'key-employees')
+  params.set('status', 'assessed')
+  if (query.q) params.set('q', query.q)
+  if (query.departmentId) params.set('departmentId', query.departmentId)
+  if (query.jobGroupId) params.set('jobGroupId', query.jobGroupId)
+  if (query.jobId) params.set('jobId', query.jobId)
+  params.set(key, value)
+  return `/workforce/star-performers?${params.toString()}`
+}
+
+function buildInsightBreakdowns(
+  rows: readonly InsightScopeRow[],
+  field: 'department' | 'job-group' | 'job',
+  query: StarPerformerWorkspaceQuery,
+): InsightBreakdown[] {
+  const groups = new Map<string, { label: string; employeeIds: Set<string>; assessedCount: number; highCriticalCount: number }>()
+  for (const row of rows) {
+    const id = field === 'department' ? row.departmentId : field === 'job-group' ? row.jobGroupId : row.jobId
+    const label = field === 'department' ? row.employee.departmentName : field === 'job-group' ? row.employee.jobGroupName : row.employee.jobName
+    if (!id || !label) continue
+    const current = groups.get(id) ?? { label, employeeIds: new Set<string>(), assessedCount: 0, highCriticalCount: 0 }
+    current.employeeIds.add(row.employee.employeeId)
+    if (row.employee.criticalityLevel !== null && row.employee.criticalityLevel !== undefined) {
+      current.assessedCount += 1
+      if (row.employee.criticalityLevel >= 4) current.highCriticalCount += 1
+    }
+    groups.set(id, current)
+  }
+  const key = field === 'department' ? 'departmentId' : field === 'job-group' ? 'jobGroupId' : 'jobId'
+  return [...groups.entries()]
+    .map(([id, group]) => ({
+      id,
+      label: group.label,
+      assessedCount: group.assessedCount,
+      highCriticalCount: group.highCriticalCount,
+      employeeCount: group.employeeIds.size,
+      href: workspaceFilterHref(query, key, id),
+    }))
+    .sort((left, right) => right.highCriticalCount - left.highCriticalCount || right.assessedCount - left.assessedCount || left.label.localeCompare(right.label, 'nl'))
+}
+
+function scoreForCampaign(scores: readonly GridScoreRow[], campaignId: string): Map<string, GridScoreRow> {
+  const result = new Map<string, GridScoreRow>()
+  for (const score of scores) {
+    if (score.campaign_id !== campaignId || score.status !== 'CLOSED') continue
+    const current = result.get(score.employee_id)
+    if (!current || score.updated_at > current.updated_at) result.set(score.employee_id, score)
+  }
+  return result
+}
+
+function signalForScore(score: GridScoreRow, campaign: GridCampaignRow, movement: InsightMovement): StarPerformersGridSignal {
+  return {
+    campaignId: campaign.id,
+    campaignName: campaign.name,
+    closedAt: campaign.closed_at,
+    performanceScore: score.performance_score,
+    potentialScore: score.potential_score,
+    gridCell: score.grid_cell,
+    isHighHigh: score.grid_cell === 'HIGH_HIGH',
+    movement,
+  }
+}
+
+function selectedGridSignals(
+  campaigns: readonly GridCampaignRow[],
+  scores: readonly GridScoreRow[],
+  query: StarPerformerWorkspaceQuery,
+  employeeIds: readonly string[],
+): { signals: Map<string, StarPerformersGridSignal>; movements: Map<string, InsightMovement>; previousCampaignName: string | null; selectedPeriodId: string | null } {
+  const campaignById = new Map(campaigns.map((campaign) => [campaign.id, campaign]))
+  const selectedCampaign = query.period ? campaignById.get(query.period) ?? null : null
+  if (selectedCampaign) {
+    const currentScores = scoreForCampaign(scores, selectedCampaign.id)
+    const previousCampaign = selectedCampaign.previous_campaign_id ? campaignById.get(selectedCampaign.previous_campaign_id) ?? null : null
+    const previousScores = previousCampaign ? scoreForCampaign(scores, previousCampaign.id) : new Map<string, GridScoreRow>()
+    const signals = new Map<string, StarPerformersGridSignal>()
+    const movements = new Map<string, InsightMovement>()
+    for (const employeeId of employeeIds) {
+      const current = currentScores.get(employeeId)
+      if (!current) continue
+      const previous = previousScores.get(employeeId)
+      const direction = movementDirection(gridCell(previous?.grid_cell ?? null), gridCell(current.grid_cell))
+      const movement = direction === 'UNKNOWN' ? null : direction
+      signals.set(employeeId, signalForScore(current, selectedCampaign, movement))
+      movements.set(employeeId, movement)
+    }
+    return { signals, movements, previousCampaignName: previousCampaign?.name ?? null, selectedPeriodId: selectedCampaign.id }
+  }
+
+  const signals = selectLatestApprovedGridSignals([...campaigns], [...scores])
+  const movements = new Map<string, InsightMovement>()
+  let previousCampaignName: string | null = null
+  for (const employeeId of employeeIds) {
+    const signal = signals.get(employeeId)
+    if (!signal) continue
+    movements.set(employeeId, signal.movement)
+    const campaign = campaignById.get(signal.campaignId)
+    const previous = campaign?.previous_campaign_id ? campaignById.get(campaign.previous_campaign_id) : null
+    if (previous && previousCampaignName === null) previousCampaignName = previous.name
+  }
+  return { signals, movements, previousCampaignName, selectedPeriodId: null }
+}
+
+async function readInsightSkills(
+  employeeIds: readonly string[],
+  refs: Awaited<ReturnType<typeof readReferenceData>>,
+): Promise<{ state: 'ready' | 'unavailable' | 'no-data'; evaluatedEmployees: number; roles: StarPerformersInsights['skills']['roles']; topGaps: StarPerformersInsights['skills']['topGaps'] }> {
+  if (!employeeIds.length) return { state: 'no-data', evaluatedEmployees: 0, roles: [], topGaps: [] }
+  try {
+    const [profiles, records, levelModel] = await Promise.all([
+      listTalentProfilesForWorkforce({ includeRequirements: true }),
+      listTalentEmployeeCapabilityRecords({}),
+      getTalentLevelModel(),
+    ])
+    const population = new Set(employeeIds)
+    const today = currentDate()
+    const levelRankById = new Map(levelModel.levels.map((level) => [level.id, level.sort_order]))
+    const currentRecordByEmployeeCapability = new Map<string, (typeof records)[number]>()
+    for (const record of records) {
+      if (!population.has(record.employeeId) || record.status !== 'RELEASED' || record.validFrom > today || (record.validUntil !== null && record.validUntil <= today)) continue
+      const key = `${record.employeeId}:${record.capabilityId}`
+      const current = currentRecordByEmployeeCapability.get(key)
+      if (!current || record.validFrom > current.validFrom || (record.validFrom === current.validFrom && record.updatedAt > current.updatedAt)) currentRecordByEmployeeCapability.set(key, record)
+    }
+    const comparisons: SkillComparisonInput[] = []
+    for (const profile of profiles) {
+      if ((profile.profile.valid_from !== null && profile.profile.valid_from > today) || (profile.profile.valid_until !== null && profile.profile.valid_until <= today)) continue
+      const roleId = profile.profile.job_id ?? profile.profile.job_profile_id
+      if (!roleId) continue
+      const roleLabel = refs.jobNameById.get(profile.profile.job_id ?? '') ?? profile.profile.job_code ?? roleId
+      for (const employee of profile.employees) {
+        if (!population.has(employee.id)) continue
+        const axes = profile.requirements.map((requirement) => {
+          const record = currentRecordByEmployeeCapability.get(`${employee.id}:${requirement.capability_id}`)
+          const isCurrentRecord = Boolean(record && record.status === 'RELEASED' && record.validFrom <= today && (record.validUntil === null || record.validUntil > today))
+          return {
+            capabilityName: requirement.capability?.name ?? requirement.capability_id,
+            status: evaluateTalentRoleExplorerOutcome({
+              capabilityAvailable: Boolean(requirement.capability),
+              recordStatus: record?.status ?? null,
+              isCurrentRecord,
+              isCertificate: requirement.capability?.capability_type === 'CERTIFICATE',
+              evidenceStatus: record?.evidenceStatus ?? null,
+              targetLevelRank: requirement.target_level_id ? levelRankById.get(requirement.target_level_id) ?? null : null,
+              currentLevelRank: record?.talentLevelId ? levelRankById.get(record.talentLevelId) ?? null : null,
+              targetLanguageLevel: requirement.language_level,
+              currentLanguageLevel: record?.languageLevel ?? null,
+            }),
+          }
+        })
+        comparisons.push({ employeeId: employee.id, roleId, roleLabel, jobGroupName: profile.profile.job_group_name, axes })
+      }
+    }
+    const coverage = buildSkillCoverage(comparisons)
+    return {
+      state: coverage.evaluatedEmployees > 0 ? 'ready' : 'no-data',
+      evaluatedEmployees: coverage.evaluatedEmployees,
+      roles: coverage.roles,
+      topGaps: coverage.topGaps,
+    }
+  } catch {
+    return { state: 'unavailable', evaluatedEmployees: 0, roles: [], topGaps: [] }
+  }
+}
+
+type InsightAppraisalItem = {
+  id: string
+  employeeId: string
+  title: string
+  status: string
+  dueOn: string | null
+  nextMeetingOn: string | null
+}
+
+async function readInsightDevelopment(
+  employeeIds: readonly string[],
+  employeeLabels: ReadonlyMap<string, string>,
+): Promise<StarPerformersInsights['development']> {
+  if (!employeeIds.length) return { state: 'no-data', activePlansCount: 0, employeesWithActivePlans: 0, averageProgress: null, openActionCount: 0, plans: [], actions: [], trendAvailable: false }
+
+  let goalsAvailable = false
+  let goals: Awaited<ReturnType<typeof listTalentGoals>>['goals'] = []
+  try {
+    const workspace = await listTalentGoals('admin', {}, { includeOptions: false, includeEmployeeOptions: false, includeCapabilityOptions: false })
+    goalsAvailable = true
+    goals = workspace.goals.filter((goal) => goal.status === 'ACTIVE' && employeeIds.includes(goal.employee_id))
+  } catch {
+    goalsAvailable = false
+  }
+
+  let appraisalAvailable = false
+  let appraisalItems: InsightAppraisalItem[] = []
+  try {
+    const items = await listContinuousAppraisalItemsForEmployees(employeeIds)
+    appraisalAvailable = true
+    appraisalItems = items
+      .filter((item) => item.item_type === 'ACTION' && ['PLANNED', 'OPEN', 'WAITING', 'ACTIVE'].includes(item.item_status))
+      .map((item) => ({ id: item.id, employeeId: item.employee_id, title: item.title, status: item.item_status, dueOn: item.due_on, nextMeetingOn: item.next_meeting_on }))
+  } catch {
+    appraisalAvailable = false
+  }
+
+  const plans = goals.slice(0, 40).map((goal) => ({
+    id: goal.id,
+    employeeId: goal.employee_id,
+    employeeLabel: employeeLabels.get(goal.employee_id) ?? goal.employee_id,
+    title: goal.title,
+    progressPercent: Math.min(100, Math.max(0, goal.progress_percent)),
+    periodEnd: goal.period_end,
+    href: `/workforce/talent/goals?employeeId=${encodeURIComponent(goal.employee_id)}`,
+  }))
+  const actions = appraisalItems.flat().slice(0, 40).map((item) => ({
+    ...item,
+    employeeLabel: employeeLabels.get(item.employeeId) ?? item.employeeId,
+    href: `/workforce/continuous-appraisal?employeeId=${encodeURIComponent(item.employeeId)}`,
+  }))
+  const activePlanEmployees = new Set(goals.map((goal) => goal.employee_id))
+  const progressTotal = goals.reduce((total, goal) => total + goal.progress_percent, 0)
+  const sourceAvailable = goalsAvailable || appraisalAvailable
+  const hasData = plans.length > 0 || actions.length > 0
+  return {
+    state: !sourceAvailable ? 'unavailable' : hasData ? 'ready' : 'no-data',
+    activePlansCount: plans.length,
+    employeesWithActivePlans: activePlanEmployees.size,
+    averageProgress: goals.length > 0 ? Math.round(progressTotal / goals.length) : null,
+    openActionCount: actions.length,
+    plans,
+    actions,
+    trendAvailable: false,
+  }
+}
+
+function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsights {
+  return {
+    population: { employeesInScope: 0, assessedGrid: 0, assessedKeyEmployees: 0 },
+    periods: [],
+    selectedPeriodId: query.period ?? null,
+    topTalent: { coveragePercent: null, assessedCount: 0, distribution: buildGridDistribution([], []), highHigh: [], movement: { state: 'unavailable', previousCampaignName: null, comparableEmployees: 0, up: 0, down: 0, stable: 0 } },
+    keyEmployees: { criticalityDistribution: buildCriticalityDistribution([]), highCriticalCount: 0, highCriticalPercent: null, assessedCount: 0, threshold: 4, byDepartment: [], byJobGroup: [], byJob: [], overlap: { highHighCount: 0, highCriticalCount: 0, overlapCount: 0, overlapPercent: null }, employees: [] },
+    skills: { state: 'no-data', evaluatedEmployees: 0, roles: [], topGaps: [] },
+    development: { state: 'no-data', activePlansCount: 0, employeesWithActivePlans: 0, averageProgress: null, openActionCount: 0, plans: [], actions: [], trendAvailable: false },
+  }
+}
+
+export async function getStarPerformersInsights(query: StarPerformerWorkspaceQuery): Promise<StarPerformersInsights> {
+  const auth = await requirePermission('star-performer:read')
+  if (!auth.administrationId) throw new StarPerformerError('ADMINISTRATION_REQUIRED', 400)
+  const supabase = await createClient()
+  const today = currentDate()
+  const refs = await readReferenceData(supabase, auth.tenantId, today)
+  const searchIds = await searchEmployeeIds(supabase, auth.tenantId, query.q)
+  if (searchIds?.length === 0) return emptyInsights(query)
+
+  const jobIdsForGroup = query.jobGroupId
+    ? [...refs.jobById.values()].filter((job) => job.job_group_id === query.jobGroupId).map((job) => job.id)
+    : null
+  const placements = await readPlacements(supabase, auth.administrationId, { ...query, status: 'all' }, today, jobIdsForGroup, searchIds)
+  const placementByEmployee = new Map<string, PlacementRow>()
+  for (const placement of placements) if (!placementByEmployee.has(placement.employee_id)) placementByEmployee.set(placement.employee_id, placement)
+  const baseEmployeeIds = [...placementByEmployee.keys()]
+  if (!baseEmployeeIds.length) return emptyInsights(query)
+  const { data: activeEmployees, error: activeEmployeesError } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('tenant_id', auth.tenantId)
+    .in('id', baseEmployeeIds)
+    .eq('is_active', true)
+    .eq('is_archived', false)
+    .is('deleted_at', null)
+  if (activeEmployeesError) databaseError(activeEmployeesError.message)
+  const activeIds = new Set((activeEmployees ?? []).map((employee) => employee.id))
+  const scopeEmployeeIds = baseEmployeeIds.filter((employeeId) => activeIds.has(employeeId))
+  if (!scopeEmployeeIds.length) return emptyInsights(query)
+
+  const [assessmentRows, gridHistory, employees] = await Promise.all([
+    readAssessments(supabase, auth.administrationId),
+    readGridHistory(supabase, auth.tenantId, auth.administrationId, scopeEmployeeIds),
+    readPageEmployees(supabase, auth.tenantId, scopeEmployeeIds),
+  ])
+  const employeeById = new Map(employees.map((employee) => [employee.id, employee]))
+  const gridSelection = selectedGridSignals(gridHistory.campaigns, gridHistory.scores, query, scopeEmployeeIds)
+  const assessmentByEmployee = new Map<string, StarPerformerAssessment>()
+  for (const employeeId of scopeEmployeeIds) {
+    const placement = placementByEmployee.get(employeeId)
+    if (!placement) continue
+    const assessment = assessmentForPlacement(employeeId, placement, assessmentRows, refs.jobGroupByJobId, new Map())
+    if (assessment) assessmentByEmployee.set(employeeId, assessment)
+  }
+  const highHighIds = new Set([...gridSelection.signals.entries()].filter(([, signal]) => signal.isHighHigh).map(([employeeId]) => employeeId))
+  const filteredEmployeeIds = scopeEmployeeIds.filter((employeeId) => {
+    if (query.perspective === 'top-talent' && query.status === 'assessed') return gridSelection.signals.has(employeeId)
+    if (query.perspective === 'top-talent' && query.status === 'not-assessed') return !gridSelection.signals.has(employeeId)
+    if (query.perspective === 'top-talent' && query.status === 'high-high') return highHighIds.has(employeeId)
+    if (query.perspective === 'key-employees' && query.status === 'assessed') return assessmentByEmployee.has(employeeId)
+    if (query.perspective === 'key-employees' && query.status === 'not-assessed') return !assessmentByEmployee.has(employeeId)
+    return true
+  })
+
+  const scopeRows: InsightScopeRow[] = filteredEmployeeIds.flatMap((employeeId) => {
+    const employee = employeeById.get(employeeId)
+    const placement = placementByEmployee.get(employeeId)
+    if (!employee || !placement) return []
+    const workspaceRow = toWorkspaceRow(employee, placement, refs, assessmentRows, new Map(), gridSelection.signals.get(employeeId) ?? null)
+    const assessment = assessmentByEmployee.get(employeeId)
+    return [{
+      employee: insightEmployeeFromRow(workspaceRow, gridSelection.signals.get(employeeId) ?? null, assessment?.criticalityLevel ?? null),
+      departmentId: placement.department_id,
+      jobId: placement.job_id,
+      jobGroupId: workspaceRow.jobGroupId,
+    }]
+  })
+  const filteredIds = scopeRows.map((row) => row.employee.employeeId)
+  const selectedGridInputs = filteredIds.map((employeeId) => ({ employeeId, gridCell: gridCell(gridSelection.signals.get(employeeId)?.gridCell ?? null) }))
+  const gridDistribution = buildGridDistribution(selectedGridInputs, filteredIds)
+  const assessedGridCount = filteredIds.filter((employeeId) => gridSelection.signals.has(employeeId)).length
+  const highHighEmployees = scopeRows.filter((row) => highHighIds.has(row.employee.employeeId)).map((row) => row.employee)
+  const movement = buildMovementSummary(filteredIds.map((employeeId) => gridSelection.movements.get(employeeId) ?? null))
+  const assessmentInputs = scopeRows.flatMap((row) => row.employee.criticalityLevel === null || row.employee.criticalityLevel === undefined ? [] : [{ employeeId: row.employee.employeeId, criticalityLevel: row.employee.criticalityLevel }])
+  const criticalityDistribution = buildCriticalityDistribution(assessmentInputs)
+  const highCriticalIds = new Set(assessmentInputs.filter((input) => input.criticalityLevel >= 4).map((input) => input.employeeId))
+  const assessedKeyCount = assessmentInputs.length
+  const highCriticalCount = highCriticalIds.size
+  const overlapCount = [...highHighIds].filter((employeeId) => highCriticalIds.has(employeeId) && filteredIds.includes(employeeId)).length
+  const keyEmployees = scopeRows.filter((row) => row.employee.criticalityLevel !== null && row.employee.criticalityLevel !== undefined).sort((left, right) => (right.employee.criticalityLevel ?? 0) - (left.employee.criticalityLevel ?? 0) || left.employee.label.localeCompare(right.employee.label, 'nl')).map((row) => row.employee)
+  const employeeLabels = new Map(scopeRows.map((row) => [row.employee.employeeId, row.employee.label]))
+  const skills = query.insight === 'skills'
+    ? await readInsightSkills(filteredIds, refs)
+    : { state: 'no-data' as const, evaluatedEmployees: 0, roles: [], topGaps: [] }
+  const development = query.insight === 'development'
+    ? await readInsightDevelopment(filteredIds, employeeLabels)
+    : { state: 'no-data' as const, activePlansCount: 0, employeesWithActivePlans: 0, averageProgress: null, openActionCount: 0, plans: [], actions: [], trendAvailable: false }
+  const periods = [...gridHistory.campaigns].sort((left, right) => (right.closed_at ?? right.starts_on).localeCompare(left.closed_at ?? left.starts_on)).map((campaign) => ({ id: campaign.id, name: campaign.name, closedAt: campaign.closed_at, startsOn: campaign.starts_on }))
+
+  return {
+    population: { employeesInScope: filteredIds.length, assessedGrid: assessedGridCount, assessedKeyEmployees: assessedKeyCount },
+    periods,
+    selectedPeriodId: gridSelection.selectedPeriodId,
+    topTalent: {
+      coveragePercent: percentageOf(assessedGridCount, filteredIds.length),
+      assessedCount: assessedGridCount,
+      distribution: gridDistribution,
+      highHigh: highHighEmployees,
+      movement: { ...movement, previousCampaignName: gridSelection.previousCampaignName },
+    },
+    keyEmployees: {
+      criticalityDistribution,
+      highCriticalCount,
+      highCriticalPercent: percentageOf(highCriticalCount, filteredIds.length),
+      assessedCount: assessedKeyCount,
+      threshold: 4,
+      byDepartment: buildInsightBreakdowns(scopeRows, 'department', query),
+      byJobGroup: buildInsightBreakdowns(scopeRows, 'job-group', query),
+      byJob: buildInsightBreakdowns(scopeRows, 'job', query),
+      overlap: { highHighCount: [...highHighIds].filter((employeeId) => filteredIds.includes(employeeId)).length, highCriticalCount, overlapCount, overlapPercent: percentageOf(overlapCount, highHighEmployees.length) },
+      employees: keyEmployees,
+    },
+    skills,
+    development,
   }
 }

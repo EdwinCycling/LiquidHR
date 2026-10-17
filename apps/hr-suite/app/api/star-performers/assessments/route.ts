@@ -40,10 +40,12 @@ export async function GET(request: Request) {
     const parsed = starPerformerWorkspaceQuerySchema.safeParse({
       perspective: searchParams.get('perspective') ?? undefined,
       area: searchParams.get('area') ?? undefined,
+      insight: searchParams.get('insight') ?? undefined,
       q: searchParams.get('q') ?? undefined,
       departmentId: searchParams.get('departmentId') ?? undefined,
       jobId: searchParams.get('jobId') ?? undefined,
       jobGroupId: searchParams.get('jobGroupId') ?? undefined,
+      period: searchParams.get('period') ?? undefined,
       status: searchParams.get('status') ?? undefined,
       page: searchParams.get('page') ?? undefined,
       pageSize: searchParams.get('pageSize') ?? undefined,

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowUpRight, BriefcaseBusiness, Check, CircleAlert, Compass, Mail, MoveDown, MoveUp, Radar, Search, Target, UserRound, UsersRound } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { StarPerformerWorkspaceQuery } from '@/lib/star-performers/schemas'
+import type { StarPerformersInsights as StarPerformersInsightsData } from '@/lib/star-performers/insights-service'
 import type { StarPerformersDetail, StarPerformersWorkspacePage, StarPerformersWorkspaceRow } from '@/lib/star-performers/v2-service'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,7 @@ import { TextInput } from '@/components/ui/text-input'
 import { FilterBar } from '@/components/patterns/filter-bar'
 import { FormField } from '@/components/patterns/form-field'
 import { ScrollableTabs, TabButton } from '@/components/patterns/scrollable-tabs'
+import { StarPerformersInsights } from './star-performers-insights'
 
 export type StarPerformersWorkspaceLabels = {
   perspective: string
@@ -27,6 +29,66 @@ export type StarPerformersWorkspaceLabels = {
   employees: string
   keyRoles: string
   development: string
+  insights: string
+  insightsDescription: string
+  insightsTopTalent: string
+  insightsKeyEmployees: string
+  insightsSkills: string
+  insightsDevelopment: string
+  insightNavigation: string
+  insightKpiScope: string
+  period: string
+  allPeriods: string
+  comparableMovement: string
+  gridDistribution: string
+  gridDistributionDescription: string
+  ofAssessed: string
+  highHighEmployees: string
+  highHighEmployeesDescription: string
+  sourceUnavailable: string
+  noHighHighEmployees: string
+  noHighHighEmployeesDescription: string
+  comparedWith: string
+  comparableHistory: string
+  movementUnavailable: string
+  highCriticalEmployees: string
+  overlap: string
+  criticalityDistribution: string
+  criticalityDistributionDescription: string
+  highCriticalThreshold: string
+  overlapDescription: string
+  overlapEmployees: string
+  independentAssessmentSources: string
+  group: string
+  assessedCount: string
+  highCriticalCount: string
+  byDepartment: string
+  byJobGroup: string
+  byJob: string
+  noBreakdownData: string
+  employee: string
+  noAssessedKeyEmployees: string
+  roleSkillCoverage: string
+  roleSkillCoverageDescription: string
+  evaluatedEmployees: string
+  rolesWithEvidence: string
+  vulnerabilitySignals: string
+  requirements: string
+  coverage: string
+  gaps: string
+  noSkillsData: string
+  noSkillsDataDescription: string
+  topGaps: string
+  activePlans: string
+  employeesWithPlans: string
+  averageProgress: string
+  openActions: string
+  noDevelopmentData: string
+  due: string
+  until: string
+  noOpenActions: string
+  trendAvailable: string
+  trendUnavailable: string
   filtersTitle: string
   search: string
   searchPlaceholder: string
@@ -261,10 +323,12 @@ function queryString(query: StarPerformerWorkspaceQuery): string {
   const params = new URLSearchParams()
   params.set('perspective', query.perspective)
   params.set('area', query.area)
+  params.set('insight', query.insight)
   if (query.q) params.set('q', query.q)
   if (query.departmentId) params.set('departmentId', query.departmentId)
   if (query.jobId) params.set('jobId', query.jobId)
   if (query.jobGroupId) params.set('jobGroupId', query.jobGroupId)
+  if (query.period) params.set('period', query.period)
   if (query.status !== 'all') params.set('status', query.status)
   params.set('page', String(query.page))
   params.set('pageSize', String(query.pageSize))
@@ -279,6 +343,10 @@ export function StarPerformersWorkspace({ canViewEmployees, canWrite, initial, i
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
   const [detailError, setDetailError] = useState(false)
+  const [insights, setInsights] = useState<StarPerformersInsightsData | null>(null)
+  const [insightsLoading, setInsightsLoading] = useState(false)
+  const [insightsError, setInsightsError] = useState(false)
+  const [insightsReloadToken, setInsightsReloadToken] = useState(0)
   const [reloadToken, setReloadToken] = useState(0)
   const [detailReloadToken, setDetailReloadToken] = useState(0)
   const initialRender = useRef(true)
@@ -298,9 +366,13 @@ export function StarPerformersWorkspace({ canViewEmployees, canWrite, initial, i
       initialRender.current = false
       return
     }
+    if (query.area === 'insights') return
     let cancelled = false
-    setLoading(true)
-    setError(false)
+    queueMicrotask(() => {
+      if (cancelled) return
+      setLoading(true)
+      setError(false)
+    })
     void fetch(`/api/star-performers/assessments?${queryString(query)}`, { cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) throw new Error('workspace-load-failed')
@@ -317,7 +389,26 @@ export function StarPerformersWorkspace({ canViewEmployees, canWrite, initial, i
   }, [query, reloadToken])
 
   useEffect(() => {
-    if (!selectedEmployeeId) return
+    if (query.area !== 'insights') return
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) return
+      setInsightsLoading(true)
+      setInsightsError(false)
+    })
+    void fetch(`/api/star-performers/insights?${queryString(query)}`, { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('insights-load-failed')
+        return response.json() as Promise<{ data: StarPerformersInsightsData }>
+      })
+      .then((payload) => { if (!cancelled) setInsights(payload.data) })
+      .catch(() => { if (!cancelled) setInsightsError(true) })
+      .finally(() => { if (!cancelled) setInsightsLoading(false) })
+    return () => { cancelled = true }
+  }, [query, insightsReloadToken])
+
+  useEffect(() => {
+    if (!selectedEmployeeId || query.area === 'insights') return
     let cancelled = false
     void fetch(`/api/star-performers/assessments?employeeId=${encodeURIComponent(selectedEmployeeId)}`, { cache: 'no-store' })
       .then(async (response) => {
@@ -327,7 +418,7 @@ export function StarPerformersWorkspace({ canViewEmployees, canWrite, initial, i
       .then((payload) => { if (!cancelled) setDetail(payload.data) })
       .catch(() => { if (!cancelled) setDetailError(true) })
     return () => { cancelled = true }
-  }, [selectedEmployeeId, detailReloadToken])
+  }, [selectedEmployeeId, detailReloadToken, query.area])
 
   async function saveAssessment(criticalityLevel: number, tagIds: string[]) {
     if (!detail) return
@@ -357,9 +448,9 @@ export function StarPerformersWorkspace({ canViewEmployees, canWrite, initial, i
   }
 
   return <div className="space-y-5">
-    <div className="flex flex-col gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">{labels.perspective}</p><p className="mt-1 text-sm text-muted-foreground">{query.perspective === 'top-talent' ? labels.topTalentDescription : labels.keyEmployeesDescription}</p></div><div className="flex flex-wrap gap-2" role="group" aria-label={labels.perspective}><Button aria-pressed={query.perspective === 'top-talent'} onClick={() => updateQuery({ perspective: 'top-talent', status: 'all', page: 1 })} size="sm" type="button" variant={query.perspective === 'top-talent' ? 'primary' : 'secondary'}>{labels.topTalent}</Button><Button aria-pressed={query.perspective === 'key-employees'} onClick={() => updateQuery({ perspective: 'key-employees', status: 'all', page: 1 })} size="sm" type="button" variant={query.perspective === 'key-employees' ? 'primary' : 'secondary'}>{labels.keyEmployees}</Button></div></div>
-    <ScrollableTabs ariaLabel={labels.areaNavigation} contentProps={{ role: 'tablist' }} leftLabel={labels.previous} rightLabel={labels.next}><TabButton active={query.area === 'overview'} aria-controls="star-performers-area" onClick={() => updateQuery({ area: 'overview' })}>{labels.overview}</TabButton><TabButton active={query.area === 'employees'} aria-controls="star-performers-area" onClick={() => updateQuery({ area: 'employees' })}>{labels.employees}</TabButton><TabButton active={query.area === 'key-roles'} aria-controls="star-performers-area" onClick={() => updateQuery({ area: 'key-roles' })}>{labels.keyRoles}</TabButton><TabButton active={query.area === 'development'} aria-controls="star-performers-area" onClick={() => updateQuery({ area: 'development' })}>{labels.development}</TabButton></ScrollableTabs>
-    <KpiStrip data={data} labels={labels} />
+    <div className="flex flex-col gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">{labels.perspective}</p><p className="mt-1 text-sm text-muted-foreground">{query.perspective === 'top-talent' ? labels.topTalentDescription : labels.keyEmployeesDescription}</p></div><div className="flex flex-wrap gap-2" role="group" aria-label={labels.perspective}><Button aria-pressed={query.perspective === 'top-talent'} onClick={() => updateQuery({ perspective: 'top-talent', status: 'all', period: undefined, insight: 'top-talent', page: 1 })} size="sm" type="button" variant={query.perspective === 'top-talent' ? 'primary' : 'secondary'}>{labels.topTalent}</Button><Button aria-pressed={query.perspective === 'key-employees'} onClick={() => updateQuery({ perspective: 'key-employees', status: 'all', period: undefined, insight: 'top-talent', page: 1 })} size="sm" type="button" variant={query.perspective === 'key-employees' ? 'primary' : 'secondary'}>{labels.keyEmployees}</Button></div></div>
+    <ScrollableTabs ariaLabel={labels.areaNavigation} contentProps={{ role: 'tablist' }} leftLabel={labels.previous} rightLabel={labels.next}><TabButton active={query.area === 'overview'} aria-controls="star-performers-area" onClick={() => updateQuery({ area: 'overview' })}>{labels.overview}</TabButton><TabButton active={query.area === 'employees'} aria-controls="star-performers-area" onClick={() => updateQuery({ area: 'employees' })}>{labels.employees}</TabButton><TabButton active={query.area === 'key-roles'} aria-controls="star-performers-area" onClick={() => updateQuery({ area: 'key-roles' })}>{labels.keyRoles}</TabButton><TabButton active={query.area === 'development'} aria-controls="star-performers-area" onClick={() => updateQuery({ area: 'development' })}>{labels.development}</TabButton><TabButton active={query.area === 'insights'} aria-controls="star-performers-area" onClick={() => updateQuery({ area: 'insights' })}>{labels.insights}</TabButton></ScrollableTabs>
+    {query.area === 'insights' ? null : <KpiStrip data={data} labels={labels} />}
     <FilterBar aria-label={labels.filtersTitle}>
       <FormField className="min-w-[15rem] flex-[1.4]" control={<TextInput aria-label={labels.search} leadingIcon={<Search aria-hidden="true" />} onChange={(event) => updateQuery({ q: event.currentTarget.value })} placeholder={labels.searchPlaceholder} value={query.q} />} label={labels.search} />
       <FormField className="min-w-[12rem] flex-1" control={<DropdownSelect aria-label={labels.team} onChange={(event) => updateQuery({ departmentId: event.currentTarget.value || undefined })} searchable searchPlaceholder={labels.team} value={query.departmentId ?? ''}><option value="">{labels.allTeams}</option>{data.filters.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect>} label={labels.team} />
@@ -374,9 +465,10 @@ export function StarPerformersWorkspace({ canViewEmployees, canWrite, initial, i
         {query.area === 'employees' || query.area === 'overview' ? <section aria-labelledby="star-performers-employees-title"><div className="flex items-end justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground" id="star-performers-employees-title">{labels.employeesTitle}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.employeesDescription}</p></div>{canWrite && query.perspective === 'key-employees' ? <Link className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" href="/settings/talent?area=star-performer-tags">{labels.tags}<ArrowUpRight aria-hidden="true" className="size-3.5" /></Link> : null}</div><div className="mt-4 space-y-3">{loading ? <Surface className="p-6 text-sm text-muted-foreground" variant="subtle">{labels.loading}</Surface> : data.rows.length ? data.rows.map((row) => <EmployeeRow canViewEmployees={canViewEmployees} labels={labels} onSelect={() => selectEmployee(row.employeeId)} perspective={query.perspective} row={row} selected={selectedEmployeeId === row.employeeId} key={row.employeeId} />) : <EmptyState icon={<UsersRound />} title={labels.noEmployees} description={labels.noEmployeesDescription} />}</div>{data.totalPages > 1 ? <div className="mt-4"><Pagination ariaLabel={labels.pagination} currentPage={data.page} nextLabel={labels.next} onPageChange={(page) => updateQuery({ page })} previousLabel={labels.previous} totalPages={data.totalPages} /></div> : null}</section> : null}
         {query.area === 'key-roles' ? <section><div><h2 className="text-lg font-semibold text-foreground">{labels.keyRolesTitle}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.keyRolesDescription}</p></div><div className="mt-4"><RolesArea labels={labels} onSelect={selectEmployee} rows={data.rows} /></div></section> : null}
         {query.area === 'development' ? <section><div><h2 className="text-lg font-semibold text-foreground">{labels.developmentTitle}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.developmentDescription}</p></div><div className="mt-4">{visibleDetail ? <p className="text-sm text-muted-foreground">{employeeLabel(visibleDetail.employee)}</p> : <EmptyState icon={<Compass />} title={labels.noSelectedEmployee} description={labels.selectEmployee} />}</div></section> : null}
+        {query.area === 'insights' ? <StarPerformersInsights activeArea={query.insight} canViewEmployees={canViewEmployees} data={insights} error={insightsError} labels={labels} loading={insightsLoading} onAreaChange={(insight) => updateQuery({ insight })} onPeriodChange={(period) => updateQuery({ period })} onRetry={() => setInsightsReloadToken((current) => current + 1)} showPeriod={query.perspective === 'top-talent'} /> : null}
         {data.rows.length ? <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">{query.perspective === 'top-talent' ? <><Badge tone="info">{labels.approvedGrid}</Badge><span>{labels.approvedSignal}</span></> : <><Badge tone="warning">{labels.criticality}</Badge><span>{labels.keyEmployees}</span></>}</div> : null}
       </div>
-      <aside aria-label={labels.detailTitle} className="min-w-0 xl:sticky xl:top-5 xl:self-start">{detailLoading ? <Surface className="flex min-h-[22rem] items-center justify-center p-8 text-sm text-muted-foreground" variant="subtle">{labels.loading}</Surface> : detailError ? <Surface className="p-6" variant="subtle"><p className="text-sm text-destructive">{labels.loadFailed}</p><Button className="mt-3" onClick={() => { setDetail(null); setDetailError(false); setDetailReloadToken((current) => current + 1) }} size="sm" type="button" variant="secondary">{labels.retry}</Button></Surface> : <DetailDrawer canViewEmployees={canViewEmployees} canWrite={canWrite} detail={visibleDetail} labels={labels} onSave={saveAssessment} perspective={query.perspective} />}</aside>
+      {query.area === 'insights' ? null : <aside aria-label={labels.detailTitle} className="min-w-0 xl:sticky xl:top-5 xl:self-start">{detailLoading ? <Surface className="flex min-h-[22rem] items-center justify-center p-8 text-sm text-muted-foreground" variant="subtle">{labels.loading}</Surface> : detailError ? <Surface className="p-6" variant="subtle"><p className="text-sm text-destructive">{labels.loadFailed}</p><Button className="mt-3" onClick={() => { setDetail(null); setDetailError(false); setDetailReloadToken((current) => current + 1) }} size="sm" type="button" variant="secondary">{labels.retry}</Button></Surface> : <DetailDrawer canViewEmployees={canViewEmployees} canWrite={canWrite} detail={visibleDetail} labels={labels} onSave={saveAssessment} perspective={query.perspective} />}</aside>}
     </div>
     {activeTags.length === 0 && query.perspective === 'key-employees' ? <p className="text-xs text-muted-foreground">{labels.noTagsAvailable}</p> : null}
   </div>

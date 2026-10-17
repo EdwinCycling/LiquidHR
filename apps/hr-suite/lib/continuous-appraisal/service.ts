@@ -66,6 +66,8 @@ export type ContinuousAppraisalItem = Pick<ItemRow, 'id' | 'employee_id' | 'mana
   canDelete: boolean
 }
 
+export type ContinuousAppraisalInsightItem = Pick<ItemRow, 'id' | 'employee_id' | 'item_type' | 'title' | 'due_on' | 'next_meeting_on' | 'item_status'>
+
 export type ContinuousAppraisalEmployeeOption = {
   id: string
   label: string
@@ -243,6 +245,39 @@ export async function listContinuousAppraisalEmployeeOptions(): Promise<Continuo
   const { data, error } = await employeesQuery.order('first_name').limit(500)
   if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
   return (data ?? []).map((employee) => toEmployeeOption(employee))
+}
+
+export async function listContinuousAppraisalItemsForEmployees(employeeIds: readonly string[]): Promise<ContinuousAppraisalInsightItem[]> {
+  if (employeeIds.length === 0) return []
+  const context = await requirePermission('continuous-appraisal:read')
+  const supabase = await createClient()
+  let scopedEmployeeIds = [...employeeIds]
+  if (!context.permissions.includes('continuous-appraisal:manage')) {
+    if (!context.employeeId) return []
+    const today = new Date().toISOString().slice(0, 10)
+    const { data: assignments, error: assignmentError } = await supabase
+      .from('employee_organizations')
+      .select('employee_id')
+      .eq('tenant_id', context.tenantId)
+      .eq('direct_manager_id', context.employeeId)
+      .lte('effective_from', today)
+      .or(`effective_to.is.null,effective_to.gte.${today}`)
+    if (assignmentError) databaseError(assignmentError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+    const accessibleEmployeeIds = new Set([context.employeeId, ...(assignments ?? []).map((assignment) => assignment.employee_id)])
+    scopedEmployeeIds = scopedEmployeeIds.filter((employeeId) => accessibleEmployeeIds.has(employeeId))
+  }
+  if (scopedEmployeeIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('continuous_appraisal_items')
+    .select('id,employee_id,item_type,title,due_on,next_meeting_on,item_status')
+    .eq('tenant_id', context.tenantId)
+    .in('employee_id', scopedEmployeeIds)
+    .is('deleted_at', null)
+    .order('occurred_on', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(5000)
+  if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+  return data ?? []
 }
 
 export async function listContinuousAppraisalWorkspace(targetEmployeeId: string, query: ContinuousAppraisalListQuery = {}): Promise<ContinuousAppraisalWorkspace> {

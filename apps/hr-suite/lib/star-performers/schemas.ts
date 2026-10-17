@@ -13,11 +13,13 @@ export const starPerformerQuerySchema = z.object({
 
 export const starPerformerWorkspaceQuerySchema = z.object({
   perspective: z.enum(['top-talent', 'key-employees']).default('top-talent'),
-  area: z.enum(['overview', 'employees', 'key-roles', 'development']).default('overview'),
+  area: z.enum(['overview', 'employees', 'key-roles', 'development', 'insights']).default('overview'),
+  insight: z.enum(['top-talent', 'key-employees', 'skills', 'development']).default('top-talent'),
   q: z.string().trim().max(100).default(''),
   departmentId: databaseUuidSchema.optional(),
   jobId: databaseUuidSchema.optional(),
   jobGroupId: databaseUuidSchema.optional(),
+  period: databaseUuidSchema.optional(),
   status: z.enum(['all', 'high-high', 'assessed', 'not-assessed']).default('all'),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
@@ -51,6 +53,7 @@ export const starPerformerAssessmentSchema = z.object({
 
 export type StarPerformerQuery = z.infer<typeof starPerformerQuerySchema>
 export type StarPerformerWorkspaceQuery = z.infer<typeof starPerformerWorkspaceQuerySchema>
+export type StarPerformerInsightArea = StarPerformerWorkspaceQuery['insight']
 export type StarPerformerTagCreateInput = z.infer<typeof starPerformerTagCreateSchema>
 export type StarPerformerTagUpdateInput = z.infer<typeof starPerformerTagUpdateSchema>
 export type StarPerformerAssessmentInput = z.infer<typeof starPerformerAssessmentSchema>
