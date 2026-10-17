@@ -3,6 +3,10 @@
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-17 (historische acceptance-evidence blijft ongewijzigd)
 
+## Blijvende productregel (besluit 2026-10-17)
+
+Voor alle modules is TEST uitsluitend een omgeving en gegevensherkomst. De klantworkflow, productrechten en klantgerichte inhoud blijven gelijk aan Production; technische TEST-blokkades gelden voor externe acties in de omgeving/distributielaag. Interne herkomst blijft aantoonbaar in audit/provenance en wordt niet als TEST-label in normale schermen of documenten getoond. Zie de leidende [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md); deze regel verandert historische acceptance-verdicts niet.
+
 ## PAYRUN-03 — volledige HR Admin-maandverwerking — lokaal — 2026-10-17
 
 - Status: **LOCAL CODE GREEN / BROWSER ACCEPTANCE BLOCKED BY ENVIRONMENT** op branch work/PAYRUN-03-20261017, aparte worktree PAYRUN-03-20261017, basis 7acf8c6a12797c2bb1880c8c187002a01561b826; origin/main read-only gecontroleerd op 0708d25190562e43a96417ba406648fd04207266. Geen merge, push, deployment, remote DB-write of wijziging van een definitieve run.

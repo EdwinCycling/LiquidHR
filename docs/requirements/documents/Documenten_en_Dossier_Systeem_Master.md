@@ -6,6 +6,8 @@ Dit document is de leidende vertaling van `C:\Users\Edwin\Downloads\documenten.m
 2. bedrijfsdocumenten zonder mappen;
 3. loonstroken met een eigen autorisatiemodel en eigen tab.
 
+Documenten volgen [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md): een loonstrook, export of klantdocument krijgt geen TEST-/fixturewatermerk of disclaimer enkel vanwege de omgeving. Werkelijke documentstatus, waaronder Concept wanneer van toepassing, blijft zichtbaar. Omgevings- en gegevensherkomst blijven intern auditbaar; TEST-distributie en externe afleveracties worden door de omgeving/distributielaag geblokkeerd.
+
 ## 1. Medewerkersdossier
 
 Het dossier is beschikbaar op de medewerkerkaart onder **Documenten**. Documenten zijn gekoppeld aan één medewerker en één platte documentcategorie. HR-beheer maakt, hernoemt, activeert en deactiveert categorieën via **Stamtabellen**. Een categorie mag alleen definitief worden verwijderd wanneer er binnen de volledige tenant geen document meer aan gekoppeld is. De server controleert dit expliciet en de UI toont bij blokkade dat de categorie eerst bij alle medewerkers moet worden leeggemaakt.

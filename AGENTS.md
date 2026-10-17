@@ -5,8 +5,10 @@ Motto: **It takes a genius to keep it simple.**
 ## Start en instructieprioriteit
 
 - Lees dit bestand vóór wijzigingen. Lees daarna de concrete opdracht en de actuele kop van [`docs/AA/AA-CURRENT.md`](docs/AA/AA-CURRENT.md); gebruik [`docs/AA/AA-README.md`](docs/AA/AA-README.md) als router.
+- Volg voor alle productmodules [`docs/architecture/PRODUCT_ENVIRONMENT_PARITY.md`](docs/architecture/PRODUCT_ENVIRONMENT_PARITY.md): TEST is omgevings- en herkomstinformatie, geen afwijkende productfunctionaliteit. Normale klantflows, rechten en presentatie blijven gelijk; technische TEST-beperkingen horen in de omgeving en distributielaag.
 - Lees alleen toepasselijke AA-secties en requirements/ADR's van het geraakte domein. Laad `docs/README.md`, `docs/delivery/CURRENT_CONTEXT.md`, `docs/delivery/IMPLEMENTATION_STATUS.md` en historische rapporten niet volledig tenzij de concrete taak die inhoud nodig heeft. Zoek gericht op onderwerp, datum, route of evidence-ID.
 - Bij conflict geldt: (1) actuele expliciete opdracht en mandaat; (2) niet-onderhandelbare privacy-, security- en data-integriteitsgrenzen; (3) dit operationele contract; (4) toepasselijke AA-documenten; (5) goedgekeurde domeinrequirements/architectuur; (6) historische rapporten uitsluitend als bewijs/context. Herstel een conflict op de juiste plek.
+- Voor een conflict over TEST/Production-productwerking is `docs/architecture/PRODUCT_ENVIRONMENT_PARITY.md` de bindende productregel en gaat die vóór oudere domeinontwerpen; herstel de strijdige instructie op de plek waar die ontstond.
 
 ## Uitvoeringsmandaat
 
@@ -49,6 +51,7 @@ Motto: **It takes a genius to keep it simple.**
 - Gebruik Engelse database-entiteiten en identifiers; Nederlandse, i18n-klare comments, documentatie, zichtbare tekst en fouten. Nederlands (`nl`) is standaard; NL en EN hebben dezelfde keys. Voeg een taal als volledige namespace-set toe onder `apps/hr-suite/messages/<taalcode>/`.
 - Na een schemawijziging: relevante Supabase advisors controleren en `packages/db/types.ts` genereren/verifiëren. Migrations zijn forward-only; herschrijf geen historische migratieregistratie. Test kritieke autorisatie- en salarislogica test-first.
 - Payroll behoudt exacte decimalen, wettelijke afrondingsstappen, versionering, immutable history en bron-/resultaatprovenance; raadpleeg `AA-PAYROLL.md` voor de volledige domeingates.
+- Klantgerichte schermen en documenten tonen geen technische test-, fixture- of herkomstlabels enkel vanwege de omgeving. Leg omgevings- en gegevensherkomst intern vast in audit/provenance; normale handelingen lopen via reguliere productservices en rechten.
 - `apps/hr-suite` gebruikt UX Foundation v1. Hergebruik bestaande primitives/patterns/layouts; plaats generieke componenten respectievelijk in `components/ui`, `components/patterns` en `components/layout`, domeincomponenten in hun featuremap. Rapporteer een ontbrekende gedeelde component als `FOUNDATION_GAP` in plaats van een lokale kopie te bouwen.
 - UI gebruikt Tailwind v4, Foundation CSS-variabelen, Lucide voor standaardiconen en toegankelijke `focus-visible`-states. Geen hardcoded hex, willekeurige radius/shadow/gradient of standaard hover-lift. Surfaces zijn vlak met semantische border/radius zonder standaard shadow; voorkom card-on-card.
 - Behoud `/employees` als lijst-/workbenchreferentie en Employee Detail met `DetailColumns` (ongeveer 2/3 inhoud, 1/3 aside). Closed value lists gebruiken een toegankelijke doorzoekbare keuzecomponent met zichtbare selectie; beheerstamdata is lijst-eerst met zoeken/filter/sort, klikrij en modal bewaren/annuleren; archiveren is een expliciete modalactie.

@@ -6,6 +6,10 @@
 **Scope:** alleen onderzoek, contractvastlegging en architectuur-readiness.
 **Geen:** P2-code, migration, Supabase-write, deployment, Nmbrs employee-call, employee/employment-read of -write in de huidige run.
 
+## Productflow en omgeving
+
+Dit readinessplan beschrijft een specifieke Nmbrs-integratie- en testscenario; de lege Test BV-fixture en de technische preconditions zijn geen reguliere Payroll-klantworkflow. Productbediening blijft gelijk per omgeving volgens [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md). Fixturedata of interne claims mogen alleen acceptatie/provisioning ondersteunen.
+
 ## Eindstatus
 
 **PAYROLL P2 READINESS: READY WITH LIVE VALIDATION**

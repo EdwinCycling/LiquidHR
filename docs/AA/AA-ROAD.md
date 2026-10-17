@@ -1,9 +1,11 @@
 # AA-ROAD — Long-Term Product Roadmap
 
 Status: **STRATEGISCH / LIVING**
-Bijgewerkt: 2026-10-13 (alleen Core/PERF-prioriteiten)
+Bijgewerkt: 2026-10-17 (productregel bijgewerkt; Core/PERF-prioriteiten ongewijzigd)
 
 De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
+
+**Productregel voor alle horizons:** elke module gebruikt dezelfde productwerking en normale gebruikersflow in TEST en Production. Alleen omgeving, gegevensherkomst en externe veiligheidsgrenzen verschillen. Nieuwe en bestaande productrequirements volgen [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md); dit is van toepassing op Core HR, Talent, Payroll, Pensioen, Documenten, ESS/MSS, AI en toekomstige modules.
 
 **Core-productbesluit 2026-10-13:** rond PERF01-B2 (CONTROLLED server-side medewerkerpagination) eerst af. Daarna volgt **WVP01**, vervolgens **INS02**. Dashboardoptimalisaties zijn op synthetische TEST geïntegreerd; AI on-demand bestaat al, maar zonder gekwantificeerde winst. De AI-, Payroll- en Nmbrs-roadmaps worden in andere threads bijgewerkt.
 

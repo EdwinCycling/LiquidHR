@@ -9,6 +9,8 @@ Scope: **Blok 1 t/m Blok 4; Employees en Employee Detail zijn reference implemen
 
 Dit document is vanaf 2026-08-20 de leidende algemene UX- en stylingfoundation voor de LiquidHR HR Suite. Het vervangt conflicterende suitebrede richting uit oudere conceptdocumenten. Historische ontwerpdocumenten blijven bewaard als context; bestaande schermen adopteren nieuwe patronen later, per gecontroleerde slice.
 
+**Omgevingspariteit:** TEST en Production gebruiken dezelfde klantgerichte UI en normale productflow. Toon geen ontwikkel-, fixture-, synthetische of TEST-herkomstlabels enkel vanwege de omgeving. Functionele statussen zoals Concept blijven wel zichtbaar; interne herkomst hoort in audit/provenance. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
+
 ## 0.2 Blok 4 afgerond — governance
 
 | Blok | Status |

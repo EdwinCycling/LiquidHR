@@ -11,6 +11,8 @@ Hoofdstuk 13 hieronder blijft de gezaghebbende vaststelling van de oorspronkelij
 
 Dit document legt de structurele product-, architectuur- en ontwikkelafspraken voor LiquidHR Payroll vast. Detailrequirements, fiscale bronbestanden en gedateerde acceptance evidence blijven elders staan.
 
+Voor alle Payroll- en pensioenflows geldt daarnaast de leidende [regel voor productwerking per omgeving](../architecture/PRODUCT_ENVIRONMENT_PARITY.md). Productbediening en presentatie zijn niet TEST-specifiek; interne dataherkomst, wettelijke onderbouwing en externe-actiesafety blijven afzonderlijk aantoonbaar.
+
 ## 1. Productgrens
 
 Payroll is onderdeel van dezelfde LiquidHR-app en dezelfde repository.
@@ -21,6 +23,8 @@ Payroll is onderdeel van dezelfde LiquidHR-app en dezelfde repository.
 - PAYLAB04 maakt de tegels `Berekeningen` en `Salariscomponenten` functioneel; toekomstige functies zoals `Cao's en regelingen`, `Controles` en `Historie` worden later als venster toegevoegd wanneer ze echt werken.
 - Payroll gebruikt dezelfde app-shell, styles, tokens, componenten, responsive patterns, i18n en authorization-aware UI-patronen als de rest van LiquidHR.
 - Er komt geen afzonderlijk Payroll design system of losse gebruikersapp voor deze productlijn.
+- Core-pensioeninrichting en toepasselijke werknemerskoppeling volgen de normale beheerflow; requirements staan in [PAYPENS01](../requirements/payroll/PAYPENS01-CORE-PENSION-PRODUCT-DESIGN.md).
+- TEST beperkt geen reguliere Payroll- of pensioenfunctionaliteit. Klantinrichting, berekenen, controleren, herberekenen, finaliseren en documentproductie volgen dezelfde productservices en normale rechten in iedere omgeving; externe acties worden op omgevings-/distributieniveau geblokkeerd waar nodig.
 
 Technische isolatie blijft wel expliciet:
 
@@ -182,11 +186,12 @@ Voor dezelfde fixture + engine/rule/inputversie moeten minimaal stabiel zijn:
 
 Een nieuwe run mag een nieuwe run-id/timestamp hebben.
 
-## 8. Payroll development mode
+## 8. Productwerking en development mode
 
-Zolang Payroll uitsluitend intern/test is:
+De productworkflow is gelijk in TEST en Production. De huidige technische/legal-readinessstatus wordt apart beoordeeld en mag niet worden verward met een TEST-only productvariant. Voor intern ontwikkelen en accepteren:
 
-- synthetische testdata is toegestaan;
+- is gecontroleerde synthetische testdata toegestaan; de data staat via de normale productservices in de normale administratiecontext;
+- blijven fixture- en provisioningsflows afgeschermde interne hulpmiddelen en geen vereiste klantstap;
 - zichtbare verticale slices krijgen voorrang boven langdurige tussenarchitectuur zonder payrollresultaat;
 - niet-kritieke issues mogen als `KNOWN ISSUE / LATER CHECK` worden geregistreerd;
 - werkcyclus: implementeren → targeted test → onafhankelijke review waar nuttig → fix → retest → verder;
@@ -268,6 +273,8 @@ Later als werkende overzichtstegels:
 ```
 
 **Geen afzonderlijke Payroll-submenu's in de sidebar.** Onderliggende routes mogen bestaan achter de overzichtstegels; voeg een terugnavigatie naar Payroll Lab toe en behoud bestaande berekeningsflows en backward compatibility waar nodig. Toon geen niet-functionele navigatie-acties. Dezelfde server-side autorisatie- en NL/EN-i18n-patronen gelden voor overzicht en bestemmingen.
+
+Gebruik in normale schermen en klantdocumenten geen TEST-, fixture-, demo- of synthetische labels enkel vanwege de omgeving. Een conceptstatus blijft wel zichtbaar wanneer de document- of runstatus daadwerkelijk CONCEPT is. Interne provenance wordt auditbaar opgeslagen, niet in de klantpresentatie.
 
 ## 11. Bewezen M0-baseline
 
@@ -524,7 +531,7 @@ Deze status wijzigt niets aan de toekomstige invarianten: geen automatische empl
 
 De pro-formamodule wordt geen tweede engine of parallelle bronadministratie. Een scenario is een immutable canonical baseline + gestructureerde tijdelijke delta's + versiegebonden rule-/cao-/bedrijfspakketcompositie. Berekening loopt via dezelfde Payroll Component Graph Engine in een strict `SIMULATION` context, **zonder** echte HR/Payroll-writes, betaling, aangifte, journaalpost of wijziging van productiecumulatieven.
 
-HR Admin kan eerst een synthetische werknemer gebruiken; pas na live Core-sourceacceptatie en server-side salary-permissions een bestaande medewerker kopiëren. Medewerkers zien alleen de eigen toegestane gegevens en houden hun simulaties privé totdat ze bewust delen. Bied alleen scenario's aan waarvoor de betrokken componenten, wettelijke regels en cao-behandeling daadwerkelijk getest en ondersteund zijn; geen onjuiste ziekengeld-, pensioen-, werkgeverskosten- of netto-uitkomst verzinnen.
+What-if-scenario's mogen een expliciet fictieve invoer gebruiken als normale simulatie-inhoud, maar vereisen geen synthetisch medewerkerstype of TEST-only route. Bestaande medewerkers zijn alleen via de normale server-side bron- en salarisrechten toegankelijk. Medewerkers zien alleen de eigen toegestane gegevens en houden hun simulaties privé totdat ze bewust delen. Bied alleen scenario's aan waarvoor de betrokken componenten, wettelijke regels en cao-behandeling daadwerkelijk getest en ondersteund zijn; geen onjuiste ziekengeld-, pensioen-, werkgeverskosten- of netto-uitkomst verzinnen.
 
 Netto-naar-bruto is een **bounded inverse search over de bestaande forward engine**, geen eigen belastingformule. Definieer doelnetto, zoekvariabele, brutoband/salarisstap en overige bevroren arbeidsvoorwaarden expliciet. Houd rekening met discontinuïteiten, loonbelastingtabelstappen, afronding en mogelijk onbereikbare exacte nettodoelen; rapporteer controleerbaar doelbereik of dichtstbijzijnde uitkomst.
 
@@ -540,6 +547,8 @@ Jaaropgaaf gebruikt **loonstaat-/jaaraggregatie** en correcte werkgever-, dienst
 
 Navigatie: pas zodra functioneel de tegel `Loonstroken & Jaaropgaven` onder het enkele `Payroll Lab`-overzicht; medewerker ziet PDF's onder eigen ESS-ingang. De toekomstige eenvoudige salaris-cockpit is een **apart uit te werken** productonderdeel. Geen extra Payroll-sidebar-item.
 
+Dezelfde professionele PDF-inhoud, bedragen, werkgevergegevens en layout gelden lokaal, op TEST en in Production. Voeg geen TEST-/fixturewatermerk of disclaimer toe enkel op grond van de omgeving. Toon de echte documentstatus, bijvoorbeeld Concept, en behoud bronversies, hashes, controles, immutable historie en audittrail. Interne herkomst en beperkingen worden in gecontroleerde audit- en acceptatiedocumentatie vastgelegd. TEST houdt aangifte, SEPA, externe distributie en productie-integraties tegen in de omgeving-/distributielaag; een technisch TEST-document mag buiten de gecontroleerde omgeving niet als authentiek betaaldocument worden uitgegeven.
+
 Details en gefaseerde acceptatie: [PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER](../requirements/payroll/PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER.md). Huidige PAYLAB03-jaar- en premiegegevens zijn onvoldoende voor een echte, wettelijk volledige jaaropgaaf; geen premature uitgifteclaim.
 
 ## 19. Salary/tax payments — separate payment orchestration (planned)
@@ -547,6 +556,8 @@ Details en gefaseerde acceptatie: [PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNE
 Geen eigen payroll-/belastinggeld door LiquidHR laten lopen. De engine maakt immutable gefinaliseerde resultaten; `PayableProjection` bepaalt het daadwerkelijk verschuldigde bedrag en is bewust onderscheiden van `NET_WAGE`. Een aparte, streng gescopeerde payment domain layer maakt `PaymentInstruction`, `PaymentOrder/Batch`, `PaymentAttempt/ExportArtifact`, status-/reconciliationevents, en later afzonderlijke `TaxPaymentObligation` en `RecoveryCase`. Renderer/bankexport rekent niet opnieuw.
 
 Betalingsgoedkeuring staat los van HR-/payrollrollen en payrollfinalisatie. Batchinhoud/IBAN/bedrag/datum wordt bij goedkeuring vastgezet met immutable hash; inhoudelijke wijziging vereist nieuwe revisie en goedkeuring. Download betekent alleen EXPORTED, API-submission alleen submitted/accepted wanneer bevestigd; nooit SETTLED zonder betrouwbare reconciliatie/verklaring. UNKNOWN status is veilig af te handelen vóór fallback om dubbele salarisbetaling te voorkomen.
+
+In TEST worden payment instructions en externe submission fail-closed geblokkeerd door environment-aware orchestration; de klantworkflow en documentpresentatie blijven hetzelfde. Maak geen klantgerichte TEST-labels om een uitgeschakelde externe actie te vervangen.
 
 Eerste kanaal: versie-/bankprofielgebonden, volledig gevalideerde SEPA Credit Transfer XML-export. Later optionele bank-/PSP-adapter die een batch klaarzet voor bankautorisatie bij de klant. Behoud altijd gecontroleerde SEPA-fallback; directe koppeling introduceert geen eigen betaalinstellingsclaims. EU SCT rulebook en EPC customer-to-PSP IG op uitvoerdatum opnieuw verifiëren, inclusief name/IBAN-check (VOP) die door bank/PSP wordt uitgevoerd.
 

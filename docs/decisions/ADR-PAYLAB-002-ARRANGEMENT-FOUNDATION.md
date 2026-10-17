@@ -19,6 +19,7 @@ Administration availability has an effective start and optional inclusive end da
 - Keep assignment, availability and snapshot IDs separate from Core employee/employment foreign keys. Fixture employment IDs are synthetic identifiers only.
 - Use the shared searchable `DropdownSelect` and `TextInput` controls. All visible copy lives in matching NL/EN navigation messages.
 - Preserve exact Core QA findings from [AA-PAYROLL §13](../AA/AA-PAYROLL.md), including Planeten → Jupiter BV → Directie. They inform a later read-only benchmark phase and do not authorize Core access in Phase 1.
+- The three-fixture Phase 1 boundary applies only to this internal Payroll Lab benchmark. It does not constrain normal customer pension setup in Core, require fixture identities/claims for pension administration, or define a separate customer workflow. Follow [PAYPENS01](../requirements/payroll/PAYPENS01-CORE-PENSION-PRODUCT-DESIGN.md) and [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md) for customer product requirements.
 
 ## Consequences
 

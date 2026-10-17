@@ -13,6 +13,7 @@ Dit document bevat alleen fundamentele product- en architectuurregels. Detailreq
 - Een administratie behoort tot precies één HR-groep en wordt niet stilzwijgend tussen groepen verplaatst.
 - Server-side contextvalidatie is leidend; querystrings, cookies en clientstate zijn nooit zelfstandig bewijs van autorisatie.
 - Control Plane is een gesloten leveranciersapplicatie en geen klantmodule.
+- TEST is een omgeving en gegevensherkomst, geen andere set productmogelijkheden: normale producthandelingen zijn via dezelfde gebruikersworkflow en autorisaties beschikbaar. De volledige regel en acceptatiecriteria staan in [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
 
 Leidend detail:
 - `docs/requirements/multitenancy/`
@@ -44,6 +45,7 @@ Leidend detail:
 - RLS, grants en RPC-autorisatie worden als defense in depth gebruikt.
 - Cross-tenant, cross-group en out-of-scope subjecttoegang moeten fail-closed zijn.
 - Beveiligde identificerende gegevens worden niet onnodig gelogd of in testfixtures opgenomen.
+- Omgevings- en gegevensherkomst zijn interne audit/provenance; toon die niet als technische teststatus in klantgerichte schermen of documenten.
 - BSN wordt volgens de bestaande beveiligde identifier/fingerprintarchitectuur behandeld; geen plaintext BSN in importstaging.
 - Secrets, tokens, wachtwoorden en `.env.local`-inhoud komen nooit in logs, prompts, screenshots, commits of documentatie.
 
@@ -70,6 +72,7 @@ Leidend detail:
 - Loading-, error-, empty-, validation- en permissionstates horen bij de feature, niet bij een latere polishronde.
 - Responsive gedrag wordt passend bij het scherm getest.
 - Toegankelijke labels, focusgedrag en toetsenbordbediening blijven onderdeel van UI-acceptatie.
+- Verberg geen normale producthandeling achter fixtureclaims, ontwikkelrollen of een TEST-only route. Interne provisioning blijft afgeschermd en staat los van de productflow.
 
 Leidend detail:
 - `docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`

@@ -35,6 +35,20 @@ Test **risicogestuurd en bounded**.
 
 Een full suite is geen ritueel. Gebruik hem waar het bewijs toevoegt.
 
+### Omgevingspariteit als productacceptatie
+
+Volg voor iedere module [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md). Acceptance voor een klantfeature gebruikt de normale productroute, normale HR Admin/Payroll/Manager/Employee-rechten en gewone instellingen met gecontroleerde TEST-gegevens. Een interne fixture- of provisioningsstap kan data voorbereiden, maar geldt niet als bewijs dat de feature alleen op die route kan werken.
+
+Neem waar van toepassing deze regressieasserties op:
+
+- dezelfde productcode en workflow zijn bruikbaar in TEST en Production;
+- normale schermen, exports en documenten lekken geen interne omgevings-, synthetische of fixtureherkomst;
+- reguliere serverautorisatie, audit, hashes, controles en statuslifecycle blijven gelden;
+- TEST weigert aangiften, SEPA-betalingen, externe loonstrookdistributie en productie-integraties op de omgevings-/distributiegrens;
+- klantinrichting kan via de normale productinstellingen worden beheerd; opgegeven waarden worden niet stilzwijgend als juridisch gevalideerd gepresenteerd.
+
+Een berekening kan technisch slagen zonder wettelijke compliance te bewijzen. Controleer technische uitkomst, juridische onderbouwing en productiegeschiktheid als afzonderlijke claims.
+
 Praktische regel:
 - tijdens bouwen: targeted;
 - bij een defect: defecttest + relevante regressie;

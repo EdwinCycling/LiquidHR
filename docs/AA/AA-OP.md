@@ -10,6 +10,7 @@ Codex mag zelfstandig:
 - een concreet defect reproduceren, de oorzaak vaststellen, in scope repareren en gericht hertesten;
 - tests toevoegen en passende typecheck-, lint-, build- of browserchecks uitvoeren;
 - bestaande synthetische TEST-fixtures lezen/gebruiken binnen expliciet toegestane scope;
+- productgedrag en acceptatie afstemmen op [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md): normale flows gebruiken reguliere services/rechten, terwijl fixture-provisioning uitsluitend intern hulpmiddel blijft;
 - alleen expliciet geselecteerde eigen wijzigingen committen en een Draft PR openen indien de bestaande workflow dat vereist;
 - een merge-/releaseworkflow uitvoeren wanneer de **oorspronkelijke opdracht** dat expliciet autoriseert.
 

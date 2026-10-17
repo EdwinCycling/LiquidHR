@@ -2,6 +2,8 @@
 
 **Status: TEST deployment READY; hosted anonymous protocol and negative-security checks passed. Authenticated Employee reads, audit/limiter readback after a real call, and Edwin's personal ChatGPT connection remain open.**
 
+**Scope clarification (2026-10-17):** This document governs a private TEST-only connector/protocol experiment for one existing ChatGPT account. It is not the product specification for normal LiquidHR Workforce/AI customer workflows. Keep its endpoint, consent configuration and limiter scoped to that controlled experiment; any customer AI capability uses the ordinary services, roles and workflow in every environment under [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md). The historical acceptance status below is unchanged.
+
 ## Doel en begrenzing
 
 APIAI-07 biedt Edwin's bestaande ChatGPT Plus-account een private, read-only Remote MCP-koppeling naar uitsluitend de synthetische LiquidHR TEST-omgeving. Edwin bevestigde dat zijn account-UI custom MCP-configuratie biedt en dat Supabase-projectref `wnpfloqpjvaacobppbpk` de synthetische TEST is, ondanks de dashboardlabel “main Production”. Het bestaande Vercel-project `liquidhr` gebruikt de Production-target als gezamenlijke TEST-omgeving.

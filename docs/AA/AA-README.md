@@ -18,6 +18,7 @@ Status: **LEIDEND** · levende afspraken worden in deze bestaande documenten bij
 | [`AA-REQ.md`](AA-REQ.md) | Fundamentele product-, data-, security- en architectuurinvarianten |
 | [`AA-PAYROLL.md`](AA-PAYROLL.md) | Payrollbounded context, precisie, wettelijke regels, provenance en gates |
 | [`AA-ROAD.md`](AA-ROAD.md) | Langetermijnproductrichting |
+| [`../architecture/PRODUCT_ENVIRONMENT_PARITY.md`](../architecture/PRODUCT_ENVIRONMENT_PARITY.md) | Bindende productregel voor gelijke werking per omgeving, klantpresentatie, interne herkomst en TEST-veiligheidsgrenzen |
 | `docs/requirements/`, ADR/FDR en domeindocumenten | Alleen requirements en architectuur die de feitelijke wijziging raakt |
 
 ## Standaard leesroute
@@ -38,6 +39,7 @@ De AA-CURRENT-startcontext blijft compact. Een nieuwe taak hoeft niet standaard 
 | Toolkit-/proceswijziging | `AGENTS.md`, `AA-OP.md`, `AA-TEST.md`, `AA-REL.md` voor integratie, de toolkitbestanden en relevante tests |
 | Auth, security, tenant, schema of RLS | Bovenstaande plus relevante delen van `AA-REQ.md`, toepasselijke domeinrequirements/ADR en exacte bestaande acceptance-evidence |
 | Payroll | Alleen voor zover geraakt `AA-PAYROLL.md`, `AA-OP.md`, `AA-TEST.md` en relevante Payroll-requirements/evidence |
+| Productflow of omgeving-/herkomstverschil | `PRODUCT_ENVIRONMENT_PARITY.md`, `AA-REQ.md`, `AA-TEST.md` en de geraakte domeinrequirement |
 | Merge/release/deployment | `AA-OP.md`, `AA-TEST.md`, `AA-REL.md`, actuele `AA-CURRENT.md`; alleen relevante rijen uit `AA-ACCEPT.md`/`AA-OPEN.md` en het exacte runrapport |
 | Roadmapbesluit | `AA-NEXT.md`, relevante `AA-ROAD.md`-sectie en alleen de benodigde `AA-CURRENT.md`/`AA-OPEN.md`-status |
 
@@ -49,7 +51,7 @@ Voor lokale TEST-runtime of geïsoleerde Vercel Preview: raadpleeg gericht [`doc
 2. Niet-onderhandelbare privacy-, security- en data-integriteitsgrenzen.
 3. `AGENTS.md` als operationeel contract.
 4. Alleen de toepasselijke uitvoeringsregels uit `AA-OP.md`, `AA-TEST.md`, `AA-REL.md` en eventueel `AA-PAYROLL.md`.
-5. Goedgekeurde domeinrequirements en architectuur.
+5. Goedgekeurde domeinrequirements en architectuur; bij een TEST/Production-productconflict is [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md) leidend boven oudere domeinspecificaties.
 6. Historische acceptance-/deliveryrapporten als bewijs of context, nooit als actuele werkinstructie zonder controle.
 
 Bij conflict: stel vast welk document verantwoordelijk is, herstel de afspraak daar en verwijder de tegenstrijdige instructie waar die ontstond. Verander geen historische verdicts retroactief. Een aanname of implementatieclaim wordt niet stilzwijgend `GETEST`, `GREEN` of `RELEASED`.
