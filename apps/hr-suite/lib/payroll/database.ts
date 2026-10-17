@@ -383,8 +383,23 @@ export type PayrollOpeningCumulativeSnapshotRow = AuditColumns & {
   as_of_date: string
   opening_balance_json: PayrollJson
   snapshot_hash: string
-  provenance_status: 'TEST_OPENING_BALANCE' | 'RECONSTRUCTED_PAYROLL'
+  provenance_status: 'TEST_OPENING_BALANCE' | 'RECONSTRUCTED_PAYROLL' | 'CUSTOMER_OPENING_BALANCE'
   provenance_source: string
+}
+
+export type PayrollEmployerConfigurationVersionRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  configuration_version: number
+  effective_from: string
+  effective_to: string | null
+  configuration_json: PayrollJson
+  configuration_hash: string
+  status: 'DRAFT' | 'ACTIVE'
+  source_reference: string
 }
 
 export type IndividualPayrollInputReferenceRow = AuditColumns & {
@@ -666,6 +681,11 @@ export interface PayrollDatabase {
       payroll_opening_cumulative_snapshots: PayrollTable<
         PayrollOpeningCumulativeSnapshotRow,
         Omit<PayrollOpeningCumulativeSnapshotRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
+      payroll_employer_configuration_versions: PayrollTable<
+        PayrollEmployerConfigurationVersionRow,
+        Omit<PayrollEmployerConfigurationVersionRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
         never
       >
       individual_payroll_input_references: PayrollTable<

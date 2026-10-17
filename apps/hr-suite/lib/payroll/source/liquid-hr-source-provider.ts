@@ -14,7 +14,11 @@ import {
   calculateNl2026PeriodSegments,
   encodeNl2026CompositeTimePeriod,
   prorateMonthlySalary,
+  calculatePension,
+  type PensionArrangementInput,
+  type PensionCalculationResult,
 } from '@liquid-hr/payroll-rules-nl-2026'
+import { sha256, stableSerialize } from '@liquid-hr/payroll-engine'
 import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { listEmployeeEmployments } from '@/lib/employment/employment-service'
 import {
@@ -30,6 +34,22 @@ import { isPayrollLabEnabled } from '../feature-flag'
 import { payrollScopeFromAuthContext } from '../scope'
 import { payrollSourceProviderInputSchema, payrollSourceSnapshotSchema } from './schemas'
 import { hashPayrollSourceSnapshot } from './snapshot-hash'
+import {
+  hashPayrollEmployerConfiguration,
+  isNewIncomeRelationshipWithoutOpening,
+  normalizePayrollEmployerConfiguration,
+  payrollEmployerConfigurationBlockers,
+  type PayrollEmployerConfiguration,
+} from '../payroll-setup'
+import {
+  createPayrollSetupRepository,
+  type PayrollSetupRepository,
+} from '../payroll-setup-repository'
+import type {
+  PayrollEmployerConfigurationVersionRow,
+  PayrollOpeningCumulativeSnapshotRow,
+} from '../database'
+import type { PayrollScope } from '../scope'
 
 type EmploymentRow = Database['public']['Tables']['employments']['Row']
 type SalaryRow = Database['public']['Tables']['employment_salaries']['Row']
@@ -122,6 +142,13 @@ export interface PayrollSourceTimeline {
   readonly laborConditionPensionArrangements?: EmploymentPayrollSourceProjection['laborConditionPensionArrangements']
 }
 
+export type PayrollSourceSetup = {
+  readonly configurationRows: readonly PayrollEmployerConfigurationVersionRow[]
+  readonly configurationRow: PayrollEmployerConfigurationVersionRow | null
+  readonly configuration: PayrollEmployerConfiguration | null
+  readonly openingBalance: PayrollOpeningCumulativeSnapshotRow | null
+}
+
 export interface PayrollSourceProviderDependencies {
   readonly authorize: (employeeId: string) => Promise<Pick<AuthContext, 'tenantId' | 'hrGroupId' | 'administrationId'>>
   readonly listEmployments: (employeeId: string) => Promise<readonly PayrollSourceEmployment[]>
@@ -131,6 +158,12 @@ export interface PayrollSourceProviderDependencies {
     payrollPeriod: PayrollSourceProviderInput['payrollPeriod'],
   ) => Promise<PayrollSourceTimeline>
   readonly loadActualWork: (employeeId: string, employmentId: string, month: string) => Promise<ActualWorkPayrollProjection>
+  readonly loadPayrollSetup?: (
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    sourceEmploymentId: string,
+    payrollPeriod: PayrollSourceProviderInput['payrollPeriod'],
+  ) => Promise<PayrollSourceSetup>
   readonly isEnabled: () => boolean
   readonly now?: () => Date
   readonly createId?: () => string
@@ -184,6 +217,21 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
     },
     loadActualWork: async (employeeId, employmentId, month) =>
       await getActualWorkPayrollProjection({ employeeId, employmentId, month }),
+    loadPayrollSetup: async (scope, payrollAdministrationId, sourceEmploymentId, payrollPeriod) => {
+      const repository = createPayrollSetupRepository()
+      const configurationRows = await repository.listEmployerConfigurations(scope, payrollAdministrationId)
+      const periodStart = `${payrollPeriod.year}-${String(payrollPeriod.month).padStart(2, '0')}-01`
+      const configurationRow = configurationRows.find((row) => row.status === 'ACTIVE'
+        && row.effective_from <= periodStart
+        && (row.effective_to === null || row.effective_to >= periodStart)) ?? null
+      const configuration = configurationRow && typeof configurationRow.configuration_json === 'object'
+        && configurationRow.configuration_json !== null && !Array.isArray(configurationRow.configuration_json)
+        ? normalizePayrollEmployerConfiguration(configurationRow.configuration_json as unknown as Parameters<typeof normalizePayrollEmployerConfiguration>[0])
+        : null
+      const openingRows = await repository.listOpeningCumulativeSnapshots(scope, payrollAdministrationId, sourceEmploymentId)
+      const openingBalance = openingRows.find((row) => row.as_of_date < periodStart) ?? null
+      return { configurationRows, configurationRow, configuration, openingBalance }
+    },
   }
 }
 
@@ -749,6 +797,287 @@ function resolveIncomeRelationship(
   return { selected, gap: null }
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+function monthlyAmountFromAnnual(value: number | null): string | null {
+  if (value === null || !Number.isFinite(value)) return null
+  try {
+    return FixedDecimal.parse(String(value)).divideToScale(FixedDecimal.parse('12'), 8, 'ARITHMETIC').round(2, 'HALF_UP').toString(2)
+  } catch {
+    return null
+  }
+}
+
+function pensionArrangementInput(
+  assignment: NonNullable<PayrollSourceTimeline['pensionAssignments']>[number],
+): PensionArrangementInput | null {
+  const arrangement = assignment.arrangement
+  if (!arrangement) return null
+  const contractClassification = arrangement.contract_classification === 'SOLIDARITY'
+    || arrangement.contract_classification === 'NON_SOLIDARITY'
+    ? arrangement.contract_classification : 'UNKNOWN'
+  return {
+    arrangementId: arrangement.id,
+    arrangementCode: arrangement.code,
+    arrangementVersion: arrangement.version_id ?? arrangement.source_updated_at ?? `CORE:${arrangement.id}`,
+    arrangementType: arrangement.arrangement_type === 'PROGRESSIVE_PREMIUM' ? 'PROGRESSIVE_PREMIUM' : 'FLAT_PREMIUM',
+    effectiveFrom: arrangement.effective_from,
+    arrangementEstablishedFrom: arrangement.arrangement_established_from,
+    effectiveTo: arrangement.effective_to,
+    transitionDate: arrangement.transition_date,
+    grandfatheringMode: arrangement.grandfathering_mode === 'EERBIEDIGENDE_WERKING' ? 'EERBIEDIGENDE_WERKING' : 'NONE',
+    flatTotalRate: arrangement.flat_total_rate === null ? null : String(arrangement.flat_total_rate),
+    employerSharePercent: String(arrangement.employer_share_pct),
+    employeeSharePercent: String(arrangement.employee_share_pct),
+    annualFranchise: String(arrangement.annual_franchise),
+    annualPensionableSalaryCap: arrangement.annual_pensionable_salary_cap === null
+      ? null : String(arrangement.annual_pensionable_salary_cap),
+    pensionableSalaryDefinition: asRecord(arrangement.pensionable_salary_definition) ?? {},
+    eligibilityRule: asRecord(arrangement.eligibility_rule) ?? {},
+    contractClassification,
+    contractClassificationProvenance: asRecord(arrangement.contract_classification_provenance) ?? {},
+    provenance: asRecord(arrangement.provenance_json) ?? {},
+    tiers: arrangement.tiers.map((tier) => ({
+      minAge: tier.min_age,
+      maxAge: tier.max_age,
+      totalRate: String(tier.total_rate),
+    })),
+  }
+}
+
+function calendarDayFactor(activeStart: string, activeEndExclusive: string, periodStart: string, periodEndExclusive: string): string {
+  if (activeStart <= periodStart && activeEndExclusive >= periodEndExclusive) return '1.0000'
+  const start = Math.max(Date.parse(`${activeStart}T00:00:00.000Z`), Date.parse(`${periodStart}T00:00:00.000Z`))
+  const end = Math.min(Date.parse(`${activeEndExclusive}T00:00:00.000Z`), Date.parse(`${periodEndExclusive}T00:00:00.000Z`))
+  const periodDays = (Date.parse(`${periodEndExclusive}T00:00:00.000Z`) - Date.parse(`${periodStart}T00:00:00.000Z`)) / 86_400_000
+  const paidDays = Math.max(0, (end - start) / 86_400_000)
+  if (!Number.isFinite(periodDays) || periodDays <= 0 || !Number.isFinite(paidDays) || paidDays <= 0) return '0.0000'
+  return FixedDecimal.parse(String(paidDays)).divideToScale(FixedDecimal.parse(String(periodDays)), 8, 'ARITHMETIC').round(4, 'HALF_UP').toString(4)
+}
+
+function openingCumulatives(row: PayrollOpeningCumulativeSnapshotRow | null): Record<string, string> | null {
+  if (!row || typeof row.opening_balance_json !== 'object' || row.opening_balance_json === null || Array.isArray(row.opening_balance_json)) return null
+  if (!/^[0-9a-f]{64}$/i.test(row.snapshot_hash)
+    || sha256(stableSerialize(row.opening_balance_json)) !== row.snapshot_hash) return null
+  const raw = row.opening_balance_json as Record<string, unknown>
+  const values = asRecord(raw.meaning) ?? asRecord(raw.cumulativeBalances) ?? raw
+  const keys = [
+    'grossWageBeforePeriod', 'holidayReserveBeforePeriod', 'yearEndReserveBeforePeriod',
+    'taxableWageBeforePeriod', 'wageTaxBeforePeriod', 'employeeInsuranceWageBeforePeriod', 'zvwWageBeforePeriod',
+  ] as const
+  const result: Record<string, string> = {}
+  for (const key of keys) {
+    if (typeof values[key] !== 'string' && typeof values[key] !== 'number') return null
+    try { result[key] = FixedDecimal.parse(String(values[key])).toString(2) } catch { return null }
+  }
+  return result
+}
+
+function actualPensionRate(totalRate: string | null, sharePercent: string): string | null {
+  if (!totalRate) return null
+  try {
+    return FixedDecimal.parse(totalRate).multiply(FixedDecimal.parse(sharePercent))
+      .divideToScale(FixedDecimal.parse('100'), 8, 'ARITHMETIC').toString(4)
+  } catch {
+    return null
+  }
+}
+
+function buildRegularPayrollOwned(input: {
+  readonly configuration: PayrollEmployerConfiguration | null
+  readonly configurationRow: PayrollEmployerConfigurationVersionRow | null
+  readonly openingBalance: PayrollOpeningCumulativeSnapshotRow | null
+  readonly configurationRows: readonly PayrollEmployerConfigurationVersionRow[]
+  readonly employmentStartsOn: string
+  readonly activeStart: string
+  readonly activeEndExclusive: string
+  readonly period: PayrollSourceProviderInput['payrollPeriod']
+  readonly periodStart: string
+  readonly periodEndExclusive: string
+  readonly regularWage: Record<string, string | boolean> | null
+  readonly schedule: PayrollSourceSchedule | undefined
+  readonly pensionAssignments: readonly NonNullable<PayrollSourceTimeline['pensionAssignments']>[number][]
+  readonly actualWorkSnapshot: ReturnType<typeof actualWorkForPeriod>
+  readonly sourceId: string
+  readonly coreSourceHash: string
+  readonly sourceGaps: PayrollSourceGap[]
+}): { readonly payrollOwned: Record<string, unknown> | null; readonly sourceGaps: readonly PayrollSourceGap[] } {
+  const gaps = input.sourceGaps
+  const configuration = input.configuration
+  if (!configuration || !input.configurationRow) {
+    gaps.push(makeGap('payrollConfiguration', 'SOURCE_GAP', input.configurationRows.length === 0
+      ? 'PAYROLL_EMPLOYER_CONFIGURATION_MISSING'
+      : 'PAYROLL_EMPLOYER_CONFIGURATION_NOT_ACTIVE'))
+  } else if (hashPayrollEmployerConfiguration(configuration) !== input.configurationRow.configuration_hash) {
+    gaps.push(makeGap('payrollConfiguration', 'UNSUPPORTED', 'PAYROLL_EMPLOYER_CONFIGURATION_HASH_INVALID'))
+  } else {
+    for (const blocker of payrollEmployerConfigurationBlockers(configuration)) {
+      gaps.push(makeGap('payrollConfiguration', 'SOURCE_GAP', `PAYROLL_CONFIGURATION_${blocker.code}`))
+    }
+  }
+
+  const isNewIncomeRelationship = isNewIncomeRelationshipWithoutOpening(input.employmentStartsOn, input.periodStart)
+  const opening = openingCumulatives(input.openingBalance)
+  if (!opening && !isNewIncomeRelationship) gaps.push(makeGap('openingCumulative', 'SOURCE_GAP', 'PAYROLL_OPENING_CUMULATIVE_MISSING'))
+  if (input.openingBalance && !opening) gaps.push(makeGap('openingCumulative', 'UNSUPPORTED', 'PAYROLL_OPENING_CUMULATIVE_INVALID'))
+
+  const actualWorkRecord = asRecord(input.actualWorkSnapshot.canonicalSource)
+  const actualEntries = Array.isArray(actualWorkRecord?.entries) ? actualWorkRecord.entries : []
+  if (actualEntries.some((entry) => asRecord(entry)?.family !== 'TRANSPARENT')) {
+    gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'PAYROLL_VARIABLE_WAGE_NOT_CONFIGURED'))
+  }
+
+  const assignment = input.pensionAssignments.length === 1 ? input.pensionAssignments[0] : undefined
+  if (!assignment) gaps.push(makeGap('pension', 'SOURCE_GAP', input.pensionAssignments.length === 0
+    ? 'NO_EFFECTIVE_PENSION_ASSIGNMENT' : 'PENSION_ASSIGNMENT_AMBIGUOUS'))
+  const arrangementInput = assignment ? pensionArrangementInput(assignment) : null
+  if (assignment && !arrangementInput) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_ARRANGEMENT_UNAVAILABLE'))
+  const method = configuration?.pension.partialMonthMethod ?? 'UNCONFIGURED'
+  const periodFactor = method === 'CALENDAR_DAYS_PRO_RATA'
+    ? calendarDayFactor(input.activeStart, input.activeEndExclusive, input.periodStart, input.periodEndExclusive)
+    : '1.0000'
+  const scheduleFactor = input.schedule?.part_time_factor
+  let effectivePartTimeFactor: string | null = null
+  if (scheduleFactor !== undefined) {
+    try {
+      effectivePartTimeFactor = FixedDecimal.parse(String(scheduleFactor)).multiply(FixedDecimal.parse(periodFactor)).toString(4)
+    } catch {
+      effectivePartTimeFactor = null
+    }
+  }
+  if (configuration && method === 'UNCONFIGURED') gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_PARTIAL_MONTH_METHOD_REQUIRED'))
+  if (!effectivePartTimeFactor) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_PART_TIME_FACTOR_MISSING'))
+
+  let pensionResult: PensionCalculationResult | null = null
+  if (arrangementInput && input.regularWage && effectivePartTimeFactor && assignment) {
+    pensionResult = calculatePension({
+      arrangement: arrangementInput,
+      period: input.period,
+      fullTimeMonthlyPensionableSalary: String(input.regularWage.fulltimeMonthlyAmount),
+      monthlyPayrollGross: String(input.regularWage.grossAmount),
+      partTimeFactor: effectivePartTimeFactor,
+      ageForTier: assignment.age_for_tier,
+      participationStartDate: assignment.participation_start_date,
+      sourceSnapshotId: input.sourceId,
+      sourceSnapshotHash: input.coreSourceHash,
+    })
+    if (pensionResult.status !== 'CALCULATED') gaps.push(makeGap('pension', 'SOURCE_GAP', pensionResult.reasonCode ?? 'PENSION_CALCULATION_BLOCKED'))
+  }
+
+  const cumulative = opening ?? {
+    grossWageBeforePeriod: '0.00',
+    holidayReserveBeforePeriod: '0.00',
+    yearEndReserveBeforePeriod: '0.00',
+    taxableWageBeforePeriod: '0.00',
+    wageTaxBeforePeriod: '0.00',
+    employeeInsuranceWageBeforePeriod: '0.00',
+    zvwWageBeforePeriod: '0.00',
+  }
+  if (configuration && configuration.reserves.yearEndApplies === true && !configuration.reserves.yearEndRate) {
+    gaps.push(makeGap('reserves', 'SOURCE_GAP', 'PAYROLL_CONFIGURATION_YEAR_END_RATE_REQUIRED'))
+  }
+  if (pensionResult?.status === 'CALCULATED' && configuration && input.configurationRow) {
+    const totalRate = arrangementInput?.flatTotalRate ?? null
+    const employeeRate = actualPensionRate(totalRate, arrangementInput?.employeeSharePercent ?? '')
+    const employerRate = actualPensionRate(totalRate, arrangementInput?.employerSharePercent ?? '')
+    if (!employeeRate || !employerRate) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_RATE_UNRESOLVED'))
+    const payrollOwned: Record<string, unknown> = {
+      configuration: {
+        schemaVersion: 'payroll-employer-configuration-v1',
+        configurationVersionId: input.configurationRow.id,
+        configurationVersion: input.configurationRow.configuration_version,
+        effectiveFrom: input.configurationRow.effective_from,
+        effectiveTo: input.configurationRow.effective_to,
+        configurationHash: input.configurationRow.configuration_hash,
+        sourceReference: input.configurationRow.source_reference,
+      },
+      amounts: {
+        variableRegularWage: '0.00',
+        specialRewardWage: '0.00',
+        netReimbursement: '0.00',
+        netDeduction: '0.00',
+        netCorrection: '0.00',
+        employeePension: pensionResult.employeePremiumMonthly,
+        employerPension: pensionResult.employerPremiumMonthly,
+      },
+      controls: {
+        sourceReady: gaps.length === 0,
+        employmentStartConsistent: true,
+        ikvUnambiguous: true,
+        salaryConsistent: input.regularWage !== null,
+        hoursConsistent: input.schedule !== undefined,
+        normalHoursNotDuplicated: actualEntries.length === 0,
+        additionalHoursSupported: actualEntries.length === 0,
+        sourceFresh: true,
+        compositionSupported: true,
+        pensionRuleReady: pensionResult.status === 'CALCULATED',
+        socialWageCapClear: true,
+        cumulativeContinuity: Boolean(opening) || isNewIncomeRelationship,
+        reservationContinuity: Boolean(opening) || isNewIncomeRelationship,
+        hashesConsistent: Boolean(input.configurationRow.configuration_hash)
+          && (Boolean(input.openingBalance) ? /^[0-9a-f]{64}$/i.test(input.openingBalance?.snapshot_hash ?? '') : isNewIncomeRelationship),
+        variableWageIsRegular: true,
+        specialRewardPensionable: false,
+        specialRewardIncludedInHolidayReserve: false,
+        specialRewardIncludedInYearEndReserve: false,
+        netReimbursementsTaxFree: true,
+        netDeductionsAuthorized: true,
+      },
+      fiscalBases: {
+        wageTax: pensionResult.fiscalBases.wageTax,
+        employeeInsurance: pensionResult.fiscalBases.employeeInsurance,
+        zvw: pensionResult.fiscalBases.zvw,
+      },
+      pension: {
+        planId: assignment?.arrangement?.id ?? null,
+        planCode: assignment?.arrangement?.code ?? null,
+        planVersion: arrangementInput?.arrangementVersion ?? null,
+        effectiveFrom: arrangementInput?.effectiveFrom ?? null,
+        effectiveTo: arrangementInput?.effectiveTo ?? null,
+        annualFranchise: arrangementInput?.annualFranchise ?? null,
+        monthlyFranchise: monthlyAmountFromAnnual(assignment?.arrangement?.annual_franchise ?? null),
+        annualPensionableMaximum: arrangementInput?.annualPensionableSalaryCap ?? null,
+        monthlyMaximum: monthlyAmountFromAnnual(assignment?.arrangement?.annual_pensionable_salary_cap ?? null),
+        partTimeFactor: effectivePartTimeFactor,
+        totalPremiumRate: arrangementInput?.flatTotalRate ?? null,
+        employeeSharePercent: arrangementInput?.employeeSharePercent ?? null,
+        employerSharePercent: arrangementInput?.employerSharePercent ?? null,
+        employeeRate,
+        employerRate,
+        active: assignment?.arrangement?.is_active === true,
+        partialMonthMethod: method,
+        periodFactor,
+        sourceReference: configuration.pension.methodSourceReference,
+        calculationStatus: pensionResult.status,
+        calculationTrace: pensionResult.trace,
+      },
+      employerRates: {
+        awf: configuration.employerRates.awf,
+        aof: configuration.employerRates.aof,
+        wko: configuration.employerRates.wko,
+        whk: configuration.employerRates.whk,
+        zvw: configuration.employerRates.zvw,
+      },
+      reserveRates: {
+        holidayAllowance: configuration.reserves.holidayAllowanceRate,
+        yearEnd: configuration.reserves.yearEndApplies ? configuration.reserves.yearEndRate : '0.00',
+      },
+      parameters: {
+        annualSocialWageMaximum: '79409.00',
+        parameterSetVersion: 'NL-2026-01',
+        sourceReference: 'Bestaande NL-2026 PAYFULL02-regelset; parameter blijft buiten werkgeversconfiguratie.',
+      },
+      cumulatives: cumulative,
+      actualWorkProjection: { cashCompensatedHours: '0.0000' },
+      taxProfile: { specialRewardAnnualWage: '0.00', specialRewardAnnualWageResolved: false },
+    }
+    return { payrollOwned, sourceGaps: gaps }
+  }
+  return { payrollOwned: null, sourceGaps: gaps }
+}
+
 export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
   private readonly dependencies: PayrollSourceProviderDependencies
 
@@ -856,7 +1185,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       activeEndExclusive,
     )
     const actualWorkSnapshot = actualWorkForPeriod(actualWork, bounds.start, bounds.endExclusive)
-    const sourceGaps = [
+    const sourceGaps: PayrollSourceGap[] = [
       ...sourceGapsFor(
         salaries,
         schedules,
@@ -878,6 +1207,19 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       incomeRelationship.selected?.incomeRelationshipId ?? null,
       fiscalProfile.canonical,
     )
+    let payrollSetup: PayrollSourceSetup | null = null
+    if (this.dependencies.loadPayrollSetup) {
+      try {
+        payrollSetup = await this.dependencies.loadPayrollSetup(
+          authorizedScope,
+          input.administrationId,
+          employment.id,
+          input.payrollPeriod,
+        )
+      } catch {
+        sourceGaps.push(makeGap('payrollConfiguration', 'SOURCE_GAP', 'PAYROLL_SETUP_SOURCE_UNAVAILABLE'))
+      }
+    }
     const sourceVersionVector = Object.fromEntries([
       [`employment:${employment.id}`, employment.updated_at],
       ...salaries.map((row) => [`employment_salary:${row.id}`, row.updated_at] as const),
@@ -929,6 +1271,14 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       ] : []),
       ...Object.entries(fiscalProfile.sourceVersionVector),
       ...Object.entries(actualWorkSnapshot.sourceVersionVector),
+      ...(payrollSetup?.configurationRow ? [[
+        `payroll_employer_configuration:${payrollSetup.configurationRow.id}`,
+        `${payrollSetup.configurationRow.configuration_version}:${payrollSetup.configurationRow.configuration_hash}`,
+      ] as const] : []),
+      ...(payrollSetup?.openingBalance ? [[
+        `payroll_opening_cumulative:${payrollSetup.openingBalance.id}`,
+        `${payrollSetup.openingBalance.snapshot_version}:${payrollSetup.openingBalance.snapshot_hash}`,
+      ] as const] : []),
     ])
 
     const pensionArrangementCanonical = (
@@ -966,7 +1316,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       })),
     })
 
-    const canonicalSource = {
+    const coreCanonicalSource = {
       schemaVersion: 'payroll-source-v4',
       employment: {
         startsOn: employment.starts_on,
@@ -1103,6 +1453,44 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       ...(regularWage ? { regularWage } : {}),
       actualWork: actualWorkSnapshot.canonicalSource,
     }
+    const coreHashInput = {
+      sourceTenantId: input.tenantId,
+      sourceHrGroupId: input.hrGroupId,
+      sourceAdministrationId: input.administrationId,
+      sourceEmployeeId: input.employeeId,
+      sourceEmploymentId: employment.id,
+      sourceIncomeRelationshipId: incomeRelationship.selected?.incomeRelationshipId ?? null,
+      periodReference: input.payrollPeriod,
+      canonicalSource: coreCanonicalSource,
+      sourceVersionVector,
+      sourceGaps,
+    }
+    const sourceId = (this.dependencies.createId ?? randomUUID)()
+    const regularPayroll = this.dependencies.loadPayrollSetup
+      ? buildRegularPayrollOwned({
+          configuration: payrollSetup?.configuration ?? null,
+          configurationRow: payrollSetup?.configurationRow ?? null,
+          openingBalance: payrollSetup?.openingBalance ?? null,
+          configurationRows: payrollSetup?.configurationRows ?? [],
+          employmentStartsOn: employment.starts_on,
+          activeStart,
+          activeEndExclusive,
+          period: input.payrollPeriod,
+          periodStart: bounds.start,
+          periodEndExclusive: bounds.endExclusive,
+          regularWage,
+          schedule: schedules.length === 1 ? schedules[0] : undefined,
+          pensionAssignments,
+          actualWorkSnapshot,
+          sourceId,
+          coreSourceHash: sha256(stableSerialize(coreHashInput)),
+          sourceGaps,
+        })
+      : { payrollOwned: null, sourceGaps }
+    const canonicalSource = {
+      ...coreCanonicalSource,
+      ...(regularPayroll.payrollOwned ? { payrollOwned: regularPayroll.payrollOwned } : {}),
+    } as PayrollSourceSnapshot['canonicalSource']
     const hashInput = {
       sourceTenantId: input.tenantId,
       sourceHrGroupId: input.hrGroupId,
@@ -1116,7 +1504,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       sourceGaps,
     }
     const snapshot = {
-      id: (this.dependencies.createId ?? randomUUID)(),
+      id: sourceId,
       ...hashInput,
       sourceHash: hashPayrollSourceSnapshot(hashInput),
       createdAt: (this.dependencies.now ?? (() => new Date()))().toISOString(),

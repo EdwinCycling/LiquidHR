@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const coreMigration = readFileSync(new URL('../../supabase/migrations/20261014091918_20261013150000_core_employment_payroll_tax_profiles.sql', import.meta.url), 'utf8')
 const payrollMigration = readFileSync(new URL('./supabase/migrations/20261014091926_20261013120000_paycalc_real01_generic_input_reference.sql', import.meta.url), 'utf8')
+const employerSetupMigration = readFileSync(new URL('./supabase/migrations/20261017135224_payroll_employer_setup.sql', import.meta.url), 'utf8')
 
 // These are business-data-free subsets of the actual Core TEST and Payroll Lab TEST
 // catalogs read on 2026-10-13. Composite keys and columns used by the two migrations
@@ -270,6 +271,65 @@ describe('Payroll migrations against the separate database schemas', () => {
       )
       expect(lifecycleDefinition.rows[0]?.definition).toContain("NEW.event_type = 'FINALIZED'")
       expect(lifecycleDefinition.rows[0]?.definition).toContain("NEW.event_type = 'REVIEWED'")
+    } finally {
+      await db.close()
+    }
+  })
+
+  it('applies the regular employer setup migration with immutable scope and customer opening provenance', async () => {
+    const db = new PGlite()
+    try {
+      await db.exec(`
+        CREATE ROLE anon;
+        CREATE ROLE authenticated;
+        CREATE ROLE service_role;
+        CREATE TABLE public.payroll_administrations (
+          id uuid PRIMARY KEY,
+          source_tenant_id uuid NOT NULL,
+          source_hr_group_id uuid NOT NULL,
+          source_administration_id uuid NOT NULL,
+          UNIQUE (id, source_tenant_id, source_hr_group_id, source_administration_id)
+        );
+        CREATE TABLE public.payroll_opening_cumulative_snapshots (
+          id uuid PRIMARY KEY,
+          payroll_administration_id uuid NOT NULL,
+          source_tenant_id uuid NOT NULL,
+          source_hr_group_id uuid NOT NULL,
+          source_administration_id uuid NOT NULL,
+          source_employment_id uuid NOT NULL,
+          snapshot_version integer NOT NULL,
+          as_of_date date NOT NULL,
+          opening_balance_json jsonb NOT NULL,
+          snapshot_hash text NOT NULL,
+          provenance_status text NOT NULL,
+          provenance_source text NOT NULL,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          created_by_user_id uuid NOT NULL,
+          CONSTRAINT payroll_opening_cumulative_snapshots_provenance_status_check
+            CHECK (provenance_status IN ('TEST_OPENING_BALANCE', 'RECONSTRUCTED_PAYROLL')),
+          CONSTRAINT payroll_opening_cumulative_scope_fk
+            FOREIGN KEY (payroll_administration_id, source_tenant_id, source_hr_group_id, source_administration_id)
+            REFERENCES public.payroll_administrations (id, source_tenant_id, source_hr_group_id, source_administration_id)
+        );
+      `)
+      await db.exec(employerSetupMigration)
+
+      const setupGuards = await db.query<{ relrowsecurity: boolean; policy_count: number; trigger_count: number }>(
+        `SELECT c.relrowsecurity,
+          (SELECT count(*)::integer FROM pg_policies WHERE schemaname = 'public' AND tablename = 'payroll_employer_configuration_versions') AS policy_count,
+          (SELECT count(*)::integer FROM pg_trigger WHERE tgrelid = c.oid AND NOT tgisinternal) AS trigger_count
+          FROM pg_class c WHERE c.oid = 'public.payroll_employer_configuration_versions'::regclass`,
+      )
+      expect(setupGuards.rows[0]).toEqual({ relrowsecurity: true, policy_count: 1, trigger_count: 2 })
+
+      const openingConstraint = await db.query<{ definition: string }>(
+        `SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint
+          WHERE conrelid = 'public.payroll_opening_cumulative_snapshots'::regclass
+            AND conname = 'payroll_opening_cumulative_snapshots_provenance_status_check'`,
+      )
+      expect(openingConstraint.rows[0]?.definition).toContain('CUSTOMER_OPENING_BALANCE')
+      expect(employerSetupMigration).toContain('configuration_hash')
+      expect(employerSetupMigration).toContain('payroll_employer_configuration_effective_version_guard')
     } finally {
       await db.close()
     }

@@ -3,14 +3,61 @@ import 'server-only'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'
+import { PayrollEmployerSetupPanel } from '@/components/payroll/payroll-employer-setup-panel'
+import { PayrollOpeningCumulativePanel } from '@/components/payroll/payroll-opening-cumulative-panel'
 import { PayrollCalendarPlanner } from '@/components/payroll/payroll-calendar-planner'
 import { Surface } from '@/components/ui/surface'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { createPayrollCalculationRepository } from '@/lib/payroll/calculation-repository'
 import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
+import { getPayrollSetup } from '@/lib/payroll/payroll-setup-service'
 
-export default async function PayrollSettingsPage() {
-  const [access, t, locale] = await Promise.all([requireComponentLibraryAccess(false), getTranslator('payrollProfessional'), getLocale()])
+const setupLabelKeys = [
+  'employerSetupTitle', 'employerSetupDescription', 'employerSetupSaved', 'employerSetupSaveFailed',
+  'employerSetupBlockersTitle', 'employerSetupReady', 'writePermissionRequired', 'effectiveFrom', 'effectiveTo',
+  'sourceReference', 'employerClassificationTitle', 'sectorCode', 'whkDecisionReference', 'awfClassification',
+  'aofClassification', 'wkoClassification', 'zvwClassification', 'employerRatesTitle', 'employerRatesDescription',
+  'awfRate', 'aofRate', 'wkoRate', 'whkRate', 'zvwRate', 'reservesTitle', 'holidayAllowanceRate', 'yearEndApplies',
+  'unknown', 'yes', 'no', 'yearEndRate', 'pensionMethodTitle', 'pensionMethodDescription', 'pensionPartialMonthMethod',
+  'notConfigured', 'calendarDaysProRata', 'fullMonth', 'pensionMethodSourceReference', 'componentSetTitle',
+  'componentSetNotCalculated', 'componentSetVersion', 'componentSetHash', 'saveDraft', 'activateConfiguration',
+  'configurationHistoryTitle', 'configurationHistoryDescription', 'configurationHistoryEmpty', 'version', 'status',
+  'effectivePeriod', 'hash', 'active', 'draft',
+  'openingBalanceTitle', 'openingBalanceDescription', 'openingBalanceSaved', 'openingBalanceSaveFailed',
+  'openingBalanceBlockersTitle', 'openingBalanceNoEmployees', 'openingBalanceEmployee', 'openingBalanceSelectEmployee',
+  'openingBalanceSourcePeriodFrom', 'openingBalanceSourcePeriodTo', 'openingBalanceAsOfDate', 'openingBalanceSourceReference',
+  'openingBalanceMeaningTitle', 'openingBalanceMeaningDescription', 'openingBalanceNoSyntheticValues', 'openingBalanceSave',
+  'openingBalanceHistoryTitle', 'openingBalanceHistoryDescription', 'openingBalanceHistoryEmpty', 'openingBalanceSourcePeriod',
+  'grossWageBeforePeriod', 'taxableWageBeforePeriod', 'wageTaxBeforePeriod', 'employeeInsuranceWageBeforePeriod',
+  'zvwWageBeforePeriod', 'holidayReserveBeforePeriod', 'yearEndReserveBeforePeriod',
+  ...[
+    'EFFECTIVE_FROM_REQUIRED', 'EFFECTIVE_RANGE_INVALID', 'SOURCE_REFERENCE_REQUIRED', 'SECTOR_REQUIRED',
+    'WHK_DECISION_REFERENCE_REQUIRED', 'AWF_CLASSIFICATION_REQUIRED', 'AOF_CLASSIFICATION_REQUIRED',
+    'WKO_CLASSIFICATION_REQUIRED', 'ZVW_CLASSIFICATION_REQUIRED', 'AWF_RATE_REQUIRED', 'AOF_RATE_REQUIRED',
+    'WKO_RATE_REQUIRED', 'WHK_RATE_REQUIRED', 'ZVW_RATE_REQUIRED', 'HOLIDAY_ALLOWANCE_RATE_REQUIRED',
+    'YEAR_END_APPLICABILITY_REQUIRED', 'YEAR_END_RATE_REQUIRED', 'COMPONENT_SET_REQUIRED',
+    'PENSION_PARTIAL_MONTH_METHOD_REQUIRED', 'PENSION_METHOD_SOURCE_REQUIRED',
+  ].map((code) => `employerSetupBlocker_${code}`),
+  ...[
+    'OPENING_SOURCE_EMPLOYMENT_REQUIRED', 'OPENING_SOURCE_PERIOD_INVALID', 'OPENING_AS_OF_DATE_INVALID',
+    'OPENING_PERIOD_AFTER_AS_OF_DATE', 'OPENING_SOURCE_REFERENCE_REQUIRED', 'OPENING_VALUE_REQUIRED',
+    'OPENING_VALUE_INVALID', 'OPENING_EXISTING_PAYROLL_RUN_CONFLICT',
+  ].map((code) => `openingBalanceBlocker_${code}`),
+]
+
+export default async function PayrollSettingsPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const query = await searchParams
+  const setupStatus = typeof query.setup === 'string' ? query.setup : undefined
+  const openingStatus = typeof query.opening === 'string' ? query.opening : undefined
+  const queryBlockersValue = typeof query.blockers === 'string' ? query.blockers : ''
+  const queryBlockers = queryBlockersValue.split(',').filter(Boolean)
+  const openingBlockersValue = typeof query.openingBlockers === 'string' ? query.openingBlockers : ''
+  const openingBlockers = openingBlockersValue.split(',').filter(Boolean)
+  const [access, t, locale, setup] = await Promise.all([requireComponentLibraryAccess(false), getTranslator('payrollProfessional'), getLocale(), getPayrollSetup()])
   const repository = createPayrollCalculationRepository()
   const periods = repository.listCalendarPeriods
     ? await repository.listCalendarPeriods(access.scope, access.administration.id, 24)
@@ -60,6 +107,20 @@ export default async function PayrollSettingsPage() {
         'calendarError_CALENDAR_EFFECTIVE_RANGE_INCOMPLETE','calendarError_CALENDAR_PERIODS_OVERLAP',
         'calendarErrorFallback','status','period_OPEN','period_DRAFT','period_CLOSED','periodStatusUnknown',
       ].map((key) => [key, t(key)]))}
+    />
+    <PayrollEmployerSetupPanel
+      setup={setup}
+      canWrite={access.canCopy}
+      statusMessage={setupStatus}
+      queryBlockers={queryBlockers}
+      labels={Object.fromEntries(setupLabelKeys.map((key) => [key, t(key)]))}
+    />
+    <PayrollOpeningCumulativePanel
+      setup={setup}
+      canWrite={access.canCopy}
+      statusMessage={openingStatus}
+      queryBlockers={openingBlockers}
+      labels={Object.fromEntries(setupLabelKeys.map((key) => [key, t(key)]))}
     />
     <Surface className="space-y-4 p-4 sm:p-6">
       <h2 className="text-lg font-semibold">{t('activePayrollAdministration')}</h2>

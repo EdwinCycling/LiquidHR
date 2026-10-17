@@ -10,7 +10,11 @@ import {
 } from '@liquid-hr/payroll-engine'
 import { NL_2026_PACKAGE_ID, NL_2026_PACKAGE_VERSION, NL_2026_RULE_PACKAGE, NL_2026_RULE_REGISTRY } from './package-definition'
 
-export type Payrun01CompositionKind = 'KINDEROPVANG_TEST' | 'DEMO_COMPANY_TEST' | 'LEGACY_COMPANY_TEST'
+export type Payrun01CompositionKind =
+  | 'KINDEROPVANG_TEST'
+  | 'DEMO_COMPANY_TEST'
+  | 'LEGACY_COMPANY_TEST'
+  | 'CUSTOMER_STANDARD'
 
 export interface Payrun01RulePackageOptions {
   readonly pensionCalculation?: 'INCLUDED' | 'EXCLUDED'

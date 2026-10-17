@@ -170,6 +170,7 @@ export class EmployeePayrollCalculationError extends Error {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const REQUIRED_SOURCE_FIELDS = new Set([
   'employment', 'contractualSalary', 'contractualHours', 'contract', 'laborCondition', 'incomeRelationship', 'taxProfile',
+  'payrollConfiguration', 'openingCumulative', 'pension', 'reserves', 'actualWork',
 ])
 const PAYFULL02_SETUP_CODE = 'TEST_SETUP_PAYFULL_02'
 const COMPLETENESS_CONTRACT = 'PAYCALC-REAL-01B-COMPLETENESS-1'
@@ -223,6 +224,16 @@ function isPayfull02Source(value: unknown): boolean {
     && setup.version === '1.0'
 }
 
+function isCustomerStandardSource(value: unknown): boolean {
+  const source = record(value)
+  const payrollOwned = record(source?.payrollOwned)
+  const configuration = record(payrollOwned?.configuration)
+  return configuration?.schemaVersion === 'payroll-employer-configuration-v1'
+    && typeof configuration.configurationVersionId === 'string'
+    && typeof configuration.configurationHash === 'string'
+    && /^[0-9a-f]{64}$/i.test(configuration.configurationHash)
+}
+
 function isCompositeRegularWage(value: unknown): boolean {
   const source = record(value)
   const regularWage = record(source?.regularWage)
@@ -232,8 +243,8 @@ function isCompositeRegularWage(value: unknown): boolean {
 }
 
 function payfull02PackageForSource(value: unknown): PayrollRulePackage | null {
-  if (!isPayfull02Source(value)) return null
-  return createPayfull02RulePackage('DEMO_COMPANY_TEST', {
+  if (!isPayfull02Source(value) && !isCustomerStandardSource(value)) return null
+  return createPayfull02RulePackage(isCustomerStandardSource(value) ? 'CUSTOMER_STANDARD' : 'DEMO_COMPANY_TEST', {
     supportPartialPeriods: isCompositeRegularWage(value),
   })
 }
@@ -1198,7 +1209,9 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
         netAmountMeaning: payfull02
           ? 'GROSS_MINUS_EMPLOYEE_PENSION_WAGE_TAX_AND_AUTHORIZED_NET_ITEMS'
           : 'GROSS_MINUS_WAGE_TAX_BEFORE_PENSION_AND_OTHER_DEDUCTIONS',
-        ...(payfull02 ? { payfull02Setup: record(canonicalSource?.payrollOwned) } : {}),
+        ...(isCustomerStandardSource(canonicalSource)
+          ? { payrollConfiguration: record(record(canonicalSource?.payrollOwned)?.configuration) }
+          : payfull02 ? { payfull02Setup: record(canonicalSource?.payrollOwned) } : {}),
         ...(testScenario ? { sourceClassification: 'PAYROLL_TEST_SCENARIO', testScenario } : {}),
         ...(input.successorReasonCode ? { successorReasonCode: input.successorReasonCode } : {}),
       }),

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   LiquidHrPayrollSourceProvider,
   PayrollSourceProviderError,
+  type PayrollSourceSetup,
   type PayrollSourceEmployment,
   type PayrollSourceIncomeRelationship,
   type PayrollSourceTimeline,
@@ -12,6 +13,7 @@ import {
 } from './liquid-hr-source-provider'
 import type { PayrollSourceProviderInput } from '@liquid-hr/payroll-engine'
 import type { ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
+import { assertActivePayrollEmployerConfiguration, hashPayrollEmployerConfiguration } from '../payroll-setup'
 
 const tenantId = '10000000-0000-4000-8000-000000000001'
 const hrGroupId = '20000000-0000-4000-8000-000000000002'
@@ -218,6 +220,79 @@ function dependencies(overrides: Partial<PayrollSourceProviderDependencies> = {}
 }
 
 describe('LiquidHR Payroll source provider', () => {
+  it('uses the regular employer configuration and explicit calendar-day pension method for a new joiner', async () => {
+    const configuration = assertActivePayrollEmployerConfiguration({
+      schemaVersion: 'payroll-employer-configuration-v1',
+      effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', sourceReference: 'Mars BV payroll decision 2026',
+      employer: {
+        sectorCode: '001', whkDecisionReference: 'WHK-2026', awfClassification: 'LOW',
+        aofClassification: 'AOF-01', wkoClassification: 'WKO-01', zvwClassification: 'EMPLOYER_LEVY',
+      },
+      employerRates: { awf: '1.00', aof: '2.00', wko: '0.50', whk: '1.50', zvw: '6.10' },
+      reserves: { holidayAllowanceRate: '8.00', yearEndApplies: false, yearEndRate: null },
+      pension: { partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA', methodSourceReference: 'MARS-PENSION-2026 v1' },
+    })
+    const configurationRow = {
+      id: '91000000-0000-4000-8000-000000000009',
+      payroll_administration_id: administrationId,
+      source_tenant_id: tenantId,
+      source_hr_group_id: hrGroupId,
+      source_administration_id: administrationId,
+      configuration_version: 1,
+      effective_from: '2026-01-01',
+      effective_to: null,
+      configuration_json: configuration,
+      configuration_hash: hashPayrollEmployerConfiguration(configuration),
+      status: 'ACTIVE' as const,
+      source_reference: configuration.sourceReference,
+      created_at: '2026-01-01T00:00:00.000Z',
+      created_by_user_id: employeeId,
+    }
+    const setup: PayrollSourceSetup = {
+      configurationRows: [configurationRow],
+      configurationRow,
+      configuration,
+      openingBalance: null,
+    }
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      listEmployments: vi.fn(async () => [employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' })]),
+      loadTimeline: vi.fn(async () => ({
+        employment: employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' }),
+        salaries: [salary({ fulltime_amount: 3517, parttime_amount: 3517 })],
+        schedules: [schedule({ part_time_factor: 1 })],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY', startsOn: '2026-01-01' })],
+        taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({ effective_from: '2026-01-01' })] }),
+        pensionAssignments: [{
+          id: '92000000-0000-4000-8000-000000000009', pension_arrangement_id: 'MARS-PENSION-2026',
+          effective_from: '2026-01-01', effective_to: null, participation_start_date: '2026-10-16',
+          assignment_reason: 'CORE', provenance_json: {}, updated_at: '2026-01-01T00:00:00.000Z', version_number: 1,
+          supersedes_assignment_id: null, arrangement_resolution_reason: null, arrangement_resolution_change_version_ids: [], age_for_tier: null,
+          arrangement: {
+            id: 'MARS-PENSION-2026', code: 'MARS-PENSION-2026', name: 'Mars pension 2026', arrangement_type: 'FLAT_PREMIUM',
+            effective_from: '2026-01-01', arrangement_established_from: '2026-01-01', effective_to: null, transition_date: null,
+            grandfathering_mode: 'NONE', flat_total_rate: 25, employer_share_pct: 60, employee_share_pct: 40,
+            annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
+            pensionable_salary_definition: { annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY', basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true },
+            eligibility_rule: { participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01' },
+            contract_classification: 'SOLIDARITY' as const, contract_classification_provenance: {}, provenance_json: {}, is_active: true,
+            version_id: '93000000-0000-4000-8000-000000000009', version_number: 1, version_created_at: '2026-01-01T00:00:00.000Z',
+            source_updated_at: '2026-01-01T00:00:00.000Z', tiers: [],
+          },
+        }],
+      })),
+      loadPayrollSetup: vi.fn(async () => setup),
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 10 } })
+
+    const source = snapshot.canonicalSource as Record<string, unknown>
+    const payrollOwned = source.payrollOwned as Record<string, unknown>
+    expect(payrollOwned).toBeDefined()
+    const pension = payrollOwned.pension as Record<string, unknown>
+    expect(pension.partialMonthMethod).toBe('CALENDAR_DAYS_PRO_RATA')
+    expect(pension.periodFactor).toBe('0.5161')
+    expect(pension.partTimeFactor).toBe('0.5161')
+    expect(snapshot.sourceGaps).not.toContainEqual({ field: 'openingCumulative', status: 'SOURCE_GAP', reasonCode: 'PAYROLL_OPENING_CUMULATIVE_MISSING' })
+  })
+
   it('maps scoped synthetic employment, salary, and hours without person-level identifiers', async () => {
     const provider = new LiquidHrPayrollSourceProvider(dependencies())
 

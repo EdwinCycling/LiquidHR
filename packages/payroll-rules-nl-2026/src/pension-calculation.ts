@@ -112,7 +112,7 @@ const TWELVE = FixedDecimal.parse('12')
 const ONE_HUNDRED = FixedDecimal.parse('100')
 
 function money(value: FixedDecimal): string {
-  return value.toString(2)
+  return value.round(2, 'HALF_UP').toString(2)
 }
 
 function validDate(value: string): boolean {
