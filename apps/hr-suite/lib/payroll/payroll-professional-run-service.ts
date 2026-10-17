@@ -10,18 +10,20 @@ import {
   type EmployeePayrollPreflightView,
 } from './employee-payroll-calculation-service'
 import { createPayrollCalculationRepository } from './calculation-repository'
+import { getPayrollCycleWorklist } from './payroll-cycle-service'
+import { createPayrun01Repository } from './payrun01-repository'
+import { filterPayrollAcceptanceScenarioRuns } from './payroll-acceptance-scenario'
+import type { PayrollPeriodStatus } from './database'
+import {
+  emptyPayrollProfessionalPeriodSummary,
+  projectPayrollProfessionalEmployees,
+  type PayrollProfessionalEmployee,
+  type PayrollProfessionalPeriodSummary,
+  type PayrollProfessionalRosterEmployee,
+} from './payroll-professional-workspace-model'
 import type { PayrollScope } from './scope'
 
-export type PayrollProfessionalEmployee = {
-  readonly employeeId: string
-  readonly employmentId: string
-  readonly employeeNumber: string
-  readonly employeeName: string
-  readonly employmentNumber: string
-  readonly startsOn: string
-  readonly endsOn: string | null
-  readonly isPrimary: boolean
-}
+export type { PayrollProfessionalEmployee } from './payroll-professional-workspace-model'
 
 export type PayrollProfessionalPeriod = {
   readonly key: string
@@ -29,7 +31,7 @@ export type PayrollProfessionalPeriod = {
   readonly month: number
   readonly startsOn: string
   readonly endsOn: string
-  readonly status: string
+  readonly status: PayrollPeriodStatus
 }
 
 export type PayrollProfessionalRunWorkspace = {
@@ -37,6 +39,7 @@ export type PayrollProfessionalRunWorkspace = {
   readonly periods: readonly PayrollProfessionalPeriod[]
   readonly selectedPeriod: PayrollProfessionalPeriod | null
   readonly employees: readonly PayrollProfessionalEmployee[]
+  readonly summary: PayrollProfessionalPeriodSummary
   readonly rosterComplete: boolean
   readonly canOpenPayrollCycle: boolean
 }
@@ -45,7 +48,7 @@ export type PayrollProfessionalRunItem = {
   readonly employeeNumber: string
   readonly employeeName: string
   readonly employmentNumber: string
-  readonly state: 'SOURCE_GAP' | 'UNSUPPORTED' | 'INCOMPLETE' | 'CALCULATED' | 'FAILED'
+  readonly state: 'SOURCE_GAP' | 'UNSUPPORTED' | 'INCOMPLETE' | 'CALCULATED' | 'CORRECTION_REQUIRED' | 'FAILED'
   readonly grossAmount: string | null
   readonly wageTaxAmount: string | null
   readonly remainingAfterWageTax: string | null
@@ -67,7 +70,7 @@ function toPeriod(row: {
   readonly period_month: number
   readonly starts_on: string
   readonly ends_on: string
-  readonly status: string
+  readonly status: PayrollPeriodStatus
 }): PayrollProfessionalPeriod {
   return {
     key: `${row.period_year}-${String(row.period_month).padStart(2, '0')}`,
@@ -106,7 +109,7 @@ async function listScopedEmployments(scope: PayrollScope, period: PayrollProfess
 
 async function projectScopedEmployees(scope: PayrollScope, employments: Awaited<ReturnType<typeof listScopedEmployments>>['rows']) {
   const employeeIds = [...new Set(employments.map((employment) => employment.employee_id))]
-  if (employeeIds.length === 0) return [] as PayrollProfessionalEmployee[]
+  if (employeeIds.length === 0) return [] as PayrollProfessionalRosterEmployee[]
 
   const supabase = await createClient()
   const { data, error } = await supabase.from('employees')
@@ -166,17 +169,52 @@ export async function getPayrollProfessionalRunWorkspace(periodKey?: string): Pr
       periods,
       selectedPeriod: null,
       employees: [],
+      summary: emptyPayrollProfessionalPeriodSummary(),
       rosterComplete: true,
       canOpenPayrollCycle: access.canCopy,
     }
   }
   const roster = await listScopedEmployments(access.scope, selectedPeriod)
   const employees = await projectScopedEmployees(access.scope, roster.rows)
+  const cycle = await getPayrollCycleWorklist(
+    { year: selectedPeriod.year, month: selectedPeriod.month },
+    employees.map((employee) => ({ employeeId: employee.employeeId, employmentId: employee.employmentId })),
+  )
+  const runSummaries = await repository.listPayrollRunSummaries(access.scope, access.administration.id, {
+    runType: 'INDIVIDUAL_PAYROLL',
+    period: { year: selectedPeriod.year, month: selectedPeriod.month },
+    limit: 200,
+  })
+  const lifecycle = createPayrun01Repository()
+  const visibleRuns = await filterPayrollAcceptanceScenarioRuns(runSummaries, async (inputSetId) =>
+    await lifecycle.getGenericInputReference(access.scope, access.administration.id, inputSetId))
+  const runIds = [...new Set((cycle?.workItems ?? []).flatMap((item) => item.runId ? [item.runId] : []))]
+  const artifactEntries = await Promise.all(runIds.map(async (runId) => [
+    runId,
+    await repository.getLatestSyntheticArtifacts(
+      access.scope,
+      access.administration.id,
+      undefined,
+      runId,
+      undefined,
+      'INDIVIDUAL_PAYROLL',
+      { year: selectedPeriod.year, month: selectedPeriod.month },
+    ),
+  ] as const))
+  const projected = projectPayrollProfessionalEmployees({
+    roster: employees,
+    workItems: cycle?.workItems ?? [],
+    runs: visibleRuns,
+    artifactsByRun: new Map(artifactEntries),
+    periodStatus: selectedPeriod.status,
+    canWrite: access.canCopy,
+  })
   return {
     administrationName: administration.name,
     periods,
     selectedPeriod,
-    employees,
+    employees: projected.employees,
+    summary: projected.summary,
     rosterComplete: roster.complete,
     canOpenPayrollCycle: access.canCopy,
   }
@@ -190,6 +228,7 @@ function stateForCalculation(result: EmployeePayrollCalculationView): PayrollPro
   if (result.status === 'SOURCE_GAP') return 'SOURCE_GAP'
   if (result.status === 'UNSUPPORTED') return 'UNSUPPORTED'
   if (result.status === 'INCOMPLETE' || result.completeness === 'INCOMPLETE') return 'INCOMPLETE'
+  if (result.status === 'CORRECTION_REQUIRED') return 'CORRECTION_REQUIRED'
   if (result.status === 'CALCULATED') return 'CALCULATED'
   return 'FAILED'
 }
@@ -202,7 +241,7 @@ function displayMissingFields(gaps: readonly { field: string; status: string; re
 }
 
 function toRunItem(
-  employee: PayrollProfessionalEmployee,
+  employee: PayrollProfessionalRosterEmployee,
   result: EmployeePayrollCalculationView,
 ): PayrollProfessionalRunItem {
   return {
@@ -213,14 +252,14 @@ function toRunItem(
     grossAmount: result.grossAmount,
     wageTaxAmount: result.wageTaxAmount,
     remainingAfterWageTax: result.netAfterWageTax,
-    employerCosts: null,
+    employerCosts: result.payfull02?.totalEmployerCost ?? null,
     missingFields: displayMissingFields(result.gaps),
     incompleteComponents: [...result.incompleteComponents],
   }
 }
 
 function toPreflightItem(
-  employee: PayrollProfessionalEmployee,
+  employee: PayrollProfessionalRosterEmployee,
   result: EmployeePayrollPreflightView,
 ): PayrollProfessionalRunItem {
   const unsupported = result.gaps.some((gap) => gap.status === 'UNSUPPORTED')

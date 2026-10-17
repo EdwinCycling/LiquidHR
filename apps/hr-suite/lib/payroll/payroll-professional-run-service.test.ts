@@ -105,6 +105,7 @@ describe('Payroll Professional multi-employee calculation', () => {
       grossAmount: '4000.00',
       wageTaxAmount: '500.00',
       netAfterWageTax: '3500.00',
+      payfull02: { totalEmployerCost: '4910.00' },
       gaps: [],
       incompleteComponents: ['PENSION_EMPLOYEE_ALLOCATION'],
       recoveryActions: [],
@@ -121,7 +122,7 @@ describe('Payroll Professional multi-employee calculation', () => {
     expect(result.items.map((item) => item.state)).toEqual(['SOURCE_GAP', 'INCOMPLETE'])
     expect(result.items[0]?.missingFields).toEqual([{ field: 'taxProfile', unsupported: false }])
     expect(result.items[1]?.remainingAfterWageTax).toBe('3500.00')
-    expect(result.items[1]?.employerCosts).toBeNull()
+    expect(result.items[1]?.employerCosts).toBe('4910.00')
     expect(result.items[1]?.incompleteComponents).toEqual(['PENSION_EMPLOYEE_ALLOCATION'])
     expect(calculateEmployee).toHaveBeenCalledTimes(1)
     expect(calculateEmployee).toHaveBeenCalledWith({

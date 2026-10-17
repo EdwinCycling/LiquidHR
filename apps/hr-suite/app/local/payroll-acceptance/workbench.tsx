@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import {
   openLocalPayrollAcceptancePeriod,
+  runLocalPayrollAcceptanceDemo003,
   runLocalPayrollAcceptance,
   runLocalPayrollAcceptanceVariableRevision,
   type LocalPayrollAcceptanceOpenState,
@@ -61,10 +62,17 @@ function HashValue({ label, value }: { readonly label: string; readonly value: s
 export function LocalPayrollAcceptanceWorkbench({ periodStatus, periodStatusLabel, locale, labels }: WorkbenchProps) {
   const [openState, openAction, opening] = useActionState(openLocalPayrollAcceptancePeriod, initialOpenState)
   const [runState, runAction, running] = useActionState(runLocalPayrollAcceptance, initialRunState)
+  const [demo003State, demo003Action, demo003Running] = useActionState(runLocalPayrollAcceptanceDemo003, initialRunState)
   const [variableState, variableAction, variableRunning] = useActionState(runLocalPayrollAcceptanceVariableRevision, initialRunState)
   const calculations = [
     ...(runState.result?.calculations ?? []),
+    ...(demo003State.result?.calculations ?? []),
     ...(variableState.result?.calculations ?? []),
+  ]
+  const preflights = [
+    ...(runState.result?.preflight ?? []),
+    ...(demo003State.result?.preflight ?? []),
+    ...(variableState.result?.preflight ?? []),
   ]
   const periodOpen = periodStatus === 'OPEN' || openState.message === 'opened'
   const statusMessage = openState.message === 'opened'
@@ -124,6 +132,11 @@ export function LocalPayrollAcceptanceWorkbench({ periodStatus, periodStatusLabe
             {running ? labels.localAcceptanceRunning : labels.localAcceptanceRun}
           </Button>
         </form>
+        <form action={demo003Action}>
+          <Button type="submit" variant="secondary" loading={demo003Running} disabled={demo003Running || !periodOpen}>
+            {demo003Running ? labels.localAcceptanceDemo003Running : labels.localAcceptanceDemo003Run}
+          </Button>
+        </form>
         <form action={variableAction}>
           <Button type="submit" variant="secondary" loading={variableRunning} disabled={variableRunning || !periodOpen}>
             {variableRunning ? labels.localAcceptanceVariableRevisionRunning : labels.localAcceptanceVariableRevisionRun}
@@ -141,13 +154,23 @@ export function LocalPayrollAcceptanceWorkbench({ periodStatus, periodStatusLabe
                   : labels.localAcceptanceFailed}
         {variableState.failureCode ? <code className="ml-2 font-mono text-xs">{variableState.failureCode}</code> : null}
       </p> : null}
+      {demo003State.message !== 'idle' ? <p className="text-sm" role="status" aria-live="polite">
+        {demo003State.message === 'saved' ? labels.localAcceptanceDemo003Saved
+          : demo003State.message === 'partial' ? labels.localAcceptancePartial
+            : demo003State.message === 'preflightBlocked' ? labels.localAcceptancePreflightBlocked
+              : demo003State.message === 'accessDenied' ? labels.localAcceptanceAccessDenied
+                : demo003State.message === 'unavailable' ? labels.localAcceptanceUnavailable
+                  : labels.localAcceptanceFailed}
+        {demo003State.failureCode ? <code className="ml-2 font-mono text-xs">{demo003State.failureCode}</code> : null}
+        {demo003State.sourceChecks?.length ? <code className="ml-2 font-mono text-xs">source checks: {demo003State.sourceChecks.join(', ')}</code> : null}
+      </p> : null}
     </Surface>
 
-    {runState.result || variableState.result ? <>
-      {runState.result ? <section className="space-y-3" aria-labelledby="local-acceptance-preflight">
+    {runState.result || demo003State.result || variableState.result ? <>
+      {preflights.length > 0 ? <section className="space-y-3" aria-labelledby="local-acceptance-preflight">
         <h2 className="text-base font-semibold" id="local-acceptance-preflight">{labels.localAcceptancePreflight}</h2>
         <ul className="divide-y divide-border-subtle rounded-[var(--radius-surface)] border border-border-subtle">
-          {runState.result.preflight.map((item) => <li key={item.key} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:justify-between">
+          {preflights.map((item) => <li key={item.key} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-sm font-medium">{labels.localAcceptanceCandidate} {item.key}</p>
               {item.gaps.length > 0 ? <ul className="mt-2 space-y-1 text-xs text-muted-foreground">

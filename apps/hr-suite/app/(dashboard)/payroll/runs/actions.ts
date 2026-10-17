@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
+  calculateEmployeePayroll,
   finalizeEmployeePayroll,
   reviewEmployeePayroll,
 } from '@/lib/payroll/employee-payroll-calculation-service'
@@ -11,6 +12,8 @@ import {
   type PayrollProfessionalBatchResult,
 } from '@/lib/payroll/payroll-professional-run-service'
 import { openPayrollCycle } from '@/lib/payroll/payroll-cycle-service'
+import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
+import { createPayrollProfessionalPayslipPdfArtifactForRun as createPayslipPdfArtifact } from '@/lib/payroll/payroll-professional-service'
 
 export type PayrollProfessionalBatchActionState = {
   readonly message: PayrollProfessionalBatchResult['message'] | null
@@ -32,6 +35,70 @@ export async function calculateSelectedPayroll(
   revalidatePath('/payroll/runs')
   revalidatePath('/payroll')
   return result
+}
+
+type PayrollEmployeeRecalculationOutcome =
+  | 'invalid'
+  | 'calculated'
+  | 'incomplete'
+  | 'sourceGap'
+  | 'unsupported'
+  | 'correctionRequired'
+  | 'inProgress'
+  | 'failed'
+  | 'accessDenied'
+
+function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+}
+
+function parseEmployeeReference(value: unknown): { readonly employeeId: string; readonly employmentId: string } | null {
+  if (typeof value !== 'string') return null
+  const [employeeId, employmentId, ...rest] = value.split('|')
+  return rest.length === 0 && isUuid(employeeId) && isUuid(employmentId) ? { employeeId, employmentId } : null
+}
+
+function recalculationTarget(periodKey: unknown, outcome: PayrollEmployeeRecalculationOutcome): string {
+  const period = typeof periodKey === 'string' && /^(20\d{2}|21\d{2}|2200)-(0[1-9]|1[0-2])$/.test(periodKey)
+    ? `?period=${encodeURIComponent(periodKey)}`
+    : ''
+  return `/payroll/runs${period}${period ? '&' : '?'}recalculation=${outcome}`
+}
+
+export async function recalculatePayrollEmployee(formData: FormData): Promise<never> {
+  const periodKey = formData.get('periodKey')
+  const reference = parseEmployeeReference(formData.get('employeeRef'))
+    ?? (isUuid(formData.get('employeeId')) && isUuid(formData.get('employmentId'))
+      ? { employeeId: formData.get('employeeId') as string, employmentId: formData.get('employmentId') as string }
+      : null)
+  const periodMatch = typeof periodKey === 'string'
+    ? /^(20\d{2}|21\d{2}|2200)-(0[1-9]|1[0-2])$/.exec(periodKey)
+    : null
+  if (!reference || !periodMatch) redirect(recalculationTarget(periodKey, 'invalid'))
+
+  let outcome: PayrollEmployeeRecalculationOutcome = 'failed'
+  try {
+    const result = await calculateEmployeePayroll({
+      employeeId: reference.employeeId,
+      employmentId: reference.employmentId,
+      period: { year: Number(periodMatch[1]), month: Number(periodMatch[2]) },
+    })
+    outcome = result.status === 'CALCULATED' ? 'calculated'
+      : result.status === 'INCOMPLETE' ? 'incomplete'
+        : result.status === 'SOURCE_GAP' ? 'sourceGap'
+          : result.status === 'UNSUPPORTED' ? 'unsupported'
+            : result.status === 'CORRECTION_REQUIRED' ? 'correctionRequired'
+              : result.status === 'IN_PROGRESS' ? 'inProgress' : 'failed'
+  } catch (error) {
+    const code = errorCode(error)
+    outcome = code === 'PAYROLL_SOURCE_CHANGED_RECALCULATE_REQUIRED'
+      ? 'correctionRequired'
+      : error instanceof Error && error.name === 'AuthorizationError' ? 'accessDenied' : 'failed'
+  }
+
+  revalidatePath('/payroll/runs')
+  revalidatePath('/payroll')
+  redirect(recalculationTarget(periodKey, outcome))
 }
 
 export type PayrollPeriodActionState = {
@@ -112,4 +179,29 @@ export async function reviewPayrollRun(formData: FormData): Promise<never> {
 
 export async function finalizePayrollRun(formData: FormData): Promise<never> {
   return await transitionPayrollRun(formData, 'FINALIZED')
+}
+
+export async function generatePayrollPayslipPdfArtifact(formData: FormData): Promise<never> {
+  const runId = formData.get('runId')
+  const target = typeof runId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(runId)
+    ? `/payroll/runs/${encodeURIComponent(runId)}`
+    : '/payroll/runs'
+  if (target === '/payroll/runs') redirect(`${target}?artifact=invalid`)
+
+  let outcome: 'created' | 'failed' = 'failed'
+  try {
+    const access = await requireComponentLibraryAccess(true)
+    const artifact = await createPayslipPdfArtifact({
+      scope: access.scope,
+      payrollAdministrationId: access.administration.id,
+      actorUserId: access.actorUserId,
+      runId: runId as string,
+    })
+    if (artifact) outcome = 'created'
+  } catch {
+    outcome = 'failed'
+  }
+
+  revalidatePath(target)
+  redirect(`${target}?artifact=${outcome}`)
 }

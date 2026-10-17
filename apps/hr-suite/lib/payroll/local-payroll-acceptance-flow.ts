@@ -13,7 +13,10 @@ import {
   derivePayfull02MarsVariableOracle,
   type Payfull02MarsOracleResult,
 } from './payfull02-independent-oracle'
-import { PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES } from './payroll-acceptance-scenario'
+import {
+  PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES,
+  type PayrollAcceptanceScenarioCandidateKey,
+} from './payroll-acceptance-scenario'
 
 export const PAYROLL_ACCEPTANCE_EXCEPTION_CANDIDATE = {
   key: 'DEMO-005',
@@ -193,15 +196,22 @@ function matchesIndependentOracle(
 
 export async function runLocalPayrollAcceptanceFlow(
   service: LocalPayrollAcceptanceService,
+  candidateKeys?: readonly PayrollAcceptanceScenarioCandidateKey[],
 ): Promise<LocalPayrollAcceptanceFlowResult> {
   const period = LOCAL_PAYROLL_ACCEPTANCE_PERIOD
+  const candidates = candidateKeys === undefined
+    ? PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES
+    : PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES.filter((candidate) => candidateKeys.includes(candidate.key))
+  if (candidates.length === 0 || (candidateKeys !== undefined && candidates.length !== candidateKeys.length)) {
+    throw new Error('PAYROLL_ACCEPTANCE_SCENARIO_NOT_AVAILABLE')
+  }
   const scenarioPreflights: LocalPayrollAcceptancePreflight[] = []
 
-  for (const candidate of PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES) {
+  for (const candidate of candidates) {
     await service.prepareScenarioSetup({ employeeId: candidate.employeeId, employmentId: candidate.employmentId })
   }
 
-  for (const candidate of PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES) {
+  for (const candidate of candidates) {
     const result = await service.inspectScenarioCandidate({
       employeeId: candidate.employeeId,
       employmentId: candidate.employmentId,
@@ -210,24 +220,27 @@ export async function runLocalPayrollAcceptanceFlow(
     scenarioPreflights.push(simplifyPreflight(candidate.key, result, false))
   }
 
-  const exception = PAYROLL_ACCEPTANCE_EXCEPTION_CANDIDATE
-  const exceptionPreflight = await service.inspectExceptionCandidate({
-    employeeId: exception.employeeId,
-    employmentId: exception.employmentId,
-    period,
-  })
+  const exceptionPreflight = candidateKeys === undefined
+    ? await service.inspectExceptionCandidate({
+      employeeId: PAYROLL_ACCEPTANCE_EXCEPTION_CANDIDATE.employeeId,
+      employmentId: PAYROLL_ACCEPTANCE_EXCEPTION_CANDIDATE.employmentId,
+      period,
+    })
+    : null
   const preflight = [
     ...scenarioPreflights,
-    simplifyPreflight(exception.key, exceptionPreflight, hasExpectedBlockedException(exceptionPreflight)),
+    ...(exceptionPreflight
+      ? [simplifyPreflight(PAYROLL_ACCEPTANCE_EXCEPTION_CANDIDATE.key, exceptionPreflight, hasExpectedBlockedException(exceptionPreflight))]
+      : []),
   ]
   const scenariosReady = scenarioPreflights.every((item) => item.eligibleForCalculation)
-  const expectedExceptionConfirmed = hasExpectedBlockedException(exceptionPreflight)
+  const expectedExceptionConfirmed = exceptionPreflight === null || hasExpectedBlockedException(exceptionPreflight)
   if (!scenariosReady || !expectedExceptionConfirmed) {
     return { message: 'preflightBlocked', preflight, calculations: [] }
   }
 
   const calculations: LocalPayrollAcceptanceCalculation[] = []
-  for (const candidate of PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES) {
+  for (const candidate of candidates) {
     try {
       const input = { employeeId: candidate.employeeId, employmentId: candidate.employmentId, period }
       const result = await service.calculateScenarioCandidate(input)
@@ -294,7 +307,7 @@ export async function runLocalPayrollAcceptanceFlow(
     }
   }
 
-  const allSavedAndVerified = calculations.length === PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES.length
+  const allSavedAndVerified = calculations.length === candidates.length
     && calculations.every((item) => readbackMatchesCalculation(item, item.readback)
       && item.oracleMatches && item.idempotencyVerified)
   const anySaved = calculations.some((item) => item.readback?.confirmed === true)

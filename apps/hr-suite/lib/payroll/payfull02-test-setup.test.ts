@@ -12,7 +12,11 @@ const scope = {
 }
 const payrollAdministrationId = LOCAL_PAYROLL_ACCEPTANCE_SCOPE.payrollAdministrationId
 
-function januaryThroughSeptemberSourceSnapshots() {
+function januaryThroughSeptemberSourceSnapshots(
+  employeeId: string = candidate.employeeId,
+  employmentId: string = candidate.employmentId,
+  grossAmount = '3517.00',
+) {
   const hashCharacters = ['a', 'b', 'c', 'd', 'e', 'f', '1', '2', '3']
   return Array.from({ length: 9 }, (_, index) => {
     const month = index + 1
@@ -21,14 +25,14 @@ function januaryThroughSeptemberSourceSnapshots() {
       sourceTenantId: scope.tenantId,
       sourceHrGroupId: scope.hrGroupId,
       sourceAdministrationId: scope.administrationId,
-      sourceEmployeeId: candidate.employeeId,
-      sourceEmploymentId: candidate.employmentId,
+      sourceEmployeeId: employeeId,
+      sourceEmploymentId: employmentId,
       sourceIncomeRelationshipId: 'a1111111-1111-4111-8111-111111111111',
       periodReference: { year: 2026, month },
       canonicalSource: {
         employment: { startsOn: '2020-01-01', endsOn: null, recordStatus: 'CONFIRMED' },
         contract: { entries: [{ fulltimeHoursPerWeek: 40, validFrom: '2020-01-01', validUntil: null }] },
-        compensation: { entries: [{ paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY', currencyCode: 'EUR', fulltimeAmount: 3517, parttimeAmount: 3517, validFrom: '2020-01-01', validUntil: null }] },
+        compensation: { entries: [{ paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY', currencyCode: 'EUR', fulltimeAmount: Number(grossAmount), parttimeAmount: Number(grossAmount), validFrom: '2020-01-01', validUntil: null }] },
         schedule: { entries: [{ averageHoursPerWeek: 40, fulltimeHoursPerWeek: 40, partTimeFactor: 1, validFrom: '2020-01-01', validUntil: null }] },
         incomeRelationship: { id: 'a1111111-1111-4111-8111-111111111111', employmentIncomeRelationshipId: 'b2222222-2222-4222-8222-222222222222', reportingStatus: 'READY', status: 'LINKED' },
       },
@@ -126,5 +130,32 @@ describe('PAYFULL-02 persisted synthetic test setup', () => {
       employmentId: candidate.employmentId,
       januaryThroughSeptemberSourceSnapshots: januaryThroughSeptemberSourceSnapshots(),
     })).rejects.toMatchObject({ code: 'PAYFULL02_TEST_SETUP_SCOPE_FORBIDDEN' })
+  })
+
+  it('persists DEMO-003 opening balances independently for its prior effective salary', async () => {
+    const third = PAYROLL_ACCEPTANCE_SCENARIO_CANDIDATES.find((item) => item.key === 'DEMO-003')!
+    const { repository, repo } = repositoryHarness()
+    const setup = await ensurePayfull02TestSetup({
+      repository,
+      scope,
+      payrollAdministrationId,
+      actorUserId: '10000000-0000-4000-8000-000000000001',
+      employeeId: third.employeeId,
+      employmentId: third.employmentId,
+      januaryThroughSeptemberSourceSnapshots: januaryThroughSeptemberSourceSnapshots(third.employeeId, third.employmentId, '3551.00'),
+    })
+    const configRow = vi.mocked(repo.getOrCreateCalculationConfigVersion).mock.calls[0]?.[2]
+    const openingRow = vi.mocked(repo.getOrCreateOpeningCumulativeSnapshot).mock.calls[0]?.[2]
+
+    expect(setup.openingBalanceJson).toMatchObject({
+      monthlyGross: '3551.00',
+      monthlyEmployeePension: '195.33',
+      monthlyEmployerPension: '293.00',
+      monthlyTaxableWage: '3355.67',
+      monthlyWageTax: '1200.42',
+    })
+    expect(openingRow?.opening_balance_json).toMatchObject({ monthlyGross: '3551.00' })
+    expect(configRow?.config_json).toEqual(setup.configJson)
+    expect(setup.configVersionId).toBe('dddddddd-dddd-4ddd-8ddd-1b29702d5d92')
   })
 })

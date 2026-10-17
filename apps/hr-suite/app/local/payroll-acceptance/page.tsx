@@ -22,6 +22,7 @@ const labelKeys = [
   'localAcceptanceOpenPeriod','localAcceptanceOpeningPeriod','localAcceptancePeriodOpened','localAcceptancePeriodAlreadyOpen',
   'localAcceptanceOpenFailed','localAcceptanceAccessDenied','localAcceptanceUnavailable','localAcceptanceFailed',
   'localAcceptanceRun','localAcceptanceRunning','localAcceptancePreflightBlocked','localAcceptanceSaved',
+  'localAcceptanceDemo003Run','localAcceptanceDemo003Running','localAcceptanceDemo003Saved',
   'localAcceptanceVariableRevisionRun','localAcceptanceVariableRevisionRunning','localAcceptanceVariableRevisionHelp',
   'localAcceptanceVariableRevisionSaved','localAcceptanceOpenRun',
   'localAcceptancePartial','localAcceptancePreflight','localAcceptanceCandidate','localAcceptanceEligible',

@@ -1,5 +1,12 @@
 # Actuele overdracht Liquid HR
 
+## PAYRUN-03 — lokale HR Admin-maandverwerking — 2026-10-17
+
+- Lokale kandidaat op branch `work/PAYRUN-03-20261017`, aparte worktree `C:\Users\Edwin\Documents\Apps\LiquidHR-Payroll\PAYRUN-03-20261017`, basis `7acf8c6a12797c2bb1880c8c187002a01561b826`; `origin/main` is read-only gecontroleerd op `0708d25190562e43a96417ba406648fd04207266`. Geen merge, push, deployment, remote DB/schema-write of definitieve Payroll-mutatie.
+- De nieuwe Salarisverwerking-werkplek projecteert de bestaande roster-, PayrollCycle-, run-, lifecycle-, bron- en controlgegevens per salarismaand. Medewerkers zonder run, concepten, gecontroleerde runs, definitieve runs en geblokkeerde medewerkers blijven onderscheiden en zichtbaar; definitieve runs krijgen alleen detail-/loonstrookacties.
+- Contractgrens: `getPayrollCycleWorklist(period, employeeReferences?)` is een backward-compatible leesuitbreiding over bestaande scoped source/lifecycle/repository-services. Geen nieuwe salarisengine, status-event, migration, Core-bronservice, fiscale/pensioenregel of Payroll-componentengine.
+- Lokale gates: 6 gerichte testbestanden / 29 tests, strict TypeScript, gewijzigde-area ESLint, i18n, production build inclusief client-bundle self-test/buildprovenance en diff-check GREEN. Echte browseracceptatie is **BLOCKED BY ENVIRONMENT** omdat de centrale TEST-config ontbreekt; de launcher stopte vóór serverstart en er is niets gelezen of gewijzigd.
+
 ## Actuele overdracht — 2026-10-11
 
 - Baseline op `main` en `origin/main`: `c90275c5775a276d5ccd62f563b44372ee78ae11`; appversie `1.20261011.1`.

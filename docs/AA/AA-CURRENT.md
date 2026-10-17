@@ -1,14 +1,27 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-17 (historische acceptance-evidence blijft ongewijzigd)
 
-## PAYFULL-02 — PARTIAL, gecontroleerde TEST 2026-10-16
+## PAYRUN-03 — volledige HR Admin-maandverwerking — lokaal — 2026-10-17
+
+- Status: **LOCAL CODE GREEN / BROWSER ACCEPTANCE BLOCKED BY ENVIRONMENT** op branch work/PAYRUN-03-20261017, aparte worktree PAYRUN-03-20261017, basis 7acf8c6a12797c2bb1880c8c187002a01561b826; origin/main read-only gecontroleerd op 0708d25190562e43a96417ba406648fd04207266. Geen merge, push, deployment, remote DB-write of wijziging van een definitieve run.
+- De Payroll → Salarisverwerking-werkplek toont de gescopeerde administratie-roster per maand met periode-status, medewerker-runstatus, bruto/netto/werkgeverskosten uit opgeslagen componentresultaten, uitzonderingen, laatste berekening, batchberekening, individuele herberekening, review/finalize-detailacties en definitieve loonstrooklink. Bestaande PayrollCycle-, run-, lifecycle-, bron-, controle- en payslip-services blijven de bron van waarheid.
+- Het backward-compatible cycle-contract accepteert optioneel de reeds gescopeerde employee/employment-referenties om ook medewerkers zonder run in de worklist te projecteren. Het gebruikt de bestaande getPayrollSourceSnapshot, lifecycle- en calculation-repository-contracten; geen schema-, Core-bron-, fiscale/pensioenregel- of componentenginewijziging en geen open backendintegratie in deze slice.
+- Browsergate: start-test-worktree.ps1 -Mode Development -PayrollAcceptance -PreflightOnly stopte voor serverstart omdat de verplichte centrale TEST-config ontbreekt. Geen fallback, configwaarde, credential of testidentiteit gelezen/aangemaakt; desktop/390px echte HR Admin-flow blijft OPEN
+
+## PAYFULL-02 — PARTIAL, TEST-resultaat bevestigd 2026-10-16
 
 - Reken-/productiebuildbaseline `9df1187a3bcd5a4b703bda37021f6dfa7742f015`; Draft PR #33, geen merge of deployment. Beide nieuwe Mars-runs zijn via HR Admin gevalideerd (32/32), REVIEWED en FINALIZED. Bruto/netto/totale werkgeverskosten: DEMO-001 €3.517,00 / €2.181,49 / €4.876,74; DEMO-002 €3.534,00 / €2.141,36 / €4.836,83. De PAYFULL-02C follow-up voegt een fail-closed actorgrens toe aan DEMO-002-provisioning; de eerdere productiebuild dekt die follow-up niet. Historische concept-runs zijn behouden.
 - TEST-configuraties en januari-september-openingsbalansen zijn effectief gedateerd, geversioneerd en gehasht met `TEST_SETUP_PAYFULL_02`; ze stellen geen officieel pensioenfondscontract of echte historische FINALIZED-run voor. De afzonderlijke €500-variabele DEMO-001-revisie blijft CONCEPT.
 - **PAYFULL-02D (PARTIAL), actuele Payroll Lab TEST-artifacts 2026-10-16:** beide FINALIZED-runs hebben één persistent `PAYSLIP_PDF`-record met geverifieerde grootte/hash: DEMO-001 513.704 bytes, DEMO-002 513.406 bytes; eerdere nul-records-readback is achterhaald. De ESS-route leest nu na self-only-autorisatie de opgeslagen artifactbytes; 7 gerichte testbestanden/61 tests PASS op artifactheaders, herhaalde byte-readback en fout-/retry-state. DEMO-002's ESS-maandgegevens waren live zichtbaar, maar de ondersteunde in-app browser blokkeerde de actuele attachment-URL; **live bytegelijkheid van de nieuwe route en zichtbare inline-PDF zijn nog niet bewezen**. De viewer toont na timeout een foutmelding met **Opnieuw proberen**. Een eerder geslaagde ESS-download kwam uit de oude dynamische route en is geen nieuw routebewijs. DEMO-001 eigen ESS blijft OPEN: deze Core-medewerker is gekoppeld aan Edwin/TENANT_ADMIN; geen automatische accountomkoppeling. Relevante negatieve artifact-/cross-admin-/mobiele browserchecks OPEN. Derde DEMO-001-revisie met €500 regulier variabel loon blijft CONCEPT. Zie [closeout](../quality/acceptance/runs/PAYFULL-02-20261016-CLOSEOUT.md) en [test-/roadmapoverzicht](../payroll/PAYFULL-02-VALIDATIE-EN-ROADMAP-20261016.md).
 - Op implementatiecode `9df1187a3bcd5a4b703bda37021f6dfa7742f015` slaagden de finale relevante Payroll-suite (68 files, 480 geslaagd / 3 overgeslagen), typecheck, ESLint, i18n, migratiecontracttests en Turbopack-productionbuild. De latere ESS-viewerdelta passeert gericht 5 testfiles / 20 tests, TypeScript, gewijzigde-bestanden-ESLint, i18n (43 namespaces) en diff-check; daarop is geen volledige productionbuild uitgevoerd. De Supabase advisor meldt de nieuwe authenticated SECURITY DEFINER-RPC; vaste Mars-identiteiten/scope zijn begrensd en anon heeft geen EXECUTE. Zie [PAYFULL-02 closeout 2026-10-16](../quality/acceptance/runs/PAYFULL-02-20261016-CLOSEOUT.md), [oorspronkelijke run-evidence](../quality/acceptance/runs/PAYFULL-02-20261015.md) en [open bewijsregister](AA-OPEN.md).
+
+## PAYCASE-03A — PASS voor één synthetische TEST-berekening, 2026-10-16
+
+- DEMO-003, Mars BV, oktober 2026, loonheffingskorting AAN, FINALIZED via HR Admin; run `c0851b89-5f92-5bd4-95b6-b5d8520cf5dc`. 32/32 toepasselijke controles PASS, volledige trace en cumulatieven opgeslagen. Uitkomst: bruto €3.517,00; fiscaal loon €3.325,07; loonheffing €518,42; werknemerspensioen €191,93; netto €2.851,65; totale werkgeverskosten €4.876,74.
+- Persistente loonstrook-PDF via HR Admin opgeslagen en teruggelezen: `liquidhr-loonstrook-2026-10.pdf`, 513.667 bytes, SHA-256 `2996b1447ff304c5583ebe7e7a34b3040f5f1bcb3b131f070a8e9aacd2e380cd`; downloadroute HTTP 200. Onafhankelijke Belastingdienst-witte maandtabelcontrole met korting: €518,42. Zie [PAYCASE-03A-bewijs](../quality/acceptance/runs/PAYCASE-03A-20261016.md).
+- Lokale featurecommit blijft apart en bouwt op PAYFULL-02 in Draft PR #33; geen merge of deployment. Bestaande FINALIZED-runs zijn ongewijzigd. Geen Employee-login/ESS-acceptatie uitgevoerd.
 
 ## PAYTAX-UI-01B / PAYTEST-PERSONAS-CLOSEOUT — PARTIAL, lokaal bewezen 2026-10-15
 

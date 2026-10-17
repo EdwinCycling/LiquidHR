@@ -1,7 +1,7 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-16 (Payroll PAYFULL-02D; Core/PERF-volgorde ongewijzigd)
+Bijgewerkt: 2026-10-17 (PAYFULL-02D/PAYCASE-03A/PAYRUN-03-testbewijs bijgewerkt; Core/PERF-volgorde ongewijzigd)
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 
@@ -88,6 +88,8 @@ Doel:
 ## PARALLELLE PAYROLLTRACK — na PAYLAB04
 
 PAYLAB00–04 zijn geïntegreerd en geaccepteerd; de bestaande source-/featureworktrees blijven behouden. CAO-BENCH02 is voorbereid maar niet geïmplementeerd en valt buiten de ONE VERSION-release. Voor een volgende Payroll-productwave wordt de dan actuele main-baseline eerst bewust gereconcilieerd, zonder blind te mergen.
+
+PAYCASE-03A is als afzonderlijke synthetische TEST-berekening afgerond en lokaal vastgelegd. De feature bouwt op PAYFULL-02 uit Draft PR #33; integreer of release niets vanuit deze testfeature voordat die dependency afzonderlijk is beoordeeld en de actuele main-baseline is gereconcilieerd. Geen merge of deployment in PAYCASE-03A.
 
 Voorgesteld volgende productonderwerp, pas definitief maken na expliciete scopekeuze:
 
