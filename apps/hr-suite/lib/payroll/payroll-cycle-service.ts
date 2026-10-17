@@ -14,10 +14,20 @@ import {
 } from './local-payroll-acceptance-runtime'
 import type { PayrollPeriodRow } from './database'
 import type { PayrollScope } from './scope'
-import { projectPayrollCycle, type PayrollCycleProjection, type PayrollCycleWorkItem } from './payroll-cycle-model'
+import {
+  projectPayrollCycle,
+  type PayrollCycleCurrentSource,
+  type PayrollCycleProjection,
+  type PayrollCycleWorkItem,
+} from './payroll-cycle-model'
 import { filterPayrollAcceptanceScenarioRuns } from './payroll-acceptance-scenario'
 
 export type PayrollCyclePeriod = { readonly year: number; readonly month: number }
+
+export type PayrollCycleEmployeeReference = {
+  readonly employeeId: string
+  readonly employmentId: string
+}
 
 export type PayrollCycleAccess = {
   readonly scope: PayrollScope
@@ -138,7 +148,10 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
     }
   }
 
-  async function getPayrollCycleWorklist(period: PayrollCyclePeriod): Promise<PayrollCycleProjection | null> {
+  async function getPayrollCycleWorklist(
+    period: PayrollCyclePeriod,
+    employeeReferences: readonly PayrollCycleEmployeeReference[] = [],
+  ): Promise<PayrollCycleProjection | null> {
     assertPeriod(period)
     requireEnabled(dependencies)
     const access = await dependencies.requireAccess(false)
@@ -157,14 +170,45 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
     const visibleRunIds = new Set(visibleRuns.map((summary) => summary.run.id))
     const scenarioRunIds = new Set(allRuns.flatMap((summary) => visibleRunIds.has(summary.run.id) ? [] : [summary.run.id]))
     const runs = visibleRuns.filter((summary) => summary.payrollPeriod.id === cycle.id)
-    const employmentIds = [...new Set(runs.map((summary) => summary.sourceSnapshot.source_employment_id))]
+    const currentSourcesByEmployment = employeeReferences.length === 0
+      ? undefined
+      : Object.fromEntries(await Promise.all(employeeReferences.map(async (reference) => {
+        try {
+          const snapshot = await dependencies.sourceProvider.getPayrollSourceSnapshot({
+            ...access.scope,
+            employeeId: reference.employeeId,
+            employmentId: reference.employmentId,
+            payrollPeriod: period,
+          })
+          return [reference.employmentId, {
+            employeeId: snapshot.sourceEmployeeId,
+            sourceHash: snapshot.sourceHash,
+            sourceVersionVector: snapshot.sourceVersionVector,
+            gaps: snapshot.sourceGaps,
+          } satisfies PayrollCycleCurrentSource] as const
+        } catch (error) {
+          const status = typeof error === 'object' && error !== null && 'status' in error
+            && typeof error.status === 'number' ? error.status : null
+          if (status === 403 || (error instanceof Error && error.name === 'AuthorizationError')) throw error
+          return [reference.employmentId, {
+            employeeId: reference.employeeId,
+            sourceHash: null,
+            sourceVersionVector: {},
+            gaps: [{ field: 'sourceSnapshot', status: 'SOURCE_GAP', reasonCode: 'CORE_SOURCE_READ_FAILED' }],
+          } satisfies PayrollCycleCurrentSource] as const
+        }
+      })))
+    const employmentIds = [...new Set([
+      ...runs.map((summary) => summary.sourceSnapshot.source_employment_id),
+      ...employeeReferences.map((reference) => reference.employmentId),
+    ])]
     const eventPairs = await Promise.all(employmentIds.map(async (employmentId) => [
       employmentId,
       (await lifecycleRepository.listLifecycleEvents(access.scope, access.administration.id, cycle.id, employmentId))
         .filter((event) => !scenarioRunIds.has(event.calculation_run_id)),
     ] as const))
     const lifecycleEventsByEmployment = Object.fromEntries(eventPairs)
-    return projectPayrollCycle({ cycle, runs, lifecycleEventsByEmployment })
+    return projectPayrollCycle({ cycle, runs, lifecycleEventsByEmployment, currentSourcesByEmployment })
   }
 
   async function reconcilePayrollCycleEmployee(input: {
@@ -266,8 +310,11 @@ export async function openPayrollCycle(period: PayrollCyclePeriod): Promise<Payr
   return await defaultService().openPayrollCycle(period)
 }
 
-export async function getPayrollCycleWorklist(period: PayrollCyclePeriod): Promise<PayrollCycleProjection | null> {
-  return await defaultService().getPayrollCycleWorklist(period)
+export async function getPayrollCycleWorklist(
+  period: PayrollCyclePeriod,
+  employeeReferences: readonly PayrollCycleEmployeeReference[] = [],
+): Promise<PayrollCycleProjection | null> {
+  return await defaultService().getPayrollCycleWorklist(period, employeeReferences)
 }
 
 export async function reconcilePayrollCycleEmployee(input: {

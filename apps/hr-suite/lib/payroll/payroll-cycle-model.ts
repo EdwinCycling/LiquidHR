@@ -9,7 +9,7 @@ export type PayrollCycleBusinessStatus = 'CONCEPT' | 'REVIEWED' | 'FINALIZED' | 
 
 export type PayrollCycleCurrentSource = {
   readonly employeeId: string
-  readonly sourceHash: string
+  readonly sourceHash: string | null
   readonly sourceVersionVector: Readonly<Record<string, string>>
   readonly gaps: readonly { readonly field: string; readonly status: 'SOURCE_GAP' | 'UNSUPPORTED'; readonly reasonCode: string }[]
 }
@@ -141,6 +141,12 @@ function latestSourceSnapshot(
   return summaries.find((summary) => summary.run.id === event.calculation_run_id)?.sourceSnapshot
 }
 
+function isSyntheticAcceptanceSnapshot(snapshot: PayrollSourceSnapshotRow | undefined): boolean {
+  if (!snapshot || !isRecord(snapshot.source_payload)) return false
+  const scenario = snapshot.source_payload.testScenario
+  return isRecord(scenario) && scenario.sourceClassification === 'PAYROLL_TEST_SCENARIO'
+}
+
 function businessStatus(event: IndividualPayrollLifecycleEventRow | null): PayrollCycleBusinessStatus {
   if (!event || event.event_type === 'BLOCKED') return null
   return event.event_type
@@ -175,7 +181,9 @@ export function projectPayrollCycle(input: {
     const latestSourceHash = storedSnapshot?.source_hash ?? (latest ? eventSourceHash(latest) : null)
     const currentHashDiffers = currentSource !== undefined
       && latestSourceHash !== null
+      && currentSource.sourceHash !== null
       && currentSource.sourceHash !== latestSourceHash
+      && !isSyntheticAcceptanceSnapshot(storedSnapshot)
 
     return {
       employeeId: storedSnapshot?.source_employee_id ?? currentSource?.employeeId ?? currentRun?.sourceSnapshot.source_employee_id ?? '',

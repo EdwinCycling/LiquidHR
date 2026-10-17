@@ -143,4 +143,25 @@ describe('PayrollCycle server foundation', () => {
       limit: 200,
     })
   })
+
+  it('includes authorized roster references without a run in the monthly worklist', async () => {
+    const provider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: vi.fn(async () => snapshot()),
+    }
+    const { service, repository } = makeService({ initialPeriod: payrollPeriod('OPEN'), provider })
+
+    const projection = await service.getPayrollCycleWorklist(period, [{ employeeId, employmentId }])
+
+    expect(repository.listPayrollRunSummaries).toHaveBeenCalledWith(scope, adminId, {
+      runType: 'INDIVIDUAL_PAYROLL', period, limit: 200,
+    })
+    expect(projection?.workItems).toEqual([expect.objectContaining({
+      employeeId,
+      employmentId,
+      runId: null,
+      technicalStatus: null,
+      businessStatus: null,
+      sourceGaps: [{ field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' }],
+    })])
+  })
 })

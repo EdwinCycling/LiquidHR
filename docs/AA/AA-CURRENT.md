@@ -1,7 +1,14 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-17 (historische acceptance-evidence blijft ongewijzigd)
+
+## PAYRUN-03 — volledige HR Admin-maandverwerking — lokaal — 2026-10-17
+
+- Status: **LOCAL CODE GREEN / BROWSER ACCEPTANCE BLOCKED BY ENVIRONMENT** op branch work/PAYRUN-03-20261017, aparte worktree PAYRUN-03-20261017, basis 7acf8c6a12797c2bb1880c8c187002a01561b826; origin/main read-only gecontroleerd op 0708d25190562e43a96417ba406648fd04207266. Geen merge, push, deployment, remote DB-write of wijziging van een definitieve run.
+- De Payroll → Salarisverwerking-werkplek toont de gescopeerde administratie-roster per maand met periode-status, medewerker-runstatus, bruto/netto/werkgeverskosten uit opgeslagen componentresultaten, uitzonderingen, laatste berekening, batchberekening, individuele herberekening, review/finalize-detailacties en definitieve loonstrooklink. Bestaande PayrollCycle-, run-, lifecycle-, bron-, controle- en payslip-services blijven de bron van waarheid.
+- Het backward-compatible cycle-contract accepteert optioneel de reeds gescopeerde employee/employment-referenties om ook medewerkers zonder run in de worklist te projecteren. Het gebruikt de bestaande getPayrollSourceSnapshot, lifecycle- en calculation-repository-contracten; geen schema-, Core-bron-, fiscale/pensioenregel- of componentenginewijziging en geen open backendintegratie in deze slice.
+- Browsergate: start-test-worktree.ps1 -Mode Development -PayrollAcceptance -PreflightOnly stopte voor serverstart omdat de verplichte centrale TEST-config ontbreekt. Geen fallback, configwaarde, credential of testidentiteit gelezen/aangemaakt; desktop/390px echte HR Admin-flow blijft OPEN
 
 ## PAYFULL-02 — PARTIAL, TEST-resultaat bevestigd 2026-10-16
 
