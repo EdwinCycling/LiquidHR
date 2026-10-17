@@ -667,7 +667,11 @@ function detailLink(path: string, employeeId: string): string {
 }
 
 export async function getStarPerformersDetail(employeeId: string): Promise<StarPerformersDetail> {
-  const auth = await requirePermission('star-performer:read', employeeId)
+  const auth = await requirePermission('star-performer:read')
+  const isPrivilegedAdmin = auth.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
+  if (!(isPrivilegedAdmin && auth.employeeId === employeeId)) {
+    await requirePermission('star-performer:read', employeeId)
+  }
   if (!auth.administrationId) throw new StarPerformerError('ADMINISTRATION_REQUIRED', 400)
   const supabase = await createClient()
   const base = await readDetailEmployee(supabase, auth.tenantId, auth.administrationId, employeeId)
