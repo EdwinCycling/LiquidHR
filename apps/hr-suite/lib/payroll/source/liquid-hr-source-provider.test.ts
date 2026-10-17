@@ -273,7 +273,7 @@ describe('LiquidHR Payroll source provider', () => {
             grandfathering_mode: 'NONE', flat_total_rate: 25, employer_share_pct: 60, employee_share_pct: 40,
             annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
             pensionable_salary_definition: { annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY', basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true },
-            eligibility_rule: { participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01' },
+            eligibility_rule: { participantGroup: 'NEW_ENTRANT' },
             contract_classification: 'SOLIDARITY' as const, contract_classification_provenance: {}, provenance_json: {}, is_active: true,
             version_id: '93000000-0000-4000-8000-000000000009', version_number: 1, version_created_at: '2026-01-01T00:00:00.000Z',
             source_updated_at: '2026-01-01T00:00:00.000Z', tiers: [],
@@ -290,6 +290,21 @@ describe('LiquidHR Payroll source provider', () => {
     expect(pension.partialMonthMethod).toBe('CALENDAR_DAYS_PRO_RATA')
     expect(pension.periodFactor).toBe('0.5161')
     expect(pension.partTimeFactor).toBe('0.5161')
+    expect(pension.calculationTrace).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        ruleProvenance: expect.objectContaining({
+          eligibilityRule: expect.objectContaining({
+            participantGroup: 'NEW_ENTRANT',
+            employmentOrParticipationStartOnOrAfter: '2026-01-01',
+          }),
+          eligibilityRuleMapping: {
+            mode: 'CORE_ARRANGEMENT_EFFECTIVE_FROM',
+            sourceField: 'arrangement.effective_from',
+            derivedBoundary: '2026-01-01',
+          },
+        }),
+      }),
+    ]))
     expect(snapshot.sourceGaps).not.toContainEqual({ field: 'openingCumulative', status: 'SOURCE_GAP', reasonCode: 'PAYROLL_OPENING_CUMULATIVE_MISSING' })
   })
 

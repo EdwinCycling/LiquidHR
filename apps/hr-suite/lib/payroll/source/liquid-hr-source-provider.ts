@@ -45,6 +45,7 @@ import {
   createPayrollSetupRepository,
   type PayrollSetupRepository,
 } from '../payroll-setup-repository'
+import { mapCorePensionEligibilityRule } from '../pension-eligibility-source-mapping'
 import type {
   PayrollEmployerConfigurationVersionRow,
   PayrollOpeningCumulativeSnapshotRow,
@@ -217,8 +218,13 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
     },
     loadActualWork: async (employeeId, employmentId, month) =>
       await getActualWorkPayrollProjection({ employeeId, employmentId, month }),
-    loadPayrollSetup: async (scope, payrollAdministrationId, sourceEmploymentId, payrollPeriod) => {
+    loadPayrollSetup: async (scope, _sourceAdministrationId, sourceEmploymentId, payrollPeriod) => {
       const repository = createPayrollSetupRepository()
+      const payrollAdministration = await repository.getPayrollAdministration(scope)
+      if (!payrollAdministration || payrollAdministration.status !== 'ACTIVE' || !payrollAdministration.capabilityEnabled) {
+        return { configurationRows: [], configurationRow: null, configuration: null, openingBalance: null }
+      }
+      const payrollAdministrationId = payrollAdministration.id
       const configurationRows = await repository.listEmployerConfigurations(scope, payrollAdministrationId)
       const periodStart = `${payrollPeriod.year}-${String(payrollPeriod.month).padStart(2, '0')}-01`
       const configurationRow = configurationRows.find((row) => row.status === 'ACTIVE'
@@ -229,7 +235,7 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
         ? normalizePayrollEmployerConfiguration(configurationRow.configuration_json as unknown as Parameters<typeof normalizePayrollEmployerConfiguration>[0])
         : null
       const openingRows = await repository.listOpeningCumulativeSnapshots(scope, payrollAdministrationId, sourceEmploymentId)
-      const openingBalance = openingRows.find((row) => row.as_of_date < periodStart) ?? null
+      const openingBalance = openingRows.find((row) => row.as_of_date <= periodStart) ?? null
       return { configurationRows, configurationRow, configuration, openingBalance }
     },
   }
@@ -818,6 +824,11 @@ function pensionArrangementInput(
   const contractClassification = arrangement.contract_classification === 'SOLIDARITY'
     || arrangement.contract_classification === 'NON_SOLIDARITY'
     ? arrangement.contract_classification : 'UNKNOWN'
+  const eligibility = mapCorePensionEligibilityRule({
+    arrangementType: arrangement.arrangement_type === 'PROGRESSIVE_PREMIUM' ? 'PROGRESSIVE_PREMIUM' : 'FLAT_PREMIUM',
+    effectiveFrom: arrangement.effective_from,
+    eligibilityRule: asRecord(arrangement.eligibility_rule) ?? {},
+  })
   return {
     arrangementId: arrangement.id,
     arrangementCode: arrangement.code,
@@ -835,7 +846,8 @@ function pensionArrangementInput(
     annualPensionableSalaryCap: arrangement.annual_pensionable_salary_cap === null
       ? null : String(arrangement.annual_pensionable_salary_cap),
     pensionableSalaryDefinition: asRecord(arrangement.pensionable_salary_definition) ?? {},
-    eligibilityRule: asRecord(arrangement.eligibility_rule) ?? {},
+    eligibilityRule: eligibility.eligibilityRule,
+    eligibilityRuleMapping: eligibility.mapping,
     contractClassification,
     contractClassificationProvenance: asRecord(arrangement.contract_classification_provenance) ?? {},
     provenance: asRecord(arrangement.provenance_json) ?? {},
@@ -1466,6 +1478,11 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       sourceGaps,
     }
     const sourceId = (this.dependencies.createId ?? randomUUID)()
+    const coreSourceHash = sha256(stableSerialize(coreHashInput))
+    // The provider snapshot id is intentionally fresh. The pension trace is part of
+    // the hash-bound canonical source, so it must use a stable pre-persistence
+    // identity or a re-read would look like a source change.
+    const calculationSourceId = `CORE_SOURCE:${coreSourceHash}`
     const regularPayroll = this.dependencies.loadPayrollSetup
       ? buildRegularPayrollOwned({
           configuration: payrollSetup?.configuration ?? null,
@@ -1482,8 +1499,8 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           schedule: schedules.length === 1 ? schedules[0] : undefined,
           pensionAssignments,
           actualWorkSnapshot,
-          sourceId,
-          coreSourceHash: sha256(stableSerialize(coreHashInput)),
+          sourceId: calculationSourceId,
+          coreSourceHash,
           sourceGaps,
         })
       : { payrollOwned: null, sourceGaps }

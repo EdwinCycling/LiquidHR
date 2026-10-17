@@ -154,6 +154,28 @@ export async function savePayrollEmployerConfiguration(
   if (normalized.status === 'ACTIVE') assertActivePayrollEmployerConfiguration(normalized)
 
   const existing = await repository.listEmployerConfigurations(access.scope, access.administration.id)
+  if (normalized.status === 'ACTIVE') {
+    const configurationHash = hashPayrollEmployerConfiguration(normalized)
+    const matchingVersion = existing.find((row) => {
+      if (row.effective_from !== normalized.effectiveFrom || row.effective_to !== normalized.effectiveTo) return false
+      const existingConfiguration = configurationFromRow(row)
+      return existingConfiguration !== null
+        && hashPayrollEmployerConfiguration({ ...existingConfiguration, status: 'ACTIVE' }) === configurationHash
+    })
+    if (matchingVersion?.status === 'ACTIVE') return matchingVersion
+    if (matchingVersion?.status === 'DRAFT') {
+      try {
+        return await repository.activateEmployerConfiguration(
+          access.scope,
+          access.administration.id,
+          matchingVersion.id,
+        )
+      } catch (error) {
+        if (error instanceof PayrollSetupServiceError) throw error
+        throw new PayrollSetupServiceError('PAYROLL_SETUP_UNAVAILABLE')
+      }
+    }
+  }
   const nextVersion = Math.max(0, ...existing.map((row) => row.configuration_version)) + 1
   try {
     return await repository.insertEmployerConfiguration(access.scope, access.administration.id, {

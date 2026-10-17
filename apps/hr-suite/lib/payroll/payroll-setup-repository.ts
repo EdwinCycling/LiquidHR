@@ -2,6 +2,7 @@ import 'server-only'
 
 import type {
   PayrollDatabase,
+  PayrollAdministrationRow,
   PayrollEmployerConfigurationVersionRow,
   PayrollOpeningCumulativeSnapshotRow,
 } from './database'
@@ -16,6 +17,9 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 const HASH_PATTERN = /^[0-9a-f]{64}$/
 
 export interface PayrollSetupRepository {
+  getPayrollAdministration(
+    scope: PayrollScope,
+  ): Promise<{ readonly id: string; readonly status: PayrollAdministrationRow['status']; readonly capabilityEnabled: boolean } | null>
   listEmployerConfigurations(
     scope: PayrollScope,
     payrollAdministrationId: string,
@@ -29,6 +33,11 @@ export interface PayrollSetupRepository {
     scope: PayrollScope,
     payrollAdministrationId: string,
     row: ConfigurationInsert,
+  ): Promise<PayrollEmployerConfigurationVersionRow>
+  activateEmployerConfiguration(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    configurationId: string,
   ): Promise<PayrollEmployerConfigurationVersionRow>
   listOpeningCumulativeSnapshots(
     scope: PayrollScope,
@@ -107,6 +116,21 @@ function assertOpeningRow(row: OpeningInsert): void {
 class SupabasePayrollSetupRepository implements PayrollSetupRepository {
   constructor(private readonly client: PayrollSupabaseClient) {}
 
+  async getPayrollAdministration(scope: PayrollScope): Promise<{ readonly id: string; readonly status: PayrollAdministrationRow['status']; readonly capabilityEnabled: boolean } | null> {
+    const checkedScope = assertPayrollScope(scope)
+    const { data, error } = await applyPayrollScopeFilter(
+      this.client.from('payroll_administrations').select('id,status,capability_enabled'),
+      checkedScope,
+    ).maybeSingle()
+    throwOnError(error)
+    if (!data) return null
+    return {
+      id: data.id,
+      status: data.status,
+      capabilityEnabled: data.capability_enabled,
+    }
+  }
+
   async listEmployerConfigurations(
     scope: PayrollScope,
     payrollAdministrationId: string,
@@ -145,6 +169,29 @@ class SupabasePayrollSetupRepository implements PayrollSetupRepository {
     const { data, error } = await this.client.from('payroll_employer_configuration_versions').insert(row).select('*').single()
     throwOnError(error, 'PAYROLL_SETUP_CONFIGURATION_CONFLICT')
     if (!data) throw new PayrollSetupRepositoryError()
+    return data
+  }
+
+  async activateEmployerConfiguration(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    configurationId: string,
+  ): Promise<PayrollEmployerConfigurationVersionRow> {
+    const checkedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    assertUuid(configurationId, 'PAYROLL_SETUP_CONFIGURATION_INVALID')
+    const { data, error } = await this.client.from('payroll_employer_configuration_versions')
+      .update({ status: 'ACTIVE' })
+      .eq('id', configurationId)
+      .eq('payroll_administration_id', payrollAdministrationId)
+      .eq('source_tenant_id', checkedScope.tenantId)
+      .eq('source_hr_group_id', checkedScope.hrGroupId)
+      .eq('source_administration_id', checkedScope.administrationId)
+      .eq('status', 'DRAFT')
+      .select('*')
+      .single()
+    throwOnError(error, 'PAYROLL_SETUP_CONFIGURATION_CONFLICT')
+    if (!data) throw new PayrollSetupRepositoryError('PAYROLL_SETUP_CONFIGURATION_CONFLICT')
     return data
   }
 
