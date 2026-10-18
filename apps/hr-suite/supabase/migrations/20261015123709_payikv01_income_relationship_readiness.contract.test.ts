@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const migration = readFileSync(new URL('./20261015123709_payikv01_income_relationship_readiness.sql', import.meta.url), 'utf8')
+  .replace(/\r\n?/g, '\n')
 
 describe('PAYIKV-01 income relationship readiness migration contract', () => {
   it('uses the existing scoped payroll permission and HR administrator roles', () => {

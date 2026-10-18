@@ -180,6 +180,7 @@ describe('Payroll Lab server-only boundary', () => {
       join(payrollDirectory, 'payroll-cycle-service.ts'),
       join(payrollDirectory, 'payroll-professional-run-service.ts'),
       join(payrollDirectory, 'payroll-professional-service.ts'),
+      join(payrollDirectory, 'payroll-setup-service.ts'),
       join(payrollDirectory, 'payrun01-repository.ts'),
       join(payrollDirectory, 'payrun01-service.ts'),
       join(payrollDirectory, 'synthetic-calculation-service.ts'),
@@ -189,6 +190,7 @@ describe('Payroll Lab server-only boundary', () => {
       join(payrollDirectory, 'arrangement-repository.ts'),
       join(payrollDirectory, 'calculation-repository.ts'),
       join(payrollDirectory, 'component-draft-repository.ts'),
+      join(payrollDirectory, 'payroll-setup-repository.ts'),
       join(payrollDirectory, 'payrun01-repository.ts'),
       join(payrollDirectory, 'repository.ts'),
     ])

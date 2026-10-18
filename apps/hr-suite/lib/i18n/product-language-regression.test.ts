@@ -6,7 +6,10 @@ import nlNavigation from '@/messages/nl/navigation.json'
 
 const internalLanguage = /\b(?:synthetic\w*|synthetisch\w*|fixture\w*|benchmark\w*|demo|foundation\w*|coming soon|work in progress|technical key|technische sleutel)\b|test[\s-]*(?:employment|arrangement|data|scenario|payroll|persona|only|dienstverband|regeling|gegevens|rol|gebruiker)/i
 const technicalPackageLabel = /\b(?:LHR_DEMO|PAYFULL|CAO-BENCH|PAYRUN01|GC-NL-\d{3})[A-Z0-9_-]*\b/i
-const developmentOnlyNavigationKey = /^(?:testRoleSwitch|payrun01|payrollLab|payrollComponents|arrangements(?:Fixtures|Synthetic|SalaryStrategy|EffectiveFrom|PrimaryAssignment|ExactlyOnePrimary|CalculationDate|ResolveComposition|SelectPackage|Assignment|ActivateBeforeAssigning|NoAvailableAssignmentChoice|CompositionSnapshots|Snapshot|Error|PackagesActivated|AvailabilityEnded|AvailabilityStartExtended|Development))/
+const developmentOnlyNavigationKey = /^(?:localPersona|testRoleSwitch|payrun01|payrollLab|payrollComponents|arrangements(?:Fixtures|Synthetic|SalaryStrategy|EffectiveFrom|PrimaryAssignment|ExactlyOnePrimary|CalculationDate|ResolveComposition|SelectPackage|Assignment|ActivateBeforeAssigning|NoAvailableAssignmentChoice|CompositionSnapshots|Snapshot|Error|PackagesActivated|AvailabilityEnded|AvailabilityStartExtended|Development))/
+const developmentOnlyMessageKeyByFile: Readonly<Record<string, RegExp>> = {
+  'payrollProfessional.json': /^localAcceptance/,
+}
 const normalArrangementNavigationKeys = [
   'arrangementsDescription', 'arrangementsUnavailable', 'arrangementsStorageUnavailable',
   'arrangementsPackagesTitle', 'arrangementsPackagesDescription', 'arrangementsAdminActionTitle',
@@ -29,7 +32,12 @@ function ordinaryMessages(locale: 'en' | 'nl'): string[] {
     .filter((filename) => filename.endsWith('.json'))
     .flatMap((filename) => {
       const messages = JSON.parse(readFileSync(join(directory, filename), 'utf8')) as Record<string, unknown>
-      if (filename !== 'navigation.json') return collectText(messages)
+      const developmentOnlyMessageKey = developmentOnlyMessageKeyByFile[filename]
+      if (filename !== 'navigation.json') {
+        return Object.entries(messages)
+          .filter(([key]) => !developmentOnlyMessageKey?.test(key))
+          .flatMap(([, value]) => collectText(value))
+      }
       return Object.entries(messages)
         .filter(([key]) => !developmentOnlyNavigationKey.test(key))
         .flatMap(([, value]) => collectText(value))
