@@ -1,5 +1,14 @@
 # AA-OPEN — Openstaande punten, uitgesteld bewijs en beslissingen
 
+> **Actueel open register — 18-10-2026** (details/eigenaar/acceptatie in [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md)):
+> 1. PAYROLL-CORE-RESET-01: bestaande proef-/Demo-regelingen reconciliëren, veilige scoped ont-/herkoppeling Mars/Jupiter/Mercurius, echte Core-readback; uitvoering **nog niet bevestigd**.
+> 2. Kinderopvang/Retail officiële volledige loon-/toeslagtabellen, PFZW/BPF/extra pensioencomponenten, effectieve werkgever- en medewerkerkoppelingen en K2/R1/R2 full-run/PDF **OPEN**.
+> 3. PAYFULL bredere scope: cumulatieven, variabel loon, speciale beloning, multi-IKV, jaaropgaaf, uitgaande loonaangifte, QA/compliance **OPEN**. Historisch geannuleerde CONTROL02 XML-*import* niet stilzwijgend heropenen.
+> 4. Frits `PAYROLL_INPUT_INVALID` readback, restregressies, officiële Mars Whk-/pensioenverificatie, IBAN voor betalingen **OPEN**.
+> 5. `integration/pay-converge-20261018` bevat lokaal geaccepteerde Core-fix; gecombineerde tests **HOLD** op Windows `EPERM` workspace-symlink en Node 22.14.0 (chromium vraagt >=22.17/24). STAR/overige CAO-branches nog niet geïntegreerd.
+> 6. `countEmployees()` startpagina gemiddeld 4,40 s/max 7,44 s, aparte perf-follow-up; niet hetzelfde als opgeloste talent-`25P02`-fix.
+> 7. Eén actieve applicatieomgeving: echte Vercel/Supabase-binding en autorisaties vóór wijzigingen/release controleren. Geen remote `main` merge of Vercel-release zonder expliciet GO.
+
 Status: **LIVING REGISTER — geen acceptatiebewijs**
 Gestart: 2026-10-04
 Eigenaar van dit register: centrale LiquidHR-releasecoördinatie. Iedere rij heeft daarnaast een inhoudelijke spoorverantwoordelijke.
