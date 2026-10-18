@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, useMemo, useState } from 'react'
 import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
+import { mapCaoSalarySource } from '@/lib/employment/salary-source-mapping'
 import { SalaryBandPositionCard } from '@/components/salary/salary-band-position-card'
 import { SalaryBandPercentageControl } from '@/components/salary/salary-band-percentage-control'
 import { buttonClasses } from '@/components/ui/button'
@@ -98,7 +99,7 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
         salaryScaleId: salaryRoute === 'SCALE_WITH_STEPS' ? String(values.salaryScaleId) : null,
         salaryStepCode: salaryRoute === 'SCALE_WITH_STEPS' ? selectedStep?.stepCode ?? null : null,
         salaryBandId: salaryRoute === 'SALARY_BAND' ? String(values.salaryBandId) : null,
-        caoScaleName: null, caoStepName: null,
+        ...mapCaoSalarySource({ salaryRoute, selectedScale, selectedStep }),
       }
     }
     return { allocations }
