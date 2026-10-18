@@ -17,7 +17,7 @@ Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailr
 
 **Security/persona-evidence blijft OPEN:** SEC-01 hosted positives/negatives en bestaande Control-, Insights- en AI-persona-negatives staan in [AA-OPEN](AA-OPEN.md). Vercel READY bewijst dit niet.
 
-**Talentparallelstatus 2026-10-18:** STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling** — is lokaal geaccepteerd op de actuele target-checkout. De bewezen cataloguslinks hergebruiken bestaande Star Performers- en Talent-reportservices, filters, scopes en exportcontracten; er is geen nieuwe permissie, schemawijziging of databasewrite. STAR-V2-04D-2 blijft een afzonderlijk vervolg en wijzigt de Core-volgorde WVP01 → INS02 niet.
+**Talentparallelstatus 2026-10-18:** STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling** — en STAR-V2-04D-2A — geaggregeerd Functieprofiel & skillgaps — zijn lokaal geaccepteerd op de actuele target-checkout. 04D-2A hergebruikt het bestaande `talent_job_profile_readmodel`, de server-side teamscope en read-only CSV-contract; de live Manager-selectie blijft terecht leeg zonder actieve functieprofielvereisten, terwijl een gecontroleerde fixture de positieve Manager-skillgapcase bewijst. Er is geen nieuwe permissie, schemawijziging of databasewrite uitgevoerd. STAR-V2-04D-2B/C/D wordt niet gestart en de Core-volgorde WVP01 → INS02 blijft ongewijzigd.
 
 AA-CURRENT beschrijft de actuele main-/deploymentbaseline. De ONE VERSION-2026-10-10 voorstatus blijft historisch in het acceptance report; die geldt niet als huidige releasebeslissing.
 

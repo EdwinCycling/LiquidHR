@@ -79,7 +79,8 @@ decommissionplan afzonderlijk is goedgekeurd.
 ### Talent
 - STAR-V2-04C — read-only Talentpaspoort is lokaal geaccepteerd op basis van de gedateerde [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04C-CLOSE-20261018.md); de centrale catalogusuitbreiding volgt als 04D-1;
 - STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling** is lokaal geaccepteerd; de catalogus ontsluit alleen bestaande Star Performers- en Talent-rapporten met bestaande scope-, filter- en exportcontracten; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-1-LOCAL-20261018.md);
-- STAR-V2-04D-2 — afzonderlijke volgende slice voor verdere Talent Insights-integratie; niet onderdeel van 04D-1;
+- STAR-V2-04D-2A — geaggregeerd **Functieprofiel & skillgaps** is **LOCAL DONE** met bestaande bronservices, het bestaande `talent_job_profile_readmodel`, bestaande teamscope/RLS en zonder schema-/permissiewijziging. HR Admin, Manager-empty-state, gecontroleerde positieve Manager-fixture en Employee-deny zijn bewezen; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2A-LOCAL-20261018.md);
+- STAR-V2-04D-2 — blijft een afzonderlijke volgende slice; 04D-2B/C/D wordt niet door deze HOLD gestart;
 - skills/competencies;
 - POP;
 - vlootschouw/9-grid;

@@ -98,6 +98,7 @@ export type StarPerformersInsights = {
     }>
     topGaps: Array<{ label: string; occurrences: number; roles: number }>
   }
+  skillGaps: FunctionSkillGapReport
   development: {
     state: InsightState
     activePlansCount: number
@@ -147,6 +148,70 @@ export type SkillComparisonInput = {
   axes: Array<{
     capabilityName: string
     status: 'MATCH' | 'GAP' | 'MISSING_EVIDENCE' | 'UNKNOWN'
+  }>
+}
+
+export const SKILL_GAP_STATUSES = ['MATCH', 'MISSING_LEVEL', 'INSUFFICIENT_LEVEL', 'EXPIRED_EVIDENCE', 'NOT_ASSESSED', 'MISSING_EVIDENCE'] as const
+export type SkillGapStatus = (typeof SKILL_GAP_STATUSES)[number]
+export type SkillGapStatusCounts = Record<SkillGapStatus, number>
+
+export type SkillGapComparisonInput = {
+  employeeId: string
+  employeeLabel: string
+  employeeNumber: string
+  roleId: string
+  roleLabel: string
+  jobGroupName: string | null
+  departmentId: string
+  departmentName: string | null
+  profileVersionId: string
+  profileVersion: number
+  profileValidFrom: string | null
+  profileValidUntil: string | null
+  axes: Array<{
+    requirementId: string
+    capabilityId: string
+    capabilityName: string
+    requiredLevelLabel: string | null
+    currentLevelLabel: string | null
+    status: SkillGapStatus
+  }>
+}
+
+export type FunctionSkillGapReport = {
+  state: InsightState
+  asOf: string
+  relevantEmployees: number
+  assessedEmployees: number
+  rows: Array<{
+    id: string
+    roleId: string
+    roleLabel: string
+    jobGroupName: string | null
+    departmentId: string
+    departmentName: string | null
+    requirementId: string
+    capabilityId: string
+    capabilityName: string
+    requiredLevelLabel: string | null
+    profileVersionId: string
+    profileVersion: number
+    profileValidFrom: string | null
+    profileValidUntil: string | null
+    totalRelevantEmployees: number
+    assessedEmployees: number
+    coveragePercent: number | null
+    statusCounts: SkillGapStatusCounts
+    singlePersonDependency: boolean
+    employees: Array<{
+      employeeId: string
+      employeeLabel: string
+      employeeNumber: string
+      status: SkillGapStatus
+      currentLevelLabel: string | null
+      href: string
+    }>
+    href: string
   }>
 }
 
@@ -267,6 +332,106 @@ export function buildSkillCoverage(inputs: readonly SkillComparisonInput[]): {
   const topGaps = [...gapMap.entries()].map(([label, value]) => ({ label, occurrences: value.occurrences, roles: value.roles.size })).sort((left, right) => right.occurrences - left.occurrences || left.label.localeCompare(right.label, 'nl')).slice(0, 8)
 
   return { roles, topGaps, evaluatedEmployees: evaluatedEmployees.size }
+}
+
+function emptySkillGapStatusCounts(): SkillGapStatusCounts {
+  return { MATCH: 0, MISSING_LEVEL: 0, INSUFFICIENT_LEVEL: 0, EXPIRED_EVIDENCE: 0, NOT_ASSESSED: 0, MISSING_EVIDENCE: 0 }
+}
+
+export function buildFunctionSkillGapReport(inputs: readonly SkillGapComparisonInput[], asOf: string): FunctionSkillGapReport {
+  const relevantEmployees = new Set<string>()
+  const assessedEmployees = new Set<string>()
+  const rows = new Map<string, {
+    input: SkillGapComparisonInput
+    axis: SkillGapComparisonInput['axes'][number]
+    employeeById: Map<string, { employeeId: string; employeeLabel: string; employeeNumber: string; status: SkillGapStatus; currentLevelLabel: string | null; href: string }>
+  }>()
+
+  for (const input of inputs) {
+    relevantEmployees.add(input.employeeId)
+    for (const axis of input.axes) {
+      if (axis.status !== 'NOT_ASSESSED') assessedEmployees.add(input.employeeId)
+      const key = `${input.roleId}:${input.departmentId}:${axis.requirementId}`
+      const row = rows.get(key) ?? {
+        input,
+        axis,
+        employeeById: new Map(),
+      }
+      if (!row.employeeById.has(input.employeeId)) {
+        row.employeeById.set(input.employeeId, {
+          employeeId: input.employeeId,
+          employeeLabel: input.employeeLabel,
+          employeeNumber: input.employeeNumber,
+          status: axis.status,
+          currentLevelLabel: axis.currentLevelLabel,
+          href: `/employees/${encodeURIComponent(input.employeeId)}`,
+        })
+      }
+      rows.set(key, row)
+    }
+  }
+
+  const reportRows = [...rows.entries()].map(([id, row]) => {
+    const employees = [...row.employeeById.values()].sort((left, right) => left.employeeLabel.localeCompare(right.employeeLabel, 'nl'))
+    const statusCounts = emptySkillGapStatusCounts()
+    for (const employee of employees) statusCounts[employee.status] += 1
+    const totalRelevantEmployees = employees.length
+    const assessedCount = totalRelevantEmployees - statusCounts.NOT_ASSESSED
+    return {
+      id,
+      roleId: row.input.roleId,
+      roleLabel: row.input.roleLabel,
+      jobGroupName: row.input.jobGroupName,
+      departmentId: row.input.departmentId,
+      departmentName: row.input.departmentName,
+      requirementId: row.axis.requirementId,
+      capabilityId: row.axis.capabilityId,
+      capabilityName: row.axis.capabilityName,
+      requiredLevelLabel: row.axis.requiredLevelLabel,
+      profileVersionId: row.input.profileVersionId,
+      profileVersion: row.input.profileVersion,
+      profileValidFrom: row.input.profileValidFrom,
+      profileValidUntil: row.input.profileValidUntil,
+      totalRelevantEmployees,
+      assessedEmployees: assessedCount,
+      coveragePercent: percentage(statusCounts.MATCH, totalRelevantEmployees),
+      statusCounts,
+      singlePersonDependency: totalRelevantEmployees > 1
+        && statusCounts.MATCH === 1
+        && statusCounts.MISSING_LEVEL === 0
+        && statusCounts.EXPIRED_EVIDENCE === 0
+        && statusCounts.NOT_ASSESSED === 0
+        && statusCounts.MISSING_EVIDENCE === 0,
+      employees,
+      href: `/workforce/talent/role-explorer?profileVersionId=${encodeURIComponent(row.input.profileVersionId)}`,
+    }
+  }).sort((left, right) => {
+    const leftGaps = left.totalRelevantEmployees - left.statusCounts.MATCH
+    const rightGaps = right.totalRelevantEmployees - right.statusCounts.MATCH
+    return rightGaps - leftGaps || (left.coveragePercent ?? 101) - (right.coveragePercent ?? 101) || left.roleLabel.localeCompare(right.roleLabel, 'nl') || left.capabilityName.localeCompare(right.capabilityName, 'nl')
+  })
+
+  return {
+    state: reportRows.length > 0 ? 'ready' : 'no-data',
+    asOf,
+    relevantEmployees: relevantEmployees.size,
+    assessedEmployees: assessedEmployees.size,
+    rows: reportRows,
+  }
+}
+
+function csvCell(value: string | number | boolean | null): string {
+  const raw = value === null ? '' : String(value)
+  const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw
+  return `"${safe.replaceAll('"', '""')}"`
+}
+
+export function functionSkillGapReportCsv(report: FunctionSkillGapReport): string {
+  const header = ['as_of', 'job', 'job_group', 'department', 'capability', 'required_level', 'employee_id', 'employee', 'status', 'evidenced_level', 'assessed_employees', 'relevant_employees', 'coverage_percent', 'single_person_dependency', 'profile_version', 'profile_valid_from']
+  const rows = report.rows.flatMap((row) => row.employees.length > 0
+    ? row.employees.map((employee) => [report.asOf, row.roleLabel, row.jobGroupName, row.departmentName, row.capabilityName, row.requiredLevelLabel, employee.employeeId, employee.employeeLabel, employee.status, employee.currentLevelLabel, row.assessedEmployees, row.totalRelevantEmployees, row.coveragePercent, row.singlePersonDependency, row.profileVersion, row.profileValidFrom])
+    : [[report.asOf, row.roleLabel, row.jobGroupName, row.departmentName, row.capabilityName, row.requiredLevelLabel, null, null, null, null, row.assessedEmployees, row.totalRelevantEmployees, row.coveragePercent, row.singlePersonDependency, row.profileVersion, row.profileValidFrom]])
+  return [header, ...rows].map((row) => row.map((value) => csvCell(value)).join(',')).join('\r\n') + '\r\n'
 }
 
 export function percentageOf(value: number, total: number): number | null {

@@ -15,11 +15,12 @@ describe('Insights Analyse destination', () => {
 
   it('registers only existing Talent and Star report destinations', () => {
     expect(INSIGHT_REPORTS.filter((report) => report.category === 'talent').map((report) => report.id)).toEqual([
-      'talent-top-talent', 'talent-key-employees', 'talent-star-skills', 'talent-development', 'talent-skills', 'talent-pop',
+      'talent-top-talent', 'talent-key-employees', 'talent-star-skills', 'talent-development', 'talent-profile-skill-gaps', 'talent-skills', 'talent-pop',
     ])
     expect(insightReportRoute(INSIGHT_REPORTS.find((report) => report.id === 'talent-pop')!, true)).toBe('/settings/talent/reports?reportType=goals')
     expect(insightReportRoute(INSIGHT_REPORTS.find((report) => report.id === 'talent-pop')!, false)).toBe('/workforce/talent/reports?reportType=goals')
     expect(canonicalInsightReportId('talent-top-talent')).toBe('talent-top-talent')
+    expect(insightReportRoute(INSIGHT_REPORTS.find((report) => report.id === 'talent-profile-skill-gaps')!, false)).toBe('/workforce/talent/reports/star-performers?report=skill-gaps')
   })
 
   it('accepts the existing manager-read Star contract without exposing Talent reports to an employee', () => {

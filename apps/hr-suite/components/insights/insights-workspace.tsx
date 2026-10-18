@@ -157,6 +157,7 @@ function reportLabelPrefix(id: InsightReportId): string {
   if (id === 'talent-key-employees') return 'talentKeyEmployees'
   if (id === 'talent-star-skills') return 'talentStarSkills'
   if (id === 'talent-development') return 'talentDevelopment'
+  if (id === 'talent-profile-skill-gaps') return 'talentProfileSkillGaps'
   if (id === 'talent-skills') return 'talentSkills'
   if (id === 'talent-pop') return 'talentPop'
   return id

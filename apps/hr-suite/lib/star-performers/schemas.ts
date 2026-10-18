@@ -14,7 +14,7 @@ export const starPerformerQuerySchema = z.object({
 export const starPerformerWorkspaceQuerySchema = z.object({
   perspective: z.enum(['top-talent', 'key-employees']).default('top-talent'),
   area: z.enum(['overview', 'employees', 'key-roles', 'development', 'insights']).default('overview'),
-  insight: z.enum(['top-talent', 'key-employees', 'skills', 'development']).default('top-talent'),
+  insight: z.enum(['top-talent', 'key-employees', 'skills', 'skill-gaps', 'development']).default('top-talent'),
   q: z.string().trim().max(100).default(''),
   departmentId: databaseUuidSchema.optional(),
   jobId: databaseUuidSchema.optional(),

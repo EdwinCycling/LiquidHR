@@ -6,7 +6,7 @@ import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { listTalentEmployeeCapabilityRecords } from '@/lib/talent/employee-capability-service'
 import { listTalentGoals } from '@/lib/talent/goal-service'
 import { evaluateTalentRoleExplorerOutcome, listTalentRoleExplorerWorkspace, type TalentRoleExplorerComparison } from '@/lib/talent/role-explorer-service'
-import { getTalentLevelModel, listTalentProfilesForWorkforce } from '@/lib/talent/service'
+import { listTalentProfilesForWorkforce } from '@/lib/talent/service'
 import { movementDirection, type GridCell } from '@/lib/talent-review/rules'
 import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
@@ -15,12 +15,15 @@ import type { StarPerformerWorkspaceQuery } from './schemas'
 import { StarPerformerError } from './service'
 import {
   buildCriticalityDistribution,
+  buildFunctionSkillGapReport,
   buildGridDistribution,
   buildMovementSummary,
   buildSkillCoverage,
   percentageOf,
+  type FunctionSkillGapReport,
   type InsightBreakdown,
   type InsightEmployee,
+  type SkillGapComparisonInput,
   type SkillComparisonInput,
   type StarPerformersInsights,
 } from './insights-service'
@@ -957,55 +960,138 @@ function selectedGridSignals(
   return { signals, movements, previousCampaignName, selectedPeriodId: null }
 }
 
+type SkillGapRecord = Awaited<ReturnType<typeof listTalentEmployeeCapabilityRecords>>[number]
+
+function skillGapRecordPriority(record: SkillGapRecord, today: string): number {
+  if (record.status === 'RELEASED' && record.validFrom <= today && (record.validUntil === null || record.validUntil > today)) return 4
+  if (record.status === 'EXPIRED') return 3
+  if (record.status === 'RELEASED' && record.validFrom <= today) return 2
+  if (record.status === 'DRAFT' && record.validFrom <= today) return 1
+  return 0
+}
+
+function skillGapStatus(
+  requirement: { capability: { capability_type: string } | null; target_level_id: string | null; language_level: string | null },
+  record: SkillGapRecord | undefined,
+  levelRankById: ReadonlyMap<string, number>,
+  today: string,
+): import('./insights-service').SkillGapStatus {
+  if (record?.status === 'EXPIRED' || (record?.validUntil !== null && record?.validUntil !== undefined && record.validUntil <= today)) return 'EXPIRED_EVIDENCE'
+  const isCurrentRecord = Boolean(record && record.status === 'RELEASED' && record.validFrom <= today && (record.validUntil === null || record.validUntil > today))
+  if (!record || !isCurrentRecord) return 'NOT_ASSESSED'
+  const targetLevelRank = requirement.target_level_id ? levelRankById.get(requirement.target_level_id) ?? null : null
+  const currentLevelRank = record.talentLevelId ? levelRankById.get(record.talentLevelId) ?? null : null
+  const outcome = evaluateTalentRoleExplorerOutcome({
+    capabilityAvailable: Boolean(requirement.capability),
+    recordStatus: record.status,
+    isCurrentRecord,
+    isCertificate: requirement.capability?.capability_type === 'CERTIFICATE',
+    evidenceStatus: record.evidenceStatus,
+    targetLevelRank,
+    currentLevelRank,
+    targetLanguageLevel: requirement.language_level,
+    currentLanguageLevel: record.languageLevel,
+  })
+  if (outcome === 'MATCH') return 'MATCH'
+  if (outcome === 'MISSING_EVIDENCE') return 'MISSING_EVIDENCE'
+  if (targetLevelRank !== null && currentLevelRank === null) return 'MISSING_LEVEL'
+  if (requirement.language_level && !record.languageLevel) return 'MISSING_LEVEL'
+  return outcome === 'GAP' ? 'INSUFFICIENT_LEVEL' : 'MISSING_LEVEL'
+}
+
+function legacySkillStatus(status: import('./insights-service').SkillGapStatus): SkillComparisonInput['axes'][number]['status'] {
+  if (status === 'MATCH') return 'MATCH'
+  if (status === 'MISSING_EVIDENCE' || status === 'EXPIRED_EVIDENCE') return 'MISSING_EVIDENCE'
+  if (status === 'NOT_ASSESSED') return 'UNKNOWN'
+  return 'GAP'
+}
+
+async function readTalentLevelRanks(access: StarPerformersReadAccess) {
+  await requirePermissionInContext(access.supabase, access.auth, access.isAdmin ? 'talent:manage' : 'talent:manager-read')
+  const { data, error } = await access.supabase
+    .from('talent_levels')
+    .select('id,sort_order')
+    .eq('tenant_id', access.auth.tenantId)
+    .order('sort_order')
+    .order('code')
+    .limit(100)
+  if (error) throw new StarPerformerError('STAR_PERFORMER_SKILL_LEVEL_READ_FAILED', 503)
+  return data ?? []
+}
+
 async function readInsightSkills(
   employeeIds: readonly string[],
   refs: Awaited<ReturnType<typeof readReferenceData>>,
-): Promise<{ state: 'ready' | 'unavailable' | 'no-data'; evaluatedEmployees: number; roles: StarPerformersInsights['skills']['roles']; topGaps: StarPerformersInsights['skills']['topGaps'] }> {
-  if (!employeeIds.length) return { state: 'no-data', evaluatedEmployees: 0, roles: [], topGaps: [] }
+  scopeRows: readonly InsightScopeRow[],
+  access: StarPerformersReadAccess,
+): Promise<{ state: 'ready' | 'unavailable' | 'no-data'; evaluatedEmployees: number; roles: StarPerformersInsights['skills']['roles']; topGaps: StarPerformersInsights['skills']['topGaps']; skillGapReport: FunctionSkillGapReport }> {
+  const asOf = currentDate()
+  if (!employeeIds.length) return { state: 'no-data', evaluatedEmployees: 0, roles: [], topGaps: [], skillGapReport: buildFunctionSkillGapReport([], asOf) }
   try {
-    const [profiles, records, levelModel] = await Promise.all([
+    const [profiles, records, levels] = await Promise.all([
       listTalentProfilesForWorkforce({ includeRequirements: true }),
       listTalentEmployeeCapabilityRecords({}),
-      getTalentLevelModel(),
+      readTalentLevelRanks(access),
     ])
     const population = new Set(employeeIds)
-    const today = currentDate()
-    const levelRankById = new Map(levelModel.levels.map((level) => [level.id, level.sort_order]))
-    const currentRecordByEmployeeCapability = new Map<string, (typeof records)[number]>()
+    const levelRankById = new Map(levels.map((level) => [level.id, level.sort_order]))
+    const recordByEmployeeCapability = new Map<string, SkillGapRecord>()
     for (const record of records) {
-      if (!population.has(record.employeeId) || record.status !== 'RELEASED' || record.validFrom > today || (record.validUntil !== null && record.validUntil <= today)) continue
+      if (!population.has(record.employeeId)) continue
       const key = `${record.employeeId}:${record.capabilityId}`
-      const current = currentRecordByEmployeeCapability.get(key)
-      if (!current || record.validFrom > current.validFrom || (record.validFrom === current.validFrom && record.updatedAt > current.updatedAt)) currentRecordByEmployeeCapability.set(key, record)
+      const current = recordByEmployeeCapability.get(key)
+      const priority = skillGapRecordPriority(record, asOf)
+      const currentPriority = current ? skillGapRecordPriority(current, asOf) : -1
+      if (!current || priority > currentPriority || (priority === currentPriority && (record.validFrom > current.validFrom || (record.validFrom === current.validFrom && record.updatedAt > current.updatedAt)))) recordByEmployeeCapability.set(key, record)
     }
-    const comparisons: SkillComparisonInput[] = []
+
+    const profileByJobId = new Map<string, (typeof profiles)[number]>()
     for (const profile of profiles) {
-      if ((profile.profile.valid_from !== null && profile.profile.valid_from > today) || (profile.profile.valid_until !== null && profile.profile.valid_until <= today)) continue
+      const jobId = profile.profile.job_id
+      if (!jobId || (profile.profile.valid_from !== null && profile.profile.valid_from > asOf) || (profile.profile.valid_until !== null && profile.profile.valid_until <= asOf)) continue
+      const current = profileByJobId.get(jobId)
+      if (!current || (profile.profile.valid_from ?? '') > (current.profile.valid_from ?? '') || (profile.profile.valid_from === current.profile.valid_from && (profile.profile.version_number ?? 0) > (current.profile.version_number ?? 0))) profileByJobId.set(jobId, profile)
+    }
+
+    const comparisons: SkillComparisonInput[] = []
+    const detailedComparisons: SkillGapComparisonInput[] = []
+    const scopedRowsByEmployee = new Map(scopeRows.map((row) => [row.employee.employeeId, row]))
+    for (const employeeId of employeeIds) {
+      const scopeRow = scopedRowsByEmployee.get(employeeId)
+      if (!scopeRow?.jobId) continue
+      const profile = profileByJobId.get(scopeRow.jobId)
+      if (!profile?.profile.profile_version_id) continue
       const roleId = profile.profile.job_id ?? profile.profile.job_profile_id
       if (!roleId) continue
-      const roleLabel = refs.jobNameById.get(profile.profile.job_id ?? '') ?? profile.profile.job_code ?? roleId
-      for (const employee of profile.employees) {
-        if (!population.has(employee.id)) continue
-        const axes = profile.requirements.map((requirement) => {
-          const record = currentRecordByEmployeeCapability.get(`${employee.id}:${requirement.capability_id}`)
-          const isCurrentRecord = Boolean(record && record.status === 'RELEASED' && record.validFrom <= today && (record.validUntil === null || record.validUntil > today))
-          return {
-            capabilityName: requirement.capability?.name ?? requirement.capability_id,
-            status: evaluateTalentRoleExplorerOutcome({
-              capabilityAvailable: Boolean(requirement.capability),
-              recordStatus: record?.status ?? null,
-              isCurrentRecord,
-              isCertificate: requirement.capability?.capability_type === 'CERTIFICATE',
-              evidenceStatus: record?.evidenceStatus ?? null,
-              targetLevelRank: requirement.target_level_id ? levelRankById.get(requirement.target_level_id) ?? null : null,
-              currentLevelRank: record?.talentLevelId ? levelRankById.get(record.talentLevelId) ?? null : null,
-              targetLanguageLevel: requirement.language_level,
-              currentLanguageLevel: record?.languageLevel ?? null,
-            }),
-          }
-        })
-        comparisons.push({ employeeId: employee.id, roleId, roleLabel, jobGroupName: profile.profile.job_group_name, axes })
-      }
+      const roleLabel = refs.jobNameById.get(scopeRow.jobId) ?? profile.profile.job_code ?? roleId
+      const detailedAxes = profile.requirements.map((requirement) => {
+        const record = recordByEmployeeCapability.get(`${employeeId}:${requirement.capability_id}`)
+        const status = skillGapStatus(requirement, record, levelRankById, asOf)
+        return {
+          requirementId: requirement.id,
+          capabilityId: requirement.capability_id,
+          capabilityName: requirement.capability?.name ?? requirement.capability_id,
+          requiredLevelLabel: requirement.targetLevel?.name ?? requirement.targetLevel?.code ?? requirement.language_level,
+          currentLevelLabel: record?.talentLevelName ?? record?.talentLevelCode ?? record?.languageLevel ?? null,
+          status,
+        }
+      })
+      comparisons.push({ employeeId, roleId, roleLabel, jobGroupName: profile.profile.job_group_name, axes: detailedAxes.map((axis) => ({ capabilityName: axis.capabilityName, status: legacySkillStatus(axis.status) })) })
+      detailedComparisons.push({
+        employeeId,
+        employeeLabel: scopeRow.employee.label,
+        employeeNumber: scopeRow.employee.employeeNumber,
+        roleId,
+        roleLabel,
+        jobGroupName: profile.profile.job_group_name,
+        departmentId: scopeRow.departmentId,
+        departmentName: scopeRow.employee.departmentName,
+        profileVersionId: profile.profile.profile_version_id,
+        profileVersion: profile.profile.version_number ?? 0,
+        profileValidFrom: profile.profile.valid_from,
+        profileValidUntil: profile.profile.valid_until,
+        axes: detailedAxes,
+      })
     }
     const coverage = buildSkillCoverage(comparisons)
     return {
@@ -1013,9 +1099,10 @@ async function readInsightSkills(
       evaluatedEmployees: coverage.evaluatedEmployees,
       roles: coverage.roles,
       topGaps: coverage.topGaps,
+      skillGapReport: buildFunctionSkillGapReport(detailedComparisons, asOf),
     }
   } catch {
-    return { state: 'unavailable', evaluatedEmployees: 0, roles: [], topGaps: [] }
+    return { state: 'unavailable', evaluatedEmployees: 0, roles: [], topGaps: [], skillGapReport: { state: 'unavailable', asOf, relevantEmployees: 0, assessedEmployees: 0, rows: [] } }
   }
 }
 
@@ -1095,6 +1182,7 @@ function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsigh
     topTalent: { coveragePercent: null, assessedCount: 0, distribution: buildGridDistribution([], []), highHigh: [], movement: { state: 'unavailable', previousCampaignName: null, comparableEmployees: 0, up: 0, down: 0, stable: 0 } },
     keyEmployees: { criticalityDistribution: buildCriticalityDistribution([]), highCriticalCount: 0, highCriticalPercent: null, assessedCount: 0, threshold: 4, byDepartment: [], byJobGroup: [], byJob: [], overlap: { highHighCount: 0, highCriticalCount: 0, overlapCount: 0, overlapPercent: null }, employees: [] },
     skills: { state: 'no-data', evaluatedEmployees: 0, roles: [], topGaps: [] },
+    skillGaps: { state: 'no-data', asOf: currentDate(), relevantEmployees: 0, assessedEmployees: 0, rows: [] },
     development: { state: 'no-data', activePlansCount: 0, employeesWithActivePlans: 0, averageProgress: null, openActionCount: 0, plans: [], actions: [], trendAvailable: false },
   }
 }
@@ -1189,8 +1277,12 @@ async function readStarPerformersInsights(
   const overlapCount = [...highHighIds].filter((employeeId) => highCriticalIds.has(employeeId) && filteredIds.includes(employeeId)).length
   const keyEmployees = scopeRows.filter((row) => row.employee.criticalityLevel !== null && row.employee.criticalityLevel !== undefined).sort((left, right) => (right.employee.criticalityLevel ?? 0) - (left.employee.criticalityLevel ?? 0) || left.employee.label.localeCompare(right.employee.label, 'nl')).map((row) => row.employee)
   const employeeLabels = new Map(scopeRows.map((row) => [row.employee.employeeId, row.employee.label]))
-  const skills = (options.includeSkills ?? query.insight === 'skills')
-    ? await readInsightSkills(filteredIds, refs)
+  const includeSkills = options.includeSkills ?? (query.insight === 'skills' || query.insight === 'skill-gaps')
+  const skillsRead = includeSkills
+    ? await readInsightSkills(filteredIds, refs, scopeRows, access)
+    : null
+  const skills = skillsRead
+    ? { state: skillsRead.state, evaluatedEmployees: skillsRead.evaluatedEmployees, roles: skillsRead.roles, topGaps: skillsRead.topGaps }
     : { state: 'no-data' as const, evaluatedEmployees: 0, roles: [], topGaps: [] }
   const development = (options.includeDevelopment ?? query.insight === 'development')
     ? await readInsightDevelopment(filteredIds, employeeLabels, access.isManager ? 'manager' : 'admin')
@@ -1221,6 +1313,7 @@ async function readStarPerformersInsights(
       employees: keyEmployees,
     },
     skills,
+    skillGaps: skillsRead?.skillGapReport ?? { state: 'no-data', asOf: today, relevantEmployees: 0, assessedEmployees: 0, rows: [] },
     development,
   }
 }

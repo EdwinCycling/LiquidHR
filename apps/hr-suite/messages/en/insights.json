@@ -321,6 +321,8 @@
   "talentKeyEmployeesDescription": "Open the existing criticality insights and the independent overlap with top talent.",
   "talentStarSkillsTitle": "Skills & dependencies",
   "talentStarSkillsDescription": "Open the existing Star Performers report for evidence-backed skill coverage and supported gaps.",
+  "talentProfileSkillGapsTitle": "Job profile & skill gaps",
+  "talentProfileSkillGapsDescription": "Compare job-profile requirements with evidenced employee skills by job and team, with scoped drilldown and CSV export.",
   "talentDevelopmentTitle": "Development & actions",
   "talentDevelopmentDescription": "Open the existing Star Performers report for active development plans and open appraisal actions.",
   "talentSkillsTitle": "Skills & capabilities",

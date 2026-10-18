@@ -15,8 +15,8 @@ function queryValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value
 }
 
-function insightValue(value: string | undefined): 'top-talent' | 'key-employees' | 'skills' | 'development' | undefined {
-  return value === 'top-talent' || value === 'key-employees' || value === 'skills' || value === 'development' ? value : undefined
+function insightValue(value: string | undefined): 'top-talent' | 'key-employees' | 'skills' | 'skill-gaps' | 'development' | undefined {
+  return value === 'top-talent' || value === 'key-employees' || value === 'skills' || value === 'skill-gaps' || value === 'development' ? value : undefined
 }
 
 export default async function StarPerformersTalentReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

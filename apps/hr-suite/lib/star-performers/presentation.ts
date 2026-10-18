@@ -42,6 +42,7 @@ export type StarPerformersInsightLabels = {
   insightsDescription: string
   insightsDevelopment: string
   insightsKeyEmployees: string
+  insightsSkillGaps: string
   insightsSkills: string
   insightsTopTalent: string
   job: string
@@ -74,6 +75,26 @@ export type StarPerformersInsightLabels = {
   roleSkillCoverage: string
   roleSkillCoverageDescription: string
   rolesWithEvidence: string
+  skillGapAffectedEmployees: string
+  skillGapAsOf: string
+  skillGapAssessed: string
+  skillGapCoverage: string
+  skillGapCurrentLevel: string
+  skillGapDescription: string
+  skillGapDependency: string
+  skillGapExport: string
+  skillGapExpiredEvidence: string
+  skillGapInsufficientLevel: string
+  skillGapMissingEvidence: string
+  skillGapMissingLevel: string
+  skillGapMatch: string
+  skillGapNoData: string
+  skillGapNoDataDescription: string
+  skillGapNotAssessed: string
+  skillGapRequiredLevel: string
+  skillGapRelevantEmployees: string
+  skillGapSourceProfile: string
+  skillGapStatus: string
   skillGaps: string
   skills: string
   sourceUnavailable: string
@@ -104,7 +125,7 @@ export type StarPerformersReportFilterLabels = {
 
 export function createStarPerformersInsightLabels(t: Translator): StarPerformersInsightLabels {
   return {
-    activePlans: t('activePlans'), allPeriods: t('allPeriods'), approvedGrid: t('approvedGrid'), assessedCount: t('assessedCount'), assessedKeyEmployees: t('assessedKeyEmployees'), averageProgress: t('averageProgress'), byDepartment: t('byDepartment'), byJob: t('byJob'), byJobGroup: t('byJobGroup'), comparableHistory: t('comparableHistory'), comparableMovement: t('comparableMovement'), comparedWith: t('comparedWith'), coverage: t('coverage'), criticality: t('criticality'), criticalityDistribution: t('criticalityDistribution'), criticalityDistributionDescription: t('criticalityDistributionDescription'), department: t('department'), developmentPlans: t('developmentPlans'), due: t('due'), employee: t('employee'), employees: t('employees'), employeesInScope: t('employeesInScope'), employeesWithPlans: t('employeesWithPlans'), evaluatedEmployees: t('evaluatedEmployees'), gaps: t('gaps'), gridDistribution: t('gridDistribution'), gridDistributionDescription: t('gridDistributionDescription'), group: t('group'), highCriticalCount: t('highCriticalCount'), highCriticalEmployees: t('highCriticalEmployees'), highCriticalThreshold: t('highCriticalThreshold'), highHighEmployees: t('highHighEmployees'), highHighEmployeesDescription: t('highHighEmployeesDescription'), highHighSignals: t('highHighSignals'), independentAssessmentSources: t('independentAssessmentSources'), insightKpiScope: t('insightKpiScope'), insightNavigation: t('insightNavigation'), insights: t('insights'), insightsDescription: t('insightsDescription'), insightsDevelopment: t('insightsDevelopment'), insightsKeyEmployees: t('insightsKeyEmployees'), insightsSkills: t('insightsSkills'), insightsTopTalent: t('insightsTopTalent'), job: t('job'), loadFailed: t('loadFailed'), loading: t('loading'), movement: t('movement'), movementDown: t('movementDown'), movementStable: t('movementStable'), movementUnavailable: t('movementUnavailable'), movementUp: t('movementUp'), noAssessedKeyEmployees: t('noAssessedKeyEmployees'), noBreakdownData: t('noBreakdownData'), noDevelopmentData: t('noDevelopmentData'), noHighHighEmployees: t('noHighHighEmployees'), noHighHighEmployeesDescription: t('noHighHighEmployeesDescription'), noOpenActions: t('noOpenActions'), noRoleData: t('noRoleData'), noSkillGaps: t('noSkillGaps'), noSkillsData: t('noSkillsData'), noSkillsDataDescription: t('noSkillsDataDescription'), ofAssessed: t('ofAssessed'), openActions: t('openActions'), openEmployee: t('openEmployee'), overlap: t('overlap'), overlapDescription: t('overlapDescription'), overlapEmployees: t('overlapEmployees'), period: t('period'), requirements: t('requirements'), retry: t('retry'), roleSkillCoverage: t('roleSkillCoverage'), roleSkillCoverageDescription: t('roleSkillCoverageDescription'), rolesWithEvidence: t('rolesWithEvidence'), skillGaps: t('skillGaps'), skills: t('skills'), sourceUnavailable: t('sourceUnavailable'), topGaps: t('topGaps'), trendAvailable: t('trendAvailable'), trendUnavailable: t('trendUnavailable'), unavailable: t('unavailable'), until: t('until'), vulnerabilitySignals: t('vulnerabilitySignals'),
+    activePlans: t('activePlans'), allPeriods: t('allPeriods'), approvedGrid: t('approvedGrid'), assessedCount: t('assessedCount'), assessedKeyEmployees: t('assessedKeyEmployees'), averageProgress: t('averageProgress'), byDepartment: t('byDepartment'), byJob: t('byJob'), byJobGroup: t('byJobGroup'), comparableHistory: t('comparableHistory'), comparableMovement: t('comparableMovement'), comparedWith: t('comparedWith'), coverage: t('coverage'), criticality: t('criticality'), criticalityDistribution: t('criticalityDistribution'), criticalityDistributionDescription: t('criticalityDistributionDescription'), department: t('department'), developmentPlans: t('developmentPlans'), due: t('due'), employee: t('employee'), employees: t('employees'), employeesInScope: t('employeesInScope'), employeesWithPlans: t('employeesWithPlans'), evaluatedEmployees: t('evaluatedEmployees'), gaps: t('gaps'), gridDistribution: t('gridDistribution'), gridDistributionDescription: t('gridDistributionDescription'), group: t('group'), highCriticalCount: t('highCriticalCount'), highCriticalEmployees: t('highCriticalEmployees'), highCriticalThreshold: t('highCriticalThreshold'), highHighEmployees: t('highHighEmployees'), highHighEmployeesDescription: t('highHighEmployeesDescription'), highHighSignals: t('highHighSignals'), independentAssessmentSources: t('independentAssessmentSources'), insightKpiScope: t('insightKpiScope'), insightNavigation: t('insightNavigation'), insights: t('insights'), insightsDescription: t('insightsDescription'), insightsDevelopment: t('insightsDevelopment'), insightsKeyEmployees: t('insightsKeyEmployees'), insightsSkillGaps: t('insightsSkillGaps'), insightsSkills: t('insightsSkills'), insightsTopTalent: t('insightsTopTalent'), job: t('job'), loadFailed: t('loadFailed'), loading: t('loading'), movement: t('movement'), movementDown: t('movementDown'), movementStable: t('movementStable'), movementUnavailable: t('movementUnavailable'), movementUp: t('movementUp'), noAssessedKeyEmployees: t('noAssessedKeyEmployees'), noBreakdownData: t('noBreakdownData'), noDevelopmentData: t('noDevelopmentData'), noHighHighEmployees: t('noHighHighEmployees'), noHighHighEmployeesDescription: t('noHighHighEmployeesDescription'), noOpenActions: t('noOpenActions'), noRoleData: t('noRoleData'), noSkillGaps: t('noSkillGaps'), noSkillsData: t('noSkillsData'), noSkillsDataDescription: t('noSkillsDataDescription'), ofAssessed: t('ofAssessed'), openActions: t('openActions'), openEmployee: t('openEmployee'), overlap: t('overlap'), overlapDescription: t('overlapDescription'), overlapEmployees: t('overlapEmployees'), period: t('period'), requirements: t('requirements'), retry: t('retry'), roleSkillCoverage: t('roleSkillCoverage'), roleSkillCoverageDescription: t('roleSkillCoverageDescription'), rolesWithEvidence: t('rolesWithEvidence'), skillGapAffectedEmployees: t('skillGapAffectedEmployees'), skillGapAsOf: t('skillGapAsOf'), skillGapAssessed: t('skillGapAssessed'), skillGapCoverage: t('skillGapCoverage'), skillGapCurrentLevel: t('skillGapCurrentLevel'), skillGapDescription: t('skillGapDescription'), skillGapDependency: t('skillGapDependency'), skillGapExport: t('skillGapExport'), skillGapExpiredEvidence: t('skillGapExpiredEvidence'), skillGapInsufficientLevel: t('skillGapInsufficientLevel'), skillGapMissingEvidence: t('skillGapMissingEvidence'), skillGapMissingLevel: t('skillGapMissingLevel'), skillGapMatch: t('skillGapMatch'), skillGapNoData: t('skillGapNoData'), skillGapNoDataDescription: t('skillGapNoDataDescription'), skillGapNotAssessed: t('skillGapNotAssessed'), skillGapRequiredLevel: t('skillGapRequiredLevel'), skillGapRelevantEmployees: t('skillGapRelevantEmployees'), skillGapSourceProfile: t('skillGapSourceProfile'), skillGapStatus: t('skillGapStatus'), skillGaps: t('skillGaps'), skills: t('skills'), sourceUnavailable: t('sourceUnavailable'), topGaps: t('topGaps'), trendAvailable: t('trendAvailable'), trendUnavailable: t('trendUnavailable'), unavailable: t('unavailable'), until: t('until'), vulnerabilitySignals: t('vulnerabilitySignals'),
   }
 }
 

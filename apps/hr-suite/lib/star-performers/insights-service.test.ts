@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCriticalityDistribution, buildGridDistribution, buildMovementSummary, buildSkillCoverage } from './insights-service'
+import { buildCriticalityDistribution, buildFunctionSkillGapReport, buildGridDistribution, buildMovementSummary, buildSkillCoverage } from './insights-service'
 
 describe('Star Performers insights aggregations', () => {
   it('counts unique employees once across all nine grid cells', () => {
@@ -43,5 +43,29 @@ describe('Star Performers insights aggregations', () => {
       expect.objectContaining({ label: 'Gesprek voeren', occurrences: 1 }),
       expect.objectContaining({ label: 'Data-analyse', occurrences: 1 }),
     ]))
+  })
+
+  it('keeps function-skillgap denominators unique and separates evidence states', () => {
+    const base = {
+      roleId: 'job-1', roleLabel: 'HR adviseur', jobGroupName: 'Service', departmentId: 'department-1', departmentName: 'People', profileVersionId: 'profile-1', profileVersion: 2, profileValidFrom: '2026-01-01', profileValidUntil: null,
+      axes: [{ requirementId: 'requirement-1', capabilityId: 'capability-1', capabilityName: 'Gesprek voeren', requiredLevelLabel: 'Gevorderd', currentLevelLabel: 'Gevorderd', status: 'MATCH' as const }],
+    }
+    const report = buildFunctionSkillGapReport([
+      { ...base, employeeId: 'employee-1', employeeLabel: 'Ada Admin', employeeNumber: 'E001' },
+      { ...base, employeeId: 'employee-2', employeeLabel: 'Ben Beheer', employeeNumber: 'E002', axes: [{ ...base.axes[0], currentLevelLabel: 'Basis', status: 'INSUFFICIENT_LEVEL' }] },
+      { ...base, employeeId: 'employee-3', employeeLabel: 'Cleo Collega', employeeNumber: 'E003', axes: [{ ...base.axes[0], currentLevelLabel: null, status: 'NOT_ASSESSED' }] },
+      { ...base, employeeId: 'employee-1', employeeLabel: 'Ada Admin', employeeNumber: 'E001' },
+    ], '2026-10-18')
+
+    expect(report).toMatchObject({ state: 'ready', relevantEmployees: 3, assessedEmployees: 2 })
+    expect(report.rows).toHaveLength(1)
+    expect(report.rows[0]).toMatchObject({ totalRelevantEmployees: 3, assessedEmployees: 2, coveragePercent: 33, singlePersonDependency: false, statusCounts: { MATCH: 1, INSUFFICIENT_LEVEL: 1, NOT_ASSESSED: 1 } })
+    expect(report.rows[0].employees).toHaveLength(3)
+
+    const evidencedDependency = buildFunctionSkillGapReport([
+      { ...base, employeeId: 'employee-1', employeeLabel: 'Ada Admin', employeeNumber: 'E001' },
+      { ...base, employeeId: 'employee-2', employeeLabel: 'Ben Beheer', employeeNumber: 'E002', axes: [{ ...base.axes[0], currentLevelLabel: 'Basis', status: 'INSUFFICIENT_LEVEL' }] },
+    ], '2026-10-18')
+    expect(evidencedDependency.rows[0].singlePersonDependency).toBe(true)
   })
 })

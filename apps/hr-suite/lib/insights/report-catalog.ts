@@ -1,7 +1,7 @@
 import type { EmployeeInsightReportId } from './types'
 import { SALARY_INSIGHT_REPORT_IDS, type SalaryInsightReportId } from './salary-insights-types'
 
-export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcoming-events' | 'ai-usage' | 'actual-work' | 'talent-top-talent' | 'talent-key-employees' | 'talent-star-skills' | 'talent-development' | 'talent-skills' | 'talent-pop'
+export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcoming-events' | 'ai-usage' | 'actual-work' | 'talent-top-talent' | 'talent-key-employees' | 'talent-star-skills' | 'talent-development' | 'talent-profile-skill-gaps' | 'talent-skills' | 'talent-pop'
 export type InsightReportCategory = 'employees' | 'leave' | 'absence' | 'salary' | 'talent' | 'other'
 
 export interface InsightReportDefinition {
@@ -33,6 +33,7 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'talent-key-employees', category: 'talent', permission: 'star-performer:read', additionalPermissions: ['star-performer:manager-read'], route: '/workforce/talent/reports/star-performers?report=key-employees', available: true },
   { id: 'talent-star-skills', category: 'talent', permission: 'star-performer:read', additionalPermissions: ['star-performer:manager-read'], route: '/workforce/talent/reports/star-performers?report=skills', available: true },
   { id: 'talent-development', category: 'talent', permission: 'star-performer:read', additionalPermissions: ['star-performer:manager-read'], route: '/workforce/talent/reports/star-performers?report=development', available: true },
+  { id: 'talent-profile-skill-gaps', category: 'talent', permission: 'star-performer:read', additionalPermissions: ['star-performer:manager-read'], route: '/workforce/talent/reports/star-performers?report=skill-gaps', available: true },
   { id: 'talent-skills', category: 'talent', permission: 'talent-report:read', route: '/workforce/talent/reports?reportType=capabilities', adminRoute: '/settings/talent/reports?reportType=capabilities', available: true },
   { id: 'talent-pop', category: 'talent', permission: 'talent-report:read', route: '/workforce/talent/reports?reportType=goals', adminRoute: '/settings/talent/reports?reportType=goals', available: true },
 ] as const
