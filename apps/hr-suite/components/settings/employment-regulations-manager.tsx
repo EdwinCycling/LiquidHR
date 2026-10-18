@@ -34,13 +34,23 @@ function addDays(value: string, amount: number): string {
   return date.toISOString().slice(0, 10)
 }
 
+function packageIdForVersion(version: EmploymentRegulationVersion | null, caoPackages: readonly CaoSetupPackageOption[]): string {
+  if (!version) return ''
+  const normalizePackageText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_')
+  const haystack = normalizePackageText(`${version.code} ${version.name}`)
+  return caoPackages.find((option) => {
+    const packageText = normalizePackageText(`${option.displayName} ${option.version}`)
+    return haystack.includes(packageText)
+  })?.id ?? ''
+}
+
 function RegulationDrawer({ state, labels, caoPackages, onCancel, onSave }: { state: DialogState; labels: Labels; caoPackages: readonly CaoSetupPackageOption[]; onCancel: () => void; onSave: (input: { name: string; validFrom: string; standardHoursPerWeek: number; probationMaximumMonths: 1 | 2 }) => Promise<void> }) {
   const initial = state.mode === 'create' ? { name: '', validFrom: '', standardHoursPerWeek: '40', probationMaximumMonths: '1' } : state.mode === 'edit' ? { name: state.version.name, validFrom: state.version.validFrom, standardHoursPerWeek: String(state.version.standardHoursPerWeek), probationMaximumMonths: String(state.version.probationMaximumMonths) } : { name: state.predecessor.name, validFrom: '', standardHoursPerWeek: String(state.predecessor.standardHoursPerWeek), probationMaximumMonths: String(state.predecessor.probationMaximumMonths) }
   const [name, setName] = useState(initial.name)
   const [validFrom, setValidFrom] = useState(initial.validFrom)
   const [standardHours, setStandardHours] = useState(initial.standardHoursPerWeek)
   const [probationMaximumMonths, setProbationMaximumMonths] = useState(initial.probationMaximumMonths)
-  const [caoPackageId, setCaoPackageId] = useState('')
+  const [caoPackageId, setCaoPackageId] = useState(() => packageIdForVersion(state.mode === 'edit' ? state.version : state.mode === 'successor' ? state.predecessor : null, caoPackages))
   const [saving, setSaving] = useState(false)
   const minDate = state.mode === 'successor' ? addDays(state.predecessor.validFrom, 1) : undefined
   const maxDate = state.mode === 'edit' && state.nextVersion ? addDays(state.nextVersion.validFrom, -1) : undefined

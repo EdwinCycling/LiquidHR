@@ -10,6 +10,7 @@ import { SalaryApplicationSettings } from '@/components/settings/salary-applicat
 import { AuthorizationError } from '@/lib/auth/permissions'
 import { getEmploymentSettings } from '@/lib/employment/employment-settings'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { caoSetupPackageOptions } from '@/lib/payroll/cao-setup-catalog'
 import { requireAdministrationSettingsContext } from '@/lib/settings/administration-selection'
 import { redirect } from 'next/navigation'
 
@@ -66,6 +67,7 @@ export default async function EmploymentContractSettingsPage() {
             search: t('catalogSearch'), addRegulation: t('regulationAdd'), addSuccessor: t('regulationAddSuccessor'), edit: t('catalogEdit'), save: t('catalogSave'), cancel: t('catalogCancel'), name: t('catalogName'), validFrom: t('regulationValidFrom'), standardHours: t('standardWeeklyHours'), successor: t('regulationSuccessor'), successors: t('regulationSuccessors'), current: t('regulationCurrent'), historical: t('regulationHistorical'), validUntil: t('regulationValidUntil'), empty: t('catalogEmpty'), failed: t('changeFailed'), description: t('regulationTimelineDescription'), newTitle: t('regulationNewTitle'), editTitle: t('regulationEditTitle'), successorTitle: t('regulationSuccessorTitle'), continuityHint: t('regulationContinuityHint'), probationMaximum: t('probationMaximum'), probationOneMonth: t('probationOneMonth'), probationTwoMonths: t('probationTwoMonths'),
             salaryStructures: { sectionTitle: t('salaryStructures.sectionTitle'), description: t('salaryStructures.description'), scalesAndSteps: t('salaryStructures.scalesAndSteps'), salaryBands: t('salaryStructures.salaryBands'), linked: t('salaryStructures.linked'), noActiveRevision: t('salaryStructures.noActiveRevision'), save: t('salaryStructures.save'), cancel: t('salaryStructures.cancel'), unsaved: t('salaryStructures.unsaved'), saving: t('salaryStructures.saving'), saved: t('salaryStructures.saved'), failed: t('salaryStructures.failed'), readOnly: t('salaryStructures.readOnly') },
           }}
+          caoPackages={caoSetupPackageOptions()}
           salaryStructureCatalog={settings.salaryStructureCatalog}
           locale={locale}
         />,

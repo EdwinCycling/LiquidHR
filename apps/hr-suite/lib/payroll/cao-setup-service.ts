@@ -10,6 +10,7 @@ import {
   findCaoSetupCatalogEntry,
   type CaoSetupCatalogEntry,
 } from './cao-setup-catalog'
+import { buildCaoSetupCompleteness, type CaoSetupCompletenessRecord } from './cao-setup-completeness'
 
 type PensionArrangement = Database['public']['Tables']['pension_arrangements']['Row']
 type PensionArrangementVersion = Database['public']['Tables']['pension_arrangement_versions']['Row']
@@ -54,6 +55,7 @@ export type CaoSetupPageData = {
   readonly catalog: readonly CaoSetupCatalogEntry[]
   readonly pensions: readonly CaoSetupPensionRecord[]
   readonly pensionMappings: readonly CaoSetupPensionMapping[]
+  readonly completeness: readonly CaoSetupCompletenessRecord[]
   readonly administrationId: string
   readonly canManage: boolean
 }
@@ -232,11 +234,19 @@ export async function getCaoSetupPageData(
       sourceStatus: pensionById.get(row.pension_arrangement_id)?.sourceStatus ?? sourceStatus(row.provenance_json),
     } satisfies CaoSetupPensionMapping
   })
+  const completeness = buildCaoSetupCompleteness({
+    catalog: CAO_SETUP_CATALOG,
+    laborConditionTimelines: settings.laborConditionTimelines,
+    salaryStructureCatalog: settings.salaryStructureCatalog,
+    pensions,
+    pensionMappings,
+  })
   return {
     employmentSettings: settings,
     catalog: CAO_SETUP_CATALOG,
     pensions,
     pensionMappings,
+    completeness,
     administrationId: context.administrationId,
     canManage,
   }

@@ -67,7 +67,7 @@ function message(status: string | undefined, labels: Labels): ReactNode {
   return null
 }
 
-function Field({ label, name, type = 'text', required = true, defaultValue, step }: {
+function Field({ label, name, type = 'text', required = true, defaultValue, step, list }: {
   readonly label: string
   readonly name: string
   readonly type?: 'text' | 'date' | 'number' | 'url'
