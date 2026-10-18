@@ -15,11 +15,15 @@ import type { StarPerformerWorkspaceQuery } from './schemas'
 import { StarPerformerError } from './service'
 import {
   buildCriticalityDistribution,
+  buildDevelopmentInsight,
   buildFunctionSkillGapReport,
   buildGridDistribution,
   buildMovementSummary,
   buildSkillCoverage,
+  emptyDevelopmentInsight,
   percentageOf,
+  type DevelopmentActionInput,
+  type DevelopmentPlanInput,
   type FunctionSkillGapReport,
   type InsightBreakdown,
   type InsightEmployee,
@@ -1106,72 +1110,56 @@ async function readInsightSkills(
   }
 }
 
-type InsightAppraisalItem = {
-  id: string
-  employeeId: string
-  title: string
-  status: string
-  dueOn: string | null
-  nextMeetingOn: string | null
-}
-
 async function readInsightDevelopment(
   employeeIds: readonly string[],
   employeeLabels: ReadonlyMap<string, string>,
+  scopeRows: readonly InsightScopeRow[],
   mode: 'admin' | 'manager',
+  asOf: string,
 ): Promise<StarPerformersInsights['development']> {
-  if (!employeeIds.length) return { state: 'no-data', activePlansCount: 0, employeesWithActivePlans: 0, averageProgress: null, openActionCount: 0, plans: [], actions: [], trendAvailable: false }
+  if (!employeeIds.length) return emptyDevelopmentInsight(asOf)
 
   let goalsAvailable = false
   let goals: Awaited<ReturnType<typeof listTalentGoals>>['goals'] = []
   try {
     const workspace = await listTalentGoals(mode, {}, { includeOptions: false, includeEmployeeOptions: false, includeCapabilityOptions: false })
     goalsAvailable = true
-    goals = workspace.goals.filter((goal) => goal.status === 'ACTIVE' && employeeIds.includes(goal.employee_id))
+    const scopedEmployeeIds = new Set(employeeIds)
+    goals = workspace.goals.filter((goal) => scopedEmployeeIds.has(goal.employee_id))
   } catch {
     goalsAvailable = false
   }
 
   let appraisalAvailable = false
-  let appraisalItems: InsightAppraisalItem[] = []
+  let appraisalItems: DevelopmentActionInput[] = []
   try {
     const items = await listContinuousAppraisalItemsForEmployees(employeeIds)
     appraisalAvailable = true
     appraisalItems = items
-      .filter((item) => item.item_type === 'ACTION' && ['PLANNED', 'OPEN', 'WAITING', 'ACTIVE'].includes(item.item_status))
-      .map((item) => ({ id: item.id, employeeId: item.employee_id, title: item.title, status: item.item_status, dueOn: item.due_on, nextMeetingOn: item.next_meeting_on }))
+      .filter((item) => item.item_type === 'ACTION')
+      .map((item) => ({ id: item.id, employeeId: item.employee_id, employeeLabel: employeeLabels.get(item.employee_id) ?? item.employee_id, title: item.title, status: item.item_status, dueOn: item.due_on, nextMeetingOn: item.next_meeting_on }))
   } catch {
     appraisalAvailable = false
   }
 
-  const plans = goals.slice(0, 40).map((goal) => ({
+  const plans: DevelopmentPlanInput[] = goals.map((goal) => ({
     id: goal.id,
     employeeId: goal.employee_id,
     employeeLabel: employeeLabels.get(goal.employee_id) ?? goal.employee_id,
     title: goal.title,
-    progressPercent: Math.min(100, Math.max(0, goal.progress_percent)),
+    status: goal.status,
+    progressPercent: goal.progress_percent,
+    periodStart: goal.period_start,
     periodEnd: goal.period_end,
-    href: `/workforce/talent/goals?employeeId=${encodeURIComponent(goal.employee_id)}`,
+    completedAt: goal.completed_at,
   }))
-  const actions = appraisalItems.flat().slice(0, 40).map((item) => ({
-    ...item,
-    employeeLabel: employeeLabels.get(item.employeeId) ?? item.employeeId,
-    href: `/workforce/continuous-appraisal?employeeId=${encodeURIComponent(item.employeeId)}`,
-  }))
-  const activePlanEmployees = new Set(goals.map((goal) => goal.employee_id))
-  const progressTotal = goals.reduce((total, goal) => total + goal.progress_percent, 0)
-  const sourceAvailable = goalsAvailable || appraisalAvailable
-  const hasData = plans.length > 0 || actions.length > 0
-  return {
-    state: !sourceAvailable ? 'unavailable' : hasData ? 'ready' : 'no-data',
-    activePlansCount: plans.length,
-    employeesWithActivePlans: activePlanEmployees.size,
-    averageProgress: goals.length > 0 ? Math.round(progressTotal / goals.length) : null,
-    openActionCount: actions.length,
+  return buildDevelopmentInsight({
+    asOf,
+    population: scopeRows.map((row) => ({ employeeId: row.employee.employeeId, departmentId: row.departmentId, departmentName: row.employee.departmentName })),
     plans,
-    actions,
-    trendAvailable: false,
-  }
+    actions: appraisalItems,
+    sources: { plans: goalsAvailable, actions: appraisalAvailable },
+  })
 }
 
 function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsights {
@@ -1183,7 +1171,7 @@ function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsigh
     keyEmployees: { criticalityDistribution: buildCriticalityDistribution([]), highCriticalCount: 0, highCriticalPercent: null, assessedCount: 0, threshold: 4, byDepartment: [], byJobGroup: [], byJob: [], overlap: { highHighCount: 0, highCriticalCount: 0, overlapCount: 0, overlapPercent: null }, employees: [] },
     skills: { state: 'no-data', evaluatedEmployees: 0, roles: [], topGaps: [] },
     skillGaps: { state: 'no-data', asOf: currentDate(), relevantEmployees: 0, assessedEmployees: 0, rows: [] },
-    development: { state: 'no-data', activePlansCount: 0, employeesWithActivePlans: 0, averageProgress: null, openActionCount: 0, plans: [], actions: [], trendAvailable: false },
+    development: emptyDevelopmentInsight(currentDate()),
   }
 }
 
@@ -1285,8 +1273,8 @@ async function readStarPerformersInsights(
     ? { state: skillsRead.state, evaluatedEmployees: skillsRead.evaluatedEmployees, roles: skillsRead.roles, topGaps: skillsRead.topGaps }
     : { state: 'no-data' as const, evaluatedEmployees: 0, roles: [], topGaps: [] }
   const development = (options.includeDevelopment ?? query.insight === 'development')
-    ? await readInsightDevelopment(filteredIds, employeeLabels, access.isManager ? 'manager' : 'admin')
-    : { state: 'no-data' as const, activePlansCount: 0, employeesWithActivePlans: 0, averageProgress: null, openActionCount: 0, plans: [], actions: [], trendAvailable: false }
+    ? await readInsightDevelopment(filteredIds, employeeLabels, scopeRows, access.isManager ? 'manager' : 'admin', today)
+    : emptyDevelopmentInsight(today)
   const periods = [...gridHistory.campaigns].sort((left, right) => (right.closed_at ?? right.starts_on).localeCompare(left.closed_at ?? left.starts_on)).map((campaign) => ({ id: campaign.id, name: campaign.name, closedAt: campaign.closed_at, startsOn: campaign.starts_on }))
 
   return {

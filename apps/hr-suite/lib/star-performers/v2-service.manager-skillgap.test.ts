@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   getRequestAuthorizationContext: vi.fn(),
   requirePermissionInContext: vi.fn(),
   listDirectTeamEmployeeIds: vi.fn(),
+  listContinuousAppraisalItemsForEmployees: vi.fn(),
+  listTalentGoals: vi.fn(),
   listTalentProfilesForWorkforce: vi.fn(),
   listTalentEmployeeCapabilityRecords: vi.fn(),
 }))
@@ -21,6 +23,8 @@ vi.mock('@/lib/auth/permissions', () => ({
 }))
 
 vi.mock('@/lib/organization/team-scope', () => ({ listDirectTeamEmployeeIds: mocks.listDirectTeamEmployeeIds }))
+vi.mock('@/lib/continuous-appraisal/service', () => ({ listContinuousAppraisalItemsForEmployees: mocks.listContinuousAppraisalItemsForEmployees }))
+vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals: mocks.listTalentGoals }))
 vi.mock('@/lib/talent/service', () => ({ listTalentProfilesForWorkforce: mocks.listTalentProfilesForWorkforce }))
 vi.mock('@/lib/talent/employee-capability-service', () => ({ listTalentEmployeeCapabilityRecords: mocks.listTalentEmployeeCapabilityRecords }))
 
@@ -120,6 +124,8 @@ describe('Star Performers Manager skillgap readpath', () => {
     })
     mocks.requirePermissionInContext.mockResolvedValue(undefined)
     mocks.listDirectTeamEmployeeIds.mockResolvedValue(['employee-team'])
+    mocks.listTalentGoals.mockResolvedValue({ goals: [], employees: [], capabilities: [] })
+    mocks.listContinuousAppraisalItemsForEmployees.mockResolvedValue([])
     mocks.listTalentProfilesForWorkforce.mockResolvedValue([{
       profile: {
         job_id: 'job-1',
@@ -165,5 +171,31 @@ describe('Star Performers Manager skillgap readpath', () => {
     expect(report.skillGaps.rows[0]).toMatchObject({ capabilityName: 'Gesprek voeren', requiredLevelLabel: 'Gevorderd', coveragePercent: 0, statusCounts: { INSUFFICIENT_LEVEL: 1, MATCH: 0, NOT_ASSESSED: 0 } })
     expect(report.skillGaps.rows[0]?.employees.map((employee) => employee.employeeId)).toEqual(['employee-team'])
     expect(JSON.stringify(report.skillGaps)).not.toContain('employee-outside')
+  })
+
+  it('uses the same server-derived direct-team scope for POP and development actions', async () => {
+    mocks.listTalentGoals.mockResolvedValue({
+      goals: [
+        { id: 'plan-team', employee_id: 'employee-team', title: 'Teamplan', status: 'ACTIVE', progress_percent: 45, period_start: '2026-01-01', period_end: '2026-12-31', completed_at: null },
+        { id: 'plan-outside', employee_id: 'employee-outside', title: 'Buiten scope', status: 'ACTIVE', progress_percent: 99, period_start: '2026-01-01', period_end: null, completed_at: null },
+      ],
+      employees: [],
+      capabilities: [],
+    })
+    mocks.listContinuousAppraisalItemsForEmployees.mockResolvedValue([
+      { id: 'action-team', employee_id: 'employee-team', item_type: 'ACTION', title: 'Teamactie', item_status: 'OPEN', due_on: '2026-10-25', next_meeting_on: null },
+      { id: 'action-outside', employee_id: 'employee-outside', item_type: 'ACTION', title: 'Buiten scope', item_status: 'OPEN', due_on: '2026-10-25', next_meeting_on: null },
+    ])
+
+    const report = await getStarPerformersInsights({
+      perspective: 'top-talent', area: 'insights', insight: 'development', q: '', status: 'all', page: 1, pageSize: 20,
+    })
+
+    expect(mocks.listTalentGoals).toHaveBeenCalledWith('manager', {}, expect.anything())
+    expect(mocks.listContinuousAppraisalItemsForEmployees).toHaveBeenCalledWith(['employee-team'])
+    expect(report.development).toMatchObject({ state: 'ready', relevantEmployees: 1, activePlansCount: 1, employeesWithActivePlans: 1, coveragePercent: 100, openActionCount: 1 })
+    expect(report.development.plans.map((plan) => plan.employeeId)).toEqual(['employee-team'])
+    expect(report.development.actions.map((action) => action.employeeId)).toEqual(['employee-team'])
+    expect(JSON.stringify(report.development)).not.toContain('employee-outside')
   })
 })

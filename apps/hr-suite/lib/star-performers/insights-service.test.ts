@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCriticalityDistribution, buildFunctionSkillGapReport, buildGridDistribution, buildMovementSummary, buildSkillCoverage } from './insights-service'
+import { buildCriticalityDistribution, buildDevelopmentInsight, buildFunctionSkillGapReport, buildGridDistribution, buildMovementSummary, buildSkillCoverage, developmentInsightCsv } from './insights-service'
 
 describe('Star Performers insights aggregations', () => {
   it('counts unique employees once across all nine grid cells', () => {
@@ -67,5 +67,49 @@ describe('Star Performers insights aggregations', () => {
       { ...base, employeeId: 'employee-2', employeeLabel: 'Ben Beheer', employeeNumber: 'E002', axes: [{ ...base.axes[0], currentLevelLabel: 'Basis', status: 'INSUFFICIENT_LEVEL' }] },
     ], '2026-10-18')
     expect(evidencedDependency.rows[0].singlePersonDependency).toBe(true)
+  })
+
+  it('keeps POP coverage unique and separates plan, action, overdue, and follow-up counts', () => {
+    const report = buildDevelopmentInsight({
+      asOf: '2026-10-18',
+      population: [
+        { employeeId: 'employee-1', departmentId: 'department-1', departmentName: 'People' },
+        { employeeId: 'employee-1', departmentId: 'department-1', departmentName: 'People' },
+        { employeeId: 'employee-2', departmentId: 'department-1', departmentName: 'People' },
+        { employeeId: 'employee-3', departmentId: 'department-2', departmentName: 'Finance' },
+      ],
+      plans: [
+        { id: 'plan-1', employeeId: 'employee-1', employeeLabel: 'Ada Admin', title: 'Leiderschap', status: 'ACTIVE', progressPercent: 40, periodStart: '2026-01-01', periodEnd: '2026-12-31', completedAt: null },
+        { id: 'plan-2', employeeId: 'employee-1', employeeLabel: 'Ada Admin', title: 'Coaching', status: 'ACTIVE', progressPercent: 60, periodStart: '2026-02-01', periodEnd: null, completedAt: null },
+        { id: 'plan-3', employeeId: 'employee-2', employeeLabel: 'Ben Beheer', title: 'Afgerond plan', status: 'COMPLETED', progressPercent: 100, periodStart: '2025-01-01', periodEnd: '2025-12-31', completedAt: '2025-12-20' },
+      ],
+      actions: [
+        { id: 'action-1', employeeId: 'employee-1', employeeLabel: 'Ada Admin', title: 'Oude actie', status: 'OPEN', dueOn: '2026-10-17', nextMeetingOn: '2026-10-17' },
+        { id: 'action-2', employeeId: 'employee-2', employeeLabel: 'Ben Beheer', title: 'Afgeronde actie', status: 'DONE', dueOn: '2026-10-01', nextMeetingOn: null },
+        { id: 'action-3', employeeId: 'employee-3', employeeLabel: 'Cleo Collega', title: 'Komende actie', status: 'ACTIVE', dueOn: '2026-10-25', nextMeetingOn: '2026-10-24' },
+      ],
+    })
+
+    expect(report).toMatchObject({ relevantEmployees: 3, activePlansCount: 2, employeesWithActivePlans: 1, coveragePercent: 33, averageProgress: 50, openActionCount: 2, completedActionCount: 1, overdueActionCount: 1, upcomingFollowUpCount: 1, overdueFollowUpCount: 1 })
+    expect(report.planStatusCounts).toEqual([{ status: 'ACTIVE', count: 2 }, { status: 'COMPLETED', count: 1 }])
+    expect(report.byDepartment).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'department-1', employeeCount: 2, employeesWithActivePlans: 1, activePlansCount: 2, openActionCount: 1, overdueActionCount: 1 }),
+      expect.objectContaining({ id: 'department-2', employeeCount: 1, employeesWithActivePlans: 0, activePlansCount: 0, openActionCount: 1, overdueActionCount: 0 }),
+    ]))
+    expect(report.actions.find((action) => action.id === 'action-1')).toMatchObject({ followUpOn: '2026-10-17', followUpStatus: 'overdue' })
+    expect(developmentInsightCsv(report).split('\r\n')).toHaveLength(8)
+  })
+
+  it('does not claim POP coverage when the plan source is unavailable', () => {
+    const report = buildDevelopmentInsight({
+      asOf: '2026-10-18',
+      population: [{ employeeId: 'employee-1', departmentId: 'department-1', departmentName: 'People' }],
+      plans: [{ id: 'plan-1', employeeId: 'employee-1', employeeLabel: 'Ada Admin', title: 'Niet beschikbaar', status: 'ACTIVE', progressPercent: 80, periodStart: '2026-01-01', periodEnd: null, completedAt: null }],
+      actions: [],
+      sources: { plans: false, actions: true },
+    })
+
+    expect(report).toMatchObject({ state: 'no-data', relevantEmployees: 1, coveragePercent: null, activePlansCount: 0, employeesWithActivePlans: 0 })
+    expect(report.plans).toHaveLength(0)
   })
 })

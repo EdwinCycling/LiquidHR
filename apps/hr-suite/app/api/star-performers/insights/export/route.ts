@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
-import { functionSkillGapReportCsv } from '@/lib/star-performers/insights-service'
+import { developmentInsightCsv, functionSkillGapReportCsv } from '@/lib/star-performers/insights-service'
 import { starPerformerWorkspaceQuerySchema } from '@/lib/star-performers/schemas'
 import { StarPerformerError } from '@/lib/star-performers/service'
 import { getStarPerformersInsights } from '@/lib/star-performers/v2-service'
@@ -28,9 +28,19 @@ export async function GET(request: Request) {
       page: searchParams.get('page') ?? undefined,
       pageSize: searchParams.get('pageSize') ?? undefined,
     })
-    if (!parsed.success || parsed.data.insight !== 'skill-gaps') return NextResponse.json({ code: 'STAR_PERFORMER_INPUT_INVALID' }, { status: 400 })
+    if (!parsed.success || !['skill-gaps', 'development'].includes(parsed.data.insight)) return NextResponse.json({ code: 'STAR_PERFORMER_INPUT_INVALID' }, { status: 400 })
     const data = await getStarPerformersInsights(parsed.data)
     if (data.skillGaps.state === 'unavailable') return NextResponse.json({ code: 'STAR_PERFORMER_SKILL_GAP_SOURCE_UNAVAILABLE' }, { status: 503 })
+    if (parsed.data.insight === 'development') {
+      if (data.development.state === 'unavailable') return NextResponse.json({ code: 'STAR_PERFORMER_DEVELOPMENT_SOURCE_UNAVAILABLE' }, { status: 503 })
+      return new Response(developmentInsightCsv(data.development), {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="development-insights.csv"',
+          'Cache-Control': 'no-store',
+        },
+      })
+    }
     return new Response(functionSkillGapReportCsv(data.skillGaps), {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',

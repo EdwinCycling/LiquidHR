@@ -37,6 +37,91 @@ export type InsightBreakdown = {
   href: string
 }
 
+export type DevelopmentPopulationInput = {
+  employeeId: string
+  departmentId: string
+  departmentName: string | null
+}
+
+export type DevelopmentPlanInput = {
+  id: string
+  employeeId: string
+  employeeLabel: string
+  title: string
+  status: string
+  progressPercent: number
+  periodStart: string
+  periodEnd: string | null
+  completedAt: string | null
+}
+
+export type DevelopmentActionInput = {
+  id: string
+  employeeId: string
+  employeeLabel: string
+  title: string
+  status: string
+  dueOn: string | null
+  nextMeetingOn: string | null
+}
+
+export type DevelopmentInsight = {
+  state: InsightState
+  asOf: string
+  relevantEmployees: number
+  sources: {
+    plans: boolean
+    actions: boolean
+  }
+  activePlansCount: number
+  employeesWithActivePlans: number
+  coveragePercent: number | null
+  averageProgress: number | null
+  planStatusCounts: Array<{ status: string; count: number }>
+  openActionCount: number
+  completedActionCount: number
+  overdueActionCount: number
+  upcomingFollowUpCount: number
+  overdueFollowUpCount: number
+  byDepartment: Array<{
+    id: string
+    label: string
+    employeeCount: number
+    employeesWithActivePlans: number
+    coveragePercent: number | null
+    activePlansCount: number
+    openActionCount: number
+    overdueActionCount: number
+  }>
+  plans: Array<{
+    id: string
+    employeeId: string
+    employeeLabel: string
+    title: string
+    status: string
+    progressPercent: number
+    periodStart: string
+    periodEnd: string | null
+    completedAt: string | null
+    href: string
+  }>
+  actions: Array<{
+    id: string
+    employeeId: string
+    employeeLabel: string
+    title: string
+    status: string
+    dueOn: string | null
+    nextMeetingOn: string | null
+    followUpOn: string | null
+    followUpStatus: 'upcoming' | 'overdue' | null
+    href: string
+  }>
+  trendAvailable: boolean
+}
+
+export const DEVELOPMENT_OPEN_ACTION_STATUSES = ['PLANNED', 'OPEN', 'WAITING', 'ACTIVE'] as const
+
 export type StarPerformersInsights = {
   population: {
     employeesInScope: number
@@ -99,33 +184,7 @@ export type StarPerformersInsights = {
     topGaps: Array<{ label: string; occurrences: number; roles: number }>
   }
   skillGaps: FunctionSkillGapReport
-  development: {
-    state: InsightState
-    activePlansCount: number
-    employeesWithActivePlans: number
-    averageProgress: number | null
-    openActionCount: number
-    plans: Array<{
-      id: string
-      employeeId: string
-      employeeLabel: string
-      title: string
-      progressPercent: number
-      periodEnd: string | null
-      href: string
-    }>
-    actions: Array<{
-      id: string
-      employeeId: string
-      employeeLabel: string
-      title: string
-      status: string
-      dueOn: string | null
-      nextMeetingOn: string | null
-      href: string
-    }>
-    trendAvailable: boolean
-  }
+  development: DevelopmentInsight
 }
 
 export type GridDistributionInput = {
@@ -217,6 +276,153 @@ export type FunctionSkillGapReport = {
 
 function percentage(value: number, total: number): number | null {
   return total > 0 ? Math.round((value / total) * 100) : null
+}
+
+function dateOnly(value: string | null): string | null {
+  return value ? value.slice(0, 10) : null
+}
+
+function isBefore(value: string | null, asOf: string): boolean {
+  const date = dateOnly(value)
+  return date !== null && date < asOf
+}
+
+function actionFollowUpDate(action: DevelopmentActionInput): string | null {
+  return action.nextMeetingOn
+}
+
+function actionFollowUpStatus(action: DevelopmentActionInput, asOf: string): 'upcoming' | 'overdue' | null {
+  if (!DEVELOPMENT_OPEN_ACTION_STATUSES.includes(action.status as (typeof DEVELOPMENT_OPEN_ACTION_STATUSES)[number])) return null
+  const followUpOn = actionFollowUpDate(action)
+  if (!followUpOn) return null
+  return isBefore(followUpOn, asOf) ? 'overdue' : 'upcoming'
+}
+
+export function buildDevelopmentInsight(input: {
+  asOf: string
+  population: readonly DevelopmentPopulationInput[]
+  plans: readonly DevelopmentPlanInput[]
+  actions: readonly DevelopmentActionInput[]
+  sources?: { plans: boolean; actions: boolean }
+}): DevelopmentInsight {
+  const sources = input.sources ?? { plans: true, actions: true }
+  const populationByEmployee = new Map<string, DevelopmentPopulationInput>()
+  for (const employee of input.population) {
+    if (!populationByEmployee.has(employee.employeeId)) populationByEmployee.set(employee.employeeId, employee)
+  }
+  const population = [...populationByEmployee.values()]
+  const employeeIds = new Set(population.map((employee) => employee.employeeId))
+  const plansById = new Map(input.plans.filter((plan) => sources.plans && employeeIds.has(plan.employeeId)).map((plan) => [plan.id, plan]))
+  const actionsById = new Map(input.actions.filter((action) => sources.actions && employeeIds.has(action.employeeId)).map((action) => [action.id, action]))
+  const plans = [...plansById.values()]
+  const actions = [...actionsById.values()]
+  const activePlans = plans.filter((plan) => plan.status === 'ACTIVE')
+  const activePlanEmployees = new Set(activePlans.map((plan) => plan.employeeId))
+  const openActions = actions.filter((action) => DEVELOPMENT_OPEN_ACTION_STATUSES.includes(action.status as (typeof DEVELOPMENT_OPEN_ACTION_STATUSES)[number]))
+  const completedActions = actions.filter((action) => action.status === 'DONE')
+  const overdueActions = openActions.filter((action) => isBefore(action.dueOn, input.asOf))
+  const upcomingFollowUps = openActions.filter((action) => actionFollowUpStatus(action, input.asOf) === 'upcoming')
+  const overdueFollowUps = openActions.filter((action) => actionFollowUpStatus(action, input.asOf) === 'overdue')
+  const planStatusCounts = [...plans.reduce((counts, plan) => counts.set(plan.status, (counts.get(plan.status) ?? 0) + 1), new Map<string, number>()).entries()]
+    .sort(([left], [right]) => {
+      const order = ['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED', 'ARCHIVED']
+      return (order.indexOf(left) === -1 ? order.length : order.indexOf(left)) - (order.indexOf(right) === -1 ? order.length : order.indexOf(right)) || left.localeCompare(right)
+    })
+    .map(([status, count]) => ({ status, count }))
+
+  const byDepartment = new Map<string, {
+    label: string
+    employeeIds: Set<string>
+    activePlanEmployeeIds: Set<string>
+    activePlansCount: number
+    openActionCount: number
+    overdueActionCount: number
+  }>()
+  for (const employee of population) {
+    const current = byDepartment.get(employee.departmentId) ?? {
+      label: employee.departmentName ?? employee.departmentId,
+      employeeIds: new Set<string>(),
+      activePlanEmployeeIds: new Set<string>(),
+      activePlansCount: 0,
+      openActionCount: 0,
+      overdueActionCount: 0,
+    }
+    current.employeeIds.add(employee.employeeId)
+    byDepartment.set(employee.departmentId, current)
+  }
+  for (const plan of activePlans) {
+    const employee = populationByEmployee.get(plan.employeeId)
+    if (!employee) continue
+    const group = byDepartment.get(employee.departmentId)
+    if (!group) continue
+    group.activePlansCount += 1
+    group.activePlanEmployeeIds.add(plan.employeeId)
+  }
+  for (const action of openActions) {
+    const employee = populationByEmployee.get(action.employeeId)
+    if (!employee) continue
+    const group = byDepartment.get(employee.departmentId)
+    if (!group) continue
+    group.openActionCount += 1
+    if (isBefore(action.dueOn, input.asOf)) group.overdueActionCount += 1
+  }
+
+  const result: DevelopmentInsight = {
+    state: !sources.plans && !sources.actions ? 'unavailable' : plans.length > 0 || actions.length > 0 ? 'ready' : 'no-data',
+    asOf: input.asOf,
+    relevantEmployees: population.length,
+    sources,
+    activePlansCount: sources.plans ? activePlans.length : 0,
+    employeesWithActivePlans: sources.plans ? activePlanEmployees.size : 0,
+    coveragePercent: sources.plans ? percentage(activePlanEmployees.size, population.length) : null,
+    averageProgress: sources.plans && activePlans.length > 0 ? Math.round(activePlans.reduce((total, plan) => total + plan.progressPercent, 0) / activePlans.length) : null,
+    planStatusCounts,
+    openActionCount: sources.actions ? openActions.length : 0,
+    completedActionCount: sources.actions ? completedActions.length : 0,
+    overdueActionCount: sources.actions ? overdueActions.length : 0,
+    upcomingFollowUpCount: sources.actions ? upcomingFollowUps.length : 0,
+    overdueFollowUpCount: sources.actions ? overdueFollowUps.length : 0,
+    byDepartment: [...byDepartment.entries()].map(([id, group]) => ({
+      id,
+      label: group.label,
+      employeeCount: group.employeeIds.size,
+      employeesWithActivePlans: group.activePlanEmployeeIds.size,
+      coveragePercent: sources.plans ? percentage(group.activePlanEmployeeIds.size, group.employeeIds.size) : null,
+      activePlansCount: sources.plans ? group.activePlansCount : 0,
+      openActionCount: sources.actions ? group.openActionCount : 0,
+      overdueActionCount: sources.actions ? group.overdueActionCount : 0,
+    })).sort((left, right) => left.label.localeCompare(right.label, 'nl')),
+    plans: plans.map((plan) => ({
+      id: plan.id,
+      employeeId: plan.employeeId,
+      employeeLabel: plan.employeeLabel,
+      title: plan.title,
+      status: plan.status,
+      progressPercent: plan.progressPercent,
+      periodStart: plan.periodStart,
+      periodEnd: plan.periodEnd,
+      completedAt: plan.completedAt,
+      href: `/workforce/talent/goals?employeeId=${encodeURIComponent(plan.employeeId)}`,
+    })),
+    actions: actions.map((action) => ({
+      id: action.id,
+      employeeId: action.employeeId,
+      employeeLabel: action.employeeLabel,
+      title: action.title,
+      status: action.status,
+      dueOn: action.dueOn,
+      nextMeetingOn: action.nextMeetingOn,
+      followUpOn: actionFollowUpDate(action),
+      followUpStatus: actionFollowUpStatus(action, input.asOf),
+      href: `/workforce/continuous-appraisal?employeeId=${encodeURIComponent(action.employeeId)}`,
+    })),
+    trendAvailable: false,
+  }
+  return result
+}
+
+export function emptyDevelopmentInsight(asOf: string): DevelopmentInsight {
+  return buildDevelopmentInsight({ asOf, population: [], plans: [], actions: [], sources: { plans: true, actions: true } })
 }
 
 export function buildGridDistribution(
@@ -432,6 +638,13 @@ export function functionSkillGapReportCsv(report: FunctionSkillGapReport): strin
     ? row.employees.map((employee) => [report.asOf, row.roleLabel, row.jobGroupName, row.departmentName, row.capabilityName, row.requiredLevelLabel, employee.employeeId, employee.employeeLabel, employee.status, employee.currentLevelLabel, row.assessedEmployees, row.totalRelevantEmployees, row.coveragePercent, row.singlePersonDependency, row.profileVersion, row.profileValidFrom])
     : [[report.asOf, row.roleLabel, row.jobGroupName, row.departmentName, row.capabilityName, row.requiredLevelLabel, null, null, null, null, row.assessedEmployees, row.totalRelevantEmployees, row.coveragePercent, row.singlePersonDependency, row.profileVersion, row.profileValidFrom]])
   return [header, ...rows].map((row) => row.map((value) => csvCell(value)).join(',')).join('\r\n') + '\r\n'
+}
+
+export function developmentInsightCsv(report: DevelopmentInsight): string {
+  const header = ['as_of', 'record_type', 'employee_id', 'employee', 'title', 'status', 'progress_percent', 'period_start', 'period_end', 'due_on', 'next_meeting_on', 'follow_up_on', 'follow_up_status', 'relevant_employees', 'active_plan_coverage_percent']
+  const planRows = report.plans.map((plan) => [report.asOf, 'development_plan', plan.employeeId, plan.employeeLabel, plan.title, plan.status, plan.progressPercent, plan.periodStart, plan.periodEnd, null, null, null, null, report.relevantEmployees, report.coveragePercent])
+  const actionRows = report.actions.map((action) => [report.asOf, 'follow_up_action', action.employeeId, action.employeeLabel, action.title, action.status, null, null, null, action.dueOn, action.nextMeetingOn, action.followUpOn, action.followUpStatus, report.relevantEmployees, report.coveragePercent])
+  return [header, ...planRows, ...actionRows].map((row) => row.map((value) => csvCell(value)).join(',')).join('\r\n') + '\r\n'
 }
 
 export function percentageOf(value: number, total: number): number | null {

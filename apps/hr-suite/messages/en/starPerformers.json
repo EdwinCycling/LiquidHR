@@ -225,6 +225,13 @@
   "noSkillsDataDescription": "No supported job-requirement/skill comparison is available for this selection.",
   "topGaps": "Main skill gaps",
   "activePlans": "Active development plans",
+  "completedActions": "Completed actions",
+  "developmentAsOf": "As of",
+  "developmentActions": "Development actions",
+  "developmentByDepartment": "POP coverage by department/team",
+  "developmentCoverage": "POP coverage",
+  "developmentExport": "Export development",
+  "developmentRelevantEmployees": "Relevant employees",
   "employeesWithPlans": "Employees with a plan",
   "averageProgress": "Average progress",
   "openActions": "Open follow-up actions",
@@ -232,6 +239,10 @@
   "due": "due",
   "until": "until",
   "noOpenActions": "No relevant open follow-up actions.",
+  "overdueActions": "Overdue actions",
+  "overdueFollowUps": "Overdue follow-ups",
+  "planStatus": "POP status",
   "trendAvailable": "Historical development trend available.",
-  "trendUnavailable": "No comparable historical development data; no trend calculated."
+  "trendUnavailable": "No comparable historical development data; no trend calculated.",
+  "upcomingFollowUps": "Upcoming follow-ups"
 }

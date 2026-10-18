@@ -1,7 +1,7 @@
 # AA-ROAD — Long-Term Product Roadmap
 
 Status: **STRATEGISCH / LIVING**
-Bijgewerkt: 2026-10-18 (STAR-V2-04D-1; Core-prioriteiten blijven leidend)
+Bijgewerkt: 2026-10-18 (STAR-V2-04D-2B; Core-prioriteiten blijven leidend)
 
 De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
 
@@ -80,7 +80,8 @@ decommissionplan afzonderlijk is goedgekeurd.
 - STAR-V2-04C — read-only Talentpaspoort is lokaal geaccepteerd op basis van de gedateerde [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04C-CLOSE-20261018.md); de centrale catalogusuitbreiding volgt als 04D-1;
 - STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling** is lokaal geaccepteerd; de catalogus ontsluit alleen bestaande Star Performers- en Talent-rapporten met bestaande scope-, filter- en exportcontracten; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-1-LOCAL-20261018.md);
 - STAR-V2-04D-2A — geaggregeerd **Functieprofiel & skillgaps** is **LOCAL DONE** met bestaande bronservices, het bestaande `talent_job_profile_readmodel`, bestaande teamscope/RLS en zonder schema-/permissiewijziging. HR Admin, Manager-empty-state, gecontroleerde positieve Manager-fixture en Employee-deny zijn bewezen; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2A-LOCAL-20261018.md);
-- STAR-V2-04D-2 — blijft een afzonderlijke volgende slice; 04D-2B/C/D wordt niet door deze HOLD gestart;
+- STAR-V2-04D-2B — POP-dekking & ontwikkelvoortgang is **LOCAL DONE** met bestaande development-goals- en Continuous Appraisal-readservices, unieke denominatorpariteit, Manager-direct-team-scope en Employee-deny; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2B-LOCAL-20261018.md);
+- STAR-V2-04D-2C/D — blijven afzonderlijke volgende slices en zijn niet gestart;
 - skills/competencies;
 - POP;
 - vlootschouw/9-grid;

@@ -225,6 +225,13 @@
   "noSkillsDataDescription": "Er is geen beschikbare, onderbouwde functie-eis/skillvergelijking in deze selectie.",
   "topGaps": "Belangrijkste skillgaps",
   "activePlans": "Actieve ontwikkelplannen",
+  "completedActions": "Afgeronde acties",
+  "developmentAsOf": "Peildatum",
+  "developmentActions": "Ontwikkelacties",
+  "developmentByDepartment": "POP-dekking per afdeling/team",
+  "developmentCoverage": "POP-dekking",
+  "developmentExport": "Ontwikkeling exporteren",
+  "developmentRelevantEmployees": "Relevante medewerkers",
   "employeesWithPlans": "Medewerkers met plan",
   "averageProgress": "Gemiddelde voortgang",
   "openActions": "Open opvolgacties",
@@ -232,6 +239,10 @@
   "due": "gereed op",
   "until": "tot",
   "noOpenActions": "Geen open relevante opvolgacties.",
+  "overdueActions": "Achterstallige acties",
+  "overdueFollowUps": "Verlopen opvolging",
+  "planStatus": "POP-status",
   "trendAvailable": "Historische ontwikkelingstrend beschikbaar.",
-  "trendUnavailable": "Geen vergelijkbare historische ontwikkeldata beschikbaar; geen trend berekend."
+  "trendUnavailable": "Geen vergelijkbare historische ontwikkeldata beschikbaar; geen trend berekend.",
+  "upcomingFollowUps": "Komende opvolging"
 }
