@@ -81,7 +81,8 @@ decommissionplan afzonderlijk is goedgekeurd.
 - STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling** is lokaal geaccepteerd; de catalogus ontsluit alleen bestaande Star Performers- en Talent-rapporten met bestaande scope-, filter- en exportcontracten; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-1-LOCAL-20261018.md);
 - STAR-V2-04D-2A — geaggregeerd **Functieprofiel & skillgaps** is **LOCAL DONE** met bestaande bronservices, het bestaande `talent_job_profile_readmodel`, bestaande teamscope/RLS en zonder schema-/permissiewijziging. HR Admin, Manager-empty-state, gecontroleerde positieve Manager-fixture en Employee-deny zijn bewezen; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2A-LOCAL-20261018.md);
 - STAR-V2-04D-2B — POP-dekking & ontwikkelvoortgang is **LOCAL DONE** met bestaande development-goals- en Continuous Appraisal-readservices, unieke denominatorpariteit, Manager-direct-team-scope en Employee-deny; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2B-LOCAL-20261018.md);
-- STAR-V2-04D-2C/D — blijven afzonderlijke volgende slices en zijn niet gestart;
+- STAR-V2-04D-2C — **9-gridbeweging & campagnehistorie** is **LOCAL DONE**. De live TEST-campagnes zijn correct als niet-vergelijkbaar gemarkeerd omdat geen `previous_campaign_id` is vastgelegd; vergelijkbare beweging, unchanged/no-history en incompatibele campagnes zijn met geïsoleerde fixtures bewezen. Zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2C-LOCAL-20261018.md);
+- STAR-V2-04D-2D — blijft een afzonderlijke volgende slice en is niet gestart;
 - skills/competencies;
 - POP;
 - vlootschouw/9-grid;

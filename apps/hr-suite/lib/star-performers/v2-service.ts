@@ -18,13 +18,17 @@ import {
   buildDevelopmentInsight,
   buildFunctionSkillGapReport,
   buildGridDistribution,
+  buildGridMovementInsight,
   buildMovementSummary,
   buildSkillCoverage,
   emptyDevelopmentInsight,
+  emptyGridMovementInsight,
   percentageOf,
   type DevelopmentActionInput,
   type DevelopmentPlanInput,
   type FunctionSkillGapReport,
+  type GridMovementCampaignInput,
+  type GridMovementScoreInput,
   type InsightBreakdown,
   type InsightEmployee,
   type SkillGapComparisonInput,
@@ -80,6 +84,7 @@ type GridCampaignRow = {
   status: string
   closed_at: string | null
   starts_on: string
+  ends_on?: string | null
   previous_campaign_id: string | null
 }
 
@@ -427,7 +432,7 @@ async function readGridHistory(
   if (!employeeIds.length) return { campaigns: [], scores: [] }
   const { data: campaigns, error: campaignsError } = await supabase
     .from('talent_review_campaigns')
-    .select('id, name, status, closed_at, starts_on, previous_campaign_id')
+    .select('id, name, status, closed_at, starts_on, ends_on, previous_campaign_id')
     .eq('tenant_id', tenantId)
     .eq('administration_id', administrationId)
     .in('status', ['CLOSED', 'ARCHIVED'])
@@ -1167,7 +1172,7 @@ function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsigh
     population: { employeesInScope: 0, assessedGrid: 0, assessedKeyEmployees: 0 },
     periods: [],
     selectedPeriodId: query.period ?? null,
-    topTalent: { coveragePercent: null, assessedCount: 0, distribution: buildGridDistribution([], []), highHigh: [], movement: { state: 'unavailable', previousCampaignName: null, comparableEmployees: 0, up: 0, down: 0, stable: 0 } },
+    topTalent: { coveragePercent: null, assessedCount: 0, distribution: buildGridDistribution([], []), highHigh: [], movement: { state: 'unavailable', previousCampaignName: null, comparableEmployees: 0, up: 0, down: 0, stable: 0 }, history: emptyGridMovementInsight(currentDate()) },
     keyEmployees: { criticalityDistribution: buildCriticalityDistribution([]), highCriticalCount: 0, highCriticalPercent: null, assessedCount: 0, threshold: 4, byDepartment: [], byJobGroup: [], byJob: [], overlap: { highHighCount: 0, highCriticalCount: 0, overlapCount: 0, overlapPercent: null }, employees: [] },
     skills: { state: 'no-data', evaluatedEmployees: 0, roles: [], topGaps: [] },
     skillGaps: { state: 'no-data', asOf: currentDate(), relevantEmployees: 0, assessedEmployees: 0, rows: [] },
@@ -1264,6 +1269,32 @@ async function readStarPerformersInsights(
   const highCriticalCount = highCriticalIds.size
   const overlapCount = [...highHighIds].filter((employeeId) => highCriticalIds.has(employeeId) && filteredIds.includes(employeeId)).length
   const keyEmployees = scopeRows.filter((row) => row.employee.criticalityLevel !== null && row.employee.criticalityLevel !== undefined).sort((left, right) => (right.employee.criticalityLevel ?? 0) - (left.employee.criticalityLevel ?? 0) || left.employee.label.localeCompare(right.employee.label, 'nl')).map((row) => row.employee)
+  const movementCampaigns: GridMovementCampaignInput[] = gridHistory.campaigns.map((campaign) => ({
+    id: campaign.id,
+    name: campaign.name,
+    status: campaign.status,
+    startsOn: campaign.starts_on,
+    endsOn: campaign.ends_on ?? null,
+    closedAt: campaign.closed_at,
+    previousCampaignId: campaign.previous_campaign_id,
+  }))
+  const movementScores: GridMovementScoreInput[] = gridHistory.scores.map((score) => ({
+    employeeId: score.employee_id,
+    campaignId: score.campaign_id,
+    performanceScore: score.performance_score,
+    potentialScore: score.potential_score,
+    gridCell: score.grid_cell,
+    status: score.status,
+    updatedAt: score.updated_at,
+  }))
+  const latestCampaignId = [...movementCampaigns].sort((left, right) => (right.closedAt ?? right.startsOn).localeCompare(left.closedAt ?? left.startsOn))[0]?.id ?? null
+  const gridHistoryInsight = buildGridMovementInsight({
+    asOf: today,
+    population: scopeRows.map((row) => row.employee),
+    campaigns: movementCampaigns,
+    scores: movementScores,
+    selectedCampaignId: gridSelection.selectedPeriodId ?? latestCampaignId,
+  })
   const employeeLabels = new Map(scopeRows.map((row) => [row.employee.employeeId, row.employee.label]))
   const includeSkills = options.includeSkills ?? (query.insight === 'skills' || query.insight === 'skill-gaps')
   const skillsRead = includeSkills
@@ -1287,6 +1318,7 @@ async function readStarPerformersInsights(
       distribution: gridDistribution,
       highHigh: highHighEmployees,
       movement: { ...movement, previousCampaignName: gridSelection.previousCampaignName },
+      history: gridHistoryInsight,
     },
     keyEmployees: {
       criticalityDistribution,

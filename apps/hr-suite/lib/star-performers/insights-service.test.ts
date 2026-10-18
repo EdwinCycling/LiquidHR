@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCriticalityDistribution, buildDevelopmentInsight, buildFunctionSkillGapReport, buildGridDistribution, buildMovementSummary, buildSkillCoverage, developmentInsightCsv } from './insights-service'
+import { buildCriticalityDistribution, buildDevelopmentInsight, buildFunctionSkillGapReport, buildGridDistribution, buildGridMovementInsight, buildMovementSummary, buildSkillCoverage, developmentInsightCsv, gridMovementCsv } from './insights-service'
 
 describe('Star Performers insights aggregations', () => {
   it('counts unique employees once across all nine grid cells', () => {
@@ -29,6 +29,67 @@ describe('Star Performers insights aggregations', () => {
   it('does not manufacture historical movement when no comparable campaign exists', () => {
     expect(buildMovementSummary(['NEW', null])).toEqual({ state: 'unavailable', comparableEmployees: 0, up: 0, down: 0, stable: 0 })
     expect(buildMovementSummary(['UP', 'STABLE', 'NEW'])).toEqual({ state: 'available', comparableEmployees: 2, up: 1, down: 0, stable: 1 })
+  })
+
+  it('compares only linked finalized campaigns and keeps axis movement separate', () => {
+    const population = [
+      { employeeId: 'employee-1', employeeNumber: 'E001', label: 'Ada Admin', departmentName: 'People', jobName: 'HR adviseur', jobGroupName: 'Service', href: '/employees/employee-1' },
+      { employeeId: 'employee-2', employeeNumber: 'E002', label: 'Ben Beheer', departmentName: 'People', jobName: 'HR adviseur', jobGroupName: 'Service', href: '/employees/employee-2' },
+      { employeeId: 'employee-3', employeeNumber: 'E003', label: 'Cleo Collega', departmentName: 'Finance', jobName: 'Controller', jobGroupName: 'Finance', href: '/employees/employee-3' },
+      { employeeId: 'employee-4', employeeNumber: 'E004', label: 'Daan Dienst', departmentName: 'Finance', jobName: 'Controller', jobGroupName: 'Finance', href: '/employees/employee-4' },
+    ]
+    const campaigns = [
+      { id: 'current', name: 'Current', status: 'CLOSED', startsOn: '2026-10-01', endsOn: '2026-10-31', closedAt: '2026-10-18T10:00:00Z', previousCampaignId: 'previous' },
+      { id: 'previous', name: 'Previous', status: 'CLOSED', startsOn: '2026-04-01', endsOn: '2026-04-30', closedAt: '2026-04-30T10:00:00Z', previousCampaignId: null },
+    ]
+    const scores = [
+      { employeeId: 'employee-1', campaignId: 'current', performanceScore: 'HIGH', potentialScore: 'HIGH', gridCell: 'HIGH_HIGH', status: 'CLOSED', updatedAt: '2026-10-18T10:00:00Z' },
+      { employeeId: 'employee-1', campaignId: 'previous', performanceScore: 'NORMAL', potentialScore: 'HIGH', gridCell: 'NORMAL_HIGH', status: 'CLOSED', updatedAt: '2026-04-30T10:00:00Z' },
+      { employeeId: 'employee-2', campaignId: 'current', performanceScore: 'NORMAL', potentialScore: 'NORMAL', gridCell: 'NORMAL_NORMAL', status: 'CLOSED', updatedAt: '2026-10-18T10:00:00Z' },
+      { employeeId: 'employee-2', campaignId: 'previous', performanceScore: 'NORMAL', potentialScore: 'NORMAL', gridCell: 'NORMAL_NORMAL', status: 'CLOSED', updatedAt: '2026-04-30T10:00:00Z' },
+      { employeeId: 'employee-3', campaignId: 'current', performanceScore: 'HIGH', potentialScore: 'LOW', gridCell: 'HIGH_LOW', status: 'CLOSED', updatedAt: '2026-10-18T10:00:00Z' },
+      { employeeId: 'employee-4', campaignId: 'current', performanceScore: 'HIGH', potentialScore: 'HIGH', gridCell: 'HIGH_HIGH', status: 'DRAFT', updatedAt: '2026-10-18T10:00:00Z' },
+    ]
+
+    const report = buildGridMovementInsight({ asOf: '2026-10-18', population, campaigns, scores, selectedCampaignId: 'current' })
+
+    expect(report).toMatchObject({ state: 'ready', comparisonStatus: 'comparable', relevantEmployees: 4, currentAssessedEmployees: 3, currentCoveragePercent: 75, comparableEmployees: 2, changedPositionEmployees: 1, unchangedPositionEmployees: 1, noComparableHistoryEmployees: 1 })
+    expect(report.performance).toEqual({ up: 1, down: 0, unchanged: 1 })
+    expect(report.potential).toEqual({ up: 0, down: 0, unchanged: 2 })
+    expect(report.rows.find((row) => row.employeeId === 'employee-1')).toMatchObject({ category: 'COMPARABLE', position: 'CHANGED', performanceMovement: 'UP', potentialMovement: 'UNCHANGED' })
+    expect(report.rows.find((row) => row.employeeId === 'employee-3')).toMatchObject({ category: 'NO_COMPARABLE_HISTORY', position: 'NO_COMPARABLE_HISTORY' })
+    expect(gridMovementCsv(report).split('\r\n')).toHaveLength(5)
+  })
+
+  it('returns an explicit empty history state when the campaign is not linked', () => {
+    const report = buildGridMovementInsight({
+      asOf: '2026-10-18',
+      population: [{ employeeId: 'employee-1', employeeNumber: 'E001', label: 'Ada Admin', departmentName: 'People', jobName: 'HR adviseur', jobGroupName: 'Service', href: '/employees/employee-1' }],
+      campaigns: [{ id: 'current', name: 'Current', status: 'CLOSED', startsOn: '2026-10-01', endsOn: '2026-10-31', closedAt: '2026-10-18T10:00:00Z', previousCampaignId: null }],
+      scores: [{ employeeId: 'employee-1', campaignId: 'current', performanceScore: 'HIGH', potentialScore: 'HIGH', gridCell: 'HIGH_HIGH', status: 'CLOSED', updatedAt: '2026-10-18T10:00:00Z' }],
+      selectedCampaignId: 'current',
+    })
+
+    expect(report).toMatchObject({ state: 'no-data', comparisonStatus: 'no-previous-reference', comparableEmployees: 0, noComparableHistoryEmployees: 1 })
+    expect(report.rows[0]).toMatchObject({ category: 'NO_COMPARABLE_HISTORY', performanceMovement: 'UNKNOWN', potentialMovement: 'UNKNOWN' })
+  })
+
+  it('does not compare campaigns with different score contracts', () => {
+    const report = buildGridMovementInsight({
+      asOf: '2026-10-18',
+      population: [{ employeeId: 'employee-1', employeeNumber: 'E001', label: 'Ada Admin', departmentName: 'People', jobName: 'HR adviseur', jobGroupName: 'Service', href: '/employees/employee-1' }],
+      campaigns: [
+        { id: 'current', name: 'Current', status: 'CLOSED', startsOn: '2026-10-01', endsOn: '2026-10-31', closedAt: '2026-10-18T10:00:00Z', previousCampaignId: 'previous', modelKey: 'model-a' },
+        { id: 'previous', name: 'Previous', status: 'CLOSED', startsOn: '2026-04-01', endsOn: '2026-04-30', closedAt: '2026-04-30T10:00:00Z', previousCampaignId: null, modelKey: 'model-b' },
+      ],
+      scores: [
+        { employeeId: 'employee-1', campaignId: 'current', performanceScore: 'HIGH', potentialScore: 'HIGH', gridCell: 'HIGH_HIGH', status: 'CLOSED', updatedAt: '2026-10-18T10:00:00Z' },
+        { employeeId: 'employee-1', campaignId: 'previous', performanceScore: 'NORMAL', potentialScore: 'NORMAL', gridCell: 'NORMAL_NORMAL', status: 'CLOSED', updatedAt: '2026-04-30T10:00:00Z' },
+      ],
+      selectedCampaignId: 'current',
+    })
+
+    expect(report).toMatchObject({ state: 'no-data', comparisonStatus: 'incomparable', comparableEmployees: 0, noComparableHistoryEmployees: 1 })
   })
 
   it('excludes unknown skill evidence from coverage and reports only evidenced gaps', () => {

@@ -41,7 +41,17 @@ Momentopname: 2026-10-18 (historische acceptance-evidence blijft ongewijzigd)
 - Plan-, actie-, KPI-, tabel-, drilldown- en exportdata komen uit één server-afgeleide selectie. Een positieve fixturetest dekt unieke denominators, status-/deadline-/follow-upsemantiek, unavailable-bronnen en Manager-scope zonder databasewrite. Er is geen historische trend berekend omdat vergelijkbare brondata ontbreekt.
 - Gerichte Star Performers-tests zijn **5 bestanden / 17 tests groen**, changed-file ESLint, i18n (43 namespaces) en de CRLF-aware diff-check zijn groen. Typecheck blijft uitsluitend rood op de bestaande ongerelateerde `TS2367` in `apps/hr-suite/components/talent/talent-workforce-overview.tsx:271`; de eerdere volledige lintmelding `prefer-const` blijft buiten scope. Een recoverable shared-dev SSR/webpack-consolemelding tijdens rolwissel is als runtimecaveat vastgelegd; na reload waren pagina en rolgrenzen correct.
 - Er zijn geen databasewrites, migrations, permissions, RLS, Payroll-wijzigingen, push, deployment of cleanup uitgevoerd. `apps/hr-suite/next-env.d.ts` en overige dirty worktrees bleven ongemoeid. Zie [04D-2B acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2B-LOCAL-20261018.md) en de [04D-2B requirementsdelta](../requirements/Talent/analysis/STAR-V2-04D-2B-pop-coverage-and-development-insights-20261018.md).
-- Verdict: **STAR-V2-04D-2B LOCAL DONE**. 04D-2C en 04D-2D zijn niet gestart.
+- Verdict: **STAR-V2-04D-2B LOCAL DONE**. 04D-2C is als afzonderlijke slice afgerond; 04D-2D is niet gestart.
+
+## STAR-V2-04D-2C — 9-gridbeweging & campagnehistorie (2026-10-18)
+
+- Toptalent toont nu read-only campagnehistorie via de expliciete `previous_campaign_id`-relatie. Alleen `CLOSED`/`ARCHIVED` campagnes, finalized scores en de bestaande canonieke LOW/NORMAL/HIGH-9-gridmapping worden vergeleken; performance en potential blijven aparte bewegingen.
+- De read-only TEST-inventaris bevat drie afgesloten campagnes met 11, 11 en 10 vastgestelde medewerkers/scores, maar geen `previous_campaign_id`. De live uitkomst is daarom expliciet `Geen vergelijkbare historie`; er wordt geen vorige campagne op datum of overlap verzonnen.
+- HR Admin zag 35 medewerkers, 11 vastgestelde scores (31%) en 1 high/high-signaal. Manager zag uitsluitend 6 directe teamleden (6/6); buiten-scope afdeling en medewerkerfilter gaven 0. Employee kreeg directe rapport- en exportdenial zonder 9-griddata.
+- De fixturetests bewijzen een vergelijkbaar finalized paar, afzonderlijke performance-/potentialbeweging, unchanged/no-history, uitsluiting van draft/invalide scores en CSV-pariteit zonder databasewrite.
+- Gerichte tests (2 bestanden / 13 tests), changed-file ESLint, i18n en diff-check zijn groen. Typecheck blijft uitsluitend rood op de bestaande ongerelateerde TS2367 in `apps/hr-suite/components/talent/talent-workforce-overview.tsx:271`. `STAR_PERFORMERS_V2.md` ontbrak en is niet gerecreëerd.
+- Er zijn geen schema's, migraties, permissions, RLS, databasegegevens, Payroll-code, push, deployment of cleanup gewijzigd; `apps/hr-suite/next-env.d.ts` en overige dirty worktrees bleven buiten scope. Zie [04D-2C acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2C-LOCAL-20261018.md).
+- Verdict: **STAR-V2-04D-2C LOCAL DONE**. 04D-2D blijft een afzonderlijke volgende slice.
 
 ## TALENT-CONVERGENCE-01 — lokale codeconvergentie (2026-10-16)
 

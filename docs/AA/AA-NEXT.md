@@ -1,7 +1,7 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-18 (STAR-V2-04D-2B; Core-volgorde ongewijzigd)
+Bijgewerkt: 2026-10-18 (STAR-V2-04D-2C; Core-volgorde ongewijzigd)
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 
@@ -17,7 +17,7 @@ Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailr
 
 **Security/persona-evidence blijft OPEN:** SEC-01 hosted positives/negatives en bestaande Control-, Insights- en AI-persona-negatives staan in [AA-OPEN](AA-OPEN.md). Vercel READY bewijst dit niet.
 
-**Talentparallelstatus 2026-10-18:** STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling**, STAR-V2-04D-2A — Functieprofiel & skillgaps en STAR-V2-04D-2B — POP-dekking & ontwikkelvoortgang — zijn lokaal geaccepteerd op de actuele target-checkout. 04D-2B gebruikt de bestaande development-goals- en Continuous Appraisal-readservices, unieke server-side populatie, bestaande filters en allowlisted CSV. HR Admin, Manager direct-team en Employee-deny zijn bewezen; er is geen nieuwe permissie, schemawijziging, databasewrite of fixturevulling uitgevoerd. 04D-2C/D blijven afzonderlijke volgende slices en de Core-volgorde WVP01 → INS02 blijft ongewijzigd.
+**Talentparallelstatus 2026-10-18:** STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling**, STAR-V2-04D-2A — Functieprofiel & skillgaps, STAR-V2-04D-2B — POP-dekking & ontwikkelvoortgang en STAR-V2-04D-2C — 9-gridbeweging & campagnehistorie — zijn lokaal geaccepteerd op de actuele target-checkout. 04D-2C gebruikt alleen expliciete vorige-campagnerelaties en de bestaande finalized 9-gridmapping; de live TEST-data bevat geen vergelijkbaar paar en toont daarom correct een lege historie. HR Admin, Manager direct-team en Employee-deny zijn bewezen; er is geen nieuwe permissie, schemawijziging, databasewrite of fixturevulling uitgevoerd. 04D-2D blijft een afzonderlijke volgende slice en de Core-volgorde WVP01 → INS02 blijft ongewijzigd.
 
 AA-CURRENT beschrijft de actuele main-/deploymentbaseline. De ONE VERSION-2026-10-10 voorstatus blijft historisch in het acceptance report; die geldt niet als huidige releasebeslissing.
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
-import { developmentInsightCsv, functionSkillGapReportCsv } from '@/lib/star-performers/insights-service'
+import { developmentInsightCsv, functionSkillGapReportCsv, gridMovementCsv } from '@/lib/star-performers/insights-service'
 import { starPerformerWorkspaceQuerySchema } from '@/lib/star-performers/schemas'
 import { StarPerformerError } from '@/lib/star-performers/service'
 import { getStarPerformersInsights } from '@/lib/star-performers/v2-service'
@@ -28,8 +28,17 @@ export async function GET(request: Request) {
       page: searchParams.get('page') ?? undefined,
       pageSize: searchParams.get('pageSize') ?? undefined,
     })
-    if (!parsed.success || !['skill-gaps', 'development'].includes(parsed.data.insight)) return NextResponse.json({ code: 'STAR_PERFORMER_INPUT_INVALID' }, { status: 400 })
+    if (!parsed.success || !['skill-gaps', 'development', 'top-talent'].includes(parsed.data.insight)) return NextResponse.json({ code: 'STAR_PERFORMER_INPUT_INVALID' }, { status: 400 })
     const data = await getStarPerformersInsights(parsed.data)
+    if (parsed.data.insight === 'top-talent') {
+      return new Response(gridMovementCsv(data.topTalent.history), {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="grid-movement.csv"',
+          'Cache-Control': 'no-store',
+        },
+      })
+    }
     if (data.skillGaps.state === 'unavailable') return NextResponse.json({ code: 'STAR_PERFORMER_SKILL_GAP_SOURCE_UNAVAILABLE' }, { status: 503 })
     if (parsed.data.insight === 'development') {
       if (data.development.state === 'unavailable') return NextResponse.json({ code: 'STAR_PERFORMER_DEVELOPMENT_SOURCE_UNAVAILABLE' }, { status: 503 })

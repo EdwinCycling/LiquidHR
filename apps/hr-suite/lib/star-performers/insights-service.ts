@@ -1,4 +1,4 @@
-import type { GridCell } from '@/lib/talent-review/rules'
+import { deriveGridCell, GRID_VALUES, type GridCell, type GridValue } from '@/lib/talent-review/rules'
 
 export const INSIGHT_GRID_CELLS: readonly GridCell[] = [
   'LOW_LOW',
@@ -148,6 +148,7 @@ export type StarPerformersInsights = {
       down: number
       stable: number
     }
+    history: GridMovementInsight
   }
   keyEmployees: {
     criticalityDistribution: Array<{ level: number; count: number; percent: number | null }>
@@ -185,6 +186,87 @@ export type StarPerformersInsights = {
   }
   skillGaps: FunctionSkillGapReport
   development: DevelopmentInsight
+}
+
+export type GridMovementCampaignInput = {
+  id: string
+  name: string
+  status: string
+  startsOn: string
+  endsOn: string | null
+  closedAt: string | null
+  previousCampaignId: string | null
+  /** Optional fixture-only contract markers. Production campaigns use the canonical DB score contract. */
+  modelKey?: string | null
+  scaleKey?: string | null
+  mappingKey?: string | null
+}
+
+export type GridMovementScoreInput = {
+  employeeId: string
+  campaignId: string
+  performanceScore: string | null
+  potentialScore: string | null
+  gridCell: string | null
+  status: string
+  updatedAt: string
+}
+
+export type GridMovementPopulationInput = InsightEmployee
+
+export type GridMovementSnapshot = {
+  campaignId: string
+  campaignName: string
+  status: string
+  closedAt: string | null
+  performanceScore: GridValue
+  potentialScore: GridValue
+  gridCell: GridCell
+}
+
+export type GridMovementCampaignSummary = {
+  id: string
+  name: string
+  status: string
+  startsOn: string
+  endsOn: string | null
+  closedAt: string | null
+  finalizedEmployees: number
+  coveragePercent: number | null
+  sourceHref: string
+}
+
+export type GridMovementInsight = {
+  state: InsightState
+  asOf: string
+  comparisonStatus: 'comparable' | 'no-previous-reference' | 'previous-not-finalized' | 'incomparable' | 'no-current-campaign'
+  comparisonReason: string | null
+  relevantEmployees: number
+  currentAssessedEmployees: number
+  currentCoveragePercent: number | null
+  comparableEmployees: number
+  changedPositionEmployees: number
+  unchangedPositionEmployees: number
+  noComparableHistoryEmployees: number
+  currentCampaign: GridMovementCampaignSummary | null
+  previousCampaign: GridMovementCampaignSummary | null
+  performance: { up: number; down: number; unchanged: number }
+  potential: { up: number; down: number; unchanged: number }
+  rows: Array<{
+    employeeId: string
+    employeeLabel: string
+    employeeNumber: string
+    departmentName: string | null
+    jobName: string | null
+    current: GridMovementSnapshot | null
+    previous: GridMovementSnapshot | null
+    category: 'COMPARABLE' | 'NO_COMPARABLE_HISTORY'
+    position: 'CHANGED' | 'UNCHANGED' | 'NO_COMPARABLE_HISTORY'
+    performanceMovement: 'UP' | 'DOWN' | 'UNCHANGED' | 'UNKNOWN'
+    potentialMovement: 'UP' | 'DOWN' | 'UNCHANGED' | 'UNKNOWN'
+    href: string
+    sourceHref: string | null
+  }>
 }
 
 export type GridDistributionInput = {
@@ -425,6 +507,232 @@ export function emptyDevelopmentInsight(asOf: string): DevelopmentInsight {
   return buildDevelopmentInsight({ asOf, population: [], plans: [], actions: [], sources: { plans: true, actions: true } })
 }
 
+function isGridValue(value: string | null): value is GridValue {
+  return value !== null && GRID_VALUES.includes(value as GridValue)
+}
+
+function validGridScore(score: GridMovementScoreInput | undefined): { performanceScore: GridValue; potentialScore: GridValue; gridCell: GridCell } | null {
+  if (!score || score.status !== 'CLOSED' || !isGridValue(score.performanceScore) || !isGridValue(score.potentialScore)) return null
+  const gridCell = deriveGridCell(score.performanceScore, score.potentialScore)
+  return gridCell !== null && score.gridCell === gridCell ? { performanceScore: score.performanceScore, potentialScore: score.potentialScore, gridCell } : null
+}
+
+function latestValidGridScores(scores: readonly GridMovementScoreInput[], campaignId: string): Map<string, { input: GridMovementScoreInput; value: { performanceScore: GridValue; potentialScore: GridValue; gridCell: GridCell } }> {
+  const result = new Map<string, { input: GridMovementScoreInput; value: { performanceScore: GridValue; potentialScore: GridValue; gridCell: GridCell } }>()
+  for (const score of scores) {
+    if (score.campaignId !== campaignId) continue
+    const value = validGridScore(score)
+    if (!value) continue
+    const current = result.get(score.employeeId)
+    if (!current || score.updatedAt > current.input.updatedAt) result.set(score.employeeId, { input: score, value })
+  }
+  return result
+}
+
+function movementForAxis(previous: GridValue, current: GridValue): 'UP' | 'DOWN' | 'UNCHANGED' {
+  const previousIndex = GRID_VALUES.indexOf(previous)
+  const currentIndex = GRID_VALUES.indexOf(current)
+  if (currentIndex > previousIndex) return 'UP'
+  if (currentIndex < previousIndex) return 'DOWN'
+  return 'UNCHANGED'
+}
+
+function gridSourceHref(campaignId: string): string {
+  return `/workforce/9-grid?campaignId=${encodeURIComponent(campaignId)}&tab=results`
+}
+
+function campaignContractsComparable(current: GridMovementCampaignInput, previous: GridMovementCampaignInput): boolean {
+  const canonical = {
+    modelKey: 'canonical-performance-potential-v1',
+    scaleKey: 'LOW|NORMAL|HIGH',
+    mappingKey: 'performance_potential',
+  }
+  return (current.modelKey ?? canonical.modelKey) === (previous.modelKey ?? canonical.modelKey)
+    && (current.scaleKey ?? canonical.scaleKey) === (previous.scaleKey ?? canonical.scaleKey)
+    && (current.mappingKey ?? canonical.mappingKey) === (previous.mappingKey ?? canonical.mappingKey)
+}
+
+function gridCampaignSummary(
+  campaign: GridMovementCampaignInput,
+  finalizedEmployees: number,
+  relevantEmployees: number,
+): GridMovementCampaignSummary {
+  return {
+    id: campaign.id,
+    name: campaign.name,
+    status: campaign.status,
+    startsOn: campaign.startsOn,
+    endsOn: campaign.endsOn,
+    closedAt: campaign.closedAt,
+    finalizedEmployees,
+    coveragePercent: percentage(finalizedEmployees, relevantEmployees),
+    sourceHref: gridSourceHref(campaign.id),
+  }
+}
+
+export function emptyGridMovementInsight(asOf: string, relevantEmployees = 0): GridMovementInsight {
+  return {
+    state: 'no-data',
+    asOf,
+    comparisonStatus: 'no-current-campaign',
+    comparisonReason: 'No finalized campaign is available for this scope.',
+    relevantEmployees,
+    currentAssessedEmployees: 0,
+    currentCoveragePercent: percentage(0, relevantEmployees),
+    comparableEmployees: 0,
+    changedPositionEmployees: 0,
+    unchangedPositionEmployees: 0,
+    noComparableHistoryEmployees: 0,
+    currentCampaign: null,
+    previousCampaign: null,
+    performance: { up: 0, down: 0, unchanged: 0 },
+    potential: { up: 0, down: 0, unchanged: 0 },
+    rows: [],
+  }
+}
+
+export function buildGridMovementInsight(input: {
+  asOf: string
+  population: readonly GridMovementPopulationInput[]
+  campaigns: readonly GridMovementCampaignInput[]
+  scores: readonly GridMovementScoreInput[]
+  selectedCampaignId: string | null
+}): GridMovementInsight {
+  const populationById = new Map<string, GridMovementPopulationInput>()
+  for (const employee of input.population) if (!populationById.has(employee.employeeId)) populationById.set(employee.employeeId, employee)
+  const relevantEmployees = populationById.size
+  const campaigns = input.campaigns.filter((campaign) => campaign.status === 'CLOSED' || campaign.status === 'ARCHIVED')
+  const campaignById = new Map(campaigns.map((campaign) => [campaign.id, campaign]))
+  const currentCampaign = (input.selectedCampaignId ? campaignById.get(input.selectedCampaignId) : null)
+    ?? [...campaigns].sort((left, right) => (right.closedAt ?? right.startsOn).localeCompare(left.closedAt ?? left.startsOn))[0]
+    ?? null
+  if (!currentCampaign) return emptyGridMovementInsight(input.asOf, relevantEmployees)
+
+  const currentScores = latestValidGridScores(input.scores, currentCampaign.id)
+  const currentSummary = gridCampaignSummary(currentCampaign, [...currentScores.keys()].filter((employeeId) => populationById.has(employeeId)).length, relevantEmployees)
+  const currentRows = [...currentScores.entries()]
+    .filter(([employeeId]) => populationById.has(employeeId))
+    .map(([employeeId, score]) => ({ employee: populationById.get(employeeId)!, score }))
+    .sort((left, right) => left.employee.label.localeCompare(right.employee.label, 'nl'))
+  const baseRows = currentRows.map(({ employee, score }) => {
+    const snapshot: GridMovementSnapshot = {
+      campaignId: currentCampaign.id,
+      campaignName: currentCampaign.name,
+      status: score.input.status,
+      closedAt: currentCampaign.closedAt,
+      performanceScore: score.value.performanceScore,
+      potentialScore: score.value.potentialScore,
+      gridCell: score.value.gridCell,
+    }
+    return {
+      employee,
+      current: snapshot,
+      previous: null as GridMovementSnapshot | null,
+      category: 'NO_COMPARABLE_HISTORY' as const,
+      position: 'NO_COMPARABLE_HISTORY' as const,
+      performanceMovement: 'UNKNOWN' as const,
+      potentialMovement: 'UNKNOWN' as const,
+    }
+  })
+  const previousCampaignId = currentCampaign.previousCampaignId
+  const previousCampaign = previousCampaignId ? campaignById.get(previousCampaignId) ?? null : null
+  let comparisonStatus: GridMovementInsight['comparisonStatus'] = 'no-previous-reference'
+  let comparisonReason: string | null = 'The current campaign has no explicit previous campaign reference.'
+  let previousScores = new Map<string, { input: GridMovementScoreInput; value: { performanceScore: GridValue; potentialScore: GridValue; gridCell: GridCell } }>()
+  if (previousCampaignId && !previousCampaign) {
+    comparisonStatus = 'previous-not-finalized'
+    comparisonReason = 'The referenced previous campaign is not finalized or is outside the authorized history.'
+  } else if (previousCampaign) {
+    if (!campaignContractsComparable(currentCampaign, previousCampaign)) {
+      comparisonStatus = 'incomparable'
+      comparisonReason = 'The campaign score model, scale, or grid mapping is not comparable.'
+    } else {
+      comparisonStatus = 'comparable'
+      comparisonReason = null
+      previousScores = latestValidGridScores(input.scores, previousCampaign.id)
+    }
+  }
+
+  let comparableEmployees = 0
+  let changedPositionEmployees = 0
+  let unchangedPositionEmployees = 0
+  let noComparableHistoryEmployees = 0
+  const performance = { up: 0, down: 0, unchanged: 0 }
+  const potential = { up: 0, down: 0, unchanged: 0 }
+  const rows = baseRows.map((row) => {
+    const previousScore = comparisonStatus === 'comparable' ? previousScores.get(row.employee.employeeId) : undefined
+    if (!previousScore) {
+      noComparableHistoryEmployees += 1
+      return {
+        employeeId: row.employee.employeeId,
+        employeeLabel: row.employee.label,
+        employeeNumber: row.employee.employeeNumber,
+        departmentName: row.employee.departmentName,
+        jobName: row.employee.jobName,
+        current: row.current,
+        previous: null,
+        category: row.category,
+        position: row.position,
+        performanceMovement: row.performanceMovement,
+        potentialMovement: row.potentialMovement,
+        href: row.employee.href,
+        sourceHref: currentSummary.sourceHref,
+      }
+    }
+    comparableEmployees += 1
+    const previous: GridMovementSnapshot = {
+      campaignId: previousCampaign!.id,
+      campaignName: previousCampaign!.name,
+      status: previousScore.input.status,
+      closedAt: previousCampaign!.closedAt,
+      performanceScore: previousScore.value.performanceScore,
+      potentialScore: previousScore.value.potentialScore,
+      gridCell: previousScore.value.gridCell,
+    }
+    const performanceMovement = movementForAxis(previous.performanceScore, row.current.performanceScore)
+    const potentialMovement = movementForAxis(previous.potentialScore, row.current.potentialScore)
+    const position = previous.gridCell === row.current.gridCell ? 'UNCHANGED' as const : 'CHANGED' as const
+    if (position === 'CHANGED') changedPositionEmployees += 1
+    else unchangedPositionEmployees += 1
+    performance[performanceMovement === 'UP' ? 'up' : performanceMovement === 'DOWN' ? 'down' : 'unchanged'] += 1
+    potential[potentialMovement === 'UP' ? 'up' : potentialMovement === 'DOWN' ? 'down' : 'unchanged'] += 1
+    return {
+      employeeId: row.employee.employeeId,
+      employeeLabel: row.employee.label,
+      employeeNumber: row.employee.employeeNumber,
+      departmentName: row.employee.departmentName,
+      jobName: row.employee.jobName,
+      current: row.current,
+      previous,
+      category: 'COMPARABLE' as const,
+      position,
+      performanceMovement,
+      potentialMovement,
+      href: row.employee.href,
+      sourceHref: currentSummary.sourceHref,
+    }
+  })
+
+  return {
+    state: comparableEmployees > 0 ? 'ready' : 'no-data',
+    asOf: input.asOf,
+    comparisonStatus,
+    comparisonReason,
+    relevantEmployees,
+    currentAssessedEmployees: currentRows.length,
+    currentCoveragePercent: percentage(currentRows.length, relevantEmployees),
+    comparableEmployees,
+    changedPositionEmployees,
+    unchangedPositionEmployees,
+    noComparableHistoryEmployees,
+    currentCampaign: currentSummary,
+    previousCampaign: previousCampaign ? gridCampaignSummary(previousCampaign, [...previousScores.keys()].filter((employeeId) => populationById.has(employeeId)).length, relevantEmployees) : null,
+    performance,
+    potential,
+    rows,
+  }
+}
+
 export function buildGridDistribution(
   inputs: readonly GridDistributionInput[],
   populationIds: readonly string[],
@@ -645,6 +953,34 @@ export function developmentInsightCsv(report: DevelopmentInsight): string {
   const planRows = report.plans.map((plan) => [report.asOf, 'development_plan', plan.employeeId, plan.employeeLabel, plan.title, plan.status, plan.progressPercent, plan.periodStart, plan.periodEnd, null, null, null, null, report.relevantEmployees, report.coveragePercent])
   const actionRows = report.actions.map((action) => [report.asOf, 'follow_up_action', action.employeeId, action.employeeLabel, action.title, action.status, null, null, null, action.dueOn, action.nextMeetingOn, action.followUpOn, action.followUpStatus, report.relevantEmployees, report.coveragePercent])
   return [header, ...planRows, ...actionRows].map((row) => row.map((value) => csvCell(value)).join(',')).join('\r\n') + '\r\n'
+}
+
+export function gridMovementCsv(report: GridMovementInsight): string {
+  const header = [
+    'as_of', 'comparison_status', 'relevant_employees', 'current_assessed_employees', 'current_coverage_percent',
+    'comparable_employees', 'changed_position_employees', 'unchanged_position_employees', 'no_comparable_history_employees',
+    'current_campaign_id', 'current_campaign', 'current_campaign_status', 'current_starts_on', 'current_ends_on', 'current_closed_at',
+    'previous_campaign_id', 'previous_campaign', 'previous_campaign_status', 'previous_starts_on', 'previous_ends_on', 'previous_closed_at',
+    'employee_id', 'employee_number', 'employee', 'department', 'job', 'current_performance', 'current_potential', 'current_grid_cell',
+    'previous_performance', 'previous_potential', 'previous_grid_cell', 'performance_movement', 'potential_movement', 'position', 'category', 'source_href',
+  ]
+  const current = report.currentCampaign
+  const previous = report.previousCampaign
+  const rows = report.rows.length > 0 ? report.rows.map((row) => [
+    report.asOf, report.comparisonStatus, report.relevantEmployees, report.currentAssessedEmployees, report.currentCoveragePercent,
+    report.comparableEmployees, report.changedPositionEmployees, report.unchangedPositionEmployees, report.noComparableHistoryEmployees,
+    current?.id ?? null, current?.name ?? null, current?.status ?? null, current?.startsOn ?? null, current?.endsOn ?? null, current?.closedAt ?? null,
+    previous?.id ?? null, previous?.name ?? null, previous?.status ?? null, previous?.startsOn ?? null, previous?.endsOn ?? null, previous?.closedAt ?? null,
+    row.employeeId, row.employeeNumber, row.employeeLabel, row.departmentName, row.jobName, row.current?.performanceScore ?? null, row.current?.potentialScore ?? null, row.current?.gridCell ?? null,
+    row.previous?.performanceScore ?? null, row.previous?.potentialScore ?? null, row.previous?.gridCell ?? null, row.performanceMovement, row.potentialMovement, row.position, row.category, row.sourceHref,
+  ]) : [[
+    report.asOf, report.comparisonStatus, report.relevantEmployees, report.currentAssessedEmployees, report.currentCoveragePercent,
+    report.comparableEmployees, report.changedPositionEmployees, report.unchangedPositionEmployees, report.noComparableHistoryEmployees,
+    current?.id ?? null, current?.name ?? null, current?.status ?? null, current?.startsOn ?? null, current?.endsOn ?? null, current?.closedAt ?? null,
+    previous?.id ?? null, previous?.name ?? null, previous?.status ?? null, previous?.startsOn ?? null, previous?.endsOn ?? null, previous?.closedAt ?? null,
+    ...Array.from({ length: header.length - 21 }, () => null),
+  ]]
+  return [header, ...rows].map((row) => row.map((value) => csvCell(value)).join(',')).join('\r\n') + '\r\n'
 }
 
 export function percentageOf(value: number, total: number): number | null {
