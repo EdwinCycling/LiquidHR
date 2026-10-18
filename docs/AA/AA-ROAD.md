@@ -1,5 +1,9 @@
 # AA-ROAD — Long-Term Product Roadmap
 
+> **Productrichting 18-10-2026:** Payroll groeit van historische Lab-onderzoekslijn naar **volwaardige reguliere klantmodule**, met centraal officieel cao-/pensioenregister, versieerbare salarisbronnen, bedrijfseigen regelingen en employer/employee-UI, continue bron- en kwaliteitscontroles, periodieke payroll-by-exception, cumulatieven, jaaropgaaf, loonaangifte en betalingstraject (apart te autoriseren). Zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md) voor exacte DONE/HOLD per fase. De oude Lab-notities hieronder zijn ontwikkelhistorie, geen gewenst eindproduct.
+>
+> **STAR/Workforce UX-roadmap:** medewerkerpagina overzichtelijker, aantrekkelijker, minder scrollen en sneller laden/lazy loading; responsive fix voor verticaal/afgebroken kaartteksten. Activa, Software, Wagenpark en Budgetten uit huidige betrokken navigatie/schermen verwijderen, **maar als toekomstige afzonderlijke modules op de roadmap behouden**.
+
 Status: **STRATEGISCH / LIVING**
 Bijgewerkt: 2026-10-13 (alleen Core/PERF-prioriteiten)
 
