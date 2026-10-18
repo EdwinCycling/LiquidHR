@@ -1,5 +1,7 @@
 # AA — canonieke documentatierouter
 
+> **Actualisatie 18-10-2026:** lees eerst [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md) voor de laatste *lokale* Payroll-, cao-, pensioen-, Core- en STAR-status en het plan richting gezamenlijke merge. Die ontwikkelingen zijn nog niet integraal op `main` beschikbaar. De oudere acceptatieregisters blijven historisch bewijs per SHA.
+
 Status: **LEIDEND** · levende afspraken worden in deze bestaande documenten bijgewerkt; Git bewaart de geschiedenis.
 
 ## Verantwoordelijkheid per document
