@@ -5,22 +5,37 @@ import { PageHeader } from '@/components/patterns/page-header'
 import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'
 import { Surface } from '@/components/ui/surface'
 import { CaoSetupOverview } from '@/components/payroll/cao-setup-overview'
+import { PensionArrangementManager } from '@/components/payroll/pension-arrangement-manager'
 import { EmploymentRegulationsManager } from '@/components/settings/employment-regulations-manager'
 import { caoSetupPackageOptions } from '@/lib/payroll/cao-setup-catalog'
 import { getCaoSetupPageData } from '@/lib/payroll/cao-setup-service'
 import { getEmploymentSettings } from '@/lib/employment/employment-settings'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { createPensionArrangementAction, createPensionArrangementSuccessorForPensionManagerAction } from './actions'
 
-export default async function PayrollArrangementsPage() {
-  const [settings, t, locale] = await Promise.all([getEmploymentSettings(), getTranslator('payrollProfessional'), getLocale()])
+type PageProps = {
+  readonly searchParams: Promise<{ readonly pension?: string }>
+}
+
+export default async function PayrollArrangementsPage({ searchParams }: PageProps) {
+  const [settings, t, locale, query] = await Promise.all([getEmploymentSettings(), getTranslator('payrollProfessional'), getLocale(), searchParams])
   const data = await getCaoSetupPageData(settings)
   const nav = { overview: t('overview'), runs: t('runs'), corrections: t('corrections'), compare: t('compare'), arrangements: t('arrangements'), settings: t('settings') }
   return <PageShell className="space-y-6 py-6 sm:py-8">
     <PageHeader title={t('arrangements')} description={t('arrangementsDescription')} />
     <PayrollProfessionalNavigation active="arrangements" labels={nav} />
     <CaoSetupOverview data={data} locale={locale} labels={{
-      catalogTitle: t('caoSetupCatalogTitle'), catalogDescription: t('caoSetupCatalogDescription'), grossEngineSupported: t('caoGrossEngineSupported'), sourceReviewRequired: t('caoSourceReviewRequired'), effectivePeriod: t('effectivePeriod'), versionHash: t('versionHash'), standardHours: t('standardHours'), pensionFund: t('pensionFund'), pensionSourceTitle: t('caoPensionSourceTitle'), pensionSourceDescription: t('caoPensionSourceDescription'), pensionFields: t('caoPensionFields'), pensionRecordsTitle: t('caoPensionRecordsTitle'), pensionRecordsDescription: t('caoPensionRecordsDescription'), pensionRecordsEmpty: t('caoPensionRecordsEmpty'), pensionVersion: t('pensionVersion'), pensionFranchise: t('pensionFranchise'), pensionCap: t('pensionCap'), pensionEmployeeShare: t('pensionEmployeeShare'), pensionEmployerShare: t('pensionEmployerShare'), pensionSourceHash: t('pensionSourceHash'), caoMappingsTitle: t('caoMappingsTitle'), caoMappingsDescription: t('caoMappingsDescription'), caoMappingsEmpty: t('caoMappingsEmpty'), mappingFor: t('mappingFor'), openEmploymentSettings: t('openEmploymentSettings'), openPensionAssignments: t('openPensionAssignments'), sourceStatusReference: t('sourceStatusReference'), sourceStatusValidated: t('sourceStatusValidated'),
+      catalogTitle: t('caoSetupCatalogTitle'), catalogDescription: t('caoSetupCatalogDescription'), grossEngineSupported: t('caoGrossEngineSupported'), sourceReviewRequired: t('caoSourceReviewRequired'), effectivePeriod: t('effectivePeriod'), versionHash: t('versionHash'), standardHours: t('standardHours'), pensionFund: t('pensionFund'), pensionSourceTitle: t('caoPensionSourceTitle'), pensionSourceDescription: t('caoPensionSourceDescription'), pensionFields: t('caoPensionFields'), pensionRecordsTitle: t('caoPensionRecordsTitle'), pensionRecordsDescription: t('caoPensionRecordsDescription'), pensionRecordsEmpty: t('caoPensionRecordsEmpty'), pensionVersion: t('pensionVersion'), pensionFranchise: t('pensionFranchise'), pensionCap: t('pensionCap'), pensionEmployeeShare: t('pensionEmployeeShare'), pensionEmployerShare: t('pensionEmployerShare'), pensionProvider: t('pensionManagementProvider'), pensionSourceReference: t('sourceReference'), pensionSalaryMethod: t('pensionManagementSalaryMethod'), pensionPartTimeMethod: t('pensionManagementPartTimeMethod'), pensionPartMonthMethod: t('pensionManagementPartMonthMethod'), pensionEligibilityRule: t('pensionManagementEligibilityRule'), pensionSourceHash: t('pensionSourceHash'), caoMappingsTitle: t('caoMappingsTitle'), caoMappingsDescription: t('caoMappingsDescription'), caoMappingsEmpty: t('caoMappingsEmpty'), mappingFor: t('mappingFor'), openEmploymentSettings: t('openEmploymentSettings'), openPensionAssignments: t('openPensionAssignments'), sourceStatusReference: t('sourceStatusReference'), sourceStatusValidated: t('sourceStatusValidated'),
     }} />
+    <PensionArrangementManager
+      data={data}
+      status={query.pension}
+      createAction={createPensionArrangementAction}
+      successorAction={createPensionArrangementSuccessorForPensionManagerAction}
+      labels={{
+        title: t('pensionManagementTitle'), description: t('pensionManagementDescription'), createTitle: t('pensionCreateTitle'), createDescription: t('pensionCreateDescription'), code: t('pensionManagementCode'), name: t('pensionManagementName'), provider: t('pensionManagementProvider'), sourceReference: t('pensionManagementSourceReference'), sourceStatus: t('pensionManagementSourceStatus'), referenceOnly: t('pensionManagementReferenceOnly'), employerRecorded: t('pensionManagementEmployerRecorded'), verifiedSource: t('pensionManagementVerifiedSource'), effectiveFrom: t('pensionManagementEffectiveFrom'), effectiveTo: t('pensionManagementEffectiveTo'), transitionDate: t('pensionManagementTransitionDate'), arrangementType: t('pensionManagementArrangementType'), flatPremium: t('pensionManagementFlatPremium'), progressivePremium: t('pensionManagementProgressivePremium'), grandfatheringMode: t('pensionManagementGrandfatheringMode'), noGrandfathering: t('pensionManagementNoGrandfathering'), respectfulTransition: t('pensionManagementRespectfulTransition'), flatTotalRate: t('pensionManagementFlatTotalRate'), employeeShare: t('pensionManagementEmployeeShare'), employerShare: t('pensionManagementEmployerShare'), annualFranchise: t('pensionManagementAnnualFranchise'), annualCap: t('pensionManagementAnnualCap'), salaryMethod: t('pensionManagementSalaryMethod'), partTimeMethod: t('pensionManagementPartTimeMethod'), partMonthMethod: t('pensionManagementPartMonthMethod'), eligibilityRule: t('pensionManagementEligibilityRule'), contractClassification: t('pensionManagementContractClassification'), solidarity: t('pensionManagementSolidarity'), nonSolidarity: t('pensionManagementNonSolidarity'), unknown: t('pensionManagementUnknown'), classificationStatus: t('pensionManagementClassificationStatus'), classificationSource: t('pensionManagementClassificationSource'), tiers: t('pensionManagementTiers'), tiersHelp: t('pensionManagementTiersHelp'), save: t('pensionManagementSave'), versionTitle: t('pensionManagementVersionTitle'), versionDescription: t('pensionManagementVersionDescription'), versionJson: t('pensionManagementVersionJson'), versionJsonHelp: t('pensionManagementVersionJsonHelp'), saveVersion: t('pensionManagementSaveVersion'), managerRequired: t('pensionManagementManagerRequired'), sourceReviewNotice: t('pensionManagementSourceReviewNotice'), saved: t('pensionManagementSaved'), versionSaved: t('pensionManagementVersionSaved'), invalid: t('pensionManagementInvalid'), unavailable: t('pensionManagementUnavailable'),
+      }}
+    />
     <Surface className="space-y-4 p-5">
       <h2 className="text-lg font-semibold">{t('caoRegulationSetupTitle')}</h2>
       <p className="text-sm text-muted-foreground">{t('caoRegulationSetupDescription')}</p>

@@ -3,6 +3,7 @@ import { ArrowUpRight, CheckCircle2, CircleAlert, ExternalLink } from 'lucide-re
 import { Badge } from '@/components/ui/badge'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { Surface } from '@/components/ui/surface'
+import type { Json } from '@scope/db'
 import type { CaoSetupPageData } from '@/lib/payroll/cao-setup-service'
 
 type Labels = {
@@ -25,6 +26,12 @@ type Labels = {
   readonly pensionCap: string
   readonly pensionEmployeeShare: string
   readonly pensionEmployerShare: string
+  readonly pensionProvider: string
+  readonly pensionSourceReference: string
+  readonly pensionSalaryMethod: string
+  readonly pensionPartTimeMethod: string
+  readonly pensionPartMonthMethod: string
+  readonly pensionEligibilityRule: string
   readonly pensionSourceHash: string
   readonly caoMappingsTitle: string
   readonly caoMappingsDescription: string
@@ -43,6 +50,12 @@ function amount(value: number | null, locale: 'nl' | 'en'): string {
 
 function percentage(value: number | null): string {
   return value === null ? '—' : `${value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')}%`
+}
+
+function objectText(value: Json, key: string): string {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return '—'
+  const candidate = value[key]
+  return typeof candidate === 'string' && candidate.trim() !== '' ? candidate : '—'
 }
 
 function sourceBadge(status: 'REFERENCE_ONLY' | 'VALIDATED' | 'REVIEW_REQUIRED', labels: Labels) {
@@ -121,6 +134,12 @@ export function CaoSetupOverview({ data, locale, labels }: { readonly data: CaoS
               <div><dt className="text-muted-foreground">{labels.pensionCap}</dt><dd>{amount(pension.annualPensionableSalaryCap, locale)}</dd></div>
               <div><dt className="text-muted-foreground">{labels.pensionEmployeeShare}</dt><dd>{percentage(pension.employeeSharePct)}</dd></div>
               <div><dt className="text-muted-foreground">{labels.pensionEmployerShare}</dt><dd>{percentage(pension.employerSharePct)}</dd></div>
+              <div><dt className="text-muted-foreground">{labels.pensionProvider}</dt><dd>{objectText(pension.pensionableSalaryDefinition, 'provider')}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-muted-foreground">{labels.pensionSourceReference}</dt><dd className="break-all">{objectText(pension.pensionableSalaryDefinition, 'sourceReference')}</dd></div>
+              <div><dt className="text-muted-foreground">{labels.pensionSalaryMethod}</dt><dd>{objectText(pension.pensionableSalaryDefinition, 'method')}</dd></div>
+              <div><dt className="text-muted-foreground">{labels.pensionPartTimeMethod}</dt><dd>{objectText(pension.pensionableSalaryDefinition, 'partTimeMethod')}</dd></div>
+              <div><dt className="text-muted-foreground">{labels.pensionPartMonthMethod}</dt><dd>{objectText(pension.pensionableSalaryDefinition, 'partMonthMethod')}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-muted-foreground">{labels.pensionEligibilityRule}</dt><dd>{objectText(pension.eligibilityRule, 'description')}</dd></div>
             </dl>
             <p className="mt-3 break-all font-mono text-xs text-muted-foreground">{labels.pensionSourceHash}: {pension.sourceHash}</p>
           </article>)}

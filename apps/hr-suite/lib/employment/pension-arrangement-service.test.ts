@@ -26,6 +26,7 @@ const ids = {
   request: '70000000-0000-4000-8000-000000000001',
   mapping: '80000000-0000-4000-8000-000000000001',
   assignment: '90000000-0000-4000-8000-000000000001',
+  version: 'a1000000-0000-4000-8000-000000000001',
 }
 
 const managerContext: AuthContext = {
@@ -236,6 +237,23 @@ describe('assignEmploymentPensionArrangement', () => {
         code: 'PENSION_ASSIGNMENT_WRITE_READBACK_INVALID',
         status: 500,
       } satisfies Partial<EmploymentPensionArrangementError>)
+  })
+
+  it('uses the pension-manager permission and wrapper for successor versions', async () => {
+    const { rpc } = configureClient({ rpcResult: ids.version, employment: { id: ids.version, employee_id: ids.employee } })
+
+    await expect(createPensionArrangementSuccessor({
+      employeeId: ids.employee,
+      employmentId: ids.employment,
+      predecessorVersionId: ids.version,
+      successor: {},
+    })).resolves.toEqual({ versionId: ids.version })
+
+    expect(requirePermission).toHaveBeenCalledWith('pension:manage', ids.employee)
+    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor', {
+      p_predecessor_version_id: ids.version,
+      p_successor: {},
+    })
   })
 })
 

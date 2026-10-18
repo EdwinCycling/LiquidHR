@@ -24791,6 +24791,14 @@ export type Database = {
         Args: { p_predecessor_version_id: string; p_successor: Json }
         Returns: string
       }
+      create_pension_arrangement_successor_for_pension_manager: {
+        Args: { p_predecessor_version_id: string; p_successor: Json }
+        Returns: string
+      }
+      create_pension_arrangement: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
       apply_employment_pension_arrangement: {
         Args: { p_input: Json }
         Returns: Json

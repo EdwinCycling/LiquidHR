@@ -197,6 +197,7 @@ export async function createPensionArrangementSuccessor(input: {
     throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_SUCCESSOR_INPUT_INVALID', 400)
   }
   const { context } = await scopedEmployment(input.employeeId, input.employmentId, 'pension:manage')
+  if (!isPensionManager(context)) throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_SUCCESSOR_FORBIDDEN', 403)
   const supabase = await createClient()
   const { data: predecessor, error: predecessorError } = await supabase.from('pension_arrangement_versions')
     .select('id, pension_arrangement_id')
