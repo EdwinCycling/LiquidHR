@@ -1,5 +1,7 @@
 # AA-TEST — LiquidHR Testing Standard
 
+> **QA-status 18-10-2026:** zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md). Core-`25P02`-fix heeft **GO op eigen fixbranch**: 633 bestanden, 3.033 geslaagde tests, 8 overgeslagen; tenant/persona/RLS en STAR/Payroll-browserflows PASS. Dat bewijs is niet overdraagbaar als automatische PASS op de nieuwe integratiecheckout: daar blokkeren Node 22.14.0 en Windows `EPERM` nog nieuwe typecheck/Vitest. Productgebonden CAO-SOURCE-01 (10/10 tests, 332/332 build) en CAO-PENSION-CORE-01 (13/13 tests) zijn lokaal GREEN voor de geteste code, **niet** voor live K2/R1/R2 berekeningen. `57014` in `countEmployees()` is aparte open performancebug. Gezamenlijke STAR+Payroll-acceptatie volgt na branch-/migratieconvergentie; geen onterecht 'alles GREEN'.
+
 Status: **LEIDEND**
 Eerste opzet: 2026-09-29
 
