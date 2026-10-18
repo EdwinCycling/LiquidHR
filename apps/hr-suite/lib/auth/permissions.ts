@@ -11,6 +11,7 @@ import {
   type FocusExperience,
 } from '@/lib/focus/access-state'
 import { createClient } from '@/lib/supabase/server'
+import { throwDatabaseReadError } from '@/lib/errors/database-read-error'
 
 export interface AuthContext {
   tenantId: string
@@ -77,7 +78,7 @@ export const getSelfPermissions = cache(async (supabase: SupabaseServerClient, t
     .is('deleted_at', null)
     .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
 
-  if (employeeRoleError) throw employeeRoleError
+  if (employeeRoleError) throwDatabaseReadError(employeeRoleError, 'auth.permissions.employeeRole')
   const employeeRole = employeeRoles.find((role) => role.tenant_id === tenantId) ?? employeeRoles.find((role) => role.tenant_id === null)
   return employeeRole ? permissionCodesForRoleIds([employeeRole.id], supabase, tenantId) : []
 })
@@ -92,14 +93,14 @@ async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseSe
     .eq('is_active', true)
     .is('deleted_at', null)
     .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
-  if (assignedRolesError) throw assignedRolesError
+  if (assignedRolesError) throwDatabaseReadError(assignedRolesError, 'auth.permissions.assignedRoles')
 
   let effectiveRoleIds = assignedRoles.map((role) => role.id)
   const globalCodes = assignedRoles.filter((role) => role.tenant_id === null).map((role) => role.code)
   if (globalCodes.length > 0) {
     const { data: tenantOverrides, error: tenantOverridesError } = await supabase.from('management_roles').select('id,code')
       .eq('tenant_id', tenantId).eq('is_active', true).is('deleted_at', null).in('code', globalCodes)
-    if (tenantOverridesError) throw tenantOverridesError
+    if (tenantOverridesError) throwDatabaseReadError(tenantOverridesError, 'auth.permissions.tenantOverrides')
     const overrideByCode = new Map(tenantOverrides.map((role) => [role.code, role.id]))
     effectiveRoleIds = assignedRoles.map((role) => role.tenant_id === null ? overrideByCode.get(role.code) ?? role.id : role.id)
   }
@@ -111,7 +112,7 @@ async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseSe
     .select('permission_id')
     .in('management_role_id', effectiveRoleIds)
 
-  if (rolePermissionsError) throw rolePermissionsError
+  if (rolePermissionsError) throwDatabaseReadError(rolePermissionsError, 'auth.permissions.rolePermissions')
   const permissionIds = rolePermissions.map((rolePermission) => rolePermission.permission_id)
   if (permissionIds.length === 0) return []
 
@@ -120,7 +121,7 @@ async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseSe
     .select('code')
     .in('id', permissionIds)
 
-  if (permissionsError) throw permissionsError
+  if (permissionsError) throwDatabaseReadError(permissionsError, 'auth.permissions.permissionCodes')
   return permissions.map((permission) => permission.code)
 }
 
@@ -135,7 +136,7 @@ async function roleCodesForRoleIds(roleIds: string[], supabase: SupabaseServerCl
     .is('deleted_at', null)
     .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
 
-  if (error) throw error
+  if (error) throwDatabaseReadError(error, 'auth.permissions.roleCodes')
   return roles.map((role) => role.code)
 }
 
@@ -153,7 +154,7 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
     .eq('is_active', true)
     .limit(100)
 
-  if (accessError) throw accessError
+  if (accessError) throwDatabaseReadError(accessError, 'auth.context.groupAccess')
 
   const { data: initialActor, error: actorError } = await supabase
     .from('employees')
@@ -164,7 +165,7 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
     .is('deleted_at', null)
     .maybeSingle()
 
-  if (actorError) throw actorError
+  if (actorError) throwDatabaseReadError(actorError, 'auth.context.actor')
   const actor = initialActor
 
   const today = new Date().toISOString().slice(0, 10)
@@ -191,8 +192,8 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
         .limit(100),
     ])
 
-    if (assignmentsResult.error) throw assignmentsResult.error
-    if (employmentsResult.error) throw employmentsResult.error
+    if (assignmentsResult.error) throwDatabaseReadError(assignmentsResult.error, 'auth.context.managerAssignments')
+    if (employmentsResult.error) throwDatabaseReadError(employmentsResult.error, 'auth.context.employments')
     assignments = assignmentsResult.data
     actorEmployments = employmentsResult.data.map((employment) => ({
       startsOn: employment.starts_on,
@@ -251,7 +252,7 @@ async function assertEmployeeEssIsAvailable(
     .eq('tenant_id', context.tenantId)
     .eq('hr_group_id', context.hrGroupId)
     .maybeSingle()
-  if (error) throw error
+  if (error) throwDatabaseReadError(error, 'auth.context.employeeEssAccess')
   if (data?.status === 'BLOCKED') throw new AuthorizationError('Je Employee-toegang is geblokkeerd.')
 }
 

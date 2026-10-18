@@ -4,6 +4,7 @@ import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
 import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
 import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+import { logDatabaseReadFailure } from '@/lib/errors/database-read-error'
 import {
   type TalentEmployeeCapabilityAdminCreateInput,
   type TalentEmployeeCapabilityAdminUpdateInput,
@@ -206,28 +207,51 @@ async function readRecordRows(
   if (targetEmployeeId) recordsQuery = recordsQuery.eq('employee_id', targetEmployeeId)
   if (query.sourceType) recordsQuery = recordsQuery.eq('source_type', query.sourceType)
   const { data: records, error: recordsError } = await recordsQuery
-  if (recordsError) throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
+  if (recordsError) {
+    logDatabaseReadFailure(recordsError, 'talent.employeeCapabilities.records')
+    throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
+  }
 
   const rows = records ?? []
   const capabilityIds = [...new Set(rows.map((row) => row.capability_id))]
   const levelIds = [...new Set(rows.map((row) => row.talent_level_id).filter((id): id is string => Boolean(id)))]
   const employeeIds = [...new Set(rows.map((row) => row.employee_id))]
-  const [capabilitiesResult, levelsResult, employeesResult] = await Promise.all([
-    capabilityIds.length > 0
-      ? supabase.from('talent_capabilities').select('id,code,name,capability_type').eq('tenant_id', context.tenantId).in('id', capabilityIds)
-      : Promise.resolve({ data: [], error: null }),
-    levelIds.length > 0
-      ? supabase.from('talent_levels').select('id,code,name').eq('tenant_id', context.tenantId).in('id', levelIds)
-      : Promise.resolve({ data: [], error: null }),
-    employeeIds.length > 0
-      ? supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).in('id', employeeIds)
-      : Promise.resolve({ data: [], error: null }),
-  ])
-  if (capabilitiesResult.error || levelsResult.error || employeesResult.error) throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
+  let capabilities: Array<Pick<CapabilityRow, 'id' | 'code' | 'name' | 'capability_type'>> = []
+  if (capabilityIds.length > 0) {
+    const result = await supabase.from('talent_capabilities').select('id,code,name,capability_type')
+      .eq('tenant_id', context.tenantId).in('id', capabilityIds)
+    if (result.error) {
+      logDatabaseReadFailure(result.error, 'talent.employeeCapabilities.capabilities')
+      throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
+    }
+    capabilities = result.data ?? []
+  }
 
-  const capabilitiesById = new Map((capabilitiesResult.data ?? []).map((item) => [item.id, item]))
-  const levelsById = new Map((levelsResult.data ?? []).map((item) => [item.id, item]))
-  const employeesById = new Map((employeesResult.data ?? []).map((item) => [item.id, item]))
+  let levels: Array<Pick<LevelRow, 'id' | 'code' | 'name'>> = []
+  if (levelIds.length > 0) {
+    const result = await supabase.from('talent_levels').select('id,code,name')
+      .eq('tenant_id', context.tenantId).in('id', levelIds)
+    if (result.error) {
+      logDatabaseReadFailure(result.error, 'talent.employeeCapabilities.levels')
+      throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
+    }
+    levels = result.data ?? []
+  }
+
+  let employees: Array<Pick<EmployeeRow, 'id' | 'first_name' | 'birth_name' | 'employee_number'>> = []
+  if (employeeIds.length > 0) {
+    const result = await supabase.from('employees').select('id,first_name,birth_name,employee_number')
+      .eq('tenant_id', context.tenantId).in('id', employeeIds)
+    if (result.error) {
+      logDatabaseReadFailure(result.error, 'talent.employeeCapabilities.employees')
+      throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
+    }
+    employees = result.data ?? []
+  }
+
+  const capabilitiesById = new Map(capabilities.map((item) => [item.id, item]))
+  const levelsById = new Map(levels.map((item) => [item.id, item]))
+  const employeesById = new Map(employees.map((item) => [item.id, item]))
   const today = new Date().toISOString().slice(0, 10)
   return rows
     .map((row) => toRecord(row, capabilitiesById.get(row.capability_id), row.talent_level_id ? levelsById.get(row.talent_level_id) : undefined, employeesById.get(row.employee_id), today))
