@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { AuthorizationError, getRequestAuthorizationContext, requirePermission, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requirePermissionInContext, type AuthContext } from '@/lib/auth/permissions'
 import { listContinuousAppraisalItemsForEmployees, listContinuousAppraisalWorkspace } from '@/lib/continuous-appraisal/service'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { listTalentEmployeeCapabilityRecords } from '@/lib/talent/employee-capability-service'
@@ -731,9 +731,10 @@ async function readDetailAssessment(
   supabase: SupabaseServerClient,
   administrationId: string,
   employeeId: string,
+  includeTags: boolean,
 ): Promise<{ assessments: AssessmentRow[]; tagIdsByAssessmentId: Map<string, string[]> }> {
   const assessments = (await readAssessments(supabase, administrationId)).filter((assessment) => assessment.employee_id === employeeId)
-  const { data, error } = assessments.length
+  const { data, error } = includeTags && assessments.length
     ? await supabase.from('star_performer_assessment_tags').select('assessment_id, tag_id').in('assessment_id', assessments.map((assessment) => assessment.id)).limit(500)
     : { data: [], error: null }
   if (error) databaseError(error.message)
@@ -753,17 +754,16 @@ function detailLink(path: string, employeeId: string): string {
 }
 
 export async function getStarPerformersDetail(employeeId: string): Promise<StarPerformersDetail> {
-  const auth = await requirePermission('star-performer:read')
-  const isPrivilegedAdmin = auth.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
-  if (!(isPrivilegedAdmin && auth.employeeId === employeeId)) {
-    await requirePermission('star-performer:read', employeeId)
+  const access = await resolveStarPerformersReadAccess()
+  const { auth, supabase } = access
+  if (access.employeeIds !== null && !access.employeeIds.includes(employeeId)) {
+    throw new AuthorizationError('Je hebt geen toegang tot deze medewerker.')
   }
   if (!auth.administrationId) throw new StarPerformerError('ADMINISTRATION_REQUIRED', 400)
-  const supabase = await createClient()
   const base = await readDetailEmployee(supabase, auth.tenantId, auth.administrationId, employeeId)
   const refs = await readDetailReferences(supabase, auth.tenantId, base.placement, currentDate())
-  const detailAssessment = await readDetailAssessment(supabase, auth.administrationId, employeeId)
-  const tags = await readDetailTags(supabase, auth.tenantId)
+  const detailAssessment = await readDetailAssessment(supabase, auth.administrationId, employeeId, access.isAdmin)
+  const tags = access.isAdmin ? await readDetailTags(supabase, auth.tenantId) : []
   const job = refs.job
   const placementForRow: PlacementRow = base.placement
   const jobGroupByJobId = new Map<string, string>(job ? [[job.id, job.job_group_id]] : [])
@@ -779,20 +779,21 @@ export async function getStarPerformersDetail(employeeId: string): Promise<StarP
   const grid = await optionalRead(() => readGridSignals(supabase, auth.tenantId, auth.administrationId as string, [employeeId]))
   const skills = await optionalRead(() => listTalentEmployeeCapabilityRecords({ employeeId }))
   const jobProfile = await optionalRead(async () => {
-    const initial = await listTalentRoleExplorerWorkspace('admin', { employeeId })
+    const mode = access.isAdmin ? 'admin' : 'manager'
+    const initial = await listTalentRoleExplorerWorkspace(mode, { employeeId })
     const selectedEmployee = initial.employees.find((employee) => employee.employeeId === employeeId)
     const profile = selectedEmployee?.currentProfileVersionId
       ? initial.profiles.find((candidate) => candidate.profileVersionId === selectedEmployee.currentProfileVersionId) ?? null
       : null
     if (!profile) return { profile: null, gaps: [] as StarPerformersDetail['jobProfile']['gaps'] }
-    const comparison: TalentRoleExplorerComparison | null = initial.comparison ?? (await listTalentRoleExplorerWorkspace('admin', { employeeId, profileVersionId: profile.profileVersionId })).comparison
+    const comparison: TalentRoleExplorerComparison | null = initial.comparison ?? (await listTalentRoleExplorerWorkspace(mode, { employeeId, profileVersionId: profile.profileVersionId })).comparison
     return {
       profile: { id: profile.profileVersionId, jobCode: profile.jobCode, jobGroupName: profile.jobGroupName, version: profile.profileVersion },
       gaps: (comparison?.axes ?? []).filter((axis) => axis.status !== 'MATCH').slice(0, 12).map((axis) => ({ name: axis.capabilityName, status: axis.status, currentLevel: axis.currentLevelCode, targetLevel: axis.targetLevelCode, rationale: axis.rationale })),
     }
   })
   const development = await optionalRead(async () => {
-    const workspace = await listTalentGoals('admin', { employeeId }, { includeOptions: false, includeEmployeeOptions: false, includeCapabilityOptions: false })
+    const workspace = await listTalentGoals(access.isAdmin ? 'admin' : 'manager', { employeeId }, { includeOptions: false, includeEmployeeOptions: false, includeCapabilityOptions: false })
     return workspace.goals.filter((goal) => goal.status !== 'ARCHIVED').slice(0, 12).map((goal) => ({ id: goal.id, title: goal.title, status: goal.status, progressPercent: goal.progress_percent, periodStart: goal.period_start, periodEnd: goal.period_end }))
   })
   const appraisal = await optionalRead(async () => {

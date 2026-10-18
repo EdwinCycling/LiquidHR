@@ -42,6 +42,7 @@ import { listEmployeeRoleAssignments } from '@/lib/organization/management-servi
 import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { employeeNotesPermissionAllowed, listEmployeeNotes } from '@/lib/employees/employee-notes-service'
 import { EmployeeNotes } from '@/components/employees/employee-notes'
+import { StarPerformerTalentPassport } from '@/components/talent/star-performer-talent-passport'
 import { isAiImproveAvailable } from '@/lib/ai/supabase-governance'
 import { isRealtimeVoiceEnabled } from '@/lib/ai/realtime-voice'
 import { evaluateAiSettingsAccess, getAiGroupSettingsForContext } from '@/lib/ai/settings-service'
@@ -59,6 +60,8 @@ import { getEmployeeJourneyProjections } from '@/lib/journeys/projection-service
 import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 import { normalizeInsightReturnPath } from '@/lib/insights/query-seam'
 import { getEmployeeInvitationAccess } from '@/lib/auth/invitation-management'
+import { getStarPerformersDetail } from '@/lib/star-performers/v2-service'
+import { StarPerformerError } from '@/lib/star-performers/service'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
@@ -73,12 +76,12 @@ interface EmployeeDetailDependencies {
   performance: ServerPerformanceTrace
 }
 
-async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | 'employments' | 'reminders' | 'documents' | 'payslips' | 'notes' | 'absence' | 'processes', dependencies: EmployeeDetailDependencies) {
+async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | 'employments' | 'reminders' | 'documents' | 'payslips' | 'notes' | 'absence' | 'processes' | 'talent', dependencies: EmployeeDetailDependencies) {
   try {
     const { performance } = dependencies
-    const detailScope = tab === 'overview' || tab === 'processes' ? 'overview' : tab === 'personal' ? 'personal' : tab === 'employments' ? 'employments' : 'employments'
+    const detailScope = tab === 'overview' || tab === 'processes' || tab === 'talent' ? 'overview' : tab === 'personal' ? 'personal' : tab === 'employments' ? 'employments' : 'employments'
     const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, canReadDashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity] = await performance.measure('initial.parallel', () => Promise.all([
-      getEmployeeEmploymentDetail(employeeId, detailScope, { includeSalary: tab !== 'overview' && tab !== 'processes', supabase: dependencies.supabase }),
+      getEmployeeEmploymentDetail(employeeId, detailScope, { includeSalary: tab !== 'overview' && tab !== 'processes' && tab !== 'talent', supabase: dependencies.supabase }),
       tab === 'personal' || tab === 'overview' ? getEmployeeCustomFields(employeeId) : Promise.resolve([]),
       tab === 'overview' || tab === 'reminders' ? listEmployeeReminders(employeeId).catch(() => []) : Promise.resolve([]),
       tab === 'personal' ? listEmployeeRoleAssignments(employeeId).catch(() => []) : Promise.resolve([]),
@@ -166,9 +169,11 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     const directTeamEmployeeIds = await performanceTrace.measure('auth.teamScope', () => listDirectTeamEmployeeIds(authContext, requestContext.supabase))
     if (!directTeamEmployeeIds.includes(employeeId)) redirect('/employees')
   }
+  const canReadTalentPassport = authContext.permissions.includes('star-performer:read')
+    || (authContext.permissions.includes('star-performer:manager-read') && authContext.activeRoles.includes('DIRECT_MANAGER') && authContext.employeeId !== employeeId)
   const canReadProcesses = authContext.permissions.includes('process-instance:read') || (authContext.permissions.includes('self:process-instance:read') && authContext.employeeId === employeeId)
-  const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'payslips' || requestedTab === 'reminders' || requestedTab === 'personal' || requestedTab === 'notes' || requestedTab === 'absence' || (requestedTab === 'processes' && canReadProcesses) ? requestedTab : 'overview'
-  const [pageData, workWeather, privateWeather, calendarHeader] = await performanceTrace.measure('page.data', () => Promise.all([
+  const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'payslips' || requestedTab === 'reminders' || requestedTab === 'personal' || requestedTab === 'notes' || requestedTab === 'absence' || (requestedTab === 'processes' && canReadProcesses) || (requestedTab === 'talent' && canReadTalentPassport) ? requestedTab : 'overview'
+  const [pageData, workWeather, privateWeather, calendarHeader, starTalentPassport] = await performanceTrace.measure('page.data', () => Promise.all([
     loadPageData(employeeId, tab, {
       supabase: requestContext.supabase,
       userId: authContext.userId,
@@ -177,10 +182,17 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     getWorkWeatherForContext(authContext, requestContext.supabase),
     getPrivateWeatherForEmployee(authContext, employeeId, requestContext.supabase),
     getUpcomingCalendarItems(authContext, requestContext.supabase),
+    tab === 'talent' && canReadTalentPassport
+      ? getStarPerformersDetail(employeeId).catch((error: unknown) => {
+        if (error instanceof AuthorizationError || (error instanceof StarPerformerError && (error.status === 403 || error.status === 404))) return null
+        throw error
+      })
+      : Promise.resolve(null),
   ]))
   const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, journeys, notes, canReadNotes, canWriteNotes, canDeleteNotes, canUseAi] = pageData
   performanceTrace.finish()
   const tProcess = await getTranslator('processAutomation', locale)
+  const tStar = tab === 'talent' ? await getTranslator('starPerformers', locale) : null
   const tFocus = await getTranslator('focus', locale)
   const tWeather = await getTranslator('startpage', locale)
   const invitationPage = authContext.permissions.includes('user:invite')
@@ -190,6 +202,9 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     ])
     : null
   const weatherLabels = { weatherTitle: tWeather('weatherTitle'), weatherOpen: tWeather('weatherOpen'), weatherClose: tWeather('weatherClose'), weatherUnavailable: tWeather('weatherUnavailable'), weatherToday: tWeather('weatherToday'), weatherTomorrow: tWeather('weatherTomorrow'), weatherNextWorkingDay: tWeather('weatherNextWorkingDay'), weatherDayToggle: tWeather('weatherDayToggle'), weatherTodayMax: tWeather('weatherTodayMax'), weatherForecastHigh: tWeather('weatherForecastHigh'), weatherForecastLow: tWeather('weatherForecastLow'), weatherPressureUp: tWeather('weatherPressureUp'), weatherPressureDown: tWeather('weatherPressureDown'), weatherPressureSteady: tWeather('weatherPressureSteady'), weatherHumidity: tWeather('weatherHumidity'), weatherWind: tWeather('weatherWind'), weatherPressure: tWeather('weatherPressure'), weatherLocationToggle: tWeather('weatherLocationToggle'), weatherWork: tWeather('weatherWork'), weatherHome: tWeather('weatherHome') }
+  const talentPassportLabels = tStar ? {
+    detailTitle: tStar('detailTitle'), readOnly: tStar('readOnly'), employeeNumber: tStar('employeeNumber'), department: tStar('department'), notAssessed: tStar('notAssessed'), approvedSignal: tStar('approvedSignal'), noApprovedSignal: tStar('noApprovedSignal'), closedOn: tStar('closedOn'), movementUp: tStar('movementUp'), movementDown: tStar('movementDown'), movementStable: tStar('movementStable'), movementNew: tStar('movementNew'), performance: tStar('performance'), potential: tStar('potential'), grid: tStar('grid'), skills: tStar('skills'), skillsDescription: tStar('skillsDescription'), noSkills: tStar('noSkills'), jobProfile: tStar('jobProfile'), jobProfileDescription: tStar('jobProfileDescription'), noJobProfile: tStar('noJobProfile'), skillGaps: tStar('skillGaps'), noSkillGaps: tStar('noSkillGaps'), developmentPlans: tStar('developmentPlans'), noDevelopmentPlans: tStar('noDevelopmentPlans'), appraisal: tStar('appraisal'), noAppraisal: tStar('noAppraisal'), openGrid: tStar('openGrid'), openSkills: tStar('openSkills'), openRoleExplorer: tStar('openRoleExplorer'), openComparison: tStar('openComparison'), openDevelopment: tStar('openDevelopment'), openAppraisal: tStar('openAppraisal'), unavailable: tStar('unavailable'), criticality: tStar('criticality'), tags: tStar('tags'), noTags: tStar('noTags'), talentPassportTab: tStar('talentPassportTab'),
+  } : null
   const canStartProcess = authContext.permissions.includes('process-instance:start') || (authContext.permissions.includes('self:process-instance:start') && authContext.employeeId === employeeId)
   const canActAsEmployee = authContext.employeeId !== employeeId
     && authContext.permissions.includes('focus:act-as-employee')
@@ -317,9 +332,9 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         <nav className="mt-6" aria-label={tEmployees('tabsLabel')}>
           <ScrollableTabs ariaLabel={tEmployees('tabsLabel')} leftLabel={tEmployees('previous')} rightLabel={tEmployees('next')} contentProps={{ role: 'tablist' }}>
-            {(['overview', 'personal', 'employments', 'reminders', 'documents', 'absence', ...(canReadProcesses ? ['processes' as const] : []), ...(canReadPayslips ? ['payslips' as const] : []), ...(canReadNotes ? ['notes' as const] : [])] as const).map((item) => {
+            {(['overview', ...(canReadTalentPassport ? ['talent' as const] : []), 'personal', 'employments', 'reminders', 'documents', 'absence', ...(canReadProcesses ? ['processes' as const] : []), ...(canReadPayslips ? ['payslips' as const] : []), ...(canReadNotes ? ['notes' as const] : [])] as const).map((item) => {
               const active = tab === item
-              const label = item === 'overview' ? tEmployees('tabDashboard') : item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : item === 'documents' ? tEmployees('tabDocuments') : item === 'absence' ? tEmployees('absenceTab') : item === 'processes' ? tProcess('processesTab') : item === 'payslips' ? tDocuments('payslipsTab') : tEmployees('tabNotes')
+              const label = item === 'overview' ? tEmployees('tabDashboard') : item === 'talent' ? tStar?.('talentPassportTab') ?? '' : item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : item === 'documents' ? tEmployees('tabDocuments') : item === 'absence' ? tEmployees('absenceTab') : item === 'processes' ? tProcess('processesTab') : item === 'payslips' ? tDocuments('payslipsTab') : tEmployees('tabNotes')
               return <Link prefetch={false} key={item} href={`/employees/${employeeId}?tab=${item}&view=${compact ? 'compact' : 'expanded'}`} aria-current={active ? 'page' : undefined} className={tabLinkClasses({ active })}>{label}</Link>
             })}
           </ScrollableTabs>
@@ -344,6 +359,8 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           education: tEmployees('dashboardEducation'), educationDescription: tEmployees('dashboardEducationDescription'), documents: tEmployees('tabDocuments'), documentsEmpty: tEmployees('dashboardDocumentsEmpty'), performance: tEmployees('dashboardPerformance'),
           performanceDescription: tEmployees('dashboardPerformanceDescription'), futureModule: tEmployees('dashboardFutureModule'), futureModuleDescription: tEmployees('dashboardFutureModuleDescription'), viewContracts: tEmployees('tabEmployments'), viewEmployment: tEmployees('dashboardViewEmployment'), viewDocuments: tEmployees('tabDocuments'), viewReminders: tEmployees('tabReminders'), moveUp: tEmployees('dashboardMoveUp'), moveDown: tEmployees('dashboardMoveDown'), drag: tEmployees('dashboardDrag'), layoutSaving: tEmployees('dashboardLayoutSaving'), layoutSaved: tEmployees('dashboardLayoutSaved'), layoutFailed: tEmployees('dashboardLayoutFailed'), profileLinks: tEmployees('profileLinks'), noProfileLinks: tEmployees('noProfileLinks'), addProfileLink: tEmployees('addProfileLink'), linkLabel: tEmployees('linkLabel'), linkUrl: tEmployees('linkUrl'), saveLink: tEmployees('saveLink'), linkFailed: tEmployees('linkFailed'), absenceReport: tEmployees('absenceReport'), absenceOverview: tEmployees('absenceOverview'), absenceStartDate: tEmployees('absenceStartDate'), absencePercentage: tEmployees('absencePercentage'), absenceExpectedRecovery: tEmployees('absenceExpectedRecovery'), absenceHasSafetyNet: tEmployees('absenceHasSafetyNet'), absenceWorkAccident: tEmployees('absenceWorkAccident'), absenceThirdPartyAccident: tEmployees('absenceThirdPartyAccident'), absenceUnknown: tEmployees('absenceUnknown'), absenceYes: tEmployees('absenceYes'), absenceNo: tEmployees('absenceNo'), absenceSubmit: tEmployees('absenceSubmit'), absenceRecover: tEmployees('absenceRecover'), absenceRecoveredOn: tEmployees('absenceRecoveredOn'), absenceSaveFailed: tEmployees('absenceSaveFailed'), absenceNowSick: tEmployees('absenceNowSick'), absenceNowNotSick: tEmployees('absenceNowNotSick'), absenceLastReport: tEmployees('absenceLastReport'), absenceNoHistory: tEmployees('absenceNoHistory'), absenceActiveSince: tEmployees('absenceActiveSince'), absenceRecoveryWindow: tEmployees('absenceRecoveryWindow'), absenceOpenCase: tEmployees('absenceOpenCase'), absenceClose: tEmployees('absenceClose'), absenceCaseNextReview: tEmployees('absenceCaseNextReview'), absenceHours: tEmployees('absenceHours'), absenceCapacityInputMode: tEmployees('absenceCapacityInputMode'), absenceCapacityPercentageMode: tEmployees('absenceCapacityPercentageMode'), absenceCapacityHoursMode: tEmployees('absenceCapacityHoursMode'), absenceCapacityScheduleUnavailable: tEmployees('absenceCapacityScheduleUnavailable'), absenceDiscardTitle: tEmployees('absenceDiscardTitle'), absenceDiscardDescription: tEmployees('absenceDiscardDescription'), absenceDiscardConfirm: tEmployees('absenceDiscardConfirm'), absenceDiscardCancel: tEmployees('absenceDiscardCancel'), name: tEmployees('name'), age: tEmployees('age'), daysUntilBirthday: tEmployees('daysUntilBirthday'), workEmail: tEmployees('workEmail'), privateEmail: tEmployees('privateEmail'), workPhone: tEmployees('workPhone'), privatePhone: tEmployees('privatePhone'),
         }} />}
+
+        {tab === 'talent' && canReadTalentPassport && talentPassportLabels ? starTalentPassport ? <StarPerformerTalentPassport detail={starTalentPassport} labels={talentPassportLabels} locale={locale} /> : <section className="mt-8"><EmptyState description={talentPassportLabels.unavailable} title={talentPassportLabels.detailTitle} /></section> : null}
 
         {tab === 'processes' && <section className="mt-8 space-y-5"><SectionHeader title={tProcess('workspaceTitle')} description={tProcess('workspaceDescription')} />{!processWork ? <Surface className="border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{tProcess('readError')}</Surface> : processWork.items.length === 0 ? <EmptyState description={tProcess('noItemsDescription')} role="status" title={tProcess('noItems')} /> : <div className="grid gap-4">{processWork.items.map((item) => { const itemStatus = processStatusForItem(item); return <Surface className="p-5" key={item.workItemId}><article><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{item.processKey}</p><h3 className="mt-1 break-words font-semibold">{item.processTitle}</h3></div><Badge tone={processStatusTone(itemStatus)}>{processStatusLabel(itemStatus)}</Badge></div><dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3"><div className="min-w-0"><dt className="text-xs text-muted-foreground">{tProcess('step')}</dt><dd className="mt-1 break-words">{item.stepTitle}</dd></div><div className="min-w-0"><dt className="text-xs text-muted-foreground">{tProcess('subject')}</dt><dd className="mt-1 break-words">{item.subjectName ?? tProcess('unknown')}</dd></div><div className="min-w-0"><dt className="text-xs text-muted-foreground">{tProcess('deadline')}</dt><dd className="mt-1 break-words">{item.deadlineAt ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(item.deadlineAt)) : tProcess('unknown')}</dd></div></dl><Link prefetch={false} className={buttonClasses({ variant: 'secondary', className: 'mt-5 w-full sm:w-auto' })} href={`/work/${item.workItemId}`}>{tProcess('open')}</Link></article></Surface> })}</div>}</section>}
 
