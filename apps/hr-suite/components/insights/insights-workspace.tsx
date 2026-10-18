@@ -1,6 +1,6 @@
 'use client'
 
-import { BarChart3, BriefcaseBusiness, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HeartPulse, SlidersHorizontal, UsersRound, WalletCards } from 'lucide-react'
+import { BarChart3, BriefcaseBusiness, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HeartPulse, SlidersHorizontal, Sparkles, UsersRound, WalletCards } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -47,7 +47,7 @@ type InsightVisualReportId = EmployeeInsightReportId
 type InsightVisualReport = EmployeeInsightReport
 const employeeReportIds = new Set<InsightVisualReportId>(['employee-department', 'employee-gender', 'employee-age', 'terminations'])
 const chartColors = ['bg-chart-1', 'bg-chart-2', 'bg-chart-3', 'bg-chart-4', 'bg-chart-5']
-const icons = { employees: UsersRound, leave: BriefcaseBusiness, absence: HeartPulse, salary: WalletCards, other: BarChart3 } as const
+const icons = { employees: UsersRound, leave: BriefcaseBusiness, absence: HeartPulse, salary: WalletCards, talent: Sparkles, other: BarChart3 } as const
 const emptySelection: string[] = []
 
 function isEmployeeReport(id: InsightReportId): id is InsightVisualReportId {
@@ -153,6 +153,12 @@ function reportLabelPrefix(id: InsightReportId): string {
   if (id === 'upcoming-events') return 'upcomingEvents'
   if (id === 'ai-usage') return 'aiUsage'
   if (id === 'actual-work') return 'actualWork'
+  if (id === 'talent-top-talent') return 'talentTopTalent'
+  if (id === 'talent-key-employees') return 'talentKeyEmployees'
+  if (id === 'talent-star-skills') return 'talentStarSkills'
+  if (id === 'talent-development') return 'talentDevelopment'
+  if (id === 'talent-skills') return 'talentSkills'
+  if (id === 'talent-pop') return 'talentPop'
   return id
 }
 
@@ -229,7 +235,7 @@ export function InsightsWorkspace({ aiUsageQuery, aiUsageReport, analysisAvailab
   const display = searchParams.get('view') === 'trend' ? 'trend' : 'distribution'
   const [openFilter, setOpenFilter] = useState<string | null>(null)
   const groupBy = filters.groupBy ?? 'person'; const year = filters.year ?? new Date().getFullYear(); const month = filters.month ?? new Date().getMonth() + 1; const yearSpan = filters.yearSpan ?? 1; const fullYear = filters.fullYear === true || yearSpan > 1; const sortBy = filters.sortBy ?? 'total'; const teams = filters.teams ?? emptySelection; const segments = filters.segments ?? emptySelection; const reasons = filters.reasons ?? emptySelection; const employeeStatus = filters.employeeStatus ?? 'all'
-  const reportCategories = useMemo(() => [{ id: 'employees', label: labels.employeesCategory }, { id: 'leave', label: labels.leaveCategory }, { id: 'absence', label: labels.absenceCategory }, { id: 'salary', label: labels.salaryCategory }, { id: 'other', label: labels.otherCategory }] as const, [labels])
+  const reportCategories = useMemo(() => [{ id: 'employees', label: labels.employeesCategory }, { id: 'leave', label: labels.leaveCategory }, { id: 'absence', label: labels.absenceCategory }, { id: 'salary', label: labels.salaryCategory }, { id: 'talent', label: labels.talentCategory }, { id: 'other', label: labels.otherCategory }] as const, [labels])
 
   useEffect(() => { const close = (event: MouseEvent) => { if (!(event.target instanceof Element) || !event.target.closest('.filter-dropdown')) setOpenFilter(null) }; document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close) }, [])
   useEffect(() => { if (!initialReport) return; requestAnimationFrame(() => document.getElementById(`report-card-${initialReport}`)?.scrollIntoView({ block: 'start' })) }, [initialReport])
@@ -245,7 +251,14 @@ export function InsightsWorkspace({ aiUsageQuery, aiUsageReport, analysisAvailab
   function removeEmployeeValue(field: 'teams' | 'segments' | 'reasons', value: string): void { applyEmployeeFilterChanges({ [field]: (filters[field] ?? []).filter((item) => item !== value) }) }
   function togglePanel() { const next = !selectionPanelOpen; setSelectionPanelOpen(next); void fetch('/api/preferences/insights', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preserveFilters, selectionPanelOpen: next }) }) }
   function togglePreservation() { const next = !preserveFilters; setPreserveFilters(next); void fetch('/api/preferences/insights', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preserveFilters: next, selectionPanelOpen, ...(next && openReport && isPersistedEmployeeReport(openReport) ? { report: openReport, filters } : {}) }) }) }
-  function open(id: InsightReportId): void { const next = openReport === id ? null : id; setOpenFilter(null); router.push(buildInsightReportNavigationHref(searchParams, next), { scroll: false }); if (next) requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(`report-card-${next}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))) }
+  function open(id: InsightReportId): void {
+    const linkedReport = reports.find((report) => report.id === id && report.route)
+    if (linkedReport?.route) {
+      router.push(linkedReport.route, { scroll: false })
+      return
+    }
+    const next = openReport === id ? null : id; setOpenFilter(null); router.push(buildInsightReportNavigationHref(searchParams, next), { scroll: false }); if (next) requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(`report-card-${next}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })))
+  }
   const periodLabel = yearSpan > 1 ? `${year - yearSpan + 1} → ${year}` : fullYear ? String(year) : `${[labels.jan, labels.feb, labels.mar, labels.apr, labels.may, labels.jun, labels.jul, labels.aug, labels.sep, labels.oct, labels.nov, labels.dec][month - 1]} ${year}`
   const appliedEmployeeQuery = employeeQuery?.report === openReport ? employeeQuery : null
   const exportParams = appliedEmployeeQuery ? employeeInsightQueryParams(appliedEmployeeQuery) : new URLSearchParams({ report: openReport ?? '' }); exportParams.set('format', 'csv')

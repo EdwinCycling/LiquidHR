@@ -4,7 +4,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { AuthenticationError, AuthorizationError, getRequestAuthorizationContext, getSelfPermissions, requirePermission } from '@/lib/auth/permissions'
 import { readEmployeeEssAccess } from '@/lib/auth/employee-ess-access'
 import { isFullPortalAllowed } from '@/lib/focus/access-state'
-import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
+import { canReadInsightReport, INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
 import { ANALYSIS_PERMISSION } from '@/lib/insights/analysis-contract'
 import { ContextAccessError, ContextSelectionRequiredError } from '@/lib/context/administration-context'
 import { getAdministrationSwitcherMode, getHrGroupSwitcherMode } from '@/lib/context/administration-context'
@@ -82,7 +82,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const canShowSetupAssistant = canUseSetupAssistant(authContext)
   const researchAccess = resolveResearchAccess(authContext)
   const canReadAnalysis = authContext.permissions.includes(ANALYSIS_PERMISSION)
-  const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
+  const insightPermissions = INSIGHT_REPORTS.map((report) => canReadInsightReport(report, authContext.permissions))
 
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, setupAssistantMessages, setupAssistant, reminders, enabledModules, productUpdates, profile] = await Promise.all([
     getRequestUserPreferences(),

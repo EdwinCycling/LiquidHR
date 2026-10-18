@@ -1,7 +1,7 @@
 # AA-ROAD — Long-Term Product Roadmap
 
 Status: **STRATEGISCH / LIVING**
-Bijgewerkt: 2026-10-13 (alleen Core/PERF-prioriteiten)
+Bijgewerkt: 2026-10-18 (STAR-V2-04D-1; Core-prioriteiten blijven leidend)
 
 De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
 
@@ -77,7 +77,9 @@ decommissionplan afzonderlijk is goedgekeurd.
 - cross-domain reports.
 
 ### Talent
-- STAR-V2-04C — read-only Talentpaspoort is lokaal geaccepteerd op basis van de gedateerde [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04C-CLOSE-20261018.md); 04D-1 is de volgende readinessstap en is nog niet uitgevoerd;
+- STAR-V2-04C — read-only Talentpaspoort is lokaal geaccepteerd op basis van de gedateerde [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04C-CLOSE-20261018.md); de centrale catalogusuitbreiding volgt als 04D-1;
+- STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling** is lokaal geaccepteerd; de catalogus ontsluit alleen bestaande Star Performers- en Talent-rapporten met bestaande scope-, filter- en exportcontracten; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-1-LOCAL-20261018.md);
+- STAR-V2-04D-2 — afzonderlijke volgende slice voor verdere Talent Insights-integratie; niet onderdeel van 04D-1;
 - skills/competencies;
 - POP;
 - vlootschouw/9-grid;

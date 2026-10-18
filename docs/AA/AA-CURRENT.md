@@ -1,7 +1,7 @@
 # AA-CURRENT — Current LiquidHR State
 
 Status: **ACTUEEL / LIVING**
-Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
+Momentopname: 2026-10-18 (historische acceptance-evidence blijft ongewijzigd)
 
 ## STAR-V2-04C — lokaal gesloten read-only Talentpaspoort (2026-10-18)
 
@@ -10,7 +10,16 @@ Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
 - Directe URL-, forged-ID- en buiten-scope-controles zijn uitgevoerd. De bestaande read-services, direct-team-scope en bronlinks zijn hergebruikt; geen nieuwe workflow of dubbele berekening.
 - Gerichte tests (9/9), gewijzigde-bestanden-ESLint, i18n-pariteit (43 namespaces) en CRLF-aware diff-check zijn groen. Typecheck blijft rood op de bestaande ongerelateerde TS2367 in apps/hr-suite/components/talent/talent-workforce-overview.tsx:271.
 - De standaard Playwright-Chrome-route bleef geblokkeerd door Crashpad; de in-app browsercontrole is daarom als lokale browser-evidence gebruikt. De al dirty zijnde apps/hr-suite/next-env.d.ts bleef buiten de commit. Zie [STAR-V2-04C-CLOSE](../quality/acceptance/runs/STAR-V2-04C-CLOSE-20261018.md).
-- Verdict: STAR-V2-04C lokaal geaccepteerd; 04D-1 is alleen de volgende readinessstap en is in deze run niet uitgevoerd.
+- Verdict: STAR-V2-04C lokaal geaccepteerd; de 04C-run zelf bevatte nog geen 04D-1-wijzigingen.
+
+## STAR-V2-04D-1 — centrale Insights-categorie Talent & Ontwikkeling (2026-10-18)
+
+- De centrale `/insights`-catalogus heeft de categorie **Talent & Ontwikkeling** gekregen met zes werkelijk bestaande, read-only rapportingangen: Toptalent (9-grid), Sleutelmedewerkers, Skills & afhankelijkheden, Ontwikkeling & acties, Skills & competenties en POP & ontwikkeldoelen.
+- De Star Performers-rapporten gebruiken de bestaande Star Performers-services, filters en Manager-readscope. De twee Talent-rapporten gebruiken de bestaande `all/goals/capabilities`-route, periode/statusfilters en CSV-export. 9-grid en Continuous Appraisal blijven bronmodules; er is geen fictieve zelfstandige catalogusroute toegevoegd.
+- Lokale browseracceptatie in de in-app browser is bewezen voor HR Admin, Manager en Employee. HR Admin zag 25 catalogusrapporten en de Talent-categorie; Manager zag 13 rapporten en uitsluitend de directe teamscope; Employee zag 0 rapporten en geen Talentmetadata. Directe Employee-URL's eindigden op `/geen-toegang`; een Manager-request met een forged all-zero employee-ID bleef op 6 teammedewerkers en 6 goedgekeurde 9-gridrecords.
+- Er zijn geen permissions, SQL, migraties, schema's, RLS-policies, databasegegevens, Payroll-code of bestaande Star-/Talentpaspoortroutes gewijzigd. De browsercontrole gebruikte de target-checkout op `http://localhost:3013` nadat de bestaande lokale devserver een `25P02`-runtimefout had; `next-env.d.ts` bleef dirty en buiten scope.
+- Gerichte catalogus-, query-, Talent-report- en Star-authorizationtests, gewijzigde-bestanden-ESLint, i18n-pariteit en diff-check zijn groen. Typecheck blijft uitsluitend rood op de bestaande ongerelateerde TS2367 in `apps/hr-suite/components/talent/talent-workforce-overview.tsx:271`.
+- Verdict: **STAR-V2-04D-1 LOCAL DONE**. Zie [STAR-V2-04D-1 acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-1-LOCAL-20261018.md). STAR-V2-04D-2 blijft een afzonderlijke volgende slice.
 
 ## TALENT-CONVERGENCE-01 — lokale codeconvergentie (2026-10-16)
 

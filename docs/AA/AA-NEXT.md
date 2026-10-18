@@ -1,7 +1,7 @@
 # AA-NEXT — Short-Term Roadmap
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-14 (Core/PERF; overige productsporen inhoudelijk ongewijzigd)
+Bijgewerkt: 2026-10-18 (STAR-V2-04D-1; Core-volgorde ongewijzigd)
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 
@@ -16,6 +16,8 @@ Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailr
 **Parallelle planningen blijven ongewijzigd:** NMBRS-02 blijft een aparte read-only employee-synchronisatiepreview, met eigen provider- en acceptatieafhankelijkheden; geen employee writes, matching/apply, payroll export of externe payrollmutaties. Bescherm `work/payroll-p0-p1` en unieke P2-readinessdocumentatie. AI, Payroll en Nmbrs worden inhoudelijk vanuit hun eigen threads bijgewerkt; het Core-besluit herschikt deze sporen niet.
 
 **Security/persona-evidence blijft OPEN:** SEC-01 hosted positives/negatives en bestaande Control-, Insights- en AI-persona-negatives staan in [AA-OPEN](AA-OPEN.md). Vercel READY bewijst dit niet.
+
+**Talentparallelstatus 2026-10-18:** STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling** — is lokaal geaccepteerd op de actuele target-checkout. De bewezen cataloguslinks hergebruiken bestaande Star Performers- en Talent-reportservices, filters, scopes en exportcontracten; er is geen nieuwe permissie, schemawijziging of databasewrite. STAR-V2-04D-2 blijft een afzonderlijk vervolg en wijzigt de Core-volgorde WVP01 → INS02 niet.
 
 AA-CURRENT beschrijft de actuele main-/deploymentbaseline. De ONE VERSION-2026-10-10 voorstatus blijft historisch in het acceptance report; die geldt niet als huidige releasebeslissing.
 
