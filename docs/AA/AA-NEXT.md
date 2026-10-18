@@ -1,5 +1,7 @@
 # AA-NEXT — Short-Term Roadmap
 
+> **Parallelle Payroll/STAR-prioriteit 18-10-2026:** de Core-roadmap hieronder blijft bestaan, maar voor de gezamenlijke release gelden de actuele stappen uit [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md): (1) actieve Core-administraties Mars/Jupiter/Mercurius met juiste scoped HR Admin-sessies, dubbele Demo-/TEST-records en werknemer-/pensioenkoppelingen corrigeren; (2) ontbrekende officiële Kinderopvang/Retail/bedrijfseigen brondata via normale UI invoeren en readback; (3) toolchain/branch-ancestry en de lokaal al geïntegreerde Core-fix verifiëren; (4) Payroll-, CAO-, pensioen- en STAR-branches gecontroleerd convergeren; (5) K2/R1/R2/Mars-eindacceptatie en wettelijke scopegates; (6) alleen na expliciet GO merge naar main/deploy. **PAYROLL-CORE-RESET-01 loopt, resultaat nog niet bevestigd.**
+
 Status: **ACTUEEL / LIVING**
 Bijgewerkt: 2026-10-14 (Core/PERF; overige productsporen inhoudelijk ongewijzigd)
 
