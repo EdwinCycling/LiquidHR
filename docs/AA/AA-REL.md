@@ -1,5 +1,9 @@
 # AA-REL — Convergence, Release, Deployment & Cleanup
 
+> **Convergentie-update 18-10-2026:** [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md) bevat actuele branch-/SHA-matrix en open QA. Er is lokaal een nieuwe `integration/pay-converge-20261018` met Core-fix-cherry-picks `7adc8c21`/`d4b089e9`; dit is **geen** volledige Payroll/STAR-integratie of release. De oude `integration/pay-converge-20261004` is niet de doelbasis. Controleer commit-ancestry, resterende lokale branches, migratieversies en toolchain (Node/Windows `EPERM`) vóór gecombineerde QA.
+>
+> **Eén actieve LiquidHR-applicatieomgeving**, maar meerdere technische databaseprojecten; het Vercel-`production`-label bewijst op zichzelf geen gebruik van echte klantdata of volledige wettelijke payrollgereedheid. Reinigings- en migratiewrites pas na verifiëren van daadwerkelijke database-/administratiebinding, herstelbaarheid en historisch FINALIZED-behoud. Merge naar `main` en deployment blijven expliciet gescheiden GO-besluiten.
+
 Status: **LEIDEND**
 Eerste opzet: 2026-09-29
 
