@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { EmployeeDashboardLayout } from '@/lib/preferences/employee-dashboard-layout'
 import type { EmployeeDetailViewModel } from './types'
 import { EmployeeActivityFeed } from './employee-activity-feed'
-import { EmployeeDashboardHeader } from './employee-dashboard'
+import { EmployeeDashboard, EmployeeDashboardHeader, type EmployeeDashboardLabels, filterVisibleEmployeeDashboardWidgets } from './employee-dashboard'
 import { EmployeeDashboardLayout as EmployeeDashboardLayoutView } from './employee-dashboard-layout'
 import { EmployeeDashboardSummary, type EmployeeDashboardSummaryLabels } from './employee-dashboard-summary'
 import { EmploymentDashboardSummary, type EmploymentDashboardSummaryLabels } from './employment-dashboard-summary'
@@ -44,6 +44,44 @@ const activeEmploymentTwo = {
 } as unknown as EmployeeDetailViewModel['employments'][number]
 
 describe('Employee 360 dashboard Foundation contract', () => {
+  it('keeps future module cards hidden while preserving other profile cards and actions', () => {
+    const dashboardLabels = new Proxy<Record<string, string | undefined>>({
+      budgets: 'Budgetten', assets: 'Activa', vehicles: 'Wagenpark', software: 'Software', education: 'Opleidingen',
+      contracts: 'Contract en salaris', workflows: 'Workflows', viewContracts: 'Dienstverbanden', workflowsOpen: 'Open processen',
+    }, { get: (target, property) => property === 'leaveHistory' ? undefined : target[String(property)] ?? String(property) }) as unknown as EmployeeDashboardLabels
+    const dashboardDetail: EmployeeDetailViewModel = {
+      ...detail,
+      capabilities: { canEditEmployee: false, canReadBsn: false, canWriteBsn: false, canManageAddresses: false, canManageRelations: false, canManageBankAccounts: false, canReadSalary: false },
+    }
+    const layout: EmployeeDashboardLayout = {
+      wide: ['personal', 'contracts', 'budgets'],
+      narrow: ['employment', 'workflows', 'assets', 'vehicles', 'software', 'education'],
+    }
+    const markup = renderToStaticMarkup(createElement(EmployeeDashboard, {
+      activity: [], aiActionsLabels: {} as never, canManageEmployments: false, canReadProcesses: true, canStartProcess: false,
+      canUseEmployeeAi: false, canUseEmployeeVoice: false, canWriteActivity: false, compact: true, customFields: [],
+      dateFormat: 'DMY', detail: dashboardDetail, documents: [], employeeName: 'Ada Lovelace', initialLayout: layout,
+      journeyLabels: { journeys: 'Journeys', journeysDescription: 'Overzicht', journeysEmpty: 'Geen journeys', journeysOpen: 'Open journeys', journeyProgress: 'Voortgang' },
+      journeys: [], labels: dashboardLabels, liveVoiceLabels: {} as never, locale: 'nl-NL', processWork: null,
+      reminders: [], timeFormat: '24H', today: '2026-10-18', canReportAbsence: false, canRecoverAbsence: false, canChangeAbsenceCapacity: false,
+    }))
+    const remainingWidgets = filterVisibleEmployeeDashboardWidgets([
+      { id: 'assets' }, { id: 'vehicles' }, { id: 'software' }, { id: 'budgets' }, { id: 'education' }, { id: 'workflows' },
+    ])
+
+    expect(markup).toContain('Contract en salaris')
+    expect(markup).toContain('Workflows')
+    expect(markup).toContain('Dienstverbanden')
+    expect(markup).toContain('Open processen')
+    expect(markup).toContain('Opleidingen')
+    expect(markup).toContain('sm:!flex-col sm:!items-stretch')
+    expect(markup).not.toContain('Budgetten')
+    expect(markup).not.toContain('Activa')
+    expect(markup).not.toContain('Wagenpark')
+    expect(markup).not.toContain('Software')
+    expect(remainingWidgets.map(({ id }) => id)).toEqual(['education', 'workflows'])
+  })
+
   it('keeps the dashboard header contextual and the personal edit action local', () => {
     const header = renderToStaticMarkup(createElement(EmployeeDashboardHeader, { subtitle: 'Een helder overzicht van vandaag', title: 'Medewerkerdashboard' }))
     const personal = renderToStaticMarkup(createElement(EmployeeDashboardSummary, { detail, labels: summaryLabels, today: '2026-08-21' }))
@@ -117,6 +155,32 @@ describe('Employee 360 dashboard Foundation contract', () => {
     expect(markup).toContain('aria-label="Omlaag"')
     expect(markup).toContain('min-w-8')
     expect(markup).not.toContain('shadow-sm')
+  })
+
+  it('preserves temporarily hidden widget positions when visible cards are reordered', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    act(() => root.render(createElement(EmployeeDashboardLayoutView, {
+      initialLayout: { wide: ['personal', 'budgets', 'customFields'], narrow: ['employment', 'assets', 'workflows'] },
+      labels: { moveUp: 'Omhoog', moveDown: 'Omlaag', drag: 'Verslepen', saving: 'Opslaan…', saved: 'Opgeslagen', failed: 'Mislukt' },
+      wide: [{ id: 'personal', node: createElement('div', null, 'Personal') }, { id: 'customFields', node: createElement('div', null, 'Custom fields') }],
+      narrow: [{ id: 'employment', node: createElement('div', null, 'Employment') }, { id: 'workflows', node: createElement('div', null, 'Workflows') }],
+    })))
+
+    await act(async () => {
+      (host.querySelector('button[aria-label="Omlaag"]') as HTMLButtonElement).click()
+      await Promise.resolve()
+    })
+
+    const savedLayout = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string) as EmployeeDashboardLayout
+    expect(savedLayout.wide).toEqual(['customFields', 'budgets', 'personal'])
+    expect(savedLayout.narrow).toEqual(['employment', 'assets', 'workflows'])
+    root.unmount()
+    host.remove()
+    vi.unstubAllGlobals()
   })
 
   it('uses FormField controls in the activity add flow', () => {

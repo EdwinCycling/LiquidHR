@@ -121,6 +121,10 @@ decommissionplan afzonderlijk is goedgekeurd.
 
 ## EXPLORE
 
+### Employee profile — later modules
+
+Activa, Wagenpark, Softwarelicenties en Budgetten blijven toekomstige productmodules. Hun kaarten zijn vanaf 2026-10-18 uitsluitend in de medewerkerprofiel-UI tijdelijk verborgen totdat de modules functioneel klaar zijn. Dit is een zichtbaarheidkeuze voor deze pagina, geen functionele verwijdering van de productrichting. Opleidingen valt buiten deze keuze.
+
 ### Payroll Lab — geïsoleerde bounded context in dezelfde monorepo
 
 De inmiddels gekozen richting is **niet** een aparte kopie van LiquidHR of een zelfstandige Payroll-gebruikersapp:

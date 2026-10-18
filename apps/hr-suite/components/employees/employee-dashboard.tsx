@@ -94,6 +94,12 @@ interface EmployeeDashboardProps {
   today: string
 }
 
+const TEMPORARILY_HIDDEN_EMPLOYEE_DASHBOARD_WIDGETS = new Set<string>(['assets', 'vehicles', 'software', 'budgets'])
+
+export function filterVisibleEmployeeDashboardWidgets<T extends { id: string }>(widgets: T[]): T[] {
+  return widgets.filter(({ id }) => !TEMPORARILY_HIDDEN_EMPLOYEE_DASHBOARD_WIDGETS.has(id))
+}
+
 export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, canUseEmployeeAi, canUseEmployeeVoice, employeeName, aiActionsLabels, liveVoiceLabels, initialLayout, compact, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false, canReportAbsence = true, canRecoverAbsence = true, canChangeAbsenceCapacity = true, processWork, canReadProcesses, canStartProcess, journeys, journeyLabels, today }: EmployeeDashboardProps) {
   const employee = detail.employee
   const summary = detail.currentEmploymentSummary
@@ -126,8 +132,10 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
     { id: 'documents' as const, node: <DashboardCard icon={<FileText className="h-4 w-4" />} title={labels.documents} actionHref="?tab=documents" actionLabel={labels.viewDocuments} compact>{documents.length > 0 ? <ul className="divide-y divide-border/70">{documents.slice(0, 3).map((document) => <li key={document.id} className="flex items-center justify-between gap-3 py-3 text-sm"><span className="min-w-0 break-words font-medium">{document.title}</span><CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-success" /></li>)}</ul> : <EmptyInline>{labels.documentsEmpty}</EmptyInline>}</DashboardCard> },
     { id: 'performance' as const, node: <PlaceholderCard icon={<Sparkles className="h-4 w-4" />} title={labels.performance} description={labels.performanceDescription} labels={labels} /> },
   ]
+  const visibleWide = filterVisibleEmployeeDashboardWidgets(wide)
+  const visibleNarrow = filterVisibleEmployeeDashboardWidgets(narrow)
 
-  return <section aria-labelledby="employee-dashboard-title" className="mt-8 space-y-5"><EmployeeDashboardHeader title={labels.title} subtitle={labels.subtitle} /><EmployeeDashboardLayout wide={wide} narrow={narrow} initialLayout={initialLayout} compact={compact} labels={{ moveUp: labels.moveUp, moveDown: labels.moveDown, drag: labels.drag, saving: labels.layoutSaving, saved: labels.layoutSaved, failed: labels.layoutFailed }} /></section>
+  return <section aria-labelledby="employee-dashboard-title" className="mt-8 space-y-5"><EmployeeDashboardHeader title={labels.title} subtitle={labels.subtitle} /><EmployeeDashboardLayout wide={visibleWide} narrow={visibleNarrow} initialLayout={initialLayout} compact={compact} labels={{ moveUp: labels.moveUp, moveDown: labels.moveDown, drag: labels.drag, saving: labels.layoutSaving, saved: labels.layoutSaved, failed: labels.layoutFailed }} /></section>
 }
 
 export function EmployeeDashboardHeader({ title, subtitle }: { title: string; subtitle: string }) {
@@ -235,7 +243,7 @@ function EmploymentSummaryList({
 }
 
 function DashboardCard({ icon, title, description, actionHref, actionLabel, compact = false, children }: { icon: React.ReactNode; title: string; description?: string; actionHref?: string; actionLabel?: string; compact?: boolean; children: React.ReactNode }) {
-  return <Surface className="overflow-hidden"><div className="border-b border-subtle px-4 py-3.5 sm:px-5"><SectionHeader description={description} title={<span className="flex min-w-0 items-start gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-accent text-accent-foreground">{icon}</span><span className="min-w-0 break-words">{title}</span></span>} actions={actionHref && actionLabel ? <Link href={actionHref} className="inline-flex max-w-full items-start gap-1 text-left text-xs font-semibold text-primary whitespace-normal break-words hover:underline"><ArrowUpRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{actionLabel}</Link> : undefined} /></div><div className={`p-4 sm:p-5 ${compact ? 'sm:p-4' : ''}`}>{children}</div></Surface>
+  return <Surface className="overflow-hidden"><div className="border-b border-subtle px-4 py-3.5 sm:px-5"><SectionHeader className="sm:!flex-col sm:!items-stretch" description={description} title={<span className="flex min-w-0 items-start gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-accent text-accent-foreground">{icon}</span><span className="min-w-0 break-words">{title}</span></span>} actions={actionHref && actionLabel ? <Link href={actionHref} className="inline-flex max-w-full items-start gap-1 text-left text-xs font-semibold text-primary whitespace-normal break-words hover:underline"><ArrowUpRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{actionLabel}</Link> : undefined} /></div><div className={`p-4 sm:p-5 ${compact ? 'sm:p-4' : ''}`}>{children}</div></Surface>
 }
 
 function PlaceholderCard({ icon, title, description, labels }: { icon: React.ReactNode; title: string; description: string; labels: EmployeeDashboardLabels }) {

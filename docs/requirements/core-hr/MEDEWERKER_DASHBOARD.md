@@ -199,7 +199,9 @@ De standaardindeling voor een bevoegde HR-kijker is:
 6. salaris als afzonderlijke gevoelige kaart;
 7. activiteitenfeed met handmatige notitie-invoer zodra `employee-activity:write` is toegekend.
 
-Niet-gebouwde modules krijgen in de cockpit wel een vaste, visueel herkenbare lege vensterstaat zodat de toekomstige compositie beoordeeld kan worden. Deze vensters tonen uitsluitend uitleg en een veilige vervolgstap; ze bevatten geen voorbeeldnamen, voorbeeldcijfers, fake records of verzonnen status. Ze worden niet als datakaart of geautoriseerde bron gepresenteerd.
+Niet-gebouwde modules waarvoor de profiel-UI niet expliciet verborgen is, krijgen in de cockpit een vaste, visueel herkenbare lege vensterstaat zodat de toekomstige compositie beoordeeld kan worden. Deze vensters tonen uitsluitend uitleg en een veilige vervolgstap; ze bevatten geen voorbeeldnamen, voorbeeldcijfers, fake records of verzonnen status. Ze worden niet als datakaart of geautoriseerde bron gepresenteerd.
+
+**Tijdelijke UI-keuze 2026-10-18:** de profielkaarten Activa, Wagenpark, Software en Budgetten zijn verborgen totdat de bijbehorende modules functioneel klaar zijn. Dit verandert alleen de zichtbaarheid op de medewerkerpagina; de toekomstige productrichting blijft behouden. Opleidingen valt buiten deze keuze.
 
 Alle zichtbare tekst staat in de paritaire namespaces `messages/nl` en `messages/en`. Kleur is nooit het enige statussignaal. Drag-and-drop heeft toetsenbordalternatieven, zichtbare focus en toegankelijke aankondigingen. Desktop en 390 px mogen geen horizontale pagina-overflow hebben.
 
@@ -272,7 +274,7 @@ Alle zichtbare tekst staat in de paritaire namespaces `messages/nl` en `messages
 - Geen enkele widget of opgeslagen indeling kan RLS of een ontbrekende permission omzeilen.
 - BSN staat niet op het dashboard; onbevoegde salaris-, bank-, document- en vrije-veldwaarden bereiken de browser niet.
 - Verlof en andere dienstverbandgebonden cijfers blijven per `employment_id`.
-- Niet-gebouwde domeinen tonen een aantrekkelijke lege modulekaart zonder fictieve data; lege staten zijn duidelijk onderscheiden van echte, lege brondata.
+- Niet-gebouwde domeinen die niet tijdelijk op de medewerkerpagina zijn verborgen tonen een aantrekkelijke lege modulekaart zonder fictieve data; lege staten zijn duidelijk onderscheiden van echte, lege brondata.
 - De persoonlijke widgetindeling geldt voor alle bekeken medewerkers van die gebruiker en niet voor andere gebruikers.
 - De pagina en links zijn toetsenbordbedienbaar, i18n-compleet en bruikbaar zonder horizontale overflow op 390 px.
 - Autorisatie-, RLS-, type-, lint-, i18n-, build-, performance- en browsercontroles zijn aantoonbaar geslaagd.

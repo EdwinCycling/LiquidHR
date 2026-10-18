@@ -32,29 +32,38 @@ export function EmployeeDashboardLayout({ wide, narrow, initialLayout, compact =
     setStatus(response.ok ? 'saved' : 'failed')
   }
 
-  function move(column: 'wide' | 'narrow', id: string, offset: -1 | 1): void {
-    const current = [...layout[column]]
-    const index = current.indexOf(id as never)
-    const target = index + offset
-    if (index < 0 || target < 0 || target >= current.length) return
-    ;[current[index], current[target]] = [current[target], current[index]]
-    const next = { ...layout, [column]: current } as Layout
+  function saveVisibleOrder(column: 'wide' | 'narrow', visibleItems: string[]): void {
+    let visibleIndex = 0
+    const nextColumn = layout[column].map((id) => {
+      if (!nodes.has(id)) return id
+      const nextId = visibleItems[visibleIndex]
+      visibleIndex += 1
+      return nextId ?? id
+    })
+    const next = { ...layout, [column]: nextColumn } as Layout
     setLayout(next)
     void save(next)
   }
 
+  function move(column: 'wide' | 'narrow', id: string, offset: -1 | 1): void {
+    const current = layout[column].filter((widgetId) => nodes.has(widgetId))
+    const index = current.indexOf(id as never)
+    const target = index + offset
+    if (index < 0 || target < 0 || target >= current.length) return
+    ;[current[index], current[target]] = [current[target], current[index]]
+    saveVisibleOrder(column, current)
+  }
+
   function drop(column: 'wide' | 'narrow', targetId: string): void {
     if (!dragged || dragged.column !== column || dragged.id === targetId) return
-    const current = [...layout[column]]
+    const current = layout[column].filter((widgetId) => nodes.has(widgetId))
     const from = current.indexOf(dragged.id as never)
     const to = current.indexOf(targetId as never)
     if (from < 0 || to < 0) return
     const [item] = current.splice(from, 1)
     current.splice(to, 0, item)
-    const next = { ...layout, [column]: current } as Layout
-    setLayout(next)
+    saveVisibleOrder(column, current)
     setDragged(null)
-    void save(next)
   }
 
   function render(column: 'wide' | 'narrow', items: readonly string[]) {
