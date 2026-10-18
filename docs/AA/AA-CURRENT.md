@@ -1,5 +1,9 @@
 # AA-CURRENT — Current LiquidHR State
 
+> **Nieuwe momentopname 18-10-2026:** [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md) is leidend voor de actuele *lokale* samenvoeging. De bestaande 12-10-status hieronder blijft als historische releasebaseline staan en mag niet worden gelezen als de actuele 18-10-functionele stand.
+>
+> **Nu bewezen:** Mars Emma/Noah afzonderlijk FINALIZED met bewaarde PDF's en 32/32 controls; Core `25P02`-fix op fixbranch geaccepteerd (3.033 tests), lokaal in `integration/pay-converge-20261018` opgenomen; CAO-SETUP/PENSION/SOURCE UI-code lokaal gebouwd. **Open:** Core-cao-/PFZW-/BPF-bronvulling, harde herinrichting huidige proefkoppelingen, codeconvergentie met STAR en volledige gecombineerde QA. Geen nieuwe `main`-merge/deployment.
+
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-12 (historische acceptance-evidence blijft ongewijzigd)
 
