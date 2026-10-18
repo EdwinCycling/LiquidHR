@@ -1,5 +1,9 @@
 # AA-PAYROLL — LiquidHR Payroll Development Standard
 
+> **Actueel uitvoeringsbesluit 18-10-2026:** gewone LiquidHR Payroll-UI is de enige klantgerichte invoer-, berekenings- en documentroute; de oude Payroll Lab-stappen hieronder zijn historische ontwikkelfasen, **niet** een nog gewenste parallelle klantarchitectuur. Voor volledige productstatus, Core-readback, bewezen Emma/Noah FINALIZED, bedrijfseigen pensioen, cao-bronvulling en vier acceptatiecases zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md).
+>
+> **Status:** CAO-SETUP-01 `9d816c53`, CAO-PENSION-CORE-01 `a838a50b`, CAO-SOURCE-01 `8cafc54a` lokaal gebouwd maar nog niet volledig geïntegreerd/operationeel gevalideerd. Kinderopvang heeft in Core slechts een beperkte proefloontabel; Retail-catalogus is niet gelijk aan gevulde salarisstructuur; PFZW/BPF missen echte effectieve toewijzingen. Medewerkerskoppelingen in de huidige eigen gegevens mogen gecontroleerd worden heringericht. Bescherm historische FINALIZED-runs, PDF-hashes en audits. **Voor klantgericht product nooit LAB-, fixture- of synthetische provenance-labels tonen.**
+
 Status: **LEIDEND VOOR PAYROLL ZODRA GEMERGED OP `main`**
 Eerste opzet: 2026-09-30
 
