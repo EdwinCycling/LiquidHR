@@ -1,5 +1,7 @@
 # AA-ACCEPT — Accepted Baseline
 
+> **Acceptatie-afbakening 18-10-2026:** zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md). Historisch bewezen Emma/Noah FINALIZED zijn aparte geldige casussen. CAO-SETUP/PENSION/SOURCE is qua UI en gerichte tests gebouwd, maar Kinderopvang K2/Retail R1/R2 zijn **nog niet als volledige Core-payrollruns met nieuwe PDF's bewezen**. Vereist: echte geautoriseerde broninvoer en readback per werkgever, effectieve schaal/trede/pensioen/looncomponenten, cumulatieven, fiscale controle, 32/32 waar toepasselijk, immutable FINALIZED/PDF/hash, persona- en scope-negatives. Geen review-only status of cataloguspercentage aanmerken als juridisch of end-to-end payrollbewijs.
+
 Status: **LIVING INDEX**
 Bijgewerkt: 2026-10-12
 
