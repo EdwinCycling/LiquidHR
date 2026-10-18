@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(resolve(__dirname, '20261018083400_core_db_25p02_manager_scope_optimization.sql'), 'utf8')
+const migration = readFileSync(resolve(__dirname, '20261018085806_20261018083400_core_db_25p02_manager_scope_optimization.sql'), 'utf8')
 
 describe('CORE-DB-25P02 manager scope migration contract', () => {
   it('keeps the helper tenant-bound, permission-checked, and fixed-search-path', () => {
