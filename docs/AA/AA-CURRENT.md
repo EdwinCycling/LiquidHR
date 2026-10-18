@@ -3,6 +3,15 @@
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
 
+## STAR-V2-04C — lokaal gesloten read-only Talentpaspoort (2026-10-18)
+
+- De eerder gedeeltelijk aanwezige 04C-code is lokaal op main vastgelegd in code-SHA c7237c8c041051eab40a3274679a46662f8a27d9. Er is geen push, deployment, databasewrite of migratie uitgevoerd.
+- De browseracceptatie is met de lokale synthetische TEST-runtime bewezen voor HR Admin, Manager en Employee. HR Admin zag een Talentpaspoort binnen scope; Manager zag uitsluitend directe teamleden en werd voor een medewerker buiten het team teruggestuurd; Employee zag geen Talentpaspoort, 9-grid of kritikaliteit.
+- Directe URL-, forged-ID- en buiten-scope-controles zijn uitgevoerd. De bestaande read-services, direct-team-scope en bronlinks zijn hergebruikt; geen nieuwe workflow of dubbele berekening.
+- Gerichte tests (9/9), gewijzigde-bestanden-ESLint, i18n-pariteit (43 namespaces) en CRLF-aware diff-check zijn groen. Typecheck blijft rood op de bestaande ongerelateerde TS2367 in apps/hr-suite/components/talent/talent-workforce-overview.tsx:271.
+- De standaard Playwright-Chrome-route bleef geblokkeerd door Crashpad; de in-app browsercontrole is daarom als lokale browser-evidence gebruikt. De al dirty zijnde apps/hr-suite/next-env.d.ts bleef buiten de commit. Zie [STAR-V2-04C-CLOSE](../quality/acceptance/runs/STAR-V2-04C-CLOSE-20261018.md).
+- Verdict: STAR-V2-04C lokaal geaccepteerd; 04D-1 is alleen de volgende readinessstap en is in deze run niet uitgevoerd.
+
 ## TALENT-CONVERGENCE-01 — lokale codeconvergentie (2026-10-16)
 
 - De Talent-code staat lokaal op main via code-SHA 1d175ae4ee6cece9b44c26f22ff728c9a75f1ea1. De sourcebranch is fast-forward geïntegreerd; origin/main is niet gewijzigd. Er is geen GitHub-push, PR-merge, deployment of nieuwe Supabase-migratie uitgevoerd.

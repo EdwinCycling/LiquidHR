@@ -77,6 +77,7 @@ decommissionplan afzonderlijk is goedgekeurd.
 - cross-domain reports.
 
 ### Talent
+- STAR-V2-04C — read-only Talentpaspoort is lokaal geaccepteerd op basis van de gedateerde [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04C-CLOSE-20261018.md); 04D-1 is de volgende readinessstap en is nog niet uitgevoerd;
 - skills/competencies;
 - POP;
 - vlootschouw/9-grid;
