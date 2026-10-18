@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCriticalityDistribution, buildDevelopmentInsight, buildFunctionSkillGapReport, buildGridDistribution, buildGridMovementInsight, buildMovementSummary, buildSkillCoverage, developmentInsightCsv, gridMovementCsv } from './insights-service'
+import { appraisalInsightCsv, buildAppraisalInsight, buildCriticalityDistribution, buildDevelopmentInsight, buildFunctionSkillGapReport, buildGridDistribution, buildGridMovementInsight, buildMovementSummary, buildSkillCoverage, developmentInsightCsv, gridMovementCsv } from './insights-service'
 
 describe('Star Performers insights aggregations', () => {
   it('counts unique employees once across all nine grid cells', () => {
@@ -172,5 +172,45 @@ describe('Star Performers insights aggregations', () => {
 
     expect(report).toMatchObject({ state: 'no-data', relevantEmployees: 1, coveragePercent: null, activePlansCount: 0, employeesWithActivePlans: 0 })
     expect(report.plans).toHaveLength(0)
+  })
+
+  it('keeps Continuous Appraisal coverage unique, status-aware, and separate from POP actions', () => {
+    const population = [
+      { departmentId: 'department-1', employee: { employeeId: 'employee-1', employeeNumber: 'E001', label: 'Ada Admin', departmentName: 'People', jobName: 'HR adviseur', jobGroupName: 'Service', href: '/employees/employee-1' } },
+      { departmentId: 'department-1', employee: { employeeId: 'employee-2', employeeNumber: 'E002', label: 'Ben Beheer', departmentName: 'People', jobName: 'HR adviseur', jobGroupName: 'Service', href: '/employees/employee-2' } },
+      { departmentId: 'department-2', employee: { employeeId: 'employee-3', employeeNumber: 'E003', label: 'Cleo Collega', departmentName: 'Finance', jobName: 'Controller', jobGroupName: 'Finance', href: '/employees/employee-3' } },
+    ]
+    const report = buildAppraisalInsight({
+      asOf: '2026-10-18',
+      periodFrom: '2026-01-01',
+      periodTo: '2026-12-31',
+      population,
+      items: [
+        { id: 'meeting-1', employeeId: 'employee-1', itemType: 'MEETING_SUMMARY', title: 'Gesprek januari', occurredOn: '2026-01-10', dueOn: null, nextMeetingOn: null, status: 'PLANNED' },
+        { id: 'meeting-2', employeeId: 'employee-1', itemType: 'MEETING_SUMMARY', title: 'Gesprek oktober', occurredOn: '2026-10-10', dueOn: null, nextMeetingOn: null, status: 'DONE' },
+        { id: 'meeting-3', employeeId: 'employee-2', itemType: 'MEETING_SUMMARY', title: 'Onbekend bronrecord', occurredOn: '2026-10-11', dueOn: null, nextMeetingOn: null, status: 'SOURCE_PENDING' },
+        { id: 'agreement-1', employeeId: 'employee-1', itemType: 'AGREEMENT', title: 'Oude afspraak', occurredOn: '2026-10-01', dueOn: '2026-10-17', nextMeetingOn: '2026-10-17', status: 'OPEN' },
+        { id: 'agreement-2', employeeId: 'employee-2', itemType: 'AGREEMENT', title: 'Afgeronde afspraak', occurredOn: '2026-09-01', dueOn: '2026-09-15', nextMeetingOn: null, status: 'DONE' },
+        { id: 'agreement-3', employeeId: 'employee-2', itemType: 'AGREEMENT', title: 'Afspraak zonder deadline', occurredOn: '2026-10-12', dueOn: null, nextMeetingOn: '2026-10-20', status: 'ACTIVE' },
+        { id: 'pop-action', employeeId: 'employee-1', itemType: 'ACTION', title: 'POP-actie hoort bij Ontwikkeling', occurredOn: '2026-10-12', dueOn: '2026-10-17', nextMeetingOn: null, status: 'OPEN' },
+      ],
+    })
+
+    expect(report).toMatchObject({ relevantEmployees: 3, registeredConversationEmployees: 2, completedConversationEmployees: 1, incompleteConversationEmployees: 1, noConversationEmployees: 1, conversationCoveragePercent: 67, openAgreementCount: 2, completedAgreementCount: 1, overdueAgreementCount: 1, agreementsWithoutDueDateCount: 1, upcomingFollowUpCount: 1, overdueFollowUpCount: 1 })
+    expect(report.items).toHaveLength(6)
+    expect(report.employees.find((employee) => employee.employeeId === 'employee-3')).toMatchObject({ conversationStatus: 'NO_REGISTERED' })
+    expect(report.employees.find((employee) => employee.employeeId === 'employee-2')).toMatchObject({ conversationStatus: 'INCOMPLETE' })
+    expect(report.byDepartment.find((department) => department.id === 'department-1')).toMatchObject({ employeeCount: 2, registeredConversationEmployees: 2, openAgreementCount: 2 })
+    expect(appraisalInsightCsv(report)).not.toContain('body')
+    expect(appraisalInsightCsv(report).split('\r\n')).toHaveLength(8)
+
+    const noConversation = buildAppraisalInsight({ asOf: '2026-10-18', status: 'no-conversation', population, items: report.items.map((item) => ({ id: item.id, employeeId: item.employeeId, itemType: item.itemType, title: item.title, occurredOn: item.occurredOn, dueOn: item.dueOn, nextMeetingOn: item.nextMeetingOn, status: item.status })) })
+    expect(noConversation.relevantEmployees).toBe(1)
+    expect(noConversation.employees[0]?.employeeId).toBe('employee-3')
+
+    const withoutDueDate = buildAppraisalInsight({ asOf: '2026-10-18', status: 'without-due-date', population, items: report.items.map((item) => ({ id: item.id, employeeId: item.employeeId, itemType: item.itemType, title: item.title, occurredOn: item.occurredOn, dueOn: item.dueOn, nextMeetingOn: item.nextMeetingOn, status: item.status })) })
+    expect(withoutDueDate.relevantEmployees).toBe(1)
+    expect(withoutDueDate.items).toHaveLength(1)
+    expect(withoutDueDate.items[0]).toMatchObject({ id: 'agreement-3', followUpStatus: 'upcoming' })
   })
 })

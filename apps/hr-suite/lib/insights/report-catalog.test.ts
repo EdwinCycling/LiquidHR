@@ -15,7 +15,7 @@ describe('Insights Analyse destination', () => {
 
   it('registers only existing Talent and Star report destinations', () => {
     expect(INSIGHT_REPORTS.filter((report) => report.category === 'talent').map((report) => report.id)).toEqual([
-      'talent-top-talent', 'talent-key-employees', 'talent-star-skills', 'talent-development', 'talent-profile-skill-gaps', 'talent-skills', 'talent-pop',
+      'talent-top-talent', 'talent-key-employees', 'talent-star-skills', 'talent-development', 'talent-profile-skill-gaps', 'talent-skills', 'talent-pop', 'talent-appraisal',
     ])
     expect(insightReportRoute(INSIGHT_REPORTS.find((report) => report.id === 'talent-pop')!, true)).toBe('/settings/talent/reports?reportType=goals')
     expect(insightReportRoute(INSIGHT_REPORTS.find((report) => report.id === 'talent-pop')!, false)).toBe('/workforce/talent/reports?reportType=goals')

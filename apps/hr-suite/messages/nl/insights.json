@@ -329,6 +329,8 @@
   "talentSkillsDescription": "Open het bestaande Talent-rapport met geverifieerde skills, bronstatus, periodefilters en CSV-export.",
   "talentPopTitle": "POP & ontwikkeldoelen",
   "talentPopDescription": "Open het bestaande Talent-rapport met POP-doelen, status, voortgang, periodefilters en CSV-export.",
+  "talentAppraisalTitle": "Continuous Appraisal",
+  "talentAppraisalDescription": "Bekijk gespreksdekking, afspraken en opvolging uit bestaande Continuous Appraisal-records binnen de toegestane scope.",
   "groupBy": "Groeperen per",
   "period": "Periode",
   "department": "Afdeling",

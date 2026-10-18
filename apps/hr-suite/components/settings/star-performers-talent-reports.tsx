@@ -28,7 +28,7 @@ function reportPerspective(area: StarPerformerInsightArea): StarPerformerWorkspa
 }
 
 function activeFilterCount(query: StarPerformerWorkspaceQuery): number {
-  return [query.q, query.departmentId, query.jobGroupId, query.jobId, query.status !== 'all' ? query.status : undefined, query.period].filter(Boolean).length
+  return [query.q, query.departmentId, query.jobGroupId, query.jobId, query.status !== 'all' ? query.status : undefined, query.appraisalStatus !== 'all' ? query.appraisalStatus : undefined, query.period, query.periodFrom, query.periodTo].filter(Boolean).length
 }
 
 export function StarPerformersTalentReports({ canViewEmployees, filterLabels, initial, initialQuery, initialWorkspace, insightLabels }: Props) {
@@ -72,9 +72,19 @@ export function StarPerformersTalentReports({ canViewEmployees, filterLabels, in
     return () => { cancelled = true }
   }, [query, reloadToken])
 
+  const isAppraisal = query.insight === 'appraisal'
   const statusOptions: Array<[StarPerformerWorkspaceQuery['status'], string]> = query.perspective === 'top-talent'
     ? [['all', filterLabels.allStatuses], ['assessed', filterLabels.statusAssessed], ['high-high', filterLabels.statusHighHigh], ['not-assessed', filterLabels.statusNotAssessed]]
     : [['all', filterLabels.allStatuses], ['assessed', filterLabels.statusAssessed], ['not-assessed', filterLabels.statusNotAssessed]]
+  const appraisalStatusOptions: Array<[StarPerformerWorkspaceQuery['appraisalStatus'], string]> = [
+    ['all', filterLabels.allStatuses],
+    ['open', filterLabels.appraisalStatusOpen],
+    ['done', filterLabels.appraisalStatusDone],
+    ['overdue', filterLabels.appraisalStatusOverdue],
+    ['without-due-date', filterLabels.appraisalStatusWithoutDueDate],
+    ['conversation', filterLabels.appraisalStatusConversation],
+    ['no-conversation', filterLabels.appraisalStatusNoConversation],
+  ]
   const filterCount = activeFilterCount(query)
 
   return <div className="space-y-5">
@@ -83,9 +93,10 @@ export function StarPerformersTalentReports({ canViewEmployees, filterLabels, in
       <FormField className="min-w-[12rem] flex-1" control={<DropdownSelect aria-label={filterLabels.team} onChange={(event) => updateQuery({ departmentId: event.currentTarget.value || undefined })} searchable searchPlaceholder={filterLabels.team} value={query.departmentId ?? ''}><option value="">{filterLabels.allTeams}</option>{initialWorkspace.filters.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect>} label={filterLabels.team} />
       <FormField className="min-w-[12rem] flex-1" control={<DropdownSelect aria-label={filterLabels.jobGroup} onChange={(event) => updateQuery({ jobGroupId: event.currentTarget.value || undefined, jobId: undefined })} searchable searchPlaceholder={filterLabels.jobGroup} value={query.jobGroupId ?? ''}><option value="">{filterLabels.allJobGroups}</option>{initialWorkspace.filters.jobGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</DropdownSelect>} label={filterLabels.jobGroup} />
       <FormField className="min-w-[12rem] flex-1" control={<DropdownSelect aria-label={filterLabels.job} onChange={(event) => updateQuery({ jobId: event.currentTarget.value || undefined })} searchable searchPlaceholder={filterLabels.job} value={query.jobId ?? ''}><option value="">{filterLabels.allJobs}</option>{initialWorkspace.filters.jobs.filter((job) => !query.jobGroupId || job.jobGroupId === query.jobGroupId).map((job) => <option key={job.id} value={job.id}>{job.name}</option>)}</DropdownSelect>} label={filterLabels.job} />
-      <FormField className="min-w-[12rem] flex-1" control={<DropdownSelect aria-label={filterLabels.relevantStatus} onChange={(event) => updateQuery({ status: event.currentTarget.value as StarPerformerWorkspaceQuery['status'] })} value={query.status}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</DropdownSelect>} label={filterLabels.relevantStatus} />
+      <FormField className="min-w-[12rem] flex-1" control={isAppraisal ? <DropdownSelect aria-label={filterLabels.relevantStatus} onChange={(event) => updateQuery({ appraisalStatus: event.currentTarget.value as StarPerformerWorkspaceQuery['appraisalStatus'] })} value={query.appraisalStatus}>{appraisalStatusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</DropdownSelect> : <DropdownSelect aria-label={filterLabels.relevantStatus} onChange={(event) => updateQuery({ status: event.currentTarget.value as StarPerformerWorkspaceQuery['status'] })} value={query.status}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</DropdownSelect>} label={filterLabels.relevantStatus} />
+      {isAppraisal ? <><FormField className="min-w-[10rem] flex-1" control={<TextInput aria-label={filterLabels.fromDate} onChange={(event) => updateQuery({ periodFrom: event.currentTarget.value || undefined })} type="date" value={query.periodFrom ?? ''} />} label={filterLabels.fromDate} /><FormField className="min-w-[10rem] flex-1" control={<TextInput aria-label={filterLabels.toDate} onChange={(event) => updateQuery({ periodTo: event.currentTarget.value || undefined })} type="date" value={query.periodTo ?? ''} />} label={filterLabels.toDate} /></> : null}
     </FilterBar>
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" aria-live="polite"><Badge tone={filterCount ? 'info' : 'neutral'}>{filterCount}</Badge><span>{filterLabels.filtersTitle}</span>{query.insight !== 'top-talent' ? <span>· {insightLabels.insights}</span> : null}</div>
-    <StarPerformersInsights activeArea={query.insight} canViewEmployees={canViewEmployees} data={data} error={error} exportHref={`/api/star-performers/insights/export?${starPerformersQueryString(query)}`} labels={insightLabels} loading={loading} onAreaChange={(area) => updateQuery({ insight: area, perspective: reportPerspective(area), status: 'all', period: area === 'top-talent' ? query.period : undefined })} onPeriodChange={(period) => updateQuery({ period })} onRetry={() => setReloadToken((current) => current + 1)} showPeriod={query.insight === 'top-talent'} />
+    <StarPerformersInsights activeArea={query.insight} canViewEmployees={canViewEmployees} data={data} error={error} exportHref={`/api/star-performers/insights/export?${starPerformersQueryString(query)}`} labels={insightLabels} loading={loading} onAreaChange={(area) => updateQuery({ insight: area, perspective: reportPerspective(area), status: 'all', appraisalStatus: 'all', period: area === 'top-talent' ? query.period : undefined, periodFrom: area === 'appraisal' ? query.periodFrom : undefined, periodTo: area === 'appraisal' ? query.periodTo : undefined })} onPeriodChange={(period) => updateQuery({ period })} onRetry={() => setReloadToken((current) => current + 1)} showPeriod={query.insight === 'top-talent'} />
   </div>
 }

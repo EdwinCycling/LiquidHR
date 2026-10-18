@@ -14,16 +14,23 @@ export const starPerformerQuerySchema = z.object({
 export const starPerformerWorkspaceQuerySchema = z.object({
   perspective: z.enum(['top-talent', 'key-employees']).default('top-talent'),
   area: z.enum(['overview', 'employees', 'key-roles', 'development', 'insights']).default('overview'),
-  insight: z.enum(['top-talent', 'key-employees', 'skills', 'skill-gaps', 'development']).default('top-talent'),
+  insight: z.enum(['top-talent', 'key-employees', 'skills', 'skill-gaps', 'development', 'appraisal']).default('top-talent'),
   q: z.string().trim().max(100).default(''),
   departmentId: databaseUuidSchema.optional(),
   jobId: databaseUuidSchema.optional(),
   jobGroupId: databaseUuidSchema.optional(),
   period: databaseUuidSchema.optional(),
+  periodFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  periodTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  appraisalStatus: z.enum(['all', 'open', 'done', 'overdue', 'without-due-date', 'conversation', 'no-conversation']).default('all'),
   status: z.enum(['all', 'high-high', 'assessed', 'not-assessed']).default('all'),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
-}).strict()
+}).strict().superRefine((value, context) => {
+  if (value.periodFrom && value.periodTo && value.periodFrom > value.periodTo) {
+    context.addIssue({ code: 'custom', message: 'STAR_PERFORMER_PERIOD_INVALID', path: ['periodTo'] })
+  }
+})
 
 export const starPerformerTagCreateSchema = z.object({
   name: z.string().trim().min(1).max(80),

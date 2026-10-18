@@ -15,6 +15,7 @@ import type { StarPerformerWorkspaceQuery } from './schemas'
 import { StarPerformerError } from './service'
 import {
   buildCriticalityDistribution,
+  buildAppraisalInsight,
   buildDevelopmentInsight,
   buildFunctionSkillGapReport,
   buildGridDistribution,
@@ -22,10 +23,12 @@ import {
   buildMovementSummary,
   buildSkillCoverage,
   emptyDevelopmentInsight,
+  emptyAppraisalInsight,
   emptyGridMovementInsight,
   percentageOf,
   type DevelopmentActionInput,
   type DevelopmentPlanInput,
+  type AppraisalItemInput,
   type FunctionSkillGapReport,
   type GridMovementCampaignInput,
   type GridMovementScoreInput,
@@ -1167,6 +1170,32 @@ async function readInsightDevelopment(
   })
 }
 
+async function readInsightAppraisal(
+  employeeIds: readonly string[],
+  scopeRows: readonly InsightScopeRow[],
+  query: StarPerformerWorkspaceQuery,
+  asOf: string,
+): Promise<StarPerformersInsights['appraisal']> {
+  const population = scopeRows.map((row) => ({ employee: row.employee, departmentId: row.departmentId }))
+  if (!employeeIds.length) return emptyAppraisalInsight(asOf, query.periodFrom ?? null, query.periodTo ?? null)
+  try {
+    const sourceItems = await listContinuousAppraisalItemsForEmployees(employeeIds)
+    const items: AppraisalItemInput[] = sourceItems.map((item) => ({
+      id: item.id,
+      employeeId: item.employee_id,
+      itemType: item.item_type,
+      title: item.title,
+      occurredOn: item.occurred_on,
+      dueOn: item.due_on,
+      nextMeetingOn: item.next_meeting_on,
+      status: item.item_status,
+    }))
+    return buildAppraisalInsight({ asOf, periodFrom: query.periodFrom ?? null, periodTo: query.periodTo ?? null, status: query.appraisalStatus, population, items })
+  } catch {
+    return buildAppraisalInsight({ asOf, periodFrom: query.periodFrom ?? null, periodTo: query.periodTo ?? null, status: query.appraisalStatus, population, items: [], sources: { items: false } })
+  }
+}
+
 function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsights {
   return {
     population: { employeesInScope: 0, assessedGrid: 0, assessedKeyEmployees: 0 },
@@ -1177,6 +1206,7 @@ function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsigh
     skills: { state: 'no-data', evaluatedEmployees: 0, roles: [], topGaps: [] },
     skillGaps: { state: 'no-data', asOf: currentDate(), relevantEmployees: 0, assessedEmployees: 0, rows: [] },
     development: emptyDevelopmentInsight(currentDate()),
+    appraisal: emptyAppraisalInsight(currentDate(), query.periodFrom ?? null, query.periodTo ?? null),
   }
 }
 
@@ -1306,6 +1336,9 @@ async function readStarPerformersInsights(
   const development = (options.includeDevelopment ?? query.insight === 'development')
     ? await readInsightDevelopment(filteredIds, employeeLabels, scopeRows, access.isManager ? 'manager' : 'admin', today)
     : emptyDevelopmentInsight(today)
+  const appraisal = query.insight === 'appraisal'
+    ? await readInsightAppraisal(filteredIds, scopeRows, query, today)
+    : emptyAppraisalInsight(today, query.periodFrom ?? null, query.periodTo ?? null)
   const periods = [...gridHistory.campaigns].sort((left, right) => (right.closed_at ?? right.starts_on).localeCompare(left.closed_at ?? left.starts_on)).map((campaign) => ({ id: campaign.id, name: campaign.name, closedAt: campaign.closed_at, startsOn: campaign.starts_on }))
 
   return {
@@ -1335,6 +1368,7 @@ async function readStarPerformersInsights(
     skills,
     skillGaps: skillsRead?.skillGapReport ?? { state: 'no-data', asOf: today, relevantEmployees: 0, assessedEmployees: 0, rows: [] },
     development,
+    appraisal,
   }
 }
 
@@ -1380,6 +1414,7 @@ export async function getStarPerformersDashboardSummary(
     jobId: undefined,
     jobGroupId: undefined,
     period: undefined,
+    appraisalStatus: 'all',
     status: 'all',
     page: 1,
     pageSize: PAGE_SIZE,

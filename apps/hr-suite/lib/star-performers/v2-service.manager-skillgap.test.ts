@@ -159,7 +159,7 @@ describe('Star Performers Manager skillgap readpath', () => {
 
   it('uses the server-derived direct-team scope and computes an evidenced level gap', async () => {
     const report = await getStarPerformersInsights({
-      perspective: 'top-talent', area: 'insights', insight: 'skill-gaps', q: '', status: 'all', page: 1, pageSize: 20,
+      perspective: 'top-talent', area: 'insights', insight: 'skill-gaps', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20,
     })
 
     expect(mocks.listDirectTeamEmployeeIds).toHaveBeenCalledWith(expect.objectContaining({ employeeId: 'manager-1' }), expect.anything())
@@ -188,7 +188,7 @@ describe('Star Performers Manager skillgap readpath', () => {
     ])
 
     const report = await getStarPerformersInsights({
-      perspective: 'top-talent', area: 'insights', insight: 'development', q: '', status: 'all', page: 1, pageSize: 20,
+      perspective: 'top-talent', area: 'insights', insight: 'development', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20,
     })
 
     expect(mocks.listTalentGoals).toHaveBeenCalledWith('manager', {}, expect.anything())
@@ -197,5 +197,21 @@ describe('Star Performers Manager skillgap readpath', () => {
     expect(report.development.plans.map((plan) => plan.employeeId)).toEqual(['employee-team'])
     expect(report.development.actions.map((action) => action.employeeId)).toEqual(['employee-team'])
     expect(JSON.stringify(report.development)).not.toContain('employee-outside')
+  })
+
+  it('uses the same server-derived direct-team scope for Continuous Appraisal insights', async () => {
+    mocks.listContinuousAppraisalItemsForEmployees.mockResolvedValue([
+      { id: 'meeting-team', employee_id: 'employee-team', item_type: 'MEETING_SUMMARY', title: 'Teamgesprek', occurred_on: '2026-10-10', due_on: null, next_meeting_on: null, item_status: 'DONE' },
+      { id: 'meeting-outside', employee_id: 'employee-outside', item_type: 'MEETING_SUMMARY', title: 'Buiten scope', occurred_on: '2026-10-10', due_on: null, next_meeting_on: null, item_status: 'DONE' },
+    ])
+
+    const report = await getStarPerformersInsights({
+      perspective: 'top-talent', area: 'insights', insight: 'appraisal', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20,
+    })
+
+    expect(mocks.listContinuousAppraisalItemsForEmployees).toHaveBeenCalledWith(['employee-team'])
+    expect(report.appraisal).toMatchObject({ state: 'ready', relevantEmployees: 1, registeredConversationEmployees: 1, conversationCoveragePercent: 100 })
+    expect(report.appraisal.items.map((item) => item.employeeId)).toEqual(['employee-team'])
+    expect(JSON.stringify(report.appraisal)).not.toContain('employee-outside')
   })
 })

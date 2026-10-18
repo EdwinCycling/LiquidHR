@@ -122,6 +122,84 @@ export type DevelopmentInsight = {
 
 export const DEVELOPMENT_OPEN_ACTION_STATUSES = ['PLANNED', 'OPEN', 'WAITING', 'ACTIVE'] as const
 
+export const APPRAISAL_OPEN_STATUSES = ['PLANNED', 'OPEN', 'WAITING', 'ACTIVE'] as const
+export type AppraisalStatusFilter = 'all' | 'open' | 'done' | 'overdue' | 'without-due-date' | 'conversation' | 'no-conversation'
+
+export type AppraisalPopulationInput = {
+  employee: InsightEmployee
+  departmentId: string
+}
+
+export type AppraisalItemInput = {
+  id: string
+  employeeId: string
+  itemType: string
+  title: string
+  occurredOn: string | null
+  dueOn: string | null
+  nextMeetingOn: string | null
+  status: string
+}
+
+export type AppraisalInsight = {
+  state: InsightState
+  asOf: string
+  periodFrom: string | null
+  periodTo: string | null
+  relevantEmployees: number
+  sources: { items: boolean }
+  registeredConversationEmployees: number
+  completedConversationEmployees: number
+  incompleteConversationEmployees: number
+  noConversationEmployees: number
+  conversationCoveragePercent: number | null
+  lastConversationDate: string | null
+  openAgreementCount: number
+  completedAgreementCount: number
+  overdueAgreementCount: number
+  agreementsWithoutDueDateCount: number
+  upcomingFollowUpCount: number
+  overdueFollowUpCount: number
+  byDepartment: Array<{
+    id: string
+    label: string
+    employeeCount: number
+    registeredConversationEmployees: number
+    conversationCoveragePercent: number | null
+    openAgreementCount: number
+    overdueAgreementCount: number
+  }>
+  employees: Array<{
+    employeeId: string
+    employeeNumber: string
+    employeeLabel: string
+    departmentName: string | null
+    conversationStatus: 'COMPLETED' | 'REGISTERED' | 'INCOMPLETE' | 'NO_REGISTERED'
+    lastConversationDate: string | null
+    registeredConversationCount: number
+    openAgreementCount: number
+    completedAgreementCount: number
+    overdueAgreementCount: number
+    agreementsWithoutDueDateCount: number
+    upcomingFollowUpCount: number
+    overdueFollowUpCount: number
+    href: string
+  }>
+  items: Array<{
+    id: string
+    employeeId: string
+    employeeLabel: string
+    itemType: 'MEETING_SUMMARY' | 'AGREEMENT'
+    title: string
+    status: string
+    occurredOn: string | null
+    dueOn: string | null
+    nextMeetingOn: string | null
+    followUpStatus: 'upcoming' | 'overdue' | null
+    href: string
+  }>
+}
+
 export type StarPerformersInsights = {
   population: {
     employeesInScope: number
@@ -186,6 +264,7 @@ export type StarPerformersInsights = {
   }
   skillGaps: FunctionSkillGapReport
   development: DevelopmentInsight
+  appraisal: AppraisalInsight
 }
 
 export type GridMovementCampaignInput = {
@@ -505,6 +584,173 @@ export function buildDevelopmentInsight(input: {
 
 export function emptyDevelopmentInsight(asOf: string): DevelopmentInsight {
   return buildDevelopmentInsight({ asOf, population: [], plans: [], actions: [], sources: { plans: true, actions: true } })
+}
+
+function appraisalItemInPeriod(item: AppraisalItemInput, periodFrom: string | null, periodTo: string | null): boolean {
+  const occurredOn = dateOnly(item.occurredOn)
+  if (periodFrom && (!occurredOn || occurredOn < periodFrom)) return false
+  if (periodTo && (!occurredOn || occurredOn > periodTo)) return false
+  return true
+}
+
+function isRegisteredConversation(item: AppraisalItemInput): boolean {
+  return item.itemType === 'MEETING_SUMMARY' && !['CANCELLED', 'ARCHIVED'].includes(item.status)
+}
+
+function isOpenAgreement(item: AppraisalItemInput): boolean {
+  return item.itemType === 'AGREEMENT' && APPRAISAL_OPEN_STATUSES.includes(item.status as (typeof APPRAISAL_OPEN_STATUSES)[number])
+}
+
+function appraisalFollowUpStatus(item: AppraisalItemInput, asOf: string): 'upcoming' | 'overdue' | null {
+  if (!isOpenAgreement(item) || !item.nextMeetingOn) return null
+  return isBefore(item.nextMeetingOn, asOf) ? 'overdue' : 'upcoming'
+}
+
+function appraisalEmployeeMatchesStatus(items: readonly AppraisalItemInput[], status: AppraisalStatusFilter, asOf: string): boolean {
+  if (status === 'all') return true
+  if (status === 'conversation') return items.some(isRegisteredConversation)
+  if (status === 'no-conversation') return !items.some(isRegisteredConversation)
+  if (status === 'open') return items.some(isOpenAgreement)
+  if (status === 'done') return items.some((item) => item.status === 'DONE' && ['AGREEMENT', 'MEETING_SUMMARY'].includes(item.itemType))
+  if (status === 'without-due-date') return items.some((item) => isOpenAgreement(item) && item.dueOn === null)
+  return items.some((item) => appraisalFollowUpStatus(item, asOf) === 'overdue' || (isOpenAgreement(item) && isBefore(item.dueOn, asOf)))
+}
+
+function appraisalItemMatchesStatus(item: AppraisalItemInput, status: AppraisalStatusFilter, asOf: string): boolean {
+  if (status === 'all') return true
+  if (status === 'conversation') return isRegisteredConversation(item)
+  if (status === 'no-conversation') return false
+  if (status === 'open') return isOpenAgreement(item)
+  if (status === 'done') return item.status === 'DONE' && ['AGREEMENT', 'MEETING_SUMMARY'].includes(item.itemType)
+  if (status === 'without-due-date') return isOpenAgreement(item) && item.dueOn === null
+  return appraisalFollowUpStatus(item, asOf) === 'overdue' || (isOpenAgreement(item) && isBefore(item.dueOn, asOf))
+}
+
+function latestDate(values: readonly (string | null)[]): string | null {
+  return values.filter((value): value is string => value !== null).sort((left, right) => right.localeCompare(left))[0] ?? null
+}
+
+export function buildAppraisalInsight(input: {
+  asOf: string
+  periodFrom?: string | null
+  periodTo?: string | null
+  status?: AppraisalStatusFilter
+  population: readonly AppraisalPopulationInput[]
+  items: readonly AppraisalItemInput[]
+  sources?: { items: boolean }
+}): AppraisalInsight {
+  const sources = input.sources ?? { items: true }
+  const periodFrom = input.periodFrom ?? null
+  const periodTo = input.periodTo ?? null
+  const populationByEmployee = new Map<string, AppraisalPopulationInput>()
+  for (const employee of input.population) {
+    if (!populationByEmployee.has(employee.employee.employeeId)) populationByEmployee.set(employee.employee.employeeId, employee)
+  }
+
+  const itemById = new Map<string, AppraisalItemInput>()
+  for (const item of input.items) {
+    if (!populationByEmployee.has(item.employeeId) || !['MEETING_SUMMARY', 'AGREEMENT'].includes(item.itemType) || !appraisalItemInPeriod(item, periodFrom, periodTo)) continue
+    if (!itemById.has(item.id)) itemById.set(item.id, item)
+  }
+  const itemsByEmployee = new Map<string, AppraisalItemInput[]>()
+  for (const item of itemById.values()) itemsByEmployee.set(item.employeeId, [...(itemsByEmployee.get(item.employeeId) ?? []), item])
+  const status = input.status ?? 'all'
+  const population = [...populationByEmployee.values()].filter((employee) => appraisalEmployeeMatchesStatus(itemsByEmployee.get(employee.employee.employeeId) ?? [], status, input.asOf))
+  const populationIds = new Set(population.map((employee) => employee.employee.employeeId))
+  const scopedItems = [...itemById.values()].filter((item) => populationIds.has(item.employeeId))
+  const visibleItems = scopedItems.filter((item) => appraisalItemMatchesStatus(item, status, input.asOf))
+  const employeeRows = population.map((populationEmployee) => {
+    const employeeItems = scopedItems.filter((item) => item.employeeId === populationEmployee.employee.employeeId)
+    const conversations = employeeItems.filter(isRegisteredConversation)
+    const unknownConversationStatus = conversations.some((item) => ![...APPRAISAL_OPEN_STATUSES, 'DONE', 'NOT_RELEVANT'].includes(item.status))
+    const conversationStatus: AppraisalInsight['employees'][number]['conversationStatus'] = conversations.length === 0
+      ? 'NO_REGISTERED'
+      : unknownConversationStatus
+        ? 'INCOMPLETE'
+        : conversations.some((item) => item.status === 'DONE')
+          ? 'COMPLETED'
+          : 'REGISTERED'
+    const agreements = employeeItems.filter((item) => item.itemType === 'AGREEMENT')
+    const openAgreements = agreements.filter(isOpenAgreement)
+    const followUps = openAgreements.map((item) => appraisalFollowUpStatus(item, input.asOf))
+    return {
+      employeeId: populationEmployee.employee.employeeId,
+      employeeNumber: populationEmployee.employee.employeeNumber,
+      employeeLabel: populationEmployee.employee.label,
+      departmentName: populationEmployee.employee.departmentName,
+      conversationStatus,
+      lastConversationDate: latestDate(conversations.map((item) => dateOnly(item.occurredOn))),
+      registeredConversationCount: conversations.length,
+      openAgreementCount: openAgreements.length,
+      completedAgreementCount: agreements.filter((item) => item.status === 'DONE').length,
+      overdueAgreementCount: openAgreements.filter((item) => isBefore(item.dueOn, input.asOf)).length,
+      agreementsWithoutDueDateCount: openAgreements.filter((item) => item.dueOn === null).length,
+      upcomingFollowUpCount: followUps.filter((value) => value === 'upcoming').length,
+      overdueFollowUpCount: followUps.filter((value) => value === 'overdue').length,
+      href: populationEmployee.employee.href,
+    }
+  })
+
+  const byDepartment = new Map<string, { label: string; employeeIds: Set<string>; conversationEmployeeIds: Set<string>; openAgreementCount: number; overdueAgreementCount: number }>()
+  for (const populationEmployee of population) {
+    const id = populationEmployee.departmentId
+    const group = byDepartment.get(id) ?? { label: populationEmployee.employee.departmentName ?? id, employeeIds: new Set<string>(), conversationEmployeeIds: new Set<string>(), openAgreementCount: 0, overdueAgreementCount: 0 }
+    const row = employeeRows.find((employee) => employee.employeeId === populationEmployee.employee.employeeId)
+    group.employeeIds.add(populationEmployee.employee.employeeId)
+    if (row && row.conversationStatus !== 'NO_REGISTERED') group.conversationEmployeeIds.add(row.employeeId)
+    group.openAgreementCount += row?.openAgreementCount ?? 0
+    group.overdueAgreementCount += row?.overdueAgreementCount ?? 0
+    byDepartment.set(id, group)
+  }
+
+  const result: AppraisalInsight = {
+    state: !sources.items ? 'unavailable' : scopedItems.length > 0 ? 'ready' : 'no-data',
+    asOf: input.asOf,
+    periodFrom,
+    periodTo,
+    relevantEmployees: population.length,
+    sources,
+    registeredConversationEmployees: employeeRows.filter((employee) => employee.conversationStatus !== 'NO_REGISTERED').length,
+    completedConversationEmployees: employeeRows.filter((employee) => employee.conversationStatus === 'COMPLETED').length,
+    incompleteConversationEmployees: employeeRows.filter((employee) => employee.conversationStatus === 'INCOMPLETE').length,
+    noConversationEmployees: employeeRows.filter((employee) => employee.conversationStatus === 'NO_REGISTERED').length,
+    conversationCoveragePercent: sources.items ? percentage(employeeRows.filter((employee) => employee.conversationStatus !== 'NO_REGISTERED').length, population.length) : null,
+    lastConversationDate: latestDate(employeeRows.map((employee) => employee.lastConversationDate)),
+    openAgreementCount: employeeRows.reduce((total, employee) => total + employee.openAgreementCount, 0),
+    completedAgreementCount: employeeRows.reduce((total, employee) => total + employee.completedAgreementCount, 0),
+    overdueAgreementCount: employeeRows.reduce((total, employee) => total + employee.overdueAgreementCount, 0),
+    agreementsWithoutDueDateCount: employeeRows.reduce((total, employee) => total + employee.agreementsWithoutDueDateCount, 0),
+    upcomingFollowUpCount: employeeRows.reduce((total, employee) => total + employee.upcomingFollowUpCount, 0),
+    overdueFollowUpCount: employeeRows.reduce((total, employee) => total + employee.overdueFollowUpCount, 0),
+    byDepartment: [...byDepartment.entries()].map(([id, group]) => ({
+      id,
+      label: group.label,
+      employeeCount: group.employeeIds.size,
+      registeredConversationEmployees: group.conversationEmployeeIds.size,
+      conversationCoveragePercent: sources.items ? percentage(group.conversationEmployeeIds.size, group.employeeIds.size) : null,
+      openAgreementCount: group.openAgreementCount,
+      overdueAgreementCount: group.overdueAgreementCount,
+    })).sort((left, right) => left.label.localeCompare(right.label, 'nl')),
+    employees: employeeRows,
+     items: visibleItems.sort((left, right) => (dateOnly(right.occurredOn) ?? '').localeCompare(dateOnly(left.occurredOn) ?? '') || left.id.localeCompare(right.id)).map((item) => ({
+      id: item.id,
+      employeeId: item.employeeId,
+      employeeLabel: populationByEmployee.get(item.employeeId)?.employee.label ?? item.employeeId,
+      itemType: item.itemType as 'MEETING_SUMMARY' | 'AGREEMENT',
+      title: item.title,
+      status: item.status,
+      occurredOn: item.occurredOn,
+      dueOn: item.dueOn,
+      nextMeetingOn: item.nextMeetingOn,
+      followUpStatus: appraisalFollowUpStatus(item, input.asOf),
+      href: `/workforce/continuous-appraisal?employeeId=${encodeURIComponent(item.employeeId)}`,
+    })),
+  }
+  return result
+}
+
+export function emptyAppraisalInsight(asOf: string, periodFrom: string | null = null, periodTo: string | null = null): AppraisalInsight {
+  return buildAppraisalInsight({ asOf, periodFrom, periodTo, population: [], items: [], sources: { items: true } })
 }
 
 function isGridValue(value: string | null): value is GridValue {
@@ -953,6 +1199,14 @@ export function developmentInsightCsv(report: DevelopmentInsight): string {
   const planRows = report.plans.map((plan) => [report.asOf, 'development_plan', plan.employeeId, plan.employeeLabel, plan.title, plan.status, plan.progressPercent, plan.periodStart, plan.periodEnd, null, null, null, null, report.relevantEmployees, report.coveragePercent])
   const actionRows = report.actions.map((action) => [report.asOf, 'follow_up_action', action.employeeId, action.employeeLabel, action.title, action.status, null, null, null, action.dueOn, action.nextMeetingOn, action.followUpOn, action.followUpStatus, report.relevantEmployees, report.coveragePercent])
   return [header, ...planRows, ...actionRows].map((row) => row.map((value) => csvCell(value)).join(',')).join('\r\n') + '\r\n'
+}
+
+export function appraisalInsightCsv(report: AppraisalInsight): string {
+  const header = ['as_of', 'period_from', 'period_to', 'record_type', 'employee_id', 'employee', 'title', 'status', 'occurred_on', 'due_on', 'next_meeting_on', 'follow_up_status', 'relevant_employees', 'registered_conversation_employees', 'conversation_coverage_percent', 'open_agreements', 'completed_agreements', 'overdue_agreements', 'agreements_without_due_date', 'source_href']
+  const rows = report.items.length > 0
+    ? report.items.map((item) => [report.asOf, report.periodFrom, report.periodTo, item.itemType, item.employeeId, item.employeeLabel, item.title, item.status, item.occurredOn, item.dueOn, item.nextMeetingOn, item.followUpStatus, report.relevantEmployees, report.registeredConversationEmployees, report.conversationCoveragePercent, report.openAgreementCount, report.completedAgreementCount, report.overdueAgreementCount, report.agreementsWithoutDueDateCount, item.href])
+    : [[report.asOf, report.periodFrom, report.periodTo, null, null, null, null, null, null, null, null, null, report.relevantEmployees, report.registeredConversationEmployees, report.conversationCoveragePercent, report.openAgreementCount, report.completedAgreementCount, report.overdueAgreementCount, report.agreementsWithoutDueDateCount, null]]
+  return [header, ...rows].map((row) => row.map((value) => csvCell(value)).join(',')).join('\r\n') + '\r\n'
 }
 
 export function gridMovementCsv(report: GridMovementInsight): string {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
-import { developmentInsightCsv, functionSkillGapReportCsv, gridMovementCsv } from '@/lib/star-performers/insights-service'
+import { appraisalInsightCsv, developmentInsightCsv, functionSkillGapReportCsv, gridMovementCsv } from '@/lib/star-performers/insights-service'
 import { starPerformerWorkspaceQuerySchema } from '@/lib/star-performers/schemas'
 import { StarPerformerError } from '@/lib/star-performers/service'
 import { getStarPerformersInsights } from '@/lib/star-performers/v2-service'
@@ -24,17 +24,30 @@ export async function GET(request: Request) {
       jobId: searchParams.get('jobId') ?? undefined,
       jobGroupId: searchParams.get('jobGroupId') ?? undefined,
       period: searchParams.get('period') ?? undefined,
+      periodFrom: searchParams.get('periodFrom') ?? undefined,
+      periodTo: searchParams.get('periodTo') ?? undefined,
+      appraisalStatus: searchParams.get('appraisalStatus') ?? undefined,
       status: searchParams.get('status') ?? undefined,
       page: searchParams.get('page') ?? undefined,
       pageSize: searchParams.get('pageSize') ?? undefined,
     })
-    if (!parsed.success || !['skill-gaps', 'development', 'top-talent'].includes(parsed.data.insight)) return NextResponse.json({ code: 'STAR_PERFORMER_INPUT_INVALID' }, { status: 400 })
+    if (!parsed.success || !['skill-gaps', 'development', 'appraisal', 'top-talent'].includes(parsed.data.insight)) return NextResponse.json({ code: 'STAR_PERFORMER_INPUT_INVALID' }, { status: 400 })
     const data = await getStarPerformersInsights(parsed.data)
     if (parsed.data.insight === 'top-talent') {
       return new Response(gridMovementCsv(data.topTalent.history), {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
           'Content-Disposition': 'attachment; filename="grid-movement.csv"',
+          'Cache-Control': 'no-store',
+        },
+      })
+    }
+    if (parsed.data.insight === 'appraisal') {
+      if (data.appraisal.state === 'unavailable') return NextResponse.json({ code: 'STAR_PERFORMER_APPRAISAL_SOURCE_UNAVAILABLE' }, { status: 503 })
+      return new Response(appraisalInsightCsv(data.appraisal), {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="continuous-appraisal-insights.csv"',
           'Cache-Control': 'no-store',
         },
       })

@@ -53,6 +53,15 @@ Momentopname: 2026-10-18 (historische acceptance-evidence blijft ongewijzigd)
 - Er zijn geen schema's, migraties, permissions, RLS, databasegegevens, Payroll-code, push, deployment of cleanup gewijzigd; `apps/hr-suite/next-env.d.ts` en overige dirty worktrees bleven buiten scope. Zie [04D-2C acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2C-LOCAL-20261018.md).
 - Verdict: **STAR-V2-04D-2C LOCAL DONE**. 04D-2D blijft een afzonderlijke volgende slice.
 
+## STAR-V2-04D-2D — Continuous Appraisal Insights (2026-10-18)
+
+- De bestaande Star Performers/Talent Insights-route heeft een read-only **Continuous Appraisal**-gebied gekregen. Het gebruikt uitsluitend bestaande `MEETING_SUMMARY`- en `AGREEMENT`-metadata uit `listContinuousAppraisalItemsForEmployees`; POP/Development `ACTION`-items blijven buiten deze telling.
+- HR Admin live: 35 relevante medewerkers, 1/35 geregistreerd gesprek, 2 open afspraken, 0 afgeronde/achterstallige afspraken en 2 zonder deadline. Manager live: 6 directe medewerkers en 2 open afspraken. De live TEST-variatie is beperkt; geïsoleerde fixtures bewijzen de overige status-, deadline- en follow-upgevallen.
+- KPI, afdeling, medewerkerstaat, bronlink en CSV gebruiken dezelfde server-afgeleide populatie. De centrale `/insights`-catalogus toont de ingang onder **Talent & Ontwikkeling**. Employee kreeg de bestaande directe URL- en exportdenial zonder managementdata.
+- Gerichte Vitest (4 bestanden/24 tests), changed-file ESLint, i18n en diff-check zijn groen. Typecheck blijft uitsluitend rood op de bestaande ongerelateerde TS2367 in `apps/hr-suite/components/talent/talent-workforce-overview.tsx:271`.
+- Er zijn geen schema's, migraties, grants, RLS-/permissionwijzigingen, databasewrites, Payroll-wijzigingen, push, deployment of cleanup uitgevoerd; `next-env.d.ts` en andere dirty worktrees bleven buiten scope. Zie [04D-2D acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-2D-LOCAL-20261018.md).
+- Verdict: **STAR-V2-04D-2D LOCAL DONE**.
+
 ## TALENT-CONVERGENCE-01 — lokale codeconvergentie (2026-10-16)
 
 - De Talent-code staat lokaal op main via code-SHA 1d175ae4ee6cece9b44c26f22ff728c9a75f1ea1. De sourcebranch is fast-forward geïntegreerd; origin/main is niet gewijzigd. Er is geen GitHub-push, PR-merge, deployment of nieuwe Supabase-migratie uitgevoerd.

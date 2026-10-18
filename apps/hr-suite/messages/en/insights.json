@@ -329,6 +329,8 @@
   "talentSkillsDescription": "Open the existing Talent report with verified skills, source status, period filters and CSV export.",
   "talentPopTitle": "POP & development goals",
   "talentPopDescription": "Open the existing Talent report with POP goals, status, progress, period filters and CSV export.",
+  "talentAppraisalTitle": "Continuous Appraisal",
+  "talentAppraisalDescription": "View conversation coverage, agreements and follow-ups from existing Continuous Appraisal records within the authorised scope.",
   "groupBy": "Group by",
   "period": "Period",
   "department": "Department",

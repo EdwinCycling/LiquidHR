@@ -87,6 +87,7 @@ const reportQueryKeys: Readonly<Record<InsightReportId, readonly string[]>> = {
   'talent-profile-skill-gaps': [],
   'talent-skills': [],
   'talent-pop': [],
+  'talent-appraisal': [],
 }
 
 function salaryQueryKeys(): readonly string[] {

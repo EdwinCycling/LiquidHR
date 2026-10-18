@@ -3,6 +3,7 @@ import {
   starPerformerAssessmentSchema,
   starPerformerQuerySchema,
   starPerformerTagCreateSchema,
+  starPerformerWorkspaceQuerySchema,
 } from './schemas'
 
 describe('star performer query schema', () => {
@@ -16,6 +17,16 @@ describe('star performer query schema', () => {
       q: 'support',
       minStars: '4',
     })
+  })
+})
+
+describe('star performer insight filters', () => {
+  it('accepteert een Continuous Appraisal-periode en statusfilter', () => {
+    expect(starPerformerWorkspaceQuerySchema.parse({ insight: 'appraisal', area: 'insights', periodFrom: '2026-01-01', periodTo: '2026-10-18', appraisalStatus: 'overdue' })).toMatchObject({ insight: 'appraisal', periodFrom: '2026-01-01', periodTo: '2026-10-18', appraisalStatus: 'overdue' })
+  })
+
+  it('weigert een omgekeerde rapportperiode', () => {
+    expect(() => starPerformerWorkspaceQuerySchema.parse({ insight: 'appraisal', periodFrom: '2026-10-18', periodTo: '2026-01-01' })).toThrowError(/STAR_PERFORMER_PERIOD_INVALID/)
   })
 })
 

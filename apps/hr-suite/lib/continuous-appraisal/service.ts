@@ -66,7 +66,7 @@ export type ContinuousAppraisalItem = Pick<ItemRow, 'id' | 'employee_id' | 'mana
   canDelete: boolean
 }
 
-export type ContinuousAppraisalInsightItem = Pick<ItemRow, 'id' | 'employee_id' | 'item_type' | 'title' | 'due_on' | 'next_meeting_on' | 'item_status'>
+export type ContinuousAppraisalInsightItem = Pick<ItemRow, 'id' | 'employee_id' | 'item_type' | 'title' | 'occurred_on' | 'due_on' | 'next_meeting_on' | 'item_status'>
 
 export type ContinuousAppraisalEmployeeOption = {
   id: string
@@ -269,7 +269,7 @@ export async function listContinuousAppraisalItemsForEmployees(employeeIds: read
   if (scopedEmployeeIds.length === 0) return []
   const { data, error } = await supabase
     .from('continuous_appraisal_items')
-    .select('id,employee_id,item_type,title,due_on,next_meeting_on,item_status')
+    .select('id,employee_id,item_type,title,occurred_on,due_on,next_meeting_on,item_status')
     .eq('tenant_id', context.tenantId)
     .in('employee_id', scopedEmployeeIds)
     .is('deleted_at', null)

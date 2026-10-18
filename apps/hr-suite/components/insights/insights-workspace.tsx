@@ -160,6 +160,7 @@ function reportLabelPrefix(id: InsightReportId): string {
   if (id === 'talent-profile-skill-gaps') return 'talentProfileSkillGaps'
   if (id === 'talent-skills') return 'talentSkills'
   if (id === 'talent-pop') return 'talentPop'
+  if (id === 'talent-appraisal') return 'talentAppraisal'
   return id
 }
 
