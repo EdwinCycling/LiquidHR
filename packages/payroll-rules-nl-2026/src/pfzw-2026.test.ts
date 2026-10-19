@@ -28,6 +28,28 @@ function pfzwInput(overrides: Partial<Pfzw2026CalculationInput> = {}): Pfzw2026C
     salaryBasisSourceVersion: '2026-09-01',
     fullTimeMonthlySalary: '3425.00',
     monthlyPaymentsPerYear: 12,
+    premiumComponents: [
+      {
+        code: 'PFZW_OP_NP', name: 'OP/NP', componentType: 'BASE', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31',
+        basisCode: 'UPA_REGLN_AFTER_FRANCHISE_AND_CAP', basisDescription: 'RegLn less franchise, capped before applying the UPA period DTF.',
+        totalRate: '25.9', employeeRate: '12.9', employerRate: '13.0',
+        annualFranchise: '17283', annualPensionableSalaryCap: '137800',
+        eligibilityRule: 'PFZW participant in the Kinderopvang employment scope.', calculationMethod: 'Annual premium allocated to monthly periods.',
+        roundingRule: 'Half-up to cents per employee and employer share.',
+        sourceVersion: 'PFZW 2026', sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html',
+        sourceSha256: 'c'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'PRE_TAX_EMPLOYEE_DEDUCTION',
+      },
+      {
+        code: 'PFZW_WIA_EXCESS', name: 'WIA-excedent', componentType: 'ADDITIONAL', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31',
+        basisCode: 'UPA_REGLN_WITHOUT_OPNP_CAP', basisDescription: 'RegLn less the separate WIA-excedent franchise; not subject to the OP/NP cap.',
+        totalRate: '3.4', employeeRate: '0', employerRate: '3.4',
+        annualFranchise: '79409', annualPensionableSalaryCap: null,
+        eligibilityRule: 'PFZW participant subject to WIA-excedent coverage.', calculationMethod: 'Employer-only annual premium allocated to monthly periods.',
+        roundingRule: 'Half-up to cents for the employer share.',
+        sourceVersion: 'PFZW 2026', sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html',
+        sourceSha256: 'd'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'EMPLOYER_COST_ONLY',
+      },
+    ],
     holidayAllowancePercent: '8',
     structuralYearEndAllowancePercent: '5.5',
     structuralYearEndAllowanceReferenceDate: '2025-12-31',
@@ -194,6 +216,37 @@ describe('PFZW 2026 Kinderopvang annual basis and period premium', () => {
       employerWiaExcessPremiumMonthly: '0.00',
     })
     expect(result.reasonCodes).not.toContain('PFZW_ADDITIONAL_HOURS_UPLIFT_PROVISIONAL')
+  })
+
+  it('keeps the WIA-excess component separate from OP/NP and charges it to the employer only', () => {
+    const result = calculatePfzw2026Kinderopvang(pfzwInput({
+      fullTimeMonthlySalary: '12000.00',
+      structuralYearEndAllowanceEligibleAnnualBase: '144000',
+      monthlyPayrollGross: '12000.00',
+    }))
+
+    expect(result).toMatchObject({
+      status: 'CALCULATED',
+      pensionableAnnualSalary: '163440.00',
+      cappedPensionableSalary: '137800.00',
+      finalPartTimeFactor: '0.8889',
+      pensionableBase: '107127.56',
+      wiaExcessBase: '65872.82',
+      employerWiaExcessPremiumMonthly: '186.64',
+    })
+    expect(result.trace.find((step) => step.componentCode === 'PFZW_WIA_EXCESS_EMPLOYER_PREMIUM')?.rate).toBe('3.4')
+    expect(result.trace.find((step) => step.componentCode === 'PFZW_OPNP_EMPLOYEE_PREMIUM')?.rate).toBe('12.9')
+  })
+
+  it('blocks a missing, unverified or invalid component set instead of falling back to a hidden default', () => {
+    expect(calculatePfzw2026Kinderopvang(pfzwInput({ premiumComponents: [] }))).toMatchObject({
+      status: 'BLOCKED', reasonCodes: ['PFZW_PREMIUM_COMPONENTS_MISSING_OR_UNSUPPORTED'],
+    })
+    expect(calculatePfzw2026Kinderopvang(pfzwInput({
+      premiumComponents: pfzwInput().premiumComponents.map((component) => component.code === 'PFZW_WIA_EXCESS'
+        ? { ...component, sourceValidationStatus: 'REFERENCE_ONLY' }
+        : component),
+    }))).toMatchObject({ status: 'BLOCKED', reasonCodes: ['PFZW_PREMIUM_COMPONENT_SOURCE_UNVERIFIED'] })
   })
 
   it('keeps contractual factor, base contracted hours, uplifted hours and final factor separate', () => {

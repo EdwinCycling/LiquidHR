@@ -9,6 +9,7 @@ import { ContextAuthenticationError } from '@/lib/context/server-context'
 import {
   createPensionArrangement,
   createPensionArrangementSuccessorForPensionManager,
+  parsePensionArrangementComponents,
   PensionArrangementManagementError,
   type PensionArrangementCreateInput,
   type PensionArrangementTierInput,
@@ -59,13 +60,27 @@ function parseTiers(value: string): PensionArrangementTierInput[] {
   })
 }
 
+function parseComponents(value: string): PensionArrangementCreateInput['components'] {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    throw new Error('INVALID_INPUT')
+  }
+  try {
+    return parsePensionArrangementComponents(parsed)
+  } catch {
+    throw new Error('INVALID_INPUT')
+  }
+}
+
 function parseCreateInput(formData: FormData): PensionArrangementCreateInput {
   const fields = Array.from(formData.keys()).filter((key) => !key.startsWith('$ACTION_')).sort()
   const expected = [
     'annualFranchise', 'annualPensionableSalaryCap', 'arrangementType', 'code', 'contractClassification',
     'contractClassificationSourceReference', 'contractClassificationStatus', 'effectiveFrom', 'effectiveTo',
     'eligibilityRule', 'employeeSharePct', 'employerSharePct', 'flatTotalRate', 'grandfatheringMode', 'name',
-    'partMonthMethod', 'partTimeMethod', 'pensionableSalaryMethod', 'provider', 'sourceReference',
+    'componentsJson', 'partMonthMethod', 'partTimeMethod', 'pensionableSalaryMethod', 'provider', 'sourceReference',
     'sourceValidationStatus', 'tiersJson', 'transitionDate',
   ].sort()
   if (fields.join('|') !== expected.join('|')) throw new Error('INVALID_INPUT')
@@ -109,6 +124,7 @@ function parseCreateInput(formData: FormData): PensionArrangementCreateInput {
     partTimeMethod: scalar(formData, 'partTimeMethod'),
     partMonthMethod: scalar(formData, 'partMonthMethod'),
     eligibilityRule: scalar(formData, 'eligibilityRule'),
+    components: parseComponents(scalar(formData, 'componentsJson')),
     contractClassification: contractClassification as PensionArrangementCreateInput['contractClassification'],
     contractClassificationSourceReference: scalar(formData, 'contractClassificationSourceReference'),
     contractClassificationStatus: contractClassificationStatus as PensionArrangementCreateInput['contractClassificationStatus'],

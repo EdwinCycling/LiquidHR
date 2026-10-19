@@ -39,6 +39,23 @@ describe('timelineMutationSchema', () => {
       payload: { allocations: [{ costCenterId: crypto.randomUUID(), percentage: 90 }] },
     }).success).toBe(false)
   })
+
+  it('vereist schaal- en tredeherkomst voor een CAO-salarisroute', () => {
+    const payload = {
+      paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY', salaryBasis: 'CAO_SCALE',
+      salaryRoute: 'SCALE_WITH_STEPS', fulltimeAmount: 2819, parttimeAmount: 1879.33,
+      currencyCode: 'EUR', salaryStructureId: crypto.randomUUID(), salaryScaleId: crypto.randomUUID(),
+      salaryScaleStepId: crypto.randomUUID(), salaryStepCode: '12',
+      caoScaleName: '6 · Schaal 6', caoStepName: '12 · Salarisnummer 12',
+    }
+    expect(timelineMutationSchema.safeParse({
+      timeline: 'SALARY', effectiveOn: '2026-09-01', reason: 'Herstel CAO-koppeling', payload,
+    }).success).toBe(true)
+    expect(timelineMutationSchema.safeParse({
+      timeline: 'SALARY', effectiveOn: '2026-09-01', reason: 'Herstel CAO-koppeling',
+      payload: { ...payload, caoScaleName: null, caoStepName: null },
+    }).success).toBe(false)
+  })
 })
 
 describe('combinedTimelineMutationSchema', () => {

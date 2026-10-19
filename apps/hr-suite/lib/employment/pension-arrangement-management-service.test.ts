@@ -50,6 +50,28 @@ const input = {
   partTimeMethod: 'Pro rata by contractual hours.',
   partMonthMethod: 'Explicit scheme day method recorded by HR Admin.',
   eligibilityRule: 'Participation follows the recorded employment conditions.',
+  components: [{
+    code: 'BASE_2026',
+    name: 'Primary pension premium',
+    componentType: 'BASE' as const,
+    effectiveFrom: '2026-01-01',
+    effectiveTo: '2026-12-31',
+    basisCode: 'PENSIONABLE_SALARY_AFTER_FRANCHISE',
+    basisDescription: 'Annual pensionable salary less the annual franchise.',
+    totalRate: 20,
+    employeeRate: 8,
+    employerRate: 12,
+    annualFranchise: 15000,
+    annualPensionableSalaryCap: 100000,
+    eligibilityRule: 'Participation follows the recorded employment conditions.',
+    calculationMethod: 'Annual premium allocated to monthly periods.',
+    roundingRule: 'Round each share to cents using HALF_UP.',
+    sourceVersion: '2026',
+    sourceReference: 'https://example.test/pfzw-2026',
+    sourceSha256: 'a'.repeat(64),
+    sourceValidationStatus: 'EMPLOYER_RECORDED' as const,
+    taxTreatment: 'UNVERIFIED' as const,
+  }],
   contractClassification: 'UNKNOWN' as const,
   contractClassificationSourceReference: '',
   contractClassificationStatus: 'UNVERIFIED' as const,
@@ -111,6 +133,13 @@ describe('pension arrangement management', () => {
         pensionable_salary_definition: expect.objectContaining({
           provider: 'PFZW',
           partMonthMethod: 'Explicit scheme day method recorded by HR Admin.',
+          components: expect.arrayContaining([expect.objectContaining({
+            code: 'BASE_2026',
+            totalRate: 20,
+            employeeRate: 8,
+            employerRate: 12,
+            annualFranchise: 15000,
+          })]),
         }),
         tiers: [],
       }),
@@ -124,6 +153,17 @@ describe('pension arrangement management', () => {
       .rejects.toMatchObject({ code: 'PENSION_ARRANGEMENT_INPUT_INVALID', status: 400 } satisfies Partial<PensionArrangementManagementError>)
 
     expect(requirePermission).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('rejects a component whose premium split does not equal its total', async () => {
+    const { rpc } = configureClient()
+
+    await expect(createPensionArrangement({
+      ...input,
+      components: [{ ...input.components[0]!, employerRate: 11.9 }],
+    })).rejects.toMatchObject({ code: 'PENSION_ARRANGEMENT_INPUT_INVALID', status: 400 } satisfies Partial<PensionArrangementManagementError>)
+
     expect(rpc).not.toHaveBeenCalled()
   })
 

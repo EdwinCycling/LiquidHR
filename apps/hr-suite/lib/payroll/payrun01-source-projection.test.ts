@@ -149,6 +149,10 @@ function sourceSnapshot(options: {
               floorAtZero: true,
               ...(includeCorePfzwPension ? {
                 method: 'PFZW_2026_KINDEROPVANG',
+                components: [
+                  { code: 'PFZW_OP_NP', name: 'OP/NP', componentType: 'BASE', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31', basisCode: 'UPA_REGLN_AFTER_FRANCHISE_AND_CAP', basisDescription: 'RegLn less franchise, capped before applying the UPA period DTF.', totalRate: 25.9, employeeRate: 12.9, employerRate: 13, annualFranchise: 17283, annualPensionableSalaryCap: 137800, eligibilityRule: 'PFZW participant in the Kinderopvang employment scope.', calculationMethod: 'Annual premium allocated to monthly periods.', roundingRule: 'Half-up to cents per employee and employer share.', sourceVersion: 'PFZW 2026', sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html', sourceSha256: 'c'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'PRE_TAX_EMPLOYEE_DEDUCTION' },
+                  { code: 'PFZW_WIA_EXCESS', name: 'WIA-excedent', componentType: 'ADDITIONAL', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31', basisCode: 'UPA_REGLN_WITHOUT_OPNP_CAP', basisDescription: 'RegLn less the separate WIA-excedent franchise; not subject to the OP/NP cap.', totalRate: 3.4, employeeRate: 0, employerRate: 3.4, annualFranchise: 79409, annualPensionableSalaryCap: null, eligibilityRule: 'PFZW participant subject to WIA-excedent coverage.', calculationMethod: 'Employer-only annual premium allocated to monthly periods.', roundingRule: 'Half-up to cents for the employer share.', sourceVersion: 'PFZW 2026', sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html', sourceSha256: 'd'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'EMPLOYER_COST_ONLY' },
+                ],
                 pfzw2026: {
                   monthlyPaymentsPerYear: 12,
                   holidayAllowancePercent: '8',

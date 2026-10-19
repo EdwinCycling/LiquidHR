@@ -4,6 +4,7 @@ import { FixedDecimal, type PayrollJsonValue, type PayrollSourceGap, type Payrol
 import {
   calculatePension,
   PFZW_2026_KINDEROPVANG_METHOD,
+  parsePfzw2026PremiumComponents,
   type PensionArrangementInput,
   type PensionCalculationInput,
   type PensionCalculationResult,
@@ -516,6 +517,10 @@ function resolveCorePensionInput(input: {
   }
   if (isPfzw2026) {
     const pfzwDefinition = record(child(pensionableSalaryDefinition, 'pfzw2026'))
+    const premiumComponents = parsePfzw2026PremiumComponents(
+      child(pensionableSalaryDefinition, 'components') ?? child(pfzwDefinition, 'components'),
+    )
+    if (!premiumComponents) return { reasonCode: 'PFZW_PREMIUM_COMPONENTS_MISSING_OR_UNSUPPORTED' }
     const assignmentId = text(child(assignment, 'id'))
     const effectiveMapping = matchingMappings[0] ?? null
     const laborMappingId = text(child(effectiveMapping, 'id'))
@@ -612,6 +617,7 @@ function resolveCorePensionInput(input: {
         ? `SYNTHETIC_TEST_FIXTURE:${assignmentSourceClassification}; Core assignment ${assignmentId} v${assignmentVersion} [${assignmentSourceClassification}]; effective labor-condition arrangement mapping ${laborMappingId} v${mappingVersion} [${mappingSourceClassification}]`
         : `Core participation assignment ${assignmentId} v${assignmentVersion} [${assignmentSourceClassification}]; effective labor-condition arrangement mapping ${laborMappingId} v${mappingVersion} [${mappingSourceClassification}]`,
       arrangementVersion: arrangement.arrangementVersion,
+      premiumComponents,
       salaryBasisDate,
       salaryBasisSourceId: basisSalaryRowId,
       salaryBasisSourceVersion: basisSalaryValidFrom,

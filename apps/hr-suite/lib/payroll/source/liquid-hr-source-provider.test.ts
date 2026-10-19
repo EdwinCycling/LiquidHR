@@ -23,6 +23,7 @@ import {
 } from '@liquid-hr/payroll-engine'
 import { createPayfull02RulePackage, PAYFULL02_RULE_REGISTRY } from '@liquid-hr/payroll-rules-nl-2026'
 import type { ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
+import type { EmploymentPayrollSourceProjection } from '@/lib/employment/employment-detail-service'
 import { assertActivePayrollEmployerConfiguration, hashPayrollEmployerConfiguration } from '../payroll-setup'
 
 const tenantId = '10000000-0000-4000-8000-000000000001'
@@ -90,6 +91,40 @@ function salary(overrides: Partial<PayrollSourceSalary> = {}): PayrollSourceSala
     valid_until: null,
     updated_at: '2026-09-01T10:05:00.000Z',
     ...overrides,
+  }
+}
+
+function resolvedSalaryTableSource(family: 'KINDEROPVANG' | 'RETAIL_MODE'): EmploymentPayrollSourceProjection['salaryTableSource'] {
+  const retail = family === 'RETAIL_MODE'
+  return {
+    status: 'RESOLVED',
+    reasonCode: null,
+    source: {
+      salaryId,
+      structureId: retail ? 'structure-retail' : 'structure-ko',
+      revisionId: retail ? 'retail-2026-07' : 'kinderopvang-2026-09',
+      revisionNumber: 1,
+      revisionUpdatedAt: '2026-09-01T00:00:00.000Z',
+      salaryBasis: retail ? 'HOURLY' : 'MONTHLY_BASE',
+      effectiveFrom: retail ? '2026-07-01' : '2026-09-01',
+      effectiveTo: retail ? '2027-06-30' : '2026-12-31',
+      sourceTitle: retail ? 'Retail Non-Food loongebouw' : 'Cao Kinderopvang salaristabel',
+      sourceVersion: retail ? '2026.07' : '2026.09',
+      sourceUrl: retail ? 'https://www.inretail.nl/retail-cao.pdf' : 'https://www.kinderopvang-werkt.nl/salaristabel.pdf',
+      sourceHash: 'a'.repeat(64),
+      sourceRowCount: retail ? 577 : 196,
+      scaleId: retail ? 'scale-retail' : 'scale-ko',
+      scaleCode: retail ? 'I' : '6',
+      scaleName: retail ? 'I' : 'Schaal 6',
+      stepId: retail ? 'step-retail-15' : 'step-ko-12',
+      stepCode: retail ? '15' : '12',
+      stepName: retail ? '15' : 'Salarisnummer 12',
+      fulltimeAmount: retail ? '28.95' : '2819.00',
+      hourlyAmount: retail ? '28.95' : null,
+      currencyCode: 'EUR',
+      stepUpdatedAt: '2026-09-01T00:00:00.000Z',
+      maximumStepFulltimeAmount: retail ? null : '3425.00',
+    },
   }
 }
 
@@ -672,10 +707,14 @@ describe('LiquidHR Payroll source provider', () => {
           hourly_rate: 18,
           fulltime_amount: 2819,
           parttime_amount: 1879.33,
+          salary_structure_id: 'structure-ko',
+          salary_scale_id: 'scale-ko',
+          salary_scale_step_id: 'step-ko-12',
           cao_scale_name: 'Schaal 6',
           cao_step_name: 'Salarisnummer 12',
           salary_step_code: '12',
         })],
+        salaryTableSource: resolvedSalaryTableSource('KINDEROPVANG'),
         schedules: [schedule({ average_hours_per_week: 24, fulltime_hours_per_week: 36, part_time_factor: 2 / 3 })],
         contracts: [{
           id: '8b000000-0000-4000-8000-000000000008',
@@ -737,7 +776,7 @@ describe('LiquidHR Payroll source provider', () => {
     const amounts = payrollOwned.amounts as Record<string, unknown>
     const controls = payrollOwned.controls as Record<string, unknown>
 
-    expect(cao).toMatchObject({ status: 'CALCULATED', family: 'KINDEROPVANG', grossAmount: '1879.333333333333333333', premiumAmount: '0.000000000000000000' })
+    expect(cao).toMatchObject({ status: 'CALCULATED', family: 'KINDEROPVANG', grossAmount: '1879.333333333333333333', premiumAmount: '0' })
     expect(regularWage).toMatchObject({ grossAmount: '1879.333333333333333333', fulltimeMonthlyAmount: '2819', caoApplied: true })
     expect(amounts.variableRegularWage).toBe('32.40')
     expect(controls.additionalHoursSupported).toBe(true)
@@ -842,8 +881,8 @@ describe('LiquidHR Payroll source provider', () => {
           basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
           floorAtZero: true,
           components: [
-            { code: 'PFZW_OP_NP_2026', componentType: 'BASE', totalRate: 25.9, employeeRate: 12.9, employerRate: 13.0 },
-            { code: 'PFZW_WIA_EXCEDENT_2026', componentType: 'ADDITIONAL', totalRate: 3.4, employeeRate: 0, employerRate: 3.4 },
+            { code: 'PFZW_OP_NP', name: 'OP/NP', componentType: 'BASE', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31', basisCode: 'UPA_REGLN_AFTER_FRANCHISE_AND_CAP', basisDescription: 'RegLn less franchise, capped before applying the UPA period DTF.', totalRate: 25.9, employeeRate: 12.9, employerRate: 13, annualFranchise: 17283, annualPensionableSalaryCap: 137800, eligibilityRule: 'PFZW participant in the Kinderopvang employment scope.', calculationMethod: 'Annual premium allocated to monthly periods.', roundingRule: 'Half-up to cents per employee and employer share.', sourceVersion: 'PFZW 2026', sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html', sourceSha256: 'c'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'PRE_TAX_EMPLOYEE_DEDUCTION' },
+            { code: 'PFZW_WIA_EXCESS', name: 'WIA-excedent', componentType: 'ADDITIONAL', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31', basisCode: 'UPA_REGLN_WITHOUT_OPNP_CAP', basisDescription: 'RegLn less the separate WIA-excedent franchise; not subject to the OP/NP cap.', totalRate: 3.4, employeeRate: 0, employerRate: 3.4, annualFranchise: 79409, annualPensionableSalaryCap: null, eligibilityRule: 'PFZW participant subject to WIA-excedent coverage.', calculationMethod: 'Employer-only annual premium allocated to monthly periods.', roundingRule: 'Half-up to cents for the employer share.', sourceVersion: 'PFZW 2026', sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html', sourceSha256: 'd'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'EMPLOYER_COST_ONLY' },
           ],
           pfzw2026: {
             monthlyPaymentsPerYear: 12,
@@ -886,6 +925,9 @@ describe('LiquidHR Payroll source provider', () => {
           salary_basis: 'CAO_SCALE',
           fulltime_amount: 2819,
           parttime_amount: 1879.33,
+          salary_structure_id: 'structure-ko',
+          salary_scale_id: 'scale-ko',
+          salary_scale_step_id: 'step-ko-12',
           cao_scale_name: 'Schaal 6',
           cao_step_name: 'Salarisnummer 12',
           salary_step_code: '12',
@@ -897,6 +939,7 @@ describe('LiquidHR Payroll source provider', () => {
           part_time_factor: 2 / 3,
           valid_from: '2026-11-01',
         })],
+        salaryTableSource: resolvedSalaryTableSource('KINDEROPVANG'),
         contracts: [{
           id: '92000000-0000-4000-8000-000000000028',
           labor_condition_set_id: laborConditionSetId,
@@ -978,10 +1021,14 @@ describe('LiquidHR Payroll source provider', () => {
           fulltime_amount: 4767.2,
           parttime_amount: 4767.2,
           hourly_rate: 28.9,
+          salary_structure_id: 'structure-retail',
+          salary_scale_id: 'scale-retail',
+          salary_scale_step_id: 'step-retail-15',
           cao_scale_name: 'I',
           cao_step_name: '15',
           salary_step_code: '15',
         })],
+        salaryTableSource: resolvedSalaryTableSource('RETAIL_MODE'),
         schedules: [schedule({ average_hours_per_week: 38, fulltime_hours_per_week: 38 })],
         contracts: [{
           id: '8b000000-0000-4000-8000-000000000018',

@@ -58,6 +58,9 @@ const salaryPayload = z.object({
   if (value.salaryRoute === 'SCALE_WITH_STEPS' && (!value.salaryStructureId || !value.salaryScaleId || !value.salaryStepCode)) {
     context.addIssue({ code: 'custom', path: ['salaryStepCode'], message: 'SALARY_SCALE_SELECTION_REQUIRED' })
   }
+  if (value.salaryRoute === 'SCALE_WITH_STEPS' && value.salaryBasis === 'CAO_SCALE' && (!value.caoScaleName || !value.caoStepName)) {
+    context.addIssue({ code: 'custom', path: ['caoScaleName'], message: 'CAO_SCALE_REQUIRED' })
+  }
   if (value.salaryRoute === 'SALARY_BAND' && (!value.salaryStructureId || !value.salaryBandId)) {
     context.addIssue({ code: 'custom', path: ['salaryBandId'], message: 'SALARY_BAND_SELECTION_REQUIRED' })
   }

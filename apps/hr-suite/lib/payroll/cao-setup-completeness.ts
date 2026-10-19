@@ -29,7 +29,7 @@ export type CaoSetupCompletenessRecord = {
   readonly completenessPercent: number
   readonly payrollReady: boolean
   readonly blockers: readonly string[]
-  readonly sourceHash: string
+  readonly integrityHash: string
 }
 
 export type CaoSetupCompletenessInput = {
@@ -74,7 +74,7 @@ function review(key: string, source: Exclude<CaoSetupCompletenessFieldSource, 'N
   return field(key, 'REVIEW_REQUIRED', source, value)
 }
 
-function completeRecord(input: Omit<CaoSetupCompletenessRecord, 'applicableFieldCount' | 'recordedFieldCount' | 'completenessPercent' | 'payrollReady' | 'blockers' | 'sourceHash'>): CaoSetupCompletenessRecord {
+function completeRecord(input: Omit<CaoSetupCompletenessRecord, 'applicableFieldCount' | 'recordedFieldCount' | 'completenessPercent' | 'payrollReady' | 'blockers' | 'integrityHash'>): CaoSetupCompletenessRecord {
   const applicableFields = input.fields.filter((candidate) => candidate.status !== 'NOT_APPLICABLE')
   const recordedFields = applicableFields.filter((candidate) => candidate.status === 'RECORDED')
   const blockers = input.fields.filter((candidate) => candidate.status === 'MISSING' || candidate.status === 'REVIEW_REQUIRED').map((candidate) => candidate.key)
@@ -85,7 +85,7 @@ function completeRecord(input: Omit<CaoSetupCompletenessRecord, 'applicableField
     completenessPercent: applicableFields.length === 0 ? 100 : Math.round((recordedFields.length / applicableFields.length) * 100),
     payrollReady: blockers.length === 0,
     blockers,
-    sourceHash: stableHash({
+    integrityHash: stableHash({
       id: input.id,
       packageId: input.packageId,
       version: input.version,
@@ -150,6 +150,9 @@ function pensionFields(pension: CaoSetupPensionRecord | null, catalogSource: 'CO
   const partTimeMethod = pension ? textAt(pension.pensionableSalaryDefinition, 'partTimeMethod') : null
   const partMonthMethod = pension ? textAt(pension.pensionableSalaryDefinition, 'partMonthMethod') : null
   const eligibility = pension ? textAt(pension.eligibilityRule, 'description') : null
+  const componentSummary = pension?.components.map((component) =>
+    `${component.code} ${component.totalRate}% (${component.employeeRate}% werknemer / ${component.employerRate}% werkgever), franchise ${component.annualFranchise}, maximum ${component.annualPensionableSalaryCap ?? 'geen'}, bron ${component.sourceSha256}`,
+  ).join('; ') ?? ''
   return [
     provider ? recorded('pension_provider', catalogSource, provider) : missing('pension_provider'),
     pension ? recorded('pension_version_period', 'CORE', `v${pension.versionNumber ?? '—'} · ${pension.effectiveFrom} — ${pension.effectiveTo ?? '—'}`) : missing('pension_version_period'),
@@ -159,6 +162,11 @@ function pensionFields(pension: CaoSetupPensionRecord | null, catalogSource: 'CO
     pension && pension.flatTotalRate !== null && Number.isFinite(pension.employeeSharePct) && Number.isFinite(pension.employerSharePct)
       ? recorded('pension_contribution_split', 'CORE', `total ${pension.flatTotalRate}% · werknemer ${pension.employeeSharePct}% · werkgever ${pension.employerSharePct}%`)
       : missing('pension_contribution_split'),
+    pension && pension.components.length > 0 && pension.components.every((component) => component.sourceValidationStatus === 'VERIFIED_SOURCE')
+      ? recorded('pension_components', 'CORE', componentSummary)
+      : pension && pension.components.length > 0
+        ? review('pension_components', 'CORE', componentSummary)
+        : missing('pension_components'),
     eligibility ? recorded('pension_eligibility', 'CORE', eligibility) : missing('pension_eligibility'),
     pension && salaryMethod && partTimeMethod && partMonthMethod
       ? recorded('pension_part_time_partial_month', 'CORE', `${salaryMethod} · ${partTimeMethod} · ${partMonthMethod}`)

@@ -23,6 +23,7 @@ import {
   prorateMonthlySalary,
   calculatePension,
   PFZW_2026_KINDEROPVANG_METHOD,
+  parsePfzw2026PremiumComponents,
   type Pfzw2026CalculationInput,
   type PensionArrangementInput,
   type PensionCalculationResult,
@@ -164,6 +165,7 @@ export interface PayrollSourceTimeline {
   readonly organizations?: readonly PayrollSourceOrganization[]
   readonly pensionAssignments?: EmploymentPayrollSourceProjection['pensionAssignments']
   readonly laborConditionPensionArrangements?: EmploymentPayrollSourceProjection['laborConditionPensionArrangements']
+  readonly salaryTableSource?: EmploymentPayrollSourceProjection['salaryTableSource']
 }
 
 export type PayrollSourceSetup = {
@@ -334,6 +336,7 @@ async function loadDefaultPayrollTimeline(
     organizations: source.organizations,
     pensionAssignments: source.pensionAssignments,
     laborConditionPensionArrangements: source.laborConditionPensionArrangements,
+    salaryTableSource: source.salaryTableSource,
     incomeRelationships,
     taxProfileProjection,
   }
@@ -378,6 +381,7 @@ async function loadDefaultPayrollTimelinesBatch(
       organizations: source.organizations,
       pensionAssignments: source.pensionAssignments,
       laborConditionPensionArrangements: source.laborConditionPensionArrangements,
+      salaryTableSource: source.salaryTableSource,
       incomeRelationships,
       taxProfileProjection,
     }
@@ -1492,7 +1496,7 @@ function pfzwBaseComponentRates(definition: Readonly<Record<string, unknown>>): 
 } | null {
   if (sourceText(definition.method) !== PFZW_2026_KINDEROPVANG_METHOD || !Array.isArray(definition.components)) return null
   const base = definition.components.map(asRecord).find((component) =>
-    sourceText(component?.code) === 'PFZW_OP_NP_2026'
+    sourceText(component?.code) === 'PFZW_OP_NP'
       && sourceText(component?.componentType) === 'BASE',
   )
   const totalRate = sourceText(base?.totalRate)
@@ -1549,6 +1553,7 @@ function buildPfzw2026Input(input: {
   readonly laborConditionSetId: string | null
   readonly regularWage: Record<string, string | boolean>
   readonly salaryBasisCandidates: readonly PayrollSourceSalary[]
+  readonly variableHourlyBasis: VariableHourlyPensionBasis | null
   readonly monthlyPayrollGross: string
   readonly period: PayrollSourceProviderInput['payrollPeriod']
   readonly actualEntries: readonly unknown[]
@@ -1558,12 +1563,18 @@ function buildPfzw2026Input(input: {
   const definition = input.arrangement.pensionableSalaryDefinition
   if (sourceText(definition.method) !== PFZW_2026_KINDEROPVANG_METHOD) return null
   const pfzw = asRecord(definition.pfzw2026) ?? definition
+  const premiumComponents = parsePfzw2026PremiumComponents(definition.components ?? pfzw.components)
+  if (!premiumComponents) return null
   const participationStart = input.assignment.participation_start_date
   const salaryBasisDate = pfzwSalaryBasisDateFor(participationStart, input.period.year)
   const salaryRows = salaryRowsEffectiveOn(input.salaryBasisCandidates, salaryBasisDate)
   if (salaryRows.length !== 1) return null
   const salary = salaryRows[0]
-  if (!salary || salary.fulltime_amount === null) return null
+  if (!salary) return null
+  const fullTimeSalarySource = salary.fulltime_amount === null
+    ? input.variableHourlyBasis?.fullTimeMonthlyPensionableSalary
+    : String(salary.fulltime_amount)
+  if (!fullTimeSalarySource) return null
 
   const eligibility = asRecord(input.arrangement.eligibilityRule)
   const participantGroup = sourceText(eligibility?.participantGroup)
@@ -1591,7 +1602,7 @@ function buildPfzw2026Input(input: {
   let fullTimeHours: FixedDecimal
   let fullTimePeriodHours: FixedDecimal
   try {
-    fullTimeMonthlySalary = FixedDecimal.parse(String(salary.fulltime_amount))
+    fullTimeMonthlySalary = FixedDecimal.parse(fullTimeSalarySource)
     contractHours = FixedDecimal.parse(String(input.regularWage.contractHoursPerWeek))
     fullTimeHours = FixedDecimal.parse(String(input.regularWage.fulltimeHoursPerWeek))
     fullTimePeriodHours = fullTimeHours.multiply(FixedDecimal.parse('52'))
@@ -1672,6 +1683,7 @@ function buildPfzw2026Input(input: {
     participationStartDate: participationStart,
     participationEvidenceReference: `Core participation assignment ${input.assignment.id} v${input.assignment.version_number} [${assignmentSourceClassification}]; effective labor-condition arrangement mapping ${mapping.id} v${mapping.version_number} [${mappingSourceClassification}]`,
     arrangementVersion: input.arrangement.arrangementVersion,
+    premiumComponents,
     salaryBasisDate,
     salaryBasisSourceId: salary.id,
     salaryBasisSourceVersion: salary.valid_from,
@@ -1809,33 +1821,38 @@ function buildRegularPayrollOwned(input: {
       laborConditionSetId: input.laborConditionSetId,
       regularWage: input.regularWage,
       salaryBasisCandidates: input.salaryBasisCandidates,
+      variableHourlyBasis: input.variableHourlyBasis,
       monthlyPayrollGross,
       period: input.period,
       actualEntries,
       sourceId: input.sourceId,
       sourceHash: input.coreSourceHash,
     })
-    pensionResult = calculatePension({
-      arrangement: arrangementInput,
-      period: input.period,
-      fullTimeMonthlyPensionableSalary: input.variableHourlyBasis?.fullTimeMonthlyPensionableSalary
-        ?? String(input.regularWage.fulltimeMonthlyAmount),
-      monthlyPayrollGross,
-      partTimeFactor: effectivePartTimeFactor,
-      ageForTier: assignment.age_for_tier,
-      participationStartDate: assignment.participation_start_date,
-      sourceSnapshotId: input.sourceId,
-      sourceSnapshotHash: input.coreSourceHash,
-      ...(pfzw2026 ? { pfzw2026 } : {}),
-    })
-    if (pensionResult.status !== 'CALCULATED') {
-      const reasonCode = pensionResult.reasonCode === 'PENSION_RATE_UNRESOLVED'
-        && arrangementInput.arrangementType === 'FLAT_PREMIUM'
-        ? arrangementInput.flatTotalRate === null
-          ? 'PENSION_TOTAL_RATE_MISSING'
-          : 'PENSION_TOTAL_RATE_INVALID'
-        : pensionResult.reasonCode ?? 'PENSION_CALCULATION_BLOCKED'
-      gaps.push(makeGap('pension', 'SOURCE_GAP', reasonCode))
+    if (sourceText(arrangementInput.pensionableSalaryDefinition.method) === PFZW_2026_KINDEROPVANG_METHOD && !pfzw2026) {
+      gaps.push(makeGap('pension', 'SOURCE_GAP', 'PFZW_PREMIUM_COMPONENTS_MISSING_OR_UNSUPPORTED'))
+    } else {
+      pensionResult = calculatePension({
+        arrangement: arrangementInput,
+        period: input.period,
+        fullTimeMonthlyPensionableSalary: input.variableHourlyBasis?.fullTimeMonthlyPensionableSalary
+          ?? String(input.regularWage.fulltimeMonthlyAmount),
+        monthlyPayrollGross,
+        partTimeFactor: effectivePartTimeFactor,
+        ageForTier: assignment.age_for_tier,
+        participationStartDate: assignment.participation_start_date,
+        sourceSnapshotId: input.sourceId,
+        sourceSnapshotHash: input.coreSourceHash,
+        ...(pfzw2026 ? { pfzw2026 } : {}),
+      })
+      if (pensionResult.status !== 'CALCULATED') {
+        const reasonCode = pensionResult.reasonCode === 'PENSION_RATE_UNRESOLVED'
+          && arrangementInput.arrangementType === 'FLAT_PREMIUM'
+          ? arrangementInput.flatTotalRate === null
+            ? 'PENSION_TOTAL_RATE_MISSING'
+            : 'PENSION_TOTAL_RATE_INVALID'
+          : pensionResult.reasonCode ?? 'PENSION_CALCULATION_BLOCKED'
+        gaps.push(makeGap('pension', 'SOURCE_GAP', reasonCode))
+      }
     }
   }
 
@@ -2420,6 +2437,12 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           family: record.family,
           typeCode: typeof record.typeCode === 'string' ? record.typeCode : null,
           typeName: typeof record.typeName === 'string' ? record.typeName : null,
+          workDate: typeof record.workDate === 'string'
+            ? record.workDate
+            : typeof record.work_date === 'string' ? record.work_date : null,
+          isPublicHoliday: typeof record.isPublicHoliday === 'boolean'
+            ? record.isPublicHoliday
+            : typeof record.is_public_holiday === 'boolean' ? record.is_public_holiday : null,
           hours: record.hours,
           status: record.status,
         }]
@@ -2446,7 +2469,13 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         salaryStepCode: salaries[0]!.salary_step_code,
         hourlyRate: salaries[0]!.hourly_rate,
         validFrom: salaries[0]!.valid_from,
+        validUntil: salaries[0]!.valid_until,
+        paymentType: salaries[0]!.payment_type,
+        salaryStructureId: salaries[0]!.salary_structure_id,
+        salaryScaleId: salaries[0]!.salary_scale_id,
+        salaryScaleStepId: salaries[0]!.salary_scale_step_id,
       } : null,
+      salaryTableSource: timeline.salaryTableSource,
       schedule: schedules.length === 1 ? {
         contractHoursPerWeek: schedules[0]!.average_hours_per_week,
         fullTimeHoursPerWeek: schedules[0]!.fulltime_hours_per_week,
@@ -2494,7 +2523,9 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       incomeRelationship.selected?.incomeRelationshipId ?? null,
       fiscalProfile.canonical,
     )
-    const regularWage = caoCalculation.status === 'CALCULATED' && baseRegularWage && caoCalculation.baseAmount
+    const regularWage = caoCalculation.status === 'BLOCKED' && caoCalculation.family
+      ? null
+      : caoCalculation.status === 'CALCULATED' && baseRegularWage && caoCalculation.baseAmount
       && caoCalculation.fullTimeMonthlyAmount && caoCalculation.grossAmount
       ? {
         ...baseRegularWage,
@@ -2527,6 +2558,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       [`employment:${employment.id}`, employment.updated_at],
       ...salaries.map((row) => [`employment_salary:${row.id}`, row.updated_at] as const),
       ...pensionSalaryBasisCandidates.map((row) => [`employment_salary_basis:${row.id}`, row.updated_at] as const),
+      ...(timeline.salaryTableSource?.source ? [
+        [`salary_structure_revision:${timeline.salaryTableSource.source.revisionId}`, `${timeline.salaryTableSource.source.revisionNumber}:${timeline.salaryTableSource.source.revisionUpdatedAt}:${timeline.salaryTableSource.source.sourceHash}`] as const,
+        [`salary_scale_step:${timeline.salaryTableSource.source.stepId}`, timeline.salaryTableSource.source.stepUpdatedAt] as const,
+      ] : []),
       ...schedules.map((row) => [`employment_schedule:${row.id}`, row.updated_at] as const),
       ...contracts.map((row) => [`employment_contract:${row.id}`, row.updated_at] as const),
       ...laborConditions.flatMap((row) => [
@@ -2901,6 +2936,11 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           caoScaleName: row.cao_scale_name,
           caoStepName: row.cao_step_name,
           salaryBandId: row.salary_band_id,
+          salaryTableSource: timeline.salaryTableSource?.source?.salaryId === row.id
+            ? timeline.salaryTableSource.source
+            : null,
+          salaryTableSourceStatus: timeline.salaryTableSource?.status ?? 'NOT_APPLICABLE',
+          salaryTableSourceReasonCode: timeline.salaryTableSource?.reasonCode ?? null,
           validFrom: row.valid_from,
           validUntil: row.valid_until,
         })),

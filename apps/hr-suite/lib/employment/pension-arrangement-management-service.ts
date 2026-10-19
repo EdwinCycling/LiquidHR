@@ -1,6 +1,7 @@
 import 'server-only'
 
 import type { Json } from '@scope/db'
+import { z } from 'zod'
 import { requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
@@ -12,6 +13,40 @@ const ARRANGEMENT_TYPES = ['FLAT_PREMIUM', 'PROGRESSIVE_PREMIUM'] as const
 const GRANDFATHERING_MODES = ['NONE', 'EERBIEDIGENDE_WERKING'] as const
 const CONTRACT_CLASSIFICATIONS = ['SOLIDARITY', 'NON_SOLIDARITY', 'UNKNOWN'] as const
 const SOURCE_STATUSES = ['REFERENCE_ONLY', 'EMPLOYER_RECORDED', 'VERIFIED_SOURCE'] as const
+const PENSION_COMPONENT_TYPES = ['BASE', 'ADDITIONAL'] as const
+const PENSION_COMPONENT_TAX_TREATMENTS = ['PRE_TAX_EMPLOYEE_DEDUCTION', 'EMPLOYER_COST_ONLY', 'UNVERIFIED'] as const
+
+const pensionArrangementComponentSchema = z.object({
+  code: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(180),
+  componentType: z.enum(PENSION_COMPONENT_TYPES),
+  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  basisCode: z.string().trim().min(1).max(100),
+  basisDescription: z.string().trim().min(1).max(1000),
+  totalRate: z.number().finite().min(0).max(100),
+  employeeRate: z.number().finite().min(0).max(100),
+  employerRate: z.number().finite().min(0).max(100),
+  annualFranchise: z.number().finite().min(0),
+  annualPensionableSalaryCap: z.number().finite().min(0).nullable(),
+  eligibilityRule: z.string().trim().min(1).max(1000),
+  calculationMethod: z.string().trim().min(1).max(1000),
+  roundingRule: z.string().trim().min(1).max(500),
+  sourceVersion: z.string().trim().min(1).max(180),
+  sourceReference: z.string().url().max(1000),
+  sourceSha256: z.string().regex(/^[0-9a-f]{64}$/i),
+  sourceValidationStatus: z.enum(SOURCE_STATUSES),
+  taxTreatment: z.enum(PENSION_COMPONENT_TAX_TREATMENTS),
+}).strict().superRefine((component, context) => {
+  if (component.effectiveTo !== null && component.effectiveTo < component.effectiveFrom) {
+    context.addIssue({ code: 'custom', path: ['effectiveTo'], message: 'PENSION_COMPONENT_EFFECTIVE_PERIOD_INVALID' })
+  }
+  if (Math.abs(component.totalRate - component.employeeRate - component.employerRate) >= 0.0001) {
+    context.addIssue({ code: 'custom', path: ['totalRate'], message: 'PENSION_COMPONENT_RATE_SPLIT_INVALID' })
+  }
+})
+
+export type PensionArrangementComponentInput = z.infer<typeof pensionArrangementComponentSchema>
 
 export type PensionArrangementTierInput = {
   readonly minAge: number
@@ -39,6 +74,7 @@ export type PensionArrangementCreateInput = {
   readonly partTimeMethod: string
   readonly partMonthMethod: string
   readonly eligibilityRule: string
+  readonly components: readonly PensionArrangementComponentInput[]
   readonly contractClassification: (typeof CONTRACT_CLASSIFICATIONS)[number]
   readonly contractClassificationSourceReference: string
   readonly contractClassificationStatus: 'EMPLOYER_RECORDED' | 'VERIFIED_SOURCE' | 'UNVERIFIED'
@@ -50,6 +86,12 @@ export class PensionArrangementManagementError extends Error {
     super(code)
     this.name = 'PensionArrangementManagementError'
   }
+}
+
+export function parsePensionArrangementComponents(value: unknown): readonly PensionArrangementComponentInput[] {
+  const parsed = z.array(pensionArrangementComponentSchema).min(1).max(20).safeParse(value)
+  if (!parsed.success) throw new Error('INVALID_INPUT')
+  return parsed.data
 }
 
 function isPensionManager(context: AuthContext): boolean {
@@ -107,6 +149,15 @@ function validateInput(input: PensionArrangementCreateInput): void {
     && input.tiers.every(validateTier)
   const contractSourceValid = input.contractClassification !== 'NON_SOLIDARITY'
     || nonEmpty(input.contractClassificationStatus, 40)
+  const components = z.array(pensionArrangementComponentSchema).min(1).max(20).safeParse(input.components)
+  const uniqueComponentCodes = components.success
+    ? new Set(components.data.map((component) => component.code.toLocaleUpperCase('en-US'))).size === components.data.length
+    : false
+  const componentsWithinArrangementPeriod = components.success && components.data.every((component) =>
+    component.effectiveFrom >= input.effectiveFrom
+    && (input.effectiveTo === null || component.effectiveFrom <= input.effectiveTo)
+    && (component.effectiveTo === null || input.effectiveTo === null || component.effectiveTo <= input.effectiveTo),
+  )
   if (!nonEmpty(input.code, 80)
     || !nonEmpty(input.name, 180)
     || !ARRANGEMENT_TYPES.includes(input.arrangementType)
@@ -124,6 +175,9 @@ function validateInput(input: PensionArrangementCreateInput): void {
     || !nonEmpty(input.partMonthMethod, 1000)
     || !nonEmpty(input.eligibilityRule, 1000)
     || !contractSourceValid
+    || !components.success
+    || !uniqueComponentCodes
+    || !componentsWithinArrangementPeriod
     || (input.contractClassificationStatus === 'VERIFIED_SOURCE' && !nonEmpty(input.contractClassificationSourceReference, 1000))) {
     throw new PensionArrangementManagementError('PENSION_ARRANGEMENT_INPUT_INVALID', 400)
   }
@@ -169,6 +223,7 @@ export async function createPensionArrangement(input: PensionArrangementCreateIn
     method: input.pensionableSalaryMethod,
     partTimeMethod: input.partTimeMethod,
     partMonthMethod: input.partMonthMethod,
+    components: input.components.map((component) => ({ ...component })),
   }
   const eligibilityRule: Json = {
     description: input.eligibilityRule,

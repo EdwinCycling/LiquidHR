@@ -18075,6 +18075,7 @@ export type Database = {
       }
       salary_structure_revisions: {
         Row: {
+          correction_of_revision_id: string | null
           created_at: string
           created_by_user_id: string | null
           currency_code: string
@@ -18088,12 +18089,14 @@ export type Database = {
           revision_number: number
           salary_basis: Database["public"]["Enums"]["salary_structure_basis"]
           salary_structure_id: string
+          source_metadata: Json | null
           status: Database["public"]["Enums"]["salary_revision_status"]
           tenant_id: string
           updated_at: string
           updated_by_user_id: string | null
         }
         Insert: {
+          correction_of_revision_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
           currency_code?: string
@@ -18107,12 +18110,14 @@ export type Database = {
           revision_number: number
           salary_basis: Database["public"]["Enums"]["salary_structure_basis"]
           salary_structure_id: string
+          source_metadata?: Json | null
           status?: Database["public"]["Enums"]["salary_revision_status"]
           tenant_id: string
           updated_at?: string
           updated_by_user_id?: string | null
         }
         Update: {
+          correction_of_revision_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
           currency_code?: string
@@ -18126,12 +18131,20 @@ export type Database = {
           revision_number?: number
           salary_basis?: Database["public"]["Enums"]["salary_structure_basis"]
           salary_structure_id?: string
+          source_metadata?: Json | null
           status?: Database["public"]["Enums"]["salary_revision_status"]
           tenant_id?: string
           updated_at?: string
           updated_by_user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "salary_structure_revisions_correction_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_structure_id", "correction_of_revision_id"]
+            isOneToOne: false
+            referencedRelation: "salary_structure_revisions"
+            referencedColumns: ["tenant_id", "hr_group_id", "salary_structure_id", "id"]
+          },
           {
             foreignKeyName: "salary_structure_revisions_structure_fkey"
             columns: ["tenant_id", "hr_group_id", "salary_structure_id"]
@@ -22976,6 +22989,15 @@ export type Database = {
       }
       create_salary_structure_draft: {
         Args: { requested_payload: Json; requested_structure_id: string }
+        Returns: Json
+      }
+      save_salary_structure_import_draft: {
+        Args: {
+          requested_draft_id: string | null
+          requested_expected_lock_version: number | null
+          requested_payload: Json
+          requested_structure_id: string
+        }
         Returns: Json
       }
       create_talent_notification: {

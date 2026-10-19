@@ -32,7 +32,7 @@ type Labels = {
   readonly pensionPartTimeMethod: string
   readonly pensionPartMonthMethod: string
   readonly pensionEligibilityRule: string
-  readonly pensionSourceHash: string
+  readonly pensionIntegrityHash: string
   readonly caoMappingsTitle: string
   readonly caoMappingsDescription: string
   readonly caoMappingsEmpty: string
@@ -141,7 +141,7 @@ export function CaoSetupOverview({ data, locale, labels }: { readonly data: CaoS
               <div><dt className="text-muted-foreground">{labels.pensionPartMonthMethod}</dt><dd>{objectText(pension.pensionableSalaryDefinition, 'partMonthMethod')}</dd></div>
               <div className="sm:col-span-2"><dt className="text-muted-foreground">{labels.pensionEligibilityRule}</dt><dd>{objectText(pension.eligibilityRule, 'description')}</dd></div>
             </dl>
-            <p className="mt-3 break-all font-mono text-xs text-muted-foreground">{labels.pensionSourceHash}: {pension.sourceHash}</p>
+            <p className="mt-3 break-all font-mono text-xs text-muted-foreground">{labels.pensionIntegrityHash}: {pension.integrityHash}</p>
           </article>)}
         </div>}
     </Surface>

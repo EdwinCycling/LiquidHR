@@ -1,18 +1,10 @@
 import {
-  buildCalculationInputs,
-  calculatePayroll,
   FixedDecimal,
   sha256,
   stableSerialize,
-  type PayrollCalculationResult,
-  type PayrollCalculationTraceStep,
   type PayrollPeriodReference,
-  type PayrollSourceSnapshot,
 } from '@liquid-hr/payroll-engine'
-import {
-  getKinderopvangRuleBundle,
-  getRetailModeRuleBundle,
-} from '@liquid-hr/payroll-rules-cao-bench02'
+import type { EmploymentPayrollSourceProjection } from '@/lib/employment/employment-detail-service'
 import {
   calculateNl2026PeriodSegments,
   prorateMonthlySalary,
@@ -26,16 +18,7 @@ export type CaoCalculationTraceStep = {
   readonly values: Readonly<Record<string, string | number | boolean | null>>
   readonly sourceReference: string
 }
-export type CaoRetailBusinessScope = {
-  readonly tenantId: string
-  readonly administrationId: string
-  readonly value: 'IN_STORE' | 'ECOMMERCE'
-  readonly sourceClassification: 'OFFICIAL' | 'SYNTHETIC_FIXTURE'
-  readonly sourceReference: string
-  readonly sourceVersion: string
-  readonly effectiveFrom: string
-  readonly effectiveTo: string | null
-}
+
 export type CaoPayrollCalculation = {
   readonly status: 'NOT_APPLICABLE' | 'CALCULATED' | 'BLOCKED'
   readonly family?: CaoPayrollFamily
@@ -58,7 +41,6 @@ export type CaoPayrollCalculation = {
   readonly blockingStatus?: 'SOURCE_GAP' | 'UNSUPPORTED'
   readonly inputs?: Readonly<Record<string, string | number | boolean>>
   readonly trace?: readonly CaoCalculationTraceStep[]
-  readonly componentTrace?: readonly PayrollCalculationTraceStep[]
   readonly sourceReferences?: readonly { readonly title: string; readonly url: string }[]
 }
 
@@ -70,6 +52,11 @@ export type CaoPayrollSalaryInput = {
   readonly salaryStepCode: string | null
   readonly hourlyRate: number | null
   readonly validFrom: string
+  readonly validUntil?: string | null
+  readonly paymentType?: string | null
+  readonly salaryStructureId?: string | null
+  readonly salaryScaleId?: string | null
+  readonly salaryScaleStepId?: string | null
 }
 
 export type CaoPayrollScheduleInput = {
@@ -81,8 +68,21 @@ export type CaoPayrollActualWorkEntry = {
   readonly family: string
   readonly typeCode?: string | null
   readonly typeName?: string | null
+  readonly workDate?: string | null
+  readonly isPublicHoliday?: boolean | null
   readonly hours: string | number
   readonly status: string
+}
+
+export type CaoRetailBusinessScope = {
+  readonly tenantId: string
+  readonly administrationId: string
+  readonly value: 'IN_STORE' | 'ECOMMERCE'
+  readonly sourceClassification: 'OFFICIAL' | 'SYNTHETIC_FIXTURE'
+  readonly sourceReference: string
+  readonly sourceVersion: string
+  readonly effectiveFrom: string
+  readonly effectiveTo: string | null
 }
 
 export type CaoPayrollIntegrationInput = {
@@ -99,35 +99,12 @@ export type CaoPayrollIntegrationInput = {
   readonly laborConditionName: string | null
   readonly retailBusinessScope?: CaoRetailBusinessScope
   readonly salary: CaoPayrollSalaryInput | null
+  readonly salaryTableSource?: EmploymentPayrollSourceProjection['salaryTableSource']
   readonly schedule: CaoPayrollScheduleInput | null
   readonly actualWorkEntries: readonly CaoPayrollActualWorkEntry[]
 }
 
-const KINDEROPVANG_SOURCES = Object.freeze([
-  {
-    title: 'Cao Kinderopvang 2025–2026 — integrale cao-tekst',
-    url: 'https://www.kinderopvang-werkt.nl/sites/fcb_kinderopvang/files/2025-06/Cao-Kinderopvang-2025-2026-integraal.pdf',
-  },
-  {
-    title: 'Cao Kinderopvang 2025–2026 — salarisschalen',
-    url: 'https://www.kinderopvang-werkt.nl/sites/fcb_kinderopvang/files/2025-04/Bijlage-2-Salarisschalen-Cao-Kinderopvang-2025-2026.pdf',
-  },
-  {
-    title: 'Cao Kinderopvang — werkurentoeslag',
-    url: 'https://www.kinderopvang-werkt.nl/cao-kinderopvang-2025-2026/werkurentoeslag',
-  },
-])
-
-const RETAIL_MODE_SOURCES = Object.freeze([
-  {
-    title: 'Cao Retail Non-Food — januari 2026',
-    url: 'https://www.inretail.nl/wp-content/uploads/2026/02/260121-Cao-Retail-Non-Food-januari-2026-def.pdf',
-  },
-  {
-    title: 'Cao Retail Non-Food — juli 2026',
-    url: 'https://www.inretail.nl/wp-content/uploads/2026/05/260527-Cao-Retail-Non-Food-juli-2026-def.pdf',
-  },
-])
+const KINDEROPVANG_RULE_SOURCE = 'https://www.kinderopvang-werkt.nl/sites/fcb_kinderopvang/files/2025-06/Cao-Kinderopvang-2025-2026-integraal.pdf'
 
 function normalized(value: string | null | undefined): string {
   return (value ?? '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
@@ -138,81 +115,103 @@ function mentions(value: string | null | undefined, patterns: readonly string[])
   return patterns.some((pattern) => normalizedValue === pattern || normalizedValue.includes(pattern))
 }
 
-function caoFamily(input: CaoPayrollIntegrationInput): CaoPayrollFamily | null {
-  const values = [input.laborConditionCode, input.laborConditionName]
-  if (values.some((value) => mentions(value, [
+function caoFamilyForValue(value: string | null | undefined): CaoPayrollFamily | null {
+  if (mentions(value, [
     'CAO_KINDEROPVANG_2025_2026',
     'CAO_KINDEROPVANG_2025',
     'KINDEROPVANG_2025_2026',
     'KINDEROPVANG',
-  ]))) return 'KINDEROPVANG'
-  if (values.some((value) => mentions(value, [
+  ])) return 'KINDEROPVANG'
+  if (mentions(value, [
     'CAO_RETAIL_NON_FOOD_2026_2027',
     'RETAIL_NON_FOOD_MODE_2026_2027',
     'RETAIL_NON_FOOD',
     'RETAIL_MODE',
-  ]))) return 'RETAIL_MODE'
+  ])) return 'RETAIL_MODE'
   return null
 }
 
+function caoFamily(input: CaoPayrollIntegrationInput): CaoPayrollFamily | null {
+  const codedFamily = caoFamilyForValue(input.laborConditionCode)
+  if (codedFamily) return codedFamily
+  if (input.laborConditionCode?.trim()) return null
+  return caoFamilyForValue(input.laborConditionName)
+}
+
 function numericToken(value: string | null | undefined): string | null {
-  const match = (value ?? '').trim().match(/(?:^|[^0-9])([0-9]+(?:[.,][0-9]+)?)(?:$|[^0-9])/)
-  return match?.[1]?.replace(',', '.') ?? null
+  return (value ?? '').trim().match(/(?:^|[^0-9])([0-9]+(?:[.,][0-9]+)?)(?:$|[^0-9])/)?.[1]?.replace(',', '.') ?? null
 }
 
-function scaleToken(salary: CaoPayrollSalaryInput): string | null {
-  return numericToken(salary.caoScaleName)
+function salaryRowIdentityToken(value: string | null | undefined): string | null {
+  const numeric = numericToken(value)
+  if (numeric) return numeric
+  const normalizedValue = normalized(value)
+  if (!normalizedValue) return null
+  const finalCode = normalizedValue.split('_').at(-1) ?? normalizedValue
+  if (/^(?:[A-Z]|II|III|IV|V|VI|VII|VIII|IX|X)$/.test(finalCode)) return finalCode
+  return normalizedValue
 }
 
-function stepToken(salary: CaoPayrollSalaryInput): string | null {
-  return numericToken(salary.caoStepName) ?? numericToken(salary.salaryStepCode)
-}
-
-function parseNonNegative(value: string | number, reasonCode: string): { readonly value: FixedDecimal } | { readonly reasonCode: string } {
+function parseNonNegative(value: string | number): FixedDecimal | null {
   try {
     const parsed = FixedDecimal.parse(String(value))
-    return parsed.compare(FixedDecimal.fromInteger(BigInt(0))) < 0
-      ? { reasonCode }
-      : { value: parsed }
+    return parsed.compare(FixedDecimal.fromInteger(BigInt(0))) < 0 ? null : parsed
   } catch {
-    return { reasonCode }
+    return null
   }
 }
 
-function sumActualWork(
+function isIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const timestamp = Date.parse(`${value}T00:00:00.000Z`)
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value
+}
+
+function periodEndInclusive(period: PayrollPeriodReference): string {
+  return new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
+}
+
+function isValidRetailBusinessScope(input: CaoPayrollIntegrationInput, scope: CaoRetailBusinessScope): boolean {
+  return (scope.value === 'IN_STORE' || scope.value === 'ECOMMERCE')
+    && (scope.sourceClassification === 'OFFICIAL' || scope.sourceClassification === 'SYNTHETIC_FIXTURE')
+    && scope.tenantId === input.tenantId
+    && scope.administrationId === input.administrationId
+    && scope.sourceReference.trim().length > 0
+    && scope.sourceVersion.trim().length > 0
+    && isIsoDate(scope.effectiveFrom)
+    && (scope.effectiveTo === null || (isIsoDate(scope.effectiveTo) && scope.effectiveTo >= scope.effectiveFrom))
+    && scope.effectiveFrom <= periodStart(input.period)
+    && (scope.effectiveTo === null || scope.effectiveTo >= periodEndInclusive(input.period))
+}
+
+function sumApprovedWork(
   entries: readonly CaoPayrollActualWorkEntry[],
   family: CaoPayrollFamily,
-): {
-  readonly values: Readonly<Record<string, FixedDecimal>>
-  readonly consumed: boolean
-  readonly reasonCode?: string
-} {
+): { readonly hours: FixedDecimal; readonly consumed: boolean; readonly reasonCode?: string } {
   const zero = FixedDecimal.fromInteger(BigInt(0))
-  let sundayHours = zero
-  let weekdayNightHours = zero
-  let dailyOvertimeHours = zero
+  let qualifyingHours = zero
   let consumed = false
   for (const entry of entries) {
-    if (entry.family === 'TRANSPARENT') continue
-    // Work-hour family is the only semantic signal Payroll may use. Codes and
-    // display names are labels; they must never infer Sunday or night work.
-    const sunday = false
-    const night = false
-    const overtime = entry.family === 'OVERTIME'
-    const matched = family === 'RETAIL_MODE' && overtime
-    if (!matched) continue
-    const parsed = parseNonNegative(entry.hours, 'CAO_ACTUAL_WORK_HOURS_INVALID')
-    if ('reasonCode' in parsed) return { values: {}, consumed: false, reasonCode: parsed.reasonCode }
-    if (entry.status !== 'APPROVED') continue
+    if (entry.family === 'TRANSPARENT' || entry.status !== 'APPROVED') continue
+    if (family === 'RETAIL_MODE') {
+      return { hours: zero, consumed: false, reasonCode: 'CAO_RETAIL_VARIABLE_WAGE_RULE_NOT_CONFIGURED' }
+    }
+    const isSunday = typeof entry.workDate === 'string' && isIsoDate(entry.workDate)
+      && new Date(`${entry.workDate}T00:00:00.000Z`).getUTCDay() === 0
+    const isPublicHoliday = entry.isPublicHoliday === true
+    if (!isSunday && !isPublicHoliday) {
+      if (entry.family === 'ADDITIONAL' && entry.isPublicHoliday === null || entry.family === 'ADDITIONAL' && entry.isPublicHoliday === undefined) {
+        return { hours: zero, consumed: false, reasonCode: 'CAO_PUBLIC_HOLIDAY_CLASSIFICATION_REQUIRED' }
+      }
+      if (entry.family === 'OVERTIME') return { hours: zero, consumed: false, reasonCode: 'CAO_ACTUAL_WORK_TYPE_UNSUPPORTED' }
+      continue
+    }
+    const amount = parseNonNegative(entry.hours)
+    if (!amount) return { hours: zero, consumed: false, reasonCode: 'CAO_ACTUAL_WORK_HOURS_INVALID' }
+    qualifyingHours = qualifyingHours.add(amount)
     consumed = true
-    if (sunday) sundayHours = sundayHours.add(parsed.value)
-    if (night) weekdayNightHours = weekdayNightHours.add(parsed.value)
-    if (overtime) dailyOvertimeHours = dailyOvertimeHours.add(parsed.value)
   }
-  return {
-    values: { sundayHours, weekdayNightHours, dailyOvertimeHours },
-    consumed,
-  }
+  return { hours: qualifyingHours, consumed }
 }
 
 function periodStart(period: PayrollPeriodReference): string {
@@ -223,76 +222,20 @@ function periodEndExclusive(period: PayrollPeriodReference): string {
   return new Date(Date.UTC(period.year, period.month, 1)).toISOString().slice(0, 10)
 }
 
-function periodEndInclusive(period: PayrollPeriodReference): string {
-  return new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
-}
-
-function isValidIsoDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
-  const timestamp = Date.parse(`${value}T00:00:00.000Z`)
-  return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value
-}
-
-function moneyResult(result: PayrollCalculationResult, key: string): string | null {
-  const row = result.resultRows.find((candidate) => candidate.key === key)
-  return row && row.valueType === 'MONEY' && typeof row.value === 'string' ? row.value : null
-}
-
-function sourceHashForScenario(input: CaoPayrollIntegrationInput, scenario: Readonly<Record<string, unknown>>): string {
-  return sha256(stableSerialize({
-    sourceTenantId: input.tenantId,
-    sourceHrGroupId: input.hrGroupId,
-    sourceAdministrationId: input.administrationId,
-    sourceEmployeeId: input.employeeId,
-    sourceEmploymentId: input.employmentId,
-    sourceIncomeRelationshipId: input.incomeRelationshipId,
-    periodReference: input.period,
-    canonicalSource: { scenario },
-    sourceVersionVector: {},
-    sourceGaps: [],
-  }))
-}
-
-function runRule(
-  input: CaoPayrollIntegrationInput,
-  scenario: Readonly<Record<string, string | boolean>>,
-  bundle: ReturnType<typeof getKinderopvangRuleBundle> | ReturnType<typeof getRetailModeRuleBundle>,
-): PayrollCalculationResult {
-  const sourceHash = sourceHashForScenario(input, scenario)
-  const snapshot: PayrollSourceSnapshot = {
-    id: `CAO_SOURCE:${sourceHash}`,
-    sourceTenantId: input.tenantId,
-    sourceHrGroupId: input.hrGroupId,
-    sourceAdministrationId: input.administrationId,
-    sourceEmployeeId: input.employeeId,
-    sourceEmploymentId: input.employmentId,
-    sourceIncomeRelationshipId: input.incomeRelationshipId,
-    periodReference: input.period,
-    canonicalSource: { scenario },
-    sourceVersionVector: {},
-    sourceGaps: [],
-    sourceHash,
-    createdAt: new Date(0).toISOString(),
-  }
-  const inputs = buildCalculationInputs(snapshot, bundle.rulePackage, { effectiveDate: periodStart(input.period) })
-  return calculatePayroll(inputs, bundle.registry)
-}
-
-function partialPeriodAmount(
-  input: CaoPayrollIntegrationInput,
-  amount: string,
-): string {
-  if (input.activeStart <= periodStart(input.period) && input.activeEndExclusive >= periodEndExclusive(input.period)) return amount
+function partialPeriodAmount(input: CaoPayrollIntegrationInput, amount: FixedDecimal): FixedDecimal | null {
+  const start = periodStart(input.period)
+  const endExclusive = periodEndExclusive(input.period)
+  if (input.activeStart <= start && input.activeEndExclusive >= endExclusive) return amount
   try {
     const segments = calculateNl2026PeriodSegments({
-      periodStart: periodStart(input.period),
-      periodEndExclusive: periodEndExclusive(input.period),
+      periodStart: start,
+      periodEndExclusive: endExclusive,
       paidStart: input.activeStart,
       paidEndExclusive: input.activeEndExclusive,
     })
-    return prorateMonthlySalary(FixedDecimal.parse(amount), segments.paidWorkdays, segments.periodWorkdays).toString(2)
+    return prorateMonthlySalary(amount, segments.paidWorkdays, segments.periodWorkdays)
   } catch {
-    return amount
+    return null
   }
 }
 
@@ -300,261 +243,221 @@ function blocked(
   family: CaoPayrollFamily,
   reasonCode: string,
   blockingStatus: 'SOURCE_GAP' | 'UNSUPPORTED',
-  sources: readonly { readonly title: string; readonly url: string }[],
+  references: readonly { readonly title: string; readonly url: string }[] = [],
 ): CaoPayrollCalculation {
-  return { status: 'BLOCKED', family, reasonCode, blockingStatus, sourceReferences: sources }
+  return { status: 'BLOCKED', family, reasonCode, blockingStatus, sourceReferences: references }
 }
 
-function calculateKinderopvang(input: CaoPayrollIntegrationInput): CaoPayrollCalculation {
-  const sources = KINDEROPVANG_SOURCES
-  if (!input.salary) return blocked('KINDEROPVANG', 'CAO_SALARY_SOURCE_MISSING', 'SOURCE_GAP', sources)
-  if (!input.schedule) return blocked('KINDEROPVANG', 'CAO_SCHEDULE_SOURCE_MISSING', 'SOURCE_GAP', sources)
-  const scale = scaleToken(input.salary)
-  const number = stepToken(input.salary)
-  if (!scale) return blocked('KINDEROPVANG', 'CAO_SALARY_SCALE_MISSING', 'SOURCE_GAP', sources)
-  if (!number) return blocked('KINDEROPVANG', 'CAO_SALARY_STEP_MISSING', 'SOURCE_GAP', sources)
-  const hours = sumActualWork(input.actualWorkEntries, 'KINDEROPVANG')
-  if (hours.reasonCode) return blocked('KINDEROPVANG', hours.reasonCode, 'UNSUPPORTED', sources)
-  const contractHours = String(input.schedule.contractHoursPerWeek)
-  const fullTimeHours = String(input.schedule.fullTimeHoursPerWeek)
-  const scenario = {
-    salaryScale: scale,
-    salaryNumber: number,
-    contractHoursPerWeek: contractHours,
-    fullTimeHoursPerWeek: fullTimeHours,
-    sundayHoursInPeriod: hours.values.sundayHours?.toString() ?? '0',
-  }
-  try {
-    const bundle = getKinderopvangRuleBundle(periodStart(input.period))
-    const result = runRule(input, scenario, bundle)
-    const baseAmount = moneyResult(result, 'base_salary')
-    const premiumAmount = moneyResult(result, 'work_hour_supplement')
-    const grossAmount = moneyResult(result, 'gross_salary')
-    const fullTimeMonthlyAmount = result.packageMetadata?.sourceMetadata.fullTimeMonthlySalary ?? null
-    if (result.status !== 'CALCULATED' || !baseAmount || !premiumAmount || !grossAmount || !fullTimeMonthlyAmount) {
-      return blocked('KINDEROPVANG', 'CAO_RULE_RESULT_INCOMPLETE', 'UNSUPPORTED', sources)
-    }
-    const periodBase = partialPeriodAmount(input, baseAmount)
-    const periodPremium = partialPeriodAmount(input, premiumAmount)
-    const periodGross = FixedDecimal.parse(periodBase).add(FixedDecimal.parse(periodPremium)).toString()
-    const version = result.packageMetadata?.version ?? bundle.rulePackage.compositionId.split(':').at(-1) ?? 'UNKNOWN'
-    return {
-      status: 'CALCULATED',
-      family: 'KINDEROPVANG',
-      packageId: result.packageMetadata?.packageId,
-      packageVersion: version,
-      compositionId: result.rulePackageCompositionId,
-      packageHash: result.packageMetadata?.packageHash,
-      sourceHash: result.sourceHash,
-      inputHash: result.inputHash,
-      resultHash: result.resultHash,
-      effectiveFrom: result.packageMetadata?.sourceMetadata.packageEffectiveFrom,
-      effectiveTo: result.packageMetadata?.sourceMetadata.packageEffectiveTo,
-      baseAmount: periodBase,
-      premiumAmount: periodPremium,
-      grossAmount: periodGross,
-      fullTimeMonthlyAmount,
-      actualWorkConsumed: hours.consumed,
-      inputs: {
-        salaryScale: scale,
-        salaryNumber: number,
-        contractHoursPerWeek: contractHours,
-        fullTimeHoursPerWeek: fullTimeHours,
-        sundayHoursInPeriod: hours.values.sundayHours?.toString() ?? '0',
-      },
-      trace: [
-        {
-          code: 'CAO_KINDEROPVANG_CLASSIFICATION',
-          formula: 'Core labor-condition set + salary scale + salary number select the effective supported CAO row.',
-          values: { family: 'KINDEROPVANG', salaryScale: scale, salaryNumber: number },
-          sourceReference: sources[0]!.url,
-        },
-        {
-          code: 'CAO_KINDEROPVANG_BASE_SALARY',
-          formula: 'Full-time monthly table amount × contract hours ÷ full-time hours.',
-          values: { fullTimeMonthlySalary: fullTimeMonthlyAmount, contractHoursPerWeek: contractHours, fullTimeHoursPerWeek: fullTimeHours, baseSalary: periodBase },
-          sourceReference: sources[1]!.url,
-        },
-        {
-          code: 'CAO_KINDEROPVANG_SUNDAY_SUPPLEMENT',
-          formula: 'Full-time annual salary ÷ 1,879.2 annual hours × approved Sunday hours × 45%.',
-          values: { sundayHoursInPeriod: hours.values.sundayHours?.toString() ?? '0', premium: periodPremium },
-          sourceReference: sources[2]!.url,
-        },
-        {
-          code: 'CAO_KINDEROPVANG_GROSS_RESULT',
-          formula: 'Period base salary + period work-hour supplement.',
-          values: { grossAmount: periodGross },
-          sourceReference: sources[0]!.url,
-        },
-      ],
-      sourceReferences: sources,
-    }
-  } catch (error) {
-    const errorCode = typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string'
-      ? error.code : null
-    const reasonCode = errorCode === 'KO_UNSUPPORTED_SCALE' || (error instanceof Error && error.message.includes('UNSUPPORTED_SCALE'))
-      ? 'CAO_KINDEROPVANG_SCALE_UNSUPPORTED'
-      : errorCode === 'KO_UNSUPPORTED_SALARY_NUMBER' || (error instanceof Error && error.message.includes('UNSUPPORTED_SALARY_NUMBER'))
-        ? 'CAO_KINDEROPVANG_SALARY_STEP_UNSUPPORTED'
-        : errorCode === 'KO_FULL_TIME_HOURS_UNSUPPORTED' || (error instanceof Error && error.message.includes('FULL_TIME_HOURS_UNSUPPORTED'))
-          ? 'CAO_KINDEROPVANG_FULL_TIME_HOURS_UNSUPPORTED'
-          : `CAO_KINDEROPVANG_RULE_EXECUTION_FAILED${errorCode ? `_${errorCode}` : ''}${error instanceof Error && errorCode === null ? `_${error.message.replace(/[^A-Z0-9_]+/gi, '_').slice(0, 80)}` : ''}`
-    return blocked('KINDEROPVANG', reasonCode, 'UNSUPPORTED', sources)
-  }
+function referenceFor(source: NonNullable<NonNullable<CaoPayrollIntegrationInput['salaryTableSource']>['source']>) {
+  return { title: `${source.sourceTitle} — ${source.sourceVersion}`, url: source.sourceUrl }
 }
 
-function calculateRetailMode(input: CaoPayrollIntegrationInput): CaoPayrollCalculation {
-  const sources = RETAIL_MODE_SOURCES
-  if (!input.salary) return blocked('RETAIL_MODE', 'CAO_SALARY_SOURCE_MISSING', 'SOURCE_GAP', sources)
-  if (!input.schedule) return blocked('RETAIL_MODE', 'CAO_SCHEDULE_SOURCE_MISSING', 'SOURCE_GAP', sources)
-  const functionGroup = (input.salary.caoScaleName ?? '').trim().toUpperCase()
-  const experienceRow = stepToken(input.salary)
-  if (!functionGroup) return blocked('RETAIL_MODE', 'CAO_FUNCTION_GROUP_MISSING', 'SOURCE_GAP', sources)
-  if (!experienceRow) return blocked('RETAIL_MODE', 'CAO_EXPERIENCE_ROW_MISSING', 'SOURCE_GAP', sources)
-  const scenarioCode = functionGroup === 'I' && experienceRow === '15'
-    ? 'R1'
-    : functionGroup === 'C' && experienceRow === '1'
-      ? 'R2'
-      : null
-  if (!scenarioCode) return blocked('RETAIL_MODE', 'CAO_RETAIL_ROW_UNSUPPORTED', 'UNSUPPORTED', sources)
-  const hours = sumActualWork(input.actualWorkEntries, 'RETAIL_MODE')
-  if (hours.reasonCode) return blocked('RETAIL_MODE', hours.reasonCode, 'UNSUPPORTED', sources)
-  const weekdayNightHours = hours.values.weekdayNightHours ?? FixedDecimal.fromInteger(BigInt(0))
-  const retailBusinessScope = input.retailBusinessScope
-  if (weekdayNightHours.compare(FixedDecimal.fromInteger(BigInt(0))) > 0 && !retailBusinessScope) {
-    return blocked('RETAIL_MODE', 'CAO_RETAIL_BUSINESS_SCOPE_UNVERIFIED', 'SOURCE_GAP', sources)
+function calculateFamily(input: CaoPayrollIntegrationInput, family: CaoPayrollFamily): CaoPayrollCalculation {
+  const sourceResolution = input.salaryTableSource
+  const references = sourceResolution?.source ? [referenceFor(sourceResolution.source)] : []
+  if (family === 'KINDEROPVANG') references.push({ title: 'Cao Kinderopvang 2025–2026 — regels voor werkurentoeslag', url: KINDEROPVANG_RULE_SOURCE })
+  if (family === 'RETAIL_MODE' && input.retailBusinessScope
+    && !isValidRetailBusinessScope(input, input.retailBusinessScope)) {
+    return blocked(family, 'CAO_RETAIL_BUSINESS_SCOPE_INVALID', 'SOURCE_GAP', references)
   }
-  if (retailBusinessScope && (
-    !['IN_STORE', 'ECOMMERCE'].includes(retailBusinessScope.value)
-    || !['OFFICIAL', 'SYNTHETIC_FIXTURE'].includes(retailBusinessScope.sourceClassification)
-    || retailBusinessScope.tenantId !== input.tenantId
-    || retailBusinessScope.administrationId !== input.administrationId
-    || !retailBusinessScope.sourceReference.trim()
-    || !retailBusinessScope.sourceVersion.trim()
-    || !isValidIsoDate(retailBusinessScope.effectiveFrom)
-    || (retailBusinessScope.effectiveTo !== null && (
-      !isValidIsoDate(retailBusinessScope.effectiveTo)
-      || retailBusinessScope.effectiveTo < retailBusinessScope.effectiveFrom
-    ))
-    || retailBusinessScope.effectiveFrom > periodStart(input.period)
-    || (retailBusinessScope.effectiveTo !== null && retailBusinessScope.effectiveTo < periodEndInclusive(input.period))
-  )) {
-    return blocked('RETAIL_MODE', 'CAO_RETAIL_BUSINESS_SCOPE_INVALID', 'SOURCE_GAP', sources)
+  if (!input.salary) return blocked(family, 'CAO_SALARY_SOURCE_MISSING', 'SOURCE_GAP', references)
+  if (!input.schedule) return blocked(family, 'CAO_SCHEDULE_SOURCE_MISSING', 'SOURCE_GAP', references)
+  if (!sourceResolution || sourceResolution.status !== 'RESOLVED' || !sourceResolution.source) {
+    return blocked(family, sourceResolution?.reasonCode ?? 'CAO_SALARY_TABLE_SOURCE_MISSING', 'SOURCE_GAP', references)
   }
-  const actualHourlyRate = input.salary.hourlyRate === null ? '0' : String(input.salary.hourlyRate)
-  if (scenarioCode === 'R1' && actualHourlyRate === '0') return blocked('RETAIL_MODE', 'CAO_RETAIL_ACTUAL_HOURLY_RATE_MISSING', 'SOURCE_GAP', sources)
-  const scenario = {
-    scenarioCode,
-    functionGroup,
-    experienceRow,
-    contractHoursPerWeek: String(input.schedule.contractHoursPerWeek),
-    fullTimeHoursPerWeek: String(input.schedule.fullTimeHoursPerWeek),
-    existingActualHourlyRate: scenarioCode === 'R2' ? '0' : actualHourlyRate,
-    weekdayNightHours: hours.values.weekdayNightHours?.toString() ?? '0',
-    sundayHours: hours.values.sundayHours?.toString() ?? '0',
-    dailyOvertimeHours: hours.values.dailyOvertimeHours?.toString() ?? '0',
-    isEcommerce: retailBusinessScope?.value === 'ECOMMERCE',
+  const table = sourceResolution.source
+  const start = periodStart(input.period)
+  const endInclusive = new Date(Date.UTC(input.period.year, input.period.month, 0)).toISOString().slice(0, 10)
+  if (table.salaryId !== input.salary.id
+    || table.structureId !== input.salary.salaryStructureId
+    || table.scaleId !== input.salary.salaryScaleId
+    || table.stepId !== input.salary.salaryScaleStepId
+    || table.effectiveFrom > start || table.effectiveTo < endInclusive
+    || input.salary.validFrom > start || (input.salary.validUntil && input.salary.validUntil < endInclusive)) {
+    return blocked(family, 'CAO_SALARY_TABLE_LINK_OR_PERIOD_MISMATCH', 'UNSUPPORTED', references)
   }
-  try {
-    const bundle = getRetailModeRuleBundle(periodStart(input.period))
-    const result = runRule(input, scenario, bundle)
-    const baseAmount = moneyResult(result, 'base_monthly_gross')
-    const premiumAmount = moneyResult(result, 'selected_premium_gross')
-    const grossAmount = moneyResult(result, 'gross_pay')
-    const hourlyBaseRate = moneyResult(result, 'hourly_base_rate')
-    if (result.status !== 'CALCULATED' || !baseAmount || !premiumAmount || !grossAmount || !hourlyBaseRate) {
-      return blocked('RETAIL_MODE', 'CAO_RULE_RESULT_INCOMPLETE', 'UNSUPPORTED', sources)
+  if (input.salary.salaryBasis !== 'CAO_SCALE') {
+    return blocked(family, 'CAO_SALARY_BASIS_MISMATCH', 'UNSUPPORTED', references)
+  }
+  const scaleToken = numericToken(table.scaleCode) ?? numericToken(table.scaleName)
+  const scaleIdentity = salaryRowIdentityToken(table.scaleCode) ?? salaryRowIdentityToken(table.scaleName)
+  const stepIdentity = salaryRowIdentityToken(table.stepCode) ?? salaryRowIdentityToken(table.stepName)
+  const assignedScaleIdentity = salaryRowIdentityToken(input.salary.caoScaleName)
+  const assignedStepIdentity = salaryRowIdentityToken(input.salary.caoStepName)
+    ?? salaryRowIdentityToken(input.salary.salaryStepCode)
+  if (!scaleIdentity || !stepIdentity || scaleIdentity !== assignedScaleIdentity || stepIdentity !== assignedStepIdentity) {
+    return blocked(family, 'CAO_SALARY_TABLE_ROW_MISMATCH', 'UNSUPPORTED', references)
+  }
+
+  const contractHours = parseNonNegative(input.schedule.contractHoursPerWeek)
+  const fullTimeHours = parseNonNegative(input.schedule.fullTimeHoursPerWeek)
+  if (!contractHours || !fullTimeHours || contractHours.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0
+    || fullTimeHours.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0
+    || contractHours.compare(fullTimeHours) > 0) {
+    return blocked(family, 'CAO_SCHEDULE_FACTOR_INVALID', 'UNSUPPORTED', references)
+  }
+  const work = sumApprovedWork(input.actualWorkEntries, family)
+  if (work.reasonCode) return blocked(family, work.reasonCode, 'UNSUPPORTED', references)
+
+  let fullTimeMonthly: FixedDecimal
+  let baseAmount: FixedDecimal
+  let hourlyBaseRate: FixedDecimal | null = null
+  let premiumAmount = FixedDecimal.fromInteger(BigInt(0))
+  let formula: string
+  let premiumFormula: string | null = null
+
+  if (family === 'KINDEROPVANG') {
+    if (table.salaryBasis !== 'MONTHLY_BASE') {
+      return blocked(family, 'CAO_MONTHLY_SALARY_TABLE_REQUIRED', 'UNSUPPORTED', references)
     }
-    const fullTimeMonthlyAmount = FixedDecimal.parse(hourlyBaseRate)
-      .multiply(FixedDecimal.parse('164.67')).round(2, 'HALF_UP').toString(2)
-    const periodBase = partialPeriodAmount(input, baseAmount)
-    const periodPremium = partialPeriodAmount(input, premiumAmount)
-    const periodGross = FixedDecimal.parse(periodBase).add(FixedDecimal.parse(periodPremium)).toString(2)
-    const version = result.packageMetadata?.version ?? bundle.rulePackage.compositionId.split(':').at(-1) ?? 'UNKNOWN'
-    return {
-      status: 'CALCULATED',
-      family: 'RETAIL_MODE',
-      packageId: result.packageMetadata?.packageId,
-      packageVersion: version,
-      compositionId: result.rulePackageCompositionId,
-      packageHash: result.packageMetadata?.packageHash,
-      sourceHash: result.sourceHash,
-      inputHash: result.inputHash,
-      resultHash: result.resultHash,
-      effectiveFrom: result.packageMetadata?.sourceMetadata.activeTableEffectiveFrom,
-      effectiveTo: result.packageMetadata?.sourceMetadata.activeTableEffectiveTo,
-      baseAmount: periodBase,
-      premiumAmount: periodPremium,
-      grossAmount: periodGross,
-      fullTimeMonthlyAmount,
-      hourlyBaseRate,
-      actualWorkConsumed: hours.consumed,
-      inputs: {
-        scenarioCode,
-        functionGroup,
-        experienceRow,
-        contractHoursPerWeek: String(input.schedule.contractHoursPerWeek),
-        fullTimeHoursPerWeek: String(input.schedule.fullTimeHoursPerWeek),
-        existingActualHourlyRate: scenario.existingActualHourlyRate,
-        weekdayNightHours: scenario.weekdayNightHours,
-        sundayHours: scenario.sundayHours,
-        dailyOvertimeHours: scenario.dailyOvertimeHours,
-        isEcommerce: scenario.isEcommerce,
+    const fullTime = parseNonNegative(table.fulltimeAmount)
+    if (!fullTime || fullTime.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) {
+      return blocked(family, 'CAO_SALARY_TABLE_AMOUNT_INVALID', 'UNSUPPORTED', references)
+    }
+    fullTimeMonthly = fullTime
+    const monthlyBase = fullTime.multiply(contractHours)
+      .divideToScale(fullTimeHours, 18, 'ARITHMETIC')
+    const proratedBase = partialPeriodAmount(input, monthlyBase)
+    if (!proratedBase) return blocked(family, 'CAO_PERIOD_PRORATION_INVALID', 'UNSUPPORTED', references)
+    baseAmount = proratedBase
+    formula = 'Published full-time monthly salary table value × contract hours ÷ full-time hours, then period proration.'
+    if (work.hours.compare(FixedDecimal.fromInteger(BigInt(0))) > 0) {
+      const scaleNumber = Number(scaleToken)
+      if (scaleNumber >= 11) return blocked(family, 'CAO_KINDEROPVANG_HIGH_SCALE_WORK_HOUR_EXCEPTION_REQUIRES_REVIEW', 'UNSUPPORTED', references)
+      const maximumBasis = table.maximumStepFulltimeAmount ? parseNonNegative(table.maximumStepFulltimeAmount) : null
+      if (!maximumBasis || maximumBasis.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) {
+        return blocked(family, 'CAO_KINDEROPVANG_PREMIUM_CAP_STEP_MISSING', 'SOURCE_GAP', references)
+      }
+      const cappedMonthlyBasis = fullTime.compare(maximumBasis) > 0 ? maximumBasis : fullTime
+      hourlyBaseRate = cappedMonthlyBasis.multiply(FixedDecimal.fromInteger(BigInt(12)))
+        .divideToScale(FixedDecimal.parse('1879.2'), 18, 'ARITHMETIC')
+      premiumAmount = hourlyBaseRate.multiply(FixedDecimal.parse('0.45')).multiply(work.hours)
+      premiumFormula = 'Minimum of the employee full-time salary and salary number 18 × 12 ÷ 1,879.2 annual hours × 45% × approved Sunday or public-holiday hours.'
+    }
+  } else {
+    if (table.salaryBasis !== 'HOURLY' || table.hourlyAmount === null) {
+      return blocked(family, 'CAO_RETAIL_HOURLY_RATE_MISSING', 'SOURCE_GAP', references)
+    }
+    if (input.salary.paymentType === 'HOURLY_VARIABLE') {
+      return blocked(family, 'CAO_RETAIL_VARIABLE_HOURS_SOURCE_REQUIRED', 'SOURCE_GAP', references)
+    }
+    const hourly = parseNonNegative(table.hourlyAmount)
+    if (!hourly || hourly.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) {
+      return blocked(family, 'CAO_RETAIL_HOURLY_RATE_INVALID', 'UNSUPPORTED', references)
+    }
+    const averageMonthlyHours = fullTimeHours.multiply(FixedDecimal.parse('52'))
+      .divideToScale(FixedDecimal.parse('12'), 2, 'ARITHMETIC')
+    fullTimeMonthly = hourly.multiply(averageMonthlyHours).round(2, 'HALF_UP')
+    const monthlyBase = fullTimeMonthly.multiply(contractHours)
+      .divideToScale(fullTimeHours, 18, 'ARITHMETIC').round(2, 'HALF_UP')
+    const proratedBase = partialPeriodAmount(input, monthlyBase)
+    if (!proratedBase) return blocked(family, 'CAO_PERIOD_PRORATION_INVALID', 'UNSUPPORTED', references)
+    baseAmount = proratedBase.round(2, 'HALF_UP')
+    hourlyBaseRate = hourly
+    formula = 'Published hourly table value × rounded monthly full-time hours (full-time hours × 52 ÷ 12) × contract factor, then period proration.'
+  }
+
+  const grossAmount = family === 'RETAIL_MODE'
+    ? baseAmount.add(premiumAmount).round(2, 'HALF_UP')
+    : baseAmount.add(premiumAmount)
+  const grossAmountText = family === 'RETAIL_MODE' ? grossAmount.toString(2) : grossAmount.toString()
+  const sourceHash = sha256(stableSerialize({
+    revisionId: table.revisionId,
+    revisionNumber: table.revisionNumber,
+    sourceHash: table.sourceHash,
+    sourceRowCount: table.sourceRowCount,
+    effectiveFrom: table.effectiveFrom,
+    effectiveTo: table.effectiveTo,
+  }))
+  const inputHash = sha256(stableSerialize({
+    salaryId: input.salary.id,
+    scaleId: table.scaleId,
+    stepId: table.stepId,
+    fulltimeAmount: table.fulltimeAmount,
+    hourlyAmount: table.hourlyAmount,
+    contractHours: contractHours.toString(),
+    fullTimeHours: fullTimeHours.toString(),
+    period: input.period,
+    activeStart: input.activeStart,
+    activeEndExclusive: input.activeEndExclusive,
+    approvedHours: work.hours.toString(),
+  }))
+  const resultHash = sha256(stableSerialize({
+    baseAmount: baseAmount.toString(),
+    premiumAmount: premiumAmount.toString(),
+    grossAmount: grossAmountText,
+    sourceHash,
+    inputHash,
+  }))
+  const trace: CaoCalculationTraceStep[] = [{
+    code: `${family}_BASE_SALARY`,
+    formula,
+    values: {
+      sourceRevisionId: table.revisionId,
+      salaryScale: table.scaleCode,
+      salaryStep: table.stepCode,
+      fullTimeSalary: fullTimeMonthly.toString(),
+      contractHoursPerWeek: contractHours.toString(),
+      fullTimeHoursPerWeek: fullTimeHours.toString(),
+      baseSalary: baseAmount.toString(),
+    },
+    sourceReference: table.sourceUrl,
+  }]
+  if (premiumFormula) {
+    trace.push({
+      code: 'CAO_KINDEROPVANG_WORK_HOUR_PREMIUM',
+      formula: premiumFormula,
+      values: {
+        approvedSundayOrHolidayHours: work.hours.toString(),
+        maximumStepFulltimeAmount: table.maximumStepFulltimeAmount,
+        hourlyBaseRate: hourlyBaseRate?.toString() ?? null,
+        premium: premiumAmount.toString(),
       },
-      trace: [
-        {
-          code: 'CAO_RETAIL_MODE_CLASSIFICATION',
-          formula: 'Core function group + experience row select the supported Retail Non-Food Mode table row.',
-          values: { family: 'RETAIL_MODE', scenarioCode, functionGroup, experienceRow },
-          sourceReference: sources[0]!.url,
-        },
-        ...(retailBusinessScope ? [{
-          code: 'CAO_RETAIL_BUSINESS_SCOPE',
-          formula: 'Versioned employer activity scope determines whether the e-commerce night-hour restriction applies.',
-          values: {
-            businessModel: retailBusinessScope.value,
-            sourceClassification: retailBusinessScope.sourceClassification,
-            sourceVersion: retailBusinessScope.sourceVersion,
-          },
-          sourceReference: retailBusinessScope.sourceReference,
-        }] : []),
-        {
-          code: 'CAO_RETAIL_MODE_BASE_SALARY',
-          formula: 'Effective hourly CAO rate × 164.67 monthly conversion hours × contract hours ÷ 38 full-time hours.',
-          values: { hourlyBaseRate, baseMonthlyGross: periodBase },
-          sourceReference: sources[1]!.url,
-        },
-        {
-          code: 'CAO_RETAIL_MODE_PREMIUM',
-          formula: 'Most favorable applicable premium; overlapping hours are paid once.',
-          values: { weekdayNightHours: scenario.weekdayNightHours, sundayHours: scenario.sundayHours, dailyOvertimeHours: scenario.dailyOvertimeHours, premium: periodPremium },
-          sourceReference: sources[1]!.url,
-        },
-        {
-          code: 'CAO_RETAIL_MODE_GROSS_RESULT',
-          formula: 'Period base salary + selected premium; holiday allowance is not part of this supported rule slice.',
-          values: { grossAmount: periodGross },
-          sourceReference: sources[1]!.url,
-        },
-      ],
-      componentTrace: result.trace.filter((step) => step.componentCode === 'RETAIL_MODE_GROSS'),
-      sourceReferences: sources,
-    }
-  } catch (error) {
-    const errorCode = typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string'
-      ? error.code : null
-    const reasonCode = errorCode === 'RETAIL_MODE_FULL_TIME_UNSUPPORTED' || (error instanceof Error && error.message.includes('FULL_TIME_UNSUPPORTED'))
-      ? 'CAO_RETAIL_FULL_TIME_HOURS_UNSUPPORTED'
-      : errorCode === 'RETAIL_MODE_ECOMMERCE_NIGHT_BAND_UNSUPPORTED' || (error instanceof Error && error.message.includes('ECOMMERCE_NIGHT_BAND_UNSUPPORTED'))
-        ? 'CAO_RETAIL_ECOMMERCE_NIGHT_BAND_UNSUPPORTED'
-        : `CAO_RETAIL_RULE_EXECUTION_FAILED${errorCode ? `_${errorCode}` : ''}${error instanceof Error && errorCode === null ? `_${error.message.replace(/[^A-Z0-9_]+/gi, '_').slice(0, 80)}` : ''}`
-    return blocked('RETAIL_MODE', reasonCode, 'UNSUPPORTED', sources)
+      sourceReference: KINDEROPVANG_RULE_SOURCE,
+    })
+  }
+  trace.push({
+    code: `${family}_GROSS_RESULT`,
+    formula: 'Period base salary + applicable approved work-hour premium.',
+    values: { grossAmount: grossAmountText },
+    sourceReference: table.sourceUrl,
+  })
+  const sourceReferences = [referenceFor(table), ...(family === 'KINDEROPVANG'
+    ? [{ title: 'Cao Kinderopvang 2025–2026 — regels voor werkurentoeslag', url: KINDEROPVANG_RULE_SOURCE }]
+    : [])]
+  return {
+    status: 'CALCULATED',
+    family,
+    packageId: `CORE_SALARY_STRUCTURE:${table.structureId}`,
+    packageVersion: table.sourceVersion,
+    compositionId: `CORE_SALARY_REVISION:${table.revisionId}`,
+    packageHash: table.sourceHash,
+    sourceHash,
+    inputHash,
+    resultHash,
+    effectiveFrom: table.effectiveFrom,
+    effectiveTo: table.effectiveTo,
+    baseAmount: baseAmount.toString(),
+    premiumAmount: premiumAmount.toString(),
+    grossAmount: grossAmountText,
+    fullTimeMonthlyAmount: fullTimeMonthly.toString(),
+    ...(hourlyBaseRate ? { hourlyBaseRate: hourlyBaseRate.toString() } : {}),
+    actualWorkConsumed: work.consumed,
+    inputs: {
+      salaryScale: table.scaleCode,
+      salaryStep: table.stepCode,
+      contractHoursPerWeek: contractHours.toString(),
+      fullTimeHoursPerWeek: fullTimeHours.toString(),
+      approvedSundayOrHolidayHours: work.hours.toString(),
+      sourceRevisionId: table.revisionId,
+    },
+    trace,
+    sourceReferences,
   }
 }
 
 export function calculateCaoPayroll(input: CaoPayrollIntegrationInput): CaoPayrollCalculation {
   const family = caoFamily(input)
   if (!family) return { status: 'NOT_APPLICABLE' }
-  return family === 'KINDEROPVANG' ? calculateKinderopvang(input) : calculateRetailMode(input)
+  return calculateFamily(input, family)
 }

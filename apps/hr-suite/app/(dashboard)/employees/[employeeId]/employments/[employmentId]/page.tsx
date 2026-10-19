@@ -22,6 +22,7 @@ import { SectionHeader } from "@/components/patterns/section-header";
 import { ScrollableTabs } from "@/components/patterns/scrollable-tabs";
 import { tabLinkClasses } from "@/components/patterns/tab-link-classes";
 import { EmploymentMutationPanel } from "@/components/employment/employment-mutation-panel";
+import { FutureSalaryTimelineCorrection } from "@/components/employment/future-salary-timeline-correction";
 import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
 import { EmploymentContractTimeline } from "@/components/employment/employment-contract-timeline";
 import { SelectableTimelineList } from "@/components/employment/selectable-timeline-list";
@@ -211,6 +212,13 @@ function buildChangeData(detail: EmploymentDetail, notRecorded: string): Employm
       salaryScales: detail.options.salaryScales,
       salaryBands: detail.options.salaryBands,
       salaryRoutes: detail.options.salaryRoutes,
+      salaryRevisions: detail.options.salaryRevisions.map((revision) => ({
+        salaryStructureId: revision.salary_structure_id,
+        effectiveFrom: revision.effective_from,
+        revisionNumber: revision.revision_number,
+        status: revision.status,
+        salaryBasis: revision.salary_basis,
+      })),
     },
   };
 }
@@ -278,6 +286,7 @@ export default async function EmploymentDetailPage({
     dataScope,
   );
   const canReviewIncomeRelationships = canReviewPayrollSourceReadiness(authContext);
+  const canViewPayrollIdentifiers = canReviewIncomeRelationships;
   const incomeReadiness = tab === 'overview' && canReviewIncomeRelationships
     ? await getIncomeRelationshipReadiness(employeeId, employmentId)
     : [];
@@ -311,6 +320,7 @@ export default async function EmploymentDetailPage({
     ? query.lane as (typeof historyLanes)[number]
     : 'all';
   const currentSalary = detail.salaries.find((salary) => salary.valid_from <= selectedDate && (!salary.valid_until || salary.valid_until > selectedDate)) ?? detail.salaries[0];
+  const latestSalaryStart = detail.salaries.map((salary) => salary.valid_from).sort().slice(-1)[0] ?? null;
   const resolutionRevisions = detail.options.salaryRevisions.map((revision) => ({ id: revision.id, salaryStructureId: revision.salary_structure_id, effectiveFrom: revision.effective_from, revisionNumber: revision.revision_number, status: revision.status }));
   const resolutionScaleValues = detail.options.salaryScaleValues.map((value) => ({ revisionId: value.salary_structure_revision_id, salaryScaleId: value.salary_scale_id, code: value.code, name: value.name }));
   const resolutionSteps = detail.options.salaryResolutionSteps.map((step) => ({ id: step.id, revisionId: step.salary_structure_revision_id, salaryScaleId: step.salary_scale_id, stepCode: step.step_code, stepName: step.step_name ?? undefined, fulltimeAmount: step.fulltime_amount }));
@@ -688,6 +698,17 @@ export default async function EmploymentDetailPage({
     processes: tProcess("processesTab"),
     history: t("tabsHistory"),
   };
+  const futureSalaryCorrectionLabels = {
+    button: t("futureSalaryCorrectionButton"),
+    title: t("futureSalaryCorrectionTitle"),
+    description: t("futureSalaryCorrectionDescription"),
+    reason: t("futureSalaryCorrectionReason"),
+    confirm: t("futureSalaryCorrectionConfirm"),
+    cancel: t("cancel"),
+    saving: t("futureSalaryCorrectionSaving"),
+    saved: t("futureSalaryCorrectionSaved"),
+    failed: t("futureSalaryCorrectionFailed"),
+  };
   const effectiveStatus =
     detail.employment.starts_on > today
       ? t("future")
@@ -892,6 +913,11 @@ export default async function EmploymentDetailPage({
                       { label: t('ikvReadiness.validPeriod'), value: periodLabel(relationship.startsOn, relationship.endsOn, locale, preferences.dateFormat, t('fiscalDossier.openEnded')) },
                       { label: t('ikvReadiness.linkedEmployment'), value: linkedEmploymentNumbers.join(', ') || t('notRecorded') },
                       { label: t('fiscalDossier.classificationStatus'), value: relationship.fiscalProfilePresent ? t('ikvReadiness.fiscalProfilePresent') : t('ikvReadiness.fiscalProfileMissing') },
+                      ...(canViewPayrollIdentifiers ? [
+                        { label: t('payrollAuditRecordId'), value: relationship.id },
+                        { label: t('payrollAuditLinkIds'), value: detail.incomeRelationships.filter((link) => link.income_relationship_id === relationship.id).map((link) => link.id).join(', ') || t('notRecorded') },
+                        { label: t('payrollAuditSourceIds'), value: relationship.payrollTaxBindingId ?? t('notRecorded') },
+                      ] : []),
                     ]} />
                     <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                       {relationship.linkedEmployments.map((link, index) => <li key={`${relationship.id}-${link.employmentNumber}-${link.validFrom}-${index}`}>
@@ -1190,6 +1216,13 @@ export default async function EmploymentDetailPage({
                   salaryScales: detail.options.salaryScales,
                   salaryBands: detail.options.salaryBands,
                   salaryRoutes: detail.options.salaryRoutes,
+                  salaryRevisions: detail.options.salaryRevisions.map((revision) => ({
+                    salaryStructureId: revision.salary_structure_id,
+                    effectiveFrom: revision.effective_from,
+                    revisionNumber: revision.revision_number,
+                    status: revision.status,
+                    salaryBasis: revision.salary_basis,
+                  })),
                 },
               }}
             />}
@@ -1334,7 +1367,17 @@ export default async function EmploymentDetailPage({
                   <h2 className="mt-1 text-xl font-semibold">{t("salaryTimelineTitle")}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">{t("salaryTimelineDescription")}</p>
                 </div>
-                {detail.capabilities.canWriteSalary && currentContract ? <EmploymentChangeButton actionKey="salary" actionTitle={t("changeSalary")} buttonLabel={t("change")} labels={changeLabels} employmentId={employmentId} today={today} locale={locale} data={changeData} dayLabels={[t("dayMonday"), t("dayTuesday"), t("dayWednesday"), t("dayThursday"), t("dayFriday"), t("daySaturday"), t("daySunday")]} /> : null}
+                {detail.capabilities.canWriteSalary && currentContract ? <div className="flex flex-wrap items-center gap-2">
+                  <EmploymentChangeButton actionKey="salary" actionTitle={t("changeSalary")} buttonLabel={t("change")} labels={changeLabels} employmentId={employmentId} today={today} locale={locale} data={changeData} dayLabels={[t("dayMonday"), t("dayTuesday"), t("dayWednesday"), t("dayThursday"), t("dayFriday"), t("daySaturday"), t("daySunday")]} />
+                  {latestSalaryStart && <FutureSalaryTimelineCorrection
+                    employmentId={employmentId}
+                    effectiveOn={latestSalaryStart}
+                    today={today}
+                    periodCount={new Set(detail.salaries.map((salary) => salary.valid_from)).size}
+                    canWrite={detail.capabilities.canWriteSalary}
+                    labels={futureSalaryCorrectionLabels}
+                  />}
+                </div> : null}
               </div>
               <SelectableTimelineList
                 labels={timelineListLabels}
@@ -1351,6 +1394,10 @@ export default async function EmploymentDetailPage({
                     { label: t("frequency"), value: row.payment_frequency },
                     ...(row.salary_route === 'MINIMUM_WAGE' ? [{ label: t("salaryApplication.minimumWage"), value: row.minimum_wage_scheme ?? "—" }] : []),
                     ...(row.salary_route === 'SCALE_WITH_STEPS' ? [{ label: t("salaryScale"), value: row.salary_step_code ?? "—" }] : []),
+                    ...(canViewPayrollIdentifiers ? [
+                      { label: t('payrollAuditRecordId'), value: row.id },
+                      { label: t('payrollAuditSourceIds'), value: [row.salary_structure_id, row.salary_scale_id, row.salary_scale_step_id, row.salary_band_id].filter((id): id is string => Boolean(id)).join(', ') || t('notRecorded') },
+                    ] : []),
                   ],
                 }))}
               />

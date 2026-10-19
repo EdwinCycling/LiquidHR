@@ -6,13 +6,108 @@ const ONE = FixedDecimal.parse('1')
 const TWELVE = FixedDecimal.parse('12')
 const HUNDRED = FixedDecimal.parse('100')
 const UPA_MONTHS_PER_YEAR = FixedDecimal.parse('12')
-const BASIC_FRANCHISE = FixedDecimal.parse('17283')
-const BASIC_SALARY_CAP = FixedDecimal.parse('137800')
-const WIA_EXCESS_FRANCHISE = FixedDecimal.parse('79409')
-const BASIC_TOTAL_RATE = FixedDecimal.parse('25.9')
-const BASIC_EMPLOYEE_RATE = FixedDecimal.parse('12.9')
-const BASIC_EMPLOYER_RATE = FixedDecimal.parse('13.0')
-const WIA_EMPLOYER_RATE = FixedDecimal.parse('3.4')
+
+export interface Pfzw2026PremiumComponent {
+  readonly code: 'PFZW_OP_NP' | 'PFZW_WIA_EXCESS'
+  readonly name: string
+  readonly componentType: 'BASE' | 'ADDITIONAL'
+  readonly effectiveFrom: string
+  readonly effectiveTo: string | null
+  readonly basisCode: string
+  readonly basisDescription: string
+  readonly totalRate: string
+  readonly employeeRate: string
+  readonly employerRate: string
+  readonly annualFranchise: string
+  readonly annualPensionableSalaryCap: string | null
+  readonly eligibilityRule: string
+  readonly calculationMethod: string
+  readonly roundingRule: string
+  readonly sourceVersion: string
+  readonly sourceReference: string
+  readonly sourceSha256: string
+  readonly sourceValidationStatus: 'REFERENCE_ONLY' | 'EMPLOYER_RECORDED' | 'VERIFIED_SOURCE'
+  readonly taxTreatment: 'PRE_TAX_EMPLOYEE_DEDUCTION' | 'EMPLOYER_COST_ONLY' | 'UNVERIFIED'
+}
+
+function componentText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : null
+}
+
+function componentDecimal(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return componentText(value)
+}
+
+export function parsePfzw2026PremiumComponents(value: unknown): readonly Pfzw2026PremiumComponent[] | null {
+  if (!Array.isArray(value) || value.length !== 2) return null
+  const components: Pfzw2026PremiumComponent[] = []
+  for (const candidate of value) {
+    if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) return null
+    const row = candidate as Record<string, unknown>
+    const code = row.code
+    if (code !== 'PFZW_OP_NP' && code !== 'PFZW_WIA_EXCESS') return null
+    const name = componentText(row.name)
+    const componentType = row.componentType
+    const basisCode = componentText(row.basisCode)
+    const basisDescription = componentText(row.basisDescription)
+    const effectiveFrom = componentText(row.effectiveFrom)
+    const effectiveTo = row.effectiveTo === null ? null : componentText(row.effectiveTo)
+    const totalRate = componentDecimal(row.totalRate)
+    const employeeRate = componentDecimal(row.employeeRate)
+    const employerRate = componentDecimal(row.employerRate)
+    const annualFranchise = componentDecimal(row.annualFranchise)
+    const annualPensionableSalaryCap = row.annualPensionableSalaryCap === null
+      ? null
+      : componentDecimal(row.annualPensionableSalaryCap)
+    const eligibilityRule = componentText(row.eligibilityRule)
+    const calculationMethod = componentText(row.calculationMethod)
+    const roundingRule = componentText(row.roundingRule)
+    const sourceVersion = componentText(row.sourceVersion)
+    const sourceReference = componentText(row.sourceReference)
+    const sourceSha256 = componentText(row.sourceSha256)
+    const sourceValidationStatus = row.sourceValidationStatus
+    const taxTreatment = row.taxTreatment
+    if (!name || (componentType !== 'BASE' && componentType !== 'ADDITIONAL')
+      || (code === 'PFZW_OP_NP' && componentType !== 'BASE')
+      || (code === 'PFZW_WIA_EXCESS' && componentType !== 'ADDITIONAL')
+      || !basisCode || !basisDescription
+      || !effectiveFrom || (row.effectiveTo !== null && !effectiveTo)
+      || !totalRate || !employeeRate || !employerRate || !annualFranchise
+      || (row.annualPensionableSalaryCap !== null && !annualPensionableSalaryCap)
+      || !eligibilityRule || !calculationMethod || !roundingRule
+      || !sourceVersion || !sourceReference || !sourceSha256
+      || (taxTreatment !== 'PRE_TAX_EMPLOYEE_DEDUCTION' && taxTreatment !== 'EMPLOYER_COST_ONLY' && taxTreatment !== 'UNVERIFIED')
+      || (sourceValidationStatus !== 'REFERENCE_ONLY' && sourceValidationStatus !== 'EMPLOYER_RECORDED' && sourceValidationStatus !== 'VERIFIED_SOURCE')) {
+      return null
+    }
+    components.push({
+      code,
+      name,
+      componentType,
+      effectiveFrom,
+      effectiveTo,
+      basisCode,
+      basisDescription,
+      totalRate,
+      employeeRate,
+      employerRate,
+      annualFranchise,
+      annualPensionableSalaryCap,
+      eligibilityRule,
+      calculationMethod,
+      roundingRule,
+      sourceVersion,
+      sourceReference,
+      sourceSha256,
+      sourceValidationStatus,
+      taxTreatment,
+    })
+  }
+  return components.some((component, index) => components.findIndex((candidate) => candidate.code === component.code) !== index)
+    ? null
+    : components
+}
 
 export const PFZW_2026_KINDEROPVANG_RULE_VERSION = 'PFZW-PENSIONREGLEMENT-2026-07+UPA-2026-v5' as const
 export const PFZW_2026_KINDEROPVANG_METHOD = 'PFZW_2026_KINDEROPVANG' as const
@@ -43,6 +138,7 @@ export interface Pfzw2026CalculationInput {
   readonly participationStartDate: string
   readonly participationEvidenceReference: string
   readonly arrangementVersion: string
+  readonly premiumComponents: readonly Pfzw2026PremiumComponent[]
   /** PFZW salary basis is set at 1 January or at the participation/entry date. */
   readonly salaryBasisDate: string
   readonly salaryBasisSourceId: string
@@ -170,6 +266,45 @@ export function calculatePfzw2026Kinderopvang(input: Pfzw2026CalculationInput): 
     && !input.participationEvidenceReference.startsWith('SYNTHETIC_TEST_FIXTURE:')) {
     return blocked(input, ['PFZW_SYNTHETIC_PARTICIPATION_PROVENANCE_INVALID'])
   }
+  const opnpComponent = input.premiumComponents.find((component) => component.code === 'PFZW_OP_NP')
+  const wiaComponent = input.premiumComponents.find((component) => component.code === 'PFZW_WIA_EXCESS')
+  if (input.premiumComponents.length !== 2 || !opnpComponent || !wiaComponent) {
+    return blocked(input, ['PFZW_PREMIUM_COMPONENTS_MISSING_OR_UNSUPPORTED'])
+  }
+  const componentPeriodCovered = [opnpComponent, wiaComponent].every((component) =>
+    validDate(component.effectiveFrom)
+    && (component.effectiveTo === null || validDate(component.effectiveTo))
+    && component.effectiveFrom <= periodStart
+    && (component.effectiveTo === null || component.effectiveTo >= periodEnd),
+  )
+  if (!componentPeriodCovered) return blocked(input, ['PFZW_PREMIUM_COMPONENT_PERIOD_INVALID'])
+  if ([opnpComponent, wiaComponent].some((component) => component.sourceValidationStatus !== 'VERIFIED_SOURCE'
+    || component.sourceVersion.trim() === ''
+    || component.sourceReference.trim() === ''
+    || !/^[0-9a-f]{64}$/i.test(component.sourceSha256))) {
+    return blocked(input, ['PFZW_PREMIUM_COMPONENT_SOURCE_UNVERIFIED'])
+  }
+  const basicTotalRate = parse(opnpComponent.totalRate, 'PFZW_OPNP_TOTAL_RATE_INVALID', reasons)
+  const basicEmployeeRate = parse(opnpComponent.employeeRate, 'PFZW_OPNP_EMPLOYEE_RATE_INVALID', reasons)
+  const basicEmployerRate = parse(opnpComponent.employerRate, 'PFZW_OPNP_EMPLOYER_RATE_INVALID', reasons)
+  const basicFranchise = parse(opnpComponent.annualFranchise, 'PFZW_OPNP_FRANCHISE_INVALID', reasons)
+  const basicSalaryCap = opnpComponent.annualPensionableSalaryCap === null
+    ? null
+    : parse(opnpComponent.annualPensionableSalaryCap, 'PFZW_OPNP_SALARY_CAP_INVALID', reasons)
+  const wiaTotalRate = parse(wiaComponent.totalRate, 'PFZW_WIA_TOTAL_RATE_INVALID', reasons)
+  const wiaEmployeeRate = parse(wiaComponent.employeeRate, 'PFZW_WIA_EMPLOYEE_RATE_INVALID', reasons)
+  const wiaEmployerRate = parse(wiaComponent.employerRate, 'PFZW_WIA_EMPLOYER_RATE_INVALID', reasons)
+  const wiaFranchise = parse(wiaComponent.annualFranchise, 'PFZW_WIA_FRANCHISE_INVALID', reasons)
+  if (reasons.some((reason) => reason.endsWith('_INVALID'))) return blocked(input, reasons)
+  if (!basicTotalRate || !basicEmployeeRate || !basicEmployerRate || !basicFranchise || !basicSalaryCap
+    || !wiaTotalRate || !wiaEmployeeRate || !wiaEmployerRate || !wiaFranchise
+    || basicFranchise.compare(ZERO) < 0 || basicSalaryCap.compare(basicFranchise) < 0
+    || wiaFranchise.compare(ZERO) < 0
+    || basicEmployeeRate.add(basicEmployerRate).compare(basicTotalRate) !== 0
+    || wiaEmployeeRate.compare(ZERO) !== 0
+    || wiaEmployerRate.compare(wiaTotalRate) !== 0) {
+    return blocked(input, ['PFZW_PREMIUM_COMPONENT_PARAMETERS_INVALID'])
+  }
   if (input.participationStartDate > periodEnd) return blocked(input, ['PFZW_PARTICIPATION_NOT_EFFECTIVE_FOR_PERIOD'])
   if (input.participationStartDate > periodStart) return blocked(input, ['PFZW_PARTIAL_MONTH_PRORATION_UNVERIFIED'])
   const expectedEjuReferenceDate = `${input.period.year - 1}-12-31`
@@ -243,8 +378,8 @@ export function calculatePfzw2026Kinderopvang(input: Pfzw2026CalculationInput): 
   const otherStructuralAnnual = structuralAmounts.reduce((sum, amount) => sum.add(amount), ZERO)
   const annualSalaryBeforeUpaRounding = fullTimeAnnualBaseSalary.add(holidayAllowanceAnnual).add(ejuAnnual).add(otherStructuralAnnual)
   const pensionableAnnualSalary = annualSalaryBeforeUpaRounding.round(0, 'CEILING')
-  const cappedPensionableSalary = pensionableAnnualSalary.compare(BASIC_SALARY_CAP) > 0
-    ? BASIC_SALARY_CAP
+  const cappedPensionableSalary = pensionableAnnualSalary.compare(basicSalaryCap) > 0
+    ? basicSalaryCap
     : pensionableAnnualSalary
 
   const contractualPartTimeFactor = contractHoursPerWeek.divideToScale(fullTimeHoursPerWeek, 4, 'ARITHMETIC')
@@ -256,11 +391,11 @@ export function calculatePfzw2026Kinderopvang(input: Pfzw2026CalculationInput): 
   const pensionableHours = contractHoursInPeriod.add(additionalHoursForArrangement).round(2, 'HALF_UP')
   const finalPartTimeFactor = pensionableHours.divideToScale(fullTimePeriodHours, 4, 'ARITHMETIC')
 
-  const pensionableBase = maximum(ZERO, cappedPensionableSalary.subtract(BASIC_FRANCHISE)).multiply(finalPartTimeFactor)
-  const wiaExcessBase = maximum(ZERO, pensionableAnnualSalary.multiply(finalPartTimeFactor).subtract(WIA_EXCESS_FRANCHISE))
-  const employeeBasicAnnual = pensionableBase.multiply(BASIC_EMPLOYEE_RATE).divideToScale(HUNDRED, 8, 'ARITHMETIC')
-  const employerBasicAnnual = pensionableBase.multiply(BASIC_EMPLOYER_RATE).divideToScale(HUNDRED, 8, 'ARITHMETIC')
-  const employerWiaAnnual = wiaExcessBase.multiply(WIA_EMPLOYER_RATE).divideToScale(HUNDRED, 8, 'ARITHMETIC')
+  const pensionableBase = maximum(ZERO, cappedPensionableSalary.subtract(basicFranchise)).multiply(finalPartTimeFactor)
+  const wiaExcessBase = maximum(ZERO, pensionableAnnualSalary.multiply(finalPartTimeFactor).subtract(wiaFranchise))
+  const employeeBasicAnnual = pensionableBase.multiply(basicEmployeeRate).divideToScale(HUNDRED, 8, 'ARITHMETIC')
+  const employerBasicAnnual = pensionableBase.multiply(basicEmployerRate).divideToScale(HUNDRED, 8, 'ARITHMETIC')
+  const employerWiaAnnual = wiaExcessBase.multiply(wiaEmployerRate).divideToScale(HUNDRED, 8, 'ARITHMETIC')
   const employeeMonthly = employeeBasicAnnual.divideToScale(UPA_MONTHS_PER_YEAR, 2, 'ARITHMETIC')
   const employerBasicMonthly = employerBasicAnnual.divideToScale(UPA_MONTHS_PER_YEAR, 2, 'ARITHMETIC')
   const employerWiaMonthly = employerWiaAnnual.divideToScale(UPA_MONTHS_PER_YEAR, 2, 'ARITHMETIC')
@@ -270,7 +405,6 @@ export function calculatePfzw2026Kinderopvang(input: Pfzw2026CalculationInput): 
   const allocationDifference = totalMonthly.subtract(employeeMonthly).subtract(employerMonthly)
   const fiscalBase = maximum(ZERO, monthlyGross.subtract(employeeMonthly))
 
-  if (employeeBasicRateSumMismatch()) return blocked(input, [...reasons, 'PFZW_PREMIUM_SPLIT_INVALID'])
   if (allocationDifference.compare(ZERO) !== 0) return blocked(input, [...reasons, 'PFZW_PREMIUM_SPLIT_ROUNDING_INVALID'])
 
   const traceBase = {
@@ -292,6 +426,28 @@ export function calculatePfzw2026Kinderopvang(input: Pfzw2026CalculationInput): 
       yearEndAllowanceReferenceDate: input.structuralYearEndAllowanceReferenceDate,
       yearEndAllowanceSourceReference: input.structuralYearEndAllowanceSourceReference,
       yearEndAllowanceSourceVersion: input.structuralYearEndAllowanceSourceVersion,
+      premiumComponents: input.premiumComponents.map((component) => ({
+        code: component.code,
+        name: component.name,
+        componentType: component.componentType,
+        effectiveFrom: component.effectiveFrom,
+        effectiveTo: component.effectiveTo,
+        basisCode: component.basisCode,
+        basisDescription: component.basisDescription,
+        totalRate: component.totalRate,
+        employeeRate: component.employeeRate,
+        employerRate: component.employerRate,
+        annualFranchise: component.annualFranchise,
+        annualPensionableSalaryCap: component.annualPensionableSalaryCap,
+        eligibilityRule: component.eligibilityRule,
+        calculationMethod: component.calculationMethod,
+        roundingRule: component.roundingRule,
+        sourceVersion: component.sourceVersion,
+        sourceReference: component.sourceReference,
+        sourceSha256: component.sourceSha256,
+        sourceValidationStatus: component.sourceValidationStatus,
+        taxTreatment: component.taxTreatment,
+      })),
     },
     sourceSnapshotId: input.sourceSnapshotId,
     sourceSnapshotHash: input.sourceSnapshotHash,
@@ -317,21 +473,21 @@ export function calculatePfzw2026Kinderopvang(input: Pfzw2026CalculationInput): 
     traceStep(traceBase, 'PFZW_FINAL_PERIOD_DTF', 'UPA pensionable hours ÷ full-time hours for the period', pensionableHours.divideToScale(fullTimePeriodHours, 12, 'ARITHMETIC'), finalPartTimeFactor, 'HALF_UP to 4 decimals', 'PERIOD_DTF', null, {
       pensionableHours: pensionableHours.toString(), fullTimePeriodHours: fullTimePeriodHours.toString(),
     }),
-    traceStep(traceBase, 'PFZW_OPNP_PREMIUM_BASE', 'max(min(RegLn, €137,800) − €17,283, 0) × final period DTF', cappedPensionableSalary.subtract(BASIC_FRANCHISE).multiply(finalPartTimeFactor), pensionableBase, 'No intermediate monetary rounding', 'OPNP_BASE', null, {
-      pensionableAnnualSalary: pensionableAnnualSalary.toString(2), salaryCap: BASIC_SALARY_CAP.toString(2),
-      franchise: BASIC_FRANCHISE.toString(2), finalPartTimeFactor: finalPartTimeFactor.toString(4),
+    traceStep(traceBase, 'PFZW_OPNP_PREMIUM_BASE', `max(min(RegLn, €${opnpComponent.annualPensionableSalaryCap}) − €${basicFranchise.toString(2)}, 0) × final period DTF`, maximum(ZERO, cappedPensionableSalary.subtract(basicFranchise)).multiply(finalPartTimeFactor), pensionableBase, 'No intermediate monetary rounding', 'OPNP_BASE', null, {
+      pensionableAnnualSalary: pensionableAnnualSalary.toString(2), salaryCap: basicSalaryCap.toString(2),
+      franchise: basicFranchise.toString(2), finalPartTimeFactor: finalPartTimeFactor.toString(4),
     }),
-    traceStep(traceBase, 'PFZW_OPNP_EMPLOYEE_PREMIUM', 'OP/NP base × 12.9% ÷ 12; monthly employee share', employeeBasicAnnual.divideToScale(TWELVE, 8, 'ARITHMETIC'), employeeMonthly, 'Versioned-policy HALF_UP to cents after annual share allocation', 'EMPLOYEE_SHARE', '12.9', {
+    traceStep(traceBase, 'PFZW_OPNP_EMPLOYEE_PREMIUM', `OP/NP base × ${basicEmployeeRate.toString()}% ÷ 12; monthly employee share`, employeeBasicAnnual.divideToScale(TWELVE, 8, 'ARITHMETIC'), employeeMonthly, 'Versioned-policy HALF_UP to cents after annual share allocation', 'EMPLOYEE_SHARE', basicEmployeeRate.toString(), {
       pensionableBase: money(pensionableBase), annualEmployeeShare: employeeBasicAnnual.toString(),
     }, money(pensionableBase)),
-    traceStep(traceBase, 'PFZW_OPNP_EMPLOYER_PREMIUM', 'OP/NP base × 13.0% ÷ 12; monthly employer share', employerBasicAnnual.divideToScale(TWELVE, 8, 'ARITHMETIC'), employerBasicMonthly, 'Versioned-policy HALF_UP to cents after annual share allocation', 'EMPLOYER_SHARE', '13.0', {
+    traceStep(traceBase, 'PFZW_OPNP_EMPLOYER_PREMIUM', `OP/NP base × ${basicEmployerRate.toString()}% ÷ 12; monthly employer share`, employerBasicAnnual.divideToScale(TWELVE, 8, 'ARITHMETIC'), employerBasicMonthly, 'Versioned-policy HALF_UP to cents after annual share allocation', 'EMPLOYER_SHARE', basicEmployerRate.toString(), {
       pensionableBase: money(pensionableBase), annualEmployerShare: employerBasicAnnual.toString(),
     }, money(pensionableBase)),
-    traceStep(traceBase, 'PFZW_WIA_EXCESS_PREMIUM_BASE', 'max(RegLn × final period DTF − €79,409, 0); WIA base is not subject to the OP/NP salary cap', pensionableAnnualSalary.multiply(finalPartTimeFactor).subtract(WIA_EXCESS_FRANCHISE), wiaExcessBase, 'No intermediate monetary rounding', 'WIA_EXCESS_BASE', null, {
+    traceStep(traceBase, 'PFZW_WIA_EXCESS_PREMIUM_BASE', `max(RegLn × final period DTF − €${wiaFranchise.toString(2)}, 0); WIA base is not subject to the OP/NP salary cap`, pensionableAnnualSalary.multiply(finalPartTimeFactor).subtract(wiaFranchise), wiaExcessBase, 'No intermediate monetary rounding', 'WIA_EXCESS_BASE', null, {
       pensionableAnnualSalary: pensionableAnnualSalary.toString(2), finalPartTimeFactor: finalPartTimeFactor.toString(4),
-      wiaExcessFranchise: WIA_EXCESS_FRANCHISE.toString(2),
+      wiaExcessFranchise: wiaFranchise.toString(2),
     }),
-    traceStep(traceBase, 'PFZW_WIA_EXCESS_EMPLOYER_PREMIUM', 'WIA-excess base × 3.4% ÷ 12; employer-only premium', employerWiaAnnual.divideToScale(TWELVE, 8, 'ARITHMETIC'), employerWiaMonthly, 'Versioned-policy HALF_UP to cents after annual share allocation', 'WIA_EMPLOYER_SHARE', '3.4', {
+    traceStep(traceBase, 'PFZW_WIA_EXCESS_EMPLOYER_PREMIUM', `WIA-excess base × ${wiaEmployerRate.toString()}% ÷ 12; employer-only premium`, employerWiaAnnual.divideToScale(TWELVE, 8, 'ARITHMETIC'), employerWiaMonthly, 'Versioned-policy HALF_UP to cents after annual share allocation', 'WIA_EMPLOYER_SHARE', wiaEmployerRate.toString(), {
       wiaExcessBase: money(wiaExcessBase), annualEmployerWiaShare: employerWiaAnnual.toString(),
     }, money(wiaExcessBase)),
     traceStep(traceBase, 'PFZW_EMPLOYEE_PENSION_FISCAL_BASES', 'monthly gross − employee pension contribution, applied separately to wage-tax, employee-insurance and Zvw bases', monthlyGross.subtract(employeeMonthly), fiscalBase, 'No additional rounding; source values are cents', 'FISCAL_BASE_DEDUCTION', null, {
@@ -369,10 +525,6 @@ export function calculatePfzw2026Kinderopvang(input: Pfzw2026CalculationInput): 
 
 function maximum(left: FixedDecimal, right: FixedDecimal): FixedDecimal {
   return left.compare(right) >= 0 ? left : right
-}
-
-function employeeBasicRateSumMismatch(): boolean {
-  return BASIC_EMPLOYEE_RATE.add(BASIC_EMPLOYER_RATE).compare(BASIC_TOTAL_RATE) !== 0
 }
 
 function traceStep(

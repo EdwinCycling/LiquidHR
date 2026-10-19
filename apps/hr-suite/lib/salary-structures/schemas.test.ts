@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { salaryStructureCreateSchema, salaryStructureDraftSaveSchema, salaryStructureDraftSchema } from './schemas'
+import { salaryStructureCreateSchema, salaryStructureDraftSaveSchema, salaryStructureDraftSchema, salaryStructureUpdateSchema } from './schemas'
 
 describe('salary structure schemas', () => {
   it('accepts both fixed salary structure types and an optional code', () => {
     expect(salaryStructureCreateSchema.parse({ name: 'CAO Rijk salarisschalen', code: 'RIJK', structureType: 'SCALE_WITH_STEPS' })).toMatchObject({ code: 'RIJK' })
     expect(salaryStructureCreateSchema.parse({ name: 'Functiehuis', code: null, structureType: 'SALARY_BAND' })).toMatchObject({ code: null })
+  })
+
+  it('normalizes authorized structure metadata updates', () => {
+    expect(salaryStructureUpdateSchema.parse({ name: '  Kinderopvang salarisschalen  ', code: 'cao_ko_2025_2026', description: null }))
+      .toEqual({ name: 'Kinderopvang salarisschalen', code: 'CAO_KO_2025_2026', description: null })
+    expect(() => salaryStructureUpdateSchema.parse({ name: ' ', code: '', description: null })).toThrow()
   })
 
   it('accepts a two-step scale and free labels', () => {
@@ -20,6 +26,28 @@ describe('salary structure schemas', () => {
     })
     if (draft.structureType !== 'SCALE_WITH_STEPS') throw new Error('Expected scale draft')
     expect(draft.scales[0].steps).toHaveLength(2)
+  })
+
+  it('requires a dated HTTPS source and explicit predecessor for a same-date correction', () => {
+    const draft = {
+      structureType: 'SCALE_WITH_STEPS' as const,
+      effectiveFrom: '2026-09-01',
+      salaryBasis: 'MONTHLY_BASE' as const,
+      currencyCode: 'EUR',
+      sourceMetadata: {
+        title: 'Official salary table', version: '2026.09', effectiveFrom: '2026-09-01', effectiveTo: '2026-12-31',
+        url: 'https://example.org/salary-table.pdf', sha256: 'a'.repeat(64), fileName: 'salary-table.pdf', rowCount: 196,
+      },
+      correctionOfRevisionId: crypto.randomUUID(),
+      scales: [{
+        code: '6', name: 'Schaal 6', sortOrder: 1, progressionType: 'MANUAL' as const, defaultMonthsToNextStep: null,
+        steps: [{ stepCode: '12', stepName: 'Salarisnummer 12', sequenceNumber: 12, fulltimeAmount: '2819.00', progressionType: 'MANUAL' as const, monthsToNextStep: null, stepKind: 'MAXIMUM' as const }],
+      }],
+    }
+
+    expect(salaryStructureDraftSchema.parse(draft)).toMatchObject({ correctionOfRevisionId: draft.correctionOfRevisionId })
+    expect(() => salaryStructureDraftSchema.parse({ ...draft, sourceMetadata: { ...draft.sourceMetadata, effectiveFrom: '2026-09-02' } })).toThrow()
+    expect(() => salaryStructureDraftSchema.parse({ ...draft, sourceMetadata: { ...draft.sourceMetadata, url: 'http://example.org/salary-table.pdf' } })).toThrow()
   })
 
   it('rejects duplicate scale, step and ordering identities', () => {

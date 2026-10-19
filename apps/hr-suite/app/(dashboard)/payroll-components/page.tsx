@@ -409,12 +409,12 @@ export default async function PayrollComponentsPage({
     if (error instanceof AuthorizationError || error instanceof ContextAccessError) redirect('/geen-toegang')
     if (error instanceof PayrollLabUnavailableError) {
       return <PageShell className="space-y-6 py-6 sm:py-8" width="wide" role="status">
-        <PageHeader actions={<Link className={buttonClasses({ variant: 'secondary' })} href="/payroll-lab"><ArrowLeft aria-hidden="true" />{t('payrollLabBackToOverview')}</Link>} description={t('payrollComponentsUnavailable')} title={t('payrollComponents')} />
+        <PageHeader actions={<Link className={buttonClasses({ variant: 'secondary' })} href="/payroll"><ArrowLeft aria-hidden="true" />{t('payrollOverviewBack')}</Link>} description={t('payrollComponentsUnavailable')} title={t('payrollComponents')} />
         <EmptyState description={t('payrollComponentsLoadError')} icon={<Blocks aria-hidden="true" />} title={t('payrollComponentsUnavailable')} />
       </PageShell>
     }
     return <PageShell className="space-y-6 py-6 sm:py-8" width="wide" role="status">
-      <PageHeader actions={<Link className={buttonClasses({ variant: 'secondary' })} href="/payroll-lab"><ArrowLeft aria-hidden="true" />{t('payrollLabBackToOverview')}</Link>} description={t('payrollComponentsLoadError')} title={t('payrollComponents')} />
+      <PageHeader actions={<Link className={buttonClasses({ variant: 'secondary' })} href="/payroll"><ArrowLeft aria-hidden="true" />{t('payrollOverviewBack')}</Link>} description={t('payrollComponentsLoadError')} title={t('payrollComponents')} />
       <EmptyState description={t('payrollComponentsLoadError')} icon={<Blocks aria-hidden="true" />} title={t('payrollComponentsUnavailable')} />
     </PageShell>
   }
@@ -505,7 +505,7 @@ export default async function PayrollComponentsPage({
   return <PageShell className="space-y-6 py-6 sm:py-8" width="wide">
     <PageHeader actions={<div className="flex flex-wrap gap-2">
       {library.canCopy && !showEditor ? <Link className={buttonClasses({ variant: 'primary' })} href={hrefWithParam(overviewHref, 'new', '1')}><Plus aria-hidden="true" />{t('payrollComponentsNew')}</Link> : null}
-      <Link className={buttonClasses({ variant: 'secondary' })} href="/payroll-lab"><ArrowLeft aria-hidden="true" />{t('payrollLabBackToOverview')}</Link>
+      <Link className={buttonClasses({ variant: 'secondary' })} href="/payroll"><ArrowLeft aria-hidden="true" />{t('payrollOverviewBack')}</Link>
     </div>} description={t('payrollComponentsDescription')} title={t('payrollComponents')} />
     {copied ? <Surface className="border-success bg-success-surface p-3 text-sm text-success" role="status">{t('payrollComponentsCopied')}</Surface> : null}
     {saved ? <Surface className="border-success bg-success-surface p-3 text-sm text-success" role="status">{t('payrollComponentsEditorSaved')}</Surface> : null}

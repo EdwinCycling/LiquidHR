@@ -34,13 +34,30 @@ const pension: CaoSetupPensionRecord = {
     partTimeMethod: 'contract hours / full-time hours',
     partMonthMethod: 'calendar-day proportion',
   },
+  components: [{
+    code: 'PFZW_OP_NP', name: 'OP/NP', componentType: 'BASE', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31',
+    basisCode: 'UPA_REGLN_AFTER_FRANCHISE_AND_CAP', basisDescription: 'RegLn less franchise, capped before part-time factor.',
+    totalRate: 25.9, employeeRate: 12.9, employerRate: 13, annualFranchise: 17283, annualPensionableSalaryCap: 137800,
+    eligibilityRule: 'Applicable PFZW participation.', calculationMethod: 'Annual share divided into monthly periods.',
+    roundingRule: 'Half-up to cents per share.', sourceVersion: 'PFZW 2026',
+    sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html', sourceSha256: 'b'.repeat(64),
+    sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'PRE_TAX_EMPLOYEE_DEDUCTION',
+  }, {
+    code: 'PFZW_WIA_EXCESS', name: 'WIA-excedent', componentType: 'ADDITIONAL', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31',
+    basisCode: 'UPA_REGLN_WITHOUT_OPNP_CAP', basisDescription: 'RegLn less WIA-excedent franchise, without the OP/NP salary cap.',
+    totalRate: 3.4, employeeRate: 0, employerRate: 3.4, annualFranchise: 79409, annualPensionableSalaryCap: null,
+    eligibilityRule: 'Applicable PFZW participation and WIA-excedent conditions.', calculationMethod: 'Annual employer-only share divided into monthly periods.',
+    roundingRule: 'Half-up to cents for the employer share.', sourceVersion: 'PFZW 2026',
+    sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html', sourceSha256: 'c'.repeat(64),
+    sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'EMPLOYER_COST_ONLY',
+  }],
   eligibilityRule: { description: 'Participation follows the applicable PFZW conditions.' },
   sourceStatus: 'VALIDATED',
   sourceJson: { legalFiscalStatus: 'VALIDATED' },
   versionNumber: 1,
   currentVersionId: 'pension-pfzw-version-1',
   successorDraft: null,
-  sourceHash: 'a'.repeat(64),
+  integrityHash: 'a'.repeat(64),
 }
 
 const mapping: CaoSetupPensionMapping = {
@@ -86,8 +103,9 @@ describe('cao setup completeness', () => {
     const kinderopvang = records.find((record) => record.packageId === 'KINDEROPVANG_2025_2026')
     expect(kinderopvang).toMatchObject({ payrollReady: false, effectiveFrom: '2026-09-01', completenessPercent: expect.any(Number) })
     expect(kinderopvang?.fields.find((field) => field.key === 'pension_mapping')).toMatchObject({ status: 'RECORDED', source: 'CORE' })
+    expect(kinderopvang?.fields.find((field) => field.key === 'pension_components')).toMatchObject({ status: 'RECORDED', source: 'CORE' })
     expect(kinderopvang?.fields.find((field) => field.key === 'catalog_source_validation')).toMatchObject({ status: 'REVIEW_REQUIRED', source: 'CATALOG' })
-    expect(kinderopvang?.sourceHash).toHaveLength(64)
+    expect(kinderopvang?.integrityHash).toHaveLength(64)
   })
 
   it('inventories unmatched company conditions and stored pension arrangements separately', () => {

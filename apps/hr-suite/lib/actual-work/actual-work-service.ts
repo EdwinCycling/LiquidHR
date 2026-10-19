@@ -5,7 +5,7 @@ import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
 import { exactHoursToDatabase, formatExactHours, isPositiveExactHours, parseExactHours } from './exact-hours'
 import type { PayrollPeriodIdentity } from '@liquid-hr/payroll-engine'
-import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
+import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, actualWorkVoidEntrySchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type ActualWorkType = Tables<'work_hour_types'>
@@ -281,9 +281,54 @@ export async function saveActualWorkEntry(input: unknown): Promise<ActualWorkEnt
   return saveActualWorkEntryValue(value, auth)
 }
 
+/** Revoke an approved entry through the canonical ledger RPC and retain its revision history. */
+export async function voidActualWorkEntry(input: unknown): Promise<ActualWorkEntry> {
+  const parsed = actualWorkVoidEntrySchema.safeParse(input)
+  if (!parsed.success) throw new ActualWorkServiceError(parsed.error.issues[0]?.message ?? 'ACTUAL_WORK_INPUT_INVALID')
+  const value = parsed.data
+  const { context, hrGroupId, supabase } = await authForGroup('leave:write', value.employeeId)
+  let entryQuery = supabase.from('employment_work_hour_entries')
+    .select('*')
+    .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .eq('employee_id', value.employeeId)
+    .eq('employment_id', value.employmentId)
+    .eq('id', value.entryId)
+  if (context.administrationId) entryQuery = entryQuery.eq('administration_id', context.administrationId)
+  const entryResult = await entryQuery.maybeSingle()
+  if (entryResult.error) databaseError(entryResult.error)
+  const entry = entryResult.data
+  if (!entry) throw new ActualWorkServiceError('ACTUAL_WORK_ENTRY_NOT_FOUND', 404)
+  if (entry.status === 'REVOKED') return entry
+  if (entry.status !== 'APPROVED') throw new ActualWorkServiceError('ACTUAL_WORK_ENTRY_NOT_APPROVED')
+
+  const hours = parseExactHours(String(entry.hours))
+  if (!isPositiveExactHours(hours)) throw new ActualWorkServiceError('ACTUAL_WORK_HOURS_REQUIRED')
+  const result = await supabase.rpc('save_actual_work_entry', {
+    requested_entry_id: entry.id,
+    requested_tenant_id: context.tenantId,
+    requested_hr_group_id: hrGroupId,
+    requested_administration_id: entry.administration_id,
+    requested_employee_id: entry.employee_id,
+    requested_employment_id: entry.employment_id,
+    requested_work_hour_type_id: entry.work_hour_type_id,
+    requested_entry_granularity: entry.entry_granularity,
+    requested_subject_period_start: entry.subject_period_start,
+    requested_subject_period_end: entry.subject_period_end,
+    requested_posting_period_start: entry.posting_period_start,
+    requested_hours: exactHoursToDatabase(hours) as unknown as number,
+    requested_status: 'REVOKED',
+    requested_note: entry.note ?? '',
+    requested_operation: 'VOID',
+  })
+  if (result.error || !result.data) databaseError(result.error)
+  return result.data
+}
+
 export type ActualWorkEmployeeProjection = {
   employee: Pick<Tables<'employees'>, 'id' | 'employee_number' | 'first_name' | 'birth_name_prefix' | 'birth_name'>
   employment: Pick<Tables<'employments'>, 'id' | 'employee_id' | 'administration_id' | 'starts_on' | 'ends_on'>
+  canVoid: boolean
   types: ActualWorkType[]
   entries: ActualWorkEntry[]
   revisions: ActualWorkRevision[]
@@ -670,7 +715,7 @@ export async function getActualWorkEmployeeProjection(input: { employeeId: strin
   const entryIds = (entriesResult.data ?? []).map((entry) => entry.id)
   const revisionResult = entryIds.length ? await supabase.from('actual_work_revisions').select('*').in('entry_id', entryIds).order('revision_number') : { data: [], error: null }
   if (revisionResult.error) databaseError(revisionResult.error)
-  return { employee: employeeResult.data, employment, types: typesResult.data ?? [], entries: entriesResult.data ?? [], revisions: revisionResult.data ?? [], period: periodResult.data ?? null, schedule: scheduleResult.data ?? [] }
+  return { employee: employeeResult.data, employment, canVoid: context.permissions.includes('leave:write'), types: typesResult.data ?? [], entries: entriesResult.data ?? [], revisions: revisionResult.data ?? [], period: periodResult.data ?? null, schedule: scheduleResult.data ?? [] }
 }
 
 export type ActualWorkBulkQuery = {

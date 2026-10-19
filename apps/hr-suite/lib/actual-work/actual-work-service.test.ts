@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, requireAnyPermission, requirePermission, requireHrGroupId } = vi.hoisted(() => ({
+const { createClient, requireAnyPermission, requireHrGroupId, requirePermission } = vi.hoisted(() => ({
   createClient: vi.fn(),
   requireAnyPermission: vi.fn(),
   requirePermission: vi.fn(),
   requireHrGroupId: vi.fn(),
+  requirePermission: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/permissions', () => ({ AuthorizationError: class AuthorizationError extends Error { readonly status = 403 }, requireAnyPermission, requirePermission, requireHrGroupId }))
@@ -16,6 +17,7 @@ import {
   getActualWorkPayrollProjectionsBatch,
   isValidActualWorkMonth,
   saveActualWorkEntry,
+  voidActualWorkEntry,
 } from './actual-work-service'
 
 const employeeId = '11111111-1111-4111-8111-111111111111'
@@ -402,5 +404,76 @@ describe('Actual Work payroll batch source read', () => {
     ])).rejects.toMatchObject({ code: 'ACTUAL_WORK_MONTH_INVALID' })
     expect(requirePermission).not.toHaveBeenCalled()
     expect(createClient).not.toHaveBeenCalled()
+  })
+})
+
+describe('Actual Work approved entry revocation', () => {
+  const administrationId = '55555555-5555-4555-8555-555555555555'
+  const approvedEntry = {
+    id: entryId,
+    tenant_id: 'tenant-a',
+    hr_group_id: 'group-a',
+    administration_id: administrationId,
+    employee_id: employeeId,
+    employment_id: employmentId,
+    work_hour_type_id: typeId,
+    work_date: '2026-10-06',
+    entry_granularity: 'DAY' as const,
+    subject_period_start: '2026-10-06',
+    subject_period_end: '2026-10-07',
+    posting_period_start: '2026-10-01',
+    hours: 8,
+    status: 'APPROVED' as const,
+    note: 'Existing entry note',
+  }
+
+  type VoidEntryFixture = Omit<typeof approvedEntry, 'status'> & { status: 'APPROVED' | 'PENDING' | 'REVOKED' }
+
+  function configureVoid(entry: VoidEntryFixture | null) {
+    const context = { tenantId: 'tenant-a', hrGroupId: 'group-a', administrationId, userId: 'actor-a', permissions: ['leave:write'] }
+    requirePermission.mockResolvedValue(context)
+    requireHrGroupId.mockReturnValue('group-a')
+    const entryQuery = queryResult(entry)
+    const rpc = vi.fn(async (): Promise<{ data: unknown; error: { message: string } | null }> => ({
+      data: { ...approvedEntry, status: 'REVOKED' }, error: null,
+    }))
+    const supabase = { from: vi.fn(() => entryQuery), rpc }
+    createClient.mockResolvedValue(supabase)
+    return { context, entryQuery, rpc, supabase }
+  }
+
+  const voidInput = { employeeId, employmentId, entryId }
+
+  it('uses the scoped canonical RPC to revoke approved entries and preserve their existing note', async () => {
+    const { entryQuery, rpc } = configureVoid(approvedEntry)
+
+    await expect(voidActualWorkEntry(voidInput)).resolves.toMatchObject({ status: 'REVOKED' })
+
+    expect(requirePermission).toHaveBeenCalledWith('leave:write', employeeId)
+    expect(entryQuery.eq).toHaveBeenCalledWith('administration_id', administrationId)
+    expect(rpc).toHaveBeenCalledWith('save_actual_work_entry', expect.objectContaining({
+      requested_entry_id: entryId,
+      requested_status: 'REVOKED',
+      requested_operation: 'VOID',
+      requested_hours: '8.0000',
+      requested_note: 'Existing entry note',
+    }))
+  })
+
+  it('does not add a second audit revision when the entry is already revoked', async () => {
+    const { rpc } = configureVoid({ ...approvedEntry, status: 'REVOKED' })
+
+    await expect(voidActualWorkEntry(voidInput)).resolves.toMatchObject({ status: 'REVOKED' })
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('refuses entries that are not approved or outside the visible RLS scope', async () => {
+    const { rpc } = configureVoid({ ...approvedEntry, status: 'PENDING' as const })
+    await expect(voidActualWorkEntry(voidInput)).rejects.toEqual(expect.objectContaining({ code: 'ACTUAL_WORK_ENTRY_NOT_APPROVED' }))
+    expect(rpc).not.toHaveBeenCalled()
+
+    const missing = configureVoid(null)
+    await expect(voidActualWorkEntry(voidInput)).rejects.toEqual(expect.objectContaining({ code: 'ACTUAL_WORK_ENTRY_NOT_FOUND', status: 404 }))
+    expect(missing.rpc).not.toHaveBeenCalled()
   })
 })

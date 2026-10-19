@@ -6,6 +6,10 @@ import { requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { getEmploymentSettings } from '@/lib/employment/employment-settings'
 import {
+  parsePensionArrangementComponents,
+  type PensionArrangementComponentInput,
+} from '@/lib/employment/pension-arrangement-management-service'
+import {
   CAO_SETUP_CATALOG,
   findCaoSetupCatalogEntry,
   type CaoSetupCatalogEntry,
@@ -30,13 +34,14 @@ export type CaoSetupPensionRecord = {
   readonly annualFranchise: number
   readonly annualPensionableSalaryCap: number | null
   readonly pensionableSalaryDefinition: Json
+  readonly components: readonly PensionArrangementComponentInput[]
   readonly eligibilityRule: Json
   readonly sourceStatus: 'VALIDATED' | 'REVIEW_REQUIRED'
   readonly sourceJson: Json
   readonly versionNumber: number | null
   readonly currentVersionId: string | null
   readonly successorDraft: Json | null
-  readonly sourceHash: string
+  readonly integrityHash: string
 }
 
 export type CaoSetupPensionMapping = {
@@ -70,7 +75,16 @@ function sourceStatus(source: Json): 'VALIDATED' | 'REVIEW_REQUIRED' {
   return status === 'VALIDATED' || status === 'VERIFIED' ? 'VALIDATED' : 'REVIEW_REQUIRED'
 }
 
-function pensionHash(arrangement: PensionArrangement, version: PensionArrangementVersion | null, tiers: readonly PensionArrangementVersionTier[]): string {
+function pensionComponents(definition: Json): readonly PensionArrangementComponentInput[] {
+  if (!isObject(definition) || !Array.isArray(definition.components)) return []
+  try {
+    return parsePensionArrangementComponents(definition.components)
+  } catch {
+    return []
+  }
+}
+
+function pensionIntegrityHash(arrangement: PensionArrangement, version: PensionArrangementVersion | null, tiers: readonly PensionArrangementVersionTier[]): string {
   return sha256(stableSerialize({
     arrangement: {
       id: arrangement.id,
@@ -198,6 +212,7 @@ export async function getCaoSetupPageData(
       supersession_reason: 'Explicit configuration correction through the versioned pension arrangement settings.',
       supersession_provenance: { status: 'USER_RECORDED', interface: 'pension-arrangement-settings' },
     } : null
+    const pensionableSalaryDefinition = version?.pensionable_salary_definition ?? arrangement.pensionable_salary_definition
     return {
       id: arrangement.id,
       code: arrangement.code,
@@ -210,14 +225,15 @@ export async function getCaoSetupPageData(
       employerSharePct: arrangement.employer_share_pct,
       annualFranchise: arrangement.annual_franchise,
       annualPensionableSalaryCap: arrangement.annual_pensionable_salary_cap,
-      pensionableSalaryDefinition: version?.pensionable_salary_definition ?? arrangement.pensionable_salary_definition,
+      pensionableSalaryDefinition,
+      components: pensionComponents(pensionableSalaryDefinition),
       eligibilityRule: version?.eligibility_rule ?? arrangement.eligibility_rule,
       sourceStatus: sourceStatus(version?.provenance_json ?? arrangement.provenance_json),
       sourceJson: version?.provenance_json ?? arrangement.provenance_json,
       versionNumber: version?.version_number ?? null,
       currentVersionId: version?.id ?? null,
       successorDraft,
-      sourceHash: pensionHash(arrangement, version, versionTiers),
+      integrityHash: pensionIntegrityHash(arrangement, version, versionTiers),
     } satisfies CaoSetupPensionRecord
   })
   const pensionById = new Map(pensions.map((pension) => [pension.id, pension]))

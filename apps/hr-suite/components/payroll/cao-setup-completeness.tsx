@@ -79,7 +79,7 @@ export function CaoSetupCompleteness({ records, labels }: { readonly records: re
             </div>)}
           </dl>
           {record.blockers.length > 0 ? <div className="mt-3 rounded-[var(--radius-control)] bg-warning-surface p-3 text-sm"><p className="font-medium">{labels.blockers}</p><p className="mt-1 text-muted-foreground">{record.blockers.map((key) => labels.fieldLabels[key] ?? key).join(', ')}</p></div> : null}
-          <p className="mt-3 break-all font-mono text-xs text-muted-foreground">{labels.integrityHash}: {record.sourceHash}</p>
+          <p className="mt-3 break-all font-mono text-xs text-muted-foreground">{labels.integrityHash}: {record.integrityHash}</p>
         </article>)}
       </div>}
   </Surface>

@@ -14,6 +14,8 @@ import { Switch } from '@/components/ui/switch'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 import { parseDecimalInput } from '@/lib/employment/decimal-input'
 import { convertRosterHoursInput, parseRosterHoursValue, type RosterHoursInputMode } from '@/lib/employment/roster-hours'
+import { resolveEmploymentSalaryBasis, type EmploymentSalaryBasis, type EmploymentSalaryRoute, type PublishedSalaryBasisRevision } from '@/lib/employment/salary-basis-resolution'
+import { mapCaoSalarySource } from '@/lib/employment/salary-source-mapping'
 
 export type EmploymentOverviewActionKey =
   | 'hoursSchedule'
@@ -105,6 +107,7 @@ export interface EmploymentOverviewChangeData {
     salaryScales: Array<{ id: string; structureId: string; code: string; name: string }>
     salaryBands: Array<{ id: string; structureId: string; code: string; name: string; minimumAmount: number; midpointAmount: number; maximumAmount: number | null; effectiveFrom: string }>
     salaryRoutes: Array<'MANUAL' | 'MINIMUM_WAGE' | 'SCALE_WITH_STEPS' | 'SALARY_BAND'>
+    salaryRevisions: PublishedSalaryBasisRevision[]
   }
 }
 
@@ -145,8 +148,8 @@ interface AllocationDraft {
 }
 
 interface SalaryDraft {
-  salaryBasis: 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE' | 'SALARY_BAND'
-  salaryRoute: 'MANUAL' | 'MINIMUM_WAGE' | 'SCALE_WITH_STEPS' | 'SALARY_BAND'
+  salaryBasis: EmploymentSalaryBasis
+  salaryRoute: EmploymentSalaryRoute
   minimumWageScheme: 'REGULAR' | 'BBL'
   paymentType: 'PERIODIC_FIXED' | 'HOURLY_VARIABLE'
   paymentFrequency: 'MONTHLY' | 'FOUR_WEEKLY'
@@ -315,13 +318,19 @@ function toggleRosterInputMode(schedule: ScheduleDraft): ScheduleDraft {
   }
 }
 
-function initialSalary(rows: EmploymentOverviewChangeData['salaries'], date: string, availableRoutes: EmploymentOverviewChangeData['options']['salaryRoutes']): SalaryDraft {
+function initialSalary(rows: EmploymentOverviewChangeData['salaries'], date: string, availableRoutes: EmploymentOverviewChangeData['options']['salaryRoutes'], revisions: PublishedSalaryBasisRevision[]): SalaryDraft {
   const row = dateAt(rows, date)
   const configuredRoute = row?.salaryRoute === 'MINIMUM_WAGE' || row?.salaryRoute === 'SCALE_WITH_STEPS' || row?.salaryRoute === 'SALARY_BAND'
     ? row.salaryRoute
     : row?.salaryBasis === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : row?.salaryBasis === 'CUSTOM_SCALE' ? 'SCALE_WITH_STEPS' : row?.salaryBasis === 'SALARY_BAND' ? 'SALARY_BAND' : 'MANUAL'
   const route = availableRoutes.includes(configuredRoute) ? configuredRoute : availableRoutes[0] ?? 'MANUAL'
-  const basis = route === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : route === 'SCALE_WITH_STEPS' ? 'CUSTOM_SCALE' : route === 'SALARY_BAND' ? 'SALARY_BAND' : 'MANUAL'
+  const basis = resolveEmploymentSalaryBasis({
+    route,
+    salaryStructureId: row?.salaryStructureId ?? null,
+    effectiveOn: date,
+    revisions,
+    existingBasis: row?.salaryBasis as EmploymentSalaryBasis | undefined,
+  })
   const paymentType = row?.paymentType === 'HOURLY_VARIABLE' ? 'HOURLY_VARIABLE' : 'PERIODIC_FIXED'
   return {
     salaryBasis: basis,
@@ -396,7 +405,7 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
   const [dateChoice, setDateChoice] = useState<DateChoice>(defaultDateChoice)
   const [effectiveOn, setEffectiveOn] = useState(defaultEffectiveOn)
   const [schedule, setSchedule] = useState(() => initialSchedule(data.schedules, selectedContract?.startsOn ?? today))
-  const [salary, setSalary] = useState(() => initialSalary(data.salaries, selectedContract?.startsOn ?? today, data.options.salaryRoutes))
+  const [salary, setSalary] = useState(() => initialSalary(data.salaries, selectedContract?.startsOn ?? today, data.options.salaryRoutes, data.options.salaryRevisions))
   const [organization, setOrganization] = useState(() => initialOrganization(data.organizations, selectedContract?.startsOn ?? today, data.options))
   const [allocations, setAllocations] = useState<AllocationDraft[]>(() => initialAllocations(data.costAllocations, selectedContract?.startsOn ?? today, data.options))
   const [laborConditionSetId, setLaborConditionSetId] = useState(selectedContract?.laborConditionSetId ?? data.options.laborConditionSets[0]?.id ?? '')
@@ -484,7 +493,7 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
 
   function hydrateDrafts(date = effectiveOn): void {
     setSchedule(initialSchedule(data.schedules, date))
-    setSalary(initialSalary(data.salaries, date, data.options.salaryRoutes))
+    setSalary(initialSalary(data.salaries, date, data.options.salaryRoutes, data.options.salaryRevisions))
     setOrganization(initialOrganization(data.organizations, date, data.options))
     setAllocations(initialAllocations(data.costAllocations, date, data.options))
     if (selectedContract) {
@@ -568,7 +577,13 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
     setSalary((current) => {
       const nextSalary = { ...current, [key]: value }
       if (key === 'salaryRoute') {
-        nextSalary.salaryBasis = value === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : value === 'SCALE_WITH_STEPS' ? 'CUSTOM_SCALE' : value === 'SALARY_BAND' ? 'SALARY_BAND' : 'MANUAL'
+        nextSalary.salaryBasis = resolveEmploymentSalaryBasis({
+          route: value as EmploymentSalaryRoute,
+          salaryStructureId: current.salaryStructureId || null,
+          effectiveOn,
+          revisions: data.options.salaryRevisions,
+          existingBasis: current.salaryBasis,
+        })
         if (value === 'MINIMUM_WAGE') nextSalary.paymentType = 'HOURLY_VARIABLE'
         if (value !== 'MINIMUM_WAGE' && nextSalary.paymentType === 'HOURLY_VARIABLE') nextSalary.paymentType = 'PERIODIC_FIXED'
       }
@@ -585,6 +600,13 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
         const selectedScale = data.options.salaryScales.find((scale) => scale.id === value)
         const firstStep = data.options.salaryScaleSteps.find((step) => step.salaryScaleId === value)
         nextSalary.salaryStructureId = selectedScale?.structureId ?? ''
+        nextSalary.salaryBasis = resolveEmploymentSalaryBasis({
+          route: current.salaryRoute,
+          salaryStructureId: nextSalary.salaryStructureId || null,
+          effectiveOn,
+          revisions: data.options.salaryRevisions,
+          existingBasis: current.salaryBasis,
+        })
         nextSalary.salaryScaleStepId = firstStep?.id ?? ''
         nextSalary.salaryStepCode = firstStep?.stepCode ?? ''
         if (firstStep) {
@@ -619,6 +641,11 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
     const isMinimumWage = salary.salaryRoute === 'MINIMUM_WAGE'
     const paymentType = isMinimumWage ? 'HOURLY_VARIABLE' : salary.paymentType
     const isHourlyVariable = paymentType === 'HOURLY_VARIABLE'
+    const caoSource = mapCaoSalarySource({
+      salaryRoute: salary.salaryRoute,
+      selectedScale: data.options.salaryScales.find((item) => item.id === salary.salaryScaleId),
+      selectedStep: data.options.salaryScaleSteps.find((item) => item.id === salary.salaryScaleStepId),
+    })
     return {
       paymentType, paymentFrequency: salary.paymentFrequency,
       salaryBasis: salary.salaryBasis,
@@ -632,7 +659,7 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
       salaryScaleId: salary.salaryRoute === 'SCALE_WITH_STEPS' ? salary.salaryScaleId || null : null,
       salaryStepCode: salary.salaryRoute === 'SCALE_WITH_STEPS' ? salary.salaryStepCode || null : null,
       salaryBandId: salary.salaryRoute === 'SALARY_BAND' ? salary.salaryBandId || null : null,
-      caoScaleName: null, caoStepName: null,
+      caoScaleName: caoSource.caoScaleName, caoStepName: caoSource.caoStepName,
     }
   }
 

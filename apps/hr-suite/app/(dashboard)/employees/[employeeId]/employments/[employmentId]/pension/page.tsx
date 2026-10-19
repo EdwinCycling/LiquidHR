@@ -17,6 +17,24 @@ type PageProps = {
   searchParams: Promise<{ saved?: string; error?: string; sourceCategory?: string; errorCode?: string; correlationId?: string }>
 }
 
+function recordOrigin(value: unknown, labels: { readonly historical: string; readonly recorded: string }): string | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  const classification = (value as Record<string, unknown>).sourceClassification
+  if (classification === 'MIGRATED_EFFECTIVE_DATED_MAPPING') return labels.historical
+  if (classification === 'CORE_PENSION_ASSIGNMENT_WORKFLOW') return labels.recorded
+  return null
+}
+
+function containsInternalOrigin(value: string | null | undefined): boolean {
+  return value ? /(?:^|[^A-Z0-9])(?:TEST|DEMO|FIXTURE|SYNTHETIC|PAYRUN\d+)(?=$|[^A-Z0-9])/i.test(value) : false
+}
+
+function arrangementTypeLabel(value: string, labels: { readonly fixedPremium: string; readonly progressivePremium: string; readonly otherType: string }): string {
+  if (value === 'FLAT_PREMIUM') return labels.fixedPremium
+  if (value === 'PROGRESSIVE_PREMIUM') return labels.progressivePremium
+  return labels.otherType
+}
+
 export default async function EmploymentPensionPage({ params, searchParams }: PageProps) {
   const [{ employeeId, employmentId }, query, t] = await Promise.all([
     params,
@@ -70,11 +88,11 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
         : <ul className="divide-y divide-subtle border-y border-subtle">
           {data.assignments.map((assignment) => <li key={assignment.id} className="space-y-1 py-3 text-sm">
             <p className="font-medium">{assignment.arrangement?.name ?? t('pensionArrangementUnavailable')}</p>
-            <p className="text-muted-foreground">{assignment.arrangement?.code ?? '—'} · {t('pensionVersionLabel', { version: assignment.version_number })} · {t('pensionParticipationStart')}: {assignment.participation_start_date} · {t('pensionEffectiveFrom')}: {assignment.effective_from}{assignment.effective_to ? ` – ${assignment.effective_to}` : ''}</p>
-            <p className="text-muted-foreground">{assignment.assignment_reason}</p>
-            {assignment.provenance_json && typeof assignment.provenance_json === 'object' && !Array.isArray(assignment.provenance_json)
-              && 'sourceClassification' in assignment.provenance_json
-              ? <p className="text-muted-foreground">{String(assignment.provenance_json.sourceClassification)}</p>
+            <p className="text-muted-foreground">{t('pensionVersionLabel', { version: assignment.version_number })} · {t('pensionParticipationStart')}: {assignment.participation_start_date} · {t('pensionEffectiveFrom')}: {assignment.effective_from}{assignment.effective_to ? ` – ${assignment.effective_to}` : ''}</p>
+            {data.canWrite ? <p className="break-all font-mono text-xs text-muted-foreground">{t('payrollAuditRecordId')}: {assignment.id} · {t('payrollAuditArrangementId')}: {assignment.pension_arrangement_id}{assignment.supersedes_assignment_id ? ` · ${t('payrollAuditPredecessorId')}: ${assignment.supersedes_assignment_id}` : ''}</p> : null}
+            <p className="text-muted-foreground">{containsInternalOrigin(assignment.assignment_reason) ? t('pensionRecordedConditionsNeedReview') : assignment.assignment_reason}</p>
+            {recordOrigin(assignment.provenance_json, { historical: t('pensionMappingHistorical'), recorded: t('pensionMappingRecorded') })
+              ? <p className="text-muted-foreground">{recordOrigin(assignment.provenance_json, { historical: t('pensionMappingHistorical'), recorded: t('pensionMappingRecorded') })}</p>
               : null}
           </li>)}
         </ul>}
@@ -84,16 +102,16 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
       <SectionHeader title={t('pensionCaoMappingTitle')} description={t('pensionCaoMappingScopeNotice')} />
       {data.laborConditionSet
         ? <>
-          <p className="text-sm font-medium">{data.laborConditionSet.name} · {data.laborConditionSet.code}</p>
+          <p className="text-sm font-medium">{data.laborConditionSet.name}</p>
           {data.laborConditionMappings.length === 0
             ? <p className="text-sm text-muted-foreground">{t('pensionCaoMappingEmpty')}</p>
             : <ul className="divide-y divide-subtle border-y border-subtle">
               {data.laborConditionMappings.map((mapping) => <li key={mapping.id} className="space-y-1 py-3 text-sm">
                 <p className="font-medium">{mapping.arrangement?.name ?? t('pensionArrangementUnavailable')} · {t('pensionVersionLabel', { version: mapping.version_number })}</p>
-                <p className="text-muted-foreground">{mapping.participant_group} · {mapping.effective_from}{mapping.effective_to ? ` – ${mapping.effective_to}` : ''}</p>
-                {mapping.provenance_json && typeof mapping.provenance_json === 'object' && !Array.isArray(mapping.provenance_json)
-                  && 'sourceClassification' in mapping.provenance_json
-                  ? <p className="text-muted-foreground">{String(mapping.provenance_json.sourceClassification)}</p>
+                <p className="text-muted-foreground">{mapping.participant_group === 'GRANDFATHERED' ? t('pensionGrandfathered') : t('pensionNewEntrant')} · {mapping.effective_from}{mapping.effective_to ? ` – ${mapping.effective_to}` : ''}</p>
+                {data.canWrite ? <p className="break-all font-mono text-xs text-muted-foreground">{t('payrollAuditRecordId')}: {mapping.id} · {t('payrollAuditArrangementId')}: {mapping.pension_arrangement_id}{mapping.supersedes_mapping_id ? ` · ${t('payrollAuditPredecessorId')}: ${mapping.supersedes_mapping_id}` : ''}</p> : null}
+                {recordOrigin(mapping.provenance_json, { historical: t('pensionMappingHistorical'), recorded: t('pensionMappingRecorded') })
+                  ? <p className="text-muted-foreground">{recordOrigin(mapping.provenance_json, { historical: t('pensionMappingHistorical'), recorded: t('pensionMappingRecorded') })}</p>
                   : null}
               </li>)}
             </ul>}
@@ -132,7 +150,7 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
               {t('pensionArrangementLabel')}
               <select name="arrangementId" required defaultValue="" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
                 <option value="" disabled>{t('pensionChooseArrangement')}</option>
-                {data.arrangements.map((arrangement) => <option key={arrangement.id} value={arrangement.id}>{arrangement.name} · {arrangement.code}</option>)}
+                {data.arrangements.map((arrangement) => <option key={arrangement.id} value={arrangement.id}>{arrangement.name}</option>)}
               </select>
             </label>
             <label className="grid gap-1 text-sm font-medium">
@@ -212,14 +230,15 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
             supersession_provenance: { status: 'USER_RECORDED', interface: 'pension-arrangement-version-editor' },
           } : null
           return <article key={arrangement.id} className="space-y-3 border-t border-subtle pt-4 first:border-0 first:pt-0">
-            <h3 className="font-semibold">{arrangement.name} · {arrangement.code}</h3>
+            <h3 className="font-semibold">{arrangement.name}</h3>
             {versions.length === 0
               ? <p className="text-sm text-muted-foreground">{t('pensionVersionHistoryUnavailable')}</p>
               : <ol className="space-y-2 text-sm">
                 {versions.map((version) => <li key={version.id} className="rounded-md border border-subtle p-3">
-                  <p className="font-medium">{t('pensionVersionLabel', { version: version.version_number })} · {version.effective_from} · {version.arrangement_type}</p>
-                  <p className="text-muted-foreground">{version.is_active ? t('pensionVersionActive') : t('pensionVersionInactive')} · {version.supersedes_version_id ?? t('pensionVersionInitial')}</p>
-                  {version.supersession_reason ? <p className="text-muted-foreground">{version.supersession_reason}</p> : null}
+                  <p className="font-medium">{t('pensionVersionLabel', { version: version.version_number })} · {version.effective_from} · {arrangementTypeLabel(version.arrangement_type, { fixedPremium: t('pensionFixedPremium'), progressivePremium: t('pensionProgressivePremium'), otherType: t('pensionOtherType') })}</p>
+                  <p className="text-muted-foreground">{version.is_active ? t('pensionVersionActive') : t('pensionVersionInactive')} · {version.supersedes_version_id ? t('pensionVersionHasPredecessor') : t('pensionVersionInitial')}</p>
+                  {version.supersession_reason ? <p className="text-muted-foreground">{containsInternalOrigin(version.supersession_reason) ? t('pensionRecordedConditionsNeedReview') : version.supersession_reason}</p> : null}
+                  {data.canWrite ? <p className="break-all font-mono text-xs text-muted-foreground">{t('payrollAuditRecordId')}: {version.id} · {t('payrollAuditSourceIds')}: {arrangement.id}{version.supersedes_version_id ? ` · ${t('payrollAuditPredecessorId')}: ${version.supersedes_version_id}` : ''}</p> : null}
                 </li>)}
               </ol>}
             {data.canWrite && leaf && successorDraft ? <details className="rounded-md border border-subtle p-3">
