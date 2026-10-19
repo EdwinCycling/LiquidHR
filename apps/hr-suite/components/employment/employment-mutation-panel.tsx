@@ -99,7 +99,7 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
         salaryScaleId: salaryRoute === 'SCALE_WITH_STEPS' ? String(values.salaryScaleId) : null,
         salaryStepCode: salaryRoute === 'SCALE_WITH_STEPS' ? selectedStep?.stepCode ?? null : null,
         salaryBandId: salaryRoute === 'SALARY_BAND' ? String(values.salaryBandId) : null,
-        ...mapCaoSalarySource({ salaryRoute, selectedScale, selectedStep }),
+        ...mapCaoSalarySource({ salaryRoute, salaryBasis: 'CUSTOM_SCALE', selectedScale, selectedStep }),
       }
     }
     return { allocations }

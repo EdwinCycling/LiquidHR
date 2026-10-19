@@ -5,7 +5,6 @@ const { createClient, requireAnyPermission, requireHrGroupId, requirePermission 
   requireAnyPermission: vi.fn(),
   requirePermission: vi.fn(),
   requireHrGroupId: vi.fn(),
-  requirePermission: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/permissions', () => ({ AuthorizationError: class AuthorizationError extends Error { readonly status = 403 }, requireAnyPermission, requirePermission, requireHrGroupId }))

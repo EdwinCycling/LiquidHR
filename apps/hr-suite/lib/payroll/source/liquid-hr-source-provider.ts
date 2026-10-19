@@ -22,7 +22,9 @@ import {
   encodeNl2026CompositeTimePeriod,
   prorateMonthlySalary,
   calculatePension,
+  BPF_DETAILHANDEL_2026_METHOD,
   PFZW_2026_KINDEROPVANG_METHOD,
+  type BpfDetailhandel2026CalculationInput,
   parsePfzw2026PremiumComponents,
   type Pfzw2026CalculationInput,
   type PensionArrangementInput,
@@ -173,6 +175,13 @@ export type PayrollSourceSetup = {
   readonly configurationRow: PayrollEmployerConfigurationVersionRow | null
   readonly configuration: PayrollEmployerConfiguration | null
   readonly openingBalance: PayrollOpeningCumulativeSnapshotRow | null
+  readonly bpfDetailhandel2026Source?: {
+    readonly sourceId: string
+    readonly sourceVersion: string
+    readonly sourceUpdatedAt: string
+    readonly sourceReference: string
+    readonly calculationInput: BpfDetailhandel2026CalculationInput
+  } | null
 }
 
 export interface PayrollSourceProviderDependencies {
@@ -1721,6 +1730,7 @@ function buildRegularPayrollOwned(input: {
   readonly configuration: PayrollEmployerConfiguration | null
   readonly configurationRow: PayrollEmployerConfigurationVersionRow | null
   readonly openingBalance: PayrollOpeningCumulativeSnapshotRow | null
+  readonly bpfDetailhandel2026Source: PayrollSourceSetup['bpfDetailhandel2026Source']
   readonly configurationRows: readonly PayrollEmployerConfigurationVersionRow[]
   readonly employmentStartsOn: string
   readonly activeStart: string
@@ -1800,7 +1810,7 @@ function buildRegularPayrollOwned(input: {
   if (!effectivePartTimeFactor) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_PART_TIME_FACTOR_MISSING'))
 
   const bpfDetailhandelVcr = sourceText(arrangementInput?.pensionableSalaryDefinition.method)
-    === 'BPF_DETAILHANDEL_2026_VCR'
+    === BPF_DETAILHANDEL_2026_METHOD
   const zeroOpeningCumulatives = opening !== null
     && Object.values(opening).every((value) => FixedDecimal.parse(value).compare(FixedDecimal.fromInteger(BigInt(0))) === 0)
   const bpfVcrFirstPeriodReady = !bpfDetailhandelVcr || (zeroOpeningCumulatives
@@ -1812,7 +1822,32 @@ function buildRegularPayrollOwned(input: {
   }
 
   let pensionResult: PensionCalculationResult | null = null
-  if (arrangementInput && input.regularWage && effectivePartTimeFactor && assignment && bpfVcrFirstPeriodReady) {
+  const bpfSource = input.bpfDetailhandel2026Source
+  const bpfSourceMetadataValid = bpfSource !== null && bpfSource !== undefined
+    && bpfSource.sourceId.trim().length > 0
+    && bpfSource.sourceVersion.trim().length > 0
+    && Number.isFinite(Date.parse(bpfSource.sourceUpdatedAt))
+    && bpfSource.sourceReference.trim().length > 0
+  const bpfMonthlyPayrollGross = input.regularWage
+    ? monthlyPayrollGrossForPension(input.regularWage, input.caoCalculation)
+    : null
+  const bpfCurrentGrossMatches = !bpfDetailhandelVcr || !bpfSourceMetadataValid
+    || bpfMonthlyPayrollGross === null
+    || (() => {
+      try {
+        return FixedDecimal.parse(bpfSource.calculationInput.currentPayrollGross)
+          .compare(FixedDecimal.parse(bpfMonthlyPayrollGross)) === 0
+      } catch {
+        return false
+      }
+    })()
+  if (bpfDetailhandelVcr && bpfSource && !bpfSourceMetadataValid) {
+    gaps.push(makeGap('pension', 'UNSUPPORTED', 'BPF_DETAILHANDEL_2026_INPUT_SOURCE_INVALID'))
+  } else if (bpfDetailhandelVcr && bpfSourceMetadataValid && !bpfCurrentGrossMatches) {
+    gaps.push(makeGap('pension', 'UNSUPPORTED', 'BPF_DETAILHANDEL_2026_CURRENT_GROSS_MISMATCH'))
+  }
+  if (arrangementInput && input.regularWage && effectivePartTimeFactor && assignment
+    && bpfVcrFirstPeriodReady && bpfCurrentGrossMatches) {
     const monthlyPayrollGross = monthlyPayrollGrossForPension(input.regularWage, input.caoCalculation)
     const pfzw2026 = buildPfzw2026Input({
       arrangement: arrangementInput,
@@ -1843,6 +1878,7 @@ function buildRegularPayrollOwned(input: {
         sourceSnapshotId: input.sourceId,
         sourceSnapshotHash: input.coreSourceHash,
         ...(pfzw2026 ? { pfzw2026 } : {}),
+        ...(bpfDetailhandelVcr && bpfSourceMetadataValid ? { bpfDetailhandel2026: bpfSource.calculationInput } : {}),
       })
       if (pensionResult.status !== 'CALCULATED') {
         const reasonCode = pensionResult.reasonCode === 'PENSION_RATE_UNRESOLVED'
@@ -2626,6 +2662,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         `payroll_opening_cumulative:${payrollSetup.openingBalance.id}`,
         `${payrollSetup.openingBalance.snapshot_version}:${payrollSetup.openingBalance.snapshot_hash}`,
       ] as const] : []),
+      ...(payrollSetup?.bpfDetailhandel2026Source ? [[
+        `payroll_bpf_detailhandel_vcr:${payrollSetup.bpfDetailhandel2026Source.sourceId}`,
+        `${payrollSetup.bpfDetailhandel2026Source.sourceVersion}:${payrollSetup.bpfDetailhandel2026Source.sourceUpdatedAt}:${sha256(stableSerialize(payrollSetup.bpfDetailhandel2026Source.calculationInput))}`,
+      ] as const] : []),
     ])
     if (caoCalculation.status === 'CALCULATED' && caoCalculation.compositionId && caoCalculation.packageHash) {
       sourceVersionVector[`cao:rule-package:${caoCalculation.compositionId}`] = `${caoCalculation.packageVersion ?? ''}:${caoCalculation.packageHash}`
@@ -2811,6 +2851,19 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         version: `${payrollSetup.openingBalance.snapshot_version}:${payrollSetup.openingBalance.snapshot_hash}`,
         versionParts: [String(payrollSetup.openingBalance.snapshot_version), payrollSetup.openingBalance.snapshot_hash],
         validFrom: payrollSetup.openingBalance.as_of_date, validUntilExclusive: null,
+      }] : []),
+      ...(payrollSetup?.bpfDetailhandel2026Source ? [{
+        field: 'pensionYearToDate', sourceType: 'payroll_bpf_detailhandel_vcr_inputs',
+        sourceRowId: payrollSetup.bpfDetailhandel2026Source.sourceId,
+        versionKey: `payroll_bpf_detailhandel_vcr:${payrollSetup.bpfDetailhandel2026Source.sourceId}`,
+        version: `${payrollSetup.bpfDetailhandel2026Source.sourceVersion}:${payrollSetup.bpfDetailhandel2026Source.sourceUpdatedAt}:${sha256(stableSerialize(payrollSetup.bpfDetailhandel2026Source.calculationInput))}`,
+        versionParts: [
+          payrollSetup.bpfDetailhandel2026Source.sourceVersion,
+          payrollSetup.bpfDetailhandel2026Source.sourceUpdatedAt,
+          sha256(stableSerialize(payrollSetup.bpfDetailhandel2026Source.calculationInput)),
+        ],
+        validFrom: bounds.start,
+        validUntilExclusive: bounds.endExclusive,
       }] : []),
     ]
     const versionContractResult = sourceVersionContract(
@@ -3017,6 +3070,9 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
             })),
           },
         } : {}),
+        ...(payrollSetup?.bpfDetailhandel2026Source ? {
+          bpfDetailhandel2026Source: payrollSetup.bpfDetailhandel2026Source,
+        } : {}),
       },
       fiscalProfile: fiscalProfile.canonical,
       ...(regularWage ? { regularWage } : {}),
@@ -3047,6 +3103,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           configuration: payrollSetup?.configuration ?? null,
           configurationRow: payrollSetup?.configurationRow ?? null,
           openingBalance: payrollSetup?.openingBalance ?? null,
+          bpfDetailhandel2026Source: payrollSetup?.bpfDetailhandel2026Source,
           configurationRows: payrollSetup?.configurationRows ?? [],
           employmentStartsOn: employment.starts_on,
           activeStart,

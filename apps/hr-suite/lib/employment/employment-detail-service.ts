@@ -778,7 +778,7 @@ async function getEmploymentPayrollSourceProjectionWithRows(
   const salaryTableSource = await resolveSalaryTableSource(
     supabase,
     salaryResult.data ?? [],
-    { tenantId: context.tenantId, hrGroupId: payrollHrGroupId },
+    { tenantId: context.tenantId, hrGroupId },
     payrollStart,
     payrollEnd,
   )

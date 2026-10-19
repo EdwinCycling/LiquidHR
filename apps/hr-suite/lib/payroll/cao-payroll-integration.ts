@@ -144,7 +144,7 @@ function numericToken(value: string | null | undefined): string | null {
 
 function salaryRowIdentityToken(value: string | null | undefined): string | null {
   const numeric = numericToken(value)
-  if (numeric) return numeric
+  if (numeric) return numeric.replace(/^0+(?=\d)/, '')
   const normalizedValue = normalized(value)
   if (!normalizedValue) return null
   const finalCode = normalizedValue.split('_').at(-1) ?? normalizedValue
