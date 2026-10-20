@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   LiquidHrPayrollSourceProvider,
   PayrollSourceProviderError,
+  getPayrollSourceSnapshotCorrelationId,
   type PayrollSourceSetup,
   type PayrollSourceEmployment,
   type PayrollSourceIncomeRelationship,
@@ -11,6 +12,7 @@ import {
   type PayrollSourceSchedule,
   type PayrollSourceTaxProfileProjection,
 } from './liquid-hr-source-provider'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import {
   buildCalculationInputs,
   calculatePayroll,
@@ -343,6 +345,35 @@ describe('LiquidHR Payroll source provider', () => {
     expect(source.actualWork.entries).toEqual([])
     expect(snapshot.sourceGaps.some((gap) => ['NO_EFFECTIVE_SALARY_ROW', 'NO_EFFECTIVE_SCHEDULE_ROW'].includes(gap.reasonCode))).toBe(false)
     expect(loadActualWork).toHaveBeenCalledOnce()
+  })
+
+  it('starts the actual-work read only after the employment timeline finishes', async () => {
+    let releaseTimeline = () => {}
+    let markTimelineStarted = () => {}
+    const timelineGate = new Promise<void>((resolve) => { releaseTimeline = resolve })
+    const timelineStarted = new Promise<void>((resolve) => { markTimelineStarted = resolve })
+    const events: string[] = []
+    const loadTimeline = vi.fn(async () => {
+      events.push('timeline-started')
+      markTimelineStarted()
+      await timelineGate
+      events.push('timeline-completed')
+      return { employment: employment(), salaries: [salary()], schedules: [schedule()] }
+    })
+    const loadActualWork = vi.fn(async () => {
+      events.push('actual-work-started')
+      return actualWork({ entries: [], types: [] })
+    })
+    const snapshotPromise = new LiquidHrPayrollSourceProvider(dependencies({ loadTimeline, loadActualWork }))
+      .getPayrollSourceSnapshot(request)
+
+    await timelineStarted
+    expect(loadActualWork).not.toHaveBeenCalled()
+
+    releaseTimeline()
+    await snapshotPromise
+
+    expect(events).toEqual(['timeline-started', 'timeline-completed', 'actual-work-started'])
   })
 
   it('projects a supported Kinderopvang source into the regular Payroll-owned wage component', async () => {
@@ -1319,6 +1350,85 @@ describe('LiquidHR Payroll source provider', () => {
     })
     expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain('raw database detail')
     expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain(request.employeeId)
+  })
+
+  it('reports source gap field and reason codes with a correlation ID, without employee identifiers', async () => {
+    const reportDiagnostic = vi.fn()
+    const correlationId = '90000000-0000-4000-8000-000000000039'
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      createCorrelationId: () => correlationId,
+      reportDiagnostic,
+      loadPayrollSetup: vi.fn(async () => ({
+        configurationRows: [],
+        configurationRow: null,
+        configuration: null,
+        openingBalance: null,
+      })),
+    })).getPayrollSourceSnapshot(request)
+
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'payrollConfiguration',
+      status: 'SOURCE_GAP',
+      reasonCode: 'PAYROLL_EMPLOYER_CONFIGURATION_MISSING',
+    })
+    expect(getPayrollSourceSnapshotCorrelationId(snapshot)).toBe(correlationId)
+    expect(reportDiagnostic).toHaveBeenCalledWith({
+      event: 'PAYROLL_SOURCE_PROVIDER_GAP',
+      sourceCategory: 'source-validation',
+      errorCode: 'SOURCE_GAPS_PRESENT',
+      correlationId,
+      sourceGaps: expect.arrayContaining([{
+        sourceCategory: 'payrollConfiguration',
+        errorCode: 'PAYROLL_EMPLOYER_CONFIGURATION_MISSING',
+        field: 'payrollConfiguration',
+      }]),
+    })
+    expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain(request.employeeId)
+  })
+
+  it('reports source authorization denials with safe category and correlation ID', async () => {
+    const reportDiagnostic = vi.fn()
+    const authorizationError = new AuthorizationError('raw authorization detail')
+    const correlationId = '90000000-0000-4000-8000-000000000019'
+    const deps = dependencies({
+      authorize: vi.fn(async () => { throw authorizationError }),
+      createCorrelationId: () => correlationId,
+      reportDiagnostic,
+    })
+    const provider = new LiquidHrPayrollSourceProvider(deps)
+
+    await expect(provider.getPayrollSourceSnapshot(request)).rejects.toBe(authorizationError)
+    expect(reportDiagnostic).toHaveBeenCalledExactlyOnceWith({
+      event: 'PAYROLL_SOURCE_PROVIDER_FAILURE',
+      sourceCategory: 'authorization',
+      errorCode: 'AUTHORIZATION_DENIED',
+      correlationId,
+    })
+    expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain('raw authorization detail')
+  })
+
+  it('preserves an authorization denial inside a source projection diagnostic', async () => {
+    const reportDiagnostic = vi.fn()
+    const correlationId = '90000000-0000-4000-8000-000000000029'
+    const deps = dependencies({
+      loadTimeline: vi.fn(async () => { throw new AuthorizationError('private employee permission detail') }),
+      createCorrelationId: () => correlationId,
+      reportDiagnostic,
+    })
+    const provider = new LiquidHrPayrollSourceProvider(deps)
+
+    await expect(provider.getPayrollSourceSnapshot(request)).rejects.toMatchObject({
+      code: 'PAYROLL_SOURCE_DATA_UNAVAILABLE',
+      sourceCategory: 'authorization',
+      correlationId,
+    })
+    expect(reportDiagnostic).toHaveBeenCalledExactlyOnceWith({
+      event: 'PAYROLL_SOURCE_PROVIDER_FAILURE',
+      sourceCategory: 'authorization',
+      errorCode: 'AUTHORIZATION_DENIED',
+      correlationId,
+    })
+    expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain('private employee permission detail')
   })
 
   it('fails closed before authorization or source reads when the Payroll Lab kill switch is disabled', async () => {

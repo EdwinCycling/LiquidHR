@@ -4,6 +4,7 @@ import type { PayrollCalculationRepository } from './calculation-repository'
 import type { Payrun01Repository } from './payrun01-repository'
 import type { PayrollPeriodRow } from './database'
 import type { PayrollScope } from './scope'
+import { PayrollSourceProviderError } from './source/liquid-hr-source-provider'
 import { createPayrollCycleService } from './payroll-cycle-service'
 
 const scope: PayrollScope = {
@@ -163,5 +164,44 @@ describe('PayrollCycle server foundation', () => {
       businessStatus: null,
       sourceGaps: [{ field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' }],
     })])
+  })
+
+  it('bounds concurrent source reads and preserves a safe provider failure diagnostic', async () => {
+    const references = Array.from({ length: 8 }, (_, index) => ({
+      employeeId: `60000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      employmentId: `70000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+    }))
+    let active = 0
+    let maxActive = 0
+    const provider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: vi.fn(async (input) => {
+        active += 1
+        maxActive = Math.max(maxActive, active)
+        await new Promise<void>((resolve) => setTimeout(resolve, 2))
+        active -= 1
+        if (input.employmentId === references[0]?.employmentId) {
+          throw new PayrollSourceProviderError(
+            'PAYROLL_SOURCE_DATA_UNAVAILABLE',
+            503,
+            'employment-payroll-projection',
+            '90000000-0000-4000-8000-000000000019',
+          )
+        }
+        return { ...snapshot(), sourceEmployeeId: input.employeeId, sourceEmploymentId: input.employmentId }
+      }),
+    }
+    const { service } = makeService({ initialPeriod: payrollPeriod('OPEN'), provider })
+
+    const projection = await service.getPayrollCycleWorklist(period, references)
+
+    expect(maxActive).toBeLessThanOrEqual(3)
+    expect(projection?.workItems.find((item) => item.employmentId === references[0]?.employmentId)).toMatchObject({
+      sourceGaps: [{ field: 'sourceSnapshot', status: 'SOURCE_GAP', reasonCode: 'CORE_SOURCE_READ_FAILED' }],
+      sourceDiagnostics: [{
+        sourceCategory: 'employment-payroll-projection',
+        errorCode: 'PAYROLL_SOURCE_DATA_UNAVAILABLE',
+        correlationId: '90000000-0000-4000-8000-000000000019',
+      }],
+    })
   })
 })

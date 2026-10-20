@@ -275,7 +275,11 @@ export async function requirePermissionInContext(
     }
   }
 
-  if (context.employeeId && targetEmployeeId === context.employeeId) {
+  const isOwnEmployeeRequest = context.employeeId !== null && targetEmployeeId === context.employeeId
+  const isPrivilegedAdmin = context.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
+  const hasExactAdminPermission = isPrivilegedAdmin && context.permissions.includes(permissionCode)
+
+  if (isOwnEmployeeRequest && !hasExactAdminPermission) {
     const selfPermissions = await getSelfPermissions(supabase, context.tenantId)
     if (!selfPermissions.includes(toSelfPermission(permissionCode))) {
       throw new AuthorizationError('Je hebt geen selfservice-recht voor deze actie.')

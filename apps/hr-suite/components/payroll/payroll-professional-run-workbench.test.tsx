@@ -56,6 +56,7 @@ const employees: readonly PayrollProfessionalEmployee[] = [
     employerCosts: '5000.00',
     lastCalculatedAt: '2026-10-10T10:00:00.000Z',
     exceptions: [],
+    sourceDiagnostics: [],
     stale: false,
     correctionSuccessorRequired: false,
     canCalculate: true,
@@ -82,6 +83,7 @@ const employees: readonly PayrollProfessionalEmployee[] = [
     employerCosts: '6000.00',
     lastCalculatedAt: '2026-10-10T10:00:00.000Z',
     exceptions: [],
+    sourceDiagnostics: [],
     stale: false,
     correctionSuccessorRequired: false,
     canCalculate: false,
@@ -117,5 +119,42 @@ describe('Payroll Professional monthly workbench', () => {
     expect(markup).toContain('/api/payroll/runs/30000000-0000-4000-8000-000000000002/payslip-preview')
     expect(markup).toContain('lg:grid-cols-[minmax(14rem,1.5fr)_repeat(3,minmax(8rem,1fr))_minmax(13rem,1.1fr)]')
     expect(markup).toContain('9.000,00')
+  })
+
+  it('renders source category, safe error code and correlation ID without raw diagnostic data', () => {
+    const blockedEmployee: PayrollProfessionalEmployee = {
+      ...employees[0]!,
+      employeeNumber: 'W-003',
+      employmentNumber: 'D-003',
+      employmentId: '20000000-0000-4000-8000-000000000003',
+      status: 'BLOCKED',
+      businessStatus: null,
+      runId: null,
+      exceptions: [{ kind: 'SOURCE_GAP', field: 'pension', reasonCode: 'NO_EFFECTIVE_PENSION_ASSIGNMENT' }],
+      sourceDiagnostics: [
+        { sourceCategory: 'pension', errorCode: 'NO_EFFECTIVE_PENSION_ASSIGNMENT', correlationId: '90000000-0000-4000-8000-000000000009' },
+        { sourceCategory: 'private diagnostic', errorCode: 'raw database detail', correlationId: null },
+      ],
+      canReview: false,
+      canFinalize: false,
+      canViewPayslip: false,
+    }
+    const markup = renderToStaticMarkup(<PayrollProfessionalRunWorkbench
+      administrationName="Demo administratie"
+      periods={[period]}
+      selectedPeriod={period}
+      employees={[blockedEmployee]}
+      summary={summary}
+      rosterComplete
+      canOpenPayrollCycle={false}
+      locale="nl-NL"
+      labels={labels}
+    />)
+
+    expect(markup).toContain('pension')
+    expect(markup).toContain('NO_EFFECTIVE_PENSION_ASSIGNMENT')
+    expect(markup).toContain('90000000-0000-4000-8000-000000000009')
+    expect(markup).not.toContain('raw database detail')
+    expect(markup).toContain('diagnosticUnavailable')
   })
 })

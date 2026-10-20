@@ -178,6 +178,7 @@ describe('PayrollCycle projection', () => {
           sourceHash: 'e'.repeat(64),
           sourceVersionVector: { 'employment_salary:salary-1': '2026-10-04T10:00:00.000Z' },
           gaps: [{ field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' }],
+          diagnostics: [{ sourceCategory: 'taxProfile', errorCode: 'NO_ACCEPTED_SOURCE_CONTRACT', correlationId: '90000000-0000-4000-8000-000000000009' }],
         },
       },
     })
@@ -193,6 +194,7 @@ describe('PayrollCycle projection', () => {
       stale: true,
       correctionSuccessorRequired: false,
       sourceGaps: [{ field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' }],
+      sourceDiagnostics: [{ sourceCategory: 'taxProfile', errorCode: 'NO_ACCEPTED_SOURCE_CONTRACT', correlationId: '90000000-0000-4000-8000-000000000009' }],
     })
   })
 
@@ -219,6 +221,7 @@ describe('PayrollCycle projection', () => {
           sourceHash: 'f'.repeat(64),
           sourceVersionVector: { 'employment_salary:salary-1': '2026-10-04T10:00:00.000Z' },
           gaps: [],
+          diagnostics: [],
         },
       },
     })

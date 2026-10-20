@@ -1,5 +1,6 @@
 import type { Database, Json } from '@scope/db'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
 import type {
   CombinedTimelineMutationInput,
@@ -246,42 +247,44 @@ export async function getEmploymentPayrollSourceProjection(
   if (!context.administrationId || !context.hrGroupId) {
     throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
   }
+  const administrationId = context.administrationId
+  const hrGroupId = context.hrGroupId
 
   const supabase = await createClient()
-  const [employmentResult, contractResult, laborResult, organizationResult, salaryResult, scheduleResult, pensionAssignmentResult, laborPensionResult] = await Promise.all([
-    supabase.from('employments')
+  const [employmentResult, contractResult, laborResult, organizationResult, salaryResult, scheduleResult, pensionAssignmentResult, laborPensionResult] = await loadQueriesInBatches([
+    () => supabase.from('employments')
       .select('id, tenant_id, hr_group_id, administration_id, employee_id, starts_on, ends_on, record_status, employment_type, contract_type, original_hire_date, seniority_date, updated_at, deleted_at')
-      .eq('id', employmentId).eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId)
-      .eq('administration_id', context.administrationId).eq('employee_id', employeeId).maybeSingle(),
-    supabase.from('employment_contracts')
+      .eq('id', employmentId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
+      .eq('administration_id', administrationId).eq('employee_id', employeeId).maybeSingle(),
+    () => supabase.from('employment_contracts')
       .select('id, labor_condition_set_id, fulltime_hours_per_week, starts_on, ends_on, updated_at')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('starts_on').limit(100),
-    supabase.from('employment_labor_conditions')
+    () => supabase.from('employment_labor_conditions')
       .select('id, employment_contract_id, condition_group, valid_from, valid_until, updated_at')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('valid_from').limit(100),
-    supabase.from('employee_organizations')
+    () => supabase.from('employee_organizations')
       .select('id, department_id, job_id, job_title, effective_from, effective_to, updated_at')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('effective_from').limit(100),
-    supabase.from('employment_salaries')
+    () => supabase.from('employment_salaries')
       .select('id, salary_basis, salary_route, payment_type, payment_frequency, currency_code, fulltime_amount, parttime_amount, hourly_rate, salary_structure_id, salary_scale_id, salary_scale_step_id, salary_step_code, cao_scale_name, cao_step_name, salary_band_id, valid_from, valid_until, updated_at')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('valid_from').limit(100),
-    supabase.from('employment_schedules')
+    () => supabase.from('employment_schedules')
       .select('id, average_days_per_week, average_hours_per_week, fulltime_hours_per_week, part_time_factor, schedule_type, is_on_call, start_week, time_for_time_accrual, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, sunday_hours, valid_from, valid_until, updated_at')
-      .eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId)
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('valid_from').limit(100),
-    supabase.from('employment_pension_arrangement_assignments')
+    () => supabase.from('employment_pension_arrangement_assignments')
       .select('id, pension_arrangement_id, effective_from, effective_to, participation_start_date, assignment_reason, provenance_json, updated_at, version_number, supersedes_assignment_id')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employment_id', employmentId).order('effective_from').limit(100),
-    supabase.from('labor_condition_pension_arrangements')
+    () => supabase.from('labor_condition_pension_arrangements')
       .select('id, labor_condition_set_id, pension_arrangement_id, participant_group, effective_from, effective_to, provenance_json, version_number, supersedes_mapping_id')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .order('effective_from').limit(100),
-  ])
+  ], 4)
   const failed = ([
     ['employments', employmentResult],
     ['employment-contracts', contractResult],
@@ -310,38 +313,38 @@ export async function getEmploymentPayrollSourceProjection(
   const payrollStart = `${payrollPeriod.year}-${String(payrollPeriod.month).padStart(2, '0')}-01`
   const payrollEnd = new Date(Date.UTC(payrollPeriod.year, payrollPeriod.month, 0)).toISOString().slice(0, 10)
   const [setsResult, jobsResult, revisionsResult, pensionArrangementsResult, pensionTiersResult,
-    pensionVersionsResult] = await Promise.all([
+    pensionVersionsResult] = await loadQueriesInBatches([
     laborSetIds.length > 0
-      ? supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week, is_active, valid_from, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId).in('id', laborSetIds)
-      : Promise.resolve({ data: [], error: null }),
+      ? () => supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week, is_active, valid_from, updated_at')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).in('id', laborSetIds)
+      : () => Promise.resolve({ data: [], error: null }),
     jobIds.length > 0
-      ? supabase.from('jobs').select('id, code, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).in('id', jobIds)
-      : Promise.resolve({ data: [], error: null }),
+      ? () => supabase.from('jobs').select('id, code, updated_at')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('id', jobIds)
+      : () => Promise.resolve({ data: [], error: null }),
     jobIds.length > 0
-      ? supabase.from('job_revisions').select('job_id, name, valid_from, valid_until, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).in('job_id', jobIds).order('valid_from')
-      : Promise.resolve({ data: [], error: null }),
+      ? () => supabase.from('job_revisions').select('job_id, name, valid_from, valid_until, updated_at')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('job_id', jobIds).order('valid_from')
+      : () => Promise.resolve({ data: [], error: null }),
     pensionArrangementIds.length > 0
-      ? supabase.from('pension_arrangements')
+      ? () => supabase.from('pension_arrangements')
         .select('id, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, provenance_json, is_active, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
         .in('id', pensionArrangementIds)
-      : Promise.resolve({ data: [], error: null }),
+      : () => Promise.resolve({ data: [], error: null }),
     pensionArrangementIds.length > 0
-      ? supabase.from('pension_arrangement_tiers')
+      ? () => supabase.from('pension_arrangement_tiers')
         .select('id, pension_arrangement_id, min_age, max_age, total_rate, created_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
         .in('pension_arrangement_id', pensionArrangementIds).order('min_age')
-      : Promise.resolve({ data: [], error: null }),
+      : () => Promise.resolve({ data: [], error: null }),
     pensionArrangementIds.length > 0
-      ? supabase.from('pension_arrangement_versions')
+      ? () => supabase.from('pension_arrangement_versions')
         .select('id, tenant_id, hr_group_id, administration_id, pension_arrangement_id, version_number, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, contract_classification, contract_classification_provenance, provenance_json, is_active, created_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
         .in('pension_arrangement_id', pensionArrangementIds).order('version_number')
-      : Promise.resolve({ data: [], error: null }),
-  ])
+      : () => Promise.resolve({ data: [], error: null }),
+  ], 4)
   const pensionVersionIds = (pensionVersionsResult.data ?? []).map((version) => version.id)
   const pensionVersionTiersLoaded = pensionVersionIds.length > 0
     ? await supabase.from('pension_arrangement_version_tiers')
@@ -724,12 +727,12 @@ export async function getEmploymentDetail(
     }).map((revision) => revision.id)
     if (allRevisionIds.length === 0) return { ...emptyResult, salaryRoutes, salaryStructureIds: [...configuredStructureIds] }
 
-    const [salaryContractsResult, laborConditionRelationsResult] = await Promise.all([
-      supabase.from('employment_contracts').select('labor_condition_set_id, starts_on, ends_on')
+    const [salaryContractsResult, laborConditionRelationsResult] = await loadQueriesInBatches([
+      () => supabase.from('employment_contracts').select('labor_condition_set_id, starts_on, ends_on')
         .eq('employment_id', employmentId).order('starts_on', { ascending: false }).limit(100),
-      supabase.from('labor_condition_salary_structures').select('labor_condition_set_id, salary_structure_id')
+      () => supabase.from('labor_condition_salary_structures').select('labor_condition_set_id, salary_structure_id')
         .eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id).limit(5_000),
-    ])
+    ], 2)
     if (salaryContractsResult.error) return { ...emptyResult, salaryRoutes, error: salaryContractsResult.error }
     if (laborConditionRelationsResult.error) return { ...emptyResult, salaryRoutes, error: laborConditionRelationsResult.error }
     const currentContract = (salaryContractsResult.data ?? []).find((contract) => contract.starts_on <= today && (!contract.ends_on || contract.ends_on >= today))
@@ -743,39 +746,39 @@ export async function getEmploymentDetail(
       currentContract?.labor_condition_set_id ? laborConditionSalaryStructureIds[currentContract.labor_condition_set_id] : undefined,
     ))
 
-    const [stepsResult, scalesResult, bandValuesResult, scalesCatalogResult, bandsCatalogResult] = await Promise.all([
-      supabase.from('salary_scale_steps')
+    const [stepsResult, scalesResult, bandValuesResult, scalesCatalogResult, bandsCatalogResult] = await loadQueriesInBatches([
+      () => supabase.from('salary_scale_steps')
         .select('id, salary_structure_revision_id, salary_scale_id, step_code, step_name, fulltime_amount')
         .eq('tenant_id', employment.tenant_id)
         .eq('hr_group_id', employment.hr_group_id)
         .in('salary_structure_revision_id', allRevisionIds)
         .order('sequence_number')
         .limit(10_000),
-      supabase.from('salary_scale_revision_values')
+      () => supabase.from('salary_scale_revision_values')
         .select('salary_structure_revision_id, salary_scale_id, code, name')
         .eq('tenant_id', employment.tenant_id)
         .eq('hr_group_id', employment.hr_group_id)
         .in('salary_structure_revision_id', allRevisionIds)
         .limit(5_000),
-      supabase.from('salary_band_values')
+      () => supabase.from('salary_band_values')
         .select('id, salary_structure_revision_id, salary_band_id, code, name, minimum_amount, midpoint_amount, maximum_amount')
         .eq('tenant_id', employment.tenant_id)
         .eq('hr_group_id', employment.hr_group_id)
         .in('salary_structure_revision_id', allRevisionIds)
         .order('sort_order')
         .limit(10_000),
-      supabase.from('salary_scales')
+      () => supabase.from('salary_scales')
         .select('id, salary_structure_id, code, name')
         .eq('tenant_id', employment.tenant_id)
         .eq('hr_group_id', employment.hr_group_id)
         .eq('is_active', true)
         .limit(1_000),
-      supabase.from('salary_bands')
+      () => supabase.from('salary_bands')
         .select('id, salary_structure_id')
         .eq('tenant_id', employment.tenant_id)
         .eq('hr_group_id', employment.hr_group_id)
         .limit(1_000),
-    ])
+    ], 4)
     if (stepsResult.error) return { ...emptyResult, salaryRoutes, error: stepsResult.error }
     if (scalesResult.error) return { ...emptyResult, salaryRoutes, error: scalesResult.error }
     if (bandValuesResult.error) return { ...emptyResult, salaryRoutes, error: bandValuesResult.error }

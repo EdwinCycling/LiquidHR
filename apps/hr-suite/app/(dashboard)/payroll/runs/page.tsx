@@ -18,6 +18,7 @@ const workbenchLabelKeys = [
   'periodSummaryTitle','periodSummaryDescription','periodStatusLabel','employeesTotal','grossTotal','netTotal',
   'employerCostsTotal','exceptionsSummary','exceptions','noExceptions','lastCalculated','notCalculatedYet','noAmount',
   'status_NOT_CALCULATED','status_CONCEPT','status_REVIEWED','status_FINALIZED','status_BLOCKED',
+  'sourceDiagnostics','sourceCategory','errorCode','correlationId','diagnosticUnavailable',
   'controlException','calculationException','staleException','correctionSuccessor',
   'batchResults','incompleteNetNotice','gross','net','wageTaxWithheld','remainingAfterWageTax','employerCost','notCalculated',
   'missingData','missingSalary','missingSchedule','missingContract','missingLaborConditions','missingIncomeRelationship',

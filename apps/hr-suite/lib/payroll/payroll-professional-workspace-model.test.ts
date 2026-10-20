@@ -152,6 +152,7 @@ function workItem(employee: PayrollProfessionalRosterEmployee, runId: string, bu
     stale: false,
     correctionSuccessorRequired: false,
     sourceGaps: [],
+    sourceDiagnostics: [],
   }
 }
 

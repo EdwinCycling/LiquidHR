@@ -1,5 +1,6 @@
 import type { Database, Tables } from '@scope/db'
 import { requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
 import { exactHoursToDatabase, isPositiveExactHours, parseExactHours } from './exact-hours'
 import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
@@ -283,8 +284,8 @@ export async function getActualWorkPayrollProjection(
   if (!isValidActualWorkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
   const { context, hrGroupId, supabase } = dependencies ?? await authForGroup('leave:read', input.employeeId)
   const from = monthStart(input.month)
-  const [entriesResult, periodResult] = await Promise.all([
-    supabase.from('employment_work_hour_entries')
+  const [entriesResult, periodResult] = await loadQueriesInBatches([
+    () => supabase.from('employment_work_hour_entries')
       .select('id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,approved_at,updated_at')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', hrGroupId)
@@ -294,13 +295,13 @@ export async function getActualWorkPayrollProjection(
       .order('work_date')
       .order('id')
       .limit(2001),
-    supabase.from('actual_work_periods')
+    () => supabase.from('actual_work_periods')
       .select('id,period_start,period_end,status,updated_at')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', hrGroupId)
       .eq('period_start', from)
       .maybeSingle(),
-  ])
+  ], 2)
   if (entriesResult.error) databaseError(entriesResult.error, 'employment-work-hour-entries')
   if (periodResult.error) databaseError(periodResult.error, 'actual-work-periods')
 

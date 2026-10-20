@@ -112,6 +112,15 @@ function exceptionLabel(exception: PayrollProfessionalException, labels: Readonl
     : labels.staleException
 }
 
+function safeDiagnosticValue(value: string, kind: 'category' | 'code' | 'correlation', unavailable: string): string {
+  const pattern = kind === 'category'
+    ? /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/
+    : kind === 'code'
+      ? /^[A-Z0-9_]{1,96}$/
+      : /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return pattern.test(value) ? value : unavailable
+}
+
 function runLink(runId: string): string {
   return `/payroll/runs/${encodeURIComponent(runId)}`
 }
@@ -252,6 +261,16 @@ export function PayrollProfessionalRunWorkbench({
                         {employee.exceptions.length > 0 ? <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
                           <p className="font-medium">{labels.exceptions}</p>
                           <ul className="mt-1 list-disc space-y-1 pl-5">{employee.exceptions.map((exception) => <li key={[exception.kind, exception.field, exception.component, exception.controlKey, exception.reasonCode].join('|')}>{exceptionLabel(exception, labels)}</li>)}</ul>
+                            {employee.sourceDiagnostics.length > 0 ? <details className="mt-2 text-xs">
+                              <summary className="cursor-pointer font-medium">{labels.sourceDiagnostics}</summary>
+                              <ul className="mt-1 space-y-1 pl-1">
+                                {employee.sourceDiagnostics.map((diagnostic, index) => <li key={`${diagnostic.sourceCategory}-${diagnostic.errorCode}-${index}`}>
+                                  <span>{labels.sourceCategory}: </span><code>{safeDiagnosticValue(diagnostic.sourceCategory, 'category', labels.diagnosticUnavailable)}</code>
+                                  <span> · {labels.errorCode}: </span><code>{safeDiagnosticValue(diagnostic.errorCode, 'code', labels.diagnosticUnavailable)}</code>
+                                  {diagnostic.correlationId ? <><span> · {labels.correlationId}: </span><code>{safeDiagnosticValue(diagnostic.correlationId, 'correlation', labels.diagnosticUnavailable)}</code></> : null}
+                                </li>)}
+                              </ul>
+                            </details> : null}
                         </div> : <p className="mt-3 text-xs text-muted-foreground">{labels.noExceptions}</p>}
                       </div>
                       <div><dt className="text-xs text-muted-foreground">{labels.gross}</dt><dd className="mt-1 font-medium tabular-nums">{formatMoney(employee.grossAmount, locale, labels.noAmount)}</dd></div>

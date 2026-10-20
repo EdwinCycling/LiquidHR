@@ -193,6 +193,7 @@ describe('requirePermission', () => {
   it('behandelt een algemeen self-leesrecht niet als wildcard', async () => {
     createClient.mockResolvedValue(
       createFakeClient({
+        roleCodes: { 'tenant-admin-role': 'EMPLOYEE' },
         rolePermissions: { 'tenant-admin-role': ['salary:read'] },
         selfPermissionCodes: ['self:read'],
       }),
@@ -331,6 +332,55 @@ describe('requirePermission', () => {
       'employee-1',
     )).resolves.toBe(context)
     expect(createClient).not.toHaveBeenCalled()
+  })
+
+  it('laat een HR Admin de eigen medewerker lezen met de exacte bestaande adminpermissie', async () => {
+    const client = createFakeClient({
+      selfPermissionCodes: [],
+      essStatus: 'ACTIVE',
+    })
+    const context: AuthContext = {
+      tenantId: 'tenant-1',
+      hrGroupId: 'group-1',
+      administrationId: 'admin-1',
+      userId: 'user-1',
+      employeeId: 'employee-1',
+      activeRoles: ['HR_ADMIN'],
+      permissions: ['salary:read'],
+      focusExperience: 'EMPLOYEE',
+    }
+
+    await expect(requirePermissionInContext(
+      client as unknown as Parameters<typeof requirePermissionInContext>[0],
+      context,
+      'salary:read',
+      'employee-1',
+    )).resolves.toBe(context)
+  })
+
+  it('laat een gewone medewerker geen adminpermissie gebruiken om zichzelf te lezen', async () => {
+    const client = createFakeClient({
+      roleCodes: { 'tenant-admin-role': 'EMPLOYEE' },
+      selfPermissionCodes: [],
+      essStatus: 'ACTIVE',
+    })
+    const context: AuthContext = {
+      tenantId: 'tenant-1',
+      hrGroupId: 'group-1',
+      administrationId: 'admin-1',
+      userId: 'user-1',
+      employeeId: 'employee-1',
+      activeRoles: ['EMPLOYEE'],
+      permissions: ['salary:read'],
+      focusExperience: 'EMPLOYEE',
+    }
+
+    await expect(requirePermissionInContext(
+      client as unknown as Parameters<typeof requirePermissionInContext>[0],
+      context,
+      'salary:read',
+      'employee-1',
+    )).rejects.toBeInstanceOf(AuthorizationError)
   })
 
   it('weigert selftoegang als de bestaande selfpermission ontbreekt, ook wanneer AuthContext die naam bevat', async () => {

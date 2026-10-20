@@ -7,11 +7,18 @@ import type { PayrollRunSummary } from './calculation-repository'
 
 export type PayrollCycleBusinessStatus = 'CONCEPT' | 'REVIEWED' | 'FINALIZED' | null
 
+export type PayrollCycleSourceDiagnostic = {
+  readonly sourceCategory: string
+  readonly errorCode: string
+  readonly correlationId: string | null
+}
+
 export type PayrollCycleCurrentSource = {
   readonly employeeId: string
   readonly sourceHash: string | null
   readonly sourceVersionVector: Readonly<Record<string, string>>
   readonly gaps: readonly { readonly field: string; readonly status: 'SOURCE_GAP' | 'UNSUPPORTED'; readonly reasonCode: string }[]
+  readonly diagnostics: readonly PayrollCycleSourceDiagnostic[]
 }
 
 export type PayrollCycleWorkItem = {
@@ -32,6 +39,7 @@ export type PayrollCycleWorkItem = {
   readonly stale: boolean
   readonly correctionSuccessorRequired: boolean
   readonly sourceGaps: PayrollCycleCurrentSource['gaps']
+  readonly sourceDiagnostics: PayrollCycleSourceDiagnostic[]
 }
 
 export type PayrollCycleProjection = {
@@ -206,6 +214,7 @@ export function projectPayrollCycle(input: {
       stale: currentHashDiffers,
       correctionSuccessorRequired: currentHashDiffers && latest?.event_type === 'FINALIZED',
       sourceGaps: currentSource?.gaps ?? [],
+      sourceDiagnostics: [...(currentSource?.diagnostics ?? [])],
     }
   }).sort((left, right) => left.employeeId.localeCompare(right.employeeId) || left.employmentId.localeCompare(right.employmentId))
 

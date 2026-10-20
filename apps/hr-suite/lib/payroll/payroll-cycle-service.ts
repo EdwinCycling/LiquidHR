@@ -1,12 +1,17 @@
 import 'server-only'
 
+import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import type { PayrollSourceProvider } from '@liquid-hr/payroll-engine'
 import { AuthorizationError } from '@/lib/auth/permissions'
 import { createPayrollCalculationRepository, PayrollCalculationRepositoryError } from './calculation-repository'
 import type { PayrollCalculationRepository } from './calculation-repository'
 import { isPayrollLabEnabled } from './feature-flag'
 import { createPayrun01Repository, type Payrun01Repository } from './payrun01-repository'
-import { createLiquidHrPayrollSourceProvider } from './source/liquid-hr-source-provider'
+import {
+  createLiquidHrPayrollSourceProvider,
+  getPayrollSourceSnapshotCorrelationId,
+  PayrollSourceProviderError,
+} from './source/liquid-hr-source-provider'
 import { requireComponentLibraryAccess } from './component-library-access'
 import {
   isLocalPayrollAcceptanceRuntime,
@@ -172,7 +177,7 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
     const runs = visibleRuns.filter((summary) => summary.payrollPeriod.id === cycle.id)
     const currentSourcesByEmployment = employeeReferences.length === 0
       ? undefined
-      : Object.fromEntries(await Promise.all(employeeReferences.map(async (reference) => {
+      : Object.fromEntries(await loadQueriesInBatches(employeeReferences.map((reference) => async () => {
         try {
           const snapshot = await dependencies.sourceProvider.getPayrollSourceSnapshot({
             ...access.scope,
@@ -185,19 +190,32 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
             sourceHash: snapshot.sourceHash,
             sourceVersionVector: snapshot.sourceVersionVector,
             gaps: snapshot.sourceGaps,
+            diagnostics: snapshot.sourceGaps.map((gap) => ({
+              sourceCategory: gap.field,
+              errorCode: gap.reasonCode,
+              correlationId: getPayrollSourceSnapshotCorrelationId(snapshot),
+            })),
           } satisfies PayrollCycleCurrentSource] as const
         } catch (error) {
           const status = typeof error === 'object' && error !== null && 'status' in error
             && typeof error.status === 'number' ? error.status : null
           if (status === 403 || (error instanceof Error && error.name === 'AuthorizationError')) throw error
+          const diagnostic = error instanceof PayrollSourceProviderError
+            ? [{
+              sourceCategory: error.sourceCategory ?? 'source-provider',
+              errorCode: error.code,
+              correlationId: error.correlationId ?? null,
+            }]
+            : []
           return [reference.employmentId, {
             employeeId: reference.employeeId,
             sourceHash: null,
             sourceVersionVector: {},
             gaps: [{ field: 'sourceSnapshot', status: 'SOURCE_GAP', reasonCode: 'CORE_SOURCE_READ_FAILED' }],
+            diagnostics: diagnostic,
           } satisfies PayrollCycleCurrentSource] as const
         }
-      })))
+      }), 3))
     const employmentIds = [...new Set([
       ...runs.map((summary) => summary.sourceSnapshot.source_employment_id),
       ...employeeReferences.map((reference) => reference.employmentId),
@@ -263,6 +281,11 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
           sourceHash: snapshot.sourceHash,
           sourceVersionVector: snapshot.sourceVersionVector,
           gaps: snapshot.sourceGaps,
+          diagnostics: snapshot.sourceGaps.map((gap) => ({
+            sourceCategory: gap.field,
+            errorCode: gap.reasonCode,
+            correlationId: getPayrollSourceSnapshotCorrelationId(snapshot),
+          })),
         },
       },
     })

@@ -1,41 +1,48 @@
-# PAYROLL-SOURCE-FIX-01 — recovery manifest
+# PAYROLL-SOURCE-FIX-01 — herstelmanifest
 
-Status: **PARTIAL — source failure identified as PostgREST pool timeout in sampled telemetry; Frits-specific first dependency and November CONCEPT run remain unverified.**
+Status: **PARTIAL — de oorspronkelijke source-fout is als autorisatieprogrammeurfout hersteld en de echte bron is zichtbaar. Geen november-CONCEPT gemaakt: Jupiter mist werkgeversconfiguratie, een geldige Frits-openingsbalans en een ondersteunde PFZW-salarisbasisdefinitie.**
 
-Worktree: `PAYQA-01-20261018`, branch `work/PAYQA-01-20261018`, starting HEAD `22a193e42a8b05b1c3b149eb8cbea2029d765222`. This is local TEST/code evidence only. No merge, push, deployment, Payroll Lab write, or FINALIZED-run change was made.
+Worktree: `PAYQA-01-20261018`, branch `work/PAYQA-01-20261018`, start-HEAD `1600c3e4a423ac37727ffcd34ed6f93093bc3a0e`. Alleen lokale code en synthetische TEST-readback. Geen broninrichting opnieuw aangemaakt, geen Core/Payroll-data gewijzigd, geen run ingediend, geen FINALIZED-run gewijzigd, geen merge/push/deployment.
 
-## Request path and failure boundary
+## Foutpad en eerste falende afhankelijkheid
 
-`Payroll → Salarisverwerking` calls `runPayrun01Action` → `runPayrun01Payroll` → `buildPayrun01Scenario.createSnapshot` → `LiquidHrPayrollSourceProvider.getPayrollSourceSnapshot`.
+`Payroll → Salarisverwerking` → `getPayrollCycleWorklist` → `LiquidHrPayrollSourceProvider.getPayrollSourceSnapshot` → `getEmploymentPayrollSourceProjection`.
 
-The provider currently emits `PAYROLL_SOURCE_DATA_UNAVAILABLE` for three different conditions: the employment-list read, the concurrent employment-timeline/actual-work reads, and source-snapshot schema validation. Before this change, all three erased the read phase and safe database error code. The provider emitted no application-level correlation ID to tie telemetry to a Payroll source attempt.
+De eerste fout was geen ontbrekende cao-regel, RLS-denial of PostgREST-readfout. `requirePermissionInContext` behandelde een HR Admin die zijn eigen gekoppelde employee-rij las altijd als selfservice en verving de expliciete `salary:read`-rolmachtiging door `self:salary:read`. Dat gaf `AuthorizationError`, waarna de provider dit als `PAYROLL_SOURCE_DATA_UNAVAILABLE` presenteerde. De check gebruikt nu de exacte permission uit de context voor HR_ADMIN/TENANT_ADMIN; een gewone eigen medewerker heeft nog steeds selfservice-rechten nodig. Een regressietest dekt beide kanten.
 
-Read-only Core Supabase edge telemetry sampled for **2026-10-19 19:25–19:40 UTC** reported PostgREST `PGRST003` / HTTP 504 while waiting for an internal pool connection. Timeouts appeared across employment, salary, labor-condition, IKV, tax-profile, pension-arrangement/version, and actual-work reads. The matching PostgreSQL error-log query returned no rows. The observed error is a PostgREST pool-acquisition timeout; it is not evidence of an RLS denial or SQL constraint failure. It also does not rule out separate missing or invalid source data. The sampled events cannot be correlated to Frits, so they do not prove which request or query failed first for him.
+Na herstel las de geautoriseerde HR Admin Maya de Payroll-worklist voor Jupiter BV, HR-groep Planeten en november 2026. De Frits-rij toont geen `contractualSalary`, `contractualHours`, `contract`, `laborCondition` of `cao` gap. De opgeslagen CAO_SCALE-koppeling `6f69c8aa-bd5a-4597-a824-c8f77e95e4e4` (Kinderopvang 2025–2026, versie 2026.09, schaal 6 trede 12, 24/36 uur, ingangsdatum 1 november 2026) wordt dus door de echte bronprojectie gelezen. De oude regel is niet opnieuw aangemaakt. De periodenweergave toont november als OPEN.
 
-## Source checks and limits
+Een eerdere, niet aan Frits correleerbare PGRST003/504-pooltimeout is afzonderlijk waargenomen; die was niet de eerste fout op zijn bronpad. Verwante HR/Payroll-readfan-out is nu begrensd in batches (maximaal 3 worklist-bronnen en 4 projection-queries tegelijk). Dit wordt niet als bewezen oorzaak of oplossing van de Frits-fout gerapporteerd.
 
-- Scope is server-derived: Payroll source reads require the authenticated tenant, HR group, administration, employee and period to match; employments must be confirmed, undeleted, and period-effective. Frits’s live authorization and employment rows were not readable in this run.
-- The Core projection selects `employment_salaries` CAO basis, structure, scale, step, code, labels, amounts and effective dates. The existing unit suite covers the supplied Kinderopvang scale/step and €2,819.00 / €1,879.33 values. A new local regression case also verifies a 1 November effective date and an empty November actual-work projection. These are test fixtures, not a readback of Frits’s stored row.
-- Published CAO version and scale/step linkage, employer registration, IKV, fiscal profile, pension participation and effective PFZW mapping were not verified against Core records. The PGRST003 telemetry prevents distinguishing absent data from a read outage for those records.
-- No Sunday hours were imported. A November calculation was not submitted to Payroll Lab because the authorized runtime was unavailable; this attempt created no run, so duplicate/readback verification was not performed.
+## Exacte resterende bronblokkades
 
-## Safe diagnostics added
+- **Werkgeversconfiguratie — echte ontbrekende record voor Jupiter.** Payroll → Instellingen meldt “Er is nog geen werkgeversconfiguratie vastgelegd.” De normale pagina markeert bron/besluitreferentie, sectorcode, WHK-beschikking, AWf/Aof/Wko/Zvw-classificaties en percentages, vakantiegeld, toepasselijkheid eindejaarsuitkering, componentenset en pensioen-deelmaandmethode/-bron als niet gereed. Zonder de echte beschikking en werkgeversbesluiten zijn deze waarden niet invulbaar.
+- **Openingscumulatief — Frits versie 310, openingsdatum 2026-09-30.** De bronperiode vanaf/tot is leeg en de bronvermelding is `PAYRUN01 TEST PERSONA ASSIGNMENT`; de provider meldt `PAYROLL_OPENING_CUMULATIVE_MISSING` én `PAYROLL_OPENING_CUMULATIVE_INVALID` op `opening_balance_json`. De provider accepteert alleen een hash-valide JSON met de zeven cumulatieve velden: `grossWageBeforePeriod`, `holidayReserveBeforePeriod`, `yearEndReserveBeforePeriod`, `taxableWageBeforePeriod`, `wageTaxBeforePeriod`, `employeeInsuranceWageBeforePeriod`, `zvwWageBeforePeriod`. De exacte ongeldige subkey is niet zichtbaar gemaakt; versie 310 heeft geen verifieerbare loonbron en is niet gebruikt. De eerdere versie 309 heeft dezelfde synthetische bronvermelding en ontbrekende bronperiode.
+- **Pensioen — koppeling aanwezig, definitie ongeldig.** Frits heeft een effectieve `PFZW — Kinderopvang 2026`-toewijzing en een effectieve koppeling van `Cao Kinderopvang 2025-2026` naar PFZW Kinderopvang 2026 voor `NEW_ENTRANT`. Regelingversie 1 blokkeert op exact `pensionable_salary_definition.method`: de opgeslagen waarde is beschrijvende tekst, niet de door de engine ondersteunde definitie (`PENSIONABLE_SALARY_DEFINITION_UNSUPPORTED`). De bestaande deelname en koppeling zijn niet opnieuw aangemaakt. De opgeslagen definitie geeft geen wettelijke goedkeuring; er is geen nieuwe versie opgeslagen.
+- **Fiscale gegevens, IKV, werkgeverregistratie en dienstverband** tonen voor Frits geen gap op deze worklist-read. Deze zijn niet als blokkade aangemerkt.
+- **November-uren:** geen goedgekeurde zondaguren voor november. De vier oktoberzondaguren zijn niet overgenomen.
 
-Source failures now emit only `sourceCategory`, an allowlisted PostgREST/SQLSTATE code (or `SOURCE_READ_FAILED`), and a generated correlation ID. Source projection reads preserve safe table-category and database-code metadata. Snapshot-schema failures include only the schema field path and a fixed error code. Raw messages, record identifiers, employee identifiers, names, and source values are excluded; the UI-facing error remains generic.
+De worklist geeft deze gaps afzonderlijk terug. De veilige correlatie-ID van de gelezen Frits-snapshot is `054ba359-ff41-4f7a-a83d-4d88bce499ba`. Diagnostiek bevat broncategorie, allowlisted foutcode en correlatie-ID; geen namen/record-ID's/bedragen of ruwe databasefouten in de foutmelding.
 
-## Verification
+## Normale invoeractie en runstatus
 
-- Targeted Payroll source, CAO-BENCH02 service/UI, actual-work and tax-profile suites: **51 tests passed**.
-- TypeScript `tsc --noEmit`: **passed**.
-- Changed-area ESLint: **passed**, with one pre-existing unused-import warning for `PayrollSetupRepository` in the source provider.
-- `git diff --check`: **passed**.
-- The three rule-package tests could not be run with the app Vitest config: it found no files outside the app root. A second package-root attempt loaded a parent `vite.config.ts` outside this workspace and failed before tests on unresolved Vite imports / sandbox `EPERM`; no package test result is claimed.
-- Browser acceptance was unavailable: the existing Chrome tab could not attach because the CDP focus-emulation command timed out. The central local TEST runtime config was absent. No config or credentials were read, copied, created or changed.
+Een bevoegde Jupiter-payrollbeheerder moet de echte werkgeversbeschikking/werkgeversbesluiten gebruiken in **Payroll → Instellingen → Werkgeversconfiguratie** om de ontbrekende waarden, geldigheidsperiode en bronreferentie vast te leggen. Dezelfde beheerder moet voor Frits in **Openingscumulatieven** een controleerbare betaalde loonbron en bronperiode kiezen en de zeven cumulatieven daaruit invoeren. Gebruik geen persona-assignment, concept-run, schatting of aangenomen nullen. Een pensioenbeheerder moet de PFZW-salarisbasis vanuit de toepasselijke regeling/werkgeversbron als ondersteunde opvolgerversie vastleggen; geen methode of deelname veronderstellen.
 
-## Mercurius administration choice — separately recorded
+Er is **geen nieuwe november-run** aangemaakt of teruggelezen; er ontstond dus geen dubbele run. De bestaande lijst had geen Frits-novemberrun. Bruto, werknemers-/werkgeverspensioen, loonheffing, netto en werkgeverskosten konden daarom niet worden uitgelezen. Er is niets gefinaliseerd. Er is geen configuratie- of openingsbalansformulier opgeslagen.
 
-There is no name-based Mercurius exclusion in Payroll. The general administration selector is built from active administrations in an accessible HR group: the actor needs tenant scope or an explicit administration grant; employee/manager-only actors also need an employment-derived administration assignment. Payroll then resolves capability for the currently selected server context. The current actor’s grants, group membership, Mercurius active row and Payroll capability could not be read through the available session, so the exact false selector condition is **not established**. No permission was broadened. The normal administrator action is to inspect those four conditions in the authorized administration UI and correct only the missing/inactive source if confirmed.
+## Mercurius — aparte selectorbevinding
 
-## Next recovery step
+De geautoriseerde administratiekeuze en `Instellingen → Bedrijfsstructuur` tonen voor deze identiteit alleen actieve, bereikbare HR-groep **Planeten** met **Jupiter BV** en **Mars BV**. De selector wordt uit de actieve tenant-, HR-groep-, administratie- en grantscope opgebouwd; `business-structure` krijgt dezelfde `context.hrGroups`. Mercurius zit niet in deze huidige bereikbare context. Deze UI kan niet onderscheiden of de canonieke Mercurius-rij inactief is, bij een andere HR-groep/tenant hoort of buiten de bestaande actor-grant valt. Daarom is geen selector-/toegangswijziging gedaan. De normale vervolgstap is een bevoegde tenantbeheerder de status, HR-groep en bestaande actor-scope van de Mercurius-rij laten controleren.
 
-Use the existing authorized HR Admin browser session and supported TEST runtime. Read the target employment and its effective Core links through the normal UI, retry once after the PostgREST pool is healthy, and capture the new correlation ID. If that read identifies missing source data, enter only source-backed values through the normal UI. Then run exactly one November 2026 CONCEPT, read back all requested employee/employer amounts and employer costs, confirm one run, and stop before finalization. Keep the Mercurius selector result separate from Jupiter’s calculation.
+## Verificatie
+
+- Gerichte Payroll-suite (bronprovider, cycle service/model, workbench, bounded query loader, actual-work, tax-profile en CAO-BENCH02 service/UI): **11 bestanden, 83 tests geslaagd**.
+- TypeScript `tsc --noEmit`: **geslaagd**.
+- ESLint gewijzigde bestanden: **0 fouten**, één bestaande ongebruikte `PayrollSetupRepository`-importwaarschuwing.
+- i18n: **43 NL/EN-namespaceparen gelijk**; `git diff --check`: **geslaagd**.
+- Payroll-rules package tests: **niet uitgevoerd** — Vitest faalde vóór testcollectie met Windows `EPERM` bij tijdelijke directory-renames (6 suites, 0 tests). Geen tweede retry.
+- Geauthenticeerde browser-readback: Jupiter-scope, Payroll-instellingen en werkgevercheck, Frits-diagnostiek, PFZW-toewijzing/mapping en de Mercurius-keuze zijn bekeken. Er is geen conceptberekening ingediend. Na de dev-server/HMR-fout kon de runtime niet opnieuw worden gestart: de centrale lokale TEST-config ontbreekt; geen configuratie of credentials zijn gelezen/aangemaakt.
+
+## Onafhankelijke scenario's
+
+De gerichte CAO-BENCH02-, CAO_SCALE-, PFZW- en werkgeversconfiguratievalidatietests bleven onderdeel van de onafhankelijke scenario-gates; het ontbreken van Frits' betaalde openingsbron blokkeert hun codeontwikkeling niet. De bestaande payroll-regelengine is niet aangepast met verzonnen PFZW-, fiscale of werkgeverswaarden. Dit herstel sluit de aparte scenario's niet af.

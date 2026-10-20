@@ -1,7 +1,11 @@
 import { FixedDecimal } from '@liquid-hr/payroll-engine'
 import type { PayrollCalculationArtifacts, PayrollRunSummary } from './calculation-repository'
 import type { PayrollJson, PayrollPeriodStatus, PayrollCalculationRunStatus } from './database'
-import type { PayrollCycleBusinessStatus, PayrollCycleWorkItem } from './payroll-cycle-model'
+import type {
+  PayrollCycleBusinessStatus,
+  PayrollCycleSourceDiagnostic,
+  PayrollCycleWorkItem,
+} from './payroll-cycle-model'
 
 export const PAYROLL_PROFESSIONAL_EMPLOYEE_STATUSES = [
   'NOT_CALCULATED', 'CONCEPT', 'REVIEWED', 'FINALIZED', 'BLOCKED',
@@ -39,6 +43,7 @@ export type PayrollProfessionalEmployee = PayrollProfessionalRosterEmployee & {
   readonly employerCosts: string | null
   readonly lastCalculatedAt: string | null
   readonly exceptions: readonly PayrollProfessionalException[]
+  readonly sourceDiagnostics: readonly PayrollCycleSourceDiagnostic[]
   readonly stale: boolean
   readonly correctionSuccessorRequired: boolean
   readonly canCalculate: boolean
@@ -242,6 +247,7 @@ export function projectPayrollProfessionalEmployees(input: {
       employerCosts: componentAmount(artifacts, 'total_employer_cost'),
       lastCalculatedAt: run?.finished_at ?? run?.started_at ?? run?.created_at ?? null,
       exceptions,
+      sourceDiagnostics: workItem?.sourceDiagnostics ?? [],
       stale: workItem?.stale ?? false,
       correctionSuccessorRequired: workItem?.correctionSuccessorRequired ?? false,
       canCalculate: actionable && status !== 'FINALIZED',

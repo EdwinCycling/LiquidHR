@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { Database, Json } from '@scope/db'
 import { AuthorizationError, requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
 
 type TaxProfileRow = Database['public']['Tables']['employment_payroll_tax_profiles']['Row']
@@ -181,35 +182,37 @@ export async function getEmploymentPayrollTaxSourceProjection(
     || identityContext.administrationId !== salaryContext.administrationId) {
     throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_SCOPE_UNAVAILABLE', 404)
   }
+  const administrationId = salaryContext.administrationId
+  const hrGroupId = salaryContext.hrGroupId
 
   const start = payrollPeriodStart(period)
   const end = payrollPeriodEnd(period)
   const supabase = await createClient()
-  const [employeeResult, incomeResult, linkResult, employmentResult, profileResult] = await Promise.all([
-    supabase.from('employees').select('birth_date, updated_at')
-      .eq('id', employeeId).eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', salaryContext.hrGroupId)
+  const [employeeResult, incomeResult, linkResult, employmentResult, profileResult] = await loadQueriesInBatches([
+    () => supabase.from('employees').select('birth_date, updated_at')
+      .eq('id', employeeId).eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
       .is('deleted_at', null).maybeSingle(),
-    supabase.from('income_relationships')
+    () => supabase.from('income_relationships')
       .select('id, ikv_number, reporting_status, relationship_type, starts_on, ends_on, updated_at')
-      .eq('tenant_id', salaryContext.tenantId).eq('administration_id', salaryContext.administrationId)
+      .eq('tenant_id', salaryContext.tenantId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).is('deleted_at', null).lte('starts_on', end)
       .or(`ends_on.is.null,ends_on.gte.${start}`).limit(100),
-    supabase.from('employment_income_relationships')
+    () => supabase.from('employment_income_relationships')
       .select('id, employment_id, income_relationship_id, valid_from, valid_until, updated_at')
-      .eq('tenant_id', salaryContext.tenantId).eq('administration_id', salaryContext.administrationId)
+      .eq('tenant_id', salaryContext.tenantId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).lte('valid_from', end)
       .or(`valid_until.is.null,valid_until.gte.${start}`).limit(100),
-    supabase.from('employments').select('id, starts_on, ends_on, record_status, deleted_at')
-      .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', salaryContext.hrGroupId)
-      .eq('administration_id', salaryContext.administrationId).eq('employee_id', employeeId)
+    () => supabase.from('employments').select('id, starts_on, ends_on, record_status, deleted_at')
+      .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
+      .eq('administration_id', administrationId).eq('employee_id', employeeId)
       .eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', end)
       .or(`ends_on.is.null,ends_on.gte.${start}`).limit(100),
-    supabase.from('employment_payroll_tax_profiles').select('*')
-      .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', salaryContext.hrGroupId)
-      .eq('administration_id', salaryContext.administrationId).eq('employee_id', employeeId)
+    () => supabase.from('employment_payroll_tax_profiles').select('*')
+      .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
+      .eq('administration_id', administrationId).eq('employee_id', employeeId)
       .lte('effective_from', end).or(`effective_to.is.null,effective_to.gte.${start}`)
       .order('effective_from').order('version_number').limit(200),
-  ])
+  ], 4)
   const failedRead = [
     { sourceCategory: 'employees', error: employeeResult.error },
     { sourceCategory: 'income-relationships', error: incomeResult.error },
