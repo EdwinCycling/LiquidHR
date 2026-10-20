@@ -175,6 +175,38 @@ export interface PayrollSourceProviderDependencies {
   readonly isEnabled: () => boolean
   readonly now?: () => Date
   readonly createId?: () => string
+  readonly createCorrelationId?: () => string
+  readonly reportDiagnostic?: (diagnostic: PayrollSourceProviderDiagnostic) => void
+}
+
+export type PayrollSourceProviderDiagnostic = {
+  readonly event: 'PAYROLL_SOURCE_PROVIDER_FAILURE'
+  readonly sourceCategory: string
+  readonly errorCode: string
+  readonly correlationId: string
+  readonly field?: string
+}
+
+const SAFE_DATABASE_ERROR_CODE = /^(?:PGRST\d{3}|[0-9A-Z]{5})$/
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function safeSourceErrorCode(error: unknown): string {
+  if (error instanceof PayrollSourceReadFailure) return safeSourceErrorCode(error.sourceError)
+  if (!isRecord(error)) return 'SOURCE_READ_FAILED'
+  const candidate = error.databaseCode ?? error.diagnosticCode ?? error.code
+  return typeof candidate === 'string' && SAFE_DATABASE_ERROR_CODE.test(candidate)
+    ? candidate
+    : 'SOURCE_READ_FAILED'
+}
+
+function safeSourceCategory(error: unknown, fallback: string): string {
+  if (error instanceof PayrollSourceReadFailure) return safeSourceCategory(error.sourceError, error.sourceCategory)
+  if (isRecord(error) && typeof error.sourceCategory === 'string'
+    && /^[a-z][a-z0-9-]{0,63}$/.test(error.sourceCategory)) return error.sourceCategory
+  return fallback
 }
 
 export type PayrollSourceProviderErrorCode =
@@ -186,9 +218,21 @@ export type PayrollSourceProviderErrorCode =
   | 'PAYROLL_SOURCE_DATA_UNAVAILABLE'
 
 export class PayrollSourceProviderError extends Error {
-  constructor(readonly code: PayrollSourceProviderErrorCode, readonly status: 400 | 403 | 404 | 409 | 503) {
+  constructor(
+    readonly code: PayrollSourceProviderErrorCode,
+    readonly status: 400 | 403 | 404 | 409 | 503,
+    readonly sourceCategory?: string,
+    readonly correlationId?: string,
+  ) {
     super(code)
     this.name = 'PayrollSourceProviderError'
+  }
+}
+
+class PayrollSourceReadFailure extends Error {
+  constructor(readonly sourceCategory: string, readonly sourceError: unknown) {
+    super('PAYROLL_SOURCE_READ_FAILED')
+    this.name = 'PayrollSourceReadFailure'
   }
 }
 
@@ -203,12 +247,22 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
       return salaryContext
     },
     listEmployments: async (employeeId) => await listEmployeeEmployments(employeeId),
+    createCorrelationId: randomUUID,
+    reportDiagnostic: (diagnostic) => {
+      console.error('PAYROLL_SOURCE_PROVIDER_FAILURE', diagnostic)
+    },
     isEnabled: isPayrollLabEnabled,
     loadTimeline: async (employeeId, employmentId, payrollPeriod) => {
       const [source, incomeRelationships, taxProfileProjection] = await Promise.all([
-        getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod),
-        getEmploymentIncomeRelationshipProjection(employeeId, employmentId),
-        getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod),
+        getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod).catch((error: unknown) => {
+          throw new PayrollSourceReadFailure('employment-payroll-projection', error)
+        }),
+        getEmploymentIncomeRelationshipProjection(employeeId, employmentId).catch((error: unknown) => {
+          throw new PayrollSourceReadFailure('income-relationship-projection', error)
+        }),
+        getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod).catch((error: unknown) => {
+          throw new PayrollSourceReadFailure('tax-profile-projection', error)
+        }),
       ])
       return {
         employment: source.employment,
@@ -224,7 +278,9 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
       }
     },
     loadActualWork: async (employeeId, employmentId, month) =>
-      await getActualWorkPayrollProjection({ employeeId, employmentId, month }),
+      await getActualWorkPayrollProjection({ employeeId, employmentId, month }).catch((error: unknown) => {
+        throw new PayrollSourceReadFailure('actual-work-projection', error)
+      }),
     loadPayrollSetup: async (scope, _sourceAdministrationId, sourceEmploymentId, payrollPeriod) => {
       const repository = createPayrollSetupRepository()
       const payrollAdministration = await repository.getPayrollAdministration(scope)
@@ -1325,6 +1381,21 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     const input = parsedInput.data
     if (!this.dependencies.isEnabled()) throw new PayrollSourceProviderError('PAYROLL_SOURCE_DISABLED', 503)
 
+    const correlationId = (this.dependencies.createCorrelationId ?? randomUUID)()
+    const reportFailure = (sourceCategory: string, errorCode: string, field?: string): void => {
+      try {
+        this.dependencies.reportDiagnostic?.({
+          event: 'PAYROLL_SOURCE_PROVIDER_FAILURE',
+          sourceCategory,
+          errorCode,
+          correlationId,
+          ...(field ? { field } : {}),
+        })
+      } catch {
+        // Diagnostics must never replace the source failure.
+      }
+    }
+
     const context = await this.dependencies.authorize(input.employeeId)
     const authorizedScope = payrollScopeFromAuthContext(context)
     if (
@@ -1339,8 +1410,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     let employments: readonly PayrollSourceEmployment[]
     try {
       employments = await this.dependencies.listEmployments(input.employeeId)
-    } catch {
-      throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503)
+    } catch (error) {
+      const sourceCategory = safeSourceCategory(error, 'employment-directory')
+      reportFailure(sourceCategory, safeSourceErrorCode(error))
+      throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId)
     }
 
     const bounds = periodBounds(input.payrollPeriod)
@@ -1366,8 +1439,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         this.dependencies.loadTimeline(input.employeeId, employment.id, input.payrollPeriod),
         this.dependencies.loadActualWork(input.employeeId, employment.id, `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`),
       ])
-    } catch {
-      throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503)
+    } catch (error) {
+      const sourceCategory = safeSourceCategory(error, 'employment-timeline-or-actual-work')
+      reportFailure(sourceCategory, safeSourceErrorCode(error))
+      throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId)
     }
     if (
       timeline.employment.id !== employment.id
@@ -1817,7 +1892,11 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     }
 
     const validated = payrollSourceSnapshotSchema.safeParse(snapshot)
-    if (!validated.success) throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503)
+    if (!validated.success) {
+      const field = validated.error.issues[0]?.path.map(String).join('.')
+      reportFailure('source-snapshot-schema', 'SNAPSHOT_SCHEMA_INVALID', field || undefined)
+      throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, 'source-snapshot-schema', correlationId)
+    }
     return validated.data
   }
 }

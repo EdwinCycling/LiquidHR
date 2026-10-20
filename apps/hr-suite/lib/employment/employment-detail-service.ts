@@ -68,7 +68,12 @@ function employmentMigrationRpcClient(client: Awaited<ReturnType<typeof createCl
 }
 
 export class EmploymentDetailError extends Error {
-  constructor(public readonly code: string, public readonly status: number) {
+  constructor(
+    public readonly code: string,
+    public readonly status: number,
+    readonly sourceCategory?: string,
+    readonly databaseCode?: string,
+  ) {
     super(code)
     this.name = 'EmploymentDetailError'
   }
@@ -125,7 +130,7 @@ export async function getEmploymentIncomeRelationshipProjection(
     .eq('employment_id', employment.id)
     .order('valid_from', { ascending: true })
     .limit(100)
-  if (error) throwDatabaseError(error.message)
+  if (error) throwDatabaseError(error.message, 'employment-income-relationships', safeDatabaseCode(error))
 
   return (data ?? []).flatMap((row) => {
     const relationship = row.income_relationships
@@ -277,9 +282,19 @@ export async function getEmploymentPayrollSourceProjection(
       .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
       .order('effective_from').limit(100),
   ])
-  const failed = [employmentResult, contractResult, laborResult, organizationResult, salaryResult, scheduleResult, pensionAssignmentResult, laborPensionResult]
-    .find((result) => result.error)
-  if (failed?.error) throwDatabaseError(failed.error.message)
+  const failed = ([
+    ['employments', employmentResult],
+    ['employment-contracts', contractResult],
+    ['employment-labor-conditions', laborResult],
+    ['employee-organizations', organizationResult],
+    ['employment-salaries', salaryResult],
+    ['employment-schedules', scheduleResult],
+    ['pension-arrangement-assignments', pensionAssignmentResult],
+    ['labor-condition-pension-arrangements', laborPensionResult],
+  ] as const).find(([, result]) => result.error)
+  if (failed?.[1].error) {
+    throwDatabaseError(failed[1].error.message, failed[0], safeDatabaseCode(failed[1].error))
+  }
   const employment = employmentResult.data
   if (!employment || employment.deleted_at !== null) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
 
@@ -334,9 +349,18 @@ export async function getEmploymentPayrollSourceProjection(
       .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
       .in('pension_arrangement_version_id', pensionVersionIds).order('min_age')
     : { data: [], error: null }
-  const catalogFailure = [setsResult, jobsResult, revisionsResult, pensionArrangementsResult, pensionTiersResult,
-    pensionVersionsResult, pensionVersionTiersLoaded].find((result) => result.error)
-  if (catalogFailure?.error) throwDatabaseError(catalogFailure.error.message)
+  const catalogFailure = ([
+    ['labor-condition-sets', setsResult],
+    ['jobs', jobsResult],
+    ['job-revisions', revisionsResult],
+    ['pension-arrangements', pensionArrangementsResult],
+    ['pension-arrangement-tiers', pensionTiersResult],
+    ['pension-arrangement-versions', pensionVersionsResult],
+    ['pension-arrangement-version-tiers', pensionVersionTiersLoaded],
+  ] as const).find(([, result]) => result.error)
+  if (catalogFailure?.[1].error) {
+    throwDatabaseError(catalogFailure[1].error.message, catalogFailure[0], safeDatabaseCode(catalogFailure[1].error))
+  }
   const setsById = new Map((setsResult.data ?? []).map((row) => [row.id, row]))
   const jobsById = new Map((jobsResult.data ?? []).map((row) => [row.id, row]))
   const tiersByArrangementId = new Map<string, Pick<Tables['pension_arrangement_tiers']['Row'], 'id' | 'min_age' | 'max_age' | 'total_rate' | 'created_at'>[]>()
@@ -552,11 +576,17 @@ export type EmploymentDetailLoadScope =
   | 'costs'
   | 'history'
 
-function throwDatabaseError(message: string): never {
+function safeDatabaseCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('code' in error)) return undefined
+  const code = error.code
+  return typeof code === 'string' && /^(?:PGRST\d{3}|[0-9A-Z]{5})$/.test(code) ? code : undefined
+}
+
+function throwDatabaseError(message: string, sourceCategory?: string, databaseCode?: string): never {
   const code = message.match(/[A-Z][A-Z_]+/)?.[0] ?? 'EMPLOYMENT_CHANGE_FAILED'
   const status = code === 'FORBIDDEN' ? 403 : code.includes('NOT_FOUND') ? 404
     : code.includes('CONFLICT') || code.includes('LATEST') || code.includes('REMAINING') ? 409 : 400
-  throw new EmploymentDetailError(code, status)
+  throw new EmploymentDetailError(code, status, sourceCategory, databaseCode)
 }
 
 export async function getEmploymentDetail(

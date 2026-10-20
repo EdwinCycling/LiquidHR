@@ -291,6 +291,60 @@ function completePayrollSetup(): PayrollSourceSetup {
 }
 
 describe('LiquidHR Payroll source provider', () => {
+  it('projects an effective 1 November CAO scale and only the November work-hours source', async () => {
+    const salaryStructureId = '60000000-0000-4000-8000-000000000061'
+    const salaryScaleId = '60000000-0000-4000-8000-000000000062'
+    const salaryStepId = '60000000-0000-4000-8000-000000000063'
+    const loadActualWork = vi.fn(async (_employeeId: string, _employmentId: string, month: string) => {
+      expect(month).toBe('2026-11')
+      return actualWork({ entries: [], types: [] })
+    })
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({
+          salary_basis: 'CAO_SCALE',
+          fulltime_amount: 2819,
+          parttime_amount: 1879.33,
+          salary_structure_id: salaryStructureId,
+          salary_scale_id: salaryScaleId,
+          salary_scale_step_id: salaryStepId,
+          salary_step_code: '12',
+          cao_scale_name: 'Schaal 6',
+          cao_step_name: 'Salarisnummer 12',
+          valid_from: '2026-11-01',
+        })],
+        schedules: [schedule({
+          average_hours_per_week: 24,
+          fulltime_hours_per_week: 36,
+          part_time_factor: 2 / 3,
+          valid_from: '2026-11-01',
+        })],
+      })),
+      loadActualWork,
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 11 } })
+
+    const source = snapshot.canonicalSource as {
+      readonly compensation: { readonly entries: readonly Record<string, unknown>[] }
+      readonly actualWork: { readonly entries: readonly unknown[] }
+    }
+    expect(source.compensation.entries).toEqual([expect.objectContaining({
+      salaryBasis: 'CAO_SCALE',
+      fulltimeAmount: 2819,
+      parttimeAmount: 1879.33,
+      salaryStructureId,
+      salaryScaleId,
+      salaryScaleStepId: salaryStepId,
+      salaryStepCode: '12',
+      caoScaleName: 'Schaal 6',
+      caoStepName: 'Salarisnummer 12',
+      validFrom: '2026-11-01',
+    })])
+    expect(source.actualWork.entries).toEqual([])
+    expect(snapshot.sourceGaps.some((gap) => ['NO_EFFECTIVE_SALARY_ROW', 'NO_EFFECTIVE_SCHEDULE_ROW'].includes(gap.reasonCode))).toBe(false)
+    expect(loadActualWork).toHaveBeenCalledOnce()
+  })
+
   it('projects a supported Kinderopvang source into the regular Payroll-owned wage component', async () => {
     const setup = completePayrollSetup()
     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
@@ -1237,6 +1291,34 @@ describe('LiquidHR Payroll source provider', () => {
 
     await expect(provider.getPayrollSourceSnapshot(request)).rejects.toThrow('DENIED')
     expect(deps.listEmployments).not.toHaveBeenCalled()
+  })
+
+  it('reports safe source category, database code, and correlation ID without logging source error details', async () => {
+    const reportDiagnostic = vi.fn()
+    const sourceError = Object.assign(new Error('raw database detail with employee data'), {
+      code: 'PGRST003',
+    })
+    const correlationId = '90000000-0000-4000-8000-000000000009'
+    const deps = dependencies({
+      loadTimeline: vi.fn(async () => { throw Object.assign(sourceError, { sourceCategory: 'employment-salaries' }) }),
+      createCorrelationId: () => correlationId,
+      reportDiagnostic,
+    })
+    const provider = new LiquidHrPayrollSourceProvider(deps)
+
+    await expect(provider.getPayrollSourceSnapshot(request)).rejects.toMatchObject({
+      code: 'PAYROLL_SOURCE_DATA_UNAVAILABLE',
+      sourceCategory: 'employment-salaries',
+      correlationId,
+    })
+    expect(reportDiagnostic).toHaveBeenCalledExactlyOnceWith({
+      event: 'PAYROLL_SOURCE_PROVIDER_FAILURE',
+      sourceCategory: 'employment-salaries',
+      errorCode: 'PGRST003',
+      correlationId,
+    })
+    expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain('raw database detail')
+    expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain(request.employeeId)
   })
 
   it('fails closed before authorization or source reads when the Payroll Lab kill switch is disabled', async () => {

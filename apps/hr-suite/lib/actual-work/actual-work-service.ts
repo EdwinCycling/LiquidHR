@@ -43,16 +43,25 @@ export type ActualWorkBulkProjection = {
 export class ActualWorkServiceError extends Error {
   readonly status: number
 
-  constructor(readonly code: string, status = 400) {
+  constructor(
+    readonly code: string,
+    status = 400,
+    readonly sourceCategory?: string,
+    readonly databaseCode?: string,
+  ) {
     super(code)
     this.name = 'ActualWorkServiceError'
     this.status = status
   }
 }
 
-function databaseError(error: { message: string } | null): never {
+function databaseError(
+  error: { message: string; code?: string } | null,
+  sourceCategory?: string,
+): never {
   const code = error?.message.match(/ACTUAL_WORK_[A-Z_]+/)?.[0] ?? 'ACTUAL_WORK_OPERATION_FAILED'
-  throw new ActualWorkServiceError(code, code === 'ACTUAL_WORK_NOT_AUTHORIZED' ? 403 : 400)
+  const databaseCode = error?.code && /^(?:PGRST\d{3}|[0-9A-Z]{5})$/.test(error.code) ? error.code : undefined
+  throw new ActualWorkServiceError(code, code === 'ACTUAL_WORK_NOT_AUTHORIZED' ? 403 : 400, sourceCategory, databaseCode)
 }
 
 function categoryForFamily(family: ActualWorkFamily): Database['public']['Enums']['work_hour_type_category'] {
@@ -292,8 +301,8 @@ export async function getActualWorkPayrollProjection(
       .eq('period_start', from)
       .maybeSingle(),
   ])
-  if (entriesResult.error) databaseError(entriesResult.error)
-  if (periodResult.error) databaseError(periodResult.error)
+  if (entriesResult.error) databaseError(entriesResult.error, 'employment-work-hour-entries')
+  if (periodResult.error) databaseError(periodResult.error, 'actual-work-periods')
 
   const entries = entriesResult.data ?? []
   const typeIds = [...new Set(entries.map((entry) => entry.work_hour_type_id))]
@@ -304,7 +313,7 @@ export async function getActualWorkPayrollProjection(
       .eq('hr_group_id', hrGroupId)
       .in('id', typeIds)
     : { data: [], error: null }
-  if (typesResult.error) databaseError(typesResult.error)
+  if (typesResult.error) databaseError(typesResult.error, 'work-hour-types')
 
   return {
     period: periodResult.data,

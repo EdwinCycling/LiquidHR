@@ -121,7 +121,12 @@ export type ConfirmEmploymentPayrollTaxProfileInput = {
 }
 
 export class EmploymentPayrollTaxProfileError extends Error {
-  constructor(readonly code: string, readonly status: number) {
+  constructor(
+    readonly code: string,
+    readonly status: number,
+    readonly sourceCategory?: string,
+    readonly databaseCode?: string,
+  ) {
     super(code)
     this.name = 'EmploymentPayrollTaxProfileError'
   }
@@ -205,8 +210,22 @@ export async function getEmploymentPayrollTaxSourceProjection(
       .lte('effective_from', end).or(`effective_to.is.null,effective_to.gte.${start}`)
       .order('effective_from').order('version_number').limit(200),
   ])
-  if (employeeResult.error || incomeResult.error || linkResult.error || employmentResult.error || profileResult.error) {
-    throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_SOURCE_UNAVAILABLE', 503)
+  const failedRead = [
+    { sourceCategory: 'employees', error: employeeResult.error },
+    { sourceCategory: 'income-relationships', error: incomeResult.error },
+    { sourceCategory: 'employment-income-relationships', error: linkResult.error },
+    { sourceCategory: 'employments', error: employmentResult.error },
+    { sourceCategory: 'employment-payroll-tax-profiles', error: profileResult.error },
+  ].find((result) => result.error)
+  if (failedRead?.error) {
+    const code = failedRead.error.code
+    const databaseCode = typeof code === 'string' && /^(?:PGRST\d{3}|[0-9A-Z]{5})$/.test(code) ? code : undefined
+    throw new EmploymentPayrollTaxProfileError(
+      'PAYROLL_TAX_PROFILE_SOURCE_UNAVAILABLE',
+      503,
+      failedRead.sourceCategory,
+      databaseCode,
+    )
   }
   if (!employeeResult.data) throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_EMPLOYEE_NOT_FOUND', 404)
 

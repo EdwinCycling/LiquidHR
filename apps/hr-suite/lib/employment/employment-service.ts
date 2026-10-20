@@ -1050,7 +1050,10 @@ export async function listEmployeeEmployments(employeeId: string): Promise<Emplo
     .order('starts_on', { ascending: false })
     .order('is_primary', { ascending: false })
     .limit(100)
-  if (error) throw new EmploymentServiceError('EMPLOYMENT_READ_FAILED', 500)
+  if (error) {
+    const databaseCode = /^(?:PGRST\d{3}|[0-9A-Z]{5})$/.test(error.code) ? error.code : undefined
+    throw new EmploymentServiceError('EMPLOYMENT_READ_FAILED', 500, databaseCode)
+  }
   return data
 }
 
