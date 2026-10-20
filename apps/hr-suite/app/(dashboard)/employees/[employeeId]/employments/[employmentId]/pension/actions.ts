@@ -1,5 +1,6 @@
 'use server'
 
+import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
@@ -7,6 +8,7 @@ import {
   createPensionArrangementSuccessor,
   EmploymentPensionArrangementError,
 } from '@/lib/employment/pension-arrangement-service'
+import { pensionArrangementActionDiagnostic, type PensionArrangementActionDiagnostic } from '@/lib/employment/pension-action-diagnostics'
 import type { Json } from '@scope/db'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -17,10 +19,20 @@ function scalar(formData: FormData, name: string): string {
   return values[0]
 }
 
-function destination(employeeId: string, employmentId: string, result: 'saved' | 'versionSaved' | 'invalid' | 'blocked' | 'unavailable') {
+function destination(
+  employeeId: string,
+  employmentId: string,
+  result: 'saved' | 'versionSaved' | 'invalid' | 'blocked' | 'unavailable',
+  diagnostic?: PensionArrangementActionDiagnostic,
+) {
   const params = new URLSearchParams({
     [result === 'saved' || result === 'versionSaved' ? 'saved' : 'error']: result,
   })
+  if (diagnostic) {
+    params.set('sourceCategory', diagnostic.sourceCategory)
+    params.set('errorCode', diagnostic.errorCode)
+    params.set('correlationId', diagnostic.correlationId)
+  }
   return `/employees/${encodeURIComponent(employeeId)}/employments/${encodeURIComponent(employmentId)}/pension?${params}`
 }
 
@@ -93,6 +105,7 @@ export async function createPensionArrangementSuccessorAction(formData: FormData
   let employeeId = ''
   let employmentId = ''
   let result: 'versionSaved' | 'invalid' | 'blocked' | 'unavailable' = 'unavailable'
+  let diagnostic: PensionArrangementActionDiagnostic | undefined
   try {
     const fields = Array.from(formData.keys()).filter((key) => !key.startsWith('$ACTION_')).sort()
     if (fields.join('|') !== ['employeeId', 'employmentId', 'predecessorVersionId', 'successorJson'].sort().join('|')) {
@@ -124,9 +137,14 @@ export async function createPensionArrangementSuccessorAction(formData: FormData
   } catch (error) {
     if (error instanceof EmploymentPensionArrangementError) {
       result = error.status === 400 || error.status === 409 ? 'blocked' : 'unavailable'
+      diagnostic = pensionArrangementActionDiagnostic(error.code, randomUUID())
     } else if (error instanceof Error && error.message === 'INVALID_INPUT') {
       result = 'invalid'
+      diagnostic = pensionArrangementActionDiagnostic('PENSION_ARRANGEMENT_SUCCESSOR_INPUT_INVALID', randomUUID())
+    } else {
+      diagnostic = pensionArrangementActionDiagnostic('PENSION_ARRANGEMENT_SUCCESSOR_WRITE_FAILED', randomUUID())
     }
+    if (diagnostic) console.error('[PENSION_ACTION_DIAGNOSTIC]', JSON.stringify(diagnostic))
   }
-  redirect(destination(employeeId, employmentId, result))
+  redirect(destination(employeeId, employmentId, result, diagnostic))
 }

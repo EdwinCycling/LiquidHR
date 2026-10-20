@@ -33,6 +33,7 @@
   "pensionNoPredecessor": "Geen voorganger",
   "pensionNoArrangementOptions": "Er zijn geen actieve pensioenregelingen beschikbaar voor deze administratie.",
   "pensionSuccessorSaved": "Er is een nieuwe onveranderlijke pensioenregelingversie aangemaakt.",
+  "pensionActionDiagnostic": "Broncategorie: {sourceCategory} · foutcode: {errorCode} · correlatie-ID: {correlationId}",
   "pensionVersionHistoryTitle": "Versies van pensioenregelingen",
   "pensionVersionHistoryDescription": "Versies met ingangsdatum zijn onveranderlijk. Een opvolger legt voorganger, reden, scope en actor vast.",
   "pensionVersionLabel": "Versie {version}",

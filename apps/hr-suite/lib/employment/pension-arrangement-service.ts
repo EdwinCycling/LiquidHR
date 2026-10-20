@@ -8,6 +8,7 @@ import {
   isSyntheticPensionFixtureRuntimeEnabled,
   syntheticPensionSourceClassification,
 } from './pension-arrangement-policy'
+import { pensionArrangementSuccessorFailure } from './pension-action-diagnostics'
 
 type Employment = Database['public']['Tables']['employments']['Row']
 type Assignment = Database['public']['Tables']['employment_pension_arrangement_assignments']['Row']
@@ -212,8 +213,8 @@ export async function createPensionArrangementSuccessor(input: {
     p_successor: input.successor,
   })
   if (error || !data) {
-    const knownCode = error?.message.match(/PENSION_[A-Z_]+/)?.[0]
-    throw new EmploymentPensionArrangementError(knownCode ?? 'PENSION_ARRANGEMENT_SUCCESSOR_WRITE_FAILED', 400)
+    const failure = pensionArrangementSuccessorFailure(error ?? {})
+    throw new EmploymentPensionArrangementError(failure.errorCode, failure.status)
   }
   return { versionId: data }
 }

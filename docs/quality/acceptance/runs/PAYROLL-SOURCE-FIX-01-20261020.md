@@ -1,8 +1,8 @@
 # PAYROLL-SOURCE-FIX-01 — herstelmanifest
 
-Status: **PARTIAL — de oorspronkelijke source-fout is als autorisatieprogrammeurfout hersteld en de echte bron is zichtbaar. Geen november-CONCEPT gemaakt: Jupiter mist werkgeversconfiguratie, een geldige Frits-openingsbalans en een ondersteunde PFZW-salarisbasisdefinitie.**
+Status: **PARTIAL — de oorspronkelijke Payroll-sourcefout is hersteld. De Jupiter-werkgeversconfiguratie heeft nu een opgeslagen maar niet-actieve Conceptversie. Geen november-CONCEPT gemaakt: Frits' betaalde openingscumulatieven zijn niet bewijsbaar en de PFZW-opvolgerversie kon door een foutieve databasepermission-check nog niet via de editor worden opgeslagen. De permission-fix staat lokaal als niet-toegepaste migration. Zie de follow-up onderaan.**
 
-Worktree: `PAYQA-01-20261018`, branch `work/PAYQA-01-20261018`, start-HEAD `1600c3e4a423ac37727ffcd34ed6f93093bc3a0e`. Alleen lokale code en synthetische TEST-readback. Geen broninrichting opnieuw aangemaakt, geen Core/Payroll-data gewijzigd, geen run ingediend, geen FINALIZED-run gewijzigd, geen merge/push/deployment.
+Worktree: `PAYQA-01-20261018`, branch `work/PAYQA-01-20261018`, start-HEAD `1600c3e4a423ac37727ffcd34ed6f93093bc3a0e`. In de follow-up is één werkgeversconfiguratie-DRAFT via de geautoriseerde HR Admin-UI opgeslagen en teruggelezen. Geen cao-regel, openingscumulatief, deelname, mapping of PFZW-versie gewijzigd; geen run ingediend; geen FINALIZED-run gewijzigd; geen remote schema-migratie, merge, push of deployment.
 
 ## Foutpad en eerste falende afhankelijkheid
 
@@ -28,7 +28,7 @@ De worklist geeft deze gaps afzonderlijk terug met de foutcodes `PAYROLL_EMPLOYE
 
 Een bevoegde Jupiter-payrollbeheerder moet de echte werkgeversbeschikking/werkgeversbesluiten gebruiken in **Payroll → Instellingen → Werkgeversconfiguratie** om de ontbrekende waarden, geldigheidsperiode en bronreferentie vast te leggen. Dezelfde beheerder moet voor Frits in **Openingscumulatieven** een controleerbare betaalde loonbron en bronperiode kiezen en de zeven cumulatieven daaruit invoeren. Gebruik geen persona-assignment, concept-run, schatting of aangenomen nullen. Een pensioenbeheerder moet de PFZW-salarisbasis vanuit de toepasselijke regeling/werkgeversbron als ondersteunde opvolgerversie vastleggen; geen methode of deelname veronderstellen.
 
-Er is **geen nieuwe november-run** aangemaakt of teruggelezen; er ontstond dus geen dubbele run. De bestaande lijst had geen Frits-novemberrun. Bruto, werknemers-/werkgeverspensioen, loonheffing, netto en werkgeverskosten konden daarom niet worden uitgelezen. Er is niets gefinaliseerd. Er is geen configuratie- of openingsbalansformulier opgeslagen.
+Er is **geen nieuwe november-run** aangemaakt of teruggelezen; er ontstond dus geen dubbele run. De bestaande lijst had geen Frits-novemberrun. Bruto, werknemers-/werkgeverspensioen, loonheffing, netto en werkgeverskosten konden daarom niet worden uitgelezen. Er is niets gefinaliseerd. Bij de eerste herstelpoging waren geen configuratie- of openingsbalansformulieren opgeslagen; de follow-up heeft alleen de hieronder genoemde werkgeversconfiguratie-DRAFT opgeslagen.
 
 ## Mercurius — aparte selectorbevinding
 
@@ -46,3 +46,37 @@ De geautoriseerde administratiekeuze en `Instellingen → Bedrijfsstructuur` ton
 ## Onafhankelijke scenario's
 
 De gerichte CAO-BENCH02-, CAO_SCALE-, PFZW- en werkgeversconfiguratievalidatietests bleven onderdeel van de onafhankelijke scenario-gates; het ontbreken van Frits' betaalde openingsbron blokkeert hun codeontwikkeling niet. De bestaande payroll-regelengine is niet aangepast met verzonnen PFZW-, fiscale of werkgeverswaarden. Dit herstel sluit de aparte scenario's niet af.
+
+## Follow-up PAYROLL-FRITS-CLOSE-01 (2026-10-20)
+
+### A. Jupiter werkgeversconfiguratie — gedeeltelijk opgeslagen via Payroll → Instellingen
+
+- HR Admin heeft Conceptversie 1 opgeslagen voor 2026-01-01 t/m 2026-12-31; readback-hashprefix `c39cee3b1429…`. Deze versie is niet geactiveerd.
+- Onderbouwde readback: Wko `0,5000%`, werkgeversheffing Zvw `6,1000%`, vakantiegeld `8,0000%`, eindejaarsuitkering van toepassing `ja`, `8,0000%`. Bronreferentie noemt Belastingdienst Cijferbijlage 2026 en CAO Kinderopvang 2025–2026 art. 5.7 en 6.1.
+- De componentenset is al actief en geselecteerd: `NL-PAYROLL-2026:2026.1+PAYRUN01-CUSTOMER_STANDARD-2026.2+PARTIAL-PERIODS-2026.1+PAYFULL02-CUSTOMER_STANDARD-NET-EMPLOYER-2026.3`.
+- Nog verplicht uit echte werkgeversbronnen: sectorcode en werkgeversclassificatie uit de Belastingdienst-registratie/beschikking; de beschikking gedifferentieerde premie Whk 2026; de werkgeversgrootteberekening op basis van de fiscale loonsom 2024; de gekozen Aof-/AWf-classificaties en bijbehorende percentages; de toepasselijke Zvw-klasse; en een gedocumenteerde werkgeverskeuze voor de pensioen-deelmaandmethode. Voor AWf-classificatie van Frits is ook het ondertekende contract nodig om duur/on-call-status te beoordelen. Geen WHK-beschikking, werkgeversbesluit of classificatie verzonnen.
+- De opgeslagen DRAFT blijft geblokkeerd zolang die velden en geldige bronreferenties ontbreken. De persoonlijke fiscale gegevens, IKV en het dienstverband van Frits gaven in de bronworklist geen gap.
+
+### B. Frits openingscumulatieven — terecht geblokkeerd
+
+- v310 (peildatum 2026-09-30) en v309 (2026-08-31) blijven ongeldig: beide hebben geen bronperiode en noemen `PAYRUN01 TEST PERSONA ASSIGNMENT`. Er is geen openingsversie aangemaakt of geannuleerd; de normale UI toont geen archieffunctie en accepteert geen geschatte of impliciete nulwaarden.
+- De personecatalogus noemt eerdere runs, waaronder een run als FINALIZED, maar de controleerbare cumulatieven konden niet worden teruggelezen: de detail-/artifactread faalde met `PAYROLL_INPUT_INVALID` in `loadLifecycleEvidence`. Andere zichtbare runs zijn CONCEPT. Daardoor is niet vastgesteld of er vóór november betaald loon was en is de nul-openingsroute niet feitelijk gerechtvaardigd. Frits startte al op 2026-09-01; de beperkte synthetic zero-baseline voor september is geen ondersteunde novemberroute.
+- Benodigd: een echte loonstaat/loonstrook of andere gecontroleerde payrollbron van de afgesloten betaalde perioden t/m 2026-10-31, met bronperiode en de zeven cumulatieve velden. Als er werkelijk geen loon betaald is, is een controleerbare werkgeversbevestiging nodig; de huidige workflow biedt voor deze septemberstarter geen algemene november-nulroute. De ongeldige v309/v310 kunnen pas via een geldige, geauditeerde opvolgerversie worden opgevolgd.
+
+### C. PFZW — foutieve SQL-permission-check geïdentificeerd; opvolger nog niet opgeslagen
+
+- Bestaande PFZW-toewijzing, CAO→PFZW-mapping en historische versie 1 zijn intact gebleven. Versie 1 bevat de bestaande aparte `PFZW_OP_NP_2026`- en `PFZW_WIA_EXCEDENT_2026`-componenten; er is geen versie 2/readback.
+- De geautoriseerde editor roept `create_pension_arrangement_successor` aan. De app-service vereist `pension:manage`, en de parallelle pension-assignment-RPC bevestigt dezelfde scope met `pension:manage`. De versioning-RPC eiste ten onrechte `contract:write`, waardoor deze write exact `PENSION_ARRANGEMENT_SUCCESSOR_FORBIDDEN` teruggaf (correlatie-ID `0ab08eea-18cb-4993-9606-67e34e34b905`). Dit is een permission-contractprogrammeurfout, geen ontbrekende pensioenmapping of reden om HR-scope te verbreden.
+- Forward migration `20261020201028_pension_arrangement_successor_permission.sql` vervangt alleen die permission-check door `pension:manage` en behoudt authenticated actor, HR-groep-, administratie-/tenant-scope, voorgangerversie, auditinserts, immutability en EXECUTE-grants. De migration staat lokaal en is **niet toegepast**; er is geen remote schemawijziging gedaan. Daarom kon de normale editor de getypeerde `pfzw2026`-opvolger nog niet bewaren. Geen juridische validatiestatus gefingeerd.
+- Bij het gereedkomen van de editoropslag moeten de ondersteunde typevelden voor de PFZW-2026-salarisbasis en structurele CAO-toeslagen worden gebruikt, maar uitsluitend met een vastgelegde bron en effectieve periode. De bestaande pensioencomponenten en toewijzingen blijven behouden.
+
+### Run-, test- en autorisatiegrens
+
+- Payroll-overzicht toont alleen recente oktober-runs; er is geen novemberrun voor Frits. Er is geen concept berekend, er zijn geen brutobedragen, pensioenbedragen, loonheffing, netto of werkgeverskosten om terug te lezen. Geen dubbele run, finalisatie, betaling of aangifte.
+- Geauthenticeerde HR Admin-browser op `http://127.0.0.1:3010` bevestigde Jupiter, de werkgevers-DRAFT-readback, ontbrekende verplichte velden en de PFZW-successorweigering. De bestaande cao-regel en werkgevers-/HR-scope zijn niet opnieuw ingericht.
+- Persona-preflight: statische persona-/role-switchcontroles geslaagd; runtime en persona-credentials BLOCKED omdat de centrale lokale TEST-configuratie ontbreekt. Er zijn geen alternatieve credentials aangemaakt. De reeds geauthenticeerde HR Admin-sessie is apart gebruikt voor de hierboven vermelde UI-readbacks.
+- Lokale gerichte tests: **4 bestanden, 18 tests geslaagd** (waaronder de permission-regressietest). Typecheck: **geslaagd**. ESLint voor gewijzigde TS/TSX-bestanden: **geslaagd**. i18n: **43 NL/EN-namespaceparen gelijk**. `git diff --check`: **geslaagd**. Database-/migratie-integratie en opslag van de PFZW-opvolger zijn niet uitgevoerd, omdat de migration niet op TEST is toegepast. Geen merge of deployment.
+
+### Aparte Mercurius-selectorbevinding
+
+De administratiekeuze in dezelfde geauthenticeerde context bevat Jupiter en Mars, maar geen Mercurius. Er is geen selector- of scopewijziging gedaan. Een bevoegde tenantbeheerder moet de canonieke Mercurius-record controleren op actieve status, tenant/HR-groep en bestaande actor-grant. Dit blokkeert Frits in Jupiter niet.

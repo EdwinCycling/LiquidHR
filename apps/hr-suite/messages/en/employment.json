@@ -33,6 +33,7 @@
   "pensionNoPredecessor": "No predecessor",
   "pensionNoArrangementOptions": "No active pension arrangements are available for this administration.",
   "pensionSuccessorSaved": "A new immutable pension arrangement version was created.",
+  "pensionActionDiagnostic": "Source category: {sourceCategory} · error code: {errorCode} · correlation ID: {correlationId}",
   "pensionVersionHistoryTitle": "Pension arrangement versions",
   "pensionVersionHistoryDescription": "Effective-dated versions are immutable. A successor records its predecessor, reason, scope and actor.",
   "pensionVersionLabel": "Version {version}",
