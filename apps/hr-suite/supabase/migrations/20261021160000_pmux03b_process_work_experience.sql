@@ -142,16 +142,22 @@ create or replace function public.get_process_work_item_experience(
   requested_language text default 'nl'
 )
 returns jsonb
-language sql
+language plpgsql
 stable
-security invoker
+security definer
 set search_path = ''
 as $$
-  select internal_security.get_process_work_item_experience(requested_work_item_id, requested_language);
+begin
+  if auth.uid() is null then
+    raise exception 'AUTHENTICATION_REQUIRED' using errcode = '42501';
+  end if;
+
+  return internal_security.get_process_work_item_experience(requested_work_item_id, requested_language);
+end;
 $$;
 
 revoke all on function public.get_process_work_item_experience(uuid, text)
-  from public, anon;
+  from public, anon, authenticated;
 grant execute on function public.get_process_work_item_experience(uuid, text)
   to authenticated;
 
