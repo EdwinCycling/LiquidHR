@@ -1,5 +1,11 @@
 # AA-ROAD — Long-Term Product Roadmap
 
+> **Strategische Payroll-roadmap 19-10-2026:** [AA-PAYROLL-COMMERCIAL-ROADMAP-20261019](AA-PAYROLL-COMMERCIAL-ROADMAP-20261019.md) is leidend voor de gewenste commerciële positionering en productfasen. Productprincipe: een deterministische, wettelijk onderbouwde salarisengine met transparante bron-/berekeningstraces, effectieve versiecorrecties, proactief exceptionbeheer en onder menselijke controle staande AI-acties. De roadmap onderscheidt expliciet een demo-PDF, een technisch werkende cao-run, een beperkte pilot en volledig commerciële NL-payroll met jaarwerk, aangifte en betalingen. Genoemde iteraties zijn ramingen, geen product-releasegaranties.
+
+> **Productrichting 18-10-2026 (historische status-snapshot):** Payroll groeit van historische Lab-onderzoekslijn naar **volwaardige reguliere klantmodule**, met centraal officieel cao-/pensioenregister, versieerbare salarisbronnen, bedrijfseigen regelingen en employer/employee-UI, continue bron- en kwaliteitscontroles, periodieke payroll-by-exception, cumulatieven, jaaropgaaf, loonaangifte en betalingstraject (apart te autoriseren). Zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md) voor de toenmalige DONE/HOLD per fase; de codebranches zijn inmiddels lokaal in de convergentiekandidaat samengebracht, maar roadmap-items en acceptatieclaims blijven afzonderlijk te bewijzen. De oude Lab-notities hieronder zijn ontwikkelhistorie, geen gewenst eindproduct.
+>
+> **STAR/Workforce UX-roadmap:** Employee UX-code is lokaal geïntegreerd; vervolgpunten blijven medewerkerpagina vereenvoudigen, minder scrollen, lazy loading en responsive kaartteksten. Activa, Software, Wagenpark en Budgetten uit huidige betrokken navigatie/schermen verwijderen, **maar als toekomstige afzonderlijke modules op de roadmap behouden**.
+
 Status: **STRATEGISCH / LIVING**
 Bijgewerkt: 2026-10-18 (STAR-V2-04D-2B; Core-prioriteiten blijven leidend)
 

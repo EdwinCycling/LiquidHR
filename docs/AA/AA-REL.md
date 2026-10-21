@@ -1,5 +1,9 @@
 # AA-REL — Convergence, Release, Deployment & Cleanup
 
+> **Lokale kandidaat 21-10-2026:** STAR, Employee UX, Payroll en AI-code PR #29 zijn geïntegreerd op integration/liquidhr-unified-20261021; gecombineerde acceptatie is nog vereist. De [18-10-2026 convergence-matrix](AA-PAYROLL-CONVERGENCE-20261018.md) blijft een historische snapshot. Er is geen wijziging aan main, remote branches, deployment of database; die stappen houden hun afzonderlijke GO.
+>
+> **Eén actieve LiquidHR-applicatieomgeving**, maar meerdere technische databaseprojecten; het Vercel-`production`-label bewijst op zichzelf geen gebruik van echte klantdata of volledige wettelijke payrollgereedheid. Reinigings- en migratiewrites pas na verifiëren van daadwerkelijke database-/administratiebinding, herstelbaarheid en historisch FINALIZED-behoud. Merge naar `main` en deployment blijven expliciet gescheiden GO-besluiten.
+
 Status: **LEIDEND**
 Eerste opzet: 2026-09-29
 

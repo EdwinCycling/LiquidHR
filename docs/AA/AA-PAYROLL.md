@@ -1,5 +1,11 @@
 # AA-PAYROLL — LiquidHR Payroll Development Standard
 
+> **Visie en fasering 19-10-2026:** [AA-PAYROLL-COMMERCIAL-ROADMAP-20261019](AA-PAYROLL-COMMERCIAL-ROADMAP-20261019.md) beschrijft de commerciële Payroll Core/Plus/Intelligence-positionering, wettelijke P1/P2 vrijgavecriteria en differentiatoren Flightdeck / Evidence Graph / Cao Autopilot / Time Machine / AI Copilot. Bestaande engine-, bron-, afrondings- en immutability-contracten in dit document blijven leidend. “Loonstrook demonstreren” is **niet** gelijk aan “commerciële live-loonadministratie gecertificeerd”.
+
+> **Actueel uitvoeringsbesluit 18-10-2026:** gewone LiquidHR Payroll-UI is de enige klantgerichte invoer-, berekenings- en documentroute; de oude Payroll Lab-stappen hieronder zijn historische ontwikkelfasen, **niet** een nog gewenste parallelle klantarchitectuur. Voor volledige productstatus, Core-readback, bewezen Emma/Noah FINALIZED, bedrijfseigen pensioen, cao-bronvulling en vier acceptatiecases zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md).
+>
+> **Integratie- en productstatus 21-10-2026:** Payroll-branch a9697537 is lokaal geïntegreerd in integration/liquidhr-unified-20261021; gecombineerde technische acceptatie volgt. De onderstaande open punten over officiële cao-/pensioenbrondata, effectieve toewijzingen en volledige K2/R1/R2-runs blijven gelden totdat afzonderlijk bewezen. Bescherm historische FINALIZED-runs, PDF-hashes en audits. **Voor klantgericht product nooit LAB-, fixture- of synthetische provenance-labels tonen.**
+
 Status: **LEIDEND VOOR PAYROLL ZODRA GEMERGED OP `main`**
 Eerste opzet: 2026-09-30
 

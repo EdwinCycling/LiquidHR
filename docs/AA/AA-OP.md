@@ -1,5 +1,7 @@
 # AA-OP — Codex operating model
 
+> **Operating decision 18-10-2026:** zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md). Werk met één Luna-Max-agent per opdracht, geen subagents. Eén reguliere product-UI voor cao-/pensioen-/payrollconfiguratie; test-/fixture-/LAB-herkomst hoort niet in klantgerichte schermen, PDF's of exports. QA, immutabele audit, migratiegeschiedenis, fiscale/CAO-provenance en readback blijven noodzakelijk. De producteigenaar autoriseerde correctie/herkoppeling van de *actuele eigen oefenadministraties*, niet wijziging van historische FINALIZED-runs of onbekende productieklantdata. Vraag afzonderlijk scoped admin-toegang waar nodig, deel geen credentials; geen RLS-bypass, externe aangifte, betaling, automatische merge/deploy.
+
 Status: **LEIDEND** · doel: een afgebakende opdracht zelfstandig en met zo weinig mogelijk onnodige context afronden.
 
 ## 1. Mandaat binnen scope

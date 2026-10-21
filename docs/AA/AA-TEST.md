@@ -1,5 +1,7 @@
 # AA-TEST — LiquidHR Testing Standard
 
+> **Historische QA-status 18-10-2026:** de beschreven Core-fix-, CAO-UI- en featurebranchtests zijn bewijs voor de toen geteste SHAs en gelden niet als kandidaatacceptatie. Voor integration/liquidhr-unified-20261021 volgt één gecombineerde snelle technische ronde; behoud de business- en wettelijke acceptatiegrenzen uit [AA-ACCEPT](AA-ACCEPT.md).
+
 Status: **LEIDEND**
 Eerste opzet: 2026-09-29
 

@@ -1,5 +1,9 @@
 # AA-NEXT — Short-Term Roadmap
 
+> **Payroll-leverfocus 19-10-2026:** zie [AA-PAYROLL-COMMERCIAL-ROADMAP-20261019](AA-PAYROLL-COMMERCIAL-ROADMAP-20261019.md), waves D0/D1/D2/F0. Eerst een opnieuw visueel gecontroleerde bestaande Emma/Noah FINALIZED-PDF, parallel veilige K2-correctie van de bestaande 01-11 salarisregel (`TIMELINE_EFFECTIVE_DATE_CONFLICT`) gevolgd door één werkelijke Core K2-CONCEPT-run; Daarna Retail R1/R2 + Mars-acceptatie op de geïntegreerde kandidaat; STAR-code is al lokaal opgenomen en gecombineerde acceptatie blijft open. `CAO_SCALE`-RPC-migratie `20261019165116` is al toegepast. Geen tweede salarisregel op dezelfde datum, geen onrechtmatige combinatie van oktober-zondaguren met november-24/36. Maak niet opnieuw een mega-run van meerdere dagen: korte waves met één meetbaar outputbewijs.
+
+> **Geconvergeerde kandidaat 21-10-2026:** STAR, Employee UX en Payroll-code zijn lokaal samengebracht in integration/liquidhr-unified-20261021; AI-code PR #29 en de AA-convergence-documenten zijn eveneens opgenomen. De gecombineerde technische acceptatie en resterende K2/R1/R2/Mars-businessacceptatie zijn aparte open stappen. PAYROLL-CORE-RESET-01 blijft onbevestigd; hier is geen databasewijziging uitgevoerd. Main en deployment vereisen afzonderlijk GO.
+
 Status: **ACTUEEL / LIVING**
 Bijgewerkt: 2026-10-18 (STAR-V2-04D-2D; Core-volgorde ongewijzigd)
 

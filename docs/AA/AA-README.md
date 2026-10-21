@@ -1,5 +1,9 @@
 # AA — canonieke documentatierouter
 
+> **Nieuwe Payroll-productroadmap 19-10-2026:** [AA-PAYROLL-COMMERCIAL-ROADMAP-20261019](AA-PAYROLL-COMMERCIAL-ROADMAP-20261019.md) — van eerste toonbare loonstrook en K2/Retailscenario's naar commercieel complete NL-payroll, daarna Payroll Flightdeck, Evidence Graph, Cao/Pension Autopilot, Time Machine en AI Payroll Copilot. Plan en hypotheses, geen reeds geaccepteerde functionaliteit. Zie daarnaast de actuele statusoverdracht van 18 oktober.
+
+> **Integratiestatus 21-10-2026:** STAR, Employee UX, Payroll en AI-code PR #29 zijn lokaal samengebracht in integration/liquidhr-unified-20261021; gecombineerde acceptatie en eventuele release zijn nog niet afgerond. De [18-10-2026 convergence-snapshot](AA-PAYROLL-CONVERGENCE-20261018.md) en oudere acceptatieregisters blijven historische bewijsstukken per SHA.
+
 Status: **LEIDEND** · levende afspraken worden in deze bestaande documenten bijgewerkt; Git bewaart de geschiedenis.
 
 ## Verantwoordelijkheid per document
