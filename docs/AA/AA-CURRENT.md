@@ -20,8 +20,10 @@
 
 > **PMUX-03B Manager-/HR-detailkandidaat (21-10-2026):** code-/testcommits 432bae39cea813c0f18a550be9112735ca1a35b4, d00464738e15e16eebbc3b110625f98c44909dc0, e2a1f3fbfbf1f21e35ce8412a272a31411e0937f, 4e2291e52d7df08d5ec94d758ff10b7c8a6d9ccd en 0257d1466bdcbe0be7fcbab7f720d023b0ea8727, gebaseerd op start-tip 64d4e8dec89fde43a3e805c12d9f91f4c03c6ae5. Bestaande /work-routes en typed acties blijven leidend. De detailtaak gebruikt nu de dynamische formulier-runtime zonder tweede paginakop of geneste scroll; procesacties blijven primair en conceptbewaren secundair. Het detail-UX is per zes gebruikersvragen beoordeeld; browser/390px blijft OPEN. De PGlite-proef voert de read-only migratie plus bestaande current_employee_id/process_scope_has_permission/process_instance_can_read/process_work_item_can_read SQL-helpers uit; auth.uid en de onderliggende RBAC-functies zijn fixtures. 19 gerichte tests, TypeScript en ESLint groen; i18n bleef ongewijzigd en eerder groen. Migratie blijft LOCAL ONLY; echte Supabase/RLS/rol/API- en browserreadback OPEN. Zie [PMUX-03B acceptance-evidence](../quality/acceptance/runs/PMUX-03B-20261021-LOCAL.md).
 
+> **PMUX-03C lokale UX-afwerking (21-10-2026):** codecommit `76c258013eb6d3ded81e7f2c6be2d0b0023129d7` voegt stap ordenen/verwijderen met route-opruiming toe aan de bestaande Processtudio, verbindt Focus-aanvragen met dezelfde `/work`-catalogus en bewaart Focus-terugkeer. Focus-statussen zijn specifieker. Gerichte tests 19/19, typecheck, gewijzigde-bestanden-ESLint, i18n en diff-check zijn groen. Capabilitymatrix en zes-vragenbeoordeling staan in [PMUX-03C evidence](../quality/acceptance/runs/PMUX-03C-20261021-LOCAL.md). Dit is **LOCAL CODE GREEN / AUTHENTICATED BROWSER-, DB-/RLS- EN 390PX-BEWIJS OPEN**; PMUX-03A/03B-migraties blijven LOCAL ONLY. Geen gepubliceerde Opleidingsaanvraag of aanvraag aangemaakt.
+
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-21 (PMUX-03B; historische bewijssecties volgen)
+Bijgewerkt: 2026-10-21 (PMUX-03C; historische bewijssecties volgen)
 
 ## Historische status- en acceptance-snapshots (18 oktober en eerder)
 

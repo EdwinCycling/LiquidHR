@@ -67,9 +67,9 @@ decommissionplan afzonderlijk is goedgekeurd.
 
 ### Process Automation — PMUX
 - PMUX-02A/02B en 03A zijn lokaal gebouwd; PMUX-03B breidt de bestaande `/work`-details uit voor MSS/HR met besluiten, terugstuurreden, voortgang en historie.
-- PMUX-03C blijft de productbrede functiematrix voor Processtudio, Formulierenstudio, ESS/MSS, Focus en dashboard.
-- PMUX-04 blijft de afzonderlijke geauthenticeerde end-to-end browseracceptatie met synthetische gegevens en desktop-/390px-screenshots. De lokale catalogus- en detailprojecties zijn niet remote toegepast; geen automatische FINAL ACCEPTED-status.
-- Zie [AA-OPEN](AA-OPEN.md) en de gedateerde [PMUX-03B evidence](../quality/acceptance/runs/PMUX-03B-20261021-LOCAL.md).
+- PMUX-03C is lokaal afgerond op `76c258013eb6d3ded81e7f2c6be2d0b0023129d7`: stap ordenen/verwijderen, Focus-catalogusnavigatie, gespecificeerde Focus-statussen en terugkeer naar de juiste Focus-context. De capabilitymatrix en zes-vragenbeoordeling zijn vastgelegd; browser-/rolacceptatie is nog OPEN.
+- PMUX-04 blijft de afzonderlijke geauthenticeerde end-to-end browseracceptatie met synthetische gegevens en desktop-/390px-screenshots. De PMUX-03A/03B-migraties zijn niet remote toegepast. Eerst expliciete databaseautorisatie en de in de PMUX-03C-evidence beschreven RLS-/persona-gates; geen automatische FINAL ACCEPTED-status.
+- Zie [AA-OPEN](AA-OPEN.md), [PMUX-03C evidence](../quality/acceptance/runs/PMUX-03C-20261021-LOCAL.md) en de eerdere [PMUX-03B evidence](../quality/acceptance/runs/PMUX-03B-20261021-LOCAL.md).
 
 ### WvP / Verzuim — WVP01, volgende Core-wave na PERF01-B2
 - hergebruik bestaande `absence_tasks`, milestone-/generator- en casemanagerfoundation;
