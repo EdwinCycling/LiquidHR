@@ -518,6 +518,13 @@
     "flowEditor": {
       "stepList": "Procesflow",
       "stepLibrary": "Stap toevoegen",
+      "moveStepUp": "Stap omhoog",
+      "moveStepDown": "Stap omlaag",
+      "removeStep": "Stap verwijderen",
+      "removeStepTitle": "Stap verwijderen?",
+      "removeStepDescription": "Verwijder {step}. De verbindingen naar en vanaf deze stap verdwijnen. Mogelijk moet je resterende stappen opnieuw verbinden.",
+      "confirmRemoveStep": "Verwijder stap",
+      "cancelRemoveStep": "Annuleren",
       "stepName": "Naam van de stap",
       "stepType": "Soort stap",
       "stepTypes": { "FORM": "Invullen", "DECISION": "Beslissing", "END": "Einde" },

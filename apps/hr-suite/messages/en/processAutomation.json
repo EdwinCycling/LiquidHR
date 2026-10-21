@@ -518,6 +518,13 @@
     "flowEditor": {
       "stepList": "Process flow",
       "stepLibrary": "Add a step",
+      "moveStepUp": "Move step up",
+      "moveStepDown": "Move step down",
+      "removeStep": "Remove step",
+      "removeStepTitle": "Remove step?",
+      "removeStepDescription": "Remove {step}. Connections to and from this step will be removed. You may need to reconnect the remaining steps.",
+      "confirmRemoveStep": "Remove step",
+      "cancelRemoveStep": "Cancel",
       "stepName": "Step name",
       "stepType": "Step type",
       "stepTypes": { "FORM": "Fill in", "DECISION": "Decision", "END": "End" },

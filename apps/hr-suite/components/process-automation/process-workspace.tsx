@@ -18,7 +18,7 @@ import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
 import type { Locale } from '@/lib/i18n/config'
 import type { StartableProcess } from '@/lib/process-automation/start-catalog-service'
-import { getProcessWorkItemHref } from '@/lib/process-automation/work-routing'
+import { getProcessWorkItemHref, withProcessWorkReturnContext, type ProcessWorkReturnContext } from '@/lib/process-automation/work-routing'
 import type { ProcessWorkBusinessCategory, ProcessWorkBusinessType, ProcessWorkFilterOptions, ProcessWorkItem, ProcessWorkList, ProcessWorkSort, ProcessWorkTab, ProcessWorkTabCounts, ProcessWorkView } from '@/lib/process-automation/work-service'
 import { ProcessStartCatalog } from './process-start-catalog'
 
@@ -131,6 +131,7 @@ interface ProcessWorkspaceProps {
   readonly options: ProcessWorkFilterOptions
   readonly startableProcesses: readonly StartableProcess[]
   readonly processCatalogError?: boolean
+  readonly returnContext?: ProcessWorkReturnContext
   readonly tabCounts: ProcessWorkTabCounts | null
   readonly view: ProcessWorkView
   readonly tab: ProcessWorkTab
@@ -179,7 +180,7 @@ function tabLabel(tab: ProcessWorkTab, labels: ProcessWorkspaceLabels): string {
   return { TODO: labels.tabsTodo, CLAIMED: labels.tabsClaimed, WAITING: labels.tabsWaiting, COMPLETED: labels.tabsCompleted, ALL: labels.tabsAll }[tab]
 }
 
-function buildQuery(input: { view: ProcessWorkView; tab: ProcessWorkTab; search: string; status: string; businessType: string; businessCategory: string; processDefinitionId: string; administrationId: string; sort: ProcessWorkSort; page?: number }): string {
+function buildQuery(input: { view: ProcessWorkView; tab: ProcessWorkTab; search: string; status: string; businessType: string; businessCategory: string; processDefinitionId: string; administrationId: string; sort: ProcessWorkSort; returnContext?: ProcessWorkReturnContext; page?: number }): string {
   const params = new URLSearchParams()
   if (input.view !== 'WORK') params.set('view', input.view)
   if (input.tab !== 'TODO') params.set('tab', input.tab)
@@ -190,6 +191,7 @@ function buildQuery(input: { view: ProcessWorkView; tab: ProcessWorkTab; search:
   if (input.processDefinitionId) params.set('processDefinitionId', input.processDefinitionId)
   if (input.administrationId) params.set('administrationId', input.administrationId)
   if (input.sort !== 'NEEDS_ACTION') params.set('sort', input.sort)
+  if (input.returnContext) params.set('returnTo', input.returnContext)
   if (input.page && input.page > 1) params.set('page', String(input.page))
   const query = params.toString()
   return query ? `?${query}` : ''
@@ -208,9 +210,10 @@ function requesterRoleText(item: ProcessWorkItem, labels: ProcessWorkspaceLabels
   return labels.nextResponsible
 }
 
-function workItemHref(item: ProcessWorkItem, view: ProcessWorkView): string {
+function workItemHref(item: ProcessWorkItem, view: ProcessWorkView, returnContext?: ProcessWorkReturnContext): string {
   const href = getProcessWorkItemHref(item.businessType, item.workItemId)
-  return view === 'REQUESTS' && !href.includes('?') ? `${href}?view=REQUESTS` : href
+  const requestHref = view === 'REQUESTS' && href.startsWith('/work/') ? `${href}?view=REQUESTS` : href
+  return withProcessWorkReturnContext(requestHref, returnContext)
 }
 
 function effectiveStatus(item: ProcessWorkItem): string {
@@ -250,7 +253,7 @@ function StatusBadge({ item, labels, view }: { item: ProcessWorkItem; labels: Pr
   return <Badge tone={statusTone(currentStatus, item.isOverdue)}>{item.isOverdue ? labels.overdue : view === 'REQUESTS' ? requesterStatus : workStatusLabel(currentStatus, labels)}</Badge>
 }
 
-function WorkItemCard({ item, locale, labels, view }: { item: ProcessWorkItem; locale: Locale; labels: ProcessWorkspaceLabels; view: ProcessWorkView }) {
+function WorkItemCard({ item, locale, labels, view, returnContext }: { item: ProcessWorkItem; locale: Locale; labels: ProcessWorkspaceLabels; view: ProcessWorkView; returnContext?: ProcessWorkReturnContext }) {
   return (
     <Surface className="p-4">
       <div className="flex min-w-0 items-start justify-between gap-3">
@@ -263,12 +266,12 @@ function WorkItemCard({ item, locale, labels, view }: { item: ProcessWorkItem; l
         <div><dt className="text-xs text-muted-foreground">{view === 'REQUESTS' ? labels.assignmentRole : labels.assignment}</dt><dd>{view === 'REQUESTS' ? requesterRoleText(item, labels) : assignmentText(item, labels)}</dd></div>
         <div><dt className="text-xs text-muted-foreground">{labels.deadline}</dt><dd className={item.isOverdue ? 'font-semibold text-destructive' : undefined}>{formatDate(item.deadlineAt, locale)}</dd></div>
       </dl>
-      <Link className={`${buttonClasses({ size: 'sm' })} mt-5`} href={workItemHref(item, view)}>{labels.open}</Link>
+      <Link className={`${buttonClasses({ size: 'sm' })} mt-5`} href={workItemHref(item, view, returnContext)}>{labels.open}</Link>
     </Surface>
   )
 }
 
-export function ProcessWorkWorkspace({ locale, labels, data, options, startableProcesses, processCatalogError, tabCounts, view, tab, page, pageSize, search, status, businessType, businessCategory, processDefinitionId, administrationId, sort, canStartLeaveRequest, canStartInternalTransfer, canStartDocumentAcknowledgement, errorCode }: ProcessWorkspaceProps) {
+export function ProcessWorkWorkspace({ locale, labels, data, options, startableProcesses, processCatalogError, returnContext, tabCounts, view, tab, page, pageSize, search, status, businessType, businessCategory, processDefinitionId, administrationId, sort, canStartLeaveRequest, canStartInternalTransfer, canStartDocumentAcknowledgement, errorCode }: ProcessWorkspaceProps) {
   const router = useRouter()
   const errorMessage = errorCode === 'FORBIDDEN' ? labels.denied : labels.readError
   const today = new Date().toISOString().slice(0, 10)
@@ -277,7 +280,7 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, startableP
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0
   const resultFrom = data && data.total > 0 ? (page - 1) * pageSize + 1 : 0
   const resultTo = data ? Math.min(page * pageSize, data.total) : 0
-  const queryState = { view, tab, search, status, businessType, businessCategory, processDefinitionId, administrationId, sort }
+  const queryState = { view, tab, search, status, businessType, businessCategory, processDefinitionId, administrationId, sort, returnContext }
 
   return (
     <PageShell className="py-8" width="wide">
@@ -292,7 +295,7 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, startableP
         <Link className={tabLinkClasses({ active: view === 'REQUESTS' })} href={`/work${buildQuery({ ...queryState, view: 'REQUESTS', tab: 'ALL', page: 1 })}`}>{labels.myRequests}</Link>
       </div>
 
-      {view === 'REQUESTS' ? <ProcessStartCatalog locale={locale} labels={{ title: labels.newRequestTitle, description: labels.newRequestDescription, steps: labels.processSteps, routes: labels.processRoutes, responsible: labels.processResponsible, startStep: labels.processStartStep, start: labels.processStart, starting: labels.processStarting, empty: labels.processCatalogEmpty, loadError: labels.processCatalogLoadError, startFailed: labels.processStartFailed, startDenied: labels.processStartDenied, startUnavailable: labels.processStartUnavailable }} processes={startableProcesses} loadError={processCatalogError} /> : null}
+      {view === 'REQUESTS' ? <ProcessStartCatalog locale={locale} labels={{ title: labels.newRequestTitle, description: labels.newRequestDescription, steps: labels.processSteps, routes: labels.processRoutes, responsible: labels.processResponsible, startStep: labels.processStartStep, start: labels.processStart, starting: labels.processStarting, empty: labels.processCatalogEmpty, loadError: labels.processCatalogLoadError, startFailed: labels.processStartFailed, startDenied: labels.processStartDenied, startUnavailable: labels.processStartUnavailable }} processes={startableProcesses} loadError={processCatalogError} returnContext={returnContext} /> : null}
 
       {view === 'WORK' ? <ScrollableTabs ariaLabel={labels.workspaceTitle} className="mt-4" contentProps={{ role: 'tablist' }} leftLabel={labels.previous} rightLabel={labels.next}>
         {tabs.map((candidate) => <Link key={candidate} aria-current={candidate === tab ? 'page' : undefined} className={tabLinkClasses({ active: candidate === tab })} href={`/work${buildQuery({ ...queryState, tab: candidate })}`}>{tabLabel(candidate, labels)}{tabCounts ? <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-xs tabular-nums">{tabCounts[candidate]}</span> : null}</Link>)}
@@ -308,6 +311,7 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, startableP
           <label className="basis-full min-w-0 flex-1 text-xs font-semibold text-muted-foreground sm:basis-0"><span className="mb-1 block">{labels.administrationFilter}</span><DropdownSelect aria-label={labels.administrationFilter} defaultValue={administrationId} name="administrationId" placeholder={labels.allAdministrations} searchable searchPlaceholder={labels.searchPlaceholder}><option value="">{labels.allAdministrations}</option>{options.administrations.map((administration) => <option key={administration.id} value={administration.id}>{administration.name}</option>)}</DropdownSelect></label>
           <label className="basis-full min-w-0 flex-1 text-xs font-semibold text-muted-foreground sm:basis-0"><span className="mb-1 block">{labels.sort}</span><DropdownSelect aria-label={labels.sort} defaultValue={sort} name="sort" placeholder={labels.sortNeedsAction}><option value="NEEDS_ACTION">{labels.sortNeedsAction}</option><option value="DEADLINE">{labels.sortDeadline}</option></DropdownSelect></label>
           <input name="view" type="hidden" value={view} /><input name="tab" type="hidden" value={tab} /><input name="page" type="hidden" value="1" />
+          {returnContext ? <input name="returnTo" type="hidden" value={returnContext} /> : null}
           <Button size="sm" type="submit">{labels.applyFilters}</Button>
         </form>
       </FilterBar>
@@ -319,10 +323,10 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, startableP
         <div className="mt-6 hidden md:block">
           <DataTableShell caption={labels.workspaceTitle}>
             <thead className="bg-surface-subtle text-xs uppercase tracking-[.1em] text-muted-foreground"><tr>{[labels.columnsProcess, labels.subject, labels.step, labels.assignment, labels.status, labels.deadline, labels.actions].map((heading, index) => <th className="px-4 py-3 font-semibold" key={`${heading}-${index}`}>{index === 6 ? <span className="sr-only">{heading}</span> : heading}</th>)}</tr></thead>
-            <tbody className="divide-y divide-border">{data.items.map((item) => <tr className="transition-colors hover:bg-muted/30" key={item.workItemId}><td className="px-4 py-4"><Link className="font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={workItemHref(item, view)}>{item.processTitle}</Link>{view === 'REQUESTS' ? null : <p className="mt-1 text-xs text-muted-foreground">{businessContextText(item, labels)}</p>}</td><td className="px-4 py-4">{item.subjectName ?? labels.unknown}</td><td className="px-4 py-4">{item.stepTitle}</td><td className="px-4 py-4 text-xs">{requesterRoleText(item, labels)}</td><td className="px-4 py-4"><StatusBadge item={item} labels={labels} view={view} /></td><td className={`px-4 py-4 ${item.isOverdue ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>{formatDate(item.deadlineAt, locale)}</td><td className="px-4 py-4 text-right"><Link className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'text-primary' })} href={workItemHref(item, view)}>{labels.open}</Link></td></tr>)}</tbody>
+            <tbody className="divide-y divide-border">{data.items.map((item) => <tr className="transition-colors hover:bg-muted/30" key={item.workItemId}><td className="px-4 py-4"><Link className="font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={workItemHref(item, view, returnContext)}>{item.processTitle}</Link>{view === 'REQUESTS' ? null : <p className="mt-1 text-xs text-muted-foreground">{businessContextText(item, labels)}</p>}</td><td className="px-4 py-4">{item.subjectName ?? labels.unknown}</td><td className="px-4 py-4">{item.stepTitle}</td><td className="px-4 py-4 text-xs">{requesterRoleText(item, labels)}</td><td className="px-4 py-4"><StatusBadge item={item} labels={labels} view={view} /></td><td className={`px-4 py-4 ${item.isOverdue ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>{formatDate(item.deadlineAt, locale)}</td><td className="px-4 py-4 text-right"><Link className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'text-primary' })} href={workItemHref(item, view, returnContext)}>{labels.open}</Link></td></tr>)}</tbody>
           </DataTableShell>
         </div>
-        <div className="mt-6 grid gap-4 md:hidden">{data.items.map((item) => <WorkItemCard key={item.workItemId} item={item} locale={locale} labels={labels} view={view} />)}</div>
+        <div className="mt-6 grid gap-4 md:hidden">{data.items.map((item) => <WorkItemCard key={item.workItemId} item={item} locale={locale} labels={labels} view={view} returnContext={returnContext} />)}</div>
         <CollectionPagination className="mt-6" resultRange={labels.resultsCount.replace('{from}', String(resultFrom)).replace('{to}', String(resultTo)).replace('{count}', String(data.total))} pageSize={totalPages > 1 ? labels.pageOf.replace('{page}', String(page)).replace('{pages}', String(totalPages)) : undefined} pagination={totalPages > 1 ? { ariaLabel: labels.workspaceTitle, currentPage: page, totalPages, onPageChange: (nextPage) => router.push(`/work${buildQuery({ ...queryState, page: nextPage })}`), previousLabel: labels.previous, nextLabel: labels.next } : undefined} />
       </> : null}
       {data && data.items.length > 0 ? <div aria-live="polite" className="sr-only">{overdueCount ? `${overdueCount} ${labels.overdue}` : ''}{dueTodayCount ? ` ${dueTodayCount} ${labels.dueToday}` : ''}</div> : null}

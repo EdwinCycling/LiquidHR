@@ -5,6 +5,7 @@ import { getProcessFormProjection } from '@/lib/process-automation/form-runtime-
 import { getProcessAutomationOperations, getProcessOutputProjection } from '@/lib/process-automation/output-service'
 import { createProcessWorkDetailLabels } from '@/lib/process-automation/process-work-detail-labels'
 import { getProcessWorkItemAssignmentOptions, getProcessWorkItemDetail, getProcessWorkItemExperience } from '@/lib/process-automation/work-service'
+import { processWorkReturnHref } from '@/lib/process-automation/work-routing'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 
 interface WorkDetailPageProps {
@@ -17,6 +18,8 @@ function first(value: string | string[] | undefined): string {
 }
 
 function workBackHref(query: Record<string, string | string[] | undefined>): string {
+  const returnHref = processWorkReturnHref(first(query.returnTo))
+  if (returnHref) return returnHref
   const params = new URLSearchParams()
   for (const key of ['view', 'tab', 'search', 'status', 'businessType', 'businessCategory', 'processDefinitionId', 'administrationId', 'sort']) {
     const value = first(query[key])

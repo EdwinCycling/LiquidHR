@@ -27,6 +27,13 @@ const labels: ProcessFlowEditorLabels = {
   noForms: 'Geen formulier gekozen',
   noFormsHelp: 'Koppel een bestaand formulier.',
   addStep: 'Stap toevoegen',
+  moveStepUp: 'Stap omhoog',
+  moveStepDown: 'Stap omlaag',
+  removeStep: 'Stap verwijderen',
+  removeStepTitle: 'Stap verwijderen?',
+  removeStepDescription: 'Verwijder {step}.',
+  confirmRemoveStep: 'Verwijder stap',
+  cancelRemoveStep: 'Annuleren',
   selectStep: 'Type nieuwe stap',
   addStepHelp: 'Kies een type stap.',
   emptyFlow: 'Deze procesflow is leeg',
@@ -106,6 +113,12 @@ function clickButton(container: HTMLElement, label: string): void {
   const button = [...container.querySelectorAll('button')].find((candidate) => candidate.textContent?.includes(label))
   if (!button) throw new Error(`Button not found: ${label}`)
   act(() => button.click())
+}
+
+async function flushUiEffects(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
 }
 
 function changeSelect(container: HTMLElement, id: string, value: string): void {
@@ -197,5 +210,35 @@ describe('ProcessFlowEditor', () => {
       kind: 'RECOVERY',
     })
     expect(mounted.container.querySelector(`ul[aria-label^="${labels.connectionLabel}"]`)).not.toBeNull()
+  })
+
+  it('lets the editor reorder and remove a step with its routes and repairs the start when needed', async () => {
+    const example = createTrainingRequestExampleDraft({ key: 'opleiding-aanvragen', title: { nl: 'Opleidingsaanvraag', en: 'Training request' }, description: { nl: 'Aanvraag en beoordeling.', en: 'Request and review.' } })
+    mounted = mountFlow(example)
+
+    const managerCard = [...mounted.container.querySelectorAll('button')].find((button) => button.getAttribute('aria-label') === 'Stap 2: Manager beoordeelt')
+    expect(managerCard).toBeDefined()
+    act(() => managerCard?.click())
+    clickButton(mounted.container, labels.moveStepUp)
+    expect(mounted.getDraft().steps.map((step) => step.key).slice(0, 2)).toEqual(['manager-review', 'employee-request'])
+    expect(mounted.getDraft().startStepKey).toBe('employee-request')
+
+    clickButton(mounted.container, labels.removeStep)
+    await flushUiEffects()
+    expect(document.body.textContent).toContain(labels.removeStepTitle)
+    clickButton(document.body, labels.confirmRemoveStep)
+    await flushUiEffects()
+    expect(mounted.getDraft().steps.some((step) => step.key === 'manager-review')).toBe(false)
+    expect(mounted.getDraft().transitions.every((transition) => transition.fromStepKey !== 'manager-review' && transition.toStepKey !== 'manager-review')).toBe(true)
+    expect(mounted.getDraft().startStepKey).toBe('employee-request')
+    expect(mounted.getDraft().steps.find((step) => step.key === 'employee-request')?.allowedActions).not.toContain('SUBMIT')
+
+    const selectedCard = mounted.container.querySelector('button[aria-current="step"]')
+    expect(selectedCard?.getAttribute('aria-label')).toMatch(/^Stap 1:/)
+    clickButton(mounted.container, labels.removeStep)
+    await flushUiEffects()
+    clickButton(document.body, labels.confirmRemoveStep)
+    await flushUiEffects()
+    expect(mounted.getDraft().startStepKey).toBe('hr-processing')
   })
 })

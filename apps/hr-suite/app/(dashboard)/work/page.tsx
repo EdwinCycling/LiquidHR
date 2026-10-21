@@ -4,6 +4,7 @@ import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getDocumentAcknowledgementStartData } from '@/lib/process-automation/document-acknowledgement-service'
 import { getInternalTransferStartData } from '@/lib/process-automation/internal-transfer-start-service'
 import { listStartableProcesses, type StartableProcess } from '@/lib/process-automation/start-catalog-service'
+import { parseProcessWorkReturnContext } from '@/lib/process-automation/work-routing'
 import { listProcessWork, listProcessWorkFilterOptions, listProcessWorkTabCounts, type ProcessWorkBusinessCategory, type ProcessWorkBusinessType, type ProcessWorkSort, type ProcessWorkTab, type ProcessWorkView, ProcessWorkError } from '@/lib/process-automation/work-service'
 
 interface WorkPageProps {
@@ -56,6 +57,7 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
   const currentBusinessType = businessType(first(query.businessType))
   const currentBusinessCategory = businessCategory(first(query.businessCategory))
   const currentPage = page(first(query.page))
+  const returnContext = parseProcessWorkReturnContext(first(query.returnTo))
   const workDependencies = { supabase: requestContext.supabase, context: requestContext.context }
   const labels: ProcessWorkspaceLabels = {
     workspaceTitle: t('workspaceTitle'),
@@ -195,5 +197,5 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
       processCatalogError = true
     }
   }
-  return <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} startableProcesses={startableProcesses} processCatalogError={processCatalogError} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
+  return <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} startableProcesses={startableProcesses} processCatalogError={processCatalogError} returnContext={returnContext} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
 }

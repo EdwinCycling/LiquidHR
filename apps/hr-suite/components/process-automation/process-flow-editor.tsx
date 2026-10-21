@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
-import { ArrowDown, ArrowRight, CornerUpLeft, Plus } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, CornerUpLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import type {
   ParticipantDefinition,
   ProcessAction,
@@ -12,6 +13,7 @@ import type {
   ProcessTransition,
 } from '@/lib/process-automation/definition-schemas'
 import type { StudioIssue } from '@/lib/process-automation/studio-service'
+import { reorderDefinitionItems } from '@/lib/process-automation/form-studio-draft'
 
 type EditableStepType = Extract<ProcessStepType, 'FORM' | 'DECISION' | 'END'>
 type BuiltInRole = 'employee' | 'manager' | 'hr-team'
@@ -35,6 +37,13 @@ export interface ProcessFlowEditorLabels {
   readonly noForms: string
   readonly noFormsHelp: string
   readonly addStep: string
+  readonly moveStepUp: string
+  readonly moveStepDown: string
+  readonly removeStep: string
+  readonly removeStepTitle: string
+  readonly removeStepDescription: string
+  readonly confirmRemoveStep: string
+  readonly cancelRemoveStep: string
   readonly selectStep: string
   readonly addStepHelp: string
   readonly emptyFlow: string
@@ -195,6 +204,7 @@ export function ProcessFlowEditor({
   const [newStepType, setNewStepType] = useState<EditableStepType>('FORM')
   const [newRouteAction, setNewRouteAction] = useState<ProcessAction>('SUBMIT')
   const [newRouteTarget, setNewRouteTarget] = useState('')
+  const [confirmRemoveStepOpen, setConfirmRemoveStepOpen] = useState(false)
   const selectedStep = draft.steps.find((step) => step.key === activeStepKey) ?? draft.steps[0] ?? null
   const selectedParticipant = selectedStep?.participantKey
     ? draft.participants.find((participant) => participant.key === selectedStep.participantKey)
@@ -223,6 +233,37 @@ export function ProcessFlowEditor({
       ...current,
       steps: current.steps.map((step) => step.key === stepKey ? updater(step) : step),
     }))
+  }
+
+  function moveSelectedStep(offset: -1 | 1): void {
+    if (!selectedStep) return
+    const index = draft.steps.findIndex((step) => step.key === selectedStep.key)
+    if (index < 0 || index + offset < 0 || index + offset >= draft.steps.length) return
+    onChangeDraft((current) => ({ ...current, steps: reorderDefinitionItems(current.steps, index, offset) }))
+  }
+
+  function removeSelectedStep(): void {
+    if (!selectedStep) return
+    const removedKey = selectedStep.key
+    const selectedIndex = draft.steps.findIndex((step) => step.key === removedKey)
+    const remaining = draft.steps.filter((step) => step.key !== removedKey)
+    const nextSelectedKey = remaining[Math.min(selectedIndex, remaining.length - 1)]?.key ?? ''
+    onChangeDraft((current) => {
+      const removedTransitions = current.transitions.filter((transition) => transition.fromStepKey === removedKey || transition.toStepKey === removedKey)
+      const transitions = current.transitions.filter((transition) => transition.fromStepKey !== removedKey && transition.toStepKey !== removedKey)
+      const removedIncomingActions = new Set(removedTransitions.filter((transition) => transition.toStepKey === removedKey).map((transition) => `${transition.fromStepKey}\u0000${transition.action}`))
+      return {
+        ...current,
+        startStepKey: current.startStepKey === removedKey ? remaining[0]?.key ?? '' : current.startStepKey,
+        transitions,
+        steps: current.steps.filter((step) => step.key !== removedKey).map((step) => ({
+          ...step,
+          allowedActions: step.allowedActions.filter((action) => !removedIncomingActions.has(`${step.key}\u0000${action}`) || transitions.some((transition) => transition.fromStepKey === step.key && transition.action === action)),
+        })),
+      }
+    })
+    onSelectStep(nextSelectedKey)
+    setConfirmRemoveStepOpen(false)
   }
 
   function updateRoute(transitionKey: string, updater: (transition: ProcessTransition) => ProcessTransition): void {
@@ -394,6 +435,11 @@ export function ProcessFlowEditor({
               <div><p className="eyebrow">{labels.selectedStep}</p><h4 className="mt-1 text-lg font-semibold">{localizedLabel(selectedStep.title, labels.stepLabel)}</h4></div>
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold">{labels.stepTypeLabels[selectedStep.type as EditableStepType] ?? labels.stepLabel}</span>
             </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button aria-label={`${labels.moveStepUp}: ${localizedLabel(selectedStep.title, labels.stepLabel)}`} disabled={!editing || draft.steps[0]?.key === selectedStep.key} onClick={() => moveSelectedStep(-1)} size="sm" type="button" variant="secondary"><ArrowUp aria-hidden="true" size={14} />{labels.moveStepUp}</Button>
+              <Button aria-label={`${labels.moveStepDown}: ${localizedLabel(selectedStep.title, labels.stepLabel)}`} disabled={!editing || draft.steps[draft.steps.length - 1]?.key === selectedStep.key} onClick={() => moveSelectedStep(1)} size="sm" type="button" variant="secondary"><ArrowDown aria-hidden="true" size={14} />{labels.moveStepDown}</Button>
+              <Button aria-label={`${labels.removeStep}: ${localizedLabel(selectedStep.title, labels.stepLabel)}`} disabled={!editing} onClick={() => setConfirmRemoveStepOpen(true)} size="sm" type="button" variant="danger"><Trash2 aria-hidden="true" size={14} />{labels.removeStep}</Button>
+            </div>
             <div className="mt-4 space-y-4">
               <label className="block text-sm font-semibold" htmlFor="process-step-title-nl">{labels.stepName}
                 <input className="mt-1 w-full rounded-lg border bg-surface px-3 py-2 font-normal" disabled={!editing || !selectedStepType} id="process-step-title-nl" onChange={(event) => updateStep(selectedStep.key, (step) => ({ ...step, title: { ...step.title, nl: event.target.value } }))} required value={selectedStep.title.nl ?? ''} />
@@ -498,6 +544,7 @@ export function ProcessFlowEditor({
           {selectedStep && issues.filter((issue) => stepIndexForIssue(issue, draft.steps.findIndex((step) => step.key === selectedStep.key))).length > 0 ? <p className="mt-4 rounded-lg border border-destructive/40 p-3 text-xs text-destructive" role="status">{labels.stepIssueCount.replace('{count}', String(issues.filter((issue) => stepIndexForIssue(issue, draft.steps.findIndex((step) => step.key === selectedStep.key))).length))}</p> : null}
         </aside>
       </div>
+      <ConfirmDialog cancelLabel={labels.cancelRemoveStep} confirmLabel={labels.confirmRemoveStep} description={selectedStep ? labels.removeStepDescription.replace('{step}', localizedLabel(selectedStep.title, labels.stepLabel)) : undefined} destructive onConfirm={removeSelectedStep} onOpenChange={setConfirmRemoveStepOpen} open={confirmRemoveStepOpen} title={labels.removeStepTitle} />
     </section>
   )
 }

@@ -6,6 +6,7 @@ import type { Locale } from '@/lib/i18n/config'
 import { localizedProcessText, type StartableProcess } from '@/lib/process-automation/start-catalog-service'
 import { Button } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
+import { withProcessWorkReturnContext, type ProcessWorkReturnContext } from '@/lib/process-automation/work-routing'
 
 export interface ProcessStartCatalogLabels {
   readonly title: string
@@ -28,6 +29,7 @@ interface ProcessStartCatalogProps {
   readonly labels: ProcessStartCatalogLabels
   readonly processes: readonly StartableProcess[]
   readonly loadError?: boolean
+  readonly returnContext?: ProcessWorkReturnContext
 }
 
 function startErrorLabel(code: string | undefined, labels: ProcessStartCatalogLabels): string {
@@ -36,7 +38,7 @@ function startErrorLabel(code: string | undefined, labels: ProcessStartCatalogLa
   return labels.startFailed
 }
 
-export function ProcessStartCatalog({ locale, labels, processes, loadError = false }: ProcessStartCatalogProps) {
+export function ProcessStartCatalog({ locale, labels, processes, loadError = false, returnContext }: ProcessStartCatalogProps) {
   const router = useRouter()
   const idempotencyKeys = useRef<Record<string, string>>({})
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -61,7 +63,7 @@ export function ProcessStartCatalog({ locale, labels, processes, loadError = fal
         return
       }
       const nextHref = typeof body === 'object' && body !== null && 'nextHref' in body && typeof body.nextHref === 'string' ? body.nextHref : '/work?view=REQUESTS'
-      router.push(nextHref)
+      router.push(withProcessWorkReturnContext(nextHref, returnContext))
       router.refresh()
     } catch {
       setFeedback({ processId: process.processDefinitionId, message: labels.startFailed })
