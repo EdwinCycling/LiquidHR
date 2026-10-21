@@ -1,6 +1,15 @@
 # Liquid HR documentatie-index
 
-## Actuele releasebaseline — 2026-10-11
+## Actuele releasebaseline — 21 oktober 2026
+
+**Productcode `1.20261021.1`**, source `c0fa236967ec0708c0a57f72e0dfb29b78b3fead`, Vercel READY deployment `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9`. De GitHub Development-`main` kan na docs-only commits een latere SHA hebben dan de ongewijzigde Vercel-runtime. Gezamenlijke STAR/Employee UX/Payroll/AI-code is geïntegreerd.
+
+Volgens Codex na CLEANUP-09: 29 → **2 lokale worktrees**; 10 geïntegreerde remote branches, 9 verweesde Vercel-previewaliases en één CLI-foutdeployment opgeruimd. **CONFIG-RECOVERY-01 OPEN:** originele unieke 519-byte `.env.local` van beschermde Payroll/Nmbrs-worktree ontbreekt, runtime daarop HOLD. Andere OPEN-punten: `/payroll/runs` loader, Employee FINALIZED-loonstrook, HeRa-/Focus-hostacceptatie en artifactprovenance. Gesimuleerde Frits-novemberrun is CONCEPT, geen definitieve loonstrook/netto.
+
+**Bouwstart:** onafhankelijke niet-Payroll-functies mogen verder op de schone Development-`main`; Payroll-runflow eerst gericht herstellen. Gebruik [postrelease status](quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md), [AA-router](AA/AA-README.md), [AA-CURRENT](AA/AA-CURRENT.md), [AA-NEXT](AA/AA-NEXT.md), [AA-OPEN](AA/AA-OPEN.md), [AA-ACCEPT](AA/AA-ACCEPT.md), [AI-roadmap](requirements/ai/LIQUIDHR_AI_MASTER_ROADMAP.md) en [Payroll-roadmap](AA/AA-PAYROLL-COMMERCIAL-ROADMAP-20261019.md) als actuele bronnen.
+
+
+## Historische releasebaseline — 2026-10-11
 
 Appversie `1.20261011.1`; GitHub `main` `c90275c5775a276d5ccd62f563b44372ee78ae11`; Vercel `liquidhr` deployment `dpl_5F5rFrmcXZ7PT1hp2ACWSiV8FBVV` is READY op dezelfde SHA. SEC-01 is op TEST toegepast; hosted geauthenticeerde security-/persona-acceptatie blijft OPEN. Bronmigratie `20261011120317` en TEST-registratie `20261011130922` verschillen en worden niet herschreven of opnieuw toegepast. Raadpleeg de compacte [AA-documentatierouter](AA/AA-README.md), [AA-CURRENT](AA/AA-CURRENT.md), [AA-NEXT](AA/AA-NEXT.md) en [AA-OPEN](AA/AA-OPEN.md) voor de actuele status; de rest van deze index bevat gedateerde domein- en historische handoffs.
 
