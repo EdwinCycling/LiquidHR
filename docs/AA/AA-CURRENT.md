@@ -11,6 +11,8 @@
 > **Productstatus:** Frits/Jupiter november-run `d8508395-2e25-59be-bc0b-ff2f0b83f7dc` is opgeslagen **CONCEPT**, bruto € 1.879,33, na inhouding pensioen en loonheffing € 1.710,84 (**geen definitief nettoloon**); geen PDF/FINALIZED. STAR en Employee UX geïntegreerd; AI 14 Workforce READ + 2 Focus-protocoltools geïntegreerd, host/security-eindacceptatie OPEN.
 >
 > **GO:** nieuwe afgebakende niet-Payroll-features op schoon `main`, met normale per-feature gates. **HOLD:** runtime van `work/payroll-p0-p1` tot config-herstel; eerst `/payroll/runs` herstellen vóór nieuwe salarisrunfunctionaliteit. Zie [postrelease- en cleanupstatus](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md) voor volledige bewijsgrenzen. Eerder gedateerde paragrafen hieronder zijn historische snapshots.
+>
+> **Latere lokale PMUX-02A-kandidaat (21-10-2026):** codecommits `1a2490e508a2688420ef112b6918c91deb6eb764` en `06adf35bb5064c4b32b823118bb6f6f34e958afe`, gebaseerd op GitHub `main` `14803473c1157285b52cc234fbb6ac70860e9eb1`. Gerichte tests 26/26, TypeScript, gewijzigde-bestanden-ESLint en i18n groen. De lokale HR Admin-studiocode laat een leeg concept of expliciet Opleidingsaanvraag-voorbeeld kiezen en getypeerde flowstappen, rollen, formulieren in de huidige definitie en routes bewerken; bestaande compiler, autosave/revision, rolpreview en write-free Procesproef blijven leidend. Dit is **LOCAL CODE GREEN / BROWSER- EN TEST-READBACK OPEN**: geen lokale studio-server draaide; er is geen remote TEST-write, push of deployment uitgevoerd. Zie [PMUX-02A acceptance](../quality/acceptance/runs/PMUX-02A-20261021-LOCAL.md).
 
 Status: **ACTUEEL / LIVING**
 Bijgewerkt: 2026-10-21 (postrelease; historische bewijssecties volgen)
