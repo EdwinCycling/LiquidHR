@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { Surface } from '@/components/ui/surface'
+import { PayrollStoredPayslipViewer } from '@/components/payroll/payroll-stored-payslip-viewer'
 import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'
 import { PayrollRunReconciliation } from '@/components/payroll/payroll-professional-view'
 import { finalizePayrollRun, generatePayrollPayslipPdfArtifact, reviewPayrollRun } from '../actions'
@@ -17,8 +18,8 @@ export default async function PayrollRunDetailPage({ params, searchParams: searc
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { runId } = await params
-  const [run, t, locale, queryParams] = await Promise.all([
-    getPayrollProfessionalRun(runId), getTranslator('payrollProfessional'), getLocale(), searchParamsPromise,
+  const [run, t, locale, queryParams, tDocuments] = await Promise.all([
+    getPayrollProfessionalRun(runId), getTranslator('payrollProfessional'), getLocale(), searchParamsPromise, getTranslator('documents'),
   ])
   if (!run) notFound()
   const nav = { overview: t('overview'), runs: t('runs'), corrections: t('corrections'), compare: t('compare'), arrangements: t('arrangements'), settings: t('settings') }
@@ -75,6 +76,20 @@ export default async function PayrollRunDetailPage({ params, searchParams: searc
         {artifactMessage ? <p role="status" className="text-sm">{artifactMessage}</p> : null}
         {payslipArtifact ? <>
           <p className="text-sm text-muted-foreground">{payslipArtifact.fileName} · {payslipArtifact.sizeBytes} bytes · SHA-256 {payslipArtifact.sha256}</p>
+          <PayrollStoredPayslipViewer
+            filename={payslipArtifact.fileName}
+            labels={{
+              close: tDocuments('viewerClose'),
+              download: tDocuments('download'),
+              previewLoading: tDocuments('viewerPreviewLoading'),
+              previewRetry: tDocuments('viewerPreviewRetry'),
+              previewUnavailable: tDocuments('viewerPreviewUnavailable'),
+              unsupported: tDocuments('viewerUnsupported'),
+              view: tDocuments('view'),
+            }}
+            period={period}
+            runId={run.run.id}
+          />
           <Link href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/PAYSLIP_PDF`} className="text-sm font-medium text-primary underline-offset-4 hover:underline">{t('downloadPersistedPayslip')}</Link>
         </> : <form action={generatePayrollPayslipPdfArtifact}>
           <input type="hidden" name="runId" value={run.run.id} />

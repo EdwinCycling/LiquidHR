@@ -91,6 +91,24 @@ describe('payroll payslip artifact route', () => {
     expect(response.status).toBe(404)
   })
 
+  it('rejects anonymous artifact reads before loading protected bytes', async () => {
+    mocks.requireComponentLibraryAccess.mockRejectedValue(new Error('AUTH_REQUIRED'))
+    const response = await GET(new Request('https://local.test'), context())
+
+    expect(response.status).toBe(401)
+    expect(mocks.getPayrollProfessionalPayslipPdfArtifactForRun).not.toHaveBeenCalled()
+  })
+
+  it('rejects a signed-in actor without Payroll admin access before loading protected bytes', async () => {
+    mocks.requireComponentLibraryAccess.mockRejectedValue(new Error('FORBIDDEN'))
+    mocks.permissionErrorResponse.mockReturnValue(NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 }))
+    const response = await GET(new Request('https://local.test'), context())
+
+    expect(response.status).toBe(403)
+    expect(mocks.requireComponentLibraryAccess).toHaveBeenCalledWith(false)
+    expect(mocks.getPayrollProfessionalPayslipPdfArtifactForRun).not.toHaveBeenCalled()
+  })
+
   it('rejects anonymous artifact creation before rendering or persistence', async () => {
     mocks.requireComponentLibraryAccess.mockRejectedValue(new Error('AUTH_REQUIRED'))
     const response = await POST(new Request('https://local.test', { method: 'POST' }), context())
