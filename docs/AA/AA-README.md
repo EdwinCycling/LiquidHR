@@ -2,7 +2,7 @@
 
 > **Nieuwe Payroll-productroadmap 19-10-2026:** [AA-PAYROLL-COMMERCIAL-ROADMAP-20261019](AA-PAYROLL-COMMERCIAL-ROADMAP-20261019.md) — van eerste toonbare loonstrook en K2/Retailscenario's naar commercieel complete NL-payroll, daarna Payroll Flightdeck, Evidence Graph, Cao/Pension Autopilot, Time Machine en AI Payroll Copilot. Plan en hypotheses, geen reeds geaccepteerde functionaliteit. Zie daarnaast de actuele statusoverdracht van 18 oktober.
 
-> **Integratiestatus 21-10-2026:** STAR, Employee UX, Payroll en AI-code PR #29 zijn lokaal samengebracht in integration/liquidhr-unified-20261021; gecombineerde acceptatie en eventuele release zijn nog niet afgerond. De [18-10-2026 convergence-snapshot](AA-PAYROLL-CONVERGENCE-20261018.md) en oudere acceptatieregisters blijven historische bewijsstukken per SHA.
+> **Actueel 21-10-2026:** gezamenlijke STAR/Employee UX/Payroll/AI-code is al geïntegreerd op productcode `c0fa2369` / versie `1.20261021.1` en Vercel is READY. Cleanup 07–09 reduceerde volgens Codex 29 → 2 lokale worktrees; ontbrekende 519-byte Payroll/Nmbrs-`.env.local` is een open herstelincident. `/payroll/runs` en AI/ESS/Payrollease eindgates blijven open. Lees eerst [postrelease- en cleanupstatus](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md); historische 18-oktober/03B-verslagen blijven bronbewijs, geen actuele HOLD.
 
 Status: **LEIDEND** · levende afspraken worden in deze bestaande documenten bijgewerkt; Git bewaart de geschiedenis.
 
@@ -10,7 +10,7 @@ Status: **LEIDEND** · levende afspraken worden in deze bestaande documenten bij
 
 | Bestand | Verantwoordelijkheid |
 | --- | --- |
-| [`AGENTS.md`](../../AGENTS.md) | Compact, bindend uitvoeringscontract en niet-onderhandelbare grenzen |
+| [Postrelease status 21-10-2026](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md) | Geïntegreerde code-/Vercelstatus, cleanup, configuratie-incident, actuele OPEN-matrix, GO/HOLD. |\n| [`AGENTS.md`](../../AGENTS.md) | Compact, bindend uitvoeringscontract en niet-onderhandelbare grenzen |
 | `AA-README.md` | Deze router: wat lees je voor welke taak? |
 | [`AA-OP.md`](AA-OP.md) | Codex-mandaat, bounded execution en Git-/parallelregels |
 | [`AA-TEST.md`](AA-TEST.md) | Risicogestuurde teststrategie en verdicts |
