@@ -123,6 +123,11 @@ export interface Payrun01Repository {
     payrollAdministrationId: string,
     calculationInputSetId: string,
   ): Promise<GenericPayrollInputReferenceRow | null>
+  listGenericInputReferences(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    calculationInputSetIds: readonly string[],
+  ): Promise<readonly GenericPayrollInputReferenceRow[]>
   getOrCreateGenericInputReference(
     scope: PayrollScope,
     payrollAdministrationId: string,
@@ -709,6 +714,38 @@ class SupabasePayrun01Repository implements Payrun01Repository {
     assertHash(row.source_hash)
     assertHash(row.input_hash)
     return row
+  }
+
+  async listGenericInputReferences(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    calculationInputSetIds: readonly string[],
+  ): Promise<readonly GenericPayrollInputReferenceRow[]> {
+    const checkedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    const requestedIds = [...new Set(calculationInputSetIds)]
+    requestedIds.forEach(assertUuid)
+    if (requestedIds.length === 0) return []
+
+    const requestedIdSet = new Set(requestedIds)
+    const rows = await selectRows<GenericPayrollInputReferenceRow>(applyPayrollScopeFilter(
+      this.client.from('generic_payroll_input_references').select('*')
+        .eq('payroll_administration_id', payrollAdministrationId)
+        .in('calculation_input_set_id', requestedIds),
+      checkedScope,
+    ))
+    const returnedIds = new Set<string>()
+    for (const row of rows) {
+      assertStoredScope(checkedScope, payrollAdministrationId, row)
+      if (!requestedIdSet.has(row.calculation_input_set_id) || returnedIds.has(row.calculation_input_set_id)) {
+        throw new PayrollCalculationRepositoryError('PAYROLL_INPUT_REFERENCE_INVALID')
+      }
+      returnedIds.add(row.calculation_input_set_id)
+      assertJsonObject(row.input_reference_json)
+      assertHash(row.source_hash)
+      assertHash(row.input_hash)
+    }
+    return rows
   }
 
   async getOrCreateGenericInputReference(

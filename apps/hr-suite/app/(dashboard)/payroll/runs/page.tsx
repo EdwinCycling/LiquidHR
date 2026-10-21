@@ -1,10 +1,12 @@
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { Button } from '@/components/ui/button'
+import { Suspense } from 'react'
 import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'
 import { PayrollRunSummaryList } from '@/components/payroll/payroll-professional-view'
 import { PayrollProfessionalRunWorkbench } from '@/components/payroll/payroll-professional-run-workbench'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import type { Translator } from '@/lib/i18n/translator'
 import { AuthorizationError } from '@/lib/auth/permissions'
 import { listPayrollProfessionalRuns } from '@/lib/payroll/payroll-professional-service'
 import { getPayrollProfessionalRunWorkspace } from '@/lib/payroll/payroll-professional-run-service'
@@ -34,47 +36,56 @@ const workbenchLabelKeys = [
   'batch_accessDenied','batch_failed','batch_success',
 ]
 
-export default async function PayrollRunsPage({
-  searchParams,
-}: {
-  readonly searchParams: Promise<Record<string, string | string[] | undefined>>
+function PayrollDataLoading({ label, rows }: { readonly label: string; readonly rows: number }) {
+  return <section aria-busy="true" aria-label={label} className="space-y-3">
+    <p aria-live="polite" className="text-sm text-muted-foreground" role="status">{label}</p>
+    <div aria-hidden="true" className="space-y-2">
+      {Array.from({ length: rows }, (_, index) => <div className="h-14 animate-pulse rounded-[var(--radius-surface)] border border-border-subtle bg-surface-subtle" key={index} />)}
+    </div>
+  </section>
+}
+
+function PayrollDataError({ t, id, error, periodKey }: {
+  readonly t: Translator
+  readonly id: string
+  readonly error: unknown
+  readonly periodKey?: string
 }) {
-  const query = await searchParams
-  const periodValue = query.period
-  const periodKey = typeof periodValue === 'string' ? periodValue : Array.isArray(periodValue) ? periodValue[0] : undefined
-  const recalculationValue = query.recalculation
-  const recalculationOutcome = typeof recalculationValue === 'string' ? recalculationValue : undefined
-  const pageCopyPromise = Promise.all([getTranslator('payrollProfessional'), getLocale()])
-  const pageDataPromise = Promise.all([
-    listPayrollProfessionalRuns(),
-    getPayrollProfessionalRunWorkspace(periodKey),
-  ]).then(([runs, workspace]) => ({ ok: true as const, runs, workspace }))
-    .catch((error: unknown) => ({ ok: false as const, error }))
-  const [pageData, [t, locale]] = await Promise.all([pageDataPromise, pageCopyPromise])
-  if (!pageData.ok) {
-    const message = pageData.error instanceof AuthorizationError
-      ? t('runWorkspaceAccessDenied')
-      : t('runWorkspaceLoadFailed')
-    return <PageShell className="space-y-6 py-6 sm:py-8">
-      <PageHeader title={t('runs')} description={t('runsDescription')} />
-      <section aria-labelledby="payroll-runs-error-title" className="space-y-4 rounded-[var(--radius-surface)] border border-destructive/30 bg-destructive-surface p-4">
-        <h2 className="text-base font-semibold" id="payroll-runs-error-title">{t('runWorkspaceErrorTitle')}</h2>
-        <p aria-live="assertive" className="text-sm text-destructive" role="alert">{message}</p>
-        <form action="/payroll/runs" method="get">
-          <Button type="submit" variant="secondary">{t('runWorkspaceRetry')}</Button>
-        </form>
-      </section>
-    </PageShell>
-  }
-  const { runs, workspace } = pageData
-  const recalculationMessage = recalculationOutcome && [
-    'calculated','incomplete','sourceGap','unsupported','correctionRequired','inProgress','accessDenied','invalid','failed',
-  ].includes(recalculationOutcome) ? t(`recalculation_${recalculationOutcome}`) : null
-  const nav = { overview: t('overview'), runs: t('runs'), corrections: t('corrections'), compare: t('compare'), arrangements: t('arrangements'), settings: t('settings') }
-  return <PageShell className="space-y-6 py-6 sm:py-8">
-    <PageHeader title={t('runs')} description={t('runsDescription')} />
-    <PayrollProfessionalNavigation active="runs" labels={nav} />
-    <PayrollProfessionalRunWorkbench
+  const message = error instanceof AuthorizationError
+    ? t('runWorkspaceAccessDenied')
+    : t('runWorkspaceLoadFailed')
+  return <section aria-labelledby={id} className="space-y-4 rounded-[var(--radius-surface)] border border-destructive/30 bg-destructive-surface p-4">
+    <h2 className="text-base font-semibold" id={id}>{t('runWorkspaceErrorTitle')}</h2>
+    <p aria-live="assertive" className="text-sm text-destructive" role="alert">{message}</p>
+    <form action="/payroll/runs" method="get">
+      {periodKey ? <input name="period" type="hidden" value={periodKey} /> : null}
+      <Button type="submit" variant="secondary">{t('runWorkspaceRetry')}</Button>
+    </form>
+  </section>
+}
+
+function PayrollRunListContent({ t, runs, error, periodKey }: {
+  readonly t: Translator
+  readonly runs: Awaited<ReturnType<typeof listPayrollProfessionalRuns>> | null
+  readonly error: unknown | null
+  readonly periodKey?: string
+}) {
+  if (error !== null) return <PayrollDataError t={t} id="payroll-runs-list-error-title" error={error} periodKey={periodKey} />
+  return <PayrollRunSummaryList runs={runs ?? []} labels={Object.fromEntries(['empty','period','employee','status','runId','action','openDetail','runHashesHint','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))} />
+}
+
+async function PayrollRunWorkspaceContent({
+  t,
+  locale,
+  periodKey,
+}: {
+  readonly t: Translator
+  readonly locale: Awaited<ReturnType<typeof getLocale>>
+  readonly periodKey?: string
+}) {
+  try {
+    const workspace = await getPayrollProfessionalRunWorkspace(periodKey)
+    return <PayrollProfessionalRunWorkbench
       administrationName={workspace.administrationName}
       periods={workspace.periods}
       selectedPeriod={workspace.selectedPeriod}
@@ -85,7 +96,40 @@ export default async function PayrollRunsPage({
       locale={locale}
       labels={Object.fromEntries(workbenchLabelKeys.map((key) => [key, t(key)]))}
     />
+  } catch (error) {
+    return <PayrollDataError t={t} id="payroll-run-workspace-error-title" error={error} periodKey={periodKey} />
+  }
+}
+
+export default async function PayrollRunsPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const query = await searchParams
+  const periodValue = query.period
+  const periodKey = typeof periodValue === 'string' ? periodValue : Array.isArray(periodValue) ? periodValue[0] : undefined
+  const recalculationValue = query.recalculation
+  const recalculationOutcome = typeof recalculationValue === 'string' ? recalculationValue : undefined
+  const runListPromise = listPayrollProfessionalRuns()
+    .then((runs) => ({ ok: true as const, runs }))
+    .catch((error: unknown) => ({ ok: false as const, error }))
+  const [t, locale, runList] = await Promise.all([
+    getTranslator('payrollProfessional'),
+    getLocale(),
+    runListPromise,
+  ])
+  const recalculationMessage = recalculationOutcome && [
+    'calculated','incomplete','sourceGap','unsupported','correctionRequired','inProgress','accessDenied','invalid','failed',
+  ].includes(recalculationOutcome) ? t(`recalculation_${recalculationOutcome}`) : null
+  const nav = { overview: t('overview'), runs: t('runs'), corrections: t('corrections'), compare: t('compare'), arrangements: t('arrangements'), settings: t('settings') }
+  return <PageShell className="space-y-6 py-6 sm:py-8">
+    <PageHeader title={t('runs')} description={t('runsDescription')} />
+    <PayrollProfessionalNavigation active="runs" labels={nav} />
     {recalculationMessage ? <p role="status" aria-live="polite" className="rounded-[var(--radius-surface)] border border-border-subtle p-4 text-sm">{recalculationMessage}</p> : null}
-    <PayrollRunSummaryList runs={runs} labels={Object.fromEntries(['empty','period','employee','status','runId','action','openDetail','runHashesHint','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))} />
+    <PayrollRunListContent t={t} runs={runList.ok ? runList.runs : null} error={runList.ok ? null : runList.error} periodKey={periodKey} />
+    <Suspense fallback={<PayrollDataLoading label={t('runWorkspaceLoading')} rows={2} />}>
+      <PayrollRunWorkspaceContent t={t} locale={locale} periodKey={periodKey} />
+    </Suspense>
   </PageShell>
 }

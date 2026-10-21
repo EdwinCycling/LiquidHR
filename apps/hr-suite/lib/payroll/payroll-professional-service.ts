@@ -38,8 +38,11 @@ export async function listPayrollProfessionalRuns(): Promise<readonly PayrollRun
   })
   if (summaries.length === 0) return summaries
   const lifecycle = createPayrun01Repository()
-  return await filterPayrollAcceptanceScenarioRuns(summaries, async (inputSetId) =>
-    await lifecycle.getGenericInputReference(access.scope, access.administration.id, inputSetId))
+  return await filterPayrollAcceptanceScenarioRuns(
+    summaries,
+    async (inputSetId) => await lifecycle.getGenericInputReference(access.scope, access.administration.id, inputSetId),
+    async (inputSetIds) => await lifecycle.listGenericInputReferences(access.scope, access.administration.id, inputSetIds),
+  )
 }
 
 export async function getPayrollProfessionalRun(runId: string): Promise<PayrollProfessionalRun | null> {
