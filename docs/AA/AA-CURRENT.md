@@ -16,6 +16,8 @@
 
 > **PMUX-02B lokale Formulierenstudio-kandidaat (21-10-2026):** `fbf1c64b3d040edd80bb2886804ee61a6b3e768d` op de expliciete branch-split-basis `f2d6deb96c088c44d87af36dbe9587454d71fc73`. Nieuwe formulier-/sectie-/veldacties, rolverplichting, stapkoppeling, desktop/390-preview en revision-save/reopen-contract zijn lokaal getest; 28 gerichte tests, typecheck, ESLint en i18n zijn groen. **BROWSER-VISUAL / AUTHORIZED API READBACK OPEN**; dynamische visibility-/required-condition-builder ontbreekt nog. Geen remote write, push, merge of deployment. Zie [PMUX-02B acceptance](../quality/acceptance/runs/PMUX-02B-20261021-LOCAL.md).
 
+> **PMUX-03A lokale ESS-aanvraag (21-10-2026):** codecommit `58d59c1d289bb2917acb13b1d9a2428497a03506` op PMUX-branch `work/BRANCH-SPLIT-PMUX-20261021`, vanaf `48f8032c4f472564a9c58a58a11ea179c791b2ef`. De bestaande `/work`-aanvragenview toont nu een server-gefilterde catalogus voor gepubliceerde processen; starten, formulierinvullen, concept opslaan en indienen hergebruiken de bestaande typed runtime en `/work/[workItemId]`. De additieve catalogus-RPC staat alleen lokaal en is niet op Supabase toegepast. **LOCAL CODE GREEN / DB-, AUTH-READBACK-, BROWSER- EN 390PX-ACCEPTATIE OPEN**; er is geen Opleidingsaanvraag-proces of aanvraag aangemaakt. Zie [PMUX-03A acceptance](../quality/acceptance/runs/PMUX-03A-20261021-LOCAL.md).
+
 Status: **ACTUEEL / LIVING**
 Bijgewerkt: 2026-10-21 (postrelease; historische bewijssecties volgen)
 
