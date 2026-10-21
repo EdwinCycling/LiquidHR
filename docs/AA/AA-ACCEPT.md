@@ -3,11 +3,19 @@
 > **Acceptatie-afbakening 18-10-2026:** zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md). Historisch bewezen Emma/Noah FINALIZED zijn aparte geldige casussen. CAO-SETUP/PENSION/SOURCE is qua UI en gerichte tests gebouwd, maar Kinderopvang K2/Retail R1/R2 zijn **nog niet als volledige Core-payrollruns met nieuwe PDF's bewezen**. Vereist: echte geautoriseerde broninvoer en readback per werkgever, effectieve schaal/trede/pensioen/looncomponenten, cumulatieven, fiscale controle, 32/32 waar toepasselijk, immutable FINALIZED/PDF/hash, persona- en scope-negatives. Geen review-only status of cataloguspercentage aanmerken als juridisch of end-to-end payrollbewijs.
 
 Status: **LIVING INDEX**
-Bijgewerkt: 2026-10-12
+Bijgewerkt: 2026-10-21 (postrelease; historische acceptaties ongewijzigd)
 
 Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte index van wat we als actuele baseline accepteren.
 
-## Actuele main-codebaseline — 1.20261011.2
+## Actuele productcode-baseline — 1.20261021.1 (21 oktober 2026)
+
+**Geïntegreerd en deployed:** source-SHA `c0fa236967ec0708c0a57f72e0dfb29b78b3fead`, Vercel `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9` **READY**. De GitHub-developmenthead kan door afzonderlijke docs-only commits verder bewegen zonder de Vercel-runtime te wijzigen. De beperkte geauthenticeerde smoke toont HR Admin/Jupiter, STAR-data, Payroll-hoofdoverzicht, Employee Journey en HeRa-paneel.
+
+**Nog niet accepted:** `/payroll/runs` laadt niet door; Employee FINALIZED-payslip via juiste hosted actor, AI-generatie/Focus-host consent-/revoke-matrix, artifactfingerprint en uitgebreide Payroll/security/GA-gates OPEN. Gedeelde runtime is geen commerciële klantproductiecertificering. **Frits november Jupiter:** opgeslagen gesimuleerde CONCEPT `d8508395-2e25-59be-bc0b-ff2f0b83f7dc`, geen FINALIZED of definitief nettoloon/PDF.
+
+**Cleanup-bewijs na release:** GitHub 10 geïntegreerde remote branches en Vercel negen verweesde previews plus één mislukte build verwijderd; lokaal volgens Codex **2 worktrees over**, met herstelbare refs/stashes. De originele unieke 519-byte `.env.local` van beschermde `work/payroll-p0-p1` is **verloren/geblokkeerd voor runtimegebruik** tot herstel uit oorspronkelijke secretopslag. Zie [postrelease dossier](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md). Geen lokale code- of functietests opnieuw gedraaid voor die cleanup.
+
+## Historische main-codebaseline — 1.20261011.2
 
 GitHub `main` staat op `a5d1b3ff61e8c1d1af05a0c89b08a4fe73472495`; appversie is nog `1.20261011.2`. PR #18 is gemerged. Automatische Vercel-deployment `dpl_7HBAyX61sjs1YNtmMZJU55NpNii6` is **READY** op exact die SHA met canonieke alias `liquid-hr-hr-suite.vercel.app`. Dit is beperkt tot de synthetische TEST-omgeving. `APP_VERSION` is niet gebumpt; de §3-metadata-afwijking staat OPEN. APIAI-08 en APIAI-09 hosted acceptance blijven OPEN; zie het [closeoutrapport](../quality/acceptance/runs/APIAI-09-20261012-TEST-RELEASE.md). De vorige NMBRS-01-release, SEC-01-migratiegeschiedenis en eerdere baselines blijven historische context.
 
