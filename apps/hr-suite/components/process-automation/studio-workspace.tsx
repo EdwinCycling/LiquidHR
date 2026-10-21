@@ -21,6 +21,7 @@ import {
   Workflow,
 } from 'lucide-react'
 import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, ProcessDefinitionDraft } from '@/lib/process-automation/definition-schemas'
+import { ProcessFlowEditor, type ProcessFlowEditorLabels } from '@/components/process-automation/process-flow-editor'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
@@ -191,6 +192,15 @@ export interface StudioLabels {
   readonly discardChangesDescription: string
   readonly discardChanges: string
   readonly keepEditing: string
+  readonly processDescriptionPlaceholder: string
+  readonly blankStart: string
+  readonly trainingRequestExample: string
+  readonly trainingRequestExampleDescription: string
+  readonly exampleNoDomainWrites: string
+  readonly automaticKey: string
+  readonly advanced: string
+  readonly compilerIssueMessages: Readonly<Record<string, string>>
+  readonly flowEditor: ProcessFlowEditorLabels
 }
 
 interface StudioWorkspaceProps {
@@ -254,6 +264,19 @@ function issuePath(issue: StudioIssue): string {
   return issue.path.map((part) => typeof part === 'number' ? `[${part}]` : part).join('.') || 'proces'
 }
 
+function validationIssues(value: unknown): readonly StudioIssue[] {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return []
+  const report = value as Record<string, unknown>
+  if (!Array.isArray(report.issues)) return []
+  return report.issues.flatMap((entry): StudioIssue[] => {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) return []
+    const issue = entry as Record<string, unknown>
+    if (typeof issue.code !== 'string' || typeof issue.message !== 'string' || !Array.isArray(issue.path)) return []
+    if (!issue.path.every((part) => typeof part === 'string' || typeof part === 'number')) return []
+    return [{ code: issue.code, message: issue.message, path: issue.path as (string | number)[] }]
+  })
+}
+
 function IssueList({ issues, labels }: { issues: readonly StudioIssue[]; labels: StudioLabels }) {
   if (issues.length === 0) return null
   return (
@@ -262,8 +285,12 @@ function IssueList({ issues, labels }: { issues: readonly StudioIssue[]; labels:
       <ul className="mt-3 space-y-2">
         {issues.map((issue, index) => (
           <li className="rounded-xl border border-amber-200 bg-white/70 p-3" key={`${issue.code}-${index}`}>
-            <div className="font-mono text-xs font-semibold">{issue.code} · {issuePath(issue)}</div>
-            <div className="mt-1">{issue.message}</div>
+            <div>{labels.compilerIssueMessages[issue.code] ?? issue.message}</div>
+            <details className="mt-2 text-xs text-muted-foreground">
+              <summary className="cursor-pointer font-semibold">{labels.advanced}</summary>
+              <div className="mt-1 break-all font-mono">{issue.code} · {issuePath(issue)}</div>
+              {labels.compilerIssueMessages[issue.code] ? <div className="mt-1">{issue.message}</div> : null}
+            </details>
           </li>
         ))}
       </ul>
@@ -358,7 +385,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   const [draftRevision, setDraftRevision] = useState(initialSelection?.draftRevision ?? 0)
   const [dirty, setDirty] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
-  const [issues, setIssues] = useState<readonly StudioIssue[]>([])
+  const [issues, setIssues] = useState<readonly StudioIssue[]>(() => validationIssues(initialSelection?.validationReport))
   const [activeStepKey, setActiveStepKey] = useState(initialSelection?.draft.startStepKey ?? '')
   const [activeFormKey, setActiveFormKey] = useState(initialSelection?.draft.forms[0]?.key ?? '')
   const [previewParticipant, setPreviewParticipant] = useState(initialSelection?.draft.participants[0]?.key ?? '')
@@ -377,12 +404,15 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   const [showDiscardCreate, setShowDiscardCreate] = useState(false)
   const [createStep, setCreateStep] = useState(0)
   const [createName, setCreateName] = useState('')
+  const [createDescription, setCreateDescription] = useState('')
   const [createKey, setCreateKey] = useState('')
+  const [createStartingPoint, setCreateStartingPoint] = useState<'BLANK' | 'TRAINING_REQUEST_EXAMPLE'>('BLANK')
   const [createPending, setCreatePending] = useState(false)
   const [publishPending, setPublishPending] = useState(false)
   const [retirePending, setRetirePending] = useState(false)
   const saveInFlightRef = useRef(false)
   const saveBlockedRef = useRef(false)
+  const openRecipesAfterDiscardRef = useRef(false)
 
   const visibleCatalog = useMemo(() => catalog.filter((item) => {
     const searchValue = `${item.key} ${titleFor(item.title)} ${titleFor(item.title, 'en')}`.toLowerCase()
@@ -390,9 +420,8 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   }), [catalog, query, statusFilter])
 
   const selectedForm = draft?.forms.find((form) => form.key === activeFormKey) ?? draft?.forms[0] ?? null
-  const selectedStep = draft?.steps.find((step) => step.key === activeStepKey) ?? draft?.steps[0] ?? null
   const previewParticipantDefinition = draft?.participants.find((participant) => participant.key === previewParticipant) ?? draft?.participants[0] ?? null
-  const createDirty = createName.trim() !== '' || createKey.trim() !== ''
+  const createDirty = createName.trim() !== '' || createDescription.trim() !== '' || createKey.trim() !== ''
 
   useEffect(() => {
     if (!showCreateWizard || !createDirty) return
@@ -445,12 +474,20 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   }
 
   async function createDefinition() {
-    if (createPending || !createName.trim() || createKey.trim().length < 3) return
+    if (createPending || !createName.trim() || !createDescription.trim() || (createKey.trim() !== '' && createKey.trim().length < 3)) return
     setActionError('')
     setCreatePending(true)
-    const key = createKey.trim() || `process-${Date.now().toString(36)}`
     try {
-      const response = await fetch('/api/process-automation/studio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) })
+      const response = await fetch('/api/process-automation/studio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(createKey.trim() ? { key: createKey.trim() } : {}),
+          title: { nl: createName.trim(), en: createName.trim() },
+          description: { nl: createDescription.trim(), en: createDescription.trim() },
+          startingPoint: createStartingPoint,
+        }),
+      })
       const payload = await response.json() as { data?: { id: string }; code?: string }
       if (!response.ok || !payload.data) { setActionError(payload.code ?? labels.saveError); return }
       setShowCreateWizard(false)
@@ -465,17 +502,38 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     setShowDiscardCreate(false)
     setCreateStep(0)
     setCreateName('')
+    setCreateDescription('')
     setCreateKey('')
+    setCreateStartingPoint('BLANK')
     setActionError('')
   }
 
   function requestCreateClose() {
     if (createPending) return
+    openRecipesAfterDiscardRef.current = false
     if (createDirty) {
       setShowDiscardCreate(true)
       return
     }
     closeCreateWizard()
+  }
+
+  function requestCertifiedRecipes(): void {
+    if (createPending) return
+    openRecipesAfterDiscardRef.current = true
+    if (createDirty) {
+      setShowDiscardCreate(true)
+      return
+    }
+    closeCreateWizard()
+    window.setTimeout(() => document.getElementById('process-recipe-catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
+  }
+
+  function discardCreateAndContinue(): void {
+    const openRecipes = openRecipesAfterDiscardRef.current
+    openRecipesAfterDiscardRef.current = false
+    closeCreateWizard()
+    if (openRecipes) window.setTimeout(() => document.getElementById('process-recipe-catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
   }
 
   async function cloneDefinition() {
@@ -534,11 +592,6 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     } finally {
       setTrialLoading(false)
     }
-  }
-
-  function updateStepTitle(language: 'nl' | 'en', value: string) {
-    if (!selectedStep) return
-    updateDraft((current) => ({ ...current, steps: current.steps.map((step) => step.key === selectedStep.key ? { ...step, title: { ...step.title, [language]: value } } : step) }))
   }
 
   function updateFieldText(formKey: string, sectionKey: string, fieldKey: string, property: 'label' | 'helpText', language: 'nl' | 'en', value: string) {
@@ -741,23 +794,43 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
               {createStep === 0 ? <div className="grid max-w-2xl gap-5">
                 <div><h2 className="text-xl font-semibold">{labels.wizardBasics}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.newWizardDescription}</p></div>
                 <label className="grid gap-1.5 text-sm font-semibold" htmlFor="create-process-name">{labels.processName}<input autoFocus className="form-field font-normal" id="create-process-name" onChange={(event) => { const name = event.target.value; setCreateName(name); setCreateKey(name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) }} placeholder={labels.processNamePlaceholder} required value={createName} /></label>
-                <label className="grid gap-1.5 text-sm font-semibold" htmlFor="create-process-key">{labels.processKey}<input className="form-field font-mono font-normal" id="create-process-key" minLength={3} onChange={(event) => setCreateKey(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} required value={createKey} /><span className="text-xs font-normal leading-5 text-muted-foreground">{labels.processKeyHelp}</span></label>
+                <label className="grid gap-1.5 text-sm font-semibold" htmlFor="create-process-description">{labels.descriptionNl}<textarea className="form-field min-h-24 font-normal" id="create-process-description" onChange={(event) => setCreateDescription(event.target.value)} placeholder={labels.processDescriptionPlaceholder} required value={createDescription} /></label>
+                <details className="rounded-lg border px-4 py-3 text-sm">
+                  <summary className="cursor-pointer font-semibold">{labels.advanced}</summary>
+                  <label className="mt-3 grid gap-1.5 text-sm font-semibold" htmlFor="create-process-key">{labels.processKey}<input className="form-field font-mono font-normal" id="create-process-key" minLength={3} onChange={(event) => setCreateKey(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} value={createKey} /><span className="text-xs font-normal leading-5 text-muted-foreground">{labels.processKeyHelp}</span></label>
+                </details>
               </div> : null}
               {createStep === 1 ? <div className="grid max-w-2xl gap-4">
                 <div><h2 className="text-xl font-semibold">{labels.wizardStartingPoint}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.newWizardDescription}</p></div>
-                <div aria-pressed="true" className="flex items-start gap-4 rounded-lg border border-primary bg-accent/40 p-4"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-primary"><Workflow aria-hidden="true" size={19} /></span><span><span className="font-semibold">{labels.blankProcess}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.blankProcessDescription}</span></span></div>
-                <div aria-disabled="true" className="flex items-start gap-4 rounded-lg border border-border bg-muted/40 p-4 opacity-75"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-background text-muted-foreground"><LayoutDashboard aria-hidden="true" size={19} /></span><span><span className="font-semibold">{labels.certifiedRecipe}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.certifiedRecipeDescription}</span></span></div>
+                <fieldset className="grid gap-3">
+                  <legend className="sr-only">{labels.wizardStartingPoint}</legend>
+                  <label className={`flex cursor-pointer items-start gap-4 rounded-lg border p-4 ${createStartingPoint === 'BLANK' ? 'border-primary bg-accent/40' : 'border-border hover:border-primary/50'}`}>
+                    <input checked={createStartingPoint === 'BLANK'} className="mt-1" name="create-process-starting-point" onChange={() => setCreateStartingPoint('BLANK')} type="radio" value="BLANK" />
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-background text-primary"><Workflow aria-hidden="true" size={19} /></span>
+                    <span><span className="font-semibold">{labels.blankProcess}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.blankProcessDescription}</span></span>
+                  </label>
+                  <label className={`flex cursor-pointer items-start gap-4 rounded-lg border p-4 ${createStartingPoint === 'TRAINING_REQUEST_EXAMPLE' ? 'border-primary bg-accent/40' : 'border-border hover:border-primary/50'}`}>
+                    <input checked={createStartingPoint === 'TRAINING_REQUEST_EXAMPLE'} className="mt-1" name="create-process-starting-point" onChange={() => setCreateStartingPoint('TRAINING_REQUEST_EXAMPLE')} type="radio" value="TRAINING_REQUEST_EXAMPLE" />
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-background text-primary"><LayoutDashboard aria-hidden="true" size={19} /></span>
+                    <span><span className="font-semibold">{labels.trainingRequestExample}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.trainingRequestExampleDescription}</span><span className="mt-2 block text-xs font-medium text-muted-foreground">{labels.exampleNoDomainWrites}</span></span>
+                  </label>
+                </fieldset>
+                <div className="rounded-lg border border-dashed p-4">
+                  <p className="font-semibold">{labels.certifiedRecipe}</p>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">{labels.certifiedRecipeDescription}</p>
+                  <Button className="mt-3" onClick={requestCertifiedRecipes} type="button" variant="secondary">{labels.certifiedRecipe}</Button>
+                </div>
               </div> : null}
               {createStep === 2 ? <div className="max-w-2xl">
                 <div><h2 className="text-xl font-semibold">{labels.wizardReview}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.creationSummary}</p></div>
-                <dl className="mt-6 grid gap-5 rounded-lg border border-border bg-background p-5 sm:grid-cols-2"><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processName}</dt><dd className="mt-1 break-words font-semibold">{createName}</dd></div><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processKey}</dt><dd className="mt-1 break-all font-mono text-sm">{createKey}</dd></div><div className="sm:col-span-2"><dt className="text-xs font-semibold text-muted-foreground">{labels.wizardStartingPoint}</dt><dd className="mt-1 text-sm">{labels.blankProcessDescription}</dd></div></dl>
+                <dl className="mt-6 grid gap-5 rounded-lg border border-border bg-background p-5 sm:grid-cols-2"><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processName}</dt><dd className="mt-1 break-words font-semibold">{createName}</dd></div><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processKey}</dt><dd className="mt-1 break-all font-mono text-sm">{createKey || labels.automaticKey}</dd></div><div className="sm:col-span-2"><dt className="text-xs font-semibold text-muted-foreground">{labels.descriptionNl}</dt><dd className="mt-1 whitespace-pre-wrap text-sm">{createDescription}</dd></div><div className="sm:col-span-2"><dt className="text-xs font-semibold text-muted-foreground">{labels.wizardStartingPoint}</dt><dd className="mt-1 text-sm">{createStartingPoint === 'BLANK' ? labels.blankProcessDescription : labels.trainingRequestExampleDescription}</dd></div>{createStartingPoint === 'TRAINING_REQUEST_EXAMPLE' ? <div className="sm:col-span-2 rounded-lg border p-3 text-xs leading-5 text-muted-foreground">{labels.exampleNoDomainWrites}</div> : null}</dl>
               </div> : null}
               {actionError ? <p className="mt-6 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">{actionError}</p> : null}
             </div>
             <FormActions cancelLabel={labels.cancel} disabled={createPending} form={createFormId} onCancel={requestCreateClose} saveLabel={createStep < 2 ? labels.continue : labels.createDraft} saving={createPending} sticky leading={createStep > 0 ? <Button onClick={() => setCreateStep((step) => step - 1)} size="sm" type="button" variant="secondary"><ArrowLeft aria-hidden="true" size={15} />{labels.back}</Button> : undefined} />
           </form>
         </div>
-        <ConfirmDialog cancelLabel={labels.keepEditing} confirmLabel={labels.discardChanges} description={labels.discardChangesDescription} destructive onConfirm={closeCreateWizard} onOpenChange={setShowDiscardCreate} open={showDiscardCreate} title={labels.discardChangesTitle} />
+        <ConfirmDialog cancelLabel={labels.keepEditing} confirmLabel={labels.discardChanges} description={labels.discardChangesDescription} destructive onConfirm={discardCreateAndContinue} onOpenChange={setShowDiscardCreate} open={showDiscardCreate} title={labels.discardChangesTitle} />
       </div>
     )
   }
@@ -767,7 +840,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
       <section aria-labelledby="automation-overview-title" className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div><p className="eyebrow">{labels.overview}</p><h2 className="mt-1 text-2xl font-semibold tracking-tight" id="automation-overview-title">{labels.overview}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.overviewDescription}</p></div>
-          {canWrite ? <button className="button-primary inline-flex items-center gap-2" onClick={() => { setCreateStep(0); setCreateName(''); setCreateKey(''); setShowCreateWizard(true) }} type="button"><Plus aria-hidden="true" size={17} />{labels.newProcess}</button> : null}
+          {canWrite ? <button className="button-primary inline-flex items-center gap-2" onClick={() => { setCreateStep(0); setCreateName(''); setCreateDescription(''); setCreateKey(''); setCreateStartingPoint('BLANK'); setShowCreateWizard(true) }} type="button"><Plus aria-hidden="true" size={17} />{labels.newProcess}</button> : null}
         </div>
         <dl className="mt-6 grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4">
           {[
@@ -842,9 +915,14 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
               <header className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="eyebrow">{labels.selectedDefinition}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(selected.definition.status)}`}>{statusLabel(selected.definition.status, labels)}</span><span className="text-xs text-muted-foreground">{selected.definition.key}</span></div>
+                    <p className="eyebrow">{labels.selectedDefinition}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(selected.definition.status)}`}>{statusLabel(selected.definition.status, labels)}</span></div>
                     {editing && selected.definition.status !== 'RETIRED' ? <input aria-label={labels.titleNl} className="mt-3 w-full rounded-xl border bg-background px-3 py-2 text-2xl font-semibold outline-none focus:border-primary" onChange={(event) => updateDraft((current) => ({ ...current, title: { ...current.title, nl: event.target.value } }))} value={draft.title.nl ?? ''} /> : <h2 className="mt-3 text-2xl font-semibold">{titleFor(draft.title)}</h2>}
+                    {editing && selected.definition.status !== 'RETIRED' ? <label className="mt-3 block text-sm font-semibold" htmlFor="process-description-nl">{labels.descriptionNl}<textarea className="form-field mt-1 min-h-16 font-normal" id="process-description-nl" onChange={(event) => updateDraft((current) => ({ ...current, description: { ...current.description, nl: event.target.value } }))} value={draft.description?.nl ?? ''} /></label> : draft.description ? <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{titleFor(draft.description)}</p> : null}
                     <p className="mt-2 text-sm text-muted-foreground">{selected.definition.status === 'PUBLISHED' ? labels.readOnly : labels.processStudio}</p>
+                    <details className="mt-3 max-w-3xl rounded-lg border px-3 py-2 text-xs">
+                      <summary className="cursor-pointer font-semibold">{labels.advanced}</summary>
+                      <dl className="mt-3 grid gap-3 sm:grid-cols-2"><div><dt className="text-muted-foreground">{labels.processKey}</dt><dd className="mt-1 break-all font-mono">{selected.definition.key}</dd></div><div><dt className="text-muted-foreground">{labels.processName} · EN</dt><dd className="mt-1">{editing && selected.definition.status !== 'RETIRED' ? <input aria-label={`${labels.processName} · EN`} className="w-full rounded-md border bg-background px-2 py-1.5 font-normal" onChange={(event) => updateDraft((current) => ({ ...current, title: { ...current.title, en: event.target.value } }))} value={draft.title.en ?? ''} /> : titleFor(draft.title, 'en')}</dd></div><div className="sm:col-span-2"><dt className="text-muted-foreground">{labels.descriptionEn}</dt><dd className="mt-1">{editing && selected.definition.status !== 'RETIRED' ? <textarea aria-label={labels.descriptionEn} className="w-full rounded-md border bg-background px-2 py-1.5 font-normal" onChange={(event) => updateDraft((current) => ({ ...current, description: { ...current.description, en: event.target.value } }))} value={draft.description?.en ?? ''} /> : titleFor(draft.description, 'en')}</dd></div></dl>
+                    </details>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {saveState !== 'idle' ? <span aria-live="polite" className="text-xs font-semibold text-muted-foreground">{statusMessage(saveState, labels)}</span> : null}
@@ -863,22 +941,16 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                 {stageItems.map((item, index) => { const Icon = item.icon; const active = studioStage === item.id; return <button aria-current={active ? 'step' : undefined} className={`flex items-center gap-2 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} key={item.id} onClick={() => setStudioStage(item.id)} type="button"><span className={`grid size-7 shrink-0 place-items-center rounded-md text-xs ${active ? 'bg-primary-foreground/15' : 'bg-muted'}`}>{index + 1}</span><Icon aria-hidden="true" className="hidden xl:block" size={15} /><span className="truncate">{item.label}</span></button> })}
               </nav>
 
-              {studioStage === 'process' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.processStudio}</p><h3 className="mt-1 text-xl font-semibold">{labels.steps}</h3></div><span className="text-xs text-muted-foreground">{labels.stepList}</span></div>
-                <div className="mt-5 grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
-                  <nav aria-label={labels.stepList} className="space-y-2">
-                    {draft.steps.map((step, index) => <button className={`w-full rounded-2xl border p-3 text-left ${selectedStep?.key === step.key ? 'border-primary bg-accent/50' : 'hover:border-primary/40'}`} key={step.key} onClick={() => setActiveStepKey(step.key)} type="button"><span className="text-xs font-semibold text-muted-foreground">{index + 1}. {step.type}</span><span className="mt-1 block font-semibold">{titleFor(step.title)}</span></button>)}
-                  </nav>
-                  <div className="space-y-4">
-                    {selectedStep ? <article className="rounded-2xl border bg-background p-4">
-                      <div className="flex items-center justify-between gap-2"><h4 className="font-semibold">{labels.step} · {selectedStep.key}</h4><span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold">{selectedStep.type}</span></div>
-                      {editing ? <div className="mt-4 grid gap-3 md:grid-cols-2"><label className="text-sm font-semibold">{labels.titleNl}<input className="mt-1 w-full rounded-xl border px-3 py-2 font-normal" onChange={(event) => updateStepTitle('nl', event.target.value)} value={selectedStep.title.nl ?? ''} /></label><label className="text-sm font-semibold">{labels.titleEn}<input className="mt-1 w-full rounded-xl border px-3 py-2 font-normal" onChange={(event) => updateStepTitle('en', event.target.value)} value={selectedStep.title.en ?? ''} /></label></div> : null}
-                      <div className="mt-4 grid gap-3 text-sm md:grid-cols-3"><div><span className="text-xs font-semibold text-muted-foreground">{labels.stepType}</span><p className="mt-1 font-medium">{selectedStep.type}</p></div><div><span className="text-xs font-semibold text-muted-foreground">{labels.participant}</span><p className="mt-1 font-medium">{selectedStep.participantKey ?? labels.noValue}</p></div><div><span className="text-xs font-semibold text-muted-foreground">{labels.sla}</span><p className="mt-1 font-medium">{selectedStep.sla ? `${selectedStep.sla.duration.amount} ${selectedStep.sla.duration.unit}` : labels.noValue}</p></div></div>
-                    </article> : null}
-                    <div className="grid gap-3 md:grid-cols-2">{draft.transitions.filter((transition) => transition.fromStepKey === selectedStep?.key).map((transition) => <div className="rounded-2xl border border-dashed p-4 text-sm" key={transition.key}><span className="text-xs font-semibold text-muted-foreground">{transition.action}</span><p className="mt-1 font-semibold">{titleFor(transition.label)}</p><p className="mt-1 text-xs text-muted-foreground">→ {transition.toStepKey}</p></div>)}</div>
-                  </div>
-                </div>
-              </section> : null}
+              {studioStage === 'process' ? <ProcessFlowEditor
+                activeStepKey={activeStepKey}
+                draft={draft}
+                editing={editing && selected.definition.status !== 'RETIRED'}
+                issues={issues}
+                labels={labels.flowEditor}
+                onChangeDraft={updateDraft}
+                onOpenForms={() => setStudioStage('form')}
+                onSelectStep={setActiveStepKey}
+              /> : null}
 
               {studioStage === 'form' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.formStudio}</p><h3 className="mt-1 text-xl font-semibold">{selectedForm ? titleFor(selectedForm.title) : labels.noValue}</h3></div><FormInput className="text-primary" size={22} /></div>

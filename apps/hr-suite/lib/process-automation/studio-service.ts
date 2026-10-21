@@ -20,6 +20,10 @@ import {
   type ProcessDefinitionDraft,
 } from './definition-schemas'
 import {
+  createEmptyStudioDraft,
+  createTrainingRequestExampleDraft,
+} from './studio-draft-factories'
+import {
   AssignmentResolutionError,
   resolveAssignment,
   type AssignmentResolutionContext,
@@ -121,6 +125,9 @@ export const studioDefinitionIdSchema = z.string().uuid()
 
 export const studioCreateSchema = z.object({
   key: z.string().trim().regex(/^[a-z][a-z0-9_-]*$/).max(80).optional(),
+  title: z.object({ nl: z.string().trim().min(1).max(4000), en: z.string().trim().min(1).max(4000) }).strict(),
+  description: z.object({ nl: z.string().trim().min(1).max(4000), en: z.string().trim().min(1).max(4000) }).strict(),
+  startingPoint: z.enum(['BLANK', 'TRAINING_REQUEST_EXAMPLE']).default('BLANK'),
 }).strict()
 
 export const studioSaveSchema = z.object({
@@ -330,10 +337,14 @@ export async function getStudioDefinition(definitionId: string): Promise<StudioD
   }
 }
 
-export async function createStudioDefinition(requestedKey?: string): Promise<{ id: string; revision: number }> {
+export async function createStudioDefinition(input: z.infer<typeof studioCreateSchema>): Promise<{ id: string; revision: number }> {
   const { context, supabase } = await studioWriteContext()
-  const key = requestedKey ?? `internal-transfer-${context.userId.slice(0, 8)}`
-  const definition = { ...internalTransferFixture, key }
+  const namePart = input.title.nl.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 52)
+  const key = input.key ?? `process-${namePart || 'new'}-${Date.now().toString(36)}`
+  const identity = { key, title: input.title, description: input.description }
+  const definition = input.startingPoint === 'TRAINING_REQUEST_EXAMPLE'
+    ? createTrainingRequestExampleDraft(identity)
+    : createEmptyStudioDraft(identity)
   const result = compileDraft(definition)
   const { data, error } = await supabase.rpc('create_process_definition_draft', {
     requested_tenant_id: context.tenantId,

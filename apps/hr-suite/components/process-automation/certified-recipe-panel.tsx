@@ -11,6 +11,7 @@ export interface CertifiedRecipePanelLabels {
   readonly activate: string
   readonly activated: string
   readonly activationFailed: string
+  readonly adapterDetails: string
 }
 
 export function CertifiedRecipePanel({ recipes, canWrite, labels }: { readonly recipes: readonly CertifiedRecipe[]; readonly canWrite: boolean; readonly labels: CertifiedRecipePanelLabels }) {
@@ -40,7 +41,7 @@ export function CertifiedRecipePanel({ recipes, canWrite, labels }: { readonly r
     }
   }
 
-  return <section aria-labelledby="certified-recipe-title" className="mb-6 rounded-3xl border border-border bg-surface p-6 shadow-sm sm:p-8">
+  return <section aria-labelledby="certified-recipe-title" className="mb-6 scroll-mt-6 rounded-3xl border border-border bg-surface p-6 shadow-sm sm:p-8" id="process-recipe-catalog">
     <p className="eyebrow text-primary">{labels.eyebrow}</p>
     <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
@@ -51,7 +52,7 @@ export function CertifiedRecipePanel({ recipes, canWrite, labels }: { readonly r
     </div>
     <div className="mt-6 grid gap-3">
       {recipes.map((recipe) => <article className="flex flex-col gap-4 rounded-2xl border border-border bg-panel-soft p-4 sm:flex-row sm:items-center sm:justify-between" key={recipe.id}>
-        <div className="min-w-0"><h3 className="font-semibold">{recipe.title.nl}</h3><p className="mt-1 text-sm text-muted-foreground">v{recipe.recipeVersion} · {recipe.adapterKey}</p><p className="mt-2 text-sm text-muted-foreground">{recipe.description.nl}</p></div>
+        <div className="min-w-0"><h3 className="font-semibold">{recipe.title.nl}</h3><p className="mt-1 text-sm text-muted-foreground">v{recipe.recipeVersion}</p><p className="mt-2 text-sm text-muted-foreground">{recipe.description.nl}</p><details className="mt-2 text-xs"><summary className="cursor-pointer font-semibold">{labels.adapterDetails}</summary><p className="mt-1 break-all font-mono text-muted-foreground">{recipe.adapterKey}</p></details></div>
         {canWrite ? <button className="button-secondary shrink-0" disabled={busy !== null} onClick={() => { void activate(recipe.id) }} type="button">{busy === recipe.id ? `${labels.activate}…` : labels.activate}</button> : null}
       </article>)}
       {recipes.length === 0 ? <p className="text-sm text-muted-foreground">—</p> : null}
