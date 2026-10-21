@@ -1,5 +1,18 @@
 # Implementatiestatus Liquid HR
 
+## Actuele geïntegreerde implementatie — 21 oktober 2026
+
+**Productcode:** `1.20261021.1` / `c0fa236967ec0708c0a57f72e0dfb29b78b3fead` Git-Vercel READY. STAR V2, Employee UX, Payroll en AI/MCP/Focus vormen de gezamenlijke codebase, zonder claims dat alle wettelijke en externe hostscenario's GA zijn.
+
+**Cleanup:** 29 → 2 lokale worktrees (volgens Codex); remote 10 geïntegreerde branches, 9 verweesde previews, 1 CLI-foutdeployment verwijderd. Beschermde `work/payroll-p0-p1` hersteld maar unieke 519-byte `.env.local` ontbreekt (**CONFIG-RECOVERY-01 OPEN**). Stashes/branchrefs blijven beschermd.
+
+**P0/P1:** Payroll `/payroll/runs` laadt niet door; daarna Employee definitieve loonstrook, HeRa/MCP/Focus-hostsecurity en artifactfingerprint. Frits november 2026 is gesimuleerde CONCEPT, geen definitieve payroll. Niet-Payroll-development kan verder op schone `main`; Core-volgorde WVP01 → INS02, PMUX-02/03 later.
+
+Volledige [postrelease status](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md), [AA-CURRENT](../AA/AA-CURRENT.md), [AA-NEXT](../AA/AA-NEXT.md), [AA-OPEN](../AA/AA-OPEN.md). Oudere paragrafen zijn historische bewijsstanden.
+
+## Historische implementatie- en acceptatieverslagen
+
+
 ## Latest local integration — TALENT-CONVERGENCE-01 — 2026-10-16
 
 **Status: local main code integrated; engineering checks GREEN; final build and 9-grid browser matrix HOLD.** The Talent profile options endpoint/dialog and permission-filtered Workforce navigation are integrated on code SHA 1d175ae4ee6cece9b44c26f22ff728c9a75f1ea1. No migration, database write, push, PR merge or deployment was performed in this follow-up. Read-only Supabase TEST identity and migration head remain project wnpfloqpjvaacobppbpk / 20261015182721.
