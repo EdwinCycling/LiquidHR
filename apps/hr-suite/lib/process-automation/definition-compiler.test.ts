@@ -87,6 +87,13 @@ describe('process definition compiler', () => {
     })).toBe(false)
   })
 
+  it('allows empty draft sections but blocks a form with no fields from publishing', () => {
+    const definition = copyFixture()
+    definition.forms[0].sections.forEach((section) => { section.fields = [] })
+    expect(processDefinitionDraftSchema.safeParse(definition).success).toBe(true)
+    compileFailure(definition, 'FORM_WITHOUT_FIELDS', ['forms', 0, 'sections'])
+  })
+
   it('rejects an unreachable step', () => {
     const definition = copyFixture()
     definition.steps.push({ key: 'orphan', type: 'FORM', title: { nl: 'Los', en: 'Orphan' }, participantKey: 'initiator', formKey: 'internal-transfer-form', allowedActions: ['SUBMIT'] })

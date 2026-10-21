@@ -233,7 +233,7 @@ export type FieldDefinition = z.infer<typeof fieldDefinitionSchema>
 export const formSectionSchema = z.object({
   key: identifierSchema,
   title: localizedTextSchema,
-  fields: z.array(fieldDefinitionSchema).min(1),
+  fields: z.array(fieldDefinitionSchema),
 }).strict()
 export type FormSection = z.infer<typeof formSectionSchema>
 

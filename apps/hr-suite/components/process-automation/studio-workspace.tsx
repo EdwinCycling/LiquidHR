@@ -8,7 +8,10 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Copy,
+  Trash2,
   FlaskConical,
   FormInput,
   GitCompareArrows,
@@ -20,8 +23,9 @@ import {
   Send,
   Workflow,
 } from 'lucide-react'
-import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, ProcessDefinitionDraft } from '@/lib/process-automation/definition-schemas'
+import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, FormDefinition, ProcessDefinitionDraft } from '@/lib/process-automation/definition-schemas'
 import { ProcessFlowEditor, type ProcessFlowEditorLabels } from '@/components/process-automation/process-flow-editor'
+import { changeDefinitionFieldType, duplicateDefinitionField, reorderDefinitionItems, uniqueDefinitionKey } from '@/lib/process-automation/form-studio-draft'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
@@ -50,6 +54,35 @@ import type {
 type StudioTab = 'processes' | 'forms'
 type StudioStage = 'process' | 'form' | 'preview' | 'trial' | 'versions'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+export interface FormStudioEditorLabels {
+  readonly addSection: string
+  readonly addForm: string
+  readonly formTitle: string
+  readonly newFormTitleNl: string
+  readonly newFormTitleEn: string
+  readonly addFieldNeedsRole: string
+  readonly emptySection: string
+  readonly sectionTitle: string
+  readonly sectionDefaultNl: string
+  readonly sectionDefaultEn: string
+  readonly moveUp: string
+  readonly moveDown: string
+  readonly duplicateField: string
+  readonly removeField: string
+  readonly removeFieldTitle: string
+  readonly removeFieldDescription: string
+  readonly confirmRemoveField: string
+  readonly cancelRemoveField: string
+  readonly newFieldNl: string
+  readonly newFieldEn: string
+  readonly copySuffix: string
+  readonly stepLinks: string
+  readonly noFormSteps: string
+  readonly openProcessStudio: string
+  readonly previewStep: string
+  readonly noLinkedForm: string
+  readonly fieldRules: string
+}
 
 export interface StudioLabels {
   readonly title: string
@@ -69,6 +102,7 @@ export interface StudioLabels {
   readonly chooseDefinition: string
   readonly processStudio: string
   readonly formStudio: string
+  readonly formEditor: FormStudioEditorLabels
   readonly stepList: string
   readonly steps: string
   readonly step: string
@@ -388,6 +422,9 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   const [issues, setIssues] = useState<readonly StudioIssue[]>(() => validationIssues(initialSelection?.validationReport))
   const [activeStepKey, setActiveStepKey] = useState(initialSelection?.draft.startStepKey ?? '')
   const [activeFormKey, setActiveFormKey] = useState(initialSelection?.draft.forms[0]?.key ?? '')
+  const [activeSectionKey, setActiveSectionKey] = useState(initialSelection?.draft.forms[0]?.sections[0]?.key ?? '')
+  const [fieldToRemove, setFieldToRemove] = useState<{ sectionKey: string; fieldKey: string; label: string } | null>(null)
+  const [previewStepKey, setPreviewStepKey] = useState(initialSelection?.draft.steps.find((step) => step.type === 'FORM')?.key ?? '')
   const [previewParticipant, setPreviewParticipant] = useState(initialSelection?.draft.participants[0]?.key ?? '')
   const [previewLanguage, setPreviewLanguage] = useState<'nl' | 'en'>('nl')
   const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop')
@@ -420,6 +457,10 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   }), [catalog, query, statusFilter])
 
   const selectedForm = draft?.forms.find((form) => form.key === activeFormKey) ?? draft?.forms[0] ?? null
+  const activeSection = selectedForm?.sections.find((section) => section.key === activeSectionKey) ?? selectedForm?.sections[0] ?? null
+  const formSteps = draft?.steps.filter((step) => step.type === 'FORM') ?? []
+  const previewStep = formSteps.find((step) => step.key === previewStepKey) ?? formSteps[0] ?? null
+  const previewForm = previewStep ? draft?.forms.find((form) => form.key === previewStep.formKey) ?? null : selectedForm
   const previewParticipantDefinition = draft?.participants.find((participant) => participant.key === previewParticipant) ?? draft?.participants[0] ?? null
   const createDirty = createName.trim() !== '' || createDescription.trim() !== '' || createKey.trim() !== ''
 
@@ -732,31 +773,108 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     }))
   }
 
-  function addField(type: FieldType) {
-    if (!selectedForm || selectedForm.sections.length === 0 || !draft?.participants[0]) return
-    const baseKey = formFieldCatalog.find((item) => item.type === type)?.key ?? 'field'
-    const fieldCount = draft.forms.reduce((total, form) => total + form.sections.reduce((sectionTotal, section) => sectionTotal + section.fields.length, 0), 0)
-    const fieldKey = `${baseKey}-${fieldCount + 1}`
-    const options = defaultOptionsForFieldType(type)
-    const newField: FieldDefinition = {
-      key: fieldKey,
-      label: { nl: 'Nieuw veld', en: 'New field' },
-      type,
-      binding: { kind: 'PROCESS_ONLY' as const },
-      access: [{ participantKey: draft.participants[0].key, mode: 'WRITE_OPTIONAL' as const }],
-      ...(options ? { options } : {}),
-    }
-    const sectionKey = selectedForm.sections[0].key
+  function updateFormTitle(formKey: string, language: 'nl' | 'en', value: string) {
+    updateDraft((current) => ({ ...current, forms: current.forms.map((form) => form.key !== formKey ? form : { ...form, title: { ...form.title, [language]: value } }) }))
+  }
+
+  function updateSectionTitle(sectionKey: string, language: 'nl' | 'en', value: string) {
     updateDraft((current) => ({
       ...current,
-      forms: current.forms.map((form) => form.key !== selectedForm.key ? form : {
+      forms: current.forms.map((form) => form.key !== selectedForm?.key ? form : {
         ...form,
-        sections: form.sections.map((section) => section.key !== sectionKey ? section : { ...section, fields: [...section.fields, newField] }),
+        sections: form.sections.map((section) => section.key !== sectionKey ? section : { ...section, title: { ...section.title, [language]: value } }),
       }),
     }))
   }
 
-  const previewFields = selectedForm?.sections.flatMap((section) => section.fields.map((field) => ({ section, field }))).filter(({ field }) => {
+  function addForm() {
+    if (!draft || !editing) return
+    const formKey = uniqueDefinitionKey('form', draft.forms.map((form) => form.key))
+    const sectionKeys = draft.forms.flatMap((form) => form.sections.map((section) => section.key))
+    const sectionKey = uniqueDefinitionKey('section', sectionKeys)
+    const form: FormDefinition = {
+      key: formKey,
+      version: 1,
+      title: { nl: labels.formEditor.newFormTitleNl, en: labels.formEditor.newFormTitleEn },
+      sections: [{ key: sectionKey, title: { nl: labels.formEditor.sectionDefaultNl, en: labels.formEditor.sectionDefaultEn }, fields: [] }],
+    }
+    updateDraft((current) => ({ ...current, forms: [...current.forms, form] }))
+    setActiveFormKey(formKey)
+    setActiveSectionKey(sectionKey)
+  }
+  function addSection() {
+    if (!selectedForm || !draft) return
+    const sectionKeys = draft.forms.flatMap((form) => form.sections.map((section) => section.key))
+    const sectionKey = uniqueDefinitionKey('section', sectionKeys)
+    const number = selectedForm.sections.length + 1
+    const section = { key: sectionKey, title: { nl: labels.formEditor.sectionDefaultNl + ' ' + number, en: labels.formEditor.sectionDefaultEn + ' ' + number }, fields: [] }
+    updateDraft((current) => ({ ...current, forms: current.forms.map((form) => form.key === selectedForm.key ? { ...form, sections: [...form.sections, section] } : form) }))
+    setActiveSectionKey(sectionKey)
+  }
+
+  function moveSection(index: number, offset: -1 | 1) {
+    if (!selectedForm) return
+    updateDraft((current) => ({ ...current, forms: current.forms.map((form) => form.key === selectedForm.key ? { ...form, sections: reorderDefinitionItems(form.sections, index, offset) } : form) }))
+  }
+
+  function duplicateField(sectionKey: string, field: FieldDefinition) {
+    if (!selectedForm || !draft) return
+    const used = draft.forms.flatMap((form) => form.sections.flatMap((section) => section.fields.map((item) => item.key)))
+    const duplicate = duplicateDefinitionField(field, used, labels.formEditor.copySuffix)
+    updateDraft((current) => ({ ...current, forms: current.forms.map((form) => form.key !== selectedForm.key ? form : {
+      ...form, sections: form.sections.map((section) => section.key === sectionKey ? { ...section, fields: [...section.fields, duplicate] } : section),
+    }) }))
+  }
+
+  function removeField(sectionKey: string, fieldKey: string) {
+    if (!selectedForm) return
+    updateDraft((current) => ({ ...current, forms: current.forms.map((form) => form.key !== selectedForm.key ? form : {
+      ...form, sections: form.sections.map((section) => section.key === sectionKey ? { ...section, fields: section.fields.filter((field) => field.key !== fieldKey) } : section),
+    }) }))
+  }
+
+  function confirmRemoveField() {
+    if (!fieldToRemove) return
+    removeField(fieldToRemove.sectionKey, fieldToRemove.fieldKey)
+    setFieldToRemove(null)
+  }
+
+  function moveField(sectionKey: string, index: number, offset: -1 | 1) {
+    if (!selectedForm) return
+    updateDraft((current) => ({ ...current, forms: current.forms.map((form) => form.key !== selectedForm.key ? form : {
+      ...form, sections: form.sections.map((section) => section.key === sectionKey ? { ...section, fields: reorderDefinitionItems(section.fields, index, offset) } : section),
+    }) }))
+  }
+
+  function updateFieldType(sectionKey: string, fieldKey: string, type: FieldType) {
+    if (!selectedForm) return
+    updateDraft((current) => ({ ...current, forms: current.forms.map((form) => form.key !== selectedForm.key ? form : {
+      ...form, sections: form.sections.map((section) => section.key !== sectionKey ? section : {
+        ...section, fields: section.fields.map((field) => field.key === fieldKey ? changeDefinitionFieldType(field, type) : field),
+      }),
+    }) }))
+  }
+
+  function updateStepForm(stepKey: string, formKey: string) {
+    updateDraft((current) => ({ ...current, steps: current.steps.map((step) => step.key === stepKey ? { ...step, formKey: formKey || undefined } : step) }))
+  }
+
+  function addField(type: FieldType) {
+    if (!selectedForm || !draft?.participants[0]) return
+    const sectionKey = activeSection?.key ?? selectedForm.sections[0]?.key
+    if (!sectionKey) return
+    const baseKey = formFieldCatalog.find((item) => item.type === type)?.key ?? 'field'
+    const fieldCount = draft.forms.reduce((total, form) => total + form.sections.reduce((sum, section) => sum + section.fields.length, 0), 0)
+    const used = draft.forms.flatMap((form) => form.sections.flatMap((section) => section.fields.map((field) => field.key)))
+    const fieldKey = uniqueDefinitionKey(baseKey + '-' + (fieldCount + 1), used)
+    const options = defaultOptionsForFieldType(type)
+    const newField: FieldDefinition = { key: fieldKey, label: { nl: labels.formEditor.newFieldNl, en: labels.formEditor.newFieldEn }, type, binding: { kind: 'PROCESS_ONLY' }, access: [{ participantKey: draft.participants[0].key, mode: 'WRITE_OPTIONAL' }], ...(options ? { options } : {}) }
+    updateDraft((current) => ({ ...current, forms: current.forms.map((form) => form.key !== selectedForm.key ? form : {
+      ...form, sections: form.sections.map((section) => section.key === sectionKey ? { ...section, fields: [...section.fields, newField] } : section),
+    }) }))
+  }
+
+  const previewFields = previewForm?.sections.flatMap((section) => section.fields.map((field) => ({ section, field }))).filter(({ field }) => {
     const access = field.access.find((rule) => rule.participantKey === previewParticipantDefinition?.key)
     return access?.mode !== 'HIDDEN'
   }) ?? []
@@ -953,17 +1071,33 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
               /> : null}
 
               {studioStage === 'form' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.formStudio}</p><h3 className="mt-1 text-xl font-semibold">{selectedForm ? titleFor(selectedForm.title) : labels.noValue}</h3></div><FormInput className="text-primary" size={22} /></div>
+                <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.formStudio}</p><h3 className="mt-1 text-xl font-semibold">{selectedForm ? titleFor(selectedForm.title) : labels.noValue}</h3>{editing && selectedForm ? <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">{labels.formEditor.formTitle} · {labels.titleNl}<input aria-label={labels.formEditor.formTitle + " · " + labels.titleNl} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-normal" onChange={(event) => updateFormTitle(selectedForm.key, 'nl', event.target.value)} value={selectedForm.title.nl ?? ""} /></label><label className="text-xs font-semibold">{labels.formEditor.formTitle} · {labels.titleEn}<input aria-label={labels.formEditor.formTitle + " · " + labels.titleEn} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-normal" onChange={(event) => updateFormTitle(selectedForm.key, 'en', event.target.value)} value={selectedForm.title.en ?? ""} /></label></div> : null}</div><div className="flex items-center gap-2"><FormInput aria-hidden="true" className="text-primary" size={22} /><button className="inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50" disabled={!editing || selected.definition.status === 'RETIRED'} onClick={addForm} type="button"><Plus aria-hidden="true" size={15} />{labels.formEditor.addForm}</button></div></div>
                 {selectedForm ? <>
                   <div className="mt-4 flex flex-wrap gap-2">{draft.forms.map((form) => <button className={`rounded-xl border px-3 py-2 text-sm font-semibold ${form.key === selectedForm.key ? 'border-primary bg-accent/50' : ''}`} key={form.key} onClick={() => setActiveFormKey(form.key)} type="button">{titleFor(form.title)} · {labels.version} {form.version}</button>)}</div>
+<section aria-labelledby="form-step-links" className="mt-4 rounded-xl border bg-background p-4">
+                    <h4 className="font-semibold" id="form-step-links">{labels.formEditor.stepLinks}</h4>
+                    {formSteps.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">{labels.formEditor.noFormSteps} <button className="underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-primary" onClick={() => setStudioStage('process')} type="button">{labels.formEditor.openProcessStudio}</button></p> : <div className="mt-3 grid gap-3 md:grid-cols-2">{formSteps.map((step) => <label className="grid gap-1 text-sm font-medium" key={step.key}>{titleFor(step.title)}<select aria-label={labels.formEditor.stepLinks + ' ' + titleFor(step.title)} className="rounded-lg border bg-surface px-3 py-2" disabled={!editing} onChange={(event) => updateStepForm(step.key, event.target.value)} value={step.formKey ?? ''}><option value="">{labels.formEditor.noLinkedForm}</option>{draft.forms.map((form) => <option key={form.key} value={form.key}>{titleFor(form.title)}</option>)}</select></label>)}</div>}
+                  </section>
+                  <div className="mt-5 flex justify-end"><button className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50" disabled={!editing || selected.definition.status === 'RETIRED'} onClick={addSection} type="button"><Plus aria-hidden="true" size={15} />{labels.formEditor.addSection}</button></div>
                   <div className="mt-5 grid gap-5 lg:grid-cols-[190px_minmax(0,1fr)]">
-                    <aside className="rounded-2xl border bg-background p-3"><h4 className="text-sm font-semibold">{labels.fieldLibrary}</h4><div className="mt-3 space-y-4">{formFieldGroups.map((group) => <div key={group}><p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{labels.fieldTypeGroups[group]}</p><div className="mt-2 space-y-2">{formFieldCatalog.filter((field) => field.group === group).map((field) => <button className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:border-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={!editing || selected.definition.status === 'RETIRED'} key={field.type} onClick={() => addField(field.type)} type="button"><Plus size={13} />{labels.fieldTypeLabels[field.type]}</button>)}</div></div>)}</div><p className="mt-3 text-xs text-muted-foreground">{labels.addField}</p></aside>
+                    <aside className="rounded-2xl border bg-background p-3"><h4 className="text-sm font-semibold">{labels.fieldLibrary}</h4><div className="mt-3 space-y-4">{formFieldGroups.map((group) => <div key={group}><p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{labels.fieldTypeGroups[group]}</p><div className="mt-2 space-y-2">{formFieldCatalog.filter((field) => field.group === group).map((field) => <button className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:border-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={!editing || selected.definition.status === 'RETIRED' || draft.participants.length === 0} key={field.type} onClick={() => addField(field.type)} type="button"><Plus size={13} />{labels.fieldTypeLabels[field.type]}</button>)}</div></div>)}</div><p className="mt-3 text-xs text-muted-foreground">{draft.participants.length === 0 ? labels.formEditor.addFieldNeedsRole : labels.addField}</p>{draft.participants.length === 0 ? <button className="mt-2 rounded-lg border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-primary" onClick={() => setStudioStage('process')} type="button">{labels.formEditor.openProcessStudio}</button> : null}</aside>
                      <div className="space-y-4">
-                       {selectedForm.sections.map((section) => (
+                       {selectedForm.sections.map((section, sectionIndex) => (
                          <div className="rounded-2xl border bg-background p-4" key={section.key}>
-                           <h4 className="font-semibold">{titleFor(section.title)}</h4>
+                           <div className="flex flex-wrap items-center justify-between gap-3">
+                             <button aria-pressed={activeSectionKey === section.key} className={'rounded-lg px-2 py-1 text-left font-semibold focus-visible:outline-2 focus-visible:outline-primary ' + (activeSectionKey === section.key ? 'bg-accent/50 text-primary' : '')} onClick={() => setActiveSectionKey(section.key)} type="button">{titleFor(section.title)}</button>
+                             <div className="flex gap-1">
+                               <button aria-label={labels.formEditor.moveUp + ' ' + (sectionIndex + 1)} className="grid size-9 place-items-center rounded-lg border focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" disabled={!editing || sectionIndex === 0} onClick={() => moveSection(sectionIndex, -1)} type="button"><ChevronUp aria-hidden="true" size={16} /></button>
+                               <button aria-label={labels.formEditor.moveDown + ' ' + (sectionIndex + 1)} className="grid size-9 place-items-center rounded-lg border focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" disabled={!editing || sectionIndex === selectedForm.sections.length - 1} onClick={() => moveSection(sectionIndex, 1)} type="button"><ChevronDown aria-hidden="true" size={16} /></button>
+                             </div>
+                           </div>
+                           {editing ? <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                             <label className="text-xs font-semibold">{labels.formEditor.sectionTitle} · {labels.titleNl}<input aria-label={labels.formEditor.sectionTitle + ' ' + labels.titleNl + ' ' + (sectionIndex + 1)} className="mt-1 w-full rounded-lg border bg-surface px-3 py-2 text-sm font-normal" onChange={(event) => updateSectionTitle(section.key, 'nl', event.target.value)} value={section.title.nl ?? ''} /></label>
+                             <label className="text-xs font-semibold">{labels.formEditor.sectionTitle} · {labels.titleEn}<input aria-label={labels.formEditor.sectionTitle + ' ' + labels.titleEn + ' ' + (sectionIndex + 1)} className="mt-1 w-full rounded-lg border bg-surface px-3 py-2 text-sm font-normal" onChange={(event) => updateSectionTitle(section.key, 'en', event.target.value)} value={section.title.en ?? ''} /></label>
+                           </div> : null}
                            <div className="mt-3 space-y-3">
-                             {section.fields.map((field) => {
+                             {section.fields.length === 0 ? <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">{labels.formEditor.emptySection}</p> : null}
+                             {section.fields.map((field, fieldIndex) => {
                                const selectedBinding = bindingCatalogEntry(field.binding)
                                return (
                                  <article className="rounded-xl border p-3" key={field.key}>
@@ -971,16 +1105,22 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                                      <div>
                                        <span className="font-semibold">{titleFor(field.label)}</span>
                                        <span className="ml-2 rounded-full bg-muted px-2 py-1 text-[11px] font-semibold">{labels.fieldTypeLabels[field.type]}</span>
-                                       <p className="mt-1 font-mono text-[11px] text-muted-foreground">{field.key}</p>
                                      </div>
-                                     <span className="text-xs text-muted-foreground">{bindingEntryLabel(field.binding, labels)}</span>
+                                     <div className="flex flex-wrap items-center gap-1">
+                                       <span className="text-xs text-muted-foreground">{bindingEntryLabel(field.binding, labels)}</span>
+                                       <button aria-label={labels.formEditor.moveUp + ' ' + titleFor(field.label)} className="grid size-9 place-items-center rounded-lg border focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" disabled={!editing || fieldIndex === 0} onClick={() => moveField(section.key, fieldIndex, -1)} type="button"><ChevronUp aria-hidden="true" size={15} /></button>
+                                       <button aria-label={labels.formEditor.moveDown + ' ' + titleFor(field.label)} className="grid size-9 place-items-center rounded-lg border focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" disabled={!editing || fieldIndex === section.fields.length - 1} onClick={() => moveField(section.key, fieldIndex, 1)} type="button"><ChevronDown aria-hidden="true" size={15} /></button>
+                                       <button aria-label={labels.formEditor.duplicateField + ' ' + titleFor(field.label)} className="grid size-9 place-items-center rounded-lg border focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" disabled={!editing} onClick={() => duplicateField(section.key, field)} type="button"><Copy aria-hidden="true" size={14} /></button>
+                                       <button aria-label={labels.formEditor.removeField + ' ' + titleFor(field.label)} className="grid size-9 place-items-center rounded-lg border border-destructive/30 text-destructive focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" disabled={!editing} onClick={() => setFieldToRemove({ sectionKey: section.key, fieldKey: field.key, label: titleFor(field.label) })} type="button"><Trash2 aria-hidden="true" size={14} /></button>
+                                     </div>
                                    </div>
                                    {editing ? <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                     <label className="text-xs font-semibold">{labels.fieldType}<select aria-label={labels.fieldType + ' ' + titleFor(field.label)} className="mt-1 w-full rounded-lg border bg-background px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldType(section.key, field.key, event.target.value as FieldType)} value={field.type}>{formFieldCatalog.map((entry) => <option key={entry.type} value={entry.type}>{labels.fieldTypeLabels[entry.type]}</option>)}</select></label>
                                      <label className="text-xs font-semibold">{labels.titleNl}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldLabel(selectedForm.key, section.key, field.key, 'nl', event.target.value)} value={field.label.nl ?? ''} /></label>
                                      <label className="text-xs font-semibold">{labels.titleEn}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldLabel(selectedForm.key, section.key, field.key, 'en', event.target.value)} value={field.label.en ?? ''} /></label>
                                      <label className="text-xs font-semibold md:col-span-2">{labels.fieldHelpNl}<textarea className="mt-1 min-h-16 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldHelp(selectedForm.key, section.key, field.key, 'nl', event.target.value)} value={field.helpText?.nl ?? ''} /></label>
                                      <label className="text-xs font-semibold md:col-span-2">{labels.fieldHelpEn}<textarea className="mt-1 min-h-16 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldHelp(selectedForm.key, section.key, field.key, 'en', event.target.value)} value={field.helpText?.en ?? ''} /></label>
-                                     <BindingEditor field={field} labels={labels} onChange={(entryId) => updateFieldBinding(selectedForm.key, section.key, field.key, entryId)} />
+                                     <details className="rounded-lg border p-3 md:col-span-2"><summary className="cursor-pointer text-xs font-semibold focus-visible:outline-2 focus-visible:outline-primary">{labels.advanced}</summary><div className="mt-3"><BindingEditor field={field} labels={labels} onChange={(entryId) => updateFieldBinding(selectedForm.key, section.key, field.key, entryId)} />
                                      <div className="rounded-lg bg-muted/50 p-3 text-xs md:col-span-2">
                                        <p className="font-semibold">{labels.fieldProperties}</p>
                                        <dl className="mt-2 grid gap-2 sm:grid-cols-4">
@@ -990,7 +1130,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                                          <div><dt className="text-muted-foreground">{labels.fieldBinding}</dt><dd className="mt-1 font-mono">{bindingTechnicalValue(field.binding)}</dd></div>
                                        </dl>
                                        <p className="mt-2 text-muted-foreground">{labels.fieldKeyHelp}</p>
-                                     </div>
+                                     </div></div></details>
                                    </div> : null}
                                    {editing && isChoiceFieldType(field.type) ? <div className="mt-4 rounded-xl border bg-muted/20 p-3">
                                      <div className="flex flex-wrap items-center justify-between gap-2"><h5 className="text-xs font-semibold">{labels.fieldOptions}</h5><button className="rounded-lg border px-2 py-1 text-xs font-semibold hover:border-primary" onClick={() => addFieldOption(selectedForm.key, section.key, field.key)} type="button"><Plus size={13} />{labels.addOption}</button></div>
@@ -999,9 +1139,9 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                                    </div> : null}
                                    <div className="mt-4 overflow-x-auto">
                                      <table className="min-w-full text-left text-xs">
-                                       <caption className="mb-2 text-left font-semibold">{labels.accessMatrix}</caption>
+                                       <caption className="mb-2 text-left font-semibold">{labels.formEditor.fieldRules}</caption>
                                        <thead><tr className="border-b text-muted-foreground"><th className="px-2 py-2">{labels.participant}</th><th className="px-2 py-2">{labels.status}</th></tr></thead>
-                                       <tbody>{draft.participants.map((participant) => { const access = field.access.find((rule) => rule.participantKey === participant.key)?.mode ?? 'HIDDEN'; return <tr className="border-b last:border-0" key={participant.key}><td className="px-2 py-2 font-medium">{titleFor(participant.label)}</td><td className="px-2 py-2">{editing ? <select aria-label={`${labels.accessMatrix} ${participant.key}`} className="rounded-lg border bg-background px-2 py-1" onChange={(event) => updateFieldAccess(selectedForm.key, section.key, field.key, participant.key, event.target.value as FieldAccessMode)} value={access}>{accessModes.map((mode) => <option key={mode} value={mode}>{mode === 'HIDDEN' ? labels.hidden : mode === 'READ' ? labels.read : mode === 'WRITE_OPTIONAL' ? labels.writeOptional : labels.writeRequired}</option>)}</select> : <span>{access}</span>}</td></tr> })}</tbody>
+                                       <tbody>{draft.participants.map((participant) => { const access = field.access.find((rule) => rule.participantKey === participant.key)?.mode ?? 'HIDDEN'; return <tr className="border-b last:border-0" key={participant.key}><td className="px-2 py-2 font-medium">{titleFor(participant.label)}</td><td className="px-2 py-2">{editing ? <select aria-label={`${labels.formEditor.fieldRules} ${titleFor(participant.label)}`} className="rounded-lg border bg-background px-2 py-1" onChange={(event) => updateFieldAccess(selectedForm.key, section.key, field.key, participant.key, event.target.value as FieldAccessMode)} value={access}>{accessModes.map((mode) => <option key={mode} value={mode}>{mode === 'HIDDEN' ? labels.hidden : mode === 'READ' ? labels.read : mode === 'WRITE_OPTIONAL' ? labels.writeOptional : labels.writeRequired}</option>)}</select> : <span>{access}</span>}</td></tr> })}</tbody>
                                      </table>
                                    </div>
                                  </article>
@@ -1016,8 +1156,8 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
               </section> : null}
 
               {studioStage === 'preview' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.preview}</p><h3 className="mt-1 text-xl font-semibold">{selectedForm ? titleFor(selectedForm.title, previewLanguage) : labels.noValue}</h3></div><Languages className="text-primary" size={22} /></div>
-                <div className="mt-4 grid gap-3 md:grid-cols-3"><label className="text-xs font-semibold">{labels.previewParticipant}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewParticipant(event.target.value)} value={previewParticipant}>{draft.participants.map((participant) => <option key={participant.key} value={participant.key}>{titleFor(participant.label)}</option>)}</select></label><label className="text-xs font-semibold">{labels.language}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewLanguage(event.target.value as 'nl' | 'en')} value={previewLanguage}><option value="nl">{labels.dutch}</option><option value="en">{labels.english}</option></select></label><label className="text-xs font-semibold">{labels.viewport}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewViewport(event.target.value as 'desktop' | 'mobile')} value={previewViewport}><option value="desktop">{labels.desktop}</option><option value="mobile">{labels.mobile} · 390px</option></select></label></div>
+                <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.preview}</p><h3 className="mt-1 text-xl font-semibold">{previewStep ? (previewForm ? titleFor(previewForm.title, previewLanguage) : labels.formEditor.noLinkedForm) : selectedForm ? titleFor(selectedForm.title, previewLanguage) : labels.noValue}</h3></div><Languages className="text-primary" size={22} /></div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><label className="text-xs font-semibold">{labels.formEditor.previewStep}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" disabled={formSteps.length === 0} onChange={(event) => { const step = formSteps.find((item) => item.key === event.target.value); setPreviewStepKey(event.target.value); if (step?.participantKey) setPreviewParticipant(step.participantKey) }} value={previewStep?.key ?? ""}>{formSteps.length === 0 ? <option value="">{labels.formEditor.noFormSteps}</option> : formSteps.map((step) => <option key={step.key} value={step.key}>{titleFor(step.title)}</option>)}</select></label><label className="text-xs font-semibold">{labels.previewParticipant}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewParticipant(event.target.value)} value={previewParticipant}>{draft.participants.map((participant) => <option key={participant.key} value={participant.key}>{titleFor(participant.label)}</option>)}</select></label><label className="text-xs font-semibold">{labels.language}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewLanguage(event.target.value as 'nl' | 'en')} value={previewLanguage}><option value="nl">{labels.dutch}</option><option value="en">{labels.english}</option></select></label><label className="text-xs font-semibold">{labels.viewport}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewViewport(event.target.value as 'desktop' | 'mobile')} value={previewViewport}><option value="desktop">{labels.desktop}</option><option value="mobile">{labels.mobile} · 390px</option></select></label></div>
                 <div className={`mt-4 rounded-2xl border bg-background p-4 ${previewViewport === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl'}`}><p className="mb-4 rounded-xl bg-accent/50 px-3 py-2 text-xs font-semibold text-primary">{labels.syntheticData}</p>{previewFields.length ? <div className="space-y-4">{previewFields.map(({ section, field }) => { const previewFieldId = `studio-preview-${field.key}`; const previewLabelId = `${previewFieldId}-label`; return <div className="text-sm font-semibold" key={`${section.key}-${field.key}`}><p id={previewLabelId}>{titleFor(field.label, previewLanguage)}{field.access.some((rule) => rule.participantKey === previewParticipantDefinition?.key && rule.mode === 'WRITE_REQUIRED') ? <span aria-hidden="true" className="ml-1 text-destructive">*</span> : null}</p>{field.helpText ? <p className="mt-1 text-xs font-normal text-muted-foreground">{titleFor(field.helpText, previewLanguage)}</p> : null}<PreviewFieldControl field={field} id={previewFieldId} labelId={previewLabelId} labels={labels} language={previewLanguage} /></div> })}</div> : <p className="text-sm text-muted-foreground">{labels.noFields}</p>}</div>
               </section> : null}
 
@@ -1037,6 +1177,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
         <label className="grid gap-1.5 text-sm font-semibold" htmlFor="publish-changelog">{labels.changelog}<textarea className="min-h-32 w-full rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary" id="publish-changelog" onChange={(event) => setPublishChangelog(event.target.value)} placeholder={labels.changelogPlaceholder} value={publishChangelog} /></label>
         {actionError ? <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">{actionError}</p> : null}
       </Dialog>
+      <ConfirmDialog cancelLabel={labels.formEditor.cancelRemoveField} confirmLabel={labels.formEditor.confirmRemoveField} description={fieldToRemove ? labels.formEditor.removeFieldDescription.replace("{field}", fieldToRemove.label) : labels.formEditor.removeFieldDescription} destructive onConfirm={confirmRemoveField} onOpenChange={(open) => { if (!open) setFieldToRemove(null) }} open={fieldToRemove !== null} title={labels.formEditor.removeFieldTitle} />
       <Dialog closeLabel={retirePending ? undefined : labels.cancel} closeOnBackdropClick={!retirePending} closeOnEscape={!retirePending} description={labels.retireReason} footer={<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button disabled={retirePending} onClick={() => setShowRetire(false)} size="sm" type="button" variant="secondary">{labels.cancel}</Button><Button disabled={!retireReason.trim()} loading={retirePending} onClick={() => void retireDefinition()} size="sm" type="button" variant="danger">{labels.confirmRetire}</Button></div>} onOpenChange={(open) => { if (!retirePending) setShowRetire(open) }} open={showRetire} title={labels.retire}>
         <label className="grid gap-1.5 text-sm font-semibold" htmlFor="retire-reason">{labels.retireReason}<textarea className="min-h-28 w-full rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary" id="retire-reason" onChange={(event) => setRetireReason(event.target.value)} value={retireReason} /></label>
         {actionError ? <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">{actionError}</p> : null}

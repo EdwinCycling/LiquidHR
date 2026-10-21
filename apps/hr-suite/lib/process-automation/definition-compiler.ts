@@ -40,6 +40,7 @@ export type DefinitionCompileErrorCode =
   | 'FIELD_BINDING_TYPE_MISMATCH'
   | 'FIELD_BINDING_WRITE_NOT_ALLOWED'
   | 'FIELD_PROPOSAL_NOT_WRITABLE'
+  | 'FORM_WITHOUT_FIELDS'
   | 'FIELD_OPTIONS_REQUIRED'
   | 'FIELD_OPTIONS_UNEXPECTED'
   | 'INVALID_PARTICIPANT'
@@ -651,6 +652,7 @@ export function compileProcessDefinition(input: unknown, options: CompileProcess
   if (definition.description) validateLocalizedText(definition.description, requiredLanguages, ['description'], issues)
   definition.participants.forEach((participant, index) => validateLocalizedText(participant.label, requiredLanguages, ['participants', index, 'label'], issues))
   definition.forms.forEach((form, formIndex) => {
+    if (!form.sections.some((section) => section.fields.length > 0)) issue(issues, 'FORM_WITHOUT_FIELDS', ['forms', formIndex, 'sections'], 'A form must contain at least one field')
     validateLocalizedText(form.title, requiredLanguages, ['forms', formIndex, 'title'], issues)
     if (form.description) validateLocalizedText(form.description, requiredLanguages, ['forms', formIndex, 'description'], issues)
     form.sections.forEach((section, sectionIndex) => {

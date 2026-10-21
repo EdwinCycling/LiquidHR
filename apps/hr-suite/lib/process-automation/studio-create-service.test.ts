@@ -111,6 +111,17 @@ describe('createStudioDefinition', () => {
     if (!recoveryRoute) throw new Error('Example recovery route was not created')
     recoveryRoute.label = { nl: 'Aanvraag aanvullen', en: 'Complete the request' }
     definition.steps[1].participantKey = 'hr-team'
+    const trainingForm = definition.forms[0]
+    const requestSection = trainingForm?.sections[0]
+    const trainingField = requestSection?.fields[0]
+    if (!trainingForm || !requestSection || !trainingField) throw new Error('Training form field was not created')
+    trainingForm.title = { nl: 'Opleidingsaanvraag', en: 'Training request' }
+    requestSection.title = { nl: 'Aanvraaggegevens', en: 'Request details' }
+    trainingField.label = { nl: 'Opleidingsnaam', en: 'Course name' }
+    trainingField.helpText = { nl: 'Vul de gewenste opleiding in.', en: 'Enter the requested course.' }
+    requestSection.fields.push({ ...trainingField, key: trainingField.key + '-copy', label: { nl: 'Opleidingsnaam kopie', en: 'Course name copy' } })
+    trainingForm.sections.push({ key: 'training-extra', title: { nl: 'Aanvullend', en: 'Additional' }, fields: [] })
+
     mocks.rpc.mockResolvedValue({ data: { revision: 2 }, error: null })
     await saveStudioDefinition('00000000-0000-4000-8000-000000000001', 1, definition)
     const saveCall = mocks.rpc.mock.calls.find(([functionName]) => functionName === 'save_process_definition_draft')
