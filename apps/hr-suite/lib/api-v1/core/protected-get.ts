@@ -236,6 +236,7 @@ export function createProtectedApiGetHandler<T>(
           scope.authContext,
           definition.requiredLiquidHrPermission,
           definition.selfOnly === true ? employeeId ?? undefined : undefined,
+          { requireEmployeeSelfPermission: definition.selfOnly === true },
         )
       } catch (error) {
         if (!(error instanceof AuthorizationError)) throw error
