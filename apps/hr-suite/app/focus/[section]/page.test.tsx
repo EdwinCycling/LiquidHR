@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   directory: vi.fn(),
   team: vi.fn(),
   process: vi.fn(),
+  startableProcesses: vi.fn(),
   absenceWork: vi.fn(),
   absenceState: vi.fn(),
   redirect: vi.fn((destination: string) => { throw new Error(`redirect:${destination}`) }),
@@ -39,6 +40,7 @@ vi.mock('@/lib/focus/section-service', () => ({
 }))
 vi.mock('@/lib/focus/team-service', () => ({ loadFocusTeamCalendarForContext: mocks.team }))
 vi.mock('@/lib/process-automation/work-service', () => ({ listProcessWork: mocks.process }))
+vi.mock('@/lib/process-automation/start-catalog-service', () => ({ listStartableProcesses: mocks.startableProcesses }))
 vi.mock('@/lib/auth/permissions', () => ({ AuthorizationError: mocks.AuthorizationError, getRequestAuthorizationContext: mocks.context }))
 vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('NOT_FOUND') }, redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn() }) }))
 
@@ -56,6 +58,7 @@ function setup(experience: 'EMPLOYEE' | 'PREBOARDING' = 'EMPLOYEE', locale: Loca
   mocks.directory.mockResolvedValue({ enabled: true, entries: [] })
   mocks.team.mockResolvedValue({ month: '2026-09', dates: ['2026-09-17'], selectedDate: '2026-09-17', members: [], viewerMode: 'EMPLOYEE', canReportAbsence: false, canRecoverAbsence: false, canActAs: false })
   mocks.process.mockResolvedValue({ items: [], total: 0, hasMore: false })
+  mocks.startableProcesses.mockResolvedValue([])
   mocks.absenceWork.mockResolvedValue([])
   mocks.absenceState.mockResolvedValue(null)
   return data
@@ -127,6 +130,13 @@ describe('Focus section route boundaries', () => {
     expect(await render('team')).toContain('Mijn team')
     expect(await render('aanvragen')).not.toContain('href="/work"')
     expect(await render('werk')).not.toContain('href="/work"')
+  })
+
+  it('shows the shared request catalog only when the server returns startable processes', async () => {
+    mocks.startableProcesses.mockResolvedValue([{ processDefinitionId: 'process-1' }])
+    expect(await render('aanvragen')).toContain('href="/work?view=REQUESTS&amp;returnTo=focus-requests"')
+    mocks.startableProcesses.mockResolvedValue([])
+    expect(await render('aanvragen')).not.toContain('/work?view=REQUESTS')
   })
 
   it('does not restrict the manager work queue to the manager employee', async () => {

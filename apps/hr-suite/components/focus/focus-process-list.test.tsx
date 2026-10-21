@@ -25,9 +25,11 @@ describe('Focus process links', () => {
 
   it('links employee requests to the existing request catalog and returns process details to Focus', () => {
     const empty: ProcessWorkList = { items: [], total: 0, hasMore: false }
-    const emptyMarkup = renderToStaticMarkup(<FocusProcessList data={empty} labels={labels} locale="nl" />)
+    const emptyMarkup = renderToStaticMarkup(<FocusProcessList canStartNewRequest data={empty} labels={labels} locale="nl" />)
     expect(emptyMarkup).toContain('href="/work?view=REQUESTS&amp;returnTo=focus-requests"')
     expect(emptyMarkup).toContain(labels.emptyRequests)
+    const readOnlyMarkup = renderToStaticMarkup(<FocusProcessList canStartNewRequest={false} data={empty} labels={labels} locale="nl" />)
+    expect(readOnlyMarkup).not.toContain('/work?view=REQUESTS')
 
     const processItem = { ...work.items[0], businessType: 'P_MUTATION' as const, businessCategory: 'GENERAL' as const, leaveRequestId: null }
     const processMarkup = renderToStaticMarkup(<FocusProcessList data={{ ...work, items: [processItem] }} labels={labels} locale="nl" />)
