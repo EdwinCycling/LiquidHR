@@ -22,8 +22,10 @@
 
 > **PMUX-03C lokale UX-afwerking (21-10-2026):** codecommits `76c258013eb6d3ded81e7f2c6be2d0b0023129d7` en `9a526a6dbd55092c8fc97d341f1014a9200052eb` voegen stap ordenen/verwijderen met route-opruiming toe, verbinden Focus-aanvragen met dezelfde `/work`-catalogus uitsluitend bij servergemelde startbaarheid en bewaren Focus-terugkeer. Focus-statussen zijn specifieker. Gerichte tests 34/34, typecheck, gewijzigde-bestanden-ESLint, i18n en CRLF-aware diff-check zijn groen. Capabilitymatrix en zes-vragenbeoordeling staan in [PMUX-03C evidence](../quality/acceptance/runs/PMUX-03C-20261021-LOCAL.md). Dit is **LOCAL CODE GREEN / AUTHENTICATED BROWSER-, DB-/RLS- EN 390PX-BEWIJS OPEN**; PMUX-03A/03B-migraties blijven LOCAL ONLY. Geen gepubliceerde Opleidingsaanvraag of aanvraag aangemaakt.
 
+> **PMUX-04-SEC lokale securitygate (21-10-2026):** de catalogushelper heeft geen directe `authenticated`-EXECUTE meer en is `SECURITY INVOKER`; alleen de vaste publieke wrapper met lege `search_path` en `auth.uid()`-controle is `SECURITY DEFINER` en uitvoerbaar voor `authenticated`. PGlite voert de volledige migratie uit en bewijst directe helperweigering, actor-/tenant-/HR-groepscope, gepubliceerde/startbare nieuwste versie, anon- en ontbrekende-identiteitweigering. De PMUX-03B-historiewrapper behoudt alleen de toegestane publieke ingang; forged work-item-, actor-, groep- en tenantgrenzen zijn gericht getest. De bestaande tenantgebonden HR_ADMIN krijgt `process-task:act` voor administraties binnen de eigen tenant; groepsscope wordt door bestaande tenantgebonden groepskoppelingen begrensd en gesynchroniseerd. 11 PGlite/autorisatietests en ESLint zijn groen. Echte TEST-user/access-readback, Supabase grants/RLS/eigenaarschap en browseractie blijven OPEN. **GO voor afzonderlijke TEST-autorisatie**; beide PMUX-migraties blijven LOCAL ONLY. Zie [PMUX-04-SEC evidence](../quality/acceptance/runs/PMUX-04-SEC-20261021-LOCAL.md).
+
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-21 (PMUX-03C; historische bewijssecties volgen)
+Bijgewerkt: 2026-10-21 (PMUX-04-SEC; historische bewijssecties volgen)
 
 ## Historische status- en acceptance-snapshots (18 oktober en eerder)
 

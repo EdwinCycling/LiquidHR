@@ -9,7 +9,7 @@ create or replace function internal_security.get_process_startable_catalog_inter
 returns jsonb
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare
@@ -94,7 +94,7 @@ begin
         )
       )
       order by published.content -> 'title' ->> 'nl', definition.id
-    ), '[]'::jsonb)
+    )
     from public.process_definitions definition
     join lateral (
       select version.definition_json
@@ -153,26 +153,31 @@ begin
 end;
 $$;
 
+-- Client roles use only the guarded public wrapper; keep this invoker helper private.
 revoke all on function internal_security.get_process_startable_catalog_internal(uuid, uuid)
   from public, anon, authenticated;
-grant execute on function internal_security.get_process_startable_catalog_internal(uuid, uuid)
-  to authenticated;
 
 create or replace function public.get_process_startable_catalog(
   requested_tenant_id uuid,
   requested_hr_group_id uuid
 )
 returns jsonb
-language sql
-security invoker
+language plpgsql
+security definer
 set search_path = ''
 as $$
-  select internal_security.get_process_startable_catalog_internal(
+begin
+  if auth.uid() is null then
+    raise exception 'AUTHENTICATION_REQUIRED' using errcode = '42501';
+  end if;
+
+  return internal_security.get_process_startable_catalog_internal(
     requested_tenant_id, requested_hr_group_id
   );
+end;
 $$;
 
-revoke all on function public.get_process_startable_catalog(uuid, uuid) from public, anon;
+revoke all on function public.get_process_startable_catalog(uuid, uuid) from public, anon, authenticated;
 grant execute on function public.get_process_startable_catalog(uuid, uuid) to authenticated;
 
 commit;
