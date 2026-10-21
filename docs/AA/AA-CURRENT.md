@@ -1,9 +1,9 @@
 # AA-CURRENT — Current LiquidHR State
 
-> **Integratiestatus 21-10-2026:** STAR f6689702, Employee UX a416bc4b, Payroll a9697537 en AI-code PR #29 66058e72 zijn lokaal opgenomen in integration/liquidhr-unified-20261021. De AA-convergence-documenten zijn meegenomen; gecombineerde acceptatie moet nog worden afgerond. De bestaande status hieronder blijft historische releasebaseline en de acceptance-evidence blijft ongewijzigd.
+> **Integratiestatus 21-10-2026:** STAR f6689702, Employee UX a416bc4b, Payroll a9697537 en AI-code PR #29 66058e72 zijn lokaal opgenomen in integration/liquidhr-unified-20261021. De AA-convergence-documenten en AI-roadmap PR #27 zijn meegenomen; gecombineerde acceptatie moet nog worden afgerond. De bestaande status hieronder blijft historische releasebaseline en de acceptance-evidence blijft ongewijzigd.
 >
 > Geen wijziging aan main, remote branches, deployment of database.
->Status: **ACTUEEL / LIVING**
+Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-18 (historische acceptance-evidence blijft ongewijzigd)
 
 ## Blijvende productregel (besluit 2026-10-17)

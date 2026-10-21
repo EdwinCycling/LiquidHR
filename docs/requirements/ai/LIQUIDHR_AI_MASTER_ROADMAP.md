@@ -1,13 +1,47 @@
 # LiquidHR AI — Master Roadmap
 
-**Status:** PRODUCTKOERS 2026-10-10 / LIVING DOCUMENT
-**Bijgewerkt:** 12 oktober 2026
+**Status:** PRODUCTKOERS 2026-10-13 / LIVING DOCUMENT
+**Bijgewerkt:** 13 oktober 2026
 **Owner:** LiquidHR Product
 **Functie:** centraal AI-roadmapdocument; AA-ROAD blijft de brede productroadmap, AA-NEXT bepaalt de eerstvolgende concrete Codex-runs.
 
 **Omgevingspariteit:** normale AI-capabilities gebruiken dezelfde productservices, permissions en klantworkflow in TEST en Production. Een private connector/protocolproef kan tijdelijk op TEST zijn begrensd, maar vormt geen afwijkende AI-klantworkflow. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
 
-> **Besluit 10 oktober:** ONE VERSION is op main geïntegreerd en als synthetische TEST-release beschikbaar. Rond eerst de nog open hosted/API-authenticatie-acceptatie voor APIAI-08 ESS af, vervolgens MSS (APIAI-09) zoveel mogelijk in één grote bouwslag, dan LiquidHR Focus als ChatGPT Plugin Extension (APIAI-10), daarna echte acties met trusted confirmation (APIAI-11). Brede HR Admin-/publieke API-/always-on agentuitbreiding blijft voorlopig geparkeerd.
+## 0. Huidige integratie- en releasestatus — 21 oktober 2026
+
+AI-code PR #29 (66058e72) is lokaal opgenomen in integration/liquidhr-unified-20261021. Het bevat de Focus-widget en de twee read-only MCP Apps UI-protocoltools. De bestaande 14 Workforce-tools, OAuth/RLS-dispatch en bestaande autorisatiecontracten zijn behouden in de lokale code. PR #27 levert de roadmapaanvulling hieronder.
+
+De gezamenlijke kandidaatacceptatie staat nog open: build, typecheck, gerichte regressietests, autorisatie/RLS-contracten en relevante UI-controles moeten op deze kandidaat plaatsvinden. ChatGPT-host-, CSP/origin-, revoke/logout-, rolwissel- en responsive acceptatie is hiermee niet bewezen. Dit is uitsluitend lokale code-integratie; geen main-wijziging, push, deployment of databasewijziging.
+
+> **Historisch besluit 10 oktober (ingehaald door sectie 0 van 13 oktober):** ONE VERSION is op main geïntegreerd en als synthetische TEST-release beschikbaar. Rond eerst de nog open hosted/API-authenticatie-acceptatie voor APIAI-08 ESS af, vervolgens MSS (APIAI-09) zoveel mogelijk in één grote bouwslag, dan LiquidHR Focus als ChatGPT Plugin Extension (APIAI-10), daarna echte acties met trusted confirmation (APIAI-11). Brede HR Admin-/publieke API-/always-on agentuitbreiding blijft voorlopig geparkeerd.
+
+## 0. Historische AI-status en besluiten — 13 oktober 2026 (snapshot; actuele status staat hierboven)
+
+**Besluit:** verdere uitbreiding van MCP-functies en HeRa tijdelijk parkeren. De volgende AI-bouwslag is **APIAI-10: LiquidHR Focus als interactieve ChatGPT-app**. Start met één beperkte, beveiligde, read-only verticale spike; bouw nog geen volledige ESS/MSS-ervaring of schrijfacties. De onderstaande historische snapshots en oude 0/8- en Draft-vermeldingen zijn voortgangsgeschiedenis, **niet de actuele release- of connectorstatus**.
+
+### Wat daadwerkelijk is bereikt
+
+1. **ONE VERSION en remote MCP:** de gedeelde Vercel-`production`-target is uitsluitend de **synthetische TEST-omgeving** op `https://liquid-hr-hr-suite.vercel.app`, niet klantproductie. Bestaande OAuth, RLS-gebaseerde Workforce-domeinservices, typed catalogus en audit-/limiterfundament worden hergebruikt; Remote Execute blijft UIT.
+2. **APIAI-08 Employee ESS:** acht read-only Employee-tools zijn geïmplementeerd en gepubliceerd: ontwikkelplannen, ontwikkelgaps, skills, competenties, verlofsaldo, eerstvolgend verlof, verlofaanvragen en reminders. De bestaande TEST-migratie `20261010064331_apiai08_employee_ess_controlled_actions` is reeds toegepast en mag niet opnieuw worden uitgevoerd. **Vier van acht** Employee-tools zijn op 12 oktober daadwerkelijk succesvol vanuit ChatGPT gelezen: ontwikkelplannen (9), verlofsaldo (0 uur op vier typen), verlofaanvragen (3) en eerstvolgend goedgekeurd verlof (16 uur, 22–23 oktober). De andere vier hebben in deze thread geen afzonderlijk live-bewijs.
+3. **APIAI-09 Manager MSS:** zes read-only Manager-tools zijn geïmplementeerd, **PR #18 is op 12 oktober gemerged** naar `main` (merge-SHA `a5d1b3ff61e8c1d1af05a0c89b08a4fe73472495`); Vercel TEST-deployment `dpl_7HBAyX61sjs1YNtmMZJU55NpNii6` was READY. De zes Manager-tools zijn ontdekt in de ChatGPT-catalogus, maar **0/6 geauthenticeerde Manager-reads zijn in deze thread bewezen**. Afzonderlijke Manager-opt-in op `/oauth/connections` en per-client consent-version blijven verplicht; gewone Employee-OAuth verleent geen Manager-toegang. De latere PAYCOMP-release in AA-CURRENT is een afzonderlijke nieuwere releasebaseline.
+4. **Connectorherstel en 14-tool-discovery:** oude/overlappende ChatGPT MCP-verbindingen veroorzaakten verwarring. Op 12 oktober leidde verwijderen en opnieuw toevoegen van de OAuth-verbinding tot discovery van **14 tools (8 Employee + 6 Manager)** en succesvolle Employee-reads. Daarna faalden vier aanroepen (saldo, aanvragen, volgend verlof, ontwikkelplannen) zowel vanuit Codex als vanuit ChatGPT met interne MCP-toolerrors (`-32603` in Codex). Later op 12 oktober rapporteerde de gebruiker opnieuw een **succesvolle** LiquidHR Workforce TEST-uitlezing van saldo en aanvragen. Conclusie: verbinding **werkt aantoonbaar**, maar intermitterende fouten zijn nog niet verklaard. Niet concluderen dat de HR-service structureel defect is; ook niet dat connectorstabiliteit GREEN is.
+5. **Verlofledgerreconciliatie:** canonieke TEST-uitlezing op peildatum 12 oktober: vier verloftypen elk **0 uur beschikbaar**, `sourceTruncated=false`. Aanvragen: 18 september 8 uur bovenwettelijk APPROVED; 1 oktober 8 uur bovenwettelijk PENDING; 22–23 oktober 16 uur wettelijk APPROVED. De historische demo-bucket `MCP_DEMO_WETTELIJK_2026` vermeldde 120 uur opbouw minus 24 uur gebruik (=96 uur), maar de eerdere notitie meldde **geen gekoppelde `leave_accrual_transactions`**. Code-inspectie bevestigt dat `getLeaveBalanceReport` het actuele saldo uit ledgertransacties tot de peildatum berekent, niet uit bucket-totalen; toekomstige TAKEN-boeking mag het saldo per 12 oktober niet verminderen. Gerichte regressietest `report.test.ts`: 3/3 eerder groen; geen productcode of TEST-data gewijzigd. **Actuele read-only RLS-ledgerreadback is door MCP `-32603` niet gelukt: oorzaak blijft NIET BEWEZEN.** Geen geforceerde 96 uur, directe SQL-write of fixturecorrectie zonder bronbewijs en expliciete autorisatie. Dit is een afzonderlijk open datakwaliteits-/acceptatiepunt en blokkeert niet de read-only UI-spike.
+6. **Documentatie en releasegovernance:** PR #24 (docs-only closeout) is op 12 oktober gemerged op `107c990d2c37f2d96f557070694f00b140ecb66f`. Oude passages over PR #18 Draft, 0/8 en vier zichtbare tools zijn historische bewijsstanden. Volledige Employee/Manager hosted positieve én negatieve auth/RLS-, consent/revoke/reconnect-, audit-/limiteracceptatie is **OPEN**; geen volledig GREEN claimen. Preview-backendisolatie is niet bewezen; voer geen geauthenticeerde HR-tests op Preview uit zonder bewezen scheiding. Bescherm bestaande payroll-worktrees en `.env.local`; geen Docker.
+
+### Nieuwe prioriteit: APIAI-10 Focus in ChatGPT
+
+**Productdoel:** LiquidHR herkenbaar en interactief **binnen ChatGPT**, in plaats van uitsluitend tekstuele MCP-antwoorden. Hergebruik `apps/hr-suite/components/focus/` en de bestaande Focus ESS/MSS-presentatie en geautoriseerde Workforce-readprojecties. **Geen tweede HR-webapp, backend, autorisatiemodel of impliciet vertrouwd cookie-iframe.**
+
+**Spike 01 (1–2 gerichte Codex-runs):** controleer eerst de werkelijk beschikbare officiële OpenAI MCP Apps UI-/Plugin Extension-hostmogelijkheden (niet alleen SDK-types); bouw één read-only Focus-kaart met eigen ontwikkelplannen, OAuth/RLS-scope, selectie van precies één plan en uitsluitend expliciete minimale contextoverdracht aan ChatGPT. Behoud alle 14 bestaande MCP-tools en bewijs werkelijke ChatGPT-hostweergave, CSP/origin, revoke/logout/rolwisseling, NL/EN, compact/responsive en veilige fallback naar de bestaande Focus-webapp. Als een zijpaneel of thread-entrypoint niet beschikbaar is, lever eerst een inline MCP Apps-widget; maak hostsupport niet groter dan aangetoond. **Geen automatische deploy/merge of write-tools.**
+
+**Daarna, uitsluitend na geslaagde spike:** Focus ESS (plannen, verlof, reminders), vervolgens optioneel MSS (direct team, werkvoorraad, talent), daarna alleen waar ondersteund een ChatGPT-zijpaneel/sidebar-entrypoint en selectieve conversatiecontext. Indicatie uit eerdere roadmap: 3–5 grotere runs voor volledige APIAI-10, afhankelijk van echte hostondersteuning.
+
+**Geparkeerd:** nieuwe Employee/Manager/HR Admin MCP-tools, HeRa-uitbreidingen, APIAI-11 Trusted Actions/Remote Execute, algemene partner-API, always-on agents en overige externe kanalen. Heropen alleen via expliciet productbesluit.
+
+**Eerstvolgende stap:** aparte APIAI-10 spike-branch en Draft PR met een echte read-only demo, veiligheidsbewijs en stop/go-besluit. Houd ledgerreconciliatie en connectorintermittentie als afzonderlijke open issues bij; laat ze de Focus-spike niet ongemerkt vergroten.
+
+---
+
 
 ## 1. Visie en productprincipes
 
@@ -33,7 +67,7 @@ Dit document gebruikt vier bewijsniveaus:
 
 Het Vercel-label Production is bij LiquidHR de deployment-targetnaam voor de **synthetische gezamenlijke TEST**, geen claim over echte klantproductie.
 
-**Momentopname actuele main/TEST op 2026-10-12:**
+**Historische momentopname main/TEST van vóór de latere merges op 2026-10-12 (niet actueel):**
 
 - Lokale `main`, `origin/main` en GitHub `main`: **db23b12446b4d04c823710ae48780dd0b47cc5b8**; appversie **1.20261011.2**.
 - Vercel-alias https://liquid-hr-hr-suite.vercel.app: deployment **dpl_841Lz4YpcDrPUQ6aTzNA9KLjS7Ka**, READY op dezelfde SHA. De Vercel-targetnaam Production staat hier voor de synthetische gezamenlijke TEST.
@@ -57,8 +91,8 @@ Het Vercel-label Production is bij LiquidHR de deployment-targetnaam voor de **s
 | APIAI-05 | WebMCP progressive enhancement in bestaande HR-webapp | Platform-/browserafhankelijke acceptatie gescheiden houden |
 | APIAI-06 | Intern Controlled Actions-framework met Talent-acties, autorisatie, previewhash, idempotentie en audit | ChatGPT Execute blijft UIT zonder betrouwbare menselijke confirm |
 | APIAI-07 | OAuth Remote MCP TEST; 4 echte Talent-reads via ChatGPT met audit/limiter; in huidige main | Aanvullende revoke/persona-negatives waar open |
-| APIAI-08 | ESS-code staat in main; TEST-migratie is read-only bevestigd als `20261010064331`; huidige server publiceert acht Employee-tools | ChatGPT-app blijft vier Talent-tools tonen; tools-refresh faalde en leverde één ongeauthenticeerde, niet-herkende MCP POST op main met HTTP 401; vier directe calls gaven `-32603` vóór de route; 0/8, canonical saldo-, audit- en limiterreadback OPEN |
-| APIAI-09 | Zes Manager READ-tools, latere-administratie-resolver en per-client consent-version gate staan op PR #18; aparte opt-in op `/oauth/connections`; Employee-contract en scopes blijven ongewijzigd | **HOLD:** code/test-SHA `27d534fd06fee7868b3bf0534bc3fdb9a3736cd1`; reviewbevindingen gesloten; TypeScript, gerichte ESLint, i18n, 19 focused files/180 tests en full suite (616 bestanden/2.930 tests; 4/8 overgeslagen) groen. Preview `dpl_4wdGu1WWCbjqbLqRV5qbhZfKCCkz` READY op exacte SHA met provenance. Preview-isolatie, hosted Employee/Manager, audit, limiter, canonical balance en revoke-/reconnectbewijs OPEN; PR blijft Draft |
+| APIAI-08 | Acht Employee READ-tools in main en zichtbaar na OAuth-reconnect; 4/8 afzonderlijk live succesvol op 12 oktober, waaronder 0-uur canonieke verlofsaldo-read | Overige 4/8 en volledige auth/RLS-/audit-/limiteracceptatie OPEN; intermitterende MCP-errors; ledgeroorzaak 96/0 niet bewezen |
+| APIAI-09 | Zes Manager READ-tools op main via gemergede PR #18; zichtbaar in de 14-toolcatalogus; aparte consent-version/Manager-opt-in | 0/6 live Manager-reads in deze thread bewezen; hosted persona/security/audit/limiter/revoke-acceptatie OPEN; geen impliciete Manager-toegang |
 
 ## 3. Prioriteit en iteratieraming
 
