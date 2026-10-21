@@ -1,8 +1,10 @@
 # AA-CURRENT — Current LiquidHR State
 
-> **Integratiestatus 21-10-2026:** STAR f6689702, Employee UX a416bc4b, Payroll a9697537 en AI-code PR #29 66058e72 zijn lokaal opgenomen in integration/liquidhr-unified-20261021. De AA-convergence-documenten en AI-roadmap PR #27 zijn meegenomen; gecombineerde acceptatie moet nog worden afgerond. De bestaande status hieronder blijft historische releasebaseline en de acceptance-evidence blijft ongewijzigd.
+> **Integratiestatus 21-10-2026:** STAR f6689702, Employee UX a416bc4b, Payroll a9697537 en AI-code PR #29 66058e72 zijn lokaal opgenomen in integration/liquidhr-unified-20261021. De AA-convergence-documenten en AI-roadmap PR #27 zijn meegenomen; gecombineerde acceptatie is uitgevoerd; zie de LIQUIDHR-CONVERGENCE-03 gate-uitkomst hieronder. De bestaande status hieronder blijft historische releasebaseline en de acceptance-evidence blijft ongewijzigd.
 >
 > Geen wijziging aan main, remote branches, deployment of database.
+>
+> **LIQUIDHR-CONVERGENCE-03-releasegate — 2026-10-21: HOLD.** De geïntegreerde kandidaat is gestart vanaf 33221d36b6e16fb26e43b4e63a22adbeb2f21169. Versie blijft 1.20261012.5; er is geen version bump gedaan omdat Payroll-browseracceptatie, 390px-acceptatie en Vercel-hookcontrole niet groen zijn. Full lint, typecheck, i18n, de gerichte distributietest en de Focus-widgetbuild zijn groen; de production build was eerder groen op de ongewijzigde applicatiecode van de start-SHA en is niet herhaald na de test-only lintfix. HR Admin, STAR en Employee-dashboard zijn desktop lokaal getoond; STAR-context had geen medewerkers. Payroll gaf de bestaande fout Payroll library unavailable. Vercel toont een actieve Deploy Hook voor work/ai-gpt-live waarvan de externe caller niet kon worden vastgesteld. Migratiebestanden zijn read-only vergeleken; er is geen SQL uitgevoerd. Zie het korte gateverslag onder docs/quality/acceptance/runs.
 Status: **ACTUEEL / LIVING**
 Momentopname: 2026-10-18 (historische acceptance-evidence blijft ongewijzigd)
 

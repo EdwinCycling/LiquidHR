@@ -43,8 +43,7 @@ function queryFor(table: string): ReadQuery {
   const trace: QueryTrace = { table, selected: [], filters: [] }
   traces.push(trace)
   const result = results[table] ?? { data: [], error: null }
-  let query: ReadQuery
-  query = Object.assign(Promise.resolve(result), {
+  const query: ReadQuery = Object.assign(Promise.resolve(result), {
     select(columns?: string) { if (columns) trace.selected.push(columns); return query },
     eq(column: string, value: unknown) { trace.filters.push([column, value]); return query },
     is(column: string, value: unknown) { trace.filters.push([column, value]); return query },
