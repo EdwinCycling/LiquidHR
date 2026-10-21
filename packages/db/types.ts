@@ -23017,6 +23017,10 @@ export type Database = {
         Args: { requested_language?: string; requested_work_item_id: string }
         Returns: Json
       }
+      get_process_work_item_experience: {
+        Args: { requested_language?: string; requested_work_item_id: string }
+        Returns: Json
+      }
       get_unified_process_work_projection: {
         Args: {
           requested_administration_id?: string

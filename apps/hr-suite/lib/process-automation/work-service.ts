@@ -56,6 +56,30 @@ const timelineEventSchema = z.object({
   actorEmployeeId: databaseUuidSchema.nullable(),
 }).strict()
 
+const processWorkExperienceSchema = z.object({
+  steps: z.array(z.object({ stepKey: z.string(), title: z.string() }).strict()),
+  history: z.array(z.object({
+    id: databaseUuidSchema,
+    eventType: z.string(),
+    action: z.string().nullable(),
+    stepTitle: z.string().nullable(),
+    terminalOutcome: z.string().nullable(),
+    createdAt: z.string(),
+  }).strict()),
+  changeRequests: z.array(z.object({
+    id: databaseUuidSchema,
+    body: z.string(),
+    createdAt: z.string(),
+  }).strict()),
+  nextRoutes: z.array(z.object({
+    action: z.string(),
+    label: z.string(),
+    toStepTitle: z.string().nullable(),
+    terminalOutcome: z.string().nullable(),
+    isConditional: z.boolean(),
+  }).strict()),
+}).strict()
+
 const detailStepSchema = z.object({
   id: databaseUuidSchema,
   stepKey: z.string(),
@@ -158,6 +182,7 @@ const workDetailSchema = z.object({
 export type ProcessWorkItem = z.infer<typeof workItemSchema>
 export type ProcessWorkList = z.infer<typeof workListSchema>
 export type ProcessWorkDetail = z.infer<typeof workDetailSchema>
+export type ProcessWorkExperience = z.infer<typeof processWorkExperienceSchema>
 export interface ProcessWorkAssignmentOption {
   readonly id: string
   readonly employeeNumber: string
@@ -326,6 +351,18 @@ export async function getProcessWorkItemDetail(workItemId: string, language: 'nl
   })
   if (error) throwRpcError(error.message)
   const parsed = workDetailSchema.safeParse(data)
+  if (!parsed.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
+  return parsed.data
+}
+
+export async function getProcessWorkItemExperience(workItemId: string, language: 'nl' | 'en', dependencies?: ProcessWorkDependencies): Promise<ProcessWorkExperience> {
+  const { supabase } = await authorizedClient(dependencies)
+  const { data, error } = await supabase.rpc('get_process_work_item_experience', {
+    requested_work_item_id: workItemId,
+    requested_language: language,
+  })
+  if (error) throwRpcError(error.message)
+  const parsed = processWorkExperienceSchema.safeParse(data)
   if (!parsed.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
   return parsed.data
 }

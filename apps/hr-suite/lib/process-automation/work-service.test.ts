@@ -5,7 +5,7 @@ const { createClient, requireAuthContext } = vi.hoisted(() => ({ createClient: v
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/auth/permissions', () => ({ requireAuthContext }))
 
-import { listProcessWork, listProcessWorkTabCounts, type ProcessWorkDependencies, type ProcessWorkTab } from './work-service'
+import { getProcessWorkItemExperience, listProcessWork, listProcessWorkTabCounts, type ProcessWorkDependencies, type ProcessWorkTab } from './work-service'
 
 const context = {
   tenantId: '00000000-0000-4000-8000-000000000010',
@@ -17,11 +17,38 @@ const context = {
   permissions: ['process-task:read'],
 }
 
-function dependencies(rpc: ReturnType<typeof vi.fn>): ProcessWorkDependencies {
-  return { context, supabase: { rpc } as unknown as ProcessWorkDependencies['supabase'] }
+function dependencies(rpc: ReturnType<typeof vi.fn>, authContext = context): ProcessWorkDependencies {
+  return { context: authContext, supabase: { rpc } as unknown as ProcessWorkDependencies['supabase'] }
 }
 
 describe('process work service', () => {
+  it('leest gebruikersgerichte historie via de scoped experience RPC', async () => {
+    const data = {
+      steps: [{ stepKey: 'manager-review', title: 'Manager beoordeelt' }],
+      history: [{ id: '00000000-0000-4000-8000-000000000020', eventType: 'PROCESS_WORK_ITEM_ACTIONED', action: 'APPROVE', stepTitle: 'Manager beoordeelt', terminalOutcome: null, createdAt: '2026-10-01T08:00:00.000Z' }],
+      changeRequests: [{ id: '00000000-0000-4000-8000-000000000022', body: 'Graag de startdatum aanpassen.', createdAt: '2026-10-01T07:00:00.000Z' }],
+      nextRoutes: [{ action: 'APPROVE', label: 'Goedkeuren', toStepTitle: 'HR verwerkt', terminalOutcome: null, isConditional: false }],
+    }
+    const rpc = vi.fn().mockResolvedValue({ data, error: null })
+
+    await expect(getProcessWorkItemExperience('00000000-0000-4000-8000-000000000021', 'nl', dependencies(rpc))).resolves.toEqual(data)
+    expect(rpc).toHaveBeenCalledWith('get_process_work_item_experience', {
+      requested_work_item_id: '00000000-0000-4000-8000-000000000021',
+      requested_language: 'nl',
+    })
+  })
+
+  it('weigert gebruikersgerichte historie zonder bestaande leespermission vóór RPC-toegang', async () => {
+    const rpc = vi.fn()
+    const unauthorized = dependencies(rpc, { ...context, permissions: [] })
+
+    await expect(getProcessWorkItemExperience('00000000-0000-4000-8000-000000000021', 'nl', unauthorized)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      status: 403,
+    })
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
   it('geeft administratie-filtering en serverpaginering door aan de uniforme projectie', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: { items: [], total: 51, hasMore: true }, error: null })
 

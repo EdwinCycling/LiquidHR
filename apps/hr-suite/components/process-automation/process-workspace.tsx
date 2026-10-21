@@ -151,7 +151,7 @@ interface ProcessWorkspaceProps {
 
 const tabs: readonly ProcessWorkTab[] = ['TODO', 'CLAIMED', 'WAITING', 'COMPLETED', 'ALL']
 const statusLabels: Record<string, keyof ProcessWorkspaceLabels> = {
-  OPEN: 'statusOpen', WAITING: 'statusWaiting', IN_PROGRESS: 'statusInProgress', CHANGES_REQUESTED: 'statusChangesRequested', COMPLETED: 'statusCompleted', REJECTED: 'statusRejected', CANCELLED: 'statusCancelled',
+  OPEN: 'statusOpen', WAITING: 'statusWaiting', IN_PROGRESS: 'statusInProgress', CHANGES_REQUESTED: 'statusChangesRequested', COMPLETED: 'statusCompleted', REJECTED: 'statusRejected', CANCELLED: 'statusCancelled', BLOCKED: 'statusBlocked', EXPIRED: 'statusExpired',
 }
 
 const businessTypeLabels: Record<ProcessWorkBusinessType, keyof ProcessWorkspaceLabels> = {
@@ -196,11 +196,7 @@ function buildQuery(input: { view: ProcessWorkView; tab: ProcessWorkTab; search:
 }
 
 function assignmentText(item: ProcessWorkItem, labels: ProcessWorkspaceLabels): string {
-  const sources: Record<string, string> = { QUEUE: labels.assignmentQueue, DIRECT: labels.assignmentDirect, SCOPE: labels.assignmentScope, PROCESS: labels.assignmentProcess }
-  const modes: Record<string, string> = { ANY_ONE: labels.assignmentAnyOne }
-  const source = item.assignmentExplanation.source ?? item.receivedVia
-  const mode = item.assignmentExplanation.assignmentMode ?? item.assignmentMode
-  return `${modes[mode] ?? mode} · ${sources[source] ?? (source || labels.unknown)}`
+  return requesterRoleText(item, labels)
 }
 
 function requesterRoleText(item: ProcessWorkItem, labels: ProcessWorkspaceLabels): string {
@@ -223,7 +219,13 @@ function effectiveStatus(item: ProcessWorkItem): string {
 
 function workStatusLabel(status: string, labels: ProcessWorkspaceLabels): string {
   const key = statusLabels[status]
-  return key ? labels[key] : status.replaceAll('_', ' ')
+  return key ? labels[key] : labels.unknown
+}
+
+function businessContextText(item: ProcessWorkItem, labels: ProcessWorkspaceLabels): string {
+  return item.businessCategory === 'GENERAL'
+    ? labels[businessTypeLabels[item.businessType]]
+    : labels[businessCategoryLabels[item.businessCategory]]
 }
 
 function statusTone(status: string, overdue: boolean): BadgeTone {
@@ -317,7 +319,7 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, startableP
         <div className="mt-6 hidden md:block">
           <DataTableShell caption={labels.workspaceTitle}>
             <thead className="bg-surface-subtle text-xs uppercase tracking-[.1em] text-muted-foreground"><tr>{[labels.columnsProcess, labels.subject, labels.step, labels.assignment, labels.status, labels.deadline, labels.actions].map((heading, index) => <th className="px-4 py-3 font-semibold" key={`${heading}-${index}`}>{index === 6 ? <span className="sr-only">{heading}</span> : heading}</th>)}</tr></thead>
-            <tbody className="divide-y divide-border">{data.items.map((item) => <tr className="transition-colors hover:bg-muted/30" key={item.workItemId}><td className="px-4 py-4"><Link className="font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={workItemHref(item, view)}>{item.processTitle}</Link>{view === 'REQUESTS' ? null : <p className="mt-1 text-xs text-muted-foreground">{labels[businessTypeLabels[item.businessType]]} · {item.processKey}</p>}</td><td className="px-4 py-4">{item.subjectName ?? labels.unknown}</td><td className="px-4 py-4">{item.stepTitle}</td><td className="px-4 py-4 text-xs">{view === 'REQUESTS' ? requesterRoleText(item, labels) : assignmentText(item, labels)}</td><td className="px-4 py-4"><StatusBadge item={item} labels={labels} view={view} /></td><td className={`px-4 py-4 ${item.isOverdue ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>{formatDate(item.deadlineAt, locale)}</td><td className="px-4 py-4 text-right"><Link className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'text-primary' })} href={workItemHref(item, view)}>{labels.open}</Link></td></tr>)}</tbody>
+            <tbody className="divide-y divide-border">{data.items.map((item) => <tr className="transition-colors hover:bg-muted/30" key={item.workItemId}><td className="px-4 py-4"><Link className="font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={workItemHref(item, view)}>{item.processTitle}</Link>{view === 'REQUESTS' ? null : <p className="mt-1 text-xs text-muted-foreground">{businessContextText(item, labels)}</p>}</td><td className="px-4 py-4">{item.subjectName ?? labels.unknown}</td><td className="px-4 py-4">{item.stepTitle}</td><td className="px-4 py-4 text-xs">{requesterRoleText(item, labels)}</td><td className="px-4 py-4"><StatusBadge item={item} labels={labels} view={view} /></td><td className={`px-4 py-4 ${item.isOverdue ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>{formatDate(item.deadlineAt, locale)}</td><td className="px-4 py-4 text-right"><Link className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'text-primary' })} href={workItemHref(item, view)}>{labels.open}</Link></td></tr>)}</tbody>
           </DataTableShell>
         </div>
         <div className="mt-6 grid gap-4 md:hidden">{data.items.map((item) => <WorkItemCard key={item.workItemId} item={item} locale={locale} labels={labels} view={view} />)}</div>

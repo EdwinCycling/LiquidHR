@@ -4,7 +4,7 @@ import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getProcessFormProjection } from '@/lib/process-automation/form-runtime-service'
 import { getProcessAutomationOperations, getProcessOutputProjection } from '@/lib/process-automation/output-service'
 import { createProcessWorkDetailLabels } from '@/lib/process-automation/process-work-detail-labels'
-import { getProcessWorkItemAssignmentOptions, getProcessWorkItemDetail } from '@/lib/process-automation/work-service'
+import { getProcessWorkItemAssignmentOptions, getProcessWorkItemDetail, getProcessWorkItemExperience } from '@/lib/process-automation/work-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 
 interface WorkDetailPageProps {
@@ -37,11 +37,12 @@ export default async function WorkDetailPage({ params, searchParams }: WorkDetai
   const isRequesterPresentation = detail.businessType === 'P_MUTATION'
     && detail.businessCategory === 'GENERAL'
     && Boolean(requestContext.context.employeeId && requestContext.context.employeeId === detail.subjectEmployeeId)
-  const [form, outputs, operations, assignmentOptions] = await Promise.all([
+  const [form, outputs, operations, assignmentOptions, experience] = await Promise.all([
     getProcessFormProjection(workItemId, locale).catch(() => null),
     getProcessOutputProjection(detail.processInstanceId, locale).catch(() => null),
     getProcessAutomationOperations(detail.processInstanceId).catch(() => null),
     detail.canReassign ? getProcessWorkItemAssignmentOptions(workItemId).catch(() => []) : Promise.resolve([]),
+    getProcessWorkItemExperience(workItemId, locale).catch(() => null),
   ])
-  return <ProcessWorkDetailView assignmentOptions={assignmentOptions} backHref={workBackHref(query)} detail={detail} form={form} outputs={outputs} operations={operations} locale={locale} labels={createProcessWorkDetailLabels(t)} isRequesterPresentation={isRequesterPresentation} />
+  return <ProcessWorkDetailView assignmentOptions={assignmentOptions} backHref={workBackHref(query)} detail={detail} experience={experience} form={form} outputs={outputs} operations={operations} locale={locale} labels={createProcessWorkDetailLabels(t)} isRequesterPresentation={isRequesterPresentation} />
 }
