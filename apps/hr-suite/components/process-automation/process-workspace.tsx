@@ -22,6 +22,28 @@ import { getProcessWorkItemHref, withProcessWorkReturnContext, type ProcessWorkR
 import type { ProcessWorkBusinessCategory, ProcessWorkBusinessType, ProcessWorkFilterOptions, ProcessWorkItem, ProcessWorkList, ProcessWorkSort, ProcessWorkTab, ProcessWorkTabCounts, ProcessWorkView } from '@/lib/process-automation/work-service'
 import { ProcessStartCatalog } from './process-start-catalog'
 
+const nativeProcessKeyPrefixes = ['internal-transfer', 'document-acknowledgement', 'leave-request'] as const
+const nativeProcessTitles: Record<Locale, readonly string[]> = {
+  nl: ['interne overplaatsing', 'documentkennisname', 'verlofaanvraag'],
+  en: ['internal transfer', 'document acknowledgement', 'leave request'],
+}
+
+function filterNativeProcessStartCatalogEntries(
+  processes: readonly StartableProcess[],
+  locale: Locale,
+  definitions: ProcessWorkFilterOptions['processes'],
+): readonly StartableProcess[] {
+  const nativeDefinitionIds = new Set(definitions
+    .filter(({ key }) => nativeProcessKeyPrefixes.some((prefix) => key === prefix || key.startsWith(`${prefix}-`)))
+    .map(({ id }) => id))
+
+  return processes.filter((process) => {
+    if (nativeDefinitionIds.has(process.processDefinitionId)) return false
+    const title = process.title[locale]?.trim() || process.title[locale === 'nl' ? 'en' : 'nl']?.trim() || ''
+    return !nativeProcessTitles[locale].includes(title.toLocaleLowerCase())
+  })
+}
+
 export interface ProcessWorkspaceLabels {
   workspaceTitle: string
   workspaceDescription: string
@@ -122,6 +144,7 @@ export interface ProcessWorkspaceLabels {
   processStartFailed: string
   processStartDenied: string
   processStartUnavailable: string
+  processCatalogEmptyWithNativeStarters: string
 }
 
 interface ProcessWorkspaceProps {
@@ -281,6 +304,7 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, startableP
   const resultFrom = data && data.total > 0 ? (page - 1) * pageSize + 1 : 0
   const resultTo = data ? Math.min(page * pageSize, data.total) : 0
   const queryState = { view, tab, search, status, businessType, businessCategory, processDefinitionId, administrationId, sort, returnContext }
+  const genericStartCatalogProcesses = filterNativeProcessStartCatalogEntries(startableProcesses, locale, options.processes)
 
   return (
     <PageShell className="py-8" width="wide">
@@ -295,7 +319,7 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, startableP
         <Link className={tabLinkClasses({ active: view === 'REQUESTS' })} href={`/work${buildQuery({ ...queryState, view: 'REQUESTS', tab: 'ALL', page: 1 })}`}>{labels.myRequests}</Link>
       </div>
 
-      {view === 'REQUESTS' ? <ProcessStartCatalog locale={locale} labels={{ title: labels.newRequestTitle, description: labels.newRequestDescription, steps: labels.processSteps, routes: labels.processRoutes, responsible: labels.processResponsible, startStep: labels.processStartStep, start: labels.processStart, starting: labels.processStarting, empty: labels.processCatalogEmpty, loadError: labels.processCatalogLoadError, startFailed: labels.processStartFailed, startDenied: labels.processStartDenied, startUnavailable: labels.processStartUnavailable }} processes={startableProcesses} loadError={processCatalogError} returnContext={returnContext} /> : null}
+      {view === 'REQUESTS' ? <ProcessStartCatalog locale={locale} labels={{ title: labels.newRequestTitle, description: labels.newRequestDescription, steps: labels.processSteps, routes: labels.processRoutes, responsible: labels.processResponsible, startStep: labels.processStartStep, start: labels.processStart, starting: labels.processStarting, empty: canStartLeaveRequest || canStartInternalTransfer || canStartDocumentAcknowledgement ? labels.processCatalogEmptyWithNativeStarters : labels.processCatalogEmpty, loadError: labels.processCatalogLoadError, startFailed: labels.processStartFailed, startDenied: labels.processStartDenied, startUnavailable: labels.processStartUnavailable }} processes={genericStartCatalogProcesses} loadError={processCatalogError} returnContext={returnContext} /> : null}
 
       {view === 'WORK' ? <ScrollableTabs ariaLabel={labels.workspaceTitle} className="mt-4" contentProps={{ role: 'tablist' }} leftLabel={labels.previous} rightLabel={labels.next}>
         {tabs.map((candidate) => <Link key={candidate} aria-current={candidate === tab ? 'page' : undefined} className={tabLinkClasses({ active: candidate === tab })} href={`/work${buildQuery({ ...queryState, tab: candidate })}`}>{tabLabel(candidate, labels)}{tabCounts ? <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-xs tabular-nums">{tabCounts[candidate]}</span> : null}</Link>)}

@@ -70,6 +70,7 @@
     "start": "Aanvraag starten",
     "starting": "Aanvraag starten…",
     "empty": "Er zijn nu geen processen beschikbaar die je mag starten.",
+    "emptyWithNativeStarters": "Er zijn geen extra processen om te starten. Gebruik de beschikbare startknoppen bovenaan.",
     "loadError": "De beschikbare processen konden niet worden opgehaald. Probeer de pagina opnieuw te laden.",
     "startFailed": "De aanvraag kon niet worden gestart. Probeer het opnieuw.",
     "startDenied": "Je hebt geen toegang om deze aanvraag te starten.",

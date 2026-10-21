@@ -159,6 +159,7 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
     processStartFailed: t('newRequest.startFailed'),
     processStartDenied: t('newRequest.startDenied'),
     processStartUnavailable: t('newRequest.startUnavailable'),
+    processCatalogEmptyWithNativeStarters: t('newRequest.emptyWithNativeStarters'),
   }
 
   let data = null

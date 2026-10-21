@@ -70,6 +70,7 @@
     "start": "Start request",
     "starting": "Starting request…",
     "empty": "There are no processes available for you to start right now.",
+    "emptyWithNativeStarters": "There are no additional processes to start. Use the available start buttons above.",
     "loadError": "Available processes could not be loaded. Reload the page and try again.",
     "startFailed": "The request could not be started. Try again.",
     "startDenied": "You do not have access to start this request.",
