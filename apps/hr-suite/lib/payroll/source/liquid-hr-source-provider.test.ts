@@ -476,7 +476,7 @@ describe('LiquidHR Payroll source provider', () => {
     expect(calculation.controls.every((control) => control.status === 'PASS')).toBe(true)
   })
 
-  it('passes a Core-recorded PFZW Kinderopvang arrangement into the regular pension calculation', async () => {
+  it('uses the PFZW participation-date salary basis while calculating November CAO_SCALE pay', async () => {
     const setup = completePayrollSetup()
     const laborConditionSetId = '8c000000-0000-4000-8000-000000000028'
     const mappingId = '8e000000-0000-4000-8000-000000000028'
@@ -488,8 +488,8 @@ describe('LiquidHR Payroll source provider', () => {
       labor_condition_set_id: laborConditionSetId,
       pension_arrangement_id: arrangementId,
       participant_group: 'NEW_ENTRANT',
-      effective_from: '2026-01-01',
-      effective_to: null,
+      effective_from: '2026-09-01',
+      effective_to: '2026-12-31',
       provenance_json: { status: 'USER_RECORDED', sourceClassification: 'CORE_PENSION_ASSIGNMENT_WORKFLOW' },
       version_number: 1,
       supersedes_mapping_id: null,
@@ -500,8 +500,8 @@ describe('LiquidHR Payroll source provider', () => {
     const assignment = {
       id: assignmentId,
       pension_arrangement_id: arrangementId,
-      effective_from: '2026-01-01',
-      effective_to: null,
+      effective_from: '2026-09-01',
+      effective_to: '2026-12-31',
       participation_start_date: '2026-09-01',
       assignment_reason: 'CORE_PENSION_ASSIGNMENT_WORKFLOW',
       provenance_json: {
@@ -521,14 +521,14 @@ describe('LiquidHR Payroll source provider', () => {
         code: 'PFZW_2026_KINDEROPVANG',
         name: 'PFZW Kinderopvang 2026',
         arrangement_type: 'FLAT_PREMIUM',
-        effective_from: '2026-01-01',
+        effective_from: '2026-11-01',
         arrangement_established_from: '2026-01-01',
-        effective_to: null,
+        effective_to: '2026-12-31',
         transition_date: null,
         grandfathering_mode: 'NONE',
-        flat_total_rate: 25.9,
-        employer_share_pct: 13.0,
-        employee_share_pct: 12.9,
+        flat_total_rate: null,
+        employer_share_pct: 0,
+        employee_share_pct: 0,
         annual_franchise: 17283,
         annual_pensionable_salary_cap: 137800,
         pensionable_salary_definition: {
@@ -536,6 +536,10 @@ describe('LiquidHR Payroll source provider', () => {
           annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
           basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
           floorAtZero: true,
+          components: [
+            { code: 'PFZW_OP_NP_2026', componentType: 'BASE', totalRate: 25.9, employeeRate: 12.9, employerRate: 13.0 },
+            { code: 'PFZW_WIA_EXCEDENT_2026', componentType: 'ADDITIONAL', totalRate: 3.4, employeeRate: 0, employerRate: 3.4 },
+          ],
           pfzw2026: {
             monthlyPaymentsPerYear: 12,
             holidayAllowancePercent: '8',
@@ -555,8 +559,8 @@ describe('LiquidHR Payroll source provider', () => {
         provenance_json: { sourceReference: 'PFZW 2026 pension arrangement' },
         is_active: true,
         version_id: arrangementVersionId,
-        version_number: 1,
-        version_created_at: '2026-01-01T00:00:00.000Z',
+        version_number: 2,
+        version_created_at: '2026-10-21T00:00:00.000Z',
         source_updated_at: '2026-01-01T00:00:00.000Z',
         tiers: [],
       },
@@ -565,14 +569,29 @@ describe('LiquidHR Payroll source provider', () => {
       loadTimeline: vi.fn(async () => ({
         employment: employment(),
         salaries: [salary({
+          id: '61000000-0000-4000-8000-000000000028',
+          salary_basis: 'CUSTOM_SCALE',
+          salary_route: 'SCALE_WITH_STEPS',
+          fulltime_amount: 3425,
+          parttime_amount: 3044.44,
+          salary_step_code: '20',
+          valid_from: '2026-09-01',
+          valid_until: '2026-11-01',
+        }), salary({
           salary_basis: 'CAO_SCALE',
           fulltime_amount: 2819,
           parttime_amount: 1879.33,
           cao_scale_name: 'Schaal 6',
           cao_step_name: 'Salarisnummer 12',
           salary_step_code: '12',
+          valid_from: '2026-11-01',
         })],
-        schedules: [schedule({ average_hours_per_week: 24, fulltime_hours_per_week: 36, part_time_factor: 2 / 3 })],
+        schedules: [schedule({
+          average_hours_per_week: 24,
+          fulltime_hours_per_week: 36,
+          part_time_factor: 2 / 3,
+          valid_from: '2026-11-01',
+        })],
         contracts: [{
           id: '92000000-0000-4000-8000-000000000028',
           labor_condition_set_id: laborConditionSetId,
@@ -585,7 +604,7 @@ describe('LiquidHR Payroll source provider', () => {
           id: '93000000-0000-4000-8000-000000000028',
           condition_group: 'CAO',
           labor_condition_set_id: laborConditionSetId,
-          valid_from: '2026-01-01',
+          valid_from: '2026-09-01',
           valid_until: null,
           updated_at: '2026-01-01T10:02:00.000Z',
           set: {
@@ -604,11 +623,18 @@ describe('LiquidHR Payroll source provider', () => {
         laborConditionPensionArrangements: [mapping],
       })),
       loadActualWork: vi.fn(async () => actualWork({
-        entries: [actualWorkEntry({ hours: 4 })],
-        types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
+        period: {
+          id: actualWorkPeriodId,
+          period_start: '2026-11-01',
+          period_end: '2026-12-01',
+          status: 'OPEN',
+          updated_at: '2026-11-01T10:00:00.000Z',
+        },
+        entries: [],
+        types: [],
       })),
       loadPayrollSetup: vi.fn(async () => setup),
-    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 11 } })
 
     const source = snapshot.canonicalSource as Record<string, unknown>
     const payrollOwned = source.payrollOwned as Record<string, unknown>
@@ -616,11 +642,25 @@ describe('LiquidHR Payroll source provider', () => {
     const amounts = payrollOwned.amounts as Record<string, unknown>
     expect(snapshot.sourceGaps).toEqual([])
     expect(pension).toMatchObject({ planCode: 'PFZW_2026_KINDEROPVANG', calculationStatus: 'CALCULATED' })
+    expect(pension).toMatchObject({ totalPremiumRate: '25.9', employeeRate: '12.9', employerRate: '13' })
     expect(amounts.employeePension).toBeTypeOf('string')
     expect(amounts.employerPension).toBeTypeOf('string')
     expect(pension.calculationTrace).toEqual(expect.arrayContaining([
-      expect.objectContaining({ componentCode: 'PFZW_REGELINGLOON_CONSTRUCTION' }),
+      expect.objectContaining({
+        componentCode: 'PFZW_REGELINGLOON_CONSTRUCTION',
+        inputs: expect.objectContaining({ fullTimeMonthlySalary: '3425.00' }),
+      }),
     ]))
+    expect(snapshot.sourceVersionVector).toHaveProperty('employment_salary_basis:61000000-0000-4000-8000-000000000028')
+    expect((source.compensation as { entries: readonly Record<string, unknown>[] }).entries).toEqual([
+      expect.objectContaining({
+        salaryBasis: 'CAO_SCALE',
+        fulltimeAmount: 2819,
+        parttimeAmount: 1879.33,
+        validFrom: '2026-11-01',
+      }),
+    ])
+    expect(source.actualWork).toMatchObject({ entries: [] })
   })
 
   it('projects a supported Retail Mode source and does not substitute Mars pension data when Retail pension evidence is absent', async () => {

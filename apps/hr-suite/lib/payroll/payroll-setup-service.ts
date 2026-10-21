@@ -276,6 +276,7 @@ export function parsePayrollOpeningCumulativeForm(formData: FormData): PayrollOp
 
 type OpeningBalanceDependencies = {
   readonly repository?: PayrollSetupRepository
+  readonly requireAccess?: typeof requireComponentLibraryAccess
   readonly listEmployeeOptions?: typeof listPayrollSetupEmployeeOptions
   readonly listHistoricalRuns?: (
     scope: Parameters<PayrollSetupRepository['listEmployerConfigurations']>[0],
@@ -298,7 +299,7 @@ export async function savePayrollOpeningCumulativeBalance(
   draft: PayrollOpeningCumulativeFormDraft,
   dependencies: OpeningBalanceDependencies = {},
 ): Promise<Awaited<ReturnType<PayrollSetupRepository['insertOpeningCumulativeSnapshot']>>> {
-  const access = await requireComponentLibraryAccess(true)
+  const access = await (dependencies.requireAccess ?? requireComponentLibraryAccess)(true)
   if (!UUID_PATTERN.test(draft.sourceEmploymentId)) {
     throw new PayrollSetupServiceError('PAYROLL_OPENING_BALANCE_INPUT_INVALID', [{ code: 'OPENING_SOURCE_EMPLOYMENT_REQUIRED', field: 'sourceEmploymentId' }])
   }
@@ -313,7 +314,7 @@ export async function savePayrollOpeningCumulativeBalance(
 
   const existingRuns = await (dependencies.listHistoricalRuns ?? listHistoricalRuns)(access.scope, access.administration.id, employee.employeeId)
   if (existingRuns.some((run) => run.sourceSnapshot.source_employment_id === employee.employmentId
-    && run.payrollPeriod.ends_on < balance.asOfDate)) {
+    && run.payrollPeriod.ends_on >= balance.asOfDate)) {
     throw new PayrollSetupServiceError('PAYROLL_OPENING_BALANCE_EXISTING_RUN_CONFLICT', [{ code: 'OPENING_EXISTING_PAYROLL_RUN_CONFLICT', field: 'asOfDate' }])
   }
 

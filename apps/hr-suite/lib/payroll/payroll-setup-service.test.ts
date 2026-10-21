@@ -1,12 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { PayrollDatabase, PayrollEmployerConfigurationVersionRow, PayrollOpeningCumulativeSnapshotRow } from './database'
+import type { PayrollRunSummary } from './calculation-repository'
 import type { PayrollSetupRepository } from './payroll-setup-repository'
 import {
   hashPayrollEmployerConfiguration,
   normalizePayrollEmployerConfiguration,
   type PayrollEmployerConfigurationDraft,
 } from './payroll-setup'
-import { savePayrollEmployerConfiguration } from './payroll-setup-service'
+import {
+  savePayrollEmployerConfiguration,
+  savePayrollOpeningCumulativeBalance,
+  type PayrollOpeningCumulativeFormDraft,
+} from './payroll-setup-service'
 
 const scope = {
   tenantId: '10000000-0000-4000-8000-000000000001',
@@ -36,6 +41,27 @@ const configurationDraft: PayrollEmployerConfigurationDraft = {
 }
 
 type ConfigurationInsert = PayrollDatabase['public']['Tables']['payroll_employer_configuration_versions']['Insert']
+type OpeningInsert = PayrollDatabase['public']['Tables']['payroll_opening_cumulative_snapshots']['Insert']
+
+const employmentId = '30000000-0000-4000-8000-000000000001'
+const employeeId = '30000000-0000-4000-8000-000000000002'
+
+const openingDraft: PayrollOpeningCumulativeFormDraft = {
+  sourceEmploymentId: employmentId,
+  sourcePeriodFrom: '2026-09-01',
+  sourcePeriodTo: '2026-10-31',
+  asOfDate: '2026-11-01',
+  meaning: {
+    grossWageBeforePeriod: '6263.85',
+    taxableWageBeforePeriod: '6263.85',
+    wageTaxBeforePeriod: '880.50',
+    employeeInsuranceWageBeforePeriod: '6263.85',
+    zvwWageBeforePeriod: '6263.85',
+    holidayReserveBeforePeriod: '501.11',
+    yearEndReserveBeforePeriod: '501.11',
+  },
+  sourceReference: 'Synthetic acceptance reconstruction from persisted September and October calculation results',
+}
 
 class InMemoryPayrollSetupRepository implements PayrollSetupRepository {
   readonly rows: PayrollEmployerConfigurationVersionRow[]
@@ -52,6 +78,15 @@ class InMemoryPayrollSetupRepository implements PayrollSetupRepository {
     this.rows.push(saved)
     return saved
   })
+  readonly insertOpeningCumulativeSnapshot = vi.fn(async (
+    _scope: typeof scope,
+    _administrationId: string,
+    row: OpeningInsert,
+  ) => ({
+    ...row,
+    id: '40000000-0000-4000-8000-000000000001',
+    created_at: '2026-10-21T09:00:00.000Z',
+  } as PayrollOpeningCumulativeSnapshotRow))
 
   constructor() {
     const draft = normalizePayrollEmployerConfiguration(configurationDraft)
@@ -77,7 +112,6 @@ class InMemoryPayrollSetupRepository implements PayrollSetupRepository {
   async listEmployerConfigurations() { return this.rows }
   async getEffectiveEmployerConfiguration() { return this.rows.find((row) => row.status === 'ACTIVE') ?? null }
   async listOpeningCumulativeSnapshots(): Promise<readonly PayrollOpeningCumulativeSnapshotRow[]> { return [] }
-  async insertOpeningCumulativeSnapshot(): Promise<PayrollOpeningCumulativeSnapshotRow> { throw new Error('Not used by this test') }
 }
 
 describe('Payroll employer configuration activation', () => {
@@ -106,5 +140,58 @@ describe('Payroll employer configuration activation', () => {
     expect(repository.rows).toHaveLength(2)
     expect(repeated).toEqual(active)
     expect(repository.insertEmployerConfiguration).toHaveBeenCalledTimes(1)
+  })
+})
+
+function historicalRun(endsOn: string): PayrollRunSummary {
+  return {
+    run: {} as PayrollRunSummary['run'],
+    inputSet: {} as PayrollRunSummary['inputSet'],
+    sourceSnapshot: { source_employment_id: employmentId } as unknown as PayrollRunSummary['sourceSnapshot'],
+    payrollPeriod: { ends_on: endsOn } as PayrollRunSummary['payrollPeriod'],
+  }
+}
+
+const requireOpeningWriteAccess = vi.fn(async () => ({
+  scope,
+  administration: { id: payrollAdministrationId, displayName: 'Jupiter acceptance', status: 'ACTIVE' as const, capabilityEnabled: true },
+  actorUserId,
+  canCopy: true,
+}))
+
+const listAcceptanceEmployee = async () => [{
+  employeeId,
+  employmentId,
+  employeeNumber: 'ACCEPTANCE-100022',
+  employeeName: 'Fictitious acceptance employee',
+  employmentNumber: 'ACCEPTANCE-EMP-01',
+  startsOn: '2026-09-01',
+  endsOn: null,
+}]
+
+describe('Payroll opening cumulative history boundary', () => {
+  it('accepts finalized history that ends before the new opening effective date', async () => {
+    const repository = new InMemoryPayrollSetupRepository()
+    const saved = await savePayrollOpeningCumulativeBalance(openingDraft, {
+      repository,
+      requireAccess: requireOpeningWriteAccess,
+      listEmployeeOptions: listAcceptanceEmployee,
+      listHistoricalRuns: async () => [historicalRun('2026-09-30'), historicalRun('2026-10-31')],
+    })
+
+    expect(saved.as_of_date).toBe('2026-11-01')
+    expect(saved.snapshot_version).toBe(1)
+    expect(repository.insertOpeningCumulativeSnapshot).toHaveBeenCalledTimes(1)
+  })
+
+  it('blocks a historical run that reaches or passes the new opening effective date', async () => {
+    const repository = new InMemoryPayrollSetupRepository()
+    await expect(savePayrollOpeningCumulativeBalance(openingDraft, {
+      repository,
+      requireAccess: requireOpeningWriteAccess,
+      listEmployeeOptions: listAcceptanceEmployee,
+      listHistoricalRuns: async () => [historicalRun('2026-11-30')],
+    })).rejects.toMatchObject({ code: 'PAYROLL_OPENING_BALANCE_EXISTING_RUN_CONFLICT' })
+    expect(repository.insertOpeningCumulativeSnapshot).not.toHaveBeenCalled()
   })
 })

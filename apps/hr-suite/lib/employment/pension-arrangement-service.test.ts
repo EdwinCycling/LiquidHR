@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import {
   assignEmploymentPensionArrangement,
+  createPensionArrangementSuccessor,
   EmploymentPensionArrangementError,
 } from './pension-arrangement-service'
 import {
@@ -55,17 +56,21 @@ function assignmentInput(overrides: Partial<Parameters<typeof assignEmploymentPe
 
 function configureClient(options: {
   readonly employment?: Record<string, unknown> | null
+  readonly predecessorVersionId?: string
   readonly appMetadata?: Record<string, unknown>
-  readonly rpcResult?: Record<string, unknown>
+  readonly rpcResult?: unknown
 } = {}) {
+  let currentTable = ''
   const query = {
     select: vi.fn(),
     eq: vi.fn(),
     is: vi.fn(),
     maybeSingle: vi.fn(async () => ({
-      data: options.employment === undefined
-        ? { id: ids.employment, employee_id: ids.employee }
-        : options.employment,
+      data: currentTable === 'pension_arrangement_versions'
+        ? { id: options.predecessorVersionId ?? 'b0000000-0000-4000-8000-000000000001' }
+        : options.employment === undefined
+          ? { id: ids.employment, employee_id: ids.employee }
+          : options.employment,
       error: null,
     })),
   }
@@ -84,7 +89,10 @@ function configureClient(options: {
     error: null,
   }))
   const client = {
-    from: vi.fn(() => query),
+    from: vi.fn((table: string) => {
+      currentTable = table
+      return query
+    }),
     rpc,
     auth: {
       getUser: vi.fn(async () => ({
@@ -214,5 +222,47 @@ describe('assignEmploymentPensionArrangement', () => {
         code: 'PENSION_ASSIGNMENT_WRITE_READBACK_INVALID',
         status: 500,
       } satisfies Partial<EmploymentPensionArrangementError>)
+  })
+})
+
+describe('createPensionArrangementSuccessor', () => {
+  beforeEach(() => {
+    vi.mocked(requirePermission).mockResolvedValue(managerContext)
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.clearAllMocks()
+  })
+
+  it('uses the pension manager permission and preserves employment scope for the successor RPC', async () => {
+    const predecessorVersionId = 'b0000000-0000-4000-8000-000000000001'
+    const successorVersionId = 'c0000000-0000-4000-8000-000000000001'
+    const successor = { effective_from: '2026-01-01', pensionable_salary_definition: { method: 'PFZW_2026_KINDEROPVANG' } }
+    const { client, query, rpc } = configureClient({ rpcResult: successorVersionId, predecessorVersionId })
+
+    const result = await createPensionArrangementSuccessor({
+      employeeId: ids.employee,
+      employmentId: ids.employment,
+      predecessorVersionId,
+      successor,
+    })
+
+    expect(requirePermission).toHaveBeenCalledWith('pension:manage', ids.employee)
+    expect(client.from).toHaveBeenCalledWith('employments')
+    expect(client.from).toHaveBeenCalledWith('pension_arrangement_versions')
+    expect(query.eq.mock.calls).toEqual(expect.arrayContaining([
+      ['id', ids.employment],
+      ['id', predecessorVersionId],
+      ['employee_id', ids.employee],
+      ['tenant_id', ids.tenant],
+      ['hr_group_id', ids.hrGroup],
+      ['administration_id', ids.administration],
+    ]))
+    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor', {
+      p_predecessor_version_id: predecessorVersionId,
+      p_successor: successor,
+    })
+    expect(result).toEqual({ versionId: successorVersionId })
   })
 })

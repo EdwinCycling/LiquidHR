@@ -976,6 +976,29 @@ function actualPensionRate(totalRate: string | null, sharePercent: string): stri
   }
 }
 
+function pfzwBaseComponentRates(definition: Readonly<Record<string, unknown>>): {
+  readonly totalRate: string
+  readonly employeeRate: string
+  readonly employerRate: string
+} | null {
+  if (sourceText(definition.method) !== PFZW_2026_KINDEROPVANG_METHOD || !Array.isArray(definition.components)) return null
+  const base = definition.components.map(asRecord).find((component) =>
+    sourceText(component?.code) === 'PFZW_OP_NP_2026'
+      && sourceText(component?.componentType) === 'BASE',
+  )
+  const totalRate = sourceText(base?.totalRate)
+  const employeeRate = sourceText(base?.employeeRate)
+  const employerRate = sourceText(base?.employerRate)
+  if (!totalRate || !employeeRate || !employerRate) return null
+  try {
+    if (FixedDecimal.parse(employeeRate).add(FixedDecimal.parse(employerRate))
+      .compare(FixedDecimal.parse(totalRate)) !== 0) return null
+  } catch {
+    return null
+  }
+  return { totalRate, employeeRate, employerRate }
+}
+
 function sourceText(value: unknown): string | null {
   if (typeof value === 'string' && value.trim().length > 0) return value.trim()
   if (typeof value === 'number' && Number.isFinite(value)) return String(value)
@@ -997,13 +1020,26 @@ function monthlyPayrollGrossForPension(
   }
 }
 
+function pfzwSalaryBasisDateFor(participationStartDate: string, year: number): string {
+  const yearStart = `${year}-01-01`
+  return participationStartDate < yearStart ? yearStart : participationStartDate
+}
+
+function salaryRowsEffectiveOn(
+  salaries: readonly PayrollSourceSalary[],
+  effectiveDate: string,
+): readonly PayrollSourceSalary[] {
+  return salaries.filter((salary) => salary.valid_from <= effectiveDate
+    && (salary.valid_until === null || salary.valid_until > effectiveDate))
+}
+
 function buildPfzw2026Input(input: {
   readonly arrangement: PensionArrangementInput
   readonly assignment: NonNullable<PayrollSourceTimeline['pensionAssignments']>[number]
   readonly laborConditionPensionArrangements: readonly NonNullable<PayrollSourceTimeline['laborConditionPensionArrangements']>[number][]
   readonly laborConditionSetId: string | null
   readonly regularWage: Record<string, string | boolean>
-  readonly salary: PayrollSourceSalary | undefined
+  readonly salaryBasisCandidates: readonly PayrollSourceSalary[]
   readonly monthlyPayrollGross: string
   readonly period: PayrollSourceProviderInput['payrollPeriod']
   readonly actualEntries: readonly unknown[]
@@ -1013,13 +1049,12 @@ function buildPfzw2026Input(input: {
   const definition = input.arrangement.pensionableSalaryDefinition
   if (sourceText(definition.method) !== PFZW_2026_KINDEROPVANG_METHOD) return null
   const pfzw = asRecord(definition.pfzw2026) ?? definition
-  const salary = input.salary
   const participationStart = input.assignment.participation_start_date
-  const salaryBasisDate = participationStart < `${input.period.year}-01-01`
-    ? `${input.period.year}-01-01`
-    : participationStart
-  if (!salary || salary.valid_from > salaryBasisDate
-    || (salary.valid_until !== null && salary.valid_until <= salaryBasisDate)) return null
+  const salaryBasisDate = pfzwSalaryBasisDateFor(participationStart, input.period.year)
+  const salaryRows = salaryRowsEffectiveOn(input.salaryBasisCandidates, salaryBasisDate)
+  if (salaryRows.length !== 1) return null
+  const salary = salaryRows[0]
+  if (!salary || salary.fulltime_amount === null) return null
 
   const eligibility = asRecord(input.arrangement.eligibilityRule)
   const participantGroup = sourceText(eligibility?.participantGroup)
@@ -1047,7 +1082,7 @@ function buildPfzw2026Input(input: {
   let fullTimeHours: FixedDecimal
   let fullTimePeriodHours: FixedDecimal
   try {
-    fullTimeMonthlySalary = FixedDecimal.parse(String(input.regularWage.fulltimeMonthlyAmount))
+    fullTimeMonthlySalary = FixedDecimal.parse(String(salary.fulltime_amount))
     contractHours = FixedDecimal.parse(String(input.regularWage.contractHoursPerWeek))
     fullTimeHours = FixedDecimal.parse(String(input.regularWage.fulltimeHoursPerWeek))
     fullTimePeriodHours = fullTimeHours.multiply(FixedDecimal.parse('52'))
@@ -1173,7 +1208,7 @@ function buildRegularPayrollOwned(input: {
   readonly periodStart: string
   readonly periodEndExclusive: string
   readonly regularWage: Record<string, string | boolean> | null
-  readonly salary: PayrollSourceSalary | undefined
+  readonly salaryBasisCandidates: readonly PayrollSourceSalary[]
   readonly schedule: PayrollSourceSchedule | undefined
   readonly laborConditionSetId: string | null
   readonly pensionAssignments: readonly NonNullable<PayrollSourceTimeline['pensionAssignments']>[number][]
@@ -1244,7 +1279,7 @@ function buildRegularPayrollOwned(input: {
       laborConditionPensionArrangements: input.laborConditionPensionArrangements,
       laborConditionSetId: input.laborConditionSetId,
       regularWage: input.regularWage,
-      salary: input.salary,
+      salaryBasisCandidates: input.salaryBasisCandidates,
       monthlyPayrollGross,
       period: input.period,
       actualEntries,
@@ -1263,7 +1298,15 @@ function buildRegularPayrollOwned(input: {
       sourceSnapshotHash: input.coreSourceHash,
       ...(pfzw2026 ? { pfzw2026 } : {}),
     })
-    if (pensionResult.status !== 'CALCULATED') gaps.push(makeGap('pension', 'SOURCE_GAP', pensionResult.reasonCode ?? 'PENSION_CALCULATION_BLOCKED'))
+    if (pensionResult.status !== 'CALCULATED') {
+      const reasonCode = pensionResult.reasonCode === 'PENSION_RATE_UNRESOLVED'
+        && arrangementInput.arrangementType === 'FLAT_PREMIUM'
+        ? arrangementInput.flatTotalRate === null
+          ? 'PENSION_TOTAL_RATE_MISSING'
+          : 'PENSION_TOTAL_RATE_INVALID'
+        : pensionResult.reasonCode ?? 'PENSION_CALCULATION_BLOCKED'
+      gaps.push(makeGap('pension', 'SOURCE_GAP', reasonCode))
+    }
   }
 
   const cumulative = opening ?? {
@@ -1279,10 +1322,16 @@ function buildRegularPayrollOwned(input: {
     gaps.push(makeGap('reserves', 'SOURCE_GAP', 'PAYROLL_CONFIGURATION_YEAR_END_RATE_REQUIRED'))
   }
   if (pensionResult?.status === 'CALCULATED' && configuration && input.configurationRow) {
-    const totalRate = arrangementInput?.flatTotalRate ?? null
-    const employeeRate = actualPensionRate(totalRate, arrangementInput?.employeeSharePercent ?? '')
-    const employerRate = actualPensionRate(totalRate, arrangementInput?.employerSharePercent ?? '')
-    if (!employeeRate || !employerRate) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_RATE_UNRESOLVED'))
+    const typedPfzwRates = arrangementInput
+      ? pfzwBaseComponentRates(arrangementInput.pensionableSalaryDefinition)
+      : null
+    const totalRate = typedPfzwRates?.totalRate ?? arrangementInput?.flatTotalRate ?? null
+    const employeeRate = typedPfzwRates?.employeeRate
+      ?? actualPensionRate(totalRate, arrangementInput?.employeeSharePercent ?? '')
+    const employerRate = typedPfzwRates?.employerRate
+      ?? actualPensionRate(totalRate, arrangementInput?.employerSharePercent ?? '')
+    if (!employeeRate) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_EMPLOYEE_RATE_UNRESOLVED'))
+    if (!employerRate) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_EMPLOYER_RATE_UNRESOLVED'))
     const payrollOwned: Record<string, unknown> = {
       configuration: {
         schemaVersion: 'payroll-employer-configuration-v1',
@@ -1343,7 +1392,7 @@ function buildRegularPayrollOwned(input: {
         annualPensionableMaximum: arrangementInput?.annualPensionableSalaryCap ?? null,
         monthlyMaximum: monthlyAmountFromAnnual(assignment?.arrangement?.annual_pensionable_salary_cap ?? null),
         partTimeFactor: effectivePartTimeFactor,
-        totalPremiumRate: arrangementInput?.flatTotalRate ?? null,
+        totalPremiumRate: totalRate,
         employeeSharePercent: arrangementInput?.employeeSharePercent ?? null,
         employerSharePercent: arrangementInput?.employerSharePercent ?? null,
         employeeRate,
@@ -1517,6 +1566,15 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       .filter((row) => activeLaborConditionSetIds.has(row.labor_condition_set_id)
         && effectiveRangeOverlapsPeriod(row.effective_from, row.effective_to, activeStart, activeEndExclusive))
       .sort((left, right) => left.effective_from.localeCompare(right.effective_from) || left.id.localeCompare(right.id))
+    const solePensionAssignment = pensionAssignments.length === 1 ? pensionAssignments[0] : undefined
+    const pensionDefinition = asRecord(solePensionAssignment?.arrangement?.pensionable_salary_definition)
+    const pensionSalaryBasisDate = solePensionAssignment
+      && sourceText(pensionDefinition?.method) === PFZW_2026_KINDEROPVANG_METHOD
+      ? pfzwSalaryBasisDateFor(solePensionAssignment.participation_start_date, input.payrollPeriod.year)
+      : null
+    const pensionSalaryBasisCandidates = pensionSalaryBasisDate
+      ? salaryRowsEffectiveOn(timeline.salaries, pensionSalaryBasisDate)
+      : []
     const incomeRelationship = resolveIncomeRelationship(
       timeline.incomeRelationships ?? [],
       activeStart,
@@ -1626,6 +1684,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     const sourceVersionVector = Object.fromEntries([
       [`employment:${employment.id}`, employment.updated_at],
       ...salaries.map((row) => [`employment_salary:${row.id}`, row.updated_at] as const),
+      ...pensionSalaryBasisCandidates.map((row) => [`employment_salary_basis:${row.id}`, row.updated_at] as const),
       ...schedules.map((row) => [`employment_schedule:${row.id}`, row.updated_at] as const),
       ...contracts.map((row) => [`employment_contract:${row.id}`, row.updated_at] as const),
       ...laborConditions.flatMap((row) => [
@@ -1857,6 +1916,18 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           arrangementResolutionChangeVersionIds: row.arrangement_resolution_change_version_ids,
           arrangement: row.arrangement ? pensionArrangementCanonical(row.arrangement) : null,
         })),
+        ...(pensionSalaryBasisDate ? {
+          salaryBasis: {
+            date: pensionSalaryBasisDate,
+            candidates: pensionSalaryBasisCandidates.map((row) => ({
+              id: row.id,
+              fulltimeAmount: row.fulltime_amount,
+              paymentFrequency: row.payment_frequency,
+              validFrom: row.valid_from,
+              validUntil: row.valid_until,
+            })),
+          },
+        } : {}),
       },
       fiscalProfile: fiscalProfile.canonical,
       ...(regularWage ? { regularWage } : {}),
@@ -1894,7 +1965,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           periodStart: bounds.start,
           periodEndExclusive: bounds.endExclusive,
           regularWage,
-          salary: salaries.length === 1 ? salaries[0] : undefined,
+          salaryBasisCandidates: pensionSalaryBasisCandidates,
           schedule: schedules.length === 1 ? schedules[0] : undefined,
           laborConditionSetId: activeLaborConditionSet?.id ?? null,
           pensionAssignments,
