@@ -1,5 +1,7 @@
 # AA-TEST — LiquidHR Testing Standard
 
+> **Status 21-10-2026:** de gezamenlijke versie `1.20261021.1` is uitgerold met eerdere relevante technische releasegates en beperkte geauthenticeerde hosted smoke. `/payroll/runs`, AI-host/Focus en medewerker-PDF-endgate blijven concrete **OPEN**-punten, niet algemene reden om oude tests te herhalen. Cleanup-07/08/09 was mechanisch en heeft volgens Codex **geen nieuwe producttests** uitgevoerd. Een docs-only GitHub-commit vereist geen nieuwe Payroll full-suite of Vercel-deployment. Zie [postrelease status](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md).
+
 > **Historische QA-status 18-10-2026:** de beschreven Core-fix-, CAO-UI- en featurebranchtests zijn bewijs voor de toen geteste SHAs en gelden niet als kandidaatacceptatie. Voor integration/liquidhr-unified-20261021 volgt één gecombineerde snelle technische ronde; behoud de business- en wettelijke acceptatiegrenzen uit [AA-ACCEPT](AA-ACCEPT.md).
 
 Status: **LEIDEND**
