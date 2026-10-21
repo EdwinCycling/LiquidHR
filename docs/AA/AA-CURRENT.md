@@ -14,6 +14,8 @@
 >
 > **Latere lokale PMUX-02A-kandidaat (21-10-2026):** codecommits `1a2490e508a2688420ef112b6918c91deb6eb764` en `06adf35bb5064c4b32b823118bb6f6f34e958afe`, gebaseerd op GitHub `main` `14803473c1157285b52cc234fbb6ac70860e9eb1`. Gerichte tests 26/26, TypeScript, gewijzigde-bestanden-ESLint en i18n groen. De lokale HR Admin-studiocode laat een leeg concept of expliciet Opleidingsaanvraag-voorbeeld kiezen en getypeerde flowstappen, rollen, formulieren in de huidige definitie en routes bewerken; bestaande compiler, autosave/revision, rolpreview en write-free Procesproef blijven leidend. Dit is **LOCAL CODE GREEN / BROWSER- EN TEST-READBACK OPEN**: geen lokale studio-server draaide; er is geen remote TEST-write, push of deployment uitgevoerd. Zie [PMUX-02A acceptance](../quality/acceptance/runs/PMUX-02A-20261021-LOCAL.md).
 
+> **PMUX-02B lokale Formulierenstudio-kandidaat (21-10-2026):** `fbf1c64b3d040edd80bb2886804ee61a6b3e768d` op de expliciete branch-split-basis `f2d6deb96c088c44d87af36dbe9587454d71fc73`. Nieuwe formulier-/sectie-/veldacties, rolverplichting, stapkoppeling, desktop/390-preview en revision-save/reopen-contract zijn lokaal getest; 28 gerichte tests, typecheck, ESLint en i18n zijn groen. **BROWSER-VISUAL / AUTHORIZED API READBACK OPEN**; dynamische visibility-/required-condition-builder ontbreekt nog. Geen remote write, push, merge of deployment. Zie [PMUX-02B acceptance](../quality/acceptance/runs/PMUX-02B-20261021-LOCAL.md).
+
 Status: **ACTUEEL / LIVING**
 Bijgewerkt: 2026-10-21 (postrelease; historische bewijssecties volgen)
 
