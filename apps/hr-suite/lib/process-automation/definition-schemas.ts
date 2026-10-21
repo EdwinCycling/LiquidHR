@@ -297,9 +297,11 @@ export const processDefinitionDraftSchema = z.object({
   description: localizedTextSchema.optional(),
   enabledLanguages: z.array(languageCodeSchema).min(1),
   startStepKey: identifierSchema,
-  participants: z.array(participantDefinitionSchema).min(1),
+  // Drafts may start empty. The compiler still requires participants and steps before publication.
+  participants: z.array(participantDefinitionSchema),
   forms: z.array(formDefinitionSchema),
-  steps: z.array(processStepSchema).min(1),
+  // Keep incomplete drafts editable; compileProcessDefinition enforces a complete graph.
+  steps: z.array(processStepSchema),
   transitions: z.array(processTransitionSchema),
   output: processOutputSchema.optional(),
 }).strict()

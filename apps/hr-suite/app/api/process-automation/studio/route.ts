@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   try {
     const parsed = studioCreateSchema.safeParse(await request.json())
     if (!parsed.success) return NextResponse.json({ code: 'INVALID_PROCESS_DEFINITION_CREATE', issues: parsed.error.issues }, { status: 400 })
-    return NextResponse.json({ data: await createStudioDefinition(parsed.data.key) }, { status: 201 })
+    return NextResponse.json({ data: await createStudioDefinition(parsed.data) }, { status: 201 })
   } catch (error) {
     return studioHttpError(error)
   }
