@@ -67,7 +67,7 @@ decommissionplan afzonderlijk is goedgekeurd.
 
 ### Process Automation — PMUX
 - PMUX-02A/02B en 03A zijn lokaal gebouwd; PMUX-03B breidt de bestaande `/work`-details uit voor MSS/HR met besluiten, terugstuurreden, voortgang en historie.
-- PMUX-03C is lokaal afgerond op `76c258013eb6d3ded81e7f2c6be2d0b0023129d7`: stap ordenen/verwijderen, Focus-catalogusnavigatie, gespecificeerde Focus-statussen en terugkeer naar de juiste Focus-context. De capabilitymatrix en zes-vragenbeoordeling zijn vastgelegd; browser-/rolacceptatie is nog OPEN.
+- PMUX-03C is lokaal afgerond op `9a526a6dbd55092c8fc97d341f1014a9200052eb` (voortbouwend op `76c258013eb6d3ded81e7f2c6be2d0b0023129d7`): stap ordenen/verwijderen, alleen servergeautoriseerde Focus-catalogusnavigatie, gespecificeerde Focus-statussen en terugkeer naar de juiste Focus-context. De capabilitymatrix en zes-vragenbeoordeling zijn vastgelegd; browser-/rolacceptatie is nog OPEN.
 - PMUX-04 blijft de afzonderlijke geauthenticeerde end-to-end browseracceptatie met synthetische gegevens en desktop-/390px-screenshots. De PMUX-03A/03B-migraties zijn niet remote toegepast. Eerst expliciete databaseautorisatie en de in de PMUX-03C-evidence beschreven RLS-/persona-gates; geen automatische FINAL ACCEPTED-status.
 - Zie [AA-OPEN](AA-OPEN.md), [PMUX-03C evidence](../quality/acceptance/runs/PMUX-03C-20261021-LOCAL.md) en de eerdere [PMUX-03B evidence](../quality/acceptance/runs/PMUX-03B-20261021-LOCAL.md).
 
