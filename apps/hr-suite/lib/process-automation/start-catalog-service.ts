@@ -65,8 +65,3 @@ export async function listStartableProcesses(dependencies?: ProcessStartCatalogD
   if (!parsed.success) throw new ProcessStartCatalogError('PROCESS_START_CATALOG_INVALID', 500)
   return parsed.data
 }
-
-export function localizedProcessText(value: Readonly<Record<string, string>> | null, locale: 'nl' | 'en'): string {
-  if (!value) return ''
-  return value[locale]?.trim() || value[locale === 'nl' ? 'en' : 'nl']?.trim() || ''
-}

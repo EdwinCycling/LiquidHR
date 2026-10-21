@@ -490,6 +490,7 @@
     "processKeyHelp": "This stable key is used by integrations. Use lowercase letters, numbers, and hyphens only.",
     "blankProcess": "Start completely empty",
     "blankProcessDescription": "No steps, forms, or internal-transfer data are copied.",
+    "blankStart": "Start with an empty process",
     "certifiedRecipe": "Existing certified recipe",
     "certifiedRecipeDescription": "Choose a recipe from the existing recipe catalog. It is copied only when you activate it there.",
     "trainingRequestExample": "Example: Training request",

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import type { Locale } from '@/lib/i18n/config'
-import { localizedProcessText, type StartableProcess } from '@/lib/process-automation/start-catalog-service'
+import type { StartableProcess } from '@/lib/process-automation/start-catalog-service'
 import { Button } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import { withProcessWorkReturnContext, type ProcessWorkReturnContext } from '@/lib/process-automation/work-routing'
@@ -36,6 +36,11 @@ function startErrorLabel(code: string | undefined, labels: ProcessStartCatalogLa
   if (code === 'FORBIDDEN' || code === 'FORBIDDEN_ACTION' || code === 'ACTOR_EMPLOYEE_NOT_FOUND' || code === 'AUTHENTICATION_REQUIRED') return labels.startDenied
   if (code === 'PROCESS_DEFINITION_NOT_PUBLISHED' || code === 'PROCESS_VERSION_NOT_FOUND' || code === 'NO_ASSIGNEE' || code === 'AMBIGUOUS_ASSIGNEE' || code === 'SUBJECT_EMPLOYEE_NOT_FOUND' || code === 'SUBJECT_EMPLOYMENT_NOT_FOUND') return labels.startUnavailable
   return labels.startFailed
+}
+
+function localizedProcessText(value: Readonly<Record<string, string>> | null, locale: 'nl' | 'en'): string {
+  if (!value) return ''
+  return value[locale]?.trim() || value[locale === 'nl' ? 'en' : 'nl']?.trim() || ''
 }
 
 export function ProcessStartCatalog({ locale, labels, processes, loadError = false, returnContext }: ProcessStartCatalogProps) {

@@ -490,6 +490,7 @@
     "processKeyHelp": "Deze vaste sleutel wordt gebruikt in koppelingen. Gebruik alleen kleine letters, cijfers en streepjes.",
     "blankProcess": "Begin helemaal leeg",
     "blankProcessDescription": "Er worden geen stappen, formulieren of gegevens van interne overplaatsing gekopieerd.",
+    "blankStart": "Start met een leeg proces",
     "certifiedRecipe": "Bestaand gecertificeerd recept",
     "certifiedRecipeDescription": "Kies een recept uit de bestaande receptenbibliotheek. Het wordt pas gekopieerd als je het daar activeert.",
     "trainingRequestExample": "Voorbeeld: Opleidingsaanvraag",
