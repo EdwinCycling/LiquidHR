@@ -43,3 +43,15 @@ Bestandsconventie voor een later afzonderlijk geautoriseerd vervolg: PMUX04-<ID>
 | 35 | Employee/Admin | Native Leave/Actual Work en starters | Beschikbaarheid controleren zonder mutatie | Niet uitgevoerd in deze run | Geen native mutaties | Geen regressieclaim |
 
 Voor elk ID ontbreken zowel D- als M-capture. De UX-review van de zes vaste criteria en de gezamenlijke producteigenaarbeoordeling blijven OPEN.
+
+## PMUX-04R diagnostische captures — geen acceptancebeelden
+
+Deze drie echte Codex-browsercaptures zijn in de tooloutput van de herstelrun getoond, maar niet als PNG-bestand geëxporteerd. Ze hebben daarom geen worktree-bestandspad en vervangen geen van de 35 D/M-captures hierboven.
+
+| Diagnostisch ID | Persona/context | Route / viewport | Feitelijk zichtbaar | Capturelocatie | Effect op 35 acceptatiebeelden |
+| --- | --- | --- | --- | --- | --- |
+| PMUX04R-DIAG-01-D | Bestaande Employee-context | `/work?view=REQUESTS&tab=ALL`, desktopbrowser | Geen generieke proceskaart; Verlof en Interne overplaatsing elk één bestaande startknop; geen werkitems | Inline in Codex-browser tooloutput; niet opgeslagen | Geen; alle geplande IDs blijven `NOT CAPTURED` |
+| PMUX04R-DIAG-02-M | Bestaande Employee-context | `/work?view=REQUESTS&tab=ALL`, 390×844 | Mobiele diagnostische layout na lokale fix | Inline in Codex-browser tooloutput; niet opgeslagen | Geen; alle geplande IDs blijven `NOT CAPTURED` |
+| PMUX04R-DIAG-03-D | Bestaande Employee-context | `/local/personas`, desktopbrowser | Alleen “Terug naar het startaccount”; geen andere persona-actie getoond | Inline in Codex-browser tooloutput; niet opgeslagen | Geen; alle geplande IDs blijven `NOT CAPTURED` |
+
+Status: deze beelden tonen hersteldiagnostiek, geen volledige persona-, proces- of UX-acceptatie. Er is niet teruggeschakeld naar het owner-account omdat de browsercookies voor `127.0.0.1:3011` en de beschermde Payroll-runtime op `127.0.0.1:3010` worden gedeeld.
