@@ -116,7 +116,7 @@ Canoniek HR-project: `liquidhr`.
 - Vóór de eerste push van deze beleidsconfiguratie moeten de effectieve Vercel Git/Preview-projecttriggers al uitgeschakeld zijn. Controleer ook branchinstellingen, Actions/workflows, Deploy Hooks en externe callers; verifieer dat geen push/merge een deployment kan maken. Alleen `vercel.json` of `ignoreCommand` bewijst niet dat de eerste config-push veilig is. Als dit niet betrouwbaar is vastgesteld: **stop vóór push**.
 - Schakel de Git-integratie niet uit. Behoud alleen expliciet geautoriseerde on-demand CLI-deploys. Een Deploy Hook of externe automation mag uitsluitend een apart geautoriseerde release kunnen starten; onbekende callers blijven een blokkade voor GREEN.
 
-- Verificatie 2026-10-21 voor LIQUIDHR-CONVERGENCE-03: de repositoryconfiguratie schakelt Git-deployments uit, maar Vercel toont nog een actieve Deploy Hook naar work/ai-gpt-live. De eigenaar/caller is niet read-only bevestigd; de lijst-API gaf 403. Behandel dit als release-HOLD tot de caller gecontroleerd is. Geen hookwijziging zonder apart mandaat.
+- Verificatie 2026-10-21 voor LIQUIDHR-CONVERGENCE-03B: de effectieve candidate-runtime gebruikte de al geprovisionde centrale TEST-configuratie via de process-local LOCALAPPDATA-binding; configwaarden zijn niet gelezen of gekopieerd. vercel.json houdt Git-deployments uit. De actieve Deploy Hook naar work/ai-gpt-live blijft bestaan en de externe caller is onbekend; de lokale releasecandidate-commit kan deze niet aanroepen omdat de kandidaat geen remote event verstuurt en de effectieve Git-hookdirectory alleen samplehooks bevat. Dit maakt de lokale commit veilig, maar onbekende callers blijven een HOLD voor een hosted release. Er is geen hook geactiveerd of aangepast.
 
 ### Previewbeleid
 
