@@ -1,11 +1,22 @@
 # AA-CURRENT — Current LiquidHR State
 
-> **Integratiestatus 21-10-2026:** STAR f6689702, Employee UX a416bc4b, Payroll a9697537 en AI-code PR #29 66058e72 zijn lokaal opgenomen in integration/liquidhr-unified-20261021. De AA-convergence-documenten en AI-roadmap PR #27 zijn meegenomen; de snelle gezamenlijke acceptatie en lokale releasecandidate staan in het 03B-addendum in het gateverslag. Historische releasebaseline en acceptatiebewijzen blijven behouden.
+> **ACTUEEL — 21 oktober 2026, na gezamenlijke Production-deployment en CLEANUP-09.** Productcode `1.20261021.1` op `c0fa236967ec0708c0a57f72e0dfb29b78b3fead` is via GitHub gekoppeld aan Vercel deployment `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9` (**READY**, alle drie productiealiases). Dit is de synthetische gedeelde productomgeving, **geen commerciële payroll-GA**. Nieuwe docs-only GitHub-commits zijn niet de Vercel-runtime-SHA.
 >
-> Geen wijziging aan main, remote branches, deployment of database.
+> **Geauthenticeerde hosted smoke:** HR Admin/Jupiter, STAR-rapportgegevens, Payroll-hoofdoverzicht, Employee Journey en HeRa-paneel laden. **OPEN:** `/payroll/runs` blijft laden; ESS FINALIZED payslip met passende actor niet aangetoond; geen HeRa-prompt/Focus-host-endgate; artifact `buildId` en runtimefingerprint niet onafhankelijk uitgelezen. Geen businessdata gewijzigd.
 >
-> **LIQUIDHR-CONVERGENCE-03B — 2026-10-21: LOCAL RELEASECANDIDATE GREEN; HOSTED RELEASE HOLD.** Op kandidaatbasis c5c276150dced599a9225914e60759fdb51d07f7 is appversie 1.20261021.1 vastgelegd. De bestaande HR Admin-sessie las binnen De Sterren holding / Planeten / Jupiter BV: STAR 11 rapportregels en 35 medewerkers in bereik; Payroll-regelingenbibliotheek en opgeslagen runlijst laden. EmployeeDashboard had geen afgeknipte titels of buiten beeld vallende kaarten op desktop, 390px en een 273px-kaartbreedte. Zes gerichte suites (42 tests) en TypeScript zijn groen; eerdere lint-, i18n-, Focus-widget- en productionbuildbewijzen zijn hergebruikt. De actieve Vercel Deploy Hook naar work/ai-gpt-live blijft bestaan; de lokale commit kan deze niet aanroepen, maar de externe caller is onbekend en blijft een blokkade voor een gehoste release. Geen push, deployment, main- of databasewijziging.
+> **CLEANUP:** volgens Codex 29 → **2 lokale worktrees**. Hoofdmap `C:\Users\Edwin\Documents\Apps\LiquidHR` schoon op release-`main`; beschermde `work/payroll-p0-p1` opnieuw aangemaakt maar oorspronkelijke unieke 519-byte `apps/hr-suite/.env.local` **VERLOREN / RECOVERY OPEN**. Gebruik die Payroll/Nmbrs-runtime niet vóór identiek herstel uit oorspronkelijke beveiligde bron. Bescherm herstelstashes en refs; geen verder destructieve cleanup.
+>
+> **Remote cleanup:** 10 GitHub-branches, 9 verweesde Vercel-previewaliases en 1 CLI-foutdeployment verwijderd. 11 remote branches bleven; vijf Draft PR's #28/#30/#31/#32/#33 open. AI PR's #27/#29 zijn merged/closed. Actuele runtime en vorige READY-rollback behouden.
+>
+> **Productstatus:** Frits/Jupiter november-run `d8508395-2e25-59be-bc0b-ff2f0b83f7dc` is opgeslagen **CONCEPT**, bruto € 1.879,33, na inhouding pensioen en loonheffing € 1.710,84 (**geen definitief nettoloon**); geen PDF/FINALIZED. STAR en Employee UX geïntegreerd; AI 14 Workforce READ + 2 Focus-protocoltools geïntegreerd, host/security-eindacceptatie OPEN.
+>
+> **GO:** nieuwe afgebakende niet-Payroll-features op schoon `main`, met normale per-feature gates. **HOLD:** runtime van `work/payroll-p0-p1` tot config-herstel; eerst `/payroll/runs` herstellen vóór nieuwe salarisrunfunctionaliteit. Zie [postrelease- en cleanupstatus](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md) voor volledige bewijsgrenzen. Eerder gedateerde paragrafen hieronder zijn historische snapshots.
+
 Status: **ACTUEEL / LIVING**
+Bijgewerkt: 2026-10-21 (postrelease; historische bewijssecties volgen)
+
+## Historische status- en acceptance-snapshots (18 oktober en eerder)
+
 Momentopname: 2026-10-18 (historische acceptance-evidence blijft ongewijzigd)
 
 ## Blijvende productregel (besluit 2026-10-17)
