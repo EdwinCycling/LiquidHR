@@ -4,6 +4,17 @@ import { describe, expect, it } from 'vitest'
 
 const migrationSource = readFileSync(new URL('./20261021160000_pmux03b_process_work_experience.sql', import.meta.url), 'utf8')
 const migration = migrationSource.toLowerCase()
+const processAutomationFoundation = readFileSync(new URL('./20260808122825_process_automation_p2_foundation.sql', import.meta.url), 'utf8')
+const employeeScopeFoundation = readFileSync(new URL('./20260805181522_hr_group_people_organization_roles.sql', import.meta.url), 'utf8')
+
+function extractFunctionDefinition(source: string, functionName: string): string {
+  const start = source.toLowerCase().indexOf('create or replace function ' + functionName.toLowerCase() + '(')
+  if (start < 0) throw new Error('Expected Process Automation function not found: ' + functionName)
+  const endMarker = '\n$$;'
+  const end = source.indexOf(endMarker, start)
+  if (end < 0) throw new Error('Expected Process Automation function terminator not found: ' + functionName)
+  return source.slice(start, end + endMarker.length)
+}
 
 describe('PMUX-03B process work experience projection', () => {
   it('keeps history reads behind the existing work-item read scope and immutable process version', () => {
@@ -79,6 +90,7 @@ describe('PMUX-03B process work experience projection', () => {
     const ids = {
       manager: '00000000-0000-4000-8000-000000000001',
       employee: '00000000-0000-4000-8000-000000000002',
+      employeeProfile: '00000000-0000-4000-8000-000000000003',
       tenantA: '00000000-0000-4000-8000-000000000010',
       tenantB: '00000000-0000-4000-8000-000000000011',
       groupA: '00000000-0000-4000-8000-000000000020',
@@ -90,9 +102,11 @@ describe('PMUX-03B process work experience projection', () => {
       versionTenantB: '00000000-0000-4000-8000-000000000042',
       instanceA: '00000000-0000-4000-8000-000000000050',
       instanceB: '00000000-0000-4000-8000-000000000051',
+      instanceWrongGroup: '00000000-0000-4000-8000-000000000052',
       workItemA: '00000000-0000-4000-8000-000000000060',
       workItemAOtherStep: '00000000-0000-4000-8000-000000000061',
       workItemB: '00000000-0000-4000-8000-000000000062',
+      workItemWrongGroup: '00000000-0000-4000-8000-000000000063',
       eventStarted: '00000000-0000-4000-8000-000000000070',
       eventChanges: '00000000-0000-4000-8000-000000000071',
       eventTenantB: '00000000-0000-4000-8000-000000000072',
@@ -130,30 +144,47 @@ describe('PMUX-03B process work experience projection', () => {
 
         create schema internal_security;
         grant usage on schema internal_security to authenticated;
-        create table internal_security.process_work_item_read_access (
+        create type public.access_scope_type as enum ('TENANT', 'ADMINISTRATION');
+        create table internal_security.permission_fixtures (
           actor_user_id uuid not null,
           tenant_id uuid not null,
           hr_group_id uuid not null,
-          work_item_id uuid not null
+          administration_id uuid,
+          permission_code text not null
         );
-        create function internal_security.process_work_item_can_read(
+        create function internal_security.current_user_has_hr_group_permission(
           requested_tenant_id uuid,
           requested_hr_group_id uuid,
-          requested_work_item_id uuid
+          requested_permission_code text
         ) returns boolean
           language sql stable security definer set search_path = ''
           as $$
             select exists (
               select 1
-              from internal_security.process_work_item_read_access access_row
+              from internal_security.permission_fixtures access_row
               where access_row.actor_user_id = auth.uid()
                 and access_row.tenant_id = requested_tenant_id
                 and access_row.hr_group_id = requested_hr_group_id
-                and access_row.work_item_id = requested_work_item_id
+                and access_row.administration_id is null
+                and access_row.permission_code = requested_permission_code
             )
           $$;
-        revoke all on function internal_security.process_work_item_can_read(uuid, uuid, uuid)
-          from public, anon, authenticated;
+        create function internal_security.current_user_has_permission(
+          requested_tenant_id uuid,
+          requested_administration_id uuid,
+          requested_permission_code text
+        ) returns boolean
+          language sql stable security definer set search_path = ''
+          as $$
+            select exists (
+              select 1
+              from internal_security.permission_fixtures access_row
+              where access_row.actor_user_id = auth.uid()
+                and access_row.tenant_id = requested_tenant_id
+                and access_row.administration_id = requested_administration_id
+                and access_row.permission_code = requested_permission_code
+            )
+          $$;
 
         create function internal_security.process_definition_content(requested_definition jsonb)
           returns jsonb language sql immutable security definer set search_path = ''
@@ -190,7 +221,39 @@ describe('PMUX-03B process work experience projection', () => {
           tenant_id uuid not null,
           hr_group_id uuid not null,
           process_definition_id uuid not null,
-          process_version_id uuid not null
+          process_version_id uuid not null,
+          scope_type public.access_scope_type not null default 'TENANT',
+          administration_id uuid,
+          initiator_employee_id uuid
+        );
+        create table public.employees (
+          id uuid primary key,
+          auth_user_id uuid not null,
+          tenant_id uuid not null,
+          hr_group_id uuid not null,
+          deleted_at timestamptz,
+          is_archived boolean not null,
+          created_at timestamptz not null
+        );
+        create table public.process_employee_subjects (
+          tenant_id uuid not null,
+          hr_group_id uuid not null,
+          process_instance_id uuid not null,
+          employee_id uuid not null
+        );
+        create table public.process_employment_subjects (
+          tenant_id uuid not null,
+          hr_group_id uuid not null,
+          administration_id uuid not null,
+          process_instance_id uuid not null,
+          employment_id uuid not null
+        );
+        create table public.employments (
+          tenant_id uuid not null,
+          hr_group_id uuid not null,
+          administration_id uuid not null,
+          id uuid not null,
+          employee_id uuid not null
         );
         create table public.process_versions (
           id uuid primary key,
@@ -219,7 +282,30 @@ describe('PMUX-03B process work experience projection', () => {
           work_item_id uuid not null,
           action text not null
         );
+        create table public.process_work_item_candidates (
+          tenant_id uuid not null,
+          hr_group_id uuid not null,
+          work_item_id uuid not null,
+          employee_id uuid not null,
+          is_eligible boolean not null
+        );
       `)
+
+      await db.exec([
+        extractFunctionDefinition(employeeScopeFoundation, 'internal_security.current_employee_id'),
+        extractFunctionDefinition(processAutomationFoundation, 'internal_security.process_scope_has_permission'),
+        extractFunctionDefinition(processAutomationFoundation, 'internal_security.process_instance_can_read'),
+        extractFunctionDefinition(processAutomationFoundation, 'internal_security.process_work_item_can_read'),
+      ].join('\n'))
+
+      await db.query(
+        'insert into internal_security.permission_fixtures (actor_user_id, tenant_id, hr_group_id, administration_id, permission_code) values ($1, $2, $3, null, $4), ($5, $2, $3, null, $6)',
+        [ids.manager, ids.tenantA, ids.groupA, 'process-task:read', ids.employee, 'self:process-task:read'],
+      )
+      await db.query(
+        'insert into public.employees (id, auth_user_id, tenant_id, hr_group_id, deleted_at, is_archived, created_at) values ($1, $2, $3, $4, null, false, $5)',
+        [ids.employeeProfile, ids.employee, ids.tenantA, ids.groupA, '2026-10-01T00:00:00Z'],
+      )
 
       await db.query(
         'insert into public.process_versions (id, tenant_id, hr_group_id, process_definition_id, definition_json) values ($1, $2, $3, $4, $5::jsonb), ($6, $2, $3, $4, $7::jsonb), ($8, $9, $10, $11, $5::jsonb)',
@@ -230,12 +316,12 @@ describe('PMUX-03B process work experience projection', () => {
         ],
       )
       await db.query(
-        'insert into public.process_instances (id, tenant_id, hr_group_id, process_definition_id, process_version_id) values ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)',
-        [ids.instanceA, ids.tenantA, ids.groupA, ids.definitionA, ids.versionPinned, ids.instanceB, ids.tenantB, ids.groupB, ids.definitionB, ids.versionTenantB],
+        'insert into public.process_instances (id, tenant_id, hr_group_id, process_definition_id, process_version_id) values ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10), ($11, $2, $8, $4, $5)',
+        [ids.instanceA, ids.tenantA, ids.groupA, ids.definitionA, ids.versionPinned, ids.instanceB, ids.tenantB, ids.groupB, ids.definitionB, ids.versionTenantB, ids.instanceWrongGroup],
       )
       await db.query(
-        'insert into public.process_work_items (id, tenant_id, hr_group_id, process_instance_id, step_key) values ($1, $2, $3, $4, $5), ($6, $2, $3, $4, $7), ($8, $9, $10, $11, $5)',
-        [ids.workItemA, ids.tenantA, ids.groupA, ids.instanceA, 'manager-review', ids.workItemAOtherStep, 'employee-update', ids.workItemB, ids.tenantB, ids.groupB, ids.instanceB],
+        'insert into public.process_work_items (id, tenant_id, hr_group_id, process_instance_id, step_key) values ($1, $2, $3, $4, $5), ($6, $2, $3, $4, $7), ($8, $9, $10, $11, $5), ($12, $2, $10, $13, $5)',
+        [ids.workItemA, ids.tenantA, ids.groupA, ids.instanceA, 'manager-review', ids.workItemAOtherStep, 'employee-update', ids.workItemB, ids.tenantB, ids.groupB, ids.instanceB, ids.workItemWrongGroup, ids.instanceWrongGroup],
       )
       await db.query(
         'insert into public.process_events (id, event_type, payload, created_at, sequence_number, tenant_id, hr_group_id, process_instance_id) values ($1, $2, $3::jsonb, $4, 1, $5, $6, $7), ($8, $9, $10::jsonb, $11, 2, $5, $6, $7), ($12, $13, $14::jsonb, $15, 1, $16, $17, $18)',
@@ -254,8 +340,8 @@ describe('PMUX-03B process work experience projection', () => {
         ],
       )
       await db.query(
-        'insert into internal_security.process_work_item_read_access (actor_user_id, tenant_id, hr_group_id, work_item_id) values ($1, $2, $3, $4), ($5, $6, $7, $8), ($5, $2, $7, $4)',
-        [ids.manager, ids.tenantA, ids.groupA, ids.workItemA, ids.employee, ids.tenantB, ids.groupB, ids.workItemB],
+        'insert into public.process_work_item_candidates (tenant_id, hr_group_id, work_item_id, employee_id, is_eligible) values ($1, $2, $3, $4, true)',
+        [ids.tenantA, ids.groupA, ids.workItemAOtherStep, ids.employeeProfile],
       )
 
       await db.exec(migrationSource)
@@ -284,6 +370,13 @@ describe('PMUX-03B process work experience projection', () => {
 
       await db.query("select pg_catalog.set_config('request.jwt.claim.sub', $1, false)", [ids.employee])
       await expect(db.query('select public.get_process_work_item_experience($1, $2)', [ids.workItemA, 'nl'])).rejects.toThrow(/FORBIDDEN/)
+      const employeeResult = await db.query<{ experience: { changeRequests: Array<{ id: string; body: string }> } }>(
+        'select public.get_process_work_item_experience($1, $2) as experience',
+        [ids.workItemAOtherStep, 'nl'],
+      )
+      expect(employeeResult.rows[0]?.experience.changeRequests).toMatchObject([
+        { id: ids.noteForOtherItem, body: 'Notitie voor een andere stap.' },
+      ])
 
       await db.query("select pg_catalog.set_config('request.jwt.claim.sub', $1, false)", [ids.manager])
       await expect(db.query('select public.get_process_work_item_experience($1, $2)', [ids.workItemB, 'nl'])).rejects.toThrow(/FORBIDDEN/)

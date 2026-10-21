@@ -37,6 +37,7 @@ interface FormRuntimeRendererProps {
   readonly initialProjection: FormProjection
   readonly locale: 'nl' | 'en'
   readonly labels: FormRuntimeLabels
+  readonly embedded?: boolean
   readonly participantLabel?: string
   readonly saveExplanation?: string
 }
@@ -171,9 +172,9 @@ function ReferencePicker({
       role="combobox"
       value={selected ? selected.label : query}
     />
-    {open ? <ul className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-border bg-surface p-1 shadow-lg" id={`form-reference-options-${field.key}`} role="listbox">
+    {open ? <ul className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-[var(--radius-surface)] border border-border bg-surface p-1" id={`form-reference-options-${field.key}`} role="listbox">
       {loading ? <li className="px-3 py-2 text-sm text-muted-foreground">{labels.referenceLoading}</li> : options.length === 0 ? <li className="px-3 py-2 text-sm text-muted-foreground">{labels.referenceNoOptions}</li> : options.map((option) => <li key={option.value} role="option" aria-selected={option.value === selectedValue}>
-        <button className="flex min-h-11 w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary" onMouseDown={(event) => event.preventDefault()} onClick={() => { selectedDuringPointerInteraction.current = option.value; onChange(option.value); setQuery(option.label); setOpen(false) }} type="button">
+        <button className="flex min-h-11 w-full items-start gap-2 rounded-[var(--radius-control)] px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary" onMouseDown={(event) => event.preventDefault()} onClick={() => { selectedDuringPointerInteraction.current = option.value; onChange(option.value); setQuery(option.label); setOpen(false) }} type="button">
           <span className="font-medium">{option.label}</span>{option.meta ? <span className="text-muted-foreground">{option.meta}</span> : null}
         </button>
       </li>)}
@@ -181,7 +182,7 @@ function ReferencePicker({
   </div>
 }
 
-export function FormRuntimeRenderer({ initialProjection, locale, labels, participantLabel, saveExplanation }: FormRuntimeRendererProps) {
+export function FormRuntimeRenderer({ initialProjection, locale, labels, embedded = false, participantLabel, saveExplanation }: FormRuntimeRendererProps) {
   const [projection, setProjection] = useState(initialProjection)
   const [values, setValues] = useState<Record<string, FormJsonValue>>(() => initialValues(initialProjection))
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -301,24 +302,26 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, partici
   const valueLabels = { noValue: labels.noValue, booleanTrue: labels.booleanTrue, booleanFalse: labels.booleanFalse }
   const saveStatus = saveState === 'saving' ? labels.saving : saveState === 'saved' ? labels.saved : saveState === 'stale' ? labels.stale : saveState === 'error' ? labels.saveError : ''
 
-  return <section className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
-    <header className="rounded-3xl border border-border bg-panel p-6 shadow-sm sm:p-8">
+  const Heading = embedded ? 'h2' : 'h1'
+
+  return <section aria-label={projection.title} className={embedded ? 'min-w-0' : 'mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10'}>
+    <header className={embedded ? 'border-b border-border pb-4' : 'rounded-[var(--radius-surface)] border border-border bg-panel p-6 sm:p-8'}>
       <p className="eyebrow text-primary">{participantLabel ?? projection.participantKey}</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight">{projection.title}</h1>
+      <Heading className={embedded ? 'mt-2 text-xl font-semibold tracking-tight' : 'mt-2 text-3xl font-semibold tracking-tight'}>{projection.title}</Heading>
       {projection.description ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{projection.description}</p> : null}
       {saveExplanation ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{saveExplanation}</p> : null}
       <p aria-live="polite" className="mt-5 min-h-5 text-sm text-muted-foreground">{saveStatus}</p>
     </header>
 
-    {Object.keys(errors).length > 0 ? <div ref={summaryRef} aria-label={labels.errorSummary} className="mt-5 rounded-2xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger" role="alert" tabIndex={-1}>
+    {Object.keys(errors).length > 0 ? <div ref={summaryRef} aria-label={labels.errorSummary} className="mt-5 rounded-[var(--radius-control)] border border-danger/30 bg-danger-soft p-4 text-sm text-danger" role="alert" tabIndex={-1}>
       <p className="font-semibold">{labels.errorSummary}</p>
       <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(errors).map(([fieldKey, message]) => <li key={fieldKey}><a href={`#form-field-${fieldKey}`}>{message}</a></li>)}</ul>
     </div> : null}
 
-    <form className="mt-6 flex max-h-[calc(100vh-14rem)] min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-border bg-panel" onSubmit={(event) => { event.preventDefault(); void save() }}>
-      <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6" onScroll={(event) => { const element = event.currentTarget; setHasMoreBelow(element.scrollTop + element.clientHeight < element.scrollHeight - 8) }} ref={scrollRef}>
+    <form className={embedded ? 'mt-5 min-w-0' : 'mt-6 flex max-h-[calc(100vh-14rem)] min-h-[28rem] flex-col overflow-hidden rounded-[var(--radius-surface)] border border-border bg-panel'} onSubmit={(event) => { event.preventDefault(); void save() }}>
+      <div className={embedded ? 'min-w-0' : 'min-w-0 flex-1 overflow-y-auto p-4 sm:p-6'} onScroll={(event) => { const element = event.currentTarget; setHasMoreBelow(element.scrollTop + element.clientHeight < element.scrollHeight - 8) }} ref={scrollRef}>
         <div className="grid gap-6">
-          {projection.sections.map((section) => <fieldset className="rounded-2xl border border-border bg-surface p-5 sm:p-6" key={section.key}>
+          {projection.sections.map((section) => <fieldset className="rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:p-5" key={section.key}>
             <legend className="px-1 text-xl font-semibold">{section.title}</legend>
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               {section.fields.map((field) => {
@@ -331,12 +334,12 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, partici
                 return <div className={`grid gap-2 ${fieldClass}`} key={field.key}>
                   <label className="text-sm font-semibold" htmlFor={`form-field-${field.key}`}>{field.label}{field.required ? <span aria-hidden="true" className="ml-1 text-danger">*</span> : null}</label>
                   {field.helpText ? <p className="text-sm text-muted-foreground" id={`form-help-${field.key}`}>{field.helpText}</p> : null}
-                  {isReadOnly ? <div className="grid gap-3 rounded-xl bg-panel-soft p-3 text-sm sm:grid-cols-2" aria-label={labels.readOnly}><p className="font-semibold text-muted-foreground sm:col-span-2">{labels.readOnly}</p><div><p className="text-muted-foreground">{labels.currentValue}</p><p className="mt-1 font-medium">{current}</p></div><div><p className="text-muted-foreground">{labels.newValue}</p><p className="mt-1 font-medium">{displayFormValue(field.newValue, valueLabels)}</p></div></div>
+                  {isReadOnly ? <div className="grid gap-3 rounded-[var(--radius-control)] bg-panel-soft p-3 text-sm sm:grid-cols-2" aria-label={labels.readOnly}><p className="font-semibold text-muted-foreground sm:col-span-2">{labels.readOnly}</p><div><p className="text-muted-foreground">{labels.currentValue}</p><p className="mt-1 font-medium">{current}</p></div><div><p className="text-muted-foreground">{labels.newValue}</p><p className="mt-1 font-medium">{displayFormValue(field.newValue, valueLabels)}</p></div></div>
                     : isReferenceType(field.type) ? <ReferencePicker describedBy={describedBy} field={field} invalid={Boolean(error)} language={locale} labels={{ referenceSearch: labels.referenceSearch, referenceLoading: labels.referenceLoading, referenceNoOptions: labels.referenceNoOptions }} onBlur={() => { validateField(field.key) }} onChange={(nextValue) => setFieldValue(field.key, nextValue)} value={value} workItemId={projection.workItemId} />
                       : field.type === 'LONG_TEXT' ? <textarea className="form-field min-h-28" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.value)} value={inputValue(value)} />
-                        : field.type === 'BOOLEAN' ? <label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm"><input aria-describedby={describedBy} aria-invalid={Boolean(error)} checked={value === true} id={`form-field-${field.key}`} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.checked)} type="checkbox" /><span>{field.label}</span></label>
+                          : field.type === 'BOOLEAN' ? <label className="flex items-center gap-3 rounded-[var(--radius-control)] border border-border p-3 text-sm"><input aria-describedby={describedBy} aria-invalid={Boolean(error)} checked={value === true} id={`form-field-${field.key}`} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.checked)} type="checkbox" /><span>{field.label}</span></label>
                           : field.type === 'SINGLE_SELECT' ? <select className="form-field" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.value)} value={inputValue(value)}><option value="">{labels.noValue}</option>{field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
-                            : field.type === 'MULTI_SELECT' ? <div aria-describedby={describedBy} aria-invalid={Boolean(error)} className="grid gap-2 rounded-xl border border-border p-3">{field.options.map((option) => { const selected = Array.isArray(value) && value.includes(option.value); return <label className="flex items-center gap-3 text-sm" key={option.value}><input checked={selected} onBlur={() => { validateField(field.key) }} onChange={(event) => { const currentValues = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; setFieldValue(field.key, event.target.checked ? [...currentValues, option.value] : currentValues.filter((item) => item !== option.value)) }} type="checkbox" />{option.label}</label> })}</div>
+                            : field.type === 'MULTI_SELECT' ? <div aria-describedby={describedBy} aria-invalid={Boolean(error)} className="grid gap-2 rounded-[var(--radius-control)] border border-border p-3">{field.options.map((option) => { const selected = Array.isArray(value) && value.includes(option.value); return <label className="flex items-center gap-3 text-sm" key={option.value}><input checked={selected} onBlur={() => { validateField(field.key) }} onChange={(event) => { const currentValues = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; setFieldValue(field.key, event.target.checked ? [...currentValues, option.value] : currentValues.filter((item) => item !== option.value)) }} type="checkbox" />{option.label}</label> })}</div>
                             : <input className="form-field" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, fieldValue(field.type, event.target.value))} onInput={(event) => setFieldValue(field.key, fieldValue(field.type, event.currentTarget.value))} type={field.type === 'DATE' ? 'date' : field.type === 'TIME' ? 'time' : field.type === 'DATETIME' ? 'datetime-local' : field.type === 'INTEGER' || field.type === 'DECIMAL' || field.type === 'MONEY' ? 'number' : 'text'} value={inputValue(value)} />}
                   {error ? <p className="text-sm text-danger" id={`form-error-${field.key}`}>{error}</p> : null}
                 </div>
@@ -348,7 +351,7 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, partici
       <footer className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-panel/95 p-4 backdrop-blur sm:px-6">
         {hasMoreBelow ? <p className="basis-full text-xs text-muted-foreground" role="status">{labels.scrollHint}</p> : null}
         <span aria-live="polite" className="min-h-5 text-sm text-muted-foreground">{saveStatus}</span>
-        <button className="button-primary" disabled={!dirty || saveState === 'saving' || saveState === 'stale'} onClick={() => { void save() }} type="submit">{labels.save}</button>
+        <button className={embedded ? 'button-secondary' : 'button-primary'} disabled={!dirty || saveState === 'saving' || saveState === 'stale'} onClick={() => { void save() }} type="submit">{labels.save}</button>
       </footer>
     </form>
   </section>

@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
+import type { FormProjection } from '@/lib/process-automation/form-runtime'
 import type { ProcessWorkDetail, ProcessWorkExperience } from '@/lib/process-automation/work-service'
 import { ProcessWorkDetailView, type ProcessWorkDetailLabels } from './process-work-detail'
 
@@ -31,6 +32,31 @@ const experience: ProcessWorkExperience = {
   ],
 }
 
+const form: FormProjection = {
+  responseId: null,
+  workItemId: detail.workItemId,
+  processInstanceId: detail.processInstanceId,
+  stepInstanceId: detail.steps[0]!.id,
+  stepKey: detail.stepKey,
+  participantKey: 'manager',
+  formKey: 'training_request_form',
+  formVersionId: '00000000-0000-4000-8000-000000000011',
+  language: 'nl',
+  status: 'IN_PROGRESS',
+  revision: 0,
+  expectedVersion: detail.expectedVersion,
+  title: 'Opleidingsgegevens',
+  description: 'Controleer de aanvraag.',
+  sections: [{
+    key: 'training',
+    title: 'Opleiding',
+    fields: [{ key: 'training_name', label: 'Naam opleiding', helpText: null, type: 'SHORT_TEXT', accessMode: 'WRITE_REQUIRED', required: true, options: [], currentValue: null, newValue: null }],
+  }],
+  summary: [],
+  htmlSummary: '',
+  availableLanguages: ['nl'],
+}
+
 describe('ProcessWorkDetailView', () => {
   it('maakt MSS-besluit, vervolg en herindiening begrijpelijk zonder technische codes of ids', () => {
     const markup = renderToStaticMarkup(createElement(ProcessWorkDetailView, {
@@ -57,6 +83,29 @@ describe('ProcessWorkDetailView', () => {
     expect(markup).not.toContain(detail.workItemId)
     expect(markup).not.toContain('PROCESS_WORK_ITEM_ACTIONED')
     expect(markup.match(/ui-button-primary/g)?.length).toBe(1)
+  })
+
+  it('embedt het dynamische formulier zonder tweede paginakop of interne scroll', () => {
+    const markup = renderToStaticMarkup(createElement(ProcessWorkDetailView, {
+      detail,
+      experience,
+      form,
+      outputs: null,
+      operations: null,
+      locale: 'nl',
+      labels,
+      assignmentOptions: [],
+      backHref: '/work?view=WORK',
+    }))
+
+    expect(markup.match(/<h1(?:\s|>)/g)?.length).toBe(1)
+    expect(markup).toContain('<h2 class="mt-2 text-xl font-semibold tracking-tight">Opleidingsgegevens</h2>')
+    expect(markup).toContain('Manager')
+    expect(markup).toContain('Naam opleiding')
+    expect(markup).toContain('button-secondary')
+    expect(markup).not.toContain('training_request_form')
+    expect(markup).not.toContain('max-h-[calc(100vh-14rem)]')
+    expect(markup).not.toContain('overflow-y-auto')
   })
 
   it.each([
