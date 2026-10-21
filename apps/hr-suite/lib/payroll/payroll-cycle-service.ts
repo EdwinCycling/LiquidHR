@@ -215,7 +215,7 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
             diagnostics: diagnostic,
           } satisfies PayrollCycleCurrentSource] as const
         }
-      }), 3))
+      }), 6))
     const employmentIds = [...new Set([
       ...runs.map((summary) => summary.sourceSnapshot.source_employment_id),
       ...employeeReferences.map((reference) => reference.employmentId),

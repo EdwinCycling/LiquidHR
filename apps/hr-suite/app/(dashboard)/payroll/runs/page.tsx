@@ -1,9 +1,11 @@
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
+import { Button } from '@/components/ui/button'
 import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'
 import { PayrollRunSummaryList } from '@/components/payroll/payroll-professional-view'
 import { PayrollProfessionalRunWorkbench } from '@/components/payroll/payroll-professional-run-workbench'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { listPayrollProfessionalRuns } from '@/lib/payroll/payroll-professional-service'
 import { getPayrollProfessionalRunWorkspace } from '@/lib/payroll/payroll-professional-run-service'
 
@@ -42,12 +44,29 @@ export default async function PayrollRunsPage({
   const periodKey = typeof periodValue === 'string' ? periodValue : Array.isArray(periodValue) ? periodValue[0] : undefined
   const recalculationValue = query.recalculation
   const recalculationOutcome = typeof recalculationValue === 'string' ? recalculationValue : undefined
-  const [runs, t, locale, workspace] = await Promise.all([
+  const pageCopyPromise = Promise.all([getTranslator('payrollProfessional'), getLocale()])
+  const pageDataPromise = Promise.all([
     listPayrollProfessionalRuns(),
-    getTranslator('payrollProfessional'),
-    getLocale(),
     getPayrollProfessionalRunWorkspace(periodKey),
-  ])
+  ]).then(([runs, workspace]) => ({ ok: true as const, runs, workspace }))
+    .catch((error: unknown) => ({ ok: false as const, error }))
+  const [pageData, [t, locale]] = await Promise.all([pageDataPromise, pageCopyPromise])
+  if (!pageData.ok) {
+    const message = pageData.error instanceof AuthorizationError
+      ? t('runWorkspaceAccessDenied')
+      : t('runWorkspaceLoadFailed')
+    return <PageShell className="space-y-6 py-6 sm:py-8">
+      <PageHeader title={t('runs')} description={t('runsDescription')} />
+      <section aria-labelledby="payroll-runs-error-title" className="space-y-4 rounded-[var(--radius-surface)] border border-destructive/30 bg-destructive-surface p-4">
+        <h2 className="text-base font-semibold" id="payroll-runs-error-title">{t('runWorkspaceErrorTitle')}</h2>
+        <p aria-live="assertive" className="text-sm text-destructive" role="alert">{message}</p>
+        <form action="/payroll/runs" method="get">
+          <Button type="submit" variant="secondary">{t('runWorkspaceRetry')}</Button>
+        </form>
+      </section>
+    </PageShell>
+  }
+  const { runs, workspace } = pageData
   const recalculationMessage = recalculationOutcome && [
     'calculated','incomplete','sourceGap','unsupported','correctionRequired','inProgress','accessDenied','invalid','failed',
   ].includes(recalculationOutcome) ? t(`recalculation_${recalculationOutcome}`) : null

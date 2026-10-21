@@ -166,7 +166,7 @@ describe('PayrollCycle server foundation', () => {
     })])
   })
 
-  it('bounds concurrent source reads and preserves a safe provider failure diagnostic', async () => {
+  it('loads source reads six at a time and preserves a safe provider failure diagnostic', async () => {
     const references = Array.from({ length: 8 }, (_, index) => ({
       employeeId: `60000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
       employmentId: `70000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
@@ -194,7 +194,7 @@ describe('PayrollCycle server foundation', () => {
 
     const projection = await service.getPayrollCycleWorklist(period, references)
 
-    expect(maxActive).toBeLessThanOrEqual(3)
+    expect(maxActive).toBe(6)
     expect(projection?.workItems.find((item) => item.employmentId === references[0]?.employmentId)).toMatchObject({
       sourceGaps: [{ field: 'sourceSnapshot', status: 'SOURCE_GAP', reasonCode: 'CORE_SOURCE_READ_FAILED' }],
       sourceDiagnostics: [{
