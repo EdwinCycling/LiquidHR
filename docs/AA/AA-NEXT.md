@@ -1,15 +1,22 @@
 # AA-NEXT — Short-Term Roadmap
 
-> **Payroll-leverfocus 19-10-2026:** zie [AA-PAYROLL-COMMERCIAL-ROADMAP-20261019](AA-PAYROLL-COMMERCIAL-ROADMAP-20261019.md), waves D0/D1/D2/F0. Eerst een opnieuw visueel gecontroleerde bestaande Emma/Noah FINALIZED-PDF, parallel veilige K2-correctie van de bestaande 01-11 salarisregel (`TIMELINE_EFFECTIVE_DATE_CONFLICT`) gevolgd door één werkelijke Core K2-CONCEPT-run; Daarna Retail R1/R2 + Mars-acceptatie op de geïntegreerde kandidaat; STAR-code is al lokaal opgenomen en gecombineerde acceptatie blijft open. `CAO_SCALE`-RPC-migratie `20261019165116` is al toegepast. Geen tweede salarisregel op dezelfde datum, geen onrechtmatige combinatie van oktober-zondaguren met november-24/36. Maak niet opnieuw een mega-run van meerdere dagen: korte waves met één meetbaar outputbewijs.
+> **ACTUELE UITVOERVOLGORDE 21-10-2026:** `1.20261021.1` is geïntegreerd en live op Vercel; geen nieuwe mega-merge of herhaling van reeds geaccepteerde STAR/UX-code. Voor details zie [postrelease status](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md). Het oude plan om de K2-november-CONCEPT-run nog te maken is **ingehaald**: Frits/Jupiter CONCEPT-run `d8508395-2e25-59be-bc0b-ff2f0b83f7dc` is opgeslagen, **niet** FINALIZED of netto-/loonstrook-geaccepteerd.
 
-> **Geconvergeerde kandidaat 21-10-2026:** STAR, Employee UX en Payroll-code zijn lokaal samengebracht in integration/liquidhr-unified-20261021; AI-code PR #29 en de AA-convergence-documenten zijn eveneens opgenomen. De gecombineerde technische acceptatie en resterende K2/R1/R2/Mars-businessacceptatie zijn aparte open stappen. PAYROLL-CORE-RESET-01 blijft onbevestigd; hier is geen databasewijziging uitgevoerd. Main en deployment vereisen afzonderlijk GO.
+**Eerste korte vervolgacties:**
+1. **CONFIG-RECOVERY-01:** originele 519-byte `.env.local` van `work/payroll-p0-p1` recupereren uit identieke beveiligde bron. Geen vervangende centrale config. Blocker alleen voor deze beschermde Payroll/Nmbrs-runtime.
+2. **PAYRUN-ROUTE-01:** `/payroll/runs`-loader live gericht traceren en veilig herstellen, per Payroll CONTROLLED-risicogate. Geen nieuw release-/databasebesluit impliceren.
+3. **Gerichte hosted bewijsresten:** Employee FINALIZED payslip passende actor; HeRa/MCP/Focus echte host-, consent- en revocationacceptatie; provenance via betrouwbare artifactbron als haalbaar.
+4. **AA/documentatie:** status hoort op GitHub; docs-only update verandert bestaande Vercel deploy-SHA niet. Windows `main` na merge fast-forward naar GitHub. Stashes/refs bewaren tot functionele reconciliatie; geen extra lokale worktrees zonder noodzaak.
+5. **Nieuwe niet-Payroll features mogen beginnen:** Core **WVP01 → INS02 → AW02 later**; PMUX-02/03 en Employee UX-upgrade zijn geplande losse waves. AI-uitbreiding pas na herprioritering/hostacceptatie. Payroll-volgorde: bestaande K2 CONCEPT → volledige nette netto-/finaliseringsketen → Retail/Mars per eigen officiële bron/readback; geen GA-claim.
+
+De onderstaande oudere productwaves blijven als gedateerde ontwerp-/acceptatieplanning staan en zijn **niet** de actuele releasepositie.
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-18 (STAR-V2-04D-2D; Core-volgorde ongewijzigd)
+Bijgewerkt: 2026-10-21 (postrelease; historische productwaves hieronder)
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 
-## PARALLEL: Payroll na PAYFULL-02 — besluit 2026-10-16
+## HISTORISCHE Payroll-planning na PAYFULL-02 — besluit 2026-10-16 (niet de actuele eerstvolgende run)
 
 **Bewezen in TEST, niet gemerged/deployed:** twee volledige Mars-maandcases voor oktober 2026 zijn `FINALIZED` (DEMO-001 netto €2.181,49; DEMO-002 netto €2.141,36), met werknemerspensioen, tabelmatige loonheffing, werkgeverspremies, reserveringen, cumulatieven, 32/32 PASS-controles en twee in Payroll Lab TEST teruggevonden persistente PDF-artifacts. Extra +€500 regulier-variabel-looncase is alleen `CONCEPT`. Een algemene NL-payroll-complianceclaim is niet onderbouwd. De bekende Jupiter-persona's Lisa/Jaap/Frits zijn **niet** alle drie full-net PAYFULL-02-testcases.
 
