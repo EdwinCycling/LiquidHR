@@ -9,7 +9,7 @@
 > **STAR/Workforce UX-roadmap:** Employee UX-code is geïntegreerd in de live code-release; vervolgpunten blijven medewerkerpagina vereenvoudigen, minder scrollen, lazy loading en responsive kaartteksten. Activa, Software, Wagenpark en Budgetten uit huidige betrokken navigatie/schermen verwijderen, **maar als toekomstige afzonderlijke modules op de roadmap behouden**.
 
 Status: **STRATEGISCH / LIVING**
-Bijgewerkt: 2026-10-18 (STAR-V2-04D-2B; Core-prioriteiten blijven leidend)
+Bijgewerkt: 2026-10-21 (PMUX-03B; Core-prioriteiten blijven leidend)
 
 De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
 
@@ -64,6 +64,12 @@ TEST-records en CONTROL02-databaseobjecten blijven behouden totdat een exact
 decommissionplan afzonderlijk is goedgekeurd.
 
 ## PLANNED
+
+### Process Automation — PMUX
+- PMUX-02A/02B en 03A zijn lokaal gebouwd; PMUX-03B breidt de bestaande `/work`-details uit voor MSS/HR met besluiten, terugstuurreden, voortgang en historie.
+- PMUX-03C blijft de productbrede functiematrix voor Processtudio, Formulierenstudio, ESS/MSS, Focus en dashboard.
+- PMUX-04 blijft de afzonderlijke geauthenticeerde end-to-end browseracceptatie met synthetische gegevens en desktop-/390px-screenshots. De lokale catalogus- en detailprojecties zijn niet remote toegepast; geen automatische FINAL ACCEPTED-status.
+- Zie [AA-OPEN](AA-OPEN.md) en de gedateerde [PMUX-03B evidence](../quality/acceptance/runs/PMUX-03B-20261021-LOCAL.md).
 
 ### WvP / Verzuim — WVP01, volgende Core-wave na PERF01-B2
 - hergebruik bestaande `absence_tasks`, milestone-/generator- en casemanagerfoundation;
