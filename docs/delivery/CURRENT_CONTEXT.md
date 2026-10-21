@@ -1,5 +1,20 @@
 # Actuele overdracht Liquid HR
 
+## Postrelease-overdracht — 21 oktober 2026
+
+De **actuele** stand staat in [LIQUIDHR-POSTRELEASE-STATUS-20261021](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md), [AA-CURRENT](../AA/AA-CURRENT.md), [AA-OPEN](../AA/AA-OPEN.md) en [AA-NEXT](../AA/AA-NEXT.md).
+
+**Code:** één geïntegreerde release `1.20261021.1`, SHA `c0fa236967ec0708c0a57f72e0dfb29b78b3fead`; Vercel `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9` READY. Na CLEANUP-07/08/09: **29 → 2 lokale worktrees**, primaire hoofdcheckout schoon, 10 oude GitHub-branches + negen verweesde previews + één mislukte deployment verwijderd. Unieke herstelstashes/branchrefs zijn behouden.
+
+**Incident:** beschermde `work/payroll-p0-p1` hersteld maar oorspronkelijke unieke 519-byte `apps/hr-suite/.env.local` ontbreekt; gebruik deze specifieke Payroll/Nmbrs-runtime niet vóór identiek herstel uit beveiligde bron. Centrale configuratie niet vervangen of gokken.
+
+**Nog OPEN:** `/payroll/runs` hosted laadscherm, passende Employee FINALIZED-loonstrook, HeRa-generatie/Focus ChatGPT-host, provenance-artifactvelden. Frits/Jupiter november is opgeslagen gesimuleerde CONCEPT, zonder definitief netto/FINALIZED/PDF. GO voor onafhankelijke nieuwe niet-Payroll-features; eerst gerichte Payroll-routefix vóór uitbreiding van salarisrunflow.
+
+**Historische notities** hieronder beschrijven de toenmalige stand per oorspronkelijke SHA, niet een nieuwe open merge/release.
+
+## Historische deliveryverslagen
+
+
 ## PAYRUN-03 — lokale HR Admin-maandverwerking — 2026-10-17
 
 - Lokale kandidaat op branch `work/PAYRUN-03-20261017`, aparte worktree `C:\Users\Edwin\Documents\Apps\LiquidHR-Payroll\PAYRUN-03-20261017`, basis `7acf8c6a12797c2bb1880c8c187002a01561b826`; `origin/main` is read-only gecontroleerd op `0708d25190562e43a96417ba406648fd04207266`. Geen merge, push, deployment, remote DB/schema-write of definitieve Payroll-mutatie.

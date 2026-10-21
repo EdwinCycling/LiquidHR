@@ -1,19 +1,23 @@
 # LiquidHR AI — Master Roadmap
 
-**Status:** PRODUCTKOERS 2026-10-13 / LIVING DOCUMENT
-**Bijgewerkt:** 13 oktober 2026
+**Status:** PRODUCTKOERS / LIVING DOCUMENT
+**Bijgewerkt:** 21 oktober 2026
 **Owner:** LiquidHR Product
 **Functie:** centraal AI-roadmapdocument; AA-ROAD blijft de brede productroadmap, AA-NEXT bepaalt de eerstvolgende concrete Codex-runs.
 
 **Omgevingspariteit:** normale AI-capabilities gebruiken dezelfde productservices, permissions en klantworkflow in TEST en Production. Een private connector/protocolproef kan tijdelijk op TEST zijn begrensd, maar vormt geen afwijkende AI-klantworkflow. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
 
-## 0. Huidige integratie- en releasestatus — 21 oktober 2026
+## 0. Actuele AI-integratie en release — 21 oktober 2026
 
-AI-code PR #29 (66058e72) is lokaal opgenomen in integration/liquidhr-unified-20261021. Het bevat de Focus-widget en de twee read-only MCP Apps UI-protocoltools. De bestaande 14 Workforce-tools, OAuth/RLS-dispatch en bestaande autorisatiecontracten zijn behouden in de lokale code. PR #27 levert de roadmapaanvulling hieronder.
+De AI/Focus-code van PR #29 (`66058e72`) en de roadmap/documentatie van PR #27 (`5f761b0d`) zijn geïntegreerd in **productcode-release `1.20261021.1`** (`c0fa236967ec0708c0a57f72e0dfb29b78b3fead`). Beide PR's staan inmiddels op GitHub **merged/closed**. De Git-gekoppelde Vercel Production-deployment `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9` is READY. De naam `production` betekent voor de huidige LiquidHR-context een gedeelde synthetische productruntime, niet dat alle externe AI-/MCP-hostgates voltooid zijn.
 
-De gezamenlijke kandidaatacceptatie staat nog open: build, typecheck, gerichte regressietests, autorisatie/RLS-contracten en relevante UI-controles moeten op deze kandidaat plaatsvinden. ChatGPT-host-, CSP/origin-, revoke/logout-, rolwissel- en responsive acceptatie is hiermee niet bewezen. Dit is uitsluitend lokale code-integratie; geen main-wijziging, push, deployment of databasewijziging.
+**Gebouwd/bronbaseline:** 8 Employee + 6 Manager READ-tools (14 Workforce-tools) en 2 aanvullende read-only Focus MCP Apps UI-protocoltools. OAuth, actieve context, consent gates, scopevalidatie, RLS, audit/limiting blijven server-side. Geen autonome schrijftools; Remote Execute staat UIT. De Focus-widget-code en bundel waren eerder gericht getest, met hergebruik van relevante checks tijdens de releasegate.
 
-> **Historisch besluit 10 oktober (ingehaald door sectie 0 van 13 oktober):** ONE VERSION is op main geïntegreerd en als synthetische TEST-release beschikbaar. Rond eerst de nog open hosted/API-authenticatie-acceptatie voor APIAI-08 ESS af, vervolgens MSS (APIAI-09) zoveel mogelijk in één grote bouwslag, dan LiquidHR Focus als ChatGPT Plugin Extension (APIAI-10), daarna echte acties met trusted confirmation (APIAI-11). Brede HR Admin-/publieke API-/always-on agentuitbreiding blijft voorlopig geparkeerd.
+**Hosted bewijs 21 oktober:** HeRa-paneel opent en invoer is actief; **geen** prompt gegenereerd, geen MCP-toolcall vanuit de echte host en geen Focus-widget-hostrender, CSP/origin-, logout/revocation-, rolwissel-, Manager-consent- of responsive-eindacceptatie in deze release-smoke. Historisch vier Employee-tools eerder live gelezen; overige reads, intermitterende `-32603`-issues en saldoreconciliatie blijven afzonderlijk OPEN.
+
+**Next:** pas na geschikte hosted eindgate Focus ESS/MSS uitbreiden; HeRa-businessuitbreidingen, HR Admin MCP, Remote Execute en APIAI-11 Trusted Actions blijven geparkeerd. Nieuwe onafhankelijke Core/UX-functies mogen starten op schone Development-`main`, zonder te wachten op volledige AI-hostacceptatie.
+
+**Cleanup:** de lokale hoofdwerkmap is na CLEANUP-09 schoon; beschermde Payroll/Nmbrs-configuratie is nog niet hersteld. Zie [postrelease status](../../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md) voor precieze bewijs- en GO/HOLD-grenzen. Documentatie-only GitHub-wijzigingen vragen geen nieuwe Vercel-release.
 
 ## 0. Historische AI-status en besluiten — 13 oktober 2026 (snapshot; actuele status staat hierboven)
 

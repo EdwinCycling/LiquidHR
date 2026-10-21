@@ -1,5 +1,8 @@
 # AA-PAYROLL-COMMERCIAL-ROADMAP-20261019 — LiquidHR Payroll Next
 
+> **Postrelease 21-10-2026:** geselecteerde Payroll-code is geïntegreerd in `1.20261021.1` / Vercel READY. Frits/Jupiter november-Kinderopvang `2026.09` heeft een **opgeslagen gesimuleerde CONCEPT-run**: bruto € 1.879,33; na werknemerspensioen/loonheffing € 1.710,84 (**niet definitief nettoloon**); werkgeverskosten € 2.689,17. De 'nog geen K2-run'-situatie in historische §4 (19 oktober) is voor dit CONCEPT ingehaald, **niet** voor FINALIZED, PDF, wettelijke bronreview of commerciële GA. Hosted `/payroll/runs` blijft laden. Beschermde Payroll/Nmbrs-runtime mist oorspronkelijke unieke `.env.local`. Zie [postrelease status](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md). De strategische fasering blijft toekomstplanning.
+
+
 **Status:** PRODUCTVISIE + GEFASSEERDE LEVERROADMAP — voorstel ter uitvoering, geen claim van commerciële gereedheid
 **Bijgewerkt:** 19 oktober 2026
 **Doelgroep eerste commerciële fase:** Nederlandse mkb-werkgevers (circa 5–35 werknemers, uitbreidbaar naar 50+), HR Admin/salarisadministrateur, accountant, manager en medewerker
@@ -92,7 +95,7 @@ Alle iteratieaantallen zijn **planningshypothesen** voor afgebakende Codex-waves
 
 De commerciële pilot heeft een aparte vrijgave na security, bronkwaliteit, privacy-/contractuele en fiscale toets. Gegevens die de werkgever verplicht verstrekt, zoals Whk-beschikking of specifieke vrijstelling, worden nooit automatisch “gecertificeerd”.
 
-## 4. Huidige echte stand (19-10-2026)
+## 4. Historische stand per 19-10-2026 (zie postrelease-update)
 
 ### Al aantoonbaar
 

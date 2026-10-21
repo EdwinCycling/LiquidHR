@@ -4,9 +4,9 @@
 
 > **Actueel uitvoeringsbesluit 18-10-2026:** gewone LiquidHR Payroll-UI is de enige klantgerichte invoer-, berekenings- en documentroute; de oude Payroll Lab-stappen hieronder zijn historische ontwikkelfasen, **niet** een nog gewenste parallelle klantarchitectuur. Voor volledige productstatus, Core-readback, bewezen Emma/Noah FINALIZED, bedrijfseigen pensioen, cao-bronvulling en vier acceptatiecases zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md).
 >
-> **Integratie- en productstatus 21-10-2026:** Payroll-branch a9697537 is lokaal geïntegreerd in integration/liquidhr-unified-20261021; gecombineerde technische acceptatie volgt. De onderstaande open punten over officiële cao-/pensioenbrondata, effectieve toewijzingen en volledige K2/R1/R2-runs blijven gelden totdat afzonderlijk bewezen. Bescherm historische FINALIZED-runs, PDF-hashes en audits. **Voor klantgericht product nooit LAB-, fixture- of synthetische provenance-labels tonen.**
+> **Postrelease 21-10-2026:** Payroll-code inclusief branch a9697537 is opgenomen in live productcode `1.20261021.1` / `c0fa2369` (Vercel READY). De gerichte Frits/Jupiter november-2026 run `d8508395-2e25-59be-bc0b-ff2f0b83f7dc` is een opgeslagen, gesimuleerde **CONCEPT** (bruto € 1.879,33, na pensioen en loonheffing € 1.710,84: **geen definitief nettoloon**, geen FINALIZED/PDF). **`/payroll/runs` hangt op een laadscherm**; dit is de eerste hosted Payroll-bugfix. De beschermde `work/payroll-p0-p1`-runtime mist na cleanup zijn originele unieke 519-byte `.env.local` en mag niet worden gebruikt vóór herstel uit originele secretopslag. Zie [postrelease status](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md).\n>\n> **Historische integratiecontext:**  De onderstaande open punten over officiële cao-/pensioenbrondata, effectieve toewijzingen en volledige K2/R1/R2-runs blijven gelden totdat afzonderlijk bewezen. Bescherm historische FINALIZED-runs, PDF-hashes en audits. **Voor klantgericht product nooit LAB-, fixture- of synthetische provenance-labels tonen.**
 
-Status: **LEIDEND VOOR PAYROLL ZODRA GEMERGED OP `main`**
+Status: **LEIDEND — Payroll-code geïntegreerd op `main`; wettelijke/commerciële productacceptatie blijft gedeeltelijk OPEN**
 Eerste opzet: 2026-09-30
 
 ## CAO-BENCH02 Phase 1 execution boundary — 2026-10-03

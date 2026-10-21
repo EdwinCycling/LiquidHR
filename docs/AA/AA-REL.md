@@ -1,8 +1,12 @@
 # AA-REL — Convergence, Release, Deployment & Cleanup
 
-> **Lokale kandidaat 21-10-2026:** STAR, Employee UX, Payroll en AI-code PR #29 zijn geïntegreerd op integration/liquidhr-unified-20261021; gecombineerde acceptatie is nog vereist. De [18-10-2026 convergence-matrix](AA-PAYROLL-CONVERGENCE-20261018.md) blijft een historische snapshot. Er is geen wijziging aan main, remote branches, deployment of database; die stappen houden hun afzonderlijke GO.
+> **Postreleasebeleid 21-10-2026:** code-release `1.20261021.1` / `c0fa236967ec0708c0a57f72e0dfb29b78b3fead` is geïntegreerd in `main` en als Git-gekoppelde Vercel-target Production **READY**. De historische 03/03B HOLD betrof het moment **vóór** het afzonderlijk geautoriseerde releasebesluit. De werkelijke hosted end-to-end productacceptatie is nog beperkt: `/payroll/runs` OPEN; AI-host/Payslip/Artifact-bewijs OPEN.
 >
-> **Eén actieve LiquidHR-applicatieomgeving**, maar meerdere technische databaseprojecten; het Vercel-`production`-label bewijst op zichzelf geen gebruik van echte klantdata of volledige wettelijke payrollgereedheid. Reinigings- en migratiewrites pas na verifiëren van daadwerkelijke database-/administratiebinding, herstelbaarheid en historisch FINALIZED-behoud. Merge naar `main` en deployment blijven expliciet gescheiden GO-besluiten.
+> **Cleanup 07–09:** remote GitHub en Vercel-previews gesaneerd; lokaal 29 → 2 worktrees. De primaire Windows-checkout is schoon op de genoemde productcode-SHA. De herstelde beschermde `work/payroll-p0-p1` mist zijn originele 519-byte `.env.local`: dit is een concreet **veiligheids-/omgevingsincident**, geen reden om configuration-by-guess te doen. Bescherm herstelstashes, secrets en rollback. Zie [postrelease status](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md).
+>
+> **Provenance:** GitHub `main` is de Development-baseline en mag na docs-only merges naar een latere SHA fast-forwarden; de **niet opnieuw uitgerolde** Vercel-runtime blijft op `c0fa2369`. Meld GitHub HEAD, lokale checkout en uitgerolde runtime voortaan afzonderlijk. Een docs-update triggert geen geautoriseerde Productie-uitrol en is geen nieuwe versiebump.
+>
+> **Eén actieve LiquidHR-productomgeving**, met verschillende technische databasecontexten. Het Vercel-label `production` staat hier voor de gedeelde synthetische TEST-productruntime; niet voor gevalideerde commerciële Nederlandse salarisverwerking.
 
 Status: **LEIDEND**
 Eerste opzet: 2026-09-29
