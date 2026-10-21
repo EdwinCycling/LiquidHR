@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { CalendarPlus, FilePlus2, HeartPulse, Plus, X } from 'lucide-react'
+import { CalendarPlus, HeartPulse, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { buttonClasses } from '@/components/ui/button'
 import { focusActAsHref } from '@/lib/focus/url'
@@ -13,8 +13,6 @@ export interface FocusFloatingActionsLabels {
   leave: string
   sickness: string
   employeeSickness: string
-  declaration: string
-  comingSoon: string
 }
 
 export function FocusFloatingActions({ labels, canRequestLeave = false, canReportSickness = false, canReportEmployeeSickness = false, employeeSicknessHref = '/focus/team' }: { labels: FocusFloatingActionsLabels; canRequestLeave?: boolean; canReportSickness?: boolean; canReportEmployeeSickness?: boolean; employeeSicknessHref?: string }) {
@@ -49,10 +47,6 @@ export function FocusFloatingActions({ labels, canRequestLeave = false, canRepor
         <span className="truncate pl-1">{labels.leave}</span>
         <span className="grid size-10 shrink-0 place-items-center rounded-full border border-primary/20 bg-accent text-primary"><CalendarPlus aria-hidden="true" className="size-4" /></span>
       </Link> : null}
-      <span aria-disabled="true" className={`${linkClasses} cursor-not-allowed bg-muted text-muted-foreground`} title={labels.comingSoon}>
-        <span className="truncate pl-1">{labels.declaration}</span>
-        <span className="grid size-10 shrink-0 place-items-center rounded-full border border-border bg-surface text-muted-foreground"><FilePlus2 aria-hidden="true" className="size-4" /></span>
-      </span>
     </nav> : null}
     <button aria-controls={menuId} aria-expanded={open} aria-label={open ? labels.closeLabel : labels.openLabel} className={buttonClasses({ className: 'size-14 min-h-14 rounded-full p-0 shadow-lg focus-visible:ring-2 focus-visible:ring-offset-2', variant: 'primary' })} onClick={() => setOpen((current) => !current)} ref={triggerRef} type="button">
       {open ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}

@@ -4,12 +4,14 @@ import type {
   PayrollCalculationInputSetRow,
   PayrollCalculationRunRow,
   PayrollCalculationRunType,
+  PayrollCalendarPeriodListRow,
   PayrollComponentResultRow,
   PayrollControlRow,
   PayrollDatabase,
   PayrollGoldenCaseRunRow,
   PayrollJson,
   PayrollPeriodRow,
+  PayrollPeriodRecordRow,
   PayrollSourceSnapshotRow,
 } from './database'
 import { applyPayrollScopeFilter, assertPayrollScope, type PayrollScope } from './scope'
@@ -48,12 +50,22 @@ type PayrollInsert<Table extends keyof PayrollDatabase['public']['Tables']> = Pa
 export interface PayrollCalculationRepository {
   getPayrollAdministrationGate(scope: PayrollScope, payrollAdministrationId: string): Promise<PayrollAdministrationGate | null>
   getPayrollPeriod(scope: PayrollScope, payrollAdministrationId: string, year: number, month: number): Promise<PayrollPeriodRow | null>
+  listPayrollPeriods(scope: PayrollScope, payrollAdministrationId: string, limit?: number): Promise<readonly PayrollPeriodRow[]>
+  listCalendarPeriods?(scope: PayrollScope, payrollAdministrationId: string, limit?: number): Promise<readonly PayrollCalendarPeriodListRow[]>
   insertPayrollPeriod(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'payroll_periods'>): Promise<PayrollPeriodRow>
+  openPayrollPeriod?(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    payrollPeriodId: string,
+    actorUserId: string,
+    openedAt: string,
+  ): Promise<PayrollPeriodRow>
   insertSourceSnapshot(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'source_snapshots'>): Promise<PayrollSourceSnapshotRow>
   getOrCreateSourceSnapshot?(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'source_snapshots'>): Promise<PayrollSourceSnapshotRow>
   insertCalculationInputSet(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_input_sets'>): Promise<PayrollCalculationInputSetRow>
   getOrCreateCalculationInputSet?(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_input_sets'>): Promise<PayrollCalculationInputSetRow>
   insertCalculationRun(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_runs'>): Promise<PayrollCalculationRunRow>
+  getOrCreateCalculationRun?(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'calculation_runs'>): Promise<{ readonly run: PayrollCalculationRunRow; readonly created: boolean }>
   markCalculationRunRunning(scope: PayrollScope, payrollAdministrationId: string, runId: string, actorUserId: string, startedAt: string): Promise<PayrollCalculationRunRow>
   markCalculationRunSucceeded(scope: PayrollScope, payrollAdministrationId: string, runId: string, actorUserId: string, finishedAt: string, resultHash: string): Promise<PayrollCalculationRunRow>
   markCalculationRunSucceededWithConcept?(
@@ -87,6 +99,7 @@ export interface PayrollCalculationRepository {
     options?: {
       readonly employeeId?: string
       readonly runType?: PayrollCalculationRunType
+      readonly period?: { readonly year: number; readonly month: number }
       readonly limit?: number
     },
   ): Promise<readonly PayrollRunSummary[]>
@@ -138,6 +151,12 @@ function assertPayrollPeriodBoundaries(period: Pick<PayrollPeriodRow, 'period_ye
   if (period.starts_on !== startsOn || period.ends_on !== endsOn) {
     throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_BOUNDARIES_INVALID')
   }
+}
+
+function isMonthlyPayrollPeriod(period: PayrollPeriodRecordRow): period is PayrollPeriodRow {
+  return period.period_month !== null
+    && (period.periodicity === undefined || period.periodicity === 'MONTHLY')
+    && (period.period_kind === undefined || period.period_kind === 'REGULAR')
 }
 
 function assertScopedInsert(
@@ -210,20 +229,145 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
         .eq('period_year', year)
         .eq('period_month', month),
       validatedScope,
-    ).maybeSingle()
+    ).limit(1000).returns<PayrollPeriodRecordRow[]>()
 
     throwOnError(error)
-    if (data) assertPayrollPeriodBoundaries(data)
-    return data
+    const matchingPeriods = (data ?? []).filter(isMonthlyPayrollPeriod)
+    if (matchingPeriods.length > 1) throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_BOUNDARIES_INVALID')
+    const period = matchingPeriods[0] ?? null
+    if (period) assertPayrollPeriodBoundaries(period)
+    return period
+  }
+
+  async listPayrollPeriods(scope: PayrollScope, payrollAdministrationId: string, limit = 24): Promise<readonly PayrollPeriodRow[]> {
+    const validatedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_LIMIT_INVALID')
+    }
+
+    const { data, error } = await applyPayrollScopeFilter(
+      this.client.from('payroll_periods').select('*')
+        .eq('payroll_administration_id', payrollAdministrationId)
+        .not('period_month', 'is', null)
+        .order('period_year', { ascending: false })
+        .order('period_month', { ascending: false })
+        .limit(1000),
+      validatedScope,
+    ).returns<PayrollPeriodRecordRow[]>()
+    throwOnError(error)
+    const periods = (data ?? []).filter(isMonthlyPayrollPeriod).slice(0, limit)
+    periods.forEach(assertPayrollPeriodBoundaries)
+    return periods
+  }
+
+  async listCalendarPeriods(scope: PayrollScope, payrollAdministrationId: string, limit = 24): Promise<readonly PayrollCalendarPeriodListRow[]> {
+    const validatedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_LIMIT_INVALID')
+    }
+
+    const { data, error } = await applyPayrollScopeFilter(
+      this.client.from('payroll_periods').select(
+        'period_year,period_month,period_number,periodicity,period_kind,starts_on,ends_on,planned_payment_date,status',
+      )
+        .eq('payroll_administration_id', payrollAdministrationId)
+        .order('period_year', { ascending: false })
+        .order('starts_on', { ascending: false })
+        .limit(limit),
+      validatedScope,
+    ).returns<PayrollCalendarPeriodListRow[]>()
+
+    if (error) {
+      const code = safeDatabaseErrorCode(error)
+      if (code !== '42703' && code !== 'PGRST204') throwOnError(error)
+      return (await this.listPayrollPeriods(scope, payrollAdministrationId, limit)).map((period) => ({
+        period_year: period.period_year,
+        period_month: period.period_month,
+        period_number: period.period_number ?? period.period_month,
+        periodicity: period.periodicity ?? 'MONTHLY',
+        period_kind: period.period_kind ?? 'REGULAR',
+        starts_on: period.starts_on,
+        ends_on: period.ends_on,
+        planned_payment_date: period.planned_payment_date ?? null,
+        status: period.status,
+      }))
+    }
+
+    return [...(data ?? [])].sort((left, right) =>
+      right.period_year - left.period_year || right.starts_on.localeCompare(left.starts_on),
+    )
+  }
+
+  async openPayrollPeriod(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    payrollPeriodId: string,
+    actorUserId: string,
+    openedAt: string,
+  ): Promise<PayrollPeriodRow> {
+    const validatedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    assertUuid(payrollPeriodId)
+    assertUuid(actorUserId)
+    if (!Number.isFinite(Date.parse(openedAt))) throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_OPENED_AT_INVALID')
+
+    const { data: current, error: currentError } = await applyPayrollScopeFilter(
+      this.client.from('payroll_periods').select('*')
+        .eq('payroll_administration_id', payrollAdministrationId)
+        .eq('id', payrollPeriodId),
+      validatedScope,
+    ).maybeSingle()
+    throwOnError(currentError)
+    if (!current || current.status === 'CLOSED') throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_NOT_OPENABLE')
+    if (!isMonthlyPayrollPeriod(current)) throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_BOUNDARIES_INVALID')
+    assertPayrollPeriodBoundaries(current)
+    if (current.status === 'OPEN') return current
+
+    const { data, error } = await applyPayrollScopeFilter(
+      this.client.from('payroll_periods').update({
+        status: 'OPEN',
+        updated_at: openedAt,
+        updated_by_user_id: actorUserId,
+      }).eq('payroll_administration_id', payrollAdministrationId)
+        .eq('id', payrollPeriodId)
+        .not('period_month', 'is', null)
+        .eq('status', 'DRAFT'),
+      validatedScope,
+    ).select('*').maybeSingle()
+    throwOnError(error)
+    if (data) {
+      if (!isMonthlyPayrollPeriod(data)) throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_BOUNDARIES_INVALID')
+      assertPayrollPeriodBoundaries(data)
+      return data
+    }
+
+    const { data: existing, error: readError } = await applyPayrollScopeFilter(
+      this.client.from('payroll_periods').select('*')
+        .eq('payroll_administration_id', payrollAdministrationId)
+        .eq('id', payrollPeriodId),
+      validatedScope,
+    ).maybeSingle()
+    throwOnError(readError)
+    if (existing?.status === 'OPEN') {
+      if (!isMonthlyPayrollPeriod(existing)) throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_BOUNDARIES_INVALID')
+      assertPayrollPeriodBoundaries(existing)
+      return existing
+    }
+    if (!existing || existing.status === 'CLOSED') throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_NOT_OPENABLE')
+    throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_OPEN_CONFLICT')
   }
 
   async insertPayrollPeriod(scope: PayrollScope, payrollAdministrationId: string, row: PayrollInsert<'payroll_periods'>): Promise<PayrollPeriodRow> {
     assertScopedInsert(scope, payrollAdministrationId, row)
-    assertPayrollPeriodBoundaries(row)
+    const month = row.period_month
+    if (month === null) throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_BOUNDARIES_INVALID')
+    assertPayrollPeriodBoundaries({ ...row, period_month: month })
     const { data, error } = await this.client.from('payroll_periods').insert(row).select('*').single()
     if (error?.code === '23505') throw new PayrollCalculationRepositoryError('PAYROLL_PERIOD_ALREADY_EXISTS')
     throwOnError(error)
-    if (!data) throw new PayrollCalculationRepositoryError()
+    if (!data || !isMonthlyPayrollPeriod(data)) throw new PayrollCalculationRepositoryError()
     assertPayrollPeriodBoundaries(data)
     return data
   }
@@ -340,6 +484,58 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
     throwOnError(error)
     if (!data) throw new PayrollCalculationRepositoryError()
     return data
+  }
+
+  async getOrCreateCalculationRun(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    row: PayrollInsert<'calculation_runs'>,
+  ): Promise<{ readonly run: PayrollCalculationRunRow; readonly created: boolean }> {
+    assertScopedInsert(scope, payrollAdministrationId, row)
+    if (!row.id) throw new PayrollCalculationRepositoryError('PAYROLL_RUN_ID_INVALID')
+    assertUuid(row.id)
+    assertUuid(row.calculation_input_set_id)
+    assertUuid(row.created_by_user_id ?? '')
+    if (row.status !== 'PENDING' || row.started_at !== null || row.finished_at !== null || row.result_hash !== null) {
+      throw new PayrollCalculationRepositoryError('PAYROLL_RUN_INITIAL_STATE_INVALID')
+    }
+    const validatedScope = assertPayrollScope(scope)
+    const fields = [
+      'id', 'payroll_administration_id', 'source_tenant_id', 'source_hr_group_id', 'source_administration_id',
+      'calculation_input_set_id', 'run_type',
+    ] as const
+    const read = async (): Promise<PayrollCalculationRunRow | null> => {
+      const { data, error } = await applyPayrollScopeFilter(
+        this.client.from('calculation_runs').select('*')
+          .eq('id', row.id!)
+          .eq('payroll_administration_id', payrollAdministrationId),
+        validatedScope,
+      ).maybeSingle()
+      throwOnError(error)
+      if (data) assertScopedInsert(scope, payrollAdministrationId, data)
+      return data
+    }
+    const matches = (stored: PayrollCalculationRunRow) => hasSameContent(
+      stored as unknown as Record<string, unknown>,
+      row as Record<string, unknown>,
+      fields,
+    )
+    const existing = await read()
+    if (existing) {
+      if (!matches(existing)) throw new PayrollCalculationRepositoryError('PAYROLL_RUN_IDEMPOTENCY_CONFLICT')
+      return { run: existing, created: false }
+    }
+    const { data, error } = await this.client.from('calculation_runs').insert(row).select('*').single()
+    if (isUniqueViolation(error)) {
+      const raced = await read()
+      if (raced && matches(raced)) return { run: raced, created: false }
+      throw new PayrollCalculationRepositoryError('PAYROLL_RUN_IDEMPOTENCY_CONFLICT')
+    }
+    throwOnError(error)
+    if (!data) throw new PayrollCalculationRepositoryError()
+    assertScopedInsert(scope, payrollAdministrationId, data)
+    if (!matches(data)) throw new PayrollCalculationRepositoryError('PAYROLL_RUN_IDEMPOTENCY_CONFLICT')
+    return { run: data, created: true }
   }
 
   async markCalculationRunRunning(
@@ -592,7 +788,10 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
     ])
     throwOnError(sourceSnapshotResult.error)
     throwOnError(periodResult.error)
-    if (!sourceSnapshotResult.data || !periodResult.data) throw new PayrollCalculationRepositoryError()
+    if (!sourceSnapshotResult.data || !periodResult.data || !isMonthlyPayrollPeriod(periodResult.data)) {
+      throw new PayrollCalculationRepositoryError()
+    }
+    assertPayrollPeriodBoundaries(periodResult.data)
     if (caseKey !== undefined && goldenCaseResult.data?.case_key !== caseKey) return null
 
     return {
@@ -610,13 +809,30 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
   async listPayrollRunSummaries(
     scope: PayrollScope,
     payrollAdministrationId: string,
-    options: { readonly employeeId?: string; readonly runType?: PayrollCalculationRunType; readonly limit?: number } = {},
+    options: {
+      readonly employeeId?: string
+      readonly runType?: PayrollCalculationRunType
+      readonly period?: { readonly year: number; readonly month: number }
+      readonly limit?: number
+    } = {},
   ): Promise<readonly PayrollRunSummary[]> {
     const validatedScope = assertPayrollScope(scope)
     assertUuid(payrollAdministrationId)
     if (options.employeeId !== undefined) assertUuid(options.employeeId)
     const limit = options.limit ?? 100
     if (!Number.isInteger(limit) || limit < 1 || limit > 200) throw new PayrollCalculationRepositoryError('PAYROLL_RUN_LIMIT_INVALID')
+
+    let payrollPeriodId: string | undefined
+    if (options.period !== undefined) {
+      const period = await this.getPayrollPeriod(
+        scope,
+        payrollAdministrationId,
+        options.period.year,
+        options.period.month,
+      )
+      if (!period) return []
+      payrollPeriodId = period.id
+    }
 
     let employeeSnapshotIds: string[] | null = null
     if (options.employeeId !== undefined) {
@@ -638,6 +854,7 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
       .order('created_at', { ascending: false })
       .limit(limit * 4)
     if (employeeSnapshotIds) inputSetQuery = inputSetQuery.in('source_snapshot_id', employeeSnapshotIds)
+    if (payrollPeriodId) inputSetQuery = inputSetQuery.eq('payroll_period_id', payrollPeriodId)
     const { data: inputSets, error: inputSetError } = await applyPayrollScopeFilter(inputSetQuery, validatedScope)
       .returns<PayrollCalculationInputSetRow[]>()
     throwOnError(inputSetError)
@@ -674,7 +891,7 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
         .returns<PayrollSourceSnapshotRow[]>(),
       applyPayrollScopeFilter(this.client.from('payroll_periods').select('*')
         .eq('payroll_administration_id', payrollAdministrationId).in('id', periodIds), validatedScope)
-        .returns<PayrollPeriodRow[]>(),
+        .returns<PayrollPeriodRecordRow[]>(),
     ])
     throwOnError(snapshotsResult.error)
     throwOnError(periodsResult.error)
@@ -685,7 +902,10 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
       const inputSet = selectedInputSets.get(run.calculation_input_set_id)
       const sourceSnapshot = inputSet ? snapshots.get(inputSet.source_snapshot_id) : undefined
       const payrollPeriod = inputSet ? periods.get(inputSet.payroll_period_id) : undefined
-      if (!inputSet || !sourceSnapshot || !payrollPeriod) throw new PayrollCalculationRepositoryError()
+      if (!inputSet || !sourceSnapshot || !payrollPeriod || !isMonthlyPayrollPeriod(payrollPeriod)) {
+        throw new PayrollCalculationRepositoryError()
+      }
+      assertPayrollPeriodBoundaries(payrollPeriod)
       return { run, inputSet, sourceSnapshot, payrollPeriod }
     })
   }

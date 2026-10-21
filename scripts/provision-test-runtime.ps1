@@ -27,15 +27,30 @@ function Test-TestRuntimeHardlink {
     )
 
     $canonicalFullPath = [IO.Path]::GetFullPath($CanonicalPath)
+    $destinationFullPath = [IO.Path]::GetFullPath($DestinationPath)
     $volumeRoot = [IO.Path]::GetPathRoot($canonicalFullPath)
-    $expectedFsutilPath = '\' + $canonicalFullPath.Substring($volumeRoot.Length).TrimStart('\')
-    $listedPaths = @(Get-TestRuntimeHardlinkPaths -Path $DestinationPath)
+    if (-not [string]::Equals($volumeRoot, [IO.Path]::GetPathRoot($destinationFullPath), [StringComparison]::OrdinalIgnoreCase)) {
+        return $false
+    }
 
-    return @(
-        $listedPaths | Where-Object {
-            [string]::Equals($_, $expectedFsutilPath, [StringComparison]::OrdinalIgnoreCase)
-        }
-    ).Count -gt 0
+    $expectedCanonicalPath = '\' + $canonicalFullPath.Substring($volumeRoot.Length).TrimStart('\')
+    $expectedDestinationPath = '\' + $destinationFullPath.Substring($volumeRoot.Length).TrimStart('\')
+
+    # Query the protected source path. On some Windows filesystems fsutil can
+    # enumerate a hard link from its source but returns ERROR_NOT_SUPPORTED
+    # when the same file is addressed through the destination path.
+    $listedPaths = @(Get-TestRuntimeHardlinkPaths -Path $canonicalFullPath)
+    $containsExpectedPath = {
+        param([string]$ExpectedPath)
+
+        @(
+            $listedPaths | Where-Object {
+                [string]::Equals($_, $ExpectedPath, [StringComparison]::OrdinalIgnoreCase)
+            }
+        ).Count -gt 0
+    }
+
+    return (& $containsExpectedPath $expectedCanonicalPath) -and (& $containsExpectedPath $expectedDestinationPath)
 }
 
 function Invoke-TestRuntimeProvisioning {

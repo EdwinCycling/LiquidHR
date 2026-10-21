@@ -13,10 +13,12 @@ const companyLabels = {
 
 describe('R7-1 settings Foundation convergence', () => {
   it('uses the canonical switch for tenant module activation', () => {
-    const markup = renderToStaticMarkup(<ModuleSettingsForm labels={{ save: 'Opslaan', cancel: 'Annuleren', saving: 'Opslaan…', saved: 'Opgeslagen', failed: 'Mislukt', comingSoon: 'Binnenkort', names: { HERA: 'HeRa' }, descriptions: { HERA: 'Assistent' } }} modules={[{ code: 'HERA', status: 'AVAILABLE', toggleable: true, state: { is_enabled: true } }]} />)
+    const markup = renderToStaticMarkup(<ModuleSettingsForm labels={{ save: 'Opslaan', cancel: 'Annuleren', saving: 'Opslaan…', saved: 'Opgeslagen', failed: 'Mislukt', names: { HERA: 'HeRa', ASSETS: 'Activa' }, descriptions: { HERA: 'Assistent', ASSETS: 'Nog geen bron aangesloten' } }} modules={[{ code: 'HERA', status: 'AVAILABLE', toggleable: true, state: { is_enabled: true } }, { code: 'ASSETS', status: 'COMING_SOON', toggleable: false, state: null }]} />)
     expect(markup).toContain('role="switch"')
     expect(markup).toContain('Annuleren')
     expect(markup).not.toContain('aria-pressed')
+    expect(markup).not.toContain('Activa')
+    expect(markup).not.toContain('Nog geen bron aangesloten')
   })
 
   it('keeps menu ordering local while exposing Foundation action controls', () => {

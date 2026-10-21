@@ -61,6 +61,10 @@ function makeRepository(capabilityEnabled = true) {
       calls.push('get-period')
       return period
     }),
+    listPayrollPeriods: vi.fn(async () => {
+      calls.push('list-periods')
+      return period ? [period] : []
+    }),
     insertPayrollPeriod: vi.fn(async (_scope, _payrollAdministrationId, values) => {
       calls.push('insert-period')
       const insertedPeriod: PayrollPeriodRow = {

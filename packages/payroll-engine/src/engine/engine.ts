@@ -1,4 +1,4 @@
-import type { PayrollSourceSnapshot } from '../domain/payroll-contracts'
+import type { PayrollSourceGap, PayrollSourceSnapshot } from '../domain/payroll-contracts'
 import { applyPayrollRoundingToRatio, FixedDecimal, PayrollEngineError } from './decimal'
 import { sha256, stableSerialize } from './hash'
 import type {
@@ -28,7 +28,7 @@ import type {
   PayrollRoundingDefinition,
 } from './types'
 
-export const PAYROLL_ENGINE_VERSION = '0.2.0'
+export const PAYROLL_ENGINE_VERSION = '0.3.0'
 
 const MAX_COMPONENTS = 256
 const MAX_DEPENDENCIES = 1_024
@@ -43,6 +43,7 @@ const MAX_REGISTERED_RULE_TEXT_LENGTH = 2_048
 const MAX_REGISTERED_RULE_TRACE_TEXT_LENGTH = 262_144
 const MAX_SCOPE_INSTANCE_ID_LENGTH = 256
 const MAX_ROUNDING_DEFINITIONS = 1_024
+const MAX_SOURCE_GAPS = 256
 
 export type PayrollCustomerComponentPatch = Partial<Pick<PayrollComponentDefinition,
   'processingScope' | 'inputs' | 'outputs' | 'dependencies' | 'parameters' | 'method' | 'tracePolicy' | 'effectiveFrom' | 'effectiveTo'>>
@@ -95,6 +96,7 @@ export function buildCalculationInputs(
   const controls = rulePackage.controls.map(cloneAndFreezePlain)
   const resultMappings = rulePackage.resultMappings.map(cloneAndFreezePlain)
   const allRoundingDefinitions = (rulePackage.roundingDefinitions ?? []).map(cloneAndFreezePlain)
+  const sourceGaps = normalizeSourceGaps(sourceSnapshot.sourceGaps)
   validateOwnershipIdentities(allComponents)
   validateComponentVersions(allComponents)
   const activeComponents = allComponents
@@ -171,6 +173,7 @@ export function buildCalculationInputs(
     engineVersion: PAYROLL_ENGINE_VERSION,
     rulePackageCompositionId: rulePackage.compositionId,
     rulePackageCompositionHash,
+    sourceGaps,
     ...(Object.keys(resolvedSourceOverrides).length > 0 ? { sourceValueOverrides: resolvedSourceOverrides } : {}),
     ...(options.calculationContextHash ? { calculationContextHash: options.calculationContextHash } : {}),
     ...(scopeInstanceIds ? { scopeInstanceIds } : {}),
@@ -190,6 +193,7 @@ export function buildCalculationInputs(
     inputHash,
     ...(Object.keys(resolvedSourceOverrides).length > 0 ? { sourceValueOverrides: resolvedSourceOverrides } : {}),
     ...(options.calculationContextHash ? { calculationContextHash: options.calculationContextHash } : {}),
+    sourceGaps,
     components: activeComponents,
     controls: controls.sort((left, right) => left.code.localeCompare(right.code)),
     resultMappings,
@@ -205,6 +209,7 @@ export function calculatePayroll(inputs: PayrollCalculationInputs, registry: rea
   const packageMetadata = inputs.packageMetadata === undefined ? undefined : cloneAndFreezePlain(inputs.packageMetadata)
   if (packageMetadata) validatePackageMetadata(packageMetadata)
   const scopeInstanceIds = normalizeScopeInstanceIds(inputs.scopeInstanceIds)
+  const sourceGaps = normalizeSourceGaps(inputs.sourceGaps)
   const declaredRoundingDefinitions = cloneAndFreezePlain(inputs.roundingDefinitions ?? [])
   const roundingDefinitions = validateActiveRoundingDefinitions(
     declaredRoundingDefinitions,
@@ -337,7 +342,10 @@ export function calculatePayroll(inputs: PayrollCalculationInputs, registry: rea
     })
   }
 
-  const controls = evaluateControls(inputs.controls, componentsByCode, outputsByCode, roundingDefinitions)
+  const controls = [
+    ...evaluateControls(inputs.controls, componentsByCode, outputsByCode, roundingDefinitions),
+    ...sourceGapControlResults(sourceGaps, inputs.controls),
+  ].sort((left, right) => compareText(left.code, right.code))
   const status = controls.some((control) => control.status === 'FAIL') ? 'BLOCKED' : 'CALCULATED'
   const resultRows = mapResultRows(inputs.resultMappings, outputsByCode)
   const resultHash = sha256(stableSerialize({
@@ -350,6 +358,7 @@ export function calculatePayroll(inputs: PayrollCalculationInputs, registry: rea
     rulePackageCompositionHash: inputs.rulePackageCompositionHash,
     ...(packageMetadata ? { packageMetadata } : {}),
     inputHash: inputs.inputHash,
+    ...(sourceGaps.length > 0 ? { sourceGaps } : {}),
     componentResults,
     resultRows,
     trace,
@@ -368,6 +377,7 @@ export function calculatePayroll(inputs: PayrollCalculationInputs, registry: rea
     rulePackageCompositionHash: inputs.rulePackageCompositionHash,
     inputHash: inputs.inputHash,
     resultHash,
+    ...(sourceGaps.length > 0 ? { sourceGaps } : {}),
     componentResults,
     resultRows,
     trace,
@@ -488,6 +498,35 @@ function validateSnapshotIdentity(snapshot: PayrollSourceSnapshot): void {
     || !Number.isInteger(snapshot.periodReference.month) || snapshot.periodReference.month < 1 || snapshot.periodReference.month > 12) {
     throw new PayrollEngineError('PAYROLL_PERIOD_INVALID', 'Source snapshot payroll period is invalid.')
   }
+}
+
+function normalizeSourceGaps(sourceGaps: readonly PayrollSourceGap[] | undefined): readonly PayrollSourceGap[] {
+  if (!Array.isArray(sourceGaps) || sourceGaps.length > MAX_SOURCE_GAPS) {
+    throw new PayrollEngineError('SOURCE_GAP_DEFINITION_INVALID', `Source gaps must be an array with at most ${MAX_SOURCE_GAPS} entries.`)
+  }
+  const normalized = sourceGaps.map((gap) => {
+    if (!isPlainRecord(gap)) throw new PayrollEngineError('SOURCE_GAP_DEFINITION_INVALID', 'Source-gap entries must be plain records.')
+    assertOnlyKeys(gap, ['field', 'status', 'reasonCode'], 'SOURCE_GAP_DEFINITION_INVALID')
+    if (typeof gap.field !== 'string' || !isSafeSourceGapText(gap.field)
+      || typeof gap.reasonCode !== 'string' || !isSafeSourceGapText(gap.reasonCode)
+      || (gap.status !== 'SOURCE_GAP' && gap.status !== 'UNSUPPORTED')) {
+      throw new PayrollEngineError('SOURCE_GAP_DEFINITION_INVALID', 'Source gaps need a field, a supported status and a reason code.')
+    }
+    const status = gap.status as PayrollSourceGap['status']
+    return { field: gap.field, status, reasonCode: gap.reasonCode }
+  })
+  normalized.sort((left, right) => compareText(left.field, right.field)
+    || compareText(left.status, right.status)
+    || compareText(left.reasonCode, right.reasonCode))
+  return normalized
+}
+
+function isSafeSourceGapText(value: string): boolean {
+  return value.length > 0 && value.length <= 256 && value.trim() === value && !/[\u0000-\u001f\u007f]/.test(value)
+}
+
+function compareText(left: string, right: string): -1 | 0 | 1 {
+  return left < right ? -1 : left > right ? 1 : 0
 }
 
 function validateRulePackageShape(rulePackage: PayrollRulePackage): void {
@@ -887,6 +926,29 @@ function validateControls(
     })
     if (resultType !== 'BOOLEAN') throw new PayrollEngineError('CONTROL_EXPRESSION_TYPE_INVALID', `Control ${control.code} must return Boolean.`)
   }
+}
+
+function sourceGapControlResults(
+  sourceGaps: readonly PayrollSourceGap[],
+  declaredControls: readonly PayrollControlDefinition[],
+): readonly PayrollControlResult[] {
+  if (sourceGaps.length === 0) return []
+  if (declaredControls.length + sourceGaps.length > MAX_CONTROLS) {
+    throw new PayrollEngineError('CONTROL_COUNT_INVALID', `Rule package and source gaps must produce at most ${MAX_CONTROLS} controls.`)
+  }
+  const declaredCodes = new Set(declaredControls.map((control) => control.code))
+  return sourceGaps.map((gap, index) => {
+    const code = `SOURCE_GAP_${String(index + 1).padStart(3, '0')}`
+    if (declaredCodes.has(code)) {
+      throw new PayrollEngineError('SOURCE_GAP_CONTROL_COLLISION', `Rule package control ${code} collides with a generated source-gap control.`)
+    }
+    return {
+      code,
+      status: 'FAIL',
+      actual: stableSerialize(gap),
+      expected: false,
+    }
+  })
 }
 
 function validateResultMappings(

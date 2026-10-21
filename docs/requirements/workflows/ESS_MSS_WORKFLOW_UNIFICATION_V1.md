@@ -8,6 +8,8 @@ ESS en MSS gebruiken één werkmodel voor procesgestuurde aanvragen en acties. D
 
 De verticale V1-slice maakt Leave self-service beschikbaar via `/leave/request`. De aanvraag wordt eerst als `PENDING` in de bestaande Leave-domeintabel opgeslagen, daarna via de bestaande `start_process`-kernel gestart. De typed bridge `process_leave_subjects` koppelt de Leave-aanvraag aan de process instance zonder directe Data API-toegang. De manager handelt via de native Leave-detailroute; uitsluitend de effectieve `APPROVE`-actie kan binnen dezelfde transactionele adapter de bestaande Leave-booking en append-only `TAKEN`-ledger uitvoeren.
 
+ESS/MSS gebruikt dezelfde gebruikersworkflow, rollen en businessregels in TEST en Production. TEST-gegevens maken de brondata fictief, maar veranderen de producthandelingen niet. Geen fixtureclaim of TEST-only route is vereist om een normale medewerker- of manageractie te gebruiken; interne provisioning blijft buiten de klantflow. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
+
 ## Reconciliatie van bestaande domeinen
 
 - P-mutaties behouden de bestaande dynamic renderer, form bindings, native Internal Transfer-preview/commit en generieke work-item-acties. De nieuwe projectie en routing veranderen hun eigenaarschap of autorisatie niet.

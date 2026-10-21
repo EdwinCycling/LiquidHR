@@ -5,6 +5,8 @@
 **Owner:** LiquidHR Product
 **Functie:** centraal AI-roadmapdocument; AA-ROAD blijft de brede productroadmap, AA-NEXT bepaalt de eerstvolgende concrete Codex-runs.
 
+**Omgevingspariteit:** normale AI-capabilities gebruiken dezelfde productservices, permissions en klantworkflow in TEST en Production. Een private connector/protocolproef kan tijdelijk op TEST zijn begrensd, maar vormt geen afwijkende AI-klantworkflow. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
+
 > **Besluit 10 oktober:** ONE VERSION is op main geïntegreerd en als synthetische TEST-release beschikbaar. Rond eerst de nog open hosted/API-authenticatie-acceptatie voor APIAI-08 ESS af, vervolgens MSS (APIAI-09) zoveel mogelijk in één grote bouwslag, dan LiquidHR Focus als ChatGPT Plugin Extension (APIAI-10), daarna echte acties met trusted confirmation (APIAI-11). Brede HR Admin-/publieke API-/always-on agentuitbreiding blijft voorlopig geparkeerd.
 
 ## 1. Visie en productprincipes

@@ -28,6 +28,7 @@ export interface PensionArrangementInput {
   readonly annualPensionableSalaryCap: string | null
   readonly pensionableSalaryDefinition: Readonly<Record<string, unknown>>
   readonly eligibilityRule: Readonly<Record<string, unknown>>
+  readonly eligibilityRuleMapping?: Readonly<Record<string, string>> | null
   readonly contractClassification: 'SOLIDARITY' | 'NON_SOLIDARITY' | 'UNKNOWN'
   readonly contractClassificationProvenance: Readonly<Record<string, unknown>>
   readonly provenance: Readonly<Record<string, unknown>>
@@ -112,7 +113,7 @@ const TWELVE = FixedDecimal.parse('12')
 const ONE_HUNDRED = FixedDecimal.parse('100')
 
 function money(value: FixedDecimal): string {
-  return value.toString(2)
+  return value.round(2, 'HALF_UP').toString(2)
 }
 
 function validDate(value: string): boolean {
@@ -347,6 +348,7 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
       arrangementEstablishedFrom: arrangement.arrangementEstablishedFrom,
       versionEffectiveFrom: arrangement.effectiveFrom,
       eligibilityRule: arrangement.eligibilityRule,
+      eligibilityRuleMapping: arrangement.eligibilityRuleMapping ?? null,
       pensionableSalaryDefinition: arrangement.pensionableSalaryDefinition,
       contractClassification: arrangement.contractClassification,
       contractClassificationProvenance: arrangement.contractClassificationProvenance,

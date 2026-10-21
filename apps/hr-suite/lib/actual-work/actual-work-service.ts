@@ -1,5 +1,6 @@
 import type { Database, Tables } from '@scope/db'
 import { requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
 import { exactHoursToDatabase, isPositiveExactHours, parseExactHours } from './exact-hours'
 import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
@@ -43,16 +44,25 @@ export type ActualWorkBulkProjection = {
 export class ActualWorkServiceError extends Error {
   readonly status: number
 
-  constructor(readonly code: string, status = 400) {
+  constructor(
+    readonly code: string,
+    status = 400,
+    readonly sourceCategory?: string,
+    readonly databaseCode?: string,
+  ) {
     super(code)
     this.name = 'ActualWorkServiceError'
     this.status = status
   }
 }
 
-function databaseError(error: { message: string } | null): never {
+function databaseError(
+  error: { message: string; code?: string } | null,
+  sourceCategory?: string,
+): never {
   const code = error?.message.match(/ACTUAL_WORK_[A-Z_]+/)?.[0] ?? 'ACTUAL_WORK_OPERATION_FAILED'
-  throw new ActualWorkServiceError(code, code === 'ACTUAL_WORK_NOT_AUTHORIZED' ? 403 : 400)
+  const databaseCode = error?.code && /^(?:PGRST\d{3}|[0-9A-Z]{5})$/.test(error.code) ? error.code : undefined
+  throw new ActualWorkServiceError(code, code === 'ACTUAL_WORK_NOT_AUTHORIZED' ? 403 : 400, sourceCategory, databaseCode)
 }
 
 function categoryForFamily(family: ActualWorkFamily): Database['public']['Enums']['work_hour_type_category'] {
@@ -262,7 +272,8 @@ export type ActualWorkPayrollProjection = {
     | 'subject_period_start' | 'subject_period_end' | 'posting_period_start' | 'hours'
     | 'status' | 'approved_at' | 'updated_at'
   >[]
-  types: Pick<ActualWorkType, 'id' | 'family' | 'valid_from' | 'valid_until' | 'approval_required' | 'updated_at'>[]
+  types: (Pick<ActualWorkType, 'id' | 'family' | 'valid_from' | 'valid_until' | 'approval_required' | 'updated_at'>
+    & Partial<Pick<ActualWorkType, 'code' | 'name'>> )[]
 }
 
 /** Reads only payroll-relevant work metadata; notes and person data stay out of the payroll source snapshot. */
@@ -273,8 +284,8 @@ export async function getActualWorkPayrollProjection(
   if (!isValidActualWorkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
   const { context, hrGroupId, supabase } = dependencies ?? await authForGroup('leave:read', input.employeeId)
   const from = monthStart(input.month)
-  const [entriesResult, periodResult] = await Promise.all([
-    supabase.from('employment_work_hour_entries')
+  const [entriesResult, periodResult] = await loadQueriesInBatches([
+    () => supabase.from('employment_work_hour_entries')
       .select('id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,approved_at,updated_at')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', hrGroupId)
@@ -284,26 +295,26 @@ export async function getActualWorkPayrollProjection(
       .order('work_date')
       .order('id')
       .limit(2001),
-    supabase.from('actual_work_periods')
+    () => supabase.from('actual_work_periods')
       .select('id,period_start,period_end,status,updated_at')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', hrGroupId)
       .eq('period_start', from)
       .maybeSingle(),
-  ])
-  if (entriesResult.error) databaseError(entriesResult.error)
-  if (periodResult.error) databaseError(periodResult.error)
+  ], 2)
+  if (entriesResult.error) databaseError(entriesResult.error, 'employment-work-hour-entries')
+  if (periodResult.error) databaseError(periodResult.error, 'actual-work-periods')
 
   const entries = entriesResult.data ?? []
   const typeIds = [...new Set(entries.map((entry) => entry.work_hour_type_id))]
   const typesResult = typeIds.length
     ? await supabase.from('work_hour_types')
-      .select('id,family,valid_from,valid_until,approval_required,updated_at')
+      .select('id,code,name,family,valid_from,valid_until,approval_required,updated_at')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', hrGroupId)
       .in('id', typeIds)
     : { data: [], error: null }
-  if (typesResult.error) databaseError(typesResult.error)
+  if (typesResult.error) databaseError(typesResult.error, 'work-hour-types')
 
   return {
     period: periodResult.data,

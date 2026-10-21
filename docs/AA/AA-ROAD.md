@@ -127,6 +127,8 @@ Activa, Wagenpark, Softwarelicenties en Budgetten blijven toekomstige productmod
 
 ### Payroll Lab — geïsoleerde bounded context in dezelfde monorepo
 
+Actuele productstatus 2026-10-16 (boven oudere M0/PAYLAB-historie):** PAYFULL-02 heeft op Draft PR #33 twee controleerbare Mars TEST-maandgevallen met volledige netto- en werkgeverskostenberekening, FINALIZED-lifecycle en persistente PDF-loonstroken. Een derde variabele-loonrevisie blijft CONCEPT. Dit is geen generieke NL Payroll-compliance of release op `main`. Prioriteit: gerichte ESS/PDF-closeout (huidig PARTIAL; artifactbytes en routechecks bewezen, inline browser-PDF nog OPEN), daarna verbreding naar LHK/deeltijd/andere tabellen/bijzondere beloningen/meer IKV's, TWK en payroll by exception. Vergelijking met andere pakketten is geen LiquidHR-ontwikkelwerk. Zie [actuele Payroll-roadmap](AA-NEXT.md) en [validatiescenario's](../payroll/PAYFULL-02-VALIDATIE-EN-ROADMAP-20261016.md).
+
 De inmiddels gekozen richting is **niet** een aparte kopie van LiquidHR of een zelfstandige Payroll-gebruikersapp:
 - dezelfde `EdwinCycling/LiquidHR`-monorepo;
 - pure Supabase-/Next-/React-onafhankelijke TypeScript-engine in `packages/payroll-engine`;
@@ -175,3 +177,10 @@ Onderzoek/gefaseerd:
 ## Productregel
 
 Nieuwe ideeën verplaatsen pas van Explore → Planned → AA-NEXT na expliciet besluit, dependencycheck en concrete Definition of Done.
+
+### Internationale HR
+Onderzoek/gefaseerd:
+- België;
+- Duitsland;
+- landspecifieke identificatievelden;
+- voorkomen dat NL-only velden buiten NL foutief dominant zijn.

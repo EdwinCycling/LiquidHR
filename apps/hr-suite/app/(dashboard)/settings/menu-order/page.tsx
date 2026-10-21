@@ -5,7 +5,7 @@ import { PageShell } from '@/components/layout/page-shell'
 import { SIDEBAR_SECTION_DEFINITIONS } from '@/components/layout/sidebar-navigation'
 
 export default async function MenuOrderPage() {
-  const [navigation, settings] = await Promise.all([getTranslator('navigation'), getTranslator('settings')])
+  const [navigation, settings, payroll] = await Promise.all([getTranslator('navigation'), getTranslator('settings'), getTranslator('payrollProfessional')])
   const labels = {
     daily: navigation('sectionDaily'),
     peopleOrganization: navigation('sectionPeopleOrganization'),
@@ -13,14 +13,16 @@ export default async function MenuOrderPage() {
     steering: navigation('sectionSteering'),
     payroll: navigation('sectionPayroll'),
     selfService: navigation('sectionSelfService'),
-    payrollLab: navigation('sectionPayrollLab'),
     management: navigation('sectionManagement'),
   }
   const itemLabels: Record<string, string> = {
     '/dashboard/start': navigation('startPage'), '/work': navigation('work'), '/hr-calendar': navigation('hrCalendar'),
     '/employees': navigation('employees'), '/organization-chart': navigation('organizationChart'), '/workforce': navigation('workforce'),
     '/recruitment': navigation('recruitment'), '/journeys': navigation('journeys'), '/research': navigation('research'),
-    '/insights': navigation('insights'), '/payroll-lab': navigation('payrollLab'), '/settings': navigation('settings'),
+    '/insights': navigation('insights'), '/payroll': payroll('overview'), '/payroll/runs': payroll('runs'),
+    '/payroll/corrections': payroll('corrections'), '/payroll/compare': payroll('compare'),
+    '/payroll/arrangements': payroll('arrangements'), '/payroll/settings': payroll('settings'),
+    '/my-salary': navigation('mySalary'), '/settings': navigation('settings'),
   }
   const sections = SIDEBAR_SECTION_DEFINITIONS.map((section) => ({ id: section.id, label: labels[section.id], items: section.hrefs.map((href) => ({ href, label: itemLabels[href] ?? href })) }))
   return <PageShell className="py-8 lg:py-10"><AdminSettingsPageHeader backLabel={settings('admin.backToOverview')} eyebrow={settings('admin.sections.platform')} subtitle={settings('admin.menuOrderDescription')} title={settings('admin.menuOrderTitle')} /><MenuOrderForm cancelLabel={settings('admin.menuOrderCancel')} moveDownLabel={settings('admin.menuOrderMoveDown')} moveUpLabel={settings('admin.menuOrderMoveUp')} saveLabel={settings('admin.menuOrderSave')} savedLabel={settings('admin.menuOrderSaved')} sections={sections} /></PageShell>

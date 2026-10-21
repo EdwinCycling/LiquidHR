@@ -9,6 +9,7 @@ import {
   type PensionCalculationResult,
   type Pfzw2026StructuralSalaryComponent,
 } from '@liquid-hr/payroll-rules-nl-2026'
+import { mapCorePensionEligibilityRule } from './pension-eligibility-source-mapping'
 import { hashPayrollSourceSnapshot } from './source/snapshot-hash'
 
 export interface Payrun01Scope {
@@ -437,10 +438,15 @@ function resolveCorePensionInput(input: {
   if (arrangementType !== 'FLAT_PREMIUM' && arrangementType !== 'PROGRESSIVE_PREMIUM') {
     return { reasonCode: 'PENSION_ARRANGEMENT_TYPE_UNSUPPORTED' }
   }
-  const eligibilityRule = record(child(arrangementRecord, 'eligibilityRule')) ?? {}
+  const eligibilityRuleSource = record(child(arrangementRecord, 'eligibilityRule')) ?? {}
+  const eligibility = mapCorePensionEligibilityRule({
+    arrangementType,
+    effectiveFrom: arrangementFrom,
+    eligibilityRule: eligibilityRuleSource,
+  })
   const pensionableSalaryDefinition = record(child(arrangementRecord, 'pensionableSalaryDefinition')) ?? {}
   const isPfzw2026 = text(child(pensionableSalaryDefinition, 'method')) === PFZW_2026_KINDEROPVANG_METHOD
-  const expectedParticipantGroup = text(child(eligibilityRule, 'participantGroup'))
+  const expectedParticipantGroup = text(child(eligibility.eligibilityRule as JsonRecord, 'participantGroup'))
   const laborConditionMappings = list(child(pension, 'laborConditionArrangements'))
     ?.map(record).filter((row): row is JsonRecord => row !== null)
     .filter((row) => child(row, 'effectiveFrom') !== undefined
@@ -485,7 +491,8 @@ function resolveCorePensionInput(input: {
     annualFranchise: text(child(arrangementRecord, 'annualFranchise')) ?? '',
     annualPensionableSalaryCap: text(child(arrangementRecord, 'annualPensionableSalaryCap')),
     pensionableSalaryDefinition,
-    eligibilityRule,
+    eligibilityRule: eligibility.eligibilityRule,
+    eligibilityRuleMapping: eligibility.mapping,
     contractClassification: text(child(arrangementRecord, 'contractClassification')) === 'SOLIDARITY'
       ? 'SOLIDARITY'
       : text(child(arrangementRecord, 'contractClassification')) === 'NON_SOLIDARITY'

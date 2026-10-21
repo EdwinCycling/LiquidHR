@@ -31,7 +31,7 @@
   "markReady": "Markeer als gereed",
   "notYet": "Nog niet",
   "categories": {
-    "organization": { "title": "Organisatie", "description": "Leg de basis voor je organisatiestructuur." },
+    "organization": { "title": "Organisatie", "description": "Richt je organisatiestructuur in." },
     "base": { "title": "Basis", "description": "Vul de gegevens van je HR-groep en bedrijf aan." },
     "configuration": { "title": "Inrichting", "description": "Kies wat medewerkers en beheerders in LiquidHR zien en gebruiken." },
     "employment": { "title": "Dienstverbanden", "description": "Richt de instellingen voor dienstverband, verlof en verzuim in." }

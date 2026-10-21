@@ -1,5 +1,7 @@
 # APIAI-08 — ESS Assistant: Leave & Personal Reminders
 
+**Omgevingspariteit (2026-10-17):** Dezelfde AI- en ESS/MSS-capabilities, normale services, permissions en gebruikersworkflow gelden in TEST en Production. De beschreven write/Execute-gate blijft gesloten totdat server-verifieerbare bevestiging en de overige beveiligingsvoorwaarden bewezen zijn; dat is een readiness-/securitygrens voor iedere omgeving, geen TEST-only productvariant. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md). Deze verduidelijking activeert geen write-tools of nieuwe rechten.
+
 Status: **IMPLEMENTED IN MAIN — TEST MIGRATION REGISTERED — HOSTED TEST ACCEPTANCE OPEN**. The original implementation used ONE VERSION `783999044de83c902e63fefb3587fdbbf99d4de3` on `work/apiai-08-ess-assistant-20261009`; its migration-approval note below is historical. Read-only Supabase inventory on 2026-10-11 confirmed remote registration `20261010064331_apiai08_employee_ess_controlled_actions`; do not reapply it. Recovery evidence on 2026-10-12 confirmed public server discovery returns all eight Employee tools, while the available connector catalog exposes only four; the four calls failed with MCP `-32603` without reaching the Vercel route. Hosted acceptance remains 0/8, and canonical balance, audit/limiter and authenticated scope evidence remain OPEN. See [the APIAI-08 acceptance record](../../quality/acceptance/runs/APIAI-08-20261009.md).
 
 ## User value / ChatGPT conversations

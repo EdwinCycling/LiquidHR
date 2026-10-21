@@ -10,6 +10,7 @@ Codex mag zelfstandig:
 - een concreet defect reproduceren, de oorzaak vaststellen, in scope repareren en gericht hertesten;
 - tests toevoegen en passende typecheck-, lint-, build- of browserchecks uitvoeren;
 - bestaande synthetische TEST-fixtures lezen/gebruiken binnen expliciet toegestane scope;
+- productgedrag en acceptatie afstemmen op [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md): normale flows gebruiken reguliere services/rechten, terwijl fixture-provisioning uitsluitend intern hulpmiddel blijft;
 - alleen expliciet geselecteerde eigen wijzigingen committen en een Draft PR openen indien de bestaande workflow dat vereist;
 - een merge-/releaseworkflow uitvoeren wanneer de **oorspronkelijke opdracht** dat expliciet autoriseert.
 
@@ -94,8 +95,23 @@ Voor Payroll gelden aanvullend `AA-PAYROLL.md` en de feitelijk geraakte Payroll-
 
 ## 7. Token-efficiëntie
 
+**Vaste LiquidHR-Codex-standaard (2026-10-16): Luna-Max, één hoofdagent, één afgebakend doel.** Het model moet bij het starten in de Codex-interface gekozen worden; documentatie schakelt geen model om. Geen automatische zwaardere modelkeuze. Een subagent is uitsluitend na concrete noodzaak, expliciete motivatie en voorafgaande toestemming toegestaan.
+
+- Geef `/doel` één toetsbaar eindresultaat en een duidelijke in-scope grens. Een ruim TEST-uitvoeringsmandaat betekent niet automatisch dat alle modules, alle historische uitzonderingen, alle administraties of een volledige release in dezelfde run moeten.
+- Gebruik **gerichte tests tijdens implementatie** en passende eindgates op de definitieve kandidaat; geen herhaalde volledige suite of build na elke kleine fix. Houd CONTROLLED/Payroll/RLS-gates uit `AA-TEST.md` onverkort van kracht.
+- Hergebruik exact-SHA-bewijs en stop herhaalde onproductieve analyses. Geef een bondige eindrapportage met resultaat, tests, blockers en commit/PR, geen logdump.
+
+
 - Lees alleen de noodzakelijke bronnen en toepasselijke secties. Hergebruik geldige context, analyses en groene testresultaten; vermijd dubbele toolcalls, volledige herlezingen en onnodig grote terminaluitvoer.
 - Gebruik standaard één uitvoerende agent; start geen automatische subagents.
 - Richtbudget per taak, indicatief als sturingsmiddel en geen harde limiet of veiligheidsgrens: LOW circa **2.000**, MEDIUM **6.000**, HIGH **15.000** tokens. Pas dit aan als aantoonbare complexiteit dat vraagt; verkort nooit security-, integriteits- of vereiste verificatie.
 - Rapporteer input-, output-, cached tokens en kosten alleen als de runtime die betrouwbaar levert; anders vermeld **niet meetbaar**.
 - Rapporteer bij grotere runs kort het aantal herstelcycli, de uitgevoerde tests, meetbaar tokengebruik en de belangrijkste bron van verspilling.
+
+## Permanente lokale Payroll-persona's
+
+- Start met `docs/quality/acceptance/PAYROLL-TEST-PERSONAS.md` en de machinecatalogus ernaast. De catalogus is de vaste bron voor persona-key, login, employee/employment, scope, role-switch-key en run-lifecycle.
+- Voer `scripts/check-test-personas.ps1` uit voordat je Payroll-, ESS-, MSS- of PDF-acceptatie begint. Gebruik ontbrekende omgevingsvariabelen als exacte preflight-uitkomst; vraag niet opnieuw naar bekende accounts of de bekende loginflow.
+- De optionele launcherflag `-PayrollPersonaAcceptance` laadt de ACL-gecontroleerde persona-env uitsluitend in de lokale Development-testserver. Gebruik hem nooit voor Production-mode, Build of Vercel. Houd wachtwoorden uit logs, screenshots, traces, rapporten en Git; de beveiligde role-switch verstuurt geen persona-wachtwoord.
+- Wissel alleen naar de vaste catalogusdoelen. Ontbrekende Auth-accounts worden geweigerd en niet via magiclink-aanmaak of een service-role-/SQL-pad geïmproviseerd.
+- Houd `READY_WITH_EXPECTED_GAP` en `BLOCKED` zichtbaar. Geen GREEN zonder alle account-, scope-, lifecycle-, security-, terugkeer-, document- en onafhankelijke-worktreegates.

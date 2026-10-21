@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { decryptPii, encryptPii } from '@/lib/security/pii-crypto'
 import { EmployeeServiceError } from './errors'
+import { employeeBsnSchema } from './schemas'
 import { compactEmployeeAvatar } from './avatar-image'
 import { createEmployeeSystemActivity } from './employee-activity-service'
 import { parseStorageReference, resolveStoredImageUrl } from '@/lib/storage/image-url'
@@ -368,11 +369,10 @@ export async function revealEmployeeBsn(employeeId: string): Promise<string | nu
     .from('employee_secure_identifiers')
     .select('bsn_ciphertext')
     .eq('tenant_id', context.tenantId)
-    .eq('id', employeeId)
-    .is('deleted_at', null)
+    .eq('employee_id', employeeId)
     .maybeSingle()
   if (error || !data) throw new EmployeeServiceError('EMPLOYEE_NOT_FOUND', 404)
-  await supabase.from('audit_logs').insert({
+  const { error: auditError } = await supabase.from('audit_logs').insert({
     tenant_id: context.tenantId,
     entity_name: 'employee',
     entity_id: employeeId,
@@ -380,19 +380,22 @@ export async function revealEmployeeBsn(employeeId: string): Promise<string | nu
     action: 'REVEAL',
     changes: { field: 'bsn' } satisfies Json,
   })
+  if (auditError) throw new EmployeeServiceError('EMPLOYEE_BSN_AUDIT_FAILED', 500)
   return data.bsn_ciphertext ? decryptPii(data.bsn_ciphertext, context.tenantId) : null
 }
 
 export async function setEmployeeBsn(employeeId: string, bsn: string): Promise<void> {
   const context = await requirePermission('employee-bsn:write', employeeId)
+  const parsed = employeeBsnSchema.safeParse({ bsn })
+  if (!parsed.success) throw new EmployeeServiceError('BSN_INVALID', 400)
   const hashKey = process.env.BSN_HASH_KEY
   if (!hashKey) throw new EmployeeServiceError('BSN_HASH_KEY_MISSING', 500)
   const supabase = await createClient()
   const { error } = await supabase.from('employee_secure_identifiers').upsert({
     tenant_id: context.tenantId,
     employee_id: employeeId,
-    bsn_ciphertext: encryptPii(bsn, context.tenantId),
-    bsn_fingerprint: createBsnFingerprint(context.tenantId, bsn, hashKey),
+    bsn_ciphertext: encryptPii(parsed.data.bsn, context.tenantId),
+    bsn_fingerprint: createBsnFingerprint(context.tenantId, parsed.data.bsn, hashKey),
   }, { onConflict: 'employee_id' })
   if (isPostgresConflict(error)) throw new EmployeeServiceError('EMPLOYEE_IDENTITY_CONFLICT', 409)
   if (error) throw new EmployeeServiceError('EMPLOYEE_BSN_UPDATE_FAILED', 500)

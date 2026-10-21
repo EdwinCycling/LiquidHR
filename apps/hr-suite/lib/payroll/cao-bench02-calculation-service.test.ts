@@ -77,7 +77,7 @@ describe('CAO-BENCH02 calculation-service case catalog', () => {
 })
 
 describe('CAO-BENCH02 gross-only input scope', () => {
-  it('calculates K1 without manufacturing an income-relationship identity', () => {
+  it('calculates gross K1 while preserving unresolved source gaps without manufacturing an income-relationship identity', () => {
     const snapshot = {
       id: '80000000-0000-4000-8000-000000000008',
       sourceTenantId: '10000000-0000-4000-8000-000000000001',
@@ -146,7 +146,8 @@ describe('CAO-BENCH02 gross-only input scope', () => {
     })
     const result = calculatePayroll(inputs, bundle.registry)
 
-    expect(result.status).toBe('CALCULATED')
+    expect(result.status).toBe('BLOCKED')
+    expect(result.controls.filter((control) => control.code.startsWith('SOURCE_GAP_')).map((control) => control.status)).toEqual(['FAIL', 'FAIL'])
     expect(Object.fromEntries(result.resultRows.map((row) => [row.key, row.value]))).toEqual({
       base_salary: '2777.000000000000000000',
       work_hour_supplement: '0.000000000000000000',

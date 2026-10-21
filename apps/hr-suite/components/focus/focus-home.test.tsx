@@ -113,8 +113,8 @@ describe('Focus home', () => {
 
   it('renders a useful empty state when no journey or actions are available', () => {
     const host = render(focusData({ journey: null, actions: [] }))
-    expect(host.textContent).toContain('Nog geen journey beschikbaar')
-    expect(host.textContent).toContain('Nog geen acties beschikbaar')
+    expect(host.textContent).toContain('Er is geen journey aan je toegewezen')
+    expect(host.textContent).toContain('Geen acties beschikbaar')
   })
 
   it('keeps preboarding journey actions inside the assigned journey or signing area', () => {

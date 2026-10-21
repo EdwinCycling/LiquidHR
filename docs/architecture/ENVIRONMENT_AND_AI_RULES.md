@@ -19,6 +19,10 @@ De bron-app gebruikt een `CLAUDE.md`-bestand (project-instructies, gelezen bij e
 
 ---
 
+## Productwerking per omgeving
+
+Omgevingsconfiguratie mag credentials, externe verbindingen, dataverkeer en productieacties beheersen; zij maakt geen klantgerichte feature of gebruikersworkflow TEST-only. TEST en Production gebruiken dezelfde normale productservices, UI en rechten. Houd interne dataherkomst in audit/provenance en scherm test-/fixturemetadata af van normale klantpresentatie. Zie [PRODUCT_ENVIRONMENT_PARITY](PRODUCT_ENVIRONMENT_PARITY.md) voor de volledige regel en verplichte acceptatiecriteria.
+
 ## 2. Environment Variables Template
 
 > Namen + doel, **geen waarden**. Verzameld door te greppen op `process.env.*`-gebruik in de bron-app — pas de lijst aan naar wat de nieuwe HR-app daadwerkelijk nodig heeft; dit is een startpunt, niet een verplichte 1-op-1 kopie.

@@ -183,7 +183,7 @@ function linkExistingEmployee(employeeId: string): void {
       tenant_id: 'tenant-1',
       administration_id: 'admin-1',
       employee_id: employeeId,
-      payroll_tax_subnumber: '01',
+      payroll_tax_subnumber: 'L01',
       ikv_number: stagedIncome.ikv_number,
       deleted_at: null,
     })

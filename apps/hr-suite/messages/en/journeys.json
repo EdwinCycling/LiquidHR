@@ -10,7 +10,7 @@
   "newTemplate": "New template",
   "noTemplates": "No templates found yet.",
   "noResults": "No templates match this search.",
-  "name": "Name", "description": "Description", "key": "Technical key", "type": "Journey type", "anchor": "Anchor date",
+  "name": "Name", "description": "Description", "key": "Journey code", "type": "Journey type", "anchor": "Anchor date",
   "status": "Status", "version": "Version", "draftRevision": "Draft revision", "updated": "Updated",
   "draft": "Draft", "published": "Published", "retired": "Retired",
   "create": "Create template", "cancel": "Cancel", "close": "Close", "discardTitle": "Discard changes?", "discardDescription": "Unsaved template details will be lost.", "discardConfirm": "Discard changes", "discardCancel": "Keep editing", "save": "Save draft", "saving": "Saving…", "saved": "Draft saved.",

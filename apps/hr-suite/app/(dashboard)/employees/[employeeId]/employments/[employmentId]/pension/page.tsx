@@ -14,7 +14,7 @@ import { assignEmploymentPensionArrangementAction, createPensionArrangementSucce
 
 type PageProps = {
   params: Promise<{ employeeId: string; employmentId: string }>
-  searchParams: Promise<{ saved?: string; error?: string }>
+  searchParams: Promise<{ saved?: string; error?: string; sourceCategory?: string; errorCode?: string; correlationId?: string }>
 }
 
 export default async function EmploymentPensionPage({ params, searchParams }: PageProps) {
@@ -33,6 +33,13 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
 
   const today = new Date().toISOString().slice(0, 10)
   const isError = query.error === 'invalid' || query.error === 'blocked' || query.error === 'unavailable'
+  const safeDiagnostic = query.sourceCategory === 'PENSION_ARRANGEMENT_SUCCESSOR'
+    && typeof query.errorCode === 'string'
+    && /^[A-Z][A-Z0-9_]{0,95}$/.test(query.errorCode)
+    && typeof query.correlationId === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(query.correlationId)
+    ? { sourceCategory: query.sourceCategory, errorCode: query.errorCode, correlationId: query.correlationId }
+    : null
   const errorMessage = query.error === 'invalid'
     ? t('pensionAssignmentInvalid')
     : query.error === 'blocked'
@@ -54,6 +61,7 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
     {query.saved === 'saved' ? <p role="status" className="border-l-2 border-success-border pl-3 text-sm text-success">{t('pensionAssignmentSaved')}</p> : null}
     {query.saved === 'versionSaved' ? <p role="status" className="border-l-2 border-success-border pl-3 text-sm text-success">{t('pensionSuccessorSaved')}</p> : null}
     {isError ? <p role="alert" className="border-l-2 border-destructive-border pl-3 text-sm text-destructive">{errorMessage}</p> : null}
+    {isError && safeDiagnostic ? <p role="note" className="text-xs text-muted-foreground">{t('pensionActionDiagnostic', safeDiagnostic)}</p> : null}
 
     <Surface className="space-y-4 p-5 sm:p-6">
       <SectionHeader title={t('pensionAssignmentsTitle')} />
@@ -94,7 +102,7 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
     </Surface>
 
     {data.canWrite ? <Surface className="space-y-4 p-5 sm:p-6">
-      <SectionHeader title={t('pensionAssignTitle')} description={t('pensionSyntheticPolicyNotice')} />
+      <SectionHeader title={t('pensionAssignTitle')} description={t('pensionAssignmentNotice')} />
       {data.assignments.some((row) => row.effective_to === null || row.effective_to >= today)
         ? <p className="text-sm text-muted-foreground">{t('pensionAssignmentOverlapPresent')}</p>
         : null}
@@ -146,20 +154,8 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
                 <option value="GRANDFATHERED">{t('pensionGrandfathered')}</option>
               </select>
             </label>
-            <label className="grid gap-1 text-sm font-medium">
-              {t('pensionProvenanceMode')}
-              <select name="provenanceMode" required defaultValue="USER_RECORDED" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
-                <option value="USER_RECORDED">{t('pensionUserRecorded')}</option>
-                {data.canCreateSyntheticFixture ? <option value="SYNTHETIC_TEST_FIXTURE">{t('pensionSyntheticTestFixture')}</option> : null}
-              </select>
-            </label>
-            {data.canCreateSyntheticFixture
-              ? <label className="grid gap-1 text-sm font-medium">
-                {t('pensionTestScenario')}
-                <input name="testScenario" type="text" maxLength={180} className="min-h-10 rounded-md border border-border bg-background px-3 font-normal" />
-                <span className="text-xs font-normal text-muted-foreground">{t('pensionTestScenarioHelp')}</span>
-              </label>
-              : <input type="hidden" name="testScenario" value="" />}
+            <input type="hidden" name="provenanceMode" value="USER_RECORDED" />
+            <input type="hidden" name="testScenario" value="" />
             <label className="flex items-start gap-3 text-sm">
               <input name="confirmMapping" type="checkbox" value="yes" required className="mt-1" />
               <span>{t('pensionConfirmCaoMapping', { conditionSet: data.laborConditionSet.name })}</span>

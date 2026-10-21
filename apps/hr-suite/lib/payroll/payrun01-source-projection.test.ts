@@ -38,6 +38,7 @@ function sourceSnapshot(options: {
   readonly includeCoreFlatPension?: boolean
   readonly includeCoreProgressivePension?: boolean
   readonly includeCorePfzwPension?: boolean
+  readonly omitFlatPensionEligibilityBoundary?: boolean
   readonly mappingReferenceMismatch?: boolean
 } = {}): PayrollSourceSnapshot {
   const lisa = options.lisa ?? false
@@ -169,7 +170,8 @@ function sourceSnapshot(options: {
               participantGroup: 'GRANDFATHERED', transitionMethod: 'EERBIEDIGENDE_WERKING',
               participationStartBefore: '2026-01-01', ageDetermination: 'AGE_AT_END_OF_CALENDAR_YEAR',
             } : {
-              participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01',
+              participantGroup: 'NEW_ENTRANT',
+              ...(options.omitFlatPensionEligibilityBoundary ? {} : { employmentOrParticipationStartOnOrAfter: '2026-01-01' }),
             },
             contractClassification: includeCoreProgressivePension ? 'NON_SOLIDARITY' : 'UNKNOWN',
             contractClassificationProvenance: includeCoreProgressivePension
@@ -462,7 +464,7 @@ describe('PAYRUN01 Payroll-owned source projection', () => {
   })
 
   it('resolves an effective Core flat arrangement into pension amounts and fiscal assessment bases', () => {
-    const source = sourceSnapshot({ lisa: true, includeCoreFlatPension: true })
+    const source = sourceSnapshot({ lisa: true, includeCoreFlatPension: true, omitFlatPensionEligibilityBoundary: true })
     const projection = projectionConfig({ lisa: true })
     const result = projectPayrun01SourceSnapshot(source, {
       ...projection,
@@ -501,6 +503,15 @@ describe('PAYRUN01 Payroll-owned source projection', () => {
       expect.objectContaining({ componentCode: 'PENSION_PENSIONABLE_BASE' }),
       expect.objectContaining({ componentCode: 'PENSION_EMPLOYEE_SHARE' }),
       expect.objectContaining({ componentCode: 'PENSION_EMPLOYER_SHARE' }),
+      expect.objectContaining({
+        ruleProvenance: expect.objectContaining({
+          eligibilityRuleMapping: {
+            mode: 'CORE_ARRANGEMENT_EFFECTIVE_FROM',
+            sourceField: 'arrangement.effective_from',
+            derivedBoundary: '2026-01-01',
+          },
+        }),
+      }),
     ]))
   })
 

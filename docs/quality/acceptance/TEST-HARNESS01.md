@@ -12,6 +12,8 @@ Voer daarna de volledige persona- en viewportmatrix uit met de bestaande central
 
 Vervang routes, context en probes door bestaande TEST-fixtures en autorisatiecontracten van het gewijzigde domein. Neem per persona ten minste één toegestane en één geweigerde directe API-probe op. Probes gebruiken browsercookies van die persona; response bodies worden niet opgeslagen of getoond. Gebruik waar mogelijk GET. Richt een schrijfmethode alleen op een bestaande synthetische fixture en de bedoelde autorisatiegrens.
 
+De harness en fixture-provisioning zijn interne acceptatiehulpmiddelen. Voor een productfeature voert de persona de normale klantworkflow uit met de reguliere services, rechten en instellingen. Fixturecreatie mag de gecontroleerde gegevens voorbereiden, maar is geen alternatieve functionele route of bewijs dat de klantfeature alleen via fixtures werkt. Controleer klantpresentatie zonder interne TEST-/fixturelabels en verifieer dat niet-toegestane externe acties aan de omgevingsgrens blokkeren; zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
+
 ## Persona-, route- en contextregels
 
 - HR Admin en Manager gebruiken standaard de opgegeven route; de startpagina is /dashboard/start.

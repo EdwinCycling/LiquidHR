@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canReadInsightReport, INSIGHT_REPORTS, insightReportRoute } from './report-catalog'
+import { canReadInsightReport, INSIGHT_REPORTS, insightReportRoute, visibleInsightReports } from './report-catalog'
 import { canonicalInsightReportId } from './query-seam'
 
 describe('Insights Analyse destination', () => {
@@ -29,5 +29,17 @@ describe('Insights Analyse destination', () => {
     expect(canReadInsightReport(starReport, ['star-performer:manager-read'])).toBe(true)
     expect(canReadInsightReport(starReport, ['self:star-performer:read'])).toBe(false)
     expect(canReadInsightReport(talentReport, ['self:talent-report:read'])).toBe(false)
+  })
+
+  it('keeps unavailable reports out of the user-facing catalogue and direct report URLs', () => {
+    expect(visibleInsightReports(['report-leave-provision:read', 'report-wvp:read'], true)).toEqual([])
+    expect(canonicalInsightReportId('provision')).toBeNull()
+    expect(canonicalInsightReportId('wvp')).toBeNull()
+  })
+
+  it('limits the internal salary-position report to HR administrators', () => {
+    const permissions = ['salary:read']
+    expect(visibleInsightReports(permissions, false).some((report) => report.id === 'salary-internal-position')).toBe(false)
+    expect(visibleInsightReports(permissions, true).some((report) => report.id === 'salary-internal-position')).toBe(true)
   })
 })

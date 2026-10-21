@@ -1,0 +1,142 @@
+# PAYFULL-02 — gecontroleerde TEST-closeout 2026-10-16
+
+## PAYFULL-02C hercontrole — 2026-10-16
+
+- De meegeleverde PAYFULL-02C-hercontrole meldt **nul** `payroll_individual_artifacts`-records voor de twee onderstaande FINALIZED-run-ID's. Dat botst met de artifact-ID's en hashes die in de eerste closeout zijn vastgelegd. Die eerdere metadata blijven hieronder behouden als historisch gerapporteerde uitkomst, maar gelden niet als actuele, bevestigde persistentie-readback zolang de botsing niet via de normale geautoriseerde Payroll-route is opgelost.
+- De huidige in-app browsertab toont voor `http://127.0.0.1:3022/login?next=%2Fpayroll%2Fruns` een Chrome-foutpagina met `ERR_CONNECTION_REFUSED`. CUA-weergave van die foutpagina werd geweigerd omdat het huidige document `data:` gebruikt terwijl deze browsergrens alleen `http` en `https` toestaat. De lokale HTTP-URL is dus niet door die protocolcontrole beoordeeld. Er is geen alternatieve browser-, CDP- of directe database-route gebruikt. Opgeslagen bytes, PDF-inhoud, retry-idempotentie en ESS-self-/negatieve-readback zijn **niet geverifieerd**.
+- De beschermde runtimevelden waren aanwezig en geldig, maar de PAYFULL-acceptancelauncher stopte vóór serverstart omdat poort 3022 al bezet was. Een read-only hostquery zag daar een Node-listener (PID 23404); geen proces is gestopt. Deze hercontrole heeft DEMO-002 niet geprovisioneerd of ingelogd. Bestaande DEMO-001-identiteit en -rechten zijn niet gewijzigd.
+- De route `/api/local/personas/provision` is aanvullend fail-closed gemaakt voor DEMO-002: naast geverifieerde identiteit en exacte Mars-scope vereist de route nu dezelfde vaste HR Admin-identiteit die de Core-link-RPC autoriseert. De alternatieve Mars-admin wordt vóór Auth-creatie geweigerd. Gerichte route-tests, TypeScript en ESLint slagen; live autorisatie-/browseracceptatie blijft open.
+
+- Status: **PARTIAL**. De twee gecontroleerde Mars-runs zijn volledig berekend, REVIEWED en FINALIZED; de volledige live ESS-/privacyacceptatie en leesbare PDF-contentreadback zijn niet aangetoond.
+- Branch/PR: `work/PAYFULL-01-20261014`, Draft PR #33. Geen merge, deployment, aangifte of bankbetaling.
+- Exacte implementatie- en buildcode: `9df1187a3bcd5a4b703bda37021f6dfa7742f015`. De latere delta wijzigt alleen de lokale migratiebestandsnaam/testverwijzing en documentatie; de SQL-inhoud/runtimeberekening is niet veranderd.
+- Core TEST: `wnpfloqpjvaacobppbpk`; Payroll Lab TEST: `jhgeriucbkfarxiudzfy`.
+
+## 1. Twee definitieve Mars-berekeningen
+
+| Medewerker / run | Bruto | Werknemerspensioen | Fiscaal loon | Loonheffing | Nettovergoeding | Nettoloon |
+|---|---:|---:|---:|---:|---:|---:|
+| DEMO-001 / `731e2a73-af7c-59d6-af88-5d0455c68374` | €3.517,00 | €191,93 | €3.325,07 | €1.188,58 | €45,00 | **€2.181,49** |
+| DEMO-002 / `48f47ffd-191c-5cbb-a22a-9061a2b7e5c3` | €3.534,00 | €251,72 | €3.282,28 | €1.173,42 | €32,50 | **€2.141,36** |
+
+Het nettoloon sluit aan als bruto minus werknemerspensioen en loonheffing plus nettovergoeding. Werkgeverspremies, werkgeverspensioen en reserveringen zijn niet als werknemersinhouding verwerkt. Beide runs zijn door de normale HR Admin-lifecycle gegaan: controles vóór REVIEWED, daarna FINALIZED; elk met **32/32 geslaagde controles**.
+
+| Werkgeverskosten | DEMO-001 | DEMO-002 |
+|---|---:|---:|
+| AWf hoog | €257,36 | €254,05 |
+| Aof laag | €208,48 | €205,80 |
+| Whk | €60,18 | €59,41 |
+| Wko | €16,63 | €16,41 |
+| Werkgeversheffing Zvw | €202,83 | €200,22 |
+| Totale werkgeverspremies | €745,48 | €735,89 |
+| Werkgeverspensioen | €287,90 | €251,72 |
+| Vakantiegeldreservering | €281,36 | €282,72 |
+| Nettovergoeding als werkgeversuitgave | €45,00 | €32,50 |
+| **Totale werkgeverskosten** | **€4.876,74** | **€4.836,83** |
+
+De vaste extra DEMO-001-revisie `ab47136a-a62f-5866-a0d0-3e74b1f1bff4` bevat €500,00 variabel loon en blijft CONCEPT: bruto €4.017,00, pensioen €241,93, fiscaal loon €3.775,07, loonheffing €1.357,67, netto €2.462,40 en werkgeverskosten €5.592,64.
+
+De oorspronkelijke oktober-CONCEPT-runs `f33294bf-2eea-52d6-ab36-3f740e822a51` en `7034df4f-7dbb-57d5-ba2c-498855092587` en hun hashes/lifecyclehistorie zijn behouden.
+
+## 2. TEST-bronwaarden, geldigheid en cumulatieven
+
+De synthetische setup geldt effectief van 2026-01-01 t/m 2026-12-31 en draagt provenance `TEST_SETUP_PAYFULL_02`. Geen van de pensioen- of Whk-invoer beweert een echt fondscontract of echte werkgeversbeschikking.
+
+| Parameter | DEMO-001 | DEMO-002 | Bron/herkomst |
+|---|---:|---:|---|
+| Contractloon / deeltijd | €3.517,00 / 1,0 | €3.534,00 / 1,0 | Synthetische Mars-dienstverbanden en periodieke TEST-brondata |
+| Pensioenfranchise | €19.172/jaar; €1.597,67/maand | Zelfde | TEST-planversie; maandfranchise op cent afgerond |
+| Pensioenmaximum | €137.800/jaar; €11.483,33/maand | Zelfde | TEST-planversie; niet bereikt |
+| Pensioengrondslag | €1.919,33 | €1.936,33 | Bruto minus maandfranchise |
+| Totale pensioenpremie; werknemer/werkgever | 25%; 10% / 15% | 26%; 13% / 13% | Verschillende synthetische planversies |
+| AWf-classificatie | Hoog, 7,74% | Hoog, 7,74% | Contractaanname; percentage Belastingdienst 2026 |
+| Aof-classificatie | Laag, 6,27% | Laag, 6,27% | Synthetische kleine-werkgeverclassificatie; percentage Belastingdienst 2026 |
+| Whk | 1,81% | 1,81% | Synthetische TEST-beschikkingaanname |
+| Wko | 0,50% | 0,50% | Belastingdienst 2026 |
+| Werkgeversheffing Zvw / maximum | 6,10% / €79.409 | Zelfde | Belastingdienst 2026; maximum niet bereikt |
+| Vakantiegeld / overige reservering | 8% / 0% | 8% / 0% | Synthetische werkgeversconfiguratie |
+| Loonheffingstabel | Wit, NL, onder AOW, LHK uit | Zelfde | Witte maandtabel 2026; bijzondere-beloningstabel apart versioned |
+| Nettovergoeding | €45,00 | €32,50 | Synthetische variabele TEST-invoer |
+
+Voor januari-september is een afzonderlijke gehashte TEST-openingsbalans gebruikt op basis van negen maandbronsnapshots; er zijn geen gefingeerde historische FINALIZED-runs aangemaakt. Aansluiting in oktober:
+
+| Cumulatief | DEMO-001 opening + oktober = nieuw | DEMO-002 opening + oktober = nieuw |
+|---|---:|---:|
+| Bruto | €31.653,00 + €3.517,00 = €35.170,00 | €31.806,00 + €3.534,00 = €35.340,00 |
+| Fiscaal/SV/Zvw-loon | €29.925,63 + €3.325,07 = €33.250,70 | €29.540,52 + €3.282,28 = €32.822,80 |
+| Loonheffing | €10.697,22 + €1.188,58 = €11.885,80 | €10.560,78 + €1.173,42 = €11.734,20 |
+| Vakantiegeldreservering | €2.532,24 + €281,36 = €2.813,60 | €2.544,48 + €282,72 = €2.827,20 |
+
+De onafhankelijke vaste oracle importeert geen payroll-engine of rule package. De loonheffing is vergeleken met de officiële [Belastingdienst witte maandtabel 2026](https://download.belastingdienst.nl/belastingdienst/dl/rekenhulpen/loonheffing/2026/v01/pdf/wit_mnd_nl_std_20260101.pdf); pensioen-, Whk- en cumulatieve TEST-waarden zijn eigen, expliciete scenario-invoer. De [Cijferbijlage 2026](https://odb.belastingdienst.nl/wp-content/uploads/2025/12/Cijferbijlage-2026-bij-Nieuwsbrief-LH-LH-209-1B61FD_TG.pdf) en het [Handboek Loonheffingen 2026](https://download.belastingdienst.nl/belastingdienst/docs/handboek-loonheffingen-lh0221t61fd.pdf) staan als onderbouwing bij de oorspronkelijke [PAYFULL-02 run-evidence](PAYFULL-02-20261015.md).
+
+## 3. Hashes, trace en PDF-artifacts
+
+| Run | Source hash | Input hash | Result hash |
+|---|---|---|---|
+| DEMO-001 `731e2a73-af7c-59d6-af88-5d0455c68374` | `0c7d2c519ff230bd06e77a361fa920983c18235c4c8aacf9685f1495bca4e571` | `ebe480708e1e2fa51b9c898b353dfa9e4668d3909d3e8f7c0dc843b05884919c` | `8e990f74cca21c2b500958757d2dea426237e14e47cf6b34952303acef4058c5` |
+| DEMO-002 `48f47ffd-191c-5cbb-a22a-9061a2b7e5c3` | `202fc2dd37b989e1871e83d9944c64949c05a0b46cce4e42a96f8ac50d2250d0` | `5ada019bf722da383c119fb4631efbf3fc47b1abbb81bb1ffb3d3f8bff999ff7` | `667a40a57a14e13903214a807a93fbfe5b3270ad70529d4ff96103c72477fd0a` |
+
+De eerste PAYFULL-02-closeout rapporteerde voor beide FINALIZED-runs een gebonden PDF-artifactrecord met SHA-256. De PAYFULL-02C-hercontrole hierboven meldt nul records voor deze run-ID's. Onderstaande waarden zijn daarom uitsluitend de eerder gerapporteerde metadata en geen bewijs van de huidige opgeslagen staat:
+
+| Run | Artifact ID | Grootte | PDF SHA-256 |
+|---|---|---:|---|
+| DEMO-001 | `cc3066c6-dd1d-4fc4-8503-8bdf3fa2c673` | 513.704 bytes | `6d1499151d79ea1ea470dfe5bac1a73b0cecbd34a3ae41ded48acefefe108a2b` |
+| DEMO-002 | `94cc630b-f8f0-4085-99ce-3126bcce893d` | 513.406 bytes | `51b8c513b4c6f9b0c5a9e74e36086099d493ec08b9228b997779ae6cee56d977` |
+
+De normale PDF-endpoints antwoordden volgens de eerste closeout eerder HTTP 200 met `application/pdf`; de nieuwe tegenstrijdige nul-rijenmelding maakt actuele persistentie nog onbewezen. Er was geen visuele/tekstuele inhoudscontrole van de bytes en geen PDF-download via een Employee-sessie. De run-detailtrace, componenten, controles en cumulatieven staan op runniveau; de oorspronkelijke evidence bevat aanvullende configuratie- en tracegegevens.
+
+## 4. Migratie en autorisatie
+
+Core TEST registreert migratie `20261016065512_payfull02_demo002_employee_persona_link`. De lokale migratiebestandsnaam is hiermee uitgelijnd; SQL-inhoud is gelijk gebleven. Het auditveld `migration: 20261016064505` blijft als oorspronkelijke source-generation-markering staan; het wijzigt de geregistreerde migratieversie niet. De persoonslink-functie gebruikt een lege `search_path`, vaste Mars-tenant/groep/administratie en exacte employee/employment/actor/target-identiteiten, controleert HR Admin-scope en `salary:write`, schrijft auditprovenance, en grant `EXECUTE` uitsluitend aan `authenticated` (niet `PUBLIC`, `anon` of `service_role`). De PGlite-migratiecontracttests controleren de begrenzing.
+
+De Supabase security advisor signaleert de nieuwe authenticated `SECURITY DEFINER`-functie als waarschuwing. Dit is een relevante advisor-uitkomst, ook al zijn `anon`/`PUBLIC` uitgesloten en is de functie strikt begrensd; deze closeout verzwijgt die waarschuwing niet. Geen RLS- of autorisatiebypass is gebruikt.
+
+## 5. Tests en build
+
+- Finale relevante Payroll-suite, serieel en met verhoogde timeout om de eerdere PGlite/PDF-timeout onder parallelle belasting uit te sluiten: **68 testfiles geslaagd, 3 overgeslagen; 480 tests geslaagd, 3 overgeslagen**.
+- Gerichte regressie-/integratiesuites: **4 files / 52 tests geslaagd**. Migratiecontract na bestandsnaamuitlijning: **1 file / 4 tests geslaagd**.
+- `npm run type-check`, scoped ESLint en NL/EN i18n-controle (43 namespaces): geslaagd.
+- Exacte productionbuild op `9df1187a3bcd5a4b703bda37021f6dfa7742f015`: Next.js 16.4.0 Turbopack, TypeScript en 332 statische pagina's geslaagd; Payroll-client-boundary negative control, 167 assetscan en source/runtimeprovenance geslaagd. Niet-fatale tracingwaarschuwing: dynamische logo-padzoeker in `payrun01-payslip-pdf.ts:156`.
+- Geïsoleerde `npm ci` meldde dat `@sparticuz/chromium@149` Node `^22.17.0 || >=24` verwacht terwijl de buildomgeving Node 22.14 gebruikt, en 10 dependency-auditmeldingen (2 moderate, 8 high). Er is geen `npm audit fix` uitgevoerd. De build zelf eindigde succesvol.
+- `git diff --check` is vóór commit gecontroleerd; geen test- of buildresultaat is afgeleid uit een skip als pass.
+- De latere ESS-viewerwijziging is gericht getest: 5 testbestanden / 20 tests, TypeScript, gewijzigde-bestanden-ESLint, i18n (43 gelijke NL/EN-namespaces) en `git diff --check` zijn geslaagd. De volledige productionbuild is na deze UI-delta niet opnieuw uitgevoerd: de in-use developmentruntime op poort 3022 gebruikt de lokale Next-output, en `next-env.d.ts`/`next.config.ts` bevatten beschermde bestaande werkboomwijzigingen. De vorige build blijft bewezen op `9df1187a3bcd5a4b703bda37021f6dfa7742f015`.
+
+De finale run-detailpagina van DEMO-001 is op Development bij 390×844 gecontroleerd zonder horizontale overflow. Mobiele PDF- en ESS-schermen zijn niet gecontroleerd.
+
+## 6. Browser- en ESS-acceptatie
+
+De PAYFULL-02C-hercontrole hierboven documenteert de toenmalige blokkade. Na de expliciete gebruikersautorisatie is DEMO-002 via de bestaande Mars TEST-route aan een eigen TEST-authaccount gekoppeld; geen rol of administratiescope is uitgebreid.
+
+De daaropvolgende geauthenticeerde in-app sessie liet op `/my-salary` uitsluitend DEMO-002's eigen definitieve oktoberresultaat zien: bruto €3.534,00, pensioen werknemer €251,72, fiscaal loon €3.282,28, loonheffing €1.173,42, netto €2.141,36 en de cumulatieven. De pagina toonde ook de melding dat de pensioenberekening synthetische TEST-instellingen gebruikt en geen extern pensioenfondscontract bevestigt. Deze ESS-weergave is op 390 px gecontroleerd.
+
+De normale HR Admin-runpagina's voor DEMO-001 en DEMO-002 tonen elk **Opgeslagen PDF downloaden** voor hun definitieve run. De oorspronkelijke run-preview voor DEMO-002 toonde een éénpagina-loonstrook met de verwachte inhoud en €2.141,36 netto-uitbetaling.
+
+Bij hervatting op 16 oktober 2026 opende de bestaande TEST-persona DEMO-002 via de lokale accountwisselaar als werknemer Sophie. De status was al **Beschikbaar**; er is geen Auth-account aangemaakt en geen rol of administratie gewijzigd. `/my-salary` toonde uitsluitend de eigen definitieve periode oktober 2026 met bruto €3.534,00 en netto €2.141,36. De normale ESS-download is gelukt: het bestand was 513.406 bytes met SHA-256 `51b8c513b4c6f9b0c5a9e74e36086099d493ec08b9228b997779ae6cee56d977`, exact gelijk aan het eerder opgeslagen HR Admin-artifact. De éénpagina-A4-PDF is visueel gecontroleerd op bruto, pensioen werknemer, loonheffing, nettovergoeding, uitbetaling en cumulatieven. Dit bewijst ESS-download/readback en artifact-bytegelijkheid, maar niet de inline viewer.
+
+De gewone ESS-knop **Bekijken** opent de documentviewer, maar de PDF-kaderinhoud blijft `Documentvoorbeeld laden…`. Vanuit dezelfde DEMO-002 ESS-sessie gaf de reeds geopende DEMO-001-previewroute expliciet `Je hebt onvoldoende rechten voor deze actie` terug en geen PDF-inhoud. Dit is negatieve preview-autorisatie voor een andere werknemer; de opgeslagen-artifactroute en cross-administration zijn hiermee niet getest. Er is geen andere browser, directe HTTP-tool of database-route gebruikt.
+
+De resterende live controles zijn **OPEN**:
+
+- inline ESS-PDF-weergave;
+- ESS-eigen loonstrookreadback en normale download-hashreadback voor DEMO-001; de ondersteunde lokale personawisselaar biedt geen DEMO-001-identiteit, dus er is geen Auth-account of extra toegang aangemaakt;
+- aanvullende negatieve controle op opgeslagen artifacts, lifecycle-weigering voor Manager/Employee en cross-administration browserprobe;
+- PDF-weergave op 390 px.
+
+Daarom blijft de eindstatus **PARTIAL**, niet volledige end-to-end acceptatie. De bestaande open items staan in [AA-OPEN](../../../AA/AA-OPEN.md).
+
+## 7. PAYFULL-02D — ESS-documentketen, vervolg 2026-10-16
+
+- De normale HR Admin artifact-readback is voor beide bestaande FINALIZED-runs herhaald. De huidige repositoryrijen bevestigen de eerder gerapporteerde ID's, bytes en SHA-256:
+
+  | Run | Artifact-ID | Bytes | SHA-256 |
+  |---|---|---:|---|
+  | DEMO-001 `731e2a73-af7c-59d6-af88-5d0455c68374` | `cc3066c6-dd1d-4fc4-8503-8bdf3fa2c673` | 513.704 | `6d1499151d79ea1ea470dfe5bac1a73b0cecbd34a3ae41ded48acefefe108a2b` |
+  | DEMO-002 `48f47ffd-191c-5cbb-a22a-9061a2b7e5c3` | `94cc630b-f8f0-4085-99ce-3126bcce893d` | 513.406 | `51b8c513b4c6f9b0c5a9e74e36086099d493ec08b9228b997779ae6cee56d977` |
+
+- De ESS-route selecteert na `salary:read`-self-autorisatie uitsluitend de eigen FINALIZED-periode en leest het bestaande `PAYSLIP_PDF` via de Payroll-service/repository. De route serveert dezelfde opgeslagen bytes voor inline en download en geeft artifact-ID/hash als responseheaders. De viewer controleert `X-Artifact-SHA256` tegen de opgehaalde bytes.
+- Gerichte codechecks: **7 testbestanden / 61 tests geslaagd**, waaronder self-scope/non-finalized weigering, herhaalde readback met gelijke inline/downloadbytes, artifact-readback, hashcontrole, retry bij mislukte/hangende request en retry bij een niet geladen frame. TypeScript en scoped ESLint zijn geslaagd. De eerdere brede Payroll-suite en build zijn niet herhaald.
+- In de ondersteunde in-app browser liet de bestaande DEMO-002 ESS-identiteit Sophie alleen haar eigen oktoberbedragen en loonstrookkaart zien. De direct geopende attachment-URL werd door de browser geblokkeerd (`ERR_BLOCKED_BY_CLIENT`, “127.0.0.1 is blocked by ChatGPT”). De inline viewer eindigde vanuit de laadstaat in de zichtbare melding **“Het documentvoorbeeld kon niet worden geladen. Probeer het bestand te downloaden.”** met **Opnieuw proberen**. De browsergrens is niet omzeild.
+- De eerdere downloadhash uit PAYFULL-02C is historisch bewijs voor de oude ESS-renderroute. Code-inspectie toonde dat die route de PDF opnieuw renderde; die oude uitkomst bewijst daarom niet dat de toenmalige ESS-download de persistente artifactbytes gebruikte. De nieuwe service-/route-tests bewijzen de codebinding, maar een live byte-voor-byte ESS-download is door de browserblokkade niet opnieuw bevestigd.
+- De bestaande lokale persona-selectie bood geen DEMO-001-werknemersidentiteit. `edwin@editsolutions.nl` is in deze sessie niet als werknemer geopend; accountkoppeling en beheerdersrechten zijn niet gewijzigd. Deze specifieke DEMO-001 self-servicecontrole blijft **OPEN**. Een opgeslagen-artifact-cross-employee-probe en leesbare PDF-weergave blijven eveneens onbewezen.
+
+Status voor PAYFULL-02D: **PARTIAL / browser-boundary hold**. De repository-artifacts zijn bevestigd en de ESS-route is op persistente bytes aangesloten; succesvolle PDF-weergave en live ESS-downloadgelijkheid wachten op de ondersteunde browser-/identiteitsroute. Runbedragen, hashes en FINALIZED-historie zijn niet gewijzigd.

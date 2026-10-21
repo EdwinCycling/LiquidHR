@@ -9,8 +9,7 @@ import { getFrequentAbsenceReport } from '@/lib/insights/frequent-absence-report
 import { parseFrequentAbsenceQuery } from '@/lib/insights/frequent-absence-query'
 import { getEmployeeInsightReport } from '@/lib/insights/employee-report-service'
 import { parseEmployeeInsightQuery } from '@/lib/insights/query'
-import { canReadInsightReport, insightReportRoute, INSIGHT_REPORTS, isEmployeeInsightReportId } from '@/lib/insights/report-catalog'
-import { ANALYSIS_PERMISSION } from '@/lib/insights/analysis-contract'
+import { canReadInsightReport, insightReportRoute, INSIGHT_REPORTS, isEmployeeInsightReportId } from '@/lib/insights/report-catalog'import { ANALYSIS_PERMISSION } from '@/lib/insights/analysis-contract'
 import { getUpcomingEventsReport } from '@/lib/insights/upcoming-events'
 import { parseUpcomingEventsQuery } from '@/lib/insights/upcoming-events-query'
 import { parseSalaryInsightQuery } from '@/lib/insights/salary-insights-query'
@@ -42,13 +41,12 @@ export default async function InsightsPage({ searchParams }: InsightsPageProps) 
   const isHrAdmin = context.activeRoles.includes('TENANT_ADMIN') || context.activeRoles.includes('HR_ADMIN')
   const canReadAnalysis = context.permissions.includes(ANALYSIS_PERMISSION)
   const reports = INSIGHT_REPORTS
-    .filter((report) => canReadInsightReport(report, context.permissions) && (report.id !== 'salary-internal-position' || isHrAdmin))
+    .filter((report) => report.available && canReadInsightReport(report, context.permissions) && (report.id !== 'salary-internal-position' || isHrAdmin))
     .map((report) => ({ ...report, route: insightReportRoute(report, isHrAdmin) }))
   const linkedReport = requestedReport ? reports.find((report) => report.id === requestedReport && report.route) : undefined
   const requestedLinkedDefinition = requestedReport ? INSIGHT_REPORTS.find((report) => report.id === requestedReport && report.route) : undefined
   if (linkedReport?.route) redirect(linkedReport.route)
-  if (requestedLinkedDefinition) redirect('/insights')
-  const query = parseEmployeeInsightQuery(params)
+  if (requestedLinkedDefinition) redirect('/insights')  const query = parseEmployeeInsightQuery(params)
   const reportData = query && reports.some((report) => report.id === query.report) && isEmployeeInsightReportId(query.report) ? await getEmployeeInsightReport(query) : null
   const absenceQuery = parseAbsenceInsightQuery(params)
   const absenceReport = absenceQuery && reports.some((report) => report.id === 'absence') ? await getAbsenceInsightReport(absenceQuery) : null

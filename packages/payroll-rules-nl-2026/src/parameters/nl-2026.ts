@@ -10,6 +10,8 @@ export interface Nl2026ParameterMetadata {
 
 export const NL_2026_PARAMETER_METADATA = Object.freeze({
   monthFactor: { officialSymbol: 'F2', valueType: 'DECIMAL', value: '12', unit: 'months per year', sourceReference: 'Rekenvoorschriften 2026 v2, §2.2.1 table 1b, p.8' },
+  weekFactor: { officialSymbol: 'F4', valueType: 'DECIMAL', value: '52', unit: 'weeks per year', sourceReference: 'Rekenvoorschriften 2026 v2, §2.2.1 table 1b, p.8' },
+  dayFactor: { officialSymbol: 'F5', valueType: 'DECIMAL', value: '260', unit: 'workdays per year', sourceReference: 'Rekenvoorschriften 2026 v2, §2.2.1 table 1b, p.8' },
   annualTableStep: { officialSymbol: 'Lv', valueType: 'DECIMAL', value: '54', unit: 'EUR per year', sourceReference: 'Rekenvoorschriften 2026 v2, §2.2.1 table 1a, p.7' },
   maximumAnnualTableWage: { officialSymbol: 'Lmax', valueType: 'MONEY', value: '133110', unit: 'EUR per year', sourceReference: 'Rekenvoorschriften 2026 v2, §2.2.1 table 1a, p.7; parameter appendix p.4' },
   bracket1Offset: { officialSymbol: 'a1.1', valueType: 'MONEY', value: '0', unit: 'EUR per year', sourceReference: 'Rekenvoorschriften 2026 v2, §2.2.2 table 2, p.9' },

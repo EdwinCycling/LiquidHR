@@ -1,4 +1,5 @@
 import type { ArrangementSalaryStrategy } from './arrangement-foundation'
+import type { PayrollCalendarPeriodicity } from './payroll-calendar'
 
 export type PayrollJson =
   | string
@@ -10,6 +11,9 @@ export type PayrollJson =
 
 export type PayrollAdministrationStatus = 'ACTIVE' | 'SUSPENDED'
 export type PayrollPeriodStatus = 'DRAFT' | 'OPEN' | 'CLOSED'
+export type PayrollCalendarStatus = 'DRAFT' | 'ACTIVE' | 'RETIRED'
+export type PayrollPeriodKind = 'REGULAR' | 'ADDITIONAL' | 'CORRECTION'
+export type PayrollDeclarationPeriodStatus = 'DRAFT' | 'OPEN' | 'CLOSED'
 export type PayrollCalculationRunType = 'PREVIEW' | 'RECALCULATION' | 'GOLDEN_CASE' | 'INDIVIDUAL_PAYROLL'
 export type PayrollCalculationRunStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED'
 export type PayrollControlStatus = 'PASS' | 'WARN' | 'FAIL'
@@ -39,11 +43,106 @@ export type PayrollPeriodRow = AuditColumns & {
   source_administration_id: string
   period_year: number
   period_month: number
+  /** New calendar fields are optional until the additive Payroll Lab migration is released. */
+  calendar_id?: string | null
+  period_number?: number | null
+  periodicity?: PayrollCalendarPeriodicity | 'AD_HOC'
+  period_kind?: PayrollPeriodKind
+  period_version?: number
+  planned_payment_date?: string | null
+  processing_deadline?: string | null
+  correction_of_period_id?: string | null
+  supersedes_period_id?: string | null
+  calendar_snapshot?: PayrollJson | null
+  calendar_hash?: string | null
   starts_on: string
   ends_on: string
   status: PayrollPeriodStatus
   updated_at: string
   updated_by_user_id: string | null
+}
+
+/** Full stored shape. Non-monthly periods have no legacy month locator. */
+export type PayrollPeriodRecordRow = Omit<PayrollPeriodRow, 'period_month'> & {
+  period_month: number | null
+}
+
+export type PayrollCalendarPeriodListRow = {
+  period_year: number
+  period_month: number | null
+  period_number: number | null
+  periodicity: PayrollCalendarPeriodicity | 'AD_HOC'
+  period_kind: PayrollPeriodKind
+  starts_on: string
+  ends_on: string
+  planned_payment_date: string | null
+  status: PayrollPeriodStatus
+}
+
+export type PayrollCalendarRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  processing_group_code: string | null
+  calendar_code: string
+  display_name: string
+  periodicity: PayrollCalendarPeriodicity
+  calendar_year: number
+  version: number
+  effective_from: string
+  effective_to: string
+  anchor_date: string | null
+  year_assignment: 'PERIOD_START' | 'PERIOD_END' | null
+  generation_rules: PayrollJson
+  payment_date_rule: PayrollJson | null
+  processing_deadline_rule: PayrollJson | null
+  status: PayrollCalendarStatus
+  updated_at: string
+  updated_by_user_id: string | null
+}
+
+export type PayrollCalendarEventRow = {
+  id: string
+  payroll_calendar_id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  event_type: 'CREATED' | 'UPDATED' | 'ACTIVATED' | 'RETIRED'
+  event_payload: PayrollJson
+  actor_user_id: string | null
+  created_at: string
+}
+
+export type PayrollDeclarationPeriodRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  tax_registration_reference: string
+  filing_frequency: PayrollCalendarPeriodicity
+  starts_on: string
+  ends_on: string
+  statutory_period_code: string
+  filing_deadline: string | null
+  payment_deadline: string | null
+  status: PayrollDeclarationPeriodStatus
+  updated_at: string
+  updated_by_user_id: string | null
+}
+
+export type PayrollDeclarationPeriodPayrollPeriodRow = {
+  declaration_period_id: string
+  payroll_period_id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  created_at: string
+  created_by_user_id: string | null
 }
 
 export type PayrollSourceSnapshotRow = AuditColumns & {
@@ -284,8 +383,23 @@ export type PayrollOpeningCumulativeSnapshotRow = AuditColumns & {
   as_of_date: string
   opening_balance_json: PayrollJson
   snapshot_hash: string
-  provenance_status: 'TEST_OPENING_BALANCE' | 'RECONSTRUCTED_PAYROLL'
+  provenance_status: 'TEST_OPENING_BALANCE' | 'RECONSTRUCTED_PAYROLL' | 'CUSTOMER_OPENING_BALANCE'
   provenance_source: string
+}
+
+export type PayrollEmployerConfigurationVersionRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  configuration_version: number
+  effective_from: string
+  effective_to: string | null
+  configuration_json: PayrollJson
+  configuration_hash: string
+  status: 'DRAFT' | 'ACTIVE'
+  source_reference: string
 }
 
 export type IndividualPayrollInputReferenceRow = AuditColumns & {
@@ -301,6 +415,27 @@ export type IndividualPayrollInputReferenceRow = AuditColumns & {
   config_version_id: string
   opening_cumulative_snapshot_id: string
   input_provenance_json: PayrollJson
+}
+
+export type GenericPayrollInputReferenceRow = AuditColumns & {
+  id: string
+  payroll_administration_id: string
+  source_tenant_id: string
+  source_hr_group_id: string
+  source_administration_id: string
+  calculation_input_set_id: string
+  source_employee_id: string
+  source_employment_id: string
+  source_income_relationship_id: string
+  employment_income_relationship_id: string
+  tax_profile_id: string
+  tax_profile_version: number
+  core_source_contract_version: 'payroll-source-v4'
+  core_validated_at: string
+  source_version_vector: PayrollJson
+  source_hash: string
+  input_hash: string
+  input_reference_json: PayrollJson
 }
 
 export type IndividualPayrollLifecycleEventRow = AuditColumns & {
@@ -353,15 +488,64 @@ export interface PayrollDatabase {
         }
       >
       payroll_periods: PayrollTable<
-        PayrollPeriodRow,
-        Omit<PayrollPeriodRow, 'id' | 'created_at' | 'updated_at' | 'status' | 'created_by_user_id'> & {
+        PayrollPeriodRecordRow,
+        Omit<PayrollPeriodRecordRow, 'id' | 'created_at' | 'updated_at' | 'status' | 'created_by_user_id'> & {
           id?: string
           created_at?: string
           created_by_user_id?: string | null
           status?: PayrollPeriodStatus
           updated_at?: string
         },
-        Partial<PayrollPeriodRow>
+        Partial<PayrollPeriodRecordRow>
+      >
+      payroll_calendars: PayrollTable<
+        PayrollCalendarRow,
+        Omit<PayrollCalendarRow, 'id' | 'created_at' | 'updated_at' | 'created_by_user_id' | 'status' | 'version' | 'processing_group_code' | 'anchor_date' | 'year_assignment' | 'payment_date_rule' | 'processing_deadline_rule'> & {
+          id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          updated_at?: string
+          status?: PayrollCalendarStatus
+          version?: number
+          processing_group_code?: string | null
+          anchor_date?: string | null
+          year_assignment?: PayrollCalendarRow['year_assignment']
+          payment_date_rule?: PayrollJson | null
+          processing_deadline_rule?: PayrollJson | null
+        },
+        Partial<PayrollCalendarRow>
+      >
+      payroll_calendar_events: PayrollTable<
+        PayrollCalendarEventRow,
+        Omit<PayrollCalendarEventRow, 'id' | 'created_at' | 'event_payload' | 'actor_user_id'> & {
+          id?: string
+          created_at?: string
+          event_payload?: PayrollJson
+          actor_user_id?: string | null
+        },
+        never
+      >
+      payroll_declaration_periods: PayrollTable<
+        PayrollDeclarationPeriodRow,
+        Omit<PayrollDeclarationPeriodRow, 'id' | 'created_at' | 'created_by_user_id' | 'updated_at' | 'updated_by_user_id' | 'status' | 'filing_deadline' | 'payment_deadline'> & {
+          id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          updated_at?: string
+          updated_by_user_id?: string | null
+          status?: PayrollDeclarationPeriodStatus
+          filing_deadline?: string | null
+          payment_deadline?: string | null
+        },
+        Partial<PayrollDeclarationPeriodRow>
+      >
+      payroll_declaration_period_payroll_periods: PayrollTable<
+        PayrollDeclarationPeriodPayrollPeriodRow,
+        Omit<PayrollDeclarationPeriodPayrollPeriodRow, 'created_at' | 'created_by_user_id'> & {
+          created_at?: string
+          created_by_user_id?: string | null
+        },
+        never
       >
       source_snapshots: PayrollTable<
         PayrollSourceSnapshotRow,
@@ -499,9 +683,19 @@ export interface PayrollDatabase {
         Omit<PayrollOpeningCumulativeSnapshotRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
         never
       >
+      payroll_employer_configuration_versions: PayrollTable<
+        PayrollEmployerConfigurationVersionRow,
+        Omit<PayrollEmployerConfigurationVersionRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
       individual_payroll_input_references: PayrollTable<
         IndividualPayrollInputReferenceRow,
         Omit<IndividualPayrollInputReferenceRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
+        never
+      >
+      generic_payroll_input_references: PayrollTable<
+        GenericPayrollInputReferenceRow,
+        Omit<GenericPayrollInputReferenceRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
         never
       >
       individual_payroll_lifecycle_events: PayrollTable<

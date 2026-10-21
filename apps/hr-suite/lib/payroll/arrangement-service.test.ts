@@ -251,6 +251,25 @@ describe('Payroll Lab arrangement service', () => {
     await expect(loadArrangementFoundationPage(service(repository))).rejects.toMatchObject({ code: 'ARRANGEMENT_DATA_INVALID' })
   })
 
+  it('rejects assignment records returned outside the active administration scope', async () => {
+    const fixture = SYNTHETIC_ARRANGEMENT_FIXTURES[1]!
+    repository.availability = [availabilityRow('LHR_DEMO_OPEN_BANDS_2026')]
+    const dependencies = service(repository)
+    await createSyntheticArrangementAssignment({
+      fixtureCode: fixture.code,
+      packageId: 'LHR_DEMO_OPEN_BANDS_2026',
+      effectiveFrom: fixture.effectiveFrom,
+      effectiveTo: null,
+    }, dependencies)
+    repository.assignments[0] = {
+      ...repository.assignments[0]!,
+      source_administration_id: 'b1e00000-0000-4000-8000-000000000003',
+    }
+
+    await expect(loadArrangementFoundationPage(dependencies))
+      .rejects.toMatchObject({ code: 'ARRANGEMENT_DATA_INVALID' })
+  })
+
   it('requires availability to cover the assignment effective date', async () => {
     const fixture = SYNTHETIC_ARRANGEMENT_FIXTURES[0]!
     repository.availability = [{ ...availabilityRow('KINDEROPVANG_2025_2026'), effective_from: '2026-10-01' }]

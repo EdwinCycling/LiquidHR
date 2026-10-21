@@ -4,7 +4,7 @@
   "presentation": { "label": "Weergave", "focus": "Focus", "full": "Volledige omgeving" },
   "preview": { "title": "Je bekijkt LiquidHR als medewerker", "status": "Voorbeeldweergave · alleen lezen", "close": "Preview sluiten" },
   "actAs": { "title": "NAMENS MEDEWERKER", "description": "Je handelt als {name}. Acties worden vastgelegd op jouw naam als HR Admin.", "label": "Je handelt als", "stop": "Stoppen", "start": "KIDHV", "tooltip": "KIDHV: open tijdelijk de medewerkeromgeving in de rol van deze medewerker. Acties worden vastgelegd op jouw HR Admin-account.", "starting": "KIDHV openen…", "failed": "Act-as starten is niet gelukt." },
-  "floating": { "label": "Snelle acties", "open": "Snelle acties openen", "close": "Snelle acties sluiten", "leave": "Aanvraag verlof", "sickness": "Ziek melden", "employeeSickness": "Medewerker ziek melden", "declaration": "Nieuwe declaratie", "newRequest": "Nieuwe aanvraag", "comingSoon": "Declaraties komen later beschikbaar." },
+  "floating": { "label": "Snelle acties", "open": "Snelle acties openen", "close": "Snelle acties sluiten", "leave": "Aanvraag verlof", "sickness": "Ziek melden", "employeeSickness": "Medewerker ziek melden", "newRequest": "Nieuwe aanvraag" },
   "experience": { "EMPLOYEE": "Mijn Focus", "MANAGER": "Mijn Focus · leidinggevende", "PREBOARDING": "Voor je eerste werkdag", "tooltip": "Mijn Focus: jouw persoonlijke Focus-omgeving. De weergaveschakelaar staat hiernaast." },
   "home": {
     "title": "Focus", "hello": "Hallo {name}", "welcome": "Welkom {name}",
@@ -13,8 +13,8 @@
     "nextUp": "Je volgende stap", "quickActions": "Snel naar",
     "noEmploymentTitle": "Nog geen actief dienstverband",
     "noEmploymentDescription": "Focus wordt beschikbaar zodra je dienstverband is gekoppeld en bevestigd. Neem bij vragen contact op met HR.",
-    "noActionsTitle": "Nog geen acties beschikbaar",
-    "noActionsDescription": "Hier verschijnen de onderdelen die voor jou beschikbaar zijn. Neem bij vragen contact op met HR.",
+    "noActionsTitle": "Geen acties beschikbaar",
+    "noActionsDescription": "Er zijn op dit moment geen acties beschikbaar voor je account. Neem bij vragen contact op met HR.",
     "blockedTitle": "Employee-toegang geblokkeerd",
     "blockedDescription": "Je kunt je Employee-omgeving momenteel niet gebruiken. Neem contact op met HR."
   },
@@ -47,8 +47,8 @@
     "progress": "Voortgang", "completed": "{completed} van {total} afgerond", "nextAction": "Volgende actie",
     "available": "Beschikbaar", "upcoming": "Binnenkort", "availableOn": "Beschikbaar vanaf {date}",
     "openAction": "Open deze actie", "openJourney": "Bekijk je journey", "noNextAction": "Er staat nu geen volgende actie voor je klaar.",
-    "emptyTitle": "Nog geen journey beschikbaar", "emptyDescription": "Een toegewezen journey en je volgende stap verschijnen hier zodra ze beschikbaar zijn.",
-    "preboardingEmptyDescription": "Je voorbereiding verschijnt hier zodra HR je onboarding klaarzet. Je hoeft nu niets te doen.",
+    "emptyTitle": "Er is geen journey aan je toegewezen", "emptyDescription": "Er is momenteel geen journey aan je toegewezen.",
+    "preboardingEmptyDescription": "HR heeft nog geen onboardingstappen aan je toegewezen. Neem contact op met HR als je hulp nodig hebt.",
     "status": { "PLANNED": "Gepland", "ACTIVE": "Actief", "PAUSED": "Gepauzeerd", "COMPLETED": "Afgerond", "CANCELLED": "Geannuleerd" }
   },
   "actions": {
@@ -74,7 +74,7 @@
     "name": "Naam", "startDate": "Eerste werkdag", "openOnboarding": "Bekijk je onboarding",
     "preboardingProfile": "Dit zijn de gegevens voor je start. Gegevens aanvullen doe je via de toegewezen stappen in je onboarding. Neem voor een correctie contact op met HR.",
     "documentsPendingTitle": "Documenten voor je start", "preboardingDocuments": "Toegewezen documenten en ondertekeningen open je vanuit je onboarding. Staat er nog geen stap klaar? Dan hoef je nu niets te doen.",
-    "requestsPendingTitle": "Je aanvragenoverzicht komt hier", "requestsPendingDescription": "Dit overzicht is nog niet beschikbaar. Je verlofaanvragen vind je via Mijn verlof op Focus. Neem voor andere aanvragen contact op met HR.",
+    "requestsPendingTitle": "Overige aanvragen", "requestsPendingDescription": "Je verlofaanvragen vind je via Mijn verlof op Focus. Neem voor andere aanvragen contact op met HR.",
     "leaveDescription": "Bekijk je actuele saldo, gepland verlof en vraag eenvoudig verlof aan.", "leaveOpen": "Verlof aanvragen",
     "hoursDescription": "Bekijk deze week je geregistreerde en verwachte uren.", "hoursOpen": "Uren bekijken",
     "requestsDescription": "Bekijk wat je hebt aangevraagd en wat er nu nodig is.", "requestsOpen": "Aanvragen openen",

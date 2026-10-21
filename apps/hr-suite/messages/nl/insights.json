@@ -5,16 +5,13 @@
   "analysisEyebrow": "Liquid Analyse",
   "analysisTitle": "Analyse",
   "analysisIntro": "Kies hoe je HR-informatie wilt verkennen.",
-  "analysisNewTitle": "Nieuwe analyse",
-  "analysisNewDescription": "Stel een vraag en laat LiquidHR een analyse opbouwen.",
   "analysisExploreTitle": "Verkennen",
   "analysisExploreDescription": "Begin bij een medewerker, afdeling, functie of andere HR-entiteit.",
   "analysisMyAnalysesTitle": "Mijn analyses",
   "analysisMyAnalysesDescription": "Open je opgeslagen persoonlijke analyses.",
   "analysisReportsTitle": "Rapporten",
   "analysisReportsDescription": "Open vaste, gecertificeerde HR-rapportages.",
-  "analysisPlanned": "Gepland",
-  "analysisActive": "Actief",
+  "analysisActive": "Beschikbaar",
   "analysisOpenReports": "Open rapporten",
   "analysisOpenExplore": "Open verkennen",
   "analysisOpenMyAnalyses": "Open mijn analyses",
@@ -59,7 +56,7 @@
   "analysisExploreExecute": "Analyse uitvoeren",
   "analysisExploreExecuting": "Analyse wordt uitgevoerd…",
   "analysisExploreExecutionFailed": "De analyse kon niet worden uitgevoerd.",
-  "analysisExploreResultTitle": "Je resultaat verschijnt hier",
+  "analysisExploreResultTitle": "De resultaten verschijnen hier zodra je de analyse uitvoert",
   "analysisExploreSaveTitle": "Bewaar deze analyse",
   "analysisExploreSaveDescription": "Alleen de gevalideerde definitie wordt bewaard. Bij openen wordt de actuele, geautoriseerde data opnieuw opgehaald.",
   "analysisExploreName": "Naam",
@@ -385,8 +382,8 @@
   "filterStatus": "{count} geselecteerd",
   "visualReadyTitle": "Deze rapportweergave staat klaar",
   "visualReadyDescription": "De filters, sortering, URL-state en visuele opzet zijn voorbereid. De geverifieerde databron wordt in een volgende slice gekoppeld; er worden hier geen voorbeeldcijfers getoond.",
-  "noDataSourceTitle": "De databron volgt later",
-  "noDataSourceDescription": "Dit rapport hoort bij de vaste rapportagecatalogus. Zodra de benodigde brongegevens, autorisatie en privacyregels klaar zijn, verschijnt de analyse hier automatisch.",
+  "noDataSourceTitle": "Rapportgegevens zijn niet beschikbaar",
+  "noDataSourceDescription": "Er zijn geen rapportgegevens voor de geselecteerde administratie of periode, of je hebt geen toegang tot deze gegevens.",
   "activeFilters": "Actieve selectie",
   "exportLater": "Export volgt met de gevalideerde databron",
   "privacyHint": "Geaggregeerde persoonsgegevens worden bij kleine groepen afgeschermd.",
@@ -674,7 +671,7 @@
   ,"aiUsageUnknown": "Onbekend"
   ,"aiUsageCompletedRequests": "Afgeronde aanvragen"
   ,"aiUsageNoUsageTitle": "Nog geen AI-gebruik"
-  ,"aiUsageNoUsageDescription": "Zodra AI-functies worden gebruikt, verschijnt het gebruik hier."
+  ,"aiUsageNoUsageDescription": "Er is in de geselecteerde periode geen AI-gebruik geregistreerd."
   ,"aiUsageCreditsAccountingNote": "Gebruikte credits zijn alleen daadwerkelijk afgerekende credits; vrijgegeven reserveringen tellen niet mee."
   ,"leaveAnalyticalThreshold": "Analytische drempel; geen wettelijke of cao-grens."
   ,"leaveKpiFuturePlanned": "Toekomstig gepland"

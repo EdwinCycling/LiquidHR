@@ -94,6 +94,7 @@ const employerPremiumRun = {
 const labels: Readonly<Record<string, string>> = {
   gross: 'Gross',
   net: 'Net',
+  netAfterTaxIncomplete: 'After wage tax (not final net pay)',
   employeeArithmetic: 'Employee calculation',
   employerCost: 'Employer cost',
   cumulative: 'Cumulative',
@@ -117,6 +118,9 @@ const labels: Readonly<Record<string, string>> = {
   downloadPdf: 'Download stored PDF',
   viewStandardPayslip: 'View standard payslip',
   downloadStandardPayslip: 'Download standard payslip',
+  savePayslipPdf: 'Save standard payslip PDF',
+  storedPayslipPdf: 'Standard payslip PDF is stored',
+  payslipPdfUnavailable: 'Payslip PDF could not be stored',
   compare: 'Compare',
   reconciliationFlow: 'Reconciliation',
   employeeReconciliationFormula: 'Employee calculation formula',
@@ -125,6 +129,20 @@ const labels: Readonly<Record<string, string>> = {
   fiscalBaseWageTax: 'Wage-tax base',
   fiscalBaseEmployeeInsurance: 'Employee-insurance base',
   fiscalBaseZvw: 'Zvw base',
+  cumulative_gross: 'Gross year to date',
+  cumulative_taxable_wage: 'Taxable wage year to date',
+  cumulative_wage_tax: 'Wage tax year to date',
+  cumulative_employee_insurance_wage: 'Employee-insurance wage year to date',
+  cumulative_zvw_wage: 'Zvw wage year to date',
+  cumulative_holiday_reserve: 'Holiday reserve year to date',
+  cumulative_year_end_reserve: 'Year-end reserve year to date',
+  net_reimbursement: 'Net reimbursement',
+  net_deduction: 'Net deduction',
+  net_correction: 'Net correction',
+  variable_regular_wage: 'Variable regular wage',
+  special_reward_wage: 'Special reward',
+  special_reward_wage_tax: 'Special-reward tax',
+  pensionable_wage: 'Pensionable wage',
   notCalculated: 'Not calculated',
   notRecorded: 'Not recorded',
   noComponentTrace: 'No component trace',
@@ -147,7 +165,7 @@ const labels: Readonly<Record<string, string>> = {
   grossToNetExplanation: 'Gross to net',
   employerContributions: 'Employer contributions',
   pensionReadinessTitle: 'Pension source needs review',
-  pensionSourceVerificationRequired: 'Pension not calculated / source verification required',
+  pensionSourceVerificationRequired: 'Pension has not been calculated because the required source information could not be confirmed.',
   netNotDefinitive: 'The displayed net pay is not definitive while the pension source is missing.',
   event_CONCEPT: 'Concept',
 }
@@ -177,6 +195,34 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     expect(markup).toContain('PAYRUN01_EMPLOYEE_INSURANCE_BASE')
   })
 
+  it('shows fiscal bases from persisted calculation components and the complete cumulative wage and tax rows', () => {
+    const calculationRun = {
+      ...pensionRun,
+      componentResults: [
+        ['taxable_wage', '3325.07'],
+        ['employee_insurance_base', '3325.07'],
+        ['zvw_base', '3325.07'],
+        ['cumulative_taxable_wage', '29925.63'],
+        ['cumulative_wage_tax', '10697.22'],
+        ['cumulative_employee_insurance_wage', '29925.63'],
+        ['cumulative_zvw_wage', '29925.63'],
+      ].map(([component_key, amount]) => ({
+        component_key,
+        amount: Number(amount),
+        result_payload: { amount },
+      })),
+    } as unknown as PayrollProfessionalRun
+
+    const markup = renderToStaticMarkup(<PayrollRunReconciliation run={calculationRun} locale="nl-NL" labels={labels} />)
+
+    expect(markup).toContain('€ 3.325,07')
+    expect(markup).toContain('Taxable wage year to date')
+    expect(markup).toContain('Wage tax year to date')
+    expect(markup).toContain('Employee-insurance wage year to date')
+    expect(markup).toContain('Zvw wage year to date')
+    expect(markup).not.toContain('Not calculated')
+  })
+
   it('distinguishes a CONCEPT run from FINALIZED and withholds payslip downloads until finalization', () => {
     const conceptRun = {
       ...pensionRun,
@@ -201,13 +247,62 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     const finalizedMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={finalizedRun} locale="en-GB" labels={labels} />)
 
     expect(conceptMarkup).toContain('Concept — not final')
+    expect(conceptMarkup).toContain('After wage tax (not final net pay)')
     expect(conceptMarkup).toContain('Not finalized')
     expect(conceptMarkup).not.toContain('/artifact/TECHNICAL_JSON')
     expect(conceptMarkup).not.toContain('/payslip-preview')
     expect(finalizedMarkup).toContain('Finalized')
+    expect(finalizedMarkup).toContain('Net')
     expect(finalizedMarkup).toContain('/artifact/TECHNICAL_JSON')
     expect(finalizedMarkup).toContain('/payslip-preview')
     expect(finalizedMarkup).toContain('/payslip-preview?download=1')
+  })
+
+  it('offers the read-only standard payslip for generic runs without linking to absent stored artifacts', () => {
+    const genericRun = {
+      ...pensionRun,
+      hasGenericInputReference: true,
+      lifecycleEvents: [{
+        id: 'event-finalized-generic',
+        calculation_run_id: pensionRun.run.id,
+        event_type: 'FINALIZED',
+        created_at: '2026-10-31T12:00:00.000Z',
+      }],
+    } as unknown as PayrollProfessionalRun
+
+    const markup = renderToStaticMarkup(<PayrollRunReconciliation run={genericRun} locale="en-GB" labels={labels} />)
+
+    expect(markup).toContain('/payslip-preview')
+    expect(markup).toContain('/payslip-preview?download=1')
+    expect(markup).not.toContain('/artifact/TECHNICAL_JSON')
+    expect(markup).not.toContain('/artifact/PAYSLIP_PDF')
+  })
+
+  it('offers PDF persistence only to payroll writers and links a stored generic PDF for readback', () => {
+    const genericRun = {
+      ...pensionRun,
+      canTransition: true,
+      hasGenericInputReference: true,
+      hasPayslipPdfArtifact: false,
+      lifecycleEvents: [{
+        id: 'event-finalized-generic-pdf',
+        calculation_run_id: pensionRun.run.id,
+        event_type: 'FINALIZED',
+        created_at: '2026-10-31T12:00:00.000Z',
+      }],
+    } as unknown as PayrollProfessionalRun
+
+    const writerMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={genericRun} locale="en-GB" labels={labels} />)
+    const readOnlyRun = { ...genericRun, canTransition: false } as PayrollProfessionalRun
+    const readOnlyMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={readOnlyRun} locale="en-GB" labels={labels} />)
+    const storedRun = { ...genericRun, canTransition: false, hasPayslipPdfArtifact: true } as PayrollProfessionalRun
+    const storedMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={storedRun} locale="en-GB" labels={labels} />)
+
+    expect(writerMarkup).toContain('Save standard payslip PDF')
+    expect(writerMarkup).not.toContain('/artifact/PAYSLIP_PDF')
+    expect(readOnlyMarkup).not.toContain('Save standard payslip PDF')
+    expect(storedMarkup).toContain('Standard payslip PDF is stored')
+    expect(storedMarkup).toContain('/artifact/PAYSLIP_PDF')
   })
 
   it('shows the PFZW source gap and non-definitive net without inventing a zero pension', () => {
@@ -231,7 +326,8 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     const markup = renderToStaticMarkup(<PayrollRunReconciliation run={fritsRun} locale="nl-NL" labels={labels} />)
 
     expect(markup).toContain('Pension source needs review')
-    expect(markup).toContain('Pension not calculated / source verification required')
+    expect(markup).toContain('After wage tax (not final net pay)')
+    expect(markup).toContain('Pension has not been calculated because the required source information could not be confirmed.')
     expect(markup).toContain('The displayed net pay is not definitive while the pension source is missing.')
     expect(markup).not.toMatch(/Employee pension.{0,40}€\s*0,00/)
   })

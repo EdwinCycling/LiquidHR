@@ -133,6 +133,54 @@ describe('PAYLAB M0 payroll engine', () => {
     expect(first.trace).toEqual(second.trace)
   })
 
+  it('keeps declared source gaps hash-bound and blocks partial payroll results', () => {
+    const gaps = [
+      { field: 'taxProfile', status: 'SOURCE_GAP' as const, reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' },
+      { field: 'pensionAllocation', status: 'UNSUPPORTED' as const, reasonCode: 'PFZW_MONTHLY_ALLOCATION_UNSUPPORTED' },
+    ]
+    const snapshotWithGaps = { ...sourceSnapshot(), sourceGaps: gaps }
+    const inputs = buildCalculationInputs(snapshotWithGaps, GC_NL_001_RULE_PACKAGE)
+    const withoutGaps = buildCalculationInputs(sourceSnapshot(), GC_NL_001_RULE_PACKAGE)
+    const result = calculatePayroll(inputs)
+
+    expect(inputs.sourceGaps).toEqual([
+      gaps[1],
+      gaps[0],
+    ])
+    expect(inputs.inputHash).not.toBe(withoutGaps.inputHash)
+    expect(result.status).toBe('BLOCKED')
+    expect(result.sourceGaps).toEqual(inputs.sourceGaps)
+    expect(result.controls.filter((control) => control.code.startsWith('SOURCE_GAP_'))).toEqual([
+      {
+        code: 'SOURCE_GAP_001',
+        status: 'FAIL',
+        actual: '{"field":"pensionAllocation","reasonCode":"PFZW_MONTHLY_ALLOCATION_UNSUPPORTED","status":"UNSUPPORTED"}',
+        expected: false,
+      },
+      {
+        code: 'SOURCE_GAP_002',
+        status: 'FAIL',
+        actual: '{"field":"taxProfile","reasonCode":"NO_ACCEPTED_SOURCE_CONTRACT","status":"SOURCE_GAP"}',
+        expected: false,
+      },
+    ])
+    expect(result.resultRows.find((row) => row.key === 'net_salary')?.value).toBe('3175.00')
+
+    const reversedInputs = buildCalculationInputs({ ...snapshotWithGaps, sourceGaps: [...gaps].reverse() }, GC_NL_001_RULE_PACKAGE)
+    expect(reversedInputs.inputHash).toBe(inputs.inputHash)
+    expect(calculatePayroll(reversedInputs).resultHash).toBe(result.resultHash)
+  })
+
+  it('rejects malformed source-gap metadata before creating calculation inputs', () => {
+    const malformedSnapshot = {
+      ...sourceSnapshot(),
+      sourceGaps: [{ field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'MISSING', privateNote: 'unexpected' }],
+    } as unknown as PayrollSourceSnapshot
+
+    expect(() => buildCalculationInputs(malformedSnapshot, GC_NL_001_RULE_PACKAGE))
+      .toThrow(expect.objectContaining({ code: 'SOURCE_GAP_DEFINITION_INVALID' }))
+  })
+
   it('pins typed Payroll-owned source values and context hashes into the calculation input hash', () => {
     const sourceComponentDefinition = sourceSalaryComponent()
     const packageDefinition = simplePackage([sourceComponentDefinition])

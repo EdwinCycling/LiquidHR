@@ -3,6 +3,8 @@
 Datum: 2026-09-30. Scope: eerste synthetische berekening GC-NL-001 en het
 ownership-addendum van Edwin. Geen fiscale Nederlandse 2026-regels.
 
+GC-NL-001 is een interne deterministische regressiecase, geen alternatieve productworkflow. Klantgerichte Payroll gebruikt dezelfde engine- en serviceketen in TEST en Production; zie [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md). De cijfers hieronder blijven expliciet interne testinvoer en bewijzen geen wettelijke compliance.
+
 ## Keten
 
 Canonical `PayrollSourceSnapshot` → getypeerde engine-input → immutable

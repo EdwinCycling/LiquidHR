@@ -5,6 +5,18 @@ Bijgewerkt: 2026-10-18 (STAR-V2-04D-2D; Core-volgorde ongewijzigd)
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 
+## PARALLEL: Payroll na PAYFULL-02 — besluit 2026-10-16
+
+**Bewezen in TEST, niet gemerged/deployed:** twee volledige Mars-maandcases voor oktober 2026 zijn `FINALIZED` (DEMO-001 netto €2.181,49; DEMO-002 netto €2.141,36), met werknemerspensioen, tabelmatige loonheffing, werkgeverspremies, reserveringen, cumulatieven, 32/32 PASS-controles en twee in Payroll Lab TEST teruggevonden persistente PDF-artifacts. Extra +€500 regulier-variabel-looncase is alleen `CONCEPT`. Een algemene NL-payroll-complianceclaim is niet onderbouwd. De bekende Jupiter-persona's Lisa/Jaap/Frits zijn **niet** alle drie full-net PAYFULL-02-testcases.
+
+**Volgorde binnen het zelfstandige Payroll-spoor:**
+1. **PAYFULL-02D (P0, PARTIAL):** twee persistente PDF-artifacts bevestigd; ESS-route serveert na self-autorisatie de opgeslagen bytes. Inline viewer geeft na timeout foutmelding + retry, maar zichtbaar PDF-renderen is nog OPEN. DEMO-001 eigen ESS en overige live negatieve probes blijven OPEN; geen wijziging aan bestaande Edwin/TENANT_ADMIN-Auth-koppeling. Laatste PAYFULL-02D-bewijs: 7 bestanden / 61 gerichte tests PASS; in-app attachment-URL geblokkeerd.
+2. **PAYCASE-03 (P1):** nieuwe volledige rekenproeven (LHK aan, deeltijd/gebroken tijdvak, bijzondere vs reguliere variabele beloning, meerdere IKV's) met onafhankelijke wettelijke rekenoracles; géén externe pakketintegratie.
+3. **PAYRUN-03 (P1):** robuuste periodieke cyclus, revisie/TWK en payroll by exception.
+4. **PAYDOC-02 / 2027 (P2):** jaaropgaaf en nieuwe fiscale jaarpakket na officiële bronnen; betaling en officiële aangifte apart besluiten.
+
+**TEST-berekeningen, run-ID's, looncomponenten en exacte status:** [PAYFULL-02 validatie en roadmap](../payroll/PAYFULL-02-VALIDATIE-EN-ROADMAP-20261016.md). Historisch bewijs: [PAYFULL-02 closeout](../quality/acceptance/runs/PAYFULL-02-20261016-CLOSEOUT.md). De oudere sectie 'na PAYLAB04' hieronder is een historisch productvoorstel en vervangt dit actuele PAYFULL-02-besluit niet.
+
 ## Eerstvolgende Core-volgorde — besluit 2026-10-14
 
 1. **WVP01 — Wet verbetering poortwachter Case Management (VOLGENDE CORE-WAVE).** PERF01-B2 is geleverd; bouw bovenop de bestaande absence-/taak-/milestonefoundation. Controleer vóór implementatie de actuele wettelijke bronset en bewaak case-manager-/HR-groepscope.

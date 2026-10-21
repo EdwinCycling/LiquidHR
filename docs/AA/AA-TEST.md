@@ -35,6 +35,20 @@ Test **risicogestuurd en bounded**.
 
 Een full suite is geen ritueel. Gebruik hem waar het bewijs toevoegt.
 
+### Omgevingspariteit als productacceptatie
+
+Volg voor iedere module [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md). Acceptance voor een klantfeature gebruikt de normale productroute, normale HR Admin/Payroll/Manager/Employee-rechten en gewone instellingen met gecontroleerde TEST-gegevens. Een interne fixture- of provisioningsstap kan data voorbereiden, maar geldt niet als bewijs dat de feature alleen op die route kan werken.
+
+Neem waar van toepassing deze regressieasserties op:
+
+- dezelfde productcode en workflow zijn bruikbaar in TEST en Production;
+- normale schermen, exports en documenten lekken geen interne omgevings-, synthetische of fixtureherkomst;
+- reguliere serverautorisatie, audit, hashes, controles en statuslifecycle blijven gelden;
+- TEST weigert aangiften, SEPA-betalingen, externe loonstrookdistributie en productie-integraties op de omgevings-/distributiegrens;
+- klantinrichting kan via de normale productinstellingen worden beheerd; opgegeven waarden worden niet stilzwijgend als juridisch gevalideerd gepresenteerd.
+
+Een berekening kan technisch slagen zonder wettelijke compliance te bewijzen. Controleer technische uitkomst, juridische onderbouwing en productiegeschiktheid als afzonderlijke claims.
+
 Praktische regel:
 - tijdens bouwen: targeted;
 - bij een defect: defecttest + relevante regressie;
@@ -253,3 +267,11 @@ Volg `docs/quality/acceptance/REPORTING-STANDARD.md`.
 - **ENVIRONMENT-GATED**: productcode niet afgekeurd, maar bewijs door externe/runtimegrens niet beschikbaar.
 
 Rapporteer alleen wat werkelijk is waargenomen.
+
+## Canonieke Payroll-testpersona's
+
+- Gebruik voor alle lokale Payroll-, ESS-, MSS- en PDF-acceptatie de canonieke persona-catalogus en de centrale persona-preflight: `docs/quality/acceptance/PAYROLL-TEST-PERSONAS.json` en `scripts/check-test-personas.ps1`.
+- De preflight controleert de canonieke Core TEST- en Payroll Lab TEST-projectref, de lokale ACL-beveiligde credentialbron, de vaste role-switchallowlist, Auth/employee/ESS/context en de verwachte run-lifecycle. Hij rapporteert per persona `READY`, `READY_WITH_EXPECTED_GAP` of `BLOCKED` met een concrete reden.
+- Gebruik uitsluitend bestaande TEST-identiteiten en feitelijke scope. De role-switcher mag geen rechten, Auth-gebruikers, employee-koppelingen of administratiecontext maken of aanpassen. Een ontbrekende account blijft BLOCKED.
+- Behoud concept- en definitieve lifecycle zoals opgeslagen. Een CONCEPT is geen loonstrook; SOURCE_GAP maakt netto niet-definitief; een ontbrekend PDF-artifact of ontbrekende downloadroute blijft OPEN.
+- Vereis voor GREEN de onafhankelijke schone-worktree-eindtest, inclusief terugkeer naar Test HR Admin, self-only en negatieve scopeprobes. Test Auth blijft op Vercel Preview en Production gesloten.

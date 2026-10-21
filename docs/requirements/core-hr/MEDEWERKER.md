@@ -5,6 +5,8 @@ Dit document beschrijft de architectuur en het datamodel voor de 'Core HR' modul
 
 **Implementatiestatus 2026-07-15:** de Employee-slice is volledig gebouwd met schema, RLS, API, responsive UI, audit en tests. Het personeelsnummer is uniek per tenant, wordt oplopend voorgesteld en mag gecontroleerd worden overschreven. BSN-ciphertext en tenantgebonden BSN-fingerprint staan bewust in `employee_secure_identifiers`, niet in de algemene medewerkerstabel. Alleen HR-admins met expliciete functiepunten en de medewerker zelf mogen het BSN via een gelogde reveal bekijken; managers nooit.
 
+De medewerkerinrichting en bijbehorende HR-workflows zijn in TEST dezelfde productfunctionaliteit als in Production. Een fictieve bedrijfs- of medewerkernaam mag als gewone opgeslagen administratiegegevens worden getoond; technische fixture- of omgevingsherkomst niet. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
+
 ## 2. Besproken Informatie & Architectuur Keuzes
 Tijdens het ontwerpproces (gebaseerd op best-practices en vergelijkingen met bestaande Nederlandse HR-applicaties) zijn de volgende cruciale beslissingen genomen:
 

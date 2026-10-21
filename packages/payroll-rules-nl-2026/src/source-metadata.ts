@@ -17,4 +17,4 @@ export const NL_2026_SOURCE_METADATA = Object.freeze({
 } satisfies Readonly<Record<string, string>>)
 
 /** SHA-256 of src/regular-wage/calculator.ts as UTF-8 with line endings normalized to LF. */
-export const NL_2026_IMPLEMENTATION_SHA256 = 'ecbcb7aa47a15980d1da39673533bea3a0f6ab5af75b81a72ff5335e06ab2e56'
+export const NL_2026_IMPLEMENTATION_SHA256 = 'e02a6464ff18ea689c824bf92ff6fe6642f74ecc9a466fb1644086d88555c24d'

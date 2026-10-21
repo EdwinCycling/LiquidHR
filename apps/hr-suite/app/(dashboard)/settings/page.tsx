@@ -26,7 +26,6 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
-import { EmployeeSettingsPlaceholderDialog } from '@/components/settings/employee-settings-placeholder-dialog'
 import { SettingsAccordion } from '@/components/settings/settings-accordion'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
@@ -45,66 +44,26 @@ async function allowed(permission: string) {
   }
 }
 
-type SettingsTile =
-  | {
-      kind: 'link'
-      href: string
-      icon: LucideIcon
-      title: string
-      description: string
-      visible: boolean
-      pending?: boolean
-    }
-  | {
-      kind: 'modal'
-      modal: 'employees'
-      icon: LucideIcon
-      title: string
-      description: string
-      visible: boolean
-    }
+type SettingsTile = {
+  kind: 'link'
+  href: string
+  icon: LucideIcon
+  title: string
+  description: string
+  visible: boolean
+}
 
 function SettingsLinkTile({
   href,
   icon: Icon,
   title,
   description,
-  pending = false,
-  pendingLabel,
-  pendingDescription,
 }: {
   href: string
   icon: LucideIcon
   title: string
   description: string
-  pending?: boolean
-  pendingLabel: string
-  pendingDescription: string
 }) {
-  if (pending) {
-    return (
-      <div className="flex min-h-36 items-start gap-4 rounded-[var(--radius-surface)] border border-dashed border-border bg-surface p-5">
-        <span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-accent text-primary">
-          <Icon size={21} />
-        </span>
-        <span className="min-w-0">
-          <span className="flex items-center gap-2 font-semibold">
-            {title}
-            <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
-              {pendingLabel}
-            </span>
-          </span>
-          <span className="mt-2 block text-sm leading-6 text-muted-foreground">
-            {description}
-          </span>
-          <span className="mt-2 block text-xs font-medium text-muted-foreground">
-            {pendingDescription}
-          </span>
-        </span>
-      </div>
-    )
-  }
-
   return (
     <Link
       className="group flex min-h-36 items-start gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 transition-colors hover:border-primary/40 hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -160,6 +119,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('journey-template:read'),
       allowed('recruitment-settings:manage'),
       allowed('ai:manage'),
+      allowed('salary:read'),
     ]),
     getEnabledTenantModules(),
   ])
@@ -185,8 +145,11 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     journeyTemplateRead,
     recruitmentSettings,
     aiManage,
+    payrollFiscalRead,
   ] = capabilities
   const canUseSetupAssistant = canReadSetupAssistant(settingsAuth)
+  const payrollFiscalSettings = payrollFiscalRead
+    && (settingsAuth.activeRoles.includes('HR_ADMIN') || settingsAuth.activeRoles.includes('TENANT_ADMIN'))
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
     {
@@ -223,14 +186,6 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.companyData'),
           description: messages('admin.tiles.companyDataDescription'),
           visible: companyData,
-        },
-        {
-          kind: 'modal',
-          modal: 'employees',
-          icon: Users,
-          title: messages('admin.tiles.employees'),
-          description: messages('admin.tiles.employeesDescription'),
-          visible: true,
         },
         {
           kind: 'link',
@@ -324,6 +279,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.salary'),
           description: messages('admin.tiles.salaryDescription'),
           visible: salary,
+        },
+        {
+          kind: 'link',
+          href: '/settings/payroll/fiscal',
+          icon: FileSliders,
+          title: messages('payrollFiscal.title'),
+          description: messages('payrollFiscal.description'),
+          visible: payrollFiscalSettings,
         },
         {
           kind: 'link',
@@ -440,31 +403,12 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
 
           return <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {items.map((item) => {
-                  if (item.kind === 'modal') {
-                    return (
-                      <EmployeeSettingsPlaceholderDialog
-                        key={item.modal}
-                        labels={{
-                          tileTitle: item.title,
-                          tileDescription: item.description,
-                          title: messages('employeeSettings.title'),
-                          description: messages('employeeSettings.description'),
-                          comingSoon: messages('employeeSettings.comingSoon'),
-                          close: messages('employeeSettings.close'),
-                        }}
-                      />
-                    )
-                  }
-
                   return (
                     <SettingsLinkTile
                       description={item.description}
                       href={item.href}
                       icon={item.icon}
                       key={item.href}
-                      pending={item.pending}
-                      pendingDescription={messages('admin.tiles.pendingActivationDescription')}
-                      pendingLabel={messages('admin.tiles.pendingActivation')}
                       title={item.title}
                     />
                   )

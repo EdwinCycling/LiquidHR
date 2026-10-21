@@ -1,3 +1,5 @@
+import type { PayrollSourceGap } from '../domain/payroll-contracts'
+
 export type PayrollValueType = 'MONEY' | 'DECIMAL' | 'PERCENTAGE' | 'BOOLEAN' | 'STRING'
 
 export type PayrollRoundingMode = 'HALF_UP' | 'HALF_EVEN' | 'DOWN' | 'UP'
@@ -292,6 +294,8 @@ export interface PayrollCalculationInputs {
   readonly components: readonly PayrollComponentDefinition[]
   readonly controls: readonly PayrollControlDefinition[]
   readonly resultMappings: readonly PayrollResultMapping[]
+  /** Canonical source blockers carried forward so calculated partial values cannot be treated as complete. */
+  readonly sourceGaps?: readonly PayrollSourceGap[]
   /** Derived and validated by buildCalculationInputs; consumers do not provide source values. */
   readonly resolvedSourceValues: Readonly<Record<string, PayrollSerializedValue>>
 }
@@ -360,4 +364,6 @@ export interface PayrollCalculationResult {
   readonly resultRows: readonly PayrollCalculationResultRow[]
   readonly trace: readonly PayrollCalculationTraceStep[]
   readonly controls: readonly PayrollControlResult[]
+  /** Source issues that make otherwise calculated outputs partial and the overall result blocked. */
+  readonly sourceGaps?: readonly PayrollSourceGap[]
 }

@@ -6,7 +6,9 @@ import {
   type PayrollSourceSnapshot,
 } from '@liquid-hr/payroll-engine'
 import {
+  createPayfull02RulePackage,
   createPayrun01RulePackage,
+  PAYFULL02_RULE_REGISTRY,
   PAYRUN01_RULE_REGISTRY,
   calculatePfzw2026Kinderopvang,
   PFZW_2026_MONTHLY_ALLOCATION_TEST_APPROVED_VERSION,
@@ -43,6 +45,7 @@ const lisaSnapshot: PayrollSourceSnapshot = {
     payrollOwned: {
       actualWorkProjection: { additionalHours: '0.0000', cashCompensatedHours: '0.0000' },
       amounts: { employeePension: '0.00', employerPension: '0.00' },
+      taxProfile: { specialRewardAnnualWage: '66000.00', specialRewardAnnualWageResolved: true },
       fiscalBases: { wageTax: '5500.00', employeeInsurance: '5500.00', zvw: '5500.00' },
       employerRates: { awf: '7.74', aof: '6.27', wko: '0.50', whk: '1.81', zvw: '6.10' },
       reserveRates: { holidayAllowance: '8.00', yearEnd: '0.00' },
@@ -61,6 +64,9 @@ const lisaSnapshot: PayrollSourceSnapshot = {
         cumulativeContinuity: true,
         reservationContinuity: true,
         hashesConsistent: true,
+        specialRewardPensionable: false,
+        specialRewardIncludedInHolidayReserve: false,
+        specialRewardIncludedInYearEndReserve: false,
       },
       cumulatives: {
         grossWageBeforePeriod: '49500.00',
@@ -429,5 +435,510 @@ describe('PAYRUN01 composition on the shared NL-2026 payroll engine', () => {
       taxableWage: { valueType: 'MONEY', value: '2920.77' },
     }))
     expect(october.result.controls.every((control) => control.status === 'PASS')).toBe(true)
+  })
+})
+
+describe('PAYFULL-02 component graph extensions', () => {
+  function calculatePayfull02(
+    sourceSnapshot: PayrollSourceSnapshot,
+    options: { readonly supportPartialPeriods?: boolean } = {},
+  ) {
+    const canonicalSource = structuredClone(sourceSnapshot.canonicalSource) as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    payrollOwned.cumulatives = {
+      employeeInsuranceWageBeforePeriod: '49500.00',
+      zvwWageBeforePeriod: '49500.00',
+      ...(payrollOwned.cumulatives as Record<string, unknown>),
+    }
+    payrollOwned.parameters = {
+      annualSocialWageMaximum: '79409.00',
+      ...(payrollOwned.parameters as Record<string, unknown>),
+    }
+    payrollOwned.pension = {
+      monthlyFranchise: '0.00',
+      monthlyMaximum: '11483.33',
+      partTimeFactor: '1.0000',
+      employeeRate: '0.00',
+      employerRate: '0.00',
+      active: true,
+      ...((payrollOwned.pension as Record<string, unknown> | undefined) ?? {}),
+    }
+    sourceSnapshot = { ...sourceSnapshot, canonicalSource: canonicalSource as typeof sourceSnapshot.canonicalSource }
+    const rulePackage = createPayfull02RulePackage('DEMO_COMPANY_TEST', options)
+    const inputs = buildCalculationInputs(sourceSnapshot, rulePackage, {
+      effectiveDate: `${sourceSnapshot.periodReference.year}-${String(sourceSnapshot.periodReference.month).padStart(2, '0')}-01`,
+      scopeInstanceIds: {
+        EMPLOYEE: sourceSnapshot.sourceEmployeeId,
+        EMPLOYMENT: sourceSnapshot.sourceEmploymentId,
+        INCOME_RELATIONSHIP: sourceSnapshot.sourceIncomeRelationshipId ?? '',
+      },
+      calculationContextHash: 'f'.repeat(64),
+    })
+    return { rulePackage, result: calculatePayroll(inputs, PAYFULL02_RULE_REGISTRY) }
+  }
+
+  it('reconciles regular wage, net reimbursements, deductions and YTD outputs while preserving the official white-table oracle', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    regularWage.fulltimeMonthlyAmount = '5000.00'
+    payrollOwned.amounts = {
+      employeePension: '0.00', employerPension: '0.00', variableRegularWage: '500.00', specialRewardWage: '0.00',
+      netReimbursement: '125.00', netDeduction: '20.00', netCorrection: '0.00',
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+    }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '49500.00', holidayReserveBeforePeriod: '3960.00', yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '49500.00', wageTaxBeforePeriod: '14194.53',
+    }
+
+    const { rulePackage, result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+    const oracle = derivePayrun01LisaOracle('PAYROLL_TAX_CREDIT_APPLIED')
+
+    expect(result.status).toBe('CALCULATED')
+    expect(rulePackage.compositionId).toContain('+PAYFULL02-')
+    expect(resultAmount(result, 'gross_salary')).toBe('5500.00')
+    expect(resultAmount(result, 'contractual_salary')).toBe('5000.00')
+    expect(resultAmount(result, 'variable_regular_wage')).toBe('500.00')
+    expect(resultAmount(result, 'employee_insurance_base')).toBe('5500.00')
+    expect(resultAmount(result, 'zvw_base')).toBe('5500.00')
+    expect(resultAmount(result, 'taxable_wage')).toBe(oracle.monthlyTaxableWage)
+    expect(resultAmount(result, 'wage_tax')).toBe(oracle.monthlyWithholding)
+    expect(resultAmount(result, 'net_salary')).toBe('4027.83')
+    expect(resultAmount(result, 'net_reimbursement')).toBe('125.00')
+    expect(resultAmount(result, 'net_deduction')).toBe('20.00')
+    expect(resultAmount(result, 'cumulative_employee_insurance_wage')).toBe('55000.00')
+    expect(resultAmount(result, 'cumulative_zvw_wage')).toBe('55000.00')
+    expect(resultAmount(result, 'employer_awf')).toBe('425.70')
+    expect(resultAmount(result, 'employer_aof')).toBe('344.85')
+    expect(resultAmount(result, 'employer_wko')).toBe('27.50')
+    expect(resultAmount(result, 'employer_whk')).toBe('99.55')
+    expect(resultAmount(result, 'employer_zvw')).toBe('335.50')
+    expect(resultAmount(result, 'cumulative_taxable_wage')).toBe('55000.00')
+    expect(resultAmount(result, 'cumulative_wage_tax')).toBe('15771.70')
+    expect(resultAmount(result, 'total_employer_cost')).toBe('7298.10')
+    expect(result.controls.every((control) => control.status === 'PASS')).toBe(true)
+    expect(rulePackage.metadata?.packageHash).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('uses an explicit composite-period gross for a full-time employment that starts mid-month', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    regularWage.fulltimeMonthlyAmount = '3517.00'
+    regularWage.contractHoursPerWeek = '40'
+    regularWage.fulltimeHoursPerWeek = '40'
+    regularWage.grossAmount = '1758.50'
+    regularWage.timePeriod = 'WEEK_DAY_2_1'
+    regularWage.fullPeriod = false
+    regularWage.payrollTaxCredit = false
+    payrollOwned.amounts = {
+      employeePension: '0.00',
+      employerPension: '0.00',
+      variableRegularWage: '0.00',
+      specialRewardWage: '0.00',
+      netReimbursement: '0.00',
+      netDeduction: '0.00',
+      netCorrection: '0.00',
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+    }
+    payrollOwned.fiscalBases = { wageTax: '1758.50', employeeInsurance: '1758.50', zvw: '1758.50' }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '0.00',
+      holidayReserveBeforePeriod: '0.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '0.00',
+      wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '0.00',
+      zvwWageBeforePeriod: '0.00',
+    }
+    const { rulePackage, result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    }, { supportPartialPeriods: true })
+
+    expect(result.status).toBe('CALCULATED')
+    expect(rulePackage.compositionId).toContain('+PARTIAL-PERIODS-2026.1')
+    expect(resultAmount(result, 'contractual_salary')).toBe('1758.50')
+    expect(resultAmount(result, 'gross_salary')).toBe('1758.50')
+    expect(result.trace.find((step) => step.componentCode === 'PAYRUN01_CONTRACTUAL_SALARY')?.inputs)
+      .toEqual(expect.objectContaining({
+        periodGross: { valueType: 'MONEY', value: '1758.50' },
+        fullPeriod: { valueType: 'BOOLEAN', value: false },
+      }))
+    expect(result.controls.every((control) => control.status === 'PASS')).toBe(true)
+  })
+
+  it('reduces each applicable fiscal base by an actual employee pension deduction and subtracts that share from net exactly once', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    regularWage.fulltimeMonthlyAmount = '2500.00'
+    payrollOwned.pension = {
+      monthlyFranchise: '0.00',
+      monthlyMaximum: '11483.33',
+      partTimeFactor: '1.0000',
+      employeeRate: '4.00',
+      employerRate: '8.00',
+      active: true,
+    }
+    payrollOwned.amounts = {
+      employeePension: '0.00', employerPension: '0.00', variableRegularWage: '0.00', specialRewardWage: '0.00',
+      netReimbursement: '0.00', netDeduction: '0.00', netCorrection: '0.00',
+    }
+    // Stale source projections must not override bases derived from gross pay
+    // less the payroll-withheld employee pension contribution.
+    payrollOwned.fiscalBases = { wageTax: '9999.00', employeeInsurance: '8888.00', zvw: '7777.00' }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+    }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '21600.00', holidayReserveBeforePeriod: '1728.00', yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '20700.00', wageTaxBeforePeriod: '0.00',
+    }
+
+    const { result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+    const tax = resultAmount(result, 'wage_tax')!
+
+    // Belastingdienst Handboek 2026 §9.1 / §11.2: the graph derives €100
+    // employee pension on €2,500 gross, then uses €2,400 for each base.
+    expect(resultAmount(result, 'gross_salary')).toBe('2500.00')
+    expect(resultAmount(result, 'taxable_wage')).toBe('2400.00')
+    expect(resultAmount(result, 'employee_insurance_base')).toBe('2400.00')
+    expect(resultAmount(result, 'zvw_base')).toBe('2400.00')
+    expect(resultAmount(result, 'employer_zvw')).toBe('146.40')
+    expect(resultAmount(result, 'net_salary')).toBe(FixedDecimal.parse('2500.00')
+      .subtract(FixedDecimal.parse(tax)).subtract(FixedDecimal.parse('100.00')).toString(2))
+    expect(resultAmount(result, 'employer_pension')).toBe('200.00')
+    expect(resultAmount(result, 'total_employer_cost')).toBe('3438.08')
+    expect(result.controls.every((control) => control.status === 'PASS')).toBe(true)
+  })
+
+  it('caps both employer insurance bases at the remaining annual maximum and advances the cumulative balances', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    regularWage.fulltimeMonthlyAmount = '200.00'
+    payrollOwned.amounts = {
+      employeePension: '0.00', employerPension: '0.00', variableRegularWage: '500.00', specialRewardWage: '0.00',
+      netReimbursement: '0.00', netDeduction: '0.00', netCorrection: '0.00',
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+    }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '79000.00', holidayReserveBeforePeriod: '0.00', yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '79000.00', wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '79000.00', zvwWageBeforePeriod: '79000.00',
+    }
+    payrollOwned.parameters = { annualSocialWageMaximum: '79409.00' }
+
+    const { result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+
+    expect(result.status).toBe('CALCULATED')
+    expect(resultAmount(result, 'contractual_salary')).toBe('200.00')
+    expect(resultAmount(result, 'variable_regular_wage')).toBe('500.00')
+    expect(resultAmount(result, 'gross_salary')).toBe('700.00')
+    expect(resultAmount(result, 'taxable_wage')).toBe('700.00')
+    expect(resultAmount(result, 'employee_insurance_base')).toBe('409.00')
+    expect(resultAmount(result, 'zvw_base')).toBe('409.00')
+    expect(resultAmount(result, 'cumulative_employee_insurance_wage')).toBe('79409.00')
+    expect(resultAmount(result, 'cumulative_zvw_wage')).toBe('79409.00')
+    expect(resultAmount(result, 'cumulative_taxable_wage')).toBe('79700.00')
+    expect(resultAmount(result, 'employer_awf')).toBe('31.66')
+    expect(resultAmount(result, 'employer_aof')).toBe('25.64')
+    expect(resultAmount(result, 'employer_wko')).toBe('2.05')
+    expect(resultAmount(result, 'employer_whk')).toBe('7.40')
+    expect(resultAmount(result, 'employer_zvw')).toBe('24.95')
+    expect(resultAmount(result, 'net_salary')).toBe(FixedDecimal.parse('700.00')
+      .subtract(FixedDecimal.parse(resultAmount(result, 'wage_tax')!)).toString(2))
+    expect(resultAmount(result, 'total_employer_cost')).toBe('847.70')
+    expect(result.controls.every((control) => control.status === 'PASS')).toBe(true)
+  })
+
+  it('excludes a variable wage from regular bases when its source classification is not regular and blocks final acceptance', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    regularWage.fulltimeMonthlyAmount = '5000.00'
+    payrollOwned.amounts = {
+      employeePension: '0.00', employerPension: '0.00', variableRegularWage: '500.00', specialRewardWage: '0.00',
+      netReimbursement: '0.00', netDeduction: '0.00', netCorrection: '0.00',
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: false,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+    }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '49500.00',
+      holidayReserveBeforePeriod: '3960.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '49500.00',
+      wageTaxBeforePeriod: '14194.53',
+    }
+
+    const { result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+    const classificationControl = result.controls.find((control) => control.code === 'PAYFULL02-CTRL-001-REGULAR-VARIABLE-WAGE-CLASSIFIED')
+
+    expect(result.status).toBe('BLOCKED')
+    expect(classificationControl?.status).toBe('FAIL')
+    expect(resultAmount(result, 'variable_regular_wage_source')).toBe('500.00')
+    expect(resultAmount(result, 'variable_regular_wage')).toBe('0.00')
+    expect(resultAmount(result, 'gross_salary')).toBe('5000.00')
+    expect(resultAmount(result, 'taxable_wage')).toBe('5000.00')
+    expect(resultAmount(result, 'employee_insurance_base')).toBe('5000.00')
+    expect(resultAmount(result, 'zvw_base')).toBe('5000.00')
+  })
+
+  it('uses the official white special-remuneration table for the bonus and adds it to net once', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    payrollOwned.amounts = {
+      employeePension: '0.00', employerPension: '0.00', variableRegularWage: '0.00', specialRewardWage: '500.00',
+      netReimbursement: '0.00', netDeduction: '0.00', netCorrection: '0.00',
+    }
+    payrollOwned.cumulatives = {
+      ...(payrollOwned.cumulatives as Record<string, unknown>),
+      taxableWageBeforePeriod: '49500.00', wageTaxBeforePeriod: '14194.53',
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+    }
+
+    const { result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+    const oracle = derivePayrun01LisaOracle('PAYROLL_TAX_CREDIT_APPLIED')
+    const specialRewardControl = result.controls.find((control) => control.code === 'PAYFULL02-CTRL-002-SPECIAL-REWARD-PROFILE-READY')
+
+    expect(result.status).toBe('CALCULATED')
+    expect(specialRewardControl?.status).toBe('PASS')
+    expect(resultAmount(result, 'special_reward_wage')).toBe('500.00')
+    expect(resultAmount(result, 'special_reward_tax_rate')).toBe('50.47')
+    expect(resultAmount(result, 'special_reward_wage_tax')).toBe('252.35')
+    expect(resultAmount(result, 'gross_salary')).toBe('6000.00')
+    expect(resultAmount(result, 'taxable_wage')).toBe('6000.00')
+    expect(resultAmount(result, 'employee_insurance_base')).toBe('6000.00')
+    expect(resultAmount(result, 'zvw_base')).toBe('6000.00')
+    expect(resultAmount(result, 'employer_awf')).toBe('464.40')
+    expect(resultAmount(result, 'employer_aof')).toBe('376.20')
+    expect(resultAmount(result, 'employer_wko')).toBe('30.00')
+    expect(resultAmount(result, 'employer_whk')).toBe('108.60')
+    expect(resultAmount(result, 'employer_zvw')).toBe('366.00')
+    expect(resultAmount(result, 'holiday_allowance_reserve')).toBe('440.00')
+    expect(resultAmount(result, 'year_end_reserve')).toBe('0.00')
+    expect(resultAmount(result, 'total_employer_cost')).toBe('7785.20')
+    expect(resultAmount(result, 'wage_tax')).toBe(FixedDecimal.parse(oracle.monthlyWithholding)
+      .add(FixedDecimal.parse('252.35')).toString(2))
+    expect(resultAmount(result, 'net_salary')).toBe(FixedDecimal.parse('5500.00')
+      .subtract(FixedDecimal.parse(oracle.monthlyWithholding))
+      .add(FixedDecimal.parse('500.00'))
+      .subtract(FixedDecimal.parse('252.35')).toString(2))
+    expect(resultAmount(result, 'cumulative_taxable_wage')).toBe('55500.00')
+    expect(resultAmount(result, 'cumulative_gross_wage')).toBe('55500.00')
+    expect(resultAmount(result, 'cumulative_employee_insurance_wage')).toBe('55500.00')
+    expect(resultAmount(result, 'cumulative_zvw_wage')).toBe('55500.00')
+    expect(resultAmount(result, 'cumulative_wage_tax')).toBe(FixedDecimal.parse('14194.53')
+      .add(FixedDecimal.parse(resultAmount(result, 'wage_tax')!)).toString(2))
+    expect(result.controls.every((control) => control.status === 'PASS')).toBe(true)
+  })
+
+  it('applies the configured special-reward holiday reserve and blocks pensionable rewards until supported', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    payrollOwned.amounts = {
+      employeePension: '0.00', employerPension: '0.00', variableRegularWage: '0.00', specialRewardWage: '500.00',
+      netReimbursement: '0.00', netDeduction: '0.00', netCorrection: '0.00',
+    }
+    payrollOwned.cumulatives = {
+      ...(payrollOwned.cumulatives as Record<string, unknown>),
+      taxableWageBeforePeriod: '49500.00', wageTaxBeforePeriod: '14194.53',
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+      specialRewardPensionable: false,
+      specialRewardIncludedInHolidayReserve: true,
+      specialRewardIncludedInYearEndReserve: false,
+    }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '49500.00',
+      holidayReserveBeforePeriod: '3960.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '49500.00',
+      wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '49500.00',
+      zvwWageBeforePeriod: '49500.00',
+    }
+    const { result: reserveable } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+    expect(reserveable.status).toBe('CALCULATED')
+    expect(resultAmount(reserveable, 'holiday_allowance_reserve')).toBe('480.00')
+    expect(resultAmount(reserveable, 'total_employer_cost')).toBe('7825.20')
+
+    const pensionableSource = structuredClone(canonicalSource) as Record<string, unknown>
+    const pensionablePayrollOwned = pensionableSource.payrollOwned as Record<string, unknown>
+    pensionablePayrollOwned.controls = {
+      ...(pensionablePayrollOwned.controls as Record<string, unknown>),
+      specialRewardPensionable: true,
+    }
+    const { result: pensionable } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: pensionableSource as typeof lisaSnapshot.canonicalSource,
+    })
+    expect(pensionable.status).toBe('BLOCKED')
+    expect(pensionable.controls.find((control) => control.code === 'PAYFULL02-CTRL-012-PENSIONABLE-SPECIAL-REWARD-UNSUPPORTED')?.status)
+      .toBe('FAIL')
+  })
+
+  it('prorates the full-time pension franchise and cap by the effective part-time factor', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    regularWage.contractHoursPerWeek = '20'
+    regularWage.fulltimeHoursPerWeek = '40'
+    payrollOwned.amounts = {
+      ...(payrollOwned.amounts as Record<string, unknown>),
+      variableRegularWage: '0.00',
+      specialRewardWage: '0.00',
+      netReimbursement: '0.00',
+      netDeduction: '0.00',
+      netCorrection: '0.00',
+    }
+    payrollOwned.pension = {
+      monthlyFranchise: '1597.67',
+      monthlyMaximum: '11483.33',
+      partTimeFactor: '0.5000',
+      employeeRate: '10.00',
+      employerRate: '8.00',
+      active: true,
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+      specialRewardPensionable: false,
+      specialRewardIncludedInHolidayReserve: false,
+      specialRewardIncludedInYearEndReserve: false,
+    }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '49500.00',
+      holidayReserveBeforePeriod: '3960.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '49500.00',
+      wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '49500.00',
+      zvwWageBeforePeriod: '49500.00',
+    }
+
+    const { result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+
+    expect(resultAmount(result, 'contractual_salary')).toBe('2750.00')
+    expect(resultAmount(result, 'pensionable_wage')).toBe('1951.17')
+    expect(resultAmount(result, 'employee_pension')).toBe('195.12')
+    expect(resultAmount(result, 'employer_pension')).toBe('156.09')
+    expect(resultAmount(result, 'taxable_wage')).toBe('2554.88')
+    expect(result.controls.find((control) => control.code === 'PAYFULL02-CTRL-013-PENSION-PART-TIME-FACTOR-IN-RANGE')?.status).toBe('PASS')
+  })
+
+  it('blocks invalid pension part-time factors instead of treating them as a full-time pension basis', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const payrollOwned = canonicalSource.payrollOwned as Record<string, unknown>
+    payrollOwned.amounts = {
+      ...(payrollOwned.amounts as Record<string, unknown>),
+      variableRegularWage: '0.00',
+      specialRewardWage: '0.00',
+      netReimbursement: '0.00',
+      netDeduction: '0.00',
+      netCorrection: '0.00',
+    }
+    payrollOwned.pension = {
+      monthlyFranchise: '1597.67',
+      monthlyMaximum: '11483.33',
+      partTimeFactor: '1.2500',
+      employeeRate: '4.00',
+      employerRate: '8.00',
+      active: true,
+    }
+    payrollOwned.controls = {
+      ...(payrollOwned.controls as Record<string, unknown>),
+      variableWageIsRegular: true,
+      netReimbursementsTaxFree: true,
+      netDeductionsAuthorized: true,
+      specialRewardPensionable: false,
+      specialRewardIncludedInHolidayReserve: false,
+      specialRewardIncludedInYearEndReserve: false,
+    }
+    payrollOwned.cumulatives = {
+      grossWageBeforePeriod: '49500.00',
+      holidayReserveBeforePeriod: '3960.00',
+      yearEndReserveBeforePeriod: '0.00',
+      taxableWageBeforePeriod: '49500.00',
+      wageTaxBeforePeriod: '0.00',
+      employeeInsuranceWageBeforePeriod: '49500.00',
+      zvwWageBeforePeriod: '49500.00',
+    }
+
+    const { result } = calculatePayfull02({
+      ...lisaSnapshot,
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })
+
+    expect(result.controls.find((control) => control.code === 'PAYFULL02-CTRL-013-PENSION-PART-TIME-FACTOR-IN-RANGE')?.status).toBe('FAIL')
+    expect(result.status).toBe('BLOCKED')
+  })
+
+  it('blocks the 2027 boundary until an effective 2027 parameter set exists instead of carrying 2026 rules forward', () => {
+    const canonicalSource = structuredClone(lisaSnapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    regularWage.fiscalYear = '2027'
+
+    expect(() => calculatePayfull02({
+      ...lisaSnapshot,
+      periodReference: { year: 2027, month: 1 },
+      canonicalSource: canonicalSource as typeof lisaSnapshot.canonicalSource,
+    })).toThrow('No payroll component is effective on the requested date.')
   })
 })

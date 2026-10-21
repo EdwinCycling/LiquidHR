@@ -21,6 +21,22 @@ export { NL_2026_IMPLEMENTATION_SHA256, NL_2026_SOURCE_METADATA } from './source
 export { createPayrun01RulePackage } from './payrun01-composition'
 export { PAYRUN01_RULE_REGISTRY } from './payrun01-composition'
 export type { Payrun01CompositionKind } from './payrun01-composition'
+export { createPayfull02RulePackage } from './payfull02-composition'
+export { PAYFULL02_RULE_REGISTRY } from './payfull02-composition'
+export {
+  calculateNl2026PeriodSegments,
+  compositePaidWorkdays,
+  countDutchWorkdays,
+  encodeNl2026CompositeTimePeriod,
+  parseNl2026CompositeTimePeriod,
+  prorateMonthlySalary,
+} from './regular-wage/period'
+export type { Nl2026CompositePeriod, Nl2026PeriodSegments } from './regular-wage/period'
+export {
+  calculateNl2026SpecialRewardWithholding,
+  NL_2026_SPECIAL_REWARD_TABLE,
+  NL_2026_SPECIAL_REWARD_TABLE_SOURCE,
+} from './special-remuneration-2026'
 export { calculatePension } from './pension-calculation'
 export type {
   PensionArrangementInput,

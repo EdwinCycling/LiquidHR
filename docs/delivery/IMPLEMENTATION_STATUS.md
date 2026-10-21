@@ -24,6 +24,15 @@ Both explicitly approved migrations are registered on synthetic Supabase TEST: 9
 
 Local read-only browser smoke covered the 9-grid at 390/1280 px and Continuous Appraisal at 390 px; all six appraisal category filters worked and browser console errors were zero. The named Maya/Yara/Noah role and scope matrix, lifecycle writes and network evidence remain OPEN because only an existing Manager session was available. Full ESLint retains one unrelated existing prefer-const error at lib/document-generation/distribution-read-service.test.ts:47 and eight existing warnings. See the [combined closeout](../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261015-FINAL.md).
 
+## PAYRUN-03 — volledige HR Admin-maandverwerking — lokaal — 2026-10-17
+
+**Status: LOCAL CODE GREEN / BROWSER ACCEPTANCE BLOCKED BY ENVIRONMENT.** Op aparte worktree `PAYRUN-03-20261017` en branch `work/PAYRUN-03-20261017` is de Payroll-maandwerkplek uitgebreid met een volledige scoped medewerkerslijst, periodestatus versus medewerker-runstatus, exact geprojecteerde totalen, concrete uitzonderingen, individuele/batchberekening, review/finalize-detailacties en definitieve loonstrooklinks. De bestaande PayrollCycle-, calculation-, lifecycle-, source- en controlservices blijven leidend. Er is geen schema-, Core-, fiscale/pensioenregel- of componentenginewijziging.
+
+- Contract: backward-compatible optionele employee/employment-referenties op `getPayrollCycleWorklist`; geen nieuwe runstatussen of concurrerende backend. De integratie is lokaal getest en niet open verklaard.
+- Gates: 6 gerichte bestanden / 29 tests GREEN; strict TypeScript, gewijzigde-area ESLint, 43-namespace NL/EN i18n, production build inclusief client-bundle self-test/buildprovenance en `git diff --check` GREEN.
+- Browser/hosted: de verplichte lokale preflight stopte vóór serverstart door ontbrekende centrale TEST-config; geen fallback of credential is gebruikt. Geen merge, push, deployment, remote write of wijziging aan bestaande FINALIZED-runs.
+- Evidence: [PAYRUN-03 acceptance](../quality/acceptance/runs/PAYRUN-03-20261017.md). Dit is geen hosted/Production-acceptatie en geen releaseclaim.
+
 ## Current release — APIAI-09 — 2026-10-12
 
 **Status: TEST RELEASED — LIMITED.** PR #18 code/test-SHA `27d534fd06fee7868b3bf0534bc3fdb9a3736cd1` (PR head `c5906d7469ef47fd5b9edf36c412772e9ac98a30`) is merged as main-SHA `a5d1b3ff61e8c1d1af05a0c89b08a4fe73472495`. App version remains `1.20261011.2`; the missing bump required by AA-REL §3 is recorded OPEN in AA-OPEN.

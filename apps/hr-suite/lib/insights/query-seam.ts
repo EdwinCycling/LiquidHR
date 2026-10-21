@@ -104,7 +104,7 @@ export function canonicalInsightReportId(value: string | null | undefined): Insi
   if (!value) return null
   const aliased = reportAliases[value]
   if (aliased) return aliased
-  return INSIGHT_REPORTS.some((report) => report.id === value) ? value as InsightReportId : null
+  return INSIGHT_REPORTS.some((report) => report.id === value && report.available) ? value as InsightReportId : null
 }
 
 export function insightReportQueryKeys(report: InsightReportId): readonly string[] {

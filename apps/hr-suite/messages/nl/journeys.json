@@ -12,7 +12,7 @@
   "noResults": "Geen templates gevonden voor deze zoekopdracht.",
   "name": "Naam",
   "description": "Beschrijving",
-  "key": "Technische sleutel",
+  "key": "Journeycode",
   "type": "Journey-type",
   "anchor": "Ankerdatum",
   "status": "Status",

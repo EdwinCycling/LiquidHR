@@ -39,6 +39,12 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'talent-appraisal', category: 'talent', permission: 'star-performer:read', additionalPermissions: ['star-performer:manager-read'], route: '/workforce/talent/reports/star-performers?report=appraisal', available: true },
 ] as const
 
+export function visibleInsightReports(permissions: readonly string[], isHrAdmin: boolean): InsightReportDefinition[] {
+  return INSIGHT_REPORTS.filter((report) => report.available
+    && permissions.includes(report.permission)
+    && (report.id !== 'salary-internal-position' || isHrAdmin))
+}
+
 export function isEmployeeInsightReportId(report: InsightReportId): report is EmployeeInsightReportId {
   return report === 'employee-department' || report === 'employee-gender' || report === 'employee-age' || report === 'terminations'
 }

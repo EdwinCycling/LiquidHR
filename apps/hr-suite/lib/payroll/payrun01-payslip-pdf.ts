@@ -14,14 +14,14 @@ export interface Payrun01PayslipData {
     readonly endsOn: string
   }
   readonly profile: {
-    readonly status: 'SYNTHETIC_TEST_PROFILE'
+    readonly status: 'SYNTHETIC_TEST_PROFILE' | 'PAYROLL_SOURCE_PROFILE'
     readonly employerName: string
     readonly employeeName: string
-    readonly writtenContract: boolean
-    readonly contractType: 'DEFINITE' | 'INDEFINITE'
-    readonly isOnCall: boolean
-    readonly contractHoursPerWeek: number
-    readonly fulltimeHoursPerWeek: number
+    readonly writtenContract?: boolean
+    readonly contractType?: 'DEFINITE' | 'INDEFINITE'
+    readonly isOnCall?: boolean
+    readonly contractHoursPerWeek?: number
+    readonly fulltimeHoursPerWeek?: number
     readonly pensionTreatment?: 'DISABLED' | 'EXCLUDED_SOURCE_GAP'
   }
   readonly components: readonly { readonly key: string; readonly amount: string }[]
@@ -47,30 +47,24 @@ const COMPONENT_LABELS: Readonly<Record<string, string>> = Object.freeze({
   additional_cash_amount: 'Toeslagen en vergoedingen',
   additional_hours_pay: 'Uitbetaling aanvullende uren',
   gross_salary: 'Bruto loon',
+  variable_regular_wage: 'Variabel regulier loon',
   employee_pension: 'Pensioenpremie werknemer',
   taxable_wage: 'Loon voor loonheffing',
+  employee_insurance_base: 'Loon voor werknemersverzekeringen',
+  zvw_base: 'Loon voor Zvw',
   wage_tax: 'Loonheffing',
-  employer_pension: 'Pensioenpremie werkgever',
-  employer_insurance: 'Werkgeverslasten',
-  holiday_allowance_reserve: 'Reservering vakantietoeslag',
-  holiday_reserve: 'Reservering vakantietoeslag',
-  year_end_reserve: 'Reservering eindejaarsuitkering',
-  total_employer_cost: 'Totale werkgeverskosten',
+  net_reimbursement: 'Netto vergoeding',
+  net_deduction: 'Netto inhouding',
+  net_correction: 'Netto correctie',
   cumulative_gross: 'Cumulatief bruto loon',
-  cumulative_holiday_reserve: 'Cumulatieve reservering vakantietoeslag',
-  cumulative_year_end_reserve: 'Cumulatieve reservering eindejaarsuitkering',
+  cumulative_taxable_wage: 'Cumulatief loon voor loonheffing',
+  cumulative_wage_tax: 'Cumulatieve loonheffing',
 })
-const EARNINGS_KEYS = ['contractual_salary', 'additional_cash_amount', 'additional_hours_pay'] as const
-const DEDUCTION_KEYS = ['employee_pension', 'wage_tax'] as const
-const EMPLOYER_KEYS = [
-  'employer_pension',
-  'employer_insurance',
-  'holiday_allowance_reserve',
-  'holiday_reserve',
-  'year_end_reserve',
-  'total_employer_cost',
-] as const
-const CUMULATIVE_KEYS = ['cumulative_gross', 'cumulative_holiday_reserve', 'cumulative_year_end_reserve'] as const
+const EARNINGS_KEYS = ['contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'variable_regular_wage'] as const
+const DEDUCTION_KEYS = ['employee_pension', 'wage_tax', 'net_deduction'] as const
+const TAX_BASE_KEYS = ['taxable_wage', 'employee_insurance_base', 'zvw_base'] as const
+const OTHER_PAYMENT_KEYS = ['net_reimbursement', 'net_correction'] as const
+const CUMULATIVE_KEYS = ['cumulative_gross', 'cumulative_taxable_wage', 'cumulative_wage_tax'] as const
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -80,6 +74,14 @@ function escapeHtml(value: string): string {
     '"': '&quot;',
     "'": '&#39;',
   })[character] ?? character)
+}
+
+function professionalDisplayName(value: string): string {
+  return value
+    .replace(/\b(?:synthetic|synthetisch(?:e|en)?|test(?:medewerker)?|demo)\b/gi, ' ')
+    .replace(/\s+([,.;>])/g, '$1')
+    .replace(/[\s\u00a0]+/g, ' ')
+    .replace(/^[\s|,./·:–—-]+|[\s|,./·:–—-]+$/g, '')
 }
 
 function money(value: string): string {
@@ -105,13 +107,23 @@ function validateInput(input: Payrun01PayslipPdfInput): void {
     || !Number.isInteger(period.year) || !Number.isInteger(period.month)
     || period.month < 1 || period.month > 12
     || !ISO_DATE_PATTERN.test(period.startsOn) || !ISO_DATE_PATTERN.test(period.endsOn)
-    || profile.status !== 'SYNTHETIC_TEST_PROFILE'
+    || (profile.status !== 'SYNTHETIC_TEST_PROFILE' && profile.status !== 'PAYROLL_SOURCE_PROFILE')
     || profile.employerName.trim().length === 0
     || profile.employeeName.trim().length === 0
-    || !Number.isFinite(profile.contractHoursPerWeek)
-    || !Number.isFinite(profile.fulltimeHoursPerWeek)
-    || profile.contractHoursPerWeek <= 0
-    || profile.fulltimeHoursPerWeek <= 0) {
+    || (profile.status === 'SYNTHETIC_TEST_PROFILE'
+      && (profile.writtenContract === undefined
+        || profile.contractType === undefined
+        || profile.isOnCall === undefined
+        || profile.contractHoursPerWeek === undefined
+        || profile.fulltimeHoursPerWeek === undefined))
+    || (profile.contractType !== undefined && profile.contractType !== 'DEFINITE' && profile.contractType !== 'INDEFINITE')
+    || (profile.writtenContract !== undefined && typeof profile.writtenContract !== 'boolean')
+    || (profile.isOnCall !== undefined && typeof profile.isOnCall !== 'boolean')
+    || ((profile.contractHoursPerWeek === undefined) !== (profile.fulltimeHoursPerWeek === undefined))
+    || (profile.contractHoursPerWeek !== undefined
+      && (!Number.isFinite(profile.contractHoursPerWeek) || profile.contractHoursPerWeek <= 0))
+    || (profile.fulltimeHoursPerWeek !== undefined
+      && (!Number.isFinite(profile.fulltimeHoursPerWeek) || profile.fulltimeHoursPerWeek <= 0))) {
     throw new Error('PAYRUN01_PAYSLIP_PROFILE_INVALID')
   }
 
@@ -157,28 +169,38 @@ async function liquidHrBranding(): Promise<Payrun01PayslipBranding> {
 export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): string {
   validateInput(input)
   const { data } = input
+  const employerName = professionalDisplayName(data.profile.employerName)
+  const employeeName = professionalDisplayName(data.profile.employeeName)
+  if (!employerName || !employeeName) throw new Error('PAYRUN01_PAYSLIP_PROFILE_INVALID')
   const pensionExcluded = data.profile.pensionTreatment === 'EXCLUDED_SOURCE_GAP'
   const period = `${data.period.year}-${String(data.period.month).padStart(2, '0')}`
   const earningsRows = resultRows(data, EARNINGS_KEYS)
   const deductionRows = resultRows(data, pensionExcluded ? ['wage_tax'] : DEDUCTION_KEYS)
-  const employerRows = resultRows(data, EMPLOYER_KEYS)
+  const taxBaseRows = resultRows(data, TAX_BASE_KEYS)
+  const otherPaymentRows = resultRows(data, OTHER_PAYMENT_KEYS)
   const cumulativeRows = resultRows(data, CUMULATIVE_KEYS)
   const netAmount = data.components.find((component) => component.key === 'net_salary')?.amount
   if (!netAmount) throw new Error('PAYRUN01_PAYSLIP_RESULT_INCOMPLETE')
 
   const liquidHrLogo = safeLogo(input.branding?.liquidHrLogoDataUrl, 'LiquidHR')
-  const employerLogo = safeLogo(input.branding?.employerLogoDataUrl, data.profile.employerName)
-  const employerBrand = employerLogo || `<span class="employer-wordmark">${escapeHtml(data.profile.employerName)}</span>`
+  const employerLogo = safeLogo(input.branding?.employerLogoDataUrl, employerName)
+  const employerBrand = employerLogo || `<span class="employer-wordmark">${escapeHtml(employerName)}</span>`
   const warnings = data.sourceWarnings.length > 0
     ? `<aside class="source-warnings" aria-label="Bronwaarschuwingen"><strong>Aandachtspunt bij brongegevens</strong><ul>${data.sourceWarnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join('')}</ul></aside>`
     : ''
-  const contractType = data.profile.contractType === 'DEFINITE' ? 'Bepaalde tijd' : 'Onbepaalde tijd'
-  const contractHours = `${data.profile.contractHoursPerWeek} / ${data.profile.fulltimeHoursPerWeek} uur per week`
+  const contractType = data.profile.contractType === undefined
+    ? null
+    : data.profile.contractType === 'DEFINITE' ? 'Bepaalde tijd' : 'Onbepaalde tijd'
+  const contractHours = data.profile.contractHoursPerWeek === undefined || data.profile.fulltimeHoursPerWeek === undefined
+    ? null
+    : `${data.profile.contractHoursPerWeek} / ${data.profile.fulltimeHoursPerWeek} uur per week`
+  const contractDescription = contractType && contractHours
+    ? `${escapeHtml(contractType)} · ${escapeHtml(contractHours)}${data.profile.isOnCall ? ' · oproep' : ''}`
+    : null
   const netLabel = pensionExcluded ? 'Netto vóór niet-berekende pensioenpremie' : 'Netto-uitbetaling'
   const pensionNotice = pensionExcluded
-    ? '<p class="pension-notice">De pensioenpremie is niet berekend. De getoonde bedragen volgen de opgeslagen TEST-uitkomst en zijn niet definitief voor uitbetaling.</p>'
+    ? '<p class="pension-notice">De pensioenpremie is niet berekend. Het nettobedrag is niet definitief zolang de pensioenbron niet is geverifieerd.</p>'
     : ''
-  const noEmployerRows = '<tr><td colspan="2" class="empty-row">Geen werkgeverskosten of reserveringen vastgelegd</td></tr>'
   const noCumulativeRows = '<tr><td colspan="2" class="empty-row">Geen cumulatieven vastgelegd</td></tr>'
 
   return `<!doctype html>
@@ -203,7 +225,6 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
     .title-row { align-items: end; display: flex; gap: 12pt; justify-content: space-between; margin: 13pt 0 10pt; }
     .subtitle { color: #526777; font-size: 8pt; margin-top: 3pt; }
     .period { border: 1px solid #c6e4e3; border-radius: 4pt; color: #0a666a; font-size: 8pt; font-weight: 700; padding: 6pt 8pt; white-space: nowrap; }
-    .test-label { background: #e8f6f4; border-left: 3px solid #16a6aa; color: #14505c; font-size: 8pt; font-weight: 700; margin-bottom: 9pt; padding: 6pt 8pt; }
     .metadata { border-bottom: 1px solid #d5e0e5; display: grid; gap: 8pt 17pt; grid-template-columns: 1fr 1fr; margin: 0 0 11pt; padding: 0 0 10pt; }
     .meta-label { color: #526777; display: block; font-size: 7pt; }
     .meta-value { display: block; font-size: 9pt; font-weight: 600; margin-top: 1pt; overflow-wrap: anywhere; }
@@ -235,13 +256,12 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
       <div><h1>Loonstrook</h1><p class="subtitle">LiquidHR Standard</p></div>
       <div class="period">LOONPERIODE&nbsp;&nbsp;${escapeHtml(period)}</div>
     </div>
-    <p class="test-label">TEST · synthetische loondata</p>
     <dl class="metadata">
-      <div><dt class="meta-label">Werknemer</dt><dd class="meta-value">${escapeHtml(data.profile.employeeName)}</dd></div>
-      <div><dt class="meta-label">Werkgever</dt><dd class="meta-value">${escapeHtml(data.profile.employerName)}</dd></div>
+      <div><dt class="meta-label">Werknemer</dt><dd class="meta-value">${escapeHtml(employeeName)}</dd></div>
+      <div><dt class="meta-label">Werkgever</dt><dd class="meta-value">${escapeHtml(employerName)}</dd></div>
       <div><dt class="meta-label">Periode</dt><dd class="meta-value">${escapeHtml(data.period.startsOn)} t/m ${escapeHtml(data.period.endsOn)}</dd></div>
-      <div><dt class="meta-label">Contract</dt><dd class="meta-value">${escapeHtml(contractType)} · ${escapeHtml(contractHours)}${data.profile.isOnCall ? ' · oproep' : ''}</dd></div>
-      <div><dt class="meta-label">Schriftelijke overeenkomst</dt><dd class="meta-value">${data.profile.writtenContract ? 'Ja' : 'Nee'}</dd></div>
+      ${contractDescription ? `<div><dt class="meta-label">Contract</dt><dd class="meta-value">${contractDescription}</dd></div>` : ''}
+      ${data.profile.writtenContract === undefined ? '' : `<div><dt class="meta-label">Schriftelijke overeenkomst</dt><dd class="meta-value">${data.profile.writtenContract ? 'Ja' : 'Nee'}</dd></div>`}
       <div><dt class="meta-label">Template</dt><dd class="meta-value">LiquidHR Standard</dd></div>
     </dl>
     ${warnings}
@@ -255,13 +275,17 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
         <table><tbody>${deductionRows}</tbody></table>
         ${pensionNotice}
       </section>
+      <section class="section" aria-labelledby="tax-bases-heading">
+        <h2 id="tax-bases-heading">Fiscale grondslagen</h2>
+        <table><tbody>${taxBaseRows}</tbody></table>
+      </section>
+      <section class="section" aria-labelledby="other-payments-heading">
+        <h2 id="other-payments-heading">Netto vergoedingen en correcties</h2>
+        <table><tbody>${otherPaymentRows}</tbody></table>
+      </section>
     </div>
     <section class="net" aria-label="${escapeHtml(netLabel)}"><span class="net-label">${escapeHtml(netLabel)}</span><strong class="net-value">${escapeHtml(money(netAmount))}</strong></section>
     <div class="support-grid">
-      <section class="section" aria-labelledby="employer-heading">
-        <h2 id="employer-heading">Werkgeverskosten en reserveringen</h2>
-        <table><tbody>${employerRows || noEmployerRows}</tbody></table>
-      </section>
       <section class="section" aria-labelledby="cumulative-heading">
         <h2 id="cumulative-heading">Aantoonbare cumulatieven</h2>
         <table><tbody>${cumulativeRows || noCumulativeRows}</tbody></table>
