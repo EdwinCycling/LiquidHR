@@ -37,6 +37,8 @@ interface FormRuntimeRendererProps {
   readonly initialProjection: FormProjection
   readonly locale: 'nl' | 'en'
   readonly labels: FormRuntimeLabels
+  readonly participantLabel?: string
+  readonly saveExplanation?: string
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'stale'
@@ -179,7 +181,7 @@ function ReferencePicker({
   </div>
 }
 
-export function FormRuntimeRenderer({ initialProjection, locale, labels }: FormRuntimeRendererProps) {
+export function FormRuntimeRenderer({ initialProjection, locale, labels, participantLabel, saveExplanation }: FormRuntimeRendererProps) {
   const [projection, setProjection] = useState(initialProjection)
   const [values, setValues] = useState<Record<string, FormJsonValue>>(() => initialValues(initialProjection))
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -301,9 +303,10 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels }: FormR
 
   return <section className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
     <header className="rounded-3xl border border-border bg-panel p-6 shadow-sm sm:p-8">
-      <p className="eyebrow text-primary">{projection.participantKey}</p>
+      <p className="eyebrow text-primary">{participantLabel ?? projection.participantKey}</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">{projection.title}</h1>
       {projection.description ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{projection.description}</p> : null}
+      {saveExplanation ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{saveExplanation}</p> : null}
       <p aria-live="polite" className="mt-5 min-h-5 text-sm text-muted-foreground">{saveStatus}</p>
     </header>
 

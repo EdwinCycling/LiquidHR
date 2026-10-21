@@ -70,6 +70,27 @@ describe('createStudioDefinition', () => {
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
+  it('keeps the Opleidingsaanvraag example dynamic and limited to the existing process-only fields', () => {
+    const definition = createTrainingRequestExampleDraft({
+      key: 'training-request',
+      title: input.title,
+      description: input.description,
+    })
+    const fields = definition.forms.flatMap((form) => form.sections.flatMap((section) => section.fields))
+
+    expect(fields.map((field) => field.key)).toEqual([
+      'training-name',
+      'training-reason',
+      'training-start-date',
+      'training-expected-cost',
+      'training-notes',
+    ])
+    expect(fields.map((field) => field.type)).toEqual(['SHORT_TEXT', 'LONG_TEXT', 'DATE', 'MONEY', 'LONG_TEXT'])
+    expect(fields.every((field) => field.binding.kind === 'PROCESS_ONLY')).toBe(true)
+    expect(fields.find((field) => field.key === 'training-expected-cost')?.access.find((rule) => rule.participantKey === 'employee')?.mode).toBe('WRITE_OPTIONAL')
+    expect(fields.find((field) => field.key === 'training-notes')?.access.find((rule) => rule.participantKey === 'employee')?.mode).toBe('WRITE_OPTIONAL')
+  })
+
   it('persists edited typed steps, responsibility, and recovery routes for a later studio reopen', async () => {
     const definition = createTrainingRequestExampleDraft({
       key: 'training-request',

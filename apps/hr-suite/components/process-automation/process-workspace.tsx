@@ -17,8 +17,10 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
 import type { Locale } from '@/lib/i18n/config'
+import type { StartableProcess } from '@/lib/process-automation/start-catalog-service'
 import { getProcessWorkItemHref } from '@/lib/process-automation/work-routing'
 import type { ProcessWorkBusinessCategory, ProcessWorkBusinessType, ProcessWorkFilterOptions, ProcessWorkItem, ProcessWorkList, ProcessWorkSort, ProcessWorkTab, ProcessWorkTabCounts, ProcessWorkView } from '@/lib/process-automation/work-service'
+import { ProcessStartCatalog } from './process-start-catalog'
 
 export interface ProcessWorkspaceLabels {
   workspaceTitle: string
@@ -103,6 +105,23 @@ export interface ProcessWorkspaceLabels {
   startInternalTransfer: string
   startDocumentAcknowledgement: string
   startLeaveRequest: string
+  nextResponsible: string
+  responsibleYou: string
+  responsibleManager: string
+  responsibleHr: string
+  newRequestTitle: string
+  newRequestDescription: string
+  processSteps: string
+  processRoutes: string
+  processResponsible: string
+  processStartStep: string
+  processStart: string
+  processStarting: string
+  processCatalogEmpty: string
+  processCatalogLoadError: string
+  processStartFailed: string
+  processStartDenied: string
+  processStartUnavailable: string
 }
 
 interface ProcessWorkspaceProps {
@@ -110,6 +129,8 @@ interface ProcessWorkspaceProps {
   readonly labels: ProcessWorkspaceLabels
   readonly data: ProcessWorkList | null
   readonly options: ProcessWorkFilterOptions
+  readonly startableProcesses: readonly StartableProcess[]
+  readonly processCatalogError?: boolean
   readonly tabCounts: ProcessWorkTabCounts | null
   readonly view: ProcessWorkView
   readonly tab: ProcessWorkTab
@@ -182,6 +203,20 @@ function assignmentText(item: ProcessWorkItem, labels: ProcessWorkspaceLabels): 
   return `${modes[mode] ?? mode} · ${sources[source] ?? (source || labels.unknown)}`
 }
 
+function requesterRoleText(item: ProcessWorkItem, labels: ProcessWorkspaceLabels): string {
+  const participant = item.participantKey.toLowerCase().replaceAll('_', '-')
+  const roleCode = (item.assignmentExplanation.roleCode ?? '').toUpperCase().replaceAll('-', '_')
+  if (participant === 'employee' || participant === 'initiator') return labels.responsibleYou
+  if (participant.includes('manager') || roleCode === 'DIRECT_MANAGER' || roleCode.endsWith('_MANAGER')) return labels.responsibleManager
+  if (participant.includes('hr') || roleCode.includes('HR')) return labels.responsibleHr
+  return labels.nextResponsible
+}
+
+function workItemHref(item: ProcessWorkItem, view: ProcessWorkView): string {
+  const href = getProcessWorkItemHref(item.businessType, item.workItemId)
+  return view === 'REQUESTS' && !href.includes('?') ? `${href}?view=REQUESTS` : href
+}
+
 function effectiveStatus(item: ProcessWorkItem): string {
   return item.businessStatus
 }
@@ -199,30 +234,39 @@ function statusTone(status: string, overdue: boolean): BadgeTone {
   return 'neutral'
 }
 
-function StatusBadge({ item, labels }: { item: ProcessWorkItem; labels: ProcessWorkspaceLabels }) {
+function StatusBadge({ item, labels, view }: { item: ProcessWorkItem; labels: ProcessWorkspaceLabels; view: ProcessWorkView }) {
   const currentStatus = effectiveStatus(item)
-  return <Badge tone={statusTone(currentStatus, item.isOverdue)}>{item.isOverdue ? labels.overdue : workStatusLabel(currentStatus, labels)}</Badge>
+  const requesterStatus = currentStatus === 'COMPLETED' || item.instanceStatus === 'COMPLETED'
+    ? labels.statusCompleted
+    : currentStatus === 'REJECTED' || item.instanceStatus === 'REJECTED'
+      ? labels.statusRejected
+      : currentStatus === 'CHANGES_REQUESTED'
+        ? labels.statusChangesRequested
+        : currentStatus === 'WAITING'
+          ? labels.statusWaiting
+          : labels.statusInProgress
+  return <Badge tone={statusTone(currentStatus, item.isOverdue)}>{item.isOverdue ? labels.overdue : view === 'REQUESTS' ? requesterStatus : workStatusLabel(currentStatus, labels)}</Badge>
 }
 
-function WorkItemCard({ item, locale, labels }: { item: ProcessWorkItem; locale: Locale; labels: ProcessWorkspaceLabels }) {
+function WorkItemCard({ item, locale, labels, view }: { item: ProcessWorkItem; locale: Locale; labels: ProcessWorkspaceLabels; view: ProcessWorkView }) {
   return (
     <Surface className="p-4">
       <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{labels.businessType}: {labels[businessTypeLabels[item.businessType]]}</p><h2 className="mt-1 truncate text-base font-semibold text-foreground">{item.processTitle}</h2></div>
-        <StatusBadge item={item} labels={labels} />
+        <div className="min-w-0">{view === 'REQUESTS' ? null : <p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{labels.businessType}: {labels[businessTypeLabels[item.businessType]]}</p>}<h2 className="mt-1 truncate text-base font-semibold text-foreground">{item.processTitle}</h2></div>
+        <StatusBadge item={item} labels={labels} view={view} />
       </div>
       <dl className="mt-4 grid gap-3 text-sm">
         <div><dt className="text-xs text-muted-foreground">{labels.subject}</dt><dd className="font-medium">{item.subjectName ?? labels.unknown}</dd></div>
         <div><dt className="text-xs text-muted-foreground">{labels.step}</dt><dd>{item.stepTitle}</dd></div>
-        <div><dt className="text-xs text-muted-foreground">{labels.assignment}</dt><dd>{assignmentText(item, labels)}</dd></div>
+        <div><dt className="text-xs text-muted-foreground">{view === 'REQUESTS' ? labels.assignmentRole : labels.assignment}</dt><dd>{view === 'REQUESTS' ? requesterRoleText(item, labels) : assignmentText(item, labels)}</dd></div>
         <div><dt className="text-xs text-muted-foreground">{labels.deadline}</dt><dd className={item.isOverdue ? 'font-semibold text-destructive' : undefined}>{formatDate(item.deadlineAt, locale)}</dd></div>
       </dl>
-      <Link className={`${buttonClasses({ size: 'sm' })} mt-5`} href={getProcessWorkItemHref(item.businessType, item.workItemId)}>{labels.open}</Link>
+      <Link className={`${buttonClasses({ size: 'sm' })} mt-5`} href={workItemHref(item, view)}>{labels.open}</Link>
     </Surface>
   )
 }
 
-export function ProcessWorkWorkspace({ locale, labels, data, options, tabCounts, view, tab, page, pageSize, search, status, businessType, businessCategory, processDefinitionId, administrationId, sort, canStartLeaveRequest, canStartInternalTransfer, canStartDocumentAcknowledgement, errorCode }: ProcessWorkspaceProps) {
+export function ProcessWorkWorkspace({ locale, labels, data, options, startableProcesses, processCatalogError, tabCounts, view, tab, page, pageSize, search, status, businessType, businessCategory, processDefinitionId, administrationId, sort, canStartLeaveRequest, canStartInternalTransfer, canStartDocumentAcknowledgement, errorCode }: ProcessWorkspaceProps) {
   const router = useRouter()
   const errorMessage = errorCode === 'FORBIDDEN' ? labels.denied : labels.readError
   const today = new Date().toISOString().slice(0, 10)
@@ -245,6 +289,8 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, tabCounts,
         <Link className={tabLinkClasses({ active: view === 'WORK' })} href={`/work${buildQuery({ ...queryState, view: 'WORK', tab: 'TODO', page: 1 })}`}>{labels.myWork}</Link>
         <Link className={tabLinkClasses({ active: view === 'REQUESTS' })} href={`/work${buildQuery({ ...queryState, view: 'REQUESTS', tab: 'ALL', page: 1 })}`}>{labels.myRequests}</Link>
       </div>
+
+      {view === 'REQUESTS' ? <ProcessStartCatalog locale={locale} labels={{ title: labels.newRequestTitle, description: labels.newRequestDescription, steps: labels.processSteps, routes: labels.processRoutes, responsible: labels.processResponsible, startStep: labels.processStartStep, start: labels.processStart, starting: labels.processStarting, empty: labels.processCatalogEmpty, loadError: labels.processCatalogLoadError, startFailed: labels.processStartFailed, startDenied: labels.processStartDenied, startUnavailable: labels.processStartUnavailable }} processes={startableProcesses} loadError={processCatalogError} /> : null}
 
       {view === 'WORK' ? <ScrollableTabs ariaLabel={labels.workspaceTitle} className="mt-4" contentProps={{ role: 'tablist' }} leftLabel={labels.previous} rightLabel={labels.next}>
         {tabs.map((candidate) => <Link key={candidate} aria-current={candidate === tab ? 'page' : undefined} className={tabLinkClasses({ active: candidate === tab })} href={`/work${buildQuery({ ...queryState, tab: candidate })}`}>{tabLabel(candidate, labels)}{tabCounts ? <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-xs tabular-nums">{tabCounts[candidate]}</span> : null}</Link>)}
@@ -271,10 +317,10 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, tabCounts,
         <div className="mt-6 hidden md:block">
           <DataTableShell caption={labels.workspaceTitle}>
             <thead className="bg-surface-subtle text-xs uppercase tracking-[.1em] text-muted-foreground"><tr>{[labels.columnsProcess, labels.subject, labels.step, labels.assignment, labels.status, labels.deadline, labels.actions].map((heading, index) => <th className="px-4 py-3 font-semibold" key={`${heading}-${index}`}>{index === 6 ? <span className="sr-only">{heading}</span> : heading}</th>)}</tr></thead>
-            <tbody className="divide-y divide-border">{data.items.map((item) => <tr className="transition-colors hover:bg-muted/30" key={item.workItemId}><td className="px-4 py-4"><Link className="font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={getProcessWorkItemHref(item.businessType, item.workItemId)}>{item.processTitle}</Link><p className="mt-1 text-xs text-muted-foreground">{labels[businessTypeLabels[item.businessType]]} · {item.processKey}</p></td><td className="px-4 py-4">{item.subjectName ?? labels.unknown}</td><td className="px-4 py-4">{item.stepTitle}</td><td className="px-4 py-4 text-xs">{assignmentText(item, labels)}</td><td className="px-4 py-4"><StatusBadge item={item} labels={labels} /></td><td className={`px-4 py-4 ${item.isOverdue ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>{formatDate(item.deadlineAt, locale)}</td><td className="px-4 py-4 text-right"><Link className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'text-primary' })} href={getProcessWorkItemHref(item.businessType, item.workItemId)}>{labels.open}</Link></td></tr>)}</tbody>
+            <tbody className="divide-y divide-border">{data.items.map((item) => <tr className="transition-colors hover:bg-muted/30" key={item.workItemId}><td className="px-4 py-4"><Link className="font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={workItemHref(item, view)}>{item.processTitle}</Link>{view === 'REQUESTS' ? null : <p className="mt-1 text-xs text-muted-foreground">{labels[businessTypeLabels[item.businessType]]} · {item.processKey}</p>}</td><td className="px-4 py-4">{item.subjectName ?? labels.unknown}</td><td className="px-4 py-4">{item.stepTitle}</td><td className="px-4 py-4 text-xs">{view === 'REQUESTS' ? requesterRoleText(item, labels) : assignmentText(item, labels)}</td><td className="px-4 py-4"><StatusBadge item={item} labels={labels} view={view} /></td><td className={`px-4 py-4 ${item.isOverdue ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>{formatDate(item.deadlineAt, locale)}</td><td className="px-4 py-4 text-right"><Link className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'text-primary' })} href={workItemHref(item, view)}>{labels.open}</Link></td></tr>)}</tbody>
           </DataTableShell>
         </div>
-        <div className="mt-6 grid gap-4 md:hidden">{data.items.map((item) => <WorkItemCard key={item.workItemId} item={item} locale={locale} labels={labels} />)}</div>
+        <div className="mt-6 grid gap-4 md:hidden">{data.items.map((item) => <WorkItemCard key={item.workItemId} item={item} locale={locale} labels={labels} view={view} />)}</div>
         <CollectionPagination className="mt-6" resultRange={labels.resultsCount.replace('{from}', String(resultFrom)).replace('{to}', String(resultTo)).replace('{count}', String(data.total))} pageSize={totalPages > 1 ? labels.pageOf.replace('{page}', String(page)).replace('{pages}', String(totalPages)) : undefined} pagination={totalPages > 1 ? { ariaLabel: labels.workspaceTitle, currentPage: page, totalPages, onPageChange: (nextPage) => router.push(`/work${buildQuery({ ...queryState, page: nextPage })}`), previousLabel: labels.previous, nextLabel: labels.next } : undefined} />
       </> : null}
       {data && data.items.length > 0 ? <div aria-live="polite" className="sr-only">{overdueCount ? `${overdueCount} ${labels.overdue}` : ''}{dueTodayCount ? ` ${dueTodayCount} ${labels.dueToday}` : ''}</div> : null}

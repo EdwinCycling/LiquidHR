@@ -3,6 +3,7 @@ import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getDocumentAcknowledgementStartData } from '@/lib/process-automation/document-acknowledgement-service'
 import { getInternalTransferStartData } from '@/lib/process-automation/internal-transfer-start-service'
+import { listStartableProcesses, type StartableProcess } from '@/lib/process-automation/start-catalog-service'
 import { listProcessWork, listProcessWorkFilterOptions, listProcessWorkTabCounts, type ProcessWorkBusinessCategory, type ProcessWorkBusinessType, type ProcessWorkSort, type ProcessWorkTab, type ProcessWorkView, ProcessWorkError } from '@/lib/process-automation/work-service'
 
 interface WorkPageProps {
@@ -139,6 +140,23 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
     startInternalTransfer: t('p9.startTitle'),
     startDocumentAcknowledgement: t('p10.startTitle'),
     startLeaveRequest: t('startLeaveRequest'),
+    nextResponsible: t('requesterResponsible'),
+    responsibleYou: t('requesterYou'),
+    responsibleManager: t('requesterManager'),
+    responsibleHr: t('requesterHr'),
+    newRequestTitle: t('newRequest.title'),
+    newRequestDescription: t('newRequest.description'),
+    processSteps: t('newRequest.steps'),
+    processRoutes: t('newRequest.routes'),
+    processResponsible: t('newRequest.responsible'),
+    processStartStep: t('newRequest.startStep'),
+    processStart: t('newRequest.start'),
+    processStarting: t('newRequest.starting'),
+    processCatalogEmpty: t('newRequest.empty'),
+    processCatalogLoadError: t('newRequest.loadError'),
+    processStartFailed: t('newRequest.startFailed'),
+    processStartDenied: t('newRequest.startDenied'),
+    processStartUnavailable: t('newRequest.startUnavailable'),
   }
 
   let data = null
@@ -168,5 +186,14 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
   const canStartInternalTransfer = await getInternalTransferStartData().then(() => true).catch(() => false)
   const canStartDocumentAcknowledgement = await getDocumentAcknowledgementStartData().then(() => true).catch(() => false)
   const canStartLeaveRequest = Boolean(requestContext.context.employeeId && requestContext.context.permissions.includes('self:leave:request'))
-  return <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
+  let startableProcesses: readonly StartableProcess[] = []
+  let processCatalogError = false
+  if (currentView === 'REQUESTS' && requestContext.context.employeeId) {
+    try {
+      startableProcesses = await listStartableProcesses(workDependencies)
+    } catch {
+      processCatalogError = true
+    }
+  }
+  return <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} startableProcesses={startableProcesses} processCatalogError={processCatalogError} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
 }

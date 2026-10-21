@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { ProcessWorkItem, ProcessWorkList, ProcessWorkTabCounts } from '@/lib/process-automation/work-service'
+import type { StartableProcess } from '@/lib/process-automation/start-catalog-service'
 import { ProcessWorkWorkspace, type ProcessWorkspaceLabels } from './process-workspace'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
@@ -10,7 +11,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 const labels = new Proxy({} as ProcessWorkspaceLabels, {
   get: (_target, property: string | symbol) => ({
     workspaceTitle: 'Werk', workspaceDescription: 'Proceswerk in één overzicht.', tabsTodo: 'Te doen', tabsClaimed: 'Geclaimd', tabsWaiting: 'Wacht op anderen', tabsCompleted: 'Afgerond', tabsAll: 'Alles', searchPlaceholder: 'Zoek werk', statusFilter: 'Status', processFilter: 'Proces', administrationFilter: 'Administratie', applyFilters: 'Toepassen', statusAll: 'Alle statussen', statusOpen: 'Open', statusClaimed: 'Geclaimd', statusBlocked: 'Geblokkeerd', statusCompleted: 'Afgerond', statusCancelled: 'Geannuleerd', statusExpired: 'Verlopen', sort: 'Sorteren', sortNeedsAction: 'Actie nodig', sortDeadline: 'Deadline', columnsProcess: 'Proces', subject: 'Onderwerp', step: 'Stap', assignment: 'Toewijzing', status: 'Status', deadline: 'Deadline', actions: 'Acties', assignmentMode: 'Modus', assignmentSource: 'Bron', assignmentDate: 'Bepaald op', assignmentRole: 'Rol', assignmentAnyOne: 'Eén van de kandidaten', assignmentQueue: 'Werkqueue', assignmentDirect: 'Direct', assignmentScope: 'Scope', assignmentProcess: 'Proces', unknown: 'Onbekend', noItems: 'Geen werk', noItemsDescription: 'Pas je filters aan.', loading: 'Laden…', readError: 'Laden mislukt', denied: 'Geen toegang', blocked: 'Geblokkeerd', overdue: 'Over tijd', dueToday: 'Vandaag', availableAt: 'Beschikbaar', claimedBy: 'Geclaimd door', unassigned: 'Niet toegewezen', open: 'Openen', totalItems: 'werkitems', allProcesses: 'Alle processen', allAdministrations: 'Alle administraties', resultsCount: '{from}–{to} van {count}', pageOf: 'Pagina {page} van {pages}', previous: 'Vorige', next: 'Volgende', startInternalTransfer: 'Interne overplaatsing starten', startDocumentAcknowledgement: 'Documentkennisname starten',
-    myWork: 'Mijn werk', myRequests: 'Mijn aanvragen', statusWaiting: 'Wacht op manager', statusInProgress: 'In behandeling', statusChangesRequested: 'Wijziging gevraagd', statusRejected: 'Afgewezen', businessTypeFilter: 'Type', businessCategoryFilter: 'Categorie', businessType: 'Type', businessCategory: 'Categorie', allBusinessTypes: 'Alle typen', allBusinessCategories: 'Alle categorieën', businessTypePMutation: 'P-mutatie', businessTypeLeave: 'Verlof', businessTypeActualWork: 'Werkelijke uren', businessTypeOther: 'Overig', businessCategoryGeneral: 'Algemeen', businessCategoryInternalTransfer: 'Interne overplaatsing', businessCategoryDocumentAcknowledgement: 'Documentkennisname', businessCategoryLeaveRequest: 'Verlofaanvraag', businessCategoryActualWorkEntry: 'Urenregistratie', startLeaveRequest: 'Verlof aanvragen',
+    myWork: 'Mijn werk', myRequests: 'Mijn aanvragen', statusWaiting: 'Wacht op manager', statusInProgress: 'In behandeling', statusChangesRequested: 'Wijziging gevraagd', statusRejected: 'Afgewezen', businessTypeFilter: 'Type', businessCategoryFilter: 'Categorie', businessType: 'Type', businessCategory: 'Categorie', allBusinessTypes: 'Alle typen', allBusinessCategories: 'Alle categorieën', businessTypePMutation: 'P-mutatie', businessTypeLeave: 'Verlof', businessTypeActualWork: 'Werkelijke uren', businessTypeOther: 'Overig', businessCategoryGeneral: 'Algemeen', businessCategoryInternalTransfer: 'Interne overplaatsing', businessCategoryDocumentAcknowledgement: 'Documentkennisname', businessCategoryLeaveRequest: 'Verlofaanvraag', businessCategoryActualWorkEntry: 'Urenregistratie', startLeaveRequest: 'Verlof aanvragen', nextResponsible: 'Volgende verantwoordelijke', responsibleYou: 'Jij', responsibleManager: 'Manager', responsibleHr: 'HR', newRequestTitle: 'Nieuwe aanvraag', newRequestDescription: 'Kies een proces.', processSteps: 'Verwachte stappen', processRoutes: 'Vervolgroutes', processResponsible: 'Verantwoordelijke', processStartStep: 'Eerste stap', processStart: 'Aanvraag starten', processStarting: 'Starten…', processCatalogEmpty: 'Geen processen beschikbaar.', processCatalogLoadError: 'Laden mislukt.', processStartFailed: 'Starten mislukt.', processStartDenied: 'Geen toegang.', processStartUnavailable: 'Niet beschikbaar.',
   }[String(property)] ?? String(property)),
 })
 
@@ -19,9 +20,19 @@ const item: ProcessWorkItem = {
 }
 
 const counts: ProcessWorkTabCounts = { TODO: 7, CLAIMED: 1, WAITING: 2, COMPLETED: 2, ALL: 12 }
+const startableProcess: StartableProcess = {
+  processDefinitionId: '00000000-0000-4000-8000-000000000009',
+  title: { nl: 'Opleidingsaanvraag', en: 'Training request' },
+  description: { nl: 'Vraag een opleiding aan.', en: 'Request training.' },
+  steps: [
+    { title: { nl: 'Opleiding aanvragen', en: 'Request training' }, responsibleRole: { nl: 'Medewerker', en: 'Employee' }, isStart: true },
+    { title: { nl: 'Manager beoordeelt', en: 'Manager reviews' }, responsibleRole: { nl: 'Manager', en: 'Manager' }, isStart: false },
+  ],
+  routes: [{ fromTitle: { nl: 'Manager beoordeelt', en: 'Manager reviews' }, label: { nl: 'Wijzigingen vragen', en: 'Request changes' }, toTitle: { nl: 'Medewerker aanpassen', en: 'Employee updates' } }],
+}
 
-function renderWorkspace(data: ProcessWorkList, page = 1): string {
-  return renderToStaticMarkup(createElement(ProcessWorkWorkspace, { locale: 'nl', labels, data, options: { processes: [{ id: item.processDefinitionId, key: item.processKey, title: item.processTitle }], administrations: [{ id: '00000000-0000-4000-8000-000000000006', code: 'NL', name: 'Nederland' }] }, tabCounts: counts, view: 'WORK', tab: 'TODO', page, pageSize: 1, search: '', status: '', businessType: '', businessCategory: '', processDefinitionId: '', administrationId: '', sort: 'NEEDS_ACTION', canStartLeaveRequest: true, canStartInternalTransfer: true, canStartDocumentAcknowledgement: true }))
+function renderWorkspace(data: ProcessWorkList, page = 1, view: 'WORK' | 'REQUESTS' = 'WORK'): string {
+  return renderToStaticMarkup(createElement(ProcessWorkWorkspace, { locale: 'nl', labels, data, options: { processes: [{ id: item.processDefinitionId, key: item.processKey, title: item.processTitle }], administrations: [{ id: '00000000-0000-4000-8000-000000000006', code: 'NL', name: 'Nederland' }] }, startableProcesses: [startableProcess], tabCounts: counts, view, tab: view === 'REQUESTS' ? 'ALL' : 'TODO', page, pageSize: 1, search: '', status: '', businessType: '', businessCategory: '', processDefinitionId: '', administrationId: '', sort: 'NEEDS_ACTION', canStartLeaveRequest: true, canStartInternalTransfer: true, canStartDocumentAcknowledgement: true }))
 }
 
 describe('ProcessWorkWorkspace', () => {
@@ -35,6 +46,20 @@ describe('ProcessWorkWorkspace', () => {
     expect(markup).toContain('href="/work/00000000-0000-4000-8000-000000000001"')
     expect(markup).toContain('Pagina 1 van 2')
     expect(markup).not.toContain('shadow-sm')
+  })
+
+  it('places a permission-filtered new request catalog inside My Requests without exposing process keys', () => {
+    const markup = renderWorkspace({ items: [item], total: 1, hasMore: false }, 1, 'REQUESTS')
+
+    expect(markup).toContain('Nieuwe aanvraag')
+    expect(markup).toContain('Opleidingsaanvraag')
+    expect(markup).toContain('Manager beoordeelt')
+    expect(markup).toContain('Wijzigingen vragen')
+    expect(markup).toContain('href="/work/00000000-0000-4000-8000-000000000001?view=REQUESTS"')
+    expect(markup).toContain('Documentkennisname starten')
+    expect(markup).toContain('href="/work/new/document-acknowledgement"')
+    expect(markup).not.toContain('>P10<')
+    expect(markup).not.toContain('· P10')
   })
 
   it('renders an explicit no-results state', () => {
