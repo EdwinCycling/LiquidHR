@@ -54,8 +54,8 @@ describe('Employee 360 dashboard Foundation contract', () => {
       capabilities: { canEditEmployee: false, canReadBsn: false, canWriteBsn: false, canManageAddresses: false, canManageRelations: false, canManageBankAccounts: false, canReadSalary: false },
     }
     const layout: EmployeeDashboardLayout = {
-      wide: ['personal', 'contracts', 'budgets'],
-      narrow: ['employment', 'workflows', 'assets', 'vehicles', 'software', 'education'],
+      wide: ['personal', 'contracts'],
+      narrow: ['employment', 'workflows'],
     }
     const markup = renderToStaticMarkup(createElement(EmployeeDashboard, {
       activity: [], aiActionsLabels: {} as never, canManageEmployments: false, canReadProcesses: true, canStartProcess: false,
@@ -73,7 +73,7 @@ describe('Employee 360 dashboard Foundation contract', () => {
     expect(markup).toContain('Workflows')
     expect(markup).toContain('Dienstverbanden')
     expect(markup).toContain('Open processen')
-    expect(markup).toContain('Opleidingen')
+    expect(markup).not.toContain('Opleidingen')
     expect(markup).toContain('sm:!flex-col sm:!items-stretch')
     expect(markup).not.toContain('Budgetten')
     expect(markup).not.toContain('Activa')
@@ -157,14 +157,14 @@ describe('Employee 360 dashboard Foundation contract', () => {
     expect(markup).not.toContain('shadow-sm')
   })
 
-  it('preserves temporarily hidden widget positions when visible cards are reordered', async () => {
+  it('preserves valid non-rendered widget positions when visible cards are reordered', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
     const host = document.createElement('div')
     document.body.append(host)
     const root = createRoot(host)
     act(() => root.render(createElement(EmployeeDashboardLayoutView, {
-      initialLayout: { wide: ['personal', 'budgets', 'customFields'], narrow: ['employment', 'assets', 'workflows'] },
+      initialLayout: { wide: ['personal', 'activity', 'customFields'], narrow: ['employment', 'documents', 'workflows'] },
       labels: { moveUp: 'Omhoog', moveDown: 'Omlaag', drag: 'Verslepen', saving: 'Opslaan…', saved: 'Opgeslagen', failed: 'Mislukt' },
       wide: [{ id: 'personal', node: createElement('div', null, 'Personal') }, { id: 'customFields', node: createElement('div', null, 'Custom fields') }],
       narrow: [{ id: 'employment', node: createElement('div', null, 'Employment') }, { id: 'workflows', node: createElement('div', null, 'Workflows') }],
@@ -176,8 +176,8 @@ describe('Employee 360 dashboard Foundation contract', () => {
     })
 
     const savedLayout = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string) as EmployeeDashboardLayout
-    expect(savedLayout.wide).toEqual(['customFields', 'budgets', 'personal'])
-    expect(savedLayout.narrow).toEqual(['employment', 'assets', 'workflows'])
+    expect(savedLayout.wide).toEqual(['customFields', 'activity', 'personal'])
+    expect(savedLayout.narrow).toEqual(['employment', 'documents', 'workflows'])
     root.unmount()
     host.remove()
     vi.unstubAllGlobals()

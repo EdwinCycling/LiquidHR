@@ -268,7 +268,7 @@ export function TalentWorkforceOverview({ canTeam, canCompare, canManage, initia
 
     {activeArea === 'skills' ? <div aria-labelledby="talent-workforce-tab-skills" className="mt-5 min-w-0" id="talent-workforce-panel-skills" role="tabpanel" tabIndex={0}>
       {canManage ? <div className="mb-4 flex justify-end"><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent">{labels.manageSkills}</Link></div> : null}
-      {recordState === 'loading' || recordState === 'idle' ? <EmptyState description={labels.profileLabels.loadingProfiles} title={labels.profileLabels.loadingProfiles} /> : <TalentEmployeeCapabilityRecords initial={records} labels={labels.recordLabels} mode="manager" state={recordState === 'error' ? 'error' : 'ready'} />}
+      {recordState === 'idle' ? <EmptyState description={labels.profileLabels.loadingProfiles} title={labels.profileLabels.loadingProfiles} /> : <TalentEmployeeCapabilityRecords initial={records} labels={labels.recordLabels} mode="manager" state={recordState === 'error' ? 'error' : 'ready'} />}
     </div> : null}
 
     {activeArea === 'develop' && canCompare ? <div aria-labelledby="talent-workforce-tab-develop" className="mt-5 min-w-0" id="talent-workforce-panel-develop" role="tabpanel" tabIndex={0}>
