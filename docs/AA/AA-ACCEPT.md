@@ -145,6 +145,10 @@ Detailbewijs is vooralsnog **alleen lokaal** op de Payroll worktree:
 `docs/payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md`.
 Voeg pas een GitHub-acceptancelink toe nadat de Payroll branch daadwerkelijk is gepusht/geïntegreerd.
 
+## PMUX-04 TEST-acceptatie — gedeeltelijk, niet geaccepteerd
+
+De run van 21-10-2026 in de geïsoleerde PMUX-worktree is **HOLD**: de geautoriseerde catalogusmigratie is toegepast op TEST (remote versie 20261021182957), maar de aanvullende historie-RPC bleef unapplied. De echte autorisatieproeven waren niet compleet; de bestaande switcher had geen Manager- of HR-verwerkerpersona. Er is geen Opleidingsaanvraag gepubliceerd of gestart en geen screenshotcapturing gedaan. Dit is geen volledige TEST-, visuele of main-acceptatie. Zie [acceptatierapport](../quality/acceptance/runs/PMUX-04-20261021-TEST-ACCEPTANCE.md) en [screenshot review-index](../quality/acceptance/runs/PMUX-04-20261021-TEST-ACCEPTANCE/REVIEW-INDEX.md). De producteigenaarbeoordeling blijft OPEN.
+
 ## Acceptance bron
 
 Voor volledige evidence:
