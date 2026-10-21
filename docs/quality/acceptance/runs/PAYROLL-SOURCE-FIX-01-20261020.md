@@ -80,3 +80,34 @@ De gerichte CAO-BENCH02-, CAO_SCALE-, PFZW- en werkgeversconfiguratievalidatiete
 ### Aparte Mercurius-selectorbevinding
 
 De administratiekeuze in dezelfde geauthenticeerde context bevat Jupiter en Mars, maar geen Mercurius. Er is geen selector- of scopewijziging gedaan. Een bevoegde tenantbeheerder moet de canonieke Mercurius-record controleren op actieve status, tenant/HR-groep en bestaande actor-grant. Dit blokkeert Frits in Jupiter niet.
+
+## PAYROLL-FRITS-ACCEPTANCE-01 (2026-10-20)
+
+**Status: PARTIAL.** Jupiter werkgeversconfiguratieversie 5 is via de normale HR Admin-UI actief en teruggelezen. De bestaande Kinderopvang CAO_SCALE-salarisregel is behouden. Geen Frits-novemberrun is gemaakt. De normale openingsbalansworkflow weigerde de nieuwe invoer wegens een bestaande loonrun vóór de openingsdatum; de getypeerde PFZW-opvolger blijft afhankelijk van afzonderlijke toestemming voor de Core TEST-migratie. Er is niets gefinaliseerd, betaald, aangegeven, gemerged of gedeployed.
+
+### Werkgeversconfiguratie — opgeslagen en actief
+
+- Geauthenticeerde lokale HR Admin-context: Maya, administratie Jupiter BV, op `http://127.0.0.1:3010/payroll/settings`.
+- Configuratieversie **5**, status **Actief**, geldig 2026-01-01 t/m 2026-12-31; hashprefix `25049ea23eb6…`. Het formulier en de versietabel tonen dezelfde inhoud.
+- Expliciet synthetisch testprofiel: sectorcode 35; fictieve premieloonsom 2024 €950.000 (klein); AWf hoog 7,74%; Aof klein 6,27%; Wko 0,50%; Zvw-werkgeversheffing 6,10%; illustratief Whk-profiel 1,52% met referentie `ACCEPTANCE-WHK-JUPITER-2026-A` (geen afgegeven beschikking); vakantiegeld 8%; eindejaarsuitkering van toepassing, 8%; pensioen-deelmaandkeuze `CALENDAR_DAYS_PRO_RATA` als expliciete testwerkgeverskeuze.
+- Bestaande componentenset behouden: `NL-PAYROLL-2026:2026.1+PAYRUN01-CUSTOMER_STANDARD-2026.2+PARTIAL-PERIODS-2026.1+PAYFULL02-CUSTOMER_STANDARD-NET-EMPLOYER-2026.3`.
+- De wettelijke 2026 percentages voor AWf/Aof/Wko, werkgeversgrootte en de Belastingdienst-maandtabel zijn ontleend aan de [officiële cijferbijlage 2026](https://odb.belastingdienst.nl/wp-content/uploads/2025/12/Cijferbijlage-2026-bij-Nieuwsbrief-LH-LH-209-1B61FD_TG.pdf). De Whk, sector, grootte en maandmethode zijn uitsluitend fictieve acceptatiekeuzes en bewijzen geen Jupiter-werkgeversfeit.
+
+### Openingscumulatieven — normale UI weigert opslag
+
+- Frits' ongeldige openingsversies **v309** (2026-08-31) en **v310** (2026-09-30) zijn ongewijzigd. De normale HR Admin-invoer is één keer geprobeerd met een transparant synthetische septemberbaseline als openingsdatum 2026-10-01; de UI gaf `PAYROLL_OPENING_BALANCE_EXISTING_RUN_CONFLICT` / `OPENING_EXISTING_PAYROLL_RUN_CONFLICT`. Er is geen v311 aangemaakt. De guard constateert een bestaande eerdere loonrun; deze controle is niet omzeild.
+- De kandidaatbaseline was uitsluitend bedoeld als synthetische testinvoer, niet als bewijs van betaling of als nagebootste FINALIZED-run: bruto €3.044,44; fiscaal/SV/Zvw-loon €2.763,83; loonheffing €292,75; vakantiegeld- en eindejaarsreserve elk €243,56. Onderbouwing: eerder vastgelegde 32/36- en €3.425,00-salarisbasis, PFZW-synthetische preview en de officiële witte maandtabel 2026 (rij tabelloon €2.763,00 → €292,75 bij loonheffingskorting). De actuele officiële tabel ondersteunt de belastingrij: [Belastingdienst witte maandtabel 2026](https://download.belastingdienst.nl/belastingdienst/dl/rekenhulpen/loonheffing/2026/v01/pdf/wit_mnd_nl_std_20260101.pdf). De kandidaat is niet opgeslagen en is geen actueel openingssaldo.
+- De Payroll-runlijst bevat bestaande Frits-runs voor september/oktober; onder meer oktober-run `338ef391-fbf6-435a-a4d7-e28a8024ebc2` is historisch als FINALIZED vastgelegd en blijft ongemoeid. De UI-detailroute voor die run faalde met een generieke Next.js-serverfout (digest `3027443242`). Veilige serverdiagnostiek toont `SyntheticPayrollServiceError` / `PAYROLL_INPUT_INVALID` vanuit `loadLifecycleEvidence`; daardoor zijn de bedragen/cumulatieven van die bestaande run niet via de normale detailreadback beschikbaar. Er zijn geen ruwe databasefouten of persoonsgegevens in de UI toegevoegd.
+
+### PFZW en novemberrun
+
+- De bestaande Frits-deelname, CAO→PFZW-toewijzing en historische PFZW-versie 1 blijven behouden. De worklist blokkeert op `PENSIONABLE_SALARY_DEFINITION_UNSUPPORTED`: de effectieve regeling heeft geen getypeerde `pfzw2026`-definitie.
+- Projectcontrole via Supabase: **Core TEST** is project `LiquidHR`, ref `wnpfloqpjvaacobppbpk`, regio `eu-west-3`; **Payroll Lab** is een afzonderlijk project, ref `jhgeriucbkfarxiudzfy`. Migratie `20261020201028` staat in geen van beide migratiehistorieën. De lokale migration eist `pension:manage` en behoudt actor-, HR-groep-, administratie-/tenant-scope en audit. Zij is niet toegepast; de eerder gevraagde afzonderlijke toestemming is nog niet ontvangen.
+- HR Admin Payroll-worklist toont november 2026 als OPEN en Frits geblokkeerd op `PAYROLL_OPENING_CUMULATIVE_MISSING`, `PAYROLL_OPENING_CUMULATIVE_INVALID` en `PENSIONABLE_SALARY_DEFINITION_UNSUPPORTED`, correlatie-ID `8ef79fab-10fd-4ec2-82dc-107a6284ae15`. De werkgeversbron is niet meer een blocker. Geen novemberrun is ingediend; dus geen duplicaat of resultaat-readback. De vier eerdere zondaguren zijn niet overgenomen.
+- Concreet nodig voor voortzetting: (1) gecontroleerde cumulatieven uit de bestaande voorafgaande loonruns via een werkende geautoriseerde detailreadback, of een ondersteunde geauditeerde aansluitingsworkflow die die runs meeneemt; (2) afzonderlijke toestemming voor toepassing van de migration op Core TEST zodat de normale pensioeneditor de getypeerde opvolger kan opslaan. Geen FINALIZED-mutatie, betaling of aangifte.
+
+### Lokale checks en scope
+
+- Canonieke TEST-runtime en persona-preflight slaagden toen de launcher tijdelijk naar Edwin's bestaande Windows-`LOCALAPPDATA` wees; configuratie en credentials zijn niet geopend of getoond. Bestaande Next.js Development-server van deze worktree draaide al op 3010; een tweede start op 3011 werd door de bestaande Next dev-lock geweigerd en de server is niet gestopt.
+- De actieve `payroll-setup`-codewijziging maakt werkgeversconfiguratie-activatie append-only, in lijn met de immutable tabelgrants. De bestaande DRAFT blijft behouden, de actieve opvolger wordt als nieuwe versie ingevoegd en exact gelijke actieve versies zijn idempotent. Gerichte regressietest staat in `payroll-setup-service.test.ts`.
+- De eerdere aparte Mercurius-selectorbevinding blijft staan zoals hierboven geregistreerd; geen selector, administratie- of actor-scope is gewijzigd.

@@ -35,6 +35,11 @@ export class PayrollSetupServiceError extends Error {
   }
 }
 
+type PayrollSetupServiceDependencies = {
+  readonly repository?: PayrollSetupRepository
+  readonly requireAccess?: typeof requireComponentLibraryAccess
+}
+
 export type PayrollSetupBlocker = {
   readonly code: string
   readonly field: string
@@ -142,9 +147,9 @@ export async function getPayrollSetup(
 
 export async function savePayrollEmployerConfiguration(
   draft: PayrollEmployerConfigurationDraft,
-  dependencies: { readonly repository?: PayrollSetupRepository } = {},
+  dependencies: PayrollSetupServiceDependencies = {},
 ): Promise<PayrollEmployerConfigurationVersionRow> {
-  const access = await requireComponentLibraryAccess(true)
+  const access = await (dependencies.requireAccess ?? requireComponentLibraryAccess)(true)
   const repository = dependencies.repository ?? createPayrollSetupRepository()
   const normalized = normalizePayrollEmployerConfiguration(draft)
   const blockers = payrollEmployerConfigurationBlockers(normalized)
@@ -156,25 +161,15 @@ export async function savePayrollEmployerConfiguration(
   const existing = await repository.listEmployerConfigurations(access.scope, access.administration.id)
   if (normalized.status === 'ACTIVE') {
     const configurationHash = hashPayrollEmployerConfiguration(normalized)
-    const matchingVersion = existing.find((row) => {
+    const matchingActiveVersion = existing.find((row) => {
       if (row.effective_from !== normalized.effectiveFrom || row.effective_to !== normalized.effectiveTo) return false
       const existingConfiguration = configurationFromRow(row)
-      return existingConfiguration !== null
+      return row.status === 'ACTIVE' && existingConfiguration !== null
         && hashPayrollEmployerConfiguration({ ...existingConfiguration, status: 'ACTIVE' }) === configurationHash
     })
-    if (matchingVersion?.status === 'ACTIVE') return matchingVersion
-    if (matchingVersion?.status === 'DRAFT') {
-      try {
-        return await repository.activateEmployerConfiguration(
-          access.scope,
-          access.administration.id,
-          matchingVersion.id,
-        )
-      } catch (error) {
-        if (error instanceof PayrollSetupServiceError) throw error
-        throw new PayrollSetupServiceError('PAYROLL_SETUP_UNAVAILABLE')
-      }
-    }
+    // Configuration rows are append-only: activation is a new immutable version.
+    // The Lab database intentionally grants INSERT but not UPDATE on this table.
+    if (matchingActiveVersion) return matchingActiveVersion
   }
   const nextVersion = Math.max(0, ...existing.map((row) => row.configuration_version)) + 1
   try {

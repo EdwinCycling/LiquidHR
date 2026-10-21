@@ -686,7 +686,7 @@ export interface PayrollDatabase {
       payroll_employer_configuration_versions: PayrollTable<
         PayrollEmployerConfigurationVersionRow,
         Omit<PayrollEmployerConfigurationVersionRow, 'id' | 'created_at'> & { id?: string; created_at?: string },
-        Partial<Pick<PayrollEmployerConfigurationVersionRow, 'status'>>
+        never
       >
       individual_payroll_input_references: PayrollTable<
         IndividualPayrollInputReferenceRow,

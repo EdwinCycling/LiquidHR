@@ -34,11 +34,6 @@ export interface PayrollSetupRepository {
     payrollAdministrationId: string,
     row: ConfigurationInsert,
   ): Promise<PayrollEmployerConfigurationVersionRow>
-  activateEmployerConfiguration(
-    scope: PayrollScope,
-    payrollAdministrationId: string,
-    configurationId: string,
-  ): Promise<PayrollEmployerConfigurationVersionRow>
   listOpeningCumulativeSnapshots(
     scope: PayrollScope,
     payrollAdministrationId: string,
@@ -169,29 +164,6 @@ class SupabasePayrollSetupRepository implements PayrollSetupRepository {
     const { data, error } = await this.client.from('payroll_employer_configuration_versions').insert(row).select('*').single()
     throwOnError(error, 'PAYROLL_SETUP_CONFIGURATION_CONFLICT')
     if (!data) throw new PayrollSetupRepositoryError()
-    return data
-  }
-
-  async activateEmployerConfiguration(
-    scope: PayrollScope,
-    payrollAdministrationId: string,
-    configurationId: string,
-  ): Promise<PayrollEmployerConfigurationVersionRow> {
-    const checkedScope = assertPayrollScope(scope)
-    assertUuid(payrollAdministrationId)
-    assertUuid(configurationId, 'PAYROLL_SETUP_CONFIGURATION_INVALID')
-    const { data, error } = await this.client.from('payroll_employer_configuration_versions')
-      .update({ status: 'ACTIVE' })
-      .eq('id', configurationId)
-      .eq('payroll_administration_id', payrollAdministrationId)
-      .eq('source_tenant_id', checkedScope.tenantId)
-      .eq('source_hr_group_id', checkedScope.hrGroupId)
-      .eq('source_administration_id', checkedScope.administrationId)
-      .eq('status', 'DRAFT')
-      .select('*')
-      .single()
-    throwOnError(error, 'PAYROLL_SETUP_CONFIGURATION_CONFLICT')
-    if (!data) throw new PayrollSetupRepositoryError('PAYROLL_SETUP_CONFIGURATION_CONFLICT')
     return data
   }
 
