@@ -4,6 +4,8 @@
 >
 > **Geauthenticeerde hosted smoke:** HR Admin/Jupiter, STAR-rapportgegevens, Payroll-hoofdoverzicht, Employee Journey en HeRa-paneel laden. **OPEN:** `/payroll/runs` blijft laden; ESS FINALIZED payslip met passende actor niet aangetoond; geen HeRa-prompt/Focus-host-endgate; artifact `buildId` en runtimefingerprint niet onafhankelijk uitgelezen. Geen businessdata gewijzigd.
 >
+> **PAYRUN-ROUTE-01 lokaal (21-10-2026):** codefix is vastgelegd in `f2685663`; verdict **PARTIAL** door de rode full-suite en geblokkeerde geauthenticeerde browserrunner. De bestaande Production-code is niet gewijzigd of uitgerold. Zie het [lokale acceptatierapport](../quality/acceptance/runs/PAYRUN-ROUTE-01-20261021-LOCAL.md).
+>
 > **CLEANUP:** volgens Codex 29 → **2 lokale worktrees**. Hoofdmap `C:\Users\Edwin\Documents\Apps\LiquidHR` schoon op release-`main`; beschermde `work/payroll-p0-p1` opnieuw aangemaakt, maar oorspronkelijke unieke 519-byte `apps/hr-suite/.env.local` **ONTBREEKT — CONFIG-RECOVERY-01 BLOCKED** na gerichte herstelcontrole. Alleen eigenaar of beheerder kan een originele beveiligde bron beschikbaar stellen; anders is bij daadwerkelijk runtimegebruik een **apart goedgekeurde nieuwe configuratie** nodig, nooit een stille kopie van centrale config. Gebruik die Payroll/Nmbrs-runtime niet vóór veilig herstel of geaccepteerde herconfiguratie. Bescherm herstelstashes en refs; geen verder destructieve cleanup.
 >
 > **Remote cleanup:** 10 GitHub-branches, 9 verweesde Vercel-previewaliases en 1 CLI-foutdeployment verwijderd. 11 remote branches bleven; vijf Draft PR's #28/#30/#31/#32/#33 open. AI PR's #27/#29 zijn merged/closed. Actuele runtime en vorige READY-rollback behouden.
