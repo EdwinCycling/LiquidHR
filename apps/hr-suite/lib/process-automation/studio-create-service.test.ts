@@ -21,6 +21,7 @@ vi.mock('@/lib/auth/permissions', async (importOriginal) => {
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }))
 
 import { AuthorizationError } from '@/lib/auth/permissions'
+import type { ProcessDefinitionDraft } from './definition-schemas'
 import { createStudioDefinition, getStudioDefinition, saveStudioDefinition, type StudioDefinition } from './studio-service'
 import { createTrainingRequestExampleDraft } from './studio-draft-factories'
 
@@ -110,12 +111,17 @@ describe('createStudioDefinition', () => {
     if (!recoveryRoute) throw new Error('Example recovery route was not created')
     recoveryRoute.label = { nl: 'Aanvraag aanvullen', en: 'Complete the request' }
     definition.steps[1].participantKey = 'hr-team'
+    mocks.rpc.mockResolvedValue({ data: { revision: 2 }, error: null })
+    await saveStudioDefinition('00000000-0000-4000-8000-000000000001', 1, definition)
+    const saveCall = mocks.rpc.mock.calls.find(([functionName]) => functionName === 'save_process_definition_draft')
+    if (!saveCall) throw new Error('Draft save RPC was not called')
+    const savedDefinition = (saveCall[1] as { requested_definition: ProcessDefinitionDraft }).requested_definition
 
     const definitionId = '00000000-0000-4000-8000-000000000001'
     const definitionRow = { id: definitionId } as unknown as StudioDefinition['definition']
     const responses: Record<string, { data: unknown; error: null }> = {
       process_definitions: { data: definitionRow, error: null },
-      process_definition_drafts: { data: [{ revision: 2, definition_json: definition, validation_report: { issues: [] } }], error: null },
+      process_definition_drafts: { data: [{ revision: 2, definition_json: savedDefinition, validation_report: { issues: [] } }], error: null },
       process_versions: { data: [], error: null },
     }
     type Query = {
