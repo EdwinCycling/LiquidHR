@@ -314,11 +314,17 @@ export function ProcessWorkDetailView({ detail, experience, form, outputs, opera
   })()
   const requesterStatus = detail.instanceStatus === 'COMPLETED'
     ? labels.requesterCompleted
-    : detail.instanceStatus === 'REJECTED'
+    : detail.instanceStatus === 'REJECTED' || detail.businessStatus === 'REJECTED'
       ? labels.requesterRejected
-      : detail.businessStatus === 'CHANGES_REQUESTED'
-        ? labels.requesterChangesRequested
-        : labels.requesterInProgress
+      : detail.instanceStatus === 'CANCELLED' || detail.businessStatus === 'CANCELLED' || detail.status === 'CANCELLED'
+        ? labels.statusCancelled
+        : detail.status === 'EXPIRED' || detail.businessStatus === 'EXPIRED'
+          ? labels.statusExpired
+          : detail.status === 'BLOCKED' || detail.businessStatus === 'BLOCKED'
+            ? labels.statusBlocked
+            : detail.businessStatus === 'CHANGES_REQUESTED'
+              ? labels.requesterChangesRequested
+              : labels.requesterInProgress
   const requesterNextMessage = detail.canAct
     ? labels.requesterActionNeeded
     : labels.requesterWaitingForRole.replace('{role}', requesterRole)

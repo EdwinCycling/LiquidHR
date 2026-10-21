@@ -59,6 +59,27 @@ describe('ProcessWorkDetailView', () => {
     expect(markup.match(/ui-button-primary/g)?.length).toBe(1)
   })
 
+  it.each([
+    { instanceStatus: 'CANCELLED', status: 'CANCELLED', businessStatus: 'CANCELLED', label: 'Geannuleerd' },
+    { instanceStatus: 'RUNNING', status: 'EXPIRED', businessStatus: 'EXPIRED', label: 'Verlopen' },
+    { instanceStatus: 'RUNNING', status: 'BLOCKED', businessStatus: 'BLOCKED', label: 'Geblokkeerd' },
+  ])('toont een begrijpelijke aanvraagstatus voor $status', ({ instanceStatus, status, businessStatus, label }) => {
+    const markup = renderToStaticMarkup(createElement(ProcessWorkDetailView, {
+      detail: { ...detail, instanceStatus, status, businessStatus },
+      experience,
+      form: null,
+      outputs: null,
+      operations: null,
+      locale: 'nl',
+      labels,
+      assignmentOptions: [],
+      backHref: '/work?view=REQUESTS',
+      isRequesterPresentation: true,
+    }))
+
+    expect(markup).toContain(label)
+    expect(markup).not.toContain('In behandeling')
+  })
   it('lekt onbekende engine-acties niet als zichtbare technische codes', () => {
     const markup = renderToStaticMarkup(createElement(ProcessWorkDetailView, {
       detail: { ...detail, allowedActions: ['UNRECOGNIZED_ENGINE_ACTION'] },
