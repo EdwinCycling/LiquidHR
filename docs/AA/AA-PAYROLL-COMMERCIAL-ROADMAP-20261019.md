@@ -75,7 +75,7 @@ Alle iteratieaantallen zijn **planningshypothesen** voor afgebakende Codex-waves
 
 | Wave | Focus | Verwachte omvang | Meetbaar GO-criterium |
 | --- | --- | --- | --- |
-| **D0 — Demo payslip** | Huidige FINALIZED Mars-PDF vanuit normale HR Admin openen, veilige persoonsdata, professioneel ontwerp, download/viewer en uitleg | **1–2 korte iteraties** | Toonbare fictieve loonstrook, identieke opgeslagen PDF/hash, nul interne LAB-/fixturelabels |
+| **D0 — Demo payslip (lokaal PARTIAL afgerond, 21-10)** | Bestaande FINALIZED Mars DEMO-002-PDF vanuit normale HR Admin en Employee-selfservice bekijken/downloaden | **Uitgevoerd op lokale featurebranch** | Desktop HR Admin/Employee en identieke opgeslagen bytes/hash PASS; HR Admin 390 px PASS. Employee 390 px, live Manager/foreign-tenant probes en hosted acceptance blijven OPEN. Geen commerciële GA-claim; zie [PAYDOC-D0](../quality/acceptance/runs/PAYDOC-D0-20261021-LOCAL.md). |
 | **D1 — Kinderopvang K2** | Bestaande 01-11 salarisregel met juiste CAO_SCALE/tijdlijn en PFZW, periode-consistente uren, concept-run en PDF | **2–4 gerichte iteraties** | Nieuwe opgeslagen K2-CONCEPT-run met bruto/pensioen/loonheffing/netto/werkgeverskosten, PDF/hash; geen historisch FINALIZED geraakt |
 | **D2 — Vier echte cao-cases** | Retail Mode R1/R2, K2 en Mars: contracten, bedrijven, branch/trede, premies, uitzonderingen | **circa 5–8 gerichte iteraties totaal vanaf geldige basis** | Vier reproduceerbare Core-runtraces, scopes, officiële/werkgeverbron, review & PDF; onbekende legaliteit expliciet HOLD |
 | **F0 — Code convergence** | PAYINTEGRATE, PAYQA, CAO-SETUP/PENSION/SOURCE/CORE-RESET, Core `25P02`, STAR integreren; Node/npm/Windows-runtimes en migraties | Parallel na D1 | Eén gecontroleerde integration HEAD, op juiste actieve Core gebonden; unit/type/build/security/browser + scopechecks; nog geen main/deploy |
@@ -194,7 +194,7 @@ Prijsarchitectuur pas vastleggen na kostprijs/Loonaangifte-onderhoud, pilotfeedb
 
 ## 8. Besluit: eerst tastbare output, daarna onderscheid
 
-**Directe prioriteit:** D0 visuele Emma/Noah-PDF en D1 de eerste correcte K2-CONCEPT-run met dezelfde originele Core-bronnen, geldige tijdlijn en loonstrook. Niet wachten op AI/Flightdeck voor een eerste demo; niet wachten op iedere toekomstige sector voordat een nauw afgebakende pilot kan worden ontworpen.
+**Directe prioriteit:** D0 heeft nu beperkte lokale viewer-/bytepariteit voor bestaande Mars DEMO-002-data; de resterende mobiele/browser- en scopegates staan in AA-OPEN. D1, een K2-CONCEPT-run met originele Core-bronnen, geldige tijdlijn en loonstrook, blijft een afzonderlijke toekomstige wave en is niet door D0 gestart. Niet wachten op AI/Flightdeck voor een eerste demo; commerciële en wettelijke acceptatie blijven apart.
 
 **Daarna:** D2 meerdere cao-cases, F0 codeconvergentie, P1/P2 complete looncyclus. G1/G2/G3 parallel onderzoeken zodra rekenkern/evidence betrouwbaar zijn. Alleen zo wordt de visie geloofwaardig én verkoopbaar.
 
