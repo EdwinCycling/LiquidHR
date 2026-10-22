@@ -9,12 +9,12 @@ Verdict: **GO WITH CONDITIONS — alleen lokale codeconvergentie; geen release- 
 |---|---|---|---:|
 | `work/BRANCH-SPLIT-PAYROLL-20261021` | `86386eed7dc41a8e11c8469614bb4d5706719fd9` | — | — |
 | `work/PAYD1-K2-20261022` | `0c16aab218f2490d26e297cd11d365c2f7ad84be` | Payroll HEAD | 6 na Payroll |
-| `work/BRANCH-SPLIT-PMUX-20261021` | `19656935a2f2d329f18157a9d2cd0c0fc88257d5` | `14803473c1157285b52cc234fbb6ac70860e9eb1` | 36 |
+| `work/BRANCH-SPLIT-PMUX-20261021` | `64c3e91f760d12536061e3b9e75a370ba81f4e06` | `14803473c1157285b52cc234fbb6ac70860e9eb1` | 37 |
 | `main` | `602ba2376ab453248f4d5f7121b2d35cb227b2d4` | `14803473c1157285b52cc234fbb6ac70860e9eb1` | 6 |
 
-Paargewijze verschillen vanaf de merge-base: Payroll↔D1 `0/6`; Payroll↔PMUX `11/36`; Payroll↔main `11/6`; D1↔PMUX `17/36`; D1↔main `17/6`; PMUX↔main `36/6` (links/rechts commits vooruit). Payroll HEAD is dus al ancestor van D1. De integratieworktree is aangemaakt vanaf de exacte D1-HEAD; er waren geen cherry-picks of dubbele Payroll-commits.
+Paargewijze verschillen vanaf de merge-base: Payroll↔D1 `0/6`; Payroll↔PMUX `11/37`; Payroll↔main `11/6`; D1↔PMUX `17/37`; D1↔main `17/6`; PMUX↔main `37/6` (links/rechts commits vooruit). Payroll HEAD is dus al ancestor van D1. De integratieworktree is aangemaakt vanaf de exacte D1-HEAD; er waren geen cherry-picks of dubbele Payroll-commits.
 
-Payroll- en PMUX-checkoutmappen waren niet rechtstreeks leesbaar. De refs en HEADs zijn veilig vanuit de toegankelijke D1-checkout gecontroleerd; hun lokale dirty status is daarom niet bevestigd. De oorspronkelijke D1-checkout had al één untracked readinessrapport; dat is niet naar de nieuwe worktree gekopieerd. De bestaande checkouts zijn niet door deze run bewerkt.
+Payroll- en PMUX-checkoutmappen waren niet rechtstreeks leesbaar. De refs en HEADs zijn veilig vanuit de toegankelijke D1-checkout gecontroleerd; hun lokale dirty status is daarom niet bevestigd. De PMUX-ref stond bij de eerste controle op `19656935` en schoof tijdens deze taak via de separate PMUX-commit `64c3e91` vooruit; deze run heeft die ref of worktree niet gewijzigd. De oorspronkelijke D1-checkout had al één untracked readinessrapport; dat is niet naar de nieuwe worktree gekopieerd. De bestaande checkouts zijn niet door deze run bewerkt.
 
 ## 2. Commitinventaris
 
@@ -128,7 +128,7 @@ De integratiebranch voegt één lokale codecommit toe: `0d21f02869a617fa6ba5d5bf
 
 ## 4. PMUX-conflict- en eigenaarrisico
 
-PMUX is niet opgenomen: geen PMUX-commit, code of werkboom is gewijzigd. De PMUX-HEAD `19656935` heet `cleanup(pmux): remove R7 local persona sign-in`. De branchdocumentatie meldt `PMUX-04R6` als **PARTIAL / HOLD**: 94/94 gerichte tests, ESLint en i18n PASS; TypeScript bleef OPEN na sandbox-weigering van `.tsbuildinfo`. De bestaande HR Admin-flow is getest, maar Manager/Employee-browseracties en live RLS-scope blijven OPEN. De R7-cleanup verwijderde de onvoltooide Manager/Employee-loginopties en helper/tests; de bestaande owner-only switcher bleef staan.
+PMUX is niet opgenomen: geen PMUX-commit, code of werkboom is gewijzigd. De huidige PMUX-HEAD `64c3e91` (`feat(process-studio): make conditional routes editable`) voegt op zijn eigen branch de PMUX-05A-conditional-route-editor toe: 31/31 gerichte tests, TypeScript, ESLint en i18n PASS; browser- en authenticated save/readback blijven OPEN. Dit productwerk staat los van Payroll+D1 en heeft geen overlappend productcodepad. De eerdere PMUX-04R6-status blijft **PARTIAL / HOLD**: 94/94 gerichte tests, ESLint en i18n PASS; TypeScript was op die commit OPEN na sandbox-weigering van `.tsbuildinfo`; Manager/Employee-browseracties en live RLS-scope blijven OPEN. PMUX-04R7 verwijderde de onvoltooide Manager/Employee-loginopties en helper/tests; de bestaande owner-only switcher bleef staan.
 
 De branchdeltas van D1 en PMUX overlappen op vier bestanden, allemaal documentatie: `docs/AA/AA-ACCEPT.md`, `AA-CURRENT.md`, `AA-NEXT.md` en `AA-OPEN.md`. Er is geen D1/PMUX productcodepad-overlap gevonden. `AA-CURRENT`, `AA-NEXT` en `AA-OPEN` zijn op deze integratiebranch aangevuld met expliciete scheiding en de actuele open status; PMUX-geschiedenis blijft op de PMUX-branch. `AA-ACCEPT.md` is hier niet opnieuw geschreven omdat het de accepted baseline beschrijft. Bij een latere PMUX-integratie moeten alle vier gedeelde documentbestanden handmatig worden gereconcilieerd.
 
