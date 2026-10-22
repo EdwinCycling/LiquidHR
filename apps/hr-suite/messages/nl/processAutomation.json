@@ -465,7 +465,7 @@
       "removeRoute": "Overgang verwijderen",
       "noRoutes": "Nog geen volgende stap ingesteld.",
       "noDestination": "Voeg een andere stap toe om een overgang te maken.",
-      "technicalKey": "Technische sleutel",
+      "technicalKey": "Interne referentie",
       "terminalOutcome": "Resultaat",
       "terminalOutcomes": { "COMPLETED": "Afgerond", "REJECTED": "Afgewezen", "CANCELLED": "Geannuleerd" },
       "actions": { "SUBMIT": "Indienen", "APPROVE": "Goedkeuren", "REJECT": "Afwijzen", "REQUEST_CHANGES": "Wijzigingen vragen", "ACKNOWLEDGE": "Bevestigen", "COMPLETE": "Afronden", "CANCEL": "Annuleren" },

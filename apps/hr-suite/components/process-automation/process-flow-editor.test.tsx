@@ -45,7 +45,7 @@ const labels: ProcessFlowEditorLabels = {
   noRoutes: 'Nog geen volgende stap ingesteld.',
   noDestination: 'Voeg een andere stap toe.',
   advanced: 'Geavanceerd',
-  technicalKey: 'Technische sleutel',
+  technicalKey: 'Interne referentie',
   terminalOutcome: 'Resultaat',
   terminalOutcomes: { COMPLETED: 'Afgerond', REJECTED: 'Afgewezen', CANCELLED: 'Geannuleerd' },
   terminalOutcomesNl: { COMPLETED: 'Afgerond', REJECTED: 'Afgewezen', CANCELLED: 'Geannuleerd' },

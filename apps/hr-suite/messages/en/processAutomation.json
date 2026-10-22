@@ -465,7 +465,7 @@
       "removeRoute": "Remove transition",
       "noRoutes": "No next step is set yet.",
       "noDestination": "Add another step to create a transition.",
-      "technicalKey": "Technical key",
+      "technicalKey": "Internal reference",
       "terminalOutcome": "Outcome",
       "terminalOutcomes": { "COMPLETED": "Completed", "REJECTED": "Declined", "CANCELLED": "Cancelled" },
       "actions": { "SUBMIT": "Submit", "APPROVE": "Approve", "REJECT": "Decline", "REQUEST_CHANGES": "Request changes", "ACKNOWLEDGE": "Acknowledge", "COMPLETE": "Complete", "CANCEL": "Cancel" },
