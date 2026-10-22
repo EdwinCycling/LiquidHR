@@ -58,7 +58,9 @@ function makeClient(seed: Record<string, FakeRow[]> = {}, options: { readonly in
       operation,
     }
     queryLog.push(entry)
-    const matchedRows = () => (rows[table] ?? []).filter((row) => filters.every(([column, value]) => row[column] === value))
+    const matchedRows = () => (rows[table] ?? []).filter((row) => filters.every(([column, value]) =>
+      Array.isArray(value) ? value.includes(row[column]) : row[column] === value,
+    ))
     const query = {
       select: vi.fn(() => query),
       insert: vi.fn((value: FakeRow) => {
@@ -69,6 +71,10 @@ function makeClient(seed: Record<string, FakeRow[]> = {}, options: { readonly in
       }),
       eq: vi.fn((column: string, value: unknown) => {
         filters.push([column, value])
+        return query
+      }),
+      in: vi.fn((column: string, values: readonly unknown[]) => {
+        filters.push([column, [...values]])
         return query
       }),
       order: vi.fn(() => query),
@@ -310,6 +316,54 @@ describe('PAYRUN01 scoped repository', () => {
       ['source_hr_group_id', scope.hrGroupId],
       ['source_administration_id', scope.administrationId],
     ]))
+  })
+
+  it('loads generic input references in one deduplicated, fully scoped batch', async () => {
+    const secondInputSetId = '10000000-0000-4000-8000-000000000015'
+    const inputReference = (calculationInputSetId: string, id: string) => stored({
+      ...commonColumns(),
+      calculation_input_set_id: calculationInputSetId,
+      source_employee_id: '10000000-0000-4000-8000-000000000016',
+      source_employment_id: employmentId,
+      source_income_relationship_id: '10000000-0000-4000-8000-000000000017',
+      employment_income_relationship_id: '10000000-0000-4000-8000-000000000018',
+      tax_profile_id: '10000000-0000-4000-8000-000000000019',
+      tax_profile_version: 1,
+      core_source_contract_version: 'payroll-source-v4',
+      core_validated_at: '2026-10-01T00:00:00.000Z',
+      source_version_vector: {},
+      source_hash: hash,
+      input_hash: 'b'.repeat(64),
+      input_reference_json: { sourceClassification: 'CORE_PAYROLL_SOURCE' },
+    }, id)
+    const first = inputReference(inputSetId, '30000000-0000-4000-8000-000000000021')
+    const second = inputReference(secondInputSetId, '30000000-0000-4000-8000-000000000022')
+    const fake = makeClient({ generic_payroll_input_references: [first, second] })
+    const repository = createPayrun01Repository(fake.client)
+
+    await expect(repository.listGenericInputReferences(
+      scope,
+      payrollAdministrationId,
+      [inputSetId, secondInputSetId, inputSetId],
+    )).resolves.toEqual([first, second])
+    expect(fake.queryLog).toHaveLength(1)
+    expect(fake.queryLog[0]?.filters).toEqual(expect.arrayContaining([
+      ['payroll_administration_id', payrollAdministrationId],
+      ['calculation_input_set_id', [inputSetId, secondInputSetId]],
+      ['source_tenant_id', scope.tenantId],
+      ['source_hr_group_id', scope.hrGroupId],
+      ['source_administration_id', scope.administrationId],
+    ]))
+  })
+
+  it('rejects invalid batch identifiers before querying and returns no query for an empty batch', async () => {
+    const fake = makeClient()
+    const repository = createPayrun01Repository(fake.client)
+
+    await expect(repository.listGenericInputReferences(scope, payrollAdministrationId, ['invalid']))
+      .rejects.toMatchObject({ code: 'PAYRUN01_ID_INVALID' })
+    await expect(repository.listGenericInputReferences(scope, payrollAdministrationId, [])).resolves.toEqual([])
+    expect(fake.from).not.toHaveBeenCalled()
   })
 
   it('reuses an exact persisted input reference on retry', async () => {

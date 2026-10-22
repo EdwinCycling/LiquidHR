@@ -186,8 +186,11 @@ export async function getPayrollProfessionalRunWorkspace(periodKey?: string): Pr
     limit: 200,
   })
   const lifecycle = createPayrun01Repository()
-  const visibleRuns = await filterPayrollAcceptanceScenarioRuns(runSummaries, async (inputSetId) =>
-    await lifecycle.getGenericInputReference(access.scope, access.administration.id, inputSetId))
+  const visibleRuns = await filterPayrollAcceptanceScenarioRuns(
+    runSummaries,
+    async (inputSetId) => await lifecycle.getGenericInputReference(access.scope, access.administration.id, inputSetId),
+    async (inputSetIds) => await lifecycle.listGenericInputReferences(access.scope, access.administration.id, inputSetIds),
+  )
   const runIds = [...new Set((cycle?.workItems ?? []).flatMap((item) => item.runId ? [item.runId] : []))]
   const artifactEntries = await Promise.all(runIds.map(async (runId) => [
     runId,

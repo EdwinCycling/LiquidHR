@@ -178,6 +178,20 @@ describe('assignEmploymentPensionArrangement', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
+  it('denies Employee callers before the pension assignment RPC', async () => {
+    vi.mocked(requirePermission).mockResolvedValue({
+      ...managerContext,
+      employeeId: ids.employee,
+      activeRoles: ['EMPLOYEE'],
+    })
+    const { rpc } = configureClient()
+
+    await expect(assignEmploymentPensionArrangement(assignmentInput()))
+      .rejects.toMatchObject({ code: 'PENSION_ASSIGNMENT_FORBIDDEN', status: 403 })
+
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
   it('requires both the explicit non-production flag and trusted matching app-metadata claims', async () => {
     vi.stubEnv('PENSION_TEST_FIXTURES_ENABLED', 'true')
     vi.stubEnv('LIQUIDHR_RUNTIME_ENV', 'test')

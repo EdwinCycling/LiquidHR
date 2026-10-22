@@ -33,7 +33,10 @@ import type { EmploymentOverviewChangeData } from "@/components/employment/emplo
 import {
   EmploymentDetailError,
   getEmploymentDetail,
+  getEmploymentIncomeRelationshipProjection,
+  getEmploymentPayrollSourceProjection,
 } from "@/lib/employment/employment-detail-service";
+import { getEmploymentPayrollTaxSourceProjection } from "@/lib/employment/employment-payroll-tax-profile-service";
 import { getLocale, getTranslator } from "@/lib/i18n/server";
 import { getUserPreferences } from "@/lib/preferences/server";
 import { formatDate, formatDateTime } from "@/lib/preferences/formatters";
@@ -45,6 +48,15 @@ import { listProcessWork } from "@/lib/process-automation/work-service";
 import { resolveSalaryBandAtDate, resolveSalaryScaleStepAtDate } from "@/lib/salary-application/resolution";
 import { employmentMutationTranslationKey } from "@/lib/employment/employment-mutation-labels";
 import { getIncomeRelationshipReadiness } from "@/lib/employment/income-relationship-readiness-service";
+import { getPayrollSetup } from "@/lib/payroll/payroll-setup-service";
+import {
+  assessEffectiveSourceCoverage,
+  canReviewPayrollSourceReadiness,
+  caoSalaryScheduleConflict,
+  type EffectiveSourceVersion,
+  type PayrollSourceReadinessStatus,
+} from "@/lib/payroll/source/source-readiness";
+import { PayrollSourceReadinessPanel, type PayrollSourceReadinessItem } from "@/components/employment/payroll-source-readiness-panel";
 import { markIncomeRelationshipReadyAction } from "./ikv/actions";
 import type { Translator } from "@/lib/i18n/translator";
 
@@ -84,6 +96,25 @@ function inclusiveEndFromExclusive(value: string | null): string | null {
   const date = new Date(`${value}T00:00:00.000Z`);
   date.setUTCDate(date.getUTCDate() - 1);
   return date.toISOString().slice(0, 10);
+}
+
+function exclusiveEndFromInclusive(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function readinessTrace(rows: readonly EffectiveSourceVersion[]): string | null {
+  if (rows.length === 0) return null;
+  return rows.map((row) => `${row.id} · ${row.version || "MISSING"} · ${row.validFrom}–${row.validUntilExclusive ?? "∞"}`).join(" | ");
+}
+
+function statusWithPrecedence(...statuses: readonly PayrollSourceReadinessStatus[]): PayrollSourceReadinessStatus {
+  if (statuses.includes("CONFLICT")) return "CONFLICT";
+  if (statuses.includes("MISSING")) return "MISSING";
+  if (statuses.includes("UNVERIFIED")) return "UNVERIFIED";
+  return "READY";
 }
 
 function incomeRelationshipStatusLabel(status: string, t: Translator): string {
@@ -246,11 +277,18 @@ export default async function EmploymentDetailPage({
     employmentId,
     dataScope,
   );
-  const canReviewIncomeRelationships = (authContext.activeRoles.includes('HR_ADMIN') || authContext.activeRoles.includes('TENANT_ADMIN'))
-    && authContext.permissions.includes('salary:read');
+  const canReviewIncomeRelationships = canReviewPayrollSourceReadiness(authContext);
   const incomeReadiness = tab === 'overview' && canReviewIncomeRelationships
     ? await getIncomeRelationshipReadiness(employeeId, employmentId)
     : [];
+  const [employmentSourceProjection, incomeRelationshipProjection, fiscalSourceProjection, payrollSetup] = tab === 'overview' && canReviewIncomeRelationships
+    ? await Promise.all([
+      getEmploymentPayrollSourceProjection(employeeId, employmentId, { year: 2026, month: 11 }).catch(() => null),
+      getEmploymentIncomeRelationshipProjection(employeeId, employmentId).catch(() => null),
+      getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, { year: 2026, month: 11 }).catch(() => null),
+      getPayrollSetup().catch(() => null),
+    ])
+    : [null, null, null, null];
   const canWriteIncomeRelationships = canReviewIncomeRelationships && authContext.permissions.includes('salary:write');
   const tProcess = await getTranslator('processAutomation');
   const processWork = tab === 'processes' && canReadProcesses
@@ -288,6 +326,269 @@ export default async function EmploymentDetailPage({
     : null;
   const currentSalaryAmount = currentSalary ? resolvedSalaryAmount(currentSalary, selectedDate) : null;
   const name = `${detail.employee.first_name} ${detail.employee.birth_name}`;
+  const payrollPeriodStart = '2026-11-01';
+  const payrollPeriodEndExclusive = '2026-12-01';
+  const payrollPeriodEnd = inclusiveEndFromExclusive(payrollPeriodEndExclusive)!;
+  const sourceScopeMatches = employmentSourceProjection?.employment.id === employmentId
+    && employmentSourceProjection.employment.employee_id === employeeId
+    && employmentSourceProjection.employment.tenant_id === detail.employment.tenant_id
+    && employmentSourceProjection.employment.hr_group_id === detail.employment.hr_group_id
+    && employmentSourceProjection.employment.administration_id === detail.employment.administration_id;
+  const sourceTimeline = sourceScopeMatches ? employmentSourceProjection : null;
+  const coverageForTimeline = (rows: readonly EffectiveSourceVersion[]) => sourceTimeline
+    ? assessEffectiveSourceCoverage(rows, payrollPeriodStart, payrollPeriodEndExclusive)
+    : { status: 'UNVERIFIED' as const, rows: [] };
+  const salaryRowsForPeriod = (sourceTimeline?.salaries ?? []).filter((row) => row.valid_from < payrollPeriodEndExclusive
+    && (row.valid_until === null || row.valid_until > payrollPeriodStart));
+  const scheduleRowsForPeriod = (sourceTimeline?.schedules ?? []).filter((row) => row.valid_from < payrollPeriodEndExclusive
+    && (row.valid_until === null || row.valid_until > payrollPeriodStart));
+  const salaryCoverage = coverageForTimeline((sourceTimeline?.salaries ?? []).map((row) => ({
+    id: row.id, version: row.updated_at, validFrom: row.valid_from, validUntilExclusive: row.valid_until,
+  })));
+  const scheduleCoverage = coverageForTimeline((sourceTimeline?.schedules ?? []).map((row) => ({
+    id: row.id, version: row.updated_at, validFrom: row.valid_from, validUntilExclusive: row.valid_until,
+  })));
+  const contractCoverage = coverageForTimeline((sourceTimeline?.contracts ?? []).map((row) => ({
+    id: row.id, version: row.updated_at, validFrom: row.starts_on,
+    validUntilExclusive: exclusiveEndFromInclusive(row.ends_on),
+  })));
+  const employmentEvidence: EffectiveSourceVersion[] = sourceTimeline ? [{
+    id: sourceTimeline.employment.id,
+    version: sourceTimeline.employment.updated_at,
+    validFrom: sourceTimeline.employment.starts_on,
+    validUntilExclusive: exclusiveEndFromInclusive(sourceTimeline.employment.ends_on),
+  }] : [];
+  const laborConditionCoverage = coverageForTimeline((sourceTimeline?.laborConditions ?? []).map((row) => ({
+    id: row.id, version: row.updated_at, validFrom: row.valid_from, validUntilExclusive: row.valid_until,
+  })));
+  const organizationRowsForPeriod = (sourceTimeline?.organizations ?? []).filter((row) => row.effective_from < payrollPeriodEndExclusive
+    && (row.effective_to === null || row.effective_to >= payrollPeriodStart));
+  const organizationCoverage = coverageForTimeline((sourceTimeline?.organizations ?? []).map((row) => ({
+    id: row.id, version: row.updated_at, validFrom: row.effective_from,
+    validUntilExclusive: exclusiveEndFromInclusive(row.effective_to),
+  })));
+  const jobRowsForPeriod = organizationRowsForPeriod.filter((row) => row.job_id !== null);
+  const jobCoverage = coverageForTimeline(jobRowsForPeriod.flatMap((row) => row.job_revision_valid_from && row.job_revision_updated_at ? [{
+    id: `${row.job_id}:${row.job_revision_valid_from}`,
+    version: row.job_revision_updated_at,
+    validFrom: row.job_revision_valid_from,
+    validUntilExclusive: exclusiveEndFromInclusive(row.job_revision_valid_until),
+  }] : []));
+  const functionReadinessStatus: PayrollSourceReadinessStatus = organizationCoverage.status !== 'READY'
+    ? organizationCoverage.status
+    : jobRowsForPeriod.length === 0 ? 'MISSING'
+      : jobCoverage.status === 'READY' ? 'READY' : jobCoverage.status;
+  const caoSalaryRows = salaryRowsForPeriod.filter((row) => row.salary_basis === 'CAO_SCALE');
+  const caoRowHasScaleAndStep = caoSalaryRows.length > 0 && caoSalaryRows.length === salaryRowsForPeriod.length && caoSalaryRows.every((row) =>
+    row.salary_structure_id !== null && row.salary_scale_id !== null
+    && row.salary_scale_step_id !== null && row.salary_step_code !== null);
+  const caoReadinessStatus: PayrollSourceReadinessStatus = !sourceTimeline ? 'UNVERIFIED'
+    : salaryCoverage.status !== 'READY' || laborConditionCoverage.status !== 'READY'
+      ? statusWithPrecedence(salaryCoverage.status, laborConditionCoverage.status)
+      : !caoRowHasScaleAndStep ? 'MISSING' : 'UNVERIFIED';
+  const salaryScheduleConflict = salaryCoverage.status === 'READY' && scheduleCoverage.status === 'READY'
+    && salaryRowsForPeriod.length === 1 && scheduleRowsForPeriod.length === 1
+    && caoSalaryScheduleConflict({
+      salaryBasis: salaryRowsForPeriod[0]!.salary_basis,
+      paymentType: salaryRowsForPeriod[0]!.payment_type,
+      paymentFrequency: salaryRowsForPeriod[0]!.payment_frequency,
+      fulltimeAmount: salaryRowsForPeriod[0]!.fulltime_amount === null ? null : Number(salaryRowsForPeriod[0]!.fulltime_amount),
+      parttimeAmount: salaryRowsForPeriod[0]!.parttime_amount === null ? null : Number(salaryRowsForPeriod[0]!.parttime_amount),
+      partTimeFactor: scheduleRowsForPeriod[0]!.part_time_factor === null ? null : Number(scheduleRowsForPeriod[0]!.part_time_factor),
+    });
+  const salaryScheduleComparable = salaryRowsForPeriod.length === 1 && scheduleRowsForPeriod.length === 1
+    && salaryRowsForPeriod[0]!.salary_basis === 'CAO_SCALE'
+    && salaryRowsForPeriod[0]!.payment_type === 'PERIODIC_FIXED'
+    && salaryRowsForPeriod[0]!.payment_frequency === 'MONTHLY'
+    && salaryRowsForPeriod[0]!.fulltime_amount !== null
+    && salaryRowsForPeriod[0]!.parttime_amount !== null
+    && scheduleRowsForPeriod[0]!.part_time_factor !== null;
+  const salaryScheduleStatus: PayrollSourceReadinessStatus = salaryScheduleConflict ? 'CONFLICT'
+    : salaryCoverage.status !== 'READY' || scheduleCoverage.status !== 'READY'
+      ? statusWithPrecedence(salaryCoverage.status, scheduleCoverage.status)
+      : salaryScheduleComparable ? 'READY' : 'UNVERIFIED';
+  const activeLaborConditionSetIds = new Set((sourceTimeline?.laborConditions ?? [])
+    .filter((row) => row.valid_from < payrollPeriodEndExclusive
+      && (row.valid_until === null || row.valid_until > payrollPeriodStart)
+      && row.labor_condition_set_id !== null)
+    .map((row) => row.labor_condition_set_id!));
+  const pensionAssignmentsForPeriod = (sourceTimeline?.pensionAssignments ?? []).filter((row) => row.effective_from < payrollPeriodEndExclusive
+    && (row.effective_to === null || row.effective_to > payrollPeriodStart));
+  const pensionMappingsForPeriod = (sourceTimeline?.laborConditionPensionArrangements ?? []).filter((row) => activeLaborConditionSetIds.has(row.labor_condition_set_id)
+    && row.effective_from < payrollPeriodEndExclusive
+    && (row.effective_to === null || row.effective_to > payrollPeriodStart));
+  const pensionAssignmentCoverage = coverageForTimeline((sourceTimeline?.pensionAssignments ?? []).map((row) => ({
+    id: row.id, version: `${row.version_number}:${row.updated_at}`, validFrom: row.effective_from, validUntilExclusive: row.effective_to,
+  })));
+  const pensionMappingCoverage = coverageForTimeline(pensionMappingsForPeriod.map((row) => ({
+    id: row.id, version: String(row.version_number), validFrom: row.effective_from, validUntilExclusive: row.effective_to,
+  })));
+  const pensionReadinessStatus: PayrollSourceReadinessStatus = pensionAssignmentCoverage.status !== 'READY'
+    ? pensionAssignmentCoverage.status
+    : pensionMappingCoverage.status !== 'READY' ? pensionMappingCoverage.status
+      : pensionAssignmentsForPeriod.some((row) => !row.arrangement || row.arrangement_resolution_reason)
+        ? 'CONFLICT' : 'UNVERIFIED';
+  const pensionSourceTraceRows: EffectiveSourceVersion[] = [
+    ...pensionAssignmentCoverage.rows,
+    ...pensionAssignmentsForPeriod.flatMap((row) => row.arrangement ? [{
+      id: row.arrangement.version_id ?? row.arrangement.id,
+      version: row.arrangement.version_id
+        ? `${row.arrangement.version_number}:${row.arrangement.version_created_at ?? ''}`
+        : row.arrangement.source_updated_at ?? '',
+      validFrom: row.arrangement.effective_from,
+      validUntilExclusive: row.arrangement.effective_to,
+    }] : []),
+    ...pensionMappingsForPeriod.map((row) => ({
+      id: row.id, version: String(row.version_number), validFrom: row.effective_from, validUntilExclusive: row.effective_to,
+    })),
+    ...pensionMappingsForPeriod.flatMap((row) => row.arrangement ? [{
+      id: row.arrangement.version_id ?? row.arrangement.id,
+      version: row.arrangement.version_id
+        ? `${row.arrangement.version_number}:${row.arrangement.version_created_at ?? ''}`
+        : row.arrangement.source_updated_at ?? '',
+      validFrom: row.arrangement.effective_from,
+      validUntilExclusive: row.arrangement.effective_to,
+    }] : []),
+  ].filter((row, index, all) => all.findIndex((candidate) => candidate.id === row.id && candidate.version === row.version) === index);
+  const incomeLinksForPeriod = (incomeRelationshipProjection ?? []).filter((row) => row.validFrom < payrollPeriodEndExclusive
+    && (row.validUntil === null || row.validUntil > payrollPeriodStart));
+  const incomeLinkCoverage = assessEffectiveSourceCoverage((incomeRelationshipProjection ?? []).map((row) => ({
+    id: row.id, version: row.linkUpdatedAt, validFrom: row.validFrom, validUntilExclusive: row.validUntil,
+  })), payrollPeriodStart, payrollPeriodEndExclusive);
+  const incomeRelationshipCoverage = assessEffectiveSourceCoverage(incomeLinksForPeriod.map((row) => ({
+    id: row.incomeRelationshipId, version: row.incomeRelationshipUpdatedAt, validFrom: row.startsOn,
+    validUntilExclusive: exclusiveEndFromInclusive(row.endsOn),
+  })), payrollPeriodStart, payrollPeriodEndExclusive);
+  const linkedIncomeRelationshipId = incomeLinksForPeriod.length === 1 ? incomeLinksForPeriod[0]!.incomeRelationshipId : null;
+  const linkedIncomeReadiness = linkedIncomeRelationshipId
+    ? incomeReadiness.find((row) => row.id === linkedIncomeRelationshipId) ?? null : null;
+  const incomeReadinessStatus: PayrollSourceReadinessStatus = !incomeRelationshipProjection
+    ? 'UNVERIFIED'
+    : incomeLinksForPeriod.length > 1 || fiscalSourceProjection?.incomeRelationshipLinkGap
+      ? 'CONFLICT'
+      : statusWithPrecedence(incomeLinkCoverage.status, incomeRelationshipCoverage.status,
+        linkedIncomeRelationshipId && linkedIncomeReadiness?.reportingStatus === 'READY'
+          && linkedIncomeReadiness.blockers.length === 0 && linkedIncomeReadiness.auditHistoryAvailable
+          && linkedIncomeReadiness.auditHistory.length > 0 ? 'READY' : 'UNVERIFIED');
+  const taxProfileRowsForPeriod = (fiscalSourceProjection?.taxProfiles ?? []).filter((profile) =>
+    profile.employment_id === employmentId && profile.income_relationship_id === linkedIncomeRelationshipId
+    && profile.effective_from <= payrollPeriodEnd
+    && (profile.effective_to === null || profile.effective_to >= payrollPeriodStart));
+  const taxProfileCoverage = assessEffectiveSourceCoverage(taxProfileRowsForPeriod.map((profile) => ({
+    id: profile.id, version: `${profile.version_number}:${profile.created_at}`, validFrom: profile.effective_from,
+    validUntilExclusive: exclusiveEndFromInclusive(profile.effective_to),
+  })), payrollPeriodStart, payrollPeriodEndExclusive);
+  const fiscalReadinessStatus: PayrollSourceReadinessStatus = !fiscalSourceProjection
+    ? 'UNVERIFIED'
+    : taxProfileRowsForPeriod.length === 0 ? 'MISSING'
+      : taxProfileCoverage.status !== 'READY' ? taxProfileCoverage.status
+        : incomeReadinessStatus === 'READY' && linkedIncomeReadiness?.fiscalProfilePresent && linkedIncomeReadiness.auditHistoryAvailable
+          && linkedIncomeReadiness.auditHistory.length > 0
+          && taxProfileRowsForPeriod.every((profile) => profile.source_classification === 'HR_ADMIN_CONFIRMED' || profile.source_classification === 'EMPLOYEE_DECLARATION')
+          ? 'READY' : 'UNVERIFIED';
+  const employerConfigurationRows = (payrollSetup?.configurations ?? []).filter((row) =>
+    row.source_tenant_id === detail.employment.tenant_id
+    && row.source_hr_group_id === detail.employment.hr_group_id
+    && row.source_administration_id === detail.employment.administration_id
+    && row.status === 'ACTIVE'
+    && row.effective_from < payrollPeriodEndExclusive
+    && (row.effective_to === null || row.effective_to >= payrollPeriodStart));
+  const employerCoverage = assessEffectiveSourceCoverage(employerConfigurationRows.map((row) => ({
+    id: row.id, version: `${row.configuration_version}:${row.configuration_hash}`,
+    validFrom: row.effective_from, validUntilExclusive: exclusiveEndFromInclusive(row.effective_to),
+  })), payrollPeriodStart, payrollPeriodEndExclusive);
+  const employerReadinessStatus: PayrollSourceReadinessStatus = !payrollSetup
+    ? 'UNVERIFIED' : employerCoverage.status === 'READY' ? 'UNVERIFIED' : employerCoverage.status;
+  const expectedCumulativeDate = inclusiveEndFromExclusive(payrollPeriodStart)!;
+  const cumulativeRows = (payrollSetup?.openingSnapshots ?? []).filter((row) =>
+    row.source_employment_id === employmentId && row.as_of_date === expectedCumulativeDate
+    && row.source_tenant_id === detail.employment.tenant_id
+    && row.source_hr_group_id === detail.employment.hr_group_id
+    && row.source_administration_id === detail.employment.administration_id);
+  const latestCumulativeVersion = cumulativeRows.reduce((latest, row) =>
+    !latest || row.snapshot_version > latest.snapshot_version ? row : latest, null as (typeof cumulativeRows)[number] | null);
+  const cumulativeReadinessStatus: PayrollSourceReadinessStatus = !payrollSetup
+    ? 'UNVERIFIED' : cumulativeRows.length === 0 ? 'MISSING'
+      : cumulativeRows.filter((row) => row.snapshot_version === latestCumulativeVersion?.snapshot_version).length > 1
+        ? 'CONFLICT' : 'UNVERIFIED';
+  const readinessHref = (path: string) => `/employees/${employeeId}/employments/${employmentId}${path}`;
+  const sourceReadinessRows: PayrollSourceReadinessItem[] = canReviewIncomeRelationships ? [
+    {
+      key: 'employment', label: t('payrollSourceReadiness.contractAndRoster'),
+      status: statusWithPrecedence(contractCoverage.status, scheduleCoverage.status),
+      details: t(`payrollSourceReadiness.detail.${statusWithPrecedence(contractCoverage.status, scheduleCoverage.status)}`),
+      sourceVersion: readinessTrace([...employmentEvidence, ...contractCoverage.rows, ...scheduleCoverage.rows]),
+      href: readinessHref('?tab=schedule'), actionLabel: t('payrollSourceReadiness.reviewEmployment'),
+    },
+    {
+      key: 'function', label: t('payrollSourceReadiness.function'), status: functionReadinessStatus,
+      details: t(`payrollSourceReadiness.detail.${functionReadinessStatus}`),
+      sourceVersion: readinessTrace([
+        ...organizationCoverage.rows,
+        ...jobRowsForPeriod.flatMap((row) => row.job_revision_valid_from && row.job_revision_updated_at ? [{
+          id: `${row.job_id}:${row.job_revision_valid_from}`,
+          version: row.job_revision_updated_at,
+          validFrom: row.job_revision_valid_from,
+          validUntilExclusive: exclusiveEndFromInclusive(row.job_revision_valid_until),
+        }] : []),
+      ]),
+      href: readinessHref('?tab=organization'), actionLabel: t('payrollSourceReadiness.reviewFunction'),
+    },
+    {
+      key: 'salary', label: t('payrollSourceReadiness.salaryAndHours'), status: salaryScheduleStatus,
+      details: t(`payrollSourceReadiness.detail.${salaryScheduleStatus}`),
+      sourceVersion: readinessTrace([...salaryCoverage.rows, ...scheduleCoverage.rows]),
+      href: readinessHref('?tab=salary'), actionLabel: t('payrollSourceReadiness.reviewSalary'),
+    },
+    {
+      key: 'cao', label: t('payrollSourceReadiness.caoScale'), status: caoReadinessStatus,
+      details: t(`payrollSourceReadiness.detail.${caoReadinessStatus}`),
+      sourceVersion: readinessTrace(caoSalaryRows.map((row) => ({
+        id: row.id, version: row.updated_at, validFrom: row.valid_from, validUntilExclusive: row.valid_until,
+      }))),
+      href: '/master-data/salary-scales', actionLabel: t('payrollSourceReadiness.reviewCao'),
+    },
+    {
+      key: 'pension', label: t('payrollSourceReadiness.pension'), status: pensionReadinessStatus,
+      details: t(`payrollSourceReadiness.detail.${pensionReadinessStatus}`),
+      sourceVersion: readinessTrace(pensionSourceTraceRows),
+      href: readinessHref('/pension'), actionLabel: t('payrollSourceReadiness.reviewPension'),
+    },
+    {
+      key: 'ikv', label: t('payrollSourceReadiness.ikv'), status: incomeReadinessStatus,
+      details: t(`payrollSourceReadiness.detail.${incomeReadinessStatus}`),
+      sourceVersion: readinessTrace(incomeLinksForPeriod.flatMap((row) => [
+        { id: row.id, version: row.linkUpdatedAt, validFrom: row.validFrom, validUntilExclusive: row.validUntil },
+        {
+          id: row.incomeRelationshipId,
+          version: row.incomeRelationshipUpdatedAt,
+          validFrom: row.startsOn,
+          validUntilExclusive: exclusiveEndFromInclusive(row.endsOn),
+        },
+      ])),
+      href: `${readinessHref('?tab=overview')}#ikv-readiness`, actionLabel: t('payrollSourceReadiness.reviewIkv'),
+    },
+    {
+      key: 'fiscal', label: t('payrollSourceReadiness.fiscal'), status: fiscalReadinessStatus,
+      details: t(`payrollSourceReadiness.detail.${fiscalReadinessStatus}`),
+      sourceVersion: readinessTrace(taxProfileCoverage.rows),
+      href: readinessHref('/fiscal'), actionLabel: t('payrollSourceReadiness.reviewFiscal'),
+    },
+    {
+      key: 'employer', label: t('payrollSourceReadiness.employer'), status: employerReadinessStatus,
+      details: t(`payrollSourceReadiness.detail.${employerReadinessStatus}`),
+      sourceVersion: readinessTrace(employerCoverage.rows),
+      href: '/payroll/settings', actionLabel: t('payrollSourceReadiness.reviewEmployer'),
+    },
+    {
+      key: 'cumulative', label: t('payrollSourceReadiness.cumulatives'), status: cumulativeReadinessStatus,
+      details: t(`payrollSourceReadiness.detail.${cumulativeReadinessStatus}`),
+      sourceVersion: latestCumulativeVersion
+        ? `${latestCumulativeVersion.id} · v${latestCumulativeVersion.snapshot_version}:${latestCumulativeVersion.snapshot_hash} · ${latestCumulativeVersion.as_of_date}`
+        : null,
+      href: '/payroll/settings', actionLabel: t('payrollSourceReadiness.reviewCumulatives'),
+    },
+  ] : [];
   const mutationLabels = Object.fromEntries(
     [
       "change",
@@ -544,7 +845,26 @@ export default async function EmploymentDetailPage({
                 </div>
               </> : null}
             </Surface>
-            {canReviewIncomeRelationships ? <Surface className="p-5 sm:p-6">
+            {canReviewIncomeRelationships ? <PayrollSourceReadinessPanel
+              title={t('payrollSourceReadiness.title')}
+              description={t('payrollSourceReadiness.description')}
+              scopeLabel={t('payrollSourceReadiness.scope', {
+                tenant: detail.employment.tenant_id,
+                hrGroup: detail.employment.hr_group_id,
+                administration: detail.employment.administration_id,
+                employee: detail.employment.employee_id,
+                employment: detail.employment.id,
+              })}
+              periodLabel={t('payrollSourceReadiness.period', { from: payrollPeriodStart, through: payrollPeriodEnd })}
+              rows={sourceReadinessRows}
+              statusLabels={{
+                READY: t('payrollSourceReadiness.status.ready'),
+                MISSING: t('payrollSourceReadiness.status.missing'),
+                CONFLICT: t('payrollSourceReadiness.status.conflict'),
+                UNVERIFIED: t('payrollSourceReadiness.status.unverified'),
+              }}
+            /> : null}
+            {canReviewIncomeRelationships ? <Surface className="p-5 sm:p-6" id="ikv-readiness">
               <SectionHeader title={t('ikvReadiness.title')} description={t('ikvReadiness.description')} />
               {query.ikv === 'saved' ? <p className="mt-4 border border-success/30 bg-success-surface p-3 text-sm text-success" role="status">{t('ikvReadiness.readySaved')}</p> : null}
               {query.ikv === 'blocked' ? <p className="mt-4 border border-warning/40 bg-warning-surface p-3 text-sm text-warning" role="status">{t('ikvReadiness.readyBlocked')}</p> : null}

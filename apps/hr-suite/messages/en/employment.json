@@ -682,6 +682,37 @@
   "minimumHourlyRate": "Statutory minimum hourly wage",
   "salaryBandPercentage": "Percentage of 100% point",
   "salaryBandPercentageHelp": "Change the percentage or the full-time salary; both values stay linked.",
+  "payrollSourceReadiness": {
+    "title": "Payroll source readiness · Kinderopvang K2",
+    "description": "Source coverage and version checks for November 2026 only. This panel does not calculate salary. READY confirms recorded inputs and period coverage, not legal applicability or employer approval.",
+    "scope": "Scope: tenant {tenant} · HR group {hrGroup} · administration {administration} · employee {employee} · employment {employment}",
+    "period": "{from} through {through}",
+    "contractAndRoster": "Contract and schedule",
+    "function": "Function and organization",
+    "salaryAndHours": "Salary and hours agreement",
+    "caoScale": "CAO scale and step",
+    "pension": "Pension arrangement and CAO mapping",
+    "ikv": "IKV link",
+    "fiscal": "Fiscal profile",
+    "employer": "Employer settings",
+    "cumulatives": "Opening cumulatives",
+    "status": { "ready": "READY", "missing": "MISSING", "conflict": "CONFLICT", "unverified": "UNVERIFIED" },
+    "detail": {
+      "READY": "Effective, versioned source records cover the whole period.",
+      "MISSING": "A required source row or part of the effective period is missing.",
+      "CONFLICT": "Overlapping or inconsistent source rows were found.",
+      "UNVERIFIED": "Source data exists, but its version, scope, source owner or applicability is not fully confirmed."
+    },
+    "reviewEmployment": "Review contract and schedule",
+    "reviewFunction": "Review function",
+    "reviewSalary": "Review salary agreement",
+    "reviewCao": "Review CAO register",
+    "reviewPension": "Review pension source",
+    "reviewIkv": "Review IKV",
+    "reviewFiscal": "Review fiscal profile",
+    "reviewEmployer": "Review employer source",
+    "reviewCumulatives": "Review cumulatives"
+  },
   "salaryStructures": { "sectionTitle": "Available salary structures", "description": "Link one or more logical salary structures to this CBA version. The link controls availability; a revision remains separately dated.", "scalesAndSteps": "Scales and steps", "salaryBands": "Salary bands", "linked": "Linked", "noActiveRevision": "No published revision", "save": "Save links", "cancel": "Cancel changes", "unsaved": "Unsaved changes", "saving": "Saving...", "saved": "Links saved.", "failed": "The links could not be saved.", "readOnly": "Read-only: you cannot change the CBA links." },
   "salaryApplication": { "preview": "Preview", "currentSalary": "Current full-time salary", "minimum": "Minimum", "midpoint": "Midpoint", "maximum": "Maximum", "compaRatio": "Compa ratio", "rangePenetration": "Range penetration", "status": "Status", "underMinimum": "Under minimum", "withinRange": "Within range", "aboveMaximum": "Above maximum", "noValidBand": "No valid salary band", "openEnded": "Open-ended", "scheme": "Minimum wage scheme", "regular": "Regular", "bbl": "BBL", "externalAmount": "The amount is determined later by the salary/payroll engine.", "structure": "Salary structure", "bandMinimum": "Minimum", "bandMidpoint": "100% point", "bandMaximum": "Maximum", "intro": "Choose which salary routes this administration may use. The choice filters new salary selections only; existing history remains unchanged.", "routeTitle": "Allowed salary routes", "routeDescription": "Manual remains available. Scales and salary bands are offered only when an active HR-group structure is linked.", "manual": "Manual", "manualDescription": "Enter the gross salary yourself.", "minimumWage": "Minimum wage", "minimumWageDescription": "Choose REGULAR or BBL; payroll determines the current amount later.", "scaleWithSteps": "Scale with steps", "scaleWithStepsDescription": "Choose a published scale and step. The amount follows the revision effective on the start date.", "salaryBand": "Salary band", "salaryBandDescription": "Choose a band and enter the full-time salary. Position and band status are calculated automatically.", "structuresTitle": "Available HR-group structures", "structuresDescription": "Link only structures that may be chosen in this administration. Linking does not change existing salary rules.", "searchStructures": "Search structures", "scales": "Scales and steps", "bands": "Salary bands", "noStructures": "No active structures found.", "save": "Save salary settings", "saved": "Salary settings saved.", "failed": "The salary settings could not be saved.", "readOnly": "Read-only: you cannot change the salary settings." }
 }

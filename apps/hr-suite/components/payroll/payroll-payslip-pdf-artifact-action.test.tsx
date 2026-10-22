@@ -93,14 +93,15 @@ describe('Payroll payslip PDF artifact action', () => {
       arrayBuffer: async () => pdfBytes.buffer,
     })
     vi.stubGlobal('fetch', fetchMock)
+    const digestSpy = vi.spyOn(crypto.subtle, 'digest')
     const view = mountAction({ canCreate: true, hasArtifact: true })
 
     try {
       expect(view.host.querySelector('button')?.textContent).toBe(labels.verifyPayslipPdf)
       await act(async () => {
         view.host.querySelector('button')?.click()
-        await Promise.resolve()
-        await Promise.resolve()
+        await vi.waitFor(() => expect(digestSpy).toHaveBeenCalledOnce())
+        await digestSpy.mock.results[0]!.value
       })
 
       expect(fetchMock).toHaveBeenCalledWith(`/api/payroll/runs/${runId}/artifact/PAYSLIP_PDF`, {

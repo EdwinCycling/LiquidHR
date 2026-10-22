@@ -1,6 +1,6 @@
 {
   "catalogVersion": 1,
-  "reviewedAt": "2026-10-15",
+  "reviewedAt": "2026-10-21",
   "coreTestProjectRef": "wnpfloqpjvaacobppbpk",
   "payrollLabTestProjectRef": "jhgeriucbkfarxiudzfy",
   "credentialFile": "%LOCALAPPDATA%\\LiquidHR\\TestRuntime\\payroll-test-personas.env",
@@ -19,6 +19,56 @@
       "code": "OPERATIONS",
       "name": "Jupiter BV"
     }
+  },
+  "hrAdminContext": {
+    "personaKey": "hr-admin",
+    "activeRoleCodes": ["TENANT_ADMIN"],
+    "userAccessReadback": [
+      {
+        "scopeType": "TENANT",
+        "hrGroupId": null,
+        "administrationId": null,
+        "isActive": true,
+        "tenantName": "De Sterren holding"
+      }
+    ],
+    "roleReadback": {
+      "roleCode": "TENANT_ADMIN",
+      "scope": "De Sterren holding"
+    },
+    "activeHrGroupCount": 3,
+    "selectableAdministrationCount": 5,
+    "activeGrantCountToOtherTenants": 0,
+    "inactiveLegacyAdministrationGrantCount": 2,
+    "grantProvenance": "DIRECT_CORE_TEST_CHANGE; NOT_A_GIT_MIGRATION",
+    "d0GrantOrSchemaWrites": false,
+    "permissionBoundary": "EXISTING_TENANT_BOUND_TENANT_ADMIN_MATRIX; NO_PLATFORM_RIGHTS",
+    "contractStatus": "CURRENT; FORMER_MARS_ONLY_TEST_CONTRACT_SUPERSEDED"
+  },
+  "d0DocumentAcceptance": {
+    "acceptanceId": "PAYDOC-D0-20261021",
+    "personaKey": "payroll-demo-002",
+    "tenantName": "De Sterren holding",
+    "administrationName": "Mars BV",
+    "period": "2026-10",
+    "runLifecycle": "FINALIZED",
+    "artifactType": "PAYSLIP_PDF",
+    "artifactState": "EXISTING_PERSISTED_IMMUTABLE",
+    "sizeBytes": 513406,
+    "sha256": "51b8c513b4c6f9b0c5a9e74e36086099d493ec08b9228b997779ae6cee56d977",
+    "hrAdmin": { "view": "PASS", "download": "PASS", "viewport": "DESKTOP_AND_390PX" },
+    "employeeSelf": { "view": "PASS", "download": "PASS", "viewport": "DESKTOP" },
+    "employee390px": "ENVIRONMENT_GATED_BROWSER_AUTOMATION_TIMEOUT",
+    "hashParity": "PASS_HR_ADMIN_AND_EMPLOYEE_BYTES_MATCH",
+    "negativeChecks": {
+      "anonymousHrAdminArtifact": "401_BEFORE_ARTIFACT_READ",
+      "unauthorizedHrAdminRole": "403_BEFORE_ARTIFACT_READ",
+      "employeeCrossEmployeeArtifact": "DENIED_BEFORE_ARTIFACT_READ_BY_SELF_SCOPE_SERVICE_TEST",
+      "managerTenantAdminAccess": "DENIED_BY_COMPONENT_ACCESS_ROLE_TEST",
+      "forgedTenantScope": "DENIED_BY_COMPONENT_ACCESS_SCOPE_TEST",
+      "otherTenantGrantCount": 0
+    },
+    "historicalRunOrArtifactMutation": false
   },
   "roleSwitch": {
     "localDevelopmentOnly": true,

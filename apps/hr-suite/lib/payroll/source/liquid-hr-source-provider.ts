@@ -751,6 +751,74 @@ function sourceGapsFor(
   return gaps
 }
 
+interface PayrollSourceVersionReference {
+  readonly field: string
+  readonly sourceType: string
+  readonly sourceRowId: string
+  readonly versionKey: string
+  readonly version: string
+  readonly versionParts: readonly string[]
+  readonly validFrom: string
+  readonly validUntilExclusive: string | null
+  readonly effectiveAt?: string
+}
+
+function sourceVersionContract(
+  references: readonly PayrollSourceVersionReference[],
+  versionVector: Readonly<Record<string, string>>,
+  scope: {
+    readonly tenantId: string
+    readonly hrGroupId: string
+    readonly administrationId: string
+    readonly employeeId: string
+    readonly employmentId: string
+    readonly incomeRelationshipId: string | null
+  },
+  periodStart: string,
+  periodEndExclusive: string,
+): { readonly contract: Readonly<Record<string, unknown>>; readonly sourceGaps: readonly PayrollSourceGap[] } {
+  const sourceGaps: PayrollSourceGap[] = []
+  const tracedReferences = references.map((reference) => {
+    const hasVersion = reference.versionParts.length > 0
+      && reference.versionParts.every((part) => part.trim().length > 0 && part !== 'MISSING')
+    const vectorVersion = versionVector[reference.versionKey]
+    const versionConsistent = vectorVersion === reference.version
+    const validRange = /^\d{4}-\d{2}-\d{2}$/.test(reference.validFrom)
+      && (reference.validUntilExclusive === null
+        || (/^\d{4}-\d{2}-\d{2}$/.test(reference.validUntilExclusive)
+          && reference.validUntilExclusive > reference.validFrom))
+    const effectiveInPeriod = validRange && (reference.effectiveAt
+      ? reference.validFrom <= reference.effectiveAt
+        && (reference.validUntilExclusive === null || reference.validUntilExclusive > reference.effectiveAt)
+      : reference.validFrom < periodEndExclusive
+        && (reference.validUntilExclusive === null || reference.validUntilExclusive > periodStart))
+    let status: 'BOUND' | 'SOURCE_GAP' = 'BOUND'
+    if (!reference.sourceRowId.trim() || !hasVersion) {
+      status = 'SOURCE_GAP'
+      sourceGaps.push(makeGap(reference.field, 'SOURCE_GAP', 'SOURCE_VERSION_REFERENCE_MISSING'))
+    } else if (!versionConsistent) {
+      status = 'SOURCE_GAP'
+      sourceGaps.push(makeGap(reference.field, 'SOURCE_GAP', 'SOURCE_VERSION_REFERENCE_INCONSISTENT'))
+    } else if (!effectiveInPeriod) {
+      status = 'SOURCE_GAP'
+      sourceGaps.push(makeGap(reference.field, 'SOURCE_GAP', 'SOURCE_VERSION_EFFECTIVE_RANGE_INVALID'))
+    }
+    return { ...reference, versionParts: [...reference.versionParts], status }
+  })
+
+  return {
+    contract: {
+      schemaVersion: 'payroll-source-contract-v1',
+      scope,
+      periodStart,
+      periodEndExclusive,
+      references: tracedReferences,
+      versionVector: Object.fromEntries(Object.entries(versionVector).sort(([left], [right]) => left.localeCompare(right))),
+    },
+    sourceGaps,
+  }
+}
+
 function payrollMoneySource(value: number | null): string | null {
   if (value === null || !Number.isFinite(value)) return null
   try {
@@ -1749,6 +1817,171 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       sourceVersionVector[`cao:blocked:${employment.id}`] = caoCalculation.reasonCode ?? 'UNKNOWN'
     }
 
+    const sourceVersionReferences: PayrollSourceVersionReference[] = [
+      {
+        field: 'employment', sourceType: 'employments', sourceRowId: employment.id,
+        versionKey: `employment:${employment.id}`, version: employment.updated_at,
+        versionParts: [employment.updated_at], validFrom: employment.starts_on,
+        validUntilExclusive: employment.ends_on === null ? null : dayAfter(employment.ends_on),
+      },
+      ...salaries.map((row) => ({
+        field: 'contractualSalary', sourceType: 'employment_salaries', sourceRowId: row.id,
+        versionKey: `employment_salary:${row.id}`, version: row.updated_at,
+        versionParts: [row.updated_at], validFrom: row.valid_from, validUntilExclusive: row.valid_until,
+      })),
+      ...pensionSalaryBasisCandidates.map((row) => ({
+        field: 'pension', sourceType: 'employment_salaries', sourceRowId: row.id,
+        versionKey: `employment_salary_basis:${row.id}`, version: row.updated_at,
+        versionParts: [row.updated_at], validFrom: row.valid_from, validUntilExclusive: row.valid_until,
+        effectiveAt: pensionSalaryBasisDate ?? undefined,
+      })),
+      ...schedules.map((row) => ({
+        field: 'contractualHours', sourceType: 'employment_schedules', sourceRowId: row.id,
+        versionKey: `employment_schedule:${row.id}`, version: row.updated_at,
+        versionParts: [row.updated_at], validFrom: row.valid_from, validUntilExclusive: row.valid_until,
+      })),
+      ...contracts.map((row) => ({
+        field: 'contract', sourceType: 'employment_contracts', sourceRowId: row.id,
+        versionKey: `employment_contract:${row.id}`, version: row.updated_at,
+        versionParts: [row.updated_at], validFrom: row.starts_on,
+        validUntilExclusive: row.ends_on === null ? null : dayAfter(row.ends_on),
+      })),
+      ...laborConditions.flatMap((row) => [
+        {
+          field: 'laborCondition', sourceType: 'employment_labor_conditions', sourceRowId: row.id,
+          versionKey: `employment_labor_condition:${row.id}`, version: row.updated_at,
+          versionParts: [row.updated_at], validFrom: row.valid_from, validUntilExclusive: row.valid_until,
+        },
+        ...(row.set ? [{
+          field: 'laborCondition', sourceType: 'labor_condition_sets', sourceRowId: row.set.id,
+          versionKey: `labor_condition_set:${row.set.id}`, version: row.set.updated_at,
+          versionParts: [row.set.updated_at], validFrom: row.set.valid_from, validUntilExclusive: null,
+        }] : []),
+      ]),
+      ...organizations.flatMap((row) => [
+        {
+          field: 'organization', sourceType: 'employee_organizations', sourceRowId: row.id,
+          versionKey: `employee_organization:${row.id}`, version: row.updated_at,
+          versionParts: [row.updated_at], validFrom: row.effective_from,
+          validUntilExclusive: row.effective_to === null ? null : dayAfter(row.effective_to),
+        },
+        ...(row.job_id && row.job_revision_updated_at && row.job_revision_valid_from ? [{
+          field: 'job', sourceType: 'job_revisions', sourceRowId: `${row.job_id}:${row.job_revision_valid_from}`,
+          versionKey: `job_revision:${row.job_id}:${row.job_revision_valid_from}`,
+          version: row.job_revision_updated_at, versionParts: [row.job_revision_updated_at],
+          validFrom: row.job_revision_valid_from,
+          validUntilExclusive: row.job_revision_valid_until === null ? null : dayAfter(row.job_revision_valid_until),
+        }] : []),
+      ]),
+      ...pensionAssignments.flatMap((row) => [
+        {
+          field: 'pension', sourceType: 'employment_pension_assignments', sourceRowId: row.id,
+          versionKey: `employment_pension_assignment:${row.id}`,
+          version: `${row.version_number}:${row.updated_at}`,
+          versionParts: [String(row.version_number), row.updated_at],
+          validFrom: row.effective_from, validUntilExclusive: row.effective_to,
+        },
+        ...(row.arrangement ? [
+          {
+            field: 'pension', sourceType: row.arrangement.version_id ? 'pension_arrangement_versions' : 'pension_arrangements',
+            sourceRowId: row.arrangement.version_id ?? row.arrangement.id,
+            versionKey: row.arrangement.version_id
+              ? `pension_arrangement_version:${row.arrangement.version_id}`
+              : `pension_arrangement:${row.arrangement.id}`,
+            version: row.arrangement.version_id
+              ? row.arrangement.version_created_at ?? ''
+              : row.arrangement.source_updated_at ?? '',
+            versionParts: [row.arrangement.version_id
+              ? row.arrangement.version_created_at ?? ''
+              : row.arrangement.source_updated_at ?? ''],
+            validFrom: row.arrangement.effective_from, validUntilExclusive: row.arrangement.effective_to,
+          },
+          ...row.arrangement.tiers.map((tier) => ({
+            field: 'pension', sourceType: row.arrangement?.version_id
+              ? 'pension_arrangement_version_tiers' : 'pension_arrangement_tiers',
+            sourceRowId: tier.id,
+            versionKey: `${row.arrangement?.version_id ? 'pension_arrangement_version_tier' : 'pension_arrangement_tier'}:${tier.id}`,
+            version: tier.created_at, versionParts: [tier.created_at],
+            validFrom: row.arrangement!.effective_from, validUntilExclusive: row.arrangement!.effective_to,
+          })),
+        ] : []),
+      ]),
+      ...laborConditionPensionArrangements.map((row) => ({
+        field: 'pension', sourceType: 'labor_condition_pension_arrangements', sourceRowId: row.id,
+        versionKey: `labor_condition_pension_arrangement:${row.id}`,
+        version: `${row.version_number}:${row.effective_from}`,
+        versionParts: [String(row.version_number), row.effective_from],
+        validFrom: row.effective_from, validUntilExclusive: row.effective_to,
+      })),
+      ...(incomeRelationship.selected ? [
+        {
+          field: 'incomeRelationshipLink', sourceType: 'employment_income_relationships',
+          sourceRowId: incomeRelationship.selected.id,
+          versionKey: `employment_income_relationship:${incomeRelationship.selected.id}`,
+          version: incomeRelationship.selected.linkUpdatedAt,
+          versionParts: [incomeRelationship.selected.linkUpdatedAt],
+          validFrom: incomeRelationship.selected.validFrom,
+          validUntilExclusive: incomeRelationship.selected.validUntil,
+        },
+        {
+          field: 'incomeRelationship', sourceType: 'income_relationships',
+          sourceRowId: incomeRelationship.selected.incomeRelationshipId,
+          versionKey: `income_relationship:${incomeRelationship.selected.incomeRelationshipId}`,
+          version: incomeRelationship.selected.incomeRelationshipUpdatedAt,
+          versionParts: [incomeRelationship.selected.incomeRelationshipUpdatedAt],
+          validFrom: incomeRelationship.selected.startsOn,
+          validUntilExclusive: incomeRelationship.selected.endsOn === null
+            ? null : dayAfter(incomeRelationship.selected.endsOn),
+        },
+      ] : []),
+      ...(fiscalProfile.canonical.id ? [(() => {
+        const profile = timeline.taxProfileProjection?.taxProfiles.find((row) => row.id === fiscalProfile.canonical.id)
+        return {
+          field: 'taxProfile', sourceType: 'employment_payroll_tax_profiles',
+          sourceRowId: profile?.id ?? fiscalProfile.canonical.id!,
+          versionKey: `employment_payroll_tax_profile:${fiscalProfile.canonical.id}`,
+          version: profile ? `${profile.version_number}:${profile.created_at}` : '',
+          versionParts: profile ? [String(profile.version_number), profile.created_at] : [],
+          validFrom: profile?.effective_from ?? activeStart,
+          validUntilExclusive: profile?.effective_to === null || profile?.effective_to === undefined
+            ? null : dayAfter(profile.effective_to),
+        }
+      })()] : []),
+      ...(payrollSetup?.configurationRow ? [{
+        field: 'payrollConfiguration', sourceType: 'payroll_employer_configurations',
+        sourceRowId: payrollSetup.configurationRow.id,
+        versionKey: `payroll_employer_configuration:${payrollSetup.configurationRow.id}`,
+        version: `${payrollSetup.configurationRow.configuration_version}:${payrollSetup.configurationRow.configuration_hash}`,
+        versionParts: [String(payrollSetup.configurationRow.configuration_version), payrollSetup.configurationRow.configuration_hash],
+        validFrom: payrollSetup.configurationRow.effective_from,
+        validUntilExclusive: payrollSetup.configurationRow.effective_to === null
+          ? null : dayAfter(payrollSetup.configurationRow.effective_to),
+      }] : []),
+      ...(payrollSetup?.openingBalance ? [{
+        field: 'openingCumulative', sourceType: 'payroll_opening_cumulative_snapshots',
+        sourceRowId: payrollSetup.openingBalance.id,
+        versionKey: `payroll_opening_cumulative:${payrollSetup.openingBalance.id}`,
+        version: `${payrollSetup.openingBalance.snapshot_version}:${payrollSetup.openingBalance.snapshot_hash}`,
+        versionParts: [String(payrollSetup.openingBalance.snapshot_version), payrollSetup.openingBalance.snapshot_hash],
+        validFrom: payrollSetup.openingBalance.as_of_date, validUntilExclusive: null,
+      }] : []),
+    ]
+    const versionContractResult = sourceVersionContract(
+      sourceVersionReferences,
+      sourceVersionVector,
+      {
+        tenantId: input.tenantId,
+        hrGroupId: input.hrGroupId,
+        administrationId: input.administrationId,
+        employeeId: input.employeeId,
+        employmentId: employment.id,
+        incomeRelationshipId: incomeRelationship.selected?.incomeRelationshipId ?? null,
+      },
+      activeStart,
+      activeEndExclusive,
+    )
+    sourceGaps.push(...versionContractResult.sourceGaps)
+
     const pensionArrangementCanonical = (
       arrangement: NonNullable<(typeof pensionAssignments)[number]['arrangement']>,
     ) => ({
@@ -1786,6 +2019,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
 
     const coreCanonicalSource = {
       schemaVersion: 'payroll-source-v4',
+      sourceContract: versionContractResult.contract,
       employment: {
         startsOn: employment.starts_on,
         endsOn: employment.ends_on,

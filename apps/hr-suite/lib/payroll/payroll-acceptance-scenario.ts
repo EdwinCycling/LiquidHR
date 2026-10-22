@@ -114,9 +114,19 @@ export async function filterPayrollAcceptanceScenarioRuns<
 >(
   summaries: readonly T[],
   readInputReference: (inputSetId: string) => Promise<{ readonly input_reference_json: unknown } | null>,
+  readInputReferences?: (inputSetIds: readonly string[]) => Promise<readonly {
+    readonly calculation_input_set_id: string
+    readonly input_reference_json: unknown
+  }[]>,
 ): Promise<readonly T[]> {
+  const referencesByInputSetId = readInputReferences
+    ? new Map((await readInputReferences([...new Set(summaries.map((summary) => summary.inputSet.id))]))
+      .map((reference) => [reference.calculation_input_set_id, reference] as const))
+    : null
   const scenarioFlags = await Promise.all(summaries.map(async (summary) => {
-    const reference = await readInputReference(summary.inputSet.id)
+    const reference = referencesByInputSetId
+      ? referencesByInputSetId.get(summary.inputSet.id) ?? null
+      : await readInputReference(summary.inputSet.id)
     const referenceJson = reference?.input_reference_json
     return [summary.run.id, isPayrollAcceptanceScenarioReference(referenceJson)
       && !isCompletePayfull02ScenarioReference(referenceJson)] as const
