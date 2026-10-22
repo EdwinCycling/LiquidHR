@@ -24,7 +24,11 @@
 > **GO:** nieuwe afgebakende niet-Payroll-features op schoon `main`, met normale per-feature gates. **HOLD:** runtime van `work/payroll-p0-p1` tot config-herstel; eerst `/payroll/runs` herstellen vóór nieuwe salarisrunfunctionaliteit. Zie [postrelease- en cleanupstatus](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md) voor volledige bewijsgrenzen. Eerder gedateerde paragrafen hieronder zijn historische snapshots.
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-22 (postrelease + PAYD1-K2-06 synthetische bronset; historische bewijssecties volgen)
+Bijgewerkt: 2026-10-22 (postrelease + PAY-INTEGRATE-01; historische bewijssecties volgen)
+
+## PAY-INTEGRATE-01 — lokale Payroll + D1-kandidaat (22-10-2026)
+
+`integration/PAYROLL-D1-20261022` bouwt voort op D1 `0c16aab2`; de Payroll-HEAD `86386eed` is al ancestor, dus er zijn geen Payroll-commits dubbel overgenomen. Eén lokale lintfix staat op `0d21f028`. Verdict: **GO WITH CONDITIONS voor lokale codeconvergentie**. Gerichte Payroll/API/D0/K2/autorisatieregressies, regeltests, typechecks, ESLint, i18n en de productiebuild slagen. De volledige HR Suite heeft 3.466 PASS, 8 SKIP en 12 time-outs; browser/live RLS blijft OPEN omdat de centrale TEST-config ontbreekt. De bestaande Mars FINALIZED-PDF is deze run niet opnieuw live gelezen of gewijzigd; de eerder vastgelegde D0-byte/SHA-evidence blijft historisch bewijs. PMUX blijft apart op `19656935`; `PMUX-04R6` is PARTIAL/HOLD en R7 verwijderde de onvoltooide Manager/Employee-loginopties. Geen PMUX-code, main-merge, push of deployment. Zie [PAY-INTEGRATE-01](../quality/acceptance/runs/PAY-INTEGRATE-01-20261022.md).
 
 ## Historische status- en acceptance-snapshots (18 oktober en eerder)
 
