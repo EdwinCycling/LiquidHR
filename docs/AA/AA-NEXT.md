@@ -1,18 +1,18 @@
 # AA-NEXT — Short-Term Roadmap
 
-> **ACTUELE UITVOERVOLGORDE 21-10-2026:** `1.20261021.1` is geïntegreerd en live op Vercel; geen nieuwe mega-merge of herhaling van reeds geaccepteerde STAR/UX-code. Voor details zie [postrelease status](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md). Het oude plan om de K2-november-CONCEPT-run nog te maken is **ingehaald**: Frits/Jupiter CONCEPT-run `d8508395-2e25-59be-bc0b-ff2f0b83f7dc` is opgeslagen, **niet** FINALIZED of netto-/loonstrook-geaccepteerd.
+> **ACTUELE UITVOERVOLGORDE 22-10-2026:** `1.20261021.1` is geïntegreerd en live op Vercel; geen nieuwe mega-merge of herhaling van reeds geaccepteerde STAR/UX-code. Voor details zie [postrelease status](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md). De historische Frits/Jupiter CONCEPT-run `d8508395-2e25-59be-bc0b-ff2f0b83f7dc` is ongewijzigd. PAYD1-K2-06 heeft één volledige synthetische november-bronset, berekening en lokale in-memory CONCEPT-PDF-proef opgeleverd; die case is geen Frits-herread of wettelijke acceptatie. Er start geen automatische vervolg-wave.
 
 **Eerste korte vervolgacties:**
 1. **CONFIG-RECOVERY-01 — BLOCKED, onderzoeksrun afgerond:** oorspronkelijke 519-byte `.env.local` van `work/payroll-p0-p1` niet gevonden na gerichte archief-/worktree-/Prullenbak-/File History-controle; originele hash onbekend, VSS zonder administrator ontoegankelijk. **Geen nieuwe zoekrun plannen.** Alleen als deze Payroll/Nmbrs-runtime nodig is: eigenaar herstelt uit oorspronkelijke beveiligde bron of autoriseert een **nieuwe** minimale configuratie met bronwaardeverificatie en afzonderlijke runtimeacceptatie. Geen centrale config blind kopiëren. Onafhankelijke nieuwe functies niet blokkeren.
 2. **PAYDOC-D0 lokaal — PARTIAL (21-10):** DEMO-002s bestaande Mars FINALIZED-PDF blijft via HR Admin en Employee-selfservice byte-/SHA-pariteit PASS. Employee mobiel 390×1079 is nu PASS: viewer, download en terugnavigatie; oude Mars-only-hold gesloten onder het tenantbrede contract. Gerichte closeouttests: 48/48 viewer/auth/scope, cross-employee 2/2, cross-scope 1/1, en negen brongecorreleerde timeoutkandidaten 9/9 met één worker binnen 5s. De oorspronkelijke negen timeout-ID's ontbreken; full suite niet herhaald, eerdere 3.443 PASS/8 SKIP/21 time-outs blijft historische uitkomst. Live Manager/Lisa/foreign-tenant-probes blijven OPEN; de /payroll/runs-werkplek blijft traag (7,54–13,34 s). Geen vervolgfixwave gestart; zie D0-bewijs.
 3. **Gerichte hosted bewijsresten:** Employee FINALIZED payslip passende actor; HeRa/MCP/Focus echte host-, consent- en revocationacceptatie; provenance via betrouwbare artifactbron als haalbaar.
 4. **AA/documentatie:** status hoort op GitHub; docs-only update verandert bestaande Vercel deploy-SHA niet. Windows `main` na merge fast-forward naar GitHub. Stashes/refs bewaren tot functionele reconciliatie; geen extra lokale worktrees zonder noodzaak.
-5. **Nieuwe niet-Payroll features mogen beginnen:** Core **WVP01 → INS02 → AW02 later**; PMUX-02/03 en Employee UX-upgrade zijn geplande losse waves. AI-uitbreiding pas na herprioritering/hostacceptatie. Payroll-volgorde: bestaande K2 CONCEPT → volledige nette netto-/finaliseringsketen → Retail/Mars per eigen officiële bron/readback; geen GA-claim.
+5. **Nieuwe niet-Payroll features mogen beginnen:** Core **WVP01 → INS02 → AW02 later**; PMUX-02/03 en Employee UX-upgrade zijn geplande losse waves. AI-uitbreiding pas na herprioritering/hostacceptatie. Payroll-status: synthetische K2-case is lokaal compleet; de echte Frits-bronreconciliatie en wettelijke/productieacceptatie blijven OPEN. Een volgende Payroll-wave vereist een afzonderlijke opdracht en bevoegde bronhouderbevestiging; geen GA-claim.
 
 De onderstaande oudere productwaves blijven als gedateerde ontwerp-/acceptatieplanning staan en zijn **niet** de actuele releasepositie.
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-21 (postrelease; historische productwaves hieronder)
+Bijgewerkt: 2026-10-22 (postrelease + PAYD1-K2-06; historische productwaves hieronder)
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 

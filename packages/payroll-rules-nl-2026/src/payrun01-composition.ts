@@ -257,7 +257,59 @@ const valueSources = [
 const classifiedGrossSupplementSources: readonly PayrollComponentDefinition[] = [
   source('PAYRUN01_FIXED_GROSS_SUPPLEMENT', 'amount', 'MONEY', ['payrollOwned', 'amounts', 'fixedGrossSupplement'], '2026.3'),
   source('PAYRUN01_FIXED_GROSS_SUPPLEMENT_RESERVEABLE', 'value', 'BOOLEAN', ['payrollOwned', 'controls', 'fixedGrossSupplementReserveable'], '2026.3'),
+  source('PAYRUN01_FIXED_GROSS_SUPPLEMENT_IN_WAGE_TAX_BASE', 'value', 'BOOLEAN', ['payrollOwned', 'controls', 'fixedGrossSupplementIncludedInWageTaxBase'], '2026.4'),
+  source('PAYRUN01_FIXED_GROSS_SUPPLEMENT_IN_EMPLOYEE_INSURANCE_BASE', 'value', 'BOOLEAN', ['payrollOwned', 'controls', 'fixedGrossSupplementIncludedInEmployeeInsuranceBase'], '2026.4'),
+  source('PAYRUN01_FIXED_GROSS_SUPPLEMENT_IN_ZVW_BASE', 'value', 'BOOLEAN', ['payrollOwned', 'controls', 'fixedGrossSupplementIncludedInZvwBase'], '2026.4'),
 ]
+
+function fiscalBaseWithClassifiedSupplement(code: string, fiscalBaseCode: string, includedFlagCode: string): PayrollComponentDefinition {
+  return moneyComponent(
+    code,
+    'amount',
+    [
+      { name: 'fiscalBase', valueType: 'MONEY', required: true },
+      { name: 'supplement', valueType: 'MONEY', required: true },
+      { name: 'alreadyIncluded', valueType: 'BOOLEAN', required: true },
+    ],
+    [
+      { componentCode: fiscalBaseCode, outputName: 'amount', inputName: 'fiscalBase' },
+      { componentCode: 'PAYRUN01_FIXED_GROSS_SUPPLEMENT', outputName: 'amount', inputName: 'supplement' },
+      { componentCode: includedFlagCode, outputName: 'value', inputName: 'alreadyIncluded' },
+    ],
+    {
+      kind: 'if',
+      condition: output(includedFlagCode, 'value'),
+      then: output(fiscalBaseCode, 'amount'),
+      else: {
+        kind: 'binary', operator: '+',
+        left: output(fiscalBaseCode, 'amount'),
+        right: output('PAYRUN01_FIXED_GROSS_SUPPLEMENT', 'amount'),
+      },
+    },
+    '2026.1',
+  )
+}
+
+const wageTaxBaseWithClassifiedSupplement = fiscalBaseWithClassifiedSupplement(
+  'PAYRUN01_WAGE_TAX_BASE_WITH_CLASSIFIED_SUPPLEMENT',
+  'PAYRUN01_WAGE_TAX_BASE',
+  'PAYRUN01_FIXED_GROSS_SUPPLEMENT_IN_WAGE_TAX_BASE',
+)
+const employeeInsuranceBaseWithClassifiedSupplement = fiscalBaseWithClassifiedSupplement(
+  'PAYRUN01_EMPLOYEE_INSURANCE_BASE_WITH_CLASSIFIED_SUPPLEMENT',
+  'PAYRUN01_EMPLOYEE_INSURANCE_BASE',
+  'PAYRUN01_FIXED_GROSS_SUPPLEMENT_IN_EMPLOYEE_INSURANCE_BASE',
+)
+const zvwBaseWithClassifiedSupplement = fiscalBaseWithClassifiedSupplement(
+  'PAYRUN01_ZVW_BASE_WITH_CLASSIFIED_SUPPLEMENT',
+  'PAYRUN01_ZVW_BASE',
+  'PAYRUN01_FIXED_GROSS_SUPPLEMENT_IN_ZVW_BASE',
+)
+const classifiedSupplementFiscalBases = [
+  wageTaxBaseWithClassifiedSupplement,
+  employeeInsuranceBaseWithClassifiedSupplement,
+  zvwBaseWithClassifiedSupplement,
+] as const
 
 const allLevyDeductionSources: readonly PayrollComponentDefinition[] = [
   source('PAYRUN01_ALL_LEVY_RATE', 'rate', 'PERCENTAGE', ['payrollOwned', 'parameters', 'allLevyRate'], '2026.3'),
@@ -451,6 +503,19 @@ const taxableWage: PayrollComponentDefinition = {
   tracePolicy: 'FULL',
 }
 
+const taxableWageWithClassifiedSupplement: PayrollComponentDefinition = {
+  ...taxableWage,
+  id: 'system:nl-2026:nl-taxable-wage-payrun01-classified-supplement',
+  version: '2026.3-payrun01',
+  dependencies: [
+    { componentCode: wageTaxBaseWithClassifiedSupplement.code, outputName: 'amount', inputName: 'wageTaxBase' },
+  ],
+  method: {
+    kind: 'expression',
+    outputs: { taxableWage: output(wageTaxBaseWithClassifiedSupplement.code, 'amount') },
+  },
+}
+
 const baseWageTax = NL_2026_RULE_PACKAGE.components.find((component) => component.code === 'NL_WAGE_TAX')!
 const wageTax: PayrollComponentDefinition = {
   ...baseWageTax,
@@ -470,6 +535,18 @@ const aofAfterAllLevy = percentCost('PAYRUN01_AOF_COST', 'PAYRUN01_AOF_RATE', 'P
 const wkoAfterAllLevy = percentCost('PAYRUN01_WKO_COST', 'PAYRUN01_WKO_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
 const whkAfterAllLevy = percentCost('PAYRUN01_WHK_COST', 'PAYRUN01_WHK_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
 const zvwAfterAllLevy = percentCost('PAYRUN01_ZVW_COST', 'PAYRUN01_ZVW_RATE', 'PAYRUN01_ZVW_BASE_AFTER_ALL_LEVY')
+
+const awfWithClassifiedSupplement = percentCost('PAYRUN01_AWF_COST', 'PAYRUN01_AWF_RATE', employeeInsuranceBaseWithClassifiedSupplement.code)
+const aofWithClassifiedSupplement = percentCost('PAYRUN01_AOF_COST', 'PAYRUN01_AOF_RATE', employeeInsuranceBaseWithClassifiedSupplement.code)
+const wkoWithClassifiedSupplement = percentCost('PAYRUN01_WKO_COST', 'PAYRUN01_WKO_RATE', employeeInsuranceBaseWithClassifiedSupplement.code)
+const whkWithClassifiedSupplement = percentCost('PAYRUN01_WHK_COST', 'PAYRUN01_WHK_RATE', employeeInsuranceBaseWithClassifiedSupplement.code)
+const zvwWithClassifiedSupplement = percentCost('PAYRUN01_ZVW_COST', 'PAYRUN01_ZVW_RATE', zvwBaseWithClassifiedSupplement.code)
+
+const awfWithClassifiedSupplementAfterAllLevy = percentCost('PAYRUN01_AWF_COST', 'PAYRUN01_AWF_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
+const aofWithClassifiedSupplementAfterAllLevy = percentCost('PAYRUN01_AOF_COST', 'PAYRUN01_AOF_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
+const wkoWithClassifiedSupplementAfterAllLevy = percentCost('PAYRUN01_WKO_COST', 'PAYRUN01_WKO_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
+const whkWithClassifiedSupplementAfterAllLevy = percentCost('PAYRUN01_WHK_COST', 'PAYRUN01_WHK_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
+const zvwWithClassifiedSupplementAfterAllLevy = percentCost('PAYRUN01_ZVW_COST', 'PAYRUN01_ZVW_RATE', 'PAYRUN01_ZVW_BASE_AFTER_ALL_LEVY')
 
 function employerInsuranceFor(
   selectedAwf: PayrollComponentDefinition,
@@ -819,19 +896,39 @@ function baseAfterAllLevyDeduction(code: string, rawBaseCode: string): PayrollCo
 const wageTaxBaseAfterAllLevy = baseAfterAllLevyDeduction('PAYRUN01_WAGE_TAX_BASE_AFTER_ALL_LEVY', 'PAYRUN01_WAGE_TAX_BASE')
 const employeeInsuranceBaseAfterAllLevy = baseAfterAllLevyDeduction('PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE')
 const zvwBaseAfterAllLevy = baseAfterAllLevyDeduction('PAYRUN01_ZVW_BASE_AFTER_ALL_LEVY', 'PAYRUN01_ZVW_BASE')
+const wageTaxBaseWithClassifiedSupplementAfterAllLevy = baseAfterAllLevyDeduction(
+  wageTaxBaseAfterAllLevy.code,
+  wageTaxBaseWithClassifiedSupplement.code,
+)
+const employeeInsuranceBaseWithClassifiedSupplementAfterAllLevy = baseAfterAllLevyDeduction(
+  employeeInsuranceBaseAfterAllLevy.code,
+  employeeInsuranceBaseWithClassifiedSupplement.code,
+)
+const zvwBaseWithClassifiedSupplementAfterAllLevy = baseAfterAllLevyDeduction(
+  zvwBaseAfterAllLevy.code,
+  zvwBaseWithClassifiedSupplement.code,
+)
 
-const taxableWageAfterAllLevy: PayrollComponentDefinition = {
-  ...taxableWage,
-  id: 'system:nl-2026:nl-taxable-wage-payrun01-after-all-levy',
-  version: '2026.3-payrun01',
-  dependencies: [
-    { componentCode: wageTaxBaseAfterAllLevy.code, outputName: 'amount', inputName: 'wageTaxBase' },
-  ],
-  method: {
-    kind: 'expression',
-    outputs: { taxableWage: output(wageTaxBaseAfterAllLevy.code, 'amount') },
-  },
+function taxableWageAfterAllLevyFor(base: PayrollComponentDefinition, suffix: string): PayrollComponentDefinition {
+  return {
+    ...taxableWage,
+    id: `system:nl-2026:nl-taxable-wage-payrun01-after-all-levy-${suffix}`,
+    version: '2026.4-payrun01',
+    dependencies: [
+      { componentCode: base.code, outputName: 'amount', inputName: 'wageTaxBase' },
+    ],
+    method: {
+      kind: 'expression',
+      outputs: { taxableWage: output(base.code, 'amount') },
+    },
+  }
 }
+
+const taxableWageAfterAllLevy = taxableWageAfterAllLevyFor(wageTaxBaseAfterAllLevy, 'standard')
+const taxableWageWithClassifiedSupplementAfterAllLevy = taxableWageAfterAllLevyFor(
+  wageTaxBaseWithClassifiedSupplementAfterAllLevy,
+  'classified-supplement',
+)
 
 function netPayAfterAllLevy(pensionIncluded: boolean): PayrollComponentDefinition {
   const deductions = [
@@ -976,6 +1073,48 @@ const resultMappings: readonly PayrollResultMapping[] = [
   { key: 'total_employer_cost', componentCode: 'PAYRUN01_TOTAL_EMPLOYER_COST', outputName: 'amount' },
 ]
 
+function afterLevyFiscalBaseComponents(supplement: boolean): readonly PayrollComponentDefinition[] {
+  return supplement
+    ? [
+      wageTaxBaseWithClassifiedSupplementAfterAllLevy,
+      employeeInsuranceBaseWithClassifiedSupplementAfterAllLevy,
+      zvwBaseWithClassifiedSupplementAfterAllLevy,
+    ]
+    : [wageTaxBaseAfterAllLevy, employeeInsuranceBaseAfterAllLevy, zvwBaseAfterAllLevy]
+}
+
+function employerPremiumComponents(supplement: boolean, afterLevy: boolean): readonly PayrollComponentDefinition[] {
+  if (supplement && afterLevy) {
+    return [
+      awfWithClassifiedSupplementAfterAllLevy,
+      aofWithClassifiedSupplementAfterAllLevy,
+      wkoWithClassifiedSupplementAfterAllLevy,
+      whkWithClassifiedSupplementAfterAllLevy,
+      zvwWithClassifiedSupplementAfterAllLevy,
+    ]
+  }
+  if (supplement) return [awfWithClassifiedSupplement, aofWithClassifiedSupplement, wkoWithClassifiedSupplement, whkWithClassifiedSupplement, zvwWithClassifiedSupplement]
+  if (afterLevy) return [awfAfterAllLevy, aofAfterAllLevy, wkoAfterAllLevy, whkAfterAllLevy, zvwAfterAllLevy]
+  return [awf, aof, wko, whk, zvw]
+}
+
+function employerInsuranceComponent(supplement: boolean, afterLevy: boolean): PayrollComponentDefinition {
+  if (!supplement) return afterLevy ? employerInsuranceAfterAllLevy : employerInsurance
+  const selectedPremiums = employerPremiumComponents(supplement, afterLevy)
+  return employerInsuranceFor(
+    selectedPremiums[0]!,
+    selectedPremiums[1]!,
+    selectedPremiums[2]!,
+    selectedPremiums[3]!,
+    selectedPremiums[4]!,
+  )
+}
+
+function taxableWageComponent(supplement: boolean, afterLevy: boolean): PayrollComponentDefinition {
+  if (afterLevy) return supplement ? taxableWageWithClassifiedSupplementAfterAllLevy : taxableWageAfterAllLevy
+  return supplement ? taxableWageWithClassifiedSupplement : taxableWage
+}
+
 function scenarioComponentsFor(options: {
   readonly supportPartialPeriods: boolean
   readonly supportClassifiedGrossSupplement: boolean
@@ -985,16 +1124,17 @@ function scenarioComponentsFor(options: {
   return [
     ...valueSources,
     ...(supportClassifiedGrossSupplement ? classifiedGrossSupplementSources : []),
+    ...(supportClassifiedGrossSupplement ? classifiedSupplementFiscalBases : []),
     ...(supportAllLevyDeduction ? allLevyDeductionSources : []),
     ...(supportPartialPeriods ? partialPeriodSources : []),
     additionalHoursCashAmount,
     supportPartialPeriods ? contractualSalaryWithPartialPeriods : contractualSalaryComponent,
     ...(supportClassifiedGrossSupplement ? [classifiedSupplementReserveBase] : []),
-    ...(supportAllLevyDeduction ? [allLevyDeduction, wageTaxBaseAfterAllLevy, employeeInsuranceBaseAfterAllLevy, zvwBaseAfterAllLevy] : []),
-    ...(supportAllLevyDeduction ? [awfAfterAllLevy, aofAfterAllLevy, wkoAfterAllLevy, whkAfterAllLevy, zvwAfterAllLevy] : [awf, aof, wko, whk, zvw]),
-    supportAllLevyDeduction
-      ? employerInsuranceAfterAllLevy
-      : employerInsurance,
+    ...(supportAllLevyDeduction
+      ? [allLevyDeduction, ...afterLevyFiscalBaseComponents(supportClassifiedGrossSupplement)]
+      : []),
+    ...employerPremiumComponents(supportClassifiedGrossSupplement, supportAllLevyDeduction),
+    employerInsuranceComponent(supportClassifiedGrossSupplement, supportAllLevyDeduction),
     ...(supportClassifiedGrossSupplement
       ? [
         reserveOnClassifiedBase('PAYRUN01_HOLIDAY_RESERVE', 'PAYRUN01_HOLIDAY_RATE'),
@@ -1018,16 +1158,17 @@ function scenarioComponentsWithoutPensionFor(options: {
   return [
     ...valueSources.filter((component) => !['PAYRUN01_EMPLOYEE_PENSION', 'PAYRUN01_EMPLOYER_PENSION'].includes(component.code)),
     ...(supportClassifiedGrossSupplement ? classifiedGrossSupplementSources : []),
+    ...(supportClassifiedGrossSupplement ? classifiedSupplementFiscalBases : []),
     ...(supportAllLevyDeduction ? allLevyDeductionSources : []),
     ...(supportPartialPeriods ? partialPeriodSources : []),
     additionalHoursCashAmount,
     supportPartialPeriods ? contractualSalaryWithPartialPeriods : contractualSalaryComponent,
     ...(supportClassifiedGrossSupplement ? [classifiedSupplementReserveBase] : []),
-    ...(supportAllLevyDeduction ? [allLevyDeduction, wageTaxBaseAfterAllLevy, employeeInsuranceBaseAfterAllLevy, zvwBaseAfterAllLevy] : []),
-    ...(supportAllLevyDeduction ? [awfAfterAllLevy, aofAfterAllLevy, wkoAfterAllLevy, whkAfterAllLevy, zvwAfterAllLevy] : [awf, aof, wko, whk, zvw]),
-    supportAllLevyDeduction
-      ? employerInsuranceAfterAllLevy
-      : employerInsurance,
+    ...(supportAllLevyDeduction
+      ? [allLevyDeduction, ...afterLevyFiscalBaseComponents(supportClassifiedGrossSupplement)]
+      : []),
+    ...employerPremiumComponents(supportClassifiedGrossSupplement, supportAllLevyDeduction),
+    employerInsuranceComponent(supportClassifiedGrossSupplement, supportAllLevyDeduction),
     ...(supportClassifiedGrossSupplement
       ? [
         reserveOnClassifiedBase('PAYRUN01_HOLIDAY_RESERVE', 'PAYRUN01_HOLIDAY_RATE'),
@@ -1064,7 +1205,7 @@ export function createPayrun01RulePackage(
       : `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-2026.2`
   const optionSuffixes = [
     supportPartialPeriods ? 'PARTIAL-PERIODS-2026.1' : undefined,
-    supportClassifiedGrossSupplement ? 'CLASSIFIED-GROSS-SUPPLEMENT-2026.1' : undefined,
+    supportClassifiedGrossSupplement ? 'CLASSIFIED-GROSS-SUPPLEMENT-2026.2' : undefined,
     supportAllLevyDeduction ? 'ALL-LEVY-DEDUCTION-2026.1' : undefined,
   ].filter((suffix): suffix is string => suffix !== undefined)
   const effectiveCompositionId = optionSuffixes.reduce((id, suffix) => `${id}+${suffix}`, compositionId)
@@ -1072,7 +1213,11 @@ export function createPayrun01RulePackage(
     .filter((component) => !['NL_REGULAR_WAGE', 'NL_TAXABLE_WAGE', 'NL_WAGE_TAX', 'NL_NET_PAY'].includes(component.code))
     .concat([
       supportClassifiedGrossSupplement ? regularWageWithClassifiedSupplement : regularWage,
-      supportAllLevyDeduction ? taxableWageAfterAllLevy : pensionIncluded ? taxableWage : taxableWageWithoutPension,
+      supportAllLevyDeduction
+        ? taxableWageComponent(supportClassifiedGrossSupplement, true)
+        : supportClassifiedGrossSupplement
+          ? taxableWageWithClassifiedSupplement
+          : pensionIncluded ? taxableWage : taxableWageWithoutPension,
       wageTax,
     ])
   const scenarioOptions = { supportPartialPeriods, supportClassifiedGrossSupplement, supportAllLevyDeduction }
@@ -1095,6 +1240,18 @@ export function createPayrun01RulePackage(
           },
         }
       }
+      if (!supportAllLevyDeduction && supportClassifiedGrossSupplement && pensionIncluded
+        && control.code === 'PAYRUN01-CTRL-016-TAXABLE-WAGE-FISCAL-BASE') {
+        return {
+          ...control,
+          expression: {
+            kind: 'binary' as const,
+            operator: '=' as const,
+            left: output('NL_TAXABLE_WAGE', 'taxableWage'),
+            right: output(wageTaxBaseWithClassifiedSupplement.code, 'amount'),
+          },
+        }
+      }
       if (!pensionIncluded && control.code === 'PAYRUN01-CTRL-016-TAXABLE-WAGE-FISCAL-BASE') {
         return {
           ...control,
@@ -1103,7 +1260,9 @@ export function createPayrun01RulePackage(
             kind: 'binary' as const,
             operator: '=' as const,
             left: output('NL_TAXABLE_WAGE', 'taxableWage'),
-            right: output('PAYRUN01_WAGE_TAX_BASE', 'amount'),
+            right: output(supportClassifiedGrossSupplement
+              ? wageTaxBaseWithClassifiedSupplement.code
+              : 'PAYRUN01_WAGE_TAX_BASE', 'amount'),
           },
         }
       }

@@ -97,6 +97,9 @@ function makeK2Snapshot(
         specialRewardIncludedInHolidayReserve: false,
         specialRewardIncludedInYearEndReserve: false,
         fixedGrossSupplementReserveable: false,
+        fixedGrossSupplementIncludedInWageTaxBase: true,
+        fixedGrossSupplementIncludedInEmployeeInsuranceBase: true,
+        fixedGrossSupplementIncludedInZvwBase: true,
         allLevyEligible: true,
       },
       cumulatives: {
@@ -411,6 +414,12 @@ describe('PAYD1 K2 synthetic November 2026 calculation', () => {
     const optionOnlyCodes = [
       'PAYRUN01_FIXED_GROSS_SUPPLEMENT',
       'PAYRUN01_FIXED_GROSS_SUPPLEMENT_RESERVEABLE',
+      'PAYRUN01_FIXED_GROSS_SUPPLEMENT_IN_WAGE_TAX_BASE',
+      'PAYRUN01_FIXED_GROSS_SUPPLEMENT_IN_EMPLOYEE_INSURANCE_BASE',
+      'PAYRUN01_FIXED_GROSS_SUPPLEMENT_IN_ZVW_BASE',
+      'PAYRUN01_WAGE_TAX_BASE_WITH_CLASSIFIED_SUPPLEMENT',
+      'PAYRUN01_EMPLOYEE_INSURANCE_BASE_WITH_CLASSIFIED_SUPPLEMENT',
+      'PAYRUN01_ZVW_BASE_WITH_CLASSIFIED_SUPPLEMENT',
       'PAYRUN01_ALL_LEVY_DEDUCTION',
     ]
 
