@@ -13,7 +13,7 @@ import { DropdownSelect } from '../ui/dropdown-select'
 import { Textarea } from '../ui/textarea'
 import { ConfirmDialog } from '../patterns/confirm-dialog'
 import { FormField } from '../patterns/form-field'
-import { FormRuntimeRenderer } from './form-runtime-renderer'
+import { FormRuntimeRenderer, type FormRuntimeServerFieldError } from './form-runtime-renderer'
 import { InternalTransferCommitPanel } from './internal-transfer-commit-panel'
 
 export interface ProcessWorkDetailLabels {
@@ -264,6 +264,7 @@ export function ProcessWorkDetailView({ detail, experience, form, outputs, opera
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [serverFieldError, setServerFieldError] = useState<FormRuntimeServerFieldError | null>(null)
   const [requestChangesOpen, setRequestChangesOpen] = useState(false)
   const [requestChangesReason, setRequestChangesReason] = useState('')
   const [requestChangesInvalid, setRequestChangesInvalid] = useState(false)
@@ -274,14 +275,21 @@ export function ProcessWorkDetailView({ detail, experience, form, outputs, opera
   async function post(path: string, body: Record<string, unknown>, actionKey: string): Promise<void> {
     setBusy(actionKey)
     setFeedback(null)
+    setServerFieldError(null)
     try {
       const response = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       const bodyValue: unknown = await response.json().catch(() => null)
       if (!response.ok) {
         const code = typeof bodyValue === 'object' && bodyValue !== null && 'code' in bodyValue && typeof bodyValue.code === 'string' ? bodyValue.code : 'PROCESS_WORK_ITEM_OPERATION_FAILED'
-        setFeedback(errorLabel(code, labels))
+        const fieldKey = typeof bodyValue === 'object' && bodyValue !== null && 'fieldKey' in bodyValue && typeof bodyValue.fieldKey === 'string' ? bodyValue.fieldKey : null
+        if ((code === 'REQUIRED_FORM_FIELD' || code === 'INVALID_FORM_VALUE') && fieldKey) {
+          setServerFieldError((current) => ({ fieldKey, code, sequence: (current?.sequence ?? 0) + 1 }))
+        } else {
+          setFeedback(errorLabel(code, labels))
+        }
         return
       }
+      setServerFieldError(null)
       setFeedback(labels.success)
       router.refresh()
     } catch {
@@ -407,7 +415,7 @@ export function ProcessWorkDetailView({ detail, experience, form, outputs, opera
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid gap-6">
           <section className="rounded-[var(--radius-surface)] border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{isRequesterPresentation ? labels.assignmentRole : labels.assignmentReason}</h2><p className="mt-2 text-sm font-medium">{isRequesterPresentation ? detail.canAct ? labels.requesterYou : requesterRole : assignmentReasonText(detail, labels)}</p></section>
-          {form ? <FormRuntimeRenderer embedded initialProjection={form} locale={locale} participantLabel={isRequesterPresentation ? labels.requesterAudience : roleForPresentation(detail, labels)} saveExplanation={isRequesterPresentation ? labels.requesterSaveExplanation : undefined} labels={{ currentValue: labels.formCurrentValue, newValue: labels.formNewValue, saving: labels.formSaving, saved: labels.formSaved, saveError: labels.formSaveError, stale: labels.formStale, save: isRequesterPresentation ? labels.requesterDraftSave : labels.formSave, errorSummary: labels.formErrorSummary, required: labels.formRequired, invalid: labels.formInvalid, readOnly: labels.formReadOnly, noValue: labels.formNoValue, booleanTrue: labels.formBooleanTrue, booleanFalse: labels.formBooleanFalse, referenceSearch: labels.formReferenceSearch, referenceLoading: labels.formReferenceLoading, referenceNoOptions: labels.formReferenceNoOptions, scrollHint: labels.formScrollHint }} /> : null}
+          {form ? <FormRuntimeRenderer embedded initialProjection={form} serverFieldError={serverFieldError} locale={locale} participantLabel={isRequesterPresentation ? labels.requesterAudience : roleForPresentation(detail, labels)} saveExplanation={isRequesterPresentation ? labels.requesterSaveExplanation : undefined} labels={{ currentValue: labels.formCurrentValue, newValue: labels.formNewValue, saving: labels.formSaving, saved: labels.formSaved, saveError: labels.formSaveError, stale: labels.formStale, save: isRequesterPresentation ? labels.requesterDraftSave : labels.formSave, errorSummary: labels.formErrorSummary, required: labels.formRequired, invalid: labels.formInvalid, readOnly: labels.formReadOnly, noValue: labels.formNoValue, booleanTrue: labels.formBooleanTrue, booleanFalse: labels.formBooleanFalse, referenceSearch: labels.formReferenceSearch, referenceLoading: labels.formReferenceLoading, referenceNoOptions: labels.formReferenceNoOptions, scrollHint: labels.formScrollHint }} /> : null}
           {experience?.changeRequests.length ? <section className="rounded-[var(--radius-surface)] border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.changeRequests}</h2><ul className="mt-4 grid gap-4">{experience.changeRequests.map((request) => <li className="border-l-2 border-warning pl-3 text-sm" key={request.id}><p className="whitespace-pre-wrap break-words leading-6">{request.body}</p><p className="mt-2 text-xs text-muted-foreground">{date(request.createdAt, locale)}</p></li>)}</ul></section> : null}
           {isDocumentAcknowledgement && documentId ? <section className="rounded-[var(--radius-surface)] border border-border bg-surface p-5" aria-labelledby="document-acknowledgement-document"><h2 className="text-xl font-semibold" id="document-acknowledgement-document">{labels.documentDownload}</h2><p className="mt-2 text-sm font-medium">{documentLabel ?? labels.formNoValue}</p><p className="mt-2 break-all text-xs text-muted-foreground">{labels.documentChecksum}: {typeof documentValue === 'object' && documentValue !== null && !Array.isArray(documentValue) && typeof documentValue.checksumSha256 === 'string' ? documentValue.checksumSha256 : labels.formNoValue}</p><Link className={buttonClasses({ className: 'mt-4 inline-flex', size: 'sm', variant: 'secondary' })} href={`/api/process-work-items/${detail.workItemId}/document`}>{labels.documentDownload}</Link></section> : null}
           {outputs ? <section className="rounded-[var(--radius-surface)] border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.output}</h2><div className="mt-4 divide-y divide-border">{outputs.outputs.length === 0 ? <p className="text-sm text-muted-foreground">{labels.downloadUnavailable}</p> : outputs.outputs.map((output) => <article className="py-4 first:pt-0 last:pb-0" key={output.id}><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold">{output.title}</h3><p className="mt-1 text-xs text-muted-foreground">{outputStatusLabel(output.status, labels)}</p></div>{output.documentId && output.status === 'AVAILABLE' ? <Link className="rounded-[var(--radius-control)] bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-primary" href={`/api/process-instances/${detail.processInstanceId}/outputs/${output.id}/download`}>{labels.download}</Link> : null}</div>{output.htmlSummary && output.status === 'AVAILABLE' ? <p className="mt-4 whitespace-pre-line border-t border-border pt-4 text-sm leading-6">{processOutputSummaryText(output.htmlSummary)}</p> : null}</article>)}</div></section> : null}

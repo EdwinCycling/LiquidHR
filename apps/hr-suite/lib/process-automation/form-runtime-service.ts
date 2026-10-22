@@ -51,7 +51,7 @@ const stableErrorCodes = new Set<FormRuntimeErrorCode>([
 ])
 
 export class FormRuntimeError extends Error {
-  constructor(readonly code: FormRuntimeErrorCode, readonly status: number, message: string = code) {
+  constructor(readonly code: FormRuntimeErrorCode, readonly status: number, message: string = code, readonly fieldKey?: string) {
     super(message)
     this.name = 'FormRuntimeError'
   }
@@ -64,6 +64,13 @@ function codeFromRpcMessage(message: string): FormRuntimeErrorCode {
   return 'PROCESS_FORM_RUNTIME_OPERATION_FAILED'
 }
 
+export function formRuntimeFieldKeyFromRpcDetails(code: FormRuntimeErrorCode, details?: string | null): string | null {
+  if (code !== 'REQUIRED_FORM_FIELD' && code !== 'INVALID_FORM_VALUE') return null
+  const fieldKey = details?.trim()
+  if (!fieldKey || fieldKey.length > 160) return null
+  return [...fieldKey].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) ? null : fieldKey
+}
+
 function statusForCode(code: FormRuntimeErrorCode): number {
   if (code === 'AUTHENTICATION_REQUIRED') return 401
   if (code === 'FORBIDDEN' || code === 'ACTOR_EMPLOYEE_NOT_FOUND') return 403
@@ -72,9 +79,9 @@ function statusForCode(code: FormRuntimeErrorCode): number {
   return 400
 }
 
-function throwFormRuntimeError(message: string): never {
+function throwFormRuntimeError(message: string, details?: string | null): never {
   const code = codeFromRpcMessage(message)
-  throw new FormRuntimeError(code, statusForCode(code), message)
+  throw new FormRuntimeError(code, statusForCode(code), message, formRuntimeFieldKeyFromRpcDetails(code, details) ?? undefined)
 }
 
 export interface SaveProcessFormResponseCommand {
@@ -94,7 +101,7 @@ export async function getProcessFormProjection(workItemId: string, language: 'nl
     requested_work_item_id: workItemId,
     requested_language: language,
   })
-  if (error) throwFormRuntimeError(error.message)
+  if (error) throwFormRuntimeError(error.message, error.details)
   const parsed = formProjectionSchema.safeParse(data)
   if (!parsed.success) throw new FormRuntimeError('PROCESS_FORM_RUNTIME_OPERATION_FAILED', 500)
   return parsed.data
@@ -113,7 +120,7 @@ export async function saveProcessFormResponse(command: SaveProcessFormResponseCo
     requested_correlation_id: command.correlationId as string,
     requested_language: command.language,
   })
-  if (error) throwFormRuntimeError(error.message)
+  if (error) throwFormRuntimeError(error.message, error.details)
   const parsed = formProjectionSchema.safeParse(data)
   if (!parsed.success) throw new FormRuntimeError('PROCESS_FORM_RUNTIME_OPERATION_FAILED', 500)
   return parsed.data
@@ -121,7 +128,7 @@ export async function saveProcessFormResponse(command: SaveProcessFormResponseCo
 
 export function formRuntimeErrorResponse(error: unknown): NextResponse | null {
   if (!(error instanceof FormRuntimeError)) return null
-  return NextResponse.json({ code: error.code }, { status: error.status })
+  return NextResponse.json(error.fieldKey ? { code: error.code, fieldKey: error.fieldKey } : { code: error.code }, { status: error.status })
 }
 
 export const formRuntimeErrorCodeFromMessage = codeFromRpcMessage

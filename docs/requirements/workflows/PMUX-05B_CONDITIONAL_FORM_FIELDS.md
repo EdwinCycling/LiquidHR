@@ -1,6 +1,6 @@
 # PMUX-05B — Conditionele formuliervelden
 
-Status: lokale UX-kandidaat; serveracceptatie **OPEN**
+Status: lokale servercontract-kandidaat GREEN; live rol- en releaseacceptatie OPEN
 
 Datum: 2026-10-22
 
@@ -18,7 +18,7 @@ HR Admin configureert in de bestaande Formulierenstudio, per veld, wanneer het z
 | FormRuntimeRenderer | **BESTAAND:** rendert de serverprojectie, autosavet en ververst na een succesvolle save de projectie; de API/RPC valideert opnieuw server-side. | Ongewijzigd gebruikt; geen client-side autorisatie of tweede runtime-evaluator. |
 | Formulierenstudio | **UX-GAT:** bestaande veldtoegang en statische preview, zonder bruikbare editor voor zichtbaarheid/conditionele invulplicht. | Veldniveau-keuzes voor altijd zichtbaar/zichtbaar bij regel en niet verplicht/altijd verplicht/voorwaardelijk verplicht; menselijke regeltekst, directe foutfeedback en synthetische interactieve preview. |
 | PMUX-05A-regelbouwer | **BESTAAND:** visuele regelbouwer voor procesroutes, nog lokaal in de route-editor. | Gedeelde `ConditionRuleBuilder` voor route- en veldcondities; geen tweede builder/evaluator. |
-| Echt contractgat | Conditionele form/save-semantiek had geen betrouwbare wijzigings- en opslagvolgorde voor de bestaande autosave. | Blijft **OPEN**: server valideert verplichting tijdens elke save vóór de nieuwe zichtbare projectie en bewaart verborgen oude waarden in de samengevoegde `new_values`. |
+| Serverconceptsave en actieve antwoordset | **ECHT CONTRACTGAT vóór deze run:** concept-save valideerde de verplichte projectie voordat gewijzigde bronwaarden die projectie konden activeren; verborgen oude antwoorden bleven actief in new_values. | **LOKAAL OPGELOST:** draft-save staat onvolledige verplichte invoer toe binnen type-/veld-/rechtencontroles; definitieve acties valideren de actuele zichtbare projectie; verborgen antwoorden worden uit actieve waarden verwijderd en blijven alleen in immutable revisiehistorie. |
 
 ## Regelbouwer en rechten
 
@@ -28,12 +28,14 @@ HR Admin configureert in de bestaande Formulierenstudio, per veld, wanneer het z
 - Preview gebruikt de bestaande TypeScript `evaluateCondition`, uitsluitend lokale voorbeeldwaarden, en wist voorbeeldwaarden zodra hun veld verborgen raakt. Preview-aanpassingen worden niet verzonden.
 - Autosave, draft revisions, compilerfeedback en immutable publicatie blijven bestaande studio-/runtimeverantwoordelijkheden.
 
-## Servercontractgaten en afsluiting
+## Servercontract en resterende acceptatie
 
-De huidige `save_process_form_response_with_bindings`-route wordt bij wijzigingen door de bestaande autosave gebruikt. De functie controleert de verplichte zichtbare velden op de samengevoegde antwoordwaarden en geeft pas daarna de nieuwe projectie terug. Als een bronwaarde een voorheen verborgen veld conditioneel verplicht maakt, ziet de deelnemer dat veld dus nog niet en kan de save van de bronwaarde worden geweigerd als `REQUIRED_FORM_FIELD`. De huidige renderer kan dat veld niet eerder tonen, omdat de conditie- en versieprojectie server-side wordt aangeleverd.
+De bestaande server-RPC blokkeerde een draft-save wanneer gewijzigde bronwaarden een nog niet geprojecteerd veld verplicht maakten. Forward-only migratie 20261022203000_pmux05_form_condition_draft_save.sql corrigeert de savevolgorde en laat onvolledige draft-invoer toe. Ongeldige niet-lege typen, onbekende velden, verborgen velden, read-only velden en participant-/tenantcontroles blijven actief.
 
-Bij verbergen slaat de RPC `existing_new || incoming_new` op. De projectie laat verborgen velden weg, maar de opgeslagen oude waarde wordt niet verwijderd; als de veldconditie later weer waar wordt, kan die waarde opnieuw zichtbaar worden. Dit voldoet niet aan de eis om verborgen waarden bij indienen niet te bewaren.
+Definitief indienen en goedkeuren gebruiken de bestaande conditie-evaluator en controleren alle op dat moment zichtbare, bewerkbare, verplichte velden. De projectie en runtimevelden gebruiken dezelfde gefilterde antwoordset als validatie.
 
-Sluit dit alleen met een afzonderlijk toegestane forward-only SQL-contractwijziging en PGlite/SQL-proeven voor autosave, finale validatie, verborgen-waarde-purge en dezelfde participantrechten. PMUX-05B bevat geen migratie of live DB-write. Tot dat bewijs is de status **PARTIAL** en blijft live acceptatie **OPEN**.
+Als een veld verborgen raakt, verwijdert de RPC de vorige waarde uit de actieve new_values-set. De waarde blijft alleen in append-only response-revisiehistorie als auditprovenance; de bestaande RLS-policy en privileges weigeren directe authenticated SELECT. Er komt geen nieuwe historische leesroute bij. Ze wordt niet opnieuw geprojecteerd of gebruikt voor een latere procesbeslissing; wanneer de voorwaarde later weer waar wordt, moet het veld opnieuw worden ingevuld.
 
-Lokale code- en gate-evidence: [PMUX-05B local acceptance](../../quality/acceptance/runs/PMUX-05B-20261022-LOCAL.md).
+De PGlite-contracttest voert de bestaande runtime-, evaluator-, projection-, response-save- en prepare-actionfuncties plus de nieuwe migratie uit. Dit is lokale SQL-evidence, geen bewijs van remote Supabase-functie-eigenaarschap, live JWT/RLS, echte actorrechten of browseracceptatie. Migratie is lokaal en niet toegepast. Fijnmazige rechten per stap/deelnemer blijven buiten deze slice.
+
+Zie [PMUX-05 servercontract acceptance](../../quality/acceptance/runs/PMUX-05-SERVER-CONTRACT-20261022-LOCAL.md) en de actuele [AA-OPEN](../../AA/AA-OPEN.md).

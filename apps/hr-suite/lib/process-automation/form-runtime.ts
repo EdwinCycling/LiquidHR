@@ -124,6 +124,11 @@ export function isFormValueValid(field: FormFieldProjection, value: FormJsonValu
   }
 }
 
+export function isFormDraftValueValid(field: FormFieldProjection, value: FormJsonValue | undefined): boolean {
+  if (isEmptyValue(value)) return true
+  return isFormValueValid({ ...field, required: false }, value)
+}
+
 export function buildVisibleFormPayload(
   projection: FormProjection,
   newValues: Readonly<Record<string, FormJsonValue>>,
@@ -137,12 +142,8 @@ export function buildVisibleFormPayload(
     const field = byKey.get(fieldKey)
     if (!field) throw new FormRuntimeValidationError('FORM_FIELD_UNKNOWN', fieldKey)
     if (field.accessMode === 'READ') throw new FormRuntimeValidationError('FORM_FIELD_READ_ONLY', fieldKey)
-    if (!isFormValueValid(field, value)) throw new FormRuntimeValidationError(field.required ? 'FORM_FIELD_REQUIRED' : 'FORM_FIELD_INVALID', fieldKey)
+    if (!isFormDraftValueValid(field, value)) throw new FormRuntimeValidationError('FORM_FIELD_INVALID', fieldKey)
     visibleValues[fieldKey] = value
-  })
-  fields.forEach((field) => {
-    if (!field.required || field.accessMode === 'READ') return
-    if (!(field.key in visibleValues) && isEmptyValue(field.newValue)) throw new FormRuntimeValidationError('FORM_FIELD_REQUIRED', field.key)
   })
   return { current: {}, new: visibleValues }
 }

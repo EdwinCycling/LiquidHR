@@ -5,12 +5,18 @@ import {
   buildVisibleFormPayload,
   displayFormValue,
   formProjectionSchema,
-  isFormValueValid,
+  isFormDraftValueValid,
   visibleFields,
   type FormFieldProjection,
   type FormJsonValue,
   type FormProjection,
 } from '@/lib/process-automation/form-runtime'
+
+export interface FormRuntimeServerFieldError {
+  readonly fieldKey: string
+  readonly code: 'REQUIRED_FORM_FIELD' | 'INVALID_FORM_VALUE'
+  readonly sequence: number
+}
 
 export interface FormRuntimeLabels {
   readonly currentValue: string
@@ -40,6 +46,7 @@ interface FormRuntimeRendererProps {
   readonly embedded?: boolean
   readonly participantLabel?: string
   readonly saveExplanation?: string
+  readonly serverFieldError?: FormRuntimeServerFieldError | null
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'stale'
@@ -92,7 +99,7 @@ function optionFromUnknown(value: unknown): FormReferenceOption | null {
 }
 
 function fieldError(field: FormFieldProjection, value: FormJsonValue | undefined, labels: FormRuntimeLabels): string | null {
-  return isFormValueValid(field, value) ? null : field.required ? labels.required : labels.invalid
+  return isFormDraftValueValid(field, value) ? null : labels.invalid
 }
 
 function ReferencePicker({
@@ -182,7 +189,7 @@ function ReferencePicker({
   </div>
 }
 
-export function FormRuntimeRenderer({ initialProjection, locale, labels, embedded = false, participantLabel, saveExplanation }: FormRuntimeRendererProps) {
+export function FormRuntimeRenderer({ initialProjection, locale, labels, embedded = false, participantLabel, saveExplanation, serverFieldError }: FormRuntimeRendererProps) {
   const [projection, setProjection] = useState(initialProjection)
   const [values, setValues] = useState<Record<string, FormJsonValue>>(() => initialValues(initialProjection))
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -194,6 +201,22 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
   const scrollRef = useRef<HTMLDivElement>(null)
   const savingRef = useRef(false)
   const fields = useMemo(() => visibleFields(projection), [projection])
+
+  const serverErrorFieldKey = serverFieldError && fields.some((candidate) => candidate.key === serverFieldError.fieldKey && candidate.accessMode !== 'READ') ? serverFieldError.fieldKey : null
+  const visibleErrors = useMemo(() => {
+    const visibleKeys = new Set(fields.map((field) => field.key))
+    const next = Object.fromEntries(Object.entries(errors).filter(([fieldKey]) => visibleKeys.has(fieldKey)))
+    if (serverErrorFieldKey && serverFieldError) {
+      next[serverErrorFieldKey] = serverFieldError.code === 'REQUIRED_FORM_FIELD' ? labels.required : labels.invalid
+    }
+    return next
+  }, [errors, fields, labels.invalid, labels.required, serverErrorFieldKey, serverFieldError])
+
+  useEffect(() => {
+    if (!serverErrorFieldKey) return undefined
+    const frame = window.requestAnimationFrame(() => summaryRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [serverErrorFieldKey, serverFieldError?.sequence])
 
   function setFieldValue(fieldKey: string, value: FormJsonValue): void {
     setValues((current) => ({ ...current, [fieldKey]: value }))
@@ -261,6 +284,14 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
         const code = typeof body === 'object' && body !== null && 'code' in body && typeof body.code === 'string' ? body.code : 'PROCESS_FORM_RUNTIME_OPERATION_FAILED'
         if (code === 'STALE_FORM_RESPONSE') setSaveState('stale')
         else setSaveState('error')
+        if (code === 'REQUIRED_FORM_FIELD' || code === 'INVALID_FORM_VALUE') {
+          const fieldKey = typeof body === 'object' && body !== null && 'fieldKey' in body && typeof body.fieldKey === 'string' ? body.fieldKey : null
+          const field = fieldKey ? fields.find((candidate) => candidate.key === fieldKey && candidate.accessMode !== 'READ') : undefined
+          if (field) {
+            setErrors((current) => ({ ...current, [field.key]: code === 'REQUIRED_FORM_FIELD' ? labels.required : labels.invalid }))
+            window.requestAnimationFrame(() => summaryRef.current?.focus())
+          }
+        }
         return
       }
       const parsedProjection = formProjectionSchema.safeParse(body.data)
@@ -278,7 +309,7 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
     } finally {
       savingRef.current = false
     }
-  }, [changedFieldKeys, dirty, locale, projection, validate, values])
+  }, [changedFieldKeys, dirty, fields, labels.invalid, labels.required, locale, projection, validate, values])
 
   useEffect(() => {
     if (!dirty) return undefined
@@ -313,9 +344,9 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
       <p aria-live="polite" className="mt-5 min-h-5 text-sm text-muted-foreground">{saveStatus}</p>
     </header>
 
-    {Object.keys(errors).length > 0 ? <div ref={summaryRef} aria-label={labels.errorSummary} className="mt-5 rounded-[var(--radius-control)] border border-danger/30 bg-danger-soft p-4 text-sm text-danger" role="alert" tabIndex={-1}>
+    {Object.keys(visibleErrors).length > 0 ? <div ref={summaryRef} aria-label={labels.errorSummary} className="mt-5 rounded-[var(--radius-control)] border border-danger/30 bg-danger-soft p-4 text-sm text-danger" role="alert" tabIndex={-1}>
       <p className="font-semibold">{labels.errorSummary}</p>
-      <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(errors).map(([fieldKey, message]) => <li key={fieldKey}><a href={`#form-field-${fieldKey}`}>{message}</a></li>)}</ul>
+      <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(visibleErrors).map(([fieldKey, message]) => <li key={fieldKey}><a href={`#form-field-${fieldKey}`}>{message}</a></li>)}</ul>
     </div> : null}
 
     <form className={embedded ? 'mt-5 min-w-0' : 'mt-6 flex max-h-[calc(100vh-14rem)] min-h-[28rem] flex-col overflow-hidden rounded-[var(--radius-surface)] border border-border bg-panel'} onSubmit={(event) => { event.preventDefault(); void save() }}>
@@ -325,7 +356,7 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
             <legend className="px-1 text-xl font-semibold">{section.title}</legend>
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               {section.fields.map((field) => {
-                const error = errors[field.key]
+                const error = visibleErrors[field.key]
                 const current = displayFormValue(field.currentValue, valueLabels)
                 const value = values[field.key]
                 const isReadOnly = field.accessMode === 'READ'
