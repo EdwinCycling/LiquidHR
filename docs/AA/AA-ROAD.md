@@ -9,7 +9,7 @@
 > **STAR/Workforce UX-roadmap:** Employee UX-code is geïntegreerd in de live code-release; vervolgpunten blijven medewerkerpagina vereenvoudigen, minder scrollen, lazy loading en responsive kaartteksten. Activa, Software, Wagenpark en Budgetten uit huidige betrokken navigatie/schermen verwijderen, **maar als toekomstige afzonderlijke modules op de roadmap behouden**.
 
 Status: **STRATEGISCH / LIVING**
-Bijgewerkt: 2026-10-21 (PMUX-03B; Core-prioriteiten blijven leidend)
+Bijgewerkt: 2026-10-22 (PMUX-04R5; Core-prioriteiten blijven leidend)
 
 De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
 
@@ -68,7 +68,7 @@ decommissionplan afzonderlijk is goedgekeurd.
 ### Process Automation — PMUX
 - PMUX-02A/02B en 03A zijn lokaal gebouwd; PMUX-03B breidt de bestaande `/work`-details uit voor MSS/HR met besluiten, terugstuurreden, voortgang en historie.
 - PMUX-03C is lokaal afgerond op `9a526a6dbd55092c8fc97d341f1014a9200052eb` (voortbouwend op `76c258013eb6d3ded81e7f2c6be2d0b0023129d7`): stap ordenen/verwijderen, alleen servergeautoriseerde Focus-catalogusnavigatie, gespecificeerde Focus-statussen en terugkeer naar de juiste Focus-context. De capabilitymatrix en zes-vragenbeoordeling zijn vastgelegd; browser-/rolacceptatie is nog OPEN.
-- PMUX-04 blijft de afzonderlijke geauthenticeerde end-to-end browseracceptatie met synthetische gegevens en desktop-/390px-screenshots. De PMUX-03A/03B-migraties zijn niet remote toegepast. Eerst expliciete databaseautorisatie en de in de PMUX-03C-evidence beschreven RLS-/persona-gates; geen automatische FINAL ACCEPTED-status.
+- PMUX-04 blijft de afzonderlijke geauthenticeerde browseracceptatie met synthetische gegevens. PMUX-04R5 bevestigt dat HR Admin-routes lokaal op TEST-context laden, maar owner/Manager/Employee, live securityproeven en PNG-bestanden blijven OPEN; /focus/aanvragen geeft 404 en Opleidingsaanvraag is niet beschikbaar in het getoonde procesoverzicht. De catalogusmigratie is eerder op TEST toegepast en de migratiehistorie is volgens PMUX-04R2 gereconcilieerd; PMUX-03B-historiemigratie blijft LOCAL ONLY. Geen volledige acceptatie. Zie [AA-OPEN](AA-OPEN.md), [PMUX-04R5 evidence](../quality/acceptance/runs/PMUX-04R5-20261022-BROWSER-RESULTS.md) en de eerdere [PMUX-04 evidence](../quality/acceptance/runs/PMUX-04-20261021-TEST-ACCEPTANCE.md).
 - Zie [AA-OPEN](AA-OPEN.md), [PMUX-03C evidence](../quality/acceptance/runs/PMUX-03C-20261021-LOCAL.md) en de eerdere [PMUX-03B evidence](../quality/acceptance/runs/PMUX-03B-20261021-LOCAL.md).
 
 ### WvP / Verzuim — WVP01, volgende Core-wave na PERF01-B2

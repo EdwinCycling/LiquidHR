@@ -149,6 +149,12 @@ Voeg pas een GitHub-acceptancelink toe nadat de Payroll branch daadwerkelijk is 
 
 De run van 21-10-2026 in de geïsoleerde PMUX-worktree is **HOLD**: de geautoriseerde catalogusmigratie is toegepast op TEST (remote versie 20261021182957), maar de aanvullende historie-RPC bleef unapplied. De echte autorisatieproeven waren niet compleet; de bestaande switcher had geen Manager- of HR-verwerkerpersona. Er is geen Opleidingsaanvraag gepubliceerd of gestart en geen screenshotcapturing gedaan. Dit is geen volledige TEST-, visuele of main-acceptatie. Zie [acceptatierapport](../quality/acceptance/runs/PMUX-04-20261021-TEST-ACCEPTANCE.md) en [screenshot review-index](../quality/acceptance/runs/PMUX-04-20261021-TEST-ACCEPTANCE/REVIEW-INDEX.md). De producteigenaarbeoordeling blijft OPEN.
 
+## PMUX-04R5 — Browseracceptatie (22-10-2026)
+
+**PARTIAL / HOLD.** De bestaande lokale TEST-login gaf HR Admin toegang tot de Processtudio, Formulierenstudio, /dashboard/start, /work en /work?view=REQUESTS in Planeten/Jupiter-context. /focus/werk laadde; /focus/aanvragen gaf 404. De server-side /local/personas-pagina meldde TENANT_ADMIN en toegestane lokale bevoegdheid, maar bood voor deze HR Admin alleen Payroll-doelen. Geen Employee- of Manager-rolwissel, geen toegangsweigeringstest, geen directe live RPC-/JWT-securityproef en geen Opleidingsaanvraag-start. Er zijn geen migraties of businessdatawrites uitgevoerd.
+
+Desktop 1440×900 en mobiel 390×844 zijn in de Codex In-App Browser beoordeeld. Echte captures zijn inline getoond, maar niet als PNG-bestand bewaard; de lokale downloadpoging werd door de browser-URL-policy geweigerd en is niet omzeild. De R5-screenshotindex markeert elk ontbrekend bestand expliciet NOT CAPTURED. De volledige PMUX-04- en definitieve UX-acceptatie blijven OPEN. Zie [R5-browserresultaten](../quality/acceptance/runs/PMUX-04R5-20261022-BROWSER-RESULTS.md) en [R5-screenshotindex](../quality/acceptance/runs/PMUX-04-20261021-TEST-ACCEPTANCE/PMUX-04R5-20261022-SCREENSHOT-INDEX.md).
+
 ## Acceptance bron
 
 Voor volledige evidence:
