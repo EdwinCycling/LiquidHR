@@ -17,6 +17,11 @@ describe('process automation pending action dialogs', () => {
     expect(source).toContain('max-w-[390px]')
   })
 
+  it('keeps raw field and binding keys out of the form editor', () => {
+    expect(source).not.toContain('bindingTechnicalValue')
+    expect(source).toContain('labels.bindingEntryLabels[entry.id] ?? labels.bindingUnknown : labels.bindingUnknown')
+  })
+
   it('keeps publish and retire dialogs non-closable while their API action is pending', () => {
     expect(source.match(/closeLabel=\{(?:publishPending|retirePending) \? undefined : labels\.cancel\}/g)).toHaveLength(2)
     expect(source.match(/closeOnBackdropClick=\{!(?:publishPending|retirePending)\}/g)).toHaveLength(2)

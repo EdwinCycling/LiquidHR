@@ -291,14 +291,9 @@ function statusClasses(status: string): string {
   return 'bg-amber-100 text-amber-900'
 }
 
-function bindingTechnicalValue(binding: FieldBinding): string {
-  if (binding.kind === 'PROCESS_ONLY') return 'PROCESS_ONLY'
-  return binding.kind === 'COMPUTED' ? binding.formulaKey : binding.key
-}
-
 function bindingEntryLabel(binding: FieldBinding, labels: StudioLabels): string {
   const entry = bindingCatalogEntry(binding)
-  return entry ? labels.bindingEntryLabels[entry.id] ?? bindingTechnicalValue(binding) : bindingTechnicalValue(binding)
+  return entry ? labels.bindingEntryLabels[entry.id] ?? labels.bindingUnknown : labels.bindingUnknown
 }
 
 function issuePath(issue: StudioIssue): string {
@@ -1125,13 +1120,10 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                                      <details className="rounded-lg border p-3 md:col-span-2"><summary className="cursor-pointer text-xs font-semibold focus-visible:outline-2 focus-visible:outline-primary">{labels.advanced}</summary><div className="mt-3"><BindingEditor field={field} labels={labels} onChange={(entryId) => updateFieldBinding(selectedForm.key, section.key, field.key, entryId)} />
                                      <div className="rounded-lg bg-muted/50 p-3 text-xs md:col-span-2">
                                        <p className="font-semibold">{labels.fieldProperties}</p>
-                                       <dl className="mt-2 grid gap-2 sm:grid-cols-4">
-                                         <div><dt className="text-muted-foreground">{labels.fieldKey}</dt><dd className="mt-1 font-mono">{field.key}</dd></div>
+                                       <dl className="mt-2 grid gap-2 sm:grid-cols-2">
                                          <div><dt className="text-muted-foreground">{labels.fieldType}</dt><dd className="mt-1 font-semibold">{labels.fieldTypeLabels[field.type]}</dd></div>
                                          <div><dt className="text-muted-foreground">{labels.bindingKind}</dt><dd className="mt-1 font-semibold">{selectedBinding ? labels.bindingKindLabels[selectedBinding.kind] : labels.bindingUnknown}</dd></div>
-                                         <div><dt className="text-muted-foreground">{labels.fieldBinding}</dt><dd className="mt-1 font-mono">{bindingTechnicalValue(field.binding)}</dd></div>
                                        </dl>
-                                       <p className="mt-2 text-muted-foreground">{labels.fieldKeyHelp}</p>
                                      </div></div></details>
                                    </div> : null}
                                    {editing ? <FormFieldConditionsEditor
