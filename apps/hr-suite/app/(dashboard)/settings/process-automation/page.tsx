@@ -238,11 +238,15 @@ export default async function ProcessAutomationSettingsPage({
       pairInvalid: messages('studio.flowEditor.conditionEditor.pairInvalid'),
       yes: messages('studio.flowEditor.conditionEditor.yes'),
       no: messages('studio.flowEditor.conditionEditor.no'),
+      addValue: messages('studio.flowEditor.conditionEditor.addValue'),
+      removeValue: messages('studio.flowEditor.conditionEditor.removeValue'),
       operatorLabels: {
         equals: messages('studio.flowEditor.conditionEditor.operators.equals'),
         notEquals: messages('studio.flowEditor.conditionEditor.operators.notEquals'),
         greaterThan: messages('studio.flowEditor.conditionEditor.operators.greaterThan'),
         lessThan: messages('studio.flowEditor.conditionEditor.operators.lessThan'),
+        in: messages('studio.flowEditor.conditionEditor.operators.in'),
+        notIn: messages('studio.flowEditor.conditionEditor.operators.notIn'),
         isEmpty: messages('studio.flowEditor.conditionEditor.operators.isEmpty'),
         isNotEmpty: messages('studio.flowEditor.conditionEditor.operators.isNotEmpty'),
       },
@@ -299,6 +303,18 @@ export default async function ProcessAutomationSettingsPage({
       previewStep: messages('studio.previewStep'),
       noLinkedForm: messages('studio.noLinkedForm'),
       fieldRules: messages('studio.fieldRules'),
+      conditionsTitle: messages('studio.conditionsTitle'),
+      visibility: messages('studio.visibility'),
+      alwaysVisible: messages('studio.alwaysVisible'),
+      visibleWhen: messages('studio.visibleWhen'),
+      required: messages('studio.required'),
+      notRequired: messages('studio.notRequired'),
+      alwaysRequired: messages('studio.alwaysRequired'),
+      requiredWhen: messages('studio.requiredWhen'),
+      conditionRuleExplanation: messages('studio.conditionRuleExplanation'),
+      conditionUnavailable: messages('studio.conditionUnavailable'),
+      noConditionFields: messages('studio.noConditionFields'),
+      noWritableParticipants: messages('studio.noWritableParticipants'),
     },
     stepList: messages('studio.stepList'),
     steps: messages('studio.steps'),
@@ -322,6 +338,8 @@ export default async function ProcessAutomationSettingsPage({
     desktop: messages('studio.desktop'),
     mobile: messages('studio.mobile'),
     syntheticData: messages('studio.syntheticData'),
+    previewConditionHidden: messages('studio.previewConditionHidden'),
+    previewRequired: messages('studio.previewRequired'),
     saved: messages('studio.saved'),
     saving: messages('studio.saving'),
     saveError: messages('studio.saveError'),
@@ -434,6 +452,7 @@ export default async function ProcessAutomationSettingsPage({
       END_STEP_INVALID: messages('studio.compilerIssues.END_STEP_INVALID'),
       STEP_ACTION_INVALID: messages('studio.compilerIssues.STEP_ACTION_INVALID'),
       RECOVERY_TRANSITION_INVALID: messages('studio.compilerIssues.RECOVERY_TRANSITION_INVALID'),
+      FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT: messages('studio.compilerIssues.FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT'),
     },
     flowEditor,
     continue: messages('studio.continue'),
@@ -479,6 +498,7 @@ export default async function ProcessAutomationSettingsPage({
         initialCatalog={catalog}
         initialSelection={initialSelection}
         initialTab={initialTab}
+        locale={locale}
         labels={labels}
         key={`${selectedId ?? 'none'}:${initialTab}`}
       />

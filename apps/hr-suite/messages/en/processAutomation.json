@@ -308,6 +308,18 @@
     "previewStep": "Preview for step",
     "noLinkedForm": "No form is linked to this step.",
     "fieldRules": "Access and required input by role",
+    "conditionsTitle": "Field conditions",
+    "visibility": "Visibility",
+    "alwaysVisible": "Always visible",
+    "visibleWhen": "Visible when a condition is true",
+    "required": "Required input",
+    "notRequired": "Not required",
+    "alwaysRequired": "Always required when visible and editable",
+    "requiredWhen": "Required when a condition is true",
+    "conditionRuleExplanation": "Choose a field that is always visible to all affected participants.",
+    "conditionUnavailable": "This existing rule does not fit the simple view. Choose Edit to set a simple rule, or choose Always visible or Not required to remove the rule.",
+    "noConditionFields": "There is no suitable visible field to use as a source.",
+    "noWritableParticipants": "Participants cannot edit this field, so a required input rule does not apply.",
     "stepList": "Accessible step list",
     "steps": "Process steps",
     "step": "Step",
@@ -330,6 +342,8 @@
     "desktop": "Desktop",
     "mobile": "Mobile",
     "syntheticData": "Values shown in this view are not saved.",
+    "previewConditionHidden": "{field} is hidden based on the example values.",
+    "previewRequired": "Required",
     "saved": "Draft saved",
     "saving": "Saving draft…",
     "saveError": "Saving the draft failed.",
@@ -516,7 +530,8 @@
       "END_STEP_OUTCOME_REQUIRED": "Choose the result for this end step.",
       "END_STEP_INVALID": "An end step does not need an owner, form, or actions.",
       "STEP_ACTION_INVALID": "Choose an action that fits this step type.",
-      "RECOVERY_TRANSITION_INVALID": "Only Request changes can be set as a return route."
+      "RECOVERY_TRANSITION_INVALID": "Only Request changes can be set as a return route.",
+      "FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT": "A field required only by a condition must use optional write access for participants."
     },
     "flowEditor": {
       "stepList": "Process flow",
@@ -584,11 +599,15 @@
         "pairInvalid": "This condition has no valid yes and no route. Check the route before continuing.",
         "yes": "Yes",
         "no": "No",
+        "addValue": "Add value",
+        "removeValue": "Remove value",
         "operators": {
           "equals": "equals",
           "notEquals": "does not equal",
           "greaterThan": "is greater than",
           "lessThan": "is less than",
+          "in": "is one of",
+          "notIn": "is none of",
           "isEmpty": "is empty",
           "isNotEmpty": "is filled in"
         }

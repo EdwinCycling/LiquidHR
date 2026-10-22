@@ -88,6 +88,13 @@ describe('process definition compiler', () => {
     })).toBe(false)
   })
 
+  it('evaluates empty and non-empty multi-select sources with the shared condition evaluator', () => {
+    const empty = { operator: 'isEmpty' as const, operand: { kind: 'FIELD' as const, fieldKey: 'training-topics' } }
+    const filled = { operator: 'isNotEmpty' as const, operand: { kind: 'FIELD' as const, fieldKey: 'training-topics' } }
+    expect(evaluateCondition(empty, { fields: { 'training-topics': [] }, subject: {} })).toBe(true)
+    expect(evaluateCondition(filled, { fields: { 'training-topics': ['leadership'] }, subject: {} })).toBe(true)
+  })
+
   it('keeps a complementary condition pair through the versioned compile and save/reopen contract', () => {
     const definition = createTrainingRequestExampleDraft({ key: 'opleiding-aanvragen', title: { nl: 'Opleidingsaanvraag', en: 'Training request' }, description: { nl: 'Aanvraag en beoordeling.', en: 'Request and review.' } })
     const condition = { operator: 'greaterThan' as const, left: { kind: 'FIELD' as const, fieldKey: 'training-expected-cost' }, right: { kind: 'LITERAL' as const, value: 1000 } }
@@ -205,6 +212,68 @@ describe('process definition compiler', () => {
       right: { kind: 'LITERAL', value: true },
     }
     compileFailure(definition, 'CONDITION_TYPE_MISMATCH', ['forms'])
+  })
+
+  it('round-trips visibility and required conditions through the versioned draft contract', () => {
+    const definition = copyFixture()
+    const field = fieldByKey(definition, 'reason')
+    const condition = { operator: 'isNotEmpty' as const, operand: { kind: 'FIELD' as const, fieldKey: 'effective-on' } }
+    field.visibilityCondition = condition
+    field.requiredCondition = condition
+    const reopened = JSON.parse(JSON.stringify(definition)) as ProcessDefinitionDraft
+
+    const compiled = compileProcessDefinition(reopened)
+    const compiledField = compiled.content.forms[0]?.sections[0]?.fields.find((candidate) => candidate.key === 'reason')
+    expect(compiledField?.visibilityCondition).toEqual(condition)
+    expect(compiledField?.requiredCondition).toEqual(condition)
+    expect(compiled.hash).toBe(compileProcessDefinition(reopened).hash)
+  })
+
+  it('rejects a required condition that refers to a deleted field', () => {
+    const definition = copyFixture()
+    fieldByKey(definition, 'reason').requiredCondition = {
+      operator: 'isNotEmpty',
+      operand: { kind: 'FIELD', fieldKey: 'removed-field' },
+    }
+    compileFailure(definition, 'CONDITION_REFERENCE_UNKNOWN', ['forms'])
+  })
+
+  it('rejects a conditional required field that is also unconditionally required by its access rule', () => {
+    const definition = copyFixture()
+    const field = fieldByKey(definition, 'reason')
+    field.requiredCondition = {
+      operator: 'isNotEmpty',
+      operand: { kind: 'FIELD', fieldKey: 'current-department' },
+    }
+    field.access = field.access.map((rule) => rule.participantKey === 'initiator' ? { ...rule, mode: 'WRITE_REQUIRED' as const } : rule)
+    compileFailure(definition, 'FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT', ['forms'])
+  })
+
+  it('rejects field conditions that depend on a conditionally hidden source field', () => {
+    const definition = copyFixture()
+    const source = fieldByKey(definition, 'current-department')
+    source.visibilityCondition = {
+      operator: 'isNotEmpty',
+      operand: { kind: 'FIELD', fieldKey: 'effective-on' },
+    }
+    fieldByKey(definition, 'reason').requiredCondition = {
+      operator: 'isNotEmpty',
+      operand: { kind: 'FIELD', fieldKey: 'current-department' },
+    }
+    compileFailure(definition, 'CONDITION_REFERENCES_HIDDEN_FIELD', ['forms'])
+  })
+
+  it('detects dependency cycles that include a required condition', () => {
+    const definition = copyFixture()
+    fieldByKey(definition, 'reason').requiredCondition = {
+      operator: 'isNotEmpty',
+      operand: { kind: 'FIELD', fieldKey: 'current-department' },
+    }
+    fieldByKey(definition, 'current-department').requiredCondition = {
+      operator: 'isNotEmpty',
+      operand: { kind: 'FIELD', fieldKey: 'reason' },
+    }
+    compileFailure(definition, 'CONDITION_CIRCULAR_DEPENDENCY', ['forms'])
   })
 
   it('rejects a condition that exposes a hidden dependency', () => {

@@ -26,6 +26,8 @@ import {
 import { collectConditionFieldReferences } from '@/lib/process-automation/condition-evaluator'
 import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, FormDefinition, ProcessDefinitionDraft } from '@/lib/process-automation/definition-schemas'
 import { ProcessFlowEditor, type ProcessFlowEditorLabels } from '@/components/process-automation/process-flow-editor'
+import { FormFieldConditionsEditor } from '@/components/process-automation/form-field-conditions-editor'
+import { FormStudioPreview } from '@/components/process-automation/form-studio-preview'
 import { changeDefinitionFieldType, duplicateDefinitionField, reorderDefinitionItems, uniqueDefinitionKey } from '@/lib/process-automation/form-studio-draft'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
@@ -83,6 +85,18 @@ export interface FormStudioEditorLabels {
   readonly previewStep: string
   readonly noLinkedForm: string
   readonly fieldRules: string
+  readonly conditionsTitle: string
+  readonly visibility: string
+  readonly alwaysVisible: string
+  readonly visibleWhen: string
+  readonly required: string
+  readonly notRequired: string
+  readonly alwaysRequired: string
+  readonly requiredWhen: string
+  readonly conditionRuleExplanation: string
+  readonly conditionUnavailable: string
+  readonly noConditionFields: string
+  readonly noWritableParticipants: string
 }
 
 export interface StudioLabels {
@@ -126,6 +140,8 @@ export interface StudioLabels {
   readonly desktop: string
   readonly mobile: string
   readonly syntheticData: string
+  readonly previewConditionHidden: string
+  readonly previewRequired: string
   readonly saved: string
   readonly saving: string
   readonly saveError: string
@@ -243,24 +259,13 @@ interface StudioWorkspaceProps {
   readonly initialCatalog: readonly StudioCatalogItem[]
   readonly initialSelection: StudioDefinition | null
   readonly initialTab: StudioTab
+  readonly locale: 'nl' | 'en'
   readonly canWrite: boolean
   readonly canPublish: boolean
   readonly labels: StudioLabels
 }
 
 const accessModes: readonly FieldAccessMode[] = ['HIDDEN', 'READ', 'WRITE_OPTIONAL', 'WRITE_REQUIRED']
-
-const referenceFieldTypes: ReadonlySet<FieldType> = new Set([
-  'EMPLOYEE_REFERENCE',
-  'DEPARTMENT_REFERENCE',
-  'JOB_REFERENCE',
-  'EMPLOYMENT_REFERENCE',
-  'DOCUMENT_REFERENCE',
-])
-
-function isReferenceFieldType(type: FieldType): boolean {
-  return referenceFieldTypes.has(type)
-}
 
 function isChoiceFieldType(type: FieldType): boolean {
   return type === 'SINGLE_SELECT' || type === 'MULTI_SELECT'
@@ -396,20 +401,7 @@ function statusMessage(state: SaveState, labels: StudioLabels): string {
   return ''
 }
 
-function PreviewFieldControl({ field, language, labels, id, labelId }: { readonly field: FieldDefinition; readonly language: 'nl' | 'en'; readonly labels: StudioLabels; readonly id: string; readonly labelId: string }) {
-  const inputClass = 'mt-1 w-full rounded-xl border bg-surface px-3 py-2 font-normal disabled:cursor-default disabled:opacity-100'
-  const typeLabel = (language === 'en' ? labels.fieldTypeLabelsEn : labels.fieldTypeLabelsNl)[field.type]
-  if (field.type === 'LONG_TEXT') return <textarea aria-labelledby={labelId} className={`${inputClass} min-h-24`} disabled id={id} placeholder={typeLabel} />
-  if (field.type === 'BOOLEAN') return <label className="mt-1 flex items-center gap-3 rounded-xl border bg-surface px-3 py-2 font-normal"><input aria-labelledby={labelId} disabled id={id} type="checkbox" /><span>{typeLabel}</span></label>
-  if (field.type === 'SINGLE_SELECT') return <select aria-labelledby={labelId} className={inputClass} disabled id={id}><option>{labels.noValue}</option>{(field.options ?? []).map((option) => <option key={option.value}>{titleFor(option.label, language)}</option>)}</select>
-  if (field.type === 'MULTI_SELECT') return <fieldset aria-labelledby={labelId} className="mt-1 grid gap-2 rounded-xl border bg-surface p-3" id={id}><legend className="sr-only">{typeLabel}</legend>{(field.options ?? []).map((option, optionIndex) => { const optionId = `${id}-${optionIndex}`; return <label className="flex items-center gap-3 font-normal" htmlFor={optionId} key={option.value}><input disabled id={optionId} type="checkbox" />{titleFor(option.label, language)}</label> })}</fieldset>
-  if (isReferenceFieldType(field.type)) return <div aria-labelledby={labelId} className="mt-1 rounded-xl border bg-surface px-3 py-2 text-sm font-normal text-muted-foreground" id={id} role="status">{typeLabel} · {labels.syntheticData}</div>
-  const inputType = field.type === 'DATE' ? 'date' : field.type === 'TIME' ? 'time' : field.type === 'DATETIME' ? 'datetime-local' : field.type === 'INTEGER' || field.type === 'DECIMAL' || field.type === 'MONEY' ? 'number' : 'text'
-  const step = field.type === 'INTEGER' ? '1' : field.type === 'DECIMAL' || field.type === 'MONEY' ? '0.01' : undefined
-  return <input aria-labelledby={labelId} className={inputClass} disabled id={id} placeholder={typeLabel} step={step} type={inputType} />
-}
-
-export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, canWrite, canPublish, labels }: StudioWorkspaceProps) {
+export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, locale, canWrite, canPublish, labels }: StudioWorkspaceProps) {
   const router = useRouter()
   const catalog = initialCatalog
   const selected = initialSelection
@@ -714,6 +706,19 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     }))
   }
 
+  function updateFieldDefinition(formKey: string, sectionKey: string, fieldKey: string, nextField: FieldDefinition) {
+    updateDraft((current) => ({
+      ...current,
+      forms: current.forms.map((form) => form.key !== formKey ? form : {
+        ...form,
+        sections: form.sections.map((section) => section.key !== sectionKey ? section : {
+          ...section,
+          fields: section.fields.map((field) => field.key === fieldKey ? nextField : field),
+        }),
+      }),
+    }))
+  }
+
   function updateFieldOption(
     formKey: string,
     sectionKey: string,
@@ -883,10 +888,6 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     }) }))
   }
 
-  const previewFields = previewForm?.sections.flatMap((section) => section.fields.map((field) => ({ section, field }))).filter(({ field }) => {
-    const access = field.access.find((rule) => rule.participantKey === previewParticipantDefinition?.key)
-    return access?.mode !== 'HIDDEN'
-  }) ?? []
   const trialConditionFieldKeys = new Set((draft?.transitions ?? []).flatMap((transition) => transition.condition ? collectConditionFieldReferences(transition.condition) : []))
   const trialConditionFields = draft?.forms.flatMap((form) => form.sections.flatMap((section) => section.fields)).filter((field) => trialConditionFieldKeys.has(field.key)) ?? []
   const productionCount = catalog.filter((item) => item.status === 'PUBLISHED').length
@@ -1143,6 +1144,31 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                                        <p className="mt-2 text-muted-foreground">{labels.fieldKeyHelp}</p>
                                      </div></div></details>
                                    </div> : null}
+                                   {editing ? <FormFieldConditionsEditor
+                                     disabled={!editing || selected.definition.status === 'RETIRED'}
+                                     field={field}
+                                     fields={selectedForm.sections.flatMap((formSection) => formSection.fields)}
+                                     labels={{
+                                       title: labels.formEditor.conditionsTitle,
+                                       visibility: labels.formEditor.visibility,
+                                       alwaysVisible: labels.formEditor.alwaysVisible,
+                                       visibleWhen: labels.formEditor.visibleWhen,
+                                       required: labels.formEditor.required,
+                                       notRequired: labels.formEditor.notRequired,
+                                       alwaysRequired: labels.formEditor.alwaysRequired,
+                                       requiredWhen: labels.formEditor.requiredWhen,
+                                       ruleExplanation: labels.formEditor.conditionRuleExplanation,
+                                       saveRule: labels.flowEditor.conditionEditor.save,
+                                       cancel: labels.flowEditor.conditionEditor.cancel,
+                                       edit: labels.flowEditor.conditionEditor.edit,
+                                       conditionUnavailable: labels.formEditor.conditionUnavailable,
+                                       noConditionFields: labels.formEditor.noConditionFields,
+                                       noWritableParticipants: labels.formEditor.noWritableParticipants,
+                                     }}
+                                     language={locale}
+                                     onChange={(nextField) => updateFieldDefinition(selectedForm.key, section.key, field.key, nextField)}
+                                     ruleLabels={labels.flowEditor.conditionEditor}
+                                   /> : null}
                                    {editing && isChoiceFieldType(field.type) ? <div className="mt-4 rounded-xl border bg-muted/20 p-3">
                                      <div className="flex flex-wrap items-center justify-between gap-2"><h5 className="text-xs font-semibold">{labels.fieldOptions}</h5><button className="rounded-lg border px-2 py-1 text-xs font-semibold hover:border-primary" onClick={() => addFieldOption(selectedForm.key, section.key, field.key)} type="button"><Plus size={13} />{labels.addOption}</button></div>
                                      <div className="mt-3 space-y-3">{(field.options ?? []).map((option, optionIndex) => <div className="grid gap-2 rounded-lg border bg-background p-3 md:grid-cols-[minmax(110px,0.8fr)_minmax(150px,1fr)_minmax(150px,1fr)_auto]" key={`${field.key}-${optionIndex}`}><label className="text-xs font-semibold">{labels.optionValue}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldOption(selectedForm.key, section.key, field.key, optionIndex, 'value', event.target.value)} value={option.value} /></label><label className="text-xs font-semibold">{labels.optionLabelNl}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldOption(selectedForm.key, section.key, field.key, optionIndex, 'nl', event.target.value)} value={option.label.nl ?? ''} /></label><label className="text-xs font-semibold">{labels.optionLabelEn}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldOption(selectedForm.key, section.key, field.key, optionIndex, 'en', event.target.value)} value={option.label.en ?? ''} /></label><button aria-label={`${labels.removeOption} ${optionIndex + 1}`} className="self-end rounded-lg border border-destructive/30 px-2 py-1.5 text-xs font-semibold text-destructive disabled:opacity-50" disabled={(field.options?.length ?? 0) <= 1} onClick={() => removeFieldOption(selectedForm.key, section.key, field.key, optionIndex)} type="button">×</button></div>)}</div>
@@ -1169,7 +1195,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
               {studioStage === 'preview' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.preview}</p><h3 className="mt-1 text-xl font-semibold">{previewStep ? (previewForm ? titleFor(previewForm.title, previewLanguage) : labels.formEditor.noLinkedForm) : selectedForm ? titleFor(selectedForm.title, previewLanguage) : labels.noValue}</h3></div><Languages className="text-primary" size={22} /></div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><label className="text-xs font-semibold">{labels.formEditor.previewStep}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" disabled={formSteps.length === 0} onChange={(event) => { const step = formSteps.find((item) => item.key === event.target.value); setPreviewStepKey(event.target.value); if (step?.participantKey) setPreviewParticipant(step.participantKey) }} value={previewStep?.key ?? ""}>{formSteps.length === 0 ? <option value="">{labels.formEditor.noFormSteps}</option> : formSteps.map((step) => <option key={step.key} value={step.key}>{titleFor(step.title)}</option>)}</select></label><label className="text-xs font-semibold">{labels.previewParticipant}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewParticipant(event.target.value)} value={previewParticipant}>{draft.participants.map((participant) => <option key={participant.key} value={participant.key}>{titleFor(participant.label)}</option>)}</select></label><label className="text-xs font-semibold">{labels.language}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewLanguage(event.target.value as 'nl' | 'en')} value={previewLanguage}><option value="nl">{labels.dutch}</option><option value="en">{labels.english}</option></select></label><label className="text-xs font-semibold">{labels.viewport}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewViewport(event.target.value as 'desktop' | 'mobile')} value={previewViewport}><option value="desktop">{labels.desktop}</option><option value="mobile">{labels.mobile} · 390px</option></select></label></div>
-                <div className={`mt-4 rounded-2xl border bg-background p-4 ${previewViewport === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl'}`}><p className="mb-4 rounded-xl bg-accent/50 px-3 py-2 text-xs font-semibold text-primary">{labels.syntheticData}</p>{previewFields.length ? <div className="space-y-4">{previewFields.map(({ section, field }) => { const previewFieldId = `studio-preview-${field.key}`; const previewLabelId = `${previewFieldId}-label`; return <div className="text-sm font-semibold" key={`${section.key}-${field.key}`}><p id={previewLabelId}>{titleFor(field.label, previewLanguage)}{field.access.some((rule) => rule.participantKey === previewParticipantDefinition?.key && rule.mode === 'WRITE_REQUIRED') ? <span aria-hidden="true" className="ml-1 text-destructive">*</span> : null}</p>{field.helpText ? <p className="mt-1 text-xs font-normal text-muted-foreground">{titleFor(field.helpText, previewLanguage)}</p> : null}<PreviewFieldControl field={field} id={previewFieldId} labelId={previewLabelId} labels={labels} language={previewLanguage} /></div> })}</div> : <p className="text-sm text-muted-foreground">{labels.noFields}</p>}</div>
+                <div className={`mt-4 min-w-0 rounded-2xl border bg-background p-4 ${previewViewport === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl'}`}>{previewForm && previewParticipantDefinition ? <FormStudioPreview key={`${previewForm.key}:${previewParticipantDefinition.key}:${previewLanguage}`} form={previewForm} labels={{ syntheticData: labels.syntheticData, noValue: labels.noValue, previewHidden: labels.previewConditionHidden, previewRequired: labels.previewRequired, fieldTypeLabels: previewLanguage === 'en' ? labels.fieldTypeLabelsEn : labels.fieldTypeLabelsNl }} language={previewLanguage} participantKey={previewParticipantDefinition.key} /> : <p className="text-sm text-muted-foreground">{labels.noFields}</p>}</div>
               </section> : null}
 
               {studioStage === 'trial' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">

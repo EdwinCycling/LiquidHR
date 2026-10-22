@@ -68,8 +68,8 @@ const labels: ProcessFlowEditorLabels = {
   conditionOtherwise: 'Anders',
   language: 'nl',
   conditionEditor: {
-    title: 'Wanneer geldt deze route?', add: 'Voorwaarde toevoegen', edit: 'Bewerken', remove: 'Regel verwijderen', field: 'Formulierveld', operator: 'Vergelijking', value: 'Waarde', whenTrue: 'Als ja', otherwise: 'Anders', save: 'Regel opslaan', cancel: 'Annuleren', invalidValue: 'Vul een geldige waarde in voor dit veldtype.', invalidDestination: 'Kies voor beide uitkomsten een bestaande stap.', missingField: 'Deze regel gebruikt een veld of opbouw die de eenvoudige editor niet kan invullen.', missingDestination: 'Stap niet gevonden', pairInvalid: 'Deze voorwaarde heeft geen geldige ja- en nee-route.', yes: 'Ja', no: 'Nee',
-    operatorLabels: { equals: 'is gelijk aan', notEquals: 'is niet gelijk aan', greaterThan: 'is hoger dan', lessThan: 'is lager dan', isEmpty: 'is leeg', isNotEmpty: 'is ingevuld' },
+    title: 'Wanneer geldt deze route?', add: 'Voorwaarde toevoegen', edit: 'Bewerken', remove: 'Regel verwijderen', field: 'Formulierveld', operator: 'Vergelijking', value: 'Waarde', whenTrue: 'Als ja', otherwise: 'Anders', save: 'Regel opslaan', cancel: 'Annuleren', invalidValue: 'Vul een geldige waarde in voor dit veldtype.', invalidDestination: 'Kies voor beide uitkomsten een bestaande stap.', missingField: 'Deze regel gebruikt een veld of opbouw die de eenvoudige editor niet kan invullen.', missingDestination: 'Stap niet gevonden', pairInvalid: 'Deze voorwaarde heeft geen geldige ja- en nee-route.', yes: 'Ja', no: 'Nee', addValue: 'Waarde toevoegen', removeValue: 'Waarde verwijderen',
+    operatorLabels: { equals: 'is gelijk aan', notEquals: 'is niet gelijk aan', greaterThan: 'is hoger dan', lessThan: 'is lager dan', in: 'is een van', notIn: 'is geen van', isEmpty: 'is leeg', isNotEmpty: 'is ingevuld' },
   },
   formCreationFollowUp: 'Nog geen formulier gekoppeld.',
   startStep: 'Start',
@@ -238,9 +238,9 @@ describe('ProcessFlowEditor', () => {
 
     clickButton(mounted.container, labels.conditionEditor.add)
     expect(mounted.container.querySelector('[role=alert]')?.textContent).toBe(labels.conditionEditor.invalidValue)
-    chooseDropdown(mounted.container, 'condition-field-employee-request', 'Wat zijn de verwachte kosten?')
-    chooseDropdown(mounted.container, 'condition-operator-employee-request', labels.conditionEditor.operatorLabels.greaterThan)
-    changeInput(mounted.container, 'condition-value-employee-request', '1000')
+    chooseDropdown(mounted.container, 'condition-employee-request-field', 'Wat zijn de verwachte kosten?')
+    chooseDropdown(mounted.container, 'condition-employee-request-operator', labels.conditionEditor.operatorLabels.greaterThan)
+    changeInput(mounted.container, 'condition-employee-request-value', '1000')
     chooseDropdown(mounted.container, 'condition-yes-employee-request', 'Extra HR-beoordeling')
     chooseDropdown(mounted.container, 'condition-otherwise-employee-request', 'Normale afhandeling')
     clickButton(mounted.container, labels.conditionEditor.save)
@@ -264,9 +264,9 @@ describe('ProcessFlowEditor', () => {
     act(() => managerCard.click())
     clickButton(mounted.container, labels.conditionEditor.add)
     chooseDropdown(mounted.container, 'condition-action-manager-review', labels.actionLabels.REJECT)
-    chooseDropdown(mounted.container, 'condition-field-manager-review', 'Wat zijn de verwachte kosten?')
-    chooseDropdown(mounted.container, 'condition-operator-manager-review', labels.conditionEditor.operatorLabels.greaterThan)
-    changeInput(mounted.container, 'condition-value-manager-review', '1000')
+    chooseDropdown(mounted.container, 'condition-manager-review-field', 'Wat zijn de verwachte kosten?')
+    chooseDropdown(mounted.container, 'condition-manager-review-operator', labels.conditionEditor.operatorLabels.greaterThan)
+    changeInput(mounted.container, 'condition-manager-review-value', '1000')
     chooseDropdown(mounted.container, 'condition-yes-manager-review', 'HR verwerkt de aanvraag')
     chooseDropdown(mounted.container, 'condition-otherwise-manager-review', 'Afgewezen')
     clickButton(mounted.container, labels.conditionEditor.save)

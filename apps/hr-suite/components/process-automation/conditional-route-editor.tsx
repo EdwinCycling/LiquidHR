@@ -1,18 +1,24 @@
 'use client'
 
-import { useState, type ChangeEvent } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
+import {
+  ConditionRuleBuilder,
+  conditionBuilderFieldTypes,
+  conditionToSimpleRule,
+  formatConditionRule,
+  operatorsForFieldType,
+  simpleRuleToCondition,
+  type RuleOperator,
+  type SimpleConditionRule,
+} from '@/components/process-automation/condition-rule-builder'
 import type {
   ConditionNode,
-  FieldDefinition,
-  FieldType,
   ProcessAction,
   ProcessDefinitionDraft,
   ProcessTransition,
 } from '@/lib/process-automation/definition-schemas'
-
-type RuleOperator = 'equals' | 'notEquals' | 'greaterThan' | 'lessThan' | 'isEmpty' | 'isNotEmpty'
 
 export interface ConditionalRouteEditorLabels {
   readonly title: string
@@ -33,6 +39,8 @@ export interface ConditionalRouteEditorLabels {
   readonly pairInvalid: string
   readonly yes: string
   readonly no: string
+  readonly addValue: string
+  readonly removeValue: string
   readonly operatorLabels: Readonly<Record<RuleOperator, string>>
 }
 
@@ -53,24 +61,8 @@ interface RulePair {
   readonly condition: ConditionNode
 }
 
-interface SimpleRule {
-  readonly fieldKey: string
-  readonly operator: RuleOperator
-  readonly value: string
-}
-
-const orderableTypes = new Set<FieldType>(['INTEGER', 'DECIMAL', 'MONEY', 'DATE', 'TIME', 'DATETIME'])
-const valueTypes = new Set<FieldType>(['SHORT_TEXT', 'LONG_TEXT', 'INTEGER', 'DECIMAL', 'MONEY', 'DATE', 'TIME', 'DATETIME', 'BOOLEAN', 'SINGLE_SELECT'])
-
 function title(value: { readonly nl?: string; readonly en?: string } | undefined, language: 'nl' | 'en'): string {
   return value?.[language]?.trim() || value?.nl?.trim() || value?.en?.trim() || ''
-}
-
-function operatorsFor(type: FieldType): RuleOperator[] {
-  return [
-    ...(orderableTypes.has(type) ? ['greaterThan', 'lessThan'] as const : []),
-    'equals', 'notEquals', 'isEmpty', 'isNotEmpty',
-  ]
 }
 
 function inverse(condition: ConditionNode): ConditionNode {
@@ -108,49 +100,6 @@ function findPairs(transitions: readonly ProcessTransition[]): { readonly pairs:
   return { pairs, unmatched: transitions.filter((route) => route.condition && !consumed.has(route.key)) }
 }
 
-function simpleRule(condition: ConditionNode, fields: readonly FieldDefinition[]): SimpleRule | null {
-  if (condition.operator === 'isEmpty' || condition.operator === 'isNotEmpty') {
-    if (condition.operand.kind !== 'FIELD') return null
-    return { fieldKey: condition.operand.fieldKey, operator: condition.operator, value: '' }
-  }
-  if (condition.operator !== 'equals' && condition.operator !== 'notEquals' && condition.operator !== 'greaterThan' && condition.operator !== 'lessThan') return null
-  const left = condition.left
-  const right = condition.right
-  if (left.kind !== 'FIELD' || right.kind !== 'LITERAL') return null
-  const field = fields.find((candidate) => candidate.key === left.fieldKey)
-  if (!field || !valueTypes.has(field.type)) return null
-  if (typeof right.value === 'boolean' && field.type !== 'BOOLEAN') return null
-  if (typeof right.value === 'number' && !['INTEGER', 'DECIMAL', 'MONEY'].includes(field.type)) return null
-  return { fieldKey: field.key, operator: condition.operator, value: right.value === null ? '' : String(right.value) }
-}
-
-function parseCondition(field: FieldDefinition, operator: RuleOperator, rawValue: string): ConditionNode | null {
-  const operand = { kind: 'FIELD' as const, fieldKey: field.key }
-  if (operator === 'isEmpty' || operator === 'isNotEmpty') return { operator, operand }
-  if (rawValue.trim() === '') return null
-  let value: string | number | boolean = rawValue
-  if (field.type === 'INTEGER' || field.type === 'DECIMAL' || field.type === 'MONEY') {
-    const numericValue = Number(rawValue)
-    if (!Number.isFinite(numericValue) || (field.type === 'INTEGER' && !Number.isInteger(numericValue))) return null
-    value = numericValue
-  } else if (field.type === 'BOOLEAN') {
-    if (rawValue !== 'true' && rawValue !== 'false') return null
-    value = rawValue === 'true'
-  } else if (field.type === 'SINGLE_SELECT' && !field.options?.some((option) => option.value === rawValue)) {
-    return null
-  }
-  return { operator, left: operand, right: { kind: 'LITERAL', value } }
-}
-
-function formatValue(field: FieldDefinition, value: string, language: 'nl' | 'en'): string {
-  if (field.type === 'MONEY' && value !== '' && Number.isFinite(Number(value))) {
-    return new Intl.NumberFormat(language === 'nl' ? 'nl-NL' : 'en-GB', { style: 'currency', currency: 'EUR' }).format(Number(value))
-  }
-  if (field.type === 'BOOLEAN') return value === 'true' ? (language === 'nl' ? 'Ja' : 'Yes') : (language === 'nl' ? 'Nee' : 'No')
-  if (field.type === 'SINGLE_SELECT') return title(field.options?.find((option) => option.value === value)?.label, language) || value
-  return value
-}
-
 function uniqueKey(base: string, used: ReadonlySet<string>): string {
   let key = base
   let suffix = 2
@@ -162,49 +111,35 @@ export function ConditionalRouteEditor({ draft, fromStepKey, editing, language, 
   const sourceRoutes = draft.transitions.filter((transition) => transition.fromStepKey === fromStepKey)
   const { pairs, unmatched } = findPairs(sourceRoutes)
   const conditionedActions = new Set(sourceRoutes.filter((route) => route.condition).map((route) => route.action))
-  const fields = draft.forms.flatMap((form) => form.sections.flatMap((section) => section.fields)).filter((field) => valueTypes.has(field.type))
+  const fields = draft.forms.flatMap((form) => form.sections.flatMap((section) => section.fields)).filter((field) => conditionBuilderFieldTypes.has(field.type))
   const destinations = draft.steps.filter((step) => step.key !== fromStepKey)
   const actionChoices = [...new Set(sourceRoutes.filter((route) => !route.condition && !conditionedActions.has(route.action)).map((route) => route.action))]
   const initialFieldKey = fields[0]?.key ?? ''
-  const initialOperator = fields[0] ? operatorsFor(fields[0].type)[0] ?? 'equals' : 'equals'
   const [editingRule, setEditingRule] = useState(false)
   const [activePairKey, setActivePairKey] = useState<string | null>(null)
   const [routeAction, setRouteAction] = useState<ProcessAction>(actionChoices[0] ?? 'SUBMIT')
-  const [fieldKey, setFieldKey] = useState(initialFieldKey)
-  const [operator, setOperator] = useState<RuleOperator>(initialOperator)
-  const [rawValue, setRawValue] = useState('')
+  const [ruleDraft, setRuleDraft] = useState<SimpleConditionRule>({ fieldKey: initialFieldKey, operator: fields[0] ? operatorsForFieldType(fields[0].type)[0] ?? 'equals' : 'equals', value: '', values: [] })
   const [yesStepKey, setYesStepKey] = useState('')
   const [otherwiseStepKey, setOtherwiseStepKey] = useState('')
   const activePair = pairs.find((pair) => pair.yes.key === activePairKey) ?? null
-  const selectedField = fields.find((field) => field.key === fieldKey)
-  const fieldLabel = selectedField ? title(selectedField.label, language) : ''
+  const selectedField = fields.find((field) => field.key === ruleDraft.fieldKey)
   const canStart = destinations.length > 0 && actionChoices.length > 0
 
   function beginEdit(pair?: RulePair): void {
-    const base = pair ? simpleRule(pair.condition, fields) : null
+    const base = pair ? conditionToSimpleRule(pair.condition, fields) : null
     const nextFieldKey = base?.fieldKey ?? initialFieldKey
     const nextField = fields.find((field) => field.key === nextFieldKey)
     setActivePairKey(pair?.yes.key ?? null)
-    setFieldKey(nextField?.key ?? '')
+    setRuleDraft(base ?? { fieldKey: nextField?.key ?? '', operator: nextField ? operatorsForFieldType(nextField.type)[0] ?? 'equals' : 'equals', value: '', values: [] })
     setRouteAction(pair?.yes.action ?? actionChoices[0] ?? 'SUBMIT')
-    setOperator(base?.operator ?? (nextField ? operatorsFor(nextField.type)[0] ?? 'equals' : 'equals'))
-    setRawValue(base?.value ?? '')
     setYesStepKey(pair ? (destinations.some((step) => step.key === pair.yes.toStepKey) ? pair.yes.toStepKey : '') : destinations[0]?.key ?? '')
     setOtherwiseStepKey(pair ? (destinations.some((step) => step.key === pair.otherwise.toStepKey) ? pair.otherwise.toStepKey : '') : destinations[1]?.key ?? destinations[0]?.key ?? '')
     setEditingRule(true)
   }
 
-  function onFieldChange(event: ChangeEvent<HTMLSelectElement>): void {
-    const nextKey = event.target.value
-    const nextField = fields.find((field) => field.key === nextKey)
-    setFieldKey(nextKey)
-    setOperator(nextField ? operatorsFor(nextField.type)[0] ?? 'equals' : 'equals')
-    setRawValue('')
-  }
-
   function saveRule(): void {
     if (!selectedField || !destinations.some((step) => step.key === yesStepKey) || !destinations.some((step) => step.key === otherwiseStepKey)) return
-    const condition = parseCondition(selectedField, operator, rawValue)
+    const condition = simpleRuleToCondition(selectedField, ruleDraft)
     if (!condition) return
 
     onChangeDraft((current) => {
@@ -254,8 +189,8 @@ export function ConditionalRouteEditor({ draft, fromStepKey, editing, language, 
     onChangeDraft((current) => ({ ...current, transitions: current.transitions.filter((candidate) => candidate.key !== route.key) }))
   }
 
-  const parsed = selectedField ? parseCondition(selectedField, operator, rawValue) : null
-  const valueRequired = operator !== 'isEmpty' && operator !== 'isNotEmpty'
+  const parsed = selectedField ? simpleRuleToCondition(selectedField, ruleDraft) : null
+  const valueRequired = ruleDraft.operator !== 'isEmpty' && ruleDraft.operator !== 'isNotEmpty'
   const invalidValue = Boolean(editingRule && selectedField && valueRequired && !parsed)
   const invalidDestination = editingRule && (!destinations.some((step) => step.key === yesStepKey) || !destinations.some((step) => step.key === otherwiseStepKey))
   const shouldShowDestinations = activePair !== null || sourceRoutes.some((route) => !route.condition && route.action === routeAction)
@@ -268,11 +203,8 @@ export function ConditionalRouteEditor({ draft, fromStepKey, editing, language, 
         <h6 className="font-semibold">{labels.title}</h6>
         {pairs.length > 0 ? <ul className="mt-3 grid gap-3">
           {pairs.map((pair) => {
-            const rule = simpleRule(pair.condition, fields)
-            const ruleField = rule ? fields.find((field) => field.key === rule.fieldKey) : undefined
-            const summary = rule && ruleField
-              ? `${title(ruleField.label, language)} ${labels.operatorLabels[rule.operator]}${rule.value !== '' ? ` ${formatValue(ruleField, rule.value, language)}` : ''}`
-              : null
+            const rule = conditionToSimpleRule(pair.condition, fields)
+            const summary = formatConditionRule(pair.condition, fields, language, labels)
             const yesTitle = title(draft.steps.find((step) => step.key === pair.yes.toStepKey)?.title, language)
             const otherwiseTitle = title(draft.steps.find((step) => step.key === pair.otherwise.toStepKey)?.title, language)
             return <li className="border-b border-border pb-3 last:border-b-0 last:pb-0" key={pair.yes.key}>
@@ -320,25 +252,7 @@ export function ConditionalRouteEditor({ draft, fromStepKey, editing, language, 
       </label> : null}
 
       {editingRule ? <div className="mt-4 grid min-w-0 gap-3">
-        <label className="min-w-0 text-sm font-semibold" htmlFor={`condition-field-${fromStepKey}`}>{labels.field}
-          <DropdownSelect className="mt-1" disabled={!editing || fields.length === 0} id={`condition-field-${fromStepKey}`} onChange={onFieldChange} searchable value={fieldKey}>
-            <option value="">{labels.field}</option>
-            {fields.map((field) => <option key={field.key} value={field.key}>{title(field.label, language)}{field.type === 'MONEY' ? ' · €' : ` · ${field.type}`}</option>)}
-          </DropdownSelect>
-        </label>
-        <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-          <label className="min-w-0 text-sm font-semibold" htmlFor={`condition-operator-${fromStepKey}`}>{labels.operator}
-            <DropdownSelect className="mt-1" disabled={!editing || !selectedField} id={`condition-operator-${fromStepKey}`} onChange={(event) => setOperator(event.target.value as RuleOperator)} value={operator}>
-              {(selectedField ? operatorsFor(selectedField.type) : []).map((value) => <option key={value} value={value}>{labels.operatorLabels[value]}</option>)}
-            </DropdownSelect>
-          </label>
-          {valueRequired ? <label className="min-w-0 text-sm font-semibold" htmlFor={`condition-value-${fromStepKey}`}>{labels.value}
-            {selectedField?.type === 'BOOLEAN' ? <DropdownSelect className="mt-1" id={`condition-value-${fromStepKey}`} onChange={(event) => setRawValue(event.target.value)} value={rawValue}><option value="">{labels.value}</option><option value="true">{labels.yes}</option><option value="false">{labels.no}</option></DropdownSelect>
-              : selectedField?.type === 'SINGLE_SELECT' ? <DropdownSelect className="mt-1" id={`condition-value-${fromStepKey}`} onChange={(event) => setRawValue(event.target.value)} value={rawValue}><option value="">{labels.value}</option>{(selectedField.options ?? []).map((option) => <option key={option.value} value={option.value}>{title(option.label, language)}</option>)}</DropdownSelect>
-                : <input aria-invalid={invalidValue} className="mt-1 w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal focus-visible:outline-2 focus-visible:outline-primary" id={`condition-value-${fromStepKey}`} inputMode={selectedField && ['INTEGER', 'DECIMAL', 'MONEY'].includes(selectedField.type) ? 'decimal' : undefined} onChange={(event) => setRawValue(event.target.value)} step={selectedField?.type === 'INTEGER' ? '1' : selectedField && ['DECIMAL', 'MONEY'].includes(selectedField.type) ? 'any' : undefined} type={selectedField?.type === 'DATE' ? 'date' : selectedField?.type === 'TIME' ? 'time' : selectedField?.type === 'DATETIME' ? 'datetime-local' : ['INTEGER', 'DECIMAL', 'MONEY'].includes(selectedField?.type ?? '') ? 'number' : 'text'} value={rawValue} />}
-          </label> : <div />}
-        </div>
-        {invalidValue ? <p className="text-sm text-destructive" role="alert">{labels.invalidValue}</p> : null}
+        <ConditionRuleBuilder disabled={!editing || fields.length === 0} fields={fields} idPrefix={`condition-${fromStepKey}`} labels={labels} language={language} onChange={setRuleDraft} rule={ruleDraft} />
         {shouldShowDestinations ? <div className="grid min-w-0 gap-3 sm:grid-cols-2">
           {([['yes', labels.whenTrue, yesStepKey, setYesStepKey], ['otherwise', labels.otherwise, otherwiseStepKey, setOtherwiseStepKey]] as const).map(([id, label, value, setValue]) => <label className="min-w-0 text-sm font-semibold" htmlFor={`condition-${id}-${fromStepKey}`} key={id}>{label}
             <DropdownSelect className="mt-1" disabled={!editing} id={`condition-${id}-${fromStepKey}`} onChange={(event) => setValue(event.target.value)} searchable value={value}>
@@ -348,7 +262,7 @@ export function ConditionalRouteEditor({ draft, fromStepKey, editing, language, 
           </label>)}
         </div> : null}
         {invalidDestination ? <p className="text-sm text-destructive" role="alert">{labels.invalidDestination}</p> : null}
-        {selectedField && parsed ? <p aria-live="polite" className="break-words rounded-lg border border-border bg-background px-3 py-2 text-sm">{fieldLabel} {labels.operatorLabels[operator]}{valueRequired ? ` ${formatValue(selectedField, rawValue, language)}` : ''}</p> : null}
+        {selectedField && parsed ? <p aria-live="polite" className="break-words rounded-lg border border-border bg-background px-3 py-2 text-sm">{formatConditionRule(parsed, fields, language, labels)}</p> : null}
         <div className="flex flex-wrap gap-2">
           <Button disabled={!editing || !parsed || invalidValue || invalidDestination} onClick={saveRule} size="sm" type="button" variant="primary">{labels.save}</Button>
           <Button onClick={() => setEditingRule(false)} size="sm" type="button" variant="secondary">{labels.cancel}</Button>

@@ -83,6 +83,7 @@ export type DefinitionCompileErrorCode =
   | 'CONDITION_NOT_ORDERABLE'
   | 'CONDITION_REFERENCES_HIDDEN_FIELD'
   | 'CONDITION_CIRCULAR_DEPENDENCY'
+  | 'FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT'
   | 'OUTPUT_FIELD_UNKNOWN'
   | 'OUTPUT_DOCUMENT_CATEGORY_REQUIRED'
   | 'SECURITY_ACCESS_ESCALATION'
@@ -462,6 +463,9 @@ function validateFieldConditions(
       const access = accessRules(field, fieldPath, participantKeys, issues)
       validateBinding(field, fieldPath, issues)
       validateFieldOptions(field, fieldPath, issues)
+      if (field.requiredCondition) field.access.forEach((rule, ruleIndex) => {
+        if (rule.mode === 'WRITE_REQUIRED') issue(issues, 'FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT', [...fieldPath, 'access', ruleIndex, 'mode'], 'Conditionally required fields must use optional write access so the condition controls requiredness')
+      })
       const references = new Set<string>()
       const conditions: ReadonlyArray<readonly [string, ConditionNode | undefined]> = [
         ['visibilityCondition', field.visibilityCondition],
@@ -477,6 +481,7 @@ function validateFieldConditions(
           if (!referencedField) continue
           const referencedIndexed = fields.get(reference)
           if (!referencedIndexed) continue
+          if (referencedField.visibilityCondition && [...participantKeys].some((participantKey) => access.get(participantKey) !== 'HIDDEN')) issue(issues, 'CONDITION_REFERENCES_HIDDEN_FIELD', [...conditionPath, 'fieldKey'], `Condition depends on a conditionally hidden field: ${reference}`)
           const referencedAccess = accessRules(referencedField, referencedIndexed.path, participantKeys, issues)
           for (const participantKey of participantKeys) {
             if (access.get(participantKey) !== 'HIDDEN' && referencedAccess.get(participantKey) === 'HIDDEN') issue(issues, 'CONDITION_REFERENCES_HIDDEN_FIELD', [...conditionPath, 'fieldKey'], `Visible field condition depends on hidden field: ${reference}`)

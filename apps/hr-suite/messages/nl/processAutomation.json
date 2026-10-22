@@ -308,6 +308,18 @@
     "previewStep": "Voorbeeld op stap",
     "noLinkedForm": "Geen formulier gekoppeld aan deze stap.",
     "fieldRules": "Toegang en invulplicht per rol",
+    "conditionsTitle": "Veldvoorwaarden",
+    "visibility": "Zichtbaarheid",
+    "alwaysVisible": "Altijd zichtbaar",
+    "visibleWhen": "Zichtbaar als een voorwaarde waar is",
+    "required": "Invulplicht",
+    "notRequired": "Niet verplicht",
+    "alwaysRequired": "Altijd verplicht wanneer zichtbaar en bewerkbaar",
+    "requiredWhen": "Verplicht als een voorwaarde waar is",
+    "conditionRuleExplanation": "Kies een veld dat voor alle betrokken deelnemers altijd zichtbaar is.",
+    "conditionUnavailable": "Deze bestaande regel past niet in de eenvoudige weergave. Kies Bewerken om een eenvoudige regel in te stellen, of kies Altijd zichtbaar of Niet verplicht om de regel te verwijderen.",
+    "noConditionFields": "Er is geen geschikt zichtbaar veld om als bron te gebruiken.",
+    "noWritableParticipants": "Dit veld is niet bewerkbaar voor deelnemers; een invulplicht is daarom niet van toepassing.",
     "stepList": "Toegankelijke stappenlijst",
     "steps": "Processtappen",
     "step": "Stap",
@@ -330,6 +342,8 @@
     "desktop": "Desktop",
     "mobile": "Mobiel",
     "syntheticData": "De waarden in deze weergave worden niet opgeslagen.",
+    "previewConditionHidden": "{field} is verborgen op basis van de ingevulde voorbeeldwaarden.",
+    "previewRequired": "Verplicht",
     "saved": "Concept bewaard",
     "saving": "Concept bewaren…",
     "saveError": "Concept bewaren is mislukt.",
@@ -516,7 +530,8 @@
       "END_STEP_OUTCOME_REQUIRED": "Kies het resultaat van deze eindstap.",
       "END_STEP_INVALID": "Een eindstap heeft geen verantwoordelijke, formulier of acties nodig.",
       "STEP_ACTION_INVALID": "Kies een actie die bij dit type stap past.",
-      "RECOVERY_TRANSITION_INVALID": "Alleen Wijzigingen vragen kan als terugroute worden ingesteld."
+      "RECOVERY_TRANSITION_INVALID": "Alleen Wijzigingen vragen kan als terugroute worden ingesteld.",
+      "FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT": "Een veld dat alleen onder een voorwaarde verplicht is, moet bij deelnemers optioneel schrijfbaar zijn."
     },
     "flowEditor": {
       "stepList": "Procesflow",
@@ -584,11 +599,15 @@
         "pairInvalid": "Deze voorwaarde heeft geen geldige ja- en nee-route. Controleer de route voordat je verdergaat.",
         "yes": "Ja",
         "no": "Nee",
+        "addValue": "Waarde toevoegen",
+        "removeValue": "Waarde verwijderen",
         "operators": {
           "equals": "is gelijk aan",
           "notEquals": "is niet gelijk aan",
           "greaterThan": "is hoger dan",
           "lessThan": "is lager dan",
+          "in": "is een van",
+          "notIn": "is geen van",
           "isEmpty": "is leeg",
           "isNotEmpty": "is ingevuld"
         }

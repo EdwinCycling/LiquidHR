@@ -1,6 +1,6 @@
 import type { ConditionNode, ConditionOperand, FieldType } from './definition-schemas'
 
-export type ConditionRuntimeValue = string | number | boolean | null | undefined
+export type ConditionRuntimeValue = string | number | boolean | null | undefined | readonly string[]
 
 export interface ConditionEvaluationContext {
   readonly fields: Readonly<Record<string, ConditionRuntimeValue>>
@@ -19,7 +19,7 @@ export interface ConditionValidationIssue {
   readonly message: string
 }
 
-type PrimitiveType = 'string' | 'number' | 'boolean' | 'null'
+type PrimitiveType = 'string' | 'number' | 'boolean' | 'array' | 'null'
 
 interface ConditionTypeInfo {
   readonly primitive: PrimitiveType
@@ -48,7 +48,7 @@ const fieldTypes: Readonly<Record<FieldType, ConditionTypeInfo>> = {
   DATETIME: { primitive: 'string', orderable: true },
   BOOLEAN: { primitive: 'boolean', orderable: false },
   SINGLE_SELECT: { primitive: 'string', orderable: false },
-  MULTI_SELECT: { primitive: 'string', orderable: false },
+  MULTI_SELECT: { primitive: 'array', orderable: false },
   EMPLOYEE_REFERENCE: { primitive: 'string', orderable: false },
   DEPARTMENT_REFERENCE: { primitive: 'string', orderable: false },
   JOB_REFERENCE: { primitive: 'string', orderable: false },
@@ -63,7 +63,7 @@ function runtimeValue(operand: ConditionOperand, context: ConditionEvaluationCon
 }
 
 function isEmpty(value: ConditionRuntimeValue): boolean {
-  return value === null || value === undefined || value === ''
+  return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
 }
 
 function compareValues(left: ConditionRuntimeValue, right: ConditionRuntimeValue, operator: 'greaterThan' | 'lessThan'): boolean {
