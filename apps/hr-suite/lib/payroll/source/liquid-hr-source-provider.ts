@@ -1913,6 +1913,40 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         versionParts: [String(row.version_number), row.effective_from],
         validFrom: row.effective_from, validUntilExclusive: row.effective_to,
       })),
+      ...(incomeRelationship.selected ? [
+        {
+          field: 'incomeRelationshipLink', sourceType: 'employment_income_relationships',
+          sourceRowId: incomeRelationship.selected.id,
+          versionKey: `employment_income_relationship:${incomeRelationship.selected.id}`,
+          version: incomeRelationship.selected.linkUpdatedAt,
+          versionParts: [incomeRelationship.selected.linkUpdatedAt],
+          validFrom: incomeRelationship.selected.validFrom,
+          validUntilExclusive: incomeRelationship.selected.validUntil,
+        },
+        {
+          field: 'incomeRelationship', sourceType: 'income_relationships',
+          sourceRowId: incomeRelationship.selected.incomeRelationshipId,
+          versionKey: `income_relationship:${incomeRelationship.selected.incomeRelationshipId}`,
+          version: incomeRelationship.selected.incomeRelationshipUpdatedAt,
+          versionParts: [incomeRelationship.selected.incomeRelationshipUpdatedAt],
+          validFrom: incomeRelationship.selected.startsOn,
+          validUntilExclusive: incomeRelationship.selected.endsOn === null
+            ? null : dayAfter(incomeRelationship.selected.endsOn),
+        },
+      ] : []),
+      ...(fiscalProfile.canonical.id ? [(() => {
+        const profile = timeline.taxProfileProjection?.taxProfiles.find((row) => row.id === fiscalProfile.canonical.id)
+        return {
+          field: 'taxProfile', sourceType: 'employment_payroll_tax_profiles',
+          sourceRowId: profile?.id ?? fiscalProfile.canonical.id!,
+          versionKey: `employment_payroll_tax_profile:${fiscalProfile.canonical.id}`,
+          version: profile ? `${profile.version_number}:${profile.created_at}` : '',
+          versionParts: profile ? [String(profile.version_number), profile.created_at] : [],
+          validFrom: profile?.effective_from ?? activeStart,
+          validUntilExclusive: profile?.effective_to === null || profile?.effective_to === undefined
+            ? null : dayAfter(profile.effective_to),
+        }
+      })()] : []),
       ...(payrollSetup?.configurationRow ? [{
         field: 'payrollConfiguration', sourceType: 'payroll_employer_configurations',
         sourceRowId: payrollSetup.configurationRow.id,
