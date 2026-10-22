@@ -1,6 +1,6 @@
 # PMUX-04R5B2 — autonome TEST-auth en browsercontrole
 
-Datum: 22 oktober 2026  
+Datum: 22 oktober 2026
 Uitkomst: **PARTIAL / HOLD**. De ondersteunde lokale HR Admin-login en de echte HR Admin-schermen werkten. Een geverifieerde Edwin-owner-login is niet autonoom beschikbaar in deze runtime; Manager en Employee zijn daarom niet gewisseld.
 
 ## Herkomst en bescherming
