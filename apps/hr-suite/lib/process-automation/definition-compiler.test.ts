@@ -7,6 +7,7 @@ import {
 } from './definition-compiler'
 import { processDefinitionDraftSchema, type FieldDefinition, type ProcessDefinitionDraft } from './definition-schemas'
 import { documentAcknowledgementFixture } from './fixtures/document-acknowledgement'
+import { createTrainingRequestExampleDraft } from './studio-draft-factories'
 import { internalTransferFixture } from './fixtures/internal-transfer'
 
 function copyFixture(): ProcessDefinitionDraft {
@@ -87,6 +88,35 @@ describe('process definition compiler', () => {
     })).toBe(false)
   })
 
+  it('keeps a complementary condition pair through the versioned compile and save/reopen contract', () => {
+    const definition = createTrainingRequestExampleDraft({ key: 'opleiding-aanvragen', title: { nl: 'Opleidingsaanvraag', en: 'Training request' }, description: { nl: 'Aanvraag en beoordeling.', en: 'Request and review.' } })
+    const condition = { operator: 'greaterThan' as const, left: { kind: 'FIELD' as const, fieldKey: 'training-expected-cost' }, right: { kind: 'LITERAL' as const, value: 1000 } }
+    const route = definition.transitions.find((candidate) => candidate.key === 'request-submit')
+    if (!route) throw new Error('Training request route not found')
+    definition.transitions = definition.transitions.filter((candidate) => candidate.key !== route.key)
+    definition.transitions.push(
+      { ...route, toStepKey: 'hr-processing', condition },
+      { ...route, key: 'request-submit-otherwise', toStepKey: 'manager-review', condition: { operator: 'not', condition } },
+    )
+    const compiled = compileProcessDefinition(definition)
+    const savedAndReopened = processDefinitionDraftSchema.parse(JSON.parse(JSON.stringify(definition)))
+    const reopened = compileProcessDefinition(savedAndReopened)
+
+    expect(reopened.hash).toBe(compiled.hash)
+    expect(reopened.content.transitions.find((candidate) => candidate.key === 'request-submit')?.condition).toEqual(condition)
+    expect(Object.isFrozen(reopened.content.transitions.find((candidate) => candidate.key === 'request-submit')?.condition)).toBe(true)
+  })
+
+  it('rejects conditional references to removed fields and route destinations', () => {
+    const definition = createTrainingRequestExampleDraft({ key: 'opleiding-aanvragen', title: { nl: 'Opleidingsaanvraag', en: 'Training request' }, description: { nl: 'Aanvraag en beoordeling.', en: 'Request and review.' } })
+    definition.transitions[0] = { ...definition.transitions[0]!, condition: { operator: 'greaterThan', left: { kind: 'FIELD', fieldKey: 'training-expected-cost' }, right: { kind: 'LITERAL', value: 1000 } } }
+    definition.forms[0]!.sections[0]!.fields = definition.forms[0]!.sections[0]!.fields.filter((field) => field.key !== 'training-expected-cost')
+    compileFailure(definition, 'CONDITION_REFERENCE_UNKNOWN', ['transitions'])
+
+    const missingDestination = createTrainingRequestExampleDraft({ key: 'opleiding-aanvragen', title: { nl: 'Opleidingsaanvraag', en: 'Training request' }, description: { nl: 'Aanvraag en beoordeling.', en: 'Request and review.' } })
+    missingDestination.transitions[0] = { ...missingDestination.transitions[0]!, toStepKey: 'removed-step' }
+    compileFailure(missingDestination, 'TRANSITION_TARGET_UNKNOWN', ['transitions'])
+  })
   it('allows empty draft sections but blocks a form with no fields from publishing', () => {
     const definition = copyFixture()
     definition.forms[0].sections.forEach((section) => { section.fields = [] })

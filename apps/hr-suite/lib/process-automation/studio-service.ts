@@ -15,9 +15,11 @@ import {
   type DefinitionCompileIssue,
 } from './definition-compiler'
 import { internalTransferFixture } from './fixtures/internal-transfer'
+import { evaluateCondition, type ConditionRuntimeValue } from './condition-evaluator'
 import {
   processDefinitionDraftSchema,
   type ProcessDefinitionDraft,
+  type ProcessTransition,
 } from './definition-schemas'
 import {
   createEmptyStudioDraft,
@@ -154,7 +156,48 @@ export const studioTrialSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   language: z.enum(['nl', 'en']).default('nl'),
   subjectEmployeeId: z.string().uuid().nullable().optional(),
+  fieldValues: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 }).strict()
+
+export function validateStudioTrialFieldValues(
+  draft: ProcessDefinitionDraft,
+  values: Readonly<Record<string, string | number | boolean | null>> = {},
+): StudioIssue[] {
+  const fields = new Map(draft.forms.flatMap((form) => form.sections.flatMap((section) => section.fields.map((field) => [field.key, field] as const))))
+  const issues: StudioIssue[] = []
+  for (const [fieldKey, value] of Object.entries(values)) {
+    const field = fields.get(fieldKey)
+    if (!field) {
+      issues.push({ code: 'CONDITION_FIELD_UNKNOWN', path: ['fieldValues', fieldKey], message: 'Dit veld bestaat niet in het formulier.' })
+      continue
+    }
+    if (value === null) continue
+    const valid = field.type === "INTEGER" ? typeof value === "number" && Number.isInteger(value)
+      : field.type === "DECIMAL" || field.type === "MONEY" ? typeof value === "number" && Number.isFinite(value)
+        : field.type === "BOOLEAN" ? typeof value === "boolean"
+          : typeof value === "string"
+    if (!valid) {
+      issues.push({ code: 'CONDITION_FIELD_TYPE_INVALID', path: ['fieldValues', fieldKey], message: 'De testwaarde past niet bij het type van dit formulierveld.' })
+      continue
+    }
+    if (field.type === "SINGLE_SELECT" && !field.options?.some((option) => option.value === value)) {
+      issues.push({ code: 'CONDITION_FIELD_VALUE_INVALID', path: ['fieldValues', fieldKey], message: 'Kies een bestaande waarde voor dit formulierveld.' })
+    }
+  }
+  return issues
+}
+
+export function selectStudioTrialTransition(
+  routes: readonly ProcessTransition[],
+  fields: Readonly<Record<string, ConditionRuntimeValue>>,
+  subject: Readonly<Record<string, ConditionRuntimeValue>>,
+): { readonly action: ProcessTransition['action'] | null; readonly matches: readonly ProcessTransition[] } {
+  const firstForward = routes.find((route) => route.kind === "FORWARD")
+  if (!firstForward) return { action: null, matches: [] }
+  const candidates = routes.filter((route) => route.kind === "FORWARD" && route.action === firstForward.action)
+  const matches = candidates.filter((route) => !route.condition || evaluateCondition(route.condition, { fields, subject }))
+  return { action: firstForward.action, matches }
+}
 
 function jsonObject(value: unknown): Record<string, unknown> | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
@@ -539,6 +582,11 @@ export async function runStudioTrial(definitionId: string, input: z.infer<typeof
   const { context, supabase } = await studioReadContext()
   const studio = await getStudioDefinition(definitionId)
   const result = compileDraft(studio.draft)
+  const fieldValueIssues = validateStudioTrialFieldValues(result.draft, input.fieldValues)
+  if (fieldValueIssues.length > 0) return {
+    status: 'BLOCKING', date: input.date, language: input.language, subjectEmployeeId: input.subjectEmployeeId ?? null,
+    path: [], participants: [], output: result.draft.output ?? null, blockers: fieldValueIssues, warnings: [], writesPerformed: false,
+  }
   if (!result.compiled) {
     return {
       status: 'BLOCKING', date: input.date, language: input.language, subjectEmployeeId: input.subjectEmployeeId ?? null,
@@ -633,9 +681,17 @@ export async function runStudioTrial(definitionId: string, input: z.infer<typeof
     visited.add(currentStepKey)
     const step = result.draft.steps.find((candidate) => candidate.key === currentStepKey)
     if (!step) break
-    const transition = result.draft.transitions.find((candidate) => candidate.fromStepKey === step.key && candidate.kind === 'FORWARD') ?? null
+    const sourceRoutes = result.draft.transitions.filter((candidate) => candidate.fromStepKey === step.key)
+    const decision = selectStudioTrialTransition(sourceRoutes, input.fieldValues ?? {}, {
+      employeeId: subjectEmployeeId,
+      employmentId: null,
+      departmentId: subjectPlacement?.departmentId ?? null,
+      effectiveDate: input.date,
+    })
+    const transition = decision.matches.length === 1 ? decision.matches[0] : null
+    if (decision.matches.length > 1) blockers.push(trialIssue('AMBIGUOUS_TRANSITION', ['transitions', step.key], 'Meerdere routes passen bij deze procesproef.'))
+    else if (decision.action && decision.matches.length === 0) blockers.push(trialIssue('TRANSITION_NOT_FOUND', ['transitions', step.key], 'Geen route past bij de ingevoerde procesproefwaarden.'))
     path.push({ stepKey: step.key, title: step.title, participantKey: step.participantKey ?? null, sla: step.sla ?? null, nextStepKey: transition?.toStepKey ?? null, transitionKey: transition?.key ?? null })
-    if (transition?.condition) warnings.push(trialIssue('CONDITION_REVIEW_REQUIRED', ['transitions', transition.key, 'condition'], 'Deze route bevat een voorwaarde; de procesproef gebruikt de eerste toegestane route.'))
     currentStepKey = transition?.toStepKey ?? null
   }
   if (path.length === 0) blockers.push(trialIssue('START_STEP_UNKNOWN', ['startStepKey'], 'De startstap kon niet worden gevonden.'))

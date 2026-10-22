@@ -23,6 +23,7 @@ import {
   Send,
   Workflow,
 } from 'lucide-react'
+import { collectConditionFieldReferences } from '@/lib/process-automation/condition-evaluator'
 import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, FormDefinition, ProcessDefinitionDraft } from '@/lib/process-automation/definition-schemas'
 import { ProcessFlowEditor, type ProcessFlowEditorLabels } from '@/components/process-automation/process-flow-editor'
 import { changeDefinitionFieldType, duplicateDefinitionField, reorderDefinitionItems, uniqueDefinitionKey } from '@/lib/process-automation/form-studio-draft'
@@ -146,6 +147,7 @@ export interface StudioLabels {
   readonly path: string
   readonly processTrial: string
   readonly trialDate: string
+  readonly trialConditionValues: string
   readonly runTrial: string
   readonly trialNoWrites: string
   readonly trialPath: string
@@ -433,6 +435,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   const [showRetire, setShowRetire] = useState(false)
   const [retireReason, setRetireReason] = useState('')
   const [trialDate, setTrialDate] = useState(new Date().toISOString().slice(0, 10))
+  const [trialFieldValues, setTrialFieldValues] = useState<Record<string, string | number | boolean | null>>({})
   const [trial, setTrial] = useState<StudioTrialReport | null>(null)
   const [trialLoading, setTrialLoading] = useState(false)
   const [actionError, setActionError] = useState('')
@@ -619,12 +622,18 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     }
   }
 
+  function updateTrialFieldValue(field: FieldDefinition, rawValue: string) {
+    let value: string | number | boolean | null = rawValue === '' ? null : rawValue
+    if (rawValue !== '' && (field.type === 'INTEGER' || field.type === 'DECIMAL' || field.type === 'MONEY')) value = Number(rawValue)
+    if (rawValue !== '' && field.type === 'BOOLEAN') value = rawValue === 'true'
+    setTrialFieldValues((current) => ({ ...current, [field.key]: value }))
+  }
   async function runTrial() {
     if (!selected) return
     setTrialLoading(true)
     setActionError('')
     try {
-      const response = await fetch(`/api/process-automation/studio/${selected.definition.id}/trial`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: trialDate, language: previewLanguage, subjectEmployeeId: null }) })
+      const response = await fetch(`/api/process-automation/studio/${selected.definition.id}/trial`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: trialDate, language: previewLanguage, subjectEmployeeId: null, fieldValues: trialFieldValues }) })
       const payload = await response.json() as { data?: StudioTrialReport; code?: string }
       if (!response.ok || !payload.data) throw new Error(payload.code ?? 'TRIAL_FAILED')
       setTrial(payload.data)
@@ -878,6 +887,8 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     const access = field.access.find((rule) => rule.participantKey === previewParticipantDefinition?.key)
     return access?.mode !== 'HIDDEN'
   }) ?? []
+  const trialConditionFieldKeys = new Set((draft?.transitions ?? []).flatMap((transition) => transition.condition ? collectConditionFieldReferences(transition.condition) : []))
+  const trialConditionFields = draft?.forms.flatMap((form) => form.sections.flatMap((section) => section.fields)).filter((field) => trialConditionFieldKeys.has(field.key)) ?? []
   const productionCount = catalog.filter((item) => item.status === 'PUBLISHED').length
   const draftCount = catalog.filter((item) => item.status === 'DRAFT').length
   const retiredCount = catalog.filter((item) => item.status === 'RETIRED').length
@@ -1163,8 +1174,9 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
 
               {studioStage === 'trial' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.processTrial}</p><h3 className="mt-1 text-xl font-semibold">{labels.processTrial}</h3></div><FlaskConical className="text-primary" size={22} /></div>
-                <div className="mt-4 flex flex-wrap items-end gap-3"><label className="text-xs font-semibold">{labels.trialDate}<input className="mt-1 rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setTrialDate(event.target.value)} type="date" value={trialDate} /></label><button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50" disabled={trialLoading} onClick={() => void runTrial()} type="button"><FlaskConical size={15} />{trialLoading ? labels.saving : labels.runTrial}</button></div>
-                {trial ? <div className="mt-5 space-y-4"><div className={`rounded-2xl border p-4 ${trial.status === 'SUCCESS' ? 'border-emerald-300 bg-emerald-50' : trial.status === 'WARNING' ? 'border-amber-300 bg-amber-50' : 'border-destructive/30 bg-destructive/5'}`}><div className="flex items-center gap-2 font-semibold">{trial.status === 'SUCCESS' ? <Check size={17} /> : null}{trial.status === 'SUCCESS' ? labels.success : trial.status === 'WARNING' ? labels.warning : labels.blocking}</div><p className="mt-2 text-sm">{labels.trialNoWrites}</p></div><div className="grid gap-4 lg:grid-cols-2"><div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialPath}</h4><ol className="mt-3 space-y-2">{trial.path.map((step, index) => <li className="flex gap-3 text-sm" key={step.stepKey}><span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold">{index + 1}</span><span><span className="font-semibold">{titleFor(step.title, trial.language)}</span><span className="block text-xs text-muted-foreground">{step.stepKey}{step.nextStepKey ? ` → ${step.nextStepKey}` : ''}{step.sla ? ` · ${labels.sla} ${step.sla.duration.amount} ${step.sla.duration.unit}` : ''}</span></span></li>)}</ol></div><div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialParticipants}</h4><div className="mt-3 space-y-2">{trial.participants.map((participant) => <div className="rounded-xl border p-3 text-sm" key={participant.participantKey}><div className="flex justify-between gap-2"><span className="font-semibold">{participant.participantKey}</span><span className="text-xs font-semibold">{participant.status}</span></div><p className="mt-1 text-xs text-muted-foreground">{participant.selectorType} · {participant.permission} · {participant.candidateEmployeeIds.length} {labels.candidates}</p>{participant.message ? <p className="mt-1 text-xs text-destructive">{participant.message}</p> : null}</div>)}</div></div></div>{trial.output ? <div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialOutput}</h4><p className="mt-1 text-sm">{titleFor(trial.output.title, trial.language)} · {trial.output.format}</p></div> : null}{trial.blockers.length || trial.warnings.length ? <IssueList issues={[...trial.blockers, ...trial.warnings]} labels={labels} /> : null}</div> : null}
+                <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3"><label className="min-w-0 text-sm font-semibold">{labels.trialDate}<input className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-normal" onChange={(event) => setTrialDate(event.target.value)} type="date" value={trialDate} /></label><button className="inline-flex min-h-10 items-center justify-center gap-2 self-end rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50" disabled={trialLoading} onClick={() => void runTrial()} type="button"><FlaskConical size={15} />{trialLoading ? labels.saving : labels.runTrial}</button></div>
+                {trialConditionFields.length > 0 ? <fieldset className="mt-4 min-w-0 rounded-xl border bg-background p-4"><legend className="px-1 text-sm font-semibold">{labels.trialConditionValues}</legend><div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">{trialConditionFields.map((field) => { const value = trialFieldValues[field.key]; const inputValue = value === null || value === undefined ? '' : String(value); const label = titleFor(field.label, previewLanguage); return <label className="min-w-0 text-sm font-medium" key={field.key}>{label}{field.type === 'BOOLEAN' ? <select className="mt-1 w-full rounded-lg border bg-background px-3 py-2 font-normal" onChange={(event) => updateTrialFieldValue(field, event.target.value)} value={inputValue}><option value="">{labels.noValue}</option><option value="true">{labels.flowEditor.conditionEditor.yes}</option><option value="false">{labels.flowEditor.conditionEditor.no}</option></select> : field.type === 'SINGLE_SELECT' ? <select className="mt-1 w-full rounded-lg border bg-background px-3 py-2 font-normal" onChange={(event) => updateTrialFieldValue(field, event.target.value)} value={inputValue}><option value="">{labels.noValue}</option>{(field.options ?? []).map((option) => <option key={option.value} value={option.value}>{titleFor(option.label, previewLanguage)}</option>)}</select> : <input className="mt-1 w-full min-w-0 rounded-lg border bg-background px-3 py-2 font-normal" onChange={(event) => updateTrialFieldValue(field, event.target.value)} step={field.type === 'INTEGER' ? '1' : field.type === 'MONEY' || field.type === 'DECIMAL' ? 'any' : undefined} type={field.type === 'DATE' ? 'date' : field.type === 'TIME' ? 'time' : field.type === 'DATETIME' ? 'datetime-local' : ['INTEGER', 'DECIMAL', 'MONEY'].includes(field.type) ? 'number' : 'text'} value={inputValue} />}</label> })}</div></fieldset> : null}
+                {trial ? <div className="mt-5 space-y-4"><div className={`rounded-2xl border p-4 ${trial.status === 'SUCCESS' ? 'border-emerald-300 bg-emerald-50' : trial.status === 'WARNING' ? 'border-amber-300 bg-amber-50' : 'border-destructive/30 bg-destructive/5'}`}><div className="flex items-center gap-2 font-semibold">{trial.status === 'SUCCESS' ? <Check size={17} /> : null}{trial.status === 'SUCCESS' ? labels.success : trial.status === 'WARNING' ? labels.warning : labels.blocking}</div><p className="mt-2 text-sm">{labels.trialNoWrites}</p></div><div className="grid gap-4 lg:grid-cols-2"><div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialPath}</h4><ol className="mt-3 space-y-2">{trial.path.map((step, index) => <li className="flex gap-3 text-sm" key={step.stepKey}><span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold">{index + 1}</span><span><span className="font-semibold">{titleFor(step.title, trial.language)}</span><span className="block text-xs text-muted-foreground">{step.nextStepKey ? `→ ${titleFor(draft.steps.find((candidate) => candidate.key === step.nextStepKey)?.title, trial.language)}` : ''}{step.sla ? ` · ${labels.sla} ${step.sla.duration.amount} ${step.sla.duration.unit}` : ''}</span></span></li>)}</ol></div><div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialParticipants}</h4><div className="mt-3 space-y-2">{trial.participants.map((participant) => <div className="rounded-xl border p-3 text-sm" key={participant.participantKey}><div className="flex justify-between gap-2"><span className="font-semibold">{participant.participantKey}</span><span className="text-xs font-semibold">{participant.status}</span></div><p className="mt-1 text-xs text-muted-foreground">{participant.selectorType} · {participant.permission} · {participant.candidateEmployeeIds.length} {labels.candidates}</p>{participant.message ? <p className="mt-1 text-xs text-destructive">{participant.message}</p> : null}</div>)}</div></div></div>{trial.output ? <div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialOutput}</h4><p className="mt-1 text-sm">{titleFor(trial.output.title, trial.language)} · {trial.output.format}</p></div> : null}{trial.blockers.length || trial.warnings.length ? <IssueList issues={[...trial.blockers, ...trial.warnings]} labels={labels} /> : null}</div> : null}
               </section> : null}
 
               {studioStage === 'versions' ? <section className="rounded-xl border bg-surface p-5 shadow-sm"><div className="flex items-center gap-2"><GitCompareArrows className="text-primary" size={21} /><h3 className="text-xl font-semibold">{labels.versionDiff}</h3></div>{selected.diff.changedPaths.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{labels.noChanges}</p> : <ul className="mt-3 grid gap-2 text-xs md:grid-cols-2">{selected.diff.changedPaths.slice(0, 80).map((path) => <li className="rounded-lg border px-3 py-2 font-mono" key={path}>{path}</li>)}</ul>}</section> : null}

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { ArrowDown, ArrowRight, ArrowUp, CornerUpLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { ConditionalRouteEditor, type ConditionalRouteEditorLabels } from '@/components/process-automation/conditional-route-editor'
 import type {
   ParticipantDefinition,
   ProcessAction,
@@ -74,6 +75,10 @@ export interface ProcessFlowEditorLabels {
   readonly stepNeedsAttention: string
   readonly stepIssueCount: string
   readonly conditionalRoute: string
+  readonly conditionIfTrue: string
+  readonly conditionOtherwise: string
+  readonly conditionEditor: ConditionalRouteEditorLabels
+  readonly language: 'nl' | 'en'
   readonly formCreationFollowUp: string
   readonly startStep: string
   readonly noSelection: string
@@ -415,7 +420,7 @@ export function ProcessFlowEditor({
                             <li key={transition.key}>
                               <button className={`flex w-full min-w-0 items-start gap-2 rounded-lg border px-2.5 py-2 text-left text-xs focus-visible:outline-2 focus-visible:outline-primary ${routeHasIssue ? 'border-destructive/50' : 'border-border hover:border-primary/50'}`} onClick={() => target ? onSelectStep(target.key) : onSelectStep(step.key)} type="button">
                                 {transition.kind === 'RECOVERY' ? <CornerUpLeft aria-hidden="true" className="mt-0.5 shrink-0 text-primary" size={14} /> : <ArrowRight aria-hidden="true" className="mt-0.5 shrink-0 text-primary" size={14} />}
-                                <span className="min-w-0 flex-1"><span className="block font-semibold">{localizedLabel(transition.label, labels.actionLabels[transition.action])}</span><span className="mt-0.5 block truncate text-muted-foreground">{target ? localizedLabel(target.title, labels.stepLabel) : labels.noDestination}</span></span>
+                                <span className="min-w-0 flex-1"><span className="block font-semibold">{transition.condition ? (transition.condition.operator === 'not' ? labels.conditionOtherwise : labels.conditionIfTrue) : localizedLabel(transition.label, labels.actionLabels[transition.action])}</span><span className="mt-0.5 block truncate text-muted-foreground">{target ? localizedLabel(target.title, labels.stepLabel) : labels.noDestination}</span></span>
                               </button>
                             </li>
                           )
@@ -477,7 +482,7 @@ export function ProcessFlowEditor({
               {selectedStepType && selectedStepType !== 'END' ? <section aria-labelledby="process-routes-title" className="border-t pt-4">
                 <h5 className="font-semibold" id="process-routes-title">{labels.routeTitle}</h5>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.addRouteHelp}</p>
-                {draft.transitions.filter((transition) => transition.fromStepKey === selectedStep.key).map((transition) => {
+                {draft.transitions.filter((transition) => transition.fromStepKey === selectedStep.key && !transition.condition).map((transition) => {
                   const transitionIndex = draft.transitions.findIndex((candidate) => candidate.key === transition.key)
                   const routeIssues = issues.filter((issue) => transitionIndexForIssue(issue, transitionIndex))
                   const usedByOtherRoutes = new Set(draft.transitions.filter((candidate) => candidate.fromStepKey === selectedStep.key && candidate.key !== transition.key).map((candidate) => candidate.action))
@@ -511,6 +516,7 @@ export function ProcessFlowEditor({
                     </details>
                   </article>
                 })}
+                <ConditionalRouteEditor actionLabel={labels.routeAction} actionLabels={labels.actionLabels} draft={draft} editing={editing} fromStepKey={selectedStep.key} labels={labels.conditionEditor} language={labels.language} onChangeDraft={onChangeDraft} />
                 {draft.steps.length < 2 ? <p className="mt-3 text-xs text-muted-foreground">{labels.noDestination}</p> : <form className="mt-3 grid gap-2 rounded-lg border border-dashed p-3" onSubmit={addRoute}>
                   <label className="text-xs font-semibold" htmlFor="new-route-action">{labels.routeAction}
                     <select className="mt-1 w-full rounded-md border bg-surface px-2.5 py-2 text-sm font-normal" disabled={!editing || availableRouteActions.length === 0} id="new-route-action" onChange={(event) => setNewRouteAction(event.target.value as ProcessAction)} value={routeActionValue}>

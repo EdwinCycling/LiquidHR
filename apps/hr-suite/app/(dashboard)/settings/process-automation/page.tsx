@@ -18,7 +18,7 @@ import {
   type FormBindingKind,
 } from '@/lib/process-automation/form-binding-catalog'
 import { listCertifiedRecipes } from '@/lib/process-automation/recipe-service'
-import { getTranslator } from '@/lib/i18n/server'
+import { getLocale, getTranslator } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,8 +44,9 @@ export default async function ProcessAutomationSettingsPage({
     throw error
   }
 
-  const [{ definition: requestedDefinition, tab: requestedTab }, messages, messagesNl, messagesEn, catalog, recipes, canWrite, canPublish] = await Promise.all([
+  const [{ definition: requestedDefinition, tab: requestedTab }, locale, messages, messagesNl, messagesEn, catalog, recipes, canWrite, canPublish] = await Promise.all([
     searchParams,
+    getLocale(),
     getTranslator('processAutomation'),
     getTranslator('processAutomation', 'nl'),
     getTranslator('processAutomation', 'en'),
@@ -96,6 +97,7 @@ export default async function ProcessAutomationSettingsPage({
   }, {})
 
   const flowEditor: ProcessFlowEditorLabels = {
+    language: locale,
     stepList: messages('studio.flowEditor.stepList'),
     stepLibrary: messages('studio.flowEditor.stepLibrary'),
     stepName: messages('studio.flowEditor.stepName'),
@@ -215,6 +217,36 @@ export default async function ProcessAutomationSettingsPage({
     stepNeedsAttention: messages('studio.flowEditor.stepNeedsAttention'),
     stepIssueCount: messages('studio.flowEditor.stepIssueCount'),
     conditionalRoute: messages('studio.flowEditor.conditionalRoute'),
+    conditionIfTrue: messages('studio.flowEditor.conditionEditor.whenTrue'),
+    conditionOtherwise: messages('studio.flowEditor.conditionEditor.otherwise'),
+    conditionEditor: {
+      title: messages('studio.flowEditor.conditionEditor.title'),
+      add: messages('studio.flowEditor.conditionEditor.add'),
+      edit: messages('studio.flowEditor.conditionEditor.edit'),
+      remove: messages('studio.flowEditor.conditionEditor.remove'),
+      field: messages('studio.flowEditor.conditionEditor.field'),
+      operator: messages('studio.flowEditor.conditionEditor.operator'),
+      value: messages('studio.flowEditor.conditionEditor.value'),
+      whenTrue: messages('studio.flowEditor.conditionEditor.whenTrue'),
+      otherwise: messages('studio.flowEditor.conditionEditor.otherwise'),
+      save: messages('studio.flowEditor.conditionEditor.save'),
+      cancel: messages('studio.flowEditor.conditionEditor.cancel'),
+      invalidValue: messages('studio.flowEditor.conditionEditor.invalidValue'),
+      invalidDestination: messages('studio.flowEditor.conditionEditor.invalidDestination'),
+      missingField: messages('studio.flowEditor.conditionEditor.missingField'),
+      missingDestination: messages('studio.flowEditor.conditionEditor.missingDestination'),
+      pairInvalid: messages('studio.flowEditor.conditionEditor.pairInvalid'),
+      yes: messages('studio.flowEditor.conditionEditor.yes'),
+      no: messages('studio.flowEditor.conditionEditor.no'),
+      operatorLabels: {
+        equals: messages('studio.flowEditor.conditionEditor.operators.equals'),
+        notEquals: messages('studio.flowEditor.conditionEditor.operators.notEquals'),
+        greaterThan: messages('studio.flowEditor.conditionEditor.operators.greaterThan'),
+        lessThan: messages('studio.flowEditor.conditionEditor.operators.lessThan'),
+        isEmpty: messages('studio.flowEditor.conditionEditor.operators.isEmpty'),
+        isNotEmpty: messages('studio.flowEditor.conditionEditor.operators.isNotEmpty'),
+      },
+    },
     formCreationFollowUp: messages('studio.flowEditor.formCreationFollowUp'),
     startStep: messages('studio.flowEditor.startStep'),
     noSelection: messages('studio.flowEditor.noSelection'),
@@ -311,6 +343,7 @@ export default async function ProcessAutomationSettingsPage({
     path: messages('studio.path'),
     processTrial: messages('studio.processTrial'),
     trialDate: messages('studio.trialDate'),
+    trialConditionValues: messages('studio.trialConditionValues'),
     runTrial: messages('studio.runTrial'),
     trialNoWrites: messages('studio.trialNoWrites'),
     trialPath: messages('studio.trialPath'),
