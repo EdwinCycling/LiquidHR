@@ -83,22 +83,23 @@ async function PayrollRunWorkspaceContent({
   readonly locale: Awaited<ReturnType<typeof getLocale>>
   readonly periodKey?: string
 }) {
+  let workspace: Awaited<ReturnType<typeof getPayrollProfessionalRunWorkspace>>
   try {
-    const workspace = await getPayrollProfessionalRunWorkspace(periodKey)
-    return <PayrollProfessionalRunWorkbench
-      administrationName={workspace.administrationName}
-      periods={workspace.periods}
-      selectedPeriod={workspace.selectedPeriod}
-      employees={workspace.employees}
-      summary={workspace.summary}
-      rosterComplete={workspace.rosterComplete}
-      canOpenPayrollCycle={workspace.canOpenPayrollCycle}
-      locale={locale}
-      labels={Object.fromEntries(workbenchLabelKeys.map((key) => [key, t(key)]))}
-    />
+    workspace = await getPayrollProfessionalRunWorkspace(periodKey)
   } catch (error) {
     return <PayrollDataError t={t} id="payroll-run-workspace-error-title" error={error} periodKey={periodKey} />
   }
+  return <PayrollProfessionalRunWorkbench
+    administrationName={workspace.administrationName}
+    periods={workspace.periods}
+    selectedPeriod={workspace.selectedPeriod}
+    employees={workspace.employees}
+    summary={workspace.summary}
+    rosterComplete={workspace.rosterComplete}
+    canOpenPayrollCycle={workspace.canOpenPayrollCycle}
+    locale={locale}
+    labels={Object.fromEntries(workbenchLabelKeys.map((key) => [key, t(key)]))}
+  />
 }
 
 export default async function PayrollRunsPage({
