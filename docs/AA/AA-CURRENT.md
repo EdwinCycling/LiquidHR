@@ -24,7 +24,7 @@
 > **GO:** nieuwe afgebakende niet-Payroll-features op schoon `main`, met normale per-feature gates. **HOLD:** runtime van `work/payroll-p0-p1` tot config-herstel; eerst `/payroll/runs` herstellen vóór nieuwe salarisrunfunctionaliteit. Zie [postrelease- en cleanupstatus](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md) voor volledige bewijsgrenzen. Eerder gedateerde paragrafen hieronder zijn historische snapshots.
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-22 (PAY-INTEGRATE-02; historische bewijssecties volgen)
+Bijgewerkt: 2026-10-22 (PAY-QA-FIX-01; historische bewijssecties volgen)
 
 ## PAY-INTEGRATE-01 — lokale Payroll + D1-kandidaat (22-10-2026)
 
@@ -34,7 +34,11 @@ Bijgewerkt: 2026-10-22 (PAY-INTEGRATE-02; historische bewijssecties volgen)
 
 De centrale TEST-configuratie is aanwezig; de eerdere ontbrekend-melding kwam door sandbox-remapping van LOCALAPPDATA. De ondersteunde preflight slaagt met de canonical runtimepadcontext. Read-only HR Admin/Employee-controle bevestigt de bestaande Mars FINALIZED-PDF op 513.406 bytes en SHA-256 51b8c513b4c6f9b0c5a9e74e36086099d493ec08b9228b997779ae6cee56d977; Employee-self-download pariteit slaagt en cross-employee salary-toegang is 403. /payroll/runs is zichtbaar in 22.364 s en volledig geladen in 22.625 s (lokale dev-/compilatie-inclusieve meting).
 
-De eerder geïdentificeerde zeven timeoutkandidaten slagen afzonderlijk met één worker en de originele 5s-limiet. De volledige HR Suite op de kandidaat eindigt echter met 3.466 PASS, 12 FAIL en 8 SKIP: elf testgevallen raken de bestaande timeout en één payslip-artifact UI-assertion faalt. Een ondersteunde Next dev-herstart krijgt EPERM bij /login-chunkcompilatie. Manager- en foreign-tenant-live-negatives blijven OPEN wegens ontbrekende bestaande geautoriseerde persona/context. Verdict: HOLD voor verdere integratieacceptatie; geen PMUX-, main-, push- of deploymentactie. Zie [PAY-INTEGRATE-02](../quality/acceptance/runs/PAY-INTEGRATE-02-20261022.md).
+Historische uitkomst op de toenmalige kandidaat: de volledige suite had 3.466 PASS, 12 FAIL en 8 SKIP. Die geautomatiseerde blokkades zijn op de opvolgende kandidaat onderzocht en gesloten in PAY-QA-FIX-01. Het oorspronkelijke rapport blijft ongewijzigd als momentopname. Live Manager- en foreign-tenant-negatives blijven OPEN; de gemelde Next-dev-herstart kreeg EPERM bij /login-chunkcompilatie. Zie [PAY-INTEGRATE-02](../quality/acceptance/runs/PAY-INTEGRATE-02-20261022.md) en de opvolgende [PAY-QA-FIX-01](../quality/acceptance/runs/PAY-QA-FIX-01-20261022.md).
+
+## PAY-QA-FIX-01 — lokale integratie-QA-closeout (22-10-2026)
+
+Op code-commit `ed2a3b3acce2a985d7d44105a4d30517d06fbab8` zijn de vroege async UI-assertion gecorrigeerd en zware Vitest-uitvoering begrensd op vier workers. De UI-test slaagt 5/5; de timeoutgroep 33/33; gerichte D0-artifact/autorisatie- en D1-K2-tests 79/79. De finale volledige suite slaagt met 3.478 PASS, 8 expliciete SKIP, 0 FAIL over 711 bestanden. TypeScript en gerichte ESLint slagen. Verdict: **LOCAL INTEGRATION READY** voor overdracht aan de bestaande mergecoördinatie. Geen productiebron/buildinput gewijzigd; productiebuild daarom niet opnieuw uitgevoerd. De live Manager-/foreign-tenant-negatives en dev-runtime-EPERM zijn geen afgesloten bewijzen en blijven OPEN. PMUX is niet opgenomen; geen merge, push of deployment. Zie [PAY-QA-FIX-01](../quality/acceptance/runs/PAY-QA-FIX-01-20261022.md).
 
 ## Historische status- en acceptance-snapshots (18 oktober en eerder)
 
