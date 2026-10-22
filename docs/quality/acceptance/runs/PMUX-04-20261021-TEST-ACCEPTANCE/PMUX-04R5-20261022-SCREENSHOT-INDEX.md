@@ -46,3 +46,9 @@ Deze vijf PNG’s zijn echte screenshots uit de afzonderlijke Codex In-App Brows
 | R5-LIVE-08-D — `PMUX04-R5-ROLE-SWITCHER-D.png` | HR Admin — TENANT_ADMIN | `/local/personas`, 1440×900 | Servergerapporteerde rol- en toegangsscope en bestaande role switcher | PNG opgeslagen; targetnamen aanvullend bevestigd in AX-boom |
 
 De oorspronkelijke tabel hierboven blijft de status van de eerdere capturepoging weergeven. Deze vijf nieuwe bestanden vullen de HR Admin-diagnostiek aan. De loginpagina is gereed voor owner-handoff; geen owner-, Employee- of Manager-capture is gemaakt.
+## PMUX-04R5B — hervatting en oorzaakanalyse (22 oktober 2026)
+
+- De vijf `R5-LIVE` PNG-bestanden hierboven zijn behouden en als bijlagen aan `edwin@editsolutions.nl` verstuurd. Er zijn in R5B geen nieuwe persona-captures gemaakt.
+- `/focus/aanvragen`: de route is aanwezig; de eerdere 404 kwam uit de server-side actiezichtbaarheidsguard in de HR Admin-context. Focus-secties worden `notFound` wanneer de actieve context geen employee-profiel/zichtbare actie heeft. Employee-routecapture blijft `NOT CAPTURED`; echte Employee-uitkomst is onbekend.
+- Dubbele native starters: op Mijn aanvragen worden de globale headerknoppen én de generieke procescatalogus getoond. De huidige deduplicatie herkent alleen bekende key-prefixes of exacte procesnamen; de bestaande `R5-TEST`-definities vielen buiten die herkenning en bleven als kaarten staan. De eerder opgeslagen `PMUX04-R5-ADMIN-WORK-D.png` toont de dubbele presentatie. Geen code gewijzigd.
+- Owner-login op de bestaande IAB-loginpagina is nog nodig voor echte HR Admin/Employee/Manager role-switch-, server-scope-, beheertoegangs- en browsercapturetests. Alle niet vastgelegde rolbeelden blijven `NOT CAPTURED`; securitygate en E2E blijven **OPEN**.
