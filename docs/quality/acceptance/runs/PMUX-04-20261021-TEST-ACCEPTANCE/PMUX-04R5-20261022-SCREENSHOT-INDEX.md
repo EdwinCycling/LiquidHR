@@ -20,3 +20,29 @@ De browsercaptures hieronder zijn echte Codex In-App Browserbeelden die tijdens 
 | 08-D — PMUX04R5-08-D.png | HR Admin | /local/personas, 1440×900 | Ja | NOT CAPTURED |
 
 Screenshots zijn uitsluitend diagnostisch. Geen capture uit deze index telt mee als PMUX-04-eindacceptatie of als vervanging van de eerdere 35 geplande bewijsmomenten.
+## Vervolgcaptures — live herstart 22-10-2026
+
+| Diagnostische capture | Persona | Route / viewport | Wat zichtbaar was | PNG-bestand |
+| --- | --- | --- | --- | --- |
+| R5-H01-D | HR Admin | Processtudio, 1440×900 | Recepten en procesoverzicht bovenaan; niet de flowkaart zelf | NOT CAPTURED |
+| R5-H02-D | HR Admin | Formulierenstudio, 1440×900 | Gekoppeld formulier, sectie/velden en participantrechten; gepubliceerde versie alleen-lezen | NOT CAPTURED |
+| R5-H02-M | HR Admin | Formulierenstudio-route, 390×844 | Bovenkant pagina/receptcatalogus; editorvelden buiten beeld | NOT CAPTURED |
+| R5-H03-M | HR Admin | /work?view=REQUESTS, 390×844 | Nieuwe aanvraagkaarten en bestaande native starters; niets gestart | NOT CAPTURED |
+| R5-H06-M | HR Admin | /focus/werk, 390×844 | Bestaande werkkaarten en Focus-navigatie | NOT CAPTURED |
+| R5-H08-D | HR Admin | /local/personas, 1440×900 | TENANT_ADMIN en lege accountkeuze; de targetnamen kwamen alleen uit de AX-boom | NOT CAPTURED |
+
+Deze beelden zijn alleen inline in Codex getoond en zijn geen PNG-bestanden. Ze bewijzen geen Employee- of Manager-presentatie of -rechten.
+
+## Bestanden vastgelegd tijdens de live herstart — 22 oktober 2026
+
+Deze vijf PNG’s zijn echte screenshots uit de afzonderlijke Codex In-App Browser. De captures zijn diagnostisch en tonen uitsluitend de bestaande HR Admin-context en bestaande TEST-procesdefinities. De overige geplande Employee-, Manager- en toegangsweigeringcaptures blijven `NOT CAPTURED`.
+
+| ID / bestand | Persona | Route / viewport | Wat zichtbaar is | Status |
+| --- | --- | --- | --- | --- |
+| R5-LIVE-01-D — `PMUX04-R5-ADMIN-STUDIO-D.png` | HR Admin — TENANT_ADMIN | `/settings/process-automation`, 1440×900 | Bestaande processtudio, recept en procesoverzicht; alleen-lezen gepubliceerde definitie | PNG opgeslagen |
+| R5-LIVE-02-D — `PMUX04-R5-ADMIN-FORM-STUDIO-D.png` | HR Admin — TENANT_ADMIN | Formulierenstudio, 1440×900 | Gekoppeld formulier, veldbibliotheek en participantrechten van gepubliceerde Interne overplaatsing | PNG opgeslagen |
+| R5-LIVE-02-M — `PMUX04-R5-ADMIN-FORM-STUDIO-M.png` | HR Admin — TENANT_ADMIN | Formulierenstudio, 390×844 | Mobiele veldlijst en participantrechten; lange verticale lijst vereist scrollen | PNG opgeslagen |
+| R5-LIVE-03-D — `PMUX04-R5-ADMIN-WORK-D.png` | HR Admin — TENANT_ADMIN | `/work?view=REQUESTS`, 1440×900 | Cataloguskaarten plus native starters; dubbele startpresentatie zichtbaar | PNG opgeslagen; geen actie uitgevoerd |
+| R5-LIVE-08-D — `PMUX04-R5-ROLE-SWITCHER-D.png` | HR Admin — TENANT_ADMIN | `/local/personas`, 1440×900 | Servergerapporteerde rol- en toegangsscope en bestaande role switcher | PNG opgeslagen; targetnamen aanvullend bevestigd in AX-boom |
+
+De oorspronkelijke tabel hierboven blijft de status van de eerdere capturepoging weergeven. Deze vijf nieuwe bestanden vullen de HR Admin-diagnostiek aan. De loginpagina is gereed voor owner-handoff; geen owner-, Employee- of Manager-capture is gemaakt.
