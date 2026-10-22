@@ -9,12 +9,12 @@
 4. **AA/documentatie:** status hoort op GitHub; docs-only update verandert bestaande Vercel deploy-SHA niet. Windows `main` na merge fast-forward naar GitHub. Stashes/refs bewaren tot functionele reconciliatie; geen extra lokale worktrees zonder noodzaak.
 5. **Nieuwe niet-Payroll features mogen beginnen:** Core **WVP01 → INS02 → AW02 later**; PMUX-02/03 en Employee UX-upgrade zijn geplande losse waves. AI-uitbreiding pas na herprioritering/hostacceptatie. Payroll-status: synthetische K2-case is lokaal compleet; de echte Frits-bronreconciliatie en wettelijke/productieacceptatie blijven OPEN. Een volgende Payroll-wave vereist een afzonderlijke opdracht en bevoegde bronhouderbevestiging; geen GA-claim.
 
-**PAY-INTEGRATE-01-integratiegrens:** de Payroll-featurebranch is via ancestry volledig opgenomen in de lokale D1-kandidaat `integration/PAYROLL-D1-20261022`; de kandidaat is niet op `main` geïntegreerd en niet vrijgegeven. De volle HR Suite blijft OPEN op 12 time-outs en er is geen browser/live-RLS-bewijs door de ontbrekende centrale TEST-config. PMUX blijft onder de eigen eigenaar op `work/BRANCH-SPLIT-PMUX-20261021` (`64c3e91`); PMUX-05A is een aparte lokale Processtudio-slice met browser/authenticated readback OPEN. Neem geen PMUX-commits mee voordat die eigenaar en de vier overlappende AA-documenten afzonderlijk zijn afgestemd. Er start geen automatische vervolgwave.
+**PAY-INTEGRATE-02-integratiegrens:** de lokale kandidaat integration/PAYROLL-D1-20261022 heeft een geldige centrale TEST-preflight en beperkte live read-only PDF/Employee-evidence. De suite eindigde met 3.466 PASS, 12 FAIL en 8 SKIP; een ondersteunde dev-herstart kreeg .next/dev EPERM. Verdict blijft HOLD totdat suite- en runtimeblokkades zijn opgehelderd; Manager- en foreign-tenant-live-negatives zijn OPEN. De branch is niet geïntegreerd naar main en niet vrijgegeven. PMUX blijft onder de eigen eigenaar op work/BRANCH-SPLIT-PMUX-20261021 (64c3e91); PMUX-05A blijft een aparte lokale Processtudio-slice met browser/authenticated readback OPEN. Neem geen PMUX-commits mee zonder afzonderlijke eigenaarsafstemming. Er start geen automatische vervolgwave.
 
 De onderstaande oudere productwaves blijven als gedateerde ontwerp-/acceptatieplanning staan en zijn **niet** de actuele releasepositie.
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-22 (PAY-INTEGRATE-01 lokaal; historische productwaves hieronder)
+Bijgewerkt: 2026-10-22 (PAY-INTEGRATE-02 lokaal; historische productwaves hieronder)
 
 Deze roadmap bevat alleen de actuele volgorde van concrete productwaves. Detailrequirements staan elders.
 

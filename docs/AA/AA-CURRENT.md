@@ -24,11 +24,17 @@
 > **GO:** nieuwe afgebakende niet-Payroll-features op schoon `main`, met normale per-feature gates. **HOLD:** runtime van `work/payroll-p0-p1` tot config-herstel; eerst `/payroll/runs` herstellen vóór nieuwe salarisrunfunctionaliteit. Zie [postrelease- en cleanupstatus](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md) voor volledige bewijsgrenzen. Eerder gedateerde paragrafen hieronder zijn historische snapshots.
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-22 (postrelease + PAY-INTEGRATE-01; historische bewijssecties volgen)
+Bijgewerkt: 2026-10-22 (PAY-INTEGRATE-02; historische bewijssecties volgen)
 
 ## PAY-INTEGRATE-01 — lokale Payroll + D1-kandidaat (22-10-2026)
 
 `integration/PAYROLL-D1-20261022` bouwt voort op D1 `0c16aab2`; de Payroll-HEAD `86386eed` is al ancestor, dus er zijn geen Payroll-commits dubbel overgenomen. Eén lokale lintfix staat op `0d21f028`. Verdict: **GO WITH CONDITIONS voor lokale codeconvergentie**. Gerichte Payroll/API/D0/K2/autorisatieregressies, regeltests, typechecks, ESLint, i18n en de productiebuild slagen. De volledige HR Suite heeft 3.466 PASS, 8 SKIP en 12 time-outs; browser/live RLS blijft OPEN omdat de centrale TEST-config ontbreekt. De bestaande Mars FINALIZED-PDF is deze run niet opnieuw live gelezen of gewijzigd; de eerder vastgelegde D0-byte/SHA-evidence blijft historisch bewijs. PMUX blijft apart op `64c3e91`; PMUX-05A is lokaal geaccepteerd met browser/authenticated readback OPEN, terwijl PMUX-04R6 PARTIAL/HOLD blijft. Geen PMUX-code, main-merge, push of deployment. Zie [PAY-INTEGRATE-01](../quality/acceptance/runs/PAY-INTEGRATE-01-20261022.md).
+
+## PAY-INTEGRATE-02 — gerichte integratie-QA (22-10-2026)
+
+De centrale TEST-configuratie is aanwezig; de eerdere ontbrekend-melding kwam door sandbox-remapping van LOCALAPPDATA. De ondersteunde preflight slaagt met de canonical runtimepadcontext. Read-only HR Admin/Employee-controle bevestigt de bestaande Mars FINALIZED-PDF op 513.406 bytes en SHA-256 51b8c513b4c6f9b0c5a9e74e36086099d493ec08b9228b997779ae6cee56d977; Employee-self-download pariteit slaagt en cross-employee salary-toegang is 403. /payroll/runs is zichtbaar in 22.364 s en volledig geladen in 22.625 s (lokale dev-/compilatie-inclusieve meting).
+
+De eerder geïdentificeerde zeven timeoutkandidaten slagen afzonderlijk met één worker en de originele 5s-limiet. De volledige HR Suite op de kandidaat eindigt echter met 3.466 PASS, 12 FAIL en 8 SKIP: elf testgevallen raken de bestaande timeout en één payslip-artifact UI-assertion faalt. Een ondersteunde Next dev-herstart krijgt EPERM bij /login-chunkcompilatie. Manager- en foreign-tenant-live-negatives blijven OPEN wegens ontbrekende bestaande geautoriseerde persona/context. Verdict: HOLD voor verdere integratieacceptatie; geen PMUX-, main-, push- of deploymentactie. Zie [PAY-INTEGRATE-02](../quality/acceptance/runs/PAY-INTEGRATE-02-20261022.md).
 
 ## Historische status- en acceptance-snapshots (18 oktober en eerder)
 
