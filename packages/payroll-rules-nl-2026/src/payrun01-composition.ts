@@ -31,6 +31,10 @@ export interface Payrun01RulePackageOptions {
    * calculation; ordinary salaries keep the existing component composition.
    */
   readonly supportCaoExactGross?: boolean
+  /** Add a source-classified fixed cash supplement to gross without changing contractual salary. */
+  readonly supportClassifiedGrossSupplement?: boolean
+  /** Apply a source-backed employee all-levy deduction using its VCR opening balances and cap. */
+  readonly supportAllLevyDeduction?: boolean
 }
 
 function source(
@@ -250,6 +254,20 @@ const valueSources = [
   source('PAYRUN01_YEAR_END_YTD_BASE', 'amount', 'MONEY', ['payrollOwned', 'cumulatives', 'yearEndReserveBeforePeriod']),
 ] as const
 
+const classifiedGrossSupplementSources: readonly PayrollComponentDefinition[] = [
+  source('PAYRUN01_FIXED_GROSS_SUPPLEMENT', 'amount', 'MONEY', ['payrollOwned', 'amounts', 'fixedGrossSupplement'], '2026.3'),
+  source('PAYRUN01_FIXED_GROSS_SUPPLEMENT_RESERVEABLE', 'value', 'BOOLEAN', ['payrollOwned', 'controls', 'fixedGrossSupplementReserveable'], '2026.3'),
+]
+
+const allLevyDeductionSources: readonly PayrollComponentDefinition[] = [
+  source('PAYRUN01_ALL_LEVY_RATE', 'rate', 'PERCENTAGE', ['payrollOwned', 'parameters', 'allLevyRate'], '2026.3'),
+  source('PAYRUN01_ALL_LEVY_PERIOD_MAXIMUM', 'amount', 'MONEY', ['payrollOwned', 'parameters', 'allLevyPeriodMaximum'], '2026.3'),
+  source('PAYRUN01_ALL_LEVY_ELIGIBLE', 'value', 'BOOLEAN', ['payrollOwned', 'controls', 'allLevyEligible'], '2026.3'),
+  source('PAYRUN01_ALL_LEVY_PERIODS_BEFORE', 'periods', 'DECIMAL', ['payrollOwned', 'cumulatives', 'allLevyPeriodsBefore'], '2026.3'),
+  source('PAYRUN01_ALL_LEVY_WAGE_BEFORE', 'amount', 'MONEY', ['payrollOwned', 'cumulatives', 'allLevyWageBefore'], '2026.3'),
+  source('PAYRUN01_ALL_LEVY_CONTRIBUTION_BEFORE', 'amount', 'MONEY', ['payrollOwned', 'cumulatives', 'allLevyContributionBefore'], '2026.3'),
+]
+
 const additionalHoursCashRounding: PayrollRoundingDefinition = {
   id: 'payrun01-additional-hours-total-cents-2026.1',
   componentCode: 'PAYRUN01_ADDITIONAL_CASH_AMOUNT',
@@ -335,6 +353,84 @@ const regularWage: PayrollComponentDefinition = {
   tracePolicy: 'FULL',
 }
 
+const regularWageWithClassifiedSupplement: PayrollComponentDefinition = {
+  ...regularWage,
+  id: 'system:nl-2026:nl-regular-wage-payrun01-classified-supplement',
+  version: '2026.2-payrun01',
+  inputs: [
+    ...regularWage.inputs,
+    { name: 'fixedGrossSupplement', valueType: 'MONEY', required: true },
+  ],
+  dependencies: [
+    ...regularWage.dependencies,
+    { componentCode: 'PAYRUN01_FIXED_GROSS_SUPPLEMENT', outputName: 'amount', inputName: 'fixedGrossSupplement' },
+  ],
+  method: {
+    kind: 'expression',
+    outputs: {
+      grossSalary: {
+        kind: 'binary', operator: '+',
+        left: {
+          kind: 'binary', operator: '+',
+          left: output('PAYRUN01_CONTRACTUAL_SALARY', 'amount'),
+          right: output('PAYRUN01_ADDITIONAL_CASH_AMOUNT', 'amount'),
+        },
+        right: output('PAYRUN01_FIXED_GROSS_SUPPLEMENT', 'amount'),
+      },
+    },
+  },
+}
+
+const classifiedSupplementReserveBase: PayrollComponentDefinition = moneyComponent(
+  'PAYRUN01_CLASSIFIED_RESERVE_BASE',
+  'amount',
+  [
+    { name: 'grossSalary', valueType: 'MONEY', required: true },
+    { name: 'supplement', valueType: 'MONEY', required: true },
+    { name: 'reserveable', valueType: 'BOOLEAN', required: true },
+  ],
+  [
+    { componentCode: 'NL_REGULAR_WAGE', outputName: 'grossSalary', inputName: 'grossSalary' },
+    { componentCode: 'PAYRUN01_FIXED_GROSS_SUPPLEMENT', outputName: 'amount', inputName: 'supplement' },
+    { componentCode: 'PAYRUN01_FIXED_GROSS_SUPPLEMENT_RESERVEABLE', outputName: 'value', inputName: 'reserveable' },
+  ],
+  {
+    kind: 'if',
+    condition: output('PAYRUN01_FIXED_GROSS_SUPPLEMENT_RESERVEABLE', 'value'),
+    then: output('NL_REGULAR_WAGE', 'grossSalary'),
+    else: {
+      kind: 'binary', operator: '-',
+      left: output('NL_REGULAR_WAGE', 'grossSalary'),
+      right: output('PAYRUN01_FIXED_GROSS_SUPPLEMENT', 'amount'),
+    },
+  },
+  '2026.3',
+)
+
+function reserveOnClassifiedBase(
+  code: 'PAYRUN01_HOLIDAY_RESERVE' | 'PAYRUN01_YEAR_END_RESERVE',
+  rateCode: 'PAYRUN01_HOLIDAY_RATE' | 'PAYRUN01_YEAR_END_RATE',
+): PayrollComponentDefinition {
+  return moneyComponent(
+    code,
+    'amount',
+    [
+      { name: 'gross', valueType: 'MONEY', required: true },
+      { name: 'rate', valueType: 'PERCENTAGE', required: true },
+    ],
+    [
+      { componentCode: 'PAYRUN01_CLASSIFIED_RESERVE_BASE', outputName: 'amount', inputName: 'gross' },
+      { componentCode: rateCode, outputName: 'rate', inputName: 'rate' },
+    ],
+    {
+      kind: 'binary', operator: '*',
+      left: output('PAYRUN01_CLASSIFIED_RESERVE_BASE', 'amount'),
+      right: output(rateCode, 'rate'),
+    },
+    '2026.3',
+  )
+}
+
 const taxableWage: PayrollComponentDefinition = {
   ...NL_2026_RULE_PACKAGE.components.find((component) => component.code === 'NL_TAXABLE_WAGE')!,
   id: 'system:nl-2026:nl-taxable-wage-payrun01',
@@ -369,28 +465,50 @@ const wko = percentCost('PAYRUN01_WKO_COST', 'PAYRUN01_WKO_RATE', 'PAYRUN01_EMPL
 const whk = percentCost('PAYRUN01_WHK_COST', 'PAYRUN01_WHK_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE')
 const zvw = percentCost('PAYRUN01_ZVW_COST', 'PAYRUN01_ZVW_RATE', 'PAYRUN01_ZVW_BASE')
 
-const employerInsuranceDependencies = [
-  { componentCode: awf.code, outputName: 'amount', inputName: 'awf' },
-  { componentCode: aof.code, outputName: 'amount', inputName: 'aof' },
-  { componentCode: wko.code, outputName: 'amount', inputName: 'wko' },
-  { componentCode: whk.code, outputName: 'amount', inputName: 'whk' },
-  { componentCode: zvw.code, outputName: 'amount', inputName: 'zvw' },
-] as const
+const awfAfterAllLevy = percentCost('PAYRUN01_AWF_COST', 'PAYRUN01_AWF_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
+const aofAfterAllLevy = percentCost('PAYRUN01_AOF_COST', 'PAYRUN01_AOF_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
+const wkoAfterAllLevy = percentCost('PAYRUN01_WKO_COST', 'PAYRUN01_WKO_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
+const whkAfterAllLevy = percentCost('PAYRUN01_WHK_COST', 'PAYRUN01_WHK_RATE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY')
+const zvwAfterAllLevy = percentCost('PAYRUN01_ZVW_COST', 'PAYRUN01_ZVW_RATE', 'PAYRUN01_ZVW_BASE_AFTER_ALL_LEVY')
 
-const employerInsurance = moneyComponent(
-  'PAYRUN01_EMPLOYER_INSURANCE',
-  'amount',
-  ['awf', 'aof', 'wko', 'whk', 'zvw'].map((name) => ({ name, valueType: 'MONEY' as const, required: true })),
-  employerInsuranceDependencies,
-  {
-    kind: 'binary', operator: '+',
-    left: {
+function employerInsuranceFor(
+  selectedAwf: PayrollComponentDefinition,
+  selectedAof: PayrollComponentDefinition,
+  selectedWko: PayrollComponentDefinition,
+  selectedWhk: PayrollComponentDefinition,
+  selectedZvw: PayrollComponentDefinition,
+): PayrollComponentDefinition {
+  const selected = [
+    { component: selectedAwf, inputName: 'awf' },
+    { component: selectedAof, inputName: 'aof' },
+    { component: selectedWko, inputName: 'wko' },
+    { component: selectedWhk, inputName: 'whk' },
+    { component: selectedZvw, inputName: 'zvw' },
+  ] as const
+  return moneyComponent(
+    'PAYRUN01_EMPLOYER_INSURANCE',
+    'amount',
+    ['awf', 'aof', 'wko', 'whk', 'zvw'].map((name) => ({ name, valueType: 'MONEY' as const, required: true })),
+    selected.map(({ component, inputName }) => ({
+      componentCode: component.code,
+      outputName: 'amount',
+      inputName,
+    })),
+    {
       kind: 'binary', operator: '+',
-      left: { kind: 'binary', operator: '+', left: output(awf.code, 'amount'), right: output(aof.code, 'amount') },
-      right: { kind: 'binary', operator: '+', left: output(wko.code, 'amount'), right: output(whk.code, 'amount') },
+      left: {
+        kind: 'binary', operator: '+',
+        left: { kind: 'binary', operator: '+', left: output(selectedAwf.code, 'amount'), right: output(selectedAof.code, 'amount') },
+        right: { kind: 'binary', operator: '+', left: output(selectedWko.code, 'amount'), right: output(selectedWhk.code, 'amount') },
+      },
+      right: output(selectedZvw.code, 'amount'),
     },
-    right: output(zvw.code, 'amount'),
-  },
+  )
+}
+
+const employerInsurance = employerInsuranceFor(awf, aof, wko, whk, zvw)
+const employerInsuranceAfterAllLevy = employerInsuranceFor(
+  awfAfterAllLevy, aofAfterAllLevy, wkoAfterAllLevy, whkAfterAllLevy, zvwAfterAllLevy,
 )
 
 const holidayReserve = moneyComponent(
@@ -563,6 +681,198 @@ const netPayWithoutPension: PayrollComponentDefinition = {
   },
 }
 
+const zeroMoney: PayrollExpression = { kind: 'literal', valueType: 'MONEY', value: '0.00' }
+const onePeriod: PayrollExpression = { kind: 'literal', valueType: 'DECIMAL', value: '1' }
+
+const allLevyDeduction: PayrollComponentDefinition = {
+  id: 'system:payrun01:all-levy-deduction-vcr',
+  code: 'PAYRUN01_ALL_LEVY_DEDUCTION',
+  version: '2026.1',
+  effectiveFrom: '2026-01-01',
+  effectiveTo: '2026-12-31',
+  ownership: { kind: 'SYSTEM' },
+  processingScope: 'INCOME_RELATIONSHIP',
+  inputs: [
+    { name: 'cashWage', valueType: 'MONEY', required: true },
+    { name: 'rate', valueType: 'PERCENTAGE', required: true },
+    { name: 'periodMaximum', valueType: 'MONEY', required: true },
+    { name: 'eligible', valueType: 'BOOLEAN', required: true },
+    { name: 'periodsBefore', valueType: 'DECIMAL', required: true },
+    { name: 'wageBefore', valueType: 'MONEY', required: true },
+    { name: 'contributionBefore', valueType: 'MONEY', required: true },
+  ],
+  outputs: [
+    { name: 'contributionBase', valueType: 'MONEY', rounding: { scale: 2, mode: 'HALF_UP' } },
+    { name: 'amount', valueType: 'MONEY', rounding: { scale: 2, mode: 'HALF_UP' } },
+  ],
+  dependencies: [
+    { componentCode: 'NL_REGULAR_WAGE', outputName: 'grossSalary', inputName: 'cashWage' },
+    { componentCode: 'PAYRUN01_ALL_LEVY_RATE', outputName: 'rate', inputName: 'rate' },
+    { componentCode: 'PAYRUN01_ALL_LEVY_PERIOD_MAXIMUM', outputName: 'amount', inputName: 'periodMaximum' },
+    { componentCode: 'PAYRUN01_ALL_LEVY_ELIGIBLE', outputName: 'value', inputName: 'eligible' },
+    { componentCode: 'PAYRUN01_ALL_LEVY_PERIODS_BEFORE', outputName: 'periods', inputName: 'periodsBefore' },
+    { componentCode: 'PAYRUN01_ALL_LEVY_WAGE_BEFORE', outputName: 'amount', inputName: 'wageBefore' },
+    { componentCode: 'PAYRUN01_ALL_LEVY_CONTRIBUTION_BEFORE', outputName: 'amount', inputName: 'contributionBefore' },
+  ],
+  method: {
+    kind: 'expression',
+    outputs: {
+      contributionBase: {
+        kind: 'if',
+        condition: output('PAYRUN01_ALL_LEVY_ELIGIBLE', 'value'),
+        then: {
+          kind: 'call', operator: 'MAX', arguments: [zeroMoney, {
+            kind: 'binary', operator: '-',
+            left: {
+              kind: 'call', operator: 'MIN', arguments: [
+                {
+                  kind: 'binary', operator: '+',
+                  left: output('PAYRUN01_ALL_LEVY_WAGE_BEFORE', 'amount'),
+                  right: output('NL_REGULAR_WAGE', 'grossSalary'),
+                },
+                {
+                  kind: 'binary', operator: '*',
+                  left: output('PAYRUN01_ALL_LEVY_PERIOD_MAXIMUM', 'amount'),
+                  right: {
+                    kind: 'binary', operator: '+',
+                    left: output('PAYRUN01_ALL_LEVY_PERIODS_BEFORE', 'periods'),
+                    right: onePeriod,
+                  },
+                },
+              ],
+            },
+            right: {
+              kind: 'call', operator: 'MIN', arguments: [
+                output('PAYRUN01_ALL_LEVY_WAGE_BEFORE', 'amount'),
+                {
+                  kind: 'binary', operator: '*',
+                  left: output('PAYRUN01_ALL_LEVY_PERIOD_MAXIMUM', 'amount'),
+                  right: output('PAYRUN01_ALL_LEVY_PERIODS_BEFORE', 'periods'),
+                },
+              ],
+            },
+          }],
+        },
+        else: zeroMoney,
+      },
+      amount: {
+        kind: 'if',
+        condition: output('PAYRUN01_ALL_LEVY_ELIGIBLE', 'value'),
+        then: {
+          kind: 'call', operator: 'MAX', arguments: [zeroMoney, {
+            kind: 'binary', operator: '-',
+            left: {
+              kind: 'binary', operator: '*',
+              left: {
+                kind: 'call', operator: 'MIN', arguments: [
+                  {
+                    kind: 'binary', operator: '+',
+                    left: output('PAYRUN01_ALL_LEVY_WAGE_BEFORE', 'amount'),
+                    right: output('NL_REGULAR_WAGE', 'grossSalary'),
+                  },
+                  {
+                    kind: 'binary', operator: '*',
+                    left: output('PAYRUN01_ALL_LEVY_PERIOD_MAXIMUM', 'amount'),
+                    right: {
+                      kind: 'binary', operator: '+',
+                      left: output('PAYRUN01_ALL_LEVY_PERIODS_BEFORE', 'periods'),
+                      right: onePeriod,
+                    },
+                  },
+                ],
+              },
+              right: output('PAYRUN01_ALL_LEVY_RATE', 'rate'),
+            },
+            right: output('PAYRUN01_ALL_LEVY_CONTRIBUTION_BEFORE', 'amount'),
+          }],
+        },
+        else: zeroMoney,
+      },
+    },
+  },
+  tracePolicy: 'FULL',
+}
+
+function baseAfterAllLevyDeduction(code: string, rawBaseCode: string): PayrollComponentDefinition {
+  return moneyComponent(
+    code,
+    'amount',
+    [
+      { name: 'wageBase', valueType: 'MONEY', required: true },
+      { name: 'deduction', valueType: 'MONEY', required: true },
+    ],
+    [
+      { componentCode: rawBaseCode, outputName: 'amount', inputName: 'wageBase' },
+      { componentCode: 'PAYRUN01_ALL_LEVY_DEDUCTION', outputName: 'amount', inputName: 'deduction' },
+    ],
+    {
+      kind: 'call', operator: 'MAX', arguments: [zeroMoney, {
+        kind: 'binary', operator: '-',
+        left: output(rawBaseCode, 'amount'),
+        right: output('PAYRUN01_ALL_LEVY_DEDUCTION', 'amount'),
+      }],
+    },
+    '2026.3',
+  )
+}
+
+const wageTaxBaseAfterAllLevy = baseAfterAllLevyDeduction('PAYRUN01_WAGE_TAX_BASE_AFTER_ALL_LEVY', 'PAYRUN01_WAGE_TAX_BASE')
+const employeeInsuranceBaseAfterAllLevy = baseAfterAllLevyDeduction('PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE')
+const zvwBaseAfterAllLevy = baseAfterAllLevyDeduction('PAYRUN01_ZVW_BASE_AFTER_ALL_LEVY', 'PAYRUN01_ZVW_BASE')
+
+const taxableWageAfterAllLevy: PayrollComponentDefinition = {
+  ...taxableWage,
+  id: 'system:nl-2026:nl-taxable-wage-payrun01-after-all-levy',
+  version: '2026.3-payrun01',
+  dependencies: [
+    { componentCode: wageTaxBaseAfterAllLevy.code, outputName: 'amount', inputName: 'wageTaxBase' },
+  ],
+  method: {
+    kind: 'expression',
+    outputs: { taxableWage: output(wageTaxBaseAfterAllLevy.code, 'amount') },
+  },
+}
+
+function netPayAfterAllLevy(pensionIncluded: boolean): PayrollComponentDefinition {
+  const deductions = [
+    { componentCode: 'NL_WAGE_TAX', outputName: 'wageTax', inputName: 'tax' },
+    ...(pensionIncluded ? [{ componentCode: 'PAYRUN01_EMPLOYEE_PENSION', outputName: 'amount', inputName: 'pension' }] : []),
+    { componentCode: 'PAYRUN01_ALL_LEVY_DEDUCTION', outputName: 'amount', inputName: 'allLevy' },
+  ]
+  const deductionExpression = deductions.slice(1).reduce<PayrollExpression>(
+    (sum, dependency) => ({
+      kind: 'binary',
+      operator: '+',
+      left: sum,
+      right: output(dependency.componentCode, dependency.outputName),
+    }),
+    output(deductions[0]!.componentCode, deductions[0]!.outputName),
+  )
+  return {
+    ...netPay,
+    id: `system:payrun01:net-pay-after-all-levy${pensionIncluded ? '' : '-before-pfzw'}`,
+    version: '2026.3',
+    inputs: [
+      { name: 'gross', valueType: 'MONEY', required: true },
+      ...deductions.map((dependency) => ({ name: dependency.inputName, valueType: 'MONEY' as const, required: true })),
+    ],
+    dependencies: [
+      { componentCode: 'NL_REGULAR_WAGE', outputName: 'grossSalary', inputName: 'gross' },
+      ...deductions,
+    ],
+    method: {
+      kind: 'expression',
+      outputs: {
+        amount: {
+          kind: 'binary', operator: '-',
+          left: output('NL_REGULAR_WAGE', 'grossSalary'),
+          right: deductionExpression,
+        },
+      },
+    },
+  }
+}
+
 const totalEmployerCostBeforePfzw = moneyComponent(
   'PAYRUN01_TOTAL_EMPLOYER_COST',
   'amount',
@@ -666,21 +976,32 @@ const resultMappings: readonly PayrollResultMapping[] = [
   { key: 'total_employer_cost', componentCode: 'PAYRUN01_TOTAL_EMPLOYER_COST', outputName: 'amount' },
 ]
 
-function scenarioComponentsFor(supportPartialPeriods: boolean): readonly PayrollComponentDefinition[] {
+function scenarioComponentsFor(options: {
+  readonly supportPartialPeriods: boolean
+  readonly supportClassifiedGrossSupplement: boolean
+  readonly supportAllLevyDeduction: boolean
+}): readonly PayrollComponentDefinition[] {
+  const { supportPartialPeriods, supportClassifiedGrossSupplement, supportAllLevyDeduction } = options
   return [
     ...valueSources,
+    ...(supportClassifiedGrossSupplement ? classifiedGrossSupplementSources : []),
+    ...(supportAllLevyDeduction ? allLevyDeductionSources : []),
     ...(supportPartialPeriods ? partialPeriodSources : []),
     additionalHoursCashAmount,
     supportPartialPeriods ? contractualSalaryWithPartialPeriods : contractualSalaryComponent,
-    awf,
-    aof,
-    wko,
-    whk,
-    zvw,
-    employerInsurance,
-    holidayReserve,
-    yearEndReserve,
-    netPay,
+    ...(supportClassifiedGrossSupplement ? [classifiedSupplementReserveBase] : []),
+    ...(supportAllLevyDeduction ? [allLevyDeduction, wageTaxBaseAfterAllLevy, employeeInsuranceBaseAfterAllLevy, zvwBaseAfterAllLevy] : []),
+    ...(supportAllLevyDeduction ? [awfAfterAllLevy, aofAfterAllLevy, wkoAfterAllLevy, whkAfterAllLevy, zvwAfterAllLevy] : [awf, aof, wko, whk, zvw]),
+    supportAllLevyDeduction
+      ? employerInsuranceAfterAllLevy
+      : employerInsurance,
+    ...(supportClassifiedGrossSupplement
+      ? [
+        reserveOnClassifiedBase('PAYRUN01_HOLIDAY_RESERVE', 'PAYRUN01_HOLIDAY_RATE'),
+        reserveOnClassifiedBase('PAYRUN01_YEAR_END_RESERVE', 'PAYRUN01_YEAR_END_RATE'),
+      ]
+      : [holidayReserve, yearEndReserve]),
+    supportAllLevyDeduction ? netPayAfterAllLevy(true) : netPay,
     cumulativeGross,
     cumulativeHolidayReserve,
     cumulativeYearEndReserve,
@@ -688,21 +1009,32 @@ function scenarioComponentsFor(supportPartialPeriods: boolean): readonly Payroll
   ]
 }
 
-function scenarioComponentsWithoutPensionFor(supportPartialPeriods: boolean): readonly PayrollComponentDefinition[] {
+function scenarioComponentsWithoutPensionFor(options: {
+  readonly supportPartialPeriods: boolean
+  readonly supportClassifiedGrossSupplement: boolean
+  readonly supportAllLevyDeduction: boolean
+}): readonly PayrollComponentDefinition[] {
+  const { supportPartialPeriods, supportClassifiedGrossSupplement, supportAllLevyDeduction } = options
   return [
     ...valueSources.filter((component) => !['PAYRUN01_EMPLOYEE_PENSION', 'PAYRUN01_EMPLOYER_PENSION'].includes(component.code)),
+    ...(supportClassifiedGrossSupplement ? classifiedGrossSupplementSources : []),
+    ...(supportAllLevyDeduction ? allLevyDeductionSources : []),
     ...(supportPartialPeriods ? partialPeriodSources : []),
     additionalHoursCashAmount,
     supportPartialPeriods ? contractualSalaryWithPartialPeriods : contractualSalaryComponent,
-    awf,
-    aof,
-    wko,
-    whk,
-    zvw,
-    employerInsurance,
-    holidayReserve,
-    yearEndReserve,
-    netPayWithoutPension,
+    ...(supportClassifiedGrossSupplement ? [classifiedSupplementReserveBase] : []),
+    ...(supportAllLevyDeduction ? [allLevyDeduction, wageTaxBaseAfterAllLevy, employeeInsuranceBaseAfterAllLevy, zvwBaseAfterAllLevy] : []),
+    ...(supportAllLevyDeduction ? [awfAfterAllLevy, aofAfterAllLevy, wkoAfterAllLevy, whkAfterAllLevy, zvwAfterAllLevy] : [awf, aof, wko, whk, zvw]),
+    supportAllLevyDeduction
+      ? employerInsuranceAfterAllLevy
+      : employerInsurance,
+    ...(supportClassifiedGrossSupplement
+      ? [
+        reserveOnClassifiedBase('PAYRUN01_HOLIDAY_RESERVE', 'PAYRUN01_HOLIDAY_RATE'),
+        reserveOnClassifiedBase('PAYRUN01_YEAR_END_RESERVE', 'PAYRUN01_YEAR_END_RATE'),
+      ]
+      : [holidayReserve, yearEndReserve]),
+    supportAllLevyDeduction ? netPayAfterAllLevy(false) : netPayWithoutPension,
     cumulativeGross,
     cumulativeHolidayReserve,
     cumulativeYearEndReserve,
@@ -723,22 +1055,45 @@ export function createPayrun01RulePackage(
   const pensionIncluded = pensionCalculation === 'INCLUDED'
   const testOnlyPensionCompliance = pensionIncluded && options.pensionCompliance === 'TEST_ONLY_UNVERIFIED'
   const supportPartialPeriods = options.supportPartialPeriods === true
+  const supportClassifiedGrossSupplement = options.supportClassifiedGrossSupplement === true
+  const supportAllLevyDeduction = options.supportAllLevyDeduction === true
   const compositionId = testOnlyPensionCompliance
     ? `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-PENSION-TEST-UNVERIFIED-2026.3`
     : kind === 'LEGACY_COMPANY_TEST' && !pensionIncluded
       ? `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-PENSION-BLOCKED-2026.3`
       : `${NL_2026_RULE_PACKAGE.compositionId}+PAYRUN01-${kind}-2026.2`
-  const effectiveCompositionId = supportPartialPeriods ? `${compositionId}+PARTIAL-PERIODS-2026.1` : compositionId
+  const optionSuffixes = [
+    supportPartialPeriods ? 'PARTIAL-PERIODS-2026.1' : undefined,
+    supportClassifiedGrossSupplement ? 'CLASSIFIED-GROSS-SUPPLEMENT-2026.1' : undefined,
+    supportAllLevyDeduction ? 'ALL-LEVY-DEDUCTION-2026.1' : undefined,
+  ].filter((suffix): suffix is string => suffix !== undefined)
+  const effectiveCompositionId = optionSuffixes.reduce((id, suffix) => `${id}+${suffix}`, compositionId)
   const systemComponents = NL_2026_RULE_PACKAGE.components
     .filter((component) => !['NL_REGULAR_WAGE', 'NL_TAXABLE_WAGE', 'NL_WAGE_TAX', 'NL_NET_PAY'].includes(component.code))
-    .concat([regularWage, pensionIncluded ? taxableWage : taxableWageWithoutPension, wageTax])
+    .concat([
+      supportClassifiedGrossSupplement ? regularWageWithClassifiedSupplement : regularWage,
+      supportAllLevyDeduction ? taxableWageAfterAllLevy : pensionIncluded ? taxableWage : taxableWageWithoutPension,
+      wageTax,
+    ])
+  const scenarioOptions = { supportPartialPeriods, supportClassifiedGrossSupplement, supportAllLevyDeduction }
   const selectedScenarioComponents = pensionIncluded
-    ? scenarioComponentsFor(supportPartialPeriods)
-    : scenarioComponentsWithoutPensionFor(supportPartialPeriods)
+    ? scenarioComponentsFor(scenarioOptions)
+    : scenarioComponentsWithoutPensionFor(scenarioOptions)
   const scenarioControls = controls.map((control) => {
       if (control.code === 'PAYRUN01-CTRL-009-PENSION-RULE-READY'
         && (testOnlyPensionCompliance || (!pensionIncluded && kind === 'KINDEROPVANG_TEST'))) {
         return { ...control, severity: 'WARNING' as const }
+      }
+      if (supportAllLevyDeduction && control.code === 'PAYRUN01-CTRL-016-TAXABLE-WAGE-FISCAL-BASE') {
+        return {
+          ...control,
+          expression: {
+            kind: 'binary' as const,
+            operator: '=' as const,
+            left: output('NL_TAXABLE_WAGE', 'taxableWage'),
+            right: output(wageTaxBaseAfterAllLevy.code, 'amount'),
+          },
+        }
       }
       if (!pensionIncluded && control.code === 'PAYRUN01-CTRL-016-TAXABLE-WAGE-FISCAL-BASE') {
         return {
@@ -753,6 +1108,24 @@ export function createPayrun01RulePackage(
         }
       }
       if (!pensionIncluded && control.code === 'PAYRUN01-CTRL-017-GROSS-NET-PENSION-RECONCILIATION') {
+        const expectedNet: PayrollExpression = supportAllLevyDeduction
+          ? {
+            kind: 'binary',
+            operator: '-',
+            left: {
+              kind: 'binary',
+              operator: '-',
+              left: output('NL_REGULAR_WAGE', 'grossSalary'),
+              right: output('NL_WAGE_TAX', 'wageTax'),
+            },
+            right: output('PAYRUN01_ALL_LEVY_DEDUCTION', 'amount'),
+          }
+          : {
+            kind: 'binary',
+            operator: '-',
+            left: output('NL_REGULAR_WAGE', 'grossSalary'),
+            right: output('NL_WAGE_TAX', 'wageTax'),
+          }
         return {
           ...control,
           code: 'PAYRUN01-CTRL-017-GROSS-NET-RECONCILIATION',
@@ -760,20 +1133,58 @@ export function createPayrun01RulePackage(
             kind: 'binary' as const,
             operator: '=' as const,
             left: output('PAYRUN01_NET_PAY', 'amount'),
+            right: expectedNet,
+          },
+        }
+      }
+      if (supportAllLevyDeduction && pensionIncluded && control.code === 'PAYRUN01-CTRL-017-GROSS-NET-PENSION-RECONCILIATION') {
+        return {
+          ...control,
+          expression: {
+            kind: 'binary' as const,
+            operator: '=' as const,
+            left: output('PAYRUN01_NET_PAY', 'amount'),
             right: {
               kind: 'binary' as const,
               operator: '-' as const,
-              left: output('NL_REGULAR_WAGE', 'grossSalary'),
-              right: output('NL_WAGE_TAX', 'wageTax'),
+              left: {
+                kind: 'binary' as const,
+                operator: '-' as const,
+                left: {
+                  kind: 'binary' as const,
+                  operator: '-' as const,
+                  left: output('NL_REGULAR_WAGE', 'grossSalary'),
+                  right: output('NL_WAGE_TAX', 'wageTax'),
+                },
+                right: output('PAYRUN01_EMPLOYEE_PENSION', 'amount'),
+              },
+              right: output('PAYRUN01_ALL_LEVY_DEDUCTION', 'amount'),
             },
           },
         }
       }
       return control
     })
-  const selectedResultMappings = !pensionIncluded
-    ? resultMappings.filter((row) => row.key !== 'employee_pension' && row.key !== 'employer_pension')
-    : resultMappings
+  const optionResultMappings: readonly PayrollResultMapping[] = [
+    ...(supportClassifiedGrossSupplement
+      ? [{ key: 'fixed_gross_supplement', componentCode: 'PAYRUN01_FIXED_GROSS_SUPPLEMENT', outputName: 'amount' }]
+      : []),
+    ...(supportAllLevyDeduction
+      ? [
+        { key: 'all_levy_contribution_base', componentCode: 'PAYRUN01_ALL_LEVY_DEDUCTION', outputName: 'contributionBase' },
+        { key: 'all_levy_deduction', componentCode: 'PAYRUN01_ALL_LEVY_DEDUCTION', outputName: 'amount' },
+        { key: 'wage_tax_base_after_all_levy', componentCode: wageTaxBaseAfterAllLevy.code, outputName: 'amount' },
+        { key: 'employee_insurance_base_after_all_levy', componentCode: employeeInsuranceBaseAfterAllLevy.code, outputName: 'amount' },
+        { key: 'zvw_base_after_all_levy', componentCode: zvwBaseAfterAllLevy.code, outputName: 'amount' },
+      ]
+      : []),
+  ]
+  const selectedResultMappings = [
+    ...(!pensionIncluded
+      ? resultMappings.filter((row) => row.key !== 'employee_pension' && row.key !== 'employer_pension')
+      : resultMappings),
+    ...optionResultMappings,
+  ]
   const roundingDefinitions = [
     ...(NL_2026_RULE_PACKAGE.roundingDefinitions ?? []),
     supportPartialPeriods ? contractualSalaryPartialPeriodRounding : contractualSalaryRounding,
@@ -786,6 +1197,8 @@ export function createPayrun01RulePackage(
     pensionCalculation,
     pensionCompliance: options.pensionCompliance ?? 'VERIFIED',
     supportPartialPeriods,
+    ...(supportClassifiedGrossSupplement ? { supportClassifiedGrossSupplement: true } : {}),
+    ...(supportAllLevyDeduction ? { supportAllLevyDeduction: true } : {}),
     components: [...systemComponents, ...selectedScenarioComponents],
     controls: scenarioControls,
     resultMappings: selectedResultMappings,
