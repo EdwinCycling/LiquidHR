@@ -34,7 +34,10 @@ function filterNativeProcessStartCatalogEntries(
   definitions: ProcessWorkFilterOptions['processes'],
 ): readonly StartableProcess[] {
   const nativeDefinitionIds = new Set(definitions
-    .filter(({ key }) => nativeProcessKeyPrefixes.some((prefix) => key === prefix || key.startsWith(`${prefix}-`)))
+    .filter(({ key }) => {
+      const normalizedKey = key.trim().toLocaleLowerCase()
+      return nativeProcessKeyPrefixes.some((prefix) => new RegExp(`(?:^|-)${prefix}(?:-v\\d+)?$`).test(normalizedKey))
+    })
     .map(({ id }) => id))
 
   return processes.filter((process) => {

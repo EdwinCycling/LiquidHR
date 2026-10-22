@@ -970,8 +970,8 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
         </dl>
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(280px,0.32fr)_minmax(0,1fr)]">
-        <aside className="rounded-xl border bg-surface p-4 shadow-sm" aria-label={labels.processCatalog}>
+      <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(280px,0.32fr)_minmax(0,1fr)]">
+        <aside className="w-full min-w-0 max-w-full rounded-xl border bg-surface p-4 shadow-sm" aria-label={labels.processCatalog}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="eyebrow">{labels.title}</p>

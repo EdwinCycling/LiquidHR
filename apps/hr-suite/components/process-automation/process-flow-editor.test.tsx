@@ -153,7 +153,7 @@ describe('ProcessFlowEditor', () => {
 
     expect(mounted.container.textContent).toContain(labels.emptyFlow)
     expect(mounted.container.textContent).not.toContain('Interne overplaatsing')
-    expect(mounted.container.querySelector('[class*="xl:grid-cols-"]')).not.toBeNull()
+    expect(mounted.container.querySelector('[class*="2xl:grid-cols-"]')).not.toBeNull()
 
     clickButton(mounted.container, labels.addStep)
     expect(mounted.getDraft().steps).toHaveLength(1)

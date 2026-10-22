@@ -102,34 +102,42 @@ describe('ProcessWorkWorkspace', () => {
     const duplicateInternalTransfer: StartableProcess = {
       ...startableProcess,
       processDefinitionId: '00000000-0000-4000-8000-000000000010',
-      title: { nl: 'Interne overplaatsing', en: 'Internal transfer' },
+      title: { nl: 'R5-TEST — Interne overplaatsing', en: 'R5-TEST — Interne overplaatsing' },
     }
     const duplicateDocumentAcknowledgement: StartableProcess = {
       ...startableProcess,
       processDefinitionId: '00000000-0000-4000-8000-000000000011',
-      title: { nl: 'Documentkennisname', en: 'Document acknowledgement' },
+      title: { nl: 'R5-TEST — Document bevestiging', en: 'R5-TEST — Document bevestiging' },
     }
     const duplicateLeaveRequest: StartableProcess = {
       ...startableProcess,
       processDefinitionId: '00000000-0000-4000-8000-000000000012',
       title: { nl: 'Verlofaanvraag', en: 'Leave request' },
     }
+    const overdueTransferScenario: StartableProcess = {
+      ...startableProcess,
+      processDefinitionId: '00000000-0000-4000-8000-000000000013',
+      title: { nl: 'R5-TEST — Overdue interne overplaatsing', en: 'R5-TEST — Overdue interne overplaatsing' },
+    }
 
     const markup = renderWorkspace(
       { items: [item], total: 1, hasMore: false },
       1,
       'REQUESTS',
-      [duplicateInternalTransfer, duplicateDocumentAcknowledgement, duplicateLeaveRequest],
+      [duplicateInternalTransfer, duplicateDocumentAcknowledgement, duplicateLeaveRequest, overdueTransferScenario],
       [
-        { id: duplicateDocumentAcknowledgement.processDefinitionId, key: 'document-acknowledgement-v1', title: 'Documentkennisname' },
+        { id: duplicateInternalTransfer.processDefinitionId, key: 'r5-test-internal-transfer', title: 'R5-TEST — Interne overplaatsing' },
+        { id: duplicateDocumentAcknowledgement.processDefinitionId, key: 'r5-test-document-acknowledgement', title: 'R5-TEST — Document bevestiging' },
         { id: duplicateLeaveRequest.processDefinitionId, key: 'leave-request-v2', title: 'Verlofaanvraag' },
+        { id: overdueTransferScenario.processDefinitionId, key: 'r5-test-overdue-transfer', title: 'R5-TEST — Overdue interne overplaatsing' },
       ],
     )
 
     expect(markup).toContain('Opleidingsaanvraag')
-    expect(markup).not.toContain('<h3 class="text-lg font-semibold text-foreground">Interne overplaatsing</h3>')
-    expect(markup).not.toContain('<h3 class="text-lg font-semibold text-foreground">Documentkennisname</h3>')
+    expect(markup).not.toContain('<h3 class="text-lg font-semibold text-foreground">R5-TEST — Interne overplaatsing</h3>')
+    expect(markup).not.toContain('<h3 class="text-lg font-semibold text-foreground">R5-TEST — Document bevestiging</h3>')
     expect(markup).not.toContain('<h3 class="text-lg font-semibold text-foreground">Verlofaanvraag</h3>')
+    expect(markup).toContain('R5-TEST — Overdue interne overplaatsing')
     expect(markup.match(/href="\/work\/new\/internal-transfer"/g)).toHaveLength(1)
     expect(markup.match(/href="\/work\/new\/document-acknowledgement"/g)).toHaveLength(1)
     expect(markup.match(/href="\/leave\/request"/g)).toHaveLength(1)

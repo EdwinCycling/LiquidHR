@@ -359,7 +359,7 @@ export function ProcessFlowEditor({
   }
 
   return (
-    <section aria-labelledby="process-flow-title" className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+    <section aria-labelledby="process-flow-title" className="w-full min-w-0 max-w-full rounded-xl border border-border bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="eyebrow">{labels.stepLibrary}</p>
@@ -368,8 +368,8 @@ export function ProcessFlowEditor({
         <span className="rounded-full border px-3 py-1 text-xs font-semibold text-muted-foreground">{draft.steps.length} {labels.steps}</span>
       </div>
 
-      <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(160px,0.55fr)_minmax(280px,1.1fr)_minmax(290px,1fr)]">
-        <aside aria-label={labels.stepLibrary} className="h-fit rounded-xl border bg-background p-3">
+      <div className="mt-5 grid w-full min-w-0 grid-cols-1 gap-5 2xl:grid-cols-[minmax(160px,0.55fr)_minmax(280px,1.1fr)_minmax(290px,1fr)]">
+        <aside aria-label={labels.stepLibrary} className="h-fit min-w-0 rounded-xl border bg-background p-3">
           <label className="block text-sm font-semibold" htmlFor="process-step-type">{labels.selectStep}
             <select className="mt-2 w-full rounded-lg border bg-surface px-3 py-2 font-normal" disabled={!editing} id="process-step-type" onChange={(event) => setNewStepType(event.target.value as EditableStepType)} value={newStepType}>
               {stepTypeOptions.map((type) => <option key={type} value={type}>{labels.stepTypeLabels[type]}</option>)}
@@ -393,19 +393,19 @@ export function ProcessFlowEditor({
                 const owner = participantSummary(draft.participants.find((participant) => participant.key === step.participantKey))
                 const selected = selectedStep?.key === step.key
                 return (
-                  <li className="relative pb-4 pl-8 last:pb-0" key={step.key}>
+                  <li className="relative min-w-0 pb-4 pl-8 last:pb-0" key={step.key}>
                     {index < draft.steps.length - 1 ? <span aria-hidden="true" className="absolute bottom-0 left-[11px] top-7 border-l-2 border-border" /> : null}
                     <span aria-hidden="true" className={`absolute left-0 top-2 grid size-6 place-items-center rounded-full border text-[11px] font-semibold ${step.key === draft.startStepKey ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background'}`}>{index + 1}</span>
-                    <article className={`rounded-xl border bg-background p-3 ${selected ? 'border-primary ring-1 ring-primary/30' : 'border-border'}`}>
-                      <button aria-current={selected ? 'step' : undefined} aria-label={`${labels.stepLabel} ${index + 1}: ${localizedLabel(step.title, labels.stepTypeLabels[step.type as EditableStepType] ?? step.key)}`} className="w-full rounded-md text-left focus-visible:outline-2 focus-visible:outline-primary" onClick={() => onSelectStep(step.key)} type="button">
+                    <article className={`min-w-0 rounded-xl border bg-background p-3 ${selected ? 'border-primary ring-1 ring-primary/30' : 'border-border'}`}>
+                      <button aria-current={selected ? 'step' : undefined} aria-label={`${labels.stepLabel} ${index + 1}: ${localizedLabel(step.title, labels.stepTypeLabels[step.type as EditableStepType] ?? step.key)}`} className="w-full min-w-0 rounded-md text-left focus-visible:outline-2 focus-visible:outline-primary" onClick={() => onSelectStep(step.key)} type="button">
                         <span className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-semibold text-muted-foreground">{labels.stepTypeLabels[step.type as EditableStepType] ?? labels.stepLabel}</span>
                           {step.key === draft.startStepKey ? <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">{labels.startStep}</span> : null}
                           {stepIssues.length > 0 ? <span className="rounded-full border border-destructive/40 px-2 py-0.5 text-[11px] font-semibold text-destructive">{labels.stepNeedsAttention}</span> : null}
                         </span>
-                        <span className="mt-1 block font-semibold">{localizedLabel(step.title, labels.stepTypeLabels[step.type as EditableStepType] ?? step.key)}</span>
-                        <span className="mt-2 block text-xs text-muted-foreground">{labels.responsible}: {step.type === 'END' ? labels.terminalOutcomes[step.terminalOutcome ?? 'COMPLETED'] : owner}</span>
-                        {step.formKey ? <span className="mt-1 block text-xs text-muted-foreground">{labels.form}: {localizedLabel(draft.forms.find((form) => form.key === step.formKey)?.title, labels.formCreationFollowUp)}</span> : null}
+                        <span className="mt-1 block break-words font-semibold">{localizedLabel(step.title, labels.stepTypeLabels[step.type as EditableStepType] ?? step.key)}</span>
+                        <span className="mt-2 block break-words text-xs text-muted-foreground">{labels.responsible}: {step.type === 'END' ? labels.terminalOutcomes[step.terminalOutcome ?? 'COMPLETED'] : owner}</span>
+                        {step.formKey ? <span className="mt-1 block break-words text-xs text-muted-foreground">{labels.form}: {localizedLabel(draft.forms.find((form) => form.key === step.formKey)?.title, labels.formCreationFollowUp)}</span> : null}
                       </button>
                       {outgoing.length > 0 ? <ul aria-label={`${labels.connectionLabel}: ${localizedLabel(step.title, labels.stepLabel)}`} className="mt-3 grid gap-2 border-t pt-3">
                         {outgoing.map(({ transition, transitionIndex }) => {
@@ -429,7 +429,7 @@ export function ProcessFlowEditor({
           )}
         </div>
 
-        <aside aria-label={labels.properties} className="min-w-0 rounded-xl border bg-background p-4">
+        <aside aria-label={labels.properties} className="w-full min-w-0 rounded-xl border bg-background p-4">
           {selectedStep ? <>
             <div className="flex items-start justify-between gap-2">
               <div><p className="eyebrow">{labels.selectedStep}</p><h4 className="mt-1 text-lg font-semibold">{localizedLabel(selectedStep.title, labels.stepLabel)}</h4></div>
