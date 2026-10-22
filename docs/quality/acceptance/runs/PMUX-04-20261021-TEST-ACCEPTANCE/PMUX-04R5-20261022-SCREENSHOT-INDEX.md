@@ -52,3 +52,22 @@ De oorspronkelijke tabel hierboven blijft de status van de eerdere capturepoging
 - `/focus/aanvragen`: de route is aanwezig; de eerdere 404 kwam uit de server-side actiezichtbaarheidsguard in de HR Admin-context. Focus-secties worden `notFound` wanneer de actieve context geen employee-profiel/zichtbare actie heeft. Employee-routecapture blijft `NOT CAPTURED`; echte Employee-uitkomst is onbekend.
 - Dubbele native starters: op Mijn aanvragen worden de globale headerknoppen én de generieke procescatalogus getoond. De huidige deduplicatie herkent alleen bekende key-prefixes of exacte procesnamen; de bestaande `R5-TEST`-definities vielen buiten die herkenning en bleven als kaarten staan. De eerder opgeslagen `PMUX04-R5-ADMIN-WORK-D.png` toont de dubbele presentatie. Geen code gewijzigd.
 - Owner-login op de bestaande IAB-loginpagina is nog nodig voor echte HR Admin/Employee/Manager role-switch-, server-scope-, beheertoegangs- en browsercapturetests. Alle niet vastgelegde rolbeelden blijven `NOT CAPTURED`; securitygate en E2E blijven **OPEN**.
+
+## PMUX-04R7 captures — 22 oktober 2026
+
+Geen rij hieronder is als CAPTURED gemarkeerd: de afzonderlijke Codex In-App Browser weigerde de lokale PMUX-pagina via zijn URL-policy. Er zijn dus geen R7-PNG-bestanden aangemaakt.
+
+| Gepland bestand | Persona / scherm | Viewport | Status |
+| --- | --- | --- | --- |
+| PMUX04R7-ADMIN-PROCESS-STUDIO-D.png | HR Admin — Processtudio | 1440×900 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-ADMIN-PROCESS-STUDIO-M.png | HR Admin — Processtudio | 390×844 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-MANAGER-WORK-D.png | Manager — Mijn werk | 1440×900 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-MANAGER-WORK-M.png | Manager — Mijn werk | 390×844 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-MANAGER-FOCUS-D.png | Manager — Focus-werk | 1440×900 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-MANAGER-FOCUS-M.png | Manager — Focus-werk | 390×844 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-EMPLOYEE-REQUESTS-D.png | Employee — Mijn aanvragen | 1440×900 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-EMPLOYEE-REQUESTS-M.png | Employee — Mijn aanvragen | 390×844 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-EMPLOYEE-FOCUS-D.png | Employee — Focus-aanvragen | 1440×900 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-EMPLOYEE-FOCUS-M.png | Employee — Focus-aanvragen | 390×844 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-EMPLOYEE-PROCESS-DENIED-D.png | Employee — Processtudio-toegangsweigering | 1440×900 | NOT CAPTURED — IAB policy blocked |
+| PMUX04R7-MANAGER-PROCESS-DENIED-D.png | Manager — Processtudio-toegangsweigering | 1440×900 | NOT CAPTURED — IAB policy blocked |
