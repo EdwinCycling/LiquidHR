@@ -13,6 +13,7 @@ import {
   PAYRUN01_RULE_REGISTRY,
   type Pfzw2026CalculationInput,
 } from '@liquid-hr/payroll-rules-nl-2026'
+import { derivePayd1K2IndependentOracle } from './payrun01-k2-independent-oracle'
 
 const employeeId = '79091d14-ef66-41fe-a2d5-92df108727e5'
 const employmentId = 'd19bace9-bb97-4822-a462-eed22821ed05'
@@ -26,7 +27,7 @@ const syntheticSubstitutions = {
   administration: 'SYNTHETIC-EMPLOYER-PAYD1-K2-02',
   salary: { scale: '6', step: '12', fullTimeMonthlySalary: '2819.00' },
   employerRates: { awf: '2.74', aof: '6.27', wko: '0.50', whk: '1.81', zvw: '6.10' },
-  openingCumulatives: { paWWPeriods: '2', paWWWage: '5027.56', paWWContribution: '5.02' },
+  openingCumulatives: { paWWPeriods: '2', paWWWage: '5027.56', paWWContribution: '5.03' },
 }
 const calculationContext = {
   caseId: 'PAYD1-K2-02-NOV-2026',
@@ -104,7 +105,7 @@ function makeK2Snapshot(
         yearEndReserveBeforePeriod: '400.92',
         allLevyPeriodsBefore: '2',
         allLevyWageBefore: '5027.56',
-        allLevyContributionBefore: '5.02',
+        allLevyContributionBefore: '5.03',
       },
     },
   }
@@ -241,6 +242,7 @@ describe('PAYD1 K2 synthetic November 2026 calculation', () => {
       calculationContextHash,
     })
     const result = calculatePayroll(inputs, PAYRUN01_RULE_REGISTRY)
+    const independent = derivePayd1K2IndependentOracle()
 
     expect(result.status).toBe('CALCULATED')
     expect(snapshot.sourceVersionVector).toEqual(sourceVersionVector)
@@ -281,20 +283,20 @@ describe('PAYD1 K2 synthetic November 2026 calculation', () => {
       PAYRUN01_FIXED_GROSS_SUPPLEMENT: { amount: '8.00' },
       PAYRUN01_CONTRACTUAL_SALARY: { amount: '2505.78' },
       NL_REGULAR_WAGE: { grossSalary: '2513.78' },
-      PAYRUN01_ALL_LEVY_DEDUCTION: { amount: '2.52', contributionBase: '2513.78' },
+      PAYRUN01_ALL_LEVY_DEDUCTION: { amount: '2.51', contributionBase: '2513.78' },
       PAYRUN01_AWF_COST: { amount: '63.28' },
       PAYRUN01_AOF_COST: { amount: '144.81' },
       PAYRUN01_WKO_COST: { amount: '11.55' },
       PAYRUN01_WHK_COST: { amount: '41.80' },
       PAYRUN01_ZVW_COST: { amount: '140.88' },
       PAYRUN01_CLASSIFIED_RESERVE_BASE: { amount: '2505.78' },
-      PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY: { amount: '2309.52' },
+      PAYRUN01_EMPLOYEE_INSURANCE_BASE_AFTER_ALL_LEVY: { amount: '2309.53' },
       PAYRUN01_HOLIDAY_RESERVE: { amount: '200.46' },
-      PAYRUN01_WAGE_TAX_BASE_AFTER_ALL_LEVY: { amount: '2309.52' },
+      PAYRUN01_WAGE_TAX_BASE_AFTER_ALL_LEVY: { amount: '2309.53' },
       NL_WAGE_TAX: { wageTax: '120.92' },
-      PAYRUN01_NET_PAY: { amount: '2188.60' },
+      PAYRUN01_NET_PAY: { amount: '2188.61' },
       PAYRUN01_YEAR_END_RESERVE: { amount: '200.46' },
-      PAYRUN01_ZVW_BASE_AFTER_ALL_LEVY: { amount: '2309.52' },
+      PAYRUN01_ZVW_BASE_AFTER_ALL_LEVY: { amount: '2309.53' },
       PAYRUN01_EMPLOYER_INSURANCE: { amount: '402.32' },
       PAYRUN01_TOTAL_EMPLOYER_COST: { amount: '3520.32' },
     })
@@ -320,21 +322,64 @@ describe('PAYD1 K2 synthetic November 2026 calculation', () => {
       pensionBase: '18766.46',
       fixedGrossSupplement: '8.00',
       allLevyBase: '2513.78',
-      allLevyDeduction: '2.52',
+      allLevyDeduction: '2.51',
       employeePension: '201.74',
       employerPension: '203.30',
-      taxBase: '2309.52',
+      taxBase: '2309.53',
       tax: '120.92',
-      net: '2188.60',
+      net: '2188.61',
       employerInsurance: '402.32',
       holidayReserve: '200.46',
       yearEndReserve: '200.46',
       employerCosts: '3520.32',
     })
-    expect(traceOutput('PAYRUN01_ALL_LEVY_DEDUCTION', 'amount')).toBe('2.52')
+    expect({
+      contractualSalary: traceOutput('PAYRUN01_CONTRACTUAL_SALARY', 'amount'),
+      gross: traceOutput('NL_REGULAR_WAGE', 'grossSalary'),
+      pensionableBase: pfzw.pensionableBase,
+      employeePension: result.resultRows.find((row) => row.key === 'employee_pension')?.value,
+      employerPension: result.resultRows.find((row) => row.key === 'employer_pension')?.value,
+      paww: traceOutput('PAYRUN01_ALL_LEVY_DEDUCTION', 'amount'),
+      fiscalWage: result.resultRows.find((row) => row.key === 'taxable_wage')?.value,
+      tax: traceOutput('NL_WAGE_TAX', 'wageTax'),
+      net: traceOutput('PAYRUN01_NET_PAY', 'amount'),
+      employerCosts: {
+        awf: traceOutput('PAYRUN01_AWF_COST', 'amount'),
+        aof: traceOutput('PAYRUN01_AOF_COST', 'amount'),
+        wko: traceOutput('PAYRUN01_WKO_COST', 'amount'),
+        whk: traceOutput('PAYRUN01_WHK_COST', 'amount'),
+        zvw: traceOutput('PAYRUN01_ZVW_COST', 'amount'),
+        employerInsuranceTotal: traceOutput('PAYRUN01_EMPLOYER_INSURANCE', 'amount'),
+        holidayReserve: traceOutput('PAYRUN01_HOLIDAY_RESERVE', 'amount'),
+        yearEndReserve: traceOutput('PAYRUN01_YEAR_END_RESERVE', 'amount'),
+        total: traceOutput('PAYRUN01_TOTAL_EMPLOYER_COST', 'amount'),
+      },
+    }).toEqual({
+      contractualSalary: independent.contractualSalary,
+      gross: independent.gross,
+      pensionableBase: independent.pfzw.pensionableBase,
+      employeePension: independent.pfzw.employeePremium,
+      employerPension: independent.pfzw.employerPremium,
+      paww: independent.paww.currentContribution,
+      fiscalWage: independent.tax.fiscalWage,
+      tax: independent.tax.withholdingWithCredit,
+      net: independent.net,
+      employerCosts: {
+        awf: independent.employerCosts.awf,
+        aof: independent.employerCosts.aof,
+        wko: independent.employerCosts.wko,
+        whk: independent.employerCosts.whk,
+        zvw: independent.employerCosts.zvw,
+        employerInsuranceTotal: independent.employerCosts.employerInsuranceTotal,
+        holidayReserve: independent.employerCosts.holidayReserve,
+        yearEndReserve: independent.employerCosts.yearEndReserve,
+        total: independent.employerCosts.total,
+      },
+    })
+    expect(traceOutput('PAYRUN01_ALL_LEVY_DEDUCTION', 'amount')).toBe('2.51')
     expect(result.trace.find((step) => step.componentCode === 'PAYRUN01_ALL_LEVY_DEDUCTION')?.inputs).toEqual({
       cashWage: { valueType: 'MONEY', value: '2513.78' },
-      contributionBefore: { valueType: 'MONEY', value: '5.02' },
+      contributionBefore: { valueType: 'MONEY', value: '5.03' },
       eligible: { valueType: 'BOOLEAN', value: true },
       periodMaximum: { valueType: 'MONEY', value: '6617.42' },
       periodsBefore: { valueType: 'DECIMAL', value: '2' },

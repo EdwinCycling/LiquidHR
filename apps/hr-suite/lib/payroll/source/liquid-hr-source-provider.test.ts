@@ -1673,6 +1673,48 @@ describe('LiquidHR Payroll source provider', () => {
     })
   })
 
+  it('binds effective salary and schedule rows to non-empty, consistent source versions', async () => {
+    const missingVersion = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({ updated_at: '' })],
+        schedules: [schedule()],
+      })),
+    })).getPayrollSourceSnapshot(request)
+    expect(missingVersion.sourceGaps).toContainEqual({
+      field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SOURCE_VERSION_REFERENCE_MISSING',
+    })
+    const missingContract = missingVersion.canonicalSource as {
+      readonly sourceContract: { readonly schemaVersion: string; readonly scope: {
+        readonly tenantId: string; readonly hrGroupId: string; readonly administrationId: string
+        readonly employeeId: string; readonly employmentId: string
+      }; readonly references: readonly {
+        readonly sourceType: string; readonly sourceRowId: string; readonly status: string
+      }[] }
+    }
+    expect(missingContract.sourceContract.schemaVersion).toBe('payroll-source-contract-v1')
+    expect(missingContract.sourceContract.scope).toEqual({
+      tenantId, hrGroupId, administrationId, employeeId, employmentId, incomeRelationshipId: null,
+    })
+    expect(missingContract.sourceContract.references).toContainEqual(expect.objectContaining({
+      sourceType: 'employment_salaries', sourceRowId: salaryId, status: 'SOURCE_GAP',
+    }))
+
+    const inconsistentVersion = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [
+          salary({ valid_until: '2026-09-15', updated_at: '2026-09-01T10:05:00.000Z' }),
+          salary({ valid_from: '2026-09-15', updated_at: '2026-09-16T10:05:00.000Z' }),
+        ],
+        schedules: [schedule()],
+      })),
+    })).getPayrollSourceSnapshot(request)
+    expect(inconsistentVersion.sourceGaps).toContainEqual({
+      field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SOURCE_VERSION_REFERENCE_INCONSISTENT',
+    })
+  })
+
   it('validates the request before authorization', async () => {
     const deps = dependencies()
     const provider = new LiquidHrPayrollSourceProvider(deps)
