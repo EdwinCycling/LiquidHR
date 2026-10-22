@@ -65,12 +65,16 @@ decommissionplan afzonderlijk is goedgekeurd.
 
 ## PLANNED
 
-### Process Automation — PMUX
-- PMUX-02A/02B en 03A zijn lokaal gebouwd; PMUX-03B breidt de bestaande `/work`-details uit voor MSS/HR met besluiten, terugstuurreden, voortgang en historie.
-- PMUX-03C is lokaal afgerond op `9a526a6dbd55092c8fc97d341f1014a9200052eb` (voortbouwend op `76c258013eb6d3ded81e7f2c6be2d0b0023129d7`): stap ordenen/verwijderen, alleen servergeautoriseerde Focus-catalogusnavigatie, gespecificeerde Focus-statussen en terugkeer naar de juiste Focus-context. De capabilitymatrix en zes-vragenbeoordeling zijn vastgelegd; browser-/rolacceptatie is nog OPEN.
-- PMUX-05A lokaal gebouwd: conditionele ja/anders-regels gebruiken het bestaande typed condition-contract, compiler en SQL-route-engine; Procesproef gebruikt de bestaande evaluator met synthetische waarden. 31 gerichte tests, TypeScript, ESLint en NL/EN-i18n groen. Desktop/390px en authenticated save-readback blijven OPEN; geen database-write of procespublicatie. Zie [PMUX-05A evidence](../quality/acceptance/runs/PMUX-05A-20261022-LOCAL.md) en [requirement](../requirements/workflows/PMUX-05A_CONDITIONAL_PROCESS_ROUTES.md).
-- PMUX-04 blijft de afzonderlijke geauthenticeerde browseracceptatie met synthetische gegevens. PMUX-04R5 bevestigt dat HR Admin-routes lokaal op TEST-context laden, maar owner/Manager/Employee, live securityproeven en PNG-bestanden blijven OPEN; /focus/aanvragen geeft 404 en Opleidingsaanvraag is niet beschikbaar in het getoonde procesoverzicht. De catalogusmigratie is eerder op TEST toegepast en de migratiehistorie is volgens PMUX-04R2 gereconcilieerd; PMUX-03B-historiemigratie blijft LOCAL ONLY. Geen volledige acceptatie. Zie [AA-OPEN](AA-OPEN.md), [PMUX-04R5 evidence](../quality/acceptance/runs/PMUX-04R5-20261022-BROWSER-RESULTS.md) en de eerdere [PMUX-04 evidence](../quality/acceptance/runs/PMUX-04-20261021-TEST-ACCEPTANCE.md).
-- Zie [AA-OPEN](AA-OPEN.md), [PMUX-03C evidence](../quality/acceptance/runs/PMUX-03C-20261021-LOCAL.md) en de eerdere [PMUX-03B evidence](../quality/acceptance/runs/PMUX-03B-20261021-LOCAL.md).
+### Process Automation — geconsolideerde PMUX-roadmap
+
+De enige actieve toekomstige productwaves zijn **PMUX-05 Slimme formulieren en gegevens**, **PMUX-06 Deadlines, uitval en procesregie** en **PMUX-07 ESS, Focus en productfinish**. De [besluitnotitie van 22-10-2026](../requirements/workflows/PMUX_CONSOLIDATED_ROADMAP_20261022.md) is leidend.
+
+- **PMUX-05 — ACTIEF / PARTIAL:** conditionele routes en velden bouwen door op het bestaande typed contract, de compiler/evaluator, bestaande bindingcatalogi en server-RPC's. De studio-bestemmingslabels zijn verduidelijkt. Autosave/required-projectie, verborgen waarden, stap-/deelnemerrechten en live/browserbewijs blijven OPEN; er is geen migratie toegepast of gepubliceerd.
+- **PMUX-06 — GEPLAND:** deadlines, stap-SLA, reminders, escalaties, behandelaaruitval, HR-uitvallijst, scopegebonden herverdeling, prognoses en inzichten. Niet gebouwd in PMUX-05.
+- **PMUX-07 — GEPLAND:** ESS/MSS/Focus, mobile-first formulieren, routes/status, dashboard, handmatige UX-review, E2E en releasevoorbereiding. Niet gebouwd in PMUX-05.
+- **PMUX-04 — AFZONDERLIJKE GATE:** PMUX-04 blijft security-/releaseacceptatie, geen wave. Live JWT-scope, actor-/roltests en visueel browserbewijs staan nog OPEN in [AA-OPEN](AA-OPEN.md); zie [PMUX-04R5](../quality/acceptance/runs/PMUX-04R5-20261022-BROWSER-RESULTS.md) en [PMUX-04R6](../quality/acceptance/runs/PMUX-04R6-20261022-LOCAL.md).
+
+PMUX-01 tot en met PMUX-03 en de individuele PMUX-05A/B-labels zijn historische capability-/evidenceverwijzingen, geen aparte toekomstige roadmapwaves. Zie [PMUX-03C evidence](../quality/acceptance/runs/PMUX-03C-20261021-LOCAL.md), [PMUX-05A](../quality/acceptance/runs/PMUX-05A-20261022-LOCAL.md) en [PMUX-05B](../quality/acceptance/runs/PMUX-05B-20261022-LOCAL.md).
 
 ### WvP / Verzuim — WVP01, volgende Core-wave na PERF01-B2
 - hergebruik bestaande `absence_tasks`, milestone-/generator- en casemanagerfoundation;

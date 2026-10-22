@@ -416,7 +416,7 @@
     "bindingSelectionHelp": "Choose an approved system connection. Direct table access and custom queries are not available.",
     "bindingUnknown": "This system connection is unavailable. Choose another connection before publishing.",
     "bindingKindLabels": {
-      "PROCESS_ONLY": "Process only",
+      "PROCESS_ONLY": "Keep with this process",
       "DOMAIN_READ": "Read HR data",
       "DOMAIN_PROPOSAL": "Change proposal",
       "COMPUTED": "Computed value"

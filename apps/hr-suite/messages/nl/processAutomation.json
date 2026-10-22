@@ -416,7 +416,7 @@
     "bindingSelectionHelp": "Kies een goedgekeurde systeemkoppeling. Rechtstreekse tabeltoegang en eigen query's zijn niet beschikbaar.",
     "bindingUnknown": "Deze systeemkoppeling is niet beschikbaar. Kies een andere koppeling voordat je publiceert.",
     "bindingKindLabels": {
-      "PROCESS_ONLY": "Alleen proces",
+      "PROCESS_ONLY": "Bewaren bij dit proces",
       "DOMAIN_READ": "HR-data lezen",
       "DOMAIN_PROPOSAL": "Wijzigingsvoorstel",
       "COMPUTED": "Berekende waarde"

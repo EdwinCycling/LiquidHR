@@ -379,16 +379,6 @@ function BindingEditor({
           <p className="mt-1 text-muted-foreground">{selectedEntry ? labels.bindingEntryDescriptions[selectedEntry.id] : labels.bindingSelectionHelp}</p>
         </div>
       </div>
-      {selectedEntry ? <dl className="mt-3 grid gap-2 sm:grid-cols-2">
-        <div>
-          <dt className="text-muted-foreground">{selectedEntry.kind === 'COMPUTED' ? labels.bindingFormulaKey : selectedEntry.kind === 'PROCESS_ONLY' ? labels.bindingKind : labels.bindingRegistryKey}</dt>
-          <dd className="mt-1 font-mono">{selectedEntry.kind === 'COMPUTED' ? selectedEntry.formulaKey : selectedEntry.kind === 'PROCESS_ONLY' ? 'PROCESS_ONLY' : selectedEntry.key}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">{labels.bindingKind}</dt>
-          <dd className="mt-1 font-mono">{selectedEntry.kind}</dd>
-        </div>
-      </dl> : null}
       <p className="mt-3 text-muted-foreground">{labels.bindingKindDescriptions[field.binding.kind]}</p>
     </div>
   )
