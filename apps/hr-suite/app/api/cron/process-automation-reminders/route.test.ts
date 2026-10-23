@@ -43,6 +43,18 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs())
 
 describe('process automation reminder scheduler route', () => {
+  it('fails closed when CRON_SECRET is not configured', async () => {
+    vi.stubEnv('CRON_SECRET', '')
+
+    const response = await GET(new Request('https://liquidhr.test/api/cron/process-automation-reminders', {
+      headers: { authorization: 'Bearer scheduler-test-secret' },
+    }))
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ code: 'CRON_UNAVAILABLE' })
+    expect(mocks.createAdminRpcClient).not.toHaveBeenCalled()
+  })
+
   it('rejects requests without the configured scheduler bearer', async () => {
     const response = await GET(new Request('https://liquidhr.test/api/cron/process-automation-reminders'))
     expect(response.status).toBe(401)
@@ -90,10 +102,11 @@ describe('process automation reminder scheduler route', () => {
     }))
   })
 
-  it('keeps the scheduler route wired to the checked-in periodic Vercel schedule', async () => {
+  it('keeps the daily scheduler route wired and preserves the recruitment schedule', async () => {
     const config = JSON.parse(await readFile(new URL('../../../../../../vercel.json', import.meta.url), 'utf8')) as {
       crons: Array<{ path: string; schedule: string }>
     }
-    expect(config.crons).toContainEqual({ path: '/api/cron/process-automation-reminders', schedule: '* * * * *' })
+    expect(config.crons).toContainEqual({ path: '/api/cron/process-automation-reminders', schedule: '0 6 * * *' })
+    expect(config.crons).toContainEqual({ path: '/api/cron/recruitment-retention', schedule: '0 3 * * *' })
   })
 })

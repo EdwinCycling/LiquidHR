@@ -3,6 +3,19 @@
 Datum: 2026-10-23
 Verdict: **LOCAL INTEGRATION CANDIDATE — REMOTE DB / GITHUB / VERCEL HOLD**
 
+## Definitieve besluiten en actuele gate-status — 23-10-2026
+
+Deze update vervangt de voorlopige cron-, database- en releasegates hieronder.
+
+- **Versie:** zichtbare productversie is `1.20261023.1`; er is nog geen TEST-deployment.
+- **PMUX-cron:** `vercel.json` plant reminders dagelijks om 06:00 UTC (`0 6 * * *`). De bestaande `recruitment-retention`-cron blijft `0 3 * * *`. Vercel Hobby heeft dagelijkse frequentie met uitvoering ergens binnen het geplande uur; er is geen realtimegarantie. BEFORE/AT/BREACH zijn dus geen realtime-aflevering.
+- **Queue/backlog:** `runScheduledProcessReminderJobs()` verwerkt standaard hoogstens vijf jobs per uitvoering. De bestaande Core-queue is read-only geteld: 0 `PROCESS_REMINDER`-jobs, dus de huidige backlog is nul. Controleer opnieuw na migraties/activatie. Meer dan vijf beschikbare jobs per dag, inclusief retries, kan backlog opbouwen; Vercel probeert een mislukte cron-invocation niet opnieuw.
+- **Scheduler-secret:** read-only Vercel-envmetadata bevat geen `CRON_SECRET`-record (50 zichtbare env-records, geen verborgen Production-records); de waarde is niet opgehaald. Zonder secret antwoordt de route met `503 CRON_UNAVAILABLE` vóór het starten van de scheduler. De route blijft fail-closed; provisionering/aanwezigheid is een activatiegate.
+- **Tijdzones:** eigenaar heeft `Europe/Amsterdam` goedgekeurd voor Hoofdadministratie HR-groep, Noorderlicht Zorggroep HR-groep, Planeten, Stap 6 testgroep meerdere autorisaties en TEST (leeg). Live read-only query bevestigde de vijf bestaande groepen. `hr_groups.time_zone` ontbreekt nog; 06A voegt dit toe met Europe/Amsterdam. Na migratie wordt de waarde uitgelezen; PostgreSQL IANA-zoneconversie verwerkt zomer-/wintertijd.
+- **Database:** eigenaar heeft de Core TEST-schemawijzigingen voorwaardelijk vrijgegeven. Core (`wnpfloqpjvaacobppbpk`) en Payroll Lab (`jhgeriucbkfarxiudzfy`) zijn gescheiden actieve databases; Payroll Lab heeft 17 eigen migraties in zijn geschiedenis. PMUX 03A is eenmaal in Core toegepast; de acht volgende Core-migraties ontbreken. Payroll D2 bevat geen nieuwe SQL. Geen database wordt overgeschreven of gekopieerd. Een aantoonbaar herstelbare backup/restore en rollback/forward-fix-readiness ontbreken, dus alle remote migraties blijven HOLD; er zijn geen schema- of datawrites uitgevoerd.
+- **Workday-SLA:** de proceskalender blijft OPEN als afhankelijkheid alleen voor `businessDays: true`. De bestaande Leave-recipe en de twee-business-day SLA's blijven ongewijzigd en fail-closed; geen conversie naar kalenderdagen of activatie.
+- **Push/release:** Vercel `gitProviderOptions.createDeployments` is uitgeschakeld en read-back bevestigd vóór push; de Git-koppeling blijft staan en er is geen deployment gestart. Na groene code-, backup-, migratie- en releasegates volgt één deployment naar dezelfde LiquidHR TEST-app en daarna geauthenticeerde browseracceptatie. Geen echte salarisverwerking.
+
 ## Reikwijdte en provenance
 
 | Bron | Exacte basis | Verwerking |
@@ -14,7 +27,7 @@ Verdict: **LOCAL INTEGRATION CANDIDATE — REMOTE DB / GITHUB / VERCEL HOLD**
 | Payroll merge | `2a1496fcd9e5283d6b0cf8504cb599a7b2938a87` | Payroll D2 op dezelfde gezamenlijke kandidaat samengevoegd; behoudt mergeprovenance. |
 | Integratiecorrectie | `9fb83da1` | Whitespace-onafhankelijke PMUX05 helperpatch en regressietests voor Leave/workday/calendar-day SLA. |
 
-Integratiebranch: `work/one-liquidhr-merge-01-20261023`. De bronbranches, bronworktrees en beschermde lokale wijzigingen bleven ongemoeid. Er is geen version bump gedaan; `1.20261023.1` blijft gereserveerd voor het gezamenlijke releasemoment. De bedoelde browseracceptatie volgt na integratie en release op de gedeelde TEST-app en was geen voorwaarde voor deze code-integratie.
+Integratiebranch: `work/one-liquidhr-merge-01-20261023`. De bronbranches, bronworktrees en beschermde lokale wijzigingen bleven ongemoeid. De zichtbare productversie staat op `1.20261023.1` voor de gezamenlijke release. De bedoelde browseracceptatie volgt na integratie en release op de gedeelde TEST-app en was geen voorwaarde voor deze code-integratie.
 
 ## Reconciliatie
 
@@ -69,7 +82,7 @@ Builds en tests wijzigen niets aan Supabase- of Vercel-runtime. Framework-genera
 ## Release- en acceptatiegrenzen
 
 - Huidige READY-deployment blijft op de bestaande gedeelde TEST-aliases en bestaande versie; geen deployment of aliaswijziging.
-- Vercel-project staat op Hobby. De PMUX-cron `* * * * *` is bewust uit `vercel.json` verwijderd; alleen de al bestaande `recruitment-retention`-cron blijft actief. De PMUX API-route en database-schedulerwrapper zijn behouden, reminders zijn inactief en er is geen daily fallback. Actuele [Vercel Cron-limieten](https://vercel.com/docs/cron-jobs/usage-and-pricing) ondersteunen de minuutfrequentie op Hobby niet.
-- Read-only Vercel-projectinspectie meldt `gitProviderOptions.createDeployments: enabled`. De bronconfig bevat `git.deploymentEnabled: false`, maar AA-REL vereist dat de effectieve projecttriggers onafhankelijk uitstaan vóór push. Daarom staat push/PR/merge naar `main` in HOLD totdat die instelling veilig is bevestigd of expliciet uitgezet.
+- Vercel-project staat op Hobby. De PMUX-cron is dagelijks om 06:00 UTC (`0 6 * * *`); de bestaande `recruitment-retention`-cron blijft ongewijzigd. De schedulerroute en databasewrapper behouden scheduler-, queue-, audit-, idempotentie- en autorisatiebeveiliging. Vercel Hobby plant een dagelijkse invocation binnen het uur, zonder realtimeprecisie.
+- De aanvankelijke read-only metadata meldde `gitProviderOptions.createDeployments: enabled`; deze projectsetting is daarna vóór push uitgeschakeld en direct read-back bevestigd. De repositorykoppeling blijft staan en er is geen deployment gestart.
 - Na het sluiten van DB-/scheduler-/releasegates volgt één gezamenlijke TEST-release en daarna browseracceptatie met bestaande toegestane identiteiten. Geen echte salarismutaties, betalingen of aangiften.
 - Open Payroll-bronvragen, waaronder R2 bruto-netto en echte werkgever-/pensioentoepasselijkheid, blijven apart OPEN.
