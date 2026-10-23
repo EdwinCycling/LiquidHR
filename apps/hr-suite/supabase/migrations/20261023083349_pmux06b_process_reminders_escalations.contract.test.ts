@@ -3,6 +3,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { afterEach, describe, expect, it } from 'vitest'
 
 const migrationUrl = new URL('./20261023083349_pmux06b_process_reminders_escalations.sql', import.meta.url)
+const schedulerMigrationUrl = new URL('./20261023104819_pmux06b1_process_reminder_system_scheduler.sql', import.meta.url)
 const tenantA = '00000000-0000-4000-8000-000000000001'
 const tenantB = '00000000-0000-4000-8000-000000000002'
 const groupA = '00000000-0000-4000-8000-000000000011'
@@ -23,9 +24,11 @@ async function createDatabase(): Promise<PGlite> {
   await db.exec(String.raw`
     create role anon;
     create role authenticated;
+    create role service_role;
     create schema auth;
     create schema internal_security;
     create type public.workflow_job_type as enum ('PROCESS_REMINDER', 'PROCESS_DOCUMENT_OUTPUT');
+    create type public.workflow_job_status as enum ('READY', 'RUNNING', 'RETRY', 'SUCCEEDED', 'DEAD_LETTER');
     create type public.process_instance_status as enum ('RUNNING', 'COMPLETED', 'REJECTED', 'CANCELLED');
     create type public.process_step_instance_status as enum ('ACTIVE', 'COMPLETED', 'CANCELLED');
     create type public.access_scope_type as enum ('TENANT');
@@ -35,6 +38,12 @@ async function createDatabase(): Promise<PGlite> {
     create function auth.uid() returns uuid language sql stable as $$
       select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
     $$;
+    create function auth.jwt() returns jsonb language sql stable as $$
+      select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb)
+    $$;
+    grant usage on schema auth to anon, authenticated, service_role;
+    grant execute on function auth.uid() to anon, authenticated, service_role;
+    grant execute on function auth.jwt() to anon, authenticated, service_role;
     create function internal_security.process_scope_has_permission(uuid, uuid, public.access_scope_type, uuid, text)
     returns boolean language sql stable as $$
       select auth.uid() = '00000000-0000-4000-8000-000000000071'::uuid and $5 = 'process-operations:write'
@@ -83,9 +92,12 @@ async function createDatabase(): Promise<PGlite> {
     create table public.workflow_jobs (
       id uuid primary key default gen_random_uuid(), tenant_id uuid not null, hr_group_id uuid not null,
       administration_id uuid, process_instance_id uuid not null, step_instance_id uuid, work_item_id uuid,
-      job_type public.workflow_job_type not null, status text not null default 'READY',
+      job_type public.workflow_job_type not null, status public.workflow_job_status not null default 'READY',
       available_at timestamptz not null default now(), idempotency_key text not null, correlation_id uuid,
-      payload jsonb not null default '{}'::jsonb, unique (tenant_id, hr_group_id, idempotency_key)
+      payload jsonb not null default '{}'::jsonb, attempts integer not null default 0, max_attempts integer not null default 5,
+      locked_at timestamptz, locked_by uuid, last_attempt_at timestamptz, last_error_code text, last_error_at timestamptz,
+      result_reference_id uuid, created_at timestamptz not null default now(),
+      unique (tenant_id, hr_group_id, idempotency_key)
     );
     create table public.process_reminder_deliveries (
       id uuid primary key default gen_random_uuid(), tenant_id uuid not null, hr_group_id uuid not null,
@@ -146,6 +158,17 @@ async function createDatabase(): Promise<PGlite> {
   `)
   const migration = (await readFile(migrationUrl, 'utf8')).replace(/\r\n/g, '\n')
   await db.exec(migration)
+  await db.exec(`
+    create function public.create_process_deadline_reminder(requested_job_id uuid, requested_language text default 'nl')
+    returns jsonb language sql security invoker set search_path = '' as $$
+      select internal_security.create_process_deadline_reminder(requested_job_id, requested_language)
+    $$;
+    revoke all on function public.create_process_deadline_reminder(uuid, text) from public, anon;
+    grant usage on schema internal_security to authenticated;
+    grant execute on function public.create_process_deadline_reminder(uuid, text) to authenticated;
+  `)
+  const schedulerMigration = (await readFile(schedulerMigrationUrl, 'utf8')).replace(/\r\n/g, '\n')
+  await db.exec(schedulerMigration)
   await db.exec(`
     create trigger enqueue_process_step_jobs after insert on public.process_step_instances
     for each row execute function internal_security.enqueue_process_workflow_jobs();
@@ -224,9 +247,73 @@ describe('PMUX-06B reminder and escalation migration contract', () => {
     database = null
   })
 
-  it('creates one deterministic job for each configured event from the pinned version', async () => {
+  it('runs only claimed due reminder jobs as SYSTEM and keeps the delivery audited and idempotent', async () => {
     database = await createDatabase()
     const work = await seedProcess(database)
+    await addCandidate(database, {})
+    const dueJobId = await jobIdFor(database, work, 'BEFORE_DEADLINE')
+    await database.query("update public.workflow_jobs set available_at = now() - interval '1 minute' where id = $1", [dueJobId])
+    const workerId = '00000000-0000-4000-8000-000000000099'
+    const documentJob = await database.query<{ id: string }>("insert into public.workflow_jobs (tenant_id, hr_group_id, process_instance_id, job_type, idempotency_key, available_at) values ($1, $2, $3, 'PROCESS_DOCUMENT_OUTPUT', 'unrelated-document-job', now()) returning id", [work.tenantId, work.groupId, work.instanceId])
+
+    await database.query("select set_config('request.jwt.claim.sub', '', false)")
+    await database.query("select set_config('request.jwt.claims', $1, false)", ['{"role":"service_role"}'])
+    await database.exec('set role service_role')
+    const claimed = await database.query<{ job: { id: string; jobType: string } }>("select public.claim_process_reminder_job_system($1) as job", [workerId])
+    const job = claimed.rows[0]?.job
+    expect(job?.jobType).toBe('PROCESS_REMINDER')
+    expect(job?.id).not.toBe(documentJob.rows[0]?.id)
+    expect(job?.id).toBe(dueJobId)
+
+    const created = await database.query<{ result: { created: boolean; reminderId: string } }>("select public.create_process_deadline_reminder_system($1, $2, 'nl') as result", [job!.id, workerId])
+    expect(created.rows[0]?.result.created).toBe(true)
+    const replay = await database.query<{ result: { created: boolean; reminderId: string } }>("select public.create_process_deadline_reminder_system($1, $2, 'nl') as result", [job!.id, workerId])
+    expect(replay.rows[0]?.result).toMatchObject({ created: false, reminderId: created.rows[0]?.result.reminderId })
+
+    const finished = await database.query<{ result: { status: string } }>("select public.finish_process_reminder_job_system($1, $2, 'SUCCEEDED') as result", [job!.id, workerId])
+    expect(finished.rows[0]?.result.status).toBe('SUCCEEDED')
+    await database.exec('reset role')
+    const attribution = await database.query<{ created_by_user_id: string | null; created_by_actor_type: string }>('select created_by_user_id, created_by_actor_type from public.reminders')
+    expect(attribution.rows).toEqual([{ created_by_user_id: null, created_by_actor_type: 'SYSTEM' }])
+    const event = await database.query<{ actor_user_id: string | null; payload: { executionActor: string; executionPath: string } }>("select actor_user_id, payload from public.process_events where event_type = 'PROCESS_SLA_REMINDER_SENT'")
+    expect(event.rows).toEqual([{ actor_user_id: null, payload: expect.objectContaining({ executionActor: 'SYSTEM', executionPath: 'SCHEDULED' }) }])
+    expect(await database.query<{ count: number }>('select count(*)::int as count from public.process_reminder_deliveries')).toMatchObject({ rows: [{ count: 1 }] })
+
+    const closed = await seedProcess(database, {
+      instanceId: '00000000-0000-4000-8000-000000000025',
+      versionId: '00000000-0000-4000-8000-000000000035',
+      stepId: '00000000-0000-4000-8000-000000000045',
+      itemId: '00000000-0000-4000-8000-000000000055',
+    })
+    await database.query("update public.process_work_items set status = 'COMPLETED' where tenant_id = $1 and hr_group_id = $2 and id = $3", [closed.tenantId, closed.groupId, closed.itemId])
+    const closedJobId = await jobIdFor(database, closed, 'BEFORE_DEADLINE')
+    await database.query("update public.workflow_jobs set available_at = now() - interval '1 minute' where id = $1", [closedJobId])
+    await database.exec('set role service_role')
+    const closedClaim = await database.query<{ job: { id: string } }>("select public.claim_process_reminder_job_system($1) as job", [workerId])
+    expect(closedClaim.rows[0]?.job.id).toBe(closedJobId)
+    const skipped = await database.query<{ result: { created: boolean; skipped: boolean } }>("select public.create_process_deadline_reminder_system($1, $2, 'nl') as result", [closedJobId, workerId])
+    expect(skipped.rows[0]?.result).toMatchObject({ created: false, skipped: true })
+    await database.query("select public.finish_process_reminder_job_system($1, $2, 'SUCCEEDED')", [closedJobId, workerId])
+    await database.exec('reset role')
+    expect(await database.query<{ count: number }>('select count(*)::int as count from public.reminders')).toMatchObject({ rows: [{ count: 1 }] })
+
+    const grants = await database.query<{ anon_execute: boolean; user_execute: boolean; service_execute: boolean; user_private_execute: boolean; service_private_execute: boolean }>(`select
+      has_function_privilege('anon', 'public.create_process_deadline_reminder_system(uuid, uuid, text)', 'EXECUTE') as anon_execute,
+      has_function_privilege('authenticated', 'public.create_process_deadline_reminder_system(uuid, uuid, text)', 'EXECUTE') as user_execute,
+      has_function_privilege('service_role', 'public.create_process_deadline_reminder_system(uuid, uuid, text)', 'EXECUTE') as service_execute,
+      has_function_privilege('authenticated', 'internal_security.create_process_deadline_reminder(uuid, text)', 'EXECUTE') as user_private_execute,
+      has_function_privilege('service_role', 'internal_security.create_process_deadline_reminder(uuid, text)', 'EXECUTE') as service_private_execute`)
+    expect(grants.rows[0]).toEqual({ anon_execute: false, user_execute: false, service_execute: true, user_private_execute: true, service_private_execute: false })
+
+    await database.query("select set_config('request.jwt.claims', $1, false)", ['{"role":"anon"}'])
+    await database.exec('set role anon')
+    await expect(database.query("select public.claim_process_reminder_job_system($1)", [workerId])).rejects.toThrow()
+    await database.exec('reset role')
+  }, 20000)
+
+  it('creates one deterministic job for each configured event from the pinned version', async () => {
+    database = await createDatabase()
+    const work = await seedProcess(database, { deadlineAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() })
     const jobs = await database.query<{ idempotency_key: string; payload: { deliveryKind: string } }>("select idempotency_key, payload from public.workflow_jobs where work_item_id = $1 order by idempotency_key", [work.itemId])
     expect(jobs.rows.map((job) => job.payload.deliveryKind).sort()).toEqual(['AT_DEADLINE', 'BEFORE_DEADLINE', 'BREACH'])
     expect(jobs.rows.map((job) => job.idempotency_key).sort()).toEqual([
@@ -234,6 +321,11 @@ describe('PMUX-06B reminder and escalation migration contract', () => {
       'process-reminder:' + work.itemId + ':BEFORE_DEADLINE',
       'process-reminder:' + work.itemId + ':BREACH',
     ])
+    const times = await database.query<{ before_at: boolean; at_deadline: boolean; breach_after: boolean }>(`select
+      exists(select 1 from public.workflow_jobs job where job.work_item_id = $1 and job.payload ->> 'deliveryKind' = 'BEFORE_DEADLINE' and job.available_at = (select item.deadline_at - interval '1 hour' from public.process_work_items item where item.id = $1)) as before_at,
+      exists(select 1 from public.workflow_jobs job where job.work_item_id = $1 and job.payload ->> 'deliveryKind' = 'AT_DEADLINE' and job.available_at = (select item.deadline_at from public.process_work_items item where item.id = $1)) as at_deadline,
+      exists(select 1 from public.workflow_jobs job where job.work_item_id = $1 and job.payload ->> 'deliveryKind' = 'BREACH' and job.available_at = (select item.deadline_at + interval '1 second' from public.process_work_items item where item.id = $1)) as breach_after`, [work.itemId])
+    expect(times.rows[0]).toEqual({ before_at: true, at_deadline: true, breach_after: true })
     await database.query("update public.process_work_items set status = 'CLAIMED' where tenant_id = $1 and hr_group_id = $2 and id = $3", [work.tenantId, work.groupId, work.itemId])
     const count = await database.query<{ count: number }>("select count(*)::int as count from public.workflow_jobs where work_item_id = $1", [work.itemId])
     expect(count.rows[0]?.count).toBe(3)

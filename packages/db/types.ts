@@ -17223,7 +17223,8 @@ export type Database = {
           administration_id: string | null
           cancelled_at: string | null
           created_at: string
-          created_by_user_id: string
+          created_by_actor_type: 'USER' | 'SYSTEM'
+          created_by_user_id: string | null
           description: string | null
           id: string
           published_at: string | null
@@ -17239,7 +17240,8 @@ export type Database = {
           administration_id?: string | null
           cancelled_at?: string | null
           created_at?: string
-          created_by_user_id?: string
+          created_by_actor_type?: 'USER' | 'SYSTEM'
+          created_by_user_id?: string | null
           description?: string | null
           id?: string
           published_at?: string | null
@@ -17255,7 +17257,8 @@ export type Database = {
           administration_id?: string | null
           cancelled_at?: string | null
           created_at?: string
-          created_by_user_id?: string
+          created_by_actor_type?: 'USER' | 'SYSTEM'
+          created_by_user_id?: string | null
           description?: string | null
           id?: string
           published_at?: string | null
@@ -22515,6 +22518,10 @@ export type Database = {
         Args: { requested_job_id: string; requested_language?: string }
         Returns: Json
       }
+      create_process_deadline_reminder_system: {
+        Args: { requested_job_id: string; requested_worker_id: string; requested_language?: string }
+        Returns: Json
+      }
       create_process_definition_draft: {
         Args: {
           requested_administration_id: string
@@ -22699,6 +22706,20 @@ export type Database = {
         Returns: undefined
       }
       finish_workflow_job: {
+        Args: {
+          requested_error_code?: string
+          requested_job_id: string
+          requested_outcome: string
+          requested_result_reference_id?: string
+          requested_worker_id: string
+        }
+        Returns: Json
+      }
+      claim_process_reminder_job_system: {
+        Args: { requested_worker_id: string }
+        Returns: Json
+      }
+      finish_process_reminder_job_system: {
         Args: {
           requested_error_code?: string
           requested_job_id: string

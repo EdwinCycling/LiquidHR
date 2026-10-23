@@ -1,17 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, requireAuthContext, after } = vi.hoisted(() => ({
+const { createClient, createAdminRpcClient, requireAuthContext, after } = vi.hoisted(() => ({
   createClient: vi.fn(),
+  createAdminRpcClient: vi.fn(),
   requireAuthContext: vi.fn(),
   after: vi.fn((callback: () => Promise<void>) => { void callback() }),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/supabase/admin', () => ({ createAdminRpcClient }))
 vi.mock('@/lib/auth/permissions', () => ({ requireAuthContext }))
 vi.mock('next/server', () => ({ after }))
 vi.mock('server-only', () => ({}))
 
-import { runWorkflowJobs } from './workflow-job-service'
+import { runScheduledProcessReminderJobs, runWorkflowJobs } from './workflow-job-service'
 
 const job = {
   id: '00000000-0000-4000-8000-000000000001',
@@ -35,6 +37,7 @@ function resultFor(data: unknown = null, error: { message: string } | null = nul
 describe('workflow job runner', () => {
   beforeEach(() => {
     createClient.mockReset()
+    createAdminRpcClient.mockReset()
     requireAuthContext.mockReset()
     after.mockClear()
     requireAuthContext.mockResolvedValue({ permissions: ['process-operations:write'] })
@@ -59,6 +62,31 @@ describe('workflow job runner', () => {
     expect(first.claimed + second.claimed).toBe(1)
     expect(rpc.mock.calls.filter(([name]) => name === 'create_process_deadline_reminder')).toHaveLength(1)
     expect(rpc.mock.calls.filter(([name]) => name === 'finish_workflow_job')).toHaveLength(1)
+  })
+
+  it('claimt parallelle schedulerruns zonder gebruikerssessie maximaal eenmaal dezelfde job', async () => {
+    let claimed = false
+    const rpc = vi.fn(async (name: string) => {
+      if (name === 'claim_process_reminder_job_system') {
+        if (claimed) return resultFor()
+        claimed = true
+        return resultFor(job)
+      }
+      if (name === 'create_process_deadline_reminder_system') return resultFor({ created: true })
+      if (name === 'finish_process_reminder_job_system') return resultFor({ status: 'SUCCEEDED' })
+      throw new Error(`Unexpected RPC: ${name}`)
+    })
+    createAdminRpcClient.mockReturnValue({ rpc })
+
+    const [first, second] = await Promise.all([
+      runScheduledProcessReminderJobs(1),
+      runScheduledProcessReminderJobs(1),
+    ])
+
+    expect(first.claimed + second.claimed).toBe(1)
+    expect(rpc.mock.calls.filter(([name]) => name === 'create_process_deadline_reminder_system')).toHaveLength(1)
+    expect(rpc.mock.calls.filter(([name]) => name === 'finish_process_reminder_job_system')).toHaveLength(1)
+    expect(requireAuthContext).not.toHaveBeenCalled()
   })
 
   it('maakt een tijdelijke fout herstelbaar met een retry', async () => {
