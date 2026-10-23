@@ -22936,6 +22936,18 @@ export type Database = {
         Args: { requested_process_instance_id: string }
         Returns: Json
       }
+      get_process_insights_projection: {
+        Args: {
+          requested_from_date: string
+          requested_hr_group_id: string
+          requested_language: string
+          requested_page: number
+          requested_page_size: number
+          requested_process_definition_id: string | null
+          requested_to_date: string
+        }
+        Returns: Json
+      }
       get_process_operations_inbox: {
         Args: {
           requested_filter?: string

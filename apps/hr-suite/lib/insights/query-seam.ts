@@ -80,6 +80,7 @@ const reportQueryKeys: Readonly<Record<InsightReportId, readonly string[]>> = {
   wvp: [],
   'ai-usage': ['period'],
   'actual-work': ['month'],
+  'process-automation': ['from', 'to', 'process', 'page'],
   'talent-top-talent': [],
   'talent-key-employees': [],
   'talent-star-skills': [],

@@ -2,7 +2,7 @@
 
 ## Productbesluit
 
-De komende Process Automation-ontwikkeling bestaat uit drie productwaves: **PMUX-05 — Slimme formulieren en gegevens**, **PMUX-06 — Deadlines, uitval en procesregie** en **PMUX-07 — ESS, Focus en productfinish**. PMUX-04 blijft een afzonderlijke security- en releasegate en is geen productwave.
+De komende Process Automation-ontwikkeling bestaat uit drie productwaves: **PMUX-05 — Slimme formulieren en gegevens**, **PMUX-06 — Deadlines, uitval en procesregie** en **PMUX-07 — Procesinzichten, ESS, Focus en productfinish**. PMUX-04 blijft een afzonderlijke security- en releasegate en is geen productwave.
 
 Deze roadmap vervangt de oude PMUX-deelreeks als actieve planning. PMUX-02A/02B, PMUX-03A/B/C en PMUX-05A/B blijven historische capability- en acceptance-labels voor bestaand werk; ze vormen geen nieuwe toekomstige projectsplitsing. De oude P0–P10-uitvoeringsfasen in de [Process Automation Blueprint](LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md) zijn historisch. De blueprint blijft referentie voor product- en architectuurprincipes.
 
@@ -34,11 +34,14 @@ Deze roadmap vervangt de oude PMUX-deelreeks als actieve planning. PMUX-02A/02B,
 
 **Status (23-10-2026): LOKALE IMPLEMENTATIE EN CONTRACTTESTS GEREED; REMOTE ACCEPTATIE OPEN.** De HR Admin-werkplek gebruikt bestaande procesinstanties, werkitems, workflow-jobs, retries/dead-letter, reminders, audit en procesrechten. Een scoped SQL-projectie levert paginering, filters, exacte gefilterde totalen en alleen rijgebonden herstelbaarheid; foutpayloads worden niet naar de UI geprojecteerd. Een herstelactie gebruikt uitsluitend de bestaande idempotente `requeue_workflow_job`-transitie voor herstelbare RETRY/DEAD_LETTER-jobs. De nieuwe workspace en forward-only SQL-contract zijn lokaal getest met PGlite en gerichte Vitest-regressies. Remote migratie/readback, live rol-/tenantproeven en desktop-/390px-browseracceptatie blijven OPEN. Zie [PMUX-06C requirement](PMUX-06C_PROCESS_MONITORING_RECOVERY.md) en [lokale acceptance](../../quality/acceptance/runs/PMUX-06C-20261023-LOCAL.md).
 
-Overige PMUX-06-capabilities — scopegebonden herverdeling, manager-/behandelaaruitval, prognoses en inzichten — blijven gepland en zijn niet gestart.
+Overige PMUX-06-capabilities — scopegebonden herverdeling, manager-/behandelaaruitval en operationele prognoses — blijven gepland en zijn niet gestart. Procesinzichten zijn op verzoek als eerste rapportageslice van Wave 07 uitgewerkt in PMUX-07A; dit is geen tweede procesmonitor.
 
-## Wave 07 — ESS, Focus en productfinish
+## Wave 07 — Procesinzichten, ESS, Focus en productfinish
 
-Na PMUX-06: volledige ESS/MSS/Focus-ervaring, mobile-first formulieren, visuele routes en processtatus, dashboard, handmatige UX-review, E2E en releasevoorbereiding. Deze wave wordt nu alleen gepland; hier wordt in PMUX-05 geen functionaliteit voor gebouwd.
+**PMUX-07A — Procesinzichten en doorlooptijden (23-10-2026): lokale implementatie; remote en browseracceptatie OPEN.** Eerste reportslice gebruikt bestaande proces-/stap-events, gematerialiseerde SLA-deadlines, immutable versiepinning en Insights-catalogus. HR Admin analyseert volumes, kalenderdoorlooptijd, wachttijd tot eerste claim, SLA-percentages en herhaalde stapknelpunten; er zijn geen individuele medewerkerprestatie-indicatoren. Zie [requirement](PMUX-07A_PROCESS_INSIGHTS.md) en [lokale evidence](../../quality/acceptance/runs/PMUX-07A-20261023-LOCAL.md). PMUX-06C blijft de aparte operationele herstelwerkplek. Remote readback en desktop-/390px-browseracceptatie zijn niet uitgevoerd.
+
+Overige PMUX-07-scope blijft gepland: ESS/MSS/Focus, mobile-first formulieren, visuele routes en processtatus, dashboard, handmatige UX-review, E2E en releasevoorbereiding. Deze slice start die onderdelen niet.
+
 
 HR Admin kan blokkades binnen de bestaande scope beheren. Dat geeft HR Admin geen recht om namens een andere procesdeelnemer goed te keuren.
 
