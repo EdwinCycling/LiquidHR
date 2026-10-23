@@ -26,7 +26,7 @@
 > **GO:** nieuwe afgebakende niet-Payroll-features op schoon `main`, met normale per-feature gates. **HOLD:** runtime van `work/payroll-p0-p1` tot config-herstel; eerst `/payroll/runs` herstellen vóór nieuwe salarisrunfunctionaliteit. Zie [postrelease- en cleanupstatus](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md) voor volledige bewijsgrenzen. Eerder gedateerde paragrafen hieronder zijn historische snapshots.
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-22 (PAY-QA-FIX-01; historische bewijssecties volgen)
+Bijgewerkt: 2026-10-23 (PAY-MERGE-FIX-02; historische bewijssecties blijven ongewijzigd)
 
 ## PAY-INTEGRATE-01 — lokale Payroll + D1-kandidaat (22-10-2026)
 
@@ -41,6 +41,10 @@ Historische uitkomst op de toenmalige kandidaat: de volledige suite had 3.466 PA
 ## PAY-QA-FIX-01 — lokale integratie-QA-closeout (22-10-2026)
 
 Op code-commit `ed2a3b3acce2a985d7d44105a4d30517d06fbab8` zijn de vroege async UI-assertion gecorrigeerd en zware Vitest-uitvoering begrensd op vier workers. De UI-test slaagt 5/5; de timeoutgroep 33/33; gerichte D0-artifact/autorisatie- en D1-K2-tests 79/79. De finale volledige suite slaagt met 3.478 PASS, 8 expliciete SKIP, 0 FAIL over 711 bestanden. TypeScript en gerichte ESLint slagen. Verdict: **LOCAL INTEGRATION READY** voor overdracht aan de bestaande mergecoördinatie. Geen productiebron/buildinput gewijzigd; productiebuild daarom niet opnieuw uitgevoerd. De live Manager-/foreign-tenant-negatives en dev-runtime-EPERM zijn geen afgesloten bewijzen en blijven OPEN. PMUX is niet opgenomen; geen merge, push of deployment. Zie [PAY-QA-FIX-01](../quality/acceptance/runs/PAY-QA-FIX-01-20261022.md).
+
+## PAY-MERGE-FIX-02 — securitypatch geïntegreerde kandidaat (23-10-2026)
+
+Op `integration/PAYROLL-MERGE-20261022` is Next.js bijgewerkt naar 16.4.2 in beide Next-workspaces, met `eslint-config-next` 16.4.2; React en React DOM zijn gepind op gepatcht 19.2.9 en sharp blijft op gepatcht 0.35.5. De volledige CONTROLLED-suite slaagt op de nieuwe lockfile (3.487 PASS, 8 SKIP, 0 FAIL); gerichte Payroll/D0/K2/runs-tests 130/130 PASS. Typecheck, ESLint en i18n slagen. De productiebuild blijft **OPEN**: Turbopack wordt in de Windows-sandbox geblokkeerd bij junctioncreatie; de ondersteunde Webpack-build faalt tijdens Next-buildworkers met `EPERM` bij route-uitvoermappen. WSL2 is niet toegankelijk. Verdict: **HOLD**, geen integratieoverdracht als gereed. Zie [PAY-MERGE-FIX-02](../quality/acceptance/runs/PAY-MERGE-FIX-02-20261023.md).
 
 ## Historische status- en acceptance-snapshots (18 oktober en eerder)
 
