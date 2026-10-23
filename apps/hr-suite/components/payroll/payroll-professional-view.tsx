@@ -139,17 +139,10 @@ function roundingDetails(
     const mode = payrollExplanationString(rule.mode) ?? labels.notRecorded
     const stage = payrollExplanationString(rule.stage)
     const places = rule.decimalPlaces === undefined ? null : traceValue(rule.decimalPlaces, 'en-US')
-    const reference = payrollExplanationRecord(rule.provenance)
-    return `${stage ? `${stage}: ` : ''}${mode}${places === null ? '' : ` · ${labels.decimalPlaces} ${places}`}${payrollExplanationString(reference?.sourceReference) ? ` · ${payrollExplanationString(reference?.sourceReference)}` : ''}`
+    return `${stage ? `${stage}: ` : ''}${mode}${places === null ? '' : ` · ${labels.decimalPlaces} ${places}`}`
   })
   const pensionRounding = roundingFallback ?? payrollExplanationString(step?.roundingRule)
   return pensionRounding ? [pensionRounding] : [labels.notRecorded]
-}
-
-function dependencyLabel(value: PayrollJson, labels: Readonly<Record<string, string>>): string {
-  const dependency = payrollExplanationRecord(value)
-  const code = payrollExplanationString(dependency?.componentCode)
-  return code ? `${labels[code] ?? humanize(code)} · ${code}` : humanize(JSON.stringify(value))
 }
 
 function traceRuleSource(tracePayload: PayrollJson | null | undefined): string | null {
@@ -169,27 +162,6 @@ function traceComponentDefinition(
   return payrollExplanationArray(payload?.definitions)
     .map((value) => payrollExplanationRecord(value))
     .find((definition) => definition?.code === componentCode) ?? null
-}
-
-function dependencyReferenceLabel(value: PayrollJson, labels: Readonly<Record<string, string>>): string {
-  const dependency = payrollExplanationRecord(value)
-  if (!dependency) return dependencyLabel(value, labels)
-  const inputName = payrollExplanationString(dependency.inputName)
-  const outputName = payrollExplanationString(dependency.outputName)
-  const code = payrollExplanationString(dependency.componentCode)
-  const input = inputName ? labels[inputName] ?? humanize(inputName) : null
-  const source = code ? `${labels[code] ?? humanize(code)} · ${code}` : null
-  const output = outputName ? `.${outputName}` : ''
-  return [input && source ? `${input} ← ${source}${output}` : source ?? input].filter(Boolean).join('')
-    || dependencyLabel(value, labels)
-}
-
-function traceStepProvenance(step: PayrollExplanationRecord, labels: Readonly<Record<string, string>>): string {
-  const componentId = payrollExplanationString(step.componentId)
-  const sequence = typeof step.sequence === 'number' && Number.isInteger(step.sequence) ? step.sequence : null
-  const scope = payrollExplanationString(step.processingScope)
-  return [componentId, sequence === null ? null : `${labels.traceStep} ${sequence}`, scope]
-    .filter((value): value is string => value !== null).join(' · ') || labels.notRecorded
 }
 
 function componentFormula(code: string, labels: Readonly<Record<string, string>>): string | null {
@@ -229,17 +201,12 @@ function PayrollComponentDetail({
   const componentCode = payrollExplanationString(component?.code)
     ?? payrollExplanationString(resultPayload?.componentCode)
     ?? row.component_key
-  const componentVersion = payrollExplanationString(component?.version)
-    ?? payrollExplanationString(step?.version)
   const roundingMeta = payrollExplanationRecord(component?.rounding)
   const stepInputs = payrollExplanationRecord(step?.inputs)
   const stepOutputs = payrollExplanationRecord(step?.outputs)
-  const packageProvenance = payrollExplanationRecord(step?.rulePackageProvenance)
   const formula = payrollExplanationString(step?.formula) ?? componentFormula(componentCode, labels)
   const effectiveFrom = payrollExplanationString(component?.effectiveFrom)
   const effectiveTo = payrollExplanationString(component?.effectiveTo)
-  const processingScope = payrollExplanationString(component?.processingScope)
-  const dependencies = payrollExplanationArray(step?.dependencyRefs)
   const roundingText = roundingDetails(
     tracePayload,
     componentCode,
@@ -258,10 +225,7 @@ function PayrollComponentDetail({
     </summary>
     <div className="mt-3 space-y-3 border-t border-border-subtle pt-3 text-sm">
       <dl className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
-        <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.componentCode}</dt><dd className="break-all font-mono text-xs">{componentCode}</dd></div>
-        <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.componentVersion}</dt><dd className="break-all font-mono text-xs">{componentVersion ?? labels.notRecorded}</dd></div>
         {effectiveFrom || effectiveTo ? <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.effectivePeriod}</dt><dd>{effectiveFrom ?? '—'} – {effectiveTo ?? '—'}</dd></div> : null}
-        {processingScope ? <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.processingScope}</dt><dd>{labels[processingScope] ?? processingScope}</dd></div> : null}
       </dl>
       {step ? <>
         {formula ? <p className="break-words"><span className="font-medium">{labels.formula}: </span>{formula}</p> : pensionStep ? null : <p className="text-xs text-muted-foreground">{labels.formulaNotRecorded}</p>}
@@ -286,18 +250,13 @@ function PayrollComponentDetail({
           {payrollExplanationString(pensionStep.rate) ? <div className="min-w-0"><dt className="break-words text-xs text-muted-foreground">{labels.percentage}</dt><dd className="break-words font-medium tabular-nums">{formatStoredPercentage(pensionStep.rate, locale, labels.notRecorded)}</dd></div> : null}
           <div className="min-w-0"><dt className="break-words text-xs text-muted-foreground">{labels.savedResult}</dt><dd className="break-words font-medium tabular-nums">{formatStoredMoney(pensionStep.result, locale, labels.notRecorded)}</dd></div>
           <div className="min-w-0"><dt className="break-words text-xs text-muted-foreground">{labels.roundingMethod}</dt><dd className="break-words">{payrollExplanationString(pensionStep.roundingRule) ?? labels.notRecorded}</dd></div>
-          <div className="min-w-0"><dt className="break-words text-xs text-muted-foreground">{labels.calculationSource}</dt><dd className="break-words">{payrollExplanationString(pensionStep.source) ?? labels.notRecorded}</dd></div>
-          <div className="min-w-0"><dt className="break-words text-xs text-muted-foreground">{labels.ruleProvenance}</dt><dd className="break-all">{payrollExplanationString(payrollExplanationRecord(pensionStep.ruleProvenance)?.status) ?? labels.notRecorded}</dd></div>
         </dl>
       </div> : null}
       <dl className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
         <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.roundingMethod}</dt><dd className="space-y-1">{roundingText.map((detail, index) => <p key={`${componentCode}-rounding-${index}`} className="break-words">{detail}</p>)}</dd></div>
         {step ? <>
-          <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.rulePackage}</dt><dd className="break-words">{payrollExplanationString(packageProvenance?.packageId) ?? labels.notRecorded}{packageProvenance?.version ? ` · ${payrollExplanationString(packageProvenance.version)}` : ''} · {labels.componentVersion} {payrollExplanationString(step.version) ?? labels.notRecorded}</dd></div>
           <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.ruleSource}</dt><dd className="break-words">{traceRuleSource(tracePayload) ?? labels.notRecorded}</dd></div>
-          <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.calculationProvenance}</dt><dd className="break-all font-mono text-xs">{traceStepProvenance(step, labels)}</dd></div>
         </> : null}
-        {dependencies.length > 0 ? <div className="min-w-0 sm:col-span-2"><dt className="text-xs text-muted-foreground">{labels.dependencies}</dt><dd className="mt-1 flex flex-wrap gap-1.5">{dependencies.map((dependency, index) => <span key={`${dependencyLabel(dependency, labels)}-${index}`} className="break-all rounded bg-surface-subtle px-2 py-1 font-mono text-[0.7rem]">{dependencyLabel(dependency, labels)}</span>)}</dd></div> : null}
       </dl>
     </div>
   </details>
@@ -318,9 +277,7 @@ function EmployerPremiumBreakdown({
     <summary className="cursor-pointer text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus">{labels.employerPremiumBreakdown}</summary>
     <ul className="mt-2 divide-y divide-border-subtle">{premiums.map((premium) => {
       const step = premium.step
-      const packageProvenance = payrollExplanationRecord(step.rulePackageProvenance)
       const definition = traceComponentDefinition(tracePayload, premium.code)
-      const dependencies = payrollExplanationArray(step.dependencyRefs)
       const effectiveFrom = payrollExplanationString(definition?.effectiveFrom)
       const effectiveTo = payrollExplanationString(definition?.effectiveTo)
       return <li key={premium.code} className="py-3 first:pt-1">
@@ -330,17 +287,12 @@ function EmployerPremiumBreakdown({
             <span className="shrink-0 text-right font-medium tabular-nums">{formatStoredMoney(premium.amount, locale, labels.notRecorded)}</span>
           </summary>
           <dl className="mt-2 grid min-w-0 grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
-            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.componentCode}</dt><dd className="break-all font-mono">{premium.code}</dd></div>
-            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.componentVersion}</dt><dd className="break-all font-mono">{payrollExplanationString(step.version) ?? labels.notRecorded}</dd></div>
             {effectiveFrom || effectiveTo ? <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.effectivePeriod}</dt><dd className="break-words">{effectiveFrom ?? '—'} – {effectiveTo ?? '—'}</dd></div> : null}
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.assessmentBase}</dt><dd className="break-words font-medium tabular-nums">{formatStoredMoney(premium.assessmentBase, locale, labels.notRecorded)}</dd></div>
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.percentage}</dt><dd className="break-words font-medium tabular-nums">{formatStoredPercentage(premium.rate, locale, labels.notRecorded)}</dd></div>
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.formula}</dt><dd className="break-words">{payrollExplanationString(step.formula) ?? labels.assessmentBaseTimesRate}</dd></div>
-            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.rulePackage}</dt><dd className="break-words">{payrollExplanationString(packageProvenance?.packageId) ?? labels.notRecorded} · {payrollExplanationString(packageProvenance?.version) ?? labels.notRecorded}</dd></div>
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.ruleSource}</dt><dd className="break-words">{traceRuleSource(tracePayload) ?? labels.notRecorded}</dd></div>
-            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.calculationProvenance}</dt><dd className="break-all font-mono">{traceStepProvenance(step, labels)}</dd></div>
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.roundingMethod}</dt><dd className="space-y-1">{roundingDetails(tracePayload, premium.code, 'amount', null, step, null, labels).map((detail, index) => <p key={`${premium.code}-rounding-${index}`} className="break-words">{detail}</p>)}</dd></div>
-            <div className="min-w-0 sm:col-span-2"><dt className="break-words text-muted-foreground">{labels.dependencies}</dt><dd className="mt-1 flex flex-wrap gap-1.5">{dependencies.length > 0 ? dependencies.map((dependency, index) => <span key={`${premium.code}-dependency-${index}`} className="break-all rounded bg-surface-subtle px-2 py-1 font-mono">{dependencyReferenceLabel(dependency, labels)}</span>) : labels.notRecorded}</dd></div>
           </dl>
         </details>
       </li>
@@ -364,12 +316,9 @@ function PensionCalculationTrace({
     <ol className="mt-3 divide-y divide-border-subtle">{steps.map((step, index) => {
       const code = payrollExplanationString(step.componentCode) ?? `step-${index + 1}`
       const inputs = payrollExplanationRecord(step.inputs)
-      const provenance = payrollExplanationRecord(step.ruleProvenance)
-      const ruleReference = payrollExplanationString(provenance?.reference)
-      const dependencies = payrollExplanationArray(step.dependencies)
       return <li key={`${code}-${index}`} className="min-w-0 py-4 first:pt-0 last:pb-0">
         <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="min-w-0"><p className="font-semibold">{labels[`pension_${code}`] ?? humanize(code)}</p><code className="break-all text-xs text-muted-foreground">{code}</code></div>
+          <div className="min-w-0"><p className="font-semibold">{labels[`pension_${code}`] ?? labels.pensionCalculationDetail}</p></div>
           <p className="shrink-0 text-left font-semibold tabular-nums sm:text-right">{code.includes('RATE') ? formatStoredPercentage(step.result, locale, labels.notRecorded) : formatStoredMoney(step.result, locale, labels.notRecorded)}</p>
         </div>
         {payrollExplanationString(step.formula) ? <p className="mt-2 break-words text-sm"><span className="font-medium">{labels.formula}: </span>{payrollExplanationString(step.formula)}</p> : null}
@@ -377,13 +326,8 @@ function PensionCalculationTrace({
           {payrollExplanationString(step.assessmentBase) ? <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.assessmentBase}</dt><dd className="break-words font-medium tabular-nums">{formatStoredMoney(step.assessmentBase, locale, labels.notRecorded)}</dd></div> : null}
           {payrollExplanationString(step.rate) ? <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.percentage}</dt><dd className="break-words font-medium tabular-nums">{formatStoredPercentage(step.rate, locale, labels.notRecorded)}</dd></div> : null}
           {Object.entries(inputs ?? {}).map(([name, input]) => <div key={name} className="min-w-0"><dt className="break-words text-muted-foreground">{labels[name] ?? humanize(name)}</dt><dd className="break-words font-medium tabular-nums">{pensionTraceValue(name, input, locale, labels.notRecorded)}</dd></div>)}
-          {payrollExplanationString(step.unroundedValue) ? <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.unroundedValue}</dt><dd className="break-words font-medium tabular-nums">{pensionTraceValue(code, step.unroundedValue, locale, labels.notRecorded)}</dd></div> : null}
           <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.roundingMethod}</dt><dd className="break-words">{payrollExplanationString(step.roundingRule) ?? labels.notRecorded}</dd></div>
           <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.calculationSource}</dt><dd className="break-words">{payrollExplanationString(step.source) ?? labels.notRecorded}</dd></div>
-          <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.componentVersion}</dt><dd className="break-all font-mono">{payrollExplanationString(step.componentVersion) ?? labels.notRecorded}</dd></div>
-          <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.ruleProvenance}</dt><dd className="break-all">{payrollExplanationString(provenance?.status) ?? labels.notRecorded}</dd></div>
-          {ruleReference ? <div className="min-w-0 sm:col-span-2"><dt className="break-words text-muted-foreground">{labels.ruleReference}</dt><dd className="break-words">{ruleReference}</dd></div> : null}
-          {dependencies.length > 0 ? <div className="min-w-0 sm:col-span-2"><dt className="break-words text-muted-foreground">{labels.dependencies}</dt><dd className="break-all font-mono">{dependencies.map((dependency) => traceValue(dependency, locale)).join(', ')}</dd></div> : null}
         </dl>
       </li>
     })}</ol>
@@ -417,32 +361,29 @@ export function PayrollRunSummaryList({
   runs,
   labels,
 }: {
-  readonly runs: readonly PayrollRunSummary[]
+  readonly runs: readonly (PayrollRunSummary & { readonly employeeName?: string | null })[]
   readonly labels: Readonly<Record<string, string>>
 }) {
   if (runs.length === 0) return <p className="rounded-xl border border-dashed border-border-subtle p-6 text-sm text-muted-foreground">{labels.empty}</p>
   return <div className="overflow-hidden rounded-[var(--radius-surface)] border border-border-subtle">
     <ul className="divide-y divide-border-subtle sm:hidden">{runs.map((summary) => <li key={summary.run.id} className="space-y-2 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-medium tabular-nums">{summary.payrollPeriod.period_year}-{String(summary.payrollPeriod.period_month).padStart(2, '0')}</span><span className="rounded-full bg-surface-subtle px-2.5 py-1 text-xs">{labels[`run_${summary.run.status}`] ?? summary.run.status}</span></div>
-      <p className="text-sm">{labels.employee} <span className="ml-1 font-mono text-xs text-muted-foreground">{summary.sourceSnapshot.source_employee_id.slice(-8)}</span></p>
-      <p className="break-all font-mono text-xs text-muted-foreground">{summary.run.id}</p>
+      <p className="text-sm">{summary.employeeName ?? labels.employee}</p>
       <Link className="inline-flex min-h-10 items-center font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={`/payroll/runs/${encodeURIComponent(summary.run.id)}`}>{labels.openDetail}</Link>
     </li>)}</ul>
     <div className="hidden overflow-x-auto sm:block">
       <table className="w-full min-w-[44rem] text-left text-sm">
         <thead className="bg-surface-subtle text-xs uppercase tracking-wide text-muted-foreground"><tr>
-          <th className="px-4 py-3">{labels.period}</th><th className="px-4 py-3">{labels.employee}</th><th className="px-4 py-3">{labels.status}</th><th className="px-4 py-3">{labels.runId}</th><th className="px-4 py-3">{labels.action}</th>
+          <th className="px-4 py-3">{labels.period}</th><th className="px-4 py-3">{labels.employee}</th><th className="px-4 py-3">{labels.status}</th><th className="px-4 py-3">{labels.action}</th>
         </tr></thead>
         <tbody className="divide-y divide-border-subtle">{runs.map((summary) => <tr key={summary.run.id}>
             <td className="whitespace-nowrap px-4 py-3 tabular-nums">{summary.payrollPeriod.period_year}-{String(summary.payrollPeriod.period_month).padStart(2, '0')}</td>
-            <td className="px-4 py-3"><span>{labels.employee}</span><span className="ml-2 font-mono text-xs text-muted-foreground">{summary.sourceSnapshot.source_employee_id.slice(-8)}</span></td>
+            <td className="px-4 py-3">{summary.employeeName ?? labels.employee}</td>
             <td className="px-4 py-3">{labels[`run_${summary.run.status}`] ?? summary.run.status}</td>
-            <td className="max-w-44 break-all px-4 py-3 font-mono text-xs text-muted-foreground">{summary.run.id}</td>
             <td className="px-4 py-3"><Link className="font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={`/payroll/runs/${encodeURIComponent(summary.run.id)}`}>{labels.openDetail}</Link></td>
           </tr>)}</tbody>
       </table>
     </div>
-    <p className="border-t border-border-subtle px-4 py-3 text-xs text-muted-foreground">{labels.runHashesHint}</p>
   </div>
 }
 
@@ -491,7 +432,7 @@ export function PayrollRunReconciliation({
       : row.component_key === 'employer_pension' ? 'PENSION_EMPLOYER_SHARE' : null
     const pensionStep = pensionStepCode ? pensionSteps.find((step) => step.componentCode === pensionStepCode) ?? null : null
     return <div key={row.component_key} className="border-t border-border-subtle py-3 first:border-t-0">
-      <PayrollComponentDetail row={row} step={payrollTraceStepByCode(engineSteps, code)} pensionStep={pensionStep} tracePayload={tracePayload} locale={locale} labels={row.component_key === 'net_salary' && !finalized ? { ...labels, net_salary: labels.netAfterTaxIncomplete } : labels} />
+      <PayrollComponentDetail row={row} step={payrollTraceStepByCode(engineSteps, code)} pensionStep={pensionStep} tracePayload={tracePayload} locale={locale} labels={row.component_key === 'net_salary' && !finalized ? { ...labels, net_salary: labels.conceptNet } : labels} />
       {row.component_key === 'employer_insurance' ? <div className="mt-3"><EmployerPremiumBreakdown tracePayload={tracePayload} locale={locale} labels={labels} /></div> : null}
     </div>
   }
@@ -506,16 +447,10 @@ export function PayrollRunReconciliation({
   return <div className="space-y-5">
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="rounded-xl border border-border-subtle bg-surface-subtle p-4"><p className="text-xs text-muted-foreground">{labels.gross}</p><p className="mt-2 text-xl font-semibold tabular-nums">{formatPayrollMoney(gross, locale)}</p></div>
-      <div className="rounded-xl border border-border-subtle bg-surface-subtle p-4"><p className="text-xs text-muted-foreground">{finalized ? labels.net : labels.netAfterTaxIncomplete}</p><p className="mt-2 text-xl font-semibold tabular-nums">{formatPayrollMoney(net, locale)}</p></div>
+      <div className="rounded-xl border border-border-subtle bg-surface-subtle p-4"><p className="text-xs text-muted-foreground">{finalized ? labels.net : labels.conceptNet}</p><p className="mt-2 text-xl font-semibold tabular-nums">{formatPayrollMoney(net, locale)}</p></div>
     </div>
     <p className={`rounded-lg border px-4 py-3 text-sm font-medium ${finalized ? 'border-border-subtle bg-surface-subtle' : 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100'}`}>{savedState}</p>
     {pensionReadinessWarning ? <div role="status" className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm"><p className="font-semibold">{labels.pensionReadinessTitle}</p><p className="mt-1">{pensionSteps.length > 0 ? labels.pensionReadinessWarning : labels.pensionSourceVerificationRequired}</p>{pensionMissing ? <p className="mt-1 font-medium">{labels.netNotDefinitive}</p> : null}</div> : pensionMissing ? <div role="status" className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm"><p className="font-semibold">{labels.pensionSourceVerificationRequired}</p><p className="mt-1 font-medium">{labels.netNotDefinitive}</p></div> : null}
-    <div className="grid gap-3 sm:grid-cols-2">
-      <p className="break-all rounded-lg bg-surface-subtle p-3 text-xs"><span className="font-semibold">{labels.sourceHash}: </span><code>{run.sourceSnapshot.source_hash}</code></p>
-      <p className="break-all rounded-lg bg-surface-subtle p-3 text-xs"><span className="font-semibold">{labels.inputHash}: </span><code>{run.inputSet.input_hash}</code></p>
-      <p className="break-all rounded-lg bg-surface-subtle p-3 text-xs"><span className="font-semibold">{labels.resultHash}: </span><code>{run.run.result_hash ?? labels.notAvailable}</code></p>
-      <p className="rounded-lg bg-surface-subtle p-3 text-xs"><span className="font-semibold">{labels.engine}: </span>{run.inputSet.engine_version} · {run.inputSet.rule_package_composition_id}</p>
-    </div>
     <section className="rounded-xl border border-border-subtle p-4">
       <h2 className="font-semibold">{labels.reconciliationFlow}</h2>
       <p className="mt-2 text-sm text-muted-foreground">{labels.employeeReconciliationFormula}</p>
@@ -539,15 +474,13 @@ export function PayrollRunReconciliation({
     </div>
     {pensionSteps.length > 0 ? <PensionCalculationTrace sourcePayload={run.sourceSnapshot.source_payload} locale={locale} labels={labels} /> : null}
     <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.controls}</summary>
-      <ul className="mt-3 divide-y divide-border-subtle">{run.controls.map((control) => <li key={control.control_key} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{labels[control.control_key] ?? humanize(control.control_key)}</span><span className="font-medium">{labels[`control_${control.status}`] ?? control.status}</span><pre className="w-full overflow-x-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{JSON.stringify(sanitizePayrollTrace(control.detail_payload), null, 2)}</pre></li>)}</ul>
+      <ul className="mt-3 divide-y divide-border-subtle">{run.controls.map((control) => <li key={control.control_key} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{labels[control.control_key] ?? labels.controlFallback ?? labels.controls}</span><span className="font-medium">{labels[`control_${control.status}`] ?? labels.controlFallback ?? labels.controls}</span></li>)}</ul>
     </details>
-    {run.trace ? <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.calculationTrace}</summary><pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface-subtle p-3 text-xs">{JSON.stringify(sanitizePayrollTrace(run.trace.trace_payload), null, 2)}</pre></details> : null}
-    <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.lifecycle}</summary><ol className="mt-3 space-y-2">{run.lifecycleEvents.filter((event) => event.calculation_run_id === run.run.id).map((event) => <li key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border-subtle pt-3 text-sm"><span>{labels[`event_${event.event_type}`] ?? event.event_type}</span><time dateTime={event.created_at} className="text-muted-foreground">{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(event.created_at))}</time></li>)}</ol></details>
+    <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.lifecycle}</summary><ol className="mt-3 space-y-2">{run.lifecycleEvents.filter((event) => event.calculation_run_id === run.run.id).map((event) => <li key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border-subtle pt-3 text-sm"><span>{labels[`event_${event.event_type}`] ?? labels.lifecycle}</span><time dateTime={event.created_at} className="text-muted-foreground">{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(event.created_at))}</time></li>)}</ol></details>
     <p className="text-sm text-muted-foreground">{succeeded ? finalized ? labels.finalized : labels.notFinalized : labels.notSucceeded}</p>
     <div className="flex flex-wrap gap-3">
       {finalized ? <>
         {!run.hasGenericInputReference ? <>
-          <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/TECHNICAL_JSON`}>{labels.downloadJson}</Link>
           <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/artifact/PAYSLIP_PDF`}>{labels.downloadPdf}</Link>
         </> : null}
         <Link className="rounded-md border border-border-subtle px-3 py-2 text-sm font-medium text-primary hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus" href={`/api/payroll/runs/${encodeURIComponent(run.run.id)}/payslip-preview`} target="_blank" rel="noreferrer">{labels.viewStandardPayslip}</Link>

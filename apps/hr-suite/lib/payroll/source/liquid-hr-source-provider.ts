@@ -56,6 +56,7 @@ import {
   calculateCaoPayroll,
   type CaoPayrollActualWorkEntry,
   type CaoPayrollCalculation,
+  type CaoRetailBusinessScope,
 } from '../cao-payroll-integration'
 import type {
   PayrollEmployerConfigurationVersionRow,
@@ -149,6 +150,7 @@ export interface PayrollSourceTimeline {
   readonly taxProfileProjection?: PayrollSourceTaxProfileProjection
   readonly contracts?: readonly PayrollSourceContract[]
   readonly laborConditions?: readonly PayrollSourceLaborCondition[]
+  readonly retailBusinessScope?: CaoRetailBusinessScope
   readonly organizations?: readonly PayrollSourceOrganization[]
   readonly pensionAssignments?: EmploymentPayrollSourceProjection['pensionAssignments']
   readonly laborConditionPensionArrangements?: EmploymentPayrollSourceProjection['laborConditionPensionArrangements']
@@ -1338,8 +1340,20 @@ function buildRegularPayrollOwned(input: {
   if (configuration && method === 'UNCONFIGURED') gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_PARTIAL_MONTH_METHOD_REQUIRED'))
   if (!effectivePartTimeFactor) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_PART_TIME_FACTOR_MISSING'))
 
+  const bpfDetailhandelVcr = sourceText(arrangementInput?.pensionableSalaryDefinition.method)
+    === 'BPF_DETAILHANDEL_2026_VCR'
+  const zeroOpeningCumulatives = opening !== null
+    && Object.values(opening).every((value) => FixedDecimal.parse(value).compare(FixedDecimal.fromInteger(BigInt(0))) === 0)
+  const bpfVcrFirstPeriodReady = !bpfDetailhandelVcr || (zeroOpeningCumulatives
+    && input.employmentStartsOn === input.periodStart
+    && input.activeStart === input.periodStart
+    && periodFactor === '1.0000')
+  if (bpfDetailhandelVcr && !bpfVcrFirstPeriodReady) {
+    gaps.push(makeGap('pension', 'SOURCE_GAP', 'BPF_DETAILHANDEL_VCR_REQUIRES_ZERO_OPENING_FIRST_FULL_PERIOD'))
+  }
+
   let pensionResult: PensionCalculationResult | null = null
-  if (arrangementInput && input.regularWage && effectivePartTimeFactor && assignment) {
+  if (arrangementInput && input.regularWage && effectivePartTimeFactor && assignment && bpfVcrFirstPeriodReady) {
     const monthlyPayrollGross = monthlyPayrollGrossForPension(input.regularWage, input.caoCalculation)
     const pfzw2026 = buildPfzw2026Input({
       arrangement: arrangementInput,
@@ -1409,6 +1423,7 @@ function buildRegularPayrollOwned(input: {
         effectiveTo: input.configurationRow.effective_to,
         configurationHash: input.configurationRow.configuration_hash,
         sourceReference: input.configurationRow.source_reference,
+        componentSet: configuration.componentSet,
       },
       amounts: {
         variableRegularWage: input.caoCalculation.status === 'CALCULATED'
@@ -1686,6 +1701,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       activeEndExclusive,
       laborConditionCode: activeLaborConditionSet?.code ?? null,
       laborConditionName: activeLaborConditionSet?.name ?? null,
+      retailBusinessScope: timeline.retailBusinessScope,
       salary: salaries.length === 1 ? {
         id: salaries[0]!.id,
         salaryBasis: salaries[0]!.salary_basis,
@@ -1701,6 +1717,15 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       } : null,
       actualWorkEntries: caoActualWorkEntries,
     })
+    const retailOvertimeHours = caoCalculation.inputs?.dailyOvertimeHours
+    const caoConsumesRetailOvertime = caoCalculation.status === 'CALCULATED'
+      && caoCalculation.family === 'RETAIL_MODE'
+      && caoCalculation.inputs?.scenarioCode === 'R2'
+      && (typeof retailOvertimeHours === 'string' || typeof retailOvertimeHours === 'number')
+      && FixedDecimal.parse(String(retailOvertimeHours)).compare(FixedDecimal.fromInteger(BigInt(0))) > 0
+    const actualWorkSourceGaps = actualWorkSnapshot.sourceGaps.filter((gap) =>
+      !(caoConsumesRetailOvertime && gap.reasonCode === 'OVERTIME_RULE_NOT_CONFIGURED'),
+    )
     const sourceGaps: PayrollSourceGap[] = [
       ...sourceGapsFor(
         salaries,
@@ -1712,7 +1737,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         activeStart,
         activeEndExclusive,
       ),
-      ...actualWorkSnapshot.sourceGaps,
+      ...actualWorkSourceGaps,
     ]
     if (caoCalculation.status === 'BLOCKED' && caoCalculation.reasonCode) {
       sourceGaps.push(makeGap('cao', caoCalculation.blockingStatus ?? 'SOURCE_GAP', caoCalculation.reasonCode))
@@ -1759,6 +1784,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         [`employment_labor_condition:${row.id}`, row.updated_at] as const,
         ...(row.set ? [[`labor_condition_set:${row.set.id}`, row.set.updated_at] as const] : []),
       ]),
+      ...(timeline.retailBusinessScope ? [[
+        `retail_business_scope:${employment.id}`,
+        `${timeline.retailBusinessScope.sourceClassification}:${timeline.retailBusinessScope.sourceVersion}`,
+      ] as const] : []),
       ...organizations.flatMap((row) => [
         [`employee_organization:${row.id}`, row.updated_at] as const,
         ...(row.job_id && row.job_revision_updated_at ? [[`job_revision:${row.job_id}:${row.job_revision_valid_from ?? ''}`, row.job_revision_updated_at] as const] : []),
@@ -1858,6 +1887,18 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           versionParts: [row.set.updated_at], validFrom: row.set.valid_from, validUntilExclusive: null,
         }] : []),
       ]),
+      ...(timeline.retailBusinessScope ? [{
+        field: 'retailBusinessScope',
+        sourceType: timeline.retailBusinessScope.sourceClassification === 'SYNTHETIC_FIXTURE'
+          ? 'synthetic_fixture' : 'retail_business_scope',
+        sourceRowId: `${timeline.retailBusinessScope.sourceClassification}:${employment.id}`,
+        versionKey: `retail_business_scope:${employment.id}`,
+        version: `${timeline.retailBusinessScope.sourceClassification}:${timeline.retailBusinessScope.sourceVersion}`,
+        versionParts: [timeline.retailBusinessScope.sourceClassification, timeline.retailBusinessScope.sourceVersion],
+        validFrom: timeline.retailBusinessScope.effectiveFrom,
+        validUntilExclusive: timeline.retailBusinessScope.effectiveTo === null
+          ? null : dayAfter(timeline.retailBusinessScope.effectiveTo),
+      }] : []),
       ...organizations.flatMap((row) => [
         {
           field: 'organization', sourceType: 'employee_organizations', sourceRowId: row.id,
@@ -1912,6 +1953,24 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         version: `${row.version_number}:${row.effective_from}`,
         versionParts: [String(row.version_number), row.effective_from],
         validFrom: row.effective_from, validUntilExclusive: row.effective_to,
+      })),
+      ...(actualWork.period ? [{
+        field: 'actualWorkPeriod', sourceType: 'actual_work_periods', sourceRowId: actualWork.period.id,
+        versionKey: `actual_work_period:${actualWork.period.id}`, version: actualWork.period.updated_at,
+        versionParts: [actualWork.period.updated_at], validFrom: actualWork.period.period_start,
+        validUntilExclusive: actualWork.period.period_end,
+      }] : []),
+      ...actualWork.types.map((type) => ({
+        field: 'actualWorkType', sourceType: 'work_hour_types', sourceRowId: type.id,
+        versionKey: `work_hour_type:${type.id}`, version: type.updated_at,
+        versionParts: [type.updated_at], validFrom: type.valid_from,
+        validUntilExclusive: type.valid_until,
+      })),
+      ...actualWork.entries.map((entry) => ({
+        field: 'actualWork', sourceType: 'employment_work_hour_entries', sourceRowId: entry.id,
+        versionKey: `actual_work_entry:${entry.id}`, version: entry.updated_at,
+        versionParts: [entry.updated_at], validFrom: entry.subject_period_start,
+        validUntilExclusive: entry.subject_period_end,
       })),
       ...(incomeRelationship.selected ? [
         {
@@ -2068,6 +2127,9 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           validUntil: row.effective_to === null ? null : dayAfter(row.effective_to),
         })),
       },
+      retailBusinessScope: timeline.retailBusinessScope
+        ? { ...timeline.retailBusinessScope }
+        : { status: 'MISSING', reasonCode: 'RETAIL_BUSINESS_SCOPE_UNVERIFIED' },
       compensation: {
         entries: salaries.map((row) => ({
           id: row.id,
@@ -2214,7 +2276,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     const canonicalSource = {
       ...coreCanonicalSource,
       ...(regularPayroll.payrollOwned ? { payrollOwned: regularPayroll.payrollOwned } : {}),
-    } as PayrollSourceSnapshot['canonicalSource']
+    } as unknown as PayrollSourceSnapshot['canonicalSource']
     const hashInput = {
       sourceTenantId: input.tenantId,
       sourceHrGroupId: input.hrGroupId,

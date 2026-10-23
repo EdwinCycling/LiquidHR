@@ -19,11 +19,14 @@ export default async function PayrollComparisonPage({ searchParams }: { readonly
     'component','liquidHr','external','difference','exact','cent','larger','manualComparisonHint',
     'contractual_salary','additional_cash_amount','additional_hours_pay','gross_salary','employee_pension','taxable_wage','employee_insurance_wage','zvw_wage','wage_tax','net_salary','employer_insurance','employer_pension','holiday_allowance_reserve','holiday_reserve','year_end_reserve','total_employer_cost','cumulative_gross','cumulative_holiday_reserve','cumulative_year_end_reserve',
   ].map((key) => [key, t(key)]))
-  const summaryLabels = Object.fromEntries(['empty','period','employee','status','runId','action','openDetail','runHashesHint','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))
+  const summaryLabels = Object.fromEntries(['empty','period','employee','status','action','openDetail','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))
+  const selectedPeriod = selected
+    ? `${selected.payrollPeriod.period_year}-${String(selected.payrollPeriod.period_month).padStart(2, '0')}`
+    : null
   return <PageShell className="space-y-6 py-6 sm:py-8">
     <PageHeader title={t('compare')} description={t('compareDescription')} />
     <PayrollProfessionalNavigation active="compare" labels={nav} />
-    {selected ? <Surface className="space-y-4 p-4 sm:p-6"><h2 className="text-lg font-semibold">{t('runId')}: {selected.run.id}</h2><p className="text-sm text-muted-foreground">{t('externalComparisonReadOnly')}</p><PayrollManualComparison artifacts={selected} labels={labels} /></Surface>
+    {selected ? <Surface className="space-y-4 p-4 sm:p-6"><h2 className="text-lg font-semibold">{selected.employeeName ?? t('employee')} · {selectedPeriod}</h2><p className="text-sm text-muted-foreground">{t('externalComparisonReadOnly')}</p><PayrollManualComparison artifacts={selected} labels={labels} /></Surface>
       : <section className="space-y-3"><h2 className="text-lg font-semibold">{t('selectRun')}</h2><PayrollRunSummaryList runs={runs} labels={summaryLabels} /></section>}
   </PageShell>
 }

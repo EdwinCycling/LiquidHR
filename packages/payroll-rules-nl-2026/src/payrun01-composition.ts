@@ -35,6 +35,8 @@ export interface Payrun01RulePackageOptions {
   readonly supportClassifiedGrossSupplement?: boolean
   /** Apply a source-backed employee all-levy deduction using its VCR opening balances and cap. */
   readonly supportAllLevyDeduction?: boolean
+  /** Reconcile a versioned pension total to the employee share, assigning any rounded cent remainder to the employer. */
+  readonly allocatePensionRoundingRemainderToEmployer?: boolean
 }
 
 function source(

@@ -148,6 +148,7 @@ async function transitionPayrollRun(formData: FormData, eventType: 'REVIEWED' | 
   }
 
   let outcome = 'failed'
+  let artifactOutcome: 'created' | 'failed' | null = null
   try {
     const input = {
       employeeId,
@@ -156,7 +157,21 @@ async function transitionPayrollRun(formData: FormData, eventType: 'REVIEWED' | 
       period: { year: Number(match[1]), month: Number(match[2]) },
     }
     if (eventType === 'REVIEWED') await reviewEmployeePayroll(input)
-    else await finalizeEmployeePayroll(input)
+    else {
+      await finalizeEmployeePayroll(input)
+      try {
+        const access = await requireComponentLibraryAccess(true)
+        const artifact = await createPayslipPdfArtifact({
+          scope: access.scope,
+          payrollAdministrationId: access.administration.id,
+          actorUserId: access.actorUserId,
+          runId,
+        })
+        artifactOutcome = artifact ? 'created' : 'failed'
+      } catch {
+        artifactOutcome = 'failed'
+      }
+    }
     outcome = eventType === 'REVIEWED' ? 'reviewed' : 'finalized'
   } catch (error) {
     const code = errorCode(error)
@@ -170,7 +185,9 @@ async function transitionPayrollRun(formData: FormData, eventType: 'REVIEWED' | 
 
   revalidatePath(target)
   revalidatePath('/payroll/runs')
-  redirect(`${target}?lifecycle=${outcome}`)
+  if (eventType === 'FINALIZED') revalidatePath('/my-salary')
+  const artifactQuery = artifactOutcome ? `&artifact=${artifactOutcome}` : ''
+  redirect(`${target}?lifecycle=${outcome}${artifactQuery}`)
 }
 
 export async function reviewPayrollRun(formData: FormData): Promise<never> {

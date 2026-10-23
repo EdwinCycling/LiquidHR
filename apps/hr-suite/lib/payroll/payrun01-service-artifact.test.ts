@@ -10,6 +10,7 @@ vi.mock('./payrun01-payslip-pdf', () => {
   pdfModuleLoads.count += 1
   return {
     LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID: 'LIQUIDHR_STANDARD_V1',
+    PAYROLL_TEST_DOCUMENT_NOTICE: 'TEST / NIET VOOR UITBETALING',
     renderPayrun01PayslipPdf: renderPdf,
   }
 })
@@ -22,6 +23,7 @@ import {
   getPayrun01Lifecycle,
   getPayrollProfessionalPayslipPdfArtifactForRun,
   renderFinalizedEmployeePayslipPdf,
+  renderGenericEmployeePayslipConceptPdfPreview,
   renderPayrun01PayslipPdfPreviewForRun,
   reviewPayrun01Payroll,
 } from './payrun01-service'
@@ -237,6 +239,102 @@ describe('PAYRUN01 lifecycle source identity', () => {
     })
 
     expect(payrunRepository.insertLifecycleEvent).not.toHaveBeenCalled()
+  })
+})
+
+describe('generic HR concept payslip preview', () => {
+  beforeEach(() => {
+    renderPdf.mockReset().mockResolvedValue(pdfBytes)
+  })
+
+  function conceptFixture(events: LifecycleEventFixture[] = [
+    { calculation_run_id: runId, event_type: 'CONCEPT', event_sequence: 1, revision: 4, id: 'concept-event', created_at: '2026-10-01T09:00:00.000Z', event_payload: { sourceHash, inputHash, resultHash } },
+  ]) {
+    const result = fixture(events)
+    result.payrunRepository.getGenericInputReference.mockResolvedValue(result.genericInputReference as never)
+    result.dependencies.sourceProvider.getPayrollSourceSnapshot = vi.fn(async () => ({
+      sourceEmployeeId: employeeId,
+      sourceEmploymentId: employmentId,
+      sourceHash,
+      sourceGaps: [],
+    })) as never
+    return result
+  }
+
+  it('renders a current complete concept PDF in memory without storing an artifact', async () => {
+    const { dependencies, payrunRepository } = conceptFixture([
+      { calculation_run_id: runId, event_type: 'CONCEPT', event_sequence: 1, revision: 4, event_payload: { sourceHash, inputHash, resultHash } },
+      { calculation_run_id: runId, event_type: 'REVIEWED', event_sequence: 2, revision: 4, event_payload: { sourceHash, inputHash, resultHash } },
+    ])
+
+    const preview = await renderGenericEmployeePayslipConceptPdfPreview({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      employeeId,
+      runId,
+      genericPayslipProfile: { employeeName: 'Lisa Medewerker', employerName: 'Retail Administratie' },
+    }, dependencies)
+
+    expect(preview).toMatchObject({
+      artifact_bytes: pdfBytes,
+      content_type: 'application/pdf',
+      source_hash: sourceHash,
+      input_hash: inputHash,
+      result_hash: resultHash,
+      document_hash: createHash('sha256').update(pdfBytes).digest('hex'),
+    })
+    expect(renderPdf).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ lifecycle: 'CONCEPT', sourceWarnings: [] }),
+    }))
+    expect(payrunRepository.insertArtifact).not.toHaveBeenCalled()
+  })
+
+  it('refuses a changed source and leaves the preview renderer untouched', async () => {
+    const { dependencies } = conceptFixture()
+    dependencies.sourceProvider.getPayrollSourceSnapshot = vi.fn(async () => ({
+      sourceEmployeeId: employeeId,
+      sourceEmploymentId: employmentId,
+      sourceHash: 'e'.repeat(64),
+      sourceGaps: [],
+    })) as never
+
+    await expect(renderGenericEmployeePayslipConceptPdfPreview({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      employeeId,
+      runId,
+      genericPayslipProfile: { employeeName: 'Lisa Medewerker', employerName: 'Retail Administratie' },
+    }, dependencies)).rejects.toMatchObject({
+      code: 'PAYROLL_INPUT_INVALID',
+      reasonCode: 'PAYROLL_SOURCE_CHANGED_RECALCULATE_REQUIRED',
+    })
+    expect(renderPdf).not.toHaveBeenCalled()
+  })
+
+  it('refuses finalized, incomplete, or non-passing calculations', async () => {
+    const finalized = conceptFixture(genericLifecycleEvents)
+    await expect(renderGenericEmployeePayslipConceptPdfPreview({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      employeeId,
+      runId,
+      genericPayslipProfile: { employeeName: 'Lisa Medewerker', employerName: 'Retail Administratie' },
+    }, finalized.dependencies)).rejects.toMatchObject({ reasonCode: 'GENERIC_PAYSLIP_LIFECYCLE_INVALID' })
+
+    const incomplete = conceptFixture()
+    incomplete.artifacts.controls[0]!.status = 'WARN'
+    await expect(renderGenericEmployeePayslipConceptPdfPreview({
+      scope: { tenantId: '20000000-0000-4000-8000-000000000001', hrGroupId: '30000000-0000-4000-8000-000000000001', administrationId: '40000000-0000-4000-8000-000000000001' },
+      payrollAdministrationId: '50000000-0000-4000-8000-000000000001',
+      actorUserId: '60000000-0000-4000-8000-000000000001',
+      employeeId,
+      runId,
+      genericPayslipProfile: { employeeName: 'Lisa Medewerker', employerName: 'Retail Administratie' },
+    }, incomplete.dependencies)).rejects.toMatchObject({ reasonCode: 'GENERIC_PAYSLIP_REFERENCE_INVALID' })
+    expect(renderPdf).not.toHaveBeenCalled()
   })
 })
 
