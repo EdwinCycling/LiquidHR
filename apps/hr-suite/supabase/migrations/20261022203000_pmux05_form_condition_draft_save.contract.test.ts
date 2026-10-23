@@ -5,12 +5,20 @@ import { describe, expect, it } from "vitest"
 const p4Runtime = readFileSync(new URL("./20260808142249_process_automation_p4_runtime_engine.sql", import.meta.url), "utf8")
 const p5FormRuntime = readFileSync(new URL("./20260808143934_process_automation_p5_form_runtime.sql", import.meta.url), "utf8")
 const p5Hardening = readFileSync(new URL("./20260808150735_process_automation_p4_p5_hardening_v2.sql", import.meta.url), "utf8")
+const p5ScopeHardening = readFileSync(new URL("./20260809065842_process_automation_p5_scope_rpc_hardening.sql", import.meta.url), "utf8")
 const documentCompatibility = readFileSync(new URL("./20260808160102_process_automation_p5_document_reference_compatibility.sql", import.meta.url), "utf8")
 const pmux05Migration = readFileSync(new URL("./20261022203000_pmux05_form_condition_draft_save.sql", import.meta.url), "utf8")
+const pmux05cMigration = readFileSync(new URL("./20261023054930_pmux05_step_participant_field_access.sql", import.meta.url), "utf8")
 
 const ids = {
   actorUser: "10000000-0000-4000-8000-000000000001",
   actorEmployee: "10000000-0000-4000-8000-000000000002",
+  managerUser: "10000000-0000-4000-8000-000000000003",
+  managerEmployee: "10000000-0000-4000-8000-000000000004",
+  hrUser: "10000000-0000-4000-8000-000000000005",
+  hrEmployee: "10000000-0000-4000-8000-000000000006",
+  outsiderUser: "10000000-0000-4000-8000-000000000007",
+  outsiderEmployee: "10000000-0000-4000-8000-000000000008",
   tenantA: "10000000-0000-4000-8000-000000000010",
   tenantB: "10000000-0000-4000-8000-000000000011",
   groupA: "10000000-0000-4000-8000-000000000020",
@@ -26,14 +34,20 @@ const ids = {
   instanceFinal: "10000000-0000-4000-8000-000000000051",
   instancePlain: "10000000-0000-4000-8000-000000000052",
   instanceTenantB: "10000000-0000-4000-8000-000000000053",
+  instanceManager: "10000000-0000-4000-8000-000000000054",
+  instanceHr: "10000000-0000-4000-8000-000000000055",
   stepA: "10000000-0000-4000-8000-000000000060",
   stepFinal: "10000000-0000-4000-8000-000000000061",
   stepPlain: "10000000-0000-4000-8000-000000000062",
   stepTenantB: "10000000-0000-4000-8000-000000000063",
+  stepManager: "10000000-0000-4000-8000-000000000064",
+  stepHr: "10000000-0000-4000-8000-000000000065",
   itemA: "10000000-0000-4000-8000-000000000070",
   itemFinal: "10000000-0000-4000-8000-000000000071",
   itemPlain: "10000000-0000-4000-8000-000000000072",
   itemTenantB: "10000000-0000-4000-8000-000000000073",
+  itemManager: "10000000-0000-4000-8000-000000000074",
+  itemHr: "10000000-0000-4000-8000-000000000075",
 }
 
 const highCostCondition = {
@@ -108,10 +122,13 @@ async function installRuntimeContract(db: PGlite): Promise<void> {
 async function prepareFixture(db: PGlite): Promise<void> {
   await installRuntimeContract(db)
   await db.exec(documentCompatibility)
+  await db.exec(extractFunctionDefinition(p5ScopeHardening, "internal_security.get_process_form_projection"))
+  await db.exec(extractFunctionDefinition(p5ScopeHardening, "internal_security.save_process_form_response"))
   await db.exec(pmux05Migration)
+  await db.exec(pmux05cMigration)
 
   const actorAndFormSql = [
-    "insert into public.employees (id, tenant_id, hr_group_id, auth_user_id, is_active) values ('" + ids.actorEmployee + "', '" + ids.tenantA + "', '" + ids.groupA + "', '" + ids.actorUser + "', true);",
+    "insert into public.employees (id, tenant_id, hr_group_id, auth_user_id, is_active) values ('" + ids.actorEmployee + "', '" + ids.tenantA + "', '" + ids.groupA + "', '" + ids.actorUser + "', true), ('" + ids.managerEmployee + "', '" + ids.tenantA + "', '" + ids.groupA + "', '" + ids.managerUser + "', true), ('" + ids.hrEmployee + "', '" + ids.tenantA + "', '" + ids.groupA + "', '" + ids.hrUser + "', true), ('" + ids.outsiderEmployee + "', '" + ids.tenantA + "', '" + ids.groupA + "', '" + ids.outsiderUser + "', true);",
     "insert into public.form_definitions (id, tenant_id, hr_group_id, status) values ('" + ids.formDefinition + "', '" + ids.tenantA + "', '" + ids.groupA + "', 'PUBLISHED');",
     "insert into public.form_versions (id, tenant_id, hr_group_id, form_definition_id, version_number, definition_json) values ('" + ids.formVersionA + "', '" + ids.tenantA + "', '" + ids.groupA + "', '" + ids.formDefinition + "', 1, '" + JSON.stringify(conditionalForm) + "'::jsonb);",
     "insert into public.form_versions (id, tenant_id, hr_group_id, form_definition_id, version_number, definition_json) values ('" + ids.formVersionLater + "', '" + ids.tenantA + "', '" + ids.groupA + "', '" + ids.formDefinition + "', 2, '" + JSON.stringify(laterForm) + "'::jsonb);",
@@ -126,9 +143,20 @@ async function prepareFixture(db: PGlite): Promise<void> {
   await insertWorkItem(db, ids.instanceFinal, ids.stepFinal, ids.itemFinal, ids.tenantA, ids.groupA, ids.processVersionA)
   await insertWorkItem(db, ids.instancePlain, ids.stepPlain, ids.itemPlain, ids.tenantA, ids.groupA, ids.processVersionPlain)
   await insertWorkItem(db, ids.instanceTenantB, ids.stepTenantB, ids.itemTenantB, ids.tenantB, ids.groupB, ids.processVersionA, false)
-  await db.query("select pg_catalog.set_config('request.jwt.claim.sub', $1, false)", [ids.actorUser])
-  await db.query("select pg_catalog.set_config('test.actor_employee_id', $1, false)", [ids.actorEmployee])
+  await insertWorkItem(db, ids.instanceManager, ids.stepManager, ids.itemManager, ids.tenantA, ids.groupA, ids.processVersionA, true, "manager-review", "manager", ids.managerEmployee, ids.managerUser)
+  await insertWorkItem(db, ids.instanceHr, ids.stepHr, ids.itemHr, ids.tenantA, ids.groupA, ids.processVersionA, true, "hr-decision", "hr", ids.hrEmployee, ids.hrUser)
+  await db.query(
+    "insert into public.process_form_responses (tenant_id, hr_group_id, process_instance_id, step_instance_id, work_item_id, process_version_id, form_version_id, form_key, participant_key, revision, expected_version, current_values, new_values, status, correlation_id) values ($1, $2, $3, $4, $5, $6, $7, 'training', 'manager', 0, 0, $8::jsonb, '{}'::jsonb, 'IN_PROGRESS', $3), ($1, $2, $9, $10, $11, $6, $7, 'training', 'hr', 0, 0, $12::jsonb, '{}'::jsonb, 'IN_PROGRESS', $9)",
+    [ids.tenantA, ids.groupA, ids.instanceManager, ids.stepManager, ids.itemManager, ids.processVersionA, ids.formVersionA, JSON.stringify({ expected_cost: 1250, high_cost_reason: "High cost justification", manager_note: "Funding context" }), ids.instanceHr, ids.stepHr, ids.itemHr, JSON.stringify({ expected_cost: 1250, high_cost_reason: "High cost justification", manager_note: "Funding context", manager_advice: "Recommended with controls" })],
+  )
+  await setActor(db, ids.actorUser, ids.actorEmployee)
 }
+
+const stepAccess = (employee: string, manager: string, hr: string) => [
+  { stepKey: "capture", participantKey: "employee", mode: employee },
+  { stepKey: "manager-review", participantKey: "manager", mode: manager },
+  { stepKey: "hr-decision", participantKey: "hr", mode: hr },
+]
 
 const conditionalForm = {
   title: { nl: "Opleidingsaanvraag" },
@@ -137,13 +165,14 @@ const conditionalForm = {
     key: "training",
     title: { nl: "Opleiding" },
     fields: [
-      { key: "expected_cost", label: { nl: "Verwachte kosten" }, type: "MONEY", access: [{ participantKey: "employee", mode: "WRITE_REQUIRED" }], options: [] },
-      { key: "high_cost_reason", label: { nl: "Toelichting hoge kosten" }, type: "SHORT_TEXT", visibilityCondition: highCostCondition, requiredCondition: highCostCondition, access: [{ participantKey: "employee", mode: "WRITE_OPTIONAL" }], options: [] },
-      { key: "manager_note", label: { nl: "Interne notitie" }, type: "SHORT_TEXT", visibilityCondition: highCostCondition, access: [{ participantKey: "employee", mode: "READ" }], options: [] },
+      { key: "expected_cost", label: { nl: "Verwachte kosten" }, type: "MONEY", access: [{ participantKey: "employee", mode: "WRITE_REQUIRED" }, { participantKey: "manager", mode: "READ" }, { participantKey: "hr", mode: "READ" }], stepAccess: stepAccess("WRITE_REQUIRED", "READ", "READ"), options: [] },
+      { key: "high_cost_reason", label: { nl: "Toelichting hoge kosten" }, type: "SHORT_TEXT", visibilityCondition: highCostCondition, requiredCondition: highCostCondition, access: [{ participantKey: "employee", mode: "WRITE_OPTIONAL" }, { participantKey: "manager", mode: "READ" }, { participantKey: "hr", mode: "READ" }], stepAccess: stepAccess("WRITE_OPTIONAL", "READ", "READ"), options: [] },
+      { key: "manager_note", label: { nl: "Interne context" }, type: "SHORT_TEXT", visibilityCondition: highCostCondition, access: [{ participantKey: "employee", mode: "READ" }, { participantKey: "manager", mode: "READ" }, { participantKey: "hr", mode: "READ" }], stepAccess: stepAccess("READ", "READ", "READ"), options: [] },
+      { key: "manager_advice", label: { nl: "Manageradvies" }, type: "SHORT_TEXT", access: [{ participantKey: "employee", mode: "HIDDEN" }, { participantKey: "manager", mode: "WRITE_OPTIONAL" }, { participantKey: "hr", mode: "READ" }], stepAccess: stepAccess("HIDDEN", "WRITE_REQUIRED", "READ"), options: [] },
+      { key: "hr_decision", label: { nl: "HR-besluit" }, type: "SHORT_TEXT", access: [{ participantKey: "employee", mode: "HIDDEN" }, { participantKey: "manager", mode: "HIDDEN" }, { participantKey: "hr", mode: "WRITE_REQUIRED" }], stepAccess: stepAccess("HIDDEN", "HIDDEN", "WRITE_REQUIRED"), options: [] },
     ],
   }],
 }
-
 const laterForm = {
   title: { nl: "Opleidingsaanvraag later" },
   enabledLanguages: ["nl"],
@@ -172,7 +201,11 @@ const plainForm = {
 async function insertVersion(db: PGlite, versionId: string, tenantId: string, groupId: string, formVersionId: string, versionNumber: number): Promise<void> {
   const definition = {
     content: {
-      steps: [{ key: "capture", formKey: "training" }],
+      steps: [
+        { key: "capture", participantKey: "employee", formKey: "training" },
+        { key: "manager-review", participantKey: "manager", formKey: "training" },
+        { key: "hr-decision", participantKey: "hr", formKey: "training" },
+      ],
       forms: [{ key: "training", formVersionId }],
     },
   }
@@ -182,7 +215,20 @@ async function insertVersion(db: PGlite, versionId: string, tenantId: string, gr
   )
 }
 
-async function insertWorkItem(db: PGlite, instanceId: string, stepId: string, itemId: string, tenantId: string, groupId: string, versionId: string, addCandidate = true): Promise<void> {
+async function insertWorkItem(
+  db: PGlite,
+  instanceId: string,
+  stepId: string,
+  itemId: string,
+  tenantId: string,
+  groupId: string,
+  versionId: string,
+  addCandidate = true,
+  stepKey = "capture",
+  participantKey = "employee",
+  candidateEmployeeId = ids.actorEmployee,
+  candidateUserId = ids.actorUser,
+): Promise<void> {
   await db.query(
     "insert into public.process_instances (id, tenant_id, hr_group_id, process_version_id, status, scope_type, metadata, correlation_id) values ($1, $2, $3, $4, 'RUNNING', 'TENANT', '{}'::jsonb, $5)",
     [instanceId, tenantId, groupId, versionId, instanceId],
@@ -192,15 +238,19 @@ async function insertWorkItem(db: PGlite, instanceId: string, stepId: string, it
     [stepId, tenantId, groupId, instanceId],
   )
   await db.query(
-    "insert into public.process_work_items (id, tenant_id, hr_group_id, process_instance_id, step_instance_id, status, step_key, participant_key) values ($1, $2, $3, $4, $5, 'OPEN', 'capture', 'employee')",
-    [itemId, tenantId, groupId, instanceId, stepId],
+    "insert into public.process_work_items (id, tenant_id, hr_group_id, process_instance_id, step_instance_id, status, step_key, participant_key) values ($1, $2, $3, $4, $5, 'OPEN', $6, $7)",
+    [itemId, tenantId, groupId, instanceId, stepId, stepKey, participantKey],
   )
   if (addCandidate) {
     await db.query(
       "insert into public.process_work_item_candidates (tenant_id, hr_group_id, work_item_id, employee_id, candidate_user_id, is_eligible, resolution_revision) values ($1, $2, $3, $4, $5, true, 1)",
-      [tenantId, groupId, itemId, ids.actorEmployee, ids.actorUser],
+      [tenantId, groupId, itemId, candidateEmployeeId, candidateUserId],
     )
   }
+}
+async function setActor(db: PGlite, userId: string, employeeId: string): Promise<void> {
+  await db.query("select pg_catalog.set_config('request.jwt.claim.sub', $1, false)", [userId])
+  await db.query("select pg_catalog.set_config('test.actor_employee_id', $1, false)", [employeeId])
 }
 
 async function save(db: PGlite, itemId: string, instanceId: string, revision: number, version: number, values: Record<string, unknown>, key: string): Promise<unknown> {
@@ -214,7 +264,9 @@ async function save(db: PGlite, itemId: string, instanceId: string, revision: nu
 
 interface ProjectedField {
   key: string
+  accessMode?: string
   required: boolean
+  currentValue?: unknown
   newValue: unknown
 }
 
@@ -363,4 +415,63 @@ describe("PMUX-05 form condition server contract", () => {
       await db.close()
     }
   })
+  it("enforces step-specific projection and writes for Employee, Manager and HR through the pinned server RPCs", async () => {
+    const db = new PGlite()
+    try {
+      await prepareFixture(db)
+      const managerAdvice = conditionalForm.sections[0]?.fields.find((field) => field.key === "manager_advice")
+      const missingStepAccess = await db.query<{ mode: string }>(
+        "select internal_security.process_form_step_access_rule($1::jsonb, 'manager', 'removed-step') ->> 'mode' as mode",
+        [JSON.stringify(managerAdvice)],
+      )
+      expect(missingStepAccess.rows[0]?.mode).toBe("HIDDEN")
+      await db.query(
+        "insert into public.process_form_responses (tenant_id, hr_group_id, process_instance_id, step_instance_id, work_item_id, process_version_id, form_version_id, form_key, participant_key, revision, expected_version, current_values, new_values, status, correlation_id) values ($1, $2, $3, $4, $5, $6, $7, 'training', 'employee', 0, 0, '{}'::jsonb, $8::jsonb, 'IN_PROGRESS', $3)",
+        [ids.tenantA, ids.groupA, ids.instanceA, ids.stepA, ids.itemA, ids.processVersionA, ids.formVersionA, JSON.stringify({ expected_cost: 1250, high_cost_reason: "High cost justification", manager_advice: "Confidential draft", hr_decision: "Not for Employee" })],
+      )
+      await setActor(db, ids.actorUser, ids.actorEmployee)
+      const employeeProjection = await db.query<{ projection: unknown }>("select internal_security.get_process_form_projection($1, 'nl') as projection", [ids.itemA])
+      const employeeFields = projectedFields(employeeProjection.rows[0]?.projection)
+      expect(employeeFields.map((field) => field.key)).toEqual(["expected_cost", "high_cost_reason", "manager_note"])
+      expect(employeeFields.find((field) => field.key === "expected_cost")).toMatchObject({ accessMode: "WRITE_REQUIRED", currentValue: null })
+      const employeeRuntime = await db.query<{ fields: Record<string, unknown> }>("select internal_security.process_form_runtime_fields($1) as fields", [ids.itemA])
+      expect(employeeRuntime.rows[0]?.fields).toEqual({ expected_cost: 1250, high_cost_reason: "High cost justification" })
+      await expectSqlError(save(db, ids.itemA, ids.instanceA, 0, 0, { manager_advice: "Unauthorized" }, "employee-hidden-field"), "HIDDEN_FIELD_SUBMITTED")
+
+      await setActor(db, ids.managerUser, ids.managerEmployee)
+      const managerProjection = await db.query<{ projection: unknown }>("select internal_security.get_process_form_projection($1, 'nl') as projection", [ids.itemManager])
+      const managerFields = projectedFields(managerProjection.rows[0]?.projection)
+      expect(managerFields.map((field) => field.key)).toEqual(["expected_cost", "high_cost_reason", "manager_note", "manager_advice"])
+      expect(managerFields.find((field) => field.key === "expected_cost")).toMatchObject({ accessMode: "READ", currentValue: 1250 })
+      expect(managerFields.find((field) => field.key === "manager_advice")).toMatchObject({ accessMode: "WRITE_REQUIRED", required: true })
+      await expectSqlError(save(db, ids.itemManager, ids.instanceManager, 0, 0, { expected_cost: 750 }, "manager-read-only-cost"), "FIELD_NOT_WRITABLE")
+      await save(db, ids.itemManager, ids.instanceManager, 0, 0, {}, "manager-incomplete-draft")
+      await expectSqlError(db.query("select internal_security.prepare_process_form_action($1, 'SUBMIT')", [ids.itemManager]), "REQUIRED_FORM_FIELD", "manager_advice")
+      await save(db, ids.itemManager, ids.instanceManager, 1, 1, { manager_advice: "Recommended with controls" }, "manager-advice")
+      await db.query("select internal_security.prepare_process_form_action($1, 'SUBMIT')", [ids.itemManager])
+
+      await setActor(db, ids.hrUser, ids.hrEmployee)
+      const hrProjection = await db.query<{ projection: unknown }>("select internal_security.get_process_form_projection($1, 'nl') as projection", [ids.itemHr])
+      const hrFields = projectedFields(hrProjection.rows[0]?.projection)
+      expect(hrFields.map((field) => field.key)).toEqual(["expected_cost", "high_cost_reason", "manager_note", "manager_advice", "hr_decision"])
+      expect(hrFields.find((field) => field.key === "manager_advice")).toMatchObject({ accessMode: "READ", currentValue: "Recommended with controls" })
+      expect(hrFields.find((field) => field.key === "hr_decision")).toMatchObject({ accessMode: "WRITE_REQUIRED", required: true })
+      await expectSqlError(save(db, ids.itemHr, ids.instanceHr, 0, 0, { manager_advice: "Tampered" }, "hr-read-only-advice"), "FIELD_NOT_WRITABLE")
+      await expectSqlError(db.query("select internal_security.prepare_process_form_action($1, 'SUBMIT')", [ids.itemHr]), "REQUIRED_FORM_FIELD", "hr_decision")
+      await save(db, ids.itemHr, ids.instanceHr, 0, 0, { hr_decision: "Approved with controls" }, "hr-decision")
+      await db.query("select internal_security.prepare_process_form_action($1, 'SUBMIT')", [ids.itemHr])
+
+      await setActor(db, ids.managerUser, ids.managerEmployee)
+      await expectSqlError(save(db, ids.itemA, ids.instanceA, 0, 0, { expected_cost: 700 }, "manager-cross-step-write"), "FORBIDDEN")
+      await setActor(db, ids.outsiderUser, ids.outsiderEmployee)
+      await expectSqlError(db.query("select internal_security.get_process_form_projection($1, 'nl')", [ids.itemManager]), "FORBIDDEN")
+
+      const employeeResponse = await db.query<{ new_values: Record<string, unknown> }>("select new_values from public.process_form_responses where work_item_id = $1", [ids.itemA])
+      expect(employeeResponse.rows[0]?.new_values).toEqual({ expected_cost: 1250, high_cost_reason: "High cost justification", manager_advice: "Confidential draft", hr_decision: "Not for Employee" })
+    } finally {
+      await db.close()
+    }
+  })
+
+
 })

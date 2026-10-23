@@ -28,6 +28,7 @@ import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, FormDef
 import { ProcessFlowEditor, type ProcessFlowEditorLabels } from '@/components/process-automation/process-flow-editor'
 import { FormFieldConditionsEditor } from '@/components/process-automation/form-field-conditions-editor'
 import { FormStudioPreview } from '@/components/process-automation/form-studio-preview'
+import { FieldAccessMatrix } from '@/components/process-automation/field-access-matrix'
 import { changeDefinitionFieldType, duplicateDefinitionField, reorderDefinitionItems, uniqueDefinitionKey } from '@/lib/process-automation/form-studio-draft'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
@@ -85,6 +86,11 @@ export interface FormStudioEditorLabels {
   readonly previewStep: string
   readonly noLinkedForm: string
   readonly fieldRules: string
+  readonly stepFieldRules: string
+  readonly stepFieldRulesDescription: string
+  readonly selectFieldStep: string
+  readonly conditionalRequiredWarning: string
+  readonly participantLimitWarning: string
   readonly conditionsTitle: string
   readonly visibility: string
   readonly alwaysVisible: string
@@ -404,6 +410,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   const [activeSectionKey, setActiveSectionKey] = useState(initialSelection?.draft.forms[0]?.sections[0]?.key ?? '')
   const [fieldToRemove, setFieldToRemove] = useState<{ sectionKey: string; fieldKey: string; label: string } | null>(null)
   const [previewStepKey, setPreviewStepKey] = useState(initialSelection?.draft.steps.find((step) => step.type === 'FORM')?.key ?? '')
+  const [accessStepKey, setAccessStepKey] = useState(initialSelection?.draft.steps.find((step) => step.type === 'FORM')?.key ?? '')
   const [previewParticipant, setPreviewParticipant] = useState(initialSelection?.draft.participants[0]?.key ?? '')
   const [previewLanguage, setPreviewLanguage] = useState<'nl' | 'en'>('nl')
   const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop')
@@ -438,7 +445,9 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
 
   const selectedForm = draft?.forms.find((form) => form.key === activeFormKey) ?? draft?.forms[0] ?? null
   const activeSection = selectedForm?.sections.find((section) => section.key === activeSectionKey) ?? selectedForm?.sections[0] ?? null
-  const formSteps = draft?.steps.filter((step) => step.type === 'FORM') ?? []
+  const formSteps = draft?.steps.filter((step) => step.type === 'FORM' && (!selectedForm || step.formKey === selectedForm.key)) ?? []
+  const accessSteps = selectedForm ? draft?.steps.filter((step) => step.type === 'FORM' && step.formKey === selectedForm.key) ?? [] : []
+  const accessStep = accessSteps.find((step) => step.key === accessStepKey) ?? accessSteps[0]
   const previewStep = formSteps.find((step) => step.key === previewStepKey) ?? formSteps[0] ?? null
   const previewForm = previewStep ? draft?.forms.find((form) => form.key === previewStep.formKey) ?? null : selectedForm
   const previewParticipantDefinition = draft?.participants.find((participant) => participant.key === previewParticipant) ?? draft?.participants[0] ?? null
@@ -691,6 +700,31 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     }))
   }
 
+  function updateStepFieldAccess(formKey: string, fieldKey: string, stepKey: string, participantKey: string, mode: FieldAccessMode) {
+    updateDraft((current) => ({
+      ...current,
+      forms: current.forms.map((form) => form.key !== formKey ? form : {
+        ...form,
+        sections: form.sections.map((section) => ({
+          ...section,
+          fields: section.fields.map((field) => {
+            if (field.key !== fieldKey) return field
+            const stepsForForm = current.steps.filter((step) => step.type === 'FORM' && step.formKey === formKey && step.participantKey)
+            const existing = field.stepAccess ?? stepsForForm.map((step) => ({
+              stepKey: step.key,
+              participantKey: step.participantKey ?? '',
+              mode: field.access.find((rule) => rule.participantKey === step.participantKey)?.mode ?? 'HIDDEN',
+            }))
+            const pairExists = existing.some((rule) => rule.stepKey === stepKey && rule.participantKey === participantKey)
+            const stepAccess = pairExists
+              ? existing.map((rule) => rule.stepKey === stepKey && rule.participantKey === participantKey ? { ...rule, mode } : rule)
+              : [...existing, { stepKey, participantKey, mode }]
+            return { ...field, stepAccess }
+          }),
+        })),
+      }),
+    }))
+  }
   function updateFieldDefinition(formKey: string, sectionKey: string, fieldKey: string, nextField: FieldDefinition) {
     updateDraft((current) => ({
       ...current,
@@ -1171,13 +1205,37 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                        ))}
                      </div>
                   </div>
+                      <FieldAccessMatrix
+                        editing={editing}
+                        fields={selectedForm.sections.flatMap((section) => section.fields)}
+                        labels={{
+                          title: labels.formEditor.stepFieldRules,
+                          description: labels.formEditor.stepFieldRulesDescription,
+                          selectStep: labels.formEditor.selectFieldStep,
+                          noSteps: labels.formEditor.noFormSteps,
+                          field: labels.fields,
+                          participant: labels.participant,
+                          hidden: labels.hidden,
+                          read: labels.read,
+                          writeOptional: labels.writeOptional,
+                          writeRequired: labels.writeRequired,
+                          conditionalRequiredWarning: labels.formEditor.conditionalRequiredWarning,
+                          participantLimitWarning: labels.formEditor.participantLimitWarning,
+                        }}
+                        language={locale}
+                        onModeChange={(fieldKey, stepKey, participantKey, mode) => updateStepFieldAccess(selectedForm.key, fieldKey, stepKey, participantKey, mode)}
+                        onStepChange={setAccessStepKey}
+                        participants={draft.participants}
+                        selectedStepKey={accessStep?.key ?? ''}
+                        steps={accessSteps}
+                      />
                 </> : <p className="mt-4 text-sm text-muted-foreground">{labels.noValue}</p>}
               </section> : null}
 
               {studioStage === 'preview' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.preview}</p><h3 className="mt-1 text-xl font-semibold">{previewStep ? (previewForm ? titleFor(previewForm.title, previewLanguage) : labels.formEditor.noLinkedForm) : selectedForm ? titleFor(selectedForm.title, previewLanguage) : labels.noValue}</h3></div><Languages className="text-primary" size={22} /></div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><label className="text-xs font-semibold">{labels.formEditor.previewStep}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" disabled={formSteps.length === 0} onChange={(event) => { const step = formSteps.find((item) => item.key === event.target.value); setPreviewStepKey(event.target.value); if (step?.participantKey) setPreviewParticipant(step.participantKey) }} value={previewStep?.key ?? ""}>{formSteps.length === 0 ? <option value="">{labels.formEditor.noFormSteps}</option> : formSteps.map((step) => <option key={step.key} value={step.key}>{titleFor(step.title)}</option>)}</select></label><label className="text-xs font-semibold">{labels.previewParticipant}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewParticipant(event.target.value)} value={previewParticipant}>{draft.participants.map((participant) => <option key={participant.key} value={participant.key}>{titleFor(participant.label)}</option>)}</select></label><label className="text-xs font-semibold">{labels.language}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewLanguage(event.target.value as 'nl' | 'en')} value={previewLanguage}><option value="nl">{labels.dutch}</option><option value="en">{labels.english}</option></select></label><label className="text-xs font-semibold">{labels.viewport}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewViewport(event.target.value as 'desktop' | 'mobile')} value={previewViewport}><option value="desktop">{labels.desktop}</option><option value="mobile">{labels.mobile} · 390px</option></select></label></div>
-                <div className={`mt-4 min-w-0 rounded-2xl border bg-background p-4 ${previewViewport === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl'}`}>{previewForm && previewParticipantDefinition ? <FormStudioPreview key={`${previewForm.key}:${previewParticipantDefinition.key}:${previewLanguage}`} form={previewForm} labels={{ syntheticData: labels.syntheticData, noValue: labels.noValue, previewHidden: labels.previewConditionHidden, previewRequired: labels.previewRequired, fieldTypeLabels: previewLanguage === 'en' ? labels.fieldTypeLabelsEn : labels.fieldTypeLabelsNl }} language={previewLanguage} participantKey={previewParticipantDefinition.key} /> : <p className="text-sm text-muted-foreground">{labels.noFields}</p>}</div>
+                <div className={`mt-4 min-w-0 rounded-2xl border bg-background p-4 ${previewViewport === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl'}`}>{previewForm && previewParticipantDefinition ? <FormStudioPreview key={`${previewForm.key}:${previewParticipantDefinition.key}:${previewLanguage}:${previewStep?.key ?? ''}`} form={previewForm} labels={{ syntheticData: labels.syntheticData, noValue: labels.noValue, previewHidden: labels.previewConditionHidden, previewRequired: labels.previewRequired, fieldTypeLabels: previewLanguage === 'en' ? labels.fieldTypeLabelsEn : labels.fieldTypeLabelsNl }} language={previewLanguage} participantKey={previewParticipantDefinition.key} stepKey={previewStep?.key} /> : <p className="text-sm text-muted-foreground">{labels.noFields}</p>}</div>
               </section> : null}
 
               {studioStage === 'trial' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">

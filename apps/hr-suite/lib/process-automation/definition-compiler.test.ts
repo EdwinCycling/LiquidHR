@@ -5,7 +5,7 @@ import {
   DefinitionCompilerError,
   stableDefinitionHash,
 } from './definition-compiler'
-import { processDefinitionDraftSchema, type FieldDefinition, type ProcessDefinitionDraft } from './definition-schemas'
+import { processDefinitionDraftSchema, type FieldAccessMode, type FieldDefinition, type ProcessDefinitionDraft } from './definition-schemas'
 import { documentAcknowledgementFixture } from './fixtures/document-acknowledgement'
 import { createTrainingRequestExampleDraft } from './studio-draft-factories'
 import { internalTransferFixture } from './fixtures/internal-transfer'
@@ -24,6 +24,18 @@ function fieldByKey(definition: ProcessDefinitionDraft, key: string): FieldDefin
   throw new Error(`Fixture field not found: ${key}`)
 }
 
+function addCompleteStepAccess(definition: ProcessDefinitionDraft, fieldKey: string): { field: FieldDefinition; formKey: string; formSteps: ProcessDefinitionDraft['steps'] } {
+  const field = fieldByKey(definition, fieldKey)
+  const form = definition.forms.find((candidate) => candidate.sections.some((section) => section.fields.some((entry) => entry.key === fieldKey)))
+  if (!form) throw new Error('Fixture form not found for ' + fieldKey)
+  const formSteps = definition.steps.filter((step) => step.type === 'FORM' && step.formKey === form.key)
+  field.stepAccess = formSteps.flatMap((step) => step.participantKey ? [{
+    stepKey: step.key,
+    participantKey: step.participantKey,
+    mode: field.access.find((rule) => rule.participantKey === step.participantKey)?.mode ?? 'HIDDEN' as FieldAccessMode,
+  }] : [])
+  return { field, formKey: form.key, formSteps }
+}
 function compileFailure(
   definition: unknown,
   code: string,
@@ -288,6 +300,76 @@ describe('process definition compiler', () => {
     compileFailure(definition, 'CONDITION_REFERENCES_HIDDEN_FIELD', ['forms'])
   })
 
+  it('compiles a complete step and participant access matrix while retaining the participant ceiling', () => {
+    const definition = copyFixture()
+    const { field, formSteps } = addCompleteStepAccess(definition, 'reason')
+    const step = formSteps[0]
+    if (!step?.participantKey) throw new Error('Form step participant not found')
+    field.stepAccess = field.stepAccess?.map((rule) => rule.stepKey === step.key ? { ...rule, mode: 'WRITE_OPTIONAL' } : rule)
+    const compiled = compileProcessDefinition(definition)
+    const compiledField = compiled.content.forms.flatMap((form) => form.sections.flatMap((section) => section.fields)).find((candidate) => candidate.key === field.key)
+    expect(compiledField?.stepAccess).toHaveLength(formSteps.length)
+    expect(compiledField?.stepAccess?.[0]).toMatchObject({ stepKey: step.key, participantKey: step.participantKey, mode: 'WRITE_OPTIONAL' })
+  })
+
+  it('allows a step to require a value within an optional-write permission ceiling', () => {
+    const definition = copyFixture()
+    const matrix = addCompleteStepAccess(definition, 'reason')
+    const optionalRule = matrix.field.access.find((rule) => rule.mode === 'WRITE_OPTIONAL')
+    if (!optionalRule) throw new Error('Optional write fixture not found')
+    const step = matrix.formSteps.find((candidate) => candidate.participantKey === optionalRule.participantKey)
+    if (!step?.participantKey) throw new Error('Optional writer form step not found')
+    matrix.field.stepAccess = matrix.field.stepAccess?.map((rule) => rule.stepKey === step.key ? { ...rule, mode: 'WRITE_REQUIRED' } : rule)
+    const compiled = compileProcessDefinition(definition)
+    const compiledField = compiled.content.forms.flatMap((form) => form.sections.flatMap((section) => section.fields)).find((candidate) => candidate.key === 'reason')
+    expect(compiledField?.stepAccess?.find((rule) => rule.stepKey === step.key)?.mode).toBe('WRITE_REQUIRED')
+  })
+
+  it('rejects missing, deleted, mismatched, or wider step access rules', () => {
+    const missing = copyFixture()
+    const missingMatrix = addCompleteStepAccess(missing, 'reason')
+    missingMatrix.field.stepAccess?.pop()
+    compileFailure(missing, 'FIELD_STEP_ACCESS_MATRIX_INCOMPLETE', ['forms'])
+
+    const deleted = copyFixture()
+    const deletedMatrix = addCompleteStepAccess(deleted, 'reason')
+    if (!deletedMatrix.field.stepAccess?.[0]) throw new Error('Step access fixture not found')
+    deletedMatrix.field.stepAccess[0] = { ...deletedMatrix.field.stepAccess[0], stepKey: 'removed-step' }
+    compileFailure(deleted, 'FIELD_STEP_ACCESS_STEP_UNKNOWN', ['forms'])
+
+    const mismatched = copyFixture()
+    const mismatchedMatrix = addCompleteStepAccess(mismatched, 'reason')
+    const firstRule = mismatchedMatrix.field.stepAccess?.[0]
+    const otherParticipant = mismatched.participants.find((participant) => participant.key !== firstRule?.participantKey)
+    if (!firstRule || !otherParticipant) throw new Error('Step participant fixture not found')
+    mismatchedMatrix.field.stepAccess![0] = { ...firstRule, participantKey: otherParticipant.key }
+    compileFailure(mismatched, 'FIELD_STEP_ACCESS_PARTICIPANT_MISMATCH', ['forms'])
+
+    const wider = copyFixture()
+    const widerMatrix = addCompleteStepAccess(wider, 'reason')
+    const writableStep = widerMatrix.formSteps.find((step) => step.participantKey)
+
+    if (!writableStep?.participantKey) throw new Error('Participant step fixture not found')
+
+    const participantAccess = widerMatrix.field.access.find((rule) => rule.participantKey === writableStep.participantKey)
+
+    if (participantAccess) widerMatrix.field.access = widerMatrix.field.access.map((rule) => rule.participantKey === writableStep.participantKey ? { ...rule, mode: 'READ' } : rule)
+    else widerMatrix.field.access.push({ participantKey: writableStep.participantKey, mode: 'READ' })
+
+    widerMatrix.field.stepAccess = widerMatrix.field.stepAccess?.map((rule) => rule.stepKey === writableStep.key ? { ...rule, mode: 'WRITE_OPTIONAL' } : rule)
+    compileFailure(wider, 'FIELD_STEP_ACCESS_EXCEEDS_PARTICIPANT_ACCESS', ['forms'])
+  })
+
+  it('does not let a visible step condition depend on a field hidden for that same participant and step', () => {
+    const definition = copyFixture()
+    const target = addCompleteStepAccess(definition, 'reason')
+    const source = addCompleteStepAccess(definition, 'current-department')
+    const step = target.formSteps[0]
+    if (!step?.participantKey) throw new Error('Form step participant not found')
+    target.field.visibilityCondition = { operator: 'isNotEmpty', operand: { kind: 'FIELD', fieldKey: source.field.key } }
+    source.field.stepAccess = source.field.stepAccess?.map((rule) => rule.stepKey === step.key ? { ...rule, mode: 'HIDDEN' } : rule)
+    compileFailure(definition, 'CONDITION_REFERENCES_HIDDEN_FIELD', ['forms'])
+  })
   it('rejects a document output without a dossier category', () => {
     const definition = copyFixture()
     if (!definition.output) throw new Error('Fixture output not found')

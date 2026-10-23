@@ -34,6 +34,13 @@ export type DefinitionCompileErrorCode =
   | 'DUPLICATE_FIELD_ACCESS_RULE'
   | 'FIELD_ACCESS_PARTICIPANT_UNKNOWN'
   | 'FIELD_ACCESS_MATRIX_INCOMPLETE'
+  | 'FIELD_STEP_ACCESS_STEP_UNKNOWN'
+  | 'FIELD_STEP_ACCESS_STEP_FORM_MISMATCH'
+  | 'FIELD_STEP_ACCESS_PARTICIPANT_UNKNOWN'
+  | 'FIELD_STEP_ACCESS_PARTICIPANT_MISMATCH'
+  | 'FIELD_STEP_ACCESS_DUPLICATE_RULE'
+  | 'FIELD_STEP_ACCESS_MATRIX_INCOMPLETE'
+  | 'FIELD_STEP_ACCESS_EXCEEDS_PARTICIPANT_ACCESS'
   | 'FIELD_ACCESS_PERMISSION_MISMATCH'
   | 'FIELD_BINDING_UNKNOWN'
   | 'FIELD_BINDING_KIND_MISMATCH'
@@ -161,7 +168,14 @@ const accessModeRank: Readonly<Record<FieldAccessMode, number>> = {
   HIDDEN: 0,
   READ: 1,
   WRITE_OPTIONAL: 2,
-  WRITE_REQUIRED: 3,
+  WRITE_REQUIRED: 2,
+}
+
+const accessCapabilityRank: Readonly<Record<FieldAccessMode, number>> = {
+  HIDDEN: 0,
+  READ: 1,
+  WRITE_OPTIONAL: 2,
+  WRITE_REQUIRED: 2,
 }
 
 function issue(
@@ -199,6 +213,7 @@ function normalizeField(field: FieldDefinition): FieldDefinition {
     label: normalizeLocalizedText(field.label),
     helpText: field.helpText ? normalizeLocalizedText(field.helpText) : undefined,
     access: [...field.access].sort((left, right) => left.participantKey.localeCompare(right.participantKey)),
+    stepAccess: field.stepAccess ? [...field.stepAccess].sort((left, right) => left.stepKey.localeCompare(right.stepKey) || left.participantKey.localeCompare(right.participantKey)) : undefined,
     options: field.options?.map((option) => ({ ...option, label: normalizeLocalizedText(option.label) })),
   }
 }
@@ -463,9 +478,14 @@ function validateFieldConditions(
       const access = accessRules(field, fieldPath, participantKeys, issues)
       validateBinding(field, fieldPath, issues)
       validateFieldOptions(field, fieldPath, issues)
-      if (field.requiredCondition) field.access.forEach((rule, ruleIndex) => {
-        if (rule.mode === 'WRITE_REQUIRED') issue(issues, 'FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT', [...fieldPath, 'access', ruleIndex, 'mode'], 'Conditionally required fields must use optional write access so the condition controls requiredness')
-      })
+      if (field.requiredCondition) {
+        if (field.stepAccess) field.stepAccess.forEach((rule, ruleIndex) => {
+          if (rule.mode === 'WRITE_REQUIRED') issue(issues, 'FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT', [...fieldPath, 'stepAccess', ruleIndex, 'mode'], 'Conditionally required fields must use optional write access so the condition controls requiredness')
+        })
+        else field.access.forEach((rule, ruleIndex) => {
+          if (rule.mode === 'WRITE_REQUIRED') issue(issues, 'FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT', [...fieldPath, 'access', ruleIndex, 'mode'], 'Conditionally required fields must use optional write access so the condition controls requiredness')
+        })
+      }
       const references = new Set<string>()
       const conditions: ReadonlyArray<readonly [string, ConditionNode | undefined]> = [
         ['visibilityCondition', field.visibilityCondition],
@@ -540,6 +560,59 @@ function validateSteps(
   return steps
 }
 
+function validateStepFieldAccess(definition: ProcessDefinitionDraft, issues: DefinitionCompileIssue[]): void {
+  const stepsByKey = new Map(definition.steps.map((step) => [step.key, step]))
+  definition.forms.forEach((form, formIndex) => {
+    const formSteps = definition.steps.filter((step) => step.type === 'FORM' && step.formKey === form.key)
+    const fields = form.sections.flatMap((section) => section.fields)
+    const fieldByKey = new Map(fields.map((field) => [field.key, field]))
+    form.sections.forEach((section, sectionIndex) => section.fields.forEach((field, fieldIndex) => {
+      if (!field.stepAccess) return
+      const fieldPath = ['forms', formIndex, 'sections', sectionIndex, 'fields', fieldIndex] as const
+      const pairs = new Set<string>()
+      field.stepAccess.forEach((rule, ruleIndex) => {
+        const rulePath = [...fieldPath, 'stepAccess', ruleIndex] as const
+        const step = stepsByKey.get(rule.stepKey)
+        if (!step) issue(issues, 'FIELD_STEP_ACCESS_STEP_UNKNOWN', [...rulePath, 'stepKey'], 'Unknown process step: ' + rule.stepKey)
+        else if (step.type !== 'FORM' || step.formKey !== form.key) issue(issues, 'FIELD_STEP_ACCESS_STEP_FORM_MISMATCH', [...rulePath, 'stepKey'], 'Step ' + rule.stepKey + ' does not use form ' + form.key)
+        if (!definition.participants.some((participant) => participant.key === rule.participantKey)) issue(issues, 'FIELD_STEP_ACCESS_PARTICIPANT_UNKNOWN', [...rulePath, 'participantKey'], 'Unknown participant: ' + rule.participantKey)
+        if (step?.participantKey && step.participantKey !== rule.participantKey) issue(issues, 'FIELD_STEP_ACCESS_PARTICIPANT_MISMATCH', [...rulePath, 'participantKey'], 'Step ' + rule.stepKey + ' is assigned to participant ' + step.participantKey)
+        const pair = rule.stepKey + ':' + rule.participantKey
+        if (pairs.has(pair)) issue(issues, 'FIELD_STEP_ACCESS_DUPLICATE_RULE', rulePath, 'Duplicate field access rule for ' + pair)
+        pairs.add(pair)
+        const participantAccess = field.access.find((access) => access.participantKey === rule.participantKey)?.mode ?? 'HIDDEN'
+        if (accessCapabilityRank[rule.mode] > accessCapabilityRank[participantAccess]) issue(issues, 'FIELD_STEP_ACCESS_EXCEEDS_PARTICIPANT_ACCESS', [...rulePath, 'mode'], 'Step access cannot exceed participant access')
+      })
+      formSteps.forEach((step) => {
+        if (!step.participantKey) return
+        const pair = step.key + ':' + step.participantKey
+        if (!pairs.has(pair)) issue(issues, 'FIELD_STEP_ACCESS_MATRIX_INCOMPLETE', [...fieldPath, 'stepAccess'], 'Missing field access rule for step and participant: ' + pair)
+      })
+    }))
+
+    const modeForStep = (field: FieldDefinition, stepKey: string, participantKey: string): FieldAccessMode => {
+      if (field.stepAccess) return field.stepAccess.find((rule) => rule.stepKey === stepKey && rule.participantKey === participantKey)?.mode ?? 'HIDDEN'
+      return field.access.find((rule) => rule.participantKey === participantKey)?.mode ?? 'HIDDEN'
+    }
+    form.sections.forEach((section, sectionIndex) => section.fields.forEach((field, fieldIndex) => {
+      const fieldPath = ['forms', formIndex, 'sections', sectionIndex, 'fields', fieldIndex] as const
+      const conditions: ReadonlyArray<readonly [string, ConditionNode | undefined]> = [
+        ['visibilityCondition', field.visibilityCondition],
+        ['requiredCondition', field.requiredCondition],
+      ]
+      for (const step of formSteps) {
+        if (!step.participantKey || modeForStep(field, step.key, step.participantKey) === 'HIDDEN') continue
+        for (const [conditionName, condition] of conditions) {
+          if (!condition) continue
+          for (const reference of collectConditionFieldReferences(condition)) {
+            const source = fieldByKey.get(reference)
+            if (source && modeForStep(source, step.key, step.participantKey) === 'HIDDEN') issue(issues, 'CONDITION_REFERENCES_HIDDEN_FIELD', [...fieldPath, conditionName, 'fieldKey'], 'Condition for ' + field.key + ' depends on hidden field ' + reference + ' in step ' + step.key)
+          }
+        }
+      }
+    }))
+  })
+}
 function validateTransitions(
   definition: ProcessDefinitionDraft,
   steps: ReadonlyMap<string, ProcessStep>,
@@ -679,6 +752,7 @@ export function compileProcessDefinition(input: unknown, options: CompileProcess
   validateParticipants(definition, participants, fields, issues)
   validateFieldConditions(definition.forms, new Set(participants.keys()), fields, issues)
   const steps = validateSteps(definition, participants, forms, issues)
+  validateStepFieldAccess(definition, issues)
   const graph = validateTransitions(definition, steps, fields, issues)
   validateGraph(definition, steps, graph, issues)
   validateOutput(definition, fields, issues)

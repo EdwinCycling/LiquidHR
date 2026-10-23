@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { evaluateCondition, type ConditionRuntimeValue } from '@/lib/process-automation/condition-evaluator'
 import type { FieldDefinition, FormDefinition, FormSection } from '@/lib/process-automation/definition-schemas'
 import type { FormJsonValue } from '@/lib/process-automation/form-runtime'
+import { resolveStepFieldAccessMode } from '@/lib/process-automation/field-access'
 
 export interface FormPreviewLabels {
   readonly syntheticData: string
@@ -33,10 +34,11 @@ export function evaluateFormPreview(
   form: FormDefinition,
   participantKey: string,
   values: Readonly<Record<string, FormJsonValue>>,
+  stepKey?: string,
 ): readonly PreviewFieldState[] {
   const context = { fields: scalarValues(values), subject: {} }
   return form.sections.flatMap((section) => section.fields.map((field) => {
-    const accessMode = field.access.find((rule) => rule.participantKey === participantKey)?.mode ?? 'HIDDEN'
+    const accessMode = resolveStepFieldAccessMode(field, participantKey, stepKey)
     const visible = accessMode !== 'HIDDEN' && (!field.visibilityCondition || evaluateCondition(field.visibilityCondition, context))
     const required = visible && (accessMode === 'WRITE_REQUIRED'
       || (accessMode === 'WRITE_OPTIONAL' && Boolean(field.requiredCondition && evaluateCondition(field.requiredCondition, context))))
@@ -111,8 +113,8 @@ function PreviewFieldControl({
   }} placeholder={typeLabel} step={step} type={inputType} value={inputValue(field, value)} />
 }
 
-function visibleForPreview(field: FieldDefinition, participantKey: string, values: Readonly<Record<string, FormJsonValue>>): boolean {
-  const access = field.access.find((rule) => rule.participantKey === participantKey)?.mode ?? 'HIDDEN'
+function visibleForPreview(field: FieldDefinition, participantKey: string, values: Readonly<Record<string, FormJsonValue>>, stepKey?: string): boolean {
+  const access = resolveStepFieldAccessMode(field, participantKey, stepKey)
   if (access === 'HIDDEN') return false
   if (!field.visibilityCondition) return true
   return evaluateCondition(field.visibilityCondition, { fields: scalarValues(values), subject: {} })
@@ -124,13 +126,14 @@ export function updateFormPreviewValues(
   currentValues: Readonly<Record<string, FormJsonValue>>,
   fieldKey: string,
   value: FormJsonValue,
+  stepKey?: string,
 ): Record<string, FormJsonValue> {
   const next = { ...currentValues, [fieldKey]: value }
   const fields = form.sections.flatMap((section) => section.fields)
   for (let pass = 0; pass <= fields.length; pass += 1) {
     const hiddenKeys = fields
-      .filter((field) => field.access.find((rule) => rule.participantKey === participantKey)?.mode !== 'HIDDEN')
-      .filter((field) => field.visibilityCondition && !visibleForPreview(field, participantKey, next))
+      .filter((field) => resolveStepFieldAccessMode(field, participantKey, stepKey) !== 'HIDDEN')
+      .filter((field) => field.visibilityCondition && !visibleForPreview(field, participantKey, next, stepKey))
       .map((field) => field.key)
     if (hiddenKeys.length === 0) break
     hiddenKeys.forEach((key) => { delete next[key] })
@@ -141,21 +144,23 @@ export function updateFormPreviewValues(
 export function FormStudioPreview({
   form,
   participantKey,
+  stepKey,
   language,
   labels,
 }: {
   readonly form: FormDefinition
   readonly participantKey: string
+  readonly stepKey?: string
   readonly language: 'nl' | 'en'
   readonly labels: FormPreviewLabels
 }) {
   const [values, setValues] = useState<Record<string, FormJsonValue>>({})
-  const fieldStates = useMemo(() => evaluateFormPreview(form, participantKey, values), [form, participantKey, values])
+  const fieldStates = useMemo(() => evaluateFormPreview(form, participantKey, values, stepKey), [form, participantKey, stepKey, values])
   const stateByKey = new Map(fieldStates.map((state) => [state.field.key, state]))
   const hiddenConditional = fieldStates.filter((state) => state.accessMode !== 'HIDDEN' && state.field.visibilityCondition && !state.visible)
 
   function setFieldValue(fieldKey: string, value: FormJsonValue): void {
-    setValues((current) => updateFormPreviewValues(form, participantKey, current, fieldKey, value))
+    setValues((current) => updateFormPreviewValues(form, participantKey, current, fieldKey, value, stepKey))
   }
 
   return <div className="grid min-w-0 gap-5">

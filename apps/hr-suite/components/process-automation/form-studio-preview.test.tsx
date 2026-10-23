@@ -27,6 +27,20 @@ const form: FormDefinition = {
   ...baseForm,
   sections: baseForm.sections.map((section) => ({ ...section, fields: [...section.fields, highCostExplanation] })),
 }
+const stepForm: FormDefinition = {
+  ...form,
+  sections: form.sections.map((section) => ({
+    ...section,
+    fields: section.fields.map((field) => field.key === highCostExplanation.key ? {
+      ...field,
+      stepAccess: [
+        { stepKey: 'employee-request', participantKey: 'employee', mode: 'WRITE_OPTIONAL' },
+        { stepKey: 'manager-review', participantKey: 'manager', mode: 'READ' },
+        { stepKey: 'hr-decision', participantKey: 'hr-team', mode: 'READ' },
+      ],
+    } : field),
+  })),
+}
 
 const labels: FormPreviewLabels = {
   syntheticData: 'Example values are not saved.', noValue: 'No value',
@@ -64,6 +78,18 @@ describe('Formulierenstudio conditional preview', () => {
     expect(shownAgain['high-cost-explanation']).toBeUndefined()
   })
 
+  it('previews field access for the selected step and participant', () => {
+    const employeeField = evaluateFormPreview(stepForm, 'employee', { 'training-expected-cost': 1250 }, 'employee-request')
+      .find((item) => item.field.key === highCostExplanation.key)
+    const managerField = evaluateFormPreview(stepForm, 'manager', { 'training-expected-cost': 1250 }, 'manager-review')
+      .find((item) => item.field.key === highCostExplanation.key)
+    const forgedStepField = evaluateFormPreview(stepForm, 'employee', { 'training-expected-cost': 1250 }, 'manager-review')
+      .find((item) => item.field.key === highCostExplanation.key)
+
+    expect(employeeField).toMatchObject({ accessMode: 'WRITE_OPTIONAL', visible: true, required: true })
+    expect(managerField).toMatchObject({ accessMode: 'READ', visible: true, required: false })
+    expect(forgedStepField).toMatchObject({ accessMode: 'HIDDEN', visible: false, required: false })
+  })
   it('shows a sample-value preview and explains conditionally hidden fields', () => {
     const markup = renderToStaticMarkup(createElement(FormStudioPreview, {
       form,
