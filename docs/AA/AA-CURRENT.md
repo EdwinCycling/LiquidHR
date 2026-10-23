@@ -26,7 +26,7 @@
 > **GO:** nieuwe afgebakende niet-Payroll-features op schoon `main`, met normale per-feature gates. **HOLD:** runtime van `work/payroll-p0-p1` tot config-herstel; eerst `/payroll/runs` herstellen vóór nieuwe salarisrunfunctionaliteit. Zie [postrelease- en cleanupstatus](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md) voor volledige bewijsgrenzen. Eerder gedateerde paragrafen hieronder zijn historische snapshots.
 
 Status: **ACTUEEL / LIVING**
-Bijgewerkt: 2026-10-23 (PAY-MERGE-FIX-02; historische bewijssecties blijven ongewijzigd)
+Bijgewerkt: 2026-10-23 (PAY-CI-LINUX-02; historische bewijssecties blijven ongewijzigd)
 
 ## PAY-INTEGRATE-01 — lokale Payroll + D1-kandidaat (22-10-2026)
 
@@ -45,6 +45,10 @@ Op code-commit `ed2a3b3acce2a985d7d44105a4d30517d06fbab8` zijn de vroege async U
 ## PAY-MERGE-FIX-02 — securitypatch geïntegreerde kandidaat (23-10-2026)
 
 Op `integration/PAYROLL-MERGE-20261022` is Next.js bijgewerkt naar 16.4.2 in beide Next-workspaces, met `eslint-config-next` 16.4.2; React en React DOM zijn gepind op gepatcht 19.2.9 en sharp blijft op gepatcht 0.35.5. De volledige CONTROLLED-suite slaagt op de nieuwe lockfile (3.487 PASS, 8 SKIP, 0 FAIL); gerichte Payroll/D0/K2/runs-tests 130/130 PASS. Typecheck, ESLint en i18n slagen. De productiebuild blijft **OPEN**: Turbopack wordt in de Windows-sandbox geblokkeerd bij junctioncreatie; de ondersteunde Webpack-build faalt tijdens Next-buildworkers met `EPERM` bij route-uitvoermappen. WSL2 is niet toegankelijk. Verdict: **HOLD**, geen integratieoverdracht als gereed. Zie [PAY-MERGE-FIX-02](../quality/acceptance/runs/PAY-MERGE-FIX-02-20261023.md).
+
+## PAY-CI-LINUX-02 — Linux production build (23-10-2026)
+
+Op `integration/PAYROLL-MERGE-20261022` is root `npm run build` op GitHub Actions `ubuntu-24.04` / Node 24.21.0 succesvol uitgevoerd voor beide Next.js-workspaces, inclusief bestaande postbuildcontroles. `npm ci` slaagde; Next.js 16.4.2 en React/React DOM 19.2.9 zijn opgelost. `npm audit --omit=dev` vond nul productie-advisories; het JSON-rapport is als workflowartifact bewaard. De Vercel-projectkoppeling is read-only bevestigd, `vercel.json` schakelt automatische deployments uit en de readback na push vond nul deployments voor de integratiebranch. De Windows-buildblokkade is hiermee gesloten voor deze buildgate. Advies **GO WITH CONDITIONS** voor mergecoördinatie: live Manager-/foreign-tenant-negatives en performance blijven OPEN. Zie [PAY-CI-LINUX-02](../quality/acceptance/runs/PAY-CI-LINUX-02-20261023.md) en [GitHub Actions-run](https://github.com/EdwinCycling/LiquidHR/actions/runs/39912221407).
 
 ## Historische status- en acceptance-snapshots (18 oktober en eerder)
 
