@@ -158,9 +158,18 @@ describe('PMUX-06C process operations projection', () => {
     await db.query('select set_config($1, $2, false)', ['request.jwt.claim.sub', userA])
     await db.query('select set_config($1, $2, false)', ['test.process_operations_write', 'true'])
 
+    const access = await db.query<{ publicExecute: boolean; helperExecute: boolean; anonExecute: boolean }>(`select
+      has_function_privilege('authenticated', 'public.get_process_operations_inbox(text, text, integer, integer, text)', 'EXECUTE') as "publicExecute",
+      has_function_privilege('authenticated', 'internal_security.get_process_operations_inbox(text, text, integer, integer, text)', 'EXECUTE') as "helperExecute",
+      has_function_privilege('anon', 'public.get_process_operations_inbox(text, text, integer, integer, text)', 'EXECUTE') as "anonExecute"`)
+    expect(access.rows[0]).toEqual({ publicExecute: true, helperExecute: false, anonExecute: false })
+    await db.exec('set role authenticated')
     const { rows } = await db.query<{ result: { summary: Record<string, number>; total: number; items: Array<Record<string, unknown>> } }>(
       "select public.get_process_operations_inbox(null, 'ALL', 1, 25, 'nl') as result",
     )
+    await expect(db.query("select internal_security.get_process_operations_inbox(null, 'ALL', 1, 25, 'nl')"))
+      .rejects.toThrow()
+    await db.exec('reset role')
     const result = rows[0].result
     expect(result.summary).toEqual({ blockedProcesses: 1, overdueTasks: 1, failedAutomations: 3, retryingAutomations: 1 })
     expect(result.total).toBe(6)

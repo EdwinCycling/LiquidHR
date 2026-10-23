@@ -434,7 +434,7 @@ create or replace function public.get_process_insights_projection(
 )
 returns jsonb
 language sql
-security invoker
+security definer
 set search_path = ''
 as $$
   select internal_security.get_process_insights_projection(

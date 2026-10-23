@@ -183,11 +183,16 @@ async function getProjection(db: PGlite, input: {
   pageSize?: number
   groupId?: string
 } = {}): Promise<Projection> {
-  const { rows } = await db.query<{ result: Projection }>(
-    'select public.get_process_insights_projection($1, $2, $3, $4, $5, $6, $7) as result',
-    [input.groupId ?? groupA, input.from ?? '2026-10-01', input.to ?? '2026-10-31', input.processId ?? null, input.page ?? 1, input.pageSize ?? 20, 'nl'],
-  )
-  return rows[0]!.result
+  await db.exec('set role authenticated')
+  try {
+    const { rows } = await db.query<{ result: Projection }>(
+      'select public.get_process_insights_projection($1, $2, $3, $4, $5, $6, $7) as result',
+      [input.groupId ?? groupA, input.from ?? '2026-10-01', input.to ?? '2026-10-31', input.processId ?? null, input.page ?? 1, input.pageSize ?? 20, 'nl'],
+    )
+    return rows[0]!.result
+  } finally {
+    await db.exec('reset role')
+  }
 }
 
 afterEach(async () => {
@@ -196,6 +201,24 @@ afterEach(async () => {
 })
 
 describe('PMUX-07A process insights projection', () => {
+  it('grants scoped reads through the public wrapper while keeping the helper private', async () => {
+    database = await createDatabase()
+    const db = database
+    const access = await db.query<{ publicExecute: boolean; helperExecute: boolean; anonExecute: boolean }>(`select
+      has_function_privilege('authenticated', 'public.get_process_insights_projection(uuid, date, date, uuid, integer, integer, text)', 'EXECUTE') as "publicExecute",
+      has_function_privilege('authenticated', 'internal_security.get_process_insights_projection(uuid, date, date, uuid, integer, integer, text)', 'EXECUTE') as "helperExecute",
+      has_function_privilege('anon', 'public.get_process_insights_projection(uuid, date, date, uuid, integer, integer, text)', 'EXECUTE') as "anonExecute"`)
+    expect(access.rows[0]).toEqual({ publicExecute: true, helperExecute: false, anonExecute: false })
+    await db.query('select set_config($1, $2, false)', ['request.jwt.claim.sub', userA])
+    await db.exec('set role authenticated')
+    await expect(db.query(
+      'select internal_security.get_process_insights_projection($1, $2, $3, $4, $5, $6, $7)',
+      [groupA, '2026-10-01', '2026-10-31', null, 1, 20, 'nl'],
+    )).rejects.toThrow()
+    await db.exec('reset role')
+    await expect(getProjection(db)).resolves.toMatchObject({ summary: { started: 0 } })
+  })
+
   it('uses local HR-group event dates, successful calendar lead times, first-claim waits, and completed-step SLA denominator', async () => {
     database = await createDatabase()
     const db = database

@@ -465,7 +465,7 @@ create or replace function public.get_process_operations_inbox(
 )
 returns jsonb
 language sql
-security invoker
+security definer
 set search_path = ''
 as $$
   select internal_security.get_process_operations_inbox(
