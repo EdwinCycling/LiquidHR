@@ -149,6 +149,7 @@
   "denied": "You do not have access to this process work.",
   "blocked": "This work is blocked; review the blocker or request recovery.",
   "dueToday": "due today",
+  "currentPage": "On this page",
   "stale": "The state changed meanwhile. Reload the page.",
   "success": "Action processed.",
   "claim": "Claim",
@@ -310,6 +311,9 @@
     "fieldRules": "Maximum access by participant",
     "stepFieldRules": "Access by process step",
     "stepFieldRulesDescription": "Choose what the participant may do with each field at this step. Existing participant access remains the limit.",
+    "noProcessSteps": "Add a process step before configuring field access.",
+    "stepWithoutParticipant": "Assign a participant to this process step first.",
+    "noConfigurableFields": "This process step has no configurable field access.",
     "selectFieldStep": "Process step",
     "participantLimitWarning": "This choice exceeds the participant access limit.",
     "conditionalRequiredWarning": "This field also has a required condition. Choose Write optional to keep that condition in control.",
@@ -374,8 +378,24 @@
     "runTrial": "Run process trial",
     "trialNoWrites": "No runtime instance, work item, or domain mutation was created.",
     "trialPath": "Expected step path",
-    "trialParticipants": "Resolver and permissions",
+    "trialParticipants": "Assignments",
     "trialOutput": "Expected output",
+    "trialSelectorTypeLabel": "Assignment rule",
+    "trialSelectorFallback": "Assignment follows the configured rule",
+    "trialPermissionRequired": "Required access to process work",
+    "trialTaskAccess": "Act on process work",
+    "trialSelectorTypes": {
+      "EXPLICIT_PERSON": "Selected employee",
+      "INITIATOR": "Person who started the process",
+      "SUBJECT_EMPLOYEE": "Employee the process is about",
+      "DIRECT_MANAGER_OF_SUBJECT": "Employee's direct manager",
+      "MANAGEMENT_ROLE_ON_SUBJECT_DEPARTMENT": "Management role in the employee's department",
+      "MANAGEMENT_ROLE_ON_SELECTED_DEPARTMENT": "Management role in the selected department",
+      "MANAGEMENT_ROLE_ON_PROCESS_DEPARTMENT": "Management role in the process department",
+      "FORM_FIELD_PERSON": "Employee selected in the form",
+      "PERMISSION_WORK_QUEUE": "Work queue based on task access",
+      "PROCESS_OWNER_QUEUE": "Process owner's work queue"
+    },
     "success": "Successful",
     "warning": "Warning",
     "blocking": "Blocking",
@@ -634,7 +654,18 @@
     "viewport": "Viewport",
     "dutch": "Dutch",
     "english": "English",
+    "candidate": "candidate",
     "candidates": "candidates",
-    "sla": "SLA"
+    "sla": "Time limit",
+    "slaUnits": {
+      "minute": "minute",
+      "minutes": "minutes",
+      "hour": "hour",
+      "hours": "hours",
+      "day": "day",
+      "days": "days",
+      "workday": "working day",
+      "workdays": "working days"
+    }
   }
 }

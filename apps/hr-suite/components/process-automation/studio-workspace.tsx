@@ -24,13 +24,14 @@ import {
   Workflow,
 } from 'lucide-react'
 import { collectConditionFieldReferences } from '@/lib/process-automation/condition-evaluator'
-import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, FormDefinition, ProcessDefinitionDraft } from '@/lib/process-automation/definition-schemas'
+import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, FormDefinition, ProcessDefinitionDraft, SlaDefinition } from '@/lib/process-automation/definition-schemas'
 import { ProcessFlowEditor, type ProcessFlowEditorLabels } from '@/components/process-automation/process-flow-editor'
 import { FormFieldConditionsEditor } from '@/components/process-automation/form-field-conditions-editor'
 import { FormStudioPreview } from '@/components/process-automation/form-studio-preview'
 import { FieldAccessMatrix } from '@/components/process-automation/field-access-matrix'
 import { changeDefinitionFieldType, duplicateDefinitionField, reorderDefinitionItems, uniqueDefinitionKey } from '@/lib/process-automation/form-studio-draft'
 import { Button } from '@/components/ui/button'
+import { Badge, type BadgeTone } from '@/components/ui/badge'
 import { Dialog } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { FormActions } from '@/components/patterns/form-actions'
@@ -137,6 +138,9 @@ export interface StudioLabels {
   readonly addField: string
   readonly fields: string
   readonly accessMatrix: string
+  readonly fieldAccessNoSteps: string
+  readonly fieldAccessStepWithoutParticipant: string
+  readonly fieldAccessNoConfigurableFields: string
   readonly hidden: string
   readonly read: string
   readonly writeOptional: string
@@ -175,9 +179,18 @@ export interface StudioLabels {
   readonly trialPath: string
   readonly trialParticipants: string
   readonly trialOutput: string
+  readonly trialSelectorTypeLabels: Readonly<Record<string, string>>
+  readonly trialSelectorTypeLabel: string
+  readonly trialSelectorFallback: string
+  readonly trialPermissionLabels: Readonly<Record<string, string>>
+  readonly trialPermissionRequired: string
+  readonly trialStatusLabels: Readonly<Record<'SUCCESS' | 'WARNING' | 'BLOCKING', string>>
+  readonly trialTaskAccess: string
   readonly success: string
   readonly warning: string
   readonly blocking: string
+  readonly slaUnitLabels: Readonly<Record<'MINUTES' | 'HOURS' | 'DAYS' | 'WORKDAYS', { singular: string; plural: string }>>
+  readonly candidate: string
   readonly compilerBlocked: string
   readonly selected: string
   readonly formSection: string
@@ -291,10 +304,10 @@ function statusLabel(status: string, labels: StudioLabels): string {
   return labels.draft
 }
 
-function statusClasses(status: string): string {
-  if (status === 'PUBLISHED') return 'bg-emerald-100 text-emerald-800'
-  if (status === 'RETIRED') return 'bg-slate-100 text-slate-700'
-  return 'bg-amber-100 text-amber-900'
+function statusTone(status: string): BadgeTone {
+  if (status === 'PUBLISHED') return 'success'
+  if (status === 'RETIRED') return 'neutral'
+  return 'warning'
 }
 
 function bindingEntryLabel(binding: FieldBinding, labels: StudioLabels): string {
@@ -319,25 +332,77 @@ function validationIssues(value: unknown): readonly StudioIssue[] {
   })
 }
 
-function IssueList({ issues, labels }: { issues: readonly StudioIssue[]; labels: StudioLabels }) {
+function IssueList({ issues, labels, showDiagnostics }: { issues: readonly StudioIssue[]; labels: StudioLabels; showDiagnostics: boolean }) {
   if (issues.length === 0) return null
   return (
-    <section aria-labelledby="studio-compiler-feedback" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+    <section aria-labelledby="studio-compiler-feedback" className="rounded-[var(--radius-surface)] border border-warning/40 bg-warning-surface p-4 text-sm text-warning-foreground">
       <h3 className="font-semibold" id="studio-compiler-feedback">{labels.compilerFeedback}</h3>
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-3 divide-y divide-warning/30">
         {issues.map((issue, index) => (
-          <li className="rounded-xl border border-amber-200 bg-white/70 p-3" key={`${issue.code}-${index}`}>
+          <li className="py-3 first:pt-0 last:pb-0" key={`${issue.code}-${index}`}>
             <div>{labels.compilerIssueMessages[issue.code] ?? issue.message}</div>
-            <details className="mt-2 text-xs text-muted-foreground">
+            {showDiagnostics ? <details className="mt-2 text-xs text-muted-foreground">
               <summary className="cursor-pointer font-semibold">{labels.advanced}</summary>
               <div className="mt-1 break-all font-mono">{issue.code} · {issuePath(issue)}</div>
               {labels.compilerIssueMessages[issue.code] ? <div className="mt-1">{issue.message}</div> : null}
-            </details>
+            </details> : null}
           </li>
         ))}
       </ul>
     </section>
   )
+}
+
+function trialSlaDuration(sla: SlaDefinition, labels: StudioLabels): string {
+  const unit = sla.businessDays && sla.duration.unit === 'DAYS' ? 'WORKDAYS' : sla.duration.unit
+  const unitLabel = labels.slaUnitLabels[unit]
+  return `${sla.duration.amount} ${sla.duration.amount === 1 ? unitLabel.singular : unitLabel.plural}`
+}
+
+function TrialResult({ trial, draft, labels, showDiagnostics }: {
+  readonly trial: StudioTrialReport
+  readonly draft: ProcessDefinitionDraft
+  readonly labels: StudioLabels
+  readonly showDiagnostics: boolean
+}) {
+  return <div className="mt-5 space-y-4">
+    <div className={`rounded-[var(--radius-surface)] border p-4 ${trial.status === 'SUCCESS' ? 'border-success/30 bg-success-surface text-success' : trial.status === 'WARNING' ? 'border-warning/40 bg-warning-surface text-warning' : 'border-destructive/30 bg-destructive-surface text-destructive'}`}>
+      <div className="flex items-center gap-2 font-semibold">{trial.status === 'SUCCESS' ? <Check aria-hidden="true" size={17} /> : null}{labels.trialStatusLabels[trial.status] ?? labels.blocking}</div>
+      <p className="mt-2 text-sm">{labels.trialNoWrites}</p>
+    </div>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <section className="rounded-[var(--radius-surface)] border border-border-subtle p-4">
+        <h4 className="font-semibold">{labels.trialPath}</h4>
+        <ol className="mt-3 space-y-2">{trial.path.map((step, index) => <li className="flex gap-3 text-sm" key={step.stepKey}>
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold">{index + 1}</span>
+          <span><span className="font-semibold">{titleFor(step.title, trial.language)}</span><span className="block text-xs text-muted-foreground">{step.nextStepKey ? `→ ${titleFor(draft.steps.find((candidate) => candidate.key === step.nextStepKey)?.title, trial.language)}` : ''}{step.sla ? ` · ${labels.sla} ${trialSlaDuration(step.sla, labels)}` : ''}</span></span>
+        </li>)}</ol>
+        {showDiagnostics ? <details className="mt-3 border-t border-border-subtle pt-3 text-xs text-muted-foreground">
+          <summary className="cursor-pointer font-semibold">{labels.advanced}</summary>
+          <ul className="mt-2 space-y-1 font-mono">{trial.path.map((step) => <li key={step.stepKey}>{step.stepKey}{step.nextStepKey ? ` → ${step.nextStepKey}` : ''}{step.sla ? ` · ${step.sla.duration.amount} ${step.sla.duration.unit}` : ''}</li>)}</ul>
+        </details> : null}
+      </section>
+      <section className="rounded-[var(--radius-surface)] border border-border-subtle p-4">
+        <h4 className="font-semibold">{labels.trialParticipants}</h4>
+        <ul className="mt-3 divide-y divide-border-subtle">{trial.participants.map((participant) => {
+          const definition = draft.participants.find((candidate) => candidate.key === participant.participantKey)
+          const permissionLabel = labels.trialPermissionLabels[participant.permission] ?? labels.trialPermissionRequired
+          const selectorLabel = labels.trialSelectorTypeLabels[participant.selectorType] ?? labels.trialSelectorFallback
+          return <li className="py-3 first:pt-0 last:pb-0" key={participant.participantKey}>
+            <div className="flex justify-between gap-2"><span className="font-semibold">{titleFor(definition?.label, trial.language) || labels.participant}</span><span className="text-xs font-semibold">{labels.trialStatusLabels[participant.status] ?? labels.blocking}</span></div>
+            <p className="mt-1 text-xs text-muted-foreground">{selectorLabel} · {permissionLabel} · {participant.candidateEmployeeIds.length} {participant.candidateEmployeeIds.length === 1 ? labels.candidate : labels.candidates}</p>
+            {participant.message ? <p className="mt-1 text-xs text-destructive">{participant.message}</p> : null}
+            {showDiagnostics ? <details className="mt-2 text-xs text-muted-foreground">
+              <summary className="cursor-pointer font-semibold">{labels.advanced}</summary>
+              <dl className="mt-2 grid gap-1 font-mono"><div><dt className="font-sans">{labels.participant}</dt><dd className="break-all">{participant.participantKey}</dd></div><div><dt className="font-sans">{labels.trialSelectorTypeLabel}</dt><dd className="break-all">{participant.selectorType}</dd></div><div><dt className="font-sans">{labels.trialTaskAccess}</dt><dd className="break-all">{participant.permission}</dd></div><div><dt className="font-sans">{labels.status}</dt><dd>{participant.status}</dd></div></dl>
+            </details> : null}
+          </li>
+        })}</ul>
+      </section>
+    </div>
+    {trial.output ? <section className="rounded-[var(--radius-surface)] border border-border-subtle p-4"><h4 className="font-semibold">{labels.trialOutput}</h4><p className="mt-1 text-sm">{titleFor(trial.output.title, trial.language)} · {trial.output.format}</p></section> : null}
+    {trial.blockers.length || trial.warnings.length ? <IssueList issues={[...trial.blockers, ...trial.warnings]} labels={labels} showDiagnostics={showDiagnostics} /> : null}
+  </div>
 }
 
 function BindingEditor({
@@ -986,7 +1051,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
 
   return (
     <div className="space-y-6">
-      <section aria-labelledby="automation-overview-title" className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+      <section aria-labelledby="automation-overview-title" className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div><p className="eyebrow">{labels.overview}</p><h2 className="mt-1 text-2xl font-semibold tracking-tight" id="automation-overview-title">{labels.overview}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.overviewDescription}</p></div>
           {canWrite ? <button className="button-primary inline-flex items-center gap-2" onClick={() => { setCreateStep(0); setCreateName(''); setCreateDescription(''); setCreateKey(''); setCreateStartingPoint('BLANK'); setShowCreateWizard(true) }} type="button"><Plus aria-hidden="true" size={17} />{labels.newProcess}</button> : null}
@@ -1002,7 +1067,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
       </section>
 
       <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(280px,0.32fr)_minmax(0,1fr)]">
-        <aside className="w-full min-w-0 max-w-full rounded-xl border bg-surface p-4 shadow-sm" aria-label={labels.processCatalog}>
+        <aside className="w-full min-w-0 max-w-full rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-4" aria-label={labels.processCatalog}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="eyebrow">{labels.title}</p>
@@ -1012,8 +1077,8 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
           </div>
 
           <div className="mt-4 grid grid-cols-2 rounded-xl bg-muted p-1 text-sm">
-            <button className={`rounded-lg px-3 py-2 font-semibold ${tab === 'processes' ? 'bg-surface shadow-sm' : 'text-muted-foreground'}`} onClick={() => setTab('processes')} type="button">{labels.processCatalog}</button>
-            <button className={`rounded-lg px-3 py-2 font-semibold ${tab === 'forms' ? 'bg-surface shadow-sm' : 'text-muted-foreground'}`} onClick={() => setTab('forms')} type="button">{labels.formCatalog}</button>
+            <button className={`rounded-[var(--radius-button)] px-3 py-2 font-semibold ${tab === 'processes' ? 'bg-surface' : 'text-muted-foreground'}`} onClick={() => setTab('processes')} type="button">{labels.processCatalog}</button>
+            <button className={`rounded-[var(--radius-button)] px-3 py-2 font-semibold ${tab === 'forms' ? 'bg-surface' : 'text-muted-foreground'}`} onClick={() => setTab('forms')} type="button">{labels.formCatalog}</button>
           </div>
 
           <label className="mt-4 flex items-center gap-2 rounded-xl border bg-background px-3 py-2">
@@ -1031,11 +1096,11 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
             </select>
           </label>
 
-          <div className="mt-4 space-y-2" role="list">
+          {visibleCatalog.length > 0 ? <ul className="mt-4 space-y-2">
             {visibleCatalog.map((item) => {
               const active = selected?.definition.id === item.id
-              return (
-                <button aria-current={active ? 'true' : undefined} className={`w-full rounded-lg border p-3 text-left transition ${active ? 'border-primary bg-accent/50 shadow-sm' : 'bg-background hover:border-primary/40'}`} key={item.id} onClick={() => selectCatalogItem(item)} role="listitem" type="button">
+              return <li key={item.id}>
+                <button aria-current={active ? 'true' : undefined} className={`w-full rounded-[var(--radius-button)] border p-3 text-left transition ${active ? 'border-primary bg-accent/50' : 'bg-background hover:border-primary/40'}`} onClick={() => selectCatalogItem(item)} type="button">
                   <span className="flex items-start justify-between gap-2">
                     <span className="min-w-0">
                       <span className="block truncate font-semibold">{titleFor(item.title) || item.key}</span>
@@ -1044,14 +1109,13 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                     <ChevronRight aria-hidden="true" className={active ? 'text-primary' : 'text-muted-foreground'} size={16} />
                   </span>
                   <span className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-                    <span className={`rounded-full px-2 py-1 ${statusClasses(item.status)}`}>{statusLabel(item.status, labels)}</span>
+                    <Badge tone={statusTone(item.status)}>{statusLabel(item.status, labels)}</Badge>
                     <span className="text-muted-foreground">{labels.version} {item.publishedVersion ?? '—'} · {item.formCount} {labels.formsCount}</span>
                   </span>
                 </button>
-              )
+              </li>
             })}
-            {visibleCatalog.length === 0 ? <p className="rounded-2xl border border-dashed p-5 text-sm text-muted-foreground">{labels.noDefinitions}</p> : null}
-          </div>
+          </ul> : <p className="mt-4 rounded-[var(--radius-surface)] border border-dashed border-border-subtle p-5 text-sm text-muted-foreground">{labels.noDefinitions}</p>}
         </aside>
 
         <main className="min-w-0 space-y-5">
@@ -1061,10 +1125,10 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
             </section>
           ) : (
             <>
-              <header className="rounded-xl border bg-surface p-5 shadow-sm">
+              <header className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="eyebrow">{labels.selectedDefinition}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(selected.definition.status)}`}>{statusLabel(selected.definition.status, labels)}</span></div>
+                    <p className="eyebrow">{labels.selectedDefinition}</p><div className="mt-2 flex flex-wrap items-center gap-2"><Badge tone={statusTone(selected.definition.status)}>{statusLabel(selected.definition.status, labels)}</Badge></div>
                     {editing && selected.definition.status !== 'RETIRED' ? <input aria-label={labels.titleNl} className="mt-3 w-full rounded-xl border bg-background px-3 py-2 text-2xl font-semibold outline-none focus:border-primary" onChange={(event) => updateDraft((current) => ({ ...current, title: { ...current.title, nl: event.target.value } }))} value={draft.title.nl ?? ''} /> : <h2 className="mt-3 text-2xl font-semibold">{titleFor(draft.title)}</h2>}
                     {editing && selected.definition.status !== 'RETIRED' ? <label className="mt-3 block text-sm font-semibold" htmlFor="process-description-nl">{labels.descriptionNl}<textarea className="form-field mt-1 min-h-16 font-normal" id="process-description-nl" onChange={(event) => updateDraft((current) => ({ ...current, description: { ...current.description, nl: event.target.value } }))} value={draft.description?.nl ?? ''} /></label> : draft.description ? <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{titleFor(draft.description)}</p> : null}
                     <p className="mt-2 text-sm text-muted-foreground">{selected.definition.status === 'PUBLISHED' ? labels.readOnly : labels.processStudio}</p>
@@ -1083,11 +1147,11 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                   </div>
                 </div>
                 {actionError ? <p className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">{actionError}</p> : null}
-                <IssueList issues={issues} labels={labels} />
+                <IssueList issues={issues} labels={labels} showDiagnostics={canWrite || canPublish} />
               </header>
 
-              <nav aria-label={labels.studioNavigation} className="grid gap-1 rounded-xl border bg-surface p-1 shadow-sm sm:grid-cols-5">
-                {stageItems.map((item, index) => { const Icon = item.icon; const active = studioStage === item.id; return <button aria-current={active ? 'step' : undefined} className={`flex items-center gap-2 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} key={item.id} onClick={() => setStudioStage(item.id)} type="button"><span className={`grid size-7 shrink-0 place-items-center rounded-md text-xs ${active ? 'bg-primary-foreground/15' : 'bg-muted'}`}>{index + 1}</span><Icon aria-hidden="true" className="hidden xl:block" size={15} /><span className="truncate">{item.label}</span></button> })}
+              <nav aria-label={labels.studioNavigation} className="grid gap-1 rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-1 sm:grid-cols-5">
+                {stageItems.map((item, index) => { const Icon = item.icon; const active = studioStage === item.id; return <button aria-current={active ? 'step' : undefined} className={`flex items-center gap-2 rounded-[var(--radius-button)] px-3 py-3 text-left text-sm font-semibold transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} key={item.id} onClick={() => setStudioStage(item.id)} type="button"><span className={`grid size-7 shrink-0 place-items-center rounded-[var(--radius-control)] text-xs ${active ? 'bg-primary-foreground/15' : 'bg-muted'}`}>{index + 1}</span><Icon aria-hidden="true" className="hidden xl:block" size={15} /><span className="truncate">{item.label}</span></button> })}
               </nav>
 
               {studioStage === 'process' ? <ProcessFlowEditor
@@ -1101,7 +1165,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                 onSelectStep={setActiveStepKey}
               /> : null}
 
-              {studioStage === 'form' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
+              {studioStage === 'form' ? <section className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.formStudio}</p><h3 className="mt-1 text-xl font-semibold">{selectedForm ? titleFor(selectedForm.title) : labels.noValue}</h3>{editing && selectedForm ? <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">{labels.formEditor.formTitle} · {labels.titleNl}<input aria-label={labels.formEditor.formTitle + " · " + labels.titleNl} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-normal" onChange={(event) => updateFormTitle(selectedForm.key, 'nl', event.target.value)} value={selectedForm.title.nl ?? ""} /></label><label className="text-xs font-semibold">{labels.formEditor.formTitle} · {labels.titleEn}<input aria-label={labels.formEditor.formTitle + " · " + labels.titleEn} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-normal" onChange={(event) => updateFormTitle(selectedForm.key, 'en', event.target.value)} value={selectedForm.title.en ?? ""} /></label></div> : null}</div><div className="flex items-center gap-2"><FormInput aria-hidden="true" className="text-primary" size={22} /><button className="inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50" disabled={!editing || selected.definition.status === 'RETIRED'} onClick={addForm} type="button"><Plus aria-hidden="true" size={15} />{labels.formEditor.addForm}</button></div></div>
                 {selectedForm ? <>
                   <div className="mt-4 flex flex-wrap gap-2">{draft.forms.map((form) => <button className={`rounded-xl border px-3 py-2 text-sm font-semibold ${form.key === selectedForm.key ? 'border-primary bg-accent/50' : ''}`} key={form.key} onClick={() => setActiveFormKey(form.key)} type="button">{titleFor(form.title)} · {labels.version} {form.version}</button>)}</div>
@@ -1212,7 +1276,9 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                           title: labels.formEditor.stepFieldRules,
                           description: labels.formEditor.stepFieldRulesDescription,
                           selectStep: labels.formEditor.selectFieldStep,
-                          noSteps: labels.formEditor.noFormSteps,
+                          noSteps: labels.fieldAccessNoSteps,
+                          stepWithoutParticipant: labels.fieldAccessStepWithoutParticipant,
+                          noConfigurableFields: labels.fieldAccessNoConfigurableFields,
                           field: labels.fields,
                           participant: labels.participant,
                           hidden: labels.hidden,
@@ -1232,20 +1298,20 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                 </> : <p className="mt-4 text-sm text-muted-foreground">{labels.noValue}</p>}
               </section> : null}
 
-              {studioStage === 'preview' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
+              {studioStage === 'preview' ? <section className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.preview}</p><h3 className="mt-1 text-xl font-semibold">{previewStep ? (previewForm ? titleFor(previewForm.title, previewLanguage) : labels.formEditor.noLinkedForm) : selectedForm ? titleFor(selectedForm.title, previewLanguage) : labels.noValue}</h3></div><Languages className="text-primary" size={22} /></div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><label className="text-xs font-semibold">{labels.formEditor.previewStep}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" disabled={formSteps.length === 0} onChange={(event) => { const step = formSteps.find((item) => item.key === event.target.value); setPreviewStepKey(event.target.value); if (step?.participantKey) setPreviewParticipant(step.participantKey) }} value={previewStep?.key ?? ""}>{formSteps.length === 0 ? <option value="">{labels.formEditor.noFormSteps}</option> : formSteps.map((step) => <option key={step.key} value={step.key}>{titleFor(step.title)}</option>)}</select></label><label className="text-xs font-semibold">{labels.previewParticipant}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewParticipant(event.target.value)} value={previewParticipant}>{draft.participants.map((participant) => <option key={participant.key} value={participant.key}>{titleFor(participant.label)}</option>)}</select></label><label className="text-xs font-semibold">{labels.language}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewLanguage(event.target.value as 'nl' | 'en')} value={previewLanguage}><option value="nl">{labels.dutch}</option><option value="en">{labels.english}</option></select></label><label className="text-xs font-semibold">{labels.viewport}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewViewport(event.target.value as 'desktop' | 'mobile')} value={previewViewport}><option value="desktop">{labels.desktop}</option><option value="mobile">{labels.mobile} · 390px</option></select></label></div>
                 <div className={`mt-4 min-w-0 rounded-2xl border bg-background p-4 ${previewViewport === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl'}`}>{previewForm && previewParticipantDefinition ? <FormStudioPreview key={`${previewForm.key}:${previewParticipantDefinition.key}:${previewLanguage}:${previewStep?.key ?? ''}`} form={previewForm} labels={{ syntheticData: labels.syntheticData, noValue: labels.noValue, previewHidden: labels.previewConditionHidden, previewRequired: labels.previewRequired, fieldTypeLabels: previewLanguage === 'en' ? labels.fieldTypeLabelsEn : labels.fieldTypeLabelsNl }} language={previewLanguage} participantKey={previewParticipantDefinition.key} stepKey={previewStep?.key} /> : <p className="text-sm text-muted-foreground">{labels.noFields}</p>}</div>
               </section> : null}
 
-              {studioStage === 'trial' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
+              {studioStage === 'trial' ? <section className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.processTrial}</p><h3 className="mt-1 text-xl font-semibold">{labels.processTrial}</h3></div><FlaskConical className="text-primary" size={22} /></div>
                 <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3"><label className="min-w-0 text-sm font-semibold">{labels.trialDate}<input className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-normal" onChange={(event) => setTrialDate(event.target.value)} type="date" value={trialDate} /></label><button className="inline-flex min-h-10 items-center justify-center gap-2 self-end rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50" disabled={trialLoading} onClick={() => void runTrial()} type="button"><FlaskConical size={15} />{trialLoading ? labels.saving : labels.runTrial}</button></div>
                 {trialConditionFields.length > 0 ? <fieldset className="mt-4 min-w-0 rounded-xl border bg-background p-4"><legend className="px-1 text-sm font-semibold">{labels.trialConditionValues}</legend><div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">{trialConditionFields.map((field) => { const value = trialFieldValues[field.key]; const inputValue = value === null || value === undefined ? '' : String(value); const label = titleFor(field.label, previewLanguage); return <label className="min-w-0 text-sm font-medium" key={field.key}>{label}{field.type === 'BOOLEAN' ? <select className="mt-1 w-full rounded-lg border bg-background px-3 py-2 font-normal" onChange={(event) => updateTrialFieldValue(field, event.target.value)} value={inputValue}><option value="">{labels.noValue}</option><option value="true">{labels.flowEditor.conditionEditor.yes}</option><option value="false">{labels.flowEditor.conditionEditor.no}</option></select> : field.type === 'SINGLE_SELECT' ? <select className="mt-1 w-full rounded-lg border bg-background px-3 py-2 font-normal" onChange={(event) => updateTrialFieldValue(field, event.target.value)} value={inputValue}><option value="">{labels.noValue}</option>{(field.options ?? []).map((option) => <option key={option.value} value={option.value}>{titleFor(option.label, previewLanguage)}</option>)}</select> : <input className="mt-1 w-full min-w-0 rounded-lg border bg-background px-3 py-2 font-normal" onChange={(event) => updateTrialFieldValue(field, event.target.value)} step={field.type === 'INTEGER' ? '1' : field.type === 'MONEY' || field.type === 'DECIMAL' ? 'any' : undefined} type={field.type === 'DATE' ? 'date' : field.type === 'TIME' ? 'time' : field.type === 'DATETIME' ? 'datetime-local' : ['INTEGER', 'DECIMAL', 'MONEY'].includes(field.type) ? 'number' : 'text'} value={inputValue} />}</label> })}</div></fieldset> : null}
-                {trial ? <div className="mt-5 space-y-4"><div className={`rounded-2xl border p-4 ${trial.status === 'SUCCESS' ? 'border-emerald-300 bg-emerald-50' : trial.status === 'WARNING' ? 'border-amber-300 bg-amber-50' : 'border-destructive/30 bg-destructive/5'}`}><div className="flex items-center gap-2 font-semibold">{trial.status === 'SUCCESS' ? <Check size={17} /> : null}{trial.status === 'SUCCESS' ? labels.success : trial.status === 'WARNING' ? labels.warning : labels.blocking}</div><p className="mt-2 text-sm">{labels.trialNoWrites}</p></div><div className="grid gap-4 lg:grid-cols-2"><div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialPath}</h4><ol className="mt-3 space-y-2">{trial.path.map((step, index) => <li className="flex gap-3 text-sm" key={step.stepKey}><span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold">{index + 1}</span><span><span className="font-semibold">{titleFor(step.title, trial.language)}</span><span className="block text-xs text-muted-foreground">{step.nextStepKey ? `→ ${titleFor(draft.steps.find((candidate) => candidate.key === step.nextStepKey)?.title, trial.language)}` : ''}{step.sla ? ` · ${labels.sla} ${step.sla.duration.amount} ${step.sla.duration.unit}` : ''}</span></span></li>)}</ol></div><div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialParticipants}</h4><div className="mt-3 space-y-2">{trial.participants.map((participant) => <div className="rounded-xl border p-3 text-sm" key={participant.participantKey}><div className="flex justify-between gap-2"><span className="font-semibold">{participant.participantKey}</span><span className="text-xs font-semibold">{participant.status}</span></div><p className="mt-1 text-xs text-muted-foreground">{participant.selectorType} · {participant.permission} · {participant.candidateEmployeeIds.length} {labels.candidates}</p>{participant.message ? <p className="mt-1 text-xs text-destructive">{participant.message}</p> : null}</div>)}</div></div></div>{trial.output ? <div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialOutput}</h4><p className="mt-1 text-sm">{titleFor(trial.output.title, trial.language)} · {trial.output.format}</p></div> : null}{trial.blockers.length || trial.warnings.length ? <IssueList issues={[...trial.blockers, ...trial.warnings]} labels={labels} /> : null}</div> : null}
+                {trial ? <TrialResult draft={draft} labels={labels} showDiagnostics={canWrite || canPublish} trial={trial} /> : null}
               </section> : null}
 
-              {studioStage === 'versions' ? <section className="rounded-xl border bg-surface p-5 shadow-sm"><div className="flex items-center gap-2"><GitCompareArrows className="text-primary" size={21} /><h3 className="text-xl font-semibold">{labels.versionDiff}</h3></div>{selected.diff.changedPaths.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{labels.noChanges}</p> : <ul className="mt-3 grid gap-2 text-xs md:grid-cols-2">{selected.diff.changedPaths.slice(0, 80).map((path) => <li className="rounded-lg border px-3 py-2 font-mono" key={path}>{path}</li>)}</ul>}</section> : null}
+              {studioStage === 'versions' ? <section className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-5"><div className="flex items-center gap-2"><GitCompareArrows className="text-primary" size={21} /><h3 className="text-xl font-semibold">{labels.versionDiff}</h3></div>{selected.diff.changedPaths.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{labels.noChanges}</p> : <ul className="mt-3 grid gap-2 text-xs md:grid-cols-2">{selected.diff.changedPaths.slice(0, 80).map((path) => <li className="rounded-[var(--radius-control)] border border-border-subtle px-3 py-2 font-mono" key={path}>{path}</li>)}</ul>}</section> : null}
             </>
           )}
         </main>

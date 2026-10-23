@@ -116,6 +116,7 @@ export interface ProcessWorkspaceLabels {
   blocked: string
   overdue: string
   dueToday: string
+  currentPage: string
   availableAt: string
   claimedBy: string
   unassigned: string
@@ -356,7 +357,7 @@ export function ProcessWorkWorkspace({ locale, labels, data, options, startableP
         <div className="mt-6 grid gap-4 md:hidden">{data.items.map((item) => <WorkItemCard key={item.workItemId} item={item} locale={locale} labels={labels} view={view} returnContext={returnContext} />)}</div>
         <CollectionPagination className="mt-6" resultRange={labels.resultsCount.replace('{from}', String(resultFrom)).replace('{to}', String(resultTo)).replace('{count}', String(data.total))} pageSize={totalPages > 1 ? labels.pageOf.replace('{page}', String(page)).replace('{pages}', String(totalPages)) : undefined} pagination={totalPages > 1 ? { ariaLabel: labels.workspaceTitle, currentPage: page, totalPages, onPageChange: (nextPage) => router.push(`/work${buildQuery({ ...queryState, page: nextPage })}`), previousLabel: labels.previous, nextLabel: labels.next } : undefined} />
       </> : null}
-      {data && data.items.length > 0 ? <div aria-live="polite" className="sr-only">{overdueCount ? `${overdueCount} ${labels.overdue}` : ''}{dueTodayCount ? ` ${dueTodayCount} ${labels.dueToday}` : ''}</div> : null}
+      {data && data.items.length > 0 && (overdueCount > 0 || dueTodayCount > 0) ? <div aria-live="polite" className="sr-only">{labels.currentPage}: {overdueCount ? `${overdueCount} ${labels.overdue}` : ''}{dueTodayCount ? ` ${dueTodayCount} ${labels.dueToday}` : ''}</div> : null}
     </PageShell>
   )
 }

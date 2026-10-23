@@ -127,6 +127,7 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
     blocked: t('blocked'),
     overdue: t('overdue'),
     dueToday: t('dueToday'),
+    currentPage: t('currentPage'),
     availableAt: t('availableAt'),
     claimedBy: t('claimedBy'),
     unassigned: t('unassigned'),

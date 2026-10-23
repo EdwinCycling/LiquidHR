@@ -149,6 +149,7 @@
   "denied": "Je hebt geen toegang tot dit proceswerk.",
   "blocked": "Dit werk is geblokkeerd; controleer de blokkade of vraag herstel.",
   "dueToday": "vandaag",
+  "currentPage": "Op deze pagina",
   "stale": "De status is intussen gewijzigd. Laad de pagina opnieuw.",
   "success": "Actie verwerkt.",
   "claim": "Claimen",
@@ -310,6 +311,9 @@
     "fieldRules": "Maximale toegang per deelnemer",
     "stepFieldRules": "Rechten per processtap",
     "stepFieldRulesDescription": "Kies per veld wat de deelnemer op deze stap mag doen. De bestaande deelnemersrechten blijven de bovengrens.",
+    "noProcessSteps": "Voeg eerst een processtap toe om veldrechten in te stellen.",
+    "stepWithoutParticipant": "Koppel eerst een deelnemer aan deze processtap.",
+    "noConfigurableFields": "Deze processtap heeft geen configureerbare veldrechten.",
     "selectFieldStep": "Processtap",
     "participantLimitWarning": "Deze keuze gaat verder dan de maximale rechten van deze deelnemer.",
     "conditionalRequiredWarning": "Dit veld heeft ook een voorwaarde voor invulplicht. Gebruik Bewerken om die voorwaarde leidend te houden.",
@@ -374,8 +378,24 @@
     "runTrial": "Procesproef uitvoeren",
     "trialNoWrites": "Geen runtime-instantie, taak of domeinmutatie is aangemaakt.",
     "trialPath": "Verwacht stappenpad",
-    "trialParticipants": "Resolver en rechten",
+    "trialParticipants": "Toewijzingen",
     "trialOutput": "Verwachte uitvoer",
+    "trialSelectorTypeLabel": "Selectieregel",
+    "trialSelectorFallback": "Toewijzing volgens de ingestelde regel",
+    "trialPermissionRequired": "Vereiste toegang tot proceswerk",
+    "trialTaskAccess": "Proceswerk uitvoeren",
+    "trialSelectorTypes": {
+      "EXPLICIT_PERSON": "Aangewezen medewerker",
+      "INITIATOR": "Initiatiefnemer",
+      "SUBJECT_EMPLOYEE": "Medewerker over wie het proces gaat",
+      "DIRECT_MANAGER_OF_SUBJECT": "Directe manager van de medewerker",
+      "MANAGEMENT_ROLE_ON_SUBJECT_DEPARTMENT": "Beheerrol in de afdeling van de medewerker",
+      "MANAGEMENT_ROLE_ON_SELECTED_DEPARTMENT": "Beheerrol in de gekozen afdeling",
+      "MANAGEMENT_ROLE_ON_PROCESS_DEPARTMENT": "Beheerrol in de procesafdeling",
+      "FORM_FIELD_PERSON": "Medewerker gekozen in het formulier",
+      "PERMISSION_WORK_QUEUE": "Werkqueue op basis van taaktoegang",
+      "PROCESS_OWNER_QUEUE": "Werkqueue van de procesverantwoordelijke"
+    },
     "success": "Geslaagd",
     "warning": "Waarschuwing",
     "blocking": "Blokkade",
@@ -634,7 +654,18 @@
     "viewport": "Schermformaat",
     "dutch": "Nederlands",
     "english": "Engels",
+    "candidate": "kandidaat",
     "candidates": "kandidaten",
-    "sla": "SLA"
+    "sla": "Termijn",
+    "slaUnits": {
+      "minute": "minuut",
+      "minutes": "minuten",
+      "hour": "uur",
+      "hours": "uur",
+      "day": "dag",
+      "days": "dagen",
+      "workday": "werkdag",
+      "workdays": "werkdagen"
+    }
   }
 }

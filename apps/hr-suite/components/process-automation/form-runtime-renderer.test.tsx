@@ -63,17 +63,36 @@ const projection: FormProjection = {
   availableLanguages: ["nl"],
 }
 
+const multiSelectProjection: FormProjection = {
+  ...projection,
+  sections: [{
+    ...projection.sections[0],
+    fields: [{
+      ...projection.sections[0].fields[0],
+      key: "topics",
+      label: "Onderwerpen",
+      helpText: "Kies alle onderwerpen die van toepassing zijn.",
+      type: "MULTI_SELECT",
+      required: false,
+      options: [
+        { value: "leadership", label: "Leiderschap" },
+        { value: "communication", label: "Communicatie" },
+      ],
+    }],
+  }],
+}
+
 interface MountedRenderer {
   readonly container: HTMLDivElement
   readonly unmount: () => void
 }
 
-function mountRenderer(serverFieldError?: FormRuntimeServerFieldError): MountedRenderer {
+function mountRenderer(serverFieldError?: FormRuntimeServerFieldError, initialProjection = projection): MountedRenderer {
   const container = document.createElement("div")
   document.body.append(container)
   const root: Root = createRoot(container)
   act(() => root.render(createElement(FormRuntimeRenderer, {
-    initialProjection: projection,
+    initialProjection,
     locale: "nl",
     labels,
     embedded: true,
@@ -109,5 +128,30 @@ describe("FormRuntimeRenderer server validation feedback", () => {
 
     expect(mounted.container.querySelector('[role="alert"]')).toBeNull()
     expect(mounted.container.textContent).not.toContain("hidden_internal_field")
+  })
+
+  it("names multi-select controls as a group and connects help and validation feedback", () => {
+    mounted = mountRenderer({ fieldKey: "topics", code: "INVALID_FORM_VALUE", sequence: 1 }, multiSelectProjection)
+
+    const group = mounted.container.querySelector("fieldset#form-field-topics")
+    const choices = Array.from(mounted.container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))
+
+    expect(group?.querySelector("legend")?.textContent).toContain("Onderwerpen")
+    expect(group?.getAttribute("aria-describedby")).toContain("form-help-topics")
+    expect(group?.getAttribute("aria-describedby")).toContain("form-error-topics")
+    expect(group?.querySelector("#form-help-topics")?.textContent).toBe("Kies alle onderwerpen die van toepassing zijn.")
+    expect(group?.querySelector("#form-error-topics")?.textContent).toBe(labels.invalid)
+    expect(choices).toHaveLength(2)
+    for (const choice of choices) {
+      expect(choice.getAttribute("aria-describedby")).toContain("form-help-topics")
+      expect(choice.getAttribute("aria-describedby")).toContain("form-error-topics")
+      expect(choice.getAttribute("aria-invalid")).toBe("true")
+      expect(choice.tabIndex).toBe(0)
+    }
+
+    act(() => choices[0]?.focus())
+    expect(document.activeElement).toBe(choices[0])
+    act(() => choices[0]?.click())
+    expect(choices[0]?.checked).toBe(true)
   })
 })

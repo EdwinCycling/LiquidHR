@@ -8,6 +8,8 @@ export interface FieldAccessMatrixLabels {
   readonly description: string
   readonly selectStep: string
   readonly noSteps: string
+  readonly stepWithoutParticipant: string
+  readonly noConfigurableFields: string
   readonly field: string
   readonly participant: string
   readonly hidden: string
@@ -94,7 +96,7 @@ export function FieldAccessMatrix({
     </label>
   }
 
-  return <section aria-labelledby="field-access-matrix-title" className="mt-6 min-w-0 rounded-[var(--radius-card)] border border-border bg-surface p-4">
+  return <section aria-labelledby="field-access-matrix-title" className="mt-6 min-w-0 rounded-[var(--radius-surface)] border border-border bg-surface p-4">
     <div className="mb-4">
       <h4 className="text-base font-semibold" id="field-access-matrix-title">{labels.title}</h4>
       <p className="mt-1 text-sm text-muted-foreground">{labels.description}</p>
@@ -109,7 +111,9 @@ export function FieldAccessMatrix({
           </select>
         </label>
         {!participant
-          ? <p className="mt-3 text-sm text-destructive" role="alert">{labels.noSteps}</p>
+          ? <p className="mt-3 text-sm text-destructive" role="alert">{labels.stepWithoutParticipant}</p>
+          : fields.length === 0
+            ? <p className="mt-3 text-sm text-muted-foreground" role="status">{labels.noConfigurableFields}</p>
           : <>
             <div className="mt-4 hidden overflow-x-auto md:block">
               <table className="w-full table-fixed border-collapse text-left text-sm">

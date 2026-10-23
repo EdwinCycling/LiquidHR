@@ -31,6 +31,8 @@ const labels = {
   description: 'De rechten blijven begrensd.',
   selectStep: 'Processtap',
   noSteps: 'Geen processtappen',
+  stepWithoutParticipant: 'Koppel eerst een deelnemer aan deze processtap.',
+  noConfigurableFields: 'Deze processtap heeft geen configureerbare veldrechten.',
   field: 'Veld',
   participant: 'Deelnemer',
   hidden: 'Verborgen',
@@ -62,5 +64,30 @@ describe('field access matrix', () => {
     expect(markup).toContain('md:hidden')
     expect(markup).toContain('Verborgen')
     expect(markup).toContain('Verplicht')
+  })
+
+  it('distinguishes missing steps, missing participants, and an empty field-rights matrix', () => {
+    const render = (steps: readonly ProcessStep[], participants: readonly ParticipantDefinition[], fields: readonly FieldDefinition[] = [field]) => renderToStaticMarkup(createElement(FieldAccessMatrix, {
+      fields,
+      steps,
+      participants,
+      selectedStepKey: step.key,
+      editing: true,
+      language: 'nl',
+      labels,
+      onStepChange: () => undefined,
+      onModeChange: () => undefined,
+    }))
+    const stepWithoutParticipant: ProcessStep = {
+      key: 'unassigned-review',
+      type: 'FORM',
+      title: { nl: 'Onbeheerde beoordeling' },
+      formKey: 'training',
+      allowedActions: ['SUBMIT'],
+    }
+
+    expect(render([], [participant])).toContain(labels.noSteps)
+    expect(render([stepWithoutParticipant], [participant])).toContain(labels.stepWithoutParticipant)
+    expect(render([step], [participant], [])).toContain(labels.noConfigurableFields)
   })
 })
