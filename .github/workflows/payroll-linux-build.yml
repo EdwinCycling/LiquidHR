@@ -1,0 +1,92 @@
+name: Payroll Linux build (no deploy)
+
+on:
+  push:
+    branches:
+      - integration/PAYROLL-MERGE-20261022
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payroll-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-build:
+    name: Build both Next.js workspaces on Ubuntu / Node 24
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Check out integration commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node 24 and npm cache
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Print toolchain and commit
+        shell: bash
+        run: |
+          node --version
+          npm --version
+          git rev-parse HEAD
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check resolved Next and React versions
+        shell: bash
+        run: |
+          node - <<'NODE'
+          for (const name of ['@liquid-hr/hr-suite', '@liquid-hr/control']) {
+            const workspace = name === '@liquid-hr/hr-suite' ? 'apps/hr-suite' : 'apps/liquidhr-control';
+            const pkg = require(`./${workspace}/package.json`);
+            console.log(`${name}: next=${pkg.dependencies?.next}, react=${pkg.dependencies?.react}, react-dom=${pkg.dependencies?.['react-dom']}`);
+          }
+          for (const name of ['next', 'react', 'react-dom', 'sharp']) {
+            try {
+              console.log(`installed ${name}: ${require(`${name}/package.json`).version}`);
+            } catch (error) {
+              console.log(`${name}: not directly resolvable at root (${error.code})`);
+            }
+          }
+          NODE
+
+      - name: Build both workspaces and execute their postbuild checks
+        run: npm run build
+
+      - name: Audit production dependency tree
+        if: always()
+        shell: bash
+        run: |
+          # Keep the report even when npm audit finds advisories.
+          npm audit --omit=dev --json > npm-audit-production.json || true
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const data = JSON.parse(fs.readFileSync('npm-audit-production.json', 'utf8'));
+          const summary = data.metadata?.vulnerabilities || {};
+          console.log('Production dependency advisories:', JSON.stringify(summary));
+          for (const [name, entry] of Object.entries(data.vulnerabilities || {})) {
+            if (['critical', 'high', 'moderate'].includes(entry.severity)) {
+              console.log(`${entry.severity}: ${name}, isDirect=${entry.isDirect}, fixAvailable=${JSON.stringify(entry.fixAvailable)}`);
+            }
+          }
+          NODE
+
+      - name: Save production dependency audit report
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: payroll-production-audit-${{ github.run_id }}
+          path: npm-audit-production.json
+          if-no-files-found: ignore
+          retention-days: 7
