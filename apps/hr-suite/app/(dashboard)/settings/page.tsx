@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import {
+  Activity,
   ArrowUpRight,
   Blocks,
   BriefcaseBusiness,
@@ -114,6 +115,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('talent:manage'),
       allowed('hr-group:read'),
       allowed('process-definition:read'),
+      allowed('process-operations:read'),
       allowed('research:write'),
       allowed('team-compass:manage'),
       allowed('journey-template:read'),
@@ -140,6 +142,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     talentManage,
     hrGroups,
     processDefinitions,
+    processOperationsRead,
     research,
     teamCompassManage,
     journeyTemplateRead,
@@ -239,6 +242,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.processAutomation'),
           description: messages('admin.tiles.processAutomationDescription'),
           visible: processDefinitions,
+        },
+        {
+          kind: 'link',
+          href: '/settings/process-automation/operations',
+          icon: Activity,
+          title: messages('admin.tiles.processOperations'),
+          description: messages('admin.tiles.processOperationsDescription'),
+          visible: processOperationsRead,
         },
         {
           kind: 'link',

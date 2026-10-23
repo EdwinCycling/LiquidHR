@@ -22936,6 +22936,16 @@ export type Database = {
         Args: { requested_process_instance_id: string }
         Returns: Json
       }
+      get_process_operations_inbox: {
+        Args: {
+          requested_filter?: string
+          requested_language?: string
+          requested_page?: number
+          requested_page_size?: number
+          requested_search?: string | null
+        }
+        Returns: Json
+      }
       get_process_form_projection: {
         Args: { requested_language?: string; requested_work_item_id: string }
         Returns: Json
