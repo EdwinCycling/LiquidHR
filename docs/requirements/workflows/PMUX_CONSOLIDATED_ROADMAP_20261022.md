@@ -28,7 +28,7 @@ Deze roadmap vervangt de oude PMUX-deelreeks als actieve planning. PMUX-02A/02B,
 
 ### PMUX-06B — Herinneringen en escalaties
 
-**Status: NIET GESTART.** Herinneringsverzending, queues voor herinneringen, escalatie, uitvalbeheer en herverdeling zijn niet onderdeel van PMUX-06A. Deze capabilities blijven gepland voor de volgende PMUX-06-implementatie.
+**Status (23-10-2026): PARTIAL / LOCAL IMPLEMENTATION; AUTOMATIC SCHEDULING AND REMOTE ACCEPTANCE OPEN.** De Processtudio gebruikt dezelfde typed SLA en bestaande workflow_jobs-queue. Deadlineherinneringen vooraf/op de deadline, gecontroleerde participant-escalatie en beheerflagging gebruiken bestaande reminderontvangers, autorisatie, audit en procesprojectie. Geen periodieke scheduler is aangetoond of toegevoegd; bestaande after-hooks garanderen geen toekomstige uitvoering. Zie [PMUX-06B requirement](PMUX-06B_REMINDERS_ESCALATIONS.md) en [lokale acceptatie](../../quality/acceptance/runs/PMUX-06B-20261023-LOCAL.md). Remote migratie/readback, echte scheduling/aflevering en browser/390px blijven OPEN. Overige uitval-, herverdelings- en prognosemogelijkheden zijn niet gestart.
 
 Overige PMUX-06-capabilities — ontbrekende manager, uitdienstgetreden behandelaar, HR-uitvallijst, scopegebonden herverdeling, prognoses en inzichten — blijven gepland en zijn niet gestart.
 
