@@ -128,6 +128,20 @@ describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
     expect(html).not.toContain('€\u00a07.519,59')
   })
 
+  it('labels an explicit local concept preview and keeps the existing finalized default wording', () => {
+    const finalized = renderPayrun01PayslipHtml(input)
+    expect(finalized).toContain('De bedragen zijn overgenomen uit de opgeslagen definitieve salarisrun.')
+
+    const concept = renderPayrun01PayslipHtml({
+      ...input,
+      data: { ...input.data, lifecycle: 'CONCEPT' },
+    })
+    expect(concept).toContain('CONCEPT — NIET DEFINITIEF')
+    expect(concept).toContain('Lokale CONCEPT-proef op basis van synthetische TEST-invoer.')
+    expect(concept).toContain('er is geen salarisrun of PDF opgeslagen.')
+    expect(concept).not.toContain('opgeslagen definitieve salarisrun')
+  })
+
   it('keeps the pension blocker and non-final net amount clear on the employee payslip', () => {
     const html = renderPayrun01PayslipHtml({
       ...input,

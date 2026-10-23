@@ -264,6 +264,7 @@ export async function requirePermissionInContext(
   context: AuthContext,
   permissionCode: string,
   targetEmployeeId?: string,
+  options: { readonly requireEmployeeSelfPermission?: boolean } = {},
 ): Promise<AuthContext> {
   await assertEmployeeEssIsAvailable(supabase, context, permissionCode, targetEmployeeId)
 
@@ -279,7 +280,10 @@ export async function requirePermissionInContext(
   const isPrivilegedAdmin = context.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
   const hasExactAdminPermission = isPrivilegedAdmin && context.permissions.includes(permissionCode)
 
-  if (isOwnEmployeeRequest && !hasExactAdminPermission) {
+  if (isOwnEmployeeRequest && (
+    !hasExactAdminPermission
+    || options.requireEmployeeSelfPermission === true
+  )) {
     const selfPermissions = await getSelfPermissions(supabase, context.tenantId)
     if (!selfPermissions.includes(toSelfPermission(permissionCode))) {
       throw new AuthorizationError('Je hebt geen selfservice-recht voor deze actie.')

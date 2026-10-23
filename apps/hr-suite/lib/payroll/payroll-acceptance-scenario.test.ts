@@ -345,4 +345,27 @@ describe('payroll acceptance scenario visibility', () => {
     await expect(filterPayrollAcceptanceScenarioRuns(summaries, async (inputSetId) => references.get(inputSetId) ?? null))
       .resolves.toEqual(summaries.slice(1))
   })
+
+  it('uses one batched reference read for unique input sets and preserves missing references', async () => {
+    const summaries = [
+      { run: { id: 'scenario-run' }, inputSet: { id: 'scenario-input' } },
+      { run: { id: 'ordinary-run' }, inputSet: { id: 'ordinary-input' } },
+      { run: { id: 'ordinary-run-duplicate' }, inputSet: { id: 'ordinary-input' } },
+      { run: { id: 'unreferenced-run' }, inputSet: { id: 'missing-input' } },
+    ]
+    const readInputReference = vi.fn(async () => null)
+    const readInputReferences = vi.fn(async (ids: readonly string[]) => [
+      {
+        calculation_input_set_id: 'scenario-input',
+        input_reference_json: { testScenario: { sourceClassification: 'PAYROLL_TEST_SCENARIO', code: PAYROLL_ACCEPTANCE_SCENARIO_CODE } },
+      },
+      { calculation_input_set_id: 'ordinary-input', input_reference_json: { sourceClassification: 'CORE_PAYROLL_SOURCE' } },
+    ].filter((reference) => ids.includes(reference.calculation_input_set_id)))
+
+    await expect(filterPayrollAcceptanceScenarioRuns(summaries, readInputReference, readInputReferences))
+      .resolves.toEqual(summaries.slice(1))
+    expect(readInputReferences).toHaveBeenCalledTimes(1)
+    expect(readInputReferences).toHaveBeenCalledWith(['scenario-input', 'ordinary-input', 'missing-input'])
+    expect(readInputReference).not.toHaveBeenCalled()
+  })
 })

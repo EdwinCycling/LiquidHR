@@ -160,7 +160,7 @@ function taxProjection(overrides: Partial<PayrollSourceTaxProfileProjection> = {
     incomeRelationshipLinkGap: false,
     incomeRelationships: [{
       id: incomeRelationshipId,
-      updatedAt: '2026-08-28T08:00:00.000Z',
+      updatedAt: '2026-09-01T10:20:00.000Z',
       reportingStatus: 'READY',
       ikvNumber: 1,
       startsOn: '2026-01-01',
@@ -908,7 +908,80 @@ describe('LiquidHR Payroll source provider', () => {
       incomeRelationship: { employmentIncomeRelationshipId: incomeLinkId },
     })
     expect(snapshot.sourceVersionVector[`employment_payroll_tax_profile:${taxProfileId}`]).toBe('1:2026-08-28T09:00:00.000Z')
+    const sourceContract = (snapshot.canonicalSource as {
+      readonly sourceContract: { readonly references: readonly {
+        readonly field: string; readonly sourceType: string; readonly sourceRowId: string
+        readonly version: string; readonly status: string; readonly validFrom: string
+        readonly validUntilExclusive: string | null
+      }[] }
+    }).sourceContract
+    expect(sourceContract.references).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        field: 'incomeRelationshipLink', sourceType: 'employment_income_relationships',
+        sourceRowId: incomeLinkId, version: '2026-09-01T10:15:00.000Z', status: 'BOUND',
+        validFrom: '2026-09-01', validUntilExclusive: null,
+      }),
+      expect.objectContaining({
+        field: 'incomeRelationship', sourceType: 'income_relationships',
+        sourceRowId: incomeRelationshipId, version: '2026-09-01T10:20:00.000Z', status: 'BOUND',
+        validFrom: '2026-09-01', validUntilExclusive: null,
+      }),
+      expect.objectContaining({
+        field: 'taxProfile', sourceType: 'employment_payroll_tax_profiles',
+        sourceRowId: taxProfileId, version: '1:2026-08-28T09:00:00.000Z', status: 'BOUND',
+        validFrom: '2026-09-01', validUntilExclusive: null,
+      }),
+    ]))
     expect(JSON.stringify(snapshot.canonicalSource)).not.toContain('declaration-ref')
+  })
+
+  it('keeps missing fiscal and IKV versions as SOURCE_GAP references', async () => {
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary()],
+        schedules: [schedule()],
+        incomeRelationships: [incomeRelationship({ linkUpdatedAt: '' })],
+        taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({ created_at: '' })] }),
+      })),
+    })).getPayrollSourceSnapshot({ ...request, employmentId })
+
+    expect(snapshot.sourceGaps).toContainEqual(expect.objectContaining({
+      field: 'incomeRelationshipLink', status: 'SOURCE_GAP', reasonCode: 'SOURCE_VERSION_REFERENCE_MISSING',
+    }))
+    expect(snapshot.sourceGaps).toContainEqual(expect.objectContaining({
+      field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'SOURCE_VERSION_REFERENCE_MISSING',
+    }))
+    const references = (snapshot.canonicalSource as {
+      readonly sourceContract: { readonly references: readonly { readonly field: string; readonly status: string }[] }
+    }).sourceContract.references
+    expect(references).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: 'incomeRelationshipLink', status: 'SOURCE_GAP' }),
+      expect.objectContaining({ field: 'taxProfile', status: 'SOURCE_GAP' }),
+    ]))
+  })
+
+  it('keeps inconsistent duplicate IKV version reads as SOURCE_GAP', async () => {
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary()],
+        schedules: [schedule()],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection({ incomeRelationships: [{
+          id: incomeRelationshipId,
+          updatedAt: '2026-09-02T10:20:00.000Z',
+          reportingStatus: 'READY',
+          ikvNumber: 1,
+          startsOn: '2026-01-01',
+          endsOn: null,
+        }] }),
+      })),
+    })).getPayrollSourceSnapshot({ ...request, employmentId })
+
+    expect(snapshot.sourceGaps).toContainEqual(expect.objectContaining({
+      field: 'incomeRelationship', status: 'SOURCE_GAP', reasonCode: 'SOURCE_VERSION_REFERENCE_INCONSISTENT',
+    }))
   })
 
   it('projects a mid-month employment into a 11/22 gross and week/day tax period', async () => {
@@ -1670,6 +1743,48 @@ describe('LiquidHR Payroll source provider', () => {
     })).getPayrollSourceSnapshot(request)
     expect(overlappingCompleteCoverage.sourceGaps).toContainEqual({
       field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'SALARY_TIMELINE_OVERLAP',
+    })
+  })
+
+  it('binds effective salary and schedule rows to non-empty, consistent source versions', async () => {
+    const missingVersion = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({ updated_at: '' })],
+        schedules: [schedule()],
+      })),
+    })).getPayrollSourceSnapshot(request)
+    expect(missingVersion.sourceGaps).toContainEqual({
+      field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SOURCE_VERSION_REFERENCE_MISSING',
+    })
+    const missingContract = missingVersion.canonicalSource as {
+      readonly sourceContract: { readonly schemaVersion: string; readonly scope: {
+        readonly tenantId: string; readonly hrGroupId: string; readonly administrationId: string
+        readonly employeeId: string; readonly employmentId: string
+      }; readonly references: readonly {
+        readonly sourceType: string; readonly sourceRowId: string; readonly status: string
+      }[] }
+    }
+    expect(missingContract.sourceContract.schemaVersion).toBe('payroll-source-contract-v1')
+    expect(missingContract.sourceContract.scope).toEqual({
+      tenantId, hrGroupId, administrationId, employeeId, employmentId, incomeRelationshipId: null,
+    })
+    expect(missingContract.sourceContract.references).toContainEqual(expect.objectContaining({
+      sourceType: 'employment_salaries', sourceRowId: salaryId, status: 'SOURCE_GAP',
+    }))
+
+    const inconsistentVersion = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [
+          salary({ valid_until: '2026-09-15', updated_at: '2026-09-01T10:05:00.000Z' }),
+          salary({ valid_from: '2026-09-15', updated_at: '2026-09-16T10:05:00.000Z' }),
+        ],
+        schedules: [schedule()],
+      })),
+    })).getPayrollSourceSnapshot(request)
+    expect(inconsistentVersion.sourceGaps).toContainEqual({
+      field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SOURCE_VERSION_REFERENCE_INCONSISTENT',
     })
   })
 

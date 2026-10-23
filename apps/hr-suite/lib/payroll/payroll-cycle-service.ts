@@ -170,8 +170,11 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
       limit: 200,
     })
     const lifecycleRepository = dependencies.createLifecycleRepository()
-    const visibleRuns = await filterPayrollAcceptanceScenarioRuns(allRuns, async (inputSetId) =>
-      await lifecycleRepository.getGenericInputReference(access.scope, access.administration.id, inputSetId))
+    const visibleRuns = await filterPayrollAcceptanceScenarioRuns(
+      allRuns,
+      async (inputSetId) => await lifecycleRepository.getGenericInputReference(access.scope, access.administration.id, inputSetId),
+      async (inputSetIds) => await lifecycleRepository.listGenericInputReferences(access.scope, access.administration.id, inputSetIds),
+    )
     const visibleRunIds = new Set(visibleRuns.map((summary) => summary.run.id))
     const scenarioRunIds = new Set(allRuns.flatMap((summary) => visibleRunIds.has(summary.run.id) ? [] : [summary.run.id]))
     const runs = visibleRuns.filter((summary) => summary.payrollPeriod.id === cycle.id)
@@ -215,7 +218,7 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
             diagnostics: diagnostic,
           } satisfies PayrollCycleCurrentSource] as const
         }
-      }), 3))
+      }), 6))
     const employmentIds = [...new Set([
       ...runs.map((summary) => summary.sourceSnapshot.source_employment_id),
       ...employeeReferences.map((reference) => reference.employmentId),

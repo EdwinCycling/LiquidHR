@@ -4,7 +4,7 @@
 
 
 **Status:** PRODUCTVISIE + GEFASSEERDE LEVERROADMAP — voorstel ter uitvoering, geen claim van commerciële gereedheid
-**Bijgewerkt:** 19 oktober 2026
+**Bijgewerkt:** 22 oktober 2026 (PAYD1-K2-06 synthetische testcase; Frits-source readiness blijft OPEN)
 **Doelgroep eerste commerciële fase:** Nederlandse mkb-werkgevers (circa 5–35 werknemers, uitbreidbaar naar 50+), HR Admin/salarisadministrateur, accountant, manager en medewerker
 **Samenhang:** [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md), [AA-PAYROLL](AA-PAYROLL.md), [AA-REL](AA-REL.md), [AA-OPEN](AA-OPEN.md)
 
@@ -75,8 +75,8 @@ Alle iteratieaantallen zijn **planningshypothesen** voor afgebakende Codex-waves
 
 | Wave | Focus | Verwachte omvang | Meetbaar GO-criterium |
 | --- | --- | --- | --- |
-| **D0 — Demo payslip** | Huidige FINALIZED Mars-PDF vanuit normale HR Admin openen, veilige persoonsdata, professioneel ontwerp, download/viewer en uitleg | **1–2 korte iteraties** | Toonbare fictieve loonstrook, identieke opgeslagen PDF/hash, nul interne LAB-/fixturelabels |
-| **D1 — Kinderopvang K2** | Bestaande 01-11 salarisregel met juiste CAO_SCALE/tijdlijn en PFZW, periode-consistente uren, concept-run en PDF | **2–4 gerichte iteraties** | Nieuwe opgeslagen K2-CONCEPT-run met bruto/pensioen/loonheffing/netto/werkgeverskosten, PDF/hash; geen historisch FINALIZED geraakt |
+| **D0 — Demo payslip (lokaal PARTIAL afgerond, 21-10)** | Bestaande FINALIZED Mars DEMO-002-PDF vanuit normale HR Admin en Employee-selfservice bekijken/downloaden | **Uitgevoerd op lokale featurebranch** | Desktop HR Admin/Employee en identieke opgeslagen bytes/hash PASS; HR Admin 390 px PASS. Employee 390 px, live Manager/foreign-tenant probes en hosted acceptance blijven OPEN. Geen commerciële GA-claim; zie [PAYDOC-D0](../quality/acceptance/runs/PAYDOC-D0-20261021-LOCAL.md). |
+| **D1 — Kinderopvang K2** | Bronversies, PFZW, fiscaliteit, reproduceerbare componenttrace en lokale conceptproef | **PARTIAL — synthetische complete bronset/case PASS; Frits-bronnen en wettelijke acceptatie OPEN (22-10-2026)** | K2-06 leest via de bestaande `payroll-source-contract-v1`-provider 17 BOUND bronreferenties over 16 bronsoorten uit een volledig in-memory fixture en reproduceert K2-03 met de onafhankelijke oracle: bruto €2.513,78, netto €2.188,61, werkgeverskosten €3.520,32. De bestaande renderer maakt in-memory CONCEPT-PDF-bytes; er is geen opgeslagen run/PDF of databasewrite. Een bewezen ambiguïteit rond bruto-aanvulling versus reeds opgenomen fiscale basis is generiek opgelost met drie `included`-bronvlaggen. De test gebruikt synthetische contract-/schaalkeuze, PFZW-deelname en maandallocatie, fiscaal profiel, werkgevers-/Whk-tarieven en cumulatieven. K2-05 blijft leidend voor Frits: historische reads conflicteren, een getekend contract/addendum ontbreekt, en echte werkgever-/PFZW-/IKV-/cumulerende bronnen zijn niet bevestigd. D0-live-persona- en full-suite-timeoutgates blijven OPEN. Geen automatische vervolg-wave; volgende Payroll-uitvoering alleen op aparte opdracht na bevoegde bronhouderbevestiging. Zie [PAYD1-K2-06](../quality/acceptance/runs/PAYD1-K2-06-20261022.md), [PAYD1-K2-05](../quality/acceptance/runs/PAYD1-K2-05-20261022.md), [PAYD1-K2-04](../quality/acceptance/runs/PAYD1-K2-04-20261022.md), [PAYD1-K2-03](../quality/acceptance/runs/PAYD1-K2-03-20261022.md) en historische [PAYD1-K2-02](../quality/acceptance/runs/PAYD1-K2-02-20261022.md). |
 | **D2 — Vier echte cao-cases** | Retail Mode R1/R2, K2 en Mars: contracten, bedrijven, branch/trede, premies, uitzonderingen | **circa 5–8 gerichte iteraties totaal vanaf geldige basis** | Vier reproduceerbare Core-runtraces, scopes, officiële/werkgeverbron, review & PDF; onbekende legaliteit expliciet HOLD |
 | **F0 — Code convergence** | PAYINTEGRATE, PAYQA, CAO-SETUP/PENSION/SOURCE/CORE-RESET, Core `25P02`, STAR integreren; Node/npm/Windows-runtimes en migraties | Parallel na D1 | Eén gecontroleerde integration HEAD, op juiste actieve Core gebonden; unit/type/build/security/browser + scopechecks; nog geen main/deploy |
 | **P1 — Payroll Minimum Reliable Core** | Reguliere maandverwerking, werkgeversconfig, fiscale tabellen, salarisschalen, variabele componenten, deeltijd/deelmaand, pensioen, ESS-documenten, cumulatieven | Meerdere waves | Meerdere maanden, typen dienstverband/IKV, componenten en 4 cao-cases deterministisch/peer-reviewed; alle blokkerende bronvelden expliciet |
@@ -104,13 +104,13 @@ De commerciële pilot heeft een aparte vrijgave na security, bronkwaliteit, priv
 - **Noah:** bruto € 1.758,50, netto € 1.070,23, werkgeverskosten € 2.329,33; bestaande FINALIZED-PDF/hash en 32/32 controles.
 - Officiële **Kinderopvang**-bron in Core: 4 PUBLISHED effectieve perioden à 196 tredebedragen = **784** actuele bronwaarden; oude 1-rij-proefversie ARCHIVED, niet destructief verwijderd.
 - **Retail Non-Food**-bron in Core: PUBLISHED januari 2026 **533** rijen en juli 2026 **577** rijen, totale **1.110**; onderscheid Mode/Sport-Schoenen/Tuincentra/Wonen en 2%-beoordelingsregels.
-- PFZW/bedrijfseigen productroutes gebouwd en K2-werknemersinvoer gedeeltelijk opgeslagen; K2 heeft nog geen nieuwe loonrun.
+- PFZW/bedrijfseigen productroutes gebouwd en K2-werknemersinvoer gedeeltelijk opgeslagen; op 19-10 bestond nog geen nieuwe persistente K2-run. K2-06 heeft later een geïsoleerde niet-gepersistente berekening en PDF-renderproef toegevoegd, geen opgeslagen loonrun.
 - Core `57014/25P02` talentfix geaccepteerd op eigen branch en lokaal opgenomen in `integration/pay-converge-20261018`; overige CAO/STAR nog niet integraal.
 - Salaris-RPC-migratie `20261019165116` toegepast, behoud van `CAO_SCALE` beoogd.
 
 ### Open blokkades / correcte volgorde
 
-1. **Frits K2 bestaande 01-11 tijdlijnregel:** `TIMELINE_EFFECTIVE_DATE_CONFLICT` bij poging tweede regel; veilig correctiepad gebruiken, geen tweede effectieve regel op dezelfde datum. Originele salaris-/urenperioden en 18-10 zondaguren niet onterecht combineren.
+1. **Frits K2 effectieve tijdlijnconflict:** K2-05 vond tegenstrijdige historische salary-readbacks: de HR Admin-worklist van 20-10 noemt schaal 6/12 op 24/36 vanaf 2026-11-01; K2-02 meldde geen actuele salary row; 32/36-rooster start 2026-09-01. Een getekend contract/addendum ontbreekt om afspraak, toekomstige wijziging of TEST-fout vast te stellen. HR/werkgever bevestigt eerst de bron; pas daarna expliciete toestemming en een successor in de bestaande UI. Geen actuele live reread of mutatie in K2-05.
 2. Gedeelde lokale runtime/hardlink/Node-Windows issues: één ondersteunde launcher, geen dagenlange start-/browserlus; leg eventuele echte blokkade vast.
 3. PFZW/BPF en bedrijfseigen deelname-/bronverificatie; CAO-pensioen en payroll-cumulatieven voor K2/R1/R2.
 4. Bestaande proef-/Demo-regelingen consolideren en werknemers in juiste administratie op daadwerkelijke scope, zonder historische FINALIZED-verwijzingen te verliezen.
@@ -194,7 +194,7 @@ Prijsarchitectuur pas vastleggen na kostprijs/Loonaangifte-onderhoud, pilotfeedb
 
 ## 8. Besluit: eerst tastbare output, daarna onderscheid
 
-**Directe prioriteit:** D0 visuele Emma/Noah-PDF en D1 de eerste correcte K2-CONCEPT-run met dezelfde originele Core-bronnen, geldige tijdlijn en loonstrook. Niet wachten op AI/Flightdeck voor een eerste demo; niet wachten op iedere toekomstige sector voordat een nauw afgebakende pilot kan worden ontworpen.
+**Directe prioriteit:** de Payroll-featurebranch en D1 komen lokaal samen op `integration/PAYROLL-D1-20261022`; dit is GO WITH CONDITIONS, geen main-merge of release. Gerichte Payroll/API/D0/K2/autorisatietests, typechecks, ESLint, i18n en productiebuild slagen; de full suite blijft OPEN op 12 time-outs, browser/live RLS ontbreekt. D0 heeft beperkte lokale viewer-/bytepariteit voor bestaande Mars DEMO-002-data; geen actuele opgeslagen PDF-readback is in deze integratie uitgevoerd. D1 heeft een volledige synthetische broncontract-/berekeningscase en lokale CONCEPT-PDF-renderproef. K2-05 blijft leidend voor Frits: historische bronreports conflicteren en zonder contract-/bronhouderbevestiging is er geen Frits-herread, correctie of berekening. Echte Core-/werkgever-/PFZW-/IKV-/cumulatiefbronnen blijven OPEN. Er is geen persistente nieuwe run; er start geen automatische vervolgwave. PMUX blijft op een aparte branch en wettelijke/commerciële acceptatie blijven afzonderlijk.
 
 **Daarna:** D2 meerdere cao-cases, F0 codeconvergentie, P1/P2 complete looncyclus. G1/G2/G3 parallel onderzoeken zodra rekenkern/evidence betrouwbaar zijn. Alleen zo wordt de visie geloofwaardig én verkoopbaar.
 

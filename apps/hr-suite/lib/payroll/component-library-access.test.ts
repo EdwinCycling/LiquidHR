@@ -29,6 +29,7 @@ describe('component library request authorization', () => {
     { ...context, permissions: [] },
     { ...context, permissions: ['salary:write'] },
     { ...context, activeRoles: ['MANAGER'] },
+    { ...context, activeRoles: ['EMPLOYEE'] },
     { ...context, hrGroupId: undefined },
     { ...context, administrationId: null },
     { ...context, tenantId: 'forged' },

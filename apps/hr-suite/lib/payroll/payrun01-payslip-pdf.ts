@@ -13,6 +13,8 @@ export interface Payrun01PayslipData {
     readonly startsOn: string
     readonly endsOn: string
   }
+  /** Omitted for existing finalized artifacts; CONCEPT is an explicitly local preview only. */
+  readonly lifecycle?: 'CONCEPT' | 'FINALIZED'
   readonly profile: {
     readonly status: 'SYNTHETIC_TEST_PROFILE' | 'PAYROLL_SOURCE_PROFILE'
     readonly employerName: string
@@ -107,6 +109,7 @@ function validateInput(input: Payrun01PayslipPdfInput): void {
     || !Number.isInteger(period.year) || !Number.isInteger(period.month)
     || period.month < 1 || period.month > 12
     || !ISO_DATE_PATTERN.test(period.startsOn) || !ISO_DATE_PATTERN.test(period.endsOn)
+    || (data.lifecycle !== undefined && data.lifecycle !== 'CONCEPT' && data.lifecycle !== 'FINALIZED')
     || (profile.status !== 'SYNTHETIC_TEST_PROFILE' && profile.status !== 'PAYROLL_SOURCE_PROFILE')
     || profile.employerName.trim().length === 0
     || profile.employeeName.trim().length === 0
@@ -174,6 +177,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
   if (!employerName || !employeeName) throw new Error('PAYRUN01_PAYSLIP_PROFILE_INVALID')
   const pensionExcluded = data.profile.pensionTreatment === 'EXCLUDED_SOURCE_GAP'
   const period = `${data.period.year}-${String(data.period.month).padStart(2, '0')}`
+  const isConcept = data.lifecycle === 'CONCEPT'
   const earningsRows = resultRows(data, EARNINGS_KEYS)
   const deductionRows = resultRows(data, pensionExcluded ? ['wage_tax'] : DEDUCTION_KEYS)
   const taxBaseRows = resultRows(data, TAX_BASE_KEYS)
@@ -253,7 +257,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
       <div class="employer-brand">${employerBrand}</div>
     </header>
     <div class="title-row">
-      <div><h1>Loonstrook</h1><p class="subtitle">LiquidHR Standard</p></div>
+      <div><h1>Loonstrook</h1><p class="subtitle">LiquidHR Standard${isConcept ? ' · CONCEPT — NIET DEFINITIEF' : ''}</p></div>
       <div class="period">LOONPERIODE&nbsp;&nbsp;${escapeHtml(period)}</div>
     </div>
     <dl class="metadata">
@@ -291,7 +295,9 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
         <table><tbody>${cumulativeRows || noCumulativeRows}</tbody></table>
       </section>
     </div>
-    <p class="footer-note">De bedragen zijn overgenomen uit de opgeslagen definitieve salarisrun. Voor deze PDF is geen nieuwe loonberekening uitgevoerd.</p>
+    <p class="footer-note">${isConcept
+    ? 'Lokale CONCEPT-proef op basis van synthetische TEST-invoer. Niet gebruiken voor uitbetaling; er is geen salarisrun of PDF opgeslagen.'
+    : 'De bedragen zijn overgenomen uit de opgeslagen definitieve salarisrun. Voor deze PDF is geen nieuwe loonberekening uitgevoerd.'}</p>
   </main>
 </body>
 </html>`

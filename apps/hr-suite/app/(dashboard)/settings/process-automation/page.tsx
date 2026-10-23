@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
 import { CertifiedRecipePanel } from '@/components/process-automation/certified-recipe-panel'
 import { StudioWorkspace, type StudioLabels } from '@/components/process-automation/studio-workspace'
+import type { ProcessFlowEditorLabels } from '@/components/process-automation/process-flow-editor'
 import { AuthorizationError, requireAnyPermission, requirePermission } from '@/lib/auth/permissions'
 import {
   getStudioDefinition,
@@ -93,6 +94,125 @@ export default async function ProcessAutomationSettingsPage({
     result[entry.id] = messages(`studio.bindingEntryDescriptions.${entry.id}`)
     return result
   }, {})
+
+  const flowEditor: ProcessFlowEditorLabels = {
+    stepList: messages('studio.flowEditor.stepList'),
+    stepLibrary: messages('studio.flowEditor.stepLibrary'),
+    stepName: messages('studio.flowEditor.stepName'),
+    stepType: messages('studio.flowEditor.stepType'),
+    stepTypeLabels: {
+      FORM: messages('studio.flowEditor.stepTypes.FORM'),
+      DECISION: messages('studio.flowEditor.stepTypes.DECISION'),
+      END: messages('studio.flowEditor.stepTypes.END'),
+    },
+    stepTypeLabelsNl: {
+      FORM: messagesNl('studio.flowEditor.stepTypes.FORM'),
+      DECISION: messagesNl('studio.flowEditor.stepTypes.DECISION'),
+      END: messagesNl('studio.flowEditor.stepTypes.END'),
+    },
+    stepTypeLabelsEn: {
+      FORM: messagesEn('studio.flowEditor.stepTypes.FORM'),
+      DECISION: messagesEn('studio.flowEditor.stepTypes.DECISION'),
+      END: messagesEn('studio.flowEditor.stepTypes.END'),
+    },
+    responsible: messages('studio.flowEditor.responsible'),
+    responsibleMissing: messages('studio.flowEditor.responsibleMissing'),
+    addResponsible: messages('studio.flowEditor.addResponsible'),
+    roleLabels: {
+      employee: messages('studio.flowEditor.roles.employee'),
+      manager: messages('studio.flowEditor.roles.manager'),
+      'hr-team': messages('studio.flowEditor.roles.hrTeam'),
+    },
+    roleLabelsNl: {
+      employee: messagesNl('studio.flowEditor.roles.employee'),
+      manager: messagesNl('studio.flowEditor.roles.manager'),
+      'hr-team': messagesNl('studio.flowEditor.roles.hrTeam'),
+    },
+    roleLabelsEn: {
+      employee: messagesEn('studio.flowEditor.roles.employee'),
+      manager: messagesEn('studio.flowEditor.roles.manager'),
+      'hr-team': messagesEn('studio.flowEditor.roles.hrTeam'),
+    },
+    roleDescriptions: {
+      employee: messages('studio.flowEditor.roleDescriptions.employee'),
+      manager: messages('studio.flowEditor.roleDescriptions.manager'),
+      'hr-team': messages('studio.flowEditor.roleDescriptions.hrTeam'),
+    },
+    form: messages('studio.flowEditor.form'),
+    noForms: messages('studio.flowEditor.noForms'),
+    noFormsHelp: messages('studio.flowEditor.noFormsHelp'),
+    addStep: messages('studio.flowEditor.addStep'),
+    selectStep: messages('studio.flowEditor.selectStep'),
+    addStepHelp: messages('studio.flowEditor.addStepHelp'),
+    emptyFlow: messages('studio.flowEditor.emptyFlow'),
+    emptyFlowHelp: messages('studio.flowEditor.emptyFlowHelp'),
+    selectedStep: messages('studio.flowEditor.selectedStep'),
+    properties: messages('studio.flowEditor.properties'),
+    steps: messages('studio.flowEditor.steps'),
+    stepLabel: messages('studio.flowEditor.stepLabel'),
+    routeTitle: messages('studio.flowEditor.routeTitle'),
+    addRoute: messages('studio.flowEditor.addRoute'),
+    addRouteHelp: messages('studio.flowEditor.addRouteHelp'),
+    routeAction: messages('studio.flowEditor.routeAction'),
+    routeDestination: messages('studio.flowEditor.routeDestination'),
+    routeLabel: messages('studio.flowEditor.routeLabel'),
+    removeRoute: messages('studio.flowEditor.removeRoute'),
+    noRoutes: messages('studio.flowEditor.noRoutes'),
+    noDestination: messages('studio.flowEditor.noDestination'),
+    advanced: messages('studio.advanced'),
+    technicalKey: messages('studio.flowEditor.technicalKey'),
+    terminalOutcome: messages('studio.flowEditor.terminalOutcome'),
+    terminalOutcomes: {
+      COMPLETED: messages('studio.flowEditor.terminalOutcomes.COMPLETED'),
+      REJECTED: messages('studio.flowEditor.terminalOutcomes.REJECTED'),
+      CANCELLED: messages('studio.flowEditor.terminalOutcomes.CANCELLED'),
+    },
+    terminalOutcomesNl: {
+      COMPLETED: messagesNl('studio.flowEditor.terminalOutcomes.COMPLETED'),
+      REJECTED: messagesNl('studio.flowEditor.terminalOutcomes.REJECTED'),
+      CANCELLED: messagesNl('studio.flowEditor.terminalOutcomes.CANCELLED'),
+    },
+    terminalOutcomesEn: {
+      COMPLETED: messagesEn('studio.flowEditor.terminalOutcomes.COMPLETED'),
+      REJECTED: messagesEn('studio.flowEditor.terminalOutcomes.REJECTED'),
+      CANCELLED: messagesEn('studio.flowEditor.terminalOutcomes.CANCELLED'),
+    },
+    actionLabels: {
+      SUBMIT: messages('studio.flowEditor.actions.SUBMIT'),
+      APPROVE: messages('studio.flowEditor.actions.APPROVE'),
+      REJECT: messages('studio.flowEditor.actions.REJECT'),
+      REQUEST_CHANGES: messages('studio.flowEditor.actions.REQUEST_CHANGES'),
+      ACKNOWLEDGE: messages('studio.flowEditor.actions.ACKNOWLEDGE'),
+      COMPLETE: messages('studio.flowEditor.actions.COMPLETE'),
+      CANCEL: messages('studio.flowEditor.actions.CANCEL'),
+    },
+    actionLabelsNl: {
+      SUBMIT: messagesNl('studio.flowEditor.actions.SUBMIT'),
+      APPROVE: messagesNl('studio.flowEditor.actions.APPROVE'),
+      REJECT: messagesNl('studio.flowEditor.actions.REJECT'),
+      REQUEST_CHANGES: messagesNl('studio.flowEditor.actions.REQUEST_CHANGES'),
+      ACKNOWLEDGE: messagesNl('studio.flowEditor.actions.ACKNOWLEDGE'),
+      COMPLETE: messagesNl('studio.flowEditor.actions.COMPLETE'),
+      CANCEL: messagesNl('studio.flowEditor.actions.CANCEL'),
+    },
+    actionLabelsEn: {
+      SUBMIT: messagesEn('studio.flowEditor.actions.SUBMIT'),
+      APPROVE: messagesEn('studio.flowEditor.actions.APPROVE'),
+      REJECT: messagesEn('studio.flowEditor.actions.REJECT'),
+      REQUEST_CHANGES: messagesEn('studio.flowEditor.actions.REQUEST_CHANGES'),
+      ACKNOWLEDGE: messagesEn('studio.flowEditor.actions.ACKNOWLEDGE'),
+      COMPLETE: messagesEn('studio.flowEditor.actions.COMPLETE'),
+      CANCEL: messagesEn('studio.flowEditor.actions.CANCEL'),
+    },
+    connectionLabel: messages('studio.flowEditor.connectionLabel'),
+    stepNeedsAttention: messages('studio.flowEditor.stepNeedsAttention'),
+    stepIssueCount: messages('studio.flowEditor.stepIssueCount'),
+    conditionalRoute: messages('studio.flowEditor.conditionalRoute'),
+    formCreationFollowUp: messages('studio.flowEditor.formCreationFollowUp'),
+    startStep: messages('studio.flowEditor.startStep'),
+    noSelection: messages('studio.flowEditor.noSelection'),
+    unsupportedTypeHelp: messages('studio.flowEditor.unsupportedTypeHelp'),
+  }
 
   const labels: StudioLabels = {
     title: messages('studio.title'),
@@ -221,6 +341,31 @@ export default async function ProcessAutomationSettingsPage({
     blankProcessDescription: messages('studio.blankProcessDescription'),
     certifiedRecipe: messages('studio.certifiedRecipe'),
     certifiedRecipeDescription: messages('studio.certifiedRecipeDescription'),
+    processDescriptionPlaceholder: messages('studio.processDescriptionPlaceholder'),
+    blankStart: messages('studio.blankStart'),
+    trainingRequestExample: messages('studio.trainingRequestExample'),
+    trainingRequestExampleDescription: messages('studio.trainingRequestExampleDescription'),
+    exampleNoDomainWrites: messages('studio.exampleNoDomainWrites'),
+    automaticKey: messages('studio.automaticKey'),
+    advanced: messages('studio.advanced'),
+    compilerIssueMessages: {
+      START_STEP_UNKNOWN: messages('studio.compilerIssues.START_STEP_UNKNOWN'),
+      MISSING_END_STEP: messages('studio.compilerIssues.MISSING_END_STEP'),
+      STEP_WITHOUT_EXIT: messages('studio.compilerIssues.STEP_WITHOUT_EXIT'),
+      STEP_PARTICIPANT_REQUIRED: messages('studio.compilerIssues.STEP_PARTICIPANT_REQUIRED'),
+      STEP_PARTICIPANT_UNKNOWN: messages('studio.compilerIssues.STEP_PARTICIPANT_UNKNOWN'),
+      STEP_FORM_REQUIRED: messages('studio.compilerIssues.STEP_FORM_REQUIRED'),
+      STEP_FORM_UNKNOWN: messages('studio.compilerIssues.STEP_FORM_UNKNOWN'),
+      TRANSITION_SOURCE_UNKNOWN: messages('studio.compilerIssues.TRANSITION_SOURCE_UNKNOWN'),
+      TRANSITION_TARGET_UNKNOWN: messages('studio.compilerIssues.TRANSITION_TARGET_UNKNOWN'),
+      TRANSITION_ACTION_NOT_ALLOWED: messages('studio.compilerIssues.TRANSITION_ACTION_NOT_ALLOWED'),
+      UNREACHABLE_STEP: messages('studio.compilerIssues.UNREACHABLE_STEP'),
+      END_STEP_OUTCOME_REQUIRED: messages('studio.compilerIssues.END_STEP_OUTCOME_REQUIRED'),
+      END_STEP_INVALID: messages('studio.compilerIssues.END_STEP_INVALID'),
+      STEP_ACTION_INVALID: messages('studio.compilerIssues.STEP_ACTION_INVALID'),
+      RECOVERY_TRANSITION_INVALID: messages('studio.compilerIssues.RECOVERY_TRANSITION_INVALID'),
+    },
+    flowEditor,
     continue: messages('studio.continue'),
     back: messages('studio.back'),
     createDraft: messages('studio.createDraft'),
@@ -254,6 +399,7 @@ export default async function ProcessAutomationSettingsPage({
           activate: messages('p9.activate'),
           activated: messages('p9.activated'),
           activationFailed: messages('p9.activationFailed'),
+          adapterDetails: messages('p9.adapterDetails'),
         }}
         recipes={recipes}
       />

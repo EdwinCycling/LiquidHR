@@ -1,9 +1,13 @@
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
+import { Button } from '@/components/ui/button'
+import { Suspense } from 'react'
 import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'
 import { PayrollRunSummaryList } from '@/components/payroll/payroll-professional-view'
 import { PayrollProfessionalRunWorkbench } from '@/components/payroll/payroll-professional-run-workbench'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import type { Translator } from '@/lib/i18n/translator'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { listPayrollProfessionalRuns } from '@/lib/payroll/payroll-professional-service'
 import { getPayrollProfessionalRunWorkspace } from '@/lib/payroll/payroll-professional-run-service'
 
@@ -32,6 +36,74 @@ const workbenchLabelKeys = [
   'batch_accessDenied','batch_failed','batch_success',
 ]
 
+function PayrollDataLoading({ label, rows }: { readonly label: string; readonly rows: number }) {
+  return <section aria-busy="true" aria-label={label} className="space-y-3">
+    <p aria-live="polite" className="text-sm text-muted-foreground" role="status">{label}</p>
+    <div aria-hidden="true" className="space-y-2">
+      {Array.from({ length: rows }, (_, index) => <div className="h-14 animate-pulse rounded-[var(--radius-surface)] border border-border-subtle bg-surface-subtle" key={index} />)}
+    </div>
+  </section>
+}
+
+function PayrollDataError({ t, id, error, periodKey }: {
+  readonly t: Translator
+  readonly id: string
+  readonly error: unknown
+  readonly periodKey?: string
+}) {
+  const message = error instanceof AuthorizationError
+    ? t('runWorkspaceAccessDenied')
+    : t('runWorkspaceLoadFailed')
+  return <section aria-labelledby={id} className="space-y-4 rounded-[var(--radius-surface)] border border-destructive/30 bg-destructive-surface p-4">
+    <h2 className="text-base font-semibold" id={id}>{t('runWorkspaceErrorTitle')}</h2>
+    <p aria-live="assertive" className="text-sm text-destructive" role="alert">{message}</p>
+    <form action="/payroll/runs" method="get">
+      {periodKey ? <input name="period" type="hidden" value={periodKey} /> : null}
+      <Button type="submit" variant="secondary">{t('runWorkspaceRetry')}</Button>
+    </form>
+  </section>
+}
+
+function PayrollRunListContent({ t, runs, error, periodKey }: {
+  readonly t: Translator
+  readonly runs: Awaited<ReturnType<typeof listPayrollProfessionalRuns>> | null
+  readonly error: unknown | null
+  readonly periodKey?: string
+}) {
+  if (error !== null) return <PayrollDataError t={t} id="payroll-runs-list-error-title" error={error} periodKey={periodKey} />
+  return <PayrollRunSummaryList runs={runs ?? []} labels={Object.fromEntries(['empty','period','employee','status','runId','action','openDetail','runHashesHint','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))} />
+}
+
+async function PayrollRunWorkspaceContent({
+  t,
+  locale,
+  periodKey,
+  workspacePromise,
+}: {
+  readonly t: Translator
+  readonly locale: Awaited<ReturnType<typeof getLocale>>
+  readonly periodKey?: string
+  readonly workspacePromise: ReturnType<typeof getPayrollProfessionalRunWorkspace>
+}) {
+  let workspace: Awaited<ReturnType<typeof getPayrollProfessionalRunWorkspace>>
+  try {
+    workspace = await workspacePromise
+  } catch (error) {
+    return <PayrollDataError t={t} id="payroll-run-workspace-error-title" error={error} periodKey={periodKey} />
+  }
+  return <PayrollProfessionalRunWorkbench
+    administrationName={workspace.administrationName}
+    periods={workspace.periods}
+    selectedPeriod={workspace.selectedPeriod}
+    employees={workspace.employees}
+    summary={workspace.summary}
+    rosterComplete={workspace.rosterComplete}
+    canOpenPayrollCycle={workspace.canOpenPayrollCycle}
+    locale={locale}
+    labels={Object.fromEntries(workbenchLabelKeys.map((key) => [key, t(key)]))}
+  />
+}
+
 export default async function PayrollRunsPage({
   searchParams,
 }: {
@@ -42,12 +114,12 @@ export default async function PayrollRunsPage({
   const periodKey = typeof periodValue === 'string' ? periodValue : Array.isArray(periodValue) ? periodValue[0] : undefined
   const recalculationValue = query.recalculation
   const recalculationOutcome = typeof recalculationValue === 'string' ? recalculationValue : undefined
-  const [runs, t, locale, workspace] = await Promise.all([
-    listPayrollProfessionalRuns(),
-    getTranslator('payrollProfessional'),
-    getLocale(),
-    getPayrollProfessionalRunWorkspace(periodKey),
-  ])
+  const pageCopyPromise = Promise.all([getTranslator('payrollProfessional'), getLocale()])
+  const runListPromise = listPayrollProfessionalRuns()
+    .then((runs) => ({ ok: true as const, runs }))
+    .catch((error: unknown) => ({ ok: false as const, error }))
+  const workspacePromise = getPayrollProfessionalRunWorkspace(periodKey)
+  const [[t, locale], runList] = await Promise.all([pageCopyPromise, runListPromise])
   const recalculationMessage = recalculationOutcome && [
     'calculated','incomplete','sourceGap','unsupported','correctionRequired','inProgress','accessDenied','invalid','failed',
   ].includes(recalculationOutcome) ? t(`recalculation_${recalculationOutcome}`) : null
@@ -55,18 +127,10 @@ export default async function PayrollRunsPage({
   return <PageShell className="space-y-6 py-6 sm:py-8">
     <PageHeader title={t('runs')} description={t('runsDescription')} />
     <PayrollProfessionalNavigation active="runs" labels={nav} />
-    <PayrollProfessionalRunWorkbench
-      administrationName={workspace.administrationName}
-      periods={workspace.periods}
-      selectedPeriod={workspace.selectedPeriod}
-      employees={workspace.employees}
-      summary={workspace.summary}
-      rosterComplete={workspace.rosterComplete}
-      canOpenPayrollCycle={workspace.canOpenPayrollCycle}
-      locale={locale}
-      labels={Object.fromEntries(workbenchLabelKeys.map((key) => [key, t(key)]))}
-    />
     {recalculationMessage ? <p role="status" aria-live="polite" className="rounded-[var(--radius-surface)] border border-border-subtle p-4 text-sm">{recalculationMessage}</p> : null}
-    <PayrollRunSummaryList runs={runs} labels={Object.fromEntries(['empty','period','employee','status','runId','action','openDetail','runHashesHint','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))} />
+    <PayrollRunListContent t={t} runs={runList.ok ? runList.runs : null} error={runList.ok ? null : runList.error} periodKey={periodKey} />
+    <Suspense fallback={<PayrollDataLoading label={t('runWorkspaceLoading')} rows={2} />}>
+      <PayrollRunWorkspaceContent t={t} locale={locale} periodKey={periodKey} workspacePromise={workspacePromise} />
+    </Suspense>
   </PageShell>
 }

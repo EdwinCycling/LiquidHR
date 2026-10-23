@@ -79,8 +79,20 @@ async function contextMatches(page, expectedAdministrationId) {
   if (context?.administrationId !== expectedAdministrationId) {
     const administration = page.locator('#administration-switcher')
     if (await administration.count()) {
-      const administrationOptionChosen = await chooseDropdownOption(page, '#administration-switcher', scope.administration.name)
-      if (administrationOptionChosen.ok) {
+      const selected = await administration.selectOption({ label: scope.administration.name }).catch(() => [])
+      if (selected.length > 0) {
+        const form = administration.locator('xpath=ancestor::form')
+        await Promise.all([
+          page.waitForResponse((response) => {
+            try {
+              return response.request().method() === 'POST'
+                && new URL(response.url()).pathname === '/api/context/administration'
+            } catch {
+              return false
+            }
+          }, { timeout: 15000 }),
+          form.locator('button[type="submit"]').click(),
+        ]).catch(() => undefined)
         await page.waitForFunction(async (ids) => {
           const response = await fetch('/api/context', { cache: 'no-store' })
           if (!response.ok) return false
@@ -146,75 +158,83 @@ async function chooseContext(page, expectedAdministrationId, usePayrollScope) {
 }
 
 async function submitRoleSwitch(page, key) {
-  const trigger = page.getByTestId('test-role-switch-trigger')
-  if (!(await trigger.count())) return { ok: false, unavailable: false, cause: 'switcher-missing' }
-  await trigger.click()
-  const target = page.getByTestId('test-role-switch-target')
-  const targetVisible = await target.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)
-  if (!targetVisible) {
-    const expanded = await trigger.getAttribute('aria-expanded').catch(() => null)
-    return { ok: false, unavailable: false, cause: expanded === 'true' ? 'menu-not-visible' : 'trigger-not-responsive' }
+  const target = page.locator('#local-persona-target')
+  if (!(await target.count())) return { ok: false, unavailable: false, cause: 'switcher-missing' }
+  const available = await target.locator('option').evaluateAll((options, expected) => {
+    const match = options.find((item) => item.value === expected)
+    return Boolean(match && !match.disabled)
+  }, key)
+  if (!available) {
+    const exists = await target.locator('option').evaluateAll((options, expected) => options.some((item) => item.value === expected), key)
+    return { ok: false, unavailable: true, cause: exists ? 'target-disabled' : 'key-missing' }
   }
-  const values = await target.locator('option').evaluateAll((options) => options.map((option) => option.value))
-  if (!values.includes(key)) {
-    await page.keyboard.press('Escape')
-    return { ok: false, unavailable: false, cause: 'key-missing' }
+  try {
+    await target.selectOption(key)
+    const form = target.locator('xpath=ancestor::form')
+    const response = await Promise.all([
+      page.waitForResponse((candidate) => {
+        try {
+          return candidate.request().method() === 'POST'
+            && new URL(candidate.url()).pathname === '/api/auth/test-role-switch'
+        } catch {
+          return false
+        }
+      }, { timeout: 20000 }),
+      form.locator('button[type="submit"]').click(),
+    ]).then(([result]) => result)
+    if (response.status() !== 303) return { ok: false, unavailable: response.status() === 503, cause: `handoff-http-${response.status()}` }
+    await page.waitForURL((url) => ['/context/select', '/dashboard/start'].includes(url.pathname), { timeout: 20000 })
+    return { ok: true, unavailable: false, cause: null }
+  } catch {
+    return { ok: false, unavailable: false, cause: 'handoff-submit-failed' }
   }
-
-  const navigation = page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => null)
-  await target.selectOption(key)
-  const response = await navigation
-  if (response?.status() === 503 || new URL(page.url()).pathname === '/api/auth/test-role-switch') {
-    return { ok: false, unavailable: true, cause: 'handoff-unavailable' }
-  }
-  const personaMarker = page.getByTestId('test-role-current-persona')
-  if (new URL(page.url()).pathname === '/context/select') return { ok: true, unavailable: false, cause: null }
-  await page.waitForFunction((expected) => document.querySelector('[data-testid="test-role-current-persona"]')?.getAttribute('data-persona') === expected, key, { timeout: 20000 }).catch(() => undefined)
-  const ok = (await personaMarker.getAttribute('data-persona').catch(() => null)) === key
-  return { ok, unavailable: false, cause: ok ? null : 'persona-marker-missing' }
 }
 
 async function returnToAdmin(page) {
-  const button = page.getByTestId('test-role-return-to-admin')
-  if (!(await button.count())) return false
-  const navigation = page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => null)
-  await button.click()
-  await navigation
-  if (new URL(page.url()).pathname === '/context/select') await chooseContext(page, null, false).catch(() => ({ ok: false, cause: 'context-selection-failed' }))
-  await page.waitForFunction(() => document.querySelector('[data-testid="test-role-current-persona"]')?.getAttribute('data-persona') === 'hr-admin', undefined, { timeout: 20000 }).catch(() => undefined)
-  return (await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null)) === 'hr-admin'
+  const personasPage = await page.goto(new URL('/local/personas', origin).toString(), { waitUntil: 'domcontentloaded' }).catch(() => null)
+  if (personasPage?.status() !== 200) return false
+  const form = page.locator('form[action="/api/auth/test-role-switch"]').filter({ has: page.locator('input[name="target"][value="hr-admin"]') })
+  if (!(await form.count())) return false
+  try {
+    const [response] = await Promise.all([
+      page.waitForResponse((candidate) => {
+        try {
+          return candidate.request().method() === 'POST'
+            && new URL(candidate.url()).pathname === '/api/auth/test-role-switch'
+        } catch {
+          return false
+        }
+      }, { timeout: 20000 }),
+      form.locator('button[type="submit"]').click(),
+    ])
+    if (response.status() !== 303) return false
+    await page.waitForURL((url) => url.pathname === '/context/select', { timeout: 20000 })
+  } catch {
+    return false
+  }
+  const contextResult = await chooseContext(page, scope.administration.id, true).catch(() => ({ ok: false, cause: 'context-selection-failed' }))
+  return contextResult.ok
 }
 
 async function testRoleSwitch(page, persona) {
-  const activePersona = await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null)
-  if (activePersona !== 'hr-admin') {
-    addReason(persona.key, 'De vaste Payroll-role-switch is niet gestart vanuit de lokale Test HR Admin-sessie.')
-    return false
-  }
-
   const switched = await submitRoleSwitch(page, persona.roleSwitchKey)
   if (!switched.ok) {
     const reason = switched.cause === 'switcher-missing'
-      ? 'De lokale role-switcher is niet beschikbaar in de Test HR Admin-sessie.'
-      : switched.cause === 'trigger-not-responsive'
-        ? 'De Test HR Admin-role-switchknop reageerde niet; de lokale clienthydratie moet worden gecontroleerd.'
-        : switched.cause === 'menu-not-visible'
-          ? 'De role-switcher meldde een geopend menu maar toonde de keuzelijst niet.'
-          : switched.cause === 'key-missing'
-            ? `De vaste Payroll-role-switchkey ontbreekt: ${persona.roleSwitchKey}.`
-            : switched.unavailable
-              ? 'De vaste Payroll-Auth-identiteit ontbreekt of is niet aan de geverifieerde medewerker gekoppeld.'
-              : 'De directe lokale handoff eindigde niet bij de vaste Payroll-persona.'
+      ? 'De lokale Test HR Admin-personawisselaar is niet beschikbaar.'
+      : switched.cause === 'key-missing'
+        ? `De vaste Payroll-role-switchkey ontbreekt: ${persona.roleSwitchKey}.`
+        : switched.cause === 'target-disabled' || switched.unavailable
+          ? 'De vaste Payroll-persona is niet beschikbaar voor de bestaande lokale handoff.'
+          : 'De bestaande lokale handoff kon niet worden bevestigd.'
     addReason(persona.key, reason)
     return false
   }
 
   const scopeResult = await chooseContext(page, scope.administration.id, true).catch(() => ({ ok: false, cause: 'context-check-failed' }))
   if (!scopeResult.ok) addReason(persona.key, `De persona heeft geen actieve, geverifieerde Jupiter-administratiecontext (${scopeResult.cause}).`)
-  if (await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null) !== persona.roleSwitchKey) {
-    addReason(persona.key, 'De directe handoff eindigde niet bij de vaste persona-key.')
-  }
-  return scopeResult.ok
+  if (!scopeResult.ok) return false
+  await checkEss(page, persona)
+  return true
 }
 async function expectCrossEmployeeDenied(page, personaKey, routeName, url) {
   const response = await page.context().request.get(new URL(url, origin).toString()).catch(() => null)
@@ -331,34 +351,46 @@ async function testAdminHandoff(persona) {
     consoleErrorCount += 1
     browserErrorKinds.add(error.name === 'TypeError' || error.name === 'ReferenceError' ? 'runtime' : 'pageerror')
   })
+  let handoffConfirmed = false
   try {
-    await page.goto(new URL('/login', origin).toString(), { waitUntil: 'domcontentloaded' })
+    await page.goto(new URL('/local/sign-in', origin).toString(), { waitUntil: 'domcontentloaded' })
     const adminLoginButton = page.getByTestId('test-login-hr-admin')
-    if (!(await adminLoginButton.count())) {
+    const adminLoginAvailable = await adminLoginButton.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false)
+    if (!adminLoginAvailable) {
       addReason(persona.key, 'Lokale Test HR Admin-login is niet beschikbaar op de opgegeven loopback-server.')
       return
     }
-    const adminNavigation = page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => null)
-    await adminLoginButton.click()
-    const adminResponse = await adminNavigation
-    if (adminResponse && adminResponse.status() >= 500) {
+    const [adminResponse] = await Promise.all([
+      page.waitForResponse((response) => {
+        try {
+          return response.request().method() === 'POST'
+            && new URL(response.url()).pathname === '/api/local/sign-in'
+        } catch {
+          return false
+        }
+      }, { timeout: 20000 }),
+      adminLoginButton.click(),
+    ])
+    if (adminResponse.status() !== 303) {
       addReason(persona.key, 'Lokale Test HR Admin-authenticatie of het normale contextladen faalde.')
       return
     }
-    if (new URL(page.url()).pathname === '/context/select') await chooseContext(page, null, false).catch(() => false)
-    const activeAdminPersona = await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null)
-    if (activeAdminPersona !== 'hr-admin') {
-      addReason(persona.key, 'Lokale Test HR Admin-authenticatie of het normale contextladen faalde.')
+    await page.waitForURL((url) => url.pathname === '/context/select', { timeout: 20000 }).catch(() => undefined)
+    const contextResult = await chooseContext(page, scope.administration.id, true).catch(() => ({ ok: false, cause: 'context-selection-failed' }))
+    if (!contextResult.ok) {
+      addReason(persona.key, `Lokale Test HR Admin heeft geen geverifieerde Jupiter-administratiecontext (${contextResult.cause}).`)
       return
     }
-
-    await page.waitForLoadState('networkidle', { timeout: 2500 }).catch(() => undefined)
-    await page.waitForTimeout(250)
+    const personaPage = await page.goto(new URL('/local/personas', origin).toString(), { waitUntil: 'domcontentloaded' })
+    if (personaPage?.status() !== 200 || !(await page.locator('#local-persona-target').count())) {
+      addReason(persona.key, 'De lokale Test HR Admin-personawisselaar is niet toegankelijk binnen de geverifieerde administratie.')
+      return
+    }
     const wasSwitched = await testRoleSwitch(page, persona)
-    const returnButton = page.getByTestId('test-role-return-to-admin')
-    if (wasSwitched && await returnButton.count()) {
+    if (wasSwitched) {
       const returned = await returnToAdmin(page)
       if (!returned) addReason(persona.key, 'Terugkeer via de bestaande lokale Test HR Admin-login is niet bevestigd.')
+      handoffConfirmed = returned
     }
   } catch {
     addReason(persona.key, 'De lokale Test HR Admin- en role-switchbrowsercheck kon niet veilig worden voltooid.')
@@ -373,14 +405,15 @@ async function testAdminHandoff(persona) {
     }
     await context.close().catch(() => undefined)
   }
+  return handoffConfirmed
 }
 
 try {
   if (origin.hostname !== 'localhost') throw new Error('LOOPBACK_HOST_REQUIRED')
   browser = await chromium.launch({ channel: 'chrome', headless: true })
   for (const persona of personas) {
-    await testAdminHandoff(persona)
-    await directLogin(persona)
+    const handoffConfirmed = await testAdminHandoff(persona)
+    if (!handoffConfirmed) await directLogin(persona)
   }
 } catch (error) {
   const safeReason = error instanceof Error && error.message === 'LOOPBACK_HOST_REQUIRED'

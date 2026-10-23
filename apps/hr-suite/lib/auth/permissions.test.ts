@@ -358,6 +358,28 @@ describe('requirePermission', () => {
     )).resolves.toBe(context)
   })
 
+  it('eist de Employee-selfpermission voor een self-only read ondanks de exacte Admin AuthContext-permission', async () => {
+    const client = createFakeClient({ selfPermissionCodes: [], essStatus: 'ACTIVE' })
+    const context: AuthContext = {
+      tenantId: 'tenant-1',
+      hrGroupId: 'group-1',
+      administrationId: 'admin-1',
+      userId: 'user-1',
+      employeeId: 'employee-1',
+      activeRoles: ['HR_ADMIN'],
+      permissions: ['self:talent-goal:read'],
+      focusExperience: 'EMPLOYEE',
+    }
+
+    await expect(requirePermissionInContext(
+      client as unknown as Parameters<typeof requirePermissionInContext>[0],
+      context,
+      'self:talent-goal:read',
+      'employee-1',
+      { requireEmployeeSelfPermission: true },
+    )).rejects.toBeInstanceOf(AuthorizationError)
+  })
+
   it('laat een gewone medewerker geen adminpermissie gebruiken om zichzelf te lezen', async () => {
     const client = createFakeClient({
       roleCodes: { 'tenant-admin-role': 'EMPLOYEE' },
