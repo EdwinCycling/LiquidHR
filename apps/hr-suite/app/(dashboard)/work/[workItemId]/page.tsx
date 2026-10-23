@@ -47,5 +47,5 @@ export default async function WorkDetailPage({ params, searchParams }: WorkDetai
     detail.canReassign ? getProcessWorkItemAssignmentOptions(workItemId).catch(() => []) : Promise.resolve([]),
     getProcessWorkItemExperience(workItemId, locale).catch(() => null),
   ])
-  return <ProcessWorkDetailView assignmentOptions={assignmentOptions} backHref={workBackHref(query)} detail={detail} experience={experience} form={form} outputs={outputs} operations={operations} locale={locale} labels={createProcessWorkDetailLabels(t)} isRequesterPresentation={isRequesterPresentation} />
+  return <ProcessWorkDetailView assignmentOptions={assignmentOptions} backHref={workBackHref(query)} detail={detail} experience={experience} form={form} outputs={outputs} operations={operations} locale={locale} timeZone={requestContext.activeContext.activeHrGroup.timeZone} labels={createProcessWorkDetailLabels(t)} isRequesterPresentation={isRequesterPresentation} />
 }

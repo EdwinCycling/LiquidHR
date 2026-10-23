@@ -22,7 +22,15 @@ Deze roadmap vervangt de oude PMUX-deelreeks als actieve planning. PMUX-02A/02B,
 
 ## Wave 06 — Deadlines, uitval en procesregie
 
-Na PMUX-05: procesdeadline en stap-SLA, reminders, escalaties, ontbrekende manager, uitdienstgetreden behandelaar, HR-uitvallijst, geautoriseerde herverdeling binnen scope, prognoses en inzichten. Deze wave wordt nu alleen gepland; hier wordt in PMUX-05 geen functionaliteit voor gebouwd.
+### PMUX-06A — Stap-SLA's en deadlines
+
+**Status (23-10-2026): LOKALE IMPLEMENTATIE GEREED; REMOTE ACCEPTATIE OPEN.** HR Admin kan de bestaande SLA per stap instellen; deadlineberekening en materialisatie gebruiken de gepinde immutable procesversie, stapactivatie en actieve HR-groeptijdzone. Mijn werk, Focus, dashboard en procesdetail gebruiken één deadlineprojectie. Werkdagen blijven geblokkeerd zolang geen eenduidige werkdag-/feestdagenkalender bestaat; ook legacy gepubliceerde werkdag-SLA's blokkeren activatie met begrijpelijke uitleg. Zie [PMUX-06A requirement](PMUX-06A_SLA_DEADLINES.md) en [lokale acceptatie](../../quality/acceptance/runs/PMUX-06A-20261023-LOCAL.md). De migratie is alleen lokaal met PGlite getest; echte TEST-readback en desktop-/390px-browseracceptatie blijven OPEN.
+
+### PMUX-06B — Herinneringen en escalaties
+
+**Status: NIET GESTART.** Herinneringsverzending, queues voor herinneringen, escalatie, uitvalbeheer en herverdeling zijn niet onderdeel van PMUX-06A. Deze capabilities blijven gepland voor de volgende PMUX-06-implementatie.
+
+Overige PMUX-06-capabilities — ontbrekende manager, uitdienstgetreden behandelaar, HR-uitvallijst, scopegebonden herverdeling, prognoses en inzichten — blijven gepland en zijn niet gestart.
 
 ## Wave 07 — ESS, Focus en productfinish
 

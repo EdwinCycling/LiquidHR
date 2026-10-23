@@ -4,18 +4,18 @@ import { FocusProcessList, type FocusProcessListLabels } from './focus-process-l
 import type { ProcessWorkList } from '@/lib/process-automation/work-service'
 
 const labels: FocusProcessListLabels = {
-  actionNeeded: 'Actie nodig', empty: 'Leeg', emptyRequests: 'Nog geen aanvragen', waiting: 'Wachten', statusOpen: 'Open', inProgress: 'In behandeling', completed: 'Afgerond', changesRequested: 'Aanvullen gevraagd', rejected: 'Afgewezen', cancelled: 'Geannuleerd', blocked: 'Geblokkeerd', expired: 'Verlopen', open: 'Openen', leave: 'Verlofaanvraag', work: 'Werkactie', request: 'Aanvraag', newRequest: 'Nieuwe aanvraag',
+  actionNeeded: 'Actie nodig', empty: 'Leeg', emptyRequests: 'Nog geen aanvragen', waiting: 'Wachten', statusOpen: 'Open', inProgress: 'In behandeling', completed: 'Afgerond', changesRequested: 'Aanvullen gevraagd', rejected: 'Afgewezen', cancelled: 'Geannuleerd', blocked: 'Geblokkeerd', expired: 'Verlopen', open: 'Openen', leave: 'Verlofaanvraag', work: 'Werkactie', request: 'Aanvraag', newRequest: 'Nieuwe aanvraag', deadline: 'Deadline', deadlineNoDeadline: 'Geen deadline', deadlineOnTrack: 'Op schema', deadlineNearDue: 'Bijna te laat', deadlineClosed: 'Afgerond', deadlineDueNow: 'Nu afronden', deadlineRemaining: 'Nog {duration}', deadlineOverdueBy: '{duration} te laat', deadlineDaysSingular: 'dag', deadlineDaysPlural: 'dagen', deadlineHoursSingular: 'uur', deadlineHoursPlural: 'uur', deadlineMinutesSingular: 'minuut', deadlineMinutesPlural: 'minuten',
 }
 
 const work: ProcessWorkList = {
   items: [{
-    workItemId: '00000000-0000-4000-8000-000000000001', processInstanceId: '00000000-0000-4000-8000-000000000002', stepInstanceId: '00000000-0000-4000-8000-000000000003', processDefinitionId: '00000000-0000-4000-8000-000000000004', processKey: 'leave-request-v1', processTitle: 'Verlofaanvraag', subjectEmployeeId: '00000000-0000-4000-8000-000000000005', subjectEmploymentId: '00000000-0000-4000-8000-000000000006', subjectName: 'Noah Test', stepKey: 'manager-approval', stepTitle: 'manager-approval', participantKey: 'manager', assignmentMode: 'EXACTLY_ONE', receivedVia: 'DIRECT', assignmentExplanation: { source: 'DIRECT' }, status: 'OPEN', instanceStatus: 'RUNNING', currentStepKey: 'manager-approval', instanceVersion: 1, expectedVersion: 1, claimedByUserId: null, assigneeEmployeeId: '00000000-0000-4000-8000-000000000007', claimedAt: null, availableAt: '2026-09-20T00:00:00.000Z', deadlineAt: null, createdAt: '2026-09-20T00:00:00.000Z', updatedAt: '2026-09-20T00:00:00.000Z', canAct: true, canClaim: true, isOverdue: false, businessType: 'LEAVE', businessCategory: 'LEAVE_REQUEST', businessStatus: 'OPEN', leaveRequestId: '00000000-0000-4000-8000-000000000008',
+    workItemId: '00000000-0000-4000-8000-000000000001', processInstanceId: '00000000-0000-4000-8000-000000000002', stepInstanceId: '00000000-0000-4000-8000-000000000003', processDefinitionId: '00000000-0000-4000-8000-000000000004', processKey: 'leave-request-v1', processTitle: 'Verlofaanvraag', subjectEmployeeId: '00000000-0000-4000-8000-000000000005', subjectEmploymentId: '00000000-0000-4000-8000-000000000006', subjectName: 'Noah Test', stepKey: 'manager-approval', stepTitle: 'manager-approval', participantKey: 'manager', assignmentMode: 'EXACTLY_ONE', receivedVia: 'DIRECT', assignmentExplanation: { source: 'DIRECT' }, status: 'OPEN', instanceStatus: 'RUNNING', currentStepKey: 'manager-approval', instanceVersion: 1, expectedVersion: 1, claimedByUserId: null, assigneeEmployeeId: '00000000-0000-4000-8000-000000000007', claimedAt: null, availableAt: '2026-09-20T00:00:00.000Z', deadlineAt: null, deadlineStatus: 'NO_DEADLINE', deadlineRemainingSeconds: null, createdAt: '2026-09-20T00:00:00.000Z', updatedAt: '2026-09-20T00:00:00.000Z', canAct: true, canClaim: true, isOverdue: false, businessType: 'LEAVE', businessCategory: 'LEAVE_REQUEST', businessStatus: 'OPEN', leaveRequestId: '00000000-0000-4000-8000-000000000008',
   }], total: 1, hasMore: false,
 }
 
 describe('Focus process links', () => {
   it('uses the canonical Leave workflow detail route', () => {
-    const markup = renderToStaticMarkup(<FocusProcessList data={work} labels={labels} locale="nl" manager />)
+    const markup = renderToStaticMarkup(<FocusProcessList data={work} labels={labels} locale="nl" timeZone="Europe/Amsterdam" manager />)
 
     expect(markup).toContain('/leave/requests/00000000-0000-4000-8000-000000000001')
     expect(markup).not.toContain('/process-runtime/00000000-0000-4000-8000-000000000001')
@@ -25,14 +25,14 @@ describe('Focus process links', () => {
 
   it('links employee requests to the existing request catalog and returns process details to Focus', () => {
     const empty: ProcessWorkList = { items: [], total: 0, hasMore: false }
-    const emptyMarkup = renderToStaticMarkup(<FocusProcessList canStartNewRequest data={empty} labels={labels} locale="nl" />)
+    const emptyMarkup = renderToStaticMarkup(<FocusProcessList canStartNewRequest data={empty} labels={labels} locale="nl" timeZone="Europe/Amsterdam" />)
     expect(emptyMarkup).toContain('href="/work?view=REQUESTS&amp;returnTo=focus-requests"')
     expect(emptyMarkup).toContain(labels.emptyRequests)
-    const readOnlyMarkup = renderToStaticMarkup(<FocusProcessList canStartNewRequest={false} data={empty} labels={labels} locale="nl" />)
+    const readOnlyMarkup = renderToStaticMarkup(<FocusProcessList canStartNewRequest={false} data={empty} labels={labels} locale="nl" timeZone="Europe/Amsterdam" />)
     expect(readOnlyMarkup).not.toContain('/work?view=REQUESTS')
 
     const processItem = { ...work.items[0], businessType: 'P_MUTATION' as const, businessCategory: 'GENERAL' as const, leaveRequestId: null }
-    const processMarkup = renderToStaticMarkup(<FocusProcessList data={{ ...work, items: [processItem] }} labels={labels} locale="nl" />)
+    const processMarkup = renderToStaticMarkup(<FocusProcessList data={{ ...work, items: [processItem] }} labels={labels} locale="nl" timeZone="Europe/Amsterdam" />)
     expect(processMarkup).toContain('/work/00000000-0000-4000-8000-000000000001?returnTo=focus-requests')
   })
 
@@ -42,7 +42,7 @@ describe('Focus process links', () => {
       { ...work.items[0], workItemId: '00000000-0000-4000-8000-000000000010', businessType: 'P_MUTATION' as const, businessCategory: 'GENERAL' as const, businessStatus: 'REJECTED', instanceStatus: 'REJECTED' as const },
       { ...work.items[0], workItemId: '00000000-0000-4000-8000-000000000011', businessType: 'P_MUTATION' as const, businessCategory: 'GENERAL' as const, businessStatus: 'CANCELLED', instanceStatus: 'CANCELLED' as const },
     ]
-    const markup = renderToStaticMarkup(<FocusProcessList data={{ items, total: items.length, hasMore: false }} labels={labels} locale="nl" />)
+    const markup = renderToStaticMarkup(<FocusProcessList data={{ items, total: items.length, hasMore: false }} labels={labels} locale="nl" timeZone="Europe/Amsterdam" />)
     expect(markup.match(/Aanvullen gevraagd/g)).toHaveLength(1)
     expect(markup.match(/Afgewezen/g)).toHaveLength(1)
     expect(markup.match(/Geannuleerd/g)).toHaveLength(1)

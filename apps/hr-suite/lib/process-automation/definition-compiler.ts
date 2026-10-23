@@ -63,6 +63,8 @@ export type DefinitionCompileErrorCode =
   | 'STEP_PARTICIPANT_UNKNOWN'
   | 'STEP_FORM_REQUIRED'
   | 'STEP_FORM_UNKNOWN'
+  | 'SLA_WORKDAY_CALENDAR_REQUIRED'
+  | 'SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT'
   | 'END_STEP_OUTCOME_REQUIRED'
   | 'END_STEP_INVALID'
   | 'NON_END_STEP_HAS_OUTCOME'
@@ -549,6 +551,10 @@ function validateSteps(
     if (step.participantKey && !participants.has(step.participantKey)) issue(issues, 'STEP_PARTICIPANT_UNKNOWN', [...path, 'participantKey'], `Unknown participant: ${step.participantKey}`)
     if (step.formKey && !forms.has(step.formKey)) issue(issues, 'STEP_FORM_UNKNOWN', [...path, 'formKey'], `Unknown form: ${step.formKey}`)
     if (step.type === 'FORM' && !step.formKey) issue(issues, 'STEP_FORM_REQUIRED', [...path, 'formKey'], 'FORM steps require a form')
+    if (step.sla?.businessDays) {
+      issue(issues, 'SLA_WORKDAY_CALENDAR_REQUIRED', [...path, 'sla', 'businessDays'], 'Workday deadlines require a process-level work calendar')
+      if (step.sla.duration.unit !== 'DAYS') issue(issues, 'SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT', [...path, 'sla', 'duration', 'unit'], 'Workday deadlines must use the DAYS unit')
+    }
     if (step.type === 'END') {
       if (!step.terminalOutcome) issue(issues, 'END_STEP_OUTCOME_REQUIRED', [...path, 'terminalOutcome'], 'END steps require an outcome')
       if (step.participantKey || step.formKey || step.allowedActions.length > 0) issue(issues, 'END_STEP_INVALID', path, 'END steps cannot have participants, forms, or actions')

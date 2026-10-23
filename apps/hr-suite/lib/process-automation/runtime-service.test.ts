@@ -6,6 +6,7 @@ describe('process runtime error contract', () => {
     ['STALE_STATE: expected version does not match', 'STALE_STATE'],
     ['FORBIDDEN_ACTION', 'FORBIDDEN_ACTION'],
     ['NO_ASSIGNEE', 'NO_ASSIGNEE'],
+    ['SLA_WORKDAY_CALENDAR_REQUIRED', 'SLA_WORKDAY_CALENDAR_REQUIRED'],
     ['permission denied for function', 'FORBIDDEN'],
   ] as const)('maps %s to %s', (message, expected) => {
     expect(processRuntimeErrorCodeFromMessage(message)).toBe(expected)
@@ -26,5 +27,11 @@ describe('process runtime error contract', () => {
 
   it('does not expose arbitrary database text as a stable client code', () => {
     expect(processRuntimeErrorCodeFromMessage('secret connection detail')).toBe('PROCESS_WORK_ITEM_OPERATION_FAILED')
+  })
+
+  it('returns the workday calendar configuration blocker as a conflict', async () => {
+    const response = processRuntimeErrorResponse(new ProcessRuntimeError('SLA_WORKDAY_CALENDAR_REQUIRED', 409))
+    expect(response?.status).toBe(409)
+    await expect(response?.json()).resolves.toEqual({ code: 'SLA_WORKDAY_CALENDAR_REQUIRED' })
   })
 })

@@ -97,6 +97,7 @@ const tenants: AccessibleContextOptions['tenants'] = [{
     code: 'SYNTHETIC',
     name: 'Synthetic group',
     description: null,
+    timeZone: 'Europe/Amsterdam',
     administrations: [{ id: administrationId, code: 'SYNTHETIC', name: 'Synthetic administration' }],
   }],
 }]

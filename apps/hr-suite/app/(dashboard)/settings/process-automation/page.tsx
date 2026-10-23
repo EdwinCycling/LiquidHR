@@ -255,6 +255,24 @@ export default async function ProcessAutomationSettingsPage({
     startStep: messages('studio.flowEditor.startStep'),
     noSelection: messages('studio.flowEditor.noSelection'),
     unsupportedTypeHelp: messages('studio.flowEditor.unsupportedTypeHelp'),
+    sla: messages('studio.flowEditor.sla'),
+    slaOptions: {
+      NONE: messages('studio.flowEditor.slaOptions.NONE'),
+      MINUTES: messages('studio.flowEditor.slaOptions.MINUTES'),
+      HOURS: messages('studio.flowEditor.slaOptions.HOURS'),
+      DAYS: messages('studio.flowEditor.slaOptions.DAYS'),
+      WORKDAYS: messages('studio.flowEditor.slaOptions.WORKDAYS'),
+    },
+    slaAmount: messages('studio.flowEditor.slaAmount'),
+    slaInvalidAmount: messages('studio.flowEditor.slaInvalidAmount'),
+    slaTiming: messages('studio.flowEditor.slaTiming'),
+    slaSummary: messages('studio.flowEditor.slaSummary'),
+    slaWorkdaysBlocked: messages('studio.flowEditor.slaWorkdaysBlocked'),
+    slaUnitLabels: {
+      MINUTES: { singular: messages('studio.slaUnits.minute'), plural: messages('studio.slaUnits.minutes') },
+      HOURS: { singular: messages('studio.slaUnits.hour'), plural: messages('studio.slaUnits.hours') },
+      DAYS: { singular: messages('studio.slaUnits.calendarDay'), plural: messages('studio.slaUnits.calendarDays') },
+    },
   }
 
   const labels: StudioLabels = {
@@ -483,6 +501,8 @@ export default async function ProcessAutomationSettingsPage({
       STEP_ACTION_INVALID: messages('studio.compilerIssues.STEP_ACTION_INVALID'),
       RECOVERY_TRANSITION_INVALID: messages('studio.compilerIssues.RECOVERY_TRANSITION_INVALID'),
       FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT: messages('studio.compilerIssues.FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT'),
+      SLA_WORKDAY_CALENDAR_REQUIRED: messages('studio.compilerIssues.SLA_WORKDAY_CALENDAR_REQUIRED'),
+      SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT: messages('studio.compilerIssues.SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT'),
     },
     flowEditor,
     continue: messages('studio.continue'),

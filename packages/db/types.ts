@@ -2879,7 +2879,7 @@ export type Database = {
           hr_group_id: string
           id: string
           is_active: boolean
-          name: string
+            name: string
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -2892,7 +2892,7 @@ export type Database = {
           hr_group_id: string
           id?: string
           is_active?: boolean
-          name: string
+            name: string
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -2905,7 +2905,7 @@ export type Database = {
           hr_group_id?: string
           id?: string
           is_active?: boolean
-          name?: string
+            name?: string
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -8818,6 +8818,7 @@ export type Database = {
           is_active: boolean
           manager_portal_mode: string
           name: string
+            time_zone: string
           tenant_id: string
           updated_at: string
           updated_by_user_id: string | null
@@ -8832,6 +8833,7 @@ export type Database = {
           is_active?: boolean
           manager_portal_mode?: string
           name: string
+            time_zone?: string
           tenant_id: string
           updated_at?: string
           updated_by_user_id?: string | null
@@ -8846,6 +8848,7 @@ export type Database = {
           is_active?: boolean
           manager_portal_mode?: string
           name?: string
+            time_zone?: string
           tenant_id?: string
           updated_at?: string
           updated_by_user_id?: string | null

@@ -75,6 +75,7 @@ export type ProcessRuntimeErrorCode =
   | 'AMBIGUOUS_TRANSITION'
   | 'INVALID_FORM_VALUE'
   | 'REQUIRED_FORM_FIELD'
+  | 'SLA_WORKDAY_CALENDAR_REQUIRED'
   | 'PROCESS_WORK_ITEM_OPERATION_FAILED'
 
 const stableErrorCodes = new Set<ProcessRuntimeErrorCode>([
@@ -107,6 +108,7 @@ const stableErrorCodes = new Set<ProcessRuntimeErrorCode>([
   'AMBIGUOUS_TRANSITION',
   'INVALID_FORM_VALUE',
   'REQUIRED_FORM_FIELD',
+  'SLA_WORKDAY_CALENDAR_REQUIRED',
   'PROCESS_WORK_ITEM_OPERATION_FAILED',
 ])
 
@@ -140,7 +142,7 @@ function statusForCode(code: ProcessRuntimeErrorCode): number {
   if (code === 'AUTHENTICATION_REQUIRED') return 401
   if (code === 'FORBIDDEN' || code === 'FORBIDDEN_ACTION' || code === 'ACTOR_EMPLOYEE_NOT_FOUND') return 403
   if (code === 'PROCESS_INSTANCE_NOT_FOUND' || code === 'WORK_ITEM_NOT_FOUND' || code === 'STEP_NOT_FOUND' || code === 'SUBJECT_EMPLOYEE_NOT_FOUND' || code === 'SUBJECT_EMPLOYMENT_NOT_FOUND') return 404
-  if (code === 'STALE_STATE' || code === 'IDEMPOTENCY_KEY_REUSED' || code === 'NO_ASSIGNEE' || code === 'AMBIGUOUS_ASSIGNEE' || code === 'TRANSITION_NOT_FOUND' || code === 'AMBIGUOUS_TRANSITION' || code === 'WORK_ITEM_NOT_OPEN' || code === 'STEP_NOT_ACTIVE') return 409
+  if (code === 'STALE_STATE' || code === 'IDEMPOTENCY_KEY_REUSED' || code === 'NO_ASSIGNEE' || code === 'AMBIGUOUS_ASSIGNEE' || code === 'TRANSITION_NOT_FOUND' || code === 'AMBIGUOUS_TRANSITION' || code === 'WORK_ITEM_NOT_OPEN' || code === 'STEP_NOT_ACTIVE' || code === 'SLA_WORKDAY_CALENDAR_REQUIRED') return 409
   return 400
 }
 

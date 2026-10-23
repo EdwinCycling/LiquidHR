@@ -1,4 +1,5 @@
 import { ProcessWorkWorkspace, type ProcessWorkspaceLabels } from '@/components/process-automation/process-workspace'
+import { createProcessWorkDeadlineLabels } from '@/lib/process-automation/deadline-projection'
 import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getDocumentAcknowledgementStartData } from '@/lib/process-automation/document-acknowledgement-service'
@@ -32,7 +33,7 @@ function businessCategory(value: string): ProcessWorkBusinessCategory | undefine
 }
 
 function sort(value: string): ProcessWorkSort {
-  return value === 'DEADLINE' ? 'DEADLINE' : 'NEEDS_ACTION'
+  return value === 'NEEDS_ACTION' ? 'NEEDS_ACTION' : 'DEADLINE'
 }
 
 function page(value: string): number {
@@ -60,6 +61,7 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
   const returnContext = parseProcessWorkReturnContext(first(query.returnTo))
   const workDependencies = { supabase: requestContext.supabase, context: requestContext.context }
   const labels: ProcessWorkspaceLabels = {
+    ...createProcessWorkDeadlineLabels(t),
     workspaceTitle: t('workspaceTitle'),
     workspaceDescription: t('workspaceDescription'),
     myWork: t('myWork'),
@@ -126,7 +128,7 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
     denied: t('denied'),
     blocked: t('blocked'),
     overdue: t('overdue'),
-    dueToday: t('dueToday'),
+    nearDue: t('nearDue'),
     currentPage: t('currentPage'),
     availableAt: t('availableAt'),
     claimedBy: t('claimedBy'),
@@ -160,6 +162,7 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
     processStartFailed: t('newRequest.startFailed'),
     processStartDenied: t('newRequest.startDenied'),
     processStartUnavailable: t('newRequest.startUnavailable'),
+    processStartCalendarBlocked: t('slaWorkdayCalendarRequired'),
     processCatalogEmptyWithNativeStarters: t('newRequest.emptyWithNativeStarters'),
   }
 
@@ -199,5 +202,5 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
       processCatalogError = true
     }
   }
-  return <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} startableProcesses={startableProcesses} processCatalogError={processCatalogError} returnContext={returnContext} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
+  return <ProcessWorkWorkspace locale={locale} timeZone={requestContext.activeContext.activeHrGroup.timeZone} labels={labels} data={data} options={options} startableProcesses={startableProcesses} processCatalogError={processCatalogError} returnContext={returnContext} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
 }

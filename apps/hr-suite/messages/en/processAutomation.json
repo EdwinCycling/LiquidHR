@@ -76,6 +76,7 @@
     "startDenied": "You do not have access to start this request.",
     "startUnavailable": "This process is no longer available. Reload the list."
   },
+  "slaWorkdayCalendarRequired": "This process step uses working days, but no process calendar is configured. Contact your HR Admin.",
   "processesTab": "Processes",
   "tabsTodo": "To do",
   "tabsClaimed": "Claimed by me",
@@ -168,8 +169,17 @@
   "form": "Form",
   "output": "Process output",
   "deadlineReached": "Deadline reached",
+  "noDeadline": "No deadline is set for this step.",
+  "onTrack": "On track",
+  "nearDue": "Almost due",
+  "deadlineClosed": "Step completed",
+  "deadlineDueNow": "Due now",
+  "deadlineRemaining": "{duration} left",
+  "deadlineOverdueBy": "{duration} overdue",
+  "deadlineUnits": { "minute": "minute", "minutes": "minutes", "hour": "hour", "hours": "hours", "day": "day", "days": "days" },
   "overdue": "Overdue",
   "availableAt": "Available from",
+  "stepStarted": "Step started",
   "waitingFor": "Waiting for",
   "claimedBy": "Claimed by",
   "unassigned": "Unassigned",
@@ -556,7 +566,9 @@
       "END_STEP_INVALID": "An end step does not need an owner, form, or actions.",
       "STEP_ACTION_INVALID": "Choose an action that fits this step type.",
       "RECOVERY_TRANSITION_INVALID": "Only Request changes can be set as a return route.",
-      "FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT": "A field required only by a condition must use optional write access for participants."
+      "FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT": "A field required only by a condition must use optional write access for participants.",
+      "SLA_WORKDAY_CALENDAR_REQUIRED": "Link an unambiguous process calendar before choosing working days.",
+      "SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT": "Working days can only be configured with the days unit."
     },
     "flowEditor": {
       "stepList": "Process flow",
@@ -640,7 +652,14 @@
       "formCreationFollowUp": "No form linked yet.",
       "startStep": "Start",
       "noSelection": "Select a step in the flow.",
-      "unsupportedTypeHelp": "This existing technical step type remains unchanged. Editing this type is outside this flow editor."
+      "unsupportedTypeHelp": "This existing technical step type remains unchanged. Editing this type is outside this flow editor.",
+      "sla": "Deadline",
+      "slaOptions": { "NONE": "No deadline", "MINUTES": "Minutes", "HOURS": "Hours", "DAYS": "Calendar days", "WORKDAYS": "Working days" },
+      "slaAmount": "Amount",
+      "slaInvalidAmount": "Enter a whole number of at least 1.",
+      "slaTiming": "The time limit starts when this process step becomes active.",
+      "slaSummary": "This step must be completed within {amount} {unit} after activation and assignment.",
+      "slaWorkdaysBlocked": "Working days are blocked because no unambiguous process calendar is linked."
     },
     "continue": "Continue",
     "back": "Back",
@@ -665,7 +684,9 @@
       "day": "day",
       "days": "days",
       "workday": "working day",
-      "workdays": "working days"
+      "workdays": "working days",
+      "calendarDay": "calendar day",
+      "calendarDays": "calendar days"
     }
   }
 }

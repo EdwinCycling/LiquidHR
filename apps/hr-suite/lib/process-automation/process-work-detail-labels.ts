@@ -1,8 +1,10 @@
 import type { Translator } from '@/lib/i18n/translator'
 import type { ProcessWorkDetailLabels } from '@/components/process-automation/process-work-detail'
+import { createProcessWorkDeadlineLabels } from './deadline-projection'
 
 export function createProcessWorkDetailLabels(t: Translator): ProcessWorkDetailLabels {
   return {
+    ...createProcessWorkDeadlineLabels(t),
     process: t('columnsProcess'),
     subject: t('subject'),
     step: t('step'),
@@ -19,6 +21,7 @@ export function createProcessWorkDetailLabels(t: Translator): ProcessWorkDetailL
     deadline: t('deadline'),
     overdue: t('overdue'),
     availableAt: t('availableAt'),
+    stepStarted: t('stepStarted'),
     claimedBy: t('claimedBy'),
     unassigned: t('unassigned'),
     claim: t('claim'),
@@ -38,6 +41,7 @@ export function createProcessWorkDetailLabels(t: Translator): ProcessWorkDetailL
     errorStale: t('errorStale'),
     errorDenied: t('errorDenied'),
     errorBlocked: t('errorBlocked'),
+    errorWorkdayCalendarRequired: t('slaWorkdayCalendarRequired'),
     errorGeneric: t('errorGeneric'),
     unknown: t('unknown'),
     download: t('download'),

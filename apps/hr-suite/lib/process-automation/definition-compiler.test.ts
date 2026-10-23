@@ -75,6 +75,22 @@ describe('process definition compiler', () => {
     expect(stableDefinitionHash({ b: 2, a: 1 })).toBe(stableDefinitionHash({ a: 1, b: 2 }))
   })
 
+  it('keeps processes without an SLA valid and blocks workday SLA without a process calendar', () => {
+    const withoutSla = copyFixture()
+    withoutSla.steps = withoutSla.steps.map((step) => ({ ...step, sla: undefined }))
+    expect(compileProcessDefinition(withoutSla).content.steps.every((step) => !step.sla)).toBe(true)
+
+    const workdays = copyFixture()
+    const stepWithSla = workdays.steps.find((step) => step.sla)
+    expect(stepWithSla).toBeDefined()
+    if (!stepWithSla) return
+    stepWithSla.sla = { ...stepWithSla.sla!, businessDays: true }
+    compileFailure(workdays, 'SLA_WORKDAY_CALENDAR_REQUIRED', ['steps', workdays.steps.indexOf(stepWithSla), 'sla'])
+
+    stepWithSla.sla = { ...stepWithSla.sla, duration: { amount: 2, unit: 'HOURS' }, businessDays: true }
+    compileFailure(workdays, 'SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT', ['steps', workdays.steps.indexOf(stepWithSla), 'sla', 'duration'])
+  })
+
   it('compiles the document acknowledgement recipe with its document binding and PDF output', () => {
     expect(processDefinitionDraftSchema.safeParse(documentAcknowledgementFixture).success).toBe(true)
     const compiled = compileProcessDefinition(documentAcknowledgementFixture)

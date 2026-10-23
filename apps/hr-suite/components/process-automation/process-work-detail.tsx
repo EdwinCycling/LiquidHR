@@ -13,10 +13,12 @@ import { DropdownSelect } from '../ui/dropdown-select'
 import { Textarea } from '../ui/textarea'
 import { ConfirmDialog } from '../patterns/confirm-dialog'
 import { FormField } from '../patterns/form-field'
+import { Badge, type BadgeTone } from '../ui/badge'
+import { processWorkDeadlineStatusLabel, type ProcessWorkDeadlineLabels } from '@/lib/process-automation/deadline-projection'
 import { FormRuntimeRenderer, type FormRuntimeServerFieldError } from './form-runtime-renderer'
 import { InternalTransferCommitPanel } from './internal-transfer-commit-panel'
 
-export interface ProcessWorkDetailLabels {
+export interface ProcessWorkDetailLabels extends ProcessWorkDeadlineLabels {
   readonly process: string
   readonly subject: string
   readonly step: string
@@ -33,6 +35,7 @@ export interface ProcessWorkDetailLabels {
   readonly deadline: string
   readonly overdue: string
   readonly availableAt: string
+  readonly stepStarted: string
   readonly claimedBy: string
   readonly unassigned: string
   readonly claim: string
@@ -52,6 +55,7 @@ export interface ProcessWorkDetailLabels {
   readonly errorStale: string
   readonly errorDenied: string
   readonly errorBlocked: string
+  readonly errorWorkdayCalendarRequired: string
   readonly errorGeneric: string
   readonly unknown: string
   readonly download: string
@@ -174,6 +178,7 @@ interface ProcessWorkDetailProps {
   readonly outputs: ProcessOutputProjection | null
   readonly operations: ProcessAutomationOperations | null
   readonly locale: Locale
+  readonly timeZone: string
   readonly labels: ProcessWorkDetailLabels
   readonly assignmentOptions: ReadonlyArray<ProcessWorkAssignmentOption>
   readonly backHref: string
@@ -184,6 +189,19 @@ function date(value: string | null, locale: Locale): string {
   if (!value) return '—'
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? '—' : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(parsed)
+}
+
+function dateTime(value: string | null, locale: Locale, timeZone: string): string {
+  if (!value) return '—'
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? '—' : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone }).format(parsed)
+}
+
+function deadlineTone(status: ProcessWorkDetail['deadlineStatus']): BadgeTone {
+  if (status === 'OVERDUE') return 'danger'
+  if (status === 'NEAR_DUE') return 'warning'
+  if (status === 'ON_TRACK') return 'success'
+  return 'neutral'
 }
 
 function actionLabel(action: string, labels: ProcessWorkDetailLabels): string {
@@ -203,6 +221,7 @@ function errorLabel(code: string, labels: ProcessWorkDetailLabels): string {
   if (code === 'STALE_ASSIGNMENT' || code === 'STALE_STATE') return labels.errorStale
   if (code === 'FORBIDDEN' || code === 'FORBIDDEN_ACTION') return labels.errorDenied
   if (code === 'WORK_ITEM_NOT_BLOCKED') return labels.errorBlocked
+  if (code === 'SLA_WORKDAY_CALENDAR_REQUIRED') return labels.errorWorkdayCalendarRequired
   if (code === 'DOCUMENT_ACKNOWLEDGEMENT_CONFIRMATION_REQUIRED') return labels.documentAcknowledgementRequired
   return labels.errorGeneric
 }
@@ -260,7 +279,7 @@ function assignmentReasonText(detail: ProcessWorkDetail, labels: ProcessWorkDeta
   return labels.assignmentReasonGeneral.replace('{role}', role)
 }
 
-export function ProcessWorkDetailView({ detail, experience, form, outputs, operations, locale, labels, assignmentOptions, backHref, isRequesterPresentation = false }: ProcessWorkDetailProps) {
+export function ProcessWorkDetailView({ detail, experience, form, outputs, operations, locale, timeZone, labels, assignmentOptions, backHref, isRequesterPresentation = false }: ProcessWorkDetailProps) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
@@ -307,6 +326,7 @@ export function ProcessWorkDetailView({ detail, experience, form, outputs, opera
     ?? actionButtons.find(({ action }) => action === 'SUBMIT')?.action
     ?? actionButtons.find(({ action }) => action === 'COMPLETE')?.action
     ?? actionButtons[0]?.action
+  const currentStepStartedAt = detail.steps.find((step) => step.stepKey === detail.stepKey)?.activatedAt ?? detail.availableAt
   const history = experience?.history ?? detail.timeline.map((event) => ({ ...event, action: null, stepTitle: null, terminalOutcome: null }))
   const documentField = form?.sections.flatMap((section) => section.fields).find((field) => field.type === 'DOCUMENT_REFERENCE')
   const documentValue = documentField?.currentValue ?? documentField?.newValue
@@ -389,8 +409,8 @@ export function ProcessWorkDetailView({ detail, experience, form, outputs, opera
         <dl className="mt-6 grid gap-4 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-4">
           <div><dt className="text-xs text-muted-foreground">{labels.subject}</dt><dd className="mt-1 font-semibold">{detail.subjectName ?? labels.unknown}</dd></div>
           <div><dt className="text-xs text-muted-foreground">{labels.step}</dt><dd className="mt-1 font-semibold">{detail.stepTitle}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">{labels.deadline}</dt><dd className={`mt-1 font-semibold ${detail.isOverdue ? 'text-destructive' : ''}`}>{date(detail.deadlineAt, locale)}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">{labels.availableAt}</dt><dd className="mt-1 font-semibold">{date(detail.availableAt, locale)}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">{labels.deadline}</dt><dd className="mt-1 grid justify-items-start gap-1.5">{detail.deadlineAt ? <time className="font-semibold" dateTime={detail.deadlineAt}>{dateTime(detail.deadlineAt, locale, timeZone)}</time> : null}<Badge tone={deadlineTone(detail.deadlineStatus)}>{processWorkDeadlineStatusLabel(detail.deadlineStatus, detail.deadlineRemainingSeconds, labels)}</Badge></dd></div>
+          <div><dt className="text-xs text-muted-foreground">{labels.stepStarted}</dt><dd className="mt-1 font-semibold"><time dateTime={currentStepStartedAt}>{dateTime(currentStepStartedAt, locale, timeZone)}</time></dd></div>
         </dl>
       </header>
 

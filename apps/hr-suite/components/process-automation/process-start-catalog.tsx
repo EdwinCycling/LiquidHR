@@ -22,6 +22,7 @@ export interface ProcessStartCatalogLabels {
   readonly startFailed: string
   readonly startDenied: string
   readonly startUnavailable: string
+  readonly calendarBlocked: string
 }
 
 interface ProcessStartCatalogProps {
@@ -32,8 +33,9 @@ interface ProcessStartCatalogProps {
   readonly returnContext?: ProcessWorkReturnContext
 }
 
-function startErrorLabel(code: string | undefined, labels: ProcessStartCatalogLabels): string {
+export function processStartErrorLabel(code: string | undefined, labels: ProcessStartCatalogLabels): string {
   if (code === 'FORBIDDEN' || code === 'FORBIDDEN_ACTION' || code === 'ACTOR_EMPLOYEE_NOT_FOUND' || code === 'AUTHENTICATION_REQUIRED') return labels.startDenied
+  if (code === 'SLA_WORKDAY_CALENDAR_REQUIRED') return labels.calendarBlocked
   if (code === 'PROCESS_DEFINITION_NOT_PUBLISHED' || code === 'PROCESS_VERSION_NOT_FOUND' || code === 'NO_ASSIGNEE' || code === 'AMBIGUOUS_ASSIGNEE' || code === 'SUBJECT_EMPLOYEE_NOT_FOUND' || code === 'SUBJECT_EMPLOYMENT_NOT_FOUND') return labels.startUnavailable
   return labels.startFailed
 }
@@ -64,7 +66,7 @@ export function ProcessStartCatalog({ locale, labels, processes, loadError = fal
       const body: unknown = await response.json().catch(() => null)
       if (!response.ok) {
         const code = typeof body === 'object' && body !== null && 'code' in body && typeof body.code === 'string' ? body.code : undefined
-        setFeedback({ processId: process.processDefinitionId, message: startErrorLabel(code, labels) })
+        setFeedback({ processId: process.processDefinitionId, message: processStartErrorLabel(code, labels) })
         return
       }
       const nextHref = typeof body === 'object' && body !== null && 'nextHref' in body && typeof body.nextHref === 'string' ? body.nextHref : '/work?view=REQUESTS'

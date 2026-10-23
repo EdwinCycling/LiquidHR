@@ -75,6 +75,14 @@ const labels: ProcessFlowEditorLabels = {
   startStep: 'Start',
   noSelection: 'Selecteer een stap.',
   unsupportedTypeHelp: 'Dit technische type is alleen-lezen.',
+  sla: 'Deadline',
+  slaOptions: { NONE: 'Geen deadline', MINUTES: 'Minuten', HOURS: 'Uren', DAYS: 'Kalenderdagen', WORKDAYS: 'Werkdagen' },
+  slaAmount: 'Aantal',
+  slaInvalidAmount: 'Vul minimaal 1 in.',
+  slaTiming: 'De termijn begint na activering en toewijzing.',
+  slaSummary: 'Deze stap moet binnen {amount} {unit} worden afgerond.',
+  slaWorkdaysBlocked: 'Er is geen proceskalender gekoppeld.',
+  slaUnitLabels: { MINUTES: { singular: 'minuut', plural: 'minuten' }, HOURS: { singular: 'uur', plural: 'uur' }, DAYS: { singular: 'kalenderdag', plural: 'kalenderdagen' } },
 }
 
 interface MountedFlow {
@@ -163,6 +171,33 @@ afterEach(() => {
 })
 
 describe('ProcessFlowEditor', () => {
+  it('configures an accessible hour deadline, validates its amount, and blocks working days without a calendar', () => {
+    mounted = mountFlow(createTrainingRequestExampleDraft({ key: 'opleiding-aanvragen', title: { nl: 'Opleidingsaanvraag', en: 'Training request' }, description: { nl: 'Aanvraag en beoordeling.', en: 'Request and review.' } }))
+
+    const noDeadline = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="NONE"]')
+    const workdays = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="WORKDAYS"]')
+    expect(noDeadline?.checked).toBe(true)
+    expect(workdays?.disabled).toBe(true)
+    expect(workdays?.getAttribute('aria-describedby')).toBeTruthy()
+
+    const hours = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="HOURS"]')
+    if (!hours) throw new Error('Hours option not found')
+    act(() => hours.click())
+    changeInput(mounted.container, 'process-step-sla-amount', '3')
+
+    expect(mounted.getDraft().steps[0]?.sla).toMatchObject({ duration: { amount: 3, unit: 'HOURS' }, businessDays: false })
+    expect(mounted.container.textContent).toContain('Deze stap moet binnen 3 uur worden afgerond.')
+
+    changeInput(mounted.container, 'process-step-sla-amount', '0')
+    expect(mounted.container.querySelector('#process-step-sla-amount')?.getAttribute('aria-invalid')).toBe('true')
+    expect(mounted.container.textContent).toContain(labels.slaInvalidAmount)
+
+    const reset = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="NONE"]')
+    if (!reset) throw new Error('No-deadline option not found')
+    act(() => reset.click())
+    expect(mounted.getDraft().steps[0]?.sla).toBeUndefined()
+  })
+
   it('shows a truly empty start and lets an HR editor add a step and a typed responsible role', () => {
     mounted = mountFlow(createEmptyStudioDraft({ key: 'empty-request', title: { nl: 'Leeg verzoek', en: 'Empty request' }, description: { nl: 'Start zonder stappen.', en: 'Start without steps.' } }))
 

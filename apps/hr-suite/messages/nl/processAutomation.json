@@ -76,6 +76,7 @@
     "startDenied": "Je hebt geen toegang om deze aanvraag te starten.",
     "startUnavailable": "Dit proces is niet meer beschikbaar. Laad de lijst opnieuw."
   },
+  "slaWorkdayCalendarRequired": "Deze processtap gebruikt werkdagen, maar er is geen proceskalender ingesteld. Neem contact op met HR Admin.",
   "processesTab": "Processen",
   "tabsTodo": "Te doen",
   "tabsClaimed": "Door mij geclaimd",
@@ -168,8 +169,17 @@
   "form": "Formulier",
   "output": "Procesuitvoer",
   "deadlineReached": "Deadline bereikt",
+  "noDeadline": "Voor deze stap is geen deadline ingesteld.",
+  "onTrack": "Op schema",
+  "nearDue": "Bijna te laat",
+  "deadlineClosed": "Stap afgerond",
+  "deadlineDueNow": "Nu afronden",
+  "deadlineRemaining": "Nog {duration}",
+  "deadlineOverdueBy": "{duration} te laat",
+  "deadlineUnits": { "minute": "minuut", "minutes": "minuten", "hour": "uur", "hours": "uur", "day": "dag", "days": "dagen" },
   "overdue": "Over tijd",
   "availableAt": "Beschikbaar vanaf",
+  "stepStarted": "Stap gestart",
   "waitingFor": "Wacht op",
   "claimedBy": "Geclaimd door",
   "unassigned": "Niet toegewezen",
@@ -556,7 +566,9 @@
       "END_STEP_INVALID": "Een eindstap heeft geen verantwoordelijke, formulier of acties nodig.",
       "STEP_ACTION_INVALID": "Kies een actie die bij dit type stap past.",
       "RECOVERY_TRANSITION_INVALID": "Alleen Wijzigingen vragen kan als terugroute worden ingesteld.",
-      "FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT": "Een veld dat alleen onder een voorwaarde verplicht is, moet bij deelnemers optioneel schrijfbaar zijn."
+      "FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT": "Een veld dat alleen onder een voorwaarde verplicht is, moet bij deelnemers optioneel schrijfbaar zijn.",
+      "SLA_WORKDAY_CALENDAR_REQUIRED": "Koppel een eenduidige proceskalender voordat je werkdagen kiest.",
+      "SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT": "Werkdagen kunnen alleen met de eenheid dagen worden ingesteld."
     },
     "flowEditor": {
       "stepList": "Procesflow",
@@ -640,7 +652,14 @@
       "formCreationFollowUp": "Nog geen formulier gekoppeld.",
       "startStep": "Start",
       "noSelection": "Selecteer een stap in de flow.",
-      "unsupportedTypeHelp": "Dit bestaande technische staptype blijft ongewijzigd. Bewerken van dit type valt buiten deze floweditor."
+      "unsupportedTypeHelp": "Dit bestaande technische staptype blijft ongewijzigd. Bewerken van dit type valt buiten deze floweditor.",
+      "sla": "Deadline",
+      "slaOptions": { "NONE": "Geen deadline", "MINUTES": "Minuten", "HOURS": "Uren", "DAYS": "Kalenderdagen", "WORKDAYS": "Werkdagen" },
+      "slaAmount": "Aantal",
+      "slaInvalidAmount": "Vul een heel getal van minimaal 1 in.",
+      "slaTiming": "De termijn start wanneer de processtap actief wordt.",
+      "slaSummary": "Deze stap moet binnen {amount} {unit} na activering en toewijzing worden afgerond.",
+      "slaWorkdaysBlocked": "Werkdagen zijn geblokkeerd: er is geen eenduidige proceskalender gekoppeld."
     },
     "continue": "Verder",
     "back": "Vorige",
@@ -665,7 +684,9 @@
       "day": "dag",
       "days": "dagen",
       "workday": "werkdag",
-      "workdays": "werkdagen"
+      "workdays": "werkdagen",
+      "calendarDay": "kalenderdag",
+      "calendarDays": "kalenderdagen"
     }
   }
 }

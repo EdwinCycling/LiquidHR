@@ -150,7 +150,7 @@ export const internalTransferFixture: ProcessDefinitionDraft = {
       allowedActions: ['SUBMIT', 'CANCEL'],
       sla: {
         duration: { amount: 2, unit: 'DAYS' },
-        businessDays: true,
+        businessDays: false,
         onBreach: 'ESCALATE',
         escalationParticipantKey: 'hr-queue',
       },
@@ -161,7 +161,7 @@ export const internalTransferFixture: ProcessDefinitionDraft = {
       title: text('Goedkeuring huidige manager', 'Current manager approval'),
       participantKey: 'source-manager',
       allowedActions: ['APPROVE', 'REJECT', 'REQUEST_CHANGES', 'CANCEL'],
-      sla: { duration: { amount: 2, unit: 'DAYS' }, businessDays: true, onBreach: 'NOTIFY' },
+      sla: { duration: { amount: 2, unit: 'DAYS' }, businessDays: false, onBreach: 'NOTIFY' },
     },
     {
       key: 'target-approval',
@@ -169,7 +169,7 @@ export const internalTransferFixture: ProcessDefinitionDraft = {
       title: text('Goedkeuring nieuwe manager', 'New manager approval'),
       participantKey: 'target-manager',
       allowedActions: ['APPROVE', 'REJECT', 'REQUEST_CHANGES', 'CANCEL'],
-      sla: { duration: { amount: 2, unit: 'DAYS' }, businessDays: true, onBreach: 'NOTIFY' },
+      sla: { duration: { amount: 2, unit: 'DAYS' }, businessDays: false, onBreach: 'NOTIFY' },
     },
     {
       key: 'hr-validation',
@@ -177,7 +177,7 @@ export const internalTransferFixture: ProcessDefinitionDraft = {
       title: text('HR-controle', 'HR validation'),
       participantKey: 'hr-queue',
       allowedActions: ['APPROVE', 'REJECT', 'REQUEST_CHANGES', 'CANCEL'],
-      sla: { duration: { amount: 3, unit: 'DAYS' }, businessDays: true, onBreach: 'NOTIFY' },
+      sla: { duration: { amount: 3, unit: 'DAYS' }, businessDays: false, onBreach: 'NOTIFY' },
     },
     {
       key: 'completed',

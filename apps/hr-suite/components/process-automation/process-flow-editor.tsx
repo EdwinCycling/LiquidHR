@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from 'react'
 import { ArrowDown, ArrowRight, ArrowUp, CornerUpLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { RadioGroup } from '@/components/ui/radio-group'
+import { TextInput } from '@/components/ui/text-input'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { ConditionalRouteEditor, type ConditionalRouteEditorLabels } from '@/components/process-automation/conditional-route-editor'
 import type {
@@ -18,6 +20,7 @@ import { reorderDefinitionItems } from '@/lib/process-automation/form-studio-dra
 
 type EditableStepType = Extract<ProcessStepType, 'FORM' | 'DECISION' | 'END'>
 type BuiltInRole = 'employee' | 'manager' | 'hr-team'
+type EditableSlaMode = 'NONE' | 'MINUTES' | 'HOURS' | 'DAYS' | 'WORKDAYS'
 
 export interface ProcessFlowEditorLabels {
   readonly stepList: string
@@ -83,6 +86,14 @@ export interface ProcessFlowEditorLabels {
   readonly startStep: string
   readonly noSelection: string
   readonly unsupportedTypeHelp: string
+  readonly sla: string
+  readonly slaOptions: Readonly<Record<EditableSlaMode, string>>
+  readonly slaAmount: string
+  readonly slaInvalidAmount: string
+  readonly slaTiming: string
+  readonly slaSummary: string
+  readonly slaWorkdaysBlocked: string
+  readonly slaUnitLabels: Readonly<Record<'MINUTES' | 'HOURS' | 'DAYS', { readonly singular: string; readonly plural: string }>>
 }
 
 interface ProcessFlowEditorProps {
@@ -215,6 +226,16 @@ export function ProcessFlowEditor({
     ? draft.participants.find((participant) => participant.key === selectedStep.participantKey)
     : undefined
   const selectedStepType = selectedStep && isEditableStepType(selectedStep.type) ? selectedStep.type : null
+  const selectedSlaMode: EditableSlaMode = selectedStep?.sla?.businessDays
+    ? 'WORKDAYS'
+    : selectedStep?.sla?.duration.unit === 'MINUTES' || selectedStep?.sla?.duration.unit === 'HOURS' || selectedStep?.sla?.duration.unit === 'DAYS'
+      ? selectedStep.sla.duration.unit
+      : 'NONE'
+  const selectedSlaUnit = selectedStep?.sla?.duration.unit === 'MINUTES' || selectedStep?.sla?.duration.unit === 'HOURS' || selectedStep?.sla?.duration.unit === 'DAYS'
+    ? selectedStep.sla.duration.unit
+    : null
+  const selectedSlaAmount = selectedStep?.sla?.duration.amount ?? 1
+  const selectedSlaAmountInvalid = !Number.isInteger(selectedSlaAmount) || selectedSlaAmount < 1
   const availableRouteActions = selectedStepType && selectedStepType !== 'END'
     ? transitionActions[selectedStepType].filter((action) => !draft.transitions.some((transition) => transition.fromStepKey === selectedStep.key && transition.action === action))
     : []
@@ -363,6 +384,30 @@ export function ProcessFlowEditor({
     updateStep(stepKey, (step) => ({ ...step, formKey: formKey || undefined }))
   }
 
+  function updateSlaMode(mode: string): void {
+    if (!selectedStep || !['NONE', 'MINUTES', 'HOURS', 'DAYS', 'WORKDAYS'].includes(mode)) return
+    const slaMode = mode as EditableSlaMode
+    updateStep(selectedStep.key, (step) => {
+      if (slaMode === 'NONE') return { ...step, sla: undefined }
+      const existing = step.sla
+      const unit = slaMode === 'WORKDAYS' ? 'DAYS' : slaMode
+      return {
+        ...step,
+        sla: {
+          duration: { amount: existing?.duration.amount ?? 1, unit },
+          businessDays: slaMode === 'WORKDAYS',
+          onBreach: existing?.onBreach ?? 'NOTIFY',
+          ...(existing?.escalationParticipantKey ? { escalationParticipantKey: existing.escalationParticipantKey } : {}),
+        },
+      }
+    })
+  }
+
+  function updateSlaAmount(amount: number): void {
+    if (!selectedStep?.sla) return
+    updateStep(selectedStep.key, (step) => step.sla ? { ...step, sla: { ...step.sla, duration: { ...step.sla.duration, amount } } } : step)
+  }
+
   return (
     <section aria-labelledby="process-flow-title" className="w-full min-w-0 max-w-full rounded-xl border border-border bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -478,6 +523,31 @@ export function ProcessFlowEditor({
                   {(['COMPLETED', 'REJECTED', 'CANCELLED'] as const).map((outcome) => <option key={outcome} value={outcome}>{labels.terminalOutcomes[outcome]}</option>)}
                 </select>
               </label> : null}
+
+              {selectedStepType && selectedStepType !== 'END' ? <section aria-labelledby="process-sla-title" className="border-t pt-4">
+                <h5 className="font-semibold" id="process-sla-title">{labels.sla}</h5>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.slaTiming}</p>
+                <RadioGroup
+                  className="mt-3"
+                  disabled={!editing}
+                  legend={labels.sla}
+                  name="process-step-sla"
+                  onValueChange={updateSlaMode}
+                  options={[
+                    { value: 'NONE', label: labels.slaOptions.NONE },
+                    { value: 'MINUTES', label: labels.slaOptions.MINUTES },
+                    { value: 'HOURS', label: labels.slaOptions.HOURS },
+                    { value: 'DAYS', label: labels.slaOptions.DAYS },
+                    { value: 'WORKDAYS', label: labels.slaOptions.WORKDAYS, disabled: true, description: labels.slaWorkdaysBlocked },
+                  ]}
+                  value={selectedSlaMode}
+                />
+                {selectedSlaUnit ? <div className="mt-3 grid gap-2">
+                  <label className="text-xs font-semibold" htmlFor="process-step-sla-amount">{labels.slaAmount}</label>
+                  <TextInput aria-describedby="process-step-sla-amount-help" aria-invalid={selectedSlaAmountInvalid || undefined} disabled={!editing} id="process-step-sla-amount" min={1} onChange={(event) => updateSlaAmount(Number(event.target.value))} required step={1} type="number" value={selectedSlaAmount} />
+                  <p className="text-xs text-muted-foreground" id="process-step-sla-amount-help">{selectedSlaAmountInvalid ? labels.slaInvalidAmount : labels.slaSummary.replace('{amount}', String(selectedSlaAmount)).replace('{unit}', selectedSlaAmount === 1 ? labels.slaUnitLabels[selectedSlaUnit].singular : labels.slaUnitLabels[selectedSlaUnit].plural)}</p>
+                </div> : null}
+              </section> : null}
 
               {selectedStepType && selectedStepType !== 'END' ? <section aria-labelledby="process-routes-title" className="border-t pt-4">
                 <h5 className="font-semibold" id="process-routes-title">{labels.routeTitle}</h5>
