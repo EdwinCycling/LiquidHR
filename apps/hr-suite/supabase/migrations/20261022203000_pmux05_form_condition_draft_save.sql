@@ -178,12 +178,10 @@ begin
     'internal_security.prepare_process_form_action(uuid, text)'::pg_catalog.regprocedure
   ) into definition;
   definition := replace(definition, E'\r\n', E'\n');
-  updated_definition := replace(
+  updated_definition := pg_catalog.regexp_replace(
     definition,
-    $$  condition_values := coalesce(instance_row.metadata -> 'fields', '{}'::jsonb)
-    || coalesce(response_row.current_values, '{}'::jsonb)
-    || coalesce(response_row.new_values, '{}'::jsonb);$$,
-    $$  condition_values := coalesce(instance_row.metadata -> 'fields', '{}'::jsonb)
+    $$condition_values := coalesce\(instance_row\.metadata -> 'fields', '\{\}'::jsonb\)[[:space:]]*\|\|[[:space:]]*coalesce\(response_row\.current_values, '\{\}'::jsonb\)[[:space:]]*\|\|[[:space:]]*coalesce\(response_row\.new_values, '\{\}'::jsonb\);$$,
+    $$condition_values := coalesce(instance_row.metadata -> 'fields', '{}'::jsonb)
     || internal_security.process_form_active_response_values(
       form_definition,
       item_row.participant_key,
@@ -221,12 +219,10 @@ begin
     'internal_security.get_process_form_projection(uuid, text)'::pg_catalog.regprocedure
   ) into definition;
   definition := replace(definition, E'\r\n', E'\n');
-  updated_definition := replace(
+  updated_definition := pg_catalog.regexp_replace(
     definition,
-    $$  fields_for_conditions := coalesce(instance_row.metadata -> 'fields', '{}'::jsonb)
-    || coalesce(response_row.current_values, '{}'::jsonb)
-    || coalesce(response_row.new_values, '{}'::jsonb);$$,
-    $$  fields_for_conditions := coalesce(instance_row.metadata -> 'fields', '{}'::jsonb)
+    $$fields_for_conditions := coalesce\(instance_row\.metadata -> 'fields', '\{\}'::jsonb\)[[:space:]]*\|\|[[:space:]]*coalesce\(response_row\.current_values, '\{\}'::jsonb\)[[:space:]]*\|\|[[:space:]]*coalesce\(response_row\.new_values, '\{\}'::jsonb\);$$,
+    $$fields_for_conditions := coalesce(instance_row.metadata -> 'fields', '{}'::jsonb)
     || internal_security.process_form_active_response_values(
       form_definition,
       participant_key,

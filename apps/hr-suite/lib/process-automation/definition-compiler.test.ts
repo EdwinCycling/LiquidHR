@@ -75,7 +75,7 @@ describe('process definition compiler', () => {
     expect(stableDefinitionHash({ b: 2, a: 1 })).toBe(stableDefinitionHash({ a: 1, b: 2 }))
   })
 
-  it('keeps processes without an SLA valid and blocks workday SLA without a process calendar', () => {
+  it('keeps calendar-day SLA valid and blocks only workday SLA without a process calendar', () => {
     const withoutSla = copyFixture()
     withoutSla.steps = withoutSla.steps.map((step) => ({ ...step, sla: undefined }))
     expect(compileProcessDefinition(withoutSla).content.steps.every((step) => !step.sla)).toBe(true)
@@ -84,6 +84,7 @@ describe('process definition compiler', () => {
     const stepWithSla = workdays.steps.find((step) => step.sla)
     expect(stepWithSla).toBeDefined()
     if (!stepWithSla) return
+    expect(() => compileProcessDefinition(workdays)).not.toThrow()
     stepWithSla.sla = { ...stepWithSla.sla!, businessDays: true }
     compileFailure(workdays, 'SLA_WORKDAY_CALENDAR_REQUIRED', ['steps', workdays.steps.indexOf(stepWithSla), 'sla'])
 
