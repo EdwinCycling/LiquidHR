@@ -10,7 +10,6 @@
   "ignoreCommand": "node scripts/vercel-ignore-build.mjs",
   "outputDirectory": ".next",
   "crons": [
-    { "path": "/api/cron/recruitment-retention", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/process-automation-reminders", "schedule": "* * * * *" }
+    { "path": "/api/cron/recruitment-retention", "schedule": "0 3 * * *" }
   ]
 }

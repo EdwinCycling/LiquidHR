@@ -69,7 +69,7 @@ Builds en tests wijzigen niets aan Supabase- of Vercel-runtime. Framework-genera
 ## Release- en acceptatiegrenzen
 
 - Huidige READY-deployment blijft op de bestaande gedeelde TEST-aliases en bestaande versie; geen deployment of aliaswijziging.
-- Vercel-project staat op Hobby. De PMUX cron `* * * * *` valt buiten de ondersteunde Hobby-frequentie; actuele [Vercel Cron-limieten](https://vercel.com/docs/cron-jobs/usage-and-pricing) vereisen voor deze frequentie Pro of Enterprise.
-- Effectieve Git/Preview-triggerconfiguratie is niet onafhankelijk bevestigd. AA-REL vereist dit bewijs vóór push; daarom geen GitHub-push, PR of merge naar `main`.
+- Vercel-project staat op Hobby. De PMUX-cron `* * * * *` is bewust uit `vercel.json` verwijderd; alleen de al bestaande `recruitment-retention`-cron blijft actief. De PMUX API-route en database-schedulerwrapper zijn behouden, reminders zijn inactief en er is geen daily fallback. Actuele [Vercel Cron-limieten](https://vercel.com/docs/cron-jobs/usage-and-pricing) ondersteunen de minuutfrequentie op Hobby niet.
+- Read-only Vercel-projectinspectie meldt `gitProviderOptions.createDeployments: enabled`. De bronconfig bevat `git.deploymentEnabled: false`, maar AA-REL vereist dat de effectieve projecttriggers onafhankelijk uitstaan vóór push. Daarom staat push/PR/merge naar `main` in HOLD totdat die instelling veilig is bevestigd of expliciet uitgezet.
 - Na het sluiten van DB-/scheduler-/releasegates volgt één gezamenlijke TEST-release en daarna browseracceptatie met bestaande toegestane identiteiten. Geen echte salarismutaties, betalingen of aangiften.
 - Open Payroll-bronvragen, waaronder R2 bruto-netto en echte werkgever-/pensioentoepasselijkheid, blijven apart OPEN.
