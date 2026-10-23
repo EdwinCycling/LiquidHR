@@ -91,6 +91,22 @@ describe('process definition compiler', () => {
     compileFailure(workdays, 'SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT', ['steps', workdays.steps.indexOf(stepWithSla), 'sla', 'duration'])
   })
 
+  it('keeps optional reminder choices typed and requires a responsible human step', () => {
+    const definition = copyFixture()
+    const step = definition.steps.find((candidate) => candidate.sla)
+    expect(step).toBeDefined()
+    if (!step?.sla) return
+
+    step.sla = { ...step.sla, notifications: { beforeDeadline: 'TWENTY_FOUR_HOURS', atDeadline: false } }
+    expect(compileProcessDefinition(definition).content.steps.find((candidate) => candidate.key === step.key)?.sla?.notifications).toEqual({
+      beforeDeadline: 'TWENTY_FOUR_HOURS',
+      atDeadline: false,
+    })
+
+    step.participantKey = undefined
+    compileFailure(definition, 'SLA_NOTIFICATIONS_REQUIRE_PARTICIPANT', ['steps', definition.steps.indexOf(step), 'sla', 'notifications'])
+  })
+
   it('compiles the document acknowledgement recipe with its document binding and PDF output', () => {
     expect(processDefinitionDraftSchema.safeParse(documentAcknowledgementFixture).success).toBe(true)
     const compiled = compileProcessDefinition(documentAcknowledgementFixture)

@@ -142,6 +142,10 @@ export interface ProcessWorkDetailLabels extends ProcessWorkDeadlineLabels {
   readonly historyRejected: string
   readonly historyCancelled: string
   readonly historyResubmitted: string
+  readonly historyDeadlineReminderSent: string
+  readonly historyDeadlineBreachNotified: string
+  readonly historyDeadlineEscalated: string
+  readonly historyDeadlineManagementFlagged: string
   readonly historyEmpty: string
   readonly technicalDetails: string
   readonly hrActionContext: string
@@ -259,6 +263,10 @@ function historyEventLabel(event: ProcessWorkExperience['history'][number], inde
     if (event.terminalOutcome === 'REJECTED') return labels.historyRejected
     if (event.terminalOutcome === 'CANCELLED') return labels.historyCancelled
   }
+  if (event.eventType === 'PROCESS_SLA_REMINDER_SENT') return labels.historyDeadlineReminderSent
+  if (event.eventType === 'PROCESS_SLA_BREACH_NOTIFIED') return labels.historyDeadlineBreachNotified
+  if (event.eventType === 'PROCESS_SLA_ESCALATED') return labels.historyDeadlineEscalated
+  if (event.eventType === 'PROCESS_SLA_BREACH_BLOCKED') return labels.historyDeadlineManagementFlagged
   return labels.historyAction
 }
 

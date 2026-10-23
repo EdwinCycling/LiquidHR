@@ -262,6 +262,10 @@ export const slaSchema = z.object({
   businessDays: z.boolean(),
   onBreach: z.enum(['NOTIFY', 'ESCALATE', 'BLOCK']),
   escalationParticipantKey: identifierSchema.optional(),
+  notifications: z.object({
+    beforeDeadline: z.enum(['NONE', 'ONE_HOUR', 'TWENTY_FOUR_HOURS']),
+    atDeadline: z.boolean(),
+  }).strict().optional(),
 }).strict()
 export type SlaDefinition = z.infer<typeof slaSchema>
 

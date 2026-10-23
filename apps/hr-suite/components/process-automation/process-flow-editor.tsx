@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { ArrowDown, ArrowRight, ArrowUp, CornerUpLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { RadioGroup } from '@/components/ui/radio-group'
 import { TextInput } from '@/components/ui/text-input'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
@@ -14,6 +15,7 @@ import type {
   ProcessStep,
   ProcessStepType,
   ProcessTransition,
+  SlaDefinition,
 } from '@/lib/process-automation/definition-schemas'
 import type { StudioIssue } from '@/lib/process-automation/studio-service'
 import { reorderDefinitionItems } from '@/lib/process-automation/form-studio-draft'
@@ -94,6 +96,18 @@ export interface ProcessFlowEditorLabels {
   readonly slaSummary: string
   readonly slaWorkdaysBlocked: string
   readonly slaUnitLabels: Readonly<Record<'MINUTES' | 'HOURS' | 'DAYS', { readonly singular: string; readonly plural: string }>>
+  readonly slaNotifications: string
+  readonly slaNotificationsHelp: string
+  readonly slaNoDeadlineReminders: string
+  readonly slaNoResponsibleForReminders: string
+  readonly slaBeforeDeadline: string
+  readonly slaBeforeDeadlineOptions: Readonly<Record<NonNullable<SlaDefinition['notifications']>['beforeDeadline'], string>>
+  readonly slaAtDeadline: string
+  readonly slaAtDeadlineOptions: Readonly<Record<'YES' | 'NO', string>>
+  readonly slaOnBreach: string
+  readonly slaBreachOptions: Readonly<Record<SlaDefinition['onBreach'], string>>
+  readonly slaEscalationParticipant: string
+  readonly slaEscalationParticipantPlaceholder: string
 }
 
 interface ProcessFlowEditorProps {
@@ -236,6 +250,9 @@ export function ProcessFlowEditor({
     : null
   const selectedSlaAmount = selectedStep?.sla?.duration.amount ?? 1
   const selectedSlaAmountInvalid = !Number.isInteger(selectedSlaAmount) || selectedSlaAmount < 1
+  const selectedSlaBeforeDeadline = selectedStep?.sla?.notifications?.beforeDeadline ?? 'NONE'
+  const selectedSlaAtDeadline = selectedStep?.sla?.notifications?.atDeadline ?? true
+  const selectedSlaOnBreach = selectedStep?.sla?.onBreach ?? 'NOTIFY'
   const availableRouteActions = selectedStepType && selectedStepType !== 'END'
     ? transitionActions[selectedStepType].filter((action) => !draft.transitions.some((transition) => transition.fromStepKey === selectedStep.key && transition.action === action))
     : []
@@ -408,6 +425,36 @@ export function ProcessFlowEditor({
     updateStep(selectedStep.key, (step) => step.sla ? { ...step, sla: { ...step.sla, duration: { ...step.sla.duration, amount } } } : step)
   }
 
+  function updateSlaNotifications(change: Partial<NonNullable<SlaDefinition['notifications']>>): void {
+    if (!selectedStep?.sla || !selectedStep.participantKey) return
+    updateStep(selectedStep.key, (step) => step.sla ? {
+      ...step,
+      sla: {
+        ...step.sla,
+        notifications: { beforeDeadline: 'NONE', atDeadline: true, ...step.sla.notifications, ...change },
+      },
+    } : step)
+  }
+
+  function updateSlaBreachAction(onBreach: SlaDefinition['onBreach']): void {
+    if (!selectedStep?.sla || !selectedStep.participantKey) return
+    updateStep(selectedStep.key, (step) => step.sla ? {
+      ...step,
+      sla: {
+        ...step.sla,
+        onBreach,
+        notifications: { beforeDeadline: 'NONE', atDeadline: true, ...step.sla.notifications },
+        ...(onBreach === 'ESCALATE' && step.sla.escalationParticipantKey ? { escalationParticipantKey: step.sla.escalationParticipantKey } : {}),
+        ...(onBreach !== 'ESCALATE' ? { escalationParticipantKey: undefined } : {}),
+      },
+    } : step)
+  }
+
+  function updateSlaEscalationParticipant(participantKey: string): void {
+    if (!selectedStep?.sla || selectedSlaOnBreach !== 'ESCALATE') return
+    updateStep(selectedStep.key, (step) => step.sla ? { ...step, sla: { ...step.sla, escalationParticipantKey: participantKey || undefined } } : step)
+  }
+
   return (
     <section aria-labelledby="process-flow-title" className="w-full min-w-0 max-w-full rounded-xl border border-border bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -547,6 +594,69 @@ export function ProcessFlowEditor({
                   <TextInput aria-describedby="process-step-sla-amount-help" aria-invalid={selectedSlaAmountInvalid || undefined} disabled={!editing} id="process-step-sla-amount" min={1} onChange={(event) => updateSlaAmount(Number(event.target.value))} required step={1} type="number" value={selectedSlaAmount} />
                   <p className="text-xs text-muted-foreground" id="process-step-sla-amount-help">{selectedSlaAmountInvalid ? labels.slaInvalidAmount : labels.slaSummary.replace('{amount}', String(selectedSlaAmount)).replace('{unit}', selectedSlaAmount === 1 ? labels.slaUnitLabels[selectedSlaUnit].singular : labels.slaUnitLabels[selectedSlaUnit].plural)}</p>
                 </div> : null}
+                <div className="mt-4 grid gap-3 border-t border-border pt-4">
+                  <div>
+                    <h6 className="font-semibold">{labels.slaNotifications}</h6>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.slaNotificationsHelp}</p>
+                  </div>
+                  {!selectedStep?.sla ? <p className="text-sm text-muted-foreground">{labels.slaNoDeadlineReminders}</p> : !selectedStep.participantKey ? <p className="text-sm text-muted-foreground">{labels.slaNoResponsibleForReminders}</p> : <>
+                    <RadioGroup
+                      disabled={!editing}
+                      legend={labels.slaBeforeDeadline}
+                      name="process-step-sla-before-reminder"
+                      onValueChange={(value) => {
+                        if (['NONE', 'ONE_HOUR', 'TWENTY_FOUR_HOURS'].includes(value)) updateSlaNotifications({ beforeDeadline: value as NonNullable<SlaDefinition['notifications']>['beforeDeadline'] })
+                      }}
+                      options={[
+                        { value: 'NONE', label: labels.slaBeforeDeadlineOptions.NONE },
+                        { value: 'ONE_HOUR', label: labels.slaBeforeDeadlineOptions.ONE_HOUR },
+                        { value: 'TWENTY_FOUR_HOURS', label: labels.slaBeforeDeadlineOptions.TWENTY_FOUR_HOURS },
+                      ]}
+                      value={selectedSlaBeforeDeadline}
+                    />
+                    <RadioGroup
+                      disabled={!editing}
+                      legend={labels.slaAtDeadline}
+                      name="process-step-sla-at-deadline"
+                      onValueChange={(value) => {
+                        if (value === 'YES' || value === 'NO') updateSlaNotifications({ atDeadline: value === 'YES' })
+                      }}
+                      options={[
+                        { value: 'YES', label: labels.slaAtDeadlineOptions.YES },
+                        { value: 'NO', label: labels.slaAtDeadlineOptions.NO },
+                      ]}
+                      value={selectedSlaAtDeadline ? 'YES' : 'NO'}
+                    />
+                    <label className="grid gap-1.5 text-sm font-medium" htmlFor="process-step-sla-on-breach">
+                      <span>{labels.slaOnBreach}</span>
+                      <DropdownSelect
+                        disabled={!editing}
+                        id="process-step-sla-on-breach"
+                        onChange={(event) => {
+                          if (event.target.value === 'NOTIFY' || event.target.value === 'ESCALATE' || event.target.value === 'BLOCK') updateSlaBreachAction(event.target.value)
+                        }}
+                        value={selectedSlaOnBreach}
+                      >
+                        <option value="NOTIFY">{labels.slaBreachOptions.NOTIFY}</option>
+                        <option value="ESCALATE">{labels.slaBreachOptions.ESCALATE}</option>
+                        <option value="BLOCK">{labels.slaBreachOptions.BLOCK}</option>
+                      </DropdownSelect>
+                    </label>
+                    {selectedSlaOnBreach === 'ESCALATE' ? <label className="grid gap-1.5 text-sm font-medium" htmlFor="process-step-sla-escalation-participant">
+                      <span>{labels.slaEscalationParticipant}</span>
+                      <DropdownSelect
+                        disabled={!editing}
+                        id="process-step-sla-escalation-participant"
+                        onChange={(event) => updateSlaEscalationParticipant(event.target.value)}
+                        placeholder={labels.slaEscalationParticipantPlaceholder}
+                        value={selectedStep.sla.escalationParticipantKey ?? ''}
+                      >
+                        <option value="">{labels.slaEscalationParticipantPlaceholder}</option>
+                        {draft.participants.map((participant) => <option key={participant.key} value={participant.key}>{localizedLabel(participant.label, labels.responsibleMissing)}</option>)}
+                      </DropdownSelect>
+                    </label> : null}
+                  </>}
+                </div>
               </section> : null}
 
               {selectedStepType && selectedStepType !== 'END' ? <section aria-labelledby="process-routes-title" className="border-t pt-4">

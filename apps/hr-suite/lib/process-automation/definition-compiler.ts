@@ -73,6 +73,7 @@ export type DefinitionCompileErrorCode =
   | 'SLA_ESCALATION_PARTICIPANT_REQUIRED'
   | 'SLA_ESCALATION_PARTICIPANT_UNKNOWN'
   | 'SLA_ESCALATION_PARTICIPANT_INVALID'
+  | 'SLA_NOTIFICATIONS_REQUIRE_PARTICIPANT'
   | 'TRANSITION_SOURCE_UNKNOWN'
   | 'TRANSITION_TARGET_UNKNOWN'
   | 'TRANSITION_SOURCE_TERMINAL'
@@ -562,6 +563,7 @@ function validateSteps(
     if (step.sla?.onBreach === 'ESCALATE' && !step.sla.escalationParticipantKey) issue(issues, 'SLA_ESCALATION_PARTICIPANT_REQUIRED', [...path, 'sla', 'escalationParticipantKey'], 'Escalating SLAs require a participant')
     if (step.sla?.onBreach !== 'ESCALATE' && step.sla?.escalationParticipantKey) issue(issues, 'SLA_ESCALATION_PARTICIPANT_INVALID', [...path, 'sla', 'escalationParticipantKey'], 'Only escalating SLAs may define an escalation participant')
     if (step.sla?.escalationParticipantKey && !participants.has(step.sla.escalationParticipantKey)) issue(issues, 'SLA_ESCALATION_PARTICIPANT_UNKNOWN', [...path, 'sla', 'escalationParticipantKey'], `Unknown escalation participant: ${step.sla.escalationParticipantKey}`)
+    if (step.sla?.notifications && (!humanStepTypes.has(step.type) || !step.participantKey)) issue(issues, 'SLA_NOTIFICATIONS_REQUIRE_PARTICIPANT', [...path, 'sla', 'notifications'], 'SLA reminders require an assigned human step')
   })
   return steps
 }

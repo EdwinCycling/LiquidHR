@@ -83,6 +83,18 @@ const labels: ProcessFlowEditorLabels = {
   slaSummary: 'Deze stap moet binnen {amount} {unit} worden afgerond.',
   slaWorkdaysBlocked: 'Er is geen proceskalender gekoppeld.',
   slaUnitLabels: { MINUTES: { singular: 'minuut', plural: 'minuten' }, HOURS: { singular: 'uur', plural: 'uur' }, DAYS: { singular: 'kalenderdag', plural: 'kalenderdagen' } },
+  slaNotifications: 'Herinneringen en escalaties',
+  slaNotificationsHelp: 'Meldingen worden als in-app herinnering verstuurd.',
+  slaNoDeadlineReminders: 'Kies eerst een deadline.',
+  slaNoResponsibleForReminders: 'Wijs eerst een verantwoordelijke toe.',
+  slaBeforeDeadline: 'Herinnering vooraf',
+  slaBeforeDeadlineOptions: { NONE: 'Geen herinnering vooraf', ONE_HOUR: '1 uur vooraf', TWENTY_FOUR_HOURS: '24 uur vooraf' },
+  slaAtDeadline: 'Herinnering op de deadline',
+  slaAtDeadlineOptions: { YES: 'Ja', NO: 'Nee' },
+  slaOnBreach: 'Als de deadline is verstreken',
+  slaBreachOptions: { NOTIFY: 'Herinner de verantwoordelijke', ESCALATE: 'Escaleren', BLOCK: 'Markeren voor beheer' },
+  slaEscalationParticipant: 'Melding naar',
+  slaEscalationParticipantPlaceholder: 'Kies een verantwoordelijke',
 }
 
 interface MountedFlow {
@@ -179,6 +191,7 @@ describe('ProcessFlowEditor', () => {
     expect(noDeadline?.checked).toBe(true)
     expect(workdays?.disabled).toBe(true)
     expect(workdays?.getAttribute('aria-describedby')).toBeTruthy()
+    expect(mounted.container.textContent).toContain(labels.slaNoDeadlineReminders)
 
     const hours = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="HOURS"]')
     if (!hours) throw new Error('Hours option not found')
@@ -187,6 +200,14 @@ describe('ProcessFlowEditor', () => {
 
     expect(mounted.getDraft().steps[0]?.sla).toMatchObject({ duration: { amount: 3, unit: 'HOURS' }, businessDays: false })
     expect(mounted.container.textContent).toContain('Deze stap moet binnen 3 uur worden afgerond.')
+
+    const oneHourBefore = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="ONE_HOUR"]')
+    const noAtDeadline = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="NO"]')
+    if (!oneHourBefore || !noAtDeadline) throw new Error('Reminder choices not found')
+    act(() => oneHourBefore.click())
+    act(() => noAtDeadline.click())
+    expect(mounted.getDraft().steps[0]?.sla?.notifications).toEqual({ beforeDeadline: 'ONE_HOUR', atDeadline: false })
+    expect(mounted.container.querySelector('#process-step-sla-on-breach')).not.toBeNull()
 
     changeInput(mounted.container, 'process-step-sla-amount', '0')
     expect(mounted.container.querySelector('#process-step-sla-amount')?.getAttribute('aria-invalid')).toBe('true')
