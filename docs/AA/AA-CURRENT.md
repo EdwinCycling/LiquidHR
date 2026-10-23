@@ -1,5 +1,13 @@
 # AA-CURRENT — Current LiquidHR State
 
+## ONE-LIQUIDHR-MERGE-01 — gezamenlijke lokale kandidaat (23-10-2026)
+
+Payroll D2 Retail (`fe078514`) en PMUX (`8776c202`) zijn lokaal geïntegreerd op actuele `origin/main` `77c9bd54` in branch `work/one-liquidhr-merge-01-20261023`; integratiecorrectie `9fb83da1`. Dit is één gedeelde LiquidHR TEST-app; er is geen aparte klantproductie. De kandidaat bevat alle bedoelde Payroll- en PMUX-code, PMUX-migraties en integratiecorrecties. Payroll D2 voegt geen SQL-migraties toe. De bestaande READY Vercel-deployment blijft ongewijzigd; versie `1.20261023.1`, GitHub-push/PR/merge en deployment zijn nog niet uitgevoerd.
+
+**OPEN vóór TEST-schemawijziging:** herstelbare backup/restore is niet bewezen; voor alle vijf HR-groepen ontbreekt een bevestigd IANA-tijdzonebesluit; expliciete databasevrijgave ontbreekt. PMUX 03A staat al in TEST-history; de acht daaropvolgende migraties zijn lokaal opgenomen en niet uitgevoerd. De workday-calendar blocker geldt uitsluitend voor SLA-stappen met `businessDays: true`: de bestaande Leave-recipe en beide SLA's van twee werkdagen blijven exact behouden en falen gesloten bij activatie zonder proceskalender. Calendar-day SLA's blijven buiten die kalenderblokkade. Zie [ONE-LIQUIDHR-MERGE-01](../quality/acceptance/runs/ONE-LIQUIDHR-MERGE-01-20261023-LOCAL.md).
+
+**Release OPEN/HOLD:** Vercel Hobby ondersteunt de toegevoegde cronfrequentie van eenmaal per minuut niet; effectieve Git-deploymenttriggers zijn niet onafhankelijk bevestigd. De geïntegreerde browseracceptatie volgt op de gezamenlijke main-/TEST-release en is geen voorwaarde om de code lokaal samen te voegen. R2 bruto-netto, echte bedrijfs-/pensioenbronnen en wettelijke toepasselijkheid blijven apart OPEN.
+
 ## PAY-SECURITY-LIVE-FINAL — live TEST authorization closeout (23-10-2026)
 
 On `integration/PAYROLL-MERGE-20261022`, the existing Manager and the scoped `CONTROL01 Test BV` HR Admin completed direct TEST logins and real HTTP authorization probes. **Manager LIVE PASS** and **foreign-tenant LIVE PASS**: team listing is server-scoped even with `scope=all`; unauthorized employee/salary reads return 404; foreign context selection is 403; foreign PDF/preview APIs are 403 with no bytes. Unauthorized run pages return only a generic streamed not-found shell (HTTP 200 due to the existing loading boundary). The live Manager list probe reproduced a 90-row scope leak; the existing authorization chain now enforces team scope, with targeted regression tests. Full suite: 3,490 PASS, 8 SKIP, 0 FAIL; TypeScript and targeted ESLint pass. See [PAY-SECURITY-LIVE-FINAL](../quality/acceptance/runs/PAY-SECURITY-LIVE-FINAL-20261023.md). `/payroll/runs` performance and full dependency-audit review remain separate.
