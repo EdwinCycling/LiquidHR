@@ -418,7 +418,32 @@ function pensionContribution(code: 'PAYRUN01_EMPLOYEE_PENSION' | 'PAYRUN01_EMPLO
 }
 
 const employeePension = pensionContribution('PAYRUN01_EMPLOYEE_PENSION', 'PAYFULL02_EMPLOYEE_PENSION_RATE')
-const employerPension = pensionContribution('PAYRUN01_EMPLOYER_PENSION', 'PAYFULL02_EMPLOYER_PENSION_RATE')
+const employerPensionByRate = pensionContribution('PAYRUN01_EMPLOYER_PENSION', 'PAYFULL02_EMPLOYER_PENSION_RATE')
+const employerPensionWithRoundingRemainder: PayrollComponentDefinition = {
+  id: 'system:payfull02:payrun01-employer-pension-rounding-remainder',
+  code: 'PAYRUN01_EMPLOYER_PENSION',
+  version: '2026.1-payfull02-employer-remainder',
+  effectiveFrom: '2026-01-01',
+  effectiveTo: '2026-12-31',
+  ownership: { kind: 'SYSTEM' },
+  processingScope: 'INCOME_RELATIONSHIP',
+  inputs: [
+    { name: 'pensionableWage', valueType: 'MONEY', required: true },
+    { name: 'totalRate', valueType: 'PERCENTAGE', required: true },
+    { name: 'employeePension', valueType: 'MONEY', required: true },
+  ],
+  outputs: [{ name: 'amount', valueType: 'MONEY', rounding: { scale: 2, mode: 'HALF_UP' } }],
+  dependencies: [
+    { componentCode: 'PAYFULL02_PENSIONABLE_WAGE', outputName: 'amount', inputName: 'pensionableWage' },
+    { componentCode: 'PAYFULL02_TOTAL_PENSION_RATE', outputName: 'rate', inputName: 'totalRate' },
+    { componentCode: 'PAYRUN01_EMPLOYEE_PENSION', outputName: 'amount', inputName: 'employeePension' },
+  ],
+  method: { kind: 'expression', outputs: { amount: subtract(
+    { kind: 'binary', operator: '*', left: output('PAYFULL02_PENSIONABLE_WAGE', 'amount'), right: output('PAYFULL02_TOTAL_PENSION_RATE', 'rate') },
+    output('PAYRUN01_EMPLOYEE_PENSION', 'amount'),
+  ) } },
+  tracePolicy: 'FULL',
+}
 
 const taxableWageBase = moneyComponent('PAYRUN01_WAGE_TAX_BASE', [
   { componentCode: 'PAYFULL02_PRE_PENSION_WAGE_BASE', outputName: 'amount', inputName: 'prePensionWageBase' },
@@ -600,7 +625,11 @@ export function createPayfull02RulePackage(
 ): PayrollRulePackage {
   const base = createPayrun01RulePackage(kind, options)
   const supportCaoExactGross = options.supportCaoExactGross === true
-  const compositionId = `${base.compositionId}+PAYFULL02-${kind}-NET-EMPLOYER-2026.3${supportCaoExactGross ? '+CAO-GROSS-TOTAL-2026.1' : ''}`
+  const allocatePensionRoundingRemainderToEmployer = options.allocatePensionRoundingRemainderToEmployer === true
+  const compositionId = `${base.compositionId}+PAYFULL02-${kind}-NET-EMPLOYER-2026.3${supportCaoExactGross ? '+CAO-GROSS-TOTAL-2026.1' : ''}${allocatePensionRoundingRemainderToEmployer ? '+PENSION-EMPLOYER-REMAINDER-2026.1' : ''}`
+  const employerPension = allocatePensionRoundingRemainderToEmployer
+    ? employerPensionWithRoundingRemainder
+    : employerPensionByRate
   const replacedComponents = new Set([
     'NL_REGULAR_WAGE', 'PAYRUN01_WAGE_TAX_BASE', 'PAYRUN01_EMPLOYEE_INSURANCE_BASE', 'PAYRUN01_ZVW_BASE',
     'PAYRUN01_EMPLOYEE_PENSION', 'PAYRUN01_EMPLOYER_PENSION', 'PAYRUN01_HOLIDAY_RESERVE', 'PAYRUN01_YEAR_END_RESERVE',
@@ -615,6 +644,9 @@ export function createPayfull02RulePackage(
   })
   const components = [
     ...baseComponents,
+    ...(allocatePensionRoundingRemainderToEmployer
+      ? [source('PAYFULL02_TOTAL_PENSION_RATE', 'rate', 'PERCENTAGE', ['payrollOwned', 'pension', 'totalPremiumRate'])]
+      : []),
     classifiedRegularVariableWage,
     supportCaoExactGross ? createCaoAwareRegularWageComponent() : grossWithRegularVariableWage,
     ...(supportCaoExactGross

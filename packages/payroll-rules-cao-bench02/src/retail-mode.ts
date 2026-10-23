@@ -21,9 +21,11 @@ import type {
 const PACKAGE_ID = 'CAO-RETAIL-NON-FOOD-2026'
 const RULE_KEY = 'retail-non-food.2026.gross-mode-r1-r2'
 const RULE_CODE = 'RETAIL_MODE_GROSS'
-const RULE_IMPLEMENTATION_HASH = '132e93165963ef3f29fbac7f746e8df2d4fab737e401cc17ec9823a307dd5a30'
+const RULE_IMPLEMENTATION_HASH = 'dbda618e13e98ea06da2c8c175191fcdc4185786724ad31657eabc57d402cfc6'
 const JANUARY_SOURCE_URL = 'https://www.inretail.nl/wp-content/uploads/2026/02/260121-Cao-Retail-Non-Food-januari-2026-def.pdf'
 const JULY_SOURCE_URL = 'https://www.inretail.nl/wp-content/uploads/2026/05/260527-Cao-Retail-Non-Food-juli-2026-def.pdf'
+const JANUARY_SOURCE_SHA256 = 'ada85c7293b1eb92b25d693dd68010349893e606ffe0b0512519428c9742943b'
+const JULY_SOURCE_SHA256 = 'ec6fd7a8ee7c3b1f18f58ac6cc5081d6a72e053405480e346eb8a4c7d1e1d2cc'
 const MONTHLY_CONVERSION_HOURS = '164.67'
 const STANDARD_WEEK_HOURS = '38'
 
@@ -33,6 +35,7 @@ interface RetailModeTableSet {
   readonly effectiveFrom: string
   readonly effectiveTo: string
   readonly sourceUrl: string
+  readonly sourceSha256: string
   readonly tableCRow1: string
   readonly tableIRow15: string
 }
@@ -44,6 +47,7 @@ const TABLE_VERSIONS: readonly RetailModeTableSet[] = Object.freeze([
     effectiveFrom: '2026-01-01',
     effectiveTo: '2026-06-30',
     sourceUrl: JANUARY_SOURCE_URL,
+    sourceSha256: JANUARY_SOURCE_SHA256,
     tableCRow1: '15.15',
     tableIRow15: '28.41',
   }),
@@ -53,6 +57,7 @@ const TABLE_VERSIONS: readonly RetailModeTableSet[] = Object.freeze([
     effectiveFrom: '2026-07-01',
     effectiveTo: '2026-12-31',
     sourceUrl: JULY_SOURCE_URL,
+    sourceSha256: JULY_SOURCE_SHA256,
     tableCRow1: '15.44',
     tableIRow15: '28.95',
   }),
@@ -496,8 +501,11 @@ function createBundle(tableSet: RetailModeTableSet) {
   const mappings = resultMappings()
   const sourceMetadata = Object.freeze({
     january2026OfficialCaoPdf: JANUARY_SOURCE_URL,
+    january2026OfficialCaoPdfSha256: JANUARY_SOURCE_SHA256,
     july2026OfficialCaoPdf: JULY_SOURCE_URL,
+    july2026OfficialCaoPdfSha256: JULY_SOURCE_SHA256,
     activeTableSource: tableSet.sourceUrl,
+    activeTableSourceSha256: tableSet.sourceSha256,
     activeTableEffectiveFrom: tableSet.effectiveFrom,
     activeTableEffectiveTo: tableSet.effectiveTo,
     activeTableScope: 'Appendix 1b main table: function groups A/B through I, adult scale; only group C row 1 and group I row 15 are enabled in this slice',

@@ -5,6 +5,7 @@ import {
   sha256,
   stableSerialize,
   type PayrollCalculationResult,
+  type PayrollCalculationTraceStep,
   type PayrollPeriodReference,
   type PayrollSourceSnapshot,
 } from '@liquid-hr/payroll-engine'
@@ -24,6 +25,14 @@ export type CaoCalculationTraceStep = {
   readonly formula: string
   readonly values: Readonly<Record<string, string | number | boolean | null>>
   readonly sourceReference: string
+}
+export type CaoRetailBusinessScope = {
+  readonly value: 'IN_STORE' | 'ECOMMERCE'
+  readonly sourceClassification: 'OFFICIAL' | 'SYNTHETIC_FIXTURE'
+  readonly sourceReference: string
+  readonly sourceVersion: string
+  readonly effectiveFrom: string
+  readonly effectiveTo: string | null
 }
 export type CaoPayrollCalculation = {
   readonly status: 'NOT_APPLICABLE' | 'CALCULATED' | 'BLOCKED'
@@ -47,6 +56,7 @@ export type CaoPayrollCalculation = {
   readonly blockingStatus?: 'SOURCE_GAP' | 'UNSUPPORTED'
   readonly inputs?: Readonly<Record<string, string | number | boolean>>
   readonly trace?: readonly CaoCalculationTraceStep[]
+  readonly componentTrace?: readonly PayrollCalculationTraceStep[]
   readonly sourceReferences?: readonly { readonly title: string; readonly url: string }[]
 }
 
@@ -85,6 +95,7 @@ export type CaoPayrollIntegrationInput = {
   readonly activeEndExclusive: string
   readonly laborConditionCode: string | null
   readonly laborConditionName: string | null
+  readonly retailBusinessScope?: CaoRetailBusinessScope
   readonly salary: CaoPayrollSalaryInput | null
   readonly schedule: CaoPayrollScheduleInput | null
   readonly actualWorkEntries: readonly CaoPayrollActualWorkEntry[]
@@ -398,6 +409,19 @@ function calculateRetailMode(input: CaoPayrollIntegrationInput): CaoPayrollCalcu
   if (!scenarioCode) return blocked('RETAIL_MODE', 'CAO_RETAIL_ROW_UNSUPPORTED', 'UNSUPPORTED', sources)
   const hours = sumActualWork(input.actualWorkEntries, 'RETAIL_MODE')
   if (hours.reasonCode) return blocked('RETAIL_MODE', hours.reasonCode, 'UNSUPPORTED', sources)
+  const weekdayNightHours = hours.values.weekdayNightHours ?? FixedDecimal.fromInteger(BigInt(0))
+  const retailBusinessScope = input.retailBusinessScope
+  if (weekdayNightHours.compare(FixedDecimal.fromInteger(BigInt(0))) > 0 && !retailBusinessScope) {
+    return blocked('RETAIL_MODE', 'CAO_RETAIL_BUSINESS_SCOPE_UNVERIFIED', 'SOURCE_GAP', sources)
+  }
+  if (retailBusinessScope && (
+    !retailBusinessScope.sourceReference.trim()
+    || !retailBusinessScope.sourceVersion.trim()
+    || retailBusinessScope.effectiveFrom > periodStart(input.period)
+    || (retailBusinessScope.effectiveTo !== null && retailBusinessScope.effectiveTo < periodEndExclusive(input.period))
+  )) {
+    return blocked('RETAIL_MODE', 'CAO_RETAIL_BUSINESS_SCOPE_INVALID', 'SOURCE_GAP', sources)
+  }
   const actualHourlyRate = input.salary.hourlyRate === null ? '0' : String(input.salary.hourlyRate)
   if (scenarioCode === 'R1' && actualHourlyRate === '0') return blocked('RETAIL_MODE', 'CAO_RETAIL_ACTUAL_HOURLY_RATE_MISSING', 'SOURCE_GAP', sources)
   const scenario = {
@@ -410,7 +434,7 @@ function calculateRetailMode(input: CaoPayrollIntegrationInput): CaoPayrollCalcu
     weekdayNightHours: hours.values.weekdayNightHours?.toString() ?? '0',
     sundayHours: hours.values.sundayHours?.toString() ?? '0',
     dailyOvertimeHours: hours.values.dailyOvertimeHours?.toString() ?? '0',
-    isEcommerce: false,
+    isEcommerce: retailBusinessScope?.value === 'ECOMMERCE',
   }
   try {
     const bundle = getRetailModeRuleBundle(periodStart(input.period))
@@ -456,7 +480,7 @@ function calculateRetailMode(input: CaoPayrollIntegrationInput): CaoPayrollCalcu
         weekdayNightHours: scenario.weekdayNightHours,
         sundayHours: scenario.sundayHours,
         dailyOvertimeHours: scenario.dailyOvertimeHours,
-        isEcommerce: false,
+        isEcommerce: scenario.isEcommerce,
       },
       trace: [
         {
@@ -465,6 +489,16 @@ function calculateRetailMode(input: CaoPayrollIntegrationInput): CaoPayrollCalcu
           values: { family: 'RETAIL_MODE', scenarioCode, functionGroup, experienceRow },
           sourceReference: sources[0]!.url,
         },
+        ...(retailBusinessScope ? [{
+          code: 'CAO_RETAIL_BUSINESS_SCOPE',
+          formula: 'Versioned employer activity scope determines whether the e-commerce night-hour restriction applies.',
+          values: {
+            businessModel: retailBusinessScope.value,
+            sourceClassification: retailBusinessScope.sourceClassification,
+            sourceVersion: retailBusinessScope.sourceVersion,
+          },
+          sourceReference: retailBusinessScope.sourceReference,
+        }] : []),
         {
           code: 'CAO_RETAIL_MODE_BASE_SALARY',
           formula: 'Effective hourly CAO rate × 164.67 monthly conversion hours × contract hours ÷ 38 full-time hours.',
@@ -484,6 +518,7 @@ function calculateRetailMode(input: CaoPayrollIntegrationInput): CaoPayrollCalcu
           sourceReference: sources[1]!.url,
         },
       ],
+      componentTrace: result.trace.filter((step) => step.componentCode === 'RETAIL_MODE_GROSS'),
       sourceReferences: sources,
     }
   } catch (error) {

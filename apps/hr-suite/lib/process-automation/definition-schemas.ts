@@ -171,6 +171,13 @@ export const fieldAccessRuleSchema = z.object({
 }).strict()
 export type FieldAccessRule = z.infer<typeof fieldAccessRuleSchema>
 
+export const stepFieldAccessRuleSchema = z.object({
+  stepKey: identifierSchema,
+  participantKey: identifierSchema,
+  mode: fieldAccessModeSchema,
+}).strict()
+export type StepFieldAccessRule = z.infer<typeof stepFieldAccessRuleSchema>
+
 const conditionLiteralSchema = z.object({
   kind: z.literal('LITERAL'),
   value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
@@ -224,6 +231,7 @@ export const fieldDefinitionSchema = z.object({
   type: fieldTypeSchema,
   binding: fieldBindingSchema,
   access: z.array(fieldAccessRuleSchema).min(1),
+  stepAccess: z.array(stepFieldAccessRuleSchema).optional(),
   options: z.array(z.object({ value: z.string().trim().min(1), label: localizedTextSchema }).strict()).min(1).optional(),
   visibilityCondition: conditionSchema.optional(),
   requiredCondition: conditionSchema.optional(),
@@ -233,7 +241,7 @@ export type FieldDefinition = z.infer<typeof fieldDefinitionSchema>
 export const formSectionSchema = z.object({
   key: identifierSchema,
   title: localizedTextSchema,
-  fields: z.array(fieldDefinitionSchema).min(1),
+  fields: z.array(fieldDefinitionSchema),
 }).strict()
 export type FormSection = z.infer<typeof formSectionSchema>
 
@@ -254,6 +262,10 @@ export const slaSchema = z.object({
   businessDays: z.boolean(),
   onBreach: z.enum(['NOTIFY', 'ESCALATE', 'BLOCK']),
   escalationParticipantKey: identifierSchema.optional(),
+  notifications: z.object({
+    beforeDeadline: z.enum(['NONE', 'ONE_HOUR', 'TWENTY_FOUR_HOURS']),
+    atDeadline: z.boolean(),
+  }).strict().optional(),
 }).strict()
 export type SlaDefinition = z.infer<typeof slaSchema>
 

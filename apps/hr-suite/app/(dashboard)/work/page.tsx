@@ -1,8 +1,11 @@
 import { ProcessWorkWorkspace, type ProcessWorkspaceLabels } from '@/components/process-automation/process-workspace'
+import { createProcessWorkDeadlineLabels } from '@/lib/process-automation/deadline-projection'
 import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getDocumentAcknowledgementStartData } from '@/lib/process-automation/document-acknowledgement-service'
 import { getInternalTransferStartData } from '@/lib/process-automation/internal-transfer-start-service'
+import { listStartableProcesses, type StartableProcess } from '@/lib/process-automation/start-catalog-service'
+import { parseProcessWorkReturnContext } from '@/lib/process-automation/work-routing'
 import { listProcessWork, listProcessWorkFilterOptions, listProcessWorkTabCounts, type ProcessWorkBusinessCategory, type ProcessWorkBusinessType, type ProcessWorkSort, type ProcessWorkTab, type ProcessWorkView, ProcessWorkError } from '@/lib/process-automation/work-service'
 
 interface WorkPageProps {
@@ -30,7 +33,7 @@ function businessCategory(value: string): ProcessWorkBusinessCategory | undefine
 }
 
 function sort(value: string): ProcessWorkSort {
-  return value === 'DEADLINE' ? 'DEADLINE' : 'NEEDS_ACTION'
+  return value === 'NEEDS_ACTION' ? 'NEEDS_ACTION' : 'DEADLINE'
 }
 
 function page(value: string): number {
@@ -55,8 +58,10 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
   const currentBusinessType = businessType(first(query.businessType))
   const currentBusinessCategory = businessCategory(first(query.businessCategory))
   const currentPage = page(first(query.page))
+  const returnContext = parseProcessWorkReturnContext(first(query.returnTo))
   const workDependencies = { supabase: requestContext.supabase, context: requestContext.context }
   const labels: ProcessWorkspaceLabels = {
+    ...createProcessWorkDeadlineLabels(t),
     workspaceTitle: t('workspaceTitle'),
     workspaceDescription: t('workspaceDescription'),
     myWork: t('myWork'),
@@ -123,7 +128,8 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
     denied: t('denied'),
     blocked: t('blocked'),
     overdue: t('overdue'),
-    dueToday: t('dueToday'),
+    nearDue: t('nearDue'),
+    currentPage: t('currentPage'),
     availableAt: t('availableAt'),
     claimedBy: t('claimedBy'),
     unassigned: t('unassigned'),
@@ -139,6 +145,25 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
     startInternalTransfer: t('p9.startTitle'),
     startDocumentAcknowledgement: t('p10.startTitle'),
     startLeaveRequest: t('startLeaveRequest'),
+    nextResponsible: t('requesterResponsible'),
+    responsibleYou: t('requesterYou'),
+    responsibleManager: t('requesterManager'),
+    responsibleHr: t('requesterHr'),
+    newRequestTitle: t('newRequest.title'),
+    newRequestDescription: t('newRequest.description'),
+    processSteps: t('newRequest.steps'),
+    processRoutes: t('newRequest.routes'),
+    processResponsible: t('newRequest.responsible'),
+    processStartStep: t('newRequest.startStep'),
+    processStart: t('newRequest.start'),
+    processStarting: t('newRequest.starting'),
+    processCatalogEmpty: t('newRequest.empty'),
+    processCatalogLoadError: t('newRequest.loadError'),
+    processStartFailed: t('newRequest.startFailed'),
+    processStartDenied: t('newRequest.startDenied'),
+    processStartUnavailable: t('newRequest.startUnavailable'),
+    processStartCalendarBlocked: t('slaWorkdayCalendarRequired'),
+    processCatalogEmptyWithNativeStarters: t('newRequest.emptyWithNativeStarters'),
   }
 
   let data = null
@@ -168,5 +193,14 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
   const canStartInternalTransfer = await getInternalTransferStartData().then(() => true).catch(() => false)
   const canStartDocumentAcknowledgement = await getDocumentAcknowledgementStartData().then(() => true).catch(() => false)
   const canStartLeaveRequest = Boolean(requestContext.context.employeeId && requestContext.context.permissions.includes('self:leave:request'))
-  return <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
+  let startableProcesses: readonly StartableProcess[] = []
+  let processCatalogError = false
+  if (currentView === 'REQUESTS' && requestContext.context.employeeId) {
+    try {
+      startableProcesses = await listStartableProcesses(workDependencies)
+    } catch {
+      processCatalogError = true
+    }
+  }
+  return <ProcessWorkWorkspace locale={locale} timeZone={requestContext.activeContext.activeHrGroup.timeZone} labels={labels} data={data} options={options} startableProcesses={startableProcesses} processCatalogError={processCatalogError} returnContext={returnContext} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
 }

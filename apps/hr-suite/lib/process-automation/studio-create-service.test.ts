@@ -70,6 +70,27 @@ describe('createStudioDefinition', () => {
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
+  it('keeps the Opleidingsaanvraag example dynamic and limited to the existing process-only fields', () => {
+    const definition = createTrainingRequestExampleDraft({
+      key: 'training-request',
+      title: input.title,
+      description: input.description,
+    })
+    const fields = definition.forms.flatMap((form) => form.sections.flatMap((section) => section.fields))
+
+    expect(fields.map((field) => field.key)).toEqual([
+      'training-name',
+      'training-reason',
+      'training-start-date',
+      'training-expected-cost',
+      'training-notes',
+    ])
+    expect(fields.map((field) => field.type)).toEqual(['SHORT_TEXT', 'LONG_TEXT', 'DATE', 'MONEY', 'LONG_TEXT'])
+    expect(fields.every((field) => field.binding.kind === 'PROCESS_ONLY')).toBe(true)
+    expect(fields.find((field) => field.key === 'training-expected-cost')?.access.find((rule) => rule.participantKey === 'employee')?.mode).toBe('WRITE_OPTIONAL')
+    expect(fields.find((field) => field.key === 'training-notes')?.access.find((rule) => rule.participantKey === 'employee')?.mode).toBe('WRITE_OPTIONAL')
+  })
+
   it('persists edited typed steps, responsibility, and recovery routes for a later studio reopen', async () => {
     const definition = createTrainingRequestExampleDraft({
       key: 'training-request',
@@ -111,6 +132,17 @@ describe('createStudioDefinition', () => {
     if (!recoveryRoute) throw new Error('Example recovery route was not created')
     recoveryRoute.label = { nl: 'Aanvraag aanvullen', en: 'Complete the request' }
     definition.steps[1].participantKey = 'hr-team'
+    const trainingForm = definition.forms[0]
+    const requestSection = trainingForm?.sections[0]
+    const trainingField = requestSection?.fields[0]
+    if (!trainingForm || !requestSection || !trainingField) throw new Error('Training form field was not created')
+    trainingForm.title = { nl: 'Opleidingsaanvraag', en: 'Training request' }
+    requestSection.title = { nl: 'Aanvraaggegevens', en: 'Request details' }
+    trainingField.label = { nl: 'Opleidingsnaam', en: 'Course name' }
+    trainingField.helpText = { nl: 'Vul de gewenste opleiding in.', en: 'Enter the requested course.' }
+    requestSection.fields.push({ ...trainingField, key: trainingField.key + '-copy', label: { nl: 'Opleidingsnaam kopie', en: 'Course name copy' } })
+    trainingForm.sections.push({ key: 'training-extra', title: { nl: 'Aanvullend', en: 'Additional' }, fields: [] })
+
     mocks.rpc.mockResolvedValue({ data: { revision: 2 }, error: null })
     await saveStudioDefinition('00000000-0000-4000-8000-000000000001', 1, definition)
     const saveCall = mocks.rpc.mock.calls.find(([functionName]) => functionName === 'save_process_definition_draft')

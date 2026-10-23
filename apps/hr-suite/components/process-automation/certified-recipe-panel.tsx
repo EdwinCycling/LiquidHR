@@ -41,7 +41,7 @@ export function CertifiedRecipePanel({ recipes, canWrite, labels }: { readonly r
     }
   }
 
-  return <section aria-labelledby="certified-recipe-title" className="mb-6 scroll-mt-6 rounded-3xl border border-border bg-surface p-6 shadow-sm sm:p-8" id="process-recipe-catalog">
+  return <section aria-labelledby="certified-recipe-title" className="mb-6 scroll-mt-6 rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-6 sm:p-8" id="process-recipe-catalog">
     <p className="eyebrow text-primary">{labels.eyebrow}</p>
     <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>

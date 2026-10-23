@@ -607,13 +607,14 @@ describe('PAYD1 K2-06 synthetic complete source case', () => {
       periodStart: '2026-11-01',
       periodEndExclusive: '2026-12-01',
     })
-    expect(sourceContract.references).toHaveLength(17)
+    expect(sourceContract.references).toHaveLength(18)
     expect(sourceContract.references.every((reference) => reference.status === 'BOUND'
       && reference.sourceRowId.length > 0 && reference.version.length > 0)).toBe(true)
     expect(sourceContract.references.map((reference) => reference.sourceType)).toEqual(expect.arrayContaining([
       'employments', 'employment_salaries', 'employment_schedules', 'employment_contracts',
       'employment_labor_conditions', 'labor_condition_sets', 'employee_organizations', 'job_revisions',
       'employment_pension_assignments', 'pension_arrangement_versions', 'labor_condition_pension_arrangements',
+      'actual_work_periods',
       'employment_income_relationships', 'income_relationships', 'employment_payroll_tax_profiles',
       'payroll_employer_configurations', 'payroll_opening_cumulative_snapshots',
     ]))

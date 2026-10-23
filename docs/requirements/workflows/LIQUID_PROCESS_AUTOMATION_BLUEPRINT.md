@@ -15,6 +15,8 @@
 **Leidende LiquidHR-bronnen:** `AGENTS.md`, `docs/README.md`, de vijf architectuurdocumenten, autorisatie, organisatie, organogram, multitenancy, entiteiteigendom, documenten en reminders
 
 > Dit document ontwerpt de richting en de uitvoering. De productrichting is bevestigd, maar dit document voert zelf geen schema-, API-, UI-, remote database-, seed-, deployment- of permissiewijziging uit.
+>
+> **Roadmapstatus (22-10-2026):** de oorspronkelijke P0–P10-uitvoeringsindeling hieronder is historische planning. De actuele volgorde is PMUX-05 → PMUX-06 → PMUX-07; PMUX-04 blijft een aparte security-/releasegate. Gebruik de [geconsolideerde PMUX-roadmap](PMUX_CONSOLIDATED_ROADMAP_20261022.md) voor huidige prioriteit en status. De product- en architectuurprincipes in deze blueprint blijven referentie.
 
 ## Leeswijzer
 

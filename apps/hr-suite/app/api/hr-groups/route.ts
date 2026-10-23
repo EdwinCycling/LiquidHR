@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { permissionErrorResponse, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { isHrGroupTimeZone } from '@/lib/context/hr-group-timezones'
 
 const administrationInputSchema = z.object({
   code: z.string().trim().toUpperCase().regex(/^[A-Z0-9_-]+$/).max(80),
@@ -16,6 +17,7 @@ const administrationInputSchema = z.object({
 const groupPatchSchema = z.object({
   name: z.string().trim().min(1).max(160),
   description: z.string().trim().max(1000),
+  timeZone: z.string().trim().min(1).max(100).refine(isHrGroupTimeZone),
   employeePortalMode: z.enum(['FOCUS_ONLY', 'FOCUS_AND_FULL']),
   managerPortalMode: z.enum(['FOCUS_ONLY', 'FOCUS_AND_FULL']),
 }).strict()
@@ -69,6 +71,7 @@ export async function PATCH(request: Request) {
       .update({
         name: parsed.data.name,
         description: parsed.data.description || null,
+        time_zone: parsed.data.timeZone,
         employee_portal_mode: parsed.data.employeePortalMode,
         manager_portal_mode: parsed.data.managerPortalMode,
         updated_by_user_id: context.userId,

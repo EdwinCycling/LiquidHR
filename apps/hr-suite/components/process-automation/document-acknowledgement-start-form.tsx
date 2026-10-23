@@ -96,7 +96,7 @@ export function DocumentAcknowledgementStartForm({ data, labels }: { readonly da
   }
 
   return <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-10">
-    <header className="rounded-3xl border border-border bg-surface p-6 shadow-sm sm:p-8">
+    <header className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-6 sm:p-8">
       <p className="eyebrow text-primary">{data.recipe.recipeKey}</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">{labels.title}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.description}</p>

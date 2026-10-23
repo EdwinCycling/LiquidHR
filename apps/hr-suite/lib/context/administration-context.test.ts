@@ -22,6 +22,7 @@ const tenantOne: TenantContextOption = {
       code: 'A',
       name: 'HR-groep A',
       description: null,
+      timeZone: 'Europe/Amsterdam',
       administrations: [{ id: 'admin-a1', code: 'A1', name: 'Administratie A1' }],
     },
     {
@@ -30,6 +31,7 @@ const tenantOne: TenantContextOption = {
       code: 'B',
       name: 'HR-groep B',
       description: null,
+      timeZone: 'Europe/Amsterdam',
       administrations: [{ id: 'admin-b1', code: 'B1', name: 'Administratie B1' }],
     },
   ],
@@ -110,8 +112,8 @@ describe('buildTenantContextOptions', () => {
     sharing_mode: 'FULLY_ISOLATED' as const,
   }]
   const hrGroups = [
-    { id: 'group-a', tenant_id: 'tenant-1', code: 'A', name: 'Groep A', description: null, is_active: true },
-    { id: 'group-b', tenant_id: 'tenant-1', code: 'B', name: 'Groep B', description: null, is_active: true },
+    { id: 'group-a', tenant_id: 'tenant-1', code: 'A', name: 'Groep A', description: null, time_zone: 'Europe/Amsterdam', is_active: true },
+    { id: 'group-b', tenant_id: 'tenant-1', code: 'B', name: 'Groep B', description: null, time_zone: 'Europe/Amsterdam', is_active: true },
   ]
   const administrations = [
     { id: 'admin-a1', tenant_id: 'tenant-1', hr_group_id: 'group-a', code: 'A1', name: 'A1', is_active: true },

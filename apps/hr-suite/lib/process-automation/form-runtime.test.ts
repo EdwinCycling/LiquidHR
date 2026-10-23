@@ -4,6 +4,7 @@ import {
   displayFormValue,
   formProjectionSchema,
   isFormValueValid,
+  isFormDraftValueValid,
   type FormProjection,
 } from './form-runtime'
 
@@ -73,8 +74,11 @@ describe('process form runtime contract', () => {
     expect(isFormValueValid(documentField, 'not-a-document-id')).toBe(false)
   })
 
-  it('requires a changed value for a required field', () => {
-    expect(() => buildVisibleFormPayload(projection, {}, new Set())).toThrow('FORM_FIELD_REQUIRED')
+  it('allows incomplete required values in a draft while retaining type checks', () => {
+    expect(buildVisibleFormPayload(projection, {}, new Set())).toEqual({ current: {}, new: {} })
+    expect(isFormValueValid(projection.sections[0].fields[0], null)).toBe(false)
+    expect(isFormDraftValueValid(projection.sections[0].fields[0], null)).toBe(true)
+    expect(() => buildVisibleFormPayload(projection, { reason: 42 }, new Set(['reason']))).toThrow('FORM_FIELD_INVALID')
   })
 
   it('formats values from caller-provided labels', () => {

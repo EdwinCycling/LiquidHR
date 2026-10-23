@@ -1,9 +1,11 @@
 import { ProcessWorkDetailView } from '@/components/process-automation/process-work-detail'
 import { redirect } from 'next/navigation'
+import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getProcessFormProjection } from '@/lib/process-automation/form-runtime-service'
 import { getProcessAutomationOperations, getProcessOutputProjection } from '@/lib/process-automation/output-service'
 import { createProcessWorkDetailLabels } from '@/lib/process-automation/process-work-detail-labels'
-import { getProcessWorkItemAssignmentOptions, getProcessWorkItemDetail } from '@/lib/process-automation/work-service'
+import { getProcessWorkItemAssignmentOptions, getProcessWorkItemDetail, getProcessWorkItemExperience } from '@/lib/process-automation/work-service'
+import { processWorkReturnHref } from '@/lib/process-automation/work-routing'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 
 interface WorkDetailPageProps {
@@ -16,6 +18,8 @@ function first(value: string | string[] | undefined): string {
 }
 
 function workBackHref(query: Record<string, string | string[] | undefined>): string {
+  const returnHref = processWorkReturnHref(first(query.returnTo))
+  if (returnHref) return returnHref
   const params = new URLSearchParams()
   for (const key of ['view', 'tab', 'search', 'status', 'businessType', 'businessCategory', 'processDefinitionId', 'administrationId', 'sort']) {
     const value = first(query[key])
@@ -32,11 +36,16 @@ export default async function WorkDetailPage({ params, searchParams }: WorkDetai
   const t = await getTranslator('processAutomation', locale)
   const detail = await getProcessWorkItemDetail(workItemId, locale)
   if (detail.businessType === 'LEAVE') redirect(`/leave/requests/${detail.workItemId}`)
-  const [form, outputs, operations, assignmentOptions] = await Promise.all([
+  const requestContext = await getRequestAuthorizationContext()
+  const isRequesterPresentation = detail.businessType === 'P_MUTATION'
+    && detail.businessCategory === 'GENERAL'
+    && Boolean(requestContext.context.employeeId && requestContext.context.employeeId === detail.subjectEmployeeId)
+  const [form, outputs, operations, assignmentOptions, experience] = await Promise.all([
     getProcessFormProjection(workItemId, locale).catch(() => null),
     getProcessOutputProjection(detail.processInstanceId, locale).catch(() => null),
     getProcessAutomationOperations(detail.processInstanceId).catch(() => null),
     detail.canReassign ? getProcessWorkItemAssignmentOptions(workItemId).catch(() => []) : Promise.resolve([]),
+    getProcessWorkItemExperience(workItemId, locale).catch(() => null),
   ])
-  return <ProcessWorkDetailView assignmentOptions={assignmentOptions} backHref={workBackHref(query)} detail={detail} form={form} outputs={outputs} operations={operations} locale={locale} labels={createProcessWorkDetailLabels(t)} />
+  return <ProcessWorkDetailView assignmentOptions={assignmentOptions} backHref={workBackHref(query)} detail={detail} experience={experience} form={form} outputs={outputs} operations={operations} locale={locale} timeZone={requestContext.activeContext.activeHrGroup.timeZone} labels={createProcessWorkDetailLabels(t)} isRequesterPresentation={isRequesterPresentation} />
 }

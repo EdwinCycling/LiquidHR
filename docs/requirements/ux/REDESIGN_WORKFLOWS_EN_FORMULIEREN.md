@@ -50,13 +50,13 @@ Herbruikte patronen:
 - Opslaan/fout/conflict: bestaande autosave- en revision-conflictmeldingen blijven in de definitieheader.
 - Wizard: eerste stap valideert naam en sleutel; terug en annuleren schrijven niets; aanmaken gebeurt alleen in de reviewstap.
 - Desktop: overzicht in vier kolommen, catalogus naast de geselecteerde werkruimte.
-- 390px: overzicht en catalogus stapelen; studionavigatie wordt een verticale, goed raakbare stappenlijst; modal gebruikt vrijwel de volledige breedte.
+- 390px: overzicht en catalogus stapelen; studionavigatie wordt een verticale, goed raakbare stappenlijst; de wizard gebruikt de volledige beschikbare breedte en stapelt velden en voortgang.
 
 ## Toegankelijkheid en i18n
 
 - Status is altijd tekstueel en niet alleen via kleur herkenbaar.
 - De actieve catalogusrij gebruikt `aria-current`; de actieve studiostap gebruikt `aria-current="step"`.
-- De wizard is een benoemde dialoog met genummerde voortgang en logische focusvolgorde.
+- De wizard gebruikt de volledige werkruimte met één benoemde H1, genummerde voortgang en logische focusvolgorde; de review blijft vóór het aanmaken.
 - Alle nieuwe zichtbare tekst staat in `processAutomation.json`; NL en EN hebben dezelfde sleutels.
 - Bestaande toetsenbord-, autosave-, compiler- en autorisatiegrenzen blijven behouden.
 

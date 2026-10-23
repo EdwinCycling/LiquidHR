@@ -10,6 +10,7 @@ import { getContinuousAppraisalSummary, type ContinuousAppraisalSummary } from '
 import type { ServerPerformanceTrace } from '@/lib/performance/server-trace'
 import type { Locale } from '@/lib/i18n/config'
 import { listProcessWork } from '@/lib/process-automation/work-service'
+import type { ProcessWorkDeadlineStatus } from '@/lib/process-automation/deadline-projection'
 import { loadTeamAvailability, type StartPageTeamAvailability } from './team-availability-service'
 import { getUpcomingCalendarItems, type CalendarHeaderItem } from '@/lib/company-activities/service'
 import { listJourneyProjectionsForContext } from '@/lib/journeys/projection-service'
@@ -113,6 +114,8 @@ export interface StartPageProcessWorkItem {
   stepTitle: string
   subjectName: string | null
   deadlineAt: string | null
+  deadlineStatus: ProcessWorkDeadlineStatus
+  deadlineRemainingSeconds: number | null
   isOverdue: boolean
   isBlocked: boolean
 }
@@ -120,7 +123,7 @@ export interface StartPageProcessWorkItem {
 export interface StartPageProcessWork {
   total: number
   overdueCount: number
-  dueTodayCount: number
+  nearDueCount: number
   blockedCount: number
   items: StartPageProcessWorkItem[]
   blockers: StartPageProcessWorkItem[]
@@ -450,22 +453,24 @@ async function getStartPageProcessWork(auth: AuthContext, supabase: SupabaseServ
       listProcessWork({ ...request, tab: 'TODO' }, { context: auth, supabase }),
       listProcessWork({ ...request, tab: 'ALL', status: 'BLOCKED' }, { context: auth, supabase }),
     ])
-    const today = new Date().toISOString().slice(0, 10)
     const mapItem = (item: Awaited<ReturnType<typeof listProcessWork>>['items'][number], isBlocked: boolean): StartPageProcessWorkItem => ({
       workItemId: item.workItemId,
       processTitle: item.processTitle,
       stepTitle: item.stepTitle,
       subjectName: item.subjectName,
       deadlineAt: item.deadlineAt,
+      deadlineStatus: item.deadlineStatus,
+      deadlineRemainingSeconds: item.deadlineRemainingSeconds,
       isOverdue: item.isOverdue,
       isBlocked,
     })
+    const visibleItems = work.items.slice(0, 4)
     return {
       total: work.total,
-      overdueCount: work.items.filter((item) => item.isOverdue).length,
-      dueTodayCount: work.items.filter((item) => item.deadlineAt?.slice(0, 10) === today && !item.isOverdue).length,
+      overdueCount: visibleItems.filter((item) => item.deadlineStatus === 'OVERDUE').length,
+      nearDueCount: visibleItems.filter((item) => item.deadlineStatus === 'NEAR_DUE').length,
       blockedCount: blockedWork.total,
-      items: work.items.slice(0, 4).map((item) => mapItem(item, false)),
+      items: visibleItems.map((item) => mapItem(item, false)),
       blockers: blockedWork.items.slice(0, 4).map((item) => mapItem(item, true)),
     }
   } catch {

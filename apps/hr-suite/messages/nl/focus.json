@@ -68,7 +68,7 @@
   "documents": { "empty": "Er zijn nog geen documenten beschikbaar.", "expires": "Geldig tot", "added": "Toegevoegd op", "open": "Document openen" },
   "directory": { "title": "Wie is wie", "search": "Zoek op naam, functie of afdeling", "mail": "Mail", "call": "Bel", "empty": "Geen collega’s gevonden.", "disabled": "De medewerkersdirectory is niet beschikbaar." },
   "more": { "title": "Meer", "description": "Open de Focus-onderdelen die je minder vaak gebruikt." },
-  "process": { "actionNeeded": "ACTIE NODIG", "empty": "Er staat nu niets voor je klaar.", "waiting": "Wacht op een ander", "inProgress": "In behandeling", "completed": "Afgerond", "open": "Openen", "leave": "Verlofaanvraag", "work": "Werkactie", "request": "Aanvraag" },
+  "process": { "actionNeeded": "Actie nodig", "empty": "Er staat nu niets voor je klaar.", "emptyRequests": "Je hebt nog geen lopende of afgeronde aanvragen.", "waiting": "Wacht op een ander", "statusOpen": "Open", "inProgress": "In behandeling", "completed": "Afgerond", "changesRequested": "Aanvullen gevraagd", "rejected": "Afgewezen", "cancelled": "Geannuleerd", "blocked": "Geblokkeerd", "expired": "Verlopen", "open": "Openen", "leave": "Verlofaanvraag", "work": "Werkactie", "request": "Aanvraag", "newRequest": "Nieuwe aanvraag" },
   "sections": {
     "openSignatures": "Mijn ondertekeningen", "documentsSigningOnly": "Je beschikbare documenten staan bij je ondertekeningen. Neem voor andere documenten contact op met HR.",
     "name": "Naam", "startDate": "Eerste werkdag", "openOnboarding": "Bekijk je onboarding",

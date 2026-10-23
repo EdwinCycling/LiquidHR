@@ -6,7 +6,7 @@
 >
 > **Provenance:** GitHub `main` is de Development-baseline en mag na docs-only merges naar een latere SHA fast-forwarden; de **niet opnieuw uitgerolde** Vercel-runtime blijft op `c0fa2369`. Meld GitHub HEAD, lokale checkout en uitgerolde runtime voortaan afzonderlijk. Een docs-update triggert geen geautoriseerde Productie-uitrol en is geen nieuwe versiebump.
 >
-> **Eén actieve LiquidHR-productomgeving**, met verschillende technische databasecontexten. Het Vercel-label `production` staat hier voor de gedeelde synthetische TEST-productruntime; niet voor gevalideerde commerciële Nederlandse salarisverwerking.
+> **Eén gedeelde LiquidHR TEST-applicatie; geen aparte klantproductie-applicatie.** Het Vercel-label `production` is de naam van de deploymentchannel voor deze gedeelde TEST-runtime, geen commerciële Nederlandse Payroll-productieomgeving.
 
 Status: **LEIDEND**
 Eerste opzet: 2026-09-29

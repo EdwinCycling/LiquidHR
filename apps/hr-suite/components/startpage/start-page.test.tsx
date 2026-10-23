@@ -96,6 +96,7 @@ function render(viewMode: 'compact' | 'full', viewData: StartPageData = data): s
     initialPreferences: { layout: DEFAULT_START_PAGE_WINDOW_LAYOUT, viewMode },
     labels,
     locale: 'nl',
+    timeZone: 'Europe/Amsterdam',
     today: '2026-08-29',
     timeFormat: '24H',
   }))

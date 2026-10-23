@@ -14,6 +14,7 @@ const groupA = {
   code: 'A',
   name: 'Groep A',
   description: null,
+  timeZone: 'Europe/Amsterdam',
   administrations: [
     { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', code: 'A1', name: 'A1' },
     { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', code: 'A2', name: 'A2' },

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuthContext, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { projectProcessWorkDeadline, type ProcessWorkDeadlineProjection } from './deadline-projection'
 
 const assignmentExplanationSchema = z.record(z.string(), z.string().nullable())
 const databaseUuidSchema = z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)
@@ -54,6 +55,30 @@ const timelineEventSchema = z.object({
   eventType: z.string(),
   createdAt: z.string(),
   actorEmployeeId: databaseUuidSchema.nullable(),
+}).strict()
+
+const processWorkExperienceSchema = z.object({
+  steps: z.array(z.object({ stepKey: z.string(), title: z.string() }).strict()),
+  history: z.array(z.object({
+    id: databaseUuidSchema,
+    eventType: z.string(),
+    action: z.string().nullable(),
+    stepTitle: z.string().nullable(),
+    terminalOutcome: z.string().nullable(),
+    createdAt: z.string(),
+  }).strict()),
+  changeRequests: z.array(z.object({
+    id: databaseUuidSchema,
+    body: z.string(),
+    createdAt: z.string(),
+  }).strict()),
+  nextRoutes: z.array(z.object({
+    action: z.string(),
+    label: z.string(),
+    toStepTitle: z.string().nullable(),
+    terminalOutcome: z.string().nullable(),
+    isConditional: z.boolean(),
+  }).strict()),
 }).strict()
 
 const detailStepSchema = z.object({
@@ -155,9 +180,10 @@ const workDetailSchema = z.object({
   }).nullable(),
 }).strict()
 
-export type ProcessWorkItem = z.infer<typeof workItemSchema>
-export type ProcessWorkList = z.infer<typeof workListSchema>
-export type ProcessWorkDetail = z.infer<typeof workDetailSchema>
+export type ProcessWorkItem = z.infer<typeof workItemSchema> & ProcessWorkDeadlineProjection
+export type ProcessWorkList = Omit<z.infer<typeof workListSchema>, 'items'> & { readonly items: readonly ProcessWorkItem[] }
+export type ProcessWorkDetail = z.infer<typeof workDetailSchema> & ProcessWorkDeadlineProjection
+export type ProcessWorkExperience = z.infer<typeof processWorkExperienceSchema>
 export interface ProcessWorkAssignmentOption {
   readonly id: string
   readonly employeeNumber: string
@@ -225,6 +251,17 @@ function boundedPagination(input: Pick<ProcessWorkListInput, 'limit' | 'offset'>
   }
 }
 
+function projectDeadline<T extends { deadlineAt: string | null; status: string; instanceStatus: string; businessStatus: string; isOverdue: boolean }>(item: T, asOf: Date): T & ProcessWorkDeadlineProjection {
+  const deadline = projectProcessWorkDeadline({
+    deadlineAt: item.deadlineAt,
+    status: item.status,
+    instanceStatus: item.instanceStatus,
+    businessStatus: item.businessStatus,
+    asOf,
+  })
+  return { ...item, ...deadline, isOverdue: deadline.deadlineStatus === 'OVERDUE' }
+}
+
 function rpcErrorCode(message: string): ProcessWorkErrorCode {
   const candidate = message.split(':', 1)[0]?.trim() ?? ''
   if (candidate === 'AUTHENTICATION_REQUIRED') return 'AUTHENTICATION_REQUIRED'
@@ -264,7 +301,7 @@ export async function listProcessWork(input: ProcessWorkListInput, dependencies?
     requested_process_definition_id: input.processDefinitionId,
     requested_administration_id: input.administrationId,
     requested_language: input.language,
-    requested_sort: input.sort ?? 'NEEDS_ACTION',
+    requested_sort: input.sort ?? 'DEADLINE',
     requested_limit: pagination.limit,
     requested_offset: pagination.offset,
   }
@@ -276,7 +313,8 @@ export async function listProcessWork(input: ProcessWorkListInput, dependencies?
   if (error) throwRpcError(error.message)
   const parsed = workListSchema.safeParse(data)
   if (!parsed.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
-  return parsed.data
+  const asOf = new Date()
+  return { ...parsed.data, items: parsed.data.items.map((item) => projectDeadline(item, asOf)) }
 }
 
 export async function listProcessWorkTabCounts(
@@ -326,6 +364,18 @@ export async function getProcessWorkItemDetail(workItemId: string, language: 'nl
   })
   if (error) throwRpcError(error.message)
   const parsed = workDetailSchema.safeParse(data)
+  if (!parsed.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
+  return projectDeadline(parsed.data, new Date())
+}
+
+export async function getProcessWorkItemExperience(workItemId: string, language: 'nl' | 'en', dependencies?: ProcessWorkDependencies): Promise<ProcessWorkExperience> {
+  const { supabase } = await authorizedClient(dependencies)
+  const { data, error } = await supabase.rpc('get_process_work_item_experience', {
+    requested_work_item_id: workItemId,
+    requested_language: language,
+  })
+  if (error) throwRpcError(error.message)
+  const parsed = processWorkExperienceSchema.safeParse(data)
   if (!parsed.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
   return parsed.data
 }

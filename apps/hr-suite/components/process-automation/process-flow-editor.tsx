@@ -1,8 +1,13 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
-import { ArrowDown, ArrowRight, CornerUpLeft, Plus } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, CornerUpLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { RadioGroup } from '@/components/ui/radio-group'
+import { TextInput } from '@/components/ui/text-input'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { ConditionalRouteEditor, type ConditionalRouteEditorLabels } from '@/components/process-automation/conditional-route-editor'
 import type {
   ParticipantDefinition,
   ProcessAction,
@@ -10,11 +15,14 @@ import type {
   ProcessStep,
   ProcessStepType,
   ProcessTransition,
+  SlaDefinition,
 } from '@/lib/process-automation/definition-schemas'
 import type { StudioIssue } from '@/lib/process-automation/studio-service'
+import { reorderDefinitionItems } from '@/lib/process-automation/form-studio-draft'
 
 type EditableStepType = Extract<ProcessStepType, 'FORM' | 'DECISION' | 'END'>
 type BuiltInRole = 'employee' | 'manager' | 'hr-team'
+type EditableSlaMode = 'NONE' | 'MINUTES' | 'HOURS' | 'DAYS' | 'WORKDAYS'
 
 export interface ProcessFlowEditorLabels {
   readonly stepList: string
@@ -35,6 +43,13 @@ export interface ProcessFlowEditorLabels {
   readonly noForms: string
   readonly noFormsHelp: string
   readonly addStep: string
+  readonly moveStepUp: string
+  readonly moveStepDown: string
+  readonly removeStep: string
+  readonly removeStepTitle: string
+  readonly removeStepDescription: string
+  readonly confirmRemoveStep: string
+  readonly cancelRemoveStep: string
   readonly selectStep: string
   readonly addStepHelp: string
   readonly emptyFlow: string
@@ -65,10 +80,34 @@ export interface ProcessFlowEditorLabels {
   readonly stepNeedsAttention: string
   readonly stepIssueCount: string
   readonly conditionalRoute: string
+  readonly conditionIfTrue: string
+  readonly conditionOtherwise: string
+  readonly conditionEditor: ConditionalRouteEditorLabels
+  readonly language: 'nl' | 'en'
   readonly formCreationFollowUp: string
   readonly startStep: string
   readonly noSelection: string
   readonly unsupportedTypeHelp: string
+  readonly sla: string
+  readonly slaOptions: Readonly<Record<EditableSlaMode, string>>
+  readonly slaAmount: string
+  readonly slaInvalidAmount: string
+  readonly slaTiming: string
+  readonly slaSummary: string
+  readonly slaWorkdaysBlocked: string
+  readonly slaUnitLabels: Readonly<Record<'MINUTES' | 'HOURS' | 'DAYS', { readonly singular: string; readonly plural: string }>>
+  readonly slaNotifications: string
+  readonly slaNotificationsHelp: string
+  readonly slaNoDeadlineReminders: string
+  readonly slaNoResponsibleForReminders: string
+  readonly slaBeforeDeadline: string
+  readonly slaBeforeDeadlineOptions: Readonly<Record<NonNullable<SlaDefinition['notifications']>['beforeDeadline'], string>>
+  readonly slaAtDeadline: string
+  readonly slaAtDeadlineOptions: Readonly<Record<'YES' | 'NO', string>>
+  readonly slaOnBreach: string
+  readonly slaBreachOptions: Readonly<Record<SlaDefinition['onBreach'], string>>
+  readonly slaEscalationParticipant: string
+  readonly slaEscalationParticipantPlaceholder: string
 }
 
 interface ProcessFlowEditorProps {
@@ -195,11 +234,25 @@ export function ProcessFlowEditor({
   const [newStepType, setNewStepType] = useState<EditableStepType>('FORM')
   const [newRouteAction, setNewRouteAction] = useState<ProcessAction>('SUBMIT')
   const [newRouteTarget, setNewRouteTarget] = useState('')
+  const [confirmRemoveStepOpen, setConfirmRemoveStepOpen] = useState(false)
   const selectedStep = draft.steps.find((step) => step.key === activeStepKey) ?? draft.steps[0] ?? null
   const selectedParticipant = selectedStep?.participantKey
     ? draft.participants.find((participant) => participant.key === selectedStep.participantKey)
     : undefined
   const selectedStepType = selectedStep && isEditableStepType(selectedStep.type) ? selectedStep.type : null
+  const selectedSlaMode: EditableSlaMode = selectedStep?.sla?.businessDays
+    ? 'WORKDAYS'
+    : selectedStep?.sla?.duration.unit === 'MINUTES' || selectedStep?.sla?.duration.unit === 'HOURS' || selectedStep?.sla?.duration.unit === 'DAYS'
+      ? selectedStep.sla.duration.unit
+      : 'NONE'
+  const selectedSlaUnit = selectedStep?.sla?.duration.unit === 'MINUTES' || selectedStep?.sla?.duration.unit === 'HOURS' || selectedStep?.sla?.duration.unit === 'DAYS'
+    ? selectedStep.sla.duration.unit
+    : null
+  const selectedSlaAmount = selectedStep?.sla?.duration.amount ?? 1
+  const selectedSlaAmountInvalid = !Number.isInteger(selectedSlaAmount) || selectedSlaAmount < 1
+  const selectedSlaBeforeDeadline = selectedStep?.sla?.notifications?.beforeDeadline ?? 'NONE'
+  const selectedSlaAtDeadline = selectedStep?.sla?.notifications?.atDeadline ?? true
+  const selectedSlaOnBreach = selectedStep?.sla?.onBreach ?? 'NOTIFY'
   const availableRouteActions = selectedStepType && selectedStepType !== 'END'
     ? transitionActions[selectedStepType].filter((action) => !draft.transitions.some((transition) => transition.fromStepKey === selectedStep.key && transition.action === action))
     : []
@@ -223,6 +276,37 @@ export function ProcessFlowEditor({
       ...current,
       steps: current.steps.map((step) => step.key === stepKey ? updater(step) : step),
     }))
+  }
+
+  function moveSelectedStep(offset: -1 | 1): void {
+    if (!selectedStep) return
+    const index = draft.steps.findIndex((step) => step.key === selectedStep.key)
+    if (index < 0 || index + offset < 0 || index + offset >= draft.steps.length) return
+    onChangeDraft((current) => ({ ...current, steps: reorderDefinitionItems(current.steps, index, offset) }))
+  }
+
+  function removeSelectedStep(): void {
+    if (!selectedStep) return
+    const removedKey = selectedStep.key
+    const selectedIndex = draft.steps.findIndex((step) => step.key === removedKey)
+    const remaining = draft.steps.filter((step) => step.key !== removedKey)
+    const nextSelectedKey = remaining[Math.min(selectedIndex, remaining.length - 1)]?.key ?? ''
+    onChangeDraft((current) => {
+      const removedTransitions = current.transitions.filter((transition) => transition.fromStepKey === removedKey || transition.toStepKey === removedKey)
+      const transitions = current.transitions.filter((transition) => transition.fromStepKey !== removedKey && transition.toStepKey !== removedKey)
+      const removedIncomingActions = new Set(removedTransitions.filter((transition) => transition.toStepKey === removedKey).map((transition) => `${transition.fromStepKey}\u0000${transition.action}`))
+      return {
+        ...current,
+        startStepKey: current.startStepKey === removedKey ? remaining[0]?.key ?? '' : current.startStepKey,
+        transitions,
+        steps: current.steps.filter((step) => step.key !== removedKey).map((step) => ({
+          ...step,
+          allowedActions: step.allowedActions.filter((action) => !removedIncomingActions.has(`${step.key}\u0000${action}`) || transitions.some((transition) => transition.fromStepKey === step.key && transition.action === action)),
+        })),
+      }
+    })
+    onSelectStep(nextSelectedKey)
+    setConfirmRemoveStepOpen(false)
   }
 
   function updateRoute(transitionKey: string, updater: (transition: ProcessTransition) => ProcessTransition): void {
@@ -317,8 +401,62 @@ export function ProcessFlowEditor({
     updateStep(stepKey, (step) => ({ ...step, formKey: formKey || undefined }))
   }
 
+  function updateSlaMode(mode: string): void {
+    if (!selectedStep || !['NONE', 'MINUTES', 'HOURS', 'DAYS', 'WORKDAYS'].includes(mode)) return
+    const slaMode = mode as EditableSlaMode
+    updateStep(selectedStep.key, (step) => {
+      if (slaMode === 'NONE') return { ...step, sla: undefined }
+      const existing = step.sla
+      const unit = slaMode === 'WORKDAYS' ? 'DAYS' : slaMode
+      return {
+        ...step,
+        sla: {
+          duration: { amount: existing?.duration.amount ?? 1, unit },
+          businessDays: slaMode === 'WORKDAYS',
+          onBreach: existing?.onBreach ?? 'NOTIFY',
+          ...(existing?.escalationParticipantKey ? { escalationParticipantKey: existing.escalationParticipantKey } : {}),
+        },
+      }
+    })
+  }
+
+  function updateSlaAmount(amount: number): void {
+    if (!selectedStep?.sla) return
+    updateStep(selectedStep.key, (step) => step.sla ? { ...step, sla: { ...step.sla, duration: { ...step.sla.duration, amount } } } : step)
+  }
+
+  function updateSlaNotifications(change: Partial<NonNullable<SlaDefinition['notifications']>>): void {
+    if (!selectedStep?.sla || !selectedStep.participantKey) return
+    updateStep(selectedStep.key, (step) => step.sla ? {
+      ...step,
+      sla: {
+        ...step.sla,
+        notifications: { beforeDeadline: 'NONE', atDeadline: true, ...step.sla.notifications, ...change },
+      },
+    } : step)
+  }
+
+  function updateSlaBreachAction(onBreach: SlaDefinition['onBreach']): void {
+    if (!selectedStep?.sla || !selectedStep.participantKey) return
+    updateStep(selectedStep.key, (step) => step.sla ? {
+      ...step,
+      sla: {
+        ...step.sla,
+        onBreach,
+        notifications: { beforeDeadline: 'NONE', atDeadline: true, ...step.sla.notifications },
+        ...(onBreach === 'ESCALATE' && step.sla.escalationParticipantKey ? { escalationParticipantKey: step.sla.escalationParticipantKey } : {}),
+        ...(onBreach !== 'ESCALATE' ? { escalationParticipantKey: undefined } : {}),
+      },
+    } : step)
+  }
+
+  function updateSlaEscalationParticipant(participantKey: string): void {
+    if (!selectedStep?.sla || selectedSlaOnBreach !== 'ESCALATE') return
+    updateStep(selectedStep.key, (step) => step.sla ? { ...step, sla: { ...step.sla, escalationParticipantKey: participantKey || undefined } } : step)
+  }
+
   return (
-    <section aria-labelledby="process-flow-title" className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+    <section aria-labelledby="process-flow-title" className="w-full min-w-0 max-w-full rounded-xl border border-border bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="eyebrow">{labels.stepLibrary}</p>
@@ -327,8 +465,8 @@ export function ProcessFlowEditor({
         <span className="rounded-full border px-3 py-1 text-xs font-semibold text-muted-foreground">{draft.steps.length} {labels.steps}</span>
       </div>
 
-      <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(160px,0.55fr)_minmax(280px,1.1fr)_minmax(290px,1fr)]">
-        <aside aria-label={labels.stepLibrary} className="h-fit rounded-xl border bg-background p-3">
+      <div className="mt-5 grid w-full min-w-0 grid-cols-1 gap-5 2xl:grid-cols-[minmax(160px,0.55fr)_minmax(280px,1.1fr)_minmax(290px,1fr)]">
+        <aside aria-label={labels.stepLibrary} className="h-fit min-w-0 rounded-xl border bg-background p-3">
           <label className="block text-sm font-semibold" htmlFor="process-step-type">{labels.selectStep}
             <select className="mt-2 w-full rounded-lg border bg-surface px-3 py-2 font-normal" disabled={!editing} id="process-step-type" onChange={(event) => setNewStepType(event.target.value as EditableStepType)} value={newStepType}>
               {stepTypeOptions.map((type) => <option key={type} value={type}>{labels.stepTypeLabels[type]}</option>)}
@@ -352,19 +490,19 @@ export function ProcessFlowEditor({
                 const owner = participantSummary(draft.participants.find((participant) => participant.key === step.participantKey))
                 const selected = selectedStep?.key === step.key
                 return (
-                  <li className="relative pb-4 pl-8 last:pb-0" key={step.key}>
+                  <li className="relative min-w-0 pb-4 pl-8 last:pb-0" key={step.key}>
                     {index < draft.steps.length - 1 ? <span aria-hidden="true" className="absolute bottom-0 left-[11px] top-7 border-l-2 border-border" /> : null}
                     <span aria-hidden="true" className={`absolute left-0 top-2 grid size-6 place-items-center rounded-full border text-[11px] font-semibold ${step.key === draft.startStepKey ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background'}`}>{index + 1}</span>
-                    <article className={`rounded-xl border bg-background p-3 ${selected ? 'border-primary ring-1 ring-primary/30' : 'border-border'}`}>
-                      <button aria-current={selected ? 'step' : undefined} aria-label={`${labels.stepLabel} ${index + 1}: ${localizedLabel(step.title, labels.stepTypeLabels[step.type as EditableStepType] ?? step.key)}`} className="w-full rounded-md text-left focus-visible:outline-2 focus-visible:outline-primary" onClick={() => onSelectStep(step.key)} type="button">
+                    <article className={`min-w-0 rounded-xl border bg-background p-3 ${selected ? 'border-primary ring-1 ring-primary/30' : 'border-border'}`}>
+                      <button aria-current={selected ? 'step' : undefined} aria-label={`${labels.stepLabel} ${index + 1}: ${localizedLabel(step.title, labels.stepTypeLabels[step.type as EditableStepType] ?? step.key)}`} className="w-full min-w-0 rounded-md text-left focus-visible:outline-2 focus-visible:outline-primary" onClick={() => onSelectStep(step.key)} type="button">
                         <span className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-semibold text-muted-foreground">{labels.stepTypeLabels[step.type as EditableStepType] ?? labels.stepLabel}</span>
                           {step.key === draft.startStepKey ? <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">{labels.startStep}</span> : null}
                           {stepIssues.length > 0 ? <span className="rounded-full border border-destructive/40 px-2 py-0.5 text-[11px] font-semibold text-destructive">{labels.stepNeedsAttention}</span> : null}
                         </span>
-                        <span className="mt-1 block font-semibold">{localizedLabel(step.title, labels.stepTypeLabels[step.type as EditableStepType] ?? step.key)}</span>
-                        <span className="mt-2 block text-xs text-muted-foreground">{labels.responsible}: {step.type === 'END' ? labels.terminalOutcomes[step.terminalOutcome ?? 'COMPLETED'] : owner}</span>
-                        {step.formKey ? <span className="mt-1 block text-xs text-muted-foreground">{labels.form}: {localizedLabel(draft.forms.find((form) => form.key === step.formKey)?.title, labels.formCreationFollowUp)}</span> : null}
+                        <span className="mt-1 block break-words font-semibold">{localizedLabel(step.title, labels.stepTypeLabels[step.type as EditableStepType] ?? step.key)}</span>
+                        <span className="mt-2 block break-words text-xs text-muted-foreground">{labels.responsible}: {step.type === 'END' ? labels.terminalOutcomes[step.terminalOutcome ?? 'COMPLETED'] : owner}</span>
+                        {step.formKey ? <span className="mt-1 block break-words text-xs text-muted-foreground">{labels.form}: {localizedLabel(draft.forms.find((form) => form.key === step.formKey)?.title, labels.formCreationFollowUp)}</span> : null}
                       </button>
                       {outgoing.length > 0 ? <ul aria-label={`${labels.connectionLabel}: ${localizedLabel(step.title, labels.stepLabel)}`} className="mt-3 grid gap-2 border-t pt-3">
                         {outgoing.map(({ transition, transitionIndex }) => {
@@ -374,7 +512,7 @@ export function ProcessFlowEditor({
                             <li key={transition.key}>
                               <button className={`flex w-full min-w-0 items-start gap-2 rounded-lg border px-2.5 py-2 text-left text-xs focus-visible:outline-2 focus-visible:outline-primary ${routeHasIssue ? 'border-destructive/50' : 'border-border hover:border-primary/50'}`} onClick={() => target ? onSelectStep(target.key) : onSelectStep(step.key)} type="button">
                                 {transition.kind === 'RECOVERY' ? <CornerUpLeft aria-hidden="true" className="mt-0.5 shrink-0 text-primary" size={14} /> : <ArrowRight aria-hidden="true" className="mt-0.5 shrink-0 text-primary" size={14} />}
-                                <span className="min-w-0 flex-1"><span className="block font-semibold">{localizedLabel(transition.label, labels.actionLabels[transition.action])}</span><span className="mt-0.5 block truncate text-muted-foreground">{target ? localizedLabel(target.title, labels.stepLabel) : labels.noDestination}</span></span>
+                                <span className="min-w-0 flex-1"><span className="block font-semibold">{transition.condition ? (transition.condition.operator === 'not' ? labels.conditionOtherwise : labels.conditionIfTrue) : localizedLabel(transition.label, labels.actionLabels[transition.action])}</span><span className="mt-0.5 block truncate text-muted-foreground">{target ? localizedLabel(target.title, labels.stepLabel) : labels.noDestination}</span></span>
                               </button>
                             </li>
                           )
@@ -388,11 +526,16 @@ export function ProcessFlowEditor({
           )}
         </div>
 
-        <aside aria-label={labels.properties} className="min-w-0 rounded-xl border bg-background p-4">
+        <aside aria-label={labels.properties} className="w-full min-w-0 rounded-xl border bg-background p-4">
           {selectedStep ? <>
             <div className="flex items-start justify-between gap-2">
               <div><p className="eyebrow">{labels.selectedStep}</p><h4 className="mt-1 text-lg font-semibold">{localizedLabel(selectedStep.title, labels.stepLabel)}</h4></div>
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold">{labels.stepTypeLabels[selectedStep.type as EditableStepType] ?? labels.stepLabel}</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button aria-label={`${labels.moveStepUp}: ${localizedLabel(selectedStep.title, labels.stepLabel)}`} disabled={!editing || draft.steps[0]?.key === selectedStep.key} onClick={() => moveSelectedStep(-1)} size="sm" type="button" variant="secondary"><ArrowUp aria-hidden="true" size={14} />{labels.moveStepUp}</Button>
+              <Button aria-label={`${labels.moveStepDown}: ${localizedLabel(selectedStep.title, labels.stepLabel)}`} disabled={!editing || draft.steps[draft.steps.length - 1]?.key === selectedStep.key} onClick={() => moveSelectedStep(1)} size="sm" type="button" variant="secondary"><ArrowDown aria-hidden="true" size={14} />{labels.moveStepDown}</Button>
+              <Button aria-label={`${labels.removeStep}: ${localizedLabel(selectedStep.title, labels.stepLabel)}`} disabled={!editing} onClick={() => setConfirmRemoveStepOpen(true)} size="sm" type="button" variant="danger"><Trash2 aria-hidden="true" size={14} />{labels.removeStep}</Button>
             </div>
             <div className="mt-4 space-y-4">
               <label className="block text-sm font-semibold" htmlFor="process-step-title-nl">{labels.stepName}
@@ -428,10 +571,98 @@ export function ProcessFlowEditor({
                 </select>
               </label> : null}
 
+              {selectedStepType && selectedStepType !== 'END' ? <section aria-labelledby="process-sla-title" className="border-t pt-4">
+                <h5 className="font-semibold" id="process-sla-title">{labels.sla}</h5>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.slaTiming}</p>
+                <RadioGroup
+                  className="mt-3"
+                  disabled={!editing}
+                  legend={labels.sla}
+                  name="process-step-sla"
+                  onValueChange={updateSlaMode}
+                  options={[
+                    { value: 'NONE', label: labels.slaOptions.NONE },
+                    { value: 'MINUTES', label: labels.slaOptions.MINUTES },
+                    { value: 'HOURS', label: labels.slaOptions.HOURS },
+                    { value: 'DAYS', label: labels.slaOptions.DAYS },
+                    { value: 'WORKDAYS', label: labels.slaOptions.WORKDAYS, disabled: true, description: labels.slaWorkdaysBlocked },
+                  ]}
+                  value={selectedSlaMode}
+                />
+                {selectedSlaUnit ? <div className="mt-3 grid gap-2">
+                  <label className="text-xs font-semibold" htmlFor="process-step-sla-amount">{labels.slaAmount}</label>
+                  <TextInput aria-describedby="process-step-sla-amount-help" aria-invalid={selectedSlaAmountInvalid || undefined} disabled={!editing} id="process-step-sla-amount" min={1} onChange={(event) => updateSlaAmount(Number(event.target.value))} required step={1} type="number" value={selectedSlaAmount} />
+                  <p className="text-xs text-muted-foreground" id="process-step-sla-amount-help">{selectedSlaAmountInvalid ? labels.slaInvalidAmount : labels.slaSummary.replace('{amount}', String(selectedSlaAmount)).replace('{unit}', selectedSlaAmount === 1 ? labels.slaUnitLabels[selectedSlaUnit].singular : labels.slaUnitLabels[selectedSlaUnit].plural)}</p>
+                </div> : null}
+                <div className="mt-4 grid gap-3 border-t border-border pt-4">
+                  <div>
+                    <h6 className="font-semibold">{labels.slaNotifications}</h6>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.slaNotificationsHelp}</p>
+                  </div>
+                  {!selectedStep?.sla ? <p className="text-sm text-muted-foreground">{labels.slaNoDeadlineReminders}</p> : !selectedStep.participantKey ? <p className="text-sm text-muted-foreground">{labels.slaNoResponsibleForReminders}</p> : <>
+                    <RadioGroup
+                      disabled={!editing}
+                      legend={labels.slaBeforeDeadline}
+                      name="process-step-sla-before-reminder"
+                      onValueChange={(value) => {
+                        if (['NONE', 'ONE_HOUR', 'TWENTY_FOUR_HOURS'].includes(value)) updateSlaNotifications({ beforeDeadline: value as NonNullable<SlaDefinition['notifications']>['beforeDeadline'] })
+                      }}
+                      options={[
+                        { value: 'NONE', label: labels.slaBeforeDeadlineOptions.NONE },
+                        { value: 'ONE_HOUR', label: labels.slaBeforeDeadlineOptions.ONE_HOUR },
+                        { value: 'TWENTY_FOUR_HOURS', label: labels.slaBeforeDeadlineOptions.TWENTY_FOUR_HOURS },
+                      ]}
+                      value={selectedSlaBeforeDeadline}
+                    />
+                    <RadioGroup
+                      disabled={!editing}
+                      legend={labels.slaAtDeadline}
+                      name="process-step-sla-at-deadline"
+                      onValueChange={(value) => {
+                        if (value === 'YES' || value === 'NO') updateSlaNotifications({ atDeadline: value === 'YES' })
+                      }}
+                      options={[
+                        { value: 'YES', label: labels.slaAtDeadlineOptions.YES },
+                        { value: 'NO', label: labels.slaAtDeadlineOptions.NO },
+                      ]}
+                      value={selectedSlaAtDeadline ? 'YES' : 'NO'}
+                    />
+                    <label className="grid gap-1.5 text-sm font-medium" htmlFor="process-step-sla-on-breach">
+                      <span>{labels.slaOnBreach}</span>
+                      <DropdownSelect
+                        disabled={!editing}
+                        id="process-step-sla-on-breach"
+                        onChange={(event) => {
+                          if (event.target.value === 'NOTIFY' || event.target.value === 'ESCALATE' || event.target.value === 'BLOCK') updateSlaBreachAction(event.target.value)
+                        }}
+                        value={selectedSlaOnBreach}
+                      >
+                        <option value="NOTIFY">{labels.slaBreachOptions.NOTIFY}</option>
+                        <option value="ESCALATE">{labels.slaBreachOptions.ESCALATE}</option>
+                        <option value="BLOCK">{labels.slaBreachOptions.BLOCK}</option>
+                      </DropdownSelect>
+                    </label>
+                    {selectedSlaOnBreach === 'ESCALATE' ? <label className="grid gap-1.5 text-sm font-medium" htmlFor="process-step-sla-escalation-participant">
+                      <span>{labels.slaEscalationParticipant}</span>
+                      <DropdownSelect
+                        disabled={!editing}
+                        id="process-step-sla-escalation-participant"
+                        onChange={(event) => updateSlaEscalationParticipant(event.target.value)}
+                        placeholder={labels.slaEscalationParticipantPlaceholder}
+                        value={selectedStep.sla.escalationParticipantKey ?? ''}
+                      >
+                        <option value="">{labels.slaEscalationParticipantPlaceholder}</option>
+                        {draft.participants.map((participant) => <option key={participant.key} value={participant.key}>{localizedLabel(participant.label, labels.responsibleMissing)}</option>)}
+                      </DropdownSelect>
+                    </label> : null}
+                  </>}
+                </div>
+              </section> : null}
+
               {selectedStepType && selectedStepType !== 'END' ? <section aria-labelledby="process-routes-title" className="border-t pt-4">
                 <h5 className="font-semibold" id="process-routes-title">{labels.routeTitle}</h5>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.addRouteHelp}</p>
-                {draft.transitions.filter((transition) => transition.fromStepKey === selectedStep.key).map((transition) => {
+                {draft.transitions.filter((transition) => transition.fromStepKey === selectedStep.key && !transition.condition).map((transition) => {
                   const transitionIndex = draft.transitions.findIndex((candidate) => candidate.key === transition.key)
                   const routeIssues = issues.filter((issue) => transitionIndexForIssue(issue, transitionIndex))
                   const usedByOtherRoutes = new Set(draft.transitions.filter((candidate) => candidate.fromStepKey === selectedStep.key && candidate.key !== transition.key).map((candidate) => candidate.action))
@@ -465,6 +696,7 @@ export function ProcessFlowEditor({
                     </details>
                   </article>
                 })}
+                <ConditionalRouteEditor actionLabel={labels.routeAction} actionLabels={labels.actionLabels} draft={draft} editing={editing} fromStepKey={selectedStep.key} labels={labels.conditionEditor} language={labels.language} onChangeDraft={onChangeDraft} />
                 {draft.steps.length < 2 ? <p className="mt-3 text-xs text-muted-foreground">{labels.noDestination}</p> : <form className="mt-3 grid gap-2 rounded-lg border border-dashed p-3" onSubmit={addRoute}>
                   <label className="text-xs font-semibold" htmlFor="new-route-action">{labels.routeAction}
                     <select className="mt-1 w-full rounded-md border bg-surface px-2.5 py-2 text-sm font-normal" disabled={!editing || availableRouteActions.length === 0} id="new-route-action" onChange={(event) => setNewRouteAction(event.target.value as ProcessAction)} value={routeActionValue}>
@@ -498,6 +730,7 @@ export function ProcessFlowEditor({
           {selectedStep && issues.filter((issue) => stepIndexForIssue(issue, draft.steps.findIndex((step) => step.key === selectedStep.key))).length > 0 ? <p className="mt-4 rounded-lg border border-destructive/40 p-3 text-xs text-destructive" role="status">{labels.stepIssueCount.replace('{count}', String(issues.filter((issue) => stepIndexForIssue(issue, draft.steps.findIndex((step) => step.key === selectedStep.key))).length))}</p> : null}
         </aside>
       </div>
+      <ConfirmDialog cancelLabel={labels.cancelRemoveStep} confirmLabel={labels.confirmRemoveStep} description={selectedStep ? labels.removeStepDescription.replace('{step}', localizedLabel(selectedStep.title, labels.stepLabel)) : undefined} destructive onConfirm={removeSelectedStep} onOpenChange={setConfirmRemoveStepOpen} open={confirmRemoveStepOpen} title={labels.removeStepTitle} />
     </section>
   )
 }

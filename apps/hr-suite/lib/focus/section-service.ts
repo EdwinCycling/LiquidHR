@@ -16,6 +16,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 export interface FocusSectionContext {
   context: AuthContext
   supabase: SupabaseServerClient
+  timeZone: string
   employeeId: string
   permissions: string[]
   actAs: FocusActAsSession | null
@@ -35,7 +36,7 @@ export async function loadFocusSectionContext(actAsToken?: string | null): Promi
   const permissions = actAs
     ? await getSelfPermissions(requestContext.supabase, requestContext.context.tenantId)
     : requestContext.context.permissions
-  return { context: requestContext.context, supabase: requestContext.supabase, employeeId, permissions, actAs }
+  return { context: requestContext.context, supabase: requestContext.supabase, timeZone: requestContext.activeContext.activeHrGroup.timeZone, employeeId, permissions, actAs }
 }
 
 export function hasFocusPermission(section: FocusSectionContext, ...permissions: string[]): boolean {

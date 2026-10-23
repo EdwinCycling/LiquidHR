@@ -5,12 +5,18 @@ import {
   buildVisibleFormPayload,
   displayFormValue,
   formProjectionSchema,
-  isFormValueValid,
+  isFormDraftValueValid,
   visibleFields,
   type FormFieldProjection,
   type FormJsonValue,
   type FormProjection,
 } from '@/lib/process-automation/form-runtime'
+
+export interface FormRuntimeServerFieldError {
+  readonly fieldKey: string
+  readonly code: 'REQUIRED_FORM_FIELD' | 'INVALID_FORM_VALUE'
+  readonly sequence: number
+}
 
 export interface FormRuntimeLabels {
   readonly currentValue: string
@@ -37,6 +43,10 @@ interface FormRuntimeRendererProps {
   readonly initialProjection: FormProjection
   readonly locale: 'nl' | 'en'
   readonly labels: FormRuntimeLabels
+  readonly embedded?: boolean
+  readonly participantLabel?: string
+  readonly saveExplanation?: string
+  readonly serverFieldError?: FormRuntimeServerFieldError | null
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'stale'
@@ -89,7 +99,7 @@ function optionFromUnknown(value: unknown): FormReferenceOption | null {
 }
 
 function fieldError(field: FormFieldProjection, value: FormJsonValue | undefined, labels: FormRuntimeLabels): string | null {
-  return isFormValueValid(field, value) ? null : field.required ? labels.required : labels.invalid
+  return isFormDraftValueValid(field, value) ? null : labels.invalid
 }
 
 function ReferencePicker({
@@ -169,9 +179,9 @@ function ReferencePicker({
       role="combobox"
       value={selected ? selected.label : query}
     />
-    {open ? <ul className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-border bg-surface p-1 shadow-lg" id={`form-reference-options-${field.key}`} role="listbox">
+    {open ? <ul className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-[var(--radius-surface)] border border-border bg-surface p-1" id={`form-reference-options-${field.key}`} role="listbox">
       {loading ? <li className="px-3 py-2 text-sm text-muted-foreground">{labels.referenceLoading}</li> : options.length === 0 ? <li className="px-3 py-2 text-sm text-muted-foreground">{labels.referenceNoOptions}</li> : options.map((option) => <li key={option.value} role="option" aria-selected={option.value === selectedValue}>
-        <button className="flex min-h-11 w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary" onMouseDown={(event) => event.preventDefault()} onClick={() => { selectedDuringPointerInteraction.current = option.value; onChange(option.value); setQuery(option.label); setOpen(false) }} type="button">
+        <button className="flex min-h-11 w-full items-start gap-2 rounded-[var(--radius-control)] px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary" onMouseDown={(event) => event.preventDefault()} onClick={() => { selectedDuringPointerInteraction.current = option.value; onChange(option.value); setQuery(option.label); setOpen(false) }} type="button">
           <span className="font-medium">{option.label}</span>{option.meta ? <span className="text-muted-foreground">{option.meta}</span> : null}
         </button>
       </li>)}
@@ -179,7 +189,7 @@ function ReferencePicker({
   </div>
 }
 
-export function FormRuntimeRenderer({ initialProjection, locale, labels }: FormRuntimeRendererProps) {
+export function FormRuntimeRenderer({ initialProjection, locale, labels, embedded = false, participantLabel, saveExplanation, serverFieldError }: FormRuntimeRendererProps) {
   const [projection, setProjection] = useState(initialProjection)
   const [values, setValues] = useState<Record<string, FormJsonValue>>(() => initialValues(initialProjection))
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -191,6 +201,22 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels }: FormR
   const scrollRef = useRef<HTMLDivElement>(null)
   const savingRef = useRef(false)
   const fields = useMemo(() => visibleFields(projection), [projection])
+
+  const serverErrorFieldKey = serverFieldError && fields.some((candidate) => candidate.key === serverFieldError.fieldKey && candidate.accessMode !== 'READ') ? serverFieldError.fieldKey : null
+  const visibleErrors = useMemo(() => {
+    const visibleKeys = new Set(fields.map((field) => field.key))
+    const next = Object.fromEntries(Object.entries(errors).filter(([fieldKey]) => visibleKeys.has(fieldKey)))
+    if (serverErrorFieldKey && serverFieldError) {
+      next[serverErrorFieldKey] = serverFieldError.code === 'REQUIRED_FORM_FIELD' ? labels.required : labels.invalid
+    }
+    return next
+  }, [errors, fields, labels.invalid, labels.required, serverErrorFieldKey, serverFieldError])
+
+  useEffect(() => {
+    if (!serverErrorFieldKey) return undefined
+    const frame = window.requestAnimationFrame(() => summaryRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [serverErrorFieldKey, serverFieldError?.sequence])
 
   function setFieldValue(fieldKey: string, value: FormJsonValue): void {
     setValues((current) => ({ ...current, [fieldKey]: value }))
@@ -258,6 +284,14 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels }: FormR
         const code = typeof body === 'object' && body !== null && 'code' in body && typeof body.code === 'string' ? body.code : 'PROCESS_FORM_RUNTIME_OPERATION_FAILED'
         if (code === 'STALE_FORM_RESPONSE') setSaveState('stale')
         else setSaveState('error')
+        if (code === 'REQUIRED_FORM_FIELD' || code === 'INVALID_FORM_VALUE') {
+          const fieldKey = typeof body === 'object' && body !== null && 'fieldKey' in body && typeof body.fieldKey === 'string' ? body.fieldKey : null
+          const field = fieldKey ? fields.find((candidate) => candidate.key === fieldKey && candidate.accessMode !== 'READ') : undefined
+          if (field) {
+            setErrors((current) => ({ ...current, [field.key]: code === 'REQUIRED_FORM_FIELD' ? labels.required : labels.invalid }))
+            window.requestAnimationFrame(() => summaryRef.current?.focus())
+          }
+        }
         return
       }
       const parsedProjection = formProjectionSchema.safeParse(body.data)
@@ -275,7 +309,7 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels }: FormR
     } finally {
       savingRef.current = false
     }
-  }, [changedFieldKeys, dirty, locale, projection, validate, values])
+  }, [changedFieldKeys, dirty, fields, labels.invalid, labels.required, locale, projection, validate, values])
 
   useEffect(() => {
     if (!dirty) return undefined
@@ -299,43 +333,52 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels }: FormR
   const valueLabels = { noValue: labels.noValue, booleanTrue: labels.booleanTrue, booleanFalse: labels.booleanFalse }
   const saveStatus = saveState === 'saving' ? labels.saving : saveState === 'saved' ? labels.saved : saveState === 'stale' ? labels.stale : saveState === 'error' ? labels.saveError : ''
 
-  return <section className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
-    <header className="rounded-3xl border border-border bg-panel p-6 shadow-sm sm:p-8">
-      <p className="eyebrow text-primary">{projection.participantKey}</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight">{projection.title}</h1>
+  const Heading = embedded ? 'h2' : 'h1'
+
+  return <section aria-label={projection.title} className={embedded ? 'min-w-0' : 'mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10'}>
+    <header className={embedded ? 'border-b border-border pb-4' : 'rounded-[var(--radius-surface)] border border-border bg-panel p-6 sm:p-8'}>
+      <p className="eyebrow text-primary">{participantLabel ?? projection.participantKey}</p>
+      <Heading className={embedded ? 'mt-2 text-xl font-semibold tracking-tight' : 'mt-2 text-3xl font-semibold tracking-tight'}>{projection.title}</Heading>
       {projection.description ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{projection.description}</p> : null}
+      {saveExplanation ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{saveExplanation}</p> : null}
       <p aria-live="polite" className="mt-5 min-h-5 text-sm text-muted-foreground">{saveStatus}</p>
     </header>
 
-    {Object.keys(errors).length > 0 ? <div ref={summaryRef} aria-label={labels.errorSummary} className="mt-5 rounded-2xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger" role="alert" tabIndex={-1}>
+    {Object.keys(visibleErrors).length > 0 ? <div ref={summaryRef} aria-label={labels.errorSummary} className="mt-5 rounded-[var(--radius-control)] border border-danger/30 bg-danger-soft p-4 text-sm text-danger" role="alert" tabIndex={-1}>
       <p className="font-semibold">{labels.errorSummary}</p>
-      <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(errors).map(([fieldKey, message]) => <li key={fieldKey}><a href={`#form-field-${fieldKey}`}>{message}</a></li>)}</ul>
+      <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(visibleErrors).map(([fieldKey, message]) => <li key={fieldKey}><a href={`#form-field-${fieldKey}`}>{message}</a></li>)}</ul>
     </div> : null}
 
-    <form className="mt-6 flex max-h-[calc(100vh-14rem)] min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-border bg-panel" onSubmit={(event) => { event.preventDefault(); void save() }}>
-      <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6" onScroll={(event) => { const element = event.currentTarget; setHasMoreBelow(element.scrollTop + element.clientHeight < element.scrollHeight - 8) }} ref={scrollRef}>
+    <form className={embedded ? 'mt-5 min-w-0' : 'mt-6 flex max-h-[calc(100vh-14rem)] min-h-[28rem] flex-col overflow-hidden rounded-[var(--radius-surface)] border border-border bg-panel'} onSubmit={(event) => { event.preventDefault(); void save() }}>
+      <div className={embedded ? 'min-w-0' : 'min-w-0 flex-1 overflow-y-auto p-4 sm:p-6'} onScroll={(event) => { const element = event.currentTarget; setHasMoreBelow(element.scrollTop + element.clientHeight < element.scrollHeight - 8) }} ref={scrollRef}>
         <div className="grid gap-6">
-          {projection.sections.map((section) => <fieldset className="rounded-2xl border border-border bg-surface p-5 sm:p-6" key={section.key}>
+          {projection.sections.map((section) => <fieldset className="rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:p-5" key={section.key}>
             <legend className="px-1 text-xl font-semibold">{section.title}</legend>
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               {section.fields.map((field) => {
-                const error = errors[field.key]
+                const error = visibleErrors[field.key]
                 const current = displayFormValue(field.currentValue, valueLabels)
                 const value = values[field.key]
                 const isReadOnly = field.accessMode === 'READ'
                 const describedBy = [field.helpText ? `form-help-${field.key}` : '', error ? `form-error-${field.key}` : ''].filter(Boolean).join(' ') || undefined
                 const fieldClass = field.type === 'LONG_TEXT' || field.type === 'MULTI_SELECT' ? 'md:col-span-2' : ''
                 return <div className={`grid gap-2 ${fieldClass}`} key={field.key}>
-                  <label className="text-sm font-semibold" htmlFor={`form-field-${field.key}`}>{field.label}{field.required ? <span aria-hidden="true" className="ml-1 text-danger">*</span> : null}</label>
-                  {field.helpText ? <p className="text-sm text-muted-foreground" id={`form-help-${field.key}`}>{field.helpText}</p> : null}
-                  {isReadOnly ? <div className="grid gap-3 rounded-xl bg-panel-soft p-3 text-sm sm:grid-cols-2" aria-label={labels.readOnly}><p className="font-semibold text-muted-foreground sm:col-span-2">{labels.readOnly}</p><div><p className="text-muted-foreground">{labels.currentValue}</p><p className="mt-1 font-medium">{current}</p></div><div><p className="text-muted-foreground">{labels.newValue}</p><p className="mt-1 font-medium">{displayFormValue(field.newValue, valueLabels)}</p></div></div>
+                  {field.type === 'MULTI_SELECT' ? null : <label className="text-sm font-semibold" htmlFor={`form-field-${field.key}`}>{field.label}{field.required ? <span aria-hidden="true" className="ml-1 text-danger">*</span> : null}</label>}
+                  {field.type !== 'MULTI_SELECT' && field.helpText ? <p className="text-sm text-muted-foreground" id={`form-help-${field.key}`}>{field.helpText}</p> : null}
+                  {field.type === 'MULTI_SELECT' ? <fieldset aria-describedby={describedBy} className="grid gap-2 rounded-[var(--radius-control)] border border-border p-3" id={`form-field-${field.key}`}>
+                    <legend className="px-1 text-sm font-semibold">{field.label}{field.required ? <span aria-hidden="true" className="ml-1 text-danger">*</span> : null}</legend>
+                    {field.helpText ? <p className="text-sm text-muted-foreground" id={`form-help-${field.key}`}>{field.helpText}</p> : null}
+                    {isReadOnly ? <div className="grid gap-3 rounded-[var(--radius-control)] bg-panel-soft p-3 text-sm sm:grid-cols-2" aria-label={labels.readOnly}><p className="font-semibold text-muted-foreground sm:col-span-2">{labels.readOnly}</p><div><p className="text-muted-foreground">{labels.currentValue}</p><p className="mt-1 font-medium">{current}</p></div><div><p className="text-muted-foreground">{labels.newValue}</p><p className="mt-1 font-medium">{displayFormValue(field.newValue, valueLabels)}</p></div></div>
+                      : <div className="grid gap-2">{field.options.map((option) => { const selected = Array.isArray(value) && value.includes(option.value); return <label className="flex items-center gap-3 text-sm" key={option.value}><input aria-describedby={describedBy} aria-invalid={Boolean(error)} checked={selected} onBlur={() => { validateField(field.key) }} onChange={(event) => { const currentValues = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; setFieldValue(field.key, event.target.checked ? [...currentValues, option.value] : currentValues.filter((item) => item !== option.value)) }} type="checkbox" />{option.label}</label> })}</div>}
+                    {error ? <p className="text-sm text-danger" id={`form-error-${field.key}`}>{error}</p> : null}
+                  </fieldset>
+                    : isReadOnly ? <div className="grid gap-3 rounded-[var(--radius-control)] bg-panel-soft p-3 text-sm sm:grid-cols-2" aria-label={labels.readOnly}><p className="font-semibold text-muted-foreground sm:col-span-2">{labels.readOnly}</p><div><p className="text-muted-foreground">{labels.currentValue}</p><p className="mt-1 font-medium">{current}</p></div><div><p className="text-muted-foreground">{labels.newValue}</p><p className="mt-1 font-medium">{displayFormValue(field.newValue, valueLabels)}</p></div></div>
                     : isReferenceType(field.type) ? <ReferencePicker describedBy={describedBy} field={field} invalid={Boolean(error)} language={locale} labels={{ referenceSearch: labels.referenceSearch, referenceLoading: labels.referenceLoading, referenceNoOptions: labels.referenceNoOptions }} onBlur={() => { validateField(field.key) }} onChange={(nextValue) => setFieldValue(field.key, nextValue)} value={value} workItemId={projection.workItemId} />
                       : field.type === 'LONG_TEXT' ? <textarea className="form-field min-h-28" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.value)} value={inputValue(value)} />
-                        : field.type === 'BOOLEAN' ? <label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm"><input aria-describedby={describedBy} aria-invalid={Boolean(error)} checked={value === true} id={`form-field-${field.key}`} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.checked)} type="checkbox" /><span>{field.label}</span></label>
+                          : field.type === 'BOOLEAN' ? <label className="flex items-center gap-3 rounded-[var(--radius-control)] border border-border p-3 text-sm"><input aria-describedby={describedBy} aria-invalid={Boolean(error)} checked={value === true} id={`form-field-${field.key}`} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.checked)} type="checkbox" /><span>{field.label}</span></label>
                           : field.type === 'SINGLE_SELECT' ? <select className="form-field" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.value)} value={inputValue(value)}><option value="">{labels.noValue}</option>{field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
-                            : field.type === 'MULTI_SELECT' ? <div aria-describedby={describedBy} aria-invalid={Boolean(error)} className="grid gap-2 rounded-xl border border-border p-3">{field.options.map((option) => { const selected = Array.isArray(value) && value.includes(option.value); return <label className="flex items-center gap-3 text-sm" key={option.value}><input checked={selected} onBlur={() => { validateField(field.key) }} onChange={(event) => { const currentValues = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; setFieldValue(field.key, event.target.checked ? [...currentValues, option.value] : currentValues.filter((item) => item !== option.value)) }} type="checkbox" />{option.label}</label> })}</div>
                             : <input className="form-field" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, fieldValue(field.type, event.target.value))} onInput={(event) => setFieldValue(field.key, fieldValue(field.type, event.currentTarget.value))} type={field.type === 'DATE' ? 'date' : field.type === 'TIME' ? 'time' : field.type === 'DATETIME' ? 'datetime-local' : field.type === 'INTEGER' || field.type === 'DECIMAL' || field.type === 'MONEY' ? 'number' : 'text'} value={inputValue(value)} />}
-                  {error ? <p className="text-sm text-danger" id={`form-error-${field.key}`}>{error}</p> : null}
+                  {field.type !== 'MULTI_SELECT' && error ? <p className="text-sm text-danger" id={`form-error-${field.key}`}>{error}</p> : null}
                 </div>
               })}
             </div>
@@ -345,7 +388,7 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels }: FormR
       <footer className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-panel/95 p-4 backdrop-blur sm:px-6">
         {hasMoreBelow ? <p className="basis-full text-xs text-muted-foreground" role="status">{labels.scrollHint}</p> : null}
         <span aria-live="polite" className="min-h-5 text-sm text-muted-foreground">{saveStatus}</span>
-        <button className="button-primary" disabled={!dirty || saveState === 'saving' || saveState === 'stale'} onClick={() => { void save() }} type="submit">{labels.save}</button>
+        <button className={embedded ? 'button-secondary' : 'button-primary'} disabled={!dirty || saveState === 'saving' || saveState === 'stale'} onClick={() => { void save() }} type="submit">{labels.save}</button>
       </footer>
     </form>
   </section>

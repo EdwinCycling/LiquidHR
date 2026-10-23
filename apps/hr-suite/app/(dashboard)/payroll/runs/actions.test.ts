@@ -22,7 +22,13 @@ vi.mock('@/lib/payroll/employee-payroll-calculation-service', () => ({
   finalizeEmployeePayroll: finalizeEmployee,
 }))
 
-import { generatePayrollPayslipPdfArtifact, openSelectedPayrollPeriod, recalculatePayrollEmployee } from './actions'
+import {
+  finalizePayrollRun,
+  generatePayrollPayslipPdfArtifact,
+  openSelectedPayrollPeriod,
+  recalculatePayrollEmployee,
+  reviewPayrollRun,
+} from './actions'
 
 function formData(period: string): FormData {
   const form = new FormData()
@@ -33,6 +39,14 @@ function formData(period: string): FormData {
 function runFormData(runId: string): FormData {
   const form = new FormData()
   form.set('runId', runId)
+  return form
+}
+
+function lifecycleFormData(runId: string): FormData {
+  const form = runFormData(runId)
+  form.set('employeeId', '10000000-0000-4000-8000-000000000011')
+  form.set('employmentId', '10000000-0000-4000-8000-000000000021')
+  form.set('period', '2026-10')
   return form
 }
 
@@ -108,6 +122,59 @@ describe('Payroll Professional saved payslip action', () => {
     await expect(generatePayrollPayslipPdfArtifact(runFormData('c0851b89-5f92-5bd4-95b6-b5d8520cf5dc')))
       .rejects.toThrow('REDIRECT:/payroll/runs/c0851b89-5f92-5bd4-95b6-b5d8520cf5dc?artifact=failed')
     expect(createPayslipArtifact).not.toHaveBeenCalled()
+  })
+})
+
+describe('Payroll Professional lifecycle actions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    requireComponentLibraryAccess.mockResolvedValue({ scope: { tenantId: 'tenant' }, administration: { id: 'admin' }, actorUserId: 'actor' })
+    createPayslipArtifact.mockResolvedValue({ artifact_type: 'PAYSLIP_PDF' })
+  })
+
+  it('reviews the existing run without making a payslip artifact', async () => {
+    const runId = 'c0851b89-5f92-5bd4-95b6-b5d8520cf5dc'
+    await expect(reviewPayrollRun(lifecycleFormData(runId)))
+      .rejects.toThrow(`REDIRECT:/payroll/runs/${runId}?lifecycle=reviewed`)
+
+    expect(reviewEmployee).toHaveBeenCalledWith({
+      employeeId: '10000000-0000-4000-8000-000000000011',
+      employmentId: '10000000-0000-4000-8000-000000000021',
+      runId,
+      period: { year: 2026, month: 10 },
+    })
+    expect(createPayslipArtifact).not.toHaveBeenCalled()
+  })
+
+  it('finalizes and stores the payslip before directing the user to read back the artifact', async () => {
+    const runId = 'c0851b89-5f92-5bd4-95b6-b5d8520cf5dc'
+    await expect(finalizePayrollRun(lifecycleFormData(runId)))
+      .rejects.toThrow(`REDIRECT:/payroll/runs/${runId}?lifecycle=finalized&artifact=created`)
+
+    expect(finalizeEmployee).toHaveBeenCalledWith({
+      employeeId: '10000000-0000-4000-8000-000000000011',
+      employmentId: '10000000-0000-4000-8000-000000000021',
+      runId,
+      period: { year: 2026, month: 10 },
+    })
+    expect(requireComponentLibraryAccess).toHaveBeenCalledWith(true)
+    expect(createPayslipArtifact).toHaveBeenCalledWith({
+      scope: { tenantId: 'tenant' },
+      payrollAdministrationId: 'admin',
+      actorUserId: 'actor',
+      runId,
+    })
+    expect(revalidatePath).toHaveBeenCalledWith('/my-salary')
+  })
+
+  it('keeps a successful finalization visible and offers artifact recovery when PDF storage fails', async () => {
+    const runId = 'c0851b89-5f92-5bd4-95b6-b5d8520cf5dc'
+    createPayslipArtifact.mockRejectedValueOnce(new Error('PDF storage unavailable'))
+
+    await expect(finalizePayrollRun(lifecycleFormData(runId)))
+      .rejects.toThrow(`REDIRECT:/payroll/runs/${runId}?lifecycle=finalized&artifact=failed`)
+
+    expect(finalizeEmployee).toHaveBeenCalledOnce()
   })
 })
 

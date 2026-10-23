@@ -73,6 +73,9 @@ export type ProcessRuntimeErrorCode =
   | 'INVALID_BUSINESS_DATE'
   | 'TRANSITION_NOT_FOUND'
   | 'AMBIGUOUS_TRANSITION'
+  | 'INVALID_FORM_VALUE'
+  | 'REQUIRED_FORM_FIELD'
+  | 'SLA_WORKDAY_CALENDAR_REQUIRED'
   | 'PROCESS_WORK_ITEM_OPERATION_FAILED'
 
 const stableErrorCodes = new Set<ProcessRuntimeErrorCode>([
@@ -103,6 +106,9 @@ const stableErrorCodes = new Set<ProcessRuntimeErrorCode>([
   'INVALID_BUSINESS_DATE',
   'TRANSITION_NOT_FOUND',
   'AMBIGUOUS_TRANSITION',
+  'INVALID_FORM_VALUE',
+  'REQUIRED_FORM_FIELD',
+  'SLA_WORKDAY_CALENDAR_REQUIRED',
   'PROCESS_WORK_ITEM_OPERATION_FAILED',
 ])
 
@@ -111,6 +117,7 @@ export class ProcessRuntimeError extends Error {
     readonly code: ProcessRuntimeErrorCode,
     readonly status: number,
     message: string = code,
+    readonly fieldKey?: string,
   ) {
     super(message)
     this.name = 'ProcessRuntimeError'
@@ -124,17 +131,24 @@ function errorCodeFromRpcMessage(message: string): ProcessRuntimeErrorCode {
   return 'PROCESS_WORK_ITEM_OPERATION_FAILED'
 }
 
+export function processRuntimeFieldKeyFromRpcDetails(code: ProcessRuntimeErrorCode, details?: string | null): string | null {
+  if (code !== 'REQUIRED_FORM_FIELD' && code !== 'INVALID_FORM_VALUE') return null
+  const fieldKey = details?.trim()
+  if (!fieldKey || fieldKey.length > 160) return null
+  return [...fieldKey].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) ? null : fieldKey
+}
+
 function statusForCode(code: ProcessRuntimeErrorCode): number {
   if (code === 'AUTHENTICATION_REQUIRED') return 401
   if (code === 'FORBIDDEN' || code === 'FORBIDDEN_ACTION' || code === 'ACTOR_EMPLOYEE_NOT_FOUND') return 403
   if (code === 'PROCESS_INSTANCE_NOT_FOUND' || code === 'WORK_ITEM_NOT_FOUND' || code === 'STEP_NOT_FOUND' || code === 'SUBJECT_EMPLOYEE_NOT_FOUND' || code === 'SUBJECT_EMPLOYMENT_NOT_FOUND') return 404
-  if (code === 'STALE_STATE' || code === 'IDEMPOTENCY_KEY_REUSED' || code === 'NO_ASSIGNEE' || code === 'AMBIGUOUS_ASSIGNEE' || code === 'TRANSITION_NOT_FOUND' || code === 'AMBIGUOUS_TRANSITION' || code === 'WORK_ITEM_NOT_OPEN' || code === 'STEP_NOT_ACTIVE') return 409
+  if (code === 'STALE_STATE' || code === 'IDEMPOTENCY_KEY_REUSED' || code === 'NO_ASSIGNEE' || code === 'AMBIGUOUS_ASSIGNEE' || code === 'TRANSITION_NOT_FOUND' || code === 'AMBIGUOUS_TRANSITION' || code === 'WORK_ITEM_NOT_OPEN' || code === 'STEP_NOT_ACTIVE' || code === 'SLA_WORKDAY_CALENDAR_REQUIRED') return 409
   return 400
 }
 
-function throwRuntimeError(message: string): never {
+function throwRuntimeError(message: string, details?: string | null): never {
   const code = errorCodeFromRpcMessage(message)
-  throw new ProcessRuntimeError(code, statusForCode(code), message)
+  throw new ProcessRuntimeError(code, statusForCode(code), message, processRuntimeFieldKeyFromRpcDetails(code, details) ?? undefined)
 }
 
 export interface StartProcessCommand {
@@ -166,7 +180,7 @@ export async function startProcess(command: StartProcessCommand): Promise<Runtim
     requested_idempotency_key: command.idempotencyKey,
     requested_correlation_id: command.correlationId as string,
   })
-  if (error) throwRuntimeError(error.message)
+  if (error) throwRuntimeError(error.message, error.details)
   const parsed = runtimeResultSchema.safeParse(data)
   if (!parsed.success) throw new ProcessRuntimeError('PROCESS_WORK_ITEM_OPERATION_FAILED', 500)
   return parsed.data
@@ -183,7 +197,7 @@ export async function performWorkItemAction(command: PerformWorkItemActionComman
     requested_idempotency_key: command.idempotencyKey,
     requested_correlation_id: command.correlationId as string,
   })
-  if (error) throwRuntimeError(error.message)
+  if (error) throwRuntimeError(error.message, error.details)
   const parsed = runtimeResultSchema.safeParse(data)
   if (!parsed.success) throw new ProcessRuntimeError('PROCESS_WORK_ITEM_OPERATION_FAILED', 500)
   return parsed.data
@@ -195,7 +209,7 @@ export async function getProcessInstanceProjection(processInstanceId: string): P
   const { data, error } = await supabase.rpc('get_process_instance_projection', {
     requested_process_instance_id: processInstanceId,
   })
-  if (error) throwRuntimeError(error.message)
+  if (error) throwRuntimeError(error.message, error.details)
   const parsed = projectionSchema.safeParse(data)
   if (!parsed.success) throw new ProcessRuntimeError('PROCESS_WORK_ITEM_OPERATION_FAILED', 500)
   return parsed.data
@@ -203,7 +217,7 @@ export async function getProcessInstanceProjection(processInstanceId: string): P
 
 export function processRuntimeErrorResponse(error: unknown): NextResponse | null {
   if (!(error instanceof ProcessRuntimeError)) return null
-  return NextResponse.json({ code: error.code }, { status: error.status })
+  return NextResponse.json(error.fieldKey ? { code: error.code, fieldKey: error.fieldKey } : { code: error.code }, { status: error.status })
 }
 
 export const processRuntimeErrorCodeFromMessage = errorCodeFromRpcMessage

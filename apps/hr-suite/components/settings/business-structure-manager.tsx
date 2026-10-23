@@ -49,10 +49,13 @@ export function BusinessStructureManager({ groups, canWrite, labels }: { groups:
     event.preventDefault(); if (saving) return; setSaving(true); setError(null)
     const isGroup = selected?.type === 'group'
     const isAdministration = selected?.type === 'administration'
+    const selectedGroup = isGroup ? groups.find((group) => group.id === selected.id) : undefined
+    const selectedGroupTimeZone = selectedGroup?.timeZone
+    if (isGroup && !selectedGroupTimeZone) { setError(labels.failed); setSaving(false); return }
     const url = isGroup ? `/api/hr-groups/${selected.id}` : isAdministration ? `/api/hr-groups/administrations/${selected.id}` : '/api/hr-groups'
     const method = isGroup || isAdministration ? 'PATCH' : 'POST'
     const body = isGroup
-      ? { name: form.name, description: form.description }
+      ? { name: form.name, description: form.description, timeZone: selectedGroupTimeZone, employeePortalMode: selectedGroup?.employeePortalMode ?? 'FOCUS_AND_FULL', managerPortalMode: selectedGroup?.managerPortalMode ?? 'FOCUS_AND_FULL' }
       : { code: form.code, name: form.name, administrationNumber: form.administrationNumber, cocNumber: form.cocNumber || null, vatNumber: form.vatNumber || null, parentId: form.parentId || null, isActive: form.isActive }
     try {
       const response = await fetch(url, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
