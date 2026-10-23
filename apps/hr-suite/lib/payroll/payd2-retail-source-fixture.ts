@@ -82,7 +82,6 @@ export type SnapshotOptions = {
   readonly omitR1FiscalProfile?: boolean
   readonly nonZeroR1Opening?: boolean
 }
-
 export const scope = {
   tenantId: '16000000-0000-4000-8000-000000000061',
   hrGroupId: '26000000-0000-4000-8000-000000000062',
