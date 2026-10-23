@@ -6,6 +6,7 @@ import { Surface } from '@/components/ui/surface'
 import { PayrollStoredPayslipViewer } from '@/components/payroll/payroll-stored-payslip-viewer'
 import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'
 import { PayrollRunReconciliation } from '@/components/payroll/payroll-professional-view'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { finalizePayrollRun, generatePayrollPayslipPdfArtifact, reviewPayrollRun } from '../actions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import {
@@ -18,9 +19,18 @@ export default async function PayrollRunDetailPage({ params, searchParams: searc
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { runId } = await params
-  const [run, t, locale, queryParams, tDocuments] = await Promise.all([
-    getPayrollProfessionalRun(runId), getTranslator('payrollProfessional'), getLocale(), searchParamsPromise, getTranslator('documents'),
+  const runPromise = getPayrollProfessionalRun(runId).then(
+    (run) => ({ run, denied: false as const }),
+    (error: unknown) => {
+      if (error instanceof AuthorizationError) return { run: null, denied: true as const }
+      throw error
+    },
+  )
+  const [runResult, t, locale, queryParams, tDocuments] = await Promise.all([
+    runPromise, getTranslator('payrollProfessional'), getLocale(), searchParamsPromise, getTranslator('documents'),
   ])
+  if (runResult.denied) notFound()
+  const run = runResult.run
   if (!run) notFound()
   const nav = { overview: t('overview'), runs: t('runs'), corrections: t('corrections'), compare: t('compare'), arrangements: t('arrangements'), settings: t('settings') }
   const labels = Object.fromEntries([

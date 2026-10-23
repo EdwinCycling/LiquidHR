@@ -1,5 +1,9 @@
 # AA-CURRENT — Current LiquidHR State
 
+## PAY-SECURITY-LIVE-FINAL — live TEST authorization closeout (23-10-2026)
+
+On `integration/PAYROLL-MERGE-20261022`, the existing Manager and the scoped `CONTROL01 Test BV` HR Admin completed direct TEST logins and real HTTP authorization probes. **Manager LIVE PASS** and **foreign-tenant LIVE PASS**: team listing is server-scoped even with `scope=all`; unauthorized employee/salary reads return 404; foreign context selection is 403; foreign PDF/preview APIs are 403 with no bytes. Unauthorized run pages return only a generic streamed not-found shell (HTTP 200 due to the existing loading boundary). The live Manager list probe reproduced a 90-row scope leak; the existing authorization chain now enforces team scope, with targeted regression tests. Full suite: 3,490 PASS, 8 SKIP, 0 FAIL; TypeScript and targeted ESLint pass. See [PAY-SECURITY-LIVE-FINAL](../quality/acceptance/runs/PAY-SECURITY-LIVE-FINAL-20261023.md). `/payroll/runs` performance and full dependency-audit review remain separate.
+
 > **ACTUEEL — 22 oktober 2026; releasebaseline blijft ongewijzigd sinds CLEANUP-09.** Productcode `1.20261021.1` op `c0fa236967ec0708c0a57f72e0dfb29b78b3fead` is via GitHub gekoppeld aan Vercel deployment `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9` (**READY**, alle drie productiealiases). Dit is de synthetische gedeelde productomgeving, **geen commerciële payroll-GA**. Nieuwe lokale feature-/docscommits veranderen de deployment-SHA niet.
 >
 > **Geauthenticeerde hosted smoke:** HR Admin/Jupiter, STAR-rapportgegevens, Payroll-hoofdoverzicht, Employee Journey en HeRa-paneel laden. **OPEN:** `/payroll/runs` blijft laden; ESS FINALIZED payslip met passende actor niet aangetoond; geen HeRa-prompt/Focus-host-endgate; artifact `buildId` en runtimefingerprint niet onafhankelijk uitgelezen. Geen businessdata gewijzigd.

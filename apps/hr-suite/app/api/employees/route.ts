@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { permissionErrorResponse } from '@/lib/auth/permissions'
+import { permissionErrorResponse, requireAnyPermission } from '@/lib/auth/permissions'
 import { createEmployee } from '@/lib/employees/employee-service'
 import { employeeErrorPayload } from '@/lib/employees/http-errors'
 import { employeeCreateSchema } from '@/lib/employees/schemas'
@@ -14,8 +14,12 @@ function errorResponse(error: unknown): NextResponse {
 
 export async function GET(request: Request): Promise<NextResponse> {
   try {
+    const context = await requireAnyPermission(['employee:read', 'employee-directory:read'])
+    const scope = context.activeRoles.includes('DIRECT_MANAGER') && !context.activeRoles.includes('TENANT_ADMIN')
+      ? 'team'
+      : 'all'
     const search = new URL(request.url).searchParams.get('search')?.trim().toLocaleLowerCase('nl') ?? ''
-    const employees = await listEmployeesOverview()
+    const employees = await listEmployeesOverview('active', scope)
     const data = search
       ? employees.filter((employee) => `${employee.employeeNumber} ${employee.firstName} ${employee.birthNamePrefix ?? ''} ${employee.birthName} ${employee.departmentName ?? ''} ${employee.jobTitle ?? ''} ${employee.workEmail ?? ''}`.toLocaleLowerCase('nl').includes(search))
       : employees
