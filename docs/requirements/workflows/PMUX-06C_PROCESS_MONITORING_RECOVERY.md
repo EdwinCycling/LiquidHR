@@ -1,8 +1,8 @@
 # PMUX-06C — Procesbewaking en operationeel herstel
 
-Datum: 23 oktober 2026  
-Status: **LOKALE IMPLEMENTATIE EN CONTRACTTESTS GEREED; REMOTE ACCEPTATIE OPEN**  
-Roadmap: [PMUX geconsolideerde roadmap](PMUX_CONSOLIDATED_ROADMAP_20261022.md)
+- Datum: 23 oktober 2026
+- Status: **LOKALE IMPLEMENTATIE EN CONTRACTTESTS GEREED; REMOTE ACCEPTATIE OPEN**
+- Roadmap: [PMUX geconsolideerde roadmap](PMUX_CONSOLIDATED_ROADMAP_20261022.md)
 
 ## Productdoel
 
