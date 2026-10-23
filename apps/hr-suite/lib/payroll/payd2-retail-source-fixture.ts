@@ -646,5 +646,3 @@ export function sourceContract(snapshot: PayrollSourceSnapshot): {
 } {
   return canonical(snapshot).sourceContract as ReturnType<typeof sourceContract>
 }
-
-
