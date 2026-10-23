@@ -130,8 +130,14 @@ describe('Retail Non-Food 2026 gross mode', () => {
     const expectedHash = createHash('sha256').update(normalizedSource, 'utf8').digest('hex')
     const scopeNotice = bundle.rulePackage.metadata?.sourceMetadata?.grossScopeNotice
     const unsupported = bundle.rulePackage.metadata?.sourceMetadata?.unsupported
+    const sourceMetadata = bundle.rulePackage.metadata?.sourceMetadata
 
     expect(bundle.registry[0]?.implementationHash).toBe(expectedHash)
+    expect(sourceMetadata).toMatchObject({
+      january2026OfficialCaoPdfSha256: 'ada85c7293b1eb92b25d693dd68010349893e606ffe0b0512519428c9742943b',
+      july2026OfficialCaoPdfSha256: 'ec6fd7a8ee7c3b1f18f58ac6cc5081d6a72e053405480e346eb8a4c7d1e1d2cc',
+      activeTableSourceSha256: 'ec6fd7a8ee7c3b1f18f58ac6cc5081d6a72e053405480e346eb8a4c7d1e1d2cc',
+    })
     expect(scopeNotice).toContain('8% vacation allowance (vakantietoeslag)')
     expect(scopeNotice).toContain('C/1 (R2) and I/15 (R1)')
     expect(unsupported).toContain('8% vacation allowance (vakantietoeslag) excluded from gross pay')

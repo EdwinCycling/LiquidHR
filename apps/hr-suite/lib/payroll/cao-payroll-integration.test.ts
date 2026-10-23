@@ -62,6 +62,14 @@ describe('normal-source CAO payroll integration', () => {
       activeEndExclusive: '2026-08-01',
       laborConditionCode: 'RETAIL_NON_FOOD_MODE_2026_2027',
       laborConditionName: 'Retail Non-Food / Mode',
+      retailBusinessScope: {
+        value: 'IN_STORE',
+        sourceClassification: 'SYNTHETIC_FIXTURE',
+        sourceReference: 'SYNTHETIC_FIXTURE:CAO integration test; activity scope is explicitly stipulated for this case',
+        sourceVersion: 'CAO-RETAIL-INTEGRATION-TEST-v1',
+        effectiveFrom: '2026-01-01',
+        effectiveTo: null,
+      },
       salary: { ...baseInput.salary!, caoScaleName: 'C', caoStepName: '1', salaryStepCode: '1', hourlyRate: 0 },
       schedule: { contractHoursPerWeek: 24, fullTimeHoursPerWeek: 38 },
       actualWorkEntries: [
