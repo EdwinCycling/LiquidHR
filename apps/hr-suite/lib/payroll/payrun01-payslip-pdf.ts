@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { renderPayrollLabHtmlToPdf } from './validation-pack-pdf'
 
 export const LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID = 'LIQUIDHR_STANDARD_V1' as const
+export const PAYROLL_TEST_DOCUMENT_NOTICE = 'TEST / NIET VOOR UITBETALING' as const
 
 export interface Payrun01PayslipData {
   readonly period: {
@@ -19,6 +20,7 @@ export interface Payrun01PayslipData {
     readonly status: 'SYNTHETIC_TEST_PROFILE' | 'PAYROLL_SOURCE_PROFILE'
     readonly employerName: string
     readonly employeeName: string
+    readonly documentNotice?: typeof PAYROLL_TEST_DOCUMENT_NOTICE
     readonly writtenContract?: boolean
     readonly contractType?: 'DEFINITE' | 'INDEFINITE'
     readonly isOnCall?: boolean
@@ -113,6 +115,7 @@ function validateInput(input: Payrun01PayslipPdfInput): void {
     || (profile.status !== 'SYNTHETIC_TEST_PROFILE' && profile.status !== 'PAYROLL_SOURCE_PROFILE')
     || profile.employerName.trim().length === 0
     || profile.employeeName.trim().length === 0
+    || (profile.documentNotice !== undefined && profile.documentNotice !== PAYROLL_TEST_DOCUMENT_NOTICE)
     || (profile.status === 'SYNTHETIC_TEST_PROFILE'
       && (profile.writtenContract === undefined
         || profile.contractType === undefined
@@ -178,6 +181,9 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
   const pensionExcluded = data.profile.pensionTreatment === 'EXCLUDED_SOURCE_GAP'
   const period = `${data.period.year}-${String(data.period.month).padStart(2, '0')}`
   const isConcept = data.lifecycle === 'CONCEPT'
+  const testNotice = data.profile.documentNotice === PAYROLL_TEST_DOCUMENT_NOTICE
+    ? `<p class="payroll-safety-notice" role="note">${PAYROLL_TEST_DOCUMENT_NOTICE}</p>`
+    : ''
   const earningsRows = resultRows(data, EARNINGS_KEYS)
   const deductionRows = resultRows(data, pensionExcluded ? ['wage_tax'] : DEDUCTION_KEYS)
   const taxBaseRows = resultRows(data, TAX_BASE_KEYS)
@@ -234,6 +240,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
     .meta-value { display: block; font-size: 9pt; font-weight: 600; margin-top: 1pt; overflow-wrap: anywhere; }
     .source-warnings, .pension-notice { background: #fff7e7; border: 1px solid #e7c77d; border-radius: 4pt; color: #5a4215; font-size: 8pt; margin: 0 0 10pt; padding: 7pt 9pt; }
     .source-warnings ul { margin-top: 3pt; padding-left: 13pt; }
+    .payroll-safety-notice { background: #fff0ef; border: 2px solid #b42318; border-radius: 4pt; color: #8c1d18; font-size: 11pt; font-weight: 800; letter-spacing: 0.4pt; margin: 0 0 10pt; padding: 8pt 10pt; text-align: center; }
     .pension-notice { margin-top: 8pt; }
     .calculation-grid { display: grid; gap: 15pt; grid-template-columns: 1.15fr 0.85fr; }
     .section { break-inside: avoid; margin-top: 10pt; }
@@ -260,6 +267,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
       <div><h1>Loonstrook</h1><p class="subtitle">LiquidHR Standard${isConcept ? ' · CONCEPT — NIET DEFINITIEF' : ''}</p></div>
       <div class="period">LOONPERIODE&nbsp;&nbsp;${escapeHtml(period)}</div>
     </div>
+    ${testNotice}
     <dl class="metadata">
       <div><dt class="meta-label">Werknemer</dt><dd class="meta-value">${escapeHtml(employeeName)}</dd></div>
       <div><dt class="meta-label">Werkgever</dt><dd class="meta-value">${escapeHtml(employerName)}</dd></div>
@@ -297,7 +305,9 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
     </div>
     <p class="footer-note">${isConcept
     ? 'Lokale CONCEPT-proef op basis van synthetische TEST-invoer. Niet gebruiken voor uitbetaling; er is geen salarisrun of PDF opgeslagen.'
-    : 'De bedragen zijn overgenomen uit de opgeslagen definitieve salarisrun. Voor deze PDF is geen nieuwe loonberekening uitgevoerd.'}</p>
+    : data.profile.documentNotice === PAYROLL_TEST_DOCUMENT_NOTICE
+      ? 'TEST / NIET VOOR UITBETALING. Synthetische testfinalisatie in een geïsoleerde lokale testdatabase; de bedragen zijn geen loonrun voor een echte werknemer.'
+      : 'De bedragen zijn overgenomen uit de opgeslagen definitieve salarisrun. Voor deze PDF is geen nieuwe loonberekening uitgevoerd.'}</p>
   </main>
 </body>
 </html>`

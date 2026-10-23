@@ -1423,6 +1423,7 @@ function buildRegularPayrollOwned(input: {
         effectiveTo: input.configurationRow.effective_to,
         configurationHash: input.configurationRow.configuration_hash,
         sourceReference: input.configurationRow.source_reference,
+        componentSet: configuration.componentSet,
       },
       amounts: {
         variableRegularWage: input.caoCalculation.status === 'CALCULATED'

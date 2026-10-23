@@ -132,6 +132,7 @@ export type FinalizedEmployeePayslipInput = {
 
 const GENERIC_PAYROLL_INPUT_REFERENCE_SCHEMA = 'PAYCALC-REAL-01B-COMPLETENESS-1'
 const GENERIC_PAYSLIP_TEMPLATE_ID = 'LIQUIDHR_STANDARD_V1' as const
+const TEST_PAYSLIP_DOCUMENT_CLASSIFICATION = 'TEST / NIET VOOR UITBETALING' as const
 const EMPLOYEE_PAYSLIP_COMPONENT_KEYS = new Set([
   'contractual_salary', 'additional_cash_amount', 'additional_hours_pay', 'variable_regular_wage',
   'gross_salary', 'employee_pension', 'taxable_wage', 'employee_insurance_base', 'zvw_base',
@@ -2115,6 +2116,9 @@ export async function createFinalizedEmployeePayslipPdfArtifact(
       resultHash: artifacts.run.result_hash,
       finalizedEventId: evidence.finalizedEvent.id,
       finalizedAt: evidence.finalizedEvent.created_at,
+      documentClassification: isSyntheticPayslipSource(artifacts.sourceSnapshot.source_payload)
+        ? TEST_PAYSLIP_DOCUMENT_CLASSIFICATION
+        : 'FINALIZED_PAYSLIP',
       generatedAt: (dependencies.now ?? (() => new Date()))().toISOString(),
       sizeBytes: bytes.byteLength,
       pdfHash,
@@ -2171,6 +2175,14 @@ function assertGenericPayslipReference(
     || artifacts.controls.some((control) => control.status !== 'PASS')) {
     throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', runId, 'GENERIC_PAYSLIP_REFERENCE_INVALID')
   }
+}
+
+function isSyntheticPayslipSource(sourcePayload: PayrollJson): boolean {
+  if (!isJsonObject(sourcePayload)) return false
+  const caseProvenance = isJsonObject(sourcePayload.caseProvenance) ? sourcePayload.caseProvenance : undefined
+  const testScenario = isJsonObject(sourcePayload.testScenario) ? sourcePayload.testScenario : undefined
+  return jsonString(caseProvenance?.dataClass) === 'SYNTHETIC_FIXTURE'
+    || jsonString(testScenario?.sourceClassification) === 'PAYROLL_TEST_SCENARIO'
 }
 
 function assertEmployeePayslipFinalized(
@@ -2245,6 +2257,9 @@ function assertGenericPayslipArtifactBinding(
     || provenance.resultHash !== artifacts.run.result_hash
     || provenance.finalizedEventId !== finalizedEvent.id
     || provenance.finalizedAt !== finalizedEvent.created_at
+    || provenance.documentClassification !== (isSyntheticPayslipSource(artifacts.sourceSnapshot.source_payload)
+      ? TEST_PAYSLIP_DOCUMENT_CLASSIFICATION
+      : 'FINALIZED_PAYSLIP')
     || provenance.pdfHash !== artifact.artifact_hash
     || provenance.sizeBytes !== artifact.artifact_bytes.byteLength) {
     throw new SyntheticPayrollServiceError('PAYROLL_INPUT_INVALID', runId, 'GENERIC_PAYSLIP_ARTIFACT_BINDING_INVALID')
@@ -2276,6 +2291,8 @@ async function renderGenericEmployeePayslipPdf(
       artifact_bytes: verified.artifact_bytes,
       content_type: 'application/pdf' as const,
       file_name: verified.file_name,
+      id: verified.id,
+      artifact_hash: verified.artifact_hash,
     }
   }
 
@@ -2299,6 +2316,9 @@ async function renderGenericEmployeePayslipPdf(
           status: 'PAYROLL_SOURCE_PROFILE',
           employeeName: input.genericPayslipProfile.employeeName,
           employerName: input.genericPayslipProfile.employerName,
+          ...(isSyntheticPayslipSource(artifacts.sourceSnapshot.source_payload)
+            ? { documentNotice: TEST_PAYSLIP_DOCUMENT_CLASSIFICATION }
+            : {}),
         },
         components,
         sourceWarnings: payrun01PayslipSourceWarnings(artifacts.sourceSnapshot.source_payload, artifacts.controls, undefined),

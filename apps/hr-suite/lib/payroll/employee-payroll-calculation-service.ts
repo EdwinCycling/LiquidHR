@@ -250,9 +250,18 @@ function isCaoExactGrossSource(value: unknown): boolean {
 
 function payfull02PackageForSource(value: unknown): PayrollRulePackage | null {
   if (!isPayfull02Source(value) && !isCustomerStandardSource(value)) return null
+  const source = record(value)
+  const payrollOwned = record(source?.payrollOwned)
+  const configuration = record(payrollOwned?.configuration)
+  const componentSet = record(configuration?.componentSet)
+  const configuredCompositionId = typeof componentSet?.compositionId === 'string'
+    ? componentSet.compositionId
+    : ''
   return createPayfull02RulePackage(isCustomerStandardSource(value) ? 'CUSTOMER_STANDARD' : 'DEMO_COMPANY_TEST', {
-    supportPartialPeriods: isCompositeRegularWage(value),
+    supportPartialPeriods: isCompositeRegularWage(value)
+      || configuredCompositionId.includes('+PARTIAL-PERIODS-2026.1'),
     supportCaoExactGross: isCaoExactGrossSource(value),
+    allocatePensionRoundingRemainderToEmployer: configuredCompositionId.includes('+PENSION-EMPLOYER-REMAINDER-2026.1'),
   })
 }
 
@@ -1419,6 +1428,11 @@ export function createEmployeePayrollCalculationService(dependencies: EmployeePa
       throw new EmployeePayrollCalculationError('PAYROLL_RUN_SCOPE_OR_STATUS_INVALID', 403)
     }
     const reference = await lifecycle.getGenericInputReference(access.scope, access.administration.id, artifacts.inputSet.id)
+    const sourcePayload = record(artifacts.sourceSnapshot.source_payload)
+    const caseProvenance = record(sourcePayload?.caseProvenance)
+    if (caseProvenance?.dataClass === 'SYNTHETIC_FIXTURE' && dependencies.allowIsolatedTestScenario !== true) {
+      throw new EmployeePayrollCalculationError('PAYROLL_TEST_SCENARIO_CANNOT_TRANSITION', 409)
+    }
     const isAcceptanceScenario = isPayrollAcceptanceScenarioReference(reference?.input_reference_json)
     if (isAcceptanceScenario) {
       const referenceJson = record(reference?.input_reference_json)
