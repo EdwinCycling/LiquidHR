@@ -30,7 +30,11 @@ Deze roadmap vervangt de oude PMUX-deelreeks als actieve planning. PMUX-02A/02B,
 
 **Status (23-10-2026): LOKALE SCHEDULERKETEN GEREED; REMOTE ACTIVATIE/ACCEPTATIE OPEN.** De Processtudio gebruikt dezelfde typed SLA en workflow_jobs-queue. De bestaande worker verwerkt uitsluitend due `PROCESS_REMINDER`-jobs via service-role-wrappers met actieve claim-eigenaarschap, retry/backoff, dead-letter en idempotente bestaande reminders/audit. `/api/cron/process-automation-reminders` is lokaal via `CRON_SECRET` en `vercel.json` op minuutinterval aangesloten; een echte cronrun, remote migratie/readback en browser/390px zijn niet uitgevoerd. Minute-cron vereist Vercel Pro/Enterprise; accountplan en secretconfiguratie blijven te bevestigen vóór een apart geautoriseerde deployment. Zie [PMUX-06B requirement](PMUX-06B_REMINDERS_ESCALATIONS.md) en [PMUX-06B.1 local acceptance](../../quality/acceptance/runs/PMUX-06B.1-20261023-LOCAL.md). Overige uitval-, herverdelings- en prognosemogelijkheden zijn niet gestart.
 
-Overige PMUX-06-capabilities — ontbrekende manager, uitdienstgetreden behandelaar, HR-uitvallijst, scopegebonden herverdeling, prognoses en inzichten — blijven gepland en zijn niet gestart.
+### PMUX-06C — Procesbewaking en operationeel herstel
+
+**Status (23-10-2026): LOKALE IMPLEMENTATIE EN CONTRACTTESTS GEREED; REMOTE ACCEPTATIE OPEN.** De HR Admin-werkplek gebruikt bestaande procesinstanties, werkitems, workflow-jobs, retries/dead-letter, reminders, audit en procesrechten. Een scoped SQL-projectie levert paginering, filters, exacte gefilterde totalen en alleen rijgebonden herstelbaarheid; foutpayloads worden niet naar de UI geprojecteerd. Een herstelactie gebruikt uitsluitend de bestaande idempotente `requeue_workflow_job`-transitie voor herstelbare RETRY/DEAD_LETTER-jobs. De nieuwe workspace en forward-only SQL-contract zijn lokaal getest met PGlite en gerichte Vitest-regressies. Remote migratie/readback, live rol-/tenantproeven en desktop-/390px-browseracceptatie blijven OPEN. Zie [PMUX-06C requirement](PMUX-06C_PROCESS_MONITORING_RECOVERY.md) en [lokale acceptance](../../quality/acceptance/runs/PMUX-06C-20261023-LOCAL.md).
+
+Overige PMUX-06-capabilities — scopegebonden herverdeling, manager-/behandelaaruitval, prognoses en inzichten — blijven gepland en zijn niet gestart.
 
 ## Wave 07 — ESS, Focus en productfinish
 
