@@ -68,7 +68,7 @@
   "documents": { "empty": "No documents are available yet.", "expires": "Valid until", "added": "Added on", "open": "Open document" },
   "directory": { "title": "Who is who", "search": "Search by name, job or department", "mail": "Mail", "call": "Call", "empty": "No colleagues found.", "disabled": "The employee directory is not available." },
   "more": { "title": "More", "description": "Open the Focus areas you use less often." },
-  "process": { "actionNeeded": "ACTION NEEDED", "empty": "There is nothing waiting for you right now.", "waiting": "Waiting for someone else", "inProgress": "In progress", "completed": "Completed", "open": "Open", "leave": "Leave request", "work": "Work action", "request": "Request" },
+  "process": { "actionNeeded": "Action needed", "empty": "There is nothing waiting for you right now.", "emptyRequests": "You do not have any ongoing or completed requests yet.", "waiting": "Waiting for someone else", "statusOpen": "Open", "inProgress": "In progress", "completed": "Completed", "changesRequested": "Changes requested", "rejected": "Declined", "cancelled": "Cancelled", "blocked": "Blocked", "expired": "Expired", "open": "Open", "leave": "Leave request", "work": "Work action", "request": "Request", "newRequest": "New request" },
   "sections": {
     "openSignatures": "My signing requests", "documentsSigningOnly": "Your available documents are listed with your signing requests. Contact HR about other documents.",
     "name": "Name", "startDate": "First day", "openOnboarding": "View your onboarding",

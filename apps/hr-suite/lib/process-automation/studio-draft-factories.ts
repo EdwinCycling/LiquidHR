@@ -29,8 +29,13 @@ export function createTrainingRequestExampleDraft(identity: StudioDraftIdentity)
   const manager = 'manager'
   const hrTeam = 'hr-team'
   const requestForm = 'training-request'
-  const fieldAccess = [
+  const requiredFieldAccess = [
     { participantKey: employee, mode: 'WRITE_REQUIRED' as const },
+    { participantKey: manager, mode: 'READ' as const },
+    { participantKey: hrTeam, mode: 'READ' as const },
+  ]
+  const optionalFieldAccess = [
+    { participantKey: employee, mode: 'WRITE_OPTIONAL' as const },
     { participantKey: manager, mode: 'READ' as const },
     { participantKey: hrTeam, mode: 'READ' as const },
   ]
@@ -87,14 +92,36 @@ export function createTrainingRequestExampleDraft(identity: StudioDraftIdentity)
                 label: localized('Welke opleiding wil je volgen?', 'Which training would you like to take?'),
                 type: 'SHORT_TEXT',
                 binding: { kind: 'PROCESS_ONLY' },
-                access: fieldAccess,
+                access: requiredFieldAccess,
               },
               {
                 key: 'training-reason',
                 label: localized('Waarom past deze opleiding bij je werk?', 'How is this training relevant to your work?'),
                 type: 'LONG_TEXT',
                 binding: { kind: 'PROCESS_ONLY' },
-                access: fieldAccess,
+                access: requiredFieldAccess,
+              },
+              {
+                key: 'training-start-date',
+                label: localized('Wanneer wil je starten?', 'When would you like to start?'),
+                type: 'DATE',
+                binding: { kind: 'PROCESS_ONLY' },
+                access: requiredFieldAccess,
+              },
+              {
+                key: 'training-expected-cost',
+                label: localized('Wat zijn de verwachte kosten?', 'What is the expected cost?'),
+                helpText: localized('Vul het geschatte bedrag in euro in.', 'Enter the estimated amount in euros.'),
+                type: 'MONEY',
+                binding: { kind: 'PROCESS_ONLY' },
+                access: optionalFieldAccess,
+              },
+              {
+                key: 'training-notes',
+                label: localized('Toelichting (optioneel)', 'Additional details (optional)'),
+                type: 'LONG_TEXT',
+                binding: { kind: 'PROCESS_ONLY' },
+                access: optionalFieldAccess,
               },
             ],
           },

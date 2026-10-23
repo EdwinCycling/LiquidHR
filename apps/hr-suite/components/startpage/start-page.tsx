@@ -16,10 +16,11 @@ import type { PersonalLogbookEntry } from '@/lib/logbook/service'
 import type { StartPageTeamAvailability, StartPageTeamAvailabilityCell } from '@/lib/startpage/team-availability-service'
 import { employeeListMyTeamHref } from '@/lib/preferences/employee-list-state'
 import { journeyProgressPercent, localizedValue, type JourneyProjection } from '@/lib/journeys/projection-domain'
-import { Badge } from '@/components/ui/badge'
+import { Badge, type BadgeTone } from '@/components/ui/badge'
 import { buttonClasses } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import { SectionHeader } from '@/components/patterns/section-header'
+import { processWorkDeadlineStatusLabel, type ProcessWorkDeadlineLabels, type ProcessWorkDeadlineStatus } from '@/lib/process-automation/deadline-projection'
 import type { TeamAiWindowProps } from './team-ai-window'
 import { TalentInsightsWindow, type StartPageTalentInsightsLabels } from './talent-insights-window'
 
@@ -31,11 +32,13 @@ interface TeamAiLoadingLabels { teamAiOpen: string; teamAiLoading: string; teamA
 
 interface StartPageAbsenceLabels { absencePercentageSick: string }
 
-export interface StartPageLabels extends StartPageAppraisalLabels, StartPageSigningLabels, TeamAiLoadingLabels, StartPageAbsenceLabels, StartPageTalentInsightsLabels {
+export interface StartPageLabels extends StartPageAppraisalLabels, StartPageSigningLabels, TeamAiLoadingLabels, StartPageAbsenceLabels, StartPageTalentInsightsLabels, ProcessWorkDeadlineLabels {
   nextLeave: string; nextHoliday: string; nextCompanyActivity: string; eyebrow: string; headline: string; subtitle: string; activeScope: string; administration: string; tenant: string; peopleInScope: string; operationalTitle: string; operationalTitleTeam: string; operationalTitleCompany: string; scopeSwitchLabel: string; scopeTeam: string; scopeCompany: string; openTeamEmployees: string; liveSource: string; documentsTitle: string; documentsDescription: string; openDocuments: string; notAvailable: string; yourPriorities: string; prioritiesBody: string; remindersTitle: string; remindersDescription: string; openReminders: string; noReminders: string; moreReminders: string; workInProgress: string; workInProgressBody: string; futureDeclarations: string; futureContracts: string; futureAssets: string; futureTasks: string; futureSource: string; processWorkTitle: string; processWorkDescription: string; processWorkOverdue: string; processWorkDueToday: string; processWorkBlocked: string; processWorkNoItems: string; processWorkOpen: string; processWorkSubject: string; openAnalysis: string; quickLinks: string; workforceDescription: string; openWorkforce: string; workforceOpenItem: string; workforceNineGrid: string; workforceNineGridDescription: string; workforceContinuousAppraisal: string; workforceContinuousAppraisalDescription: string; workforceTalentProfiles: string; workforceTalentProfilesDescription: string; workforceStarPerformers: string; workforceStarPerformersDescription: string; workforceStarPerformerTags: string; workforceStarPerformerTagsDescription: string; quickActionsTitle: string; myData: string; myDataDescription: string; myTeam: string; myTeamDescription: string; newAbsence: string; newAbsenceDescription: string; calendar: string; insights: string; updated: string; fallbackName: string; journeysTitle: string; journeysDescription: string; journeysEmpty: string; journeyMine: string; journeyParticipants: string; journeyProgress: string; journeyNextAction: string; journeyOpen: string; journeyPlanned: string; journeyActive: string; journeyPaused: string; journeyCompleted: string; absenceCasesTitle: string; absenceCasesDescription: string; noActiveAbsences: string; absenceSince: string; absenceDays: string; openAbsenceDossier: string;  absenceRecovery: string; absenceMore: string; openAbsenceOverview: string; leaveTitle: string; leaveToday: string; leaveTomorrow: string; leavePersons: string; leavePerson: string; leaveNoAbsences: string; openCalendar: string; eventsTitle: string; eventsToday: string; eventsTomorrow: string; eventsNoEvents: string; openAllEvents: string; eventBirthday: string; eventAnniversary: string; eventStarter: string; eventYears: string; kpiEmployees: string; kpiRecurringAbsence: string; kpiLongTermSick: string; openEmployees: string; teamAvailabilityTitle: string; teamAvailabilityDescription: string; teamAvailabilityPeople: string; teamAvailabilityPresence: string; teamAvailabilityHours: string; teamAvailabilityModeLabel: string; teamAvailabilityAvailable: string; teamAvailabilityNotAvailable: string; teamAvailabilityOff: string; teamAvailabilityLeave: string; teamAvailabilityAbsent: string; teamAvailabilityNoMembers: string; teamAvailabilityHoursUnit: string; layoutLabel: string; full: string; compact: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; moveUp: string; moveDown: string; drag: string; teamAiTitle: string; teamAiDescription: string; teamAiDirectScope: string; teamAiDepartmentScope: string; teamAiDepartmentLabel: string; teamAiSelectPlaceholder: string; teamAiNoDepartments: string; teamAiNoActiveMembers: string; teamAiMembers: string; teamAiMemberPreview: string; teamAiStart: string; teamAiConnecting: string; teamAiListening: string; teamAiSpeaking: string; teamAiProcessing: string; teamAiMute: string; teamAiUnmute: string; teamAiElapsed: string; teamAiPaused: string; teamAiInputLevel: string; teamAiInputMuted: string; teamAiDisabled: string; teamAiPrivacy: string; teamAiScope: string; teamAiSummaryTitle: string; teamAiSummaryDescription: string; teamAiSummaryDefaultTitle: string; teamAiSummaryTitleLabel: string; teamAiSummaryBodyLabel: string; teamAiSummarySave: string; teamAiSummarySaving: string; teamAiSummarySaved: string; teamAiSummaryFailed: string; teamAiClose: string; logbookTitle: string; logbookDescription: string; logbookOpen: string; logbookNew: string; logbookEmpty: string; logbookSourceManual: string; logbookSourceAi: string; logbookShowRecent: string; logbookHideRecent: string; logbookRecentCount: string; logbookLatest: string; logbookNoRecent: string; logbookPrivatePlaceholder: string; logbookPrivatePlaceholderDescription: string; logbookRevealFailed: string
 }
 
-interface StartPageProps { data: StartPageData; locale: Locale; dateFormat: DateFormat; timeFormat: TimeFormat; greeting: string; labels: StartPageLabels; initialPreferences: StartPagePreferences; today: string }
+export interface StartPageLabels { deadline: string }
+
+interface StartPageProps { data: StartPageData; locale: Locale; timeZone: string; dateFormat: DateFormat; timeFormat: TimeFormat; greeting: string; labels: StartPageLabels; initialPreferences: StartPagePreferences; today: string }
 
 type StartPageWindowId = StartPageWideWindow | StartPageNarrowWindow
 
@@ -148,15 +151,20 @@ function StartPageCalendarTiles(_props: { data: StartPageData; labels: Pick<Star
   return null
 }
 
-function ProcessWorkWindow({ data, dateLocale, labels }: { data: StartPageData['processWork']; dateLocale: string; labels: StartPageLabels }) {
+function ProcessWorkWindow({ data, dateLocale, timeZone, labels }: { data: StartPageData['processWork']; dateLocale: string; timeZone: string; labels: StartPageLabels }) {
   if (!data) return null
-  const formatDeadline = (value: string | null): string => value ? formatStartPageDate(value, dateLocale, 'medium') : ''
+  const formatDeadline = (value: string | null): string => {
+    if (!value) return '—'
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? '—' : new Intl.DateTimeFormat(dateLocale, { dateStyle: 'medium', timeStyle: 'short', timeZone }).format(parsed)
+  }
+  const deadlineTone = (status: ProcessWorkDeadlineStatus): BadgeTone => status === 'OVERDUE' ? 'danger' : status === 'NEAR_DUE' ? 'warning' : status === 'ON_TRACK' ? 'success' : 'neutral'
   return <Surface className="overflow-hidden p-0" data-testid="startpage-process-work">
     <header className="border-b border-subtle bg-surface-subtle p-5"><div className="flex items-start justify-between gap-3"><span className="grid size-11 place-items-center rounded-[var(--radius-control)] bg-primary text-primary-foreground"><ListTodo aria-hidden="true" size={20} /></span><Badge tone="info">{data.total}</Badge></div><h3 className="mt-5 text-lg font-semibold">{labels.processWorkTitle}</h3><p className="mt-1 text-sm leading-6 text-muted-foreground">{labels.processWorkDescription}</p></header>
     <div className="p-5">
-      {data.overdueCount || data.dueTodayCount || data.blockedCount ? <div className="flex flex-wrap gap-2">{data.overdueCount ? <Badge tone="danger">{data.overdueCount} · {labels.processWorkOverdue}</Badge> : null}{data.dueTodayCount ? <Badge tone="warning">{data.dueTodayCount} · {labels.processWorkDueToday}</Badge> : null}{data.blockedCount ? <Badge tone="warning">{data.blockedCount} · {labels.processWorkBlocked}</Badge> : null}</div> : null}
-      {data.blockers.length ? <Surface className="mt-4 border-warning/30 bg-warning-surface/60 p-4" variant="subtle" aria-label={labels.processWorkBlocked}><p className="text-sm font-semibold text-warning">{data.blockedCount} · {labels.processWorkBlocked}</p><ul className="mt-2 divide-y divide-warning/20">{data.blockers.map((item) => <li className="py-2 first:pt-0 last:pb-0" key={item.workItemId}><Link className="block rounded-lg text-sm font-semibold text-warning-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/work/${item.workItemId}`}>{item.processTitle}<span className="mt-0.5 block text-xs font-normal text-warning-foreground/80">{item.subjectName ?? labels.processWorkSubject} · {item.stepTitle}</span></Link></li>)}</ul></Surface> : null}
-      {data.items.length ? <ul className="mt-4 divide-y divide-border/70">{data.items.map((item) => <li className="py-3 first:pt-0 last:pb-0" key={item.workItemId}><Link className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/work/${item.workItemId}`}><span className="block font-semibold leading-5">{item.processTitle}</span><span className="mt-1 block text-xs text-muted-foreground">{item.subjectName ?? labels.processWorkSubject} · {item.stepTitle}{item.deadlineAt ? ` · ${formatDeadline(item.deadlineAt)}` : ''}</span></Link></li>)}</ul> : <Surface className="mt-4 p-4 text-sm leading-6 text-muted-foreground" variant="subtle">{labels.processWorkNoItems}</Surface>}
+      {data.overdueCount || data.nearDueCount || data.blockedCount ? <div className="flex flex-wrap gap-2">{data.overdueCount ? <Badge tone="danger">{data.overdueCount} · {labels.processWorkOverdue}</Badge> : null}{data.nearDueCount ? <Badge tone="warning">{data.nearDueCount} · {labels.processWorkDueToday}</Badge> : null}{data.blockedCount ? <Badge tone="warning">{data.blockedCount} · {labels.processWorkBlocked}</Badge> : null}</div> : null}
+      {data.blockers.length ? <Surface className="mt-4 border-warning/30 bg-warning-surface/60 p-4" variant="subtle" aria-label={labels.processWorkBlocked}><p className="text-sm font-semibold text-warning">{data.blockedCount} · {labels.processWorkBlocked}</p><ul className="mt-2 divide-y divide-warning/20">{data.blockers.map((item) => <li className="py-2 first:pt-0 last:pb-0" key={item.workItemId}><Link className="block rounded-lg text-sm font-semibold text-warning-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/work/${item.workItemId}`}>{item.processTitle}<span className="mt-0.5 block text-xs font-normal text-warning-foreground/80">{item.subjectName ?? labels.processWorkSubject} · {item.stepTitle}</span><span className="mt-1 block text-xs font-normal">{labels.deadline}: {formatDeadline(item.deadlineAt)}</span><Badge className="mt-1" tone={deadlineTone(item.deadlineStatus)}>{processWorkDeadlineStatusLabel(item.deadlineStatus, item.deadlineRemainingSeconds, labels)}</Badge></Link></li>)}</ul></Surface> : null}
+      {data.items.length ? <ul className="mt-4 divide-y divide-border/70">{data.items.map((item) => <li className="py-3 first:pt-0 last:pb-0" key={item.workItemId}><Link className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/work/${item.workItemId}`}><span className="block font-semibold leading-5">{item.processTitle}</span><span className="mt-1 block text-xs text-muted-foreground">{item.subjectName ?? labels.processWorkSubject} · {item.stepTitle}</span><span className="mt-1 block text-xs font-medium">{labels.deadline}: {formatDeadline(item.deadlineAt)}</span><Badge className="mt-1" tone={deadlineTone(item.deadlineStatus)}>{processWorkDeadlineStatusLabel(item.deadlineStatus, item.deadlineRemainingSeconds, labels)}</Badge></Link></li>)}</ul> : <Surface className="mt-4 p-4 text-sm leading-6 text-muted-foreground" variant="subtle">{labels.processWorkNoItems}</Surface>}
       <Link className={`${buttonClasses({ className: 'mt-5 flex w-full' })}`} href="/work">{labels.processWorkOpen}<ArrowRight aria-hidden="true" size={15} /></Link>
     </div>
   </Surface>
@@ -250,7 +258,7 @@ function isTeamAiStartPageData(value: unknown): value is StartPageTeamAiData {
     && typeof candidate.voiceEnabled === 'boolean'
 }
 
-export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labels, initialPreferences, today }: StartPageProps) {
+export function StartPage({ data, locale, timeZone, dateFormat, timeFormat, greeting, labels, initialPreferences, today }: StartPageProps) {
   const router = useRouter()
   const name = data.firstName ?? labels.fallbackName
   const dateLocale = locale === 'nl' ? 'nl-NL' : 'en-GB'
@@ -453,7 +461,7 @@ export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labe
 
           {windowFrame('narrow', 'journeys', <JourneyWindow dateLocale={dateLocale} journeys={data.journeys} labels={labels} locale={locale} />)}
 
-          {windowFrame('narrow', 'workInProgress', <ProcessWorkWindow data={data.processWork} dateLocale={dateLocale} labels={labels} />)}</aside>
+          {windowFrame('narrow', 'workInProgress', <ProcessWorkWindow data={data.processWork} dateLocale={dateLocale} timeZone={timeZone} labels={labels} />)}</aside>
       </div>
 
     </main></div>

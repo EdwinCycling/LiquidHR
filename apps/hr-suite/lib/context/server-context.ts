@@ -161,7 +161,7 @@ export async function loadAccessibleContextOptions(
         .limit(100),
       supabase
         .from('hr_groups')
-        .select('id, tenant_id, code, name, description, is_active, employee_portal_mode, manager_portal_mode')
+        .select('id, tenant_id, code, name, description, is_active, employee_portal_mode, manager_portal_mode, time_zone')
         .in('tenant_id', tenantIds)
         .eq('is_active', true)
         .order('name')

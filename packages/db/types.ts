@@ -2879,7 +2879,7 @@ export type Database = {
           hr_group_id: string
           id: string
           is_active: boolean
-          name: string
+            name: string
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -2892,7 +2892,7 @@ export type Database = {
           hr_group_id: string
           id?: string
           is_active?: boolean
-          name: string
+            name: string
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -2905,7 +2905,7 @@ export type Database = {
           hr_group_id?: string
           id?: string
           is_active?: boolean
-          name?: string
+            name?: string
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -8818,6 +8818,7 @@ export type Database = {
           is_active: boolean
           manager_portal_mode: string
           name: string
+            time_zone: string
           tenant_id: string
           updated_at: string
           updated_by_user_id: string | null
@@ -8832,6 +8833,7 @@ export type Database = {
           is_active?: boolean
           manager_portal_mode?: string
           name: string
+            time_zone?: string
           tenant_id: string
           updated_at?: string
           updated_by_user_id?: string | null
@@ -8846,6 +8848,7 @@ export type Database = {
           is_active?: boolean
           manager_portal_mode?: string
           name?: string
+            time_zone?: string
           tenant_id?: string
           updated_at?: string
           updated_by_user_id?: string | null
@@ -17220,7 +17223,8 @@ export type Database = {
           administration_id: string | null
           cancelled_at: string | null
           created_at: string
-          created_by_user_id: string
+          created_by_actor_type: 'USER' | 'SYSTEM'
+          created_by_user_id: string | null
           description: string | null
           id: string
           published_at: string | null
@@ -17236,7 +17240,8 @@ export type Database = {
           administration_id?: string | null
           cancelled_at?: string | null
           created_at?: string
-          created_by_user_id?: string
+          created_by_actor_type?: 'USER' | 'SYSTEM'
+          created_by_user_id?: string | null
           description?: string | null
           id?: string
           published_at?: string | null
@@ -17252,7 +17257,8 @@ export type Database = {
           administration_id?: string | null
           cancelled_at?: string | null
           created_at?: string
-          created_by_user_id?: string
+          created_by_actor_type?: 'USER' | 'SYSTEM'
+          created_by_user_id?: string | null
           description?: string | null
           id?: string
           published_at?: string | null
@@ -22512,6 +22518,10 @@ export type Database = {
         Args: { requested_job_id: string; requested_language?: string }
         Returns: Json
       }
+      create_process_deadline_reminder_system: {
+        Args: { requested_job_id: string; requested_worker_id: string; requested_language?: string }
+        Returns: Json
+      }
       create_process_definition_draft: {
         Args: {
           requested_administration_id: string
@@ -22696,6 +22706,20 @@ export type Database = {
         Returns: undefined
       }
       finish_workflow_job: {
+        Args: {
+          requested_error_code?: string
+          requested_job_id: string
+          requested_outcome: string
+          requested_result_reference_id?: string
+          requested_worker_id: string
+        }
+        Returns: Json
+      }
+      claim_process_reminder_job_system: {
+        Args: { requested_worker_id: string }
+        Returns: Json
+      }
+      finish_process_reminder_job_system: {
         Args: {
           requested_error_code?: string
           requested_job_id: string
@@ -22912,6 +22936,28 @@ export type Database = {
         Args: { requested_process_instance_id: string }
         Returns: Json
       }
+      get_process_insights_projection: {
+        Args: {
+          requested_from_date: string
+          requested_hr_group_id: string
+          requested_language: string
+          requested_page: number
+          requested_page_size: number
+          requested_process_definition_id: string | null
+          requested_to_date: string
+        }
+        Returns: Json
+      }
+      get_process_operations_inbox: {
+        Args: {
+          requested_filter?: string
+          requested_language?: string
+          requested_page?: number
+          requested_page_size?: number
+          requested_search?: string | null
+        }
+        Returns: Json
+      }
       get_process_form_projection: {
         Args: { requested_language?: string; requested_work_item_id: string }
         Returns: Json
@@ -23014,6 +23060,10 @@ export type Database = {
         Returns: Json
       }
       get_unified_process_work_item_detail: {
+        Args: { requested_language?: string; requested_work_item_id: string }
+        Returns: Json
+      }
+      get_process_work_item_experience: {
         Args: { requested_language?: string; requested_work_item_id: string }
         Returns: Json
       }

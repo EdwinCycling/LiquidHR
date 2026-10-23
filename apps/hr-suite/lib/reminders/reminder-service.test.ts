@@ -91,4 +91,9 @@ describe('reminderActionUrl', () => {
   it('extracts protected recruitment application deep links', () => {
     expect(reminderActionUrl('Openen /recruitment/applications/11111111-1111-4111-8111-111111111111')).toBe('/recruitment/applications/11111111-1111-4111-8111-111111111111')
   })
+
+  it('routes process reminders to the existing authorized work item detail', () => {
+    expect(reminderActionUrl('Openen /work/11111111-1111-4111-8111-111111111111')).toBe('/work/11111111-1111-4111-8111-111111111111')
+    expect(reminderActionUrl('Open /work/not-a-work-item')).toBeUndefined()
+  })
 })

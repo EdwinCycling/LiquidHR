@@ -5,6 +5,7 @@ import { after } from 'next/server'
 import { z } from 'zod'
 import { requireAuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminRpcClient } from '@/lib/supabase/admin'
 import {
   buildProcessOutputHtml,
   buildProcessOutputPdf,
@@ -65,15 +66,20 @@ function isDuplicateStorageError(message: string): boolean {
   return normalized.includes('already exists') || normalized.includes('duplicate') || normalized.includes('409')
 }
 
+type WorkflowJobClient = Awaited<ReturnType<typeof createClient>>
+type ExecutionPath = 'USER' | 'SCHEDULER'
+
 async function finishJob(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: WorkflowJobClient,
   jobId: string,
   workerId: string,
   outcome: 'SUCCEEDED' | 'FAILED',
   failureCode?: string,
   resultReferenceId?: string,
+  executionPath: ExecutionPath = 'USER',
 ): Promise<{ status: string }> {
-  const { data, error } = await supabase.rpc('finish_workflow_job', {
+  const functionName = executionPath === 'SCHEDULER' ? 'finish_process_reminder_job_system' : 'finish_workflow_job'
+  const { data, error } = await supabase.rpc(functionName, {
     requested_job_id: jobId,
     requested_worker_id: workerId,
     requested_outcome: outcome,
@@ -87,13 +93,19 @@ async function finishJob(
 }
 
 async function processClaimedJob(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: WorkflowJobClient,
   job: z.infer<typeof claimedJobSchema>,
+  workerId: string,
   language: 'nl' | 'en',
+  executionPath: ExecutionPath,
 ): Promise<string | undefined> {
+  if (executionPath === 'SCHEDULER' && job.jobType !== 'PROCESS_REMINDER') {
+    throw new WorkflowJobError('SCHEDULER_JOB_TYPE_FORBIDDEN')
+  }
   if (job.jobType === 'PROCESS_REMINDER') {
-    const { error } = await supabase.rpc('create_process_deadline_reminder', {
+    const { error } = await supabase.rpc(executionPath === 'SCHEDULER' ? 'create_process_deadline_reminder_system' : 'create_process_deadline_reminder', {
       requested_job_id: job.id,
+      ...(executionPath === 'SCHEDULER' ? { requested_worker_id: workerId } : {}),
       requested_language: language,
     })
     if (error) throw new WorkflowJobError(error.message.match(/\b[A-Z][A-Z0-9_]{2,60}\b/)?.[0] ?? 'PROCESS_REMINDER_FAILED', error.message)
@@ -149,11 +161,15 @@ async function processClaimedJob(
   return begin.data.outputId
 }
 
-export async function runWorkflowJobs(limit = 5, language: 'nl' | 'en' = 'nl'): Promise<WorkflowJobRunResult> {
-  const supabase = await createClient()
-  const context = await requireAuthContext(supabase)
-  if (!context.permissions.includes('process-operations:write')) throw new WorkflowJobError('FORBIDDEN')
+async function runClaimedWorkflowJobs(
+  supabase: WorkflowJobClient,
+  limit: number,
+  language: 'nl' | 'en',
+  executionPath: ExecutionPath,
+): Promise<WorkflowJobRunResult> {
   const workerId = randomUUID()
+  const claimFunction = executionPath === 'SCHEDULER' ? 'claim_process_reminder_job_system' : 'claim_workflow_job'
+  const finishPath = executionPath
   let claimed = 0
   let succeeded = 0
   let retried = 0
@@ -161,7 +177,7 @@ export async function runWorkflowJobs(limit = 5, language: 'nl' | 'en' = 'nl'): 
   const errors: string[] = []
 
   for (let index = 0; index < Math.max(1, Math.min(limit, 20)); index += 1) {
-    const { data, error } = await supabase.rpc('claim_workflow_job', { requested_worker_id: workerId })
+    const { data, error } = await supabase.rpc(claimFunction, { requested_worker_id: workerId })
     if (error) throw new WorkflowJobError('WORKFLOW_JOB_CLAIM_FAILED', error.message)
     if (data === null) break
     const parsed = claimedJobSchema.safeParse(data)
@@ -169,15 +185,15 @@ export async function runWorkflowJobs(limit = 5, language: 'nl' | 'en' = 'nl'): 
     const job = parsed.data
     claimed += 1
     try {
-      const resultReferenceId = await processClaimedJob(supabase, job, language)
-      const result = await finishJob(supabase, job.id, workerId, 'SUCCEEDED', undefined, resultReferenceId)
+      const resultReferenceId = await processClaimedJob(supabase, job, workerId, language, executionPath)
+      const result = await finishJob(supabase, job.id, workerId, 'SUCCEEDED', undefined, resultReferenceId, finishPath)
       succeeded += 1
       if (result.status === 'DEAD_LETTER') deadLettered += 1
     } catch (error) {
       const code = errorCode(error)
       errors.push(code)
       try {
-        const result = await finishJob(supabase, job.id, workerId, 'FAILED', code)
+        const result = await finishJob(supabase, job.id, workerId, 'FAILED', code, undefined, finishPath)
         if (result.status === 'DEAD_LETTER') deadLettered += 1
         else retried += 1
       } catch (finishError) {
@@ -187,6 +203,18 @@ export async function runWorkflowJobs(limit = 5, language: 'nl' | 'en' = 'nl'): 
   }
 
   return { claimed, succeeded, retried, deadLettered, errors }
+}
+
+export async function runWorkflowJobs(limit = 5, language: 'nl' | 'en' = 'nl'): Promise<WorkflowJobRunResult> {
+  const supabase = await createClient()
+  const context = await requireAuthContext(supabase)
+  if (!context.permissions.includes('process-operations:write')) throw new WorkflowJobError('FORBIDDEN')
+  return runClaimedWorkflowJobs(supabase, limit, language, 'USER')
+}
+
+export async function runScheduledProcessReminderJobs(limit = 5): Promise<WorkflowJobRunResult> {
+  const supabase = createAdminRpcClient()
+  return runClaimedWorkflowJobs(supabase, limit, 'nl', 'SCHEDULER')
 }
 
 export function scheduleWorkflowDrain(language: 'nl' | 'en' = 'nl'): void {

@@ -19,6 +19,7 @@ export interface HrGroupContextOption {
   code: string
   name: string
   description: string | null
+  timeZone: string
   employeePortalMode?: PortalMode
   managerPortalMode?: PortalMode
   administrations: AdministrationContextOption[]
@@ -75,6 +76,7 @@ export interface ContextHrGroupRow {
   code: string
   name: string
   description: string | null
+  time_zone: string
   is_active: boolean
   employee_portal_mode?: PortalMode
   manager_portal_mode?: PortalMode
@@ -167,6 +169,7 @@ export function buildTenantContextOptions(input: BuildTenantContextOptionsInput)
             code: group.code,
             name: group.name,
             description: group.description,
+            timeZone: group.time_zone,
             employeePortalMode: group.employee_portal_mode,
             managerPortalMode: group.manager_portal_mode,
             administrations,
