@@ -34,7 +34,7 @@ export default async function PayrollOverviewPage() {
     </div>
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-semibold">{t('recentRuns')}</h2><p className="mt-1 text-sm text-muted-foreground">{t('persistedOnly')}</p></div><Link href="/payroll/runs" className="text-sm font-medium text-primary underline-offset-4 hover:underline">{t('allRuns')} →</Link></div>
-      <PayrollRunSummaryList runs={runs.slice(0, 8)} labels={Object.fromEntries(['empty','period','employee','status','runId','action','openDetail','runHashesHint','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))} />
+      <PayrollRunSummaryList runs={runs.slice(0, 8)} labels={Object.fromEntries(['empty','period','employee','status','action','openDetail','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))} />
     </section>
   </PageShell>
 }

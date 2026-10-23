@@ -10,6 +10,7 @@ import {
   createFinalizedEmployeePayslipPdfArtifact,
   createPayrun01PayslipPdfArtifactForRun,
   getPayrollProfessionalPayslipPdfArtifactForRun as getPersistedPayrollProfessionalPayslipPdfArtifactForRun,
+  renderGenericEmployeePayslipConceptPdfPreview,
   renderFinalizedEmployeePayslipPdf,
   renderPayrun01PayslipPdfPreviewForRun,
   type FinalizedEmployeePayslipInput,
@@ -24,25 +25,33 @@ import {
 
 export type PayrollProfessionalRun = PayrollCalculationArtifacts & {
   readonly lifecycleEvents: Awaited<ReturnType<ReturnType<typeof createPayrun01Repository>['listLifecycleEvents']>>
+  readonly employeeName: string | null
   readonly canTransition: boolean
   readonly hasGenericInputReference: boolean
   readonly hasPayslipPdfArtifact: boolean
 }
 
-export async function listPayrollProfessionalRuns(): Promise<readonly PayrollRunSummary[]> {
+export type PayrollProfessionalRunSummary = PayrollRunSummary & { readonly employeeName: string | null }
+
+export async function listPayrollProfessionalRuns(): Promise<readonly PayrollProfessionalRunSummary[]> {
   const access = await requireComponentLibraryAccess(false)
   const repository = createPayrollCalculationRepository()
   const summaries = await repository.listPayrollRunSummaries(access.scope, access.administration.id, {
     runType: 'INDIVIDUAL_PAYROLL',
     limit: 100,
   })
-  if (summaries.length === 0) return summaries
+  if (summaries.length === 0) return []
   const lifecycle = createPayrun01Repository()
-  return await filterPayrollAcceptanceScenarioRuns(
+  const visibleRuns = await filterPayrollAcceptanceScenarioRuns(
     summaries,
     async (inputSetId) => await lifecycle.getGenericInputReference(access.scope, access.administration.id, inputSetId),
     async (inputSetIds) => await lifecycle.listGenericInputReferences(access.scope, access.administration.id, inputSetIds),
   )
+  const employeeNames = await loadScopedEmployeeDisplayNames(access.scope, visibleRuns.map((summary) => summary.sourceSnapshot.source_employee_id))
+  return visibleRuns.map((summary) => ({
+    ...summary,
+    employeeName: employeeNames.get(summary.sourceSnapshot.source_employee_id) ?? null,
+  }))
 }
 
 export async function getPayrollProfessionalRun(runId: string): Promise<PayrollProfessionalRun | null> {
@@ -79,9 +88,12 @@ export async function getPayrollProfessionalRun(runId: string): Promise<PayrollP
       runId,
     })) !== null
     : false
+  const employeeName = (await loadScopedEmployeeDisplayNames(access.scope, [artifacts.sourceSnapshot.source_employee_id]))
+    .get(artifacts.sourceSnapshot.source_employee_id) ?? null
   return {
     ...artifacts,
     lifecycleEvents,
+    employeeName,
     canTransition: access.canCopy,
     hasGenericInputReference: inputReference !== null,
     hasPayslipPdfArtifact,
@@ -126,6 +138,39 @@ export async function renderPayrollProfessionalPayslipPreviewForRun(input: {
     genericPayslipProfile,
   }
   return await renderFinalizedEmployeePayslipPdf(payslipInput)
+}
+
+export async function renderPayrollProfessionalPayslipConceptPreviewForRun(input: {
+  readonly scope: PayrollScope
+  readonly payrollAdministrationId: string
+  readonly actorUserId: string
+  readonly runId: string
+}) {
+  const artifacts = await createPayrollCalculationRepository().getLatestSyntheticArtifacts(
+    input.scope,
+    input.payrollAdministrationId,
+    undefined,
+    input.runId,
+    undefined,
+    'INDIVIDUAL_PAYROLL',
+  )
+  if (!artifacts || artifacts.run.id !== input.runId) return null
+
+  const genericReference = await createPayrun01Repository().getGenericInputReference(
+    input.scope,
+    input.payrollAdministrationId,
+    artifacts.inputSet.id,
+  )
+  if (!genericReference) return null
+
+  const employeeId = artifacts.sourceSnapshot.source_employee_id
+  const genericPayslipProfile = await loadScopedPayslipDisplayProfile(input.scope, employeeId)
+  if (!genericPayslipProfile) throw new Error('PAYROLL_PAYSLIP_PROFILE_UNAVAILABLE')
+  return await renderGenericEmployeePayslipConceptPdfPreview({
+    ...input,
+    employeeId,
+    genericPayslipProfile,
+  })
 }
 
 export async function createPayrollProfessionalPayslipPdfArtifactForRun(input: {
@@ -434,6 +479,28 @@ async function loadScopedPayslipDisplayProfile(
     .filter((part): part is string => typeof part === 'string' && part.trim() !== '')
     .join(' ')
   return employeeName ? { employeeName, employerName } : null
+}
+
+async function loadScopedEmployeeDisplayNames(scope: PayrollScope, employeeIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+  const uniqueIds = [...new Set(employeeIds)]
+  if (uniqueIds.length === 0) return new Map()
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('employees')
+    .select('id,first_name,birth_name_prefix,birth_name')
+    .eq('tenant_id', scope.tenantId)
+    .eq('hr_group_id', scope.hrGroupId)
+    .in('id', uniqueIds)
+    .is('deleted_at', null)
+    .limit(uniqueIds.length)
+  if (error) throw error
+
+  return new Map((data ?? []).flatMap((employee) => {
+    const name = [employee.first_name, employee.birth_name_prefix, employee.birth_name]
+      .filter((part): part is string => typeof part === 'string' && part.trim() !== '')
+      .join(' ')
+    return name ? [[employee.id, name] as const] : []
+  }))
 }
 
 const defaultEmployeePayrollDependencies: EmployeePayrollDependencies = {

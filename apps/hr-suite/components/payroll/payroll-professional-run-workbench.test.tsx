@@ -121,7 +121,7 @@ describe('Payroll Professional monthly workbench', () => {
     expect(markup).toContain('9.000,00')
   })
 
-  it('renders source category, safe error code and correlation ID without raw diagnostic data', () => {
+  it('shows business source gaps without exposing technical diagnostic IDs or codes', () => {
     const blockedEmployee: PayrollProfessionalEmployee = {
       ...employees[0]!,
       employeeNumber: 'W-003',
@@ -151,10 +151,11 @@ describe('Payroll Professional monthly workbench', () => {
       labels={labels}
     />)
 
-    expect(markup).toContain('pension')
-    expect(markup).toContain('NO_EFFECTIVE_PENSION_ASSIGNMENT')
-    expect(markup).toContain('90000000-0000-4000-8000-000000000009')
+    expect(markup).not.toContain('sourceDiagnostics')
+    expect(markup).not.toContain('NO_EFFECTIVE_PENSION_ASSIGNMENT')
+    expect(markup).not.toContain('90000000-0000-4000-8000-000000000009')
     expect(markup).not.toContain('raw database detail')
-    expect(markup).toContain('diagnosticUnavailable')
+    expect(markup).not.toContain('diagnosticUnavailable')
+    expect(markup).toContain('missingOtherData')
   })
 })

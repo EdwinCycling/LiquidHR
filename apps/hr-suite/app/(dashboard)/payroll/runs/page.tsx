@@ -22,7 +22,6 @@ const workbenchLabelKeys = [
   'periodSummaryTitle','periodSummaryDescription','periodStatusLabel','employeesTotal','grossTotal','netTotal',
   'employerCostsTotal','exceptionsSummary','exceptions','noExceptions','lastCalculated','notCalculatedYet','noAmount',
   'status_NOT_CALCULATED','status_CONCEPT','status_REVIEWED','status_FINALIZED','status_BLOCKED',
-  'sourceDiagnostics','sourceCategory','errorCode','correlationId','diagnosticUnavailable',
   'controlException','calculationException','staleException','correctionSuccessor',
   'batchResults','incompleteNetNotice','gross','net','wageTaxWithheld','remainingAfterWageTax','employerCost','notCalculated',
   'missingData','missingSalary','missingSchedule','missingContract','missingLaborConditions','missingIncomeRelationship',
@@ -71,7 +70,7 @@ function PayrollRunListContent({ t, runs, error, periodKey }: {
   readonly periodKey?: string
 }) {
   if (error !== null) return <PayrollDataError t={t} id="payroll-runs-list-error-title" error={error} periodKey={periodKey} />
-  return <PayrollRunSummaryList runs={runs ?? []} labels={Object.fromEntries(['empty','period','employee','status','runId','action','openDetail','runHashesHint','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))} />
+  return <PayrollRunSummaryList runs={runs ?? []} labels={Object.fromEntries(['empty','period','employee','status','action','openDetail','run_SUCCEEDED','run_FAILED','run_RUNNING','run_PENDING'].map((key) => [key, t(key)]))} />
 }
 
 async function PayrollRunWorkspaceContent({

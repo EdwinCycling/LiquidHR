@@ -184,6 +184,9 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
   const testNotice = data.profile.documentNotice === PAYROLL_TEST_DOCUMENT_NOTICE
     ? `<p class="payroll-safety-notice" role="note">${PAYROLL_TEST_DOCUMENT_NOTICE}</p>`
     : ''
+  const conceptNotice = isConcept
+    ? '<p class="payroll-concept-notice" role="note">CONCEPT — NIET DEFINITIEF · NIET VOOR UITBETALING</p>'
+    : ''
   const earningsRows = resultRows(data, EARNINGS_KEYS)
   const deductionRows = resultRows(data, pensionExcluded ? ['wage_tax'] : DEDUCTION_KEYS)
   const taxBaseRows = resultRows(data, TAX_BASE_KEYS)
@@ -241,6 +244,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
     .source-warnings, .pension-notice { background: #fff7e7; border: 1px solid #e7c77d; border-radius: 4pt; color: #5a4215; font-size: 8pt; margin: 0 0 10pt; padding: 7pt 9pt; }
     .source-warnings ul { margin-top: 3pt; padding-left: 13pt; }
     .payroll-safety-notice { background: #fff0ef; border: 2px solid #b42318; border-radius: 4pt; color: #8c1d18; font-size: 11pt; font-weight: 800; letter-spacing: 0.4pt; margin: 0 0 10pt; padding: 8pt 10pt; text-align: center; }
+    .payroll-concept-notice { background: #fff7e7; border: 2px solid #b7791f; border-radius: 4pt; color: #744210; font-size: 10pt; font-weight: 800; letter-spacing: 0.25pt; margin: 0 0 10pt; padding: 8pt 10pt; text-align: center; }
     .pension-notice { margin-top: 8pt; }
     .calculation-grid { display: grid; gap: 15pt; grid-template-columns: 1.15fr 0.85fr; }
     .section { break-inside: avoid; margin-top: 10pt; }
@@ -268,6 +272,7 @@ export function renderPayrun01PayslipHtml(input: Payrun01PayslipPdfInput): strin
       <div class="period">LOONPERIODE&nbsp;&nbsp;${escapeHtml(period)}</div>
     </div>
     ${testNotice}
+    ${conceptNotice}
     <dl class="metadata">
       <div><dt class="meta-label">Werknemer</dt><dd class="meta-value">${escapeHtml(employeeName)}</dd></div>
       <div><dt class="meta-label">Werkgever</dt><dd class="meta-value">${escapeHtml(employerName)}</dd></div>

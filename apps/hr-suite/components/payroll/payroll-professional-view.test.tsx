@@ -95,6 +95,7 @@ const labels: Readonly<Record<string, string>> = {
   gross: 'Gross',
   net: 'Net',
   netAfterTaxIncomplete: 'After wage tax (not final net pay)',
+  conceptNet: 'Net in this concept calculation',
   employeeArithmetic: 'Employee calculation',
   employerCost: 'Employer cost',
   cumulative: 'Cumulative',
@@ -176,23 +177,25 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
 
     expect(markup).toContain('grid min-w-0 grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-2')
     expect(markup).toContain('€ 364,96')
-    expect(markup).toContain('PENSION_MONTHLY_TOTAL')
+    expect(markup).not.toContain('PENSION_MONTHLY_TOTAL')
+    expect(markup).not.toContain('PENSION_EMPLOYEE_SHARE')
   })
 
-  it('grounds employer premium details in persisted inputs, rule, rounding and trace dependencies', () => {
+  it('shows employer premium inputs and rule source without technical identifiers', () => {
     const markup = renderToStaticMarkup(<PayrollRunReconciliation run={employerPremiumRun} locale="en-GB" labels={labels} />)
 
     expect(markup).toContain('AWf contribution')
-    expect(markup).toContain('PAYRUN01_AWF_COST')
+    expect(markup).not.toContain('PAYRUN01')
+    expect(markup).not.toContain('componentId')
     expect(markup).toContain('6,385.04')
     expect(markup).toContain('2.74%')
     expect(markup).toContain('assessmentBase × rate ÷ 100')
     expect(markup).toContain('HALF_UP · decimal places 2')
-    expect(markup).toContain('NL-PAYROLL-2026 · 2026.1')
     expect(markup).toContain('Belastingdienst · Handboek Loonheffingen 2026')
-    expect(markup).toContain('system:payrun01:payrun01_awf_cost · Trace step 21 · INCOME_RELATIONSHIP')
-    expect(markup).toContain('PAYRUN01_AWF_RATE')
-    expect(markup).toContain('PAYRUN01_EMPLOYEE_INSURANCE_BASE')
+    expect(markup).not.toContain('NL-PAYROLL-2026')
+    expect(markup).not.toContain('system:payrun01')
+    expect(markup).not.toContain('PAYRUN01_AWF_RATE')
+    expect(markup).not.toContain('PAYRUN01_EMPLOYEE_INSURANCE_BASE')
   })
 
   it('shows fiscal bases from persisted calculation components and the complete cumulative wage and tax rows', () => {
@@ -247,13 +250,13 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     const finalizedMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={finalizedRun} locale="en-GB" labels={labels} />)
 
     expect(conceptMarkup).toContain('Concept — not final')
-    expect(conceptMarkup).toContain('After wage tax (not final net pay)')
+    expect(conceptMarkup).toContain('Net in this concept calculation')
     expect(conceptMarkup).toContain('Not finalized')
     expect(conceptMarkup).not.toContain('/artifact/TECHNICAL_JSON')
     expect(conceptMarkup).not.toContain('/payslip-preview')
     expect(finalizedMarkup).toContain('Finalized')
     expect(finalizedMarkup).toContain('Net')
-    expect(finalizedMarkup).toContain('/artifact/TECHNICAL_JSON')
+    expect(finalizedMarkup).not.toContain('/artifact/TECHNICAL_JSON')
     expect(finalizedMarkup).toContain('/payslip-preview')
     expect(finalizedMarkup).toContain('/payslip-preview?download=1')
   })
@@ -326,7 +329,9 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     const markup = renderToStaticMarkup(<PayrollRunReconciliation run={fritsRun} locale="nl-NL" labels={labels} />)
 
     expect(markup).toContain('Pension source needs review')
-    expect(markup).toContain('After wage tax (not final net pay)')
+    expect(markup).toContain('Net in this concept calculation')
+    expect(markup).not.toContain('PAYRUN01')
+    expect(markup).not.toContain('SYNTHETIC')
     expect(markup).toContain('Pension has not been calculated because the required source information could not be confirmed.')
     expect(markup).toContain('The displayed net pay is not definitive while the pension source is missing.')
     expect(markup).not.toMatch(/Employee pension.{0,40}€\s*0,00/)

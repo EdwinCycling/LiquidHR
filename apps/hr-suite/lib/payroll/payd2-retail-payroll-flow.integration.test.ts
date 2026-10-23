@@ -4,7 +4,7 @@ import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import { beforeAll, afterAll, describe, expect, it } from 'vitest'
 import type { PayrollCalculationArtifacts, PayrollRunSummary } from './calculation-repository'
 import { createEmployeePayrollCalculationService, type EmployeePayrollCalculationDependencies } from './employee-payroll-calculation-service'
-import { createFinalizedEmployeePayslipPdfArtifact } from './payrun01-service'
+import { createFinalizedEmployeePayslipPdfArtifact, renderGenericEmployeePayslipConceptPdfPreview } from './payrun01-service'
 import type { Payrun01Repository } from './payrun01-repository'
 import {
   getMySalaryPayslipPdfArtifact,
@@ -450,6 +450,30 @@ describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
     await expect(calculation.calculateEmployeePayroll(input)).resolves.toMatchObject({ runId: r1RunId, businessStatus: 'CONCEPT' })
     expect(await store.runCount()).toBe(1)
 
+    const payrunDependencies = {
+      payrollRepository: store.calculationRepository as never,
+      payrunRepository: store.lifecycleRepository as unknown as Payrun01Repository,
+      sourceProvider: { getPayrollSourceSnapshot: async () => r1Snapshot },
+      enabled: () => true,
+      now,
+    }
+    const finalizedPdfInput = {
+      scope, payrollAdministrationId, actorUserId, employeeId: r1EmployeeId, runId: r1RunId,
+      genericPayslipProfile: { employeeName: 'R1 Testmedewerker', employerName: 'Retail TEST' },
+    }
+    const conceptPdf = await renderGenericEmployeePayslipConceptPdfPreview(finalizedPdfInput, payrunDependencies as never)
+    expect(conceptPdf).toMatchObject({
+      content_type: 'application/pdf',
+      source_hash: r1Snapshot.sourceHash,
+      document_hash: createHash('sha256').update(conceptPdf.artifact_bytes).digest('hex'),
+    })
+    expect(await store.artifactCount()).toBe(0)
+    const parsedConceptPdf = await getDocument({ data: new Uint8Array(conceptPdf.artifact_bytes) }).promise
+    const conceptPdfText = await parsedConceptPdf.getPage(1).then(async (page) => (await page.getTextContent()).items
+      .flatMap((item) => 'str' in item ? [item.str] : []).join(' '))
+    expect(conceptPdfText).toContain('CONCEPT — NIET DEFINITIEF · NIET VOOR UITBETALING')
+    expect(conceptPdfText).toContain('TEST / NIET VOOR UITBETALING')
+
     const employeeBeforeFinal = employeeReadDependencies(r1EmployeeId)
     await expect(getMySalaryStatements(employeeBeforeFinal)).resolves.toEqual([])
     await expect(listEmployeePayrollPayslipPeriods(r1EmployeeId, employeeBeforeFinal)).resolves.toEqual([])
@@ -468,22 +492,13 @@ describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
     await expect(calculation.reviewEmployeePayroll({ ...input, runId: r1RunId })).resolves.toMatchObject({ eventType: 'REVIEWED' })
     await expect(calculation.finalizeEmployeePayroll({ ...input, runId: r1RunId })).resolves.toMatchObject({ eventType: 'FINALIZED' })
 
-    const payrunDependencies = {
-      payrollRepository: store.calculationRepository as never,
-      payrunRepository: store.lifecycleRepository as unknown as Payrun01Repository,
-      sourceProvider: { getPayrollSourceSnapshot: async () => r1Snapshot },
-      enabled: () => true,
-      now,
-    }
-    const finalizedPdfInput = {
-      scope, payrollAdministrationId, actorUserId, employeeId: r1EmployeeId, runId: r1RunId,
-      genericPayslipProfile: { employeeName: 'R1 Testmedewerker', employerName: 'Retail TEST' },
-    }
     const savedArtifact = await createFinalizedEmployeePayslipPdfArtifact(finalizedPdfInput, payrunDependencies as never)
     expect(Buffer.from(savedArtifact.artifact_bytes).subarray(0, 5).toString('ascii')).toBe('%PDF-')
     expect(savedArtifact.provenance_json).toMatchObject({
       documentClassification: 'TEST / NIET VOOR UITBETALING',
       sourceHash: r1Snapshot.sourceHash,
+      inputHash: expect.any(String),
+      resultHash: expect.any(String),
       pdfHash: savedArtifact.artifact_hash,
     })
     const parsedPdf = await getDocument({ data: new Uint8Array(savedArtifact.artifact_bytes) }).promise

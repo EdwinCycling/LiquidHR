@@ -136,6 +136,7 @@ describe('PAYRUN01 LiquidHR Standard payslip PDF', () => {
       ...input,
       data: { ...input.data, lifecycle: 'CONCEPT' },
     })
+    expect(concept).toContain('CONCEPT — NIET DEFINITIEF · NIET VOOR UITBETALING')
     expect(concept).toContain('CONCEPT — NIET DEFINITIEF')
     expect(concept).toContain('Lokale CONCEPT-proef op basis van synthetische TEST-invoer.')
     expect(concept).toContain('er is geen salarisrun of PDF opgeslagen.')
