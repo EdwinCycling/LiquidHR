@@ -82,6 +82,47 @@ describe('calculatePension', () => {
     })
   })
 
+  it('applies the first-period BPF Detailhandel VCR base to actual SV wage', () => {
+    const arrangement: PensionArrangementInput = {
+      ...flatArrangement,
+      arrangementId: 'bpf-detailhandel-2026',
+      arrangementCode: 'BPF_DETAILHANDEL_2026',
+      flatTotalRate: '24.7500',
+      employerSharePercent: '75.0000',
+      employeeSharePercent: '25.0000',
+      annualFranchise: '18680.00',
+      annualPensionableSalaryCap: '79409.00',
+      pensionableSalaryDefinition: {
+        ...flatArrangement.pensionableSalaryDefinition,
+        method: 'BPF_DETAILHANDEL_2026_VCR',
+      },
+    }
+    const result = calculatePension(input({
+      arrangement,
+      fullTimeMonthlyPensionableSalary: '4758.96',
+      monthlyPayrollGross: '4767.20',
+    }))
+
+    expect(result).toMatchObject({
+      status: 'CALCULATED',
+      annualizedPensionableSalary: '57206.40',
+      cappedPensionableSalary: '57206.40',
+      adjustedFranchise: '18680.00',
+      pensionableBase: '38526.36',
+      rate: '24.7500',
+      totalPremiumAnnual: '9535.27',
+      totalPremiumMonthly: '794.61',
+      employeePremiumMonthly: '198.65',
+      employerPremiumMonthly: '595.96',
+      allocationDifference: '0.00',
+      fiscalBases: { wageTax: '4568.55', employeeInsurance: '4568.55', zvw: '4568.55' },
+    })
+    expect(result.trace).toContainEqual(expect.objectContaining({
+      componentCode: 'PENSION_ANNUALIZED_PENSIONABLE_SALARY',
+      formula: 'monthlyPayrollGross ÷ partTimeFactor × 12 (first-period VCR; zero opening required)',
+    }))
+  })
+
   it('calculates the Jaap TEST legacy pension from explicit Annex IV Table 2 OP-only terms', () => {
     const arrangement: PensionArrangementInput = {
       ...flatArrangement,

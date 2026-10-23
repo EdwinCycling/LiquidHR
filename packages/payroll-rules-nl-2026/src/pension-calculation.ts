@@ -229,6 +229,7 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
   }
   const annualization = recordText(arrangement.pensionableSalaryDefinition, 'annualization')
   const basis = recordText(arrangement.pensionableSalaryDefinition, 'basis')
+  const bpfDetailhandelVcr = recordText(arrangement.pensionableSalaryDefinition, 'method') === 'BPF_DETAILHANDEL_2026_VCR'
   if (annualization !== '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY'
     || basis !== 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE'
     || arrangement.pensionableSalaryDefinition.floorAtZero !== true) {
@@ -282,11 +283,17 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
     : parseInput(arrangement.annualPensionableSalaryCap, 'PENSION_ANNUAL_SALARY_CAP_INPUT_INVALID')
   if (invalidDecimalInput !== null) return blocked(input, invalidDecimalInput)
 
-  const annualSalary = fullTimeMonthlySalary.multiply(TWELVE)
   const monthlyGross = monthlyGrossInput
   if (partTimeFactor.compare(ZERO) <= 0 || partTimeFactor.compare(FixedDecimal.parse('1')) > 0) {
     return blocked(input, 'PENSION_PART_TIME_FACTOR_OUT_OF_RANGE')
   }
+  // PFD's first-period VCR base is actual SV wage against the period cap and
+  // franchise. With zero opening cumulative and no prior periods, annualizing
+  // the current period wage per part-time factor is algebraically equivalent.
+  // The source provider restricts this method to that zero-opening first period.
+  const annualSalary = bpfDetailhandelVcr
+    ? monthlyGross.divideToScale(partTimeFactor, 8, 'ARITHMETIC').multiply(TWELVE)
+    : fullTimeMonthlySalary.multiply(TWELVE)
   if (franchise.compare(ZERO) < 0) return blocked(input, 'PENSION_ANNUAL_FRANCHISE_NEGATIVE')
   if (employeeShare.add(employerShare).compare(ONE_HUNDRED) !== 0) {
     return blocked(input, 'PENSION_PREMIUM_SHARES_NOT_100_PERCENT')
@@ -311,15 +318,32 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
   const cappedSalary = cap !== null && annualSalary.compare(cap) > 0 ? cap : annualSalary
   const adjustedFranchise = franchise.multiply(partTimeFactor)
   const annualBaseBeforePartTime = cappedSalary.subtract(franchise)
-  const pensionableBase = (annualBaseBeforePartTime.compare(ZERO) > 0 ? annualBaseBeforePartTime : ZERO)
-    .multiply(partTimeFactor)
+  let monthlyVcrBase: FixedDecimal | null = null
+  if (bpfDetailhandelVcr) {
+    const monthlyFranchise = franchise.divideToScale(TWELVE, 8, 'ARITHMETIC').round(2, 'HALF_UP')
+    const monthlySalaryCap = cap?.divideToScale(TWELVE, 8, 'ARITHMETIC').round(2, 'HALF_UP') ?? null
+    const monthlyCapBase = monthlySalaryCap?.multiply(partTimeFactor) ?? null
+    const grossUnderCap = monthlyCapBase !== null && monthlyGross.compare(monthlyCapBase) > 0
+      ? monthlyCapBase : monthlyGross
+    const monthlyBaseBeforeFloor = grossUnderCap.subtract(monthlyFranchise.multiply(partTimeFactor))
+    monthlyVcrBase = (monthlyBaseBeforeFloor.compare(ZERO) > 0 ? monthlyBaseBeforeFloor : ZERO)
+      .round(2, 'HALF_UP')
+  }
+  const pensionableBase = bpfDetailhandelVcr
+    ? monthlyVcrBase!.multiply(TWELVE)
+    : (annualBaseBeforePartTime.compare(ZERO) > 0 ? annualBaseBeforePartTime : ZERO).multiply(partTimeFactor)
   const rate = FixedDecimal.parse(rateText)
   const annualPremium = pensionableBase.multiply(rate).divideToScale(ONE_HUNDRED, 8, 'ARITHMETIC')
   const monthlyPremiumUnrounded = annualPremium.divideToScale(TWELVE, 8, 'ARITHMETIC')
   const monthlyPremium = monthlyPremiumUnrounded.round(2, 'ARITHMETIC')
-  const employeeMonthlyUnrounded = monthlyPremium.multiply(employeeShare).divideToScale(ONE_HUNDRED, 8, 'ARITHMETIC')
-  const employerMonthlyUnrounded = monthlyPremium.multiply(employerShare).divideToScale(ONE_HUNDRED, 8, 'ARITHMETIC')
+  const employeeMonthlyUnrounded = bpfDetailhandelVcr
+    ? annualPremium.multiply(employeeShare).divideToScale(ONE_HUNDRED, 8, 'ARITHMETIC')
+      .divideToScale(TWELVE, 8, 'ARITHMETIC')
+    : monthlyPremium.multiply(employeeShare).divideToScale(ONE_HUNDRED, 8, 'ARITHMETIC')
   const employeeMonthly = employeeMonthlyUnrounded.round(2, 'ARITHMETIC')
+  const employerMonthlyUnrounded = bpfDetailhandelVcr
+    ? monthlyPremium.subtract(employeeMonthly)
+    : monthlyPremium.multiply(employerShare).divideToScale(ONE_HUNDRED, 8, 'ARITHMETIC')
   const employerMonthly = employerMonthlyUnrounded.round(2, 'ARITHMETIC')
   const allocationDifference = monthlyPremium.subtract(employeeMonthly).subtract(employerMonthly)
   const allocatedGross = monthlyGross.subtract(employeeMonthly)
@@ -362,10 +386,18 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
     {
       ...traceBase,
       componentCode: 'PENSION_ANNUALIZED_PENSIONABLE_SALARY',
-      inputs: { fullTimeMonthlyPensionableSalary: input.fullTimeMonthlyPensionableSalary, annualizationMonths: 12 },
-      assessmentBase: input.fullTimeMonthlyPensionableSalary,
+      inputs: bpfDetailhandelVcr
+        ? {
+          monthlyPayrollGross: input.monthlyPayrollGross,
+          partTimeFactor: input.partTimeFactor,
+          annualizationMonths: 12,
+        }
+        : { fullTimeMonthlyPensionableSalary: input.fullTimeMonthlyPensionableSalary, annualizationMonths: 12 },
+      assessmentBase: bpfDetailhandelVcr ? input.monthlyPayrollGross : input.fullTimeMonthlyPensionableSalary,
       rate: null,
-      formula: 'fullTimeMonthlyPensionableSalary × 12',
+      formula: bpfDetailhandelVcr
+        ? 'monthlyPayrollGross ÷ partTimeFactor × 12 (first-period VCR; zero opening required)'
+        : 'fullTimeMonthlyPensionableSalary × 12',
       unroundedValue: annualSalary.toString(),
       roundingRule: 'No rounding before pension base evaluation',
       roundingStage: 'ANNUALIZATION',
@@ -375,12 +407,21 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
     {
       ...traceBase,
       componentCode: 'PENSION_PENSIONABLE_BASE',
-      inputs: { ...canonicalInputs, cappedPensionableSalary: cappedSalary.toString(), adjustedFranchise: adjustedFranchise.toString() },
+      inputs: {
+        ...canonicalInputs,
+        cappedPensionableSalary: cappedSalary.toString(),
+        adjustedFranchise: adjustedFranchise.toString(),
+        ...(bpfDetailhandelVcr && monthlyVcrBase !== null ? { monthlyVcrPensionableBase: monthlyVcrBase.toString() } : {}),
+      },
       assessmentBase: cappedSalary.toString(),
       rate: null,
-      formula: 'max(min(annualizedSalary, salaryCap) − annualFranchise, 0) × partTimeFactor',
+      formula: bpfDetailhandelVcr
+        ? 'max(min(monthlyPayrollGross, monthlySalaryCap × partTimeFactor) − monthlyFranchise × partTimeFactor, 0) × 12 (first-period VCR)'
+        : 'max(min(annualizedSalary, salaryCap) − annualFranchise, 0) × partTimeFactor',
       unroundedValue: pensionableBase.toString(),
-      roundingRule: 'No rounding before premium calculation',
+      roundingRule: bpfDetailhandelVcr
+        ? 'Monthly cap and franchise rounded HALF_UP to cents before first-period VCR base; monthly base annualized without further rounding'
+        : 'No rounding before premium calculation',
       roundingStage: 'PENSIONABLE_BASE',
       result: money(pensionableBase),
       dependencies: ['PENSION_ANNUALIZED_PENSIONABLE_SALARY'],
@@ -433,9 +474,13 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
       inputs: { monthlyTotal: money(monthlyPremium), employerSharePercent: arrangement.employerSharePercent },
       assessmentBase: money(monthlyPremium),
       rate: arrangement.employerSharePercent,
-      formula: 'monthlyTotal × employerSharePercent ÷ 100',
+      formula: bpfDetailhandelVcr
+        ? 'monthlyTotal − rounded employee share; assign any cent remainder to employer'
+        : 'monthlyTotal × employerSharePercent ÷ 100',
       unroundedValue: employerMonthlyUnrounded.toString(),
-      roundingRule: 'HALF_UP to 2 decimal places; allocation must reconcile to monthly total',
+      roundingRule: bpfDetailhandelVcr
+        ? 'Exact residual after employee share rounded HALF_UP to cents; allocation reconciles to monthly total'
+        : 'HALF_UP to 2 decimal places; allocation must reconcile to monthly total',
       roundingStage: 'EMPLOYER_SHARE',
       result: money(employerMonthly),
       dependencies: ['PENSION_MONTHLY_TOTAL'],

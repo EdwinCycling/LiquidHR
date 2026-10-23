@@ -1340,8 +1340,20 @@ function buildRegularPayrollOwned(input: {
   if (configuration && method === 'UNCONFIGURED') gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_PARTIAL_MONTH_METHOD_REQUIRED'))
   if (!effectivePartTimeFactor) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_PART_TIME_FACTOR_MISSING'))
 
+  const bpfDetailhandelVcr = sourceText(arrangementInput?.pensionableSalaryDefinition.method)
+    === 'BPF_DETAILHANDEL_2026_VCR'
+  const zeroOpeningCumulatives = opening !== null
+    && Object.values(opening).every((value) => FixedDecimal.parse(value).compare(FixedDecimal.fromInteger(BigInt(0))) === 0)
+  const bpfVcrFirstPeriodReady = !bpfDetailhandelVcr || (zeroOpeningCumulatives
+    && input.employmentStartsOn === input.periodStart
+    && input.activeStart === input.periodStart
+    && periodFactor === '1.0000')
+  if (bpfDetailhandelVcr && !bpfVcrFirstPeriodReady) {
+    gaps.push(makeGap('pension', 'SOURCE_GAP', 'BPF_DETAILHANDEL_VCR_REQUIRES_ZERO_OPENING_FIRST_FULL_PERIOD'))
+  }
+
   let pensionResult: PensionCalculationResult | null = null
-  if (arrangementInput && input.regularWage && effectivePartTimeFactor && assignment) {
+  if (arrangementInput && input.regularWage && effectivePartTimeFactor && assignment && bpfVcrFirstPeriodReady) {
     const monthlyPayrollGross = monthlyPayrollGrossForPension(input.regularWage, input.caoCalculation)
     const pfzw2026 = buildPfzw2026Input({
       arrangement: arrangementInput,

@@ -19,6 +19,10 @@ function formatScaled(numerator: bigint, denominator: bigint, decimals: number):
   return `${whole}.${fraction}`
 }
 
+function applyPercentCents(baseCents: bigint, rateUnits: bigint, rateScale: bigint): bigint {
+  return divideHalfUp(baseCents * rateUnits, BigInt(100) * rateScale)
+}
+
 function monthlyGrossCents(
   hourlyRateCents: bigint,
   contractHours: bigint,
@@ -40,6 +44,29 @@ export function derivePayd2RetailR1IndependentOracle() {
   const maximumRateCents = BigInt(2_895)
   const appliedRateCents = indexedRateCents > maximumRateCents ? maximumRateCents : indexedRateCents
   const grossCents = monthlyGrossCents(appliedRateCents, BigInt(38), BigInt(38))
+  const monthlyFranchiseCents = divideHalfUp(BigInt(1_868_000), BigInt(12))
+  const monthlyPensionableBaseCents = grossCents - monthlyFranchiseCents
+  const annualPensionableBaseCents = monthlyPensionableBaseCents * BigInt(12)
+  const totalPensionCents = applyPercentCents(monthlyPensionableBaseCents, BigInt(2_475), BigInt(100))
+  const employeePensionCents = applyPercentCents(monthlyPensionableBaseCents, BigInt(61_875), BigInt(10_000))
+  const employerPensionCents = totalPensionCents - employeePensionCents
+  const taxableWageCents = grossCents - employeePensionCents
+  const annualTaxableCents = taxableWageCents * BigInt(12)
+  const officialTableStepAnnualCents = BigInt(5_400)
+  const tableAnnualCents = annualTaxableCents / officialTableStepAnnualCents * officialTableStepAnnualCents
+  const tableMonthlyCents = tableAnnualCents / BigInt(12)
+  const wageTaxCents = BigInt(110_717)
+  const netCents = grossCents - employeePensionCents - wageTaxCents
+  const employerRates = {
+    awf: applyPercentCents(taxableWageCents, BigInt(274), BigInt(100)),
+    aof: applyPercentCents(taxableWageCents, BigInt(627), BigInt(100)),
+    wko: applyPercentCents(taxableWageCents, BigInt(50), BigInt(100)),
+    whk: applyPercentCents(taxableWageCents, BigInt(193), BigInt(100)),
+    zvw: applyPercentCents(taxableWageCents, BigInt(610), BigInt(100)),
+  }
+  const employerInsuranceCents = Object.values(employerRates).reduce((total, amount) => total + amount, BigInt(0))
+  const holidayReserveCents = applyPercentCents(grossCents, BigInt(800), BigInt(100))
+  const employerCostCents = grossCents + employerPensionCents + employerInsuranceCents + holidayReserveCents
 
   return {
     previousHourlyRate: formatCents(existingRateCents),
@@ -55,6 +82,28 @@ export function derivePayd2RetailR1IndependentOracle() {
     baseMonthlyGross: formatCents(grossCents),
     selectedPremiumGross: '0.00',
     gross: formatCents(grossCents),
+    monthlyPensionableBase: formatCents(monthlyPensionableBaseCents),
+    annualPensionableBase: formatCents(annualPensionableBaseCents),
+    pensionTotal: formatCents(totalPensionCents),
+    employeePension: formatCents(employeePensionCents),
+    employerPension: formatCents(employerPensionCents),
+    pensionAllocationDifference: formatCents(totalPensionCents - employeePensionCents - employerPensionCents),
+    taxableWage: formatCents(taxableWageCents),
+    annualTaxTableWage: formatCents(tableAnnualCents),
+    monthlyTaxTableWage: formatCents(tableMonthlyCents),
+    wageTax: formatCents(wageTaxCents),
+    net: formatCents(netCents),
+    employerRates: {
+      awf: formatCents(employerRates.awf),
+      aof: formatCents(employerRates.aof),
+      wko: formatCents(employerRates.wko),
+      whk: formatCents(employerRates.whk),
+      zvw: formatCents(employerRates.zvw),
+      total: formatCents(employerInsuranceCents),
+    },
+    holidayReserve: formatCents(holidayReserveCents),
+    totalEmployerCost: formatCents(employerCostCents),
+    holidayAllowanceIsSeparate: true,
   } as const
 }
 
