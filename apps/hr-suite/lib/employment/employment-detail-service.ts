@@ -1,4 +1,5 @@
 import type { Database, Json } from '@scope/db'
+import { cache } from 'react'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
@@ -118,9 +119,24 @@ export type EmploymentIncomeRelationshipProjection = {
 export async function getEmploymentIncomeRelationshipProjection(
   employeeId: string,
   employmentId: string,
+  payrollSourceEmployment?: Pick<Employment, 'id' | 'tenant_id' | 'hr_group_id' | 'administration_id' | 'employee_id'>,
 ): Promise<readonly EmploymentIncomeRelationshipProjection[]> {
-  const employment = await loadEmploymentForAction(employmentId, 'contract:read')
-  if (employment.employee_id !== employeeId) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+  let employment: Pick<Employment, 'id' | 'tenant_id' | 'hr_group_id' | 'administration_id' | 'employee_id'>
+  if (payrollSourceEmployment) {
+    const context = await requirePermission('contract:read', employeeId)
+    if (payrollSourceEmployment.id !== employmentId
+      || payrollSourceEmployment.employee_id !== employeeId
+      || context.tenantId !== payrollSourceEmployment.tenant_id
+      || context.hrGroupId !== payrollSourceEmployment.hr_group_id
+      || context.administrationId !== payrollSourceEmployment.administration_id) {
+      throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+    }
+    employment = payrollSourceEmployment
+  } else {
+    const loadedEmployment = await loadEmploymentForAction(employmentId, 'contract:read')
+    if (loadedEmployment.employee_id !== employeeId) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+    employment = loadedEmployment
+  }
 
   const supabase = await createClient()
   const { data, error } = await supabase.from('employment_income_relationships')
@@ -251,7 +267,7 @@ export async function getEmploymentPayrollSourceProjection(
   const hrGroupId = context.hrGroupId
 
   const supabase = await createClient()
-  const [employmentResult, contractResult, laborResult, organizationResult, salaryResult, scheduleResult, pensionAssignmentResult, laborPensionResult] = await loadQueriesInBatches([
+  const [employmentResult, contractResult, laborResult, organizationResult, salaryResult, scheduleResult, pensionAssignmentResult, laborPensionRows] = await loadQueriesInBatches([
     () => supabase.from('employments')
       .select('id, tenant_id, hr_group_id, administration_id, employee_id, starts_on, ends_on, record_status, employment_type, contract_type, original_hire_date, seniority_date, updated_at, deleted_at')
       .eq('id', employmentId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
@@ -280,10 +296,7 @@ export async function getEmploymentPayrollSourceProjection(
       .select('id, pension_arrangement_id, effective_from, effective_to, participation_start_date, assignment_reason, provenance_json, updated_at, version_number, supersedes_assignment_id')
       .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employment_id', employmentId).order('effective_from').limit(100),
-    () => supabase.from('labor_condition_pension_arrangements')
-      .select('id, labor_condition_set_id, pension_arrangement_id, participant_group, effective_from, effective_to, provenance_json, version_number, supersedes_mapping_id')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
-      .order('effective_from').limit(100),
+    () => readLaborConditionPensionArrangementsForPayroll(context.tenantId, hrGroupId, administrationId),
   ], 4)
   const failed = ([
     ['employments', employmentResult],
@@ -293,7 +306,6 @@ export async function getEmploymentPayrollSourceProjection(
     ['employment-salaries', salaryResult],
     ['employment-schedules', scheduleResult],
     ['pension-arrangement-assignments', pensionAssignmentResult],
-    ['labor-condition-pension-arrangements', laborPensionResult],
   ] as const).find(([, result]) => result.error)
   if (failed?.[1].error) {
     throwDatabaseError(failed[1].error.message, failed[0], safeDatabaseCode(failed[1].error))
@@ -308,7 +320,7 @@ export async function getEmploymentPayrollSourceProjection(
   const jobIds = [...new Set((organizationResult.data ?? []).flatMap((row) => row.job_id ? [row.job_id] : []))]
   const pensionArrangementIds = [...new Set([
     ...(pensionAssignmentResult.data ?? []).map((row) => row.pension_arrangement_id),
-    ...(laborPensionResult.data ?? []).map((row) => row.pension_arrangement_id),
+    ...laborPensionRows.map((row) => row.pension_arrangement_id),
   ])]
   const payrollStart = `${payrollPeriod.year}-${String(payrollPeriod.month).padStart(2, '0')}-01`
   const payrollEnd = new Date(Date.UTC(payrollPeriod.year, payrollPeriod.month, 0)).toISOString().slice(0, 10)
@@ -503,7 +515,7 @@ export async function getEmploymentPayrollSourceProjection(
       age_for_tier: arrangement ? pensionAge(arrangement) : null,
     }
   })
-  const laborConditionPensionArrangements = (laborPensionResult.data ?? []).map((row) => {
+  const laborConditionPensionArrangements = laborPensionRows.map((row) => {
     const resolved = resolveArrangement(row.pension_arrangement_id)
     return {
       ...row,
@@ -591,6 +603,20 @@ function throwDatabaseError(message: string, sourceCategory?: string, databaseCo
     : code.includes('CONFLICT') || code.includes('LATEST') || code.includes('REMAINING') ? 409 : 400
   throw new EmploymentDetailError(code, status, sourceCategory, databaseCode)
 }
+
+const readLaborConditionPensionArrangementsForPayroll = cache(async (
+  tenantId: string,
+  hrGroupId: string,
+  administrationId: string,
+) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('labor_condition_pension_arrangements')
+    .select('id, labor_condition_set_id, pension_arrangement_id, participant_group, effective_from, effective_to, provenance_json, version_number, supersedes_mapping_id')
+    .eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
+    .order('effective_from').limit(100)
+  if (error) throwDatabaseError(error.message, 'labor-condition-pension-arrangements', safeDatabaseCode(error))
+  return data ?? []
+})
 
 export async function getEmploymentDetail(
   employeeId: string,

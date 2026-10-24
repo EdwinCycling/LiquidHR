@@ -69,3 +69,44 @@ De buildblokkades betreffen junction-/directoryrechten van de sandbox; er is gee
 - **Manager-scope: PASS** — eigen teamread toegestaan; dossier- en salarisread buiten team geweigerd.
 - **W01/W03 HOSTED: OPEN** — geen hosted actorreadback of hosted meting uitgevoerd.
 - Geen nieuw roadmap-wave gestart.
+
+## PAY-W03-SOURCE-SNAPSHOT-OPT-05 follow-up — 24-10-2026
+
+Branch `work/pay-w01-w03-defect-close-04-20261024`, gestart op `a6e48e20c6056840f50c398aa8470f81d1b5567e`; geen W02-branch of andere worktree geopend.
+
+### Bronketen en gerichte wijziging
+
+De 39 `getPayrollSourceSnapshot`-aanroepen blijven bestaan; er is geen tweede Payroll-architectuur, database-RPC of schemawijziging toegevoegd. Elke aanroep startte daarnaast een herhaalde employments-directoryread en een tweede employment-read voor de IKV-projectie. Vier niet-medewerkergebonden reads werden per medewerker herhaald: `labor_condition_pension_arrangements`, de actuele `actual_work_periods`-rij, Payroll-administratie en Payroll-werkgeversconfiguraties. De salaris-, contract-, rooster-, fiscale, IKV-link-, actual-work-entry- en openingscumulatiefreads blijven medewerkergebonden.
+
+De provider slaat de directoryread over als de geautoriseerde caller al een exact `employmentId` meegeeft. De normale, tenant-/HR-groep-/administratie-/medewerkergescopeerde bronprojectie levert en valideert daarna die employment; een ontbrekende of afwijkende rij blijft 404 en actual-work wordt pas na de scope- en effectieve-datumcontrole gelezen. De IKV-projectie hergebruikt uitsluitend diezelfde employment-rij en voert opnieuw `contract:read` en scopecontroles uit.
+
+De vier herhaalde reads gebruiken `React.cache` met expliciete tenant-, HR-groep-, administratie- en periodeargumenten. Dit is request-scoped en bevat geen medewerkergebonden gegevens. De oorspronkelijke selecties, tenantfilters, sortering, limieten, effectieve datums, openingscumulatiefselectie en foutpaden blijven behouden. Op basis van de code zijn bij één 39-regelrequest **230 database/REST-reads minder te verwachten**: 39 directoryreads + 39 employment-lookups + 4 × 38 herhaalde gedeelde reads. Dit is een code-afleiding, geen gemeten post-run requestaantal; de 39 snapshot-aanroepen blijven gelijk.
+
+### Performance en functionele gelijkwaardigheid
+
+| Bewijs | Resultaat |
+| --- | --- |
+| Eerdere bronfase, concurrency 12 | **37.788 ms** en **56.922 ms**; lifecycle respectievelijk 3.131 ms en 1.684 ms |
+| Eerdere volledige werkplek | Desktop **27.742–46.585 ms**; 390 px **30.842–41.281 ms** |
+| Nieuwe bronfase / database-netwerk / serialisatie / projectie | **Niet gemeten**: de geïsoleerde Playwright-browser startte niet; geen postwijzigings-HTTP-meting beschikbaar |
+| Baseline functionele manifest | 14 runs, 39/39 medewerkerregels; medewerkersdigest `27a680bddbd977ce630296ee34e477774fe3434b31a1196cf6fa1e4dff3cda66`; bronmanifest `6d5f6a2b5a7099fc7d401f757c81708f8d1185f85caf6b8581aa517ad372ea0c` |
+| Postwijzigings dataset/fingerprints, desktop en 390 px | **Niet geverifieerd**; geen claims over identieke live dataset, 209/196-telling of prestatiewinst |
+| Source-provider hashregressie | **PASS**: expliciete employment-ID-route levert dezelfde `sourceHash` als de vorige selectie, zonder directoryread |
+
+De Playwright CLI kon na twee gerichte pogingen geen geïsoleerde browser starten. Headless Chrome en Edge eindigden beide in de afgeschermde Windows-sandbox bij Crashpad (`TransactNamedPipe`, fout `0x6D`); Edge meldde daarnaast een geweigerde elevatieservice. Er is geen browser-login, persona-switch, serverstop of derde browserpoging uitgevoerd. Bestaande localhost-servers zijn niet gewijzigd.
+
+### Kwaliteitsgates en beschermde data
+
+- **131/131 PASS**, 16 Payroll-/bron-/actual-work-/autorisatie-/strooktests, inclusief de bestaande Retail R1/R2-fixtureflow.
+- HR Suite TypeScript `tsc --noEmit`: **PASS**; relevante ESLint: **PASS**; i18n: **43 namespaces gelijk**; `git diff --check`: **PASS**.
+- Root `npm run build`: **PASS** op Node `24.22.1` met lockfileblob `cdd20c601e5956b419b96d7a346b36ba5b1ce14b`; HR Suite genereerde 339/339 pagina’s en alle Payroll-bundle-/function-tracepostchecks slaagden; Control genereerde 12/12. De build gebruikte de bestaande geïsoleerde output `.next/payrun01-acceptance-20261009` zodat actieve dev-outputs intact bleven.
+- Beide `next-env.d.ts`-bestanden en de gegenereerde Focus-widgetbron zijn bytegelijk gebleven. Er zijn geen dependency-, configuratie-, auth-, RLS- of migratiewijzigingen.
+- Geen databasewrite, berekening, finalisatie of PDF-read/-write. De eerder vastgelegde PDF-hash blijft historische evidence; deze follow-up heeft die PDF niet opnieuw opgehaald.
+
+### Gatebesluit en resterend werk
+
+- **W03 LOCAL: HOLD voor acceptatie** — veilige codeverbetering, regressies en rootbuild slagen; postwijzigingsmetingen, requestaantal en desktop-/390px-datasetgelijkheid ontbreken. De 209/196-telling en de 13 items zijn niet opnieuw onderzocht.
+- **Manager-scope: eerder lokaal PASS**; deze follow-up voerde geen nieuwe live Manager-, Employee- of foreign-tenant-probe uit. De gerichte autorisatietests slaagden.
+- **W01 LOCAL: PARTIAL**; eerdere Lisa-PDF-/self-scope-evidence blijft staan, Jaaps conceptpreview blijft OPEN. **W01/W03 HOSTED: OPEN**.
+- GitHub issue [#39](https://github.com/EdwinCycling/LiquidHR/issues/39) blijft open. Hosted closeout vereist nog een legitieme HR Admin in production-like TEST, drie actuele list-first-visible-/complete-workspace-metingen met bronattributie, een expliciet budget of gedocumenteerde uitzondering, en de bestaande PDF-/toegangscontrole plus deployment-smoke bij een toekomstige release.
+- Geen push, merge, deployment, TEST-write, salarisfinalisatie of nieuwe roadmap-wave.

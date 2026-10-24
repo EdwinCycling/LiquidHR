@@ -1,4 +1,5 @@
 import type { Database, Tables } from '@scope/db'
+import { cache } from 'react'
 import { requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
@@ -78,6 +79,22 @@ function addMonth(date: string): string {
   value.setUTCMonth(value.getUTCMonth() + 1)
   return value.toISOString().slice(0, 10)
 }
+
+const readActualWorkPeriodForPayroll = cache(async (
+  tenantId: string,
+  hrGroupId: string,
+  periodStart: string,
+): Promise<NonNullable<ActualWorkPayrollProjection['period']> | null> => {
+  const supabase = await createClient()
+  const result = await supabase.from('actual_work_periods')
+    .select('id,period_start,period_end,status,updated_at')
+    .eq('tenant_id', tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .eq('period_start', periodStart)
+    .maybeSingle()
+  if (result.error) databaseError(result.error, 'actual-work-periods')
+  return result.data
+})
 
 async function authForGroup(permission: 'leave:read' | 'leave:write', employeeId?: string) {
   const context = employeeId ? await requirePermission(permission, employeeId) : await requirePermission(permission)
@@ -284,7 +301,7 @@ export async function getActualWorkPayrollProjection(
   if (!isValidActualWorkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
   const { context, hrGroupId, supabase } = dependencies ?? await authForGroup('leave:read', input.employeeId)
   const from = monthStart(input.month)
-  const [entriesResult, periodResult] = await loadQueriesInBatches([
+  const [entriesResult, period] = await loadQueriesInBatches([
     () => supabase.from('employment_work_hour_entries')
       .select('id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,approved_at,updated_at')
       .eq('tenant_id', context.tenantId)
@@ -295,15 +312,9 @@ export async function getActualWorkPayrollProjection(
       .order('work_date')
       .order('id')
       .limit(2001),
-    () => supabase.from('actual_work_periods')
-      .select('id,period_start,period_end,status,updated_at')
-      .eq('tenant_id', context.tenantId)
-      .eq('hr_group_id', hrGroupId)
-      .eq('period_start', from)
-      .maybeSingle(),
+    () => readActualWorkPeriodForPayroll(context.tenantId, hrGroupId, from),
   ], 2)
   if (entriesResult.error) databaseError(entriesResult.error, 'employment-work-hour-entries')
-  if (periodResult.error) databaseError(periodResult.error, 'actual-work-periods')
 
   const entries = entriesResult.data ?? []
   const typeIds = [...new Set(entries.map((entry) => entry.work_hour_type_id))]
@@ -317,7 +328,7 @@ export async function getActualWorkPayrollProjection(
   if (typesResult.error) databaseError(typesResult.error, 'work-hour-types')
 
   return {
-    period: periodResult.data,
+    period,
     entries,
     types: typesResult.data ?? [],
   }

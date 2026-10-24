@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createHash, randomUUID } from 'node:crypto'
+import { cache } from 'react'
 import type { Database } from '@scope/db'
 import { getActualWorkPayrollProjection, type ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
 import type {
@@ -47,10 +48,7 @@ import {
   payrollEmployerConfigurationBlockers,
   type PayrollEmployerConfiguration,
 } from '../payroll-setup'
-import {
-  createPayrollSetupRepository,
-  type PayrollSetupRepository,
-} from '../payroll-setup-repository'
+import { createPayrollSetupRepository } from '../payroll-setup-repository'
 import { mapCorePensionEligibilityRule } from '../pension-eligibility-source-mapping'
 import {
   calculateCaoPayroll,
@@ -252,6 +250,28 @@ class PayrollSourceReadFailure extends Error {
   }
 }
 
+function isEmploymentNotFoundReadFailure(error: unknown): boolean {
+  if (error instanceof PayrollSourceReadFailure) return isEmploymentNotFoundReadFailure(error.sourceError)
+  return isRecord(error) && error.code === 'EMPLOYMENT_NOT_FOUND' && error.status === 404
+}
+
+const readSharedPayrollSetupSource = cache(async (
+  tenantId: string,
+  hrGroupId: string,
+  administrationId: string,
+) => {
+  const scope = { tenantId, hrGroupId, administrationId }
+  const repository = createPayrollSetupRepository()
+  const payrollAdministration = await repository.getPayrollAdministration(scope)
+  if (!payrollAdministration || payrollAdministration.status !== 'ACTIVE' || !payrollAdministration.capabilityEnabled) {
+    return { payrollAdministrationId: null, configurationRows: [] }
+  }
+  return {
+    payrollAdministrationId: payrollAdministration.id,
+    configurationRows: await repository.listEmployerConfigurations(scope, payrollAdministration.id),
+  }
+})
+
 function defaultDependencies(): PayrollSourceProviderDependencies {
   return {
     authorize: async (employeeId) => {
@@ -272,7 +292,7 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
       const source = await getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod).catch((error: unknown) => {
         throw new PayrollSourceReadFailure('employment-payroll-projection', error)
       })
-      const incomeRelationships = await getEmploymentIncomeRelationshipProjection(employeeId, employmentId).catch((error: unknown) => {
+      const incomeRelationships = await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((error: unknown) => {
         throw new PayrollSourceReadFailure('income-relationship-projection', error)
       })
       const taxProfileProjection = await getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod).catch((error: unknown) => {
@@ -296,13 +316,13 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
         throw new PayrollSourceReadFailure('actual-work-projection', error)
       }),
     loadPayrollSetup: async (scope, _sourceAdministrationId, sourceEmploymentId, payrollPeriod) => {
-      const repository = createPayrollSetupRepository()
-      const payrollAdministration = await repository.getPayrollAdministration(scope)
-      if (!payrollAdministration || payrollAdministration.status !== 'ACTIVE' || !payrollAdministration.capabilityEnabled) {
+      const sharedSource = await readSharedPayrollSetupSource(scope.tenantId, scope.hrGroupId, scope.administrationId)
+      if (!sharedSource.payrollAdministrationId) {
         return { configurationRows: [], configurationRow: null, configuration: null, openingBalance: null }
       }
-      const payrollAdministrationId = payrollAdministration.id
-      const configurationRows = await repository.listEmployerConfigurations(scope, payrollAdministrationId)
+      const repository = createPayrollSetupRepository()
+      const payrollAdministrationId = sharedSource.payrollAdministrationId
+      const configurationRows = sharedSource.configurationRows
       const periodStart = `${payrollPeriod.year}-${String(payrollPeriod.month).padStart(2, '0')}-01`
       const configurationRow = configurationRows.find((row) => row.status === 'ACTIVE'
         && row.effective_from <= periodStart
@@ -1575,55 +1595,88 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
 
-    let employments: readonly PayrollSourceEmployment[]
+    const bounds = periodBounds(input.payrollPeriod)
+    let employment: PayrollSourceEmployment | undefined
+    if (input.employmentId === undefined) {
+      let employments: readonly PayrollSourceEmployment[]
+      try {
+        employments = await this.dependencies.listEmployments(input.employeeId)
+      } catch (error) {
+        const sourceCategory = safeSourceCategory(error, 'employment-directory')
+        reportFailure(sourceCategory, safeSourceErrorCode(error))
+        throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId)
+      }
+      const candidates = employments.filter((candidate) =>
+        candidate.tenant_id === input.tenantId
+        && candidate.hr_group_id === input.hrGroupId
+        && candidate.administration_id === input.administrationId
+        && candidate.employee_id === input.employeeId
+        && candidate.deleted_at === null
+        && candidate.record_status === 'CONFIRMED'
+        && employmentOverlapsPeriod(candidate.starts_on, candidate.ends_on, bounds.start, bounds.endInclusive),
+      )
+      if (candidates.length === 0) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+      if (candidates.length > 1) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS', 409)
+      employment = candidates[0]
+      if (!employment) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+    }
+
+    let timeline: PayrollSourceTimeline
     try {
-      employments = await this.dependencies.listEmployments(input.employeeId)
+      timeline = await this.dependencies.loadTimeline(
+        input.employeeId,
+        input.employmentId ?? employment!.id,
+        input.payrollPeriod,
+      )
     } catch (error) {
-      const sourceCategory = safeSourceCategory(error, 'employment-directory')
+      if (input.employmentId !== undefined && isEmploymentNotFoundReadFailure(error)) {
+        throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+      }
+      const sourceCategory = safeSourceCategory(error, 'employment-timeline')
       reportFailure(sourceCategory, safeSourceErrorCode(error))
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId)
     }
-
-    const bounds = periodBounds(input.payrollPeriod)
-    const candidates = employments.filter((employment) =>
-      employment.tenant_id === input.tenantId
-      && employment.hr_group_id === input.hrGroupId
-      && employment.administration_id === input.administrationId
-      && employment.employee_id === input.employeeId
-      && (input.employmentId === undefined || employment.id === input.employmentId)
-      && employment.deleted_at === null
-      && employment.record_status === 'CONFIRMED'
-      && employmentOverlapsPeriod(employment.starts_on, employment.ends_on, bounds.start, bounds.endInclusive),
+    const timelineScopeMismatch = (
+      timeline.employment.id !== (input.employmentId ?? employment?.id)
+      || timeline.employment.tenant_id !== input.tenantId
+      || timeline.employment.hr_group_id !== input.hrGroupId
+      || timeline.employment.administration_id !== input.administrationId
+      || timeline.employment.employee_id !== input.employeeId
     )
-    if (candidates.length === 0) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
-    if (candidates.length > 1) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS', 409)
-    const employment = candidates[0]
+    if (timelineScopeMismatch) {
+      throw new PayrollSourceProviderError(
+        input.employmentId !== undefined ? 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND' : 'PAYROLL_SOURCE_SCOPE_FORBIDDEN',
+        input.employmentId !== undefined ? 404 : 403,
+      )
+    }
+    if (input.employmentId !== undefined) {
+      if (timeline.employment.deleted_at !== null
+        || timeline.employment.record_status !== 'CONFIRMED'
+        || !employmentOverlapsPeriod(
+          timeline.employment.starts_on,
+          timeline.employment.ends_on,
+          bounds.start,
+          bounds.endInclusive,
+        )) {
+        throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+      }
+      employment = timeline.employment
+    } else if (timeline.employment.deleted_at !== null || timeline.employment.record_status !== 'CONFIRMED') {
+      throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+    }
     if (!employment) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
 
-    let timeline: PayrollSourceTimeline
     let actualWork: ActualWorkPayrollProjection
     try {
-      timeline = await this.dependencies.loadTimeline(input.employeeId, employment.id, input.payrollPeriod)
       actualWork = await this.dependencies.loadActualWork(
         input.employeeId,
         employment.id,
         `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,
       )
     } catch (error) {
-      const sourceCategory = safeSourceCategory(error, 'employment-timeline-or-actual-work')
+      const sourceCategory = safeSourceCategory(error, 'actual-work-projection')
       reportFailure(sourceCategory, safeSourceErrorCode(error))
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId)
-    }
-    if (
-      timeline.employment.id !== employment.id
-      || timeline.employment.tenant_id !== input.tenantId
-      || timeline.employment.hr_group_id !== input.hrGroupId
-      || timeline.employment.administration_id !== input.administrationId
-      || timeline.employment.employee_id !== input.employeeId
-      || timeline.employment.deleted_at !== null
-      || timeline.employment.record_status !== 'CONFIRMED'
-    ) {
-      throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
 
     const activeStart = employment.starts_on > bounds.start ? employment.starts_on : bounds.start

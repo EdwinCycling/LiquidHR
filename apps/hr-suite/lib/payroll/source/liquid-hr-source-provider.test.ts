@@ -1590,6 +1590,18 @@ describe('LiquidHR Payroll source provider', () => {
     expect(deps.loadTimeline).toHaveBeenCalledWith(employeeId, secondEmploymentId, request.payrollPeriod)
   })
 
+  it('reuses the exact scoped employment projection when the caller already supplies its employment id', async () => {
+    const scopedDirectoryRead = vi.fn(async () => [employment()])
+    const expected = await new LiquidHrPayrollSourceProvider(dependencies())
+      .getPayrollSourceSnapshot({ ...request, employmentId })
+    const actual = await new LiquidHrPayrollSourceProvider(dependencies({ listEmployments: scopedDirectoryRead }))
+      .getPayrollSourceSnapshot({ ...request, employmentId })
+
+    expect(scopedDirectoryRead).not.toHaveBeenCalled()
+    expect(actual.sourceEmploymentId).toBe(employmentId)
+    expect(actual.sourceHash).toBe(expected.sourceHash)
+  })
+
   it('does not let an employment id escape the authorized employee selection', async () => {
     const deps = dependencies({ listEmployments: vi.fn(async () => [employment()]) })
     const provider = new LiquidHrPayrollSourceProvider(deps)
@@ -1598,7 +1610,12 @@ describe('LiquidHR Payroll source provider', () => {
       ...request,
       employmentId: '50000000-0000-4000-8000-000000000055',
     })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', status: 404 })
-    expect(deps.loadTimeline).not.toHaveBeenCalled()
+    expect(deps.loadTimeline).toHaveBeenCalledWith(
+      employeeId,
+      '50000000-0000-4000-8000-000000000055',
+      request.payrollPeriod,
+    )
+    expect(deps.loadActualWork).not.toHaveBeenCalled()
   })
 
   it('rejects a service read that changes the employment scope between selection and detail load', async () => {
