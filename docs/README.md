@@ -1,5 +1,7 @@
 # Liquid HR documentatie-index
 
+> **ACTUEEL 24-10-2026 — LiquidHR 1.20261023.1 is uitgerold.** GitHub en gerapporteerde lokale `main`: `1c4eb3d1bfe75d8145b87484125fcfcb6605aacf` (PR #45 Payroll D2 + PMUX; PR #46 releasebewijs). Vercel TEST-deployment `dpl_EoR4bf4pjsuJA53aRwQ1nDfcME8K` READY, drie aliassen, homepage HTTP 200; oude `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9` behouden als READY rollback. Core Supabase: 578 migraties, inclusief alle acht PMUX-vervolgmigraties na 03A; vijf HR-groepen `Europe/Amsterdam`. Payroll Lab apart: 17. Technisch 3.652 PASS / 8 SKIP, TypeScript en beide builds PASS. Nog OPEN: geauthenticeerde volledige browseracceptatie, werkkalender voor businessDays-SLA's, Retail R2 netto, echte commerciële payroll-bronnen en dagelijkse scheduleraflevering. CLEANUP-11 loopt en is niet definitief afgesloten. **Edwin** is de benoemde opdrachtgever in nieuwe documentatie en besluiten. Zie [AA-CURRENT](AA/AA-CURRENT.md), [AA-OPEN](AA/AA-OPEN.md), [AA-NEXT](AA/AA-NEXT.md), [AA-REL](AA/AA-REL.md) en [03B-releasebewijs](quality/acceptance/runs/LIQUIDHR-RELEASE-03B-20261023.md). De historische statusregels hieronder gelden voor hun eigen data, niet als huidige releasewaarheid.
+
 ## Actuele releasebaseline — 21 oktober 2026
 
 **Productcode `1.20261021.1`**, source `c0fa236967ec0708c0a57f72e0dfb29b78b3fead`, Vercel READY deployment `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9`. De GitHub Development-`main` kan na docs-only commits een latere SHA hebben dan de ongewijzigde Vercel-runtime. Gezamenlijke STAR/Employee UX/Payroll/AI-code is geïntegreerd.
