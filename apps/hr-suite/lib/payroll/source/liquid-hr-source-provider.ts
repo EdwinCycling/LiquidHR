@@ -39,6 +39,7 @@ import {
 import { isPayrollLabEnabled } from '../feature-flag'
 import { payrollScopeFromAuthContext } from '../scope'
 import { payrollSourceProviderInputSchema, payrollSourceSnapshotSchema } from './schemas'
+import { isValidPayrollSourceDate } from './source-readiness'
 import { hashPayrollSourceSnapshot } from './snapshot-hash'
 import {
   hashPayrollEmployerConfiguration,
@@ -785,9 +786,9 @@ function sourceVersionContract(
       && reference.versionParts.every((part) => part.trim().length > 0 && part !== 'MISSING')
     const vectorVersion = versionVector[reference.versionKey]
     const versionConsistent = vectorVersion === reference.version
-    const validRange = /^\d{4}-\d{2}-\d{2}$/.test(reference.validFrom)
+    const validRange = isValidPayrollSourceDate(reference.validFrom)
       && (reference.validUntilExclusive === null
-        || (/^\d{4}-\d{2}-\d{2}$/.test(reference.validUntilExclusive)
+        || (isValidPayrollSourceDate(reference.validUntilExclusive)
           && reference.validUntilExclusive > reference.validFrom))
     const effectiveInPeriod = validRange && (reference.effectiveAt
       ? reference.validFrom <= reference.effectiveAt

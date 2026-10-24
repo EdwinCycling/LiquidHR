@@ -1773,6 +1773,24 @@ describe('LiquidHR Payroll source provider', () => {
       sourceType: 'employment_salaries', sourceRowId: salaryId, status: 'SOURCE_GAP',
     }))
 
+    const impossibleEffectiveDate = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({ valid_from: '2026-02-30' })],
+        schedules: [schedule()],
+      })),
+    })).getPayrollSourceSnapshot(request)
+    expect(impossibleEffectiveDate.sourceGaps).toContainEqual({
+      field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SOURCE_VERSION_EFFECTIVE_RANGE_INVALID',
+    })
+    expect((impossibleEffectiveDate.canonicalSource as {
+      readonly sourceContract: { readonly references: readonly {
+        readonly sourceType: string; readonly status: string
+      }[] }
+    }).sourceContract.references).toContainEqual(expect.objectContaining({
+      sourceType: 'employment_salaries', status: 'SOURCE_GAP',
+    }))
+
     const inconsistentVersion = await new LiquidHrPayrollSourceProvider(dependencies({
       loadTimeline: vi.fn(async () => ({
         employment: employment(),
