@@ -5,7 +5,14 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const buildDirectory = path.join(appRoot, '.next')
+const configuredDistDir = process.env.LIQUIDHR_NEXT_DIST_DIR
+const supportedDistDirs = [
+  '.next/payrun01-acceptance-20261009',
+  '.next/payrun01-acceptance',
+  '.next/payrun01',
+]
+const distDir = supportedDistDirs.includes(configuredDistDir) ? configuredDistDir : '.next'
+const buildDirectory = path.join(appRoot, distDir)
 const buildIdPath = path.join(buildDirectory, 'BUILD_ID')
 
 function fail(message) {
