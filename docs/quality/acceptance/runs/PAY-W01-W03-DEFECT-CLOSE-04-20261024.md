@@ -99,13 +99,13 @@ De Playwright CLI kon na twee gerichte pogingen geen geïsoleerde browser starte
 
 - **131/131 PASS**, 16 Payroll-/bron-/actual-work-/autorisatie-/strooktests, inclusief de bestaande Retail R1/R2-fixtureflow.
 - HR Suite TypeScript `tsc --noEmit`: **PASS**; relevante ESLint: **PASS**; i18n: **43 namespaces gelijk**; `git diff --check`: **PASS**.
-- Root `npm run build`: **PASS** op Node `24.22.1` met lockfileblob `cdd20c601e5956b419b96d7a346b36ba5b1ce14b`; HR Suite genereerde 339/339 pagina’s en alle Payroll-bundle-/function-tracepostchecks slaagden; Control genereerde 12/12. De build gebruikte de bestaande geïsoleerde output `.next/payrun01-acceptance-20261009` zodat actieve dev-outputs intact bleven.
+- Root `npm run build` op Node `24.22.1` en lockfileblob `cdd20c601e5956b419b96d7a346b36ba5b1ce14b`: command exit `0`; HR Suite compileerde en genereerde 339/339 pagina’s, Control genereerde 12/12. **De volledige rootbuild-gate blijft BLOCKED:** `verify-client-bundle.mjs` en `write-build-provenance.mjs` gebruiken hardcoded `apps/hr-suite/.next`, terwijl Next naar `.next/payrun01-acceptance-20261009` compileerde. De clientscan en provenance konden daardoor niet aan die verse HR Suite-build worden toegeschreven. De default `.next` bevat de actieve devserver; die map is niet opnieuw gebouwd of opgeschoond. Geen buildscript-, configuratie- of dependencywijziging gedaan.
 - Beide `next-env.d.ts`-bestanden en de gegenereerde Focus-widgetbron zijn bytegelijk gebleven. Er zijn geen dependency-, configuratie-, auth-, RLS- of migratiewijzigingen.
 - Geen databasewrite, berekening, finalisatie of PDF-read/-write. De eerder vastgelegde PDF-hash blijft historische evidence; deze follow-up heeft die PDF niet opnieuw opgehaald.
 
 ### Gatebesluit en resterend werk
 
-- **W03 LOCAL: HOLD voor acceptatie** — veilige codeverbetering, regressies en rootbuild slagen; postwijzigingsmetingen, requestaantal en desktop-/390px-datasetgelijkheid ontbreken. De 209/196-telling en de 13 items zijn niet opnieuw onderzocht.
+- **W03 LOCAL: HOLD voor acceptatie** — codechecks en HR Suite/Control-compilatie slagen; volledige rootbuild-gate, postwijzigingsmetingen, requestaantal en desktop-/390px-datasetgelijkheid ontbreken. De 209/196-telling en de 13 items zijn niet opnieuw onderzocht.
 - **Manager-scope: eerder lokaal PASS**; deze follow-up voerde geen nieuwe live Manager-, Employee- of foreign-tenant-probe uit. De gerichte autorisatietests slaagden.
 - **W01 LOCAL: PARTIAL**; eerdere Lisa-PDF-/self-scope-evidence blijft staan, Jaaps conceptpreview blijft OPEN. **W01/W03 HOSTED: OPEN**.
 - GitHub issue [#39](https://github.com/EdwinCycling/LiquidHR/issues/39) blijft open. Hosted closeout vereist nog een legitieme HR Admin in production-like TEST, drie actuele list-first-visible-/complete-workspace-metingen met bronattributie, een expliciet budget of gedocumenteerde uitzondering, en de bestaande PDF-/toegangscontrole plus deployment-smoke bij een toekomstige release.
