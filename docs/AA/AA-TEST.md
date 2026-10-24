@@ -116,6 +116,8 @@ Test Auth:
 - nooit zichtbaar of bruikbaar op Vercel Production/Preview;
 - mag geen rollen creëren of escaleren om een scenario groen te krijgen.
 
+**AA-LEAN-03: vooraf toegestaan TEST-authenticatiemandaat voor alle functionele acceptatieruns.** Hergebruik de bestaande, afgeschermde, canonieke lokale Test Auth- en Test Role Switch-harness met bestaande synthetische HR Admin-, Manager- en Employee-testaccounts. De door die harness gebruikte Supabase Auth-login/logout/session-/magiclink-handoff is een toegestane **authentificatiehandeling** en vereist niet per keer nieuwe toestemming. Controleer altijd eerst lokaal development, juiste TEST-projectref, rol-, employee-, tenant-/HR-groep- en administratiescope. De bestaande Test Auth-routes blijven op Vercel Production en Preview fail-closed. Geen nieuwe Auth-identiteit, credential-reset, rollen-, toestemming-, personeels-/salaris- of databasewrite om ontbrekende acceptatiefixtures te repareren. Niet bestaande browser-sessie overnemen of gedeelde persoonlijke sessies stilzwijgend onderbreken; gebruik de normale geïsoleerde lokale testbrowser. `AGENTS.md` en `AA-OP.md` beschrijven apart dat prompts vanuit de Codex-sandbox ondanks dit mandaat nog kunnen optreden en niet automatisch worden opgeheven.
+
 Normale OAuth:
 - gebruiken wanneer echte identity/callback/sessiongedrag onderdeel van acceptance is;
 - geen redirect/securitybypass bouwen om een test te laten slagen;
