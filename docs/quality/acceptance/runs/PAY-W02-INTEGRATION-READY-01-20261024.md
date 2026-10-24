@@ -10,7 +10,7 @@
 
 ## Branch, commits en scope
 
-De werkboom was bij start schoon. De branch staat vijf commits voor de opgehaalde `origin/main`; er zijn geen merge- of onbekende commits:
+De werkboom was bij reviewstart schoon. De codekandidaat bestond uit onderstaande vijf commits vanaf de opgehaalde `origin/main`; er zijn geen merge- of onbekende codecommits:
 
 | Commit | Inhoud |
 | --- | --- |
