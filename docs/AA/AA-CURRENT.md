@@ -12,6 +12,8 @@
 > **Bronnen:** [PR #45](https://github.com/EdwinCycling/LiquidHR/pull/45), [PR #46](https://github.com/EdwinCycling/LiquidHR/pull/46), [03B-evidence](../quality/acceptance/runs/LIQUIDHR-RELEASE-03B-20261023.md); Vercel deployment `dpl_EoR4bf4pjsuJA53aRwQ1nDfcME8K` en de afzonderlijke Supabase-migratiereadback (24-10-2026).
 
 
+> **PAY-W00-AUTH-UNBLOCK-01 (24-10-2026):** de normale hosted `/login` is beschikbaar (HTTP 200; e-mail/wachtwoord en Google-optie zichtbaar); anoniem `/payroll/runs` redirect naar login en `/api/context` en `/api/employees` geven 401. De persona-catalogus bewaart bestaande HR Admin- en Employee-scope-evidence uit lokale handoff, maar geen hosted actorreadback is verkregen. Geen gehoste sessie was zichtbaar in de beschikbare browserinventaris; W01 en de 3× runlijst-/volledige-werkplekmeting voor W03 blijven OPEN. Canonieke TEST-config en centrale hardlink zijn op metadata geverifieerd; geen herstel of accountwijziging nodig. Zie [PAY-W00-AUTH-UNBLOCK-01](../quality/acceptance/runs/PAY-W00-AUTH-UNBLOCK-01-20261024.md).
+
 ## ONE-LIQUIDHR-MERGE-01 — gezamenlijke Payroll + PMUX-integratie (status 23-10-2026)
 
 De Payroll D2- en PMUX-integratie is vrijgegeven via PR #45. De code-/runtimebaseline is GitHub `main` SHA `9e2e354422c8b591ed161f58e640de4f913ae4b9`; `apps/hr-suite/lib/app-version.ts` bevat doelversie `1.20261023.1`. De gedeelde TEST-app heeft geen aparte klantproductie. Payroll D2 voegt geen SQL toe; Payroll Lab en Core behouden hun eigen functie, data en migratiehistorie.
