@@ -8,7 +8,8 @@
 | Verified `origin/main` baseline | `630df89c84bc2be4774072d387ecb5dc7df10f91` |
 | Feature branch | `work/pay-postmerge-r2-factor-01-20261024` |
 | Tested code commit | `cee92fa5efaa801e8ce94f42d2c2e78a2c276857` |
-| Test environment | Local in-memory fixtures / PGlite lifecycle harness only |
+| Build comparison HEAD | Feature `c8c066b2e1e9cecccb5b6870b528798b9ea132f5`; baseline `630df89c84bc2be4774072d387ecb5dc7df10f91` |
+| Test environment | Local in-memory fixtures / PGlite lifecycle harness only; no shared database access |
 
 ## Reconciliation
 
@@ -27,9 +28,22 @@ The targeted 8-file Vitest run passed **87/87 tests**. It covers R2 24/38, R1 38
 | i18n | PASS — 43 namespaces with matching NL/EN keys |
 | ESLint on changed TypeScript/TSX files | PASS |
 | `git diff --check` | PASS |
-| Next.js production build with Webpack | OPEN — compilation and TypeScript completed; prerender failed at `/_global-error` with `TypeError: Cannot read properties of null (reading 'useContext')` |
+| Next.js production build with Webpack — feature HEAD | OPEN — compilation and TypeScript completed; prerender failed at `/_global-error`, `chunks/88873.js:335:15814`, digest `3076941538` |
+| Next.js production build with Webpack — unchanged baseline | OPEN — same `/_global-error` / `useContext` failure at the same bundle offset on baseline Node 22.14.0 and Node 24.22.1; digest `489588194` |
 
-The build-generated Focus widget file was restored to its branch version; `next-env.d.ts` is unchanged. The build failure is reported as a gate, not treated as a reconciliation failure.
+The build-generated Focus widget file was restored to its branch version during the original feature acceptance. This closeout invoked the Next CLI directly and did not regenerate it. `next-env.d.ts` remains byte-identical on baseline and feature (SHA-256 `1b59d4c6b83807db275d43f3cf2cc8e9323f465fab764eea091cc5becd5bad37`).
+
+## Build gate investigation — 2026-10-24
+
+The exact unmodified `origin/main` baseline was built in a new detached checkout at `630df89c84bc2be4774072d387ecb5dc7df10f91`. Its `package-lock.json` Git blob is `cdd20c601e5956b419b96d7a346b36ba5b1ce14b`, identical to the feature branch. Both builds used Next.js `16.4.2`, React and React DOM `19.2.9`, Scheduler `0.27.0`, and the same single deduped React installation. The first baseline build used Node `22.14.0`; the bundled Node `24.22.1` rerun reproduced the same failure and digest, so the install warning that `@sparticuz/chromium` requires Node `22.17+` does not explain this failure.
+
+Baseline Webpack compilation completed in 63 seconds and TypeScript in 106 seconds. Feature compilation completed in 61 seconds and TypeScript in 21.1 seconds. Both reached static page generation (`0/339`) and then failed on the generated `/_global-error` page with `TypeError: Cannot read properties of null (reading 'useContext')`. The baseline stack is `apps/hr-suite/.next/server/chunks/88873.js:335:15814` with digest `489588194`; the feature stack has the same chunk offset and message, with digest `3076941538`.
+
+The module evidence points inside Next.js. Both generated `app-paths-manifest.json` files map `/_global-error/page` to `app/_global-error/page.js`, while neither source tree contains `app/global-error.tsx`. The failing function matches Next `dist/client/components/layout-router.js` `OuterLayoutRouter`, whose source calls `useContext(LayoutRouterContext)`. The corresponding generated module `78886` has the same factory SHA-256 on both builds (`9336ac2c8bb066d0a3b3490961e6c78a0ba141f2842dc946315043d7af891360`). Its React import wrapper `71277` also matches (`c54c7d61344bfc0dc94098b1780f0b669df89ee980aeaf3ef81c14c67d236bcb`) and resolves through Next's `vendored["react-ssr"].React`. The installed Next `layout-router.js` source hash is identical on both checkouts (`7887177c4d5c69911df9f24dbca2306cb8f4e193d3495165a5341a30a6899a4c`).
+
+The feature diff changes no Next config, root layout, package manifest, or lockfile. The failure is therefore an independent baseline Next.js app-router prerender blocker, not a regression from the R2 Payroll change. The evidence identifies the failing framework module path but does not establish why the vendored React binding is null in this prerender; no Payroll workaround, dependency upgrade, global error layout edit, or buildguard change was made. The production build gate remains OPEN.
+
+After the comparison, the 8 targeted Payroll test files were rerun at feature HEAD `c8c066b2e1e9cecccb5b6870b528798b9ea132f5`: **87/87 passed**. The workspace TypeScript check also passed. No source or shared system was changed by the build comparison.
 
 ## Remaining source and release questions
 
