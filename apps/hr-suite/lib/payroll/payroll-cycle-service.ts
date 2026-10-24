@@ -70,6 +70,8 @@ const defaultDependencies: PayrollCycleServiceDependencies = {
   enabled: isPayrollLabEnabled,
 }
 
+const PAYROLL_SOURCE_SNAPSHOT_READ_CONCURRENCY = 12
+
 function assertPeriod(period: PayrollCyclePeriod): void {
   if (!Number.isInteger(period.year) || period.year < 2000 || period.year > 2200
     || !Number.isInteger(period.month) || period.month < 1 || period.month > 12) {
@@ -218,7 +220,7 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
             diagnostics: diagnostic,
           } satisfies PayrollCycleCurrentSource] as const
         }
-      }), 6))
+      }), PAYROLL_SOURCE_SNAPSHOT_READ_CONCURRENCY))
     const employmentIds = [...new Set([
       ...runs.map((summary) => summary.sourceSnapshot.source_employment_id),
       ...employeeReferences.map((reference) => reference.employmentId),
