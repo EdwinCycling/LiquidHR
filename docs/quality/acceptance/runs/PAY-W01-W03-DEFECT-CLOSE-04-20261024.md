@@ -126,3 +126,26 @@ De postwijzigings-HTTP-metingen isoleren geen server-side database-/netwerktijd,
 - **W01 LOCAL: PARTIAL** — Lisa’s immutable PDF en self-scope zijn lokaal PASS; Jaaps preview blijft OPEN door de bestaande bron/inputgap. **W01/W03 HOSTED: OPEN**.
 - GitHub issue [#39](https://github.com/EdwinCycling/LiquidHR/issues/39) blijft OPEN. Afzonderlijk nodig: geautoriseerde HR Admin op production-like TEST met actor/scope-readback; drie hosted herhaalmetingen met bronattributie en volledige inhoud; een overeengekomen performancebudget of gedocumenteerde uitzondering; en bij een latere release de PDF-/toegangscontrole en deployment-smoke.
 - Geen push, merge, deployment, TEST-write, salarisfinalisatie of nieuwe roadmap-wave.
+
+## PAY-W03-SOURCE-SNAPSHOT-OPT-05 — aanvullende lokale meting (25-10-2026)
+
+De productcode is sinds de gemeten codecommit `99af598a2a2127997504078f664a01a5d7df9b32` ongewijzigd; de latere commits tot HEAD `5e7539a651f64938bb664319b43e7ebb53b95cc4` wijzigen alleen rapportage. De bestaande lokale server in deze worktree op poort `51518` is hergebruikt. De TEST-launcher bevestigde dat de poort bezet was en dat geen proces werd gestopt; een aparte poging op `51519` stopte zelf toen Next.js de bestaande dev-server herkende. De bestaande server is niet herstart.
+
+Headless Chrome gebruikte een nieuwe geïsoleerde context en de normale lokale HR Admin-login. De bestaande contextkeuze was De Sterren holding / Planeten / Jupiter BV; `/api/context` gaf HTTP 200 en bevestigde deze drie labels zonder identifiers te bewaren. De expliciete periode bleef `2026-10`.
+
+| Viewport | Meting | Runlijst zichtbaar | Werkplek volledig | HTTP | Runs | Medewerkers | Employee-digest | Overig |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 390×852 | 1 | 2.280 ms | 35.470 ms (33.190 ms na lijst) | 200 | 14 | 39/39 | gelijk aan eerder | Geen overflow; 39 `SOURCE_GAP`-diagnostiekmeldingen; 0 page-errors |
+| 390×852 | 2 | 2.143 ms | 23.651 ms | 200 | 14 | 39/39 | `27a680bddbd977ce630296ee34e477774fe3434b31a1196cf6fa1e4dff3cda66` | Geen overflow; 39 `SOURCE_GAP`-diagnostiekmeldingen; 0 page-errors |
+
+De tweede meting registreerde 14 browserrequests voor de runroute: 1 document, 1 stylesheet, 4 afbeeldingen, 5 scripts, 1 font en 2 fetches. Dit zijn geen database-/PostgREST-/RPC-requests. De response bevatte geen `Server-Timing`-header. De laatste 39 `PAYROLL_SOURCE_PROVIDER_GAP`-logregels besloegen 12.140 ms van eerste tot laatste callback; die span is geen meting van de volledige bronfase en splitst netwerk, responseverwerking of projectie niet uit.
+
+Een tussenliggende mobiele poging toonde de runlijst, maar kreeg de volledige werkplek niet binnen 60 seconden; de meting is verworpen en niet als succesvolle trial geteld. De daaropvolgende twee metingen slaagden. Dit bevestigt dat de werkplek nog wisselende latenties heeft. De eerder vastgelegde zes geauthenticeerde metingen blijven code-equivalent geldig: drie desktop en drie 390px-metingen met 14 runs en de digest van 39 employment-IDs. De nieuwste twee mobiele metingen behouden dezelfde 39/39-dataset; de interface ontsluit nog steeds geen individuele bron- en resultaatfingerprints.
+
+Er is geen bestaande batchfaciliteit aangetroffen die 39 employee/employment-snapshots kan vervangen met behoud van de autorisatie per werknemer, effectieve datumselectie en bronprovenance. De huidige calls blijven daarom 39 snapshots vóór en na de optimalisatie. De 230 minder interne repository-readoperaties zijn code-afgeleid; database-/RPC-aantallen en afzonderlijke database-/netwerk-, serialisatie- en projectietijden zijn nog niet instrumenteel gemeten. Een nieuwe batch-RPC zou een apart scoped service-/schemaontwerp en expliciete migratieautorisatie vergen; die wijziging is niet uitgevoerd.
+
+De Lisa-PDF-, Employee-selfscope- en Manager-teamnegatieve controles uit de eerdere lokale acceptatie zijn in deze follow-up niet opnieuw uitgevoerd; zij blijven historische PASS-evidence. Er is geen Employee- of Manager-sessie gebruikt in de nieuwe metingen en geen foreign-tenantpersona beschikbaar. De browserprobe heeft alleen bestaande data gelezen; er is geen berekening, runmutatie, finalisatie, PDF-write of migratie uitgevoerd.
+
+GitHub issue [#39](https://github.com/EdwinCycling/LiquidHR/issues/39) is op 25-10 read-only gecontroleerd en blijft OPEN. Het vraagt nog steeds een geautoriseerde HR Admin in production-like TEST, minimaal drie hosted list-/workspace-metingen met bronattributie en volledigheid, een overeengekomen performancebudget of concrete uitzondering, en bij een latere productie-release PDF-/toegangscontrole en deployment-smoke.
+
+**Status:** W03 LOCAL blijft **PARTIAL**; W01 LOCAL blijft **PARTIAL**; W01/W03 HOSTED en issue #39 blijven **OPEN**. Productiebuild en 131/131 gerichte regressies blijven PASS op codecommit `99af598a`; deze follow-up is documentatie plus read-only lokale meting.
