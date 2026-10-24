@@ -544,18 +544,23 @@ describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
       .rejects.toThrow('PAYROLL_LIFECYCLE_IMMUTABLE')
   }, 30000)
 
-  it('fails R2 closed before a net result or employee dossier artifact can be created', async () => {
+  it('reconciles R2 source hours and still fails closed without a validated fiscal source', async () => {
     const calculation = createEmployeePayrollCalculationService(serviceDependencies([r1Snapshot, r2Snapshot]))
     const result = await calculation.calculateEmployeePayroll({
       employeeId: r2Snapshot.sourceEmployeeId,
       employmentId: r2Snapshot.sourceEmploymentId,
       period: { year: 2026, month: 7 },
     })
-    expect(result.status).toBe('UNSUPPORTED')
+    expect(result.status).toBe('SOURCE_GAP')
     expect(result.runId).toBeNull()
+    expect(result.grossAmount).toBeNull()
     expect(result.netAfterWageTax).toBeNull()
     expect(result.gaps).toEqual(expect.arrayContaining([
-      { field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR' },
+      { field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'VALIDATED_FISCAL_PROFILE_REQUIRED' },
+    ]))
+    expect(result.gaps).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR' }),
+      expect.objectContaining({ reasonCode: 'SCHEDULE_HOURS_DO_NOT_RECONCILE_TO_PART_TIME_FACTOR' }),
     ]))
     expect(await store.artifactCount()).toBe(1)
   })

@@ -280,6 +280,7 @@ describe('PAYD2 Retail in-memory source cases', () => {
         isEcommerce: false,
       },
     })
+    expect(cao).toMatchObject({ baseAmount: '1605.79', premiumAmount: '15.44', grossAmount: '1621.23' })
     expect(premiumTrace?.values).toMatchObject({
       weekdayNightHours: { value: oracle.weekdayNightHours },
       sundayHours: { value: oracle.sundayHours },
