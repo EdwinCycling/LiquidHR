@@ -15,6 +15,7 @@ import {
   type PayrollSourceProvider,
   type PayrollSourceSnapshot,
 } from '@liquid-hr/payroll-engine'
+import { partTimeFactorMatchesHours, partTimeMonthlySalaryFromHours } from './source/part-time-reconciliation'
 import {
   PAYFULL02_RULE_REGISTRY,
   createPayfull02RulePackage,
@@ -519,10 +520,15 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIso
       if (!schedule || typeof schedule.partTimeFactor !== 'number') {
         gaps.push({ field: 'contractualHours', status: 'SOURCE_GAP', reasonCode: 'PART_TIME_FACTOR_REQUIRED' })
       } else {
-        const factor = FixedDecimal.parse(String(schedule.partTimeFactor))
-        const expectedParttime = fulltime.multiply(factor).round(2, 'HALF_UP')
-        if (expectedParttime.compare(parttime.round(2, 'HALF_UP')) !== 0) {
-          gaps.push({ field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR' })
+        const averageHours = Number(schedule.averageHoursPerWeek)
+        const fulltimeHours = Number(schedule.fulltimeHoursPerWeek)
+        if (Number.isFinite(averageHours) && Number.isFinite(fulltimeHours) && averageHours > 0 && fulltimeHours > 0) {
+          const expectedParttime = partTimeMonthlySalaryFromHours(
+            fulltime.toString(), String(schedule.averageHoursPerWeek), String(schedule.fulltimeHoursPerWeek),
+          )
+          if (expectedParttime.compare(parttime.round(2, 'HALF_UP')) !== 0) {
+            gaps.push({ field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR' })
+          }
         }
       }
     } catch {
@@ -540,11 +546,13 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIso
       gaps.push({ field: 'contractualHours', status: 'UNSUPPORTED', reasonCode: 'REGULAR_NON_ON_CALL_HOURS_SCHEDULE_REQUIRED' })
     } else {
       try {
-        const expectedHours = FixedDecimal.parse(String(fulltimeHours)).multiply(FixedDecimal.parse(String(factor))).round(4, 'HALF_UP')
-        if (expectedHours.compare(FixedDecimal.parse(String(averageHours)).round(4, 'HALF_UP')) !== 0) {
+        if (!partTimeFactorMatchesHours(
+          String(schedule.averageHoursPerWeek), String(schedule.fulltimeHoursPerWeek), String(schedule.partTimeFactor),
+        )) {
           gaps.push({ field: 'contractualHours', status: 'UNSUPPORTED', reasonCode: 'SCHEDULE_HOURS_DO_NOT_RECONCILE_TO_PART_TIME_FACTOR' })
         }
-        if (contract && FixedDecimal.parse(String(contract.fulltimeHoursPerWeek)).compare(FixedDecimal.parse(String(fulltimeHours))) !== 0) {
+        if (contract && FixedDecimal.parse(String(contract.fulltimeHoursPerWeek))
+          .compare(FixedDecimal.parse(String(schedule.fulltimeHoursPerWeek))) !== 0) {
           gaps.push({ field: 'contractualHours', status: 'UNSUPPORTED', reasonCode: 'SCHEDULE_FULLTIME_HOURS_CONFLICT_WITH_CONTRACT' })
         }
       } catch {

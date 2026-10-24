@@ -448,6 +448,12 @@ function dayBefore(date: string): string {
   return new Date(Date.parse(`${date}T00:00:00.000Z`) - 86_400_000).toISOString().slice(0, 10)
 }
 
+function isValidSourceDate(value: string | null): boolean {
+  if (value === null || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value
+}
+
 function laterDate(current: string | null, candidate: string): string {
   return current === null || candidate > current ? candidate : current
 }
@@ -581,7 +587,16 @@ function resolvePayrollTaxProfile(
   for (const relationship of projection.incomeRelationships) {
     sourceVersionVector[`income_relationship:${relationship.id}`] = relationship.updatedAt
   }
-  const slices = taxProfileSlices(projection.taxProfiles)
+  const validProfiles = projection.taxProfiles.filter((profile) => {
+    const validVersion = Number.isSafeInteger(profile.version_number) && profile.version_number >= 1
+    if (!validVersion) sourceGaps.push(makeGap('taxProfile', 'SOURCE_GAP', 'FISCAL_PROFILE_SOURCE_VERSION_INVALID'))
+    const validEffectiveRange = isValidSourceDate(profile.effective_from)
+      && (profile.effective_to === null || (isValidSourceDate(profile.effective_to)
+        && profile.effective_to >= profile.effective_from))
+    if (!validEffectiveRange) sourceGaps.push(makeGap('taxProfile', 'SOURCE_GAP', 'FISCAL_PROFILE_EFFECTIVE_RANGE_INVALID'))
+    return validVersion && validEffectiveRange
+  })
+  const slices = taxProfileSlices(validProfiles)
   for (const slice of slices) {
     const { profile } = slice
     sourceVersionVector[`employment_payroll_tax_profile:${profile.id}`] = `${profile.version_number}:${profile.created_at}`
