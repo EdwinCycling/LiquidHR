@@ -8,6 +8,7 @@
 - Repository: `LiquidHR-Payroll`; bestaande veilige werkboom `PAY-HOSTED-R1-W01-W03-01`, branch `work/pay-w00-shared-build-01-20261024`, HEAD bij start `da1654d90deb3352d62ab5b09b7f14fd1d29c6c7`.
 - Lokale TEST-app gestart met de bestaande `scripts/start-test-worktree.ps1` op vrije loopbackpoort `51518`, Development-modus, met de bestaande Payroll-acceptatieopties. De launcher preflight slaagde. Na de browserproeven is de server gestopt en is poort 51518 gesloten.
 - Browser: geïnstalleerde `playwright-core` en headless Chrome, nieuwe geïsoleerde browsercontext. Er is via `/local/sign-in` daadwerkelijk aangemeld met de bestaande TEST HR Admin. De Employee-controle gebruikte de bestaande persona-keuze op `/local/personas`; er zijn geen accounts, grants of geheimen aangemaakt of gewijzigd.
+- Heruitvoering in de zichtbare Codex-browser: op `/local/sign-in` is **HR Admin openen** gebruikt; de lokale persona-pagina toonde `TENANT_ADMIN` en de werkcontext is daarna op De Sterren holding · Planeten gezet. Via `/local/personas` is de bestaande optie **Payroll — Lisa** geopend en dezelfde werkcontext gekozen; de app bevestigde de Lisa-sessie. Dit gebruikt uitsluitend de bestaande lokale TEST-flow.
 - HR Admin-scope uit de bestaande TEST-context: tenant De Sterren holding (`07249eb9-545c-883b-b26b-d52f83b4f4a1`), HR-groep Planeten (`6ba6f1df-e376-40f2-abff-ffdf000172e1`), administratie Jupiter BV (`8483abc9-f275-c80b-5a23-fedc54ce9f0a`). De contextreadback toonde de bestaande `TENANT_ADMIN`-rol, 3 HR-groepen, 5 administraties en geen actieve grants naar andere tenants.
 - Alleen bestaande runs, status, strookbytes en schermen zijn gelezen. Geen Payroll-berekening, review, runcreatie, finalisatie, migratie of Payroll-businessdatawijziging uitgevoerd. Login, sessie/contextselectie en persona-handoff gebruikten wel de bestaande auth/context-routes.
 
@@ -26,17 +27,17 @@ In alle vier lezingen stonden de bestaande Lisa- en Jaap-runs in de lijst met de
 
 ## W01 — bestaande run, strook en autorisatie
 
-- HR Admin kon de lijst en bestaande rundetails openen. Jaaps bestaande run `e20e0345-90ac-489b-9fee-7610b2d8f6a3` (oktober 2026, `SUCCEEDED`/`CONCEPT`) gaf detail-HTTP 200. De conceptstrooklink ontbrak in de UI; de bestaande preview-GET gaf HTTP 404 (`application/json`). **Conceptstrook-read is OPEN en niet als geslaagd aangemerkt.** Er is geen preview/PDF aangemaakt.
+- HR Admin kon de lijst en bestaande rundetails openen. Jaaps bestaande run `e20e0345-90ac-489b-9fee-7610b2d8f6a3` (oktober 2026, `SUCCEEDED`/`CONCEPT`) gaf detail-HTTP 200. De conceptstrooklink ontbrak in de UI; de preview-GET gaf HTTP 404 met `PAYROLL_CONCEPT_PAYSLIP_UNAVAILABLE`. **Conceptstrook-read is OPEN en niet als geslaagd aangemerkt.** Er is geen preview/PDF aangemaakt.
 - Lisa’s bestaande run `57ac6c10-7a02-49c4-a588-2ca244e621d9` was `FINALIZED`. HR Admin kon de bestaande PDF ophalen: HTTP 200, 33.174 bytes, SHA-256 `41a84b88ebd06b01eb49802002a14d20f7170eb58628bd884f6d8c5472f1e82a`.
 - Na de bestaande persona-handoff naar Employee Lisa laadde `/my-salary` op desktop en 390 px (HTTP 200) met alleen oktober 2026 en één eigen PDF. De eigen PDF was HTTP 200, 33.174 bytes en had exact dezelfde SHA-256 als het door HR Admin gelezen FINALIZED-artifact. Geen finalisatieactie was zichtbaar. Mobiele detailweergave had geen horizontale overflow.
-- Als Employee gaf `/payroll/runs` een HTTP 200-shell maar de bestaande lijst- en werkplekfoutstaten, nul runrijen en geen werkbench; de Employee-preview-API gaf HTTP 403. De HTTP 200 is dus geen bewijs van run-data-autorisatie.
-- De bestaande persona-catalogus meldt ook `DIRECT_MANAGER`-toekenningen voor Lisa. Er is geen cross-employee manager/dossierproef uitgevoerd; cross-employee self-scope blijft OPEN. Er is geen Jaap- of Frits-persona-login geprobeerd.
+- Als Lisa gaf `/payroll/runs` een HTTP 200-shell maar de bestaande lijst- en werkplekfoutstaten: “Je hebt geen toestemming om salarisruns van deze administratie te bekijken”, nul runrijen en geen workbench. Een directe GET naar Jaaps concept-preview gaf voor Lisa HTTP 403 met “Je hebt onvoldoende rechten voor deze actie”; er kwamen geen previewgegevens terug. De HTTP 200 van de pagina is dus geen bewijs van run-data-autorisatie.
+- Lisa heeft volgens de bestaande persona-catalogus ook `DIRECT_MANAGER`-toekenningen; haar startpagina toont een team van drie medewerkers. De afgebakende Payroll-negatieve probe voor Jaap is nu uitgevoerd en denied. Een afzonderlijke manager-teamdossier/read-scope-proef is niet uitgevoerd en blijft OPEN. Er is geen Jaap- of Frits-persona-login geprobeerd.
 
 ## Open punten en scheiding van gates
 
 1. **Lokale W03 volledigheid OPEN:** onderzoek waarom de mobile werkplek 196 rosteritems toont tegenover 209 desktopitems, en herhaal alleen de read-only volledigheidscontrole.
 2. **Lokale W01 conceptstrook OPEN:** de bestaande Jaap-conceptpreview ontbreekt en de preview-route retourneert 404. Diagnoseer de bestaande guard/source-state; creëer of finaliseer geen run om dit te omzeilen.
-3. **Manager cross-employee autorisatie OPEN:** Lisa heeft ook bestaande `DIRECT_MANAGER`-toekenningen; passende bestaande afgebakende negatieve readcheck is niet uitgevoerd.
+3. **Manager teamdossier-scope OPEN:** Lisa heeft bestaande `DIRECT_MANAGER`-toekenningen. De Payroll-runlijst en Jaaps cross-employee concept-preview zijn geweigerd, maar een afzonderlijke Manager-teamdossier-readcheck is niet uitgevoerd.
 4. **Hosted gate OPEN:** deze resultaten zijn uitsluitend van de lokale loopback Development-app. Ze bewijzen geen gehoste login, hosted actor/scope, hosted routegedrag of hosted performance. Zie [PAY-W00-AUTH-UNBLOCK-01](PAY-W00-AUTH-UNBLOCK-01-20261024.md); geen hosted sessie of deployment is gebruikt.
 5. Bestaande `SOURCE_GAP`-meldingen blijven fail-closed. Er is geen netto, fiscale, pensioen- of werkgeversuitkomst geconstrueerd.
 
