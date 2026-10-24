@@ -76,9 +76,11 @@ Branch `work/pay-w01-w03-defect-close-04-20261024`; de opdrachtbasis was `a6e48e
 
 ### Root cause en gerichte verbetering
 
-De werkplek vraagt voor 39 verschillende employee/employment-combinaties 39 afzonderlijke `getPayrollSourceSnapshot`-projecties. De huidige source-provider/Core-services hebben geen bestaande tenant-/administratiegescopeerde batchcontract; samenvoegen tot één brede read zou de afzonderlijke employee-autorisatie en effectieve-datumselectie omzeilen. De snapshots blijven dus 39. De verspilling zat in reads binnen elke snapshot: een onnodige employment-directoryread bij een exact meegegeven `employmentId`, een tweede employment-read voor de IKV-projectie, en vier gedeelde setup-/periodereads die tussen medewerkers gelijk zijn.
+De werkplek vraagt voor 39 verschillende employee/employment-combinaties 39 afzonderlijke `getPayrollSourceSnapshot`-projecties. De huidige source-provider/Core-services hebben geen bestaande tenant-/administratiegescopeerde batchcontract. Een directe brede read zonder dezelfde per-employee autorisatie en effectieve-datumselectie zou die controles omzeilen; een nieuwe batchservice zou die dus expliciet moeten uitvoeren. De snapshots blijven 39. De verspilling zat in reads binnen elke snapshot: een onnodige employment-directoryread bij een exact meegegeven `employmentId`, een tweede employment-read voor de IKV-projectie, en vier gedeelde setup-/periodereads die tussen medewerkers gelijk zijn.
 
-De provider slaat de directoryread over en hergebruikt dezelfde scoped employment-projectie voor IKV, met opnieuw `contract:read` en scopecontroles. De vier gedeelde reads gebruiken `React.cache` binnen het request, met tenant-, HR-groep-, administratie- en periodeargumenten; er wordt geen salaris- of medewerkerdata globaal gecachet. Tenantfilters, effectieve datums, bronversie, hashes, foutpaden en `SOURCE_GAP` blijven behouden. De reads verdwijnen of delen alleen waar de bestaande services dezelfde gegevens al veilig leveren. Bij 39 regels zijn **230 minder repository-readoperaties code-afgeleid** (39 directory + 39 IKV-employment + 4 × 38 herhaalde gedeelde reads); dit is geen geteld databaseverkeer. Een schemawijziging of migratie is niet nodig.
+De provider slaat de directoryread over en hergebruikt dezelfde scoped employment-projectie voor IKV, met opnieuw `contract:read` en scopecontroles. Vier reads worden binnen het request gedeeld: de Core-read van de periode, de Core-read van labor-condition/pension mappings en de Payroll Lab administration/configuration reads. De cachekeys bevatten alleen de selectorvelden die voor elke read gelden (tenant/HR-groep/periode of tenant/HR-groep/administratie); er wordt geen salaris- of medewerkerdata globaal gecachet. Tenantfilters, effectieve datums, bronversie, hashes, foutpaden en `SOURCE_GAP` blijven behouden. Bij 39 regels zijn **230 minder repository-readoperaties code-afgeleid** (39 directory + 39 IKV-employment + 4 × 38 herhaalde gedeelde reads, op het actieve Payroll Lab-configuratiepad); dit is geen geteld databaseverkeer. Een schemawijziging of migratie was voor deze gerichte hergebruikswijziging niet nodig.
+
+De meetcode maakt de rest van de keten concreet. `getPayrollCycleWorklist` krijgt 39 medewerker-/employmentreferenties uit de bestaande runwerkplek en roept voor elke referentie `getPayrollSourceSnapshot` aan met dezelfde geautoriseerde tenant-/HR-groep-/administratiescope en periode. De referenties en bestaande runsummary bevatten geen volledige actuele bronpayload of source-version-vector; die worden niet uit een eerder opgeslagen snapshot gehaald. De provider autoriseert de medewerker, leest de employment-timeline en actual-work-projectie en bouwt daarna de effectieve bronmomentopname. De endpointtelling hierboven laat herhaalde, per employment benodigde Core PostgREST-reads voor contract, salaris, rooster, arbeidsvoorwaarden, organisatie, pensioen, IKV, belastingprofiel en uren zien. Er is geen Core-RPC of bestaande bulkbronread. Commit `3d6c3c9c` heeft de directory-/IKV-/gedeelde setup-readreductie geïntroduceerd; de nieuwe requestmeting toont dat de resterende Core-bronketen nog steeds 790 waargenomen requests per route heeft.
 
 De vorige service-/browseracceptatie had bronfase 20,1–37,1 seconden bij concurrency 12; concurrency 24 verbeterde niet en had een uitschieter van 61,8 seconden. De loader blijft begrensd op 12. De postwijzigingsmetingen hieronder bewijzen snellere volledige werkplekweergave, maar scheiden de nieuwe bronfase nog niet in database/netwerk, JSON-serialisatie en provider-/UI-projectie.
 
@@ -115,14 +117,14 @@ De postwijzigings-HTTP-metingen isoleren geen server-side database-/netwerktijd,
 | HR Suite TypeScript | **PASS** |
 | Relevante ESLint | **PASS** |
 | i18n | **PASS**, 43 namespaces gelijk |
-| Root productiebuild op dezelfde branch/buildcontext | **PASS** op Node `24.22.1` en lockfileblob `cdd20c601e5956b419b96d7a346b36ba5b1ce14b`; HR Suite 339/339 pagina’s en Control 12/12, inclusief client-bundlecontrole, provenance en trace-allowlist |
+| Root productiebuild in dezelfde werkende buildcontext als W02 | **PASS** op Node `24.22.1` en lockfileblob `cdd20c601e5956b419b96d7a346b36ba5b1ce14b`; HR Suite 339/339 pagina’s en Control 12/12, inclusief client-bundlecontrole, provenance en trace-allowlist |
 | Isolatie buildoutput | **PASS** met `LIQUIDHR_NEXT_DIST_DIR=.next/payrun01-acceptance-20261009`; geen sandboxfout/configuratieversoepeling |
 | Beschermde bestanden | Beide `next-env.d.ts`-bestanden en Focus-widgetbron bleven bytegelijk |
 | `git diff --check` | **PASS** na rapportupdate |
 
 ### Gatebesluit en resterend werk
 
-- **W03 LOCAL: PARTIAL** — de serviceverbetering en end-to-end verbetering zijn lokaal aangetoond; 14 runs en 39/39 medewerkerregels zijn gelijk. Database/RPC-aantal, afzonderlijke database-/serialisatie-/projectietijden en live bron-/resultaatfingerprints zijn niet ontsloten. Live foreign-tenant-probe ontbreekt wegens afwezigheid van een bestaande persona/fixture.
+- **W03 LOCAL: PARTIAL** — de serviceverbetering en end-to-end verbetering zijn lokaal aangetoond; 14 runs, 39/39 medewerkerregels en gelijke geaggregeerde bron-/resultaatfingerprints zijn bevestigd. Tijdelijke serverinstrumentatie telde 790 Core-PostgREST-requests per route en geen Core-RPC's; Payroll Lab wordt via een aparte client gelezen en is niet in die endpointtelling uitgesplitst. JSON-parsing en lokale providerprojectie zijn gering; databaseverwerking kan niet los van netwerk-/serverwachttijd worden gemeten met deze clientinstrumentatie. Live foreign-tenant-probe ontbreekt wegens afwezigheid van een bestaande persona/fixture.
 - **W01 LOCAL: PARTIAL** — Lisa’s immutable PDF en self-scope zijn lokaal PASS; Jaaps preview blijft OPEN door de bestaande bron/inputgap. **W01/W03 HOSTED: OPEN**.
 - GitHub issue [#39](https://github.com/EdwinCycling/LiquidHR/issues/39) blijft OPEN. Afzonderlijk nodig: geautoriseerde HR Admin op production-like TEST met actor/scope-readback; drie hosted herhaalmetingen met bronattributie en volledige inhoud; een overeengekomen performancebudget of gedocumenteerde uitzondering; en bij een latere release de PDF-/toegangscontrole en deployment-smoke.
 - Geen push, merge, deployment, TEST-write, salarisfinalisatie of nieuwe roadmap-wave.
@@ -142,10 +144,64 @@ De tweede meting registreerde 14 browserrequests voor de runroute: 1 document, 1
 
 Een tussenliggende mobiele poging toonde de runlijst, maar kreeg de volledige werkplek niet binnen 60 seconden; de meting is verworpen en niet als succesvolle trial geteld. De daaropvolgende twee metingen slaagden. Dit bevestigt dat de werkplek nog wisselende latenties heeft. De eerder vastgelegde zes geauthenticeerde metingen blijven code-equivalent geldig: drie desktop en drie 390px-metingen met 14 runs en de digest van 39 employment-IDs. De nieuwste twee mobiele metingen behouden dezelfde 39/39-dataset; de interface ontsluit nog steeds geen individuele bron- en resultaatfingerprints.
 
-Er is geen bestaande batchfaciliteit aangetroffen die 39 employee/employment-snapshots kan vervangen met behoud van de autorisatie per werknemer, effectieve datumselectie en bronprovenance. De huidige calls blijven daarom 39 snapshots vóór en na de optimalisatie. De 230 minder interne repository-readoperaties zijn code-afgeleid; database-/RPC-aantallen en afzonderlijke database-/netwerk-, serialisatie- en projectietijden zijn nog niet instrumenteel gemeten. Een nieuwe batch-RPC zou een apart scoped service-/schemaontwerp en expliciete migratieautorisatie vergen; die wijziging is niet uitgevoerd.
+Er is geen bestaande batchfaciliteit aangetroffen die 39 employee/employment-snapshots kan vervangen met behoud van de autorisatie per werknemer, effectieve datumselectie en bronprovenance. De huidige calls blijven daarom 39 snapshots vóór en na de optimalisatie. De 230 minder interne repository-readoperaties zijn code-afgeleid.
+
+### Tijdelijke source-read-instrumentatie
+
+Om de fetchketen te meten is de normale server-side source-read-cyclus tijdelijk instrumenteerd. De meting telde alleen requestaantallen, endpointnamen, tijden, responsebytes en geaggregeerde fingerprints; geen querywaarden, persoonsgegevens of salarisbedragen zijn gelogd. De meetmodule en wijzigingen aan `server.ts`, de cycle-service en source-provider zijn na de twee metingen exact naar HEAD hersteld. De bestaande dev-server bleef actief.
+
+| Viewport | Runlijst zichtbaar | Volledige werkplek | Sourcefase wall time | Waargenomen Core PostgREST-requests | Core responsebytes | Employee-rows |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Desktop 1440×900 | 5.807 ms | 45.467 ms | 32.856,9 ms | 790 | 1.641.084 | 39/39 |
+| 390×852 | 4.585 ms | 38.458 ms | 30.679,9 ms | 790 | 1.641.084 | 39/39 |
+
+Beide viewportnavigaties gaven HTTP 200, 14 runs, dezelfde 39 employment-IDs (`27a680bddbd977ce630296ee34e477774fe3434b31a1196cf6fa1e4dff3cda66`), geen overflow en geen page-errors. Elke route emitteerde 39 bestaande `SOURCE_GAP`-diagnostiekmeldingen. Browserresources telden 13 requests op desktop en 12 op mobiel; dat zijn niet de 790 waargenomen Core-serverreads. De extra meetinstrumentatie en dev-HMR maken deze twee volledige-werkplekmetingen ongeschikt als directe vergelijking met de eerdere on-geïnstrumenteerde latencyreeks.
+
+De geaggregeerde bronfingerprint was op beide viewports identiek: `1f1ae21392dfab6515878f2fa6ff33b38bcedd8a0dddb776ffa520eb166c985d`. De geaggregeerde run-/resultaatfingerprint was eveneens identiek: `ae5e293e87f4c2fc3d26f3c041eb0d72a82ecefdac83f4c32d37da8c7611cdb8`. Alle 39 bronhashes waren aanwezig.
+
+De 790 waargenomen Core PostgREST-requests per viewport gingen naar:
+
+| Tabelendpoint | Requests |
+| --- | ---: |
+| `employments` | 78 |
+| `employment_income_relationships` | 78 |
+| `employees` | 40 |
+| `employment_contracts` | 39 |
+| `employment_labor_conditions` | 39 |
+| `employee_organizations` | 39 |
+| `employment_salaries` | 39 |
+| `employment_schedules` | 39 |
+| `employment_pension_arrangement_assignments` | 39 |
+| `pension_arrangements` | 39 |
+| `pension_arrangement_tiers` | 39 |
+| `pension_arrangement_versions` | 39 |
+| `pension_arrangement_version_tiers` | 39 |
+| `income_relationships` | 39 |
+| `employment_payroll_tax_profiles` | 39 |
+| `employment_work_hour_entries` | 39 |
+| `labor_condition_sets` | 35 |
+| `jobs` | 24 |
+| `job_revisions` | 24 |
+| `work_hour_types` | 2 |
+| `actual_work_periods` | 1 |
+| `labor_condition_pension_arrangements` | 1 |
+
+Op de waargenomen Core endpoints werd geen `/rpc` aangeroepen. De Payroll Lab setup gebruikt een aparte Supabase-client: de code leest per request de payroll-administratie en, als die actief is, de configuratierijen. Deze tabelreads zijn niet aanwezig in de waargenomen Core-endpointlijst; het precieze totale HTTP-aantal over beide databases is daarmee niet vastgesteld. Voor de waargenomen Core-requests waren de request-tot-headersommen 739.915,1 ms desktop en 400.664,1 ms mobiel; de langzaamste individuele request was 12.366,9 ms respectievelijk 3.812,6 ms. Response-body-readtijd was 40.863,5 ms en 38.513,1 ms als som over Core requests; JSON-parsing kostte 40,6 ms en 41,3 ms. De providerfasen `timeline` namen 355.609,3/206.864,7 ms geaggregeerd over 39 workers; `actualWork` 6.843,9/18.986,9 ms; `payrollSetup` 11.287,3/102.784,6 ms; pure providerprojectie 144,1/1.194,4 ms. Deze worker- en requesttijd-sommen lopen parallel en zijn geen wandkloktijd. Samen met 1,64 MB Core-response-inhoud laat dit zien dat de gemeten source-wall-time vooral door de veelvoud aan Core-bronreads wordt bepaald; JSON-parsing en lokale providerprojectie zijn klein. De headersmeting scheidt databaseverwerking niet van netwerkvertraging.
+
+Er is geen bestaande batchroute. De kleinste code-only kandidaat is een nieuwe bounded per-table Core-service die eerst elk employee-/employment-paar via de bestaande permissiechecks autoriseert, dezelfde authenticated Supabase-client/RLS en expliciete scope-/effective-date-/confirmed-employment-filters gebruikt, de huidige projection mapping hergebruikt, en per rij identieke hashes/version vectors en geïsoleerde `SOURCE_GAP`-uitkomsten oplevert. Payroll Lab blijft een aparte readpath met zijn bestaande request-scoped cache. Deze service bestaat niet en is nog niet op data-, autorisatie- of foutisolatie-equivalentie bewezen; direct bulkselecteren zonder die stappen is niet veilig. Als het ontwerp die checks niet binnen een begrensde multi-table read kan behouden, is een Core read-only batch-RPC een alternatief, maar die vergt schema-/migratieontwerp, contracttests voor Employee/Manager/foreign-tenant-negatieven en afzonderlijke migratieautorisatie. Geen van beide routes is in OPT-05 uitgevoerd; er was geen migratie.
 
 De Lisa-PDF-, Employee-selfscope- en Manager-teamnegatieve controles uit de eerdere lokale acceptatie zijn in deze follow-up niet opnieuw uitgevoerd; zij blijven historische PASS-evidence. Er is geen Employee- of Manager-sessie gebruikt in de nieuwe metingen en geen foreign-tenantpersona beschikbaar. De browserprobe heeft alleen bestaande data gelezen; er is geen berekening, runmutatie, finalisatie, PDF-write of migratie uitgevoerd.
 
 GitHub issue [#39](https://github.com/EdwinCycling/LiquidHR/issues/39) is op 25-10 read-only gecontroleerd en blijft OPEN. Het vraagt nog steeds een geautoriseerde HR Admin in production-like TEST, minimaal drie hosted list-/workspace-metingen met bronattributie en volledigheid, een overeengekomen performancebudget of concrete uitzondering, en bij een latere productie-release PDF-/toegangscontrole en deployment-smoke.
 
 **Status:** W03 LOCAL blijft **PARTIAL**; W01 LOCAL blijft **PARTIAL**; W01/W03 HOSTED en issue #39 blijven **OPEN**. Productiebuild en 131/131 gerichte regressies blijven PASS op codecommit `99af598a`; deze follow-up is documentatie plus read-only lokale meting.
+
+### OPT-05 technische conclusie en veilige vervolgstap
+
+De structurele oorzaak is niet de lokale JSON- of providerprojectie: per werkplek worden 39 individueel geautoriseerde employee/employment-snapshots opgebouwd en daarvoor 790 Core PostgREST-tabelrequests afgehandeld. Per endpoint zijn de waargenomen Core-aantallen hierboven uitgesplitst. De bestaande wijziging vermijdt code-afgeleid 230 interne repository-readoperaties, maar verandert het aantal snapshots (39) en de 790 Core-requests niet. De 790 requests zijn server-side reads die niet zichtbaar waren in de browserresource-teller; dit zijn geen 790 browserrequests. Payroll Lab is een afzonderlijke datastore; zijn requestaantal is niet in deze endpointtelling opgenomen.
+
+De meting scheidde de waargenomen Core-clientrequest-tot-headers, response-body-consumptie, JSON-parse en providerprojectie. Zij kan de Postgres-querytijd niet scheiden van PostgREST/serverwachttijd en netwerktransport, noch JSON-serialisatietijd aan de serverzijde van de body-transfer. De gemeten Core-fasen bedroegen respectievelijk: request-tot-headers som 739.915,1/400.664,1 ms; body-consumptiesom 40.863,5/38.513,1 ms; JSON-parse 40,6/41,3 ms; pure providerprojectie 144,1/1.194,4 ms (desktop/mobiel). De request-, body- en worker-fases overlappen door begrensde concurrency 12; alleen de sourcefase wall time is direct optelbaar als 32.856,9/30.679,9 ms. Payroll Lab wordt via een aparte client gelezen en is niet apart uitgesplitst. De bottleneck is bewezen als de hoeveelheid en latency van Core-bronreads, maar de verdeling daarvan tussen database en netwerk blijft een meetgrens.
+
+Een veilige batchread kan niet als bestaande service/RPC worden hergebruikt. De 39 snapshots zijn per medewerker geautoriseerd, periode-/effective-date-geselecteerd en bevatten eigen bronversies, fingerprints en `SOURCE_GAP`-uitkomsten. Een brede clientquery zou de bestaande Core-servicecontrole en per-employee foutisolatie kunnen omzeilen. De kleinste verdedigbare volgende stap is een read-only, begrensde batch-source-contract/RPC die scope uit de geauthenticeerde servercontext afleidt en dezelfde controle per employee/employment uitvoert. Dat vergt schema-/migratieontwerp en expliciete migratieautorisatie; er is geen migratie, gedeelde write of productcodewijziging uitgevoerd in OPT-05. Een in-app multi-query zonder DDL is alleen een kandidaat na aantoonbare RLS-, effective-date-, provenance- en `SOURCE_GAP`-equivalentie; er is nog geen bestaande faciliteit die dit garandeert.
+
+**OPT-05-resultaat:** de eerdere service-optimalisatie blijft functioneel equivalent volgens de lokale 39/39-, bronhash- en resultfingerprintmetingen, maar de voornaamste 790-Core-requestbronfase is niet structureel verkort. W03 LOCAL blijft **PARTIAL**. Een per-table batchprojectie zonder DDL is technisch denkbaar, maar is geen bestaande faciliteit en de gelijkwaardigheid van permissies, tenant-/HR-groep-/administratiescope, effectieve datums, confirmed-employmentchecks, provenance en `SOURCE_GAP` is niet aangetoond. Het implementeren daarvan vereist een nieuwe Core source service en een volledige service-/autorisatie-/regressiesuite; dat is niet bewezen als veilige gerichte wijziging binnen deze meting. Een Core batch-RPC zou schema-/migratieontwerp en afzonderlijke autorisatie vereisen; Payroll Lab blijft apart. Hosted issue #39 blijft **OPEN**.
