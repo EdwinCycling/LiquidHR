@@ -6,6 +6,7 @@
 
 - Repository: `EdwinCycling/LiquidHR`.
 - Live `origin/main`: `630df89c84bc2be4774072d387ecb5dc7df10f91`.
+- Read-only Vercel metadata confirms deployment `dpl_EoR4bf4pjsuJA53aRwQ1nDfcME8K` is READY on target `production` (the existing synthetic TEST channel), source SHA `1c4eb3d1bfe75d8145b87484125fcfcb6605aacf`, with the tested alias `liquid-hr-hr-suite.vercel.app` attached.
 - Safe work branch: `work/pay-w00-shared-build-01-20261024`; it already contains the two PAY-W00 build-evidence commits `5e23e63f` and `1d559f4d` above that baseline. This turn did not touch the R2 feature branch.
 - No push, merge, deployment, migration, database write, user/invitation/grant change, calculation, finalization, or PDF change was performed.
 
