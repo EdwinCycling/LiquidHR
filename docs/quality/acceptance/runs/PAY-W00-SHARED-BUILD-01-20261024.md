@@ -50,4 +50,4 @@ A similar upstream Next.js report describes `OuterLayoutRouter` and `useContext`
 
 - The prior `/_global-error` failure is still an OPEN, environment-specific report. The current baseline build passes locally; the successful Linux Actions and Vercel references are successful builds at earlier app code (Vercel source is an ancestor), not a new hosted build of this branch.
 - No current-branch CI rerun, deployment, merge, push, or W02a rebuild was performed. No database or remote configuration was changed.
-- No source repair cycles were needed because the failure was not reproduced; the final commit below contains this evidence report only.
+- No source repair cycles were needed because the failure was not reproduced; the only branch change is this evidence report.
