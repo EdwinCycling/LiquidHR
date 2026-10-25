@@ -1,15 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, requireAnyPermission, requireHrGroupId } = vi.hoisted(() => ({
+const { createClient, requireAnyPermission, requirePermission, requireHrGroupId } = vi.hoisted(() => ({
   createClient: vi.fn(),
   requireAnyPermission: vi.fn(),
+  requirePermission: vi.fn(),
   requireHrGroupId: vi.fn(),
 }))
 
-vi.mock('@/lib/auth/permissions', () => ({ AuthorizationError: class AuthorizationError extends Error { readonly status = 403 }, requireAnyPermission, requireHrGroupId, requirePermission: vi.fn() }))
+vi.mock('@/lib/auth/permissions', () => ({ AuthorizationError: class AuthorizationError extends Error { readonly status = 403 }, requireAnyPermission, requirePermission, requireHrGroupId }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
-import { ActualWorkServiceError, isValidActualWorkMonth, saveActualWorkEntry } from './actual-work-service'
+import {
+  ActualWorkServiceError,
+  getActualWorkPayrollProjectionsBatch,
+  isValidActualWorkMonth,
+  saveActualWorkEntry,
+} from './actual-work-service'
 
 const employeeId = '11111111-1111-4111-8111-111111111111'
 const employmentId = '22222222-2222-4222-8222-222222222222'
@@ -18,8 +24,9 @@ const entryId = '44444444-4444-4444-8444-444444444444'
 
 function queryResult(data: unknown, error: { message: string } | null = null) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {}
-  for (const method of ['select', 'eq', 'is', 'order', 'limit', 'lt', 'gt', 'or']) chain[method] = vi.fn(() => chain)
+  for (const method of ['select', 'eq', 'is', 'order', 'limit', 'lt', 'gt', 'or', 'in', 'range']) chain[method] = vi.fn(() => chain)
   chain.maybeSingle = vi.fn(async () => ({ data, error }))
+  chain.range = vi.fn(async () => ({ data, error }))
   return chain
 }
 
@@ -116,5 +123,148 @@ describe('Actual Work month boundary', () => {
     expect(isValidActualWorkMonth('2026-9')).toBe(false)
     expect(isValidActualWorkMonth('2026-13')).toBe(false)
     expect(isValidActualWorkMonth('not-a-month')).toBe(false)
+  })
+})
+
+describe('Actual Work payroll batch source read', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('authorizes each exact target and returns entries and types partitioned to each employment', async () => {
+    const secondEmployeeId = '66666666-6666-4666-8666-666666666666'
+    const secondEmploymentId = '77777777-7777-4777-8777-777777777777'
+    const secondTypeId = '88888888-8888-4888-8888-888888888888'
+    const period = { id: 'period-1', period_start: '2026-10-01', period_end: '2026-10-31', status: 'OPEN', updated_at: '2026-10-01T00:00:00Z' }
+    const entries = [
+      { id: 'entry-1', employee_id: employeeId, employment_id: employmentId, work_hour_type_id: typeId, work_date: '2026-10-03', entry_granularity: 'DAY', subject_period_start: '2026-10-03', subject_period_end: null, posting_period_start: '2026-10-01', hours: 2, status: 'APPROVED', approved_at: '2026-10-04T00:00:00Z', updated_at: '2026-10-04T00:00:00Z' },
+      { id: 'entry-2', employee_id: secondEmployeeId, employment_id: secondEmploymentId, work_hour_type_id: secondTypeId, work_date: '2026-10-05', entry_granularity: 'DAY', subject_period_start: '2026-10-05', subject_period_end: null, posting_period_start: '2026-10-01', hours: 3, status: 'APPROVED', approved_at: '2026-10-06T00:00:00Z', updated_at: '2026-10-06T00:00:00Z' },
+      { id: 'foreign-entry', employee_id: '99999999-9999-4999-8999-999999999999', employment_id: employmentId, work_hour_type_id: typeId, work_date: '2026-10-07', entry_granularity: 'DAY', subject_period_start: '2026-10-07', subject_period_end: null, posting_period_start: '2026-10-01', hours: 99, status: 'APPROVED', approved_at: '2026-10-08T00:00:00Z', updated_at: '2026-10-08T00:00:00Z' },
+    ]
+    const types = [
+      { id: typeId, code: 'OVERTIME', name: 'Overwerk', family: 'OVERTIME', valid_from: '2026-01-01', valid_until: null, approval_required: true, updated_at: '2026-01-01T00:00:00Z' },
+      { id: secondTypeId, code: 'TRAVEL', name: 'Reistijd', family: 'TRAVEL', valid_from: '2026-01-01', valid_until: null, approval_required: false, updated_at: '2026-01-01T00:00:00Z' },
+    ]
+    requirePermission.mockImplementation(async (_permission: string, targetEmployeeId: string) => ({
+      tenantId: 'tenant-a',
+      hrGroupId: 'group-a',
+      administrationId: 'admin-a',
+      employeeId: targetEmployeeId,
+    }))
+    requireHrGroupId.mockReturnValue('group-a')
+    const from = vi.fn((table: string) => queryResult(
+      table === 'employment_work_hour_entries' ? entries
+        : table === 'work_hour_types' ? types
+          : period,
+    ))
+    createClient.mockResolvedValue({ from })
+
+    const result = await getActualWorkPayrollProjectionsBatch([
+      { employeeId, employmentId, month: '2026-10' },
+      { employeeId: secondEmployeeId, employmentId: secondEmploymentId, month: '2026-10' },
+    ])
+
+    expect(requirePermission).toHaveBeenCalledTimes(2)
+    expect(result).toHaveLength(2)
+    expect(result[0]?.entries.map((entry) => entry.id)).toEqual(['entry-1'])
+    expect(result[0]?.types.map((type) => type.id)).toEqual([typeId])
+    expect(result[1]?.entries.map((entry) => entry.id)).toEqual(['entry-2'])
+    expect(result[1]?.types.map((type) => type.id)).toEqual([secondTypeId])
+    expect(result.flatMap((projection) => projection.entries.map((entry) => entry.id)).sort()).toEqual(['entry-1', 'entry-2'])
+    expect(result[0]?.entries[0]).not.toHaveProperty('employee_id')
+    expect(from).toHaveBeenCalledTimes(3)
+    expect(from).toHaveBeenCalledWith('actual_work_periods')
+    expect(from).toHaveBeenCalledWith('employment_work_hour_entries')
+    expect(from).toHaveBeenCalledWith('work_hour_types')
+    const entriesQueryIndex = from.mock.calls.findIndex(([table]) => table === 'employment_work_hour_entries')
+    const entriesQuery = from.mock.results[entriesQueryIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined
+    expect(entriesQuery?.in).toHaveBeenCalledWith('employee_id', [employeeId, secondEmployeeId])
+  })
+
+  it('keeps 39 payroll work projections in bounded four-target read groups', async () => {
+    const targets = Array.from({ length: 39 }, (_, index) => ({
+      employeeId: `40000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      employmentId: `50000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      typeId: `60000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      entryId: `70000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+    }))
+    const entries = targets.map((target) => ({
+      id: target.entryId,
+      employee_id: target.employeeId,
+      employment_id: target.employmentId,
+      work_hour_type_id: target.typeId,
+      work_date: '2026-10-03',
+      entry_granularity: 'DAY',
+      subject_period_start: '2026-10-03',
+      subject_period_end: null,
+      posting_period_start: '2026-10-01',
+      hours: 2,
+      status: 'APPROVED',
+      approved_at: '2026-10-04T00:00:00Z',
+      updated_at: '2026-10-04T00:00:00Z',
+    }))
+    const types = targets.map((target) => ({
+      id: target.typeId,
+      code: 'WORK',
+      name: 'Work',
+      family: 'WORK',
+      valid_from: '2026-01-01',
+      valid_until: null,
+      approval_required: true,
+      updated_at: '2026-01-01T00:00:00Z',
+    }))
+    const period = { id: 'period-39', period_start: '2026-10-01', period_end: '2026-10-31', status: 'OPEN', updated_at: '2026-10-01T00:00:00Z' }
+    requirePermission.mockImplementation(async (_permission: string, targetEmployeeId: string) => ({
+      tenantId: 'tenant-a', hrGroupId: 'group-a', administrationId: 'admin-a', employeeId: targetEmployeeId,
+    }))
+    requireHrGroupId.mockReturnValue('group-a')
+    const from = vi.fn((table: string) => queryResult(
+      table === 'employment_work_hour_entries' ? entries
+        : table === 'work_hour_types' ? types
+          : period,
+    ))
+    createClient.mockResolvedValue({ from })
+
+    const result = await getActualWorkPayrollProjectionsBatch(targets.map(({ employeeId, employmentId }) => ({
+      employeeId, employmentId, month: '2026-10',
+    })))
+
+    expect(requirePermission).toHaveBeenCalledTimes(39)
+    expect(result).toHaveLength(39)
+    expect(result.every((projection, index) => projection.entries[0]?.id === targets[index]?.entryId
+      && projection.types[0]?.id === targets[index]?.typeId)).toBe(true)
+    expect(from.mock.calls.filter(([table]) => table === 'actual_work_periods')).toHaveLength(1)
+    expect(from.mock.calls.filter(([table]) => table === 'employment_work_hour_entries')).toHaveLength(10)
+    expect(from.mock.calls.filter(([table]) => table === 'work_hour_types')).toHaveLength(10)
+    expect(from).toHaveBeenCalledTimes(21)
+  })
+
+  it('fails closed before source reads when authorized targets resolve to different tenant scopes', async () => {
+    const secondEmployeeId = '66666666-6666-4666-8666-666666666666'
+    const from = vi.fn(() => queryResult([], null))
+    requirePermission.mockImplementation(async (_permission: string, targetEmployeeId: string) => ({
+      tenantId: targetEmployeeId === employeeId ? 'tenant-a' : 'tenant-b',
+      hrGroupId: 'group-a',
+      administrationId: 'admin-a',
+      employeeId: targetEmployeeId,
+    }))
+    requireHrGroupId.mockReturnValue('group-a')
+    createClient.mockResolvedValue({ from })
+
+    await expect(getActualWorkPayrollProjectionsBatch([
+      { employeeId, employmentId, month: '2026-10' },
+      { employeeId: secondEmployeeId, employmentId: '77777777-7777-4777-8777-777777777777', month: '2026-10' },
+    ])).rejects.toMatchObject({ code: 'ACTUAL_WORK_EMPLOYMENT_NOT_FOUND', status: 404 })
+
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it('rejects a mixed-month batch before authorization or database reads', async () => {
+    await expect(getActualWorkPayrollProjectionsBatch([
+      { employeeId, employmentId, month: '2026-10' },
+      { employeeId, employmentId: '77777777-7777-4777-8777-777777777777', month: '2026-09' },
+    ])).rejects.toMatchObject({ code: 'ACTUAL_WORK_MONTH_INVALID' })
+    expect(requirePermission).not.toHaveBeenCalled()
+    expect(createClient).not.toHaveBeenCalled()
   })
 })

@@ -3,7 +3,12 @@ import 'server-only'
 import { createHash, randomUUID } from 'node:crypto'
 import { cache } from 'react'
 import type { Database } from '@scope/db'
-import { getActualWorkPayrollProjection, type ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
+import {
+  getActualWorkPayrollProjection,
+  getActualWorkPayrollProjectionsBatch,
+  type ActualWorkPayrollProjection,
+  type ActualWorkPayrollBatchAuthorizedScope,
+} from '@/lib/actual-work/actual-work-service'
 import type {
   PayrollSourceGap,
   PayrollSourceProvider,
@@ -29,6 +34,7 @@ import {
 } from '@/lib/auth/permissions'
 import { listEmployeeEmployments } from '@/lib/employment/employment-service'
 import {
+  getEmploymentPayrollTaxSourceProjectionsBatch,
   getEmploymentPayrollTaxSourceProjection,
   type EmploymentPayrollTaxSourceProjection,
 } from '@/lib/employment/employment-payroll-tax-profile-service'
@@ -61,6 +67,7 @@ import type {
   PayrollOpeningCumulativeSnapshotRow,
 } from '../database'
 import type { PayrollScope } from '../scope'
+import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 
 type EmploymentRow = Database['public']['Tables']['employments']['Row']
 type SalaryRow = Database['public']['Tables']['employment_salaries']['Row']
@@ -169,7 +176,15 @@ export interface PayrollSourceProviderDependencies {
     employmentId: string,
     payrollPeriod: PayrollSourceProviderInput['payrollPeriod'],
   ) => Promise<PayrollSourceTimeline>
+  readonly loadTimelineBatch?: (
+    inputs: readonly Pick<PayrollSourceProviderInput, 'employeeId' | 'employmentId' | 'payrollPeriod'>[],
+  ) => Promise<readonly PayrollSourceTimeline[]>
   readonly loadActualWork: (employeeId: string, employmentId: string, month: string) => Promise<ActualWorkPayrollProjection>
+  readonly loadActualWorkBatch?: (inputs: readonly {
+    readonly employeeId: string
+    readonly employmentId: string
+    readonly month: string
+  }[], authorizedScopes?: readonly ActualWorkPayrollBatchAuthorizedScope[]) => Promise<readonly ActualWorkPayrollProjection[]>
   readonly loadPayrollSetup?: (
     scope: PayrollScope,
     payrollAdministrationId: string,
@@ -272,6 +287,88 @@ const readSharedPayrollSetupSource = cache(async (
   }
 })
 
+async function loadDefaultPayrollTimeline(
+  employeeId: string,
+  employmentId: string,
+  payrollPeriod: PayrollSourceProviderInput['payrollPeriod'],
+): Promise<PayrollSourceTimeline> {
+  const source = await getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod).catch((error: unknown) => {
+    throw new PayrollSourceReadFailure('employment-payroll-projection', error)
+  })
+  let taxProfileProjection: EmploymentPayrollTaxSourceProjection
+  try {
+    taxProfileProjection = await getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod)
+  } catch (error) {
+    await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((incomeError: unknown) => {
+      throw new PayrollSourceReadFailure('income-relationship-projection', incomeError)
+    })
+    throw new PayrollSourceReadFailure('tax-profile-projection', error)
+  }
+  const sharedIncomeProjection = taxProfileProjection.payrollIncomeRelationshipProjection
+  const incomeRelationships = sharedIncomeProjection?.complete
+    ? sharedIncomeProjection.rows
+    : await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((error: unknown) => {
+      throw new PayrollSourceReadFailure('income-relationship-projection', error)
+    })
+  return {
+    employment: source.employment,
+    salaries: source.salaries,
+    schedules: source.schedules,
+    contracts: source.contracts,
+    laborConditions: source.laborConditions,
+    organizations: source.organizations,
+    pensionAssignments: source.pensionAssignments,
+    laborConditionPensionArrangements: source.laborConditionPensionArrangements,
+    incomeRelationships,
+    taxProfileProjection,
+  }
+}
+
+async function loadDefaultPayrollTimelinesBatch(
+  inputs: readonly Pick<PayrollSourceProviderInput, 'employeeId' | 'employmentId' | 'payrollPeriod'>[],
+): Promise<readonly PayrollSourceTimeline[]> {
+  const sources = await loadQueriesInBatches(inputs.map((input) => async () =>
+    await getEmploymentPayrollSourceProjection(input.employeeId, input.employmentId!, input.payrollPeriod).catch((error: unknown) => {
+      throw new PayrollSourceReadFailure('employment-payroll-projection', error)
+    }),
+  ), 12)
+  const taxProjections = await getEmploymentPayrollTaxSourceProjectionsBatch(inputs.map((input) => ({
+    employeeId: input.employeeId,
+    employmentId: input.employmentId!,
+    period: input.payrollPeriod,
+  }))).catch((error: unknown) => {
+    throw new PayrollSourceReadFailure('tax-profile-projection', error)
+  })
+  if (sources.length !== inputs.length || taxProjections.length !== inputs.length) {
+    throw new PayrollSourceReadFailure('employment-payroll-projection', new Error('PAYROLL_SOURCE_TIMELINE_BATCH_INCOMPLETE'))
+  }
+  return await loadQueriesInBatches(inputs.map((input, index) => async () => {
+    const source = sources[index]
+    const taxProfileProjection = taxProjections[index]
+    if (!source || !taxProfileProjection) {
+      throw new PayrollSourceReadFailure('employment-payroll-projection', new Error('PAYROLL_SOURCE_TIMELINE_BATCH_INCOMPLETE'))
+    }
+    const sharedIncomeProjection = taxProfileProjection.payrollIncomeRelationshipProjection
+    const incomeRelationships = sharedIncomeProjection?.complete
+      ? sharedIncomeProjection.rows
+      : await getEmploymentIncomeRelationshipProjection(input.employeeId, input.employmentId!, source.employment).catch((error: unknown) => {
+        throw new PayrollSourceReadFailure('income-relationship-projection', error)
+      })
+    return {
+      employment: source.employment,
+      salaries: source.salaries,
+      schedules: source.schedules,
+      contracts: source.contracts,
+      laborConditions: source.laborConditions,
+      organizations: source.organizations,
+      pensionAssignments: source.pensionAssignments,
+      laborConditionPensionArrangements: source.laborConditionPensionArrangements,
+      incomeRelationships,
+      taxProfileProjection,
+    }
+  }), 4)
+}
+
 function defaultDependencies(): PayrollSourceProviderDependencies {
   return {
     authorize: async (employeeId) => {
@@ -288,43 +385,16 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
       console.error(diagnostic.event, diagnostic)
     },
     isEnabled: isPayrollLabEnabled,
-    loadTimeline: async (employeeId, employmentId, payrollPeriod) => {
-      const source = await getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod).catch((error: unknown) => {
-        throw new PayrollSourceReadFailure('employment-payroll-projection', error)
-      })
-      let taxProfileProjection: EmploymentPayrollTaxSourceProjection
-      try {
-        taxProfileProjection = await getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod)
-      } catch (error) {
-        // Keep the prior read/error precedence when the tax projection is unavailable.
-        await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((incomeError: unknown) => {
-          throw new PayrollSourceReadFailure('income-relationship-projection', incomeError)
-        })
-        throw new PayrollSourceReadFailure('tax-profile-projection', error)
-      }
-      const sharedIncomeProjection = taxProfileProjection.payrollIncomeRelationshipProjection
-      const incomeRelationships = sharedIncomeProjection?.complete
-        ? sharedIncomeProjection.rows
-        : await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((error: unknown) => {
-          throw new PayrollSourceReadFailure('income-relationship-projection', error)
-        })
-      return {
-        employment: source.employment,
-        salaries: source.salaries,
-        schedules: source.schedules,
-        contracts: source.contracts,
-        laborConditions: source.laborConditions,
-        organizations: source.organizations,
-        pensionAssignments: source.pensionAssignments,
-        laborConditionPensionArrangements: source.laborConditionPensionArrangements,
-        incomeRelationships,
-        taxProfileProjection,
-      }
-    },
+    loadTimeline: async (employeeId, employmentId, payrollPeriod) =>
+      await loadDefaultPayrollTimeline(employeeId, employmentId, payrollPeriod),
+    loadTimelineBatch: async (inputs) => await loadDefaultPayrollTimelinesBatch(inputs),
     loadActualWork: async (employeeId, employmentId, month) =>
       await getActualWorkPayrollProjection({ employeeId, employmentId, month }).catch((error: unknown) => {
         throw new PayrollSourceReadFailure('actual-work-projection', error)
       }),
+    loadActualWorkBatch: async (inputs, authorizedScopes) => await getActualWorkPayrollProjectionsBatch(inputs, authorizedScopes).catch((error: unknown) => {
+      throw new PayrollSourceReadFailure('actual-work-projection', error)
+    }),
     loadPayrollSetup: async (scope, _sourceAdministrationId, sourceEmploymentId, payrollPeriod) => {
       const sharedSource = await readSharedPayrollSetupSource(scope.tenantId, scope.hrGroupId, scope.administrationId)
       if (!sharedSource.payrollAdministrationId) {
@@ -1550,6 +1620,146 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
   }
 
   async getPayrollSourceSnapshot(rawInput: PayrollSourceProviderInput): Promise<PayrollSourceSnapshot> {
+    return await this.getPayrollSourceSnapshotWithActualWork(rawInput)
+  }
+
+  async getPayrollSourceSnapshots(
+    rawInputs: readonly PayrollSourceProviderInput[],
+  ): Promise<readonly PromiseSettledResult<PayrollSourceSnapshot>[]> {
+    const readIndividually = async (): Promise<readonly PromiseSettledResult<PayrollSourceSnapshot>[]> =>
+      await loadQueriesInBatches(rawInputs.map((input) => async () => {
+        try {
+          return { status: 'fulfilled', value: await this.getPayrollSourceSnapshot(input) } as const
+        } catch (reason) {
+          return { status: 'rejected', reason } as const
+        }
+      }), 12)
+    if (!this.dependencies.loadActualWorkBatch || rawInputs.length === 0) return await readIndividually()
+    const parsedInputs = rawInputs.map((input) => payrollSourceProviderInputSchema.safeParse(input))
+    const first = parsedInputs[0]
+    if (!first?.success || parsedInputs.some((parsed) => !parsed.success
+      || parsed.data.tenantId !== first.data.tenantId
+      || parsed.data.hrGroupId !== first.data.hrGroupId
+      || parsed.data.administrationId !== first.data.administrationId
+      || parsed.data.employmentId === undefined
+      || parsed.data.payrollPeriod.year !== first.data.payrollPeriod.year
+      || parsed.data.payrollPeriod.month !== first.data.payrollPeriod.month)) {
+      return await readIndividually()
+    }
+
+    const authorizationResults = await loadQueriesInBatches(parsedInputs.map((parsed, index) => async () => {
+      const input = parsed.success ? parsed.data : rawInputs[index]
+      if (!input) return { status: 'rejected', reason: new PayrollSourceProviderError('PAYROLL_SOURCE_INPUT_INVALID', 400) } as const
+      try {
+        const context = await this.dependencies.authorize(input.employeeId)
+        const authorizedScope = payrollScopeFromAuthContext(context)
+        if (!authorizedScope
+          || authorizedScope.tenantId !== input.tenantId
+          || authorizedScope.hrGroupId !== input.hrGroupId
+          || authorizedScope.administrationId !== input.administrationId) {
+          throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+        }
+        return { status: 'fulfilled', value: context } as const
+      } catch (reason) {
+        return { status: 'rejected', reason } as const
+      }
+    }), 4)
+    const authorizedIndexes = authorizationResults.flatMap((result, index) =>
+      result.status === 'fulfilled' ? [index] : [],
+    )
+    const rejectedSnapshots = new Map<number, PromiseSettledResult<PayrollSourceSnapshot>>()
+    for (let index = 0; index < authorizationResults.length; index += 1) {
+      const result = authorizationResults[index]
+      const input = rawInputs[index]
+      if (!input || !result || result.status !== 'rejected') continue
+      try {
+        rejectedSnapshots.set(index, {
+          status: 'fulfilled',
+          value: await this.getPayrollSourceSnapshotWithActualWork(input),
+        })
+      } catch (reason) {
+        rejectedSnapshots.set(index, { status: 'rejected', reason })
+      }
+    }
+
+    const readAuthorizedIndividually = async (): Promise<readonly PromiseSettledResult<PayrollSourceSnapshot>[]> => {
+      const fallback = await loadQueriesInBatches(authorizedIndexes.map((index) => async () => {
+        const input = rawInputs[index]!
+        try {
+          return { status: 'fulfilled', value: await this.getPayrollSourceSnapshot(input) } as const
+        } catch (reason) {
+          return { status: 'rejected', reason } as const
+        }
+      }), 12)
+      const output: PromiseSettledResult<PayrollSourceSnapshot>[] = Array.from({ length: rawInputs.length })
+      for (const [index, result] of rejectedSnapshots) output[index] = result
+      authorizedIndexes.forEach((inputIndex, resultIndex) => { output[inputIndex] = fallback[resultIndex]! })
+      return output
+    }
+
+    let timelines: readonly PayrollSourceTimeline[] | undefined
+    if (this.dependencies.loadTimelineBatch) {
+      try {
+        timelines = await this.dependencies.loadTimelineBatch(authorizedIndexes.map((index) => {
+          const input = rawInputs[index]!
+          return { employeeId: input.employeeId, employmentId: input.employmentId!, payrollPeriod: input.payrollPeriod }
+        }))
+        if (timelines.length !== authorizedIndexes.length) throw new Error('PAYROLL_SOURCE_TIMELINE_BATCH_INCOMPLETE')
+      } catch {
+        return await readAuthorizedIndividually()
+      }
+    }
+
+    let actualWork: readonly ActualWorkPayrollProjection[]
+    try {
+      const actualWorkInputs = authorizedIndexes.map((index) => {
+        const input = rawInputs[index]!
+        return {
+          employeeId: input.employeeId,
+          employmentId: input.employmentId!,
+          month: `${first.data.payrollPeriod.year}-${String(first.data.payrollPeriod.month).padStart(2, '0')}`,
+        }
+      })
+      const actualWorkScopes = authorizedIndexes.map((index) => {
+        const input = rawInputs[index]!
+        const authorization = authorizationResults[index]!
+        if (authorization.status !== 'fulfilled') throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+        const scope = payrollScopeFromAuthContext(authorization.value)
+        if (!scope) throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+        return { employeeId: input.employeeId, ...scope }
+      })
+      actualWork = await this.dependencies.loadActualWorkBatch(actualWorkInputs, actualWorkScopes)
+      if (actualWork.length !== authorizedIndexes.length) throw new Error('PAYROLL_ACTUAL_WORK_BATCH_INCOMPLETE')
+    } catch {
+      return await readAuthorizedIndividually()
+    }
+
+    const output: PromiseSettledResult<PayrollSourceSnapshot>[] = Array.from({ length: rawInputs.length })
+    for (const [index, result] of rejectedSnapshots) output[index] = result
+    await loadQueriesInBatches(authorizedIndexes.map((inputIndex, resultIndex) => async () => {
+      const input = rawInputs[inputIndex]!
+      const authorization = authorizationResults[inputIndex]!
+      const source = actualWork[resultIndex]
+      try {
+        if (authorization.status !== 'fulfilled') throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+        output[inputIndex] = {
+          status: 'fulfilled',
+          value: await this.getPayrollSourceSnapshotWithActualWork(input, source, authorization.value, timelines?.[resultIndex]),
+        }
+      } catch (reason) {
+        output[inputIndex] = { status: 'rejected', reason }
+      }
+      return null
+    }), 12)
+    return output
+  }
+
+  private async getPayrollSourceSnapshotWithActualWork(
+    rawInput: PayrollSourceProviderInput,
+    actualWorkOverride?: ActualWorkPayrollProjection,
+    preauthorizedContext?: Pick<AuthContext, 'tenantId' | 'hrGroupId' | 'administrationId'>,
+    timelineOverride?: PayrollSourceTimeline,
+  ): Promise<PayrollSourceSnapshot> {
     const parsedInput = payrollSourceProviderInputSchema.safeParse(rawInput)
     if (!parsedInput.success) throw new PayrollSourceProviderError('PAYROLL_SOURCE_INPUT_INVALID', 400)
     const input = parsedInput.data
@@ -1589,11 +1799,15 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     }
 
     let context: Pick<AuthContext, 'tenantId' | 'hrGroupId' | 'administrationId'>
-    try {
-      context = await this.dependencies.authorize(input.employeeId)
-    } catch (error) {
-      if (error instanceof AuthorizationError) reportFailure('authorization', 'AUTHORIZATION_DENIED')
-      throw error
+    if (preauthorizedContext) {
+      context = preauthorizedContext
+    } else {
+      try {
+        context = await this.dependencies.authorize(input.employeeId)
+      } catch (error) {
+        if (error instanceof AuthorizationError) reportFailure('authorization', 'AUTHORIZATION_DENIED')
+        throw error
+      }
     }
     const authorizedScope = payrollScopeFromAuthContext(context)
     if (
@@ -1632,19 +1846,23 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     }
 
     let timeline: PayrollSourceTimeline
-    try {
-      timeline = await this.dependencies.loadTimeline(
-        input.employeeId,
-        input.employmentId ?? employment!.id,
-        input.payrollPeriod,
-      )
-    } catch (error) {
-      if (input.employmentId !== undefined && isEmploymentNotFoundReadFailure(error)) {
-        throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+    if (timelineOverride) {
+      timeline = timelineOverride
+    } else {
+      try {
+        timeline = await this.dependencies.loadTimeline(
+          input.employeeId,
+          input.employmentId ?? employment!.id,
+          input.payrollPeriod,
+        )
+      } catch (error) {
+        if (input.employmentId !== undefined && isEmploymentNotFoundReadFailure(error)) {
+          throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+        }
+        const sourceCategory = safeSourceCategory(error, 'employment-timeline')
+        reportFailure(sourceCategory, safeSourceErrorCode(error))
+        throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId)
       }
-      const sourceCategory = safeSourceCategory(error, 'employment-timeline')
-      reportFailure(sourceCategory, safeSourceErrorCode(error))
-      throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId)
     }
     const timelineScopeMismatch = (
       timeline.employment.id !== (input.employmentId ?? employment?.id)
@@ -1678,7 +1896,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
 
     let actualWork: ActualWorkPayrollProjection
     try {
-      actualWork = await this.dependencies.loadActualWork(
+      actualWork = actualWorkOverride ?? await this.dependencies.loadActualWork(
         input.employeeId,
         employment.id,
         `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,

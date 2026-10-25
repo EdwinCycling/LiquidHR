@@ -23,6 +23,13 @@ type ActualWorkAuth = Awaited<ReturnType<typeof authForGroup>>
 
 export type ActualWorkReadDependencies = ActualWorkAuth
 
+export type ActualWorkPayrollBatchAuthorizedScope = {
+  readonly employeeId: string
+  readonly tenantId: string
+  readonly hrGroupId: string
+  readonly administrationId: string
+}
+
 export type ActualWorkBulkProjection = {
   month: string
   days: string[]
@@ -332,6 +339,143 @@ export async function getActualWorkPayrollProjection(
     entries,
     types: typesResult.data ?? [],
   }
+}
+
+/**
+ * Reads payroll work facts for a bounded set of exact employee/employment pairs.
+ * Every target is authorized first; rows are then partitioned back to that exact
+ * pair before they leave this service. Payroll may pass the exact scopes returned
+ * by its completed per-target authorization checks to avoid repeating leave:read;
+ * supplied scopes are bound to the ordered input targets and one shared scope.
+ * A batch failure is surfaced so callers can fall back to the established reader.
+ */
+export async function getActualWorkPayrollProjectionsBatch(
+  inputs: readonly { employeeId: string; employmentId: string; month: string }[],
+  preauthorizedScopes?: readonly ActualWorkPayrollBatchAuthorizedScope[],
+): Promise<ActualWorkPayrollProjection[]> {
+  if (inputs.length === 0) return []
+  const month = inputs[0]?.month
+  if (!month || !isValidActualWorkMonth(month) || inputs.some((input) => input.month !== month)) {
+    throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
+  }
+
+  let tenantId: string
+  let hrGroupId: string
+  let supabase: SupabaseServerClient
+  if (preauthorizedScopes) {
+    const first = preauthorizedScopes[0]
+    if (preauthorizedScopes.length !== inputs.length || !first
+      || preauthorizedScopes.some((authorized, index) => authorized.employeeId !== inputs[index]?.employeeId
+        || authorized.tenantId !== first.tenantId
+        || authorized.hrGroupId !== first.hrGroupId
+        || authorized.administrationId !== first.administrationId)) {
+      throw new ActualWorkServiceError('ACTUAL_WORK_EMPLOYMENT_NOT_FOUND', 404)
+    }
+    tenantId = first.tenantId
+    hrGroupId = first.hrGroupId
+    supabase = await createClient()
+  } else {
+    const authorized = await loadQueriesInBatches(inputs.map((input) => async () =>
+      await authForGroup('leave:read', input.employeeId),
+    ), 12)
+    const first = authorized[0]
+    if (!first) return []
+    if (authorized.some((auth) => auth.context.tenantId !== first.context.tenantId
+      || auth.hrGroupId !== first.hrGroupId
+      || auth.context.administrationId !== first.context.administrationId)) {
+      throw new ActualWorkServiceError('ACTUAL_WORK_EMPLOYMENT_NOT_FOUND', 404)
+    }
+    tenantId = first.context.tenantId
+    hrGroupId = first.hrGroupId
+    supabase = first.supabase
+  }
+
+  const from = monthStart(month)
+  const period = await readActualWorkPeriodForPayroll(tenantId, hrGroupId, from)
+  const projections: ActualWorkPayrollProjection[] = []
+  const batchSize = 4
+  const batches = Array.from({ length: Math.ceil(inputs.length / batchSize) }, (_, index) =>
+    inputs.slice(index * batchSize, index * batchSize + batchSize),
+  )
+  const entriesByBatch = await loadQueriesInBatches(batches.map((batch) => async () => {
+    const employmentIds = [...new Set(batch.map((input) => input.employmentId))]
+    const maxRows = batch.length * 2001
+    const allEntries: (ActualWorkPayrollProjection['entries'][number] & { readonly employee_id: string })[] = []
+    for (let offset = 0; offset < maxRows + 1; offset += 1000) {
+      const page = await supabase.from('employment_work_hour_entries')
+        .select('id,employee_id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,approved_at,updated_at')
+        .eq('tenant_id', tenantId)
+        .eq('hr_group_id', hrGroupId)
+        .in('employee_id', [...new Set(batch.map((input) => input.employeeId))])
+        .in('employment_id', employmentIds)
+        .eq('posting_period_start', from)
+        .order('work_date')
+        .order('id')
+        .range(offset, Math.min(offset + 999, maxRows))
+      if (page.error) databaseError(page.error, 'employment-work-hour-entries')
+      const pageRows = page.data ?? []
+      allEntries.push(...pageRows)
+      if (allEntries.length > maxRows || pageRows.length < 1000) break
+    }
+    if (allEntries.length > maxRows) {
+      throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_BATCH_LIMIT_REACHED', 503)
+    }
+    const scopedEntriesByPair = batch.map((input) => {
+      const entries = allEntries.filter((entry) => entry.employee_id === input.employeeId
+        && entry.employment_id === input.employmentId)
+      return entries.slice(0, 2001)
+    })
+    const typeIds = [...new Set(scopedEntriesByPair.flatMap((entries) =>
+      entries.map((entry) => entry.work_hour_type_id),
+    ))]
+    return { batch, scopedEntriesByPair, typeIds }
+  }), 12)
+  const typesByBatch = await loadQueriesInBatches(entriesByBatch.map(({ typeIds }) => async () => {
+    const types: ActualWorkPayrollProjection['types'] = []
+    for (let offset = 0; offset < typeIds.length; offset += 1000) {
+      const page = await supabase.from('work_hour_types')
+        .select('id,code,name,family,valid_from,valid_until,approval_required,updated_at')
+        .eq('tenant_id', tenantId)
+        .eq('hr_group_id', hrGroupId)
+        .in('id', typeIds)
+        .range(offset, Math.min(offset + 999, typeIds.length - 1))
+      if (page.error) databaseError(page.error, 'work-hour-types')
+      types.push(...(page.data ?? []))
+      if ((page.data ?? []).length < 1000) break
+    }
+    return types
+  }), 12)
+  for (let batchIndex = 0; batchIndex < entriesByBatch.length; batchIndex += 1) {
+    const batchEntries = entriesByBatch[batchIndex]
+    const types = typesByBatch[batchIndex]
+    if (!batchEntries || !types) continue
+    const { batch, scopedEntriesByPair } = batchEntries
+    for (let index = 0; index < batch.length; index += 1) {
+      const input = batch[index]
+      const entries = scopedEntriesByPair[index]
+      if (!input || !entries) continue
+      const targetTypeIds = new Set(entries.map((entry) => entry.work_hour_type_id))
+      projections.push({
+        period,
+        entries: entries.map((entry) => ({
+          id: entry.id,
+          employment_id: entry.employment_id,
+          work_hour_type_id: entry.work_hour_type_id,
+          work_date: entry.work_date,
+          entry_granularity: entry.entry_granularity,
+          subject_period_start: entry.subject_period_start,
+          subject_period_end: entry.subject_period_end,
+          posting_period_start: entry.posting_period_start,
+          hours: entry.hours,
+          status: entry.status,
+          approved_at: entry.approved_at,
+          updated_at: entry.updated_at,
+        })),
+        types: types.filter((type) => targetTypeIds.has(type.id)),
+      })
+    }
+  }
+  return projections
 }
 
 export async function getActualWorkEmployeeProjection(input: { employeeId: string; employmentId?: string; month: string }, dependencies?: ActualWorkReadDependencies): Promise<ActualWorkEmployeeProjection> {

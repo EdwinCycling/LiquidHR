@@ -206,4 +206,27 @@ describe('PayrollCycle server foundation', () => {
       }],
     })
   })
+
+  it('uses a Payroll source batch capability when the provider supplies one', async () => {
+    const getPayrollSourceSnapshot = vi.fn(async () => snapshot())
+    const getPayrollSourceSnapshots = vi.fn(async () => [{ status: 'fulfilled' as const, value: snapshot() }])
+    const provider = { getPayrollSourceSnapshot, getPayrollSourceSnapshots } as unknown as PayrollSourceProvider
+    const { service } = makeService({ initialPeriod: payrollPeriod('OPEN'), provider })
+
+    const projection = await service.getPayrollCycleWorklist(period, [{ employeeId, employmentId }])
+
+    expect(getPayrollSourceSnapshots).toHaveBeenCalledWith([{
+      ...scope,
+      employeeId,
+      employmentId,
+      payrollPeriod: period,
+    }])
+    expect(getPayrollSourceSnapshot).not.toHaveBeenCalled()
+    expect(projection?.workItems).toHaveLength(1)
+    expect(projection?.workItems[0]).toMatchObject({
+      employeeId,
+      employmentId,
+      sourceGaps: [{ field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' }],
+    })
+  })
 })

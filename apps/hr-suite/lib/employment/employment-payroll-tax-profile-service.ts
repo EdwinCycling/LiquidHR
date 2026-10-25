@@ -180,6 +180,88 @@ function ageOn(birthDate: string, date: string): number | null {
   return year - birthYear - (birthdayPassed ? 0 : 1)
 }
 
+type PayrollTaxEmployeeSource = Pick<Database['public']['Tables']['employees']['Row'], 'birth_date' | 'updated_at'>
+type PayrollTaxIncomeSource = Pick<Database['public']['Tables']['income_relationships']['Row'],
+  'id' | 'ikv_number' | 'reporting_status' | 'relationship_type' | 'starts_on' | 'ends_on' | 'updated_at'
+>
+type PayrollTaxIncomeLinkSource = Pick<Database['public']['Tables']['employment_income_relationships']['Row'],
+  'id' | 'employment_id' | 'income_relationship_id' | 'valid_from' | 'valid_until' | 'updated_at'
+>
+type PayrollTaxEmploymentSource = Pick<Database['public']['Tables']['employments']['Row'],
+  'id' | 'starts_on' | 'ends_on' | 'record_status' | 'deleted_at'
+>
+
+function projectEmploymentPayrollTaxSource(input: {
+  readonly employmentId: string
+  readonly period: { readonly year: number; readonly month: number }
+  readonly employee: PayrollTaxEmployeeSource
+  readonly incomeRelationships: readonly PayrollTaxIncomeSource[]
+  readonly links: readonly PayrollTaxIncomeLinkSource[]
+  readonly employments: readonly PayrollTaxEmploymentSource[]
+  readonly taxProfiles: readonly EmploymentPayrollTaxSourceProjection['taxProfiles'][number][]
+}): EmploymentPayrollTaxSourceProjection {
+  const start = payrollPeriodStart(input.period)
+  const end = payrollPeriodEnd(input.period)
+  const activeEmployments = input.employments.filter((row) =>
+    row.starts_on <= end && (row.ends_on === null || row.ends_on >= start),
+  )
+  const activeEmploymentIds = new Set(activeEmployments.map((row) => row.id))
+  const activeLinks = input.links.filter((link) =>
+    activeEmploymentIds.has(link.employment_id)
+    && link.valid_from <= end
+    && (link.valid_until === null || link.valid_until >= start),
+  )
+  const activeIncomeRelationships = input.incomeRelationships.filter((income) =>
+    income.relationship_type === 'EMPLOYMENT'
+    && income.reporting_status !== 'DRAFT'
+    && income.starts_on <= end
+    && (income.ends_on === null || income.ends_on >= start),
+  )
+  const incomeIds = new Set(activeIncomeRelationships.map((income) => income.id))
+  const activeLinkedIds = new Set(activeLinks
+    .filter((link) => incomeIds.has(link.income_relationship_id))
+    .map((link) => link.income_relationship_id))
+  const linkCounts = new Map<string, number>()
+  for (const link of activeLinks) {
+    if (incomeIds.has(link.income_relationship_id)) {
+      linkCounts.set(link.income_relationship_id, (linkCounts.get(link.income_relationship_id) ?? 0) + 1)
+    }
+  }
+  const incomeRelationshipLinkGap = activeIncomeRelationships.some((income) => linkCounts.get(income.id) !== 1)
+    || [...linkCounts.values()].some((count) => count !== 1)
+
+  const age = input.employee.birth_date ? ageOn(input.employee.birth_date, end) : null
+  const ageCategory = age === null ? null : age < 67 ? 'UNDER_AOW' : 'AT_OR_ABOVE_AOW'
+  const taxProfiles = input.taxProfiles.filter((profile) =>
+    profile.employment_id === input.employmentId
+    || activeLinkedIds.has(profile.income_relationship_id),
+  )
+  const payrollIncomeRelationshipProjection = buildPayrollSourceIncomeRelationshipProjection({
+    employmentId: input.employmentId,
+    complete: input.employments.length < 100
+      && input.links.length < 100
+      && input.incomeRelationships.length < 100,
+    links: activeLinks,
+    incomeRelationships: input.incomeRelationships,
+  })
+  return {
+    ageCategory,
+    ageSourceUpdatedAt: input.employee.updated_at,
+    activeIncomeRelationshipCount: activeLinkedIds.size,
+    incomeRelationshipLinkGap,
+    incomeRelationships: activeIncomeRelationships.map((income) => ({
+      id: income.id,
+      updatedAt: income.updated_at,
+      reportingStatus: income.reporting_status,
+      ikvNumber: income.ikv_number,
+      startsOn: income.starts_on,
+      endsOn: income.ends_on,
+    })),
+    payrollIncomeRelationshipProjection,
+    taxProfiles: taxProfiles as EmploymentPayrollTaxSourceProjection['taxProfiles'],
+  }
+}
+
 /**
  * Reads only the minimum Core data needed to classify the bounded tax rule.
  * Raw birth date is deliberately reduced to an age category before return.
@@ -247,67 +329,146 @@ export async function getEmploymentPayrollTaxSourceProjection(
   }
   if (!employeeResult.data) throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_EMPLOYEE_NOT_FOUND', 404)
 
-  const activeEmployments = (employmentResult.data ?? []).filter((row) =>
-    row.starts_on <= end && (row.ends_on === null || row.ends_on >= start),
+  return projectEmploymentPayrollTaxSource({
+    employmentId,
+    period,
+    employee: employeeResult.data,
+    incomeRelationships: incomeResult.data ?? [],
+    links: linkResult.data ?? [],
+    employments: employmentResult.data ?? [],
+    taxProfiles: profileResult.data ?? [],
+  })
+}
+
+/** Bounded same-scope batch read for the Payroll worklist tax source. */
+export async function getEmploymentPayrollTaxSourceProjectionsBatch(
+  inputs: readonly {
+    readonly employeeId: string
+    readonly employmentId: string
+    readonly period: { readonly year: number; readonly month: number }
+  }[],
+): Promise<EmploymentPayrollTaxSourceProjection[]> {
+  if (inputs.length === 0) return []
+  const period = inputs[0]?.period
+  if (!period || inputs.some((input) => input.period.year !== period.year || input.period.month !== period.month)) {
+    throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_INPUT_INVALID', 400)
+  }
+
+  const authorization = await loadQueriesInBatches(inputs.map((input) => async () => {
+    const salaryContext = await requirePermission('salary:read', input.employeeId)
+    const identityContext = await requirePermission('employee:read', input.employeeId)
+    if (!salaryContext.administrationId || !salaryContext.hrGroupId
+      || identityContext.tenantId !== salaryContext.tenantId
+      || identityContext.hrGroupId !== salaryContext.hrGroupId
+      || identityContext.administrationId !== salaryContext.administrationId) {
+      throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_SCOPE_UNAVAILABLE', 404)
+    }
+    return { tenantId: salaryContext.tenantId, hrGroupId: salaryContext.hrGroupId, administrationId: salaryContext.administrationId }
+  }), 12)
+  const first = authorization[0]
+  if (!first) return []
+  if (authorization.some((scope) => scope.tenantId !== first.tenantId
+    || scope.hrGroupId !== first.hrGroupId
+    || scope.administrationId !== first.administrationId)) {
+    throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_SCOPE_UNAVAILABLE', 404)
+  }
+
+  const supabase = await createClient()
+  const sourceByEmployee = new Map<string, {
+    readonly employee: PayrollTaxEmployeeSource
+    readonly incomeRelationships: readonly PayrollTaxIncomeSource[]
+    readonly links: readonly PayrollTaxIncomeLinkSource[]
+    readonly employments: readonly PayrollTaxEmploymentSource[]
+    readonly taxProfiles: readonly EmploymentPayrollTaxSourceProjection['taxProfiles'][number][]
+  }>()
+  const uniqueEmployeeIds = [...new Set(inputs.map((input) => input.employeeId))]
+  const employeeGroups = Array.from({ length: Math.ceil(uniqueEmployeeIds.length / 4) }, (_, index) =>
+    uniqueEmployeeIds.slice(index * 4, index * 4 + 4),
   )
-  const activeEmploymentIds = new Set(activeEmployments.map((row) => row.id))
-  const activeLinks = (linkResult.data ?? []).filter((link) =>
-    activeEmploymentIds.has(link.employment_id)
-    && link.valid_from <= end
-    && (link.valid_until === null || link.valid_until >= start),
-  )
-  const activeIncomeRelationships = (incomeResult.data ?? []).filter((income) =>
-    income.relationship_type === 'EMPLOYMENT'
-    && income.reporting_status !== 'DRAFT'
-    && income.starts_on <= end
-    && (income.ends_on === null || income.ends_on >= start),
-  )
-  const incomeIds = new Set(activeIncomeRelationships.map((income) => income.id))
-  const activeLinkedIds = new Set(activeLinks
-    .filter((link) => incomeIds.has(link.income_relationship_id))
-    .map((link) => link.income_relationship_id))
-  const linkCounts = new Map<string, number>()
-  for (const link of activeLinks) {
-    if (incomeIds.has(link.income_relationship_id)) {
-      linkCounts.set(link.income_relationship_id, (linkCounts.get(link.income_relationship_id) ?? 0) + 1)
+  const queryLimits = { incomeRelationships: 100, links: 100, employments: 100, taxProfiles: 200 } as const
+  const sourceGroups = await loadQueriesInBatches(employeeGroups.map((employeeIds) => async () => {
+    const [employeesResult, incomeResult, linksResult, employmentsResult, profilesResult] = await loadQueriesInBatches([
+      () => supabase.from('employees').select('id,birth_date,updated_at')
+        .eq('tenant_id', first.tenantId).eq('hr_group_id', first.hrGroupId)
+        .in('id', employeeIds).is('deleted_at', null).range(0, employeeIds.length),
+      () => supabase.from('income_relationships')
+        .select('id,employee_id,ikv_number,reporting_status,relationship_type,starts_on,ends_on,updated_at')
+        .eq('tenant_id', first.tenantId).eq('administration_id', first.administrationId)
+        .in('employee_id', employeeIds).is('deleted_at', null).lte('starts_on', payrollPeriodEnd(period))
+        .or(`ends_on.is.null,ends_on.gte.${payrollPeriodStart(period)}`)
+        .range(0, queryLimits.incomeRelationships * employeeIds.length),
+      () => supabase.from('employment_income_relationships')
+        .select('id,employee_id,employment_id,income_relationship_id,valid_from,valid_until,updated_at')
+        .eq('tenant_id', first.tenantId).eq('administration_id', first.administrationId)
+        .in('employee_id', employeeIds).lte('valid_from', payrollPeriodEnd(period))
+        .or(`valid_until.is.null,valid_until.gte.${payrollPeriodStart(period)}`)
+        .range(0, queryLimits.links * employeeIds.length),
+      () => supabase.from('employments').select('id,employee_id,starts_on,ends_on,record_status,deleted_at')
+        .eq('tenant_id', first.tenantId).eq('hr_group_id', first.hrGroupId)
+        .eq('administration_id', first.administrationId).in('employee_id', employeeIds)
+        .eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', payrollPeriodEnd(period))
+        .or(`ends_on.is.null,ends_on.gte.${payrollPeriodStart(period)}`)
+        .range(0, queryLimits.employments * employeeIds.length),
+      () => supabase.from('employment_payroll_tax_profiles').select('*')
+        .eq('tenant_id', first.tenantId).eq('hr_group_id', first.hrGroupId)
+        .eq('administration_id', first.administrationId).in('employee_id', employeeIds)
+        .lte('effective_from', payrollPeriodEnd(period))
+        .or(`effective_to.is.null,effective_to.gte.${payrollPeriodStart(period)}`)
+        .order('effective_from').order('version_number')
+        .range(0, queryLimits.taxProfiles * employeeIds.length),
+    ], 4)
+    return { employeeIds, employeesResult, incomeResult, linksResult, employmentsResult, profilesResult }
+  }), 3)
+  for (const { employeeIds, employeesResult, incomeResult, linksResult, employmentsResult, profilesResult } of sourceGroups) {
+    const failedRead = [
+      { sourceCategory: 'employees', error: employeesResult.error },
+      { sourceCategory: 'income-relationships', error: incomeResult.error },
+      { sourceCategory: 'employment-income-relationships', error: linksResult.error },
+      { sourceCategory: 'employments', error: employmentsResult.error },
+      { sourceCategory: 'employment-payroll-tax-profiles', error: profilesResult.error },
+    ].find((result) => result.error)
+    if (failedRead?.error) {
+      const code = failedRead.error.code
+      const databaseCode = typeof code === 'string' && /^(?:PGRST\d{3}|[0-9A-Z]{5})$/.test(code) ? code : undefined
+      throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_SOURCE_UNAVAILABLE', 503, failedRead.sourceCategory, databaseCode)
+    }
+
+    const employees = employeesResult.data ?? []
+    const incomeRows = incomeResult.data ?? []
+    const linkRows = linksResult.data ?? []
+    const employmentRows = employmentsResult.data ?? []
+    const profileRows = profilesResult.data ?? []
+    const overReadLimit = employees.length > employeeIds.length
+      || incomeRows.length > queryLimits.incomeRelationships * employeeIds.length
+      || linkRows.length > queryLimits.links * employeeIds.length
+      || employmentRows.length > queryLimits.employments * employeeIds.length
+      || profileRows.length > queryLimits.taxProfiles * employeeIds.length
+      || employeeIds.some((employeeId) => incomeRows.filter((row) => row.employee_id === employeeId).length > queryLimits.incomeRelationships
+        || linkRows.filter((row) => row.employee_id === employeeId).length > queryLimits.links
+        || employmentRows.filter((row) => row.employee_id === employeeId).length > queryLimits.employments
+        || profileRows.filter((row) => row.employee_id === employeeId).length > queryLimits.taxProfiles)
+    if (overReadLimit) {
+      throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_BATCH_LIMIT_REACHED', 503)
+    }
+
+    for (const employeeId of employeeIds) {
+      const employee = employees.find((row) => row.id === employeeId)
+      if (!employee) throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_EMPLOYEE_NOT_FOUND', 404)
+      sourceByEmployee.set(employeeId, {
+        employee,
+        incomeRelationships: incomeRows.filter((row) => row.employee_id === employeeId),
+        links: linkRows.filter((row) => row.employee_id === employeeId),
+        employments: employmentRows.filter((row) => row.employee_id === employeeId),
+        taxProfiles: profileRows.filter((row) => row.employee_id === employeeId),
+      })
     }
   }
-  const incomeRelationshipLinkGap = activeIncomeRelationships.some((income) => linkCounts.get(income.id) !== 1)
-    || [...linkCounts.values()].some((count) => count !== 1)
 
-  const age = employeeResult.data.birth_date
-    ? ageOn(employeeResult.data.birth_date, end)
-    : null
-  const ageCategory = age === null ? null : age < 67 ? 'UNDER_AOW' : 'AT_OR_ABOVE_AOW'
-
-  const taxProfiles = (profileResult.data ?? []).filter((profile) =>
-    profile.employment_id === employmentId
-    || activeLinkedIds.has(profile.income_relationship_id),
-  )
-  const payrollIncomeRelationshipProjection = buildPayrollSourceIncomeRelationshipProjection({
-    employmentId,
-    complete: (employmentResult.data ?? []).length < 100
-      && (linkResult.data ?? []).length < 100
-      && (incomeResult.data ?? []).length < 100,
-    links: activeLinks,
-    incomeRelationships: incomeResult.data ?? [],
+  return inputs.map((input) => {
+    const source = sourceByEmployee.get(input.employeeId)
+    if (!source) throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_EMPLOYEE_NOT_FOUND', 404)
+    return projectEmploymentPayrollTaxSource({ employmentId: input.employmentId, period, ...source })
   })
-  return {
-    ageCategory,
-    ageSourceUpdatedAt: employeeResult.data.updated_at,
-    activeIncomeRelationshipCount: activeLinkedIds.size,
-    incomeRelationshipLinkGap,
-    incomeRelationships: activeIncomeRelationships.map((income) => ({
-      id: income.id,
-      updatedAt: income.updated_at,
-      reportingStatus: income.reporting_status,
-      ikvNumber: income.ikv_number,
-      startsOn: income.starts_on,
-      endsOn: income.ends_on,
-    })),
-    payrollIncomeRelationshipProjection,
-    taxProfiles: taxProfiles as EmploymentPayrollTaxSourceProjection['taxProfiles'],
-  }
 }
 
 /** Loads a fiscal dossier only for the active administration and HR/payroll administrators. */
