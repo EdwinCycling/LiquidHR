@@ -1,5 +1,8 @@
 # AA-CURRENT — Current LiquidHR State
 
+> **PAY-W03-INTEGRATION-READY-07 (25-10-2026):** lokale PR-handoff gereed; W02 pairwise tekstueel schoon, W04-providerconflict bevestigd. Gezamenlijke integratie en release HOLD; W03 LOCAL PARTIAL, HOSTED/issue #39 OPEN. Zie [handoff](../quality/acceptance/runs/PAY-W03-INTEGRATION-READY-07-20261025.md). Geen push of merge.
+
+
 > **PAY-W03-TIMELINE-OPT-06 (25-10-2026):** codecommit `b4a2cbc2` behoudt 39 snapshots en OPT-05-batches, maar bundelt de zeven timeline-tabellen per vier geautoriseerde paren. Timeline-/taxreads 355 → 152; 14 runs en 39/39 medewerkers, gelijke projecties/hashes/version vectors/SOURCE_GAP en bestaande PDF-hash. De zes gekozen werkplekmetingen waren desktop 13.477/16.098/14.500 ms, 390px 25.124/22.992/36.412 ms. Een tweede relationele variant (92 reads) gaf geen aangetoonde latencywinst en is teruggedraaid; twee pogingen afgerond. 193 tests, TypeScript, lint en volledige rootbuild (339/339 + 12/12) PASS; zie het [OPT-06-rapport](../quality/acceptance/runs/PAY-W03-TIMELINE-OPT-06-20261025.md). W03 LOCAL **PARTIAL**; hosted issue #39 blijft OPEN. De canonieke lokale config werkt via de bestaande hostlauncher; geen nieuwe secrets/configuratie, migratie of gedeelde Payroll-write.
 
 
