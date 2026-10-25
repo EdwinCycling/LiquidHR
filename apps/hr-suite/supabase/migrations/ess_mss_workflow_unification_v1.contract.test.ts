@@ -87,7 +87,7 @@ describe('ESS/MSS Workflow Unification V1 migration contract', () => {
     expect(migration).toContain('internal_security.process_work_item_can_read')
   })
 
-  it('preserves the seeded two-business-day Leave SLA and fails closed without a calendar', async () => {
+  it('preserves the seeded two-business-day Leave SLA for runtime calendar resolution', async () => {
     const recipeMatch = migrationSource.match(/\$recipe\$([\s\S]*?)\$recipe\$::jsonb/)
     expect(recipeMatch?.[1]).toBeDefined()
     const leaveRecipe = JSON.parse(recipeMatch?.[1] ?? '') as {
@@ -106,7 +106,16 @@ describe('ESS/MSS Workflow Unification V1 migration contract', () => {
       },
     ])
     const { compileProcessDefinition } = await import('@/lib/process-automation/definition-compiler')
-    expect(() => compileProcessDefinition(leaveRecipe, { requiredLanguages: ['nl', 'en'] }))
-      .toThrow('SLA_WORKDAY_CALENDAR_REQUIRED')
+    const compiled = compileProcessDefinition(leaveRecipe, { requiredLanguages: ['nl', 'en'] })
+    expect(compiled.content.steps.filter((step) => step.sla).map(({ key, sla }) => ({ key, sla }))).toEqual([
+      {
+        key: 'manager-approval',
+        sla: { duration: { amount: 2, unit: 'DAYS' }, businessDays: true, onBreach: 'NOTIFY' },
+      },
+      {
+        key: 'manager-approval-retry',
+        sla: { duration: { amount: 2, unit: 'DAYS' }, businessDays: true, onBreach: 'NOTIFY' },
+      },
+    ])
   })
 })
