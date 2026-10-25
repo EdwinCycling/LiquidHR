@@ -275,3 +275,55 @@ De bestaande voor/na-fingerprints en 14-run/39-medewerkercontrole uit de eerdere
 - Geen bestaande FINALIZED-run of PDF, gedeelde TEST-data, payroll lifecycle, schema of migratie is gewijzigd.
 
 **OPT-05-gate:** **W03 LOCAL PARTIAL; actuele end-to-end performanceacceptatie HOLD.** De dubbele linkread is veilig begrensd aangepakt en de rootbuild slaagt, maar de bredere bronreadketen en postwijzigingsperformance zijn niet live geverifieerd. W01 LOCAL blijft PARTIAL. W01/W03 HOSTED en GitHub issue #39 blijven OPEN. Issue #39 vereist nog een bevoegde HR Admin in production-like TEST, drie of meer afzonderlijke `/payroll/runs`-metingen voor first-visible en volledig gestreamde werkplek, bron-/datasetattributie en een afgesproken budget of concrete uitzondering; PDF-/toegangscontrole en deployment-smoke horen bij een latere productie-release. Geen push, merge, deployment, migratie, gedeelde TEST-write of salarisfinalisatie.
+
+## PAY-W03-SOURCE-SNAPSHOT-OPT-05 — post-ed1 live browser- en bronfingerprintcontrole (25-10-2026)
+
+De gemeten productcode is commit ed1eb478ac839cf7273d11d67297241f1b65b756; alleen de acceptatiedocumentatie wordt hierna gewijzigd. De bestaande lokale server op 51518 is hergebruikt. Een geïsoleerde browser meldde via /local/sign-in aan als de bestaande HR Admin en gebruikte De Sterren holding / Planeten / Jupiter BV voor periode 2026-10. De metingen waren read-only.
+
+### Browsermatrix en datavolledigheid
+
+| Viewport | Trial | Runlijst zichtbaar (ms) | Werkplek volledig (ms) | Browserresources | Resultaat |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Desktop 1440×900 | 1 | 2338 | 19699 | 14 | 14 runs, 39/39 medewerkers |
+| Desktop 1440×900 | 2 | 4632 | 18111 | 12 | 14 runs, 39/39 medewerkers |
+| Desktop 1440×900 | 3 | 1772 | 18090 | 12 | 14 runs, 39/39 medewerkers |
+| 390×852 | 1 | 2181 | 19408 | 12 | 14 runs, 39/39 medewerkers; geen overflow |
+| 390×852 | 2 | 2061 | 15127 | 12 | 14 runs, 39/39 medewerkers; geen overflow |
+| 390×852 | 3 | 1979 | 16996 | 12 | 14 runs, 39/39 medewerkers; geen overflow |
+
+Tegenover de eerder gerapporteerde lokale full-workspace-baseline van 27,7–46,6 s desktop en 78,2 s op 390px liggen deze on-geïnstrumenteerde post-ed1-renders op 18090–19699 ms desktop en 15127–19408 ms op 390px (ongeveer 18–20 s en 15–19 s). Het zijn afzonderlijke meetreeksen, geen gecontroleerde A/B-test; daarom wordt geen causale winst aan alleen income-linkhergebruik toegeschreven. De afzonderlijk geïnstrumenteerde sourcefase blijft variabel op 10699–33273 ms.
+
+De browserresource-aantallen zijn geen database- of RPC-aantallen. De run-ID-, employment-ID- en gerenderde medewerker/resultaatdigests bleven over alle zes trials gelijk: b5025fa5528ddca6ecffe90f4fef8599e9a6542cbffe140d45548f7f968d9a72, 996525893bf7691f960c152e7dc725faaff8e7cc9aa49c3583e9aabf532ce21e en c4c6302420b8fad681e141d93f975efc204bc2201900004eb4063ac0eb31cc79. De 14 zichtbare lijstregels omvatten ook andere perioden; de huidige oktoberprojectie bevat 12 opgeslagen run-samenvattingen en 39 actuele medewerkerwerkitems.
+
+### Bronfase en fingerprints
+
+In een afzonderlijke tijdelijke servicefasemeting (los van de on-geïnstrumenteerde UI-matrix) registreerden zes voltooide reads elk 39 snapshots, concurrency 12 en nul fallback op de hergebruikte inkomenslinks. De gemeten bronfasetijden waren:
+
+| Viewport/trial | Sourcefase wall time (ms) |
+| --- | ---: |
+| Desktop 1 | 13478 |
+| 390px 1 | 12805 |
+| Desktop 2 | 10699 |
+| 390px 2 | 33273 |
+| Desktop 3 | 24533 |
+| 390px 3 | 24839 |
+
+Deze sourcefase loopt over de bronrequests en projectie; zij scheidt Postgres-querytijd niet van PostgREST/serverwachttijd en netwerktransport. JSON-parsing en lokale providerprojectie waren in de eerdere requestinstrumentatie klein. Een afzonderlijk geïnstrumenteerde HMR-reeks had sterk afwijkende volledige-werkplekduur en is niet met bovenstaande gewone trials vermengd. Uit drie trials volgt geen p95.
+
+Na commit ed1eb voerde tijdelijke hash-only instrumentatie nog twee desktop- en twee 390px-service-reads uit. Per read waren 39/39 actuele sourcehashes aanwezig en werden 39 werkitems geprojecteerd. De geaggregeerde bronfingerprint was op beide viewports gelijk: 2c03532ae27c52f7422f51e3173aafb41cf53b561aa70e7e8035b058571efafa. De geaggregeerde opgeslagen run-/input-/resultaatfingerprint was eveneens gelijk: 7361351a095f25f1b0cffafa64931d229f38b01f52a44925b13cb3709e86b8bc. In de periodeprojectie hadden 9 van de 12 opgeslagen runs een resultHash; de drie zonder resultHash bleven in de fingerprint opgenomen met hun status. Alleen aantallen en digests zijn tijdelijk vastgelegd; geen ruwe identifiers, bronpayloads of loonbedragen. De tijdelijke code en het hashlog zijn verwijderd; payroll-cycle-service.ts is exact naar HEAD hersteld.
+
+### Bronreads en resterende bottleneck
+
+De 39 afzonderlijk geautoriseerde source snapshots blijven bestaan. Na cataloghergebruik was eerder 581 Core PostgREST-requests plus 41 Payroll Lab-reads per route direct gemeten (622 totaal). De tijdelijke source-providerlog bevestigde op zes voltooide reads hergebruik van de inkomenslinks voor 39/39 medewerkers en nul fallback. Daarmee zijn na ed1 maximaal 39 Core-requests vermeden: 542 Core plus 41 Payroll Lab, 583 totaal, is een code-afgeleide schatting en geen nieuwe HTTP-interceptie. De historische pre-catalogreadbasis was 790 Core plus 41 Payroll Lab, 831 totaal. Er was geen Core-RPC.
+
+De structurele bottleneck is nog steeds de fan-out van de employee/employment-specifieke timelines en actual-work-bronlezingen; de geïnstrumenteerde source wall time bleef 10699–33273 ms. Het PayrollSourceProvider-contract ondersteunt alleen getPayrollSourceSnapshot(input). Die service autoriseert elk employeeId afzonderlijk, controleert expliciete tenant/HR-groep/administratie en bevestigde periode-overlappende employment, en bouwt per medewerker de effectieve datums, sourceVersionVector, fingerprint en SOURCE_GAP-uitkomsten. Er bestaat geen complete batchprovider of Core-batch-RPC. Een code-only batchservice is een ontwerpoptie, maar moet met dezelfde authenticated RLS-client en per-employee foutisolatie aantoonbaar alle genoemde controles behouden; die gelijkwaardigheid is nog niet bewezen. Als dat alleen via een Core read-only batch-RPC veilig kan, zijn schemaontwerp en afzonderlijke migratieautorisatie nodig. Geen batchservice of migratie is in dit resultaat toegevoegd.
+
+### Security, kwaliteit en gates
+
+- De bronfingerprintmeting gebruikte alleen de bestaande HR Admin-scope. Manager-teamnegatieven en Lisa’s Employee-selfscope/PDF blijven historische lokale PASS; zij zijn in deze aanvullende run niet opnieuw uitgevoerd. Er is geen bestaande foreign-tenantpersona beschikbaar; die liveprobe blijft OPEN. De gerichte autorisatieregressies zijn inbegrepen in de 69/69 tests op codecommit ed1eb.
+- TypeScript, gerichte ESLint en git diff --check waren PASS op de ongewijzigde codecommit. De rootproductiebuild in dezelfde werkende buildcontext als W02 was PASS: HR Suite 339/339 en Control 12/12, inclusief Payroll client-boundary, PDF-trace en buildprovenance.
+- Geen Payroll-write, nieuwe berekening, lifecyclewijziging, FINALIZED-run/PDF-wijziging, migratie of gedeelde TEST-mutatie. Configuraties en dependencies zijn niet gewijzigd; apps/hr-suite/next-env.d.ts bleef bytegelijk.
+
+**Gate:** W03 LOCAL **PARTIAL/HOLD**. De gerichte hergebruikoptimalisatie, 14-run/39-medewerker-volledigheid, viewportgelijkheid en geaggregeerde bron-/resultaatfingerprints zijn bevestigd. De oorspronkelijke grote fan-out is echter niet vervangen door een batchread en de bronfase blijft variabel. W01 LOCAL blijft **PARTIAL** (Jaaps bestaande conceptpreview is OPEN); W01/W03 HOSTED en issue #39 blijven **OPEN**.
+
+GitHub issue #39 is read-only opnieuw gecontroleerd op 25-10-2026 en blijft OPEN, zonder comments. De hosted gate vraagt een bevoegde HR Admin in production-like TEST met actor-/scopecorroboratie, minstens drie herhaalbare hosted list-first-visible- en complete-workspace-metingen met contextuele latency ranges, volledigheidsbewijs en bronattributie van de trage fase, plus een afgesproken performancebudget of expliciete uitzondering. PDF-/toegangscontrole en deployment-smoke volgen pas bij een afzonderlijk geautoriseerde toekomstige release. Er is geen issuecomment geplaatst.
