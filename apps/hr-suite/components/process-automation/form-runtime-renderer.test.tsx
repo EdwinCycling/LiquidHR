@@ -121,6 +121,21 @@ describe("FormRuntimeRenderer server validation feedback", () => {
     expect(mounted.container.querySelector("#form-error-expected_cost")?.textContent).toBe(labels.required)
     expect(mounted.container.querySelector("#form-field-expected_cost")?.getAttribute("aria-invalid")).toBe("true")
     expect(mounted.container.querySelector('[role="alert"]')?.textContent).toContain(labels.required)
+    expect(mounted.container.querySelector('[role="alert"]')?.getAttribute("tabindex")).toBe("-1")
+    expect(mounted.container.querySelector('[role="alert"] a[href="#form-field-expected_cost"]')?.textContent).toBe(labels.required)
+  })
+
+  it("keeps the save action full-width on narrow screens and available after long form content", () => {
+    mounted = mountRenderer()
+
+    const footer = mounted.container.querySelector("form footer")
+    const saveButton = footer?.querySelector('button[type="submit"]')
+
+    expect(footer?.className).toContain("sticky bottom-0")
+    expect(footer?.className).toContain("flex-col items-stretch")
+    expect(footer?.className).toContain("sm:flex-row")
+    expect(saveButton?.className).toContain("w-full justify-center sm:w-auto")
+    expect(mounted.container.querySelector("#form-field-expected_cost")?.getAttribute("aria-describedby")).toBeNull()
   })
 
   it("does not render a server field error for a field absent from the authorized projection", () => {
