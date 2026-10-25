@@ -13,7 +13,7 @@ export function PageHeader({ actions, className, description, title, ...props }:
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
         {description ? <div className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</div> : null}
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}
+      {actions ? <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}
     </header>
   )
 }

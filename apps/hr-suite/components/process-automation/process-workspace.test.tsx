@@ -94,6 +94,13 @@ describe('ProcessWorkWorkspace', () => {
     expect(markup).not.toContain('truncate text-base font-semibold text-foreground')
   })
 
+  it('allows workspace start actions to wrap within a tablet-width content column', () => {
+    const markup = renderWorkspace({ items: [item], total: 1, hasMore: false })
+
+    expect(markup).toContain('<div class="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">')
+    expect(markup).not.toContain('<div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">')
+  })
+
   it('labels urgency counts as belonging to the current page', () => {
     const overdueItem = { ...item, deadlineAt: '2020-01-01T08:00:00.000Z', deadlineStatus: 'OVERDUE' as const, deadlineRemainingSeconds: -60, isOverdue: true }
     const markup = renderWorkspace({ items: [overdueItem], total: 30, hasMore: true })
