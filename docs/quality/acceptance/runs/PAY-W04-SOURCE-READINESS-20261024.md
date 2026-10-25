@@ -68,3 +68,7 @@ The checked-in [commercial roadmap](../../../AA/AA-PAYROLL-COMMERCIAL-ROADMAP-20
 - **W06 prerequisite:** do not build a regular R2 net/payroll acceptance on top of unresolved source gaps. First prove a complete source set without gaps against the source provider, then compare the normal calculation service with an independent oracle and re-run the relevant negative-scope and immutable-history gates. W01/W03 hosted UI/performance acceptance remains a separate Spoor A gate.
 
 **Integration recommendation: HOLD for regular R2 processing and W02 integration; PARTIAL for W04 source-readiness.** The code and local quality gates pass, but actual sources, employer/pension applicability, legal parameter confirmation, and real cumulative balances remain open. No claim of actual payroll readiness or legal conformity is made.
+
+## Vervolg binnen W04 — 25-10-2026
+
+[PAY-W04-CORE-SOURCE-BRIDGE-03](PAY-W04-CORE-SOURCE-BRIDGE-20261025.md) onderzoekt de standaard Core-serviceassembly en voegt zes geïsoleerde integratieproeven toe. De bestaande readers voor de ondersteunde brongegevens zijn gekoppeld; voor het Retail-bedrijfsmodel en bronbewijs van overlap/tijdvakken ontbreken nog expliciete Core/Actual Work-broncontracten. Geen productieadapter of bronwaarde toegevoegd. De [TEST-readback van 24-10](PAY-W04-LIVE-SOURCE-READBACK-20261024.md) blijft synthetisch en bewijst geen reguliere R2-bronset. W04 blijft PARTIAL; reguliere salarisverwerking HOLD. De bovenstaande historische wave-evidence blijft behouden.
