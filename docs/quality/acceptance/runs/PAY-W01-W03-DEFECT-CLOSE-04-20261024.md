@@ -250,3 +250,28 @@ Een nieuwe serverstart om die zichtbaarheidstiming te corrigeren werd geblokkeer
 - Manager-/Employee-negatieve servicechecks vallen in de geslaagde autorisatieregressies; een actuele live Manager-/Employee-probe ontbreekt. De persona-catalogus heeft geen foreign-tenant-identiteit, dus die liveprobe blijft OPEN.
 
 **Gate:** **W03 LOCAL PARTIAL** — het aantal requests en de geïnstrumenteerde sourcefase daalden aantoonbaar, de 14-run/39-medewerkerdataset en fingerprints bleven gelijk, maar de nieuwe full-document waarnemingen zijn traag/wisselend en een geldige `time-to-visible-list`-meting ontbreekt. De brede batchread is niet geïmplementeerd: die moet eerst aantoonbaar dezelfde per-medewerkerautorisatie, RLS, effectieve datums, provenance, version vectors, fingerprinting en geïsoleerde `SOURCE_GAP`-uitkomsten behouden. Als daarvoor een Core batch-RPC nodig blijkt, vereist die een apart schemaontwerp en afzonderlijke migratieautorisatie. **W01 LOCAL blijft PARTIAL; W01/W03 HOSTED en GitHub issue #39 blijven OPEN.** Geen push, merge, deployment, migratie of salarisfinalisatie.
+
+## PAY-W03-SOURCE-SNAPSHOT-OPT-05 — hergebruik van income-links (25-10-2026)
+
+### Bronketen en gerichte wijziging
+
+- De route bouwt nog steeds één `getPayrollSourceSnapshot` per medewerker/employment: 39 afzonderlijke snapshots voor de bekende werkplek. Er is geen bestaande complete batchservice of Core-RPC gevonden.
+- Binnen een snapshot werden de periodegescopeerde `employment_income_relationships`-links afzonderlijk gelezen door de employment-projectie en de tax-sourceprojectie. De tax-projectie had de benodigde link- en income-relationshipkolommen al onder dezelfde geauthenticeerde Core-client gelezen.
+- Codecommit `ed1eb478ac839cf7273d11d67297241f1b65b756` voegt een kleine pure joinprojectie toe en laat de source provider die data hergebruiken als de bestaande employment-, link- en income-resultsets elk onder de huidige limiet van 100 rijen blijven en iedere target-link een income-relatie heeft. DRAFT-status, effectieve datums, link-/relatie-updated-at en volgorde blijven onderdeel van de bronprojectie.
+- Bij een mogelijke truncatie, ontbrekende join, of tax-readfout wordt de bestaande per-employment-read als fallback gebruikt. De bestaande autorisatie, tenant-/HR-groep-/administratiefilters, bronvalidatie, hashes, version vectors en `SOURCE_GAP`-paden blijven behouden. Er is geen globale cache, brede ongefilterde query of Payroll-datawrite toegevoegd.
+
+### Impact en grenzen van het bewijs
+
+De laatste gemeten code vóór deze wijziging telde 581 Core PostgREST-requests plus 41 afzonderlijke Payroll Lab-reads per route. Bij 39 complete tax-linkprojecties schrapt de wijziging maximaal 39 dubbele Core-requests: code-afgeleid maximaal 542 Core + 41 Payroll Lab; de requestreductie op de huidige dataset is **niet** live gemeten. Dit verandert het aantal snapshots niet en lost de resterende per-medewerker bronreadketen niet volledig op. Er wordt geen nieuwe bronfase- of volledige-werkplekduur geclaimd.
+
+De bestaande voor/na-fingerprints en 14-run/39-medewerkercontrole uit de eerdere follow-up zijn van commit `a55b25fbc18459b0631ebc7f36104cd548deb866`; zij zijn geen post-`ed1eb478`-livegelijkheidbewijs.
+
+### Kwaliteit en runtimeblokkade
+
+- Gerichte Payroll-, autorisatie-, lifecycle-, Employee-berekening- en Retail R1/R2-regressies: **69/69 PASS** over zes bestanden. TypeScript, ESLint op de vier gewijzigde code-/testbestanden en `git diff --check`: **PASS**.
+- De volledige rootproductiebuild is op codecommit `ed1eb478ac839cf7273d11d67297241f1b65b756` uitgevoerd in `LIQUIDHR_NEXT_DIST_DIR=.next/payrun01-acceptance-20261009`: HR Suite **339/339**, Control **12/12**, Payroll client-boundary scan, PDF-renderer-tracecontroles en buildprovenance **PASS**. Node was `24.22.1`; lockfileblob `cdd20c601e5956b419b96d7a346b36ba5b1ce14b`.
+- De geautoriseerde provisioning/launchercontrole verifieerde de bestaande lokale TEST-config als hardlink en de Development-preflight slaagde. De serverstart op vrije poort `51624` stopte daarna veilig: Next rapporteerde de bestaande `.next/dev`-lock van PID `11092` in deze worktree, hoewel `51518` vanuit deze uitvoeringscontext geen listener/HTTP-antwoord had. Een tweede startpoging met een aparte `LIQUIDHR_NEXT_DIST_DIR` raakte dezelfde lock. Geen proces, lock of andere server is gestopt of gewijzigd.
+- Daarom zijn na `ed1eb478` geen geauthenticeerde desktop-/390px-runs, live 14/39-/fingerprintcontrole of Manager-/Employee-/foreign-tenant-browserprobes uitgevoerd. De oorspronkelijke `next-env.d.ts` en Focus-widgetbytes zijn na de rootbuild naar hun vooraf vastgelegde HEAD-hashes teruggezet; dependency- en runtimeconfiguraties zijn niet gewijzigd.
+- Geen bestaande FINALIZED-run of PDF, gedeelde TEST-data, payroll lifecycle, schema of migratie is gewijzigd.
+
+**OPT-05-gate:** **W03 LOCAL PARTIAL; actuele end-to-end performanceacceptatie HOLD.** De dubbele linkread is veilig begrensd aangepakt en de rootbuild slaagt, maar de bredere bronreadketen en postwijzigingsperformance zijn niet live geverifieerd. W01 LOCAL blijft PARTIAL. W01/W03 HOSTED en GitHub issue #39 blijven OPEN. Issue #39 vereist nog een bevoegde HR Admin in production-like TEST, drie of meer afzonderlijke `/payroll/runs`-metingen voor first-visible en volledig gestreamde werkplek, bron-/datasetattributie en een afgesproken budget of concrete uitzondering; PDF-/toegangscontrole en deployment-smoke horen bij een latere productie-release. Geen push, merge, deployment, migratie, gedeelde TEST-write of salarisfinalisatie.
