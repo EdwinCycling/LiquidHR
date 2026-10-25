@@ -41,6 +41,7 @@ import {
 import {
   getEmploymentIncomeRelationshipProjection,
   getEmploymentPayrollSourceProjection,
+  getEmploymentPayrollSourceProjectionsBatch,
   type EmploymentPayrollSourceProjection,
 } from '@/lib/employment/employment-detail-service'
 import { isPayrollLabEnabled } from '../feature-flag'
@@ -327,11 +328,11 @@ async function loadDefaultPayrollTimeline(
 async function loadDefaultPayrollTimelinesBatch(
   inputs: readonly Pick<PayrollSourceProviderInput, 'employeeId' | 'employmentId' | 'payrollPeriod'>[],
 ): Promise<readonly PayrollSourceTimeline[]> {
-  const sources = await loadQueriesInBatches(inputs.map((input) => async () =>
-    await getEmploymentPayrollSourceProjection(input.employeeId, input.employmentId!, input.payrollPeriod).catch((error: unknown) => {
-      throw new PayrollSourceReadFailure('employment-payroll-projection', error)
-    }),
-  ), 12)
+  const sources = await getEmploymentPayrollSourceProjectionsBatch(inputs.map((input) => ({
+    employeeId: input.employeeId, employmentId: input.employmentId!, payrollPeriod: input.payrollPeriod,
+  }))).catch((error: unknown) => {
+    throw new PayrollSourceReadFailure('employment-payroll-projection', error)
+  })
   const taxProjections = await getEmploymentPayrollTaxSourceProjectionsBatch(inputs.map((input) => ({
     employeeId: input.employeeId,
     employmentId: input.employmentId!,
