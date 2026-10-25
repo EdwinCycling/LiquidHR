@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { getLocale } from '@/lib/i18n/server'
 import {
   getProcessOperationsInbox,
@@ -20,6 +21,9 @@ export async function GET(request: Request) {
     const data = await getProcessOperationsInbox(parsed.data, await getLocale())
     return NextResponse.json({ data })
   } catch (error) {
+    const authResponse = permissionErrorResponse(error)
+    if (authResponse) return authResponse
+
     if (error instanceof ProcessOperationsServiceError) {
       return NextResponse.json({ code: error.code }, { status: error.status })
     }

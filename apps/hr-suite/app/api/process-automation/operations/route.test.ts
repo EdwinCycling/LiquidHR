@@ -11,6 +11,7 @@ vi.mock('@/lib/process-automation/operations-service', async (importOriginal) =>
   return { ...actual, getProcessOperationsInbox }
 })
 
+import { AuthenticationError } from '@/lib/auth/permissions'
 import { ProcessOperationsServiceError } from '@/lib/process-automation/operations-service'
 import { GET } from './route'
 
@@ -42,5 +43,15 @@ describe('process operations API route', () => {
 
     expect(response.status).toBe(403)
     expect(await response.json()).toEqual({ code: 'FORBIDDEN' })
+  })
+
+  it('returns the standard unauthenticated response before reading operations', async () => {
+    getLocale.mockResolvedValue('nl')
+    getProcessOperationsInbox.mockRejectedValue(new AuthenticationError('Je bent niet ingelogd.'))
+
+    const response = await GET(new Request('https://liquidhr.test/api/process-automation/operations'))
+
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({ error: 'Je bent niet ingelogd.' })
   })
 })
