@@ -331,3 +331,50 @@ Een nieuwe code-only batch blijft technisch denkbaar. De veilige contractgrens i
 **Gate:** W03 LOCAL **PARTIAL/HOLD**. De gerichte hergebruikoptimalisatie, 14-run/39-medewerker-volledigheid, viewportgelijkheid en geaggregeerde bron-/resultaatfingerprints zijn bevestigd. De oorspronkelijke grote fan-out is echter niet vervangen door een batchread en de bronfase blijft variabel. W01 LOCAL blijft **PARTIAL** (Jaaps bestaande conceptpreview is OPEN); W01/W03 HOSTED en issue #39 blijven **OPEN**.
 
 GitHub issue #39 is read-only opnieuw gecontroleerd op 25-10-2026 en blijft OPEN, zonder comments. De hosted gate vraagt een bevoegde HR Admin in production-like TEST met actor-/scopecorroboratie, minstens drie herhaalbare hosted list-first-visible- en complete-workspace-metingen met contextuele latency ranges, volledigheidsbewijs en bronattributie van de trage fase, plus een afgesproken performancebudget of expliciete uitzondering. PDF-/toegangscontrole en deployment-smoke volgen pas bij een afzonderlijk geautoriseerde toekomstige release. Er is geen issuecomment geplaatst.
+
+## PAY-W03-SOURCE-SNAPSHOT-OPT-05 — begrensde bronbatch en heracceptatie (25-10-2026)
+
+### Werkcontext en root cause
+
+- De opdracht noemde begin-HEAD `a6e48e20c6056840f50c398aa8470f81d1b5567e`. De bestaande worktree stond bij aanvang al op `38e98f339b38354637954b0daa59e6d8ccddd52d`, een descendant met eerdere W03-code- en acceptatiecommits; `a6e48e20` is ancestor. Er is niet gereset of van branch gewisseld. De W02-integratiebranch is niet aangeraakt.
+- De werkplek heeft 39 expliciete employee-/employment-paren en blijft 39 afzonderlijke canonieke `PayrollSourceSnapshot`s maken. Er was geen bestaande complete Payroll-batchreader of Core-RPC. De dubbele kosten zaten in de bronketens binnen die snapshots: tax/IKV las vijf tabellen per medewerker en Actual Work las medewerkeritems en typen per medewerker, met dezelfde maandstatus telkens opnieuw opgevraagd.
+- De nieuwe reader groepeert tax-/IKV-bronnen in groepen van vier medewerkers en Actual Work in groepen van vier exacte employee-/employment-paren. De gedeelde periodestatus wordt eenmaal per request gelezen; iedere medewerker wordt eerst door de bestaande Payroll-autorisatie gecontroleerd. Taxreaders bevestigen daarnaast dezelfde geautoriseerde tenant, HR-groep en administratie. Query's gebruiken de bestaande authenticated Supabase-client/RLS en expliciete scope-, employee-, employment- en effectieve-datumfilters. Resultaten worden per medewerker of exact paar teruggepartitioneerd.
+- Voor 39 doelen verlaagt de taxread van 39×5 = 195 naar 10×5 = 50 requests (145 minder). De Actual Work-regressiefixture daalt van 39 itemreads + 1 gedeelde periode + 39 type-reads = 79 naar 10 itemgroepen + 1 periode + 10 typegroepen = 21 (58 minder). Dit zijn code-/fixture-aantallen, geen telling van alle live routeverzoeken. De volledige bronmomentopnamen blijven 39. Er is geen globale salaris-/persoonscache, onbegrensde parallelisatie, RPC, schemawijziging of migratie toegevoegd; overlimiet-/foutpaden vallen terug op de bestaande individuele reader.
+
+### Bronfasemeting en latency
+
+Een afzonderlijk geïnstrumenteerde normale `/payroll/runs`-request bevatte 39 ingevoerde, geautoriseerde en geprojecteerde snapshots. Binnen de `getPayrollSourceSnapshots`-bronfase telde de wrapper 367 Core `/rest/v1`-requests en 187.588 responsebytes; geen Core-RPC. Dit meet alleen die bronfase en is daarom niet rechtstreeks vergelijkbaar met de historische telling van 790 Core-requests voor de volledige route; Payroll Lab gebruikt een aparte client die in deze wrapper niet meetelt.
+
+| Geïnstrumenteerde bronfase | Tijd |
+| --- | ---: |
+| Timeline-/tax-batchfase | 15.687 ms |
+| Actual Work-batchfase | 324 ms |
+| Snapshotsetup en projectie | 1.642 ms |
+| Totale bronfase | 17.711 ms |
+
+`Server-Timing` en upstream-querylatency ontbraken. De verzamelde response-header-wachttijd (384.644 ms opgeteld over parallelle fetches) en bodyreadtijd (6.784 ms opgeteld) zijn geen individuele request-wall-times. De meting kan Postgres-uitvoering niet scheiden van netwerk-/serverwachttijd en heeft JSON-parsing niet afzonderlijk geklokt. De resterende trage stap is de employee-/employment-specifieke timelinefase; de nieuwe batch beperkt de dubbele tax-/Actual Work-fan-out maar elimineert die timeline niet.
+
+### Geauthenticeerde browserheracceptatie
+
+De bestaande lokale TEST-launcher startte de app op vrije poort `51625`; een geïsoleerde headless Chrome-context gebruikte de bestaande HR Admin-login en dezelfde tenant, HR-groep, administratie en oktoberperiode. Alle zes normale metingen gaven HTTP 200, 14 runs, 39/39 medewerkerregels, geen overflow en geen page-error. De runlijst- en werkplekdigests bleven respectievelijk `f74829800d9514fedf331de135b8af3d72a9307a39768688c95ad613939e9556` en `f9fe800aaec1f1dd2c8b7b779304fc727146899d54f13758bd73520d17a49dea` op elke trial.
+
+| Viewport | Trial | Runlijst zichtbaar | Volledige werkplek | Runs | Medewerkers |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Desktop 1440×900 | 1 | 2.605 ms | 17.767 ms | 14 | 39/39 |
+| Desktop 1440×900 | 2 | 2.157 ms | 12.990 ms | 14 | 39/39 |
+| Desktop 1440×900 | 3 | 2.063 ms | 11.835 ms | 14 | 39/39 |
+| 390×852 | 1 | 1.676 ms | 13.093 ms | 14 | 39/39 |
+| 390×852 | 2 | 1.813 ms | 12.642 ms | 14 | 39/39 |
+| 390×852 | 3 | 10.602 ms | 29.781 ms | 14 | 39/39 |
+
+Vergeleken met de opgegeven werkplekmeting vóór deze wijziging (27,7–46,6 s desktop en 78,2 s mobiel) waren alle zes normale renders sneller. De afzonderlijk gemeten bronfase was 17,711 s. Dit zijn geen gecontroleerde A/B-trials en er is geen p95 berekend; de mobiele uitschieter en de nog trage timelinefase blijven relevant. De live interface toont geen individuele source-/result-hashes. De providerregressies vergelijken batch- en individuele snapshots wel op sourcehash, canonical hash, version vector en `SOURCE_GAP`-uitkomsten; live cross-viewport vergelijking bevestigt de gelijke 14/39 dataset en bovenstaande geaggregeerde digests.
+
+### Security, kwaliteit en resterende grenzen
+
+- De 26 gerichte testbestanden slaagden **209/209**. Dit omvat batchpartitionering, mixed-scope fail-closed, uitgesloten niet-geautoriseerde medewerkers, Employee-self-/cross-employee-afwijzing, Manager zonder Payroll-adminscope en Retail R1/R2-oracles/flows. Een bestaande foreign-tenantpersona ontbreekt; een live foreign-tenant-probe is dus OPEN. Manager-teamdossier was eerder lokaal PASS (in-team 200, buiten-team dossier en salaris 404) en is in deze meting niet opnieuw via de browser uitgevoerd.
+- TypeScript, ESLint op gewijzigde Payroll-service-/testbestanden, i18n (43 NL/EN namespaces) en `git diff --check`: **PASS**.
+- De root `npm run build` slaagde op codecommit `1f1124c1932aebb5f0c5f2943e62ec68d5b2695c`, Node `24.22.1`, met dezelfde geïsoleerde buildcontext als W02 en de bestaande guarded TEST-config: HR Suite **339/339**, Control **12/12**, Payroll client-boundary, PDF/function-trace en buildprovenance **PASS**. Configwaarden zijn niet getoond; dependencies/configuraties zijn niet aangepast.
+- Beide `next-env.d.ts`-bestanden zijn bytegelijk aan hun beginstand; de HR Suite SHA-256 bleef `1B59D4C6B83807DB275D43F3CF2CC8E9323F465FAB764EEA091CC5BECD5BAD37`. De door de launcher gegenereerde Focus-widgetbron is naar de vastgelegde HEAD-versie teruggezet.
+- Geen bestaande run/PDF, Payroll lifecycle, gedeelde TEST-data, migratie, account/grant, push, merge of deployment is gewijzigd.
+
+**Gate:** **W03 LOCAL PARTIAL** — de bounded batch verlaagt aantoonbaar bronrequest-fan-out en de normale desktop-/mobiele werkplekmetingen zijn sneller en volledig. De timelinefase blijft 15,7 s in de ene gescheiden bronmeting; database-uitvoering en netwerk/serverwachttijd zijn niet los te meten en er is geen live foreign-tenantpersona. **W01 LOCAL blijft PARTIAL**; deze wijziging raakt geen W01-contracten. **W01/W03 HOSTED en issue #39 blijven OPEN.** Voor hosted issue #39 zijn nog nodig: een bevoegde hosted HR Admin met actor-/scope-readback; minstens drie hosted `/payroll/runs`-trials met first-visible, volledige 14/39-dataset en fase-attributie; een afgesproken latencybudget of expliciete uitzondering; en, bij een later afzonderlijk geautoriseerde release, PDF-/toegangssmoke en deployment-smoke. Geen roadmap-wave gestart.
