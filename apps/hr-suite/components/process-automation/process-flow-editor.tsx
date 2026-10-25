@@ -95,7 +95,7 @@ export interface ProcessFlowEditorLabels {
   readonly slaTiming: string
   readonly slaSummary: string
   readonly slaWorkdaysBlocked: string
-  readonly slaUnitLabels: Readonly<Record<'MINUTES' | 'HOURS' | 'DAYS', { readonly singular: string; readonly plural: string }>>
+  readonly slaUnitLabels: Readonly<Record<'MINUTES' | 'HOURS' | 'DAYS' | 'WORKDAYS', { readonly singular: string; readonly plural: string }>>
   readonly slaNotifications: string
   readonly slaNotificationsHelp: string
   readonly slaNoDeadlineReminders: string
@@ -248,6 +248,7 @@ export function ProcessFlowEditor({
   const selectedSlaUnit = selectedStep?.sla?.duration.unit === 'MINUTES' || selectedStep?.sla?.duration.unit === 'HOURS' || selectedStep?.sla?.duration.unit === 'DAYS'
     ? selectedStep.sla.duration.unit
     : null
+  const selectedSlaUnitLabels = selectedSlaMode==='WORKDAYS' ? labels.slaUnitLabels.WORKDAYS : selectedSlaUnit ? labels.slaUnitLabels[selectedSlaUnit] : null
   const selectedSlaAmount = selectedStep?.sla?.duration.amount ?? 1
   const selectedSlaAmountInvalid = !Number.isInteger(selectedSlaAmount) || selectedSlaAmount < 1
   const selectedSlaBeforeDeadline = selectedStep?.sla?.notifications?.beforeDeadline ?? 'NONE'
@@ -585,14 +586,14 @@ export function ProcessFlowEditor({
                     { value: 'MINUTES', label: labels.slaOptions.MINUTES },
                     { value: 'HOURS', label: labels.slaOptions.HOURS },
                     { value: 'DAYS', label: labels.slaOptions.DAYS },
-                    { value: 'WORKDAYS', label: labels.slaOptions.WORKDAYS, disabled: true, description: labels.slaWorkdaysBlocked },
+                    { value: 'WORKDAYS', label: labels.slaOptions.WORKDAYS, description: labels.slaWorkdaysBlocked },
                   ]}
                   value={selectedSlaMode}
                 />
-                {selectedSlaUnit ? <div className="mt-3 grid gap-2">
+                {selectedSlaUnit && selectedSlaUnitLabels ? <div className="mt-3 grid gap-2">
                   <label className="text-xs font-semibold" htmlFor="process-step-sla-amount">{labels.slaAmount}</label>
                   <TextInput aria-describedby="process-step-sla-amount-help" aria-invalid={selectedSlaAmountInvalid || undefined} disabled={!editing} id="process-step-sla-amount" min={1} onChange={(event) => updateSlaAmount(Number(event.target.value))} required step={1} type="number" value={selectedSlaAmount} />
-                  <p className="text-xs text-muted-foreground" id="process-step-sla-amount-help">{selectedSlaAmountInvalid ? labels.slaInvalidAmount : labels.slaSummary.replace('{amount}', String(selectedSlaAmount)).replace('{unit}', selectedSlaAmount === 1 ? labels.slaUnitLabels[selectedSlaUnit].singular : labels.slaUnitLabels[selectedSlaUnit].plural)}</p>
+                  <p className="text-xs text-muted-foreground" id="process-step-sla-amount-help">{selectedSlaAmountInvalid ? labels.slaInvalidAmount : labels.slaSummary.replace('{amount}', String(selectedSlaAmount)).replace('{unit}', selectedSlaAmount === 1 ? selectedSlaUnitLabels.singular : selectedSlaUnitLabels.plural)}</p>
                 </div> : null}
                 <div className="mt-4 grid gap-3 border-t border-border pt-4">
                   <div>

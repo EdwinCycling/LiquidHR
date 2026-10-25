@@ -295,6 +295,7 @@ export default async function ProcessAutomationSettingsPage({
       MINUTES: { singular: messages('studio.slaUnits.minute'), plural: messages('studio.slaUnits.minutes') },
       HOURS: { singular: messages('studio.slaUnits.hour'), plural: messages('studio.slaUnits.hours') },
       DAYS: { singular: messages('studio.slaUnits.calendarDay'), plural: messages('studio.slaUnits.calendarDays') },
+      WORKDAYS: { singular: messages('studio.slaUnits.workday'), plural: messages('studio.slaUnits.workdays') },
     },
   }
 

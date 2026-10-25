@@ -652,6 +652,8 @@
       "RECOVERY_TRANSITION_INVALID": "Only Request changes can be set as a return route.",
       "FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT": "A field required only by a condition must use optional write access for participants.",
       "SLA_WORKDAY_CALENDAR_REQUIRED": "Link an unambiguous process calendar before choosing working days.",
+      "SLA_WORKDAY_CALENDAR_INVALID": "This process work calendar is invalid. Ask HR Admin to review the calendar.",
+      "SLA_WORKDAY_CALENDAR_OUT_OF_RANGE": "The working-day deadline is outside the calendar validity period. Ask HR Admin to publish a suitable calendar version.",
       "SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT": "Working days can only be configured with the days unit."
     },
     "flowEditor": {
@@ -743,7 +745,7 @@
       "slaInvalidAmount": "Enter a whole number of at least 1.",
       "slaTiming": "The time limit starts when this process step becomes active.",
       "slaSummary": "This step must be completed within {amount} {unit} after activation and assignment.",
-      "slaWorkdaysBlocked": "Working days are blocked because no unambiguous process calendar is linked.",
+      "slaWorkdaysBlocked": "Working days use the published work calendar for the process scope. Activating a step remains blocked without a valid calendar.",
       "slaNotifications": "Reminders and escalations",
       "slaNotificationsHelp": "Messages are sent as in-app reminders. Recipients do not receive extra access to the process.",
       "slaNoDeadlineReminders": "Choose a deadline first. Deadline reminders cannot be configured without one.",

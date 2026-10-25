@@ -122,6 +122,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('recruitment-settings:manage'),
       allowed('ai:manage'),
       allowed('salary:read'),
+      allowed('process-definition:write'),
     ]),
     getEnabledTenantModules(),
   ])
@@ -149,6 +150,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     recruitmentSettings,
     aiManage,
     payrollFiscalRead,
+    workCalendarManage,
   ] = capabilities
   const canUseSetupAssistant = canReadSetupAssistant(settingsAuth)
   const payrollFiscalSettings = payrollFiscalRead
@@ -242,6 +244,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.processAutomation'),
           description: messages('admin.tiles.processAutomationDescription'),
           visible: processDefinitions,
+        },
+        {
+          kind: 'link',
+          href: '/settings/work-calendars',
+          icon: CalendarDays,
+          title: messages('workCalendars.title'),
+          description: messages('workCalendars.subtitle'),
+          visible: workCalendarManage,
         },
         {
           kind: 'link',

@@ -652,6 +652,8 @@
       "RECOVERY_TRANSITION_INVALID": "Alleen Wijzigingen vragen kan als terugroute worden ingesteld.",
       "FIELD_REQUIRED_CONDITION_ACCESS_CONFLICT": "Een veld dat alleen onder een voorwaarde verplicht is, moet bij deelnemers optioneel schrijfbaar zijn.",
       "SLA_WORKDAY_CALENDAR_REQUIRED": "Koppel een eenduidige proceskalender voordat je werkdagen kiest.",
+      "SLA_WORKDAY_CALENDAR_INVALID": "De werkkalender voor dit proces is ongeldig. Laat HR Admin de kalender controleren.",
+      "SLA_WORKDAY_CALENDAR_OUT_OF_RANGE": "De werkdagdeadline valt buiten de geldige kalenderperiode. Laat HR Admin een passende kalenderversie publiceren.",
       "SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT": "Werkdagen kunnen alleen met de eenheid dagen worden ingesteld."
     },
     "flowEditor": {
@@ -743,7 +745,7 @@
       "slaInvalidAmount": "Vul een heel getal van minimaal 1 in.",
       "slaTiming": "De termijn start wanneer de processtap actief wordt.",
       "slaSummary": "Deze stap moet binnen {amount} {unit} na activering en toewijzing worden afgerond.",
-      "slaWorkdaysBlocked": "Werkdagen zijn geblokkeerd: er is geen eenduidige proceskalender gekoppeld.",
+      "slaWorkdaysBlocked": "Werkdagen gebruiken de gepubliceerde werkkalender voor de processcope. Zonder geldige kalender blijft het starten van de stap geblokkeerd.",
       "slaNotifications": "Herinneringen en escalaties",
       "slaNotificationsHelp": "Meldingen worden als in-app herinnering verstuurd. De ontvanger krijgt geen extra toegang tot het proces.",
       "slaNoDeadlineReminders": "Kies eerst een deadline. Zonder deadline kunnen geen deadlineherinneringen worden ingesteld.",

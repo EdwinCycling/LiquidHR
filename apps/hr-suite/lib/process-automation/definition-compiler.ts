@@ -553,7 +553,6 @@ function validateSteps(
     if (step.formKey && !forms.has(step.formKey)) issue(issues, 'STEP_FORM_UNKNOWN', [...path, 'formKey'], `Unknown form: ${step.formKey}`)
     if (step.type === 'FORM' && !step.formKey) issue(issues, 'STEP_FORM_REQUIRED', [...path, 'formKey'], 'FORM steps require a form')
     if (step.sla?.businessDays) {
-      issue(issues, 'SLA_WORKDAY_CALENDAR_REQUIRED', [...path, 'sla', 'businessDays'], 'Workday deadlines require a process-level work calendar')
       if (step.sla.duration.unit !== 'DAYS') issue(issues, 'SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT', [...path, 'sla', 'duration', 'unit'], 'Workday deadlines must use the DAYS unit')
     }
     if (step.type === 'END') {

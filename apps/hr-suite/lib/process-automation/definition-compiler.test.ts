@@ -75,7 +75,7 @@ describe('process definition compiler', () => {
     expect(stableDefinitionHash({ b: 2, a: 1 })).toBe(stableDefinitionHash({ a: 1, b: 2 }))
   })
 
-  it('keeps calendar-day SLA valid and blocks only workday SLA without a process calendar', () => {
+  it('keeps calendar-day and workday SLA definitions valid while enforcing the DAYS unit', () => {
     const withoutSla = copyFixture()
     withoutSla.steps = withoutSla.steps.map((step) => ({ ...step, sla: undefined }))
     expect(compileProcessDefinition(withoutSla).content.steps.every((step) => !step.sla)).toBe(true)
@@ -86,7 +86,7 @@ describe('process definition compiler', () => {
     if (!stepWithSla) return
     expect(() => compileProcessDefinition(workdays)).not.toThrow()
     stepWithSla.sla = { ...stepWithSla.sla!, businessDays: true }
-    compileFailure(workdays, 'SLA_WORKDAY_CALENDAR_REQUIRED', ['steps', workdays.steps.indexOf(stepWithSla), 'sla'])
+    expect(compileProcessDefinition(workdays).content.steps.find(step => step.key === stepWithSla.key)?.sla?.businessDays).toBe(true)
 
     stepWithSla.sla = { ...stepWithSla.sla, duration: { amount: 2, unit: 'HOURS' }, businessDays: true }
     compileFailure(workdays, 'SLA_BUSINESS_DAYS_REQUIRE_DAYS_UNIT', ['steps', workdays.steps.indexOf(stepWithSla), 'sla', 'duration'])

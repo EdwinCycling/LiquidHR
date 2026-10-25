@@ -1,0 +1,331 @@
+{
+  "projectId": "wnpfloqpjvaacobppbpk",
+  "businessReadback": {
+    "case": {
+      "id": "c20e10fd-14ca-44bb-bb4f-09d6a999b320",
+      "status": "RUNNING",
+      "metadata": {
+        "fields": {}
+      },
+      "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+      "created_at": "2026-10-25T13:20:41.353403+00:00",
+      "scope_type": "ADMINISTRATION",
+      "started_at": "2026-10-25T13:20:41.353403+00:00",
+      "updated_at": "2026-10-25T13:20:41.353403+00:00",
+      "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+      "completed_at": null,
+      "business_type": "P_MUTATION",
+      "correlation_id": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+      "idempotency_key": "PMUX-P9:9048f02b-4fdc-3c4c-e1aa-fd339660029c:2026-10-24",
+      "current_step_key": "request",
+      "instance_version": 2,
+      "administration_id": "8483abc9-f275-c80b-5a23-fedc54ce9f0a",
+      "business_category": "GENERAL",
+      "initiator_user_id": "f9157157-6527-4348-8200-57ef57e28df1",
+      "process_version_id": "086ec67b-4857-4f65-bc25-ec38e5142120",
+      "initiator_employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+      "process_definition_id": "29928807-dbc4-43d6-9281-86305c945002",
+      "business_effective_date": "2026-10-24"
+    },
+    "audit": [
+      {
+        "action": "CREATE",
+        "entity": "work_calendars",
+        "changes": {
+          "reason": "Werkdagen en vrije feestdagen voor 2026 vastgesteld.",
+          "revision": 1,
+          "versionId": "d1d60e40-51d3-4545-b23e-b91452657981",
+          "runtimeAction": "WORK_CALENDAR_PUBLISHED",
+          "previousVersionId": null
+        },
+        "entityId": "3fa12abe-e828-4037-a02c-cdad4da114df",
+        "createdAt": "2026-10-25T13:20:03.983057+00:00"
+      },
+      {
+        "action": "CREATE",
+        "entity": "process_instances",
+        "changes": {
+          "status": "RUNNING",
+          "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+          "runtimeAction": "PROCESS_INSTANCE_CREATED",
+          "currentStepKey": "request",
+          "instanceVersion": 1
+        },
+        "entityId": "c20e10fd-14ca-44bb-bb4f-09d6a999b320",
+        "createdAt": "2026-10-25T13:20:41.353403+00:00"
+      },
+      {
+        "action": "CREATE",
+        "entity": "process_step_instances",
+        "changes": {
+          "status": "ACTIVE",
+          "stepKey": "request",
+          "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+          "runtimeAction": "PROCESS_STEP_ACTIVATED",
+          "expectedVersion": 1
+        },
+        "entityId": "4fb91b3a-a492-4f68-9618-2e56d164d429",
+        "createdAt": "2026-10-25T13:20:41.353403+00:00"
+      },
+      {
+        "action": "CREATE",
+        "entity": "process_step_instances",
+        "changes": {
+          "deadlineAt": "2026-10-27T13:20:41.353403+00:00",
+          "activatedAt": "2026-10-25T13:20:41.353403+00:00",
+          "runtimeAction": "PROCESS_WORKDAY_DEADLINE_SET",
+          "calendarVersionId": "d1d60e40-51d3-4545-b23e-b91452657981"
+        },
+        "entityId": "4fb91b3a-a492-4f68-9618-2e56d164d429",
+        "createdAt": "2026-10-25T13:20:41.353403+00:00"
+      },
+      {
+        "action": "UPDATE",
+        "entity": "process_instances",
+        "changes": {
+          "status": "RUNNING",
+          "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+          "runtimeAction": "PROCESS_INSTANCE_UPDATED",
+          "currentStepKey": "request",
+          "instanceVersion": 2
+        },
+        "entityId": "c20e10fd-14ca-44bb-bb4f-09d6a999b320",
+        "createdAt": "2026-10-25T13:20:41.353403+00:00"
+      }
+    ],
+    "steps": [
+      {
+        "id": "4fb91b3a-a492-4f68-9618-2e56d164d429",
+        "status": "ACTIVE",
+        "step_key": "request",
+        "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+        "created_at": "2026-10-25T13:20:41.353403+00:00",
+        "updated_at": "2026-10-25T13:20:41.353403+00:00",
+        "deadline_at": "2026-10-27T13:20:41.353403+00:00",
+        "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+        "activated_at": "2026-10-25T13:20:41.353403+00:00",
+        "blocked_code": null,
+        "completed_at": null,
+        "expected_version": 1,
+        "activation_number": 1,
+        "process_version_id": "086ec67b-4857-4f65-bc25-ec38e5142120",
+        "process_instance_id": "c20e10fd-14ca-44bb-bb4f-09d6a999b320",
+        "work_calendar_version_id": "d1d60e40-51d3-4545-b23e-b91452657981"
+      }
+    ],
+    "events": [
+      {
+        "id": "5aed5bca-cebb-4f60-b76f-d675c02dd13a",
+        "payload": {
+          "processVersionId": "086ec67b-4857-4f65-bc25-ec38e5142120",
+          "processDefinitionId": "29928807-dbc4-43d6-9281-86305c945002"
+        },
+        "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+        "created_at": "2026-10-25T13:20:41.353403+00:00",
+        "event_type": "PROCESS_STARTED",
+        "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+        "work_item_id": null,
+        "actor_user_id": "f9157157-6527-4348-8200-57ef57e28df1",
+        "correlation_id": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "idempotency_key": "PMUX-P9:9048f02b-4fdc-3c4c-e1aa-fd339660029c:2026-10-24",
+        "sequence_number": 1,
+        "actor_employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+        "process_instance_id": "c20e10fd-14ca-44bb-bb4f-09d6a999b320"
+      },
+      {
+        "id": "14041440-8b90-461e-8e9a-7bb7ff81321e",
+        "payload": {
+          "stepKey": "request",
+          "activationNumber": 1
+        },
+        "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+        "created_at": "2026-10-25T13:20:41.353403+00:00",
+        "event_type": "PROCESS_STEP_ACTIVATED",
+        "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+        "work_item_id": null,
+        "actor_user_id": "f9157157-6527-4348-8200-57ef57e28df1",
+        "correlation_id": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "idempotency_key": null,
+        "sequence_number": 2,
+        "actor_employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+        "process_instance_id": "c20e10fd-14ca-44bb-bb4f-09d6a999b320"
+      }
+    ],
+    "version": {
+      "id": "d1d60e40-51d3-4545-b23e-b91452657981",
+      "name": "Jupiter werkweek",
+      "reason": "Werkdagen en vrije feestdagen voor 2026 vastgesteld.",
+      "revision": 1,
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+      "time_zone": "Europe/Amsterdam",
+      "created_at": "2026-10-25T13:20:03.983057+00:00",
+      "created_by": "f9157157-6527-4348-8200-57ef57e28df1",
+      "valid_from": "2026-01-01",
+      "calendar_id": "3fa12abe-e828-4037-a02c-cdad4da114df",
+      "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+      "valid_until": "2026-12-31",
+      "holiday_selection_confirmed": true
+    },
+    "calendar": {
+      "id": "3fa12abe-e828-4037-a02c-cdad4da114df",
+      "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+      "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+      "current_revision": 1,
+      "administration_id": "8483abc9-f275-c80b-5a23-fedc54ce9f0a",
+      "current_version_id": "d1d60e40-51d3-4545-b23e-b91452657981"
+    },
+    "subjects": [
+      {
+        "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+        "created_at": "2026-10-25T13:20:41.353403+00:00",
+        "employee_id": "9048f02b-4fdc-3c4c-e1aa-fd339660029c",
+        "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+        "process_instance_id": "c20e10fd-14ca-44bb-bb4f-09d6a999b320"
+      }
+    ],
+    "workItems": [
+      {
+        "id": "a614ac9b-3f97-489c-95ee-4afd4b308c19",
+        "status": "OPEN",
+        "step_key": "request",
+        "tenant_id": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+        "claimed_at": null,
+        "created_at": "2026-10-25T13:20:41.353403+00:00",
+        "updated_at": "2026-10-25T13:20:41.353403+00:00",
+        "deadline_at": "2026-10-27T13:20:41.353403+00:00",
+        "hr_group_id": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+        "available_at": "2026-10-25T13:20:41.353403+00:00",
+        "blocked_code": null,
+        "business_type": "P_MUTATION",
+        "assignment_mode": "EXACTLY_ONE",
+        "participant_key": "initiator",
+        "expected_version": 1,
+        "step_instance_id": "4fb91b3a-a492-4f68-9618-2e56d164d429",
+        "business_category": "GENERAL",
+        "claimed_by_user_id": null,
+        "process_version_id": "086ec67b-4857-4f65-bc25-ec38e5142120",
+        "assignment_snapshot": {
+          "resolution": {
+            "source": "INITIATOR",
+            "asOfDate": "2026-10-25",
+            "instanceId": "c20e10fd-14ca-44bb-bb4f-09d6a999b320",
+            "assignmentMode": "EXACTLY_ONE",
+            "processVersionId": "086ec67b-4857-4f65-bc25-ec38e5142120",
+            "candidateEmployeeIds": [
+              "01c349f0-be6f-01dc-4d96-b5bf66085a56"
+            ],
+            "resolutionDatePolicy": "STEP_ACTIVATED_AT"
+          }
+        },
+        "process_instance_id": "c20e10fd-14ca-44bb-bb4f-09d6a999b320",
+        "assignee_employee_id": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+        "allow_self_assignment": true
+      }
+    ],
+    "exceptions": [
+      {
+        "date": "2026-01-01",
+        "label": "Nieuwjaarsdag",
+        "isWorkday": false,
+        "sourceHolidayId": "1a6b82e4-36c4-4834-b9b6-5c627fb046fd"
+      },
+      {
+        "date": "2026-04-05",
+        "label": "Eerste Paasdag",
+        "isWorkday": false,
+        "sourceHolidayId": "81ff3629-a3cd-4c42-9b8b-f53c8e154c62"
+      },
+      {
+        "date": "2026-04-06",
+        "label": "Tweede Paasdag",
+        "isWorkday": false,
+        "sourceHolidayId": "e2e7da42-44a2-4871-8be5-77754024f7ea"
+      },
+      {
+        "date": "2026-04-27",
+        "label": "Koningsdag",
+        "isWorkday": false,
+        "sourceHolidayId": "287aa479-a963-4548-82b1-0fcd21cca692"
+      },
+      {
+        "date": "2026-05-14",
+        "label": "Hemelvaartsdag",
+        "isWorkday": false,
+        "sourceHolidayId": "8ce46bf2-c94b-4615-be73-dd9f1fdad0c9"
+      },
+      {
+        "date": "2026-05-24",
+        "label": "Eerste Pinksterdag",
+        "isWorkday": false,
+        "sourceHolidayId": "c5e01a03-3f26-499b-801f-ec227a99d549"
+      },
+      {
+        "date": "2026-05-25",
+        "label": "Tweede Pinksterdag",
+        "isWorkday": false,
+        "sourceHolidayId": "8a603d2e-5ef9-4302-9145-6eeabb81f894"
+      },
+      {
+        "date": "2026-12-25",
+        "label": "Eerste Kerstdag",
+        "isWorkday": false,
+        "sourceHolidayId": "97a46dc6-0ee3-42c3-bbfb-7caf74f6259d"
+      },
+      {
+        "date": "2026-12-26",
+        "label": "Tweede Kerstdag",
+        "isWorkday": false,
+        "sourceHolidayId": "fb493859-0d58-4d90-863c-439d53e1cc72"
+      }
+    ],
+    "duplicateCount": 1,
+    "originalDeadlines": {
+      "hash": "f2219d5f439ab59739e7c1a3aab1cecc",
+      "count": 30
+    }
+  },
+  "validation": {
+    "counts": {
+      "versions": 1,
+      "calendars": 1,
+      "exceptions": 9
+    },
+    "fixtureUser": "f38fe229-494e-4294-822d-90c19188232f",
+    "relatedTables": [
+      "workflow_jobs"
+    ],
+    "readerFunction": [
+      "CREATE OR REPLACE FUNCTION internal_security.process_instance_can_read(requested_tenant_id uuid, requested_hr_group_id uuid, requested_instance_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  with instance_row as (\n    select instance.scope_type, instance.administration_id, instance.initiator_employee_id\n    from public.process_instances instance\n    where instance.tenant_id = requested_tenant_id\n      and instance.hr_group_id = requested_hr_group_id\n      and instance.id = requested_instance_id\n  ), actor as (\n    select internal_security.current_employee_id(requested_tenant_id, requested_hr_group_id) as employee_id\n  )\n  select exists (\n    select 1\n    from instance_row instance\n    where internal_security.process_scope_has_permission(\n      requested_tenant_id, requested_hr_group_id, instance.scope_type, instance.administration_id,\n      'process-instance:read'\n    )\n  )\n  or exists (\n    select 1\n    from instance_row instance\n    cross join actor\n    where internal_security.process_scope_has_permission(\n      requested_tenant_id, requested_hr_group_id, instance.scope_type, instance.administration_id,\n      'self:process-instance:read'\n    )\n    and (\n      instance.initiator_employee_id = actor.employee_id\n      or exists (\n        select 1\n        from public.process_employee_subjects subject\n        where subject.tenant_id = requested_tenant_id\n          and subject.hr_group_id = requested_hr_group_id\n          and subject.process_instance_id = requested_instance_id\n          and subject.employee_id = actor.employee_id\n      )\n      or exists (\n        select 1\n        from public.process_employment_subjects subject\n        join public.employments employment\n          on employment.tenant_id = subject.tenant_id\n         and employment.hr_group_id = subject.hr_group_id\n         and employment.administration_id = subject.administration_id\n         and employment.id = subject.employment_id\n        where subject.tenant_id = requested_tenant_id\n          and subject.hr_group_id = requested_hr_group_id\n          and subject.process_instance_id = requested_instance_id\n          and employment.employee_id = actor.employee_id\n      )\n    )\n  );\n$function$\n"
+    ],
+    "fixtureEmployee": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+    "expectedDeadline": {
+      "revision": 1,
+      "timeZone": "Europe/Amsterdam",
+      "deadlineAt": "2026-10-27T13:20:41.353403+00:00",
+      "countedDates": [
+        "2026-10-26",
+        "2026-10-27"
+      ],
+      "skippedDates": [],
+      "calendarVersionId": "d1d60e40-51d3-4545-b23e-b91452657981"
+    }
+  },
+  "assertions": {
+    "oneCase": true,
+    "oneCalendar": true,
+    "deadlineMatches": true,
+    "workItemDeadlineMatches": true,
+    "existingDeadlinesUnchanged": true,
+    "fixtureNotInitiator": true,
+    "fixtureNotSubject": true,
+    "fixtureNotAssignee": true,
+    "calendarScope": true
+  }
+}

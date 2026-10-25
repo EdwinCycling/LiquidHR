@@ -1,0 +1,111 @@
+{
+  "caseId": "c20e10fd-14ca-44bb-bb4f-09d6a999b320",
+  "dependentWrites": {
+    "jobs": [
+      {
+        "id": "88907ac9-ddcb-4f94-939b-f9422f31318e",
+        "type": "PROCESS_REMINDER",
+        "status": "READY",
+        "availableAt": "2026-10-27T13:20:41.353403+00:00",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      },
+      {
+        "id": "02698afd-e064-4107-9d69-f32139cb2d34",
+        "type": "PROCESS_REMINDER",
+        "status": "READY",
+        "availableAt": "2026-10-27T13:20:42.353403+00:00",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      }
+    ],
+    "audit": [
+      {
+        "action": "CREATE",
+        "entity": "process_instances",
+        "entityId": "c20e10fd-14ca-44bb-bb4f-09d6a999b320",
+        "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "runtimeAction": "PROCESS_INSTANCE_CREATED",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      },
+      {
+        "action": "CREATE",
+        "entity": "process_events",
+        "entityId": "5aed5bca-cebb-4f60-b76f-d675c02dd13a",
+        "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "runtimeAction": "PROCESS_STARTED",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      },
+      {
+        "action": "CREATE",
+        "entity": "process_step_instances",
+        "entityId": "4fb91b3a-a492-4f68-9618-2e56d164d429",
+        "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "runtimeAction": "PROCESS_STEP_ACTIVATED",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      },
+      {
+        "action": "CREATE",
+        "entity": "workflow_jobs",
+        "entityId": "88907ac9-ddcb-4f94-939b-f9422f31318e",
+        "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "runtimeAction": null,
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      },
+      {
+        "action": "CREATE",
+        "entity": "process_step_instances",
+        "entityId": "4fb91b3a-a492-4f68-9618-2e56d164d429",
+        "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "runtimeAction": "PROCESS_WORKDAY_DEADLINE_SET",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      },
+      {
+        "action": "UPDATE",
+        "entity": "process_instances",
+        "entityId": "c20e10fd-14ca-44bb-bb4f-09d6a999b320",
+        "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "runtimeAction": "PROCESS_INSTANCE_UPDATED",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      },
+      {
+        "action": "CREATE",
+        "entity": "process_events",
+        "entityId": "14041440-8b90-461e-8e9a-7bb7ff81321e",
+        "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "runtimeAction": "PROCESS_STEP_ACTIVATED",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      },
+      {
+        "action": "CREATE",
+        "entity": "process_work_items",
+        "entityId": "a614ac9b-3f97-489c-95ee-4afd4b308c19",
+        "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "runtimeAction": "PROCESS_WORK_ITEM_CREATED",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      },
+      {
+        "action": "CREATE",
+        "entity": "workflow_jobs",
+        "entityId": "02698afd-e064-4107-9d69-f32139cb2d34",
+        "correlationId": "6789916f-be54-4a83-89b5-b14c956c7bf1",
+        "runtimeAction": null,
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      }
+    ],
+    "candidates": [
+      {
+        "source": "INITIATOR",
+        "eligible": true,
+        "employeeId": "01c349f0-be6f-01dc-4d96-b5bf66085a56",
+        "candidateUserId": "f9157157-6527-4348-8200-57ef57e28df1"
+      }
+    ],
+    "noForeignCalendar": true,
+    "employmentSubjects": [
+      {
+        "employeeId": "9048f02b-4fdc-3c4c-e1aa-fd339660029c",
+        "employmentId": "8390a3fd-763b-74ec-f5d2-ca09c6f1a663",
+        "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a"
+      }
+    ]
+  }
+}

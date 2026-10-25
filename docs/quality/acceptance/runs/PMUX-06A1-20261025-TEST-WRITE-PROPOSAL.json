@@ -1,0 +1,188 @@
+{
+  "goal": "PMUX-06A.1-WORKDAY-CALENDAR",
+  "status": "AWAITING_EXPLICIT_USER_APPROVAL",
+  "projectId": "wnpfloqpjvaacobppbpk",
+  "environment": "bestaande synthetische LiquidHR Core TEST",
+  "schema": {
+    "migration": "apps/hr-suite/supabase/migrations/20261025100000_pmux06a1_work_calendars.sql",
+    "sha256": "0BA7D4BBB79A3CCB73916ED9D1374B499BFC3E4ECC98D63096EE3F784A7A16A0",
+    "createTables": [
+      "public.work_calendars",
+      "public.work_calendar_versions",
+      "public.work_calendar_exceptions"
+    ],
+    "addColumns": [
+      "public.process_step_instances.work_calendar_version_id"
+    ],
+    "createPublicRpcs": [
+      "public.get_work_calendars(uuid,uuid)",
+      "public.publish_work_calendar(uuid,uuid,jsonb,integer)",
+      "public.preview_work_calendar_deadline(uuid,timestamp,integer)"
+    ],
+    "createPrivateFunctions": [
+      "internal_security.guard_work_calendar_version()",
+      "internal_security.require_work_calendar_admin(uuid,uuid)",
+      "internal_security.work_calendar_deadline(uuid,timestamptz,integer)",
+      "internal_security.resolve_process_work_calendar(uuid,uuid,uuid)",
+      "internal_security.guard_process_work_deadline()",
+      "internal_security.audit_process_work_deadline()"
+    ],
+    "modifyFunctions": [
+      "internal_security.materialize_process_step_deadline()"
+    ],
+    "retireUnusedLegacy": [
+      "trigger process_step_deadline_before",
+      "internal_security.set_process_step_deadline()",
+      "internal_security.process_deadline_at(timestamptz,jsonb)"
+    ],
+    "newTriggers": [
+      "work_calendar_versions_immutable",
+      "work_calendar_exceptions_immutable",
+      "process_steps_deadline_immutable",
+      "process_steps_work_deadline_audit"
+    ],
+    "dataBackfill": false,
+    "rolePermissionChanges": false,
+    "rls": "RLS on alle drie nieuwe tabellen; uitsluitend scoped SELECT voor bestaande process-definition:write-beheerders; geen directe tabelmutaties voor authenticated; gewone rollen ongewijzigd"
+  },
+  "calendarPublication": {
+    "route": "POST http://127.0.0.1:3010/api/settings/work-calendars",
+    "flow": "normale HR Admin-interface /settings/work-calendars",
+    "context": {
+      "tenantId": "07249eb9-545c-883b-b26b-d52f83b4f4a1",
+      "tenantName": "De Sterren holding",
+      "hrGroupId": "6ba6f1df-e376-40f2-abff-ffdf000172e1",
+      "hrGroupName": "Planeten",
+      "administrationName": "Jupiter BV"
+    },
+    "body": {
+      "administrationId": "8483abc9-f275-c80b-5a23-fedc54ce9f0a",
+      "expectedRevision": 0,
+      "config": {
+        "name": "Jupiter werkweek",
+        "weekdays": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "validFrom": "2026-01-01",
+        "validUntil": "2026-12-31",
+        "holidayIds": [
+          "1a6b82e4-36c4-4834-b9b6-5c627fb046fd",
+          "81ff3629-a3cd-4c42-9b8b-f53c8e154c62",
+          "e2e7da42-44a2-4871-8be5-77754024f7ea",
+          "287aa479-a963-4548-82b1-0fcd21cca692",
+          "8ce46bf2-c94b-4615-be73-dd9f1fdad0c9",
+          "c5e01a03-3f26-499b-801f-ec227a99d549",
+          "8a603d2e-5ef9-4302-9145-6eeabb81f894",
+          "97a46dc6-0ee3-42c3-bbfb-7caf74f6259d",
+          "fb493859-0d58-4d90-863c-439d53e1cc72"
+        ],
+        "exceptions": [],
+        "holidaySelectionConfirmed": true,
+        "reason": "Werkdagen en vrije feestdagen voor 2026 vastgesteld."
+      }
+    },
+    "timeZoneSnapshot": "Europe/Amsterdam",
+    "selectedHolidays": [
+      {
+        "id": "1a6b82e4-36c4-4834-b9b6-5c627fb046fd",
+        "date": "2026-01-01",
+        "name": "Nieuwjaarsdag"
+      },
+      {
+        "id": "81ff3629-a3cd-4c42-9b8b-f53c8e154c62",
+        "date": "2026-04-05",
+        "name": "Eerste Paasdag"
+      },
+      {
+        "id": "e2e7da42-44a2-4871-8be5-77754024f7ea",
+        "date": "2026-04-06",
+        "name": "Tweede Paasdag"
+      },
+      {
+        "id": "287aa479-a963-4548-82b1-0fcd21cca692",
+        "date": "2026-04-27",
+        "name": "Koningsdag"
+      },
+      {
+        "id": "8ce46bf2-c94b-4615-be73-dd9f1fdad0c9",
+        "date": "2026-05-14",
+        "name": "Hemelvaartsdag"
+      },
+      {
+        "id": "c5e01a03-3f26-499b-801f-ec227a99d549",
+        "date": "2026-05-24",
+        "name": "Eerste Pinksterdag"
+      },
+      {
+        "id": "8a603d2e-5ef9-4302-9145-6eeabb81f894",
+        "date": "2026-05-25",
+        "name": "Tweede Pinksterdag"
+      },
+      {
+        "id": "97a46dc6-0ee3-42c3-bbfb-7caf74f6259d",
+        "date": "2026-12-25",
+        "name": "Eerste Kerstdag"
+      },
+      {
+        "id": "fb493859-0d58-4d90-863c-439d53e1cc72",
+        "date": "2026-12-26",
+        "name": "Tweede Kerstdag"
+      }
+    ],
+    "notSelected": [
+      "2026-04-03 Goede Vrijdag",
+      "2026-05-05 Bevrijdingsdag",
+      "2026-09-15 Prinsjesdag"
+    ],
+    "meaning": "Expliciet voorgestelde synthetische kalenderkeuzes ter goedkeuring; geen claim dat deze dagen wettelijk vrij moeten zijn.",
+    "expectedNewRows": {
+      "work_calendars": 1,
+      "work_calendar_versions": 1,
+      "work_calendar_exceptions": 9,
+      "audit_logs": 1
+    },
+    "yearRenewal": "Vanaf 2027 is een nieuwe passende expliciete publicatie nodig; geen automatische verlenging."
+  },
+  "readOnlyPreview": {
+    "localStart": "2026-10-24T09:00:00",
+    "days": 2,
+    "expectedCountedDates": [
+      "2026-10-26",
+      "2026-10-27"
+    ],
+    "expectedDeadlineUtc": "2026-10-27T08:00:00Z"
+  },
+  "p9": {
+    "flow": "normale HR Admin /work/new/internal-transfer",
+    "employeeNumber": "DEMO-028",
+    "subjectEmployeeId": "9048f02b-4fdc-3c4c-e1aa-fd339660029c",
+    "businessEffectiveDate": "2026-10-24",
+    "idempotencyKey": "PMUX-P9:9048f02b-4fdc-3c4c-e1aa-fd339660029c:2026-10-24",
+    "maximumNewCases": 1,
+    "allowedDependentWrites": "Uitsluitend de normale enginewrites van die ene start: subjects, geactiveerde stap, werkitem/toewijzing, procesgebeurtenissen, audit en normale workflowjobs; geen formulierindiening of overplaatsingscommit.",
+    "precheck": "Controleer bestaande cases voor dezelfde medewerker/datum en definitiekey internal-transfer%; hergebruik alleen een bewezen passende bestaande case. Bij ambiguïteit geen nieuwe start.",
+    "actualDeadline": "Gebaseerd op werkelijke activated_at bij uitvoering, niet op businessEffectiveDate; vergelijken met de gepinde kalenderversie en werkitemdeadline.",
+    "acceptance": [
+      "HR Admin directe procesinstance-GET 200",
+      "Employee zonder initiator/subject/deelnemer/toewijzingsrelatie directe GET 403 of 404",
+      "scope, calendarVersionId, deadline en audit readback"
+    ]
+  },
+  "stopConditions": [
+    "Andere dan voorgestelde bestaande configuratie of onduidelijke dubbele case",
+    "Nieuwe buiten scope vallende databasewijziging",
+    "Ontbrekende rechten of persona zonder omzeiling"
+  ],
+  "forbidden": [
+    "andere remote writes",
+    "nieuwe accounts",
+    "algemene RLS- of tenantbypass",
+    "push",
+    "merge",
+    "deployment"
+  ]
+}
