@@ -292,12 +292,22 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
       const source = await getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod).catch((error: unknown) => {
         throw new PayrollSourceReadFailure('employment-payroll-projection', error)
       })
-      const incomeRelationships = await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((error: unknown) => {
-        throw new PayrollSourceReadFailure('income-relationship-projection', error)
-      })
-      const taxProfileProjection = await getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod).catch((error: unknown) => {
+      let taxProfileProjection: EmploymentPayrollTaxSourceProjection
+      try {
+        taxProfileProjection = await getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod)
+      } catch (error) {
+        // Keep the prior read/error precedence when the tax projection is unavailable.
+        await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((incomeError: unknown) => {
+          throw new PayrollSourceReadFailure('income-relationship-projection', incomeError)
+        })
         throw new PayrollSourceReadFailure('tax-profile-projection', error)
-      })
+      }
+      const sharedIncomeProjection = taxProfileProjection.payrollIncomeRelationshipProjection
+      const incomeRelationships = sharedIncomeProjection?.complete
+        ? sharedIncomeProjection.rows
+        : await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((error: unknown) => {
+          throw new PayrollSourceReadFailure('income-relationship-projection', error)
+        })
       return {
         employment: source.employment,
         salaries: source.salaries,

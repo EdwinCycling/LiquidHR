@@ -4,6 +4,7 @@ import type { Database, Json } from '@scope/db'
 import { AuthorizationError, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
+import { buildPayrollSourceIncomeRelationshipProjection } from './payroll-source-income-relationship-projection'
 
 type TaxProfileRow = Database['public']['Tables']['employment_payroll_tax_profiles']['Row']
 
@@ -20,6 +21,20 @@ export type EmploymentPayrollTaxSourceProjection = {
     readonly startsOn: string
     readonly endsOn: string | null
   }[]
+  readonly payrollIncomeRelationshipProjection?: {
+    readonly complete: boolean
+    readonly rows: readonly {
+      readonly id: string
+      readonly incomeRelationshipId: string
+      readonly validFrom: string
+      readonly validUntil: string | null
+      readonly linkUpdatedAt: string
+      readonly reportingStatus: 'DRAFT' | 'READY' | 'REPORTED' | 'CLOSED'
+      readonly startsOn: string
+      readonly endsOn: string | null
+      readonly incomeRelationshipUpdatedAt: string
+    }[]
+  }
   readonly taxProfiles: readonly Pick<TaxProfileRow,
     | 'id' | 'employee_id' | 'employment_id' | 'income_relationship_id' | 'employment_income_relationship_id'
     | 'residence_country_code' | 'wage_tax_table' | 'herleiding_code' | 'time_period' | 'regular_wage_only'
@@ -269,6 +284,14 @@ export async function getEmploymentPayrollTaxSourceProjection(
     profile.employment_id === employmentId
     || activeLinkedIds.has(profile.income_relationship_id),
   )
+  const payrollIncomeRelationshipProjection = buildPayrollSourceIncomeRelationshipProjection({
+    employmentId,
+    complete: (employmentResult.data ?? []).length < 100
+      && (linkResult.data ?? []).length < 100
+      && (incomeResult.data ?? []).length < 100,
+    links: activeLinks,
+    incomeRelationships: incomeResult.data ?? [],
+  })
   return {
     ageCategory,
     ageSourceUpdatedAt: employeeResult.data.updated_at,
@@ -282,6 +305,7 @@ export async function getEmploymentPayrollTaxSourceProjection(
       startsOn: income.starts_on,
       endsOn: income.ends_on,
     })),
+    payrollIncomeRelationshipProjection,
     taxProfiles: taxProfiles as EmploymentPayrollTaxSourceProjection['taxProfiles'],
   }
 }
