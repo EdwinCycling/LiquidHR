@@ -76,6 +76,8 @@ export type ProcessRuntimeErrorCode =
   | 'INVALID_FORM_VALUE'
   | 'REQUIRED_FORM_FIELD'
   | 'SLA_WORKDAY_CALENDAR_REQUIRED'
+  | 'SLA_WORKDAY_CALENDAR_INVALID'
+  | 'SLA_WORKDAY_CALENDAR_OUT_OF_RANGE'
   | 'PROCESS_WORK_ITEM_OPERATION_FAILED'
 
 const stableErrorCodes = new Set<ProcessRuntimeErrorCode>([
@@ -109,6 +111,8 @@ const stableErrorCodes = new Set<ProcessRuntimeErrorCode>([
   'INVALID_FORM_VALUE',
   'REQUIRED_FORM_FIELD',
   'SLA_WORKDAY_CALENDAR_REQUIRED',
+  'SLA_WORKDAY_CALENDAR_INVALID',
+  'SLA_WORKDAY_CALENDAR_OUT_OF_RANGE',
   'PROCESS_WORK_ITEM_OPERATION_FAILED',
 ])
 
@@ -139,6 +143,7 @@ export function processRuntimeFieldKeyFromRpcDetails(code: ProcessRuntimeErrorCo
 }
 
 function statusForCode(code: ProcessRuntimeErrorCode): number {
+  if (code === 'SLA_WORKDAY_CALENDAR_INVALID' || code === 'SLA_WORKDAY_CALENDAR_OUT_OF_RANGE') return 409
   if (code === 'AUTHENTICATION_REQUIRED') return 401
   if (code === 'FORBIDDEN' || code === 'FORBIDDEN_ACTION' || code === 'ACTOR_EMPLOYEE_NOT_FOUND') return 403
   if (code === 'PROCESS_INSTANCE_NOT_FOUND' || code === 'WORK_ITEM_NOT_FOUND' || code === 'STEP_NOT_FOUND' || code === 'SUBJECT_EMPLOYEE_NOT_FOUND' || code === 'SUBJECT_EMPLOYMENT_NOT_FOUND') return 404

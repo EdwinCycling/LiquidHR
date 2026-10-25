@@ -82,7 +82,7 @@ const labels: ProcessFlowEditorLabels = {
   slaTiming: 'De termijn begint na activering en toewijzing.',
   slaSummary: 'Deze stap moet binnen {amount} {unit} worden afgerond.',
   slaWorkdaysBlocked: 'Er is geen proceskalender gekoppeld.',
-  slaUnitLabels: { MINUTES: { singular: 'minuut', plural: 'minuten' }, HOURS: { singular: 'uur', plural: 'uur' }, DAYS: { singular: 'kalenderdag', plural: 'kalenderdagen' } },
+  slaUnitLabels: { MINUTES: { singular: 'minuut', plural: 'minuten' }, HOURS: { singular: 'uur', plural: 'uur' }, DAYS: { singular: 'kalenderdag', plural: 'kalenderdagen' }, WORKDAYS: { singular: 'werkdag', plural: 'werkdagen' } },
   slaNotifications: 'Herinneringen en escalaties',
   slaNotificationsHelp: 'Meldingen worden als in-app herinnering verstuurd.',
   slaNoDeadlineReminders: 'Kies eerst een deadline.',
@@ -183,15 +183,20 @@ afterEach(() => {
 })
 
 describe('ProcessFlowEditor', () => {
-  it('configures an accessible hour deadline, validates its amount, and blocks working days without a calendar', () => {
+  it('configures accessible deadlines and offers working days with calendar guidance', () => {
     mounted = mountFlow(createTrainingRequestExampleDraft({ key: 'opleiding-aanvragen', title: { nl: 'Opleidingsaanvraag', en: 'Training request' }, description: { nl: 'Aanvraag en beoordeling.', en: 'Request and review.' } }))
 
     const noDeadline = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="NONE"]')
     const workdays = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="WORKDAYS"]')
     expect(noDeadline?.checked).toBe(true)
-    expect(workdays?.disabled).toBe(true)
+    expect(workdays?.disabled).toBe(false)
     expect(workdays?.getAttribute('aria-describedby')).toBeTruthy()
     expect(mounted.container.textContent).toContain(labels.slaNoDeadlineReminders)
+    if (!workdays) throw new Error('Working-days option not found')
+    act(()=>workdays.click())
+    changeInput(mounted.container,'process-step-sla-amount','2')
+    expect(mounted.getDraft().steps[0]?.sla).toMatchObject({duration:{amount:2,unit:'DAYS'},businessDays:true})
+    expect(mounted.container.textContent).toContain('Deze stap moet binnen 2 werkdagen worden afgerond.')
 
     const hours = mounted.container.querySelector<HTMLInputElement>('input[type="radio"][value="HOURS"]')
     if (!hours) throw new Error('Hours option not found')

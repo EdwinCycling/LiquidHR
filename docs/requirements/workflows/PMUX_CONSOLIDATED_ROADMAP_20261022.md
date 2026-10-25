@@ -24,6 +24,8 @@ Deze roadmap vervangt de oude PMUX-deelreeks als actieve planning. PMUX-02A/02B,
 
 ### PMUX-06A — Stap-SLA's en deadlines
 
+**Aanvulling 25-10-2026 — PMUX-06A.1:** de canonieke werkkalender en beheerflow zijn lokaal geïmplementeerd en na expliciet akkoord op Core TEST geverifieerd. Migratie `20261025131521`, Jupiter-publicatie versie 1 en de ene P9-start met juiste werkdagdeadline, audit en Admin/Employee-autorisatie zijn PASS; zie [PMUX-06A.1](PMUX-06A1_WORKDAY_CALENDAR.md). Andere scopes/jaren vragen eigen publicaties; geen deployment. De historische status hieronder blijft bewijs van de oorspronkelijke 06A-slice.
+
 **Status (23-10-2026): LOKALE IMPLEMENTATIE GEREED; REMOTE ACCEPTATIE OPEN.** HR Admin kan de bestaande SLA per stap instellen; deadlineberekening en materialisatie gebruiken de gepinde immutable procesversie, stapactivatie en actieve HR-groeptijdzone. Mijn werk, Focus, dashboard en procesdetail gebruiken één deadlineprojectie. Werkdagen blijven geblokkeerd zolang geen eenduidige werkdag-/feestdagenkalender bestaat; ook legacy gepubliceerde werkdag-SLA's blokkeren activatie met begrijpelijke uitleg. Zie [PMUX-06A requirement](PMUX-06A_SLA_DEADLINES.md) en [lokale acceptatie](../../quality/acceptance/runs/PMUX-06A-20261023-LOCAL.md). De migratie is alleen lokaal met PGlite getest; echte TEST-readback en desktop-/390px-browseracceptatie blijven OPEN.
 
 ### PMUX-06B — Herinneringen en escalaties

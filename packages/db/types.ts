@@ -14,6 +14,122 @@ export type Database = {
   }
   public: {
     Tables: {
+      work_calendars: {
+        Row: {
+          id: string
+          tenant_id: string
+          hr_group_id: string
+          administration_id: string | null
+          current_revision: number
+          current_version_id: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          hr_group_id: string
+          administration_id?: string | null
+          current_revision?: number
+          current_version_id?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          hr_group_id?: string
+          administration_id?: string | null
+          current_revision?: number
+          current_version_id?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "work_calendars_current_version_fk"; columns: ["tenant_id","hr_group_id","id","current_version_id"]; isOneToOne: false; referencedRelation: "work_calendar_versions"; referencedColumns: ["tenant_id","hr_group_id","calendar_id","id"] },
+          { foreignKeyName: "work_calendars_tenant_id_hr_group_id_fkey"; columns: ["tenant_id","hr_group_id"]; isOneToOne: false; referencedRelation: "hr_groups"; referencedColumns: ["tenant_id","id"] },
+          { foreignKeyName: "work_calendars_tenant_id_hr_group_id_administration_id_fkey"; columns: ["tenant_id","hr_group_id","administration_id"]; isOneToOne: false; referencedRelation: "administrations"; referencedColumns: ["tenant_id","hr_group_id","id"] },
+        ]
+      }
+      work_calendar_versions: {
+        Row: {
+          id: string
+          tenant_id: string
+          hr_group_id: string
+          calendar_id: string
+          revision: number
+          name: string
+          time_zone: string
+          weekdays: number[]
+          valid_from: string
+          valid_until: string
+          holiday_selection_confirmed: boolean
+          reason: string
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          hr_group_id: string
+          calendar_id: string
+          revision: number
+          name: string
+          time_zone: string
+          weekdays: number[]
+          valid_from: string
+          valid_until: string
+          holiday_selection_confirmed: boolean
+          reason: string
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          hr_group_id?: string
+          calendar_id?: string
+          revision?: number
+          name?: string
+          time_zone?: string
+          weekdays?: number[]
+          valid_from?: string
+          valid_until?: string
+          holiday_selection_confirmed?: boolean
+          reason?: string
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "work_calendar_versions_tenant_id_hr_group_id_calendar_id_fkey"; columns: ["tenant_id","hr_group_id","calendar_id"]; isOneToOne: false; referencedRelation: "work_calendars"; referencedColumns: ["tenant_id","hr_group_id","id"] },
+        ]
+      }
+      work_calendar_exceptions: {
+        Row: {
+          tenant_id: string
+          hr_group_id: string
+          version_id: string
+          exception_date: string
+          is_workday: boolean
+          label: string
+          source_holiday_id: string | null
+        }
+        Insert: {
+          tenant_id: string
+          hr_group_id: string
+          version_id: string
+          exception_date: string
+          is_workday: boolean
+          label: string
+          source_holiday_id?: string | null
+        }
+        Update: {
+          tenant_id?: string
+          hr_group_id?: string
+          version_id?: string
+          exception_date?: string
+          is_workday?: boolean
+          label?: string
+          source_holiday_id?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "work_calendar_exceptions_tenant_id_hr_group_id_version_id_fkey"; columns: ["tenant_id","hr_group_id","version_id"]; isOneToOne: false; referencedRelation: "work_calendar_versions"; referencedColumns: ["tenant_id","hr_group_id","id"] },
+        ]
+      }
       absence_capacity_changes: {
         Row: {
           absence_hours_per_week: number | null
@@ -15063,6 +15179,7 @@ export type Database = {
       }
       process_step_instances: {
         Row: {
+          work_calendar_version_id: string | null
           activated_at: string | null
           activation_number: number
           blocked_code: string | null
@@ -15080,6 +15197,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          work_calendar_version_id?: string | null
           activated_at?: string | null
           activation_number?: number
           blocked_code?: string | null
@@ -15097,6 +15215,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          work_calendar_version_id?: string | null
           activated_at?: string | null
           activation_number?: number
           blocked_code?: string | null
@@ -15114,6 +15233,7 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          { foreignKeyName: "process_steps_work_calendar_version_fk"; columns: ["tenant_id", "hr_group_id", "work_calendar_version_id"]; isOneToOne: false; referencedRelation: "work_calendar_versions"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
           {
             foreignKeyName: "process_step_instances_instance_fkey"
             columns: [
@@ -21753,6 +21873,18 @@ export type Database = {
       }
     }
     Functions: {
+      get_work_calendars: {
+        Args: { requested_hr_group_id: string; requested_administration_id: string | null }
+        Returns: Json
+      }
+      publish_work_calendar: {
+        Args: { requested_hr_group_id: string; requested_administration_id: string | null; requested_config: Json; requested_expected_revision: number }
+        Returns: Json
+      }
+      preview_work_calendar_deadline: {
+        Args: { requested_version_id: string; requested_local_start: string; requested_days: number }
+        Returns: Json
+      }
       soft_delete_continuous_appraisal_item: {
         Args: { p_expected_version: number; p_item_id: string }
         Returns: Json

@@ -7,6 +7,8 @@ describe('process runtime error contract', () => {
     ['FORBIDDEN_ACTION', 'FORBIDDEN_ACTION'],
     ['NO_ASSIGNEE', 'NO_ASSIGNEE'],
     ['SLA_WORKDAY_CALENDAR_REQUIRED', 'SLA_WORKDAY_CALENDAR_REQUIRED'],
+    ['SLA_WORKDAY_CALENDAR_INVALID', 'SLA_WORKDAY_CALENDAR_INVALID'],
+    ['SLA_WORKDAY_CALENDAR_OUT_OF_RANGE', 'SLA_WORKDAY_CALENDAR_OUT_OF_RANGE'],
     ['permission denied for function', 'FORBIDDEN'],
   ] as const)('maps %s to %s', (message, expected) => {
     expect(processRuntimeErrorCodeFromMessage(message)).toBe(expected)

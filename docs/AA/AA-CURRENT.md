@@ -1,5 +1,7 @@
 # AA-CURRENT — Current LiquidHR State
 
+> **25-10-2026 — PMUX-06A.1 Core TEST PASS:** canonieke werkkalender en HR Admin-beheer zijn na expliciet akkoord gemigreerd (`20261025131521`). Jupiter werkweek versie 1 is via de normale interface gepubliceerd voor 2026. Eén P9-case voor DEMO-028 is gestart; twee-werkdagdeadline, audit, Admin GET 200 en niet-gerelateerde Employee GET 403 zijn bewezen. De 30 bestaande stapdeadlines zijn ongewijzigd. Zie [requirement](../requirements/workflows/PMUX-06A1_WORKDAY_CALENDAR.md) en [definitieve acceptatie](../quality/acceptance/runs/PMUX-06A1-20261025-CORE-TEST.md). Dit vervangt de oudere ontbrekende-kalenderstatus hieronder voor de geïmplementeerde feature en Jupiter-publicatie; geen deployment of kalenderpublicatie voor andere scopes/jaren.
+
 > **PAY-W03-INTEGRATION-READY-07 (25-10-2026):** lokale PR-handoff gereed; W02 pairwise tekstueel schoon, W04-providerconflict bevestigd. Gezamenlijke integratie en release HOLD; W03 LOCAL PARTIAL, HOSTED/issue #39 OPEN. Zie [handoff](../quality/acceptance/runs/PAY-W03-INTEGRATION-READY-07-20261025.md). Geen push of merge.
 
 
