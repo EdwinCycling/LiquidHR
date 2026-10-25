@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
-import type { PayrollSourceProvider } from '@liquid-hr/payroll-engine'
+import type { PayrollSourceProvider, PayrollSourceProviderInput, PayrollSourceSnapshot } from '@liquid-hr/payroll-engine'
 import { AuthorizationError } from '@/lib/auth/permissions'
 import { createPayrollCalculationRepository, PayrollCalculationRepositoryError } from './calculation-repository'
 import type { PayrollCalculationRepository } from './calculation-repository'
@@ -68,6 +68,14 @@ const defaultDependencies: PayrollCycleServiceDependencies = {
   createLifecycleRepository: createPayrun01Repository,
   sourceProvider: createLiquidHrPayrollSourceProvider(),
   enabled: isPayrollLabEnabled,
+}
+
+const PAYROLL_SOURCE_SNAPSHOT_READ_CONCURRENCY = 12
+
+type PayrollSourceBatchProvider = PayrollSourceProvider & {
+  readonly getPayrollSourceSnapshots?: (
+    inputs: readonly PayrollSourceProviderInput[],
+  ) => Promise<readonly PromiseSettledResult<PayrollSourceSnapshot>[]>
 }
 
 function assertPeriod(period: PayrollCyclePeriod): void {
@@ -178,16 +186,42 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
     const visibleRunIds = new Set(visibleRuns.map((summary) => summary.run.id))
     const scenarioRunIds = new Set(allRuns.flatMap((summary) => visibleRunIds.has(summary.run.id) ? [] : [summary.run.id]))
     const runs = visibleRuns.filter((summary) => summary.payrollPeriod.id === cycle.id)
-    const currentSourcesByEmployment = employeeReferences.length === 0
-      ? undefined
-      : Object.fromEntries(await loadQueriesInBatches(employeeReferences.map((reference) => async () => {
+    let currentSourcesByEmployment: Record<string, PayrollCycleCurrentSource> | undefined
+    if (employeeReferences.length > 0) {
+      const batchProvider = dependencies.sourceProvider as PayrollSourceBatchProvider
+      const sourceInputs = employeeReferences.map((reference) => ({
+        ...access.scope,
+        employeeId: reference.employeeId,
+        employmentId: reference.employmentId,
+        payrollPeriod: period,
+      }))
+      let sourceResults: readonly PromiseSettledResult<PayrollSourceSnapshot>[]
+      try {
+        sourceResults = batchProvider.getPayrollSourceSnapshots
+          ? await batchProvider.getPayrollSourceSnapshots(sourceInputs)
+          : await loadQueriesInBatches(sourceInputs.map((input) => async () => {
+            try {
+              return { status: 'fulfilled', value: await dependencies.sourceProvider.getPayrollSourceSnapshot(input) } as const
+            } catch (reason) {
+              return { status: 'rejected', reason } as const
+            }
+          }), PAYROLL_SOURCE_SNAPSHOT_READ_CONCURRENCY)
+        if (sourceResults.length !== sourceInputs.length) throw new Error('PAYROLL_SOURCE_BATCH_INCOMPLETE')
+      } catch {
+        sourceResults = await loadQueriesInBatches(sourceInputs.map((input) => async () => {
+          try {
+            return { status: 'fulfilled', value: await dependencies.sourceProvider.getPayrollSourceSnapshot(input) } as const
+          } catch (reason) {
+            return { status: 'rejected', reason } as const
+          }
+        }), PAYROLL_SOURCE_SNAPSHOT_READ_CONCURRENCY)
+      }
+      currentSourcesByEmployment = Object.fromEntries(employeeReferences.map((reference, index) => {
         try {
-          const snapshot = await dependencies.sourceProvider.getPayrollSourceSnapshot({
-            ...access.scope,
-            employeeId: reference.employeeId,
-            employmentId: reference.employmentId,
-            payrollPeriod: period,
-          })
+          const result = sourceResults[index]
+          if (!result) throw new Error('PAYROLL_SOURCE_BATCH_INCOMPLETE')
+          if (result.status === 'rejected') throw result.reason
+          const snapshot = result.value
           return [reference.employmentId, {
             employeeId: snapshot.sourceEmployeeId,
             sourceHash: snapshot.sourceHash,
@@ -218,7 +252,8 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
             diagnostics: diagnostic,
           } satisfies PayrollCycleCurrentSource] as const
         }
-      }), 6))
+      }))
+    }
     const employmentIds = [...new Set([
       ...runs.map((summary) => summary.sourceSnapshot.source_employment_id),
       ...employeeReferences.map((reference) => reference.employmentId),

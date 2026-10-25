@@ -167,8 +167,8 @@ describe('PayrollCycle server foundation', () => {
     })])
   })
 
-  it('loads source reads six at a time and preserves a safe provider failure diagnostic', async () => {
-    const references = Array.from({ length: 8 }, (_, index) => ({
+  it('loads source reads in a bounded batch and preserves every roster item and safe provider diagnostics', async () => {
+    const references = Array.from({ length: 20 }, (_, index) => ({
       employeeId: `60000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
       employmentId: `70000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
     }))
@@ -195,7 +195,8 @@ describe('PayrollCycle server foundation', () => {
 
     const projection = await service.getPayrollCycleWorklist(period, references)
 
-    expect(maxActive).toBe(6)
+    expect(maxActive).toBe(12)
+    expect(projection?.workItems.map((item) => item.employmentId)).toEqual(references.map((reference) => reference.employmentId))
     expect(projection?.workItems.find((item) => item.employmentId === references[0]?.employmentId)).toMatchObject({
       sourceGaps: [{ field: 'sourceSnapshot', status: 'SOURCE_GAP', reasonCode: 'CORE_SOURCE_READ_FAILED' }],
       sourceDiagnostics: [{
@@ -203,6 +204,29 @@ describe('PayrollCycle server foundation', () => {
         errorCode: 'PAYROLL_SOURCE_DATA_UNAVAILABLE',
         correlationId: '90000000-0000-4000-8000-000000000019',
       }],
+    })
+  })
+
+  it('uses a Payroll source batch capability when the provider supplies one', async () => {
+    const getPayrollSourceSnapshot = vi.fn(async () => snapshot())
+    const getPayrollSourceSnapshots = vi.fn(async () => [{ status: 'fulfilled' as const, value: snapshot() }])
+    const provider = { getPayrollSourceSnapshot, getPayrollSourceSnapshots } as unknown as PayrollSourceProvider
+    const { service } = makeService({ initialPeriod: payrollPeriod('OPEN'), provider })
+
+    const projection = await service.getPayrollCycleWorklist(period, [{ employeeId, employmentId }])
+
+    expect(getPayrollSourceSnapshots).toHaveBeenCalledWith([{
+      ...scope,
+      employeeId,
+      employmentId,
+      payrollPeriod: period,
+    }])
+    expect(getPayrollSourceSnapshot).not.toHaveBeenCalled()
+    expect(projection?.workItems).toHaveLength(1)
+    expect(projection?.workItems[0]).toMatchObject({
+      employeeId,
+      employmentId,
+      sourceGaps: [{ field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' }],
     })
   })
 })

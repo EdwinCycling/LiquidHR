@@ -293,6 +293,125 @@ function completePayrollSetup(): PayrollSourceSetup {
 }
 
 describe('LiquidHR Payroll source provider', () => {
+  it('preserves source fingerprints when timeline and Actual Work data are batch-read', async () => {
+    const timeline: PayrollSourceTimeline = {
+      employment: employment(),
+      salaries: [salary()],
+      schedules: [schedule()],
+    }
+    const batchActualWork = actualWork({
+      entries: [actualWorkEntry({ hours: 4 })],
+      types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
+    })
+    const loadTimeline = vi.fn(async () => timeline)
+    const loadTimelineBatch = vi.fn(async () => [timeline])
+    const loadActualWork = vi.fn(async () => batchActualWork)
+    const loadActualWorkBatch = vi.fn(async () => [batchActualWork])
+    const input = { ...request, employmentId }
+    const batchProvider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline,
+      loadTimelineBatch,
+      loadActualWork,
+      loadActualWorkBatch,
+    }))
+    const batchResults = await batchProvider.getPayrollSourceSnapshots([input])
+    const single = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => timeline),
+      loadActualWork: vi.fn(async () => batchActualWork),
+    })).getPayrollSourceSnapshot(input)
+    const batchSnapshot = batchResults[0]
+
+    expect(loadTimelineBatch).toHaveBeenCalledWith([{
+      employeeId,
+      employmentId,
+      payrollPeriod: request.payrollPeriod,
+    }])
+    expect(loadTimeline).not.toHaveBeenCalled()
+    expect(loadActualWork).not.toHaveBeenCalled()
+    expect(batchSnapshot?.status).toBe('fulfilled')
+    if (batchSnapshot?.status !== 'fulfilled') throw new Error('BATCH_SOURCE_SNAPSHOT_UNAVAILABLE')
+    expect(batchSnapshot.value.sourceHash).toBe(single.sourceHash)
+    expect(batchSnapshot.value.canonicalSource).toEqual(single.canonicalSource)
+    expect(batchSnapshot.value.sourceVersionVector).toEqual(single.sourceVersionVector)
+    expect(batchSnapshot.value.sourceGaps).toEqual(single.sourceGaps)
+  })
+
+  it('falls back to established individual reads when a timeline batch is incomplete', async () => {
+    const loadTimeline = vi.fn(async () => ({ employment: employment(), salaries: [salary()], schedules: [schedule()] }))
+    const loadActualWork = vi.fn(async () => actualWork())
+    const loadActualWorkBatch = vi.fn(async () => { throw new Error('BATCH_READ_UNAVAILABLE') })
+    const results = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline,
+      loadTimelineBatch: vi.fn(async () => { throw new Error('BATCH_READ_UNAVAILABLE') }),
+      loadActualWork,
+      loadActualWorkBatch,
+    })).getPayrollSourceSnapshots([{ ...request, employmentId }])
+
+    expect(results[0]?.status).toBe('fulfilled')
+    expect(loadTimeline).toHaveBeenCalledOnce()
+    expect(loadActualWork).toHaveBeenCalledOnce()
+    expect(loadActualWorkBatch).not.toHaveBeenCalled()
+  })
+
+  it('excludes a denied employee from all batch source reads', async () => {
+    const deniedEmployeeId = '41000000-0000-4000-8000-000000000041'
+    const authorize = vi.fn(async (targetEmployeeId: string) => {
+      if (targetEmployeeId === deniedEmployeeId) throw new AuthorizationError('PAYROLL_SOURCE_SCOPE_FORBIDDEN')
+      return { tenantId, hrGroupId, administrationId }
+    })
+    const loadTimelineBatch = vi.fn(async (inputs: readonly { readonly employeeId: string }[]) => {
+      expect(inputs.map((input) => input.employeeId)).toEqual([employeeId])
+      return [{ employment: employment(), salaries: [salary()], schedules: [schedule()] }]
+    })
+    const loadActualWorkBatch = vi.fn(async (inputs: readonly { readonly employeeId: string }[]) => {
+      expect(inputs.map((input) => input.employeeId)).toEqual([employeeId])
+      return [actualWork()]
+    })
+    const results = await new LiquidHrPayrollSourceProvider(dependencies({
+      authorize,
+      loadTimelineBatch,
+      loadActualWorkBatch,
+    })).getPayrollSourceSnapshots([
+      { ...request, employmentId },
+      { ...request, employeeId: deniedEmployeeId, employmentId: '51000000-0000-4000-8000-000000000051' },
+    ])
+
+    expect(results[0]?.status).toBe('fulfilled')
+    expect(results[1]?.status).toBe('rejected')
+    expect(loadTimelineBatch).toHaveBeenCalledOnce()
+    expect(loadActualWorkBatch).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the individual source fingerprint when Actual Work reads use the scoped batch path', async () => {
+    const batchActualWork = actualWork({
+      entries: [actualWorkEntry({ hours: 4 })],
+      types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
+    })
+    const loadActualWork = vi.fn(async () => { throw new Error('SINGLE_ACTUAL_WORK_READ_SHOULD_NOT_RUN') })
+    const loadActualWorkBatch = vi.fn(async () => [batchActualWork])
+    const authorize = vi.fn(async () => ({ tenantId, hrGroupId, administrationId }))
+    const input = { ...request, employmentId }
+    const batchProvider = new LiquidHrPayrollSourceProvider(dependencies({ loadActualWork, loadActualWorkBatch, authorize }))
+    const batchResults = await batchProvider.getPayrollSourceSnapshots([input])
+    const singleProvider = new LiquidHrPayrollSourceProvider(dependencies({ loadActualWork: async () => batchActualWork }))
+    const single = await singleProvider.getPayrollSourceSnapshot(input)
+    const batchSnapshot = batchResults[0]
+
+    expect(loadActualWorkBatch).toHaveBeenCalledWith([{
+      employeeId,
+      employmentId,
+      month: '2026-09',
+    }], [{ employeeId, tenantId, hrGroupId, administrationId }])
+    expect(loadActualWork).not.toHaveBeenCalled()
+    expect(authorize).toHaveBeenCalledOnce()
+    expect(batchSnapshot?.status).toBe('fulfilled')
+    if (batchSnapshot?.status !== 'fulfilled') throw new Error('BATCH_SOURCE_SNAPSHOT_UNAVAILABLE')
+    expect(batchSnapshot.value.sourceHash).toBe(single.sourceHash)
+    expect(batchSnapshot.value.canonicalSource).toEqual(single.canonicalSource)
+    expect(batchSnapshot.value.sourceVersionVector).toEqual(single.sourceVersionVector)
+    expect(batchSnapshot.value.sourceGaps).toEqual(single.sourceGaps)
+  })
+
   it('projects an effective 1 November CAO scale and only the November work-hours source', async () => {
     const salaryStructureId = '60000000-0000-4000-8000-000000000061'
     const salaryScaleId = '60000000-0000-4000-8000-000000000062'
@@ -1590,6 +1709,18 @@ describe('LiquidHR Payroll source provider', () => {
     expect(deps.loadTimeline).toHaveBeenCalledWith(employeeId, secondEmploymentId, request.payrollPeriod)
   })
 
+  it('reuses the exact scoped employment projection when the caller already supplies its employment id', async () => {
+    const scopedDirectoryRead = vi.fn(async () => [employment()])
+    const expected = await new LiquidHrPayrollSourceProvider(dependencies())
+      .getPayrollSourceSnapshot({ ...request, employmentId })
+    const actual = await new LiquidHrPayrollSourceProvider(dependencies({ listEmployments: scopedDirectoryRead }))
+      .getPayrollSourceSnapshot({ ...request, employmentId })
+
+    expect(scopedDirectoryRead).not.toHaveBeenCalled()
+    expect(actual.sourceEmploymentId).toBe(employmentId)
+    expect(actual.sourceHash).toBe(expected.sourceHash)
+  })
+
   it('does not let an employment id escape the authorized employee selection', async () => {
     const deps = dependencies({ listEmployments: vi.fn(async () => [employment()]) })
     const provider = new LiquidHrPayrollSourceProvider(deps)
@@ -1598,7 +1729,12 @@ describe('LiquidHR Payroll source provider', () => {
       ...request,
       employmentId: '50000000-0000-4000-8000-000000000055',
     })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', status: 404 })
-    expect(deps.loadTimeline).not.toHaveBeenCalled()
+    expect(deps.loadTimeline).toHaveBeenCalledWith(
+      employeeId,
+      '50000000-0000-4000-8000-000000000055',
+      request.payrollPeriod,
+    )
+    expect(deps.loadActualWork).not.toHaveBeenCalled()
   })
 
   it('rejects a service read that changes the employment scope between selection and detail load', async () => {

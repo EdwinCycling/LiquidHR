@@ -1,0 +1,1679 @@
+{
+  "task": "PAY-W03-TIMELINE-OPT-06",
+  "date": "2026-10-25",
+  "codeCommit": "b4a2cbc2ce18e319fbcd36b64ebab023d8a2f500",
+  "rootBuild": {
+    "exitCode": 0,
+    "node": "24.22.1",
+    "distDir": ".next/payrun01-acceptance-20261009",
+    "hrSuitePages": 339,
+    "controlPages": 12,
+    "provenanceSourceCommit": "b4a2cbc2ce18e319fbcd36b64ebab023d8a2f500"
+  },
+  "environment": {
+    "kind": "local TEST Development",
+    "port": 51635,
+    "node": "22.14.0",
+    "automation": "existing playwright-core 1.62.1 and installed headless Chromium",
+    "scope": "De Sterren holding / Planeten / Jupiter BV",
+    "period": "2026-10",
+    "conditions": "Existing route compiled by the parity navigation before selected trials; no concurrent checks or product edits. One explicit warmup preceded the rejected embedded variant."
+  },
+  "baseline": {
+    "scope": "timeline plus tax phase only; Core REST requests, no SQL execution count",
+    "requests": 355,
+    "initialTimelineReads": 273,
+    "timelineMs": 7931.3756,
+    "taxMs": 2044.1131,
+    "priorOpt05CombinedPhaseMs": 15687
+  },
+  "liveProjectionParity": {
+    "targets": 39,
+    "singleAndBothBatchProjectionDigest": "93f120ac93fa1b1eeeb807eb63741dc4df30cfd01483c963221564f843ee70e0"
+  },
+  "selectedOptimization": {
+    "requests": 152,
+    "initialTimelineReads": 70,
+    "measurements": [
+      {
+        "trial": "desktop-1",
+        "status": 200,
+        "listMs": 3197,
+        "fullMs": 13477,
+        "requests": 12,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "timelineMs": 3573.2791000000434,
+          "taxMs": 2856.027699999977,
+          "requests": 152,
+          "tables": {
+            "timeline:employments": {
+              "count": 10,
+              "sum": 3212.938099999912,
+              "max": 494.0107999999309,
+              "body": 72.83429999987129
+            },
+            "timeline:employee_organizations": {
+              "count": 10,
+              "sum": 3061.497599999886,
+              "max": 444.403299999889,
+              "body": 127.74930000002496
+            },
+            "timeline:employment_labor_conditions": {
+              "count": 10,
+              "sum": 3652.2585999998264,
+              "max": 463.2393999999622,
+              "body": 107.30250000022352
+            },
+            "timeline:employment_contracts": {
+              "count": 10,
+              "sum": 3512.09440000006,
+              "max": 475.62710000004154,
+              "body": 106.31640000012703
+            },
+            "timeline:employment_pension_arrangement_assignments": {
+              "count": 10,
+              "sum": 832.3486000000266,
+              "max": 128.71100000001024,
+              "body": 23.617500000051223
+            },
+            "timeline:employment_salaries": {
+              "count": 10,
+              "sum": 1478.6710000000894,
+              "max": 220.59189999999944,
+              "body": 16.58069999993313
+            },
+            "timeline:employment_schedules": {
+              "count": 10,
+              "sum": 2401.370799999917,
+              "max": 354.21429999999236,
+              "body": 41.94740000017919
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 64.70160000002943,
+              "max": 64.70160000002943,
+              "body": 2.244899999932386
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 950.5337999999756,
+              "max": 128.01500000001397,
+              "body": 414.6453999999212
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 76.81200000003446,
+              "max": 76.81200000003446,
+              "body": 23.792099999962375
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 1048.3130000001984,
+              "max": 143.05859999998938,
+              "body": 194.621799999848
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 306.1854000000749,
+              "max": 166.5643000000855,
+              "body": 49.73349999997299
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 82.29149999993388,
+              "max": 82.29149999993388,
+              "body": 2.239199999952689
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 98.00789999996778,
+              "max": 98.00789999996778,
+              "body": 9.887699999962933
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 74.83150000008754,
+              "max": 74.83150000008754,
+              "body": 4.152699999976903
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 50.32460000005085,
+              "max": 50.32460000005085,
+              "body": 1.3871000000508502
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 3193.455300000147,
+              "max": 1116.0187999999616,
+              "body": 67.32619999989402
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 3911.7090000002645,
+              "max": 1142.548000000068,
+              "body": 142.67390000005253
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 4132.1847000001,
+              "max": 1281.378000000026,
+              "body": 137.9505000000354
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 4261.040299999993,
+              "max": 1262.549500000081,
+              "body": 168.34820000035688
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 577.9364999999525,
+              "max": 76.75550000008661,
+              "body": 55.701399999903515
+            }
+          }
+        },
+        "snapshots": {
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "desktop-2",
+        "status": 200,
+        "listMs": 4147,
+        "fullMs": 16098,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "timelineMs": 6094.716299999971,
+          "taxMs": 1613.1306999999797,
+          "requests": 152,
+          "tables": {
+            "timeline:employments": {
+              "count": 10,
+              "sum": 7206.2196000000695,
+              "max": 1757.3185999999987,
+              "body": 80.64220000000205
+            },
+            "timeline:employment_contracts": {
+              "count": 10,
+              "sum": 7257.538100000005,
+              "max": 1700.3133999999845,
+              "body": 107.19299999985378
+            },
+            "timeline:employee_organizations": {
+              "count": 10,
+              "sum": 7336.694499999983,
+              "max": 2055.202900000033,
+              "body": 61.55189999996219
+            },
+            "timeline:employment_labor_conditions": {
+              "count": 10,
+              "sum": 8142.531200000434,
+              "max": 2214.5611999999965,
+              "body": 100.82890000019688
+            },
+            "timeline:employment_pension_arrangement_assignments": {
+              "count": 10,
+              "sum": 1415.7119000001112,
+              "max": 312.97279999998864,
+              "body": 16.606499999994412
+            },
+            "timeline:employment_schedules": {
+              "count": 10,
+              "sum": 3300.741199999815,
+              "max": 442.95410000008997,
+              "body": 36.636900000157766
+            },
+            "timeline:employment_salaries": {
+              "count": 10,
+              "sum": 2495.131000000052,
+              "max": 598.3726000000024,
+              "body": 17.993399999802932
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 193.3301999999676,
+              "max": 193.3301999999676,
+              "body": 2.3460999999661
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 1897.928800000227,
+              "max": 478.8658999999752,
+              "body": 85.65700000000652
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 2800.251800000202,
+              "max": 505.7423000000417,
+              "body": 172.9191999998875
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 899.7299000000348,
+              "max": 484.42989999998827,
+              "body": 32.05169999995269
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 501.828600000008,
+              "max": 501.828600000008,
+              "body": 23.723500000080094
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 73.55429999995977,
+              "max": 73.55429999995977,
+              "body": 3.166399999987334
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 79.99499999999534,
+              "max": 79.99499999999534,
+              "body": 4.368199999909848
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 121.85930000001099,
+              "max": 121.85930000001099,
+              "body": 3.5390999999362975
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 56.49069999996573,
+              "max": 56.49069999996573,
+              "body": 1.8294999999925494
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 2808.9010000003036,
+              "max": 345.1587999999756,
+              "body": 154.03750000020955
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 2624.59619999968,
+              "max": 348.12449999991804,
+              "body": 111.06109999981709
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 2693.364799999981,
+              "max": 345.72589999996126,
+              "body": 113.51540000003297
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 3020.3502000001026,
+              "max": 382.0095000000438,
+              "body": 200.1192999999039
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 605.8383000000613,
+              "max": 92.01130000001285,
+              "body": 42.08369999972638
+            }
+          }
+        },
+        "snapshots": {
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "desktop-3",
+        "status": 200,
+        "listMs": 3419,
+        "fullMs": 14500,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "timelineMs": 4815.367299999925,
+          "taxMs": 2019.755300000077,
+          "requests": 152,
+          "tables": {
+            "timeline:employee_organizations": {
+              "count": 10,
+              "sum": 3860.4451000002446,
+              "max": 687.4799999999814,
+              "body": 62.36359999969136
+            },
+            "timeline:employment_labor_conditions": {
+              "count": 10,
+              "sum": 4546.924400000018,
+              "max": 667.5959999999031,
+              "body": 122.77579999971204
+            },
+            "timeline:employment_contracts": {
+              "count": 10,
+              "sum": 4474.255400000024,
+              "max": 661.1757000000216,
+              "body": 162.4051000000909
+            },
+            "timeline:employments": {
+              "count": 10,
+              "sum": 4124.225000000093,
+              "max": 781.1135999999242,
+              "body": 62.410900000017136
+            },
+            "timeline:employment_pension_arrangement_assignments": {
+              "count": 10,
+              "sum": 1113.7461000001058,
+              "max": 168.89969999995083,
+              "body": 15.647299999953248
+            },
+            "timeline:employment_salaries": {
+              "count": 10,
+              "sum": 2395.3418999999994,
+              "max": 366.2465000000084,
+              "body": 15.801100000040606
+            },
+            "timeline:employment_schedules": {
+              "count": 10,
+              "sum": 3917.6641999999993,
+              "max": 488.88140000007115,
+              "body": 49.996400000178255
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 70.01520000002347,
+              "max": 70.01520000002347,
+              "body": 2.167299999971874
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 1493.656799999997,
+              "max": 181.4478999999119,
+              "body": 209.89249999972526
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 303.38870000012685,
+              "max": 198.04280000005383,
+              "body": 22.651799999992363
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 1603.5406000000658,
+              "max": 216.1744999999646,
+              "body": 93.60939999984112
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 205.24679999996442,
+              "max": 205.24679999996442,
+              "body": 20.02840000006836
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 106.74060000001919,
+              "max": 106.74060000001919,
+              "body": 2.57750000001397
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 127.000800000038,
+              "max": 127.000800000038,
+              "body": 4.522999999928288
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 111.5236000000732,
+              "max": 111.5236000000732,
+              "body": 3.4059000000124797
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 55.62170000001788,
+              "max": 55.62170000001788,
+              "body": 1.1630000000586733
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 3184.7534000001615,
+              "max": 548.1650000000373,
+              "body": 43.83189999999013
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 3541.01930000016,
+              "max": 519.7341000000015,
+              "body": 71.8296000000555
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 3709.6443000000436,
+              "max": 571.3708999999799,
+              "body": 83.61270000005607
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 3898.274400000111,
+              "max": 589.5622999999905,
+              "body": 65.6131000003079
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 795.1713999998756,
+              "max": 106.26169999991544,
+              "body": 43.60670000012033
+            }
+          }
+        },
+        "snapshots": {
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "mobile-1",
+        "status": 200,
+        "listMs": 5233,
+        "fullMs": 25124,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "timelineMs": 6386.680200000061,
+          "taxMs": 8974.113799999934,
+          "requests": 152,
+          "tables": {
+            "timeline:employment_contracts": {
+              "count": 10,
+              "sum": 5140.990199999651,
+              "max": 848.2041999999201,
+              "body": 48.05719999992289
+            },
+            "timeline:employee_organizations": {
+              "count": 10,
+              "sum": 4782.9367999999085,
+              "max": 1104.7878000000492,
+              "body": 33.60200000007171
+            },
+            "timeline:employments": {
+              "count": 10,
+              "sum": 5839.668400000082,
+              "max": 1742.096300000092,
+              "body": 32.82389999984298
+            },
+            "timeline:employment_labor_conditions": {
+              "count": 10,
+              "sum": 6085.488600000041,
+              "max": 1543.2561999999452,
+              "body": 43.224300000001676
+            },
+            "timeline:employment_pension_arrangement_assignments": {
+              "count": 10,
+              "sum": 1956.5278000000399,
+              "max": 470.45290000003297,
+              "body": 14.992199999978766
+            },
+            "timeline:employment_schedules": {
+              "count": 10,
+              "sum": 4340.179600000032,
+              "max": 601.2327000000514,
+              "body": 45.327000000397675
+            },
+            "timeline:employment_salaries": {
+              "count": 10,
+              "sum": 3262.7280999999493,
+              "max": 652.0833000000566,
+              "body": 16.09920000017155
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 97.87329999997746,
+              "max": 97.87329999997746,
+              "body": 2.1610999999102205
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 1997.1735999997472,
+              "max": 499.0928999999305,
+              "body": 172.16029999987222
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 1859.8897000001743,
+              "max": 525.6746000000276,
+              "body": 119.06850000005215
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 705.5026000000071,
+              "max": 509.563700000057,
+              "body": 31.095900000073016
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 540.5800999999046,
+              "max": 540.5800999999046,
+              "body": 3.5734999999403954
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 214.87509999994654,
+              "max": 214.87509999994654,
+              "body": 2.599000000045635
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 249.0905999999959,
+              "max": 249.0905999999959,
+              "body": 6.8596000000834465
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 117.76000000000931,
+              "max": 117.76000000000931,
+              "body": 2.2111999999033287
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 86.28130000003148,
+              "max": 86.28130000003148,
+              "body": 1.830299999914132
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 11090.50459999987,
+              "max": 3163.1011999999173,
+              "body": 1049.1833000000333
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 10946.18789999967,
+              "max": 2259.2062999999616,
+              "body": 433.6219000000274
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 11285.427199999918,
+              "max": 3165.7822999999626,
+              "body": 1206.4906999999657
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 14841.6357000001,
+              "max": 3177.325599999982,
+              "body": 2422.079200000153
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 7610.431500000181,
+              "max": 2047.01529999997,
+              "body": 35.86439999996219
+            }
+          }
+        },
+        "snapshots": {
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "mobile-2",
+        "status": 200,
+        "listMs": 2756,
+        "fullMs": 22992,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "timelineMs": 12796.975899999961,
+          "taxMs": 3375.9107000000076,
+          "requests": 152,
+          "tables": {
+            "timeline:employee_organizations": {
+              "count": 10,
+              "sum": 5247.552699999884,
+              "max": 844.7262000000337,
+              "body": 65.50529999984428
+            },
+            "timeline:employments": {
+              "count": 10,
+              "sum": 6635.855699999724,
+              "max": 1289.1942999999737,
+              "body": 88.30550000001676
+            },
+            "timeline:employment_contracts": {
+              "count": 10,
+              "sum": 6880.23060000001,
+              "max": 1353.2597000000533,
+              "body": 70.8705000000773
+            },
+            "timeline:employment_labor_conditions": {
+              "count": 10,
+              "sum": 5964.819500000216,
+              "max": 1057.7272000000812,
+              "body": 95.39779999980237
+            },
+            "timeline:employment_pension_arrangement_assignments": {
+              "count": 10,
+              "sum": 3385.850199999986,
+              "max": 823.4756999999518,
+              "body": 15.868699999875389
+            },
+            "timeline:employment_salaries": {
+              "count": 10,
+              "sum": 5384.987900000066,
+              "max": 1082.5727999999654,
+              "body": 16.209200000041164
+            },
+            "timeline:employment_schedules": {
+              "count": 10,
+              "sum": 7708.402699999977,
+              "max": 1240.5695999999298,
+              "body": 49.953600000124425
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 994.3992999999318,
+              "max": 994.3992999999318,
+              "body": 6.9666000000434
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 461.0681999999797,
+              "max": 461.0681999999797,
+              "body": 2.395299999974668
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 4901.821199999889,
+              "max": 868.5722999999998,
+              "body": 56.61389999988023
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 4455.360199999879,
+              "max": 853.9320999999763,
+              "body": 99.51650000002701
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 2486.0782000001054,
+              "max": 1261.9150000000373,
+              "body": 5.439500000094995
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 1329.8256000000983,
+              "max": 1329.8256000000983,
+              "body": 2.3122999999905005
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 1469.7118999999948,
+              "max": 1469.7118999999948,
+              "body": 9.976499999989755
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 618.4357000000309,
+              "max": 618.4357000000309,
+              "body": 2.1045000000158325
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 403.78690000006463,
+              "max": 403.78690000006463,
+              "body": 1.3041000000666827
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 6361.633999999962,
+              "max": 1017.3553000000538,
+              "body": 64.99450000026263
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 5550.382600000012,
+              "max": 1039.60970000003,
+              "body": 51.88810000021476
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 6542.706800000044,
+              "max": 1236.7802000000374,
+              "body": 49.788100000005215
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 5694.214900000137,
+              "max": 1054.8059000000358,
+              "body": 65.45630000007804
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 1577.1476999998558,
+              "max": 219.8194000000367,
+              "body": 34.54120000009425
+            }
+          }
+        },
+        "snapshots": {
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "mobile-3",
+        "status": 200,
+        "listMs": 14427,
+        "fullMs": 36412,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "timelineMs": 12529.337499999907,
+          "taxMs": 3276.2371000000276,
+          "requests": 152,
+          "tables": {
+            "timeline:employment_labor_conditions": {
+              "count": 10,
+              "sum": 10830.151799999992,
+              "max": 2515.75549999997,
+              "body": 48.87550000019837
+            },
+            "timeline:employee_organizations": {
+              "count": 10,
+              "sum": 10594.828899999964,
+              "max": 3044.3582999999635,
+              "body": 52.93849999993108
+            },
+            "timeline:employment_contracts": {
+              "count": 10,
+              "sum": 11547.734699999914,
+              "max": 1789.753000000026,
+              "body": 32.772399999783374
+            },
+            "timeline:employments": {
+              "count": 10,
+              "sum": 13661.630099999602,
+              "max": 3048.995099999942,
+              "body": 57.751400000066496
+            },
+            "timeline:employment_pension_arrangement_assignments": {
+              "count": 10,
+              "sum": 5673.454699999886,
+              "max": 1028.3906000000425,
+              "body": 28.726200000033714
+            },
+            "timeline:employment_schedules": {
+              "count": 10,
+              "sum": 9066.743800000055,
+              "max": 1292.219899999909,
+              "body": 62.66229999996722
+            },
+            "timeline:employment_salaries": {
+              "count": 10,
+              "sum": 8563.714200000046,
+              "max": 1152.2408999999752,
+              "body": 14.842899999930523
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 292.906500000041,
+              "max": 292.906500000041,
+              "body": 6.79769999999553
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 3068.003700000001,
+              "max": 450.3591000000015,
+              "body": 123.56089999980759
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 3068.4217000000644,
+              "max": 461.0461999999825,
+              "body": 54.689300000085495
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 830.3625000000466,
+              "max": 498.93799999996554,
+              "body": 11.07620000001043
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 518.9179000000004,
+              "max": 518.9179000000004,
+              "body": 2.587500000023283
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 300.52330000000075,
+              "max": 300.52330000000075,
+              "body": 16.29610000003595
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 304.87429999990854,
+              "max": 304.87429999990854,
+              "body": 5.1825999999418855
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 143.49380000005476,
+              "max": 143.49380000005476,
+              "body": 2.382400000002235
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 233.61060000001453,
+              "max": 233.61060000001453,
+              "body": 1.1005999998888
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 5289.621499999776,
+              "max": 1309.7297999999719,
+              "body": 38.40379999997094
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 4984.0792000000365,
+              "max": 1128.2741000000387,
+              "body": 46.480000000214204
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 5453.01669999992,
+              "max": 1193.6631000000052,
+              "body": 36.885099999955855
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 6577.273199999938,
+              "max": 1189.3343999999342,
+              "body": 47.137299999943934
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 1229.1191000001272,
+              "max": 204.08719999995083,
+              "body": 43.92309999989811
+            }
+          }
+        },
+        "snapshots": {
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      }
+    ]
+  },
+  "rejectedSecondOptimization": {
+    "requests": 92,
+    "initialTimelineReads": 10,
+    "reason": "Same source projection but no demonstrated latency benefit. Reverted to the simpler table batch variant after the second and final optimization attempt.",
+    "measurements": [
+      {
+        "trial": "desktop-1",
+        "status": 200,
+        "listMs": 3077,
+        "fullMs": 42667,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "type": "source",
+          "startedAt": 1792910785493,
+          "timelineMs": 18151.218600000022,
+          "taxMs": 16792.05090000003,
+          "requests": 92,
+          "tables": {
+            "timeline:employments": {
+              "count": 10,
+              "sum": 36781.131099999766,
+              "max": 5430.705599999987,
+              "body": 43.776599999982864
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 307.67310000001453,
+              "max": 307.67310000001453,
+              "body": 2.8338000000221655
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 5107.432999999961,
+              "max": 1221.8541999999434,
+              "body": 35.10450000001583
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 4922.236300000106,
+              "max": 1228.1645000000717,
+              "body": 111.96099999989383
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 1823.3081000000238,
+              "max": 992.8040000000037,
+              "body": 5.064200000022538
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 1541.4764999999898,
+              "max": 1541.4764999999898,
+              "body": 3.3955999999307096
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 110.2267999999458,
+              "max": 110.2267999999458,
+              "body": 8.351499999989755
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 155.9183999999659,
+              "max": 155.9183999999659,
+              "body": 2.541499999933876
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 117.00279999990016,
+              "max": 117.00279999990016,
+              "body": 2.703800000017509
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 457.99499999999534,
+              "max": 457.99499999999534,
+              "body": 1.1767000000691041
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 25670.727599999984,
+              "max": 7672.508299999987,
+              "body": 37.78949999983888
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 19999.322799999965,
+              "max": 7505.339500000002,
+              "body": 46.494400000199676
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 17270.19160000002,
+              "max": 7141.316400000011,
+              "body": 45.32340000011027
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 32133.327700000023,
+              "max": 7410.745200000005,
+              "body": 44.36129999998957
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 3455.088400000008,
+              "max": 1153.175200000056,
+              "body": 29.306600000010803
+            }
+          }
+        },
+        "snapshots": {
+          "type": "snapshots",
+          "finishedAt": 1792910822604,
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "desktop-2",
+        "status": 200,
+        "listMs": 2314,
+        "fullMs": 34708,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "type": "source",
+          "startedAt": 1792910828021,
+          "timelineMs": 15545.828800000018,
+          "taxMs": 10338.052200000035,
+          "requests": 92,
+          "tables": {
+            "timeline:employments": {
+              "count": 10,
+              "sum": 29647.42200000037,
+              "max": 6707.993300000089,
+              "body": 47.832699999795295
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 279.8261000000639,
+              "max": 279.8261000000639,
+              "body": 2.248699999996461
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 4890.7972999999765,
+              "max": 996.1276999999536,
+              "body": 39.86920000007376
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 5172.004899999709,
+              "max": 930.1311999999452,
+              "body": 95.64720000012312
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 1632.4144999999553,
+              "max": 823.7981000000145,
+              "body": 8.152699999976903
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 1073.112300000037,
+              "max": 1073.112300000037,
+              "body": 103.39060000004247
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 132.2212999999756,
+              "max": 132.2212999999756,
+              "body": 2.3501999999862164
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 138.7774999999674,
+              "max": 138.7774999999674,
+              "body": 7.429699999978766
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 115.06599999999162,
+              "max": 115.06599999999162,
+              "body": 2.3251000000163913
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 168.3595000000205,
+              "max": 168.3595000000205,
+              "body": 1.8135000000474975
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 17295.66659999988,
+              "max": 4769.3720999999205,
+              "body": 147.87849999999162
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 18890.731400000048,
+              "max": 5409.065899999929,
+              "body": 177.34780000022147
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 14365.524500000174,
+              "max": 4509.2356000000145,
+              "body": 161.84319999988656
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 25073.217599999974,
+              "max": 6684.067799999961,
+              "body": 145.40859999961685
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 2569.8656999999657,
+              "max": 527.4137999999803,
+              "body": 93.07270000025164
+            }
+          }
+        },
+        "snapshots": {
+          "type": "snapshots",
+          "finishedAt": 1792910856931,
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "desktop-3",
+        "status": 200,
+        "listMs": 2311,
+        "fullMs": 23561,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "type": "source",
+          "startedAt": 1792910862918,
+          "timelineMs": 8428.910399999935,
+          "taxMs": 7988.441200000001,
+          "requests": 92,
+          "tables": {
+            "timeline:employments": {
+              "count": 10,
+              "sum": 12562.186699999962,
+              "max": 1831.3507999998983,
+              "body": 44.074799999943934
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 167.69960000005085,
+              "max": 167.69960000005085,
+              "body": 2.9466999999713153
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 3212.3116000000155,
+              "max": 420.1929999999702,
+              "body": 132.23059999966063
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 3630.749000000069,
+              "max": 396.30890000006184,
+              "body": 121.0625
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 376.3452999999281,
+              "max": 376.3452999999281,
+              "body": 27.37729999993462
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 853.1743999999017,
+              "max": 437.46809999994,
+              "body": 34.32350000005681
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 98.25620000006165,
+              "max": 98.25620000006165,
+              "body": 20.29899999999907
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 150.18510000000242,
+              "max": 150.18510000000242,
+              "body": 4.057200000039302
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 326.2705999999307,
+              "max": 326.2705999999307,
+              "body": 29.34090000006836
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 233.67249999998603,
+              "max": 233.67249999998603,
+              "body": 3.0071999999927357
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 13576.22530000005,
+              "max": 5487.499300000025,
+              "body": 76.98250000004191
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 16070.537699999986,
+              "max": 5476.293300000019,
+              "body": 51.605899999965914
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 15921.214300000109,
+              "max": 4863.510399999912,
+              "body": 73.72089999984019
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 18511.453800000018,
+              "max": 5511.96259999997,
+              "body": 72.9507000001613
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 2222.138799999957,
+              "max": 920.1827999999514,
+              "body": 35.32380000012927
+            }
+          }
+        },
+        "snapshots": {
+          "type": "snapshots",
+          "finishedAt": 1792910881386,
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "mobile-1",
+        "status": 200,
+        "listMs": 2308,
+        "fullMs": 22476,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "type": "source",
+          "startedAt": 1792910886424,
+          "timelineMs": 11837.142699999968,
+          "taxMs": 2794.837899999926,
+          "requests": 92,
+          "tables": {
+            "timeline:employments": {
+              "count": 10,
+              "sum": 17032.218500000075,
+              "max": 2388.859599999967,
+              "body": 49.523999999975786
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 287.56219999992754,
+              "max": 287.56219999992754,
+              "body": 2.4575000000186265
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 7098.332400000072,
+              "max": 1574.782700000098,
+              "body": 128.26169999979902
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 887.2280000000028,
+              "max": 887.2280000000028,
+              "body": 2.8954000000376254
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 8557.973199999775,
+              "max": 1891.9790000000503,
+              "body": 55.741000000038184
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 4204.218999999925,
+              "max": 2244.848699999973,
+              "body": 12.179799999925308
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 1148.2260999999708,
+              "max": 1148.2260999999708,
+              "body": 9.763899999903515
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 1284.830799999996,
+              "max": 1284.830799999996,
+              "body": 2.0514999999431893
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 470.2502000000095,
+              "max": 470.2502000000095,
+              "body": 2.7532999999821186
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 101.99549999996088,
+              "max": 101.99549999996088,
+              "body": 2.455100000021048
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 5417.048999999766,
+              "max": 1305.468600000022,
+              "body": 65.02979999990202
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 5499.884900000179,
+              "max": 1416.059899999993,
+              "body": 67.91760000004433
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 5115.963400000008,
+              "max": 1276.468300000066,
+              "body": 48.53790000034496
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 6134.994299999904,
+              "max": 1422.8474999999162,
+              "body": 110.54969999997411
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 800.747599999886,
+              "max": 118.06479999993462,
+              "body": 35.38910000002943
+            }
+          }
+        },
+        "snapshots": {
+          "type": "snapshots",
+          "finishedAt": 1792910903437,
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "mobile-2",
+        "status": 200,
+        "listMs": 3371,
+        "fullMs": 35102,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "type": "source",
+          "startedAt": 1792910910080,
+          "timelineMs": 11622.353899999987,
+          "taxMs": 6699.949600000051,
+          "requests": 92,
+          "tables": {
+            "timeline:employments": {
+              "count": 10,
+              "sum": 21757.043599999975,
+              "max": 3981.8654000000097,
+              "body": 171.37979999999516
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 131.22450000001118,
+              "max": 131.22450000001118,
+              "body": 6.801600000006147
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 5184.4831999999005,
+              "max": 956.1382000000449,
+              "body": 1041.3373999999603
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 4789.747699999949,
+              "max": 912.6368000000948,
+              "body": 444.8253999997396
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 186.6306999999797,
+              "max": 186.6306999999797,
+              "body": 28.378499999991618
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 1093.5688999999547,
+              "max": 847.2125999999698,
+              "body": 137.64870000001974
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 781.8855000000913,
+              "max": 781.8855000000913,
+              "body": 14.6201000000583
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 792.2417000000132,
+              "max": 792.2417000000132,
+              "body": 17.943300000042655
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 122.5063000000082,
+              "max": 122.5063000000082,
+              "body": 9.45030000002589
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 148.48140000004787,
+              "max": 148.48140000004787,
+              "body": 1.5927000000374392
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 7809.3771000000415,
+              "max": 1731.045599999954,
+              "body": 2630.024199999869
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 7719.187600000063,
+              "max": 1711.2092999999877,
+              "body": 2925.7448000001023
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 7173.723399999784,
+              "max": 1136.8506000000052,
+              "body": 2646.84859999991
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 9146.854699999909,
+              "max": 1775.2735000000102,
+              "body": 2295.275299999863
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 2320.793699999922,
+              "max": 352.2284000000218,
+              "body": 674.5229999999283
+            }
+          }
+        },
+        "snapshots": {
+          "type": "snapshots",
+          "finishedAt": 1792910937805,
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      },
+      {
+        "trial": "mobile-3",
+        "status": 200,
+        "listMs": 4053,
+        "fullMs": 24957,
+        "requests": 11,
+        "apiRequests": 2,
+        "runRows": 14,
+        "employeeRows": 39,
+        "runDigest": "2f6eeb9262bd713320593937b5f4b0920db9fb461ad1e268e39ee453eb8c6a4c",
+        "workspaceDigest": "5825a28b4fa8191c45e3d4c54fd1dc8d57ecb522a5737b20b9eda9dc4d030298",
+        "overflow": false,
+        "pageErrors": 0,
+        "source": {
+          "type": "source",
+          "startedAt": 1792910946121,
+          "timelineMs": 13565.679400000023,
+          "taxMs": 2270.4183000000194,
+          "requests": 92,
+          "tables": {
+            "timeline:employments": {
+              "count": 10,
+              "sum": 31322.511400000076,
+              "max": 5167.2071,
+              "body": 73.61280000035185
+            },
+            "timeline:labor_condition_pension_arrangements": {
+              "count": 1,
+              "sum": 198.24009999993723,
+              "max": 198.24009999993723,
+              "body": 3.9475999999558553
+            },
+            "timeline:job_revisions": {
+              "count": 12,
+              "sum": 3096.5894000000553,
+              "max": 586.3871999999974,
+              "body": 179.89769999985583
+            },
+            "timeline:labor_condition_sets": {
+              "count": 2,
+              "sum": 870.3333999998868,
+              "max": 551.9630999999354,
+              "body": 49.87220000009984
+            },
+            "timeline:jobs": {
+              "count": 12,
+              "sum": 3474.6375999997836,
+              "max": 578.7454999999609,
+              "body": 445.8919999997597
+            },
+            "timeline:pension_arrangements": {
+              "count": 1,
+              "sum": 596.749199999962,
+              "max": 596.749199999962,
+              "body": 19.02919999998994
+            },
+            "timeline:pension_arrangement_versions": {
+              "count": 1,
+              "sum": 148.16440000000875,
+              "max": 148.16440000000875,
+              "body": 12.022800000035204
+            },
+            "timeline:pension_arrangement_tiers": {
+              "count": 1,
+              "sum": 186.7428999999538,
+              "max": 186.7428999999538,
+              "body": 2.6308999999891967
+            },
+            "timeline:pension_arrangement_version_tiers": {
+              "count": 1,
+              "sum": 137.43900000001304,
+              "max": 137.43900000001304,
+              "body": 2.689399999915622
+            },
+            "timeline:employees": {
+              "count": 1,
+              "sum": 199.16070000000764,
+              "max": 199.16070000000764,
+              "body": 1.3869999999878928
+            },
+            "tax:employment_income_relationships": {
+              "count": 10,
+              "sum": 3491.349399999832,
+              "max": 639.6013999999268,
+              "body": 68.65300000004936
+            },
+            "tax:employees": {
+              "count": 10,
+              "sum": 2705.8586000001524,
+              "max": 409.3610000000335,
+              "body": 96.2441000000108
+            },
+            "tax:income_relationships": {
+              "count": 10,
+              "sum": 4177.708700000076,
+              "max": 664.9418999999762,
+              "body": 120.47379999991972
+            },
+            "tax:employments": {
+              "count": 10,
+              "sum": 4317.520199999912,
+              "max": 673.326999999932,
+              "body": 139.10559999989346
+            },
+            "tax:employment_payroll_tax_profiles": {
+              "count": 10,
+              "sum": 791.1799999999348,
+              "max": 105.4708999999566,
+              "body": 61.280700000119396
+            }
+          }
+        },
+        "snapshots": {
+          "type": "snapshots",
+          "finishedAt": 1792910963992,
+          "count": 39,
+          "digest": "0964b63039cc7228cc5b7ea4f0b483e87ee4061ecc2530e31af304435b9a85be"
+        }
+      }
+    ]
+  },
+  "finalizedPdf": {
+    "probe": "finalized-pdf",
+    "status": 200,
+    "bytes": 33174,
+    "sha256": "41a84b88ebd06b01eb49802002a14d20f7170eb58628bd884f6d8c5472f1e82a"
+  },
+  "limitations": [
+    "Local Development timings are not hosted SLO evidence or controlled A/B measurements.",
+    "Header wait combines network, gateway and database execution. Body timing combines body transfer/reading. JSON parsing and Postgres execution are not separately measured.",
+    "Summed concurrent request durations are not phase wall times.",
+    "The live snapshot digest binds hashes, version vectors and SOURCE_GAP lists; the UI digests hash rendered data. No raw salary or persona credential values are recorded."
+  ]
+}
