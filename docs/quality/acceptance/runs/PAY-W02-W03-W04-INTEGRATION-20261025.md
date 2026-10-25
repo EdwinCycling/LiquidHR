@@ -5,7 +5,7 @@ Branch: `integration/PAY-W02-W03-W04-20261025`
 Geïntegreerde code-HEAD: `3013b6d11a58dc4de03f296cbf71f4cee736d3b6`
 Lokale werkboom: `PAY-W02-W03-W04-INTEGRATION-20261025`
 
-**Eindoordeel: PARTIAL/HOLD.** Code-, regressie- en buildgates zijn geslaagd. De voorgeschreven lokale browseracceptatie bleef BLOCKED vóór serverstart omdat de bestaande TEST-configuratie en persona-credentials ontbreken. GO voor code-review/integratievoorbereiding; HOLD voor TEST-release en reguliere Payroll.
+**Eindoordeel: PARTIAL/HOLD.** Code-, regressie- en buildgates zijn geslaagd en de gecombineerde lokale browseracceptatie is PASS. De W01/W03/W04-bronreadiness- en hostedgates blijven PARTIAL/OPEN; dit is geen GO voor TEST-release of reguliere Payroll. GO voor code-review/integratievoorbereiding.
 
 ## Provenance en actuele basis
 
@@ -74,9 +74,45 @@ De gecombineerde Payroll-run dekt R1, de R2 BigInt-oracle en standaard-R2 `SOURC
 
 ## Lokale browseracceptatie
 
-**BLOCKED vóór serverstart en browserlogin.** `scripts/check-test-personas.ps1 -SkipBrowser` bevestigde de persona-catalogus en gesloten role-switchallowlist, maar de bestaande launcher-preflight meldde dat de canonieke lokale TEST-config ontbreekt. Metadata-only controle bevestigde dat zowel `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` als `%LOCALAPPDATA%\LiquidHR\TestRuntime\payroll-test-personas.env` ontbreken. Geen alternatieve config, account, grant, sessie of TEST-data is gemaakt/gebruikt.
+**PASS — alle voorgeschreven lokale read-only browsercontroles en zes loads uitgevoerd.** De beschermde configuratie stond op de Windows-host; herstel was niet nodig:
 
-Daarom zijn `/payroll/runs`, bestaande FINALIZED-PDF via HR Admin/Employee, Manager-/Employee-negatieven en de gevraagde drie desktop- plus drie mobiele werkplekloads niet browsermatig uitgevoerd. Er zijn hiervoor geen actuele dataset-, scope-, periode-, hash- of individuele tijdmetingen. Historische W01/W03-browsermetingen blijven uitsluitend historisch bewijs; er wordt geen hosted-PASS afgeleid.
+- Canonieke TEST-configuratie: `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local`.
+- `C:\Users\Edwin\AppData\Local\LiquidHR\TestRuntime\.env.local` bestond als hardlink naar de canonieke config; `payroll-test-personas.env` bestond. Configuratie- en credentialstructuurcontroles van `scripts/check-test-personas.ps1 -SkipBrowser` slaagden; credentialwaarden bleven verborgen.
+- De officiële launcher `scripts/start-test-worktree.ps1 -Mode Development -PayrollAcceptance -PayrollPersonaAcceptance -Port 58157` startte op `http://127.0.0.1:58157`. De Windows-shell gebruikte `LOCALAPPDATA=C:\Users\Edwin\AppData\Local`; geen configuratiebestand is gewijzigd. Runtime: Node `22.14.0`, npm `10.9.2`.
+- Geïsoleerde Playwright-sessie `payintaccept02r`; HR Admin login via `/local/sign-in` → **HR Admin openen** → De Sterren holding / Planeten / Jupiter BV. Manager en Employee zijn via `/local/personas` en dezelfde normale contextselectie geopend.
+
+### Dataset, PDF en scope
+
+- HR Admin zag **14 opgeslagen runs** (2026-09: 1, 2026-10: 12, 2026-11: 1). De werkplekperiode was `2026-10`, met **39 medewerkerregels**.
+- Live statusverdeling: **36 Geblokkeerd, 2 Definitief, 1 Concept**. Alle 39 selectievakjes waren disabled. Geen berekening gestart.
+- Per elk van de zes loads waren er 39 verwachte `SOURCE_GAP`-consolemeldingen, 0 overige console-errors en 0 uncaught page-errors. Geen hydration-, `TypeError`-, resource-404/500- of horizontale-overflowfouten.
+- HR Admin haalde Lisa’s bestaande FINALIZED-run `57ac6c10-7a02-49c4-a588-2ca244e621d9` en artifact op: HTTP 200, `application/pdf`, 33.174 bytes. Lisa’s Employee-pagina `/my-salary` was HTTP 200; haar eigen PDF gaf HTTP 200, dezelfde lengte en dezelfde SHA-256: `41a84b88ebd06b01eb49802002a14d20f7170eb58628bd884f6d8c5472f1e82a`. Lisa’s cross-employee-paysliprequest voor Jaap gaf HTTP 404.
+- Manager-directory in Planeten: **6** zichtbare teamleden. In-team `GET /api/employees/{id}` gaf 200. Een bestaande medewerker buiten de zichtbare teamlijst gaf voor dossier `GET /api/employees/{id}` 404 en voor `GET /api/employees/{id}/payslips/payroll/2026-10` 404.
+- Geen nieuwe accounts, wachtwoorden, grants of TEST-data; geen runmutatie, review, finalisatie, PDF-write, migratie of databasewrite.
+
+### Gecontroleerde workbenchloads
+
+Alle trials gebruikten scope De Sterren holding / Planeten / Jupiter BV en periode `2026-10`. De meting liep van `page.goto`-start tot volledige weergave van 39 medewerkerregels; `DOMContentLoaded` staat afzonderlijk vermeld.
+
+| Viewport | Trial | HTTP | DOMContentLoaded ms | Workbench klaar ms | Runs | Medewerkers | Disabled | Overflow |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1440×900 | D1 | 200 | 17.978 | 18.181 | 14 | 39 | 39 | nee |
+| 1440×900 | D2 | 200 | 15.367 | 15.525 | 14 | 39 | 39 | nee |
+| 1440×900 | D3 | 200 | 14.443 | 14.733 | 14 | 39 | 39 | nee |
+| 390×844 | M1 | 200 | 16.918 | 17.103 | 14 | 39 | 39 | nee |
+| 390×844 | M2 | 200 | 13.889 | 14.176 | 14 | 39 | 39 | nee |
+| 390×844 | M3 | 200 | 14.499 | 14.734 | 14 | 39 | 39 | nee |
+
+SHA-256-fingerprints van de gerenderde gegevens:
+
+| Viewport | Runlijstregels | Medewerkeridentiteit | Medewerkerstatus/regel |
+| --- | --- | --- | --- |
+| 1440×900, alle drie trials gelijk | `cf49b560328b3766a1aeab93e825df92ad023bf4c132f568a09ce96f642390cc` | `27a680bddbd977ce630296ee34e477774fe3434b31a1196cf6fa1e4dff3cda66` | `8054de6384c6db03e9a0ff7cf5494b8e9a57e11991654c5e47e9dca4af1410e1` |
+| 390×844, alle drie trials gelijk | `e62fc565fa3c4008590487c3a7ae22288543eacd9e0dadfb158fcd40a9db4863` | `27a680bddbd977ce630296ee34e477774fe3434b31a1196cf6fa1e4dff3cda66` | `8054de6384c6db03e9a0ff7cf5494b8e9a57e11991654c5e47e9dca4af1410e1` |
+
+Runlijsthash: SHA-256 van DOM-volgorde van tabelrijtekst na whitespace-normalisatie. Medewerkeridentiteit: SHA-256 van lexicografisch gesorteerde checkboxwaarden. Medewerkerstatus/regel: SHA-256 van lexicografisch gesorteerde `checkboxwaarde + tab + genormaliseerde kaarttekst`. Dit zijn weergavefingerprints, geen Payroll-bronhashes of berekeningsresultaten. De runlijsthash is per viewport gerapporteerd; identiteit en statusfingerprints waren over alle zes loads gelijk.
+
+Deze lokale metingen bewijzen geen stabiele performancewinst of hosted gedrag. W03 LOCAL blijft daarom **PARTIAL**; W01 LOCAL blijft **PARTIAL** door de open conceptbron/readinessgate. Hosted W01/W03 blijven **OPEN**.
 
 ## Crosswalk uitvoeringswaves naar productroadmap
 
@@ -97,6 +133,8 @@ D0 en D1 houden hun bestaande PARTIAL/OPEN-gates; deze integratie promoveert ze 
 
 | Onderwerp | Status |
 | --- | --- |
+| Gecombineerde lokale browseracceptatie | **PASS** — HR Admin/Employee PDF, Employee-selfscope, Manager teampositief en -negatief, SOURCE_GAP-veiligheid en 3 desktop-/3 mobiele loads gecontroleerd |
+| Manager-teamscope | **PASS** — 6 teamleden; in-team 200; buiten-team dossier en salaris 404 |
 | W01 LOCAL | **PARTIAL** |
 | W01 HOSTED | **OPEN** |
 | W02 | **PASS — synthetisch, technisch; normale Retail R2-service blijft interval-/source-gap geblokkeerd** |
@@ -111,6 +149,6 @@ D0 en D1 houden hun bestaande PARTIAL/OPEN-gates; deze integratie promoveert ze 
 | Lokale code-review / integratievoorbereiding | **GO** | Integratiebranch bevat actuele main plus exacte W02/W03/W04-heads; gates hierboven geslaagd. |
 | PR-publicatie | **HOLD** | Geen push/PR-publicatie binnen mandaat. |
 | Merge naar main | **HOLD** | Alleen lokaal geïntegreerd; geen merge naar main geautoriseerd. |
-| TEST-release / deployment | **HOLD** | Geen deployment geautoriseerd; lokale browserconfig en bronreadiness ontbreken. |
+| TEST-release / deployment | **HOLD** | Geen deployment geautoriseerd; W01/W03/W04-bronreadinessgates blijven open of gedeeltelijk. |
 
-Geen remote migratie/databasewrite, Payroll-run, review, finalisatie, push of deployment uitgevoerd. De actieve codecommit is `3013b6d11a58dc4de03f296cbf71f4cee736d3b6`; deze rapport- en AA-documentatie worden als afzonderlijke lokale documentatiecommit vastgelegd.
+Geen remote migratie/databasewrite, Payroll-run, review, finalisatie, push of deployment uitgevoerd. De actieve codecommit is `3013b6d11a58dc4de03f296cbf71f4cee736d3b6`; deze browser-follow-up wijzigt alleen de integratieacceptatiedocumentatie.
