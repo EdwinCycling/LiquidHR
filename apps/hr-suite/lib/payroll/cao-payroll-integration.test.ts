@@ -63,12 +63,14 @@ describe('normal-source CAO payroll integration', () => {
       laborConditionCode: 'RETAIL_NON_FOOD_MODE_2026_2027',
       laborConditionName: 'Retail Non-Food / Mode',
       retailBusinessScope: {
+        tenantId: baseInput.tenantId,
+        administrationId: baseInput.administrationId,
         value: 'IN_STORE',
         sourceClassification: 'SYNTHETIC_FIXTURE',
         sourceReference: 'SYNTHETIC_FIXTURE:CAO integration test; activity scope is explicitly stipulated for this case',
         sourceVersion: 'CAO-RETAIL-INTEGRATION-TEST-v1',
         effectiveFrom: '2026-01-01',
-        effectiveTo: null,
+        effectiveTo: '2026-07-31',
       },
       salary: { ...baseInput.salary!, caoScaleName: 'C', caoStepName: '1', salaryStepCode: '1', hourlyRate: 0 },
       schedule: { contractHoursPerWeek: 24, fullTimeHoursPerWeek: 38 },
@@ -85,6 +87,44 @@ describe('normal-source CAO payroll integration', () => {
     expect(r2.baseAmount).toBe('1605.79')
     expect(r2.premiumAmount).toBe('15.44')
     expect(r2.grossAmount).toBe('1621.23')
+  })
+
+  it('fails closed for an invalid Retail classification or uncovered payroll period', () => {
+    const retailInput: CaoPayrollIntegrationInput = {
+      ...baseInput,
+      period: { year: 2026, month: 7 },
+      activeEndExclusive: '2026-08-01',
+      laborConditionCode: 'RETAIL_NON_FOOD_MODE_2026_2027',
+      laborConditionName: 'Retail Non-Food / Mode',
+      salary: { ...baseInput.salary!, caoScaleName: 'C', caoStepName: '1', salaryStepCode: '1', hourlyRate: 0 },
+      schedule: { contractHoursPerWeek: 24, fullTimeHoursPerWeek: 38 },
+      actualWorkEntries: [{ family: 'WORK', typeCode: 'NIGHT', hours: '1', status: 'APPROVED' }],
+      retailBusinessScope: {
+        tenantId: baseInput.tenantId,
+        administrationId: baseInput.administrationId,
+        value: 'UNKNOWN' as unknown as 'IN_STORE',
+        sourceClassification: 'SYNTHETIC_FIXTURE',
+        sourceReference: 'synthetic contract test only',
+        sourceVersion: 'retail-scope-v1',
+        effectiveFrom: '2026-01-01',
+        effectiveTo: null,
+      },
+    }
+    expect(calculateCaoPayroll(retailInput)).toMatchObject({
+      status: 'BLOCKED', blockingStatus: 'SOURCE_GAP', reasonCode: 'CAO_RETAIL_BUSINESS_SCOPE_INVALID',
+    })
+    expect(calculateCaoPayroll({
+      ...retailInput,
+      retailBusinessScope: { ...retailInput.retailBusinessScope!, value: 'ECOMMERCE', effectiveFrom: '2026-08-01' },
+    })).toMatchObject({
+      status: 'BLOCKED', blockingStatus: 'SOURCE_GAP', reasonCode: 'CAO_RETAIL_BUSINESS_SCOPE_INVALID',
+    })
+    expect(calculateCaoPayroll({
+      ...retailInput,
+      retailBusinessScope: { ...retailInput.retailBusinessScope!, value: 'ECOMMERCE', effectiveTo: '2026-07-30' },
+    })).toMatchObject({
+      status: 'BLOCKED', blockingStatus: 'SOURCE_GAP', reasonCode: 'CAO_RETAIL_BUSINESS_SCOPE_INVALID',
+    })
   })
 
   it('blocks a supported CAO when a scale source is missing', () => {

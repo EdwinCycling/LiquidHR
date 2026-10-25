@@ -491,6 +491,8 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     openingBalance,
   }
   const defaultBusinessScope = options.eCommerceNight ? {
+    tenantId: scope.tenantId,
+    administrationId: scope.administrationId,
     value: 'ECOMMERCE',
     sourceClassification: 'SYNTHETIC_FIXTURE',
     sourceReference: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-01; case stipulates an e-commerce activity scope',
@@ -498,6 +500,8 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     effectiveFrom: '2026-01-01',
     effectiveTo: null,
   } as const satisfies CaoRetailBusinessScope : {
+    tenantId: scope.tenantId,
+    administrationId: scope.administrationId,
     value: 'IN_STORE',
     sourceClassification: 'SYNTHETIC_FIXTURE',
     sourceReference: caseCode === 'R1'
@@ -693,6 +697,7 @@ export async function createRetailSourceSnapshot(
           employerRuleVersion: 'SYNTHETIC-R2-EMPLOYER-2026-v1',
           realEmployerAndPensionApplicability: 'SOURCE_GAP',
           realEmployeeFiscalDeclarations: 'SOURCE_GAP',
+          actualWorkIntervalEvidence: 'SYNTHETIC_FIXTURE_ONLY; no Core interval, timezone, pause, or correction source is asserted',
           openingCumulatives: options.omitR2OpeningCumulative
             ? 'MISSING'
             : options.nonZeroR2OpeningCumulative ? 'AMBIGUOUS' : 'EXPLICIT_ZERO_FIRST_PERIOD',
@@ -708,6 +713,7 @@ export async function createRetailSourceSnapshot(
             { field: 'opening-cumulative-values', status: options.omitR2OpeningCumulative
               ? 'MISSING'
               : options.nonZeroR2OpeningCumulative ? 'AMBIGUOUS' : 'AVAILABLE', version: 'SYNTHETIC-R2-OPENING-2026-07-v1' },
+            { field: 'real-actual-work-intervals', status: 'MISSING', version: 'NOT_BOUND' },
             { field: 'net-reimbursements-and-deductions', status: 'AVAILABLE', version: 'SYNTHETIC-R2-NET-ITEMS-2026-07-v1' },
             { field: 'real-employer-and-pension-applicability', status: 'MISSING', version: 'NOT_BOUND' },
           ],
@@ -755,6 +761,33 @@ export function calculateRetailR1(snapshot: PayrollSourceSnapshot) {
     },
     calculationContextHash: sha256(stableSerialize({
       fixtureId: 'PAYD2-RETAIL-02-R1',
+      sourceHash: snapshot.sourceHash,
+    })),
+  })
+  return calculatePayroll(inputs, PAYFULL02_RULE_REGISTRY)
+}
+
+/** Pure arithmetic oracle for the synthetic R2 fixture; it does not enter Payroll service or lifecycle. */
+export function calculateRetailR2SyntheticOracle(snapshot: PayrollSourceSnapshot) {
+  const provenance = canonical(snapshot).caseProvenance as Record<string, unknown> | undefined
+  const syntheticPayrollInputs = provenance?.syntheticPayrollInputs as Record<string, unknown> | undefined
+  if (syntheticPayrollInputs?.fixtureId !== 'PAY-W02B-R2-NET-ORACLE-01') {
+    throw new Error('PAYW02B_R2_SYNTHETIC_ORACLE_FIXTURE_REQUIRED')
+  }
+  const rulePackage = createPayfull02RulePackage('CUSTOMER_STANDARD', {
+    supportPartialPeriods: true,
+    supportCaoExactGross: true,
+    allocatePensionRoundingRemainderToEmployer: true,
+  })
+  const inputs = buildCalculationInputs(snapshot, rulePackage, {
+    effectiveDate: '2026-07-01',
+    scopeInstanceIds: {
+      EMPLOYEE: snapshot.sourceEmployeeId,
+      EMPLOYMENT: snapshot.sourceEmploymentId,
+      INCOME_RELATIONSHIP: snapshot.sourceIncomeRelationshipId ?? '',
+    },
+    calculationContextHash: sha256(stableSerialize({
+      fixtureId: 'PAY-W02B-R2-NET-ORACLE-01',
       sourceHash: snapshot.sourceHash,
     })),
   })

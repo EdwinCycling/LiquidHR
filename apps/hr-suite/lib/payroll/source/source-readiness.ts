@@ -22,7 +22,7 @@ export function canReviewPayrollSourceReadiness(context: {
     && context.permissions.includes('salary:read')
 }
 
-function validDate(value: string): boolean {
+export function isValidPayrollSourceDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
   const date = new Date(`${value}T00:00:00.000Z`)
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
@@ -34,20 +34,20 @@ export function assessEffectiveSourceCoverage(
   periodStart: string,
   periodEndExclusive: string,
 ): EffectiveSourceCoverage {
-  if (!validDate(periodStart) || !validDate(periodEndExclusive) || periodEndExclusive <= periodStart) {
+  if (!isValidPayrollSourceDate(periodStart) || !isValidPayrollSourceDate(periodEndExclusive) || periodEndExclusive <= periodStart) {
     return { status: 'CONFLICT', rows: [] }
   }
 
   const rows = inputRows.filter((row) => {
-    if (!validDate(row.validFrom)
-      || (row.validUntilExclusive !== null && !validDate(row.validUntilExclusive))
+    if (!isValidPayrollSourceDate(row.validFrom)
+      || (row.validUntilExclusive !== null && !isValidPayrollSourceDate(row.validUntilExclusive))
       || (row.validUntilExclusive !== null && row.validUntilExclusive <= row.validFrom)) return true
     return row.validFrom < periodEndExclusive
       && (row.validUntilExclusive === null || row.validUntilExclusive > periodStart)
   }).sort((left, right) => left.validFrom.localeCompare(right.validFrom) || left.id.localeCompare(right.id))
 
-  if (rows.some((row) => !validDate(row.validFrom)
-    || (row.validUntilExclusive !== null && (!validDate(row.validUntilExclusive) || row.validUntilExclusive <= row.validFrom)))) {
+  if (rows.some((row) => !isValidPayrollSourceDate(row.validFrom)
+    || (row.validUntilExclusive !== null && (!isValidPayrollSourceDate(row.validUntilExclusive) || row.validUntilExclusive <= row.validFrom)))) {
     return { status: 'CONFLICT', rows }
   }
   if (rows.length === 0) return { status: 'MISSING', rows }

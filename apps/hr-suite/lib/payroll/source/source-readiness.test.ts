@@ -23,6 +23,9 @@ describe('Payroll source readiness', () => {
     expect(assessEffectiveSourceCoverage([
       { id: 'row-1', version: '', validFrom: '2026-09-01', validUntilExclusive: null },
     ], periodStart, periodEndExclusive).status).toBe('UNVERIFIED')
+    expect(assessEffectiveSourceCoverage([
+      { id: 'row-1', version: 'v1', validFrom: '2026-02-30', validUntilExclusive: null },
+    ], periodStart, periodEndExclusive).status).toBe('CONFLICT')
   })
 
   it('allows only HR Admin roles with salary read permission to review readiness', () => {

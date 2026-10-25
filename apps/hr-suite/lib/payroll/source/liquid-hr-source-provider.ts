@@ -47,6 +47,7 @@ import {
 import { isPayrollLabEnabled } from '../feature-flag'
 import { payrollScopeFromAuthContext } from '../scope'
 import { payrollSourceProviderInputSchema, payrollSourceSnapshotSchema } from './schemas'
+import { isValidPayrollSourceDate } from './source-readiness'
 import { hashPayrollSourceSnapshot } from './snapshot-hash'
 import {
   hashPayrollEmployerConfiguration,
@@ -523,6 +524,21 @@ function actualWorkForPeriod(
   }
 }
 
+function hasApprovedRetailPremiumHoursWithoutIntervalSource(entries: readonly CaoPayrollActualWorkEntry[]): boolean {
+  return entries.some((entry) => {
+    if (entry.status !== 'APPROVED') return false
+    const activity = `${entry.typeCode ?? ''}_${entry.typeName ?? ''}`.toUpperCase()
+    const isPremiumActivity = entry.family === 'OVERTIME'
+      || /SUNDAY|ZONDAG|NIGHT|NACHT|OVERTIME|OVERWERK|OVERUREN/.test(activity)
+    if (!isPremiumActivity) return false
+    try {
+      return FixedDecimal.parse(String(entry.hours)).compare(FixedDecimal.fromInteger(BigInt(0))) > 0
+    } catch {
+      return false
+    }
+  })
+}
+
 function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { start: string; endInclusive: string; endExclusive: string } {
   const start = `${period.year}-${String(period.month).padStart(2, '0')}-01`
   const endInclusive = new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
@@ -531,6 +547,59 @@ function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { st
 
 function employmentOverlapsPeriod(startsOn: string, endsOn: string | null, start: string, endInclusive: string): boolean {
   return startsOn <= endInclusive && (endsOn === null || endsOn >= start)
+}
+
+function selectScopedEmployment(
+  employments: readonly PayrollSourceEmployment[],
+  input: PayrollSourceProviderInput,
+): PayrollSourceEmployment {
+  const bounds = periodBounds(input.payrollPeriod)
+  const candidates = employments.filter((employment) =>
+    employment.tenant_id === input.tenantId
+    && employment.hr_group_id === input.hrGroupId
+    && employment.administration_id === input.administrationId
+    && employment.employee_id === input.employeeId
+    && (input.employmentId === undefined || employment.id === input.employmentId)
+    && employment.deleted_at === null
+    && employment.record_status === 'CONFIRMED'
+    && employmentOverlapsPeriod(employment.starts_on, employment.ends_on, bounds.start, bounds.endInclusive),
+  )
+  if (candidates.length === 0) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+  if (candidates.length > 1) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS', 409)
+  const employment = candidates[0]
+  if (!employment) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+  return employment
+}
+
+function validateScopedTimeline(
+  timeline: PayrollSourceTimeline,
+  employment: PayrollSourceEmployment,
+  input: PayrollSourceProviderInput,
+): void {
+  const timelineEmployment = timeline.employment
+  if (
+    timelineEmployment.id !== employment.id
+    || timelineEmployment.tenant_id !== input.tenantId
+    || timelineEmployment.hr_group_id !== input.hrGroupId
+    || timelineEmployment.administration_id !== input.administrationId
+    || timelineEmployment.employee_id !== input.employeeId
+    || timelineEmployment.starts_on !== employment.starts_on
+    || timelineEmployment.ends_on !== employment.ends_on
+    || timelineEmployment.deleted_at !== null
+    || timelineEmployment.record_status !== 'CONFIRMED'
+  ) {
+    throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+  }
+  const bounds = periodBounds(input.payrollPeriod)
+  if (!employmentOverlapsPeriod(timelineEmployment.starts_on, timelineEmployment.ends_on, bounds.start, bounds.endInclusive)) {
+    throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+  }
+  if (timeline.retailBusinessScope && (
+    timeline.retailBusinessScope.tenantId !== input.tenantId
+    || timeline.retailBusinessScope.administrationId !== input.administrationId
+  )) {
+    throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+  }
 }
 
 function effectiveRangeOverlapsPeriod(validFrom: string, validUntil: string | null, start: string, endExclusive: string): boolean {
@@ -901,9 +970,9 @@ function sourceVersionContract(
       && reference.versionParts.every((part) => part.trim().length > 0 && part !== 'MISSING')
     const vectorVersion = versionVector[reference.versionKey]
     const versionConsistent = vectorVersion === reference.version
-    const validRange = /^\d{4}-\d{2}-\d{2}$/.test(reference.validFrom)
+    const validRange = isValidPayrollSourceDate(reference.validFrom)
       && (reference.validUntilExclusive === null
-        || (/^\d{4}-\d{2}-\d{2}$/.test(reference.validUntilExclusive)
+        || (isValidPayrollSourceDate(reference.validUntilExclusive)
           && reference.validUntilExclusive > reference.validFrom))
     const effectiveInPeriod = validRange && (reference.effectiveAt
       ? reference.validFrom <= reference.effectiveAt
@@ -1650,7 +1719,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           return { status: 'rejected', reason } as const
         }
       }), 12)
-    if (!this.dependencies.loadActualWorkBatch || rawInputs.length === 0) return await readIndividually()
+    const loadTimelineBatch = this.dependencies.loadTimelineBatch
+    const loadActualWorkBatch = this.dependencies.loadActualWorkBatch
+    if (!loadActualWorkBatch || rawInputs.length === 0) return await readIndividually()
+    if (!this.dependencies.isEnabled()) return await readIndividually()
     const parsedInputs = rawInputs.map((input) => payrollSourceProviderInputSchema.safeParse(input))
     const first = parsedInputs[0]
     if (!first?.success || parsedInputs.some((parsed) => !parsed.success
@@ -1663,9 +1735,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       return await readIndividually()
     }
 
-    const authorizationResults = await loadQueriesInBatches(parsedInputs.map((parsed, index) => async () => {
-      const input = parsed.success ? parsed.data : rawInputs[index]
-      if (!input) return { status: 'rejected', reason: new PayrollSourceProviderError('PAYROLL_SOURCE_INPUT_INVALID', 400) } as const
+    const authorizedInputs = parsedInputs.flatMap((parsed, index) =>
+      parsed.success ? [{ index, input: parsed.data }] : [],
+    )
+    const authorizationResults = await loadQueriesInBatches(authorizedInputs.map(({ input }) => async () => {
       try {
         const context = await this.dependencies.authorize(input.employeeId)
         const authorizedScope = payrollScopeFromAuthContext(context)
@@ -1680,26 +1753,68 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         return { status: 'rejected', reason } as const
       }
     }), 4)
-    const authorizedIndexes = authorizationResults.flatMap((result, index) =>
-      result.status === 'fulfilled' ? [index] : [],
-    )
+    const authorizationByInputIndex = new Map(authorizedInputs.map(({ index }, resultIndex) => [
+      index, authorizationResults[resultIndex]!,
+    ]))
+    const authorizedInputsOnly = authorizedInputs.filter((_, index) => authorizationResults[index]?.status === 'fulfilled')
     const rejectedSnapshots = new Map<number, PromiseSettledResult<PayrollSourceSnapshot>>()
     for (let index = 0; index < authorizationResults.length; index += 1) {
       const result = authorizationResults[index]
-      const input = rawInputs[index]
+      const input = authorizedInputs[index]?.input
       if (!input || !result || result.status !== 'rejected') continue
       try {
-        rejectedSnapshots.set(index, {
+        rejectedSnapshots.set(authorizedInputs[index]!.index, {
           status: 'fulfilled',
           value: await this.getPayrollSourceSnapshotWithActualWork(input),
         })
+      } catch (reason) {
+        rejectedSnapshots.set(authorizedInputs[index]!.index, { status: 'rejected', reason })
+      }
+    }
+
+    const directoryEmployeeIds = [...new Set(authorizedInputsOnly.map(({ input }) => input.employeeId))]
+    const directoryResults = await loadQueriesInBatches(directoryEmployeeIds.map((employeeId) => async () => {
+      try {
+        return { status: 'fulfilled', value: await this.dependencies.listEmployments(employeeId) } as const
+      } catch (reason) {
+        return { status: 'rejected', reason } as const
+      }
+    }), 4)
+    const directoriesByEmployee = new Map(directoryEmployeeIds.map((employeeId, index) => [employeeId, directoryResults[index]!]))
+    const scopedEmployments = new Map<number, PayrollSourceEmployment>()
+    const scopedIndexes: number[] = []
+    for (const { index, input } of authorizedInputsOnly) {
+      const directory = directoriesByEmployee.get(input.employeeId)
+      if (!directory || directory.status === 'rejected') {
+        const error = directory?.reason
+        const correlationId = (this.dependencies.createCorrelationId ?? randomUUID)()
+        const sourceCategory = safeSourceCategory(error, 'employment-directory')
+        const errorCode = safeSourceErrorCode(error)
+        try {
+          this.dependencies.reportDiagnostic?.({
+            event: 'PAYROLL_SOURCE_PROVIDER_FAILURE', sourceCategory, errorCode, correlationId,
+          })
+        } catch {
+          // Diagnostics must never replace the source failure.
+        }
+        rejectedSnapshots.set(index, {
+          status: 'rejected',
+          reason: new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId),
+        })
+        continue
+      }
+      try {
+        scopedEmployments.set(index, selectScopedEmployment(directory.value, input))
+        scopedIndexes.push(index)
       } catch (reason) {
         rejectedSnapshots.set(index, { status: 'rejected', reason })
       }
     }
 
-    const readAuthorizedIndividually = async (): Promise<readonly PromiseSettledResult<PayrollSourceSnapshot>[]> => {
-      const fallback = await loadQueriesInBatches(authorizedIndexes.map((index) => async () => {
+    const readAuthorizedIndividually = async (
+      indexes: readonly number[],
+    ): Promise<readonly PromiseSettledResult<PayrollSourceSnapshot>[]> => {
+      const fallback = await loadQueriesInBatches(indexes.map((index) => async () => {
         const input = rawInputs[index]!
         try {
           return { status: 'fulfilled', value: await this.getPayrollSourceSnapshot(input) } as const
@@ -1709,58 +1824,131 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       }), 12)
       const output: PromiseSettledResult<PayrollSourceSnapshot>[] = Array.from({ length: rawInputs.length })
       for (const [index, result] of rejectedSnapshots) output[index] = result
-      authorizedIndexes.forEach((inputIndex, resultIndex) => { output[inputIndex] = fallback[resultIndex]! })
+      indexes.forEach((inputIndex, resultIndex) => { output[inputIndex] = fallback[resultIndex]! })
       return output
     }
 
-    let timelines: readonly PayrollSourceTimeline[] | undefined
-    if (this.dependencies.loadTimelineBatch) {
+    if (scopedIndexes.length === 0) {
+      const output: PromiseSettledResult<PayrollSourceSnapshot>[] = Array.from({ length: rawInputs.length })
+      for (const [index, result] of rejectedSnapshots) output[index] = result
+      return output
+    }
+
+    type TimelineReadResult =
+      | { readonly status: 'fulfilled'; readonly value: PayrollSourceTimeline }
+      | { readonly status: 'rejected'; readonly reason: unknown }
+    let timelineResults: readonly TimelineReadResult[]
+    if (loadTimelineBatch) {
       try {
-        timelines = await this.dependencies.loadTimelineBatch(authorizedIndexes.map((index) => {
+        const timelines = await loadTimelineBatch(scopedIndexes.map((index) => {
           const input = rawInputs[index]!
-          return { employeeId: input.employeeId, employmentId: input.employmentId!, payrollPeriod: input.payrollPeriod }
+          const employment = scopedEmployments.get(index)!
+          return { employeeId: input.employeeId, employmentId: employment.id, payrollPeriod: input.payrollPeriod }
         }))
-        if (timelines.length !== authorizedIndexes.length) throw new Error('PAYROLL_SOURCE_TIMELINE_BATCH_INCOMPLETE')
+        if (timelines.length !== scopedIndexes.length) throw new Error('PAYROLL_SOURCE_TIMELINE_BATCH_INCOMPLETE')
+        timelineResults = timelines.map((timeline) => ({ status: 'fulfilled', value: timeline }))
       } catch {
-        return await readAuthorizedIndividually()
+        return await readAuthorizedIndividually(scopedIndexes)
       }
+    } else {
+      timelineResults = await loadQueriesInBatches(scopedIndexes.map((index) => async (): Promise<TimelineReadResult> => {
+        const input = rawInputs[index]!
+        const employment = scopedEmployments.get(index)!
+        try {
+          return {
+            status: 'fulfilled',
+            value: await this.dependencies.loadTimeline(input.employeeId, employment.id, input.payrollPeriod),
+          }
+        } catch (error) {
+          if (input.employmentId !== undefined && isEmploymentNotFoundReadFailure(error)) {
+            return { status: 'rejected', reason: new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404) }
+          }
+          const correlationId = (this.dependencies.createCorrelationId ?? randomUUID)()
+          const sourceCategory = safeSourceCategory(error, 'employment-timeline')
+          const errorCode = safeSourceErrorCode(error)
+          try {
+            this.dependencies.reportDiagnostic?.({
+              event: 'PAYROLL_SOURCE_PROVIDER_FAILURE', sourceCategory, errorCode, correlationId,
+            })
+          } catch {
+            // Diagnostics must never replace the source failure.
+          }
+          return {
+            status: 'rejected',
+            reason: new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId),
+          }
+        }
+      }), 12)
+    }
+
+    const validatedIndexes: number[] = []
+    const validatedTimelines: PayrollSourceTimeline[] = []
+    for (let resultIndex = 0; resultIndex < scopedIndexes.length; resultIndex += 1) {
+      const inputIndex = scopedIndexes[resultIndex]!
+      const timelineResult = timelineResults[resultIndex]
+      const input = rawInputs[inputIndex]!
+      const employment = scopedEmployments.get(inputIndex)!
+      try {
+        if (!timelineResult) throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503)
+        if (timelineResult.status === 'rejected') throw timelineResult.reason
+        const timeline = timelineResult.value
+        validateScopedTimeline(timeline, employment, input)
+        validatedIndexes.push(inputIndex)
+        validatedTimelines.push(timeline)
+      } catch (reason) {
+        rejectedSnapshots.set(inputIndex, { status: 'rejected', reason })
+      }
+    }
+    if (validatedIndexes.length === 0) {
+      const output: PromiseSettledResult<PayrollSourceSnapshot>[] = Array.from({ length: rawInputs.length })
+      for (const [index, result] of rejectedSnapshots) output[index] = result
+      return output
     }
 
     let actualWork: readonly ActualWorkPayrollProjection[]
     try {
-      const actualWorkInputs = authorizedIndexes.map((index) => {
+      const actualWorkInputs = validatedIndexes.map((index) => {
         const input = rawInputs[index]!
+        const employment = scopedEmployments.get(index)!
         return {
           employeeId: input.employeeId,
-          employmentId: input.employmentId!,
-          month: `${first.data.payrollPeriod.year}-${String(first.data.payrollPeriod.month).padStart(2, '0')}`,
+          employmentId: employment.id,
+          month: `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,
         }
       })
-      const actualWorkScopes = authorizedIndexes.map((index) => {
+      const actualWorkScopes = validatedIndexes.map((index) => {
         const input = rawInputs[index]!
-        const authorization = authorizationResults[index]!
-        if (authorization.status !== 'fulfilled') throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+        const authorization = authorizationByInputIndex.get(index)
+        if (!authorization || authorization.status !== 'fulfilled') {
+          throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+        }
         const scope = payrollScopeFromAuthContext(authorization.value)
         if (!scope) throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
         return { employeeId: input.employeeId, ...scope }
       })
-      actualWork = await this.dependencies.loadActualWorkBatch(actualWorkInputs, actualWorkScopes)
-      if (actualWork.length !== authorizedIndexes.length) throw new Error('PAYROLL_ACTUAL_WORK_BATCH_INCOMPLETE')
+      actualWork = await loadActualWorkBatch(actualWorkInputs, actualWorkScopes)
+      if (actualWork.length !== validatedIndexes.length) throw new Error('PAYROLL_ACTUAL_WORK_BATCH_INCOMPLETE')
     } catch {
-      return await readAuthorizedIndividually()
+      return await readAuthorizedIndividually(validatedIndexes)
     }
 
     const output: PromiseSettledResult<PayrollSourceSnapshot>[] = Array.from({ length: rawInputs.length })
     for (const [index, result] of rejectedSnapshots) output[index] = result
-    await loadQueriesInBatches(authorizedIndexes.map((inputIndex, resultIndex) => async () => {
+    await loadQueriesInBatches(validatedIndexes.map((inputIndex, resultIndex) => async () => {
       const input = rawInputs[inputIndex]!
-      const authorization = authorizationResults[inputIndex]!
+      const authorization = authorizationByInputIndex.get(inputIndex)
       const source = actualWork[resultIndex]
+      const timeline = validatedTimelines[resultIndex]
+      const employment = scopedEmployments.get(inputIndex)
       try {
-        if (authorization.status !== 'fulfilled') throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+        if (!authorization || authorization.status !== 'fulfilled' || !employment || !timeline || !source) {
+          throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+        }
         output[inputIndex] = {
           status: 'fulfilled',
-          value: await this.getPayrollSourceSnapshotWithActualWork(input, source, authorization.value, timelines?.[resultIndex]),
+          value: await this.getPayrollSourceSnapshotWithActualWork(
+            input, source, authorization.value, timeline, employment,
+          ),
         }
       } catch (reason) {
         output[inputIndex] = { status: 'rejected', reason }
@@ -1775,6 +1963,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     actualWorkOverride?: ActualWorkPayrollProjection,
     preauthorizedContext?: Pick<AuthContext, 'tenantId' | 'hrGroupId' | 'administrationId'>,
     timelineOverride?: PayrollSourceTimeline,
+    prevalidatedEmployment?: PayrollSourceEmployment,
   ): Promise<PayrollSourceSnapshot> {
     const parsedInput = payrollSourceProviderInputSchema.safeParse(rawInput)
     if (!parsedInput.success) throw new PayrollSourceProviderError('PAYROLL_SOURCE_INPUT_INVALID', 400)
@@ -1834,10 +2023,11 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     ) {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
-
     const bounds = periodBounds(input.payrollPeriod)
-    let employment: PayrollSourceEmployment | undefined
-    if (input.employmentId === undefined) {
+    let employment: PayrollSourceEmployment
+    if (prevalidatedEmployment) {
+      employment = selectScopedEmployment([prevalidatedEmployment], input)
+    } else {
       let employments: readonly PayrollSourceEmployment[]
       try {
         employments = await this.dependencies.listEmployments(input.employeeId)
@@ -1846,19 +2036,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         reportFailure(sourceCategory, safeSourceErrorCode(error))
         throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId)
       }
-      const candidates = employments.filter((candidate) =>
-        candidate.tenant_id === input.tenantId
-        && candidate.hr_group_id === input.hrGroupId
-        && candidate.administration_id === input.administrationId
-        && candidate.employee_id === input.employeeId
-        && candidate.deleted_at === null
-        && candidate.record_status === 'CONFIRMED'
-        && employmentOverlapsPeriod(candidate.starts_on, candidate.ends_on, bounds.start, bounds.endInclusive),
-      )
-      if (candidates.length === 0) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
-      if (candidates.length > 1) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS', 409)
-      employment = candidates[0]
-      if (!employment) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+      employment = selectScopedEmployment(employments, input)
     }
 
     let timeline: PayrollSourceTimeline
@@ -1868,7 +2046,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       try {
         timeline = await this.dependencies.loadTimeline(
           input.employeeId,
-          input.employmentId ?? employment!.id,
+        employment.id,
           input.payrollPeriod,
         )
       } catch (error) {
@@ -1880,35 +2058,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceCategory, correlationId)
       }
     }
-    const timelineScopeMismatch = (
-      timeline.employment.id !== (input.employmentId ?? employment?.id)
-      || timeline.employment.tenant_id !== input.tenantId
-      || timeline.employment.hr_group_id !== input.hrGroupId
-      || timeline.employment.administration_id !== input.administrationId
-      || timeline.employment.employee_id !== input.employeeId
-    )
-    if (timelineScopeMismatch) {
-      throw new PayrollSourceProviderError(
-        input.employmentId !== undefined ? 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND' : 'PAYROLL_SOURCE_SCOPE_FORBIDDEN',
-        input.employmentId !== undefined ? 404 : 403,
-      )
-    }
-    if (input.employmentId !== undefined) {
-      if (timeline.employment.deleted_at !== null
-        || timeline.employment.record_status !== 'CONFIRMED'
-        || !employmentOverlapsPeriod(
-          timeline.employment.starts_on,
-          timeline.employment.ends_on,
-          bounds.start,
-          bounds.endInclusive,
-        )) {
-        throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
-      }
-      employment = timeline.employment
-    } else if (timeline.employment.deleted_at !== null || timeline.employment.record_status !== 'CONFIRMED') {
-      throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
-    }
-    if (!employment) throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
+    validateScopedTimeline(timeline, employment, input)
 
     let actualWork: ActualWorkPayrollProjection
     try {
@@ -2020,8 +2170,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       && caoCalculation.inputs?.scenarioCode === 'R2'
       && (typeof retailOvertimeHours === 'string' || typeof retailOvertimeHours === 'number')
       && FixedDecimal.parse(String(retailOvertimeHours)).compare(FixedDecimal.fromInteger(BigInt(0))) > 0
+    const retailIntervalEvidenceMissing = caoCalculation.family === 'RETAIL_MODE'
+      && hasApprovedRetailPremiumHoursWithoutIntervalSource(caoActualWorkEntries)
     const actualWorkSourceGaps = actualWorkSnapshot.sourceGaps.filter((gap) =>
-      !(caoConsumesRetailOvertime && gap.reasonCode === 'OVERTIME_RULE_NOT_CONFIGURED'),
+      !((caoConsumesRetailOvertime || retailIntervalEvidenceMissing) && gap.reasonCode === 'OVERTIME_RULE_NOT_CONFIGURED'),
     )
     const sourceGaps: PayrollSourceGap[] = [
       ...sourceGapsFor(
@@ -2035,6 +2187,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         activeEndExclusive,
       ),
       ...actualWorkSourceGaps,
+      ...(retailIntervalEvidenceMissing ? [makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE')] : []),
     ]
     if (caoCalculation.status === 'BLOCKED' && caoCalculation.reasonCode) {
       sourceGaps.push(makeGap('cao', caoCalculation.blockingStatus ?? 'SOURCE_GAP', caoCalculation.reasonCode))

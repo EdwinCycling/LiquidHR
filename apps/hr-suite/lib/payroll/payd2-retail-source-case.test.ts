@@ -312,7 +312,11 @@ describe('PAYD2 Retail in-memory source cases', () => {
     const oracle = derivePayd2RetailR2NetIndependentOracle()
 
     expect(snapshot.sourceHash).toBe(repeated.sourceHash)
-    expect(snapshot.sourceGaps).toEqual([])
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'actualWork',
+      status: 'SOURCE_GAP',
+      reasonCode: 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE',
+    })
     expect(sourceContract(snapshot).references.every((reference) => reference.status === 'BOUND')).toBe(true)
     expect(sourceContract(snapshot).periodStart).toBe('2026-07-01')
     expect(source.employment).toMatchObject({ startsOn: '2026-07-01' })
@@ -350,6 +354,7 @@ describe('PAYD2 Retail in-memory source cases', () => {
         fixtureId: 'PAY-W02B-R2-NET-ORACLE-01',
         realEmployerAndPensionApplicability: 'SOURCE_GAP',
         realEmployeeFiscalDeclarations: 'SOURCE_GAP',
+        actualWorkIntervalEvidence: 'SYNTHETIC_FIXTURE_ONLY; no Core interval, timezone, pause, or correction source is asserted',
         openingCumulatives: 'EXPLICIT_ZERO_FIRST_PERIOD',
       },
     })
@@ -360,6 +365,7 @@ describe('PAYD2 Retail in-memory source cases', () => {
       expect.objectContaining({ field: 'employer-contributions-and-reserves', status: 'AVAILABLE' }),
       expect.objectContaining({ field: 'opening-cumulative-values', status: 'AVAILABLE' }),
       expect.objectContaining({ field: 'real-employer-and-pension-applicability', status: 'MISSING' }),
+      expect.objectContaining({ field: 'real-actual-work-intervals', status: 'MISSING', version: 'NOT_BOUND' }),
     ]))
     expect(oracle).toMatchObject({
       gross: '1621.23',
