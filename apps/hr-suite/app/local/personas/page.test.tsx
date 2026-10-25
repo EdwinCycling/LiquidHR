@@ -94,7 +94,7 @@ describe('/local/personas', () => {
     expect(notFound).not.toHaveBeenCalled()
   })
 
-  it('allows the verified HR Admin operator directly and limits its choices to the three payroll personas', async () => {
+  it('allows the verified HR Admin operator to use existing Manager and Employee test identities', async () => {
     setIdentity('hradmin.fixture@liquidhr.test', true, 'auth-hr-admin')
     getRequestAuthorizationContext.mockResolvedValue({ context: { userId: 'auth-hr-admin', activeRoles: ['TENANT_ADMIN'] } })
 
@@ -103,8 +103,9 @@ describe('/local/personas', () => {
     expect(markup).toContain('value="payroll-lisa"')
     expect(markup).toContain('value="payroll-jaap"')
     expect(markup).toContain('value="payroll-frits"')
-    expect(markup).not.toContain('value="manager"')
-    expect(markup).not.toContain('value="employee"')
+    expect(markup).toContain('value="manager"')
+    expect(markup).toContain('value="employee"')
+    expect(markup).not.toContain('value="edwin"')
     expect(markup).toContain('action="/api/local/personas/provision"')
     expect(markup).toContain('localPersonaProvisionDescription')
   })

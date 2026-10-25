@@ -54,7 +54,8 @@ describe('local persona switch authorization', () => {
       email: 'other@example.com',
       emailVerified: true,
     }, localEnvironment)).toBeNull()
-    expect(getLocalPersonaOperatorTargetKeys('hr-admin')).toEqual(['payroll-lisa', 'payroll-jaap', 'payroll-frits', 'payroll-demo-002'])
+    expect(getLocalPersonaOperatorTargetKeys('hr-admin')).toEqual(['manager', 'employee', 'payroll-lisa', 'payroll-jaap', 'payroll-frits', 'payroll-demo-002'])
+    expect(getLocalPersonaOperatorTargetKeys('hr-admin')).not.toContain('edwin')
   })
 
   it('keeps the former business-role guard distinct from the local owner capability', () => {

@@ -205,6 +205,35 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(readLocalPersonaOwnerMarker(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value)).toBe('hr-admin')
   })
 
+  it('lets the verified local HR Admin operator hand off to the existing Manager fixture', async () => {
+    createClient.mockImplementation(async () => setIdentity('hradmin.fixture@liquidhr.test'))
+
+    const response = await POST(switchRequest('manager'))
+
+    expect(response.status).toBe(303)
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'manager.fixture@liquidhr.test' })
+    expect(readLocalPersonaOwnerMarker(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value)).toBe('hr-admin')
+  })
+
+  it('lets the verified local HR Admin operator hand off to the existing Employee fixture', async () => {
+    createClient.mockImplementation(async () => setIdentity('hradmin.fixture@liquidhr.test'))
+
+    const response = await POST(switchRequest('employee'))
+
+    expect(response.status).toBe(303)
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'employee.fixture@liquidhr.test' })
+    expect(readLocalPersonaOwnerMarker(response.cookies.get(TEST_ROLE_SWITCH_OWNER_COOKIE)?.value)).toBe('hr-admin')
+  })
+
+  it('does not let the local HR Admin fixture impersonate the personal Edwin account', async () => {
+    createClient.mockImplementation(async () => setIdentity('hradmin.fixture@liquidhr.test'))
+
+    const response = await POST(switchRequest('edwin'))
+
+    expect(response.status).toBe(403)
+    expect(generateLink).not.toHaveBeenCalled()
+  })
+
   it('rejects an unverified Edwin identity', async () => {
     createClient.mockImplementation(async () => setIdentity('edwin@editsolutions.nl', false))
 
@@ -235,15 +264,18 @@ describe('POST /api/auth/test-role-switch', () => {
     expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'edwin@editsolutions.nl' })
   })
 
-  it('returns a persona to Test HR Admin only when that account started the local session', async () => {
-    createClient.mockImplementation(async () => setIdentity('manager.fixture@liquidhr.test'))
-    const ownerMarker = createLocalPersonaOwnerMarker('hr-admin')
+  it.each(['manager.fixture@liquidhr.test', 'employee.fixture@liquidhr.test'])(
+    'returns %s to Test HR Admin only when that account started the local session',
+    async (email) => {
+      createClient.mockImplementation(async () => setIdentity(email))
+      const ownerMarker = createLocalPersonaOwnerMarker('hr-admin')
 
-    const response = await POST(switchRequest('hr-admin', undefined, LOCAL_ORIGIN, LOCAL_ORIGIN, ownerMarker))
+      const response = await POST(switchRequest('hr-admin', undefined, LOCAL_ORIGIN, LOCAL_ORIGIN, ownerMarker))
 
-    expect(response.status).toBe(303)
-    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'hradmin.fixture@liquidhr.test' })
-  })
+      expect(response.status).toBe(303)
+      expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'hradmin.fixture@liquidhr.test' })
+    },
+  )
 
   it('does not allow a persona to change its initiating account', async () => {
     createClient.mockImplementation(async () => setIdentity('manager.fixture@liquidhr.test'))

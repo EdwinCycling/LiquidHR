@@ -149,7 +149,7 @@ export function getLocalPersonaOwnerEmail(ownerKey: string | null | undefined): 
 }
 
 export function getLocalPersonaOperatorTargetKeys(ownerKey: TestRoleSwitchOwnerKey): readonly TestRoleSwitchTargetKey[] {
-  if (ownerKey === 'hr-admin') return ['payroll-lisa', 'payroll-jaap', 'payroll-frits', 'payroll-demo-002']
+  if (ownerKey === 'hr-admin') return ['manager', 'employee', 'payroll-lisa', 'payroll-jaap', 'payroll-frits', 'payroll-demo-002']
   return TEST_ROLE_SWITCH_TARGETS.filter((target) => target.key !== ownerKey).map((target) => target.key)
 }
 
