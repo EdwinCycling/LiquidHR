@@ -5,6 +5,8 @@ Branch: `integration/PAY-W02-W03-W04-20261025`
 Geïntegreerde code-HEAD: `3013b6d11a58dc4de03f296cbf71f4cee736d3b6`
 Lokale werkboom: `PAY-W02-W03-W04-INTEGRATION-20261025`
 
+**Eindoordeel: PARTIAL/HOLD.** Code-, regressie- en buildgates zijn geslaagd. De voorgeschreven lokale browseracceptatie bleef BLOCKED vóór serverstart omdat de bestaande TEST-configuratie en persona-credentials ontbreken. GO voor code-review/integratievoorbereiding; HOLD voor TEST-release en reguliere Payroll.
+
 ## Provenance en actuele basis
 
 De opgegeven baseline was `630df89c84bc2be4774072d387ecb5dc7df10f91`. W02 en W03 stonden exact op de verwachte remote heads; W04 stond exact op de verwachte lokale head. De oorspronkelijke worktrees en branches zijn niet gewijzigd.
