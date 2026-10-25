@@ -18,6 +18,8 @@ import type { CompanyLocationMutationInput } from './company-location-schemas'
 import { applySalaryApplicationChange as applySalaryApplicationRouteChange } from '@/lib/salary-application/service'
 import { resolveSalaryStructureIntersection } from '@/lib/salary-application/availability'
 import { getPensionArrangementEstablishedFrom, resolvePensionArrangementVersion } from './pension-arrangement-version'
+import { readPayrollSourcePensionVersionTiers } from './payroll-source-pension-version-tier-reader'
+import { readPayrollSourceQueryCached } from './payroll-source-read-cache'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
@@ -327,42 +329,62 @@ export async function getEmploymentPayrollSourceProjection(
   const [setsResult, jobsResult, revisionsResult, pensionArrangementsResult, pensionTiersResult,
     pensionVersionsResult] = await loadQueriesInBatches([
     laborSetIds.length > 0
-      ? () => supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week, is_active, valid_from, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).in('id', laborSetIds)
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:labor-condition-sets', context.tenantId, hrGroupId, administrationId, [...laborSetIds].sort()],
+        () => supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week, is_active, valid_from, updated_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).in('id', laborSetIds),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     jobIds.length > 0
-      ? () => supabase.from('jobs').select('id, code, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('id', jobIds)
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:jobs', context.tenantId, hrGroupId, administrationId, [...jobIds].sort()],
+        () => supabase.from('jobs').select('id, code, updated_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('id', jobIds),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     jobIds.length > 0
-      ? () => supabase.from('job_revisions').select('job_id, name, valid_from, valid_until, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('job_id', jobIds).order('valid_from')
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:job-revisions', context.tenantId, hrGroupId, administrationId, [...jobIds].sort()],
+        () => supabase.from('job_revisions').select('job_id, name, valid_from, valid_until, updated_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('job_id', jobIds).order('valid_from'),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     pensionArrangementIds.length > 0
-      ? () => supabase.from('pension_arrangements')
-        .select('id, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, provenance_json, is_active, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
-        .in('id', pensionArrangementIds)
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:pension-arrangements', context.tenantId, hrGroupId, administrationId, [...pensionArrangementIds].sort()],
+        () => supabase.from('pension_arrangements')
+          .select('id, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, provenance_json, is_active, updated_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
+          .in('id', pensionArrangementIds),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     pensionArrangementIds.length > 0
-      ? () => supabase.from('pension_arrangement_tiers')
-        .select('id, pension_arrangement_id, min_age, max_age, total_rate, created_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
-        .in('pension_arrangement_id', pensionArrangementIds).order('min_age')
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:pension-arrangement-tiers', context.tenantId, hrGroupId, administrationId, [...pensionArrangementIds].sort()],
+        () => supabase.from('pension_arrangement_tiers')
+          .select('id, pension_arrangement_id, min_age, max_age, total_rate, created_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
+          .in('pension_arrangement_id', pensionArrangementIds).order('min_age'),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     pensionArrangementIds.length > 0
-      ? () => supabase.from('pension_arrangement_versions')
-        .select('id, tenant_id, hr_group_id, administration_id, pension_arrangement_id, version_number, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, contract_classification, contract_classification_provenance, provenance_json, is_active, created_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
-        .in('pension_arrangement_id', pensionArrangementIds).order('version_number')
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:pension-arrangement-versions', context.tenantId, hrGroupId, administrationId, [...pensionArrangementIds].sort()],
+        () => supabase.from('pension_arrangement_versions')
+          .select('id, tenant_id, hr_group_id, administration_id, pension_arrangement_id, version_number, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, contract_classification, contract_classification_provenance, provenance_json, is_active, created_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
+          .in('pension_arrangement_id', pensionArrangementIds).order('version_number'),
+      )
       : () => Promise.resolve({ data: [], error: null }),
   ], 4)
   const pensionVersionIds = (pensionVersionsResult.data ?? []).map((version) => version.id)
   const pensionVersionTiersLoaded = pensionVersionIds.length > 0
-    ? await supabase.from('pension_arrangement_version_tiers')
-      .select('id, tenant_id, hr_group_id, administration_id, pension_arrangement_id, pension_arrangement_version_id, min_age, max_age, total_rate, created_at')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
-      .in('pension_arrangement_version_id', pensionVersionIds).order('min_age')
+    ? await readPayrollSourcePensionVersionTiers(
+      context.tenantId,
+      hrGroupId,
+      administrationId,
+      pensionVersionIds.join(','),
+    )
     : { data: [], error: null }
   const catalogFailure = ([
     ['labor-condition-sets', setsResult],
