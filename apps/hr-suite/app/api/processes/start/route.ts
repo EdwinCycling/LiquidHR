@@ -5,18 +5,19 @@ import { getProcessInstanceProjection, processRuntimeErrorResponse, startProcess
 import { getProcessWorkItemDetail } from '@/lib/process-automation/work-service'
 import { scheduleWorkflowDrain } from '@/lib/process-automation/workflow-job-service'
 import { getLocale } from '@/lib/i18n/server'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 
 const legacyInputSchema = z.object({
-  processDefinitionId: z.string().uuid(),
-  subjectEmployeeId: z.string().uuid(),
-  employmentId: z.string().uuid().nullable().optional(),
+  processDefinitionId: databaseUuid,
+  subjectEmployeeId: databaseUuid,
+  employmentId: databaseUuid.nullable().optional(),
   businessEffectiveDate: z.string().date().nullable().optional(),
   idempotencyKey: z.string().trim().min(1).max(200),
-  correlationId: z.string().uuid().nullable().optional(),
+  correlationId: databaseUuid.nullable().optional(),
 }).strict()
 
 const selfStartInputSchema = z.object({
-  processDefinitionId: z.string().uuid(),
+  processDefinitionId: databaseUuid,
   idempotencyKey: z.string().trim().min(1).max(200),
 }).strict()
 

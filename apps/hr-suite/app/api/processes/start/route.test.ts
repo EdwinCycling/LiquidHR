@@ -64,6 +64,31 @@ describe('POST /api/processes/start', () => {
     expect(mocks.startProcess).toHaveBeenCalledWith({ processDefinitionId, subjectEmployeeId, employmentId: null, businessEffectiveDate: null, idempotencyKey: 'existing-starter-key', correlationId: null })
   })
 
+  it('accepts PostgreSQL UUID values with non-RFC variant bits for the P9 HR start flow', async () => {
+    const databaseProcessDefinitionId = '11111111-1111-1111-1111-111111111111'
+    const databaseSubjectEmployeeId = '9048f02b-4fdc-3c4c-e1aa-fd339660029c'
+    const databaseEmploymentId = '22222222-2222-2222-2222-222222222222'
+    const databaseCorrelationId = '33333333-3333-3333-3333-333333333333'
+    const response = await POST(request({
+      processDefinitionId: databaseProcessDefinitionId,
+      subjectEmployeeId: databaseSubjectEmployeeId,
+      employmentId: databaseEmploymentId,
+      businessEffectiveDate: '2026-10-24',
+      idempotencyKey: 'p9-database-uuid-compatibility',
+      correlationId: databaseCorrelationId,
+    }))
+
+    expect(response.status).toBe(200)
+    expect(mocks.startProcess).toHaveBeenCalledWith({
+      processDefinitionId: databaseProcessDefinitionId,
+      subjectEmployeeId: databaseSubjectEmployeeId,
+      employmentId: databaseEmploymentId,
+      businessEffectiveDate: '2026-10-24',
+      idempotencyKey: 'p9-database-uuid-compatibility',
+      correlationId: databaseCorrelationId,
+    })
+  })
+
   it('keeps a forged legacy subject behind the engine start authorization', async () => {
     const otherEmployeeId = '00000000-0000-4000-8000-000000000006'
     mocks.startProcess.mockRejectedValueOnce(new ProcessRuntimeError('FORBIDDEN', 403))
