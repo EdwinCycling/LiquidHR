@@ -289,6 +289,27 @@ begin
        or item ->> 'status' <> 'ACTIVE_EMPLOYEE'
        or (item ->> 'is_archived')::boolean
   ) then raise exception 'B2_DIRECTORY_FIELDS_OR_STATUS_NOT_RESTRICTED'; end if;
+  if exists (
+    select 1
+    from jsonb_array_elements(rows) item
+    where not exists (
+      select 1
+      from public.employees listed_employee
+      join public.employments active_employment
+        on active_employment.tenant_id = listed_employee.tenant_id
+       and active_employment.hr_group_id = listed_employee.hr_group_id
+       and active_employment.employee_id = listed_employee.id
+       and active_employment.administration_id = administration_id
+       and active_employment.record_status = 'CONFIRMED'
+       and active_employment.deleted_at is null
+       and active_employment.starts_on <= today_utc
+       and (active_employment.ends_on is null or active_employment.ends_on >= today_utc)
+      where listed_employee.id = (item ->> 'id')::uuid
+        and listed_employee.tenant_id = tenant_id
+        and listed_employee.hr_group_id = hr_group_id
+        and listed_employee.deleted_at is null
+    )
+  ) then raise exception 'B2_DIRECTORY_EMPLOYEE_OUTSIDE_ACTIVE_ADMINISTRATION'; end if;
 
   caught_denial := false;
   begin

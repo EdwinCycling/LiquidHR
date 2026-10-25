@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const scopeMocks = vi.hoisted(() => ({ createClient: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: scopeMocks.createClient }))
 
-import { listDirectTeamEmployeeIds, listDirectTeamEmployeeScope } from './team-scope'
+import { isEmployeeOutsideDirectManagerScope, listDirectTeamEmployeeIds, listDirectTeamEmployeeScope } from './team-scope'
 
 interface QueryCall {
   readonly method: string
@@ -71,17 +71,23 @@ describe('direct manager team scope', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('queries current placements by tenant, group, administration, and direct manager, then deduplicates members', async () => {
+    const sixDirectEmployees = [
+      placement('employee-1', '2026-08-01'),
+      ...Array.from({ length: 5 }, (_, index) => placement(`employee-${index + 2}`, `2026-0${index + 2}-01`)),
+    ]
     const { client, calls } = fakeClient({
-      rows: [placement('employee-1', '2026-08-01'), placement('employee-1', '2026-01-01'), placement('employee-2', '2026-04-01')],
-      count: 3,
+      rows: [sixDirectEmployees[0]!, placement('employee-1', '2026-01-01'), ...sixDirectEmployees.slice(1)],
+      count: 7,
     })
 
     const scope = await listDirectTeamEmployeeScope(context, client as never, 25, '2026-10-11')
 
-    expect(scope.employeeIds).toEqual(['employee-1', 'employee-2'])
-    expect(scope.members).toHaveLength(2)
+    expect(scope.employeeIds).toEqual(['employee-1', 'employee-2', 'employee-3', 'employee-4', 'employee-5', 'employee-6'])
+    expect(scope.members).toHaveLength(6)
     expect(scope.members[0]?.effective_from).toBe('2026-08-01')
     expect(scope.sourceTruncated).toBe(false)
+    expect(scope.employeeIds.every((employeeId) => !isEmployeeOutsideDirectManagerScope(context, employeeId, scope.employeeIds))).toBe(true)
+    expect(isEmployeeOutsideDirectManagerScope(context, 'employee-outside-team', scope.employeeIds)).toBe(true)
     expect(calls).toContainEqual({ method: 'eq', column: 'tenant_id', value: 'tenant-own' })
     expect(calls).toContainEqual({ method: 'eq', column: 'hr_group_id', value: 'group-own' })
     expect(calls).toContainEqual({ method: 'eq', column: 'administration_id', value: 'admin-own' })
