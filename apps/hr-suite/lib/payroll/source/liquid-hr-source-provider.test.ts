@@ -1103,7 +1103,7 @@ describe('LiquidHR Payroll source provider', () => {
       taxProfileProjection: projection,
     }))
     const expired = await new LiquidHrPayrollSourceProvider(dependencies({
-      loadTimeline: load(taxProjection({ taxProfiles: [taxProfile({ effective_to: '2026-08-31' })] })),
+      loadTimeline: load(taxProjection({ taxProfiles: [taxProfile({ effective_from: '2026-08-01', effective_to: '2026-08-31' })] })),
     })).getPayrollSourceSnapshot({ ...request, employmentId })
     const conflicting = await new LiquidHrPayrollSourceProvider(dependencies({
       loadTimeline: load(taxProjection({ taxProfiles: [

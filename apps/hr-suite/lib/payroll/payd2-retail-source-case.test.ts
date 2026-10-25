@@ -5,10 +5,15 @@ import {
   LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID,
   type Payrun01PayslipPdfInput,
 } from './payrun01-payslip-pdf'
-import { derivePayd2RetailR1IndependentOracle, derivePayd2RetailR2IndependentOracle } from './payd2-retail-independent-oracle'
+import {
+  derivePayd2RetailR1IndependentOracle,
+  derivePayd2RetailR2IndependentOracle,
+  derivePayd2RetailR2NetIndependentOracle,
+} from './payd2-retail-independent-oracle'
 import { getRetailModeRuleBundle } from '@liquid-hr/payroll-rules-cao-bench02'
 import {
   PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS,
+  PAYW02B_R2_OFFICIAL_SOURCE_PINS,
   calculateRetailR1,
   canonical,
   createRetailSourceSnapshot,
@@ -280,6 +285,7 @@ describe('PAYD2 Retail in-memory source cases', () => {
         isEcommerce: false,
       },
     })
+    expect(cao).toMatchObject({ baseAmount: '1605.79', premiumAmount: '15.44', grossAmount: '1621.23' })
     expect(premiumTrace?.values).toMatchObject({
       weekdayNightHours: { value: oracle.weekdayNightHours },
       sundayHours: { value: oracle.sundayHours },
@@ -296,6 +302,98 @@ describe('PAYD2 Retail in-memory source cases', () => {
     })
     expect(source.fiscalProfile).toMatchObject({ status: 'SOURCE_GAP' })
     expect(source).not.toHaveProperty('payrollOwned')
+  })
+
+  it('binds a separately versioned complete synthetic R2 source set to the independent net oracle', async () => {
+    const snapshot = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true })
+    const repeated = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true })
+    const source = canonical(snapshot)
+    const payrollOwned = source.payrollOwned as Record<string, unknown>
+    const oracle = derivePayd2RetailR2NetIndependentOracle()
+
+    expect(snapshot.sourceHash).toBe(repeated.sourceHash)
+    expect(snapshot.sourceGaps).toEqual([])
+    expect(sourceContract(snapshot).references.every((reference) => reference.status === 'BOUND')).toBe(true)
+    expect(sourceContract(snapshot).periodStart).toBe('2026-07-01')
+    expect(source.employment).toMatchObject({ startsOn: '2026-07-01' })
+    expect(source.fiscalProfile).toMatchObject({
+      status: 'CONFIRMED',
+      effectiveFrom: '2026-07-01',
+      versionNumber: 1,
+      ageCategory: 'UNDER_AOW',
+      payrollTaxCreditApplies: true,
+    })
+    expect(payrollOwned).toMatchObject({
+      pension: {
+        planCode: 'BPF_DETAILHANDEL_2026',
+        annualFranchise: '18680',
+        totalPremiumRate: '24.75',
+        employeeRate: '6.1875',
+        employerRate: '18.5625',
+        partTimeFactor: '0.6316',
+      },
+      employerRates: { awf: '2.7400', aof: '6.2700', wko: '0.5000', whk: '1.9300', zvw: '6.1000' },
+      reserveRates: { holidayAllowance: '8.0000', yearEnd: '0.00' },
+      cumulatives: {
+        grossWageBeforePeriod: '0.00',
+        taxableWageBeforePeriod: '0.00',
+        wageTaxBeforePeriod: '0.00',
+        employeeInsuranceWageBeforePeriod: '0.00',
+        zvwWageBeforePeriod: '0.00',
+        holidayReserveBeforePeriod: '0.00',
+        yearEndReserveBeforePeriod: '0.00',
+      },
+    })
+    expect(source.caseProvenance).toMatchObject({
+      officialRuleSources: PAYW02B_R2_OFFICIAL_SOURCE_PINS,
+      syntheticPayrollInputs: {
+        fixtureId: 'PAY-W02B-R2-NET-ORACLE-01',
+        realEmployerAndPensionApplicability: 'SOURCE_GAP',
+        realEmployeeFiscalDeclarations: 'SOURCE_GAP',
+        openingCumulatives: 'EXPLICIT_ZERO_FIRST_PERIOD',
+      },
+    })
+    expect((source.caseProvenance as Record<string, unknown>).syntheticPayrollInputs).toHaveProperty('dependencyMatrix', expect.arrayContaining([
+      expect.objectContaining({ field: 'employment-period-hours', status: 'AVAILABLE' }),
+      expect.objectContaining({ field: 'fiscal-parameters', status: 'AVAILABLE' }),
+      expect.objectContaining({ field: 'pension-arrangement-base-franchise-rates', status: 'AVAILABLE' }),
+      expect.objectContaining({ field: 'employer-contributions-and-reserves', status: 'AVAILABLE' }),
+      expect.objectContaining({ field: 'opening-cumulative-values', status: 'AVAILABLE' }),
+      expect.objectContaining({ field: 'real-employer-and-pension-applicability', status: 'MISSING' }),
+    ]))
+    expect(oracle).toMatchObject({
+      gross: '1621.23',
+      monthlyPensionableBase: '638.04',
+      totalPension: '157.91',
+      employeePension: '39.48',
+      employerPension: '118.43',
+      taxableWage: '1581.75',
+      taxTrace: {
+        annualizedWage: '18981.00',
+        annualTableWage: '18954.00',
+        annualTaxBeforeCredits: '6776.00',
+        annualGeneralCredit: '3115.00',
+        annualTheoreticalLabourCredit: '3164.00',
+        annualTaxAfterCredits: '497.00',
+      },
+      wageTax: '41.42',
+      net: '1540.33',
+      totalEmployerCost: '2146.81',
+    })
+  })
+
+  it.each([
+    ['tax profile', { omitR2FiscalProfile: true }, 'taxProfile'],
+    ['pension assignment', { omitR2PensionSource: true }, 'pension'],
+    ['employer configuration', { omitR2EmployerConfiguration: true }, 'payrollConfiguration'],
+    ['opening cumulative', { omitR2OpeningCumulative: true }, 'openingCumulative'],
+    ['contradictory opening cumulative', { nonZeroR2OpeningCumulative: true }, 'pension'],
+    ['invalid effective date', { invalidR2TaxProfileEffectiveDate: true }, 'taxProfile'],
+    ['invalid source version', { invalidR2TaxProfileVersion: true }, 'taxProfile'],
+  ] as const)('keeps incomplete R2 %s source fail-closed', async (_name, options, field) => {
+    const snapshot = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true, ...options })
+
+    expect(snapshot.sourceGaps).toEqual(expect.arrayContaining([expect.objectContaining({ field })]))
   })
 
   it('blocks night-hour cases when retail business scope is missing or is e-commerce without time-band detail', async () => {

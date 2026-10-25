@@ -93,6 +93,8 @@ function provider(overrides: {
   readonly payrollTaxCreditApplies?: boolean
   readonly salaryUpdatedAt?: () => string
   readonly scheduleHours?: () => number
+  readonly scheduleFulltimeHours?: () => number
+  readonly contractFulltimeHours?: number
   readonly fiscalTable?: string
   readonly incomeLinkId?: string
   readonly includeTaxProfile?: boolean
@@ -113,13 +115,15 @@ function provider(overrides: {
       ],
       schedules: [{
         id: 'bc000000-0000-4000-8000-00000000000c', average_days_per_week: 5,
-        average_hours_per_week: overrides.scheduleHours?.() ?? 40, fulltime_hours_per_week: 40,
+        average_hours_per_week: overrides.scheduleHours?.() ?? 40,
+        fulltime_hours_per_week: overrides.scheduleFulltimeHours?.() ?? 40,
         part_time_factor: overrides.partTimeFactor ?? 1,
         schedule_type: 'HOURS_PER_DAY', is_on_call: false, valid_from: '2026-01-01', valid_until: null, updated_at: runTime,
       }],
       contracts: [{
         id: 'cd000000-0000-4000-8000-00000000000d', labor_condition_set_id: 'de000000-0000-4000-8000-00000000000e',
-        fulltime_hours_per_week: 40, starts_on: '2026-01-01', ends_on: null, updated_at: runTime,
+        fulltime_hours_per_week: overrides.contractFulltimeHours ?? 40,
+        starts_on: '2026-01-01', ends_on: null, updated_at: runTime,
       }],
       laborConditions: [{
         id: 'de000000-0000-4000-8000-00000000000e', condition_group: 'COMPANY',
@@ -958,6 +962,89 @@ describe('Core-backed employee payroll calculation', () => {
       reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR',
     }))
     expect(salaryMismatch.runs.size).toBe(0)
+  })
+
+  it('uses exact schedule hours for cents and factor checks while preserving contract and zero-hour guards', async () => {
+    const exactR2 = harness({
+      amount: () => 2542.5,
+      parttimeAmount: 1605.79,
+      partTimeFactor: 0.6316,
+      scheduleHours: () => 24,
+      scheduleFulltimeHours: () => 38,
+      contractFulltimeHours: 38,
+    })
+    const exactResult = await exactR2.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+    expect(exactResult).toMatchObject({ status: 'INCOMPLETE', grossAmount: '1605.79' })
+    expect(exactResult.gaps).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR' }),
+      expect.objectContaining({ reasonCode: 'SCHEDULE_HOURS_DO_NOT_RECONCILE_TO_PART_TIME_FACTOR' }),
+    ]))
+
+    const wrongFactor = harness({
+      amount: () => 2542.5,
+      parttimeAmount: 1605.79,
+      partTimeFactor: 0.6315,
+      scheduleHours: () => 24,
+      scheduleFulltimeHours: () => 38,
+      contractFulltimeHours: 38,
+    })
+    const wrongFactorResult = await wrongFactor.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+    expect(wrongFactorResult.status).toBe('UNSUPPORTED')
+    expect(wrongFactorResult.gaps).toContainEqual(expect.objectContaining({
+      reasonCode: 'SCHEDULE_HOURS_DO_NOT_RECONCILE_TO_PART_TIME_FACTOR',
+    }))
+    expect(wrongFactorResult.gaps).not.toContainEqual(expect.objectContaining({
+      reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR',
+    }))
+    expect(wrongFactor.runs.size).toBe(0)
+
+    const wrongSalary = harness({
+      amount: () => 2542.5,
+      parttimeAmount: 1605.93,
+      partTimeFactor: 0.6316,
+      scheduleHours: () => 24,
+      scheduleFulltimeHours: () => 38,
+      contractFulltimeHours: 38,
+    })
+    const wrongSalaryResult = await wrongSalary.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+    expect(wrongSalaryResult.status).toBe('UNSUPPORTED')
+    expect(wrongSalaryResult.gaps).toContainEqual(expect.objectContaining({
+      reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR',
+    }))
+    expect(wrongSalaryResult.gaps).not.toContainEqual(expect.objectContaining({
+      reasonCode: 'SCHEDULE_HOURS_DO_NOT_RECONCILE_TO_PART_TIME_FACTOR',
+    }))
+    expect(wrongSalary.runs.size).toBe(0)
+
+    const changedFulltimeNorm = harness({
+      amount: () => 2542.5,
+      parttimeAmount: 1525.5,
+      partTimeFactor: 0.6,
+      scheduleHours: () => 24,
+      scheduleFulltimeHours: () => 40,
+      contractFulltimeHours: 38,
+    })
+    const changedNormResult = await changedFulltimeNorm.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+    expect(changedNormResult.status).toBe('UNSUPPORTED')
+    expect(changedNormResult.gaps).toContainEqual(expect.objectContaining({
+      reasonCode: 'SCHEDULE_FULLTIME_HOURS_CONFLICT_WITH_CONTRACT',
+    }))
+    expect(changedFulltimeNorm.runs.size).toBe(0)
+
+    const zeroHours = harness({
+      amount: () => 2542.5,
+      parttimeAmount: 1605.79,
+      partTimeFactor: 0,
+      scheduleHours: () => 0,
+      scheduleFulltimeHours: () => 38,
+      contractFulltimeHours: 38,
+    })
+    const zeroHoursResult = await zeroHours.service.calculateEmployeePayroll({ employeeId, employmentId, period })
+    expect(zeroHoursResult.status).toBe('UNSUPPORTED')
+    expect(zeroHoursResult.gaps).toContainEqual(expect.objectContaining({
+      reasonCode: 'REGULAR_NON_ON_CALL_HOURS_SCHEDULE_REQUIRED',
+    }))
+    expect(zeroHours.runs.size).toBe(0)
   })
 
   it('blocks incomplete review and finalization, and preserves a finalized historical result after source changes', async () => {

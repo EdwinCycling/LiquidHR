@@ -37,10 +37,32 @@ describe('Payroll source readiness', () => {
     expect(caoSalaryScheduleConflict({
       salaryBasis: 'CAO_SCALE', paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY',
       fulltimeAmount: 2819, parttimeAmount: 1879.33, partTimeFactor: 32 / 36,
+      averageHoursPerWeek: 24, fulltimeHoursPerWeek: 36,
     })).toBe(true)
     expect(caoSalaryScheduleConflict({
       salaryBasis: 'CAO_SCALE', paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY',
       fulltimeAmount: 2819, parttimeAmount: 2505.78, partTimeFactor: 32 / 36,
+      averageHoursPerWeek: 32, fulltimeHoursPerWeek: 36,
     })).toBe(false)
+    expect(caoSalaryScheduleConflict({
+      salaryBasis: 'CAO_SCALE', paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY',
+      fulltimeAmount: '2542.50', parttimeAmount: '1605.79', partTimeFactor: '0.6316',
+      averageHoursPerWeek: '24', fulltimeHoursPerWeek: '38',
+    })).toBe(false)
+    expect(caoSalaryScheduleConflict({
+      salaryBasis: 'CAO_SCALE', paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY',
+      fulltimeAmount: '2542.50', parttimeAmount: '1605.93', partTimeFactor: '0.6316',
+      averageHoursPerWeek: '24', fulltimeHoursPerWeek: '38',
+    })).toBe(true)
+    expect(caoSalaryScheduleConflict({
+      salaryBasis: 'CAO_SCALE', paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY',
+      fulltimeAmount: '2542.50', parttimeAmount: '1605.79', partTimeFactor: '0.6315',
+      averageHoursPerWeek: '24', fulltimeHoursPerWeek: '38',
+    })).toBe(true)
+    expect(caoSalaryScheduleConflict({
+      salaryBasis: 'CAO_SCALE', paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY',
+      fulltimeAmount: '2542.50', parttimeAmount: '1605.79', partTimeFactor: '0',
+      averageHoursPerWeek: '0', fulltimeHoursPerWeek: '38',
+    })).toBe(true)
   })
 })
