@@ -27,6 +27,8 @@ export type CaoCalculationTraceStep = {
   readonly sourceReference: string
 }
 export type CaoRetailBusinessScope = {
+  readonly tenantId: string
+  readonly administrationId: string
   readonly value: 'IN_STORE' | 'ECOMMERCE'
   readonly sourceClassification: 'OFFICIAL' | 'SYNTHETIC_FIXTURE'
   readonly sourceReference: string
@@ -222,6 +224,16 @@ function periodEndExclusive(period: PayrollPeriodReference): string {
   return new Date(Date.UTC(period.year, period.month, 1)).toISOString().slice(0, 10)
 }
 
+function periodEndInclusive(period: PayrollPeriodReference): string {
+  return new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
+}
+
+function isValidIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const timestamp = Date.parse(`${value}T00:00:00.000Z`)
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value
+}
+
 function moneyResult(result: PayrollCalculationResult, key: string): string | null {
   const row = result.resultRows.find((candidate) => candidate.key === key)
   return row && row.valueType === 'MONEY' && typeof row.value === 'string' ? row.value : null
@@ -415,10 +427,19 @@ function calculateRetailMode(input: CaoPayrollIntegrationInput): CaoPayrollCalcu
     return blocked('RETAIL_MODE', 'CAO_RETAIL_BUSINESS_SCOPE_UNVERIFIED', 'SOURCE_GAP', sources)
   }
   if (retailBusinessScope && (
-    !retailBusinessScope.sourceReference.trim()
+    !['IN_STORE', 'ECOMMERCE'].includes(retailBusinessScope.value)
+    || !['OFFICIAL', 'SYNTHETIC_FIXTURE'].includes(retailBusinessScope.sourceClassification)
+    || retailBusinessScope.tenantId !== input.tenantId
+    || retailBusinessScope.administrationId !== input.administrationId
+    || !retailBusinessScope.sourceReference.trim()
     || !retailBusinessScope.sourceVersion.trim()
+    || !isValidIsoDate(retailBusinessScope.effectiveFrom)
+    || (retailBusinessScope.effectiveTo !== null && (
+      !isValidIsoDate(retailBusinessScope.effectiveTo)
+      || retailBusinessScope.effectiveTo < retailBusinessScope.effectiveFrom
+    ))
     || retailBusinessScope.effectiveFrom > periodStart(input.period)
-    || (retailBusinessScope.effectiveTo !== null && retailBusinessScope.effectiveTo < periodEndExclusive(input.period))
+    || (retailBusinessScope.effectiveTo !== null && retailBusinessScope.effectiveTo < periodEndInclusive(input.period))
   )) {
     return blocked('RETAIL_MODE', 'CAO_RETAIL_BUSINESS_SCOPE_INVALID', 'SOURCE_GAP', sources)
   }

@@ -179,6 +179,82 @@ describe('Core readers through the standard Payroll source assembly', () => {
     expect(reads.lifecycle).not.toHaveBeenCalled()
   })
 
+  it('fails closed when approved Retail premium hours have no interval-source contract', async () => {
+    const source = timeline()
+    const laborSetId = 'cc000000-0000-4000-8000-00000000000c'
+    reads.timeline.mockResolvedValue({
+      ...source,
+      salaries: [{ ...source.salaries[0]!, salary_basis: 'CAO_SCALE', salary_route: 'SCALE_WITH_STEPS',
+        fulltime_amount: 2542.50, parttime_amount: 1605.79, cao_scale_name: 'C', cao_step_name: '1' }],
+      schedules: [{ ...source.schedules[0]!, average_hours_per_week: 24, fulltime_hours_per_week: 38, part_time_factor: 0.6316 }],
+      contracts: [{ id: 'dd000000-0000-4000-8000-00000000000d', labor_condition_set_id: laborSetId,
+        fulltime_hours_per_week: 38, starts_on: '2026-01-01', ends_on: null, updated_at: version }],
+      laborConditions: [{ id: 'ee000000-0000-4000-8000-00000000000e', condition_group: 'CAO',
+        labor_condition_set_id: laborSetId, valid_from: '2026-01-01', valid_until: null, updated_at: version,
+        set: { id: laborSetId, code: 'RETAIL_NON_FOOD_MODE_2026_2027', name: 'Retail Non-Food Mode',
+          standard_hours_per_week: 38, is_active: true, valid_from: '2026-01-01', updated_at: version } }],
+      retailBusinessScope: {
+        tenantId: scope.tenantId, administrationId: scope.administrationId,
+        value: 'IN_STORE', sourceClassification: 'SYNTHETIC_FIXTURE',
+        sourceReference: 'SYNTHETIC_FIXTURE:explicit provider-contract test', sourceVersion: 'retail-context-v1',
+        effectiveFrom: '2026-01-01', effectiveTo: null,
+      },
+    } satisfies PayrollSourceTimeline)
+    const nightTypeId = 'ff000000-0000-4000-8000-00000000000f'
+    const overtimeTypeId = 'fa000000-0000-4000-8000-00000000000a'
+    reads.actualWork.mockResolvedValue({
+      period: { id: 'aa000000-0000-4000-8000-00000000000a', period_start: '2026-07-01',
+        period_end: '2026-08-01', status: 'CLOSED', updated_at: version },
+      types: [
+        { id: nightTypeId, family: 'WORK', code: 'WEEKDAY_NIGHT', name: 'Nachtwerk',
+          approval_required: true, valid_from: '2026-01-01', valid_until: null, updated_at: version },
+        { id: overtimeTypeId, family: 'OVERTIME', code: 'DAILY_OVERTIME', name: 'Overwerk',
+          approval_required: true, valid_from: '2026-01-01', valid_until: null, updated_at: version },
+      ],
+      entries: [
+        { id: 'ba000000-0000-4000-8000-00000000000a', employment_id: employmentId,
+          work_hour_type_id: nightTypeId, work_date: '2026-07-10', entry_granularity: 'DAY',
+          subject_period_start: '2026-07-10', subject_period_end: '2026-07-11', posting_period_start: '2026-07-01',
+          hours: 1, status: 'APPROVED', approved_at: '2026-07-11T09:00:00.000Z', updated_at: version },
+        { id: 'ba000000-0000-4000-8000-00000000000b', employment_id: employmentId,
+          work_hour_type_id: overtimeTypeId, work_date: '2026-07-10', entry_granularity: 'DAY',
+          subject_period_start: '2026-07-10', subject_period_end: '2026-07-11', posting_period_start: '2026-07-01',
+          hours: 1, status: 'APPROVED', approved_at: '2026-07-11T09:00:00.000Z', updated_at: version },
+      ],
+    } satisfies ActualWorkPayrollProjection)
+
+    const result = await createEmployeePayrollCalculationService().inspectEmployeePayrollSource({ employeeId, employmentId, period })
+    expect(result.eligibleForCalculation).toBe(false)
+    expect(result.gaps).toContainEqual({
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE',
+    })
+    expect(result.gaps).not.toContainEqual(expect.objectContaining({ reasonCode: 'OVERTIME_RULE_NOT_CONFIGURED' }))
+    expect(reads.lifecycle).not.toHaveBeenCalled()
+  })
+
+  it('rejects a Retail context from another administration', async () => {
+    const source = timeline()
+    const foreignScopeSource: PayrollSourceTimeline = {
+      ...source,
+      retailBusinessScope: {
+        tenantId: scope.tenantId,
+        administrationId: '33000000-0000-4000-8000-000000000009',
+        value: 'IN_STORE', sourceClassification: 'SYNTHETIC_FIXTURE',
+        sourceReference: 'SYNTHETIC_FIXTURE:mis-scoped test', sourceVersion: 'retail-context-v1',
+        effectiveFrom: '2026-01-01', effectiveTo: null,
+      },
+    }
+    const provider = createLiquidHrPayrollSourceProvider({
+      authorize: async () => scope,
+      listEmployments: async () => [source.employment],
+      loadTimeline: async () => foreignScopeSource,
+      loadActualWork: async () => ({ period: null, entries: [], types: [] }),
+      isEnabled: () => true,
+    })
+    await expect(provider.getPayrollSourceSnapshot(input))
+      .rejects.toMatchObject({ code: 'PAYROLL_SOURCE_SCOPE_FORBIDDEN', status: 403 })
+  })
+
   it('rejects another employee employment before loading its timeline', async () => {
     reads.employments.mockResolvedValue([{ ...timeline().employment, employee_id: '66000000-0000-4000-8000-000000000009' }])
     await expect(createLiquidHrPayrollSourceProvider().getPayrollSourceSnapshot(input))

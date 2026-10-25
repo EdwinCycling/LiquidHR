@@ -386,6 +386,8 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     openingBalance,
   }
   const defaultBusinessScope = options.eCommerceNight ? {
+    tenantId: scope.tenantId,
+    administrationId: scope.administrationId,
     value: 'ECOMMERCE',
     sourceClassification: 'SYNTHETIC_FIXTURE',
     sourceReference: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-01; case stipulates an e-commerce activity scope',
@@ -393,6 +395,8 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     effectiveFrom: '2026-01-01',
     effectiveTo: null,
   } as const satisfies CaoRetailBusinessScope : {
+    tenantId: scope.tenantId,
+    administrationId: scope.administrationId,
     value: 'IN_STORE',
     sourceClassification: 'SYNTHETIC_FIXTURE',
     sourceReference: caseCode === 'R1'

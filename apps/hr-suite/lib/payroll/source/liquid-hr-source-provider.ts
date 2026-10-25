@@ -423,6 +423,21 @@ function actualWorkForPeriod(
   }
 }
 
+function hasApprovedRetailPremiumHoursWithoutIntervalSource(entries: readonly CaoPayrollActualWorkEntry[]): boolean {
+  return entries.some((entry) => {
+    if (entry.status !== 'APPROVED') return false
+    const activity = `${entry.typeCode ?? ''}_${entry.typeName ?? ''}`.toUpperCase()
+    const isPremiumActivity = entry.family === 'OVERTIME'
+      || /SUNDAY|ZONDAG|NIGHT|NACHT|OVERTIME|OVERWERK|OVERUREN/.test(activity)
+    if (!isPremiumActivity) return false
+    try {
+      return FixedDecimal.parse(String(entry.hours)).compare(FixedDecimal.fromInteger(BigInt(0))) > 0
+    } catch {
+      return false
+    }
+  })
+}
+
 function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { start: string; endInclusive: string; endExclusive: string } {
   const start = `${period.year}-${String(period.month).padStart(2, '0')}-01`
   const endInclusive = new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
@@ -1575,7 +1590,6 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     ) {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
-
     let employments: readonly PayrollSourceEmployment[]
     try {
       employments = await this.dependencies.listEmployments(input.employeeId)
@@ -1624,6 +1638,12 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       || timeline.employment.deleted_at !== null
       || timeline.employment.record_status !== 'CONFIRMED'
     ) {
+      throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+    }
+    if (timeline.retailBusinessScope && (
+      timeline.retailBusinessScope.tenantId !== input.tenantId
+      || timeline.retailBusinessScope.administrationId !== input.administrationId
+    )) {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
 
@@ -1724,8 +1744,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       && caoCalculation.inputs?.scenarioCode === 'R2'
       && (typeof retailOvertimeHours === 'string' || typeof retailOvertimeHours === 'number')
       && FixedDecimal.parse(String(retailOvertimeHours)).compare(FixedDecimal.fromInteger(BigInt(0))) > 0
+    const retailIntervalEvidenceMissing = caoCalculation.family === 'RETAIL_MODE'
+      && hasApprovedRetailPremiumHoursWithoutIntervalSource(caoActualWorkEntries)
     const actualWorkSourceGaps = actualWorkSnapshot.sourceGaps.filter((gap) =>
-      !(caoConsumesRetailOvertime && gap.reasonCode === 'OVERTIME_RULE_NOT_CONFIGURED'),
+      !((caoConsumesRetailOvertime || retailIntervalEvidenceMissing) && gap.reasonCode === 'OVERTIME_RULE_NOT_CONFIGURED'),
     )
     const sourceGaps: PayrollSourceGap[] = [
       ...sourceGapsFor(
@@ -1739,6 +1761,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         activeEndExclusive,
       ),
       ...actualWorkSourceGaps,
+      ...(retailIntervalEvidenceMissing ? [makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE')] : []),
     ]
     if (caoCalculation.status === 'BLOCKED' && caoCalculation.reasonCode) {
       sourceGaps.push(makeGap('cao', caoCalculation.blockingStatus ?? 'SOURCE_GAP', caoCalculation.reasonCode))
