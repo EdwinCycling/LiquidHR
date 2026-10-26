@@ -11,6 +11,17 @@ export interface PayrollPeriodReference {
   readonly month: number
 }
 
+/** Exact immutable identity for a non-monthly period in the existing Payroll calendar. */
+export interface PayrollPeriodIdentity {
+  readonly id: string
+  readonly periodYear: number
+  readonly periodNumber: number
+  readonly periodicity: 'MONTHLY' | 'FOUR_WEEKLY'
+  readonly periodKind: 'REGULAR'
+  readonly startsOn: string
+  readonly endsOn: string
+}
+
 export interface PayrollSourceProviderInput {
   readonly tenantId: string
   readonly hrGroupId: string
@@ -18,6 +29,7 @@ export interface PayrollSourceProviderInput {
   readonly employeeId: string
   readonly employmentId?: string
   readonly payrollPeriod: PayrollPeriodReference
+  readonly payrollPeriodIdentity?: PayrollPeriodIdentity
 }
 
 export type PayrollSourceGapStatus = 'SOURCE_GAP' | 'UNSUPPORTED'
@@ -42,6 +54,7 @@ export interface PayrollSourceSnapshot {
   readonly sourceEmploymentId: string
   readonly sourceIncomeRelationshipId: string | null
   readonly periodReference: PayrollPeriodReference
+  readonly payrollPeriodIdentity?: PayrollPeriodIdentity
   readonly canonicalSource: PayrollJsonValue
   readonly sourceVersionVector: Readonly<Record<string, string>>
   readonly sourceGaps: readonly PayrollSourceGap[]

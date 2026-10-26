@@ -3,6 +3,7 @@ import type {
   PayrollJsonValue,
   PayrollSourceSnapshot,
   PayrollSourceProviderInput,
+  PayrollPeriodIdentity,
 } from '@liquid-hr/payroll-engine'
 
 function isPayrollJsonValue(value: unknown): value is PayrollJsonValue {
@@ -26,6 +27,40 @@ export const payrollPeriodReferenceSchema = z.object({
   month: z.number().int().min(1).max(12),
 }).strict()
 
+function validCalendarDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
+
+export const payrollPeriodIdentitySchema = z.object({
+  id: opaqueUuidSchema,
+  periodYear: z.number().int().min(1900).max(2200),
+  periodNumber: z.number().int().min(1).max(14),
+  periodicity: z.enum(['MONTHLY', 'FOUR_WEEKLY']),
+  periodKind: z.literal('REGULAR'),
+  startsOn: z.string().refine(validCalendarDate),
+  endsOn: z.string().refine(validCalendarDate),
+}).strict().superRefine((identity, context) => {
+  const start = Date.parse(`${identity.startsOn}T00:00:00Z`)
+  const end = Date.parse(`${identity.endsOn}T00:00:00Z`)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['endsOn'], message: 'PAYROLL_PERIOD_BOUNDARIES_INVALID' })
+    return
+  }
+  const days = Math.round((end - start) / 86_400_000) + 1
+  const monthlyBoundsInvalid = identity.periodicity === 'MONTHLY'
+    && (identity.startsOn.slice(0, 7) !== identity.endsOn.slice(0, 7)
+      || Number(identity.startsOn.slice(8, 10)) !== 1
+      || Number(identity.endsOn.slice(8, 10)) !== new Date(Date.UTC(
+        Number(identity.startsOn.slice(0, 4)), Number(identity.startsOn.slice(5, 7)), 0,
+      )).getUTCDate())
+  if ((identity.periodicity === 'FOUR_WEEKLY' && days !== 28) || monthlyBoundsInvalid) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['periodicity'], message: 'PAYROLL_PERIOD_BOUNDARIES_INVALID' })
+  }
+}) satisfies z.ZodType<PayrollPeriodIdentity>
+
 export const payrollSourceProviderInputSchema = z.object({
   tenantId: opaqueUuidSchema,
   hrGroupId: opaqueUuidSchema,
@@ -33,7 +68,13 @@ export const payrollSourceProviderInputSchema = z.object({
   employeeId: opaqueUuidSchema,
   employmentId: opaqueUuidSchema.optional(),
   payrollPeriod: payrollPeriodReferenceSchema,
-}).strict() satisfies z.ZodType<PayrollSourceProviderInput>
+  payrollPeriodIdentity: payrollPeriodIdentitySchema.optional(),
+}).strict().superRefine((input, context) => {
+  if (input.payrollPeriodIdentity
+    && `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}` !== input.payrollPeriodIdentity.startsOn.slice(0, 7)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payrollPeriodIdentity'], message: 'PAYROLL_PERIOD_REFERENCE_MISMATCH' })
+  }
+}) satisfies z.ZodType<PayrollSourceProviderInput>
 
 export const payrollSourceGapSchema = z.object({
   field: z.string().min(1),
@@ -50,10 +91,16 @@ export const payrollSourceSnapshotSchema = z.object({
   sourceEmploymentId: opaqueUuidSchema,
   sourceIncomeRelationshipId: opaqueUuidSchema.nullable(),
   periodReference: payrollPeriodReferenceSchema,
+  payrollPeriodIdentity: payrollPeriodIdentitySchema.optional(),
   canonicalSource: payrollJsonValueSchema,
   sourceVersionVector: z.record(z.string(), z.string()),
   sourceGaps: z.array(payrollSourceGapSchema),
   sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
   createdAt: z.string().datetime(),
-}).strict() satisfies z.ZodType<PayrollSourceSnapshot>
+}).strict().superRefine((snapshot, context) => {
+  if (snapshot.payrollPeriodIdentity
+    && `${snapshot.periodReference.year}-${String(snapshot.periodReference.month).padStart(2, '0')}` !== snapshot.payrollPeriodIdentity.startsOn.slice(0, 7)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payrollPeriodIdentity'], message: 'PAYROLL_PERIOD_REFERENCE_MISMATCH' })
+  }
+}) satisfies z.ZodType<PayrollSourceSnapshot>
 

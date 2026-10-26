@@ -1793,6 +1793,97 @@ describe('LiquidHR Payroll source provider', () => {
     })
   })
 
+  it('projects an exact cross-year FOUR_WEEKLY release once and keeps fiscal calculation blocked', async () => {
+    const payrollPeriodIdentity = {
+      id: '99000000-0000-4000-8000-000000000009',
+      periodYear: 2026,
+      periodNumber: 13,
+      periodicity: 'FOUR_WEEKLY' as const,
+      periodKind: 'REGULAR' as const,
+      startsOn: '2026-12-21',
+      endsOn: '2027-01-17',
+    }
+    const projection = withPayrollReleases(actualWork({
+      period: null,
+      entries: [actualWorkEntry({
+        work_date: '2026-12-22',
+        subject_period_start: '2026-12-22',
+        subject_period_end: '2026-12-23',
+        posting_period_start: '2026-12-01',
+        hours: 8,
+      })],
+      types: [actualWorkType({ family: 'WORK', code: 'REGULAR_HOURS' })],
+    }))
+    const loadActualWork = vi.fn(async () => ({
+      ...projection,
+      payrollReleases: projection.payrollReleases?.map((release) => ({
+        ...release,
+        payroll_period_id: payrollPeriodIdentity.id,
+        payroll_period_start: payrollPeriodIdentity.startsOn,
+        payroll_period_end: payrollPeriodIdentity.endsOn,
+        payroll_periodicity: payrollPeriodIdentity.periodicity,
+      })),
+    }))
+    const dependenciesForPeriod = dependencies({
+      verifyPayrollPeriodIdentity: vi.fn(async (_scope, identity) => identity.id === payrollPeriodIdentity.id),
+      loadActualWork,
+    })
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependenciesForPeriod).getPayrollSourceSnapshot({
+      ...request,
+      payrollPeriod: { year: 2026, month: 12 },
+      payrollPeriodIdentity,
+    })
+    const canonical = snapshot.canonicalSource as Record<string, unknown>
+    const actualWorkRecord = canonical.actualWork as Record<string, unknown>
+    const entries = actualWorkRecord.entries as Array<Record<string, unknown>>
+
+    expect(dependenciesForPeriod.verifyPayrollPeriodIdentity).toHaveBeenCalledWith(
+      { tenantId, hrGroupId, administrationId }, payrollPeriodIdentity,
+    )
+    expect(loadActualWork).toHaveBeenCalledWith(employeeId, employmentId, '2026-12', payrollPeriodIdentity)
+    expect(snapshot.payrollPeriodIdentity).toEqual(payrollPeriodIdentity)
+    expect(snapshot.sourceVersionVector[`payroll_period_identity:${payrollPeriodIdentity.id}`]).toBe(
+      'FOUR_WEEKLY:2026:13:2026-12-21:2027-01-17',
+    )
+    expect(actualWorkRecord.period).toMatchObject({ id: payrollPeriodIdentity.id, startsOn: '2026-12-21', endsOn: '2027-01-17' })
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({
+      id: actualWorkEntryId,
+      hours: '8.0000',
+      releasedForPayroll: true,
+      payrollPeriodId: payrollPeriodIdentity.id,
+      payrollPeriodicity: 'FOUR_WEEKLY',
+    })
+    expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({
+      reasonCode: 'ACTUAL_WORK_FOUR_WEEKLY_PAYROLL_CONSUMER_UNAVAILABLE',
+    }))
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'payrollPeriod', status: 'UNSUPPORTED', reasonCode: 'FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED',
+    })
+  })
+
+  it('refuses an unverified Payroll period identity before loading payroll sources', async () => {
+    const payrollPeriodIdentity = {
+      id: '99000000-0000-4000-8000-000000000009',
+      periodYear: 2026,
+      periodNumber: 13,
+      periodicity: 'FOUR_WEEKLY' as const,
+      periodKind: 'REGULAR' as const,
+      startsOn: '2026-12-21',
+      endsOn: '2027-01-17',
+    }
+    const deps = dependencies({ verifyPayrollPeriodIdentity: vi.fn(async () => false) })
+
+    await expect(new LiquidHrPayrollSourceProvider(deps).getPayrollSourceSnapshot({
+      ...request,
+      payrollPeriod: { year: 2026, month: 12 },
+      payrollPeriodIdentity,
+    })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_PERIOD_IDENTITY_UNAVAILABLE', status: 409 })
+    expect(deps.listEmployments).not.toHaveBeenCalled()
+    expect(deps.loadTimeline).not.toHaveBeenCalled()
+    expect(deps.loadActualWork).not.toHaveBeenCalled()
+  })
+
   it('derives its authorization scope from the authenticated context and rejects forged scope before reads', async () => {
     const deps = dependencies()
     const provider = new LiquidHrPayrollSourceProvider(deps)

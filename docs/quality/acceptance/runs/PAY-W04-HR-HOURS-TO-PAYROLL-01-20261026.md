@@ -5,29 +5,28 @@
 **Start/base:** `11ba924b4a726431ae7928cfd8d2201d738893b4` (PR #50, vanaf `origin/main`)
 **Uitkomst:** **PARTIAL — integratie HOLD — TEST-release HOLD**
 
-## Functionele closeout 26-10-2026
+## PAY-W04-COMPLETE-PAYROLL-INTEGRATION-02 — closeout 26-10-2026
 
-**Startpositie:** de bestaande featurebranch stond op verwachte W04-commit `8efaf0f68184c08b26e1af5ad0aeff19b57a7793`, vanaf `origin/main`/PR #50 `11ba924b4a726431ae7928cfd8d2201d738893b4`. De bestaande Actual Work-tabellen, de dag-/periode-invoer, CSV-preview/import, revisie-audit, HR Admin-review en eerste PAYFULL-02-mapping zijn behouden.
+**Startpositie:** branch `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026`, HEAD/basis `0f440757905cbc7c7d454bec789a4b27dd6125a1`, Draft PR #51. De verwachte oudere featurecommits, UI, migrations, TVT-ledger, tests, revisie-audit, HR Admin-review en bestaande PAYFULL02-koppeling zijn behouden.
 
-**Toegevoegd op dezelfde branch:**
+**Toegevoegd op dezelfde branch in deze closeout:**
 
-- TVT gebruikt de bestaande koppeling `work_hour_types → leave_type_overtime_work_hours → leave_types(OVERTIME_HOURS)` en het bestaande `leave_balance_buckets`/`leave_accrual_transactions`-ledger. HR Admin-goedkeuring en eerste opbouw zijn één transactie; expliciete vervalmaanden kunnen op uurtype of medewerkeruitzondering worden ingericht. Zonder beleid boekt de RPC niet. Revisies verwerken uitsluitend het urenverschil, herhaalde verwerking is idempotent en type-/medewerker-/dienstverband-/opbouwjaarwijzigingen na TVT-opbouw blokkeren voor ledgerreview. TVT-opname blijft via bestaande verlofverwerking lopen; dat pad is niet in een lokale database uitgevoerd.
-- HR Admin selecteert bestaande open Payroll Lab-kalenderperioden op hun ID. `MONTHLY` en 28-daagse `FOUR_WEEKLY`-perioden worden op exacte grenzen gevalideerd; vrijgaven bewaren periode-ID, begin/einddatum, periodiciteit, bronrevisie, mapping, fingerprint, actor en timestamp. Gesloten perioden blokkeren; vierwekenregistraties worden niet verdeeld. Een synthetische servicecase accordeert een periode van 2026-12-21 t/m 2027-01-17.
-- De bestaande Payroll-sourceprovider accepteert alleen `(year, month)`. Vierwekenvrijgaven blijven daarom `SOURCE_GAP` met `ACTUAL_WORK_FOUR_WEEKLY_PAYROLL_CONSUMER_UNAVAILABLE`, totdat het Payroll-sourcecontract een periode-ID kan verwerken.
-- De bestaande componentbron ondersteunt gewone uren via `PAYFULL02_VARIABLE_REGULAR_WAGE`. Uit te betalen meer-/overuren en toeslaguren, waaronder nachttoeslag, blijven `SOURCE_GAP`; de huidige bron kan geen afzonderlijke componentregels veilig consumeren. TVT- en informatieve typen worden niet automatisch uitbetaald. Geen kloktijden of automatische classificatie toegevoegd.
+- Het bestaande `PayrollSourceProviderInput`/snapshot-contract accepteert nu aanvullend een exacte `payrollPeriodIdentity` (Payroll Lab-ID, kalenderjaar/-nummer, `REGULAR`, periodiciteit, start/eind). De normale serverprovider verifieert deze identiteit tegen de bestaande scoped Payroll-kalender en weigert onbekende/gesloten perioden vóór verdere bronreads.
+- De bestaande Actual Work-reader haalt `employment_work_hour_entries` voor `FOUR_WEEKLY` op via Core-vrijgaven met dezelfde periode-ID; zij valideert administratie, start/eind en periodiciteit en filtert daarna op exact medewerker/dienstverband. Herhaalde componentreleases voor één bronentry geven `ACTUAL_WORK_PAYROLL_MAPPING_AMBIGUOUS`. Geen kunstmatige periodeverdeling.
+- De bronhash bevat de volledige periodidentiteit en de bestaande releasefingerprint/revisie/mapping. De cross-year test 2026-12-21 t/m 2027-01-17 toont de vrijgegeven uren exact eenmaal in de source snapshot en verwijdert alleen `ACTUAL_WORK_FOUR_WEEKLY_PAYROLL_CONSUMER_UNAVAILABLE` wanneer ID en grenzen exact kloppen.
+- Payroll-run-, inputset- en fiscale berekening blijven maand-only. Een vierwekenbron blijft daarom expliciet geblokkeerd met `UNSUPPORTED: FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED`; er wordt geen bruto/netto-/pensioen-/SV- of FINALIZED-runuitkomst gemaakt. De maandelijkse normale urenroute gebruikt het bestaande `PAYFULL02_VARIABLE_REGULAR_WAGE` en de bestaande PAYFULL02-berekening. Betaalde meer-/overuren en toeslagen blijven `SOURCE_GAP` bij afwezigheid van geschikte bestaande Payroll-componentinvoer. TVT- en informatieve typen worden niet uitbetaald.
+- TVT-ledger, expliciet vervalbeleid, idempotente delta-/revisieverwerking, CSV-preview/import en HR Admin-vrijgave zijn bestaande W04-implementatie op deze branch en blijven ongewijzigd. Geen kloktijden of automatische classificatie toegevoegd.
 
 ## Uitgevoerde gates
 
 | Gate | Uitkomst |
 | --- | --- |
-| Volledige root `npm test` | HR Suite **3.803 PASS / 8 SKIP**, 4 testbestanden overgeslagen; Control **11/11 PASS**; NL-2026 **49/49 PASS**. Daarna is de nieuwe cross-year-periodetest toegevoegd en de volledige servicefile **9/9 PASS** gedraaid. |
-| Gerichte W04-/TVT-/bron-/migratieregressies | **83/83 PASS** over 5 bestanden, plus Actual Work batch-/Payroll-fallback/server-only regressies **40/40 PASS**. Beide LF/CRLF-assertions slagen na normalisatie van alleen de ingelezen SQL-regelafbrekingen; inhoudelijke assertions zijn behouden. |
-| Root TypeScript | **PASS** voor HR Suite, Control, Payroll Engine, CAO Bench en NL-2026. |
-| Root ESLint | **PASS**, 0 fouten en 7 waarschuwingen in bestaande tests. |
-| i18n | **PASS**, 43 NL/EN-namespaces met gelijke sleutels. |
-| Rootbuild | **PASS** voor HR Suite en Control. HR Suite: 346 routes gegenereerd, Payroll-clientboundaryscan 177 browserassets PASS, PDF-route/function-tracechecks PASS. De buildprovenance registreerde de checkout-HEAD `8efaf0f...` vóór de closeoutcommit. |
-| `git -c core.whitespace=cr-at-eol diff --check` | **PASS**; Git meldde verwachte CRLF-normalisatiewaarschuwingen op de bestaande Windows-checkout. |
-| Secrets-/migratie-/RLS-/browsergate | Geen geheime waarden gevonden in de gewijzigde featurebestanden. Migratiecontracttests slagen; de migratie is niet toegepast. Lokale Supabase/Docker/Postgres-runtime, centrale TEST-config en bestaande persona-credentials ontbreken; RLS- en geauthenticeerde browseracceptatie zijn daarom **OPEN**. |
+| Gerichte huidige W04-/Payroll-/periode-/migratiecontracten | **104/104 PASS in 9 bestanden**: Actual Work source-readers, Payroll-source provider/schema, Payroll-kalender, bestaande work-hours service, W04-periode/TVT-migratiecontract en bestaande release-, leave-ledger- en correctieauditcontracten. Bevat cross-year exact-ID-projectie, fail-closed periodecontrole en de bestaande maandelijkse PAYFULL02 source → `calculatePayroll` proef. |
+| TypeScript | Payroll Engine **PASS** en HR Suite **PASS** op de huidige code. |
+| ESLint | **PASS** op alle 7 gewijzigde HR Suite source-/testbestanden. Payroll Engine contract-/exportbestanden zijn buiten de HR Suite ESLint-base; die bestanden zijn niet door deze lint-run gecontroleerd. |
+| Root suite/build/i18n | Niet opnieuw uitgevoerd in deze closeout; de eerdere baseline-uitkomsten hierboven in de historische initiële acceptatie zijn geen bewijs op de nieuwe code. Er zijn geen zichtbare tekst-/taalbestanden gewijzigd, dus i18n-pariteit is niet opnieuw gedraaid. |
+| `git diff --check` | **PASS** met `git -c core.whitespace=cr-at-eol diff --check`; deze CRLF-check voorkomt dat de bestaande checkout de CR-byte van gewijzigde regels als trailing whitespace rapporteert. Alleen line-ending-normalisatiewaarschuwingen blijven zichtbaar op bestaande bestanden. |
+| Migratie/RLS/browser | W04-migratie niet toegepast; migratiecontracttest PASS. De persona-preflight bevestigde statische catalogus/allowlist, maar het bestaande script strandde op `$credentialsReady`; metadata-only inspectie vond geen centrale TEST-config of persona-credentialfile en geen lokale Payroll-serverlistener. DB/RLS/browser-runtime blijft **OPEN**. Geen secretwaarden gelezen. |
 
 ## Acceptatiescenario’s na closeout
 
@@ -35,14 +34,14 @@
 | ---: | --- | --- |
 | 1 | OPEN — browser/DB | Individuele invoer hergebruikt Actual Work; geen geauthenticeerde achturenregistratie uitgevoerd. |
 | 2 | PARTIAL — unit | Dag-, maand- en periodevelden blijven op Actual Work; geen database-readback van maand-/dagregistraties. |
-| 3 | PARTIAL — service | Expliciet Payroll-periode-ID, gesloten-period guard en cross-year vierwekenaccordering getest. Payroll-runconsumptie blijft `SOURCE_GAP` door het maand-only broncontract. |
+| 3 | PARTIAL — source/provider | Exacte cross-year Payroll-ID-vrijgave wordt eenmaal opgenomen in de Payroll-bronprojectie met bronhash. De daadwerkelijke vierweken-run blijft `UNSUPPORTED` omdat de berekenings-/fiscale contracts maand-only zijn. |
 | 4 | PASS — unit | CSV-preview behandelt meerdere medewerkers synthetisch; geen DB/browserimport uitgevoerd. |
 | 5 | PASS — unit | Herhaalde CSV-bevestiging en bronreferenties zijn idempotent. |
 | 6 | PASS — unit | Ongeldige medewerkers, perioden, uren, kolommen en conflicterende referenties worden afgewezen. |
 | 7 | PASS — provider | Niet-geaccordeerde uren zijn geen definitieve Payroll-input. |
 | 8 | PARTIAL — contract | HR Admin/RPC-audit en atomaire TVT-goedkeuring zijn statisch en service-side afgedekt; geen PostgreSQL/RLS-readback. |
 | 9 | PARTIAL — contract | Correctiereden en revisie/fingerprint leiden tot herbeoordeling; type-/scope-/jaarherclassificatie na TVT-posting blokkeert voor ledgerreview. Ledgertransactie is niet tegen PostgreSQL uitgevoerd. |
-| 10 | PARTIAL — provider | Gewone uren gebruiken de expliciet bestaande PAYFULL-02-component. Uitbetaalde meer-/overuren en premiums blijven `SOURCE_GAP`. |
+| 10 | PARTIAL — provider + engine | Maandelijkse gewone variabele uren bereiken de bestaande PAYFULL02-berekening. Uitbetaalde meer-/overuren en premiums blijven `SOURCE_GAP` door ontbrekende bestaande componentinputs. |
 | 11 | PARTIAL — migration contract | TVT-opbouw gebruikt expliciet vervalbeleid en bestaand ledger; geen expiry-default. Databaseopbouw niet live uitgevoerd. |
 | 12 | PARTIAL — bestaand pad | TVT-opname blijft aan bestaande verlofaanvraag-/saldoverwerking gekoppeld; geen ledger-runtimeproef. |
 | 13 | PARTIAL — classificatie | Door HR gekozen werkurentype wordt gevolgd zonder kloktijden; een aparte nacht-/toeslagcomponent ontbreekt en blijft `SOURCE_GAP`. |
@@ -54,12 +53,12 @@
 
 ## Integratie- en releasestatus
 
-- **Integratie: HOLD.** Lokale codekwaliteit slaagt, maar W04-Done is niet bereikt: vierwekenvrijgaven kunnen nog niet in Payroll-runinput worden geconsumeerd; componentmappings voor betaalde meer-/overuren en toeslagen ontbreken; migratieapply/readback, RLS en browseracceptatie ontbreken.
+- **Integratie: HOLD.** De bronprovider consumeert nu een exact gescopeerde vierwekenvrijgave en de maandelijkse gewone-urenroute heeft een bestaande PAYFULL02-berekeningsproef. W04-Done is niet bereikt: FOUR_WEEKLY payroll-runs zijn niet fiscaal gevalideerd en blijven `UNSUPPORTED`; geschikte bestaande uitbetaalcomponenten voor meer-/overuren en toeslagen ontbreken; live schema/RLS/browserreadback is niet bewezen.
 - **TEST-release: HOLD.** Geen migratie, deployment, Payroll-run, salarisbetaling of aangifte uitgevoerd.
-- **Featurecommit:** `2511e30ef3c1e7a3f853ec5926fa8b2c312b273a`, parent/startpunt `8efaf0f68184c08b26e1af5ad0aeff19b57a7793`. **Draft PR #51:** [W04 closeout](https://github.com/EdwinCycling/LiquidHR/pull/51), open als draft op deze bestaande branch; er is geen nieuwe branch gemaakt.
+- **Featurecommit:** de broncode-, test- en documentatiewijzigingen zijn lokaal vastgelegd op dezelfde branch; geen nieuwe branch. **Draft PR #51:** [W04 closeout](https://github.com/EdwinCycling/LiquidHR/pull/51) staat remote nog op head `0f440757905cbc7c7d454bec789a4b27dd6125a1`. De repository-/AA-policy vereist bevestiging van de effectieve Vercel Git-/Preview-triggers vóór branchpush; de Vercel projectreadback bevat die instelling niet, dus de remote PR-head wordt niet bijgewerkt.
 - De lokale build heeft de gegenereerde Focus-widget tijdelijk gewijzigd. Het artefact is naar de ongewijzigde HEAD-inhoud teruggezet (SHA-256 `A8134B54351065DB6EFF5CBED717511A979AB85118810DA2941195DF8BAEEAEA`); `next-env.d.ts` bleef gelijk (SHA-256 `1B59D4C6B83807DB275D43F3CF2CC8E9323F465FAB764EEA091CC5BECD5BAD37`). Bestaande `apps/hr-suite/.tool-home/` is behouden en niet opgenomen.
 
-**Conclusie:** TVT-ledgerposting, expliciete expiry, HR Admin-flow en periode-ID-vrijgave zijn lokaal geïmplementeerd en door service-/contracttests afgedekt. Payroll-finalisatie voor `FOUR_WEEKLY`, brede componentverwerking en DB-/browser-runtimeacceptatie blijven concrete vervolgblokkades. Geen main-push, merge, gedeelde databasewrite, deployment, historische wijziging of productieve Payroll-run.
+**Conclusie:** W04-vrijgaven zijn lokaal controleerbaar via het bestaande Payroll-sourcecontract voor zowel maand- als exact geïdentificeerde vierwekenperioden; cross-year vierwekenuren worden niet verdeeld en verschijnen eenmaal in de snapshot. Een definitieve vierwekenberekening, uitbetaling via nieuwe meer-/overuren- of toeslagcomponenten, en live DB/RLS/browseracceptatie zijn niet aangetoond. Volledige Definition of Done en integratie-GO zijn daarom niet bereikt. Geen main-push, merge, gedeelde databasewrite, deployment, wijziging aan FINALIZED-run/PDF of productieve Payroll-run.
 
 ---
 

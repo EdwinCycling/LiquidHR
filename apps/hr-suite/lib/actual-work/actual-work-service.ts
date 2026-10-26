@@ -4,6 +4,7 @@ import { requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
 import { exactHoursToDatabase, formatExactHours, isPositiveExactHours, parseExactHours } from './exact-hours'
+import type { PayrollPeriodIdentity } from '@liquid-hr/payroll-engine'
 import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -320,6 +321,32 @@ export type ActualWorkPayrollProjection = {
   tvtAccruedHoursByEntryId?: Readonly<Record<string, string>>
 }
 
+async function releasedEntryIdsForPayrollPeriod(input: {
+  supabase: SupabaseServerClient
+  tenantId: string
+  hrGroupId: string
+  administrationId: string
+  period: PayrollPeriodIdentity
+}): Promise<string[]> {
+  const result = await input.supabase.from('actual_work_payroll_releases')
+    .select('entry_id,payroll_period_start,payroll_period_end,payroll_periodicity')
+    .eq('tenant_id', input.tenantId)
+    .eq('hr_group_id', input.hrGroupId)
+    .eq('administration_id', input.administrationId)
+    .eq('payroll_period_id', input.period.id)
+    .limit(2001)
+  if (result.error) databaseError(result.error, 'actual-work-payroll-period-releases')
+  const releases = result.data ?? []
+  if (releases.some((release) => release.payroll_period_start !== input.period.startsOn
+    || release.payroll_period_end !== input.period.endsOn
+    || release.payroll_periodicity !== input.period.periodicity)) {
+    throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_IDENTITY_INVALID', 409)
+  }
+  const ids = [...new Set(releases.map((release) => release.entry_id))]
+  if (ids.length > 2000) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_BATCH_LIMIT_REACHED', 503)
+  return ids
+}
+
 async function loadActualWorkPayrollReleaseData(input: {
   supabase: SupabaseServerClient
   tenantId: string
@@ -402,24 +429,38 @@ async function loadActualWorkPayrollReleaseData(input: {
 
 /** Reads only payroll-relevant work metadata; notes and person data stay out of the payroll source snapshot. */
 export async function getActualWorkPayrollProjection(
-  input: { employeeId: string; employmentId: string; month: string },
+  input: { employeeId: string; employmentId: string; month: string; payrollPeriodIdentity?: PayrollPeriodIdentity },
   dependencies?: ActualWorkReadDependencies,
 ): Promise<ActualWorkPayrollProjection> {
   if (!isValidActualWorkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
+  if (input.payrollPeriodIdentity?.periodicity === 'FOUR_WEEKLY'
+    && input.month !== input.payrollPeriodIdentity.startsOn.slice(0, 7)) {
+    throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_IDENTITY_INVALID')
+  }
   const { context, hrGroupId, supabase } = dependencies ?? await authForGroup('leave:read', input.employeeId)
   const from = monthStart(input.month)
-  const [entriesResult, period] = await loadQueriesInBatches([
-    () => supabase.from('employment_work_hour_entries')
+  const periodEntryIds = input.payrollPeriodIdentity?.periodicity === 'FOUR_WEEKLY'
+    ? await releasedEntryIdsForPayrollPeriod({
+      supabase, tenantId: context.tenantId, hrGroupId,
+      administrationId: context.administrationId ?? '', period: input.payrollPeriodIdentity,
+    })
+    : null
+  const readEntries = async () => {
+    if (periodEntryIds?.length === 0) return { data: [], error: null }
+    let query = supabase.from('employment_work_hour_entries')
       .select('id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,approved_at,updated_at')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', hrGroupId)
       .eq('employee_id', input.employeeId)
       .eq('employment_id', input.employmentId)
-      .eq('posting_period_start', from)
       .order('work_date')
       .order('id')
-      .limit(2001),
-    () => readActualWorkPeriodForPayroll(context.tenantId, hrGroupId, from),
+    query = periodEntryIds ? query.in('id', periodEntryIds) : query.eq('posting_period_start', from)
+    return await query.limit(2001)
+  }
+  const [entriesResult, period] = await loadQueriesInBatches([
+    readEntries,
+    () => periodEntryIds ? Promise.resolve(null) : readActualWorkPeriodForPayroll(context.tenantId, hrGroupId, from),
   ], 2)
   if (entriesResult.error) databaseError(entriesResult.error, 'employment-work-hour-entries')
 
@@ -454,13 +495,18 @@ export async function getActualWorkPayrollProjection(
  * A batch failure is surfaced so callers can fall back to the established reader.
  */
 export async function getActualWorkPayrollProjectionsBatch(
-  inputs: readonly { employeeId: string; employmentId: string; month: string }[],
+  inputs: readonly { employeeId: string; employmentId: string; month: string; payrollPeriodIdentity?: PayrollPeriodIdentity }[],
   preauthorizedScopes?: readonly ActualWorkPayrollBatchAuthorizedScope[],
 ): Promise<ActualWorkPayrollProjection[]> {
   if (inputs.length === 0) return []
   const month = inputs[0]?.month
   if (!month || !isValidActualWorkMonth(month) || inputs.some((input) => input.month !== month)) {
     throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
+  }
+  const periodIdentity = inputs[0]?.payrollPeriodIdentity
+  if (inputs.some((input) => JSON.stringify(input.payrollPeriodIdentity ?? null) !== JSON.stringify(periodIdentity ?? null))
+    || (periodIdentity?.periodicity === 'FOUR_WEEKLY' && month !== periodIdentity.startsOn.slice(0, 7))) {
+    throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_IDENTITY_INVALID')
   }
 
   let tenantId: string
@@ -499,7 +545,10 @@ export async function getActualWorkPayrollProjectionsBatch(
   }
 
   const from = monthStart(month)
-  const period = await readActualWorkPeriodForPayroll(tenantId, hrGroupId, from)
+  const periodEntryIds = periodIdentity?.periodicity === 'FOUR_WEEKLY'
+    ? await releasedEntryIdsForPayrollPeriod({ supabase, tenantId, hrGroupId, administrationId, period: periodIdentity })
+    : null
+  const period = periodEntryIds ? null : await readActualWorkPeriodForPayroll(tenantId, hrGroupId, from)
   const projections: ActualWorkPayrollProjection[] = []
   const batchSize = 4
   const batches = Array.from({ length: Math.ceil(inputs.length / batchSize) }, (_, index) =>
@@ -509,17 +558,19 @@ export async function getActualWorkPayrollProjectionsBatch(
     const employmentIds = [...new Set(batch.map((input) => input.employmentId))]
     const maxRows = batch.length * 2001
     const allEntries: (ActualWorkPayrollProjection['entries'][number] & { readonly employee_id: string })[] = []
-    for (let offset = 0; offset < maxRows + 1; offset += 1000) {
-      const page = await supabase.from('employment_work_hour_entries')
+    for (let offset = 0; periodEntryIds === null || periodEntryIds.length > 0; offset += 1000) {
+      if (periodEntryIds !== null && offset >= periodEntryIds.length) break
+      const pageQuery = supabase.from('employment_work_hour_entries')
         .select('id,employee_id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,approved_at,updated_at')
         .eq('tenant_id', tenantId)
         .eq('hr_group_id', hrGroupId)
         .in('employee_id', [...new Set(batch.map((input) => input.employeeId))])
         .in('employment_id', employmentIds)
-        .eq('posting_period_start', from)
         .order('work_date')
         .order('id')
-        .range(offset, Math.min(offset + 999, maxRows))
+      const page = await (periodEntryIds
+        ? pageQuery.in('id', periodEntryIds).range(offset, Math.min(offset + 999, periodEntryIds.length - 1))
+        : pageQuery.eq('posting_period_start', from).range(offset, Math.min(offset + 999, maxRows)))
       if (page.error) databaseError(page.error, 'employment-work-hour-entries')
       const pageRows = page.data ?? []
       allEntries.push(...pageRows)

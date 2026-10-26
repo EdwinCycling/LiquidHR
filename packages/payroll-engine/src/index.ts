@@ -3,6 +3,7 @@ export type {
   CalculationRun,
   PayrollJsonValue,
   PayrollPeriodReference,
+  PayrollPeriodIdentity,
   PayrollSourceGap,
   PayrollSourceGapStatus,
   PayrollSourceProvider,

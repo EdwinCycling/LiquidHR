@@ -11,6 +11,7 @@ import {
 } from '@/lib/actual-work/actual-work-service'
 import type {
   PayrollSourceGap,
+  PayrollPeriodIdentity,
   PayrollSourceProvider,
   PayrollSourceProviderInput,
   PayrollSourceSnapshot,
@@ -57,6 +58,7 @@ import {
   type PayrollEmployerConfiguration,
 } from '../payroll-setup'
 import { createPayrollSetupRepository } from '../payroll-setup-repository'
+import { createPayrollCalculationRepository } from '../calculation-repository'
 import { mapCorePensionEligibilityRule } from '../pension-eligibility-source-mapping'
 import {
   calculateCaoPayroll,
@@ -182,12 +184,14 @@ export interface PayrollSourceProviderDependencies {
   readonly loadTimelineBatch?: (
     inputs: readonly Pick<PayrollSourceProviderInput, 'employeeId' | 'employmentId' | 'payrollPeriod'>[],
   ) => Promise<readonly PayrollSourceTimeline[]>
-  readonly loadActualWork: (employeeId: string, employmentId: string, month: string) => Promise<ActualWorkPayrollProjection>
+  readonly loadActualWork: (employeeId: string, employmentId: string, month: string, payrollPeriodIdentity?: PayrollPeriodIdentity) => Promise<ActualWorkPayrollProjection>
   readonly loadActualWorkBatch?: (inputs: readonly {
     readonly employeeId: string
     readonly employmentId: string
     readonly month: string
+    readonly payrollPeriodIdentity?: PayrollPeriodIdentity
   }[], authorizedScopes?: readonly ActualWorkPayrollBatchAuthorizedScope[]) => Promise<readonly ActualWorkPayrollProjection[]>
+  readonly verifyPayrollPeriodIdentity?: (scope: PayrollScope, identity: PayrollPeriodIdentity) => Promise<boolean>
   readonly loadPayrollSetup?: (
     scope: PayrollScope,
     payrollAdministrationId: string,
@@ -247,6 +251,8 @@ export type PayrollSourceProviderErrorCode =
   | 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND'
   | 'PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS'
   | 'PAYROLL_SOURCE_DISABLED'
+  | 'PAYROLL_SOURCE_PERIOD_IDENTITY_INVALID'
+  | 'PAYROLL_SOURCE_PERIOD_IDENTITY_UNAVAILABLE'
   | 'PAYROLL_SOURCE_DATA_UNAVAILABLE'
 
 export class PayrollSourceProviderError extends Error {
@@ -289,6 +295,23 @@ const readSharedPayrollSetupSource = cache(async (
     configurationRows: await repository.listEmployerConfigurations(scope, payrollAdministration.id),
   }
 })
+
+async function verifyDefaultPayrollPeriodIdentity(scope: PayrollScope, identity: PayrollPeriodIdentity): Promise<boolean> {
+  const sharedSource = await readSharedPayrollSetupSource(scope.tenantId, scope.hrGroupId, scope.administrationId)
+  if (!sharedSource.payrollAdministrationId) return false
+  const repository = createPayrollCalculationRepository()
+  if (!repository.listCalendarPeriods) return false
+  const periods = await repository.listCalendarPeriods(scope, sharedSource.payrollAdministrationId, 100)
+  const period = periods.find((candidate) => candidate.id === identity.id)
+  return Boolean(period
+    && period.status === 'OPEN'
+    && period.period_kind === identity.periodKind
+    && period.period_year === identity.periodYear
+    && period.period_number === identity.periodNumber
+    && period.periodicity === identity.periodicity
+    && period.starts_on === identity.startsOn
+    && period.ends_on === identity.endsOn)
+}
 
 async function loadDefaultPayrollTimeline(
   employeeId: string,
@@ -391,13 +414,14 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
     loadTimeline: async (employeeId, employmentId, payrollPeriod) =>
       await loadDefaultPayrollTimeline(employeeId, employmentId, payrollPeriod),
     loadTimelineBatch: async (inputs) => await loadDefaultPayrollTimelinesBatch(inputs),
-    loadActualWork: async (employeeId, employmentId, month) =>
-      await getActualWorkPayrollProjection({ employeeId, employmentId, month }).catch((error: unknown) => {
+    loadActualWork: async (employeeId, employmentId, month, payrollPeriodIdentity) =>
+      await getActualWorkPayrollProjection({ employeeId, employmentId, month, ...(payrollPeriodIdentity ? { payrollPeriodIdentity } : {}) }).catch((error: unknown) => {
         throw new PayrollSourceReadFailure('actual-work-projection', error)
       }),
     loadActualWorkBatch: async (inputs, authorizedScopes) => await getActualWorkPayrollProjectionsBatch(inputs, authorizedScopes).catch((error: unknown) => {
       throw new PayrollSourceReadFailure('actual-work-projection', error)
     }),
+    verifyPayrollPeriodIdentity: verifyDefaultPayrollPeriodIdentity,
     loadPayrollSetup: async (scope, _sourceAdministrationId, sourceEmploymentId, payrollPeriod) => {
       const sharedSource = await readSharedPayrollSetupSource(scope.tenantId, scope.hrGroupId, scope.administrationId)
       if (!sharedSource.payrollAdministrationId) {
@@ -427,6 +451,7 @@ function actualWorkForPeriod(
   projection: ActualWorkPayrollProjection,
   periodStart: string,
   periodEndExclusive: string,
+  payrollPeriodIdentity?: PayrollPeriodIdentity,
 ): {
   readonly canonicalSource: PayrollSourceSnapshot['canonicalSource']
   readonly sourceVersionVector: Readonly<Record<string, string>>
@@ -435,10 +460,19 @@ function actualWorkForPeriod(
   const typeById = new Map<string, PayrollSourceActualWorkType>(projection.types.map((type) => [type.id, type]))
   const tvtTypeIds = new Set(projection.tvtWorkHourTypeIds ?? [])
   const informationalTypeIds = new Set(projection.informationalWorkHourTypeIds ?? [])
-  const releaseByEntry = new Map((projection.payrollReleases ?? [])
-    .filter((release) => release.payroll_period_start === periodStart
-      && (release.payroll_period_id == null
-        || (release.payroll_periodicity === 'MONTHLY' && release.payroll_period_end === dayBefore(periodEndExclusive))))
+  const periodReleases = (projection.payrollReleases ?? [])
+    .filter((release) => payrollPeriodIdentity
+      ? release.payroll_period_id === payrollPeriodIdentity.id
+        && release.payroll_period_start === payrollPeriodIdentity.startsOn
+        && release.payroll_period_end === payrollPeriodIdentity.endsOn
+        && release.payroll_periodicity === payrollPeriodIdentity.periodicity
+      : release.payroll_period_start === periodStart
+        && (release.payroll_period_id == null
+          || (release.payroll_periodicity === 'MONTHLY' && release.payroll_period_end === dayBefore(periodEndExclusive))))
+  const releaseCounts = new Map<string, number>()
+  for (const release of periodReleases) releaseCounts.set(release.entry_id, (releaseCounts.get(release.entry_id) ?? 0) + 1)
+  const releaseByEntry = new Map(periodReleases
+    .filter((release) => releaseCounts.get(release.entry_id) === 1)
     .map((release) => [release.entry_id, release]))
   const entries = [...projection.entries].sort((left, right) =>
     left.work_date.localeCompare(right.work_date) || left.id.localeCompare(right.id),
@@ -446,6 +480,10 @@ function actualWorkForPeriod(
   const gaps: PayrollSourceGap[] = []
   const versionVector: Record<string, string> = {}
   if (projection.period) versionVector[`actual_work_period:${projection.period.id}`] = projection.period.updated_at
+  for (const release of periodReleases) {
+    versionVector[`actual_work_payroll_release_candidate:${release.entry_id}:${release.id}`] =
+      `${release.entry_revision_number}:${release.content_fingerprint}:${release.released_at}:${release.mapping?.id ?? 'NO_MAPPING'}`
+  }
   if (projection.entries.length > 2000) gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_TIMELINE_LIMIT_REACHED'))
 
   const mappedEntries = entries.map((entry) => {
@@ -481,6 +519,9 @@ function actualWorkForPeriod(
     }
     const revisionNumber = projection.currentRevisionNumbers?.[entry.id]
     const release = releaseByEntry.get(entry.id)
+    if (releaseCounts.get(entry.id) !== undefined && releaseCounts.get(entry.id)! > 1) {
+      gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_PAYROLL_MAPPING_AMBIGUOUS'))
+    }
     const releaseIsCurrent = release !== undefined && release.entry_revision_number === revisionNumber
     const fourWeeklyRelease = (projection.payrollReleases ?? []).find((candidate) => candidate.entry_id === entry.id
       && candidate.entry_revision_number === revisionNumber
@@ -521,8 +562,13 @@ function actualWorkForPeriod(
       }
     }
     if (tvtConfigured) versionVector[`actual_work_tvt_ledger:${entry.id}`] = tvtAccruedHours
-    if (entry.posting_period_start !== periodStart
-      || entry.subject_period_end <= entry.subject_period_start) {
+    const fourWeeklyEntryOutOfRange = payrollPeriodIdentity?.periodicity === 'FOUR_WEEKLY'
+      && (entry.subject_period_start < payrollPeriodIdentity.startsOn
+        || entry.subject_period_end > periodEndExclusive
+        || entry.subject_period_end <= entry.subject_period_start)
+    if ((payrollPeriodIdentity?.periodicity !== 'FOUR_WEEKLY' && entry.posting_period_start !== periodStart)
+      || fourWeeklyEntryOutOfRange
+      || (!payrollPeriodIdentity && entry.subject_period_end <= entry.subject_period_start)) {
       gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_PERIOD_MAPPING_INVALID'))
     }
     return {
@@ -568,10 +614,11 @@ function actualWorkForPeriod(
     }
   })
 
-  if (projection.entries.length > 0 && !projection.period) {
+  if (projection.entries.length > 0 && !projection.period && !payrollPeriodIdentity) {
     gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_PERIOD_NOT_FOUND'))
   }
-  if (projection.period && (projection.period.period_start !== periodStart || projection.period.period_end !== periodEndExclusive)) {
+  if (!payrollPeriodIdentity && projection.period
+    && (projection.period.period_start !== periodStart || projection.period.period_end !== periodEndExclusive)) {
     gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_PERIOD_RANGE_MISMATCH'))
   }
 
@@ -583,7 +630,18 @@ function actualWorkForPeriod(
       status: projection.period.status,
       updatedAt: projection.period.updated_at,
     }
-    : { status: 'NOT_CONFIGURED' }
+    : payrollPeriodIdentity
+      ? {
+        id: payrollPeriodIdentity.id,
+        startsOn: payrollPeriodIdentity.startsOn,
+        endsOn: payrollPeriodIdentity.endsOn,
+        periodYear: payrollPeriodIdentity.periodYear,
+        periodNumber: payrollPeriodIdentity.periodNumber,
+        periodicity: payrollPeriodIdentity.periodicity,
+        periodKind: payrollPeriodIdentity.periodKind,
+        status: 'PAYROLL_CALENDAR_PERIOD',
+      }
+      : { status: 'NOT_CONFIGURED' }
   return {
     canonicalSource: { period, entries: mappedEntries },
     sourceVersionVector: versionVector,
@@ -598,7 +656,9 @@ function exactHoursValue(value: string): string | null {
 function actualWorkVariableWage(
   entries: readonly unknown[],
   salaries: readonly PayrollSourceSalary[],
+  allowCalculation: boolean,
 ): { amount: string; used: boolean; errorCode: string | null } {
+  if (!allowCalculation) return { amount: '0.00', used: false, errorCode: null }
   const unsupportedMapping = entries.some((entry) => {
     const record = asRecord(entry)
     const mapping = asRecord(record?.payrollMapping)
@@ -637,7 +697,11 @@ function actualWorkVariableWage(
   }
 }
 
-function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { start: string; endInclusive: string; endExclusive: string } {
+function periodBounds(
+  period: PayrollSourceProviderInput['payrollPeriod'],
+  identity?: PayrollPeriodIdentity,
+): { start: string; endInclusive: string; endExclusive: string } {
+  if (identity) return { start: identity.startsOn, endInclusive: identity.endsOn, endExclusive: dayAfter(identity.endsOn) }
   const start = `${period.year}-${String(period.month).padStart(2, '0')}-01`
   const endInclusive = new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
   return { start, endInclusive, endExclusive: dayAfter(endInclusive) }
@@ -651,7 +715,7 @@ function selectScopedEmployment(
   employments: readonly PayrollSourceEmployment[],
   input: PayrollSourceProviderInput,
 ): PayrollSourceEmployment {
-  const bounds = periodBounds(input.payrollPeriod)
+  const bounds = periodBounds(input.payrollPeriod, input.payrollPeriodIdentity)
   const candidates = employments.filter((employment) =>
     employment.tenant_id === input.tenantId
     && employment.hr_group_id === input.hrGroupId
@@ -688,7 +752,7 @@ function validateScopedTimeline(
   ) {
     throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
   }
-  const bounds = periodBounds(input.payrollPeriod)
+  const bounds = periodBounds(input.payrollPeriod, input.payrollPeriodIdentity)
   if (!employmentOverlapsPeriod(timelineEmployment.starts_on, timelineEmployment.ends_on, bounds.start, bounds.endInclusive)) {
     throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
   }
@@ -1822,6 +1886,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       }), 12)
     const loadTimelineBatch = this.dependencies.loadTimelineBatch
     const loadActualWorkBatch = this.dependencies.loadActualWorkBatch
+    if (rawInputs.some((input) => input.payrollPeriodIdentity !== undefined)) return await readIndividually()
     if (!loadActualWorkBatch || rawInputs.length === 0) return await readIndividually()
     if (!this.dependencies.isEnabled()) return await readIndividually()
     const parsedInputs = rawInputs.map((input) => payrollSourceProviderInputSchema.safeParse(input))
@@ -2124,7 +2189,21 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     ) {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
-    const bounds = periodBounds(input.payrollPeriod)
+    const periodIdentity = input.payrollPeriodIdentity
+    if (periodIdentity) {
+      const referenceMonth = periodIdentity.startsOn.slice(0, 7)
+      if (`${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}` !== referenceMonth) {
+        throw new PayrollSourceProviderError('PAYROLL_SOURCE_PERIOD_IDENTITY_INVALID', 400)
+      }
+      let periodIdentityVerified = false
+      try {
+        periodIdentityVerified = await this.dependencies.verifyPayrollPeriodIdentity?.(authorizedScope, periodIdentity) === true
+      } catch {
+        periodIdentityVerified = false
+      }
+      if (!periodIdentityVerified) throw new PayrollSourceProviderError('PAYROLL_SOURCE_PERIOD_IDENTITY_UNAVAILABLE', 409)
+    }
+    const bounds = periodBounds(input.payrollPeriod, periodIdentity)
     let employment: PayrollSourceEmployment
     if (prevalidatedEmployment) {
       employment = selectScopedEmployment([prevalidatedEmployment], input)
@@ -2166,7 +2245,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       actualWork = actualWorkOverride ?? await this.dependencies.loadActualWork(
         input.employeeId,
         employment.id,
-        `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,
+        periodIdentity?.periodicity === 'FOUR_WEEKLY'
+          ? periodIdentity.startsOn.slice(0, 7)
+          : `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,
+        periodIdentity,
       )
     } catch (error) {
       const sourceCategory = safeSourceCategory(error, 'actual-work-projection')
@@ -2220,7 +2302,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       activeStart,
       activeEndExclusive,
     )
-    const actualWorkSnapshot = actualWorkForPeriod(actualWork, bounds.start, bounds.endExclusive)
+    const actualWorkSnapshot = actualWorkForPeriod(actualWork, bounds.start, bounds.endExclusive, periodIdentity)
     const actualWorkRecord = asRecord(actualWorkSnapshot.canonicalSource)
     const actualWorkEntries = Array.isArray(actualWorkRecord?.entries) ? actualWorkRecord.entries : []
     const caoActualWorkEntries: CaoPayrollActualWorkEntry[] = actualWorkEntries.filter((entry) => asRecord(entry)?.releasedForPayroll === true).flatMap((entry) => {
@@ -2267,7 +2349,11 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     })
     const caoConsumesActualWork = caoCalculation.status === 'CALCULATED'
       && caoCalculation.actualWorkConsumed === true
-    const mappedActualWorkVariableWage = actualWorkVariableWage(actualWorkEntries, salaries)
+    const mappedActualWorkVariableWage = actualWorkVariableWage(
+      actualWorkEntries,
+      salaries,
+      periodIdentity?.periodicity !== 'FOUR_WEEKLY',
+    )
     const sourceGaps: PayrollSourceGap[] = [
       ...sourceGapsFor(
         salaries,
@@ -2280,6 +2366,9 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         activeEndExclusive,
       ),
       ...actualWorkSnapshot.sourceGaps,
+      ...(periodIdentity?.periodicity === 'FOUR_WEEKLY'
+        ? [makeGap('payrollPeriod', 'UNSUPPORTED', 'FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED')]
+        : []),
       ...(mappedActualWorkVariableWage.errorCode ? [makeGap('actualWork', 'SOURCE_GAP', mappedActualWorkVariableWage.errorCode)] : []),
       ...(mappedActualWorkVariableWage.used && caoConsumesActualWork
         ? [makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_CAO_MAPPING_CONFLICT')]
@@ -2374,6 +2463,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         [`employment_income_relationship:${incomeRelationship.selected.id}`, incomeRelationship.selected.linkUpdatedAt] as const,
         [`income_relationship:${incomeRelationship.selected.incomeRelationshipId}`, incomeRelationship.selected.incomeRelationshipUpdatedAt] as const,
       ] : []),
+      ...(periodIdentity ? [[
+        `payroll_period_identity:${periodIdentity.id}`,
+        `${periodIdentity.periodicity}:${periodIdentity.periodYear}:${periodIdentity.periodNumber}:${periodIdentity.startsOn}:${periodIdentity.endsOn}`,
+      ] as const] : []),
       ...Object.entries(fiscalProfile.sourceVersionVector),
       ...Object.entries(actualWorkSnapshot.sourceVersionVector),
       ...(payrollSetup?.configurationRow ? [[
@@ -2784,6 +2877,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       sourceEmploymentId: employment.id,
       sourceIncomeRelationshipId: incomeRelationship.selected?.incomeRelationshipId ?? null,
       periodReference: input.payrollPeriod,
+      ...(periodIdentity ? { payrollPeriodIdentity: periodIdentity } : {}),
       canonicalSource: coreCanonicalSource,
       sourceVersionVector,
       sourceGaps,
@@ -2832,6 +2926,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       sourceEmploymentId: employment.id,
       sourceIncomeRelationshipId: incomeRelationship.selected?.incomeRelationshipId ?? null,
       periodReference: input.payrollPeriod,
+      ...(periodIdentity ? { payrollPeriodIdentity: periodIdentity } : {}),
       canonicalSource,
       sourceVersionVector,
       sourceGaps,
