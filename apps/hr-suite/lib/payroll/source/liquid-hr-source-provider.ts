@@ -432,6 +432,11 @@ function actualWorkForPeriod(
   readonly sourceGaps: readonly PayrollSourceGap[]
 } {
   const typeById = new Map<string, PayrollSourceActualWorkType>(projection.types.map((type) => [type.id, type]))
+  const tvtTypeIds = new Set(projection.tvtWorkHourTypeIds ?? [])
+  const informationalTypeIds = new Set(projection.informationalWorkHourTypeIds ?? [])
+  const releaseByEntry = new Map((projection.payrollReleases ?? [])
+    .filter((release) => release.payroll_period_start === periodStart)
+    .map((release) => [release.entry_id, release]))
   const entries = [...projection.entries].sort((left, right) =>
     left.work_date.localeCompare(right.work_date) || left.id.localeCompare(right.id),
   )
@@ -464,20 +469,45 @@ function actualWorkForPeriod(
 
     versionVector[`work_hour_type:${type.id}`] = type.updated_at
     versionVector[`actual_work_entry:${entry.id}`] = entry.updated_at
-    if (type.valid_from > entry.work_date || (type.valid_until !== null && type.valid_until <= entry.work_date)) {
+    const typePeriodEnd = entry.subject_period_end > entry.subject_period_start ? dayBefore(entry.subject_period_end) : entry.subject_period_start
+    if (type.valid_from > entry.subject_period_start || (type.valid_until !== null && type.valid_until <= typePeriodEnd)) {
       gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_TYPE_NOT_EFFECTIVE_ON_WORK_DATE'))
     }
     if (entry.status === 'APPROVED' && entry.approved_at === null) {
       gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'APPROVED_ACTUAL_WORK_MISSING_APPROVAL_TIMESTAMP'))
     }
+    const revisionNumber = projection.currentRevisionNumbers?.[entry.id]
+    const release = releaseByEntry.get(entry.id)
+    const releaseIsCurrent = release !== undefined && release.entry_revision_number === revisionNumber
+    const tvtConfigured = tvtTypeIds.has(type.id)
+    const informational = type.family === 'TRANSPARENT' || informationalTypeIds.has(type.id)
+    const mappingEffective = Boolean(release?.mapping)
+      && release!.mapping!.valid_from <= entry.subject_period_start
+      && (release!.mapping!.valid_until === null || release!.mapping!.valid_until >= typePeriodEnd)
     if (entry.status === 'PENDING' && type.family !== 'TRANSPARENT') {
       gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'PAYABLE_ACTUAL_WORK_NOT_APPROVED'))
     }
-    if (entry.status === 'APPROVED' && type.family === 'OVERTIME') {
-      gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'OVERTIME_RULE_NOT_CONFIGURED'))
+    // The catalog link identifies TVT intent, but the current leave accrual
+    // service/RPC does not post OVERTIME_HOURS balances. Do not let that link
+    // silently count as a completed Payroll source classification.
+    if (entry.status === 'APPROVED' && tvtConfigured) {
+      gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_TVT_ACCRUAL_NOT_CONNECTED'))
+    }
+    if (entry.status === 'APPROVED' && !informational && !tvtConfigured && !releaseIsCurrent) {
+      gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED'))
+    }
+    if (releaseIsCurrent && release) {
+      versionVector[`actual_work_payroll_release:${entry.id}`] = `${release.content_fingerprint}:${release.released_at}`
+      if (release.release_class === 'TWK_REQUIRED') {
+        gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_TWK_ROUTE_REQUIRED'))
+      } else if (!release.mapping || release.work_hour_type_updated_at !== type.updated_at
+        || !mappingEffective) {
+        gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_PAYROLL_RELEASE_REVIEW_REQUIRED'))
+      } else {
+        versionVector[`actual_work_payroll_mapping:${release.mapping.id}`] = `${release.mapping.version_number}:${release.mapping.salary_component_version ?? release.mapping.processing_target}`
+      }
     }
     if (entry.posting_period_start !== periodStart
-      || entry.subject_period_start >= periodEndExclusive
       || entry.subject_period_end <= entry.subject_period_start) {
       gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_PERIOD_MAPPING_INVALID'))
     }
@@ -495,6 +525,25 @@ function actualWorkForPeriod(
       hours: entry.hours.toFixed(4),
       status: entry.status,
       approvedAt: entry.approved_at,
+      currentRevisionNumber: revisionNumber ?? null,
+      releasedForPayroll: releaseIsCurrent && release?.release_class === 'INITIAL' && mappingEffective
+        && release?.work_hour_type_updated_at === type.updated_at,
+      payrollReleaseClass: releaseIsCurrent ? release?.release_class ?? null : null,
+      payrollReleaseId: releaseIsCurrent ? release?.id ?? null : null,
+      payrollReleaseFingerprint: releaseIsCurrent ? release?.content_fingerprint ?? null : null,
+      payrollMapping: releaseIsCurrent && release?.mapping ? {
+        id: release.mapping.id,
+        version: release.mapping.version_number,
+        target: release.mapping.processing_target,
+        componentId: release.mapping.salary_component_id,
+        componentCode: release.mapping.salary_component_code,
+        componentVersion: release.mapping.salary_component_version,
+        componentOutput: release.mapping.salary_component_output,
+        calculationRule: release.mapping.calculation_rule,
+        factor: release.mapping.factor === null ? null : String(release.mapping.factor),
+      } : null,
+      tvtConfigured,
+      informational,
       typeValidFrom: type.valid_from,
       typeValidUntil: type.valid_until,
       approvalRequired: type.approval_required,
@@ -524,19 +573,46 @@ function actualWorkForPeriod(
   }
 }
 
-function hasApprovedRetailPremiumHoursWithoutIntervalSource(entries: readonly CaoPayrollActualWorkEntry[]): boolean {
-  return entries.some((entry) => {
-    if (entry.status !== 'APPROVED') return false
-    const activity = `${entry.typeCode ?? ''}_${entry.typeName ?? ''}`.toUpperCase()
-    const isPremiumActivity = entry.family === 'OVERTIME'
-      || /SUNDAY|ZONDAG|NIGHT|NACHT|OVERTIME|OVERWERK|OVERUREN/.test(activity)
-    if (!isPremiumActivity) return false
-    try {
-      return FixedDecimal.parse(String(entry.hours)).compare(FixedDecimal.fromInteger(BigInt(0))) > 0
-    } catch {
-      return false
-    }
+function actualWorkVariableWage(
+  entries: readonly unknown[],
+  salaries: readonly PayrollSourceSalary[],
+): { amount: string; used: boolean; errorCode: string | null } {
+  const unsupportedMapping = entries.some((entry) => {
+    const record = asRecord(entry)
+    const mapping = asRecord(record?.payrollMapping)
+    return record?.releasedForPayroll === true
+      && (mapping?.target === 'PREMIUM' || (record.family === 'OVERTIME' && mapping?.target === 'PAYMENT'))
   })
+  if (unsupportedMapping) return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP' }
+  const payable = entries.flatMap((entry) => {
+    const record = asRecord(entry)
+    const mapping = asRecord(record?.payrollMapping)
+    if (!record || record.releasedForPayroll !== true || !mapping || mapping.target !== 'PAYMENT') return []
+    return [{ record, mapping }]
+  })
+  if (payable.length === 0) return { amount: '0.00', used: false, errorCode: null }
+  if (salaries.length !== 1 || salaries[0]?.payment_type !== 'HOURLY_VARIABLE' || salaries[0].hourly_rate === null) {
+    return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_HOURLY_RATE_REQUIRED' }
+  }
+  try {
+    let amount = FixedDecimal.fromInteger(BigInt(0))
+    for (const { record, mapping } of payable) {
+      if (mapping.calculationRule !== 'HOURLY_RATE_X_HOURS'
+        || mapping.componentCode !== 'PAYFULL02_VARIABLE_REGULAR_WAGE'
+        || mapping.componentOutput !== 'amount'
+        || (typeof record.hours !== 'string' && typeof record.hours !== 'number')
+        || typeof mapping.factor !== 'string') {
+        return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP' }
+      }
+      const rowAmount = FixedDecimal.parse(String(salaries[0].hourly_rate))
+        .multiply(FixedDecimal.parse(String(record.hours)))
+        .multiply(FixedDecimal.parse(mapping.factor))
+      amount = amount.add(rowAmount)
+    }
+    return { amount: amount.round(2, 'HALF_UP').toString(2), used: true, errorCode: null }
+  } catch {
+    return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_PAYROLL_AMOUNT_INVALID' }
+  }
 }
 
 function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { start: string; endInclusive: string; endExclusive: string } {
@@ -1469,6 +1545,7 @@ function buildRegularPayrollOwned(input: {
   readonly pensionAssignments: readonly NonNullable<PayrollSourceTimeline['pensionAssignments']>[number][]
   readonly laborConditionPensionArrangements: readonly NonNullable<PayrollSourceTimeline['laborConditionPensionArrangements']>[number][]
   readonly actualWorkSnapshot: ReturnType<typeof actualWorkForPeriod>
+  readonly actualWorkVariableWage: ReturnType<typeof actualWorkVariableWage>
   readonly caoCalculation: CaoPayrollCalculation
   readonly sourceId: string
   readonly coreSourceHash: string
@@ -1497,9 +1574,11 @@ function buildRegularPayrollOwned(input: {
   const actualEntries = Array.isArray(actualWorkRecord?.entries) ? actualWorkRecord.entries : []
   const caoConsumesActualWork = input.caoCalculation.status === 'CALCULATED'
     && input.caoCalculation.actualWorkConsumed === true
-  if (actualEntries.some((entry) => asRecord(entry)?.family !== 'TRANSPARENT') && !caoConsumesActualWork) {
-    gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'PAYROLL_VARIABLE_WAGE_NOT_CONFIGURED'))
-  }
+  const actualWorkClassified = actualEntries.every((entry) => {
+    const record = asRecord(entry)
+    return record?.family === 'TRANSPARENT' || record?.tvtConfigured === true
+      || record?.informational === true || record?.releasedForPayroll === true
+  })
 
   const assignment = input.pensionAssignments.length === 1 ? input.pensionAssignments[0] : undefined
   if (!assignment) gaps.push(makeGap('pension', 'SOURCE_GAP', input.pensionAssignments.length === 0
@@ -1611,9 +1690,9 @@ function buildRegularPayrollOwned(input: {
         componentSet: configuration.componentSet,
       },
       amounts: {
-        variableRegularWage: input.caoCalculation.status === 'CALCULATED'
+        variableRegularWage: FixedDecimal.parse(input.caoCalculation.status === 'CALCULATED'
           ? input.caoCalculation.premiumAmount ?? '0.00'
-          : '0.00',
+          : '0.00').add(FixedDecimal.parse(input.actualWorkVariableWage.amount)).round(2, 'HALF_UP').toString(2),
         specialRewardWage: '0.00',
         netReimbursement: '0.00',
         netDeduction: '0.00',
@@ -1627,8 +1706,8 @@ function buildRegularPayrollOwned(input: {
         ikvUnambiguous: true,
         salaryConsistent: input.regularWage !== null,
         hoursConsistent: input.schedule !== undefined,
-        normalHoursNotDuplicated: actualEntries.length === 0 || caoConsumesActualWork,
-        additionalHoursSupported: actualEntries.length === 0 || caoConsumesActualWork,
+        normalHoursNotDuplicated: actualWorkClassified || caoConsumesActualWork,
+        additionalHoursSupported: actualWorkClassified || caoConsumesActualWork,
         sourceFresh: true,
         compositionSupported: true,
         pensionRuleReady: pensionResult.status === 'CALCULATED',
@@ -2121,8 +2200,8 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     )
     const actualWorkSnapshot = actualWorkForPeriod(actualWork, bounds.start, bounds.endExclusive)
     const actualWorkRecord = asRecord(actualWorkSnapshot.canonicalSource)
-    const caoActualWorkEntries: CaoPayrollActualWorkEntry[] = (Array.isArray(actualWorkRecord?.entries)
-      ? actualWorkRecord.entries : []).flatMap((entry) => {
+    const actualWorkEntries = Array.isArray(actualWorkRecord?.entries) ? actualWorkRecord.entries : []
+    const caoActualWorkEntries: CaoPayrollActualWorkEntry[] = actualWorkEntries.filter((entry) => asRecord(entry)?.releasedForPayroll === true).flatMap((entry) => {
         const record = asRecord(entry)
         if (!record || typeof record.family !== 'string'
           || (typeof record.hours !== 'string' && typeof record.hours !== 'number')
@@ -2164,17 +2243,9 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       } : null,
       actualWorkEntries: caoActualWorkEntries,
     })
-    const retailOvertimeHours = caoCalculation.inputs?.dailyOvertimeHours
-    const caoConsumesRetailOvertime = caoCalculation.status === 'CALCULATED'
-      && caoCalculation.family === 'RETAIL_MODE'
-      && caoCalculation.inputs?.scenarioCode === 'R2'
-      && (typeof retailOvertimeHours === 'string' || typeof retailOvertimeHours === 'number')
-      && FixedDecimal.parse(String(retailOvertimeHours)).compare(FixedDecimal.fromInteger(BigInt(0))) > 0
-    const retailIntervalEvidenceMissing = caoCalculation.family === 'RETAIL_MODE'
-      && hasApprovedRetailPremiumHoursWithoutIntervalSource(caoActualWorkEntries)
-    const actualWorkSourceGaps = actualWorkSnapshot.sourceGaps.filter((gap) =>
-      !((caoConsumesRetailOvertime || retailIntervalEvidenceMissing) && gap.reasonCode === 'OVERTIME_RULE_NOT_CONFIGURED'),
-    )
+    const caoConsumesActualWork = caoCalculation.status === 'CALCULATED'
+      && caoCalculation.actualWorkConsumed === true
+    const mappedActualWorkVariableWage = actualWorkVariableWage(actualWorkEntries, salaries)
     const sourceGaps: PayrollSourceGap[] = [
       ...sourceGapsFor(
         salaries,
@@ -2186,8 +2257,11 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         activeStart,
         activeEndExclusive,
       ),
-      ...actualWorkSourceGaps,
-      ...(retailIntervalEvidenceMissing ? [makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE')] : []),
+      ...actualWorkSnapshot.sourceGaps,
+      ...(mappedActualWorkVariableWage.errorCode ? [makeGap('actualWork', 'SOURCE_GAP', mappedActualWorkVariableWage.errorCode)] : []),
+      ...(mappedActualWorkVariableWage.used && caoConsumesActualWork
+        ? [makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_CAO_MAPPING_CONFLICT')]
+        : []),
     ]
     if (caoCalculation.status === 'BLOCKED' && caoCalculation.reasonCode) {
       sourceGaps.push(makeGap('cao', caoCalculation.blockingStatus ?? 'SOURCE_GAP', caoCalculation.reasonCode))
@@ -2717,6 +2791,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           pensionAssignments,
           laborConditionPensionArrangements,
           actualWorkSnapshot,
+          actualWorkVariableWage: mappedActualWorkVariableWage,
           caoCalculation,
           sourceId: calculationSourceId,
           coreSourceHash,

@@ -29,7 +29,7 @@ const baseInput: CaoPayrollIntegrationInput = {
 }
 
 describe('normal-source CAO payroll integration', () => {
-  it('calculates the existing Kinderopvang K2 scope from Core-shaped inputs', () => {
+  it('does not infer a CAO supplement from work-hour codes or display names', () => {
     const result = calculateCaoPayroll(baseInput)
 
     expect(result.status).toBe('CALCULATED')
@@ -37,8 +37,9 @@ describe('normal-source CAO payroll integration', () => {
     expect(result.packageId).toBe('CAO-KINDEROPVANG-2025-2026')
     expect(result.fullTimeMonthlyAmount).toBe('2819')
     expect(result.baseAmount).toBe('1879.333333333333333333')
-    expect(result.grossAmount).toBe('1911.735632183908045976')
-    expect(result.actualWorkConsumed).toBe(true)
+    expect(result.grossAmount).toBe(result.baseAmount)
+    expect(result.premiumAmount).toBe('0.000000000000000000')
+    expect(result.actualWorkConsumed).toBe(false)
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/)
     expect(result.inputHash).toMatch(/^[0-9a-f]{64}$/)
     expect(result.resultHash).toMatch(/^[0-9a-f]{64}$/)
@@ -85,8 +86,9 @@ describe('normal-source CAO payroll integration', () => {
     expect(r1.grossAmount).toBe('4767.20')
     expect(r2.status).toBe('CALCULATED')
     expect(r2.baseAmount).toBe('1605.79')
-    expect(r2.premiumAmount).toBe('15.44')
-    expect(r2.grossAmount).toBe('1621.23')
+    expect(r2.premiumAmount).toBe('7.72')
+    expect(r2.grossAmount).toBe('1613.51')
+    expect(r2.inputs).toMatchObject({ weekdayNightHours: '0', sundayHours: '0', dailyOvertimeHours: '2' })
   })
 
   it('fails closed for an invalid Retail classification or uncovered payroll period', () => {

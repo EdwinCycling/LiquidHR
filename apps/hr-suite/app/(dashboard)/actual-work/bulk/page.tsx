@@ -68,6 +68,7 @@ export default async function ActualWorkBulkPage({ searchParams }: Props) {
       noteHelp: t('actualWorkBulkNoteHelp'),
       correctionReason: t('actualWorkCorrectionReason'),
       correctionReasonHelp: t('actualWorkBulkCorrectionReasonHelp'),
+      correctionReasonRequired: t('actualWorkBulkCorrectionReasonRequired'),
       limits: t('actualWorkBulkLimits'),
       limitDay: t('actualWorkBulkLimitDay'),
       limitWeek: t('actualWorkBulkLimitWeek'),

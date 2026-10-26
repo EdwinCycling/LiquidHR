@@ -57,7 +57,7 @@ describe('actual work input contracts', () => {
     expect(result.success).toBe(true)
   })
 
-  it('keeps an open-period edit eligible for the canonical EDIT operation', () => {
+  it('requires an audit reason for open-period corrections in bulk', () => {
     const result = actualWorkBulkSaveSchema.safeParse({
       month: '2026-10',
       workHourTypeId: ids.typeId,
@@ -72,7 +72,39 @@ describe('actual work input contracts', () => {
         correctionReason: null,
       }],
     })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.issues.some((issue) => issue.message === 'ACTUAL_WORK_CORRECTION_REASON_REQUIRED')).toBe(true)
+  })
+
+  it('accepts a bulk correction with its reason and new bulk entries without one', () => {
+    const correction = actualWorkBulkSaveSchema.safeParse({
+      month: '2026-10',
+      workHourTypeId: ids.typeId,
+      entryGranularity: 'DAY',
+      changes: [{
+        employeeId: ids.employeeId,
+        employmentId: ids.employmentId,
+        entryId: ids.typeId,
+        subjectPeriodStart: '2026-10-05',
+        hours: '8.1250',
+        correctionReason: 'Urenstaat gecontroleerd',
+      }],
+    })
+    const create = actualWorkBulkSaveSchema.safeParse({
+      month: '2026-10',
+      workHourTypeId: ids.typeId,
+      entryGranularity: 'DAY',
+      changes: [{
+        employeeId: ids.employeeId,
+        employmentId: ids.employmentId,
+        entryId: null,
+        subjectPeriodStart: '2026-10-05',
+        hours: '8.1250',
+        correctionReason: null,
+      }],
+    })
+    expect(correction.success).toBe(true)
+    expect(create.success).toBe(true)
   })
 
   it('bounds a bulk request to a bounded set of changed cells', () => {

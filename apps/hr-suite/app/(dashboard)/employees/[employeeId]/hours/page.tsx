@@ -45,6 +45,8 @@ export default async function EmployeeActualWorkPage({ params, searchParams }: P
     type: t('actualWorkType'),
     family: t('actualWorkFamily'),
     date: t('actualWorkDate'),
+    periodEnd: t('actualWorkPeriodEndExclusive'),
+    payrollPeriod: t('actualWorkPayrollPeriod'),
     hours: t('actualWorkHours'),
     note: t('actualWorkNote'),
     reason: t('actualWorkReason'),

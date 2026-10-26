@@ -194,14 +194,13 @@ function sumActualWork(
   let consumed = false
   for (const entry of entries) {
     if (entry.family === 'TRANSPARENT') continue
-    const code = normalized(entry.typeCode)
-    const name = normalized(entry.typeName)
-    const searchable = `${code}_${name}`
-    const sunday = /SUNDAY|ZONDAG/.test(searchable)
-    const night = /NIGHT|NACHT/.test(searchable)
-    const overtime = entry.family === 'OVERTIME' || /OVERTIME|OVERWERK|OVERUREN/.test(searchable)
-    const matched = family === 'KINDEROPVANG' ? sunday : sunday || night || overtime
-    if (!matched) return { values: {}, consumed: false, reasonCode: 'CAO_ACTUAL_WORK_TYPE_UNSUPPORTED' }
+    // Work-hour family is the only semantic signal Payroll may use. Codes and
+    // display names are labels; they must never infer Sunday or night work.
+    const sunday = false
+    const night = false
+    const overtime = entry.family === 'OVERTIME'
+    const matched = family === 'RETAIL_MODE' && overtime
+    if (!matched) continue
     const parsed = parseNonNegative(entry.hours, 'CAO_ACTUAL_WORK_HOURS_INVALID')
     if ('reasonCode' in parsed) return { values: {}, consumed: false, reasonCode: parsed.reasonCode }
     if (entry.status !== 'APPROVED') continue

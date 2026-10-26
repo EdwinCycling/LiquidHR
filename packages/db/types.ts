@@ -954,6 +954,132 @@ export type Database = {
           },
         ]
       }
+      actual_work_payroll_mappings: {
+        Row: {
+          administration_id: string
+          calculation_rule: string
+          created_at: string
+          created_by: string
+          factor: number | null
+          hr_group_id: string
+          id: string
+          processing_target: string
+          salary_component_code: string | null
+          salary_component_id: string | null
+          salary_component_output: string | null
+          salary_component_version: string | null
+          supersedes_mapping_id: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          valid_from: string
+          valid_until: string | null
+          version_number: number
+          work_hour_type_id: string
+        }
+        Insert: {
+          administration_id: string
+          calculation_rule: string
+          created_at?: string
+          created_by: string
+          factor?: number | null
+          hr_group_id: string
+          id?: string
+          processing_target: string
+          salary_component_code?: string | null
+          salary_component_id?: string | null
+          salary_component_output?: string | null
+          salary_component_version?: string | null
+          supersedes_mapping_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from: string
+          valid_until?: string | null
+          version_number?: number
+          work_hour_type_id: string
+        }
+        Update: {
+          administration_id?: string
+          calculation_rule?: string
+          created_at?: string
+          created_by?: string
+          factor?: number | null
+          hr_group_id?: string
+          id?: string
+          processing_target?: string
+          salary_component_code?: string | null
+          salary_component_id?: string | null
+          salary_component_output?: string | null
+          salary_component_version?: string | null
+          supersedes_mapping_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string
+          valid_until?: string | null
+          version_number?: number
+          work_hour_type_id?: string
+        }
+        Relationships: []
+      }
+      actual_work_payroll_releases: {
+        Row: {
+          administration_id: string
+          content_fingerprint: string
+          employee_id: string
+          employment_id: string
+          entry_id: string
+          entry_revision_number: number
+          hr_group_id: string
+          id: string
+          mapping_id: string
+          payroll_period_start: string
+          release_class: string
+          released_at: string
+          released_by: string
+          supersedes_release_id: string | null
+          tenant_id: string
+          work_hour_type_updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          content_fingerprint: string
+          employee_id: string
+          employment_id: string
+          entry_id: string
+          entry_revision_number: number
+          hr_group_id: string
+          id?: string
+          mapping_id: string
+          payroll_period_start: string
+          release_class?: string
+          released_at?: string
+          released_by: string
+          supersedes_release_id?: string | null
+          tenant_id: string
+          work_hour_type_updated_at: string
+        }
+        Update: {
+          administration_id?: string
+          content_fingerprint?: string
+          employee_id?: string
+          employment_id?: string
+          entry_id?: string
+          entry_revision_number?: number
+          hr_group_id?: string
+          id?: string
+          mapping_id?: string
+          payroll_period_start?: string
+          release_class?: string
+          released_at?: string
+          released_by?: string
+          supersedes_release_id?: string | null
+          tenant_id?: string
+          work_hour_type_updated_at?: string
+        }
+        Relationships: []
+      }
       actual_work_type_limits: {
         Row: {
           created_at: string
@@ -23965,6 +24091,55 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: Json
+      }
+      save_actual_work_import_entry: {
+        Args: {
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_entry_granularity: Database["public"]["Enums"]["actual_work_entry_granularity"]
+          requested_entry_id: string | null
+          requested_hours: number
+          requested_hr_group_id: string
+          requested_note: string
+          requested_operation: Database["public"]["Enums"]["actual_work_revision_operation"]
+          requested_posting_period_start: string
+          requested_reason: string
+          requested_source_key: string
+          requested_status: Database["public"]["Enums"]["leave_work_hour_entry_status"]
+          requested_subject_period_end: string
+          requested_subject_period_start: string
+          requested_tenant_id: string
+          requested_work_hour_type_id: string
+        }
+        Returns: Database["public"]["Tables"]["employment_work_hour_entries"]["Row"]
+      }
+      release_actual_work_entries_for_payroll: {
+        Args: {
+          requested_administration_id: string
+          requested_entries: Json
+          requested_hr_group_id: string
+          requested_payroll_period_start: string
+          requested_tenant_id: string
+        }
+        Returns: Database["public"]["Tables"]["actual_work_payroll_releases"]["Row"][]
+      }
+      save_actual_work_payroll_mapping: {
+        Args: {
+          requested_administration_id: string
+          requested_calculation_rule: string
+          requested_factor: number | null
+          requested_hr_group_id: string
+          requested_processing_target: string
+          requested_salary_component_code: string | null
+          requested_salary_component_id: string | null
+          requested_salary_component_output: string | null
+          requested_salary_component_version: string | null
+          requested_tenant_id: string
+          requested_valid_from: string
+          requested_work_hour_type_id: string
+        }
+        Returns: Database["public"]["Tables"]["actual_work_payroll_mappings"]["Row"]
       }
       save_actual_work_entry: {
         Args: {

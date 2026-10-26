@@ -216,6 +216,44 @@ function actualWorkType(overrides: Partial<ActualWorkPayrollProjection['types'][
   }
 }
 
+function withPayrollReleases(
+  projection: ActualWorkPayrollProjection,
+  mapping: { target?: 'PAYMENT' | 'PREMIUM'; factor?: number } = {},
+): ActualWorkPayrollProjection {
+  const typeById = new Map(projection.types.map((type) => [type.id, type]))
+  return {
+    ...projection,
+    currentRevisionNumbers: Object.fromEntries(projection.entries.map((entry) => [entry.id, 1])),
+    payrollReleases: projection.entries.map((entry) => {
+      const type = typeById.get(entry.work_hour_type_id)
+      if (!type) throw new Error('SYNTHETIC_ACTUAL_WORK_TYPE_MISSING')
+      return {
+        id: `release-${entry.id}`,
+        entry_id: entry.id,
+        entry_revision_number: 1,
+        payroll_period_start: entry.posting_period_start,
+        release_class: 'INITIAL',
+        content_fingerprint: 'a'.repeat(64),
+        work_hour_type_updated_at: type.updated_at,
+        released_at: '2026-09-15T10:00:00.000Z',
+        mapping: {
+          id: `mapping-${type.id}`,
+          processing_target: mapping.target ?? 'PAYMENT',
+          salary_component_id: 'system:payfull02:payfull02_variable_regular_wage',
+          salary_component_code: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+          salary_component_version: '2026.1-payfull02',
+          salary_component_output: 'amount',
+          calculation_rule: 'HOURLY_RATE_X_HOURS',
+          factor: mapping.factor ?? 1,
+          version_number: 1,
+          valid_from: '2026-01-01',
+          valid_until: null,
+        },
+      }
+    }),
+  }
+}
+
 function dependencies(overrides: Partial<PayrollSourceProviderDependencies> = {}): PayrollSourceProviderDependencies {
   return {
     authorize: vi.fn(async () => ({ tenantId, hrGroupId, administrationId })),
@@ -389,7 +427,7 @@ describe('LiquidHR Payroll source provider', () => {
     expect(loadActualWorkBatch).not.toHaveBeenCalled()
   })
 
-  it('keeps missing Retail interval evidence as SOURCE_GAP on the batched path', async () => {
+  it('blocks unreleased Retail overtime before it can enter the Payroll snapshot', async () => {
     const retailBusinessScope: NonNullable<PayrollSourceTimeline['retailBusinessScope']> = {
       tenantId,
       administrationId,
@@ -435,7 +473,7 @@ describe('LiquidHR Payroll source provider', () => {
     expect(result?.status).toBe('fulfilled')
     if (result?.status !== 'fulfilled') throw new Error('BATCH_SOURCE_SNAPSHOT_UNAVAILABLE')
     expect(result.value.sourceGaps).toContainEqual({
-      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE',
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     })
   })
 
@@ -623,13 +661,15 @@ describe('LiquidHR Payroll source provider', () => {
     expect(events).toEqual(['timeline-started', 'timeline-completed', 'actual-work-started'])
   })
 
-  it('projects a supported Kinderopvang source into the regular Payroll-owned wage component', async () => {
+  it('pays an explicitly mapped regular work type without inferring its CAO class from labels', async () => {
     const setup = completePayrollSetup()
     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
       loadTimeline: vi.fn(async () => ({
         employment: employment(),
         salaries: [salary({
           salary_basis: 'CAO_SCALE',
+          payment_type: 'HOURLY_VARIABLE',
+          hourly_rate: 18,
           fulltime_amount: 2819,
           parttime_amount: 1879.33,
           cao_scale_name: 'Schaal 6',
@@ -682,10 +722,10 @@ describe('LiquidHR Payroll source provider', () => {
           },
         }],
       })),
-      loadActualWork: vi.fn(async () => actualWork({
+      loadActualWork: vi.fn(async () => withPayrollReleases(actualWork({
         entries: [actualWorkEntry({ hours: 4 })],
         types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
-      })),
+      }), { target: 'PAYMENT', factor: 0.45 })),
       loadPayrollSetup: vi.fn(async () => setup),
     })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
 
@@ -697,9 +737,9 @@ describe('LiquidHR Payroll source provider', () => {
     const amounts = payrollOwned.amounts as Record<string, unknown>
     const controls = payrollOwned.controls as Record<string, unknown>
 
-    expect(cao).toMatchObject({ status: 'CALCULATED', family: 'KINDEROPVANG', grossAmount: '1911.735632183908045976' })
+    expect(cao).toMatchObject({ status: 'CALCULATED', family: 'KINDEROPVANG', grossAmount: '1879.333333333333333333', premiumAmount: '0.000000000000000000' })
     expect(regularWage).toMatchObject({ grossAmount: '1879.333333333333333333', fulltimeMonthlyAmount: '2819', caoApplied: true })
-    expect(amounts.variableRegularWage).toBe('32.402298850574712643')
+    expect(amounts.variableRegularWage).toBe('32.40')
     expect(controls.additionalHoursSupported).toBe(true)
 
     const calculationInputs = buildCalculationInputs(snapshot as PayrollSourceSnapshot, createPayfull02RulePackage('CUSTOMER_STANDARD', {
@@ -716,11 +756,29 @@ describe('LiquidHR Payroll source provider', () => {
     const calculation = calculatePayroll(calculationInputs, PAYFULL02_RULE_REGISTRY)
     const resultAmount = (key: string) => calculation.resultRows.find((row) => row.key === key)?.value
     expect(calculation.status).toBe('CALCULATED')
-    expect(resultAmount('gross_salary')).toBe('1911.74')
+    expect(resultAmount('gross_salary')).toBe('1879.33')
     expect(resultAmount('variable_regular_wage')).toBe('32.40')
     expect(resultAmount('net_salary')).toBeTypeOf('string')
     expect(resultAmount('total_employer_cost')).toBeTypeOf('string')
     expect(calculation.controls.every((control) => control.status === 'PASS')).toBe(true)
+  })
+
+  it.each([
+    { family: 'WORK' as const, target: 'PREMIUM' as const },
+    { family: 'OVERTIME' as const, target: 'PAYMENT' as const },
+  ])('blocks $target mapping for $family until a dedicated Payroll component exists', async ({ family, target }) => {
+    const setup = completePayrollSetup()
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadActualWork: vi.fn(async () => withPayrollReleases(actualWork({
+        entries: [actualWorkEntry({ hours: 4 })],
+        types: [actualWorkType({ family })],
+      }), { target })),
+      loadPayrollSetup: vi.fn(async () => setup),
+    })).getPayrollSourceSnapshot(request)
+
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP',
+    })
   })
 
   it('uses the PFZW participation-date salary basis while calculating November CAO_SCALE pay', async () => {
@@ -1597,7 +1655,7 @@ describe('LiquidHR Payroll source provider', () => {
   })
 
   it('pins approved WORK and ADDITIONAL entries and omits notes and approver identifiers', async () => {
-    const approvedWork = actualWork({
+    const approvedWork = withPayrollReleases(actualWork({
       entries: [
         actualWorkEntry(),
         actualWorkEntry({
@@ -1613,8 +1671,13 @@ describe('LiquidHR Payroll source provider', () => {
         actualWorkType(),
         actualWorkType({ id: '84000000-0000-4000-8000-000000000009', family: 'ADDITIONAL' }),
       ],
-    })
+    }))
     const provider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({ payment_type: 'HOURLY_VARIABLE', hourly_rate: 20.5 })],
+        schedules: [schedule()],
+      })),
       loadActualWork: vi.fn(async () => approvedWork),
     }))
 
@@ -1625,8 +1688,8 @@ describe('LiquidHR Payroll source provider', () => {
       actualWork: {
         period: { status: 'CLOSED', startsOn: '2026-09-01', endsOn: '2026-10-01' },
         entries: [
-          { family: 'WORK', hours: '8.0000', status: 'APPROVED' },
-          { family: 'ADDITIONAL', hours: '2.0000', status: 'APPROVED' },
+          { family: 'WORK', hours: '8.0000', status: 'APPROVED', releasedForPayroll: true },
+          { family: 'ADDITIONAL', hours: '2.0000', status: 'APPROVED', releasedForPayroll: true },
         ],
       },
     })
@@ -1662,8 +1725,29 @@ describe('LiquidHR Payroll source provider', () => {
       field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'PAYABLE_ACTUAL_WORK_NOT_APPROVED',
     })
     expect(overtimeSnapshot.sourceGaps).toContainEqual({
-      field: 'actualWork', status: 'UNSUPPORTED', reasonCode: 'OVERTIME_RULE_NOT_CONFIGURED',
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     })
+  })
+
+  it('keeps configured TVT hours out of payroll and reports the missing leave-ledger accrual connection', async () => {
+    const provider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadActualWork: vi.fn(async () => actualWork({
+        entries: [actualWorkEntry({ hours: 3 })],
+        types: [actualWorkType({ family: 'OVERTIME' })],
+        tvtWorkHourTypeIds: [actualWorkTypeId],
+      })),
+    }))
+
+    const snapshot = await provider.getPayrollSourceSnapshot(request)
+    const canonical = snapshot.canonicalSource as Record<string, unknown>
+    const actualWorkRecord = canonical.actualWork as Record<string, unknown>
+    const actualEntries = actualWorkRecord.entries as Array<Record<string, unknown>>
+
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_TVT_ACCRUAL_NOT_CONNECTED',
+    })
+    expect(actualEntries).toHaveLength(1)
+    expect(actualEntries[0]?.releasedForPayroll).toBe(false)
   })
 
   it('derives its authorization scope from the authenticated context and rejects forged scope before reads', async () => {
