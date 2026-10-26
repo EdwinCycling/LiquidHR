@@ -1,5 +1,30 @@
 # PAY-W04-HR-HOURS-TO-PAYROLL-01 — lokaal acceptatierapport
 
+## PAY-W04-FINAL-ACCEPTANCE-AND-PR51 — runtime- en pushgates 26-10-2026
+
+**Lokale kandidaat:** `4e53844fe0a4244c75932c86439820ca5da1250c` op `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026`; `origin/main` blijft `11ba924b4a726431ae7928cfd8d2201d738893b4`.
+
+### Omgevingsgates
+
+- De bestaande launcher en persona-preflight zijn uitgevoerd met de canonieke `%LOCALAPPDATA%`-locatie `C:\Users\Edwin\AppData\Local`, omdat deze PowerShell-sandbox `LOCALAPPDATA` naar een geïsoleerd sandboxpad omleidt. De procesvariabele is alleen voor de preflight gezet; geen configuratiebestand is gewijzigd of gekopieerd.
+- `start-test-worktree.ps1 -Mode Development -PayrollAcceptance -PayrollPersonaAcceptance -PreflightOnly` **PASS**: centrale runtimevariabelen en persona-credentialvelden zijn geldig; de launcher startte geen server en toonde geen waarden.
+- `check-test-personas.ps1 -SkipBrowser`: statische catalogus, allowlist, configuratie en persona-velden **PASS**; Lisa, Jaap en Frits blijven **BLOCKED** omdat browseracceptatie expliciet is overgeslagen.
+- Er was geen listener op lokale app-/Postgres-/Supabase-poorten 3000, 3010, 3011, 5432, 54321 of 54322. `supabase`- en `psql`-CLI's ontbreken. De bestaande persona/catalogusconfiguratie wijst naar Core TEST en Payroll Lab TEST; er is geen geïsoleerde lokale database aangetoond. Daarom zijn migratie-toepassing, DB/RLS-readback, HR Admin/Employee-browserwrites, TVT-ledgerreadback en negatieve Manager/tenant-sessieproeven **niet uitgevoerd**. Geen gedeelde databasewrite gedaan.
+- Dit vervangt de eerdere preflightmelding dat persona-configuratie ontbrak: die melding kwam door de omgeleide sandbox-`LOCALAPPDATA`; de bestaande canonieke runtime- en persona-configuratie zelf is aanwezig en valide.
+
+### Effectieve Vercel-pushgate
+
+- De geautoriseerde Vercel-projectreadback en Vercel CLI JSON-inspectie bevestigen project `liquidhr` en rootdirectory `apps/hr-suite`, maar bevatten geen Git-repositorybinding, productiebranch, Preview-deploymenttoggle of build-ignore-instelling. `vercel.json` is niet als bewijs voor deze instellingen gebruikt.
+- De bestaande Vercel-dashboardtab kon niet worden gelezen: de CDP-binding gaf driemaal `Emulation.setFocusEmulationEnabled`-timeout, ook na een sessieherstel. Er is niet genavigeerd of iets gewijzigd.
+- De effectieve instellingen laten dus niet toe een automatische Preview bij push uit te sluiten. Er is niet gepusht en er zijn geen Vercel-instellingen gewijzigd.
+- GitHub-readback: PR #51 is **open / Draft / mergeable** op remote HEAD `0f440757905cbc7c7d454bec789a4b27dd6125a1`. De PR-body en diff beschrijven de oudere kandidaat; deze bevatten lokale HEAD `4e53844fe0a4244c75932c86439820ca5da1250c` niet.
+
+### Definitief besluit
+
+- **PR #51 integratie: HOLD.** De lokale kandidaat is niet remote beschikbaar; er ontbreekt geïsoleerde lokale DB/RLS- en browseracceptatie, en de Vercel Git-/Preview-pushtrigger blijft onzichtbaar. Verantwoordelijke acties: lokale TEST-infrastructuurbeheerder levert een geïsoleerde lokale Supabase/Postgres-runtime voor de bestaande persona-workflow; projectbeheerder levert de effectieve Vercel Git/Preview/build-ignore-instellingen of geeft expliciet toestemming voor de mogelijke Preview die een branchpush start.
+- **TEST-release: HOLD.** Geen migratie, deployment, Payroll-run, FINALIZED-run-/salarisstrookwijziging of gedeelde databasewrite uitgevoerd.
+- De eerder uitgevoerde groene W04-/Payroll-/NL-2026-testset en rootbuild zijn hergebruikt; deze ronde heeft geen productcode gewijzigd en heeft de 3.810-testsuite niet herhaald.
+
 ## PAY-W04-INTEGRATION-READY-01 — eindverificatie 26-10-2026
 
 **Branch:** `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026`
