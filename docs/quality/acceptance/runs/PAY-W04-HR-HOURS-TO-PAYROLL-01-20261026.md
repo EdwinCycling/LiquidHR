@@ -56,7 +56,7 @@
 
 - **Integratie: HOLD.** Lokale codekwaliteit slaagt, maar W04-Done is niet bereikt: vierwekenvrijgaven kunnen nog niet in Payroll-runinput worden geconsumeerd; componentmappings voor betaalde meer-/overuren en toeslagen ontbreken; migratieapply/readback, RLS en browseracceptatie ontbreken.
 - **TEST-release: HOLD.** Geen migratie, deployment, Payroll-run, salarisbetaling of aangifte uitgevoerd.
-- **Featurecommit en Draft PR:** worden na de geslaagde lokale quality gates op deze bestaande branch vastgelegd; er wordt geen nieuwe branch gemaakt.
+- **Featurecommit:** `2511e30ef3c1e7a3f853ec5926fa8b2c312b273a`, parent/startpunt `8efaf0f68184c08b26e1af5ad0aeff19b57a7793`. **Draft PR #51:** [W04 closeout](https://github.com/EdwinCycling/LiquidHR/pull/51), open als draft op deze bestaande branch; er is geen nieuwe branch gemaakt.
 - De lokale build heeft de gegenereerde Focus-widget tijdelijk gewijzigd. Het artefact is naar de ongewijzigde HEAD-inhoud teruggezet (SHA-256 `A8134B54351065DB6EFF5CBED717511A979AB85118810DA2941195DF8BAEEAEA`); `next-env.d.ts` bleef gelijk (SHA-256 `1B59D4C6B83807DB275D43F3CF2CC8E9323F465FAB764EEA091CC5BECD5BAD37`). Bestaande `apps/hr-suite/.tool-home/` is behouden en niet opgenomen.
 
 **Conclusie:** TVT-ledgerposting, expliciete expiry, HR Admin-flow en periode-ID-vrijgave zijn lokaal geïmplementeerd en door service-/contracttests afgedekt. Payroll-finalisatie voor `FOUR_WEEKLY`, brede componentverwerking en DB-/browser-runtimeacceptatie blijven concrete vervolgblokkades. Geen main-push, merge, gedeelde databasewrite, deployment, historische wijziging of productieve Payroll-run.
