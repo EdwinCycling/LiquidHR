@@ -20,6 +20,17 @@ it('geeft tenant, HR-groep, administratie en casefilter door aan de beveiligde R
   expect(await listWvpCases(id)).toEqual([])
   expect(mocks.rpc).toHaveBeenCalledWith('wvp_list', { requested_tenant_id: id, requested_hr_group_id: id, requested_administration_id: id, requested_case_id: id })
 })
+it('behandelt een ontbrekende actor-medewerkermapping als geen eigen casus', async () => {
+  const legacyCaseId = 'd2aa7eb2-f236-b403-b0bb-16ead3e3f1b9'
+  mocks.rpc.mockResolvedValue({ data: [{
+    id: legacyCaseId, employeeId: '8483abc9-f275-c80b-5a23-fedc54ce9f0a', employmentId: 'd2aa7eb2-f236-b403-b0bb-16ead3e3f1b9', administrationId: '8483abc9-f275-c80b-5a23-fedc54ce9f0a', name: 'Synthetische medewerker', status: 'CLOSED',
+    firstAbsenceOn: '2026-01-01', clockStartOn: '2026-01-01', pendingConfirmation: false,
+    processInstanceId: null, closedAt: null, canManage: true, isSelf: null, currentMilestone: null,
+    tasks: [], events: [], capacity: [], spells: [],
+  }], error: null })
+  await expect(listWvpCases(legacyCaseId)).resolves.toMatchObject([{ id: legacyCaseId, isSelf: false, canConfirm: false }])
+  expect(mocks.rpc).toHaveBeenCalledWith('wvp_list', expect.objectContaining({ requested_case_id: legacyCaseId }))
+})
 it('weigert verborgen of onbekende cases vóór mutatie of procesdefinitie', async () => {
   mocks.rpc.mockResolvedValue({ data: [], error: null })
   await expect(executeWvpCommand({ action: 'START', caseId: id })).rejects.toMatchObject({ code: 'WVP_FORBIDDEN', status: 403 })

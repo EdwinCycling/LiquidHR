@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it, vi } from 'vitest'
-import { WvpDossier, wvpLabelKeys } from './wvp-dossier'
+import { WvpDossier } from './wvp-dossier'
+import { wvpLabelKeys } from './wvp-labels'
 import type { WvpCase } from '@/lib/absence/wvp/service'
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 const id='11111111-1111-4111-8111-111111111111'

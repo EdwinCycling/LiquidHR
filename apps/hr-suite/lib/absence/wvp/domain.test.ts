@@ -21,5 +21,8 @@ describe('WVP wettelijke kalender en privacycontract', () => {
   it.each(['diagnosis', 'medicalCause', 'treatment', 'note', 'completionNote'])('weigert extra gezondheids-/vrije tekstveld %s', (field) => {
     expect(wvpCommandSchema.safeParse({ action: 'START', caseId: '11111111-1111-4111-8111-111111111111', [field]: 'niet opslaan' }).success).toBe(false)
   })
+  it('accepteert geldige PostgreSQL UUID-opslagwaarden zonder RFC-versiebit', () => {
+    expect(wvpCommandSchema.safeParse({ action: 'START', caseId: 'd2aa7eb2-f236-b403-b0bb-16ead3e3f1b9' }).success).toBe(true)
+  })
   it('weigert ongeldige kalenderdatums', () => { expect(() => addCalendarDays('2026-02-30', 1)).toThrow() })
 })

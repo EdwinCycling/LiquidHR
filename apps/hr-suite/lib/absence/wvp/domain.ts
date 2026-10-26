@@ -2,12 +2,14 @@ import { z } from 'zod'
 
 export const WVP_VERSION = 'WVP01_V1'
 export const agreementCodes = ['UNCHANGED', 'ADAPTED_DUTIES', 'ADAPTED_HOURS', 'GRADUAL_BUILDUP', 'OTHER_SUITABLE_WORK'] as const
+// PostgreSQL accepts every 128-bit UUID value; legacy Core rows may not carry RFC version/variant bits.
+export const postgresUuidSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
 export const wvpCommandSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('START'), caseId: z.string().uuid() }).strict(),
-  z.object({ action: z.literal('MILESTONE'), caseId: z.string().uuid(), taskId: z.string().uuid(), occurredOn: z.iso.date(), confirmed: z.literal(true), idempotencyKey: z.string().uuid() }).strict(),
-  z.object({ action: z.literal('AGREEMENT'), caseId: z.string().uuid(), agreement: z.enum(agreementCodes), occurredOn: z.iso.date(), reviewOn: z.iso.date(), idempotencyKey: z.string().uuid() }).strict(),
-  z.object({ action: z.literal('ACKNOWLEDGE'), caseId: z.string().uuid(), agreementId: z.string().uuid(), idempotencyKey: z.string().uuid() }).strict(),
-  z.object({ action: z.literal('CLOSE'), caseId: z.string().uuid(), idempotencyKey: z.string().uuid() }).strict(),
+  z.object({ action: z.literal('START'), caseId: postgresUuidSchema }).strict(),
+  z.object({ action: z.literal('MILESTONE'), caseId: postgresUuidSchema, taskId: postgresUuidSchema, occurredOn: z.iso.date(), confirmed: z.literal(true), idempotencyKey: z.string().uuid() }).strict(),
+  z.object({ action: z.literal('AGREEMENT'), caseId: postgresUuidSchema, agreement: z.enum(agreementCodes), occurredOn: z.iso.date(), reviewOn: z.iso.date(), idempotencyKey: z.string().uuid() }).strict(),
+  z.object({ action: z.literal('ACKNOWLEDGE'), caseId: postgresUuidSchema, agreementId: postgresUuidSchema, idempotencyKey: z.string().uuid() }).strict(),
+  z.object({ action: z.literal('CLOSE'), caseId: postgresUuidSchema, idempotencyKey: z.string().uuid() }).strict(),
 ])
 export type WvpCommand = z.infer<typeof wvpCommandSchema>
 

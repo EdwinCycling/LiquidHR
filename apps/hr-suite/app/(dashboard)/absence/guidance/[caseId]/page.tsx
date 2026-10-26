@@ -1,16 +1,17 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { z } from 'zod'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
-import { WvpDossier, wvpLabelKeys } from '@/components/absence/wvp-dossier'
+import { WvpDossier } from '@/components/absence/wvp-dossier'
+import { wvpLabelKeys } from '@/components/absence/wvp-labels'
 import { AuthenticationError, AuthorizationError } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { listWvpCases, WvpError } from '@/lib/absence/wvp/service'
+import { postgresUuidSchema } from '@/lib/absence/wvp/domain'
 
 export default async function AbsenceGuidanceDetail({ params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params
-  if (!z.string().uuid().safeParse(caseId).success) notFound()
+  if (!postgresUuidSchema.safeParse(caseId).success) notFound()
   const [locale, t] = await Promise.all([getLocale(), getTranslator('employees')])
   let dossiers: Awaited<ReturnType<typeof listWvpCases>> = []
   let unavailable = false
