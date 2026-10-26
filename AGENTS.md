@@ -26,6 +26,16 @@ Motto: **It takes a genius to keep it simple.**
 - Tokenbudget is een optimalisatiedoel, nooit een reden om de juistheid van een loonberekening, toestemming, tenantisolatie, privacy of data-integriteit te schenden. Zie `docs/AA/AA-OP.md` §7.
 - Raadpleeg [`AA-OP.md`](docs/AA/AA-OP.md), [`AA-TEST.md`](docs/AA/AA-TEST.md) en [`AA-REL.md`](docs/AA/AA-REL.md) voor de toepasselijke workflow, test- en releaseregels.
 
+## AA-LEAN-03 — minimale handmatige goedkeuringen (2026-10-13)
+
+**Bindend voor alle huidige en toekomstige LiquidHR Codex-opdrachten.** Een gegeven taak is het uitvoeringsmandaat voor normale, in-scope ontwikkelstappen; dezelfde toestemming wordt niet per commando, script, Git-stage, commit, test, tijdelijke cache of browseractie opnieuw aan de gebruiker gevraagd. Voer veilige handelingen zelfstandig uit en bundel eventuele werkelijk noodzakelijke keuzes in maximaal één concrete vraag.
+
+**Vooraf toegestaan in bestaande synthetische TEST:** de normale lokale Test Auth-login, logout, sessievernieuwing, en ingebouwde rolwissel tussen bestaande HR Admin-, Manager- en Employee-testidentiteiten, inclusief de Supabase Auth-handoff die de bestaande beveiligde testharness zelf nodig heeft. Geen nieuwe accounts, magic-link-captures, role grants, credentialwijzigingen of niet-goedgekeurde businessdatawrites; gebruik geen menselijke Production-identiteit om een test te laten slagen.
+
+**Technische goedkeuringen blijven apart van taakmandaat.** Codex-clients kunnen sandbox- of netwerkprompts tonen die tekstinstructies niet opheffen. Gebruik waar beschikbaar een gepaste lokale `workspace-write`-sandbox met `approval_policy = "on-request"` en `approvals_reviewer = "auto_review"` / *Approve for me* voor in aanmerking komende verzoeken; configureer zo nodig gerichte commandoregels of writable roots. Verander geen gebruikers- of organisatiebrede Codex-config stilzwijgend en kies nooit blind voor `danger-full-access` of een sandboxbypass. `approval_policy = "never"` is **geen** garantie dat een sandbox-geblokkeerde Git- of netwerkactie alsnog slaagt.
+
+Vraag expliciete toestemming uitsluitend waar de **harde grenzen hieronder** dat vereisen. Als een legitieme handeling technisch geblokkeerd blijft: probeer één veilige alternatieve route, meld daarna eenmaal de exacte oorzaak en vereiste instelling/toestemming; geen keten van tientallen escalaties. Detail: [AA-OP, AA-LEAN-03](docs/AA/AA-OP.md#aa-lean-03--autonoom-uitvoeren-en-goedkeuringsverzoeken-2026-10-13).
+
 ## Git en scope
 
 - `main` is de centrale trunk; `work/payroll-p0-p1` en de bijbehorende worktree zijn het geparkeerde Nmbrs-spoor en beschermd. Bestaande unieke wijzigingen en worktrees blijven behouden.
