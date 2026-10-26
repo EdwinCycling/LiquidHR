@@ -572,6 +572,10 @@
   },
   "overtime": {
     "managerNotification": "Manager inlichten over overwerk invoer",
+    "tvtExpirationMonths": "TVT vervalt na (maanden)",
+    "tvtExpirationHelp": "Stel de toepasselijke termijn expliciet in. Leeg betekent dat TVT-opbouw wordt geblokkeerd; er geldt geen standaardtermijn.",
+    "useDefaultExpiration": "Gebruik de termijn van dit werkurentype",
+    "months": "maanden",
     "limitForEveryone": "Beperking voor iedereen",
     "unlimited": "Onbeperkt",
     "monthlyHours": "Beperkt in uren per kalendermaand",

@@ -162,7 +162,7 @@ describe('Actual Work payroll batch source read', () => {
     const from = vi.fn((table: string) => queryResult(
       table === 'employment_work_hour_entries' ? entries
         : table === 'work_hour_types' ? types
-          : ['actual_work_revisions', 'actual_work_payroll_releases', 'leave_type_overtime_work_hours', 'actual_work_payroll_mappings', 'leave_types'].includes(table) ? []
+          : ['actual_work_revisions', 'actual_work_payroll_releases', 'leave_type_overtime_work_hours', 'actual_work_payroll_mappings', 'leave_types', 'leave_accrual_transactions'].includes(table) ? []
           : period,
     ))
     createClient.mockResolvedValue({ from })
@@ -180,7 +180,7 @@ describe('Actual Work payroll batch source read', () => {
     expect(result[1]?.types.map((type) => type.id)).toEqual([secondTypeId])
     expect(result.flatMap((projection) => projection.entries.map((entry) => entry.id)).sort()).toEqual(['entry-1', 'entry-2'])
     expect(result[0]?.entries[0]).not.toHaveProperty('employee_id')
-    expect(from).toHaveBeenCalledTimes(7)
+    expect(from).toHaveBeenCalledTimes(8)
     expect(from).toHaveBeenCalledWith('actual_work_periods')
     expect(from).toHaveBeenCalledWith('employment_work_hour_entries')
     expect(from).toHaveBeenCalledWith('work_hour_types')
@@ -229,7 +229,7 @@ describe('Actual Work payroll batch source read', () => {
     const from = vi.fn((table: string) => queryResult(
       table === 'employment_work_hour_entries' ? entries
         : table === 'work_hour_types' ? types
-          : ['actual_work_revisions', 'actual_work_payroll_releases', 'leave_type_overtime_work_hours', 'actual_work_payroll_mappings', 'leave_types'].includes(table) ? []
+          : ['actual_work_revisions', 'actual_work_payroll_releases', 'leave_type_overtime_work_hours', 'actual_work_payroll_mappings', 'leave_types', 'leave_accrual_transactions'].includes(table) ? []
           : period,
     ))
     createClient.mockResolvedValue({ from })
@@ -247,7 +247,8 @@ describe('Actual Work payroll batch source read', () => {
     expect(from.mock.calls.filter(([table]) => table === 'work_hour_types')).toHaveLength(10)
     expect(from.mock.calls.filter(([table]) => table === 'actual_work_revisions')).toHaveLength(10)
     expect(from.mock.calls.filter(([table]) => table === 'actual_work_payroll_releases')).toHaveLength(10)
-    expect(from).toHaveBeenCalledTimes(61)
+    expect(from.mock.calls.filter(([table]) => table === 'leave_accrual_transactions')).toHaveLength(10)
+    expect(from).toHaveBeenCalledTimes(71)
   })
 
   it('fails closed before source reads when authorized targets resolve to different tenant scopes', async () => {

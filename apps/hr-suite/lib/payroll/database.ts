@@ -68,6 +68,7 @@ export type PayrollPeriodRecordRow = Omit<PayrollPeriodRow, 'period_month'> & {
 }
 
 export type PayrollCalendarPeriodListRow = {
+  id: string
   period_year: number
   period_month: number | null
   period_number: number | null

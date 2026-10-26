@@ -544,6 +544,7 @@ export interface OvertimeExceptionRow {
   limitMode: OvertimeLimitMode
   limitHours: number | null
   contractHoursFactor: number | null
+  tvtExpirationMonths: number | null
 }
 
 export interface OvertimeSettingsPageData {
@@ -556,6 +557,7 @@ export interface OvertimeSettingsPageData {
     limitMode: OvertimeLimitMode
     limitHours: number | null
     contractHoursFactor: number | null
+    tvtExpirationMonths: number | null
   }
   exceptions: OvertimeExceptionRow[]
   employees: OvertimeEmployeeOption[]
@@ -570,8 +572,8 @@ export async function getOvertimeSettingsPageData(workHourTypeId: string, mode: 
   if (!type.data || (mode === 'OVERTIME' ? type.data.category !== 'OVERTIME' : type.data.category === 'INFORMATIONAL')) throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
 
   const [settings, exceptions, assignments] = await Promise.all([
-    supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, requires_manager_approval, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', workHourTypeId).maybeSingle(),
-    supabase.from('overtime_type_exceptions').select('id, employee_id, allow_overtime_entry, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', workHourTypeId).order('created_at').limit(500),
+    supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, requires_manager_approval, is_self_service, limit_mode, limit_hours, contract_hours_factor, tvt_expiration_months').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', workHourTypeId).maybeSingle(),
+    supabase.from('overtime_type_exceptions').select('id, employee_id, allow_overtime_entry, is_self_service, limit_mode, limit_hours, contract_hours_factor, tvt_expiration_months').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', workHourTypeId).order('created_at').limit(500),
     supabase.from('employments').select('employee_id').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', new Date().toISOString().slice(0, 10)).or(`ends_on.is.null,ends_on.gte.${new Date().toISOString().slice(0, 10)}`).limit(5000),
   ])
   if (settings.error) databaseError(settings.error)
@@ -595,6 +597,7 @@ export async function getOvertimeSettingsPageData(workHourTypeId: string, mode: 
       limitMode: settings.data.limit_mode,
       limitHours: settings.data.limit_hours,
       contractHoursFactor: settings.data.contract_hours_factor,
+      tvtExpirationMonths: settings.data.tvt_expiration_months,
     },
     exceptions: exceptions.data.map((row) => ({
       id: row.id,
@@ -605,6 +608,7 @@ export async function getOvertimeSettingsPageData(workHourTypeId: string, mode: 
       limitMode: row.limit_mode,
       limitHours: row.limit_hours,
       contractHoursFactor: row.contract_hours_factor,
+      tvtExpirationMonths: row.tvt_expiration_months,
     })),
     employees: employees.data.map((employee) => ({ id: employee.id, employeeNumber: employee.employee_number, name: [employee.first_name, employee.birth_name_prefix, employee.birth_name].filter(Boolean).join(' ') })),
   }
@@ -630,6 +634,7 @@ export async function updateOvertimeConfiguration(input: Extract<OvertimeConfigu
     requires_manager_approval: input.requiresManagerApproval,
     is_self_service: input.isSelfService,
     ...overtimeLimitPayload(input),
+    tvt_expiration_months: input.tvtExpirationMonths ?? null,
     updated_by: context.userId,
   }).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', input.workHourTypeId).select('id').maybeSingle()
   if (result.error) databaseError(result.error)
@@ -658,6 +663,7 @@ export async function createOvertimeExceptions(input: Extract<OvertimeConfigurat
     allow_overtime_entry: input.allowOvertimeEntry,
     is_self_service: input.isSelfService,
     ...overtimeLimitPayload(input),
+    tvt_expiration_months: input.tvtExpirationMonths ?? null,
     created_by: context.userId,
     updated_by: context.userId,
   })), { onConflict: 'tenant_id,hr_group_id,work_hour_type_id,employee_id' }).select('id')

@@ -212,6 +212,22 @@ describe('leave api schemas', () => {
     }).success).toBe(false)
   })
 
+  it('accepteert alleen een expliciet geconfigureerde TVT-vervaltermijn van 1 tot 120 maanden', () => {
+    const base = {
+      action: 'OVERTIME_SETTINGS' as const,
+      workHourTypeId: 'overtime-1',
+      notifyManagerOnEntry: false,
+      isSelfService: true,
+      limitMode: 'UNLIMITED' as const,
+    }
+    for (const tvtExpirationMonths of [null, 1, 120]) {
+      expect(overtimeConfigurationMutationSchema.safeParse({ ...base, tvtExpirationMonths }).success).toBe(true)
+    }
+    for (const tvtExpirationMonths of [0, 121, 1.5]) {
+      expect(overtimeConfigurationMutationSchema.safeParse({ ...base, tvtExpirationMonths }).success).toBe(false)
+    }
+  })
+
   it('hergebruikt de vier beperkingstypen voor werkuren en ondersteunt uitzonderingen', () => {
     expect(workHourConfigurationMutationSchema.safeParse({
       action: 'WORK_HOUR_SETTINGS',

@@ -1750,6 +1750,49 @@ describe('LiquidHR Payroll source provider', () => {
     expect(actualEntries[0]?.releasedForPayroll).toBe(false)
   })
 
+  it('recognizes an idempotently accrued TVT ledger balance as accrued but unreleased', async () => {
+    const provider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadActualWork: vi.fn(async () => actualWork({
+        entries: [actualWorkEntry({ hours: 3 })],
+        types: [actualWorkType({ family: 'OVERTIME' })],
+        tvtWorkHourTypeIds: [actualWorkTypeId],
+        tvtAccruedHoursByEntryId: { [actualWorkEntryId]: '3.0000' },
+      })),
+    }))
+
+    const snapshot = await provider.getPayrollSourceSnapshot(request)
+    const canonical = snapshot.canonicalSource as Record<string, unknown>
+    const actualWorkRecord = canonical.actualWork as Record<string, unknown>
+    const actualEntries = actualWorkRecord.entries as Array<Record<string, unknown>>
+
+    expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({ reasonCode: 'ACTUAL_WORK_TVT_ACCRUAL_NOT_CONNECTED' }))
+    expect(actualEntries[0]).toMatchObject({ tvtAccrued: true, tvtAccruedHours: '3.0000', releasedForPayroll: false })
+  })
+
+  it('does not treat a FOUR_WEEKLY release as a monthly release when both start on the same date', async () => {
+    const released = withPayrollReleases(actualWork({
+      entries: [actualWorkEntry({ hours: 3 })],
+      types: [actualWorkType({ family: 'WORK' })],
+    }))
+    const provider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadActualWork: vi.fn(async () => ({
+        ...released,
+        payrollReleases: released.payrollReleases?.map((release) => ({
+          ...release,
+          payroll_period_id: '99999999-9999-4999-8999-999999999999',
+          payroll_period_end: '2026-09-28',
+          payroll_periodicity: 'FOUR_WEEKLY',
+        })),
+      })),
+    }))
+
+    const snapshot = await provider.getPayrollSourceSnapshot(request)
+
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_FOUR_WEEKLY_PAYROLL_CONSUMER_UNAVAILABLE',
+    })
+  })
+
   it('derives its authorization scope from the authenticated context and rejects forged scope before reads', async () => {
     const deps = dependencies()
     const provider = new LiquidHrPayrollSourceProvider(deps)

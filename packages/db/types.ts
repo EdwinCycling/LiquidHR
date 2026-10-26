@@ -1035,6 +1035,9 @@ export type Database = {
           id: string
           mapping_id: string
           payroll_period_start: string
+          payroll_period_id: string | null
+          payroll_period_end: string | null
+          payroll_periodicity: string | null
           release_class: string
           released_at: string
           released_by: string
@@ -1053,6 +1056,9 @@ export type Database = {
           id?: string
           mapping_id: string
           payroll_period_start: string
+          payroll_period_id?: string | null
+          payroll_period_end?: string | null
+          payroll_periodicity?: string | null
           release_class?: string
           released_at?: string
           released_by: string
@@ -1071,6 +1077,9 @@ export type Database = {
           id?: string
           mapping_id?: string
           payroll_period_start?: string
+          payroll_period_id?: string | null
+          payroll_period_end?: string | null
+          payroll_periodicity?: string | null
           release_class?: string
           released_at?: string
           released_by?: string
@@ -12473,6 +12482,7 @@ export type Database = {
           is_self_service: boolean
           limit_hours: number | null
           limit_mode: Database["public"]["Enums"]["overtime_limit_mode"]
+          tvt_expiration_months: number | null
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -12490,6 +12500,7 @@ export type Database = {
           is_self_service?: boolean
           limit_hours?: number | null
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
+          tvt_expiration_months?: number | null
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -12507,6 +12518,7 @@ export type Database = {
           is_self_service?: boolean
           limit_hours?: number | null
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
+          tvt_expiration_months?: number | null
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -12542,6 +12554,7 @@ export type Database = {
           limit_mode: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry: boolean
           requires_manager_approval: boolean
+          tvt_expiration_months: number | null
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -12559,6 +12572,7 @@ export type Database = {
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry?: boolean
           requires_manager_approval?: boolean
+          tvt_expiration_months?: number | null
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -12576,6 +12590,7 @@ export type Database = {
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry?: boolean
           requires_manager_approval?: boolean
+          tvt_expiration_months?: number | null
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -23599,6 +23614,25 @@ export type Database = {
         }
         Returns: string
       }
+      post_actual_work_tvt_for_revision: {
+        Args: {
+          requested_administration_id: string
+          requested_entry_id: string
+          requested_hr_group_id: string
+          requested_revision_number: number
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
+      approve_actual_work_entry_for_payroll: {
+        Args: {
+          requested_administration_id: string
+          requested_entry_id: string
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: Database["public"]["Tables"]["employment_work_hour_entries"]["Row"]
+      }
       prepare_document_signing: {
         Args: { requested_actor_user_id: string; requested_snapshot_id: string }
         Returns: Json
@@ -24120,6 +24154,19 @@ export type Database = {
           requested_entries: Json
           requested_hr_group_id: string
           requested_payroll_period_start: string
+          requested_tenant_id: string
+        }
+        Returns: Database["public"]["Tables"]["actual_work_payroll_releases"]["Row"][]
+      }
+      release_actual_work_entries_for_payroll_period: {
+        Args: {
+          requested_administration_id: string
+          requested_entries: Json
+          requested_hr_group_id: string
+          requested_payroll_period_end: string
+          requested_payroll_period_id: string
+          requested_payroll_period_start: string
+          requested_payroll_periodicity: string
           requested_tenant_id: string
         }
         Returns: Database["public"]["Tables"]["actual_work_payroll_releases"]["Row"][]

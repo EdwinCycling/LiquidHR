@@ -1,9 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, requirePermission, requireHrGroupId } = vi.hoisted(() => ({
+const {
+  createClient,
+  requirePermission,
+  requireHrGroupId,
+  payrollAdministration,
+  calendarPeriods,
+  createPayrollRepository,
+  createPayrollCalculationRepository,
+} = vi.hoisted(() => ({
   createClient: vi.fn(),
   requirePermission: vi.fn(),
   requireHrGroupId: vi.fn(),
+  payrollAdministration: vi.fn(),
+  calendarPeriods: vi.fn(),
+  createPayrollRepository: vi.fn(() => ({ getPayrollAdministration: payrollAdministration })),
+  createPayrollCalculationRepository: vi.fn(() => ({ listCalendarPeriods: calendarPeriods })),
 }))
 
 vi.mock('@/lib/auth/permissions', () => ({
@@ -12,6 +24,8 @@ vi.mock('@/lib/auth/permissions', () => ({
   requireHrGroupId,
 }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/payroll/repository', () => ({ createPayrollRepository }))
+vi.mock('@/lib/payroll/calculation-repository', () => ({ createPayrollCalculationRepository }))
 
 import { mutateActualWorkPayroll, previewActualWorkCsv } from './payroll-work-hours-service'
 
@@ -20,7 +34,9 @@ const secondEmployeeId = '22222222-2222-4222-8222-222222222222'
 const firstEmploymentId = '33333333-3333-4333-8333-333333333333'
 const secondEmploymentId = '44444444-4444-4444-8444-444444444444'
 const workTypeId = '55555555-5555-4555-8555-555555555555'
+const actualEntryId = '88888888-8888-4888-8888-888888888888'
 const sourceEntries = new Map<string, { id: string; source_type: string }>()
+const entryRows: Array<Record<string, unknown>> = []
 let lastRpc: ReturnType<typeof vi.fn>
 
 const employees = [
@@ -43,7 +59,7 @@ const workTypes = [{
 function queryFor(table: string) {
   const filters = new Map<string, unknown>()
   const chain: Record<string, unknown> = {}
-  for (const method of ['select', 'eq', 'is', 'order', 'limit', 'lt', 'gte', 'gt', 'or', 'in']) {
+  for (const method of ['select', 'eq', 'is', 'order', 'limit', 'lt', 'gte', 'gt', 'or', 'in', 'neq']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       if (method === 'eq' || method === 'in') filters.set(String(args[0]), args[1])
       return chain
@@ -65,7 +81,10 @@ function queryFor(table: string) {
       return rows.filter((row) => row.employee_id === employeeId && (!requestedId || row.id === requestedId))
     }
     if (table === 'employment_work_hour_entries') {
-      return sourceEntries.get(String(filters.get('source_key') ?? '')) ?? null
+      const sourceKey = filters.get('source_key')
+      if (sourceKey) return sourceEntries.get(String(sourceKey)) ?? null
+      const ids = filters.get('id') as string[] | undefined
+      return entryRows.filter((entry) => !ids || ids.includes(String(entry.id)))
     }
     return []
   }
@@ -102,7 +121,10 @@ function configureAdmin() {
 describe('Actual Work payroll CSV preview and confirmation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    payrollAdministration.mockResolvedValue(null)
+    calendarPeriods.mockResolvedValue([])
     sourceEntries.clear()
+    entryRows.length = 0
     configureAdmin()
   })
 
@@ -218,5 +240,88 @@ describe('Actual Work payroll CSV preview and confirmation', () => {
     })).rejects.toMatchObject({ code: 'ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP', status: 409 })
 
     expect(supabase.rpc).not.toHaveBeenCalled()
+  })
+
+  it('refuses HR approval when the selected four-week Payroll period is closed', async () => {
+    const supabase = configureAdmin()
+    const payrollPeriodId = '66666666-6666-4666-8666-666666666666'
+    payrollAdministration.mockResolvedValue({
+      id: '77777777-7777-4777-8777-777777777777',
+      displayName: 'Test',
+      capabilityEnabled: true,
+      status: 'ACTIVE',
+    })
+    calendarPeriods.mockResolvedValue([{
+      id: payrollPeriodId,
+      period_year: 2026,
+      period_month: null,
+      period_number: 11,
+      periodicity: 'FOUR_WEEKLY',
+      period_kind: 'REGULAR',
+      starts_on: '2026-12-21',
+      ends_on: '2027-01-17',
+      planned_payment_date: null,
+      status: 'CLOSED',
+    }])
+
+    await expect(mutateActualWorkPayroll({
+      action: 'approve',
+      payrollPeriodId,
+      entryIds: [workTypeId],
+    })).rejects.toMatchObject({ code: 'ACTUAL_WORK_PAYROLL_PERIOD_CLOSED', status: 409 })
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+
+  it('approves a cross-year four-week entry against the selected Payroll calendar period ID', async () => {
+    configureAdmin()
+    const payrollPeriodId = '99999999-9999-4999-8999-999999999999'
+    payrollAdministration.mockResolvedValue({
+      id: '77777777-7777-4777-8777-777777777777',
+      displayName: 'Test',
+      capabilityEnabled: true,
+      status: 'ACTIVE',
+    })
+    calendarPeriods.mockResolvedValue([{
+      id: payrollPeriodId,
+      period_year: 2026,
+      period_month: null,
+      period_number: 11,
+      periodicity: 'FOUR_WEEKLY',
+      period_kind: 'REGULAR',
+      starts_on: '2026-12-21',
+      ends_on: '2027-01-17',
+      planned_payment_date: null,
+      status: 'OPEN',
+    }])
+    entryRows.push({
+      id: actualEntryId,
+      tenant_id: 'tenant-a',
+      hr_group_id: 'group-a',
+      administration_id: 'admin-a',
+      employee_id: firstEmployeeId,
+      employment_id: firstEmploymentId,
+      work_hour_type_id: workTypeId,
+      entry_granularity: 'PERIOD',
+      subject_period_start: '2026-12-28',
+      subject_period_end: '2027-01-05',
+      posting_period_start: '2026-12-01',
+      hours: 24,
+      status: 'PENDING',
+      note: null,
+    })
+    lastRpc.mockResolvedValueOnce({ data: { ...entryRows[0], status: 'APPROVED' }, error: null })
+
+    await expect(mutateActualWorkPayroll({
+      action: 'approve',
+      payrollPeriodId,
+      entryIds: [actualEntryId],
+    })).resolves.toMatchObject([{ id: actualEntryId, status: 'APPROVED' }])
+
+    expect(lastRpc).toHaveBeenCalledWith('approve_actual_work_entry_for_payroll', {
+      requested_tenant_id: 'tenant-a',
+      requested_hr_group_id: 'group-a',
+      requested_administration_id: 'admin-a',
+      requested_entry_id: actualEntryId,
+    })
   })
 })

@@ -610,6 +610,7 @@ describe('Payroll calculation repository scope and lifecycle', () => {
     const repository = createPayrollCalculationRepository({ from } as unknown as PayrollSupabaseClient)
 
     await expect(repository.listCalendarPeriods!(scope, payrollAdministrationId)).resolves.toEqual([{
+      id: period.id,
       period_year: 2026,
       period_month: 10,
       period_number: 10,

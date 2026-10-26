@@ -3,7 +3,7 @@ import { cache } from 'react'
 import { requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
-import { exactHoursToDatabase, isPositiveExactHours, parseExactHours } from './exact-hours'
+import { exactHoursToDatabase, formatExactHours, isPositiveExactHours, parseExactHours } from './exact-hours'
 import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -305,6 +305,9 @@ export type ActualWorkPayrollProjection = {
     entry_id: string
     entry_revision_number: number
     payroll_period_start: string
+    payroll_period_id?: string | null
+    payroll_period_end?: string | null
+    payroll_periodicity?: string | null
     release_class: string
     content_fingerprint: string
     work_hour_type_updated_at: string
@@ -313,6 +316,8 @@ export type ActualWorkPayrollProjection = {
   }>
   tvtWorkHourTypeIds?: string[]
   informationalWorkHourTypeIds?: string[]
+  /** Net hours credited to the existing leave ledger from this Actual Work entry. */
+  tvtAccruedHoursByEntryId?: Readonly<Record<string, string>>
 }
 
 async function loadActualWorkPayrollReleaseData(input: {
@@ -321,23 +326,27 @@ async function loadActualWorkPayrollReleaseData(input: {
   hrGroupId: string
   administrationId: string
   entries: readonly Pick<ActualWorkEntry, 'id' | 'work_hour_type_id'>[]
-}): Promise<Pick<ActualWorkPayrollProjection, 'currentRevisionNumbers' | 'payrollReleases' | 'tvtWorkHourTypeIds' | 'informationalWorkHourTypeIds'>> {
-  if (input.entries.length === 0) return { currentRevisionNumbers: {}, payrollReleases: [], tvtWorkHourTypeIds: [], informationalWorkHourTypeIds: [] }
+}): Promise<Pick<ActualWorkPayrollProjection, 'currentRevisionNumbers' | 'payrollReleases' | 'tvtWorkHourTypeIds' | 'informationalWorkHourTypeIds' | 'tvtAccruedHoursByEntryId'>> {
+  if (input.entries.length === 0) return { currentRevisionNumbers: {}, payrollReleases: [], tvtWorkHourTypeIds: [], informationalWorkHourTypeIds: [], tvtAccruedHoursByEntryId: {} }
   const entryIds = input.entries.map((entry) => entry.id)
   const typeIds = [...new Set(input.entries.map((entry) => entry.work_hour_type_id))]
-  const [revisionResult, releaseResult, linkResult] = await Promise.all([
+  const [revisionResult, releaseResult, linkResult, tvtTransactionsResult] = await Promise.all([
     input.supabase.from('actual_work_revisions').select('entry_id,revision_number')
       .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).in('entry_id', entryIds)
       .order('revision_number', { ascending: false }).limit(entryIds.length * 20),
-    input.supabase.from('actual_work_payroll_releases').select('id,entry_id,entry_revision_number,payroll_period_start,release_class,content_fingerprint,work_hour_type_updated_at,released_at,mapping_id')
+    input.supabase.from('actual_work_payroll_releases').select('id,entry_id,entry_revision_number,payroll_period_start,payroll_period_id,payroll_period_end,payroll_periodicity,release_class,content_fingerprint,work_hour_type_updated_at,released_at,mapping_id')
       .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).eq('administration_id', input.administrationId)
       .in('entry_id', entryIds).limit(entryIds.length * 20),
     input.supabase.from('leave_type_overtime_work_hours').select('work_hour_type_id,leave_type_id')
       .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).in('work_hour_type_id', typeIds),
+    input.supabase.from('leave_accrual_transactions').select('source_id,amount')
+      .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId)
+      .eq('source_type', 'ACTUAL_WORK_TVT').in('source_id', entryIds),
   ])
   if (revisionResult.error) databaseError(revisionResult.error, 'actual-work-revisions')
   if (releaseResult.error) databaseError(releaseResult.error, 'actual-work-payroll-releases')
   if (linkResult.error) databaseError(linkResult.error, 'leave-type-overtime-work-hours')
+  if (tvtTransactionsResult.error) databaseError(tvtTransactionsResult.error, 'actual-work-tvt-ledger')
   const currentRevisionNumbers: Record<string, number> = {}
   for (const revision of revisionResult.data ?? []) if (currentRevisionNumbers[revision.entry_id] === undefined) {
     currentRevisionNumbers[revision.entry_id] = revision.revision_number
@@ -362,6 +371,13 @@ async function loadActualWorkPayrollReleaseData(input: {
   const overtimeLeaveTypes = new Set((leaveTypeResult.data ?? []).filter((leaveType) => leaveType.is_active && leaveType.entitlement_mode === 'OVERTIME_HOURS').map((leaveType) => leaveType.id))
   const tvtWorkHourTypeIds = [...new Set((linkResult.data ?? []).filter((link) => overtimeLeaveTypes.has(link.leave_type_id)).map((link) => link.work_hour_type_id))]
   const informationalWorkHourTypeIds = [...new Set((allMappingsResult.data ?? []).filter((mapping) => mapping.processing_target === 'INFORMATIONAL').map((mapping) => mapping.work_hour_type_id))]
+  const tvtHours = new Map<string, bigint>()
+  for (const transaction of tvtTransactionsResult.data ?? []) {
+    if (!transaction.source_id) continue
+    const rawAmount = String(transaction.amount)
+    const signedAmount = rawAmount.startsWith('-') ? -parseExactHours(rawAmount.slice(1)) : parseExactHours(rawAmount)
+    tvtHours.set(transaction.source_id, (tvtHours.get(transaction.source_id) ?? BigInt(0)) + signedAmount)
+  }
   return {
     currentRevisionNumbers,
     payrollReleases: (releaseResult.data ?? []).map((release) => ({
@@ -369,6 +385,9 @@ async function loadActualWorkPayrollReleaseData(input: {
       entry_id: release.entry_id,
       entry_revision_number: release.entry_revision_number,
       payroll_period_start: release.payroll_period_start,
+      payroll_period_id: release.payroll_period_id,
+      payroll_period_end: release.payroll_period_end,
+      payroll_periodicity: release.payroll_periodicity,
       release_class: release.release_class,
       content_fingerprint: release.content_fingerprint,
       work_hour_type_updated_at: release.work_hour_type_updated_at,
@@ -377,6 +396,7 @@ async function loadActualWorkPayrollReleaseData(input: {
     })),
     tvtWorkHourTypeIds,
     informationalWorkHourTypeIds,
+    tvtAccruedHoursByEntryId: Object.fromEntries([...tvtHours].map(([entryId, hours]) => [entryId, formatExactHours(hours)])),
   }
 }
 

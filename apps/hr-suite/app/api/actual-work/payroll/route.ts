@@ -13,9 +13,10 @@ function serviceError(error: unknown) {
 
 export async function GET(request: Request) {
   try {
-    const periodStart = new URL(request.url).searchParams.get('periodStart')
-    if (!periodStart) return NextResponse.json({ error: 'ACTUAL_WORK_PAYROLL_PERIOD_REQUIRED' }, { status: 400 })
-    return NextResponse.json({ data: await getActualWorkPayrollReview(periodStart) })
+    const searchParams = new URL(request.url).searchParams
+    const period = searchParams.get('period') ?? searchParams.get('periodId') ?? searchParams.get('periodStart')
+    if (!period) return NextResponse.json({ error: 'ACTUAL_WORK_PAYROLL_PERIOD_REQUIRED' }, { status: 400 })
+    return NextResponse.json({ data: await getActualWorkPayrollReview(period) })
   } catch (error) {
     return serviceError(error)
   }

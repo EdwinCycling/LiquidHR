@@ -167,6 +167,7 @@ describe('Payroll Lab server-only boundary', () => {
     expect(resolveModulePath(join(payrollDirectory, 'access.ts'), './repository.js'))
       .toBe(resolve(payrollDirectory, 'repository.ts'))
     expect(repositoryImporters).toEqual([
+      join(hrSuiteRoot, 'lib/actual-work/payroll-work-hours-service.ts'),
       join(payrollDirectory, 'access.ts'),
       join(payrollDirectory, 'payroll-professional-service.ts'),
     ])
@@ -174,6 +175,7 @@ describe('Payroll Lab server-only boundary', () => {
     expect(calculationRepositoryImporters).toEqual([
       join(hrSuiteRoot, 'app/(dashboard)/payroll/settings/page.tsx'),
       join(hrSuiteRoot, 'app/local/payroll-acceptance/page.tsx'),
+      join(hrSuiteRoot, 'lib/actual-work/payroll-work-hours-service.ts'),
       join(payrollDirectory, 'cao-bench02-calculation-service.ts'),
       join(payrollDirectory, 'employee-payroll-calculation-service.ts'),
       join(payrollDirectory, 'nl-2026-calculation-service.ts'),

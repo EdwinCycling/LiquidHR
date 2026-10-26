@@ -270,7 +270,7 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
 
     const { data, error } = await applyPayrollScopeFilter(
       this.client.from('payroll_periods').select(
-        'period_year,period_month,period_number,periodicity,period_kind,starts_on,ends_on,planned_payment_date,status',
+        'id,period_year,period_month,period_number,periodicity,period_kind,starts_on,ends_on,planned_payment_date,status',
       )
         .eq('payroll_administration_id', payrollAdministrationId)
         .order('period_year', { ascending: false })
@@ -283,6 +283,7 @@ class SupabasePayrollCalculationRepository implements PayrollCalculationReposito
       const code = safeDatabaseErrorCode(error)
       if (code !== '42703' && code !== 'PGRST204') throwOnError(error)
       return (await this.listPayrollPeriods(scope, payrollAdministrationId, limit)).map((period) => ({
+        id: period.id,
         period_year: period.period_year,
         period_month: period.period_month,
         period_number: period.period_number ?? period.period_month,

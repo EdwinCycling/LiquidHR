@@ -70,6 +70,7 @@ import type {
 } from '../database'
 import type { PayrollScope } from '../scope'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
+import { formatExactHours, parseExactHours } from '@/lib/actual-work/exact-hours'
 
 type EmploymentRow = Database['public']['Tables']['employments']['Row']
 type SalaryRow = Database['public']['Tables']['employment_salaries']['Row']
@@ -435,7 +436,9 @@ function actualWorkForPeriod(
   const tvtTypeIds = new Set(projection.tvtWorkHourTypeIds ?? [])
   const informationalTypeIds = new Set(projection.informationalWorkHourTypeIds ?? [])
   const releaseByEntry = new Map((projection.payrollReleases ?? [])
-    .filter((release) => release.payroll_period_start === periodStart)
+    .filter((release) => release.payroll_period_start === periodStart
+      && (release.payroll_period_id == null
+        || (release.payroll_periodicity === 'MONTHLY' && release.payroll_period_end === dayBefore(periodEndExclusive))))
     .map((release) => [release.entry_id, release]))
   const entries = [...projection.entries].sort((left, right) =>
     left.work_date.localeCompare(right.work_date) || left.id.localeCompare(right.id),
@@ -479,7 +482,15 @@ function actualWorkForPeriod(
     const revisionNumber = projection.currentRevisionNumbers?.[entry.id]
     const release = releaseByEntry.get(entry.id)
     const releaseIsCurrent = release !== undefined && release.entry_revision_number === revisionNumber
+    const fourWeeklyRelease = (projection.payrollReleases ?? []).find((candidate) => candidate.entry_id === entry.id
+      && candidate.entry_revision_number === revisionNumber
+      && candidate.payroll_period_id !== null
+      && candidate.payroll_periodicity === 'FOUR_WEEKLY')
     const tvtConfigured = tvtTypeIds.has(type.id)
+    const tvtAccruedHours = projection.tvtAccruedHoursByEntryId?.[entry.id] ?? '0'
+    const tvtAccrued = tvtConfigured && entry.status === 'APPROVED'
+      && exactHoursValue(tvtAccruedHours) !== null
+      && exactHoursValue(tvtAccruedHours) === exactHoursValue(entry.hours.toFixed(4))
     const informational = type.family === 'TRANSPARENT' || informationalTypeIds.has(type.id)
     const mappingEffective = Boolean(release?.mapping)
       && release!.mapping!.valid_from <= entry.subject_period_start
@@ -487,14 +498,16 @@ function actualWorkForPeriod(
     if (entry.status === 'PENDING' && type.family !== 'TRANSPARENT') {
       gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'PAYABLE_ACTUAL_WORK_NOT_APPROVED'))
     }
-    // The catalog link identifies TVT intent, but the current leave accrual
-    // service/RPC does not post OVERTIME_HOURS balances. Do not let that link
-    // silently count as a completed Payroll source classification.
-    if (entry.status === 'APPROVED' && tvtConfigured) {
+    if (entry.status === 'APPROVED' && tvtConfigured && !tvtAccrued) {
       gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_TVT_ACCRUAL_NOT_CONNECTED'))
     }
+    if (fourWeeklyRelease) {
+      versionVector[`actual_work_four_weekly_payroll_release:${entry.id}`] = `${fourWeeklyRelease.content_fingerprint}:${fourWeeklyRelease.released_at}`
+    }
     if (entry.status === 'APPROVED' && !informational && !tvtConfigured && !releaseIsCurrent) {
-      gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED'))
+      gaps.push(makeGap('actualWork', 'SOURCE_GAP', fourWeeklyRelease
+        ? 'ACTUAL_WORK_FOUR_WEEKLY_PAYROLL_CONSUMER_UNAVAILABLE'
+        : 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED'))
     }
     if (releaseIsCurrent && release) {
       versionVector[`actual_work_payroll_release:${entry.id}`] = `${release.content_fingerprint}:${release.released_at}`
@@ -507,6 +520,7 @@ function actualWorkForPeriod(
         versionVector[`actual_work_payroll_mapping:${release.mapping.id}`] = `${release.mapping.version_number}:${release.mapping.salary_component_version ?? release.mapping.processing_target}`
       }
     }
+    if (tvtConfigured) versionVector[`actual_work_tvt_ledger:${entry.id}`] = tvtAccruedHours
     if (entry.posting_period_start !== periodStart
       || entry.subject_period_end <= entry.subject_period_start) {
       gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_PERIOD_MAPPING_INVALID'))
@@ -531,6 +545,8 @@ function actualWorkForPeriod(
       payrollReleaseClass: releaseIsCurrent ? release?.release_class ?? null : null,
       payrollReleaseId: releaseIsCurrent ? release?.id ?? null : null,
       payrollReleaseFingerprint: releaseIsCurrent ? release?.content_fingerprint ?? null : null,
+      payrollPeriodId: releaseIsCurrent ? release?.payroll_period_id ?? null : fourWeeklyRelease?.payroll_period_id ?? null,
+      payrollPeriodicity: releaseIsCurrent ? release?.payroll_periodicity ?? null : fourWeeklyRelease?.payroll_periodicity ?? null,
       payrollMapping: releaseIsCurrent && release?.mapping ? {
         id: release.mapping.id,
         version: release.mapping.version_number,
@@ -543,6 +559,8 @@ function actualWorkForPeriod(
         factor: release.mapping.factor === null ? null : String(release.mapping.factor),
       } : null,
       tvtConfigured,
+      tvtAccrued,
+      tvtAccruedHours,
       informational,
       typeValidFrom: type.valid_from,
       typeValidUntil: type.valid_until,
@@ -571,6 +589,10 @@ function actualWorkForPeriod(
     sourceVersionVector: versionVector,
     sourceGaps: gaps,
   }
+}
+
+function exactHoursValue(value: string): string | null {
+  try { return formatExactHours(parseExactHours(value)) } catch { return null }
 }
 
 function actualWorkVariableWage(

@@ -4,7 +4,7 @@ import { AuthorizationError } from '@/lib/auth/permissions'
 import { getActualWorkPayrollReview } from '@/lib/actual-work/payroll-work-hours-service'
 import { getTranslator } from '@/lib/i18n/server'
 
-type Props = { searchParams: Promise<{ periodStart?: string }> }
+type Props = { searchParams: Promise<{ period?: string; periodId?: string; periodStart?: string }> }
 
 function periodOrCurrent(value: string | undefined): string {
   if (value && /^\d{4}-(0[1-9]|1[0-2])-01$/.test(value)) return value
@@ -12,10 +12,11 @@ function periodOrCurrent(value: string | undefined): string {
 }
 
 export default async function ActualWorkPayrollPage({ searchParams }: Props) {
-  const periodStart = periodOrCurrent((await searchParams).periodStart)
+  const params = await searchParams
+  const periodSelector = params.period ?? params.periodId ?? periodOrCurrent(params.periodStart)
   let initial: Awaited<ReturnType<typeof getActualWorkPayrollReview>>
   try {
-    initial = await getActualWorkPayrollReview(periodStart)
+    initial = await getActualWorkPayrollReview(periodSelector)
   } catch (error) {
     if (error instanceof AuthorizationError) redirect('/geen-toegang')
     throw error
@@ -42,5 +43,9 @@ export default async function ActualWorkPayrollPage({ searchParams }: Props) {
     csvHours: t('actualWorkPayrollCsvHours'), csvColumn: t('actualWorkPayrollCsvColumn'),
     csvComment: t('actualWorkPayrollCsvComment'), csvReference: t('actualWorkPayrollCsvReference'),
     payrollComponent: t('actualWorkPayrollComponent'),
+    periodOpen: t('actualWorkPayrollPeriodOpen'), periodClosed: t('actualWorkPayrollPeriodClosed'),
+    periodMonthly: t('actualWorkPayrollPeriodMonthly'), periodFourWeekly: t('actualWorkPayrollPeriodFourWeekly'),
+    periodUnavailable: t('actualWorkPayrollPeriodUnavailable'), tvtAccrued: t('actualWorkPayrollTvtAccrued'),
+    periodBoundaryGap: t('actualWorkPayrollPeriodBoundaryGap'),
   }} />
 }

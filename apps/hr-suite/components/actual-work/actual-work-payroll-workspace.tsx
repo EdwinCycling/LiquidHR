@@ -22,7 +22,8 @@ export type ActualWorkPayrollLabels = {
   premium: string; tvt: string; tvtSourceGap: string; informational: string; factor: string; validFrom: string; saveMapping: string; done: string
   failed: string; importSaved: string; approvedSaved: string; releasedSaved: string; administration: string; sourceGap: string; twkRequired: string
   csvEmployee: string; csvEmployment: string; csvType: string; csvPeriod: string; csvHours: string; csvColumn: string
-  csvComment: string; csvReference: string; payrollComponent: string
+  csvComment: string; csvReference: string; payrollComponent: string; periodOpen: string; periodClosed: string
+  tvtAccrued: string; periodBoundaryGap: string; periodMonthly: string; periodFourWeekly: string; periodUnavailable: string
 }
 
 function humanError(code: string | null | undefined, labels: ActualWorkPayrollLabels): string {
@@ -45,7 +46,8 @@ function rowName(row: ReviewRow): string {
 }
 
 function rowState(row: ReviewRow, labels: ActualWorkPayrollLabels): string {
-  if (row.tvtConfigured) return labels.tvtSourceGap
+  if (!row.payrollPeriodBoundaryValid) return labels.periodBoundaryGap
+  if (row.tvtConfigured) return row.tvtAccrued ? labels.tvtAccrued : labels.tvtSourceGap
   if (row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM')
     || (row.workType?.family === 'OVERTIME' && row.effectiveMappings.some((mapping) => mapping.processing_target === 'PAYMENT'))) return labels.sourceGap
   if (row.release?.release_class === 'TWK_REQUIRED') return labels.twkRequired
@@ -57,7 +59,7 @@ function rowState(row: ReviewRow, labels: ActualWorkPayrollLabels): string {
 
 export function ActualWorkPayrollWorkspace({ initial, labels }: { initial: ReviewData; labels: ActualWorkPayrollLabels }) {
   const [data, setData] = useState(initial)
-  const [periodStart, setPeriodStart] = useState(initial.periodStart)
+  const [periodSelector, setPeriodSelector] = useState(initial.payrollPeriod?.id ?? initial.periodStart)
   const [filter, setFilter] = useState('')
   const [exceptionsOnly, setExceptionsOnly] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
@@ -77,17 +79,17 @@ export function ActualWorkPayrollWorkspace({ initial, labels }: { initial: Revie
     const payrollMapping = row.effectiveMappings.some((mapping) => mapping.processing_target === 'PAYMENT' || mapping.processing_target === 'PREMIUM')
     const unsupportedMapping = row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM')
       || (row.workType?.family === 'OVERTIME' && row.effectiveMappings.some((mapping) => mapping.processing_target === 'PAYMENT'))
-    const exception = row.status !== 'APPROVED' || row.needsPayrollReview || row.tvtConfigured || unsupportedMapping || (payrollMapping && !row.release)
+    const exception = row.status !== 'APPROVED' || row.needsPayrollReview || (row.tvtConfigured && !row.tvtAccrued) || unsupportedMapping || (payrollMapping && !row.release) || !row.payrollPeriodBoundaryValid
     return matches && (!exceptionsOnly || exception)
   }), [data.employees, exceptionsOnly, filter])
 
-  const refresh = useCallback(async (nextPeriod = periodStart) => {
-    const response = await fetch(`/api/actual-work/payroll?periodStart=${encodeURIComponent(nextPeriod)}`, { cache: 'no-store' })
+  const refresh = useCallback(async (nextPeriod = periodSelector) => {
+    const response = await fetch(`/api/actual-work/payroll?period=${encodeURIComponent(nextPeriod)}`, { cache: 'no-store' })
     const payload = await response.json() as { data?: ReviewData; error?: string }
     if (!response.ok || !payload.data) throw new Error(payload.error ?? labels.failed)
     setData(payload.data)
     setSelected([])
-  }, [labels.failed, periodStart])
+  }, [labels.failed, periodSelector])
 
   async function runAction(body: Record<string, unknown>, success: string): Promise<void> {
     setBusy(true); setError(null); setMessage(null)
@@ -113,16 +115,19 @@ export function ActualWorkPayrollWorkspace({ initial, labels }: { initial: Revie
     finally { setBusy(false) }
   }
 
-  const selectedPending = selected.filter((id) => data.employees.some((row) => row.id === id && row.status === 'PENDING'))
-  const selectedApproved = selected.filter((id) => data.employees.some((row) => row.id === id && row.status === 'APPROVED' && !row.release && !row.needsPayrollReview && !row.tvtConfigured && !row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM') && row.workType?.family !== 'OVERTIME' && row.effectiveMappings.filter((mapping) => mapping.processing_target === 'PAYMENT').length === 1))
+  const selectedPending = selected.filter((id) => data.employees.some((row) => row.id === id && row.status === 'PENDING' && row.payrollPeriodBoundaryValid))
+  const selectedApproved = selected.filter((id) => data.employees.some((row) => row.id === id && row.status === 'APPROVED' && row.payrollPeriodBoundaryValid && !row.release && !row.needsPayrollReview && !row.tvtConfigured && !row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM') && row.workType?.family !== 'OVERTIME' && row.effectiveMappings.filter((mapping) => mapping.processing_target === 'PAYMENT').length === 1))
   const selectedRows = selected.flatMap((id) => { const row = data.employees.find((entry) => entry.id === id); return row ? [row] : [] })
   const totalHours = visibleRows.reduce((total, row) => total + row.hours, 0)
 
   return <PageShell className="space-y-5 py-6 sm:py-8" width="wide">
-    <PageHeader actions={<Link className="inline-flex min-h-10 items-center rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-raised" href={`/actual-work/bulk?month=${periodStart.slice(0, 7)}&view=period`}>{labels.bulkInput}</Link>} description={labels.description} title={labels.title} />
+    <PageHeader actions={<Link className="inline-flex min-h-10 items-center rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-raised" href={`/actual-work/bulk?month=${data.periodStart.slice(0, 7)}&view=period`}>{labels.bulkInput}</Link>} description={labels.description} title={labels.title} />
     <Surface className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-      <label className="grid min-w-0 gap-1.5 text-sm font-medium"><span>{labels.period}</span><TextInput onChange={(event) => setPeriodStart(event.target.value ? `${event.target.value}-01` : '')} type="month" value={periodStart.slice(0, 7)} /></label>
-      <Button disabled={busy || periodStart.length !== 10} onClick={() => { setBusy(true); setError(null); void refresh().catch((caught: unknown) => setError(caught instanceof Error ? caught.message : labels.failed)).finally(() => setBusy(false)) }} type="button" variant="secondary">{labels.load}</Button>
+      <label className="grid min-w-0 gap-1.5 text-sm font-medium"><span>{labels.period}</span><DropdownSelect onChange={(event) => { const next = event.target.value; setPeriodSelector(next); setBusy(true); setError(null); void refresh(next).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : labels.failed)).finally(() => setBusy(false)) }} value={periodSelector}>
+        {!data.payrollPeriods.length ? <option value={data.periodStart}>{data.periodStart.slice(0, 7)} · {labels.periodUnavailable}</option> : null}
+        {data.payrollPeriods.map((period) => <option key={period.id} value={period.id}>{period.startsOn} – {period.endsOn} · {period.periodicity === 'FOUR_WEEKLY' ? labels.periodFourWeekly : labels.periodMonthly} · {period.status === 'OPEN' ? labels.periodOpen : labels.periodClosed}</option>)}
+      </DropdownSelect></label>
+      <Button disabled={busy || !periodSelector} onClick={() => { setBusy(true); setError(null); void refresh().catch((caught: unknown) => setError(caught instanceof Error ? caught.message : labels.failed)).finally(() => setBusy(false)) }} type="button" variant="secondary">{labels.load}</Button>
     </Surface>
 
     <Surface className="space-y-4 p-4 sm:p-5">
@@ -146,12 +151,12 @@ export function ActualWorkPayrollWorkspace({ initial, labels }: { initial: Revie
       </div>
       {visibleRows.length === 0 ? <p className="rounded-[var(--radius-control)] border border-dashed p-6 text-center text-sm text-muted-foreground">{labels.noEntries}</p> : <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {visibleRows.map((row) => <article className="min-w-0 rounded-[var(--radius-control)] border border-border p-3 sm:p-4" key={row.id}>
-          <div className="flex items-start gap-3"><input aria-label={`${labels.select} ${row.employee?.employee_number ?? row.employee_id}`} checked={selected.includes(row.id)} onChange={(event) => setSelected((current) => event.target.checked ? [...new Set([...current, row.id])] : current.filter((id) => id !== row.id))} type="checkbox" /><div className="min-w-0 flex-1"><p className="break-words font-semibold">{rowName(row)}</p><p className="text-xs text-muted-foreground">{row.employee?.employee_number ?? row.employee_id} · {row.workType?.code ?? '—'}</p></div></div>
+          <div className="flex items-start gap-3"><input aria-label={`${labels.select} ${row.employee?.employee_number ?? row.employee_id}`} checked={selected.includes(row.id)} disabled={!row.payrollPeriodBoundaryValid} onChange={(event) => setSelected((current) => event.target.checked ? [...new Set([...current, row.id])] : current.filter((id) => id !== row.id))} type="checkbox" /><div className="min-w-0 flex-1"><p className="break-words font-semibold">{rowName(row)}</p><p className="text-xs text-muted-foreground">{row.employee?.employee_number ?? row.employee_id} · {row.workType?.code ?? '—'}</p></div></div>
           <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm"><div><dt className="text-xs text-muted-foreground">{labels.type}</dt><dd className="break-words">{row.workType?.name ?? row.work_hour_type_id}</dd></div><div><dt className="text-xs text-muted-foreground">{labels.period}</dt><dd className="break-words">{row.subject_period_start} → {row.subject_period_end}</dd></div><div><dt className="text-xs text-muted-foreground">{labels.rows}</dt><dd className="tabular-nums">{String(row.hours)} h</dd></div><div><dt className="text-xs text-muted-foreground">{labels.target}</dt><dd className="break-words">{row.release?.mapping?.salary_component_code ?? (row.effectiveMappings.length ? row.effectiveMappings.map((mapping) => mapping.processing_target).join(', ') : labels.sourceGap)}</dd></div></dl>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${row.release ? 'bg-chart-2/10 text-chart-2' : row.status === 'PENDING' || row.needsPayrollReview ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground'}`}>{rowState(row, labels)}</span>{row.release ? <span className="font-mono text-[10px] text-muted-foreground" title={row.release.content_fingerprint}>{row.release.content_fingerprint.slice(0, 12)}</span> : null}</div>
         </article>)}
       </div>}
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || selectedPending.length === 0} onClick={() => void runAction({ action: 'approve', entryIds: selectedPending }, labels.approvedSaved)} type="button" variant="secondary">{labels.approve} ({selectedPending.length})</Button><Button disabled={busy || selectedApproved.length === 0} onClick={() => void runAction({ action: 'release', periodStart, entryIds: selectedApproved }, labels.releasedSaved)} type="button">{labels.release} ({selectedApproved.length})</Button></div>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || !data.payrollPeriod?.id || data.payrollPeriod.status !== 'OPEN' || selectedPending.length === 0} onClick={() => void runAction({ action: 'approve', payrollPeriodId: data.payrollPeriod!.id, entryIds: selectedPending }, labels.approvedSaved)} type="button" variant="secondary">{labels.approve} ({selectedPending.length})</Button><Button disabled={busy || !data.payrollPeriod?.id || data.payrollPeriod.status !== 'OPEN' || selectedApproved.length === 0} onClick={() => void runAction({ action: 'release', payrollPeriodId: data.payrollPeriod!.id, entryIds: selectedApproved }, labels.releasedSaved)} type="button">{labels.release} ({selectedApproved.length})</Button></div>
       {selectedRows.some((row) => row.needsPayrollReview) ? <p className="text-sm text-destructive">{labels.needsReview}</p> : null}
       {message ? <p aria-live="polite" className="text-sm text-chart-2">{message}</p> : null}{error ? <p aria-live="assertive" className="break-words text-sm text-destructive">{error}</p> : null}
     </Surface>
