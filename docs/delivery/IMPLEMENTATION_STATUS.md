@@ -1,5 +1,7 @@
 # Implementatiestatus Liquid HR
 
+> **WVP01, 26-10-2026 — lokaal engineering PASS; Core TEST OPEN.** Productcode `26e4de91` levert de verticale verzuimbegeleidingsketen met bestaande verzuimbron en PMUX, scope-/privacyguards, 22 mijlpalen, werkafspraken en eigen kennisname. Finale relevante gate: 15 bestanden / 111 tests, TypeScript, ESLint, i18n en productiecompilatie PASS; schema-statuspagina responsive op 390/768/1440 px. De nieuwe SQL staat alleen lokaal; volledige native-kernel-/persona-/dossieracceptatie is niet bewezen. Geen remote write, push of deployment. Zie [bewijs en exact writevoorstel](../quality/acceptance/runs/WVP01-20261026-LOCAL.md); oudere statusregels hieronder blijven gedateerde context.
+
 
 > **CANONIEKE ACTUELE STATUS — 24 oktober 2026 (vervangt gedateerde 'actueel'-koppen hieronder).** Edwin heeft één gedeelde synthetische LiquidHR TEST-app; Vercel gebruikt hiervoor technisch het target `production`, maar dit is geen commerciële payroll-GA. GitHub en gerapporteerde lokale `main` staan op `1c4eb3d1bfe75d8145b87484125fcfcb6605aacf` (PR #45 productintegratie, PR #46 documentatie). Appversie `1.20261023.1` is op **24-10-2026 daadwerkelijk uitgerold**: Vercel deployment `dpl_EoR4bf4pjsuJA53aRwQ1nDfcME8K` **READY**, exact dezelfde GitHub-SHA en alle drie bestaande aliassen gekoppeld; anonieme homepage-smoke HTTP 200. Vorige `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9` blijft READY als rollback. Vercel automatische Git-deploytriggers staan uit; releases gebeuren op expliciet mandaat.
 >

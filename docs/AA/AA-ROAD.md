@@ -89,7 +89,9 @@ De enige actieve toekomstige productwaves zijn **PMUX-05 Slimme formulieren en g
 
 PMUX-01 tot en met PMUX-03 en de individuele PMUX-05A/B/C-labels zijn historische capability-/evidenceverwijzingen, geen aparte toekomstige roadmapwaves. Zie [PMUX-03C evidence](../quality/acceptance/runs/PMUX-03C-20261021-LOCAL.md), [PMUX-05A](../quality/acceptance/runs/PMUX-05A-20261022-LOCAL.md) en [PMUX-05B](../quality/acceptance/runs/PMUX-05B-20261022-LOCAL.md).
 
-### WvP / Verzuim — WVP01, volgende Core-wave na PERF01-B2
+### WvP / Verzuim — WVP01, lokale verticale implementatie 26-10-2026
+- **Lokale engineering PASS / Core TEST OPEN:** dossier, 22 systeemmijlpalen, scope-/privacyguards, PMUX-werkitems, werkafspraken, eigen kennisname en herstelbronintegratie op `26e4de91`; 111 gerichte tests PASS. Nieuwe migration alleen lokaal. Zie [acceptatie en TEST-writevoorstel](../quality/acceptance/runs/WVP01-20261026-LOCAL.md).
+- De onderstaande volledige domeinroadmap blijft breder dan deze eerste systeemset; custom-templateorkestratie, RIV-readiness en afwijkende individuele routes zijn niet als voltooid gemarkeerd.
 - hergebruik bestaande `absence_tasks`, milestone-/generator- en casemanagerfoundation;
 - volledige caseworkspace: Overzicht / Tijdlijn / Acties / Dossier / Re-integratie / Historie;
 - versieerbare SYSTEM-milestones, custom/recurring taken en toekomstprojectie;
