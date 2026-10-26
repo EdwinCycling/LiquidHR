@@ -293,6 +293,253 @@ function completePayrollSetup(): PayrollSourceSetup {
 }
 
 describe('LiquidHR Payroll source provider', () => {
+  it('preserves source fingerprints when timeline and Actual Work data are batch-read', async () => {
+    const timeline: PayrollSourceTimeline = {
+      employment: employment(),
+      salaries: [salary()],
+      schedules: [schedule()],
+    }
+    const batchActualWork = actualWork({
+      entries: [actualWorkEntry({ hours: 4 })],
+      types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
+    })
+    const loadTimeline = vi.fn(async () => timeline)
+    const loadTimelineBatch = vi.fn(async () => [timeline])
+    const loadActualWork = vi.fn(async () => batchActualWork)
+    const loadActualWorkBatch = vi.fn(async () => [batchActualWork])
+    const input = { ...request, employmentId }
+    const batchProvider = new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline,
+      loadTimelineBatch,
+      loadActualWork,
+      loadActualWorkBatch,
+    }))
+    const batchResults = await batchProvider.getPayrollSourceSnapshots([input])
+    const single = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => timeline),
+      loadActualWork: vi.fn(async () => batchActualWork),
+    })).getPayrollSourceSnapshot(input)
+    const batchSnapshot = batchResults[0]
+
+    expect(loadTimelineBatch).toHaveBeenCalledWith([{
+      employeeId,
+      employmentId,
+      payrollPeriod: request.payrollPeriod,
+    }])
+    expect(loadTimeline).not.toHaveBeenCalled()
+    expect(loadActualWork).not.toHaveBeenCalled()
+    expect(batchSnapshot?.status).toBe('fulfilled')
+    if (batchSnapshot?.status !== 'fulfilled') throw new Error('BATCH_SOURCE_SNAPSHOT_UNAVAILABLE')
+    expect(batchSnapshot.value.sourceHash).toBe(single.sourceHash)
+    expect(batchSnapshot.value.canonicalSource).toEqual(single.canonicalSource)
+    expect(batchSnapshot.value.sourceVersionVector).toEqual(single.sourceVersionVector)
+    expect(batchSnapshot.value.sourceGaps).toEqual(single.sourceGaps)
+  })
+
+  it('validates employment scope before starting W03 batch reads', async () => {
+    for (const invalidEmployment of [
+      employment({ administration_id: otherAdministrationId }),
+      employment({ starts_on: '2026-10-01' }),
+    ]) {
+      const loadTimelineBatch = vi.fn(async () => [{
+        employment: employment(), salaries: [salary()], schedules: [schedule()],
+      } satisfies PayrollSourceTimeline])
+      const loadActualWorkBatch = vi.fn(async () => [actualWork()])
+      const result = (await new LiquidHrPayrollSourceProvider(dependencies({
+        listEmployments: vi.fn(async () => [invalidEmployment]),
+        loadTimelineBatch,
+        loadActualWorkBatch,
+      })).getPayrollSourceSnapshots([{ ...request, employmentId }]))[0]
+
+      expect(result).toMatchObject({
+        status: 'rejected',
+        reason: { code: 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', status: 404 },
+      })
+      expect(loadTimelineBatch).not.toHaveBeenCalled()
+      expect(loadActualWorkBatch).not.toHaveBeenCalled()
+    }
+  })
+
+  it('checks Retail business scope before starting the W03 Actual Work batch', async () => {
+    const timeline: PayrollSourceTimeline = {
+      employment: employment(),
+      salaries: [salary()],
+      schedules: [schedule()],
+      retailBusinessScope: {
+        tenantId,
+        administrationId: otherAdministrationId,
+        value: 'IN_STORE',
+        sourceClassification: 'SYNTHETIC_FIXTURE',
+        sourceReference: 'SYNTHETIC_FIXTURE:integration scope test',
+        sourceVersion: 'retail-context-v1',
+        effectiveFrom: '2026-01-01',
+        effectiveTo: null,
+      },
+    }
+    const loadActualWorkBatch = vi.fn(async () => [actualWork()])
+    const result = (await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimelineBatch: vi.fn(async () => [timeline]),
+      loadActualWorkBatch,
+    })).getPayrollSourceSnapshots([{ ...request, employmentId }]))[0]
+
+    expect(result).toMatchObject({
+      status: 'rejected',
+      reason: { code: 'PAYROLL_SOURCE_SCOPE_FORBIDDEN', status: 403 },
+    })
+    expect(loadActualWorkBatch).not.toHaveBeenCalled()
+  })
+
+  it('keeps missing Retail interval evidence as SOURCE_GAP on the batched path', async () => {
+    const retailBusinessScope: NonNullable<PayrollSourceTimeline['retailBusinessScope']> = {
+      tenantId,
+      administrationId,
+      value: 'IN_STORE',
+      sourceClassification: 'SYNTHETIC_FIXTURE',
+      sourceReference: 'SYNTHETIC_FIXTURE:integration interval test',
+      sourceVersion: 'retail-context-v1',
+      effectiveFrom: '2026-01-01',
+      effectiveTo: null,
+    }
+    const timeline: PayrollSourceTimeline = {
+      employment: employment(),
+      salaries: [salary()],
+      schedules: [schedule()],
+      laborConditions: [{
+        id: '8d000000-0000-4000-8000-000000000018',
+        condition_group: 'CAO',
+        labor_condition_set_id: '8c000000-0000-4000-8000-000000000018',
+        valid_from: '2026-01-01',
+        valid_until: null,
+        updated_at: '2026-01-01T00:00:00.000Z',
+        set: {
+          id: '8c000000-0000-4000-8000-000000000018',
+          code: 'RETAIL_NON_FOOD_MODE_2026_2027',
+          name: 'Retail Non-Food / Mode 2026-2027',
+          standard_hours_per_week: 38,
+          is_active: true,
+          valid_from: '2026-01-01',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+      }],
+      retailBusinessScope,
+    }
+    const batchActualWork = actualWork({
+      entries: [actualWorkEntry({ hours: 1 })],
+      types: [actualWorkType({ family: 'OVERTIME', code: 'DAILY_OVERTIME', name: 'Overwerk' })],
+    })
+    const result = (await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimelineBatch: vi.fn(async () => [timeline]),
+      loadActualWorkBatch: vi.fn(async () => [batchActualWork]),
+    })).getPayrollSourceSnapshots([{ ...request, employmentId }]))[0]
+
+    expect(result?.status).toBe('fulfilled')
+    if (result?.status !== 'fulfilled') throw new Error('BATCH_SOURCE_SNAPSHOT_UNAVAILABLE')
+    expect(result.value.sourceGaps).toContainEqual({
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE',
+    })
+  })
+
+  it('falls back to established individual reads when a timeline batch is incomplete', async () => {
+    const loadTimeline = vi.fn(async () => ({ employment: employment(), salaries: [salary()], schedules: [schedule()] }))
+    const loadActualWork = vi.fn(async () => actualWork())
+    const loadActualWorkBatch = vi.fn(async () => { throw new Error('BATCH_READ_UNAVAILABLE') })
+    const results = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline,
+      loadTimelineBatch: vi.fn(async () => { throw new Error('BATCH_READ_UNAVAILABLE') }),
+      loadActualWork,
+      loadActualWorkBatch,
+    })).getPayrollSourceSnapshots([{ ...request, employmentId }])
+
+    expect(results[0]?.status).toBe('fulfilled')
+    expect(loadTimeline).toHaveBeenCalledOnce()
+    expect(loadActualWork).toHaveBeenCalledOnce()
+    expect(loadActualWorkBatch).not.toHaveBeenCalled()
+  })
+
+  it('excludes a denied employee from all batch source reads', async () => {
+    const deniedEmployeeId = '41000000-0000-4000-8000-000000000041'
+    const listEmployments = vi.fn(async () => [employment()])
+    const authorize = vi.fn(async (targetEmployeeId: string) => {
+      if (targetEmployeeId === deniedEmployeeId) throw new AuthorizationError('PAYROLL_SOURCE_SCOPE_FORBIDDEN')
+      return { tenantId, hrGroupId, administrationId }
+    })
+    const loadTimelineBatch = vi.fn(async (inputs: readonly { readonly employeeId: string }[]) => {
+      expect(inputs.map((input) => input.employeeId)).toEqual([employeeId])
+      return [{ employment: employment(), salaries: [salary()], schedules: [schedule()] }]
+    })
+    const loadActualWorkBatch = vi.fn(async (inputs: readonly { readonly employeeId: string }[]) => {
+      expect(inputs.map((input) => input.employeeId)).toEqual([employeeId])
+      return [actualWork()]
+    })
+    const results = await new LiquidHrPayrollSourceProvider(dependencies({
+      authorize,
+      listEmployments,
+      loadTimelineBatch,
+      loadActualWorkBatch,
+    })).getPayrollSourceSnapshots([
+      { ...request, employmentId },
+      { ...request, employeeId: deniedEmployeeId, employmentId: '51000000-0000-4000-8000-000000000051' },
+    ])
+
+    expect(results[0]?.status).toBe('fulfilled')
+    expect(results[1]?.status).toBe('rejected')
+    expect(listEmployments).toHaveBeenCalledExactlyOnceWith(employeeId)
+    expect(loadTimelineBatch).toHaveBeenCalledOnce()
+    expect(loadActualWorkBatch).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the Payroll Lab kill switch ahead of all source reads in the batched path', async () => {
+    const deps = dependencies({
+      isEnabled: vi.fn(() => false),
+      authorize: vi.fn(async () => ({ tenantId, hrGroupId, administrationId })),
+      listEmployments: vi.fn(async () => [employment()]),
+      loadTimelineBatch: vi.fn(async () => [{ employment: employment(), salaries: [salary()], schedules: [schedule()] }]),
+      loadActualWorkBatch: vi.fn(async () => [actualWork()]),
+    })
+
+    const result = (await new LiquidHrPayrollSourceProvider(deps)
+      .getPayrollSourceSnapshots([{ ...request, employmentId }]))[0]
+
+    expect(result).toMatchObject({
+      status: 'rejected',
+      reason: { code: 'PAYROLL_SOURCE_DISABLED', status: 503 },
+    })
+    expect(deps.authorize).not.toHaveBeenCalled()
+    expect(deps.listEmployments).not.toHaveBeenCalled()
+    expect(deps.loadTimelineBatch).not.toHaveBeenCalled()
+    expect(deps.loadActualWorkBatch).not.toHaveBeenCalled()
+  })
+
+  it('keeps the individual source fingerprint when Actual Work reads use the scoped batch path', async () => {
+    const batchActualWork = actualWork({
+      entries: [actualWorkEntry({ hours: 4 })],
+      types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
+    })
+    const loadActualWork = vi.fn(async () => { throw new Error('SINGLE_ACTUAL_WORK_READ_SHOULD_NOT_RUN') })
+    const loadActualWorkBatch = vi.fn(async () => [batchActualWork])
+    const authorize = vi.fn(async () => ({ tenantId, hrGroupId, administrationId }))
+    const input = { ...request, employmentId }
+    const batchProvider = new LiquidHrPayrollSourceProvider(dependencies({ loadActualWork, loadActualWorkBatch, authorize }))
+    const batchResults = await batchProvider.getPayrollSourceSnapshots([input])
+    const singleProvider = new LiquidHrPayrollSourceProvider(dependencies({ loadActualWork: async () => batchActualWork }))
+    const single = await singleProvider.getPayrollSourceSnapshot(input)
+    const batchSnapshot = batchResults[0]
+
+    expect(loadActualWorkBatch).toHaveBeenCalledWith([{
+      employeeId,
+      employmentId,
+      month: '2026-09',
+    }], [{ employeeId, tenantId, hrGroupId, administrationId }])
+    expect(loadActualWork).not.toHaveBeenCalled()
+    expect(authorize).toHaveBeenCalledOnce()
+    expect(batchSnapshot?.status).toBe('fulfilled')
+    if (batchSnapshot?.status !== 'fulfilled') throw new Error('BATCH_SOURCE_SNAPSHOT_UNAVAILABLE')
+    expect(batchSnapshot.value.sourceHash).toBe(single.sourceHash)
+    expect(batchSnapshot.value.canonicalSource).toEqual(single.canonicalSource)
+    expect(batchSnapshot.value.sourceVersionVector).toEqual(single.sourceVersionVector)
+    expect(batchSnapshot.value.sourceGaps).toEqual(single.sourceGaps)
+  })
+
   it('projects an effective 1 November CAO scale and only the November work-hours source', async () => {
     const salaryStructureId = '60000000-0000-4000-8000-000000000061'
     const salaryScaleId = '60000000-0000-4000-8000-000000000062'
@@ -1103,7 +1350,7 @@ describe('LiquidHR Payroll source provider', () => {
       taxProfileProjection: projection,
     }))
     const expired = await new LiquidHrPayrollSourceProvider(dependencies({
-      loadTimeline: load(taxProjection({ taxProfiles: [taxProfile({ effective_to: '2026-08-31' })] })),
+      loadTimeline: load(taxProjection({ taxProfiles: [taxProfile({ effective_from: '2026-08-01', effective_to: '2026-08-31' })] })),
     })).getPayrollSourceSnapshot({ ...request, employmentId })
     const conflicting = await new LiquidHrPayrollSourceProvider(dependencies({
       loadTimeline: load(taxProjection({ taxProfiles: [
@@ -1590,6 +1837,18 @@ describe('LiquidHR Payroll source provider', () => {
     expect(deps.loadTimeline).toHaveBeenCalledWith(employeeId, secondEmploymentId, request.payrollPeriod)
   })
 
+  it('validates an explicit employment id against the scoped employment projection', async () => {
+    const scopedDirectoryRead = vi.fn(async () => [employment()])
+    const expected = await new LiquidHrPayrollSourceProvider(dependencies())
+      .getPayrollSourceSnapshot({ ...request, employmentId })
+    const actual = await new LiquidHrPayrollSourceProvider(dependencies({ listEmployments: scopedDirectoryRead }))
+      .getPayrollSourceSnapshot({ ...request, employmentId })
+
+    expect(scopedDirectoryRead).toHaveBeenCalledWith(employeeId)
+    expect(actual.sourceEmploymentId).toBe(employmentId)
+    expect(actual.sourceHash).toBe(expected.sourceHash)
+  })
+
   it('does not let an employment id escape the authorized employee selection', async () => {
     const deps = dependencies({ listEmployments: vi.fn(async () => [employment()]) })
     const provider = new LiquidHrPayrollSourceProvider(deps)
@@ -1598,7 +1857,9 @@ describe('LiquidHR Payroll source provider', () => {
       ...request,
       employmentId: '50000000-0000-4000-8000-000000000055',
     })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', status: 404 })
+    expect(deps.listEmployments).toHaveBeenCalledWith(employeeId)
     expect(deps.loadTimeline).not.toHaveBeenCalled()
+    expect(deps.loadActualWork).not.toHaveBeenCalled()
   })
 
   it('rejects a service read that changes the employment scope between selection and detail load', async () => {
@@ -1771,6 +2032,24 @@ describe('LiquidHR Payroll source provider', () => {
     })
     expect(missingContract.sourceContract.references).toContainEqual(expect.objectContaining({
       sourceType: 'employment_salaries', sourceRowId: salaryId, status: 'SOURCE_GAP',
+    }))
+
+    const impossibleEffectiveDate = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({ valid_from: '2026-02-30' })],
+        schedules: [schedule()],
+      })),
+    })).getPayrollSourceSnapshot(request)
+    expect(impossibleEffectiveDate.sourceGaps).toContainEqual({
+      field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SOURCE_VERSION_EFFECTIVE_RANGE_INVALID',
+    })
+    expect((impossibleEffectiveDate.canonicalSource as {
+      readonly sourceContract: { readonly references: readonly {
+        readonly sourceType: string; readonly status: string
+      }[] }
+    }).sourceContract.references).toContainEqual(expect.objectContaining({
+      sourceType: 'employment_salaries', status: 'SOURCE_GAP',
     }))
 
     const inconsistentVersion = await new LiquidHrPayrollSourceProvider(dependencies({

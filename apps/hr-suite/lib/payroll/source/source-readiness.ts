@@ -1,3 +1,6 @@
+import { FixedDecimal } from '@liquid-hr/payroll-engine'
+import { partTimeFactorMatchesHours, partTimeMonthlySalaryFromHours, type PayrollDecimalInput } from './part-time-reconciliation'
+
 export type PayrollSourceReadinessStatus = 'READY' | 'MISSING' | 'CONFLICT' | 'UNVERIFIED'
 
 export type EffectiveSourceVersion = {
@@ -6,7 +9,6 @@ export type EffectiveSourceVersion = {
   readonly validFrom: string
   readonly validUntilExclusive: string | null
 }
-
 export type EffectiveSourceCoverage = {
   readonly status: PayrollSourceReadinessStatus
   readonly rows: readonly EffectiveSourceVersion[]
@@ -20,7 +22,7 @@ export function canReviewPayrollSourceReadiness(context: {
     && context.permissions.includes('salary:read')
 }
 
-function validDate(value: string): boolean {
+export function isValidPayrollSourceDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
   const date = new Date(`${value}T00:00:00.000Z`)
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
@@ -32,20 +34,20 @@ export function assessEffectiveSourceCoverage(
   periodStart: string,
   periodEndExclusive: string,
 ): EffectiveSourceCoverage {
-  if (!validDate(periodStart) || !validDate(periodEndExclusive) || periodEndExclusive <= periodStart) {
+  if (!isValidPayrollSourceDate(periodStart) || !isValidPayrollSourceDate(periodEndExclusive) || periodEndExclusive <= periodStart) {
     return { status: 'CONFLICT', rows: [] }
   }
 
   const rows = inputRows.filter((row) => {
-    if (!validDate(row.validFrom)
-      || (row.validUntilExclusive !== null && !validDate(row.validUntilExclusive))
+    if (!isValidPayrollSourceDate(row.validFrom)
+      || (row.validUntilExclusive !== null && !isValidPayrollSourceDate(row.validUntilExclusive))
       || (row.validUntilExclusive !== null && row.validUntilExclusive <= row.validFrom)) return true
     return row.validFrom < periodEndExclusive
       && (row.validUntilExclusive === null || row.validUntilExclusive > periodStart)
   }).sort((left, right) => left.validFrom.localeCompare(right.validFrom) || left.id.localeCompare(right.id))
 
-  if (rows.some((row) => !validDate(row.validFrom)
-    || (row.validUntilExclusive !== null && (!validDate(row.validUntilExclusive) || row.validUntilExclusive <= row.validFrom)))) {
+  if (rows.some((row) => !isValidPayrollSourceDate(row.validFrom)
+    || (row.validUntilExclusive !== null && (!isValidPayrollSourceDate(row.validUntilExclusive) || row.validUntilExclusive <= row.validFrom)))) {
     return { status: 'CONFLICT', rows }
   }
   if (rows.length === 0) return { status: 'MISSING', rows }
@@ -73,15 +75,24 @@ export function caoSalaryScheduleConflict(input: {
   readonly salaryBasis: string
   readonly paymentType: string
   readonly paymentFrequency: string
-  readonly fulltimeAmount: number | null
-  readonly parttimeAmount: number | null
-  readonly partTimeFactor: number | null
+  readonly fulltimeAmount: PayrollDecimalInput | null
+  readonly parttimeAmount: PayrollDecimalInput | null
+  readonly partTimeFactor: PayrollDecimalInput | null
+  readonly averageHoursPerWeek: PayrollDecimalInput | null
+  readonly fulltimeHoursPerWeek: PayrollDecimalInput | null
 }): boolean {
   if (input.salaryBasis !== 'CAO_SCALE' || input.paymentType !== 'PERIODIC_FIXED'
     || input.paymentFrequency !== 'MONTHLY' || input.fulltimeAmount === null
-    || input.parttimeAmount === null || input.partTimeFactor === null) return false
-  if (![input.fulltimeAmount, input.parttimeAmount, input.partTimeFactor].every(Number.isFinite)) return false
-  const storedParttimeCents = Math.round(input.parttimeAmount * 100)
-  const rosterAlignedCents = Math.round(input.fulltimeAmount * input.partTimeFactor * 100)
-  return storedParttimeCents !== rosterAlignedCents
+    || input.parttimeAmount === null || input.partTimeFactor === null
+    || input.averageHoursPerWeek === null || input.fulltimeHoursPerWeek === null) return false
+  try {
+    if (!partTimeFactorMatchesHours(input.averageHoursPerWeek, input.fulltimeHoursPerWeek, input.partTimeFactor)) return true
+    const expectedParttime = partTimeMonthlySalaryFromHours(
+      input.fulltimeAmount, input.averageHoursPerWeek, input.fulltimeHoursPerWeek,
+    )
+    const storedParttime = FixedDecimal.parse(String(input.parttimeAmount)).round(2, 'HALF_UP')
+    return expectedParttime.compare(storedParttime) !== 0
+  } catch {
+    return true
+  }
 }

@@ -392,9 +392,11 @@ export default async function EmploymentDetailPage({
       salaryBasis: salaryRowsForPeriod[0]!.salary_basis,
       paymentType: salaryRowsForPeriod[0]!.payment_type,
       paymentFrequency: salaryRowsForPeriod[0]!.payment_frequency,
-      fulltimeAmount: salaryRowsForPeriod[0]!.fulltime_amount === null ? null : Number(salaryRowsForPeriod[0]!.fulltime_amount),
-      parttimeAmount: salaryRowsForPeriod[0]!.parttime_amount === null ? null : Number(salaryRowsForPeriod[0]!.parttime_amount),
-      partTimeFactor: scheduleRowsForPeriod[0]!.part_time_factor === null ? null : Number(scheduleRowsForPeriod[0]!.part_time_factor),
+      fulltimeAmount: salaryRowsForPeriod[0]!.fulltime_amount,
+      parttimeAmount: salaryRowsForPeriod[0]!.parttime_amount,
+      partTimeFactor: scheduleRowsForPeriod[0]!.part_time_factor,
+      averageHoursPerWeek: scheduleRowsForPeriod[0]!.average_hours_per_week,
+      fulltimeHoursPerWeek: scheduleRowsForPeriod[0]!.fulltime_hours_per_week,
     });
   const salaryScheduleComparable = salaryRowsForPeriod.length === 1 && scheduleRowsForPeriod.length === 1
     && salaryRowsForPeriod[0]!.salary_basis === 'CAO_SCALE'
@@ -402,7 +404,9 @@ export default async function EmploymentDetailPage({
     && salaryRowsForPeriod[0]!.payment_frequency === 'MONTHLY'
     && salaryRowsForPeriod[0]!.fulltime_amount !== null
     && salaryRowsForPeriod[0]!.parttime_amount !== null
-    && scheduleRowsForPeriod[0]!.part_time_factor !== null;
+    && scheduleRowsForPeriod[0]!.part_time_factor !== null
+    && scheduleRowsForPeriod[0]!.average_hours_per_week !== null
+    && scheduleRowsForPeriod[0]!.fulltime_hours_per_week !== null;
   const salaryScheduleStatus: PayrollSourceReadinessStatus = salaryScheduleConflict ? 'CONFLICT'
     : salaryCoverage.status !== 'READY' || scheduleCoverage.status !== 'READY'
       ? statusWithPrecedence(salaryCoverage.status, scheduleCoverage.status)

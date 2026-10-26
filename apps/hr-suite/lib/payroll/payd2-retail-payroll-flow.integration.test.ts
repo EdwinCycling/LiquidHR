@@ -14,8 +14,14 @@ import {
   type EmployeePayrollDependencies,
 } from './payroll-professional-service'
 import { servePayrollPayslip } from './payroll-payslip-response'
+import { derivePayd2RetailR2NetIndependentOracle } from './payd2-retail-independent-oracle'
 import type { PayrollScope } from './scope'
-import { createRetailSourceSnapshot, scope as retailScope } from './payd2-retail-source-fixture'
+import {
+  calculateRetailR2SyntheticOracle,
+  createRetailSourceSnapshot,
+  resultAmount,
+  scope as retailScope,
+} from './payd2-retail-source-fixture'
 import type { PayrollSourceSnapshot } from '@liquid-hr/payroll-engine'
 
 const scope: PayrollScope = retailScope
@@ -419,6 +425,7 @@ function employeeReadDependencies(employeeId: string): EmployeePayrollDependenci
 describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
   let r1Snapshot: PayrollSourceSnapshot
   let r2Snapshot: PayrollSourceSnapshot
+  let r2CompleteSnapshot: PayrollSourceSnapshot
   let r1RunId: string
 
   beforeAll(async () => {
@@ -426,6 +433,7 @@ describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
     await store.initialize()
     r1Snapshot = await createRetailSourceSnapshot('R1')
     r2Snapshot = await createRetailSourceSnapshot('R2')
+    r2CompleteSnapshot = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true })
   })
 
   afterAll(async () => await store.close())
@@ -544,19 +552,157 @@ describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
       .rejects.toThrow('PAYROLL_LIFECYCLE_IMMUTABLE')
   }, 30000)
 
-  it('fails R2 closed before a net result or employee dossier artifact can be created', async () => {
+  it('reconciles R2 source hours and still fails closed without a validated fiscal source', async () => {
     const calculation = createEmployeePayrollCalculationService(serviceDependencies([r1Snapshot, r2Snapshot]))
     const result = await calculation.calculateEmployeePayroll({
       employeeId: r2Snapshot.sourceEmployeeId,
       employmentId: r2Snapshot.sourceEmploymentId,
       period: { year: 2026, month: 7 },
     })
-    expect(result.status).toBe('UNSUPPORTED')
+    expect(result.status).toBe('SOURCE_GAP')
     expect(result.runId).toBeNull()
+    expect(result.grossAmount).toBeNull()
     expect(result.netAfterWageTax).toBeNull()
     expect(result.gaps).toEqual(expect.arrayContaining([
-      { field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR' },
+      { field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'VALIDATED_FISCAL_PROFILE_REQUIRED' },
+    ]))
+    expect(result.gaps).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ reasonCode: 'SALARY_DOES_NOT_RECONCILE_TO_PART_TIME_FACTOR' }),
+      expect.objectContaining({ reasonCode: 'SCHEDULE_HOURS_DO_NOT_RECONCILE_TO_PART_TIME_FACTOR' }),
     ]))
     expect(await store.artifactCount()).toBe(1)
+    expect(await store.runCount()).toBe(1)
+  })
+
+  it('keeps R2 blocked in Payroll while the isolated synthetic calculation matches the independent oracle', async () => {
+    const calculation = createEmployeePayrollCalculationService(serviceDependencies([r2CompleteSnapshot]))
+    const input = {
+      employeeId: r2CompleteSnapshot.sourceEmployeeId,
+      employmentId: r2CompleteSnapshot.sourceEmploymentId,
+      period: { year: 2026, month: 7 },
+    }
+    const oracle = derivePayd2RetailR2NetIndependentOracle()
+    const blocked = await calculation.calculateEmployeePayroll(input)
+    expect(blocked.status).toBe('SOURCE_GAP')
+    expect(blocked.runId).toBeNull()
+    expect(blocked.gaps).toContainEqual({
+      field: 'actualWork',
+      status: 'SOURCE_GAP',
+      reasonCode: 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE',
+    })
+    expect(await store.runCount()).toBe(1)
+
+    const first = calculateRetailR2SyntheticOracle(r2CompleteSnapshot)
+    const repeated = calculateRetailR2SyntheticOracle(r2CompleteSnapshot)
+
+    expect([oracle.baseMonthlyGross, oracle.selectedPremiumGross, oracle.gross]).toEqual(['1605.79', '15.44', '1621.23'])
+    expect({
+      gross: resultAmount(first, 'gross_salary'),
+      pensionableWage: resultAmount(first, 'pensionable_wage'),
+      employeePension: resultAmount(first, 'employee_pension'),
+      employerPension: resultAmount(first, 'employer_pension'),
+      taxableWage: resultAmount(first, 'taxable_wage'),
+      employeeInsuranceBase: resultAmount(first, 'employee_insurance_base'),
+      zvwBase: resultAmount(first, 'zvw_base'),
+      wageTax: resultAmount(first, 'wage_tax'),
+      net: resultAmount(first, 'net_salary'),
+      employerAwf: resultAmount(first, 'employer_awf'),
+      employerAof: resultAmount(first, 'employer_aof'),
+      employerWko: resultAmount(first, 'employer_wko'),
+      employerWhk: resultAmount(first, 'employer_whk'),
+      employerZvw: resultAmount(first, 'employer_zvw'),
+      holidayReserve: resultAmount(first, 'holiday_allowance_reserve'),
+      totalEmployerCost: resultAmount(first, 'total_employer_cost'),
+    }).toEqual({
+      gross: oracle.gross,
+      pensionableWage: oracle.monthlyPensionableBase,
+      employeePension: oracle.employeePension,
+      employerPension: oracle.employerPension,
+      taxableWage: oracle.taxableWage,
+      employeeInsuranceBase: oracle.taxableWage,
+      zvwBase: oracle.taxableWage,
+      wageTax: oracle.wageTax,
+      net: oracle.net,
+      employerAwf: oracle.employerRates.awf,
+      employerAof: oracle.employerRates.aof,
+      employerWko: oracle.employerRates.wko,
+      employerWhk: oracle.employerRates.whk,
+      employerZvw: oracle.employerRates.zvw,
+      holidayReserve: oracle.holidayReserve,
+      totalEmployerCost: oracle.totalEmployerCost,
+    })
+    expect(repeated.resultRows).toEqual(first.resultRows)
+    expect(await store.runCount()).toBe(1)
+    expect(await store.artifactCount()).toBe(1)
+  })
+
+  it.each([
+    ['tax', { omitR2FiscalProfile: true }, 'taxProfile'],
+    ['pension', { omitR2PensionSource: true }, 'pension'],
+    ['employer', { omitR2EmployerConfiguration: true }, 'payrollConfiguration'],
+    ['opening cumulative', { omitR2OpeningCumulative: true }, 'pension'],
+    ['contradictory cumulative', { nonZeroR2OpeningCumulative: true }, 'pension'],
+    ['effective date', { invalidR2TaxProfileEffectiveDate: true }, 'taxProfile'],
+    ['source version', { invalidR2TaxProfileVersion: true }, 'taxProfile'],
+  ] as const)('does not admit a synthetic R2 service calculation with missing or invalid %s inputs', async (_name, options, field) => {
+    const snapshot = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true, ...options })
+    const calculation = createEmployeePayrollCalculationService(serviceDependencies([snapshot]))
+    const readiness = await calculation.inspectEmployeePayrollSource({
+      employeeId: snapshot.sourceEmployeeId,
+      employmentId: snapshot.sourceEmploymentId,
+      period: { year: 2026, month: 7 },
+    })
+
+    expect(readiness.eligibleForCalculation).toBe(false)
+    expect(readiness.gaps).toEqual(expect.arrayContaining([expect.objectContaining({ field })]))
+    expect(await store.runCount()).toBe(1)
+  })
+
+  it('does not admit a second actual-work premium path when the single CAO premium source is unavailable', async () => {
+    const snapshot = await createRetailSourceSnapshot('R2', {
+      completeR2PayrollSource: true,
+      businessScope: null,
+    })
+    const calculation = createEmployeePayrollCalculationService(serviceDependencies([snapshot]))
+    const readiness = await calculation.inspectEmployeePayrollSource({
+      employeeId: snapshot.sourceEmployeeId,
+      employmentId: snapshot.sourceEmploymentId,
+      period: { year: 2026, month: 7 },
+    })
+
+    expect(readiness.eligibleForCalculation).toBe(false)
+    expect(readiness.gaps).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: 'actualWork', reasonCode: 'PAYROLL_VARIABLE_WAGE_NOT_CONFIGURED' }),
+    ]))
+    expect(await store.runCount()).toBe(1)
+  })
+
+  it('rejects a complete R2 source snapshot from a foreign tenant before calculation', async () => {
+    const foreignTenantSnapshot = {
+      ...r2CompleteSnapshot,
+      sourceTenantId: '16000000-0000-4000-8000-000000000099',
+    }
+    const calculation = createEmployeePayrollCalculationService(serviceDependencies([foreignTenantSnapshot]))
+
+    await expect(calculation.calculateEmployeePayroll({
+      employeeId: r2CompleteSnapshot.sourceEmployeeId,
+      employmentId: r2CompleteSnapshot.sourceEmploymentId,
+      period: { year: 2026, month: 7 },
+    })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_SCOPE_FORBIDDEN' })
+
+    const foreignEmployeeSnapshot = {
+      ...r2CompleteSnapshot,
+      sourceEmployeeId: '46000000-0000-4000-8000-000000000099',
+    }
+    const mismatchedEmployeeCalculation = createEmployeePayrollCalculationService({
+      ...serviceDependencies([r2CompleteSnapshot]),
+      sourceProvider: { getPayrollSourceSnapshot: async () => foreignEmployeeSnapshot },
+    })
+    await expect(mismatchedEmployeeCalculation.calculateEmployeePayroll({
+      employeeId: r2CompleteSnapshot.sourceEmployeeId,
+      employmentId: r2CompleteSnapshot.sourceEmploymentId,
+      period: { year: 2026, month: 7 },
+    })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_SCOPE_FORBIDDEN' })
+    expect(await store.runCount()).toBe(1)
   })
 })

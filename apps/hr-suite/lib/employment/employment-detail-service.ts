@@ -1,4 +1,5 @@
 import type { Database, Json } from '@scope/db'
+import { cache } from 'react'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
@@ -17,6 +18,9 @@ import type { CompanyLocationMutationInput } from './company-location-schemas'
 import { applySalaryApplicationChange as applySalaryApplicationRouteChange } from '@/lib/salary-application/service'
 import { resolveSalaryStructureIntersection } from '@/lib/salary-application/availability'
 import { getPensionArrangementEstablishedFrom, resolvePensionArrangementVersion } from './pension-arrangement-version'
+import { readPayrollSourcePensionVersionTiers } from './payroll-source-pension-version-tier-reader'
+import { readPayrollSourceQueryCached } from './payroll-source-read-cache'
+import { readPayrollTimelineBatch, type PayrollTimelineTarget } from './payroll-timeline-batch-reader'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
@@ -118,9 +122,24 @@ export type EmploymentIncomeRelationshipProjection = {
 export async function getEmploymentIncomeRelationshipProjection(
   employeeId: string,
   employmentId: string,
+  payrollSourceEmployment?: Pick<Employment, 'id' | 'tenant_id' | 'hr_group_id' | 'administration_id' | 'employee_id'>,
 ): Promise<readonly EmploymentIncomeRelationshipProjection[]> {
-  const employment = await loadEmploymentForAction(employmentId, 'contract:read')
-  if (employment.employee_id !== employeeId) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+  let employment: Pick<Employment, 'id' | 'tenant_id' | 'hr_group_id' | 'administration_id' | 'employee_id'>
+  if (payrollSourceEmployment) {
+    const context = await requirePermission('contract:read', employeeId)
+    if (payrollSourceEmployment.id !== employmentId
+      || payrollSourceEmployment.employee_id !== employeeId
+      || context.tenantId !== payrollSourceEmployment.tenant_id
+      || context.hrGroupId !== payrollSourceEmployment.hr_group_id
+      || context.administrationId !== payrollSourceEmployment.administration_id) {
+      throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+    }
+    employment = payrollSourceEmployment
+  } else {
+    const loadedEmployment = await loadEmploymentForAction(employmentId, 'contract:read')
+    if (loadedEmployment.employee_id !== employeeId) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+    employment = loadedEmployment
+  }
 
   const supabase = await createClient()
   const { data, error } = await supabase.from('employment_income_relationships')
@@ -238,6 +257,47 @@ export async function getEmploymentPayrollSourceProjection(
   employmentId: string,
   payrollPeriod: { readonly year: number; readonly month: number },
 ): Promise<EmploymentPayrollSourceProjection> {
+  return getEmploymentPayrollSourceProjectionWithRows(employeeId, employmentId, payrollPeriod)
+}
+
+/** Hergebruikt begrensde tabelreads; ieder doel doorloopt de normale projectieautorisatie. */
+export async function getEmploymentPayrollSourceProjectionsBatch(
+  inputs: readonly (PayrollTimelineTarget & { readonly payrollPeriod: { readonly year: number; readonly month: number } })[],
+): Promise<readonly EmploymentPayrollSourceProjection[]> {
+  if (inputs.length === 0) return []
+  const first = inputs[0]!
+  if (inputs.some((input) => input.payrollPeriod.year !== first.payrollPeriod.year || input.payrollPeriod.month !== first.payrollPeriod.month)) {
+    throw new EmploymentDetailError('PAYROLL_TIMELINE_BATCH_INVALID', 400)
+  }
+  const contexts = await loadQueriesInBatches(inputs.map((input) => async () => {
+    const context = await requirePermission('salary:read', input.employeeId)
+    await Promise.all([
+      requirePermission('contract:read', input.employeeId),
+      requirePermission('organization-placement:read', input.employeeId),
+      requirePermission('job-catalog:read', input.employeeId),
+    ])
+    return context
+  }), 4)
+  const scope = contexts[0]!
+  if (!scope.hrGroupId || !scope.administrationId || contexts.some((context) =>
+    context.tenantId !== scope.tenantId || context.hrGroupId !== scope.hrGroupId || context.administrationId !== scope.administrationId)) {
+    throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
+  }
+  const authorizedScope = { tenantId: scope.tenantId, hrGroupId: scope.hrGroupId, administrationId: scope.administrationId }
+  const client = await createClient()
+  const groups = Array.from({ length: Math.ceil(inputs.length / 4) }, (_, index) => inputs.slice(index * 4, index * 4 + 4))
+  const rows = (await loadQueriesInBatches(groups.map((group) => () => readPayrollTimelineBatch(client, authorizedScope, group)), 3)).flat()
+  return await loadQueriesInBatches(inputs.map((input, index) => () => getEmploymentPayrollSourceProjectionWithRows(
+    input.employeeId, input.employmentId, input.payrollPeriod, rows[index],
+  )), 12)
+}
+
+async function getEmploymentPayrollSourceProjectionWithRows(
+  employeeId: string,
+  employmentId: string,
+  payrollPeriod: { readonly year: number; readonly month: number },
+  prefetched?: Awaited<ReturnType<typeof readPayrollTimelineBatch>>[number],
+): Promise<EmploymentPayrollSourceProjection> {
   const context = await requirePermission('salary:read', employeeId)
   await Promise.all([
     requirePermission('contract:read', employeeId),
@@ -251,39 +311,36 @@ export async function getEmploymentPayrollSourceProjection(
   const hrGroupId = context.hrGroupId
 
   const supabase = await createClient()
-  const [employmentResult, contractResult, laborResult, organizationResult, salaryResult, scheduleResult, pensionAssignmentResult, laborPensionResult] = await loadQueriesInBatches([
-    () => supabase.from('employments')
+  const [employmentResult, contractResult, laborResult, organizationResult, salaryResult, scheduleResult, pensionAssignmentResult, laborPensionRows] = await loadQueriesInBatches([
+    () => prefetched ? Promise.resolve(prefetched.employmentResult) : supabase.from('employments')
       .select('id, tenant_id, hr_group_id, administration_id, employee_id, starts_on, ends_on, record_status, employment_type, contract_type, original_hire_date, seniority_date, updated_at, deleted_at')
       .eq('id', employmentId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
       .eq('administration_id', administrationId).eq('employee_id', employeeId).maybeSingle(),
-    () => supabase.from('employment_contracts')
+    () => prefetched ? Promise.resolve(prefetched.contractResult) : supabase.from('employment_contracts')
       .select('id, labor_condition_set_id, fulltime_hours_per_week, starts_on, ends_on, updated_at')
       .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('starts_on').limit(100),
-    () => supabase.from('employment_labor_conditions')
+    () => prefetched ? Promise.resolve(prefetched.laborResult) : supabase.from('employment_labor_conditions')
       .select('id, employment_contract_id, condition_group, valid_from, valid_until, updated_at')
       .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('valid_from').limit(100),
-    () => supabase.from('employee_organizations')
+    () => prefetched ? Promise.resolve(prefetched.organizationResult) : supabase.from('employee_organizations')
       .select('id, department_id, job_id, job_title, effective_from, effective_to, updated_at')
       .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('effective_from').limit(100),
-    () => supabase.from('employment_salaries')
+    () => prefetched ? Promise.resolve(prefetched.salaryResult) : supabase.from('employment_salaries')
       .select('id, salary_basis, salary_route, payment_type, payment_frequency, currency_code, fulltime_amount, parttime_amount, hourly_rate, salary_structure_id, salary_scale_id, salary_scale_step_id, salary_step_code, cao_scale_name, cao_step_name, salary_band_id, valid_from, valid_until, updated_at')
       .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('valid_from').limit(100),
-    () => supabase.from('employment_schedules')
+    () => prefetched ? Promise.resolve(prefetched.scheduleResult) : supabase.from('employment_schedules')
       .select('id, average_days_per_week, average_hours_per_week, fulltime_hours_per_week, part_time_factor, schedule_type, is_on_call, start_week, time_for_time_accrual, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, sunday_hours, valid_from, valid_until, updated_at')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId).order('valid_from').limit(100),
-    () => supabase.from('employment_pension_arrangement_assignments')
+    () => prefetched ? Promise.resolve(prefetched.pensionAssignmentResult) : supabase.from('employment_pension_arrangement_assignments')
       .select('id, pension_arrangement_id, effective_from, effective_to, participation_start_date, assignment_reason, provenance_json, updated_at, version_number, supersedes_assignment_id')
       .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
       .eq('employment_id', employmentId).order('effective_from').limit(100),
-    () => supabase.from('labor_condition_pension_arrangements')
-      .select('id, labor_condition_set_id, pension_arrangement_id, participant_group, effective_from, effective_to, provenance_json, version_number, supersedes_mapping_id')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
-      .order('effective_from').limit(100),
+    () => readLaborConditionPensionArrangementsForPayroll(context.tenantId, hrGroupId, administrationId),
   ], 4)
   const failed = ([
     ['employments', employmentResult],
@@ -293,7 +350,6 @@ export async function getEmploymentPayrollSourceProjection(
     ['employment-salaries', salaryResult],
     ['employment-schedules', scheduleResult],
     ['pension-arrangement-assignments', pensionAssignmentResult],
-    ['labor-condition-pension-arrangements', laborPensionResult],
   ] as const).find(([, result]) => result.error)
   if (failed?.[1].error) {
     throwDatabaseError(failed[1].error.message, failed[0], safeDatabaseCode(failed[1].error))
@@ -308,49 +364,69 @@ export async function getEmploymentPayrollSourceProjection(
   const jobIds = [...new Set((organizationResult.data ?? []).flatMap((row) => row.job_id ? [row.job_id] : []))]
   const pensionArrangementIds = [...new Set([
     ...(pensionAssignmentResult.data ?? []).map((row) => row.pension_arrangement_id),
-    ...(laborPensionResult.data ?? []).map((row) => row.pension_arrangement_id),
+    ...laborPensionRows.map((row) => row.pension_arrangement_id),
   ])]
   const payrollStart = `${payrollPeriod.year}-${String(payrollPeriod.month).padStart(2, '0')}-01`
   const payrollEnd = new Date(Date.UTC(payrollPeriod.year, payrollPeriod.month, 0)).toISOString().slice(0, 10)
   const [setsResult, jobsResult, revisionsResult, pensionArrangementsResult, pensionTiersResult,
     pensionVersionsResult] = await loadQueriesInBatches([
     laborSetIds.length > 0
-      ? () => supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week, is_active, valid_from, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).in('id', laborSetIds)
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:labor-condition-sets', context.tenantId, hrGroupId, administrationId, [...laborSetIds].sort()],
+        () => supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week, is_active, valid_from, updated_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).in('id', laborSetIds),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     jobIds.length > 0
-      ? () => supabase.from('jobs').select('id, code, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('id', jobIds)
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:jobs', context.tenantId, hrGroupId, administrationId, [...jobIds].sort()],
+        () => supabase.from('jobs').select('id, code, updated_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('id', jobIds),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     jobIds.length > 0
-      ? () => supabase.from('job_revisions').select('job_id, name, valid_from, valid_until, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('job_id', jobIds).order('valid_from')
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:job-revisions', context.tenantId, hrGroupId, administrationId, [...jobIds].sort()],
+        () => supabase.from('job_revisions').select('job_id, name, valid_from, valid_until, updated_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('job_id', jobIds).order('valid_from'),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     pensionArrangementIds.length > 0
-      ? () => supabase.from('pension_arrangements')
-        .select('id, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, provenance_json, is_active, updated_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
-        .in('id', pensionArrangementIds)
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:pension-arrangements', context.tenantId, hrGroupId, administrationId, [...pensionArrangementIds].sort()],
+        () => supabase.from('pension_arrangements')
+          .select('id, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, provenance_json, is_active, updated_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
+          .in('id', pensionArrangementIds),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     pensionArrangementIds.length > 0
-      ? () => supabase.from('pension_arrangement_tiers')
-        .select('id, pension_arrangement_id, min_age, max_age, total_rate, created_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
-        .in('pension_arrangement_id', pensionArrangementIds).order('min_age')
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:pension-arrangement-tiers', context.tenantId, hrGroupId, administrationId, [...pensionArrangementIds].sort()],
+        () => supabase.from('pension_arrangement_tiers')
+          .select('id, pension_arrangement_id, min_age, max_age, total_rate, created_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
+          .in('pension_arrangement_id', pensionArrangementIds).order('min_age'),
+      )
       : () => Promise.resolve({ data: [], error: null }),
     pensionArrangementIds.length > 0
-      ? () => supabase.from('pension_arrangement_versions')
-        .select('id, tenant_id, hr_group_id, administration_id, pension_arrangement_id, version_number, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, contract_classification, contract_classification_provenance, provenance_json, is_active, created_at')
-        .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
-        .in('pension_arrangement_id', pensionArrangementIds).order('version_number')
+      ? () => readPayrollSourceQueryCached(
+        ['payroll-source:pension-arrangement-versions', context.tenantId, hrGroupId, administrationId, [...pensionArrangementIds].sort()],
+        () => supabase.from('pension_arrangement_versions')
+          .select('id, tenant_id, hr_group_id, administration_id, pension_arrangement_id, version_number, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, contract_classification, contract_classification_provenance, provenance_json, is_active, created_at')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
+          .in('pension_arrangement_id', pensionArrangementIds).order('version_number'),
+      )
       : () => Promise.resolve({ data: [], error: null }),
   ], 4)
   const pensionVersionIds = (pensionVersionsResult.data ?? []).map((version) => version.id)
   const pensionVersionTiersLoaded = pensionVersionIds.length > 0
-    ? await supabase.from('pension_arrangement_version_tiers')
-      .select('id, tenant_id, hr_group_id, administration_id, pension_arrangement_id, pension_arrangement_version_id, min_age, max_age, total_rate, created_at')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('administration_id', context.administrationId)
-      .in('pension_arrangement_version_id', pensionVersionIds).order('min_age')
+    ? await readPayrollSourcePensionVersionTiers(
+      context.tenantId,
+      hrGroupId,
+      administrationId,
+      pensionVersionIds.join(','),
+    )
     : { data: [], error: null }
   const catalogFailure = ([
     ['labor-condition-sets', setsResult],
@@ -503,7 +579,7 @@ export async function getEmploymentPayrollSourceProjection(
       age_for_tier: arrangement ? pensionAge(arrangement) : null,
     }
   })
-  const laborConditionPensionArrangements = (laborPensionResult.data ?? []).map((row) => {
+  const laborConditionPensionArrangements = laborPensionRows.map((row) => {
     const resolved = resolveArrangement(row.pension_arrangement_id)
     return {
       ...row,
@@ -591,6 +667,20 @@ function throwDatabaseError(message: string, sourceCategory?: string, databaseCo
     : code.includes('CONFLICT') || code.includes('LATEST') || code.includes('REMAINING') ? 409 : 400
   throw new EmploymentDetailError(code, status, sourceCategory, databaseCode)
 }
+
+const readLaborConditionPensionArrangementsForPayroll = cache(async (
+  tenantId: string,
+  hrGroupId: string,
+  administrationId: string,
+) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('labor_condition_pension_arrangements')
+    .select('id, labor_condition_set_id, pension_arrangement_id, participant_group, effective_from, effective_to, provenance_json, version_number, supersedes_mapping_id')
+    .eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)
+    .order('effective_from').limit(100)
+  if (error) throwDatabaseError(error.message, 'labor-condition-pension-arrangements', safeDatabaseCode(error))
+  return data ?? []
+})
 
 export async function getEmploymentDetail(
   employeeId: string,

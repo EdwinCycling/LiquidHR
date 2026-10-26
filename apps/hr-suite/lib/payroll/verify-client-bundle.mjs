@@ -4,7 +4,14 @@ import { fileURLToPath } from 'node:url'
 import nextEnv from '@next/env'
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const staticRoot = join(appRoot, '.next', 'static')
+const configuredDistDir = process.env.LIQUIDHR_NEXT_DIST_DIR
+const supportedDistDirs = [
+  '.next/payrun01-acceptance-20261009',
+  '.next/payrun01-acceptance',
+  '.next/payrun01',
+]
+const distDir = supportedDistDirs.includes(configuredDistDir) ? configuredDistDir : '.next'
+const staticRoot = join(appRoot, distDir, 'static')
 const markers = [
   'PAYROLL_LAB_ENABLED',
   'PAYROLL_SUPABASE_URL',

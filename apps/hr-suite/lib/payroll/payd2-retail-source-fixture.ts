@@ -75,12 +75,90 @@ export const PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS = {
   },
 } as const
 
+export const PAYW02B_R2_OFFICIAL_SOURCE_PINS = {
+  cao: {
+    version: 'Cao Retail Non-Food, definitieve versie juli 2026',
+    appliesFrom: '2026-07-01',
+    appliesThrough: '2027-06-30',
+    url: 'https://www.inretail.nl/wp-content/uploads/2026/05/260527-Cao-Retail-Non-Food-juli-2026-def.pdf',
+    sha256: 'ec6fd7a8ee7c3b1f18f58ac6cc5081d6a72e053405480e346eb8a4c7d1e1d2cc',
+  },
+  taxRules: {
+    version: 'Belastingdienst Rekenvoorschriften loonadministratie 2026 januari v2',
+    appliesFrom: '2026-01-01',
+    appliesThrough: '2026-12-31',
+    url: 'https://download.belastingdienst.nl/belastingdienst/docs/rekenvoorschriften_voor_geautomatiseerde_loonadministratie_lh991z62fd.pdf',
+    sha256: '283c1857d923e8cc9ed7d0a33ae6f6c0c8f35db6c886d67ee2289324cfe58a03',
+  },
+  taxParameters: {
+    version: 'Belastingdienst parameterbijlage loonadministratie 2026 januari',
+    appliesFrom: '2026-01-01',
+    appliesThrough: '2026-12-31',
+    url: 'https://download.belastingdienst.nl/belastingdienst/docs/bijlage_rekenvoorschr_voor_geauto_loonadm_pdf_lh991b61fd.pdf',
+    sha256: 'fb64f97320f4e7241a2d8c8cf13540579282e5f34156be986f540eb8dbd5ab48',
+  },
+  whiteMonthlyTable: {
+    version: 'Belastingdienst Witte Maandloon-tabel Nederland Standaard v01, januari 2026',
+    appliesFrom: '2026-01-01',
+    appliesThrough: '2026-12-31',
+    url: 'https://download.belastingdienst.nl/belastingdienst/dl/rekenhulpen/loonheffing/2026/v01/pdf/wit_mnd_nl_std_20260101.pdf',
+    sha256: 'c959d65273e18a1a2fdf33562fd34e31d45d3bca0f260ea232815d28e69284dc',
+  },
+  pensionPremium: {
+    version: 'Pensioenfonds Detailhandel Premieoverzicht 2026',
+    appliesFrom: '2026-01-01',
+    appliesThrough: '2026-12-31',
+    url: 'https://pensioenfondsdetailhandel.nl/content/Publicaties/Rekenvoorbeelden/Premieoverzicht-2026.pdf',
+    sha256: '494bc0fb3c3136d0048c053339a5e40cfb79d4620d37be791d7f738e95508f3d',
+  },
+  pensionVcr: {
+    version: 'Pensioenfonds Detailhandel Rekenvoorbeelden 2026 VCR-maandmethode',
+    appliesFrom: '2026-01-01',
+    appliesThrough: '2026-12-31',
+    url: 'https://pensioenfondsdetailhandel.nl/content/Publicaties/Rekenvoorbeelden/Rekenvoorbeelden-2026.pdf',
+    sha256: '5a2cb3d329a1aef6c4e521448c70540501dc290e73648f36f6df87143a4cb16f',
+  },
+  pensionObligation: {
+    version: 'Pensioenfonds Detailhandel verplichtstelling; werkgeversinformatie',
+    appliesFrom: '2026-01-01',
+    appliesThrough: '2026-12-31',
+    url: 'https://pensioenfondsdetailhandel.nl/werkgever-en-administratiekantoor/situaties-en-wijzigingen/verplichtstelling',
+    sha256: '76a5a8e8b26aeefddf362262ff72bc576f57a8c38c69fd38df2bb7fcf5de70a9',
+  },
+} as const
+
+const PAYW02B_R2_PENSION_TERMS = {
+  version: 'BPF-DETAILHANDEL-2026-v1',
+  totalRate: 24.75,
+  maximumEmployeeSharePercent: 25,
+  employerSharePercent: 75,
+  annualFranchise: 18_680,
+  annualPensionableSalaryCap: 79_409,
+  employeeRate: '6.1875',
+  employerRate: '18.5625',
+} as const
+
+const PAYW02B_R2_EMPLOYER_PARAMETERS = {
+  version: 'SYNTHETIC-R2-EMPLOYER-2026-v1',
+  rates: { awf: '2.74', aof: '6.27', wko: '0.50', whk: '1.93', zvw: '6.10' },
+  holidayAllowanceRate: '8.00',
+  yearEndRate: '0.00',
+} as const
+
 export type RetailCase = 'R1' | 'R2'
 export type SnapshotOptions = {
   readonly businessScope?: CaoRetailBusinessScope | null
   readonly eCommerceNight?: boolean
   readonly omitR1FiscalProfile?: boolean
   readonly nonZeroR1Opening?: boolean
+  readonly completeR2PayrollSource?: boolean
+  readonly omitR2FiscalProfile?: boolean
+  readonly omitR2PensionSource?: boolean
+  readonly omitR2EmployerConfiguration?: boolean
+  readonly omitR2OpeningCumulative?: boolean
+  readonly nonZeroR2OpeningCumulative?: boolean
+  readonly invalidR2TaxProfileEffectiveDate?: boolean
+  readonly invalidR2TaxProfileVersion?: boolean
 }
 export const scope = {
   tenantId: '16000000-0000-4000-8000-000000000061',
@@ -117,7 +195,8 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
   const ids = sourceIds(caseCode)
   const employeeId = ids.employee
   const r1 = caseCode === 'R1'
-  const firstEmploymentDate = r1 ? '2026-07-01' : '2026-01-01'
+  const completeR2 = !r1 && options.completeR2PayrollSource === true
+  const firstEmploymentDate = r1 || completeR2 ? '2026-07-01' : '2026-01-01'
   const employment: PayrollSourceEmployment = {
     id: ids.employment,
     tenant_id: scope.tenantId,
@@ -193,10 +272,12 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     has_special_situation: false,
     payroll_tax_credit_applies: true,
     source_classification: 'HR_ADMIN_CONFIRMED',
-    source_reference: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; fictional NL resident under AOW age with loonheffingskorting on this single IKV',
-    effective_from: firstEmploymentDate,
+    source_reference: completeR2
+      ? 'SYNTHETIC_FIXTURE:PAY-W02B-R2-NET-ORACLE-01; fictional NL resident under AOW age with loonheffingskorting on this single IKV'
+      : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; fictional NL resident under AOW age with loonheffingskorting on this single IKV',
+    effective_from: completeR2 && options.invalidR2TaxProfileEffectiveDate ? '2026-02-30' : firstEmploymentDate,
     effective_to: null,
-    version_number: 1,
+    version_number: completeR2 && options.invalidR2TaxProfileVersion ? 0 : 1,
     supersedes_profile_id: null,
     confirmed_by_user_id: ids.employee,
     confirmed_at: `${firstEmploymentDate}T09:30:00.000Z`,
@@ -224,7 +305,11 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     participant_group: 'NEW_ENTRANT',
     effective_from: '2026-01-01',
     effective_to: '2026-12-31',
-    provenance_json: { status: 'USER_RECORDED', sourceClassification: 'SYNTHETIC_FIXTURE', fixtureId: 'PAYD2-RETAIL-02' },
+    provenance_json: {
+      status: 'USER_RECORDED',
+      sourceClassification: 'SYNTHETIC_FIXTURE',
+      fixtureId: completeR2 ? 'PAY-W02B-R2-NET-ORACLE-01' : 'PAYD2-RETAIL-02',
+    },
     version_number: 1,
     supersedes_mapping_id: null,
     arrangement: null,
@@ -241,10 +326,12 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     provenance_json: {
       status: 'USER_RECORDED',
       sourceClassification: 'SYNTHETIC_FIXTURE',
-      fixtureId: 'PAYD2-RETAIL-02',
+      fixtureId: completeR2 ? 'PAY-W02B-R2-NET-ORACLE-01' : 'PAYD2-RETAIL-02',
       laborConditionMappingId: pensionMapping.id,
       laborConditionMappingVersion: pensionMapping.version_number,
-      obligationAssumption: 'Fictional clothing retailer meets the Retail Non-Food scope and is not exempt; legal applicability for a real employer is not established.',
+      obligationAssumption: completeR2
+        ? 'Synthetic test stipulates pension participation for calculation only; real employer or employee applicability remains SOURCE_GAP.'
+        : 'Fictional clothing retailer meets the Retail Non-Food scope and is not exempt; legal applicability for a real employer is not established.',
     },
     updated_at: `${firstEmploymentDate}T09:35:00.000Z`,
     version_number: 1,
@@ -262,34 +349,38 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
       effective_to: '2026-12-31',
       transition_date: null,
       grandfathering_mode: 'NONE',
-      flat_total_rate: 24.75,
-      employer_share_pct: 75,
-      employee_share_pct: 25,
-      annual_franchise: 18680,
-      annual_pensionable_salary_cap: 79409,
+      flat_total_rate: completeR2 ? PAYW02B_R2_PENSION_TERMS.totalRate : 24.75,
+      employer_share_pct: completeR2 ? PAYW02B_R2_PENSION_TERMS.employerSharePercent : 75,
+      employee_share_pct: completeR2 ? PAYW02B_R2_PENSION_TERMS.maximumEmployeeSharePercent : 25,
+      annual_franchise: completeR2 ? PAYW02B_R2_PENSION_TERMS.annualFranchise : 18680,
+      annual_pensionable_salary_cap: completeR2 ? PAYW02B_R2_PENSION_TERMS.annualPensionableSalaryCap : 79409,
       pensionable_salary_definition: {
         method: 'BPF_DETAILHANDEL_2026_VCR',
         annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
         basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
         floorAtZero: true,
         firstPeriodOnly: true,
-        vcrSource: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelVcr,
-        premiumSource: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelRates,
+        vcrSource: completeR2 ? PAYW02B_R2_OFFICIAL_SOURCE_PINS.pensionVcr : PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelVcr,
+        premiumSource: completeR2 ? PAYW02B_R2_OFFICIAL_SOURCE_PINS.pensionPremium : PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelRates,
       },
       eligibility_rule: { participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01' },
       contract_classification: 'UNKNOWN' as const,
       contract_classification_provenance: { status: 'NOT_USED_FOR_FLAT_PREMIUM_FIRST_PERIOD' },
       provenance_json: {
         status: 'SYNTHETIC_FIXTURE',
-        fixtureId: 'PAYD2-RETAIL-02',
+        fixtureId: completeR2 ? 'PAY-W02B-R2-NET-ORACLE-01' : 'PAYD2-RETAIL-02',
         officialSources: {
-          premium: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelRates,
-          vcr: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelVcr,
-          obligation: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelObligation,
-          cao: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.cao,
+          premium: completeR2 ? PAYW02B_R2_OFFICIAL_SOURCE_PINS.pensionPremium : PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelRates,
+          vcr: completeR2 ? PAYW02B_R2_OFFICIAL_SOURCE_PINS.pensionVcr : PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelVcr,
+          obligation: completeR2 ? PAYW02B_R2_OFFICIAL_SOURCE_PINS.pensionObligation : PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.bpfDetailhandelObligation,
+          cao: completeR2 ? PAYW02B_R2_OFFICIAL_SOURCE_PINS.cao : PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.cao,
         },
-        selectedContributionSplit: 'Official 2026 maximum employee share 6.1875%; fictional employer allocates remaining 18.5625% to itself.',
-        calculationScope: 'One full first monthly period with zero opening cumulative; annual multi-period VCR reconciliation is not asserted.',
+        selectedContributionSplit: completeR2
+          ? 'BPF Detailhandel 2026 total rate and maximum employee share are source-pinned; this synthetic scenario allocates the remaining share to the employer.'
+          : 'Official 2026 maximum employee share 6.1875%; fictional employer allocates remaining 18.5625% to itself.',
+        calculationScope: completeR2
+          ? 'One full July 2026 first period for a synthetic 2026-07-01 employment with an explicit zero opening cumulative; no real applicability is asserted.'
+          : 'One full first monthly period with zero opening cumulative; annual multi-period VCR reconciliation is not asserted.',
       },
       is_active: true,
       version_id: ids.pensionVersion,
@@ -303,24 +394,34 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
   const retailFullPackage = createPayfull02RulePackage('CUSTOMER_STANDARD', {
     supportPartialPeriods: true,
     supportCaoExactGross: true,
-    ...(r1 ? { allocatePensionRoundingRemainderToEmployer: true } : {}),
+    ...(r1 || completeR2 ? { allocatePensionRoundingRemainderToEmployer: true } : {}),
   })
-  const configuration = r1 ? assertActivePayrollEmployerConfiguration({
+  const hasPayrollConfiguration = (r1 || completeR2)
+    && !(completeR2 && options.omitR2EmployerConfiguration)
+  const configuration = hasPayrollConfiguration ? assertActivePayrollEmployerConfiguration({
     schemaVersion: 'payroll-employer-configuration-v1',
     effectiveFrom: '2026-01-01',
     effectiveTo: null,
     status: 'ACTIVE',
-    sourceReference: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; fictitious small clothing retailer, permanent written contract, sector 17 and assumed no employer exemption',
+    sourceReference: completeR2
+      ? 'SYNTHETIC_FIXTURE:PAY-W02B-R2-NET-ORACLE-01; fictional small Retail Non-Food employer with stipulated classifications and employer rates; not a real employer decision'
+      : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; fictitious small clothing retailer, permanent written contract, sector 17 and assumed no employer exemption',
     employer: {
       sectorCode: '17',
-      whkDecisionReference: 'SYNTHETIC-WHK-2026-RETAIL-17-SMALL',
+      whkDecisionReference: completeR2 ? 'SYNTHETIC-WHK-PAY-W02B-R2-2026-v1' : 'SYNTHETIC-WHK-2026-RETAIL-17-SMALL',
       awfClassification: 'LOW',
       aofClassification: 'AOF-01',
       wkoClassification: 'WKO-01',
       zvwClassification: 'EMPLOYER_LEVY',
     },
-    employerRates: { awf: '2.74', aof: '6.27', wko: '0.50', whk: '1.93', zvw: '6.10' },
-    reserves: { holidayAllowanceRate: '8.00', yearEndApplies: false, yearEndRate: '0.00' },
+    employerRates: completeR2
+      ? PAYW02B_R2_EMPLOYER_PARAMETERS.rates
+      : { awf: '2.74', aof: '6.27', wko: '0.50', whk: '1.93', zvw: '6.10' },
+    reserves: {
+      holidayAllowanceRate: completeR2 ? PAYW02B_R2_EMPLOYER_PARAMETERS.holidayAllowanceRate : '8.00',
+      yearEndApplies: false,
+      yearEndRate: completeR2 ? PAYW02B_R2_EMPLOYER_PARAMETERS.yearEndRate : '0.00',
+    },
     componentSet: {
       compositionId: retailFullPackage.compositionId,
       packageVersion: retailFullPackage.metadata?.version ?? '2026.1',
@@ -328,7 +429,9 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     },
     pension: {
       partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA',
-      methodSourceReference: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; full July period, new employment starts on 2026-07-01',
+      methodSourceReference: completeR2
+        ? 'SYNTHETIC_FIXTURE:PAY-W02B-R2-NET-ORACLE-01; full July period and synthetic employment starts on 2026-07-01'
+        : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; full July period, new employment starts on 2026-07-01',
     },
   }) : null
   const configurationRow = configuration ? {
@@ -353,7 +456,7 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     sourcePeriodTo: '2026-06-29',
     asOfDate: '2026-06-30',
     meaning: {
-      grossWageBeforePeriod: options.nonZeroR1Opening ? '1.00' : '0.00',
+      grossWageBeforePeriod: options.nonZeroR1Opening || options.nonZeroR2OpeningCumulative ? '1.00' : '0.00',
       taxableWageBeforePeriod: '0.00',
       wageTaxBeforePeriod: '0.00',
       employeeInsuranceWageBeforePeriod: '0.00',
@@ -361,9 +464,11 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
       holidayReserveBeforePeriod: '0.00',
       yearEndReserveBeforePeriod: '0.00',
     },
-    sourceReference: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; zero opening cumulative before fictional first employment/IKV on 2026-07-01',
+    sourceReference: completeR2
+      ? 'SYNTHETIC_FIXTURE:PAY-W02B-R2-NET-ORACLE-01; explicitly zero opening cumulative before the first July 2026 payroll period'
+      : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; zero opening cumulative before fictional first employment/IKV on 2026-07-01',
   }
-  const openingBalance = r1 ? {
+  const openingBalance = (r1 || completeR2) && !(completeR2 && options.omitR2OpeningCumulative) ? {
     id: ids.openingCumulative,
     payroll_administration_id: scope.administrationId,
     source_tenant_id: scope.tenantId,
@@ -386,6 +491,8 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     openingBalance,
   }
   const defaultBusinessScope = options.eCommerceNight ? {
+    tenantId: scope.tenantId,
+    administrationId: scope.administrationId,
     value: 'ECOMMERCE',
     sourceClassification: 'SYNTHETIC_FIXTURE',
     sourceReference: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-01; case stipulates an e-commerce activity scope',
@@ -393,6 +500,8 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     effectiveFrom: '2026-01-01',
     effectiveTo: null,
   } as const satisfies CaoRetailBusinessScope : {
+    tenantId: scope.tenantId,
+    administrationId: scope.administrationId,
     value: 'IN_STORE',
     sourceClassification: 'SYNTHETIC_FIXTURE',
     sourceReference: caseCode === 'R1'
@@ -433,10 +542,12 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
       },
     }],
     incomeRelationships: [incomeRelationship],
-    ...(r1 ? {
-      ...(!options.omitR1FiscalProfile ? { taxProfileProjection } : {}),
-      pensionAssignments: [pensionAssignment],
-      laborConditionPensionArrangements: [pensionMapping],
+    ...(r1 || completeR2 ? {
+      ...(!options.omitR1FiscalProfile && !(completeR2 && options.omitR2FiscalProfile) ? { taxProfileProjection } : {}),
+      ...(!completeR2 || !options.omitR2PensionSource ? {
+        pensionAssignments: [pensionAssignment],
+        laborConditionPensionArrangements: [pensionMapping],
+      } : {}),
     } : {}),
     ...(businessScope ? { retailBusinessScope: businessScope } : {}),
   }
@@ -526,6 +637,7 @@ export async function createRetailSourceSnapshot(
   options: SnapshotOptions = {},
 ): Promise<PayrollSourceSnapshot> {
   const fixture = createSnapshotFixture(caseCode, options)
+  const completeR2 = caseCode === 'R2' && options.completeR2PayrollSource === true
   const source = await new LiquidHrPayrollSourceProvider(fixture.dependencies).getPayrollSourceSnapshot({
     ...scope,
     employeeId: fixture.employeeId,
@@ -572,6 +684,41 @@ export async function createRetailSourceSnapshot(
           stipulation: 'One overtime hour overlaps the night hour and one overlaps the Sunday hour.',
         },
       } : {}),
+      ...(completeR2 ? {
+        officialRuleSources: PAYW02B_R2_OFFICIAL_SOURCE_PINS,
+        syntheticPayrollInputs: {
+          fixtureId: 'PAY-W02B-R2-NET-ORACLE-01',
+          sourceClassification: 'SYNTHETIC_FIXTURE',
+          legalConformityClaim: false,
+          employmentStartsOn: '2026-07-01',
+          period: '2026-07',
+          wageTaxRuleVersion: 'NL-2026-01',
+          pensionRuleVersion: 'BPF-DETAILHANDEL-2026-v1',
+          employerRuleVersion: 'SYNTHETIC-R2-EMPLOYER-2026-v1',
+          realEmployerAndPensionApplicability: 'SOURCE_GAP',
+          realEmployeeFiscalDeclarations: 'SOURCE_GAP',
+          actualWorkIntervalEvidence: 'SYNTHETIC_FIXTURE_ONLY; no Core interval, timezone, pause, or correction source is asserted',
+          openingCumulatives: options.omitR2OpeningCumulative
+            ? 'MISSING'
+            : options.nonZeroR2OpeningCumulative ? 'AMBIGUOUS' : 'EXPLICIT_ZERO_FIRST_PERIOD',
+          dependencyMatrix: [
+            { field: 'employment-period-hours', status: 'AVAILABLE', version: 'SYNTHETIC-R2-EMPLOYMENT-2026-07-v1' },
+            { field: 'fulltime-parttime-salary', status: 'AVAILABLE', version: 'SYNTHETIC-R2-SALARY-2026-07-v1' },
+            { field: 'cao-salary-premium-rules', status: 'AVAILABLE', version: 'CAO-RETAIL-NON-FOOD-2026.7' },
+            { field: 'fiscal-parameters', status: 'AVAILABLE', version: 'NL-2026-01' },
+            { field: 'employee-tax-declarations', status: options.omitR2FiscalProfile
+              || options.invalidR2TaxProfileEffectiveDate || options.invalidR2TaxProfileVersion ? 'MISSING' : 'AVAILABLE', version: 'SYNTHETIC-R2-FISCAL-PROFILE-v1' },
+            { field: 'pension-arrangement-base-franchise-rates', status: options.omitR2PensionSource ? 'MISSING' : 'AVAILABLE', version: 'BPF-DETAILHANDEL-2026-v1' },
+            { field: 'employer-contributions-and-reserves', status: options.omitR2EmployerConfiguration ? 'MISSING' : 'AVAILABLE', version: 'SYNTHETIC-R2-EMPLOYER-2026-v1' },
+            { field: 'opening-cumulative-values', status: options.omitR2OpeningCumulative
+              ? 'MISSING'
+              : options.nonZeroR2OpeningCumulative ? 'AMBIGUOUS' : 'AVAILABLE', version: 'SYNTHETIC-R2-OPENING-2026-07-v1' },
+            { field: 'real-actual-work-intervals', status: 'MISSING', version: 'NOT_BOUND' },
+            { field: 'net-reimbursements-and-deductions', status: 'AVAILABLE', version: 'SYNTHETIC-R2-NET-ITEMS-2026-07-v1' },
+            { field: 'real-employer-and-pension-applicability', status: 'MISSING', version: 'NOT_BOUND' },
+          ],
+        },
+      } : {}),
     },
   }
   const hashInput = {
@@ -614,6 +761,33 @@ export function calculateRetailR1(snapshot: PayrollSourceSnapshot) {
     },
     calculationContextHash: sha256(stableSerialize({
       fixtureId: 'PAYD2-RETAIL-02-R1',
+      sourceHash: snapshot.sourceHash,
+    })),
+  })
+  return calculatePayroll(inputs, PAYFULL02_RULE_REGISTRY)
+}
+
+/** Pure arithmetic oracle for the synthetic R2 fixture; it does not enter Payroll service or lifecycle. */
+export function calculateRetailR2SyntheticOracle(snapshot: PayrollSourceSnapshot) {
+  const provenance = canonical(snapshot).caseProvenance as Record<string, unknown> | undefined
+  const syntheticPayrollInputs = provenance?.syntheticPayrollInputs as Record<string, unknown> | undefined
+  if (syntheticPayrollInputs?.fixtureId !== 'PAY-W02B-R2-NET-ORACLE-01') {
+    throw new Error('PAYW02B_R2_SYNTHETIC_ORACLE_FIXTURE_REQUIRED')
+  }
+  const rulePackage = createPayfull02RulePackage('CUSTOMER_STANDARD', {
+    supportPartialPeriods: true,
+    supportCaoExactGross: true,
+    allocatePensionRoundingRemainderToEmployer: true,
+  })
+  const inputs = buildCalculationInputs(snapshot, rulePackage, {
+    effectiveDate: '2026-07-01',
+    scopeInstanceIds: {
+      EMPLOYEE: snapshot.sourceEmployeeId,
+      EMPLOYMENT: snapshot.sourceEmploymentId,
+      INCOME_RELATIONSHIP: snapshot.sourceIncomeRelationshipId ?? '',
+    },
+    calculationContextHash: sha256(stableSerialize({
+      fixtureId: 'PAY-W02B-R2-NET-ORACLE-01',
       sourceHash: snapshot.sourceHash,
     })),
   })
