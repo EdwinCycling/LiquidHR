@@ -31,6 +31,24 @@ Gebruik de werkelijk lopende `127.0.0.1:<poort>`-URL van de PAYFULL-worktree. Ee
 
 Dit is lokale branchfunctionaliteit; PR #33 is Draft, niet naar `main` gemerged en niet opnieuw op Vercel gedeployed.
 
+## 2a. Drie schermen zelf testen — productacceptatie (2026-10-16)
+
+**Algemeen:** dit zijn routes van de lokale PAYFULL-ontwikkelbranch onder de bestaande geautoriseerde TEST-login, geen bewijs dat de functies al naar `main`/Vercel zijn gereleased. De laatst bekende werkende poort is 3022, maar moet via de lokale launcher worden bevestigd. Herhaal niet de al vastgestelde `ERR_BLOCKED_BY_CLIENT`-PDF-beperking van de ChatGPT in-app-browser als nieuwe ontwikkeliteratie.
+
+| Rol | Route | Wat je moet kunnen controleren | Actuele bewijsgrens |
+| --- | --- | --- | --- |
+| HR Admin, administratie Mars BV | `/settings/payroll/fiscal` | Loonheffingennummer + historische registraties, IKV-gereedheid, aantal aanwezige/ontbrekende fiscale profielen, zoeken/filteren en doorklik naar dienstverband | De pagina bestaat; de beschikbare fiscale data verschillen per administratie. |
+| HR Admin, gekozen medewerker + dienstverband | `/employees/<employeeId>/employments/<employmentId>/fiscal?tab=taxes` | Fiscaal jaar 2026, land NL, witte maandtabel, STD, maand, LHK aan/uit, geldigheidsdatum en profielhistorie; eventuele HR Admin-vastlegging is een versioned write | Tabbladen `insurance`, `taxBenefit` en `zvw` melden momenteel expliciet dat de volledige berekening daar nog niet beschikbaar is. BSN/identiteitsgegevens horen op de beveiligde medewerkerpersoonsgegevensroute, niet in een publiek testrapport. |
+| Employee (Mars DEMO-002 testpersona) | `/local/personas` → `/my-salary?period=2026-10` | Alleen eigen €3.534 bruto/€2.141,36 netto, bruto-nettodetails, loonstrookacties, salarisontwikkeling, pensioen en cumulatieven | De salariskaart is live gezien. De persistente PDF-route is code-/routetested; de ChatGPT in-app-browser blokkeerde live bijlageweergave, dus zichtbare inline preview blijft OPEN. DEMO-001 heeft geen zelfstandige employee-persona. |
+| HR Admin, Mars BV | `/payroll` → `/payroll/runs?period=2026-10` | Administratie, maandselectie, bestaande runs en per-run detail; in een `OPEN` periode medewerkers aanvinken en conceptberekening starten; per run controles, CONCEPT/REVIEWED/FINALIZED, bestand en trace | Maandcyclus heeft `DRAFT`/`OPEN`/`CLOSED`; runrevisie heeft eigen lifecycle. De roostersectie toont voor algemene gevallen nog een onvolledige nettoberekening bij bron-/componentgaten; niet iedere geselecteerde medewerker krijgt automatisch een complete strook. |
+
+**Voorbeelddetails voor Mars:**
+- DEMO-001-fiscaal dossier: `/employees/6f2e2302-748f-8684-0ce6-1b29702d5d92/employments/8b0ceb1c-1aa1-84f4-9231-87ec2be1ff94/fiscal?tab=taxes`; FINALIZED-run `/payroll/runs/731e2a73-af7c-59d6-af88-5d0455c68374`.
+- DEMO-002-fiscaal dossier: `/employees/1620bd56-4f74-db62-9f9e-a5ce1d286bc5/employments/6236ee34-182d-1676-6635-ad8eed4c21f3/fiscal?tab=taxes`; FINALIZED-run `/payroll/runs/48f47ffd-191c-5cbb-a22a-9061a2b7e5c3`.
+- Gebruik `/local/sign-in` als TEST-login; wissel via `/local/personas` terug naar de bevoegde HR Admin voor medewerkers- en loonrunbeheer.
+
+**Huidige UX-gap voor PAYRUN-03:** de batchworkbench kan een periode kiezen/openen, medewerkers selecteren en hun berekeningen op een lijst tonen. Het is nog niet aantoonbaar één volledige zakelijke maandafsluitworkflow met per medewerker overzicht `nog niet / concept / te beoordelen / definitief / opnieuw uitvoeren`, bronwijzigingsdetectie, gecontroleerde rerun/revisie en exceptionprioritering zoals in de eerder gedeelde voorbeeldschermen. Vastgelegde FINALIZED-runs blijven immutable; herbereken alleen in een nieuwe revisie. De drie schermen hierboven eerst handmatig bekijken en concrete afwijkingen/screenshots noteren voordat deze nieuwe UX wordt gebouwd.
+
 ## 3. Dekkingsgrens
 
 - **Voor twee specifieke scenario's ja:** reguliere volledige maand, witte tabel, standaard Nederland/onder AOW, geen LHK, versiebewuste synthetische pensioen- en werkgeverslasten, cumulatieven en PDF.
@@ -44,6 +62,7 @@ Dit is lokale branchfunctionaliteit; PR #33 is Draft, niet naar `main` gemerged 
 | --- | --- | --- |
 | P0 | **PAYFULL-02D — ESS/PDF-closeout (PARTIAL)** | Twee persistente artifactrecords geverifieerd. Route levert opgeslagen PDF-bytes en viewer toont bij timeout een foutmelding met retry; echte inline PDF-render en live downloadgelijkheid van de nieuwe route blijven OPEN door browserbeperking. DEMO-001 eigen ESS-identiteit is een apart besluit, geen admin-omkoppeling. |
 | P1 | **PAYCASE-03 — variaties** | Nieuwe gecontroleerde TEST-medewerkers/cases: LHK aan/uit, deeltijd/gebroken tijdvak, reguliere variabele beloning en bijzondere beloning, meerdere IKV's; officiële onafhankelijke fiscale oracles en run-/PDF-regressies. |
+| P1 | **CAO-PAYFULL-01 — Kinderopvang K2** | Eén afgebakende echte cao-naar-PAYFULL-case: 24/36 uur, schaal 6/salarisnummer 12, vier zondaguren, €1.911,74 getoond bruto (2026-09); onafhankelijke netto-oracle, gecontroleerde lifecycle en persistente PDF. Reconcileer oude CAO-BENCH02-code eerst zonder blinde merge; dit is geen volledige cao-dekking. |
 | P1 | **PAYRUN-03 — payroll by exception** | Herhaalbare maandcyclus, controles/werkvoorraad, correcties en revisies; stabiele manager-/HR Admin-/ESS-grenzen. |
 | P2 | **PAYDOC-02 en fiscale jaarafsluiting** | Jaaropgaaf, periodeoverstijgende cumulatieven en 2027-regels na officiële bronset/independent oracle. |
 | Later | **Betalingen en loonaangifte** | Alleen na afzonderlijke product-/compliancebesluiten; CONTROL02 XML-import blijft CANCELLED. Geen echte betalings- of aangiftestroom in TEST. |
