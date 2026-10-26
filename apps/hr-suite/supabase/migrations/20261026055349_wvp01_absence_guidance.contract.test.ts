@@ -42,7 +42,16 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
       create function internal_security.current_employee_is_preboarding(uuid,uuid) returns boolean language sql stable as $$ select coalesce(current_setting('test.preboarding',true),'false')='true' $$;
       create function internal_security.can_manage_employee(uuid,text) returns boolean language sql stable as $$ select auth.uid()='${hr}' or (auth.uid()='${manager}' and $1='${employee}') $$;
       create function internal_security.process_scope_has_permission(uuid,uuid,text,uuid,text) returns boolean language sql stable as $$ select $1='${tenant}' and $2='${group}' and $4='${admin}' and auth.uid() in ('${hr}','${manager}') $$;
-      create function internal_security.audit_hr_change() returns trigger language plpgsql as $$ begin return new; end $$;
+      create table public.audit_logs(
+        id uuid primary key default gen_random_uuid(),tenant_id uuid not null,administration_id uuid,
+        entity_name text not null,entity_id uuid not null,actor_user_id uuid,action text not null,
+        changes jsonb not null,created_at timestamptz not null default now()
+      );
+      create function internal_security.audit_hr_change() returns trigger language plpgsql as $$
+        declare audit_entity_id uuid; begin
+          if tg_op='DELETE' then audit_entity_id:=old.id; else audit_entity_id:=new.id; end if;
+          return new;
+        end $$;
       create table public.process_work_item_notes(id uuid,work_item_id uuid,body text);
       create function public.start_process(uuid,uuid,uuid,date,text,uuid) returns jsonb language plpgsql as $$ declare i uuid:=gen_random_uuid();s uuid; begin
         insert into public.process_instances values(i,'${tenant}','${group}','RUNNING',$5,$1);
@@ -98,12 +107,69 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
     await actor(hr)
     for (const args of [[id(90),group,admin],[tenant,id(90),admin],[tenant,group,id(90)]]) await expect(db.query('select public.wvp_command($1,$2,$3,$4::jsonb)',[...args,JSON.stringify({action:'START',caseId,processDefinitionId:definition})])).rejects.toThrow('WVP_FORBIDDEN')
   })
+  it('reproduceert SQLSTATE 42703 transactioneel en rolt de mislukte processtart terug',async () => {
+    await actor(hr)
+    await db.exec('begin;')
+    try {
+      await db.exec(`do $$
+        declare failed_state text;
+        begin
+          begin
+            perform public.wvp_command('${tenant}'::uuid,'${group}'::uuid,'${admin}'::uuid,
+              jsonb_build_object('caseId','${caseId}','action','START','processDefinitionId','${definition}'));
+          exception when others then
+            get stacked diagnostics failed_state = returned_sqlstate;
+          end;
+          if failed_state is distinct from '42703' then
+            raise exception 'Expected audit SQLSTATE 42703, received %', failed_state;
+          end if;
+          perform set_config('test.audit_failure_sqlstate',failed_state,false);
+        end $$;`)
+      expect((await db.query<{ value:string }>("select current_setting('test.audit_failure_sqlstate') value")).rows[0].value).toBe('42703')
+      expect((await db.query('select * from public.absence_guidance')).rows).toHaveLength(0)
+      expect((await db.query('select * from public.audit_logs')).rows).toHaveLength(0)
+    } finally {
+      await db.exec('rollback;')
+    }
+  })
+  it('bindt uitsluitend de WVP-audittriggers aan de casesleutelhelper',async () => {
+    await db.exec(readFileSync(new URL('./20261026172808_wvp01_guidance_audit_case_id.sql',import.meta.url),'utf8'))
+    const triggers=await db.query<{tgname:string; proname:string}>(`select trigger.tgname, procedure.proname
+      from pg_trigger trigger join pg_proc procedure on procedure.oid=trigger.tgfoid
+      where trigger.tgrelid in ('public.absence_guidance'::regclass,'public.absence_guidance_events'::regclass)
+        and not trigger.tgisinternal and trigger.tgname like 'audit_absence_guidance%' order by trigger.tgname`)
+    expect(triggers.rows).toEqual([
+      {tgname:'audit_absence_guidance',proname:'audit_wvp_guidance_change'},
+      {tgname:'audit_absence_guidance_events',proname:'audit_wvp_guidance_change'}
+    ])
+    expect((await db.query<{allowed:boolean}>("select has_function_privilege('authenticated','internal_security.audit_wvp_guidance_change()','EXECUTE') allowed")).rows[0].allowed).toBe(false)
+    expect((await db.query<{relrowsecurity:boolean}>("select relrowsecurity from pg_class where relname in ('absence_guidance','absence_guidance_events')")).rows.every(r=>r.relrowsecurity)).toBe(true)
+  })
   it('start eenmaal, ook bij tweede actor en herhaalde aanvraag',async () => {
     await actor(hr); const first=await command({action:'START',processDefinitionId:definition})
     await actor(manager); expect(await command({action:'START',processDefinitionId:definition})).toBe(first)
     expect((await db.query('select * from public.absence_guidance')).rows).toHaveLength(1)
     expect((await list(hr,caseId))[0].tasks).toHaveLength(22)
     expect((await db.query<{deadline_at: string}>('select deadline_at from public.process_work_items')).rows[0].deadline_at).toBeTruthy()
+    const eventId=(await db.query<{id:string}>("select id from public.absence_guidance_events where event_type='STARTED'")).rows[0].id
+    const audits=await db.query<{entity_name:string; entity_id:string; administration_id:string|null; actor_user_id:string|null; action:string; changes:{before:Record<string,unknown>; after:Record<string,unknown>}}>(
+      'select entity_name,entity_id,administration_id,actor_user_id,action,changes from public.audit_logs order by created_at,id')
+    const guidanceAudits=audits.rows.filter(entry=>entry.entity_name==='absence_guidance')
+    expect(guidanceAudits.map(entry=>entry.action).sort()).toEqual(['CREATE','UPDATE'])
+    for(const entry of guidanceAudits){ expect(entry.entity_id).toBe(caseId); expect(entry.administration_id).toBe(admin); expect(entry.actor_user_id).toBe(hr) }
+    const created=guidanceAudits.find(entry=>entry.action==='CREATE')!
+    const updated=guidanceAudits.find(entry=>entry.action==='UPDATE')!
+    expect(created.changes.after.case_id).toBe(caseId)
+    expect(updated.changes.after.process_instance_id).toBe(first)
+    expect(updated.changes.before.process_instance_id).not.toBe(first)
+    const eventAudit=audits.rows.find(entry=>entry.entity_name==='absence_guidance_event')!
+    expect(eventAudit.action).toBe('CREATE')
+    expect(eventAudit.entity_id).toBe(eventId)
+    expect(eventAudit.administration_id).toBe(admin)
+    expect(eventAudit.actor_user_id).toBe(hr)
+    expect(eventAudit.changes.after.case_id).toBe(caseId)
+    expect(JSON.stringify(audits.rows)).not.toMatch(/diagnosis|treatment|medical|cause/i)
+    expect(audits.rows).toHaveLength(3)
   })
   it('weigert vrije tekst op RPC- en tabelniveau',async () => {
     await actor(hr)
