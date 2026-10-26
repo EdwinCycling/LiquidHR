@@ -338,9 +338,9 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
   return <section aria-label={projection.title} className={embedded ? 'min-w-0' : 'mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10'}>
     <header className={embedded ? 'border-b border-border pb-4' : 'rounded-[var(--radius-surface)] border border-border bg-panel p-6 sm:p-8'}>
       <p className="eyebrow text-primary">{participantLabel ?? projection.participantKey}</p>
-      <Heading className={embedded ? 'mt-2 text-xl font-semibold tracking-tight' : 'mt-2 text-3xl font-semibold tracking-tight'}>{projection.title}</Heading>
-      {projection.description ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{projection.description}</p> : null}
-      {saveExplanation ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{saveExplanation}</p> : null}
+      <Heading className={embedded ? 'mt-2 break-words text-xl font-semibold tracking-tight' : 'mt-2 break-words text-3xl font-semibold tracking-tight'}>{projection.title}</Heading>
+      {projection.description ? <p className="mt-3 max-w-3xl break-words text-sm leading-6 text-muted-foreground">{projection.description}</p> : null}
+      {saveExplanation ? <p className="mt-3 max-w-3xl break-words text-sm leading-6 text-muted-foreground">{saveExplanation}</p> : null}
       <p aria-live="polite" className="mt-5 min-h-5 text-sm text-muted-foreground">{saveStatus}</p>
     </header>
 
@@ -351,10 +351,10 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
 
     <form className={embedded ? 'mt-5 min-w-0' : 'mt-6 flex max-h-[calc(100vh-14rem)] min-h-[28rem] flex-col overflow-hidden rounded-[var(--radius-surface)] border border-border bg-panel'} onSubmit={(event) => { event.preventDefault(); void save() }}>
       <div className={embedded ? 'min-w-0' : 'min-w-0 flex-1 overflow-y-auto p-4 sm:p-6'} onScroll={(event) => { const element = event.currentTarget; setHasMoreBelow(element.scrollTop + element.clientHeight < element.scrollHeight - 8) }} ref={scrollRef}>
-        <div className="grid gap-6">
-          {projection.sections.map((section) => <fieldset className="rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:p-5" key={section.key}>
-            <legend className="px-1 text-xl font-semibold">{section.title}</legend>
-            <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <div className="grid min-w-0 gap-6">
+          {projection.sections.map((section) => <fieldset className="min-w-0 rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:p-5" key={section.key}>
+            <legend className="max-w-full break-words px-1 text-xl font-semibold">{section.title}</legend>
+            <div className="mt-5 grid min-w-0 gap-5 md:grid-cols-2">
               {section.fields.map((field) => {
                 const error = visibleErrors[field.key]
                 const current = displayFormValue(field.currentValue, valueLabels)
@@ -362,9 +362,9 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
                 const isReadOnly = field.accessMode === 'READ'
                 const describedBy = [field.helpText ? `form-help-${field.key}` : '', error ? `form-error-${field.key}` : ''].filter(Boolean).join(' ') || undefined
                 const fieldClass = field.type === 'LONG_TEXT' || field.type === 'MULTI_SELECT' ? 'md:col-span-2' : ''
-                return <div className={`grid gap-2 ${fieldClass}`} key={field.key}>
-                  {field.type === 'MULTI_SELECT' ? null : <label className="text-sm font-semibold" htmlFor={`form-field-${field.key}`}>{field.label}{field.required ? <span aria-hidden="true" className="ml-1 text-danger">*</span> : null}</label>}
-                  {field.type !== 'MULTI_SELECT' && field.helpText ? <p className="text-sm text-muted-foreground" id={`form-help-${field.key}`}>{field.helpText}</p> : null}
+                return <div className={`grid min-w-0 gap-2 ${fieldClass}`} key={field.key}>
+                  {field.type === 'MULTI_SELECT' ? null : <label className="break-words text-sm font-semibold" htmlFor={`form-field-${field.key}`}>{field.label}{field.required ? <span aria-hidden="true" className="ml-1 text-danger">*</span> : null}</label>}
+                  {field.type !== 'MULTI_SELECT' && field.helpText ? <p className="break-words text-sm text-muted-foreground" id={`form-help-${field.key}`}>{field.helpText}</p> : null}
                   {field.type === 'MULTI_SELECT' ? <fieldset aria-describedby={describedBy} className="grid gap-2 rounded-[var(--radius-control)] border border-border p-3" id={`form-field-${field.key}`}>
                     <legend className="px-1 text-sm font-semibold">{field.label}{field.required ? <span aria-hidden="true" className="ml-1 text-danger">*</span> : null}</legend>
                     {field.helpText ? <p className="text-sm text-muted-foreground" id={`form-help-${field.key}`}>{field.helpText}</p> : null}
@@ -374,10 +374,10 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
                   </fieldset>
                     : isReadOnly ? <div className="grid gap-3 rounded-[var(--radius-control)] bg-panel-soft p-3 text-sm sm:grid-cols-2" aria-label={labels.readOnly}><p className="font-semibold text-muted-foreground sm:col-span-2">{labels.readOnly}</p><div><p className="text-muted-foreground">{labels.currentValue}</p><p className="mt-1 font-medium">{current}</p></div><div><p className="text-muted-foreground">{labels.newValue}</p><p className="mt-1 font-medium">{displayFormValue(field.newValue, valueLabels)}</p></div></div>
                     : isReferenceType(field.type) ? <ReferencePicker describedBy={describedBy} field={field} invalid={Boolean(error)} language={locale} labels={{ referenceSearch: labels.referenceSearch, referenceLoading: labels.referenceLoading, referenceNoOptions: labels.referenceNoOptions }} onBlur={() => { validateField(field.key) }} onChange={(nextValue) => setFieldValue(field.key, nextValue)} value={value} workItemId={projection.workItemId} />
-                      : field.type === 'LONG_TEXT' ? <textarea className="form-field min-h-28" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.value)} value={inputValue(value)} />
+                      : field.type === 'LONG_TEXT' ? <textarea className="form-field min-h-28 min-w-0 w-full" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.value)} value={inputValue(value)} />
                           : field.type === 'BOOLEAN' ? <label className="flex items-center gap-3 rounded-[var(--radius-control)] border border-border p-3 text-sm"><input aria-describedby={describedBy} aria-invalid={Boolean(error)} checked={value === true} id={`form-field-${field.key}`} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.checked)} type="checkbox" /><span>{field.label}</span></label>
-                          : field.type === 'SINGLE_SELECT' ? <select className="form-field" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.value)} value={inputValue(value)}><option value="">{labels.noValue}</option>{field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
-                            : <input className="form-field" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, fieldValue(field.type, event.target.value))} onInput={(event) => setFieldValue(field.key, fieldValue(field.type, event.currentTarget.value))} type={field.type === 'DATE' ? 'date' : field.type === 'TIME' ? 'time' : field.type === 'DATETIME' ? 'datetime-local' : field.type === 'INTEGER' || field.type === 'DECIMAL' || field.type === 'MONEY' ? 'number' : 'text'} value={inputValue(value)} />}
+                          : field.type === 'SINGLE_SELECT' ? <select className="form-field min-w-0 w-full" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, event.target.value)} value={inputValue(value)}><option value="">{labels.noValue}</option>{field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+                            : <input className="form-field min-w-0 w-full" id={`form-field-${field.key}`} aria-describedby={describedBy} aria-invalid={Boolean(error)} onBlur={() => { validateField(field.key) }} onChange={(event) => setFieldValue(field.key, fieldValue(field.type, event.target.value))} onInput={(event) => setFieldValue(field.key, fieldValue(field.type, event.currentTarget.value))} type={field.type === 'DATE' ? 'date' : field.type === 'TIME' ? 'time' : field.type === 'DATETIME' ? 'datetime-local' : field.type === 'INTEGER' || field.type === 'DECIMAL' || field.type === 'MONEY' ? 'number' : 'text'} value={inputValue(value)} />}
                   {field.type !== 'MULTI_SELECT' && error ? <p className="text-sm text-danger" id={`form-error-${field.key}`}>{error}</p> : null}
                 </div>
               })}
@@ -385,10 +385,10 @@ export function FormRuntimeRenderer({ initialProjection, locale, labels, embedde
           </fieldset>)}
         </div>
       </div>
-      <footer className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-panel/95 p-4 backdrop-blur sm:px-6">
+      <footer className="sticky bottom-0 z-10 flex flex-col items-stretch justify-between gap-3 border-t border-border bg-panel/95 p-4 backdrop-blur sm:flex-row sm:items-center sm:px-6">
         {hasMoreBelow ? <p className="basis-full text-xs text-muted-foreground" role="status">{labels.scrollHint}</p> : null}
         <span aria-live="polite" className="min-h-5 text-sm text-muted-foreground">{saveStatus}</span>
-        <button className={embedded ? 'button-secondary' : 'button-primary'} disabled={!dirty || saveState === 'saving' || saveState === 'stale'} onClick={() => { void save() }} type="submit">{labels.save}</button>
+        <button className={`${embedded ? 'button-secondary' : 'button-primary'} w-full justify-center sm:w-auto`} disabled={!dirty || saveState === 'saving' || saveState === 'stale'} onClick={() => { void save() }} type="submit">{labels.save}</button>
       </footer>
     </form>
   </section>

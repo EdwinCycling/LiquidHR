@@ -80,6 +80,27 @@ describe('ProcessWorkWorkspace', () => {
     expect(markup).not.toContain('shadow-sm')
   })
 
+  it('keeps task cards and filters usable through tablet widths before showing the desktop table', () => {
+    const markup = renderWorkspace({ items: [item], total: 1, hasMore: false })
+
+    expect(markup).toContain('grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3')
+    expect(markup).toContain('hidden xl:block')
+    expect(markup).toContain('xl:hidden')
+    expect(markup).toContain('<nav aria-label="Werk" class="mt-4 flex min-w-0 flex-wrap gap-2">')
+    expect(markup).not.toContain('tabs-scroll overflow-x-auto')
+    expect(markup).toContain('w-full justify-center sm:w-auto')
+    expect(markup).toContain('Documentkennisname')
+    expect(markup).toContain('Geen deadline')
+    expect(markup).not.toContain('truncate text-base font-semibold text-foreground')
+  })
+
+  it('allows workspace start actions to wrap within a tablet-width content column', () => {
+    const markup = renderWorkspace({ items: [item], total: 1, hasMore: false })
+
+    expect(markup).toContain('<div class="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">')
+    expect(markup).not.toContain('<div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">')
+  })
+
   it('labels urgency counts as belonging to the current page', () => {
     const overdueItem = { ...item, deadlineAt: '2020-01-01T08:00:00.000Z', deadlineStatus: 'OVERDUE' as const, deadlineRemainingSeconds: -60, isOverdue: true }
     const markup = renderWorkspace({ items: [overdueItem], total: 30, hasMore: true })

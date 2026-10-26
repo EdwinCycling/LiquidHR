@@ -100,13 +100,36 @@ describe('ProcessWorkDetailView', () => {
     }))
 
     expect(markup.match(/<h1(?:\s|>)/g)?.length).toBe(1)
-    expect(markup).toContain('<h2 class="mt-2 text-xl font-semibold tracking-tight">Opleidingsgegevens</h2>')
+    expect(markup).toContain('<h2 class="mt-2 break-words text-xl font-semibold tracking-tight">Opleidingsgegevens</h2>')
     expect(markup).toContain('Manager')
     expect(markup).toContain('Naam opleiding')
     expect(markup).toContain('button-secondary')
     expect(markup).not.toContain('training_request_form')
     expect(markup).not.toContain('max-h-[calc(100vh-14rem)]')
     expect(markup).not.toContain('overflow-y-auto')
+  })
+
+  it('keeps task actions reachable while the responsive detail and history columns stack', () => {
+    const markup = renderToStaticMarkup(createElement(ProcessWorkDetailView, {
+      detail: { ...detail, deadlineAt: '2026-10-26T12:00:00.000Z', deadlineStatus: 'NEAR_DUE', deadlineRemainingSeconds: 3600 },
+      experience,
+      form,
+      outputs: null,
+      operations: null,
+      locale: 'nl',
+      timeZone: 'Europe/Amsterdam',
+      labels,
+      assignmentOptions: [],
+      backHref: '/work?view=WORK',
+    }))
+
+    expect(markup).toContain('sticky bottom-0 z-20')
+    expect(markup).toContain('role="group"')
+    expect(markup).toContain('grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]')
+    expect(markup).toContain('Waarom deze taak')
+    expect(markup).toContain('Historie')
+    expect(markup).toContain('dateTime="2026-10-26T12:00:00.000Z"')
+    expect(markup).toContain('Open')
   })
 
   it.each([

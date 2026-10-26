@@ -96,12 +96,12 @@ export function DocumentAcknowledgementStartForm({ data, labels }: { readonly da
   }
 
   return <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-10">
-    <header className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-6 sm:p-8">
+    <header className="min-w-0 rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-4 sm:p-8">
       <p className="eyebrow text-primary">{data.recipe.recipeKey}</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">{labels.title}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.description}</p>
     </header>
-    <form className="mt-6 flex min-h-[26rem] flex-col overflow-hidden rounded-2xl border border-border bg-surface" onSubmit={(event) => { event.preventDefault(); void start() }}>
+    <form className="mt-6 flex min-h-[26rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface" onSubmit={(event) => { event.preventDefault(); void start() }}>
       <div className="min-w-0 flex-1 space-y-6 overflow-y-auto p-5 sm:p-7">
         <section aria-labelledby="document-acknowledgement-start-subject">
           <h2 className="text-xl font-semibold" id="document-acknowledgement-start-subject">{labels.employee}</h2>
@@ -111,9 +111,9 @@ export function DocumentAcknowledgementStartForm({ data, labels }: { readonly da
           </div>
         </section>
       </div>
-      <footer className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface/95 p-4 backdrop-blur sm:px-7">
-        <button className="button-secondary" onClick={() => router.push('/work')} type="button">{labels.back}</button>
-        <button className="button-primary" disabled={busy} type="submit">{busy ? labels.starting : labels.start}</button>
+      <footer className="sticky bottom-0 z-10 flex flex-col items-stretch justify-between gap-3 border-t border-border bg-surface/95 p-4 backdrop-blur sm:flex-row sm:items-center sm:px-7">
+        <button className="button-secondary w-full justify-center sm:w-auto" onClick={() => router.push('/work')} type="button">{labels.back}</button>
+        <button className="button-primary w-full justify-center sm:w-auto" disabled={busy} type="submit">{busy ? labels.starting : labels.start}</button>
         {error ? <p aria-live="polite" className="basis-full text-sm font-medium text-danger" role="alert">{error}</p> : null}
       </footer>
     </form>
