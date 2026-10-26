@@ -35,6 +35,10 @@ Doel: één gecontroleerde releaseflow en geen iteratiehel.
 
 Alle routes behouden privacy, audit, RLS, secrets, migratiebescherming en een non-force integratie met exacte SHA-provenance. Een FAST-aanpassing aan enkel de **presentatie** van een consent-scherm is niet automatisch CONTROLLED; wijziging van weergegeven rechten, scopes of betekenis kan dat wel zijn.
 
+### PMUX-SECURITY-AUTHORIZATION-HARDENING-01 — 26-10-2026
+
+Deze auth-/schemawijziging volgt **CONTROLLED**. De lokale contracttest, TypeScript, ESLint en diff-check zijn de lokale engineeringgate. TEST-acceptatie vereist daarnaast een apart migratieakkoord, readback van SQL-objecten en grants, en positieve/negatieve directe-RPC- en persona-scopeproeven. Core TEST bevat de migration nog niet. De Vercel TEST-deployment blijft ongewijzigd; READY-status en targetmetadata vervangen exacte source-SHA- en geauthenticeerde securityacceptatie niet. Dit lokale werk autoriseert geen push of deployment.
+
 ## 1. Scheiding feature versus release
 
 Featurebranches:
