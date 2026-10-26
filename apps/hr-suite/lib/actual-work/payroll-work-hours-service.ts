@@ -126,11 +126,13 @@ async function requireOpenPayrollPeriod(scope: AdminScope, payrollPeriodId: stri
   const period = (await listPayrollPeriodOptions(scope)).find((candidate) => candidate.id === payrollPeriodId)
   if (!period) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_UNAVAILABLE', 409, 'SOURCE_GAP')
   if (period.status !== 'OPEN') throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_CLOSED', 409)
-  if ((period.periodicity === 'FOUR_WEEKLY' && dateDifferenceDays(period.startsOn, period.endsOn) !== 27)
-    || (period.periodicity === 'MONTHLY' && (period.startsOn !== firstOfMonth(period.startsOn) || period.endsOn !== lastOfMonth(period.startsOn)))) {
-    throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_BOUNDS_INVALID', 409, 'SOURCE_GAP')
-  }
+  if (!payrollPeriodBoundsValid(period)) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_BOUNDS_INVALID', 409, 'SOURCE_GAP')
   return period
+}
+
+function payrollPeriodBoundsValid(period: PayrollPeriodOption): boolean {
+  return (period.periodicity === 'FOUR_WEEKLY' && dateDifferenceDays(period.startsOn, period.endsOn) === 27)
+    || (period.periodicity === 'MONTHLY' && period.startsOn === firstOfMonth(period.startsOn) && period.endsOn === lastOfMonth(period.startsOn))
 }
 
 function sha256(value: string): string {
@@ -238,6 +240,7 @@ function sourceKey(scope: AdminScope, row: CsvRow): string {
 }
 
 async function validateCsv(scope: AdminScope, rawRows: readonly CsvRow[]): Promise<CheckedCsvRow[]> {
+  const payrollPeriods = await listPayrollPeriodOptions(scope)
   const employeesResult = await scope.supabase.from('employees')
     .select('id,employee_number')
     .eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId)
@@ -255,6 +258,10 @@ async function validateCsv(scope: AdminScope, rawRows: readonly CsvRow[]): Promi
   for (const row of rawRows) {
     const employee = employeeByNumber.get(row.employeeNumber)
     const workType = types.find((item) => item.code === row.workHourTypeCode)
+    const matchingPayrollPeriods = validRealDate(row.payrollPeriodStart)
+      ? payrollPeriods.filter((period) => period.startsOn === row.payrollPeriodStart)
+      : []
+    const payrollPeriod = matchingPayrollPeriods.length === 1 ? matchingPayrollPeriods[0] : undefined
     let error: string | null = null
     let resolvedEmploymentId: string | undefined
     if (row.malformedColumns) error = 'ACTUAL_WORK_CSV_COLUMN_COUNT_INVALID'
@@ -262,7 +269,12 @@ async function validateCsv(scope: AdminScope, rawRows: readonly CsvRow[]): Promi
     else if (!workType) error = 'ACTUAL_WORK_CSV_TYPE_NOT_FOUND'
     else if (!validRealDate(row.subjectPeriodStart) || !validRealDate(row.subjectPeriodEnd) || row.subjectPeriodEnd <= row.subjectPeriodStart) error = 'ACTUAL_WORK_CSV_PERIOD_INVALID'
     else if (row.granularity === 'DAY' && row.subjectPeriodEnd !== addDays(row.subjectPeriodStart, 1)) error = 'ACTUAL_WORK_CSV_DAY_INVALID'
-    else if (!monthStart(row.payrollPeriodStart)) error = 'ACTUAL_WORK_CSV_PAYROLL_PERIOD_INVALID'
+    else if (!validRealDate(row.payrollPeriodStart)) error = 'ACTUAL_WORK_CSV_PAYROLL_PERIOD_INVALID'
+    else if (matchingPayrollPeriods.length === 0) error = 'ACTUAL_WORK_PAYROLL_PERIOD_UNAVAILABLE'
+    else if (matchingPayrollPeriods.length > 1) error = 'ACTUAL_WORK_PAYROLL_PERIOD_AMBIGUOUS'
+    else if (!payrollPeriod || payrollPeriod.status !== 'OPEN') error = 'ACTUAL_WORK_PAYROLL_PERIOD_CLOSED'
+    else if (!payrollPeriodBoundsValid(payrollPeriod)) error = 'ACTUAL_WORK_PAYROLL_PERIOD_BOUNDS_INVALID'
+    else if (row.subjectPeriodStart < payrollPeriod.startsOn || row.subjectPeriodEnd > addDays(payrollPeriod.endsOn, 1)) error = 'ACTUAL_WORK_PAYROLL_ENTRY_PERIOD_MISMATCH'
     else if (!workType.is_active || workType.valid_from > row.subjectPeriodStart || (workType.valid_until && workType.valid_until < addDays(row.subjectPeriodEnd, -1))) error = 'ACTUAL_WORK_CSV_TYPE_NOT_EFFECTIVE'
     else if (workType.entry_granularity !== 'BOTH' && workType.entry_granularity !== row.granularity) error = 'ACTUAL_WORK_CSV_GRANULARITY_INVALID'
     else if (workType.comment_required && !row.description) error = 'ACTUAL_WORK_CSV_COMMENT_REQUIRED'

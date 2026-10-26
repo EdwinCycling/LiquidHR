@@ -35,6 +35,8 @@ const firstEmploymentId = '33333333-3333-4333-8333-333333333333'
 const secondEmploymentId = '44444444-4444-4444-8444-444444444444'
 const workTypeId = '55555555-5555-4555-8555-555555555555'
 const actualEntryId = '88888888-8888-4888-8888-888888888888'
+const payrollAdministrationId = '77777777-7777-4777-8777-777777777777'
+const monthlyPayrollPeriodId = '66666666-6666-4666-8666-666666666666'
 const sourceEntries = new Map<string, { id: string; source_type: string }>()
 const entryRows: Array<Record<string, unknown>> = []
 let lastRpc: ReturnType<typeof vi.fn>
@@ -55,6 +57,25 @@ const workTypes = [{
   updated_at: '2026-01-01T00:00:00.000Z',
   comment_required: false,
 }]
+
+function activePayrollAdministration() {
+  return { id: payrollAdministrationId, displayName: 'Test', capabilityEnabled: true, status: 'ACTIVE' }
+}
+
+function monthlyPayrollPeriod(status: 'OPEN' | 'CLOSED' = 'OPEN') {
+  return {
+    id: monthlyPayrollPeriodId,
+    period_year: 2026,
+    period_month: 10,
+    period_number: null,
+    periodicity: 'MONTHLY' as const,
+    period_kind: 'REGULAR' as const,
+    starts_on: '2026-10-01',
+    ends_on: '2026-10-31',
+    planned_payment_date: null,
+    status,
+  }
+}
 
 function queryFor(table: string) {
   const filters = new Map<string, unknown>()
@@ -121,8 +142,9 @@ function configureAdmin() {
 describe('Actual Work payroll CSV preview and confirmation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    payrollAdministration.mockResolvedValue(null)
-    calendarPeriods.mockResolvedValue([])
+    workTypes[0]!.valid_until = '2026-10-31'
+    payrollAdministration.mockResolvedValue(activePayrollAdministration())
+    calendarPeriods.mockResolvedValue([monthlyPayrollPeriod()])
     sourceEntries.clear()
     entryRows.length = 0
     configureAdmin()
@@ -141,6 +163,53 @@ describe('Actual Work payroll CSV preview and confirmation', () => {
       { rowNumber: 2, employeeNumber: '1001', valid: true, error: null, hours: '8', description: 'Dienst, dag' },
       { rowNumber: 3, employeeNumber: '1002', valid: true, error: null, hours: '4', description: 'Extra' },
     ])
+  })
+
+  it('rejects imports into a closed Payroll period before the Core save RPC', async () => {
+    calendarPeriods.mockResolvedValue([monthlyPayrollPeriod('CLOSED')])
+    const csv = [
+      'employeeNumber,workHourTypeCode,entryType,date,payrollPeriodStart,hours',
+      '1001,WORK,DAY,2026-10-26,2026-10-01,8',
+    ].join('\n')
+
+    const preview = await previewActualWorkCsv({ csv, confirm: false })
+    const confirmation = await previewActualWorkCsv({ csv, confirm: true })
+
+    expect(preview.rows).toMatchObject([{ valid: false, error: 'ACTUAL_WORK_PAYROLL_PERIOD_CLOSED' }])
+    expect(confirmation.rows).toMatchObject([{ valid: false, error: 'ACTUAL_WORK_PAYROLL_PERIOD_CLOSED' }])
+    expect(confirmation.saved).toEqual([])
+    expect(lastRpc).not.toHaveBeenCalled()
+  })
+
+  it('accepts an exact open four-week period start across a year boundary', async () => {
+    const fourWeeklyPeriodId = '99999999-9999-4999-8999-999999999999'
+    calendarPeriods.mockResolvedValue([{
+      id: fourWeeklyPeriodId,
+      period_year: 2026,
+      period_month: null,
+      period_number: 11,
+      periodicity: 'FOUR_WEEKLY',
+      period_kind: 'REGULAR',
+      starts_on: '2026-12-21',
+      ends_on: '2027-01-17',
+      planned_payment_date: null,
+      status: 'OPEN',
+    }])
+    workTypes[0]!.valid_until = '2027-01-17'
+    const csv = [
+      'employeeNumber,workHourTypeCode,entryType,date,payrollPeriodStart,hours',
+      '1001,WORK,DAY,2027-01-04,2026-12-21,8',
+    ].join('\n')
+
+    const preview = await previewActualWorkCsv({ csv, confirm: false })
+    const confirmation = await previewActualWorkCsv({ csv, confirm: true })
+
+    expect(preview.rows).toMatchObject([{ valid: true, error: null, payrollPeriodStart: '2026-12-21' }])
+    expect(confirmation.saved).toMatchObject([{ duplicate: false, status: 'PENDING' }])
+    expect(lastRpc).toHaveBeenCalledWith('save_actual_work_import_entry', expect.objectContaining({
+      requested_posting_period_start: '2026-12-21',
+      requested_subject_period_start: '2027-01-04',
+    }))
   })
 
   it('marks duplicate rows in a single file and remains idempotent on a repeated confirmation', async () => {
@@ -244,13 +313,8 @@ describe('Actual Work payroll CSV preview and confirmation', () => {
 
   it('refuses HR approval when the selected four-week Payroll period is closed', async () => {
     const supabase = configureAdmin()
-    const payrollPeriodId = '66666666-6666-4666-8666-666666666666'
-    payrollAdministration.mockResolvedValue({
-      id: '77777777-7777-4777-8777-777777777777',
-      displayName: 'Test',
-      capabilityEnabled: true,
-      status: 'ACTIVE',
-    })
+    const payrollPeriodId = monthlyPayrollPeriodId
+    payrollAdministration.mockResolvedValue(activePayrollAdministration())
     calendarPeriods.mockResolvedValue([{
       id: payrollPeriodId,
       period_year: 2026,
