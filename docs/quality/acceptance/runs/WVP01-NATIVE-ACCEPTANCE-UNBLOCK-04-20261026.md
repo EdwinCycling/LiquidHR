@@ -1,9 +1,9 @@
 # WVP01 native acceptance unblock 04
 
-Datum: 2026-10-26  
-Branch: `work/wvp01-safe-integr-02-20261026`  
-Basis: `3598b40e83c24d7f76d4ed08428acc558447bb16`  
-Status: **PARTIAL** — lokale runtime en read-only rolchecks PASS; Employee-zelfdossier en echte procesketen OPEN.
+- Datum: 2026-10-26
+- Branch: `work/wvp01-safe-integr-02-20261026`
+- Basis: `3598b40e83c24d7f76d4ed08428acc558447bb16`
+- Status: **PARTIAL** — lokale runtime en read-only rolchecks PASS; Employee-zelfdossier en echte procesketen OPEN.
 
 ## Core TEST-schema
 
