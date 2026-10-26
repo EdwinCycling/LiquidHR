@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { WvpWorkSummary } from '@/components/absence/wvp-work-summary'
 import { ProcessWorkWorkspace, type ProcessWorkspaceLabels } from '@/components/process-automation/process-workspace'
 import { createProcessWorkDeadlineLabels } from '@/lib/process-automation/deadline-projection'
 import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
@@ -48,6 +50,7 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
   const requestContext = await getRequestAuthorizationContext()
   const locale = await getLocale()
   const t = await getTranslator('processAutomation', locale)
+  const absenceLabels = await getTranslator('employees', locale)
   const currentTab = tab(first(query.tab))
   const currentView = view(first(query.view))
   const currentSearch = first(query.search).slice(0, 120)
@@ -202,5 +205,5 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
       processCatalogError = true
     }
   }
-  return <ProcessWorkWorkspace locale={locale} timeZone={requestContext.activeContext.activeHrGroup.timeZone} labels={labels} data={data} options={options} startableProcesses={startableProcesses} processCatalogError={processCatalogError} returnContext={returnContext} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
+  return <><div className="px-4 pt-4 sm:px-6 lg:px-8"><Link href="/absence/guidance" className="text-sm text-primary underline">{absenceLabels('wvp.title')}</Link></div><WvpWorkSummary /><ProcessWorkWorkspace locale={locale} timeZone={requestContext.activeContext.activeHrGroup.timeZone} labels={labels} data={data} options={options} startableProcesses={startableProcesses} processCatalogError={processCatalogError} returnContext={returnContext} tabCounts={tabCounts} view={currentView} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} businessType={currentBusinessType ?? ''} businessCategory={currentBusinessCategory ?? ''} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartLeaveRequest={canStartLeaveRequest} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} /></>
 }
