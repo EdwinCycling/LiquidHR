@@ -5,7 +5,7 @@
 **Branch:** `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026`
 
 **Geteste basis:** `47f45fdbf43af630c9fe718d9b0ed5b7dff8caa2`; `origin/main`: `11ba924b4a726431ae7928cfd8d2201d738893b4`.
-**Draft PR #51:** remote HEAD `0f440757905cbc7c7d454bec789a4b27dd6125a1` (open, draft, mergeable volgens de eerder in deze run gecontroleerde GitHub-status). De kandidaat bevat onderstaande lokale W04-fix nog niet.
+**Draft PR #51:** remote HEAD `0f440757905cbc7c7d454bec789a4b27dd6125a1` (GitHub-readback: open, draft, mergeable). De PR-body is verouderd en beschrijft de vierwekenconsumer nog als volledig `SOURCE_GAP`; de kandidaat bevat onderstaande lokale W04-fix nog niet.
 
 ### Functionele uitkomst en delta
 
@@ -33,7 +33,7 @@
 
 ### Besluit
 
-- **Integratie PR #51: HOLD.** Lokale tests en rootbuild zijn groen, maar lokale geïsoleerde DB/RLS/browserreadback ontbreekt. Bovendien vereiste het repositorybeleid verificatie van de effectieve Vercel Git-/Preview-triggers vóór push. De bevoegde projectreadback toonde die triggerinstelling niet; `vercel.json` volstaat niet. Daarom is niet gepusht en blijft PR #51 op remote HEAD `0f440757905cbc7c7d454bec789a4b27dd6125a1`.
+- **Integratie PR #51: HOLD.** Lokale tests en rootbuild zijn groen, maar lokale geïsoleerde DB/RLS/browserreadback ontbreekt. Bovendien vereiste het repositorybeleid verificatie van de effectieve Vercel Git-/Preview-triggers vóór push. De bevoegde projectreadback retourneerde project-/deploymentmetadata maar geen Git-triggerinstelling; `vercel.json` volstaat niet. Daarom is niet gepusht en blijft PR #51 op remote HEAD `0f440757905cbc7c7d454bec789a4b27dd6125a1`; ook de PR-body is nog niet op de lokale kandidaat bijgewerkt.
 - **TEST-release: HOLD.** Geen migratie, deployment, Payroll-run, FINALIZED-wijziging, salarisstrookwijziging, betaling of aangifte uitgevoerd.
 - Deze gates bevestigen W04 als betrouwbare urenbron met bestaande maandverwerking en een exact geïdentificeerde vierwekenbron; ze maken geen betaalde overuren-/toeslagberekening of vierweken-bruto/nettoverwerking vrij.
 
