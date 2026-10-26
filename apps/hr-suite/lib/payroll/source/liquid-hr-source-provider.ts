@@ -58,7 +58,7 @@ import {
   type PayrollEmployerConfiguration,
 } from '../payroll-setup'
 import { createPayrollSetupRepository } from '../payroll-setup-repository'
-import { createPayrollCalculationRepository } from '../calculation-repository'
+import { verifyPayrollPeriodIdentityInCalendar } from '../payroll-setup-service'
 import { mapCorePensionEligibilityRule } from '../pension-eligibility-source-mapping'
 import {
   calculateCaoPayroll,
@@ -299,18 +299,7 @@ const readSharedPayrollSetupSource = cache(async (
 async function verifyDefaultPayrollPeriodIdentity(scope: PayrollScope, identity: PayrollPeriodIdentity): Promise<boolean> {
   const sharedSource = await readSharedPayrollSetupSource(scope.tenantId, scope.hrGroupId, scope.administrationId)
   if (!sharedSource.payrollAdministrationId) return false
-  const repository = createPayrollCalculationRepository()
-  if (!repository.listCalendarPeriods) return false
-  const periods = await repository.listCalendarPeriods(scope, sharedSource.payrollAdministrationId, 100)
-  const period = periods.find((candidate) => candidate.id === identity.id)
-  return Boolean(period
-    && period.status === 'OPEN'
-    && period.period_kind === identity.periodKind
-    && period.period_year === identity.periodYear
-    && period.period_number === identity.periodNumber
-    && period.periodicity === identity.periodicity
-    && period.starts_on === identity.startsOn
-    && period.ends_on === identity.endsOn)
+  return await verifyPayrollPeriodIdentityInCalendar(scope, sharedSource.payrollAdministrationId, identity)
 }
 
 async function loadDefaultPayrollTimeline(

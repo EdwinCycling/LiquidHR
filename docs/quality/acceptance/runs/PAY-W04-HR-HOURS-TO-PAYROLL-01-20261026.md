@@ -1,5 +1,42 @@
 # PAY-W04-HR-HOURS-TO-PAYROLL-01 — lokaal acceptatierapport
 
+## PAY-W04-INTEGRATION-READY-01 — eindverificatie 26-10-2026
+
+**Branch:** `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026`
+
+**Geteste basis:** `47f45fdbf43af630c9fe718d9b0ed5b7dff8caa2`; `origin/main`: `11ba924b4a726431ae7928cfd8d2201d738893b4`.
+**Draft PR #51:** remote HEAD `0f440757905cbc7c7d454bec789a4b27dd6125a1` (open, draft, mergeable volgens de eerder in deze run gecontroleerde GitHub-status). De kandidaat bevat onderstaande lokale W04-fix nog niet.
+
+### Functionele uitkomst en delta
+
+- De bestaande W04-keten blijft leidend: Actual Work invoer/import/revisies, HR Admin-vrijgave, TVT-ledger en bronprojectie zijn niet vervangen. De maandelijkse gewone-urenbron blijft gekoppeld aan de bestaande `PAYFULL02_VARIABLE_REGULAR_WAGE`-verwerking.
+- De enige codefix in deze verificatieronde verplaatst exacte, open Payroll-periode-ID-controle achter de bestaande server-only `payroll-setup-service`. Zo blijft de Payroll-sourceprovider binnen de bestaande goedgekeurde server-only importgrens. Een contracttest controleert ID, periodetype, jaar/nummer, periodiciteit en exacte start/einddatum voor een vierwekenperiode die 2026 en 2027 overspant.
+- De vierwekenbron blijft aan de exacte kalenderperiode gekoppeld en verschijnt eenmaal met dezelfde bronregistratie/fingerprint. Er is geen maandtoerekening of verdeling. De daadwerkelijke vierwekenberekening blijft `UNSUPPORTED: FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED`.
+- Bestaande TVT-opbouw/-opname blijven verlofledgertransacties, geen loonbetaling. Ontbrekende of ambigue betaalcomponentinput blijft fail-closed als `SOURCE_GAP`; er zijn geen tarieven, fiscale regels of nieuwe componentmappingaannames toegevoegd.
+
+### Verificatie
+
+| Gate | Resultaat |
+| --- | --- |
+| Gerichte regressies na de server-only fix | **118/118 PASS in 12 bestanden**, inclusief Payroll source/provider, periode-identiteit, Actual Work, TVT/migratiecontracten en server-only-boundary. |
+| Bestaande HR Suite-testset | **3.810 PASS, 8 SKIP, 0 FAIL**; 757 bestanden geslaagd, 4 overgeslagen. |
+| Control | **11/11 PASS**. |
+| NL-2026-regels | **49/49 PASS**. |
+| Root TypeScript | **PASS** voor HR Suite, Control, Payroll Engine, CAO bench en NL-2026. Payroll Engine typecheck: **PASS**. |
+| ESLint | Root lint exit **0**, 0 errors en 7 bestaande warnings in ongewijzigde distributie-/importtests. |
+| i18n | **PASS**, 43 NL/EN-namespaces gelijk. |
+| Migratie-eol-contract | **5/5 PASS**; de test normaliseert CRLF naar LF vóór vergelijking. De SQL-contractblob bleef ongewijzigd. Geen assertion verwijderd. |
+| Volledige rootbuild | Eerste sandboxrun kon geen Windows-junction/Control-buildmap maken. Dezelfde rootbuild is daarna met toegestane lokale uitvoeringsrechten **PASS** voor HR Suite en Control, inclusief trace-/PDF-runtimecontroles. |
+| Beschermde lokale bestanden | Focus-widget na build teruggezet naar de vooraf bestaande SHA-256 `A8134B54351065DB6EFF5CBED717511A979AB85118810DA2941195DF8BAEEAEA`; `next-env.d.ts` bleef `1B59D4C6B83807DB275D43F3CF2CC8E9323F465FAB764EEA091CC5BECD5BAD37`; fingerprint van 801 `.tool-home`-bestanden vóór/na build gelijk. Geen van deze bestanden is onderdeel van de W04-commit. |
+| Lokale TEST / RLS / browser | **OPEN, niet uitgevoerd**: bestaande persona-preflight mist de centrale TEST-config en persona-credentialfile; er is geen lokale Payroll/Postgres-listener en `supabase`/`psql` zijn niet beschikbaar. Geen credentialwaarden gelezen en geen remote/databasewrites gedaan. |
+| Diff-/secretcontrole | `git -c core.whitespace=cr-at-eol diff --check`: **PASS**; gerichte scan van de vier geselecteerde W04-bestanden: **PASS**, geen credential literals. Geen secrets/configbestanden behoren tot de W04-delta. |
+
+### Besluit
+
+- **Integratie PR #51: HOLD.** Lokale tests en rootbuild zijn groen, maar lokale geïsoleerde DB/RLS/browserreadback ontbreekt. Bovendien vereiste het repositorybeleid verificatie van de effectieve Vercel Git-/Preview-triggers vóór push. De bevoegde projectreadback toonde die triggerinstelling niet; `vercel.json` volstaat niet. Daarom is niet gepusht en blijft PR #51 op remote HEAD `0f440757905cbc7c7d454bec789a4b27dd6125a1`.
+- **TEST-release: HOLD.** Geen migratie, deployment, Payroll-run, FINALIZED-wijziging, salarisstrookwijziging, betaling of aangifte uitgevoerd.
+- Deze gates bevestigen W04 als betrouwbare urenbron met bestaande maandverwerking en een exact geïdentificeerde vierwekenbron; ze maken geen betaalde overuren-/toeslagberekening of vierweken-bruto/nettoverwerking vrij.
+
 **Datum:** 26-10-2026
 **Branch:** `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026`
 **Start/base:** `11ba924b4a726431ae7928cfd8d2201d738893b4` (PR #50, vanaf `origin/main`)
