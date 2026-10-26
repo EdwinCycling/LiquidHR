@@ -6,16 +6,18 @@ import { createClient } from '@/lib/supabase/server'
 import { ContextAccessError, ContextSelectionRequiredError } from '@/lib/context/administration-context'
 import { ContextAuthenticationError } from '@/lib/context/server-context'
 import { compileProcessDefinition } from '@/lib/process-automation/definition-compiler'
-import { wvpCommandSchema, type WvpCommand } from './domain'
+import { postgresUuidSchema, wvpCommandSchema, type WvpCommand } from './domain'
 import { wvpProcessDefinition } from './process-definition'
 
 const caseSchema = z.object({
-  id: z.string().uuid(), employeeId: z.string().uuid(), employmentId: z.string().uuid(), administrationId: z.string().uuid(),
+  id: postgresUuidSchema, employeeId: postgresUuidSchema, employmentId: postgresUuidSchema, administrationId: postgresUuidSchema,
   name: z.string(), status: z.enum(['ACTIVE', 'RECOVERY_WINDOW', 'CLOSED']), firstAbsenceOn: z.iso.date(), clockStartOn: z.iso.date(),
-  pendingConfirmation: z.boolean(), processInstanceId: z.string().uuid().nullable(), closedAt: z.string().nullable(), canManage: z.boolean(), isSelf: z.boolean(),
+  pendingConfirmation: z.boolean(), processInstanceId: postgresUuidSchema.nullable(), closedAt: z.string().nullable(), canManage: z.boolean(),
+  // SQL boolean comparisons return NULL when the actor has no employee link; that is never self-access.
+  isSelf: z.boolean().nullable().transform(value => value ?? false),
   currentMilestone: z.string().nullable(),
-  tasks: z.array(z.object({ id: z.string().uuid(), code: z.string(), dueOn: z.iso.date(), status: z.string(), completedAt: z.string().nullable() })),
-  events: z.array(z.object({ id: z.string().uuid(), type: z.string(), occurredOn: z.iso.date(), createdAt: z.string(), actorUserId: z.string().uuid(), taskId: z.string().uuid().nullable(), agreement: z.string().nullable(), reviewOn: z.iso.date().nullable(), agreementId: z.string().uuid().nullable() })),
+  tasks: z.array(z.object({ id: postgresUuidSchema, code: z.string(), dueOn: z.iso.date(), status: z.string(), completedAt: z.string().nullable() })),
+  events: z.array(z.object({ id: postgresUuidSchema, type: z.string(), occurredOn: z.iso.date(), createdAt: z.string(), actorUserId: postgresUuidSchema, taskId: postgresUuidSchema.nullable(), agreement: z.string().nullable(), reviewOn: z.iso.date().nullable(), agreementId: postgresUuidSchema.nullable() })),
   capacity: z.array(z.object({ effectiveOn: z.iso.date(), absencePercentage: z.number(), reviewOn: z.iso.date().nullable() })),
   spells: z.array(z.object({ startedOn: z.iso.date(), recoveredOn: z.iso.date().nullable() })),
 })
@@ -30,7 +32,7 @@ function rpcFailure(error: { code?: string; message: string }): never {
   throw new WvpError(code ?? 'WVP_OPERATION_FAILED', code ? 409 : 500)
 }
 export async function listWvpCases(caseId?: string): Promise<WvpCase[]> {
-  if (caseId) z.string().uuid().parse(caseId)
+  if (caseId) postgresUuidSchema.parse(caseId)
   const auth = await requireAnyPermission(['absence:read', 'self:absence:read'])
   const db = await createClient()
   const { data, error } = await db.rpc('wvp_list', { requested_tenant_id: auth.tenantId, requested_hr_group_id: requireHrGroupId(auth), requested_administration_id: auth.administrationId, requested_case_id: caseId ?? null })
@@ -55,7 +57,7 @@ async function ensureDefinition(target: WvpCase): Promise<string> {
     requested_key: key, requested_title: draft.title, requested_description: draft.description as Json, requested_definition: draft as unknown as Json, requested_validation_report: {},
   })
   if (created.error) rpcFailure(created.error)
-  const identity = z.object({ id: z.string().uuid(), revision: z.number() }).parse(created.data)
+  const identity = z.object({ id: postgresUuidSchema, revision: z.number() }).parse(created.data)
   const published = await db.rpc('publish_process_definition_draft', {
     requested_definition_id: identity.id, requested_expected_revision: identity.revision, requested_compiled_definition: compiled as unknown as Json,
     requested_definition_hash: compiled.hash, requested_schema_version: compiled.schemaVersion, requested_compiler_version: compiled.compilerVersion, requested_changelog: 'WVP01 — verzuimbegeleiding en werkhervatting',

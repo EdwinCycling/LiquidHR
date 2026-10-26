@@ -12,7 +12,6 @@ import type { WvpCase } from '@/lib/absence/wvp/service'
 import { agreementCodes, wvpUrgency, type WvpCommand } from '@/lib/absence/wvp/domain'
 
 export type WvpLabels = Record<string, string>
-export const wvpLabelKeys = ['title','description','empty','back','work','source','start','starting','save','failed','schemaRequired','privacy','milestones','timeline','capacity','agreement','reviewOn','occurredOn','confirm','complete','close','acknowledge','responsibility','hrOwner','physicianOwner','jointOwner','noHistory','noTasks','firstAbsence','nextAction','recordAgreement','recoveryHelp','truncated','ACTIVE','RECOVERY_WINDOW','CLOSED','OPEN','COMPLETED','CANCELLED','OVERDUE','SOON','PLANNED','WVP_WEEK_6','WVP_WEEK_8','WVP_WEEK_42','WVP_FIRST_YEAR_REVIEW','WVP_FINAL_EVALUATION','WVP_WIA_APPLICATION','evaluation','statutory','signal','review','STARTED','MILESTONE','AGREEMENT','ACKNOWLEDGED',...agreementCodes] as const
 
 export function milestoneLabel(code: string, labels: WvpLabels): string {
   return code.startsWith('WVP_EVALUATION_6W_') ? `${labels.evaluation} ${Number(code.slice(-2))}` : labels[code] ?? labels.milestones
