@@ -83,6 +83,7 @@ interface AbsenceCaseDetailProps {
     confirmationFailed?: string
     confirmationConfirm?: string
     wvpTitle?: string
+    guidanceTitle?: string
     wvpDescription?: string
     wvpDue?: string
     wvpStatus?: string
@@ -110,6 +111,7 @@ export function AbsenceCaseDetail({ employeeId, today, employmentId, compact, ab
   const hasActions = !absenceCase.pendingConfirmation && absenceCase.status === 'ACTIVE' && (canRecover || canChangeCapacity)
 
   const caseContent: ReactNode = <>
+    {labels.guidanceTitle && <Link className="inline-block text-sm text-primary underline" href={`/absence/guidance/${absenceCase.id}`}>{labels.guidanceTitle}</Link>}
     <Surface className="p-5">
       <SectionHeader title={<span className="flex items-center gap-2"><CalendarDays aria-hidden="true" className="h-5 w-5 text-primary" />{labels.status}</span>} />
       <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
