@@ -1089,6 +1089,63 @@ export type Database = {
         }
         Relationships: []
       }
+      actual_work_payroll_approvals: {
+        Row: {
+          administration_id: string
+          approved_at: string
+          approved_by: string
+          content_fingerprint: string
+          employee_id: string
+          employment_id: string
+          entry_id: string
+          entry_revision_number: number
+          hr_group_id: string
+          id: string
+          payroll_period_end: string
+          payroll_period_id: string
+          payroll_period_start: string
+          payroll_periodicity: string
+          reviewed_revision_number: number
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          approved_at?: string
+          approved_by: string
+          content_fingerprint: string
+          employee_id: string
+          employment_id: string
+          entry_id: string
+          entry_revision_number: number
+          hr_group_id: string
+          id?: string
+          payroll_period_end: string
+          payroll_period_id: string
+          payroll_period_start: string
+          payroll_periodicity: string
+          reviewed_revision_number: number
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          approved_at?: string
+          approved_by?: string
+          content_fingerprint?: string
+          employee_id?: string
+          employment_id?: string
+          entry_id?: string
+          entry_revision_number?: number
+          hr_group_id?: string
+          id?: string
+          payroll_period_end?: string
+          payroll_period_id?: string
+          payroll_period_start?: string
+          payroll_periodicity?: string
+          reviewed_revision_number?: number
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       actual_work_type_limits: {
         Row: {
           created_at: string
@@ -23632,6 +23689,19 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: Database["public"]["Tables"]["employment_work_hour_entries"]["Row"]
+      }
+      approve_actual_work_entry_for_payroll_period: {
+        Args: {
+          requested_administration_id: string
+          requested_entries: Json
+          requested_hr_group_id: string
+          requested_payroll_period_end: string
+          requested_payroll_period_id: string
+          requested_payroll_period_start: string
+          requested_payroll_periodicity: string
+          requested_tenant_id: string
+        }
+        Returns: Database["public"]["Tables"]["actual_work_payroll_approvals"]["Row"][]
       }
       prepare_document_signing: {
         Args: { requested_actor_user_id: string; requested_snapshot_id: string }

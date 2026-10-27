@@ -199,3 +199,70 @@ De migratie voegt W04-mapping-/vrijgavetabellen, een correctie-auditconstraint e
 - Geen push, merge, gedeelde/remote migration, historische FINALIZED-/PDF-mutatie, payrollrun, uitbetaling of aangifte.
 
 **Conclusie:** de lokaal typecheck-/build-/gerichte-testbare verbinding is gedeeltelijk geïmplementeerd, maar Definition of Done is niet bereikt. Heropen integratie pas nadat de TVT-ledgerregel, aanvullende bestaande Payroll-componentbron, lokale PostgreSQL/RLS- en browseracceptatie, en de volledige testmatrix zonder de EOL-failures zijn bewezen.
+
+## PAY-W04-END-TO-END-ACCEPTANCE-03 — 26-10-2026
+
+**Uitkomst: PARTIAL — integratie HOLD, TEST-release HOLD.** Getest op branch `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026`, HEAD `50fd2b71795c451fee71b62069c16e0be9c8d5ff`. Er zijn geen productbestanden gewijzigd. De bestaande LiquidHR-app op `http://localhost:3010` gebruikte Core TEST `wnpfloqpjvaacobppbpk` als HR-bron en Payroll Lab TEST `jhgeriucbkfarxiudzfy` als afzonderlijke periodebron. Er is geen databaseconsolidatie, SQL-write of migratie uitgevoerd.
+
+### Browser- en applicatiebewijs
+
+- De HR Admin selecteerde in Mars de bestaande OPEN maandperiode `83ce4ce4-35cc-445f-8e7d-265099f12977`, 2026-10-01 t/m 2026-10-31. Hetzelfde geauthenticeerde review-endpoint retourneerde de periode uit Payroll Lab en de Actual Work-bronnen uit Core.
+- Handmatig is `AW_WORK` geregistreerd voor `PAYCASE-03B-005`: 8 uur op 2026-10-20, gekoppeld aan de salarisperiode vanaf 2026-10-01. Bronrecord-ID: `6b290235-774e-472a-a13b-1479535260fe`; omschrijving: `PAY-W04 synthetische acceptatie 2026-10-20`.
+- De CSV-import voegde `PAYCASE-03B-004` toe met 2 uur op 2026-10-21 (`sourceReference=w04-20261026-emma-001`, record-ID `a7f966a1-96e4-4c82-8b7b-db5ffa1f4d33`) en `PAYCASE-03B-005` met oorspronkelijk 1 uur op 2026-10-22 (`sourceReference=w04-20261026-noah-001`, record-ID `a742b81a-0f51-44cb-b47a-ed8b4b0104fd`). De twee geldige regels zijn geaccordeerd. Dezelfde CSV is opnieuw bevestigd; preview meldde twee al geïmporteerde regels. Readback bleef drie registraties, uiteindelijk 11,5 uur.
+- De 1-uursregistratie is met reden `PAY-W04 synthetische correctie: gecorrigeerd naar de aangeleverde testbron` gecorrigeerd naar 1,5 uur. Readback bevat de reden en revisie 3. De registratie bleef echter `APPROVED` met de eerdere goedkeuringsactor/tijd; de vereiste herbeoordeling na correctie is niet bewezen en blijft een integratieblokker.
+- Ongeldige CSV-regels zijn in preview afgewezen: onbekend medewerker, `INVALID_W04_TYPE` en `payrollPeriodStart=2026-10-02` zonder overeenkomstige periode. Preview van Jupiter-periode 2026-10-01 (`DRAFT`, dus niet OPEN) gaf 0 geldige en 1 ongeldige regel. Een onbekende Payroll-periode-ID gaf `ACTUAL_WORK_PAYROLL_PERIOD_UNAVAILABLE`. Deze previews zijn niet geïmporteerd.
+- Alle drie de Mars-registraties bleven `APPROVED`, maar hadden `release=null`; er was geen versiegebonden vrijgave of runtime-fingerprint. Mars had geen effectieve AW_WORK-componentmapping, de review toonde `SOURCE_GAP` en geen vrijgave was beschikbaar. Er is geen Payroll-run gestart.
+- Voor Mars toonde de API `tvtConfigured=false` en `tvtAccrued=false`. Er is geen geldige lokale overwerk-/TVT-regeling voor deze administratie gebruikt. TVT-opbouw, saldoafname en verval zijn daarom niet live bewezen; de bestaande ledger- en migratiecontracttests zijn wel meegenomen in de gerichte tests.
+- Bestaande lokale Manager- en Medewerker-persona’s kregen op `GET /api/actual-work/payroll` respectievelijk een expliciete HR Admin-weigering en onvoldoende-rechtenmelding. De lokale contextselector bood alleen de tenant De Sterren holding met drie HR-groepen; een vreemde-tenantpersona ontbrak. Dit is geen live cross-tenant-RLS-bewijs.
+- Er is geen bevestigde oproepkracht in de gebruikte Mars-fixture vastgesteld. De handmatige 8 uur is dus een bewijs voor HR Admin-invoer, niet voor de specifieke oproepkrachtacceptatie.
+
+De bron-/periodedetails, goedkeuringen en correctierevisie zijn gecontroleerd via de bestaande applicatie-API. Er is geen Payroll-sourceprovider-run of definitieve componentconsumptie: de ontbrekende mapping houdt de bron terecht fail-closed. De bestaande tests bewijzen de exacte FOUR_WEEKLY-ID, de datums over 2026/2027 en de bronhashbinding contractueel; in de live Mars-/Jupiter-keuze is geen bruikbare historische vierwekenperiode aangetroffen. De bruto-nettoberekening blijft `FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED`.
+
+### Gerichte kwaliteitscontrole
+
+| Gate | Resultaat |
+| --- | --- |
+| W04/Actual Work/Payroll/TVT/migratiecontracten | **104/104 PASS in 9 bestanden.** Eerste uitvoering stopte vóór teststart door Windows-`EPERM` in de sandbox-Temp-map; dezelfde tests slaagden met een tijdelijke map binnen de checkout. |
+| App-level autorisatie | Employee- en Manager-GET geweigerd; Manager-service- en tenant-scopegevallen opgenomen in de geslaagde tests. |
+| PostgreSQL RLS/grants/runtime | **OPEN.** Geen directe databaseverbinding of RLS-sessieproef gebruikt. De migratiecontracttests zijn geen runtime-RLS-bewijs. |
+| Vierwekenperiode | Cross-year identiteit en providerprojectie **contractueel PASS**; live kalender-/berekeningsproef **OPEN / bewust fail-closed**. |
+| Volledige suite/rootbuild/i18n | Niet herhaald; er is geen productcode gewijzigd en eerdere geldige basisresultaten zijn behouden. |
+| Historische Payroll | Geen Payroll-run, FINALIZED-run, salarisstrook of PDF gewijzigd. |
+
+ De drie goedgekeurde Actual Work-registraties zijn synthetische append-only auditdata in Core TEST en blijven behouden: IDs `6b290235-774e-472a-a13b-1479535260fe` (8 uur op 20-10), `a7f966a1-96e4-4c82-8b7b-db5ffa1f4d33` (2 uur op 21-10) en `a742b81a-0f51-44cb-b47a-ed8b4b0104fd` (gecorrigeerd 1,5 uur op 22-10), alle `AW_WORK` en toegewezen aan periode 2026-10-01. Ze zijn niet opgeschoond omdat de correctie-/goedkeuringsrevisies append-only audithistorie vormen. Er is geen mapping, TVT-transactie, release of Payroll-run toegevoegd.
+
+**Besluit:** PR #51 wordt niet bijgewerkt of gepusht, omdat de volledige acceptatie niet slaagde. Integratie blijft **HOLD** totdat herbeoordeling van correcties, een bewezen oproepkrachtflow, bestaande componentinput/vrijgave, TVT-runtime en toepasselijke vierweken-/RLS-acceptatie beschikbaar zijn. TEST-release blijft **HOLD**. Er is geen commit, merge, deployment of nieuwe omgeving gemaakt.
+
+## PAY-W04-FUNCTIONAL-FIX-AND-CLOSEOUT-04 — 27-10-2026
+
+**Uitkomst: codecontracten PASS; live acceptatie en integratie HOLD.** De bestaande branch bouwt op HEAD `50fd2b71795c451fee71b62069c16e0be9c8d5ff`; de lokale W04-wijzigingen zijn na de groene codegates als lokale, niet-gepushede commit vastgelegd. Core TEST (`wnpfloqpjvaacobppbpk`) en Payroll Lab TEST (`jhgeriucbkfarxiudzfy`) zijn als afzonderlijke projecten bevestigd. De open maandperiode `83ce4ce4-35cc-445f-8e7d-265099f12977` blijft 2026-10-01 t/m 2026-10-31. Er is geen databasewrite, release, run, FINALIZED-mutatie of deployment uitgevoerd.
+
+### Revisiegebonden HR Admin-accordering
+
+- De lokale kandidaat voegt een append-only `actual_work_payroll_approvals`-contract toe. De accordering legt de exacte Actual Work-revisie, Payroll-periode-ID en -grenzen, actor en SHA-256-fingerprint vast; de algemene operationele `APPROVED`-status wordt niet meer als Payroll-accordering beschouwd.
+- De review/service/UI vraagt opnieuw om HR Admin-accordering wanneer de actuele revisie geen passende goedkeuring heeft. De approval-RPC valideert de verwachte revisie onder `FOR UPDATE`, herhaalde aanvragen zijn idempotent en de vrijgave-trigger weigert ontbrekende, stale of afwijkende goedkeuringen/fingerprints. Correcties na eerdere vrijgave blijven onder de bestaande TWK-route.
+- Geïsoleerde PGlite-migratiecontracttests controleren het volledige DDL tegen de bestaande sleutels, RLS/grants, immutable approvals, revision guard en geldige/ongeldige vrijgave. Dit bewijst geen uitvoering op PostgreSQL/Core TEST en geen geauthenticeerde runtimehandeling.
+
+### AW_WORK en Payroll-bron
+
+- Read-only Core TEST-readback vond voor Mars op 2026-10-27 10 effectieve salarisregels van type `PERIODIC_FIXED` en **0** effectieve `HOURLY_VARIABLE`-regels met uurtarief. Daarom is geen AW_WORK-mapping naar `PAYFULL02_VARIABLE_REGULAR_WAGE` aangemaakt: zo'n mapping zou vaste loonbetaling kunnen dubbelen. De bron blijft veilig `SOURCE_GAP`.
+- De bestaande provider-/rekencontracten blijven leidend. Er is geen nieuwe Payroll-componentverwerking, tarief, factor of fiscale/pensioenaannname geïntroduceerd. FOUR_WEEKLY-bronidentiteit blijft contractueel ondersteund; de brutonetberekening blijft `FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED`.
+- TVT blijft via de bestaande verlofledger begrensd. In deze administratie is geen toepasselijke overwerk/TVT-regeling bewezen; geen TVT-opbouw, opname of verval is live getest.
+
+### Uitgevoerde checks en blokkades
+
+| Gate | Resultaat |
+| --- | --- |
+| W04-, Actual Work-, Payroll-source-, Payroll-calculation-, correctie- en TVT-contracttests | **136/136 PASS**, 12 bestanden; nieuwe revisieapproval-migratiecontracttest **5/5 PASS**. Herhaalde approval en stale revision zijn getest op API/service-contractniveau; een correctie-race levert contractueel HTTP 409. Gelijktijdige PostgreSQL-transacties zijn niet live getest. |
+| TypeScript HR Suite | **PASS** (`npm run type-check -w @liquid-hr/hr-suite`). |
+| ESLint gewijzigde HR Suite-bestanden | **PASS**. |
+| i18n | **PASS**, 43 NL/EN namespaces. |
+| Rootbuild HR Suite + Control | **PASS** (`npm run build`); ook client-boundary- en function-tracechecks PASS. Focus en `next-env.d.ts` zijn gehashd hersteld en byte-identiek behouden. |
+| Volledige HR Suite-suite | Niet herhaald; AA-TEST vraagt voor een feature-closeout gerichte feature-/integratiegates en geen automatische full suite. De eerder gevalideerde brede suite is niet als nieuw bewijs voorgesteld. |
+| Core TEST-migratie | **Niet toegepast.** Read-only preflight bevestigde dat tabel/RPC/trigger nog ontbreken, dat er 0 bestaande Payroll-vrijgaven zijn en dat de nieuwe FK's passen bij bestaande unieke sleutels. Twee `supabase_apply_migration`-aanroepen eindigden met `Invalid or expired requestState`; readback bevestigde dat de Core-schema's ongewijzigd zijn. |
+| HR Admin-browser, RLS- en persona-negatieven | **OPEN.** De bestaande lokale launcher mist de centrale TEST-configuratie en persona-credentialbron; de HR Admin-flow en negatieve Employee/Manager/foreign-tenant calls zijn niet opnieuw uitgevoerd. De vorige browserproef is alleen historisch bewijs voor de ongewijzigde codebasis. |
+| AW_WORK-bronconsumptie | **HOLD / SOURCE_GAP.** Er is geen passende variabele-loonbron, dus geen Payroll-vrijgavehash of bronprovider-readback voor Mars aangemaakt. |
+
+De synthetische Core-records en hun append-only correctie-/revisiehistorie zijn behouden. Focus, `.tool-home`, `next-env.d.ts` en lokale configuratie zijn buiten de W04-commit gehouden.
+
+**Besluit:** PR #51 blijft **HOLD** en is niet bijgewerkt/gepusht. De lokale code- en buildgates zijn groen, maar de niet-toegepaste Core-migratie, ontbrekende HR Admin-persona/browser/RLS-proef en ontbrekende geschikte AW_WORK-salarisbron verhinderen de gevraagde volledige Payroll-keten. TEST-release blijft **HOLD**. Geen merge, deployment, Payroll-run, wijziging aan historische loonstrook, nieuwe branch of nieuwe PR.

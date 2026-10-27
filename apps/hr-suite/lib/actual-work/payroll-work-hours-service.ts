@@ -16,6 +16,7 @@ type Entry = Tables<'employment_work_hour_entries'>
 type WorkType = Pick<Tables<'work_hour_types'>, 'id' | 'code' | 'name' | 'family' | 'entry_granularity' | 'is_active' | 'valid_from' | 'valid_until' | 'updated_at' | 'comment_required'>
 type Mapping = Tables<'actual_work_payroll_mappings'>
 type PayrollRelease = Tables<'actual_work_payroll_releases'>
+type PayrollApproval = Tables<'actual_work_payroll_approvals'>
 type PayrollPeriodOption = {
   id: string
   startsOn: string
@@ -35,7 +36,7 @@ const mappingSchema = z.object({
   factor: z.string().optional(),
 })
 const actionSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('approve'), payrollPeriodId: uuid, entryIds: z.array(uuid).min(1).max(250) }),
+  z.object({ action: z.literal('approve'), payrollPeriodId: uuid, entries: z.array(z.object({ entryId: uuid, revisionNumber: z.number().int().positive() })).min(1).max(250) }),
   z.object({ action: z.literal('release'), payrollPeriodId: uuid, entryIds: z.array(uuid).min(1).max(250) }),
   z.object({ action: z.literal('map'), mapping: mappingSchema }),
 ])
@@ -71,7 +72,9 @@ function databaseError(error: { message: string; code?: string } | null): never 
   const code = error?.message.match(/ACTUAL_WORK_[A-Z_]+/)?.[0]
     ?? error?.message.match(/PAYROLL_[A-Z_]+/)?.[0]
     ?? 'ACTUAL_WORK_PAYROLL_OPERATION_FAILED'
-  throw new ActualWorkServiceError(code, error?.code === '42501' ? 403 : 400, 'actual-work-payroll', error?.code)
+  const conflict = error?.code === '40001'
+    || /(?:REVISION_STALE|PERIOD_CONFLICT|PERIOD_MISMATCH|FINGERPRINT_STALE|APPROVAL_REQUIRED|ENTRY_NOT_APPROVED)$/.test(code)
+  throw new ActualWorkServiceError(code, error?.code === '42501' ? 403 : conflict ? 409 : 400, 'actual-work-payroll', error?.code)
 }
 
 function validRealDate(value: string): boolean {
@@ -377,16 +380,17 @@ export async function getActualWorkPayrollReview(periodSelector: string) {
   const employeeIds = [...new Set(entries.map((entry) => entry.employee_id))]
   const typeIds = [...new Set(entries.map((entry) => entry.work_hour_type_id))]
   const entryIds = entries.map((entry) => entry.id)
-  const [employeeResult, typeResult, revisionResult, mappingResult, releaseResult, leaveLinkResult, tvtLedgerResult] = await Promise.all([
+  const [employeeResult, typeResult, revisionResult, mappingResult, releaseResult, approvalResult, leaveLinkResult, tvtLedgerResult] = await Promise.all([
     employeeIds.length ? scope.supabase.from('employees').select('id,employee_number,first_name,birth_name_prefix,birth_name').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).in('id', employeeIds) : Promise.resolve({ data: [], error: null }),
     typeIds.length ? scope.supabase.from('work_hour_types').select('id,code,name,family,entry_granularity,is_active,valid_from,valid_until,updated_at,comment_required').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).in('id', typeIds) : Promise.resolve({ data: [], error: null }),
     entryIds.length ? scope.supabase.from('actual_work_revisions').select('entry_id,revision_number').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).in('entry_id', entryIds).order('revision_number', { ascending: false }) : Promise.resolve({ data: [], error: null }),
     typeIds.length ? scope.supabase.from('actual_work_payroll_mappings').select('*').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).eq('administration_id', scope.administrationId).in('work_hour_type_id', typeIds) : Promise.resolve({ data: [], error: null }),
     entryIds.length ? scope.supabase.from('actual_work_payroll_releases').select('*').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).eq('administration_id', scope.administrationId).in('entry_id', entryIds) : Promise.resolve({ data: [], error: null }),
+    entryIds.length && selectedPayrollPeriod ? scope.supabase.from('actual_work_payroll_approvals').select('*').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).eq('administration_id', scope.administrationId).eq('payroll_period_id', selectedPayrollPeriod.id).in('entry_id', entryIds) : Promise.resolve({ data: [], error: null }),
     typeIds.length ? scope.supabase.from('leave_type_overtime_work_hours').select('work_hour_type_id,leave_type_id').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).in('work_hour_type_id', typeIds) : Promise.resolve({ data: [], error: null }),
     entryIds.length ? scope.supabase.from('leave_accrual_transactions').select('source_id,amount').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).eq('source_type', 'ACTUAL_WORK_TVT').in('source_id', entryIds) : Promise.resolve({ data: [], error: null }),
   ])
-  for (const result of [employeeResult, typeResult, revisionResult, mappingResult, releaseResult, leaveLinkResult, tvtLedgerResult]) if (result.error) databaseError(result.error)
+  for (const result of [employeeResult, typeResult, revisionResult, mappingResult, releaseResult, approvalResult, leaveLinkResult, tvtLedgerResult]) if (result.error) databaseError(result.error)
   const employees = new Map((employeeResult.data ?? []).map((employee) => [employee.id, employee]))
   const types = new Map((typeResult.data ?? []).map((type) => [type.id, type as WorkType]))
   const latestRevision = new Map<string, number>()
@@ -396,6 +400,7 @@ export async function getActualWorkPayrollReview(periodSelector: string) {
     ? release.payroll_period_id === selectedPayrollPeriod.id
       || (selectedPayrollPeriod.periodicity === 'MONTHLY' && release.payroll_period_id === null && release.payroll_period_start === selectedPayrollPeriod.startsOn)
     : release.payroll_period_id === null && release.payroll_period_start === periodStart)
+  const approvals = (approvalResult.data ?? []) as PayrollApproval[]
   const leaveTypeIds = [...new Set((leaveLinkResult.data ?? []).map((link) => link.leave_type_id))]
   const leaveTypesResult = leaveTypeIds.length
     ? await scope.supabase.from('leave_types').select('id,entitlement_mode,is_active').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).in('id', leaveTypeIds)
@@ -428,6 +433,9 @@ export async function getActualWorkPayrollReview(periodSelector: string) {
       const latest = latestRevision.get(entry.id) ?? null
       const entryReleases = releaseByEntry.get(entry.id) ?? []
       const currentRelease = entryReleases.find((release) => release.entry_revision_number === latest)
+      const payrollApproval = approvals.find((approval) => approval.entry_id === entry.id
+        && approval.entry_revision_number === latest
+        && approval.payroll_period_id === selectedPayrollPeriod?.id) ?? null
       const workType = types.get(entry.work_hour_type_id) ?? null
       const mapping = currentRelease ? mappingById.get(currentRelease.mapping_id) ?? null : null
       const periodEnd = entry.subject_period_end > entry.subject_period_start ? addDays(entry.subject_period_end, -1) : entry.subject_period_start
@@ -440,9 +448,12 @@ export async function getActualWorkPayrollReview(periodSelector: string) {
         employee: employees.get(entry.employee_id) ?? null,
         workType,
         currentRevision: latest,
+        payrollApproval,
+        needsPayrollApproval: latest !== null && payrollApproval === null,
         release: currentRelease ? { ...currentRelease, mapping } : null,
-        needsPayrollReview: currentRelease ? !releaseMappingCurrent || currentRelease.release_class === 'TWK_REQUIRED'
-          : entryReleases.some((release) => release.entry_revision_number !== latest),
+        needsPayrollReview: (latest !== null && payrollApproval === null)
+          || (currentRelease ? !releaseMappingCurrent || currentRelease.release_class === 'TWK_REQUIRED'
+            : entryReleases.some((release) => release.entry_revision_number !== latest)),
         payrollPeriodBoundaryValid: !selectedPayrollPeriod
           || (entry.subject_period_start >= selectedPayrollPeriod.startsOn
             && entry.subject_period_end <= addDays(selectedPayrollPeriod.endsOn, 1)),
@@ -496,67 +507,36 @@ async function saveMapping(scope: AdminScope, input: z.infer<typeof mappingSchem
   return result.data
 }
 
-async function approveEntries(scope: AdminScope, payrollPeriodId: string, entryIds: readonly string[]) {
+async function approveEntries(scope: AdminScope, payrollPeriodId: string, requestedEntries: readonly { entryId: string; revisionNumber: number }[]) {
   const payrollPeriod = await requireOpenPayrollPeriod(scope, payrollPeriodId)
-  const entries = await scope.supabase.from('employment_work_hour_entries').select('*')
-    .eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).eq('administration_id', scope.administrationId).in('id', [...entryIds])
-  if (entries.error) databaseError(entries.error)
-  if ((entries.data ?? []).length !== entryIds.length) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_ENTRY_SCOPE_INVALID', 403)
-  if ((entries.data ?? []).some((entry) => entry.subject_period_start < payrollPeriod.startsOn
-    || entry.subject_period_end > addDays(payrollPeriod.endsOn, 1))) {
-    throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_ENTRY_PERIOD_MISMATCH', 409)
-  }
-  const approved: Entry[] = []
-  const postedAtomically = new Set<string>()
-  for (const entry of entries.data ?? []) {
-    if (entry.status === 'APPROVED') { approved.push(entry); continue }
-    if (entry.status !== 'PENDING') throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_ENTRY_NOT_APPROVABLE')
-    const result = await scope.supabase.rpc('approve_actual_work_entry_for_payroll', {
-      requested_tenant_id: scope.tenantId,
-      requested_hr_group_id: scope.hrGroupId,
-      requested_administration_id: entry.administration_id,
-      requested_entry_id: entry.id,
-    })
-    if (result.error || !result.data) databaseError(result.error)
-    approved.push(result.data)
-    postedAtomically.add(entry.id)
-  }
-
-  const approvedTypeIds = [...new Set(approved.map((entry) => entry.work_hour_type_id))]
-  if (approvedTypeIds.length > 0) {
-    const [linkResult, revisionResult] = await Promise.all([
-      scope.supabase.from('leave_type_overtime_work_hours').select('work_hour_type_id,leave_type_id')
-        .eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).in('work_hour_type_id', approvedTypeIds),
-      scope.supabase.from('actual_work_revisions').select('entry_id,revision_number')
-        .eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).in('entry_id', approved.map((entry) => entry.id))
-        .order('revision_number', { ascending: false }),
-    ])
-    if (linkResult.error || revisionResult.error) databaseError(linkResult.error ?? revisionResult.error)
-    const linkedLeaveTypeIds = [...new Set((linkResult.data ?? []).map((link) => link.leave_type_id))]
-    const linkedLeaveTypes = linkedLeaveTypeIds.length
-      ? await scope.supabase.from('leave_types').select('id,entitlement_mode,is_active')
-        .eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).in('id', linkedLeaveTypeIds)
-      : { data: [], error: null }
-    if (linkedLeaveTypes.error) databaseError(linkedLeaveTypes.error)
-    const overtimeLeaveTypeIds = new Set((linkedLeaveTypes.data ?? [])
-      .filter((type) => type.is_active && type.entitlement_mode === 'OVERTIME_HOURS').map((type) => type.id))
-    const tvtTypeIds = new Set((linkResult.data ?? []).filter((link) => overtimeLeaveTypeIds.has(link.leave_type_id)).map((link) => link.work_hour_type_id))
-    const latestRevisions = new Map<string, number>()
-    for (const revision of revisionResult.data ?? []) if (!latestRevisions.has(revision.entry_id)) latestRevisions.set(revision.entry_id, revision.revision_number)
-    for (const entry of approved.filter((candidate) => tvtTypeIds.has(candidate.work_hour_type_id) && !postedAtomically.has(candidate.id))) {
-      const revisionNumber = latestRevisions.get(entry.id)
-      if (!revisionNumber) throw new ActualWorkServiceError('ACTUAL_WORK_TVT_REVISION_INVALID', 409)
-      const result = await scope.supabase.rpc('post_actual_work_tvt_for_revision', {
-        requested_tenant_id: scope.tenantId,
-        requested_hr_group_id: scope.hrGroupId,
-        requested_administration_id: scope.administrationId,
-        requested_entry_id: entry.id,
-        requested_revision_number: revisionNumber,
-      })
-      if (result.error || !result.data) databaseError(result.error)
+  const review = await getActualWorkPayrollReview(payrollPeriodId)
+  const entriesById = new Map(review.employees.map((entry) => [entry.id, entry]))
+  const seen = new Set<string>()
+  const requestEntries = requestedEntries.map((requested) => {
+    if (seen.has(requested.entryId)) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_APPROVAL_DUPLICATE_ENTRY')
+    seen.add(requested.entryId)
+    const entry = entriesById.get(requested.entryId)
+    if (!entry || !entry.currentRevision) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_ENTRY_SCOPE_INVALID', 403)
+    if (!entry.payrollPeriodBoundaryValid || entry.subject_period_start < payrollPeriod.startsOn
+      || entry.subject_period_end > addDays(payrollPeriod.endsOn, 1)) {
+      throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_ENTRY_PERIOD_MISMATCH', 409)
     }
-  }
-  return approved
+    if (entry.currentRevision !== requested.revisionNumber) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_APPROVAL_REVISION_STALE', 409)
+    if (entry.status !== 'PENDING' && entry.status !== 'APPROVED') throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_ENTRY_NOT_APPROVABLE')
+    return { entryId: entry.id, revisionNumber: requested.revisionNumber }
+  })
+  const result = await scope.supabase.rpc('approve_actual_work_entry_for_payroll_period', {
+    requested_tenant_id: scope.tenantId,
+    requested_hr_group_id: scope.hrGroupId,
+    requested_administration_id: scope.administrationId,
+    requested_payroll_period_id: payrollPeriod.id,
+    requested_payroll_period_start: payrollPeriod.startsOn,
+    requested_payroll_period_end: payrollPeriod.endsOn,
+    requested_payroll_periodicity: payrollPeriod.periodicity,
+    requested_entries: requestEntries,
+  })
+  if (result.error || !result.data) databaseError(result.error)
+  return result.data
 }
 
 async function releaseEntries(scope: AdminScope, payrollPeriodId: string, entryIds: readonly string[]) {
@@ -568,6 +548,11 @@ async function releaseEntries(scope: AdminScope, payrollPeriodId: string, entryI
     if (!entry || !entry.currentRevision) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_ENTRY_SCOPE_INVALID', 403)
     if (!entry.payrollPeriodBoundaryValid) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_ENTRY_PERIOD_MISMATCH', 409)
     if (entry.status !== 'APPROVED') throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_ENTRY_NOT_APPROVED')
+    if (entry.needsPayrollApproval || !entry.payrollApproval
+      || entry.payrollApproval.entry_revision_number !== entry.currentRevision
+      || entry.payrollApproval.payroll_period_id !== payrollPeriod.id) {
+      throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_APPROVAL_REQUIRED', 409)
+    }
     if (entry.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM')
       || (entry.workType?.family === 'OVERTIME' && entry.effectiveMappings.some((mapping) => mapping.processing_target === 'PAYMENT'))) {
       throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP', 409, 'SOURCE_GAP')
@@ -595,6 +580,6 @@ export async function mutateActualWorkPayroll(input: unknown) {
   if (!parsed.success) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_INPUT_INVALID')
   const scope = await adminScope(true)
   if (parsed.data.action === 'map') return saveMapping(scope, parsed.data.mapping)
-  if (parsed.data.action === 'approve') return approveEntries(scope, parsed.data.payrollPeriodId, parsed.data.entryIds)
+  if (parsed.data.action === 'approve') return approveEntries(scope, parsed.data.payrollPeriodId, parsed.data.entries)
   return releaseEntries(scope, parsed.data.payrollPeriodId, parsed.data.entryIds)
 }

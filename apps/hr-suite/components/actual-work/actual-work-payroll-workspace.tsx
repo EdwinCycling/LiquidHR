@@ -47,12 +47,14 @@ function rowName(row: ReviewRow): string {
 
 function rowState(row: ReviewRow, labels: ActualWorkPayrollLabels): string {
   if (!row.payrollPeriodBoundaryValid) return labels.periodBoundaryGap
+  if (row.needsPayrollApproval) return labels.needsReview
   if (row.tvtConfigured) return row.tvtAccrued ? labels.tvtAccrued : labels.tvtSourceGap
   if (row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM')
     || (row.workType?.family === 'OVERTIME' && row.effectiveMappings.some((mapping) => mapping.processing_target === 'PAYMENT'))) return labels.sourceGap
   if (row.release?.release_class === 'TWK_REQUIRED') return labels.twkRequired
   if (row.release) return labels.released
   if (row.needsPayrollReview) return labels.needsReview
+  if (row.payrollApproval) return labels.approved
   if (row.informational) return labels.informational
   return row.status === 'APPROVED' ? labels.approved : labels.saved
 }
@@ -79,7 +81,7 @@ export function ActualWorkPayrollWorkspace({ initial, labels }: { initial: Revie
     const payrollMapping = row.effectiveMappings.some((mapping) => mapping.processing_target === 'PAYMENT' || mapping.processing_target === 'PREMIUM')
     const unsupportedMapping = row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM')
       || (row.workType?.family === 'OVERTIME' && row.effectiveMappings.some((mapping) => mapping.processing_target === 'PAYMENT'))
-    const exception = row.status !== 'APPROVED' || row.needsPayrollReview || (row.tvtConfigured && !row.tvtAccrued) || unsupportedMapping || (payrollMapping && !row.release) || !row.payrollPeriodBoundaryValid
+    const exception = row.status !== 'APPROVED' || row.needsPayrollApproval || row.needsPayrollReview || (row.tvtConfigured && !row.tvtAccrued) || unsupportedMapping || (payrollMapping && !row.release) || !row.payrollPeriodBoundaryValid
     return matches && (!exceptionsOnly || exception)
   }), [data.employees, exceptionsOnly, filter])
 
@@ -115,8 +117,12 @@ export function ActualWorkPayrollWorkspace({ initial, labels }: { initial: Revie
     finally { setBusy(false) }
   }
 
-  const selectedPending = selected.filter((id) => data.employees.some((row) => row.id === id && row.status === 'PENDING' && row.payrollPeriodBoundaryValid))
-  const selectedApproved = selected.filter((id) => data.employees.some((row) => row.id === id && row.status === 'APPROVED' && row.payrollPeriodBoundaryValid && !row.release && !row.needsPayrollReview && !row.tvtConfigured && !row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM') && row.workType?.family !== 'OVERTIME' && row.effectiveMappings.filter((mapping) => mapping.processing_target === 'PAYMENT').length === 1))
+  const selectedForApproval = selected.flatMap((id) => {
+    const row = data.employees.find((entry) => entry.id === id)
+    return row && row.payrollPeriodBoundaryValid && row.needsPayrollApproval && row.currentRevision !== null
+      && (row.status === 'PENDING' || row.status === 'APPROVED') ? [row] : []
+  })
+  const selectedApproved = selected.filter((id) => data.employees.some((row) => row.id === id && row.status === 'APPROVED' && row.payrollApproval !== null && !row.needsPayrollApproval && row.payrollPeriodBoundaryValid && !row.release && !row.needsPayrollReview && !row.tvtConfigured && !row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM') && row.workType?.family !== 'OVERTIME' && row.effectiveMappings.filter((mapping) => mapping.processing_target === 'PAYMENT').length === 1))
   const selectedRows = selected.flatMap((id) => { const row = data.employees.find((entry) => entry.id === id); return row ? [row] : [] })
   const totalHours = visibleRows.reduce((total, row) => total + row.hours, 0)
 
@@ -156,7 +162,7 @@ export function ActualWorkPayrollWorkspace({ initial, labels }: { initial: Revie
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${row.release ? 'bg-chart-2/10 text-chart-2' : row.status === 'PENDING' || row.needsPayrollReview ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground'}`}>{rowState(row, labels)}</span>{row.release ? <span className="font-mono text-[10px] text-muted-foreground" title={row.release.content_fingerprint}>{row.release.content_fingerprint.slice(0, 12)}</span> : null}</div>
         </article>)}
       </div>}
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || !data.payrollPeriod?.id || data.payrollPeriod.status !== 'OPEN' || selectedPending.length === 0} onClick={() => void runAction({ action: 'approve', payrollPeriodId: data.payrollPeriod!.id, entryIds: selectedPending }, labels.approvedSaved)} type="button" variant="secondary">{labels.approve} ({selectedPending.length})</Button><Button disabled={busy || !data.payrollPeriod?.id || data.payrollPeriod.status !== 'OPEN' || selectedApproved.length === 0} onClick={() => void runAction({ action: 'release', payrollPeriodId: data.payrollPeriod!.id, entryIds: selectedApproved }, labels.releasedSaved)} type="button">{labels.release} ({selectedApproved.length})</Button></div>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || !data.payrollPeriod?.id || data.payrollPeriod.status !== 'OPEN' || selectedForApproval.length === 0} onClick={() => void runAction({ action: 'approve', payrollPeriodId: data.payrollPeriod!.id, entries: selectedForApproval.map((row) => ({ entryId: row.id, revisionNumber: row.currentRevision! })) }, labels.approvedSaved)} type="button" variant="secondary">{labels.approve} ({selectedForApproval.length})</Button><Button disabled={busy || !data.payrollPeriod?.id || data.payrollPeriod.status !== 'OPEN' || selectedApproved.length === 0} onClick={() => void runAction({ action: 'release', payrollPeriodId: data.payrollPeriod!.id, entryIds: selectedApproved }, labels.releasedSaved)} type="button">{labels.release} ({selectedApproved.length})</Button></div>
       {selectedRows.some((row) => row.needsPayrollReview) ? <p className="text-sm text-destructive">{labels.needsReview}</p> : null}
       {message ? <p aria-live="polite" className="text-sm text-chart-2">{message}</p> : null}{error ? <p aria-live="assertive" className="break-words text-sm text-destructive">{error}</p> : null}
     </Surface>

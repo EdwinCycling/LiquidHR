@@ -27,7 +27,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/payroll/repository', () => ({ createPayrollRepository }))
 vi.mock('@/lib/payroll/calculation-repository', () => ({ createPayrollCalculationRepository }))
 
-import { mutateActualWorkPayroll, previewActualWorkCsv } from './payroll-work-hours-service'
+import { getActualWorkPayrollReview, mutateActualWorkPayroll, previewActualWorkCsv } from './payroll-work-hours-service'
 
 const firstEmployeeId = '11111111-1111-4111-8111-111111111111'
 const secondEmployeeId = '22222222-2222-4222-8222-222222222222'
@@ -39,6 +39,10 @@ const payrollAdministrationId = '77777777-7777-4777-8777-777777777777'
 const monthlyPayrollPeriodId = '66666666-6666-4666-8666-666666666666'
 const sourceEntries = new Map<string, { id: string; source_type: string }>()
 const entryRows: Array<Record<string, unknown>> = []
+const revisionRows: Array<Record<string, unknown>> = []
+const payrollApprovalRows: Array<Record<string, unknown>> = []
+const mappingRows: Array<Record<string, unknown>> = []
+const releaseRows: Array<Record<string, unknown>> = []
 let lastRpc: ReturnType<typeof vi.fn>
 
 const employees = [
@@ -80,7 +84,7 @@ function monthlyPayrollPeriod(status: 'OPEN' | 'CLOSED' = 'OPEN') {
 function queryFor(table: string) {
   const filters = new Map<string, unknown>()
   const chain: Record<string, unknown> = {}
-  for (const method of ['select', 'eq', 'is', 'order', 'limit', 'lt', 'gte', 'gt', 'or', 'in', 'neq']) {
+  for (const method of ['select', 'eq', 'is', 'order', 'limit', 'lt', 'lte', 'gte', 'gt', 'or', 'in', 'neq']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       if (method === 'eq' || method === 'in') filters.set(String(args[0]), args[1])
       return chain
@@ -107,6 +111,10 @@ function queryFor(table: string) {
       const ids = filters.get('id') as string[] | undefined
       return entryRows.filter((entry) => !ids || ids.includes(String(entry.id)))
     }
+    if (table === 'actual_work_revisions') return [...revisionRows].sort((left, right) => Number(right.revision_number) - Number(left.revision_number))
+    if (table === 'actual_work_payroll_approvals') return payrollApprovalRows
+    if (table === 'actual_work_payroll_mappings') return mappingRows
+    if (table === 'actual_work_payroll_releases') return releaseRows
     return []
   }
   chain.maybeSingle = vi.fn(async () => ({ data: data(), error: null }))
@@ -147,6 +155,10 @@ describe('Actual Work payroll CSV preview and confirmation', () => {
     calendarPeriods.mockResolvedValue([monthlyPayrollPeriod()])
     sourceEntries.clear()
     entryRows.length = 0
+    revisionRows.length = 0
+    payrollApprovalRows.length = 0
+    mappingRows.length = 0
+    releaseRows.length = 0
     configureAdmin()
   })
 
@@ -331,7 +343,7 @@ describe('Actual Work payroll CSV preview and confirmation', () => {
     await expect(mutateActualWorkPayroll({
       action: 'approve',
       payrollPeriodId,
-      entryIds: [workTypeId],
+      entries: [{ entryId: workTypeId, revisionNumber: 1 }],
     })).rejects.toMatchObject({ code: 'ACTUAL_WORK_PAYROLL_PERIOD_CLOSED', status: 409 })
     expect(supabase.from).not.toHaveBeenCalled()
   })
@@ -373,19 +385,194 @@ describe('Actual Work payroll CSV preview and confirmation', () => {
       status: 'PENDING',
       note: null,
     })
-    lastRpc.mockResolvedValueOnce({ data: { ...entryRows[0], status: 'APPROVED' }, error: null })
+    revisionRows.push({ entry_id: actualEntryId, revision_number: 1 })
+    lastRpc.mockResolvedValueOnce({ data: [{
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      entry_id: actualEntryId,
+      entry_revision_number: 1,
+      reviewed_revision_number: 1,
+      payroll_period_id: payrollPeriodId,
+    }], error: null })
 
     await expect(mutateActualWorkPayroll({
       action: 'approve',
       payrollPeriodId,
-      entryIds: [actualEntryId],
-    })).resolves.toMatchObject([{ id: actualEntryId, status: 'APPROVED' }])
+      entries: [{ entryId: actualEntryId, revisionNumber: 1 }],
+    })).resolves.toMatchObject([{ entry_id: actualEntryId, entry_revision_number: 1 }])
 
-    expect(lastRpc).toHaveBeenCalledWith('approve_actual_work_entry_for_payroll', {
+    expect(lastRpc).toHaveBeenCalledWith('approve_actual_work_entry_for_payroll_period', {
       requested_tenant_id: 'tenant-a',
       requested_hr_group_id: 'group-a',
       requested_administration_id: 'admin-a',
-      requested_entry_id: actualEntryId,
+      requested_payroll_period_id: payrollPeriodId,
+      requested_payroll_period_start: '2026-12-21',
+      requested_payroll_period_end: '2027-01-17',
+      requested_payroll_periodicity: 'FOUR_WEEKLY',
+      requested_entries: [{ entryId: actualEntryId, revisionNumber: 1 }],
     })
+  })
+
+  it('does not reuse an older Payroll approval after an operationally approved correction', async () => {
+    const supabase = configureAdmin()
+    entryRows.push({
+      id: actualEntryId,
+      tenant_id: 'tenant-a',
+      hr_group_id: 'group-a',
+      administration_id: 'admin-a',
+      employee_id: firstEmployeeId,
+      employment_id: firstEmploymentId,
+      work_hour_type_id: workTypeId,
+      entry_granularity: 'DAY',
+      work_date: '2026-10-22',
+      subject_period_start: '2026-10-22',
+      subject_period_end: '2026-10-23',
+      posting_period_start: '2026-10-01',
+      hours: 1.5,
+      status: 'APPROVED',
+      approved_at: '2026-10-26T20:37:42.760585+00:00',
+      updated_at: '2026-10-26T20:38:55.207315+00:00',
+      note: null,
+    })
+    revisionRows.push(
+      { entry_id: actualEntryId, revision_number: 1 },
+      { entry_id: actualEntryId, revision_number: 2 },
+      { entry_id: actualEntryId, revision_number: 3 },
+    )
+    payrollApprovalRows.push({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      entry_id: actualEntryId,
+      entry_revision_number: 2,
+      reviewed_revision_number: 2,
+      payroll_period_id: monthlyPayrollPeriodId,
+      content_fingerprint: 'a'.repeat(64),
+    })
+
+    const review = await getActualWorkPayrollReview(monthlyPayrollPeriodId)
+
+    expect(review.employees[0]).toMatchObject({
+      status: 'APPROVED',
+      currentRevision: 3,
+      payrollApproval: null,
+      needsPayrollApproval: true,
+      needsPayrollReview: true,
+    })
+    await expect(mutateActualWorkPayroll({
+      action: 'release',
+      payrollPeriodId: monthlyPayrollPeriodId,
+      entryIds: [actualEntryId],
+    })).rejects.toMatchObject({ code: 'ACTUAL_WORK_PAYROLL_APPROVAL_REQUIRED', status: 409 })
+    expect(supabase.rpc).not.toHaveBeenCalled()
+  })
+
+  it('rejects a stale reviewed revision before sending an approval request', async () => {
+    const supabase = configureAdmin()
+    entryRows.push({
+      id: actualEntryId,
+      tenant_id: 'tenant-a',
+      hr_group_id: 'group-a',
+      administration_id: 'admin-a',
+      employee_id: firstEmployeeId,
+      employment_id: firstEmploymentId,
+      work_hour_type_id: workTypeId,
+      entry_granularity: 'DAY',
+      work_date: '2026-10-22',
+      subject_period_start: '2026-10-22',
+      subject_period_end: '2026-10-23',
+      posting_period_start: '2026-10-01',
+      hours: 1.5,
+      status: 'APPROVED',
+      approved_at: '2026-10-26T20:37:42.760585+00:00',
+      updated_at: '2026-10-26T20:38:55.207315+00:00',
+      note: null,
+    })
+    revisionRows.push({ entry_id: actualEntryId, revision_number: 3 })
+
+    await expect(mutateActualWorkPayroll({
+      action: 'approve',
+      payrollPeriodId: monthlyPayrollPeriodId,
+      entries: [{ entryId: actualEntryId, revisionNumber: 2 }],
+    })).rejects.toMatchObject({ code: 'ACTUAL_WORK_PAYROLL_APPROVAL_REVISION_STALE', status: 409 })
+    expect(supabase.rpc).not.toHaveBeenCalled()
+  })
+
+  it('returns a conflict when a concurrent correction wins after the review read', async () => {
+    configureAdmin()
+    entryRows.push({
+      id: actualEntryId,
+      tenant_id: 'tenant-a',
+      hr_group_id: 'group-a',
+      administration_id: 'admin-a',
+      employee_id: firstEmployeeId,
+      employment_id: firstEmploymentId,
+      work_hour_type_id: workTypeId,
+      entry_granularity: 'DAY',
+      work_date: '2026-10-22',
+      subject_period_start: '2026-10-22',
+      subject_period_end: '2026-10-23',
+      posting_period_start: '2026-10-01',
+      hours: 1.5,
+      status: 'PENDING',
+      approved_at: null,
+      updated_at: '2026-10-26T20:38:55.207315+00:00',
+      note: null,
+    })
+    revisionRows.push({ entry_id: actualEntryId, revision_number: 3 })
+    lastRpc.mockResolvedValueOnce({
+      data: null,
+      error: { code: '40001', message: 'ACTUAL_WORK_PAYROLL_APPROVAL_REVISION_STALE' },
+    })
+
+    await expect(mutateActualWorkPayroll({
+      action: 'approve',
+      payrollPeriodId: monthlyPayrollPeriodId,
+      entries: [{ entryId: actualEntryId, revisionNumber: 3 }],
+    })).rejects.toMatchObject({ code: 'ACTUAL_WORK_PAYROLL_APPROVAL_REVISION_STALE', status: 409 })
+  })
+
+  it('sends a repeated approval with the same revision as an idempotent retry', async () => {
+    const supabase = configureAdmin()
+    const approval = {
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      entry_id: actualEntryId,
+      entry_revision_number: 3,
+      reviewed_revision_number: 3,
+      payroll_period_id: monthlyPayrollPeriodId,
+      content_fingerprint: 'a'.repeat(64),
+    }
+    entryRows.push({
+      id: actualEntryId,
+      tenant_id: 'tenant-a',
+      hr_group_id: 'group-a',
+      administration_id: 'admin-a',
+      employee_id: firstEmployeeId,
+      employment_id: firstEmploymentId,
+      work_hour_type_id: workTypeId,
+      entry_granularity: 'DAY',
+      work_date: '2026-10-22',
+      subject_period_start: '2026-10-22',
+      subject_period_end: '2026-10-23',
+      posting_period_start: '2026-10-01',
+      hours: 1.5,
+      status: 'APPROVED',
+      approved_at: '2026-10-26T20:37:42.760585+00:00',
+      updated_at: '2026-10-26T20:38:55.207315+00:00',
+      note: null,
+    })
+    revisionRows.push({ entry_id: actualEntryId, revision_number: 3 })
+    lastRpc.mockResolvedValue({ data: [approval], error: null })
+
+    const request = {
+      action: 'approve' as const,
+      payrollPeriodId: monthlyPayrollPeriodId,
+      entries: [{ entryId: actualEntryId, revisionNumber: 3 }],
+    }
+    await mutateActualWorkPayroll(request)
+    await mutateActualWorkPayroll(request)
+
+    expect(supabase.rpc).toHaveBeenCalledTimes(2)
+    expect(lastRpc).toHaveBeenLastCalledWith('approve_actual_work_entry_for_payroll_period', expect.objectContaining({
+      requested_payroll_period_id: monthlyPayrollPeriodId,
+      requested_entries: [{ entryId: actualEntryId, revisionNumber: 3 }],
+    }))
   })
 })
