@@ -49,3 +49,29 @@ De gepubliceerde definitie `02bfc76b-e55c-4802-b74d-da04f2168e24`, versie 1 `568
 **Advies merge PR #52: HOLD. TEST-release: HOLD.** PR #52 blijft Draft en ongewijzigd. Geen push, merge, migratie, deployment, processtart, notificatie of businessdatamutatie is uitgevoerd. De securityfix heeft bestaande negatieve autorisatie-evidence, maar deze run sluit stale-candidate-, P10-statusmapping- of WVP-gaten niet.
 
 **Blokkade voor vervolg:** gebruik de normale lokale persona-ownerflow om een bestaande Test HR Admin-sessie te openen; deel geen wachtwoorden of secrets. Daarna kunnen uitsluitend ontbrekende synthetische fixtures via bestaande beheer-/procesroutes worden gemaakt. Een oude kandidaatproef moet geïsoleerd blijven en mag bestaande teamscope niet wijzigen. WVP blijft dicht totdat de definitie via een afzonderlijk geautoriseerde normale publicatie een taakpermissie gebruikt die door de server-side PMUX-autorisatie wordt afgedwongen.
+
+## Addendum — fixture-acceptatie run 05 (27 oktober 2026)
+
+De officiële lokale TEST-launcher is hersteld op `http://127.0.0.1:3013`. De normale HR Admin-sessie (`TENANT_ADMIN`) gebruikte Planeten / Jupiter BV (`8483abc9-f275-c80b-5a23-fedc54ce9f0a`). Er zijn geen nieuwe accounts, secrets, rollen of grants aangemaakt.
+
+### Synthetische fixturepoging
+
+Omdat de bestaande kandidaatrijen geen ongeldige kandidaat bevatten, is via de normale HR Admin-medewerkerwizard één duidelijk gemarkeerd synthetisch profiel aangemaakt:
+
+- Medewerker: `94632716-7ec2-4e12-ad0d-aa043a1fc231`
+- Personeelsnummer: `PMUX-SEC-ACCEPT-20261027`
+- Weergavenaam: `PMUX Security Fixture Acceptance 05`
+- Synthetische geboortedatum: `2000-01-01`; geen BSN, contactgegevens of adres.
+
+De normale wizard voor een `NO_PAYROLL`-dienstverband op Jupiter, afdeling `P9 Test Transfer` en directe manager Yara bereikte de bevestigingsstap. De reguliere `POST /api/employees/{id}/employments` eindigde met HTTP 400 en een generieke foutmelding. De exacte validatiecode was niet zichtbaar in de UI- of app-loguitvoer; er is daarom geen retry gedaan. Read-only Core TEST-readback bevestigde één actief medewerkerprofiel en **nul** dienstverbanden. Er is geen teamplaatsing, procesinstantie, kandidaat, taak of proces-event voor deze medewerker ontstaan. Het profiel is dus een gemarkeerde maar onvolledige synthetische registratie, geen bruikbare process-fixture.
+
+### Read-only teruglezing en acceptatiestatus
+
+- Core TEST-migratiehistorie bevat nog steeds WVP-basismigratie `20261026055349` (geregistreerd `20261026131216`), WVP-auditcorrectie `20261026172808` (geregistreerd `20261026175140`) en PMUX-securitymigratie `20261026190604` (geregistreerd `20261027170458`). Geen migratie is uitgevoerd.
+- De bestaande WVP-casus `356e0c99-5d67-4e7a-a0da-3b7219ef617f` is `ACTIVE`, maar heeft geen rij in `absence_guidance`. De gepubliceerde definitie `02bfc76b-e55c-4802-b74d-da04f2168e24`, versie 1, heeft voor `case-owner.permission` en `selector.permission` nog `process-definition:publish`. WVP blijft **BLOCKED**; er is geen proces gestart.
+- Process Automation readback bleef op 14 procesinstanties, 26 werkitems, 26 kandidaten en 80 events; `is_eligible=false` bleef 0. De mislukte dienstverbandaanmaak heeft geen procesmutatie veroorzaakt.
+- HR Admin-, Manager- en Employee-read-/autorisatieproeven en de eerdere bevoegde Manager-claim zijn hergebruikt uit het oorspronkelijke acceptance-rapport; ze zijn niet herhaald. De Manager Yara-claim blijft `CLAIMED` v2 met het eerder vastgelegde audit-event. Manager Lisa buiten teamscope en Employee Noah op een vreemd proces blijven 403. De P10-acknowledgement blijft een statusmapping-afwijking (HTTP 400 zonder neveneffect).
+- Geen bestaand personeels-, team- of autorisatiescope is gewijzigd; geen notificatie is verzonden. `next-env.d.ts` is niet aangepast; de beschermde hash bleef `B8B3A344484B959AF5E4E3FC1A1609DAC3CB9ECE0CDEB6C145BE29BC4C491000`.
+- PR #52 is via GitHub read-only opnieuw gecontroleerd: open, Draft, niet gemerged, head `25a5042986bb758f292dad6e74ef8a12ddb2fca7`.
+
+**Uitkomst blijft PARTIAL. Mergeadvies: HOLD. Core TEST-releaseadvies: HOLD.** De bestaande positieve Manager-/Employee-bewijzen en negatieve cross-scope-bewijzen blijven geldig. De stale-kandidaatproef is nog OPEN omdat er geen werkend synthetisch dienstverband/proces kon worden aangemaakt. De exacte volgende technische blokkade is de generieke HTTP 400 op de reguliere dienstverbandroute; de WVP-blokkade is de onveilige gepubliceerde participant-permissie.
