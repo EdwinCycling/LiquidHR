@@ -66,3 +66,6 @@ Dit is lokale branchfunctionaliteit; PR #33 is Draft, niet naar `main` gemerged 
 
 
 **Live follow-up 27-10-2026:** een bestaande geauthenticeerde HR Admin-sessie previewde en importeerde een geldige synthetische Core TEST CSV-regel; een ongeldige medewerker werd geweigerd en herhaling leverde dezelfde entry als duplicate. De entry bleef PENDING. HR-review faalde HTTP 400 door de niet-toegepaste revision-approval-migratie; geen Payroll-vrijgave, bronconsumptie of salarisverwerking is bewezen. `AW_WORK` blijft SOURCE_GAP en vierweken-brutonet blijft fail-closed. Integratie en TEST-release HOLD. Details: [W04-acceptatie](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
+
+
+**Autorisatie-aanvulling 27-10-2026:** Manager en Employee kregen via bestaande TEST-persona's een expliciete weigering op de W04-review-GET; dit is app-layer bewijs en niet de POST- of RLS-validatie. W04 blijft HOLD tot Core-migratie, HR Admin-approvalketen en databasebeveiliging live zijn geaccepteerd. Zie [W04-acceptatie](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).

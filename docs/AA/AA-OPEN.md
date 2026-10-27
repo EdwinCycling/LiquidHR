@@ -162,3 +162,6 @@ Bestaande rijen behouden hun laatst vastgelegde bewijsdatum. De update van 2026-
 - Database-RLS en negatieve Manager-, Employee- en vreemde-tenantproeven voor de nieuwe contracten: OPEN.
 - Mars `AW_WORK` Payroll-consumptie: `SOURCE_GAP`, er is geen geldige effectieve variabele-urenlooncomponent.
 - Geauthenticeerde HR Admin CSV-preview/import is gedeeltelijk bewezen; één synthetische PENDING-regel is geïmporteerd en herhaling was idempotent. Zie het [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
+
+
+**Aanvulling 27-10-2026:** live Manager- en Employee-review-GETs zijn via bestaande lokale persona's expliciet geweigerd; Employee kreeg op de urenwerkplek “Nog geen toegang”. POST-goedkeuring/vrijgave, Postgres RLS en cross-tenant/cross-administratie blijven OPEN.

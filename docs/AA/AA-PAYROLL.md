@@ -684,3 +684,6 @@ De eerste vier hebben allen salaris-, rooster- en IKV-records. **Jan** heeft een
 ### W04 live-acceptatie follow-up — 27-10-2026
 
 Een geauthenticeerde HR Admin-sessie previewde/importeeerde één geldige synthetische CSV-regel in Core TEST; een ongeldige medewerker werd geweigerd en exact herhalen was idempotent. De bronstatus bleef PENDING. Payroll-review gaf HTTP 400 door de ontbrekende Core revision-approval-migratie; geen accordering, correctieherbeoordeling of release is geclaimd. De nieuwe bron heeft geen Payroll-consumptie en Mars `AW_WORK` blijft SOURCE_GAP. Exacte entry-, periode-, API- en readbackgegevens staan in het [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
+
+
+**Autorisatie-aanvulling 27-10-2026:** via de officiële lokale persona-wisselaar zijn Manager- en Employee-GETs naar de W04-review expliciet geweigerd. Dit dekt de leesroute; vrijgave-POST en database-RLS zijn niet getest. Zie het [acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).

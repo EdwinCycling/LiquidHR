@@ -324,3 +324,15 @@ De synthetische Core-records en hun append-only correctie-/revisiehistorie zijn 
 - **PR #51:** bestaande Draft PR is open en GitHub rapporteert `mergeable=true`; vóór deze documentupdate remote HEAD was `d14a453c4df2a2abb68ba651ea4341f7946d4e1b`. GitHub retourneert geen checks/statuscontexts; mergeability is geen CI-bewijs.
 
 **Besluit:** integratie HOLD totdat de approval-migratie via de officiële geldige geautoriseerde route is toegepast en nagelezen, en HR Admin-review/goedkeuring/correctieherbeoordeling plus RLS-negatieven slagen. AW_WORK-consumptie blijft afzonderlijk SOURCE_GAP wegens ontbrekende geldige variabele-looncomponent. TEST-release HOLD. Geen merge of handmatige deployment.
+
+
+### PAY-W04 — aanvullende persona-autorisatieproef, 27-10-2026
+
+Via dezelfde lokale TEST-app en de bestaande afgeschermde `/local/personas`-wisselaar is HR Admin teruggezet en daarna zijn de bestaande Manager- en Employee-persona's gebruikt. Er zijn geen credentials getoond of accounts aangemaakt.
+
+- Manager: `GET /api/actual-work/payroll?period=83ce4ce4-35cc-445f-8e7d-265099f12977` leverde de expliciete weigering “Payroll uren beheren is alleen beschikbaar voor HR Admin.”
+- Employee: dezelfde review-GET leverde “Je hebt onvoldoende rechten voor deze actie.” Direct openen van de Payroll-urenwerkplek toonde “Nog geen toegang”.
+- Dit zijn live app-layer weigeringen voor leesverzoeken. Er is geen POST-accordering/vrijgave als Manager of Employee gedaan en geen database-RLS/RPC-proef uitgevoerd. Buiten-tenant- en buiten-administratie-negatieven blijven OPEN.
+- De proef veranderde geen Actual Work-, Payroll- of verlofdata. De openstaande Core-migratie blijft de HR Admin-review blokkeren; eerdere synthetische CSV-entry blijft PENDING.
+
+**Bewijskracht:** Manager/Employee kunnen via de geteste GET-route de Payroll-urenreview niet lezen; dit bewijst op zichzelf niet de POST-vrijgaveguard of Postgres RLS. Integratie en TEST-release blijven HOLD.
