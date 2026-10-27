@@ -312,6 +312,28 @@ describe('Actual Work payroll CSV preview and confirmation', () => {
     expect(supabase.from).not.toHaveBeenCalled()
   })
 
+  it.each([
+    { role: 'MANAGER', action: 'approve' },
+    { role: 'MANAGER', action: 'release' },
+    { role: 'EMPLOYEE', action: 'approve' },
+    { role: 'EMPLOYEE', action: 'release' },
+  ] as const)('rejects $role $action before any database access, even with write permissions projected', async ({ role, action }) => {
+    const supabase = configureAdmin()
+    requirePermission.mockResolvedValue({
+      tenantId: 'tenant-a', hrGroupId: 'group-a', administrationId: 'admin-a', userId: `actor-${role.toLowerCase()}`,
+      activeRoles: [role],
+      permissions: ['salary:read', 'salary:write', 'leave:read', 'leave:write', 'employee:read'],
+    })
+    const input = action === 'approve'
+      ? { action, payrollPeriodId: monthlyPayrollPeriodId, entries: [{ entryId: actualEntryId, revisionNumber: 1 }] }
+      : { action, payrollPeriodId: monthlyPayrollPeriodId, entryIds: [actualEntryId] }
+
+    await expect(mutateActualWorkPayroll(input)).rejects.toMatchObject({ status: 403 })
+    expect(requirePermission).toHaveBeenCalledWith('salary:write')
+    expect(supabase.from).not.toHaveBeenCalled()
+    expect(supabase.rpc).not.toHaveBeenCalled()
+  })
+
   it('rejects a premium mapping while the Payroll source has no dedicated premium component', async () => {
     const supabase = configureAdmin()
 

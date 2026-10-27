@@ -341,3 +341,11 @@ Via dezelfde lokale TEST-app en de bestaande afgeschermde `/local/personas`-wiss
 ### PAY-W04 — administratie-scopeproef, 27-10-2026
 
 De bestaande lokale HR Admin-owner (`TENANT_ADMIN`) is in HR-groep Planeten actief gemaakt met Jupiter BV. Een read-only request naar de W04-review met het open Mars-periode-ID `83ce4ce4-35cc-445f-8e7d-265099f12977` werd geweigerd als `ACTUAL_WORK_PAYROLL_PERIOD_UNAVAILABLE`. De service controleert eerst of de periode-ID in de periodelijst van de actuele administratie bestaat; bij afwezigheid stopt de request vóór de Actual Work-entryquery. Er zijn dus geen Mars-bronregels gelezen of gewijzigd vanuit Jupiter. Dit bewijst de applicatiescope voor een vreemde administratie binnen de groep, niet de onderliggende database-RLS. De beschikbare contextkiezer toonde alleen contexten binnen De Sterren holding; een vreemde-tenantpersona/context was niet beschikbaar en blijft OPEN.
+
+
+### PAY-W04 — service-autorisatietest voor Payroll-mutaties, 27-10-2026
+
+- De bestaande `payroll-work-hours-service.test.ts` bevat nu vier gerichte gevallen: Manager/Employee × approve/release. Elk gebruikt een geldig request en een gemockte permissieprojectie die zelfs `salary:write` bevat, zodat de expliciete HR Admin/TENANT_ADMIN-rolguard wordt getest.
+- De tests eisen status 403 en nul Supabase `from`-/RPC-calls vóór weigering. Dit is servicecontractbewijs; het vervangt geen live POST- of PostgreSQL-RLS-proef.
+- Resultaat: **19/19 PASS** in het servicebestand; HR Suite TypeScript **PASS**; ESLint op het gewijzigde testbestand **PASS**. De eerste teststart stopte vóór collectie met Windows `EPERM` in de sandbox-Temp-map; de gerichte rerun verzamelde en slaagde voor alle tests.
+- Er is geen productcode gewijzigd. De nieuwe tests bewijzen geen toepassing van de ontbrekende Core-migratie, geen runtime-heraccordering en geen Payroll-consumptie.

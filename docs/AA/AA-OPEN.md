@@ -168,3 +168,6 @@ Bestaande rijen behouden hun laatst vastgelegde bewijsdatum. De update van 2026-
 
 
 **Scope-aanvulling 27-10-2026:** cross-administratieperiode lookup is live app-layer geweigerd (Jupiter-context met Mars-periode-ID). Database-RLS en cross-tenant-isolatie blijven OPEN; geen vreemde-tenantpersona/context was beschikbaar.
+
+
+**Autorisatie-testaanvulling:** Manager/Employee approve- en release-servicecalls zijn contractueel geweigerd vóór databasecalls (4 servicegevallen PASS). Live POST, PostgreSQL RLS en foreign-tenantgedrag blijven OPEN.

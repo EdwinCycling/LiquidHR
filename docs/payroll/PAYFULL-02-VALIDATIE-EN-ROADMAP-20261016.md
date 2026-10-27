@@ -72,3 +72,6 @@ Dit is lokale branchfunctionaliteit; PR #33 is Draft, niet naar `main` gemerged 
 
 
 **Administratiescope-aanvulling 27-10-2026:** Mars-periode-ID werd vanuit Jupiter-context door de W04-reviewservice afgewezen voordat bronentries werden opgehaald. Cross-administratie app-scope is hiermee gedeeltelijk bewezen; database-RLS en foreign-tenantisolatie niet.
+
+
+**W04-rolguardtests 27-10-2026:** vier servicegevallen bewijzen dat Manager/Employee approve- en releaseacties vóór Core-databasecalls worden geweigerd. Servicefile 19/19, TypeScript en gerichte ESLint PASS. Live POST, RLS en bronconsumptie blijven afzonderlijke open gates.

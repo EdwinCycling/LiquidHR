@@ -690,3 +690,6 @@ Een geauthenticeerde HR Admin-sessie previewde/importeeerde één geldige synthe
 
 
 **Administratiescope-aanvulling:** Mars-periode-ID werd vanuit de Jupiter HR Admin-context geweigerd voordat Actual Work-records werden gelezen. Dit is app-layer bewijs, geen database-RLS-bewijs; foreign-tenantacceptatie blijft open.
+
+
+**W04 mutatie-roltest 27-10-2026:** vier nieuwe servicegevallen dekken Manager/Employee × approve/release en bewijzen weigering vóór Supabase-queries/RPC, ook wanneer de permissieprojectie `salary:write` bevat. Het gewijzigde servicebestand slaagt 19/19; TypeScript en gerichte ESLint slagen. Dit is geen live POST/RLS-bewijs. Zie het [acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
