@@ -349,3 +349,10 @@ De bestaande lokale HR Admin-owner (`TENANT_ADMIN`) is in HR-groep Planeten acti
 - De tests eisen status 403 en nul Supabase `from`-/RPC-calls vóór weigering. Dit is servicecontractbewijs; het vervangt geen live POST- of PostgreSQL-RLS-proef.
 - Resultaat: **19/19 PASS** in het servicebestand; HR Suite TypeScript **PASS**; ESLint op het gewijzigde testbestand **PASS**. De eerste teststart stopte vóór collectie met Windows `EPERM` in de sandbox-Temp-map; de gerichte rerun verzamelde en slaagde voor alle tests.
 - Er is geen productcode gewijzigd. De nieuwe tests bewijzen geen toepassing van de ontbrekende Core-migratie, geen runtime-heraccordering en geen Payroll-consumptie.
+
+
+### PAY-W04 — Payroll Lab-componentpreflight, 27-10-2026
+
+Een read-only inventaris bevestigde dat `public.customer_component_versions` RLS heeft en zeven klantcomponentversies bevat. Alle zeven staan op `DRAFT`; de zes aanwezige componentcodes zijn `CUSTOM_*`. Er is geen `PAYFULL02_VARIABLE_REGULAR_WAGE`-klantcomponentversie aangetroffen. De bestaande Payroll-code ondersteunt deze reguliere variabele-urencomponent met `HOURLY_RATE_X_HOURS`, maar dit is geen bewijs van een effectieve Mars-configuratie.
+
+De eerdere read-only Mars-inspectie vond geen geschikt variabel-urencontract of effectief uurloon. Er is geen fictief uurloon, componentmapping, medewerker of dienstverband aangemaakt. De W04-review-/mappingwerkplek kan door de ontbrekende Core approval-migratie niet normaal worden gebruikt. Daarom blijft `AW_WORK` `SOURCE_GAP`; er is geen Payroll-berekening of consumptie bewezen.

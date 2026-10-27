@@ -693,3 +693,6 @@ Een geauthenticeerde HR Admin-sessie previewde/importeeerde één geldige synthe
 
 
 **W04 mutatie-roltest 27-10-2026:** vier nieuwe servicegevallen dekken Manager/Employee × approve/release en bewijzen weigering vóór Supabase-queries/RPC, ook wanneer de permissieprojectie `salary:write` bevat. Het gewijzigde servicebestand slaagt 19/19; TypeScript en gerichte ESLint slagen. Dit is geen live POST/RLS-bewijs. Zie het [acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
+
+
+**Payroll Lab componentpreflight 27-10-2026:** read-only inventaris vond zeven `customer_component_versions`, allemaal `DRAFT`, en geen klantversie voor `PAYFULL02_VARIABLE_REGULAR_WAGE`. De code ondersteunt de component, maar er is geen effectieve Mars-variabele-urenbron/mapping aangetoond. Er is geen salarisfixture of mapping verzonnen; `AW_WORK` blijft `SOURCE_GAP`.

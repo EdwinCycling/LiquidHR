@@ -75,3 +75,6 @@ Dit is lokale branchfunctionaliteit; PR #33 is Draft, niet naar `main` gemerged 
 
 
 **W04-rolguardtests 27-10-2026:** vier servicegevallen bewijzen dat Manager/Employee approve- en releaseacties vóór Core-databasecalls worden geweigerd. Servicefile 19/19, TypeScript en gerichte ESLint PASS. Live POST, RLS en bronconsumptie blijven afzonderlijke open gates.
+
+
+**Payroll Lab componentpreflight 27-10-2026:** zeven klantcomponentversies zijn aanwezig, allemaal `DRAFT`; geen versie is `PAYFULL02_VARIABLE_REGULAR_WAGE`. De broncode bevat een reguliere variabele-urenroute, maar Mars heeft geen bewezen variabel-urenarbeidsrelatie/effectieve mapping. Er is geen fixture of loonbedrag verzonnen; Payroll-consumptie blijft OPEN en `AW_WORK` blijft `SOURCE_GAP`.
