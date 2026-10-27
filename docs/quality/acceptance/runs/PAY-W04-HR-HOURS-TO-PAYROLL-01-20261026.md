@@ -336,3 +336,8 @@ Via dezelfde lokale TEST-app en de bestaande afgeschermde `/local/personas`-wiss
 - De proef veranderde geen Actual Work-, Payroll- of verlofdata. De openstaande Core-migratie blijft de HR Admin-review blokkeren; eerdere synthetische CSV-entry blijft PENDING.
 
 **Bewijskracht:** Manager/Employee kunnen via de geteste GET-route de Payroll-urenreview niet lezen; dit bewijst op zichzelf niet de POST-vrijgaveguard of Postgres RLS. Integratie en TEST-release blijven HOLD.
+
+
+### PAY-W04 — administratie-scopeproef, 27-10-2026
+
+De bestaande lokale HR Admin-owner (`TENANT_ADMIN`) is in HR-groep Planeten actief gemaakt met Jupiter BV. Een read-only request naar de W04-review met het open Mars-periode-ID `83ce4ce4-35cc-445f-8e7d-265099f12977` werd geweigerd als `ACTUAL_WORK_PAYROLL_PERIOD_UNAVAILABLE`. De service controleert eerst of de periode-ID in de periodelijst van de actuele administratie bestaat; bij afwezigheid stopt de request vóór de Actual Work-entryquery. Er zijn dus geen Mars-bronregels gelezen of gewijzigd vanuit Jupiter. Dit bewijst de applicatiescope voor een vreemde administratie binnen de groep, niet de onderliggende database-RLS. De beschikbare contextkiezer toonde alleen contexten binnen De Sterren holding; een vreemde-tenantpersona/context was niet beschikbaar en blijft OPEN.

@@ -358,3 +358,6 @@ De bestaande lokale app en officiële HR Admin-login zijn gebruikt met Mars-cont
 
 
 **Aanvullende runtime-autorisatieproef:** bestaande Manager- en Employee-persona's zijn via de lokale afgeschermde wisselaar gebruikt. Manager- en Employee-review-GETs kregen expliciete toegangsweigeringen; de Employee kon de Payroll-urenwerkplek niet openen. Dit is app-layer leesautorisatiebewijs, geen POST- of database-RLS-bewijs. De gedetailleerde resultaten staan in het [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
+
+
+**Administratiescope:** vanuit de bestaande HR Admin/TENANT_ADMIN-context Jupiter werd het Mars-periode-ID geweigerd als `ACTUAL_WORK_PAYROLL_PERIOD_UNAVAILABLE`, vóór de Actual Work-entryquery. Dit bewijst app-layer periode-afscherming tussen administraties; database-RLS en vreemde-tenantisolatie blijven onbewezen. Zie het [acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).

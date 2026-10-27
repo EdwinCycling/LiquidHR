@@ -687,3 +687,6 @@ Een geauthenticeerde HR Admin-sessie previewde/importeeerde één geldige synthe
 
 
 **Autorisatie-aanvulling 27-10-2026:** via de officiële lokale persona-wisselaar zijn Manager- en Employee-GETs naar de W04-review expliciet geweigerd. Dit dekt de leesroute; vrijgave-POST en database-RLS zijn niet getest. Zie het [acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
+
+
+**Administratiescope-aanvulling:** Mars-periode-ID werd vanuit de Jupiter HR Admin-context geweigerd voordat Actual Work-records werden gelezen. Dit is app-layer bewijs, geen database-RLS-bewijs; foreign-tenantacceptatie blijft open.

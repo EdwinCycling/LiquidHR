@@ -165,3 +165,6 @@ Bestaande rijen behouden hun laatst vastgelegde bewijsdatum. De update van 2026-
 
 
 **Aanvulling 27-10-2026:** live Manager- en Employee-review-GETs zijn via bestaande lokale persona's expliciet geweigerd; Employee kreeg op de urenwerkplek “Nog geen toegang”. POST-goedkeuring/vrijgave, Postgres RLS en cross-tenant/cross-administratie blijven OPEN.
+
+
+**Scope-aanvulling 27-10-2026:** cross-administratieperiode lookup is live app-layer geweigerd (Jupiter-context met Mars-periode-ID). Database-RLS en cross-tenant-isolatie blijven OPEN; geen vreemde-tenantpersona/context was beschikbaar.

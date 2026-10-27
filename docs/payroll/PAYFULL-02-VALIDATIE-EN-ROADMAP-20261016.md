@@ -69,3 +69,6 @@ Dit is lokale branchfunctionaliteit; PR #33 is Draft, niet naar `main` gemerged 
 
 
 **Autorisatie-aanvulling 27-10-2026:** Manager en Employee kregen via bestaande TEST-persona's een expliciete weigering op de W04-review-GET; dit is app-layer bewijs en niet de POST- of RLS-validatie. W04 blijft HOLD tot Core-migratie, HR Admin-approvalketen en databasebeveiliging live zijn geaccepteerd. Zie [W04-acceptatie](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
+
+
+**Administratiescope-aanvulling 27-10-2026:** Mars-periode-ID werd vanuit Jupiter-context door de W04-reviewservice afgewezen voordat bronentries werden opgehaald. Cross-administratie app-scope is hiermee gedeeltelijk bewezen; database-RLS en foreign-tenantisolatie niet.
