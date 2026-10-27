@@ -273,3 +273,39 @@ De synthetische Core-records en hun append-only correctie-/revisiehistorie zijn 
 - De bestaande `scripts/start-test-worktree.ps1 -Mode Development -PreflightOnly` meldde dat de centrale lokale TEST-configuratie ontbreekt. `scripts/check-test-personas.ps1` meldde dezelfde blokkade voor de persona-credentials; Lisa, Jaap en Frits staan daardoor als `BLOCKED`. Er zijn geen configuratiebestanden of credentials aangemaakt of gelezen.
 - De bestaande gehoste browser is ingelogd als Maya in Manager-context; geen HR Admin-schrijfproef is via die sessie uitgevoerd. `gh pr view` kon door ontbrekende GitHub CLI-authenticatie (HTTP 401) geen metadata leveren; de verbonden GitHub-readback bevestigde PR #51 als **open, Draft en mergeable**, base `main` op `11ba924b4a726431ae7928cfd8d2201d738893b4`, head `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026` op `50fd2b71795c451fee71b62069c16e0be9c8d5ff`. De PR-body noemt nog de oudere kandidaat. Lokale codecandidate blijft `8ba0e46de6e09211598e2697bfbc72a4c0650784`. Er is niet gepusht en PR #51 is door deze run niet aangepast.
 - De lokale contract-/buildresultaten hierboven zijn hergebruikt; deze afsluitcontrole wijzigde geen productcode en voegde geen nieuw testresultaat toe. Integratie en TEST-release blijven **HOLD**.
+
+### PAY-W04-INTEGRATION-RELEASE-CANDIDATE-05 — 27-10-2026
+
+**Stand:** PARTIAL; PR-integratie HOLD; LiquidHR TEST-release afzonderlijk HOLD. De codekandidaat vóór deze documentatie-update was `a158b60671d556d010ec58ba8ce1d757cf6f3e16`, op de bestaande branch `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026`. Sinds de geteste productcode is alleen documentatie gewijzigd.
+
+#### Databases en migratie
+
+- De read-only projectlijst bevestigde Core TEST `wnpfloqpjvaacobppbpk` en afzonderlijk Payroll Lab TEST `jhgeriucbkfarxiudzfy`, beide `ACTIVE_HEALTHY`; de scheiding is behouden.
+- Core-migratie `20261027163113_actual_work_payroll_revision_approval.sql` heeft SHA-256 `400fff4c24e68fe6bf7c06190bf493428c4913d3087e543117c9de25563856bf`. Vooraf ontbraken de migratieregistratie, approval-tabel/RPC en releaseguard; de nieuwe objecten waren afwezig en de bestaande bron had 21 entries, 33 revisies en 0 vrijgaven.
+- De officiële `supabase_apply_migration`-aanroep is in deze run eenmaal uitgevoerd na een geslaagde geautoriseerde host-preflight. Die call eindigde met `Invalid or expired requestState`. Volgens de stopregel is de call niet herhaald. Read-only postcheck bevestigde opnieuw: migratie ontbreekt, approval-tabel/RPC/releaseguard ontbreken, 21 entries, 33 revisies, 0 vrijgaven. Geen Core- of Payroll Lab-schema-/datamutatie door deze run.
+
+#### Runtime en browser
+
+- De officiële launcher bevestigde dat de bestaande centrale Core/Payroll TEST-configuratie en Lisa/Jaap/Frits-persona-credentialvelden aanwezig en geldig zijn; waarden zijn verborgen gebleven. De eerdere sandboxmelding dat ze ontbraken was een environment-probe false negative.
+- De bestaande Next-server op `127.0.0.1:3010` is aantoonbaar gestart vanuit precies deze W04-worktree. Een tweede start op vrije poort 3012 stopte zelf toen Next de bestaande devserver-lock voor deze worktree aantrof; geen bestaand proces is gestopt.
+- Lokale browsernavigatie naar `/actual-work/payroll?periodStart=2026-10-01` renderde de werkcontextkiezer. Dit bewijst geen HR Admin-identiteit of W04-write. De officiële persona-wrapper voltooide de config/persona-preflights maar gaf geen browserassertions terug; de rechtstreeks gestarte bestaande browsercheck liep vast zonder resultaat. Er zijn geen W04-browserwrites, rol-/scopeproeven of HR Admin-accorderingen uitgevoerd.
+- Daardoor blijven database-RLS, HR Admin-invoer/CSV/import/correctie/heraccordering/vrijgave, Manager/Employee/foreign-tenant-negatieven en live Payroll-sourceconsumptie **OPEN**. Geen salarisrun, FINALIZED-run of PDF is gewijzigd.
+
+#### Mars-componentvoorwaarde
+
+- Read-only Payroll Lab-check bevestigde dat `PAYLAB GC-NL-001 — Mars BV` actief is. De huidige Mars-readback bevat geen arrangement-assignmentregels en geen `PAYFULL02_VARIABLE_REGULAR_WAGE`-versie in `customer_component_versions`; de eerdere effectieve loonbronreadback toonde 10 `PERIODIC_FIXED`-relaties en 0 effectieve `HOURLY_VARIABLE`-relaties. Geen variabele casus of mapping is aangemaakt.
+- De bestaande bron blijft daarom `SOURCE_GAP`. Zonder geldige variabele-urenrelatie, gekoppelde uurloonbron en toepasselijke bestaande componentconfiguratie kan geen juiste input, periode-output of geen-dubbele-betalingclaim worden bewezen. De vaste Mars-salarisregels zijn niet gewijzigd.
+
+#### Verificatie en besluit
+
+| Gate | Resultaat |
+| --- | --- |
+| Gerichte W04-heraccorderings-, sourceprovider-, Payroll-kalender- en migratiecontracttests | **81/81 PASS in 4 bestanden**, uitgevoerd op code-HEAD `a158b60671d556d010ec58ba8ce1d757cf6f3e16`. |
+| Bestaande featurekwaliteit | Eerder op dezelfde, ongewijzigde productcode: **136/136 gerichte tests**, TypeScript, ESLint, i18n, rootbuild HR Suite + Control en migratiecontracten PASS. Niet opnieuw uitgevoerd omdat daarna alleen docs veranderden. |
+| Vierweken-/jaargrens en salarisbroncontract | Bestaande contracttests blijven PASS; geen live Payroll-consumptie of fiscale vierwekenberekening. `FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED` blijft fail-closed. |
+| Supabase apply/RLS | **HOLD** — de nieuwe Core-migratie kon niet worden toegepast; geen live RLS/autorisatiebewijs voor de nieuwe tabel/RPC/releaseguard. |
+| Geauthenticeerde browser/persona-acceptatie | **OPEN** — geen W04-actie/assertions ontvangen uit de bestaande persona-browsercheck. |
+| Mars `AW_WORK`-output | **SOURCE_GAP** — geen valide variabele looncasus of effectieve componentversie; er is geen fallbackmapping geschreven. |
+| PR #51 | Voor documentupdate: open Draft, mergeable, remote HEAD `50fd2b71795c451fee71b62069c16e0be9c8d5ff`; lokale kandidaat stond drie commits vooruit. De bestaande branchpush en PR-bijwerking volgen uitsluitend nadat de documentdiff en git-gates hieronder slagen. |
+
+**Integratieadvies: HOLD. TEST-release: HOLD.** De codecontracten en relevante lokale regressies zijn groen, maar heraccordering is niet geactiveerd op Core TEST, de geauthenticeerde W04-browserketen is niet bewezen en er is geen ondersteunde Mars `AW_WORK`-Payroll-input. Geen merge, handmatige deployment, nieuwe branch/database, Payroll Lab-write of echte/definitieve Payroll-run.
