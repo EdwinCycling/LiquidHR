@@ -153,3 +153,12 @@ Bestaande rijen behouden hun laatst vastgelegde bewijsdatum. De update van 2026-
 - Uitvoeringsregels: [AA-OP](AA-OP.md), [AA-TEST](AA-TEST.md) en [AA-REL](AA-REL.md).
 - Fijnmazig runbewijs blijft in `docs/quality/acceptance/runs/` of de expliciete domeinacceptatiemap, ook als dat momenteel uitsluitend op een lokale featurebranch staat.
 - Bij het sluiten van een open punt: voeg onderaan een korte afsluittabel toe met ID, sluitdatum, bewijscommit, testrapport en relevante release. Verplaats een punt niet stilzwijgend naar `CLOSED`.
+
+
+### PAY-W04 — open acceptatiegates, update 27-10-2026
+
+- Core TEST approval-migratie `20261027163113_actual_work_payroll_revision_approval`: officiële apply gaf `Invalid or expired requestState`; migration/table/RPC ontbreken nog. Geen retries buiten de toegestane herstelpoging.
+- Payroll-review, HR Admin-accordering, correctie/heraccordering en release: geblokkeerd door bovenstaande ontbrekende tabel; Payroll-reviewendpoint gaf HTTP 400.
+- Database-RLS en negatieve Manager-, Employee- en vreemde-tenantproeven voor de nieuwe contracten: OPEN.
+- Mars `AW_WORK` Payroll-consumptie: `SOURCE_GAP`, er is geen geldige effectieve variabele-urenlooncomponent.
+- Geauthenticeerde HR Admin CSV-preview/import is gedeeltelijk bewezen; één synthetische PENDING-regel is geïmporteerd en herhaling was idempotent. Zie het [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).

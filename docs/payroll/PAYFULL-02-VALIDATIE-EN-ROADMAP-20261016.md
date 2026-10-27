@@ -63,3 +63,6 @@ Dit is lokale branchfunctionaliteit; PR #33 is Draft, niet naar `main` gemerged 
 | Later | **Betalingen en loonaangifte** | Alleen na afzonderlijke product-/compliancebesluiten; CONTROL02 XML-import blijft CANCELLED. Geen echte betalings- of aangiftestroom in TEST. |
 
 **Besluit:** niet wachten op volledige fiscale vulling van Mercurius/Noorderlicht/DGA/Hoofdadministratie om de Mars-engine verder te valideren. Blijf ontbrekende autorisaties en ongebruikelijke medewerkerssituaties wel als expliciete OPEN-gevallen registreren. Geen merge/deployment uit deze doc-update.
+
+
+**Live follow-up 27-10-2026:** een bestaande geauthenticeerde HR Admin-sessie previewde en importeerde een geldige synthetische Core TEST CSV-regel; een ongeldige medewerker werd geweigerd en herhaling leverde dezelfde entry als duplicate. De entry bleef PENDING. HR-review faalde HTTP 400 door de niet-toegepaste revision-approval-migratie; geen Payroll-vrijgave, bronconsumptie of salarisverwerking is bewezen. `AW_WORK` blijft SOURCE_GAP en vierweken-brutonet blijft fail-closed. Integratie en TEST-release HOLD. Details: [W04-acceptatie](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).

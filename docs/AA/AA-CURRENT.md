@@ -350,3 +350,8 @@ De vroegere werkstatus, debugging en checkpoints zijn historische informatie en 
 **Eerstvolgende taak:** hervat Nmbrs vanuit de bestaande P0/P1-basis en de bijbehorende acceptatiedocumentatie. CONTROL02 wordt niet hervat. Losse `packages/payroll-engine`-ontwikkeling blijft alleen na dependencycheck afzonderlijk te plannen.
 
 **Belangrijk:** `docs/AA/` staat nog op een afzonderlijke documentatiebranch. Rebase/cherry-pick alleen de definitieve AA-bestanden bovenop de nieuwste `main` wanneer integratie expliciet wordt gepland; merge geen oude baselines blind.
+
+
+### PAY-W04-INTEGRATION-RELEASE-CANDIDATE-05 live follow-up — 27-10-2026
+
+De bestaande lokale app en officiële HR Admin-login zijn gebruikt met Mars-context. CSV-preview verwierp een ongeldige medewerker; een geldige synthetische 0,25-uursregel is als PENDING opgeslagen en herhaalde bevestiging retourneerde dezelfde entry als duplicate. Core readback is nu 22 entries/34 revisies/0 releases. De Payroll-review-API faalt HTTP 400 omdat de revision-approval-migratie nog ontbreekt; de officiële migratiepoging gaf `Invalid or expired requestState` en is niet herhaald. Review/accordering/correctie, live RLS-negatieven en Payroll-consumptie blijven OPEN/HOLD. AW_WORK blijft SOURCE_GAP; integratie en TEST-release blijven HOLD. Zie het [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
