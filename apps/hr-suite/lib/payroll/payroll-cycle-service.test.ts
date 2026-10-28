@@ -80,6 +80,7 @@ function makeService(overrides: {
     getGenericInputReference: vi.fn(async () => null),
     listGenericInputReferences: vi.fn(async () => []),
     listLifecycleEvents: vi.fn(async () => []),
+    listLifecycleEventsForEmployments: vi.fn(async () => []),
   } as unknown as Payrun01Repository
   const sourceProvider: PayrollSourceProvider = overrides.provider ?? {
     getPayrollSourceSnapshot: vi.fn(async () => snapshot()),
@@ -228,5 +229,20 @@ describe('PayrollCycle server foundation', () => {
       employmentId,
       sourceGaps: [{ field: 'taxProfile', status: 'SOURCE_GAP', reasonCode: 'NO_ACCEPTED_SOURCE_CONTRACT' }],
     })
+  })
+
+  it('loads scoped lifecycle events while the source batch is still running', async () => {
+    let releaseSources: ((value: readonly PromiseSettledResult<PayrollSourceSnapshot>[]) => void) | undefined
+    const getPayrollSourceSnapshots = vi.fn(() => new Promise<readonly PromiseSettledResult<PayrollSourceSnapshot>[]>((resolve) => { releaseSources = resolve }))
+    const provider = { getPayrollSourceSnapshot: vi.fn(async () => snapshot()), getPayrollSourceSnapshots } as unknown as PayrollSourceProvider
+    const { service, lifecycleRepository } = makeService({ initialPeriod: payrollPeriod('OPEN'), provider })
+    const result = service.getPayrollCycleWorklist(period, [{ employeeId, employmentId }])
+
+    await vi.waitFor(() => expect(lifecycleRepository.listLifecycleEventsForEmployments).toHaveBeenCalledOnce(), { timeout: 500 })
+    expect(lifecycleRepository.listLifecycleEventsForEmployments).toHaveBeenCalledWith(scope, adminId, payrollPeriod('OPEN').id, [employmentId])
+    releaseSources?.([{ status: 'fulfilled', value: snapshot() }])
+    const projection = await result
+    expect(projection?.workItems[0]).toMatchObject({ employeeId, employmentId, sourceGaps: snapshot().sourceGaps })
+    expect(lifecycleRepository.listLifecycleEvents).not.toHaveBeenCalled()
   })
 })

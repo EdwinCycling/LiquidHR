@@ -186,8 +186,12 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
     const visibleRunIds = new Set(visibleRuns.map((summary) => summary.run.id))
     const scenarioRunIds = new Set(allRuns.flatMap((summary) => visibleRunIds.has(summary.run.id) ? [] : [summary.run.id]))
     const runs = visibleRuns.filter((summary) => summary.payrollPeriod.id === cycle.id)
-    let currentSourcesByEmployment: Record<string, PayrollCycleCurrentSource> | undefined
-    if (employeeReferences.length > 0) {
+    const employmentIds = [...new Set([
+      ...runs.map((summary) => summary.sourceSnapshot.source_employment_id),
+      ...employeeReferences.map((reference) => reference.employmentId),
+    ])]
+    const loadCurrentSources = async (): Promise<Record<string, PayrollCycleCurrentSource> | undefined> => {
+      if (employeeReferences.length === 0) return undefined
       const batchProvider = dependencies.sourceProvider as PayrollSourceBatchProvider
       const sourceInputs = employeeReferences.map((reference) => ({
         ...access.scope,
@@ -216,7 +220,7 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
           }
         }), PAYROLL_SOURCE_SNAPSHOT_READ_CONCURRENCY)
       }
-      currentSourcesByEmployment = Object.fromEntries(employeeReferences.map((reference, index) => {
+      const currentSources = Object.fromEntries(employeeReferences.map((reference, index) => {
         try {
           const result = sourceResults[index]
           if (!result) throw new Error('PAYROLL_SOURCE_BATCH_INCOMPLETE')
@@ -253,17 +257,16 @@ export function createPayrollCycleService(dependencies: PayrollCycleServiceDepen
           } satisfies PayrollCycleCurrentSource] as const
         }
       }))
+      return currentSources
     }
-    const employmentIds = [...new Set([
-      ...runs.map((summary) => summary.sourceSnapshot.source_employment_id),
-      ...employeeReferences.map((reference) => reference.employmentId),
-    ])]
-    const eventPairs = await Promise.all(employmentIds.map(async (employmentId) => [
+    const [currentSourcesByEmployment, eventRows] = await Promise.all([
+      loadCurrentSources(),
+      lifecycleRepository.listLifecycleEventsForEmployments(access.scope, access.administration.id, cycle.id, employmentIds),
+    ])
+    const lifecycleEventsByEmployment = Object.fromEntries(employmentIds.map((employmentId) => [
       employmentId,
-      (await lifecycleRepository.listLifecycleEvents(access.scope, access.administration.id, cycle.id, employmentId))
-        .filter((event) => !scenarioRunIds.has(event.calculation_run_id)),
-    ] as const))
-    const lifecycleEventsByEmployment = Object.fromEntries(eventPairs)
+      eventRows.filter((event) => event.source_employment_id === employmentId && !scenarioRunIds.has(event.calculation_run_id)),
+    ]))
     return projectPayrollCycle({ cycle, runs, lifecycleEventsByEmployment, currentSourcesByEmployment })
   }
 
