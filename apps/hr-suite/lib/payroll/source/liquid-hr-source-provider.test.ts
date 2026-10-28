@@ -304,12 +304,14 @@ describe('LiquidHR Payroll source provider', () => {
       types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
     })
     const loadTimeline = vi.fn(async () => timeline)
+    const listEmploymentsBatch = vi.fn(async () => [{ status: 'fulfilled' as const, value: [employment()] }])
     const loadTimelineBatch = vi.fn(async () => [timeline])
     const loadActualWork = vi.fn(async () => batchActualWork)
     const loadActualWorkBatch = vi.fn(async () => [batchActualWork])
     const input = { ...request, employmentId }
     const batchProvider = new LiquidHrPayrollSourceProvider(dependencies({
       loadTimeline,
+      listEmploymentsBatch,
       loadTimelineBatch,
       loadActualWork,
       loadActualWorkBatch,
@@ -326,6 +328,7 @@ describe('LiquidHR Payroll source provider', () => {
       employmentId,
       payrollPeriod: request.payrollPeriod,
     }])
+    expect(listEmploymentsBatch).toHaveBeenCalledWith([employeeId], { tenantId, hrGroupId, administrationId })
     expect(loadTimeline).not.toHaveBeenCalled()
     expect(loadActualWork).not.toHaveBeenCalled()
     expect(batchSnapshot?.status).toBe('fulfilled')
