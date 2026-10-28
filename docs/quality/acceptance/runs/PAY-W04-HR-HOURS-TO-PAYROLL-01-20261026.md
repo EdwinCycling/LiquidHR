@@ -1,5 +1,30 @@
 # PAY-W04-HR-HOURS-TO-PAYROLL-01 — lokaal acceptatierapport
 
+## PAY-W04-RUNTIME-RECOVERY-AND-ACCEPTANCE-11 — actuele stand (2026-10-28)
+
+**Uitkomst: PARTIAL; lokale runtime en gerichte regressies hersteld; de €20-loonbron wordt door Core TEST-RLS geweigerd, waardoor nieuwe ureninvoer, vrijgave en Payroll-consumptie voor deze fixture niet konden worden bewezen. PR #51 en TEST-release: HOLD.** Dit blok is de actuele stand; eerdere acceptatieblokken blijven historische snapshots.
+
+### Runtime en HR Admin-context
+
+- De ontbrekende lokale Next.js-dependency is met de bestaande npm-lockfile hersteld; `apps/hr-suite/node_modules/next/dist/bin/next` is aanwezig. Er is geen package- of lockfilewijziging. De bestaande TEST-launcher startte met de canonieke `LOCALAPPDATA` op `http://127.0.0.1:3014`; Core TEST bleef `wnpfloqpjvaacobppbpk` en Payroll Lab TEST `jhgeriucbkfarxiudzfy`.
+- In een geïsoleerde browser gebruikte ik `/local/sign-in` → **HR Admin openen**, daarna context `De Sterren holding · Planeten` en administratie `Mars BV`. De gebruiker is Maya en de Payroll-urenwerkplek op `/actual-work/payroll?periodStart=2026-10-01` laadde. De geselecteerde oktoberperiode toont expliciet **Gesloten**. De pagina toonde drie bestaande registraties (14 uur totaal); er is niets geselecteerd, gewijzigd, geaccordeerd of vrijgegeven.
+- Poort 3010 bleef bezet met een niet veilig geïdentificeerd proces; de bijbehorende lock is niet verwijderd. De oude Chrome-tab op 3013 is ongemoeid gelaten. Een eerste buildpoging raakte wel de gedeelde `.next/payrun01-acceptance`-cache en gaf `ENOTEMPTY`/manifest-`ENOENT`; daarna is onze eigen lokale launcher opnieuw gestart op 3014 en werkt de route. Geen onbekend proces is beëindigd.
+- De Core TEST-migratie `20261027163113_actual_work_payroll_revision_approval` blijft op versie `20261028130821`. In deze run is geen migratie, repair of schemawijziging uitgevoerd.
+
+### Synthetische loonbron en Payroll-keten
+
+- De bestaande synthetische medewerker **W04 Testkracht** (medewerkernummer `100026`, employee `b1d35e9e-a709-4087-8be3-91c9efa6a8b3`) en diens eigen dienstverband (`2f43a602-e8c2-4884-8da4-e94c6687317e`, start `2026-10-01`) zijn uit eerdere acceptatiewerkzaamheden aanwezig; ik heb in deze run geen duplicaatmedewerker of dienstverband gemaakt.
+- In de normale HR Admin-salarisworkflow stond `HOURLY_VARIABLE`, ingangsdatum `2026-10-01` en €20,00 bruto per uur klaar. Het opslaan eindigde in eerdere submitpogingen met `new row violates row-level security policy for table "employment_salaries"`. Read-only Core TEST-readback bevestigde voor dit dienstverband **0 salarisregels**. Het tarief is dus niet opgeslagen of teruggelezen als databasegegeven. Bestaande vaste salarissen zijn niet aangepast.
+- De Core TEST-insertpolicy voor `employment_salaries` controleert `salary:write`; de live readback bevestigde ook de permission-helper, insertpolicy en salarisvalidatietriggers. Ik heb geen RLS/grants versoepeld, service-role gebruikt of database-write gedaan om dit te omzeilen. De beleidsweigering blijft fail-closed.
+- Er is voor dit dienstverband geen nieuwe urenregistratie aangemaakt. De oktoberperiode is gesloten en november is toekomstig; geen gesloten periode is heropend en geen toekomstige uren zijn verzonnen. Daardoor zijn er voor deze fixture geen HR-accordering, Payroll-vrijgave/fingerprint, bronprovider-read, herhaalde idempotentie-read of correctie/heraccordering uitgevoerd. De provider moet zonder opgeslagen variabele uurloonbron `SOURCE_GAP` blijven.
+- De eerder live bewezen revisie-4-vrijgave en revisie-5-herbeoordeling/TWK-correctie uit het historische blok hierboven zijn niet gewijzigd. Dit is bewijs voor de bestaande registratieketen, niet voor Payroll-consumptie van de nieuwe synthetische loonbron. Manager Yara en Employee Noah kregen in eerdere afzonderlijke persona-browserproeven `/geen-toegang` op de W04-route; die proeven waren scope-/paginaweigeringen, geen directe approve-/release-RPC- of database-RLS-mutatieproef. Vreemde tenant is niet getest.
+
+### Gerichte gates
+
+- W04-gerichte UI-/validatie-/permissietests: **15/15 PASS** (3 testbestanden). HR Suite TypeScript: **PASS**. Gewijzigde-bestanden-ESLint: **PASS, 0 waarschuwingen**. i18n: **PASS**, 43 NL/EN-namespaces gelijk. De eerder opgegeven 127/127-testsuite blijft baselinebewijs en is niet herhaald.
+- De volledige rootbuild is **niet PASS**. De standaard Next/Turbopack-build kon in deze Windows-omgeving geen junction naar de bestaande `@sparticuz/chromium`-dependency maken (`Access is denied`). De Webpack-fallback voor HR Suite strandde eveneens op `EPERM` bij het aanmaken van een buildroute; Control compileerde/typecheckte maar prerendering strandde op `EPERM` bij `_not-found.segments`. Focus-resource en `next-env.d.ts` zijn byte-identiek hersteld na de buildpogingen.
+- Lokale runtimeacceptatie is daarmee gedeeltelijk bewezen: officiële HR Admin-login, tenant/HR-groep/administratie en routeweergave PASS; salarisopslag en verdere Payroll-keten HOLD door de concrete Core TEST-RLS-afwijzing plus gesloten periode. Integratie PR #51 en TEST-release blijven **HOLD** totdat de bevoegde HR-/Core-beheerder de RLS-/permission-mismatch volgens het bestaande contract herstelt en een toegestane open periode beschikbaar is. Geen definitieve Payroll-run, FINALIZED-run, salarisstrook, merge of deployment is uitgevoerd.
+
 ## PAY-W04-PAYROLL-COMPONENT-FINAL-08 — actuele component- en runtimeacceptatie (2026-10-28)
 
 **Uitkomst: PARTIAL; HR Admin-vrijgave inclusief revisiegebonden TWK-correctie live bewezen; Payroll-consumptie en negatieve persona-/RLS-runtimeproeven OPEN; integratie PR #51 HOLD en TEST-release HOLD.** Dit is de actuele stand. Eerdere blokken hieronder blijven historische snapshots.

@@ -798,11 +798,19 @@ export async function getEmploymentDetail(
     if (settingsResult.error) return { ...emptyResult, error: settingsResult.error }
     const configuredStructureIds = new Set(settingsResult.data?.salary_structure_ids ?? [])
     const salaryRoutes = settingsResult.data?.salary_routes ?? ['MANUAL', 'MINIMUM_WAGE']
+    const salaryRowsResult = await salaryQuery
+    if (salaryRowsResult.error) return { ...emptyResult, salaryRoutes, error: salaryRowsResult.error }
+    const relevantStructureIds = new Set([
+      ...configuredStructureIds,
+      ...(salaryRowsResult.data ?? []).flatMap((salary) => salary.salary_structure_id ? [salary.salary_structure_id] : []),
+    ])
+    if (relevantStructureIds.size === 0) return { ...emptyResult, salaryRoutes, salaryStructureIds: [...configuredStructureIds] }
     const revisionsResult = await supabase.from('salary_structure_revisions')
       .select('id, salary_structure_id, effective_from, revision_number, status')
       .eq('tenant_id', employment.tenant_id)
       .eq('hr_group_id', employment.hr_group_id)
       .eq('status', 'PUBLISHED')
+      .in('salary_structure_id', [...relevantStructureIds])
       .order('effective_from', { ascending: false })
       .order('revision_number', { ascending: false })
       .limit(5_000)
@@ -857,12 +865,15 @@ export async function getEmploymentDetail(
         .in('salary_structure_revision_id', allRevisionIds)
         .order('sort_order')
         .limit(10_000),
-      () => supabase.from('salary_scales')
-        .select('id, salary_structure_id, code, name')
-        .eq('tenant_id', employment.tenant_id)
-        .eq('hr_group_id', employment.hr_group_id)
-        .eq('is_active', true)
-        .limit(1_000),
+      () => salaryRoutes.includes('SCALE_WITH_STEPS') && availableStructureIds.size > 0
+        ? supabase.from('salary_scales')
+          .select('id, salary_structure_id, code, name')
+          .eq('tenant_id', employment.tenant_id)
+          .eq('hr_group_id', employment.hr_group_id)
+          .eq('is_active', true)
+          .in('salary_structure_id', [...availableStructureIds])
+          .limit(1_000)
+        : Promise.resolve({ data: [], error: null }),
       () => supabase.from('salary_bands')
         .select('id, salary_structure_id')
         .eq('tenant_id', employment.tenant_id)
