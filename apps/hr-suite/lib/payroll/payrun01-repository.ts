@@ -144,6 +144,12 @@ export interface Payrun01Repository {
     payrollPeriodId: string,
     sourceEmploymentId: string,
   ): Promise<readonly IndividualPayrollLifecycleEventRow[]>
+  listLifecycleEventsForEmployments(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    payrollPeriodId: string,
+    sourceEmploymentIds: readonly string[],
+  ): Promise<readonly IndividualPayrollLifecycleEventRow[]>
   insertArtifact(
     scope: PayrollScope,
     payrollAdministrationId: string,
@@ -843,6 +849,45 @@ class SupabasePayrun01Repository implements Payrun01Repository {
       checkedScope,
     )
     return await selectRows<IndividualPayrollLifecycleEventRow>(query)
+  }
+
+  async listLifecycleEventsForEmployments(
+    scope: PayrollScope,
+    payrollAdministrationId: string,
+    payrollPeriodId: string,
+    sourceEmploymentIds: readonly string[],
+  ): Promise<readonly IndividualPayrollLifecycleEventRow[]> {
+    const checkedScope = assertPayrollScope(scope)
+    assertUuid(payrollAdministrationId)
+    assertUuid(payrollPeriodId)
+    const ids = [...new Set(sourceEmploymentIds)]
+    ids.forEach((id) => assertUuid(id))
+    const batches: string[][] = []
+    for (let offset = 0; offset < ids.length; offset += 25) batches.push(ids.slice(offset, offset + 25))
+
+    const results = await Promise.all(batches.map(async (batch) => {
+      const query = applyPayrollScopeFilter(
+        this.client.from('individual_payroll_lifecycle_events').select('*', { count: 'exact' })
+          .eq('payroll_administration_id', payrollAdministrationId)
+          .eq('payroll_period_id', payrollPeriodId)
+          .in('source_employment_id', batch)
+          .order('revision', { ascending: true })
+          .order('event_sequence', { ascending: true })
+          .order('created_at', { ascending: true }),
+        checkedScope,
+      )
+      const { data, error, count } = await query
+      throwOnReadError(error)
+      const rows = data ?? []
+      if (count === null || count !== rows.length) {
+        // A PostgREST row cap must not silently truncate any employment history.
+        return (await Promise.all(batch.map((id) =>
+          this.listLifecycleEvents(checkedScope, payrollAdministrationId, payrollPeriodId, id),
+        ))).flat()
+      }
+      return rows
+    }))
+    return results.flat()
   }
 
   async insertArtifact(

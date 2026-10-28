@@ -70,6 +70,7 @@ import type {
 } from '../database'
 import type { PayrollScope } from '../scope'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
+import { listPayrollEmploymentDirectories } from './payroll-employment-directory'
 
 type EmploymentRow = Database['public']['Tables']['employments']['Row']
 type SalaryRow = Database['public']['Tables']['employment_salaries']['Row']
@@ -173,6 +174,9 @@ export type PayrollSourceSetup = {
 export interface PayrollSourceProviderDependencies {
   readonly authorize: (employeeId: string) => Promise<Pick<AuthContext, 'tenantId' | 'hrGroupId' | 'administrationId'>>
   readonly listEmployments: (employeeId: string) => Promise<readonly PayrollSourceEmployment[]>
+  readonly listEmploymentsBatch?: (
+    employeeIds: readonly string[], scope: PayrollScope,
+  ) => Promise<readonly PromiseSettledResult<readonly PayrollSourceEmployment[]>[]>
   readonly loadTimeline: (
     employeeId: string,
     employmentId: string,
@@ -326,21 +330,23 @@ async function loadDefaultPayrollTimeline(
   }
 }
 
-async function loadDefaultPayrollTimelinesBatch(
+export async function loadDefaultPayrollTimelinesBatch(
   inputs: readonly Pick<PayrollSourceProviderInput, 'employeeId' | 'employmentId' | 'payrollPeriod'>[],
 ): Promise<readonly PayrollSourceTimeline[]> {
-  const sources = await getEmploymentPayrollSourceProjectionsBatch(inputs.map((input) => ({
-    employeeId: input.employeeId, employmentId: input.employmentId!, payrollPeriod: input.payrollPeriod,
-  }))).catch((error: unknown) => {
-    throw new PayrollSourceReadFailure('employment-payroll-projection', error)
-  })
-  const taxProjections = await getEmploymentPayrollTaxSourceProjectionsBatch(inputs.map((input) => ({
-    employeeId: input.employeeId,
-    employmentId: input.employmentId!,
-    period: input.payrollPeriod,
-  }))).catch((error: unknown) => {
-    throw new PayrollSourceReadFailure('tax-profile-projection', error)
-  })
+  const [sources, taxProjections] = await Promise.all([
+    getEmploymentPayrollSourceProjectionsBatch(inputs.map((input) => ({
+      employeeId: input.employeeId, employmentId: input.employmentId!, payrollPeriod: input.payrollPeriod,
+    }))).catch((error: unknown) => {
+      throw new PayrollSourceReadFailure('employment-payroll-projection', error)
+    }),
+    getEmploymentPayrollTaxSourceProjectionsBatch(inputs.map((input) => ({
+      employeeId: input.employeeId,
+      employmentId: input.employmentId!,
+      period: input.payrollPeriod,
+    }))).catch((error: unknown) => {
+      throw new PayrollSourceReadFailure('tax-profile-projection', error)
+    }),
+  ])
   if (sources.length !== inputs.length || taxProjections.length !== inputs.length) {
     throw new PayrollSourceReadFailure('employment-payroll-projection', new Error('PAYROLL_SOURCE_TIMELINE_BATCH_INCOMPLETE'))
   }
@@ -382,6 +388,7 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
       return salaryContext
     },
     listEmployments: async (employeeId) => await listEmployeeEmployments(employeeId),
+    listEmploymentsBatch: listPayrollEmploymentDirectories,
     createCorrelationId: randomUUID,
     reportDiagnostic: (diagnostic) => {
       console.error(diagnostic.event, diagnostic)
@@ -1773,13 +1780,26 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     }
 
     const directoryEmployeeIds = [...new Set(authorizedInputsOnly.map(({ input }) => input.employeeId))]
-    const directoryResults = await loadQueriesInBatches(directoryEmployeeIds.map((employeeId) => async () => {
+    const readDirectoriesIndividually = async () => await loadQueriesInBatches(directoryEmployeeIds.map((employeeId) => async () => {
       try {
         return { status: 'fulfilled', value: await this.dependencies.listEmployments(employeeId) } as const
       } catch (reason) {
         return { status: 'rejected', reason } as const
       }
     }), 4)
+    let directoryResults: readonly PromiseSettledResult<readonly PayrollSourceEmployment[]>[]
+    try {
+      directoryResults = this.dependencies.listEmploymentsBatch
+        ? await this.dependencies.listEmploymentsBatch(directoryEmployeeIds, {
+          tenantId: first.data.tenantId,
+          hrGroupId: first.data.hrGroupId,
+          administrationId: first.data.administrationId,
+        })
+        : await readDirectoriesIndividually()
+      if (directoryResults.length !== directoryEmployeeIds.length) throw new Error('PAYROLL_EMPLOYMENT_DIRECTORY_BATCH_INCOMPLETE')
+    } catch {
+      directoryResults = await readDirectoriesIndividually()
+    }
     const directoriesByEmployee = new Map(directoryEmployeeIds.map((employeeId, index) => [employeeId, directoryResults[index]!]))
     const scopedEmployments = new Map<number, PayrollSourceEmployment>()
     const scopedIndexes: number[] = []
