@@ -879,5 +879,5 @@
   "actualWorkPayrollCsvColumn": "Controleer de CSV-kolommen en aanhalingstekens.",
   "actualWorkPayrollCsvComment": "Voor dit werkurentype is een omschrijving verplicht.",
   "actualWorkPayrollCsvReference": "Deze bronreferentie is eerder met andere gegevens gebruikt.",
-  "actualWorkPayrollComponent": "Beschikbare salariscomponent"
+  "actualWorkPayrollComponent": "Vereiste component voor uitbetaling"
 }

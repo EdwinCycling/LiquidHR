@@ -879,5 +879,5 @@
   "actualWorkPayrollCsvColumn": "Check the CSV columns and quotation marks.",
   "actualWorkPayrollCsvComment": "A description is required for this work-hour type.",
   "actualWorkPayrollCsvReference": "This source reference was already used with different data.",
-  "actualWorkPayrollComponent": "Available salary component"
+  "actualWorkPayrollComponent": "Required component for payment"
 }
