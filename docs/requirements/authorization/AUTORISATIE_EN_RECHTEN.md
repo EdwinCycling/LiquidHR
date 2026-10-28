@@ -127,6 +127,16 @@ Een roltoewijzing op afdeling A bestrijkt A en alle onderliggende afdelingen. Te
 
 De tweede vorm is geschikt voor een compacte RLS-helper.
 
+### 5.5 Process Automation: kandidaat, lezen en uitvoeren
+
+- Een werkitemkandidaat is een append-only routeersnapshot. Kandidatuur verleent op zichzelf geen recht om de procesinstance of kandidaatrij te lezen, een werkitem te claimen of een actie uit te voeren.
+- De resolver mag een kandidaat alleen materialiseren wanneer de kandidaat op de resolutiedatum actief is, binnen tenant, HR-groep en administratie valt, de vereiste permission heeft en — bij een medewerkergebonden `process-task:*`-stap — de actuele directe-manager-, afdelingsmanager- of eigen-medewerkerscope voor die medewerker heeft.
+- Een claim vereist zowel actuele `process-task:act`-autorisatie binnen die scope als de laatste geldige kandidaat-snapshot. De mutatie controleert daarna opnieuw de actuele autorisatie en de claimhouder; een oude snapshot kan die controles niet vervangen.
+- Lezen gebruikt afzonderlijke `process-instance:read`, `process-task:read` of exacte `self:`-permissions en dezelfde actuele scope. UI-projecties en RLS gebruiken dezelfde autorisatiekernel; `canAct` en `canClaim` zijn afzonderlijke uitkomsten.
+- HR Admin vereist een actieve expliciete tenant- of passende administratiegrant. Manager vereist een actieve `DIRECT_MANAGER`-relatie of effectieve `department_management`-toewijzing op de medewerkerafdeling of een ancestor plus de permission. Employee vereist een actieve eigen employee-koppeling en de exacte self-permission.
+- Scope wordt bij lezen, claimen en elke mutatie opnieuw beoordeeld. Verouderde kandidaatrijen blijven als historie behouden maar geven geen lees- of uitvoerrecht.
+- Native Leave/ESS-MSS, P9, P10 en WVP-adapters autoriseren via dezelfde server-side grens vóór domeinwrites. P10-kennisname blijft beperkt tot de geadresseerde Employee-selfscope; WVP-managerwrites vereisen de actuele teamscope.
+
 ## 6. Plaatsvervanging
 
 Er zijn twee vormen:
