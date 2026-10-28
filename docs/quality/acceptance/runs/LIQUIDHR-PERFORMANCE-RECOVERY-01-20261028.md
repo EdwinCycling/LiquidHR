@@ -1,6 +1,6 @@
 # LIQUIDHR-PERFORMANCE-RECOVERY-01 — metingen en acceptatie
 
-**Status: PARTIAL / HOLD.** Geauthenticeerde desktop- en mobiele kernflows, scopechecks en één opgeslagen PDF zijn gecontroleerd; de code verlaagt de desktopwerkplekmediaan in deze kleine lokale reeks met 1.200 ms. De mobiele reeks is instabiel en live vergelijking van looncomponenten/sourceversionvectors ontbreekt. Geen run/finalize, TEST-datawrite, merge of deployment uitgevoerd. De acceptatiegrenzen staan hieronder.
+**Status: PARTIAL / HOLD.** De bronhash-, versievector- en gap-pariteit is na een gerichte correctie bevestigd voor 39/39 medewerkers. De definitieve desktopnameting heeft twee warme proeven; de mobiele her-meting kwam niet voorbij administratiekeuze en blijft OPEN. Een stabiele algemene latencywinst, mobiele eindmeting en vergelijking van looncomponenten ontbreken. Geen run/finalize, TEST-datawrite, merge of deployment uitgevoerd. De acceptatiegrenzen staan hieronder.
 
 ## Baseline vóór productwijzigingen
 
@@ -23,13 +23,13 @@ In alle zes metingen: HTTP 200, geen waargenomen browser-responsefouten of page-
 
 De eerste browserlogin bereikte zonder contextselectie een 409; de selectie is daarna normaal uitgevoerd en opnieuw bevestigd. Een eenmalige servermelding `JWT issued at future` trad vóór de geslaagde selectie op; de gemeten machineklok en de HTTP-datum van de Core TEST-endpoint waren gelijk. De oorzaak van die melding is niet vastgesteld.
 
-## Diagnose en nameting
+## Diagnose en eerste nameting (kandidaat vóór hash-ordercorrectie)
 
 Tijdelijke serverinstrumentatie in dezelfde scope mat vóór de wijziging een bron-snapshotfase van 8.515 ms binnen een werkplekcyclus van 9.660 ms. In een tweede probe liepen de timeline- en tax-/IKV-batches opeenvolgend in 5.914 en 1.873 ms; de gezamenlijke snapshotfase bedroeg 10.665 ms. Er waren 39 afzonderlijke lifecycle-reads, 39 openingssaldo-reads en 61 reads van `employments` over de geïnstrumenteerde route. De cumulatieve requesttijden zijn geen wall-clocktijd en kunnen netwerk, gateway en database omvatten; database-executie is niet afzonderlijk gemeten.
 
 De wijzigingen starten de twee bestaande W03-bronbatches gelijktijdig, bundelen de reeds per medewerker geautoriseerde dienstverbanddirectories en bundelen de lifecycle-historie. De laatste twee batches controleren scope en volledigheid en vallen bij onvolledige resultaten terug op de oorspronkelijke individuele readers. Er is geen globale cache of schemawijziging. In een instrumenteerde proef na de wijzigingen waren er 26 `employments`-reads en 2 lifecycle-reads; de directoryfase bedroeg 717 ms. De 39 openingssaldo-reads bleven ongewijzigd; deze lopen via de gedeelde `loadPayrollSetup`-providerroute die binnen het actieve W04-werk valt. Die code is volgens de scopegrens niet gewijzigd. Vergelijkingen van afzonderlijke timingproeven zijn indicatief door netwerkvariatie.
 
-De nametingen hieronder zijn zonder de tijdelijke serverinstrumentatie uitgevoerd, met dezelfde scope, periode, browser en meetdefinitie als de baseline. De server was bij de eerste desktopmeting al gecompileerd; die eerste visit is daarom niet vergelijkbaar met de cold-serverbaseline.
+De eerste nametingen hieronder zijn zonder tijdelijke serverinstrumentatie uitgevoerd, met dezelfde scope, periode, browser en meetdefinitie als de baseline. Ze horen bij de kandidaat vóór de later ontdekte hash-orderafwijking en zijn geen mobiele of desktop-eindmeting van de gecorrigeerde code. De server was bij de eerste desktopmeting al gecompileerd; die eerste visit is daarom niet vergelijkbaar met de cold-serverbaseline.
 
 | Viewport | Type | Runlijst ms | Volledige werkplek ms | Documentcommit ms |
 |---|---|---:|---:|---:|
@@ -42,7 +42,24 @@ De nametingen hieronder zijn zonder de tijdelijke serverinstrumentatie uitgevoer
 
 Warme mediaan/langzaamste: desktoplijst **2279,5/2561 ms**, desktopwerkplek **12396/13234 ms**; mobiele lijst **5678,5/9317 ms**, mobiele werkplek **15212/19370 ms**. Tegenover de twee warme baselineproeven is de desktopwerkplekmediaan 1.200 ms lager; de runlijst en mobiele medianen zijn in deze kleine reeks hoger. De mobiele uitschieter is behouden. Er is geen bewijs van een stabiele algemene latencywinst of van de gevraagde streefwaarden.
 
-Alle zes nametingen: HTTP 200, 14 runs, 39 medewerkers, geen waargenomen responsefouten of page-errors en geen horizontale overflow. De medewerker-, samenvattings- en viewportgebonden runlijstfingerprints waren gelijk aan de baseline. Browser-API-responseaantallen waren 12–15 per meting; dit zijn geen server-REST-tellingen. De initiële documenttransfer was ongeveer 42–45 KB gecomprimeerd en 323–329 KB gedecodeerd; browserresources meldden circa 3,2–3,3 MB transfer per navigatie. De browsermetingen isoleren JavaScript/hydration niet van de streamingrespons.
+Alle zes eerste nametingen: HTTP 200, 14 runs, 39 medewerkers, geen waargenomen responsefouten of page-errors en geen horizontale overflow. De medewerker-, samenvattings- en viewportgebonden runlijstfingerprints waren gelijk aan de baseline. Browser-API-responseaantallen waren 12–15 per meting; dit zijn geen server-REST-tellingen. De initiële documenttransfer was ongeveer 42–45 KB gecomprimeerd en 323–329 KB gedecodeerd; browserresources meldden circa 3,2–3,3 MB transfer per navigatie. De browsermetingen isoleren JavaScript/hydration niet van de streamingrespons.
+
+## Bronhashpariteit en eindmeting na correctie
+
+De eerste read-only vergelijking via de officiële HR Admin/Jupiter-worklist gaf 38/39 gelijke `sourceHash`-waarden; alle 39 versievectoren en gaps waren gelijk. De afwijkende canonieke source-contractreferenties waren beide `actualWorkType`; de batch las typen voor vier medewerkers samen en filterde daarna per medewerker. Daardoor kon de ongesorteerde referentielijst een andere volgorde krijgen dan bij de bestaande individuele reader, wat de hash veranderde zonder gewijzigde bronset of versievector.
+
+De correctie behoudt de gebundelde entry-reads, maar haalt work-hour types per exacte medewerker-/dienstverbandinput op met dezelfde queryvorm als de individuele reader. De officiële read-only worklist vergeleek daarna **39/39 source hashes, 39/39 versievectoren en 39/39 gaps**. Tijdelijke parity-instrumentatie logde alleen aantallen en veld-/type-labels en is verwijderd. Deze A/B-probe deed extra individuele bronreads en telt daarom niet als latencymeting.
+
+Definitieve desktop-hermeting na de correctie, twee warme proeven, dezelfde Jupiter-scope en meetdefinitie:
+
+| Viewport | Type | Runlijst ms | Volledige werkplek ms | Documentcommit ms |
+|---|---|---:|---:|---:|
+| Desktop 1440×900 | Warm 1 | 1934 | 11043 | 1844 |
+| Desktop | Warm 2 | 2017 | 12073 | 1901 |
+
+De warme mediaan/langzaamste is **1975,5/2017 ms** voor de runlijst en **11558/12073 ms** voor de volledige werkplek. Tegenover de baseline zijn dat respectievelijk 179,5 ms hoger en 2.038 ms lager (circa 15%). Twee proeven bewijzen geen stabiele algemene winst of dat de gevraagde streefwaarden zijn gehaald.
+
+De mobiele hermeting na de correctie is **OPEN**: de normale HR Admin-flow bereikte de administratiekeuze, maar de verwachte `/api/context/administration`-POST kwam niet binnen de timeout. Een eerdere herhaling had hetzelfde probleem; verdere retries zijn gestopt. De eerdere mobiele timings hierboven horen bij de kandidaat vóór de hash-ordercorrectie en zijn geen eindbewijs voor de gecorrigeerde code.
 
 ## Aanvullende browser- en autorisatiecontroles
 
@@ -54,12 +71,12 @@ Alle zes nametingen: HTTP 200, 14 runs, 39 medewerkers, geen waargenomen respons
 - Verse `/login` voor Lisa bevestigde dezelfde identiteit en gekoppelde medewerker, maar de feitelijke actieve rol was `DIRECT_MANAGER`. Haar eigen Payroll-PDF gaf HTTP 200 en dezelfde 33.174 bytes/hash; Jaaps loonstrook gaf HTTP 404. Dit is dus geen Employee-rolbewijs. Er zijn geen rollen of rechten gewijzigd.
 - Verse `/login` voor de afzonderlijke Employee-fixture bevestigde de identiteit en actieve rol `EMPLOYEE` in Planeten/Jupiter. De eigen medewerkersread gaf HTTP 200 en Lisa's dossierread HTTP 403. De tijdelijke, uitsluitend lokale rol-instrumentatie is na deze checks verwijderd.
 
-De volledige vergelijking van bruto/netto, werkgeverskosten, pensioen/fiscale componenten en live source hashes/version vectors vóór en na is nog niet afgerond. De bestaande DOM- en PDF-hashes bewijzen die gegevens niet afzonderlijk. Mobiele Mars-werkplekmeting, stabiele mobiele latencyverbetering en de gevraagde streefwaarden blijven OPEN; overall is dit geen volledige performance-acceptatie.
+De batch-vs-individuele bronhash-/versievector-/gap-pariteit is bewezen voor de 39 bestaande medewerkers; een onafhankelijke vergelijking van bruto/netto, werkgeverskosten en pensioen-/fiscale componenten met opgeslagen berekeningen is niet uitgevoerd. De DOM- en PDF-hashes bewijzen die bedragen niet afzonderlijk. Mobiele eindmeting, mobiele Mars-werkplekmeting, stabiele algemene latencyverbetering en de gevraagde streefwaarden blijven OPEN; overall is dit geen volledige performance-acceptatie.
 
 ## Finale lokale kwaliteitschecks
 
-- De vijf geraakte Payroll-testbestanden: **75/75 PASS**. HR Suite TypeScript-typecheck en ESLint voor de negen gewijzigde Payroll-code-/testbestanden: **PASS**.
-- Volledige HR-suite: **754 testbestanden PASS, 4 SKIP, 1 FAIL; 3.783 tests PASS, 8 SKIP, 2 FAIL**. Beide failures zitten in het ongewijzigde `apps/hr-suite/supabase/migrations/20261024150000_employee_directory_scope_hardening.contract.test.ts`, dat vaste ingesprongen SQL-tekst verwacht terwijl de ongewijzigde migratie de replacementtekst anders inspringt. Die migration/testpaden zijn niet aangepast; dit is geen wijziging in deze Payroll-diff. De suite is niet herhaald na deze geconstateerde mismatch.
-- Productiebuild: **PASS** op codecommit `e86483b3323274cdc4d2167a7972abe46b661ab4` via de bestaande Production-buildlauncher. Next.js-compilatie, TypeScript, 343 prerendered pages, Payroll client-boundary scanner, function traces en buildprovenance slaagden. Er is geen server gestart, push gedaan of deployment aangemaakt.
-- Eindverdict performanceacceptatie blijft **PARTIAL / HOLD** door mobiele instabiliteit, ontbrekende mobiele Mars-werkplek- en live bron-/bedragenpariteit en het niet halen van stabiele gevraagde streefwaarden. De twee onafhankelijke migration-contracttestfailures zijn open voor de repositorybasis; er is geen code buiten deze Payroll-diff aangepast om ze te omzeilen.
+- Na de hash-ordercorrectie: **68/68 gerichte tests PASS** over de werkbron, Payroll-sourceprovider en integratie; de werkbrontest slaagde ook opnieuw **14/14** op de schone codecommit. HR Suite TypeScript-typecheck en ESLint voor de twee gewijzigde code-/testbestanden: **PASS** (ESLint rapporteerde alleen de bestaande `no-html-link-for-pages`-waarschuwing).
+- Volledige HR-suite op de eerdere performancekandidaat: **754 testbestanden PASS, 4 SKIP, 1 FAIL; 3.783 tests PASS, 8 SKIP, 2 FAIL**. Beide failures zitten in het ongewijzigde `apps/hr-suite/supabase/migrations/20261024150000_employee_directory_scope_hardening.contract.test.ts`, dat vaste ingesprongen SQL-tekst verwacht terwijl de ongewijzigde migratie de replacementtekst anders inspringt. Die migration/testpaden zijn niet aangepast; de volledige suite is na de latere hash-ordercorrectie niet herhaald.
+- Productiebuild: **PASS** op definitieve codecommit `5b43acf3514b608364427908d754ef6d1973e0e7` via de bestaande Production-buildlauncher. Next.js-compilatie, TypeScript, 343 prerendered pages, Payroll client-boundary scanner, function traces en buildprovenance slaagden. De eerste sandboxrun stopte op Windows-junctionrechten; dezelfde build slaagde bij de toegestane retry. Er is geen server gestart, deployment aangemaakt of TEST-data gewijzigd.
+- Eindverdict performanceacceptatie blijft **PARTIAL / HOLD** door de ontbrekende mobiele hermeting, ontbrekende onafhankelijke component-/bedragenvergelijking en het ontbreken van stabiele algemene latencywinst en bewezen streefwaarden. De twee migration-contracttestfailures op de eerdere kandidaat blijven open voor de repositorybasis; er is geen code buiten deze Payroll-diff aangepast om ze te omzeilen.
 - Branch `work/liquidhr-performance-recovery-01-20261028` is gepusht; [Draft PR #53](https://github.com/EdwinCycling/LiquidHR/pull/53) staat open tegen `main`. Opeenvolgende GitHub-readbacks gaven wisselende `mergeable`-waarden (`false` en `true`); de lokale niet-muterende `git merge-tree`-simulatie tegen de ongewijzigde `main` eindigde zonder conflicten. Bij de remote readback waren geen hosted workflow-runs of statuschecks aanwezig. Geen merge of deployment.

@@ -12,7 +12,7 @@ W00–W17 zijn uitvoerings-/acceptatieslices onder de bestaande fasering; zij ve
 | W00 | D0 | Lokale auth-, persona- en TEST-toegangsreadiness. |
 | W01 | D0 / D1 | Bestaande Payroll-defect- en bronreadiness; resterende persona-/sourcegates blijven OPEN. |
 | W02 | D2 | Retail R2 deeltijd-, premie- en synthetische bruto-netto-oracle. |
-| W03 | D2 / F0 | Retail-bronreadoptimalisatie en integratievoorbereiding; performance blijft PARTIAL. [Performance-recovery 2026-10-28](../quality/acceptance/runs/LIQUIDHR-PERFORMANCE-RECOVERY-01-20261028.md): lokale desktopwerkplekmediaan −1.200 ms in twee warme metingen; mobiele stabiliteit, mobiele Mars-werkplek en live component/sourceversion-pariteit OPEN. |
+| W03 | D2 / F0 | Retail-bronreadoptimalisatie en integratievoorbereiding; performance blijft PARTIAL. [Performance-recovery 2026-10-28](../quality/acceptance/runs/LIQUIDHR-PERFORMANCE-RECOVERY-01-20261028.md): live batch-vs-individuele source hash-/versievector-/gap-pariteit 39/39 na hash-ordercorrectie; definitieve desktopwerkplekmediaan 11.558 ms tegenover 13.596 ms baseline (twee warme proeven). Mobiele hermeting vóór administratie-POST geblokkeerd; componentbedragen en stabiele algemene winst OPEN. |
 | W04 | D2 / F0 | Retail-source-readiness en lokale W02/W03/W04-codeconvergentie. |
 | W05–W17 | P1 / P2 / P3 | Toekomstige slices onder de bestaande core-, wettelijke cyclus- en pilotgates; individuele inhoud vereist een afzonderlijk vastgelegde scope. |
 
