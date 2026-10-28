@@ -8,7 +8,21 @@ WVP-definitieversie: `6c4b523e-51c8-415c-af06-1bb7cb77c630`
 
 ## Verdict
 
-**LOCAL SECURITY CORRECTION: PASS. Core TEST acceptance: OPEN until the migration is separately authorized and applied.** De code en geïsoleerde contracttest bewijzen de oorspronkelijke server-side bypass en de gecorrigeerde weigering. Er is geen muterende call op de bestaande Core TEST-instantie uitgevoerd.
+**LOCAL SECURITY CORRECTION: PASS. Core TEST schema and read/claim-projection acceptance: PASS.** De onderstaande pre-apply controle beschrijft de oorspronkelijke teststatus; de bijgewerkte Core TEST-resultaten staan in het addendum. De bestaande taak is niet geclaimd of afgehandeld.
+
+## Core TEST acceptance addendum — 28-10-2026
+
+- Exacte migratie `20261028125342_pmux_work_item_claim_guard`, SHA-256 `AD4119C05369D454A2CB1670EFB644DDC16CFAD970A81CE06335AE2C3C580528`, is eenmaal toegepast op `wnpfloqpjvaacobppbpk` en geregistreerd als versie `20261028131456` (`pmux_work_item_claim_guard`).
+- De vier bestaande authenticated RPC-grants bleven behouden; `anon` heeft geen execute-recht. De nieuwe helper is alleen voor `postgres` uitvoerbaar. De RPC- en projectiedefinities zijn na toepassing gecontroleerd op claimstatus, claim-eigenaarschap, actuele scope/kandidaat en het leeg laten van `allowedActions` zonder uitvoerrecht.
+- Via de normale lokale TEST-login en bestaande persona’s is dezelfde work-item-detail-API gelezen. Manager Yara: detail leesbaar, status `OPEN`, `canClaim=true`, `canAct=false`, `allowedActions=[]`. Employee Noah: detail leesbaar, status `OPEN`, `canClaim=false`, `canAct=false`, `allowedActions=[]`.
+- Er is bewust geen claim-, submit- of cancel-call uitgevoerd. Na de controles bleef de instantie `RUNNING` op `wvp-week-6`, versie 2; werkitem `624c923d-25d2-4c71-b074-23bdfabf617a` bleef `OPEN`, versie 1, `claimed_by_user_id=null`. De read-only nacontrole telde 1 step-instance, 1 work item en 2 process-events. De gepubliceerde definitie bevat 22 SLA-mijlpaalstappen; deze controles voegden geen instantie- of auditrijen toe.
+- Lokale contracttests 3/3 PASS, gerichte ESLint PASS en CRLF-aware `git diff --check` PASS zijn niet opnieuw gedraaid. Er is geen migratie herhaald en geen GitHub-push, merge of deployment uitgevoerd.
+
+**Resterend:** de native Core TEST-controle bewijst de read- en claimprojectie. Een echte claim of uitvoering is op verzoek achterwege gelaten; de rollbackbare contracttest uit de lokale securitycorrectie blijft het bewijs voor de action guard. PR #52 blijft daarom HOLD voor merge totdat de lokale fixcommit in de PR is opgenomen en de daarvoor bedoelde review-/CI-gates zijn doorlopen.
+
+## Pre-apply local security analysis (historical snapshot)
+
+De oorspronkelijke lokale diagnose en contracttest hieronder zijn behouden als historisch bewijs van vóór toepassing op Core TEST. De actuele TEST-status en personaresultaten staan in het addendum hierboven.
 
 ## Root cause
 
@@ -59,13 +73,13 @@ Voor de correctie bewees dezelfde test de verkeerde Employee-projectie (`canClai
 - CRLF-aware `git diff --check`: **PASS**.
 - Algemene testsuite, browserlogin en geauthenticeerde remote RPC: niet uitgevoerd.
 
-## Bestanden, status en resterend risico
+## Bestanden, status en resterend risico — pre-apply snapshot
 
 - Migratie: `apps/hr-suite/supabase/migrations/20261028125342_pmux_work_item_claim_guard.sql`.
 - Regressiecontract: `apps/hr-suite/supabase/migrations/20261026190604_pmux_security_authorization_hardening.contract.test.ts`.
 - Actuele status: `docs/AA/AA-CURRENT.md` en `docs/AA/AA-OPEN.md`.
-- Core TEST-migratie: **niet toegepast**. Tot afzonderlijke toestemming blijft de oude centrale RPC actief en blijft de server-side bypass bestaan.
-- Geen migratie-, configuratie-, proces-, notificatie-, GitHub-, merge- of deploymentwrite uitgevoerd.
+- Core TEST-migratie was in deze oorspronkelijke momentopname **niet toegepast**. De bijgewerkte status staat in het addendum bovenaan.
+- In die momentopname was nog geen migratie-, configuratie-, proces-, notificatie-, GitHub-, merge- of deploymentwrite uitgevoerd.
 - Geen wijziging aangebracht aan de vooraf dirty `apps/hr-suite/next-env.d.ts`; die file is niet onderdeel van dit bewijs of de fixcommit.
 
-Na afzonderlijke toestemming voor exact deze migratie is gerichte authenticated Core TEST-acceptatie nodig: Noah eigen read plus claim/submit/cancel weigeren, Yara geldig claimen en uitvoeren, Manager buiten scope weigeren, HR Admin met/zonder administratie-scope, directe RPC met de bekende work-item-ID en controle op geen neveneffecten. WVP-, Leave-, P9- en P10-adaptergedrag verdient gerichte bestaande-fixture regressie; geen nieuwe processtart is hiervoor nodig.
+Op het moment dat deze pre-apply momentopname werd vastgelegd, was na autorisatie voor de migratie nog gerichte authenticated Core TEST-acceptatie nodig. De daadwerkelijke migratie en de binnen deze opdracht toegestane native read/claim-projectiecontroles staan in het addendum bovenaan; taakafhandeling en adapteracties zijn niet uitgevoerd.
