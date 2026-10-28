@@ -29,6 +29,7 @@ function queryResult(data: unknown, error: { message: string } | null = null) {
   for (const method of ['select', 'eq', 'is', 'order', 'limit', 'lt', 'gt', 'or', 'in', 'range']) chain[method] = vi.fn(() => chain)
   chain.maybeSingle = vi.fn(async () => ({ data, error }))
   chain.range = vi.fn(async () => ({ data, error }))
+  chain.then = vi.fn((onfulfilled) => Promise.resolve({ data, error }).then(onfulfilled))
   return chain
 }
 
@@ -182,10 +183,15 @@ describe('Actual Work payroll batch source read', () => {
     expect(result[1]?.types.map((type) => type.id)).toEqual([secondTypeId])
     expect(result.flatMap((projection) => projection.entries.map((entry) => entry.id)).sort()).toEqual(['entry-1', 'entry-2'])
     expect(result[0]?.entries[0]).not.toHaveProperty('employee_id')
-    expect(from).toHaveBeenCalledTimes(8)
+    expect(from).toHaveBeenCalledTimes(9)
     expect(from).toHaveBeenCalledWith('actual_work_periods')
     expect(from).toHaveBeenCalledWith('employment_work_hour_entries')
     expect(from).toHaveBeenCalledWith('work_hour_types')
+    const typeQueries = from.mock.calls.flatMap(([table], callIndex) => table === 'work_hour_types'
+      ? [from.mock.results[callIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined]
+      : [])
+    expect(typeQueries.map((query) => query?.in.mock.calls.find(([column]) => column === 'id')?.[1]))
+      .toEqual([[typeId], [secondTypeId]])
     const entriesQueryIndex = from.mock.calls.findIndex(([table]) => table === 'employment_work_hour_entries')
     const entriesQuery = from.mock.results[entriesQueryIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined
     expect(entriesQuery?.in).toHaveBeenCalledWith('employee_id', [employeeId, secondEmployeeId])
@@ -314,7 +320,7 @@ describe('Actual Work payroll batch source read', () => {
     expect(entryQuery?.in).toHaveBeenCalledWith('id', [entryId])
   })
 
-  it('keeps 39 payroll work projections in bounded four-target read groups', async () => {
+  it('keeps entry reads in bounded four-target groups and type reads scoped to each employment', async () => {
     const targets = Array.from({ length: 39 }, (_, index) => ({
       employeeId: `40000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
       employmentId: `50000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
@@ -369,11 +375,17 @@ describe('Actual Work payroll batch source read', () => {
       && projection.types[0]?.id === targets[index]?.typeId)).toBe(true)
     expect(from.mock.calls.filter(([table]) => table === 'actual_work_periods')).toHaveLength(1)
     expect(from.mock.calls.filter(([table]) => table === 'employment_work_hour_entries')).toHaveLength(10)
-    expect(from.mock.calls.filter(([table]) => table === 'work_hour_types')).toHaveLength(10)
+    expect(from.mock.calls.filter(([table]) => table === 'work_hour_types')).toHaveLength(39)
     expect(from.mock.calls.filter(([table]) => table === 'actual_work_revisions')).toHaveLength(10)
     expect(from.mock.calls.filter(([table]) => table === 'actual_work_payroll_releases')).toHaveLength(10)
     expect(from.mock.calls.filter(([table]) => table === 'leave_accrual_transactions')).toHaveLength(10)
-    expect(from).toHaveBeenCalledTimes(71)
+    const typeQueries = from.mock.calls.flatMap(([table], callIndex) => table === 'work_hour_types'
+      ? [from.mock.results[callIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined]
+      : [])
+    expect(typeQueries).toHaveLength(39)
+    expect(typeQueries.map((query) => query?.in.mock.calls.find(([column]) => column === 'id')?.[1]))
+      .toEqual(targets.map((target) => [target.typeId]))
+    expect(from).toHaveBeenCalledTimes(100)
   })
 
   it('fails closed before source reads when authorized targets resolve to different tenant scopes', async () => {
