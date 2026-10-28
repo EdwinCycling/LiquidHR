@@ -27,10 +27,13 @@ type PayrollPeriodOption = {
 type PayrollMappingComponent = { definition: { id: string; code: string; version: string; outputs: readonly { name: string; valueType: string }[] } }
 
 const uuid = z.string().uuid()
+// PostgreSQL UUID columns accept the canonical hexadecimal form regardless of
+// RFC version/variant bits. Seeded work-hour type IDs use that broader form.
+const postgresUuid = z.string().regex(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i)
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const importRequestSchema = z.object({ csv: z.string().min(1).max(2_000_000), confirm: z.boolean().default(false) })
 const mappingSchema = z.object({
-  workHourTypeId: uuid,
+  workHourTypeId: postgresUuid,
   processingTarget: z.enum(['PAYMENT', 'PREMIUM', 'TVT', 'INFORMATIONAL']),
   validFrom: isoDate,
   factor: z.string().optional(),
@@ -483,7 +486,7 @@ async function saveMapping(scope: AdminScope, input: z.infer<typeof mappingSchem
     if (!isPositiveExactHours(factor)) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_FACTOR_INVALID')
     const library = await getComponentLibrary()
     const candidate = library.components.find((item) => item.definition.id === 'system:payfull02:payfull02_variable_regular_wage'
-      && item.definition.version === '2026.1-payfull02'
+      && item.definition.version === '2026.1'
       && item.definition.code === 'PAYFULL02_VARIABLE_REGULAR_WAGE'
       && item.definition.outputs.some((output) => output.name === 'amount' && output.valueType === 'MONEY'))
     if (!candidate) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP', 409)

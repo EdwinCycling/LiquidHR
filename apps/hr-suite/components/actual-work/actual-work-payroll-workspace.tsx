@@ -59,6 +59,22 @@ function rowState(row: ReviewRow, labels: ActualWorkPayrollLabels): string {
   return row.status === 'APPROVED' ? labels.approved : labels.saved
 }
 
+type PayrollReleaseEligibilityRow = Pick<ReviewRow,
+  'status' | 'payrollApproval' | 'needsPayrollApproval' | 'needsPayrollReview' | 'payrollPeriodBoundaryValid' | 'release' | 'tvtConfigured' | 'effectiveMappings' | 'workType'>
+
+export function isPayrollReleaseEligible(row: PayrollReleaseEligibilityRow): boolean {
+  // A corrected revision stays review-marked because an older release exists; after its new approval it must be eligible for the superseding/TWK release.
+  return row.status === 'APPROVED'
+    && row.payrollApproval !== null
+    && !row.needsPayrollApproval
+    && row.payrollPeriodBoundaryValid
+    && !row.release
+    && !row.tvtConfigured
+    && !row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM')
+    && row.workType?.family !== 'OVERTIME'
+    && row.effectiveMappings.filter((mapping) => mapping.processing_target === 'PAYMENT').length === 1
+}
+
 export function ActualWorkPayrollWorkspace({ initial, labels }: { initial: ReviewData; labels: ActualWorkPayrollLabels }) {
   const [data, setData] = useState(initial)
   const [periodSelector, setPeriodSelector] = useState(initial.payrollPeriod?.id ?? initial.periodStart)
@@ -122,7 +138,7 @@ export function ActualWorkPayrollWorkspace({ initial, labels }: { initial: Revie
     return row && row.payrollPeriodBoundaryValid && row.needsPayrollApproval && row.currentRevision !== null
       && (row.status === 'PENDING' || row.status === 'APPROVED') ? [row] : []
   })
-  const selectedApproved = selected.filter((id) => data.employees.some((row) => row.id === id && row.status === 'APPROVED' && row.payrollApproval !== null && !row.needsPayrollApproval && row.payrollPeriodBoundaryValid && !row.release && !row.needsPayrollReview && !row.tvtConfigured && !row.effectiveMappings.some((mapping) => mapping.processing_target === 'PREMIUM') && row.workType?.family !== 'OVERTIME' && row.effectiveMappings.filter((mapping) => mapping.processing_target === 'PAYMENT').length === 1))
+  const selectedApproved = selected.filter((id) => data.employees.some((row) => row.id === id && isPayrollReleaseEligible(row)))
   const selectedRows = selected.flatMap((id) => { const row = data.employees.find((entry) => entry.id === id); return row ? [row] : [] })
   const totalHours = visibleRows.reduce((total, row) => total + row.hours, 0)
 

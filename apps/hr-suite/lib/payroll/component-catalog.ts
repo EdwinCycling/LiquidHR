@@ -12,6 +12,7 @@ import {
   type PayrollTypedParameter,
 } from '@liquid-hr/payroll-engine'
 import {
+  createPayfull02RulePackage,
   NL_2026_PARAMETER_METADATA,
   NL_2026_RULE_PACKAGE,
 } from '@liquid-hr/payroll-rules-nl-2026'
@@ -539,8 +540,37 @@ function createPackageCatalog(rulePackage: PayrollRulePackage): readonly Compone
     })
 }
 
+// W04 maps released variable hours into this PAYFULL02 system input. Keep the
+// catalog entry tied to the same immutable package definition used by the
+// employer configuration, while exposing only the input W04 can consume.
+const PAYFULL02_SOURCE_PACKAGE = createPayfull02RulePackage('CUSTOMER_STANDARD', {
+  supportPartialPeriods: true,
+})
+const PAYFULL02_VARIABLE_REGULAR_WAGE_SOURCE = PAYFULL02_SOURCE_PACKAGE.components.find((definition) =>
+  definition.id === 'system:payfull02:payfull02_variable_regular_wage'
+  && definition.code === 'PAYFULL02_VARIABLE_REGULAR_WAGE'
+  && definition.version === '2026.1'
+  && definition.outputs.some((output) => output.name === 'amount' && output.valueType === 'MONEY'),
+)
+if (!PAYFULL02_VARIABLE_REGULAR_WAGE_SOURCE) {
+  throw new TypeError('The active PAYFULL02 package must expose its variable regular wage source.')
+}
+
+const PAYFULL02_VARIABLE_REGULAR_WAGE_CATALOG_ENTRY = createComponentCatalogEntry({
+  definition: PAYFULL02_VARIABLE_REGULAR_WAGE_SOURCE,
+  compositionId: PAYFULL02_SOURCE_PACKAGE.compositionId,
+  ...(PAYFULL02_SOURCE_PACKAGE.metadata ? {
+    packageMetadata: PAYFULL02_SOURCE_PACKAGE.metadata,
+    sourceMetadata: PAYFULL02_SOURCE_PACKAGE.metadata.sourceMetadata,
+  } : {}),
+  components: [PAYFULL02_VARIABLE_REGULAR_WAGE_SOURCE],
+})
+
 export const SYSTEM_COMPONENT_CATALOG: readonly ComponentCatalogEntry[] = deepPlainSnapshot(
-  SYSTEM_RULE_PACKAGES.flatMap((rulePackage) => createPackageCatalog(rulePackage)),
+  [
+    ...SYSTEM_RULE_PACKAGES.flatMap((rulePackage) => createPackageCatalog(rulePackage)),
+    PAYFULL02_VARIABLE_REGULAR_WAGE_CATALOG_ENTRY,
+  ],
 )
 
 export function getSystemComponentCatalog(): readonly ComponentCatalogEntry[] {

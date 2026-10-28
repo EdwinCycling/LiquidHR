@@ -8,6 +8,7 @@ const {
   calendarPeriods,
   createPayrollRepository,
   createPayrollCalculationRepository,
+  getComponentLibrary,
 } = vi.hoisted(() => ({
   createClient: vi.fn(),
   requirePermission: vi.fn(),
@@ -16,6 +17,7 @@ const {
   calendarPeriods: vi.fn(),
   createPayrollRepository: vi.fn(() => ({ getPayrollAdministration: payrollAdministration })),
   createPayrollCalculationRepository: vi.fn(() => ({ listCalendarPeriods: calendarPeriods })),
+  getComponentLibrary: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/permissions', () => ({
@@ -26,6 +28,7 @@ vi.mock('@/lib/auth/permissions', () => ({
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/payroll/repository', () => ({ createPayrollRepository }))
 vi.mock('@/lib/payroll/calculation-repository', () => ({ createPayrollCalculationRepository }))
+vi.mock('@/lib/payroll/component-library', () => ({ getComponentLibrary }))
 
 import { getActualWorkPayrollReview, mutateActualWorkPayroll, previewActualWorkCsv } from './payroll-work-hours-service'
 
@@ -343,6 +346,54 @@ describe('Actual Work payroll CSV preview and confirmation', () => {
     })).rejects.toMatchObject({ code: 'ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP', status: 409 })
 
     expect(supabase.rpc).not.toHaveBeenCalled()
+  })
+
+  it('saves the real PAYFULL02 variable wage system source using its package version', async () => {
+    getComponentLibrary.mockResolvedValue({ components: [{
+      definition: {
+        id: 'system:payfull02:payfull02_variable_regular_wage',
+        code: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+        version: '2026.1',
+        outputs: [{ name: 'amount', valueType: 'MONEY' }],
+      },
+    }] })
+
+    await mutateActualWorkPayroll({
+      action: 'map',
+      mapping: { workHourTypeId: workTypeId, processingTarget: 'PAYMENT', validFrom: '2026-10-01', factor: '1.0000' },
+    })
+
+    expect(lastRpc).toHaveBeenCalledWith('save_actual_work_payroll_mapping', expect.objectContaining({
+      requested_processing_target: 'PAYMENT',
+      requested_salary_component_id: 'system:payfull02:payfull02_variable_regular_wage',
+      requested_salary_component_code: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+      requested_salary_component_version: '2026.1',
+      requested_salary_component_output: 'amount',
+      requested_calculation_rule: 'HOURLY_RATE_X_HOURS',
+      requested_factor: '1.0000',
+    }))
+  })
+
+  it('accepts PostgreSQL work-hour type UUIDs with non-RFC version bits', async () => {
+    const seededWorkHourTypeId = '00000000-0000-0000-0000-00000000a001'
+    getComponentLibrary.mockResolvedValue({ components: [{
+      definition: {
+        id: 'system:payfull02:payfull02_variable_regular_wage',
+        code: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+        version: '2026.1',
+        outputs: [{ name: 'amount', valueType: 'MONEY' }],
+      },
+    }] })
+
+    await mutateActualWorkPayroll({
+      action: 'map',
+      mapping: { workHourTypeId: seededWorkHourTypeId, processingTarget: 'PAYMENT', validFrom: '2026-10-01', factor: '1.0000' },
+    })
+
+    expect(lastRpc).toHaveBeenCalledWith('save_actual_work_payroll_mapping', expect.objectContaining({
+      requested_work_hour_type_id: seededWorkHourTypeId,
+      requested_salary_component_version: '2026.1',
+    }))
   })
 
   it('refuses HR approval when the selected four-week Payroll period is closed', async () => {
