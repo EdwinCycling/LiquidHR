@@ -425,35 +425,32 @@ export async function getActualWorkPayrollProjectionsBatch(
         && entry.employment_id === input.employmentId)
       return entries.slice(0, 2001)
     })
-    const typeIds = [...new Set(scopedEntriesByPair.flatMap((entries) =>
-      entries.map((entry) => entry.work_hour_type_id),
-    ))]
-    return { batch, scopedEntriesByPair, typeIds }
+    return { batch, scopedEntriesByPair }
   }), 12)
-  const typesByBatch = await loadQueriesInBatches(entriesByBatch.map(({ typeIds }) => async () => {
-    const types: ActualWorkPayrollProjection['types'] = []
-    for (let offset = 0; offset < typeIds.length; offset += 1000) {
-      const page = await supabase.from('work_hour_types')
+  const typesByInput = await loadQueriesInBatches(entriesByBatch.flatMap(({ batch, scopedEntriesByPair }) =>
+    batch.map((_input, targetIndex) => async () => {
+      const entries = scopedEntriesByPair[targetIndex] ?? []
+      const typeIds = [...new Set(entries.map((entry) => entry.work_hour_type_id))]
+      if (typeIds.length === 0) return []
+      const result = await supabase.from('work_hour_types')
         .select('id,code,name,family,valid_from,valid_until,approval_required,updated_at')
         .eq('tenant_id', tenantId)
         .eq('hr_group_id', hrGroupId)
         .in('id', typeIds)
-        .range(offset, Math.min(offset + 999, typeIds.length - 1))
-      if (page.error) databaseError(page.error, 'work-hour-types')
-      types.push(...(page.data ?? []))
-      if ((page.data ?? []).length < 1000) break
-    }
-    return types
-  }), 12)
+      if (result.error) databaseError(result.error, 'work-hour-types')
+      return result.data ?? []
+    }),
+  ), 12)
+  let typeOffset = 0
   for (let batchIndex = 0; batchIndex < entriesByBatch.length; batchIndex += 1) {
     const batchEntries = entriesByBatch[batchIndex]
-    const types = typesByBatch[batchIndex]
-    if (!batchEntries || !types) continue
+    if (!batchEntries) continue
     const { batch, scopedEntriesByPair } = batchEntries
     for (let index = 0; index < batch.length; index += 1) {
       const input = batch[index]
       const entries = scopedEntriesByPair[index]
-      if (!input || !entries) continue
+      const types = typesByInput[typeOffset + index]
+      if (!input || !entries || !types) continue
       const targetTypeIds = new Set(entries.map((entry) => entry.work_hour_type_id))
       projections.push({
         period,
@@ -474,6 +471,7 @@ export async function getActualWorkPayrollProjectionsBatch(
         types: types.filter((type) => targetTypeIds.has(type.id)),
       })
     }
+    typeOffset += batch.length
   }
   return projections
 }
