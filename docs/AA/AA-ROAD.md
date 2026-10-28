@@ -1,5 +1,7 @@
 # AA-ROAD — Long-Term Product Roadmap
 
+> **PAY-W04-FINAL-CLOSEOUT-06 — 28-10-2026:** W04-codecontracten en 126 gerichte tests slagen. De Core revision-approvalmigratie ontbreekt na de afgewezen officiële aanvraag; de lokale geauthenticeerde HR Admin-context bereikt Mars maar de werkplek faalt met `PGRST205`. Accordering, heraccordering, Payroll-vrijgave/consumptie, RLS en live TVT zijn niet bewezen. `AW_WORK` blijft `SOURCE_GAP`; vierweken-brutonet blijft fail-closed. PR #51 integratie **HOLD**, TEST-release **HOLD**; zie [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
+
 > **PAY-W04-FUNCTIONAL-CLOSEOUT-02 — 26-10-2026:** W04 hergebruikt de bestaande Actual Work-bron en Payroll-kalender. De lokale implementatie voegt expliciete TVT-ledgerboeking met configureerbaar verval, atomaire HR Admin-goedkeuring en versiegebonden vrijgave aan `MONTHLY`/`FOUR_WEEKLY` periode-ID’s toe. De W04 Payroll-sourceprovider en componentcontracten blijven bewust fail-closed voor vierwekenconsumptie, betaalde over-/meeruren en toeslagcomponenten; deze verbindingen vragen latere Payroll-sourcecontracten en lokale DB-/persona-acceptatie. Integratie **HOLD**; TEST-release **HOLD**. Zie [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
 
 

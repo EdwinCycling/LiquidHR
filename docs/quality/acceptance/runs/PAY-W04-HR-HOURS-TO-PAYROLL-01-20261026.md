@@ -1,5 +1,37 @@
 # PAY-W04-HR-HOURS-TO-PAYROLL-01 — lokaal acceptatierapport
 
+## PAY-W04-FINAL-CLOSEOUT-06 — 28-10-2026
+
+**Uitkomst: PARTIAL; integratie PR #51 HOLD; TEST-release HOLD.** Geteste productcode-HEAD: `ceeaa5897ed96337317da4fce6ea0db56f800c0a`; `origin/main`: `11ba924b4a726431ae7928cfd8d2201d738893b4`. De bestaande databases blijven gescheiden: Core TEST `wnpfloqpjvaacobppbpk` voor HR/Actual Work en Payroll Lab TEST `jhgeriucbkfarxiudzfy` voor Payroll-contracten.
+
+### Migratie en database
+
+- SHA-256 van `20261027163113_actual_work_payroll_revision_approval` is gecontroleerd en komt overeen met `400fff4c24e68fe6bf7c06190bf493428c4913d3087e543117c9de25563856bf`.
+- De read-only preflight vond de migratie en approval-tabel nog niet in Core TEST. De bestaande W04-migraties blijven behouden; de preflight telde 22 Actual Work-entries, 34 revisies en 0 Payroll-releases.
+- De enige officiële `supabase_apply_migration`-aanvraag in deze closeout is geweigerd met `Invalid or expired requestState`. De read-only postcheck bevestigde dat er geen gedeeltelijke schema- of datamutatie was: de approval-relatie/RPC/guard ontbreken nog en de genoemde aantallen bleven gelijk. Er is niet opnieuw geprobeerd, geen gedeelde database gewijzigd en Payroll Lab is niet beschreven of gewijzigd.
+
+### Lokale TEST- en browseracceptatie
+
+- De centrale TEST-configuratie is via de bestaande hardlink en de vereiste configuratievelden gecontroleerd zonder waarden te tonen. De officiële launcher preflight slaagde; de lokale app is via die launcher op loopback gestart.
+- Via de bestaande lokale HR Admin Test Auth-flow is de context `De Sterren holding · Planeten` gekozen en daarna `Mars BV`. Bij openen van `/actual-work/payroll?periodStart=2026-10-01` faalde de W04-review met `PGRST205`: de Core-relatie `actual_work_payroll_approvals` ontbreekt. Dit is een schema-/migratieblokkade, geen bewijs van een geslaagde HR Admin-werkplek.
+- Daardoor zijn invoer, CSV-preview/bevestiging, accordering, correctie/heraccordering, vrijgavefingerprint, bronconsumptie en W04-runtime-RLS niet uitgevoerd. Deze browserpoging heeft geen Actual Work-, Payroll-, TVT- of auditmutatie gedaan.
+- De bestaande algemene Payroll-personacheck is afzonderlijk uitgevoerd en is geen W04-workflowbewijs: Lisa `BLOCKED`, Jaap `READY_WITH_EXPECTED_GAP`, Frits `BLOCKED`. Manager-, Employee-, vreemde-tenant- en database-RLS-proeven voor W04 blijven OPEN.
+
+### Payroll-bron, TVT en perioden
+
+- De read-only Payroll Lab-inventaris vond geen effectieve Mars-variabele-urenrelatie of toepasbare reguliere-urencomponentversie; aangetroffen `customer_component_versions` zijn DRAFT. `AW_WORK` blijft daarom `SOURCE_GAP`. Er is geen vast salaris omgezet en geen mapping of componentversie aangemaakt.
+- Er was voor Mars geen geconfigureerde TVT-keten om live te beproeven. TVT-ledgeropbouw, opname en runtime-idempotentie zijn in deze closeout niet bewezen. De bestaande TVT-contracttests zijn wel in de gerichte lokale testbatch opgenomen.
+- De exacte maand-/vierwekenperiode-identiteit en jaargrens blijven contractueel gedekt door bestaande tests. Vierweken-brutonetberekening blijft bewust `FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED`; er is geen Payroll-run gestart.
+
+### Verificatie en resterende gates
+
+- Gerichte W04/Actual Work/Payroll/TVT/migratiecontracten: **126/126 unieke tests PASS**. Eén migratiecontracttest overschreed de 5-seconden time-out in de parallelle batch en slaagde vervolgens **5/5** in de geïsoleerde rerun; er zijn geen assertions verwijderd of versoepeld.
+- Eerder gevalideerde volledige suite **3.810 PASS / 8 SKIP**, Control **11/11**, NL-2026 **49/49**, TypeScript, ESLint, i18n en rootbuild zijn hergebruikt; ze zijn in deze documentatie-/runtime-closeout niet opnieuw uitgevoerd.
+- Live migratie-apply/readback, HR Admin-mutaties en heraccordering, Payroll-vrijgave/consumptie, W04-RLS en negatieve API/autorisatieproeven zijn niet geslaagd of niet uitgevoerd. Het huidige Vercel-projectreadback bevat geen effectieve Git-/Preview-triggerinstellingen; het branchpush-risico is daarom niet bevestigd.
+- Geen Vercel-deployment, Payroll-run, FINALIZED-wijziging, gedeelde databasewrite of lokale featurebranchcodewijziging uitgevoerd. De geteste productcode blijft HEAD `ceeaa5897ed96337317da4fce6ea0db56f800c0a`.
+
+**Besluit:** PR #51 blijft Draft en **HOLD** voor integratie; TEST-release **HOLD**. Sluiten vereist een reguliere geautoriseerde apply/readback van de exacte Core-migratie, daarna W04-browser-/RLS-acceptatie met de bestaande persona's en een geldige normale Payroll-componentconfiguratie voor `AW_WORK`. Geen autorisatie-omzeiling, artificiële fixture of nieuwe Payroll-engine is toegestaan.
+
 ## Architectuurcorrectie en actuele integratieacceptatie — 26-10-2026
 
 - De geldende architectuur is één LiquidHR-applicatie met twee bestaande TEST-databases: Core TEST voor HR/Actual Work en Payroll Lab TEST voor Payroll-administraties, kalenders, componenten en runs. W04 gebruikt de bestaande Core-client plus Payroll-repositories. De twee W04-migraties waren al op Core TEST toegepast; deze acceptatieronde voerde geen migratie of databasewrite uit.
