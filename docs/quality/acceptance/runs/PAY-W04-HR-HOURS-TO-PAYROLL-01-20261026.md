@@ -28,9 +28,16 @@
 ### Rechten, runtime en gerichte verificatie
 
 - De bestaande `TestRuntime`-launcher meldt dat de centrale lokale TEST-configuratie ontbreekt; persona-preflight kon daardoor niet slagen. De reeds actieve geauthenticeerde HR Admin-browser bleef wel beschikbaar en is gebruikt voor de hierboven beschreven handelingen. Live Manager-, Employee-, vreemde-tenant- en Postgres-RLS-weigeringen zijn in deze run niet uitgevoerd. Contracttests blijven geen vervanging voor die runtimeproeven.
+- De browsercontrole na de expliciete €20-tariefautorisatie vond alleen de lokale gebruiker Noah; de Payroll-route eindigde op `/geen-toegang`. De geautoriseerde `HOURLY_VARIABLE`-afspraak en het fictieve dienstverband zijn daardoor niet opgeslagen. De nieuwe acceptatie-update documenteert dit als een sessie-/autorisatieblokkade; de €20-afspraak is niet ingetrokken en blijft uitsluitend een synthetische testinvoer.
 - PAYFULL02/W04-gerichte regressies: **118/118 PASS** in 8 testbestanden, inclusief UI-releaseherbeoordeling, urenmapping, PAYFULL02-catalogus, bronprovider, berekeningsservice en beide migratiecontracten. HR Suite TypeScript **PASS**, gewijzigde-bestanden-ESLint **PASS**, i18n **PASS** (43 gelijke NL/EN-namespaces). De eerste Vitest-run strandde vóór collectie op Windows-temp-`EPERM`; rechtstreekse Vitest met tijdelijke map in `node_modules/.cache/w04-test-tmp` slaagde. Geen volledige 3.810-suite of rootbuild herhaald; het eerdere groene resultaat blijft baselinebewijs, niet een nieuwe run.
 - Payroll Lab-run-detailread was read-only; één bestaande rundetailroute gaf `GENERIC_PAYSLIP_ARTIFACT_BINDING_INVALID`. Er is geen poging gedaan die run of artifact aan te passen.
 - **Integratie PR #51: HOLD** tot er een bevoegde geldige uurloonafspraak voor een synthetische Mars-oproepkracht bestaat, de echte sourceprovider de vrijgegeven revisie met mapping/fingerprint consumeert en de negatieve autorisatie/RLS-runtimeproeven slagen. **TEST-release: HOLD.** Vierwekenbrutonetberekening blijft `FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED`.
+
+### Publicatie na tariefautorisatie
+
+- Bestaande branch `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026`: lokale HEAD en remote HEAD zijn `7bff30402b6586a69c8971140e6f6dcbfc2b7154`.
+- Draft PR #51 is open en ongewijzigd als Draft; de bijgewerkte beschrijving vermeldt de €20-testtariefautorisatie en dat deze nog niet is opgeslagen. GitHub rapporteert `mergeable=false`. De actuele `main` is `32bb21b00d1d0ebff60726e4d536dd8b74967654`; PR-compare vanaf de oorspronkelijke merge-base `11ba924b4a726431ae7928cfd8d2201d738893b4` toont 24 commits ahead en 11 behind.
+- Er is geen merge naar `main`, rebase of deployment uitgevoerd. De branch blijft uitsluitend op de bestaande PR; de open payrollbron-/runtimegates blijven integratie-HOLD.
 
 ## PAY-W04-UNBLOCK-07 — historische tussenstand vóór revision-releaseacceptatie (2026-10-28)
 
