@@ -37,6 +37,8 @@
 
 **Follow-up result: PARTIAL.** The Manager permission defect is corrected and authenticated role-scope checks pass against Core TEST. English UI rendering remains unverified because the active test identities have a persisted language preference that overrides a local browser cookie; changing it through Settings would write `user_preferences`, which was outside this run's authorization.
 
+The code and acceptance update were committed locally on `work/ins01-headcount-fte-20261028`; code correction commit: `fb8ca69e224ae5594e98d581c92fd178c1d62fae`.
+
 ### Root cause and correction
 
 - The `headcount-fte` catalog entry and service both required `report-employee-department:read`, which is granted to HR Admin/Tenant Admin but not Manager. This caused the actual Manager 403 before direct-team resolution ran.
