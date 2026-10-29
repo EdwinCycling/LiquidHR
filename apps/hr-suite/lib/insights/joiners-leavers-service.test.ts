@@ -25,6 +25,24 @@ const hrContext: AuthContext = {
 }
 const query = { ...defaultJoinersLeaversQuery(new Date('2026-10-29T12:00:00Z')), administrationIds: ['admin-b'] }
 
+class MockSupabaseQuery implements PromiseLike<{ data: unknown[]; error: null }> {
+  constructor(private readonly rows: unknown[]) {}
+
+  select(): this { return this }
+  eq(): this { return this }
+  in(): this { return this }
+  lte(): this { return this }
+  is(): this { return this }
+  limit(): this { return this }
+
+  then<TResult1 = { data: unknown[]; error: null }, TResult2 = never>(
+    onfulfilled?: ((value: { data: unknown[]; error: null }) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+  ): Promise<TResult1 | TResult2> {
+    return Promise.resolve({ data: this.rows, error: null }).then(onfulfilled, onrejected)
+  }
+}
+
 function configure(context: AuthContext, administrationIds: string[] = ['admin-a', 'admin-b'], sourceTruncated = false): void {
   mocks.authorization.mockResolvedValue({
     supabase: { from: mocks.from },
@@ -73,6 +91,43 @@ describe('Joiners & Leavers authorization boundary', () => {
     await expect(getJoinersLeaversReport(defaultJoinersLeaversQuery())).rejects.toMatchObject({ status: 403 })
     expect(mocks.directTeam).not.toHaveBeenCalled()
     expect(mocks.from).not.toHaveBeenCalled()
+  })
+
+  it('returns authorized Manager details without disclosing a prior direct manager ID', async () => {
+    const manager: AuthContext = { ...hrContext, activeRoles: ['DIRECT_MANAGER'], permissions: ['employee:read'], administrationId: 'admin-a', employeeId: 'manager-a' }
+    configure(manager, ['admin-a'])
+    let employeeQueryCount = 0
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'employments') return new MockSupabaseQuery([{
+        id: 'employment-a', employee_id: 'employee-a', administration_id: 'admin-a', starts_on: '2025-03-03', ends_on: null,
+        record_status: 'CONFIRMED', deleted_at: null, employment_number: 'J-1',
+      }])
+      if (table === 'employment_terminations') return new MockSupabaseQuery([])
+      if (table === 'employee_organizations') return new MockSupabaseQuery([{
+        employee_id: 'employee-a', employment_id: 'employment-a', administration_id: 'admin-a', department_id: 'department-a',
+        direct_manager_id: 'manager-before', effective_from: '2025-02-01', effective_to: null,
+      }])
+      if (table === 'departments') return new MockSupabaseQuery([{ id: 'department-a', name: 'Department A' }])
+      if (table === 'employees') {
+        employeeQueryCount += 1
+        return new MockSupabaseQuery(employeeQueryCount === 1
+          ? [{ id: 'employee-a', employee_number: 'E-1', first_name: 'Alex', birth_name_prefix: null, birth_name: 'Employee' }]
+          : [{ id: 'manager-a', employee_number: 'M-1', first_name: 'Morgan', birth_name_prefix: null, birth_name: 'Manager' }])
+      }
+      return new MockSupabaseQuery([])
+    })
+
+    const report = await getJoinersLeaversReport({
+      ...defaultJoinersLeaversQuery(new Date('2026-10-29T12:00:00Z')),
+      fromMonth: '2025-03', toMonth: '2025-03',
+    })
+
+    expect(report.rows[0]).toMatchObject({
+      eventType: 'employment-start', employeeId: 'employee-a', departmentName: 'Department A',
+      placementStatus: 'ASSIGNED', teamId: null, teamName: null,
+    })
+    expect(JSON.stringify(report.rows)).not.toContain('manager-before')
+    expect(report.teamOptions).toEqual([{ id: 'manager-a', label: 'Morgan Manager' }])
   })
 
   it('fails closed when the direct-team employee scope is truncated', async () => {
