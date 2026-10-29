@@ -26,11 +26,18 @@ const hrContext: AuthContext = {
 const query = { ...defaultJoinersLeaversQuery(new Date('2026-10-29T12:00:00Z')), administrationIds: ['admin-b'] }
 
 class MockSupabaseQuery implements PromiseLike<{ data: unknown[]; error: null }> {
-  constructor(private readonly rows: unknown[]) {}
+  constructor(private rows: unknown[]) {}
 
   select(): this { return this }
   eq(): this { return this }
-  in(): this { return this }
+  in(column: string, values: string[]): this {
+    // Exercise the PostgREST employee allowlist rather than treating .in() as a no-op.
+    if (column === 'employee_id') {
+      this.rows = this.rows.filter((row) => typeof row === 'object' && row !== null
+        && 'employee_id' in row && values.includes(String(row.employee_id)))
+    }
+    return this
+  }
   lte(): this { return this }
   is(): this { return this }
   limit(): this { return this }
@@ -128,6 +135,37 @@ describe('Joiners & Leavers authorization boundary', () => {
     })
     expect(JSON.stringify(report.rows)).not.toContain('manager-before')
     expect(report.teamOptions).toEqual([{ id: 'manager-a', label: 'Morgan Manager' }])
+  })
+
+  it('filters both Manager source queries before evaluating mixed-administration records', async () => {
+    const manager: AuthContext = { ...hrContext, activeRoles: ['DIRECT_MANAGER'], permissions: ['employee:read'], administrationId: 'admin-a', employeeId: 'manager-a' }
+    configure(manager, ['admin-a'])
+    let employeeQueryCount = 0
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'employments') return new MockSupabaseQuery([
+        { id: 'employment-a', employee_id: 'employee-a', administration_id: 'admin-a', starts_on: '2025-03-03', ends_on: null, record_status: 'CONFIRMED', deleted_at: null, employment_number: 'J-1' },
+        { id: 'employment-other', employee_id: 'employee-outside', administration_id: 'admin-a', starts_on: '2025-03-03', ends_on: null, record_status: 'CONFIRMED', deleted_at: null, employment_number: 'J-2' },
+      ])
+      if (table === 'employment_terminations') return new MockSupabaseQuery([
+        { id: 'termination-other', employee_id: 'employee-outside', employment_id: 'employment-other', administration_id: 'admin-a', last_working_day: '2025-03-20', workflow_status: 'CONFIRMED' },
+      ])
+      if (table === 'employee_organizations' || table === 'departments') return new MockSupabaseQuery([])
+      if (table === 'employees') {
+        employeeQueryCount += 1
+        return new MockSupabaseQuery(employeeQueryCount === 1
+          ? [{ id: 'employee-a', employee_number: 'E-1', first_name: 'Alex', birth_name_prefix: null, birth_name: 'Employee' }]
+          : [{ id: 'manager-a', employee_number: 'M-1', first_name: 'Morgan', birth_name_prefix: null, birth_name: 'Manager' }])
+      }
+      return new MockSupabaseQuery([])
+    })
+    const report = await getJoinersLeaversReport({
+      ...defaultJoinersLeaversQuery(new Date('2026-10-29T12:00:00Z')),
+      fromMonth: '2025-03', toMonth: '2025-03',
+    })
+    expect(report.summary.employmentStarts).toBe(1)
+    expect(report.summary.terminationWorkflowEvents).toBe(0)
+    expect(report.rows.map((row) => row.employeeId)).toEqual(['employee-a'])
+    expect(JSON.stringify(report)).not.toContain('employee-outside')
   })
 
   it('fails closed when the direct-team employee scope is truncated', async () => {
