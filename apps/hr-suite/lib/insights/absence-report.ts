@@ -1,5 +1,11 @@
 import { AuthorizationError } from '@/lib/auth/permissions'
-import { aggregateAbsenceEmployeeMetrics, type AbsenceEmploymentMetric } from './absence-report-calculations'
+import {
+  aggregateAbsenceEmployeeMetrics,
+  countOverlappingAbsenceSpellPairs,
+  uniqueAbsenceSpells,
+  type AbsenceEmploymentMetric,
+  type AbsenceSpellInterval,
+} from './absence-report-calculations'
 import { AbsenceInsightsServiceError } from './absence-insight-error'
 import { getAbsenceInsightScope } from './absence-insight-scope'
 
@@ -40,6 +46,7 @@ export interface AbsenceInsightDataQuality {
   unknownScheduleDays: number
   unknownCapacityDays: number
   unknownPlacements: number
+  overlappingSpellPairs: number
 }
 
 export interface AbsenceInsightPeriod {
@@ -129,8 +136,14 @@ function capacityForDay(spells: SpellRow[], capacities: CapacityRow[], date: str
   return Math.min(100, Math.max(0, ...knownValues))
 }
 
-function quality(unknownScheduleDays: number, unknownCapacityDays: number, unknownPlacements: number): AbsenceInsightDataQuality {
-  return { complete: unknownScheduleDays === 0 && unknownCapacityDays === 0 && unknownPlacements === 0, unknownScheduleDays, unknownCapacityDays, unknownPlacements }
+function quality(unknownScheduleDays: number, unknownCapacityDays: number, unknownPlacements: number, overlappingSpellPairs: number): AbsenceInsightDataQuality {
+  return {
+    complete: unknownScheduleDays === 0 && unknownCapacityDays === 0 && unknownPlacements === 0 && overlappingSpellPairs === 0,
+    unknownScheduleDays,
+    unknownCapacityDays,
+    unknownPlacements,
+    overlappingSpellPairs,
+  }
 }
 
 function employeeName(employee: EmployeeRow): string {
@@ -229,13 +242,14 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
   const departments = (departmentResult.data ?? []) as AbsenceInsightDepartment[]
   if (departments.length >= 500) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_LIMIT_REACHED', 503)
 
-  const caseIds = cases.map((item) => item.id)
+  const caseIds = [...new Set(cases.map((item) => item.id))]
   const spellsResult = caseIds.length
     ? await supabase.from('absence_spells').select('id,case_id,started_on,recovered_on').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('case_id', caseIds).limit(10000)
     : { data: [], error: null }
   if (spellsResult.error) fail(spellsResult.error)
-  const spells = (spellsResult.data ?? []) as SpellRow[]
-  if (spells.length >= 10000) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_LIMIT_REACHED', 503)
+  const sourceSpells = (spellsResult.data ?? []) as SpellRow[]
+  if (sourceSpells.length >= 10000) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_LIMIT_REACHED', 503)
+  const spells = uniqueAbsenceSpells(sourceSpells)
   if (spells.some((spell) => !caseIds.includes(spell.case_id))) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_INCONSISTENT', 503)
   const spellIds = spells.map((spell) => spell.id)
   const capacitiesResult = spellIds.length
@@ -258,6 +272,7 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
   function calculate(periodStart: string, periodEnd: string) {
     const employmentMetrics: AbsenceEmploymentMetric[] = []
     const includedCases = new Map<string, CaseRow>()
+    let totalOverlappingSpellPairs = 0
     for (const employment of employments) {
       const activeStart = maxDate(periodStart, employment.starts_on)
       const activeEnd = minDate(periodEnd, employment.ends_on ?? periodEnd)
@@ -274,6 +289,9 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
       const employmentCaseIds = new Set(employmentCases.map((item) => item.id))
       const employmentSpells = [...employmentCaseIds].flatMap((caseId) => spellsByCase.get(caseId) ?? [])
         .filter((spell) => spell.started_on <= periodEnd && (spell.recovered_on === null || spell.recovered_on >= periodStart))
+      const overlapIntervals: AbsenceSpellInterval[] = employmentSpells.map((spell) => ({ id: spell.id, startedOn: spell.started_on, recoveredOn: spell.recovered_on }))
+      const overlappingSpellPairs = countOverlappingAbsenceSpellPairs(overlapIntervals, activeStart, activeEnd)
+      totalOverlappingSpellPairs += overlappingSpellPairs
       const activeCaseIds = new Set(employmentSpells.map((spell) => spell.case_id))
       for (const absenceCase of employmentCases) if (activeCaseIds.has(absenceCase.id)) includedCases.set(absenceCase.id, absenceCase)
 
@@ -290,7 +308,7 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
         const schedule = activeSchedule(schedules, employment.id, date)
         const hours = scheduledHours(schedule, cursor)
         const dailySpells = employmentSpells.filter((spell) => spell.started_on <= date && (spell.recovered_on === null || spell.recovered_on >= date))
-        const capacity = dailySpells.length ? capacityForDay(dailySpells, capacities, date) : 0
+        const capacity = dailySpells.length > 1 ? null : dailySpells.length ? capacityForDay(dailySpells, capacities, date) : 0
         if (hours === null) unknownScheduleDays += 1
         if (dailySpells.length && (hours === null || hours > 0) && capacity === null) unknownCapacityDays += 1
         if (hours !== null) {
@@ -320,6 +338,7 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
         unknownScheduleDays,
         unknownCapacityDays,
         unknownPlacements: organization ? 0 : 1,
+        overlappingSpellPairs,
         caseIds: [...activeCaseIds],
         spellIds: employmentSpells.map((spell) => spell.id),
       })
@@ -328,23 +347,23 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
     const totalUnknownScheduleDays = employmentMetrics.reduce((total, item) => total + item.unknownScheduleDays, 0)
     const totalUnknownCapacityDays = employmentMetrics.reduce((total, item) => total + item.unknownCapacityDays, 0)
     const totalUnknownPlacements = employmentMetrics.reduce((total, item) => total + item.unknownPlacements, 0)
-    const dataQuality = quality(totalUnknownScheduleDays, totalUnknownCapacityDays, totalUnknownPlacements)
+    const dataQuality = quality(totalUnknownScheduleDays, totalUnknownCapacityDays, totalUnknownPlacements, totalOverlappingSpellPairs)
     const knownAvailableHours = employmentMetrics.reduce((total, item) => total + item.availableHours, 0)
     const knownAvailableDays = employmentMetrics.reduce((total, item) => total + item.availableDays, 0)
     const knownSickHours = employmentMetrics.reduce((total, item) => total + item.sickHours, 0)
     const knownSickDays = employmentMetrics.reduce((total, item) => total + item.sickDays, 0)
     const availabilityComplete = totalUnknownScheduleDays === 0
-    const sicknessComplete = availabilityComplete && totalUnknownCapacityDays === 0
+    const sicknessComplete = availabilityComplete && totalUnknownCapacityDays === 0 && totalOverlappingSpellPairs === 0
     const availableHours = availabilityComplete ? round(knownAvailableHours) : null
     const sickHours = sicknessComplete ? round(knownSickHours) : null
-    const sickDays = sicknessComplete ? round(knownSickDays) : null
+    const sickDays = sicknessComplete ? knownSickDays : null
     const availableDays = availabilityComplete ? round(knownAvailableDays) : null
     const rows = aggregateAbsenceEmployeeMetrics(employmentMetrics)
       .filter((metric) => metric.caseIds.size > 0)
       .map((metric): AbsenceInsightRow => {
-        const rowQuality = quality(metric.unknownScheduleDays, metric.unknownCapacityDays, metric.unknownPlacements)
+        const rowQuality = quality(metric.unknownScheduleDays, metric.unknownCapacityDays, metric.unknownPlacements, metric.overlappingSpellPairs)
         const rowAvailabilityComplete = metric.unknownScheduleDays === 0
-        const rowSicknessComplete = rowAvailabilityComplete && metric.unknownCapacityDays === 0
+        const rowSicknessComplete = rowAvailabilityComplete && metric.unknownCapacityDays === 0 && metric.overlappingSpellPairs === 0
         const rowAvailableHours = rowAvailabilityComplete ? round(metric.availableHours) : null
         const rowSickHours = rowSicknessComplete ? round(metric.sickHours) : null
         return {
@@ -356,7 +375,7 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
           firstAbsenceOn: metric.firstAbsenceOn,
           caseCount: metric.caseIds.size,
           absenceOccurrences: metric.spellIds.size,
-          sickDays: rowSicknessComplete ? round(metric.sickDays) : null,
+          sickDays: rowSicknessComplete ? metric.sickDays : null,
           sickHours: rowSickHours,
           absenceRate: rowAvailableHours && rowSickHours !== null ? round(rowSickHours / rowAvailableHours * 100) : null,
           dataQuality: rowQuality,
@@ -389,7 +408,7 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
 }
 
 function emptyAbsenceReport(query: AbsenceInsightQuery): AbsenceInsightReport {
-  const dataQuality = quality(0, 0, 0)
+  const dataQuality = quality(0, 0, 0, 0)
   return {
     report: 'absence',
     period: { mode: query.period, year: query.year, month: query.month, startDate: query.startDate, endDate: query.endDate },

@@ -1,3 +1,37 @@
+export interface AbsenceSpellInterval {
+  id: string
+  startedOn: string
+  recoveredOn: string | null
+}
+
+export function uniqueAbsenceSpells<T extends { id: string }>(spells: readonly T[]): T[] {
+  const unique = new Map<string, T>()
+  for (const spell of spells) if (!unique.has(spell.id)) unique.set(spell.id, spell)
+  return [...unique.values()]
+}
+
+export function countOverlappingAbsenceSpellPairs(
+  spells: readonly AbsenceSpellInterval[],
+  startDate: string,
+  endDate: string,
+): number {
+  const overlapping = uniqueAbsenceSpells(spells)
+    .filter((spell) => spell.startedOn <= endDate && (spell.recoveredOn === null || spell.recoveredOn >= startDate))
+    .sort((left, right) => left.startedOn.localeCompare(right.startedOn) || (left.recoveredOn ?? endDate).localeCompare(right.recoveredOn ?? endDate))
+  let pairs = 0
+  for (let leftIndex = 0; leftIndex < overlapping.length; leftIndex += 1) {
+    const left = overlapping[leftIndex]
+    const leftEnd = left.recoveredOn === null || left.recoveredOn > endDate ? endDate : left.recoveredOn
+    for (let rightIndex = leftIndex + 1; rightIndex < overlapping.length; rightIndex += 1) {
+      const right = overlapping[rightIndex]
+      if (right.startedOn > leftEnd) break
+      const rightEnd = right.recoveredOn === null || right.recoveredOn > endDate ? endDate : right.recoveredOn
+      if (right.startedOn <= leftEnd && rightEnd >= left.startedOn) pairs += 1
+    }
+  }
+  return pairs
+}
+
 export interface AbsenceEmploymentMetric {
   employeeId: string
   employeeName: string
@@ -12,6 +46,7 @@ export interface AbsenceEmploymentMetric {
   unknownScheduleDays: number
   unknownCapacityDays: number
   unknownPlacements: number
+  overlappingSpellPairs: number
   caseIds: readonly string[]
   spellIds: readonly string[]
 }
@@ -30,6 +65,7 @@ export interface AbsenceEmployeeMetric {
   unknownScheduleDays: number
   unknownCapacityDays: number
   unknownPlacements: number
+  overlappingSpellPairs: number
   caseIds: Set<string>
   spellIds: Set<string>
 }
@@ -53,6 +89,7 @@ export function aggregateAbsenceEmployeeMetrics(metrics: readonly AbsenceEmploym
       unknownScheduleDays: 0,
       unknownCapacityDays: 0,
       unknownPlacements: 0,
+      overlappingSpellPairs: 0,
       caseIds: new Set<string>(),
       spellIds: new Set<string>(),
     }
@@ -64,6 +101,7 @@ export function aggregateAbsenceEmployeeMetrics(metrics: readonly AbsenceEmploym
     current.unknownScheduleDays += metric.unknownScheduleDays
     current.unknownCapacityDays += metric.unknownCapacityDays
     current.unknownPlacements += metric.unknownPlacements
+    current.overlappingSpellPairs += metric.overlappingSpellPairs
     for (const caseId of metric.caseIds) current.caseIds.add(caseId)
     for (const spellId of metric.spellIds) current.spellIds.add(spellId)
 

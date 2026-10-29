@@ -10,11 +10,15 @@ describe('bradfordInsightExcel', () => {
       departments: [],
       totalOccurrences: 2,
       totalSickDays: 7,
-      dataQuality: { complete: true, unknownScheduleDays: 0, unknownCapacityDays: 0, unknownPlacements: 0 },
+      dataQuality: { complete: true, unknownScheduleDays: 0, unknownCapacityDays: 0, unknownPlacements: 0, overlappingSpellPairs: 0 },
       rows: [{ employeeId: 'e1', employeeName: 'Fin de Groot', departmentName: 'Finance', firstAbsenceOn: '2026-07-18', absenceOccurrences: 2, sickDays: 7, score: 28, band: 'LOW' }],
     }
     const output = bradfordInsightExcel(report)
-    expect(output).toContain('Bradford-factor')
+    expect(output).toContain('Bradford-score (afgerond)')
+    expect(output).toContain('Roostergewogen verzuimdagen (D, één decimaal)')
+    expect(output).toContain('Bradford = S² × D')
+    expect(output).toContain('Laatste 365 dagen')
+    expect(output).toContain('ss:Format="0.0"')
     expect(output).toContain('Fin de Groot')
     expect(output).toContain('28')
     expect(output).toContain('Datakwaliteit')
@@ -25,7 +29,7 @@ describe('bradfordInsightExcel', () => {
       report: 'absence-bradford',
       period: { report: 'absence-bradford', period: '52-weeks', year: 2026, month: 7, startDate: '2025-07-29', endDate: '2026-07-27', departmentId: null, risk: 'ALL', search: '' },
       departments: [], totalOccurrences: 1, totalSickDays: null,
-      dataQuality: { complete: false, unknownScheduleDays: 1, unknownCapacityDays: 0, unknownPlacements: 0 },
+      dataQuality: { complete: false, unknownScheduleDays: 1, unknownCapacityDays: 0, unknownPlacements: 0, overlappingSpellPairs: 0 },
       rows: [{ employeeId: 'e1', employeeName: 'Fin de Groot', departmentName: 'Finance', firstAbsenceOn: '2026-07-18', absenceOccurrences: 1, sickDays: null, score: null, band: 'UNKNOWN' }],
     }
     const output = bradfordInsightExcel(report)

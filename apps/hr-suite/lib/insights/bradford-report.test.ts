@@ -1,11 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { calculateBradfordScore, filterBradfordRows } from './bradford-report'
+import { bradfordBandFor, calculateBradfordScore, filterBradfordRows } from './bradford-report'
 import type { BradfordInsightRow } from './bradford-report'
 
 describe('calculateBradfordScore', () => {
   it('applies S squared times D', () => {
     expect(calculateBradfordScore(2, 7)).toBe(28)
     expect(calculateBradfordScore(4, 12.5)).toBe(200)
+  })
+
+  it('rounds only the final score and applies the existing 51 and 400 band boundaries', () => {
+    const below51 = calculateBradfordScore(1, 50.49)
+    const at51 = calculateBradfordScore(1, 50.5)
+    const at400 = calculateBradfordScore(1, 400.49)
+    const at401 = calculateBradfordScore(1, 400.5)
+
+    expect(below51).toBe(50)
+    expect(at51).toBe(51)
+    expect(at400).toBe(400)
+    expect(at401).toBe(401)
+    expect(bradfordBandFor(below51)).toBe('LOW')
+    expect(bradfordBandFor(at51)).toBe('MEDIUM')
+    expect(bradfordBandFor(at400)).toBe('MEDIUM')
+    expect(bradfordBandFor(at401)).toBe('HIGH')
   })
 
   it('does not produce negative scores', () => {

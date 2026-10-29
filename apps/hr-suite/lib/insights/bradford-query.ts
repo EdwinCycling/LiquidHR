@@ -1,4 +1,5 @@
 import type { AbsenceInsightQuery } from './absence-report'
+import { getAbsenceRollingDateRange } from './absence-period'
 
 export type BradfordPeriod = '52-weeks' | 'this-year' | 'previous-year'
 
@@ -40,9 +41,8 @@ export function parseBradfordInsightQuery(params: URLSearchParams): BradfordInsi
   const risk = riskValue === 'LOW' || riskValue === 'MEDIUM' || riskValue === 'HIGH' ? riskValue : 'ALL'
   const search = value(params, 'search') ?? ''
   if (period === '52-weeks') {
-    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
-    start.setUTCDate(start.getUTCDate() - 363)
-    return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: isoDate(start), endDate: todayDate, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, risk, search }
+    const periodRange = getAbsenceRollingDateRange(today)
+    return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, ...periodRange, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, risk, search }
   }
   if (period === 'this-year') return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: `${year}-01-01`, endDate: year === today.getUTCFullYear() ? todayDate : `${year}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, risk, search }
   return { report: 'absence-bradford', period, year: year - 1, month: 12, startDate: `${year - 1}-01-01`, endDate: `${year - 1}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, risk, search }

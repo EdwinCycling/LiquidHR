@@ -24,7 +24,7 @@ export interface BradfordInsightReport {
   dataQuality: AbsenceInsightReport['dataQuality']
 }
 
-function bandFor(score: number): BradfordBand {
+export function bradfordBandFor(score: number): BradfordBand {
   if (score > 400) return 'HIGH'
   if (score >= 51) return 'MEDIUM'
   return 'LOW'
@@ -56,7 +56,7 @@ export async function getBradfordInsightReport(query: BradfordInsightQuery): Pro
       absenceOccurrences: row.absenceOccurrences,
       sickDays: row.sickDays === null ? null : round(row.sickDays),
       score,
-      band: score === null ? 'UNKNOWN' as const : bandFor(score),
+      band: score === null ? 'UNKNOWN' as const : bradfordBandFor(score),
     }
   }).sort((left, right) => (right.score ?? -1) - (left.score ?? -1) || left.employeeName.localeCompare(right.employeeName, 'nl'))
   const rows = filterBradfordRows(calculatedRows, query)

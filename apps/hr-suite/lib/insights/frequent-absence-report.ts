@@ -57,6 +57,12 @@ function emptyFrequentAbsenceReport(query: FrequentAbsenceQuery, threshold: numb
   return { report: 'absence-frequent', period: query, threshold, rows: [], departments: [], totalEmployees: 0, frequentCount: 0, totalReports: 0, dataQuality: { complete: true, unknownPlacements: 0 } }
 }
 
+function uniqueAbsenceCases(cases: readonly CaseRow[]): CaseRow[] {
+  const unique = new Map<string, CaseRow>()
+  for (const absenceCase of cases) if (!unique.has(absenceCase.id)) unique.set(absenceCase.id, absenceCase)
+  return [...unique.values()]
+}
+
 export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Promise<FrequentAbsenceReport> {
   const scope = await getAbsenceInsightScope()
   if (scope.scopeTruncated) throw new AbsenceInsightsServiceError('INSIGHTS_SCOPE_LIMIT_REACHED', 403)
@@ -106,9 +112,11 @@ export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Pro
   if (employeesResult.error) fail('INSIGHTS_FREQUENT_REPORT_FAILED', employeesResult.error)
 
   const organizations = (organizationResult.data ?? []) as OrganizationRow[]
-  const cases = (caseResult.data ?? []) as CaseRow[]
+  const sourceCases = (caseResult.data ?? []) as CaseRow[]
+  if (sourceCases.length >= 10000) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_LIMIT_REACHED', 503)
+  const cases = uniqueAbsenceCases(sourceCases)
   const employees = (employeesResult.data ?? []) as EmployeeRow[]
-  if (organizations.length >= 10000 || cases.length >= 10000 || employees.length >= 10000) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_LIMIT_REACHED', 503)
+  if (organizations.length >= 10000 || employees.length >= 10000) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_LIMIT_REACHED', 503)
   if (employees.length !== employeeIds.length) throw new AuthorizationError('De medewerker- en dienstverbandtoegang sluiten niet op elkaar aan.')
   const employmentById = new Map(employments.map((item) => [item.id, item]))
   if (organizations.some((row) => row.administration_id !== administrationId || employmentById.get(row.employment_id)?.employee_id !== row.employee_id || (directTeamEmployeeIds && !directTeamEmployeeIds.includes(row.employee_id)))) {
