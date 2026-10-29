@@ -80,10 +80,10 @@ function failDatabase(code: string, error: { message?: string } | null): never {
 
 export async function getHeadcountFteReport(query: HeadcountFteQuery): Promise<HeadcountFteReport> {
   const { supabase, context, activeContext } = await getRequestAuthorizationContext()
-  await requirePermissionInContext(supabase, context, 'report-employee-department:read')
-  await requirePermissionInContext(supabase, context, 'employee:read')
   const actorPopulation = headcountFtePopulationForRoles(context.activeRoles)
   if (!actorPopulation) throw new AuthorizationError('Je hebt geen toegang tot deze Insights-rapportage.')
+  await requirePermissionInContext(supabase, context, 'employee:read')
+  if (actorPopulation === 'HR_ADMIN') await requirePermissionInContext(supabase, context, 'report-employee-department:read')
   const hrGroupId = requireHrGroupId(context)
 
   const allAdministrationIds = activeContext.administrationsInActiveHrGroup.map((item) => item.id)

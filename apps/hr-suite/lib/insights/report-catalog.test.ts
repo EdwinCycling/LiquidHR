@@ -16,7 +16,7 @@ describe('Insights Analyse destination', () => {
   it('registers Headcount & FTE on the existing employee-report permission and URL seam', () => {
     const report = INSIGHT_REPORTS.find((item) => item.id === 'headcount-fte')
     expect(report).toEqual({ id: 'headcount-fte', category: 'employees', permission: 'report-employee-department:read', available: true })
-    expect(visibleInsightReports(['report-employee-department:read'], false)).toContainEqual(report)
+    expect(visibleInsightReports(['report-employee-department:read', 'employee:read'], true, ['HR_ADMIN'])).toContainEqual(report)
     expect(canonicalInsightReportId('headcount-fte')).toBe('headcount-fte')
     expect(insightReportQueryKeys('headcount-fte')).toEqual(['fromMonth', 'toMonth', 'administrations', 'departmentIds', 'teamIds', 'sortBy', 'sortDirection', 'page'])
 
@@ -25,6 +25,15 @@ describe('Insights Analyse destination', () => {
     expect(canonical.get('departmentIds')).toBe('d1')
     expect(canonical.get('teamIds')).toBe('m1')
     expect(canonical.has('teams')).toBe(false)
+  })
+
+  it('exposes Headcount & FTE to direct Managers with employee read, without widening other report permissions', () => {
+    const report = INSIGHT_REPORTS.find((item) => item.id === 'headcount-fte')!
+    expect(canReadInsightReport(report, ['employee:read'], ['DIRECT_MANAGER'])).toBe(true)
+    expect(visibleInsightReports(['employee:read'], false, ['DIRECT_MANAGER'])).toContainEqual(report)
+    expect(visibleInsightReports(['employee:read'], false, ['DIRECT_MANAGER']).some((item) => item.id === 'employee-department')).toBe(false)
+    expect(canReadInsightReport(report, ['employee:read'], ['EMPLOYEE'])).toBe(false)
+    expect(canReadInsightReport(report, ['report-employee-department:read'], ['DIRECT_MANAGER'])).toBe(false)
   })
 
   it('registers only existing Talent and Star report destinations', () => {

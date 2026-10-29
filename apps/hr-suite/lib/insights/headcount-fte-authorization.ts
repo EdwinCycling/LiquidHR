@@ -6,6 +6,13 @@ export function headcountFtePopulationForRoles(activeRoles: readonly string[]): 
   return null
 }
 
+export function canReadHeadcountFte(activeRoles: readonly string[], permissions: readonly string[]): boolean {
+  const population = headcountFtePopulationForRoles(activeRoles)
+  if (!permissions.includes('employee:read')) return false
+  return population === 'DIRECT_MANAGER'
+    || (population === 'HR_ADMIN' && permissions.includes('report-employee-department:read'))
+}
+
 export function headcountFteSelectionWithinScope(selectedIds: readonly string[], allowedIds: readonly string[]): boolean {
   const allowed = new Set(allowedIds)
   return selectedIds.every((id) => allowed.has(id))

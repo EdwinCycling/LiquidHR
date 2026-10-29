@@ -46,7 +46,7 @@ export default async function InsightsPage({ searchParams }: InsightsPageProps) 
   const isHrAdmin = context.activeRoles.includes('TENANT_ADMIN') || context.activeRoles.includes('HR_ADMIN')
   const canReadAnalysis = context.permissions.includes(ANALYSIS_PERMISSION)
   const reports = INSIGHT_REPORTS
-    .filter((report) => report.available && canReadInsightReport(report, context.permissions) && (report.id !== 'salary-internal-position' || isHrAdmin))
+    .filter((report) => report.available && canReadInsightReport(report, context.permissions, context.activeRoles) && (report.id !== 'salary-internal-position' || isHrAdmin))
     .map((report) => ({ ...report, route: insightReportRoute(report, isHrAdmin) }))
   const linkedReport = requestedReport ? reports.find((report) => report.id === requestedReport && report.route) : undefined
   const requestedLinkedDefinition = requestedReport ? INSIGHT_REPORTS.find((report) => report.id === requestedReport && report.route) : undefined

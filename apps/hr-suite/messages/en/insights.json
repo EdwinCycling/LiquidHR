@@ -823,6 +823,7 @@
   ,"headcountFteEyebrow": "Workforce report"
   ,"headcountFteFilters": "Report filters"
   ,"headcountFteLoading": "Loading options"
+  ,"loading": "Loading"
   ,"headcountFteFrom": "From month-end"
   ,"headcountFteTo": "Through month-end"
   ,"headcountFteRangeInvalid": "Choose an end month after the start month, within the available range and before the current month."

@@ -110,13 +110,14 @@ describe('Headcount & FTE authorized service', () => {
   })
 
   it('limits Manager metrics, details and table reads to the authenticated direct team', async () => {
-    const manager: AuthContext = { ...hrContext, activeRoles: ['DIRECT_MANAGER'], administrationId: 'admin-a', employeeId: 'manager-a' }
+    const manager: AuthContext = { ...hrContext, permissions: ['employee:read'], activeRoles: ['DIRECT_MANAGER'], administrationId: 'admin-a', employeeId: 'manager-a' }
     configure(manager, ['employee-a'])
     const report = await getHeadcountFteReport(query)
     expect(report.headcount).toBe(1)
     expect(report.fte).toBe(0.8)
     expect(report.rows.map((row) => row.employeeId)).toEqual(['employee-a'])
     expect(mocks.from.mock.calls.map(([table]) => table)).not.toContain('employment_salaries')
+    expect(mocks.permission.mock.calls.map((call) => call[2])).toEqual(['employee:read'])
   })
 
   it('returns the HR Admin population within the active administration context', async () => {
@@ -125,6 +126,7 @@ describe('Headcount & FTE authorized service', () => {
     expect(report.headcount).toBe(2)
     expect(report.activeEmploymentCount).toBe(2)
     expect(report.fte).toBe(1.8)
+    expect(mocks.permission.mock.calls.map((call) => call[2])).toEqual(['employee:read', 'report-employee-department:read'])
   })
 
   it('rejects an HR Admin filter outside the active context allowlist', async () => {
