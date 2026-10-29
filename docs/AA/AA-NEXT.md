@@ -1,5 +1,8 @@
 # AA-NEXT — Short-Term Roadmap
 
+> **29-10-2026 — INS-03A gemerged; eerstvolgende Insights-wave INS-03B.** [PR #65](https://github.com/EdwinCycling/LiquidHR/pull/65) is **MERGED** naar development `main` (mergecommit `fa3edc5bbe746479b7227c2b9bdcdbf90bb10ade`). INS-03A: 32/32 gerichte tests PASS volgens Codex-evidence, read-only Insights-GET, Manager/administratie-scoping, datakwaliteit en exportpariteit; **geen hosted TEST-acceptatie**. **INS-03B [#66](https://github.com/EdwinCycling/LiquidHR/issues/66)**: lees [het contract](../requirements/reports/INS-03B_ABSENCE_FREQUENCY_BRADFORD.md), beslis eerst expliciet case-versus-spell-tellers, tijdvensters, Bradford-S/D en overlap/deduplicatie; implementeer daarna één begrensde harmonisatie met gerichte tests en eigen Draft PR. **Afzonderlijke release-gate [#67](https://github.com/EdwinCycling/LiquidHR/issues/67)**: owner en cadence voor `normalize_expired_absence_cases` buiten Insights bepalen; geen nieuwe cron/DB-write zonder mandaat. INS-03C WVP blijft disabled tot wettelijke/PMUX/RLS-acceptatie. Geen Vercel-deployment, migraties of DB-writes door deze integratie.
+
+
 ## Payroll Fast Track — directe uitvoeringsvolgorde (29 oktober 2026)
 
 **Besluit voor nieuwe Payroll-ontwikkeling:** minder repeterende full suites en documentatie-only closeouts, meer kleine productflows. Dit is een aanvullend Payroll-spoor naast de actuele Insights-/WVP-prioriteiten hieronder; die roadmapbesluiten blijven geldig.
