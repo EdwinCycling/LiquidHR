@@ -1,12 +1,17 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { parseFrequentAbsenceQuery } from './frequent-absence-query'
 
 describe('parseFrequentAbsenceQuery', () => {
-  it('uses a rolling twelve-month window by default', () => {
-    const query = parseFrequentAbsenceQuery(new URLSearchParams('report=absence-frequent&period=12-months'))
-    expect(query?.period).toBe('12-months')
-    expect(query?.endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(query?.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  it('uses the shared inclusive 365-calendar-day window by default', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-29T12:00:00.000Z'))
+    try {
+      const query = parseFrequentAbsenceQuery(new URLSearchParams('report=absence-frequent&period=12-months'))
+      expect(query).toMatchObject({ period: '12-months', startDate: '2025-10-30', endDate: '2026-10-29' })
+      expect((Date.parse(`${query!.endDate}T00:00:00Z`) - Date.parse(`${query!.startDate}T00:00:00Z`)) / 86_400_000 + 1).toBe(365)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('supports this year, previous year and department', () => {

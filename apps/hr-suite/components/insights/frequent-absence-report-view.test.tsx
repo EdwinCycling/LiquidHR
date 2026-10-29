@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { act, createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
 import { FrequentAbsenceReportView } from './frequent-absence-report'
@@ -48,7 +49,7 @@ const labels = {
   exportSuccess: 'Export ready',
   exportFailed: 'Export failed',
   period: 'Period',
-  last12Months: 'Last 12 months',
+  last365Days: 'Last 365 days',
   thisYear: 'This year',
   previousYear: 'Previous year',
   team: 'Team',
@@ -61,7 +62,7 @@ const labels = {
   search: 'Search',
   searchPlaceholder: 'Search people',
   employee: 'Employee',
-  reportCount: 'Reports',
+  reportCount: 'Absence cases',
   sickDays: 'Sick days',
   frequent: 'Frequent',
   threshold: 'Threshold',
@@ -85,6 +86,18 @@ function mount(element: React.ReactElement) {
 }
 
 describe('Frequent absence report view', () => {
+  it('shows the shared rolling period label and an empty result state', () => {
+    const markup = renderToStaticMarkup(createElement(FrequentAbsenceReportView, {
+      labels,
+      query,
+      report: { ...report, rows: [], totalEmployees: 0, frequentCount: 0, totalReports: 0 },
+      returnTo: '/insights?report=absence-frequent',
+    }))
+
+    expect(markup).toContain('Last 365 days')
+    expect(markup).toContain('No results')
+  })
+
   it('keeps table rows and active filter chips on applied query while filter drafts change', () => {
     const mounted = mount(createElement(FrequentAbsenceReportView, {
       labels,
@@ -95,6 +108,7 @@ describe('Frequent absence report view', () => {
 
     expect(mounted.host.textContent).toContain('Aline Frequent')
     expect(mounted.host.textContent).toContain('Bert Other')
+    expect(mounted.host.textContent).toContain('Absence cases')
     act(() => (mounted.host.querySelector('input[type="checkbox"]') as HTMLInputElement).click())
 
     expect(mounted.host.textContent).toContain('Aline Frequent')

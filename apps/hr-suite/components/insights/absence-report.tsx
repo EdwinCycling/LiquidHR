@@ -95,6 +95,7 @@ export function AbsenceReportView({ report, query, labels, locale, returnTo }: {
     .replace('{scheduleDays}', String(report.dataQuality.unknownScheduleDays))
     .replace('{capacityDays}', String(report.dataQuality.unknownCapacityDays))
     .replace('{placements}', String(report.dataQuality.unknownPlacements))
+    .replace('{overlappingSpellPairs}', String(report.dataQuality.overlappingSpellPairs))
 
   return <section className="space-y-5">
       <InsightsFilterBar actions={<>

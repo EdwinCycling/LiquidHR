@@ -1,6 +1,6 @@
 # INS-03B — Meldingsfrequentie en Bradford: semantiek, tijdvensters en vergelijkbaarheid
 
-**Status:** READY FOR SCOPED IMPLEMENTATION / OPEN DECISIONS (29-10-2026). **Issue:** [#66](https://github.com/EdwinCycling/LiquidHR/issues/66). **Afhankelijkheid:** INS-03A [PR #65](https://github.com/EdwinCycling/LiquidHR/pull/65) is gemerged in development `main` via `fa3edc5bbe746479b7227c2b9bdcdbf90bb10ade`; geen Vercel TEST-acceptatie.
+**Status:** Productpakket goedgekeurd voor scoped implementatie via Draft PR #68 en issue #66 (29-10-2026). **Afhankelijkheid:** INS-03A [PR #65](https://github.com/EdwinCycling/LiquidHR/pull/65) is gemerged in development `main` via `fa3edc5bbe746479b7227c2b9bdcdbf90bb10ade`; geen Vercel TEST-acceptatie.
 
 ## 1. Probleem en productdoel
 
@@ -19,7 +19,7 @@ Doel: de betekenis, periodegrenzen, bronkwaliteit en gebruikerslabels van beide 
 | B05 | Meerdere dienstverbanden, afdelingshistoriek en medewerkerdeduplicatie | Geen dubbele telling door dezelfde gebeurtenis in meerdere contracten |
 | B06 | Onvolledige rooster/capacity/plaatsingsdata, truncatie, privacy | Onbekend blijft onbekend, fail closed bij afdelingsfilter en bronlimiet |
 
-**Open:** deze keuzes zijn niet automatisch door de bestaande code of dit document juridisch/bedrijfskundig goedgekeurd. Laat Codex de huidige implementatie en bestaande requirements read-only naast elkaar leggen en één voorstel met voorbeelden formuleren; bij betekenisvolle productkeuze eerst expliciet besluit vastleggen.
+**Besluit:** de goedgekeurde besluitreactie bij PR #68 en issue #66 autoriseert het pakket in §6. Er staat geen aanvullend productbesluit voor de beschreven scope open.
 
 ## 3. Technische grenzen
 
@@ -46,9 +46,9 @@ Doel: de betekenis, periodegrenzen, bronkwaliteit en gebruikerslabels van beide 
 
 **Geen** DB-write, migratie, grant, merge, Vercel-deployment of activatie van WVP zonder afzonderlijke toestemming. Volledige HR Admin/Manager/Employee, RLS, browser en Vercel TEST-acceptatie wordt later gezamenlijk uitgevoerd. Development-merge is geen release-go.
 
-## 6. Code-review en voorstel ter besluit (29-10-2026)
+## 6. Goedgekeurd productbesluit en implementatiebasis (29-10-2026)
 
-**Dit voorstel is niet goedgekeurd en verandert de productdefinitie niet.** Het legt de huidige implementatie naast de bestaande leidende verzuimrequirements. B01 en een deel van B03/B04 hebben daarin al een antwoord; de resterende keuzes hieronder vragen Edwin's besluit vóór codewijziging.
+**Goedgekeurd in de besluitreactie bij PR #68 en bevestigd bij issue #66.** De analyse hieronder legt de implementatiebasis en de vastgestelde invulling vast.
 
 ### Wat bestaande requirements al vastleggen
 
@@ -67,22 +67,22 @@ Daarmee zijn de semantiek van case versus spell, de teller voor frequent verzuim
 - `calculateBradfordScore` rondt `S² × D` af op een geheel getal nadat de bronwaarde van `D` op twee decimalen is afgerond. De getoonde `D` is één decimaal. De bestaande requirement specificeert geen afrondingsmoment.
 - Beide rapporten bieden ook `this-year` en `previous-year`; die gebruiken kalenderjaargrenzen. Frequent verzuim heeft geen percentage: `frequentCount` vergelijkt het aantal cases met de ingestelde drempel. `totalEmployees` is het aantal gefilterde medewerkers met cases, geen populatienoemer.
 
-### Aanbevolen beperkte harmonisatie — besluit nodig
+### Vastgestelde beperkte harmonisatie
 
-| Keuze | Voorstel | Alternatief / gevolg |
+| Keuze | Goedgekeurde invulling | Afbakening |
 |---|---|---|
-| Rollend venster | Gebruik voor beide rapporten dezelfde inclusieve 365 datums (vandaag minus 364 dagen t/m vandaag); behoud kalenderjaar-presets. Label beide als **Laatste 365 dagen**. | 52 weken / 364 datums voor beide; of behoud de bestaande 365/364 afwijking en maak expliciet dat de rollende vergelijkingen niet dezelfde periode zijn. |
-| Gebeurtenis en periode-inclusie | Frequent verzuim telt unieke cases op hun `first_absence_on`. Bradford `S` telt unieke spells die de gekozen periode overlappen; `D` telt alleen roostergewogen dagen binnen diezelfde periode. Zo wordt een al lopende spell niet als nieuwe case gepresenteerd, maar blijft hij zichtbaar in de Bradford-periode. | Bradford telt alleen spells waarvan `started_on` in de periode valt. Een spell die vóór de periode begon, verhoogt dan `S` niet, ook als hij in de periode nog ziektedagen heeft; daarvoor moet apart worden gekozen hoe `D` wordt afgegrensd. |
-| Overlap en meerdere dienstverbanden | Een overlap binnen hetzelfde dienstverband is volgens het domeinmodel ongeldig: fail-closed voor de Bradford-score in plaats van `S` en `D` stilzwijgend verschillend te dedupliceren. Parallelle employments blijven afzonderlijke werkverplichtingen: unieke cases/spells tellen per geregistreerde ID en roostergewogen `D` wordt per employment opgeteld. | Bradford-dagen op medewerker-kalenderdatum dedupliceren over alle employments. Dat voorkomt meer dan één dag op dezelfde datum, maar negeert dat verschillende dienstverbanden afzonderlijk geplande werkuren kunnen missen. |
-| Afronding | Behoud een geheel Bradford-cijfer: bereken met `D` op interne bronprecisie en rond `S² × D` één keer af naar het dichtstbijzijnde gehele getal; toon `D` op één decimaal en pas daarna de bestaande banden toe. | Behoud exact de huidige route: `D` eerst afronden op twee decimalen en daarna de score afronden. Dicht bij een bandgrens kan dit een andere band opleveren. |
-| Drempel en noemer | Behoud de HR-groepinstelling (standaard 3, bereik 1–20), case-teller en binaire drempel. Toon geen frequentiepercentage of ongedefinieerde personeelsnoemer; lege populatie geeft alleen nul-tellingen. | Een percentage of populatienoemer toevoegen is een aparte productdefinitie en valt buiten deze harmonisatie zonder aanvullend besluit. |
+| Rollend venster | Gebruik voor beide rapporten dezelfde inclusieve 365 datums (vandaag minus 364 dagen t/m vandaag); behoud kalenderjaar-presets. Label beide als **Laatste 365 dagen**. | Geen extra periodepreset of wijziging aan de kalenderjaargrenzen. |
+| Gebeurtenis en periode-inclusie | Frequent verzuim telt unieke cases op hun `first_absence_on`. Bradford `S` telt unieke spells die de gekozen periode overlappen; `D` telt alleen roostergewogen dagen binnen diezelfde periode. Een al lopende spell blijft in Bradford zichtbaar, zonder als nieuwe frequentiecase te tellen. | De twee expliciete tellers blijven onderscheiden in UI en Excel. |
+| Overlap en meerdere dienstverbanden | Een overlap binnen hetzelfde dienstverband is volgens het domeinmodel ongeldig: fail-closed voor de Bradford-score. Parallelle employments blijven afzonderlijke werkverplichtingen: unieke cases/spells tellen per geregistreerde ID en roostergewogen `D` wordt per employment opgeteld. | Dedupliceer `D` niet op medewerker en kalenderdatum; verwerk een spell-ID niet dubbel. |
+| Afronding | Behoud een geheel Bradford-cijfer: bereken met `D` op interne bronprecisie en rond `S² × D` één keer af naar het dichtstbijzijnde gehele getal; toon `D` op één decimaal en pas daarna de bestaande banden toe. | Bepaal de band op basis van de definitieve afgeronde score. |
+| Drempel en noemer | Behoud de HR-groepinstelling (standaard 3, bereik 1–20), case-teller en binaire drempel. Toon geen frequentiepercentage of ongedefinieerde personeelsnoemer; lege populatie geeft alleen nul-tellingen. | Geen nieuwe noemer of percentage. |
 
-### Voorbeelden om het besluit concreet te maken
+### Voorbeelden van de goedgekeurde uitkomst
 
-1. Venster 1–31 januari. Case C begon 20 december; spell A loopt 20 december–5 januari en spell B 20–25 januari als herstel binnen dezelfde vierwekenketen. Volgens het voorstel telt frequent verzuim **0 cases** (de casuswortel ligt vóór het venster), Bradford telt **2 spells** (beide overlappen januari), en `D` omvat alleen roostergewogen dagen van 1–31 januari. UI en Excel benoemen die verschillende tellers.
+1. Venster 1–31 januari. Case C begon 20 december; spell A loopt 20 december–5 januari en spell B 20–25 januari als herstel binnen dezelfde vierwekenketen. Volgens het besluit telt frequent verzuim **0 cases** (de casuswortel ligt vóór het venster), Bradford telt **2 spells** (beide overlappen januari), en `D` omvat alleen roostergewogen dagen van 1–31 januari. UI en Excel benoemen die verschillende tellers.
 2. Eén case met twee spells die beide in het venster vallen: frequent verzuim telt **1 case**; Bradford `S` telt **2 spells**.
-3. Twee overlappende spell-intervallen binnen hetzelfde employment: volgens het voorstel is Bradford onbekend/fail-closed wegens een ongeldige broncombinatie. Twee gelijktijdige verzuimregistraties op twee toegestane employments blijven twee werkverplichtingen; hun roostergewogen `D` wordt opgeteld. Kies de alternatieve persoonsdag-deduplicatie alleen als dat de bedoelde managementmaat is.
+3. Twee overlappende spell-intervallen binnen hetzelfde employment: Bradford is onbekend/fail-closed wegens een ongeldige broncombinatie. Twee gelijktijdige verzuimregistraties op twee toegestane employments blijven twee werkverplichtingen; hun roostergewogen `D` wordt opgeteld.
 
-### Besluit gevraagd
+### Acceptatiegrens
 
-Graag het aanbevolen pakket goedkeuren, of alleen de afwijkende keuzes teruggeven voor (1) rollend venster, (2) Bradford-periode/overlap en `D` bij meerdere employments, en (3) afronding. Na dat besluit volgt de codeharmonisatie en regressietest op dezelfde featurebranch; tot die tijd blijven rapportcode en productgedrag ongewijzigd.
+De implementatie behoudt de INS-03A-autorisatie en bronkwaliteitsgrenzen. De gerichte lokale gates bewijzen de code en regressies op de Draft PR-branch; gezamenlijke Vercel TEST-release, persona/browseracceptatie en releasebesluit blijven afzonderlijke open acceptatiepunten.

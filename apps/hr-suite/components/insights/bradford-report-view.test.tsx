@@ -36,7 +36,7 @@ const report: BradfordInsightReport = {
   departments: [],
   totalOccurrences: 0,
   totalSickDays: 0,
-  dataQuality: { complete: true, unknownScheduleDays: 0, unknownCapacityDays: 0, unknownPlacements: 0 },
+  dataQuality: { complete: true, unknownScheduleDays: 0, unknownCapacityDays: 0, unknownPlacements: 0, overlappingSpellPairs: 0 },
 }
 
 const labels: BradfordReportLabels = {
@@ -47,7 +47,7 @@ const labels: BradfordReportLabels = {
   exportSuccess: 'Export ready',
   exportFailed: 'Export failed',
   period: 'Period',
-  last52Weeks: 'Last 52 weeks',
+  last365Days: 'Last 365 days',
   thisYear: 'This year',
   previousYear: 'Previous year',
   team: 'Team',
@@ -67,12 +67,12 @@ const labels: BradfordReportLabels = {
   mediumRisk: 'Medium',
   highRisk: 'High',
   unknownValue: 'Unknown',
-  dataQualityHint: '{scheduleDays}, {capacityDays}, {placements}',
+  dataQualityHint: '{scheduleDays}, {capacityDays}, {placements}, {overlappingSpellPairs}',
   employee: 'Employee',
   distribution: 'Distribution',
   score: 'Bradford score',
   occurrences: 'Occurrences',
-  days: 'Sick days',
+  days: 'Roster-weighted absence days (D)',
   since: 'First day',
   dossier: 'Open absence record',
   info: 'About Bradford',
@@ -111,6 +111,8 @@ describe('Bradford report view', () => {
     expect(markup).not.toContain(labelsWithCardDescription.description)
     expect(markup).toContain('Back to absence')
     expect(markup).toContain('Apply filters')
+    expect(markup).toContain('Last 365 days')
+    expect(markup).toContain('Roster-weighted absence days (D)')
   })
 
   it('keeps the table and active filter chips on applied filters while a draft is being edited', () => {
@@ -135,5 +137,24 @@ describe('Bradford report view', () => {
     expect(mounted.host.textContent).not.toContain('Risk level: Medium')
     expect(mounted.host.textContent).toContain('4')
     mounted.unmount()
+  })
+
+  it('shows an unavailable Bradford score as unknown instead of a zero score', () => {
+    const markup = renderToStaticMarkup(createElement(BradfordReportView, {
+      labels,
+      query,
+      report: {
+        ...report,
+        rows: [{ employeeId: 'employee-unknown', employeeName: 'Cato Unknown', departmentName: null, firstAbsenceOn: '2026-01-01', absenceOccurrences: 2, sickDays: null, score: null, band: 'UNKNOWN' }],
+        totalOccurrences: 2,
+        totalSickDays: null,
+        dataQuality: { complete: false, unknownScheduleDays: 1, unknownCapacityDays: 0, unknownPlacements: 0, overlappingSpellPairs: 0 },
+      },
+      returnTo: '/insights?report=absence-bradford',
+    }))
+
+    expect(markup).toContain('Cato Unknown')
+    expect(markup).toContain('aria-label="Distribution: Unknown"')
+    expect(markup).not.toContain('>0</strong>')
   })
 })

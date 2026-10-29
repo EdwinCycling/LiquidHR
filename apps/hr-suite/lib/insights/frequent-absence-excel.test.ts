@@ -17,7 +17,12 @@ describe('frequentAbsenceExcel', () => {
     }
     const output = frequentAbsenceExcel(report)
     expect(output).toContain('Aantal verzuimcases')
+    expect(output).toContain('Unieke verzuimcases op basis van de eerste ziektedag')
+    expect(output).toContain('Rapportageperiode')
+    expect(output).toContain('Aantal verzuimcases')
     expect(output).toContain('Kalenderdagen in ziekteperioden')
+    expect(output).toContain('Dit kalenderjaar (2025)')
+    expect(output).toContain('ss:Format="0.0"')
     expect(output).toContain('Ada One')
     expect(output).toContain('Datakwaliteit')
     expect(output).toContain('1')

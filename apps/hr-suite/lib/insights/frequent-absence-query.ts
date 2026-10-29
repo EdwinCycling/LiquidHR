@@ -1,3 +1,5 @@
+import { getAbsenceRollingDateRange } from './absence-period'
+
 export type FrequentAbsencePeriod = '12-months' | 'this-year' | 'previous-year'
 
 export interface FrequentAbsenceQuery {
@@ -36,9 +38,8 @@ export function parseFrequentAbsenceQuery(params: URLSearchParams): FrequentAbse
   const search = value(params, 'search') ?? ''
   const frequentOnly = value(params, 'frequentOnly') === '1'
   if (period === '12-months') {
-    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
-    start.setUTCDate(start.getUTCDate() - 364)
-    return { report: 'absence-frequent', period, year, startDate: isoDate(start), endDate: todayDate, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, search, frequentOnly }
+    const periodRange = getAbsenceRollingDateRange(today)
+    return { report: 'absence-frequent', period, year, ...periodRange, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, search, frequentOnly }
   }
   if (period === 'this-year') return { report: 'absence-frequent', period, year, startDate: `${year}-01-01`, endDate: year === today.getUTCFullYear() ? todayDate : `${year}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, search, frequentOnly }
   return { report: 'absence-frequent', period, year: year - 1, startDate: `${year - 1}-01-01`, endDate: `${year - 1}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, search, frequentOnly }
