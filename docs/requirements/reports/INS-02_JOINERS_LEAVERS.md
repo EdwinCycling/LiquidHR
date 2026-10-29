@@ -1,5 +1,8 @@
 # INS-02 — Instroom & Uitstroom | implementation contract
 
+> **29-10-2026, na INS-02 merge.** **Implementation integrated** via [PR #60](https://github.com/EdwinCycling/LiquidHR/pull/60) into GitHub `main` `cc6d4b56f3ed4705012aac88a57cbccccef0b608`. The latest tested feature HEAD was `5dff128b5939f885bbc67783aa66949b0d31fe71` (37/37 targeted tests PASS; targeted TypeScript, ESLint, 43-namespace i18n and diff-check PASS). Manager employment and termination source queries are prefiltered to the authorized direct-team employee allowlist; regression verifies out-of-team exclusion. The six termination events linked to soft-deleted employments remain all-history reconciliation only, and no unsupported turnover rate is displayed. The broad `npm run type-check` still fails on pre-existing generated `.next/dev/types` absence/WVP routes; live Core TEST role/RLS/browser and combined Vercel acceptance are deferred. This note supersedes the historical 'implementation NEXT' status below; no DB write, migration or deployment was performed.
+
+
 > **29-10-2026 integration note.** INS-01 #57 and AA #59 are merged into GitHub Development `main`. The existing INS-02 branch was synchronized non-force, preserving its requirements commit and both main merges. Implementation may proceed with scoped local tests; hosted Vercel acceptance is deferred until the later combined TEST release by explicit user decision. The six confirmed termination events linked to soft-deleted employments remain a separate reconciliation measure; no unverified turnover rate or leaver claim. No DB write, migration or deployment is authorized.
 Date: 2026-10-28
 Issue: #58
