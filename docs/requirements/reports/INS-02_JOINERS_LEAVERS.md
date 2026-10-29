@@ -1,15 +1,17 @@
 # INS-02 — Instroom & Uitstroom | implementation contract
+
+> **29-10-2026 integration note.** INS-01 #57 and AA #59 are merged into GitHub Development `main`. The existing INS-02 branch was synchronized non-force, preserving its requirements commit and both main merges. Implementation may proceed with scoped local tests; hosted Vercel acceptance is deferred until the later combined TEST release by explicit user decision. The six confirmed termination events linked to soft-deleted employments remain a separate reconciliation measure; no unverified turnover rate or leaver claim. No DB write, migration or deployment is authorized.
 Date: 2026-10-28
 Issue: #58
 Branch: `work/ins02-joiners-leavers-20261028`
-Baseline: `main` `32bb21b00d1d0ebff60726e4d536dd8b74967654` (INS-01 PR #57 is not yet merged).
-Status: **source validation complete; design contract ready; implementation not started**.
+Baseline: `main` `6ff3dfbcbb4064f59b8870a14176e746acd23ce3` (INS-01 PR #57 and AA docs PR #59 merged 2026-10-29).
+Status: **source validation complete; design contract ready; implementation NEXT**. Existing feature branch non-force synchronized with integrated `main` on 2026-10-29.
 
 ## 1. Existing system — reuse, do not duplicate
 
 The existing Insights catalog has `terminations` with `report-terminations:read`, implemented by `apps/hr-suite/lib/insights/employee-report-service.ts`, and `/insights?report=terminations`. It is an employee insight view, not a paired monthly inflow/outflow report. Preserve that existing route and its behavior. Add a separate report ID `joiners-leavers` (or similarly unambiguous ID) within the existing Insights catalog and Query/Navigation Seam. Do not replace the existing terminations report or silently alter its permissions.
 
-The existing terminations implementation reads `employment_terminations` for workflow statuses `CONFIRMED`, `PAYROLL_READY`, `REPORTED` and uses `last_working_day`; its employment query currently excludes `deleted_at` rows. Do **not** copy its employee-primary selection, which is unsuitable for concurrent employments or accurate historical events. Reuse INS-01's authorized effective-dated employment/scope and reporting primitives **after** it lands on main; until then, avoid depending on unmerged code.
+The existing terminations implementation reads `employment_terminations` for workflow statuses `CONFIRMED`, `PAYROLL_READY`, `REPORTED` and uses `last_working_day`; its employment query currently excludes `deleted_at` rows. Do **not** copy its employee-primary selection, which is unsuitable for concurrent employments or accurate historical events. Reuse INS-01's authorized effective-dated employment/scope and reporting primitives **now merged on main**; do not fork its authorization or reporting framework.
 
 ## 2. Read-only Core TEST source evidence (aggregate only)
 
@@ -50,7 +52,7 @@ Aggregate starts from confirmed non-deleted employments (project-wide; not a ten
 
 ## 4. Security and UI contract
 
-- Use `getRequestAuthorizationContext`, `requirePermissionInContext`, tenant/HR-group, active administration allowlist, existing Manager direct-team employee allowlist, and authenticated Supabase client/RLS. Employee role denied. Check new report permission explicitly; decide whether `report-terminations:read` and `report-employee-department:read` are both required based on the final UI scope; do not create new grants without approval.
+- Use `getRequestAuthorizationContext`, `requirePermissionInContext`, tenant/HR-group, active administration allowlist, existing Manager direct-team employee allowlist, and authenticated Supabase client/RLS. Employee role denied. **Match INS-01's proven authorization policy:** Manager requires `employee:read` and strict current direct-team/active-administration scope; HR Admin/Tenant Admin requires `employee:read` plus `report-employee-department:read`. Do not require a Manager-only unavailable report permission, and do not create new grants. Keep existing `terminations` report permission unchanged.
 - Prevent cross-scope filtering and leak of labels, counts, CSV or details. Manager fail-closed on truncated team scope; source limit fail-closed with explicit errors.
 - Existing Insights Query/Navigation Seam: typed URL state; from/to month, administration, department, team, event type, sorting, 25-row page, Back/Forward, Apply/Reset. One canonical calculation for KPI, monthly trend, detail and full safe CSV.
 - NL/EN labels and CSV headers; responsive 390/768/1440; drilldown uses existing employee route with return context. No salary, birth-date, medical or payroll data.
@@ -60,6 +62,6 @@ Aggregate starts from confirmed non-deleted employments (project-wide; not a ten
 
 Focused tests must cover: parallel jobs; same person in two selected administrations; first-in-scope vs first-ever; rehire with incomplete history; multiple contracts; start/end same month; deleted employment with confirmed termination; duplicate workflow/end-date event; disagreement in dates; event-date organization attribution; unknown placement; Manager/Employee/HR Admin cross-scope denial; incomplete team scope; URL Back/Forward; CSV formula injection and full-vs-page parity; NL/EN.
 
-Implementation should start from latest verified `main` or rebase the dedicated branch after INS-01 integration; **do not merge an unreviewed INS-01 branch into INS-02**. No database writes, schema changes, test-user creation, deployment or merge as part of this work. Run focused tests, TypeScript, relevant ESLint and i18n parity locally. Capture exact commit and test results. Push branch and create Draft PR when complete.
+Implementation starts on this existing feature branch already synchronized with integrated `main`; do not recreate the branch, open a duplicate PR, or merge an unreviewed feature branch. No database writes, schema changes, test-user creation, deployment or merge as part of this work. Run focused tests, TypeScript, relevant ESLint and i18n parity locally. Capture exact commit and test results. Push branch and create Draft PR when complete.
 
 **Open design decision / HOLD:** determine whether a soft-deleted confirmed employment with a confirmed termination workflow event is a legitimate historical leaver. Until established, present such events as a separate auditable reconciliation measure; do not claim fully reconciled leavers or turnover. Missing live HR Admin/Manager persona acceptance is a separate runtime gate and should not trigger repetitive broad Codex investigations.
