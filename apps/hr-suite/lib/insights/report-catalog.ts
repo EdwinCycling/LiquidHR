@@ -1,7 +1,8 @@
 import type { EmployeeInsightReportId } from './types'
 import { SALARY_INSIGHT_REPORT_IDS, type SalaryInsightReportId } from './salary-insights-types'
+import { canReadHeadcountFte } from './headcount-fte-authorization'
 
-export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcoming-events' | 'ai-usage' | 'actual-work' | 'process-automation' | 'talent-top-talent' | 'talent-key-employees' | 'talent-star-skills' | 'talent-development' | 'talent-profile-skill-gaps' | 'talent-skills' | 'talent-pop' | 'talent-appraisal'
+export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcoming-events' | 'ai-usage' | 'actual-work' | 'headcount-fte' | 'process-automation' | 'talent-top-talent' | 'talent-key-employees' | 'talent-star-skills' | 'talent-development' | 'talent-profile-skill-gaps' | 'talent-skills' | 'talent-pop' | 'talent-appraisal'
 export type InsightReportCategory = 'employees' | 'leave' | 'absence' | 'salary' | 'talent' | 'other'
 
 export interface InsightReportDefinition {
@@ -20,6 +21,7 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'employee-age', category: 'employees', permission: 'report-employee-age:read', available: true },
   { id: 'terminations', category: 'employees', permission: 'report-terminations:read', available: true },
   { id: 'upcoming-events', category: 'employees', permission: 'report-upcoming-events:read', available: true },
+  { id: 'headcount-fte', category: 'employees', permission: 'report-employee-department:read', available: true },
   { id: 'leave', category: 'leave', permission: 'report-leave:read', available: true },
   { id: 'absence', category: 'absence', permission: 'report-absence:read', available: true },
   { id: 'absence-bradford', category: 'absence', permission: 'report-absence:read', available: true },
@@ -40,9 +42,9 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'talent-appraisal', category: 'talent', permission: 'star-performer:read', additionalPermissions: ['star-performer:manager-read'], route: '/workforce/talent/reports/star-performers?report=appraisal', available: true },
 ] as const
 
-export function visibleInsightReports(permissions: readonly string[], isHrAdmin: boolean): InsightReportDefinition[] {
+export function visibleInsightReports(permissions: readonly string[], isHrAdmin: boolean, activeRoles: readonly string[] = []): InsightReportDefinition[] {
   return INSIGHT_REPORTS.filter((report) => report.available
-    && permissions.includes(report.permission)
+    && canReadInsightReport(report, permissions, activeRoles)
     && (report.id !== 'salary-internal-position' || isHrAdmin))
 }
 
@@ -60,7 +62,8 @@ export function insightReportPermission(report: InsightReportId): string {
   return definition.permission
 }
 
-export function canReadInsightReport(report: InsightReportDefinition, permissions: readonly string[]): boolean {
+export function canReadInsightReport(report: InsightReportDefinition, permissions: readonly string[], activeRoles: readonly string[] = []): boolean {
+  if (report.id === 'headcount-fte') return canReadHeadcountFte(activeRoles, permissions)
   return [report.permission, ...(report.additionalPermissions ?? [])].some((permission) => permissions.includes(permission))
 }
 

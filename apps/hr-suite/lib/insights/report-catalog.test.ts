@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { canReadInsightReport, INSIGHT_REPORTS, insightReportRoute, visibleInsightReports } from './report-catalog'
-import { canonicalInsightReportId } from './query-seam'
+import { canonicalInsightReportId, canonicalizeInsightParams, insightReportQueryKeys } from './query-seam'
 
 describe('Insights Analyse destination', () => {
   it('removes the retired Dashboard from the report catalogue and query seam', () => {
@@ -11,6 +11,29 @@ describe('Insights Analyse destination', () => {
   it('registers AI usage as an available permission-gated report', () => {
     expect(INSIGHT_REPORTS).toContainEqual({ id: 'ai-usage', category: 'other', permission: 'ai:usage-read', available: true })
     expect(canonicalInsightReportId('ai-usage')).toBe('ai-usage')
+  })
+
+  it('registers Headcount & FTE on the existing employee-report permission and URL seam', () => {
+    const report = INSIGHT_REPORTS.find((item) => item.id === 'headcount-fte')
+    expect(report).toEqual({ id: 'headcount-fte', category: 'employees', permission: 'report-employee-department:read', available: true })
+    expect(visibleInsightReports(['report-employee-department:read', 'employee:read'], true, ['HR_ADMIN'])).toContainEqual(report)
+    expect(canonicalInsightReportId('headcount-fte')).toBe('headcount-fte')
+    expect(insightReportQueryKeys('headcount-fte')).toEqual(['fromMonth', 'toMonth', 'administrations', 'departmentIds', 'teamIds', 'sortBy', 'sortDirection', 'page'])
+
+    const canonical = canonicalizeInsightParams(new URLSearchParams('report=headcount-fte&administrations=a1&administrations=a2&departmentIds=d1&teamIds=m1&teams=retired'))
+    expect(canonical.getAll('administrations')).toEqual(['a1', 'a2'])
+    expect(canonical.get('departmentIds')).toBe('d1')
+    expect(canonical.get('teamIds')).toBe('m1')
+    expect(canonical.has('teams')).toBe(false)
+  })
+
+  it('exposes Headcount & FTE to direct Managers with employee read, without widening other report permissions', () => {
+    const report = INSIGHT_REPORTS.find((item) => item.id === 'headcount-fte')!
+    expect(canReadInsightReport(report, ['employee:read'], ['DIRECT_MANAGER'])).toBe(true)
+    expect(visibleInsightReports(['employee:read'], false, ['DIRECT_MANAGER'])).toContainEqual(report)
+    expect(visibleInsightReports(['employee:read'], false, ['DIRECT_MANAGER']).some((item) => item.id === 'employee-department')).toBe(false)
+    expect(canReadInsightReport(report, ['employee:read'], ['EMPLOYEE'])).toBe(false)
+    expect(canReadInsightReport(report, ['report-employee-department:read'], ['DIRECT_MANAGER'])).toBe(false)
   })
 
   it('registers only existing Talent and Star report destinations', () => {

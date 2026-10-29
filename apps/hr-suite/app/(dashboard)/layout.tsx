@@ -80,7 +80,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const canShowSetupAssistant = canUseSetupAssistant(authContext)
   const researchAccess = resolveResearchAccess(authContext)
   const canReadAnalysis = authContext.permissions.includes(ANALYSIS_PERMISSION)
-  const insightPermissions = INSIGHT_REPORTS.map((report) => canReadInsightReport(report, authContext.permissions))
+  const insightPermissions = INSIGHT_REPORTS.map((report) => canReadInsightReport(report, authContext.permissions, authContext.activeRoles))
 
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, setupAssistantMessages, setupAssistant, reminders, enabledModules, productUpdates, profile] = await Promise.all([
     getRequestUserPreferences(),

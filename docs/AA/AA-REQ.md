@@ -1,5 +1,8 @@
 # AA-REQ — LiquidHR Fundamental Requirements
 
+> **Requirements-/acceptatiestatus 29-10-2026.** Deze fundamentele invarianten blijven LEIDEND; de Headcount & FTE-implementatie staat alleen in [Draft PR #57](https://github.com/EdwinCycling/LiquidHR/pull/57), niet in `main`. Productbesluit INS-01: HR Admin leest geautoriseerde administraties; Manager uitsluitend directe teamscope in de actieve administratie via bestaande `employee:read` plus server-side scopebeperking; Employee geen toegang. Alle directe API-aanroepen, queryfilters, detail en CSV moeten dezelfde autorisatie en canonieke berekening gebruiken. Headcount is gededupliceerd per medewerker; FTE wordt niet stilzwijgend op nul gezet bij ontbrekende of ambigue roosterfactor; ontbrekende historische organisatieplaatsingen worden niet gegokt. KPI, trend, tabel en CSV moeten reconciliëren; NL/EN, responsive en geautoriseerde drilldown zijn onderdeel van acceptatie. De bestaande 23 gerichte tests en lokale persona-acceptatie zijn PASS; Engelse live-UI en hosted releaseacceptatie OPEN. Geen nieuwe grants/RLS of databasewrites. Zie [INS-01 issue #56](https://github.com/EdwinCycling/LiquidHR/issues/56) en [AA-CURRENT](AA-CURRENT.md). Dit is een statusaanvulling, geen nieuwe permissie of wijziging van de bestaande securityregels.
+
+
 Status: **LEIDEND**
 Eerste opzet: 2026-09-29
 

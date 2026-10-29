@@ -9,7 +9,12 @@ const nextConfig: NextConfig = {
     : process.env.LIQUIDHR_NEXT_DIST_DIR === '.next/payrun01-acceptance'
       ? '.next/payrun01-acceptance'
       : process.env.LIQUIDHR_NEXT_DIST_DIR === '.next/payrun01' ? '.next/payrun01' : '.next',
-  transpilePackages: ['@scope/db'],
+  transpilePackages: [
+    '@scope/db',
+    '@liquid-hr/payroll-engine',
+    '@liquid-hr/payroll-rules-nl-2026',
+    '@liquid-hr/payroll-rules-cao-bench02',
+  ],
   serverExternalPackages: ['@sparticuz/chromium', 'playwright-core'],
   turbopack: {
     root: path.resolve(__dirname, '../..'),
