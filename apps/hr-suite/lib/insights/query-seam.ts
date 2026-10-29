@@ -81,6 +81,7 @@ const reportQueryKeys: Readonly<Record<InsightReportId, readonly string[]>> = {
   'ai-usage': ['period'],
   'actual-work': ['month'],
   'headcount-fte': ['fromMonth', 'toMonth', 'administrations', 'departmentIds', 'teamIds', 'sortBy', 'sortDirection', 'page'],
+  'joiners-leavers': ['fromMonth', 'toMonth', 'administrations', 'departmentIds', 'teamIds', 'eventTypes', 'sortBy', 'sortDirection', 'page'],
   'process-automation': ['from', 'to', 'process', 'page'],
   'talent-top-talent': [],
   'talent-key-employees': [],
@@ -100,7 +101,7 @@ function salaryQueryKeys(): readonly string[] {
 // Leave uses the same key for its first-class subview. Keep it out of the
 // cross-report cleanup set and handle the Leave boundary explicitly below.
 const allReportQueryKeys = [...new Set(Object.values(reportQueryKeys).flat())].filter((key) => key !== 'view')
-const arrayQueryKeys = new Set(['teams', 'segments', 'reasons', 'types', 'departmentIds', 'teamIds', 'departments', 'administrations', 'managers', 'functions', 'functionGroups', 'locations', 'laborConditions', 'structures', 'bands', 'scales', 'steps', 'fteBuckets', 'employmentTypes', 'salaryRoutes', 'statuses', 'severities', 'exceptionTypes'])
+const arrayQueryKeys = new Set(['teams', 'segments', 'reasons', 'types', 'departmentIds', 'teamIds', 'departments', 'administrations', 'eventTypes', 'managers', 'functions', 'functionGroups', 'locations', 'laborConditions', 'structures', 'bands', 'scales', 'steps', 'fteBuckets', 'employmentTypes', 'salaryRoutes', 'statuses', 'severities', 'exceptionTypes'])
 
 export function canonicalInsightReportId(value: string | null | undefined): InsightReportId | null {
   if (!value) return null

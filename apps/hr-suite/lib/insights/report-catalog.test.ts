@@ -36,6 +36,21 @@ describe('Insights Analyse destination', () => {
     expect(canReadInsightReport(report, ['report-employee-department:read'], ['DIRECT_MANAGER'])).toBe(false)
   })
 
+  it('registers Joiners & Leavers with the existing INS-01 authorization and URL-state contract', () => {
+    const report = INSIGHT_REPORTS.find((item) => item.id === 'joiners-leavers')!
+    expect(report).toEqual({ id: 'joiners-leavers', category: 'employees', permission: 'report-employee-department:read', available: true })
+    expect(canReadInsightReport(report, ['employee:read'], ['DIRECT_MANAGER'])).toBe(true)
+    expect(canReadInsightReport(report, ['employee:read'], ['EMPLOYEE'])).toBe(false)
+    expect(canReadInsightReport(report, ['report-employee-department:read'], ['DIRECT_MANAGER'])).toBe(false)
+    expect(canReadInsightReport(report, ['employee:read', 'report-employee-department:read'], ['HR_ADMIN'])).toBe(true)
+    expect(canonicalInsightReportId('joiners-leavers')).toBe('joiners-leavers')
+    expect(insightReportQueryKeys('joiners-leavers')).toEqual(['fromMonth', 'toMonth', 'administrations', 'departmentIds', 'teamIds', 'eventTypes', 'sortBy', 'sortDirection', 'page'])
+
+    const canonical = canonicalizeInsightParams(new URLSearchParams('report=joiners-leavers&eventTypes=employment-start&eventTypes=reconciliation&teams=retired'))
+    expect(canonical.getAll('eventTypes')).toEqual(['employment-start', 'reconciliation'])
+    expect(canonical.has('teams')).toBe(false)
+  })
+
   it('registers only existing Talent and Star report destinations', () => {
     expect(INSIGHT_REPORTS.filter((report) => report.category === 'talent').map((report) => report.id)).toEqual([
       'talent-top-talent', 'talent-key-employees', 'talent-star-skills', 'talent-development', 'talent-profile-skill-gaps', 'talent-skills', 'talent-pop', 'talent-appraisal',
