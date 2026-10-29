@@ -19,7 +19,7 @@ Baseline: GitHub `main` at `32bb21b00d1d0ebff60726e4d536dd8b74967654`.
 
 - Reuse the existing `employee:read` permission and the active tenant/HR-group context. Do not add grants or a new permission.
 - HR Admin administration options come only from the active context's accessible administration set. A Manager is limited to the active administration and employee IDs returned by the existing direct-team scope helper; supplied query IDs are checked against that allowlist server-side. Employees without `employee:read` cannot read this report.
-- Catalog visibility reuses `report-employee-department:read`; the server also requires `employee:read` and an HR Admin or direct Manager role. It introduces no grant or permission. Each Manager source query is narrowed by the direct-team employee allowlist and fails closed if that source is truncated.
+- Catalog visibility and the report service use the same role-specific rule: Direct Manager requires the existing `employee:read` permission and is restricted server-side to the active administration and authenticated direct-team employee allowlist; HR Admin/Tenant Admin requires both `employee:read` and `report-employee-department:read`. Employee has no report access. No new grant or permission is introduced; truncated Manager team sources fail closed.
 - Use the authenticated Supabase server client and existing RLS. The report reads only employment dates/status, schedule factors, organization placement, employee display identifiers and authorized organization labels. It does not read salary, medical, birth-date, contact, or payroll fields.
 - Employee details link to the existing employee detail route with the canonical Insights return context. That route retains its own server-side authorization.
 
