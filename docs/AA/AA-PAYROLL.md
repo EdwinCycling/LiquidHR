@@ -1,5 +1,33 @@
 # AA-PAYROLL — LiquidHR Payroll Development Standard
 
+## PAYROLL FAST TRACK — ontwikkelstandaard (29 oktober 2026)
+
+**Besluit:** bouw korte, bruikbare verticale Payroll-slices; vermijd herhaalde volledige test- en documentatierondes. Snelheid is een doel, niet het versoepelen van geldbedragen, persoonsgegevens, wettelijke regels of RLS.
+
+### Werkvolgorde per slice
+1. Hergebruik bestaande LiquidHR-UI, Core/Payroll-services, looncomponentengraph en data-contracten; maak geen tweede engine, fixtureframework of extra applicatie.
+2. Lever eerst de kleinste werkende keten: medewerker/administratie → invoer → opslag (waar nodig) → conceptberekening of bronprojectie → leesbaar resultaat.
+3. Test gericht: positief domeinpad; een onafhankelijke cent-/afrondingsoracle als de financiële berekening verandert; negatieve rol-/tenantchecks voor toegang en mutaties; TypeScript, geraakte lint en NL/EN.
+4. Draai de brede suite en productiebuild op de integratie-/releasekandidaat, niet op elke documentatiecommit. Een ongeteste route wordt expliciet OPEN genoemd.
+5. Lokaliseer een terugkerende Windows/Next/TestRuntime-blokkade in één gedeeld infrastructuurissue met eigenaar, reproduceerbare diagnose en herstelcriterium. Blijf niet dezelfde mislukte browserstart in opeenvolgende feature-runs herhalen.
+6. Accepteer functionele deelopleveringen als **LOCAL PARTIAL** wanneer alleen een niet-kritieke omgevingstest ontbreekt; markeer geen salarisbron, autorisatie, wettelijke berekening, FINALIZED of deployment als PASS zonder werkelijk bewijs.
+
+### TEST Factory — eerst bestaande voorzieningen bundelen
+Maak een kleine idempotente orchestrator bovenop bestaande persona-launchers, HR-/Payroll-domeinservices en synthetische TEST-fixtures. Minimaal: Mars maandloner met vast loon; afzonderlijke oproepkracht met HOURLY_VARIABLE; werknemer met eenmalige bonus/vergoeding; K2-cao/pensioen; Retail-deeltijd; HR Admin/Manager/Employee inclusief buiten-scope; toepasselijke OPEN conceptperiode. Iedere fixture heeft een vaste naam, scoped identificatie, bronreadback en expliciete **READY / SOURCE_GAP / BLOCKED**-status. Invoer uitsluitend via bestaande geautoriseerde productcontracten: geen directe SQL-seeding als omweg rond RLS, geen historische FINALIZED-mutaties, geen derde Supabase-project. Eén centrale readiness-check vóór browseracceptatie.
+
+### Eerstvolgende productprioriteiten
+- **PFAST-01 Variabele verloning:** HR-uren/overuren/toeslagen en toepasselijke periodieke componenten → accordering → concept-Payroll; voortbouwen op W04, bestaande AUTHORIZE/APPROVE/RELEASE en bestaande componentcatalogus.
+- **PFAST-02 Eenmalige P-component per medewerker en periode:** geldige SYSTEM/CUSTOMER-component selecteren, bedrag/eenheid/datum/betekenis vastleggen, conceptberekening en audit; geen automatisch FINALIZED.
+- **PFAST-03 P-componenttemplate bij dienstverbandaanmaak:** herbruikbare versieerbare bundel van componenttoewijzingen met ingangsdatum; bijvoorbeeld reiskostenregeling, vaste toeslag en bonusregeling. Een template voegt nooit zonder expliciete mutatie een eenmalig bonusbedrag toe.
+- **PFAST-04 Pro-forma:** HR Admin en Employee kunnen drie extra uren, een bonus of salarisaanpassing als read-only scenario door de bestaande deterministische Payroll-engine laten rekenen. Toon bruto/netto/werkgeverskosten alleen bij volledige en toepasselijke bronnen, anders een expliciete gap; geen opslag op salarisbron, geen definitieve run, geen RLS-omweg.
+
+**Uitvoering:** PFAST-01 en PFAST-02 mogen parallel met een begrensd W04-reparatiespoor als bestandensets en databaseschrijfacties gescheiden blijven. PFAST-03 volgt zodra eenmalige en periodieke toewijzingen stabiel zijn; PFAST-04 kan als read-only MVP parallel met P1 groeien. W05–W17 blijven ongespecificeerde uitvoeringswaves tot een aparte scope is vastgesteld.
+
+**Architectuur blijft:** één repo en één TEST-app; Core TEST en Payroll Lab TEST blijven afzonderlijke databases. Geen commerciële Payroll-GA vóór P2/wettelijke vrijgave, geen verzwakking van brongebondenheid, RLS, privacy, financiële nauwkeurigheid of audit.
+
+---
+
+
 > **PAY-W04-PAYROLL-COMPONENT-FINAL-08 — bijgewerkt 28-10-2026; PARTIAL / integratie HOLD / TEST-release HOLD:** Core TEST `wnpfloqpjvaacobppbpk` en Payroll Lab TEST `jhgeriucbkfarxiudzfy` blijven gescheiden. De revisieapprovalmigratie (`20261028130821`) en mappingcompatibiliteitsmigratie (`20261028162054`) zijn read-only bevestigd; geen migratie is herhaald. HR Admin-vrijgave, redenplichtige correctie en revisie 5-heraccordering/TWK-vrijgave zijn live bewezen. Het PAYFULL02-systeemcomponent `PAYFULL02_VARIABLE_REGULAR_WAGE` versie `2026.1` bestaat en de Core-mapping is opgeslagen. De gebruiker heeft €20,00 bruto/uur vanaf 2026-10-01 voor de synthetische Mars-oproepkracht geautoriseerd, maar de afspraak is niet opgeslagen omdat de bestaande browser-sessie Noah is en de HR Admin-route `/geen-toegang` geeft; de centrale TestRuntime-configuratie/persona-credentials ontbreken. Payroll-bronconsumptie blijft `SOURCE_GAP`; de drie Mars-customer-componentversies blijven DRAFT en zijn niet geactiveerd. Live negatieve persona/RLS-proeven blijven OPEN. De 118 gerichte tests, TypeScript, ESLint en i18n zijn PASS; vierwekenberekening blijft `FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED`. PR #51 blijft Draft op remote HEAD `7bff30402b6586a69c8971140e6f6dcbfc2b7154`; actuele `main` is `32bb21b00d1d0ebff60726e4d536dd8b74967654`, compare 24 ahead/11 behind en GitHub meldt `mergeable=false`. Zie het [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
 
 > **PAY-W04-FINAL-CLOSEOUT-06 — lokaal 28-10-2026; PARTIAL / integratie HOLD / TEST-release HOLD:** Core TEST `wnpfloqpjvaacobppbpk` en Payroll Lab TEST `jhgeriucbkfarxiudzfy` blijven gescheiden. De revision-approvalmigratiehash klopt, maar de ene officiële apply-aanvraag werd afgewezen met `Invalid or expired requestState`; readback liet 22 entries, 34 revisies en 0 releases ongewijzigd. De lokale TEST-configuratie en launcher werken. De HR Admin Test Auth-context bereikte Mars; `/actual-work/payroll` faalde met `PGRST205` door ontbrekende `actual_work_payroll_approvals`. Geen W04-mutatie, vrijgave, RLS-proef of Payroll-consumptie volgde. Gerichte contracttests: 126/126 PASS; brede tests/build zijn hergebruikt. Mars `AW_WORK` blijft `SOURCE_GAP`; vierwekenberekening blijft `FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED`. Effectieve Vercel Git-/Preview-triggers zijn niet zichtbaar in de projectreadback; de documentatiecommit is lokaal en niet gepusht. PR #51 blijft Draft/HOLD. Zie het [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
@@ -686,6 +714,8 @@ De eerste vier hebben allen salaris-, rooster- en IKV-records. **Jan** heeft een
 
 
 ### W04 live-acceptatie follow-up — 27-10-2026
+
+> **Huidige status 29-10-2026:** de echte TEST-sourceprovider verwerkte de bestaande 1,00 vrijgegeven `AW_WORK`-registratie tegen het opgeslagen uurloon van EUR 20,00. Twee server-side bronopvragingen leverden identieke bronhashen en `variableRegularWageAmount = "20.00"`; de bron bevat één match en geen `ACTUAL_WORK_HOURLY_RATE_REQUIRED`. De mapping naar systeemcomponent `PAYFULL02_VARIABLE_REGULAR_WAGE` versie 2026.1 is geldig. Employer-configuratie, klantcomponentversie en dienstverbandtoewijzing zijn apart beoordeeld; geen klantcomponent of DRAFT is geactiveerd. Provider `sourceReady=false` door overige IKV-/fiscale-/contract-/cumulatieven-/pensioenbronnen, dus geen volledige berekening/run. Manager/Employee approve/release: 403; vreemde-tenantcontext: 409; RLS aan en anon-grants afwezig. Gerichte tests 201/201, TypeScript en rootbuild PASS. Vroege W04-migratieversies blijven te reconciliëren; advies PARTIAL. Details en hashes: [PAY-W04-FINAL-INTEGRATION-14](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
 
 Een geauthenticeerde HR Admin-sessie previewde/importeeerde één geldige synthetische CSV-regel in Core TEST; een ongeldige medewerker werd geweigerd en exact herhalen was idempotent. De bronstatus bleef PENDING. Payroll-review gaf HTTP 400 door de ontbrekende Core revision-approval-migratie; geen accordering, correctieherbeoordeling of release is geclaimd. De nieuwe bron heeft geen Payroll-consumptie en Mars `AW_WORK` blijft SOURCE_GAP. Exacte entry-, periode-, API- en readbackgegevens staan in het [W04-acceptatierapport](../quality/acceptance/runs/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026.md).
 

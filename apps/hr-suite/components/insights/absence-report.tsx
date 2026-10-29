@@ -18,7 +18,7 @@ import { absenceInsightQueryParams, parseAbsenceInsightQuery } from '@/lib/insig
 import { buildInsightApplyHref, insightEmployeeDrilldownHref } from '@/lib/insights/query-seam'
 
 interface AbsenceReportLabels {
-  period: string; month: string; year: string; department: string; allDepartments: string; applyFilters: string; resetFilters: string; clearFilters: string; removeFilter: string; filterStatus: string; exportExcel: string; exportPreparing: string; exportSuccess: string; exportFailed: string; activeCases: string; reports: string; sickDays: string; sickHours: string; availableDays: string; absenceRate: string; currentData: string; employee: string; firstAbsenceOn: string; status: string; days: string; hours: string; dossier: string; active: string; recoveryWindow: string; closed: string; noResults: string; formulaHint: string; monthlyTrend: string; yearLabel: string; activeFilters?: string
+  period: string; month: string; year: string; department: string; allDepartments: string; applyFilters: string; resetFilters: string; clearFilters: string; removeFilter: string; filterStatus: string; exportExcel: string; exportPreparing: string; exportSuccess: string; exportFailed: string; activeCases: string; reports: string; sickDays: string; sickHours: string; availableDays: string; absenceRate: string; currentData: string; employee: string; firstAbsenceOn: string; status: string; days: string; hours: string; dossier: string; active: string; recoveryWindow: string; closed: string; noResults: string; formulaHint: string; dataQualityHint: string; unknownValue: string; monthlyTrend: string; yearLabel: string; activeFilters?: string
   jan: string; feb: string; mar: string; apr: string; may: string; jun: string; jul: string; aug: string; sep: string; oct: string; nov: string; dec: string
 }
 
@@ -91,6 +91,10 @@ export function AbsenceReportView({ report, query, labels, locale, returnTo }: {
     ...(selectedDepartment ? [{ key: 'department', label: labels.department, value: selectedDepartment, onRemove: () => setDraft((current) => ({ ...current, departmentId: null })) }] : []),
   ]
   const exportParams = absenceInsightQueryParams(query, 'excel')
+  const qualityHint = labels.dataQualityHint
+    .replace('{scheduleDays}', String(report.dataQuality.unknownScheduleDays))
+    .replace('{capacityDays}', String(report.dataQuality.unknownCapacityDays))
+    .replace('{placements}', String(report.dataQuality.unknownPlacements))
 
   return <section className="space-y-5">
       <InsightsFilterBar actions={<>
@@ -106,38 +110,38 @@ export function AbsenceReportView({ report, query, labels, locale, returnTo }: {
       <ActiveFilters clearLabel={labels.clearFilters} filters={selectedFilters} label={labels.activeFilters} onClear={reset} onReset={reset} removeLabel={labels.removeFilter} resetLabel={labels.resetFilters} selectedCountLabel={labels.filterStatus} />
 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      <ReportKpi featured label={labels.absenceRate} tone="primary" value={`${report.absenceRate.toFixed(2)}%`} />
+      <ReportKpi featured label={labels.absenceRate} tone="primary" value={report.absenceRate === null ? labels.unknownValue : `${report.absenceRate.toFixed(2)}%`} />
       <ReportKpi label={labels.activeCases} tone="info" value={String(report.activeCases)} />
       <ReportKpi label={labels.reports} value={String(report.absenceCases)} />
-      <ReportKpi label={labels.sickDays} tone="warning" value={report.sickDays.toFixed(1)} />
-      <ReportKpi label={labels.sickHours} value={report.sickHours.toFixed(1)} />
+      <ReportKpi label={labels.sickDays} tone="warning" value={report.sickDays === null ? labels.unknownValue : report.sickDays.toFixed(1)} />
+      <ReportKpi label={labels.sickHours} value={report.sickHours === null ? labels.unknownValue : report.sickHours.toFixed(1)} />
     </div>
 
-    <Surface className="flex items-start gap-3 p-4 text-sm leading-6 text-muted-foreground" variant="subtle"><HeartPulse aria-hidden="true" className="mt-1 shrink-0 text-info" size={17} /><p>{labels.formulaHint}</p></Surface>
+    <Surface className="flex items-start gap-3 p-4 text-sm leading-6 text-muted-foreground" variant="subtle"><HeartPulse aria-hidden="true" className="mt-1 shrink-0 text-info" size={17} /><div><p>{labels.formulaHint}</p>{!report.dataQuality.complete ? <p className="mt-2">{qualityHint}</p> : null}</div></Surface>
 
     {query.period === 'year' ? <Surface className="p-5">
       <SectionHeader description={String(query.year)} title={labels.monthlyTrend} />
       <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{report.trend.map((period) => <div className="grid grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-3 text-sm" key={period.label}>
         <span className="text-muted-foreground">{months[Number(period.label.slice(5, 7)) - 1]}</span>
-        <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-destructive" style={{ width: `${Math.min(period.absenceRate * 8, 100)}%` }} /></div>
-        <strong className="tabular-nums">{period.absenceRate.toFixed(2)}%</strong>
+        <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-destructive" style={{ width: period.absenceRate === null ? '0%' : `${Math.min(period.absenceRate * 8, 100)}%` }} /></div>
+        <strong className="tabular-nums">{period.absenceRate === null ? labels.unknownValue : `${period.absenceRate.toFixed(2)}%`}</strong>
       </div>)}</div>
     </Surface> : null}
 
     <div className="space-y-3">
-      <SectionHeader actions={<span className="text-sm text-muted-foreground">{report.availableDays.toFixed(1)} {labels.availableDays.toLowerCase()}</span>} description={`${dateLabel(report.period.startDate, locale)} → ${dateLabel(report.period.endDate, locale)}`} title={labels.currentData} />
+      <SectionHeader actions={<span className="text-sm text-muted-foreground">{report.availableDays === null ? labels.unknownValue : report.availableDays.toFixed(1)} {labels.availableDays.toLowerCase()}</span>} description={`${dateLabel(report.period.startDate, locale)} → ${dateLabel(report.period.endDate, locale)}`} title={labels.currentData} />
       <DataTableShell caption={labels.currentData} state={report.rows.length ? 'ready' : 'empty'} stateContent={<ReportEmpty title={labels.noResults} />}>
         <thead className="bg-surface-subtle text-xs uppercase tracking-[0.08em] text-muted-foreground"><tr>
           <th className="px-4 py-3 sm:px-5">{labels.employee}</th><th className="px-4 py-3 sm:px-5">{labels.department}</th><th className="px-4 py-3 sm:px-5">{labels.status}</th><th className="px-4 py-3 sm:px-5">{labels.firstAbsenceOn}</th><th className="px-4 py-3 text-right sm:px-5">{labels.days}</th><th className="px-4 py-3 text-right sm:px-5">{labels.hours}</th><th className="px-4 py-3 text-right sm:px-5">{labels.absenceRate}</th><th className="px-4 py-3 sm:px-5">{labels.dossier}</th>
         </tr></thead>
         <tbody className="divide-y divide-border-subtle">{report.rows.map((row) => <tr className="whitespace-nowrap" key={row.employeeId}>
           <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{row.employeeName}</Link></td>
-          <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.allDepartments}</td>
+          <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.unknownValue}</td>
           <td className="px-4 py-3 sm:px-5"><Badge tone={statusTone(row.status)}>{statusLabel(row.status, labels)}</Badge></td>
           <td className="px-4 py-3 sm:px-5">{dateLabel(row.firstAbsenceOn, locale)}</td>
-          <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickDays.toFixed(1)}</td>
-          <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickHours.toFixed(1)}</td>
-          <td className="px-4 py-3 text-right font-semibold tabular-nums sm:px-5">{row.absenceRate.toFixed(2)}%</td>
+          <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickDays === null ? labels.unknownValue : row.sickDays.toFixed(1)}</td>
+          <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickHours === null ? labels.unknownValue : row.sickHours.toFixed(1)}</td>
+          <td className="px-4 py-3 text-right font-semibold tabular-nums sm:px-5">{row.absenceRate === null ? labels.unknownValue : `${row.absenceRate.toFixed(2)}%`}</td>
           <td className="px-4 py-3 sm:px-5"><Link aria-label={`${labels.dossier}: ${row.employeeName}`} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{labels.dossier}<ArrowRight aria-hidden="true" size={15} /></Link></td>
         </tr>)}</tbody>
       </DataTableShell>

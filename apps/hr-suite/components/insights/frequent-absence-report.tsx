@@ -20,7 +20,7 @@ import type { FrequentAbsenceReport } from '@/lib/insights/frequent-absence-repo
 import { insightEmployeeDrilldownHref } from '@/lib/insights/query-seam'
 
 interface FrequentAbsenceLabels {
-  title: string; description: string; exportExcel: string; exportPreparing: string; exportSuccess: string; exportFailed: string; period: string; last12Months: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; resetFilters: string; clearFilters: string; removeFilter: string; filterStatus: string; search: string; searchPlaceholder: string; employee: string; reportCount: string; sickDays: string; frequent: string; threshold: string; thresholdDescription: string; totalEmployees: string; frequentCount: string; totalReports: string; noResults: string; yearLabel: string; activeFilters?: string
+  title: string; description: string; exportExcel: string; exportPreparing: string; exportSuccess: string; exportFailed: string; period: string; last12Months: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; resetFilters: string; clearFilters: string; removeFilter: string; filterStatus: string; search: string; searchPlaceholder: string; employee: string; reportCount: string; sickDays: string; frequent: string; threshold: string; thresholdDescription: string; definitionHint: string; dataQualityHint: string; unknownValue: string; totalEmployees: string; frequentCount: string; totalReports: string; noResults: string; yearLabel: string; activeFilters?: string
 }
 
 function periodLabel(query: FrequentAbsenceQuery, labels: FrequentAbsenceLabels): string {
@@ -49,6 +49,7 @@ export function FrequentAbsenceReportView({ report, query, labels, returnTo }: {
     ...(query.frequentOnly ? [{ key: 'frequentOnly', label: labels.frequent, onRemove: () => { const next = { ...query, frequentOnly: false }; setDraft(next); apply(next) } }] : []),
   ]
   const exportParams = frequentAbsenceQueryParams(query, 'excel')
+  const qualityHint = labels.dataQualityHint.replace('{placements}', String(report.dataQuality.unknownPlacements))
 
   return <section className="space-y-5">
     <InsightsFilterBar actions={<>
@@ -69,7 +70,7 @@ export function FrequentAbsenceReportView({ report, query, labels, returnTo }: {
       <ReportKpi label={labels.totalReports} value={String(report.totalReports)} />
     </div>
 
-    <Surface className="flex items-start gap-3 p-4 text-sm leading-6 text-muted-foreground" variant="subtle"><AlertTriangle aria-hidden="true" className="mt-1 shrink-0 text-warning" size={17} /><p>{labels.thresholdDescription.replace('{threshold}', String(report.threshold))}</p></Surface>
+    <Surface className="flex items-start gap-3 p-4 text-sm leading-6 text-muted-foreground" variant="subtle"><AlertTriangle aria-hidden="true" className="mt-1 shrink-0 text-warning" size={17} /><div><p>{labels.thresholdDescription.replace('{threshold}', String(report.threshold))}</p><p className="mt-2">{labels.definitionHint}</p>{!report.dataQuality.complete ? <p className="mt-2">{qualityHint}</p> : null}</div></Surface>
 
     <div className="space-y-3">
       <SectionHeader actions={<span className="text-sm text-muted-foreground">{rows.length} / {report.rows.length}</span>} description={periodLabel(query, labels)} title={labels.title} />
@@ -79,7 +80,7 @@ export function FrequentAbsenceReportView({ report, query, labels, returnTo }: {
         </tr></thead>
         <tbody className="divide-y divide-border-subtle">{rows.map((row) => <tr className="whitespace-nowrap" key={row.employeeId}>
           <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{row.employeeName}</Link></td>
-          <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.allDepartments}</td>
+          <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.unknownValue}</td>
           <td className="px-4 py-3 text-right font-semibold tabular-nums sm:px-5">{row.reportCount}</td>
           <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.totalSickDays.toFixed(1)}</td>
           <td className="px-4 py-3 sm:px-5">{row.isFrequent ? <Badge tone="danger">{labels.frequent}</Badge> : null}</td>

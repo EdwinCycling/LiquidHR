@@ -1,7 +1,7 @@
 import { getAbsenceInsightReport, type AbsenceInsightRow, type AbsenceInsightReport } from './absence-report'
 import { toAbsenceInsightQuery, type BradfordInsightQuery } from './bradford-query'
 
-export type BradfordBand = 'LOW' | 'MEDIUM' | 'HIGH'
+export type BradfordBand = 'LOW' | 'MEDIUM' | 'HIGH' | 'UNKNOWN'
 
 export interface BradfordInsightRow {
   employeeId: string
@@ -9,8 +9,8 @@ export interface BradfordInsightRow {
   departmentName: string | null
   firstAbsenceOn: string
   absenceOccurrences: number
-  sickDays: number
-  score: number
+  sickDays: number | null
+  score: number | null
   band: BradfordBand
 }
 
@@ -20,7 +20,8 @@ export interface BradfordInsightReport {
   rows: BradfordInsightRow[]
   departments: AbsenceInsightReport['departments']
   totalOccurrences: number
-  totalSickDays: number
+  totalSickDays: number | null
+  dataQuality: AbsenceInsightReport['dataQuality']
 }
 
 function bandFor(score: number): BradfordBand {
@@ -46,18 +47,18 @@ function round(value: number, decimals = 1): number {
 export async function getBradfordInsightReport(query: BradfordInsightQuery): Promise<BradfordInsightReport> {
   const report = await getAbsenceInsightReport(toAbsenceInsightQuery(query))
   const calculatedRows = report.rows.map((row: AbsenceInsightRow) => {
-    const score = calculateBradfordScore(row.absenceOccurrences, row.sickDays)
+    const score = row.sickDays === null ? null : calculateBradfordScore(row.absenceOccurrences, row.sickDays)
     return {
       employeeId: row.employeeId,
       employeeName: row.employeeName,
       departmentName: row.departmentName,
       firstAbsenceOn: row.firstAbsenceOn,
       absenceOccurrences: row.absenceOccurrences,
-      sickDays: round(row.sickDays),
+      sickDays: row.sickDays === null ? null : round(row.sickDays),
       score,
-      band: bandFor(score),
+      band: score === null ? 'UNKNOWN' as const : bandFor(score),
     }
-  }).sort((left, right) => right.score - left.score || left.employeeName.localeCompare(right.employeeName, 'nl'))
+  }).sort((left, right) => (right.score ?? -1) - (left.score ?? -1) || left.employeeName.localeCompare(right.employeeName, 'nl'))
   const rows = filterBradfordRows(calculatedRows, query)
   return {
     report: 'absence-bradford',
@@ -65,6 +66,7 @@ export async function getBradfordInsightReport(query: BradfordInsightQuery): Pro
     rows,
     departments: report.departments,
     totalOccurrences: rows.reduce((total, row) => total + row.absenceOccurrences, 0),
-    totalSickDays: round(rows.reduce((total, row) => total + row.sickDays, 0)),
+    totalSickDays: rows.some((row) => row.sickDays === null) ? null : round(rows.reduce((total, row) => total + (row.sickDays ?? 0), 0)),
+    dataQuality: report.dataQuality,
   }
 }

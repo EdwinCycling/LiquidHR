@@ -2903,9 +2903,48 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           sourceGaps,
         })
       : { payrollOwned: null, sourceGaps }
+    // W04's PAYFULL02 source component depends only on the approved Actual Work
+    // release, its active system-component mapping, and the effective hourly
+    // salary. Keep that exact input available when unrelated payroll-owned
+    // calculations (for example pension) are incomplete. The original gaps are
+    // retained and sourceReady stays false, so this cannot make a payroll run
+    // eligible by itself.
+    const componentConfiguration = payrollSetup?.configuration
+    const componentConfigurationRow = payrollSetup?.configurationRow
+    const canExposeVariableWageSource = !regularPayroll.payrollOwned
+      && mappedActualWorkVariableWage.used
+      && mappedActualWorkVariableWage.errorCode === null
+      && componentConfiguration !== null
+      && componentConfiguration !== undefined
+      && componentConfigurationRow !== null
+      && componentConfigurationRow !== undefined
+      && componentConfigurationRow.status === 'ACTIVE'
+      && componentConfigurationRow.effective_from <= bounds.start
+      && (componentConfigurationRow.effective_to === null || componentConfigurationRow.effective_to >= bounds.start)
+      && hashPayrollEmployerConfiguration(componentConfiguration) === componentConfigurationRow.configuration_hash
+    const variableWageSourceOnly = canExposeVariableWageSource
+      && componentConfiguration
+      && componentConfigurationRow
+      ? {
+        configuration: {
+          schemaVersion: 'payroll-employer-configuration-v1',
+          configurationVersionId: componentConfigurationRow.id,
+          configurationVersion: componentConfigurationRow.configuration_version,
+          effectiveFrom: componentConfigurationRow.effective_from,
+          effectiveTo: componentConfigurationRow.effective_to,
+          configurationHash: componentConfigurationRow.configuration_hash,
+          sourceReference: componentConfigurationRow.source_reference,
+          componentSet: componentConfiguration.componentSet,
+        },
+        amounts: { variableRegularWage: mappedActualWorkVariableWage.amount },
+        controls: { sourceReady: false },
+        sourceStatus: 'COMPONENT_SOURCE_ONLY',
+      } satisfies Record<string, unknown>
+      : null
+    const payrollOwned = regularPayroll.payrollOwned ?? variableWageSourceOnly
     const canonicalSource = {
       ...coreCanonicalSource,
-      ...(regularPayroll.payrollOwned ? { payrollOwned: regularPayroll.payrollOwned } : {}),
+      ...(payrollOwned ? { payrollOwned } : {}),
     } as unknown as PayrollSourceSnapshot['canonicalSource']
     const hashInput = {
       sourceTenantId: input.tenantId,

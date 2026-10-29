@@ -1147,6 +1147,66 @@ describe('LiquidHR Payroll source provider', () => {
     })
   })
 
+  it('exposes the W04 component basis while retaining unrelated Payroll source blockers', async () => {
+    const setup = completePayrollSetup()
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({
+          payment_type: 'HOURLY_VARIABLE',
+          hourly_rate: 20,
+          fulltime_amount: null,
+          parttime_amount: null,
+        })],
+        schedules: [schedule()],
+        pensionAssignments: [],
+      })),
+      loadActualWork: vi.fn(async () => withPayrollReleases(actualWork({
+        entries: [actualWorkEntry({ hours: 1 })],
+        types: [actualWorkType({ code: 'AW_WORK', name: 'Gewerkte uren' })],
+      }))),
+      loadPayrollSetup: vi.fn(async () => setup),
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+
+    const source = snapshot.canonicalSource as Record<string, unknown>
+    const payrollOwned = source.payrollOwned as Record<string, unknown>
+    const configuration = payrollOwned.configuration as Record<string, unknown>
+    const amounts = payrollOwned.amounts as Record<string, unknown>
+    const controls = payrollOwned.controls as Record<string, unknown>
+    const actualWorkSource = source.actualWork as Record<string, unknown>
+    const actualWorkEntries = actualWorkSource.entries as Array<Record<string, unknown>>
+
+    expect(configuration).toMatchObject({
+      configurationVersionId: setup.configurationRow?.id,
+      configurationVersion: setup.configurationRow?.configuration_version,
+      componentSet: setup.configuration?.componentSet,
+    })
+    expect(payrollOwned.sourceStatus).toBe('COMPONENT_SOURCE_ONLY')
+    expect(amounts.variableRegularWage).toBe('20.00')
+    expect(controls.sourceReady).toBe(false)
+    expect(actualWorkEntries).toHaveLength(1)
+    expect(actualWorkEntries[0]).toMatchObject({
+      id: actualWorkEntryId,
+      hours: '1.0000',
+      status: 'APPROVED',
+      currentRevisionNumber: 1,
+      releasedForPayroll: true,
+      payrollMapping: {
+        componentId: 'system:payfull02:payfull02_variable_regular_wage',
+        componentCode: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+        componentVersion: '2026.1-payfull02',
+        calculationRule: 'HOURLY_RATE_X_HOURS',
+        factor: '1',
+      },
+    })
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'pension', status: 'SOURCE_GAP', reasonCode: 'NO_EFFECTIVE_PENSION_ASSIGNMENT',
+    })
+    expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({
+      reasonCode: 'ACTUAL_WORK_HOURLY_RATE_REQUIRED',
+    }))
+  })
+
   it('uses an effective HR Admin confirmed Core tax profile to build the regular wage engine input', async () => {
     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
       loadTimeline: vi.fn(async () => ({

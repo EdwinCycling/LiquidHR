@@ -1,5 +1,25 @@
 # AA-PAYROLL-COMMERCIAL-ROADMAP-20261019 — LiquidHR Payroll Next
 
+## Fast Track-productprioriteit — 29 oktober 2026
+
+**Aanvulling op, geen vervanging van D0/D1/D2/F0/P1/P2/P3 en G1–G3.** Binnen de P1-kern wordt eerder zichtbare klantwaarde geleverd met kleinere verticale slices. Nieuwe labels **PFAST-01 t/m PFAST-04** zijn de voorgestelde concrete uitvoeringsbacklog; de bestaande W05–W17 hebben nog geen vastgestelde individuele scope.
+
+| Prioriteit | Kleine bruikbare oplevering | Acceptatiegrens |
+| --- | --- | --- |
+| PFAST-01 Variabele verloning | Uren, overwerk en toeslagen uit HR naar concept-Payroll, inclusief accordering en terugwerkende correctie | Effectieve salarisbron, één positieve end-to-end-casus, idempotente source-read en rol-/tenantnegatief |
+| PFAST-02 Eenmalige P-component | HR Admin voegt per medewerker/loonperiode bonus, vergoeding of inhouding uit bestaande componentcatalogus toe | Opslag/readback, deterministische netto-impact en audit; geen automatische finalisatie |
+| PFAST-03 Componenttemplates | Tijdens medewerker-/dienstverbandaanmaak een versieerbare set periodieke componenttoewijzingen kiezen | Toepassingsdatum en componentvalidatie; geen automatische uitbetaling van toekomstige eenmalige bonus |
+| PFAST-04 Pro-forma | Medewerker berekent read-only het effect van bijvoorbeeld +3 uur of een hypothetische bonus | Echte bestaande engine, scoped employee-data, expliciete SOURCE_GAP bij ontbrekende bron, nul mutaties |
+
+**Prioritering:** voor zichtbare voortgang eerst PFAST-02 in één smalle slice en PFAST-01/W04 gericht afronden. Daarna PFAST-03; PFAST-04 als read-only MVP zodra de engine actuele effectieve brondata veilig kan waarderen. Dit is geen toezegging dat netto altijd berekenbaar is. P2 (jaaropgave, loonaangifte, pensioen-/betaalbestanden en wettelijke cyclus) en P3 (parallelverloningspilot) blijven harde afzonderlijke acceptatiefasen.
+
+**Fast Track-kwaliteit:** kleinschalig testen tijdens bouwen, brede integratie-/buildgate bij merge/release, onafhankelijke centsnauwkeurigheid waar bedragen wijzigen, live scopebewijzen voor RLS-gevoelige routes. Geautomatiseerde, idempotente synthetische TEST Factory bovenop bestaande echte domeinservices vermindert terugkerende auth-/fixture-/browserblokkades; geen rechtenbypass of directe databasefixtures om ongeldige flows goed te keuren.
+
+**Pro-forma gebruikerservaring:** toon huidig en scenario bruto, inhoudingen, netto en werkgeverskosten naast elkaar mét bronversies, aannames en confidence/bronstatus; bereken bedragen alleen deterministisch via dezelfde engine en laat altijd zien dat de simulatie geen recht op uitbetaling schept.
+
+---
+
+
 > **Postrelease 21-10-2026:** geselecteerde Payroll-code is geïntegreerd in `1.20261021.1` / Vercel READY. Frits/Jupiter november-Kinderopvang `2026.09` heeft een **opgeslagen gesimuleerde CONCEPT-run**: bruto € 1.879,33; na werknemerspensioen/loonheffing € 1.710,84 (**niet definitief nettoloon**); werkgeverskosten € 2.689,17. De 'nog geen K2-run'-situatie in historische §4 (19 oktober) is voor dit CONCEPT ingehaald, **niet** voor FINALIZED, PDF, wettelijke bronreview of commerciële GA. Hosted `/payroll/runs` blijft laden. Beschermde Payroll/Nmbrs-runtime mist oorspronkelijke unieke `.env.local`. Zie [postrelease status](../quality/acceptance/runs/LIQUIDHR-POSTRELEASE-STATUS-20261021.md). De strategische fasering blijft toekomstplanning.
 
 
