@@ -1,5 +1,8 @@
 # AA-OPEN — Openstaande punten, uitgesteld bewijs en beslissingen
 
+> **29-10-2026 — actuele INS-03 restpunten na INS-03A merge.** [PR #65](https://github.com/EdwinCycling/LiquidHR/pull/65) is **MERGED** (mergecommit `fa3edc5bbe746479b7227c2b9bdcdbf90bb10ade`). De oorspronkelijke INS-03 discovery-risico's rond Manager prequery-scope, datakwaliteit, truncatie en muterende Insights-GET zijn in de code gericht geadresseerd, **niet live RLS/browser gevalideerd**. **OPEN:** (1) lifecycle-normalisatie owner/cadence [#67](https://github.com/EdwinCycling/LiquidHR/issues/67); (2) INS-03B semantiek en harmonisatie case/spell/Bradford [#66](https://github.com/EdwinCycling/LiquidHR/issues/66), [contract](../requirements/reports/INS-03B_ABSENCE_FREQUENCY_BRADFORD.md); (3) INS-03C WVP wettelijke/PMUX/RLS-acceptatie, rapport disabled; (4) gecombineerde hosted HR Admin/Manager/Employee, RLS/browser, brede regressie en bekende `.next`-typeblokkade. Geen DB-writes of Vercel-deployment. Oudere openpuntblokken hieronder zijn historische snapshots.
+
+
 > **INS-03 discovery — OPEN (29-10-2026).** Vóór nieuwe verzuim-/WVP-Insights-implementatie: (1) expliciete prequery Manager-/administratiescope en KPI/detail/export-populatie; (2) besluit over `normalize_expired_absence_cases`-UPDATE die momenteel tijdens rapportage-GET kan plaatsvinden; (3) onbekende rooster/noemer, historische plaatsing, querytruncatie; (4) case-versus-spell-definitie; (5) WVP-milestone-, privacy- en RLS-acceptatie. De bestaande drie verzuimrapporten zijn al beschikbaar; WVP is disabled. [INS-03 contract](../requirements/reports/INS-03_ABSENCE_WVP_DISCOVERY.md), [issue #62](https://github.com/EdwinCycling/LiquidHR/issues/62). Broncode-inspectie alleen; geen live exploit of datalek geclaimd.
 
 
