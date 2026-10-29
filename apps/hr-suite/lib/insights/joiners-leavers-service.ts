@@ -143,14 +143,20 @@ export async function getJoinersLeaversReport(query: JoinersLeaversQuery): Promi
 
   const throughMonth = latestCompletedJoinersLeaversMonth()
   const historyThroughDate = monthEnd(throughMonth)
-  const [employmentResult, terminationResult] = await Promise.all([
-    supabase.from('employments').select('id,employee_id,administration_id,starts_on,ends_on,record_status,deleted_at,employment_number')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('administration_id', permittedAdministrationIds)
-      .eq('record_status', 'CONFIRMED').lte('starts_on', historyThroughDate).limit(10000),
-    supabase.from('employment_terminations').select('id,employee_id,employment_id,administration_id,last_working_day,workflow_status')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('administration_id', permittedAdministrationIds)
-      .in('workflow_status', ['CONFIRMED', 'PAYROLL_READY', 'REPORTED']).lte('last_working_day', historyThroughDate).limit(10000),
-  ])
+  // Narrow the source queries before execution. Post-fetch scope validation alone
+  // would reject a Manager whenever their administration contains other employees.
+  let employmentQuery = supabase.from('employments').select('id,employee_id,administration_id,starts_on,ends_on,record_status,deleted_at,employment_number')
+    .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('administration_id', permittedAdministrationIds)
+    .eq('record_status', 'CONFIRMED').lte('starts_on', historyThroughDate).limit(10000)
+  let terminationQuery = supabase.from('employment_terminations').select('id,employee_id,employment_id,administration_id,last_working_day,workflow_status')
+    .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('administration_id', permittedAdministrationIds)
+    .in('workflow_status', ['CONFIRMED', 'PAYROLL_READY', 'REPORTED']).lte('last_working_day', historyThroughDate).limit(10000)
+  if (permittedEmployeeIds) {
+    const employeeIds = [...permittedEmployeeIds]
+    employmentQuery = employmentQuery.in('employee_id', employeeIds)
+    terminationQuery = terminationQuery.in('employee_id', employeeIds)
+  }
+  const [employmentResult, terminationResult] = await Promise.all([employmentQuery, terminationQuery])
   if (employmentResult.error) failDatabase('INSIGHTS_JOINERS_LEAVERS_EMPLOYMENTS_FAILED', employmentResult.error)
   if (terminationResult.error) failDatabase('INSIGHTS_JOINERS_LEAVERS_TERMINATIONS_FAILED', terminationResult.error)
   const rawEmployments = (employmentResult.data ?? []) as EmploymentRecord[]
