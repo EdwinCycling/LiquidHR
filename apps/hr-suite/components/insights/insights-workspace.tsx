@@ -154,6 +154,7 @@ function reportLabelPrefix(id: InsightReportId): string {
   if (id === 'ai-usage') return 'aiUsage'
   if (id === 'actual-work') return 'actualWork'
   if (id === 'headcount-fte') return 'headcountFte'
+  if (id === 'joiners-leavers') return 'joinersLeavers'
   if (id === 'process-automation') return 'processAutomation'
   if (id === 'talent-top-talent') return 'talentTopTalent'
   if (id === 'talent-key-employees') return 'talentKeyEmployees'

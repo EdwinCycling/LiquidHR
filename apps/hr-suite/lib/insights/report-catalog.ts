@@ -1,8 +1,8 @@
 import type { EmployeeInsightReportId } from './types'
 import { SALARY_INSIGHT_REPORT_IDS, type SalaryInsightReportId } from './salary-insights-types'
-import { canReadHeadcountFte } from './headcount-fte-authorization'
+import { canReadHeadcountFte, canReadJoinersLeavers } from './headcount-fte-authorization'
 
-export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcoming-events' | 'ai-usage' | 'actual-work' | 'headcount-fte' | 'process-automation' | 'talent-top-talent' | 'talent-key-employees' | 'talent-star-skills' | 'talent-development' | 'talent-profile-skill-gaps' | 'talent-skills' | 'talent-pop' | 'talent-appraisal'
+export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcoming-events' | 'ai-usage' | 'actual-work' | 'headcount-fte' | 'joiners-leavers' | 'process-automation' | 'talent-top-talent' | 'talent-key-employees' | 'talent-star-skills' | 'talent-development' | 'talent-profile-skill-gaps' | 'talent-skills' | 'talent-pop' | 'talent-appraisal'
 export type InsightReportCategory = 'employees' | 'leave' | 'absence' | 'salary' | 'talent' | 'other'
 
 export interface InsightReportDefinition {
@@ -22,6 +22,7 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'terminations', category: 'employees', permission: 'report-terminations:read', available: true },
   { id: 'upcoming-events', category: 'employees', permission: 'report-upcoming-events:read', available: true },
   { id: 'headcount-fte', category: 'employees', permission: 'report-employee-department:read', available: true },
+  { id: 'joiners-leavers', category: 'employees', permission: 'report-employee-department:read', available: true },
   { id: 'leave', category: 'leave', permission: 'report-leave:read', available: true },
   { id: 'absence', category: 'absence', permission: 'report-absence:read', available: true },
   { id: 'absence-bradford', category: 'absence', permission: 'report-absence:read', available: true },
@@ -64,6 +65,7 @@ export function insightReportPermission(report: InsightReportId): string {
 
 export function canReadInsightReport(report: InsightReportDefinition, permissions: readonly string[], activeRoles: readonly string[] = []): boolean {
   if (report.id === 'headcount-fte') return canReadHeadcountFte(activeRoles, permissions)
+  if (report.id === 'joiners-leavers') return canReadJoinersLeavers(activeRoles, permissions)
   return [report.permission, ...(report.additionalPermissions ?? [])].some((permission) => permissions.includes(permission))
 }
 

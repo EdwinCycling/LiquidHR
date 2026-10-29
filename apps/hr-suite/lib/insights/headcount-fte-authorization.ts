@@ -13,6 +13,10 @@ export function canReadHeadcountFte(activeRoles: readonly string[], permissions:
     || (population === 'HR_ADMIN' && permissions.includes('report-employee-department:read'))
 }
 
+export function canReadJoinersLeavers(activeRoles: readonly string[], permissions: readonly string[]): boolean {
+  return canReadHeadcountFte(activeRoles, permissions)
+}
+
 export function headcountFteSelectionWithinScope(selectedIds: readonly string[], allowedIds: readonly string[]): boolean {
   const allowed = new Set(allowedIds)
   return selectedIds.every((id) => allowed.has(id))
