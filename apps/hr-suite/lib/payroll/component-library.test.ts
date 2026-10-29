@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthorizationError } from '@/lib/auth/permissions'
+import { getSystemComponentCatalog } from './component-catalog'
 import { copySystemComponent, getComponentLibrary } from './component-library'
 
 const { access, repository, list, fork, mapper } = vi.hoisted(() => ({
@@ -20,7 +21,10 @@ describe('authenticated component library adapter', () => {
     list.mockResolvedValue([{ id: 'test-draft' }])
     mapper.mockReturnValue({ key: 'draft::test-draft' })
     const view = await getComponentLibrary()
-    expect(view.components).toHaveLength(25)
+    expect(view.components).toHaveLength(26)
+    const variableWageComponent = getSystemComponentCatalog().find((entry) => entry.definition.code === 'PAYFULL02_VARIABLE_REGULAR_WAGE')
+    expect(variableWageComponent).toBeDefined()
+    expect(view.components.some((component) => component.key === variableWageComponent?.key)).toBe(true)
     expect(list).toHaveBeenCalledWith(validated.scope, 'lab-admin')
     expect(view.components.at(-1)?.key).toBe('draft::test-draft')
   })

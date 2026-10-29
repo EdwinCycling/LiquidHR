@@ -67,6 +67,12 @@ export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Pro
   const scope = await getAbsenceInsightScope()
   if (scope.scopeTruncated) throw new AbsenceInsightsServiceError('INSIGHTS_SCOPE_LIMIT_REACHED', 403)
   const { supabase, context, hrGroupId, administrationId, employeeIds: directTeamEmployeeIds } = scope
+  if (directTeamEmployeeIds?.length === 0) {
+    const settingsResult = await supabase.from('absence_settings').select('frequent_absence_threshold')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).maybeSingle()
+    if (settingsResult.error) fail('INSIGHTS_FREQUENT_SETTINGS_FAILED', settingsResult.error)
+    return emptyFrequentAbsenceReport(query, settingsResult.data?.frequent_absence_threshold ?? 3)
+  }
 
   let employmentQuery = supabase.from('employments').select('id,employee_id,administration_id,starts_on,ends_on')
     .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId)

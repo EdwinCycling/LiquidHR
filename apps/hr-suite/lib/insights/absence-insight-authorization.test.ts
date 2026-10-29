@@ -3,6 +3,7 @@ import type { AuthContext } from '@/lib/auth/permissions'
 import { bradfordInsightExcel } from './bradford-excel'
 import { getBradfordInsightReport } from './bradford-report'
 import type { BradfordInsightQuery } from './bradford-query'
+import { absenceInsightExcel } from './absence-excel'
 import { getAbsenceInsightReport, type AbsenceInsightQuery } from './absence-report'
 import { frequentAbsenceExcel } from './frequent-absence-excel'
 import { getFrequentAbsenceReport } from './frequent-absence-report'
@@ -138,14 +139,22 @@ function sourceRows(): Record<string, Row[]> {
   }
 }
 
-function configure(actor: AuthContext, teamEmployeeIds: string[] | null, sourceTruncated = false, dataOverride?: Record<string, Row[]>): void {
+function configure(
+  actor: AuthContext,
+  teamEmployeeIds: string[] | null,
+  sourceTruncated = false,
+  dataOverride?: Record<string, Row[]>,
+): void {
   const data = dataOverride ?? sourceRows()
   mocks.authorization.mockResolvedValue({
     supabase: { from: mocks.from, rpc: mocks.rpc },
     context: actor,
     activeContext: { administrationsInActiveHrGroup: [{ id: 'admin-a', name: 'Administration A' }, { id: 'admin-b', name: 'Administration B' }] },
   })
-  mocks.permission.mockResolvedValue(actor)
+  mocks.permission.mockImplementation(async (_supabase: unknown, permissionActor: AuthContext, permission: string) => {
+    if (!permissionActor.permissions.includes(permission)) throw Object.assign(new Error('Permission denied.'), { status: 403 })
+    return permissionActor
+  })
   mocks.directTeam.mockResolvedValue({ employeeIds: teamEmployeeIds ?? [], sourceTruncated, members: [] })
   mocks.from.mockImplementation((table: string) => new MockSupabaseQuery(table, data[table] ?? [], teamEmployeeIds))
 }
@@ -160,7 +169,7 @@ describe('absence Insights authorization and source quality', () => {
   })
 
   it('filters cases, spells, capacity, schedules and placements to one Manager direct team before each query executes', async () => {
-    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read'] }
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
     configure(manager, ['employee-a'])
 
     const absence = await getAbsenceInsightReport(absenceQuery)
@@ -176,8 +185,11 @@ describe('absence Insights authorization and source quality', () => {
     expect(frequent.rows.map((row) => row.employeeId)).toEqual(['employee-a'])
     expect(frequent.departments.map((department) => department.id)).toEqual(['department-a'])
     expect(bradford.rows.map((row) => row.employeeId)).toEqual(['employee-a'])
-    expect(JSON.stringify({ absence, frequent, bradford, frequentExport: frequentAbsenceExcel(frequent), bradfordExport: bradfordInsightExcel(bradford) })).not.toContain('employee-b')
-    expect(JSON.stringify({ absence, frequent, bradford })).not.toContain('employee-c')
+    const absenceExport = absenceInsightExcel(absence)
+    expect(absenceExport).toContain('Ada Team One')
+    expect(absenceExport).not.toContain('Bas Team Two')
+    expect(JSON.stringify({ absence, frequent, bradford, absenceExport, frequentExport: frequentAbsenceExcel(frequent), bradfordExport: bradfordInsightExcel(bradford) })).not.toContain('employee-b')
+    expect(JSON.stringify({ absence, frequent, bradford, absenceExport })).not.toContain('employee-c')
     expect(mocks.rpc).not.toHaveBeenCalled()
     expect(mocks.permission.mock.calls.map((call) => call[2])).toContain('report-absence:read')
   })
@@ -192,6 +204,51 @@ describe('absence Insights authorization and source quality', () => {
     expect(frequent.rows.map((row) => row.employeeId).sort()).toEqual(['employee-a', 'employee-b'])
     expect(bradford.rows.map((row) => row.employeeId).sort()).toEqual(['employee-a', 'employee-b'])
     expect(JSON.stringify({ absence, frequent, bradford })).not.toContain('employee-c')
+  })
+
+  it('denies a Manager missing report-absence:read before resolving team scope or querying report sources', async () => {
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['employee:read', 'absence:read'] }
+    configure(manager, ['employee-a'])
+
+    await expect(getAbsenceInsightReport(absenceQuery)).rejects.toMatchObject({ status: 403 })
+
+    expect(mocks.permission.mock.calls.map((call) => call[2])).toContain('report-absence:read')
+    expect(mocks.directTeam).not.toHaveBeenCalled()
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
+
+  it('continues requiring employee:read for Managers who have the report permission', async () => {
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'absence:read'] }
+    configure(manager, ['employee-a'])
+
+    await expect(getAbsenceInsightReport(absenceQuery)).rejects.toMatchObject({ status: 403 })
+
+    expect(mocks.permission.mock.calls.map((call) => call[2])).toContain('employee:read')
+    expect(mocks.directTeam).not.toHaveBeenCalled()
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
+
+  it('returns empty reports for a Manager with an empty direct team without querying report sources', async () => {
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
+    configure(manager, [])
+
+    const absence = await getAbsenceInsightReport(absenceQuery)
+    const frequent = await getFrequentAbsenceReport(frequentQuery)
+    const bradford = await getBradfordInsightReport(bradfordQuery)
+
+    expect(absence).toMatchObject({ absenceCases: 0, activeCases: 0, rows: [] })
+    expect(frequent).toMatchObject({ threshold: 1, totalEmployees: 0, frequentCount: 0, totalReports: 0, rows: [] })
+    expect(bradford).toMatchObject({ totalOccurrences: 0, totalSickDays: 0, rows: [] })
+    expect(mocks.from.mock.calls.map((call) => call[0])).toEqual(['absence_settings'])
+  })
+
+  it('rejects an HR Admin administration outside the active authorization context before source queries', async () => {
+    configure({ ...hrAdmin, administrationId: 'admin-c' }, null)
+
+    await expect(getAbsenceInsightReport(absenceQuery)).rejects.toMatchObject({ status: 403 })
+
+    expect(mocks.directTeam).not.toHaveBeenCalled()
+    expect(mocks.from).not.toHaveBeenCalled()
   })
 
   it('counts a case once for frequency while Bradford counts its two unique spells and exports the same rows', async () => {
@@ -371,7 +428,7 @@ describe('absence Insights authorization and source quality', () => {
   })
 
   it('fails closed when the direct team source is truncated', async () => {
-    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read'] }
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
     configure(manager, ['employee-a'], true)
     await expect(getAbsenceInsightReport(absenceQuery)).rejects.toMatchObject({ code: 'INSIGHTS_SCOPE_LIMIT_REACHED', status: 403 })
     await expect(getBradfordInsightReport(bradfordQuery)).rejects.toMatchObject({ code: 'INSIGHTS_SCOPE_LIMIT_REACHED', status: 403 })
@@ -379,7 +436,7 @@ describe('absence Insights authorization and source quality', () => {
   })
 
   it('keeps missing schedules and capacity as unknown instead of manufacturing hours or 0% absence', async () => {
-    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read'] }
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
     const missingSchedule = sourceRows()
     missingSchedule.employment_schedules = []
     configure(manager, ['employee-a'], false, missingSchedule)
@@ -403,7 +460,7 @@ describe('absence Insights authorization and source quality', () => {
   })
 
   it('reports missing historical placements and rejects department-filter calculations when membership is unknown', async () => {
-    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read'] }
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
     const data = sourceRows()
     data.employee_organizations = data.employee_organizations.filter((row) => row.employee_id !== 'employee-a')
     configure(manager, ['employee-a'], false, data)
@@ -451,7 +508,7 @@ describe('absence Insights authorization and source quality', () => {
   })
 
   it('fails closed at the employment source limit', async () => {
-    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read'] }
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
     const data = sourceRows()
     data.employments = Array.from({ length: 5000 }, () => ({ ...data.employments[0] }))
     configure(manager, ['employee-a'], false, data)
