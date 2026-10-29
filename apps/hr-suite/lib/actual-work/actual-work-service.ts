@@ -3,7 +3,8 @@ import { cache } from 'react'
 import { requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
-import { exactHoursToDatabase, isPositiveExactHours, parseExactHours } from './exact-hours'
+import { exactHoursToDatabase, formatExactHours, isPositiveExactHours, parseExactHours } from './exact-hours'
+import type { PayrollPeriodIdentity } from '@liquid-hr/payroll-engine'
 import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -240,11 +241,12 @@ async function loadEmployment(input: Pick<ActualWorkEntryInput, 'employeeId' | '
 
 async function saveActualWorkEntryValue(value: ActualWorkEntryInput, auth: ActualWorkAuth, existingEmployment?: Awaited<ReturnType<typeof loadEmployment>>): Promise<ActualWorkEntry> {
   const { context, hrGroupId, supabase } = auth
+  if (value.entryId && !value.correctionReason?.trim()) throw new ActualWorkServiceError('ACTUAL_WORK_CORRECTION_REASON_REQUIRED')
   const employment = existingEmployment ?? await loadEmployment(value, { tenantId: context.tenantId, hrGroupId }, supabase)
   const exactHours = parseExactHours(value.hours)
   if (!isPositiveExactHours(exactHours)) throw new ActualWorkServiceError('ACTUAL_WORK_HOURS_REQUIRED')
   const subjectEnd = value.entryGranularity === 'DAY' ? addDays(value.subjectPeriodStart, 1) : value.subjectPeriodEnd ?? addMonth(value.subjectPeriodStart)
-  const postingStart = monthStart(value.subjectPeriodStart)
+  const postingStart = value.postingPeriodStart ?? monthStart(value.subjectPeriodStart)
   const operation: Database['public']['Enums']['actual_work_revision_operation'] = value.entryId
     ? value.correctionReason ? 'CORRECTION' : 'EDIT'
     : 'CREATE'
@@ -298,28 +300,167 @@ export type ActualWorkPayrollProjection = {
   >[]
   types: (Pick<ActualWorkType, 'id' | 'family' | 'valid_from' | 'valid_until' | 'approval_required' | 'updated_at'>
     & Partial<Pick<ActualWorkType, 'code' | 'name'>> )[]
+  currentRevisionNumbers?: Readonly<Record<string, number>>
+  payrollReleases?: Array<{
+    id: string
+    entry_id: string
+    entry_revision_number: number
+    payroll_period_start: string
+    payroll_period_id?: string | null
+    payroll_period_end?: string | null
+    payroll_periodicity?: string | null
+    release_class: string
+    content_fingerprint: string
+    work_hour_type_updated_at: string
+    released_at: string
+    mapping: Pick<Tables<'actual_work_payroll_mappings'>, 'id' | 'processing_target' | 'salary_component_id' | 'salary_component_code' | 'salary_component_version' | 'salary_component_output' | 'calculation_rule' | 'factor' | 'version_number' | 'valid_from' | 'valid_until'> | null
+  }>
+  tvtWorkHourTypeIds?: string[]
+  informationalWorkHourTypeIds?: string[]
+  /** Net hours credited to the existing leave ledger from this Actual Work entry. */
+  tvtAccruedHoursByEntryId?: Readonly<Record<string, string>>
+}
+
+async function releasedEntryIdsForPayrollPeriod(input: {
+  supabase: SupabaseServerClient
+  tenantId: string
+  hrGroupId: string
+  administrationId: string
+  period: PayrollPeriodIdentity
+}): Promise<string[]> {
+  const result = await input.supabase.from('actual_work_payroll_releases')
+    .select('entry_id,payroll_period_start,payroll_period_end,payroll_periodicity')
+    .eq('tenant_id', input.tenantId)
+    .eq('hr_group_id', input.hrGroupId)
+    .eq('administration_id', input.administrationId)
+    .eq('payroll_period_id', input.period.id)
+    .limit(2001)
+  if (result.error) databaseError(result.error, 'actual-work-payroll-period-releases')
+  const releases = result.data ?? []
+  if (releases.some((release) => release.payroll_period_start !== input.period.startsOn
+    || release.payroll_period_end !== input.period.endsOn
+    || release.payroll_periodicity !== input.period.periodicity)) {
+    throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_IDENTITY_INVALID', 409)
+  }
+  const ids = [...new Set(releases.map((release) => release.entry_id))]
+  if (ids.length > 2000) throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_BATCH_LIMIT_REACHED', 503)
+  return ids
+}
+
+async function loadActualWorkPayrollReleaseData(input: {
+  supabase: SupabaseServerClient
+  tenantId: string
+  hrGroupId: string
+  administrationId: string
+  entries: readonly Pick<ActualWorkEntry, 'id' | 'work_hour_type_id'>[]
+}): Promise<Pick<ActualWorkPayrollProjection, 'currentRevisionNumbers' | 'payrollReleases' | 'tvtWorkHourTypeIds' | 'informationalWorkHourTypeIds' | 'tvtAccruedHoursByEntryId'>> {
+  if (input.entries.length === 0) return { currentRevisionNumbers: {}, payrollReleases: [], tvtWorkHourTypeIds: [], informationalWorkHourTypeIds: [], tvtAccruedHoursByEntryId: {} }
+  const entryIds = input.entries.map((entry) => entry.id)
+  const typeIds = [...new Set(input.entries.map((entry) => entry.work_hour_type_id))]
+  const [revisionResult, releaseResult, linkResult, tvtTransactionsResult] = await Promise.all([
+    input.supabase.from('actual_work_revisions').select('entry_id,revision_number')
+      .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).in('entry_id', entryIds)
+      .order('revision_number', { ascending: false }).limit(entryIds.length * 20),
+    input.supabase.from('actual_work_payroll_releases').select('id,entry_id,entry_revision_number,payroll_period_start,payroll_period_id,payroll_period_end,payroll_periodicity,release_class,content_fingerprint,work_hour_type_updated_at,released_at,mapping_id')
+      .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).eq('administration_id', input.administrationId)
+      .in('entry_id', entryIds).limit(entryIds.length * 20),
+    input.supabase.from('leave_type_overtime_work_hours').select('work_hour_type_id,leave_type_id')
+      .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).in('work_hour_type_id', typeIds),
+    input.supabase.from('leave_accrual_transactions').select('source_id,amount')
+      .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId)
+      .eq('source_type', 'ACTUAL_WORK_TVT').in('source_id', entryIds),
+  ])
+  if (revisionResult.error) databaseError(revisionResult.error, 'actual-work-revisions')
+  if (releaseResult.error) databaseError(releaseResult.error, 'actual-work-payroll-releases')
+  if (linkResult.error) databaseError(linkResult.error, 'leave-type-overtime-work-hours')
+  if (tvtTransactionsResult.error) databaseError(tvtTransactionsResult.error, 'actual-work-tvt-ledger')
+  const currentRevisionNumbers: Record<string, number> = {}
+  for (const revision of revisionResult.data ?? []) if (currentRevisionNumbers[revision.entry_id] === undefined) {
+    currentRevisionNumbers[revision.entry_id] = revision.revision_number
+  }
+  const mappingIds = [...new Set((releaseResult.data ?? []).map((release) => release.mapping_id))]
+  const allMappingsResult = await input.supabase.from('actual_work_payroll_mappings').select('id,work_hour_type_id,processing_target')
+    .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).eq('administration_id', input.administrationId)
+    .in('work_hour_type_id', typeIds)
+  if (allMappingsResult.error) databaseError(allMappingsResult.error, 'actual-work-payroll-mappings')
+  const mappingResult = mappingIds.length
+    ? await input.supabase.from('actual_work_payroll_mappings').select('id,processing_target,salary_component_id,salary_component_code,salary_component_version,salary_component_output,calculation_rule,factor,version_number,valid_from,valid_until')
+      .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).eq('administration_id', input.administrationId).in('id', mappingIds)
+    : { data: [], error: null }
+  if (mappingResult.error) databaseError(mappingResult.error, 'actual-work-payroll-mappings')
+  const mappings = new Map((mappingResult.data ?? []).map((mapping) => [mapping.id, mapping]))
+  const leaveTypeIds = [...new Set((linkResult.data ?? []).map((link) => link.leave_type_id))]
+  const leaveTypeResult = leaveTypeIds.length
+    ? await input.supabase.from('leave_types').select('id,entitlement_mode,is_active')
+      .eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).in('id', leaveTypeIds)
+    : { data: [], error: null }
+  if (leaveTypeResult.error) databaseError(leaveTypeResult.error, 'leave-types')
+  const overtimeLeaveTypes = new Set((leaveTypeResult.data ?? []).filter((leaveType) => leaveType.is_active && leaveType.entitlement_mode === 'OVERTIME_HOURS').map((leaveType) => leaveType.id))
+  const tvtWorkHourTypeIds = [...new Set((linkResult.data ?? []).filter((link) => overtimeLeaveTypes.has(link.leave_type_id)).map((link) => link.work_hour_type_id))]
+  const informationalWorkHourTypeIds = [...new Set((allMappingsResult.data ?? []).filter((mapping) => mapping.processing_target === 'INFORMATIONAL').map((mapping) => mapping.work_hour_type_id))]
+  const tvtHours = new Map<string, bigint>()
+  for (const transaction of tvtTransactionsResult.data ?? []) {
+    if (!transaction.source_id) continue
+    const rawAmount = String(transaction.amount)
+    const signedAmount = rawAmount.startsWith('-') ? -parseExactHours(rawAmount.slice(1)) : parseExactHours(rawAmount)
+    tvtHours.set(transaction.source_id, (tvtHours.get(transaction.source_id) ?? BigInt(0)) + signedAmount)
+  }
+  return {
+    currentRevisionNumbers,
+    payrollReleases: (releaseResult.data ?? []).map((release) => ({
+      id: release.id,
+      entry_id: release.entry_id,
+      entry_revision_number: release.entry_revision_number,
+      payroll_period_start: release.payroll_period_start,
+      payroll_period_id: release.payroll_period_id,
+      payroll_period_end: release.payroll_period_end,
+      payroll_periodicity: release.payroll_periodicity,
+      release_class: release.release_class,
+      content_fingerprint: release.content_fingerprint,
+      work_hour_type_updated_at: release.work_hour_type_updated_at,
+      released_at: release.released_at,
+      mapping: mappings.get(release.mapping_id) ?? null,
+    })),
+    tvtWorkHourTypeIds,
+    informationalWorkHourTypeIds,
+    tvtAccruedHoursByEntryId: Object.fromEntries([...tvtHours].map(([entryId, hours]) => [entryId, formatExactHours(hours)])),
+  }
 }
 
 /** Reads only payroll-relevant work metadata; notes and person data stay out of the payroll source snapshot. */
 export async function getActualWorkPayrollProjection(
-  input: { employeeId: string; employmentId: string; month: string },
+  input: { employeeId: string; employmentId: string; month: string; payrollPeriodIdentity?: PayrollPeriodIdentity },
   dependencies?: ActualWorkReadDependencies,
 ): Promise<ActualWorkPayrollProjection> {
   if (!isValidActualWorkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
+  if (input.payrollPeriodIdentity?.periodicity === 'FOUR_WEEKLY'
+    && input.month !== input.payrollPeriodIdentity.startsOn.slice(0, 7)) {
+    throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_IDENTITY_INVALID')
+  }
   const { context, hrGroupId, supabase } = dependencies ?? await authForGroup('leave:read', input.employeeId)
   const from = monthStart(input.month)
-  const [entriesResult, period] = await loadQueriesInBatches([
-    () => supabase.from('employment_work_hour_entries')
+  const periodEntryIds = input.payrollPeriodIdentity?.periodicity === 'FOUR_WEEKLY'
+    ? await releasedEntryIdsForPayrollPeriod({
+      supabase, tenantId: context.tenantId, hrGroupId,
+      administrationId: context.administrationId ?? '', period: input.payrollPeriodIdentity,
+    })
+    : null
+  const readEntries = async () => {
+    if (periodEntryIds?.length === 0) return { data: [], error: null }
+    let query = supabase.from('employment_work_hour_entries')
       .select('id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,approved_at,updated_at')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', hrGroupId)
       .eq('employee_id', input.employeeId)
       .eq('employment_id', input.employmentId)
-      .eq('posting_period_start', from)
       .order('work_date')
       .order('id')
-      .limit(2001),
-    () => readActualWorkPeriodForPayroll(context.tenantId, hrGroupId, from),
+    query = periodEntryIds ? query.in('id', periodEntryIds) : query.eq('posting_period_start', from)
+    return await query.limit(2001)
+  }
+  const [entriesResult, period] = await loadQueriesInBatches([
+    readEntries,
+    () => periodEntryIds ? Promise.resolve(null) : readActualWorkPeriodForPayroll(context.tenantId, hrGroupId, from),
   ], 2)
   if (entriesResult.error) databaseError(entriesResult.error, 'employment-work-hour-entries')
 
@@ -333,11 +474,15 @@ export async function getActualWorkPayrollProjection(
       .in('id', typeIds)
     : { data: [], error: null }
   if (typesResult.error) databaseError(typesResult.error, 'work-hour-types')
+  const releaseData = await loadActualWorkPayrollReleaseData({
+    supabase, tenantId: context.tenantId, hrGroupId, administrationId: context.administrationId ?? '', entries,
+  })
 
   return {
     period,
     entries,
     types: typesResult.data ?? [],
+    ...releaseData,
   }
 }
 
@@ -350,7 +495,7 @@ export async function getActualWorkPayrollProjection(
  * A batch failure is surfaced so callers can fall back to the established reader.
  */
 export async function getActualWorkPayrollProjectionsBatch(
-  inputs: readonly { employeeId: string; employmentId: string; month: string }[],
+  inputs: readonly { employeeId: string; employmentId: string; month: string; payrollPeriodIdentity?: PayrollPeriodIdentity }[],
   preauthorizedScopes?: readonly ActualWorkPayrollBatchAuthorizedScope[],
 ): Promise<ActualWorkPayrollProjection[]> {
   if (inputs.length === 0) return []
@@ -358,9 +503,15 @@ export async function getActualWorkPayrollProjectionsBatch(
   if (!month || !isValidActualWorkMonth(month) || inputs.some((input) => input.month !== month)) {
     throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
   }
+  const periodIdentity = inputs[0]?.payrollPeriodIdentity
+  if (inputs.some((input) => JSON.stringify(input.payrollPeriodIdentity ?? null) !== JSON.stringify(periodIdentity ?? null))
+    || (periodIdentity?.periodicity === 'FOUR_WEEKLY' && month !== periodIdentity.startsOn.slice(0, 7))) {
+    throw new ActualWorkServiceError('ACTUAL_WORK_PAYROLL_PERIOD_IDENTITY_INVALID')
+  }
 
   let tenantId: string
   let hrGroupId: string
+  let administrationId: string
   let supabase: SupabaseServerClient
   if (preauthorizedScopes) {
     const first = preauthorizedScopes[0]
@@ -373,6 +524,7 @@ export async function getActualWorkPayrollProjectionsBatch(
     }
     tenantId = first.tenantId
     hrGroupId = first.hrGroupId
+    administrationId = first.administrationId
     supabase = await createClient()
   } else {
     const authorized = await loadQueriesInBatches(inputs.map((input) => async () =>
@@ -387,11 +539,16 @@ export async function getActualWorkPayrollProjectionsBatch(
     }
     tenantId = first.context.tenantId
     hrGroupId = first.hrGroupId
+    if (!first.context.administrationId) throw new ActualWorkServiceError('ACTUAL_WORK_EMPLOYMENT_NOT_FOUND', 404)
+    administrationId = first.context.administrationId
     supabase = first.supabase
   }
 
   const from = monthStart(month)
-  const period = await readActualWorkPeriodForPayroll(tenantId, hrGroupId, from)
+  const periodEntryIds = periodIdentity?.periodicity === 'FOUR_WEEKLY'
+    ? await releasedEntryIdsForPayrollPeriod({ supabase, tenantId, hrGroupId, administrationId, period: periodIdentity })
+    : null
+  const period = periodEntryIds ? null : await readActualWorkPeriodForPayroll(tenantId, hrGroupId, from)
   const projections: ActualWorkPayrollProjection[] = []
   const batchSize = 4
   const batches = Array.from({ length: Math.ceil(inputs.length / batchSize) }, (_, index) =>
@@ -401,17 +558,19 @@ export async function getActualWorkPayrollProjectionsBatch(
     const employmentIds = [...new Set(batch.map((input) => input.employmentId))]
     const maxRows = batch.length * 2001
     const allEntries: (ActualWorkPayrollProjection['entries'][number] & { readonly employee_id: string })[] = []
-    for (let offset = 0; offset < maxRows + 1; offset += 1000) {
-      const page = await supabase.from('employment_work_hour_entries')
+    for (let offset = 0; periodEntryIds === null || periodEntryIds.length > 0; offset += 1000) {
+      if (periodEntryIds !== null && offset >= periodEntryIds.length) break
+      const pageQuery = supabase.from('employment_work_hour_entries')
         .select('id,employee_id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,approved_at,updated_at')
         .eq('tenant_id', tenantId)
         .eq('hr_group_id', hrGroupId)
         .in('employee_id', [...new Set(batch.map((input) => input.employeeId))])
         .in('employment_id', employmentIds)
-        .eq('posting_period_start', from)
         .order('work_date')
         .order('id')
-        .range(offset, Math.min(offset + 999, maxRows))
+      const page = await (periodEntryIds
+        ? pageQuery.in('id', periodEntryIds).range(offset, Math.min(offset + 999, periodEntryIds.length - 1))
+        : pageQuery.eq('posting_period_start', from).range(offset, Math.min(offset + 999, maxRows)))
       if (page.error) databaseError(page.error, 'employment-work-hour-entries')
       const pageRows = page.data ?? []
       allEntries.push(...pageRows)
@@ -450,11 +609,15 @@ export async function getActualWorkPayrollProjectionsBatch(
     const types = typesByBatch[batchIndex]
     if (!batchEntries || !types) continue
     const { batch, scopedEntriesByPair } = batchEntries
+    const batchApprovals = await loadActualWorkPayrollReleaseData({
+      supabase, tenantId, hrGroupId, administrationId, entries: scopedEntriesByPair.flat(),
+    })
     for (let index = 0; index < batch.length; index += 1) {
       const input = batch[index]
       const entries = scopedEntriesByPair[index]
       if (!input || !entries) continue
       const targetTypeIds = new Set(entries.map((entry) => entry.work_hour_type_id))
+      const targetEntryIds = new Set(entries.map((entry) => entry.id))
       projections.push({
         period,
         entries: entries.map((entry) => ({
@@ -472,6 +635,10 @@ export async function getActualWorkPayrollProjectionsBatch(
           updated_at: entry.updated_at,
         })),
         types: types.filter((type) => targetTypeIds.has(type.id)),
+        currentRevisionNumbers: Object.fromEntries(Object.entries(batchApprovals.currentRevisionNumbers ?? {}).filter(([entryId]) => targetEntryIds.has(entryId))),
+        payrollReleases: (batchApprovals.payrollReleases ?? []).filter((release) => targetEntryIds.has(release.entry_id)),
+        tvtWorkHourTypeIds: (batchApprovals.tvtWorkHourTypeIds ?? []).filter((typeId) => targetTypeIds.has(typeId)),
+        informationalWorkHourTypeIds: (batchApprovals.informationalWorkHourTypeIds ?? []).filter((typeId) => targetTypeIds.has(typeId)),
       })
     }
   }
@@ -677,7 +844,8 @@ export async function saveActualWorkBulkEntries(input: unknown): Promise<{ saved
     const existing = entriesByCell.get(key)
     if (change.entryId && (!existing || existing.id !== change.entryId)) throw new ActualWorkServiceError('ACTUAL_WORK_ENTRY_NOT_FOUND', 404)
     const entryId = existing?.id ?? null
-    if (closed && (!entryId || !change.correctionReason)) throw new ActualWorkServiceError(entryId ? 'ACTUAL_WORK_CORRECTION_REASON_REQUIRED' : 'ACTUAL_WORK_PERIOD_CLOSED')
+    if (entryId && !change.correctionReason?.trim()) throw new ActualWorkServiceError('ACTUAL_WORK_CORRECTION_REASON_REQUIRED')
+    if (closed && !entryId) throw new ActualWorkServiceError('ACTUAL_WORK_PERIOD_CLOSED')
     saved.push(await saveActualWorkEntryValue({
       employeeId: row.employee.id,
       employmentId: row.employment.id,

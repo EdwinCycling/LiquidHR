@@ -588,7 +588,7 @@ describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
     expect(blocked.gaps).toContainEqual({
       field: 'actualWork',
       status: 'SOURCE_GAP',
-      reasonCode: 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE',
+      reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     })
     expect(await store.runCount()).toBe(1)
 
@@ -658,7 +658,7 @@ describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
     expect(await store.runCount()).toBe(1)
   })
 
-  it('does not admit a second actual-work premium path when the single CAO premium source is unavailable', async () => {
+  it('does not admit a second actual-work premium path without an HR Admin release', async () => {
     const snapshot = await createRetailSourceSnapshot('R2', {
       completeR2PayrollSource: true,
       businessScope: null,
@@ -672,7 +672,7 @@ describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
 
     expect(readiness.eligibleForCalculation).toBe(false)
     expect(readiness.gaps).toEqual(expect.arrayContaining([
-      expect.objectContaining({ field: 'actualWork', reasonCode: 'PAYROLL_VARIABLE_WAGE_NOT_CONFIGURED' }),
+      expect.objectContaining({ field: 'actualWork', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED' }),
     ]))
     expect(await store.runCount()).toBe(1)
   })

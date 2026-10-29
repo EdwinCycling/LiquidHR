@@ -244,7 +244,7 @@ describe('PAYD2 Retail in-memory source cases', () => {
     expect(result.resultHash).toMatch(/^[a-f0-9]{64}$/)
   })
 
-  it('binds R2 part-time pay, overlap-safe premiums, and actual-work source versions', async () => {
+  it('does not infer R2 premiums from work-hour labels without an HR Admin payroll release', async () => {
     const snapshot = await createRetailSourceSnapshot('R2')
     const source = canonical(snapshot)
     const contract = sourceContract(snapshot)
@@ -263,36 +263,34 @@ describe('PAYD2 Retail in-memory source cases', () => {
       [`retail_business_scope:${snapshot.sourceEmploymentId}`]: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-01-IN-STORE-v1',
     })
     expect(actualWork.entries).toHaveLength(4)
-    expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({
-      field: 'actualWork', reasonCode: 'OVERTIME_RULE_NOT_CONFIGURED',
+    expect(snapshot.sourceGaps).toContainEqual(expect.objectContaining({
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     }))
     expect(cao).toMatchObject({
       status: 'CALCULATED',
       packageVersion: '2026.7',
       hourlyBaseRate: oracle.hourlyBaseRate,
       baseAmount: oracle.baseMonthlyGross,
-      premiumAmount: oracle.selectedPremiumGross,
-      grossAmount: oracle.gross,
+      premiumAmount: '0.00',
+      grossAmount: oracle.baseMonthlyGross,
       inputs: {
         scenarioCode: 'R2',
         functionGroup: 'C',
         experienceRow: '1',
         contractHoursPerWeek: '24',
         fullTimeHoursPerWeek: '38',
-        weekdayNightHours: oracle.weekdayNightHours,
-        sundayHours: oracle.sundayHours,
-        dailyOvertimeHours: oracle.dailyOvertimeHours,
+        weekdayNightHours: '0',
+        sundayHours: '0',
+        dailyOvertimeHours: '0',
         isEcommerce: false,
       },
     })
-    expect(cao).toMatchObject({ baseAmount: '1605.79', premiumAmount: '15.44', grossAmount: '1621.23' })
+    expect(cao).toMatchObject({ baseAmount: '1605.79', premiumAmount: '0.00', grossAmount: '1605.79' })
     expect(premiumTrace?.values).toMatchObject({
-      weekdayNightHours: { value: oracle.weekdayNightHours },
-      sundayHours: { value: oracle.sundayHours },
-      dailyOvertimeHours: { value: oracle.dailyOvertimeHours },
-      dailyOvertimeOverlapHours: { value: oracle.overlappingOvertimeHours },
-      dailyOvertimeOnlyHours: { value: oracle.overtimeOnlyHours },
-      selectedPremiumGross: { value: oracle.selectedPremiumGross },
+      weekdayNightHours: { value: '0' },
+      sundayHours: { value: '0' },
+      dailyOvertimeHours: { value: '0' },
+      selectedPremiumGross: { value: '0.00' },
     })
     expect(source.caseProvenance).toMatchObject({
       premiumOverlap: {
@@ -304,7 +302,7 @@ describe('PAYD2 Retail in-memory source cases', () => {
     expect(source).not.toHaveProperty('payrollOwned')
   })
 
-  it('binds a separately versioned complete synthetic R2 source set to the independent net oracle', async () => {
+  it('keeps the historical R2 oracle separate while W04 payroll releases are absent', async () => {
     const snapshot = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true })
     const repeated = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true })
     const source = canonical(snapshot)
@@ -315,7 +313,7 @@ describe('PAYD2 Retail in-memory source cases', () => {
     expect(snapshot.sourceGaps).toContainEqual({
       field: 'actualWork',
       status: 'SOURCE_GAP',
-      reasonCode: 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE',
+      reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     })
     expect(sourceContract(snapshot).references.every((reference) => reference.status === 'BOUND')).toBe(true)
     expect(sourceContract(snapshot).periodStart).toBe('2026-07-01')
@@ -402,30 +400,23 @@ describe('PAYD2 Retail in-memory source cases', () => {
     expect(snapshot.sourceGaps).toEqual(expect.arrayContaining([expect.objectContaining({ field })]))
   })
 
-  it('blocks night-hour cases when retail business scope is missing or is e-commerce without time-band detail', async () => {
+  it('does not infer night-hour premiums from work-hour type labels', async () => {
     const missingScope = await createRetailSourceSnapshot('R2', { businessScope: null })
     const eCommerce = await createRetailSourceSnapshot('R2', { eCommerceNight: true })
     const missingCalculation = retailCalculation(missingScope)
     const eCommerceCalculation = retailCalculation(eCommerce)
 
-    expect(missingCalculation).toMatchObject({
-      status: 'BLOCKED',
-      blockingStatus: 'SOURCE_GAP',
-      reasonCode: 'CAO_RETAIL_BUSINESS_SCOPE_UNVERIFIED',
-    })
+    expect(missingCalculation).toMatchObject({ status: 'CALCULATED', premiumAmount: '0.00', grossAmount: '1605.79' })
     expect(missingScope.sourceGaps).toContainEqual(expect.objectContaining({
-      field: 'cao', status: 'SOURCE_GAP', reasonCode: 'CAO_RETAIL_BUSINESS_SCOPE_UNVERIFIED',
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     }))
+    expect(missingScope.sourceGaps).not.toContainEqual(expect.objectContaining({ field: 'cao' }))
     expect(sourceContract(missingScope).references.map((reference) => reference.field)).not.toContain('retailBusinessScope')
-    expect(eCommerceCalculation).toMatchObject({
-      status: 'BLOCKED',
-      blockingStatus: 'UNSUPPORTED',
-      reasonCode: 'CAO_RETAIL_ECOMMERCE_NIGHT_BAND_UNSUPPORTED',
-    })
+    expect(eCommerceCalculation).toMatchObject({ status: 'CALCULATED', premiumAmount: '0.00', grossAmount: '1605.79' })
     expect(eCommerce.sourceGaps).toContainEqual(expect.objectContaining({
-      field: 'cao', status: 'UNSUPPORTED', reasonCode: 'CAO_RETAIL_ECOMMERCE_NIGHT_BAND_UNSUPPORTED',
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     }))
-    expect(eCommerceCalculation.grossAmount).toBeUndefined()
+    expect(eCommerce.sourceGaps).not.toContainEqual(expect.objectContaining({ field: 'cao' }))
   })
 
   it('keeps R1 tax applicability and nonzero-opening VCR inputs fail-closed', async () => {

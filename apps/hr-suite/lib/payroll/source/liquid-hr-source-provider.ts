@@ -11,6 +11,7 @@ import {
 } from '@/lib/actual-work/actual-work-service'
 import type {
   PayrollSourceGap,
+  PayrollPeriodIdentity,
   PayrollSourceProvider,
   PayrollSourceProviderInput,
   PayrollSourceSnapshot,
@@ -57,6 +58,7 @@ import {
   type PayrollEmployerConfiguration,
 } from '../payroll-setup'
 import { createPayrollSetupRepository } from '../payroll-setup-repository'
+import { verifyPayrollPeriodIdentityInCalendar } from '../payroll-setup-service'
 import { mapCorePensionEligibilityRule } from '../pension-eligibility-source-mapping'
 import {
   calculateCaoPayroll,
@@ -70,6 +72,7 @@ import type {
 } from '../database'
 import type { PayrollScope } from '../scope'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
+import { formatExactHours, parseExactHours } from '@/lib/actual-work/exact-hours'
 
 type EmploymentRow = Database['public']['Tables']['employments']['Row']
 type SalaryRow = Database['public']['Tables']['employment_salaries']['Row']
@@ -181,12 +184,14 @@ export interface PayrollSourceProviderDependencies {
   readonly loadTimelineBatch?: (
     inputs: readonly Pick<PayrollSourceProviderInput, 'employeeId' | 'employmentId' | 'payrollPeriod'>[],
   ) => Promise<readonly PayrollSourceTimeline[]>
-  readonly loadActualWork: (employeeId: string, employmentId: string, month: string) => Promise<ActualWorkPayrollProjection>
+  readonly loadActualWork: (employeeId: string, employmentId: string, month: string, payrollPeriodIdentity?: PayrollPeriodIdentity) => Promise<ActualWorkPayrollProjection>
   readonly loadActualWorkBatch?: (inputs: readonly {
     readonly employeeId: string
     readonly employmentId: string
     readonly month: string
+    readonly payrollPeriodIdentity?: PayrollPeriodIdentity
   }[], authorizedScopes?: readonly ActualWorkPayrollBatchAuthorizedScope[]) => Promise<readonly ActualWorkPayrollProjection[]>
+  readonly verifyPayrollPeriodIdentity?: (scope: PayrollScope, identity: PayrollPeriodIdentity) => Promise<boolean>
   readonly loadPayrollSetup?: (
     scope: PayrollScope,
     payrollAdministrationId: string,
@@ -246,6 +251,8 @@ export type PayrollSourceProviderErrorCode =
   | 'PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND'
   | 'PAYROLL_SOURCE_EMPLOYMENT_AMBIGUOUS'
   | 'PAYROLL_SOURCE_DISABLED'
+  | 'PAYROLL_SOURCE_PERIOD_IDENTITY_INVALID'
+  | 'PAYROLL_SOURCE_PERIOD_IDENTITY_UNAVAILABLE'
   | 'PAYROLL_SOURCE_DATA_UNAVAILABLE'
 
 export class PayrollSourceProviderError extends Error {
@@ -288,6 +295,12 @@ const readSharedPayrollSetupSource = cache(async (
     configurationRows: await repository.listEmployerConfigurations(scope, payrollAdministration.id),
   }
 })
+
+async function verifyDefaultPayrollPeriodIdentity(scope: PayrollScope, identity: PayrollPeriodIdentity): Promise<boolean> {
+  const sharedSource = await readSharedPayrollSetupSource(scope.tenantId, scope.hrGroupId, scope.administrationId)
+  if (!sharedSource.payrollAdministrationId) return false
+  return await verifyPayrollPeriodIdentityInCalendar(scope, sharedSource.payrollAdministrationId, identity)
+}
 
 async function loadDefaultPayrollTimeline(
   employeeId: string,
@@ -390,13 +403,14 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
     loadTimeline: async (employeeId, employmentId, payrollPeriod) =>
       await loadDefaultPayrollTimeline(employeeId, employmentId, payrollPeriod),
     loadTimelineBatch: async (inputs) => await loadDefaultPayrollTimelinesBatch(inputs),
-    loadActualWork: async (employeeId, employmentId, month) =>
-      await getActualWorkPayrollProjection({ employeeId, employmentId, month }).catch((error: unknown) => {
+    loadActualWork: async (employeeId, employmentId, month, payrollPeriodIdentity) =>
+      await getActualWorkPayrollProjection({ employeeId, employmentId, month, ...(payrollPeriodIdentity ? { payrollPeriodIdentity } : {}) }).catch((error: unknown) => {
         throw new PayrollSourceReadFailure('actual-work-projection', error)
       }),
     loadActualWorkBatch: async (inputs, authorizedScopes) => await getActualWorkPayrollProjectionsBatch(inputs, authorizedScopes).catch((error: unknown) => {
       throw new PayrollSourceReadFailure('actual-work-projection', error)
     }),
+    verifyPayrollPeriodIdentity: verifyDefaultPayrollPeriodIdentity,
     loadPayrollSetup: async (scope, _sourceAdministrationId, sourceEmploymentId, payrollPeriod) => {
       const sharedSource = await readSharedPayrollSetupSource(scope.tenantId, scope.hrGroupId, scope.administrationId)
       if (!sharedSource.payrollAdministrationId) {
@@ -426,18 +440,39 @@ function actualWorkForPeriod(
   projection: ActualWorkPayrollProjection,
   periodStart: string,
   periodEndExclusive: string,
+  payrollPeriodIdentity?: PayrollPeriodIdentity,
 ): {
   readonly canonicalSource: PayrollSourceSnapshot['canonicalSource']
   readonly sourceVersionVector: Readonly<Record<string, string>>
   readonly sourceGaps: readonly PayrollSourceGap[]
 } {
   const typeById = new Map<string, PayrollSourceActualWorkType>(projection.types.map((type) => [type.id, type]))
+  const tvtTypeIds = new Set(projection.tvtWorkHourTypeIds ?? [])
+  const informationalTypeIds = new Set(projection.informationalWorkHourTypeIds ?? [])
+  const periodReleases = (projection.payrollReleases ?? [])
+    .filter((release) => payrollPeriodIdentity
+      ? release.payroll_period_id === payrollPeriodIdentity.id
+        && release.payroll_period_start === payrollPeriodIdentity.startsOn
+        && release.payroll_period_end === payrollPeriodIdentity.endsOn
+        && release.payroll_periodicity === payrollPeriodIdentity.periodicity
+      : release.payroll_period_start === periodStart
+        && (release.payroll_period_id == null
+          || (release.payroll_periodicity === 'MONTHLY' && release.payroll_period_end === dayBefore(periodEndExclusive))))
+  const releaseCounts = new Map<string, number>()
+  for (const release of periodReleases) releaseCounts.set(release.entry_id, (releaseCounts.get(release.entry_id) ?? 0) + 1)
+  const releaseByEntry = new Map(periodReleases
+    .filter((release) => releaseCounts.get(release.entry_id) === 1)
+    .map((release) => [release.entry_id, release]))
   const entries = [...projection.entries].sort((left, right) =>
     left.work_date.localeCompare(right.work_date) || left.id.localeCompare(right.id),
   )
   const gaps: PayrollSourceGap[] = []
   const versionVector: Record<string, string> = {}
   if (projection.period) versionVector[`actual_work_period:${projection.period.id}`] = projection.period.updated_at
+  for (const release of periodReleases) {
+    versionVector[`actual_work_payroll_release_candidate:${release.entry_id}:${release.id}`] =
+      `${release.entry_revision_number}:${release.content_fingerprint}:${release.released_at}:${release.mapping?.id ?? 'NO_MAPPING'}`
+  }
   if (projection.entries.length > 2000) gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_TIMELINE_LIMIT_REACHED'))
 
   const mappedEntries = entries.map((entry) => {
@@ -464,21 +499,65 @@ function actualWorkForPeriod(
 
     versionVector[`work_hour_type:${type.id}`] = type.updated_at
     versionVector[`actual_work_entry:${entry.id}`] = entry.updated_at
-    if (type.valid_from > entry.work_date || (type.valid_until !== null && type.valid_until <= entry.work_date)) {
+    const typePeriodEnd = entry.subject_period_end > entry.subject_period_start ? dayBefore(entry.subject_period_end) : entry.subject_period_start
+    if (type.valid_from > entry.subject_period_start || (type.valid_until !== null && type.valid_until <= typePeriodEnd)) {
       gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_TYPE_NOT_EFFECTIVE_ON_WORK_DATE'))
     }
     if (entry.status === 'APPROVED' && entry.approved_at === null) {
       gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'APPROVED_ACTUAL_WORK_MISSING_APPROVAL_TIMESTAMP'))
     }
+    const revisionNumber = projection.currentRevisionNumbers?.[entry.id]
+    const release = releaseByEntry.get(entry.id)
+    if (releaseCounts.get(entry.id) !== undefined && releaseCounts.get(entry.id)! > 1) {
+      gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_PAYROLL_MAPPING_AMBIGUOUS'))
+    }
+    const releaseIsCurrent = release !== undefined && release.entry_revision_number === revisionNumber
+    const fourWeeklyRelease = (projection.payrollReleases ?? []).find((candidate) => candidate.entry_id === entry.id
+      && candidate.entry_revision_number === revisionNumber
+      && candidate.payroll_period_id !== null
+      && candidate.payroll_periodicity === 'FOUR_WEEKLY')
+    const tvtConfigured = tvtTypeIds.has(type.id)
+    const tvtAccruedHours = projection.tvtAccruedHoursByEntryId?.[entry.id] ?? '0'
+    const tvtAccrued = tvtConfigured && entry.status === 'APPROVED'
+      && exactHoursValue(tvtAccruedHours) !== null
+      && exactHoursValue(tvtAccruedHours) === exactHoursValue(entry.hours.toFixed(4))
+    const informational = type.family === 'TRANSPARENT' || informationalTypeIds.has(type.id)
+    const mappingEffective = Boolean(release?.mapping)
+      && release!.mapping!.valid_from <= entry.subject_period_start
+      && (release!.mapping!.valid_until === null || release!.mapping!.valid_until >= typePeriodEnd)
     if (entry.status === 'PENDING' && type.family !== 'TRANSPARENT') {
       gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'PAYABLE_ACTUAL_WORK_NOT_APPROVED'))
     }
-    if (entry.status === 'APPROVED' && type.family === 'OVERTIME') {
-      gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'OVERTIME_RULE_NOT_CONFIGURED'))
+    if (entry.status === 'APPROVED' && tvtConfigured && !tvtAccrued) {
+      gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_TVT_ACCRUAL_NOT_CONNECTED'))
     }
-    if (entry.posting_period_start !== periodStart
-      || entry.subject_period_start >= periodEndExclusive
-      || entry.subject_period_end <= entry.subject_period_start) {
+    if (fourWeeklyRelease) {
+      versionVector[`actual_work_four_weekly_payroll_release:${entry.id}`] = `${fourWeeklyRelease.content_fingerprint}:${fourWeeklyRelease.released_at}`
+    }
+    if (entry.status === 'APPROVED' && !informational && !tvtConfigured && !releaseIsCurrent) {
+      gaps.push(makeGap('actualWork', 'SOURCE_GAP', fourWeeklyRelease
+        ? 'ACTUAL_WORK_FOUR_WEEKLY_PAYROLL_CONSUMER_UNAVAILABLE'
+        : 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED'))
+    }
+    if (releaseIsCurrent && release) {
+      versionVector[`actual_work_payroll_release:${entry.id}`] = `${release.content_fingerprint}:${release.released_at}`
+      if (release.release_class === 'TWK_REQUIRED') {
+        gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_TWK_ROUTE_REQUIRED'))
+      } else if (!release.mapping || release.work_hour_type_updated_at !== type.updated_at
+        || !mappingEffective) {
+        gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_PAYROLL_RELEASE_REVIEW_REQUIRED'))
+      } else {
+        versionVector[`actual_work_payroll_mapping:${release.mapping.id}`] = `${release.mapping.version_number}:${release.mapping.salary_component_version ?? release.mapping.processing_target}`
+      }
+    }
+    if (tvtConfigured) versionVector[`actual_work_tvt_ledger:${entry.id}`] = tvtAccruedHours
+    const fourWeeklyEntryOutOfRange = payrollPeriodIdentity?.periodicity === 'FOUR_WEEKLY'
+      && (entry.subject_period_start < payrollPeriodIdentity.startsOn
+        || entry.subject_period_end > periodEndExclusive
+        || entry.subject_period_end <= entry.subject_period_start)
+    if ((payrollPeriodIdentity?.periodicity !== 'FOUR_WEEKLY' && entry.posting_period_start !== periodStart)
+      || fourWeeklyEntryOutOfRange
+      || (!payrollPeriodIdentity && entry.subject_period_end <= entry.subject_period_start)) {
       gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_PERIOD_MAPPING_INVALID'))
     }
     return {
@@ -495,16 +574,40 @@ function actualWorkForPeriod(
       hours: entry.hours.toFixed(4),
       status: entry.status,
       approvedAt: entry.approved_at,
+      currentRevisionNumber: revisionNumber ?? null,
+      releasedForPayroll: releaseIsCurrent && release?.release_class === 'INITIAL' && mappingEffective
+        && release?.work_hour_type_updated_at === type.updated_at,
+      payrollReleaseClass: releaseIsCurrent ? release?.release_class ?? null : null,
+      payrollReleaseId: releaseIsCurrent ? release?.id ?? null : null,
+      payrollReleaseFingerprint: releaseIsCurrent ? release?.content_fingerprint ?? null : null,
+      payrollPeriodId: releaseIsCurrent ? release?.payroll_period_id ?? null : fourWeeklyRelease?.payroll_period_id ?? null,
+      payrollPeriodicity: releaseIsCurrent ? release?.payroll_periodicity ?? null : fourWeeklyRelease?.payroll_periodicity ?? null,
+      payrollMapping: releaseIsCurrent && release?.mapping ? {
+        id: release.mapping.id,
+        version: release.mapping.version_number,
+        target: release.mapping.processing_target,
+        componentId: release.mapping.salary_component_id,
+        componentCode: release.mapping.salary_component_code,
+        componentVersion: release.mapping.salary_component_version,
+        componentOutput: release.mapping.salary_component_output,
+        calculationRule: release.mapping.calculation_rule,
+        factor: release.mapping.factor === null ? null : String(release.mapping.factor),
+      } : null,
+      tvtConfigured,
+      tvtAccrued,
+      tvtAccruedHours,
+      informational,
       typeValidFrom: type.valid_from,
       typeValidUntil: type.valid_until,
       approvalRequired: type.approval_required,
     }
   })
 
-  if (projection.entries.length > 0 && !projection.period) {
+  if (projection.entries.length > 0 && !projection.period && !payrollPeriodIdentity) {
     gaps.push(makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_PERIOD_NOT_FOUND'))
   }
-  if (projection.period && (projection.period.period_start !== periodStart || projection.period.period_end !== periodEndExclusive)) {
+  if (!payrollPeriodIdentity && projection.period
+    && (projection.period.period_start !== periodStart || projection.period.period_end !== periodEndExclusive)) {
     gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'ACTUAL_WORK_PERIOD_RANGE_MISMATCH'))
   }
 
@@ -516,7 +619,18 @@ function actualWorkForPeriod(
       status: projection.period.status,
       updatedAt: projection.period.updated_at,
     }
-    : { status: 'NOT_CONFIGURED' }
+    : payrollPeriodIdentity
+      ? {
+        id: payrollPeriodIdentity.id,
+        startsOn: payrollPeriodIdentity.startsOn,
+        endsOn: payrollPeriodIdentity.endsOn,
+        periodYear: payrollPeriodIdentity.periodYear,
+        periodNumber: payrollPeriodIdentity.periodNumber,
+        periodicity: payrollPeriodIdentity.periodicity,
+        periodKind: payrollPeriodIdentity.periodKind,
+        status: 'PAYROLL_CALENDAR_PERIOD',
+      }
+      : { status: 'NOT_CONFIGURED' }
   return {
     canonicalSource: { period, entries: mappedEntries },
     sourceVersionVector: versionVector,
@@ -524,22 +638,59 @@ function actualWorkForPeriod(
   }
 }
 
-function hasApprovedRetailPremiumHoursWithoutIntervalSource(entries: readonly CaoPayrollActualWorkEntry[]): boolean {
-  return entries.some((entry) => {
-    if (entry.status !== 'APPROVED') return false
-    const activity = `${entry.typeCode ?? ''}_${entry.typeName ?? ''}`.toUpperCase()
-    const isPremiumActivity = entry.family === 'OVERTIME'
-      || /SUNDAY|ZONDAG|NIGHT|NACHT|OVERTIME|OVERWERK|OVERUREN/.test(activity)
-    if (!isPremiumActivity) return false
-    try {
-      return FixedDecimal.parse(String(entry.hours)).compare(FixedDecimal.fromInteger(BigInt(0))) > 0
-    } catch {
-      return false
-    }
-  })
+function exactHoursValue(value: string): string | null {
+  try { return formatExactHours(parseExactHours(value)) } catch { return null }
 }
 
-function periodBounds(period: PayrollSourceProviderInput['payrollPeriod']): { start: string; endInclusive: string; endExclusive: string } {
+function actualWorkVariableWage(
+  entries: readonly unknown[],
+  salaries: readonly PayrollSourceSalary[],
+  allowCalculation: boolean,
+): { amount: string; used: boolean; errorCode: string | null } {
+  if (!allowCalculation) return { amount: '0.00', used: false, errorCode: null }
+  const unsupportedMapping = entries.some((entry) => {
+    const record = asRecord(entry)
+    const mapping = asRecord(record?.payrollMapping)
+    return record?.releasedForPayroll === true
+      && (mapping?.target === 'PREMIUM' || (record.family === 'OVERTIME' && mapping?.target === 'PAYMENT'))
+  })
+  if (unsupportedMapping) return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP' }
+  const payable = entries.flatMap((entry) => {
+    const record = asRecord(entry)
+    const mapping = asRecord(record?.payrollMapping)
+    if (!record || record.releasedForPayroll !== true || !mapping || mapping.target !== 'PAYMENT') return []
+    return [{ record, mapping }]
+  })
+  if (payable.length === 0) return { amount: '0.00', used: false, errorCode: null }
+  if (salaries.length !== 1 || salaries[0]?.payment_type !== 'HOURLY_VARIABLE' || salaries[0].hourly_rate === null) {
+    return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_HOURLY_RATE_REQUIRED' }
+  }
+  try {
+    let amount = FixedDecimal.fromInteger(BigInt(0))
+    for (const { record, mapping } of payable) {
+      if (mapping.calculationRule !== 'HOURLY_RATE_X_HOURS'
+        || mapping.componentCode !== 'PAYFULL02_VARIABLE_REGULAR_WAGE'
+        || mapping.componentOutput !== 'amount'
+        || (typeof record.hours !== 'string' && typeof record.hours !== 'number')
+        || typeof mapping.factor !== 'string') {
+        return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP' }
+      }
+      const rowAmount = FixedDecimal.parse(String(salaries[0].hourly_rate))
+        .multiply(FixedDecimal.parse(String(record.hours)))
+        .multiply(FixedDecimal.parse(mapping.factor))
+      amount = amount.add(rowAmount)
+    }
+    return { amount: amount.round(2, 'HALF_UP').toString(2), used: true, errorCode: null }
+  } catch {
+    return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_PAYROLL_AMOUNT_INVALID' }
+  }
+}
+
+function periodBounds(
+  period: PayrollSourceProviderInput['payrollPeriod'],
+  identity?: PayrollPeriodIdentity,
+): { start: string; endInclusive: string; endExclusive: string } {
+  if (identity) return { start: identity.startsOn, endInclusive: identity.endsOn, endExclusive: dayAfter(identity.endsOn) }
   const start = `${period.year}-${String(period.month).padStart(2, '0')}-01`
   const endInclusive = new Date(Date.UTC(period.year, period.month, 0)).toISOString().slice(0, 10)
   return { start, endInclusive, endExclusive: dayAfter(endInclusive) }
@@ -553,7 +704,7 @@ function selectScopedEmployment(
   employments: readonly PayrollSourceEmployment[],
   input: PayrollSourceProviderInput,
 ): PayrollSourceEmployment {
-  const bounds = periodBounds(input.payrollPeriod)
+  const bounds = periodBounds(input.payrollPeriod, input.payrollPeriodIdentity)
   const candidates = employments.filter((employment) =>
     employment.tenant_id === input.tenantId
     && employment.hr_group_id === input.hrGroupId
@@ -590,7 +741,7 @@ function validateScopedTimeline(
   ) {
     throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
   }
-  const bounds = periodBounds(input.payrollPeriod)
+  const bounds = periodBounds(input.payrollPeriod, input.payrollPeriodIdentity)
   if (!employmentOverlapsPeriod(timelineEmployment.starts_on, timelineEmployment.ends_on, bounds.start, bounds.endInclusive)) {
     throw new PayrollSourceProviderError('PAYROLL_SOURCE_EMPLOYMENT_NOT_FOUND', 404)
   }
@@ -1469,6 +1620,7 @@ function buildRegularPayrollOwned(input: {
   readonly pensionAssignments: readonly NonNullable<PayrollSourceTimeline['pensionAssignments']>[number][]
   readonly laborConditionPensionArrangements: readonly NonNullable<PayrollSourceTimeline['laborConditionPensionArrangements']>[number][]
   readonly actualWorkSnapshot: ReturnType<typeof actualWorkForPeriod>
+  readonly actualWorkVariableWage: ReturnType<typeof actualWorkVariableWage>
   readonly caoCalculation: CaoPayrollCalculation
   readonly sourceId: string
   readonly coreSourceHash: string
@@ -1497,9 +1649,11 @@ function buildRegularPayrollOwned(input: {
   const actualEntries = Array.isArray(actualWorkRecord?.entries) ? actualWorkRecord.entries : []
   const caoConsumesActualWork = input.caoCalculation.status === 'CALCULATED'
     && input.caoCalculation.actualWorkConsumed === true
-  if (actualEntries.some((entry) => asRecord(entry)?.family !== 'TRANSPARENT') && !caoConsumesActualWork) {
-    gaps.push(makeGap('actualWork', 'UNSUPPORTED', 'PAYROLL_VARIABLE_WAGE_NOT_CONFIGURED'))
-  }
+  const actualWorkClassified = actualEntries.every((entry) => {
+    const record = asRecord(entry)
+    return record?.family === 'TRANSPARENT' || record?.tvtConfigured === true
+      || record?.informational === true || record?.releasedForPayroll === true
+  })
 
   const assignment = input.pensionAssignments.length === 1 ? input.pensionAssignments[0] : undefined
   if (!assignment) gaps.push(makeGap('pension', 'SOURCE_GAP', input.pensionAssignments.length === 0
@@ -1611,9 +1765,9 @@ function buildRegularPayrollOwned(input: {
         componentSet: configuration.componentSet,
       },
       amounts: {
-        variableRegularWage: input.caoCalculation.status === 'CALCULATED'
+        variableRegularWage: FixedDecimal.parse(input.caoCalculation.status === 'CALCULATED'
           ? input.caoCalculation.premiumAmount ?? '0.00'
-          : '0.00',
+          : '0.00').add(FixedDecimal.parse(input.actualWorkVariableWage.amount)).round(2, 'HALF_UP').toString(2),
         specialRewardWage: '0.00',
         netReimbursement: '0.00',
         netDeduction: '0.00',
@@ -1627,8 +1781,8 @@ function buildRegularPayrollOwned(input: {
         ikvUnambiguous: true,
         salaryConsistent: input.regularWage !== null,
         hoursConsistent: input.schedule !== undefined,
-        normalHoursNotDuplicated: actualEntries.length === 0 || caoConsumesActualWork,
-        additionalHoursSupported: actualEntries.length === 0 || caoConsumesActualWork,
+        normalHoursNotDuplicated: actualWorkClassified || caoConsumesActualWork,
+        additionalHoursSupported: actualWorkClassified || caoConsumesActualWork,
         sourceFresh: true,
         compositionSupported: true,
         pensionRuleReady: pensionResult.status === 'CALCULATED',
@@ -1721,6 +1875,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       }), 12)
     const loadTimelineBatch = this.dependencies.loadTimelineBatch
     const loadActualWorkBatch = this.dependencies.loadActualWorkBatch
+    if (rawInputs.some((input) => input.payrollPeriodIdentity !== undefined)) return await readIndividually()
     if (!loadActualWorkBatch || rawInputs.length === 0) return await readIndividually()
     if (!this.dependencies.isEnabled()) return await readIndividually()
     const parsedInputs = rawInputs.map((input) => payrollSourceProviderInputSchema.safeParse(input))
@@ -2023,7 +2178,21 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     ) {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
-    const bounds = periodBounds(input.payrollPeriod)
+    const periodIdentity = input.payrollPeriodIdentity
+    if (periodIdentity) {
+      const referenceMonth = periodIdentity.startsOn.slice(0, 7)
+      if (`${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}` !== referenceMonth) {
+        throw new PayrollSourceProviderError('PAYROLL_SOURCE_PERIOD_IDENTITY_INVALID', 400)
+      }
+      let periodIdentityVerified = false
+      try {
+        periodIdentityVerified = await this.dependencies.verifyPayrollPeriodIdentity?.(authorizedScope, periodIdentity) === true
+      } catch {
+        periodIdentityVerified = false
+      }
+      if (!periodIdentityVerified) throw new PayrollSourceProviderError('PAYROLL_SOURCE_PERIOD_IDENTITY_UNAVAILABLE', 409)
+    }
+    const bounds = periodBounds(input.payrollPeriod, periodIdentity)
     let employment: PayrollSourceEmployment
     if (prevalidatedEmployment) {
       employment = selectScopedEmployment([prevalidatedEmployment], input)
@@ -2065,7 +2234,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       actualWork = actualWorkOverride ?? await this.dependencies.loadActualWork(
         input.employeeId,
         employment.id,
-        `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,
+        periodIdentity?.periodicity === 'FOUR_WEEKLY'
+          ? periodIdentity.startsOn.slice(0, 7)
+          : `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,
+        periodIdentity,
       )
     } catch (error) {
       const sourceCategory = safeSourceCategory(error, 'actual-work-projection')
@@ -2119,10 +2291,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       activeStart,
       activeEndExclusive,
     )
-    const actualWorkSnapshot = actualWorkForPeriod(actualWork, bounds.start, bounds.endExclusive)
+    const actualWorkSnapshot = actualWorkForPeriod(actualWork, bounds.start, bounds.endExclusive, periodIdentity)
     const actualWorkRecord = asRecord(actualWorkSnapshot.canonicalSource)
-    const caoActualWorkEntries: CaoPayrollActualWorkEntry[] = (Array.isArray(actualWorkRecord?.entries)
-      ? actualWorkRecord.entries : []).flatMap((entry) => {
+    const actualWorkEntries = Array.isArray(actualWorkRecord?.entries) ? actualWorkRecord.entries : []
+    const caoActualWorkEntries: CaoPayrollActualWorkEntry[] = actualWorkEntries.filter((entry) => asRecord(entry)?.releasedForPayroll === true).flatMap((entry) => {
         const record = asRecord(entry)
         if (!record || typeof record.family !== 'string'
           || (typeof record.hours !== 'string' && typeof record.hours !== 'number')
@@ -2164,16 +2336,12 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       } : null,
       actualWorkEntries: caoActualWorkEntries,
     })
-    const retailOvertimeHours = caoCalculation.inputs?.dailyOvertimeHours
-    const caoConsumesRetailOvertime = caoCalculation.status === 'CALCULATED'
-      && caoCalculation.family === 'RETAIL_MODE'
-      && caoCalculation.inputs?.scenarioCode === 'R2'
-      && (typeof retailOvertimeHours === 'string' || typeof retailOvertimeHours === 'number')
-      && FixedDecimal.parse(String(retailOvertimeHours)).compare(FixedDecimal.fromInteger(BigInt(0))) > 0
-    const retailIntervalEvidenceMissing = caoCalculation.family === 'RETAIL_MODE'
-      && hasApprovedRetailPremiumHoursWithoutIntervalSource(caoActualWorkEntries)
-    const actualWorkSourceGaps = actualWorkSnapshot.sourceGaps.filter((gap) =>
-      !((caoConsumesRetailOvertime || retailIntervalEvidenceMissing) && gap.reasonCode === 'OVERTIME_RULE_NOT_CONFIGURED'),
+    const caoConsumesActualWork = caoCalculation.status === 'CALCULATED'
+      && caoCalculation.actualWorkConsumed === true
+    const mappedActualWorkVariableWage = actualWorkVariableWage(
+      actualWorkEntries,
+      salaries,
+      periodIdentity?.periodicity !== 'FOUR_WEEKLY',
     )
     const sourceGaps: PayrollSourceGap[] = [
       ...sourceGapsFor(
@@ -2186,8 +2354,14 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         activeStart,
         activeEndExclusive,
       ),
-      ...actualWorkSourceGaps,
-      ...(retailIntervalEvidenceMissing ? [makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE')] : []),
+      ...actualWorkSnapshot.sourceGaps,
+      ...(periodIdentity?.periodicity === 'FOUR_WEEKLY'
+        ? [makeGap('payrollPeriod', 'UNSUPPORTED', 'FOUR_WEEKLY_PAYROLL_CALCULATION_NOT_VALIDATED')]
+        : []),
+      ...(mappedActualWorkVariableWage.errorCode ? [makeGap('actualWork', 'SOURCE_GAP', mappedActualWorkVariableWage.errorCode)] : []),
+      ...(mappedActualWorkVariableWage.used && caoConsumesActualWork
+        ? [makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_CAO_MAPPING_CONFLICT')]
+        : []),
     ]
     if (caoCalculation.status === 'BLOCKED' && caoCalculation.reasonCode) {
       sourceGaps.push(makeGap('cao', caoCalculation.blockingStatus ?? 'SOURCE_GAP', caoCalculation.reasonCode))
@@ -2278,6 +2452,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         [`employment_income_relationship:${incomeRelationship.selected.id}`, incomeRelationship.selected.linkUpdatedAt] as const,
         [`income_relationship:${incomeRelationship.selected.incomeRelationshipId}`, incomeRelationship.selected.incomeRelationshipUpdatedAt] as const,
       ] : []),
+      ...(periodIdentity ? [[
+        `payroll_period_identity:${periodIdentity.id}`,
+        `${periodIdentity.periodicity}:${periodIdentity.periodYear}:${periodIdentity.periodNumber}:${periodIdentity.startsOn}:${periodIdentity.endsOn}`,
+      ] as const] : []),
       ...Object.entries(fiscalProfile.sourceVersionVector),
       ...Object.entries(actualWorkSnapshot.sourceVersionVector),
       ...(payrollSetup?.configurationRow ? [[
@@ -2688,6 +2866,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       sourceEmploymentId: employment.id,
       sourceIncomeRelationshipId: incomeRelationship.selected?.incomeRelationshipId ?? null,
       periodReference: input.payrollPeriod,
+      ...(periodIdentity ? { payrollPeriodIdentity: periodIdentity } : {}),
       canonicalSource: coreCanonicalSource,
       sourceVersionVector,
       sourceGaps,
@@ -2717,15 +2896,55 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           pensionAssignments,
           laborConditionPensionArrangements,
           actualWorkSnapshot,
+          actualWorkVariableWage: mappedActualWorkVariableWage,
           caoCalculation,
           sourceId: calculationSourceId,
           coreSourceHash,
           sourceGaps,
         })
       : { payrollOwned: null, sourceGaps }
+    // W04's PAYFULL02 source component depends only on the approved Actual Work
+    // release, its active system-component mapping, and the effective hourly
+    // salary. Keep that exact input available when unrelated payroll-owned
+    // calculations (for example pension) are incomplete. The original gaps are
+    // retained and sourceReady stays false, so this cannot make a payroll run
+    // eligible by itself.
+    const componentConfiguration = payrollSetup?.configuration
+    const componentConfigurationRow = payrollSetup?.configurationRow
+    const canExposeVariableWageSource = !regularPayroll.payrollOwned
+      && mappedActualWorkVariableWage.used
+      && mappedActualWorkVariableWage.errorCode === null
+      && componentConfiguration !== null
+      && componentConfiguration !== undefined
+      && componentConfigurationRow !== null
+      && componentConfigurationRow !== undefined
+      && componentConfigurationRow.status === 'ACTIVE'
+      && componentConfigurationRow.effective_from <= bounds.start
+      && (componentConfigurationRow.effective_to === null || componentConfigurationRow.effective_to >= bounds.start)
+      && hashPayrollEmployerConfiguration(componentConfiguration) === componentConfigurationRow.configuration_hash
+    const variableWageSourceOnly = canExposeVariableWageSource
+      && componentConfiguration
+      && componentConfigurationRow
+      ? {
+        configuration: {
+          schemaVersion: 'payroll-employer-configuration-v1',
+          configurationVersionId: componentConfigurationRow.id,
+          configurationVersion: componentConfigurationRow.configuration_version,
+          effectiveFrom: componentConfigurationRow.effective_from,
+          effectiveTo: componentConfigurationRow.effective_to,
+          configurationHash: componentConfigurationRow.configuration_hash,
+          sourceReference: componentConfigurationRow.source_reference,
+          componentSet: componentConfiguration.componentSet,
+        },
+        amounts: { variableRegularWage: mappedActualWorkVariableWage.amount },
+        controls: { sourceReady: false },
+        sourceStatus: 'COMPONENT_SOURCE_ONLY',
+      } satisfies Record<string, unknown>
+      : null
+    const payrollOwned = regularPayroll.payrollOwned ?? variableWageSourceOnly
     const canonicalSource = {
       ...coreCanonicalSource,
-      ...(regularPayroll.payrollOwned ? { payrollOwned: regularPayroll.payrollOwned } : {}),
+      ...(payrollOwned ? { payrollOwned } : {}),
     } as unknown as PayrollSourceSnapshot['canonicalSource']
     const hashInput = {
       sourceTenantId: input.tenantId,
@@ -2735,6 +2954,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       sourceEmploymentId: employment.id,
       sourceIncomeRelationshipId: incomeRelationship.selected?.incomeRelationshipId ?? null,
       periodReference: input.payrollPeriod,
+      ...(periodIdentity ? { payrollPeriodIdentity: periodIdentity } : {}),
       canonicalSource,
       sourceVersionVector,
       sourceGaps,

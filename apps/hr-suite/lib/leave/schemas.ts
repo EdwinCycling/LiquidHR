@@ -268,6 +268,7 @@ const overtimeLimitFields = {
   limitMode: z.enum(['UNLIMITED', 'MONTHLY_HOURS', 'YEARLY_HOURS', 'CONTRACT_HOURS_FACTOR']),
   limitHours: z.number().finite().nonnegative().nullable().optional(),
   contractHoursFactor: z.number().finite().nonnegative().nullable().optional(),
+  tvtExpirationMonths: z.number().int().min(1).max(120).nullable().optional(),
 }
 
 const overtimeLimitRefinement = (value: { limitMode: 'UNLIMITED' | 'MONTHLY_HOURS' | 'YEARLY_HOURS' | 'CONTRACT_HOURS_FACTOR'; limitHours?: number | null; contractHoursFactor?: number | null }, context: z.RefinementCtx) => {

@@ -145,7 +145,7 @@ describe('Core readers through the standard Payroll source assembly', () => {
     expect(reads.timeline).not.toHaveBeenCalled()
   })
 
-  it('keeps Retail night work blocked when the standard Core projection has no business-scope contract', async () => {
+  it('does not infer Retail night work from labels and requires an HR Admin Payroll release', async () => {
     const source = timeline()
     const laborSetId = 'cc000000-0000-4000-8000-00000000000c'
     reads.timeline.mockResolvedValue({
@@ -174,12 +174,13 @@ describe('Core readers through the standard Payroll source assembly', () => {
     const result = await createEmployeePayrollCalculationService().inspectEmployeePayrollSource({ employeeId, employmentId, period })
     expect(result.eligibleForCalculation).toBe(false)
     expect(result.gaps).toContainEqual({
-      field: 'cao', status: 'SOURCE_GAP', reasonCode: 'CAO_RETAIL_BUSINESS_SCOPE_UNVERIFIED',
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     })
+    expect(result.gaps).not.toContainEqual(expect.objectContaining({ field: 'cao' }))
     expect(reads.lifecycle).not.toHaveBeenCalled()
   })
 
-  it('fails closed when approved Retail premium hours have no interval-source contract', async () => {
+  it('requires an HR Admin release without deriving premium bands or interval classes', async () => {
     const source = timeline()
     const laborSetId = 'cc000000-0000-4000-8000-00000000000c'
     reads.timeline.mockResolvedValue({
@@ -226,8 +227,9 @@ describe('Core readers through the standard Payroll source assembly', () => {
     const result = await createEmployeePayrollCalculationService().inspectEmployeePayrollSource({ employeeId, employmentId, period })
     expect(result.eligibleForCalculation).toBe(false)
     expect(result.gaps).toContainEqual({
-      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE',
+      field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     })
+    expect(result.gaps).not.toContainEqual(expect.objectContaining({ reasonCode: 'ACTUAL_WORK_INTERVAL_SOURCE_UNAVAILABLE' }))
     expect(result.gaps).not.toContainEqual(expect.objectContaining({ reasonCode: 'OVERTIME_RULE_NOT_CONFIGURED' }))
     expect(reads.lifecycle).not.toHaveBeenCalled()
   })

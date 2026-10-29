@@ -767,19 +767,70 @@ export function calculateRetailR1(snapshot: PayrollSourceSnapshot) {
   return calculatePayroll(inputs, PAYFULL02_RULE_REGISTRY)
 }
 
-/** Pure arithmetic oracle for the synthetic R2 fixture; it does not enter Payroll service or lifecycle. */
+/** Pure calculation-package check with an explicitly supplied synthetic variable-wage input.
+ * It does not infer that amount from Actual Work and does not enter Payroll service or lifecycle.
+ */
 export function calculateRetailR2SyntheticOracle(snapshot: PayrollSourceSnapshot) {
   const provenance = canonical(snapshot).caseProvenance as Record<string, unknown> | undefined
   const syntheticPayrollInputs = provenance?.syntheticPayrollInputs as Record<string, unknown> | undefined
   if (syntheticPayrollInputs?.fixtureId !== 'PAY-W02B-R2-NET-ORACLE-01') {
     throw new Error('PAYW02B_R2_SYNTHETIC_ORACLE_FIXTURE_REQUIRED')
   }
+  const source = canonical(snapshot)
+  const payrollOwned = source.payrollOwned as Record<string, unknown>
+  const amounts = payrollOwned.amounts as Record<string, unknown>
+  const caoCalculation = source.caoCalculation as Record<string, unknown>
+  const regularWage = source.regularWage as Record<string, unknown>
+  const sourceContractRecord = source.sourceContract as Record<string, unknown>
+  const versionVector = {
+    ...snapshot.sourceVersionVector,
+    'synthetic_fixture:PAY-W02B-R2-NET-ORACLE-01:variable-regular-wage': 'EXPLICIT-MONEY-INPUT-v1',
+  }
+  const canonicalSource = {
+    ...source,
+    caoCalculation: { ...caoCalculation, premiumAmount: '15.44', grossAmount: '1621.23' },
+    regularWage: { ...regularWage, caoApplied: true, caoGrossAmount: '1621.23' },
+    payrollOwned: {
+      ...payrollOwned,
+      amounts: { ...amounts, variableRegularWage: '15.44' },
+    },
+    caseProvenance: {
+      ...provenance,
+      syntheticPayrollInputs: {
+        ...syntheticPayrollInputs,
+        directPayrollComponentInput: {
+          componentCode: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+          amount: '15.44',
+          sourceClassification: 'SYNTHETIC_FIXTURE',
+          sourceVersion: 'EXPLICIT-MONEY-INPUT-v1',
+        },
+      },
+    },
+    sourceContract: { ...sourceContractRecord, versionVector },
+  }
+  const calculationSnapshot = {
+    ...snapshot,
+    canonicalSource: canonicalSource as unknown as PayrollSourceSnapshot['canonicalSource'],
+    sourceVersionVector: versionVector,
+    sourceHash: hashPayrollSourceSnapshot({
+      sourceTenantId: snapshot.sourceTenantId,
+      sourceHrGroupId: snapshot.sourceHrGroupId,
+      sourceAdministrationId: snapshot.sourceAdministrationId,
+      sourceEmployeeId: snapshot.sourceEmployeeId,
+      sourceEmploymentId: snapshot.sourceEmploymentId,
+      sourceIncomeRelationshipId: snapshot.sourceIncomeRelationshipId,
+      periodReference: snapshot.periodReference,
+      canonicalSource,
+      sourceVersionVector: versionVector,
+      sourceGaps: snapshot.sourceGaps,
+    }),
+  }
   const rulePackage = createPayfull02RulePackage('CUSTOMER_STANDARD', {
     supportPartialPeriods: true,
     supportCaoExactGross: true,
     allocatePensionRoundingRemainderToEmployer: true,
   })
-  const inputs = buildCalculationInputs(snapshot, rulePackage, {
+  const inputs = buildCalculationInputs(calculationSnapshot, rulePackage, {
     effectiveDate: '2026-07-01',
     scopeInstanceIds: {
       EMPLOYEE: snapshot.sourceEmployeeId,

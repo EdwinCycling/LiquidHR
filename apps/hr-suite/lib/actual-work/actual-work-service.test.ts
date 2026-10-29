@@ -12,6 +12,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient }))
 
 import {
   ActualWorkServiceError,
+  getActualWorkPayrollProjection,
   getActualWorkPayrollProjectionsBatch,
   isValidActualWorkMonth,
   saveActualWorkEntry,
@@ -112,6 +113,13 @@ describe('Actual Work Employee self-service write boundary', () => {
     expect(requireAnyPermission).not.toHaveBeenCalled()
   })
 
+  it('rejects whitespace-only correction reasons before writing', async () => {
+    const supabase = configureAuth()
+
+    await expect(saveActualWorkEntry({ ...createInput, entryId, correctionReason: '   ' })).rejects.toEqual(expect.objectContaining({ code: 'ACTUAL_WORK_CORRECTION_REASON_REQUIRED' }))
+    expect(supabase.rpc).not.toHaveBeenCalled()
+  })
+
   it('exposes the domain error type for server validation responses', () => {
     expect(new ActualWorkServiceError('ACTUAL_WORK_LEAVE_OVERLAP').status).toBe(400)
   })
@@ -155,6 +163,7 @@ describe('Actual Work payroll batch source read', () => {
     const from = vi.fn((table: string) => queryResult(
       table === 'employment_work_hour_entries' ? entries
         : table === 'work_hour_types' ? types
+          : ['actual_work_revisions', 'actual_work_payroll_releases', 'leave_type_overtime_work_hours', 'actual_work_payroll_mappings', 'leave_types', 'leave_accrual_transactions'].includes(table) ? []
           : period,
     ))
     createClient.mockResolvedValue({ from })
@@ -172,13 +181,136 @@ describe('Actual Work payroll batch source read', () => {
     expect(result[1]?.types.map((type) => type.id)).toEqual([secondTypeId])
     expect(result.flatMap((projection) => projection.entries.map((entry) => entry.id)).sort()).toEqual(['entry-1', 'entry-2'])
     expect(result[0]?.entries[0]).not.toHaveProperty('employee_id')
-    expect(from).toHaveBeenCalledTimes(3)
+    expect(from).toHaveBeenCalledTimes(8)
     expect(from).toHaveBeenCalledWith('actual_work_periods')
     expect(from).toHaveBeenCalledWith('employment_work_hour_entries')
     expect(from).toHaveBeenCalledWith('work_hour_types')
     const entriesQueryIndex = from.mock.calls.findIndex(([table]) => table === 'employment_work_hour_entries')
     const entriesQuery = from.mock.results[entriesQueryIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined
     expect(entriesQuery?.in).toHaveBeenCalledWith('employee_id', [employeeId, secondEmployeeId])
+  })
+
+  it('loads cross-month Actual Work entries through the exact FOUR_WEEKLY release identity', async () => {
+    const periodIdentity = {
+      id: '99999999-9999-4999-8999-999999999999',
+      periodYear: 2026,
+      periodNumber: 13,
+      periodicity: 'FOUR_WEEKLY' as const,
+      periodKind: 'REGULAR' as const,
+      startsOn: '2026-12-21',
+      endsOn: '2027-01-17',
+    }
+    const entries = [{
+      id: entryId,
+      employee_id: employeeId,
+      employment_id: employmentId,
+      work_hour_type_id: typeId,
+      work_date: '2027-01-03',
+      entry_granularity: 'PERIOD',
+      subject_period_start: '2026-12-21',
+      subject_period_end: '2027-01-18',
+      posting_period_start: '2026-12-01',
+      hours: 24,
+      status: 'APPROVED',
+      approved_at: '2027-01-18T00:00:00Z',
+      updated_at: '2027-01-18T00:00:00Z',
+    }]
+    const types = [{
+      id: typeId, code: 'REGULAR_HOURS', name: 'Gewone uren', family: 'WORK',
+      valid_from: '2026-01-01', valid_until: null, approval_required: true, updated_at: '2026-01-01T00:00:00Z',
+    }]
+    requirePermission.mockResolvedValue({ tenantId: 'tenant-a', hrGroupId: 'group-a', administrationId: 'admin-a', employeeId })
+    requireHrGroupId.mockReturnValue('group-a')
+    const from = vi.fn((table: string) => {
+      const result = queryResult(table === 'employment_work_hour_entries' ? entries
+        : table === 'work_hour_types' ? types : [])
+      if (table === 'actual_work_payroll_releases') {
+        let selected = ''
+        result.select = vi.fn((columns: string) => { selected = columns; return result })
+        result.limit = vi.fn(async () => ({
+          data: selected === 'entry_id,payroll_period_start,payroll_period_end,payroll_periodicity'
+            ? [{
+              entry_id: entryId,
+              payroll_period_start: periodIdentity.startsOn,
+              payroll_period_end: periodIdentity.endsOn,
+              payroll_periodicity: periodIdentity.periodicity,
+            }]
+            : [],
+          error: null,
+        }))
+      }
+      return result
+    })
+    createClient.mockResolvedValue({ from })
+
+    const [projection] = await getActualWorkPayrollProjectionsBatch([{
+      employeeId, employmentId, month: '2026-12', payrollPeriodIdentity: periodIdentity,
+    }])
+
+    expect(projection?.entries.map((entry) => entry.id)).toEqual([entryId])
+    expect(projection?.entries[0]).toMatchObject({
+      subject_period_start: '2026-12-21', subject_period_end: '2027-01-18', posting_period_start: '2026-12-01',
+    })
+    expect(projection?.period).toBeNull()
+    expect(from).not.toHaveBeenCalledWith('actual_work_periods')
+    const releaseQueryIndex = from.mock.calls.findIndex(([table]) => table === 'actual_work_payroll_releases')
+    const releaseQuery = from.mock.results[releaseQueryIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined
+    expect(releaseQuery?.eq).toHaveBeenCalledWith('payroll_period_id', periodIdentity.id)
+    expect(releaseQuery?.eq).toHaveBeenCalledWith('administration_id', 'admin-a')
+    expect(releaseQuery?.select).toHaveBeenCalledWith('entry_id,payroll_period_start,payroll_period_end,payroll_periodicity')
+  })
+
+  it('uses exact Payroll-period releases in the default single-employee source read', async () => {
+    const periodIdentity = {
+      id: '99999999-9999-4999-8999-999999999999',
+      periodYear: 2026,
+      periodNumber: 13,
+      periodicity: 'FOUR_WEEKLY' as const,
+      periodKind: 'REGULAR' as const,
+      startsOn: '2026-12-21',
+      endsOn: '2027-01-17',
+    }
+    const entries = [{
+      id: entryId, employee_id: employeeId, employment_id: employmentId, work_hour_type_id: typeId,
+      work_date: '2027-01-03', entry_granularity: 'PERIOD', subject_period_start: '2026-12-21',
+      subject_period_end: '2027-01-18', posting_period_start: '2026-12-01', hours: 24,
+      status: 'APPROVED', approved_at: '2027-01-18T00:00:00Z', updated_at: '2027-01-18T00:00:00Z',
+    }]
+    requirePermission.mockResolvedValue({ tenantId: 'tenant-a', hrGroupId: 'group-a', administrationId: 'admin-a', employeeId })
+    requireHrGroupId.mockReturnValue('group-a')
+    let releaseReads = 0
+    const from = vi.fn((table: string) => {
+      const query = queryResult([])
+      if (table === 'actual_work_payroll_releases') {
+        releaseReads += 1
+        query.limit = vi.fn(async () => ({
+          data: releaseReads === 1 ? [{
+            entry_id: entryId,
+            payroll_period_start: periodIdentity.startsOn,
+            payroll_period_end: periodIdentity.endsOn,
+            payroll_periodicity: periodIdentity.periodicity,
+          }] : [],
+          error: null,
+        }))
+      } else if (table === 'employment_work_hour_entries') {
+        query.limit = vi.fn(async () => ({ data: entries, error: null }))
+      } else if (table === 'work_hour_types') {
+        query.in = vi.fn(async () => ({ data: [], error: null }))
+      }
+      return query
+    })
+    createClient.mockResolvedValue({ from })
+
+    const projection = await getActualWorkPayrollProjection({
+      employeeId, employmentId, month: '2026-12', payrollPeriodIdentity: periodIdentity,
+    })
+
+    expect(projection.entries.map((entry) => entry.id)).toEqual([entryId])
+    expect(projection.period).toBeNull()
+    expect(releaseReads).toBe(2)
+    const entryQueryIndex = from.mock.calls.findIndex(([table]) => table === 'employment_work_hour_entries')
+    const entryQuery = from.mock.results[entryQueryIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined
+    expect(entryQuery?.in).toHaveBeenCalledWith('id', [entryId])
   })
 
   it('keeps 39 payroll work projections in bounded four-target read groups', async () => {
@@ -221,6 +353,7 @@ describe('Actual Work payroll batch source read', () => {
     const from = vi.fn((table: string) => queryResult(
       table === 'employment_work_hour_entries' ? entries
         : table === 'work_hour_types' ? types
+          : ['actual_work_revisions', 'actual_work_payroll_releases', 'leave_type_overtime_work_hours', 'actual_work_payroll_mappings', 'leave_types', 'leave_accrual_transactions'].includes(table) ? []
           : period,
     ))
     createClient.mockResolvedValue({ from })
@@ -236,7 +369,10 @@ describe('Actual Work payroll batch source read', () => {
     expect(from.mock.calls.filter(([table]) => table === 'actual_work_periods')).toHaveLength(1)
     expect(from.mock.calls.filter(([table]) => table === 'employment_work_hour_entries')).toHaveLength(10)
     expect(from.mock.calls.filter(([table]) => table === 'work_hour_types')).toHaveLength(10)
-    expect(from).toHaveBeenCalledTimes(21)
+    expect(from.mock.calls.filter(([table]) => table === 'actual_work_revisions')).toHaveLength(10)
+    expect(from.mock.calls.filter(([table]) => table === 'actual_work_payroll_releases')).toHaveLength(10)
+    expect(from.mock.calls.filter(([table]) => table === 'leave_accrual_transactions')).toHaveLength(10)
+    expect(from).toHaveBeenCalledTimes(71)
   })
 
   it('fails closed before source reads when authorized targets resolve to different tenant scopes', async () => {

@@ -26,10 +26,15 @@ export const actualWorkEntrySchema = actualWorkEntryFields.superRefine((value, c
   }
 })
 
-// Bulk invoeren moet een directe EDIT in een open periode kunnen onderscheiden
-// van een CORRECTION in een gesloten periode. De canonical RPC blijft voor
-// beide operaties leidend; de service bepaalt de operatie pas na scopecontrole.
-export const actualWorkBulkChangeSchema = actualWorkEntryFields.omit({ workHourTypeId: true, entryGranularity: true })
+// Bulk saves contain changed cells only, so an entryId always represents a
+// correction and must carry its reason even while the period is still open.
+export const actualWorkBulkChangeSchema = actualWorkEntryFields
+  .omit({ workHourTypeId: true, entryGranularity: true })
+  .superRefine((value, context) => {
+    if (value.entryId && !value.correctionReason) {
+      context.addIssue({ code: 'custom', path: ['correctionReason'], message: 'ACTUAL_WORK_CORRECTION_REASON_REQUIRED' })
+    }
+  })
 
 export const actualWorkBulkSaveSchema = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'ACTUAL_WORK_MONTH_INVALID'),

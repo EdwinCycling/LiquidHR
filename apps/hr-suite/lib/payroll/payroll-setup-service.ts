@@ -1,8 +1,9 @@
 import 'server-only'
 
 import type { PayrollJson, PayrollEmployerConfigurationVersionRow } from './database'
+import type { PayrollPeriodIdentity } from '@liquid-hr/payroll-engine'
 import { createClient } from '@/lib/supabase/server'
-import { createPayrollCalculationRepository, type PayrollRunSummary } from './calculation-repository'
+import { createPayrollCalculationRepository, type PayrollCalculationRepository, type PayrollRunSummary } from './calculation-repository'
 import {
   assertActivePayrollEmployerConfiguration,
   hashPayrollEmployerConfiguration,
@@ -18,6 +19,7 @@ import {
 } from './payroll-setup'
 import { requireComponentLibraryAccess } from './component-library-access'
 import { createPayrollSetupRepository, type PayrollSetupRepository } from './payroll-setup-repository'
+import type { PayrollScope } from './scope'
 
 export class PayrollSetupServiceError extends Error {
   constructor(
@@ -120,6 +122,25 @@ function configurationFromRow(row: PayrollEmployerConfigurationVersionRow): Payr
   } catch {
     return null
   }
+}
+
+export async function verifyPayrollPeriodIdentityInCalendar(
+  scope: PayrollScope,
+  payrollAdministrationId: string,
+  identity: PayrollPeriodIdentity,
+  repository: Pick<PayrollCalculationRepository, 'listCalendarPeriods'> = createPayrollCalculationRepository(),
+): Promise<boolean> {
+  if (!repository.listCalendarPeriods) return false
+  const periods = await repository.listCalendarPeriods(scope, payrollAdministrationId, 100)
+  const period = periods.find((candidate) => candidate.id === identity.id)
+  return Boolean(period
+    && period.status === 'OPEN'
+    && period.period_kind === identity.periodKind
+    && period.period_year === identity.periodYear
+    && period.period_number === identity.periodNumber
+    && period.periodicity === identity.periodicity
+    && period.starts_on === identity.startsOn
+    && period.ends_on === identity.endsOn)
 }
 
 export async function getPayrollSetup(

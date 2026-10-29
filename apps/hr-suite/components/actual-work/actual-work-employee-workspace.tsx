@@ -30,6 +30,8 @@ export type ActualWorkEmployeeLabels = {
   type: string
   family: string
   date: string
+  periodEnd: string
+  payrollPeriod: string
   hours: string
   note: string
   reason: string
@@ -65,6 +67,8 @@ type Draft = {
   workHourTypeId: string
   entryGranularity: 'DAY' | 'PERIOD'
   subjectPeriodStart: string
+  subjectPeriodEnd: string
+  postingPeriodStart: string
   hours: string
   note: string
   correctionReason: string
@@ -105,6 +109,8 @@ export function ActualWorkEmployeeWorkspace({ employeeId, month, projection, lab
     workHourTypeId: defaultType?.id ?? '',
     entryGranularity: defaultType?.entry_granularity === 'PERIOD' ? 'PERIOD' : 'DAY',
     subjectPeriodStart: month + '-01',
+    subjectPeriodEnd: monthOffset(month, 1) + '-01',
+    postingPeriodStart: month + '-01',
     hours: '',
     note: '',
     correctionReason: '',
@@ -124,6 +130,8 @@ export function ActualWorkEmployeeWorkspace({ employeeId, month, projection, lab
       workHourTypeId: defaultType?.id ?? '',
       entryGranularity: defaultType?.entry_granularity === 'PERIOD' ? 'PERIOD' : 'DAY',
       subjectPeriodStart: month + '-01',
+      subjectPeriodEnd: monthOffset(month, 1) + '-01',
+      postingPeriodStart: month + '-01',
       hours: '',
       note: '',
       correctionReason: '',
@@ -138,6 +146,8 @@ export function ActualWorkEmployeeWorkspace({ employeeId, month, projection, lab
       workHourTypeId: entry.work_hour_type_id,
       entryGranularity: entry.entry_granularity === 'PERIOD' ? 'PERIOD' : 'DAY',
       subjectPeriodStart: entry.subject_period_start,
+      subjectPeriodEnd: entry.subject_period_end,
+      postingPeriodStart: entry.posting_period_start,
       hours: String(entry.hours),
       note: entry.note ?? '',
       correctionReason: '',
@@ -160,6 +170,8 @@ export function ActualWorkEmployeeWorkspace({ employeeId, month, projection, lab
           workHourTypeId: draft.workHourTypeId,
           entryGranularity: draft.entryGranularity,
           subjectPeriodStart: draft.subjectPeriodStart,
+          subjectPeriodEnd: draft.entryGranularity === 'PERIOD' ? draft.subjectPeriodEnd : null,
+          postingPeriodStart: draft.postingPeriodStart,
           hours: draft.hours,
           note: draft.note || null,
           correctionReason: draft.entryId ? draft.correctionReason || null : null,
@@ -206,6 +218,8 @@ export function ActualWorkEmployeeWorkspace({ employeeId, month, projection, lab
         <label className="grid gap-1.5 text-sm font-medium"><span>{labels.type}</span><DropdownSelect aria-label={labels.selectType} disabled={Boolean(draft.entryId)} onChange={(event) => setDraft((current) => { const nextType = activeTypes.find((type) => type.id === event.target.value); return { ...current, workHourTypeId: event.target.value, entryGranularity: nextType?.entry_granularity === 'PERIOD' ? 'PERIOD' : nextType?.entry_granularity === 'DAY' ? 'DAY' : current.entryGranularity } })} placeholder={labels.selectType} searchable searchPlaceholder={labels.searchTypes} value={draft.workHourTypeId}>{activeTypes.map((type) => <option key={type.id} value={type.id}>{type.code ? type.code + ' · ' : ''}{type.name} · {familyLabel(type.family, labels)}</option>)}</DropdownSelect></label>
         <label className="grid gap-1.5 text-sm font-medium"><span>{labels.granularity}</span><DropdownSelect aria-label={labels.granularity} disabled={Boolean(draft.entryId) || selectedType?.entry_granularity === 'DAY' || selectedType?.entry_granularity === 'PERIOD'} onChange={(event) => setDraft((current) => ({ ...current, entryGranularity: event.target.value as Draft['entryGranularity'] }))} value={draft.entryGranularity}><option value="DAY">{labels.day}</option><option value="PERIOD">{labels.period}</option></DropdownSelect></label>
         <label className="grid gap-1.5 text-sm font-medium"><span>{labels.date}</span><TextInput disabled={periodClosed} onChange={(event) => setDraft((current) => ({ ...current, subjectPeriodStart: event.target.value }))} required type="date" value={draft.subjectPeriodStart} /></label>
+        {draft.entryGranularity === 'PERIOD' ? <label className="grid gap-1.5 text-sm font-medium"><span>{labels.periodEnd}</span><TextInput disabled={periodClosed} min={draft.subjectPeriodStart} onChange={(event) => setDraft((current) => ({ ...current, subjectPeriodEnd: event.target.value }))} required type="date" value={draft.subjectPeriodEnd} /></label> : null}
+        <label className="grid gap-1.5 text-sm font-medium"><span>{labels.payrollPeriod}</span><TextInput disabled={periodClosed} onChange={(event) => setDraft((current) => ({ ...current, postingPeriodStart: event.target.value ? event.target.value + '-01' : '' }))} required type="month" value={draft.postingPeriodStart.slice(0, 7)} /></label>
         <label className="grid gap-1.5 text-sm font-medium"><span>{labels.hours}</span><TextInput disabled={periodClosed} inputMode="decimal" onChange={(event) => setDraft((current) => ({ ...current, hours: event.target.value }))} placeholder="0.0000" required type="text" value={draft.hours} /></label>
         <label className="grid gap-1.5 text-sm font-medium lg:col-span-2"><span>{labels.note}</span><Textarea disabled={periodClosed} maxLength={500} onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))} value={draft.note} /></label>
         {draft.entryId ? <label className="grid gap-1.5 text-sm font-medium lg:col-span-2"><span>{labels.correctionReason}</span><Textarea disabled={periodClosed} maxLength={500} onChange={(event) => setDraft((current) => ({ ...current, correctionReason: event.target.value }))} required value={draft.correctionReason} /></label> : null}

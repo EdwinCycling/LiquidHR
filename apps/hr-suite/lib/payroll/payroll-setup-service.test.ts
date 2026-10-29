@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { PayrollDatabase, PayrollEmployerConfigurationVersionRow, PayrollOpeningCumulativeSnapshotRow } from './database'
-import type { PayrollRunSummary } from './calculation-repository'
+import type { PayrollDatabase, PayrollEmployerConfigurationVersionRow, PayrollOpeningCumulativeSnapshotRow, PayrollCalendarPeriodListRow } from './database'
+import type { PayrollCalculationRepository, PayrollRunSummary } from './calculation-repository'
 import type { PayrollSetupRepository } from './payroll-setup-repository'
 import {
   hashPayrollEmployerConfiguration,
@@ -10,6 +10,7 @@ import {
 import {
   savePayrollEmployerConfiguration,
   savePayrollOpeningCumulativeBalance,
+  verifyPayrollPeriodIdentityInCalendar,
   type PayrollOpeningCumulativeFormDraft,
 } from './payroll-setup-service'
 
@@ -20,6 +21,16 @@ const scope = {
 }
 const payrollAdministrationId = '10000000-0000-4000-8000-000000000004'
 const actorUserId = '10000000-0000-4000-8000-000000000005'
+
+const fourWeeklyPeriodIdentity = {
+  id: '90000000-0000-4000-8000-000000000001',
+  periodYear: 2026,
+  periodNumber: 13,
+  periodicity: 'FOUR_WEEKLY' as const,
+  periodKind: 'REGULAR' as const,
+  startsOn: '2026-12-21',
+  endsOn: '2027-01-17',
+}
 
 const configurationDraft: PayrollEmployerConfigurationDraft = {
   schemaVersion: 'payroll-employer-configuration-v1',
@@ -168,6 +179,35 @@ const listAcceptanceEmployee = async () => [{
   startsOn: '2026-09-01',
   endsOn: null,
 }]
+
+describe('Payroll period identity verification', () => {
+  it('matches the exact open calendar period including a year boundary', async () => {
+    const calendarPeriod: PayrollCalendarPeriodListRow = {
+      id: fourWeeklyPeriodIdentity.id,
+      period_year: fourWeeklyPeriodIdentity.periodYear,
+      period_month: null,
+      period_number: fourWeeklyPeriodIdentity.periodNumber,
+      periodicity: fourWeeklyPeriodIdentity.periodicity,
+      period_kind: fourWeeklyPeriodIdentity.periodKind,
+      starts_on: fourWeeklyPeriodIdentity.startsOn,
+      ends_on: fourWeeklyPeriodIdentity.endsOn,
+      planned_payment_date: null,
+      status: 'OPEN',
+    }
+    const listCalendarPeriods = vi.fn(async () => [calendarPeriod])
+    const repository = { listCalendarPeriods } as Pick<PayrollCalculationRepository, 'listCalendarPeriods'>
+
+    await expect(verifyPayrollPeriodIdentityInCalendar(scope, payrollAdministrationId, fourWeeklyPeriodIdentity, repository))
+      .resolves.toBe(true)
+    expect(listCalendarPeriods).toHaveBeenCalledWith(scope, payrollAdministrationId, 100)
+    await expect(verifyPayrollPeriodIdentityInCalendar(scope, payrollAdministrationId, {
+      ...fourWeeklyPeriodIdentity,
+      endsOn: '2027-01-18',
+    }, repository)).resolves.toBe(false)
+    await expect(verifyPayrollPeriodIdentityInCalendar(scope, payrollAdministrationId, fourWeeklyPeriodIdentity, {}))
+      .resolves.toBe(false)
+  })
+})
 
 describe('Payroll opening cumulative history boundary', () => {
   it('accepts finalized history that ends before the new opening effective date', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { payrollPeriodReferenceSchema, payrollSourceProviderInputSchema, payrollSourceSnapshotSchema } from './schemas'
+import { payrollPeriodIdentitySchema, payrollPeriodReferenceSchema, payrollSourceProviderInputSchema, payrollSourceSnapshotSchema } from './schemas'
 
 describe('Payroll source runtime schemas', () => {
   it('accepts valid calendar payroll periods and rejects invalid months', () => {
@@ -8,13 +8,32 @@ describe('Payroll source runtime schemas', () => {
     expect(payrollPeriodReferenceSchema.safeParse({ year: 2026, month: 13 }).success).toBe(false)
   })
 
+  it('accepts exact 28-day periods across a year boundary and rejects altered boundaries', () => {
+    const period = {
+      id: '90000000-0000-4000-8000-000000000009',
+      periodYear: 2026,
+      periodNumber: 13,
+      periodicity: 'FOUR_WEEKLY',
+      periodKind: 'REGULAR',
+      startsOn: '2026-12-21',
+      endsOn: '2027-01-17',
+    } as const
+    expect(payrollPeriodIdentitySchema.safeParse(period).success).toBe(true)
+    expect(payrollPeriodIdentitySchema.safeParse({ ...period, endsOn: '2027-01-16' }).success).toBe(false)
+    expect(payrollPeriodIdentitySchema.safeParse({ ...period, startsOn: '2026-02-30' }).success).toBe(false)
+  })
+
   it('requires UUID source scope and rejects extra caller-provided scope fields', () => {
     const input = {
       tenantId: '10000000-0000-4000-8000-000000000001',
       hrGroupId: '20000000-0000-4000-8000-000000000002',
       administrationId: '30000000-0000-4000-8000-000000000003',
       employeeId: '40000000-0000-4000-8000-000000000004',
-      payrollPeriod: { year: 2026, month: 9 },
+      payrollPeriod: { year: 2026, month: 12 },
+      payrollPeriodIdentity: {
+        id: '90000000-0000-4000-8000-000000000009', periodYear: 2026, periodNumber: 13,
+        periodicity: 'FOUR_WEEKLY', periodKind: 'REGULAR', startsOn: '2026-12-21', endsOn: '2027-01-17',
+      },
     }
     expect(payrollSourceProviderInputSchema.safeParse(input).success).toBe(true)
     expect(payrollSourceProviderInputSchema.safeParse({ ...input, userId: 'caller-controlled' }).success).toBe(false)
@@ -30,7 +49,11 @@ describe('Payroll source runtime schemas', () => {
       sourceEmployeeId: '40000000-0000-4000-8000-000000000004',
       sourceEmploymentId: '50000000-0000-4000-8000-000000000005',
       sourceIncomeRelationshipId: null,
-      periodReference: { year: 2026, month: 9 },
+      periodReference: { year: 2026, month: 12 },
+      payrollPeriodIdentity: {
+        id: '90000000-0000-4000-8000-000000000009', periodYear: 2026, periodNumber: 13,
+        periodicity: 'FOUR_WEEKLY', periodKind: 'REGULAR', startsOn: '2026-12-21', endsOn: '2027-01-17',
+      },
       canonicalSource: { employment: { startsOn: '2026-09-01' } },
       sourceVersionVector: { 'employment:50000000-0000-4000-8000-000000000005': '2026-09-01T10:00:00.000Z' },
       sourceGaps: [{ field: 'incomeRelationship', status: 'UNSUPPORTED', reasonCode: 'INCOME_RELATIONSHIP_SOURCE_UNSUPPORTED' }],

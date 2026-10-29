@@ -12,6 +12,7 @@ type PayrollSourceHashInput = Pick<
   | 'sourceEmploymentId'
   | 'sourceIncomeRelationshipId'
   | 'periodReference'
+  | 'payrollPeriodIdentity'
   | 'canonicalSource'
   | 'sourceVersionVector'
   | 'sourceGaps'

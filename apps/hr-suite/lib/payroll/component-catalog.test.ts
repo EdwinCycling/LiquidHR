@@ -6,6 +6,7 @@ import {
 import {
   NL_2026_PARAMETER_METADATA,
   NL_2026_RULE_PACKAGE,
+  createPayfull02RulePackage,
 } from '@liquid-hr/payroll-rules-nl-2026'
 import { describe, expect, it } from 'vitest'
 import {
@@ -59,8 +60,8 @@ describe('payroll component catalog', () => {
     const catalog = getSystemComponentCatalog()
 
     expect(catalog).toBe(SYSTEM_COMPONENT_CATALOG)
-    expect(catalog).toHaveLength(GC_NL_001_RULE_PACKAGE.components.length + NL_2026_RULE_PACKAGE.components.length)
-    expect(catalog).toHaveLength(24)
+    expect(catalog).toHaveLength(GC_NL_001_RULE_PACKAGE.components.length + NL_2026_RULE_PACKAGE.components.length + 1)
+    expect(catalog).toHaveLength(25)
     expect(catalog.every((entry) => entry.ownership === 'SYSTEM')).toBe(true)
     expect(new Set(catalog.map((entry) => entry.key)).size).toBe(catalog.length)
     expect(catalog.every((entry) => entry.validation.valid)).toBe(true)
@@ -96,6 +97,32 @@ describe('payroll component catalog', () => {
     expect(nlWageTax?.forkBlockReason).toBe('REGISTERED_RULE_NOT_COPYABLE')
     expect(nlWageTax?.definition.method).toMatchObject({ kind: 'registeredRule', ruleKey: 'nl.2026.regular-wage-withholding' })
     expect('execute' in (nlWageTax?.definition.method ?? {})).toBe(false)
+
+    const payfull02 = createPayfull02RulePackage('CUSTOMER_STANDARD', { supportPartialPeriods: true })
+    const variableRegularWage = findSystemComponentCatalogEntry({
+      compositionId: payfull02.compositionId,
+      code: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+      version: '2026.1',
+    })
+    expect(variableRegularWage).toMatchObject({
+      ownership: 'SYSTEM',
+      package: {
+        compositionId: payfull02.compositionId,
+        packageId: payfull02.metadata?.packageId,
+        version: payfull02.metadata?.version,
+        packageHash: payfull02.metadata?.packageHash,
+      },
+      definition: {
+        id: 'system:payfull02:payfull02_variable_regular_wage',
+        code: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+        version: '2026.1',
+        effectiveFrom: '2026-01-01',
+        effectiveTo: '2026-12-31',
+        method: { kind: 'source', path: ['payrollOwned', 'amounts', 'variableRegularWage'] },
+        outputs: [{ name: 'amount', valueType: 'MONEY' }],
+      },
+      validation: { valid: true, issues: [] },
+    })
   })
 
   it('uses exact lookup keys and supports package-aware search filters', () => {

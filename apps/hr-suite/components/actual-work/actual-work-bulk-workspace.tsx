@@ -54,6 +54,7 @@ export type ActualWorkBulkLabels = {
   noteHelp: string
   correctionReason: string
   correctionReasonHelp: string
+  correctionReasonRequired: string
   limits: string
   limitDay: string
   limitWeek: string
@@ -129,7 +130,8 @@ function errorMessage(code: string, labels: ActualWorkBulkLabels): string {
   if (code === 'ACTUAL_WORK_BULK_SCOPE_INVALID') return labels.errorScope
   if (code === 'ACTUAL_WORK_BULK_DATE_INVALID') return labels.errorDate
   if (code === 'ACTUAL_WORK_TYPE_NOT_ACTIVE') return labels.errorType
-  if (code === 'ACTUAL_WORK_PERIOD_CLOSED' || code === 'ACTUAL_WORK_CORRECTION_REASON_REQUIRED') return labels.closedCorrection
+  if (code === 'ACTUAL_WORK_PERIOD_CLOSED') return labels.closedCorrection
+  if (code === 'ACTUAL_WORK_CORRECTION_REASON_REQUIRED') return labels.correctionReasonRequired
   return labels.failed
 }
 
@@ -233,7 +235,7 @@ export function ActualWorkBulkWorkspace({ projection, labels, initialEmployeeQue
           subjectPeriodStart: cell.date,
           hours: canonical,
           note: note.trim() || cell.entry?.note || null,
-          correctionReason: periodClosed ? correctionReason.trim() || null : null,
+          correctionReason: cell.entry ? correctionReason.trim() || null : null,
         })
       }
     }
@@ -247,7 +249,8 @@ export function ActualWorkBulkWorkspace({ projection, labels, initialEmployeeQue
     try {
       const changes = changesForSave()
       if (changes.length === 0) throw new Error(labels.noChanges)
-      if (periodClosed && (!correctionReason.trim() || changes.some((change) => change.entryId === null))) throw new Error(labels.closedCorrection)
+      if (changes.some((change) => change.entryId !== null && !change.correctionReason)) throw new Error('ACTUAL_WORK_CORRECTION_REASON_REQUIRED')
+      if (periodClosed && changes.some((change) => change.entryId === null)) throw new Error(labels.closedCorrection)
       const response = await fetch('/api/actual-work/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -311,7 +314,7 @@ export function ActualWorkBulkWorkspace({ projection, labels, initialEmployeeQue
     <Surface className="p-5">
       <div className="grid gap-4 lg:grid-cols-2">
         <label className="grid gap-1.5 text-sm font-medium"><span>{labels.note}</span><Textarea maxLength={500} onChange={(event) => setNote(event.target.value)} value={note} /><span className="text-xs font-normal text-muted-foreground">{labels.noteHelp}</span></label>
-        {periodClosed ? <label className="grid gap-1.5 text-sm font-medium"><span>{labels.correctionReason}</span><Textarea maxLength={500} onChange={(event) => setCorrectionReason(event.target.value)} required value={correctionReason} /><span className="text-xs font-normal text-muted-foreground">{labels.correctionReasonHelp}</span></label> : null}
+        <label className="grid gap-1.5 text-sm font-medium"><span>{labels.correctionReason}</span><Textarea maxLength={500} onChange={(event) => setCorrectionReason(event.target.value)} value={correctionReason} /><span className="text-xs font-normal text-muted-foreground">{labels.correctionReasonHelp}</span></label>
       </div>
       {message ? <p aria-live="polite" className="mt-4 text-sm text-chart-2">{message}</p> : null}
       {error ? <p aria-live="assertive" className="mt-4 text-sm text-destructive">{errorMessage(error, labels)}</p> : null}
