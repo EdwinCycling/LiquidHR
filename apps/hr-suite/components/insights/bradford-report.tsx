@@ -19,7 +19,7 @@ import type { BradfordInsightReport, BradfordBand } from '@/lib/insights/bradfor
 import { buildInsightApplyHref, insightEmployeeDrilldownHref } from '@/lib/insights/query-seam'
 
 interface BradfordReportLabels {
-  title: string; backToAbsence: string; exportExcel: string; exportPreparing: string; exportSuccess: string; exportFailed: string; period: string; last52Weeks: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; resetFilters: string; clearFilters: string; removeFilter: string; filterStatus: string; groupBy: string; person: string; search: string; searchPlaceholder: string; risk: string; allRisks: string; lowRisk: string; mediumRisk: string; highRisk: string; employee: string; distribution: string; score: string; occurrences: string; days: string; since: string; dossier: string; info: string; infoTitle: string; infoFormula: string; infoInterpretation: string; infoLow: string; infoMedium: string; infoHigh: string; infoCaveat: string; infoSource: string; close: string; noResults: string; activeFilters?: string
+  title: string; backToAbsence: string; exportExcel: string; exportPreparing: string; exportSuccess: string; exportFailed: string; period: string; last52Weeks: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; resetFilters: string; clearFilters: string; removeFilter: string; filterStatus: string; groupBy: string; person: string; search: string; searchPlaceholder: string; risk: string; allRisks: string; lowRisk: string; mediumRisk: string; highRisk: string; unknownValue: string; dataQualityHint: string; employee: string; distribution: string; score: string; occurrences: string; days: string; since: string; dossier: string; info: string; infoTitle: string; infoFormula: string; infoInterpretation: string; infoLow: string; infoMedium: string; infoHigh: string; infoCaveat: string; infoSource: string; close: string; noResults: string; activeFilters?: string
 }
 
 function periodLabel(query: BradfordInsightQuery, labels: BradfordReportLabels): string {
@@ -31,18 +31,21 @@ function periodLabel(query: BradfordInsightQuery, labels: BradfordReportLabels):
 function bandLabel(band: BradfordBand, labels: BradfordReportLabels): string {
   if (band === 'HIGH') return labels.highRisk
   if (band === 'MEDIUM') return labels.mediumRisk
+  if (band === 'UNKNOWN') return labels.unknownValue
   return labels.lowRisk
 }
 
 function bandTone(band: BradfordBand): BadgeTone {
   if (band === 'HIGH') return 'danger'
   if (band === 'MEDIUM') return 'warning'
+  if (band === 'UNKNOWN') return 'neutral'
   return 'success'
 }
 
 function bandBarClass(band: BradfordBand): string {
   if (band === 'HIGH') return 'bg-destructive'
   if (band === 'MEDIUM') return 'bg-warning'
+  if (band === 'UNKNOWN') return 'bg-muted'
   return 'bg-success'
 }
 
@@ -63,7 +66,7 @@ export function BradfordReportView({ report, query, labels, returnTo }: { report
   }
   const apply = (next: BradfordInsightQuery): void => router.push(buildInsightApplyHref(searchParams, bradfordInsightQueryParams(next)), { scroll: false })
   const reset = (): void => { const next = defaultQuery(); setDraft(next); apply(next) }
-  const maxScore = Math.max(1, ...report.rows.map((row) => row.score))
+  const maxScore = Math.max(1, ...report.rows.flatMap((row) => row.score === null ? [] : [row.score]))
   const rows = report.rows
   const selectedDepartment = query.departmentId ? report.departments.find((department) => department.id === query.departmentId)?.name ?? query.departmentId : null
   const activeFilters: ActiveReportFilter[] = [
@@ -73,6 +76,10 @@ export function BradfordReportView({ report, query, labels, returnTo }: { report
     ...(query.search.trim() ? [{ key: 'search', label: labels.search, value: query.search.trim(), onRemove: () => { const next = { ...query, search: '' }; setDraft(next); apply(next) } }] : []),
   ]
   const exportParams = bradfordInsightQueryParams(query, 'excel')
+  const qualityHint = labels.dataQualityHint
+    .replace('{scheduleDays}', String(report.dataQuality.unknownScheduleDays))
+    .replace('{capacityDays}', String(report.dataQuality.unknownCapacityDays))
+    .replace('{placements}', String(report.dataQuality.unknownPlacements))
 
   return <section className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -96,10 +103,12 @@ export function BradfordReportView({ report, query, labels, returnTo }: { report
     <div className="grid gap-3 sm:grid-cols-3">
       <ReportKpi featured label={labels.period} tone="primary" value={periodLabel(query, labels)} />
       <ReportKpi label={labels.occurrences} tone="info" value={String(report.totalOccurrences)} />
-      <ReportKpi label={labels.days} tone="warning" value={report.totalSickDays.toFixed(1)} />
+      <ReportKpi label={labels.days} tone="warning" value={report.totalSickDays === null ? labels.unknownValue : report.totalSickDays.toFixed(1)} />
     </div>
 
-    <div className="flex flex-wrap items-center gap-2 text-sm"><span className="mr-1 font-medium text-muted-foreground">{labels.distribution}</span><BradfordLegend band="LOW" labels={labels} /><BradfordLegend band="MEDIUM" labels={labels} /><BradfordLegend band="HIGH" labels={labels} /></div>
+    {!report.dataQuality.complete ? <p className="text-sm text-muted-foreground">{qualityHint}</p> : null}
+
+    <div className="flex flex-wrap items-center gap-2 text-sm"><span className="mr-1 font-medium text-muted-foreground">{labels.distribution}</span><BradfordLegend band="LOW" labels={labels} /><BradfordLegend band="MEDIUM" labels={labels} /><BradfordLegend band="HIGH" labels={labels} />{rows.some((row) => row.band === 'UNKNOWN') ? <BradfordLegend band="UNKNOWN" labels={labels} /> : null}</div>
 
     <div className="space-y-3">
       <SectionHeader actions={<span className="text-sm text-muted-foreground">{rows.length} / {report.rows.length}</span>} description={periodLabel(query, labels)} title={labels.person} />
@@ -109,12 +118,12 @@ export function BradfordReportView({ report, query, labels, returnTo }: { report
         </tr></thead>
         <tbody className="divide-y divide-border-subtle">{rows.map((row) => <tr className="whitespace-nowrap" key={row.employeeId}>
           <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{row.employeeName}</Link></td>
-          <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.allDepartments}</td>
+          <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.unknownValue}</td>
           <td className="px-4 py-3 sm:px-5">{dateLabel(row.firstAbsenceOn)}</td>
           <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.absenceOccurrences}</td>
-          <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickDays.toFixed(1)}</td>
-          <td className="min-w-56 px-4 py-3 sm:px-5"><div aria-label={`${labels.distribution}: ${row.score}`} className="h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${bandBarClass(row.band)}`} style={{ width: `${Math.max(row.score ? 2 : 0, row.score / maxScore * 100)}%` }} /></div></td>
-          <td className="px-4 py-3 text-right sm:px-5"><div className="flex flex-col items-end gap-1"><strong className="text-lg tabular-nums">{row.score}</strong><Badge tone={bandTone(row.band)}>{bandLabel(row.band, labels)}</Badge></div></td>
+          <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickDays === null ? labels.unknownValue : row.sickDays.toFixed(1)}</td>
+          <td className="min-w-56 px-4 py-3 sm:px-5"><div aria-label={`${labels.distribution}: ${row.score ?? labels.unknownValue}`} className="h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${bandBarClass(row.band)}`} style={{ width: row.score === null ? '0%' : `${Math.max(row.score ? 2 : 0, row.score / maxScore * 100)}%` }} /></div></td>
+          <td className="px-4 py-3 text-right sm:px-5"><div className="flex flex-col items-end gap-1"><strong className="text-lg tabular-nums">{row.score ?? labels.unknownValue}</strong><Badge tone={bandTone(row.band)}>{bandLabel(row.band, labels)}</Badge></div></td>
           <td className="px-4 py-3 sm:px-5"><Link aria-label={`${labels.dossier}: ${row.employeeName}`} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{labels.dossier}<ArrowRight aria-hidden="true" size={15} /></Link></td>
         </tr>)}</tbody>
       </DataTableShell>

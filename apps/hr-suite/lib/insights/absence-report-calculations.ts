@@ -9,6 +9,9 @@ export interface AbsenceEmploymentMetric {
   availableDays: number
   sickHours: number
   sickDays: number
+  unknownScheduleDays: number
+  unknownCapacityDays: number
+  unknownPlacements: number
   caseIds: readonly string[]
   spellIds: readonly string[]
 }
@@ -24,6 +27,9 @@ export interface AbsenceEmployeeMetric {
   availableDays: number
   sickHours: number
   sickDays: number
+  unknownScheduleDays: number
+  unknownCapacityDays: number
+  unknownPlacements: number
   caseIds: Set<string>
   spellIds: Set<string>
 }
@@ -44,6 +50,9 @@ export function aggregateAbsenceEmployeeMetrics(metrics: readonly AbsenceEmploym
       availableDays: 0,
       sickHours: 0,
       sickDays: 0,
+      unknownScheduleDays: 0,
+      unknownCapacityDays: 0,
+      unknownPlacements: 0,
       caseIds: new Set<string>(),
       spellIds: new Set<string>(),
     }
@@ -52,6 +61,9 @@ export function aggregateAbsenceEmployeeMetrics(metrics: readonly AbsenceEmploym
     current.availableDays += metric.availableDays
     current.sickHours += metric.sickHours
     current.sickDays += metric.sickDays
+    current.unknownScheduleDays += metric.unknownScheduleDays
+    current.unknownCapacityDays += metric.unknownCapacityDays
+    current.unknownPlacements += metric.unknownPlacements
     for (const caseId of metric.caseIds) current.caseIds.add(caseId)
     for (const spellId of metric.spellIds) current.spellIds.add(spellId)
 

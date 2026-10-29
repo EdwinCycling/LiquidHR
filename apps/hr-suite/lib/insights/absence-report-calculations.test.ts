@@ -7,12 +7,12 @@ describe('absence report employee aggregation', () => {
       {
         employeeId: 'employee-1', employeeName: 'Ada Example', departmentId: null, departmentName: null,
         status: 'ACTIVE', firstAbsenceOn: '2026-09-01', availableHours: 24, availableDays: 3,
-        sickHours: 24, sickDays: 3, caseIds: ['case-1'], spellIds: ['spell-1'],
+        sickHours: 24, sickDays: 3, unknownScheduleDays: 0, unknownCapacityDays: 0, unknownPlacements: 0, caseIds: ['case-1'], spellIds: ['spell-1'],
       },
       {
         employeeId: 'employee-1', employeeName: 'Ada Example', departmentId: null, departmentName: null,
         status: 'ACTIVE', firstAbsenceOn: '2026-09-01', availableHours: 16, availableDays: 2,
-        sickHours: 0, sickDays: 0, caseIds: [], spellIds: [],
+        sickHours: 0, sickDays: 0, unknownScheduleDays: 0, unknownCapacityDays: 0, unknownPlacements: 0, caseIds: [], spellIds: [],
       },
     ])
 
@@ -25,12 +25,12 @@ describe('absence report employee aggregation', () => {
       {
         employeeId: 'employee-1', employeeName: 'Ada Example', departmentId: 'department-1', departmentName: 'HR',
         status: 'RECOVERY_WINDOW', firstAbsenceOn: '2026-08-01', availableHours: 8, availableDays: 1,
-        sickHours: 4, sickDays: 0.5, caseIds: ['case-1'], spellIds: ['spell-1'],
+        sickHours: 4, sickDays: 0.5, unknownScheduleDays: 0, unknownCapacityDays: 0, unknownPlacements: 0, caseIds: ['case-1'], spellIds: ['spell-1'],
       },
       {
         employeeId: 'employee-1', employeeName: 'Ada Example', departmentId: 'department-1', departmentName: 'HR',
         status: 'CLOSED', firstAbsenceOn: '2026-09-01', availableHours: 8, availableDays: 1,
-        sickHours: 2, sickDays: 0.25, caseIds: ['case-1', 'case-2'], spellIds: ['spell-1', 'spell-2'],
+        sickHours: 2, sickDays: 0.25, unknownScheduleDays: 0, unknownCapacityDays: 0, unknownPlacements: 0, caseIds: ['case-1', 'case-2'], spellIds: ['spell-1', 'spell-2'],
       },
     ])
 
