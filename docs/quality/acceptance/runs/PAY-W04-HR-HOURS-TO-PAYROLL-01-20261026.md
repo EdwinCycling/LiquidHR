@@ -474,6 +474,33 @@ De synthetische Core-records en hun append-only correctie-/revisiehistorie zijn 
 **Integratieadvies vóór GitHub-refresher: PARTIAL.** Echte variabele bronconsumptie, EUR 20,00-componentbasis, idempotente herhaalopvraging, role-denials en lokale regressie-/buildgates zijn bewezen. Volledige Payroll-berekening is bewust niet eligible; migratieherkomst en de daaropvolgende GitHub-mergeability/checkstatus moeten na push worden beoordeeld. Geen automatische merge of deployment.
 
 
+### PAY-W04-CONTROLLED-MERGE-15 — merge- en post-merge-controle — 29-10-2026
+
+**Besluit: W04-code geïntegreerd — GO.** PR #51 is door GitHub als merged bevestigd, met normale mergecommit `3852618b7fa6ee3e1c70a95a510e871e7fa2f308` op basis van `e065bfe635e16e71c2af93719059ece483b16478`. De lokale bestaande `LIQUIDHR-MAIN-SYNC-20261029`-checkout was schoon, ancestral en fast-forwardbaar; `git pull --ff-only origin main` werkte die na de merge bij. De nieuwe `origin/main` en lokale main stonden na de pull beide op de mergecommit. De W04-branch HEAD was `58a0fdf76e4327a27ecde00086dac6f078ca1970`. GitHub retourneerde geen PR-checks of statuscontexten. PR-diff bevatte 68 bestanden; geen Focus, `next-env.d.ts`, `.tool-home`, `.env`/configbestanden, credentialvormige waarden of WVP01/INS-03A/performance-#53 featurebestanden. Geen andere branch is gemerged.
+
+#### Migratie- en schema-identiteit (read-only)
+
+- Core TEST registreert de vijf relevante migraties: `pay_w04_hr_hours_to_payroll` (`20261026181001`), `pay_w04_tvt_and_payroll_period_release` (`20261026181027`), `actual_work_payroll_revision_approval` (`20261028130821`), `pay_w04_align_payfull02_work_hour_component` (`20261028162054`) en `allow_tenant_scoped_employment_salary_visibility` (`20261029064812`). De eerste drie registratievensters verschillen van de lokale filename timestamps; de geregistreerde namen stemmen overeen. Er is niets opnieuw toegepast of gerepareerd.
+- De mapping-, approval-, release- en salaris-tabellen bestaan met de verwachte kolommen en RLS. Approval- en release-RPC's, mapping-save, import-save en tenant-scoped salary-visibilityfunctie bestaan met verwachte argumenten; remote `prosrc`-MD5's kwamen overeen met bodies uit de lokale migraties. De tweede definitie van `save_actual_work_payroll_mapping` is de bedoelde latere `CREATE OR REPLACE`-alignering; elke W04-tabel wordt één keer aangemaakt. Geen dubbele of conflicterende tabeldefinitie gevonden.
+- ACL-verduidelijking: de platform-default ACL geeft `anon` op `actual_work_payroll_mappings` SELECT en TRUNCATE; die tabel heeft RLS aan en uitsluitend een `authenticated`-SELECT-policy, dus geen anon row policy. `anon` heeft geen INSERT/UPDATE/DELETE-recht op die tabel; salaris-, approval- en release-tabellen ontzeggen anon-table privileges. De gecontroleerde W04-approval-, release- en mapping-mutatie-RPC's weigeren anon EXECUTE. Dit blijft een open least-privilege-hardeningpunt voor verdere schema-uitrol of TEST-release; deze merge-run wijzigde geen policy, grant of schema.
+
+#### Post-merge kwaliteitsgates
+
+- Op lokale main `3852618b7fa6ee3e1c70a95a510e871e7fa2f308`: **201/201 gerichte regressietests in 16 bestanden PASS**, inclusief Actual Work, sourcebridge, provider, Payroll, RLS-/autorisatie- en migratiecontracten.
+- Root TypeScript: **PASS** voor HR Suite, Control, payroll-engine en payroll-rules workspaces.
+- `npm ci` met de bestaande lockfile slaagde na Windows `EPERM`-symlink bij de sandbox-runner; `@sparticuz/chromium` gaf een niet-blokkerende enginewaarschuwing omdat runtime Node `22.14.0` is en pakket `^22.17.0` vraagt. Rootbuild daarna **PASS**: HR Suite 348 pagina's, client-boundary/bundle/trace/provenancecontroles en Control 12 pagina's.
+- De build had alleen de gegenereerde Focus-widgetresource herschreven; die is exact teruggezet naar de pre-build SHA-256 `A8D0B798BA8D39F83630ABA103934BA8FE137B9FED4560AF146CBE0B9D660B4C`. `next-env.d.ts` bleef op `1B59D4C6B83807DB275D43F3CF2CC8E9323F465FAB764EEA091CC5BECD5BAD37`; `.tool-home` werd niet aangemaakt. Andere worktrees zijn niet gewijzigd. De lokale main-werkboom is na documentatie-update opnieuw gecontroleerd.
+
+#### Functionele status en releasegrenzen
+
+- Bestaande Core TEST-gegevens zijn niet opnieuw gemaakt/gewijzigd: salaris `HOURLY_VARIABLE/MANUAL`, EUR 20,00, en revisie 2 van 1,00 APPROVED uur met bestaande INITIAL-vrijgave. De echte Payroll-sourceprovider is eerder op de geteste, identieke Git-tree twee keer uitgevoerd: bronhash `29c4df0df85cbd3125594f590996cc0135cf858c4ee3006a334c0d8793aca348`, één match, berekend `variableRegularWageAmount="20.00"`, geen dubbele verwerking en geen `ACTUAL_WORK_HOURLY_RATE_REQUIRED`. De W04-mapping is versie 1 naar systeemcomponent `system:payfull02:payfull02_variable_regular_wage` versie `2026.1`; employer-configuratie- en compositiehashes en bestaande goedkeurings-/vrijgavefingerprints zijn onveranderd.
+- Manager/Employee approval/release-proeven blijven HTTP 403; vreemde tenant HTTP 409. De fixed-salary/TWK-regressieketen is intact. Beide relevante TEST-periodes zijn OPEN; niets gewijzigd.
+- De provider blijft `sourceReady=false` en de medewerker niet eligible door actieve IKV, bevestigd fiscaal profiel, contractdata, opening-cumulatieven en pensioenbron. **Volledige bruto-nettoberekening: HOLD. Vierwekenberekening: HOLD. Vercel TEST-release: HOLD.** Geen Payroll-run, FINALIZED-run of loonstrook gemaakt.
+- Read-only Vercel-query voor exact de mergecommit retourneerde **0 deployments**; er is geen Vercel-release waargenomen of handmatig gestart.
+
+**Eindstatus:** W04-code op main **GO**; Actual Work → Payroll-sourceconsumptie **PASS**; volledige Payroll-berekening en Vercel TEST-release **HOLD**.
+
+
 ### PAY-W04 — aanvullende persona-autorisatieproef, 27-10-2026
 
 Via dezelfde lokale TEST-app en de bestaande afgeschermde `/local/personas`-wisselaar is HR Admin teruggezet en daarna zijn de bestaande Manager- en Employee-persona's gebruikt. Er zijn geen credentials getoond of accounts aangemaakt.
