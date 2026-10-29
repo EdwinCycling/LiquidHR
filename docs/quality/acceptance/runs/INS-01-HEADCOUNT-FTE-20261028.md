@@ -1,5 +1,6 @@
 # INS-01 — Headcount & FTE acceptance
 
+> **29-10-2026 — actuele integratie-evidence na onderstaande historische runs.** De oorspronkelijke lokale HOLD wegens ontbrekende live-rolacceptatie is opgevolgd door de geauthenticeerde Core TEST-resultaten hieronder. De latere HOLD wegens niet-getoonde Engelse live-UI is voor **code-integratie** expliciet omgezet naar **GO voor onafhankelijke review/mergebesluit**, met **Engelse live-UI OPEN voor latere releaseacceptatie**. De bestaande lokale en remote featurelijnen zijn non-force geïntegreerd in [Draft PR #57](https://github.com/EdwinCycling/LiquidHR/pull/57), SHA `2a172885e3ff8df490cc23bd2656651fb88d5bba` vóór deze documentcorrectie. Volgens de laatste Codex-run: 23/23 gerichte tests, TypeScript, ESLint, i18n en diff-check PASS; geen CI-checks op GitHub. De oudere verdicts hieronder blijven tijdgebonden bewijs, niet het actuele mergeadvies. Geen nieuwe browserproef, databasewrite, merge of deployment uitgevoerd door deze documentcorrectie.\n\n
 **Result: PARTIAL — local implementation and synthetic layout pass; authenticated Core TEST acceptance remains open.**
 
 ## Baseline and source validation
