@@ -1,5 +1,23 @@
 # AA-NEXT — Short-Term Roadmap
 
+## Payroll Fast Track — directe uitvoeringsvolgorde (29 oktober 2026)
+
+**Besluit voor nieuwe Payroll-ontwikkeling:** minder repeterende full suites en documentatie-only closeouts, meer kleine productflows. Dit is een aanvullend Payroll-spoor naast de actuele Insights-/WVP-prioriteiten hieronder; die roadmapbesluiten blijven geldig.
+
+1. **TEST Factory klein beginnen:** inventariseer bestaande Maya/Noah/persona-launchers en synthetische cases; bied één herhaalbare readiness-check en veilige idempotente HR-/Payroll-fixturevoorbereiding via bestaande productservices. Geen directe RLS-bypass.
+2. **PFAST-02 eenmalige P-component per medewerker/periode:** eerste zelfstandige verticale slice met HR Admin-UI, periodetoewijzing, readback, conceptbedrag en audit.
+3. **PFAST-01 variabele verloning/W04:** los de actuele salaris-RLS-aanvraagcontext voor synthetische oproepkracht op, bewijs HR → Payroll-consumptie zonder dubbel loon; laat W04 PR #51 een afzonderlijke integratiegate houden.
+4. **PFAST-03 componenttemplates:** bij nieuwe medewerker/dienstverband herbruikbare bundels (reiskostenregeling, vaste toeslag, bonusregeling), met effectieve ingangsdatum, versie en expliciete toepassing.
+5. **PFAST-04 Employee/HR Admin-pro-forma:** read-only +3 uur/bonus/contractwijziging, echte bruto-netto-impact door deterministische engine, geen mutatie of FINALIZED-run.
+6. **P1 → P2 → P3:** meerdere perioden/cumulatieven; daarna wettelijk complete jaar-/aangifte-/betalingketen en pas dan parallelverloningspilot.
+
+**Definition of Done per slice:** zichtbare bruikbare flow, gerichte contract-/oracletests, passende positieve en negatieve authchecks, TypeScript/lint/i18n, compacte bewijsparagraaf. Volledige suite/build pas op relevante integratie-/releasecommit. Critical financial/security blockers blijven HOLD; niet-kritieke Windows-browser-/buildproblemen worden centraal bijgehouden en mogen de ontwikkeling van onafhankelijke slices niet telkens stoppen. Geen ongeautoriseerde merge/deploy.
+
+**Coördinatie:** W04 PR #51, performance PR #53 en Insights staan los; raak hun featurebranches niet aan. De Quick Track-scope is documentair vastgelegd; implementatie volgt via eigen beperkte featurewijzigingen.
+
+---
+
+
 > **INS-03 discovery 29-10-2026 — source-review PARTIAL, implementatie nog niet gestart.** De bestaande Insights-catalogus bevat al verzuim, Bradford en frequent verzuim (available), terwijl WVP (disabled) apart blijft. Broncode-review vond expliciete open punten: verzuimrapport-GET roept een **muterende** lifecycle-RPC aan; case-KPI's zijn niet aantoonbaar aan dezelfde geautoriseerde administratieve/Manager-populatie gekoppeld als de detailrijen; 8u-roosterfallback, 0%-weergave bij onbekende noemer en vaste querylimieten kunnen kwaliteit maskeren; case- versus spell-telling verschilt tussen rapporten. **Voorgestelde volgende slice INS-03A:** bestaande verzuimrapporten eerst scope-/read-side-effect-/noemer-/exportveilig maken; WVP niet activeren. Geen productcode, DB of deployment gewijzigd. Zie [INS-03 contract](../requirements/reports/INS-03_ABSENCE_WVP_DISCOVERY.md) en [issue #62](https://github.com/EdwinCycling/LiquidHR/issues/62).
 
 
