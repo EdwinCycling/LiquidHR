@@ -1,6 +1,6 @@
 # INS-03B — Meldingsfrequentie en Bradford: semantiek, tijdvensters en vergelijkbaarheid
 
-**Status:** Productpakket goedgekeurd voor scoped implementatie via Draft PR #68 en issue #66 (29-10-2026). **Afhankelijkheid:** INS-03A [PR #65](https://github.com/EdwinCycling/LiquidHR/pull/65) is gemerged in development `main` via `fa3edc5bbe746479b7227c2b9bdcdbf90bb10ade`; geen Vercel TEST-acceptatie.
+**Status:** CODE MERGED in development main via [PR #68](https://github.com/EdwinCycling/LiquidHR/pull/68), mergecommit `521b1757503a5459d770a05b8694786364458d7c` (29-10-2026); hosted TEST/RLS/browser-acceptatie OPEN. **Afhankelijkheid:** INS-03A [PR #65](https://github.com/EdwinCycling/LiquidHR/pull/65) is gemerged in development `main` via `fa3edc5bbe746479b7227c2b9bdcdbf90bb10ade`; geen Vercel TEST-acceptatie.
 
 ## 1. Probleem en productdoel
 
