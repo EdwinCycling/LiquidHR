@@ -36,6 +36,7 @@ const report: BradfordInsightReport = {
   departments: [],
   totalOccurrences: 0,
   totalSickDays: 0,
+  dataQuality: { complete: true, unknownScheduleDays: 0, unknownCapacityDays: 0, unknownPlacements: 0 },
 }
 
 const labels: BradfordReportLabels = {
@@ -65,6 +66,8 @@ const labels: BradfordReportLabels = {
   lowRisk: 'Low',
   mediumRisk: 'Medium',
   highRisk: 'High',
+  unknownValue: 'Unknown',
+  dataQualityHint: '{scheduleDays}, {capacityDays}, {placements}',
   employee: 'Employee',
   distribution: 'Distribution',
   score: 'Bradford score',

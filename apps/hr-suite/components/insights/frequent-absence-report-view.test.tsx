@@ -37,6 +37,7 @@ const report: FrequentAbsenceReport = {
   totalEmployees: 2,
   frequentCount: 1,
   totalReports: 5,
+  dataQuality: { complete: true, unknownPlacements: 0 },
 }
 
 const labels = {
@@ -65,6 +66,9 @@ const labels = {
   frequent: 'Frequent',
   threshold: 'Threshold',
   thresholdDescription: 'Threshold {threshold}',
+  definitionHint: 'Cases differ from spells',
+  dataQualityHint: '{placements} placements unknown',
+  unknownValue: 'Unknown',
   totalEmployees: 'Total employees',
   frequentCount: 'Frequent employees',
   totalReports: 'Total reports',
