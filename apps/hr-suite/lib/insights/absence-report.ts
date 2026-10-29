@@ -247,8 +247,9 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
     ? await supabase.from('absence_spells').select('id,case_id,started_on,recovered_on').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('case_id', caseIds).limit(10000)
     : { data: [], error: null }
   if (spellsResult.error) fail(spellsResult.error)
-  const spells = uniqueAbsenceSpells((spellsResult.data ?? []) as SpellRow[])
-  if (spells.length >= 10000) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_LIMIT_REACHED', 503)
+  const sourceSpells = (spellsResult.data ?? []) as SpellRow[]
+  if (sourceSpells.length >= 10000) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_LIMIT_REACHED', 503)
+  const spells = uniqueAbsenceSpells(sourceSpells)
   if (spells.some((spell) => !caseIds.includes(spell.case_id))) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_INCONSISTENT', 503)
   const spellIds = spells.map((spell) => spell.id)
   const capacitiesResult = spellIds.length

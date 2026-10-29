@@ -275,6 +275,48 @@ describe('absence Insights authorization and source quality', () => {
     expect(report.dataQuality).toMatchObject({ complete: false, overlappingSpellPairs: 1 })
   })
 
+  it('fails closed at 10,000 raw absence-spell records before deduplicating duplicate IDs', async () => {
+    const data = sourceRows()
+    const spell = data.absence_spells.find((row) => row.id === 'spell-case-a')!
+    data.absence_spells = Array.from({ length: 10000 }, (_, index) => ({
+      ...spell,
+      id: index % 2 === 0 ? 'duplicate-spell-id' : `spell-${index}`,
+    }))
+    expect(data.absence_spells).toHaveLength(10000)
+    expect(new Set(data.absence_spells.map((row) => row.id)).size).toBeLessThan(10000)
+    configure(hrAdmin, null, false, data)
+
+    await expect(getAbsenceInsightReport(absenceQuery)).rejects.toMatchObject({ code: 'INSIGHTS_SOURCE_LIMIT_REACHED', status: 503 })
+  })
+
+  it('fails closed at 10,000 raw absence-case records before deduplicating duplicate IDs', async () => {
+    const data = sourceRows()
+    const absenceCase = data.absence_cases.find((row) => row.id === 'case-a')!
+    data.absence_cases = Array.from({ length: 10000 }, () => ({ ...absenceCase }))
+    expect(data.absence_cases).toHaveLength(10000)
+    expect(new Set(data.absence_cases.map((row) => row.id)).size).toBe(1)
+    configure(hrAdmin, null, false, data)
+
+    await expect(getFrequentAbsenceReport(frequentQuery)).rejects.toMatchObject({ code: 'INSIGHTS_SOURCE_LIMIT_REACHED', status: 503 })
+  })
+
+  it('uses rostered workday units for Bradford-D when scheduled shift hours differ', async () => {
+    const data = sourceRows()
+    const schedule = data.employment_schedules.find((row) => row.employment_id === 'employment-a')!
+    schedule.tuesday_hours = 2
+    schedule.wednesday_hours = 8
+    const spell = data.absence_spells.find((row) => row.id === 'spell-case-a')!
+    spell.recovered_on = '2025-02-05'
+    configure(hrAdmin, null, false, data)
+    const period = { startDate: '2025-02-04', endDate: '2025-02-05' }
+
+    const absence = await getAbsenceInsightReport({ ...absenceQuery, ...period })
+    const bradford = await getBradfordInsightReport({ ...bradfordQuery, ...period })
+
+    expect(absence.rows.find((row) => row.employeeId === 'employee-a')).toMatchObject({ sickHours: 10, sickDays: 2 })
+    expect(bradford.rows.find((row) => row.employeeId === 'employee-a')).toMatchObject({ absenceOccurrences: 1, sickDays: 2, score: 2 })
+  })
+
   it('adds roster-weighted days across valid parallel employments without counting a duplicate spell ID twice', async () => {
     const data = sourceRows()
     const employment = data.employments.find((row) => row.id === 'employment-a')!
