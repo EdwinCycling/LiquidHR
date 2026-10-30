@@ -9,8 +9,10 @@ import { chromium } from '@playwright/test'
 const PROJECT_ID = 'prj_h3voMtzXGfqG6QTodR5d1VTcC1zP'
 const PROJECT_REF = 'wnpfloqpjvaacobppbpk'
 const PHASE_A = '20261030065603'
+const PHASE_A2 = '20261030120000'
 const PHASE_C = '20261030120901'
 const PHASE_A_NAME = 'ins_release_02_manager_insights_unblock'
+const PHASE_A2_NAME = 'ins_release_04_active_role_permission_guard'
 const PHASE_C_NAME = 'ins_release_04_manager_insights_activation'
 const ACTIVE_ALIAS = 'liquid-hr-hr-suite.vercel.app'
 const ACTIVE_BASE_URL = `https://${ACTIVE_ALIAS}`
@@ -32,7 +34,7 @@ function usage() {
   return [
     'INS-RELEASE-04 read-only Core TEST acceptance runner',
     'Deployment check: --verify-deployment-only --expected-source-sha <40-char-sha>',
-    'Migration check: --verify-migration-stage <none|a-only|complete>',
+    'Migration check: --verify-migration-stage <none|a-only|a2-ready|complete>',
     'Full run: --manifest <private-json-path> --expected-source-sha <40-char-sha> --confirm-authorized-core-test',
     'The manifest contains persona expectations and existing Playwright storage-state paths; live platform evidence is read independently.',
     'Full run requires Vercel CLI authentication and SUPABASE_ACCESS_TOKEN with database_migrations_read scope.',
@@ -217,19 +219,21 @@ export function assertDeploymentEvidence(runtime, expectedSha, alias, deployment
 }
 
 export function assertMigrationStage(appliedRecords, stage = 'complete') {
-  if (!Array.isArray(appliedRecords) || !['none', 'a-only', 'complete'].includes(stage)) fail('MIGRATION_STAGE_MISMATCH')
+  if (!Array.isArray(appliedRecords) || !['none', 'a-only', 'a2-ready', 'complete'].includes(stage)) fail('MIGRATION_STAGE_MISMATCH')
   const versions = appliedRecords.map((record) => record.version)
-  if (new Set(versions).size !== versions.length || versions.some((version) => ![PHASE_A, PHASE_C].includes(version))) fail('MIGRATION_READBACK_INVALID')
+  if (new Set(versions).size !== versions.length || versions.some((version) => ![PHASE_A, PHASE_A2, PHASE_C].includes(version))) fail('MIGRATION_READBACK_INVALID')
   for (const record of appliedRecords) {
-    const expectedName = record.version === PHASE_A ? PHASE_A_NAME : PHASE_C_NAME
+    const expectedName = record.version === PHASE_A ? PHASE_A_NAME : record.version === PHASE_A2 ? PHASE_A2_NAME : PHASE_C_NAME
     if (record.name !== expectedName) fail('MIGRATION_NAME_MISMATCH')
   }
   const hasA = versions.includes(PHASE_A)
+  const hasA2 = versions.includes(PHASE_A2)
   const hasC = versions.includes(PHASE_C)
-  if ((stage === 'none' && (hasA || hasC))
-    || (stage === 'a-only' && (!hasA || hasC))
-    || (stage === 'complete' && (!hasA || !hasC))) fail('MIGRATION_STAGE_MISMATCH')
-  return { stage, appliedVersions: [hasA ? PHASE_A : null, hasC ? PHASE_C : null].filter(Boolean) }
+  if ((stage === 'none' && (hasA || hasA2 || hasC))
+    || (stage === 'a-only' && (!hasA || hasA2 || hasC))
+    || (stage === 'a2-ready' && (!hasA || !hasA2 || hasC))
+    || (stage === 'complete' && (!hasA || !hasA2 || !hasC))) fail('MIGRATION_STAGE_MISMATCH')
+  return { stage, appliedVersions: [hasA ? PHASE_A : null, hasA2 ? PHASE_A2 : null, hasC ? PHASE_C : null].filter(Boolean) }
 }
 
 function vercelApi(endpoint) {
@@ -270,7 +274,7 @@ async function readMigrationEvidence(stage = 'complete') {
   if (response.status !== 200) fail('SUPABASE_MIGRATION_READBACK_UNAVAILABLE')
   const body = await response.json().catch(() => fail('SUPABASE_MIGRATION_READBACK_INVALID'))
   if (!Array.isArray(body) || body.some((entry) => typeof obj(entry).version !== 'string' || typeof obj(entry).name !== 'string')) fail('SUPABASE_MIGRATION_READBACK_INVALID')
-  const records = body.filter((entry) => [PHASE_A, PHASE_C].includes(obj(entry).version))
+  const records = body.filter((entry) => [PHASE_A, PHASE_A2, PHASE_C].includes(obj(entry).version))
     .map((entry) => ({ version: obj(entry).version, name: obj(entry).name }))
   return assertMigrationStage(records, stage)
 }

@@ -107,13 +107,13 @@ Verifieer daarna de nul-/bestaande grantset. Herstel pas daarna, indien nodig en
 
 `apps/hr-suite/scripts/verify-build-source.mjs` vereist vóór elke production build een leesbare, schone Git-checkout en controleert dat een eventuele `VERCEL_GIT_COMMIT_SHA` met `HEAD` overeenkomt. `next.config.ts` neemt die vastgelegde commit-SHA op in de serverbuild; de no-store route `/api/runtime/build-provenance` geeft uitsluitend SHA, Vercel deployment-/project-ID, deployment-URL/target en de Core TEST-projectreferentie terug. Zonder schone Git-bron of vereiste runtimevelden faalt de build of readback gesloten. Er worden geen credentials, tokens of databasewaarden teruggegeven.
 
-De runner accepteert operatorverwachtingen en persona-sessiepaden uit het private manifest, maar gebruikt geen manifestwaarde als bewijs voor deployment, alias, bron-SHA of migraties. Hij leest de actuele alias-naar-deployment-koppeling en deploymentstatus via Vercel CLI GET's en vergelijkt die met de runtime-provenanceroute en de verwachte 40-karakter-SHA. De read-only migratiepoort leest de applied migration list via Supabase Management API (`database_migrations_read`), controleert de exacte versies en namen, en biedt de toestanden `none`, `a-only` en `complete`. De volgorde wordt aangetoond met onafhankelijke states `none` vóór A, `a-only` na A én vóór C, en `complete` na C; de runner voegt aan elke readback `verifiedAt` toe. Bewaar die JSON-uitvoer bij de run-evidence. `--verify-deployment-only` is de B-poort; de volledige D-run vereist daarnaast `--confirm-authorized-core-test` en een live `complete`-readback.
+De runner accepteert operatorverwachtingen en persona-sessiepaden uit het private manifest, maar gebruikt geen manifestwaarde als bewijs voor deployment, alias, bron-SHA of migraties. Hij leest de actuele alias-naar-deployment-koppeling en deploymentstatus via Vercel CLI GET's en vergelijkt die met de runtime-provenanceroute en de verwachte 40-karakter-SHA. De read-only migratiepoort leest de applied migration list via Supabase Management API (`database_migrations_read`), controleert exacte versies en namen, en biedt de toestanden `none`, `a-only`, `a2-ready` en `complete`. De volgorde wordt aangetoond met onafhankelijke readbacks: `none` vóór A, `a-only` na A en vóór A2, `a2-ready` na A2 en vóór B/C, en `complete` na C. Elke readback bevat `verifiedAt`; bewaar die JSON-uitvoer bij de run-evidence. `--verify-deployment-only` is de B-poort; de volledige D-run vereist daarnaast `--confirm-authorized-core-test` en een live `complete`-readback.
 
 Voor het gewone verzuimrapport gebruikt de runner uitsluitend de ondersteunde kalenderjaarparameter `period=year` en vergelijkt hij de teruggegeven `startDate`/`endDate` met 1 januari en 31 december van dat jaar. Frequent verzuim en Bradford moeten elk exact hetzelfde inclusieve rollende 365-dagenvenster teruggeven. Voor Manager wordt de directe-teamallowlist uit `employee_organizations` onafhankelijk via Manager én HR Admin bepaald; de sets moeten gelijk zijn. HR Admin moet elke buiten-teammedewerker, case en relevante spell in dezelfde tenant/groep/administratie bevestigen. Ook `absenceCases` en `activeCases` worden met een onafhankelijke HR Admin-lezing van directe-team-dienstverbanden/cases/spells vergeleken; case- en roostergewogen ziekte-KPI's moeten overeenkomen met de toegestane details. Ontbrekende fixtures, cases of relevante perioden zijn HOLD. Geen fixture-ID of -naam mag in API-details of Excel voorkomen, en frequentie-/Bradford-KPI's moeten met de details overeenkomen.
 
 De runner maakt geen login, sessie of JWT, gebruikt geen service role, schrijft geen responsebestanden en logt geen tokens, cookies, namen, diagnoses of vrije medische tekst. Directe RLS-lezingen gebruiken bestaande persona-sessies en niet-medische sleutelkolommen; operationele verzuimrechten blijven onaangeroerd. Een volledige D-run is **niet** tegen Core TEST uitgevoerd.
 
-### Uitvoerbaar A–B–C–D-runbook
+### Uitvoerbaar A–A2–B–C–D-runbook
 
 Gebruik in alle stappen de finale, beoordeelde 40-karakter `releaseSha`; de volgende runbooks voeren geen stap uit zonder de bijbehorende afzonderlijke toestemming.
 
@@ -134,7 +134,7 @@ if ((git status --porcelain).Length -ne 0) { throw 'Source-checkout is niet scho
 npm ci
 ```
 
-**A — Threshold-RPC.** Vereist afzonderlijke toestemming voor deze Core TEST-databasewijziging. Voer eerst de onafhankelijke migration API-read uit; A en C moeten beide ontbreken. Maak daarna een unieke tijdelijke workdir met alleen config en migratie A, zodat geen andere lokale pending migratie kan meelopen:
+**A — Threshold-RPC.** Vereist afzonderlijke toestemming voor deze Core TEST-databasewijziging. Voer eerst de onafhankelijke migration API-read uit; A, A2 en C moeten alle ontbreken. Maak daarna een unieke tijdelijke workdir met alleen config en migratie A, zodat geen andere lokale pending migratie kan meelopen:
 
 ```powershell
 $ErrorActionPreference = 'Stop'
@@ -160,9 +160,32 @@ if ($LASTEXITCODE -ne 0) { throw 'Readback na A is niet exact A-only; stop vóó
 $afterA | Set-Content (Join-Path $evidenceDir 'migration-a-only-after-a.json')
 ```
 
-**B — App.** Alleen na `RELEASE LIQUIDHR TEST`: haal exact `releaseSha` uit GitHub, controleer een schone checkout, link/pull alleen project `liquidhr`, bouw prebuilt en deploy naar het bestaande Production-target (synthetische TEST). De Production-deploy wijst de bestaande projectdomeinen aan de nieuwe deployment toe; de runner moet die koppeling meteen bewijzen voordat C mag starten:
+**A2 — Gedeactiveerde rollen fail-closed.** Vereist afzonderlijke toestemming voor deze exacte Core TEST-databasewijziging. A moet onafhankelijk als enige toegepaste releasemigratie zijn bevestigd. Gebruik een tweede unieke tijdelijke workdir met alleen A2. De migratie vervangt de bestaande permission-helper op basis van de nieuwste preboarding-definitie, sluit inactieve/verwijderde rollen uit en behoudt `SECURITY DEFINER`, lege `search_path`, eigenaar en bestaande service-role-ACL. A2 moet gereed zijn voordat B wordt uitgerold:
 
 ```powershell
+$beforeA2 = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage a-only
+if ($LASTEXITCODE -ne 0) { throw 'Preflight vóór A2 is niet exact A-only; stop.' }
+$beforeA2 | Set-Content (Join-Path $evidenceDir 'migration-a-only-before-a2.json')
+$phaseA2 = Join-Path $env:TEMP ('LiquidHR-INS-RELEASE-04-A2-' + [guid]::NewGuid().ToString('N'))
+$migrationDir = Join-Path $phaseA2 'supabase\migrations'
+New-Item -ItemType Directory -Path $migrationDir -Force | Out-Null
+Copy-Item 'apps/hr-suite/supabase/config.toml' (Join-Path $phaseA2 'supabase\config.toml')
+Copy-Item 'apps/hr-suite/supabase/migrations/20261030120000_ins_release_04_active_role_permission_guard.sql' $migrationDir
+supabase migration list --workdir $phaseA2 --db-url $databaseUrl
+# Controleer de lijst: uitsluitend A2 mag lokaal ontbreken op remote.
+supabase migration up --workdir $phaseA2 --db-url $databaseUrl --include-all
+if ($LASTEXITCODE -ne 0) { throw 'Fase A2 faalde; stop vóór B.' }
+$afterA2 = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage a2-ready
+if ($LASTEXITCODE -ne 0) { throw 'Readback na A2 is niet exact A+A2; stop vóór B.' }
+$afterA2 | Set-Content (Join-Path $evidenceDir 'migration-a-and-a2-after-a2.json')
+```
+
+**B — App.** Alleen na `RELEASE LIQUIDHR TEST` en een geslaagde `a2-ready` readback: haal exact `releaseSha` uit GitHub, controleer een schone checkout, link/pull alleen project `liquidhr`, bouw prebuilt en deploy naar het bestaande Production-target (synthetische TEST). De Production-deploy wijst de bestaande projectdomeinen aan de nieuwe deployment toe; de runner moet die koppeling meteen bewijzen voordat C mag starten:
+
+```powershell
+$beforeB = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage a2-ready
+if ($LASTEXITCODE -ne 0) { throw 'Core TEST toont niet exact A+A2 vóór B; stop.' }
+$beforeB | Set-Content (Join-Path $evidenceDir 'migration-a-and-a2-before-b.json')
 git fetch origin
 $currentRemote = git ls-remote origin "refs/heads/$branch"
 $currentSha = ($currentRemote -split '\s+')[0]
@@ -179,14 +202,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Alias, deployment, source-SHA of Core TEST-pro
 Pop-Location
 ```
 
-**C — Manager-rapportrecht.** Alleen na geslaagde B-readback en afzonderlijke toestemming voor deze Core TEST-databasewijziging. Houd hetzelfde `releaseSha` vast. Bewijs vóór C opnieuw dat alleen A aanwezig is; stage vervolgens exact één lokale migratie:
+**C — Manager-rapportrecht.** Alleen na geslaagde B-readback en afzonderlijke toestemming voor deze Core TEST-databasewijziging. Houd hetzelfde `releaseSha` vast. Bewijs vóór C opnieuw dat uitsluitend A en A2 van deze release zijn toegepast; stage vervolgens exact één lokale migratie:
 
 ```powershell
 $databaseUrl = $env:LIQUIDHR_CORE_TEST_DB_URL
 if (-not $databaseUrl) { throw 'LIQUIDHR_CORE_TEST_DB_URL ontbreekt.' }
-$beforeC = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage a-only
-if ($LASTEXITCODE -ne 0) { throw 'Preflight vóór C is niet exact A-only; stop.' }
-$beforeC | Set-Content (Join-Path $evidenceDir 'migration-a-only-before-c.json')
+$beforeC = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage a2-ready
+if ($LASTEXITCODE -ne 0) { throw 'Preflight vóór C is niet exact A+A2; stop.' }
+$beforeC | Set-Content (Join-Path $evidenceDir 'migration-a-and-a2-before-c.json')
 $phaseC = Join-Path $env:TEMP ('LiquidHR-INS-RELEASE-04-C-' + [guid]::NewGuid().ToString('N'))
 $migrationDir = Join-Path $phaseC 'supabase\migrations'
 New-Item -ItemType Directory -Path $migrationDir -Force | Out-Null
@@ -196,11 +219,11 @@ supabase migration list --workdir $phaseC --db-url $databaseUrl
 supabase migration up --workdir $phaseC --db-url $databaseUrl --include-all
 if ($LASTEXITCODE -ne 0) { throw 'Fase C faalde; stop vóór D.' }
 $afterC = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage complete
-if ($LASTEXITCODE -ne 0) { throw 'Readback na C is niet exact A+C; stop vóór D.' }
-$afterC | Set-Content (Join-Path $evidenceDir 'migration-a-and-c-after-c.json')
+if ($LASTEXITCODE -ne 0) { throw 'Readback na C is niet exact A+A2+C; stop vóór D.' }
+$afterC | Set-Content (Join-Path $evidenceDir 'migration-a-a2-and-c-after-c.json')
 ```
 
-Stop als A of C onverwacht aanwezig is vóór A, als C aanwezig is voordat fase A-only is bewezen, als A ontbreekt vóór C, of als Supabase CLI een andere lokale migratie wil toepassen. Behoud readbacks `none`, `a-only` na A, `a-only` vóór C en `complete` na C; deze timestamped Management API-readbacks tonen de volgorde.
+Stop als A, A2 of C onverwacht aanwezig is vóór A; als A ontbreekt vóór A2; als A2 ontbreekt vóór B/C; als C al aanwezig is vóór C; of als Supabase CLI een andere lokale migratie wil toepassen. Behoud readbacks `none`, `a-only` na A, `a2-ready` na A2 en vóór B/C, en `complete` na C. Deze readbacks tonen uitsluitend de exacte toegestane migraties op elk releasepunt.
 
 **D — Persona/RLS/browser.** Gebruik uitsluitend de bestaande geautoriseerde NL-sessie van HR Admin, Manager, lege Manager en Employee, plus EN-sessies van HR Admin en Manager. De manifestverwachtingen bevatten beide toegestane HR Admin-administraties, Manager-context/verboden contexten, directe-team-buitenstaanders, bekende drempels en de lege Manager-context. Er worden geen TEST-identiteiten of sessies aangemaakt. Vereis Vercel CLI-authenticatie, `SUPABASE_ACCESS_TOKEN` met uitsluitend benodigde `database_migrations_read`-toegang en de gepinde Vercel-envfile; toon die waarden niet:
 
@@ -218,7 +241,7 @@ node --env-file=.vercel/.env.production.local scripts/ins-release-04-core-test-a
 
 De route `/v1/projects/{ref}/database/migrations` is een GET met `database_migrations_read`; de runner controleert exacte versies en migratienamen. Vercel vult deployment-ID, project-ID, URL en waar beschikbaar Git-SHA platformmatig in. De buildprovenance SHA wordt daarnaast uit de schone, gepinde Git-checkout gecompileerd. Zie [Supabase applied migration history](https://supabase.com/docs/reference/api/v1-list-migration-history) en [Vercel system environment variables](https://vercel.com/docs/environment-variables/system-environment-variables).
 
-**Stop/rollback:** iedere SHA-, project-, alias-, migratievolgorde-, scope-, fixture-, KPI-, detail- of Excel-mismatch stopt de run vóór de volgende fase. Bij een securityfout ná C: stop D; na afzonderlijke DB-toestemming verwijder uitsluitend de door C-ledger vastgelegde nieuwe role grants (SQL hierboven) en behoud de ledger. Herstel de vorige Vercel-app alleen na afzonderlijke TEST-releaseautorisatie. Fase A kent geen Manager-rapportrecht toe en vereist bij containment geen destructieve rollback.
+**Stop/rollback:** iedere SHA-, project-, alias-, migratievolgorde-, scope-, fixture-, KPI-, detail- of Excel-mismatch stopt de run vóór de volgende fase. Bij een securityfout ná C: stop D; na afzonderlijke DB-toestemming verwijder uitsluitend de door C-ledger vastgelegde nieuwe role grants (SQL hierboven) en behoud de ledger. Herstel de vorige Vercel-app alleen na afzonderlijke TEST-releaseautorisatie. Laat A2 staan bij containment: terugdraaien van de rolactiviteitscontrole zou de gedeactiveerde-roltoegang opnieuw openen en vereist een afzonderlijk beoordeeld herstelbesluit. A introduceert geen Manager-rapportrecht en vereist bij containment geen destructieve rollback.
 
 ### Bestaande TEST-identiteiten en voorwaarden
 

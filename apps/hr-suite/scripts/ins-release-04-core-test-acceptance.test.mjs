@@ -164,13 +164,18 @@ describe('INS-RELEASE-04 runner contracts', () => {
 
   it('requires independently read migration stage states and exact migration names', () => {
     const phaseA = { version: '20261030065603', name: 'ins_release_02_manager_insights_unblock' }
+    const phaseA2 = { version: '20261030120000', name: 'ins_release_04_active_role_permission_guard' }
     const phaseC = { version: '20261030120901', name: 'ins_release_04_manager_insights_activation' }
-    expect(assertMigrationStage([phaseA, phaseC])).toEqual({ stage: 'complete', appliedVersions: ['20261030065603', '20261030120901'] })
+    expect(assertMigrationStage([phaseA, phaseA2, phaseC])).toEqual({ stage: 'complete', appliedVersions: ['20261030065603', '20261030120000', '20261030120901'] })
     expect(assertMigrationStage([phaseA], 'a-only')).toEqual({ stage: 'a-only', appliedVersions: ['20261030065603'] })
+    expect(assertMigrationStage([phaseA, phaseA2], 'a2-ready')).toEqual({ stage: 'a2-ready', appliedVersions: ['20261030065603', '20261030120000'] })
     expect(assertMigrationStage([], 'none')).toEqual({ stage: 'none', appliedVersions: [] })
     expect(() => assertMigrationStage([phaseC], 'a-only')).toThrow('MIGRATION_STAGE_MISMATCH')
+    expect(() => assertMigrationStage([phaseA, phaseC], 'complete')).toThrow('MIGRATION_STAGE_MISMATCH')
+    expect(() => assertMigrationStage([phaseA2], 'a2-ready')).toThrow('MIGRATION_STAGE_MISMATCH')
     expect(() => assertMigrationStage([phaseA], 'complete')).toThrow('MIGRATION_STAGE_MISMATCH')
     expect(() => assertMigrationStage([phaseA, { ...phaseC, name: 'unexpected_migration' }])).toThrow('MIGRATION_NAME_MISMATCH')
     expect(() => assertMigrationStage([phaseA, phaseA])).toThrow('MIGRATION_READBACK_INVALID')
+    expect(() => assertMigrationStage([{ ...phaseA2, name: 'unexpected_migration' }])).toThrow('MIGRATION_NAME_MISMATCH')
   })
 })
