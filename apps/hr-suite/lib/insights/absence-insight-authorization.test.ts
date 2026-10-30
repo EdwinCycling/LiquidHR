@@ -127,7 +127,7 @@ function sourceRows(): Record<string, Row[]> {
     ...scope, spell_id: spell.id, effective_on: '2025-02-04', absence_percentage: 100, scheduled_hours_per_week_snapshot: 40, absence_hours_per_week: 40,
   }))
   return {
-    absence_settings: [{ ...scope, frequent_absence_threshold: 1 }],
+    absence_settings: [{ ...scope, frequent_absence_threshold: 1, default_case_manager_employee_id: 'sensitive-case-manager' }],
     employments, employee_organizations: organizations, employment_schedules: schedules,
     absence_cases: cases, employees,
     departments: [
@@ -157,6 +157,21 @@ function configure(
   })
   mocks.directTeam.mockResolvedValue({ employeeIds: teamEmployeeIds ?? [], sourceTruncated, members: [] })
   mocks.from.mockImplementation((table: string) => new MockSupabaseQuery(table, data[table] ?? [], teamEmployeeIds))
+  mocks.rpc.mockImplementation(async (name: unknown, input: unknown) => {
+    if (name !== 'get_frequent_absence_threshold') return { data: null, error: null }
+    const parameters = input as Record<string, unknown>
+    const settings = (data.absence_settings ?? []).filter((row) =>
+      row.tenant_id === parameters.requested_tenant_id && row.hr_group_id === parameters.requested_hr_group_id,
+    )
+    if (settings.length > 1) return { data: null, error: { message: 'INSIGHTS_THRESHOLD_SETTINGS_INCONSISTENT' } }
+    return {
+      data: [{
+        configured: settings.length === 1,
+        frequent_absence_threshold: settings[0]?.frequent_absence_threshold ?? null,
+      }],
+      error: null,
+    }
+  })
 }
 
 describe('absence Insights authorization and source quality', () => {
@@ -190,7 +205,11 @@ describe('absence Insights authorization and source quality', () => {
     expect(absenceExport).not.toContain('Bas Team Two')
     expect(JSON.stringify({ absence, frequent, bradford, absenceExport, frequentExport: frequentAbsenceExcel(frequent), bradfordExport: bradfordInsightExcel(bradford) })).not.toContain('employee-b')
     expect(JSON.stringify({ absence, frequent, bradford, absenceExport })).not.toContain('employee-c')
-    expect(mocks.rpc).not.toHaveBeenCalled()
+    expect(mocks.rpc).toHaveBeenCalledWith('get_frequent_absence_threshold', {
+      requested_tenant_id: 'tenant-1',
+      requested_hr_group_id: 'group-1',
+    })
+    expect(mocks.from.mock.calls.map((call) => call[0])).not.toContain('absence_settings')
     expect(mocks.permission.mock.calls.map((call) => call[2])).toContain('report-absence:read')
   })
 
@@ -239,7 +258,11 @@ describe('absence Insights authorization and source quality', () => {
     expect(absence).toMatchObject({ absenceCases: 0, activeCases: 0, rows: [] })
     expect(frequent).toMatchObject({ threshold: 1, totalEmployees: 0, frequentCount: 0, totalReports: 0, rows: [] })
     expect(bradford).toMatchObject({ totalOccurrences: 0, totalSickDays: 0, rows: [] })
-    expect(mocks.from.mock.calls.map((call) => call[0])).toEqual(['absence_settings'])
+    expect(mocks.from).not.toHaveBeenCalled()
+    expect(mocks.rpc).toHaveBeenCalledWith('get_frequent_absence_threshold', {
+      requested_tenant_id: 'tenant-1',
+      requested_hr_group_id: 'group-1',
+    })
   })
 
   it('rejects an HR Admin administration outside the active authorization context before source queries', async () => {
@@ -484,6 +507,7 @@ describe('absence Insights authorization and source quality', () => {
     const thresholdOne = await getFrequentAbsenceReport(frequentQuery)
     expect(thresholdOne.threshold).toBe(1)
     expect(thresholdOne.rows.find((row) => row.employeeId === 'employee-a')?.isFrequent).toBe(true)
+    expect(frequentAbsenceExcel(thresholdOne)).toContain('<Data ss:Type=\"Number\">1</Data>')
 
     const withoutSetting = sourceRows()
     withoutSetting.absence_settings = []
@@ -491,6 +515,39 @@ describe('absence Insights authorization and source quality', () => {
     const defaultThreshold = await getFrequentAbsenceReport(frequentQuery)
     expect(defaultThreshold.threshold).toBe(3)
     expect(defaultThreshold.rows.every((row) => !row.isFrequent)).toBe(true)
+  })
+
+  it('uses the scoped threshold projection for the report and Excel without reading other settings', async () => {
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
+    const data = sourceRows()
+    data.absence_settings[0]!.frequent_absence_threshold = 4
+    configure(manager, ['employee-a'], false, data)
+
+    const report = await getFrequentAbsenceReport(frequentQuery)
+    const workbook = frequentAbsenceExcel(report)
+
+    expect(report.threshold).toBe(4)
+    expect(report.rows.find((row) => row.employeeId === 'employee-a')?.isFrequent).toBe(false)
+    expect(workbook).toContain('<Data ss:Type=\"Number\">4</Data>')
+    expect(mocks.rpc).toHaveBeenCalledWith('get_frequent_absence_threshold', {
+      requested_tenant_id: 'tenant-1',
+      requested_hr_group_id: 'group-1',
+    })
+    expect(mocks.from.mock.calls.map((call) => call[0])).not.toContain('absence_settings')
+    expect(JSON.stringify({ report, workbook })).not.toContain('sensitive-case-manager')
+  })
+
+  it('fails closed instead of defaulting to three when the threshold projection is denied or unusable', async () => {
+    configure(hrAdmin, null)
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'INSIGHTS_THRESHOLD_FORBIDDEN' } })
+    await expect(getFrequentAbsenceReport(frequentQuery)).rejects.toMatchObject({ status: 403 })
+
+    configure(hrAdmin, null)
+    mocks.rpc.mockResolvedValueOnce({ data: [], error: null })
+    await expect(getFrequentAbsenceReport(frequentQuery)).rejects.toMatchObject({
+      code: 'INSIGHTS_FREQUENT_SETTINGS_FAILED',
+      status: 503,
+    })
   })
 
   it('returns valid empty datasets for each absence report without invented employees or scores', async () => {

@@ -57,6 +57,23 @@ function emptyFrequentAbsenceReport(query: FrequentAbsenceQuery, threshold: numb
   return { report: 'absence-frequent', period: query, threshold, rows: [], departments: [], totalEmployees: 0, frequentCount: 0, totalReports: 0, dataQuality: { complete: true, unknownPlacements: 0 } }
 }
 
+function thresholdFromProjection(value: unknown): number {
+  if (!Array.isArray(value) || value.length !== 1) {
+    throw new AbsenceInsightsServiceError('INSIGHTS_FREQUENT_SETTINGS_FAILED', 503)
+  }
+  const row: unknown = value[0]
+  if (typeof row !== 'object' || row === null || Array.isArray(row)) {
+    throw new AbsenceInsightsServiceError('INSIGHTS_FREQUENT_SETTINGS_FAILED', 503)
+  }
+  const projection = row as { configured?: unknown; frequent_absence_threshold?: unknown }
+  if (projection.configured === false && projection.frequent_absence_threshold === null) return 3
+  const threshold = projection.frequent_absence_threshold
+  if (projection.configured === true && typeof threshold === 'number' && Number.isInteger(threshold) && threshold >= 1 && threshold <= 20) {
+    return threshold
+  }
+  throw new AbsenceInsightsServiceError('INSIGHTS_FREQUENT_SETTINGS_FAILED', 503)
+}
+
 function uniqueAbsenceCases(cases: readonly CaseRow[]): CaseRow[] {
   const unique = new Map<string, CaseRow>()
   for (const absenceCase of cases) if (!unique.has(absenceCase.id)) unique.set(absenceCase.id, absenceCase)
@@ -67,11 +84,20 @@ export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Pro
   const scope = await getAbsenceInsightScope()
   if (scope.scopeTruncated) throw new AbsenceInsightsServiceError('INSIGHTS_SCOPE_LIMIT_REACHED', 403)
   const { supabase, context, hrGroupId, administrationId, employeeIds: directTeamEmployeeIds } = scope
+  const settingsResult = await supabase.rpc('get_frequent_absence_threshold' as never, {
+    requested_tenant_id: context.tenantId,
+    requested_hr_group_id: hrGroupId,
+  } as never)
+  if (settingsResult.error) {
+    if (settingsResult.error.message.includes('INSIGHTS_THRESHOLD_FORBIDDEN')) {
+      throw new AuthorizationError('Je hebt geen toegang tot deze Insights-rapportage.')
+    }
+    throw new AbsenceInsightsServiceError('INSIGHTS_FREQUENT_SETTINGS_FAILED', 503)
+  }
+  const threshold = thresholdFromProjection(settingsResult.data)
+
   if (directTeamEmployeeIds?.length === 0) {
-    const settingsResult = await supabase.from('absence_settings').select('frequent_absence_threshold')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).maybeSingle()
-    if (settingsResult.error) fail('INSIGHTS_FREQUENT_SETTINGS_FAILED', settingsResult.error)
-    return emptyFrequentAbsenceReport(query, settingsResult.data?.frequent_absence_threshold ?? 3)
+    return emptyFrequentAbsenceReport(query, threshold)
   }
 
   let employmentQuery = supabase.from('employments').select('id,employee_id,administration_id,starts_on,ends_on')
@@ -79,13 +105,8 @@ export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Pro
     .eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', query.endDate)
     .or(`ends_on.is.null,ends_on.gte.${query.startDate}`).limit(5000)
   if (directTeamEmployeeIds) employmentQuery = employmentQuery.in('employee_id', [...directTeamEmployeeIds])
-  const [settingsResult, employmentResult] = await Promise.all([
-    supabase.from('absence_settings').select('frequent_absence_threshold').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).maybeSingle(),
-    employmentQuery,
-  ])
-  if (settingsResult.error) fail('INSIGHTS_FREQUENT_SETTINGS_FAILED', settingsResult.error)
+  const employmentResult = await employmentQuery
   if (employmentResult.error) fail('INSIGHTS_FREQUENT_REPORT_FAILED', employmentResult.error)
-  const threshold = settingsResult.data?.frequent_absence_threshold ?? 3
   const employments = (employmentResult.data ?? []) as EmploymentRow[]
   if (employments.length >= 5000) throw new AbsenceInsightsServiceError('INSIGHTS_SOURCE_LIMIT_REACHED', 503)
   if (employments.some((row) => row.administration_id !== administrationId || (directTeamEmployeeIds && !directTeamEmployeeIds.includes(row.employee_id)))) {
