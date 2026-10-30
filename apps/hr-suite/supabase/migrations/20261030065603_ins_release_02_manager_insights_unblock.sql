@@ -1,16 +1,5 @@
 begin;
 
--- Grant the report right to active global and tenant-bound DIRECT_MANAGER
--- roles. Tenant-bound roles override global role resolution in some contexts.
-insert into public.role_permissions (management_role_id, permission_id)
-select management_role.id, permission.id
-from public.management_roles as management_role
-join public.permissions as permission
-  on permission.code = 'report-absence:read'
-where management_role.code = 'DIRECT_MANAGER'
-  and management_role.is_active is true
-  and management_role.deleted_at is null
-on conflict (management_role_id, permission_id) do nothing;
 
 -- This private helper reads a single field from absence_settings after
 -- independently enforcing the active HR-group report permission. It returns
