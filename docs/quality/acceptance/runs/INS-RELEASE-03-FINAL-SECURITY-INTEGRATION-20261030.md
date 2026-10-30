@@ -226,7 +226,7 @@ De huidige alias levert voor de deploymentreadback nog `RUNTIME_PROVENANCE_UNAVA
 
 ### GitHub/Vercel-triggercontrole
 
-PR #71 is open en Draft; de remote branch-head was bij aanvang van deze correctieronde `0a116fc7b73d57266c5906f6300991a3df3c0818`. De Vercel-project-API meldt `gitProviderOptions.createDeployments = disabled`. De bestaande deploy-hook richt zich op `work/ai-gpt-live`, niet op deze branch; de repository heeft geen Vercel push-deployworkflow en Vercel toont nu nul deployments voor deze branch. De webhooklijst-API gaf 403 en is niet als bewijs gebruikt. Na push worden branch-head, Draft-status en branch-deploymentcount opnieuw read-only gecontroleerd.
+PR #71 is open en Draft; de remote branch-head was bij aanvang van deze correctieronde `0a116fc7b73d57266c5906f6300991a3df3c0818`. De actuele Vercel-project-API meldt `gitProviderOptions.createDeployments = disabled`; de Vercel-teamwebhook-readback is leeg; de repository heeft geen Vercel push-deployworkflow en de deploymentlijst toont nul deployments voor deze branch. Daarmee is een automatische Vercel-deployment door deze Git-push uitgeschakeld. Na push worden branch-head, Draft-status en branch-deploymentcount opnieuw read-only gecontroleerd.
 
 ### Verificatie van deze kandidaat
 
@@ -238,7 +238,7 @@ PR #71 is open en Draft; de remote branch-head was bij aanvang van deze correcti
 | ESLint gewijzigde code | PASS — geen warnings | Gericht op `next.config.ts`, provenance-route en gewijzigde runner/provenance-scripts en tests |
 | `node --check` runner/provenance | PASS | Runner, build-source verifier en provenance writer |
 | Git diff-check | PASS | `git diff --check --ignore-space-at-eol`; Git meldde de verwachte Windows LF→CRLF-conversie |
-| Productiebuild | Nog te draaien op schone commit | `npm run build` vanuit `apps/hr-suite`; moet met de uiteindelijke productcode-SHA slagen vóór publicatie |
+| Productiebuild | PASS — Next.js 16.4.2; 348 static pages; source provenance `34559f75679099b4ed5434bd3bd9a7ea9ac8bdb6` | `npm run build` vanuit `apps/hr-suite`; `prebuild` eiste schone Git en build provenance nam exact `HEAD` op |
 | Live deployment/migratie/persona/RLS/browser | NOT RUN | Actieve deployment mist de provenance-route; A/C ontbreken; vereist geautoriseerde A→B→C→D-run |
 | i18n | Niet opnieuw uitgevoerd | Geen UI- of NL/EN-vertalingsbestanden gewijzigd |
 
@@ -248,8 +248,8 @@ npm test -- --reporter=dot scripts/ins-release-04-core-test-acceptance.test.mjs 
 Pop-Location
 ```
 
-De volledige suite gaf opnieuw de bekende Happy DOM-waarschuwingen voor synthetische `blob:payfull-*`-iframe-URL's; alle betrokken tests slaagden en de volledige run eindigde met exitcode 0. Dit zijn waarschuwingen, geen nieuwe regressies.
+De volledige suite gaf opnieuw de bekende Happy DOM-waarschuwingen voor synthetische `blob:payfull-*`-iframe-URL's; alle betrokken tests slaagden en de volledige run eindigde met exitcode 0. Dit zijn waarschuwingen, geen nieuwe regressies. De eerste buildpoging vond een whitespacefout in de nieuwe Git-statusparser; die is in `34559f75679099b4ed5434bd3bd9a7ea9ac8bdb6` hersteld. De retry slaagde. `next-env.d.ts` bleef gelijk; de door de build gegenereerde Focus-widgetbron is na hashcontrole exact naar de voorafgaande committed inhoud teruggezet.
 
 ### Actueel oordeel
 
-**CODE READY** voor review van de gefaseerde lokale implementatie en voorbereiding. **HOLD** voor Core TEST-uitvoering totdat (1) de exacte beveiligde app-SHA op het doelalias is bewezen, (2) expliciete Core TEST-toestemming voor migratie A en later C is gegeven, en (3) `RELEASE LIQUIDHR TEST` voor fase B is gegeven. Er is geen migration apply, SQL-write, role grant, deployment, aliaswijziging, merge of hosted personaacceptatie uitgevoerd. Een push van de gecontroleerde featurebranch naar de bestaande Draft PR is veilig voorbereid op basis van de vastgelegde Vercel-triggercontrole; na push worden remote SHA en het aantal deployments opnieuw gecontroleerd.
+**EXECUTION READY** voor de gecontroleerde A→B→C→D-run. De onafhankelijke readbacks, runnerfail-closed-controles, fixturebewijs en uitvoerbare runbook zijn klaar. Er is geen migration apply, SQL-write, role grant, deployment, aliaswijziging, merge of hosted personaacceptatie uitgevoerd. De Core TEST-run blijft ongestart totdat expliciete toestemming voor databasefasen A/C en `RELEASE LIQUIDHR TEST` voor B is gegeven. D vereist daarna de genoemde bestaande geautoriseerde identiteiten en storage states. De push naar de bestaande Draft PR volgt na de laatste Git/Vercel-triggercontrole; na push worden remote SHA en branch-deploymentcount opnieuw gecontroleerd.
