@@ -51,9 +51,9 @@ De volledige suite gaf bestaande Happy DOM-waarschuwingen voor synthetische `blo
 
 ## Git- en Vercel-status
 
-De ontwikkelbranch begon op `7fda769804c57b4c9971d3842c3d7cd052af0065`; `origin/main` was `5e47832123bc90e197b38dc511bd658904e62c96` en een voorouder van die branch. Het Vercel-project `edwinitsolutions/liquidhr` is aan deze GitHub-repository gekoppeld. De projectconfiguratie meldt `createDeployments: disabled`; de aangetroffen Deploy Hook is voor een andere branch. Er is geen GitHub Vercel-deployworkflow aangetroffen. Dit bevestigt dat een featurebranch-push geen automatische Vercel-deployment start via de gecontroleerde Git-integratie.
+De ontwikkelbranch begon op `7fda769804c57b4c9971d3842c3d7cd052af0065`; `origin/main` was `5e47832123bc90e197b38dc511bd658904e62c96` en een voorouder van die branch. Het Vercel-project `edwinitsolutions/liquidhr` is aan deze GitHub-repository gekoppeld. De projectconfiguratie meldt `createDeployments: disabled`; de aangetroffen Deploy Hook is voor een andere branch. Er is geen GitHub Vercel-deployworkflow aangetroffen. De featurebranch-ref ontbrak voor publicatie; codecommit `6e3e880b104caeeea61f75c52985cda50e8fb6f0` is met een gewone, niet-force push op dezelfde branch gepubliceerd. De post-push `git ls-remote`-SHA kwam overeen en de read-only Vercel-lijst voor deze branch retourneerde 0 deployments.
 
-Er is in deze ronde geen databaseactie, migration apply, accountwijziging, merge of deployment uitgevoerd. De featurebranch-ref wordt vóór publicatie na commit opnieuw gecontroleerd; na een toegestane fast-forwardpush worden remote SHA en Vercel-deployments nogmaals read-only gecontroleerd.
+Er is in deze ronde geen databaseactie, migration apply, accountwijziging, merge of deployment uitgevoerd.
 
 ## Resterende acceptatiegrens
 
