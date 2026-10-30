@@ -7,7 +7,7 @@
 | Branch | `work/ins-release-01-unblock-20261029` |
 | Geteste basis | `7fda769804c57b4c9971d3842c3d7cd052af0065` (historische INS-RELEASE-03-basis) |
 | Omgeving | Geïsoleerde lokale checkout; Windows; Node 22.14.0; npm 10.9.2 |
-**INS-RELEASE-03-status:** Historisch CODE READY voor lokale integratie. **Actuele INS-RELEASE-04-status:** voorbereidingspakket gereed; Core TEST-uitvoering HOLD totdat de fasegates en exacte deployed source-SHA zijn bevestigd.
+**INS-RELEASE-03-status:** Historisch CODE READY voor lokale integratie. **Actuele INS-RELEASE-04-status:** HOLD — directe Core TEST DB-verbinding en D-acceptatie-evidence ontbreken; zie het laatste preflight-addendum.
 
 ## Samenvatting
 
@@ -127,11 +127,37 @@ New-Item -ItemType Directory -Path $evidenceDir -Force | Out-Null
 $remoteHead = git ls-remote origin "refs/heads/$branch"
 $releaseSha = ($remoteHead -split '\s+')[0]
 if ($releaseSha -notmatch '^[a-f0-9]{40}$') { throw 'Remote PR-head ontbreekt of is ongeldig.' }
-if ((git status --porcelain).Length -ne 0) { throw 'Source-checkout is niet schoon.' }
+if (@(git status --porcelain).Count -ne 0) { throw 'Source-checkout is niet schoon.' }
 git fetch origin
+if ($LASTEXITCODE -ne 0) { throw 'git fetch failed; stop.' }
 git switch --detach $releaseSha
-if ((git status --porcelain).Length -ne 0) { throw 'Source-checkout is niet schoon.' }
+if ($LASTEXITCODE -ne 0) { throw 'Could not check out the pinned SHA; stop.' }
+if (@(git status --porcelain).Count -ne 0) { throw 'Source-checkout is niet schoon.' }
 npm ci
+if ($LASTEXITCODE -ne 0) { throw 'npm ci failed; stop before phase A.' }
+
+# Eenmalig vóór A/A2/C; houd dezelfde PowerShell-sessie voor alle fasen.
+$toolHome = 'C:\Users\Edwin\AppData\Local\Temp\LiquidHR-INS-RELEASE-04-tools-2202d61f'
+$env:SUPABASE_HOME = Join-Path $toolHome '.supabase-home'
+$env:SUPABASE_TELEMETRY_DISABLED = '1'
+$supabase = Join-Path $toolHome 'node_modules\.bin\supabase.cmd'
+if (-not (Test-Path -LiteralPath $supabase -PathType Leaf)) { throw 'Pinned Supabase CLI ontbreekt; installeer uitsluitend supabase@2.122.0 in de task-toolmap en herhaal deze preflight.' }
+$cliVersion = (& $supabase --version | Out-String).Trim()
+if ($cliVersion -ne '2.122.0') { throw "Verwachte Supabase CLI 2.122.0, aangetroffen: $cliVersion" }
+
+function Assert-CoreTestDbUrl {
+  param([Parameter(Mandatory)][string]$DbUrl)
+  $uri = $null
+  if (-not [Uri]::TryCreate($DbUrl, [UriKind]::Absolute, [ref]$uri)) { throw 'Core TEST DB URL is not a valid absolute PostgreSQL URI; no migration applied.' }
+  if ($uri.Scheme -notin @('postgres','postgresql')) { throw 'Core TEST DB URL scheme is not PostgreSQL; no migration applied.' }
+  $expectedRef = 'wnpfloqpjvaacobppbpk'
+  $directHost = 'db.' + $expectedRef + '.supabase.co'
+  $encodedUser = ($uri.UserInfo -split ':',2)[0]
+  $dbUser = [Uri]::UnescapeDataString($encodedUser)
+  if ([string]::IsNullOrWhiteSpace($dbUser)) { throw 'Core TEST DB URL has no PostgreSQL user; no migration applied.' }
+  $poolerHost = ($uri.Host -match '^[a-z0-9-]+\.pooler\.supabase\.com$') -and ($dbUser -eq ('postgres.' + $expectedRef))
+  if ($uri.Host -cne $directHost -and -not $poolerHost) { throw 'Core TEST DB URL does not independently identify Supabase project wnpfloqpjvaacobppbpk; no migration applied.' }
+}
 ```
 
 **A — Threshold-RPC.** Vereist afzonderlijke toestemming voor deze Core TEST-databasewijziging. Voer eerst de onafhankelijke migration API-read uit; A, A2 en C moeten alle ontbreken. Maak daarna een unieke tijdelijke workdir met alleen config en migratie A, zodat geen andere lokale pending migratie kan meelopen:
@@ -140,6 +166,7 @@ npm ci
 $ErrorActionPreference = 'Stop'
 $databaseUrl = $env:LIQUIDHR_CORE_TEST_DB_URL
 if (-not $databaseUrl) { throw 'LIQUIDHR_CORE_TEST_DB_URL ontbreekt.' }
+Assert-CoreTestDbUrl -DbUrl $databaseUrl
 if (-not $env:SUPABASE_ACCESS_TOKEN) { throw 'SUPABASE_ACCESS_TOKEN met database_migrations_read ontbreekt.' }
 $beforeA = git ls-remote origin "refs/heads/$branch"
 if (($beforeA -split '\s+')[0] -ne $releaseSha) { throw 'PR-head veranderde vóór fase A; stop.' }
@@ -151,9 +178,10 @@ $migrationDir = Join-Path $phaseA 'supabase\migrations'
 New-Item -ItemType Directory -Path $migrationDir -Force | Out-Null
 Copy-Item 'apps/hr-suite/supabase/config.toml' (Join-Path $phaseA 'supabase\config.toml')
 Copy-Item 'apps/hr-suite/supabase/migrations/20261030065603_ins_release_02_manager_insights_unblock.sql' $migrationDir
-supabase migration list --workdir $phaseA --db-url $databaseUrl
+& $supabase migration list --workdir $phaseA --db-url $databaseUrl
+if ($LASTEXITCODE -ne 0) { throw 'Read-only migration list failed; stop without applying.' }
 # Controleer de lijst: uitsluitend A mag lokaal ontbreken op remote.
-supabase migration up --workdir $phaseA --db-url $databaseUrl --include-all
+& $supabase migration up --workdir $phaseA --db-url $databaseUrl --include-all --yes
 if ($LASTEXITCODE -ne 0) { throw 'Fase A faalde; stop vóór B.' }
 $afterA = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage a-only
 if ($LASTEXITCODE -ne 0) { throw 'Readback na A is niet exact A-only; stop vóór B.' }
@@ -163,6 +191,7 @@ $afterA | Set-Content (Join-Path $evidenceDir 'migration-a-only-after-a.json')
 **A2 — Gedeactiveerde rollen fail-closed.** Vereist afzonderlijke toestemming voor deze exacte Core TEST-databasewijziging. A moet onafhankelijk als enige toegepaste releasemigratie zijn bevestigd. Gebruik een tweede unieke tijdelijke workdir met alleen A2. De migratie vervangt de bestaande permission-helper op basis van de nieuwste preboarding-definitie, sluit inactieve/verwijderde rollen uit en behoudt `SECURITY DEFINER`, lege `search_path`, eigenaar en bestaande service-role-ACL. A2 moet gereed zijn voordat B wordt uitgerold:
 
 ```powershell
+Assert-CoreTestDbUrl -DbUrl $databaseUrl
 $beforeA2 = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage a-only
 if ($LASTEXITCODE -ne 0) { throw 'Preflight vóór A2 is niet exact A-only; stop.' }
 $beforeA2 | Set-Content (Join-Path $evidenceDir 'migration-a-only-before-a2.json')
@@ -171,9 +200,10 @@ $migrationDir = Join-Path $phaseA2 'supabase\migrations'
 New-Item -ItemType Directory -Path $migrationDir -Force | Out-Null
 Copy-Item 'apps/hr-suite/supabase/config.toml' (Join-Path $phaseA2 'supabase\config.toml')
 Copy-Item 'apps/hr-suite/supabase/migrations/20261030120000_ins_release_04_active_role_permission_guard.sql' $migrationDir
-supabase migration list --workdir $phaseA2 --db-url $databaseUrl
+& $supabase migration list --workdir $phaseA2 --db-url $databaseUrl
+if ($LASTEXITCODE -ne 0) { throw 'Read-only migration list failed; stop without applying.' }
 # Controleer de lijst: uitsluitend A2 mag lokaal ontbreken op remote.
-supabase migration up --workdir $phaseA2 --db-url $databaseUrl --include-all
+& $supabase migration up --workdir $phaseA2 --db-url $databaseUrl --include-all --yes
 if ($LASTEXITCODE -ne 0) { throw 'Fase A2 faalde; stop vóór B.' }
 $afterA2 = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage a2-ready
 if ($LASTEXITCODE -ne 0) { throw 'Readback na A2 is niet exact A+A2; stop vóór B.' }
@@ -187,16 +217,32 @@ $beforeB = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --
 if ($LASTEXITCODE -ne 0) { throw 'Core TEST toont niet exact A+A2 vóór B; stop.' }
 $beforeB | Set-Content (Join-Path $evidenceDir 'migration-a-and-a2-before-b.json')
 git fetch origin
+if ($LASTEXITCODE -ne 0) { throw 'git fetch failed; stop.' }
 $currentRemote = git ls-remote origin "refs/heads/$branch"
 $currentSha = ($currentRemote -split '\s+')[0]
 if ($currentSha -ne $releaseSha) { throw 'PR-head veranderde sinds A; stop.' }
 git switch --detach $releaseSha
-if ((git status --porcelain).Length -ne 0) { throw 'Source-checkout is niet schoon.' }
+if ($LASTEXITCODE -ne 0) { throw 'Could not check out the pinned SHA; stop.' }
+if (@(git status --porcelain).Count -ne 0) { throw 'Source-checkout is niet schoon.' }
 Push-Location apps/hr-suite
 vercel link --yes --scope edwinitsolutions --project prj_h3voMtzXGfqG6QTodR5d1VTcC1zP
+if ($LASTEXITCODE -ne 0) { throw 'Vercel project link failed; stop.' }
+# Vercel CLI maakt lokaal apps/hr-suite/.gitignore aan; houd die ongecommit maar behoud haar.
+if (Test-Path -LiteralPath '.gitignore' -PathType Leaf) {
+  $gitDir = git rev-parse --absolute-git-dir
+  $excludeFile = Join-Path $gitDir 'info\exclude'
+  $excludeEntry = '/apps/hr-suite/.gitignore'
+  if (-not ((Get-Content -LiteralPath $excludeFile -ErrorAction SilentlyContinue) -contains $excludeEntry)) {
+    Add-Content -LiteralPath $excludeFile -Value $excludeEntry -Encoding utf8
+  }
+}
+if (@(git status --porcelain).Count -ne 0) { throw 'Vercel-link liet onverwachte lokale wijzigingen achter; stop vóór pull/build.' }
 vercel pull --yes --scope edwinitsolutions --project prj_h3voMtzXGfqG6QTodR5d1VTcC1zP --environment=production
+if ($LASTEXITCODE -ne 0) { throw 'Vercel pull failed; stop before build.' }
 vercel build --prod --scope edwinitsolutions --project prj_h3voMtzXGfqG6QTodR5d1VTcC1zP
+if ($LASTEXITCODE -ne 0) { throw 'Vercel build failed; stop before deployment.' }
 vercel deploy --prebuilt --prod --scope edwinitsolutions --project prj_h3voMtzXGfqG6QTodR5d1VTcC1zP
+if ($LASTEXITCODE -ne 0) { throw 'Vercel deployment failed; stop before provenance or C.' }
 node scripts/ins-release-04-core-test-acceptance.mjs --verify-deployment-only --expected-source-sha $releaseSha
 if ($LASTEXITCODE -ne 0) { throw 'Alias, deployment, source-SHA of Core TEST-project readback mismatch; stop vóór C.' }
 Pop-Location
@@ -207,6 +253,7 @@ Pop-Location
 ```powershell
 $databaseUrl = $env:LIQUIDHR_CORE_TEST_DB_URL
 if (-not $databaseUrl) { throw 'LIQUIDHR_CORE_TEST_DB_URL ontbreekt.' }
+Assert-CoreTestDbUrl -DbUrl $databaseUrl
 $beforeC = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage a2-ready
 if ($LASTEXITCODE -ne 0) { throw 'Preflight vóór C is niet exact A+A2; stop.' }
 $beforeC | Set-Content (Join-Path $evidenceDir 'migration-a-and-a2-before-c.json')
@@ -215,8 +262,9 @@ $migrationDir = Join-Path $phaseC 'supabase\migrations'
 New-Item -ItemType Directory -Path $migrationDir -Force | Out-Null
 Copy-Item 'apps/hr-suite/supabase/config.toml' (Join-Path $phaseC 'supabase\config.toml')
 Copy-Item 'apps/hr-suite/supabase/migrations/20261030120901_ins_release_04_manager_insights_activation.sql' $migrationDir
-supabase migration list --workdir $phaseC --db-url $databaseUrl
-supabase migration up --workdir $phaseC --db-url $databaseUrl --include-all
+& $supabase migration list --workdir $phaseC --db-url $databaseUrl
+if ($LASTEXITCODE -ne 0) { throw 'Read-only migration list failed; stop without applying.' }
+& $supabase migration up --workdir $phaseC --db-url $databaseUrl --include-all --yes
 if ($LASTEXITCODE -ne 0) { throw 'Fase C faalde; stop vóór D.' }
 $afterC = node apps/hr-suite/scripts/ins-release-04-core-test-acceptance.mjs --verify-migration-stage complete
 if ($LASTEXITCODE -ne 0) { throw 'Readback na C is niet exact A+A2+C; stop vóór D.' }
@@ -251,7 +299,7 @@ De route `/v1/projects/{ref}/database/migrations` is een GET met `database_migra
 - Employee: bestaande geautoriseerde NL-sessie zonder collega-Insights.
 - Een private manifest met deze bestaande storage-state-paden en de verwachte tenant-, HR-groep-, administratie-, verboden-scope-, buiten-team-fixture- en drempelwaarden. De runner maakt of vernieuwt geen sessies.
 - Vercel CLI-authenticatie voor `edwinitsolutions/liquidhr`, de Core TEST DB-URL uitsluitend tijdens A/C, een Supabase Management API-token met alleen `database_migrations_read` voor readbacks en de bestaande `.vercel/.env.production.local` voor D. Toon of commit geen waarden.
-- De Supabase CLI moet op het uitvoeringssysteem beschikbaar zijn voor A/C. Zij was niet geïnstalleerd/beschikbaar in deze geïsoleerde checkout (`supabase --version` kon niet starten); er is niets geïnstalleerd.
+- Historische momentopname vóór INS-RELEASE-04 EXECUTION UNBLOCK: de Supabase CLI was niet beschikbaar. De laatste preflight heeft een lokale, exact gepinde CLI 2.122.0 geïnstalleerd in de task-specifieke toolmap; zie de laatste sectie.
 
 De huidige alias levert voor de deploymentreadback nog `RUNTIME_PROVENANCE_UNAVAILABLE`; A en C ontbreken. Er is daardoor nog geen live uitvoering van de uiteindelijke runner tegen de nieuwe app.
 
@@ -283,4 +331,92 @@ De volledige suite gaf opnieuw de bekende Happy DOM-waarschuwingen voor syntheti
 
 ### Actueel oordeel
 
-**EXECUTION READY** voor de gecontroleerde A→B→C→D-run. De onafhankelijke readbacks, runnerfail-closed-controles, fixturebewijs en uitvoerbare runbook zijn klaar. Er is geen migration apply, SQL-write, role grant, deployment, aliaswijziging, merge of hosted personaacceptatie uitgevoerd. De Core TEST-run blijft ongestart totdat expliciete toestemming voor databasefasen A/C en `RELEASE LIQUIDHR TEST` voor B is gegeven. D vereist daarna de genoemde bestaande geautoriseerde identiteiten en storage states. De push naar de bestaande Draft PR volgt na de laatste Git/Vercel-triggercontrole; na push worden remote SHA en branch-deploymentcount opnieuw gecontroleerd.
+**Historisch oordeel op de eerdere kandidaat-SHA: EXECUTION READY** voor de gecontroleerde A→B→C→D-run. De onafhankelijke readbacks, runnerfail-closed-controles, fixturebewijs en uitvoerbare runbook zijn klaar. Er is geen migration apply, SQL-write, role grant, deployment, aliaswijziging, merge of hosted personaacceptatie uitgevoerd. De Core TEST-run blijft ongestart totdat expliciete toestemming voor databasefasen A/C en `RELEASE LIQUIDHR TEST` voor B is gegeven. D vereist daarna de genoemde bestaande geautoriseerde identiteiten en storage states. De push naar de bestaande Draft PR volgt na de laatste Git/Vercel-triggercontrole; na push worden remote SHA en branch-deploymentcount opnieuw gecontroleerd.
+
+## INS-RELEASE-04 EXECUTION UNBLOCK — laatste preflight (30 oktober 2026)
+
+### Vastgepinde basis en actuele gates
+
+De laatste read-only controle startte op branch work/ins-release-01-unblock-20261029. Zowel lokale HEAD als de remote PR #71-head waren toen exact 2202d61f64640300184ea4785f8885240e3da598. PR #71 is open en Draft. Dit addendum is alleen documentatie; na de documentcommit moet de release-run opnieuw de exacte remote PR-head pinnen. Als er vóór uitvoering nieuwe commits zijn, inspecteer die eerst en gebruik alleen de na review vastgestelde exacte SHA. De lokale Vercel-link heeft daarnaast een ongetrackte apps/hr-suite/.gitignore aangemaakt; die is behouden en wordt via één repo-lokale .git/info/exclude-regel buiten commits gehouden. Er zijn geen andere code- of testwijzigingen.
+
+| Gate | Status | Vastgesteld bewijs / resterende voorwaarde |
+|---|---|---|
+| Tests en build | PASS, doorgevoerd bewijs | De actuele PR-beschrijving registreert 4.036 PASS / 8 SKIP / 0 FAIL. De bestaande runbook-evidence registreert een geslaagde TypeScript-, ESLint- en productiebuild. Deze doc-only preflight heeft ze niet herhaald, conform scope. |
+| Supabase CLI | READY | Lokale, niet-globale installatie supabase@2.122.0 in C:\Users\Edwin\AppData\Local\Temp\LiquidHR-INS-RELEASE-04-tools-2202d61f. De version-, migration list- en migration up-help controles slaagden. |
+| Core TEST databaseverbinding en write-autorisatie | HOLD | Supabase Management/MCP read-only project- en migratielezingen werken. LIQUIDHR_CORE_TEST_DB_URL en SUPABASE_ACCESS_TOKEN ontbreken in process-, user- en machineomgeving; CLI-tokenbestanden ontbreken. Er is geen directe Postgresverbinding of migration-apply-permissie bewezen. |
+| Core TEST-projectidentiteit | PASS voor read-only referentie | Supabase projectlijst noemt LiquidHR, ACTIVE_HEALTHY, ref wnpfloqpjvaacobppbpk. De migratiehistorie is via read-only toegang uit hetzelfde project gelezen. |
+| Migratiehistorie | PASS | 591 records. A 20261030065603, A2 20261030120000 en C 20261030120901 ontbreken alle drie; dit is de vereiste starttoestand. |
+| Vercel-project/link | READY voor projecttoegang | Vercel CLI 65.0.0, Node 22.14.0; whoami en projectinspectie slagen. Project liquidhr, ID prj_h3voMtzXGfqG6QTodR5d1VTcC1zP, repo LiquidHR, root apps/hr-suite, productiebranch main, Vercel Node 24.x. Het project-API meldt createDeployments=disabled. Vercel Production is volgens het LiquidHR-omgevingscontract de bestaande synthetische TEST-channel. Geen deployment of aliaswijziging uitgevoerd. |
+| Live provenance/configuratiedoel | HOLD tot na B | Huidige actieve deployment dpl_BVSDnuTsJYHCvWnVotw4waxpxJ1n is READY/production maar heeft geen controleerbare Git-SHA. GET /api/runtime/build-provenance op de bestaande alias retourneert 404. De Vercel production-configuratie is niet als runtime-Core-ref bewezen; de nieuwe provenance-readback moet na B exact de release-SHA, project-ID en ref wnpfloqpjvaacobppbpk bevestigen vóór C. |
+| HR Admin-sessies NL/EN | HOLD | Geen vereiste Playwright/storage-state bestanden gevonden onder de bestaande TestRuntime-locatie. |
+| Manager-sessies NL/EN en lege Manager NL | HOLD | Geen vereiste sessies gevonden. De onafhankelijke directe-team-connector gaf een interne fout; geen geautoriseerde allowlist beschikbaar. |
+| Employee NL-sessie | HOLD | Geen vereiste sessie gevonden. |
+| Negatieve buiten-team-fixtures | HOLD | Geen onafhankelijke HR Admin-referentie voor medewerkers/cases/spells bevestigd. Een ontbrekende fixture kan niet als PASS gelden. |
+| Private manifest | HOLD | Geen bestaand INS-RELEASE-04-manifest gevonden onder TestRuntime of in de checkout. Er is geen manifest met placeholders of ongeverifieerde waarden gemaakt. |
+
+### Supabase CLI en Core TEST-voorbereiding
+
+De projectgebonden installatie is buiten de repository gehouden, zodat package.json, lockfiles en productdependencies niet wijzigen. De npm-installatiemethode volgt de [officiële Supabase CLI setup](https://supabase.com/docs/guides/local-development/cli/getting-started); de gebruikte flags zijn bevestigd met de [officiële CLI-referentie](https://supabase.com/docs/reference/cli/global-flags). Supabase CLI 2.122.0 ondersteunt migration list en migration up met --db-url, en --workdir; migration up ondersteunt ook --include-all en --yes. De CLI-help meldt dat met --db-url geen Supabase CLI access token nodig is, maar de opgegeven database-URL en PostgreSQL-rechten zijn wel vereist. De URI moet volgens de CLI-help percent-encoded zijn. Vóór iedere apply controleert Assert-CoreTestDbUrl zonder de URL, gebruikersnaam of wachtwoord te tonen dat de directe host exact db.wnpfloqpjvaacobppbpk.supabase.co is, of dat de Supabase-poolerhost en de PostgreSQL-gebruikersnaam samen exact project wnpfloqpjvaacobppbpk aanwijzen. Andere hosts falen gesloten. Er is geen URL in process-, user- of machineenvironment en de canonical TestRuntime-config is niet geopend of uitgelezen.
+
+De geïsoleerde toolmap kan indien gewist opnieuw worden opgebouwd zonder globale installatie:
+
+~~~powershell
+$toolHome = 'C:\Users\Edwin\AppData\Local\Temp\LiquidHR-INS-RELEASE-04-tools-2202d61f'
+New-Item -ItemType Directory -Path $toolHome -Force | Out-Null
+Push-Location $toolHome
+npm init -y
+npm install --save-exact supabase@2.122.0
+Pop-Location
+~~~
+
+Gebruik daarna de bootstrap in het A–A2–B–C–D-runbook bovenaan: die fixeert SUPABASE_HOME binnen de toolmap, schakelt CLI-telemetrie uit en faalt als de versie niet exact 2.122.0 is. De bestaande A, A2 en C migratieblokken roepen nu expliciet deze lokale $supabase uit en houden elke migratie in een tijdelijke workdir met exact één SQL-bestand. --yes wordt alleen gebruikt ná onafhankelijke fasecontrole en de afzonderlijke expliciete databaseautorisatie. De Supabase CLI is niet aangemeld en er is geen account of credential aangemaakt.
+
+### Vercel-link, build en deployment
+
+De geïsoleerde apps/hr-suite-checkout is gekoppeld met:
+~~~powershell
+Push-Location apps/hr-suite
+vercel link --yes --scope edwinitsolutions --project prj_h3voMtzXGfqG6QTodR5d1VTcC1zP
+if ($LASTEXITCODE -ne 0) { throw 'Vercel project link failed; stop.' }
+Pop-Location
+~~~
+
+Readback van apps/hr-suite/.vercel/project.json bevestigt het opgegeven project-ID, team-ID en projectnaam. Vercel CLI-authenticatie en project-read zijn beschikbaar. De link heeft apps/hr-suite/.env.local en apps/hr-suite/.gitignore aangemaakt; beide zijn buiten de rapportage gehouden, .env.local is niet gelezen en de ignorefile is niet gecommit. De verwachte apps/hr-suite/.vercel/.env.production.local ontbreekt nog. Voer geen env-pull uit vóór geautoriseerde fase B; die schrijft lokaal environmentmateriaal weg. Vercel env-waarden zijn niet in dit rapport gekopieerd.
+
+Na A2-readback, een schone checkout en afzonderlijke autorisatie RELEASE LIQUIDHR TEST zijn dit de exacte B-commando's op de op dat moment gepinde releaseSha:
+~~~powershell
+Push-Location apps/hr-suite
+vercel pull --yes --scope edwinitsolutions --project prj_h3voMtzXGfqG6QTodR5d1VTcC1zP --environment=production
+if ($LASTEXITCODE -ne 0) { throw 'Vercel pull failed; stop before build.' }
+vercel build --prod --scope edwinitsolutions --project prj_h3voMtzXGfqG6QTodR5d1VTcC1zP
+if ($LASTEXITCODE -ne 0) { throw 'Vercel build failed; stop before deployment.' }
+vercel deploy --prebuilt --prod --scope edwinitsolutions --project prj_h3voMtzXGfqG6QTodR5d1VTcC1zP
+if ($LASTEXITCODE -ne 0) { throw 'Vercel deployment failed; stop before provenance or C.' }
+Pop-Location
+~~~
+
+Dit zijn voorbereide commando's; er zijn geen Vercel-mutaties uitgevoerd. --prod wijst naar de bestaande Vercel-production-channel van de synthetische LiquidHR TEST-app volgens het repository-omgevingscontract. Na deployment moet de runner met --verify-deployment-only de nieuwe alias, deployment-ID, exacte source-SHA en Supabase-ref onafhankelijk lezen. De huidige 404 is de oude deploymentstatus; D of C starten niet zolang die readback niet slaagt.
+
+### Persona's, loginroutes en manifest
+
+De canonieke C:\Users\Edwin\AppData\Local\LiquidHR\TestRuntime-locatie bestaat en .env.local bestaat, maar de inhoud is niet bekeken. Een metadata-only bestandsnaamscan vond daar geen manifest, storage state, sessiebestand of persona-browserstate. De checkout bevat geen verifieerbare bestaande persona-states. De bestaande /login- en /auth/callback-routes zijn de normale aanmeldroutes; er is geen aanmelding geprobeerd omdat geen bestaande geautoriseerde persona-sessie/credentiallocatie aan de vereiste HR Admin-, Manager-, lege-Manager- en Employee-persona's kon worden gekoppeld. Geen account, sessie, rol of fixture is aangemaakt of gewijzigd.
+
+De managerteam-allowlist moet onafhankelijk uit een geautoriseerde bron worden bepaald. De Manager-service gaf een connectorfout; de vereiste HR Admin-readback voor buiten-team-medewerkers en relevante cases/spells ontbreekt. Maak daarom geen manifest. D is pas uitvoerbaar wanneer de bestaande, ACL-beschermde storage states, private manifest met uitsluitend gecontroleerde waarden, directe-team-allowlist en bestaande buiten-team-cases/spells beschikbaar zijn. De manager-allowlist moet onafhankelijk overeenkomen met de managerteambron; een ontbrekende fixture is HOLD.
+
+### Fasepoorten, evidence en containment
+
+Behoud de bestaande volgorde A → A2 → B → C → D en gebruik bij alle stappen dezelfde finale releaseSha. De huidige read-only startstatus is “geen A/A2/C”. Voer nooit een volgende fase uit als de onafhankelijke historie niet exact de verwachte toestand toont:
+
+- A: afzonderlijke toestemming voor exact migration 20261030065603; vóór apply moeten A/A2/C ontbreken; na afloop moet uitsluitend A als releasemigratie zichtbaar zijn.
+- A2: afzonderlijke toestemming voor exact migration 20261030120000; vooraf alleen A aanwezig; erna exact A+A2.
+- B: afzonderlijke RELEASE LIQUIDHR TEST-toestemming; vooraf exact A+A2; na deploy moet provenance voor releaseSha, Vercel-project en Core TEST-ref slagen.
+- C: afzonderlijke toestemming voor exact migration 20261030120901; pas na succesvolle B-readback; vooraf exact A+A2 en erna exact A+A2+C.
+- D: aparte bevestiging van geautoriseerde Core TEST-acceptatie én beschikbaarheid van alle bestaande persona-sessies, de onafhankelijke allowlist, negatieve fixtures en private manifest. Geen sessies of fixtures creëren.
+
+Bewaar uitsluitend niet-gevoelige JSON-readbacks in %TEMP%\INS-RELEASE-04-gate-evidence. Voeg geen credentials, tokens, cookies, persoonsgegevens of rapportexports toe. Stop onmiddellijk bij een andere branch-SHA, dirty source-checkout, ontbrekende DB-URL, fout in migratievolgorde, onverwachte pending migratie, verkeerde deployment/ref, provenancefout, persona-scopelek, ontbrekende negatieve fixture of KPI-/details-/Excel-mismatch.
+
+Containment: A verleent geen Manager-recht en heeft geen destructieve rollback nodig. Laat A2 staan bij incident; ongedaan maken kan gedeactiveerde rollen opnieuw toegang geven en vereist een afzonderlijk securitybesluit. Bij een fout na C: stop D; verwijder alleen de door C-ledger bewezen nieuw toegevoegde report-absence:read grants, uitsluitend na aparte databaseautorisatie, en behoud de ledger. Herstel een eerdere Vercel-app uitsluitend na een aparte RELEASE LIQUIDHR TEST-autorisatie. Geen rollback-, migratie-, database-, deployment- of aliasactie is tijdens deze preflight uitgevoerd.
+
+### Eindstatus
+
+**HOLD.** Er is geen aangetoond productcode- of regressiedefect in deze voorzichtige preflight. De blokkades zijn toegang en ontbrekende acceptatie-evidence: directe Core TEST DB-verbinding/write-rechten; verificatie van de runtime-Core-ref na B; bestaande HR Admin/Manager/lege Manager/Employee states; private manifest; onafhankelijke Manager-allowlist; en geverifieerde negatieve buiten-team-medewerkers met relevante cases/spells. Tests/build zijn alleen doorgevoerd uit de bestaande acceptatie-evidence en niet opnieuw uitgevoerd. Geen fase A, A2, B, C of D is gestart.
