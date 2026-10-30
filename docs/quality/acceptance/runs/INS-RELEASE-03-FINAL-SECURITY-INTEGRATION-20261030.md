@@ -63,7 +63,7 @@ Lokale code-, SQL-contract-, type-, lint-, i18n- en buildcontroles zijn geslaagd
 
 ## INS-RELEASE-04 — Gecontroleerd Core TEST-pakket (30 oktober 2026)
 
-Deze sectie is de actuele aanvulling op INS-RELEASE-03 en vervangt de daarin beschreven migratievolgorde. De eerdere bewering dat `20261030065603` ook de Manager-permissie toekent, is voor de huidige branch achterhaald. De historische INS-03-resultaten hierboven blijven staan als bewijs voor hun toenmalige SHA; ze zijn geen hosted acceptatiebewijs voor deze kandidaat.
+Deze sectie documenteert de eerdere INS-RELEASE-04-runnercorrectie en vervangt de toenmalige INS-RELEASE-03-volgorde. Het bijgewerkte uitvoerbare runbook verderop vervangt de hieronder genoemde A→B→C→D-volgorde door A→A2→B→C→D. De eerdere bewering dat `20261030065603` ook de Manager-permissie toekent, is achterhaald. De historische INS-03-resultaten hierboven blijven bewijs voor hun toenmalige SHA; ze zijn geen hosted acceptatiebewijs voor deze kandidaat.
 
 | Eigenschap | Waarde |
 |---|---|
