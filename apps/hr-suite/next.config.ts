@@ -14,7 +14,7 @@ function verifiedBuildSourceSha(): string | undefined {
   let gitStatus: string | null = null
   try {
     gitCommit = execFileSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-    gitStatus = execFileSync('git', ['-C', repoRoot, 'status', '--porcelain', '--untracked-files=normal'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    gitStatus = execFileSync('git', ['-C', repoRoot, 'status', '--porcelain', '--untracked-files=normal'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trimEnd()
   } catch {
     throw new Error('A readable, clean Git source is required for production builds.')
   }
