@@ -586,7 +586,8 @@ describe('Payroll component library route', () => {
 
   it('renders every real system catalog detail with strict Dutch and English translations', () => {
     const components = getSystemComponentCatalog()
-    expect(components).toHaveLength(24)
+    expect(components).toHaveLength(25)
+    expect(components.some((entry) => entry.definition.code === 'PAYFULL02_VARIABLE_REGULAR_WAGE')).toBe(true)
 
     for (const [locale, messages] of [
       ['nl', navigationNl as MessageTree],

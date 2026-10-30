@@ -74,29 +74,37 @@ export const getSelfPermissions = cache(async (supabase: SupabaseServerClient, t
     .select('id,tenant_id')
     .eq('code', 'EMPLOYEE')
     .eq('is_active', true)
+    .is('deleted_at', null)
     .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
 
   if (employeeRoleError) throw employeeRoleError
   const employeeRole = employeeRoles.find((role) => role.tenant_id === tenantId) ?? employeeRoles.find((role) => role.tenant_id === null)
-  return employeeRole ? permissionCodesForRoleIds([employeeRole.id], supabase) : []
+  return employeeRole ? permissionCodesForRoleIds([employeeRole.id], supabase, tenantId) : []
 })
 
-async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseServerClient, tenantId?: string): Promise<string[]> {
+async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseServerClient, tenantId: string): Promise<string[]> {
   if (roleIds.length === 0) return []
 
-  let effectiveRoleIds = roleIds
-  if (tenantId) {
-    const { data: assignedRoles, error: assignedRolesError } = await supabase.from('management_roles').select('id,code,tenant_id').in('id', roleIds)
-    if (assignedRolesError) throw assignedRolesError
-    const globalCodes = assignedRoles.filter((role) => role.tenant_id === null).map((role) => role.code)
-    if (globalCodes.length > 0) {
-      const { data: tenantOverrides, error: tenantOverridesError } = await supabase.from('management_roles').select('id,code')
-        .eq('tenant_id', tenantId).eq('is_active', true).in('code', globalCodes)
-      if (tenantOverridesError) throw tenantOverridesError
-      const overrideByCode = new Map(tenantOverrides.map((role) => [role.code, role.id]))
-      effectiveRoleIds = assignedRoles.map((role) => role.tenant_id === null ? overrideByCode.get(role.code) ?? role.id : role.id)
-    }
+  const { data: assignedRoles, error: assignedRolesError } = await supabase
+    .from('management_roles')
+    .select('id,code,tenant_id')
+    .in('id', roleIds)
+    .eq('is_active', true)
+    .is('deleted_at', null)
+    .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
+  if (assignedRolesError) throw assignedRolesError
+
+  let effectiveRoleIds = assignedRoles.map((role) => role.id)
+  const globalCodes = assignedRoles.filter((role) => role.tenant_id === null).map((role) => role.code)
+  if (globalCodes.length > 0) {
+    const { data: tenantOverrides, error: tenantOverridesError } = await supabase.from('management_roles').select('id,code')
+      .eq('tenant_id', tenantId).eq('is_active', true).is('deleted_at', null).in('code', globalCodes)
+    if (tenantOverridesError) throw tenantOverridesError
+    const overrideByCode = new Map(tenantOverrides.map((role) => [role.code, role.id]))
+    effectiveRoleIds = assignedRoles.map((role) => role.tenant_id === null ? overrideByCode.get(role.code) ?? role.id : role.id)
   }
+
+  if (effectiveRoleIds.length === 0) return []
 
   const { data: rolePermissions, error: rolePermissionsError } = await supabase
     .from('role_permissions')
@@ -116,13 +124,16 @@ async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseSe
   return permissions.map((permission) => permission.code)
 }
 
-async function roleCodesForRoleIds(roleIds: string[], supabase: SupabaseServerClient): Promise<string[]> {
+async function roleCodesForRoleIds(roleIds: string[], supabase: SupabaseServerClient, tenantId: string): Promise<string[]> {
   if (roleIds.length === 0) return []
 
   const { data: roles, error } = await supabase
     .from('management_roles')
     .select('code')
     .in('id', roleIds)
+    .eq('is_active', true)
+    .is('deleted_at', null)
+    .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
 
   if (error) throw error
   return roles.map((role) => role.code)
@@ -198,7 +209,7 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
     ]),
   ]
   const [activeRoles, permissions] = await Promise.all([
-    roleCodesForRoleIds(roleIds, supabase),
+    roleCodesForRoleIds(roleIds, supabase, tenantId),
     permissionCodesForRoleIds(roleIds, supabase, tenantId),
   ])
   const accessState = resolveEmploymentAccessState(today, actorEmployments)
