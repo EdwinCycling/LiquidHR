@@ -45,7 +45,7 @@ Read-only inspectie van Core TEST bevestigde dat de bestaande permissive `absenc
 | ESLint | PASS — geen warnings | Gericht op de gewijzigde Insights-services en testbestanden met `npx eslint` |
 | NL/EN i18n | PASS — 43 namespaces | `npm run check:i18n` vanaf `apps/hr-suite` |
 | Productiebuild | PASS | `npm run build` vanaf `apps/hr-suite`; Next.js genereerde 348 statische pagina’s; build/provenancecontroles geslaagd |
-| Git diff-check | PASS | `git diff --check --ignore-space-at-eol`; alleen een Git-regelindelingwaarschuwing voor de nieuwe LF-testbron op Windows, geen whitespacefout |
+| Git diff-check | PASS | `git diff --check --ignore-space-at-eol` gaf geen whitespacefouten; `core.autocrlf` gaf bij staging een EOL-conversiewaarschuwing voor LF-werkkopieën op Windows |
 
 De volledige suite gaf bestaande Happy DOM-waarschuwingen voor synthetische `blob:payfull-*`-iframe-URL’s; de betrokken tests en de volledige run slaagden. De build genereerde een wijziging in het Focus-widgetartefact; alleen dat exacte bestand is hersteld naar de voorafgaande HEAD-inhoud. `apps/hr-suite/next-env.d.ts` bleef ongewijzigd.
 
