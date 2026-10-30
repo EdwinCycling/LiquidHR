@@ -240,8 +240,8 @@ PR #71 is open en Draft; de remote branch-head was bij aanvang van deze correcti
 
 | Controle | Resultaat | Evidence |
 |---|---:|---|
-| Gerichte runner-/SQL-/Payroll-tests | PASS — 7 bestanden, 32 tests | Exacte Vitest-opdracht direct onder deze tabel |
-| Volledige Vitest-suite | PASS — 4.025 PASS / 8 SKIP / 0 FAIL; 790 bestanden PASS / 4 SKIP | `npm test` vanaf repository-root; HR Suite 3.965/8, Control 11/0, Payroll-rules 49/0 |
+| Gerichte runner-/SQL-/Payroll-tests | PASS — 7 bestanden, 32 tests; vóór de laatste éénregelige parserfix in `next.config.ts` uitgevoerd en niet opnieuw gedraaid | Exacte Vitest-opdracht direct onder deze tabel; runner-, migratie- en rapportlogica was op dat moment definitief |
+| Volledige Vitest-suite | PASS — 4.025 PASS / 8 SKIP / 0 FAIL; 790 bestanden PASS / 4 SKIP; uitgevoerd vóór de laatste éénregelige parserfix in `next.config.ts` en niet opnieuw gedraaid | `npm test` vanaf repository-root; HR Suite 3.965/8, Control 11/0, Payroll-rules 49/0; na de parserfix zijn typecheck, lint, `node --check`, diff-check en build geslaagd |
 | HR-suite TypeScript | PASS | `npm run type-check` vanuit `apps/hr-suite` |
 | ESLint gewijzigde code | PASS — geen warnings | Gericht op `next.config.ts`, provenance-route en gewijzigde runner/provenance-scripts en tests |
 | `node --check` runner/provenance | PASS | Runner, build-source verifier en provenance writer |
@@ -256,7 +256,7 @@ npm test -- --reporter=dot scripts/ins-release-04-core-test-acceptance.test.mjs 
 Pop-Location
 ```
 
-De volledige suite gaf opnieuw de bekende Happy DOM-waarschuwingen voor synthetische `blob:payfull-*`-iframe-URL's; alle betrokken tests slaagden en de volledige run eindigde met exitcode 0. Dit zijn waarschuwingen, geen nieuwe regressies. De eerste buildpoging vond een whitespacefout in de nieuwe Git-statusparser; die is in `34559f75679099b4ed5434bd3bd9a7ea9ac8bdb6` hersteld. De retry slaagde. `next-env.d.ts` bleef gelijk; de door de build gegenereerde Focus-widgetbron is na hashcontrole exact naar de voorafgaande committed inhoud teruggezet.
+De volledige suite gaf opnieuw de bekende Happy DOM-waarschuwingen voor synthetische `blob:payfull-*`-iframe-URL's; alle betrokken tests slaagden en de volledige run eindigde met exitcode 0. Dit zijn waarschuwingen, geen nieuwe regressies. De volledige suite en de gerichte 32-test-suite zijn uitgevoerd vóór de laatste éénregelige whitespacecorrectie in de Git-statusparser van `next.config.ts`; die suites zijn daarna niet herhaald. De correctie raakt alleen die buildstatusparser; na de correctie zijn TypeScript, ESLint, `node --check`, diff-check en productiebuild gecontroleerd. De eerste buildpoging vond de whitespacefout; de retry op `34559f75679099b4ed5434bd3bd9a7ea9ac8bdb6` slaagde. `next-env.d.ts` bleef gelijk; de door de build gegenereerde Focus-widgetbron is na hashcontrole exact naar de voorafgaande committed inhoud teruggezet.
 
 ### Actueel oordeel
 
