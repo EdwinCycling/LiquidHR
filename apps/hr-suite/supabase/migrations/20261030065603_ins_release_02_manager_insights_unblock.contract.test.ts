@@ -239,4 +239,59 @@ describe('INS-RELEASE-02 manager Insights permission and threshold read model', 
       wrapperSecurityType: false,
     }])
   })
+
+  it('keeps both threshold functions owned by the migration role with an empty search_path and safe EXECUTE grants', async () => {
+    database = await createDatabase()
+    const db = database
+    const { rows } = await db.query<{
+      currentOwner: string
+      helperOwner: string
+      helperSecurityDefiner: boolean
+      helperSettings: string
+      helperAuthenticatedExecute: boolean
+      helperAnonExecute: boolean
+      helperServiceExecute: boolean
+      wrapperOwner: string
+      wrapperSecurityDefiner: boolean
+      wrapperSettings: string
+      wrapperAuthenticatedExecute: boolean
+      wrapperAnonExecute: boolean
+      wrapperServiceExecute: boolean
+    }>(`
+      select
+        current_user as "currentOwner",
+        pg_get_userbyid(helper.proowner) as "helperOwner",
+        helper.prosecdef as "helperSecurityDefiner",
+        array_to_string(helper.proconfig, ',') as "helperSettings",
+        has_function_privilege('authenticated', helper.oid, 'EXECUTE') as "helperAuthenticatedExecute",
+        has_function_privilege('anon', helper.oid, 'EXECUTE') as "helperAnonExecute",
+        has_function_privilege('service_role', helper.oid, 'EXECUTE') as "helperServiceExecute",
+        pg_get_userbyid(wrapper.proowner) as "wrapperOwner",
+        wrapper.prosecdef as "wrapperSecurityDefiner",
+        array_to_string(wrapper.proconfig, ',') as "wrapperSettings",
+        has_function_privilege('authenticated', wrapper.oid, 'EXECUTE') as "wrapperAuthenticatedExecute",
+        has_function_privilege('anon', wrapper.oid, 'EXECUTE') as "wrapperAnonExecute",
+        has_function_privilege('service_role', wrapper.oid, 'EXECUTE') as "wrapperServiceExecute"
+      from pg_proc helper
+      cross join pg_proc wrapper
+      where helper.oid = 'internal_security.read_frequent_absence_threshold(uuid, uuid)'::regprocedure
+        and wrapper.oid = 'public.get_frequent_absence_threshold(uuid, uuid)'::regprocedure
+    `)
+
+    expect(rows).toEqual([{
+      currentOwner: rows[0]?.currentOwner,
+      helperOwner: rows[0]?.currentOwner,
+      helperSecurityDefiner: true,
+      helperSettings: 'search_path=""',
+      helperAuthenticatedExecute: true,
+      helperAnonExecute: false,
+      helperServiceExecute: false,
+      wrapperOwner: rows[0]?.currentOwner,
+      wrapperSecurityDefiner: false,
+      wrapperSettings: 'search_path=""',
+      wrapperAuthenticatedExecute: true,
+      wrapperAnonExecute: false,
+      wrapperServiceExecute: false,
+    }])
+  })
 })

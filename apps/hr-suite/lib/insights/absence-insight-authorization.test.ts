@@ -33,7 +33,13 @@ type QueryResult = { data: Row[]; error: null }
 class MockSupabaseQuery implements PromiseLike<QueryResult> {
   private readonly filters: Filter[] = []
 
-  constructor(private readonly table: string, private readonly sourceRows: Row[], private readonly directTeamIds: readonly string[] | null) {}
+  constructor(
+    private readonly table: string,
+    private readonly sourceRows: Row[],
+    private readonly directTeamIds: readonly string[] | null,
+    private readonly ignoreEmployeeScopeFilter = false,
+    private readonly ignoredSourceFilters: readonly string[] = [],
+  ) {}
 
   select(): this { return this }
   eq(column: string, value: unknown): this { this.filters.push({ kind: 'eq', column, values: [value] }); return this }
@@ -69,6 +75,10 @@ class MockSupabaseQuery implements PromiseLike<QueryResult> {
       if (this.table === 'departments') expect(has('in', 'id')).toBe(true)
     }
     return this.sourceRows.filter((row) => this.filters.every((filter) => {
+      // Fault injection: exercise the post-query allowlist even if a permissive
+      // source unexpectedly returns rows beyond the requested direct team.
+      if (this.ignoreEmployeeScopeFilter && filter.kind === 'in' && filter.column === 'employee_id') return true
+      if (this.ignoredSourceFilters.includes(`${this.table}.${filter.column}`)) return true
       const value = row[filter.column]
       if (filter.kind === 'eq') return value === filter.values[0]
       if (filter.kind === 'is') return filter.values[0] === null ? value === null || value === undefined : value === filter.values[0]
@@ -112,7 +122,7 @@ function sourceRows(): Record<string, Row[]> {
     { ...scope, employee_id: 'employee-c', employment_id: 'employment-c', administration_id: 'admin-b', department_id: 'department-c', effective_from: '2020-01-01', effective_to: null },
   ]
   const schedules: Row[] = employments.map((employment) => ({
-    ...scope, employment_id: employment.id, administration_id: employment.administration_id, schedule_type: 'WEEKLY',
+    ...scope, employee_id: employment.employee_id, employment_id: employment.id, administration_id: employment.administration_id, schedule_type: 'WEEKLY',
     monday_hours: 8, tuesday_hours: 8, wednesday_hours: 8, thursday_hours: 8, friday_hours: 8,
     saturday_hours: 0, sunday_hours: 0, part_time_factor: 1, valid_from: '2020-01-01', valid_until: null,
   }))
@@ -144,6 +154,8 @@ function configure(
   teamEmployeeIds: string[] | null,
   sourceTruncated = false,
   dataOverride?: Record<string, Row[]>,
+  ignoreEmployeeScopeFilter = false,
+  ignoredSourceFilters: string[] = [],
 ): void {
   const data = dataOverride ?? sourceRows()
   mocks.authorization.mockResolvedValue({
@@ -156,7 +168,7 @@ function configure(
     return permissionActor
   })
   mocks.directTeam.mockResolvedValue({ employeeIds: teamEmployeeIds ?? [], sourceTruncated, members: [] })
-  mocks.from.mockImplementation((table: string) => new MockSupabaseQuery(table, data[table] ?? [], teamEmployeeIds))
+  mocks.from.mockImplementation((table: string) => new MockSupabaseQuery(table, data[table] ?? [], teamEmployeeIds, ignoreEmployeeScopeFilter, ignoredSourceFilters))
   mocks.rpc.mockImplementation(async (name: unknown, input: unknown) => {
     if (name !== 'get_frequent_absence_threshold') return { data: null, error: null }
     const parameters = input as Record<string, unknown>
@@ -211,6 +223,43 @@ describe('absence Insights authorization and source quality', () => {
     })
     expect(mocks.from.mock.calls.map((call) => call[0])).not.toContain('absence_settings')
     expect(mocks.permission.mock.calls.map((call) => call[2])).toContain('report-absence:read')
+  })
+
+  it('fails closed when a permissive source returns a same-group colleague outside the Manager direct team', async () => {
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
+    configure(manager, ['employee-a'], false, sourceRows(), true)
+
+    await expect(getAbsenceInsightReport(absenceQuery)).rejects.toMatchObject({ status: 403 })
+    await expect(getFrequentAbsenceReport(frequentQuery)).rejects.toMatchObject({ status: 403 })
+    await expect(getBradfordInsightReport(bradfordQuery)).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('fails closed if a source returns a direct-team employee employment from another administration', async () => {
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
+    const data = sourceRows()
+    data.employments.push({ ...data.employments.find((row) => row.id === 'employment-a')!, id: 'employment-a-other-admin', administration_id: 'admin-b' })
+    configure(manager, ['employee-a'], false, data, false, ['employments.administration_id'])
+
+    await expect(getAbsenceInsightReport(absenceQuery)).rejects.toMatchObject({ status: 403 })
+    await expect(getFrequentAbsenceReport(frequentQuery)).rejects.toMatchObject({ status: 403 })
+    await expect(getBradfordInsightReport(bradfordQuery)).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('fails closed when a direct-team allowlist result contains a different tenant or HR group', async () => {
+    const manager: AuthContext = { ...hrAdmin, activeRoles: ['DIRECT_MANAGER'], employeeId: 'manager-a', permissions: ['report-absence:read', 'employee:read', 'absence:read'] }
+    const data = sourceRows()
+    const foreignEmployee = data.employees.find((row) => row.id === 'employee-c')!
+    foreignEmployee.tenant_id = 'tenant-2'
+    foreignEmployee.hr_group_id = 'group-2'
+    const foreignEmployment = data.employments.find((row) => row.id === 'employment-c')!
+    foreignEmployment.tenant_id = 'tenant-2'
+    foreignEmployment.hr_group_id = 'group-2'
+    foreignEmployment.administration_id = 'admin-a'
+    configure(manager, ['employee-a', 'employee-c'], false, data, false, ['employments.tenant_id', 'employments.hr_group_id'])
+
+    await expect(getAbsenceInsightReport(absenceQuery)).rejects.toMatchObject({ status: 403 })
+    await expect(getFrequentAbsenceReport(frequentQuery)).rejects.toMatchObject({ status: 403 })
+    await expect(getBradfordInsightReport(bradfordQuery)).rejects.toMatchObject({ status: 403 })
   })
 
   it('limits an HR Admin to the active authorized administration even when more are available', async () => {
