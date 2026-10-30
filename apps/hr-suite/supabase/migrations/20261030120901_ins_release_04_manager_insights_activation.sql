@@ -4,7 +4,36 @@ begin;
 -- is available. The operational absence:* permissions and RLS policies remain
 -- untouched.
 do $$
+declare
+  helper_source text;
+  helper_config text[];
+  helper_is_security_definer boolean;
+  helper_is_stable boolean;
 begin
+  select proc.prosrc, proc.proconfig, proc.prosecdef, proc.provolatile = 's'
+  into helper_source, helper_config, helper_is_security_definer, helper_is_stable
+  from pg_catalog.pg_proc as proc
+  where proc.oid = pg_catalog.to_regprocedure(
+    'internal_security.current_user_has_hr_group_permission(uuid,uuid,text)'
+  );
+
+  if not found
+    or helper_is_security_definer is distinct from true
+    or helper_is_stable is distinct from true
+    or not (coalesce(helper_config, '{}'::text[]) @> array['search_path=""'])
+    or position('(select auth.uid()) is not null' in lower(helper_source)) = 0
+    or position('current_employee_is_preboarding' in lower(helper_source)) = 0
+    or position('access.is_active' in lower(helper_source)) = 0
+    or position('access.tenant_id = requested_tenant_id' in lower(helper_source)) = 0
+    or position('access.hr_group_id = requested_hr_group_id' in lower(helper_source)) = 0
+    or position('group_row.is_active' in lower(helper_source)) = 0
+    or position('role.is_active is true' in lower(helper_source)) = 0
+    or position('role.deleted_at is null' in lower(helper_source)) = 0
+    or position('permission.code = requested_permission_code' in lower(helper_source)) = 0
+    or position('role.tenant_id = requested_tenant_id' in lower(helper_source)) = 0 then
+    raise exception 'INS_RELEASE_04_ROLE_PERMISSION_GUARD_MISSING' using errcode = '55000';
+  end if;
+
   if not exists (
     select 1
     from public.permissions as permission

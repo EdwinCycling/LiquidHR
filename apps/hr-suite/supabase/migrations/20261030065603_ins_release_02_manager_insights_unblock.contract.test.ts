@@ -3,6 +3,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { afterEach, describe, expect, it } from 'vitest'
 
 const migrationUrl = new URL('./20261030065603_ins_release_02_manager_insights_unblock.sql', import.meta.url)
+const roleGuardUrl = new URL('./20261030120000_ins_release_04_active_role_permission_guard.sql', import.meta.url)
 const activationUrl = new URL('./20261030120901_ins_release_04_manager_insights_activation.sql', import.meta.url)
 const tenantA = '00000000-0000-4000-8000-000000000001'
 const tenantB = '00000000-0000-4000-8000-000000000002'
@@ -11,6 +12,7 @@ const groupB = '00000000-0000-4000-8000-000000000012'
 const groupC = '00000000-0000-4000-8000-000000000013'
 const managerUser = '00000000-0000-4000-8000-000000000071'
 const employeeUser = '00000000-0000-4000-8000-000000000072'
+const adminUser = '00000000-0000-4000-8000-000000000073'
 const globalManagerRole = '00000000-0000-4000-8000-000000000101'
 const tenantManagerRole = '00000000-0000-4000-8000-000000000102'
 const otherTenantManagerRole = '00000000-0000-4000-8000-000000000103'
@@ -23,7 +25,7 @@ const caseManagerEmployee = '00000000-0000-4000-8000-000000000301'
 
 let database: PGlite | null = null
 
-async function createDatabase(applyMigration = true): Promise<PGlite> {
+async function createDatabase(applyMigrations = true): Promise<PGlite> {
   const db = new PGlite()
   await db.exec(String.raw`
     create role anon;
@@ -52,6 +54,23 @@ async function createDatabase(applyMigration = true): Promise<PGlite> {
       user_id uuid not null, tenant_id uuid not null, hr_group_id uuid not null,
       management_role_id uuid not null, is_active boolean not null default true
     );
+    create table public.preboarding_status (
+      user_id uuid not null, tenant_id uuid not null, hr_group_id uuid not null,
+      is_preboarding boolean not null default false,
+      primary key (user_id, tenant_id, hr_group_id)
+    );
+    create function internal_security.current_employee_is_preboarding(
+      requested_tenant_id uuid, requested_hr_group_id uuid
+    )
+    returns boolean language sql stable security definer set search_path = '' as $$
+      select coalesce((
+        select status.is_preboarding
+        from public.preboarding_status as status
+        where status.user_id = (select auth.uid())
+          and status.tenant_id = requested_tenant_id
+          and status.hr_group_id = requested_hr_group_id
+      ), false)
+    $$;
     create table public.absence_settings (
       id uuid primary key, tenant_id uuid not null, hr_group_id uuid not null,
       frequent_absence_threshold smallint not null check (frequent_absence_threshold between 1 and 20),
@@ -61,7 +80,9 @@ async function createDatabase(applyMigration = true): Promise<PGlite> {
       requested_tenant_id uuid, requested_hr_group_id uuid, requested_permission_code text
     )
     returns boolean language sql stable security definer set search_path = '' as $$
-      select (select auth.uid()) is not null and exists (
+      select (select auth.uid()) is not null
+        and not internal_security.current_employee_is_preboarding(requested_tenant_id, requested_hr_group_id)
+        and exists (
         select 1
         from public.user_hr_group_access as access
         join public.management_roles as management_role on management_role.id = access.management_role_id
@@ -88,7 +109,8 @@ async function createDatabase(applyMigration = true): Promise<PGlite> {
       using (internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'absence-settings:read'));
     insert into public.permissions (id, code) values
       ('00000000-0000-4000-8000-000000000201', 'report-absence:read'),
-      ('00000000-0000-4000-8000-000000000202', 'absence-settings:read');
+      ('00000000-0000-4000-8000-000000000202', 'absence-settings:read'),
+      ('00000000-0000-4000-8000-000000000203', 'self:leave:read');
     insert into public.management_roles (id, tenant_id, code, is_active, deleted_at) values
       ('00000000-0000-4000-8000-000000000101', null, 'DIRECT_MANAGER', true, null),
       ('00000000-0000-4000-8000-000000000102', '00000000-0000-4000-8000-000000000001', 'DIRECT_MANAGER', true, null),
@@ -99,19 +121,28 @@ async function createDatabase(applyMigration = true): Promise<PGlite> {
       ('00000000-0000-4000-8000-000000000107', '00000000-0000-4000-8000-000000000001', 'HR_ADMIN', true, null);
     insert into public.role_permissions (management_role_id, permission_id) values
       ('00000000-0000-4000-8000-000000000107', '00000000-0000-4000-8000-000000000201'),
-      ('00000000-0000-4000-8000-000000000107', '00000000-0000-4000-8000-000000000202');
+      ('00000000-0000-4000-8000-000000000107', '00000000-0000-4000-8000-000000000202'),
+      ('00000000-0000-4000-8000-000000000106', '00000000-0000-4000-8000-000000000203');
     insert into public.hr_groups (tenant_id, id) values
       ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000011'),
       ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000012'),
       ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000013');
   `)
-  if (applyMigration) await db.exec(await readFile(migrationUrl, 'utf8'))
+  if (applyMigrations) {
+    await db.exec(await readFile(migrationUrl, 'utf8'))
+    await db.exec(await readFile(roleGuardUrl, 'utf8'))
+  }
   return db
 }
 
 async function setActor(db: PGlite, actorId: string): Promise<void> {
   await db.query('select set_config($1, $2, false)', ['request.jwt.claim.sub', actorId])
   await db.exec('set role authenticated')
+}
+
+async function applyPhaseAAndA2(db: PGlite): Promise<void> {
+  await db.exec(await readFile(migrationUrl, 'utf8'))
+  await db.exec(await readFile(roleGuardUrl, 'utf8'))
 }
 
 afterEach(async () => {
@@ -142,6 +173,80 @@ describe('INS-RELEASE-02 manager Insights permission and threshold read model', 
     )
     expect(rows.map((row) => row.management_role_id)).toEqual([hrAdminRole])
   })
+
+  it('makes Phase A2 idempotent while preserving the latest preboarding guard and helper ACL', async () => {
+    database = await createDatabase(false)
+    const db = database
+    await db.exec(await readFile(migrationUrl, 'utf8'))
+    const roleGuardSql = await readFile(roleGuardUrl, 'utf8')
+    await db.exec(roleGuardSql)
+    await db.exec(roleGuardSql)
+
+    const { rows } = await db.query<{
+      owner: string
+      securityDefiner: boolean
+      settings: string
+      authenticatedExecute: boolean
+      anonExecute: boolean
+      serviceExecute: boolean
+      source: string
+    }>(`
+      select
+        pg_get_userbyid(proc.proowner) as owner,
+        proc.prosecdef as "securityDefiner",
+        array_to_string(proc.proconfig, ',') as settings,
+        has_function_privilege('authenticated', proc.oid, 'EXECUTE') as "authenticatedExecute",
+        has_function_privilege('anon', proc.oid, 'EXECUTE') as "anonExecute",
+        has_function_privilege('service_role', proc.oid, 'EXECUTE') as "serviceExecute",
+        proc.prosrc as source
+      from pg_catalog.pg_proc as proc
+      where proc.oid = 'internal_security.current_user_has_hr_group_permission(uuid, uuid, text)'::regprocedure
+    `)
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      owner: 'postgres',
+      securityDefiner: true,
+      settings: 'search_path=""',
+      authenticatedExecute: true,
+      anonExecute: false,
+      serviceExecute: false,
+    })
+    expect(rows[0]?.source).toContain('current_employee_is_preboarding')
+    expect(rows[0]?.source).toContain('role.is_active is true')
+    expect(rows[0]?.source).toContain('role.deleted_at is null')
+  })
+
+  it('fails closed when Phase C is run before the A2 role guard', async () => {
+    database = await createDatabase(false)
+    const db = database
+    await db.exec(await readFile(migrationUrl, 'utf8'))
+
+    await expect(db.exec(await readFile(activationUrl, 'utf8')))
+      .rejects.toThrow('INS_RELEASE_04_ROLE_PERMISSION_GUARD_MISSING')
+    await db.exec('rollback')
+
+    const { rows } = await db.query<{ ledgerExists: boolean; managerGrantCount: number }>(`
+      select
+        exists (
+          select 1 from pg_catalog.pg_class table_row
+          join pg_catalog.pg_namespace schema_row on schema_row.oid = table_row.relnamespace
+          where schema_row.nspname = 'internal_security'
+            and table_row.relname = 'ins_release_04_manager_permission_activation_log'
+        ) as "ledgerExists",
+        (select count(*)::integer from public.role_permissions role_permission
+         where role_permission.permission_id = '${reportPermission}'
+           and role_permission.management_role_id in ('${globalManagerRole}', '${tenantManagerRole}', '${otherTenantManagerRole}'))
+          as "managerGrantCount"
+    `)
+    expect(rows).toEqual([{ ledgerExists: false, managerGrantCount: 0 }])
+  })
+
+  it('keeps the A → A2 → C filename order explicit', async () => {
+    expect(migrationUrl.pathname.localeCompare(roleGuardUrl.pathname)).toBeLessThan(0)
+    expect(roleGuardUrl.pathname.localeCompare(activationUrl.pathname)).toBeLessThan(0)
+  })
+
   it('returns only the active group threshold to an activated Manager and hides the full settings row', async () => {
     database = await createDatabase()
     const db = database
@@ -209,6 +314,141 @@ describe('INS-RELEASE-02 manager Insights permission and threshold read model', 
       .rejects.toThrow('AUTHENTICATION_REQUIRED')
   })
 
+  it('allows active global and tenant Manager assignments only for their requested group scope', async () => {
+    database = await createDatabase()
+    const db = database
+    await db.exec(await readFile(activationUrl, 'utf8'))
+    await db.query(
+      'insert into public.user_hr_group_access (user_id, tenant_id, hr_group_id, management_role_id) values ($1, $2, $3, $4)',
+      [managerUser, tenantA, groupA, globalManagerRole],
+    )
+    await db.query(
+      'insert into public.user_hr_group_access (user_id, tenant_id, hr_group_id, management_role_id) values ($1, $2, $3, $4)',
+      [adminUser, tenantA, groupA, tenantManagerRole],
+    )
+
+    await setActor(db, managerUser)
+    const globalRoleResult = await db.query<{ allowed: boolean }>(
+      'select internal_security.current_user_has_hr_group_permission($1, $2, $3) as allowed',
+      [tenantA, groupA, 'report-absence:read'],
+    )
+    expect(globalRoleResult.rows).toEqual([{ allowed: true }])
+    const foreignScope = await db.query<{ allowed: boolean }>(
+      'select internal_security.current_user_has_hr_group_permission($1, $2, $3) as allowed',
+      [tenantB, groupC, 'report-absence:read'],
+    )
+    expect(foreignScope.rows).toEqual([{ allowed: false }])
+    await db.exec('reset role')
+
+    await setActor(db, adminUser)
+    const tenantRoleResult = await db.query<{ allowed: boolean }>(
+      'select internal_security.current_user_has_hr_group_permission($1, $2, $3) as allowed',
+      [tenantA, groupA, 'report-absence:read'],
+    )
+    expect(tenantRoleResult.rows).toEqual([{ allowed: true }])
+  })
+
+  it('denies inactive or deleted tenant snapshots without falling back to an unassigned global role', async () => {
+    database = await createDatabase()
+    const db = database
+    await db.exec(await readFile(activationUrl, 'utf8'))
+    await db.query(
+      'insert into public.role_permissions (management_role_id, permission_id) values ($1, $3), ($2, $3)',
+      [inactiveManagerRole, deletedManagerRole, reportPermission],
+    )
+    await db.query(
+      'insert into public.user_hr_group_access (user_id, tenant_id, hr_group_id, management_role_id) values ($1, $2, $3, $4), ($1, $2, $3, $5)',
+      [managerUser, tenantA, groupA, inactiveManagerRole, deletedManagerRole],
+    )
+
+    await setActor(db, managerUser)
+    const denied = await db.query<{ allowed: boolean }>(
+      'select internal_security.current_user_has_hr_group_permission($1, $2, $3) as allowed',
+      [tenantA, groupA, 'report-absence:read'],
+    )
+    expect(denied.rows).toEqual([{ allowed: false }])
+    await expect(db.query('select * from public.get_frequent_absence_threshold($1, $2)', [tenantA, groupA]))
+      .rejects.toThrow('INSIGHTS_THRESHOLD_FORBIDDEN')
+    await db.exec('reset role')
+
+    await db.query(
+      'insert into public.user_hr_group_access (user_id, tenant_id, hr_group_id, management_role_id) values ($1, $2, $3, $4)',
+      [adminUser, tenantA, groupA, hrAdminRole],
+    )
+    await setActor(db, adminUser)
+    const hrAdmin = await db.query<{ allowed: boolean }>(
+      'select internal_security.current_user_has_hr_group_permission($1, $2, $3) as allowed',
+      [tenantA, groupA, 'report-absence:read'],
+    )
+    expect(hrAdmin.rows).toEqual([{ allowed: true }])
+    await db.exec('reset role')
+
+    await db.query(
+      'insert into public.user_hr_group_access (user_id, tenant_id, hr_group_id, management_role_id) values ($1, $2, $3, $4)',
+      [employeeUser, tenantA, groupA, employeeRole],
+    )
+    await setActor(db, employeeUser)
+    const employeeSelfPermission = await db.query<{ allowed: boolean }>(
+      'select internal_security.current_user_has_hr_group_permission($1, $2, $3) as allowed',
+      [tenantA, groupA, 'self:leave:read'],
+    )
+    expect(employeeSelfPermission.rows).toEqual([{ allowed: true }])
+  })
+
+  it('immediately rejects an active snapshot after its Manager role is deactivated, including direct threshold RPC calls', async () => {
+    database = await createDatabase()
+    const db = database
+    await db.exec(await readFile(activationUrl, 'utf8'))
+    await db.query(
+      'insert into public.user_hr_group_access (user_id, tenant_id, hr_group_id, management_role_id) values ($1, $2, $3, $4)',
+      [managerUser, tenantA, groupA, tenantManagerRole],
+    )
+    await db.query(
+      'insert into public.absence_settings (id, tenant_id, hr_group_id, frequent_absence_threshold) values ($1, $2, $3, $4)',
+      ['00000000-0000-4000-8000-000000000402', tenantA, groupA, 5],
+    )
+    await setActor(db, managerUser)
+    const beforeDeactivation = await db.query<{ frequent_absence_threshold: number }>(
+      'select frequent_absence_threshold from public.get_frequent_absence_threshold($1, $2)',
+      [tenantA, groupA],
+    )
+    expect(beforeDeactivation.rows).toEqual([{ frequent_absence_threshold: 5 }])
+    await db.exec('reset role')
+
+    await db.query('update public.management_roles set is_active = false where id = $1', [tenantManagerRole])
+    await setActor(db, managerUser)
+    const deniedPermission = await db.query<{ allowed: boolean }>(
+      'select internal_security.current_user_has_hr_group_permission($1, $2, $3) as allowed',
+      [tenantA, groupA, 'report-absence:read'],
+    )
+    expect(deniedPermission.rows).toEqual([{ allowed: false }])
+    await expect(db.query('select * from public.get_frequent_absence_threshold($1, $2)', [tenantA, groupA]))
+      .rejects.toThrow('INSIGHTS_THRESHOLD_FORBIDDEN')
+  })
+
+  it('keeps the preboarding denial after Manager permission activation', async () => {
+    database = await createDatabase()
+    const db = database
+    await db.exec(await readFile(activationUrl, 'utf8'))
+    await db.query(
+      'insert into public.user_hr_group_access (user_id, tenant_id, hr_group_id, management_role_id) values ($1, $2, $3, $4)',
+      [managerUser, tenantA, groupA, tenantManagerRole],
+    )
+    await db.query(
+      'insert into public.preboarding_status (user_id, tenant_id, hr_group_id, is_preboarding) values ($1, $2, $3, true)',
+      [managerUser, tenantA, groupA],
+    )
+    await setActor(db, managerUser)
+
+    const deniedPermission = await db.query<{ allowed: boolean }>(
+      'select internal_security.current_user_has_hr_group_permission($1, $2, $3) as allowed',
+      [tenantA, groupA, 'report-absence:read'],
+    )
+    expect(deniedPermission.rows).toEqual([{ allowed: false }])
+    await expect(db.query('select * from public.get_frequent_absence_threshold($1, $2)', [tenantA, groupA]))
+      .rejects.toThrow('INSIGHTS_THRESHOLD_FORBIDDEN')
+  })
+
   it('denies Manager threshold access before Phase C, then allows the exact report grant', async () => {
     database = await createDatabase()
     const db = database
@@ -233,6 +473,7 @@ describe('INS-RELEASE-02 manager Insights permission and threshold read model', 
   it('activates active global and tenant managers idempotently and logs only newly inserted grants', async () => {
     database = await createDatabase(false)
     const db = database
+    await applyPhaseAAndA2(db)
     await db.query(
       'insert into public.role_permissions (management_role_id, permission_id) values ($1, $2)',
       [tenantManagerRole, reportPermission],
@@ -265,6 +506,7 @@ describe('INS-RELEASE-02 manager Insights permission and threshold read model', 
   it('rolls back only grants Phase C inserted and preserves pre-existing role permissions', async () => {
     database = await createDatabase(false)
     const db = database
+    await applyPhaseAAndA2(db)
     await db.query(
       'insert into public.role_permissions (management_role_id, permission_id) values ($1, $2)',
       [tenantManagerRole, reportPermission],
