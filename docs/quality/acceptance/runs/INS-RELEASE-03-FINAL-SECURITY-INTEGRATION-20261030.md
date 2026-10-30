@@ -120,6 +120,7 @@ Gebruik in alle stappen de finale, beoordeelde 40-karakter `releaseSha`; de volg
 Maak vóór A een lokale map voor niet-gevoelige JSON-readbacks; bewaar geen credentials, sessies of rapportdata daarin. Pin de open Draft PR-head eenmaal en hergebruik die waarde door alle fasen:
 
 ```powershell
+$ErrorActionPreference = 'Stop'
 $branch = 'work/ins-release-01-unblock-20261029'
 $evidenceDir = Join-Path $env:TEMP 'INS-RELEASE-04-gate-evidence'
 New-Item -ItemType Directory -Path $evidenceDir -Force | Out-Null
@@ -204,9 +205,15 @@ Stop als A of C onverwacht aanwezig is vóór A, als C aanwezig is voordat fase 
 **D — Persona/RLS/browser.** Gebruik uitsluitend de bestaande geautoriseerde NL-sessie van HR Admin, Manager, lege Manager en Employee, plus EN-sessies van HR Admin en Manager. De manifestverwachtingen bevatten beide toegestane HR Admin-administraties, Manager-context/verboden contexten, directe-team-buitenstaanders, bekende drempels en de lege Manager-context. Er worden geen TEST-identiteiten of sessies aangemaakt. Vereis Vercel CLI-authenticatie, `SUPABASE_ACCESS_TOKEN` met uitsluitend benodigde `database_migrations_read`-toegang en de gepinde Vercel-envfile; toon die waarden niet:
 
 ```powershell
+$manifestPath = Read-Host 'Volledig pad naar het bestaande private INS-RELEASE-04-manifest'
+$manifestPath = (Resolve-Path -LiteralPath $manifestPath).Path
+$repoRoot = (Get-Location).Path.TrimEnd([IO.Path]::DirectorySeparatorChar)
+$repoPrefix = $repoRoot + [IO.Path]::DirectorySeparatorChar
+if ($manifestPath.StartsWith($repoPrefix, [StringComparison]::OrdinalIgnoreCase)) { throw 'Het manifest moet buiten de checkout blijven.' }
+if (-not (Test-Path -LiteralPath '.vercel/.env.production.local' -PathType Leaf)) { throw 'De bestaande Vercel-envfile ontbreekt.' }
 if (-not $env:SUPABASE_ACCESS_TOKEN) { throw 'SUPABASE_ACCESS_TOKEN ontbreekt.' }
 node --env-file=.vercel/.env.production.local scripts/ins-release-04-core-test-acceptance.mjs `
-  --manifest $manifestPath --expected-source-sha $releaseSha --confirm-authorized-core-test
+  --manifest "$manifestPath" --expected-source-sha $releaseSha --confirm-authorized-core-test
 ```
 
 De route `/v1/projects/{ref}/database/migrations` is een GET met `database_migrations_read`; de runner controleert exacte versies en migratienamen. Vercel vult deployment-ID, project-ID, URL en waar beschikbaar Git-SHA platformmatig in. De buildprovenance SHA wordt daarnaast uit de schone, gepinde Git-checkout gecompileerd. Zie [Supabase applied migration history](https://supabase.com/docs/reference/api/v1-list-migration-history) en [Vercel system environment variables](https://vercel.com/docs/environment-variables/system-environment-variables).
@@ -221,6 +228,7 @@ De route `/v1/projects/{ref}/database/migrations` is een GET met `database_migra
 - Employee: bestaande geautoriseerde NL-sessie zonder collega-Insights.
 - Een private manifest met deze bestaande storage-state-paden en de verwachte tenant-, HR-groep-, administratie-, verboden-scope-, buiten-team-fixture- en drempelwaarden. De runner maakt of vernieuwt geen sessies.
 - Vercel CLI-authenticatie voor `edwinitsolutions/liquidhr`, de Core TEST DB-URL uitsluitend tijdens A/C, een Supabase Management API-token met alleen `database_migrations_read` voor readbacks en de bestaande `.vercel/.env.production.local` voor D. Toon of commit geen waarden.
+- De Supabase CLI moet op het uitvoeringssysteem beschikbaar zijn voor A/C. Zij was niet geïnstalleerd/beschikbaar in deze geïsoleerde checkout (`supabase --version` kon niet starten); er is niets geïnstalleerd.
 
 De huidige alias levert voor de deploymentreadback nog `RUNTIME_PROVENANCE_UNAVAILABLE`; A en C ontbreken. Er is daardoor nog geen live uitvoering van de uiteindelijke runner tegen de nieuwe app.
 
