@@ -44,22 +44,27 @@ const defaultVerifiedToken: VerifiedDelegatedToken = {
 }
 
 function permissionClient(selfPermissions: readonly string[] = ['self:talent-goal:read']): SupabaseBearerRlsClient {
-  function resolved(data: readonly Record<string, unknown>[]) {
-    return Promise.resolve({ data, error: null })
-  }
   function query(data: readonly Record<string, unknown>[]) {
+    const result = { data, error: null }
     const builder = {
       select: () => builder,
       eq: () => builder,
-      or: () => resolved(data),
-      in: () => resolved(data),
+      is: () => builder,
+      or: () => builder,
+      in: () => builder,
+      maybeSingle: () => Promise.resolve({ data: data[0] ?? null, error: null }),
+      then: (
+        onfulfilled?: ((value: typeof result) => unknown) | null,
+        onrejected?: ((reason: unknown) => unknown) | null,
+      ) => Promise.resolve(result).then(onfulfilled, onrejected),
     }
     return builder
   }
   const client = {
     from(table: string) {
       const tableName = String(table)
-      if (tableName === 'management_roles') return query([{ id: 'employee-role', tenant_id: null }])
+      if (tableName === 'management_roles') return query([{ id: 'employee-role', code: 'EMPLOYEE', tenant_id: tenantId, is_active: true, deleted_at: null }])
+      if (tableName === 'employee_ess_access') return query([{ status: 'ACTIVE' }])
       if (tableName === 'role_permissions') return query([{ permission_id: 'self-permission' }])
       if (tableName === 'permissions') return query(selfPermissions.map((code) => ({ code })))
       throw new Error(`Unexpected permission query: ${tableName}`)

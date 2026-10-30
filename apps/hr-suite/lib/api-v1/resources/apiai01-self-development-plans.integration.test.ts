@@ -103,21 +103,24 @@ const tenants: AccessibleContextOptions['tenants'] = [{
 }]
 
 function permissionClient(): SupabaseBearerRlsClient {
-  function resolved(data: readonly Record<string, unknown>[]) {
-    return Promise.resolve({ data, error: null })
-  }
   function query(data: readonly Record<string, unknown>[]) {
+    const result = { data, error: null }
     const builder = {
       select: () => builder,
       eq: () => builder,
-      or: () => resolved(data),
-      in: () => resolved(data),
+      is: () => builder,
+      or: () => builder,
+      in: () => builder,
+      then: (
+        onfulfilled?: ((value: typeof result) => unknown) | null,
+        onrejected?: ((reason: unknown) => unknown) | null,
+      ) => Promise.resolve(result).then(onfulfilled, onrejected),
     }
     return builder
   }
   const client = {
     from(table: string) {
-      if (table === 'management_roles') return query([{ id: 'employee-role', tenant_id: tenantId }])
+      if (table === 'management_roles') return query([{ id: 'employee-role', code: 'EMPLOYEE', tenant_id: tenantId, is_active: true, deleted_at: null }])
       if (table === 'role_permissions') return query([{ permission_id: 'self-permission' }])
       if (table === 'permissions') return query([{ code: 'self:talent-goal:read' }])
       throw new Error(`Unexpected permission query: ${table}`)
