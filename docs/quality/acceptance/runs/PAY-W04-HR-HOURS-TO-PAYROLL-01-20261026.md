@@ -1,8 +1,24 @@
 # PAY-W04-HR-HOURS-TO-PAYROLL-01 — lokaal acceptatierapport
 
-## PAY-W04-RUNTIME-RECOVERY-AND-ACCEPTANCE-11 — actuele stand (2026-10-28)
+## PAY-W04-ACL-MERGE-17 — post-merge security acceptance (2026-10-29)
 
-**Uitkomst: PARTIAL; lokale runtime en gerichte regressies hersteld; de €20-loonbron wordt door Core TEST-RLS geweigerd, waardoor nieuwe ureninvoer, vrijgave en Payroll-consumptie voor deze fixture niet konden worden bewezen. PR #51 en TEST-release: HOLD.** Dit blok is de actuele stand; eerdere acceptatieblokken blijven historische snapshots.
+**Uitkomst: ACL-hardening PASS; W04-code-integratie GO; volledige Payroll-berekening en Vercel TEST-release HOLD.** PR #69 is na controle van de verwachte HEAD `b01e9747680aee72e24b456ee3aea02a8b2a99b0`, mergeability en de twee gewijzigde bestanden via normale mergecommit `b6835ef5e97bf6b0ba1f5d17acb624ffc08a5609` geïntegreerd. `main`, `origin/main` en lokale `main` staan na `git pull --ff-only origin main` gelijk op die SHA.
+
+### Core TEST privilege-readback
+
+- De Core TEST-migratie `20261029114914_actual_work_payroll_mappings_anon_acl` was vóór de PR-merge eenmaal toegepast en staat eenmaal geregistreerd. Na de merge is geen migratie, repair of schemawijziging uitgevoerd.
+- Post-merge privilege-readback voor `public.actual_work_payroll_mappings`: anon SELECT, TRUNCATE, INSERT, UPDATE en DELETE zijn alle `false`; authenticated SELECT is `true`; RLS is ingeschakeld. De effectieve ACL bevat `postgres`, `authenticated` en `service_role`, zonder directe grant aan anon of `PUBLIC`.
+- De bestaande `actual_work_payroll_mappings_read`-policy is behouden voor `authenticated` SELECT met de bestaande `leave:read`/`salary:read`-scoping. Default privileges voor toekomstige tabellen zijn niet gewijzigd.
+
+### W04-bronconsumptie en grenzen
+
+- De echte geauthenticeerde W04-sourceproviderproef na de migratie blijft van toepassing: registratie `11bb1e32-1225-45ad-bf2b-8b46ad6e9f5d`, 1,0000 uur, APPROVED, revisie 2 en vrijgegeven. Twee read-only opvragingen hadden bronhash `29c4df0df85cbd3125594f590996cc0135cf858c4ee3006a334c0d8793aca348`, vrijgavefingerprint `0c921994bb05dadcc9adf4807dae6cbaa8465445b7dd8b10b4c8ac74f7449fc8` en `variableRegularWageAmount = "20.00"`; geen dubbele verwerking. PR #69 wijzigde geen providercode.
+- De provider blijft fail-closed met `sourceReady=false` door ontbrekende IKV, fiscaal profiel, contractgegevens, cumulatieven en pensioenbronnen. Geen Payroll-run, definitieve loonberekening of Vercel-deployment uitgevoerd; deployment-readback na de merge was leeg.
+- De gerichte security-/W04-tests (31/31) en HR Suite TypeScript waren PASS op de identieke PR-tree vóór de merge; na merge zijn ze niet herhaald. GitHub rapporteerde geen statuschecks of workflowruns voor de PR-head.
+
+## PAY-W04-RUNTIME-RECOVERY-AND-ACCEPTANCE-11 — historische snapshot (2026-10-28)
+
+**Uitkomst: PARTIAL; lokale runtime en gerichte regressies hersteld; de €20-loonbron wordt door Core TEST-RLS geweigerd, waardoor nieuwe ureninvoer, vrijgave en Payroll-consumptie voor deze fixture niet konden worden bewezen. PR #51 en TEST-release: HOLD.** Dit is een historische snapshot; de huidige status staat in PAY-W04-CONTROLLED-MERGE-15 en PAY-W04-ACL-MERGE-17.
 
 ### Runtime en HR Admin-context
 
@@ -25,9 +41,9 @@
 - De volledige rootbuild is **niet PASS**. De standaard Next/Turbopack-build kon in deze Windows-omgeving geen junction naar de bestaande `@sparticuz/chromium`-dependency maken (`Access is denied`). De Webpack-fallback voor HR Suite strandde eveneens op `EPERM` bij het aanmaken van een buildroute; Control compileerde/typecheckte maar prerendering strandde op `EPERM` bij `_not-found.segments`. Focus-resource en `next-env.d.ts` zijn byte-identiek hersteld na de buildpogingen.
 - Lokale runtimeacceptatie is daarmee gedeeltelijk bewezen: officiële HR Admin-login, tenant/HR-groep/administratie en routeweergave PASS; salarisopslag en verdere Payroll-keten HOLD door de concrete Core TEST-RLS-afwijzing plus gesloten periode. Integratie PR #51 en TEST-release blijven **HOLD** totdat de bevoegde HR-/Core-beheerder de RLS-/permission-mismatch volgens het bestaande contract herstelt en een toegestane open periode beschikbaar is. Geen definitieve Payroll-run, FINALIZED-run, salarisstrook, merge of deployment is uitgevoerd.
 
-## PAY-W04-PAYROLL-COMPONENT-FINAL-08 — actuele component- en runtimeacceptatie (2026-10-28)
+## PAY-W04-PAYROLL-COMPONENT-FINAL-08 — historische component- en runtimeacceptatie (2026-10-28)
 
-**Uitkomst: PARTIAL; HR Admin-vrijgave inclusief revisiegebonden TWK-correctie live bewezen; Payroll-consumptie en negatieve persona-/RLS-runtimeproeven OPEN; integratie PR #51 HOLD en TEST-release HOLD.** Dit is de actuele stand. Eerdere blokken hieronder blijven historische snapshots.
+**Uitkomst: PARTIAL; HR Admin-vrijgave inclusief revisiegebonden TWK-correctie live bewezen; Payroll-consumptie en negatieve persona-/RLS-runtimeproeven OPEN; integratie PR #51 HOLD en TEST-release HOLD.** Dit blok is een historische stand; de latere providerconsumptie is opgenomen in PAY-W04-CONTROLLED-MERGE-15.
 
 ### Migraties, bronregistratie en vrijgave
 
@@ -482,7 +498,7 @@ De synthetische Core-records en hun append-only correctie-/revisiehistorie zijn 
 
 - Core TEST registreert de vijf relevante migraties: `pay_w04_hr_hours_to_payroll` (`20261026181001`), `pay_w04_tvt_and_payroll_period_release` (`20261026181027`), `actual_work_payroll_revision_approval` (`20261028130821`), `pay_w04_align_payfull02_work_hour_component` (`20261028162054`) en `allow_tenant_scoped_employment_salary_visibility` (`20261029064812`). De eerste drie registratievensters verschillen van de lokale filename timestamps; de geregistreerde namen stemmen overeen. Er is niets opnieuw toegepast of gerepareerd.
 - De mapping-, approval-, release- en salaris-tabellen bestaan met de verwachte kolommen en RLS. Approval- en release-RPC's, mapping-save, import-save en tenant-scoped salary-visibilityfunctie bestaan met verwachte argumenten; remote `prosrc`-MD5's kwamen overeen met bodies uit de lokale migraties. De tweede definitie van `save_actual_work_payroll_mapping` is de bedoelde latere `CREATE OR REPLACE`-alignering; elke W04-tabel wordt één keer aangemaakt. Geen dubbele of conflicterende tabeldefinitie gevonden.
-- ACL-verduidelijking: de platform-default ACL geeft `anon` op `actual_work_payroll_mappings` SELECT en TRUNCATE; die tabel heeft RLS aan en uitsluitend een `authenticated`-SELECT-policy, dus geen anon row policy. `anon` heeft geen INSERT/UPDATE/DELETE-recht op die tabel; salaris-, approval- en release-tabellen ontzeggen anon-table privileges. De gecontroleerde W04-approval-, release- en mapping-mutatie-RPC's weigeren anon EXECUTE. Dit blijft een open least-privilege-hardeningpunt voor verdere schema-uitrol of TEST-release; deze merge-run wijzigde geen policy, grant of schema.
+- ACL-verduidelijking: de platform-default ACL gaf `anon` op `actual_work_payroll_mappings` SELECT en TRUNCATE; die tabel had RLS aan en uitsluitend een `authenticated`-SELECT-policy, dus geen anon row policy. `anon` had geen INSERT/UPDATE/DELETE-recht op die tabel; salaris-, approval- en release-tabellen ontzegden anon-table privileges. De gecontroleerde W04-approval-, release- en mapping-mutatie-RPC's weigerden anon EXECUTE. Bij PR #51 was dit least-privilege-punt nog open; PR #69 heeft het later gesloten met een gerichte ACL-migratie, zonder policy/default privileges of andere tabellen te wijzigen.
 
 #### Post-merge kwaliteitsgates
 
