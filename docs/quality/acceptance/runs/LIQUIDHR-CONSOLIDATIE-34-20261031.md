@@ -9,7 +9,7 @@
 - Repository: `EdwinCycling/LiquidHR`.
 - Vastgelegde baseline: `origin/main` `5e47832123bc90e197b38dc511bd658904e62c96`.
 - Integratiebranch: `integration/LIQUIDHR-CONSOLIDATIE-34-20261031`.
-- Huidige lokale branch-HEAD: `427c6b9532ed10522e9f41c68ca7d63553191e05`, 48 commits voor op de bevestigde `origin/main`; de laatste branchupdates na productcodekandidaat `b77f027c` zijn acceptance-checker- en documentatiecommits.
+- Lokale branch-HEAD bij de aanvullende refcontrole: `04bd9788910d5e3926c21f674a8cb36f999cd4a7`, 49 commits voor op de bevestigde `origin/main`; de branchupdates na productcodekandidaat `b77f027c` zijn acceptance-checker- en documentatiecommits.
 - Codekandidaat: commit `b77f027cd109f8295258791163a99dffb1ceea35`, 43 commits voor op de read-only opnieuw bevestigde `origin/main` `5e47832123bc90e197b38dc511bd658904e62c96`.
 - De lokale browserchecker kreeg in `e48034c6` een correctie voor Lisa's huidige gelokaliseerde loonstrookrij en veilige console-/HTTP-diagnostiek. Dit wijzigt alleen de acceptance-checker, niet de productruntime. De volledige productsuite op `b77f027c` blijft daardoor geldig; de checker zelf is op de lokale persona's opnieuw uitgevoerd.
 - De 46 geselecteerde Payroll-, pensioen-, autorisatie-, UI- en regressiebestanden zijn vastgelegd op `c7dc67ba`. Daarna zijn drie bestaande Core-migratiebronnen en hun contracttests expliciet geselecteerd vastgelegd op `9e544d9d`; de migration-ID's zijn hersteld naar de al geregistreerde Core-versies. Commit `b77f027c` verwijdert de shebang van de door Vitest geïmporteerde `.mjs`-runner; alle CLI-invocaties gebruiken `node`. De schone productiebouw staat op `c7dc67ba`; de opvolgende commits veranderen geen productbuild-input. De volledige testgate is op `b77f027c` uitgevoerd.
@@ -122,7 +122,7 @@ De 14 bestaande worktrees zijn read-only geïnventariseerd. De afzonderlijke sch
 
 | Worktree / ref | Reviewed SHA (product/test scope) | Dirty-status bij inspectie |
 |---|---|---|
-| Integratie `integration/LIQUIDHR-CONSOLIDATIE-34-20261031` | Productcode `b77f027c`; lokale HEAD `427c6b95` | Alleen beschermde `next-env.d.ts`-, Focus-resource-dirt en `output/wvp01/` zijn nog buiten commits; de zes canonical migration-/contracttestpaden en persona-checkerfollow-up zijn vastgelegd. |
+| Integratie `integration/LIQUIDHR-CONSOLIDATIE-34-20261031` | Productcode `b77f027c`; lokale HEAD bij inventarisatie `04bd9788` | Alleen beschermde `next-env.d.ts`-, Focus-resource-dirt en `output/wvp01/` zijn nog buiten commits; de zes canonical migration-/contracttestpaden en persona-checkerfollow-up zijn vastgelegd. |
 | `work/BRANCH-SPLIT-PAYROLL-20261021` | `86386eed` | 1: `next-env.d.ts`. |
 | `work/BRANCH-SPLIT-PMUX-20261021` | `8776c202` | 4: `next-env.d.ts` plus drie PMUX-acceptatiedocumenten. |
 | `work/ins03b-absence-frequency-bradford-20261029` | `88a0aaf9` | Schoon. |
@@ -139,6 +139,8 @@ De 14 bestaande worktrees zijn read-only geïnventariseerd. De afzonderlijke sch
 | `integration/PAYROLL-MERGE-20261022` | `8ec2c43e` | 1: `next-env.d.ts`. |
 
 Daarnaast zijn 16 lokale refs met patch-distincte commits gecontroleerd: `integration/pay-converge-20261018`, `integration/payroll-foundation-20261002`, `recovery/wvp01-local-main-20261029`, `work/BRAND01-20261012`, `work/CAO-PENSION-CORE-01-20261018`, `work/CAO-SOURCE-01-20261018`, `work/CORE-DB-25P02-01-20261018`, `work/PAYCOMP-EDIT-FIX-02-20261012`, `work/PAYESS-01-20261013`, `work/PAYINTEGRATE-01-20261017`, `work/PERF01-A1-20261011`, `work/PRODUCT-PRINCIPLE-01-20261017`, `work/paylab00`, beschermd `work/payroll-p0-p1`, `work/paytest-auth-01-current-20261013` en `work/wvp01-safe-integr-02-20261026`. Branchdiffs zijn op functie-/bestandspaden met de kandidaat vergeleken: WVP01, PMUX, INS, Payroll/oracle/pension, source-provider, consent, Actual Work en Talent/STAR-equivalenten zijn aanwezig of door latere code vervangen. De enige functionele uitzondering Nmbrs is bewust buiten scope en lokaal uitgeschakeld. Het beschermde P0/P1-werk, de dirty Focus-widget en bron-/evidencearchieven blijven bewaard; de drie pension/tax-bronnen staan nu op hun geregistreerde canonical namen. Dit sluit inspectie en behoud af, maar rechtvaardigt geen claim dat ieder archiefbestand in de actieve app hoort.
+
+Een aanvullende read-only scan van alle **37 lokale branchrefs** bevestigde dat alleen deze 16 refs patch-distincte commits hebben. `work/PAYFULL-01-20261014` heeft één lokale commit `eb4d7a9c` die niet in zijn upstreamref staat; de stabiele patch-ID is exact gelijk aan de in de kandidaat opgenomen `d1e8d5a2` (**PAYFULL-03/04 periodeverwerking**). De daaropvolgende periodegrenscorrectie `f41e2d6a` is eveneens ancestor van de kandidaat. De volledige suite op `b77f027c` bevat de PAYFULL-03/04-oracle- en compositietests. Deze lokale branch bevat daarom geen aanvullende niet-geïntegreerde code.
 
 ## Unieke stashes
 
