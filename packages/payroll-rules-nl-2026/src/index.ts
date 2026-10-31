@@ -30,6 +30,7 @@ export {
   encodeNl2026CompositeTimePeriod,
   parseNl2026CompositeTimePeriod,
   prorateMonthlySalary,
+  shouldUseDutchMonthlyTableForBrokenPeriod,
 } from './regular-wage/period'
 export type { Nl2026CompositePeriod, Nl2026PeriodSegments } from './regular-wage/period'
 export {

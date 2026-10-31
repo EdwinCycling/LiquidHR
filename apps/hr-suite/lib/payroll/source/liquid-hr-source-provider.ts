@@ -21,6 +21,7 @@ import {
   calculateNl2026PeriodSegments,
   encodeNl2026CompositeTimePeriod,
   prorateMonthlySalary,
+  shouldUseDutchMonthlyTableForBrokenPeriod,
   calculatePension,
   BPF_DETAILHANDEL_2026_METHOD,
   PFZW_2026_KINDEROPVANG_METHOD,
@@ -1294,6 +1295,7 @@ function regularWageInput(
   const fullPeriod = start === periodBoundsForWage.start && endExclusive === periodBoundsForWage.endExclusive
   let timePeriod = fiscalProfile.timePeriod
   if (!fullPeriod) {
+    if (fiscalProfile.timePeriod !== 'MONTH') return null
     try {
       const segments = calculateNl2026PeriodSegments({
         periodStart: periodBoundsForWage.start,
@@ -1308,6 +1310,7 @@ function regularWageInput(
   }
   if (salary.payment_type === 'HOURLY_VARIABLE'
     && (schedule.is_on_call || salary.fulltime_amount === null || salary.parttime_amount === null)) {
+    if (!fullPeriod) return null
     const basis = variableHourlyPensionBasis(salary, schedule, actualWorkEntries, variableWage)
     if (!basis) return null
     return {
@@ -1334,6 +1337,7 @@ function regularWageInput(
   const contractHoursPerWeek = payrollDecimalSource(schedule.average_hours_per_week)
   const fulltimeHoursPerWeek = payrollDecimalSource(schedule.fulltime_hours_per_week)
   if (!monthlyAmount || !fulltimeMonthlyAmount || !contractHoursPerWeek || !fulltimeHoursPerWeek) return null
+  if (!fullPeriod && schedule.average_days_per_week !== 5) return null
   let grossAmount = monthlyAmount
   if (!fullPeriod) {
     let segments: ReturnType<typeof calculateNl2026PeriodSegments>
@@ -1349,7 +1353,9 @@ function regularWageInput(
         segments.paidWorkdays,
         segments.periodWorkdays,
       ).toString(2)
-      timePeriod = encodeNl2026CompositeTimePeriod(segments)
+      timePeriod = shouldUseDutchMonthlyTableForBrokenPeriod(segments.paidWorkdays)
+        ? 'MONTH'
+        : encodeNl2026CompositeTimePeriod(segments)
     } catch {
       return null
     }
@@ -2565,6 +2571,15 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         ? [makeGap('actualWork', 'SOURCE_GAP', 'ACTUAL_WORK_CAO_MAPPING_CONFLICT')]
         : []),
     ]
+    const payrollPeriodBounds = periodBounds(input.payrollPeriod)
+    const partialPayrollPeriod = activeStart > payrollPeriodBounds.start
+      || activeEndExclusive < payrollPeriodBounds.endExclusive
+    if (partialPayrollPeriod && salaries.length === 1 && schedules.length === 1
+      && salaries[0]?.payment_type === 'HOURLY_VARIABLE') {
+      sourceGaps.push(makeGap('contractualSalary', 'UNSUPPORTED', 'PARTIAL_VARIABLE_WAGE_TAX_PERIOD_UNSUPPORTED'))
+    } else if (partialPayrollPeriod && schedules.length === 1 && schedules[0]?.average_days_per_week !== 5) {
+      sourceGaps.push(makeGap('contractualSalary', 'UNSUPPORTED', 'PARTIAL_NON_FIVE_DAY_SCHEDULE_UNSUPPORTED'))
+    }
     if (caoCalculation.status === 'BLOCKED' && caoCalculation.reasonCode) {
       sourceGaps.push(makeGap('cao', caoCalculation.blockingStatus ?? 'SOURCE_GAP', caoCalculation.reasonCode))
     }

@@ -1532,28 +1532,43 @@ describe('LiquidHR Payroll source provider', () => {
     }))
   })
 
-  it('projects a mid-month employment into a 11/22 gross and week/day tax period', async () => {
-    const partialEmployment = employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' })
+  it.each([
+    {
+      month: 10, periodStart: '2026-10-01', periodEnd: '2026-11-01', employmentStart: '2026-10-16',
+      averageDaysPerWeek: 5, expectedGross: '1758.50', expectedTimePeriod: 'WEEK_DAY_2_1',
+    },
+    {
+      month: 3, periodStart: '2026-03-01', periodEnd: '2026-04-01', employmentStart: '2026-03-02',
+      averageDaysPerWeek: 5, expectedGross: '3517.00', expectedTimePeriod: 'MONTH',
+    },
+    {
+      month: 10, periodStart: '2026-10-01', periodEnd: '2026-11-01', employmentStart: '2026-10-16',
+      averageDaysPerWeek: 4, expectedGross: null, expectedTimePeriod: null,
+    },
+  ])('projects partial month payroll safely ($month; $averageDaysPerWeek days/week)', async ({
+    month, periodStart, periodEnd, employmentStart, averageDaysPerWeek, expectedGross, expectedTimePeriod,
+  }) => {
+    const partialEmployment = employment({ starts_on: employmentStart, original_hire_date: employmentStart, seniority_date: employmentStart })
     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
       listEmployments: vi.fn(async () => [partialEmployment]),
       loadActualWork: vi.fn(async () => actualWork({ period: {
         id: actualWorkPeriodId,
-        period_start: '2026-10-01',
-        period_end: '2026-11-01',
+        period_start: periodStart,
+        period_end: periodEnd,
         status: 'CLOSED',
         updated_at: '2026-11-01T10:00:00.000Z',
       } })),
       loadTimeline: vi.fn(async () => ({
         employment: partialEmployment,
-        salaries: [salary({ fulltime_amount: 3517, parttime_amount: 3517, valid_from: '2026-10-01' })],
-        schedules: [schedule({ valid_from: '2026-10-01' })],
+        salaries: [salary({ fulltime_amount: 3517, parttime_amount: 3517, valid_from: periodStart })],
+        schedules: [schedule({ valid_from: periodStart, average_days_per_week: averageDaysPerWeek })],
         contracts: [{
           id: '8b000000-0000-4000-8000-000000000008',
           labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
           fulltime_hours_per_week: 40,
-          starts_on: '2026-10-01',
+          starts_on: periodStart,
           ends_on: null,
-          updated_at: '2026-10-01T10:01:00.000Z',
+          updated_at: `${periodStart}T10:01:00.000Z`,
         }],
         laborConditions: [{
           id: '8d000000-0000-4000-8000-000000000008',
@@ -1572,24 +1587,32 @@ describe('LiquidHR Payroll source provider', () => {
             updated_at: '2026-01-01T00:00:00.000Z',
           },
         }],
-        incomeRelationships: [incomeRelationship({ validFrom: '2026-10-01', startsOn: '2026-10-01', reportingStatus: 'READY' })],
+        incomeRelationships: [incomeRelationship({ validFrom: periodStart, startsOn: periodStart, reportingStatus: 'READY' })],
         taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({
-          effective_from: '2026-10-01',
+          effective_from: periodStart,
           payroll_tax_credit_applies: false,
         })] }),
       })),
     })).getPayrollSourceSnapshot({
       ...request,
       employmentId,
-      payrollPeriod: { year: 2026, month: 10 },
+      payrollPeriod: { year: 2026, month },
     })
 
+    if (expectedGross === null || expectedTimePeriod === null) {
+      expect(snapshot.sourceGaps).toContainEqual(expect.objectContaining({
+        field: 'contractualSalary', status: 'UNSUPPORTED',
+        reasonCode: 'PARTIAL_NON_FIVE_DAY_SCHEDULE_UNSUPPORTED',
+      }))
+      expect((snapshot.canonicalSource as Record<string, unknown>).regularWage).toBeUndefined()
+      return
+    }
     expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({ reasonCode: 'PARTIAL_EMPLOYMENT_PERIOD_UNSUPPORTED' }))
     expect(snapshot.sourceGaps).toEqual([])
     expect(snapshot.canonicalSource).toMatchObject({
       regularWage: {
-        grossAmount: '1758.50',
-        timePeriod: 'WEEK_DAY_2_1',
+        grossAmount: expectedGross,
+        timePeriod: expectedTimePeriod,
         fullPeriod: false,
         payrollTaxCredit: false,
         fulltimeMonthlyAmount: '3517.00',

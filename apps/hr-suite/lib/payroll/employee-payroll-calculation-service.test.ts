@@ -623,7 +623,7 @@ describe('Core-backed employee payroll calculation', () => {
     expect(result.payfull02?.cumulativeGross).toBe('4500.00')
   })
 
-  it('selects the versioned partial-period PAYFULL02 composition for an explicit composite wage source', async () => {
+  it.each(['WEEK_DAY_2_1', 'MONTH'])('selects the versioned partial-period PAYFULL02 composition for an explicit %s wage source', async (timePeriod) => {
     const completeProvider = payfullScenarioProvider({ variant: 'REGULAR', payrollTaxCreditApplies: false })
     const sourceProvider: PayrollSourceProvider = {
       getPayrollSourceSnapshot: async (input) => {
@@ -637,7 +637,7 @@ describe('Core-backed employee payroll calculation', () => {
             regularWage: {
               ...regularWage,
               grossAmount: '2000.00',
-              timePeriod: 'WEEK_DAY_2_1',
+              timePeriod,
               fullPeriod: false,
             },
           } as PayrollSourceSnapshot['canonicalSource'],
