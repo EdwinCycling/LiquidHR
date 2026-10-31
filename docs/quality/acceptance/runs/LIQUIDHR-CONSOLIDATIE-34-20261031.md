@@ -67,7 +67,7 @@ Na deze correcties slaagden de gerichte Payroll-regressies: **11 bestanden, 117/
 
 `Code actief` betekent dat routes/services/menu-/permissionkoppelingen in de lokale kandidaat aanwezig zijn. Het bewijst **niet** dat een live TEST-tenant de module aan heeft staan of dat iedere rol de route in de browser heeft bereikt. Tenantconfiguratie is niet gewijzigd.
 
-De productruntime in de matrix is geverifieerd met de schone build op `c7dc67ba`; de volledige code-/testkandidaat `b77f027c` voegt de drie canonical Core-migrationbronnen, contracttests en runnerfix toe. Daarna veranderde alleen de lokale browseracceptance-checker in `e48034c6`; applicatieruntime en buildbronnen zijn gelijk gebleven. De matrix beschrijft de productfunctionaliteit plus actuele bronnen, contracttests en personaacceptatie.
+De productruntime in de matrix is geverifieerd met de schone build op `c7dc67ba`; de volledige code-/testkandidaat `b77f027c` voegt de drie canonical Core-migrationbronnen, contracttests en runnerfix toe. Daarna veranderden alleen de lokale browseracceptance-checker (`e48034c6`) en documentatie; applicatieruntime en buildbronnen bleven gelijk. De matrix beschrijft de productfunctionaliteit plus actuele bronnen, contracttests en personaacceptatie.
 
 | Module | Bron in kandidaat | Navigatie, route, API of job | Rollen en runtimevoorwaarde | Migratie-/featurestatus en acceptatie |
 |---|---|---|---|---|
