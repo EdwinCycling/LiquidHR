@@ -154,8 +154,22 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
                 <option value="GRANDFATHERED">{t('pensionGrandfathered')}</option>
               </select>
             </label>
-            <input type="hidden" name="provenanceMode" value="USER_RECORDED" />
-            <input type="hidden" name="testScenario" value="" />
+            {data.canCreateSyntheticFixture ? <>
+              <label className="grid gap-1 text-sm font-medium">
+                {t('pensionProvenanceMode')}
+                <select name="provenanceMode" defaultValue="USER_RECORDED" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
+                  <option value="USER_RECORDED">{t('pensionUserRecorded')}</option>
+                  <option value="SYNTHETIC_TEST_FIXTURE">{t('pensionSyntheticTestFixture')}</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm font-medium">
+                {t('pensionTestScenario')}
+                <input name="testScenario" type="text" maxLength={180} className="min-h-10 rounded-md border border-border bg-background px-3 font-normal" />
+              </label>
+            </> : <>
+              <input type="hidden" name="provenanceMode" value="USER_RECORDED" />
+              <input type="hidden" name="testScenario" value="" />
+            </>}
             <label className="flex items-start gap-3 text-sm">
               <input name="confirmMapping" type="checkbox" value="yes" required className="mt-1" />
               <span>{t('pensionConfirmCaoMapping', { conditionSet: data.laborConditionSet.name })}</span>

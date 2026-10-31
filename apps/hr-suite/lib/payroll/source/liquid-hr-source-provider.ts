@@ -1179,9 +1179,76 @@ function payrollDecimalSource(value: number | null): string | null {
   }
 }
 
+type VariableHourlyPensionBasis = {
+  readonly hourlyRate: string
+  readonly fullTimeHoursPerWeek: string
+  readonly fullTimeMonthlyHours: string
+  readonly fullTimeMonthlyPensionableSalary: string
+  readonly paidHours: string
+  readonly partTimeFactor: string
+}
+
+function variableHourlyPensionBasis(
+  salary: PayrollSourceSalary | undefined,
+  schedule: PayrollSourceSchedule | undefined,
+  entries: readonly unknown[],
+  variableWage: ReturnType<typeof actualWorkVariableWage>,
+): VariableHourlyPensionBasis | null {
+  if (!salary || !schedule || salary.payment_type !== 'HOURLY_VARIABLE'
+    || salary.payment_frequency !== 'MONTHLY' || salary.currency_code !== 'EUR'
+    || salary.fulltime_amount !== null || salary.parttime_amount !== null
+    || !schedule.is_on_call || schedule.average_hours_per_week !== 0 || schedule.part_time_factor !== 0
+    || !variableWage.used || variableWage.errorCode !== null || entries.length === 0) return null
+  try {
+    const hourlyRate = FixedDecimal.parse(String(salary.hourly_rate))
+    const fullTimeHours = FixedDecimal.parse(String(schedule.fulltime_hours_per_week))
+    if (hourlyRate.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0
+      || fullTimeHours.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) return null
+    let paidHours = FixedDecimal.fromInteger(BigInt(0))
+    let computedGross = FixedDecimal.fromInteger(BigInt(0))
+    for (const entry of entries) {
+      const record = asRecord(entry)
+      if (!record || record.informational === true || record.family === 'TRANSPARENT') continue
+      const mapping = asRecord(record.payrollMapping)
+      if (record.family !== 'WORK' || record.releasedForPayroll !== true
+        || mapping?.target !== 'PAYMENT'
+        || mapping.componentCode !== 'PAYFULL02_VARIABLE_REGULAR_WAGE'
+        || mapping.componentOutput !== 'amount'
+        || mapping.calculationRule !== 'HOURLY_RATE_X_HOURS'
+        || mapping.factor !== '1'
+        || (typeof record.hours !== 'number' && typeof record.hours !== 'string')) return null
+      const hours = FixedDecimal.parse(String(record.hours))
+      if (hours.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) return null
+      paidHours = paidHours.add(hours)
+      computedGross = computedGross.add(hourlyRate.multiply(hours))
+    }
+    if (paidHours.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0
+      || computedGross.round(2, 'HALF_UP').toString(2) !== variableWage.amount) return null
+    const monthlyHours = fullTimeHours.multiply(FixedDecimal.parse('52'))
+      .divideToScale(FixedDecimal.parse('12'), 8, 'ARITHMETIC')
+    const monthlyPensionableSalary = hourlyRate.multiply(monthlyHours).round(8, 'HALF_UP')
+    const partTimeFactor = paidHours.divideToScale(monthlyHours, 8, 'ARITHMETIC')
+      .round(8, 'HALF_UP')
+    if (partTimeFactor.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0
+      || partTimeFactor.compare(FixedDecimal.parse('1')) > 0) return null
+    return {
+      hourlyRate: hourlyRate.toString(2),
+      fullTimeHoursPerWeek: fullTimeHours.toString(4),
+      fullTimeMonthlyHours: monthlyHours.round(8, 'HALF_UP').toString(8),
+      fullTimeMonthlyPensionableSalary: monthlyPensionableSalary.toString(8),
+      paidHours: paidHours.toString(4),
+      partTimeFactor: partTimeFactor.toString(8),
+    }
+  } catch {
+    return null
+  }
+}
+
 function regularWageInput(
   salaries: readonly PayrollSourceSalary[],
   schedules: readonly PayrollSourceSchedule[],
+  actualWorkEntries: readonly unknown[],
+  variableWage: ReturnType<typeof actualWorkVariableWage>,
   period: PayrollSourceProviderInput['payrollPeriod'],
   start: string,
   endExclusive: string,
@@ -1203,15 +1270,51 @@ function regularWageInput(
   if (!salary || !schedule
     || salary.valid_from > start || (salary.valid_until !== null && salary.valid_until < endExclusive)
     || schedule.valid_from > start || (schedule.valid_until !== null && schedule.valid_until < endExclusive)) return null
+  const periodBoundsForWage = periodBounds(period)
+  const fullPeriod = start === periodBoundsForWage.start && endExclusive === periodBoundsForWage.endExclusive
+  let timePeriod = fiscalProfile.timePeriod
+  if (!fullPeriod) {
+    try {
+      const segments = calculateNl2026PeriodSegments({
+        periodStart: periodBoundsForWage.start,
+        periodEndExclusive: periodBoundsForWage.endExclusive,
+        paidStart: start,
+        paidEndExclusive: endExclusive,
+      })
+      timePeriod = encodeNl2026CompositeTimePeriod(segments)
+    } catch {
+      return null
+    }
+  }
+  if (salary.payment_type === 'HOURLY_VARIABLE'
+    && (schedule.is_on_call || salary.fulltime_amount === null || salary.parttime_amount === null)) {
+    const basis = variableHourlyPensionBasis(salary, schedule, actualWorkEntries, variableWage)
+    if (!basis) return null
+    return {
+      fiscalYear: String(period.year),
+      table: fiscalProfile.wageTaxTable,
+      residence: fiscalProfile.residenceCountryCode,
+      ageCategory: fiscalProfile.ageCategory,
+      herleiding: fiscalProfile.herleiding,
+      timePeriod,
+      payrollTaxCredit: fiscalProfile.payrollTaxCreditApplies,
+      regularWage: true,
+      fullPeriod,
+      hasSpecialSituation: fiscalProfile.hasSpecialSituation,
+      incomeRelationshipCount: String(fiscalProfile.activeIncomeRelationshipCount),
+      grossAmount: variableWage.amount,
+      fulltimeMonthlyAmount: '0.00',
+      contractHoursPerWeek: '0.0000',
+      fulltimeHoursPerWeek: basis.fullTimeHoursPerWeek,
+      wageBasis: 'ON_CALL_HOURLY_VARIABLE',
+    }
+  }
   const monthlyAmount = payrollMoneySource(salary.parttime_amount)
   const fulltimeMonthlyAmount = payrollMoneySource(salary.fulltime_amount)
   const contractHoursPerWeek = payrollDecimalSource(schedule.average_hours_per_week)
   const fulltimeHoursPerWeek = payrollDecimalSource(schedule.fulltime_hours_per_week)
   if (!monthlyAmount || !fulltimeMonthlyAmount || !contractHoursPerWeek || !fulltimeHoursPerWeek) return null
-  const periodBoundsForWage = periodBounds(period)
-  const fullPeriod = start === periodBoundsForWage.start && endExclusive === periodBoundsForWage.endExclusive
   let grossAmount = monthlyAmount
-  let timePeriod = fiscalProfile.timePeriod
   if (!fullPeriod) {
     let segments: ReturnType<typeof calculateNl2026PeriodSegments>
     try {
@@ -1616,6 +1719,7 @@ function buildRegularPayrollOwned(input: {
   readonly regularWage: Record<string, string | boolean> | null
   readonly salaryBasisCandidates: readonly PayrollSourceSalary[]
   readonly schedule: PayrollSourceSchedule | undefined
+  readonly variableHourlyBasis: VariableHourlyPensionBasis | null
   readonly laborConditionSetId: string | null
   readonly pensionAssignments: readonly NonNullable<PayrollSourceTimeline['pensionAssignments']>[number][]
   readonly laborConditionPensionArrangements: readonly NonNullable<PayrollSourceTimeline['laborConditionPensionArrangements']>[number][]
@@ -1666,7 +1770,11 @@ function buildRegularPayrollOwned(input: {
     : '1.0000'
   const scheduleFactor = input.schedule?.part_time_factor
   let effectivePartTimeFactor: string | null = null
-  if (scheduleFactor !== undefined) {
+  if (input.variableHourlyBasis) {
+    // Released hours already reflect the hours worked in the active period;
+    // applying calendar proration again would count a partial month twice.
+    effectivePartTimeFactor = input.variableHourlyBasis.partTimeFactor
+  } else if (scheduleFactor !== undefined) {
     try {
       effectivePartTimeFactor = FixedDecimal.parse(String(scheduleFactor))
         .multiply(FixedDecimal.parse(periodFactor))
@@ -1710,7 +1818,8 @@ function buildRegularPayrollOwned(input: {
     pensionResult = calculatePension({
       arrangement: arrangementInput,
       period: input.period,
-      fullTimeMonthlyPensionableSalary: String(input.regularWage.fulltimeMonthlyAmount),
+      fullTimeMonthlyPensionableSalary: input.variableHourlyBasis?.fullTimeMonthlyPensionableSalary
+        ?? String(input.regularWage.fulltimeMonthlyAmount),
       monthlyPayrollGross,
       partTimeFactor: effectivePartTimeFactor,
       ageForTier: assignment.age_for_tier,
@@ -1825,6 +1934,14 @@ function buildRegularPayrollOwned(input: {
         sourceReference: configuration.pension.methodSourceReference,
         calculationStatus: pensionResult.status,
         calculationTrace: pensionResult.trace,
+        ...(input.variableHourlyBasis ? {
+          variableHourlyBasis: {
+            ...input.variableHourlyBasis,
+            derivation: 'HOURLY_RATE_X_FULLTIME_WEEKLY_HOURS_X_52_DIVIDED_BY_12',
+            partTimeFactorDerivation: 'RELEASED_PAID_HOURS_DIVIDED_BY_FULLTIME_MONTHLY_HOURS',
+            partialMonthAllocation: 'ACTUAL_RELEASED_PAID_HOURS_ALREADY_LIMITED_TO_ACTIVE_PERIOD',
+          },
+        } : {}),
       },
       employerRates: {
         awf: configuration.employerRates.awf,
@@ -2369,6 +2486,8 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     const baseRegularWage = regularWageInput(
       salaries,
       schedules,
+      actualWorkEntries,
+      mappedActualWorkVariableWage,
       input.payrollPeriod,
       activeStart,
       activeEndExclusive,
@@ -2385,6 +2504,12 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         caoApplied: true,
       }
       : baseRegularWage
+    const variableHourlyBasis = variableHourlyPensionBasis(
+      salaries.length === 1 ? salaries[0] : undefined,
+      schedules.length === 1 ? schedules[0] : undefined,
+      actualWorkEntries,
+      mappedActualWorkVariableWage,
+    )
     let payrollSetup: PayrollSourceSetup | null = null
     if (this.dependencies.loadPayrollSetup) {
       try {
@@ -2892,6 +3017,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           regularWage,
           salaryBasisCandidates: pensionSalaryBasisCandidates,
           schedule: schedules.length === 1 ? schedules[0] : undefined,
+          variableHourlyBasis,
           laborConditionSetId: activeLaborConditionSet?.id ?? null,
           pensionAssignments,
           laborConditionPensionArrangements,

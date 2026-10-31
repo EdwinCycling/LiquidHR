@@ -1024,7 +1024,7 @@ describe('LiquidHR Payroll source provider', () => {
     expect(source.payrollOwned).toBeUndefined()
   })
 
-  it('uses the regular employer configuration and explicit calendar-day pension method for a new joiner', async () => {
+  it('uses the explicit calendar-day pension method at the one-day month-end boundary', async () => {
     const configuration = assertActivePayrollEmployerConfiguration({
       schemaVersion: 'payroll-employer-configuration-v1',
       effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', sourceReference: 'Mars BV payroll decision 2026',
@@ -1059,16 +1059,16 @@ describe('LiquidHR Payroll source provider', () => {
       openingBalance: null,
     }
     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
-      listEmployments: vi.fn(async () => [employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' })]),
+      listEmployments: vi.fn(async () => [employment({ starts_on: '2026-09-30', original_hire_date: '2026-09-30', seniority_date: '2026-09-30' })]),
       loadTimeline: vi.fn(async () => ({
-        employment: employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' }),
+        employment: employment({ starts_on: '2026-09-30', original_hire_date: '2026-09-30', seniority_date: '2026-09-30' }),
         salaries: [salary({ fulltime_amount: 3517, parttime_amount: 3517 })],
         schedules: [schedule({ part_time_factor: 1 })],
         incomeRelationships: [incomeRelationship({ reportingStatus: 'READY', startsOn: '2026-01-01' })],
         taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({ effective_from: '2026-01-01' })] }),
         pensionAssignments: [{
           id: '92000000-0000-4000-8000-000000000009', pension_arrangement_id: 'MARS-PENSION-2026',
-          effective_from: '2026-01-01', effective_to: null, participation_start_date: '2026-10-16',
+          effective_from: '2026-09-30', effective_to: null, participation_start_date: '2026-09-30',
           assignment_reason: 'CORE', provenance_json: {}, updated_at: '2026-01-01T00:00:00.000Z', version_number: 1,
           supersedes_assignment_id: null, arrangement_resolution_reason: null, arrangement_resolution_change_version_ids: [], age_for_tier: null,
           arrangement: {
@@ -1085,15 +1085,15 @@ describe('LiquidHR Payroll source provider', () => {
         }],
       })),
       loadPayrollSetup: vi.fn(async () => setup),
-    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 10 } })
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
 
     const source = snapshot.canonicalSource as Record<string, unknown>
     const payrollOwned = source.payrollOwned as Record<string, unknown>
     expect(payrollOwned).toBeDefined()
     const pension = payrollOwned.pension as Record<string, unknown>
     expect(pension.partialMonthMethod).toBe('CALENDAR_DAYS_PRO_RATA')
-    expect(pension.periodFactor).toBe('0.5161')
-    expect(pension.partTimeFactor).toBe('0.5161')
+    expect(pension.periodFactor).toBe('0.0333')
+    expect(pension.partTimeFactor).toBe('0.0333')
     expect(pension.calculationTrace).toEqual(expect.arrayContaining([
       expect.objectContaining({
         ruleProvenance: expect.objectContaining({
@@ -1205,6 +1205,139 @@ describe('LiquidHR Payroll source provider', () => {
     expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({
       reasonCode: 'ACTUAL_WORK_HOURLY_RATE_REQUIRED',
     }))
+  })
+
+  it('calculates an on-call hourly pension basis from released paid hours without inventing fixed monthly salary', async () => {
+    const setup = completePayrollSetup()
+    const fixture = {
+      fixtureId: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28',
+      classification: 'SYNTHETIC_TEST_FIXTURE',
+      legalFiscalStatus: 'OPEN',
+    }
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      listEmployments: vi.fn(async () => [employment({
+        starts_on: '2026-10-01', original_hire_date: '2026-10-01', seniority_date: '2026-10-01',
+      })]),
+      loadTimeline: vi.fn(async () => ({
+        employment: employment({ starts_on: '2026-10-01', original_hire_date: '2026-10-01', seniority_date: '2026-10-01' }),
+        salaries: [salary({
+          payment_type: 'HOURLY_VARIABLE',
+          payment_frequency: 'MONTHLY',
+          hourly_rate: 20,
+          fulltime_amount: null,
+          parttime_amount: null,
+        })],
+        schedules: [schedule({
+          average_hours_per_week: 0,
+          fulltime_hours_per_week: 40,
+          part_time_factor: 0,
+          schedule_type: 'HOURS_AND_AVG_DAYS',
+          is_on_call: true,
+        })],
+        contracts: [{
+          id: '8b000000-0000-4000-8000-000000000028',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000028',
+          fulltime_hours_per_week: 40,
+          starts_on: '2026-10-01',
+          ends_on: null,
+          updated_at: '2026-10-01T10:01:00.000Z',
+        }],
+        laborConditions: [{
+          id: '8d000000-0000-4000-8000-000000000028',
+          condition_group: 'COMPANY',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000028',
+          valid_from: '2026-10-01',
+          valid_until: null,
+          updated_at: '2026-10-01T10:02:00.000Z',
+          set: {
+            id: '8c000000-0000-4000-8000-000000000028',
+            code: 'MARS_COMPANY_TEST',
+            name: 'Mars BV TEST',
+            standard_hours_per_week: 40,
+            is_active: true,
+            valid_from: '2026-01-01',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        }],
+        incomeRelationships: [incomeRelationship({
+          reportingStatus: 'READY', startsOn: '2026-10-01', validFrom: '2026-10-01',
+        })],
+        taxProfileProjection: taxProjection(),
+        pensionAssignments: [{
+          id: '92000000-0000-4000-8000-000000000028',
+          pension_arrangement_id: 'MARS-PENSION-2026',
+          effective_from: '2026-10-01', effective_to: '2026-10-31',
+          participation_start_date: '2026-10-01', assignment_reason: 'Explicit HR-admin assignment.',
+          provenance_json: { status: 'SYNTHETIC_TEST_FIXTURE', syntheticFixture: fixture },
+          updated_at: '2026-10-01T00:00:00.000Z', version_number: 1,
+          supersedes_assignment_id: null, arrangement_resolution_reason: null,
+          arrangement_resolution_change_version_ids: [], age_for_tier: null,
+          arrangement: {
+            id: 'MARS-PENSION-2026', code: 'MARS-PENSION-2026', name: 'Mars BV TEST-pensioenfixture',
+            arrangement_type: 'FLAT_PREMIUM', effective_from: '2026-01-01',
+            arrangement_established_from: '2026-01-01', effective_to: null, transition_date: null,
+            grandfathering_mode: 'NONE', flat_total_rate: 25, employer_share_pct: 60,
+            employee_share_pct: 40, annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
+            pensionable_salary_definition: {
+              annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
+              basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true,
+            },
+            eligibility_rule: {
+              participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01',
+            },
+            contract_classification: 'UNKNOWN' as const, contract_classification_provenance: { status: 'UNVERIFIED' },
+            provenance_json: { sourceClassification: 'SYNTHETIC_TEST_FIXTURE', legalFiscalStatus: 'OPEN' },
+            is_active: true, version_id: '93000000-0000-4000-8000-000000000028', version_number: 2,
+            version_created_at: '2026-01-01T00:00:00.000Z', source_updated_at: '2026-01-01T00:00:00.000Z', tiers: [],
+          },
+        }],
+      })),
+      loadActualWork: vi.fn(async () => withPayrollReleases(actualWork({
+        period: {
+          id: actualWorkPeriodId, period_start: '2026-10-01', period_end: '2026-11-01',
+          status: 'CLOSED', updated_at: '2026-10-31T20:00:00.000Z',
+        },
+        entries: [actualWorkEntry({
+          hours: 1, work_date: '2026-10-06', subject_period_start: '2026-10-06',
+          subject_period_end: '2026-10-07', posting_period_start: '2026-10-01',
+        })],
+        types: [actualWorkType({ code: 'AW_WORK', name: 'Gewerkte uren' })],
+      }))),
+      loadPayrollSetup: vi.fn(async () => setup),
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 10 } })
+
+    const source = snapshot.canonicalSource as Record<string, unknown>
+    const payrollOwned = source.payrollOwned as Record<string, unknown>
+    const amounts = payrollOwned.amounts as Record<string, unknown>
+    const controls = payrollOwned.controls as Record<string, unknown>
+    const pension = payrollOwned.pension as Record<string, unknown>
+    const regularWage = source.regularWage as Record<string, unknown>
+
+    expect(snapshot.sourceGaps).toEqual([])
+    expect(controls.sourceReady).toBe(true)
+    expect(amounts.variableRegularWage).toBe('20.00')
+    expect(regularWage).toMatchObject({
+      grossAmount: '20.00', fulltimeMonthlyAmount: '0.00', contractHoursPerWeek: '0.0000',
+      fulltimeHoursPerWeek: '40.0000',
+    })
+    expect(pension).toMatchObject({
+      partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA', periodFactor: '1.0000',
+      variableHourlyBasis: {
+        hourlyRate: '20.00', fullTimeHoursPerWeek: '40.0000',
+        fullTimeMonthlyHours: '173.33333333', fullTimeMonthlyPensionableSalary: '3466.66666660',
+        paidHours: '1.0000', partTimeFactor: '0.00576923',
+      },
+      calculationStatus: 'CALCULATED',
+    })
+    expect(amounts.employeePension).toBe('1.08')
+    expect(amounts.employerPension).toBe('1.62')
+    expect(pension.calculationTrace).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        componentCode: 'PENSION_ANNUALIZED_PENSIONABLE_SALARY',
+        inputs: expect.objectContaining({ fullTimeMonthlyPensionableSalary: '3466.66666660' }),
+      }),
+    ]))
+    expect(snapshot.sourceHash).toMatch(/^[0-9a-f]{64}$/)
   })
 
   it('uses an effective HR Admin confirmed Core tax profile to build the regular wage engine input', async () => {

@@ -28,6 +28,8 @@
   "pensionGrandfathered": "Deelnemer met overgangsrecht",
   "pensionProvenanceMode": "Type registratie",
   "pensionUserRecorded": "Vastgelegd door HR-beheerder",
+  "pensionSyntheticTestFixture": "Bron met open juridische beoordeling",
+  "pensionTestScenario": "Bronverwijzing",
   "pensionArrangementPredecessor": "Te vervangen versie van de CAO-koppeling (optioneel)",
   "pensionAssignmentPredecessor": "Te vervangen versie van de dienstverbandtoewijzing (optioneel)",
   "pensionNoPredecessor": "Geen voorganger",

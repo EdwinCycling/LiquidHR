@@ -21,6 +21,111 @@ function isPensionManager(context: Awaited<ReturnType<typeof requirePermission>>
   return context.activeRoles.includes('HR_ADMIN') || context.activeRoles.includes('TENANT_ADMIN')
 }
 
+function jsonRecord(value: Json): Record<string, Json | undefined> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, Json | undefined>
+    : null
+}
+
+async function jantjeSyntheticPensionFixture(input: {
+  readonly supabase: Awaited<ReturnType<typeof createClient>>
+  readonly tenantId: string
+  readonly hrGroupId: string
+  readonly administrationId: string
+  readonly arrangementId: string
+  readonly effectiveFrom: string
+  readonly effectiveTo: string | null
+  readonly participationStartDate: string
+  readonly participantGroup: 'NEW_ENTRANT' | 'GRANDFATHERED'
+}): Promise<Json> {
+  if (input.effectiveFrom !== '2026-10-01' || input.effectiveTo !== '2026-10-31'
+    || input.participationStartDate !== '2026-10-01' || input.participantGroup !== 'NEW_ENTRANT') {
+    throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_FIXTURE_SCOPE_INVALID', 400)
+  }
+  const arrangementResult = await input.supabase.from('pension_arrangements')
+    .select('id, code, name')
+    .eq('id', input.arrangementId)
+    .eq('tenant_id', input.tenantId)
+    .eq('hr_group_id', input.hrGroupId)
+    .eq('administration_id', input.administrationId)
+    .maybeSingle()
+  if (arrangementResult.error || !arrangementResult.data
+    || arrangementResult.data.code !== 'MARS-PENSION-2026') {
+    throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_FIXTURE_SOURCE_MISMATCH', 409)
+  }
+  const versionResult = await input.supabase.from('pension_arrangement_versions')
+    .select('id, version_number, code, name, effective_from, effective_to, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, is_active')
+    .eq('pension_arrangement_id', input.arrangementId)
+    .eq('tenant_id', input.tenantId)
+    .eq('hr_group_id', input.hrGroupId)
+    .eq('administration_id', input.administrationId)
+    .eq('version_number', 2)
+    .eq('is_active', true)
+    .maybeSingle()
+  const version = versionResult.data
+  const definition = jsonRecord(version?.pensionable_salary_definition ?? null)
+  const eligibility = jsonRecord(version?.eligibility_rule ?? null)
+  if (versionResult.error || !version || version.code !== 'MARS-PENSION-2026'
+    || version.effective_from > input.effectiveFrom
+    || (version.effective_to !== null && version.effective_to < input.effectiveTo)
+    || version.flat_total_rate !== 25 || version.employer_share_pct !== 60
+    || version.employee_share_pct !== 40 || version.annual_franchise !== 19172
+    || version.annual_pensionable_salary_cap !== 137800
+    || definition?.annualization !== '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY'
+    || definition?.basis !== 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE'
+    || definition?.floorAtZero !== true || eligibility?.participantGroup !== 'NEW_ENTRANT') {
+    throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_FIXTURE_SOURCE_MISMATCH', 409)
+  }
+  return {
+    schemaVersion: 'PAYROLL_SYNTHETIC_PENSION_FIXTURE_V1',
+    fixtureId: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28',
+    testRuleCode: 'MARS-PENSION-2026-TEST-JANTJE-28',
+    testRuleVersion: 1,
+    purpose: 'Synthetic Payroll test case only; not a real or formally approved pension arrangement.',
+    provider: {
+      name: 'Mars BV TEST-pensioenuitvoerder (fictief)',
+      classification: 'FICTITIOUS_TEST_ONLY',
+    },
+    sourceArrangement: {
+      id: arrangementResult.data.id,
+      code: arrangementResult.data.code,
+      name: arrangementResult.data.name,
+      versionId: version.id,
+      versionNumber: version.version_number,
+      effectiveFrom: version.effective_from,
+      effectiveTo: version.effective_to,
+    },
+    eligibility: {
+      participantGroup: 'NEW_ENTRANT',
+      employmentStartOnOrAfter: '2026-10-01',
+      employmentType: 'ON_CALL',
+      currencyCode: 'EUR',
+      hourlyRate: '20.00',
+      requiresReleasedPaidHoursInPeriod: true,
+      payrollPeriod: '2026-10',
+    },
+    pensionParameters: {
+      totalPremiumRatePercent: version.flat_total_rate,
+      employerSharePercent: version.employer_share_pct,
+      employeeSharePercent: version.employee_share_pct,
+      annualFranchise: version.annual_franchise,
+      annualPensionableSalaryCap: version.annual_pensionable_salary_cap,
+      pensionableSalaryDefinition: version.pensionable_salary_definition,
+    },
+    componentMappings: {
+      variableWage: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+      employeePension: 'PAYRUN01_EMPLOYEE_PENSION',
+      employerPension: 'PAYRUN01_EMPLOYER_PENSION',
+    },
+    fiscalAssumptions: {
+      status: 'TEST_ASSUMPTIONS_NOT_LEGALLY_VALIDATED',
+      taxYear: 2026,
+      basis: 'This fixture does not confirm a fiscal profile or rule package. Payroll source readiness must be established from the current scoped sources before calculation; no formal legal validation is claimed.',
+    },
+    legalFiscalStatus: 'OPEN',
+  }
+}
+
 export class EmploymentPensionArrangementError extends Error {
   constructor(readonly code: string, readonly status: number) {
     super(code)
@@ -270,6 +375,19 @@ export async function assignEmploymentPensionArrangement(input: {
     }
     const sourceClassification = syntheticPensionSourceClassification(input.provenance.scenario)
     if (!sourceClassification) throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_PROVENANCE_INVALID', 400)
+    const syntheticFixture = input.provenance.scenario === 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28'
+      ? await jantjeSyntheticPensionFixture({
+        supabase,
+        tenantId: context.tenantId,
+        hrGroupId: context.hrGroupId!,
+        administrationId: context.administrationId!,
+        arrangementId: input.arrangementId,
+        effectiveFrom: input.effectiveFrom,
+        effectiveTo,
+        participationStartDate: input.participationStartDate,
+        participantGroup: input.participantGroup,
+      })
+      : null
     provenance = {
       schemaVersion: 'EMPLOYMENT_PENSION_ASSIGNMENT_PROVENANCE_V1',
       status: 'SYNTHETIC_TEST_FIXTURE',
@@ -277,6 +395,7 @@ export async function assignEmploymentPensionArrangement(input: {
       source: 'Explicit HR-admin synthetic TEST pension arrangement workflow.',
       legalFiscalStatus: 'OPEN',
       legalFiscalGap: 'PENSION_LEGAL_FISCAL_TREATMENT_UNVERIFIED',
+      ...(syntheticFixture ? { syntheticFixture } : {}),
     }
   } else {
     provenance = {

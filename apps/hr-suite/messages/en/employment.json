@@ -28,6 +28,8 @@
   "pensionGrandfathered": "Grandfathered participant",
   "pensionProvenanceMode": "Record type",
   "pensionUserRecorded": "HR-admin recorded",
+  "pensionSyntheticTestFixture": "Source with legal review open",
+  "pensionTestScenario": "Source reference",
   "pensionArrangementPredecessor": "CAO mapping version being superseded (optional)",
   "pensionAssignmentPredecessor": "Employment assignment version being superseded (optional)",
   "pensionNoPredecessor": "No predecessor",
