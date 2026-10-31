@@ -173,8 +173,9 @@ describe('salary table import preview', () => {
     const results = verification.versions.map((version) => {
       const fileName = `cao-kinderopvang-${version.effectiveFrom}.csv`
       const csv = readFileSync(new URL(`../../../../docs/quality/acceptance/runs/PAYROLL-CORE-RESET-01/source-data/${fileName}`, import.meta.url), 'utf8')
-      expect(createHash('sha256').update(csv).digest('hex')).toBe(version.csvSha256)
-      const result = parseSalaryTableImport(csv, {
+      const canonicalCsv = csv.replace(/\r\n/g, '\n')
+      expect(createHash('sha256').update(canonicalCsv).digest('hex')).toBe(version.csvSha256)
+      const result = parseSalaryTableImport(canonicalCsv, {
         effectiveFrom: version.effectiveFrom,
         effectiveTo: version.effectiveTo,
         salaryBasis: 'MONTHLY_BASE',

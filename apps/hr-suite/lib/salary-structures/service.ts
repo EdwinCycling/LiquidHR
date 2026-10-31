@@ -2,7 +2,7 @@ import type { Database, Json } from '@scope/db'
 import { z } from 'zod'
 import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { selectedSalaryStructureRevisionId } from './catalog-read-scope'
+import { salaryStructureRevisionIdsForStructures, selectedSalaryStructureRevisionId } from './catalog-read-scope'
 import type { SalaryStructureCreateInput, SalaryStructureDraftInput, SalaryStructureUpdateInput } from './schemas'
 
 type SalaryStructureRow = Database['public']['Tables']['salary_structures']['Row']
@@ -33,6 +33,7 @@ export type SalaryStructureCatalog = {
 export type SalaryStructureCatalogReadScope = {
   structureId: string | null
   revisionId: string | null
+  structureIds?: readonly string[]
 }
 
 export type SalaryStructureMigrationConflictAction =
@@ -110,6 +111,16 @@ export async function listSalaryStructureCatalog(readScope?: SalaryStructureCata
         .order('sequence_number').limit(10000)
       if (result.error) databaseError(result.error.message)
       steps = result.data ?? []
+    } else if (readScope.structureIds !== undefined) {
+      const revisionIds = salaryStructureRevisionIdsForStructures(revisions.data ?? [], readScope.structureIds)
+      if (revisionIds.length > 0) {
+        const result = await supabase.from('salary_scale_steps').select('*')
+          .eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId)
+          .in('salary_structure_revision_id', revisionIds)
+          .order('sequence_number').limit(10000)
+        if (result.error) databaseError(result.error.message)
+        steps = result.data ?? []
+      }
     } else {
       const revisionId = selectedSalaryStructureRevisionId(
         revisions.data ?? [],

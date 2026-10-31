@@ -345,7 +345,11 @@ describe('assignEmploymentPensionArrangement', () => {
   })
 
   it('uses the pension-manager permission and wrapper for successor versions', async () => {
-    const { rpc } = configureClient({ rpcResult: ids.version, employment: { id: ids.version, employee_id: ids.employee } })
+    const { rpc } = configureClient({
+      rpcResult: ids.version,
+      predecessorVersionId: ids.version,
+      employment: { id: ids.version, employee_id: ids.employee },
+    })
 
     await expect(createPensionArrangementSuccessor({
       employeeId: ids.employee,
@@ -355,7 +359,7 @@ describe('assignEmploymentPensionArrangement', () => {
     })).resolves.toEqual({ versionId: ids.version })
 
     expect(requirePermission).toHaveBeenCalledWith('pension:manage', ids.employee)
-    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor', {
+    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor_for_pension_manager', {
       p_predecessor_version_id: ids.version,
       p_successor: {},
     })
@@ -396,7 +400,7 @@ describe('createPensionArrangementSuccessor', () => {
       ['hr_group_id', ids.hrGroup],
       ['administration_id', ids.administration],
     ]))
-    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor', {
+    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor_for_pension_manager', {
       p_predecessor_version_id: predecessorVersionId,
       p_successor: successor,
     })

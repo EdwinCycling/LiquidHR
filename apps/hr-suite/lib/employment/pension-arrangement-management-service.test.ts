@@ -208,7 +208,7 @@ describe('pension arrangement management', () => {
       ['hr_group_id', ids.hrGroup],
       ['administration_id', ids.administration],
     ]))
-    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor', expect.any(Object))
+    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor_for_pension_manager', expect.any(Object))
   })
 
   it('fails closed when the scoped predecessor is not readable', async () => {

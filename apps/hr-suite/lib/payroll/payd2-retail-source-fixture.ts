@@ -160,6 +160,7 @@ export type SnapshotOptions = {
   readonly invalidR2TaxProfileEffectiveDate?: boolean
   readonly invalidR2TaxProfileVersion?: boolean
   readonly bpfCurrentGrossMismatch?: boolean
+  readonly syntheticFlatPensionForLifecycle?: boolean
 }
 export const scope = {
   tenantId: '16000000-0000-4000-8000-000000000061',
@@ -197,6 +198,7 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
   const employeeId = ids.employee
   const r1 = caseCode === 'R1'
   const completeR2 = !r1 && options.completeR2PayrollSource === true
+  const syntheticFlatPensionForLifecycle = (r1 || completeR2) && options.syntheticFlatPensionForLifecycle === true
   const firstEmploymentDate = r1 || completeR2 ? '2026-07-01' : '2026-01-01'
   const employment: PayrollSourceEmployment = {
     id: ids.employment,
@@ -356,7 +358,7 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
       annual_franchise: completeR2 ? PAYW02B_R2_PENSION_TERMS.annualFranchise : 18680,
       annual_pensionable_salary_cap: completeR2 ? PAYW02B_R2_PENSION_TERMS.annualPensionableSalaryCap : 79409,
       pensionable_salary_definition: {
-        method: 'BPF_DETAILHANDEL_2026_VCR',
+        method: syntheticFlatPensionForLifecycle ? 'SYNTHETIC_FLAT_PREMIUM_2026' : 'BPF_DETAILHANDEL_2026_VCR',
         annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
         basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
         floorAtZero: true,
@@ -378,7 +380,9 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
         },
         selectedContributionSplit: completeR2
           ? 'BPF Detailhandel 2026 total rate and maximum employee share are source-pinned; this synthetic scenario allocates the remaining share to the employer.'
-          : 'Official 2026 maximum employee share 6.1875%; fictional employer allocates remaining 18.5625% to itself.',
+          : syntheticFlatPensionForLifecycle
+            ? 'Explicit synthetic flat-premium split for lifecycle tests; this does not claim a BPF VCR calculation or employer applicability.'
+            : 'Official 2026 maximum employee share 6.1875%; fictional employer allocates remaining 18.5625% to itself.',
         calculationScope: completeR2
           ? 'One full July 2026 first period for a synthetic 2026-07-01 employment with an explicit zero opening cumulative; no real applicability is asserted.'
           : 'One full first monthly period with zero opening cumulative; annual multi-period VCR reconciliation is not asserted.',
@@ -490,7 +494,7 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     configurationRow,
     configuration,
     openingBalance,
-    ...(r1 ? {
+    ...(r1 && !syntheticFlatPensionForLifecycle ? {
       bpfDetailhandel2026Source: {
         sourceId: 'SYNTHETIC-PAYD2-RETAIL-02-BPF-VCR-2026-07',
         sourceVersion: 'SYNTHETIC-PAYD2-RETAIL-02-BPF-VCR-v1',

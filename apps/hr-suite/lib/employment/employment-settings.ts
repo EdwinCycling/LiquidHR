@@ -58,11 +58,7 @@ export async function getEmploymentSettings() {
   const context = await requirePermission('contract:read')
   const adminId = administrationId(context.administrationId)
   const supabase = await createClient()
-  const salaryStructureCatalogPromise = listSalaryStructureCatalog().catch((error: unknown) => {
-    if (error instanceof AuthorizationError) return null
-    throw error
-  })
-  const [settings, labor, flex, frequencies, carriers, centers, salaryStructureCatalog, canWriteSalaryApplication] = await Promise.all([
+  const [settings, labor, flex, frequencies, carriers, centers, canWriteSalaryApplication] = await Promise.all([
     supabase.from('administration_hr_settings').select('*')
       .eq('tenant_id', context.tenantId).eq('administration_id', adminId).single(),
     supabase.from('labor_condition_sets').select('*')
@@ -75,12 +71,19 @@ export async function getEmploymentSettings() {
       .eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('code').limit(500),
     supabase.from('cost_centers').select('*')
       .eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('code').limit(500),
-    salaryStructureCatalogPromise,
     permissionAllowed('salary:write'),
   ])
   if ([settings, labor, flex, frequencies, carriers, centers].some((result) => result.error) || !settings.data) {
     throw new EmploymentSettingsError('EMPLOYMENT_SETTINGS_READ_FAILED', 500)
   }
+  const salaryStructureCatalog = await listSalaryStructureCatalog({
+    structureId: null,
+    revisionId: null,
+    structureIds: settings.data.salary_structure_ids ?? [],
+  }).catch((error: unknown) => {
+    if (error instanceof AuthorizationError) return null
+    throw error
+  })
   const salaryStructureModel = buildEmploymentSalaryStructureModel(salaryStructureCatalog, settings.data.salary_structure_ids ?? [])
   return {
     defaultCountryCode: settings.data.default_employment_country_code,

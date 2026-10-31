@@ -51,7 +51,7 @@ describe('PayrollGrossOnlyConceptSlip', () => {
   it('renders a Dutch gross-only concept with clearly uncalculated deductions, net and employer costs', () => {
     const markup = render(nl)
 
-    expect(markup).toContain('TEST — CONCEPTBEREKENING — NIET VOOR LOONBETALING')
+    expect(markup).toContain('VOORBEELD · CONCEPT · NIET VOOR LOONBETALING')
     expect(markup).toContain('Berekende brutocomponenten')
     expect(markup).toContain('CAO-BENCH02 K1 (synthetic employee)')
     expect(markup.match(/NIET BEREKEND/g)).toHaveLength(3)
@@ -62,7 +62,7 @@ describe('PayrollGrossOnlyConceptSlip', () => {
   it('renders English labels and the server-provided line calculation details', () => {
     const markup = render(en)
 
-    expect(markup).toContain('TEST — CONCEPT CALCULATION — NOT FOR PAYROLL')
+    expect(markup).toContain('EXAMPLE · CONCEPT · NOT FOR PAYROLL')
     expect(markup).toContain('NOT CALCULATED')
     expect(markup).toContain('Basic gross salary')
     expect(markup).toContain('server-supplied component amount')

@@ -424,6 +424,7 @@ function employeeReadDependencies(employeeId: string): EmployeePayrollDependenci
 
 describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
   let r1Snapshot: PayrollSourceSnapshot
+  let r1BpfSnapshot: PayrollSourceSnapshot
   let r2Snapshot: PayrollSourceSnapshot
   let r2CompleteSnapshot: PayrollSourceSnapshot
   let r1RunId: string
@@ -431,12 +432,41 @@ describe('PAY-DOSSIER-01 isolated Retail payroll flow', () => {
   beforeAll(async () => {
     store = new IsolatedPayrollDatabase()
     await store.initialize()
-    r1Snapshot = await createRetailSourceSnapshot('R1')
+    r1Snapshot = await createRetailSourceSnapshot('R1', { syntheticFlatPensionForLifecycle: true })
+    r1BpfSnapshot = await createRetailSourceSnapshot('R1')
     r2Snapshot = await createRetailSourceSnapshot('R2')
-    r2CompleteSnapshot = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true })
+    r2CompleteSnapshot = await createRetailSourceSnapshot('R2', {
+      completeR2PayrollSource: true,
+      syntheticFlatPensionForLifecycle: true,
+    })
   })
 
   afterAll(async () => await store.close())
+
+  it('keeps the unresolved BPF premium split blocked without creating a Payroll run', async () => {
+    const calculation = createEmployeePayrollCalculationService(serviceDependencies([r1BpfSnapshot]))
+    const input = {
+      employeeId: r1BpfSnapshot.sourceEmployeeId,
+      employmentId: r1BpfSnapshot.sourceEmploymentId,
+      period: { year: 2026, month: 7 },
+    }
+    const runCountBefore = await store.runCount()
+    const artifactCountBefore = await store.artifactCount()
+
+    await expect(calculation.inspectEmployeePayrollSource(input)).resolves.toMatchObject({
+      eligibleForCalculation: false,
+      gaps: expect.arrayContaining([expect.objectContaining({
+        field: 'pension',
+        status: 'SOURCE_GAP',
+        reasonCode: 'BPF_DETAILHANDEL_2026_PREMIUM_SPLIT_ROUNDING_UNRESOLVED',
+      })]),
+    })
+    await expect(calculation.calculateEmployeePayroll(input)).resolves.toMatchObject({
+      status: 'SOURCE_GAP', runId: null, grossAmount: null, netAfterWageTax: null,
+    })
+    expect(await store.runCount()).toBe(runCountBefore)
+    expect(await store.artifactCount()).toBe(artifactCountBefore)
+  })
 
   it('calculates and finalizes R1 in PGlite, then exposes the exact saved PDF to the employee and HR dossier', async () => {
     const calculation = createEmployeePayrollCalculationService(serviceDependencies([r1Snapshot, r2Snapshot]))

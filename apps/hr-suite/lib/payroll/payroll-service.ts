@@ -53,6 +53,10 @@ export class PayrollServiceError extends Error {
   }
 }
 
+function rejectExternalPayrollIntegration(): void {
+  throw new PayrollServiceError('PAYROLL_EXTERNAL_INTEGRATION_DISABLED', 410)
+}
+
 export type PayrollWorkspaceData = {
   providers: PayrollProviderView[]
   connections: PayrollConnection[]
@@ -310,6 +314,7 @@ async function setConnectionError(connection: ConnectionRow, error: unknown): Pr
 }
 
 export async function startNmbrsAuthorization(connectionIdInput?: unknown): Promise<PayrollAuthorizationResult> {
+  rejectExternalPayrollIntegration()
   const { auth, hrGroupId } = await payrollAuth('payroll:manage')
   assertPayrollCredentialEncryptionConfigured()
   const admin = createAdminClient()
@@ -373,6 +378,7 @@ export async function startNmbrsAuthorization(connectionIdInput?: unknown): Prom
 }
 
 export async function completeNmbrsAuthorization(input: { state: unknown; code: unknown }): Promise<PayrollConnection> {
+  rejectExternalPayrollIntegration()
   const state = parseText(input.state, 'PAYROLL_OAUTH_STATE_INVALID', 500)
   const code = parseText(input.code, 'PAYROLL_OAUTH_CODE_INVALID', 2_000)
   const stateRow = await consumeOAuthState(state)
@@ -433,6 +439,7 @@ export async function completeNmbrsAuthorization(input: { state: unknown; code: 
 }
 
 export async function failNmbrsAuthorization(input: { state: unknown }): Promise<void> {
+  rejectExternalPayrollIntegration()
   const state = parseText(input.state, 'PAYROLL_OAUTH_STATE_INVALID', 500)
   const stateRow = await consumeOAuthState(state)
   if (!stateRow.connection_id) return
@@ -496,6 +503,7 @@ async function withNmbrsAccessToken<T>(connection: ConnectionRow, operation: (ac
 }
 
 export async function checkNmbrsConnection(connectionIdInput: unknown): Promise<PayrollConnection> {
+  rejectExternalPayrollIntegration()
   const { auth, hrGroupId } = await payrollAuth('payroll:manage')
   const connectionId = parseUuid(connectionIdInput, 'PAYROLL_CONNECTION_ID_INVALID')
   const admin = createAdminClient()
@@ -540,6 +548,7 @@ async function restoreInactiveBindings(admin: ReturnType<typeof createAdminClien
 }
 
 export async function discoverNmbrsCompanies(connectionIdInput: unknown): Promise<PayrollProviderCompany[]> {
+  rejectExternalPayrollIntegration()
   const { auth, hrGroupId } = await payrollAuth('payroll:manage')
   const connectionId = parseUuid(connectionIdInput, 'PAYROLL_CONNECTION_ID_INVALID')
   const admin = createAdminClient()
@@ -591,6 +600,7 @@ export async function discoverNmbrsCompanies(connectionIdInput: unknown): Promis
 }
 
 export async function bindPayrollCompany(input: { providerCompanyId: unknown; administrationId: unknown }): Promise<PayrollCompanyBinding> {
+  rejectExternalPayrollIntegration()
   const { auth, hrGroupId } = await payrollAuth('payroll:manage')
   const providerCompanyId = parseUuid(input.providerCompanyId, 'PAYROLL_PROVIDER_COMPANY_ID_INVALID')
   const administrationId = parseUuid(input.administrationId, 'PAYROLL_ADMINISTRATION_ID_INVALID')
@@ -627,6 +637,7 @@ export async function bindPayrollCompany(input: { providerCompanyId: unknown; ad
 }
 
 export async function unbindPayrollCompany(bindingIdInput: unknown): Promise<PayrollCompanyBinding> {
+  rejectExternalPayrollIntegration()
   const { auth, hrGroupId } = await payrollAuth('payroll:manage')
   const bindingId = parseUuid(bindingIdInput, 'PAYROLL_BINDING_ID_INVALID')
   const admin = createAdminClient()
@@ -641,6 +652,7 @@ export async function unbindPayrollCompany(bindingIdInput: unknown): Promise<Pay
 }
 
 export async function disconnectNmbrsConnection(connectionIdInput: unknown): Promise<PayrollDisconnectResult> {
+  rejectExternalPayrollIntegration()
   const { auth, hrGroupId } = await payrollAuth('payroll:manage')
   const connectionId = parseUuid(connectionIdInput, 'PAYROLL_CONNECTION_ID_INVALID')
   const admin = createAdminClient()

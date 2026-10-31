@@ -63,7 +63,8 @@ describe('Payroll Lab administration capability', () => {
     expect(repository.setPayrollAdministrationCapability).not.toHaveBeenCalled()
   })
 
-  it('allows an authorized, enabled administration only when the global flag is on', async () => {
+  it('allows an authorized, enabled administration without a global environment flag', async () => {
+    vi.stubEnv('PAYROLL_LAB_ENABLED', 'false')
     const repository = makeRepository()
     await expect(resolvePayrollLabAdministration(context, { repository })).resolves.toEqual(enabledAdministration)
     expect(repository.getPayrollAdministration).toHaveBeenCalledWith({
@@ -71,12 +72,6 @@ describe('Payroll Lab administration capability', () => {
       hrGroupId: context.hrGroupId,
       administrationId: context.administrationId,
     })
-  })
-
-  it('does not construct the Payroll repository when the kill switch is off', async () => {
-    vi.stubEnv('PAYROLL_LAB_ENABLED', 'false')
-    await expect(resolvePayrollLabAdministration(context)).resolves.toBeNull()
-    expect(createRepositoryMock).not.toHaveBeenCalled()
   })
 
   it('denies a context without the existing salary-read permission or a selected administration', async () => {
@@ -126,7 +121,7 @@ describe('Payroll Lab administration capability', () => {
     )
   })
 
-  it('rejects capability mutation without salary:write or Payroll Lab enabled', async () => {
+  it('rejects capability mutation without salary:write while preserving scoped writes', async () => {
     const repository = makeRepository()
     vi.mocked(requirePermission).mockRejectedValueOnce(new Error('forbidden'))
     await expect(updatePayrollLabAdministrationCapability(
@@ -139,9 +134,14 @@ describe('Payroll Lab administration capability', () => {
     await expect(updatePayrollLabAdministrationCapability(
       false,
       { repository },
-    )).resolves.toBeNull()
-    expect(repository.getPayrollAdministration).not.toHaveBeenCalled()
-    expect(repository.setPayrollAdministrationCapability).not.toHaveBeenCalled()
+    )).resolves.toEqual(enabledAdministration)
+    expect(repository.getPayrollAdministration).toHaveBeenCalledOnce()
+    expect(repository.setPayrollAdministrationCapability).toHaveBeenCalledWith(
+      { tenantId: context.tenantId, hrGroupId: context.hrGroupId, administrationId: context.administrationId },
+      enabledAdministration.id,
+      false,
+      context.userId,
+    )
   })
 
   it('does not update a missing or non-active administration', async () => {

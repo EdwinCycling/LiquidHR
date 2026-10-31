@@ -519,6 +519,7 @@
   "netNotDefinitive": "Net pay is not final because the pension amount has not been confirmed.",
   "pensionCalculationDetail": "Pension tier and contribution calculation",
   "ruleProvenance": "Rule provenance and status",
+  "ruleProvenanceRecorded": "Recorded",
   "ruleReference": "Source reference",
   "unroundedValue": "Unrounded value",
   "fiscalYear": "Fiscal year",

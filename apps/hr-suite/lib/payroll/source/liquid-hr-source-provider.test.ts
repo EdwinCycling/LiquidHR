@@ -1074,7 +1074,7 @@ describe('LiquidHR Payroll source provider', () => {
     expect(source.payrollOwned).toBeUndefined()
   })
 
-  it('uses the explicit calendar-day pension method at the one-day month-end boundary', async () => {
+  it('fails closed when calendar-day pension allocation would prorate a mid-period start', async () => {
     const configuration = assertActivePayrollEmployerConfiguration({
       schemaVersion: 'payroll-employer-configuration-v1',
       effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', sourceReference: 'Mars BV payroll decision 2026',
@@ -1138,27 +1138,12 @@ describe('LiquidHR Payroll source provider', () => {
     })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
 
     const source = snapshot.canonicalSource as Record<string, unknown>
-    const payrollOwned = source.payrollOwned as Record<string, unknown>
-    expect(payrollOwned).toBeDefined()
-    const pension = payrollOwned.pension as Record<string, unknown>
-    expect(pension.partialMonthMethod).toBe('CALENDAR_DAYS_PRO_RATA')
-    expect(pension.periodFactor).toBe('0.0333')
-    expect(pension.partTimeFactor).toBe('0.0333')
-    expect(pension.calculationTrace).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        ruleProvenance: expect.objectContaining({
-          eligibilityRule: expect.objectContaining({
-            participantGroup: 'NEW_ENTRANT',
-            employmentOrParticipationStartOnOrAfter: '2026-01-01',
-          }),
-          eligibilityRuleMapping: {
-            mode: 'CORE_ARRANGEMENT_EFFECTIVE_FROM',
-            sourceField: 'arrangement.effective_from',
-            derivedBoundary: '2026-01-01',
-          },
-        }),
-      }),
-    ]))
+    expect(source.payrollOwned).toBeUndefined()
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'pension',
+      status: 'SOURCE_GAP',
+      reasonCode: 'PENSION_PARTIAL_MONTH_PRORATION_UNVERIFIED',
+    })
     expect(snapshot.sourceGaps).not.toContainEqual({ field: 'openingCumulative', status: 'SOURCE_GAP', reasonCode: 'PAYROLL_OPENING_CUMULATIVE_MISSING' })
   })
 

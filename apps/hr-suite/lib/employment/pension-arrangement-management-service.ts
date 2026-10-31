@@ -294,7 +294,7 @@ export async function createPensionArrangementSuccessorForPensionManager(input: 
   if (predecessorError || !predecessor) {
     throw new PensionArrangementManagementError('PENSION_ARRANGEMENT_PREDECESSOR_NOT_FOUND', 404)
   }
-  const { data, error } = await supabase.rpc('create_pension_arrangement_successor', {
+  const { data, error } = await supabase.rpc('create_pension_arrangement_successor_for_pension_manager', {
     p_predecessor_version_id: predecessor.id,
     p_successor: input.successor,
   })

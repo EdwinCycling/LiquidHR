@@ -25,3 +25,14 @@ export function selectedSalaryStructureRevisionId(
       return right.effective_from.localeCompare(left.effective_from) || right.revision_number - left.revision_number
     })[0]?.id ?? null
 }
+
+export function salaryStructureRevisionIdsForStructures(
+  revisions: readonly SalaryStructureRevisionScope[],
+  structureIds: readonly string[],
+): string[] {
+  const selectedStructureIds = new Set(structureIds)
+  if (selectedStructureIds.size === 0) return []
+  return revisions
+    .filter((revision) => selectedStructureIds.has(revision.salary_structure_id))
+    .map((revision) => revision.id)
+}

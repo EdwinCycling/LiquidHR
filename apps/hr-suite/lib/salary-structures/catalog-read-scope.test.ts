@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { selectedSalaryStructureRevisionId, type SalaryStructureRevisionScope } from './catalog-read-scope'
+import { salaryStructureRevisionIdsForStructures, selectedSalaryStructureRevisionId, type SalaryStructureRevisionScope } from './catalog-read-scope'
 
 const revisions: SalaryStructureRevisionScope[] = [
   { id: 'old', salary_structure_id: 'childcare', revision_number: 1, effective_from: '2025-01-01', status: 'PUBLISHED' },
@@ -21,5 +21,10 @@ describe('selected salary structure revision read scope', () => {
     expect(selectedSalaryStructureRevisionId(revisions, null, 'current')).toBeNull()
     expect(selectedSalaryStructureRevisionId(revisions, 'childcare', 'other')).toBeNull()
     expect(selectedSalaryStructureRevisionId(revisions, 'missing', null)).toBeNull()
+  })
+
+  it('includes every revision only for structures enabled in the administration', () => {
+    expect(salaryStructureRevisionIdsForStructures(revisions, ['childcare', 'childcare'])).toEqual(['old', 'current', 'draft'])
+    expect(salaryStructureRevisionIdsForStructures(revisions, [])).toEqual([])
   })
 })

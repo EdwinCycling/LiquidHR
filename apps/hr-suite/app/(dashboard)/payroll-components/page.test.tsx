@@ -260,7 +260,8 @@ describe('Payroll component library route', () => {
     expect(markup).toContain('Ontvangt input van')
     expect(markup).toContain('Invoer taxableWage')
     expect(markup).toContain('Uitvoer taxableWage')
-    expect(markup).toContain('payroll-lab')
+    expect(markup).toContain('href="/payroll"')
+    expect(markup).not.toContain('payroll-lab')
     expect(markup).not.toContain('Klantconcept')
   })
 

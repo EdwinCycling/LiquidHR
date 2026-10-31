@@ -203,6 +203,9 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
     || input.participationStartDate > periodEnd) {
     return blocked(input, 'PENSION_ARRANGEMENT_NOT_EFFECTIVE_FOR_PERIOD')
   }
+  if (input.participationStartDate > periodStart) {
+    return blocked(input, 'PENSION_PARTIAL_MONTH_PRORATION_UNVERIFIED')
+  }
   if (recordText(arrangement.pensionableSalaryDefinition, 'method') === BPF_DETAILHANDEL_2026_METHOD) {
     if (input.bpfDetailhandel2026 === undefined) {
       return blocked(input, 'BPF_DETAILHANDEL_2026_VCR_INPUT_MISSING')

@@ -82,7 +82,18 @@ describe('calculatePension', () => {
     })
   })
 
-  it('applies the first-period BPF Detailhandel VCR base to actual SV wage', () => {
+  it('blocks a generic pension arrangement when participation starts mid-period', () => {
+    expect(calculatePension(input({ participationStartDate: '2026-10-16' }))).toMatchObject({
+      status: 'BLOCKED',
+      reasonCode: 'PENSION_PARTIAL_MONTH_PRORATION_UNVERIFIED',
+      totalPremiumMonthly: null,
+      employeePremiumMonthly: null,
+      employerPremiumMonthly: null,
+      fiscalBases: { wageTax: null, employeeInsurance: null, zvw: null },
+    })
+  })
+
+  it('fails closed when a BPF Detailhandel arrangement has no verified VCR input', () => {
     const arrangement: PensionArrangementInput = {
       ...flatArrangement,
       arrangementId: 'bpf-detailhandel-2026',
@@ -104,23 +115,13 @@ describe('calculatePension', () => {
     }))
 
     expect(result).toMatchObject({
-      status: 'CALCULATED',
-      annualizedPensionableSalary: '57206.40',
-      cappedPensionableSalary: '57206.40',
-      adjustedFranchise: '18680.00',
-      pensionableBase: '38526.36',
-      rate: '24.7500',
-      totalPremiumAnnual: '9535.27',
-      totalPremiumMonthly: '794.61',
-      employeePremiumMonthly: '198.65',
-      employerPremiumMonthly: '595.96',
-      allocationDifference: '0.00',
-      fiscalBases: { wageTax: '4568.55', employeeInsurance: '4568.55', zvw: '4568.55' },
+      status: 'BLOCKED',
+      reasonCode: 'BPF_DETAILHANDEL_2026_VCR_INPUT_MISSING',
+      totalPremiumMonthly: null,
+      employeePremiumMonthly: null,
+      employerPremiumMonthly: null,
+      fiscalBases: { wageTax: null, employeeInsurance: null, zvw: null },
     })
-    expect(result.trace).toContainEqual(expect.objectContaining({
-      componentCode: 'PENSION_ANNUALIZED_PENSIONABLE_SALARY',
-      formula: 'monthlyPayrollGross ÷ partTimeFactor × 12 (first-period VCR; zero opening required)',
-    }))
   })
 
   it('calculates the Jaap TEST legacy pension from explicit Annex IV Table 2 OP-only terms', () => {

@@ -47,6 +47,11 @@ function humanize(key: string): string {
   return key.replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toLocaleUpperCase())
 }
 
+function humanizeIdentifier(key: string): string {
+  const readable = key.replace(/^(?:PAYRUN01|PAYFULL02|PENSION)_/, '')
+  return humanize(readable).replace(/\bAwf\b/g, 'AWf')
+}
+
 function componentLabel(row: PayrollComponentResultRow, labels: Readonly<Record<string, string>>): string {
   return labels[row.component_key] ?? humanize(row.component_key)
 }
@@ -149,7 +154,7 @@ function roundingDetails(
 function dependencyLabel(value: PayrollJson, labels: Readonly<Record<string, string>>): string {
   const dependency = payrollExplanationRecord(value)
   const code = payrollExplanationString(dependency?.componentCode)
-  return code ? `${labels[code] ?? humanize(code)} · ${code}` : humanize(JSON.stringify(value))
+  return code ? labels[`pension_${code}`] ?? labels[code] ?? humanizeIdentifier(code) : labels.notRecorded
 }
 
 function isEmployerConfiguredPension(componentCode: string): boolean {
@@ -186,18 +191,17 @@ function dependencyReferenceLabel(value: PayrollJson, labels: Readonly<Record<st
   const inputName = payrollExplanationString(dependency.inputName)
   const outputName = payrollExplanationString(dependency.outputName)
   const code = payrollExplanationString(dependency.componentCode)
-  const input = inputName ? labels[inputName] ?? humanize(inputName) : null
-  const source = code ? `${labels[code] ?? humanize(code)} · ${code}` : null
-  const output = outputName ? `.${outputName}` : ''
-  return [input && source ? `${input} ← ${source}${output}` : source ?? input].filter(Boolean).join('')
+  const input = inputName ? labels[inputName] ?? humanizeIdentifier(inputName) : null
+  const source = code ? labels[`pension_${code}`] ?? labels[code] ?? humanizeIdentifier(code) : null
+  const output = outputName ? labels[outputName] ?? humanizeIdentifier(outputName) : null
+  return [input && source ? `${input} ← ${source}${output ? ` · ${output}` : ''}` : source ?? input].filter(Boolean).join('')
     || dependencyLabel(value, labels)
 }
 
 function traceStepProvenance(step: PayrollExplanationRecord, labels: Readonly<Record<string, string>>): string {
-  const componentId = payrollExplanationString(step.componentId)
   const sequence = typeof step.sequence === 'number' && Number.isInteger(step.sequence) ? step.sequence : null
   const scope = payrollExplanationString(step.processingScope)
-  return [componentId, sequence === null ? null : `${labels.traceStep} ${sequence}`, scope]
+  return [sequence === null ? null : `${labels.traceStep} ${sequence}`, scope ? labels[scope] ?? humanizeIdentifier(scope) : null]
     .filter((value): value is string => value !== null).join(' · ') || labels.notRecorded
 }
 
@@ -267,7 +271,7 @@ function PayrollComponentDetail({
     </summary>
     <div className="mt-3 space-y-3 border-t border-border-subtle pt-3 text-sm">
       <dl className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
-        <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.componentCode}</dt><dd className="break-all font-mono text-xs">{componentCode}</dd></div>
+        <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.component ?? labels.componentCode}</dt><dd className="break-words">{componentLabel(row, labels)}</dd></div>
         <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.componentVersion}</dt><dd className="break-all font-mono text-xs">{componentVersion ?? labels.notRecorded}</dd></div>
         {effectiveFrom || effectiveTo ? <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.effectivePeriod}</dt><dd>{effectiveFrom ?? '—'} – {effectiveTo ?? '—'}</dd></div> : null}
         {processingScope ? <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.processingScope}</dt><dd>{labels[processingScope] ?? processingScope}</dd></div> : null}
@@ -302,7 +306,7 @@ function PayrollComponentDetail({
       <dl className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
         <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.roundingMethod}</dt><dd className="space-y-1">{roundingText.map((detail, index) => <p key={`${componentCode}-rounding-${index}`} className="break-words">{detail}</p>)}</dd></div>
         {step ? <>
-          <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.rulePackage}</dt><dd className="break-words">{isEmployerConfiguredPension(componentCode) ? labels.employerConfiguredPension : `${payrollExplanationString(packageProvenance?.packageId) ?? labels.notRecorded}${packageProvenance?.version ? ` · ${payrollExplanationString(packageProvenance.version)}` : ''}`} · {labels.componentVersion} {payrollExplanationString(step.version) ?? labels.notRecorded}</dd></div>
+          <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.rulePackage}</dt><dd className="break-words">{isEmployerConfiguredPension(componentCode) ? labels.employerConfiguredPension : `${labels.componentVersion} ${payrollExplanationString(packageProvenance?.version) ?? payrollExplanationString(step.version) ?? labels.notRecorded}`}</dd></div>
           <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.ruleSource}</dt><dd className="break-words">{traceRuleSource(tracePayload, componentCode, labels) ?? labels.notRecorded}</dd></div>
           <div className="min-w-0"><dt className="text-xs text-muted-foreground">{labels.calculationProvenance}</dt><dd className="break-all font-mono text-xs">{traceStepProvenance(step, labels)}</dd></div>
         </> : null}
@@ -339,17 +343,17 @@ function EmployerPremiumBreakdown({
             <span className="shrink-0 text-right font-medium tabular-nums">{formatStoredMoney(premium.amount, locale, labels.notRecorded)}</span>
           </summary>
           <dl className="mt-2 grid min-w-0 grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
-            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.componentCode}</dt><dd className="break-all font-mono">{premium.code}</dd></div>
+            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.component}</dt><dd className="break-words">{labels[premium.labelKey] ?? humanizeIdentifier(premium.key)}</dd></div>
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.componentVersion}</dt><dd className="break-all font-mono">{payrollExplanationString(step.version) ?? labels.notRecorded}</dd></div>
             {effectiveFrom || effectiveTo ? <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.effectivePeriod}</dt><dd className="break-words">{effectiveFrom ?? '—'} – {effectiveTo ?? '—'}</dd></div> : null}
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.assessmentBase}</dt><dd className="break-words font-medium tabular-nums">{formatStoredMoney(premium.assessmentBase, locale, labels.notRecorded)}</dd></div>
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.percentage}</dt><dd className="break-words font-medium tabular-nums">{formatStoredPercentage(premium.rate, locale, labels.notRecorded)}</dd></div>
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.formula}</dt><dd className="break-words">{payrollExplanationString(step.formula) ?? labels.assessmentBaseTimesRate}</dd></div>
-            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.rulePackage}</dt><dd className="break-words">{payrollExplanationString(packageProvenance?.packageId) ?? labels.notRecorded} · {payrollExplanationString(packageProvenance?.version) ?? labels.notRecorded}</dd></div>
+            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.rulePackage}</dt><dd className="break-words">{labels.componentVersion} {payrollExplanationString(packageProvenance?.version) ?? labels.notRecorded}</dd></div>
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.ruleSource}</dt><dd className="break-words">{traceRuleSource(tracePayload, premium.code, labels) ?? labels.notRecorded}</dd></div>
-            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.calculationProvenance}</dt><dd className="break-all font-mono">{traceStepProvenance(step, labels)}</dd></div>
+            <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.calculationProvenance}</dt><dd className="break-words">{traceStepProvenance(step, labels)}</dd></div>
             <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.roundingMethod}</dt><dd className="space-y-1">{roundingDetails(tracePayload, premium.code, 'amount', null, step, null, labels).map((detail, index) => <p key={`${premium.code}-rounding-${index}`} className="break-words">{detail}</p>)}</dd></div>
-            <div className="min-w-0 sm:col-span-2"><dt className="break-words text-muted-foreground">{labels.dependencies}</dt><dd className="mt-1 flex flex-wrap gap-1.5">{dependencies.length > 0 ? dependencies.map((dependency, index) => <span key={`${premium.code}-dependency-${index}`} className="break-all rounded bg-surface-subtle px-2 py-1 font-mono">{dependencyReferenceLabel(dependency, labels)}</span>) : labels.notRecorded}</dd></div>
+            <div className="min-w-0 sm:col-span-2"><dt className="break-words text-muted-foreground">{labels.dependencies}</dt><dd className="mt-1 flex flex-wrap gap-1.5">{dependencies.length > 0 ? dependencies.map((dependency, index) => <span key={`${premium.code}-dependency-${index}`} className="break-words rounded bg-surface-subtle px-2 py-1">{dependencyReferenceLabel(dependency, labels)}</span>) : labels.notRecorded}</dd></div>
           </dl>
         </details>
       </li>
@@ -376,9 +380,10 @@ function PensionCalculationTrace({
       const provenance = payrollExplanationRecord(step.ruleProvenance)
       const ruleReference = payrollExplanationString(provenance?.reference)
       const dependencies = payrollExplanationArray(step.dependencies)
+      const provenanceStatus = payrollExplanationString(provenance?.status)
       return <li key={`${code}-${index}`} className="min-w-0 py-4 first:pt-0 last:pb-0">
         <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="min-w-0"><p className="font-semibold">{labels[`pension_${code}`] ?? humanize(code)}</p><code className="break-all text-xs text-muted-foreground">{code}</code></div>
+          <div className="min-w-0"><p className="font-semibold">{labels[`pension_${code}`] ?? humanizeIdentifier(code)}</p></div>
           <p className="shrink-0 text-left font-semibold tabular-nums sm:text-right">{code.includes('RATE') ? formatStoredPercentage(step.result, locale, labels.notRecorded) : formatStoredMoney(step.result, locale, labels.notRecorded)}</p>
         </div>
         {payrollExplanationString(step.formula) ? <p className="mt-2 break-words text-sm"><span className="font-medium">{labels.formula}: </span>{payrollExplanationString(step.formula)}</p> : null}
@@ -390,9 +395,9 @@ function PensionCalculationTrace({
           <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.roundingMethod}</dt><dd className="break-words">{payrollExplanationString(step.roundingRule) ?? labels.notRecorded}</dd></div>
           <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.calculationSource}</dt><dd className="break-words">{payrollExplanationString(step.source) ?? labels.notRecorded}</dd></div>
           <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.componentVersion}</dt><dd className="break-all font-mono">{payrollExplanationString(step.componentVersion) ?? labels.notRecorded}</dd></div>
-          <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.ruleProvenance}</dt><dd className="break-all">{payrollExplanationString(provenance?.status) ?? labels.notRecorded}</dd></div>
+          <div className="min-w-0"><dt className="break-words text-muted-foreground">{labels.ruleProvenance}</dt><dd className="break-words">{provenanceStatus ? labels.ruleProvenanceRecorded : labels.notRecorded}</dd></div>
           {ruleReference ? <div className="min-w-0 sm:col-span-2"><dt className="break-words text-muted-foreground">{labels.ruleReference}</dt><dd className="break-words">{ruleReference}</dd></div> : null}
-          {dependencies.length > 0 ? <div className="min-w-0 sm:col-span-2"><dt className="break-words text-muted-foreground">{labels.dependencies}</dt><dd className="break-all font-mono">{dependencies.map((dependency) => traceValue(dependency, locale)).join(', ')}</dd></div> : null}
+          {dependencies.length > 0 ? <div className="min-w-0 sm:col-span-2"><dt className="break-words text-muted-foreground">{labels.dependencies}</dt><dd className="break-words">{dependencies.map((dependency) => typeof dependency === 'string' ? labels[dependency] ?? humanizeIdentifier(dependency) : dependencyLabel(dependency, labels)).join(', ')}</dd></div> : null}
         </dl>
       </li>
     })}</ol>
@@ -548,9 +553,8 @@ export function PayrollRunReconciliation({
     </div>
     {pensionSteps.length > 0 ? <PensionCalculationTrace sourcePayload={run.sourceSnapshot.source_payload} locale={locale} labels={labels} /> : null}
     <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.controls}</summary>
-      <ul className="mt-3 divide-y divide-border-subtle">{run.controls.map((control) => <li key={control.control_key} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{labels[control.control_key] ?? humanize(control.control_key)}</span><span className="font-medium">{labels[`control_${control.status}`] ?? control.status}</span><pre className="w-full overflow-x-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{JSON.stringify(sanitizePayrollTrace(control.detail_payload), null, 2)}</pre></li>)}</ul>
+      <ul className="mt-3 divide-y divide-border-subtle">{run.controls.map((control) => <li key={control.control_key} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{labels[control.control_key] ?? humanizeIdentifier(control.control_key)}</span><span className="font-medium">{labels[`control_${control.status}`] ?? control.status}</span></li>)}</ul>
     </details>
-    {run.trace ? <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.calculationTrace}</summary><pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface-subtle p-3 text-xs">{JSON.stringify(sanitizePayrollTrace(run.trace.trace_payload), null, 2)}</pre></details> : null}
     <details className="rounded-xl border border-border-subtle p-4"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.lifecycle}</summary><ol className="mt-3 space-y-2">{run.lifecycleEvents.filter((event) => event.calculation_run_id === run.run.id).map((event) => <li key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border-subtle pt-3 text-sm"><span>{labels[`event_${event.event_type}`] ?? event.event_type}</span><time dateTime={event.created_at} className="text-muted-foreground">{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(event.created_at))}</time></li>)}</ol></details>
     <p className="text-sm text-muted-foreground">{succeeded ? finalized ? labels.finalized : labels.notFinalized : labels.notSucceeded}</p>
     <div className="flex flex-wrap gap-3">
