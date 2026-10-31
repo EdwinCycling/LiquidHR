@@ -1,0 +1,159 @@
+# LIQUIDHR-CONSOLIDATIE-34 — lokale consolidatie- en teststatus
+
+**Datum:** 31-10-2026
+**Status:** **PARTIAL / HOLD — geen complete integratie- of releasestatus**
+**Scope:** lokale code-, test-, bron- en ref-audit; geen remote merge, databasewrite, deployment of cleanup.
+
+## Kandidaat en uitgangspositie
+
+- Repository: `EdwinCycling/LiquidHR`.
+- Vastgelegde baseline: `origin/main` `5e47832123bc90e197b38dc511bd658904e62c96`.
+- Integratiebranch: `integration/LIQUIDHR-CONSOLIDATIE-34-20261031`.
+- Codekandidaat: commit `c7dc67ba153053fc1c657ee5bcfc3dc483877712`, 38 commits voor op de geverifieerde `origin/main`.
+- De 46 geselecteerde Payroll-, pensioen-, autorisatie-, UI- en regressiebestanden zijn lokaal vastgelegd; de build en volledige testgate zijn opnieuw uitgevoerd vanuit een schone detached worktree op exact deze SHA.
+- De primaire integratiewerkboom houdt beschermde `apps/hr-suite/next-env.d.ts`-dirt en `output/wvp01/`, plus drie migration-contracttests en drie migrationbestanden met onopgeloste ID/content-lineage. De Focus-widgetresource is gegenereerd tijdens de build; de genormaliseerde blob in de primaire boom was gelijk aan de kandidaatblob en bevatte dus geen aparte codewijziging.
+- De detached build-worktree `C:\Users\Edwin\AppData\Local\Temp\LIQUIDHR-CONSOLIDATIE-34-BUILD-c7dc67ba` begon schoon en is behouden; de buildgenerator schreef daarna de afgeleide Focus-widgetresource naar de werkboom. Er zijn nu 15 worktrees inclusief deze verificatieworktree. De oorspronkelijke 14 worktrees en alle 12 stashes zijn behouden.
+- Read-only GitHub-controle op 31-10-2026 bevestigde `main` op `5e47832123bc90e197b38dc511bd658904e62c96`, 28 remote branches en zes open PR's (#71, #53, #33, #32, #31, #30). De integratiebranch is niet gepusht. Er vond geen remote merge, databasewrite, deployment, branch-/stash-/worktreecleanup plaats.
+
+## Payroll-testtriage
+
+De eerdere Payroll-testfouten zijn per bestand naar oorzaak geclassificeerd. Er zijn geen positieve berekenings-, run- of lifecycleverwachtingen verlaagd om tests groen te maken.
+
+| Testbestand | Classificatie | Oorzaak en afhandeling |
+|---|---|---|
+| `components/payroll/payroll-professional-view.test.tsx` | **Echte codefout — hersteld** | De runweergave toonde interne componentcodes, ruwe provenance- en tracevelden. De UI toont nu menselijk leesbare namen en een neutrale provenance-status; interne run- en brondata zijn niet gewijzigd. |
+| `lib/payroll/payd2-retail-payroll-flow.integration.test.ts` | **Ontbrekende TEST-bron voor componentafronding — fail-closed behouden** | Het officiële BPF-premieoverzicht bevestigt voor 2026 het totaal, de franchise, het maximum en de werknemer-/werkgeverspercentages. De officiële [premietabel](https://pensioenfondsdetailhandel.nl/content/Publicaties/Rekenvoorbeelden/Premieoverzicht-2026.pdf) en [VCR-rekenvoorbeelden](https://pensioenfondsdetailhandel.nl/content/publications/Rekenvoorbeelden-2026.pdf) geven geen algemene regel voor centafronding en aansluiting van de afzonderlijke componenten. De positieve broncase blijft daarom expliciet geblokkeerd bij een onverklaarde cent; positieve R1-lifecycle en R2-oracle rekenen met een expliciete synthetische vlakke-premiefixture. |
+| `lib/payroll/source/liquid-hr-source-provider.test.ts` | **Ontbrekende TEST-bron** | De juridische methode voor pensioenproratering midden in een periode is niet onderbouwd. De test bewaakt de juiste fail-closed bronstatus; de proreringsguard is niet versoepeld. De bestaande positieve hourly-pensioncase gebruikt uitsluitend vrijgegeven uren. |
+| `lib/payroll/core-source-bridge.integration.test.ts` | **Onvolledige TEST-fixture** | Een positieve Retail-broncase miste de expliciete salaristabel/source-row. Een test-only bronrij is toegevoegd; de Actual Work-bronstatus blijft ongewijzigd. |
+| `lib/payroll/payd1-k2-06-source-case.test.ts` | **Onvolledige/verouderde TEST-fixture** | De positieve K2-case miste een versiegebonden CAO-salaristabel en volledig versiegebonden pensioencomponenten. De fixture verwijst nu naar de aanwezige officiële numerieke bron; beleids-/fiscale aannames blijven expliciet synthetisch en niet juridisch gevalideerd. De onafhankelijke oracle en niet-finalisatie zijn behouden. |
+| `lib/salary-structures/table-import.test.ts` | **Infrastructuur/platformverschil — hersteld** | Git-blobhashes waren LF-gebaseerd terwijl Windows de fixturebytes als CRLF leverde. De test normaliseert de line endings vóór de hashvergelijking; verwachte hashes zijn niet aangepast. |
+| `components/payroll/gross-only-concept-slip.test.tsx` | **Verouderde tekstverwachting — hersteld** | De test verwachtte een oude zichtbare `TEST`-banner. De huidige parity-copy gebruikt de concept-/voorbeeldtekst zonder technische omgevingslabel; de conceptstatus bleef positief getest. |
+| `components/payroll/cao-bench02-calculation-experience.test.tsx` | **Verouderde tekstverwachting — hersteld** | De oude copy beloofde niet-ondersteunde looncomponenten. De verwachting is aangepast aan de aantoonbare huidige scope; geen rekenregel is afgezwakt. |
+| `app/(dashboard)/payroll-components/page.test.tsx` | **Verouderde routeverwachting — hersteld** | De actuele componentbibliotheekroute linkt terug naar `/payroll`; de test verwachtte de oude `/payroll-lab`-route. De assertie volgt nu de aanwezige route. |
+| `app/(dashboard)/payroll-lab/overview.test.tsx` | **Verouderde navigatie-fixture — hersteld** | Een oude overzichtskaart is verwijderd uit de fixtureverwachting; de actuele navigatie en directe Payroll-routes blijven getest. |
+
+Na deze correcties slaagden de gerichte Payroll-regressies: **11 bestanden, 117/117 tests**. De D2-test houdt zowel de negatieve BPF-broncheck als positieve synthetische lifecycle/oracle-cases. De volledige schone codekandidaat heeft geen falende Payroll-asserties; één niet-Payroll INS-RELEASE-04-suite faalt vóór testuitvoering (zie R1).
+
+## Payroll-runs, conceptloonstroken en pensioen
+
+| Gedrag | Lokaal bewijs | Reikwijdte |
+|---|---|---|
+| Bestaande Payroll-runweergave | `payroll-professional-view.test.tsx` en de volledige schone HR Suite-regressie slagen. De read-only Payroll Lab-aggregatie bevat 64 bestaande runs: 26 succesvolle `INDIVIDUAL_PAYROLL`, 34 succesvolle `GOLDEN_CASE`, 3 mislukte `INDIVIDUAL_PAYROLL` en 1 mislukte `GOLDEN_CASE`. | Lokale UI-/servicecontracten plus remote aggregate counts; geen geauthenticeerde personaweergave of recordpayloadreadback. |
+| Conceptloonstroken en opgeslagen artifacts | De D2 Retail positieve R1-flow bereikt concept, review en `FINALIZED`, en leest de opgeslagen standaard PDF-artifact terug. Remote Payroll Lab heeft 26 `CONCEPT`-, 13 `REVIEWED`-, 13 `FINALIZED`- en 3 `BLOCKED`-lifecycle-events; 10 succesvolle individuele runs hebben lifecyclebewijs plus een `PAYSLIP_PDF`. | Lokale positieve lifecycle plus read-only remote metadata. De Core-tabel `public.payslips` bevat 0 rijen; de 10 remote PDFs zijn Payroll Lab-artifacts. Geen inhoud of loonstrook voor een persona gelezen. |
+| Pensioenberekening | Pensioenregeltests, PAYD1-K2 onafhankelijke oracle en source-providerregressies slagen. De on-call-test gebruikt vrijgegeven betaalde uren en verzint geen vast maandsalaris. De remote Payroll Lab heeft 64 traces, waarvan 45 trace-JSON pensioenverwijzingen bevatten. | Berekeningscontract bewezen met lokale fixtures en alleen remote aggregate metadata. Legal/fiscale behandeling, echte TEST-toewijzing en bronreadiness blijven OPEN. |
+| Source gaps | BPF-split, middenperiodeproratering en niet-beschikbare live Actual Work-bron blijven fail-closed. | Geen FINALIZED-run geforceerd en geen Payroll-history gewijzigd. |
+
+**Geauthenticeerde remote readback is niet bewezen.** Een read-only Supabase MCP-aggregatie gaf aantallen en statuscategorieën terug, zonder run-ID's, namen, bedragen of artifactinhoud; er is niets geschreven. De centrale TEST-runtimeconfig ontbreekt in deze checkout en de persona-preflight blokkeerde Lisa, Jaap en Frits vóór browser- of recordread. De MCP Workforce-connector biedt geen Payroll-run- of loonstrookreadback.
+
+## Validatie-uitkomsten
+
+| Gate | Resultaat | Bewijs/limiet |
+|---|---|---|
+| Volledige workspace-tests, schone SHA `c7dc67ba` | **4.181 PASS, 8 SKIP; 1 suite faalt vóór uitvoering** | HR Suite: 814 bestanden; 809 bestanden PASS, 4 SKIP, 1 failure; 4.109 tests PASS, 8 SKIP. Control: 2 bestanden / 11 tests PASS. Payroll Rules NL 2026: 7 bestanden / 61 tests PASS. Alle Payroll-tests zijn groen. |
+| Falende suite | **Infrastructuur/Vitest-transformprobleem** | `apps/hr-suite/scripts/ins-release-04-core-test-acceptance.test.mjs` geeft `SyntaxError: Invalid or unexpected token` vóór imports/tests. `node --check` op test en helper en directe esbuild-transform slagen; de geïsoleerde Vitest-run faalt eveneens met 0 tests. Dit is geen Payroll-assertie. |
+| Happy-dom loonstrookviewer | **Niet-falende infrastructuurlog** | `blob:`-iframe navigaties loggen `NotSupportedError`; de bijbehorende viewer-/Payroll-tests slagen. |
+| TypeScript | **PASS** | `npm run type-check` slaagde voor alle workspaces op de integratiewerkboom; de schone HR Suite- en Control-productiebouw controleerde TypeScript opnieuw op exact `c7dc67ba`. |
+| Gerichte ESLint | **PASS** | Gewijzigde Payroll-, source-, module- en providerbestanden. |
+| Volledige workspace-ESLint | **PASS — 0 fouten** | De twee `react-hooks/set-state-in-effect`-fouten in de error-boundaries zijn hersteld. Er blijven 7 bestaande unused-var-waarschuwingen in twee ongewijzigde testbestanden. |
+| NL/EN-i18n | **PASS** | 43 namespaces, gelijke sleutelsets. |
+| Diff-/whitespacecontrole | **PASS** | `git diff --check` en trailing-whitespacecontrole van dit rapport. Git meldt alleen bekende LF/CRLF-normalisatiewaarschuwingen. |
+| Schone productiebouw | **PASS op exact `c7dc67ba`** | In de behouden detached worktree bevestigde `verify-build-source.mjs` de schone bron-SHA. HR Suite genereerde 351 statische pagina's, slaagde voor TypeScript, Payroll client-boundary scanner, PDF-route allowlist, function-trace-controle en buildprovenance. Control Next-build slaagde ook. npm meldde alleen dat de aanwezige Node `22.14.0` lager ligt dan de engine-eis van `@sparticuz/chromium@149.0.0` (`^22.17.0 || >=24.0.0`); de volledige build eindigde met exit 0. |
+| Persona-/browseracceptatie | **BLOCKED** | `scripts/check-test-personas.ps1`: statische catalogus/role-switch checks PASS; centrale `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` ontbreekt, waardoor ook persona-credentials en lokale browserstart geblokkeerd zijn. Geen alternatieve config gebruikt. |
+| Git diff-/status | **PASS voor codecommit; primaire boom blijft bewust dirty** | `c7dc67ba` bevat uitsluitend 46 geselecteerde paden. De primaire checkout behoudt beschermde `next-env.d.ts`-dirt, drie migratiebestanden met onopgeloste lineage, hun drie contracttests en `output/wvp01/`. De Focus-resource werd opnieuw door de buildgenerator gemaakt; genormaliseerd is de primaire blob gelijk aan de candidateblob. De build-worktree was schoon bij source verification; generator-output bleef daarna staan. Geen cleanup uitgevoerd. |
+
+## Activatiematrix per productmodule
+
+`Code actief` betekent dat routes/services/menu-/permissionkoppelingen in de lokale kandidaat aanwezig zijn. Het bewijst **niet** dat een live TEST-tenant de module aan heeft staan of dat iedere rol de route in de browser heeft bereikt. Tenantconfiguratie is niet gewijzigd.
+
+| Module | Bron in kandidaat | Navigatie, route, API of job | Rollen en runtimevoorwaarde | Migratie-/featurestatus en acceptatie |
+|---|---|---|---|---|
+| Core HR, tenant en administratie | `origin/main` `5e478321`; codecandidate `c7dc67ba` | `/employees`, `/workforce`, `/settings`, contextselectie en bestaande employee-/tenant-API's. | HR Admin/Tenant Admin voor tenantinstellingen; Manager en Employee binnen hun toegewezen scope; server-autorisatie plus RLS. | Bestaande Core-baseline; 591 Core TEST-migraties read-only gezien. Live rol-/tenant-/RLS-browsermatrix OPEN. |
+| ESS/MSS, mobiel en self-service | `origin/main` plus lokale context-/consentcorrecties, waaronder `d96d1293` | `/my-salary`, Focus-ervaring, employee-/manager-workflows en scoped workforce endpoints. | Employee-self en directe Manager-context; OAuth- en workforce-tools controleren scope per request. | Catalogusmodules en permissions bestaan. Geen lokale TEST-persona of desktop-/mobiele browseracceptatie. |
+| Talent en STAR V2 | Integratiecandidate `c7dc67ba`; unieke STAR V2-bestanden uit `stash@{9}` zijn inhoudelijk in de kandidaat aanwezig. | `/my-talent`, `/workforce/talent`, `/settings/talent`, workforce/STAR-performer- en assessment-routes; talent APIs. | `TALENT` is `AVAILABLE`/toggleable; Employee-self en HR/Manager-scope via server permissions en tenantmodulecheck. | Full-suite tests passeren; er is geen tenantmodule-readback of geauthenticeerde browseracceptatie. |
+| Surveys en eNPS | Candidate `c7dc67ba`; bestaande main-history code. | `/research`, `/research/respond/*`, `/settings/research/surveys/new`, `/settings/research/enps/new`; Research-hub navigatie op `SURVEYS`/`ENPS`. | Beide catalogusmodules `AVAILABLE`/toggleable; survey-deelnemer en HR-/Manager-beheer volgens routepermission. | Full-suite tests passeren; live tenantselectie, uitnodigings-/respondentflow en rolmatrix OPEN. |
+| Team Compass | Candidate `c7dc67ba`; bestaande main-history code. | `/team-compass`, assessment- en results-routes, `/settings/team-compass`, workforce-widget en scoped APIs. | `TEAM_COMPASS` `AVAILABLE`/toggleable; self-read en bevoegd HR-/Manager-beheer via `team-compass:*`-permissions. | Full-suite tests passeren; TEST-campaign/role/browser acceptance OPEN. |
+| Recruitment | Candidate `c7dc67ba`; bestaande main-history code. | `/recruitment/*`, vacancy/applicant/settings routes, APIs en `/api/cron/recruitment-retention`. | `RECRUITMENT` `AVAILABLE`/toggleable; `recruitment-*` permissions en tenantmodulecontrole. | Full-suite tests passeren; live scheduler- en rol-/vacancy-lifecycle niet uitgevoerd. |
+| PMUX Studio, forms, runtime, taken, Operations, SLA/reminders/escalaties | `origin/main`; bestaande PMUX-migraties en code | `/journeys`, `/process-runtime/[workItemId]`, `/settings/process-automation`, `/settings/process-automation/operations`; studio, runtime, work-items, jobs en output-API's. Cron `/api/cron/process-automation-reminders` om 06:00 UTC; requeue/run routes. | Studiobeheer via proces-/HR-permissions; taakacties volgens actor-/assignee- en administratie-scope; server checks en RLS. | `JOURNEYS`/`REMINDERS` beschikbaar en toggleable. Lokale schema-/contracttests vallen onder full suite; echte cronlevering, schedulerautorisatie en browserlifecycle OPEN. |
+| WVP01 en bestaande afwezigheid | `500eb6e8`, `8c2e259f`, `00fb408b` op kandidaat | `/absence/guidance`, `/absence/guidance/[caseId]`, `/api/absence/wvp`, taakafronding en bestaande absence routes. | HR Admin/Manager volgens case- en employment-scope; Employee houdt self-servicegrenzen. | `LEAVE` en `ABSENCE` zijn in catalogus `AVAILABLE`, niet toggleable. Core TEST registreert WVP-migraties onder `20261026131216` en `20261026175140`. Live persona-/case-acceptatie OPEN. |
+| Insights 01/02/03A/03B | `3c545db9`, `7fda7698`, `6e3e880b` plus INS-RELEASE-04 kandidaatcommits | `/insights`; headcount/FTE, joiners/leavers, absence, frequentie/Bradford en analyses via `/api/insights/*`. | HR Admin op actieve administratie; Manager direct-team allowlist; response/detail/export gebruiken geautoriseerde scope. | Insights-04 A/A2/C migraties staan lokaal; Core TEST latest is `20261029114914`, dus ze zijn niet geregistreerd. B-deployment en D-acceptatie ontbreken. Volgorde A → A2 → B → C → D blijft HOLD. |
+| Actual Work W01–W04, revisies en Payroll-projecties | Bestaande Core-code en Actual Work/PAY-W04-migraties; kandidaat bevat ook `fbbdc4de` worklist-batching | `/actual-work/payroll`, `/actual-work/team`, `/actual-work/workflows/[workItemId]`; entries, import, bulk, periods, approval/release en Payroll-projection API's. | HR Admin accordeert/vrijgeeft; Manager/Employee binnen toegestane team-/self-scope; Payroll leest alleen vrijgegeven bronnen. | Migraties tot en met `20261029114914` read-only geregistreerd. Synthetische lokale source tests PASS; echte bronkoppeling, W04 live-approval en HR→Payroll browserflow OPEN. |
+| Payroll D2/W01–W04, Retail, componenten, runs en loonstroken | `b373c18d`, `16941a7c`, `096edfb6`, `6f26f352`, `69948180`, `9eee6c17`, `2af1b910`, `34a38deb` en codecandidate `c7dc67ba` | `/payroll`, `/payroll/runs`, `/payroll/runs/[runId]`, `/payroll-components`, `/payroll/compare`, `/payroll/corrections`, `/payroll/settings`, `/payroll-lab`; run-, preview-, concept-, PDF- en artifact-API's. | `PAYROLL` module is AVAILABLE/toggleable; `isPayrollLabEnabled()` is `true`. De runwerkplek vereist `salary:read`, HR_ADMIN/TENANT_ADMIN en een actieve administratiecapability; server-auth plus RLS. | Payroll Lab TEST heeft 17 migraties; Core TEST blijft 591. Schone volledige suite heeft geen Payroll-fouten; 11 gerichte regressiebestanden / 117 tests PASS. Remote bewijs is alleen metadata-aggregatie; bron- en wettelijke acceptatie OPEN. |
+| Pensioen, regelingen en payrollverwerking | `16941a7c`, `6f26f352`, `34a38deb` plus codecandidate `c7dc67ba` | `/payroll/arrangements`, medewerker-employment-pensioen, versioned arrangement/service en calculation/source-provider. | Payroll-/employment-permissions binnen HR-groep/administratie; employee- en service-level scoping. | Arrangement-, versioning- en assignmentmigraties bestaan. Drie lokale niet-gecommitte migration-ID's corresponderen qua naam/doel met al geregistreerde remote migraties; exacte SQL-contentidentiteit is niet bewezen. Lokale berekeningstests PASS; juridische methode/source readiness en live assignment OPEN. |
+| HERA-assistent | Candidate `c7dc67ba`; bestaande main-history code. | `/hera`, conditionele `HeRaFloating`, `/api/hera/*` gesprekken, memory, drafts en bevestigde acties. | `HERA` `AVAILABLE`/toggleable; tenantmodulecheck, rol-/permissioncontrole op afzonderlijke acties. | Routes en menu/wiring staan in de build-routekaart; full-suite testgate heeft alleen de genoemde niet-Payroll-infrastructuurfailure. Tenanttoggle en persona-flow OPEN. |
+| AI/MCP, Focus-widget en overige AI | Candidate `c7dc67ba` plus door de buildgenerator gemaakte Focus-widgetresource | `/api/internal/mcp`, Focus preview/leave/absence/profile APIs, employee/team AI conversation/voice, Workforce tool registry/bootstrap en consent/connection-pagina's. | Per tool expliciete `resource:action`/`self:resource:action`, huidige rol, tenant/HR-groep/team; OAuth- en serverautorisatie. | Focus-resource is in de schone build gegenereerd en de volledige testgate liep daarna. De primaire werkboom heeft geen aparte Focus-codeafwijking na line-ending-normalisatie. MCP-/rol-/browseracceptatie OPEN. |
+| Performance, security, UX en actieve navigatie | `c5e4f9d1`, `a2b05e75`, `a87f9103`, `fbbdc4de`, `d96d1293` en andere kandidaatcommits | Startpagina, sidebar, contextselectie, consent- en payrollweergaven; server-side permission gates en rol-/scopechecks. | Geen algemene privilege-uitbreiding; bestaande actieve rollen en tenant-/team-/employee-scope blijven leidend. | Volledige tests hebben één niet-Payroll Vitest-transformfailure; lint PASS met 0 fouten en 7 waarschuwingen. Geen complete desktop/mobiele browsermatrix. |
+
+### Tenantmodulecatalogus
+
+De lokale catalogus markeert `HERA`, `REMINDERS`, `TALENT`, `SURVEYS`, `ENPS`, `TEAM_COMPASS`, `JOURNEYS`, `RECRUITMENT` en `PAYROLL` als `AVAILABLE`/toggleable. `LEAVE` en `ABSENCE` zijn `AVAILABLE`/niet toggleable. `ASSETS`, `WORKFLOWS` en `TRAINING` blijven `COMING_SOON` en zijn niet toggleable. Deze catalogusstatus is geen bewijs van de actuele module-row per Core TEST-tenant; er is niets gewijzigd.
+
+## Database- en release-inventaris
+
+- Core TEST project `wnpfloqpjvaacobppbpk`: read-only lijst bevat 591 migraties, laatste `20261029114914 actual_work_payroll_mappings_anon_acl`.
+- Payroll Lab TEST project `jhgeriucbkfarxiudzfy`: read-only lijst bevat 17 migraties, laatste `20261017143231 20261017143000_payroll_employer_configuration_activation`.
+- Er is geen migration apply, SQL-write, schemawijziging, datawrite of history-mutatie uitgevoerd.
+- De lokale bestanden `20261017090000_allow_scoped_draft_payroll_tax_profile_sources.sql`, `20261017110000_core_synthetic_mars_pension_arrangement.sql` en `20261017130000_core_pension_arrangement_customer_workflow.sql` corresponderen qua naam met reeds geregistreerde Core TEST-migraties onder respectievelijk `20261017063451`, `20261017072011` en `20261017075639`. Niet opnieuw toepassen; migration-ID/content-identiteit eerst als onderdeel van de gated migratiecontrole afhandelen.
+- INS-RELEASE-04 heeft A/A2/C nog niet in Core TEST. De twee lokale `ins_release_04`-SQL-bestanden zijn `20261030120000_ins_release_04_active_role_permission_guard.sql` en `20261030120901_ins_release_04_manager_insights_activation.sql`; de eerdere A-fase `20261030065603_ins_release_02_manager_insights_unblock` staat ook niet in de remote migratielijst. B-deployment en D ontbreken.
+- Nmbrs-provider, authorize en callback zijn in de lokale kandidaat uitgeschakeld en de providerselectie faalt met `PAYROLL_EXTERNAL_INTEGRATION_DISABLED` (HTTP 410). Er is geen externe verbinding getest, credential gelezen/geroteerd of grant ingetrokken.
+- Geen PR-merge, push of Vercel-release is uitgevoerd. Vercel-runtime SHA, aliases en hosted readiness zijn niet geverifieerd in deze ronde.
+
+## Unieke worktrees en branches
+
+De 14 bestaande worktrees zijn read-only geïnventariseerd. De afzonderlijke schone build-worktree op `c7dc67ba` is uitsluitend voor build/regressieverificatie aangemaakt en behouden; geen bestaande worktree is verplaatst of verwijderd.
+
+| Worktree / ref | HEAD | Dirty-status bij inspectie |
+|---|---|---|
+| Integratie `integration/LIQUIDHR-CONSOLIDATIE-34-20261031` | `c7dc67ba` | 46 in-scope code-/testpaden zijn vastgelegd. Primaire werkboom houdt beschermde Focus/next-env-dirt, zes niet-gecommitte migration/testbestanden, dit rapport en `output/wvp01/`. |
+| `work/BRANCH-SPLIT-PAYROLL-20261021` | `86386eed` | 1: `next-env.d.ts`. |
+| `work/BRANCH-SPLIT-PMUX-20261021` | `8776c202` | 4: `next-env.d.ts` plus drie PMUX-acceptatiedocumenten. |
+| `work/ins03b-absence-frequency-bradford-20261029` | `88a0aaf9` | Schoon. |
+| Beschermd `work/payroll-p0-p1` | `4f99b04e` | Schoon; niet gewijzigd. 13 patch-distincte commits omvatten de geparkeerde P0/P1/Nmbrs-lijn; externe integratie niet meegenomen. |
+| `work/pmux-security-authorization-hardening-01-20261026` | `9145e7ce` | 1: `next-env.d.ts`. |
+| `work/wvp01-safe-integr-02-20261026` | `7a13e7e2` | 1: `next-env.d.ts`; de huidige codepaden zijn aanwezig, resterende afwijkingen zijn o.a. docs/berichten/types. |
+| Payroll TEST `work/payroll-full-calc-18-20261030` | `5e478321` | 10: negen pension-, on-call-calculation-, source-provider- en NL/EN-bestanden plus `next-env.d.ts`; het equivalent van de hourly-pensionbron is aanwezig in de integratiekandidaat en volledige suite is groen. Bestandshashes zijn niet identiek. |
+| Schone build-/regressieworktree in `%TEMP%` | `c7dc67ba` | Schone detached kandidaat bij prebuild SHA-controle; generator schreef daarna de afgeleide Focus-widgetresource. Productiebouw PASS; volledige regressierun bevat alleen de gedocumenteerde Vitest-infrastructuurfailure. Behouden; geen cleanup uitgevoerd. |
+| `ONE-LIQUIDHR-MERGE-01` (detached) | `9e2e3544` | 1: Focus-widgetbestand. |
+| `integration/PAY-W02-W03-W04-20261025` | `433565bf` | Schoon. |
+| `work/PAY-W04-HR-HOURS-TO-PAYROLL-01-20261026` | `58a0fdf7` | 3: Focus-widget, `next-env.d.ts`, `.tool-home/`. |
+| `work/PAYD1-K2-20261022` | `0c16aab2` | 1: acceptance-rapport. |
+| `integration/PAYROLL-D1-20261022` | `bfcfce6a` | Schoon. |
+| `integration/PAYROLL-MERGE-20261022` | `8ec2c43e` | 1: `next-env.d.ts`. |
+
+Daarnaast zijn 16 lokale refs met patch-distincte commits gecontroleerd: `integration/pay-converge-20261018`, `integration/payroll-foundation-20261002`, `recovery/wvp01-local-main-20261029`, `work/BRAND01-20261012`, `work/CAO-PENSION-CORE-01-20261018`, `work/CAO-SOURCE-01-20261018`, `work/CORE-DB-25P02-01-20261018`, `work/PAYCOMP-EDIT-FIX-02-20261012`, `work/PAYESS-01-20261013`, `work/PAYINTEGRATE-01-20261017`, `work/PERF01-A1-20261011`, `work/PRODUCT-PRINCIPLE-01-20261017`, `work/paylab00`, beschermd `work/payroll-p0-p1`, `work/paytest-auth-01-current-20261013` en `work/wvp01-safe-integr-02-20261026`. Branchdiffs zijn op functie-/bestandspaden met de kandidaat vergeleken: WVP01, PMUX, INS, Payroll/oracle/pension, source-provider, consent, Actual Work en Talent/STAR-equivalenten zijn aanwezig of door latere code vervangen. De enige functionele uitzondering Nmbrs is bewust buiten scope en lokaal uitgeschakeld. Het beschermde P0/P1-werk, de dirty Focus-widget, bron-/evidencearchieven en onopgeloste migratie-lineage blijven bewaard. Dit sluit inspectie en behoud af, maar rechtvaardigt geen claim dat ieder archiefbestand in de actieve app hoort.
+
+## Unieke stashes
+
+Alle 12 stashes zijn behouden; geen stash is toegepast, verwijderd of herschreven.
+
+| Ref / SHA | Opgeslagen inhoud | Inventarisuitkomst |
+|---|---|---|
+| `stash@{0}` `e38125c6` | 12 officiële payroll-PDF-/XLSX-bronbestanden en analysehelpers. | Bronarchief staat alleen in stash; huidige checkout bevat deze 12 paden niet. |
+| `stash@{1}` `f8f5742a` | 1 Payroll Rules Vitest-configuratie. | Pad bestaat in kandidaat; inhoudelijke snapshotvergelijking niet als mergebewijs gebruikt. |
+| `stash@{2}` `f8f1326e` | 8 PAYINTEGRATE-code-/source-providerbestanden. | Paden bestaan; candidate heeft afwijkende sourceprovider- en settingsversies. |
+| `stash@{3}` `bf40784b` | 2 BSN/runtime-instructie- en scriptbestanden. | De huidige launcher heeft persona-credential ACL/validatie, verbergt waarden, sluit Production/Build uit en voorkomt geërfde Payroll-/Supabase-configuratie-override. De stash blijft behouden. |
+| `stash@{4}` `4075ed94` | 8 PAYFULL-oracle-, berekeningsservice-, pension-rule- en browsercheckbestanden. | Paden bestaan; niet blind teruggezet. |
+| `stash@{5}` `526a1689` | 30 PAYCASE-code-, migratiecontract- en acceptancebestanden. | 5 paden ontbreken: oude salary-actions, pension-settings actions/page en twee historische evidence-rapporten. |
+| `stash@{6}` `a607c070` | 122 PAYCONVERGE-code-, migratie-, test- en documentpaden. | 4 oude migratiebestandsnamen ontbreken; kandidaat bevat opvolgende pensionmigrationbestanden onder andere ID's. |
+| `stash@{7}` `4dece5b1` | 1 historische `apps/hr-suite/AGENTS.md`. | Pad bestaat; huidige bindende instructies zijn leidend. |
+| `stash@{8}` `e146b40f` | 4 PAYLAB00 oracle-/brontekstbestanden. | Alleen in stash; niet in huidige checkout. |
+| `stash@{9}` `61360d4f` | 17 STAR V2-product-/test-/i18n-paden. | Alle paden bestaan in huidige checkout. |
+| `stash@{10}` `b65aca66` | 2 BRAND01-bestanden. | Eén historisch final-closeoutrapport ontbreekt. |
+| `stash@{11}` `a3a8b82f` | 49 APIAI-09/MSS-code-, brand- en modelassetpaden. | Huidige productcode verwijst niet naar de 20 oude model-/referentieafbeeldingen; ze zijn als niet-actief bronarchief in de stash behouden. De relevante branding en MSS-code zijn aanwezig of door actuele paden vervangen. |
+
+Alle unieke tracked en untracked stash-inhoud is bekeken en behouden; geen stash is toegepast, verwijderd of herschreven. Bron-PDF/XLSX-archieven en oude evidence zijn geen actieve codepaden en blijven archief. Voor drie migration-ID's en de beschermde dirty Focus-widget is integratie/supersessie nog niet bewezen. Er is daarom geen volledigheidsclaim.
+
+## Resterende fouten en blockers — één overzicht
+
+| ID | Classificatie | Resterend punt | Gevolg |
+|---|---|---|---|
+| R1 | **Infrastructuur / Vitest-transform** | `apps/hr-suite/scripts/ins-release-04-core-test-acceptance.test.mjs` geeft vóór testuitvoering `SyntaxError: Invalid or unexpected token`; `node --check` en esbuild-transform slagen. | De volledige kandidaat-suite heeft 1 falende niet-Payroll-suite en is dus niet volledig groen. Alle Payroll-testasserties slagen. |
+| R2 | **Ontbrekende TEST-bron / niet-geverifieerde pensioenmethode** | De officiële BPF-bron bevestigt 2026-parameters maar specificeert geen algemene centreconciliatie tussen premiecomponenten; middenperiodeproratering is niet juridisch bevestigd. Jantje/W04/live Actual Work-source-readiness is niet geauthenticeerd gelezen. | De betrokken cases blijven `SOURCE_GAP`/HOLD. Geen schatting, definitieve nettoacceptatie of geforceerde finalisatie. |
+| R3 | **TEST-identiteit en browserinfrastructuur** | De centrale TEST-runtimeconfig ontbreekt in deze checkout. | Geen geauthenticeerde HR Admin/Manager/Employee role- en tenantmatrix, desktop-/mobiele browserreizen of live Payroll-detailreadback. Remote metadata-aggregaten vervangen die acceptatie niet. |
+| R4 | **Migratie-lineage en releasegate** | INS-RELEASE-04 A/A2/C staan niet in Core TEST; B-deployment en D-acceptatie ontbreken. Drie niet-gecommitte lokale pension/tax migraties hebben namen die corresponderen met reeds geregistreerde remote migraties onder andere IDs; exacte SQL-inhoudsidentiteit is niet vastgesteld. | Geen migration apply, release of claim van schema-/RLS-acceptatie. Volgorde A → A2 → B → C → D blijft HOLD. |
+| R5 | **Unieke migratie-/archiefhistorie niet volledig gereconcilieerd** | Alle 14 bestaande worktrees, 16 patch-distincte refs en 12 stashes zijn geïnventariseerd en behouden. Functionele codepaden zijn in kandidaattests/routes aangetroffen of expliciet extern (Nmbrs) uitgesloten; unieke bron-/evidence-archieven blijven in stashes. Drie pension/tax migration-ID's hebben geen bewezen SQL-contentidentiteit. | Geen verlies of cleanup, maar geen absolute completeness-claim voor de volledige historische archiefinhoud of migratie-lineage. Zie worktree-/stash-/ref-inventaris. |
+| R6 | **Lokale runtimecompatibiliteit** | Build en install zijn uitgevoerd op Node `22.14.0`; `@sparticuz/chromium@149.0.0` declareert `^22.17.0 || >=24.0.0`. Build slaagde ondanks de enginewaarschuwing. | Hosted PDF-renderer/runtimeacceptatie op de vereiste Node-versie blijft onderdeel van een later geautoriseerde releasegate. |
+| R7 | **Niet uitgevoerde externe integratie** | GitHub `main`, Core TEST-schema/data en Vercel zijn bewust niet gewijzigd; integratiebranch is niet gepusht en runtime-SHA/aliases zijn niet gecontroleerd. | Geen claim van één gedeelde GitHub-main, Vercel TEST-appversie of geauthenticeerde hosted acceptatie. Merge, DB-write, deployment en cleanup blijven buiten dit mandaat. |
+
+## Besluit
+
+De lokale codekandidaat op `c7dc67ba` heeft een schone volledige productiebouw, 4.181 geslaagde tests en 8 skips; alle Payroll-tests en de positieve run-, conceptloonstrook-, lifecycle- en pensioenberekeningspaden slagen. Eén niet-Payroll Vitest-suite faalt vóór uitvoering. Remote read-only aggregate data bevestigt bestaande runs, lifecycle-events, opgeslagen PDF-artifacts en pensioen-traces, zonder persoonsgegevens, inhoudsreadback of writes. De modulematrix bevestigt code-/route-/permissionwiring, maar tenantflags en persona-rolzichtbaarheid zijn niet live gevalideerd. De kandidaat blijft **PARTIAL / HOLD** door R1–R7; er is geen basis om de integratie als volledig, één live appversie of release-ready te melden. Externe Nmbrs blijft in de kandidaat uitgeschakeld.
