@@ -260,7 +260,12 @@ async function checkEss(page, persona) {
 
   const salaryText = (await page.locator('main').innerText().catch(() => '')).toLocaleLowerCase('nl-NL')
   if (persona.key === 'lisa') {
-    if (!salaryText.includes('2026-10') || !/(definitieve salarisstrook|definitive salary statement)/i.test(salaryText)) {
+    // Deze pagina toont een gelokaliseerde loonstrookrij; alleen getMySalaryStatements levert PAYROLL-rijen na een complete FINALIZED-lifecycle.
+    const finalizedOctoberPayslip = page.locator('main section[aria-labelledby="payslips-year-2026"] article')
+      .filter({ hasText: /oktober/i })
+      .filter({ hasText: 'LiquidHR Standard' })
+    const hasPeriodDownload = await finalizedOctoberPayslip.locator('a[href*="/api/my-salary/payslips/2026-10"]').count() > 0
+    if ((await finalizedOctoberPayslip.count()) === 0 || !hasPeriodDownload) {
       addReason(persona.key, 'Lisa’s eigen 2026-10 FINALIZED-salarisstrook werd niet bevestigd op /my-salary.')
     }
     const pdfControls = await page.locator('a[download], a[href*="/payslips/"], a[href*="payslip" i], button[aria-label*="pdf" i]').count()
@@ -287,7 +292,9 @@ async function checkEss(page, persona) {
   if (desktopOverflow || mobileOverflow) addReason(persona.key, 'De salarisroute heeft horizontale overflow op desktop of 390 px mobiel.')
 
   const ownSalary = await page.context().request.get(new URL(`/api/employees/${persona.employeeId}/salary?employmentId=${persona.employmentId}`, origin).toString()).catch(() => null)
-  if (!ownSalary || ownSalary.status() !== 200) addReason(persona.key, 'De eigen employee-salary-API gaf geen toegestane response.')
+  if (!ownSalary || ownSalary.status() !== 200) {
+    addReason(persona.key, `De eigen employee-salary-API gaf geen toegestane response (HTTP ${ownSalary?.status() ?? 'geen response'}).`)
+  }
   const ownDocuments = await page.context().request.get(new URL(`/api/employees/${persona.employeeId}/documents`, origin).toString()).catch(() => null)
   if (!ownDocuments || ownDocuments.status() !== 200) addReason(persona.key, 'De eigen dossierroute /api/employees/{id}/documents is niet beschikbaar.')
 
@@ -396,12 +403,13 @@ async function testAdminHandoff(persona) {
     addReason(persona.key, 'De lokale Test HR Admin- en role-switchbrowsercheck kon niet veilig worden voltooid.')
   } finally {
     if (consoleErrorCount > 0) {
+      const safeCategories = [...browserErrorKinds].sort().join(', ') || 'unknown'
       const reason = browserErrorKinds.has('hydration')
         ? 'De browser meldde een React/Next-hydrationfout tijdens de lokale Test HR Admin-sessie.'
         : browserErrorKinds.has('runtime')
           ? 'De browser meldde een client-side JavaScript-runtimefout tijdens de lokale Test HR Admin-sessie.'
           : 'De browserconsole bevatte ten minste één foutmelding.'
-      addReason(persona.key, reason)
+      addReason(persona.key, `${reason} Veilige categorieën: ${safeCategories}; aantal: ${consoleErrorCount}.`)
     }
     await context.close().catch(() => undefined)
   }
