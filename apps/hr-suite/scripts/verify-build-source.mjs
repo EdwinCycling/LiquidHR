@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { unexpectedBuildSourceChanges } from './build-source-status.mjs'
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const repoRoot = path.resolve(appRoot, '../..')
@@ -21,13 +22,21 @@ let gitStatus
 const platformCommit = process.env.VERCEL_GIT_COMMIT_SHA?.trim() || null
 try {
   sourceCommit = runGit(['rev-parse', 'HEAD'])
-  gitStatus = runGit(['status', '--porcelain', '--untracked-files=normal'])
+  gitStatus = runGit(['status', '--porcelain=v1', '--untracked-files=normal', '-z'])
 } catch {
   console.error('Verified build source unavailable: a readable Git checkout is required.')
   process.exit(1)
 }
 
-if (!sourceCommit || !shaPattern.test(sourceCommit) || gitStatus !== ''
+const vercelIgnorePatterns = []
+try {
+  vercelIgnorePatterns.push(...readFileSync(path.join(repoRoot, '.vercelignore'), 'utf8').split(/\r?\n/))
+} catch {
+  // A missing ignore file is valid; it simply means no paths are excluded by Vercel.
+}
+
+const unexpectedChanges = unexpectedBuildSourceChanges(gitStatus, vercelIgnorePatterns)
+if (!sourceCommit || !shaPattern.test(sourceCommit) || unexpectedChanges.length > 0
   || (platformCommit && platformCommit !== sourceCommit)) {
   console.error('Verified build source unavailable: source must be clean and match the platform commit when provided.')
   process.exit(1)
