@@ -39,6 +39,24 @@ try {
 const unexpectedChanges = unexpectedBuildSourceChanges(gitStatus, vercelIgnorePatterns)
 if (!sourceCommit || !shaPattern.test(sourceCommit) || unexpectedChanges.length > 0
   || (platformCommit && platformCommit !== sourceCommit)) {
+  // Never log file contents, secrets, environment values, or untracked filenames.
+  const statusCounts = Object.create(null)
+  for (const entry of unexpectedChanges) {
+    const status = entry.slice(0, 2)
+    statusCounts[status] = (statusCounts[status] ?? 0) + 1
+  }
+  const trackedPaths = unexpectedChanges
+    .filter((entry) => entry.slice(0, 2) !== '??')
+    .slice(0, 8)
+    .map((entry) => entry.slice(3))
+  console.error('Build source gate diagnostics:', JSON.stringify({
+    validSourceSha: Boolean(sourceCommit && shaPattern.test(sourceCommit)),
+    platformShaProvided: Boolean(platformCommit),
+    platformShaMatches: !platformCommit || platformCommit === sourceCommit,
+    unexpectedCount: unexpectedChanges.length,
+    statusCounts,
+    trackedPaths,
+  }))
   console.error('Verified build source unavailable: source must be clean and match the platform commit when provided.')
   process.exit(1)
 }
