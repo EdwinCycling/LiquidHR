@@ -30,6 +30,6 @@ export const nmbrsPayrollProvider: PayrollProvider = {
 }
 
 export function getPayrollProvider(code: string): PayrollProvider {
-  if (code === 'NMBRS') return nmbrsPayrollProvider
+  if (code === 'NMBRS') throw new PayrollProviderError('PAYROLL_EXTERNAL_INTEGRATION_DISABLED', 410)
   throw new PayrollProviderError('PAYROLL_PROVIDER_NOT_SUPPORTED', 422)
 }

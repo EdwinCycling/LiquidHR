@@ -26,6 +26,12 @@ export const actualWorkEntrySchema = actualWorkEntryFields.superRefine((value, c
   }
 })
 
+export const actualWorkVoidEntrySchema = z.object({
+  employeeId: uuid,
+  employmentId: uuid,
+  entryId: uuid,
+})
+
 // Bulk saves contain changed cells only, so an entryId always represents a
 // correction and must carry its reason even while the period is still open.
 export const actualWorkBulkChangeSchema = actualWorkEntryFields

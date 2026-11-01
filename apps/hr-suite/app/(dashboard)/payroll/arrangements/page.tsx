@@ -1,21 +1,61 @@
 import Link from 'next/link'
-import { ArrowUpRight, Blocks, Scale } from 'lucide-react'
+import { ArrowUpRight, Blocks } from 'lucide-react'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'
 import { Surface } from '@/components/ui/surface'
-import { getTranslator } from '@/lib/i18n/server'
-import { requireComponentLibraryAccess } from '@/lib/payroll/component-library-access'
+import { CaoSetupOverview } from '@/components/payroll/cao-setup-overview'
+import { CaoSetupCompleteness } from '@/components/payroll/cao-setup-completeness'
+import { PensionArrangementManager } from '@/components/payroll/pension-arrangement-manager'
+import { EmploymentRegulationsManager } from '@/components/settings/employment-regulations-manager'
+import { caoSetupPackageOptions } from '@/lib/payroll/cao-setup-catalog'
+import { getCaoSetupPageData } from '@/lib/payroll/cao-setup-service'
+import { getEmploymentSettings } from '@/lib/employment/employment-settings'
+import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { createPensionArrangementAction, createPensionArrangementSuccessorForPensionManagerAction } from './actions'
 
-export default async function PayrollArrangementsPage() {
-  const [, t] = await Promise.all([requireComponentLibraryAccess(false), getTranslator('payrollProfessional')])
+type PageProps = {
+  readonly searchParams: Promise<{ readonly pension?: string }>
+}
+
+export default async function PayrollArrangementsPage({ searchParams }: PageProps) {
+  const [settings, t, employmentT, locale, query] = await Promise.all([getEmploymentSettings(), getTranslator('payrollProfessional'), getTranslator('employment'), getLocale(), searchParams])
+  const data = await getCaoSetupPageData(settings)
   const nav = { overview: t('overview'), runs: t('runs'), corrections: t('corrections'), compare: t('compare'), arrangements: t('arrangements'), settings: t('settings') }
   return <PageShell className="space-y-6 py-6 sm:py-8">
     <PageHeader title={t('arrangements')} description={t('arrangementsDescription')} />
     <PayrollProfessionalNavigation active="arrangements" labels={nav} />
-    <div className="grid gap-4 md:grid-cols-2">
-      <Surface><Link href="/payroll-lab/arrangements" className="flex min-h-32 items-center gap-4 rounded-[var(--radius-surface)] p-5 hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-primary"><Scale aria-hidden="true" /></span><span className="min-w-0 flex-1"><strong className="block">{t('arrangementCatalog')}</strong><span className="mt-1 block text-sm text-muted-foreground">{t('arrangementCatalogDescription')}</span></span><ArrowUpRight aria-hidden="true" size={17} /></Link></Surface>
-      <Surface><Link href="/payroll-components" className="flex min-h-32 items-center gap-4 rounded-[var(--radius-surface)] p-5 hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-primary"><Blocks aria-hidden="true" /></span><span className="min-w-0 flex-1"><strong className="block">{t('componentCatalog')}</strong><span className="mt-1 block text-sm text-muted-foreground">{t('componentCatalogDescription')}</span></span><ArrowUpRight aria-hidden="true" size={17} /></Link></Surface>
-    </div>
+    <CaoSetupOverview data={data} locale={locale} labels={{
+      catalogTitle: t('caoSetupCatalogTitle'), catalogDescription: t('caoSetupCatalogDescription'), grossEngineSupported: t('caoGrossEngineSupported'), sourceReviewRequired: t('caoSourceReviewRequired'), effectivePeriod: t('effectivePeriod'), versionHash: t('versionHash'), standardHours: t('standardHours'), pensionFund: t('pensionFund'), pensionSourceTitle: t('caoPensionSourceTitle'), pensionSourceDescription: t('caoPensionSourceDescription'), pensionFields: t('caoPensionFields'), pensionRecordsTitle: t('caoPensionRecordsTitle'), pensionRecordsDescription: t('caoPensionRecordsDescription'), pensionRecordsEmpty: t('caoPensionRecordsEmpty'), pensionVersion: t('pensionVersion'), pensionFranchise: t('pensionFranchise'), pensionCap: t('pensionCap'), pensionEmployeeShare: t('pensionEmployeeShare'), pensionEmployerShare: t('pensionEmployerShare'), pensionProvider: t('pensionManagementProvider'), pensionSourceReference: t('sourceReference'), pensionSalaryMethod: t('pensionManagementSalaryMethod'), pensionPartTimeMethod: t('pensionManagementPartTimeMethod'), pensionPartMonthMethod: t('pensionManagementPartMonthMethod'), pensionEligibilityRule: t('pensionManagementEligibilityRule'), pensionIntegrityHash: t('pensionIntegrityHash'), caoMappingsTitle: t('caoMappingsTitle'), caoMappingsDescription: t('caoMappingsDescription'), caoMappingsEmpty: t('caoMappingsEmpty'), mappingFor: t('mappingFor'), openEmploymentSettings: t('openEmploymentSettings'), openPensionAssignments: t('openPensionAssignments'), sourceStatusReference: t('sourceStatusReference'), sourceStatusValidated: t('sourceStatusValidated'),
+    }} />
+    <CaoSetupCompleteness records={data.completeness} labels={{
+      title: t('caoCompletenessTitle'), description: t('caoCompletenessDescription'), collectiveAgreement: t('caoCompletenessCollectiveAgreement'), companyPolicy: t('caoCompletenessCompanyPolicy'), pensionArrangement: t('caoCompletenessPensionArrangement'), payrollReady: t('caoCompletenessPayrollReady'), notReady: t('caoCompletenessNotReady'), completeness: t('caoCompletenessPercent'), recordedCount: t('caoCompletenessRecordedCount'), blockers: t('caoCompletenessBlockers'), integrityHash: t('caoCompletenessIntegrityHash'), noRecords: t('caoCompletenessNoRecords'), sourceCore: t('caoCompletenessSourceCore'), sourceCatalog: t('caoCompletenessSourceCatalog'), sourceMissing: t('caoCompletenessSourceMissing'), statusRecorded: t('caoCompletenessStatusRecorded'), statusMissing: t('caoCompletenessStatusMissing'), statusReview: t('caoCompletenessStatusReview'), statusNotApplicable: t('caoCompletenessStatusNotApplicable'), fieldLabels: {
+        catalog_source: t('caoCompletenessFieldCatalogSource'), core_regulation: t('caoCompletenessFieldCoreRegulation'), salary_structure: t('caoCompletenessFieldSalaryStructure'), pension_provider: t('caoCompletenessFieldPensionProvider'), pension_version_period: t('caoCompletenessFieldPensionVersionPeriod'), pension_base_franchise_cap: t('caoCompletenessFieldPensionBase'), pension_contribution_split: t('caoCompletenessFieldPensionContribution'), pension_components: t('caoCompletenessFieldPensionComponents'), pension_eligibility: t('caoCompletenessFieldPensionEligibility'), pension_part_time_partial_month: t('caoCompletenessFieldPensionMethods'), pension_source_reference: t('caoCompletenessFieldPensionSourceReference'), pension_source_validation: t('caoCompletenessFieldPensionValidation'), pension_mapping: t('caoCompletenessFieldPensionMapping'), catalog_source_validation: t('caoCompletenessFieldCatalogValidation'), employer_source_validation: t('caoCompletenessFieldEmployerValidation'),
+      },
+    }} />
+    <PensionArrangementManager
+      data={data}
+      status={query.pension}
+      createAction={createPensionArrangementAction}
+      successorAction={createPensionArrangementSuccessorForPensionManagerAction}
+      labels={{
+        title: t('pensionManagementTitle'), description: t('pensionManagementDescription'), createTitle: t('pensionCreateTitle'), createDescription: t('pensionCreateDescription'), code: t('pensionManagementCode'), name: t('pensionManagementName'), provider: t('pensionManagementProvider'), sourceReference: t('pensionManagementSourceReference'), sourceStatus: t('pensionManagementSourceStatus'), sourceHash: t('pensionManagementSourceHash'), totalRate: t('pensionManagementTotalRate'), employeeRate: t('pensionManagementEmployeeRate'), employerRate: t('pensionManagementEmployerRate'), franchise: t('pensionManagementComponentFranchise'), componentCap: t('pensionManagementComponentCap'), noComponentCap: t('pensionManagementNoComponentCap'), openEnded: t('pensionManagementOpenEnded'), referenceOnly: t('pensionManagementReferenceOnly'), employerRecorded: t('pensionManagementEmployerRecorded'), verifiedSource: t('pensionManagementVerifiedSource'), effectiveFrom: t('pensionManagementEffectiveFrom'), effectiveTo: t('pensionManagementEffectiveTo'), transitionDate: t('pensionManagementTransitionDate'), arrangementType: t('pensionManagementArrangementType'), flatPremium: t('pensionManagementFlatPremium'), progressivePremium: t('pensionManagementProgressivePremium'), grandfatheringMode: t('pensionManagementGrandfatheringMode'), noGrandfathering: t('pensionManagementNoGrandfathering'), respectfulTransition: t('pensionManagementRespectfulTransition'), newEntrant: t('pensionManagementNewEntrant'), grandfathered: t('pensionManagementGrandfathered'), mappingRecorded: t('pensionManagementMappingRecorded'), mappingHistory: t('pensionManagementMappingHistory'), sourceDetails: t('pensionManagementSourceDetails'), employerPolicyDescription: t('pensionManagementEmployerPolicyDescription'), technicalVersionData: t('pensionManagementTechnicalVersionData'), flatTotalRate: t('pensionManagementFlatTotalRate'), employeeShare: t('pensionManagementEmployeeShare'), employerShare: t('pensionManagementEmployerShare'), annualFranchise: t('pensionManagementAnnualFranchise'), annualCap: t('pensionManagementAnnualCap'), salaryMethod: t('pensionManagementSalaryMethod'), partTimeMethod: t('pensionManagementPartTimeMethod'), partMonthMethod: t('pensionManagementPartMonthMethod'), eligibilityRule: t('pensionManagementEligibilityRule'), contractClassification: t('pensionManagementContractClassification'), solidarity: t('pensionManagementSolidarity'), nonSolidarity: t('pensionManagementNonSolidarity'), unknown: t('pensionManagementUnknown'), classificationStatus: t('pensionManagementClassificationStatus'), classificationSource: t('pensionManagementClassificationSource'), tiers: t('pensionManagementTiers'), tiersHelp: t('pensionManagementTiersHelp'), components: t('pensionManagementComponents'), componentsHelp: t('pensionManagementComponentsHelp'), save: t('pensionManagementSave'), versionTitle: t('pensionManagementVersionTitle'), versionDescription: t('pensionManagementVersionDescription'), versionJson: t('pensionManagementVersionJson'), versionJsonHelp: t('pensionManagementVersionJsonHelp'), saveVersion: t('pensionManagementSaveVersion'), managerRequired: t('pensionManagementManagerRequired'), sourceReviewNotice: t('pensionManagementSourceReviewNotice'), saved: t('pensionManagementSaved'), versionSaved: t('pensionManagementVersionSaved'), invalid: t('pensionManagementInvalid'), unavailable: t('pensionManagementUnavailable'),
+      }}
+    />
+    <Surface className="space-y-4 p-5">
+      <h2 className="text-lg font-semibold">{t('caoRegulationSetupTitle')}</h2>
+      <p className="text-sm text-muted-foreground">{t('caoRegulationSetupDescription')}</p>
+      <EmploymentRegulationsManager
+        caoPackages={caoSetupPackageOptions()}
+        labels={{
+          search: employmentT('catalogSearch'), addRegulation: employmentT('regulationAdd'), addSuccessor: employmentT('regulationAddSuccessor'), edit: employmentT('catalogEdit'), save: employmentT('catalogSave'), cancel: employmentT('catalogCancel'), name: employmentT('catalogName'), validFrom: employmentT('regulationValidFrom'), standardHours: employmentT('standardWeeklyHours'), successor: employmentT('regulationSuccessor'), successors: employmentT('regulationSuccessors'), current: employmentT('regulationCurrent'), historical: employmentT('regulationHistorical'), validUntil: employmentT('regulationValidUntil'), empty: employmentT('catalogEmpty'), failed: employmentT('changeFailed'), description: employmentT('regulationTimelineDescription'), newTitle: employmentT('regulationNewTitle'), editTitle: employmentT('regulationEditTitle'), successorTitle: employmentT('regulationSuccessorTitle'), continuityHint: employmentT('regulationContinuityHint'), probationMaximum: employmentT('probationMaximum'), probationOneMonth: employmentT('probationOneMonth'), probationTwoMonths: employmentT('probationTwoMonths'), caoPackage: t('caoPackage'), caoPackageNone: t('caoPackageNone'), caoPackageSource: t('caoPackageSource'),
+          salaryStructures: { sectionTitle: employmentT('salaryStructures.sectionTitle'), description: employmentT('salaryStructures.description'), scalesAndSteps: employmentT('salaryStructures.scalesAndSteps'), salaryBands: employmentT('salaryStructures.salaryBands'), linked: employmentT('salaryStructures.linked'), noActiveRevision: employmentT('salaryStructures.noActiveRevision'), save: employmentT('salaryStructures.save'), cancel: employmentT('salaryStructures.cancel'), unsaved: employmentT('salaryStructures.unsaved'), saving: employmentT('salaryStructures.saving'), saved: employmentT('salaryStructures.saved'), failed: employmentT('salaryStructures.failed'), readOnly: employmentT('salaryStructures.readOnly') },
+        }}
+        locale={locale}
+        salaryStructureCatalog={settings.salaryStructureCatalog}
+        timelines={settings.laborConditionTimelines}
+      />
+    </Surface>
+    <Surface><Link href="/payroll-components" className="flex min-h-24 items-center gap-4 rounded-[var(--radius-surface)] p-5 hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-focus"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-primary"><Blocks aria-hidden="true" /></span><span className="min-w-0 flex-1"><strong className="block">{t('componentCatalog')}</strong><span className="mt-1 block text-sm text-muted-foreground">{t('componentCatalogDescription')}</span></span><ArrowUpRight aria-hidden="true" size={17} /></Link></Surface>
   </PageShell>
 }

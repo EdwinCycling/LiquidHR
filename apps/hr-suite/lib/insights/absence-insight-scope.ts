@@ -4,6 +4,23 @@ import { AuthorizationError, getRequestAuthorizationContext, requireHrGroupId, r
 import { listDirectTeamEmployeeScope } from '@/lib/organization/team-scope'
 import { headcountFtePopulationForRoles } from './headcount-fte-authorization'
 
+/**
+ * Operation-level absence RLS can grant group-wide access through
+ * can_manage_employee(). Insights therefore revalidates every returned
+ * employee against its separate direct-team allowlist before building output.
+ */
+export function assertAbsenceInsightEmployeeAllowlist(
+  observedEmployeeIds: readonly string[],
+  allowedEmployeeIds: readonly string[] | null,
+): void {
+  if (allowedEmployeeIds === null) return
+
+  const allowed = new Set(allowedEmployeeIds)
+  if (observedEmployeeIds.some((employeeId) => !allowed.has(employeeId))) {
+    throw new AuthorizationError('Een of meer medewerkers vallen buiten je toegestane scope.')
+  }
+}
+
 export async function getAbsenceInsightScope() {
   const { supabase, context, activeContext } = await getRequestAuthorizationContext()
   const population = headcountFtePopulationForRoles(context.activeRoles)

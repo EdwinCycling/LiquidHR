@@ -204,7 +204,6 @@ function requiredScope(inputs: Readonly<Record<string, PayrollSerializedValue>>)
   if (!inputBoolean(inputs, 'regularWage')) unsupported('NON_REGULAR_WAGE')
   const fullPeriod = inputBoolean(inputs, 'fullPeriod')
   if (timePeriod !== 'MONTH' && compositePeriod === null) unsupported('TIME_PERIOD')
-  if (timePeriod === 'MONTH' && !fullPeriod) unsupported('INCOMPLETE_PERIOD')
   if (compositePeriod !== null && fullPeriod) unsupported('COMPOSITE_PERIOD_FULL_PERIOD')
   if (compositePeriod !== null && inputBoolean(inputs, 'payrollTaxCredit')) {
     unsupported('COMPOSITE_PERIOD_WITH_TAX_CREDIT')

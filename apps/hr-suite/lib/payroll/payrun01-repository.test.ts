@@ -43,7 +43,7 @@ function hashJson(value: unknown): string {
 
 type FakeRow = Record<string, unknown>
 
-function makeClient(seed: Record<string, FakeRow[]> = {}, options: { readonly insertError?: unknown } = {}) {
+function makeClient(seed: Record<string, FakeRow[]> = {}, options: { readonly insertError?: unknown; readonly batchMaxRows?: number } = {}) {
   const rows: Record<string, FakeRow[]> = Object.fromEntries(
     Object.entries(seed).map(([table, seededRows]) => [table, [...seededRows]]),
   )
@@ -52,6 +52,7 @@ function makeClient(seed: Record<string, FakeRow[]> = {}, options: { readonly in
     const filters: Array<[string, unknown]> = []
     let operation: 'select' | 'insert' = 'select'
     let insertValue: FakeRow | null = null
+    let exactCount = false
     const entry: { table: string; filters: Array<[string, unknown]>; operation: 'select' | 'insert' } = {
       table,
       filters,
@@ -62,7 +63,10 @@ function makeClient(seed: Record<string, FakeRow[]> = {}, options: { readonly in
       Array.isArray(value) ? value.includes(row[column]) : row[column] === value,
     ))
     const query = {
-      select: vi.fn(() => query),
+      select: vi.fn((_columns?: string, settings?: { count?: string }) => {
+        exactCount = settings?.count === 'exact'
+        return query
+      }),
       insert: vi.fn((value: FakeRow) => {
         operation = 'insert'
         entry.operation = operation
@@ -96,9 +100,13 @@ function makeClient(seed: Record<string, FakeRow[]> = {}, options: { readonly in
         return { data: inserted, error: null }
       }),
       then: (
-        resolve: (value: { data: FakeRow[]; error: null }) => unknown,
+        resolve: (value: { data: FakeRow[]; error: null; count: number | null }) => unknown,
         reject?: (reason: unknown) => unknown,
-      ) => Promise.resolve({ data: matchedRows(), error: null as null }).then(resolve, reject),
+      ) => {
+        const matches = matchedRows()
+        const data = exactCount && options.batchMaxRows !== undefined ? matches.slice(0, options.batchMaxRows) : matches
+        return Promise.resolve({ data, error: null as null, count: exactCount ? matches.length : null }).then(resolve, reject)
+      },
     }
     return query
   })
@@ -316,6 +324,44 @@ describe('PAYRUN01 scoped repository', () => {
       ['source_hr_group_id', scope.hrGroupId],
       ['source_administration_id', scope.administrationId],
     ]))
+  })
+
+  it('batches lifecycle reads within the requested scope and retains each employment’s events', async () => {
+    const otherEmploymentId = '10000000-0000-4000-8000-000000000020'
+    const event = (sourceEmploymentId: string, id: string, extra: Record<string, unknown> = {}) => stored({
+      ...commonColumns(), payroll_period_id: periodId, source_employment_id: sourceEmploymentId,
+      calculation_run_id: runId, revision: 1, event_sequence: 1, event_type: 'CONCEPT', event_payload: {}, ...extra,
+    }, id)
+    const first = event(employmentId, '20000000-0000-4000-8000-000000000021')
+    const second = event(otherEmploymentId, '20000000-0000-4000-8000-000000000022')
+    const foreign = event(otherEmploymentId, '20000000-0000-4000-8000-000000000023', { source_tenant_id: '10000000-0000-4000-8000-000000000099' })
+    const fake = makeClient({ individual_payroll_lifecycle_events: [first, second, foreign] })
+    const repository = createPayrun01Repository(fake.client)
+
+    await expect(repository.listLifecycleEventsForEmployments(scope, payrollAdministrationId, periodId, [employmentId, otherEmploymentId, employmentId]))
+      .resolves.toEqual([first, second])
+    expect(fake.from).toHaveBeenCalledTimes(1)
+    expect(fake.queryLog[0]?.filters).toEqual(expect.arrayContaining([
+      ['payroll_period_id', periodId], ['payroll_administration_id', payrollAdministrationId],
+      ['source_tenant_id', scope.tenantId], ['source_hr_group_id', scope.hrGroupId],
+      ['source_administration_id', scope.administrationId], ['source_employment_id', [employmentId, otherEmploymentId]],
+    ]))
+  })
+
+  it('falls back to individual lifecycle reads if a batch response is truncated', async () => {
+    const otherEmploymentId = '10000000-0000-4000-8000-000000000020'
+    const event = (sourceEmploymentId: string, id: string) => stored({
+      ...commonColumns(), payroll_period_id: periodId, source_employment_id: sourceEmploymentId,
+      calculation_run_id: runId, revision: 1, event_sequence: 1, event_type: 'CONCEPT', event_payload: {},
+    }, id)
+    const first = event(employmentId, '20000000-0000-4000-8000-000000000021')
+    const second = event(otherEmploymentId, '20000000-0000-4000-8000-000000000022')
+    const fake = makeClient({ individual_payroll_lifecycle_events: [first, second] }, { batchMaxRows: 1 })
+    const repository = createPayrun01Repository(fake.client)
+
+    await expect(repository.listLifecycleEventsForEmployments(scope, payrollAdministrationId, periodId, [employmentId, otherEmploymentId]))
+      .resolves.toEqual([first, second])
+    expect(fake.from).toHaveBeenCalledTimes(3)
   })
 
   it('loads generic input references in one deduplicated, fully scoped batch', async () => {

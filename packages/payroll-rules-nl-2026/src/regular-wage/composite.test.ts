@@ -96,4 +96,27 @@ describe('NL 2026 composite week/day wage withholding', () => {
     })
     expect(result.controls.every((control) => control.status === 'PASS')).toBe(true)
   })
+
+  it('allows a hash-bound partial wage to use the monthly table', () => {
+    const snapshot = sourceSnapshot()
+    const canonicalSource = structuredClone(snapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    regularWage.timePeriod = 'MONTH'
+    regularWage.fullPeriod = false
+    regularWage.grossAmount = '2110.20'
+
+    const monthlySnapshot = {
+      ...snapshot,
+      id: 'snapshot-nl-2026-broken-monthly-table',
+      canonicalSource: canonicalSource as typeof snapshot.canonicalSource,
+    }
+    const result = calculatePayroll(buildCalculationInputs(monthlySnapshot, NL_2026_RULE_PACKAGE, {
+      scopeInstanceIds: { INCOME_RELATIONSHIP: monthlySnapshot.sourceIncomeRelationshipId! },
+    }), NL_2026_RULE_REGISTRY)
+    const values = Object.fromEntries(result.resultRows.map((row) => [row.key, row.value]))
+
+    expect(result.status).toBe('CALCULATED')
+    expect(values).toMatchObject({ wage_tax: '752.83', net_salary: '1357.37' })
+    expect(result.controls.every((control) => control.status === 'PASS')).toBe(true)
+  })
 })

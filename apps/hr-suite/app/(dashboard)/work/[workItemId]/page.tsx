@@ -7,6 +7,7 @@ import { createProcessWorkDetailLabels } from '@/lib/process-automation/process-
 import { getProcessWorkItemAssignmentOptions, getProcessWorkItemDetail, getProcessWorkItemExperience } from '@/lib/process-automation/work-service'
 import { processWorkReturnHref } from '@/lib/process-automation/work-routing'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { wvpCaseForProcess } from '@/lib/absence/wvp/service'
 
 interface WorkDetailPageProps {
   readonly params: Promise<{ workItemId: string }>
@@ -35,6 +36,11 @@ export default async function WorkDetailPage({ params, searchParams }: WorkDetai
   const locale = await getLocale()
   const t = await getTranslator('processAutomation', locale)
   const detail = await getProcessWorkItemDetail(workItemId, locale)
+  if (detail.processKey.startsWith('wvp01-')) {
+    const caseId = await wvpCaseForProcess(detail.processInstanceId)
+    if (caseId) redirect(`/absence/guidance/${caseId}`)
+    redirect('/geen-toegang')
+  }
   if (detail.businessType === 'LEAVE') redirect(`/leave/requests/${detail.workItemId}`)
   const requestContext = await getRequestAuthorizationContext()
   const isRequesterPresentation = detail.businessType === 'P_MUTATION'

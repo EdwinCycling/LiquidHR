@@ -159,6 +159,8 @@ export type SnapshotOptions = {
   readonly nonZeroR2OpeningCumulative?: boolean
   readonly invalidR2TaxProfileEffectiveDate?: boolean
   readonly invalidR2TaxProfileVersion?: boolean
+  readonly bpfCurrentGrossMismatch?: boolean
+  readonly syntheticFlatPensionForLifecycle?: boolean
 }
 export const scope = {
   tenantId: '16000000-0000-4000-8000-000000000061',
@@ -196,6 +198,7 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
   const employeeId = ids.employee
   const r1 = caseCode === 'R1'
   const completeR2 = !r1 && options.completeR2PayrollSource === true
+  const syntheticFlatPensionForLifecycle = (r1 || completeR2) && options.syntheticFlatPensionForLifecycle === true
   const firstEmploymentDate = r1 || completeR2 ? '2026-07-01' : '2026-01-01'
   const employment: PayrollSourceEmployment = {
     id: ids.employment,
@@ -215,17 +218,17 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
   }
   const salary: PayrollSourceSalary = {
     id: ids.salary,
-    salary_basis: (r1 ? 'MANUAL' : 'CAO_SCALE') as PayrollSourceSalary['salary_basis'],
-    salary_route: (r1 ? 'MANUAL' : 'SCALE_WITH_STEPS') as PayrollSourceSalary['salary_route'],
+    salary_basis: 'CAO_SCALE',
+    salary_route: 'SCALE_WITH_STEPS',
     payment_type: 'PERIODIC_FIXED' as PayrollSourceSalary['payment_type'],
     payment_frequency: 'MONTHLY' as PayrollSourceSalary['payment_frequency'],
     currency_code: 'EUR',
     fulltime_amount: r1 ? 4758.96 : 2542.50,
     parttime_amount: r1 ? 4758.96 : 1605.79,
     hourly_rate: r1 ? 28.90 : null,
-    salary_structure_id: null,
-    salary_scale_id: null,
-    salary_scale_step_id: null,
+    salary_structure_id: `a7000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
+    salary_scale_id: `a8000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
+    salary_scale_step_id: `a9000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
     salary_step_code: r1 ? '15' : '1',
     cao_scale_name: r1 ? 'I' : 'C',
     cao_step_name: r1 ? '15' : '1',
@@ -355,7 +358,7 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
       annual_franchise: completeR2 ? PAYW02B_R2_PENSION_TERMS.annualFranchise : 18680,
       annual_pensionable_salary_cap: completeR2 ? PAYW02B_R2_PENSION_TERMS.annualPensionableSalaryCap : 79409,
       pensionable_salary_definition: {
-        method: 'BPF_DETAILHANDEL_2026_VCR',
+        method: syntheticFlatPensionForLifecycle ? 'SYNTHETIC_FLAT_PREMIUM_2026' : 'BPF_DETAILHANDEL_2026_VCR',
         annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
         basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
         floorAtZero: true,
@@ -377,7 +380,9 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
         },
         selectedContributionSplit: completeR2
           ? 'BPF Detailhandel 2026 total rate and maximum employee share are source-pinned; this synthetic scenario allocates the remaining share to the employer.'
-          : 'Official 2026 maximum employee share 6.1875%; fictional employer allocates remaining 18.5625% to itself.',
+          : syntheticFlatPensionForLifecycle
+            ? 'Explicit synthetic flat-premium split for lifecycle tests; this does not claim a BPF VCR calculation or employer applicability.'
+            : 'Official 2026 maximum employee share 6.1875%; fictional employer allocates remaining 18.5625% to itself.',
         calculationScope: completeR2
           ? 'One full July 2026 first period for a synthetic 2026-07-01 employment with an explicit zero opening cumulative; no real applicability is asserted.'
           : 'One full first monthly period with zero opening cumulative; annual multi-period VCR reconciliation is not asserted.',
@@ -489,6 +494,31 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     configurationRow,
     configuration,
     openingBalance,
+    ...(r1 && !syntheticFlatPensionForLifecycle ? {
+      bpfDetailhandel2026Source: {
+        sourceId: 'SYNTHETIC-PAYD2-RETAIL-02-BPF-VCR-2026-07',
+        sourceVersion: 'SYNTHETIC-PAYD2-RETAIL-02-BPF-VCR-v1',
+        sourceUpdatedAt: '2026-07-31T23:59:59.000Z',
+        sourceReference: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; one full first monthly period; fictional employer and employee applicability are stipulated for arithmetic only',
+        calculationInput: {
+          period: { year: 2026, month: 7 },
+          payFrequency: 'MONTHLY',
+          cumulativePeriodCount: 1,
+          cumulativePeriodCountStatus: 'VERIFIED_SOURCE',
+          cumulativePeriodCountEvidence: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; first monthly period in this isolated arithmetic case',
+          normHoursPerWeek: '38',
+          cumulativePaidHours: '164.67',
+          cumulativeWfsvSalary: '4767.20',
+          previousCumulativePensionableBase: '0.00',
+          currentPayrollGross: options.bpfCurrentGrossMismatch ? '4766.20' : '4767.20',
+          employerApplicabilityStatus: 'CONFIRMED',
+          employerApplicabilityEvidence: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; in-store/no-exemption assumption is not a real employer determination',
+          employeeEligibilityStatus: 'CONFIRMED',
+          employeeEligibilityEvidence: 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; fictional participation stipulation is not an employee eligibility determination',
+          taxTreatmentStatus: 'VERIFIED_SOURCE',
+        },
+      },
+    } : {}),
   }
   const defaultBusinessScope = options.eCommerceNight ? {
     tenantId: scope.tenantId,
@@ -541,6 +571,36 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
         updated_at: '2026-01-01T09:03:00.000Z',
       },
     }],
+    salaryTableSource: {
+      status: 'RESOLVED',
+      reasonCode: null,
+      source: {
+        salaryId: ids.salary,
+        structureId: salary.salary_structure_id!,
+        revisionId: `b7000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
+        revisionNumber: 1,
+        revisionUpdatedAt: '2026-06-01T00:00:00.000Z',
+        salaryBasis: 'HOURLY',
+        effectiveFrom: '2026-07-01',
+        effectiveTo: '2027-06-30',
+        sourceTitle: 'Cao Retail Non-Food 2026-2027, bijlage 1b — loonregels per branche',
+        sourceVersion: '2026-07',
+        sourceUrl: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.cao.url,
+        sourceHash: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.cao.sha256,
+        sourceRowCount: 144,
+        scaleId: salary.salary_scale_id!,
+        scaleCode: `MODE_${r1 ? 'I' : 'C'}`,
+        scaleName: `Functiegroep ${r1 ? 'I' : 'C'}`,
+        stepId: salary.salary_scale_step_id!,
+        stepCode: `EXP_${r1 ? '15' : '01'}`,
+        stepName: `${r1 ? '15' : '1'} ervaringsjaren`,
+        fulltimeAmount: r1 ? '28.95' : '15.44',
+        hourlyAmount: r1 ? '28.95' : '15.44',
+        currencyCode: 'EUR',
+        stepUpdatedAt: '2026-06-01T00:00:00.000Z',
+        maximumStepFulltimeAmount: null,
+      },
+    },
     incomeRelationships: [incomeRelationship],
     ...(r1 || completeR2 ? {
       ...(!options.omitR1FiscalProfile && !(completeR2 && options.omitR2FiscalProfile) ? { taxProfileProjection } : {}),

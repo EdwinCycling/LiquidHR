@@ -16,6 +16,10 @@ describe('module catalog', () => {
       'PAYROLL',
     ])
     expect(catalog.filter((module) => module.status === 'COMING_SOON').every((module) => !module.toggleable)).toBe(true)
+    expect(catalog.filter((module) => module.code === 'LEAVE' || module.code === 'ABSENCE')).toEqual([
+      { code: 'LEAVE', status: 'AVAILABLE', toggleable: false },
+      { code: 'ABSENCE', status: 'AVAILABLE', toggleable: false },
+    ])
   })
 
   it('negeert onbekende en toekomstige modules bij opslaan', () => {

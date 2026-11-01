@@ -2,6 +2,7 @@ import { FixedDecimal } from '@liquid-hr/payroll-engine'
 
 const WORKDAYS_PER_WEEK = 5
 const MAX_COMPOSITE_WEEKS = 53
+const MAX_COMPOSITE_DAILY_DAYS = 8
 
 export interface Nl2026PeriodSegments {
   readonly periodStart: string
@@ -49,6 +50,30 @@ export function countDutchWorkdays(start: string, endExclusive: string): number 
   return count
 }
 
+function countDutchWorkdaySegments(startDay: number, endDay: number): {
+  readonly paidWorkdays: number
+  readonly fullWeeks: number
+  readonly remainingDays: number
+} {
+  const workdaysByWeekStart = new Map<number, number>()
+  let paidWorkdays = 0
+  for (let current = startDay; current < endDay; current += 1) {
+    const weekday = new Date(current * 86_400_000).getUTCDay()
+    if (weekday < 1 || weekday > 5) continue
+    paidWorkdays += 1
+    const monday = current - ((weekday + 6) % 7)
+    workdaysByWeekStart.set(monday, (workdaysByWeekStart.get(monday) ?? 0) + 1)
+  }
+
+  let fullWeeks = 0
+  let remainingDays = 0
+  for (const workdays of workdaysByWeekStart.values()) {
+    if (workdays === WORKDAYS_PER_WEEK) fullWeeks += 1
+    else remainingDays += workdays
+  }
+  return { paidWorkdays, fullWeeks, remainingDays }
+}
+
 export function calculateNl2026PeriodSegments(input: {
   readonly periodStart: string
   readonly periodEndExclusive: string
@@ -64,7 +89,8 @@ export function calculateNl2026PeriodSegments(input: {
     throw new RangeError('The paid period must be a non-empty slice within the payroll period.')
   }
   const periodWorkdays = countDutchWorkdays(input.periodStart, input.periodEndExclusive)
-  const paidWorkdays = countDutchWorkdays(input.paidStart, input.paidEndExclusive)
+  const paidSegments = countDutchWorkdaySegments(paidStartDay, paidEndDay)
+  const paidWorkdays = paidSegments.paidWorkdays
   if (periodWorkdays <= 0 || paidWorkdays <= 0 || paidWorkdays > periodWorkdays) {
     throw new RangeError('The paid period must contain at least one Dutch workday.')
   }
@@ -75,18 +101,29 @@ export function calculateNl2026PeriodSegments(input: {
     paidEndExclusive: input.paidEndExclusive,
     periodWorkdays,
     paidWorkdays,
-    fullWeeks: Math.floor(paidWorkdays / WORKDAYS_PER_WEEK),
-    remainingDays: paidWorkdays % WORKDAYS_PER_WEEK,
+    fullWeeks: paidSegments.fullWeeks,
+    remainingDays: paidSegments.remainingDays,
   }
 }
 
 export function encodeNl2026CompositeTimePeriod(period: Nl2026CompositePeriod): string {
   if (!Number.isInteger(period.fullWeeks) || period.fullWeeks < 0 || period.fullWeeks > MAX_COMPOSITE_WEEKS
-    || !Number.isInteger(period.remainingDays) || period.remainingDays < 0 || period.remainingDays >= WORKDAYS_PER_WEEK
+    || !Number.isInteger(period.remainingDays) || period.remainingDays < 0 || period.remainingDays > MAX_COMPOSITE_DAILY_DAYS
     || period.fullWeeks * WORKDAYS_PER_WEEK + period.remainingDays <= 0) {
     throw new RangeError('The composite Dutch 2026 time period is invalid.')
   }
   return `WEEK_DAY_${period.fullWeeks}_${period.remainingDays}`
+}
+
+/**
+ * A broken monthly time period with at least 65/3 table days uses the monthly
+ * table. Since the source count is an integer, the first qualifying count is 22.
+ */
+export function shouldUseDutchMonthlyTableForBrokenPeriod(paidWorkdays: number): boolean {
+  if (!Number.isInteger(paidWorkdays) || paidWorkdays <= 0) {
+    throw new RangeError('The paid workday count must be a positive integer.')
+  }
+  return paidWorkdays * 3 >= 65
 }
 
 export function parseNl2026CompositeTimePeriod(value: string): Nl2026CompositePeriod | null {

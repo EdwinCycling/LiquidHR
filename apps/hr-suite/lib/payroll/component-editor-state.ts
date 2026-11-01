@@ -3,7 +3,55 @@ import { formatPayrollExpression } from './component-expression-dsl'
 import type { ComponentEditorPayload, ComponentEditorMethodPayload } from './component-editor-contract'
 import type { PayrollComponentMethod } from '@liquid-hr/payroll-engine'
 
-export type ComponentEditorState = Omit<ComponentEditorPayload, 'requestId'>
+export type ComponentEditorState = Omit<ComponentEditorPayload, 'requestId'> & {
+  /** Local UI context; ownership is never submitted as a client-controlled draft field. */
+  readonly ownershipKind: ComponentCatalogEntry['definition']['ownership']['kind']
+}
+
+function formulaForOutput(valueType: ComponentEditorState['outputs'][number]['valueType']): string {
+  return valueType === 'BOOLEAN' ? 'false' : valueType === 'STRING' ? '""' : `${valueType}(0)`
+}
+
+export function expressionMethodForOutputs(
+  outputs: ComponentEditorState['outputs'],
+): ComponentEditorMethodPayload {
+  return {
+    kind: 'expression',
+    formulas: Object.fromEntries(outputs.map((output) => [output.name, formulaForOutput(output.valueType)])),
+  }
+}
+
+/** Enables only detached CUSTOMER_FORK source drafts to become customer-authored formulas. */
+export function convertCustomerForkSourceToFormula(state: ComponentEditorState): ComponentEditorState {
+  if (state.ownershipKind !== 'CUSTOMER_FORK' || state.method.kind !== 'source') return state
+  return { ...state, method: expressionMethodForOutputs(state.outputs) }
+}
+
+/** Serializes editable values while keeping ownership and trusted source paths server-owned. */
+export function componentEditorPayloadFromState(
+  state: ComponentEditorState,
+  requestId: string,
+): ComponentEditorPayload {
+  return {
+    ...(state.draftId === undefined ? {} : { draftId: state.draftId }),
+    requestId,
+    ...(state.packageCompositionId === undefined ? {} : { packageCompositionId: state.packageCompositionId }),
+    displayName: state.displayName,
+    displayCode: state.displayCode,
+    description: state.description,
+    category: state.category,
+    effectiveFrom: state.effectiveFrom,
+    effectiveTo: state.effectiveTo,
+    processingScope: state.processingScope,
+    inputs: state.inputs,
+    outputs: state.outputs,
+    dependencies: state.dependencies,
+    parameters: state.parameters,
+    tracePolicy: state.tracePolicy,
+    method: state.method,
+    previewInputs: state.previewInputs,
+  }
+}
 
 function expressionMethod(method: PayrollComponentMethod): ComponentEditorMethodPayload {
   if (method.kind === 'source') return { kind: 'source' }
@@ -27,6 +75,7 @@ export function componentEditorStateFromEntry(
   const definition = entry.definition
   return {
     draftId: rowId,
+    ownershipKind: definition.ownership.kind,
     displayName: entry.displayName?.trim() || fallbackName,
     displayCode: entry.displayCode?.trim() || definition.code,
     description: entry.description ?? '',
@@ -52,6 +101,7 @@ export function newComponentEditorState(
 ): ComponentEditorState {
   return {
     packageCompositionId,
+    ownershipKind: 'CUSTOMER_CUSTOM',
     displayName: name,
     displayCode: 'CUSTOM_COMPONENT',
     description: '',

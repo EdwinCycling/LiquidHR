@@ -1,5 +1,12 @@
 import { FixedDecimal } from '@liquid-hr/payroll-engine'
 import {
+  BPF_DETAILHANDEL_2026_METHOD,
+  BPF_DETAILHANDEL_2026_RULE_VERSION,
+  calculateBpfDetailhandel2026,
+  type BpfDetailhandel2026CalculationInput,
+} from './bpf-detailhandel-2026'
+import { BPF_DETAILHANDEL_2026_PARAMETERS } from './pension-parameters-2026'
+import {
   calculatePfzw2026Kinderopvang,
   PFZW_2026_KINDEROPVANG_METHOD,
   type Pfzw2026CalculationInput,
@@ -53,6 +60,8 @@ export interface PensionCalculationInput {
   readonly inputHash?: string
   /** Present only for an effective PFZW 2026 arrangement with explicit UPA inputs. */
   readonly pfzw2026?: Pfzw2026CalculationInput
+  /** Present only for BPF Detailhandel VCR with verified year-to-date payroll facts. */
+  readonly bpfDetailhandel2026?: BpfDetailhandel2026CalculationInput
 }
 
 export interface PensionTraceStep {
@@ -100,6 +109,17 @@ export interface PensionCalculationResult {
     readonly employerBasicPremiumMonthly: string
     readonly employerWiaExcessPremiumMonthly: string
   }
+  readonly bpfDetailhandel2026Details?: {
+    readonly ruleVersion: string
+    readonly cumulativePeriodCount: number
+    readonly cumulativeNormHours: string
+    readonly cumulativePartTimeFactor: string
+    readonly cumulativeWfsvSalary: string
+    readonly cumulativeFranchise: string
+    readonly cumulativeMaximumSalary: string
+    readonly cumulativePensionableBase: string
+    readonly cumulativeTotalPremiumDue: string
+  }
   readonly fiscalBases: {
     readonly wageTax: string | null
     readonly employeeInsurance: string | null
@@ -124,6 +144,15 @@ function validDate(value: string): boolean {
 
 function recordText(value: Readonly<Record<string, unknown>>, key: string): string | null {
   return typeof value[key] === 'string' ? value[key] as string : null
+}
+
+function decimalEquals(value: string | null, expected: string): boolean {
+  if (value === null) return false
+  try {
+    return FixedDecimal.parse(value).compare(FixedDecimal.parse(expected)) === 0
+  } catch {
+    return false
+  }
 }
 
 function blocked(input: PensionCalculationInput, reasonCode: string): PensionCalculationResult {
@@ -173,6 +202,88 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
     || (arrangement.effectiveTo !== null && arrangement.effectiveTo < periodStart)
     || input.participationStartDate > periodEnd) {
     return blocked(input, 'PENSION_ARRANGEMENT_NOT_EFFECTIVE_FOR_PERIOD')
+  }
+  if (input.participationStartDate > periodStart) {
+    return blocked(input, 'PENSION_PARTIAL_MONTH_PRORATION_UNVERIFIED')
+  }
+  if (recordText(arrangement.pensionableSalaryDefinition, 'method') === BPF_DETAILHANDEL_2026_METHOD) {
+    if (input.bpfDetailhandel2026 === undefined) {
+      return blocked(input, 'BPF_DETAILHANDEL_2026_VCR_INPUT_MISSING')
+    }
+    if (arrangement.arrangementType !== 'FLAT_PREMIUM'
+      || !decimalEquals(arrangement.flatTotalRate, BPF_DETAILHANDEL_2026_PARAMETERS.mandatory.totalRate)
+      || !decimalEquals(arrangement.employeeSharePercent, '25')
+      || !decimalEquals(arrangement.employerSharePercent, '75')) {
+      return blocked(input, 'BPF_DETAILHANDEL_2026_ARRANGEMENT_PARAMETERS_UNSUPPORTED')
+    }
+    const bpf = calculateBpfDetailhandel2026(input.bpfDetailhandel2026)
+    if (bpf.status !== 'CALCULATED') {
+      return blocked(input, bpf.reasonCode ?? 'BPF_DETAILHANDEL_2026_EVIDENCE_GATE_BLOCKED')
+    }
+    const traceBase = {
+      source: 'BPF Detailhandel official 2026 parameters and verified employer payroll inputs',
+      componentVersion: BPF_DETAILHANDEL_2026_RULE_VERSION,
+      ruleProvenance: {
+        ...arrangement.provenance,
+        arrangementEstablishedFrom: arrangement.arrangementEstablishedFrom,
+        versionEffectiveFrom: arrangement.effectiveFrom,
+        eligibilityRule: arrangement.eligibilityRule,
+        pensionableSalaryDefinition: arrangement.pensionableSalaryDefinition,
+        participationEvidence: input.bpfDetailhandel2026.employeeEligibilityEvidence,
+        employerApplicabilityEvidence: input.bpfDetailhandel2026.employerApplicabilityEvidence,
+        periodCountEvidence: input.bpfDetailhandel2026.cumulativePeriodCountEvidence,
+        source: BPF_DETAILHANDEL_2026_PARAMETERS.mandatory.source,
+        calculationSource: BPF_DETAILHANDEL_2026_PARAMETERS.mandatory.calculationSource,
+      },
+      sourceSnapshotId: input.sourceSnapshotId,
+      sourceSnapshotHash: input.sourceSnapshotHash,
+      inputSetId: input.inputSetId ?? '',
+      inputHash: input.inputHash ?? '',
+    }
+    const trace: PensionTraceStep[] = bpf.trace.map((step) => ({
+      ...traceBase,
+      componentCode: step.componentCode,
+      inputs: step.inputs,
+      assessmentBase: step.assessmentBase,
+      rate: step.rate,
+      formula: step.formula,
+      unroundedValue: step.unroundedValue,
+      roundingRule: step.roundingRule,
+      roundingStage: step.roundingStage,
+      result: step.result,
+      dependencies: step.dependencies,
+    }))
+    return {
+      status: 'CALCULATED',
+      reasonCode: null,
+      arrangementId: arrangement.arrangementId,
+      arrangementCode: arrangement.arrangementCode,
+      arrangementNameSource: 'CORE',
+      rate: BPF_DETAILHANDEL_2026_PARAMETERS.mandatory.totalRate,
+      ageTier: null,
+      annualizedPensionableSalary: null,
+      cappedPensionableSalary: null,
+      adjustedFranchise: bpf.cumulativeFranchise,
+      pensionableBase: bpf.cumulativePensionableBase,
+      totalPremiumAnnual: null,
+      totalPremiumMonthly: bpf.periodTotalPremium,
+      employeePremiumMonthly: bpf.periodEmployeePremium,
+      employerPremiumMonthly: bpf.periodEmployerPremium,
+      allocationDifference: bpf.allocationDifference,
+      bpfDetailhandel2026Details: {
+        ruleVersion: bpf.ruleVersion,
+        cumulativePeriodCount: bpf.cumulativePeriodCount!,
+        cumulativeNormHours: bpf.cumulativeNormHours!,
+        cumulativePartTimeFactor: bpf.cumulativePartTimeFactor!,
+        cumulativeWfsvSalary: bpf.cumulativeWfsvSalary!,
+        cumulativeFranchise: bpf.cumulativeFranchise!,
+        cumulativeMaximumSalary: bpf.cumulativeMaximumSalary!,
+        cumulativePensionableBase: bpf.cumulativePensionableBase!,
+        cumulativeTotalPremiumDue: bpf.cumulativeTotalPremiumDue!,
+      },
+      fiscalBases: bpf.fiscalBases,
+      trace,
+    }
   }
   if (recordText(arrangement.pensionableSalaryDefinition, 'method') === PFZW_2026_KINDEROPVANG_METHOD) {
     if (input.pfzw2026 === undefined) return blocked(input, 'PFZW_2026_INPUT_MISSING')

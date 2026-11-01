@@ -40,16 +40,21 @@ function permissionClient(selfPermissions: readonly string[]): SupabaseBearerRls
     const builder = {
       select: () => builder,
       eq: () => builder,
-      or: async () => result,
-      in: async () => result,
+      is: () => builder,
+      or: () => builder,
+      in: () => builder,
       maybeSingle: async () => ({ data: null, error: null }),
+      then: (
+        onfulfilled?: ((value: typeof result) => unknown) | null,
+        onrejected?: ((reason: unknown) => unknown) | null,
+      ) => Promise.resolve(result).then(onfulfilled, onrejected),
     }
     return builder
   }
 
   return {
     from(table: string) {
-      if (table === 'management_roles') return query([{ id: 'employee-role', tenant_id: null }])
+      if (table === 'management_roles') return query([{ id: 'employee-role', code: 'EMPLOYEE', tenant_id: null, is_active: true, deleted_at: null }])
       if (table === 'role_permissions') return query([{ permission_id: 'self-permission' }])
       if (table === 'permissions') return query(selfPermissions.map((code) => ({ code })))
       if (table === 'employee_ess_access') return query([])

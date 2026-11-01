@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { nmbrsPayrollProvider } from './provider'
+import { getPayrollProvider, nmbrsPayrollProvider } from './provider'
+import { getPayrollProvider as getRegisteredPayrollProvider } from '../index'
 import { NmbrsClient } from './client'
 
 const clientConfig = {
@@ -18,6 +19,11 @@ describe('Nmbrs Payroll adapter P1 boundary', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
     vi.unstubAllGlobals()
+  })
+
+  it('does not expose Nmbrs through the active Payroll provider registry', () => {
+    expect(getRegisteredPayrollProvider('NMBRS')).toBeNull()
+    expect(() => getPayrollProvider('NMBRS')).toThrow('PAYROLL_EXTERNAL_INTEGRATION_DISABLED')
   })
 
   it('uses the provider-neutral P1 capability boundary and official OAuth scopes', async () => {

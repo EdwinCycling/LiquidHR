@@ -30,6 +30,7 @@ export {
   encodeNl2026CompositeTimePeriod,
   parseNl2026CompositeTimePeriod,
   prorateMonthlySalary,
+  shouldUseDutchMonthlyTableForBrokenPeriod,
 } from './regular-wage/period'
 export type { Nl2026CompositePeriod, Nl2026PeriodSegments } from './regular-wage/period'
 export {
@@ -38,6 +39,20 @@ export {
   NL_2026_SPECIAL_REWARD_TABLE_SOURCE,
 } from './special-remuneration-2026'
 export { calculatePension } from './pension-calculation'
+export {
+  BPF_DETAILHANDEL_2026_METHOD,
+  BPF_DETAILHANDEL_2026_RULE_VERSION,
+  calculateBpfDetailhandel2026,
+} from './bpf-detailhandel-2026'
+export type {
+  BpfDetailhandel2026CalculationInput,
+  BpfDetailhandel2026CalculationResult,
+} from './bpf-detailhandel-2026'
+export {
+  BPF_DETAILHANDEL_2026_PARAMETERS,
+  PFZW_2026_KINDEROPVANG_PARAMETERS,
+  PENSION_SOURCE_REFERENCES_2026,
+} from './pension-parameters-2026'
 export type {
   PensionArrangementInput,
   PensionCalculationInput,
@@ -47,6 +62,7 @@ export type {
 } from './pension-calculation'
 export {
   calculatePfzw2026Kinderopvang,
+  parsePfzw2026PremiumComponents,
   PFZW_2026_KINDEROPVANG_METHOD,
   PFZW_2026_KINDEROPVANG_RULE_VERSION,
   PFZW_2026_MONTHLY_ALLOCATION_TEST_APPROVED_VERSION,
@@ -56,6 +72,7 @@ export type {
   Pfzw2026CalculationInput,
   Pfzw2026CalculationPolicy,
   Pfzw2026CalculationResult,
+  Pfzw2026PremiumComponent,
   Pfzw2026StructuralSalaryComponent,
 } from './pfzw-2026'
 export {

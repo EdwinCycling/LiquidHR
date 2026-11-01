@@ -22,6 +22,7 @@ import { SectionHeader } from "@/components/patterns/section-header";
 import { ScrollableTabs } from "@/components/patterns/scrollable-tabs";
 import { tabLinkClasses } from "@/components/patterns/tab-link-classes";
 import { EmploymentMutationPanel } from "@/components/employment/employment-mutation-panel";
+import { FutureSalaryTimelineCorrection } from "@/components/employment/future-salary-timeline-correction";
 import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
 import { EmploymentContractTimeline } from "@/components/employment/employment-contract-timeline";
 import { SelectableTimelineList } from "@/components/employment/selectable-timeline-list";
@@ -211,6 +212,13 @@ function buildChangeData(detail: EmploymentDetail, notRecorded: string): Employm
       salaryScales: detail.options.salaryScales,
       salaryBands: detail.options.salaryBands,
       salaryRoutes: detail.options.salaryRoutes,
+      salaryRevisions: detail.options.salaryRevisions.map((revision) => ({
+        salaryStructureId: revision.salary_structure_id,
+        effectiveFrom: revision.effective_from,
+        revisionNumber: revision.revision_number,
+        status: revision.status,
+        salaryBasis: revision.salary_basis,
+      })),
     },
   };
 }
@@ -218,7 +226,7 @@ function buildChangeData(detail: EmploymentDetail, notRecorded: string): Employm
 function buildChangeLabels(t: Translator): EmploymentOverviewActionLabels {
   return {
     sectionTitle: t("changeActionsTitle"), hoursSchedule: t("changeHoursSchedule"), hoursScheduleSalary: t("changeHoursScheduleSalary"), functionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"), salary: t("changeSalary"), laborConditions: t("changeLaborConditions"), contractTypeStartDate: t("changeContractTypeStartDate"), deleteContract: t("changeDeleteContract"),
-    modalTitle: t("changeModalTitle"), cancel: t("cancel"), changeDiscardTitle: t("changeDiscardTitle"), changeDiscardDescription: t("changeDiscardDescription"), changeDiscardConfirm: t("changeDiscardConfirm"), changeDiscardCancel: t("changeDiscardCancel"), chooseContract: t("chooseContract"), contractSelectionTitle: t("contractSelectionTitle"), contractSelectionHelp: t("contractSelectionHelp"), contractNumber: t("contractNumber"), period: t("period"), selectedContractStatement: t("selectedContractStatement"), dateOutsideContract: t("dateOutsideContract"), contractStartOption: t("contractStartOption"), currentMonthOption: t("currentMonthOption"), nextMonthOption: t("nextMonthOption"), customDateOption: t("customDateOption"), changeStartDateTitle: t("changeStartDateTitle"), changeStartDateHelp: t("changeStartDateHelp"), timelineBeforeChange: t("timelineBeforeChange"), stepSelection: t("stepSelection"), stepDate: t("stepDate"), stepDetails: t("stepDetails"), stepReview: t("stepReview"), changeDetailsTitle: t("changeDetailsTitle"), reviewChangeTitle: t("reviewChangeTitle"), changeNotAvailable: t("changeNotAvailable"), changeHoursSchedule: t("changeHoursSchedule"), changeHoursScheduleSalary: t("changeHoursScheduleSalary"), changeFunctionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"), changeSalary: t("changeSalary"), changeLaborConditions: t("changeLaborConditions"), changeContractTypeStartDate: t("changeContractTypeStartDate"), changeModalTitle: t("changeModalTitle"), stepSchedule: t("stepSchedule"), active: t("active"), definite: t("definite"), indefinite: t("indefinite"), temporaryWithoutEnd: t("temporaryWithoutEnd"), contractType: t("contractType"), workerType: t("workerType"), selectWorkerType: t("selectWorkerType"), workerEmployee: t("workerEmployee"), workerStudentIntern: t("workerStudentIntern"), workerTemporaryAgency: t("workerTemporaryAgency"), workerExternal: t("workerExternal"), notRecorded: t("notRecorded"), flexPhase: t("flexPhase"), laborConditionsLabel: t("laborConditions"), duration: t("duration"), startDate: t("startDate"), endDate: t("endsOn"), probation: t("probation"), probationEnd: t("probationEnd"), yes: t("yes"), no: t("no"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"), probationCaoMaximum: t("probationCaoMaximum"), employmentScope: t("employmentScope"), fullTime: t("fullTime"), partTime: t("partTime"), weeklyHours: t("weeklyHours"), hoursPerWeek: t("hoursPerWeek"), hourUnit: t("hourUnit"), fulltimeReference: t("fulltimeReference"), factorCalculated: t("factorCalculated"), hoursAgreement: t("hoursAgreement"), hoursAgreementHelp: t("hoursAgreementHelp"), averageDays: t("averageDays"), partTimeFactor: t("partTimeFactor"), roster: t("roster"), rosterHelp: t("rosterHelp"), rosterInputMode: t("rosterInputMode"), rosterDecimal: t("rosterDecimal"), rosterHoursMinutes: t("rosterHoursMinutes"), rosterDecimalHelp: t("rosterDecimalHelp"), rosterHoursMinutesHelp: t("rosterHoursMinutesHelp"), rosterDecimalUnit: t("rosterDecimalUnit"), rosterHoursMinutesUnit: t("rosterHoursMinutesUnit"), rosterDecimalPlaceholder: t("rosterDecimalPlaceholder"), rosterHoursMinutesPlaceholder: t("rosterHoursMinutesPlaceholder"), rosterAverage: t("rosterAverage"), rosterMismatch: t("rosterMismatch"), weekOne: t("weekOne"), weekTwo: t("weekTwo"), addSecondWeek: t("addSecondWeek"), removeSecondWeek: t("removeSecondWeek"), timeForTime: t("timeForTime"), hoursPerDay: t("hoursPerDay"), hoursAndAverageDays: t("hoursAndAverageDays"), hoursAndSpecificDays: t("hoursAndSpecificDays"), timesPerDay: t("timesPerDay"), stepSalary: t("stepSalary"), salaryCalculation: t("salaryCalculation"), salaryManual: t("salaryManual"), salaryMinimum: t("salaryMinimum"), salaryTable: t("salaryTable"), salaryBand: t("salaryApplication.salaryBand"), salaryApplicationScheme: t("salaryApplication.scheme"), salaryRegular: t("salaryApplication.regular"), salaryBbl: t("salaryApplication.bbl"), salaryApplicationExternalAmount: t("salaryApplication.externalAmount"), salaryScale: t("salaryScale"), salaryScaleStep: t("salaryScaleStep"), salaryScaleAmount: t("salaryScaleAmount"), fulltimeSalary: t("fulltimeSalary"), parttimeSalary: t("parttimeSalary"), hourlyRate: t("hourlyRate"), paymentType: t("paymentType"), periodicFixed: t("periodicFixed"), hourlyVariable: t("hourlyVariable"), paymentFrequency: t("paymentFrequency"), monthly: t("monthly"), fourWeekly: t("fourWeekly"), salaryBandMinimum: t("salaryApplication.minimum"), salaryBandMidpoint: t("salaryApplication.midpoint"), salaryBandMaximum: t("salaryApplication.maximum"), compaRatio: t("salaryApplication.compaRatio"), rangePenetration: t("salaryApplication.rangePenetration"), status: t("salaryApplication.status"), underMinimum: t("salaryApplication.underMinimum"), withinRange: t("salaryApplication.withinRange"), aboveMaximum: t("salaryApplication.aboveMaximum"), noValidBand: t("salaryApplication.noValidBand"), salaryOpenEnded: t("salaryApplication.openEnded"), organizationPlacement: t("organizationPlacement"), department: t("department"), job: t("job"), costCenter: t("costCenter"), costCarrier: t("costCarrier"), addAllocation: t("addAllocation"), removeAllocation: t("removeAllocation"), allocationPercentage: t("allocationPercentage"), allocationTotal: t("allocationTotal"), allocationMismatch: t("allocationMismatch"), currentValue: t("currentValue"), historyLabel: t("historyLabel"), future: t("future"), validUntil: t("validUntil"), salaryHistoryTitle: t("salaryHistoryTitle"), salaryHistoryEmpty: t("salaryHistoryEmpty"), salaryIncrease: t("salaryIncrease"), salaryDecrease: t("salaryDecrease"), change: t("change"), effectiveOn: t("effectiveOn"), changeReason: t("changeReason"), requiredFields: t("requiredFields"), previous: t("previous"), next: t("next"), confirm: t("confirm"), saving: t("saving"), changeSaved: t("changeSaved"), changeFailed: t("changeFailed"),
+    modalTitle: t("changeModalTitle"), cancel: t("cancel"), changeDiscardTitle: t("changeDiscardTitle"), changeDiscardDescription: t("changeDiscardDescription"), changeDiscardConfirm: t("changeDiscardConfirm"), changeDiscardCancel: t("changeDiscardCancel"), chooseContract: t("chooseContract"), contractSelectionTitle: t("contractSelectionTitle"), contractSelectionHelp: t("contractSelectionHelp"), contractNumber: t("contractNumber"), period: t("period"), selectedContractStatement: t("selectedContractStatement"), dateOutsideContract: t("dateOutsideContract"), contractStartOption: t("contractStartOption"), currentMonthOption: t("currentMonthOption"), nextMonthOption: t("nextMonthOption"), customDateOption: t("customDateOption"), changeStartDateTitle: t("changeStartDateTitle"), changeStartDateHelp: t("changeStartDateHelp"), timelineBeforeChange: t("timelineBeforeChange"), stepSelection: t("stepSelection"), stepDate: t("stepDate"), stepDetails: t("stepDetails"), stepReview: t("stepReview"), changeDetailsTitle: t("changeDetailsTitle"), reviewChangeTitle: t("reviewChangeTitle"), changeNotAvailable: t("changeNotAvailable"), changeHoursSchedule: t("changeHoursSchedule"), changeHoursScheduleSalary: t("changeHoursScheduleSalary"), changeFunctionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"), changeSalary: t("changeSalary"), changeLaborConditions: t("changeLaborConditions"), changeContractTypeStartDate: t("changeContractTypeStartDate"), changeModalTitle: t("changeModalTitle"), stepSchedule: t("stepSchedule"), active: t("active"), definite: t("definite"), indefinite: t("indefinite"), temporaryWithoutEnd: t("temporaryWithoutEnd"), contractType: t("contractType"), workerType: t("workerType"), selectWorkerType: t("selectWorkerType"), workerEmployee: t("workerEmployee"), workerStudentIntern: t("workerStudentIntern"), workerTemporaryAgency: t("workerTemporaryAgency"), workerExternal: t("workerExternal"), notRecorded: t("notRecorded"), flexPhase: t("flexPhase"), laborConditionsLabel: t("laborConditions"), duration: t("duration"), startDate: t("startDate"), endDate: t("endsOn"), probation: t("probation"), probationEnd: t("probationEnd"), yes: t("yes"), no: t("no"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"), probationCaoMaximum: t("probationCaoMaximum"), employmentScope: t("employmentScope"), fullTime: t("fullTime"), partTime: t("partTime"), weeklyHours: t("weeklyHours"), hoursPerWeek: t("hoursPerWeek"), hourUnit: t("hourUnit"), fulltimeReference: t("fulltimeReference"), factorCalculated: t("factorCalculated"), hoursAgreement: t("hoursAgreement"), hoursAgreementHelp: t("hoursAgreementHelp"), averageDays: t("averageDays"), partTimeFactor: t("partTimeFactor"), roster: t("roster"), rosterHelp: t("rosterHelp"), rosterInputMode: t("rosterInputMode"), rosterDecimal: t("rosterDecimal"), rosterHoursMinutes: t("rosterHoursMinutes"), rosterDecimalHelp: t("rosterDecimalHelp"), rosterHoursMinutesHelp: t("rosterHoursMinutesHelp"), rosterDecimalUnit: t("rosterDecimalUnit"), rosterHoursMinutesUnit: t("rosterHoursMinutesUnit"), rosterDecimalPlaceholder: t("rosterDecimalPlaceholder"), rosterHoursMinutesPlaceholder: t("rosterHoursMinutesPlaceholder"), rosterAverage: t("rosterAverage"), rosterMismatch: t("rosterMismatch"), weekOne: t("weekOne"), weekTwo: t("weekTwo"), addSecondWeek: t("addSecondWeek"), removeSecondWeek: t("removeSecondWeek"), timeForTime: t("timeForTime"), hoursPerDay: t("hoursPerDay"), hoursAndAverageDays: t("hoursAndAverageDays"), hoursAndSpecificDays: t("hoursAndSpecificDays"), timesPerDay: t("timesPerDay"), stepSalary: t("stepSalary"), salaryCalculation: t("salaryCalculation"), salaryBasis: t("salaryBasis"), salaryManual: t("salaryManual"), salaryMinimum: t("salaryMinimum"), salaryTable: t("salaryTable"), customScale: t("customScale"), caoScale: t("caoScale"), salaryBand: t("salaryApplication.salaryBand"), salaryApplicationScheme: t("salaryApplication.scheme"), salaryRegular: t("salaryApplication.regular"), salaryBbl: t("salaryApplication.bbl"), salaryApplicationExternalAmount: t("salaryApplication.externalAmount"), salaryScale: t("salaryScale"), salaryScaleStep: t("salaryScaleStep"), salaryScaleAmount: t("salaryScaleAmount"), fulltimeSalary: t("fulltimeSalary"), parttimeSalary: t("parttimeSalary"), hourlyRate: t("hourlyRate"), paymentType: t("paymentType"), periodicFixed: t("periodicFixed"), hourlyVariable: t("hourlyVariable"), paymentFrequency: t("paymentFrequency"), monthly: t("monthly"), fourWeekly: t("fourWeekly"), salaryBandMinimum: t("salaryApplication.minimum"), salaryBandMidpoint: t("salaryApplication.midpoint"), salaryBandMaximum: t("salaryApplication.maximum"), compaRatio: t("salaryApplication.compaRatio"), rangePenetration: t("salaryApplication.rangePenetration"), status: t("salaryApplication.status"), underMinimum: t("salaryApplication.underMinimum"), withinRange: t("salaryApplication.withinRange"), aboveMaximum: t("salaryApplication.aboveMaximum"), noValidBand: t("salaryApplication.noValidBand"), salaryOpenEnded: t("salaryApplication.openEnded"), organizationPlacement: t("organizationPlacement"), department: t("department"), job: t("job"), costCenter: t("costCenter"), costCarrier: t("costCarrier"), addAllocation: t("addAllocation"), removeAllocation: t("removeAllocation"), allocationPercentage: t("allocationPercentage"), allocationTotal: t("allocationTotal"), allocationMismatch: t("allocationMismatch"), currentValue: t("currentValue"), historyLabel: t("historyLabel"), future: t("future"), validUntil: t("validUntil"), salaryHistoryTitle: t("salaryHistoryTitle"), salaryHistoryEmpty: t("salaryHistoryEmpty"), salaryIncrease: t("salaryIncrease"), salaryDecrease: t("salaryDecrease"), change: t("change"), effectiveOn: t("effectiveOn"), changeReason: t("changeReason"), requiredFields: t("requiredFields"), previous: t("previous"), next: t("next"), confirm: t("confirm"), saving: t("saving"), changeSaved: t("changeSaved"), changeFailed: t("changeFailed"),
   };
 }
 
@@ -278,6 +286,7 @@ export default async function EmploymentDetailPage({
     dataScope,
   );
   const canReviewIncomeRelationships = canReviewPayrollSourceReadiness(authContext);
+  const canViewPayrollIdentifiers = canReviewIncomeRelationships;
   const incomeReadiness = tab === 'overview' && canReviewIncomeRelationships
     ? await getIncomeRelationshipReadiness(employeeId, employmentId)
     : [];
@@ -311,6 +320,7 @@ export default async function EmploymentDetailPage({
     ? query.lane as (typeof historyLanes)[number]
     : 'all';
   const currentSalary = detail.salaries.find((salary) => salary.valid_from <= selectedDate && (!salary.valid_until || salary.valid_until > selectedDate)) ?? detail.salaries[0];
+  const latestSalaryStart = detail.salaries.map((salary) => salary.valid_from).sort().slice(-1)[0] ?? null;
   const resolutionRevisions = detail.options.salaryRevisions.map((revision) => ({ id: revision.id, salaryStructureId: revision.salary_structure_id, effectiveFrom: revision.effective_from, revisionNumber: revision.revision_number, status: revision.status }));
   const resolutionScaleValues = detail.options.salaryScaleValues.map((value) => ({ revisionId: value.salary_structure_revision_id, salaryScaleId: value.salary_scale_id, code: value.code, name: value.name }));
   const resolutionSteps = detail.options.salaryResolutionSteps.map((step) => ({ id: step.id, revisionId: step.salary_structure_revision_id, salaryScaleId: step.salary_scale_id, stepCode: step.step_code, stepName: step.step_name ?? undefined, fulltimeAmount: step.fulltime_amount }));
@@ -688,6 +698,17 @@ export default async function EmploymentDetailPage({
     processes: tProcess("processesTab"),
     history: t("tabsHistory"),
   };
+  const futureSalaryCorrectionLabels = {
+    button: t("futureSalaryCorrectionButton"),
+    title: t("futureSalaryCorrectionTitle"),
+    description: t("futureSalaryCorrectionDescription"),
+    reason: t("futureSalaryCorrectionReason"),
+    confirm: t("futureSalaryCorrectionConfirm"),
+    cancel: t("cancel"),
+    saving: t("futureSalaryCorrectionSaving"),
+    saved: t("futureSalaryCorrectionSaved"),
+    failed: t("futureSalaryCorrectionFailed"),
+  };
   const effectiveStatus =
     detail.employment.starts_on > today
       ? t("future")
@@ -892,6 +913,11 @@ export default async function EmploymentDetailPage({
                       { label: t('ikvReadiness.validPeriod'), value: periodLabel(relationship.startsOn, relationship.endsOn, locale, preferences.dateFormat, t('fiscalDossier.openEnded')) },
                       { label: t('ikvReadiness.linkedEmployment'), value: linkedEmploymentNumbers.join(', ') || t('notRecorded') },
                       { label: t('fiscalDossier.classificationStatus'), value: relationship.fiscalProfilePresent ? t('ikvReadiness.fiscalProfilePresent') : t('ikvReadiness.fiscalProfileMissing') },
+                      ...(canViewPayrollIdentifiers ? [
+                        { label: t('payrollAuditRecordId'), value: relationship.id },
+                        { label: t('payrollAuditLinkIds'), value: detail.incomeRelationships.filter((link) => link.income_relationship_id === relationship.id).map((link) => link.id).join(', ') || t('notRecorded') },
+                        { label: t('payrollAuditSourceIds'), value: relationship.payrollTaxBindingId ?? t('notRecorded') },
+                      ] : []),
                     ]} />
                     <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                       {relationship.linkedEmployments.map((link, index) => <li key={`${relationship.id}-${link.employmentNumber}-${link.validFrom}-${index}`}>
@@ -1190,6 +1216,13 @@ export default async function EmploymentDetailPage({
                   salaryScales: detail.options.salaryScales,
                   salaryBands: detail.options.salaryBands,
                   salaryRoutes: detail.options.salaryRoutes,
+                  salaryRevisions: detail.options.salaryRevisions.map((revision) => ({
+                    salaryStructureId: revision.salary_structure_id,
+                    effectiveFrom: revision.effective_from,
+                    revisionNumber: revision.revision_number,
+                    status: revision.status,
+                    salaryBasis: revision.salary_basis,
+                  })),
                 },
               }}
             />}
@@ -1334,7 +1367,17 @@ export default async function EmploymentDetailPage({
                   <h2 className="mt-1 text-xl font-semibold">{t("salaryTimelineTitle")}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">{t("salaryTimelineDescription")}</p>
                 </div>
-                {detail.capabilities.canWriteSalary && currentContract ? <EmploymentChangeButton actionKey="salary" actionTitle={t("changeSalary")} buttonLabel={t("change")} labels={changeLabels} employmentId={employmentId} today={today} locale={locale} data={changeData} dayLabels={[t("dayMonday"), t("dayTuesday"), t("dayWednesday"), t("dayThursday"), t("dayFriday"), t("daySaturday"), t("daySunday")]} /> : null}
+                {detail.capabilities.canWriteSalary && currentContract ? <div className="flex flex-wrap items-center gap-2">
+                  <EmploymentChangeButton actionKey="salary" actionTitle={t("changeSalary")} buttonLabel={t("change")} labels={changeLabels} employmentId={employmentId} today={today} locale={locale} data={changeData} dayLabels={[t("dayMonday"), t("dayTuesday"), t("dayWednesday"), t("dayThursday"), t("dayFriday"), t("daySaturday"), t("daySunday")]} />
+                  {latestSalaryStart && <FutureSalaryTimelineCorrection
+                    employmentId={employmentId}
+                    effectiveOn={latestSalaryStart}
+                    today={today}
+                    periodCount={new Set(detail.salaries.map((salary) => salary.valid_from)).size}
+                    canWrite={detail.capabilities.canWriteSalary}
+                    labels={futureSalaryCorrectionLabels}
+                  />}
+                </div> : null}
               </div>
               <SelectableTimelineList
                 labels={timelineListLabels}
@@ -1346,11 +1389,16 @@ export default async function EmploymentDetailPage({
                   summary: `${row.payment_type === "HOURLY_VARIABLE" ? t("hourlyVariable") : row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual")} · ${row.payment_frequency}`,
                   details: [
                     { label: t("salaryCalculation"), value: row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual") },
+                    { label: t("salaryBasis"), value: row.salary_basis === 'CAO_SCALE' ? t("caoScale") : row.salary_basis === 'CUSTOM_SCALE' ? t("customScale") : row.salary_basis === 'MINIMUM_WAGE' ? t("salaryMinimum") : row.salary_basis === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : t("salaryManual") },
                     { label: row.payment_type === "HOURLY_VARIABLE" ? t("hourlyRate") : t("fulltimeSalary"), value: String(row.payment_type === "HOURLY_VARIABLE" ? row.hourly_rate ?? "—" : resolvedSalaryAmount(row, row.valid_from) ?? "—") },
                     ...(row.payment_type === "PERIODIC_FIXED" ? [{ label: t("parttimeSalary"), value: String(row.parttime_amount ?? "—") }] : []),
                     { label: t("frequency"), value: row.payment_frequency },
                     ...(row.salary_route === 'MINIMUM_WAGE' ? [{ label: t("salaryApplication.minimumWage"), value: row.minimum_wage_scheme ?? "—" }] : []),
                     ...(row.salary_route === 'SCALE_WITH_STEPS' ? [{ label: t("salaryScale"), value: row.salary_step_code ?? "—" }] : []),
+                    ...(canViewPayrollIdentifiers ? [
+                      { label: t('payrollAuditRecordId'), value: row.id },
+                      { label: t('payrollAuditSourceIds'), value: [row.salary_structure_id, row.salary_scale_id, row.salary_scale_step_id, row.salary_band_id].filter((id): id is string => Boolean(id)).join(', ') || t('notRecorded') },
+                    ] : []),
                   ],
                 }))}
               />

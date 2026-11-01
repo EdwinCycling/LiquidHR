@@ -60,10 +60,20 @@ const EDITOR_LABEL_KEYS = [
   'payrollComponentsEditorAggregateOperation', 'payrollComponentsEditorCalculation', 'payrollComponentsEditorCalculationContext',
   'payrollComponentsEditorCalculationMethod', 'payrollComponentsEditorTracePolicy_FULL', 'payrollComponentsEditorTracePolicy_OUTPUTS',
   'payrollComponentsEditorTracePolicy_NONE', 'payrollComponentsEditorStatus', 'payrollComponentsEditorCalculated', 'payrollComponentsEditorBlocked',
+  'payrollComponentsEditorConcept', 'payrollComponentsEditorConceptInactive', 'payrollComponentsEditorConvertSourceToFormula',
+  'payrollComponentsEditorConvertSourceToFormulaHelp', 'payrollComponentsEditorDraftStatus',
   'payrollComponentsEditorCategory', 'payrollComponentsEditorCode', 'payrollComponentsEditorCodeHelp',
   'payrollComponentsEditorComponentOutput', 'payrollComponentsEditorControls', 'payrollComponentsEditorDecimalPlaces',
   'payrollComponentsEditorDependencies', 'payrollComponentsEditorDescription', 'payrollComponentsEditorEffectiveFrom',
   'payrollComponentsEditorEffectiveTo', 'payrollComponentsEditorFormula', 'payrollComponentsEditorFormulaHelp',
+  'payrollComponentsEditorFormulaGuide', 'payrollComponentsEditorFormulaGuideIntro', 'payrollComponentsEditorFormulaTypes',
+  'payrollComponentsEditorFormulaOperators', 'payrollComponentsEditorFormulaFunctions', 'payrollComponentsEditorFormulaReferences',
+  'payrollComponentsEditorFormulaInputReference', 'payrollComponentsEditorFormulaParameterReference',
+  'payrollComponentsEditorFormulaDependencyReference', 'payrollComponentsEditorFormulaDependencyRequired',
+  'payrollComponentsEditorFormulaAvailableReferences', 'payrollComponentsEditorFormulaInsertReference',
+  'payrollComponentsEditorFormulaNoDependencies', 'payrollComponentsEditorFormulaReferenceTooLong', 'payrollComponentsEditorFormulaExamples',
+  'payrollComponentsEditorFormulaExamplesNote', 'payrollComponentsEditorFormulaExampleMoney',
+  'payrollComponentsEditorFormulaExampleIf', 'payrollComponentsEditorFormulaExampleMax',
   'payrollComponentsEditorGeneral', 'payrollComponentsEditorInputName', 'payrollComponentsEditorInputs',
   'payrollComponentsEditorMethod', 'payrollComponentsEditorName', 'payrollComponentsEditorNoDependencies',
   'payrollComponentsEditorNoInputs', 'payrollComponentsEditorNoParameters', 'payrollComponentsEditorNoPreviewInputs',
@@ -71,6 +81,9 @@ const EDITOR_LABEL_KEYS = [
   'payrollComponentsEditorParameterName', 'payrollComponentsEditorParameters', 'payrollComponentsEditorParameterValue',
   'payrollComponentsEditorPreviewInput', 'payrollComponentsEditorPreviewInputHelp', 'payrollComponentsEditorPreviewInputs',
   'payrollComponentsEditorProvenance', 'payrollComponentsEditorReadOnly', 'payrollComponentsEditorRemove',
+  'payrollComponentsEditorSourceField', 'payrollComponentsEditorOwnCalculation',
+  'payrollComponentsEditorOwnCalculationEditable', 'payrollComponentsEditorOwnCalculationNotConverted',
+  'payrollComponentsEditorOwnCalculationReadOnly',
   'payrollComponentsEditorRequired', 'payrollComponentsEditorResult', 'payrollComponentsEditorRounding',
   'payrollComponentsEditorRoundingMode', 'payrollComponentsEditorRunPreview', 'payrollComponentsEditorSaveDraft',
   'payrollComponentsEditorSaveFailed', 'payrollComponentsEditorScope', 'payrollComponentsEditorSelectInput',
@@ -156,6 +169,20 @@ function searchableMetadataValues(value: unknown): string[] {
     return Object.entries(value).flatMap(([key, item]) => [key, ...searchableMetadataValues(item)])
   }
   return []
+}
+
+function trustedSourcePath(entry: ComponentCatalogEntry, components: readonly ComponentCatalogEntry[]): string | undefined {
+  if (entry.definition.ownership.kind !== 'CUSTOMER_FORK') {
+    return entry.definition.method.kind === 'source' ? entry.definition.method.path.join('.') : undefined
+  }
+  const origin = entry.definition.ownership.origin
+  const source = components.find((candidate) => candidate.definition.ownership.kind === 'SYSTEM'
+    && candidate.definition.id === origin.id
+    && candidate.definition.code === origin.code
+    && candidate.definition.version === origin.version
+    && candidate.package.compositionId === entry.package.compositionId
+    && (entry.package.packageHash === undefined || candidate.package.packageHash === entry.package.packageHash))
+  return source?.definition.method.kind === 'source' ? source.definition.method.path.join('.') : undefined
 }
 
 function filterEntries(entries: readonly ComponentCatalogEntry[], filters: Filters, locale: string, t: (key: string) => string): ComponentCatalogEntry[] {
@@ -382,12 +409,12 @@ export default async function PayrollComponentsPage({
     if (error instanceof AuthorizationError || error instanceof ContextAccessError) redirect('/geen-toegang')
     if (error instanceof PayrollLabUnavailableError) {
       return <PageShell className="space-y-6 py-6 sm:py-8" width="wide" role="status">
-        <PageHeader actions={<Link className={buttonClasses({ variant: 'secondary' })} href="/payroll-lab"><ArrowLeft aria-hidden="true" />{t('payrollLabBackToOverview')}</Link>} description={t('payrollComponentsUnavailable')} title={t('payrollComponents')} />
+        <PageHeader actions={<Link className={buttonClasses({ variant: 'secondary' })} href="/payroll"><ArrowLeft aria-hidden="true" />{t('payrollOverviewBack')}</Link>} description={t('payrollComponentsUnavailable')} title={t('payrollComponents')} />
         <EmptyState description={t('payrollComponentsLoadError')} icon={<Blocks aria-hidden="true" />} title={t('payrollComponentsUnavailable')} />
       </PageShell>
     }
     return <PageShell className="space-y-6 py-6 sm:py-8" width="wide" role="status">
-      <PageHeader actions={<Link className={buttonClasses({ variant: 'secondary' })} href="/payroll-lab"><ArrowLeft aria-hidden="true" />{t('payrollLabBackToOverview')}</Link>} description={t('payrollComponentsLoadError')} title={t('payrollComponents')} />
+      <PageHeader actions={<Link className={buttonClasses({ variant: 'secondary' })} href="/payroll"><ArrowLeft aria-hidden="true" />{t('payrollOverviewBack')}</Link>} description={t('payrollComponentsLoadError')} title={t('payrollComponents')} />
       <EmptyState description={t('payrollComponentsLoadError')} icon={<Blocks aria-hidden="true" />} title={t('payrollComponentsUnavailable')} />
     </PageShell>
   }
@@ -447,7 +474,7 @@ export default async function PayrollComponentsPage({
       label: `${payrollComponentName(entry, t)} · ${entry.definition.code}.${output.name} · ${output.valueType}`,
     })))
   const editorLabels = Object.fromEntries(EDITOR_LABEL_KEYS.map((key) => [key, t(key)]))
-  const sourcePath = editDraft && selected?.definition.method.kind === 'source' ? selected.definition.method.path.join('.') : undefined
+  const sourcePath = editDraft && selected ? trustedSourcePath(selected, library.components) : undefined
   const provenanceLabel = editDraft && selected?.definition.ownership.kind === 'CUSTOMER_FORK'
     ? `${selected.definition.ownership.origin.code} v${selected.definition.ownership.origin.version}`
     : editDraft ? t('payrollComponentsEditorCustomerCustom') : ''
@@ -478,7 +505,7 @@ export default async function PayrollComponentsPage({
   return <PageShell className="space-y-6 py-6 sm:py-8" width="wide">
     <PageHeader actions={<div className="flex flex-wrap gap-2">
       {library.canCopy && !showEditor ? <Link className={buttonClasses({ variant: 'primary' })} href={hrefWithParam(overviewHref, 'new', '1')}><Plus aria-hidden="true" />{t('payrollComponentsNew')}</Link> : null}
-      <Link className={buttonClasses({ variant: 'secondary' })} href="/payroll-lab"><ArrowLeft aria-hidden="true" />{t('payrollLabBackToOverview')}</Link>
+      <Link className={buttonClasses({ variant: 'secondary' })} href="/payroll"><ArrowLeft aria-hidden="true" />{t('payrollOverviewBack')}</Link>
     </div>} description={t('payrollComponentsDescription')} title={t('payrollComponents')} />
     {copied ? <Surface className="border-success bg-success-surface p-3 text-sm text-success" role="status">{t('payrollComponentsCopied')}</Surface> : null}
     {saved ? <Surface className="border-success bg-success-surface p-3 text-sm text-success" role="status">{t('payrollComponentsEditorSaved')}</Surface> : null}

@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
 import { readFileSync, renameSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -27,13 +26,17 @@ try {
   fail('Next.js BUILD_ID ontbreekt; buildprovenance is niet geschreven.')
 }
 
-const sourceCommit = (process.env.VERCEL_GIT_COMMIT_SHA ?? execFileSync(
-  'git',
-  ['-C', path.resolve(appRoot, '../..'), 'rev-parse', 'HEAD'],
-  { encoding: 'utf8' },
-)).trim()
+let sourceCommit
+try {
+  sourceCommit = JSON.parse(readFileSync(path.join(appRoot, '.vercel', 'liquidhr-build-source.json'), 'utf8')).sourceCommit
+} catch {
+  fail('De geverifieerde Git-buildbron ontbreekt; buildprovenance is niet geschreven.')
+}
 if (!/^[a-f0-9]{40}$/i.test(sourceCommit)) {
   fail('De build heeft geen verifieerbare Git-commit-SHA; buildprovenance is niet geschreven.')
+}
+if (process.env.VERCEL_GIT_COMMIT_SHA && process.env.VERCEL_GIT_COMMIT_SHA.trim() !== sourceCommit) {
+  fail('De Vercel Git-bron wijkt af van de buildprovenance; buildprovenance is niet geschreven.')
 }
 
 const publicRuntimeFingerprint = createHash('sha256')

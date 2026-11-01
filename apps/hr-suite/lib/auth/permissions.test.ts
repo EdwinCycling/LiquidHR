@@ -10,13 +10,14 @@ vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/context/server-context', () => ({ loadActiveContext }))
 vi.mock('@/lib/focus/preview-token', () => ({ hasActiveFocusPreviewToken }))
 
-import { AuthorizationError, getRequestAuthorizationContext, requireAuthContext, requirePermission, requirePermissionInContext, type AuthContext } from './permissions'
+import { AuthorizationError, getRequestAuthorizationContext, getSelfPermissions, requireAuthContext, requirePermission, requirePermissionInContext, type AuthContext } from './permissions'
 
 interface FakeClientOptions {
   actor?: { id: string; tenant_id: string } | null
   accessRoleIds?: string[]
   assignmentRoleIds?: string[]
   roleCodes?: Record<string, string>
+  roleRows?: Record<string, { code: string; tenantId: string | null; isActive: boolean; deletedAt?: string | null }>
   rolePermissions?: Record<string, string[]>
   selfPermissionCodes?: string[]
   essStatus?: 'ACTIVE' | 'BLOCKED'
@@ -26,6 +27,20 @@ interface FakeClientOptions {
 function createFakeClient(options: FakeClientOptions = {}) {
   let requestedRoleIds: string[] = []
   const rpc = vi.fn()
+  const allRoleIds = new Set([
+    'employee-role',
+    ...Object.keys(options.roleCodes ?? {}),
+    ...Object.keys(options.roleRows ?? {}),
+    ...Object.keys(options.rolePermissions ?? {}),
+    ...(options.accessRoleIds ?? ['tenant-admin-role']),
+    ...(options.assignmentRoleIds ?? []),
+  ])
+  const roleRow = (id: string) => options.roleRows?.[id] ?? {
+    code: options.roleCodes?.[id] ?? (id === 'employee-role' ? 'EMPLOYEE' : 'TENANT_ADMIN'),
+    tenantId: id === 'employee-role' ? null : 'tenant-1',
+    isActive: true,
+    deletedAt: null,
+  }
 
   return {
     auth: {
@@ -102,17 +117,50 @@ function createFakeClient(options: FakeClientOptions = {}) {
       }
 
       if (table === 'management_roles') {
+        const filters = new Map<string, unknown>()
+        let roleIdsFilter: string[] | null = null
+        let codesFilter: string[] | null = null
+        let tenantScope: string | null = null
+        let allowGlobalTenantScope = false
+        const queryRoles = () => [...allRoleIds]
+          .filter((id) => roleIdsFilter === null || roleIdsFilter.includes(id))
+          .filter((id) => codesFilter === null || codesFilter.includes(roleRow(id).code))
+          .filter((id) => [...filters].every(([column, value]) => {
+            const row = roleRow(id)
+            if (column === 'code') return row.code === value
+            if (column === 'tenant_id') return row.tenantId === value
+            if (column === 'is_active') return row.isActive === value
+            if (column === 'deleted_at') return (row.deletedAt ?? null) === value
+            return true
+          }))
+          .filter((id) => tenantScope === null || roleRow(id).tenantId === tenantScope || (allowGlobalTenantScope && roleRow(id).tenantId === null))
+          .map((id) => ({ id, code: roleRow(id).code, tenant_id: roleRow(id).tenantId, is_active: roleRow(id).isActive, deleted_at: roleRow(id).deletedAt ?? null }))
+        const result = () => ({ data: queryRoles(), error: null })
         const builder = {
-          in: (_column: string, roleIds: string[]) => {
-            requestedRoleIds = roleIds
-            return Promise.resolve({
-              data: roleIds.map((id) => ({ id, code: options.roleCodes?.[id] ?? 'TENANT_ADMIN' })),
-              error: null,
-            })
+          in: (column: string, values: string[]) => {
+            if (column === 'id') roleIdsFilter = values
+            if (column === 'code') codesFilter = values
+            return builder
           },
-          eq: () => builder,
-          or: vi.fn().mockResolvedValue({ data: [{ id: 'employee-role', tenant_id: null }], error: null }),
-          is: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'employee-role' }, error: null }) }),
+          eq: (column: string, value: unknown) => {
+            filters.set(column, value)
+            return builder
+          },
+          or: (expression: string) => {
+            const tenantMatch = expression.match(/tenant_id\.eq\.([^,)]+)/)
+            if (tenantMatch?.[1]) tenantScope = tenantMatch[1]
+            allowGlobalTenantScope = expression.includes('tenant_id.is.null')
+            return builder
+          },
+          is: (column: string, value: unknown) => {
+            filters.set(column, value)
+            return builder
+          },
+          maybeSingle: vi.fn().mockImplementation(async () => ({ data: queryRoles()[0] ?? null, error: null })),
+          then: (
+            onfulfilled?: ((value: ReturnType<typeof result>) => unknown) | null,
+            onrejected?: ((reason: unknown) => unknown) | null,
+          ) => Promise.resolve(result()).then(onfulfilled, onrejected),
         }
         return { select: () => builder }
       }
@@ -123,7 +171,7 @@ function createFakeClient(options: FakeClientOptions = {}) {
             in: (_column: string, roleIds: string[]) => {
               requestedRoleIds = roleIds
               const permissionIds = roleIds.flatMap((roleId) => {
-                if (roleId === 'employee-role') {
+                if (roleRow(roleId).code === 'EMPLOYEE') {
                   return (options.selfPermissionCodes ?? []).map((_, index) => `self-${index}`)
                 }
                 return (options.rolePermissions?.[roleId] ?? []).map((_, index) => `${roleId}-${index}`)
@@ -142,7 +190,7 @@ function createFakeClient(options: FakeClientOptions = {}) {
           select: () => ({
             in: () => {
               const codes = requestedRoleIds.flatMap((roleId) =>
-                roleId === 'employee-role'
+                roleRow(roleId).code === 'EMPLOYEE'
                   ? options.selfPermissionCodes ?? []
                   : options.rolePermissions?.[roleId] ?? [],
               )
@@ -457,5 +505,76 @@ describe('requirePermission', () => {
       'employee-1',
     )).rejects.toBeInstanceOf(AuthorizationError)
     expect(createClient).not.toHaveBeenCalled()
+  })
+
+  it('gebruikt alleen een actieve globale roltoewijzing en een actieve tenantoverride', async () => {
+    createClient.mockResolvedValue(createFakeClient({
+      accessRoleIds: ['global-manager-role'],
+      roleRows: {
+        'global-manager-role': { code: 'DIRECT_MANAGER', tenantId: null, isActive: true },
+        'tenant-manager-role': { code: 'DIRECT_MANAGER', tenantId: 'tenant-1', isActive: true },
+      },
+      rolePermissions: {
+        'global-manager-role': ['stale-global-permission'],
+        'tenant-manager-role': ['report-absence:read'],
+      },
+    }))
+
+    await expect(requireAuthContext()).resolves.toMatchObject({
+      activeRoles: ['DIRECT_MANAGER'],
+      permissions: ['report-absence:read'],
+    })
+  })
+
+  it('weigert inactieve, verwijderde en vreemde-tenantrollen uit actieve snapshots zonder globale terugval', async () => {
+    createClient.mockResolvedValue(createFakeClient({
+      accessRoleIds: ['inactive-tenant-manager', 'deleted-tenant-manager', 'foreign-tenant-manager'],
+      assignmentRoleIds: ['inactive-assignment-manager'],
+      roleRows: {
+        'global-manager-role': { code: 'DIRECT_MANAGER', tenantId: null, isActive: true },
+        'inactive-tenant-manager': { code: 'DIRECT_MANAGER', tenantId: 'tenant-1', isActive: false },
+        'deleted-tenant-manager': { code: 'DIRECT_MANAGER', tenantId: 'tenant-1', isActive: true, deletedAt: '2026-10-29T10:00:00Z' },
+        'foreign-tenant-manager': { code: 'DIRECT_MANAGER', tenantId: 'tenant-2', isActive: true },
+        'inactive-assignment-manager': { code: 'HR_ADMIN', tenantId: 'tenant-1', isActive: false },
+      },
+      rolePermissions: {
+        'global-manager-role': ['global-admin:read'],
+        'inactive-tenant-manager': ['report-absence:read'],
+        'deleted-tenant-manager': ['report-absence:read'],
+        'foreign-tenant-manager': ['report-absence:read'],
+        'inactive-assignment-manager': ['global-admin:read'],
+      },
+    }))
+
+    await expect(requireAuthContext()).resolves.toMatchObject({ activeRoles: [], permissions: [] })
+    await expect(requirePermission('report-absence:read')).rejects.toBeInstanceOf(AuthorizationError)
+  })
+
+  it('behoudt Employee-selfpermissions van een actieve rol', async () => {
+    const client = createFakeClient({
+      roleRows: {
+        'employee-role': { code: 'EMPLOYEE', tenantId: null, isActive: true },
+      },
+      selfPermissionCodes: ['self:leave:read'],
+    })
+
+    await expect(getSelfPermissions(
+      client as unknown as Parameters<typeof getSelfPermissions>[0],
+      'tenant-1',
+    )).resolves.toEqual(['self:leave:read'])
+  })
+
+  it('geeft geen Employee-selfpermissions terug voor een logisch verwijderde Employee-rol', async () => {
+    const client = createFakeClient({
+      roleRows: {
+        'employee-role': { code: 'EMPLOYEE', tenantId: null, isActive: true, deletedAt: '2026-10-29T10:00:00Z' },
+      },
+      selfPermissionCodes: ['self:leave:read'],
+    })
+
+    await expect(getSelfPermissions(
+      client as unknown as Parameters<typeof getSelfPermissions>[0],
+      'tenant-1',
+    )).resolves.toEqual([])
   })
 })

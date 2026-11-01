@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   renderPayrun01PayslipHtml,
-  renderPayrun01PayslipPdf,
   LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID,
-  type Payrun01PayslipPdfInput,
 } from './payrun01-payslip-pdf'
 import {
   derivePayd2RetailR1IndependentOracle,
@@ -14,25 +12,21 @@ import { getRetailModeRuleBundle } from '@liquid-hr/payroll-rules-cao-bench02'
 import {
   PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS,
   PAYW02B_R2_OFFICIAL_SOURCE_PINS,
-  calculateRetailR1,
   canonical,
   createRetailSourceSnapshot,
   retailCalculation,
-  resultAmount,
   scope,
   sourceIds,
   sourceContract,
 } from './payd2-retail-source-fixture'
 describe('PAYD2 Retail in-memory source cases', () => {
-  it('binds R1 to the July wage/version source and preserves the complete indexation-cap trace', async () => {
+  it('binds R1 to the published July salary row and retains the pension source blocker', async () => {
     const snapshot = await createRetailSourceSnapshot('R1')
     const repeat = await createRetailSourceSnapshot('R1')
     const source = canonical(snapshot)
     const contract = sourceContract(snapshot)
     const cao = retailCalculation(snapshot)
     const oracle = derivePayd2RetailR1IndependentOracle()
-    const engineTrace = cao.componentTrace?.find((step) => step.componentCode === 'RETAIL_MODE_GROSS')
-    const indexTrace = engineTrace?.registeredRuleTrace?.find((step) => step.code === 'RETAIL_R1_JULY_ACTUAL_RATE_INDEXATION_CAP')
     const metadata = getRetailModeRuleBundle('2026-07-01').rulePackage.metadata?.sourceMetadata
 
     expect(snapshot.sourceHash).toBe(repeat.sourceHash)
@@ -59,7 +53,7 @@ describe('PAYD2 Retail in-memory source cases', () => {
     ]))
     expect(contract.versionVector).toEqual(snapshot.sourceVersionVector)
     expect(snapshot.sourceVersionVector).toMatchObject({
-      'cao:rule-package:CAO-RETAIL-NON-FOOD-2026:2026.7': `${cao.packageVersion}:${cao.packageHash}`,
+      [`cao:rule-package:${cao.compositionId}`]: `${cao.packageVersion}:${cao.packageHash}`,
       [`cao:input:${snapshot.sourceEmploymentId}`]: `${cao.inputHash}:${cao.sourceHash}`,
     })
     expect(metadata).toMatchObject({
@@ -71,21 +65,28 @@ describe('PAYD2 Retail in-memory source cases', () => {
     expect(cao).toMatchObject({
       status: 'CALCULATED',
       family: 'RETAIL_MODE',
-      packageVersion: '2026.7',
+      packageVersion: '2026-07',
       effectiveFrom: '2026-07-01',
-      effectiveTo: '2026-12-31',
+      effectiveTo: '2027-06-30',
       hourlyBaseRate: oracle.appliedHourlyRate,
-      baseAmount: oracle.baseMonthlyGross,
-      premiumAmount: '0.00',
+      baseAmount: '4767.2',
+      premiumAmount: '0',
       grossAmount: oracle.gross,
     })
-    expect(indexTrace?.values).toMatchObject({
-      previousHourlyRate: { valueType: 'MONEY', value: oracle.previousHourlyRate },
-      indexationRate: { valueType: 'PERCENTAGE', value: oracle.indexationRate },
-      indexedHourlyRateBeforeRounding: { valueType: 'MONEY', value: oracle.indexedHourlyRateBeforeRounding },
-      indexedHourlyRateBeforeCap: { valueType: 'MONEY', value: oracle.indexedHourlyRateBeforeCap },
-      tableMaximumHourlyRate: { valueType: 'MONEY', value: oracle.maximumHourlyRate },
-      hourlyRateAfterCap: { valueType: 'MONEY', value: oracle.appliedHourlyRate },
+    expect(cao.trace).toContainEqual(expect.objectContaining({
+      code: 'RETAIL_MODE_BASE_SALARY',
+      values: expect.objectContaining({
+        salaryScale: 'MODE_I',
+        salaryStep: 'EXP_15',
+        fullTimeSalary: oracle.appliedHourlyRate === '28.95' ? '4767.2' : expect.any(String),
+      }),
+    }))
+    expect(cao.sourceReferences).toContainEqual(expect.objectContaining({
+      title: expect.stringContaining('2026-07'),
+      url: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.cao.url,
+    }))
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'pension', status: 'SOURCE_GAP', reasonCode: 'BPF_DETAILHANDEL_2026_PREMIUM_SPLIT_ROUNDING_UNRESOLVED',
     })
     expect(cao.packageHash).toMatch(/^[a-f0-9]{64}$/)
     expect(cao.sourceHash).toMatch(/^[a-f0-9]{64}$/)
@@ -104,42 +105,40 @@ describe('PAYD2 Retail in-memory source cases', () => {
       },
     })
     expect(source.retailBusinessScope).toMatchObject({ sourceClassification: 'SYNTHETIC_FIXTURE' })
-    expect(snapshot.sourceGaps).toEqual([])
+    expect(source).not.toHaveProperty('payrollOwned')
+    expect(source.pension).toHaveProperty('bpfDetailhandel2026Source.calculationInput.currentPayrollGross', '4767.20')
     expect(source.fiscalProfile).toMatchObject({ status: 'CONFIRMED', ageCategory: 'UNDER_AOW' })
-    expect(source.payrollOwned).toMatchObject({
-      pension: { planCode: 'BPF_DETAILHANDEL_2026', annualFranchise: '18680', totalPremiumRate: '24.75' },
-      employerRates: { awf: '2.7400', aof: '6.2700', wko: '0.5000', whk: '1.9300', zvw: '6.1000' },
-      reserveRates: { holidayAllowance: '8.0000', yearEnd: '0.00' },
-    })
   })
 
-  it('calculates complete R1 gross-to-net, reconciles each component to the independent oracle, and renders only an in-memory CONCEPT PDF', async () => {
+  it('blocks BPF inputs whose current payroll gross differs from the CAO result', async () => {
+    const snapshot = await createRetailSourceSnapshot('R1', { bpfCurrentGrossMismatch: true })
+
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'pension', status: 'UNSUPPORTED', reasonCode: 'BPF_DETAILHANDEL_2026_CURRENT_GROSS_MISMATCH',
+    })
+    expect(canonical(snapshot)).not.toHaveProperty('payrollOwned')
+  })
+
+  it('does not expose R1 Payroll-owned amounts when BPF split rounding is unresolved', async () => {
     const snapshot = await createRetailSourceSnapshot('R1')
     const source = canonical(snapshot)
-    const payrollOwned = source.payrollOwned as Record<string, unknown>
-    const pension = payrollOwned.pension as Record<string, unknown>
     const oracle = derivePayd2RetailR1IndependentOracle()
-    const result = calculateRetailR1(snapshot)
-    const componentResults = {
-      gross: resultAmount(result, 'gross_salary'),
-      pensionableBase: resultAmount(result, 'pensionable_wage'),
-      employeePension: resultAmount(result, 'employee_pension'),
-      employerPension: resultAmount(result, 'employer_pension'),
-      taxableWage: resultAmount(result, 'taxable_wage'),
-      employeeInsuranceBase: resultAmount(result, 'employee_insurance_base'),
-      zvwBase: resultAmount(result, 'zvw_base'),
-      wageTax: resultAmount(result, 'wage_tax'),
-      net: resultAmount(result, 'net_salary'),
-      awf: resultAmount(result, 'employer_awf'),
-      aof: resultAmount(result, 'employer_aof'),
-      wko: resultAmount(result, 'employer_wko'),
-      whk: resultAmount(result, 'employer_whk'),
-      zvw: resultAmount(result, 'employer_zvw'),
-      employerInsurance: resultAmount(result, 'employer_insurance'),
-      holidayReserve: resultAmount(result, 'holiday_allowance_reserve'),
-      totalEmployerCost: resultAmount(result, 'total_employer_cost'),
-    }
-    const htmlInput: Payrun01PayslipPdfInput = {
+
+    expect(retailCalculation(snapshot)).toMatchObject({
+      status: 'CALCULATED',
+      grossAmount: oracle.gross,
+      hourlyBaseRate: oracle.appliedHourlyRate,
+    })
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'pension', status: 'SOURCE_GAP', reasonCode: 'BPF_DETAILHANDEL_2026_PREMIUM_SPLIT_ROUNDING_UNRESOLVED',
+    })
+    expect(source).not.toHaveProperty('payrollOwned')
+    expect(sourceContract(snapshot).references).toContainEqual(expect.objectContaining({
+      field: 'pensionYearToDate',
+      sourceType: 'payroll_bpf_detailhandel_vcr_inputs',
+      status: 'BOUND',
+    }))
+    expect(() => renderPayrun01PayslipHtml({
       data: {
         period: { year: 2026, month: 7, startsOn: '2026-07-01', endsOn: '2026-07-31' },
         lifecycle: 'CONCEPT',
@@ -153,95 +152,11 @@ describe('PAYD2 Retail in-memory source cases', () => {
           contractHoursPerWeek: 38,
           fulltimeHoursPerWeek: 38,
         },
-        components: result.resultRows.map((row) => {
-          if (typeof row.value !== 'string') throw new Error(`NON_MONEY_PAYSLIP_RESULT:${row.key}`)
-          return { key: row.key, amount: row.value }
-        }),
-        sourceWarnings: ['Synthetische R1-proef; conceptbedragen niet voor uitbetaling. 8% vakantietoeslag is alleen als reserve opgenomen.'],
+        components: [{ key: 'gross_salary', amount: oracle.gross }],
+        sourceWarnings: ['SOURCE_GAP: BPF-premiesplitsing kan niet op centen worden gereconcilieerd.'],
       },
-      branding: { liquidHrLogoDataUrl: null },
       presentation: { templateId: LIQUIDHR_STANDARD_PAYSLIP_TEMPLATE_ID },
-    }
-    const html = renderPayrun01PayslipHtml(htmlInput)
-    const pdf = await renderPayrun01PayslipPdf(htmlInput)
-
-    expect(snapshot.sourceGaps).toEqual([])
-    expect(sourceContract(snapshot).references.every((reference) => reference.status === 'BOUND')).toBe(true)
-    expect(result.status).toBe('CALCULATED')
-    expect(result.controls.filter((control) => control.status === 'FAIL')).toEqual([])
-    expect(componentResults).toEqual({
-      gross: oracle.gross,
-      pensionableBase: oracle.monthlyPensionableBase,
-      employeePension: oracle.employeePension,
-      employerPension: oracle.employerPension,
-      taxableWage: oracle.taxableWage,
-      employeeInsuranceBase: oracle.taxableWage,
-      zvwBase: oracle.taxableWage,
-      wageTax: oracle.wageTax,
-      net: oracle.net,
-      awf: oracle.employerRates.awf,
-      aof: oracle.employerRates.aof,
-      wko: oracle.employerRates.wko,
-      whk: oracle.employerRates.whk,
-      zvw: oracle.employerRates.zvw,
-      employerInsurance: oracle.employerRates.total,
-      holidayReserve: oracle.holidayReserve,
-      totalEmployerCost: oracle.totalEmployerCost,
-    })
-    expect(componentResults).toEqual({
-      gross: '4767.20',
-      pensionableBase: '3210.53',
-      employeePension: '198.65',
-      employerPension: '595.96',
-      taxableWage: '4568.55',
-      employeeInsuranceBase: '4568.55',
-      zvwBase: '4568.55',
-      wageTax: '1107.17',
-      net: '3461.38',
-      awf: '125.18',
-      aof: '286.45',
-      wko: '22.84',
-      whk: '88.17',
-      zvw: '278.68',
-      employerInsurance: '801.32',
-      holidayReserve: '381.38',
-      totalEmployerCost: '6545.86',
-    })
-    expect(pension).toMatchObject({
-      annualFranchise: '18680',
-      totalPremiumRate: '24.75',
-      employeeRate: '6.1875',
-      employerRate: '18.5625',
-      calculationStatus: 'CALCULATED',
-    })
-    expect((pension.calculationTrace as readonly { componentCode: string; result: string | null }[])
-      .find((step) => step.componentCode === 'PENSION_PENSIONABLE_BASE')?.result).toBe(oracle.annualPensionableBase)
-    expect(result.trace.find((step) => step.componentCode === 'NL_WAGE_TAX')?.registeredRuleTrace)
-      .toContainEqual(expect.objectContaining({
-        code: 'result.period-values',
-        values: expect.objectContaining({
-          tablePeriodWage: { valueType: 'MONEY', value: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS.wageTaxTable.oracleTableWage },
-          wageTax: { valueType: 'MONEY', value: oracle.wageTax },
-        }),
-      }))
-    expect(resultAmount(result, 'cumulative_gross_wage')).toBe(oracle.gross)
-    expect(payrollOwned.amounts).toMatchObject({ variableRegularWage: '0.00' })
-    expect(componentResults.gross).toBe('4767.20')
-    expect(componentResults.employeePension).toBe('198.65')
-    expect(componentResults.employerPension).toBe('595.96')
-    expect(oracle.pensionAllocationDifference).toBe('0.00')
-    expect(componentResults.holidayReserve).toBe('381.38')
-    expect(componentResults.taxableWage).toBe('4568.55')
-    expect(componentResults.aof).toBe('286.45')
-    expect(componentResults.totalEmployerCost).toBe(oracle.totalEmployerCost)
-    expect(componentResults.totalEmployerCost).toBe('6545.86')
-    expect(html).toContain('CONCEPT — NIET DEFINITIEF')
-    expect(html).toContain('Lokale CONCEPT-proef op basis van synthetische TEST-invoer')
-    expect(Buffer.from(pdf).subarray(0, 5).toString('ascii')).toBe('%PDF-')
-    expect(pdf.byteLength).toBeGreaterThan(1000)
-    expect(result.sourceHash).toMatch(/^[a-f0-9]{64}$/)
-    expect(result.inputHash).toMatch(/^[a-f0-9]{64}$/)
-    expect(result.resultHash).toMatch(/^[a-f0-9]{64}$/)
+    })).toThrow('PAYRUN01_PAYSLIP_RESULT_INCOMPLETE')
   })
 
   it('does not infer R2 premiums from work-hour labels without an HR Admin payroll release', async () => {
@@ -250,8 +165,6 @@ describe('PAYD2 Retail in-memory source cases', () => {
     const contract = sourceContract(snapshot)
     const cao = retailCalculation(snapshot)
     const oracle = derivePayd2RetailR2IndependentOracle()
-    const engineTrace = cao.componentTrace?.find((step) => step.componentCode === 'RETAIL_MODE_GROSS')
-    const premiumTrace = engineTrace?.registeredRuleTrace?.find((step) => step.code === 'RETAIL_R2_BEST_OF_PREMIUMS_NO_DOUBLE_PAY')
     const actualWork = source.actualWork as { readonly entries: readonly Record<string, unknown>[] }
 
     expect(contract.references.every((reference) => reference.status === 'BOUND')).toBe(true)
@@ -268,30 +181,20 @@ describe('PAYD2 Retail in-memory source cases', () => {
     }))
     expect(cao).toMatchObject({
       status: 'CALCULATED',
-      packageVersion: '2026.7',
+      packageVersion: '2026-07',
       hourlyBaseRate: oracle.hourlyBaseRate,
       baseAmount: oracle.baseMonthlyGross,
-      premiumAmount: '0.00',
+      premiumAmount: '0',
       grossAmount: oracle.baseMonthlyGross,
       inputs: {
-        scenarioCode: 'R2',
-        functionGroup: 'C',
-        experienceRow: '1',
+        salaryScale: 'MODE_C',
+        salaryStep: 'EXP_01',
         contractHoursPerWeek: '24',
         fullTimeHoursPerWeek: '38',
-        weekdayNightHours: '0',
-        sundayHours: '0',
-        dailyOvertimeHours: '0',
-        isEcommerce: false,
+        approvedSundayOrHolidayHours: '0',
       },
     })
-    expect(cao).toMatchObject({ baseAmount: '1605.79', premiumAmount: '0.00', grossAmount: '1605.79' })
-    expect(premiumTrace?.values).toMatchObject({
-      weekdayNightHours: { value: '0' },
-      sundayHours: { value: '0' },
-      dailyOvertimeHours: { value: '0' },
-      selectedPremiumGross: { value: '0.00' },
-    })
+    expect(cao).toMatchObject({ baseAmount: '1605.79', premiumAmount: '0', grossAmount: '1605.79' })
     expect(source.caseProvenance).toMatchObject({
       premiumOverlap: {
         sourceClassification: 'SYNTHETIC_FIXTURE',
@@ -306,7 +209,6 @@ describe('PAYD2 Retail in-memory source cases', () => {
     const snapshot = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true })
     const repeated = await createRetailSourceSnapshot('R2', { completeR2PayrollSource: true })
     const source = canonical(snapshot)
-    const payrollOwned = source.payrollOwned as Record<string, unknown>
     const oracle = derivePayd2RetailR2NetIndependentOracle()
 
     expect(snapshot.sourceHash).toBe(repeated.sourceHash)
@@ -325,27 +227,10 @@ describe('PAYD2 Retail in-memory source cases', () => {
       ageCategory: 'UNDER_AOW',
       payrollTaxCreditApplies: true,
     })
-    expect(payrollOwned).toMatchObject({
-      pension: {
-        planCode: 'BPF_DETAILHANDEL_2026',
-        annualFranchise: '18680',
-        totalPremiumRate: '24.75',
-        employeeRate: '6.1875',
-        employerRate: '18.5625',
-        partTimeFactor: '0.6316',
-      },
-      employerRates: { awf: '2.7400', aof: '6.2700', wko: '0.5000', whk: '1.9300', zvw: '6.1000' },
-      reserveRates: { holidayAllowance: '8.0000', yearEnd: '0.00' },
-      cumulatives: {
-        grossWageBeforePeriod: '0.00',
-        taxableWageBeforePeriod: '0.00',
-        wageTaxBeforePeriod: '0.00',
-        employeeInsuranceWageBeforePeriod: '0.00',
-        zvwWageBeforePeriod: '0.00',
-        holidayReserveBeforePeriod: '0.00',
-        yearEndReserveBeforePeriod: '0.00',
-      },
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'pension', status: 'SOURCE_GAP', reasonCode: 'BPF_DETAILHANDEL_2026_VCR_INPUT_MISSING',
     })
+    expect(source).not.toHaveProperty('payrollOwned')
     expect(source.caseProvenance).toMatchObject({
       officialRuleSources: PAYW02B_R2_OFFICIAL_SOURCE_PINS,
       syntheticPayrollInputs: {
@@ -406,13 +291,13 @@ describe('PAYD2 Retail in-memory source cases', () => {
     const missingCalculation = retailCalculation(missingScope)
     const eCommerceCalculation = retailCalculation(eCommerce)
 
-    expect(missingCalculation).toMatchObject({ status: 'CALCULATED', premiumAmount: '0.00', grossAmount: '1605.79' })
+    expect(missingCalculation).toMatchObject({ status: 'CALCULATED', premiumAmount: '0', grossAmount: '1605.79' })
     expect(missingScope.sourceGaps).toContainEqual(expect.objectContaining({
       field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     }))
     expect(missingScope.sourceGaps).not.toContainEqual(expect.objectContaining({ field: 'cao' }))
     expect(sourceContract(missingScope).references.map((reference) => reference.field)).not.toContain('retailBusinessScope')
-    expect(eCommerceCalculation).toMatchObject({ status: 'CALCULATED', premiumAmount: '0.00', grossAmount: '1605.79' })
+    expect(eCommerceCalculation).toMatchObject({ status: 'CALCULATED', premiumAmount: '0', grossAmount: '1605.79' })
     expect(eCommerce.sourceGaps).toContainEqual(expect.objectContaining({
       field: 'actualWork', status: 'SOURCE_GAP', reasonCode: 'ACTUAL_WORK_PAYROLL_RELEASE_REQUIRED',
     }))

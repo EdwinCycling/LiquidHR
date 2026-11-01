@@ -21,6 +21,7 @@ import { getPensionArrangementEstablishedFrom, resolvePensionArrangementVersion 
 import { readPayrollSourcePensionVersionTiers } from './payroll-source-pension-version-tier-reader'
 import { readPayrollSourceQueryCached } from './payroll-source-read-cache'
 import { readPayrollTimelineBatch, type PayrollTimelineTarget } from './payroll-timeline-batch-reader'
+import { salaryRowCoversPayrollPeriod, salaryRowOverlapsPayrollPeriod } from './salary-table-period'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
@@ -214,6 +215,7 @@ export interface EmploymentPayrollSourceProjection {
     | 'fulltime_amount' | 'parttime_amount' | 'hourly_rate' | 'salary_structure_id' | 'salary_scale_id'
     | 'salary_scale_step_id' | 'salary_step_code' | 'cao_scale_name' | 'cao_step_name' | 'salary_band_id'
     | 'valid_from' | 'valid_until' | 'updated_at'>[]
+  readonly salaryTableSource: SalaryTableSourceResolution
   readonly schedules: readonly Pick<Tables['employment_schedules']['Row'],
     'id' | 'average_days_per_week' | 'average_hours_per_week' | 'fulltime_hours_per_week' | 'part_time_factor'
     | 'schedule_type' | 'is_on_call' | 'start_week' | 'time_for_time_accrual' | 'monday_hours' | 'tuesday_hours'
@@ -249,6 +251,178 @@ export interface EmploymentPayrollSourceProjection {
     readonly arrangement_resolution_reason: string | null
     readonly arrangement_resolution_change_version_ids: readonly string[]
   }[]
+}
+
+export type SalaryTableSourceResolution = {
+  readonly status: 'NOT_APPLICABLE' | 'RESOLVED' | 'MISSING' | 'AMBIGUOUS' | 'INCONSISTENT'
+  readonly reasonCode: string | null
+  readonly source: {
+    readonly salaryId: string
+    readonly structureId: string
+    readonly revisionId: string
+    readonly revisionNumber: number
+    readonly revisionUpdatedAt: string
+    readonly salaryBasis: string
+    readonly effectiveFrom: string
+    readonly effectiveTo: string
+    readonly sourceTitle: string
+    readonly sourceVersion: string
+    readonly sourceUrl: string
+    readonly sourceHash: string
+    readonly sourceRowCount: number
+    readonly scaleId: string
+    readonly scaleCode: string
+    readonly scaleName: string
+    readonly stepId: string
+    readonly stepCode: string
+    readonly stepName: string
+    readonly fulltimeAmount: string
+    readonly hourlyAmount: string | null
+    readonly currencyCode: string
+    readonly stepUpdatedAt: string
+    readonly maximumStepFulltimeAmount: string | null
+  } | null
+}
+
+function salarySourceMetadataRecord(value: Json | null): Record<string, unknown> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  return value as Record<string, unknown>
+}
+
+function salaryStepNumber(value: string): string | null {
+  return value.trim().match(/(?:^|[^0-9])([0-9]+)(?:$|[^0-9])/)?.[1] ?? null
+}
+
+function previousIsoDate(value: string): string | null {
+  const date = new Date(`${value}T00:00:00.000Z`)
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null
+  date.setUTCDate(date.getUTCDate() - 1)
+  return date.toISOString().slice(0, 10)
+}
+
+function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+
+async function resolveSalaryTableSource(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  salaries: EmploymentPayrollSourceProjection['salaries'],
+  context: { readonly tenantId: string; readonly hrGroupId: string },
+  periodStart: string,
+  periodEnd: string,
+): Promise<SalaryTableSourceResolution> {
+  const overlappingSalaries = salaries.filter((salary) => salaryRowOverlapsPayrollPeriod(
+    salary.valid_from,
+    salary.valid_until,
+    periodStart,
+    periodEnd,
+  ))
+  if (overlappingSalaries.length === 0) {
+    return { status: 'MISSING', reasonCode: 'CAO_SALARY_PERIOD_MISSING', source: null }
+  }
+  if (overlappingSalaries.length > 1) {
+    return { status: 'AMBIGUOUS', reasonCode: 'CAO_SALARY_PERIOD_AMBIGUOUS', source: null }
+  }
+  const salary = overlappingSalaries[0]!
+  if (!salaryRowCoversPayrollPeriod(salary.valid_from, salary.valid_until, periodStart, periodEnd)) {
+    return { status: 'MISSING', reasonCode: 'CAO_SALARY_PERIOD_NOT_COVERED', source: null }
+  }
+  if (salary.salary_basis !== 'CAO_SCALE' && salary.salary_route !== 'SCALE_WITH_STEPS') {
+    return { status: 'NOT_APPLICABLE', reasonCode: null, source: null }
+  }
+  if (!salary.salary_structure_id || !salary.salary_scale_id || !salary.salary_scale_step_id) {
+    return { status: 'MISSING', reasonCode: 'CAO_SALARY_TABLE_LINK_MISSING', source: null }
+  }
+
+  const revisionsResult = await supabase.from('salary_structure_revisions')
+    .select('id, salary_structure_id, salary_basis, effective_from, revision_number, source_metadata, updated_at')
+    .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId)
+    .eq('salary_structure_id', salary.salary_structure_id).eq('status', 'PUBLISHED')
+    .order('effective_from').order('revision_number').limit(500)
+  if (revisionsResult.error) throwDatabaseError(revisionsResult.error.message)
+  const versions = revisionsResult.data ?? []
+  const covering = versions.flatMap((revision) => {
+    if (revision.effective_from > periodStart) return []
+    const metadata = salarySourceMetadataRecord(revision.source_metadata)
+    const nextStart = versions.filter((candidate) => candidate.effective_from > revision.effective_from)
+      .map((candidate) => candidate.effective_from).sort()[0]
+    const explicitEnd = metadata?.effectiveTo
+    const effectiveTo = isIsoDate(explicitEnd)
+      ? explicitEnd
+      : nextStart ? previousIsoDate(nextStart) : null
+    if (!effectiveTo || effectiveTo < periodEnd) return []
+    return [{ revision, metadata, effectiveTo }]
+  })
+  if (covering.length === 0) return { status: 'MISSING', reasonCode: 'CAO_SALARY_TABLE_VERSION_MISSING', source: null }
+  if (covering.length !== 1) return { status: 'AMBIGUOUS', reasonCode: 'CAO_SALARY_TABLE_VERSION_AMBIGUOUS', source: null }
+  const selected = covering[0]!
+  const { revision, metadata, effectiveTo } = selected
+  if (!metadata || metadata.effectiveFrom !== revision.effective_from
+    || (metadata.effectiveTo !== undefined && metadata.effectiveTo !== null
+      && (!isIsoDate(metadata.effectiveTo) || metadata.effectiveTo !== effectiveTo))
+    || typeof metadata.title !== 'string' || metadata.title.trim() === ''
+    || typeof metadata.version !== 'string' || metadata.version.trim() === ''
+    || typeof metadata.url !== 'string' || !metadata.url.startsWith('https://')
+    || typeof metadata.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(metadata.sha256)
+    || typeof metadata.rowCount !== 'number' || metadata.rowCount < 1) {
+    return { status: 'INCONSISTENT', reasonCode: 'CAO_SALARY_TABLE_SOURCE_METADATA_INVALID', source: null }
+  }
+  const [scaleResult, membershipResult, stepsResult] = await Promise.all([
+    supabase.from('salary_scales').select('id, code, name')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('id', salary.salary_scale_id),
+    supabase.from('salary_scale_revision_values').select('salary_scale_id')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId)
+      .eq('salary_structure_revision_id', revision.id).eq('salary_scale_id', salary.salary_scale_id),
+    supabase.from('salary_scale_steps')
+      .select('id, salary_structure_revision_id, salary_scale_id, step_code, step_name, fulltime_amount, hourly_amount, currency_code, updated_at')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId)
+      .eq('salary_structure_revision_id', revision.id).eq('salary_scale_id', salary.salary_scale_id)
+      .order('sequence_number').limit(1000),
+  ])
+  const failed = [scaleResult, membershipResult, stepsResult].find((result) => result.error)
+  if (failed?.error) throwDatabaseError(failed.error.message)
+  const scales = scaleResult.data ?? []
+  const memberships = membershipResult.data ?? []
+  const steps = stepsResult.data ?? []
+  const selectedSteps = steps.filter((step) => step.id === salary.salary_scale_step_id)
+  if (scales.length !== 1 || memberships.length !== 1 || selectedSteps.length !== 1) {
+    return { status: 'INCONSISTENT', reasonCode: 'CAO_SALARY_TABLE_ROW_LINK_INVALID', source: null }
+  }
+  const scale = scales[0]!
+  const step = selectedSteps[0]!
+  const maxStep = steps.find((candidate) => salaryStepNumber(candidate.step_code) === '18')
+  return {
+    status: 'RESOLVED',
+    reasonCode: null,
+    source: {
+      salaryId: salary.id,
+      structureId: revision.salary_structure_id,
+      revisionId: revision.id,
+      revisionNumber: revision.revision_number,
+      revisionUpdatedAt: revision.updated_at,
+      salaryBasis: revision.salary_basis,
+      effectiveFrom: revision.effective_from,
+      effectiveTo,
+      sourceTitle: metadata.title,
+      sourceVersion: metadata.version,
+      sourceUrl: metadata.url,
+      sourceHash: metadata.sha256.toLowerCase(),
+      sourceRowCount: metadata.rowCount,
+      scaleId: scale.id,
+      scaleCode: scale.code ?? '',
+      scaleName: scale.name,
+      stepId: step.id,
+      stepCode: step.step_code,
+      stepName: step.step_name,
+      fulltimeAmount: String(step.fulltime_amount),
+      hourlyAmount: step.hourly_amount === null ? null : String(step.hourly_amount),
+      currencyCode: step.currency_code,
+      stepUpdatedAt: step.updated_at,
+      maximumStepFulltimeAmount: maxStep ? String(maxStep.fulltime_amount) : null,
+    },
+  }
 }
 
 /** Bounded Payroll source projection. Progressive tier resolution reads only the DOB needed to derive age; raw DOB/contact data is never returned. */
@@ -601,6 +775,13 @@ async function getEmploymentPayrollSourceProjectionWithRows(
       set: laborConditionSetId ? setsById.get(laborConditionSetId) ?? null : null,
     }
   })
+  const salaryTableSource = await resolveSalaryTableSource(
+    supabase,
+    salaryResult.data ?? [],
+    { tenantId: context.tenantId, hrGroupId },
+    payrollStart,
+    payrollEnd,
+  )
 
   return {
     employment,
@@ -621,6 +802,7 @@ async function getEmploymentPayrollSourceProjectionWithRows(
       }
     }),
     salaries: salaryResult.data ?? [],
+    salaryTableSource,
     schedules: scheduleResult.data ?? [],
     pensionAssignments,
     laborConditionPensionArrangements,
@@ -806,7 +988,7 @@ export async function getEmploymentDetail(
     ])
     if (relevantStructureIds.size === 0) return { ...emptyResult, salaryRoutes, salaryStructureIds: [...configuredStructureIds] }
     const revisionsResult = await supabase.from('salary_structure_revisions')
-      .select('id, salary_structure_id, effective_from, revision_number, status')
+      .select('id, salary_structure_id, salary_basis, effective_from, revision_number, status')
       .eq('tenant_id', employment.tenant_id)
       .eq('hr_group_id', employment.hr_group_id)
       .eq('status', 'PUBLISHED')
@@ -932,7 +1114,7 @@ export async function getEmploymentDetail(
       salaryScales: scaleCatalog,
       salaryBands: [...latestBands.values()],
       salaryRoutes,
-      revisions: (revisionsResult.data ?? []).map((revision) => ({ id: revision.id, salary_structure_id: revision.salary_structure_id, effective_from: revision.effective_from, revision_number: revision.revision_number, status: revision.status })),
+      revisions: (revisionsResult.data ?? []).map((revision) => ({ id: revision.id, salary_structure_id: revision.salary_structure_id, salary_basis: revision.salary_basis, effective_from: revision.effective_from, revision_number: revision.revision_number, status: revision.status })),
       scaleValues: (scalesResult.data ?? []).map((scale) => ({ salary_structure_revision_id: scale.salary_structure_revision_id, salary_scale_id: scale.salary_scale_id, code: scale.code, name: scale.name })),
       resolutionSteps: (stepsResult.data ?? []).map((step) => ({ id: step.id, salary_structure_revision_id: step.salary_structure_revision_id, salary_scale_id: step.salary_scale_id, step_code: step.step_code, step_name: step.step_name, fulltime_amount: step.fulltime_amount })),
       resolutionBandValues: (bandValuesResult.data ?? []).map((band) => ({ id: band.id, salary_structure_revision_id: band.salary_structure_revision_id, salary_band_id: band.salary_band_id, code: band.code, name: band.name, minimum_amount: band.minimum_amount, midpoint_amount: band.midpoint_amount, maximum_amount: band.maximum_amount })),

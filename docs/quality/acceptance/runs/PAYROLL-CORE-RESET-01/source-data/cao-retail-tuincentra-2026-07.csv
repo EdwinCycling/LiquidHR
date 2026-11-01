@@ -1,0 +1,145 @@
+scale_code,scale_name,step_code,step_name,step_order,amount,scale_order,progression_type,step_kind,source_rule_code,source_rule_percent,source_rule_description,source_rule_condition,source_rule_reference
+TUINCENTRA_A,Functiegroep A,AGE_15,15 jaar,0,4.50,0,MANUAL,START,,,,,
+TUINCENTRA_A,Functiegroep A,AGE_16,16 jaar,1,5.17,0,MANUAL,REGULAR,,,,,
+TUINCENTRA_A,Functiegroep A,AGE_17,17 jaar,2,5.92,0,MANUAL,REGULAR,,,,,
+TUINCENTRA_A,Functiegroep A,AGE_18,18 jaar,3,7.50,0,MANUAL,REGULAR,,,,,
+TUINCENTRA_A,Functiegroep A,AGE_19,19 jaar,4,8.99,0,MANUAL,REGULAR,,,,,
+TUINCENTRA_A,Functiegroep A,AGE_20,20 jaar,5,11.99,0,MANUAL,REGULAR,,,,,
+TUINCENTRA_A,Functiegroep A,EXP_00,21 jaar / 0,6,14.99,0,MANUAL,REGULAR,,,,,
+TUINCENTRA_A,Functiegroep A,EXP_01,1 ervaringsjaar,7,15.14,0,MANUAL,REGULAR,,,,,
+TUINCENTRA_A,Functiegroep A,EXP_02,2 ervaringsjaren,8,15.29,0,MANUAL,REGULAR,,,,,
+TUINCENTRA_A,Functiegroep A,EXP_03,3 ervaringsjaren,9,15.44,0,MANUAL,REGULAR,,,,,
+TUINCENTRA_A,Functiegroep A,EXP_04,4 ervaringsjaren,10,2%,0,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_A,Functiegroep A,EXP_05,5 ervaringsjaren,11,2%,0,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_A,Functiegroep A,EXP_06,6 ervaringsjaren,12,2%,0,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_A,Functiegroep A,EXP_07,7 ervaringsjaren,13,16.71,0,MANUAL,MAXIMUM,,,,,
+TUINCENTRA_B,Functiegroep B,AGE_15,15 jaar,0,4.50,1,MANUAL,START,,,,,
+TUINCENTRA_B,Functiegroep B,AGE_16,16 jaar,1,5.17,1,MANUAL,REGULAR,,,,,
+TUINCENTRA_B,Functiegroep B,AGE_17,17 jaar,2,5.92,1,MANUAL,REGULAR,,,,,
+TUINCENTRA_B,Functiegroep B,AGE_18,18 jaar,3,7.50,1,MANUAL,REGULAR,,,,,
+TUINCENTRA_B,Functiegroep B,AGE_19,19 jaar,4,8.99,1,MANUAL,REGULAR,,,,,
+TUINCENTRA_B,Functiegroep B,AGE_20,20 jaar,5,11.99,1,MANUAL,REGULAR,,,,,
+TUINCENTRA_B,Functiegroep B,EXP_00,21 jaar / 0,6,14.99,1,MANUAL,REGULAR,,,,,
+TUINCENTRA_B,Functiegroep B,EXP_01,1 ervaringsjaar,7,15.14,1,MANUAL,REGULAR,,,,,
+TUINCENTRA_B,Functiegroep B,EXP_02,2 ervaringsjaren,8,15.29,1,MANUAL,REGULAR,,,,,
+TUINCENTRA_B,Functiegroep B,EXP_03,3 ervaringsjaren,9,15.44,1,MANUAL,REGULAR,,,,,
+TUINCENTRA_B,Functiegroep B,EXP_04,4 ervaringsjaren,10,2%,1,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_B,Functiegroep B,EXP_05,5 ervaringsjaren,11,2%,1,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_B,Functiegroep B,EXP_06,6 ervaringsjaren,12,2%,1,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_B,Functiegroep B,EXP_07,7 ervaringsjaren,13,16.71,1,MANUAL,MAXIMUM,,,,,
+TUINCENTRA_C,Functiegroep C,AGE_15,15 jaar,0,4.59,2,MANUAL,START,,,,,
+TUINCENTRA_C,Functiegroep C,AGE_16,16 jaar,1,5.27,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,AGE_17,17 jaar,2,6.04,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,AGE_18,18 jaar,3,7.64,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,AGE_19,19 jaar,4,9.17,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,AGE_20,20 jaar,5,12.23,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,EXP_00,21 jaar / 0,6,15.29,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,EXP_01,1 ervaringsjaar,7,15.44,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,EXP_02,2 ervaringsjaren,8,15.59,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,EXP_03,3 ervaringsjaren,9,15.75,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,EXP_04,4 ervaringsjaren,10,15.91,2,MANUAL,REGULAR,,,,,
+TUINCENTRA_C,Functiegroep C,EXP_05,5 ervaringsjaren,11,2%,2,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_C,Functiegroep C,EXP_06,6 ervaringsjaren,12,2%,2,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_C,Functiegroep C,EXP_07,7 ervaringsjaren,13,2%,2,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_C,Functiegroep C,EXP_08,8 ervaringsjaren,14,17.22,2,MANUAL,MAXIMUM,,,,,
+TUINCENTRA_D,Functiegroep D,AGE_16,16 jaar,1,5.44,3,MANUAL,START,,,,,
+TUINCENTRA_D,Functiegroep D,AGE_17,17 jaar,2,6.23,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,AGE_18,18 jaar,3,7.76,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,AGE_19,19 jaar,4,9.31,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,AGE_20,20 jaar,5,12.41,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,EXP_00,21 jaar / 0,6,15.52,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,EXP_01,1 ervaringsjaar,7,15.75,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,EXP_02,2 ervaringsjaren,8,15.98,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,EXP_03,3 ervaringsjaren,9,16.22,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,EXP_04,4 ervaringsjaren,10,16.47,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,EXP_05,5 ervaringsjaren,11,16.71,3,MANUAL,REGULAR,,,,,
+TUINCENTRA_D,Functiegroep D,EXP_06,6 ervaringsjaren,12,2%,3,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_D,Functiegroep D,EXP_07,7 ervaringsjaren,13,2%,3,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_D,Functiegroep D,EXP_08,8 ervaringsjaren,14,2%,3,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_D,Functiegroep D,EXP_09,9 ervaringsjaren,15,2%,3,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_D,Functiegroep D,EXP_10,10 ervaringsjaren,16,18.45,3,MANUAL,MAXIMUM,,,,,
+TUINCENTRA_E,Functiegroep E,AGE_17,17 jaar,2,6.56,4,MANUAL,START,,,,,
+TUINCENTRA_E,Functiegroep E,AGE_18,18 jaar,3,7.91,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,AGE_19,19 jaar,4,9.50,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,AGE_20,20 jaar,5,12.66,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,EXP_00,21 jaar / 0,6,15.83,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,EXP_01,1 ervaringsjaar,7,16.14,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,EXP_02,2 ervaringsjaren,8,16.47,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,EXP_03,3 ervaringsjaren,9,16.79,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,EXP_04,4 ervaringsjaren,10,17.13,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,EXP_05,5 ervaringsjaren,11,17.47,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,EXP_06,6 ervaringsjaren,12,17.82,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,EXP_07,7 ervaringsjaren,13,18.18,4,MANUAL,REGULAR,,,,,
+TUINCENTRA_E,Functiegroep E,EXP_08,8 ervaringsjaren,14,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_E,Functiegroep E,EXP_09,9 ervaringsjaren,15,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_E,Functiegroep E,EXP_10,10 ervaringsjaren,16,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_E,Functiegroep E,EXP_11,11 ervaringsjaren,17,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_E,Functiegroep E,EXP_12,12 ervaringsjaren,18,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_E,Functiegroep E,EXP_13,13 ervaringsjaren,19,20.47,4,MANUAL,MAXIMUM,,,,,
+TUINCENTRA_F,Functiegroep F,AGE_19,19 jaar,4,10.19,5,MANUAL,START,,,,,
+TUINCENTRA_F,Functiegroep F,AGE_20,20 jaar,5,13.59,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_00,21 jaar / 0,6,16.99,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_01,1 ervaringsjaar,7,17.33,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_02,2 ervaringsjaren,8,17.67,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_03,3 ervaringsjaren,9,18.03,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_04,4 ervaringsjaren,10,18.39,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_05,5 ervaringsjaren,11,18.75,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_06,6 ervaringsjaren,12,19.13,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_07,7 ervaringsjaren,13,19.51,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_08,8 ervaringsjaren,14,19.90,5,MANUAL,REGULAR,,,,,
+TUINCENTRA_F,Functiegroep F,EXP_09,9 ervaringsjaren,15,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_F,Functiegroep F,EXP_10,10 ervaringsjaren,16,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_F,Functiegroep F,EXP_11,11 ervaringsjaren,17,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_F,Functiegroep F,EXP_12,12 ervaringsjaren,18,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_F,Functiegroep F,EXP_13,13 ervaringsjaren,19,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_F,Functiegroep F,EXP_14,14 ervaringsjaren,20,22.41,5,MANUAL,MAXIMUM,,,,,
+TUINCENTRA_G,Functiegroep G,AGE_19,19 jaar,4,10.91,6,MANUAL,START,,,,,
+TUINCENTRA_G,Functiegroep G,AGE_20,20 jaar,5,14.54,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_00,21 jaar / 0,6,18.18,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_01,1 ervaringsjaar,7,18.54,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_02,2 ervaringsjaren,8,18.91,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_03,3 ervaringsjaren,9,19.29,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_04,4 ervaringsjaren,10,19.67,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_05,5 ervaringsjaren,11,20.07,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_06,6 ervaringsjaren,12,20.47,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_07,7 ervaringsjaren,13,20.88,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_08,8 ervaringsjaren,14,21.30,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_09,9 ervaringsjaren,15,21.72,6,MANUAL,REGULAR,,,,,
+TUINCENTRA_G,Functiegroep G,EXP_10,10 ervaringsjaren,16,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_G,Functiegroep G,EXP_11,11 ervaringsjaren,17,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_G,Functiegroep G,EXP_12,12 ervaringsjaren,18,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_G,Functiegroep G,EXP_13,13 ervaringsjaren,19,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_G,Functiegroep G,EXP_14,14 ervaringsjaren,20,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_G,Functiegroep G,EXP_15,15 ervaringsjaren,21,24.46,6,MANUAL,MAXIMUM,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_00,21 jaar / 0,6,19.67,7,MANUAL,START,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_01,1 ervaringsjaar,7,20.06,7,MANUAL,REGULAR,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_02,2 ervaringsjaren,8,20.46,7,MANUAL,REGULAR,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_03,3 ervaringsjaren,9,20.87,7,MANUAL,REGULAR,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_04,4 ervaringsjaren,10,21.29,7,MANUAL,REGULAR,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_05,5 ervaringsjaren,11,21.71,7,MANUAL,REGULAR,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_06,6 ervaringsjaren,12,22.15,7,MANUAL,REGULAR,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_07,7 ervaringsjaren,13,22.59,7,MANUAL,REGULAR,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_08,8 ervaringsjaren,14,23.04,7,MANUAL,REGULAR,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_09,9 ervaringsjaren,15,23.50,7,MANUAL,REGULAR,,,,,
+TUINCENTRA_H,Functiegroep H,EXP_10,10 ervaringsjaren,16,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_H,Functiegroep H,EXP_11,11 ervaringsjaren,17,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_H,Functiegroep H,EXP_12,12 ervaringsjaren,18,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_H,Functiegroep H,EXP_13,13 ervaringsjaren,19,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_H,Functiegroep H,EXP_14,14 ervaringsjaren,20,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_H,Functiegroep H,EXP_15,15 ervaringsjaren,21,26.47,7,MANUAL,MAXIMUM,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_00,21 jaar / 0,6,21.34,8,MANUAL,START,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_01,1 ervaringsjaar,7,21.76,8,MANUAL,REGULAR,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_02,2 ervaringsjaren,8,22.20,8,MANUAL,REGULAR,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_03,3 ervaringsjaren,9,22.64,8,MANUAL,REGULAR,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_04,4 ervaringsjaren,10,23.10,8,MANUAL,REGULAR,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_05,5 ervaringsjaren,11,23.56,8,MANUAL,REGULAR,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_06,6 ervaringsjaren,12,24.03,8,MANUAL,REGULAR,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_07,7 ervaringsjaren,13,24.51,8,MANUAL,REGULAR,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_08,8 ervaringsjaren,14,25.00,8,MANUAL,REGULAR,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_09,9 ervaringsjaren,15,25.50,8,MANUAL,REGULAR,,,,,
+TUINCENTRA_I,Functiegroep I,EXP_10,10 ervaringsjaren,16,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_I,Functiegroep I,EXP_11,11 ervaringsjaren,17,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_I,Functiegroep I,EXP_12,12 ervaringsjaren,18,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_I,Functiegroep I,EXP_13,13 ervaringsjaren,19,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_I,Functiegroep I,EXP_14,14 ervaringsjaren,20,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+TUINCENTRA_I,Functiegroep I,EXP_15,15 ervaringsjaren,21,28.72,8,MANUAL,MAXIMUM,,,,,

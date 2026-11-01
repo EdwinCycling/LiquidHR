@@ -487,6 +487,80 @@ describe('Core-backed employee payroll calculation', () => {
     expect(missingFiscalProfile.inputs.size).toBe(0)
   })
 
+  it('accepts only a mapped on-call hourly source with released paid hours at the calculation preflight', async () => {
+    const base = payfullScenarioProvider({ variant: 'VARIABLE', variableWage: '20.00' })
+    const sourceProvider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: async (input) => {
+        const snapshot = await base.getPayrollSourceSnapshot(input)
+        const source = snapshot.canonicalSource as Record<string, unknown>
+        const compensation = source.compensation as { entries: Array<Record<string, unknown>> }
+        const schedule = source.schedule as { entries: Array<Record<string, unknown>> }
+        const regularWage = source.regularWage as Record<string, unknown>
+        const actualWork = source.actualWork as Record<string, unknown>
+        const payrollOwned = source.payrollOwned as Record<string, unknown>
+        const amounts = payrollOwned.amounts as Record<string, unknown>
+        const controls = payrollOwned.controls as Record<string, unknown>
+        const pension = payrollOwned.pension as Record<string, unknown>
+        const fiscalProfile = source.fiscalProfile as Record<string, unknown>
+        const salary = compensation.entries[0]
+        const scheduleEntry = schedule.entries[0]
+        if (!salary || !scheduleEntry) throw new Error('HOURLY_TEST_SOURCE_MISSING')
+        const canonicalSource = {
+          ...source,
+          compensation: { entries: [{
+            ...salary, paymentType: 'HOURLY_VARIABLE', paymentFrequency: 'MONTHLY', currencyCode: 'EUR',
+            hourlyRate: 20, fulltimeAmount: null, parttimeAmount: null,
+          }] },
+          schedule: { entries: [{
+            ...scheduleEntry, averageHoursPerWeek: 0, fulltimeHoursPerWeek: 40,
+            partTimeFactor: 0, scheduleType: 'HOURS_AND_AVG_DAYS', isOnCall: true,
+          }] },
+          regularWage: {
+            ...regularWage, grossAmount: '20.00', fulltimeMonthlyAmount: '0.00',
+            contractHoursPerWeek: '0.0000', fulltimeHoursPerWeek: '40.0000',
+            wageBasis: 'ON_CALL_HOURLY_VARIABLE',
+          },
+          fiscalProfile: { ...fiscalProfile, status: 'CONFIRMED' },
+          actualWork: {
+            ...actualWork,
+            entries: [{
+              family: 'WORK', hours: '1.0000', releasedForPayroll: true,
+              payrollMapping: {
+                target: 'PAYMENT', componentCode: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
+                componentOutput: 'amount', calculationRule: 'HOURLY_RATE_X_HOURS', factor: '1',
+              },
+            }],
+          },
+          payrollOwned: {
+            ...payrollOwned,
+            amounts: { ...amounts, variableRegularWage: '20.00' },
+            controls: { ...controls, sourceReady: true },
+            pension: {
+              ...pension,
+              partTimeFactor: '0.00576923',
+              partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA',
+              variableHourlyBasis: {
+                hourlyRate: '20.00', fullTimeHoursPerWeek: '40.0000',
+                fullTimeMonthlyHours: '173.33333333', fullTimeMonthlyPensionableSalary: '3466.66666660',
+                paidHours: '1.0000', partTimeFactor: '0.00576923',
+              },
+            },
+          },
+        }
+        return { ...snapshot, canonicalSource: canonicalSource as PayrollSourceSnapshot['canonicalSource'] }
+      },
+    }
+    const eligible = await harness({}, sourceProvider).service.inspectEmployeePayrollSource({ employeeId, employmentId, period })
+
+    expect(eligible.eligibleForCalculation).toBe(true)
+    expect(eligible.gaps).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ reasonCode: 'ONLY_FIXED_EUR_MONTHLY_WAGE_SUPPORTED' }),
+      expect.objectContaining({ reasonCode: 'POSITIVE_EFFECTIVE_SALARY_REQUIRED' }),
+      expect.objectContaining({ reasonCode: 'REGULAR_NON_ON_CALL_HOURS_SCHEDULE_REQUIRED' }),
+      expect.objectContaining({ reasonCode: 'SUPPORTED_REGULAR_WAGE_INPUT_UNAVAILABLE' }),
+    ]))
+  })
+
   it.each([
     {
       missing: 'persisted Payroll Lab config',
@@ -549,7 +623,7 @@ describe('Core-backed employee payroll calculation', () => {
     expect(result.payfull02?.cumulativeGross).toBe('4500.00')
   })
 
-  it('selects the versioned partial-period PAYFULL02 composition for an explicit composite wage source', async () => {
+  it.each(['WEEK_DAY_2_1', 'MONTH'])('selects the versioned partial-period PAYFULL02 composition for an explicit %s wage source', async (timePeriod) => {
     const completeProvider = payfullScenarioProvider({ variant: 'REGULAR', payrollTaxCreditApplies: false })
     const sourceProvider: PayrollSourceProvider = {
       getPayrollSourceSnapshot: async (input) => {
@@ -563,7 +637,7 @@ describe('Core-backed employee payroll calculation', () => {
             regularWage: {
               ...regularWage,
               grossAmount: '2000.00',
-              timePeriod: 'WEEK_DAY_2_1',
+              timePeriod,
               fullPeriod: false,
             },
           } as PayrollSourceSnapshot['canonicalSource'],

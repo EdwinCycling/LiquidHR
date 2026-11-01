@@ -261,6 +261,38 @@ describe('PAYRUN01 composition on the shared NL-2026 payroll engine', () => {
       readonly reserveBeforePeriod: string
     }) => {
       const pfzw = calculatePfzw2026Kinderopvang({
+        premiumComponents: [
+          {
+            code: 'PFZW_OP_NP', name: 'OP/NP', componentType: 'BASE',
+            effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31',
+            basisCode: 'UPA_REGLN_AFTER_FRANCHISE_AND_CAP',
+            basisDescription: 'RegLn less the franchise and subject to the maximum pensionable salary.',
+            totalRate: '25.9', employeeRate: '12.9', employerRate: '13',
+            annualFranchise: '17283', annualPensionableSalaryCap: '137800',
+            eligibilityRule: 'PFZW participant in the Kinderopvang employment scope.',
+            calculationMethod: 'Annual premium allocated to monthly periods.',
+            roundingRule: 'Half-up to cents per employee and employer share.',
+            sourceVersion: 'PFZW 2026',
+            sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html',
+            sourceSha256: 'c'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE',
+            taxTreatment: 'PRE_TAX_EMPLOYEE_DEDUCTION',
+          },
+          {
+            code: 'PFZW_WIA_EXCESS', name: 'WIA-excedent', componentType: 'ADDITIONAL',
+            effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31',
+            basisCode: 'UPA_REGLN_WITHOUT_OPNP_CAP',
+            basisDescription: 'RegLn less the separate WIA-excedent franchise.',
+            totalRate: '3.4', employeeRate: '0', employerRate: '3.4',
+            annualFranchise: '79409', annualPensionableSalaryCap: null,
+            eligibilityRule: 'PFZW participant subject to WIA-excedent coverage.',
+            calculationMethod: 'Employer-only annual premium allocated to monthly periods.',
+            roundingRule: 'Half-up to cents for the employer share.',
+            sourceVersion: 'PFZW 2026',
+            sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html',
+            sourceSha256: 'd'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE',
+            taxTreatment: 'EMPLOYER_COST_ONLY',
+          },
+        ],
         period: { year: 2026, month: scenario.month },
         participationStatus: 'ASSUMED_FOR_PREVIEW',
         participationStartDate: '2026-09-01',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema } from './schemas'
+import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkVoidEntrySchema } from './schemas'
 
 const ids = {
   employeeId: '11111111-1111-4111-8111-111111111111',
@@ -34,6 +34,19 @@ describe('actual work input contracts', () => {
       correctionReason: 'DEV fixture correction',
     })
     expect(result.success).toBe(true)
+  })
+
+  it('accepts only a scoped work-entry identity for a void request', () => {
+    expect(actualWorkVoidEntrySchema.safeParse({
+      employeeId: ids.employeeId,
+      employmentId: ids.employmentId,
+      entryId: ids.typeId,
+    }).success).toBe(true)
+    expect(actualWorkVoidEntrySchema.safeParse({
+      employeeId: ids.employeeId,
+      employmentId: ids.employmentId,
+      entryId: 'not-an-id',
+    }).success).toBe(false)
   })
 
   it('accepts an explicit type configuration with distinct limits', () => {
