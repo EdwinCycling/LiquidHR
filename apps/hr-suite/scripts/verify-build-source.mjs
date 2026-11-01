@@ -14,14 +14,15 @@ const temporaryPath = `${recordPath}.tmp`
 const shaPattern = /^[a-f0-9]{40}$/i
 
 function runGit(args) {
-  return execFileSync('git', ['-C', repoRoot, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  // Porcelain -z has semantic leading spaces in XY status columns. Never trim it.
+  return execFileSync('git', ['-C', repoRoot, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
 }
 
 let sourceCommit
 let gitStatus
 const platformCommit = process.env.VERCEL_GIT_COMMIT_SHA?.trim() || null
 try {
-  sourceCommit = runGit(['rev-parse', 'HEAD'])
+  sourceCommit = runGit(['rev-parse', 'HEAD']).trim()
   gitStatus = runGit(['status', '--porcelain=v1', '--untracked-files=normal', '-z'])
 } catch {
   console.error('Verified build source unavailable: a readable Git checkout is required.')
