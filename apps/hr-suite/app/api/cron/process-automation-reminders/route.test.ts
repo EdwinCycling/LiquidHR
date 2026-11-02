@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -14,6 +13,7 @@ vi.mock('@/lib/auth/permissions', () => ({ requireAuthContext: mocks.requireAuth
 vi.mock('server-only', () => ({}))
 
 import { GET } from './route'
+import { config as vercelConfig } from '../../../../vercel'
 
 const job = {
   id: '00000000-0000-4000-8000-000000000001',
@@ -102,11 +102,9 @@ describe('process automation reminder scheduler route', () => {
     }))
   })
 
-  it('keeps the daily scheduler route wired and preserves the recruitment schedule', async () => {
-    const config = JSON.parse(await readFile(new URL('../../../../../../vercel.json', import.meta.url), 'utf8')) as {
-      crons: Array<{ path: string; schedule: string }>
-    }
-    expect(config.crons).toContainEqual({ path: '/api/cron/process-automation-reminders', schedule: '0 6 * * *' })
-    expect(config.crons).toContainEqual({ path: '/api/cron/recruitment-retention', schedule: '0 3 * * *' })
+  it('keeps Vercel install reproducible and preserves the daily schedules', () => {
+    expect(vercelConfig.installCommand).toBe('npm ci')
+    expect(vercelConfig.crons).toContainEqual({ path: '/api/cron/process-automation-reminders', schedule: '0 6 * * *' })
+    expect(vercelConfig.crons).toContainEqual({ path: '/api/cron/recruitment-retention', schedule: '0 3 * * *' })
   })
 })
