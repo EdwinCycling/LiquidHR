@@ -2,6 +2,8 @@
 
 > **Historische momentopname — 2026-09-10.** Behouden als onderzoek- en ontwerpgeschiedenis, niet als actuele Payroll-requirement, releaseacceptatie of uitvoeringsmandaat. Goedgekeurde actuele requirements en later vastgelegde code zijn leidend. De genoemde `8 employees` / `8 NEW`-baseline, OAuth-scopes, providercontractdetails en P1-readiness zijn niet voor deze release herbevestigd. Herbeoordeel ze in een afzonderlijk geautoriseerde P2-taak. Dit document autoriseert geen live providerread, employeesynchronisatie, migratie, database- of payrollwrite, deployment of P2-implementatie.
 
+**P0/P1-voortgang:** zie het afzonderlijke [P0/P1 evidence-ledger](../../delivery/PAYROLL_P0_P1_EVIDENCE.md) en de huidige [implementatiestatus](../../delivery/IMPLEMENTATION_STATUS.md). Deze historische P2-momentopname blijft geen uitvoeringsmandaat.
+
 **Datum:** 2026-09-10
 **Scope:** alleen onderzoek, contractvastlegging en architectuur-readiness.
 **Geen:** P2-code, migration, Supabase-write, deployment, Nmbrs employee-call, employee/employment-read of -write in de huidige run.

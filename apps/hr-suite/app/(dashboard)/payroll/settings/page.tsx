@@ -1,4 +1,11 @@
 import 'server-only'
+import { notFound, redirect } from 'next/navigation'
+import { AuthorizationError } from '@/lib/auth/permissions'
+import { ModuleError } from '@/lib/modules/module-service'
+import { PayrollLabUnavailableError } from '@/lib/payroll/access'
+import { getPayrollWorkspaceData } from '@/lib/payroll/payroll-service'
+import type { PayrollWorkspaceData } from '@/lib/payroll/payroll-service'
+import { createPayrollLabels, PayrollWorkspace } from '@/components/payroll/payroll-workspace'
 
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
@@ -45,19 +52,27 @@ const setupLabelKeys = [
   ].map((code) => `openingBalanceBlocker_${code}`),
 ]
 
-export default async function PayrollSettingsPage({
-  searchParams,
-}: {
-  readonly searchParams: Promise<Record<string, string | string[] | undefined>>
-}) {
-  const query = await searchParams
-  const setupStatus = typeof query.setup === 'string' ? query.setup : undefined
-  const openingStatus = typeof query.opening === 'string' ? query.opening : undefined
-  const queryBlockersValue = typeof query.blockers === 'string' ? query.blockers : ''
-  const queryBlockers = queryBlockersValue.split(',').filter(Boolean)
-  const openingBlockersValue = typeof query.openingBlockers === 'string' ? query.openingBlockers : ''
-  const openingBlockers = openingBlockersValue.split(',').filter(Boolean)
-  const [access, t, locale, setup] = await Promise.all([requireComponentLibraryAccess(false), getTranslator('payrollProfessional'), getLocale(), getPayrollSetup()])
+type WorkspaceLoad = { data: PayrollWorkspaceData | null; moduleInactive: boolean }
+
+async function loadP1Workspace(): Promise<WorkspaceLoad> {
+  try {
+    return { data: await getPayrollWorkspaceData(), moduleInactive: false }
+  } catch (error) {
+    if (error instanceof AuthorizationError) return { data: null, moduleInactive: false }
+    if (error instanceof ModuleError && error.status === 404) return { data: null, moduleInactive: true }
+    throw error
+  }
+}
+
+async function loadLegacySettings() {
+  let access: Awaited<ReturnType<typeof requireComponentLibraryAccess>>
+  try {
+    access = await requireComponentLibraryAccess(false)
+  } catch (error) {
+    if (error instanceof AuthorizationError || error instanceof PayrollLabUnavailableError) return null
+    throw error
+  }
+  const [t, locale, setup] = await Promise.all([getTranslator('payrollProfessional'), getLocale(), getPayrollSetup()])
   const repository = createPayrollCalculationRepository()
   const periods = repository.listCalendarPeriods
     ? await repository.listCalendarPeriods(access.scope, access.administration.id, 24)
@@ -72,8 +87,33 @@ export default async function PayrollSettingsPage({
         planned_payment_date: period.planned_payment_date ?? null,
         status: period.status,
       }))
+  return { access, t, locale, setup, periods }
+}
+export default async function PayrollSettingsPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const query = await searchParams
+  const setupStatus = typeof query.setup === 'string' ? query.setup : undefined
+  const openingStatus = typeof query.opening === 'string' ? query.opening : undefined
+  const queryBlockersValue = typeof query.blockers === 'string' ? query.blockers : ''
+  const queryBlockers = queryBlockersValue.split(',').filter(Boolean)
+  const openingBlockersValue = typeof query.openingBlockers === 'string' ? query.openingBlockers : ''
+  const openingBlockers = openingBlockersValue.split(',').filter(Boolean)
+  const [workspace, payrollMessages, legacy] = await Promise.all([
+    loadP1Workspace(),
+    getTranslator('payroll'),
+    loadLegacySettings(),
+  ])
+  if (!legacy) {
+    if (workspace.data) return <PayrollWorkspace active="settings" data={workspace.data} labels={createPayrollLabels(payrollMessages)} />
+    if (workspace.moduleInactive) notFound()
+    redirect('/geen-toegang')
+  }
+  const { access, t, locale, setup, periods } = legacy
   const nav = { overview: t('overview'), runs: t('runs'), corrections: t('corrections'), compare: t('compare'), arrangements: t('arrangements'), settings: t('settings') }
-  return <PageShell className="space-y-6 py-6 sm:py-8">
+  const legacyContent = <PageShell className="space-y-6 py-6 sm:py-8">
     <PageHeader title={t('settings')} description={t('settingsDescription')} />
     <PayrollProfessionalNavigation active="settings" labels={nav} />
     <PayrollCalendarPlanner
@@ -133,4 +173,5 @@ export default async function PayrollSettingsPage({
       <p className="text-sm text-muted-foreground">{t('settingsScopeNotice')}</p>
     </Surface>
   </PageShell>
+  return <>{workspace.data ? <PayrollWorkspace active="settings" data={workspace.data} labels={createPayrollLabels(payrollMessages)} /> : null}{legacyContent}</>
 }

@@ -623,7 +623,7 @@ describe('Core-backed employee payroll calculation', () => {
     expect(result.payfull02?.cumulativeGross).toBe('4500.00')
   })
 
-  it.each(['WEEK_DAY_2_1', 'MONTH'])('selects the versioned partial-period PAYFULL02 composition for an explicit %s wage source', async (timePeriod) => {
+  it('selects the versioned partial-period PAYFULL02 composition for an explicit composite wage source', async () => {
     const completeProvider = payfullScenarioProvider({ variant: 'REGULAR', payrollTaxCreditApplies: false })
     const sourceProvider: PayrollSourceProvider = {
       getPayrollSourceSnapshot: async (input) => {
@@ -637,7 +637,7 @@ describe('Core-backed employee payroll calculation', () => {
             regularWage: {
               ...regularWage,
               grossAmount: '2000.00',
-              timePeriod,
+              timePeriod: 'WEEK_DAY_2_1',
               fullPeriod: false,
             },
           } as PayrollSourceSnapshot['canonicalSource'],
@@ -651,6 +651,34 @@ describe('Core-backed employee payroll calculation', () => {
     expect(result.payfull02?.cumulativeGross).toBe('2000.00')
     const inputSet = [...state.inputs.values()][0]
     expect(inputSet?.rule_package_composition_id).toContain('+PARTIAL-PERIODS-2026.1')
+  })
+
+  it('rejects a partial wage that declares the whole-month tax period instead of composite segments', async () => {
+    const completeProvider = payfullScenarioProvider({ variant: 'REGULAR', payrollTaxCreditApplies: false })
+    const sourceProvider: PayrollSourceProvider = {
+      getPayrollSourceSnapshot: async (input) => {
+        const snapshot = await completeProvider.getPayrollSourceSnapshot(input)
+        const source = snapshot.canonicalSource as Record<string, unknown>
+        const regularWage = source.regularWage as Record<string, unknown>
+        return {
+          ...snapshot,
+          canonicalSource: {
+            ...source,
+            regularWage: { ...regularWage, grossAmount: '2000.00', timePeriod: 'MONTH', fullPeriod: false },
+          } as PayrollSourceSnapshot['canonicalSource'],
+        }
+      },
+    }
+    const state = harness({}, sourceProvider, true)
+    const eligibility = await state.service.inspectEmployeePayrollSource({ employeeId, employmentId, period })
+
+    expect(eligibility.eligibleForCalculation).toBe(false)
+    expect(eligibility.gaps).toContainEqual(expect.objectContaining({
+      field: 'contractualSalary', status: 'SOURCE_GAP', reasonCode: 'SUPPORTED_REGULAR_WAGE_INPUT_UNAVAILABLE',
+    }))
+    expect(state.snapshots.size).toBe(0)
+    expect(state.runs.size).toBe(0)
+    expect(state.inputs.size).toBe(0)
   })
 
   it('requires a finalized regular predecessor before the variable-wage scenario can create a run', async () => {

@@ -14,7 +14,7 @@ export const SIDEBAR_SECTION_DEFINITIONS: readonly { id: SidebarSectionId; hrefs
   { id: 'peopleOrganization', hrefs: ['/employees', '/organization-chart', '/workforce'] },
   { id: 'hrProcesses', hrefs: ['/recruitment', '/recruitment/assigned', '/journeys', '/research'] },
   { id: 'steering', hrefs: ['/insights'] },
-  { id: 'payroll', hrefs: ['/payroll', '/payroll/runs', '/payroll/corrections', '/payroll/compare', '/payroll/arrangements', '/payroll/settings'] },
+  { id: 'payroll', hrefs: ['/payroll', '/payroll/runs', '/payroll/corrections', '/payroll/compare', '/payroll/arrangements', '/payroll/settings', '/payroll/employees', '/payroll/differences'] },
   { id: 'selfService', hrefs: ['/my-salary'] },
   { id: 'management', hrefs: ['/settings', '/document-studio'] },
 ]

@@ -21,6 +21,7 @@ type Labels = {
   noCompanies: string
   noAdministrations: string
   noBinding: string
+  working: string
   succeeded: string
   failed: string
   discoveredCompanies: string
