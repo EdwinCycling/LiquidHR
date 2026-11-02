@@ -1,8 +1,9 @@
 export type ToggleableModuleCode = 'HERA' | 'REMINDERS' | 'TALENT' | 'SURVEYS' | 'ENPS' | 'TEAM_COMPASS' | 'JOURNEYS' | 'RECRUITMENT' | 'PAYROLL'
-export type FutureModuleCode = 'LEAVE' | 'ABSENCE' | 'ASSETS' | 'WORKFLOWS' | 'TRAINING'
+export type BuiltInModuleCode = 'LEAVE' | 'ABSENCE'
+export type FutureModuleCode = 'ASSETS' | 'WORKFLOWS' | 'TRAINING'
 
 export type ModuleDefinition = {
-  code: ToggleableModuleCode | FutureModuleCode
+  code: ToggleableModuleCode | BuiltInModuleCode | FutureModuleCode
   status: 'AVAILABLE' | 'COMING_SOON'
   toggleable: boolean
 }
@@ -17,8 +18,8 @@ const MODULE_CATALOG: readonly ModuleDefinition[] = [
   { code: 'JOURNEYS', status: 'AVAILABLE', toggleable: true },
   { code: 'RECRUITMENT', status: 'AVAILABLE', toggleable: true },
   { code: 'PAYROLL', status: 'AVAILABLE', toggleable: true },
-  { code: 'LEAVE', status: 'COMING_SOON', toggleable: false },
-  { code: 'ABSENCE', status: 'COMING_SOON', toggleable: false },
+  { code: 'LEAVE', status: 'AVAILABLE', toggleable: false },
+  { code: 'ABSENCE', status: 'AVAILABLE', toggleable: false },
   { code: 'ASSETS', status: 'COMING_SOON', toggleable: false },
   { code: 'WORKFLOWS', status: 'COMING_SOON', toggleable: false },
   { code: 'TRAINING', status: 'COMING_SOON', toggleable: false },

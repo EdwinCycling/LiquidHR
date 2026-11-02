@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Building2, ShieldCheck } from 'lucide-react'
+import { Building2, ShieldCheck, UsersRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { Surface } from '@/components/ui/surface'
 
 interface ContextSelectionFormProps {
@@ -13,6 +14,10 @@ interface ContextSelectionFormProps {
     hrGroups: Array<{ id: string; name: string; code: string }>
   }>
   labels: {
+    tenantLabel: string
+    tenantPlaceholder: string
+    hrGroupLabel: string
+    hrGroupPlaceholder: string
     contextLabel: string
     contextPlaceholder: string
     formTitle: string
@@ -31,20 +36,23 @@ function contextKey(tenantId: string, hrGroupId: string): string {
 
 export function ContextSelectionForm({ tenants, labels, initialError }: ContextSelectionFormProps) {
   const router = useRouter()
-  const contexts = useMemo(() => tenants.flatMap((tenant) => tenant.hrGroups.map((group) => ({
-    key: contextKey(tenant.id, group.id),
-    label: `${tenant.name} · ${group.name}`,
-    tenantId: tenant.id,
-    hrGroupId: group.id,
-  }))), [tenants])
-  const [selection, setSelection] = useState(contexts.length === 1 ? contexts[0].key : '')
+  const [tenantId, setTenantId] = useState(tenants.length === 1 ? tenants[0].id : '')
+  const initialTenant = tenants.find((tenant) => tenant.id === tenantId)
+  const [hrGroupId, setHrGroupId] = useState(initialTenant?.hrGroups.length === 1 ? initialTenant.hrGroups[0].id : '')
   const [error, setError] = useState<string | null>(initialError ?? null)
   const [pending, setPending] = useState(false)
+  const groups = useMemo(() => tenants.find((tenant) => tenant.id === tenantId)?.hrGroups ?? [], [tenantId, tenants])
+
+  function handleTenantChange(value: string): void {
+    setTenantId(value)
+    const tenant = tenants.find((option) => option.id === value)
+    setHrGroupId(tenant?.hrGroups.length === 1 ? tenant.hrGroups[0].id : '')
+    setError(null)
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
-    const selectedContext = contexts.find((context) => context.key === selection)
-    if (!selectedContext) {
+    if (!tenantId || !hrGroupId) {
       setError(labels.invalid)
       return
     }
@@ -54,7 +62,7 @@ export function ContextSelectionForm({ tenants, labels, initialError }: ContextS
       const response = await fetch('/api/context/select', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ tenantId: selectedContext.tenantId, hrGroupId: selectedContext.hrGroupId }),
+        body: JSON.stringify({ tenantId, hrGroupId }),
       })
       if (!response.ok) {
         setError(response.status === 400 || response.status === 403 ? labels.invalid : labels.failed)
@@ -81,26 +89,39 @@ export function ContextSelectionForm({ tenants, labels, initialError }: ContextS
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-foreground" htmlFor="context-selection">
+        <div className="space-y-5">
+          <label className="block text-sm font-medium text-foreground" htmlFor="context-tenant">
             <span className="inline-flex items-center gap-2">
               <Building2 aria-hidden="true" className="size-4 text-muted-foreground" />
-              {labels.contextLabel}
+              {labels.tenantLabel}
             </span>
-            <select
-              aria-invalid={error ? 'true' : undefined}
-              className="mt-2 min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus-visible:border-focus focus-visible:outline-2 focus-visible:outline-focus/50"
-              id="context-selection"
-              name="selection"
-              onChange={(event) => { setSelection(event.target.value); setError(null) }}
-              required
-              value={selection}
-            >
+            <DropdownSelect aria-invalid={error ? 'true' : undefined} className="mt-2" id="context-tenant" onChange={(event) => handleTenantChange(event.target.value)} searchable value={tenantId}>
               <option value="">{labels.contextPlaceholder}</option>
-              {contexts.map((context) => <option key={context.key} value={context.key}>{context.label}</option>)}
-            </select>
+              {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}
+            </DropdownSelect>
+          </label>
+
+          <label className="block text-sm font-medium text-foreground" htmlFor="context-hr-group">
+            <span className="inline-flex items-center gap-2">
+              <UsersRound aria-hidden="true" className="size-4 text-muted-foreground" />
+              {labels.hrGroupLabel}
+            </span>
+            <DropdownSelect aria-invalid={error ? 'true' : undefined} className="mt-2" disabled={!tenantId} id="context-hr-group" onChange={(event) => { setHrGroupId(event.target.value); setError(null) }} searchable value={hrGroupId}>
+              <option value="">{labels.hrGroupPlaceholder}</option>
+              {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </DropdownSelect>
           </label>
         </div>
+
+        <noscript>
+          <label className="block text-sm font-medium text-foreground" htmlFor="context-selection-fallback">
+            {labels.contextLabel}
+            <select className="mt-2 min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm text-foreground" id="context-selection-fallback" name="selection" required>
+              <option value="">{labels.tenantPlaceholder}</option>
+              {tenants.flatMap((tenant) => tenant.hrGroups.map((group) => <option key={contextKey(tenant.id, group.id)} value={contextKey(tenant.id, group.id)}>{tenant.name} · {group.name}</option>))}
+            </select>
+          </label>
+        </noscript>
 
         <p className="flex items-start gap-2.5 rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-muted-foreground">
           <ShieldCheck aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />

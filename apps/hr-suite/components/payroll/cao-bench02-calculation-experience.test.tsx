@@ -26,7 +26,7 @@ describe('CAO-BENCH02 Retail calculation scope notice', () => {
   it('shows the excluded vacation allowance and supported table rows in Dutch before a run', () => {
     const markup = render(nl)
 
-    expect(markup).toContain('Alleen de volwassen Mode-tabelrijen C/1 (R2) en I/15 (R1) zijn geïmplementeerd.')
+    expect(markup).toContain('Deze vergelijking omvat alleen volwassen Mode-tabelrijen C/1 (R2) en I/15 (R1).')
     expect(markup).toContain('geen vakantietoeslag van 8%')
     expect(markup).not.toContain('Synthetische TEST')
   })
@@ -34,7 +34,7 @@ describe('CAO-BENCH02 Retail calculation scope notice', () => {
   it('shows the matching scope notice in English', () => {
     const markup = render(en)
 
-    expect(markup).toContain('Only adult Mode table rows C/1 (R2) and I/15 (R1) are implemented.')
-    expect(markup).toContain('excludes the 8% vacation allowance (vakantietoeslag)')
+    expect(markup).toContain('This comparison includes only adult Mode table rows C/1 (R2) and I/15 (R1).')
+    expect(markup).toContain('Gross amounts exclude the 8% holiday allowance (vakantietoeslag) and public-holiday premiums.')
   })
 })

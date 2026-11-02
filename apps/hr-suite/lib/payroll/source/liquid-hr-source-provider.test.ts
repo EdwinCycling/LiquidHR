@@ -23,6 +23,7 @@ import {
 } from '@liquid-hr/payroll-engine'
 import { createPayfull02RulePackage, PAYFULL02_RULE_REGISTRY } from '@liquid-hr/payroll-rules-nl-2026'
 import type { ActualWorkPayrollProjection } from '@/lib/actual-work/actual-work-service'
+import type { EmploymentPayrollSourceProjection } from '@/lib/employment/employment-detail-service'
 import { assertActivePayrollEmployerConfiguration, hashPayrollEmployerConfiguration } from '../payroll-setup'
 
 const tenantId = '10000000-0000-4000-8000-000000000001'
@@ -90,6 +91,40 @@ function salary(overrides: Partial<PayrollSourceSalary> = {}): PayrollSourceSala
     valid_until: null,
     updated_at: '2026-09-01T10:05:00.000Z',
     ...overrides,
+  }
+}
+
+function resolvedSalaryTableSource(family: 'KINDEROPVANG' | 'RETAIL_MODE'): EmploymentPayrollSourceProjection['salaryTableSource'] {
+  const retail = family === 'RETAIL_MODE'
+  return {
+    status: 'RESOLVED',
+    reasonCode: null,
+    source: {
+      salaryId,
+      structureId: retail ? 'structure-retail' : 'structure-ko',
+      revisionId: retail ? 'retail-2026-07' : 'kinderopvang-2026-09',
+      revisionNumber: 1,
+      revisionUpdatedAt: '2026-09-01T00:00:00.000Z',
+      salaryBasis: retail ? 'HOURLY' : 'MONTHLY_BASE',
+      effectiveFrom: retail ? '2026-07-01' : '2026-09-01',
+      effectiveTo: retail ? '2027-06-30' : '2026-12-31',
+      sourceTitle: retail ? 'Retail Non-Food loongebouw' : 'Cao Kinderopvang salaristabel',
+      sourceVersion: retail ? '2026.07' : '2026.09',
+      sourceUrl: retail ? 'https://www.inretail.nl/retail-cao.pdf' : 'https://www.kinderopvang-werkt.nl/salaristabel.pdf',
+      sourceHash: 'a'.repeat(64),
+      sourceRowCount: retail ? 577 : 196,
+      scaleId: retail ? 'scale-retail' : 'scale-ko',
+      scaleCode: retail ? 'I' : '6',
+      scaleName: retail ? 'I' : 'Schaal 6',
+      stepId: retail ? 'step-retail-15' : 'step-ko-12',
+      stepCode: retail ? '15' : '12',
+      stepName: retail ? '15' : 'Salarisnummer 12',
+      fulltimeAmount: retail ? '28.95' : '2819.00',
+      hourlyAmount: retail ? '28.95' : null,
+      currencyCode: 'EUR',
+      stepUpdatedAt: '2026-09-01T00:00:00.000Z',
+      maximumStepFulltimeAmount: retail ? null : '3425.00',
+    },
   }
 }
 
@@ -342,12 +377,14 @@ describe('LiquidHR Payroll source provider', () => {
       types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
     })
     const loadTimeline = vi.fn(async () => timeline)
+    const listEmploymentsBatch = vi.fn(async () => [{ status: 'fulfilled' as const, value: [employment()] }])
     const loadTimelineBatch = vi.fn(async () => [timeline])
     const loadActualWork = vi.fn(async () => batchActualWork)
     const loadActualWorkBatch = vi.fn(async () => [batchActualWork])
     const input = { ...request, employmentId }
     const batchProvider = new LiquidHrPayrollSourceProvider(dependencies({
       loadTimeline,
+      listEmploymentsBatch,
       loadTimelineBatch,
       loadActualWork,
       loadActualWorkBatch,
@@ -364,6 +401,7 @@ describe('LiquidHR Payroll source provider', () => {
       employmentId,
       payrollPeriod: request.payrollPeriod,
     }])
+    expect(listEmploymentsBatch).toHaveBeenCalledWith([employeeId], { tenantId, hrGroupId, administrationId })
     expect(loadTimeline).not.toHaveBeenCalled()
     expect(loadActualWork).not.toHaveBeenCalled()
     expect(batchSnapshot?.status).toBe('fulfilled')
@@ -672,10 +710,14 @@ describe('LiquidHR Payroll source provider', () => {
           hourly_rate: 18,
           fulltime_amount: 2819,
           parttime_amount: 1879.33,
+          salary_structure_id: 'structure-ko',
+          salary_scale_id: 'scale-ko',
+          salary_scale_step_id: 'step-ko-12',
           cao_scale_name: 'Schaal 6',
           cao_step_name: 'Salarisnummer 12',
           salary_step_code: '12',
         })],
+        salaryTableSource: resolvedSalaryTableSource('KINDEROPVANG'),
         schedules: [schedule({ average_hours_per_week: 24, fulltime_hours_per_week: 36, part_time_factor: 2 / 3 })],
         contracts: [{
           id: '8b000000-0000-4000-8000-000000000008',
@@ -737,7 +779,7 @@ describe('LiquidHR Payroll source provider', () => {
     const amounts = payrollOwned.amounts as Record<string, unknown>
     const controls = payrollOwned.controls as Record<string, unknown>
 
-    expect(cao).toMatchObject({ status: 'CALCULATED', family: 'KINDEROPVANG', grossAmount: '1879.333333333333333333', premiumAmount: '0.000000000000000000' })
+    expect(cao).toMatchObject({ status: 'CALCULATED', family: 'KINDEROPVANG', grossAmount: '1879.333333333333333333', premiumAmount: '0' })
     expect(regularWage).toMatchObject({ grossAmount: '1879.333333333333333333', fulltimeMonthlyAmount: '2819', caoApplied: true })
     expect(amounts.variableRegularWage).toBe('32.40')
     expect(controls.additionalHoursSupported).toBe(true)
@@ -842,8 +884,8 @@ describe('LiquidHR Payroll source provider', () => {
           basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
           floorAtZero: true,
           components: [
-            { code: 'PFZW_OP_NP_2026', componentType: 'BASE', totalRate: 25.9, employeeRate: 12.9, employerRate: 13.0 },
-            { code: 'PFZW_WIA_EXCEDENT_2026', componentType: 'ADDITIONAL', totalRate: 3.4, employeeRate: 0, employerRate: 3.4 },
+            { code: 'PFZW_OP_NP', name: 'OP/NP', componentType: 'BASE', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31', basisCode: 'UPA_REGLN_AFTER_FRANCHISE_AND_CAP', basisDescription: 'RegLn less franchise, capped before applying the UPA period DTF.', totalRate: 25.9, employeeRate: 12.9, employerRate: 13, annualFranchise: 17283, annualPensionableSalaryCap: 137800, eligibilityRule: 'PFZW participant in the Kinderopvang employment scope.', calculationMethod: 'Annual premium allocated to monthly periods.', roundingRule: 'Half-up to cents per employee and employer share.', sourceVersion: 'PFZW 2026', sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html', sourceSha256: 'c'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'PRE_TAX_EMPLOYEE_DEDUCTION' },
+            { code: 'PFZW_WIA_EXCESS', name: 'WIA-excedent', componentType: 'ADDITIONAL', effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31', basisCode: 'UPA_REGLN_WITHOUT_OPNP_CAP', basisDescription: 'RegLn less the separate WIA-excedent franchise; not subject to the OP/NP cap.', totalRate: 3.4, employeeRate: 0, employerRate: 3.4, annualFranchise: 79409, annualPensionableSalaryCap: null, eligibilityRule: 'PFZW participant subject to WIA-excedent coverage.', calculationMethod: 'Employer-only annual premium allocated to monthly periods.', roundingRule: 'Half-up to cents for the employer share.', sourceVersion: 'PFZW 2026', sourceReference: 'https://www.pfzw.nl/werkgevers/premie-en-factuur/premiepercentages-en-franchises.html', sourceSha256: 'd'.repeat(64), sourceValidationStatus: 'VERIFIED_SOURCE', taxTreatment: 'EMPLOYER_COST_ONLY' },
           ],
           pfzw2026: {
             monthlyPaymentsPerYear: 12,
@@ -886,6 +928,9 @@ describe('LiquidHR Payroll source provider', () => {
           salary_basis: 'CAO_SCALE',
           fulltime_amount: 2819,
           parttime_amount: 1879.33,
+          salary_structure_id: 'structure-ko',
+          salary_scale_id: 'scale-ko',
+          salary_scale_step_id: 'step-ko-12',
           cao_scale_name: 'Schaal 6',
           cao_step_name: 'Salarisnummer 12',
           salary_step_code: '12',
@@ -897,6 +942,7 @@ describe('LiquidHR Payroll source provider', () => {
           part_time_factor: 2 / 3,
           valid_from: '2026-11-01',
         })],
+        salaryTableSource: resolvedSalaryTableSource('KINDEROPVANG'),
         contracts: [{
           id: '92000000-0000-4000-8000-000000000028',
           labor_condition_set_id: laborConditionSetId,
@@ -978,10 +1024,14 @@ describe('LiquidHR Payroll source provider', () => {
           fulltime_amount: 4767.2,
           parttime_amount: 4767.2,
           hourly_rate: 28.9,
+          salary_structure_id: 'structure-retail',
+          salary_scale_id: 'scale-retail',
+          salary_scale_step_id: 'step-retail-15',
           cao_scale_name: 'I',
           cao_step_name: '15',
           salary_step_code: '15',
         })],
+        salaryTableSource: resolvedSalaryTableSource('RETAIL_MODE'),
         schedules: [schedule({ average_hours_per_week: 38, fulltime_hours_per_week: 38 })],
         contracts: [{
           id: '8b000000-0000-4000-8000-000000000018',
@@ -1024,7 +1074,7 @@ describe('LiquidHR Payroll source provider', () => {
     expect(source.payrollOwned).toBeUndefined()
   })
 
-  it('uses the regular employer configuration and explicit calendar-day pension method for a new joiner', async () => {
+  it('fails closed when calendar-day pension allocation would prorate a mid-period start', async () => {
     const configuration = assertActivePayrollEmployerConfiguration({
       schemaVersion: 'payroll-employer-configuration-v1',
       effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', sourceReference: 'Mars BV payroll decision 2026',
@@ -1059,16 +1109,16 @@ describe('LiquidHR Payroll source provider', () => {
       openingBalance: null,
     }
     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
-      listEmployments: vi.fn(async () => [employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' })]),
+      listEmployments: vi.fn(async () => [employment({ starts_on: '2026-09-30', original_hire_date: '2026-09-30', seniority_date: '2026-09-30' })]),
       loadTimeline: vi.fn(async () => ({
-        employment: employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' }),
+        employment: employment({ starts_on: '2026-09-30', original_hire_date: '2026-09-30', seniority_date: '2026-09-30' }),
         salaries: [salary({ fulltime_amount: 3517, parttime_amount: 3517 })],
         schedules: [schedule({ part_time_factor: 1 })],
         incomeRelationships: [incomeRelationship({ reportingStatus: 'READY', startsOn: '2026-01-01' })],
         taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({ effective_from: '2026-01-01' })] }),
         pensionAssignments: [{
           id: '92000000-0000-4000-8000-000000000009', pension_arrangement_id: 'MARS-PENSION-2026',
-          effective_from: '2026-01-01', effective_to: null, participation_start_date: '2026-10-16',
+          effective_from: '2026-09-30', effective_to: null, participation_start_date: '2026-09-30',
           assignment_reason: 'CORE', provenance_json: {}, updated_at: '2026-01-01T00:00:00.000Z', version_number: 1,
           supersedes_assignment_id: null, arrangement_resolution_reason: null, arrangement_resolution_change_version_ids: [], age_for_tier: null,
           arrangement: {
@@ -1085,30 +1135,15 @@ describe('LiquidHR Payroll source provider', () => {
         }],
       })),
       loadPayrollSetup: vi.fn(async () => setup),
-    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 10 } })
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
 
     const source = snapshot.canonicalSource as Record<string, unknown>
-    const payrollOwned = source.payrollOwned as Record<string, unknown>
-    expect(payrollOwned).toBeDefined()
-    const pension = payrollOwned.pension as Record<string, unknown>
-    expect(pension.partialMonthMethod).toBe('CALENDAR_DAYS_PRO_RATA')
-    expect(pension.periodFactor).toBe('0.5161')
-    expect(pension.partTimeFactor).toBe('0.5161')
-    expect(pension.calculationTrace).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        ruleProvenance: expect.objectContaining({
-          eligibilityRule: expect.objectContaining({
-            participantGroup: 'NEW_ENTRANT',
-            employmentOrParticipationStartOnOrAfter: '2026-01-01',
-          }),
-          eligibilityRuleMapping: {
-            mode: 'CORE_ARRANGEMENT_EFFECTIVE_FROM',
-            sourceField: 'arrangement.effective_from',
-            derivedBoundary: '2026-01-01',
-          },
-        }),
-      }),
-    ]))
+    expect(source.payrollOwned).toBeUndefined()
+    expect(snapshot.sourceGaps).toContainEqual({
+      field: 'pension',
+      status: 'SOURCE_GAP',
+      reasonCode: 'PENSION_PARTIAL_MONTH_PRORATION_UNVERIFIED',
+    })
     expect(snapshot.sourceGaps).not.toContainEqual({ field: 'openingCumulative', status: 'SOURCE_GAP', reasonCode: 'PAYROLL_OPENING_CUMULATIVE_MISSING' })
   })
 
@@ -1205,6 +1240,139 @@ describe('LiquidHR Payroll source provider', () => {
     expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({
       reasonCode: 'ACTUAL_WORK_HOURLY_RATE_REQUIRED',
     }))
+  })
+
+  it('calculates an on-call hourly pension basis from released paid hours without inventing fixed monthly salary', async () => {
+    const setup = completePayrollSetup()
+    const fixture = {
+      fixtureId: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28',
+      classification: 'SYNTHETIC_TEST_FIXTURE',
+      legalFiscalStatus: 'OPEN',
+    }
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      listEmployments: vi.fn(async () => [employment({
+        starts_on: '2026-10-01', original_hire_date: '2026-10-01', seniority_date: '2026-10-01',
+      })]),
+      loadTimeline: vi.fn(async () => ({
+        employment: employment({ starts_on: '2026-10-01', original_hire_date: '2026-10-01', seniority_date: '2026-10-01' }),
+        salaries: [salary({
+          payment_type: 'HOURLY_VARIABLE',
+          payment_frequency: 'MONTHLY',
+          hourly_rate: 20,
+          fulltime_amount: null,
+          parttime_amount: null,
+        })],
+        schedules: [schedule({
+          average_hours_per_week: 0,
+          fulltime_hours_per_week: 40,
+          part_time_factor: 0,
+          schedule_type: 'HOURS_AND_AVG_DAYS',
+          is_on_call: true,
+        })],
+        contracts: [{
+          id: '8b000000-0000-4000-8000-000000000028',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000028',
+          fulltime_hours_per_week: 40,
+          starts_on: '2026-10-01',
+          ends_on: null,
+          updated_at: '2026-10-01T10:01:00.000Z',
+        }],
+        laborConditions: [{
+          id: '8d000000-0000-4000-8000-000000000028',
+          condition_group: 'COMPANY',
+          labor_condition_set_id: '8c000000-0000-4000-8000-000000000028',
+          valid_from: '2026-10-01',
+          valid_until: null,
+          updated_at: '2026-10-01T10:02:00.000Z',
+          set: {
+            id: '8c000000-0000-4000-8000-000000000028',
+            code: 'MARS_COMPANY_TEST',
+            name: 'Mars BV TEST',
+            standard_hours_per_week: 40,
+            is_active: true,
+            valid_from: '2026-01-01',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        }],
+        incomeRelationships: [incomeRelationship({
+          reportingStatus: 'READY', startsOn: '2026-10-01', validFrom: '2026-10-01',
+        })],
+        taxProfileProjection: taxProjection(),
+        pensionAssignments: [{
+          id: '92000000-0000-4000-8000-000000000028',
+          pension_arrangement_id: 'MARS-PENSION-2026',
+          effective_from: '2026-10-01', effective_to: '2026-10-31',
+          participation_start_date: '2026-10-01', assignment_reason: 'Explicit HR-admin assignment.',
+          provenance_json: { status: 'SYNTHETIC_TEST_FIXTURE', syntheticFixture: fixture },
+          updated_at: '2026-10-01T00:00:00.000Z', version_number: 1,
+          supersedes_assignment_id: null, arrangement_resolution_reason: null,
+          arrangement_resolution_change_version_ids: [], age_for_tier: null,
+          arrangement: {
+            id: 'MARS-PENSION-2026', code: 'MARS-PENSION-2026', name: 'Mars BV TEST-pensioenfixture',
+            arrangement_type: 'FLAT_PREMIUM', effective_from: '2026-01-01',
+            arrangement_established_from: '2026-01-01', effective_to: null, transition_date: null,
+            grandfathering_mode: 'NONE', flat_total_rate: 25, employer_share_pct: 60,
+            employee_share_pct: 40, annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
+            pensionable_salary_definition: {
+              annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
+              basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true,
+            },
+            eligibility_rule: {
+              participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01',
+            },
+            contract_classification: 'UNKNOWN' as const, contract_classification_provenance: { status: 'UNVERIFIED' },
+            provenance_json: { sourceClassification: 'SYNTHETIC_TEST_FIXTURE', legalFiscalStatus: 'OPEN' },
+            is_active: true, version_id: '93000000-0000-4000-8000-000000000028', version_number: 2,
+            version_created_at: '2026-01-01T00:00:00.000Z', source_updated_at: '2026-01-01T00:00:00.000Z', tiers: [],
+          },
+        }],
+      })),
+      loadActualWork: vi.fn(async () => withPayrollReleases(actualWork({
+        period: {
+          id: actualWorkPeriodId, period_start: '2026-10-01', period_end: '2026-11-01',
+          status: 'CLOSED', updated_at: '2026-10-31T20:00:00.000Z',
+        },
+        entries: [actualWorkEntry({
+          hours: 1, work_date: '2026-10-06', subject_period_start: '2026-10-06',
+          subject_period_end: '2026-10-07', posting_period_start: '2026-10-01',
+        })],
+        types: [actualWorkType({ code: 'AW_WORK', name: 'Gewerkte uren' })],
+      }))),
+      loadPayrollSetup: vi.fn(async () => setup),
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 10 } })
+
+    const source = snapshot.canonicalSource as Record<string, unknown>
+    const payrollOwned = source.payrollOwned as Record<string, unknown>
+    const amounts = payrollOwned.amounts as Record<string, unknown>
+    const controls = payrollOwned.controls as Record<string, unknown>
+    const pension = payrollOwned.pension as Record<string, unknown>
+    const regularWage = source.regularWage as Record<string, unknown>
+
+    expect(snapshot.sourceGaps).toEqual([])
+    expect(controls.sourceReady).toBe(true)
+    expect(amounts.variableRegularWage).toBe('20.00')
+    expect(regularWage).toMatchObject({
+      grossAmount: '20.00', fulltimeMonthlyAmount: '0.00', contractHoursPerWeek: '0.0000',
+      fulltimeHoursPerWeek: '40.0000',
+    })
+    expect(pension).toMatchObject({
+      partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA', periodFactor: '1.0000',
+      variableHourlyBasis: {
+        hourlyRate: '20.00', fullTimeHoursPerWeek: '40.0000',
+        fullTimeMonthlyHours: '173.33333333', fullTimeMonthlyPensionableSalary: '3466.66666660',
+        paidHours: '1.0000', partTimeFactor: '0.00576923',
+      },
+      calculationStatus: 'CALCULATED',
+    })
+    expect(amounts.employeePension).toBe('1.08')
+    expect(amounts.employerPension).toBe('1.62')
+    expect(pension.calculationTrace).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        componentCode: 'PENSION_ANNUALIZED_PENSIONABLE_SALARY',
+        inputs: expect.objectContaining({ fullTimeMonthlyPensionableSalary: '3466.66666660' }),
+      }),
+    ]))
+    expect(snapshot.sourceHash).toMatch(/^[0-9a-f]{64}$/)
   })
 
   it('uses an effective HR Admin confirmed Core tax profile to build the regular wage engine input', async () => {
@@ -1349,28 +1517,43 @@ describe('LiquidHR Payroll source provider', () => {
     }))
   })
 
-  it('projects a mid-month employment into a 11/22 gross and week/day tax period', async () => {
-    const partialEmployment = employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' })
+  it.each([
+    {
+      month: 10, periodStart: '2026-10-01', periodEnd: '2026-11-01', employmentStart: '2026-10-16',
+      averageDaysPerWeek: 5, expectedGross: '1758.50', expectedTimePeriod: 'WEEK_DAY_2_1',
+    },
+    {
+      month: 3, periodStart: '2026-03-01', periodEnd: '2026-04-01', employmentStart: '2026-03-02',
+      averageDaysPerWeek: 5, expectedGross: '3517.00', expectedTimePeriod: 'MONTH',
+    },
+    {
+      month: 10, periodStart: '2026-10-01', periodEnd: '2026-11-01', employmentStart: '2026-10-16',
+      averageDaysPerWeek: 4, expectedGross: null, expectedTimePeriod: null,
+    },
+  ])('projects partial month payroll safely ($month; $averageDaysPerWeek days/week)', async ({
+    month, periodStart, periodEnd, employmentStart, averageDaysPerWeek, expectedGross, expectedTimePeriod,
+  }) => {
+    const partialEmployment = employment({ starts_on: employmentStart, original_hire_date: employmentStart, seniority_date: employmentStart })
     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
       listEmployments: vi.fn(async () => [partialEmployment]),
       loadActualWork: vi.fn(async () => actualWork({ period: {
         id: actualWorkPeriodId,
-        period_start: '2026-10-01',
-        period_end: '2026-11-01',
+        period_start: periodStart,
+        period_end: periodEnd,
         status: 'CLOSED',
         updated_at: '2026-11-01T10:00:00.000Z',
       } })),
       loadTimeline: vi.fn(async () => ({
         employment: partialEmployment,
-        salaries: [salary({ fulltime_amount: 3517, parttime_amount: 3517, valid_from: '2026-10-01' })],
-        schedules: [schedule({ valid_from: '2026-10-01' })],
+        salaries: [salary({ fulltime_amount: 3517, parttime_amount: 3517, valid_from: periodStart })],
+        schedules: [schedule({ valid_from: periodStart, average_days_per_week: averageDaysPerWeek })],
         contracts: [{
           id: '8b000000-0000-4000-8000-000000000008',
           labor_condition_set_id: '8c000000-0000-4000-8000-000000000008',
           fulltime_hours_per_week: 40,
-          starts_on: '2026-10-01',
+          starts_on: periodStart,
           ends_on: null,
-          updated_at: '2026-10-01T10:01:00.000Z',
+          updated_at: `${periodStart}T10:01:00.000Z`,
         }],
         laborConditions: [{
           id: '8d000000-0000-4000-8000-000000000008',
@@ -1389,24 +1572,32 @@ describe('LiquidHR Payroll source provider', () => {
             updated_at: '2026-01-01T00:00:00.000Z',
           },
         }],
-        incomeRelationships: [incomeRelationship({ validFrom: '2026-10-01', startsOn: '2026-10-01', reportingStatus: 'READY' })],
+        incomeRelationships: [incomeRelationship({ validFrom: periodStart, startsOn: periodStart, reportingStatus: 'READY' })],
         taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({
-          effective_from: '2026-10-01',
+          effective_from: periodStart,
           payroll_tax_credit_applies: false,
         })] }),
       })),
     })).getPayrollSourceSnapshot({
       ...request,
       employmentId,
-      payrollPeriod: { year: 2026, month: 10 },
+      payrollPeriod: { year: 2026, month },
     })
 
+    if (expectedGross === null || expectedTimePeriod === null) {
+      expect(snapshot.sourceGaps).toContainEqual(expect.objectContaining({
+        field: 'contractualSalary', status: 'UNSUPPORTED',
+        reasonCode: 'PARTIAL_NON_FIVE_DAY_SCHEDULE_UNSUPPORTED',
+      }))
+      expect((snapshot.canonicalSource as Record<string, unknown>).regularWage).toBeUndefined()
+      return
+    }
     expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({ reasonCode: 'PARTIAL_EMPLOYMENT_PERIOD_UNSUPPORTED' }))
     expect(snapshot.sourceGaps).toEqual([])
     expect(snapshot.canonicalSource).toMatchObject({
       regularWage: {
-        grossAmount: '1758.50',
-        timePeriod: 'WEEK_DAY_2_1',
+        grossAmount: expectedGross,
+        timePeriod: expectedTimePeriod,
         fullPeriod: false,
         payrollTaxCredit: false,
         fulltimeMonthlyAmount: '3517.00',

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { formatPayrollExpression, parsePayrollExpression } from './component-expression-dsl'
+import enNavigation from '../../messages/en/navigation.json'
+import nlNavigation from '../../messages/nl/navigation.json'
+
+const formulaExampleKeys = [
+  'payrollComponentsEditorFormulaExampleMoney',
+  'payrollComponentsEditorFormulaExampleIf',
+  'payrollComponentsEditorFormulaExampleMax',
+] as const
 
 describe('Payroll component expression text', () => {
   it('round-trips typed formulas, inputs, parameters, dependencies, ratios and conditionals', () => {
@@ -17,5 +25,19 @@ describe('Payroll component expression text', () => {
     'MONEY(input.value)',
   ])('rejects executable or unsupported formula text: %s', (source) => {
     expect(() => parsePayrollExpression(source)).toThrow('PAYROLL_COMPONENT_FORMULA_INVALID')
+  })
+
+  it('accepts the input, parameter and declared component-output reference syntax', () => {
+    expect(() => parsePayrollExpression('input.baseGross')).not.toThrow()
+    expect(() => parsePayrollExpression('parameter.rate')).not.toThrow()
+    expect(() => parsePayrollExpression('NL_GROSS.Amount')).not.toThrow()
+  })
+
+  it.each(formulaExampleKeys)('keeps the %s examples in both locales valid in the existing DSL', (key) => {
+    const englishExample = enNavigation[key]
+    const dutchExample = nlNavigation[key]
+
+    expect(dutchExample).toBe(englishExample)
+    expect(() => parsePayrollExpression(englishExample)).not.toThrow()
   })
 })

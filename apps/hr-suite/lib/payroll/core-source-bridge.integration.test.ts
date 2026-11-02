@@ -148,11 +148,46 @@ describe('Core readers through the standard Payroll source assembly', () => {
   it('does not infer Retail night work from labels and requires an HR Admin Payroll release', async () => {
     const source = timeline()
     const laborSetId = 'cc000000-0000-4000-8000-00000000000c'
+    const salaryId = source.salaries[0]!.id
+    const scaleId = 'cd000000-0000-4000-8000-00000000000d'
+    const stepId = 'ce000000-0000-4000-8000-00000000000e'
+    const revisionId = 'cf000000-0000-4000-8000-00000000000f'
     reads.timeline.mockResolvedValue({
       ...source,
       salaries: [{ ...source.salaries[0]!, salary_basis: 'CAO_SCALE', salary_route: 'SCALE_WITH_STEPS',
-        fulltime_amount: 2542.50, parttime_amount: 1605.79, cao_scale_name: 'C', cao_step_name: '1' }],
+        fulltime_amount: 2542.50, parttime_amount: 1605.79, salary_structure_id: laborSetId,
+        salary_scale_id: scaleId, salary_scale_step_id: stepId, salary_step_code: '1', cao_scale_name: 'C', cao_step_name: '1' }],
       schedules: [{ ...source.schedules[0]!, average_hours_per_week: 24, fulltime_hours_per_week: 38, part_time_factor: 0.6316 }],
+      salaryTableSource: {
+        status: 'RESOLVED',
+        reasonCode: null,
+        source: {
+          salaryId,
+          structureId: laborSetId,
+          revisionId,
+          revisionNumber: 1,
+          revisionUpdatedAt: version,
+          salaryBasis: 'HOURLY',
+          effectiveFrom: '2026-07-01',
+          effectiveTo: '2027-06-30',
+          sourceTitle: 'Retail Mode salary table — synthetic provider fixture',
+          sourceVersion: '2026.07-test',
+          sourceUrl: 'https://example.test/retail-mode-table',
+          sourceHash: 'a'.repeat(64),
+          sourceRowCount: 1,
+          scaleId,
+          scaleCode: 'C',
+          scaleName: 'C',
+          stepId,
+          stepCode: '1',
+          stepName: '1',
+          fulltimeAmount: '2542.50',
+          hourlyAmount: '15.21',
+          currencyCode: 'EUR',
+          stepUpdatedAt: version,
+          maximumStepFulltimeAmount: null,
+        },
+      },
       contracts: [{ id: 'dd000000-0000-4000-8000-00000000000d', labor_condition_set_id: laborSetId,
         fulltime_hours_per_week: 38, starts_on: '2026-01-01', ends_on: null, updated_at: version }],
       laborConditions: [{ id: 'ee000000-0000-4000-8000-00000000000e', condition_group: 'CAO',

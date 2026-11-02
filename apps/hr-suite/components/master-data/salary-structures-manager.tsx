@@ -16,6 +16,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { FormDrawer } from '@/components/patterns/form-drawer'
 import { FormField } from '@/components/patterns/form-field'
+import { SalaryTableImporter, type SalaryTableImporterLabels } from '@/components/master-data/salary-table-importer'
+import { sourceMetadataForDraft } from '@/lib/salary-structures/source-metadata'
 
 type Locale = 'nl' | 'en'
 type Labels = {
@@ -34,10 +36,14 @@ type Labels = {
   futureRevision: string
   draft: string
   published: string
+  archived: string
   historical: string
   future: string
   view: string
   history: string
+  editDetails: string
+  editStructureTitle: string
+  editStructureDescription: string
   newStructure: string
   createStructureTitle: string
   createStructureDescription: string
@@ -143,6 +149,12 @@ type Labels = {
   details: string
   amountLabel: string
   noData: string
+  bulkImport: SalaryTableImporterLabels & {
+    open: string
+    sourceRuleCondition: string
+    sourceRuleReference: string
+    sourceRuleApplications: string
+  }
 }
 
 type Structure = SalaryStructureCatalog['structures'][number]
@@ -180,6 +192,31 @@ function hourlyString(value: number | string | null): string | null {
   return Number.isFinite(number) ? number.toFixed(4) : null
 }
 
+type SourceStepRule = { code: string; percentage: string; description: string; condition: string; sourceReference: string }
+type SourceStepAdjustment = { scaleCode: string; stepCode: string; sourceRuleCode: string }
+
+function objectRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+function sourceRuleDetails(value: unknown): { rules: SourceStepRule[]; adjustments: SourceStepAdjustment[] } {
+  const source = objectRecord(value)
+  const rules = Array.isArray(source?.stepRules) ? source.stepRules.flatMap((item) => {
+    const rule = objectRecord(item)
+    if (typeof rule?.code !== 'string' || typeof rule.percentage !== 'string'
+      || typeof rule.description !== 'string' || typeof rule.condition !== 'string'
+      || typeof rule.sourceReference !== 'string') return []
+    return [{ code: rule.code, percentage: rule.percentage, description: rule.description, condition: rule.condition, sourceReference: rule.sourceReference }]
+  }) : []
+  const adjustments = Array.isArray(source?.stepAdjustments) ? source.stepAdjustments.flatMap((item) => {
+    const adjustment = objectRecord(item)
+    if (typeof adjustment?.scaleCode !== 'string' || typeof adjustment.stepCode !== 'string'
+      || typeof adjustment.sourceRuleCode !== 'string') return []
+    return [{ scaleCode: adjustment.scaleCode, stepCode: adjustment.stepCode, sourceRuleCode: adjustment.sourceRuleCode }]
+  }) : []
+  return { rules, adjustments }
+}
+
 function percentageString(value: number | string | null): string | null {
   if (value === null || value === undefined || value === '') return null
   const number = Number(value)
@@ -203,22 +240,23 @@ function queryUrl(pathname: string, values: Record<string, string | null>): stri
 
 function statusForRevision(revision: Revision, revisions: Revision[], labels: Labels): { text: string; tone: BadgeTone } {
   if (revision.status === 'DRAFT') return { text: labels.draft, tone: 'info' }
+  if (revision.status === 'ARCHIVED') return { text: labels.archived, tone: 'neutral' }
   const today = new Date().toISOString().slice(0, 10)
   if (revision.effective_from > today) return { text: labels.future, tone: 'info' }
-  const latest = revisions.filter((item) => item.status === 'PUBLISHED' && item.effective_from <= today).sort((left, right) => right.effective_from.localeCompare(left.effective_from))[0]
+  const latest = revisions.filter((item) => item.status === 'PUBLISHED' && item.effective_from <= today).sort((left, right) => right.effective_from.localeCompare(left.effective_from) || right.revision_number - left.revision_number)[0]
   return revision.id === latest?.id ? { text: labels.published, tone: 'success' } : { text: labels.historical, tone: 'neutral' }
 }
 
 function latestPublishedRevision(revisions: Revision[], structureId: string): Revision | null {
   const today = new Date().toISOString().slice(0, 10)
-  return revisions.filter((revision) => revision.salary_structure_id === structureId && revision.status === 'PUBLISHED' && revision.effective_from <= today).sort((left, right) => right.effective_from.localeCompare(left.effective_from))[0] ?? null
+  return revisions.filter((revision) => revision.salary_structure_id === structureId && revision.status === 'PUBLISHED' && revision.effective_from <= today).sort((left, right) => right.effective_from.localeCompare(left.effective_from) || right.revision_number - left.revision_number)[0] ?? null
 }
 
 function preferredRevision(revisions: Revision[], structureId: string): Revision | null {
   return revisions.filter((revision) => revision.salary_structure_id === structureId).sort((left, right) => {
     if (left.status === 'DRAFT' && right.status !== 'DRAFT') return -1
     if (right.status === 'DRAFT' && left.status !== 'DRAFT') return 1
-    return right.effective_from.localeCompare(left.effective_from)
+    return right.effective_from.localeCompare(left.effective_from) || right.revision_number - left.revision_number
   })[0] ?? null
 }
 
@@ -254,6 +292,8 @@ function draftFromRevision(catalog: SalaryStructureCatalog, structure: Structure
       salaryBasis: revision.salary_basis,
       currencyCode: revision.currency_code,
       description: revision.description,
+      sourceMetadata: sourceMetadataForDraft(revision.source_metadata),
+      correctionOfRevisionId: revision.correction_of_revision_id,
       scales: values.map((value) => ({
         logicalScaleId: value.salary_scale_id,
         code: value.code,
@@ -282,6 +322,8 @@ function draftFromRevision(catalog: SalaryStructureCatalog, structure: Structure
     salaryBasis: revision.salary_basis,
     currencyCode: revision.currency_code,
     description: revision.description,
+    sourceMetadata: sourceMetadataForDraft(revision.source_metadata),
+    correctionOfRevisionId: revision.correction_of_revision_id,
     bands: values.map((value) => ({
       logicalBandId: value.salary_band_id,
       identityKey: catalog.bands.find((band) => band.id === value.salary_band_id)?.identity_key ?? value.code,
@@ -419,6 +461,40 @@ function CreateStructureDialog({ labels, defaultType, onCancel, onCreated }: { l
   return <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.cancel} description={labels.createStructureDescription} dirty={dirty} dirtyProtection={{ description: labels.dirtyConfirm, discardLabel: labels.cancel, keepEditingLabel: labels.cancel, title: labels.cancel }} onDiscard={onCancel} onOpenChange={(open) => { if (!open && !dirty) onCancel() }} onSubmit={(event) => void submit(event)} open saveLabel={labels.create} saving={saving} title={labels.createStructureTitle}><FormField control={<DropdownSelect aria-label={labels.type} onChange={(event) => setStructureType(event.target.value as typeof structureType)} value={structureType}><option value="SALARY_BAND">{labels.tabs.salaryBands}</option><option value="SCALE_WITH_STEPS">{labels.tabs.scalesAndSteps}</option></DropdownSelect>} label={labels.type} required /><FormField control={<TextInput autoFocus maxLength={160} onChange={(event) => setName(event.target.value)} required value={name} />} label={labels.name} required /><FormField control={<TextInput maxLength={80} onChange={(event) => setCode(event.target.value)} value={code} />} label={labels.code} /><FormField control={<Textarea maxLength={1000} onChange={(event) => setDescription(event.target.value)} value={description} />} label={labels.description} />{failed ? <p className="text-sm text-destructive" role="alert">{labels.failed}</p> : null}</FormDrawer>
 }
 
+function EditStructureDialog({ structure, labels, onCancel, onUpdated }: { structure: Structure; labels: Labels; onCancel: () => void; onUpdated: () => void }) {
+  const [name, setName] = useState(structure.name)
+  const [code, setCode] = useState(structure.code ?? '')
+  const [description, setDescription] = useState(structure.description ?? '')
+  const [saving, setSaving] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const dirty = name !== structure.name || code !== (structure.code ?? '') || description !== (structure.description ?? '')
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (!dirty) { onCancel(); return }
+    setSaving(true)
+    setFailed(false)
+    try {
+      const response = await fetch(`/api/master-data/salary-structures/${structure.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), code: code.trim() ? code.trim().toUpperCase() : null, description: description.trim() || null }),
+      })
+      if (!response.ok) throw new Error('salary structure update failed')
+      onUpdated()
+    } catch {
+      setFailed(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+  return <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.cancel} description={labels.editStructureDescription} dirty={dirty} dirtyProtection={{ description: labels.dirtyConfirm, discardLabel: labels.cancel, keepEditingLabel: labels.cancel, title: labels.cancel }} onDiscard={onCancel} onOpenChange={(open) => { if (!open && !dirty) onCancel() }} onSubmit={(event) => void submit(event)} open saveLabel={labels.save} saving={saving} title={labels.editStructureTitle}>
+    <FormField control={<TextInput autoFocus maxLength={160} onChange={(event) => setName(event.target.value)} required value={name} />} label={labels.name} required />
+    <FormField control={<TextInput maxLength={40} onChange={(event) => setCode(event.target.value)} value={code} />} label={labels.code} />
+    <FormField control={<Textarea maxLength={1000} onChange={(event) => setDescription(event.target.value)} value={description} />} label={labels.description} />
+    {failed ? <p className="text-sm text-destructive" role="alert">{labels.failed}</p> : null}
+  </FormDrawer>
+}
+
 function BandTable({ catalog, revision, labels, locale, editable = false }: { catalog: SalaryStructureCatalog; revision: Revision; labels: Labels; locale: Locale; editable?: boolean }) {
   const values = catalog.bandValues.filter((value) => value.salary_structure_revision_id === revision.id).sort((left, right) => left.sort_order - right.sort_order)
   return <div className="overflow-x-auto rounded-xl border">
@@ -437,18 +513,34 @@ function BandTable({ catalog, revision, labels, locale, editable = false }: { ca
 
 function ScaleTable({ catalog, revision, labels, locale, scaleId }: { catalog: SalaryStructureCatalog; revision: Revision; labels: Labels; locale: Locale; scaleId?: string }) {
   const values = catalog.scaleValues.filter((value) => value.salary_structure_revision_id === revision.id && (!scaleId || value.salary_scale_id === scaleId)).sort((left, right) => left.sort_order - right.sort_order)
+  const sourceRules = sourceRuleDetails(revision.source_metadata)
+  const sourceRuleByCode = new Map(sourceRules.rules.map((rule) => [rule.code, rule]))
+  const adjustmentByStep = new Map(sourceRules.adjustments.map((adjustment) => [`${adjustment.scaleCode.toUpperCase()}\u0000${adjustment.stepCode.toUpperCase()}`, adjustment]))
+  const hasSourceRules = sourceRules.rules.length > 0
   return <div className="space-y-3">
     {values.map((value, index) => {
       const steps = catalog.steps.filter((step) => step.salary_structure_revision_id === revision.id && step.salary_scale_id === value.salary_scale_id).sort((left, right) => left.sequence_number - right.sequence_number)
-      return <details className="group rounded-xl border bg-background/60" open={index < 2} key={value.id}><summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4"><span className="flex min-w-0 items-center gap-3"><span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">{value.code}</span><span className="min-w-0"><span className="block truncate font-semibold">{value.name}</span><span className="block text-xs text-muted-foreground">{steps.length} {labels.steps} · {value.default_months_to_next_step ?? '—'} {labels.timeToNextStep}</span></span></span><ChevronDown className="shrink-0 transition group-open:rotate-180" size={18} /></summary><div className="border-t p-3 sm:p-4"><div className="overflow-x-auto rounded-xl border"><table className="min-w-[560px] w-full text-left text-sm"><thead className="bg-muted/60 text-xs uppercase tracking-[0.08em] text-muted-foreground"><tr><th className="px-3 py-3">{labels.order}</th><th className="px-3 py-3">{labels.step}</th><th className="px-3 py-3 text-right">{labels.amount}</th><th className="px-3 py-3 text-right">{labels.timeToNextStep}</th></tr></thead><tbody className="divide-y">{steps.map((step) => <tr key={step.id}><td className="px-3 py-3 tabular-nums text-muted-foreground">{step.sequence_number}</td><td className="px-3 py-3"><span className="font-semibold">{step.step_code}</span><span className="block text-xs text-muted-foreground">{step.step_name}</span></td><td className="px-3 py-3 text-right tabular-nums font-semibold">{catalog.canReadAmounts ? formatMoney(step.fulltime_amount, locale) : '—'}</td><td className="px-3 py-3 text-right tabular-nums text-muted-foreground">{step.months_to_next_step ?? '—'}</td></tr>)}</tbody></table></div></div></details>
+      return <details className="group rounded-xl border bg-background/60" open={index < 2} key={value.id}><summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4"><span className="flex min-w-0 items-center gap-3"><span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">{value.code}</span><span className="min-w-0"><span className="block truncate font-semibold">{value.name}</span><span className="block text-xs text-muted-foreground">{steps.length} {labels.steps} · {value.default_months_to_next_step ?? '—'} {labels.timeToNextStep}</span></span></span><ChevronDown className="shrink-0 transition group-open:rotate-180" size={18} /></summary><div className="border-t p-3 sm:p-4"><div className="overflow-x-auto rounded-xl border"><table className="min-w-[680px] w-full text-left text-sm"><thead className="bg-muted/60 text-xs uppercase tracking-[0.08em] text-muted-foreground"><tr><th className="px-3 py-3">{labels.order}</th><th className="px-3 py-3">{labels.step}</th><th className="px-3 py-3 text-right">{labels.amount}</th><th className="px-3 py-3 text-right">{labels.timeToNextStep}</th>{hasSourceRules ? <th className="px-3 py-3">{labels.bulkImport.sourceRule}</th> : null}</tr></thead><tbody className="divide-y">{steps.map((step) => {
+        const adjustment = adjustmentByStep.get(`${value.code.toUpperCase()}\u0000${step.step_code.toUpperCase()}`)
+        const rule = adjustment ? sourceRuleByCode.get(adjustment.sourceRuleCode) : null
+        return <tr key={step.id}><td className="px-3 py-3 tabular-nums text-muted-foreground">{step.sequence_number}</td><td className="px-3 py-3"><span className="font-semibold">{step.step_code}</span><span className="block text-xs text-muted-foreground">{step.step_name}</span></td><td className="px-3 py-3 text-right tabular-nums font-semibold">{catalog.canReadAmounts ? formatMoney(step.fulltime_amount, locale) : '—'}</td><td className="px-3 py-3 text-right tabular-nums text-muted-foreground">{step.months_to_next_step ?? '—'}</td>{hasSourceRules ? <td className="px-3 py-3 text-xs text-muted-foreground">{rule ? `${rule.percentage}% · ${rule.code}` : '—'}</td> : null}</tr>
+      })}</tbody></table></div></div></details>
     })}
   </div>
 }
 
 function ReadOnlyRevision({ catalog, structure, revision, labels, locale }: { catalog: SalaryStructureCatalog; structure: Structure; revision: Revision; labels: Labels; locale: Locale }) {
   const status = statusForRevision(revision, catalog.revisions.filter((item) => item.salary_structure_id === structure.id), labels)
+  const sourceRecord = revision.source_metadata && typeof revision.source_metadata === 'object' && !Array.isArray(revision.source_metadata)
+    ? revision.source_metadata as Record<string, unknown> : null
+  const source = sourceMetadataForDraft(sourceRecord)
+  const sourceRuleData = sourceRuleDetails(sourceRecord)
+  const correctingRevision = catalog.revisions.find((item) => item.correction_of_revision_id === revision.id)
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.revision} {revision.revision_number}</p><p className="mt-1 font-semibold">{labels.effectiveFrom}: {formatDate(revision.effective_from, locale)}</p></div><Badge tone={status.tone}>{status.text}</Badge></div>
+    {source ? <section className="rounded-xl border border-subtle bg-surface-subtle p-4"><h3 className="font-semibold">{labels.bulkImport.sourceTitle}</h3><dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-xs text-muted-foreground">{labels.bulkImport.sourceTitle}</dt><dd className="mt-1">{source.title}</dd></div><div><dt className="text-xs text-muted-foreground">{labels.bulkImport.sourceVersion}</dt><dd className="mt-1">{source.version}</dd></div><div><dt className="text-xs text-muted-foreground">{labels.bulkImport.effectiveTo}</dt><dd className="mt-1">{formatDate(source.effectiveTo, locale)}</dd></div><div><dt className="text-xs text-muted-foreground">{labels.bulkImport.sourceStatus}</dt><dd className="mt-1">{sourceRecord?.sourceValidationStatus === 'REFERENCE_ONLY' ? labels.bulkImport.referenceOnly : labels.bulkImport.sourceConfirmationPending}</dd></div><div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">{labels.bulkImport.sourceUrl}</dt><dd className="mt-1 break-all"><a className="text-primary underline" href={source.url} rel="noreferrer" target="_blank">{source.url}</a></dd></div><div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">{labels.bulkImport.sourceSha256}</dt><dd className="mt-1 break-all font-mono text-xs">{source.sha256}</dd></div></dl></section> : null}
+    {sourceRuleData.rules.length > 0 ? <section className="rounded-xl border border-subtle p-4"><h3 className="font-semibold">{labels.bulkImport.sourceRule}</h3><p className="mt-2 text-sm text-muted-foreground">{labels.bulkImport.sourceRuleNotice}</p><div className="mt-3 space-y-3">{sourceRuleData.rules.map((rule) => <article className="rounded-lg border border-subtle p-3" key={rule.code}><p className="font-semibold">{rule.code} · {rule.percentage}%</p><p className="mt-1 text-sm">{rule.description}</p><dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2"><div><dt className="text-xs text-muted-foreground">{labels.bulkImport.sourceRuleCondition}</dt><dd>{rule.condition}</dd></div><div><dt className="text-xs text-muted-foreground">{labels.bulkImport.sourceRuleReference}</dt><dd>{rule.sourceReference}</dd></div><div><dt className="text-xs text-muted-foreground">{labels.bulkImport.sourceRuleApplications}</dt><dd>{sourceRuleData.adjustments.filter((adjustment) => adjustment.sourceRuleCode === rule.code).length}</dd></div></dl></article>)}</div></section> : null}
+    {correctingRevision ? <p className="rounded-lg border border-subtle p-3 text-sm text-muted-foreground">{labels.bulkImport.correctedByRevision} {correctingRevision.revision_number}</p> : revision.correction_of_revision_id ? <p className="rounded-lg border border-subtle p-3 text-sm text-muted-foreground">{labels.bulkImport.correctsRevision} {catalog.revisions.find((item) => item.id === revision.correction_of_revision_id)?.revision_number ?? '—'}</p> : null}
     {!catalog.canReadAmounts ? <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground"><LockKeyhole className="mt-0.5 shrink-0 text-primary" size={17} />{labels.amountsRestricted}</div> : structure.structure_type === 'SALARY_BAND' ? <BandTable catalog={catalog} revision={revision} labels={labels} locale={locale} /> : <ScaleTable catalog={catalog} revision={revision} labels={labels} locale={locale} />}
   </div>
 }
@@ -530,6 +622,8 @@ function StructureDetail({
   onSelectRevision,
   onNewRevision,
   onContinueDraft,
+  onBulkImport,
+  onEditMetadata,
 }: {
   catalog: SalaryStructureCatalog
   structure: Structure
@@ -541,6 +635,8 @@ function StructureDetail({
   onSelectRevision: (revisionId: string) => void
   onNewRevision: () => void
   onContinueDraft: () => void
+  onBulkImport: () => void
+  onEditMetadata: () => void
 }) {
   const revisions = catalog.revisions
     .filter((item) => item.salary_structure_id === structure.id)
@@ -555,6 +651,8 @@ function StructureDetail({
       </div>
       <div className="flex flex-wrap gap-2">
         <button className="button-secondary inline-flex items-center gap-2" onClick={onHistory} type="button"><History size={16} />{labels.history}</button>
+        {canEdit ? <button className="button-secondary inline-flex items-center gap-2" onClick={onEditMetadata} type="button"><Pencil size={16} />{labels.editDetails}</button> : null}
+        {canEdit && structure.structure_type === 'SCALE_WITH_STEPS' ? <button className="button-secondary inline-flex items-center gap-2" onClick={onBulkImport} type="button">{labels.bulkImport.open}</button> : null}
         {canEdit && revision?.status === 'DRAFT' ? <button className="button-primary inline-flex items-center gap-2" onClick={onContinueDraft} type="button"><Pencil size={16} />{labels.continueDraft}</button> : canEdit ? <button className="button-primary inline-flex items-center gap-2" onClick={onNewRevision} type="button"><Plus size={16} />{labels.newRevision}</button> : null}
       </div>
     </div>
@@ -615,7 +713,7 @@ function MigrationConflicts({ catalog, labels, onBack }: { catalog: SalaryStruct
 
 function RevisionEditor({ catalog, structure, revision, sourceRevision, labels, locale, onBack, onPublished }: { catalog: SalaryStructureCatalog; structure: Structure; revision: Revision | null; sourceRevision: Revision | null; labels: Labels; locale: Locale; onBack: () => void; onPublished: (revisionId: string) => void }) {
   const isExistingDraft = revision?.status === 'DRAFT'
-  const [draft, setDraft] = useState<Draft>(() => isExistingDraft && revision ? draftFromRevision(catalog, structure, revision) : sourceRevision ? draftFromRevision(catalog, structure, sourceRevision) : emptyDraft(structure))
+  const [draft, setDraft] = useState<Draft>(() => isExistingDraft && revision ? draftFromRevision(catalog, structure, revision) : sourceRevision ? { ...draftFromRevision(catalog, structure, sourceRevision), sourceMetadata: null, correctionOfRevisionId: null } : emptyDraft(structure))
   const [draftId, setDraftId] = useState<string | null>(() => isExistingDraft && revision ? revision.id : null)
   const [lockVersion, setLockVersion] = useState<number | null>(() => isExistingDraft && revision ? revision.lock_version : null)
   const [dirty, setDirty] = useState(false)
@@ -686,6 +784,8 @@ export function SalaryStructuresManager({ catalog, labels, locale }: { catalog: 
   const selectedRevision = structureRevisions.find((item) => item.id === queryRevisionId) ?? (structure ? preferredRevision(catalog.revisions, structure.id) : null)
   const newRevision = searchParams.get('newRevision') === '1'
   const [createOpen, setCreateOpen] = useState(false)
+  const [bulkImportOpen, setBulkImportOpen] = useState(false)
+  const [editStructureOpen, setEditStructureOpen] = useState(false)
   function openCatalog(type: 'SALARY_BAND' | 'SCALE_WITH_STEPS' = activeType): void { navigateTo(router, pathname, { view: 'catalog', type, structureId: null, revisionId: null, newRevision: null }) }
   function openDetail(revisionId: string | null = null): void { navigateTo(router, pathname, { view: 'detail', type: activeType, structureId, revisionId, newRevision: null }) }
   function openHistory(): void { navigateTo(router, pathname, { view: 'history', type: activeType, structureId, revisionId: null, newRevision: null }) }
@@ -698,10 +798,29 @@ export function SalaryStructuresManager({ catalog, labels, locale }: { catalog: 
     : !structure ? <StructureCatalog catalog={catalog} labels={labels} locale={locale} type={activeType} pathname={pathname} onCreate={() => setCreateOpen(true)} />
       : view === 'history' ? <RevisionHistory structure={structure} revisions={catalog.revisions} labels={labels} locale={locale} onBack={() => openDetail(selectedRevision?.id ?? null)} onView={(revisionId) => openDetail(revisionId)} />
         : view === 'editor' && (newRevision || selectedRevision?.status === 'DRAFT') ? <RevisionEditor key={`${structure.id}-${newRevision ? 'new' : selectedRevision?.id ?? 'empty'}`} catalog={catalog} structure={structure} revision={newRevision ? selectedRevision : selectedRevision} sourceRevision={newRevision ? selectedRevision : null} labels={labels} locale={locale} onBack={() => openDetail(selectedRevision?.id ?? null)} onPublished={(revisionId) => openDetail(revisionId)} />
-          : <StructureDetail catalog={catalog} structure={structure} revision={selectedRevision} labels={labels} locale={locale} onBack={() => openCatalog()} onHistory={openHistory} onSelectRevision={(revisionId) => openDetail(revisionId)} onNewRevision={openNewRevision} onContinueDraft={openDraft} />
+          : <StructureDetail catalog={catalog} structure={structure} revision={selectedRevision} labels={labels} locale={locale} onBack={() => openCatalog()} onHistory={openHistory} onSelectRevision={(revisionId) => openDetail(revisionId)} onNewRevision={openNewRevision} onContinueDraft={openDraft} onBulkImport={() => setBulkImportOpen(true)} onEditMetadata={() => setEditStructureOpen(true)} />
   return <div className="space-y-5">
     {view !== 'editor' && view !== 'history' && view !== 'conflicts' ? <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="eyebrow">{labels.structures}</p><h2 className="mt-1 text-xl font-semibold">{labels.details}</h2></div><nav aria-label={labels.structures} className="flex gap-2" role="tablist"><button aria-selected={activeType === 'SCALE_WITH_STEPS' && view !== 'detail'} className={`rounded-xl px-3 py-2 text-sm font-semibold ${activeType === 'SCALE_WITH_STEPS' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`} onClick={() => openCatalog('SCALE_WITH_STEPS')} role="tab" type="button">{labels.tabs.scalesAndSteps}</button><button aria-selected={activeType === 'SALARY_BAND' && view !== 'detail'} className={`rounded-xl px-3 py-2 text-sm font-semibold ${activeType === 'SALARY_BAND' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`} onClick={() => openCatalog('SALARY_BAND')} role="tab" type="button">{labels.tabs.salaryBands}</button></nav></div> : null}
     {content}
+    {editStructureOpen && structure ? <EditStructureDialog
+      structure={structure}
+      labels={labels}
+      onCancel={() => setEditStructureOpen(false)}
+      onUpdated={() => { setEditStructureOpen(false); router.refresh() }}
+    /> : null}
+    {bulkImportOpen && structure && structure.structure_type === 'SCALE_WITH_STEPS' && view === 'detail' ? <SalaryTableImporter
+      catalog={catalog}
+      structureId={structure.id}
+      existingRevision={latestPublishedRevision(catalog.revisions, structure.id)}
+      locale={locale}
+      labels={labels.bulkImport}
+      onCancel={() => setBulkImportOpen(false)}
+      onDraftReady={(revisionId) => {
+        setBulkImportOpen(false)
+        navigateTo(router, pathname, { view: 'editor', type: activeType, structureId: structure.id, revisionId, newRevision: null })
+        router.refresh()
+      }}
+    /> : null}
     {createOpen ? <CreateStructureDialog defaultType={activeType} labels={labels} onCancel={() => setCreateOpen(false)} onCreated={(id) => { setCreateOpen(false); router.refresh(); navigateTo(router, pathname, { view: 'detail', type: activeType, structureId: id, revisionId: null, newRevision: null }) }} /> : null}
   </div>
 }

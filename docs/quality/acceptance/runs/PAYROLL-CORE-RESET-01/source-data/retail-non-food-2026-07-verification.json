@@ -1,0 +1,2244 @@
+{
+  "title": "CAO Retail Non-Food 2026-2027, bijlage 1b - loonregels per branche",
+  "officialSourceUrl": "https://www.inretail.nl/wp-content/uploads/2026/05/260527-Cao-Retail-Non-Food-juli-2026-def.pdf",
+  "sourceFileName": "cao-retail-non-food-2026-07.pdf",
+  "sourceSha256": "ec6fd7a8ee7c3b1f18f58ac6cc5081d6a72e053405480e346eb8a4c7d1e1d2cc",
+  "sourceBytes": 1465818,
+  "sourceVersion": "2026-07",
+  "effectiveFrom": "2026-07-01",
+  "effectiveTo": "2026-12-31",
+  "salaryBasis": "HOURLY",
+  "currencyCode": "EUR",
+  "fulltimeHoursPerWeek": {
+    "default": 38,
+    "wonen": 37
+  },
+  "progressionRule": {
+    "code": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT",
+    "sourceCellIsRule": true,
+    "percentage": "2.00",
+    "description": "Beoordelingsafhankelijke tredeverhoging van 2%",
+    "condition": "Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.",
+    "sourceReference": "Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29",
+    "derivedStepDisplay": "Previous exact hourly rate multiplied by 1.02, then rounded half-up to cents for the displayed table rate.",
+    "progressionType": "MANUAL",
+    "employerSelectionRequired": "Choose the applicable progression approach: performance-dependent or non-performance-dependent, per Appendix 1a.",
+    "payrollApplication": "Do not advance a person to a percentage-derived step without a verified, approved evaluation result. Under-21 employees use only the age scale."
+  },
+  "branches": [
+    {
+      "branchCode": "MODE",
+      "branch": "Mode, Juweliers, Parfumerieën, Verf en Woninginrichting, Tabaks- en Gemakswinkels",
+      "pdfPage": 31,
+      "scaleCount": 9,
+      "salaryRows": 144,
+      "explicitEuroCells": 106,
+      "percentageRuleCells": 38,
+      "stepAdjustments": [
+        {
+          "scaleCode": "MODE_A",
+          "stepCode": "EXP_04",
+          "basedOnStepCode": "EXP_03",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "15.75",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_A",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.06",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_A",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.39",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_B",
+          "stepCode": "EXP_04",
+          "basedOnStepCode": "EXP_03",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "15.75",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_B",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.06",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_B",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.39",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_C",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.47",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_C",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.80",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_C",
+          "stepCode": "EXP_07",
+          "basedOnStepCode": "EXP_06",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.14",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_D",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.04",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_D",
+          "stepCode": "EXP_07",
+          "basedOnStepCode": "EXP_06",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.39",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_D",
+          "stepCode": "EXP_08",
+          "basedOnStepCode": "EXP_07",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.73",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_D",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.09",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_08",
+          "basedOnStepCode": "EXP_07",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.82",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.20",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.58",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.97",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.37",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.49",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.90",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.32",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.75",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "22.18",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "22.77",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "23.22",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "23.69",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "24.16",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "24.64",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "24.20",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "24.69",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "25.18",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "25.69",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "26.20",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "26.21",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "26.74",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "27.27",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "27.82",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "28.37",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        }
+      ],
+      "calculatedRuleAmounts": [
+        {
+          "scaleCode": "MODE_A",
+          "stepCode": "EXP_04",
+          "amount": "15.75"
+        },
+        {
+          "scaleCode": "MODE_A",
+          "stepCode": "EXP_05",
+          "amount": "16.06"
+        },
+        {
+          "scaleCode": "MODE_A",
+          "stepCode": "EXP_06",
+          "amount": "16.39"
+        },
+        {
+          "scaleCode": "MODE_B",
+          "stepCode": "EXP_04",
+          "amount": "15.75"
+        },
+        {
+          "scaleCode": "MODE_B",
+          "stepCode": "EXP_05",
+          "amount": "16.06"
+        },
+        {
+          "scaleCode": "MODE_B",
+          "stepCode": "EXP_06",
+          "amount": "16.39"
+        },
+        {
+          "scaleCode": "MODE_C",
+          "stepCode": "EXP_05",
+          "amount": "16.47"
+        },
+        {
+          "scaleCode": "MODE_C",
+          "stepCode": "EXP_06",
+          "amount": "16.80"
+        },
+        {
+          "scaleCode": "MODE_C",
+          "stepCode": "EXP_07",
+          "amount": "17.14"
+        },
+        {
+          "scaleCode": "MODE_D",
+          "stepCode": "EXP_06",
+          "amount": "17.04"
+        },
+        {
+          "scaleCode": "MODE_D",
+          "stepCode": "EXP_07",
+          "amount": "17.39"
+        },
+        {
+          "scaleCode": "MODE_D",
+          "stepCode": "EXP_08",
+          "amount": "17.73"
+        },
+        {
+          "scaleCode": "MODE_D",
+          "stepCode": "EXP_09",
+          "amount": "18.09"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_08",
+          "amount": "18.82"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_09",
+          "amount": "19.20"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_10",
+          "amount": "19.58"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_11",
+          "amount": "19.97"
+        },
+        {
+          "scaleCode": "MODE_E",
+          "stepCode": "EXP_12",
+          "amount": "20.37"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_09",
+          "amount": "20.49"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_10",
+          "amount": "20.90"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_11",
+          "amount": "21.32"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_12",
+          "amount": "21.75"
+        },
+        {
+          "scaleCode": "MODE_F",
+          "stepCode": "EXP_13",
+          "amount": "22.18"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_10",
+          "amount": "22.77"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_11",
+          "amount": "23.22"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_12",
+          "amount": "23.69"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_13",
+          "amount": "24.16"
+        },
+        {
+          "scaleCode": "MODE_G",
+          "stepCode": "EXP_14",
+          "amount": "24.64"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_10",
+          "amount": "24.20"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_11",
+          "amount": "24.69"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_12",
+          "amount": "25.18"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_13",
+          "amount": "25.69"
+        },
+        {
+          "scaleCode": "MODE_H",
+          "stepCode": "EXP_14",
+          "amount": "26.20"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_10",
+          "amount": "26.21"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_11",
+          "amount": "26.74"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_12",
+          "amount": "27.27"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_13",
+          "amount": "27.82"
+        },
+        {
+          "scaleCode": "MODE_I",
+          "stepCode": "EXP_14",
+          "amount": "28.37"
+        }
+      ],
+      "scaleCodes": [
+        "MODE_A",
+        "MODE_B",
+        "MODE_C",
+        "MODE_D",
+        "MODE_E",
+        "MODE_F",
+        "MODE_G",
+        "MODE_H",
+        "MODE_I"
+      ],
+      "csvFileName": "cao-retail-mode-2026-07.csv",
+      "csvSha256": "ce1e7d9f8ef441c3dea7263a39964bb18d6a7e1006c9d568b0b7e49b913e3f36"
+    },
+    {
+      "branchCode": "SPORT_SCHOENEN",
+      "branch": "Sport en Schoenen",
+      "pdfPage": 32,
+      "scaleCount": 9,
+      "salaryRows": 144,
+      "explicitEuroCells": 107,
+      "percentageRuleCells": 37,
+      "stepAdjustments": [
+        {
+          "scaleCode": "SPORT_SCHOENEN_A",
+          "stepCode": "EXP_04",
+          "basedOnStepCode": "EXP_03",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "15.75",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_A",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.06",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_B",
+          "stepCode": "EXP_04",
+          "basedOnStepCode": "EXP_03",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "15.91",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_B",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.23",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_B",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.55",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_C",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.23",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_C",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.55",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_C",
+          "stepCode": "EXP_07",
+          "basedOnStepCode": "EXP_06",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.88",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_D",
+          "stepCode": "EXP_07",
+          "basedOnStepCode": "EXP_06",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.22",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_D",
+          "stepCode": "EXP_08",
+          "basedOnStepCode": "EXP_07",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.56",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_D",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.91",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_D",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.27",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_08",
+          "basedOnStepCode": "EXP_07",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.83",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.19",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.55",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.92",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.30",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.37",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.74",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.11",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.49",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.88",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.92",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.30",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.69",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.08",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.48",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.70",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.11",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.53",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.96",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "22.40",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "22.65",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "23.11",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "23.57",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "24.04",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "24.52",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        }
+      ],
+      "calculatedRuleAmounts": [
+        {
+          "scaleCode": "SPORT_SCHOENEN_A",
+          "stepCode": "EXP_04",
+          "amount": "15.75"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_A",
+          "stepCode": "EXP_05",
+          "amount": "16.06"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_B",
+          "stepCode": "EXP_04",
+          "amount": "15.91"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_B",
+          "stepCode": "EXP_05",
+          "amount": "16.23"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_B",
+          "stepCode": "EXP_06",
+          "amount": "16.55"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_C",
+          "stepCode": "EXP_05",
+          "amount": "16.23"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_C",
+          "stepCode": "EXP_06",
+          "amount": "16.55"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_C",
+          "stepCode": "EXP_07",
+          "amount": "16.88"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_D",
+          "stepCode": "EXP_07",
+          "amount": "17.22"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_D",
+          "stepCode": "EXP_08",
+          "amount": "17.56"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_D",
+          "stepCode": "EXP_09",
+          "amount": "17.91"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_D",
+          "stepCode": "EXP_10",
+          "amount": "18.27"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_08",
+          "amount": "17.83"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_09",
+          "amount": "18.19"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_10",
+          "amount": "18.55"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_11",
+          "amount": "18.92"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_E",
+          "stepCode": "EXP_12",
+          "amount": "19.30"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_09",
+          "amount": "18.37"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_10",
+          "amount": "18.74"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_11",
+          "amount": "19.11"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_12",
+          "amount": "19.49"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_F",
+          "stepCode": "EXP_13",
+          "amount": "19.88"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_10",
+          "amount": "18.92"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_11",
+          "amount": "19.30"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_12",
+          "amount": "19.69"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_13",
+          "amount": "20.08"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_G",
+          "stepCode": "EXP_14",
+          "amount": "20.48"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_10",
+          "amount": "20.70"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_11",
+          "amount": "21.11"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_12",
+          "amount": "21.53"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_13",
+          "amount": "21.96"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_H",
+          "stepCode": "EXP_14",
+          "amount": "22.40"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_10",
+          "amount": "22.65"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_11",
+          "amount": "23.11"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_12",
+          "amount": "23.57"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_13",
+          "amount": "24.04"
+        },
+        {
+          "scaleCode": "SPORT_SCHOENEN_I",
+          "stepCode": "EXP_14",
+          "amount": "24.52"
+        }
+      ],
+      "scaleCodes": [
+        "SPORT_SCHOENEN_A",
+        "SPORT_SCHOENEN_B",
+        "SPORT_SCHOENEN_C",
+        "SPORT_SCHOENEN_D",
+        "SPORT_SCHOENEN_E",
+        "SPORT_SCHOENEN_F",
+        "SPORT_SCHOENEN_G",
+        "SPORT_SCHOENEN_H",
+        "SPORT_SCHOENEN_I"
+      ],
+      "csvFileName": "cao-retail-sport-en-schoenen-2026-07.csv",
+      "csvSha256": "b7e7671a3dd80a9245072c8fc7108b88648fff9578a5caa129e48afb3b5bafff"
+    },
+    {
+      "branchCode": "TUINCENTRA",
+      "branch": "Tuincentra",
+      "pdfPage": 33,
+      "scaleCount": 9,
+      "salaryRows": 144,
+      "explicitEuroCells": 106,
+      "percentageRuleCells": 38,
+      "stepAdjustments": [
+        {
+          "scaleCode": "TUINCENTRA_A",
+          "stepCode": "EXP_04",
+          "basedOnStepCode": "EXP_03",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "15.75",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_A",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.06",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_A",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.39",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_B",
+          "stepCode": "EXP_04",
+          "basedOnStepCode": "EXP_03",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "15.75",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_B",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.06",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_B",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.39",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_C",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.23",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_C",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.55",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_C",
+          "stepCode": "EXP_07",
+          "basedOnStepCode": "EXP_06",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.88",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_D",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.04",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_D",
+          "stepCode": "EXP_07",
+          "basedOnStepCode": "EXP_06",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.39",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_D",
+          "stepCode": "EXP_08",
+          "basedOnStepCode": "EXP_07",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.73",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_D",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.09",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_08",
+          "basedOnStepCode": "EXP_07",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.54",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.91",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.29",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.68",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.07",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.30",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.70",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.12",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.54",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.97",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "22.15",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "22.60",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "23.05",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "23.51",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "23.98",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "23.97",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "24.45",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "24.94",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "25.44",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "25.95",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "26.01",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "26.53",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "27.06",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "27.60",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "28.15",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        }
+      ],
+      "calculatedRuleAmounts": [
+        {
+          "scaleCode": "TUINCENTRA_A",
+          "stepCode": "EXP_04",
+          "amount": "15.75"
+        },
+        {
+          "scaleCode": "TUINCENTRA_A",
+          "stepCode": "EXP_05",
+          "amount": "16.06"
+        },
+        {
+          "scaleCode": "TUINCENTRA_A",
+          "stepCode": "EXP_06",
+          "amount": "16.39"
+        },
+        {
+          "scaleCode": "TUINCENTRA_B",
+          "stepCode": "EXP_04",
+          "amount": "15.75"
+        },
+        {
+          "scaleCode": "TUINCENTRA_B",
+          "stepCode": "EXP_05",
+          "amount": "16.06"
+        },
+        {
+          "scaleCode": "TUINCENTRA_B",
+          "stepCode": "EXP_06",
+          "amount": "16.39"
+        },
+        {
+          "scaleCode": "TUINCENTRA_C",
+          "stepCode": "EXP_05",
+          "amount": "16.23"
+        },
+        {
+          "scaleCode": "TUINCENTRA_C",
+          "stepCode": "EXP_06",
+          "amount": "16.55"
+        },
+        {
+          "scaleCode": "TUINCENTRA_C",
+          "stepCode": "EXP_07",
+          "amount": "16.88"
+        },
+        {
+          "scaleCode": "TUINCENTRA_D",
+          "stepCode": "EXP_06",
+          "amount": "17.04"
+        },
+        {
+          "scaleCode": "TUINCENTRA_D",
+          "stepCode": "EXP_07",
+          "amount": "17.39"
+        },
+        {
+          "scaleCode": "TUINCENTRA_D",
+          "stepCode": "EXP_08",
+          "amount": "17.73"
+        },
+        {
+          "scaleCode": "TUINCENTRA_D",
+          "stepCode": "EXP_09",
+          "amount": "18.09"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_08",
+          "amount": "18.54"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_09",
+          "amount": "18.91"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_10",
+          "amount": "19.29"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_11",
+          "amount": "19.68"
+        },
+        {
+          "scaleCode": "TUINCENTRA_E",
+          "stepCode": "EXP_12",
+          "amount": "20.07"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_09",
+          "amount": "20.30"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_10",
+          "amount": "20.70"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_11",
+          "amount": "21.12"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_12",
+          "amount": "21.54"
+        },
+        {
+          "scaleCode": "TUINCENTRA_F",
+          "stepCode": "EXP_13",
+          "amount": "21.97"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_10",
+          "amount": "22.15"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_11",
+          "amount": "22.60"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_12",
+          "amount": "23.05"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_13",
+          "amount": "23.51"
+        },
+        {
+          "scaleCode": "TUINCENTRA_G",
+          "stepCode": "EXP_14",
+          "amount": "23.98"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_10",
+          "amount": "23.97"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_11",
+          "amount": "24.45"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_12",
+          "amount": "24.94"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_13",
+          "amount": "25.44"
+        },
+        {
+          "scaleCode": "TUINCENTRA_H",
+          "stepCode": "EXP_14",
+          "amount": "25.95"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_10",
+          "amount": "26.01"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_11",
+          "amount": "26.53"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_12",
+          "amount": "27.06"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_13",
+          "amount": "27.60"
+        },
+        {
+          "scaleCode": "TUINCENTRA_I",
+          "stepCode": "EXP_14",
+          "amount": "28.15"
+        }
+      ],
+      "scaleCodes": [
+        "TUINCENTRA_A",
+        "TUINCENTRA_B",
+        "TUINCENTRA_C",
+        "TUINCENTRA_D",
+        "TUINCENTRA_E",
+        "TUINCENTRA_F",
+        "TUINCENTRA_G",
+        "TUINCENTRA_H",
+        "TUINCENTRA_I"
+      ],
+      "csvFileName": "cao-retail-tuincentra-2026-07.csv",
+      "csvSha256": "86526088c52baf8d9fcdaccd0fcf5a30f41d686d0649d83507ab2e7cf9b3a193"
+    },
+    {
+      "branchCode": "WONEN",
+      "branch": "Wonen",
+      "pdfPage": 34,
+      "scaleCount": 9,
+      "salaryRows": 145,
+      "explicitEuroCells": 108,
+      "percentageRuleCells": 37,
+      "stepAdjustments": [
+        {
+          "scaleCode": "WONEN_A",
+          "stepCode": "EXP_04",
+          "basedOnStepCode": "EXP_03",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "15.76",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_A",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.07",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_B",
+          "stepCode": "EXP_04",
+          "basedOnStepCode": "EXP_03",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "15.91",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_B",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.23",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_B",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.55",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_C",
+          "stepCode": "EXP_05",
+          "basedOnStepCode": "EXP_04",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.64",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_C",
+          "stepCode": "EXP_06",
+          "basedOnStepCode": "EXP_05",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "16.97",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_C",
+          "stepCode": "EXP_07",
+          "basedOnStepCode": "EXP_06",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.31",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_D",
+          "stepCode": "EXP_07",
+          "basedOnStepCode": "EXP_06",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.48",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_D",
+          "stepCode": "EXP_08",
+          "basedOnStepCode": "EXP_07",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "17.83",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_D",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.19",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_D",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.55",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.46",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.83",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.21",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.59",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.98",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_09",
+          "basedOnStepCode": "EXP_08",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "18.92",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.30",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "19.69",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.08",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.48",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.23",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "20.63",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.04",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.46",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "21.89",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "24.83",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "25.32",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "25.83",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "26.35",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "26.87",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_10",
+          "basedOnStepCode": "EXP_09",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "28.32",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_11",
+          "basedOnStepCode": "EXP_10",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "28.88",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_12",
+          "basedOnStepCode": "EXP_11",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "29.46",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_13",
+          "basedOnStepCode": "EXP_12",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "30.05",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_14",
+          "basedOnStepCode": "EXP_13",
+          "sourceCell": "2%",
+          "percentage": "2.00",
+          "calculatedAmount": "30.65",
+          "ruleCode": "RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT"
+        }
+      ],
+      "calculatedRuleAmounts": [
+        {
+          "scaleCode": "WONEN_A",
+          "stepCode": "EXP_04",
+          "amount": "15.76"
+        },
+        {
+          "scaleCode": "WONEN_A",
+          "stepCode": "EXP_05",
+          "amount": "16.07"
+        },
+        {
+          "scaleCode": "WONEN_B",
+          "stepCode": "EXP_04",
+          "amount": "15.91"
+        },
+        {
+          "scaleCode": "WONEN_B",
+          "stepCode": "EXP_05",
+          "amount": "16.23"
+        },
+        {
+          "scaleCode": "WONEN_B",
+          "stepCode": "EXP_06",
+          "amount": "16.55"
+        },
+        {
+          "scaleCode": "WONEN_C",
+          "stepCode": "EXP_05",
+          "amount": "16.64"
+        },
+        {
+          "scaleCode": "WONEN_C",
+          "stepCode": "EXP_06",
+          "amount": "16.97"
+        },
+        {
+          "scaleCode": "WONEN_C",
+          "stepCode": "EXP_07",
+          "amount": "17.31"
+        },
+        {
+          "scaleCode": "WONEN_D",
+          "stepCode": "EXP_07",
+          "amount": "17.48"
+        },
+        {
+          "scaleCode": "WONEN_D",
+          "stepCode": "EXP_08",
+          "amount": "17.83"
+        },
+        {
+          "scaleCode": "WONEN_D",
+          "stepCode": "EXP_09",
+          "amount": "18.19"
+        },
+        {
+          "scaleCode": "WONEN_D",
+          "stepCode": "EXP_10",
+          "amount": "18.55"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_09",
+          "amount": "18.46"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_10",
+          "amount": "18.83"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_11",
+          "amount": "19.21"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_12",
+          "amount": "19.59"
+        },
+        {
+          "scaleCode": "WONEN_E",
+          "stepCode": "EXP_13",
+          "amount": "19.98"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_09",
+          "amount": "18.92"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_10",
+          "amount": "19.30"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_11",
+          "amount": "19.69"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_12",
+          "amount": "20.08"
+        },
+        {
+          "scaleCode": "WONEN_F",
+          "stepCode": "EXP_13",
+          "amount": "20.48"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_10",
+          "amount": "20.23"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_11",
+          "amount": "20.63"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_12",
+          "amount": "21.04"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_13",
+          "amount": "21.46"
+        },
+        {
+          "scaleCode": "WONEN_G",
+          "stepCode": "EXP_14",
+          "amount": "21.89"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_10",
+          "amount": "24.83"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_11",
+          "amount": "25.32"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_12",
+          "amount": "25.83"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_13",
+          "amount": "26.35"
+        },
+        {
+          "scaleCode": "WONEN_H",
+          "stepCode": "EXP_14",
+          "amount": "26.87"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_10",
+          "amount": "28.32"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_11",
+          "amount": "28.88"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_12",
+          "amount": "29.46"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_13",
+          "amount": "30.05"
+        },
+        {
+          "scaleCode": "WONEN_I",
+          "stepCode": "EXP_14",
+          "amount": "30.65"
+        }
+      ],
+      "scaleCodes": [
+        "WONEN_A",
+        "WONEN_B",
+        "WONEN_C",
+        "WONEN_D",
+        "WONEN_E",
+        "WONEN_F",
+        "WONEN_G",
+        "WONEN_H",
+        "WONEN_I"
+      ],
+      "csvFileName": "cao-retail-wonen-2026-07.csv",
+      "csvSha256": "66be5c65cd77adef3d7c3c30e56df99aa18d5ebb131d12695e0348d7ebc23b50"
+    }
+  ],
+  "checks": {
+    "branchTables": 4,
+    "totalScales": 36,
+    "totalSalaryRowsIncludingRules": 577,
+    "totalExplicitEuroCells": 427,
+    "totalPercentageRuleCells": 150,
+    "retailModeGroupIExperience15": "28.95",
+    "retailModeGroupCExperience1": "15.44",
+    "retailTuincentraGroupIExperience15": "28.72"
+  }
+}

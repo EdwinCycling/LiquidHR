@@ -145,47 +145,54 @@ describe('employee workforce tool definitions', () => {
   })
 
   it('keeps only own pending personal reminders and drops HR, completed, and cancelled records', async () => {
-    const authContext: AuthContext = {
-      tenantId: '10000000-0000-4000-8000-000000000001',
-      hrGroupId: '10000000-0000-4000-8000-000000000002',
-      administrationId: null,
-      userId: '10000000-0000-4000-8000-000000000004',
-      employeeId: '10000000-0000-4000-8000-000000000005',
-      activeRoles: ['EMPLOYEE'],
-      permissions: ['self:reminder:read'],
-    }
-    const bearerClient = {} as unknown as DelegatedWorkforceToolExecutionContext['rls']['client']
-    const execution = {
-      authContext,
-      rls: { kind: 'supabase-bearer', client: bearerClient, userId: authContext.userId, identity: { issuer: 'test', subject: authContext.userId } },
-    } as unknown as DelegatedWorkforceToolExecutionContext
-    const base = {
-      recipientId: 'recipient',
-      employeeId: authContext.employeeId,
-      employeeName: null,
-      reminderId: 'reminder',
-      title: 'POP bijwerken',
-      description: null,
-      remindAt: '2099-01-01T08:00:00.000Z',
-      originalRemindAt: '2099-01-01T08:00:00.000Z',
-      targetType: 'SELF',
-      createdByUserId: authContext.userId,
-    } as const
-    listMyReminders.mockResolvedValueOnce([
-      { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
-      { ...base, type: 'HR', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
-      { ...base, type: 'PERSONAL', recipientStatus: 'COMPLETED', reminderStatus: 'PUBLISHED' },
-      { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'CANCELLED' },
-    ])
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-12T07:00:00.000Z'))
 
-    const result = await employeeRemindersTool.execute({}, execution)
-    expect(result.reminders).toHaveLength(1)
-    expect(result.reminders[0]).toMatchObject({
-      title: 'POP bijwerken',
-      status: 'PENDING',
-      isOverdue: false,
-    })
-    expect(JSON.stringify(result)).not.toContain('createdByUserId')
+    try {
+      const authContext: AuthContext = {
+        tenantId: '10000000-0000-4000-8000-000000000001',
+        hrGroupId: '10000000-0000-4000-8000-000000000002',
+        administrationId: null,
+        userId: '10000000-0000-4000-8000-000000000004',
+        employeeId: '10000000-0000-4000-8000-000000000005',
+        activeRoles: ['EMPLOYEE'],
+        permissions: ['self:reminder:read'],
+      }
+      const bearerClient = {} as unknown as DelegatedWorkforceToolExecutionContext['rls']['client']
+      const execution = {
+        authContext,
+        rls: { kind: 'supabase-bearer', client: bearerClient, userId: authContext.userId, identity: { issuer: 'test', subject: authContext.userId } },
+      } as unknown as DelegatedWorkforceToolExecutionContext
+      const base = {
+        recipientId: 'recipient',
+        employeeId: authContext.employeeId,
+        employeeName: null,
+        reminderId: 'reminder',
+        title: 'POP bijwerken',
+        description: null,
+        remindAt: '2026-10-12T08:00:00.000Z',
+        originalRemindAt: '2026-10-12T08:00:00.000Z',
+        targetType: 'SELF',
+        createdByUserId: authContext.userId,
+      } as const
+      listMyReminders.mockResolvedValueOnce([
+        { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
+        { ...base, type: 'HR', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
+        { ...base, type: 'PERSONAL', recipientStatus: 'COMPLETED', reminderStatus: 'PUBLISHED' },
+        { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'CANCELLED' },
+      ])
+
+      const result = await employeeRemindersTool.execute({}, execution)
+      expect(result.reminders).toHaveLength(1)
+      expect(result.reminders[0]).toMatchObject({
+        title: 'POP bijwerken',
+        status: 'PENDING',
+        isOverdue: false,
+      })
+      expect(JSON.stringify(result)).not.toContain('createdByUserId')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('reads own development plans through the self goal service and strips descriptions and scope identifiers', async () => {

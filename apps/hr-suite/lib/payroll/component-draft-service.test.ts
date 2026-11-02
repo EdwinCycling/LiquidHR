@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { sha256, stableSerialize } from '@liquid-hr/payroll-engine'
 import type { ComponentCatalogEntry } from './component-catalog'
 import { SYSTEM_COMPONENT_CATALOG } from './component-catalog'
+import { validatePreparedComponentDraft } from './component-editor-engine'
+import { componentEditorPayloadFromState, componentEditorStateFromEntry, convertCustomerForkSourceToFormula } from './component-editor-state'
+import { parseComponentEditorPayload } from './component-editor-contract'
 import type { ComponentDraftEditorInput } from './component-draft-service'
 import type { PayrollCustomerComponentVersionRow, PayrollDatabase } from './database'
 import {
@@ -22,9 +25,11 @@ const actorUserId = '10000000-0000-4000-8000-000000000005'
 const componentId = '10000000-0000-4000-8000-000000000010'
 const now = '2026-10-01T10:00:00.000Z'
 const sourceEntry = SYSTEM_COMPONENT_CATALOG.find((entry) => entry.forkable && entry.ownership === 'SYSTEM')
+const grossSalarySourceEntry = SYSTEM_COMPONENT_CATALOG.find((entry) => entry.definition.code === 'NL_REGULAR_WAGE'
+  && entry.definition.method.kind === 'source' && entry.forkable)
 const registeredRuleEntry = SYSTEM_COMPONENT_CATALOG.find((entry) => entry.definition.method.kind === 'registeredRule')
 
-if (!sourceEntry || !registeredRuleEntry) throw new Error('Payroll system catalog test entries are missing.')
+if (!sourceEntry || !grossSalarySourceEntry || !registeredRuleEntry) throw new Error('Payroll system catalog test entries are missing.')
 
 type ComponentDraftInsert = PayrollDatabase['public']['Tables']['customer_component_versions']['Insert']
 
@@ -144,6 +149,82 @@ describe('Payroll customer component draft service', () => {
     expect(repository.rows[0]).toEqual(first)
     expect(stableSerialize(sourceEntry.definition)).toBe(systemBefore)
     await expect(service.get(scope, payrollAdministrationId, saved.id)).resolves.toEqual(saved)
+  })
+
+  it('converts the gross_salary source fork through the safe editor flow, previews a trace, and appends a reopenable DRAFT version', async () => {
+    const { repository, service } = createService()
+    const systemBefore = stableSerialize(grossSalarySourceEntry.definition)
+    const systemEditorState = componentEditorStateFromEntry(grossSalarySourceEntry, 'system-source', 'Bruto salaris', 'Bronveld')
+    expect(convertCustomerForkSourceToFormula(systemEditorState)).toBe(systemEditorState)
+
+    const first = await service.forkSystemComponent(scope, payrollAdministrationId, actorUserId, grossSalarySourceEntry.key)
+    const original = toDraftDefinition(first)
+    const initial = componentEditorStateFromEntry(toDraftCatalogEntry(first), first.id, 'Bruto salaris', 'Bronveld')
+
+    expect(initial.ownershipKind).toBe('CUSTOMER_FORK')
+    expect(initial.method).toEqual({ kind: 'source' })
+    expect(original.method).toEqual(grossSalarySourceEntry.definition.method)
+    expect(grossSalarySourceEntry.definition.method.kind === 'source' && grossSalarySourceEntry.definition.method.path)
+      .toEqual(['regularWage', 'grossAmount'])
+
+    const converted = convertCustomerForkSourceToFormula(initial)
+    const grossOutput = converted.outputs[0]
+    expect(converted.method).toEqual({ kind: 'expression', formulas: { [grossOutput!.name]: 'MONEY(0)' } })
+    expect(converted.ownershipKind).toBe('CUSTOMER_FORK')
+    expect(converted.outputs).toEqual(initial.outputs)
+
+    const inputName = 'baseGross'
+    const formula = 'input.baseGross + MONEY(250.00)'
+    const edited = {
+      ...converted,
+      inputs: [...converted.inputs, { name: inputName, valueType: 'MONEY' as const, required: true }],
+      dependencies: [{
+        componentCode: grossSalarySourceEntry.definition.code,
+        outputName: grossOutput!.name,
+        inputName,
+      }],
+      method: { kind: 'expression' as const, formulas: { [grossOutput!.name]: formula } },
+      previewInputs: { [inputName]: '5000.00' },
+    }
+    const payload = componentEditorPayloadFromState(edited, '30000000-0000-4000-8000-000000000011')
+
+    expect(payload).not.toHaveProperty('ownershipKind')
+    expect(payload.method).toEqual({ kind: 'expression', formulas: { [grossOutput!.name]: formula } })
+    const parsed = parseComponentEditorPayload(payload)
+    expect(parsed.success).toBe(true)
+    if (!parsed.success) return
+    const { previewInputs, ...input } = parsed.data
+    const prepared = await service.prepareVersion(scope, payrollAdministrationId, input)
+    const validation = validatePreparedComponentDraft(prepared, previewInputs)
+
+    expect(validation.valid, validation.issues.join(', ')).toBe(true)
+    expect(validation.result?.outputs).toEqual([{ name: grossOutput!.name, valueType: 'MONEY', value: '5250.00' }])
+    expect(validation.result?.trace.some((step) => step.componentCode === first.component_code
+      && step.dependencyRefs.some((dependency) => dependency.componentCode === grossSalarySourceEntry.definition.code
+        && dependency.inputName === inputName))).toBe(true)
+    expect(repository.rows).toEqual([first])
+    expect(stableSerialize(grossSalarySourceEntry.definition)).toBe(systemBefore)
+
+    const saved = await service.saveVersion(scope, payrollAdministrationId, actorUserId, input)
+    expect(saved.id).not.toBe(first.id)
+    expect(saved.component_version).toBe('2')
+    expect(saved.status).toBe('DRAFT')
+    expect(saved.ownership).toBe('CUSTOMER_FORK')
+    expect(saved.origin_component_id).toBe(first.origin_component_id)
+    expect(saved.origin_component_code).toBe(first.origin_component_code)
+    expect(saved.origin_component_version).toBe(first.origin_component_version)
+    expect(repository.rows[0]).toEqual(first)
+    expect(repository.rows).toHaveLength(2)
+
+    const reopened = await service.get(scope, payrollAdministrationId, saved.id)
+    expect(reopened).toEqual(saved)
+    const reopenedEntry = toDraftCatalogEntry(reopened!)
+    const reopenedState = componentEditorStateFromEntry(reopenedEntry, reopened!.id, 'Bruto salaris', 'Formule')
+    expect(reopenedState.ownershipKind).toBe('CUSTOMER_FORK')
+    expect(reopenedState.method).toEqual({ kind: 'expression', formulas: { [grossOutput!.name]: '(input.baseGross + MONEY(250.00))' } })
+    expect(reopenedState.dependencies).toEqual(edited.dependencies)
+    expect(reopenedState.inputs).toEqual(edited.inputs)
+    expect(stableSerialize(grossSalarySourceEntry.definition)).toBe(systemBefore)
   })
 
   it('creates CUSTOMER_CUSTOM without SYSTEM provenance and keeps repeated submissions idempotent', async () => {

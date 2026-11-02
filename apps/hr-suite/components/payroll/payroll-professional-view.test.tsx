@@ -4,6 +4,7 @@ import type { PayrollProfessionalRun } from '@/lib/payroll/payroll-professional-
 import { PayrollRunReconciliation } from './payroll-professional-view'
 
 const pensionRun = {
+  hasGenericInputReference: true,
   run: { id: '30000000-0000-4000-8000-000000000001', status: 'SUCCEEDED', result_hash: null },
   sourceSnapshot: {
     source_employee_id: '10000000-0000-4000-8000-000000000001',
@@ -26,7 +27,7 @@ const pensionRun = {
       },
     },
   },
-  inputSet: { input_hash: 'b'.repeat(64), engine_version: '0.2.0', rule_package_composition_id: 'NL-PAYROLL-2026:2026.1' },
+  inputSet: { input_hash: 'b'.repeat(64), engine_version: '0.2.0', rule_package_composition_id: 'NL-PAYROLL-2026:2026.1+PAYRUN01-DEMO_COMPANY_TEST-2026.2' },
   payrollPeriod: { period_year: 2026, period_month: 10 },
   componentResults: [{
     component_key: 'employee_pension',
@@ -94,6 +95,7 @@ const employerPremiumRun = {
 const labels: Readonly<Record<string, string>> = {
   gross: 'Gross',
   net: 'Net',
+  engine: 'Engine version',
   netAfterTaxIncomplete: 'After wage tax (not final net pay)',
   conceptNet: 'Net in this concept calculation',
   employeeArithmetic: 'Employee calculation',
@@ -106,6 +108,7 @@ const labels: Readonly<Record<string, string>> = {
   roundingMethod: 'Rounding method',
   calculationSource: 'Calculation source',
   ruleProvenance: 'Rule provenance',
+  ruleProvenanceRecorded: 'Recorded',
   componentVersion: 'Component version',
   formula: 'Formula',
   ruleReference: 'Rule reference',
@@ -148,9 +151,11 @@ const labels: Readonly<Record<string, string>> = {
   notRecorded: 'Not recorded',
   noComponentTrace: 'No component trace',
   componentCode: 'Component code',
+  component: 'Component',
   effectivePeriod: 'Effective period',
   rulePackage: 'Rule package',
   ruleSource: 'Rule source',
+  employerConfiguredPension: 'Employer pension arrangement; external source confirmation is not recorded',
   calculationProvenance: 'Calculation provenance',
   traceStep: 'Trace step',
   employerPremiumBreakdown: 'Employer contribution detail',
@@ -169,13 +174,41 @@ const labels: Readonly<Record<string, string>> = {
   pensionSourceVerificationRequired: 'Pension has not been calculated because the required source information could not be confirmed.',
   netNotDefinitive: 'The displayed net pay is not definitive while the pension source is missing.',
   event_CONCEPT: 'Concept',
+  'PAYRUN01-CTRL-009-PENSION-RULE-READY': 'Pension source needs review',
 }
 
 describe('PayrollRunReconciliation responsive calculation details', () => {
+  it('keeps internal fixture composition ids out of the normal summary and avoids attributing employer pension rates to the tax authority', () => {
+    const run = {
+      ...pensionRun,
+      trace: {
+        trace_payload: {
+          packageMetadata: { sourceMetadata: { publisher: 'Belastingdienst', handbookTitle: 'Handboek Loonheffingen 2026' } },
+          steps: [{
+            componentCode: 'PAYRUN01_EMPLOYEE_PENSION',
+            componentId: 'system:payrun01:employee-pension',
+            sequence: 12,
+            version: '2026.1',
+            processingScope: 'INCOME_RELATIONSHIP',
+            outputs: { amount: { value: '364.96', valueType: 'MONEY' } },
+            rulePackageProvenance: { packageId: 'NL-PAYROLL-2026', version: '2026.1' },
+          }],
+        },
+      },
+    } as unknown as PayrollProfessionalRun
+    const markup = renderToStaticMarkup(<PayrollRunReconciliation run={run} locale="en-GB" labels={labels} />)
+
+    expect(markup).toContain('Engine version: </span>0.2.0')
+    expect(markup).not.toContain('DEMO_COMPANY_TEST')
+    expect(markup).toContain('Rule package</dt><dd class="break-words">Employer pension arrangement; external source confirmation is not recorded')
+    expect(markup).toContain('Rule source</dt><dd class="break-words">Employer pension arrangement; external source confirmation is not recorded')
+    expect(markup).not.toContain('Rule source</dt><dd class="break-words">Belastingdienst')
+  })
+
   it('uses shrinkable single-column tracks for saved pension inputs on narrow screens', () => {
     const markup = renderToStaticMarkup(<PayrollRunReconciliation run={pensionRun} locale="nl-NL" labels={labels} />)
 
-    expect(markup).toContain('grid min-w-0 grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-2')
+    expect(markup).toContain('grid min-w-0 grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2')
     expect(markup).toContain('€ 364,96')
     expect(markup).not.toContain('PENSION_MONTHLY_TOTAL')
     expect(markup).not.toContain('PENSION_EMPLOYEE_SHARE')
@@ -250,7 +283,7 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     const finalizedMarkup = renderToStaticMarkup(<PayrollRunReconciliation run={finalizedRun} locale="en-GB" labels={labels} />)
 
     expect(conceptMarkup).toContain('Concept — not final')
-    expect(conceptMarkup).toContain('Net in this concept calculation')
+    expect(conceptMarkup).toContain('After wage tax (not final net pay)')
     expect(conceptMarkup).toContain('Not finalized')
     expect(conceptMarkup).not.toContain('/artifact/TECHNICAL_JSON')
     expect(conceptMarkup).not.toContain('/payslip-preview')
@@ -329,7 +362,7 @@ describe('PayrollRunReconciliation responsive calculation details', () => {
     const markup = renderToStaticMarkup(<PayrollRunReconciliation run={fritsRun} locale="nl-NL" labels={labels} />)
 
     expect(markup).toContain('Pension source needs review')
-    expect(markup).toContain('Net in this concept calculation')
+    expect(markup).toContain('After wage tax (not final net pay)')
     expect(markup).not.toContain('PAYRUN01')
     expect(markup).not.toContain('SYNTHETIC')
     expect(markup).toContain('Pension has not been calculated because the required source information could not be confirmed.')

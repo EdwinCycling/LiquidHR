@@ -6,6 +6,7 @@
     "predev": "npm run build:chatgpt-focus-widget",
     "predev:turbopack": "npm run build:chatgpt-focus-widget",
     "build:chatgpt-focus-widget": "node scripts/build-chatgpt-focus-widget.mjs",
+    "prebuild": "node scripts/verify-build-source.mjs",
     "dev": "next dev --webpack --port 3000",
     "dev:turbopack": "next dev --port 3000",
     "build": "npm run build:chatgpt-focus-widget && next build && node lib/payroll/verify-client-bundle.mjs --self-test && node scripts/prepare-function-traces.mjs && node scripts/check-function-trace-size.mjs && node scripts/write-build-provenance.mjs",    "start": "next start --port 3000",

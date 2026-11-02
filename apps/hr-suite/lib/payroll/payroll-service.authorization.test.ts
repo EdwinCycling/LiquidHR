@@ -54,7 +54,17 @@ vi.mock('@/lib/payroll/server/private-client', () => ({
 }))
 
 import { ModuleError } from '@/lib/modules/module-service'
-import { bindPayrollCompany, getPayrollWorkspaceData, unbindPayrollCompany } from './payroll-service'
+import {
+  bindPayrollCompany,
+  checkNmbrsConnection,
+  completeNmbrsAuthorization,
+  disconnectNmbrsConnection,
+  discoverNmbrsCompanies,
+  failNmbrsAuthorization,
+  getPayrollWorkspaceData,
+  startNmbrsAuthorization,
+  unbindPayrollCompany,
+} from './payroll-service'
 
 const tenantId = '50000000-0000-4000-8000-000000000001'
 const hrGroupId = '50000000-0000-4000-8000-000000000002'
@@ -129,12 +139,6 @@ describe('Payroll integration authorization and scope', () => {
     expect(harness.requireTenantModule).not.toHaveBeenCalled()
     expect(harness.createClient).not.toHaveBeenCalled()
 
-    harness.isPayrollLabEnabled.mockReturnValueOnce(false)
-    await expect(getPayrollWorkspaceData()).rejects.toMatchObject({ code: 'PAYROLL_FEATURE_UNAVAILABLE', status: 404 })
-    expect(harness.requireTenantModule).not.toHaveBeenCalled()
-    expect(harness.createClient).not.toHaveBeenCalled()
-
-    harness.requirePermission.mockResolvedValueOnce(authContext)
     harness.requireTenantModule.mockRejectedValueOnce(new ModuleError('MODULE_NOT_ACTIVE', 404))
     await expect(getPayrollWorkspaceData()).rejects.toMatchObject({ code: 'MODULE_NOT_ACTIVE', status: 404 })
     expect(harness.createClient).not.toHaveBeenCalled()
@@ -153,147 +157,20 @@ describe('Payroll integration authorization and scope', () => {
     expect(harness.requireTenantModule).toHaveBeenCalledWith('PAYROLL')
   })
 
-  it('treats an out-of-scope binding identifier as not found and never mutates it', async () => {
-    await expect(unbindPayrollCompany(bindingId)).rejects.toMatchObject({ code: 'PAYROLL_BINDING_NOT_FOUND', status: 404 })
+  it('keeps Nmbrs authorization, discovery, mapping, and disconnect operations disabled before I/O', async () => {
+    const disabled = { code: 'PAYROLL_EXTERNAL_INTEGRATION_DISABLED', status: 410 }
+    await expect(startNmbrsAuthorization()).rejects.toMatchObject(disabled)
+    await expect(completeNmbrsAuthorization({ state: 'state', code: 'code' })).rejects.toMatchObject(disabled)
+    await expect(failNmbrsAuthorization({ state: 'state' })).rejects.toMatchObject(disabled)
+    await expect(checkNmbrsConnection(connectionId)).rejects.toMatchObject(disabled)
+    await expect(discoverNmbrsCompanies(connectionId)).rejects.toMatchObject(disabled)
+    await expect(bindPayrollCompany({ providerCompanyId: companyId, administrationId })).rejects.toMatchObject(disabled)
+    await expect(unbindPayrollCompany(bindingId)).rejects.toMatchObject(disabled)
+    await expect(disconnectNmbrsConnection(connectionId)).rejects.toMatchObject(disabled)
 
-    const read = harness.adminQueries.find((query) => query.table === 'payroll_company_bindings')
-    expect(read?.filters).toContainEqual(['tenant_id', tenantId])
-    expect(read?.filters).toContainEqual(['hr_group_id', hrGroupId])
-    expect(read?.filters).toContainEqual(['id', bindingId])
-    expect(harness.adminQueries.some((query) => query.table === 'payroll_audit_events' || query.operation === 'update')).toBe(false)
-  })
-
-  it('rejects binding an administration outside the active tenant and HR group', async () => {
-    const providerCompany = {
-      id: companyId,
-      connection_id: connectionId,
-      external_company_id: 'nmbrs-company-42',
-      external_company_number: null,
-      external_company_display_name: 'Example BV',
-      external_debtor_id: null,
-      status: 'ACTIVE',
-      last_seen_at: '2026-10-11T00:00:00.000Z',
-      tenant_id: tenantId,
-      hr_group_id: hrGroupId,
-    }
-    const connection = { id: connectionId, provider_id: 'provider-1', status: 'CONNECTED', tenant_id: tenantId, hr_group_id: hrGroupId }
-    const provider = { id: 'provider-1', code: 'NMBRS', name: 'Nmbrs', is_active: true, capabilities: [] }
-    harness.createAdminClient.mockImplementation(() => makeAdminClient((table) => {
-      if (table === 'payroll_provider_companies') return providerCompany
-      if (table === 'payroll_connections') return connection
-      if (table === 'payroll_providers') return provider
-      if (table === 'administrations') return null
-      return null
-    }))
-
-    await expect(bindPayrollCompany({ providerCompanyId: companyId, administrationId })).rejects.toMatchObject({ code: 'PAYROLL_ADMINISTRATION_NOT_FOUND', status: 404 })
-
-    const administrationRead = harness.adminQueries.find((query) => query.table === 'administrations')
-    expect(administrationRead?.filters).toContainEqual(['tenant_id', tenantId])
-    expect(administrationRead?.filters).toContainEqual(['hr_group_id', hrGroupId])
-    expect(administrationRead?.filters).toContainEqual(['id', administrationId])
-    expect(administrationRead?.filters).toContainEqual(['is_active', true])
-    expect(harness.adminQueries.some((query) => query.table === 'payroll_company_bindings' && ['insert', 'update'].includes(query.operation))).toBe(false)
-  })
-
-  it('returns an existing active binding on repeat requests without another write or audit event', async () => {
-    const providerCompany = {
-      id: companyId,
-      connection_id: connectionId,
-      external_company_id: 'nmbrs-company-42',
-      external_company_number: '42',
-      external_company_display_name: 'Example BV',
-      external_debtor_id: null,
-      status: 'ACTIVE',
-      last_seen_at: '2026-10-11T00:00:00.000Z',
-      tenant_id: tenantId,
-      hr_group_id: hrGroupId,
-    }
-    const connection = { id: connectionId, provider_id: 'provider-1', status: 'CONNECTED', tenant_id: tenantId, hr_group_id: hrGroupId }
-    const provider = { id: 'provider-1', code: 'NMBRS', name: 'Nmbrs', is_active: true, capabilities: [] }
-    const existingBinding = {
-      id: bindingId,
-      connection_id: connectionId,
-      administration_id: administrationId,
-      external_company_id: providerCompany.external_company_id,
-      external_company_display_name: providerCompany.external_company_display_name,
-      status: 'ACTIVE',
-      bound_at: '2026-10-10T00:00:00.000Z',
-      unbound_at: null,
-    }
-    const resolve = (table: string, operation: string, payload: unknown, filters: Array<[string, unknown]>) => {
-      if (table === 'payroll_provider_companies') return providerCompany
-      if (table === 'payroll_connections') return connection
-      if (table === 'payroll_providers') return provider
-      if (table === 'administrations') return { id: administrationId }
-      if (table === 'payroll_company_bindings' && operation === 'select') {
-        const status = filters.find(([column]) => column === 'status')?.[1]
-        if (status === 'ACTIVE') return existingBinding
-      }
-      return null
-    }
-    harness.createAdminClient.mockImplementation(() => makeAdminClient(resolve))
-
-    const first = await bindPayrollCompany({ providerCompanyId: companyId, administrationId })
-    const second = await bindPayrollCompany({ providerCompanyId: companyId, administrationId })
-
-    expect(first).toEqual(second)
-    expect(first).toMatchObject({ id: bindingId, status: 'ACTIVE' })
-    expect(harness.adminQueries.some((query) => query.table === 'payroll_company_bindings' && ['insert', 'update'].includes(query.operation))).toBe(false)
-    expect(harness.adminQueries.some((query) => query.table === 'payroll_audit_events')).toBe(false)
-  })
-
-  it('records a scoped audit event when a company binding is created', async () => {
-    const providerCompany = {
-      id: companyId,
-      connection_id: connectionId,
-      external_company_id: 'nmbrs-company-42',
-      external_company_number: '42',
-      external_company_display_name: 'Example BV',
-      external_debtor_id: null,
-      status: 'ACTIVE',
-      last_seen_at: '2026-10-11T00:00:00.000Z',
-      tenant_id: tenantId,
-      hr_group_id: hrGroupId,
-    }
-    const connection = { id: connectionId, provider_id: 'provider-1', status: 'CONNECTED', tenant_id: tenantId, hr_group_id: hrGroupId }
-    const provider = { id: 'provider-1', code: 'NMBRS', name: 'Nmbrs', is_active: true, capabilities: [] }
-    const createdBinding = {
-      id: bindingId,
-      connection_id: connectionId,
-      administration_id: administrationId,
-      external_company_id: providerCompany.external_company_id,
-      external_company_display_name: providerCompany.external_company_display_name,
-      status: 'ACTIVE',
-      bound_at: '2026-10-11T00:00:00.000Z',
-      unbound_at: null,
-    }
-    const resolve = (table: string, operation: string) => {
-      if (table === 'payroll_provider_companies') return providerCompany
-      if (table === 'payroll_connections') return connection
-      if (table === 'payroll_providers') return provider
-      if (table === 'administrations') return { id: administrationId }
-      if (table === 'payroll_company_bindings' && operation === 'insert') return createdBinding
-      return null
-    }
-    harness.createAdminClient.mockImplementation(() => makeAdminClient(resolve))
-
-    await expect(bindPayrollCompany({ providerCompanyId: companyId, administrationId })).resolves.toMatchObject({ id: bindingId, status: 'ACTIVE' })
-
-    const bindingWrite = harness.adminQueries.find((query) => query.table === 'payroll_company_bindings' && query.operation === 'insert')
-    expect(bindingWrite?.payload).toMatchObject({ tenant_id: tenantId, hr_group_id: hrGroupId, connection_id: connectionId, administration_id: administrationId })
-    const audit = harness.adminQueries.find((query) => query.table === 'payroll_audit_events')
-    expect(audit?.payload).toMatchObject({
-      tenant_id: tenantId,
-      hr_group_id: hrGroupId,
-      provider_id: 'provider-1',
-      connection_id: connectionId,
-      company_binding_id: bindingId,
-      administration_id: administrationId,
-      actor_user_id: userId,
-      event_type: 'PAYROLL_COMPANY_BOUND',
-      result_code: 'NMBRS_COMPANY_BOUND',
-      reference_data: { externalCompanyId: providerCompany.external_company_id },
-    })
+    expect(harness.requirePermission).not.toHaveBeenCalled()
+    expect(harness.createClient).not.toHaveBeenCalled()
+    expect(harness.createAdminClient).not.toHaveBeenCalled()
+    expect(harness.getPayrollProvider).not.toHaveBeenCalled()
   })
 })

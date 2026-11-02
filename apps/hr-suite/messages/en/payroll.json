@@ -1,6 +1,10 @@
 {
-  "title": "Payroll integrations",
-  "description": "Manage Nmbrs access and map Nmbrs companies to administrations in the active HR group.",
+  "title": "External Payroll integrations",
+  "description": "External Nmbrs connections are disabled. LiquidHR's own Payroll and pension features remain available.",
+  "externalIntegrationDisabledTitle": "External connection disabled",
+  "externalIntegrationDisabledDescription": "LiquidHR does not connect to Nmbrs or perform external Payroll transactions.",
+  "externalIntegrationRevocationNotice": "Any previously granted Nmbrs authorization is not revoked here. Revoke it directly in Nmbrs if needed.",
+  "returnToPayroll": "Go to LiquidHR Payroll",
   "connection": "Connection",
   "provider": "Provider",
   "lastChecked": "Last checked",

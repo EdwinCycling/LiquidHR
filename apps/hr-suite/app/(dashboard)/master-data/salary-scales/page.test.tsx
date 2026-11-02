@@ -39,7 +39,7 @@ describe('SalaryScalesPage', () => {
       throw new Error(`redirect:${destination}`)
     })
 
-    await expect(SalaryScalesPage()).rejects.toThrow('redirect:/geen-toegang')
+    await expect(SalaryScalesPage({ searchParams: Promise.resolve({}) })).rejects.toThrow('redirect:/geen-toegang')
     expect(redirect).toHaveBeenCalledWith('/geen-toegang')
   })
 })

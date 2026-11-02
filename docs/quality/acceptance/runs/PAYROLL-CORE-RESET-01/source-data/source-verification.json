@@ -1,0 +1,77 @@
+{
+  "title": "Cao Kinderopvang salary tables 2025-2026, Appendix 2",
+  "officialSourceUrl": "https://www.kinderopvang-werkt.nl/sites/fcb_kinderopvang/files/2025-04/Bijlage-2-Salarisschalen-Cao-Kinderopvang-2025-2026.pdf",
+  "sourceFileName": "Bijlage-2-Salarisschalen-Cao-Kinderopvang-2025-2026.pdf",
+  "localSourceFile": "Bijlage-2-Salarisschalen-Cao-Kinderopvang-2025-2026.pdf",
+  "sourceSha256": "ec7357723fb323aace7a2c7a3bfa4f11fe4c32bdae2d984754875a2589ad5da1",
+  "sourceBytes": 298548,
+  "agreementSource": {
+    "officialSourceUrl": "https://www.kinderopvang-werkt.nl/sites/fcb_kinderopvang/files/2025-06/Cao-Kinderopvang-2025-2026-integraal.pdf",
+    "sourceFileName": "Cao-Kinderopvang-2025-2026-integraal.pdf",
+    "localSourceFile": "Cao-Kinderopvang-2025-2026-integraal.pdf",
+    "sourceSha256": "9070e0be5a2e5bd2252fc030bed3bfb3fe3767e0d1c72e36824813042222c4be",
+    "effectiveFrom": "2025-01-01",
+    "effectiveTo": "2026-12-31"
+  },
+  "fulltimeHoursPerWeek": 36,
+  "versions": [
+    {
+      "effectiveFrom": "2025-01-01",
+      "effectiveTo": "2025-06-30",
+      "rowCount": 196,
+      "csvSha256": "77e13f834e8fe258b790ecdeb4e8697bb5885d7e30530aee2f18c70b5eee203d",
+      "minimumAmount": 2205,
+      "maximumAmount": 9453
+    },
+    {
+      "effectiveFrom": "2025-07-01",
+      "effectiveTo": "2025-12-31",
+      "rowCount": 196,
+      "csvSha256": "84993e4a2ad18bb1fd849908180a2e4896a0e5305fd68c0b7da44da98ac5d9bb",
+      "minimumAmount": 2205,
+      "maximumAmount": 9689
+    },
+    {
+      "effectiveFrom": "2026-01-01",
+      "effectiveTo": "2026-08-31",
+      "rowCount": 196,
+      "csvSha256": "777c476838354db5ce2c3445aeaffa4d17d463d40c71a7319496cc66e67f59b7",
+      "minimumAmount": 2506,
+      "maximumAmount": 9689
+    },
+    {
+      "effectiveFrom": "2026-09-01",
+      "effectiveTo": "2026-12-31",
+      "rowCount": 196,
+      "csvSha256": "557f2192cbf1db4df1f69b1b2f3e765b7514c616fca6c6d1e2b1e7f1a8d83b13",
+      "minimumAmount": 2506,
+      "maximumAmount": 9834
+    }
+  ],
+  "2026-01-01 derivation": "Complete 196-row schedule: official January 2026 values for scales 1-4 (39 rows) overlay the July 2025 schedule; remaining values carry forward as the official minimum-wage note states.",
+  "checks": {
+    "distinctScaleStepKeys": 196,
+    "scales": 15,
+    "scale6Number12September2026EUR": 2819,
+    "scale6Number20September2026EUR": 3425,
+    "changedRowsJanuary2026VsJuly2025": 16,
+    "officialSalaryNumberMasterMatches": {
+      "2025-01-01": {
+        "rows": 196,
+        "sourceSalaryNumbers": 66
+      },
+      "2025-07-01": {
+        "rows": 196,
+        "sourceSalaryNumbers": 66
+      },
+      "2026-01-01": {
+        "rows": 196,
+        "sourceSalaryNumbers": 66
+      },
+      "2026-09-01": {
+        "rows": 196,
+        "sourceSalaryNumbers": 66
+      }
+    }
+  }
+}

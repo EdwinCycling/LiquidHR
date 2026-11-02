@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      absence_guidance: {
+        Row: { case_id: string; tenant_id: string; hr_group_id: string; administration_id: string; process_instance_id: string; closed_at: string | null; created_at: string }
+        Insert: { case_id: string; tenant_id: string; hr_group_id: string; administration_id: string; process_instance_id: string; closed_at?: string | null; created_at?: string }
+        Update: { case_id?: string; tenant_id?: string; hr_group_id?: string; administration_id?: string; process_instance_id?: string; closed_at?: string | null; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "absence_guidance_case_id_fkey"; columns: ["case_id"]; isOneToOne: true; referencedRelation: "absence_cases"; referencedColumns: ["id"] },
+          { foreignKeyName: "absence_guidance_tenant_id_hr_group_id_case_id_fkey"; columns: ["tenant_id", "hr_group_id", "case_id"]; isOneToOne: false; referencedRelation: "absence_cases"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
+          { foreignKeyName: "absence_guidance_tenant_id_hr_group_id_administration_id_fkey"; columns: ["tenant_id", "hr_group_id", "administration_id"]; isOneToOne: false; referencedRelation: "administrations"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
+          { foreignKeyName: "absence_guidance_tenant_id_hr_group_id_process_instance_id_fkey"; columns: ["tenant_id", "hr_group_id", "process_instance_id"]; isOneToOne: false; referencedRelation: "process_instances"; referencedColumns: ["tenant_id", "hr_group_id", "id"] }
+        ]
+      }
+      absence_guidance_events: {
+        Row: { id: string; case_id: string; event_type: string; occurred_on: string; task_id: string | null; agreement_code: string | null; review_on: string | null; agreement_id: string | null; actor_user_id: string; idempotency_key: string; created_at: string }
+        Insert: { id?: string; case_id: string; event_type: string; occurred_on: string; task_id?: string | null; agreement_code?: string | null; review_on?: string | null; agreement_id?: string | null; actor_user_id: string; idempotency_key: string; created_at?: string }
+        Update: { id?: string; case_id?: string; event_type?: string; occurred_on?: string; task_id?: string | null; agreement_code?: string | null; review_on?: string | null; agreement_id?: string | null; actor_user_id?: string; idempotency_key?: string; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "absence_guidance_events_case_id_fkey"; columns: ["case_id"]; isOneToOne: false; referencedRelation: "absence_guidance"; referencedColumns: ["case_id"] },
+          { foreignKeyName: "absence_guidance_events_task_id_fkey"; columns: ["task_id"]; isOneToOne: false; referencedRelation: "absence_tasks"; referencedColumns: ["id"] },
+          { foreignKeyName: "absence_guidance_events_agreement_id_fkey"; columns: ["agreement_id"]; isOneToOne: false; referencedRelation: "absence_guidance_events"; referencedColumns: ["id"] }
+        ]
+      }
       work_calendars: {
         Row: {
           id: string
@@ -18054,6 +18075,7 @@ export type Database = {
       }
       salary_structure_revisions: {
         Row: {
+          correction_of_revision_id: string | null
           created_at: string
           created_by_user_id: string | null
           currency_code: string
@@ -18067,12 +18089,14 @@ export type Database = {
           revision_number: number
           salary_basis: Database["public"]["Enums"]["salary_structure_basis"]
           salary_structure_id: string
+          source_metadata: Json | null
           status: Database["public"]["Enums"]["salary_revision_status"]
           tenant_id: string
           updated_at: string
           updated_by_user_id: string | null
         }
         Insert: {
+          correction_of_revision_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
           currency_code?: string
@@ -18086,12 +18110,14 @@ export type Database = {
           revision_number: number
           salary_basis: Database["public"]["Enums"]["salary_structure_basis"]
           salary_structure_id: string
+          source_metadata?: Json | null
           status?: Database["public"]["Enums"]["salary_revision_status"]
           tenant_id: string
           updated_at?: string
           updated_by_user_id?: string | null
         }
         Update: {
+          correction_of_revision_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
           currency_code?: string
@@ -18105,12 +18131,20 @@ export type Database = {
           revision_number?: number
           salary_basis?: Database["public"]["Enums"]["salary_structure_basis"]
           salary_structure_id?: string
+          source_metadata?: Json | null
           status?: Database["public"]["Enums"]["salary_revision_status"]
           tenant_id?: string
           updated_at?: string
           updated_by_user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "salary_structure_revisions_correction_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_structure_id", "correction_of_revision_id"]
+            isOneToOne: false
+            referencedRelation: "salary_structure_revisions"
+            referencedColumns: ["tenant_id", "hr_group_id", "salary_structure_id", "id"]
+          },
           {
             foreignKeyName: "salary_structure_revisions_structure_fkey"
             columns: ["tenant_id", "hr_group_id", "salary_structure_id"]
@@ -22071,6 +22105,18 @@ export type Database = {
       }
     }
     Functions: {
+      wvp_case_for_process: {
+        Args: { requested_process_instance_id: string }
+        Returns: string
+      }
+      wvp_list: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string | null; requested_case_id?: string | null }
+        Returns: Json
+      }
+      wvp_command: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string | null; command: Json }
+        Returns: string
+      }
       get_work_calendars: {
         Args: { requested_hr_group_id: string; requested_administration_id: string | null }
         Returns: Json
@@ -22943,6 +22989,15 @@ export type Database = {
       }
       create_salary_structure_draft: {
         Args: { requested_payload: Json; requested_structure_id: string }
+        Returns: Json
+      }
+      save_salary_structure_import_draft: {
+        Args: {
+          requested_draft_id: string | null
+          requested_expected_lock_version: number | null
+          requested_payload: Json
+          requested_structure_id: string
+        }
         Returns: Json
       }
       create_talent_notification: {
@@ -24757,6 +24812,14 @@ export type Database = {
       create_pension_arrangement_successor: {
         Args: { p_predecessor_version_id: string; p_successor: Json }
         Returns: string
+      }
+      create_pension_arrangement_successor_for_pension_manager: {
+        Args: { p_predecessor_version_id: string; p_successor: Json }
+        Returns: string
+      }
+      create_pension_arrangement: {
+        Args: { p_input: Json }
+        Returns: Json
       }
       apply_employment_pension_arrangement: {
         Args: { p_input: Json }

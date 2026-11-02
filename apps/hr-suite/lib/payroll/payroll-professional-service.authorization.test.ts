@@ -95,18 +95,48 @@ function createIdentityClient(identity: TestIdentity) {
         return builder
       }
       if (table === 'management_roles') {
-        let selection = ''
+        const filters = new Map<string, unknown>()
+        let roleIds: string[] | null = null
+        let roleCodes: string[] | null = null
+        let tenantScope: string | null = null
+        let allowGlobalTenantScope = false
+        const roles = [{
+          id: 'employee-role',
+          code: 'EMPLOYEE',
+          tenant_id: identity.tenantId,
+          is_active: true,
+          deleted_at: null,
+        }]
+        const queryRows = () => roles
+          .filter((role) => roleIds === null || roleIds.includes(role.id))
+          .filter((role) => roleCodes === null || roleCodes.includes(role.code))
+          .filter((role) => [...filters].every(([column, value]) => {
+            if (column === 'code') return role.code === value
+            if (column === 'tenant_id') return role.tenant_id === value
+            if (column === 'is_active') return role.is_active === value
+            if (column === 'deleted_at') return role.deleted_at === value
+            return true
+          }))
+          .filter((role) => tenantScope === null || role.tenant_id === tenantScope || (allowGlobalTenantScope && role.tenant_id === null))
         const builder = {
-          select: (columns: string) => { selection = columns; return builder },
-          eq: () => builder,
-          or: () => result([{ id: 'employee-role', tenant_id: identity.tenantId }]),
-          in: (_column: string, roleIds: string[]) => {
-            if (selection === 'code') return result(roleIds.map(() => ({ code: 'EMPLOYEE' })))
-            if (selection === 'id,code,tenant_id') {
-              return result(roleIds.map((id) => ({ id, code: 'EMPLOYEE', tenant_id: identity.tenantId })))
-            }
-            throw new Error(`Unexpected management_roles projection: ${selection}`)
+          select: () => builder,
+          eq: (column: string, value: unknown) => { filters.set(column, value); return builder },
+          is: (column: string, value: unknown) => { filters.set(column, value); return builder },
+          or: (expression: string) => {
+            const tenantMatch = expression.match(/tenant_id\.eq\.([^,)]+)/)
+            if (tenantMatch?.[1]) tenantScope = tenantMatch[1]
+            allowGlobalTenantScope = expression.includes('tenant_id.is.null')
+            return builder
           },
+          in: (column: string, values: string[]) => {
+            if (column === 'id') roleIds = values
+            if (column === 'code') roleCodes = values
+            return builder
+          },
+          then: (
+            onfulfilled?: ((value: { data: typeof roles; error: null }) => unknown) | null,
+            onrejected?: ((reason: unknown) => unknown) | null,
+          ) => Promise.resolve({ data: queryRows(), error: null }).then(onfulfilled, onrejected),
         }
         return builder
       }

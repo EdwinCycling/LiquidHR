@@ -14,6 +14,8 @@ import { Switch } from '@/components/ui/switch'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 import { parseDecimalInput } from '@/lib/employment/decimal-input'
 import { convertRosterHoursInput, parseRosterHoursValue, type RosterHoursInputMode } from '@/lib/employment/roster-hours'
+import { resolveEmploymentSalaryBasis, type EmploymentSalaryBasis, type EmploymentSalaryRoute, type PublishedSalaryBasisRevision } from '@/lib/employment/salary-basis-resolution'
+import { mapCaoSalarySource, resolveSalaryApplicationBasis } from '@/lib/employment/salary-source-mapping'
 
 export type EmploymentOverviewActionKey =
   | 'hoursSchedule'
@@ -105,6 +107,7 @@ export interface EmploymentOverviewChangeData {
     salaryScales: Array<{ id: string; structureId: string; code: string; name: string }>
     salaryBands: Array<{ id: string; structureId: string; code: string; name: string; minimumAmount: number; midpointAmount: number; maximumAmount: number | null; effectiveFrom: string }>
     salaryRoutes: Array<'MANUAL' | 'MINIMUM_WAGE' | 'SCALE_WITH_STEPS' | 'SALARY_BAND'>
+    salaryRevisions: PublishedSalaryBasisRevision[]
   }
 }
 
@@ -145,8 +148,8 @@ interface AllocationDraft {
 }
 
 interface SalaryDraft {
-  salaryBasis: 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE' | 'SALARY_BAND'
-  salaryRoute: 'MANUAL' | 'MINIMUM_WAGE' | 'SCALE_WITH_STEPS' | 'SALARY_BAND'
+  salaryBasis: EmploymentSalaryBasis
+  salaryRoute: EmploymentSalaryRoute
   minimumWageScheme: 'REGULAR' | 'BBL'
   paymentType: 'PERIODIC_FIXED' | 'HOURLY_VARIABLE'
   paymentFrequency: 'MONTHLY' | 'FOUR_WEEKLY'
@@ -269,7 +272,7 @@ function workerTypeLabel(value: string, labels: Labels): string {
 
 function salaryBasisLabel(value: string, labels: Labels): string {
   if (value === 'MINIMUM_WAGE') return labels.salaryMinimum
-  if (value === 'CUSTOM_SCALE') return labels.salaryTable
+  if (value === 'CUSTOM_SCALE') return labels.customScale ?? labels.salaryTable
   if (value === 'SALARY_BAND') return labels.salaryBand
   if (value === 'CAO_SCALE') return labels.caoScale
   return labels.salaryManual
@@ -315,13 +318,19 @@ function toggleRosterInputMode(schedule: ScheduleDraft): ScheduleDraft {
   }
 }
 
-function initialSalary(rows: EmploymentOverviewChangeData['salaries'], date: string, availableRoutes: EmploymentOverviewChangeData['options']['salaryRoutes']): SalaryDraft {
+function initialSalary(rows: EmploymentOverviewChangeData['salaries'], date: string, availableRoutes: EmploymentOverviewChangeData['options']['salaryRoutes'], revisions: PublishedSalaryBasisRevision[]): SalaryDraft {
   const row = dateAt(rows, date)
   const configuredRoute = row?.salaryRoute === 'MINIMUM_WAGE' || row?.salaryRoute === 'SCALE_WITH_STEPS' || row?.salaryRoute === 'SALARY_BAND'
     ? row.salaryRoute
     : row?.salaryBasis === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : row?.salaryBasis === 'CUSTOM_SCALE' ? 'SCALE_WITH_STEPS' : row?.salaryBasis === 'SALARY_BAND' ? 'SALARY_BAND' : 'MANUAL'
   const route = availableRoutes.includes(configuredRoute) ? configuredRoute : availableRoutes[0] ?? 'MANUAL'
-  const basis = route === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : route === 'SCALE_WITH_STEPS' ? 'CUSTOM_SCALE' : route === 'SALARY_BAND' ? 'SALARY_BAND' : 'MANUAL'
+  const basis = resolveEmploymentSalaryBasis({
+    route,
+    salaryStructureId: row?.salaryStructureId ?? null,
+    effectiveOn: date,
+    revisions,
+    existingBasis: row?.salaryBasis as EmploymentSalaryBasis | undefined,
+  })
   const paymentType = row?.paymentType === 'HOURLY_VARIABLE' ? 'HOURLY_VARIABLE' : 'PERIODIC_FIXED'
   return {
     salaryBasis: basis,
@@ -396,7 +405,7 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
   const [dateChoice, setDateChoice] = useState<DateChoice>(defaultDateChoice)
   const [effectiveOn, setEffectiveOn] = useState(defaultEffectiveOn)
   const [schedule, setSchedule] = useState(() => initialSchedule(data.schedules, selectedContract?.startsOn ?? today))
-  const [salary, setSalary] = useState(() => initialSalary(data.salaries, selectedContract?.startsOn ?? today, data.options.salaryRoutes))
+  const [salary, setSalary] = useState(() => initialSalary(data.salaries, selectedContract?.startsOn ?? today, data.options.salaryRoutes, data.options.salaryRevisions))
   const [organization, setOrganization] = useState(() => initialOrganization(data.organizations, selectedContract?.startsOn ?? today, data.options))
   const [allocations, setAllocations] = useState<AllocationDraft[]>(() => initialAllocations(data.costAllocations, selectedContract?.startsOn ?? today, data.options))
   const [laborConditionSetId, setLaborConditionSetId] = useState(selectedContract?.laborConditionSetId ?? data.options.laborConditionSets[0]?.id ?? '')
@@ -484,7 +493,7 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
 
   function hydrateDrafts(date = effectiveOn): void {
     setSchedule(initialSchedule(data.schedules, date))
-    setSalary(initialSalary(data.salaries, date, data.options.salaryRoutes))
+    setSalary(initialSalary(data.salaries, date, data.options.salaryRoutes, data.options.salaryRevisions))
     setOrganization(initialOrganization(data.organizations, date, data.options))
     setAllocations(initialAllocations(data.costAllocations, date, data.options))
     if (selectedContract) {
@@ -568,7 +577,13 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
     setSalary((current) => {
       const nextSalary = { ...current, [key]: value }
       if (key === 'salaryRoute') {
-        nextSalary.salaryBasis = value === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : value === 'SCALE_WITH_STEPS' ? 'CUSTOM_SCALE' : value === 'SALARY_BAND' ? 'SALARY_BAND' : 'MANUAL'
+        nextSalary.salaryBasis = resolveEmploymentSalaryBasis({
+          route: value as EmploymentSalaryRoute,
+          salaryStructureId: current.salaryStructureId || null,
+          effectiveOn,
+          revisions: data.options.salaryRevisions,
+          existingBasis: current.salaryBasis,
+        })
         if (value === 'MINIMUM_WAGE') nextSalary.paymentType = 'HOURLY_VARIABLE'
         if (value !== 'MINIMUM_WAGE' && nextSalary.paymentType === 'HOURLY_VARIABLE') nextSalary.paymentType = 'PERIODIC_FIXED'
       }
@@ -585,6 +600,13 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
         const selectedScale = data.options.salaryScales.find((scale) => scale.id === value)
         const firstStep = data.options.salaryScaleSteps.find((step) => step.salaryScaleId === value)
         nextSalary.salaryStructureId = selectedScale?.structureId ?? ''
+        nextSalary.salaryBasis = resolveEmploymentSalaryBasis({
+          route: current.salaryRoute,
+          salaryStructureId: nextSalary.salaryStructureId || null,
+          effectiveOn,
+          revisions: data.options.salaryRevisions,
+          existingBasis: current.salaryBasis,
+        })
         nextSalary.salaryScaleStepId = firstStep?.id ?? ''
         nextSalary.salaryStepCode = firstStep?.stepCode ?? ''
         if (firstStep) {
@@ -619,9 +641,16 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
     const isMinimumWage = salary.salaryRoute === 'MINIMUM_WAGE'
     const paymentType = isMinimumWage ? 'HOURLY_VARIABLE' : salary.paymentType
     const isHourlyVariable = paymentType === 'HOURLY_VARIABLE'
+    const salaryBasis = resolveSalaryApplicationBasis(salary.salaryRoute, salary.salaryBasis)
+    const caoSource = mapCaoSalarySource({
+      salaryRoute: salary.salaryRoute,
+      salaryBasis,
+      selectedScale: data.options.salaryScales.find((item) => item.id === salary.salaryScaleId),
+      selectedStep: data.options.salaryScaleSteps.find((item) => item.id === salary.salaryScaleStepId),
+    })
     return {
       paymentType, paymentFrequency: salary.paymentFrequency,
-      salaryBasis: salary.salaryBasis,
+      salaryBasis,
       salaryRoute: salary.salaryRoute,
       minimumWageScheme: isMinimumWage ? salary.minimumWageScheme : null,
       fulltimeAmount: isMinimumWage || isHourlyVariable ? null : asNumber(salary.fulltimeAmount),
@@ -632,7 +661,7 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
       salaryScaleId: salary.salaryRoute === 'SCALE_WITH_STEPS' ? salary.salaryScaleId || null : null,
       salaryStepCode: salary.salaryRoute === 'SCALE_WITH_STEPS' ? salary.salaryStepCode || null : null,
       salaryBandId: salary.salaryRoute === 'SALARY_BAND' ? salary.salaryBandId || null : null,
-      caoScaleName: null, caoStepName: null,
+      caoScaleName: caoSource.caoScaleName, caoStepName: caoSource.caoStepName,
     }
   }
 
@@ -894,7 +923,7 @@ function SalaryEditor({ locale, labels, salary, salaryFactor, options, onChange 
   const selectedBand = options.salaryBands.find((item) => item.id === salary.salaryBandId)
   const selectedScale = options.salaryScaleSteps.find((item) => item.id === salary.salaryScaleStepId)
   const availableRoutes = options.salaryRoutes
-  return <section className="border border-subtle p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-[var(--radius-control)] bg-accent text-accent-foreground"><CalendarDays aria-hidden="true" className="size-5" /></span><div><p className="eyebrow text-primary">{labels.salary}</p><h4 className="mt-1 text-lg font-semibold">{labels.stepSalary}</h4></div></div><div className="mt-5 grid gap-4 sm:grid-cols-2"><Field label={labels.salaryCalculation}><DropdownSelect searchable searchPlaceholder={labels.salaryCalculation} value={salary.salaryRoute} onChange={(event) => onChange('salaryRoute', event.target.value as SalaryDraft['salaryRoute'])}><option value="MANUAL">{labels.salaryManual}</option>{availableRoutes.includes('MINIMUM_WAGE') && <option value="MINIMUM_WAGE">{labels.salaryMinimum}</option>}{availableRoutes.includes('SCALE_WITH_STEPS') && <option value="SCALE_WITH_STEPS">{labels.salaryTable}</option>}{availableRoutes.includes('SALARY_BAND') && <option value="SALARY_BAND">{labels.salaryBand}</option>}</DropdownSelect></Field><Field label={labels.paymentFrequency}><DropdownSelect value={salary.paymentFrequency} onChange={(event) => onChange('paymentFrequency', event.target.value as SalaryDraft['paymentFrequency'])}><option value="MONTHLY">{labels.monthly}</option><option value="FOUR_WEEKLY">{labels.fourWeekly}</option></DropdownSelect></Field>{salary.salaryRoute === 'MINIMUM_WAGE' && <><Field label={labels.salaryApplicationScheme ?? labels.salaryMinimum}><DropdownSelect value={salary.minimumWageScheme} onChange={(event) => onChange('minimumWageScheme', event.target.value as SalaryDraft['minimumWageScheme'])}><option value="REGULAR">{labels.salaryRegular ?? 'REGULAR'}</option><option value="BBL">{labels.salaryBbl ?? 'BBL'}</option></DropdownSelect></Field><p className="self-end text-sm text-muted-foreground">{labels.salaryApplicationExternalAmount ?? labels.notRecorded}</p></>}{salary.salaryRoute === 'SCALE_WITH_STEPS' && <><Field label={labels.salaryScale}><DropdownSelect searchable searchPlaceholder={labels.salaryScale} emptyLabel={labels.notRecorded} value={salary.salaryScaleId} onChange={(event) => onChange('salaryScaleId', event.target.value)}>{options.salaryScales.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field><Field label={labels.salaryScaleStep}><DropdownSelect searchable searchPlaceholder={labels.salaryScaleStep} emptyLabel={labels.notRecorded} value={salary.salaryScaleStepId} onChange={(event) => onChange('salaryScaleStepId', event.target.value)}>{options.salaryScaleSteps.filter((item) => item.salaryScaleId === salary.salaryScaleId).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</DropdownSelect></Field><Field label={labels.salaryScaleAmount}><input className="form-field bg-muted/40" readOnly value={selectedScale ? `€ ${selectedScale.fulltimeAmount.toFixed(2)}` : '—'} /></Field></>}{salary.salaryRoute === 'SALARY_BAND' && <Field label={labels.salaryBand}><DropdownSelect searchable searchPlaceholder={labels.salaryBand} emptyLabel={labels.notRecorded} value={salary.salaryBandId} onChange={(event) => onChange('salaryBandId', event.target.value)}>{options.salaryBands.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field>}{(salary.salaryRoute === 'MANUAL' || salary.salaryRoute === 'SALARY_BAND') && <><Field label={labels.fulltimeSalary}><SalaryAmountInput decreaseLabel={labels.salaryDecrease} increaseLabel={labels.salaryIncrease} onChange={(value) => onChange('fulltimeAmount', value)} value={salary.fulltimeAmount} /></Field><Field label={labels.parttimeSalary}><SalaryAmountInput decreaseLabel={labels.salaryDecrease} increaseLabel={labels.salaryIncrease} onChange={(value) => onChange('parttimeAmount', value)} value={salary.parttimeAmount} /><span className="text-xs font-normal text-muted-foreground">{labels.partTimeFactor}: {Math.round(salaryFactor * 10000) / 100}%</span></Field></>}{salary.salaryRoute === 'SALARY_BAND' && selectedBand && <div className="sm:col-span-2"><SalaryBandPositionCard salaryAmount={salary.fulltimeAmount || String(selectedBand.midpointAmount)} band={{ minimum: selectedBand.minimumAmount.toFixed(2), midpoint: selectedBand.midpointAmount.toFixed(2), maximum: selectedBand.maximumAmount === null ? null : selectedBand.maximumAmount.toFixed(2) }} locale={locale} currencyCode="EUR" labels={{ preview: labels.salaryBand, currentSalary: labels.fulltimeSalary, minimum: labels.salaryBandMinimum ?? labels.salaryBand, midpoint: labels.salaryBandMidpoint ?? labels.salaryBand, maximum: labels.salaryBandMaximum ?? labels.salaryBand, compaRatio: labels.compaRatio ?? labels.salaryBand, rangePenetration: labels.rangePenetration ?? labels.salaryBand, status: labels.status ?? labels.salaryBand, underMinimum: labels.underMinimum ?? labels.salaryBand, withinRange: labels.withinRange ?? labels.salaryBand, aboveMaximum: labels.aboveMaximum ?? labels.salaryBand, noValidBand: labels.noValidBand ?? labels.salaryBand, openEnded: labels.salaryOpenEnded ?? '—' }} /></div>}</div></section>
+  return <section className="border border-subtle p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-[var(--radius-control)] bg-accent text-accent-foreground"><CalendarDays aria-hidden="true" className="size-5" /></span><div><p className="eyebrow text-primary">{labels.salary}</p><h4 className="mt-1 text-lg font-semibold">{labels.stepSalary}</h4></div></div><div className="mt-5 grid gap-4 sm:grid-cols-2"><Field label={labels.salaryCalculation}><DropdownSelect searchable searchPlaceholder={labels.salaryCalculation} value={salary.salaryRoute} onChange={(event) => onChange('salaryRoute', event.target.value as SalaryDraft['salaryRoute'])}><option value="MANUAL">{labels.salaryManual}</option>{availableRoutes.includes('MINIMUM_WAGE') && <option value="MINIMUM_WAGE">{labels.salaryMinimum}</option>}{availableRoutes.includes('SCALE_WITH_STEPS') && <option value="SCALE_WITH_STEPS">{labels.salaryTable}</option>}{availableRoutes.includes('SALARY_BAND') && <option value="SALARY_BAND">{labels.salaryBand}</option>}</DropdownSelect></Field><Field label={labels.paymentFrequency}><DropdownSelect value={salary.paymentFrequency} onChange={(event) => onChange('paymentFrequency', event.target.value as SalaryDraft['paymentFrequency'])}><option value="MONTHLY">{labels.monthly}</option><option value="FOUR_WEEKLY">{labels.fourWeekly}</option></DropdownSelect></Field>{salary.salaryRoute === 'MINIMUM_WAGE' && <><Field label={labels.salaryApplicationScheme ?? labels.salaryMinimum}><DropdownSelect value={salary.minimumWageScheme} onChange={(event) => onChange('minimumWageScheme', event.target.value as SalaryDraft['minimumWageScheme'])}><option value="REGULAR">{labels.salaryRegular ?? 'REGULAR'}</option><option value="BBL">{labels.salaryBbl ?? 'BBL'}</option></DropdownSelect></Field><p className="self-end text-sm text-muted-foreground">{labels.salaryApplicationExternalAmount ?? labels.notRecorded}</p></>}{salary.salaryRoute === 'SCALE_WITH_STEPS' && <><Field label={labels.salaryScale}><DropdownSelect searchable searchPlaceholder={labels.salaryScale} emptyLabel={labels.notRecorded} value={salary.salaryScaleId} onChange={(event) => onChange('salaryScaleId', event.target.value)}>{options.salaryScales.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field><Field label={labels.salaryScaleStep}><DropdownSelect searchable searchPlaceholder={labels.salaryScaleStep} emptyLabel={labels.notRecorded} value={salary.salaryScaleStepId} onChange={(event) => onChange('salaryScaleStepId', event.target.value)}>{options.salaryScaleSteps.filter((item) => item.salaryScaleId === salary.salaryScaleId).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</DropdownSelect></Field><Field label={labels.salaryBasis}><DropdownSelect value={salary.salaryBasis === 'CAO_SCALE' ? 'CAO_SCALE' : 'CUSTOM_SCALE'} onChange={(event) => onChange('salaryBasis', event.target.value as SalaryDraft['salaryBasis'])}><option value="CAO_SCALE">{labels.caoScale}</option><option value="CUSTOM_SCALE">{labels.customScale ?? labels.salaryTable}</option></DropdownSelect></Field><Field label={labels.salaryScaleAmount}><input className="form-field bg-muted/40" readOnly value={selectedScale ? `€ ${selectedScale.fulltimeAmount.toFixed(2)}` : '—'} /></Field></>}{salary.salaryRoute === 'SALARY_BAND' && <Field label={labels.salaryBand}><DropdownSelect searchable searchPlaceholder={labels.salaryBand} emptyLabel={labels.notRecorded} value={salary.salaryBandId} onChange={(event) => onChange('salaryBandId', event.target.value)}>{options.salaryBands.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field>}{(salary.salaryRoute === 'MANUAL' || salary.salaryRoute === 'SALARY_BAND') && <><Field label={labels.fulltimeSalary}><SalaryAmountInput decreaseLabel={labels.salaryDecrease} increaseLabel={labels.salaryIncrease} onChange={(value) => onChange('fulltimeAmount', value)} value={salary.fulltimeAmount} /></Field><Field label={labels.parttimeSalary}><SalaryAmountInput decreaseLabel={labels.salaryDecrease} increaseLabel={labels.salaryIncrease} onChange={(value) => onChange('parttimeAmount', value)} value={salary.parttimeAmount} /><span className="text-xs font-normal text-muted-foreground">{labels.partTimeFactor}: {Math.round(salaryFactor * 10000) / 100}%</span></Field></>}{salary.salaryRoute === 'SALARY_BAND' && selectedBand && <div className="sm:col-span-2"><SalaryBandPositionCard salaryAmount={salary.fulltimeAmount || String(selectedBand.midpointAmount)} band={{ minimum: selectedBand.minimumAmount.toFixed(2), midpoint: selectedBand.midpointAmount.toFixed(2), maximum: selectedBand.maximumAmount === null ? null : selectedBand.maximumAmount.toFixed(2) }} locale={locale} currencyCode="EUR" labels={{ preview: labels.salaryBand, currentSalary: labels.fulltimeSalary, minimum: labels.salaryBandMinimum ?? labels.salaryBand, midpoint: labels.salaryBandMidpoint ?? labels.salaryBand, maximum: labels.salaryBandMaximum ?? labels.salaryBand, compaRatio: labels.compaRatio ?? labels.salaryBand, rangePenetration: labels.rangePenetration ?? labels.salaryBand, status: labels.status ?? labels.salaryBand, underMinimum: labels.underMinimum ?? labels.salaryBand, withinRange: labels.withinRange ?? labels.salaryBand, aboveMaximum: labels.aboveMaximum ?? labels.salaryBand, noValidBand: labels.noValidBand ?? labels.salaryBand, openEnded: labels.salaryOpenEnded ?? '—' }} /></div>}</div></section>
 }
 
 function LaborConditionsEditor({ labels, options, value, onChange }: { labels: Labels; options: EmploymentOverviewChangeData['options']; value: string; onChange: (value: string) => void }) {

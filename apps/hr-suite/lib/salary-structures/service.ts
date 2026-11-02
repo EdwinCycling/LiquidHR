@@ -2,7 +2,8 @@ import type { Database, Json } from '@scope/db'
 import { z } from 'zod'
 import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import type { SalaryStructureCreateInput, SalaryStructureDraftInput } from './schemas'
+import { salaryStructureRevisionIdsForStructures, selectedSalaryStructureRevisionId } from './catalog-read-scope'
+import type { SalaryStructureCreateInput, SalaryStructureDraftInput, SalaryStructureUpdateInput } from './schemas'
 
 type SalaryStructureRow = Database['public']['Tables']['salary_structures']['Row']
 type SalaryStructureRevisionRow = Database['public']['Tables']['salary_structure_revisions']['Row']
@@ -27,6 +28,12 @@ export type SalaryStructureCatalog = {
   canReadAmounts: boolean
   canWriteStructures: boolean
   canWriteRelations: boolean
+}
+
+export type SalaryStructureCatalogReadScope = {
+  structureId: string | null
+  revisionId: string | null
+  structureIds?: readonly string[]
 }
 
 export type SalaryStructureMigrationConflictAction =
@@ -75,20 +82,17 @@ const idResult = z.object({ id: z.guid() })
 const draftResult = z.object({ id: z.guid(), revisionNumber: z.number().int().positive(), lockVersion: z.number().int().positive(), status: z.literal('DRAFT') })
 const publishResult = z.object({ id: z.guid(), lockVersion: z.number().int().positive(), status: z.literal('PUBLISHED') })
 
-export async function listSalaryStructureCatalog(): Promise<SalaryStructureCatalog> {
+export async function listSalaryStructureCatalog(readScope?: SalaryStructureCatalogReadScope): Promise<SalaryStructureCatalog> {
   const auth = await salaryContext('salary-structure:read')
   const canReadAmounts = await allowed('salary:read')
   const canWriteStructures = (await allowed('salary-structure:write')) && (await allowed('salary:write'))
   const canWriteRelations = await allowed('salary-structure:write')
   const supabase = await createClient()
-  const [structures, revisions, scales, scaleValues, steps, bands, bandValues, laborConditionRelations, migrationConflicts] = await Promise.all([
+  const [structures, revisions, scales, scaleValues, bands, bandValues, laborConditionRelations, migrationConflicts] = await Promise.all([
     supabase.from('salary_structures').select('*').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).order('name').limit(500),
     supabase.from('salary_structure_revisions').select('*').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).order('effective_from', { ascending: false }).limit(2000),
     supabase.from('salary_scales').select('*').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).order('code').limit(2000),
     supabase.from('salary_scale_revision_values').select('*').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).order('sort_order').limit(5000),
-    canReadAmounts
-      ? supabase.from('salary_scale_steps').select('*').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).order('sequence_number').limit(10000)
-      : Promise.resolve({ data: [] as SalaryScaleStepRow[], error: null }),
     supabase.from('salary_bands').select('*').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).order('identity_key').limit(2000),
     canReadAmounts
       ? supabase.from('salary_band_values').select('*').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).order('sort_order').limit(5000)
@@ -96,12 +100,46 @@ export async function listSalaryStructureCatalog(): Promise<SalaryStructureCatal
     supabase.from('labor_condition_salary_structures').select('*').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).limit(5000),
     supabase.from('salary_structure_migration_conflicts').select('*').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).order('created_at').limit(500),
   ])
-  const error = structures.error ?? revisions.error ?? scales.error ?? scaleValues.error ?? steps.error
+  const error = structures.error ?? revisions.error ?? scales.error ?? scaleValues.error
     ?? bands.error ?? bandValues.error ?? laborConditionRelations.error ?? migrationConflicts.error
   if (error) databaseError(error.message)
+  let steps: SalaryScaleStepRow[] = []
+  if (canReadAmounts) {
+    if (readScope === undefined) {
+      const result = await supabase.from('salary_scale_steps').select('*')
+        .eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId)
+        .order('sequence_number').limit(10000)
+      if (result.error) databaseError(result.error.message)
+      steps = result.data ?? []
+    } else if (readScope.structureIds !== undefined) {
+      const revisionIds = salaryStructureRevisionIdsForStructures(revisions.data ?? [], readScope.structureIds)
+      if (revisionIds.length > 0) {
+        const result = await supabase.from('salary_scale_steps').select('*')
+          .eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId)
+          .in('salary_structure_revision_id', revisionIds)
+          .order('sequence_number').limit(10000)
+        if (result.error) databaseError(result.error.message)
+        steps = result.data ?? []
+      }
+    } else {
+      const revisionId = selectedSalaryStructureRevisionId(
+        revisions.data ?? [],
+        readScope.structureId,
+        readScope.revisionId,
+      )
+      if (revisionId) {
+        const result = await supabase.from('salary_scale_steps').select('*')
+          .eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId)
+          .eq('salary_structure_revision_id', revisionId)
+          .order('sequence_number').limit(10000)
+        if (result.error) databaseError(result.error.message)
+        steps = result.data ?? []
+      }
+    }
+  }
   return {
     structures: structures.data ?? [], revisions: revisions.data ?? [],
-    scales: scales.data ?? [], scaleValues: scaleValues.data ?? [], steps: steps.data ?? [],
+    scales: scales.data ?? [], scaleValues: scaleValues.data ?? [], steps,
     bands: bands.data ?? [], bandValues: bandValues.data ?? [],
     laborConditionRelations: laborConditionRelations.data ?? [],
     migrationConflicts: migrationConflicts.data ?? [],
@@ -123,14 +161,40 @@ export async function createSalaryStructure(input: SalaryStructureCreateInput): 
   return idResult.parse(data).id
 }
 
+export async function updateSalaryStructure(structureId: string, input: SalaryStructureUpdateInput): Promise<void> {
+  const auth = await salaryContext('salary-structure:write')
+  await requirePermission('salary:write')
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('salary_structures')
+    .update({ name: input.name, code: input.code, description: input.description })
+    .eq('id', structureId)
+    .eq('tenant_id', auth.tenantId)
+    .eq('hr_group_id', auth.hrGroupId)
+    .select('id')
+    .maybeSingle()
+  if (error) {
+    if (error.code === '23505') throw new SalaryStructureError('SALARY_STRUCTURE_CODE_CONFLICT', 409)
+    databaseError(error.message)
+  }
+  if (!data) throw new SalaryStructureError('SALARY_STRUCTURE_NOT_FOUND', 404)
+}
+
 export async function createSalaryStructureDraft(structureId: string, draft: SalaryStructureDraftInput) {
   await salaryContext('salary-structure:write')
   await requirePermission('salary:write')
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('create_salary_structure_draft', {
-    requested_structure_id: structureId,
-    requested_payload: jsonPayload(draft),
-  })
+  const { data, error } = draft.sourceMetadata
+    ? await supabase.rpc('save_salary_structure_import_draft', {
+        requested_structure_id: structureId,
+        requested_draft_id: null,
+        requested_expected_lock_version: null,
+        requested_payload: jsonPayload(draft),
+      })
+    : await supabase.rpc('create_salary_structure_draft', {
+        requested_structure_id: structureId,
+        requested_payload: jsonPayload(draft),
+      })
   if (error || !data) databaseError(error?.message ?? 'SALARY_STRUCTURE_DRAFT_CREATE_FAILED')
   return draftResult.parse(data)
 }
@@ -139,12 +203,19 @@ export async function saveSalaryStructureDraft(structureId: string, draftId: str
   await salaryContext('salary-structure:write')
   await requirePermission('salary:write')
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('save_salary_structure_draft', {
-    requested_structure_id: structureId,
-    requested_draft_id: draftId,
-    requested_expected_lock_version: expectedLockVersion,
-    requested_payload: jsonPayload(draft),
-  })
+  const { data, error } = draft.sourceMetadata
+    ? await supabase.rpc('save_salary_structure_import_draft', {
+        requested_structure_id: structureId,
+        requested_draft_id: draftId,
+        requested_expected_lock_version: expectedLockVersion,
+        requested_payload: jsonPayload(draft),
+      })
+    : await supabase.rpc('save_salary_structure_draft', {
+        requested_structure_id: structureId,
+        requested_draft_id: draftId,
+        requested_expected_lock_version: expectedLockVersion,
+        requested_payload: jsonPayload(draft),
+      })
   if (error || !data) databaseError(error?.message ?? 'SALARY_STRUCTURE_DRAFT_SAVE_FAILED')
   return draftResult.parse(data)
 }

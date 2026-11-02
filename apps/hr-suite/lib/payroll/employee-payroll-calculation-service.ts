@@ -235,12 +235,12 @@ function isCustomerStandardSource(value: unknown): boolean {
     && /^[0-9a-f]{64}$/i.test(configuration.configurationHash)
 }
 
-function isCompositeRegularWage(value: unknown): boolean {
+function isPartialRegularWage(value: unknown): boolean {
   const source = record(value)
   const regularWage = record(source?.regularWage)
   return regularWage?.fullPeriod === false
     && typeof regularWage.timePeriod === 'string'
-    && parseNl2026CompositeTimePeriod(regularWage.timePeriod) !== null
+    && (regularWage.timePeriod === 'MONTH' || parseNl2026CompositeTimePeriod(regularWage.timePeriod) !== null)
 }
 
 function isCaoExactGrossSource(value: unknown): boolean {
@@ -259,7 +259,7 @@ function payfull02PackageForSource(value: unknown): PayrollRulePackage | null {
     ? componentSet.compositionId
     : ''
   return createPayfull02RulePackage(isCustomerStandardSource(value) ? 'CUSTOMER_STANDARD' : 'DEMO_COMPANY_TEST', {
-    supportPartialPeriods: isCompositeRegularWage(value)
+    supportPartialPeriods: isPartialRegularWage(value)
       || configuredCompositionId.includes('+PARTIAL-PERIODS-2026.1'),
     supportCaoExactGross: isCaoExactGrossSource(value),
     allocatePensionRoundingRemainderToEmployer: configuredCompositionId.includes('+PENSION-EMPLOYER-REMAINDER-2026.1'),
@@ -489,6 +489,105 @@ function recoveryActions(gaps: readonly PayrollSourceGap[], incomplete: readonly
   return [...actions]
 }
 
+function isSupportedOnCallHourlySource(input: {
+  readonly snapshot: PayrollSourceSnapshot
+  readonly source: Record<string, unknown> | null
+  readonly salary: Record<string, unknown> | undefined
+  readonly schedule: Record<string, unknown> | undefined
+  readonly contract: Record<string, unknown> | undefined
+}): boolean {
+  const { snapshot, source, salary, schedule, contract } = input
+  const compensation = record(source?.compensation)
+  const scheduleSource = record(source?.schedule)
+  const contractSource = record(source?.contract)
+  const actualWork = record(source?.actualWork)
+  const payrollOwned = record(source?.payrollOwned)
+  const amounts = record(payrollOwned?.amounts)
+  const pension = record(payrollOwned?.pension)
+  const hourlyBasis = record(pension?.variableHourlyBasis)
+  const wage = record(source?.regularWage)
+  const salaries = entries(compensation?.entries)
+  const schedules = entries(scheduleSource?.entries)
+  const contracts = entries(contractSource?.entries)
+  const actualEntries = entries(actualWork?.entries)
+  if (!salary || !schedule || !contract || !payrollOwned || !amounts || !pension || !hourlyBasis || !wage
+    || salaries?.length !== 1 || schedules?.length !== 1 || contracts?.length !== 1 || !actualEntries?.length
+    || salary.paymentType !== 'HOURLY_VARIABLE' || salary.paymentFrequency !== 'MONTHLY'
+    || salary.currencyCode !== 'EUR' || salary.fulltimeAmount !== null || salary.parttimeAmount !== null
+    || schedule.isOnCall !== true || !['HOURS_PER_DAY', 'HOURS_AND_AVG_DAYS', 'HOURS_AND_SPECIFIC_DAYS'].includes(String(schedule.scheduleType))
+    || wage.wageBasis !== 'ON_CALL_HOURLY_VARIABLE'
+    || wage.fulltimeMonthlyAmount !== '0.00' || !['0', '0.0000'].includes(String(wage.contractHoursPerWeek))) return false
+
+  try {
+    const periodStart = `${snapshot.periodReference.year}-${String(snapshot.periodReference.month).padStart(2, '0')}-01`
+    const periodEndExclusive = new Date(Date.UTC(snapshot.periodReference.year, snapshot.periodReference.month, 1))
+      .toISOString().slice(0, 10)
+    const periodEndInclusive = new Date(Date.parse(`${periodEndExclusive}T00:00:00.000Z`) - 86400000)
+      .toISOString().slice(0, 10)
+    const coversPeriod = (from: unknown, until: unknown, endInclusive = periodEndInclusive) =>
+      typeof from === 'string' && from <= periodStart
+      && (until === null || (typeof until === 'string' && until >= endInclusive))
+    if (!coversPeriod(salary.validFrom, salary.validUntil)
+      || !coversPeriod(schedule.validFrom, schedule.validUntil)
+      || !coversPeriod(contract.validFrom, contract.validUntil)) return false
+
+    const hourlyRate = FixedDecimal.parse(String(salary.hourlyRate))
+    const fullTimeHours = FixedDecimal.parse(String(schedule.fulltimeHoursPerWeek))
+    const averageHours = FixedDecimal.parse(String(schedule.averageHoursPerWeek))
+    const scheduleFactor = FixedDecimal.parse(String(schedule.partTimeFactor))
+    if (hourlyRate.compare(FixedDecimal.parse('0')) <= 0
+      || fullTimeHours.compare(FixedDecimal.parse('0')) <= 0
+      || averageHours.compare(FixedDecimal.parse('0')) !== 0
+      || scheduleFactor.compare(FixedDecimal.parse('0')) !== 0
+      || FixedDecimal.parse(String(contract.fulltimeHoursPerWeek)).compare(fullTimeHours) !== 0
+      || FixedDecimal.parse(String(wage.fulltimeHoursPerWeek)).compare(fullTimeHours) !== 0) return false
+
+    let paidHours = FixedDecimal.parse('0')
+    let grossFromReleasedHours = FixedDecimal.parse('0')
+    for (const value of actualEntries) {
+      const entry = record(value)
+      if (!entry) return false
+      if (entry.informational === true || entry.family === 'TRANSPARENT') continue
+      const mapping = record(entry.payrollMapping)
+      if (entry.family !== 'WORK' || entry.releasedForPayroll !== true
+        || mapping?.target !== 'PAYMENT' || mapping.componentCode !== 'PAYFULL02_VARIABLE_REGULAR_WAGE'
+        || mapping.componentOutput !== 'amount' || mapping.calculationRule !== 'HOURLY_RATE_X_HOURS'
+        || String(mapping.factor) !== '1') return false
+      const hours = FixedDecimal.parse(String(entry.hours))
+      if (hours.compare(FixedDecimal.parse('0')) <= 0) return false
+      paidHours = paidHours.add(hours)
+      grossFromReleasedHours = grossFromReleasedHours.add(hourlyRate.multiply(hours))
+    }
+    if (paidHours.compare(FixedDecimal.parse('0')) <= 0) return false
+    const gross = grossFromReleasedHours.round(2, 'HALF_UP').toString(2)
+    const compositeTimePeriod = typeof wage.timePeriod === 'string'
+      ? parseNl2026CompositeTimePeriod(wage.timePeriod)
+      : null
+    const supportedPeriod = wage.timePeriod === 'MONTH' && wage.fullPeriod === true
+      || compositeTimePeriod !== null && wage.fullPeriod === false
+    if (!supportedPeriod) return false
+    const monthlyHours = fullTimeHours.multiply(FixedDecimal.parse('52'))
+      .divideToScale(FixedDecimal.parse('12'), 8, 'ARITHMETIC')
+    const fullTimeMonthlyPensionableSalary = hourlyRate.multiply(monthlyHours).round(8, 'HALF_UP').toString(8)
+    const partTimeFactor = paidHours.divideToScale(monthlyHours, 8, 'ARITHMETIC')
+      .round(8, 'HALF_UP').toString(8)
+    if (FixedDecimal.parse(partTimeFactor).compare(FixedDecimal.parse('0')) <= 0
+      || FixedDecimal.parse(partTimeFactor).compare(FixedDecimal.parse('1')) > 0
+      || wage.grossAmount !== gross || amounts.variableRegularWage !== gross
+      || hourlyBasis.hourlyRate !== hourlyRate.toString(2)
+      || hourlyBasis.fullTimeHoursPerWeek !== fullTimeHours.toString(4)
+      || hourlyBasis.fullTimeMonthlyHours !== monthlyHours.round(8, 'HALF_UP').toString(8)
+      || hourlyBasis.fullTimeMonthlyPensionableSalary !== fullTimeMonthlyPensionableSalary
+      || hourlyBasis.paidHours !== paidHours.toString(4)
+      || hourlyBasis.partTimeFactor !== partTimeFactor
+      || pension.partTimeFactor !== partTimeFactor
+      || !['CALENDAR_DAYS_PRO_RATA', 'FULL_MONTH'].includes(String(pension.partialMonthMethod))) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
 function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIsolatedTestScenario = false): PayrollSourceGap[] {
   const gaps: PayrollSourceGap[] = []
   const source = record(snapshot.canonicalSource)
@@ -507,7 +606,10 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIso
   const salary = salaryRows?.[0]
   const schedule = scheduleRows?.[0]
   const contract = contractRows?.[0]
-  if (salary) {
+  const variableHourlySource = isSupportedOnCallHourlySource({ snapshot, source, salary, schedule, contract })
+  if (salary && salary.paymentType === 'HOURLY_VARIABLE' && !variableHourlySource) {
+    gaps.push({ field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'ON_CALL_HOURLY_VARIABLE_SOURCE_UNSUPPORTED' })
+  } else if (salary && !variableHourlySource) {
     if (salary.paymentType !== 'PERIODIC_FIXED' || salary.paymentFrequency !== 'MONTHLY' || salary.currencyCode !== 'EUR') {
       gaps.push({ field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'ONLY_FIXED_EUR_MONTHLY_WAGE_SUPPORTED' })
     }
@@ -535,7 +637,7 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIso
       gaps.push({ field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'EFFECTIVE_SALARY_DECIMAL_INVALID' })
     }
   }
-  if (schedule) {
+  if (schedule && !variableHourlySource) {
     const fulltimeHours = Number(schedule.fulltimeHoursPerWeek)
     const averageHours = Number(schedule.averageHoursPerWeek)
     const factor = Number(schedule.partTimeFactor)
@@ -564,7 +666,7 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIso
   const compositeTimePeriod = typeof wage?.timePeriod === 'string'
     ? parseNl2026CompositeTimePeriod(wage.timePeriod)
     : null
-  const supportedWagePeriod = wage?.timePeriod === 'MONTH' && wage.fullPeriod === true
+  const supportedWagePeriod = wage?.timePeriod === 'MONTH' && typeof wage.fullPeriod === 'boolean'
     || compositeTimePeriod !== null && wage?.fullPeriod === false
   if (!wage || wage.fiscalYear !== String(snapshot.periodReference.year) || typeof wage.grossAmount !== 'string'
     || !supportedWagePeriod) {

@@ -82,14 +82,15 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const canReadAnalysis = authContext.permissions.includes(ANALYSIS_PERMISSION)
   const insightPermissions = INSIGHT_REPORTS.map((report) => canReadInsightReport(report, authContext.permissions, authContext.activeRoles))
 
+  const requestPreferencesPromise = getRequestUserPreferences()
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, setupAssistantMessages, setupAssistant, reminders, enabledModules, productUpdates, profile] = await Promise.all([
-    getRequestUserPreferences(),
-    getTranslator('common'),
-    getTranslator('navigation'),
-    getTranslator('auth'),
-    getTranslator('reminders'),
-    getTranslator('productUpdates'),
-    getTranslator('setupAssistant'),
+    requestPreferencesPromise,
+    requestPreferencesPromise.then(({ locale }) => getTranslator('common', locale)),
+    requestPreferencesPromise.then(({ locale }) => getTranslator('navigation', locale)),
+    requestPreferencesPromise.then(({ locale }) => getTranslator('auth', locale)),
+    requestPreferencesPromise.then(({ locale }) => getTranslator('reminders', locale)),
+    requestPreferencesPromise.then(({ locale }) => getTranslator('productUpdates', locale)),
+    requestPreferencesPromise.then(({ locale }) => getTranslator('setupAssistant', locale)),
     canShowSetupAssistant ? getSetupAssistantState() : Promise.resolve(null),
     listMyReminders(20, { context: authContext, supabase }).catch(() => []),
     getEnabledTenantModules({ auth: authContext, supabase }),

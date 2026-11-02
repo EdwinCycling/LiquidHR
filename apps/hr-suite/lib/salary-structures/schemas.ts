@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
-const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+})
 const money = z.string().regex(/^\d{1,12}\.\d{2}$/)
 const percentage = z.string().regex(/^\d{1,3}(?:\.\d{1,4})?$/)
 const currencyCode = z.string().regex(/^[A-Z]{3}$/)
@@ -15,6 +18,12 @@ export const salaryStructureCreateSchema = z.object({
   structureType: z.enum(['SCALE_WITH_STEPS', 'SALARY_BAND']),
   code: z.string().trim().min(1).max(40).toUpperCase().nullable(),
   name: z.string().trim().min(1).max(160),
+  description: optionalText,
+}).strict()
+
+export const salaryStructureUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  code: z.string().trim().min(1).max(40).toUpperCase().nullable(),
   description: optionalText,
 }).strict()
 
@@ -73,11 +82,60 @@ const salaryBandSchema = z.object({
   }
 })
 
+const sourceMetadataSchema = z.object({
+  title: z.string().trim().min(1).max(180),
+  version: z.string().trim().min(1).max(80),
+  effectiveFrom: dateOnly,
+  effectiveTo: dateOnly,
+  url: z.string().trim().url().max(500).refine((value) => {
+    try {
+      const parsed = new URL(value)
+      return parsed.protocol === 'https:' && !parsed.username && !parsed.password
+    } catch {
+      return false
+    }
+  }),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/i).transform((value) => value.toLowerCase()),
+  fileName: z.string().trim().min(1).max(260),
+  rowCount: z.number().int().positive().max(10_000),
+  stepRules: z.array(z.object({
+    code: z.string().trim().min(1).max(80),
+    percentage: percentage.refine((value) => Number(value) > 0 && Number(value) <= 100),
+    description: z.string().trim().min(1).max(500),
+    condition: z.string().trim().min(1).max(1000),
+    sourceReference: z.string().trim().min(1).max(300),
+    automaticallyApplied: z.literal(false),
+  }).strict()).max(100).optional(),
+  stepAdjustments: z.array(z.object({
+    scaleCode: z.string().trim().min(1).max(40),
+    stepCode: z.string().trim().min(1).max(40),
+    basedOnStepCode: z.string().trim().min(1).max(40),
+    sourceCell: z.string().regex(/^\d+(?:[.,]\d{1,4})?%$/),
+    percentage: percentage.refine((value) => Number(value) > 0 && Number(value) <= 100),
+    calculatedAmount: money,
+    calculationMethod: z.enum(['PREVIOUS_RATE_PERCENT_ROUNDED_HALF_UP_TO_CENT', 'SOURCE_TABLE_PUBLISHED_AMOUNT']),
+    sourceRuleCode: z.string().trim().min(1).max(80),
+  }).strict()).max(10_000).optional(),
+}).strict().superRefine((value, context) => {
+  if (value.effectiveTo < value.effectiveFrom) context.addIssue({ code: 'custom', path: ['effectiveTo'], message: 'SOURCE_PERIOD_INVALID' })
+  const rules = value.stepRules ?? []
+  const adjustments = value.stepAdjustments ?? []
+  const ruleCodes = new Set(rules.map((rule) => rule.code))
+  if (ruleCodes.size !== rules.length) context.addIssue({ code: 'custom', path: ['stepRules'], message: 'DUPLICATE_SOURCE_STEP_RULE' })
+  const adjustmentKeys = adjustments.map((adjustment) => `${adjustment.scaleCode.toUpperCase()}\u0000${adjustment.stepCode.toUpperCase()}`)
+  if (new Set(adjustmentKeys).size !== adjustmentKeys.length) context.addIssue({ code: 'custom', path: ['stepAdjustments'], message: 'DUPLICATE_SOURCE_STEP_ADJUSTMENT' })
+  for (const [index, adjustment] of adjustments.entries()) {
+    if (!ruleCodes.has(adjustment.sourceRuleCode)) context.addIssue({ code: 'custom', path: ['stepAdjustments', index, 'sourceRuleCode'], message: 'SOURCE_STEP_RULE_NOT_FOUND' })
+  }
+})
+
 const draftBase = z.object({
   effectiveFrom: dateOnly,
   salaryBasis: z.enum(['MONTHLY_BASE', 'FOUR_WEEKLY_BASE', 'ANNUAL_BASE', 'HOURLY']),
   currencyCode,
   description: optionalText,
+  sourceMetadata: sourceMetadataSchema.nullish(),
+  correctionOfRevisionId: z.guid().nullable().optional(),
 }).strict()
 
 const scaleDraftSchema = draftBase.extend({
@@ -107,6 +165,14 @@ const bandDraftSchema = draftBase.extend({
 })
 
 export const salaryStructureDraftSchema = z.discriminatedUnion('structureType', [scaleDraftSchema, bandDraftSchema])
+  .superRefine((value, context) => {
+    if (value.sourceMetadata && value.sourceMetadata.effectiveFrom !== value.effectiveFrom) {
+      context.addIssue({ code: 'custom', path: ['sourceMetadata', 'effectiveFrom'], message: 'SOURCE_EFFECTIVE_DATE_MISMATCH' })
+    }
+    if (value.correctionOfRevisionId && !value.sourceMetadata) {
+      context.addIssue({ code: 'custom', path: ['correctionOfRevisionId'], message: 'CORRECTION_SOURCE_REQUIRED' })
+    }
+  })
 
 export const salaryStructureDraftSaveSchema = z.object({
   draftId: z.guid().nullable(),
@@ -140,5 +206,6 @@ export const salaryStructureMigrationConflictSchema = z.object({
 }).strict()
 
 export type SalaryStructureCreateInput = z.infer<typeof salaryStructureCreateSchema>
+export type SalaryStructureUpdateInput = z.infer<typeof salaryStructureUpdateSchema>
 export type SalaryStructureDraftInput = z.infer<typeof salaryStructureDraftSchema>
 export type SalaryStructureDraftSaveInput = z.infer<typeof salaryStructureDraftSaveSchema>

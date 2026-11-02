@@ -1,0 +1,44 @@
+{
+  "title": "Cao Kinderopvang 2025-2026, article 6.2 work-hour premium",
+  "effectiveFrom": "2025-01-01",
+  "effectiveTo": "2026-12-31",
+  "sourceValidationStatus": "OFFICIAL_SOURCE_TEXT_CHECKED",
+  "source": {
+    "url": "https://www.kinderopvang-werkt.nl/sites/fcb_kinderopvang/files/2025-06/Cao-Kinderopvang-2025-2026-integraal.pdf",
+    "localFile": "Cao-Kinderopvang-2025-2026-integraal.pdf",
+    "sha256": "9070e0be5a2e5bd2252fc030bed3bfb3fe3767e0d1c72e36824813042222c4be",
+    "article": "6.2",
+    "documentPage": 25
+  },
+  "eligibility": {
+    "employerInstructionRequired": true,
+    "excludedSalaryScales": {
+      "fromInclusive": 11,
+      "reason": "Article 6.2(3) excludes employees assigned to salary scale 11 or higher."
+    },
+    "excludedRoleAndSchedule": {
+      "condition": "The employee always works outside the time periods in article 6.2(1) and works in a supporting role outside the primary childcare process.",
+      "reason": "Article 6.2(3) excludes this combined case."
+    }
+  },
+  "premiumSchedule": [
+    { "days": "MONDAY_TO_FRIDAY", "from": "07:00", "to": "19:00", "applicable": false, "sourceNotation": "—" },
+    { "days": "MONDAY_TO_FRIDAY", "from": "19:00", "to": "07:00", "percentage": "20.00", "applicable": true },
+    { "days": "SATURDAY", "from": "07:00", "to": "19:00", "percentage": "30.00", "applicable": true },
+    { "days": "SATURDAY", "from": "19:00", "to": "07:00", "percentage": "40.00", "applicable": true },
+    { "days": "SUNDAY_AND_PUBLIC_HOLIDAYS", "from": "07:00", "to": "19:00", "percentage": "45.00", "applicable": true },
+    { "days": "SUNDAY_AND_PUBLIC_HOLIDAYS", "from": "19:00", "to": "07:00", "percentage": "45.00", "applicable": true }
+  ],
+  "calculationBase": {
+    "basis": "Hourly salary",
+    "maximumBasis": "Hourly salary for the employee's applicable salary number 18 on the applicable version date.",
+    "doNotUseEmployeeHourlySalaryAboveMaximum": true,
+    "requiresApplicableSalaryTableVersion": true
+  },
+  "assignmentInputsToVerify": [
+    "Employer-instructed work hours and the applicable day/time window.",
+    "Employee salary scale (must be below scale 11).",
+    "Employee role and whether it is in the primary childcare process.",
+    "The scale's salary-number-18 hourly rate for the applicable date."
+  ]
+}

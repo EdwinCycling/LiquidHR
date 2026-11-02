@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, requireAnyPermission, requirePermission, requireHrGroupId } = vi.hoisted(() => ({
+const { createClient, requireAnyPermission, requireHrGroupId, requirePermission } = vi.hoisted(() => ({
   createClient: vi.fn(),
   requireAnyPermission: vi.fn(),
   requirePermission: vi.fn(),
@@ -16,6 +16,7 @@ import {
   getActualWorkPayrollProjectionsBatch,
   isValidActualWorkMonth,
   saveActualWorkEntry,
+  voidActualWorkEntry,
 } from './actual-work-service'
 
 const employeeId = '11111111-1111-4111-8111-111111111111'
@@ -28,6 +29,7 @@ function queryResult(data: unknown, error: { message: string } | null = null) {
   for (const method of ['select', 'eq', 'is', 'order', 'limit', 'lt', 'gt', 'or', 'in', 'range']) chain[method] = vi.fn(() => chain)
   chain.maybeSingle = vi.fn(async () => ({ data, error }))
   chain.range = vi.fn(async () => ({ data, error }))
+  chain.then = vi.fn((onfulfilled) => Promise.resolve({ data, error }).then(onfulfilled))
   return chain
 }
 
@@ -181,10 +183,15 @@ describe('Actual Work payroll batch source read', () => {
     expect(result[1]?.types.map((type) => type.id)).toEqual([secondTypeId])
     expect(result.flatMap((projection) => projection.entries.map((entry) => entry.id)).sort()).toEqual(['entry-1', 'entry-2'])
     expect(result[0]?.entries[0]).not.toHaveProperty('employee_id')
-    expect(from).toHaveBeenCalledTimes(8)
+    expect(from).toHaveBeenCalledTimes(9)
     expect(from).toHaveBeenCalledWith('actual_work_periods')
     expect(from).toHaveBeenCalledWith('employment_work_hour_entries')
     expect(from).toHaveBeenCalledWith('work_hour_types')
+    const typeQueries = from.mock.calls.flatMap(([table], callIndex) => table === 'work_hour_types'
+      ? [from.mock.results[callIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined]
+      : [])
+    expect(typeQueries.map((query) => query?.in.mock.calls.find(([column]) => column === 'id')?.[1]))
+      .toEqual([[typeId], [secondTypeId]])
     const entriesQueryIndex = from.mock.calls.findIndex(([table]) => table === 'employment_work_hour_entries')
     const entriesQuery = from.mock.results[entriesQueryIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined
     expect(entriesQuery?.in).toHaveBeenCalledWith('employee_id', [employeeId, secondEmployeeId])
@@ -313,7 +320,7 @@ describe('Actual Work payroll batch source read', () => {
     expect(entryQuery?.in).toHaveBeenCalledWith('id', [entryId])
   })
 
-  it('keeps 39 payroll work projections in bounded four-target read groups', async () => {
+  it('keeps entry reads in bounded four-target groups and type reads scoped to each employment', async () => {
     const targets = Array.from({ length: 39 }, (_, index) => ({
       employeeId: `40000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
       employmentId: `50000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
@@ -368,11 +375,17 @@ describe('Actual Work payroll batch source read', () => {
       && projection.types[0]?.id === targets[index]?.typeId)).toBe(true)
     expect(from.mock.calls.filter(([table]) => table === 'actual_work_periods')).toHaveLength(1)
     expect(from.mock.calls.filter(([table]) => table === 'employment_work_hour_entries')).toHaveLength(10)
-    expect(from.mock.calls.filter(([table]) => table === 'work_hour_types')).toHaveLength(10)
+    expect(from.mock.calls.filter(([table]) => table === 'work_hour_types')).toHaveLength(39)
     expect(from.mock.calls.filter(([table]) => table === 'actual_work_revisions')).toHaveLength(10)
     expect(from.mock.calls.filter(([table]) => table === 'actual_work_payroll_releases')).toHaveLength(10)
     expect(from.mock.calls.filter(([table]) => table === 'leave_accrual_transactions')).toHaveLength(10)
-    expect(from).toHaveBeenCalledTimes(71)
+    const typeQueries = from.mock.calls.flatMap(([table], callIndex) => table === 'work_hour_types'
+      ? [from.mock.results[callIndex]?.value as Record<string, ReturnType<typeof vi.fn>> | undefined]
+      : [])
+    expect(typeQueries).toHaveLength(39)
+    expect(typeQueries.map((query) => query?.in.mock.calls.find(([column]) => column === 'id')?.[1]))
+      .toEqual(targets.map((target) => [target.typeId]))
+    expect(from).toHaveBeenCalledTimes(100)
   })
 
   it('fails closed before source reads when authorized targets resolve to different tenant scopes', async () => {
@@ -402,5 +415,76 @@ describe('Actual Work payroll batch source read', () => {
     ])).rejects.toMatchObject({ code: 'ACTUAL_WORK_MONTH_INVALID' })
     expect(requirePermission).not.toHaveBeenCalled()
     expect(createClient).not.toHaveBeenCalled()
+  })
+})
+
+describe('Actual Work approved entry revocation', () => {
+  const administrationId = '55555555-5555-4555-8555-555555555555'
+  const approvedEntry = {
+    id: entryId,
+    tenant_id: 'tenant-a',
+    hr_group_id: 'group-a',
+    administration_id: administrationId,
+    employee_id: employeeId,
+    employment_id: employmentId,
+    work_hour_type_id: typeId,
+    work_date: '2026-10-06',
+    entry_granularity: 'DAY' as const,
+    subject_period_start: '2026-10-06',
+    subject_period_end: '2026-10-07',
+    posting_period_start: '2026-10-01',
+    hours: 8,
+    status: 'APPROVED' as const,
+    note: 'Existing entry note',
+  }
+
+  type VoidEntryFixture = Omit<typeof approvedEntry, 'status'> & { status: 'APPROVED' | 'PENDING' | 'REVOKED' }
+
+  function configureVoid(entry: VoidEntryFixture | null) {
+    const context = { tenantId: 'tenant-a', hrGroupId: 'group-a', administrationId, userId: 'actor-a', permissions: ['leave:write'] }
+    requirePermission.mockResolvedValue(context)
+    requireHrGroupId.mockReturnValue('group-a')
+    const entryQuery = queryResult(entry)
+    const rpc = vi.fn(async (): Promise<{ data: unknown; error: { message: string } | null }> => ({
+      data: { ...approvedEntry, status: 'REVOKED' }, error: null,
+    }))
+    const supabase = { from: vi.fn(() => entryQuery), rpc }
+    createClient.mockResolvedValue(supabase)
+    return { context, entryQuery, rpc, supabase }
+  }
+
+  const voidInput = { employeeId, employmentId, entryId }
+
+  it('uses the scoped canonical RPC to revoke approved entries and preserve their existing note', async () => {
+    const { entryQuery, rpc } = configureVoid(approvedEntry)
+
+    await expect(voidActualWorkEntry(voidInput)).resolves.toMatchObject({ status: 'REVOKED' })
+
+    expect(requirePermission).toHaveBeenCalledWith('leave:write', employeeId)
+    expect(entryQuery.eq).toHaveBeenCalledWith('administration_id', administrationId)
+    expect(rpc).toHaveBeenCalledWith('save_actual_work_entry', expect.objectContaining({
+      requested_entry_id: entryId,
+      requested_status: 'REVOKED',
+      requested_operation: 'VOID',
+      requested_hours: '8.0000',
+      requested_note: 'Existing entry note',
+    }))
+  })
+
+  it('does not add a second audit revision when the entry is already revoked', async () => {
+    const { rpc } = configureVoid({ ...approvedEntry, status: 'REVOKED' })
+
+    await expect(voidActualWorkEntry(voidInput)).resolves.toMatchObject({ status: 'REVOKED' })
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('refuses entries that are not approved or outside the visible RLS scope', async () => {
+    const { rpc } = configureVoid({ ...approvedEntry, status: 'PENDING' as const })
+    await expect(voidActualWorkEntry(voidInput)).rejects.toEqual(expect.objectContaining({ code: 'ACTUAL_WORK_ENTRY_NOT_APPROVED' }))
+    expect(rpc).not.toHaveBeenCalled()
+
+    const missing = configureVoid(null)
+    await expect(voidActualWorkEntry(voidInput)).rejects.toEqual(expect.objectContaining({ code: 'ACTUAL_WORK_ENTRY_NOT_FOUND', status: 404 }))
+    expect(missing.rpc).not.toHaveBeenCalled()
   })
 })

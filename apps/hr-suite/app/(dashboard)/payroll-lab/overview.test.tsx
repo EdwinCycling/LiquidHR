@@ -1,20 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthenticationError, AuthorizationError } from '@/lib/auth/permissions'
-import { ModuleError } from '@/lib/modules/module-service'
 import PayrollLabOverview from './page'
 
-const { access, arrangementStorageReady, requirePayrollPermission, requireTenantModule } = vi.hoisted(() => ({ access: vi.fn(), arrangementStorageReady: vi.fn(), requirePayrollPermission: vi.fn(), requireTenantModule: vi.fn() }))
+const { access, arrangementStorageReady } = vi.hoisted(() => ({ access: vi.fn(), arrangementStorageReady: vi.fn() }))
 vi.mock('@/lib/payroll/component-library-access', () => ({ requireComponentLibraryAccess: access }))
 vi.mock('@/lib/payroll/arrangement-service', () => ({ isArrangementFoundationStorageReady: arrangementStorageReady }))
-vi.mock('@/lib/auth/permissions', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/auth/permissions')>()),
-  requirePermission: requirePayrollPermission,
-}))
-vi.mock('@/lib/modules/module-service', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/modules/module-service')>()),
-  requireTenantModule,
-}))
 vi.mock('@/lib/i18n/server', () => ({ getTranslator: async () => (key: string) => key }))
 vi.mock('next/navigation', () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`) } }))
 
@@ -23,8 +14,6 @@ describe('single Payroll Lab overview', () => {
     vi.clearAllMocks()
     access.mockResolvedValue({})
     arrangementStorageReady.mockResolvedValue(false)
-    requirePayrollPermission.mockRejectedValue(new AuthorizationError())
-    requireTenantModule.mockResolvedValue(undefined)
   })
   it('contains the calculation, individual payroll, and component windows without empty modules', async () => {
     const markup = renderToStaticMarkup(await PayrollLabOverview({}))
@@ -54,16 +43,9 @@ describe('single Payroll Lab overview', () => {
     expect(access).toHaveBeenCalledOnce()
     expect(arrangementStorageReady).toHaveBeenCalledWith(await access.mock.results[0]?.value)
   })
-  it('shows integration settings only when payroll permission and module gates pass', async () => {
-    requirePayrollPermission.mockResolvedValue({ permissions: ['payroll:read'] })
-    requireTenantModule.mockRejectedValueOnce(new ModuleError('MODULE_NOT_ACTIVE', 404))
+  it('keeps the excluded external integration out of Payroll Lab navigation', async () => {
     const markup = renderToStaticMarkup(await PayrollLabOverview({}))
     expect(markup).not.toContain('href="/payroll-lab/integrations"')
-    expect(requireTenantModule).toHaveBeenCalledWith('PAYROLL')
-
-    requireTenantModule.mockResolvedValue(undefined)
-    const enabledMarkup = renderToStaticMarkup(await PayrollLabOverview({}))
-    expect(enabledMarkup).toContain('href="/payroll-lab/integrations"')
   })
   it('ignores untrusted invalid legacy query values', async () => {
     const markup = renderToStaticMarkup(await PayrollLabOverview({ searchParams: Promise.resolve({ run: 'forged', error: '<private>' }) }))

@@ -30,10 +30,13 @@ const payload = z.discriminatedUnion('salaryRoute', [
   base.extend({ salaryRoute: z.literal('MINIMUM_WAGE'), minimumWageScheme: z.enum(['REGULAR', 'BBL']) }),
   base.extend({
     salaryRoute: z.literal('SCALE_WITH_STEPS'),
+    salaryBasis: z.enum(['CUSTOM_SCALE', 'CAO_SCALE']).default('CUSTOM_SCALE'),
     salaryStructureId: databaseUuid,
     salaryScaleId: databaseUuid,
     salaryStepCode: z.string().trim().min(1).max(40),
     salaryScaleStepId: databaseUuid.nullish(),
+    caoScaleName: z.string().trim().min(1).max(100).nullish(),
+    caoStepName: z.string().trim().min(1).max(100).nullish(),
     fulltimeAmount: money,
   }),
   base.extend({

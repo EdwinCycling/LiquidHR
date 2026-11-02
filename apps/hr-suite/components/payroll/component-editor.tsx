@@ -7,7 +7,12 @@ import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import type { ComponentEditorPayload, ComponentEditorMethodPayload } from '@/lib/payroll/component-editor-contract'
-import type { ComponentEditorState } from '@/lib/payroll/component-editor-state'
+import {
+  componentEditorPayloadFromState,
+  convertCustomerForkSourceToFormula,
+  expressionMethodForOutputs,
+  type ComponentEditorState,
+} from '@/lib/payroll/component-editor-state'
 import type { ComponentEditorValidationResult } from '@/lib/payroll/component-editor-engine'
 import type { PayrollValueType } from '@liquid-hr/payroll-engine'
 import {
@@ -65,6 +70,9 @@ const VALIDATION_ISSUE_KEYS: Readonly<Record<string, string>> = {
   PAYROLL_COMPONENT_DRAFT_SAVE_FAILED: 'payrollComponentsEditorIssueGeneric',
 }
 
+const EDITOR_MEMBER_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
+const EDITOR_COMPONENT_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_-]{0,79}$/
+
 function defaultPreviewValue(valueType: PayrollValueType): string | boolean {
   switch (valueType) {
     case 'BOOLEAN': return false
@@ -83,11 +91,7 @@ function methodForOutputs(kind: ComponentEditorMethodPayload['kind'], state: Com
   }
   if (kind === 'aggregate') return { kind, operation: 'SUM', inputNames: state.inputs.map((input) => input.name) }
   return {
-    kind: 'expression',
-    formulas: Object.fromEntries(state.outputs.map((output) => [
-      output.name,
-      output.valueType === 'BOOLEAN' ? 'false' : output.valueType === 'STRING' ? '""' : `${output.valueType}(0)`,
-    ])),
+    ...expressionMethodForOutputs(state.outputs),
   }
 }
 
@@ -109,13 +113,23 @@ export function ComponentEditor({
   const [state, setState] = useState<ComponentEditorState>(initial)
   const [result, setResult] = useState<ComponentEditorValidationResult | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [activeFormulaOutput, setActiveFormulaOutput] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const requestId = useRef<string | null>(null)
+  const formulaFields = useRef(new Map<string, HTMLTextAreaElement>())
+  const formulaSelections = useRef(new Map<string, { readonly start: number; readonly end: number }>())
   const router = useRouter()
   const label = (key: string) => labels[key] ?? key
+  const canConvertSourceToFormula = Boolean(canSave && !readOnly && state.draftId
+    && state.ownershipKind === 'CUSTOMER_FORK' && state.method.kind === 'source')
   const formatIssues = (issues: readonly string[]) => issues.map((issue) => (
     label(VALIDATION_ISSUE_KEYS[issue] ?? 'payrollComponentsEditorIssueGeneric')
   )).join(' ')
+  const formulaInputs = state.inputs.filter((input) => EDITOR_MEMBER_IDENTIFIER.test(input.name))
+  const formulaParameters = state.parameters.filter((parameter) => EDITOR_MEMBER_IDENTIFIER.test(parameter.name))
+  const formulaDependencies = state.dependencies.filter((dependency) => EDITOR_COMPONENT_IDENTIFIER.test(dependency.componentCode)
+    && EDITOR_MEMBER_IDENTIFIER.test(dependency.outputName))
+  const selectedFormulaOutput = state.outputs.some((output) => output.name === activeFormulaOutput) ? activeFormulaOutput : null
   function update<K extends keyof ComponentEditorState>(key: K, value: ComponentEditorState[K]): void {
     requestId.current = null
     setState((current) => ({ ...current, [key]: value }))
@@ -139,7 +153,15 @@ export function ComponentEditor({
   }
 
   function validationPayload(): ComponentEditorPayload {
-    return { ...state, requestId: requestId.current ?? crypto.randomUUID() }
+    return componentEditorPayloadFromState(state, requestId.current ?? crypto.randomUUID())
+  }
+
+  function convertSourceToFormula(): void {
+    if (!canConvertSourceToFormula) return
+    requestId.current = null
+    setState((current) => convertCustomerForkSourceToFormula(current))
+    setResult(null)
+    setMessage(null)
   }
 
   function runValidation(preview: boolean): void {
@@ -181,6 +203,37 @@ export function ComponentEditor({
     setMethod({ ...state.method, formulas: { ...state.method.formulas, [outputName]: formula } })
   }
 
+  function rememberFormulaSelection(outputName: string, field: HTMLTextAreaElement): void {
+    formulaSelections.current.set(outputName, { start: field.selectionStart, end: field.selectionEnd })
+  }
+
+  function insertFormulaReference(outputName: string | null, reference: string): void {
+    if (!outputName || state.method.kind !== 'expression') return
+    const field = formulaFields.current.get(outputName)
+    if (!field) return
+
+    const formula = state.method.formulas[outputName] ?? ''
+    const selection = formulaSelections.current.get(outputName) ?? { start: field.selectionStart, end: field.selectionEnd }
+    const start = Math.max(0, Math.min(selection.start, formula.length))
+    const end = Math.max(start, Math.min(selection.end, formula.length))
+    const nextFormula = `${formula.slice(0, start)}${reference}${formula.slice(end)}`
+    if (nextFormula.length > 1200) {
+      setMessage(label('payrollComponentsEditorFormulaReferenceTooLong'))
+      setResult(null)
+      return
+    }
+    const nextCaret = start + reference.length
+
+    setFormula(outputName, nextFormula)
+    formulaSelections.current.set(outputName, { start: nextCaret, end: nextCaret })
+    window.requestAnimationFrame(() => {
+      if (!field.isConnected) return
+      field.focus()
+      field.setSelectionRange(nextCaret, nextCaret)
+      rememberFormulaSelection(outputName, field)
+    })
+  }
+
   function setPassThroughOutput(outputName: string, inputName: string): void {
     if (state.method.kind !== 'passThrough') return
     setMethod({ kind: 'passThrough', outputs: { ...state.method.outputs, [outputName]: inputName } })
@@ -219,6 +272,18 @@ export function ComponentEditor({
 
   return <fieldset disabled={readOnly} className="m-0 min-w-0 space-y-4 border-0 p-0">
     <Surface className="space-y-6 p-4 sm:p-6">
+      <section aria-labelledby="component-editor-draft-status" className="space-y-2 rounded-[var(--radius-surface)] border border-border-subtle p-3">
+        <h3 className="text-sm font-semibold text-foreground" id="component-editor-draft-status">{label('payrollComponentsEditorDraftStatus')}</h3>
+        <p className="text-sm text-muted-foreground"><strong className="text-foreground">{label('payrollComponentsEditorConcept')}:</strong> {label('payrollComponentsEditorConceptInactive')}</p>
+        {sourcePath ? <p className="break-words text-sm text-muted-foreground"><strong className="text-foreground">{label('payrollComponentsEditorSourceField')}:</strong> <code className="break-all">{sourcePath}</code> ({label('payrollComponentsEditorReadOnly')})</p> : null}
+        <p className="text-sm text-muted-foreground"><strong className="text-foreground">{label('payrollComponentsEditorOwnCalculation')}:</strong> {state.method.kind === 'source'
+          ? label('payrollComponentsEditorOwnCalculationNotConverted')
+          : readOnly ? label('payrollComponentsEditorOwnCalculationReadOnly') : label('payrollComponentsEditorOwnCalculationEditable')}</p>
+        {canConvertSourceToFormula ? <div className="space-y-2">
+          <Button onClick={convertSourceToFormula} type="button" variant="secondary">{label('payrollComponentsEditorConvertSourceToFormula')}</Button>
+          <p className="text-xs text-muted-foreground">{label('payrollComponentsEditorConvertSourceToFormulaHelp')}</p>
+        </div> : null}
+      </section>
       <section aria-labelledby="component-editor-general" className="space-y-4">
         <h3 className="text-base font-semibold text-foreground" id="component-editor-general">{label('payrollComponentsEditorGeneral')}</h3>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -254,7 +319,6 @@ export function ComponentEditor({
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
           <span>{label('payrollComponentsEditorOwnership')}: {ownershipLabel}</span>
           {provenanceLabel ? <span>{label('payrollComponentsEditorProvenance')}: {provenanceLabel}</span> : null}
-          {sourcePath ? <span>{label('payrollComponentsEditorSourceMethod')}: <code className="break-all">{sourcePath}</code> ({label('payrollComponentsEditorReadOnly')})</span> : null}
         </div>
       </section>
 
@@ -345,9 +409,109 @@ export function ComponentEditor({
           </Field>
         </div>
         {state.method.kind === 'source' ? <p className="text-sm text-muted-foreground" role="note">{label('payrollComponentsEditorSourceMethodReadOnly')}</p> : null}
-        {state.method.kind === 'expression' ? <div className="space-y-3">{state.outputs.map((output) => <Field help={label('payrollComponentsEditorFormulaHelp')} key={output.name} label={`${output.name} · ${label('payrollComponentsEditorFormula')}`}>
-          <textarea className="min-h-24 w-full rounded-[var(--radius-control)] border border-border-subtle bg-surface px-3 py-2 font-mono text-sm text-foreground focus-visible:outline-2 focus-visible:outline-focus" maxLength={1200} onChange={(event) => setFormula(output.name, event.target.value)} value={state.method.kind === 'expression' ? state.method.formulas[output.name] ?? '' : ''} />
-        </Field>)}</div> : null}
+        {state.method.kind === 'expression' ? <div className="space-y-3">
+          {state.outputs.map((output) => <Field help={label('payrollComponentsEditorFormulaHelp')} key={output.name} label={`${output.name} · ${label('payrollComponentsEditorFormula')}`}>
+            <textarea
+              className="min-h-24 w-full rounded-[var(--radius-control)] border border-border-subtle bg-surface px-3 py-2 font-mono text-sm text-foreground focus-visible:outline-2 focus-visible:outline-focus"
+              maxLength={1200}
+              onBlur={(event) => rememberFormulaSelection(output.name, event.currentTarget)}
+              onChange={(event) => {
+                rememberFormulaSelection(output.name, event.currentTarget)
+                setFormula(output.name, event.currentTarget.value)
+              }}
+              onClick={(event) => {
+                rememberFormulaSelection(output.name, event.currentTarget)
+                setActiveFormulaOutput(output.name)
+              }}
+              onFocus={(event) => {
+                rememberFormulaSelection(output.name, event.currentTarget)
+                setActiveFormulaOutput(output.name)
+              }}
+              onKeyUp={(event) => rememberFormulaSelection(output.name, event.currentTarget)}
+              onSelect={(event) => rememberFormulaSelection(output.name, event.currentTarget)}
+              ref={(element) => {
+                if (element) formulaFields.current.set(output.name, element)
+                else formulaFields.current.delete(output.name)
+              }}
+              value={state.method.kind === 'expression' ? state.method.formulas[output.name] ?? '' : ''}
+            />
+          </Field>)}
+          <details className="min-w-0 rounded-[var(--radius-surface)] border border-border-subtle bg-surface-subtle">
+            <summary className="cursor-pointer rounded-[var(--radius-surface)] px-3 py-2 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+              {label('payrollComponentsEditorFormulaGuide')}
+            </summary>
+            <div className="space-y-4 border-t border-border-subtle px-3 py-3 text-sm text-muted-foreground">
+              <p>{label('payrollComponentsEditorFormulaGuideIntro')}</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <section className="min-w-0 space-y-1">
+                  <h4 className="text-xs font-semibold text-foreground">{label('payrollComponentsEditorFormulaTypes')}</h4>
+                  <p><code>MONEY</code>, <code>DECIMAL</code>, <code>PERCENTAGE</code>, <code>BOOLEAN</code>, <code>STRING</code></p>
+                </section>
+                <section className="min-w-0 space-y-1">
+                  <h4 className="text-xs font-semibold text-foreground">{label('payrollComponentsEditorFormulaOperators')}</h4>
+                  <p className="break-words font-mono text-xs">+ - * / · = != &gt; &gt;= &lt; &lt;= · AND OR NOT</p>
+                </section>
+                <section className="min-w-0 space-y-1 sm:col-span-2">
+                  <h4 className="text-xs font-semibold text-foreground">{label('payrollComponentsEditorFormulaFunctions')}</h4>
+                  <p className="break-words font-mono text-xs">MONEY(n), DECIMAL(n), PERCENTAGE(n), IF(condition, then, else), MIN(...), MAX(...), ROUND(...), ABS(...), NOT(...), RATIO(numerator, denominator, &quot;rounding-definition-id&quot;)</p>
+                </section>
+              </div>
+              <section className="min-w-0 space-y-2">
+                <h4 className="text-xs font-semibold text-foreground">{label('payrollComponentsEditorFormulaReferences')}</h4>
+                <dl className="grid gap-2 sm:grid-cols-3">
+                  <div className="min-w-0">
+                    <dt className="font-mono text-xs text-foreground">input.&lt;naam&gt;</dt>
+                    <dd>{label('payrollComponentsEditorFormulaInputReference')}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="font-mono text-xs text-foreground">parameter.&lt;naam&gt;</dt>
+                    <dd>{label('payrollComponentsEditorFormulaParameterReference')}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="break-all font-mono text-xs text-foreground">COMPONENT.output</dt>
+                    <dd>{label('payrollComponentsEditorFormulaDependencyReference')}</dd>
+                  </div>
+                </dl>
+                <p>{label('payrollComponentsEditorFormulaDependencyRequired')}</p>
+              </section>
+              <section className="min-w-0 space-y-2" aria-label={label('payrollComponentsEditorFormulaAvailableReferences')}>
+                <h4 className="text-xs font-semibold text-foreground">{label('payrollComponentsEditorFormulaAvailableReferences')}</h4>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="min-w-0 space-y-1">
+                    <h5 className="text-xs font-medium text-foreground">{label('payrollComponentsEditorInputName')}</h5>
+                    {formulaInputs.length ? <ul className="flex flex-wrap gap-1">{formulaInputs.map((input) => {
+                      const reference = `input.${input.name}`
+                      return <li key={input.name}><Button aria-label={`${label('payrollComponentsEditorFormulaInsertReference')}: ${reference}`} className="h-auto max-w-full justify-start whitespace-normal break-all px-2 py-1 text-left font-mono text-xs" disabled={!selectedFormulaOutput} onClick={() => insertFormulaReference(selectedFormulaOutput, reference)} size="sm" type="button" variant="secondary">{reference}</Button></li>
+                    })}</ul> : <p>{label('payrollComponentsEditorNoInputs')}</p>}
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <h5 className="text-xs font-medium text-foreground">{label('payrollComponentsEditorParameterName')}</h5>
+                    {formulaParameters.length ? <ul className="flex flex-wrap gap-1">{formulaParameters.map((parameter) => {
+                      const reference = `parameter.${parameter.name}`
+                      return <li key={parameter.name}><Button aria-label={`${label('payrollComponentsEditorFormulaInsertReference')}: ${reference}`} className="h-auto max-w-full justify-start whitespace-normal break-all px-2 py-1 text-left font-mono text-xs" disabled={!selectedFormulaOutput} onClick={() => insertFormulaReference(selectedFormulaOutput, reference)} size="sm" type="button" variant="secondary">{reference}</Button></li>
+                    })}</ul> : <p>{label('payrollComponentsEditorNoParameters')}</p>}
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <h5 className="text-xs font-medium text-foreground">{label('payrollComponentsEditorDependencies')}</h5>
+                    {formulaDependencies.length ? <ul className="flex flex-wrap gap-1">{formulaDependencies.map((dependency) => {
+                      const reference = `${dependency.componentCode}.${dependency.outputName}`
+                      return <li key={`${dependency.componentCode}.${dependency.outputName}`}><Button aria-label={`${label('payrollComponentsEditorFormulaInsertReference')}: ${reference}`} className="h-auto max-w-full justify-start whitespace-normal break-all px-2 py-1 text-left font-mono text-xs" disabled={!selectedFormulaOutput} onClick={() => insertFormulaReference(selectedFormulaOutput, reference)} size="sm" type="button" variant="secondary">{reference}</Button></li>
+                    })}</ul> : <p>{label('payrollComponentsEditorFormulaNoDependencies')}</p>}
+                  </div>
+                </div>
+              </section>
+              <section className="min-w-0 space-y-2">
+                <h4 className="text-xs font-semibold text-foreground">{label('payrollComponentsEditorFormulaExamples')}</h4>
+                <ul className="space-y-1 font-mono text-xs text-foreground">
+                  <li><code className="break-words">{label('payrollComponentsEditorFormulaExampleMoney')}</code></li>
+                  <li><code className="break-words">{label('payrollComponentsEditorFormulaExampleIf')}</code></li>
+                  <li><code className="break-words">{label('payrollComponentsEditorFormulaExampleMax')}</code></li>
+                </ul>
+                <p className="text-xs">{label('payrollComponentsEditorFormulaExamplesNote')}</p>
+              </section>
+            </div>
+          </details>
+        </div> : null}
         {state.method.kind === 'passThrough' ? <div className="space-y-3">{state.outputs.map((output) => <Field key={output.name} label={`${output.name} ← ${label('payrollComponentsEditorInputName')}`}>
           <DropdownSelect onChange={(event) => setPassThroughOutput(output.name, event.target.value)} value={state.method.kind === 'passThrough' ? state.method.outputs[output.name] ?? '' : ''}>
             <option value="">{label('payrollComponentsEditorSelectInput')}</option>

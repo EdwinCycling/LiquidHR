@@ -1,6 +1,10 @@
 {
-  "title": "Payroll-integraties",
-  "description": "Beheer Nmbrs-toegang en koppel Nmbrs-bedrijven aan administraties binnen de actieve HR-groep.",
+  "title": "Externe Payroll-integraties",
+  "description": "Externe Nmbrs-koppelingen zijn uitgeschakeld. De eigen LiquidHR Payroll- en pensioenfuncties blijven beschikbaar.",
+  "externalIntegrationDisabledTitle": "Externe koppeling uitgeschakeld",
+  "externalIntegrationDisabledDescription": "LiquidHR maakt geen verbinding met Nmbrs en voert geen externe Payroll-transacties uit.",
+  "externalIntegrationRevocationNotice": "Een eventueel eerder verleende Nmbrs-autorisatie wordt hiermee niet ingetrokken. Trek die zo nodig rechtstreeks in Nmbrs in.",
+  "returnToPayroll": "Naar LiquidHR Payroll",
   "connection": "Verbinding",
   "provider": "Provider",
   "lastChecked": "Laatst gecontroleerd",

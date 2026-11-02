@@ -6,6 +6,7 @@ import {
   encodeNl2026CompositeTimePeriod,
   parseNl2026CompositeTimePeriod,
   prorateMonthlySalary,
+  shouldUseDutchMonthlyTableForBrokenPeriod,
 } from './period'
 
 describe('Dutch 2026 broken-period segments', () => {
@@ -30,6 +31,25 @@ describe('Dutch 2026 broken-period segments', () => {
 
   it('does not count weekends as paid days', () => {
     expect(countDutchWorkdays('2026-10-16', '2026-10-19')).toBe(1)
-    expect(parseNl2026CompositeTimePeriod('WEEK_DAY_0_5')).toBeNull()
+  })
+
+  it('does not combine partial calendar weeks into a full tax week', () => {
+    const segments = calculateNl2026PeriodSegments({
+      periodStart: '2026-10-01',
+      periodEndExclusive: '2026-11-01',
+      paidStart: '2026-10-06',
+      paidEndExclusive: '2026-10-14',
+    })
+
+    expect(segments).toMatchObject({ paidWorkdays: 6, fullWeeks: 0, remainingDays: 6 })
+    expect(encodeNl2026CompositeTimePeriod(segments)).toBe('WEEK_DAY_0_6')
+    expect(parseNl2026CompositeTimePeriod('WEEK_DAY_0_6')).toEqual({ fullWeeks: 0, remainingDays: 6 })
+    expect(parseNl2026CompositeTimePeriod('WEEK_DAY_0_9')).toBeNull()
+  })
+
+  it('uses the monthly table from 65/3 paid days and not before', () => {
+    expect(shouldUseDutchMonthlyTableForBrokenPeriod(21)).toBe(false)
+    expect(shouldUseDutchMonthlyTableForBrokenPeriod(22)).toBe(true)
+    expect(() => shouldUseDutchMonthlyTableForBrokenPeriod(0)).toThrow(RangeError)
   })
 })

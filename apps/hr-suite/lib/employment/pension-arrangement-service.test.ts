@@ -26,6 +26,7 @@ const ids = {
   request: '70000000-0000-4000-8000-000000000001',
   mapping: '80000000-0000-4000-8000-000000000001',
   assignment: '90000000-0000-4000-8000-000000000001',
+  version: 'a1000000-0000-4000-8000-000000000001',
 }
 
 const managerContext: AuthContext = {
@@ -57,6 +58,8 @@ function assignmentInput(overrides: Partial<Parameters<typeof assignEmploymentPe
 function configureClient(options: {
   readonly employment?: Record<string, unknown> | null
   readonly predecessorVersionId?: string
+  readonly arrangement?: Record<string, unknown> | null
+  readonly version?: Record<string, unknown>
   readonly appMetadata?: Record<string, unknown>
   readonly rpcResult?: unknown
 } = {}) {
@@ -67,7 +70,9 @@ function configureClient(options: {
     is: vi.fn(),
     maybeSingle: vi.fn(async () => ({
       data: currentTable === 'pension_arrangement_versions'
-        ? { id: options.predecessorVersionId ?? 'b0000000-0000-4000-8000-000000000001' }
+        ? options.version ?? { id: options.predecessorVersionId ?? 'b0000000-0000-4000-8000-000000000001' }
+        : currentTable === 'pension_arrangements'
+          ? options.arrangement ?? null
         : options.employment === undefined
           ? { id: ids.employment, employee_id: ids.employee }
           : options.employment,
@@ -228,6 +233,107 @@ describe('assignEmploymentPensionArrangement', () => {
     })
   })
 
+  it('records the Jantje TEST fixture as separate assignment provenance copied from scoped MARS version 2', async () => {
+    vi.stubEnv('PENSION_TEST_FIXTURES_ENABLED', 'true')
+    vi.stubEnv('LIQUIDHR_RUNTIME_ENV', 'test')
+    const { rpc } = configureClient({
+      arrangement: { id: ids.arrangement, code: 'MARS-PENSION-2026', name: 'Mars BV pensioenregeling' },
+      version: {
+        id: 'b0000000-0000-4000-8000-000000000028',
+        version_number: 2,
+        code: 'MARS-PENSION-2026',
+        name: 'Mars BV pensioenregeling',
+        effective_from: '2026-01-01',
+        effective_to: null,
+        flat_total_rate: 25,
+        employer_share_pct: 60,
+        employee_share_pct: 40,
+        annual_franchise: 19172,
+        annual_pensionable_salary_cap: 137800,
+        pensionable_salary_definition: {
+          annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
+          basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
+          floorAtZero: true,
+        },
+        eligibility_rule: { participantGroup: 'NEW_ENTRANT' },
+        is_active: true,
+      },
+      appMetadata: {
+        [SYNTHETIC_PENSION_FIXTURE_CLAIM]: true,
+        [SYNTHETIC_PENSION_FIXTURE_ENVIRONMENT_CLAIM]: 'test',
+      },
+    })
+
+    await assignEmploymentPensionArrangement(assignmentInput({
+      participationStartDate: '2026-10-01',
+      effectiveFrom: '2026-10-01',
+      effectiveTo: '2026-10-31',
+      provenance: { status: 'SYNTHETIC_TEST_FIXTURE', scenario: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28' },
+    }))
+
+    expect(rpc).toHaveBeenCalledWith('apply_employment_pension_arrangement', {
+      p_input: expect.objectContaining({
+        provenance_json: expect.objectContaining({
+          status: 'SYNTHETIC_TEST_FIXTURE',
+          legalFiscalStatus: 'OPEN',
+          syntheticFixture: expect.objectContaining({
+            fixtureId: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28',
+            testRuleCode: 'MARS-PENSION-2026-TEST-JANTJE-28',
+            provider: { name: 'Mars BV TEST-pensioenuitvoerder (fictief)', classification: 'FICTITIOUS_TEST_ONLY' },
+            sourceArrangement: expect.objectContaining({ code: 'MARS-PENSION-2026', versionNumber: 2 }),
+            eligibility: expect.objectContaining({ participantGroup: 'NEW_ENTRANT', employmentType: 'ON_CALL' }),
+            pensionParameters: {
+              totalPremiumRatePercent: 25,
+              employerSharePercent: 60,
+              employeeSharePercent: 40,
+              annualFranchise: 19172,
+              annualPensionableSalaryCap: 137800,
+              pensionableSalaryDefinition: {
+                annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
+                basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
+                floorAtZero: true,
+              },
+            },
+            fiscalAssumptions: expect.objectContaining({ status: 'TEST_ASSUMPTIONS_NOT_LEGALLY_VALIDATED' }),
+          }),
+        }),
+      }),
+    })
+  })
+
+  it('fails closed if the MARS version 2 parameters differ from the approved TEST fixture assumptions', async () => {
+    vi.stubEnv('PENSION_TEST_FIXTURES_ENABLED', 'true')
+    vi.stubEnv('LIQUIDHR_RUNTIME_ENV', 'test')
+    const { rpc } = configureClient({
+      arrangement: { id: ids.arrangement, code: 'MARS-PENSION-2026', name: 'Mars BV pensioenregeling' },
+      version: {
+        id: 'b0000000-0000-4000-8000-000000000028', version_number: 2,
+        code: 'MARS-PENSION-2026', name: 'Mars BV pensioenregeling',
+        effective_from: '2026-01-01', effective_to: null,
+        flat_total_rate: 20, employer_share_pct: 60, employee_share_pct: 40,
+        annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
+        pensionable_salary_definition: {
+          annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
+          basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true,
+        },
+        eligibility_rule: { participantGroup: 'NEW_ENTRANT' }, is_active: true,
+      },
+      appMetadata: {
+        [SYNTHETIC_PENSION_FIXTURE_CLAIM]: true,
+        [SYNTHETIC_PENSION_FIXTURE_ENVIRONMENT_CLAIM]: 'test',
+      },
+    })
+
+    await expect(assignEmploymentPensionArrangement(assignmentInput({
+      participationStartDate: '2026-10-01',
+      effectiveFrom: '2026-10-01',
+      effectiveTo: '2026-10-31',
+      provenance: { status: 'SYNTHETIC_TEST_FIXTURE', scenario: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28' },
+    }))).rejects.toMatchObject({ code: 'PENSION_SYNTHETIC_FIXTURE_SOURCE_MISMATCH', status: 409 })
+
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
   it('fails closed on malformed RPC readback instead of returning a partial assignment', async () => {
     configureClient({ rpcResult: { assignment_id: ids.assignment, mapping_id: null } })
 
@@ -236,6 +342,27 @@ describe('assignEmploymentPensionArrangement', () => {
         code: 'PENSION_ASSIGNMENT_WRITE_READBACK_INVALID',
         status: 500,
       } satisfies Partial<EmploymentPensionArrangementError>)
+  })
+
+  it('uses the pension-manager permission and wrapper for successor versions', async () => {
+    const { rpc } = configureClient({
+      rpcResult: ids.version,
+      predecessorVersionId: ids.version,
+      employment: { id: ids.version, employee_id: ids.employee },
+    })
+
+    await expect(createPensionArrangementSuccessor({
+      employeeId: ids.employee,
+      employmentId: ids.employment,
+      predecessorVersionId: ids.version,
+      successor: {},
+    })).resolves.toEqual({ versionId: ids.version })
+
+    expect(requirePermission).toHaveBeenCalledWith('pension:manage', ids.employee)
+    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor_for_pension_manager', {
+      p_predecessor_version_id: ids.version,
+      p_successor: {},
+    })
   })
 })
 
@@ -273,7 +400,7 @@ describe('createPensionArrangementSuccessor', () => {
       ['hr_group_id', ids.hrGroup],
       ['administration_id', ids.administration],
     ]))
-    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor', {
+    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor_for_pension_manager', {
       p_predecessor_version_id: predecessorVersionId,
       p_successor: successor,
     })

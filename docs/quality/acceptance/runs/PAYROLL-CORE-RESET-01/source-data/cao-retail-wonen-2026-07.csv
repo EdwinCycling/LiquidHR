@@ -1,0 +1,146 @@
+scale_code,scale_name,step_code,step_name,step_order,amount,scale_order,progression_type,step_kind,source_rule_code,source_rule_percent,source_rule_description,source_rule_condition,source_rule_reference
+WONEN_A,Functiegroep A,AGE_15,15 jaar,0,4.50,0,MANUAL,START,,,,,
+WONEN_A,Functiegroep A,AGE_16,16 jaar,1,5.17,0,MANUAL,REGULAR,,,,,
+WONEN_A,Functiegroep A,AGE_17,17 jaar,2,5.92,0,MANUAL,REGULAR,,,,,
+WONEN_A,Functiegroep A,AGE_18,18 jaar,3,7.50,0,MANUAL,REGULAR,,,,,
+WONEN_A,Functiegroep A,AGE_19,19 jaar,4,8.99,0,MANUAL,REGULAR,,,,,
+WONEN_A,Functiegroep A,AGE_20,20 jaar,5,11.99,0,MANUAL,REGULAR,,,,,
+WONEN_A,Functiegroep A,EXP_00,21 jaar / 0,6,14.99,0,MANUAL,REGULAR,,,,,
+WONEN_A,Functiegroep A,EXP_01,1 ervaringsjaar,7,15.14,0,MANUAL,REGULAR,,,,,
+WONEN_A,Functiegroep A,EXP_02,2 ervaringsjaren,8,15.29,0,MANUAL,REGULAR,,,,,
+WONEN_A,Functiegroep A,EXP_03,3 ervaringsjaren,9,15.45,0,MANUAL,REGULAR,,,,,
+WONEN_A,Functiegroep A,EXP_04,4 ervaringsjaren,10,2%,0,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_A,Functiegroep A,EXP_05,5 ervaringsjaren,11,2%,0,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_A,Functiegroep A,EXP_06,6 ervaringsjaren,12,16.39,0,MANUAL,MAXIMUM,,,,,
+WONEN_B,Functiegroep B,AGE_15,15 jaar,0,4.55,1,MANUAL,START,,,,,
+WONEN_B,Functiegroep B,AGE_16,16 jaar,1,5.23,1,MANUAL,REGULAR,,,,,
+WONEN_B,Functiegroep B,AGE_17,17 jaar,2,5.98,1,MANUAL,REGULAR,,,,,
+WONEN_B,Functiegroep B,AGE_18,18 jaar,3,7.57,1,MANUAL,REGULAR,,,,,
+WONEN_B,Functiegroep B,AGE_19,19 jaar,4,9.08,1,MANUAL,REGULAR,,,,,
+WONEN_B,Functiegroep B,AGE_20,20 jaar,5,12.10,1,MANUAL,REGULAR,,,,,
+WONEN_B,Functiegroep B,EXP_00,21 jaar / 0,6,15.14,1,MANUAL,REGULAR,,,,,
+WONEN_B,Functiegroep B,EXP_01,1 ervaringsjaar,7,15.29,1,MANUAL,REGULAR,,,,,
+WONEN_B,Functiegroep B,EXP_02,2 ervaringsjaren,8,15.45,1,MANUAL,REGULAR,,,,,
+WONEN_B,Functiegroep B,EXP_03,3 ervaringsjaren,9,15.60,1,MANUAL,REGULAR,,,,,
+WONEN_B,Functiegroep B,EXP_04,4 ervaringsjaren,10,2%,1,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_B,Functiegroep B,EXP_05,5 ervaringsjaren,11,2%,1,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_B,Functiegroep B,EXP_06,6 ervaringsjaren,12,2%,1,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_B,Functiegroep B,EXP_07,7 ervaringsjaren,13,16.88,1,MANUAL,MAXIMUM,,,,,
+WONEN_C,Functiegroep C,AGE_15,15 jaar,0,4.61,2,MANUAL,START,,,,,
+WONEN_C,Functiegroep C,AGE_16,16 jaar,1,5.30,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,AGE_17,17 jaar,2,6.07,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,AGE_18,18 jaar,3,7.68,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,AGE_19,19 jaar,4,9.22,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,AGE_20,20 jaar,5,12.29,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,EXP_00,21 jaar / 0,6,15.37,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,EXP_01,1 ervaringsjaar,7,15.60,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,EXP_02,2 ervaringsjaren,8,15.83,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,EXP_03,3 ervaringsjaren,9,16.07,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,EXP_04,4 ervaringsjaren,10,16.31,2,MANUAL,REGULAR,,,,,
+WONEN_C,Functiegroep C,EXP_05,5 ervaringsjaren,11,2%,2,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_C,Functiegroep C,EXP_06,6 ervaringsjaren,12,2%,2,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_C,Functiegroep C,EXP_07,7 ervaringsjaren,13,2%,2,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_C,Functiegroep C,EXP_08,8 ervaringsjaren,14,17.66,2,MANUAL,MAXIMUM,,,,,
+WONEN_D,Functiegroep D,AGE_16,16 jaar,1,5.36,3,MANUAL,START,,,,,
+WONEN_D,Functiegroep D,AGE_17,17 jaar,2,6.13,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,AGE_18,18 jaar,3,7.76,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,AGE_19,19 jaar,4,9.31,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,AGE_20,20 jaar,5,12.41,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,EXP_00,21 jaar / 0,6,15.52,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,EXP_01,1 ervaringsjaar,7,15.75,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,EXP_02,2 ervaringsjaren,8,15.99,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,EXP_03,3 ervaringsjaren,9,16.23,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,EXP_04,4 ervaringsjaren,10,16.48,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,EXP_05,5 ervaringsjaren,11,16.80,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,EXP_06,6 ervaringsjaren,12,17.14,3,MANUAL,REGULAR,,,,,
+WONEN_D,Functiegroep D,EXP_07,7 ervaringsjaren,13,2%,3,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_D,Functiegroep D,EXP_08,8 ervaringsjaren,14,2%,3,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_D,Functiegroep D,EXP_09,9 ervaringsjaren,15,2%,3,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_D,Functiegroep D,EXP_10,10 ervaringsjaren,16,2%,3,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_D,Functiegroep D,EXP_11,11 ervaringsjaren,17,18.93,3,MANUAL,MAXIMUM,,,,,
+WONEN_E,Functiegroep E,AGE_17,17 jaar,2,6.19,4,MANUAL,START,,,,,
+WONEN_E,Functiegroep E,AGE_18,18 jaar,3,7.83,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,AGE_19,19 jaar,4,9.40,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,AGE_20,20 jaar,5,12.54,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_00,21 jaar / 0,6,15.68,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_01,1 ervaringsjaar,7,15.91,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_02,2 ervaringsjaren,8,16.15,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_03,3 ervaringsjaren,9,16.39,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_04,4 ervaringsjaren,10,16.72,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_05,5 ervaringsjaren,11,17.04,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_06,6 ervaringsjaren,12,17.39,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_07,7 ervaringsjaren,13,17.73,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_08,8 ervaringsjaren,14,18.10,4,MANUAL,REGULAR,,,,,
+WONEN_E,Functiegroep E,EXP_09,9 ervaringsjaren,15,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_E,Functiegroep E,EXP_10,10 ervaringsjaren,16,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_E,Functiegroep E,EXP_11,11 ervaringsjaren,17,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_E,Functiegroep E,EXP_12,12 ervaringsjaren,18,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_E,Functiegroep E,EXP_13,13 ervaringsjaren,19,2%,4,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_E,Functiegroep E,EXP_14,14 ervaringsjaren,20,20.38,4,MANUAL,MAXIMUM,,,,,
+WONEN_F,Functiegroep F,AGE_19,19 jaar,4,9.50,5,MANUAL,START,,,,,
+WONEN_F,Functiegroep F,AGE_20,20 jaar,5,12.66,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_00,21 jaar / 0,6,15.83,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_01,1 ervaringsjaar,7,16.15,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_02,2 ervaringsjaren,8,16.46,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_03,3 ervaringsjaren,9,16.79,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_04,4 ervaringsjaren,10,17.13,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_05,5 ervaringsjaren,11,17.47,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_06,6 ervaringsjaren,12,17.82,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_07,7 ervaringsjaren,13,18.18,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_08,8 ervaringsjaren,14,18.55,5,MANUAL,REGULAR,,,,,
+WONEN_F,Functiegroep F,EXP_09,9 ervaringsjaren,15,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_F,Functiegroep F,EXP_10,10 ervaringsjaren,16,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_F,Functiegroep F,EXP_11,11 ervaringsjaren,17,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_F,Functiegroep F,EXP_12,12 ervaringsjaren,18,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_F,Functiegroep F,EXP_13,13 ervaringsjaren,19,2%,5,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_F,Functiegroep F,EXP_14,14 ervaringsjaren,20,20.89,5,MANUAL,MAXIMUM,,,,,
+WONEN_G,Functiegroep G,AGE_19,19 jaar,4,9.69,6,MANUAL,START,,,,,
+WONEN_G,Functiegroep G,AGE_20,20 jaar,5,12.93,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_00,21 jaar / 0,6,16.16,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_01,1 ervaringsjaar,7,16.53,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_02,2 ervaringsjaren,8,16.91,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_03,3 ervaringsjaren,9,17.30,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_04,4 ervaringsjaren,10,17.70,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_05,5 ervaringsjaren,11,18.11,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_06,6 ervaringsjaren,12,18.52,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_07,7 ervaringsjaren,13,18.95,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_08,8 ervaringsjaren,14,19.38,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_09,9 ervaringsjaren,15,19.83,6,MANUAL,REGULAR,,,,,
+WONEN_G,Functiegroep G,EXP_10,10 ervaringsjaren,16,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_G,Functiegroep G,EXP_11,11 ervaringsjaren,17,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_G,Functiegroep G,EXP_12,12 ervaringsjaren,18,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_G,Functiegroep G,EXP_13,13 ervaringsjaren,19,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_G,Functiegroep G,EXP_14,14 ervaringsjaren,20,2%,6,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_G,Functiegroep G,EXP_15,15 ervaringsjaren,21,22.33,6,MANUAL,MAXIMUM,,,,,
+WONEN_H,Functiegroep H,EXP_00,21 jaar / 0,6,16.32,7,MANUAL,START,,,,,
+WONEN_H,Functiegroep H,EXP_01,1 ervaringsjaar,7,17.29,7,MANUAL,REGULAR,,,,,
+WONEN_H,Functiegroep H,EXP_02,2 ervaringsjaren,8,18.50,7,MANUAL,REGULAR,,,,,
+WONEN_H,Functiegroep H,EXP_03,3 ervaringsjaren,9,19.24,7,MANUAL,REGULAR,,,,,
+WONEN_H,Functiegroep H,EXP_04,4 ervaringsjaren,10,20.01,7,MANUAL,REGULAR,,,,,
+WONEN_H,Functiegroep H,EXP_05,5 ervaringsjaren,11,20.81,7,MANUAL,REGULAR,,,,,
+WONEN_H,Functiegroep H,EXP_06,6 ervaringsjaren,12,21.65,7,MANUAL,REGULAR,,,,,
+WONEN_H,Functiegroep H,EXP_07,7 ervaringsjaren,13,22.51,7,MANUAL,REGULAR,,,,,
+WONEN_H,Functiegroep H,EXP_08,8 ervaringsjaren,14,23.41,7,MANUAL,REGULAR,,,,,
+WONEN_H,Functiegroep H,EXP_09,9 ervaringsjaren,15,24.34,7,MANUAL,REGULAR,,,,,
+WONEN_H,Functiegroep H,EXP_10,10 ervaringsjaren,16,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_H,Functiegroep H,EXP_11,11 ervaringsjaren,17,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_H,Functiegroep H,EXP_12,12 ervaringsjaren,18,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_H,Functiegroep H,EXP_13,13 ervaringsjaren,19,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_H,Functiegroep H,EXP_14,14 ervaringsjaren,20,2%,7,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_H,Functiegroep H,EXP_15,15 ervaringsjaren,21,27.41,7,MANUAL,MAXIMUM,,,,,
+WONEN_I,Functiegroep I,EXP_00,21 jaar / 0,6,16.49,8,MANUAL,START,,,,,
+WONEN_I,Functiegroep I,EXP_01,1 ervaringsjaar,7,17.86,8,MANUAL,REGULAR,,,,,
+WONEN_I,Functiegroep I,EXP_02,2 ervaringsjaren,8,19.73,8,MANUAL,REGULAR,,,,,
+WONEN_I,Functiegroep I,EXP_03,3 ervaringsjaren,9,20.71,8,MANUAL,REGULAR,,,,,
+WONEN_I,Functiegroep I,EXP_04,4 ervaringsjaren,10,21.75,8,MANUAL,REGULAR,,,,,
+WONEN_I,Functiegroep I,EXP_05,5 ervaringsjaren,11,22.84,8,MANUAL,REGULAR,,,,,
+WONEN_I,Functiegroep I,EXP_06,6 ervaringsjaren,12,23.98,8,MANUAL,REGULAR,,,,,
+WONEN_I,Functiegroep I,EXP_07,7 ervaringsjaren,13,25.18,8,MANUAL,REGULAR,,,,,
+WONEN_I,Functiegroep I,EXP_08,8 ervaringsjaren,14,26.44,8,MANUAL,REGULAR,,,,,
+WONEN_I,Functiegroep I,EXP_09,9 ervaringsjaren,15,27.76,8,MANUAL,REGULAR,,,,,
+WONEN_I,Functiegroep I,EXP_10,10 ervaringsjaren,16,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_I,Functiegroep I,EXP_11,11 ervaringsjaren,17,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_I,Functiegroep I,EXP_12,12 ervaringsjaren,18,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_I,Functiegroep I,EXP_13,13 ervaringsjaren,19,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_I,Functiegroep I,EXP_14,14 ervaringsjaren,20,2%,8,MANUAL,REGULAR,RETAIL_NONFOOD_REVIEWED_STEP_2_PERCENT,2.00,Beoordelingsafhankelijke tredeverhoging van 2%,Zeer goed of uitmuntend functioneren: 1 of 2 treden van 2%; voldoende: geen tredeverhoging; matig of onvoldoende: geen cao- of tredeverhoging; medewerkers jonger dan 21 jaar ontvangen alleen leeftijdsverhogingen.,"Cao Retail Non-Food 2026-2027, Bijlage 1a, p. 29"
+WONEN_I,Functiegroep I,EXP_15,15 ervaringsjaren,21,31.26,8,MANUAL,MAXIMUM,,,,,

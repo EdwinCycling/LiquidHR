@@ -7,6 +7,7 @@ import {
 } from '@/lib/context/administration-context'
 import type { PortalMode } from '@/lib/context/administration-context'
 import { createClient } from '@/lib/supabase/server'
+import { throwDatabaseReadError } from '@/lib/errors/database-read-error'
 import {
   ACTIVE_ADMINISTRATION_COOKIE,
   ACTIVE_HR_GROUP_COOKIE,
@@ -81,8 +82,8 @@ export async function loadAccessibleContextOptions(
       .limit(500),
   ])
 
-  if (groupAccessError) throw groupAccessError
-  if (administrationAccessError) throw administrationAccessError
+  if (groupAccessError) throwDatabaseReadError(groupAccessError, 'context.access.hrGroups')
+  if (administrationAccessError) throwDatabaseReadError(administrationAccessError, 'context.access.administrations')
   assertCompleteResult(options.requireComplete === true, 'user_hr_group_access', groupAccesses, 500)
   assertCompleteResult(options.requireComplete === true, 'user_access', administrationAccesses, 500)
 
@@ -96,7 +97,7 @@ export async function loadAccessibleContextOptions(
     .in('id', roleIds)
     .limit(500)
 
-  if (roleError) throw roleError
+  if (roleError) throwDatabaseReadError(roleError, 'context.roles')
   assertCompleteResult(options.requireComplete === true, 'management_roles', roles, 500)
 
   const roleCodesById = new Map(roles.map((role) => [role.id, role.code]))
@@ -120,7 +121,7 @@ export async function loadAccessibleContextOptions(
       .is('deleted_at', null)
       .limit(500)
 
-    if (actorError) throw actorError
+    if (actorError) throwDatabaseReadError(actorError, 'context.actors')
     assertCompleteResult(options.requireComplete === true, 'employees', actors, 500)
 
     const actorIds = actors.map((actor) => actor.id)
@@ -139,7 +140,7 @@ export async function loadAccessibleContextOptions(
       }
       const { data: employments, error: employmentError } = await employmentQuery.limit(1000)
 
-      if (employmentError) throw employmentError
+      if (employmentError) throwDatabaseReadError(employmentError, 'context.actorEmployments')
       assertCompleteResult(options.requireComplete === true, 'employments', employments, 1000)
 
       for (const row of employments) {
@@ -175,9 +176,9 @@ export async function loadAccessibleContextOptions(
         .limit(1000),
     ])
 
-  if (tenantError) throw tenantError
-  if (groupError) throw groupError
-  if (administrationError) throw administrationError
+  if (tenantError) throwDatabaseReadError(tenantError, 'context.tenants')
+  if (groupError) throwDatabaseReadError(groupError, 'context.hrGroups')
+  if (administrationError) throwDatabaseReadError(administrationError, 'context.administrations')
   assertCompleteResult(options.requireComplete === true, 'tenants', tenants, 100)
   assertCompleteResult(options.requireComplete === true, 'hr_groups', hrGroups, 500)
   assertCompleteResult(options.requireComplete === true, 'administrations', administrations, 1000)
