@@ -1,0 +1,214 @@
+# Payroll P0/P1 evidence ledger
+
+Status: **PAYROLL P1 DEVELOPMENT ACCEPTANCE: BLOCKED** (P0 remains GREEN; the server-only RPC façade and local/DEV security gates are GREEN; the exact current GitHub-sourced production build is READY, but Nmbrs returns an external `502 Bad Gateway` at the consent host before profiles are rendered).
+
+Evidence captured on 2026-09-09 in worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\payroll-p0-p1`, branch `work/payroll-p0-p1`, against DEV/TEST Supabase project `wnpfloqpjvaacobppbpk`. Production Supabase, `main`, other worktrees and `apps/hr-suite/next-env.d.ts` were not changed. The Vercel environment-name check confirmed the required encrypted entries by name only; secret values were never read back, printed, logged or committed. GitHub-sourced Vercel Production deployment `dpl_8cqds6wkYWvhXpHKSPZKU2p1sbGN` is READY and sourced from exact commit `461e05635debff9124443947f9220ba7eaff8e11`; its canonical alias is active. The hosted run is blocked only by the current external Nmbrs consent-host gateway response.
+
+The original P1 implementation and closure commits are committed and pushed. The advisor-index migration and the minimal server-only RPC façade are applied on DEV. The current hosted build is the exact pushed P1 SHA, but real Nmbrs OAuth cannot advance past the external consent-host `502 Bad Gateway`; therefore no real Nmbrs callback/company/health/revoke call is claimed.
+
+## Scope and baseline
+
+- P0 baseline: `4adcedaf7d4a227df6ee91a03e5e5741992fbd40`.
+- Current pushed branch HEAD: `461e05635debff9124443947f9220ba7eaff8e11` (`fix(payroll): retain client-supported Nmbrs scopes`); the prior exact wire probe commit `0101b6966fdbb95127e9afd5380780b35dd7e5be` is also pushed in the branch history.
+- DEV fixture: tenant `07249eb9-545c-883b-b26b-d52f83b4f4a1` (`De Sterren holding`), HR group `80975e8a-b0dd-4552-be20-cd3944da9b2b` (`TEST (leeg)`, code `TEST-BOUNDARY`), administration `0ad929be-8dbf-4b8f-884e-46852f182512` (`Test BV`, code `TEST-BOUNDARY-ADMIN`, active).
+- The earlier P0 fixture baseline had `0` employees and `0` employments. No P1 operation or test path read or wrote employee/employment data.
+- `apps/hr-suite/next-env.d.ts` was not changed. Protected `.env.local` values were never printed, logged, staged or committed.
+- No `admin@example.com` substitute was used.
+- P2/P3, matching, sync, payroll calculation and employee/employment provider endpoints remain out of scope.
+
+## Migration apply results
+
+Already applied on DEV:
+
+- P0 `20260908115903_payroll_p0_foundation.sql`, remotely recorded as `20260908181859 / payroll_p0_foundation`.
+- P0 FK indexes, remotely recorded as `20260908184235 / payroll_p0_fk_indexes`.
+- P1 `20260908202548_payroll_p1_nmbrs_connection.sql`, remotely recorded as `20260908203016 / payroll_p1_nmbrs_connection` — applied successfully.
+- P1 advisor indexes `20260909100000_payroll_p1_advisor_indexes.sql`, remotely recorded as `20260909125131 / payroll_p1_advisor_indexes` — applied successfully; both `provider_id` and `initiated_by_user_id` indexes are present.
+- P1 private RPC façade `20260909133000_payroll_p1_private_rpc_facade.sql`, remotely recorded as `20260909133103 / payroll_p1_private_rpc_facade` — applied successfully on DEV.
+
+Remote migration history currently contains these five Payroll entries: `20260908181859 / payroll_p0_foundation`, `20260908184235 / payroll_p0_fk_indexes`, `20260908203016 / payroll_p1_nmbrs_connection`, `20260909125131 / payroll_p1_advisor_indexes` and `20260909133103 / payroll_p1_private_rpc_facade`.
+
+## Remote schema/readback
+
+The final remote metadata query returned 10 Payroll tables. All have `rls=true` and `force_rls=false`.
+
+| Schema | Table | Remote row count |
+| --- | --- | ---: |
+| public | `payroll_providers` | 1 |
+| public | `payroll_connections` | 2 |
+| public | `payroll_company_bindings` | 0 |
+| public | `payroll_provider_companies` | 0 |
+| public | `payroll_sync_runs` | 0 |
+| public | `payroll_sync_items` | 0 |
+| public | `payroll_sync_issues` | 0 |
+| public | `payroll_audit_events` | 0 |
+| payroll_private | `payroll_connection_credentials` | 0 |
+| payroll_private | `payroll_oauth_states` | 0 |
+
+Remote column inventory (a trailing `!` is NOT NULL; `?` is nullable):
+
+- `payroll_providers`: `id!, code!, name!, is_active!, capabilities!, created_at!, updated_at!`.
+- `payroll_connections`: `id!, tenant_id!, hr_group_id!, provider_id!, status!, connected_at?, connected_by_user_id?, last_checked_at?, last_error_code?, last_error_at?, disconnected_at?, created_at!, updated_at!`.
+- `payroll_company_bindings`: `id!, tenant_id!, hr_group_id!, connection_id!, administration_id!, external_company_id!, external_company_display_name!, status!, bound_at?, bound_by_user_id?, last_seen_at?, unbound_at?, created_at!, updated_at!`.
+- `payroll_provider_companies`: `id!, tenant_id!, hr_group_id!, connection_id!, external_company_id!, external_company_number?, external_company_display_name!, external_debtor_id?, status!, provider_metadata!, first_seen_at!, last_seen_at!, created_at!, updated_at!`.
+- `payroll_sync_runs`: `id!, tenant_id!, hr_group_id!, connection_id!, company_binding_id?, mode!, status!, started_at?, completed_at?, started_by_user_id?, summary!, error_code?, created_at!, updated_at!`.
+- `payroll_sync_items`: `id!, tenant_id!, hr_group_id!, sync_run_id!, entity_type!, external_entity_id!, local_entity_id?, match_status!, decision_status!, normalized_payload!, difference_summary!, created_at!, updated_at!`.
+- `payroll_sync_issues`: `id!, tenant_id!, hr_group_id!, sync_run_id!, sync_item_id?, code!, severity!, message!, technical_reference?, created_at!`.
+- `payroll_audit_events`: `id!, tenant_id!, hr_group_id!, provider_id?, connection_id?, company_binding_id?, administration_id?, event_type!, actor_user_id?, result_code!, reference_data!, created_at!`.
+- `payroll_connection_credentials`: `tenant_id!, hr_group_id!, connection_id!, credential_version!, encrypted_access_token!, encrypted_refresh_token?, expires_at?, provider_metadata!, created_at!, updated_at!`.
+- `payroll_oauth_states`: `state_hash!, tenant_id!, hr_group_id!, provider_id!, connection_id?, initiated_by_user_id!, redirect_uri!, requested_scopes!, expires_at!, consumed_at?, created_at!`.
+
+### Constraint inventory
+
+Remote introspection returned 76 Payroll constraints. The full name inventory is grouped by table; definitions were read back with `pg_get_constraintdef`.
+
+- `payroll_connection_credentials`: `payroll_connection_credentials_credential_version_check`, `payroll_connection_credentials_pkey`, `payroll_connection_credentials_provider_metadata_check`, `payroll_credentials_connection_fkey`.
+- `payroll_oauth_states`: `payroll_oauth_states_connection_fkey`, `payroll_oauth_states_expiry_check`, `payroll_oauth_states_group_fkey`, `payroll_oauth_states_initiated_by_user_id_fkey`, `payroll_oauth_states_pkey`, `payroll_oauth_states_provider_fkey`, `payroll_oauth_states_redirect_uri_check`, `payroll_oauth_states_requested_scopes_check`, `payroll_oauth_states_state_hash_check`.
+- `payroll_audit_events`: `payroll_audit_events_actor_user_id_fkey`, `payroll_audit_events_administration_fkey`, `payroll_audit_events_binding_fkey`, `payroll_audit_events_connection_fkey`, `payroll_audit_events_event_type_check`, `payroll_audit_events_group_fkey`, `payroll_audit_events_pkey`, `payroll_audit_events_provider_fkey`, `payroll_audit_events_reference_data_check`, `payroll_audit_events_result_code_check`.
+- `payroll_company_bindings`: `payroll_company_bindings_administration_fkey`, `payroll_company_bindings_bound_by_user_id_fkey`, `payroll_company_bindings_connection_fkey`, `payroll_company_bindings_external_company_display_name_check`, `payroll_company_bindings_external_company_id_check`, `payroll_company_bindings_group_fkey`, `payroll_company_bindings_pkey`, `payroll_company_bindings_scope_id_key`, `payroll_company_bindings_state_check`.
+- `payroll_connections`: `payroll_connections_connected_by_user_id_fkey`, `payroll_connections_group_fkey`, `payroll_connections_pkey`, `payroll_connections_provider_id_fkey`, `payroll_connections_scope_id_key`, `payroll_connections_state_check`.
+- `payroll_provider_companies`: `payroll_provider_companies_connection_fkey`, `payroll_provider_companies_external_company_display_name_check`, `payroll_provider_companies_external_company_id_check`, `payroll_provider_companies_external_company_number_check`, `payroll_provider_companies_external_debtor_id_check`, `payroll_provider_companies_external_key`, `payroll_provider_companies_group_fkey`, `payroll_provider_companies_pkey`, `payroll_provider_companies_provider_metadata_check`, `payroll_provider_companies_scope_id_key`.
+- `payroll_providers`: `payroll_providers_capabilities_check`, `payroll_providers_code_check`, `payroll_providers_code_key`, `payroll_providers_name_check`, `payroll_providers_pkey`.
+- `payroll_sync_issues`: `payroll_sync_issues_code_check`, `payroll_sync_issues_item_fkey`, `payroll_sync_issues_message_check`, `payroll_sync_issues_pkey`, `payroll_sync_issues_run_fkey`, `payroll_sync_issues_severity_check`.
+- `payroll_sync_items`: `payroll_sync_items_decision_status_check`, `payroll_sync_items_difference_summary_check`, `payroll_sync_items_entity_type_check`, `payroll_sync_items_external_entity_id_check`, `payroll_sync_items_external_key`, `payroll_sync_items_match_status_check`, `payroll_sync_items_normalized_payload_check`, `payroll_sync_items_pkey`, `payroll_sync_items_run_fkey`, `payroll_sync_items_scope_id_key`.
+- `payroll_sync_runs`: `payroll_sync_runs_binding_fkey`, `payroll_sync_runs_connection_fkey`, `payroll_sync_runs_group_fkey`, `payroll_sync_runs_pkey`, `payroll_sync_runs_scope_id_key`, `payroll_sync_runs_started_by_user_id_fkey`, `payroll_sync_runs_summary_check`.
+
+The important definitions are: scoped composite foreign keys use tenant/HR-group boundaries; OAuth state hashes are exactly 64 lowercase hex characters; state expiry is after creation and scopes are bounded; credential versions are positive; active/inactive binding and connection states require matching timestamps; metadata and audit reference payloads are JSON objects; audit/provider metadata reject access-token, refresh-token, client-secret and authorization-code keys; and the sync enums/checks are bounded to their declared P0 values.
+
+### Index inventory
+
+Remote introspection returned 45 Payroll indexes, including both advisor indexes.
+
+- `payroll_connection_credentials`: `payroll_connection_credentials_pkey`.
+- `payroll_oauth_states`: `payroll_oauth_states_connection_idx`, `payroll_oauth_states_expiry_idx`, `payroll_oauth_states_initiated_by_user_idx`, `payroll_oauth_states_pkey`, `payroll_oauth_states_provider_idx`.
+- `payroll_audit_events`: `payroll_audit_events_actor_user_idx`, `payroll_audit_events_administration_idx`, `payroll_audit_events_binding_idx`, `payroll_audit_events_connection_idx`, `payroll_audit_events_group_history_idx`, `payroll_audit_events_pkey`, `payroll_audit_events_provider_idx`.
+- `payroll_company_bindings`: `payroll_company_bindings_bound_by_user_idx`, `payroll_company_bindings_group_status_idx`, `payroll_company_bindings_one_per_administration_idx`, `payroll_company_bindings_one_per_provider_company_idx`, `payroll_company_bindings_pkey`, `payroll_company_bindings_scope_id_key`.
+- `payroll_connections`: `payroll_connections_connected_by_user_idx`, `payroll_connections_one_reserved_per_group_idx`, `payroll_connections_pkey`, `payroll_connections_provider_id_idx`, `payroll_connections_provider_idx`, `payroll_connections_scope_id_key`.
+- `payroll_provider_companies`: `payroll_provider_companies_external_key`, `payroll_provider_companies_pkey`, `payroll_provider_companies_scope_id_key`, `payroll_provider_companies_status_idx`.
+- `payroll_providers`: `payroll_providers_code_key`, `payroll_providers_pkey`.
+- `payroll_sync_issues`: `payroll_sync_issues_item_idx`, `payroll_sync_issues_pkey`, `payroll_sync_issues_run_idx`.
+- `payroll_sync_items`: `payroll_sync_items_external_key`, `payroll_sync_items_pkey`, `payroll_sync_items_scope_id_key`, `payroll_sync_items_status_idx`.
+- `payroll_sync_runs`: `payroll_sync_runs_binding_fk_idx`, `payroll_sync_runs_binding_idx`, `payroll_sync_runs_connection_fk_idx`, `payroll_sync_runs_group_history_idx`, `payroll_sync_runs_pkey`, `payroll_sync_runs_scope_id_key`, `payroll_sync_runs_started_by_user_idx`.
+- The two advisor indexes are present remotely; advisor `unused_index` INFO is expected while the DEV OAuth-state table is empty.
+
+### Functions, triggers, policies and grants
+
+Remote function readback:
+
+- `internal_security.prevent_payroll_audit_mutation()`: INVOKER, `search_path=""`.
+- `internal_security.prevent_payroll_provider_company_identity_change()`: INVOKER, `search_path=""`.
+- `internal_security.prevent_payroll_scope_change()`: SECURITY DEFINER, `search_path=""`.
+- `internal_security.set_updated_at()`: INVOKER, `search_path=public, pg_temp`.
+- `public.payroll_private_insert_oauth_state(...)`: SECURITY DEFINER, `search_path=pg_catalog`; EXECUTE only for `service_role`.
+- `public.payroll_private_consume_oauth_state(...)`: SECURITY DEFINER, `search_path=pg_catalog`; atomic `UPDATE ... WHERE consumed_at is null AND expires_at > requested_consumed_at`, EXECUTE only for `service_role`.
+- `public.payroll_private_latest_credential(...)`: SECURITY DEFINER, `search_path=pg_catalog`; explicit JSON projection for the server adapter, EXECUTE only for `service_role`.
+- `public.payroll_private_insert_credential(...)`: SECURITY DEFINER, `search_path=pg_catalog`; EXECUTE only for `service_role`.
+- `public.payroll_private_delete_credentials(...)`: SECURITY DEFINER, `search_path=pg_catalog`; EXECUTE only for `service_role`.
+
+For all five façade functions, remote privilege readback is `service_role_execute=true`, `public_execute=false`, `anon_execute=false` and `authenticated_execute=false`. `payroll_private` has `USAGE=false` for `public`, `anon` and `authenticated`, and `USAGE=true` only for `service_role`; the private tables grant CRUD only to `service_role`. `payroll_private` was not added to PostgREST exposed schemas. A direct service-client `.schema('payroll_private')` probe still returns `PGRST106`, while the service-role façade RPC succeeds and the anon façade RPC returns `42501`.
+
+Enabled Payroll triggers include audit update/delete prevention, scope-immutability triggers on scoped tables, provider-company identity immutability, and updated-at triggers. The audit trigger is `prevent_payroll_audit_update`; the credential and OAuth state tables have no public policy.
+
+The eight exposed read policies are exactly:
+
+`payroll_audit_events_read`, `payroll_company_bindings_read`, `payroll_connections_read`, `payroll_provider_companies_read`, `payroll_providers_read`, `payroll_sync_issues_read`, `payroll_sync_items_read`, `payroll_sync_runs_read`.
+
+Each uses the authenticated role and active tenant/HR-group permission check for `payroll:read`; the provider policy also verifies active HR-group access. No policy exists on either `payroll_private` table by design.
+
+Grant readback for every Payroll table:
+
+- `anon`: SELECT/INSERT/UPDATE/DELETE all `false`.
+- `authenticated`: SELECT `true` only on the eight public Payroll tables; INSERT/UPDATE/DELETE `false`; all four are `false` on both private tables.
+- `service_role`: SELECT/INSERT/UPDATE/DELETE `true` on all ten tables.
+
+## P1 Nmbrs implementation and security boundary
+
+- OAuth authorization code flow is server-side under `/api/payroll/providers/nmbrs/authorize` and `/api/payroll/providers/nmbrs/callback`.
+- State is random, stored client-side only as an HttpOnly/SameSite cookie and as a SHA-256 hash in `payroll_private.payroll_oauth_states`; the callback checks the cookie hash, consumes state once, clears the cookie on success/error and binds the original actor/scope.
+- Credentials are AES-256-GCM encrypted server-side with the dedicated server-only `PAYROLL_CREDENTIAL_ENCRYPTION_KEY`; only encrypted values are stored in `payroll_private.payroll_connection_credentials`.
+- Refresh token rotation stores a new credential version and retains the old refresh token only when Nmbrs omits a replacement. Concurrent refreshes use the newest version.
+- Health uses Nmbrs user-info; company discovery uses metadata-only `/api/companies` pagination. No `/employees` or `/employments` provider endpoint exists in the adapter/service.
+- Disconnect revokes access and refresh credentials best-effort, deletes private credentials, inactivates companies/bindings and audits the outcome. Bind/unbind is tenant/HR-group/administration scoped.
+- The persistence adapter in `lib/payroll/server/private-client.ts` is the only code path that calls the five façade RPC names. It is `server-only`; `payroll-service.ts` calls the adapter methods and retains all OAuth, authorization, token, health, binding and audit business logic. No browser/client component calls the RPC, and `PayrollProvider` and the API route architecture are unchanged.
+- Local `.env.example` and Vercel environment-name readback confirm the Nmbrs client/subscription variables exist by name only; values were never read back or printed. The encryption key is configured for Vercel Production by name only. The current GitHub-sourced Production deployment is READY on exact commit `461e05635debff9124443947f9220ba7eaff8e11`.
+- P0 made no Nmbrs network call. P1 provider calls were covered with mocked wire-contract tests only. The current hosted HR Admin session loaded `/payroll/settings` on the canonical host and showed `hradmin.fixture`.
+- The current authorize wire contract is: `https://identityservice.nmbrs.com/connect/authorize`, `client_id` (registered value not recorded), `response_type=code`, canonical `redirect_uri=https://liquid-hr-hr-suite.vercel.app/api/payroll/providers/nmbrs/callback`, random `state`, and a single space-separated `scope` parameter. No `audience`, `resource`, tenant, domain or profile-context parameter is sent. No PKCE parameters are sent; the official discovery metadata advertises PKCE support, but this confidential server flow has no verifier persistence requirement and the Nmbrs documentation does not require PKCE for this request.
+- Official Nmbrs evidence is internally inconsistent: the current [scope catalog](https://developer.payroll.nmbrs.com/docs/auth/scopes) lists `offline_access` as mandatory and `company.info.read` as optional but does not list `nmbrs_api`; the official [how-to](https://developer.payroll.nmbrs.com/how-to) still says `Scope: nmbrs_api`; the current OIDC metadata advertises `nmbrs` but not `nmbrs_api`. Live validation rejected both `nmbrs offline_access company.info.read` and `nmbrs_api offline_access company.info.read` as `Invalid scope` for the registered client. The only request that reached the consent host was `offline_access company.info.read`, which then returned `502 Bad Gateway` twice from `Microsoft-Azure-Application-Gateway/v2` before profiles rendered. No scope combination produced a selectable profile.
+
+Official Nmbrs contract references used by the adapter: [scopes](https://developer.payroll.nmbrs.com/docs/auth/scopes), [how-to/OIDC](https://developer.payroll.nmbrs.com/how-to), [OIDC discovery](https://identityservice.nmbrs.com/.well-known/openid-configuration), [authentication](https://nmbrs.stoplight.io/docs/nmbrs-restapi/e9e0f5292b4a1-authentication), [company list](https://nmbrs.stoplight.io/docs/nmbrs-restapi/5fad7a8461a01-get-company-list).
+
+## Remote data and mutation invariants
+
+Final DEV readback for the canonical fixture is:
+
+- tenant `De Sterren holding`; HR group `TEST (leeg)` / `TEST-BOUNDARY`; administration `Test BV` / `TEST-BOUNDARY-ADMIN`, active;
+- fixture employees `0`; fixture employments `0`;
+- provider rows `1` (`NMBRS`); connections `2`; provider-company metadata rows `0`; bindings `0`;
+- sync runs/items/issues `0`; audit events `0`; private credentials `0`; private OAuth states `0`;
+- the canonical `TEST (leeg)` connection is `3d851f4c-51c9-45b0-8f24-9e73de76caec` in `CONNECTING`, created by an old-build authorize attempt at `2026-09-09T13:08:20Z`; the other `CONNECTING` row is `Planeten` (`2d39442b-386c-4f7d-9d38-b244b82e8de4`) and was left untouched as outside the canonical fixture scope.
+- no employee/employment table was read or written by the P1 operation/test paths; the earlier P0 employee/employment baseline was not re-used as a P1 mutation target.
+
+The P1 SQL only creates/changes Payroll objects and the P1 service has no employee/employment table access. Static endpoint/code scans and provider tests confirm no employee/employment Nmbrs route; no employee/employment record was intentionally read or mutated during P1 verification.
+
+## Authenticated browser/persona evidence
+
+Authentication evidence is recorded per persona. Password values were never printed, logged, exposed or committed, and no password was guessed. The HR Admin acceptance evidence used the existing authenticated Codex in-app browser session; the separate API leak probe used the configured canonical fixture password without exposing its value. Manager and Employee used their configured canonical fixture passwords through the direct login flow; no magic-link fallback was needed.
+
+| Persona | Authentication method | Password required | Login route | Payroll result | API result | Errors |
+| --- | --- | --- | --- | --- | --- | ---: |
+| `hradmin.fixture@liquidhr.test` | existing authenticated Codex in-app browser session | no for the IAB evidence | existing session; no login route traversed | `/payroll`, `/payroll/employees`, `/payroll/differences`, `/payroll/settings` loaded as HR Admin; reload stayed on `/payroll/settings` | `/api/payroll` `200` in separate leak probe; no encrypted/raw credential key in response | 0 console, 0 page |
+| `manager.fixture@liquidhr.test` | valid direct password login using the configured canonical TEST fixture | yes | `/login?next=%2Fpayroll` | `/payroll` ended at `/geen-toegang`; reload stayed there; no Payroll nav or management surface | `/api/payroll` `403` | 0 unexpected console, 0 page |
+| `employee.fixture@liquidhr.test` | valid direct password login using the configured canonical TEST fixture | yes | `/login?next=%2Fpayroll` | `/payroll` ended at `/geen-toegang`; reload stayed there; no Payroll nav or management surface | `/api/payroll` `403` | 0 unexpected console, 0 page |
+
+Codex in-app browser evidence is separated explicitly:
+
+- The Codex in-app browser showed an authenticated `hradmin.fixture` session on `https://liquid-hr-hr-suite.vercel.app/payroll` and then `/payroll/settings`; it did not redirect to `/login`. Its active group was `TEST (leeg)`. This proves authenticated HR Admin route/persona state for the hosted build, but not the unhosted façade fix.
+- The manager and employee direct-login runs ended at `/geen-toegang`, both persisted after reload, and their deliberate negative `/api/payroll` probes returned `403`. The single console entry observed in those probes was the expected browser network report for the deliberate `403`; page-load runs without that probe had 0 console/page errors.
+- No browser left on `/login` was counted as authenticated evidence. `admin@example.com` was not used.
+
+The canonical Employee fixture has no tenant membership, so a deeper in-tenant Employee RLS data-scope probe remains a fixture limitation; the direct route/API denial is independently proven.
+
+## Tests and build gates
+
+- Payroll/security targeted suite: 4 files, 15 tests passed, including encryption, OAuth state/callback contract, token exchange/refresh rotation, company pagination, secondary subscription-key fallback, safe 401/403 mapping, revocation and the server-only private RPC façade contract.
+- Full suite: 362 test files; `1394` passed of `1396` tests. The only two failures are the pre-existing unrelated Document Studio PDF renderer timeout and the Document Studio DM1 LF/CRLF contract mismatch. Document Studio was not changed.
+- `npm.cmd run type-check`: passed.
+- `npm.cmd run lint`: passed.
+- `npm.cmd run check:i18n`: passed; 36 NL/EN namespaces have matching keys.
+- `git diff --check`: passed; existing CRLF warnings only.
+- `npm.cmd run build -- --webpack`: passed; 269/269 pages/routes generated, including all four Payroll views and P1 API routes. The known Turbopack symlink limitation remains; Webpack is the validated worktree build path.
+- Supabase TypeScript types were generated from remote; the exact five `payroll_private_*` RPC signatures were synchronized into `packages/db/types.ts` according to repository convention. No protected generated environment file was touched.
+
+## Supabase advisors
+
+Relevant current DEV advisor output:
+
+- Security `rls_enabled_no_policy` INFO: exactly the two intentional private server-only tables, `payroll_private.payroll_connection_credentials` and `payroll_private.payroll_oauth_states`. This is expected because both have RLS, no exposed policies and no anon/authenticated grants. [Remediation reference](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
+- Performance `unindexed_foreign_keys` INFO has no Payroll finding after the advisor-index migration; the two OAuth-state foreign keys now have `provider_idx` and `initiated_by_user_idx`.
+- Performance `unused_index` INFO includes Payroll indexes on empty/low-use tables, including the two newly applied OAuth-state advisor indexes. They are intentional query/foreign-key protection and were not removed. [Remediation reference](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)
+- Project-wide non-Payroll WARN/INFO findings (security-definer execution, leaked-password protection, multiple permissive policies and unrelated unused indexes) were not changed.
+
+## Deployment, Git and blockers
+
+- Historical Vercel deployment `dpl_6evf2p7D398NyxbPYL7o8Ev8tEvr` was READY/Production for project `liquidhr`, branch `work/payroll-p0-p1`, source commit `5d57323281b07bc2601c751db384ef3ad517ea6d`. It did not contain the façade fix.
+- Its runtime logs show `/api/payroll/providers/nmbrs/authorize` returning `500` at `2026-09-09T13:08:20Z`, `13:09:36Z`, `13:10:05Z` and `13:12:17Z`; the old code still attempted the non-exposed `payroll_private` schema and returned `PAYROLL_OAUTH_STATE_WRITE_FAILED` before the Nmbrs redirect.
+- The full P1 closure and subsequent scope-wire commits are pushed successfully to `origin/work/payroll-p0-p1`; current remote HEAD is `461e05635debff9124443947f9220ba7eaff8e11`. No merge to `main` occurred.
+- The historical post-push deployment attempt `dpl_J6BJuruFW8NUPm1ca6UbYHQr5wh2` targeted Production for source commit `bf51065276352136ec4831ee0cd620ddb778e9ed` and returned `BLOCKED` before runtime activation because of the Vercel Hobby-team collaboration guard.
+- Current GitHub-sourced Vercel Preview `dpl_C8UWUG4s7NgBDMympbsNtLdwx4Ba` and Production `dpl_8cqds6wkYWvhXpHKSPZKU2p1sbGN` are READY and source exact GitHub commit `461e05635debff9124443947f9220ba7eaff8e11`; Production is aliased to `liquid-hr-hr-suite.vercel.app`. No local/dirty worktree deployment was used.
+- The hosted real Nmbrs OAuth, callback, health, discovery, bind/unbind/reconnect/disconnect and remote audit E2E gates remain open. The current concrete external blocker is the Nmbrs consent-host `502 Bad Gateway` after the client-supported scope request; no callback was reached, so no company discovery, binding, employee/employment call or downstream P1 mutation occurred in this run.
+- The exact `C:\Users\Edwin\Documents\Apps\LiquidHR\.git\worktrees\payroll-p0-p1\index.lock` was absent at recovery time; no alternate index, force, reset or cleanup workaround was used. Protected `.env.local` and `next-env.d.ts` were not staged.
+
+## Gate disposition
+
+| Gate | Result |
+| --- | --- |
+| P0 DEV schema/RLS/grants/audit/browser | GREEN |
+| P1 local schema/code/types/tests/build/security boundary | GREEN; intentional unused-index INFO only |
+| P1 remote advisor follow-up migration | GREEN — remote `20260909125131 / payroll_p1_advisor_indexes` |
+| P1 private RPC façade/readback/replay protection | GREEN — remote `20260909133103 / payroll_p1_private_rpc_facade` |
+| P1 hosted deployment and real Nmbrs E2E | BLOCKED — exact GitHub-sourced Production `dpl_8cqds6wkYWvhXpHKSPZKU2p1sbGN` is READY, but Nmbrs consent host returns `502 Bad Gateway` before profiles |
+| Commit feature branch | GREEN — `461e05635debff9124443947f9220ba7eaff8e11` |
+| Push feature branch | GREEN — remote `work/payroll-p0-p1` reaches `461e05635debff9124443947f9220ba7eaff8e11` |
+| Production / main / other worktrees | untouched |
+
+Final status: **PAYROLL P1 DEVELOPMENT ACCEPTANCE: BLOCKED**.

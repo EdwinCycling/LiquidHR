@@ -1,5 +1,9 @@
 # Actuele overdracht Liquid HR
 
+## Lokale Payroll P0/P1-integratie — 2026-11-02
+
+C34-mergecommit 55f8d7039bee3b8a5910ce2230fc69342f2014b5 en Payroll P0/P1 4f99b04eab6cc7a79fd86048ccad1cd3dafc3cbe worden in deze werkmap gecombineerd. De P0/P1 OAuth/providerflow wordt opgenomen naast de bestaande Payroll-runs, werkgevers- en pensioenconfiguratie, kalender en lifecycle. Geen commit, push, migratie, databasewrite of deployment is onderdeel van deze conflictresolutie. De staged [P0/P1 evidence](PAYROLL_P0_P1_EVIDENCE.md) en [integration blueprint](../requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md) blijven behouden; daarin is hosted OAuth op het toenmalige Nmbrs consent-host 502 als externe blokkade vastgelegd.
+
 ## PAY-W04-ACL-MERGE-17 — 29-10-2026
 
 PR #69 is via normale mergecommit `b6835ef5e97bf6b0ba1f5d17acb624ffc08a5609` gemerged; lokale `main`, `origin/main` en GitHub `main` staan gelijk. De eerdere PR #51-code-integratie blijft GO. Post-merge Core TEST-readback bevestigt: anon SELECT/TRUNCATE/INSERT/UPDATE/DELETE false, geen directe anon- of `PUBLIC`-ACL, authenticated SELECT behouden, RLS aan en de bestaande `actual_work_payroll_mappings_read`-policy ongewijzigd. Core TEST-migratie `20261029114914` is eenmaal geregistreerd; niet herhaald.

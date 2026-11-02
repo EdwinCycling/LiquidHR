@@ -157,18 +157,16 @@ describe('Payroll integration authorization and scope', () => {
     expect(harness.requireTenantModule).toHaveBeenCalledWith('PAYROLL')
   })
 
-  it('keeps Nmbrs authorization, discovery, mapping, and disconnect operations disabled before I/O', async () => {
-    const disabled = { code: 'PAYROLL_EXTERNAL_INTEGRATION_DISABLED', status: 410 }
-    await expect(startNmbrsAuthorization()).rejects.toMatchObject(disabled)
-    await expect(completeNmbrsAuthorization({ state: 'state', code: 'code' })).rejects.toMatchObject(disabled)
-    await expect(failNmbrsAuthorization({ state: 'state' })).rejects.toMatchObject(disabled)
-    await expect(checkNmbrsConnection(connectionId)).rejects.toMatchObject(disabled)
-    await expect(discoverNmbrsCompanies(connectionId)).rejects.toMatchObject(disabled)
-    await expect(bindPayrollCompany({ providerCompanyId: companyId, administrationId })).rejects.toMatchObject(disabled)
-    await expect(unbindPayrollCompany(bindingId)).rejects.toMatchObject(disabled)
-    await expect(disconnectNmbrsConnection(connectionId)).rejects.toMatchObject(disabled)
-
-    expect(harness.requirePermission).not.toHaveBeenCalled()
+  it('requires payroll manage permission before connection, discovery, binding, and disconnect I/O', async () => {
+    harness.requirePermission.mockRejectedValue(new Error('permission required'))
+    await expect(startNmbrsAuthorization()).rejects.toThrow('permission required')
+    await expect(checkNmbrsConnection(connectionId)).rejects.toThrow('permission required')
+    await expect(discoverNmbrsCompanies(connectionId)).rejects.toThrow('permission required')
+    await expect(bindPayrollCompany({ providerCompanyId: companyId, administrationId })).rejects.toThrow('permission required')
+    await expect(unbindPayrollCompany(bindingId)).rejects.toThrow('permission required')
+    await expect(disconnectNmbrsConnection(connectionId)).rejects.toThrow('permission required')
+    expect(harness.requirePermission).toHaveBeenCalledTimes(6)
+    expect(harness.requirePermission).toHaveBeenCalledWith('payroll:manage')
     expect(harness.createClient).not.toHaveBeenCalled()
     expect(harness.createAdminClient).not.toHaveBeenCalled()
     expect(harness.getPayrollProvider).not.toHaveBeenCalled()

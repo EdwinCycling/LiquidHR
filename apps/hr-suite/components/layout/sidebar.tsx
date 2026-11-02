@@ -29,6 +29,7 @@ import {
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
+import { TestRoleSwitcher, type TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { HrGroupSwitcher } from '@/components/layout/hr-group-switcher'
 import { Clock } from '@/components/layout/clock'
 import { LiquidHRLogo } from '@/components/layout/liquidhr-logo'
@@ -104,6 +105,8 @@ interface SidebarProps {
   canReadJourneys: boolean
   canReadDocumentStudio: boolean
   canReadPayrollLab: boolean
+  canReadPayroll: boolean
+  testRoleSwitch: { enabled: boolean; currentEmail: string | null; options: TestRoleSwitchOption[]; labels: { title: string; hint: string } }
   canReadMySalary: boolean
   showSetupAssistant: boolean
   setupAssistantOpenLabel: string
@@ -141,7 +144,9 @@ export function Sidebar({
   canReadJourneys,
   canReadDocumentStudio,
   canReadPayrollLab,
+  canReadPayroll,
   canReadMySalary,
+  testRoleSwitch,
   showSetupAssistant,
   setupAssistantOpenLabel,
   labels,
@@ -180,7 +185,7 @@ export function Sidebar({
     { href: recruitmentHref, label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
     { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
     { href: '/document-studio', label: labels.documentStudio, icon: FileStack, visible: canReadDocumentStudio },
-    { href: '/payroll', label: labels.payroll, icon: Calculator, visible: canReadPayrollLab },
+    { href: '/payroll', label: labels.payroll, icon: Calculator, visible: canReadPayrollLab || canReadPayroll },
     { href: '/my-salary', label: labels.mySalary, icon: WalletCards, visible: canReadMySalary },
     { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights },
@@ -197,7 +202,7 @@ export function Sidebar({
     const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(normalizeSidebarMenuOrder(detail)) }
     const handleProductUpdatesSeen = () => setCurrentProductUpdateUnreadCount(0)
     load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); window.addEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen); return () => { window.removeEventListener('liquidhr-menu-order-changed', handleChange); window.removeEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen) }
-  }, [canOpenResearch, canReadDocumentStudio, canReadJourneys, canReadPayrollLab, canReadProcessWork, canReadRecruitment, canReadStartPage, canReadWorkforce])
+  }, [canOpenResearch, canReadDocumentStudio, canReadJourneys, canReadPayroll, canReadPayrollLab, canReadProcessWork, canReadRecruitment, canReadStartPage, canReadWorkforce])
   useEffect(() => {
     if (!accountMenuOpen) return
     const handlePointerDown = (event: PointerEvent) => {
@@ -269,6 +274,7 @@ export function Sidebar({
           </Link>}
           <div className={`relative flex shrink-0 items-center gap-2 ${collapsed ? 'flex-col gap-2' : 'flex-row'} [&>button]:!size-9 [&>button]:!rounded-md [&>form>button]:!size-9 [&>form>button]:!rounded-md`}>
             <ProductUpdateDrawerTrigger collapsed={collapsed} labels={productUpdateLabels} locale={locale} onClose={() => setMobileOpen(false)} unreadCount={currentProductUpdateUnreadCount} updates={productUpdates} />
+          {testRoleSwitch.enabled && testRoleSwitch.currentEmail ? <TestRoleSwitcher collapsed={collapsed} currentEmail={testRoleSwitch.currentEmail} labels={testRoleSwitch.labels} options={testRoleSwitch.options} /> : null}
             <button aria-label={labels.closeMenu} className="grid size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden" onClick={() => setMobileOpen(false)} type="button">
               <X aria-hidden="true" size={19} />
             </button>

@@ -136,12 +136,10 @@ export class NmbrsClient {
   async refreshCredentials(refreshToken: string): Promise<PayrollTokenSet> {
     if (!refreshToken.trim()) throw new PayrollProviderError('NMBRS_REFRESH_TOKEN_MISSING', 409)
     const currentConfig = config(this.configured)
-    const refreshed = await this.exchangeToken(new URL(NMBRS_TOKEN_ENDPOINT), new URLSearchParams({
+    return this.exchangeToken(new URL(NMBRS_TOKEN_ENDPOINT), new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
     }), currentConfig)
-    if (!refreshed.refreshToken) throw new PayrollProviderError('NMBRS_REFRESH_TOKEN_MISSING', 502)
-    return refreshed
   }
 
   async getConnectionHealth(accessToken: string): Promise<PayrollConnectionHealth> {

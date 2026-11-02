@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getPayrollProvider, nmbrsPayrollProvider } from './provider'
+import { nmbrsPayrollProvider } from './provider'
 import { getPayrollProvider as getRegisteredPayrollProvider } from '../index'
 import { NmbrsClient } from './client'
 
@@ -21,9 +21,8 @@ describe('Nmbrs Payroll adapter P1 boundary', () => {
     vi.unstubAllGlobals()
   })
 
-  it('does not expose Nmbrs through the active Payroll provider registry', () => {
-    expect(getRegisteredPayrollProvider('NMBRS')).toBeNull()
-    expect(() => getPayrollProvider('NMBRS')).toThrow('PAYROLL_EXTERNAL_INTEGRATION_DISABLED')
+  it('registers Nmbrs in the provider-neutral registry', () => {
+    expect(getRegisteredPayrollProvider('NMBRS')).toBe(nmbrsPayrollProvider)
   })
 
   it('uses the provider-neutral P1 capability boundary and official OAuth scopes', async () => {
@@ -76,13 +75,13 @@ describe('Nmbrs Payroll adapter P1 boundary', () => {
     expect(refreshBody.get('refresh_token')).toBe('refresh-1')
   })
 
-  it('fails closed when the provider does not return the rotated refresh token', async () => {
+  it('allows an omitted rotated refresh token so the service can retain the existing credential', async () => {
     const client = new NmbrsClient({
       config: clientConfig,
       fetcher: vi.fn<typeof fetch>().mockResolvedValue(response({ access_token: 'access-2', expires_in: 900 })),
     })
 
-    await expect(client.refreshCredentials('refresh-1')).rejects.toMatchObject({ code: 'NMBRS_REFRESH_TOKEN_MISSING', status: 502 })
+    await expect(client.refreshCredentials('refresh-1')).resolves.toMatchObject({ accessToken: 'access-2', refreshToken: null })
   })
 
   it('paginates company metadata without calling employee or employment endpoints', async () => {
