@@ -16,6 +16,18 @@ describe('build source attestation timing', () => {
     expect(unexpectedBuildSourceChanges('?? generated-config.json\0')).toEqual(['?? generated-config.json'])
   })
 
+  it('applies repository Vercel ignore rules to tracked deletions after attestation', () => {
+    const status = [
+      ' D .artifacts/deleted-report.png',
+      ' D .qoder/deleted-cache.md',
+      ' D .mcp.json',
+      '?? vercel.json',
+      ' M apps/hr-suite/app/page.tsx',
+    ].join('\0')
+    expect(unexpectedTrackedBuildSourceChanges(status, ['.artifacts/', '.qoder/', '.mcp.json']))
+      .toEqual([' M apps/hr-suite/app/page.tsx'])
+  })
+
   it('continues to reject tracked changes after Vercel config compilation', () => {
     const status = [
       '?? generated-config.json',
