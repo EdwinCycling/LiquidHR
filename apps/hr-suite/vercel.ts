@@ -4,7 +4,7 @@ export const config = {
     deploymentEnabled: false,
   },
   regions: ['cdg1'],
-  installCommand: 'npm ci',
+  installCommand: 'npm ci && node scripts/verify-build-source.mjs',
   buildCommand: 'npm run build --workspace @liquid-hr/hr-suite',
   ignoreCommand: 'node ../../scripts/vercel-ignore-build.mjs',
   outputDirectory: '.next',

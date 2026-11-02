@@ -1,0 +1,31 @@
+import { describe, expect, it } from 'vitest'
+import { matchesBuildSourceAttestation, unexpectedTrackedBuildSourceChanges } from './build-source-attestation.mjs'
+import { unexpectedBuildSourceChanges } from './build-source-status.mjs'
+
+const commit = 'a'.repeat(40)
+
+describe('build source attestation timing', () => {
+  it('requires valid and matching source, platform, and install attestations', () => {
+    expect(matchesBuildSourceAttestation({ sourceCommit: commit, platformCommit: commit, attestedCommit: commit })).toBe(true)
+    expect(matchesBuildSourceAttestation({ sourceCommit: commit, platformCommit: 'b'.repeat(40), attestedCommit: commit })).toBe(false)
+    expect(matchesBuildSourceAttestation({ sourceCommit: commit, platformCommit: commit, attestedCommit: 'b'.repeat(40) })).toBe(false)
+    expect(matchesBuildSourceAttestation({ sourceCommit: 'invalid', platformCommit: null, attestedCommit: 'invalid' })).toBe(false)
+  })
+
+  it('rejects all untracked files in the strict post-install gate', () => {
+    expect(unexpectedBuildSourceChanges('?? generated-config.json\0')).toEqual(['?? generated-config.json'])
+  })
+
+  it('continues to reject tracked changes after Vercel config compilation', () => {
+    const status = [
+      '?? generated-config.json',
+      ' M package-lock.json',
+      ' M apps/hr-suite/vercel.ts',
+    ].join('\0')
+
+    expect(unexpectedTrackedBuildSourceChanges(status)).toEqual([
+      ' M package-lock.json',
+      ' M apps/hr-suite/vercel.ts',
+    ])
+  })
+})

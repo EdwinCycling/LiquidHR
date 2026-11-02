@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { MAX_DOCUMENT_REQUEST_BYTES } from './lib/documents/file-rules'
 import { securityHeaders } from './lib/security/security-headers'
+import { matchesBuildSourceAttestation, unexpectedTrackedBuildSourceChanges } from './scripts/build-source-attestation.mjs'
+import { unexpectedBuildSourceChanges } from './scripts/build-source-status.mjs'
 
 function verifiedBuildSourceSha(): string | undefined {
   if (process.env.NODE_ENV !== 'production') return undefined
@@ -20,8 +22,12 @@ function verifiedBuildSourceSha(): string | undefined {
   }
 
   const sourceCommit = gitCommit
-  const changedPaths = gitStatus.split(/\r?\n/).filter(Boolean).map((line) => line.slice(3).replaceAll('\\', '/'))
   const allowedGeneratedPath = 'apps/hr-suite/lib/workforce-tools/mcp/focus-widget-resource.ts'
+  const statusEntries = gitStatus.split(/\r?\n/).filter(Boolean).join('\0')
+  const unexpectedChanges = platformCommit
+    ? unexpectedTrackedBuildSourceChanges(statusEntries)
+    : unexpectedBuildSourceChanges(statusEntries, [])
+  const changedPaths = unexpectedChanges.map((line) => line.slice(3).replaceAll('\\', '/'))
   if (!sourceCommit || !/^[a-f0-9]{40}$/i.test(sourceCommit) || changedPaths.some((changedPath) => changedPath !== allowedGeneratedPath)) {
     throw new Error('The production build source changed outside the verified build and its Focus widget output.')
   }
@@ -37,7 +43,9 @@ function verifiedBuildSourceSha(): string | undefined {
   } catch {
     throw new Error('A verified Git source SHA is required for production builds.')
   }
-  if (recordedCommit !== sourceCommit) throw new Error('Build-source preflight and Git source SHAs must match.')
+  if (!matchesBuildSourceAttestation({ sourceCommit, platformCommit: platformCommit ?? null, attestedCommit: recordedCommit })) {
+    throw new Error('Build-source preflight, Git, and Vercel source SHAs must match.')
+  }
   return sourceCommit
 }
 
