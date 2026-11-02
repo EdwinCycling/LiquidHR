@@ -10,6 +10,7 @@
     "eslint": "9.39.5"
   },
   "scripts": {
+    "postinstall": "node apps/hr-suite/scripts/vercel-install-source.mjs",
     "dev": "npm run dev -w @liquid-hr/hr-suite",
     "dev:control": "npm run dev -w @liquid-hr/control",
     "build:control": "npm run build -w @liquid-hr/control",
