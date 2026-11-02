@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -13,7 +14,10 @@ vi.mock('@/lib/auth/permissions', () => ({ requireAuthContext: mocks.requireAuth
 vi.mock('server-only', () => ({}))
 
 import { GET } from './route'
-import { config as vercelConfig } from '../../../../vercel'
+const vercelConfig = JSON.parse(readFileSync(new URL('../../../../vercel.json', import.meta.url), 'utf8')) as {
+  installCommand: string
+  crons: Array<{ path: string; schedule: string }>
+}
 
 const job = {
   id: '00000000-0000-4000-8000-000000000001',
