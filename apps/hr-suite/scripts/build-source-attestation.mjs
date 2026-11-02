@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 import { unexpectedBuildSourceChanges } from './build-source-status.mjs'
 
 const shaPattern = /^[a-f0-9]{40}$/i
@@ -17,4 +18,28 @@ export function matchesBuildSourceAttestation({ sourceCommit, platformCommit, at
 export function unexpectedTrackedBuildSourceChanges(statusOutput, vercelIgnorePatterns = []) {
   return unexpectedBuildSourceChanges(statusOutput, vercelIgnorePatterns)
     .filter((entry) => entry.slice(0, 2) !== '??')
+}
+
+/**
+ * Vercel CLI may materialize project-root vercel.json before npm postinstall.
+ * Accept only the equivalent JSON object from our committed app config; never
+ * permit arbitrary untracked source files or changes in tracked config.
+ */
+export function isExactGeneratedVercelConfig(generatedJson, committedJson) {
+  try {
+    const generated = JSON.parse(generatedJson)
+    const committed = JSON.parse(committedJson)
+    return generated !== null && typeof generated === 'object'
+      && !Array.isArray(generated)
+      && committed !== null && typeof committed === 'object'
+      && !Array.isArray(committed)
+      && isDeepStrictEqual(generated, committed)
+  } catch {
+    return false
+  }
+}
+
+export function unexpectedChangesAfterVerifiedVercelConfig(entries, isVerified) {
+  if (!isVerified) return entries
+  return entries.filter((entry) => entry !== '?? vercel.json')
 }
