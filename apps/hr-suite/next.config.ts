@@ -22,28 +22,16 @@ function verifiedBuildSourceSha(): string | undefined {
   }
 
   const sourceCommit = gitCommit
-  const allowedGeneratedPath = 'apps/hr-suite/lib/workforce-tools/mcp/focus-widget-resource.ts'
-  const statusEntries = gitStatus.split(/\r?\n/).filter(Boolean).join('\0')
-  // The earlier postinstall source gate already attested the full checkout.
-  // Use the SAME reviewed Vercel exclusions for intentionally omitted tracked
-  // paths, but keep all other tracked mutations blocked.
-  let vercelIgnorePatterns: string[] = []
-  try {
-    vercelIgnorePatterns = readFileSync(path.join(repoRoot, '.vercelignore'), 'utf8').split(/\r?\n/)
-  } catch {
-    // Missing ignore rules cannot authorize omissions: default fail-closed.
-  }
-  const unexpectedChanges = platformCommit
-    ? unexpectedTrackedBuildSourceChanges(statusEntries, vercelIgnorePatterns)
-    : unexpectedBuildSourceChanges(statusEntries, vercelIgnorePatterns)
-  const changedPaths = unexpectedChanges.map((line) => line.slice(3).replaceAll('\\', '/'))
-  if (!sourceCommit || !/^[a-f0-9]{40}$/i.test(sourceCommit) || changedPaths.some((changedPath) => changedPath !== allowedGeneratedPath)) {
-    throw new Error('The production build source changed outside the verified build and its Focus widget output.')
+  if (!sourceCommit || !/^[a-f0-9]{40}$/i.test(sourceCommit)) {
+    throw new Error('A valid Git source SHA is required for production builds.')
   }
   if (platformCommit && platformCommit !== sourceCommit) {
     throw new Error('Vercel and Git source SHAs must match for production builds.')
   }
 
+  // The strict npm postinstall gate already checked Git SHA and all source
+  // changes, including untracked paths. Verify its recorded SHA BEFORE
+  // permitting hosted-generated untracked build/config output.
   let recordedCommit: unknown
   try {
     const parsed: unknown = JSON.parse(readFileSync(recordPath, 'utf8'))
@@ -54,6 +42,37 @@ function verifiedBuildSourceSha(): string | undefined {
   }
   if (!matchesBuildSourceAttestation({ sourceCommit, platformCommit: platformCommit ?? null, attestedCommit: recordedCommit })) {
     throw new Error('Build-source preflight, Git, and Vercel source SHAs must match.')
+  }
+
+  const allowedGeneratedPath = 'apps/hr-suite/lib/workforce-tools/mcp/focus-widget-resource.ts'
+  const statusEntries = gitStatus.split(/\r?\n/).filter(Boolean).join('\0')
+  let vercelIgnorePatterns: string[] = []
+  try {
+    vercelIgnorePatterns = readFileSync(path.join(repoRoot, '.vercelignore'), 'utf8').split(/\r?\n/)
+  } catch {
+    // Missing ignore rules cannot authorize omissions: default fail-closed.
+  }
+  // A child Next process need not expose the same VERCEL_GIT_COMMIT_SHA as the
+  // npm install runner. In Vercel, the previous strict source attestation is
+  // independently verified above and requires the exact Git source SHA.
+  const hostedVercelBuild = Boolean(platformCommit || process.env.VERCEL === '1' || process.env.VERCEL_ENV)
+  const unexpectedChanges = hostedVercelBuild
+    ? unexpectedTrackedBuildSourceChanges(statusEntries, vercelIgnorePatterns)
+    : unexpectedBuildSourceChanges(statusEntries, vercelIgnorePatterns)
+  const changedPaths = unexpectedChanges.map((line) => line.slice(3).replaceAll('\\', '/'))
+  if (changedPaths.some((changedPath) => changedPath !== allowedGeneratedPath)) {
+    // No file contents, secrets or environment values are logged.
+    const safePaths = changedPaths.slice(0, 10).map((filePath) =>
+      /(^|[._/\-])(env|secret|token|credential|password|cookie|session|private|pem|key|ssh|auth)(?=$|[._/\-])/i.test(filePath)
+        ? '[redacted]' : filePath)
+    console.error('Next source gate diagnostics:', JSON.stringify({
+      hostedVercelBuild,
+      platformShaProvided: Boolean(platformCommit),
+      sourceAttestationVerified: true,
+      unexpectedTrackedCount: changedPaths.length,
+      changedPaths: safePaths,
+    }))
+    throw new Error('The production build source changed outside the verified build and its Focus widget output.')
   }
   return sourceCommit
 }
