@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { determineInstallGate } from './vercel-install-source.mjs'
+import { determineInstallGate } from './vercel-install-source-policy.mjs'
 
 const commit = 'a'.repeat(40)
 
