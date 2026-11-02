@@ -30,6 +30,17 @@ describe('build source attestation timing', () => {
       .toEqual([' M apps/hr-suite/app/page.tsx'])
   })
 
+  it('correctly matches Vercel-ignored paths containing spaces in NUL-separated git status', () => {
+    const patterns = ['.qoder/', '.artifacts/']
+    const rawPorcelainZ = [
+      ' D .qoder/repowiki/en/content/API Reference/AI Assistant APIs.md',
+      ' D .artifacts/Focus Screenshot 1.png',
+      ' M apps/hr-suite/app/page.tsx',
+    ].join('\0')
+    expect(unexpectedTrackedBuildSourceChanges(rawPorcelainZ, patterns))
+      .toEqual([' M apps/hr-suite/app/page.tsx'])
+  })
+
   it('continues to reject tracked changes after Vercel config compilation', () => {
     const status = [
       '?? generated-config.json',

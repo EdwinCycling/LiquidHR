@@ -16,7 +16,7 @@ function verifiedBuildSourceSha(): string | undefined {
   let gitStatus: string | null = null
   try {
     gitCommit = execFileSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-    gitStatus = execFileSync('git', ['-C', repoRoot, 'status', '--porcelain', '--untracked-files=normal'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trimEnd()
+    gitStatus = execFileSync('git', ['-C', repoRoot, 'status', '--porcelain=v1', '--untracked-files=normal', '-z'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   } catch {
     throw new Error('A readable, clean Git source is required for production builds.')
   }
@@ -45,7 +45,8 @@ function verifiedBuildSourceSha(): string | undefined {
   }
 
   const allowedGeneratedPath = 'apps/hr-suite/lib/workforce-tools/mcp/focus-widget-resource.ts'
-  const statusEntries = gitStatus.split(/\r?\n/).filter(Boolean).join('\0')
+  // NUL-separated porcelain preserves unquoted names with spaces and XY prefixes.
+  const statusEntries = gitStatus
   let vercelIgnorePatterns: string[] = []
   try {
     vercelIgnorePatterns = readFileSync(path.join(repoRoot, '.vercelignore'), 'utf8').split(/\r?\n/)
