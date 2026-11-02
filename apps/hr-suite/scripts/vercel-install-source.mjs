@@ -4,16 +4,12 @@ import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { determineInstallGate } from './vercel-install-source-policy.mjs'
+export { determineInstallGate }
 
 const scriptPath = fileURLToPath(import.meta.url)
 const appRoot = path.resolve(path.dirname(scriptPath), '..')
 const recordPath = path.join(appRoot, '.vercel', 'liquidhr-build-source.json')
-
-export function determineInstallGate({ isVercel, platformCommit, attestationExists }) {
-  if (!isVercel && !platformCommit) return 'skip'
-  if (!platformCommit || !/^[a-f0-9]{40}$/i.test(platformCommit)) return 'fail'
-  return attestationExists ? 'prebuild' : 'strict'
-}
 
 if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) {
   const platformCommit = process.env.VERCEL_GIT_COMMIT_SHA?.trim() || null
