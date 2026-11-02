@@ -91,6 +91,17 @@ if (!sourceCommit || !shaPattern.test(sourceCommit) || unexpectedChanges.length 
     .filter((entry) => entry.slice(0, 2) !== '??')
     .slice(0, 8)
     .map((entry) => entry.slice(3))
+  // Filenames only, never file contents or local filesystem paths.
+  // Redact potential credential names, control characters and unsupported paths.
+  const untrackedPaths = unexpectedChanges
+    .filter((entry) => entry.slice(0, 2) === '??')
+    .slice(0, 5)
+    .map((entry) => {
+      const candidate = entry.slice(3).replaceAll('\\', '/')
+      return /^[a-zA-Z0-9._/\\-]{1,160}$/.test(candidate)
+        && !/(^|[._/\\-])(env|secret|secrets|token|credential|credentials|password|passwd|cookie|session|private|pem|key|ssh|auth)(?=$|[._/\\-])/i.test(candidate)
+        ? candidate : '[redacted]'
+    })
   console.error('Build source gate diagnostics:', JSON.stringify({
     validSourceSha: Boolean(sourceCommit && shaPattern.test(sourceCommit)),
     platformShaProvided: Boolean(platformCommit),
@@ -98,6 +109,7 @@ if (!sourceCommit || !shaPattern.test(sourceCommit) || unexpectedChanges.length 
     unexpectedCount: unexpectedChanges.length,
     statusCounts,
     trackedPaths,
+    untrackedPaths,
   }))
   console.error('Verified build source unavailable: source must be clean and match the platform commit when provided.')
   process.exit(1)
