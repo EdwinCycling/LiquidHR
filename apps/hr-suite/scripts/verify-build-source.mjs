@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { matchesBuildSourceAttestation, unexpectedTrackedBuildSourceChanges } from './build-source-attestation.mjs'
+import { isExactGeneratedVercelConfig, matchesBuildSourceAttestation, unexpectedChangesAfterVerifiedVercelConfig, unexpectedTrackedBuildSourceChanges } from './build-source-attestation.mjs'
 import { unexpectedBuildSourceChanges } from './build-source-status.mjs'
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -43,7 +43,26 @@ try {
   // A missing ignore file is valid; it simply means no paths are excluded by Vercel.
 }
 
-const unexpectedChanges = unexpectedBuildSourceChanges(gitStatus, vercelIgnorePatterns)
+const rawChanges = unexpectedBuildSourceChanges(gitStatus, vercelIgnorePatterns)
+let generatedConfigVerified = false
+// Vercel may copy the versioned app config into an untracked project-root
+// vercel.json before npm ci postinstall. Verify content, identity and regular
+// file type before treating this precise generated copy as harmless.
+if (phase !== '--prebuild' && platformCommit && platformCommit === sourceCommit
+  && shaPattern.test(sourceCommit) && rawChanges.includes('?? vercel.json')) {
+  try {
+    const generatedPath = path.join(repoRoot, 'vercel.json')
+    if (lstatSync(generatedPath).isFile()) {
+      generatedConfigVerified = isExactGeneratedVercelConfig(
+        readFileSync(generatedPath, 'utf8'),
+        readFileSync(path.join(appRoot, 'vercel.json'), 'utf8'),
+      )
+    }
+  } catch {
+    generatedConfigVerified = false
+  }
+}
+const unexpectedChanges = unexpectedChangesAfterVerifiedVercelConfig(rawChanges, generatedConfigVerified)
 if (phase === '--prebuild' && platformCommit) {
   let attestedCommit
   try {
