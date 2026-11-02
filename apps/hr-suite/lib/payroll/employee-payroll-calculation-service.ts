@@ -235,12 +235,12 @@ function isCustomerStandardSource(value: unknown): boolean {
     && /^[0-9a-f]{64}$/i.test(configuration.configurationHash)
 }
 
-function isPartialRegularWage(value: unknown): boolean {
+function isCompositeRegularWage(value: unknown): boolean {
   const source = record(value)
   const regularWage = record(source?.regularWage)
   return regularWage?.fullPeriod === false
     && typeof regularWage.timePeriod === 'string'
-    && (regularWage.timePeriod === 'MONTH' || parseNl2026CompositeTimePeriod(regularWage.timePeriod) !== null)
+    && parseNl2026CompositeTimePeriod(regularWage.timePeriod) !== null
 }
 
 function isCaoExactGrossSource(value: unknown): boolean {
@@ -259,7 +259,7 @@ function payfull02PackageForSource(value: unknown): PayrollRulePackage | null {
     ? componentSet.compositionId
     : ''
   return createPayfull02RulePackage(isCustomerStandardSource(value) ? 'CUSTOMER_STANDARD' : 'DEMO_COMPANY_TEST', {
-    supportPartialPeriods: isPartialRegularWage(value)
+    supportPartialPeriods: isCompositeRegularWage(value)
       || configuredCompositionId.includes('+PARTIAL-PERIODS-2026.1'),
     supportCaoExactGross: isCaoExactGrossSource(value),
     allocatePensionRoundingRemainderToEmployer: configuredCompositionId.includes('+PENSION-EMPLOYER-REMAINDER-2026.1'),
@@ -666,7 +666,7 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIso
   const compositeTimePeriod = typeof wage?.timePeriod === 'string'
     ? parseNl2026CompositeTimePeriod(wage.timePeriod)
     : null
-  const supportedWagePeriod = wage?.timePeriod === 'MONTH' && typeof wage.fullPeriod === 'boolean'
+  const supportedWagePeriod = wage?.timePeriod === 'MONTH' && wage.fullPeriod === true
     || compositeTimePeriod !== null && wage?.fullPeriod === false
   if (!wage || wage.fiscalYear !== String(snapshot.periodReference.year) || typeof wage.grossAmount !== 'string'
     || !supportedWagePeriod) {
