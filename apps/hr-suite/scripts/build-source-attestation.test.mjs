@@ -10,6 +10,8 @@ describe('build source attestation timing', () => {
     expect(matchesBuildSourceAttestation({ sourceCommit: commit, platformCommit: 'b'.repeat(40), attestedCommit: commit })).toBe(false)
     expect(matchesBuildSourceAttestation({ sourceCommit: commit, platformCommit: commit, attestedCommit: 'b'.repeat(40) })).toBe(false)
     expect(matchesBuildSourceAttestation({ sourceCommit: 'invalid', platformCommit: null, attestedCommit: 'invalid' })).toBe(false)
+    // A verified recorded SHA is valid even when a Next child process lacks platform env.
+    expect(matchesBuildSourceAttestation({ sourceCommit: commit, platformCommit: null, attestedCommit: commit })).toBe(true)
   })
 
   it('rejects all untracked files in the strict post-install gate', () => {
