@@ -6,7 +6,7 @@ export const config = {
   regions: ['cdg1'],
   installCommand: 'npm ci',
   buildCommand: 'npm run build --workspace @liquid-hr/hr-suite',
-  ignoreCommand: 'node scripts/vercel-ignore-build.mjs',
+  ignoreCommand: 'node ../../scripts/vercel-ignore-build.mjs',
   outputDirectory: '.next',
   crons: [
     { path: '/api/cron/recruitment-retention', schedule: '0 3 * * *' },

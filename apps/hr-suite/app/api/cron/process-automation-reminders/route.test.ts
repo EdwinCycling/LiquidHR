@@ -13,7 +13,7 @@ vi.mock('@/lib/auth/permissions', () => ({ requireAuthContext: mocks.requireAuth
 vi.mock('server-only', () => ({}))
 
 import { GET } from './route'
-import { config as vercelConfig } from '../../../../../../vercel'
+import { config as vercelConfig } from '../../../../vercel'
 
 const job = {
   id: '00000000-0000-4000-8000-000000000001',
