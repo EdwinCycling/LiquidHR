@@ -45,11 +45,11 @@ try {
 
 const unexpectedChanges = unexpectedBuildSourceChanges(gitStatus, vercelIgnorePatterns)
 if (phase === '--prebuild' && platformCommit) {
-  let attestedCommit: unknown
+  let attestedCommit
   try {
-    const parsed: unknown = JSON.parse(readFileSync(recordPath, 'utf8'))
+    const parsed = JSON.parse(readFileSync(recordPath, 'utf8'))
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error()
-    attestedCommit = (parsed as { sourceCommit?: unknown }).sourceCommit
+    attestedCommit = parsed.sourceCommit
   } catch {
     console.error('Verified build source unavailable: the post-install source attestation is missing.')
     process.exit(1)
