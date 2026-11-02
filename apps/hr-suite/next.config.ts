@@ -24,9 +24,18 @@ function verifiedBuildSourceSha(): string | undefined {
   const sourceCommit = gitCommit
   const allowedGeneratedPath = 'apps/hr-suite/lib/workforce-tools/mcp/focus-widget-resource.ts'
   const statusEntries = gitStatus.split(/\r?\n/).filter(Boolean).join('\0')
+  // The earlier postinstall source gate already attested the full checkout.
+  // Use the SAME reviewed Vercel exclusions for intentionally omitted tracked
+  // paths, but keep all other tracked mutations blocked.
+  let vercelIgnorePatterns: string[] = []
+  try {
+    vercelIgnorePatterns = readFileSync(path.join(repoRoot, '.vercelignore'), 'utf8').split(/\r?\n/)
+  } catch {
+    // Missing ignore rules cannot authorize omissions: default fail-closed.
+  }
   const unexpectedChanges = platformCommit
-    ? unexpectedTrackedBuildSourceChanges(statusEntries)
-    : unexpectedBuildSourceChanges(statusEntries, [])
+    ? unexpectedTrackedBuildSourceChanges(statusEntries, vercelIgnorePatterns)
+    : unexpectedBuildSourceChanges(statusEntries, vercelIgnorePatterns)
   const changedPaths = unexpectedChanges.map((line) => line.slice(3).replaceAll('\\', '/'))
   if (!sourceCommit || !/^[a-f0-9]{40}$/i.test(sourceCommit) || changedPaths.some((changedPath) => changedPath !== allowedGeneratedPath)) {
     throw new Error('The production build source changed outside the verified build and its Focus widget output.')
