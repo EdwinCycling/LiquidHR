@@ -103,7 +103,7 @@ describe('process automation reminder scheduler route', () => {
   })
 
   it('keeps Vercel install reproducible and preserves the daily schedules', () => {
-    expect(vercelConfig.installCommand).toBe('npm ci && node scripts/verify-build-source.mjs')
+    expect(vercelConfig.installCommand).toBe('npm ci')
     expect(vercelConfig.crons).toContainEqual({ path: '/api/cron/process-automation-reminders', schedule: '0 6 * * *' })
     expect(vercelConfig.crons).toContainEqual({ path: '/api/cron/recruitment-retention', schedule: '0 3 * * *' })
   })

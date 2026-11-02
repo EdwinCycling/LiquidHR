@@ -4,7 +4,9 @@ export const config = {
     deploymentEnabled: false,
   },
   regions: ['cdg1'],
-  installCommand: 'npm ci && node scripts/verify-build-source.mjs',
+  // The strict source check runs from the Project Settings install hook before
+  // Vercel compiles this config. This second install step must stay npm ci only.
+  installCommand: 'npm ci',
   buildCommand: 'npm run build --workspace @liquid-hr/hr-suite',
   ignoreCommand: 'node ../../scripts/vercel-ignore-build.mjs',
   outputDirectory: '.next',
