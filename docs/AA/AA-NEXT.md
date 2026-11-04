@@ -1,5 +1,7 @@
 # AA-NEXT — Short-Term Roadmap
 
+> **04-11-2026 — ACTIEVE PAYROLL-FAST-VALUE BESLISSING:** Start direct met [PAYROLL-FAST-01 #92](https://github.com/EdwinCycling/LiquidHR/issues/92): bestaande concept bruto-nettoberekening op geautoriseerde synthetische Core-bron, daarna read-only ESS /my-salary/pro-forma (bonus, extra uren, hypothetische salariswijziging) via dezelfde deterministische engine zonder writes. [PAYROLL-FAST-02 #93](https://github.com/EdwinCycling/LiquidHR/issues/93): echte periodegebonden componenttoewijzingen. Daarna templates, ontbrekende P1-bronnen, P2 wettelijke cyclus. Uitvoering/DoD: [PAYROLL-FAST-VALUE-ROADMAP-20261104](../requirements/payroll/PAYROLL-FAST-VALUE-ROADMAP-20261104.md). Deze prioriteit vervangt de historische volgorde die eerst PFAST-02 voorschreef; geen acceptatie claimen vóór werkelijke tests.
+
 > **04-11-2026 — LEIDENDE VOLGORDE na één-versieconsolidatie:** [Payroll audit/roadmapcheck](AA-PAYROLL-AUDIT-20261104.md). **DONE:** C34/W04/P0-P1/WVP01-code in `main`, fix PR #89, Vercel `fbe44908` READY op canonieke alias. **NU:** hosted HR Admin/Manager/Employee en Mars/Jantje-bron-/Payroll-smoke, CI op main en read-only Core-migratiereconciliatie. **DAARNA:** PFAST-01 volledige geauthenticeerde variabel-loonketen inclusief mid-period/tijdvak/pensioen; PFAST-02 component per periode; PFAST-03 componenttemplates; PFAST-04 read-only pro-forma. **LATER:** P2 wettelijke cyclus, P3 parallelpilot, G1–G3. Onderstaande 29-10-PR- en HOLD-instructies zijn historische snapshots: heropen gemergde waves niet.
 
 

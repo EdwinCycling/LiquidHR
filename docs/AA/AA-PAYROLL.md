@@ -1,5 +1,7 @@
 # AA-PAYROLL — LiquidHR Payroll Development Standard
 
+> **04-11-2026 — UITVOERING GESTART:** De nieuwe ESS-pro-forma-/bruto-nettoontwikkelvolgorde staat in [PAYROLL-FAST-VALUE-ROADMAP-20261104](../requirements/payroll/PAYROLL-FAST-VALUE-ROADMAP-20261104.md) en GitHub issues [#92](https://github.com/EdwinCycling/LiquidHR/issues/92), [#93](https://github.com/EdwinCycling/LiquidHR/issues/93). Reuse bestaande engine met sourceValueOverrides/read-only preview, geen tweede engine of persistente what-if-run. Verwar roadmap/issue-registratie niet met gebouwde of hosted geaccepteerde code.
+
 > **04-11-2026 — CODE-/ROADMAPCHECK:** de geconsolideerde Payroll-code staat in `main` en de bestaande Vercel-TEST-app draait op dezelfde geverifieerde bron-SHA `fbe44908`. Het globale Payroll-schakelpunt staat AAN; tenant-, HR-groep-, administratie- en RLS-autoristatie blijft leidend. Zie [de audit met aanwezige modules, tests, migraties, bronlacunes en PFAST/P2-roadmap](AA-PAYROLL-AUDIT-20261104.md). Deze nieuwe toets is geen wettelijke of gehoste payrollacceptatie; oude statusblokken hieronder blijven historisch.
 
 
