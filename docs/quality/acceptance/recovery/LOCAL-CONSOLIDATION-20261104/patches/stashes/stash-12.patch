@@ -1,0 +1,95 @@
+diff --git a/docs/quality/acceptance/runs/BRAND01-FINAL-CLOSEOUT-20261012.md b/docs/quality/acceptance/runs/BRAND01-FINAL-CLOSEOUT-20261012.md
+index 630705e5..53bf7fd6 100644
+--- a/docs/quality/acceptance/runs/BRAND01-FINAL-CLOSEOUT-20261012.md
++++ b/docs/quality/acceptance/runs/BRAND01-FINAL-CLOSEOUT-20261012.md
+@@ -3,55 +3,42 @@
+ | Veld | Waarde |
+ | --- | --- |
+ | Datum | 12 oktober 2026 |
+-| Status | **PARTIAL — integratie, push, deployment en worktree-cleanup geblokkeerd door releasegate en open browserbewijs** |
++| Status | **PARTIAL / HOLD — geen push, deployment of worktree-cleanup** |
+ | Branch | `work/BRAND01-20261012` |
+-| Code-SHA | `bd03bc26a78172fad5d757cd09f72296ee61c809` |
+-| Laatst waargenomen `origin/main` | `db23b12446b4d04c823710ae48780dd0b47cc5b8` (read-only `git ls-remote`) |
++| Kandidaat-SHA | `e432647c4315ef15aeb464f9520d45042f0c7126` |
++| `origin/main` bij laatste read-only controle | `a5d1b3ff61e8c1d1af05a0c89b08a4fe73472495` |
++| Afzonderlijke baseline-testfix | `fd85b653` |
+ 
+-## Opgeleverd
++## Opgeleverd en lokaal geverifieerd
+ 
+-- OAuth-consent en contextkeuze zijn op dezelfde professionele LiquidHR AuthShell en NL/EN-presentatie gebaseerd. De koppelingsteksten tonen geen interne testlabeling.
+-- De consentpagina beschrijft de acht read-only tools die `CHATGPT_MCP_TOOLS` aanbiedt: ontwikkelplannen, ontwikkelgaps, skills, competenties, verlofsaldo, eerstvolgend goedgekeurd verlof, verlofaanvragen en persoonlijke herinneringen.
+-- De scope-uitleg benoemt `openid`, `email` en `offline_access`. De pagina blijft self-only en read-only. OAuth-validatie, contextselectie, scopes, autorisatie en toolgedrag zijn niet gewijzigd.
+-- Toegevoegd: een contracttest die de disclosure vergelijkt met de volledige MCP-toolcatalogus, inclusief NL- en EN-copy.
++- Consent en contextkeuze gebruiken dezelfde gedeelde LiquidHR `AuthShell`, merklogo, responsieve indeling en NL/EN-copy. De consent- en contextteksten bevatten geen zichtbare interne TEST-labels.
++- De contextkeuze geeft uitleg over klantomgeving, HR-groep en toegangsgrenzen. De selector gebruikt herkenbare gebouw-, groep- en beveiligingsiconen.
++- Consent toont acht Employee self-read-categorieën. De zes Manager-categorieën zijn afzonderlijk opt-in en worden niet door de Employee-toestemming ingeschakeld.
++- De drie baseline-tests zijn deterministisch gemaakt in de afzonderlijke commit `fd85b653`.
+ 
+-## Lokale verificatie op de code-SHA
+-
+-| Controle | Resultaat |
++| Gate op kandidaat `e432647c` | Resultaat |
+ | --- | --- |
+-| Gerichte consent-, logo- en route-access-tests | **31/31 geslaagd** |
+-| TypeScript | `npm.cmd run type-check -- --incremental false` geslaagd |
+-| ESLint | Gewijzigde consentpagina en test geslaagd |
+-| NL/EN i18n | `npm.cmd run check:i18n` geslaagd; 43 namespaces met gelijke sleutels |
+-| Production-build | Geslaagd; 323 routes/pages; Payroll client-boundary negative control geslaagd; 156 browserbundles gecontroleerd |
+-| Assetinventaris | README plus 22 assets; PNG-signatures/IHDR, SVG-wrapperstructuur, favicon-ICO-header en overeenkomst met de kandidaatcommit gecontroleerd |
+-| Lokale Production HTTP-smoke | App, manifest, favicon, PWA-iconen en horizontaal logo geven 200; manifest-MIME is `application/manifest+json`; anonieme `/api/context` en `/api/employees` geven 401 |
+-| Desktop/mobile login | Vier screenshots op de kandidaatcode; 320 px viewport heeft geen horizontale overflow |
+-| Diff-whitespace | `git diff --check` geslaagd voor codewijzigingen |
+-
+-## Releasegate
+-
+-De volledige release-suite op `bd03bc26a78172fad5d757cd09f72296ee61c809` eindigde met **610 testbestanden geslaagd, 3 mislukt, 4 overgeslagen; 2.889 tests geslaagd, 3 mislukt, 8 overgeslagen**. De drie falende bestanden zijn ongewijzigd ten opzichte van de releasebasis:
+-
+-1. `lib/app-version.test.ts` verwacht `1.20261011.1`; de kandidaat rapporteert `1.20261011.2`.
+-2. `lib/controlled-actions/service.test.ts` gebruikt een vaste herinneringstijd `2026-10-12T08:00:00Z`, die bij uitvoering niet meer toekomstig was.
+-3. `lib/workforce-tools/employee-tools.test.ts` gebruikt dezelfde verlopen fixture en verwacht `isOverdue: false`.
+-
+-Er zijn geen ongerelateerde tests of runtimegegevens aangepast om deze fouten te maskeren. Volgens AA-REL is de volledige rode releasegate een blocker. Daarom zijn er geen merge, push, PR of deployment gestart; er bestaat dus geen hosted/Vercel deployment-ID of hosted smoke-evidence voor deze kandidaat.
+-
+-## Open browserbewijs
+-
+-- De definitieve screenshots tonen de login op desktop (`1440×900`), tablet (`768×1024`) en mobiel (`390×844`, `320×640`). Bij 320 px zijn `innerWidth`, `clientWidth` en `scrollWidth` gelijk aan 320.
+-- De OAuth-consent- en contextkeuzeschermen zijn niet op de exacte kandidaatcode vastgelegd. De lokale Test Auth-poging leidde na HTTP 303 naar `/dashboard/start`, dat HTTP 500 gaf met `PGRST303: JWT issued at future`. Er was geen geldige actuele lokale OAuth-toestemming. De flow is niet omzeild en er is geen bestaande OAuth-aanvraag gebruikt of gewijzigd.
+-- Daardoor blijven de finale visuele controle van consent/context, Employee-Focus, het `nacht`-theme en LinkedHR open. Dit zijn ontbrekende browserbewijzen, geen aangetoonde codefouten.
+-
+-## Screenshots
+-
+-- [Login desktop 1440×900](BRAND01-20261012/screenshots/final-bd03bc26-login-desktop-1440x900.png)
+-- [Login tablet 768×1024](BRAND01-20261012/screenshots/final-bd03bc26-login-tablet-768x1024.png)
+-- [Login mobiel 390×844](BRAND01-20261012/screenshots/final-bd03bc26-login-mobile-390x844.png)
+-- [Login mobiel 320×640](BRAND01-20261012/screenshots/final-bd03bc26-login-mobile-320x640.png)
+-
+-## Integratie en cleanup
+-
+-De finale gate staat rood en consent/context- en themabewijs ontbreekt. `work/BRAND01-20261012` en de overige bestaande worktrees blijven daarom behouden. De actieve APIAI-, Payroll/Nmbrs- en PERF01-worktrees zijn niet aangepast. Er zijn geen databasewrites, secrets, productiegegevens of remote configuratie aangeraakt.
++| Gerichte release- en consent/contexttests | **6 bestanden, 92 tests geslaagd** |
++| Volledige suite | **617 bestanden geslaagd, 4 overgeslagen; 2.938 tests geslaagd, 8 overgeslagen** (`--maxWorkers=2`) |
++| TypeScript | **Geslaagd** |
++| ESLint | **0 fouten, 7 bestaande warnings** in niet-aangepaste Payroll-bestanden |
++| NL/EN i18n | **Geslaagd**, 43 namespaces met gelijke sleutels |
++| Production-build | **Geslaagd**, 323 routes gegenereerd; Payroll client-boundary en 156 browserbundles gecontroleerd |
++
++## Open browser- en runtimebewijs
++
++- De lokale runner gebruikte de normale lokale Test Auth-flow. Beschikbare serverregels tonen login `200`, test-login `303`, Employee-dashboard `200`, context-API `200`, Manager-context-API `409` bij een vereiste contextkeuze en `/context/select` `200`.
++- De runner is niet meer actief en het gesaniteerde eindrapport is niet beschikbaar. Daarom geldt de desktop-/mobilematrix niet als afgerond browserbewijs. Er zijn op kandidaat-SHA `e432647c` geen finale screenshots vastgelegd van login, sidebar, mobile menu, Employee/Manager Focus, consent/context of de thema's.
++- Er was geen geldige actuele OAuth-aanvraag voor consentacceptatie. Er is geen aanvraag hergebruikt, geconstrueerd of omzeild.
++- In de lokale requestregels is geen `PGRST303` gezien. De read-only logquery leverde geen `PGRST303`-events op. Windows-, Node- en gatewaytijd lagen op de gemeten UTC-timestamp minder dan één seconde uiteen; dit bewijst de interne PostgREST-klok niet.
++- Het Supabase-project toont PostgreSQL `17.6.1.141`; dit is geen PostgREST-versie. Dashboard/API-responses boden geen werkelijke PostgREST-runtimeversie. Die versie en de externe klokmarge blijven dus **OPEN**.
++- De manifest- en assetinventaris uit het eerdere `bd03bc26`-rapport geldt niet als finale browser-/assetacceptatie op `e432647c`.
++
++## Release en worktree-status
++
++- `origin/main` is tijdens het werk verder gegaan naar `a5d1b3ff`; die exacte main-SHA is in de kandidaatbranch opgenomen. De kandidaat is niet gepusht en er is geen Vercel-build of hosted smoke op `e432647c`.
++- De verplichte browser- en PostgREST-bewijsgates zijn OPEN. Daarom zijn directe push, Vercel-verificatie en cleanup niet uitgevoerd. Bestaande APIAI-, Payroll/Nmbrs- en PERF01-worktrees blijven behouden.
++- De laatste lokale ontwikkelrun liet gegenereerde wijzigingen zien in `apps/hr-suite/AGENTS.md` en het beschermde `apps/hr-suite/next-env.d.ts`. Een gerichte restore werd door auto-review geweigerd wegens het verbod op wijziging van `next-env.d.ts`; er is geen alternatieve herstelroute gebruikt. Beide bestanden blijven lokaal en ongecommit; de kandidaatwerkboom is daardoor niet schoon.
++- Er zijn geen remote databasewrites, secret-/configwijzigingen, productiegegevenswrites, force-pushes, resets of cleans uitgevoerd.
++
++De eerder vastgelegde screenshots bij kandidaat `bd03bc26` blijven staan als historische bewijsstukken en gelden niet als finale screenshots voor deze kandidaat.
+\ No newline at end of file

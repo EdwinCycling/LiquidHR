@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-26T06:29:07.262Z",
+  "gate": "PARTIAL_SCHEMA_GATE_CONFIRMED",
+  "checks": [
+    {
+      "width": 390,
+      "route": "/absence/guidance",
+      "status": "PASS",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "route": "/absence/guidance",
+      "status": "PASS",
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "route": "/absence/guidance",
+      "status": "PASS",
+      "overflow": false
+    }
+  ],
+  "browserErrors": 0,
+  "errorKinds": [],
+  "persona": "EMPLOYEE_LISA",
+  "apiStatus": 503,
+  "schemaRequired": true,
+  "unauthenticatedStatus": 401
+}

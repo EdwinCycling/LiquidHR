@@ -1,0 +1,1293 @@
+diff --git a/apps/hr-suite/app/(dashboard)/payroll/arrangements/actions.ts b/apps/hr-suite/app/(dashboard)/payroll/arrangements/actions.ts
+new file mode 100644
+index 00000000..796cab9c
+--- /dev/null
++++ b/apps/hr-suite/app/(dashboard)/payroll/arrangements/actions.ts
+@@ -0,0 +1,170 @@
++'use server'
++
++import { revalidatePath } from 'next/cache'
++import { redirect } from 'next/navigation'
++import type { Json } from '@scope/db'
++import { AuthenticationError, AuthorizationError } from '@/lib/auth/permissions'
++import { ContextAccessError } from '@/lib/context/administration-context'
++import { ContextAuthenticationError } from '@/lib/context/server-context'
++import {
++  createPensionArrangement,
++  createPensionArrangementSuccessorForPensionManager,
++  PensionArrangementManagementError,
++  type PensionArrangementCreateInput,
++  type PensionArrangementTierInput,
++} from '@/lib/employment/pension-arrangement-management-service'
++
++const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
++
++function scalar(formData: FormData, name: string): string {
++  const values = formData.getAll(name)
++  if (values.length !== 1 || typeof values[0] !== 'string') throw new Error('INVALID_INPUT')
++  return values[0]
++}
++
++function optionalScalar(formData: FormData, name: string): string | null {
++  const value = scalar(formData, name).trim()
++  return value === '' ? null : value
++}
++
++function requiredNumber(formData: FormData, name: string): number {
++  const value = Number(scalar(formData, name))
++  if (!Number.isFinite(value)) throw new Error('INVALID_INPUT')
++  return value
++}
++
++function optionalNumber(formData: FormData, name: string): number | null {
++  const value = optionalScalar(formData, name)
++  if (value === null) return null
++  const parsed = Number(value)
++  if (!Number.isFinite(parsed)) throw new Error('INVALID_INPUT')
++  return parsed
++}
++
++function parseTiers(value: string): PensionArrangementTierInput[] {
++  let parsed: unknown
++  try {
++    parsed = JSON.parse(value)
++  } catch {
++    throw new Error('INVALID_INPUT')
++  }
++  if (!Array.isArray(parsed)) throw new Error('INVALID_INPUT')
++  return parsed.map((candidate) => {
++    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) throw new Error('INVALID_INPUT')
++    const row = candidate as Record<string, unknown>
++    if (typeof row.min_age !== 'number' || typeof row.max_age !== 'number' || typeof row.total_rate !== 'number') {
++      throw new Error('INVALID_INPUT')
++    }
++    return { minAge: row.min_age, maxAge: row.max_age, totalRate: row.total_rate }
++  })
++}
++
++function parseCreateInput(formData: FormData): PensionArrangementCreateInput {
++  const fields = Array.from(formData.keys()).filter((key) => !key.startsWith('$ACTION_')).sort()
++  const expected = [
++    'annualFranchise', 'annualPensionableSalaryCap', 'arrangementType', 'code', 'contractClassification',
++    'contractClassificationSourceReference', 'contractClassificationStatus', 'effectiveFrom', 'effectiveTo',
++    'eligibilityRule', 'employeeSharePct', 'employerSharePct', 'flatTotalRate', 'grandfatheringMode', 'name',
++    'partMonthMethod', 'partTimeMethod', 'pensionableSalaryMethod', 'provider', 'sourceReference',
++    'sourceValidationStatus', 'tiersJson', 'transitionDate',
++  ].sort()
++  if (fields.join('|') !== expected.join('|')) throw new Error('INVALID_INPUT')
++  const arrangementType = scalar(formData, 'arrangementType')
++  const grandfatheringMode = scalar(formData, 'grandfatheringMode')
++  const contractClassification = scalar(formData, 'contractClassification')
++  const sourceValidationStatus = scalar(formData, 'sourceValidationStatus')
++  const contractClassificationStatus = scalar(formData, 'contractClassificationStatus')
++  if (!['FLAT_PREMIUM', 'PROGRESSIVE_PREMIUM'].includes(arrangementType)
++    || !['NONE', 'EERBIEDIGENDE_WERKING'].includes(grandfatheringMode)
++    || !['SOLIDARITY', 'NON_SOLIDARITY', 'UNKNOWN'].includes(contractClassification)
++    || !['REFERENCE_ONLY', 'EMPLOYER_RECORDED', 'VERIFIED_SOURCE'].includes(sourceValidationStatus)
++    || !['EMPLOYER_RECORDED', 'VERIFIED_SOURCE', 'UNVERIFIED'].includes(contractClassificationStatus)) {
++    throw new Error('INVALID_INPUT')
++  }
++  const effectiveFrom = scalar(formData, 'effectiveFrom')
++  const effectiveTo = optionalScalar(formData, 'effectiveTo')
++  const transitionDate = optionalScalar(formData, 'transitionDate')
++  if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)
++    || (effectiveTo !== null && !/^\d{4}-\d{2}-\d{2}$/.test(effectiveTo))
++    || (transitionDate !== null && !/^\d{4}-\d{2}-\d{2}$/.test(transitionDate))) {
++    throw new Error('INVALID_INPUT')
++  }
++  return {
++    code: scalar(formData, 'code'),
++    name: scalar(formData, 'name'),
++    arrangementType: arrangementType as PensionArrangementCreateInput['arrangementType'],
++    effectiveFrom,
++    effectiveTo,
++    transitionDate,
++    grandfatheringMode: grandfatheringMode as PensionArrangementCreateInput['grandfatheringMode'],
++    flatTotalRate: optionalNumber(formData, 'flatTotalRate'),
++    employeeSharePct: requiredNumber(formData, 'employeeSharePct'),
++    employerSharePct: requiredNumber(formData, 'employerSharePct'),
++    annualFranchise: requiredNumber(formData, 'annualFranchise'),
++    annualPensionableSalaryCap: optionalNumber(formData, 'annualPensionableSalaryCap'),
++    provider: scalar(formData, 'provider'),
++    sourceReference: scalar(formData, 'sourceReference'),
++    sourceValidationStatus: sourceValidationStatus as PensionArrangementCreateInput['sourceValidationStatus'],
++    pensionableSalaryMethod: scalar(formData, 'pensionableSalaryMethod'),
++    partTimeMethod: scalar(formData, 'partTimeMethod'),
++    partMonthMethod: scalar(formData, 'partMonthMethod'),
++    eligibilityRule: scalar(formData, 'eligibilityRule'),
++    contractClassification: contractClassification as PensionArrangementCreateInput['contractClassification'],
++    contractClassificationSourceReference: scalar(formData, 'contractClassificationSourceReference'),
++    contractClassificationStatus: contractClassificationStatus as PensionArrangementCreateInput['contractClassificationStatus'],
++    tiers: parseTiers(scalar(formData, 'tiersJson')),
++  }
++}
++
++function destination(result: string): string {
++  return `/payroll/arrangements?pension=${encodeURIComponent(result)}`
++}
++
++export async function createPensionArrangementAction(formData: FormData): Promise<never> {
++  let result = 'unavailable'
++  try {
++    await createPensionArrangement(parseCreateInput(formData))
++    revalidatePath('/payroll/arrangements')
++    result = 'saved'
++  } catch (error) {
++    if (error instanceof AuthenticationError || error instanceof ContextAuthenticationError) result = 'login'
++    else if (error instanceof AuthorizationError || error instanceof ContextAccessError) result = 'forbidden'
++    else if (error instanceof PensionArrangementManagementError) result = error.status === 400 || error.status === 403 ? error.code : 'unavailable'
++    else if (error instanceof Error && error.message === 'INVALID_INPUT') result = 'invalid'
++  }
++  if (result === 'login') redirect('/login')
++  if (result === 'forbidden') redirect('/geen-toegang')
++  redirect(destination(result))
++}
++
++export async function createPensionArrangementSuccessorForPensionManagerAction(formData: FormData): Promise<never> {
++  let result = 'unavailable'
++  try {
++    const fields = Array.from(formData.keys()).filter((key) => !key.startsWith('$ACTION_')).sort()
++    if (fields.join('|') !== ['predecessorVersionId', 'successorJson'].sort().join('|')) throw new Error('INVALID_INPUT')
++    const predecessorVersionId = scalar(formData, 'predecessorVersionId')
++    const successorJson = scalar(formData, 'successorJson')
++    if (!UUID_PATTERN.test(predecessorVersionId) || successorJson.length > 20_000) throw new Error('INVALID_INPUT')
++    let successor: unknown
++    try {
++      successor = JSON.parse(successorJson)
++    } catch {
++      throw new Error('INVALID_INPUT')
++    }
++    if (!successor || typeof successor !== 'object' || Array.isArray(successor)) throw new Error('INVALID_INPUT')
++    await createPensionArrangementSuccessorForPensionManager({
++      predecessorVersionId,
++      successor: successor as Json,
++    })
++    revalidatePath('/payroll/arrangements')
++    result = 'versionSaved'
++  } catch (error) {
++    if (error instanceof AuthenticationError || error instanceof ContextAuthenticationError) result = 'login'
++    else if (error instanceof AuthorizationError || error instanceof ContextAccessError) result = 'forbidden'
++    else if (error instanceof PensionArrangementManagementError) result = error.status === 400 || error.status === 403 || error.status === 409 ? error.code : 'unavailable'
++    else if (error instanceof Error && error.message === 'INVALID_INPUT') result = 'invalid'
++  }
++  if (result === 'login') redirect('/login')
++  if (result === 'forbidden') redirect('/geen-toegang')
++  redirect(destination(result))
++}
+diff --git a/apps/hr-suite/app/(dashboard)/payroll/arrangements/page.tsx b/apps/hr-suite/app/(dashboard)/payroll/arrangements/page.tsx
+index 97c1916d..722ae472 100644
+--- a/apps/hr-suite/app/(dashboard)/payroll/arrangements/page.tsx
++++ b/apps/hr-suite/app/(dashboard)/payroll/arrangements/page.tsx
+@@ -5,22 +5,37 @@ import { PageHeader } from '@/components/patterns/page-header'
+ import { PayrollProfessionalNavigation } from '@/components/payroll/payroll-professional-navigation'
+ import { Surface } from '@/components/ui/surface'
+ import { CaoSetupOverview } from '@/components/payroll/cao-setup-overview'
++import { PensionArrangementManager } from '@/components/payroll/pension-arrangement-manager'
+ import { EmploymentRegulationsManager } from '@/components/settings/employment-regulations-manager'
+ import { caoSetupPackageOptions } from '@/lib/payroll/cao-setup-catalog'
+ import { getCaoSetupPageData } from '@/lib/payroll/cao-setup-service'
+ import { getEmploymentSettings } from '@/lib/employment/employment-settings'
+ import { getLocale, getTranslator } from '@/lib/i18n/server'
++import { createPensionArrangementAction, createPensionArrangementSuccessorForPensionManagerAction } from './actions'
+ 
+-export default async function PayrollArrangementsPage() {
+-  const [settings, t, locale] = await Promise.all([getEmploymentSettings(), getTranslator('payrollProfessional'), getLocale()])
++type PageProps = {
++  readonly searchParams: Promise<{ readonly pension?: string }>
++}
++
++export default async function PayrollArrangementsPage({ searchParams }: PageProps) {
++  const [settings, t, locale, query] = await Promise.all([getEmploymentSettings(), getTranslator('payrollProfessional'), getLocale(), searchParams])
+   const data = await getCaoSetupPageData(settings)
+   const nav = { overview: t('overview'), runs: t('runs'), corrections: t('corrections'), compare: t('compare'), arrangements: t('arrangements'), settings: t('settings') }
+   return <PageShell className="space-y-6 py-6 sm:py-8">
+     <PageHeader title={t('arrangements')} description={t('arrangementsDescription')} />
+     <PayrollProfessionalNavigation active="arrangements" labels={nav} />
+     <CaoSetupOverview data={data} locale={locale} labels={{
+-      catalogTitle: t('caoSetupCatalogTitle'), catalogDescription: t('caoSetupCatalogDescription'), grossEngineSupported: t('caoGrossEngineSupported'), sourceReviewRequired: t('caoSourceReviewRequired'), effectivePeriod: t('effectivePeriod'), versionHash: t('versionHash'), standardHours: t('standardHours'), pensionFund: t('pensionFund'), pensionSourceTitle: t('caoPensionSourceTitle'), pensionSourceDescription: t('caoPensionSourceDescription'), pensionFields: t('caoPensionFields'), pensionRecordsTitle: t('caoPensionRecordsTitle'), pensionRecordsDescription: t('caoPensionRecordsDescription'), pensionRecordsEmpty: t('caoPensionRecordsEmpty'), pensionVersion: t('pensionVersion'), pensionFranchise: t('pensionFranchise'), pensionCap: t('pensionCap'), pensionEmployeeShare: t('pensionEmployeeShare'), pensionEmployerShare: t('pensionEmployerShare'), pensionSourceHash: t('pensionSourceHash'), caoMappingsTitle: t('caoMappingsTitle'), caoMappingsDescription: t('caoMappingsDescription'), caoMappingsEmpty: t('caoMappingsEmpty'), mappingFor: t('mappingFor'), openEmploymentSettings: t('openEmploymentSettings'), openPensionAssignments: t('openPensionAssignments'), sourceStatusReference: t('sourceStatusReference'), sourceStatusValidated: t('sourceStatusValidated'),
++      catalogTitle: t('caoSetupCatalogTitle'), catalogDescription: t('caoSetupCatalogDescription'), grossEngineSupported: t('caoGrossEngineSupported'), sourceReviewRequired: t('caoSourceReviewRequired'), effectivePeriod: t('effectivePeriod'), versionHash: t('versionHash'), standardHours: t('standardHours'), pensionFund: t('pensionFund'), pensionSourceTitle: t('caoPensionSourceTitle'), pensionSourceDescription: t('caoPensionSourceDescription'), pensionFields: t('caoPensionFields'), pensionRecordsTitle: t('caoPensionRecordsTitle'), pensionRecordsDescription: t('caoPensionRecordsDescription'), pensionRecordsEmpty: t('caoPensionRecordsEmpty'), pensionVersion: t('pensionVersion'), pensionFranchise: t('pensionFranchise'), pensionCap: t('pensionCap'), pensionEmployeeShare: t('pensionEmployeeShare'), pensionEmployerShare: t('pensionEmployerShare'), pensionProvider: t('pensionManagementProvider'), pensionSourceReference: t('sourceReference'), pensionSalaryMethod: t('pensionManagementSalaryMethod'), pensionPartTimeMethod: t('pensionManagementPartTimeMethod'), pensionPartMonthMethod: t('pensionManagementPartMonthMethod'), pensionEligibilityRule: t('pensionManagementEligibilityRule'), pensionSourceHash: t('pensionSourceHash'), caoMappingsTitle: t('caoMappingsTitle'), caoMappingsDescription: t('caoMappingsDescription'), caoMappingsEmpty: t('caoMappingsEmpty'), mappingFor: t('mappingFor'), openEmploymentSettings: t('openEmploymentSettings'), openPensionAssignments: t('openPensionAssignments'), sourceStatusReference: t('sourceStatusReference'), sourceStatusValidated: t('sourceStatusValidated'),
+     }} />
++    <PensionArrangementManager
++      data={data}
++      status={query.pension}
++      createAction={createPensionArrangementAction}
++      successorAction={createPensionArrangementSuccessorForPensionManagerAction}
++      labels={{
++        title: t('pensionManagementTitle'), description: t('pensionManagementDescription'), createTitle: t('pensionCreateTitle'), createDescription: t('pensionCreateDescription'), code: t('pensionManagementCode'), name: t('pensionManagementName'), provider: t('pensionManagementProvider'), sourceReference: t('pensionManagementSourceReference'), sourceStatus: t('pensionManagementSourceStatus'), referenceOnly: t('pensionManagementReferenceOnly'), employerRecorded: t('pensionManagementEmployerRecorded'), verifiedSource: t('pensionManagementVerifiedSource'), effectiveFrom: t('pensionManagementEffectiveFrom'), effectiveTo: t('pensionManagementEffectiveTo'), transitionDate: t('pensionManagementTransitionDate'), arrangementType: t('pensionManagementArrangementType'), flatPremium: t('pensionManagementFlatPremium'), progressivePremium: t('pensionManagementProgressivePremium'), grandfatheringMode: t('pensionManagementGrandfatheringMode'), noGrandfathering: t('pensionManagementNoGrandfathering'), respectfulTransition: t('pensionManagementRespectfulTransition'), flatTotalRate: t('pensionManagementFlatTotalRate'), employeeShare: t('pensionManagementEmployeeShare'), employerShare: t('pensionManagementEmployerShare'), annualFranchise: t('pensionManagementAnnualFranchise'), annualCap: t('pensionManagementAnnualCap'), salaryMethod: t('pensionManagementSalaryMethod'), partTimeMethod: t('pensionManagementPartTimeMethod'), partMonthMethod: t('pensionManagementPartMonthMethod'), eligibilityRule: t('pensionManagementEligibilityRule'), contractClassification: t('pensionManagementContractClassification'), solidarity: t('pensionManagementSolidarity'), nonSolidarity: t('pensionManagementNonSolidarity'), unknown: t('pensionManagementUnknown'), classificationStatus: t('pensionManagementClassificationStatus'), classificationSource: t('pensionManagementClassificationSource'), tiers: t('pensionManagementTiers'), tiersHelp: t('pensionManagementTiersHelp'), save: t('pensionManagementSave'), versionTitle: t('pensionManagementVersionTitle'), versionDescription: t('pensionManagementVersionDescription'), versionJson: t('pensionManagementVersionJson'), versionJsonHelp: t('pensionManagementVersionJsonHelp'), saveVersion: t('pensionManagementSaveVersion'), managerRequired: t('pensionManagementManagerRequired'), sourceReviewNotice: t('pensionManagementSourceReviewNotice'), saved: t('pensionManagementSaved'), versionSaved: t('pensionManagementVersionSaved'), invalid: t('pensionManagementInvalid'), unavailable: t('pensionManagementUnavailable'),
++      }}
++    />
+     <Surface className="space-y-4 p-5">
+       <h2 className="text-lg font-semibold">{t('caoRegulationSetupTitle')}</h2>
+       <p className="text-sm text-muted-foreground">{t('caoRegulationSetupDescription')}</p>
+diff --git a/apps/hr-suite/components/payroll/cao-setup-overview.tsx b/apps/hr-suite/components/payroll/cao-setup-overview.tsx
+index 697449f4..8fb03a59 100644
+--- a/apps/hr-suite/components/payroll/cao-setup-overview.tsx
++++ b/apps/hr-suite/components/payroll/cao-setup-overview.tsx
+@@ -3,6 +3,7 @@ import { ArrowUpRight, CheckCircle2, CircleAlert, ExternalLink } from 'lucide-re
+ import { Badge } from '@/components/ui/badge'
+ import { SectionHeader } from '@/components/patterns/section-header'
+ import { Surface } from '@/components/ui/surface'
++import type { Json } from '@scope/db'
+ import type { CaoSetupPageData } from '@/lib/payroll/cao-setup-service'
+ 
+ type Labels = {
+@@ -25,6 +26,12 @@ type Labels = {
+   readonly pensionCap: string
+   readonly pensionEmployeeShare: string
+   readonly pensionEmployerShare: string
++  readonly pensionProvider: string
++  readonly pensionSourceReference: string
++  readonly pensionSalaryMethod: string
++  readonly pensionPartTimeMethod: string
++  readonly pensionPartMonthMethod: string
++  readonly pensionEligibilityRule: string
+   readonly pensionSourceHash: string
+   readonly caoMappingsTitle: string
+   readonly caoMappingsDescription: string
+@@ -45,6 +52,12 @@ function percentage(value: number | null): string {
+   return value === null ? '—' : `${value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')}%`
+ }
+ 
++function objectText(value: Json, key: string): string {
++  if (typeof value !== 'object' || value === null || Array.isArray(value)) return '—'
++  const candidate = value[key]
++  return typeof candidate === 'string' && candidate.trim() !== '' ? candidate : '—'
++}
++
+ function sourceBadge(status: 'REFERENCE_ONLY' | 'VALIDATED' | 'REVIEW_REQUIRED', labels: Labels) {
+   const validated = status === 'VALIDATED'
+   return <Badge tone={validated ? 'success' : 'warning'}>{validated ? labels.sourceStatusValidated : status === 'REFERENCE_ONLY' ? labels.sourceStatusReference : labels.sourceReviewRequired}</Badge>
+@@ -121,6 +134,12 @@ export function CaoSetupOverview({ data, locale, labels }: { readonly data: CaoS
+               <div><dt className="text-muted-foreground">{labels.pensionCap}</dt><dd>{amount(pension.annualPensionableSalaryCap, locale)}</dd></div>
+               <div><dt className="text-muted-foreground">{labels.pensionEmployeeShare}</dt><dd>{percentage(pension.employeeSharePct)}</dd></div>
+               <div><dt className="text-muted-foreground">{labels.pensionEmployerShare}</dt><dd>{percentage(pension.employerSharePct)}</dd></div>
++              <div><dt className="text-muted-foreground">{labels.pensionProvider}</dt><dd>{objectText(pension.pensionableSalaryDefinition, 'provider')}</dd></div>
++              <div className="sm:col-span-2"><dt className="text-muted-foreground">{labels.pensionSourceReference}</dt><dd className="break-all">{objectText(pension.pensionableSalaryDefinition, 'sourceReference')}</dd></div>
++              <div><dt className="text-muted-foreground">{labels.pensionSalaryMethod}</dt><dd>{objectText(pension.pensionableSalaryDefinition, 'method')}</dd></div>
++              <div><dt className="text-muted-foreground">{labels.pensionPartTimeMethod}</dt><dd>{objectText(pension.pensionableSalaryDefinition, 'partTimeMethod')}</dd></div>
++              <div><dt className="text-muted-foreground">{labels.pensionPartMonthMethod}</dt><dd>{objectText(pension.pensionableSalaryDefinition, 'partMonthMethod')}</dd></div>
++              <div className="sm:col-span-2"><dt className="text-muted-foreground">{labels.pensionEligibilityRule}</dt><dd>{objectText(pension.eligibilityRule, 'description')}</dd></div>
+             </dl>
+             <p className="mt-3 break-all font-mono text-xs text-muted-foreground">{labels.pensionSourceHash}: {pension.sourceHash}</p>
+           </article>)}
+diff --git a/apps/hr-suite/components/payroll/pension-arrangement-manager.tsx b/apps/hr-suite/components/payroll/pension-arrangement-manager.tsx
+new file mode 100644
+index 00000000..9cda3869
+--- /dev/null
++++ b/apps/hr-suite/components/payroll/pension-arrangement-manager.tsx
+@@ -0,0 +1,191 @@
++import type { ReactNode } from 'react'
++import { Button } from '@/components/ui/button'
++import { SectionHeader } from '@/components/patterns/section-header'
++import { Surface } from '@/components/ui/surface'
++import type { CaoSetupPageData } from '@/lib/payroll/cao-setup-service'
++
++type FormAction = (formData: FormData) => Promise<never>
++
++type Labels = {
++  readonly title: string
++  readonly description: string
++  readonly createTitle: string
++  readonly createDescription: string
++  readonly code: string
++  readonly name: string
++  readonly provider: string
++  readonly sourceReference: string
++  readonly sourceStatus: string
++  readonly referenceOnly: string
++  readonly employerRecorded: string
++  readonly verifiedSource: string
++  readonly effectiveFrom: string
++  readonly effectiveTo: string
++  readonly transitionDate: string
++  readonly arrangementType: string
++  readonly flatPremium: string
++  readonly progressivePremium: string
++  readonly grandfatheringMode: string
++  readonly noGrandfathering: string
++  readonly respectfulTransition: string
++  readonly flatTotalRate: string
++  readonly employeeShare: string
++  readonly employerShare: string
++  readonly annualFranchise: string
++  readonly annualCap: string
++  readonly salaryMethod: string
++  readonly partTimeMethod: string
++  readonly partMonthMethod: string
++  readonly eligibilityRule: string
++  readonly contractClassification: string
++  readonly solidarity: string
++  readonly nonSolidarity: string
++  readonly unknown: string
++  readonly classificationStatus: string
++  readonly classificationSource: string
++  readonly tiers: string
++  readonly tiersHelp: string
++  readonly save: string
++  readonly versionTitle: string
++  readonly versionDescription: string
++  readonly versionJson: string
++  readonly versionJsonHelp: string
++  readonly saveVersion: string
++  readonly managerRequired: string
++  readonly sourceReviewNotice: string
++  readonly saved: string
++  readonly versionSaved: string
++  readonly invalid: string
++  readonly unavailable: string
++}
++
++function message(status: string | undefined, labels: Labels): ReactNode {
++  if (status === 'saved') return <p className="border-l-2 border-success-border pl-3 text-sm text-success" role="status">{labels.saved}</p>
++  if (status === 'versionSaved') return <p className="border-l-2 border-success-border pl-3 text-sm text-success" role="status">{labels.versionSaved}</p>
++  if (status === 'invalid') return <p className="border-l-2 border-destructive-border pl-3 text-sm text-destructive" role="alert">{labels.invalid}</p>
++  if (status && status !== 'forbidden') return <p className="border-l-2 border-destructive-border pl-3 text-sm text-destructive" role="alert">{labels.unavailable}</p>
++  return null
++}
++
++function Field({ label, name, type = 'text', required = true, defaultValue, step }: {
++  readonly label: string
++  readonly name: string
++  readonly type?: 'text' | 'date' | 'number' | 'url'
++  readonly required?: boolean
++  readonly defaultValue?: string | number | null
++  readonly step?: string
++  readonly list?: string
++}) {
++  return <label className="grid gap-1 text-sm font-medium">
++    {label}
++    <input name={name} type={type} required={required} step={step} list={list} defaultValue={defaultValue ?? ''} className="min-h-10 rounded-md border border-border bg-background px-3 font-normal" />
++  </label>
++}
++
++export function PensionArrangementManager({
++  data,
++  labels,
++  status,
++  createAction,
++  successorAction,
++}: {
++  readonly data: CaoSetupPageData
++  readonly labels: Labels
++  readonly status?: string
++  readonly createAction: FormAction
++  readonly successorAction: FormAction
++}) {
++  return <Surface className="space-y-5 p-5">
++    <SectionHeader title={labels.title} description={labels.description} />
++    {message(status, labels)}
++    {!data.canManage
++      ? <p className="border-l-2 border-warning-border pl-3 text-sm text-muted-foreground">{labels.managerRequired}</p>
++      : <>
++        <p className="border-l-2 border-warning-border pl-3 text-sm text-muted-foreground">{labels.sourceReviewNotice}</p>
++        <details className="rounded-2xl border border-border-subtle bg-surface-subtle p-4" open={data.pensions.length === 0}>
++          <summary className="cursor-pointer font-semibold">{labels.createTitle}</summary>
++          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{labels.createDescription}</p>
++          <form action={createAction} className="mt-4 grid gap-4 lg:grid-cols-2">
++            <Field label={labels.code} name="code" />
++            <Field label={labels.name} name="name" />
++            <Field label={labels.provider} name="provider" list="pension-provider-options" />
++            <Field label={labels.sourceReference} name="sourceReference" type="url" />
++            <datalist id="pension-provider-options">
++              {[...new Set(data.catalog.map((entry) => entry.pension.fundName))].map((provider) => <option key={provider} value={provider} />)}
++            </datalist>
++            <label className="grid gap-1 text-sm font-medium">
++              {labels.sourceStatus}
++              <select name="sourceValidationStatus" defaultValue="EMPLOYER_RECORDED" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
++                <option value="REFERENCE_ONLY">{labels.referenceOnly}</option>
++                <option value="EMPLOYER_RECORDED">{labels.employerRecorded}</option>
++                <option value="VERIFIED_SOURCE">{labels.verifiedSource}</option>
++              </select>
++            </label>
++            <Field label={labels.effectiveFrom} name="effectiveFrom" type="date" defaultValue="2026-01-01" />
++            <Field label={labels.effectiveTo} name="effectiveTo" type="date" required={false} />
++            <Field label={labels.transitionDate} name="transitionDate" type="date" required={false} />
++            <label className="grid gap-1 text-sm font-medium">
++              {labels.arrangementType}
++              <select name="arrangementType" defaultValue="FLAT_PREMIUM" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
++                <option value="FLAT_PREMIUM">{labels.flatPremium}</option>
++                <option value="PROGRESSIVE_PREMIUM">{labels.progressivePremium}</option>
++              </select>
++            </label>
++            <label className="grid gap-1 text-sm font-medium">
++              {labels.grandfatheringMode}
++              <select name="grandfatheringMode" defaultValue="NONE" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
++                <option value="NONE">{labels.noGrandfathering}</option>
++                <option value="EERBIEDIGENDE_WERKING">{labels.respectfulTransition}</option>
++              </select>
++            </label>
++            <Field label={labels.flatTotalRate} name="flatTotalRate" type="number" step="0.0001" required={false} />
++            <Field label={labels.employeeShare} name="employeeSharePct" type="number" step="0.0001" defaultValue={0} />
++            <Field label={labels.employerShare} name="employerSharePct" type="number" step="0.0001" defaultValue={100} />
++            <Field label={labels.annualFranchise} name="annualFranchise" type="number" step="0.01" defaultValue={0} />
++            <Field label={labels.annualCap} name="annualPensionableSalaryCap" type="number" step="0.01" required={false} />
++            <Field label={labels.salaryMethod} name="pensionableSalaryMethod" />
++            <Field label={labels.partTimeMethod} name="partTimeMethod" />
++            <Field label={labels.partMonthMethod} name="partMonthMethod" />
++            <Field label={labels.eligibilityRule} name="eligibilityRule" />
++            <label className="grid gap-1 text-sm font-medium">
++              {labels.contractClassification}
++              <select name="contractClassification" defaultValue="UNKNOWN" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
++                <option value="SOLIDARITY">{labels.solidarity}</option>
++                <option value="NON_SOLIDARITY">{labels.nonSolidarity}</option>
++                <option value="UNKNOWN">{labels.unknown}</option>
++              </select>
++            </label>
++            <label className="grid gap-1 text-sm font-medium">
++              {labels.classificationStatus}
++              <select name="contractClassificationStatus" defaultValue="UNVERIFIED" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
++                <option value="UNVERIFIED">{labels.unknown}</option>
++                <option value="EMPLOYER_RECORDED">{labels.employerRecorded}</option>
++                <option value="VERIFIED_SOURCE">{labels.verifiedSource}</option>
++              </select>
++            </label>
++            <Field label={labels.classificationSource} name="contractClassificationSourceReference" type="url" required={false} />
++            <label className="grid gap-1 text-sm font-medium lg:col-span-2">
++              {labels.tiers}
++              <textarea name="tiersJson" required rows={4} defaultValue="[]" className="rounded-md border border-border bg-background p-3 font-mono text-xs font-normal" />
++              <span className="font-normal text-muted-foreground">{labels.tiersHelp}</span>
++            </label>
++            <Button type="submit" className="w-fit">{labels.save}</Button>
++          </form>
++        </details>
++
++        {data.pensions.map((pension) => pension.currentVersionId && pension.successorDraft ? <details className="rounded-2xl border border-border-subtle p-4" key={pension.id}>
++          <summary className="cursor-pointer font-semibold">{labels.versionTitle}: {pension.name} · {pension.code}</summary>
++          <p className="mt-2 text-sm text-muted-foreground">{labels.versionDescription}</p>
++          <form action={successorAction} className="mt-4 grid max-w-4xl gap-3">
++            <input type="hidden" name="predecessorVersionId" value={pension.currentVersionId} />
++            <label className="grid gap-1 text-sm font-medium">
++              {labels.versionJson}
++              <textarea name="successorJson" required rows={22} maxLength={20000} defaultValue={JSON.stringify(pension.successorDraft, null, 2)} className="min-h-80 rounded-md border border-border bg-background p-3 font-mono text-xs font-normal" />
++              <span className="font-normal text-muted-foreground">{labels.versionJsonHelp}</span>
++            </label>
++            <Button type="submit" className="w-fit">{labels.saveVersion}</Button>
++          </form>
++        </details> : null)}
++      </>}
++  </Surface>
++}
+diff --git a/apps/hr-suite/lib/employment/pension-arrangement-management-service.test.ts b/apps/hr-suite/lib/employment/pension-arrangement-management-service.test.ts
+new file mode 100644
+index 00000000..38905b21
+--- /dev/null
++++ b/apps/hr-suite/lib/employment/pension-arrangement-management-service.test.ts
+@@ -0,0 +1,184 @@
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
++import type { AuthContext } from '@/lib/auth/permissions'
++import { requirePermission } from '@/lib/auth/permissions'
++import { createClient } from '@/lib/supabase/server'
++import {
++  createPensionArrangement,
++  createPensionArrangementSuccessorForPensionManager,
++  PensionArrangementManagementError,
++} from './pension-arrangement-management-service'
++
++vi.mock('server-only', () => ({}))
++vi.mock('@/lib/auth/permissions', () => ({ requirePermission: vi.fn() }))
++vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
++
++const ids = {
++  tenant: '10000000-0000-4000-8000-000000000001',
++  hrGroup: '20000000-0000-4000-8000-000000000001',
++  administration: '30000000-0000-4000-8000-000000000001',
++  arrangement: '60000000-0000-4000-8000-000000000001',
++  version: '70000000-0000-4000-8000-000000000001',
++}
++
++const managerContext: AuthContext = {
++  tenantId: ids.tenant,
++  hrGroupId: ids.hrGroup,
++  administrationId: ids.administration,
++  userId: 'a0000000-0000-4000-8000-000000000001',
++  employeeId: null,
++  activeRoles: ['HR_ADMIN'],
++  permissions: ['pension:manage'],
++}
++
++const input = {
++  code: 'PFZW-2026',
++  name: 'PFZW Kinderopvang 2026',
++  arrangementType: 'FLAT_PREMIUM' as const,
++  effectiveFrom: '2026-01-01',
++  effectiveTo: null,
++  transitionDate: null,
++  grandfatheringMode: 'NONE' as const,
++  flatTotalRate: 20,
++  employeeSharePct: 40,
++  employerSharePct: 60,
++  annualFranchise: 15000,
++  annualPensionableSalaryCap: null,
++  provider: 'PFZW',
++  sourceReference: 'https://example.test/pfzw-2026',
++  sourceValidationStatus: 'EMPLOYER_RECORDED' as const,
++  pensionableSalaryMethod: 'Defined by the recorded fund source.',
++  partTimeMethod: 'Pro rata by contractual hours.',
++  partMonthMethod: 'Explicit scheme day method recorded by HR Admin.',
++  eligibilityRule: 'Participation follows the recorded employment conditions.',
++  contractClassification: 'UNKNOWN' as const,
++  contractClassificationSourceReference: '',
++  contractClassificationStatus: 'UNVERIFIED' as const,
++  tiers: [],
++}
++
++function configureClient(options: { readonly rpcData?: unknown; readonly predecessor?: object | null } = {}) {
++  const query = {
++    select: vi.fn(),
++    eq: vi.fn(),
++    maybeSingle: vi.fn(async () => ({
++      data: options.predecessor === undefined ? { id: ids.version } : options.predecessor,
++      error: null,
++    })),
++  }
++  query.select.mockReturnValue(query)
++  query.eq.mockReturnValue(query)
++  const rpc = vi.fn(async () => ({
++    data: options.rpcData ?? {
++      arrangement_id: ids.arrangement,
++      version_id: ids.version,
++      version_number: 1,
++    },
++    error: null,
++  }))
++  const client = {
++    from: vi.fn(() => query),
++    rpc,
++  }
++  vi.mocked(createClient).mockResolvedValue(client as unknown as Awaited<ReturnType<typeof createClient>>)
++  return { client, query, rpc }
++}
++
++describe('pension arrangement management', () => {
++  beforeEach(() => {
++    vi.mocked(requirePermission).mockResolvedValue(managerContext)
++  })
++
++  afterEach(() => vi.clearAllMocks())
++
++  it('stores a scoped arrangement and its initial version through the atomic Core RPC', async () => {
++    const { rpc } = configureClient()
++
++    await expect(createPensionArrangement(input)).resolves.toEqual({
++      arrangementId: ids.arrangement,
++      versionId: ids.version,
++      versionNumber: 1,
++    })
++
++    expect(requirePermission).toHaveBeenCalledWith('pension:manage')
++    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement', {
++      p_input: expect.objectContaining({
++        tenant_id: ids.tenant,
++        hr_group_id: ids.hrGroup,
++        administration_id: ids.administration,
++        code: 'PFZW-2026',
++        effective_from: '2026-01-01',
++        contract_classification: 'UNKNOWN',
++        pensionable_salary_definition: expect.objectContaining({
++          provider: 'PFZW',
++          partMonthMethod: 'Explicit scheme day method recorded by HR Admin.',
++        }),
++        tiers: [],
++      }),
++    })
++  })
++
++  it('rejects an invalid premium split before authorization or write', async () => {
++    const { rpc } = configureClient()
++
++    await expect(createPensionArrangement({ ...input, employeeSharePct: 41 }))
++      .rejects.toMatchObject({ code: 'PENSION_ARRANGEMENT_INPUT_INVALID', status: 400 } satisfies Partial<PensionArrangementManagementError>)
++
++    expect(requirePermission).not.toHaveBeenCalled()
++    expect(rpc).not.toHaveBeenCalled()
++  })
++
++  it('requires an HR Admin or Tenant Admin role in addition to the permission', async () => {
++    vi.mocked(requirePermission).mockResolvedValue({ ...managerContext, activeRoles: ['HR_MANAGER'] })
++    const { rpc } = configureClient()
++
++    await expect(createPensionArrangement(input))
++      .rejects.toMatchObject({ code: 'PENSION_ARRANGEMENT_FORBIDDEN', status: 403 })
++
++    expect(rpc).not.toHaveBeenCalled()
++  })
++
++  it('uses the scoped pension-manager successor wrapper and validates readback', async () => {
++    const { rpc, query } = configureClient({ rpcData: ids.version })
++
++    await expect(createPensionArrangementSuccessorForPensionManager({
++      predecessorVersionId: ids.version,
++      successor: {
++        effective_from: '2027-01-01',
++        effective_to: null,
++        arrangement_type: 'FLAT_PREMIUM',
++        grandfathering_mode: 'NONE',
++        flat_total_rate: 20,
++        employer_share_pct: 60,
++        employee_share_pct: 40,
++        annual_franchise: 15000,
++        annual_pensionable_salary_cap: null,
++        pensionable_salary_definition: {},
++        eligibility_rule: {},
++        contract_classification: 'UNKNOWN',
++        contract_classification_provenance: { status: 'UNVERIFIED' },
++        provenance_json: { status: 'USER_RECORDED' },
++        supersession_reason: 'Annual source update.',
++        supersession_provenance: { status: 'USER_RECORDED' },
++        tiers: [],
++      },
++    })).resolves.toEqual({ versionId: ids.version })
++
++    expect(query.eq.mock.calls).toEqual(expect.arrayContaining([
++      ['tenant_id', ids.tenant],
++      ['hr_group_id', ids.hrGroup],
++      ['administration_id', ids.administration],
++    ]))
++    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor_for_pension_manager', expect.any(Object))
++  })
++
++  it('fails closed when the scoped predecessor is not readable', async () => {
++    const { rpc } = configureClient({ predecessor: null })
++
++    await expect(createPensionArrangementSuccessorForPensionManager({
++      predecessorVersionId: ids.version,
++      successor: {},
++    })).rejects.toMatchObject({ code: 'PENSION_ARRANGEMENT_PREDECESSOR_NOT_FOUND', status: 404 })
++
++    expect(rpc).not.toHaveBeenCalled()
++  })
++})
+diff --git a/apps/hr-suite/lib/employment/pension-arrangement-management-service.ts b/apps/hr-suite/lib/employment/pension-arrangement-management-service.ts
+new file mode 100644
+index 00000000..2d653c8e
+--- /dev/null
++++ b/apps/hr-suite/lib/employment/pension-arrangement-management-service.ts
+@@ -0,0 +1,251 @@
++import 'server-only'
++
++import type { Json } from '@scope/db'
++import { requirePermission } from '@/lib/auth/permissions'
++import { createClient } from '@/lib/supabase/server'
++
++type AuthContext = Awaited<ReturnType<typeof requirePermission>>
++type ScopedPensionContext = AuthContext & { readonly hrGroupId: string; readonly administrationId: string }
++
++const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
++const ARRANGEMENT_TYPES = ['FLAT_PREMIUM', 'PROGRESSIVE_PREMIUM'] as const
++const GRANDFATHERING_MODES = ['NONE', 'EERBIEDIGENDE_WERKING'] as const
++const CONTRACT_CLASSIFICATIONS = ['SOLIDARITY', 'NON_SOLIDARITY', 'UNKNOWN'] as const
++const SOURCE_STATUSES = ['REFERENCE_ONLY', 'EMPLOYER_RECORDED', 'VERIFIED_SOURCE'] as const
++
++export type PensionArrangementTierInput = {
++  readonly minAge: number
++  readonly maxAge: number
++  readonly totalRate: number
++}
++
++export type PensionArrangementCreateInput = {
++  readonly code: string
++  readonly name: string
++  readonly arrangementType: (typeof ARRANGEMENT_TYPES)[number]
++  readonly effectiveFrom: string
++  readonly effectiveTo: string | null
++  readonly transitionDate: string | null
++  readonly grandfatheringMode: (typeof GRANDFATHERING_MODES)[number]
++  readonly flatTotalRate: number | null
++  readonly employeeSharePct: number
++  readonly employerSharePct: number
++  readonly annualFranchise: number
++  readonly annualPensionableSalaryCap: number | null
++  readonly provider: string
++  readonly sourceReference: string
++  readonly sourceValidationStatus: (typeof SOURCE_STATUSES)[number]
++  readonly pensionableSalaryMethod: string
++  readonly partTimeMethod: string
++  readonly partMonthMethod: string
++  readonly eligibilityRule: string
++  readonly contractClassification: (typeof CONTRACT_CLASSIFICATIONS)[number]
++  readonly contractClassificationSourceReference: string
++  readonly contractClassificationStatus: 'EMPLOYER_RECORDED' | 'VERIFIED_SOURCE' | 'UNVERIFIED'
++  readonly tiers: readonly PensionArrangementTierInput[]
++}
++
++export class PensionArrangementManagementError extends Error {
++  constructor(readonly code: string, readonly status: number) {
++    super(code)
++    this.name = 'PensionArrangementManagementError'
++  }
++}
++
++function isPensionManager(context: AuthContext): boolean {
++  return context.activeRoles.includes('HR_ADMIN') || context.activeRoles.includes('TENANT_ADMIN')
++}
++
++function isIsoDate(value: string): boolean {
++  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
++  const date = new Date(`${value}T00:00:00.000Z`)
++  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
++}
++
++function isFiniteNumber(value: number | null): value is number {
++  return value !== null && Number.isFinite(value)
++}
++
++function nonEmpty(value: string, maximum: number): boolean {
++  return value.trim().length > 0 && value.trim().length <= maximum
++}
++
++function validateTier(tier: PensionArrangementTierInput): boolean {
++  return Number.isInteger(tier.minAge)
++    && Number.isInteger(tier.maxAge)
++    && tier.minAge >= 0
++    && tier.maxAge >= tier.minAge
++    && isFiniteNumber(tier.totalRate)
++    && tier.totalRate >= 0
++    && tier.totalRate <= 100
++}
++
++function validateInput(input: PensionArrangementCreateInput): void {
++  const dateRangeValid = isIsoDate(input.effectiveFrom)
++    && (input.effectiveTo === null || isIsoDate(input.effectiveTo))
++    && (input.transitionDate === null || isIsoDate(input.transitionDate))
++    && (input.effectiveTo === null || input.effectiveTo >= input.effectiveFrom)
++  const ratesValid = isFiniteNumber(input.employeeSharePct)
++    && isFiniteNumber(input.employerSharePct)
++    && input.employeeSharePct >= 0
++    && input.employeeSharePct <= 100
++    && input.employerSharePct >= 0
++    && input.employerSharePct <= 100
++    && Math.abs((input.employeeSharePct + input.employerSharePct) - 100) < 0.0001
++  const amountValid = isFiniteNumber(input.annualFranchise)
++    && input.annualFranchise >= 0
++    && (input.annualPensionableSalaryCap === null
++      || (isFiniteNumber(input.annualPensionableSalaryCap) && input.annualPensionableSalaryCap >= 0))
++  const flatRateValid = input.arrangementType === 'FLAT_PREMIUM'
++    && isFiniteNumber(input.flatTotalRate)
++    && input.flatTotalRate >= 0
++    && input.flatTotalRate <= 100
++    && input.tiers.length === 0
++  const tierRateValid = input.arrangementType === 'PROGRESSIVE_PREMIUM'
++    && input.flatTotalRate === null
++    && input.tiers.length > 0
++    && input.tiers.every(validateTier)
++  const contractSourceValid = input.contractClassification !== 'NON_SOLIDARITY'
++    || nonEmpty(input.contractClassificationStatus, 40)
++  if (!nonEmpty(input.code, 80)
++    || !nonEmpty(input.name, 180)
++    || !ARRANGEMENT_TYPES.includes(input.arrangementType)
++    || !GRANDFATHERING_MODES.includes(input.grandfatheringMode)
++    || !CONTRACT_CLASSIFICATIONS.includes(input.contractClassification)
++    || !SOURCE_STATUSES.includes(input.sourceValidationStatus)
++    || !dateRangeValid
++    || !ratesValid
++    || !amountValid
++    || (!flatRateValid && !tierRateValid)
++    || !nonEmpty(input.provider, 180)
++    || !nonEmpty(input.sourceReference, 1000)
++    || !nonEmpty(input.pensionableSalaryMethod, 1000)
++    || !nonEmpty(input.partTimeMethod, 1000)
++    || !nonEmpty(input.partMonthMethod, 1000)
++    || !nonEmpty(input.eligibilityRule, 1000)
++    || !contractSourceValid
++    || (input.contractClassificationStatus === 'VERIFIED_SOURCE' && !nonEmpty(input.contractClassificationSourceReference, 1000))) {
++    throw new PensionArrangementManagementError('PENSION_ARRANGEMENT_INPUT_INVALID', 400)
++  }
++}
++
++async function scopedPensionManager(): Promise<{ readonly context: ScopedPensionContext; readonly supabase: Awaited<ReturnType<typeof createClient>> }> {
++  const context = await requirePermission('pension:manage')
++  if (!context.administrationId || !context.hrGroupId) {
++    throw new PensionArrangementManagementError('PENSION_ARRANGEMENT_SCOPE_REQUIRED', 400)
++  }
++  if (!isPensionManager(context)) {
++    throw new PensionArrangementManagementError('PENSION_ARRANGEMENT_FORBIDDEN', 403)
++  }
++  return { context: context as ScopedPensionContext, supabase: await createClient() }
++}
++
++function rpcCode(message: string | undefined, fallback: string): string {
++  return message?.match(/PENSION_[A-Z_]+/)?.[0] ?? fallback
++}
++
++function rpcObject(data: Json | null, fallback: string): Record<string, Json | undefined> {
++  if (!data || typeof data !== 'object' || Array.isArray(data)) {
++    throw new PensionArrangementManagementError(fallback, 500)
++  }
++  return data
++}
++
++export async function createPensionArrangement(input: PensionArrangementCreateInput): Promise<{
++  readonly arrangementId: string
++  readonly versionId: string
++  readonly versionNumber: number
++}> {
++  validateInput(input)
++  const { context, supabase } = await scopedPensionManager()
++  const contractClassificationProvenance: Json = {
++    status: input.contractClassificationStatus,
++    sourceReference: input.contractClassificationSourceReference,
++  }
++  const pensionableSalaryDefinition: Json = {
++    provider: input.provider,
++    sourceReference: input.sourceReference,
++    sourceValidationStatus: input.sourceValidationStatus,
++    method: input.pensionableSalaryMethod,
++    partTimeMethod: input.partTimeMethod,
++    partMonthMethod: input.partMonthMethod,
++  }
++  const eligibilityRule: Json = {
++    description: input.eligibilityRule,
++    sourceReference: input.sourceReference,
++    sourceValidationStatus: input.sourceValidationStatus,
++  }
++  const tiers: Json = input.tiers.map((tier) => ({
++    min_age: tier.minAge,
++    max_age: tier.maxAge,
++    total_rate: tier.totalRate,
++  }))
++  const { data, error } = await supabase.rpc('create_pension_arrangement', {
++    p_input: {
++      tenant_id: context.tenantId,
++      hr_group_id: context.hrGroupId,
++      administration_id: context.administrationId,
++      code: input.code.trim(),
++      name: input.name.trim(),
++      arrangement_type: input.arrangementType,
++      effective_from: input.effectiveFrom,
++      effective_to: input.effectiveTo,
++      transition_date: input.transitionDate,
++      grandfathering_mode: input.grandfatheringMode,
++      flat_total_rate: input.flatTotalRate,
++      employer_share_pct: input.employerSharePct,
++      employee_share_pct: input.employeeSharePct,
++      annual_franchise: input.annualFranchise,
++      annual_pensionable_salary_cap: input.annualPensionableSalaryCap,
++      pensionable_salary_definition: pensionableSalaryDefinition,
++      eligibility_rule: eligibilityRule,
++      contract_classification: input.contractClassification,
++      contract_classification_provenance: contractClassificationProvenance,
++      tiers,
++    } satisfies Json,
++  })
++  if (error || !data) {
++    const code = rpcCode(error?.message, 'PENSION_ARRANGEMENT_WRITE_FAILED')
++    throw new PensionArrangementManagementError(code, code.endsWith('_FORBIDDEN') ? 403 : 400)
++  }
++  const result = rpcObject(data, 'PENSION_ARRANGEMENT_WRITE_READBACK_INVALID')
++  const arrangementId = result.arrangement_id
++  const versionId = result.version_id
++  const versionNumber = result.version_number
++  if (typeof arrangementId !== 'string' || !UUID_PATTERN.test(arrangementId)
++    || typeof versionId !== 'string' || !UUID_PATTERN.test(versionId)
++    || typeof versionNumber !== 'number' || !Number.isInteger(versionNumber)) {
++    throw new PensionArrangementManagementError('PENSION_ARRANGEMENT_WRITE_READBACK_INVALID', 500)
++  }
++  return { arrangementId, versionId, versionNumber }
++}
++
++export async function createPensionArrangementSuccessorForPensionManager(input: {
++  readonly predecessorVersionId: string
++  readonly successor: Json
++}): Promise<{ readonly versionId: string }> {
++  if (!UUID_PATTERN.test(input.predecessorVersionId)
++    || !input.successor || typeof input.successor !== 'object' || Array.isArray(input.successor)) {
++    throw new PensionArrangementManagementError('PENSION_ARRANGEMENT_SUCCESSOR_INPUT_INVALID', 400)
++  }
++  const { context, supabase } = await scopedPensionManager()
++  const { data: predecessor, error: predecessorError } = await supabase.from('pension_arrangement_versions')
++    .select('id')
++    .eq('id', input.predecessorVersionId)
++    .eq('tenant_id', context.tenantId)
++    .eq('hr_group_id', context.hrGroupId)
++    .eq('administration_id', context.administrationId)
++    .maybeSingle()
++  if (predecessorError || !predecessor) {
++    throw new PensionArrangementManagementError('PENSION_ARRANGEMENT_PREDECESSOR_NOT_FOUND', 404)
++  }
++  const { data, error } = await supabase.rpc('create_pension_arrangement_successor_for_pension_manager', {
++    p_predecessor_version_id: predecessor.id,
++    p_successor: input.successor,
++  })
++  if (error || typeof data !== 'string' || !UUID_PATTERN.test(data)) {
++    const code = rpcCode(error?.message, 'PENSION_ARRANGEMENT_SUCCESSOR_WRITE_FAILED')
++    throw new PensionArrangementManagementError(code, code.endsWith('_FORBIDDEN') ? 403 : 400)
++  }
++  return { versionId: data }
++}
+diff --git a/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts b/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts
+index 6fa1cccf..21074183 100644
+--- a/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts
++++ b/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts
+@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/auth/permissions'
+ import { createClient } from '@/lib/supabase/server'
+ import {
+   assignEmploymentPensionArrangement,
++  createPensionArrangementSuccessor,
+   EmploymentPensionArrangementError,
+ } from './pension-arrangement-service'
+ import {
+@@ -25,6 +26,7 @@ const ids = {
+   request: '70000000-0000-4000-8000-000000000001',
+   mapping: '80000000-0000-4000-8000-000000000001',
+   assignment: '90000000-0000-4000-8000-000000000001',
++  version: 'a1000000-0000-4000-8000-000000000001',
+ }
+ 
+ const managerContext: AuthContext = {
+@@ -56,7 +58,7 @@ function assignmentInput(overrides: Partial<Parameters<typeof assignEmploymentPe
+ function configureClient(options: {
+   readonly employment?: Record<string, unknown> | null
+   readonly appMetadata?: Record<string, unknown>
+-  readonly rpcResult?: Record<string, unknown>
++  readonly rpcResult?: unknown
+ } = {}) {
+   const query = {
+     select: vi.fn(),
+@@ -215,4 +217,21 @@ describe('assignEmploymentPensionArrangement', () => {
+         status: 500,
+       } satisfies Partial<EmploymentPensionArrangementError>)
+   })
++
++  it('uses the pension-manager permission and wrapper for successor versions', async () => {
++    const { rpc } = configureClient({ rpcResult: ids.version, employment: { id: ids.version, employee_id: ids.employee } })
++
++    await expect(createPensionArrangementSuccessor({
++      employeeId: ids.employee,
++      employmentId: ids.employment,
++      predecessorVersionId: ids.version,
++      successor: {},
++    })).resolves.toEqual({ versionId: ids.version })
++
++    expect(requirePermission).toHaveBeenCalledWith('pension:manage', ids.employee)
++    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor_for_pension_manager', {
++      p_predecessor_version_id: ids.version,
++      p_successor: {},
++    })
++  })
+ })
+diff --git a/apps/hr-suite/lib/employment/pension-arrangement-service.ts b/apps/hr-suite/lib/employment/pension-arrangement-service.ts
+index b54ebb22..86d83ecc 100644
+--- a/apps/hr-suite/lib/employment/pension-arrangement-service.ts
++++ b/apps/hr-suite/lib/employment/pension-arrangement-service.ts
+@@ -195,7 +195,8 @@ export async function createPensionArrangementSuccessor(input: {
+     || !input.successor || typeof input.successor !== 'object' || Array.isArray(input.successor)) {
+     throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_SUCCESSOR_INPUT_INVALID', 400)
+   }
+-  const { context } = await scopedEmployment(input.employeeId, input.employmentId, 'contract:write')
++  const { context } = await scopedEmployment(input.employeeId, input.employmentId, 'pension:manage')
++  if (!isPensionManager(context)) throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_SUCCESSOR_FORBIDDEN', 403)
+   const supabase = await createClient()
+   const { data: predecessor, error: predecessorError } = await supabase.from('pension_arrangement_versions')
+     .select('id, pension_arrangement_id')
+@@ -207,7 +208,7 @@ export async function createPensionArrangementSuccessor(input: {
+   if (predecessorError || !predecessor) {
+     throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_PREDECESSOR_NOT_FOUND', 404)
+   }
+-  const { data, error } = await supabase.rpc('create_pension_arrangement_successor', {
++  const { data, error } = await supabase.rpc('create_pension_arrangement_successor_for_pension_manager', {
+     p_predecessor_version_id: predecessor.id,
+     p_successor: input.successor,
+   })
+diff --git a/apps/hr-suite/lib/payroll/cao-setup-service.ts b/apps/hr-suite/lib/payroll/cao-setup-service.ts
+index e90cbf09..1699a7e9 100644
+--- a/apps/hr-suite/lib/payroll/cao-setup-service.ts
++++ b/apps/hr-suite/lib/payroll/cao-setup-service.ts
+@@ -13,6 +13,7 @@ import {
+ 
+ type PensionArrangement = Database['public']['Tables']['pension_arrangements']['Row']
+ type PensionArrangementVersion = Database['public']['Tables']['pension_arrangement_versions']['Row']
++type PensionArrangementVersionTier = Database['public']['Tables']['pension_arrangement_version_tiers']['Row']
+ type LaborConditionPensionMapping = Database['public']['Tables']['labor_condition_pension_arrangements']['Row']
+ 
+ export type CaoSetupPensionRecord = {
+@@ -27,9 +28,13 @@ export type CaoSetupPensionRecord = {
+   readonly employerSharePct: number
+   readonly annualFranchise: number
+   readonly annualPensionableSalaryCap: number | null
++  readonly pensionableSalaryDefinition: Json
++  readonly eligibilityRule: Json
+   readonly sourceStatus: 'VALIDATED' | 'REVIEW_REQUIRED'
+   readonly sourceJson: Json
+   readonly versionNumber: number | null
++  readonly currentVersionId: string | null
++  readonly successorDraft: Json | null
+   readonly sourceHash: string
+ }
+ 
+@@ -50,6 +55,7 @@ export type CaoSetupPageData = {
+   readonly pensions: readonly CaoSetupPensionRecord[]
+   readonly pensionMappings: readonly CaoSetupPensionMapping[]
+   readonly administrationId: string
++  readonly canManage: boolean
+ }
+ 
+ function isObject(value: Json): value is { readonly [key: string]: Json | undefined } {
+@@ -62,7 +68,7 @@ function sourceStatus(source: Json): 'VALIDATED' | 'REVIEW_REQUIRED' {
+   return status === 'VALIDATED' || status === 'VERIFIED' ? 'VALIDATED' : 'REVIEW_REQUIRED'
+ }
+ 
+-function pensionHash(arrangement: PensionArrangement, version: PensionArrangementVersion | null): string {
++function pensionHash(arrangement: PensionArrangement, version: PensionArrangementVersion | null, tiers: readonly PensionArrangementVersionTier[]): string {
+   return sha256(stableSerialize({
+     arrangement: {
+       id: arrangement.id,
+@@ -84,7 +90,20 @@ function pensionHash(arrangement: PensionArrangement, version: PensionArrangemen
+       versionNumber: version.version_number,
+       effectiveFrom: version.effective_from,
+       effectiveTo: version.effective_to,
++      arrangementType: version.arrangement_type,
++      transitionDate: version.transition_date,
++      grandfatheringMode: version.grandfathering_mode,
++      flatTotalRate: version.flat_total_rate,
++      employerSharePct: version.employer_share_pct,
++      employeeSharePct: version.employee_share_pct,
++      annualFranchise: version.annual_franchise,
++      annualPensionableSalaryCap: version.annual_pensionable_salary_cap,
++      pensionableSalaryDefinition: version.pensionable_salary_definition,
++      eligibilityRule: version.eligibility_rule,
++      contractClassification: version.contract_classification,
++      contractClassificationProvenance: version.contract_classification_provenance,
+       provenance: version.provenance_json,
++      tiers: tiers.map((tier) => ({ id: tier.id, minAge: tier.min_age, maxAge: tier.max_age, totalRate: tier.total_rate })),
+     } : null,
+   }))
+ }
+@@ -96,6 +115,12 @@ export async function getCaoSetupPageData(
+   if (!context.administrationId || !context.hrGroupId) throw new Error('CAO_SETUP_SCOPE_REQUIRED')
+   const settings = employmentSettings ?? await getEmploymentSettings()
+   const supabase = await createClient()
++  const canManage = await requirePermission('pension:manage')
++    .then((manager) => manager.tenantId === context.tenantId
++      && manager.hrGroupId === context.hrGroupId
++      && manager.administrationId === context.administrationId
++      && (manager.activeRoles.includes('HR_ADMIN') || manager.activeRoles.includes('TENANT_ADMIN')))
++    .catch(() => false)
+   const [arrangementsResult, mappingsResult] = await Promise.all([
+     supabase.from('pension_arrangements')
+       .select('id, code, name, arrangement_type, effective_from, effective_to, flat_total_rate, employee_share_pct, employer_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, provenance_json, is_active')
+@@ -119,19 +144,58 @@ export async function getCaoSetupPageData(
+   const versionsResult = arrangementIds.length === 0
+     ? { data: [] as PensionArrangementVersion[], error: null }
+     : await supabase.from('pension_arrangement_versions')
+-      .select('id, pension_arrangement_id, version_number, effective_from, effective_to, provenance_json')
++      .select('id, pension_arrangement_id, version_number, supersedes_version_id, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, contract_classification, contract_classification_provenance, provenance_json, is_active, supersession_reason, supersession_provenance, created_at, created_by_user_id, tenant_id, hr_group_id, administration_id')
+       .eq('tenant_id', context.tenantId)
+       .eq('hr_group_id', context.hrGroupId)
+       .eq('administration_id', context.administrationId)
+       .in('pension_arrangement_id', arrangementIds)
+       .order('version_number', { ascending: false })
+   if (versionsResult.error) throw new Error('CAO_SETUP_PENSION_VERSION_READ_FAILED')
++  const versions = (versionsResult.data ?? []) as PensionArrangementVersion[]
++  const versionIds = versions.map((version) => version.id)
++  const tiersResult = versionIds.length === 0
++    ? { data: [] as PensionArrangementVersionTier[], error: null }
++    : await supabase.from('pension_arrangement_version_tiers')
++      .select('id, pension_arrangement_version_id, pension_arrangement_id, min_age, max_age, total_rate, created_at, tenant_id, hr_group_id, administration_id')
++      .eq('tenant_id', context.tenantId)
++      .eq('hr_group_id', context.hrGroupId)
++      .eq('administration_id', context.administrationId)
++      .in('pension_arrangement_version_id', versionIds)
++      .order('min_age')
++  if (tiersResult.error) throw new Error('CAO_SETUP_PENSION_VERSION_READ_FAILED')
++  const versionTiersById = new Map<string, PensionArrangementVersionTier[]>()
++  for (const tier of (tiersResult.data ?? []) as PensionArrangementVersionTier[]) {
++    const rows = versionTiersById.get(tier.pension_arrangement_version_id) ?? []
++    versionTiersById.set(tier.pension_arrangement_version_id, [...rows, tier])
++  }
+   const versionsByArrangementId = new Map<string, PensionArrangementVersion>()
+-  for (const version of versionsResult.data ?? []) {
++  for (const version of versions) {
+     if (!versionsByArrangementId.has(version.pension_arrangement_id)) versionsByArrangementId.set(version.pension_arrangement_id, version as PensionArrangementVersion)
+   }
+   const pensions = arrangements.map((arrangement) => {
+     const version = versionsByArrangementId.get(arrangement.id) ?? null
++    const versionTiers = version ? versionTiersById.get(version.id) ?? [] : []
++    const successorDraft: Json | null = version ? {
++      effective_from: version.effective_from,
++      effective_to: version.effective_to,
++      arrangement_type: version.arrangement_type,
++      transition_date: version.transition_date,
++      grandfathering_mode: version.grandfathering_mode,
++      flat_total_rate: version.flat_total_rate,
++      employer_share_pct: version.employer_share_pct,
++      employee_share_pct: version.employee_share_pct,
++      annual_franchise: version.annual_franchise,
++      annual_pensionable_salary_cap: version.annual_pensionable_salary_cap,
++      pensionable_salary_definition: version.pensionable_salary_definition,
++      eligibility_rule: version.eligibility_rule,
++      contract_classification: version.contract_classification,
++      contract_classification_provenance: version.contract_classification_provenance,
++      provenance_json: version.provenance_json,
++      is_active: version.is_active,
++      tiers: versionTiers.map((tier) => ({ min_age: tier.min_age, max_age: tier.max_age, total_rate: tier.total_rate })),
++      supersession_reason: 'Explicit configuration correction through the versioned pension arrangement settings.',
++      supersession_provenance: { status: 'USER_RECORDED', interface: 'pension-arrangement-settings' },
++    } : null
+     return {
+       id: arrangement.id,
+       code: arrangement.code,
+@@ -144,10 +208,14 @@ export async function getCaoSetupPageData(
+       employerSharePct: arrangement.employer_share_pct,
+       annualFranchise: arrangement.annual_franchise,
+       annualPensionableSalaryCap: arrangement.annual_pensionable_salary_cap,
++      pensionableSalaryDefinition: version?.pensionable_salary_definition ?? arrangement.pensionable_salary_definition,
++      eligibilityRule: version?.eligibility_rule ?? arrangement.eligibility_rule,
+       sourceStatus: sourceStatus(version?.provenance_json ?? arrangement.provenance_json),
+       sourceJson: version?.provenance_json ?? arrangement.provenance_json,
+       versionNumber: version?.version_number ?? null,
+-      sourceHash: pensionHash(arrangement, version),
++      currentVersionId: version?.id ?? null,
++      successorDraft,
++      sourceHash: pensionHash(arrangement, version, versionTiers),
+     } satisfies CaoSetupPensionRecord
+   })
+   const pensionById = new Map(pensions.map((pension) => [pension.id, pension]))
+@@ -170,6 +238,7 @@ export async function getCaoSetupPageData(
+     pensions,
+     pensionMappings,
+     administrationId: context.administrationId,
++    canManage,
+   }
+ }
+ 
+diff --git a/apps/hr-suite/messages/en/payrollProfessional.json b/apps/hr-suite/messages/en/payrollProfessional.json
+index 9f418d09..9e4a5111 100644
+--- a/apps/hr-suite/messages/en/payrollProfessional.json
++++ b/apps/hr-suite/messages/en/payrollProfessional.json
+@@ -717,5 +717,55 @@
+   "caoRegulationSetupDescription": "Create an employment-terms version, choose the collective agreement and effective date, then link the applicable salary table. The existing employment workflow reads this Core source back.",
+   "caoPackage": "Collective-agreement source",
+   "caoPackageNone": "Choose a collective-agreement source or enter the arrangement manually",
+-  "caoPackageSource": "The selected collective-agreement source is stored as a reference; verify the official source before releasing salary calculation."
++  "caoPackageSource": "The selected collective-agreement source is stored as a reference; verify the official source before releasing salary calculation.",
++  "pensionManagementTitle": "Manage pension arrangements",
++  "pensionManagementDescription": "Register employer and industry arrangements through one scoped Core workflow. Versions are stored atomically with audit and source provenance.",
++  "pensionCreateTitle": "Register a new pension arrangement",
++  "pensionCreateDescription": "Record the arrangement, source, parameters and partial-period methods. A saved arrangement remains under source review until official fund validation is evidenced.",
++  "pensionManagementCode": "Arrangement code",
++  "pensionManagementName": "Name",
++  "pensionManagementProvider": "Pension provider or fund",
++  "pensionManagementSourceReference": "Official source reference",
++  "pensionManagementSourceStatus": "Source status",
++  "pensionManagementReferenceOnly": "Reference recorded, not validated",
++  "pensionManagementEmployerRecorded": "Employer recorded the source",
++  "pensionManagementVerifiedSource": "Source formally checked",
++  "pensionManagementEffectiveFrom": "Effective from",
++  "pensionManagementEffectiveTo": "Effective to",
++  "pensionManagementTransitionDate": "Transition date",
++  "pensionManagementArrangementType": "Arrangement type",
++  "pensionManagementFlatPremium": "Flat premium rate",
++  "pensionManagementProgressivePremium": "Progressive premium tiers",
++  "pensionManagementGrandfatheringMode": "Transition treatment",
++  "pensionManagementNoGrandfathering": "No transition treatment",
++  "pensionManagementRespectfulTransition": "Respectful transition",
++  "pensionManagementFlatTotalRate": "Total premium (%)",
++  "pensionManagementEmployeeShare": "Employee share (%)",
++  "pensionManagementEmployerShare": "Employer share (%)",
++  "pensionManagementAnnualFranchise": "Annual franchise (€)",
++  "pensionManagementAnnualCap": "Maximum annual pensionable salary (€)",
++  "pensionManagementSalaryMethod": "Pensionable salary definition",
++  "pensionManagementPartTimeMethod": "Part-time method",
++  "pensionManagementPartMonthMethod": "Partial-month method",
++  "pensionManagementEligibilityRule": "Participation conditions",
++  "pensionManagementContractClassification": "Contract classification",
++  "pensionManagementSolidarity": "Solidarity arrangement",
++  "pensionManagementNonSolidarity": "Non-solidarity arrangement",
++  "pensionManagementUnknown": "Not established yet",
++  "pensionManagementClassificationStatus": "Classification status",
++  "pensionManagementClassificationSource": "Classification source",
++  "pensionManagementTiers": "Premium tiers (JSON)",
++  "pensionManagementTiersHelp": "For example [{\"min_age\":21,\"max_age\":67,\"total_rate\":20}]. Leave [] for a flat premium.",
++  "pensionManagementSave": "Save arrangement",
++  "pensionManagementVersionTitle": "Manage successor version",
++  "pensionManagementVersionDescription": "Create an immutable successor version through the same authorized Core workflow. Existing versions remain unchanged.",
++  "pensionManagementVersionJson": "Successor version",
++  "pensionManagementVersionJsonHelp": "Check the effective date, parameters, source provenance and supersession_reason before saving.",
++  "pensionManagementSaveVersion": "Save successor version",
++  "pensionManagementManagerRequired": "Only HR Admin or Tenant Admin with pension-management permission can register or version arrangements.",
++  "pensionManagementSourceReviewNotice": "Saving records source data but does not declare legal fund validation. Missing or unconfirmed parameters remain visible in payroll readiness.",
++  "pensionManagementSaved": "The pension arrangement, initial version and audit were saved and read back.",
++  "pensionManagementVersionSaved": "The immutable successor version and audit were saved and read back.",
++  "pensionManagementInvalid": "The pension input is invalid. Check dates, premium shares, source fields and tiers.",
++  "pensionManagementUnavailable": "The pension arrangement could not be saved. No confirmed write-readback is available."
+ }
+diff --git a/apps/hr-suite/messages/nl/payrollProfessional.json b/apps/hr-suite/messages/nl/payrollProfessional.json
+index 01877e94..53e39a21 100644
+--- a/apps/hr-suite/messages/nl/payrollProfessional.json
++++ b/apps/hr-suite/messages/nl/payrollProfessional.json
+@@ -717,5 +717,55 @@
+   "caoRegulationSetupDescription": "Maak een arbeidsvoorwaardenversie, kies de cao en geldigheidsdatum en koppel daarna de toepasselijke salaristabel. De bestaande dienstverbandworkflow leest deze Core-bron terug.",
+   "caoPackage": "Cao-bron",
+   "caoPackageNone": "Kies een cao-bron of vul de regeling handmatig in",
+-  "caoPackageSource": "De gekozen cao-bron is opgeslagen als verwijzing; controleer de officiële bron voordat salarisberekening wordt vrijgegeven."
++  "caoPackageSource": "De gekozen cao-bron is opgeslagen als verwijzing; controleer de officiële bron voordat salarisberekening wordt vrijgegeven.",
++  "pensionManagementTitle": "Pensioenregelingen beheren",
++  "pensionManagementDescription": "Registreer bedrijfseigen en bedrijfstakregelingen via één gescopeerde Core-workflow. Versies worden atomair opgeslagen met audit en bronherkomst.",
++  "pensionCreateTitle": "Nieuwe pensioenregeling registreren",
++  "pensionCreateDescription": "Leg de regeling, bron, parameters en deelmaandmethoden vast. Een opgeslagen regeling blijft bronmatig ter beoordeling totdat de officiële fondsvalidatie aantoonbaar is.",
++  "pensionManagementCode": "Regelingscode",
++  "pensionManagementName": "Naam",
++  "pensionManagementProvider": "Pensioenuitvoerder of fonds",
++  "pensionManagementSourceReference": "Officiële bronreferentie",
++  "pensionManagementSourceStatus": "Bronstatus",
++  "pensionManagementReferenceOnly": "Referentie vastgelegd, niet gevalideerd",
++  "pensionManagementEmployerRecorded": "Werkgever heeft bron vastgelegd",
++  "pensionManagementVerifiedSource": "Bron formeel gecontroleerd",
++  "pensionManagementEffectiveFrom": "Geldig vanaf",
++  "pensionManagementEffectiveTo": "Geldig tot en met",
++  "pensionManagementTransitionDate": "Overgangsdatum",
++  "pensionManagementArrangementType": "Regelingstype",
++  "pensionManagementFlatPremium": "Vast premiepercentage",
++  "pensionManagementProgressivePremium": "Premiestaffel",
++  "pensionManagementGrandfatheringMode": "Overgangsregeling",
++  "pensionManagementNoGrandfathering": "Geen overgangsregeling",
++  "pensionManagementRespectfulTransition": "Eerbiedigende werking",
++  "pensionManagementFlatTotalRate": "Totale premie (%)",
++  "pensionManagementEmployeeShare": "Aandeel werknemer (%)",
++  "pensionManagementEmployerShare": "Aandeel werkgever (%)",
++  "pensionManagementAnnualFranchise": "Jaarfranchise (€)",
++  "pensionManagementAnnualCap": "Maximum pensioengevend jaarsalaris (€)",
++  "pensionManagementSalaryMethod": "Definitie pensioengevend loon",
++  "pensionManagementPartTimeMethod": "Deeltijdmethode",
++  "pensionManagementPartMonthMethod": "Deelmaandmethode",
++  "pensionManagementEligibilityRule": "Deelnemingsvoorwaarden",
++  "pensionManagementContractClassification": "Contractclassificatie",
++  "pensionManagementSolidarity": "Solidariteitsregeling",
++  "pensionManagementNonSolidarity": "Niet-solidaire regeling",
++  "pensionManagementUnknown": "Nog niet vastgesteld",
++  "pensionManagementClassificationStatus": "Status classificatie",
++  "pensionManagementClassificationSource": "Bron classificatie",
++  "pensionManagementTiers": "Premiestaffels (JSON)",
++  "pensionManagementTiersHelp": "Gebruik bijvoorbeeld [{\"min_age\":21,\"max_age\":67,\"total_rate\":20}]. Laat [] staan voor een vaste premie.",
++  "pensionManagementSave": "Regeling opslaan",
++  "pensionManagementVersionTitle": "Opvolgversie beheren",
++  "pensionManagementVersionDescription": "Maak een immutable opvolgversie met dezelfde geautoriseerde Core-workflow. Bestaande versies blijven ongewijzigd.",
++  "pensionManagementVersionJson": "Opvolgversie",
++  "pensionManagementVersionJsonHelp": "Controleer de effectieve datum, parameters, bronherkomst en supersession_reason voordat je opslaat.",
++  "pensionManagementSaveVersion": "Opvolgversie opslaan",
++  "pensionManagementManagerRequired": "Alleen HR Admin of Tenant Admin met pensioenbeheer kan regelingen registreren of versioneren.",
++  "pensionManagementSourceReviewNotice": "Opslaan registreert brongegevens maar verklaart geen juridische fondsvalidatie. Ontbrekende of onbevestigde parameters blijven zichtbaar in de payroll-readiness.",
++  "pensionManagementSaved": "De pensioenregeling, eerste versie en audit zijn opgeslagen en teruggelezen.",
++  "pensionManagementVersionSaved": "De immutable opvolgversie en audit zijn opgeslagen en teruggelezen.",
++  "pensionManagementInvalid": "De pensioeninvoer is ongeldig. Controleer datums, premieaandelen, bronvelden en staffels.",
++  "pensionManagementUnavailable": "De pensioenregeling kon niet worden opgeslagen. Er is geen bevestigde write-readback beschikbaar."
+ }
+diff --git a/packages/db/types.ts b/packages/db/types.ts
+index 9d60b976..117278fc 100644
+--- a/packages/db/types.ts
++++ b/packages/db/types.ts
+@@ -24251,6 +24251,14 @@ export type Database = {
+         Args: { p_predecessor_version_id: string; p_successor: Json }
+         Returns: string
+       }
++      create_pension_arrangement_successor_for_pension_manager: {
++        Args: { p_predecessor_version_id: string; p_successor: Json }
++        Returns: string
++      }
++      create_pension_arrangement: {
++        Args: { p_input: Json }
++        Returns: Json
++      }
+       apply_employment_pension_arrangement: {
+         Args: { p_input: Json }
+         Returns: Json

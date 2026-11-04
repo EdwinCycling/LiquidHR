@@ -1,0 +1,10 @@
+diff --git a/apps/hr-suite/lib/payroll/supabase-types.ts b/apps/hr-suite/lib/payroll/supabase-types.ts
+new file mode 100644
+index 00000000..d573b1eb
+--- /dev/null
++++ b/apps/hr-suite/lib/payroll/supabase-types.ts
+@@ -0,0 +1,4 @@
++import type { SupabaseClient } from '@supabase/supabase-js'
++import type { PayrollDatabase } from './database'
++
++export type PayrollSupabaseClient = SupabaseClient<PayrollDatabase>

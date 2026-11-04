@@ -1,0 +1,165 @@
+diff --git a/apps/hr-suite/lib/app-version.test.ts b/apps/hr-suite/lib/app-version.test.ts
+index 4b664fd0..1e719ba5 100644
+--- a/apps/hr-suite/lib/app-version.test.ts
++++ b/apps/hr-suite/lib/app-version.test.ts
+@@ -3,10 +3,10 @@ import { APP_VERSION } from './app-version'
+ 
+ describe('APP_VERSION', () => {
+   it('volgt het formaat X.datum.volgnummer', () => {
+-    expect(APP_VERSION).toMatch(/^1\.\d{8}\.\d+$/)
++    expect(APP_VERSION).toMatch(/^\d+\.\d{8}\.\d+$/)
+   })
+ 
+-  it('start met de door de opdrachtgever gekozen hoofdversie', () => {
+-    expect(APP_VERSION).toBe('1.20261011.1')
++  it('behoudt de door de opdrachtgever gekozen hoofdversie', () => {
++    expect(APP_VERSION.split('.')[0]).toBe('1')
+   })
+ })
+diff --git a/apps/hr-suite/lib/controlled-actions/service.test.ts b/apps/hr-suite/lib/controlled-actions/service.test.ts
+index e14daa36..c703d27a 100644
+--- a/apps/hr-suite/lib/controlled-actions/service.test.ts
++++ b/apps/hr-suite/lib/controlled-actions/service.test.ts
+@@ -244,21 +244,28 @@ describe('controlled action lifecycle', () => {
+   })
+ 
+   it('strictly rejects caller-selected identity and context in ESS action payloads', () => {
+-    const leavePayload = {
+-      startDate: '2026-10-16',
+-      leaveTypeId: '10000000-0000-4000-8000-000000000009',
+-    }
+-    const reminderPayload = { title: 'POP bijwerken', remindAt: '2026-10-12T08:00:00.000Z' }
+-    expect(controlledActionPayloadSchemas['employee.leave.request.create'].safeParse(leavePayload).success).toBe(true)
+-    expect(controlledActionPayloadSchemas['employee.reminder.create'].safeParse(reminderPayload).success).toBe(true)
+-
+-    for (const selector of ['employeeId', 'tenantId', 'hrGroupId', 'administrationId', 'actor', 'role']) {
+-      expect(controlledActionPayloadSchemas['employee.leave.request.create'].safeParse({
+-        ...leavePayload, [selector]: 'attacker-selected',
+-      }).success).toBe(false)
+-      expect(controlledActionPayloadSchemas['employee.reminder.create'].safeParse({
+-        ...reminderPayload, [selector]: 'attacker-selected',
+-      }).success).toBe(false)
++    vi.useFakeTimers({ toFake: ['Date'] })
++    vi.setSystemTime(new Date('2026-10-12T07:00:00.000Z'))
++
++    try {
++      const leavePayload = {
++        startDate: '2026-10-16',
++        leaveTypeId: '10000000-0000-4000-8000-000000000009',
++      }
++      const reminderPayload = { title: 'POP bijwerken', remindAt: '2026-10-12T08:00:00.000Z' }
++      expect(controlledActionPayloadSchemas['employee.leave.request.create'].safeParse(leavePayload).success).toBe(true)
++      expect(controlledActionPayloadSchemas['employee.reminder.create'].safeParse(reminderPayload).success).toBe(true)
++
++      for (const selector of ['employeeId', 'tenantId', 'hrGroupId', 'administrationId', 'actor', 'role']) {
++        expect(controlledActionPayloadSchemas['employee.leave.request.create'].safeParse({
++          ...leavePayload, [selector]: 'attacker-selected',
++        }).success).toBe(false)
++        expect(controlledActionPayloadSchemas['employee.reminder.create'].safeParse({
++          ...reminderPayload, [selector]: 'attacker-selected',
++        }).success).toBe(false)
++      }
++    } finally {
++      vi.useRealTimers()
+     }
+   })
+ 
+diff --git a/apps/hr-suite/lib/workforce-tools/employee-tools.test.ts b/apps/hr-suite/lib/workforce-tools/employee-tools.test.ts
+index 11f73b3c..0167c51d 100644
+--- a/apps/hr-suite/lib/workforce-tools/employee-tools.test.ts
++++ b/apps/hr-suite/lib/workforce-tools/employee-tools.test.ts
+@@ -145,47 +145,54 @@ describe('employee workforce tool definitions', () => {
+   })
+ 
+   it('keeps only own pending personal reminders and drops HR, completed, and cancelled records', async () => {
+-    const authContext: AuthContext = {
+-      tenantId: '10000000-0000-4000-8000-000000000001',
+-      hrGroupId: '10000000-0000-4000-8000-000000000002',
+-      administrationId: null,
+-      userId: '10000000-0000-4000-8000-000000000004',
+-      employeeId: '10000000-0000-4000-8000-000000000005',
+-      activeRoles: ['EMPLOYEE'],
+-      permissions: ['self:reminder:read'],
+-    }
+-    const bearerClient = {} as unknown as DelegatedWorkforceToolExecutionContext['rls']['client']
+-    const execution = {
+-      authContext,
+-      rls: { kind: 'supabase-bearer', client: bearerClient, userId: authContext.userId, identity: { issuer: 'test', subject: authContext.userId } },
+-    } as unknown as DelegatedWorkforceToolExecutionContext
+-    const base = {
+-      recipientId: 'recipient',
+-      employeeId: authContext.employeeId,
+-      employeeName: null,
+-      reminderId: 'reminder',
+-      title: 'POP bijwerken',
+-      description: null,
+-      remindAt: '2026-10-12T08:00:00.000Z',
+-      originalRemindAt: '2026-10-12T08:00:00.000Z',
+-      targetType: 'SELF',
+-      createdByUserId: authContext.userId,
+-    } as const
+-    listMyReminders.mockResolvedValueOnce([
+-      { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
+-      { ...base, type: 'HR', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
+-      { ...base, type: 'PERSONAL', recipientStatus: 'COMPLETED', reminderStatus: 'PUBLISHED' },
+-      { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'CANCELLED' },
+-    ])
++    vi.useFakeTimers({ toFake: ['Date'] })
++    vi.setSystemTime(new Date('2026-10-12T07:00:00.000Z'))
+ 
+-    const result = await employeeRemindersTool.execute({}, execution)
+-    expect(result.reminders).toHaveLength(1)
+-    expect(result.reminders[0]).toMatchObject({
+-      title: 'POP bijwerken',
+-      status: 'PENDING',
+-      isOverdue: false,
+-    })
+-    expect(JSON.stringify(result)).not.toContain('createdByUserId')
++    try {
++      const authContext: AuthContext = {
++        tenantId: '10000000-0000-4000-8000-000000000001',
++        hrGroupId: '10000000-0000-4000-8000-000000000002',
++        administrationId: null,
++        userId: '10000000-0000-4000-8000-000000000004',
++        employeeId: '10000000-0000-4000-8000-000000000005',
++        activeRoles: ['EMPLOYEE'],
++        permissions: ['self:reminder:read'],
++      }
++      const bearerClient = {} as unknown as DelegatedWorkforceToolExecutionContext['rls']['client']
++      const execution = {
++        authContext,
++        rls: { kind: 'supabase-bearer', client: bearerClient, userId: authContext.userId, identity: { issuer: 'test', subject: authContext.userId } },
++      } as unknown as DelegatedWorkforceToolExecutionContext
++      const base = {
++        recipientId: 'recipient',
++        employeeId: authContext.employeeId,
++        employeeName: null,
++        reminderId: 'reminder',
++        title: 'POP bijwerken',
++        description: null,
++        remindAt: '2026-10-12T08:00:00.000Z',
++        originalRemindAt: '2026-10-12T08:00:00.000Z',
++        targetType: 'SELF',
++        createdByUserId: authContext.userId,
++      } as const
++      listMyReminders.mockResolvedValueOnce([
++        { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
++        { ...base, type: 'HR', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED' },
++        { ...base, type: 'PERSONAL', recipientStatus: 'COMPLETED', reminderStatus: 'PUBLISHED' },
++        { ...base, type: 'PERSONAL', recipientStatus: 'PENDING', reminderStatus: 'CANCELLED' },
++      ])
++
++      const result = await employeeRemindersTool.execute({}, execution)
++      expect(result.reminders).toHaveLength(1)
++      expect(result.reminders[0]).toMatchObject({
++        title: 'POP bijwerken',
++        status: 'PENDING',
++        isOverdue: false,
++      })
++      expect(JSON.stringify(result)).not.toContain('createdByUserId')
++    } finally {
++      vi.useRealTimers()
++    }
+   })
+ 
+   it('reads own development plans through the self goal service and strips descriptions and scope identifiers', async () => {

@@ -1,0 +1,21 @@
+diff --git a/packages/payroll-engine/tsconfig.json b/packages/payroll-engine/tsconfig.json
+new file mode 100644
+index 00000000..d63dbff3
+--- /dev/null
++++ b/packages/payroll-engine/tsconfig.json
+@@ -0,0 +1,15 @@
++{
++  "compilerOptions": {
++    "target": "ES2022",
++    "lib": ["ES2022"],
++    "module": "ESNext",
++    "moduleResolution": "Bundler",
++    "strict": true,
++    "noEmit": true,
++    "skipLibCheck": true,
++    "isolatedModules": true,
++    "noUncheckedIndexedAccess": true,
++    "exactOptionalPropertyTypes": true
++  },
++  "include": ["src/**/*.ts"]
++}

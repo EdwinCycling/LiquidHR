@@ -1,0 +1,12 @@
+diff --git a/apps/hr-suite/app/(dashboard)/layout.tsx b/apps/hr-suite/app/(dashboard)/layout.tsx
+index 4a04cacc..61a9968e 100644
+--- a/apps/hr-suite/app/(dashboard)/layout.tsx
++++ b/apps/hr-suite/app/(dashboard)/layout.tsx
+@@ -169,6 +169,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
+           sectionPeopleOrganization: navigation('sectionPeopleOrganization'),
+           sectionHrProcesses: navigation('sectionHrProcesses'),
+           sectionSteering: navigation('sectionSteering'),
++          sectionPayroll: navigation('sectionPayroll'),
+           sectionManagement: navigation('sectionManagement'),
+           signOut: auth('signOut'),
+         }}

@@ -1,0 +1,17 @@
+diff --git a/packages/payroll-engine/src/index.ts b/packages/payroll-engine/src/index.ts
+new file mode 100644
+index 00000000..86a6959f
+--- /dev/null
++++ b/packages/payroll-engine/src/index.ts
+@@ -0,0 +1,11 @@
++export type {
++  CalculationInputSet,
++  CalculationRun,
++  PayrollJsonValue,
++  PayrollPeriodReference,
++  PayrollSourceGap,
++  PayrollSourceGapStatus,
++  PayrollSourceProvider,
++  PayrollSourceProviderInput,
++  PayrollSourceSnapshot,
++} from './domain/payroll-contracts'

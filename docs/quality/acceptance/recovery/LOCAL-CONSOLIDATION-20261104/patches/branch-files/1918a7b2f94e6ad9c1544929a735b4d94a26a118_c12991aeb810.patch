@@ -1,0 +1,25 @@
+diff --git a/docs/delivery/CURRENT_CONTEXT.md b/docs/delivery/CURRENT_CONTEXT.md
+index f9fbba6c..e1d3a556 100644
+--- a/docs/delivery/CURRENT_CONTEXT.md
++++ b/docs/delivery/CURRENT_CONTEXT.md
+@@ -1,5 +1,20 @@
+ # Actuele overdracht Liquid HR
+ 
++## Payroll Engine M0 / PAYLAB02 — 2026-09-30
++
++**Synthetic M0 accepted in the authenticated local browser and separate Lab.**
++Existing HR Admin Test Auth → Payroll → Payroll Lab → Bereken test payroll →
++SUCCEEDED. Net 3175.00 and employer cost 4910.00; nine persisted components,
++one trace and seven PASS controls. Repeat browser runs have identical hashes.
++SYSTEM / detached CUSTOMER_FORK / CUSTOMER_CUSTOM and bounded expressions are
++implemented. Existing LiquidHR shell, primitives and NL/EN navigation are reused.
++Only explicitly approved testcontext mappings and synthetic test artifacts were
++written to the Lab; no Core writes, auth/permission changes, push or merge.
++PAYLAB01 live Core source proof and fiscal NL 2026 rules remain separate scope.
++See [M0 acceptance](../payroll/acceptance/PAYLAB02-M0-20260930.md) and [contract](../payroll/ENGINE_M0.md).
++The older status below describes the preceding run and is retained as history.
++
++
+ ## PAYLAB00 close + PAYLAB01 source adapter — 2026-09-30
+ 
+ - Branch `work/paylab00`, baseline `5ac6060236c947b5029d76de2998fa7ab9435e01`,

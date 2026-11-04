@@ -1,0 +1,821 @@
+diff --git a/apps/hr-suite/app/error.tsx b/apps/hr-suite/app/error.tsx
+new file mode 100644
+index 00000000..87bb1828
+--- /dev/null
++++ b/apps/hr-suite/app/error.tsx
+@@ -0,0 +1,42 @@
++'use client'
++
++import { useEffect, useState } from 'react'
++import { Button } from '@/components/ui/button'
++
++type Locale = 'nl' | 'en'
++
++const COPY: Record<Locale, { title: string; description: string; retry: string }> = {
++  nl: {
++    title: 'Deze pagina kon niet worden geladen',
++    description: 'De gegevens zijn tijdelijk niet beschikbaar. Probeer het opnieuw. Als dit blijft gebeuren, neem dan contact op met je beheerder.',
++    retry: 'Opnieuw proberen',
++  },
++  en: {
++    title: 'This page could not be loaded',
++    description: 'The data is temporarily unavailable. Please try again. If the problem continues, contact your administrator.',
++    retry: 'Try again',
++  },
++}
++
++export default function AppError({ retry }: {
++  error: Error & { digest?: string }
++  retry: () => void
++}) {
++  const [locale, setLocale] = useState<Locale>('nl')
++
++  useEffect(() => {
++    setLocale(document.documentElement.lang === 'en' ? 'en' : 'nl')
++  }, [])
++
++  const copy = COPY[locale]
++  return (
++    <main className="grid min-h-screen place-items-center bg-background p-6 text-foreground">
++      <section aria-labelledby="app-error-title" className="w-full max-w-lg rounded-[var(--radius-card)] border border-border bg-surface p-8 shadow-sm">
++        <div aria-hidden="true" className="mb-4 grid size-11 place-items-center rounded-full bg-muted text-lg font-semibold text-muted-foreground">!</div>
++        <h1 className="text-xl font-semibold" id="app-error-title">{copy.title}</h1>
++        <p className="mt-2 text-sm leading-6 text-muted-foreground">{copy.description}</p>
++        <Button className="mt-6" onClick={retry}>{copy.retry}</Button>
++      </section>
++    </main>
++  )
++}
+diff --git a/apps/hr-suite/app/global-error.tsx b/apps/hr-suite/app/global-error.tsx
+new file mode 100644
+index 00000000..b62f7e14
+--- /dev/null
++++ b/apps/hr-suite/app/global-error.tsx
+@@ -0,0 +1,51 @@
++'use client'
++
++import { useEffect, useState } from 'react'
++
++type Locale = 'nl' | 'en'
++
++const COPY: Record<Locale, { title: string; description: string; retry: string }> = {
++  nl: {
++    title: 'Deze pagina kon niet worden geladen',
++    description: 'De gegevens zijn tijdelijk niet beschikbaar. Probeer het opnieuw. Als dit blijft gebeuren, neem contact op met je beheerder.',
++    retry: 'Opnieuw proberen',
++  },
++  en: {
++    title: 'This page could not be loaded',
++    description: 'The data is temporarily unavailable. Please try again. If the problem continues, contact your administrator.',
++    retry: 'Try again',
++  },
++}
++
++export default function GlobalError({ retry }: {
++  error: Error & { digest?: string }
++  retry: () => void
++}) {
++  const [locale, setLocale] = useState<Locale>('nl')
++
++  useEffect(() => {
++    setLocale(navigator.language.toLowerCase().startsWith('en') ? 'en' : 'nl')
++  }, [])
++
++  const copy = COPY[locale]
++  return (
++    <html lang={locale}>
++      <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', color: '#17202a', background: '#f8fafc' }}>
++        <main aria-labelledby="global-error-title" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24 }}>
++          <section style={{ boxSizing: 'border-box', width: '100%', maxWidth: 520, padding: 32, border: '1px solid #d8dee8', borderRadius: 16, background: '#fff' }}>
++            <h1 id="global-error-title" style={{ margin: 0, fontSize: 22 }}>{copy.title}</h1>
++            <p style={{ margin: '12px 0 24px', lineHeight: 1.6, color: '#475569' }}>
++              {copy.description}
++            </p>
++            <button
++              onClick={retry}
++              style={{ border: 0, borderRadius: 8, padding: '10px 16px', color: '#fff', background: '#1e40af', font: 'inherit', cursor: 'pointer' }}
++            >
++              {copy.retry}
++            </button>
++          </section>
++        </main>
++      </body>
++    </html>
++  )
++}
+diff --git a/apps/hr-suite/lib/auth/permissions.ts b/apps/hr-suite/lib/auth/permissions.ts
+index fb168294..9e91705a 100644
+--- a/apps/hr-suite/lib/auth/permissions.ts
++++ b/apps/hr-suite/lib/auth/permissions.ts
+@@ -11,6 +11,7 @@ import {
+   type FocusExperience,
+ } from '@/lib/focus/access-state'
+ import { createClient } from '@/lib/supabase/server'
++import { throwDatabaseReadError } from '@/lib/errors/database-read-error'
+ 
+ export interface AuthContext {
+   tenantId: string
+@@ -76,7 +77,7 @@ export const getSelfPermissions = cache(async (supabase: SupabaseServerClient, t
+     .eq('is_active', true)
+     .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
+ 
+-  if (employeeRoleError) throw employeeRoleError
++  if (employeeRoleError) throwDatabaseReadError(employeeRoleError, 'auth.permissions.employeeRole')
+   const employeeRole = employeeRoles.find((role) => role.tenant_id === tenantId) ?? employeeRoles.find((role) => role.tenant_id === null)
+   return employeeRole ? permissionCodesForRoleIds([employeeRole.id], supabase) : []
+ })
+@@ -87,12 +88,12 @@ async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseSe
+   let effectiveRoleIds = roleIds
+   if (tenantId) {
+     const { data: assignedRoles, error: assignedRolesError } = await supabase.from('management_roles').select('id,code,tenant_id').in('id', roleIds)
+-    if (assignedRolesError) throw assignedRolesError
++    if (assignedRolesError) throwDatabaseReadError(assignedRolesError, 'auth.permissions.assignedRoles')
+     const globalCodes = assignedRoles.filter((role) => role.tenant_id === null).map((role) => role.code)
+     if (globalCodes.length > 0) {
+       const { data: tenantOverrides, error: tenantOverridesError } = await supabase.from('management_roles').select('id,code')
+         .eq('tenant_id', tenantId).eq('is_active', true).in('code', globalCodes)
+-      if (tenantOverridesError) throw tenantOverridesError
++      if (tenantOverridesError) throwDatabaseReadError(tenantOverridesError, 'auth.permissions.tenantOverrides')
+       const overrideByCode = new Map(tenantOverrides.map((role) => [role.code, role.id]))
+       effectiveRoleIds = assignedRoles.map((role) => role.tenant_id === null ? overrideByCode.get(role.code) ?? role.id : role.id)
+     }
+@@ -103,7 +104,7 @@ async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseSe
+     .select('permission_id')
+     .in('management_role_id', effectiveRoleIds)
+ 
+-  if (rolePermissionsError) throw rolePermissionsError
++  if (rolePermissionsError) throwDatabaseReadError(rolePermissionsError, 'auth.permissions.rolePermissions')
+   const permissionIds = rolePermissions.map((rolePermission) => rolePermission.permission_id)
+   if (permissionIds.length === 0) return []
+ 
+@@ -112,7 +113,7 @@ async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseSe
+     .select('code')
+     .in('id', permissionIds)
+ 
+-  if (permissionsError) throw permissionsError
++  if (permissionsError) throwDatabaseReadError(permissionsError, 'auth.permissions.permissionCodes')
+   return permissions.map((permission) => permission.code)
+ }
+ 
+@@ -124,7 +125,7 @@ async function roleCodesForRoleIds(roleIds: string[], supabase: SupabaseServerCl
+     .select('code')
+     .in('id', roleIds)
+ 
+-  if (error) throw error
++  if (error) throwDatabaseReadError(error, 'auth.permissions.roleCodes')
+   return roles.map((role) => role.code)
+ }
+ 
+@@ -142,7 +143,7 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
+     .eq('is_active', true)
+     .limit(100)
+ 
+-  if (accessError) throw accessError
++  if (accessError) throwDatabaseReadError(accessError, 'auth.context.groupAccess')
+ 
+   const { data: initialActor, error: actorError } = await supabase
+     .from('employees')
+@@ -153,7 +154,7 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
+     .is('deleted_at', null)
+     .maybeSingle()
+ 
+-  if (actorError) throw actorError
++  if (actorError) throwDatabaseReadError(actorError, 'auth.context.actor')
+   const actor = initialActor
+ 
+   const today = new Date().toISOString().slice(0, 10)
+@@ -180,8 +181,8 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
+         .limit(100),
+     ])
+ 
+-    if (assignmentsResult.error) throw assignmentsResult.error
+-    if (employmentsResult.error) throw employmentsResult.error
++    if (assignmentsResult.error) throwDatabaseReadError(assignmentsResult.error, 'auth.context.managerAssignments')
++    if (employmentsResult.error) throwDatabaseReadError(employmentsResult.error, 'auth.context.employments')
+     assignments = assignmentsResult.data
+     actorEmployments = employmentsResult.data.map((employment) => ({
+       startsOn: employment.starts_on,
+@@ -240,7 +241,7 @@ async function assertEmployeeEssIsAvailable(
+     .eq('tenant_id', context.tenantId)
+     .eq('hr_group_id', context.hrGroupId)
+     .maybeSingle()
+-  if (error) throw error
++  if (error) throwDatabaseReadError(error, 'auth.context.employeeEssAccess')
+   if (data?.status === 'BLOCKED') throw new AuthorizationError('Je Employee-toegang is geblokkeerd.')
+ }
+ 
+diff --git a/apps/hr-suite/lib/context/server-context.ts b/apps/hr-suite/lib/context/server-context.ts
+index 63ceff4e..0140e262 100644
+--- a/apps/hr-suite/lib/context/server-context.ts
++++ b/apps/hr-suite/lib/context/server-context.ts
+@@ -7,6 +7,7 @@ import {
+ } from '@/lib/context/administration-context'
+ import type { PortalMode } from '@/lib/context/administration-context'
+ import { createClient } from '@/lib/supabase/server'
++import { throwDatabaseReadError } from '@/lib/errors/database-read-error'
+ import {
+   ACTIVE_ADMINISTRATION_COOKIE,
+   ACTIVE_HR_GROUP_COOKIE,
+@@ -81,8 +82,8 @@ export async function loadAccessibleContextOptions(
+       .limit(500),
+   ])
+ 
+-  if (groupAccessError) throw groupAccessError
+-  if (administrationAccessError) throw administrationAccessError
++  if (groupAccessError) throwDatabaseReadError(groupAccessError, 'context.access.hrGroups')
++  if (administrationAccessError) throwDatabaseReadError(administrationAccessError, 'context.access.administrations')
+   assertCompleteResult(options.requireComplete === true, 'user_hr_group_access', groupAccesses, 500)
+   assertCompleteResult(options.requireComplete === true, 'user_access', administrationAccesses, 500)
+ 
+@@ -96,7 +97,7 @@ export async function loadAccessibleContextOptions(
+     .in('id', roleIds)
+     .limit(500)
+ 
+-  if (roleError) throw roleError
++  if (roleError) throwDatabaseReadError(roleError, 'context.roles')
+   assertCompleteResult(options.requireComplete === true, 'management_roles', roles, 500)
+ 
+   const roleCodesById = new Map(roles.map((role) => [role.id, role.code]))
+@@ -120,7 +121,7 @@ export async function loadAccessibleContextOptions(
+       .is('deleted_at', null)
+       .limit(500)
+ 
+-    if (actorError) throw actorError
++    if (actorError) throwDatabaseReadError(actorError, 'context.actors')
+     assertCompleteResult(options.requireComplete === true, 'employees', actors, 500)
+ 
+     const actorIds = actors.map((actor) => actor.id)
+@@ -139,7 +140,7 @@ export async function loadAccessibleContextOptions(
+       }
+       const { data: employments, error: employmentError } = await employmentQuery.limit(1000)
+ 
+-      if (employmentError) throw employmentError
++      if (employmentError) throwDatabaseReadError(employmentError, 'context.actorEmployments')
+       assertCompleteResult(options.requireComplete === true, 'employments', employments, 1000)
+ 
+       for (const row of employments) {
+@@ -175,9 +176,9 @@ export async function loadAccessibleContextOptions(
+         .limit(1000),
+     ])
+ 
+-  if (tenantError) throw tenantError
+-  if (groupError) throw groupError
+-  if (administrationError) throw administrationError
++  if (tenantError) throwDatabaseReadError(tenantError, 'context.tenants')
++  if (groupError) throwDatabaseReadError(groupError, 'context.hrGroups')
++  if (administrationError) throwDatabaseReadError(administrationError, 'context.administrations')
+   assertCompleteResult(options.requireComplete === true, 'tenants', tenants, 100)
+   assertCompleteResult(options.requireComplete === true, 'hr_groups', hrGroups, 500)
+   assertCompleteResult(options.requireComplete === true, 'administrations', administrations, 1000)
+diff --git a/apps/hr-suite/lib/errors/database-read-error.test.ts b/apps/hr-suite/lib/errors/database-read-error.test.ts
+new file mode 100644
+index 00000000..62d9d88c
+--- /dev/null
++++ b/apps/hr-suite/lib/errors/database-read-error.test.ts
+@@ -0,0 +1,38 @@
++import { afterEach, describe, expect, it, vi } from 'vitest'
++import { DatabaseReadError, logDatabaseReadFailure, throwDatabaseReadError } from './database-read-error'
++
++describe('database read errors', () => {
++  afterEach(() => vi.restoreAllMocks())
++
++  it('logs only the operation and validated SQLSTATE, then throws a generic error', () => {
++    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
++    const databaseError = {
++      code: '57014',
++      message: 'private query text',
++      details: 'private record details',
++      hint: 'private server hint',
++    }
++
++    expect(() => throwDatabaseReadError(databaseError, 'auth.context.groupAccess'))
++      .toThrow(DatabaseReadError)
++    expect(log).toHaveBeenCalledOnce()
++    expect(log).toHaveBeenCalledWith('[LiquidHR] Database read failed', {
++      operation: 'auth.context.groupAccess',
++      sqlstate: '57014',
++    })
++    expect(JSON.stringify(log.mock.calls)).not.toContain('private')
++  })
++
++  it('omits malformed SQLSTATEs and unsafe operation labels from server logs', () => {
++    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
++
++    logDatabaseReadFailure({ code: 'secret-value', message: 'private query text' }, 'operation with user data')
++
++    expect(log).toHaveBeenCalledWith('[LiquidHR] Database read failed', {
++      operation: 'database.read',
++      sqlstate: 'UNKNOWN',
++    })
++    expect(JSON.stringify(log.mock.calls)).not.toContain('private')
++    expect(JSON.stringify(log.mock.calls)).not.toContain('secret-value')
++  })
++})
+diff --git a/apps/hr-suite/lib/errors/database-read-error.ts b/apps/hr-suite/lib/errors/database-read-error.ts
+new file mode 100644
+index 00000000..04ead426
+--- /dev/null
++++ b/apps/hr-suite/lib/errors/database-read-error.ts
+@@ -0,0 +1,30 @@
++const SAFE_SQLSTATE = /^[A-Z0-9]{5}$/
++const SAFE_OPERATION = /^[A-Za-z0-9_.-]{1,80}$/
++
++export class DatabaseReadError extends Error {
++  constructor() {
++    super('DATABASE_READ_FAILED')
++    this.name = 'DatabaseReadError'
++  }
++}
++
++export function logDatabaseReadFailure(error: unknown, operation: string): void {
++  let sqlstate = 'UNKNOWN'
++  try {
++    const candidate = error && typeof error === 'object'
++      ? (error as { code?: unknown }).code
++      : undefined
++    if (typeof candidate === 'string' && SAFE_SQLSTATE.test(candidate)) sqlstate = candidate
++  } catch {
++    // Error objects from clients are expected to be plain data, but logging
++    // must remain safe even if a custom object has throwing property access.
++  }
++
++  const safeOperation = SAFE_OPERATION.test(operation) ? operation : 'database.read'
++  console.error('[LiquidHR] Database read failed', { operation: safeOperation, sqlstate })
++}
++
++export function throwDatabaseReadError(error: unknown, operation: string): never {
++  logDatabaseReadFailure(error, operation)
++  throw new DatabaseReadError()
++}
+diff --git a/apps/hr-suite/lib/talent/employee-capability-service.test.ts b/apps/hr-suite/lib/talent/employee-capability-service.test.ts
+new file mode 100644
+index 00000000..1605f2b8
+--- /dev/null
++++ b/apps/hr-suite/lib/talent/employee-capability-service.test.ts
+@@ -0,0 +1,85 @@
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++
++const { createClient, requirePermission, requireTenantModule } = vi.hoisted(() => ({
++  createClient: vi.fn(),
++  requirePermission: vi.fn(),
++  requireTenantModule: vi.fn(),
++}))
++
++vi.mock('@/lib/supabase/server', () => ({ createClient }))
++vi.mock('@/lib/auth/permissions', () => ({ requirePermission }))
++vi.mock('@/lib/modules/module-service', () => ({ requireTenantModule }))
++vi.mock('@/lib/api-v1/auth/bearer-rls', () => ({ assertDelegatedBearerRlsClient: vi.fn() }))
++
++import { listTalentEmployeeCapabilityRecords } from './employee-capability-service'
++
++function queryResult(data: unknown, error: { code: string; message: string } | null = null) {
++  const result = { data, error }
++  const builder = {
++    select: () => builder,
++    eq: () => builder,
++    in: () => builder,
++    order: () => builder,
++    limit: () => Promise.resolve(result),
++    then: (resolve: (value: typeof result) => unknown, reject?: (reason: unknown) => unknown) =>
++      Promise.resolve(result).then(resolve, reject),
++  }
++  return builder
++}
++
++describe('listTalentEmployeeCapabilityRecords database reads', () => {
++  beforeEach(() => {
++    createClient.mockReset()
++    requirePermission.mockReset().mockResolvedValue({ tenantId: 'tenant-1' })
++    requireTenantModule.mockReset().mockResolvedValue(undefined)
++  })
++
++  it('stops after a failed catalog read instead of starting later reads', async () => {
++    const tables: string[] = []
++    const client = {
++      from(table: string) {
++        tables.push(table)
++        if (table === 'talent_employee_capability_records') {
++          return queryResult([{
++            id: 'record-1',
++            employee_id: 'employee-1',
++            capability_id: 'capability-1',
++            talent_level_id: 'level-1',
++            language_level: null,
++            language_is_native: false,
++            certificate_status: null,
++            certificate_issuing_body: null,
++            certificate_code: null,
++            certificate_validity_months: null,
++            certificate_is_permanent: false,
++            certificate_renewal_required: false,
++            evidence_status: null,
++            qualification_responsible_user_id: null,
++            source_type: 'ADMIN_ENTERED',
++            status: 'ACTIVE',
++            valid_from: '2026-01-01',
++            valid_until: null,
++            evidence_document_id: null,
++            version: 1,
++            updated_at: '2026-01-01T00:00:00.000Z',
++          }])
++        }
++        if (table === 'talent_capabilities') {
++          return queryResult(null, { code: '57014', message: 'private query text' })
++        }
++        throw new Error(`Unexpected follow-up table: ${table}`)
++      },
++    }
++    createClient.mockResolvedValue(client)
++    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
++
++    await expect(listTalentEmployeeCapabilityRecords({}))
++      .rejects.toMatchObject({ code: 'TALENT_EMPLOYEE_CAPABILITY_READ_FAILED' })
++
++    expect(tables).toEqual(['talent_employee_capability_records', 'talent_capabilities'])
++    expect(log).toHaveBeenCalledWith('[LiquidHR] Database read failed', {
++      operation: 'talent.employeeCapabilities.capabilities',
++      sqlstate: '57014',
++    })
++  })
++})
+diff --git a/apps/hr-suite/lib/talent/employee-capability-service.ts b/apps/hr-suite/lib/talent/employee-capability-service.ts
+index 37d3ddbc..c3b0ec81 100644
+--- a/apps/hr-suite/lib/talent/employee-capability-service.ts
++++ b/apps/hr-suite/lib/talent/employee-capability-service.ts
+@@ -4,6 +4,7 @@ import { requireTenantModule } from '@/lib/modules/module-service'
+ import { createClient } from '@/lib/supabase/server'
+ import { assertDelegatedBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
+ import type { DelegatedBearerRlsClient, SupabaseBearerRlsClient } from '@/lib/api-v1/auth/bearer-rls'
++import { logDatabaseReadFailure } from '@/lib/errors/database-read-error'
+ import {
+   type TalentEmployeeCapabilityAdminCreateInput,
+   type TalentEmployeeCapabilityAdminUpdateInput,
+@@ -206,28 +207,51 @@ async function readRecordRows(
+   if (targetEmployeeId) recordsQuery = recordsQuery.eq('employee_id', targetEmployeeId)
+   if (query.sourceType) recordsQuery = recordsQuery.eq('source_type', query.sourceType)
+   const { data: records, error: recordsError } = await recordsQuery
+-  if (recordsError) throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
++  if (recordsError) {
++    logDatabaseReadFailure(recordsError, 'talent.employeeCapabilities.records')
++    throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
++  }
+ 
+   const rows = records ?? []
+   const capabilityIds = [...new Set(rows.map((row) => row.capability_id))]
+   const levelIds = [...new Set(rows.map((row) => row.talent_level_id).filter((id): id is string => Boolean(id)))]
+   const employeeIds = [...new Set(rows.map((row) => row.employee_id))]
+-  const [capabilitiesResult, levelsResult, employeesResult] = await Promise.all([
+-    capabilityIds.length > 0
+-      ? supabase.from('talent_capabilities').select('id,code,name,capability_type').eq('tenant_id', context.tenantId).in('id', capabilityIds)
+-      : Promise.resolve({ data: [], error: null }),
+-    levelIds.length > 0
+-      ? supabase.from('talent_levels').select('id,code,name').eq('tenant_id', context.tenantId).in('id', levelIds)
+-      : Promise.resolve({ data: [], error: null }),
+-    employeeIds.length > 0
+-      ? supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).in('id', employeeIds)
+-      : Promise.resolve({ data: [], error: null }),
+-  ])
+-  if (capabilitiesResult.error || levelsResult.error || employeesResult.error) throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
++  let capabilities: Array<Pick<CapabilityRow, 'id' | 'code' | 'name' | 'capability_type'>> = []
++  if (capabilityIds.length > 0) {
++    const result = await supabase.from('talent_capabilities').select('id,code,name,capability_type')
++      .eq('tenant_id', context.tenantId).in('id', capabilityIds)
++    if (result.error) {
++      logDatabaseReadFailure(result.error, 'talent.employeeCapabilities.capabilities')
++      throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
++    }
++    capabilities = result.data ?? []
++  }
++
++  let levels: Array<Pick<LevelRow, 'id' | 'code' | 'name'>> = []
++  if (levelIds.length > 0) {
++    const result = await supabase.from('talent_levels').select('id,code,name')
++      .eq('tenant_id', context.tenantId).in('id', levelIds)
++    if (result.error) {
++      logDatabaseReadFailure(result.error, 'talent.employeeCapabilities.levels')
++      throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
++    }
++    levels = result.data ?? []
++  }
++
++  let employees: Array<Pick<EmployeeRow, 'id' | 'first_name' | 'birth_name' | 'employee_number'>> = []
++  if (employeeIds.length > 0) {
++    const result = await supabase.from('employees').select('id,first_name,birth_name,employee_number')
++      .eq('tenant_id', context.tenantId).in('id', employeeIds)
++    if (result.error) {
++      logDatabaseReadFailure(result.error, 'talent.employeeCapabilities.employees')
++      throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
++    }
++    employees = result.data ?? []
++  }
+ 
+-  const capabilitiesById = new Map((capabilitiesResult.data ?? []).map((item) => [item.id, item]))
+-  const levelsById = new Map((levelsResult.data ?? []).map((item) => [item.id, item]))
+-  const employeesById = new Map((employeesResult.data ?? []).map((item) => [item.id, item]))
++  const capabilitiesById = new Map(capabilities.map((item) => [item.id, item]))
++  const levelsById = new Map(levels.map((item) => [item.id, item]))
++  const employeesById = new Map(employees.map((item) => [item.id, item]))
+   const today = new Date().toISOString().slice(0, 10)
+   return rows
+     .map((row) => toRecord(row, capabilitiesById.get(row.capability_id), row.talent_level_id ? levelsById.get(row.talent_level_id) : undefined, employeesById.get(row.employee_id), today))
+diff --git a/apps/hr-suite/supabase/migrations/20261018083400_core_db_25p02_manager_scope_optimization.contract.test.ts b/apps/hr-suite/supabase/migrations/20261018083400_core_db_25p02_manager_scope_optimization.contract.test.ts
+new file mode 100644
+index 00000000..2b82c938
+--- /dev/null
++++ b/apps/hr-suite/supabase/migrations/20261018083400_core_db_25p02_manager_scope_optimization.contract.test.ts
+@@ -0,0 +1,36 @@
++import { readFileSync } from 'node:fs'
++import { resolve } from 'node:path'
++import { describe, expect, it } from 'vitest'
++
++const migration = readFileSync(resolve(__dirname, '20261018083400_core_db_25p02_manager_scope_optimization.sql'), 'utf8')
++
++describe('CORE-DB-25P02 manager scope migration contract', () => {
++  it('keeps the helper tenant-bound, permission-checked, and fixed-search-path', () => {
++    expect(migration).toMatch(/security definer\s+set search_path = ''/i)
++    expect(migration).toContain('pg_catalog.num_nonnulls(')
++    expect(migration).toContain("'talent:manager-read'")
++    expect(migration).toContain('organization.tenant_id = requested_tenant_id')
++    expect(migration).toContain('organization.direct_manager_id = internal_security.current_employee_id()')
++    expect(migration).toContain("organization.effective_to > current_date")
++    expect(migration).toContain("profile_version.status = 'ACTIVE'")
++    expect(migration).toContain('organization-chart:read')
++    expect(migration).toContain('organization-placement:read')
++    expect(migration).toContain("can_manage_employee(organization.employee_id, 'employee:read')")
++    expect(migration).toContain('from public, anon, authenticated')
++    expect(migration).toContain('to authenticated')
++  })
++
++  it('routes all five manager-read policies through the narrow helper', () => {
++    expect(migration.match(/current_user_can_read_talent_manager_scope\(/g)).toHaveLength(8)
++    expect(migration).toContain('job_profiles_talent_read')
++    expect(migration).toContain('job_profile_versions_talent_read')
++    expect(migration).toContain('job_profile_capability_requirements_talent_read')
++    expect(migration).toContain('talent_capabilities_talent_read')
++    expect(migration).toContain('talent_levels_talent_read')
++    expect(migration).toContain("'talent:read'")
++    expect(migration).toContain("'talent:manage'")
++    expect(migration).toContain("'self:talent-comparison:read'")
++    expect(migration).toContain("'self:talent-record:read'")
++    expect(migration).not.toMatch(/grant\s+[^;]*(?:role_permissions|permissions|employee_organizations)/i)
++  })
++})
+diff --git a/apps/hr-suite/supabase/migrations/20261018083400_core_db_25p02_manager_scope_optimization.sql b/apps/hr-suite/supabase/migrations/20261018083400_core_db_25p02_manager_scope_optimization.sql
+new file mode 100644
+index 00000000..2558f212
+--- /dev/null
++++ b/apps/hr-suite/supabase/migrations/20261018083400_core_db_25p02_manager_scope_optimization.sql
+@@ -0,0 +1,206 @@
++begin;
++
++-- Keep the manager-read boundary exact while evaluating it once in a definer
++-- function. The previous policies recursively expanded RLS on profile,
++-- version, requirement, and organization rows for every catalog item.
++create or replace function internal_security.current_user_can_read_talent_manager_scope(
++  requested_tenant_id uuid,
++  requested_job_id uuid,
++  requested_profile_version_id uuid,
++  requested_capability_id uuid,
++  requested_level_id uuid
++)
++returns boolean
++language sql
++stable
++security definer
++set search_path = ''
++as $function$
++  with scoped_manager_organizations as (
++    select organization.tenant_id, organization.hr_group_id, organization.job_id
++    from public.employee_organizations organization
++    where organization.tenant_id = requested_tenant_id
++      and organization.direct_manager_id = internal_security.current_employee_id()
++      and organization.effective_from <= current_date
++      and (organization.effective_to is null or organization.effective_to > current_date)
++      and (
++        (
++          organization.employee_id = internal_security.current_employee_id(
++            organization.tenant_id,
++            organization.hr_group_id
++          )
++          and internal_security.current_employee_has_permission('self:employee:read')
++        )
++        or internal_security.can_manage_employee(organization.employee_id, 'employee:read')
++        or internal_security.current_user_has_hr_group_permission(
++          organization.tenant_id,
++          organization.hr_group_id,
++          'organization-chart:read'
++        )
++        or internal_security.current_user_has_hr_group_permission(
++          organization.tenant_id,
++          organization.hr_group_id,
++          'organization-placement:read'
++        )
++      )
++  )
++  select (select auth.uid()) is not null
++    and pg_catalog.num_nonnulls(
++      requested_job_id,
++      requested_profile_version_id,
++      requested_capability_id,
++      requested_level_id
++    ) = 1
++    and internal_security.current_user_has_permission(
++      requested_tenant_id,
++      null,
++      'talent:manager-read'
++    )
++    and case
++      when requested_job_id is not null then exists (
++        select 1
++        from scoped_manager_organizations scope_row
++        where scope_row.tenant_id = requested_tenant_id
++          and scope_row.job_id = requested_job_id
++      )
++      when requested_profile_version_id is not null then exists (
++        select 1
++        from public.job_profile_versions profile_version
++        join public.job_profiles profile
++          on profile.tenant_id = profile_version.tenant_id
++         and profile.id = profile_version.job_profile_id
++        join scoped_manager_organizations scope_row
++          on scope_row.tenant_id = profile.tenant_id
++         and scope_row.job_id = profile.job_id
++        where profile_version.tenant_id = requested_tenant_id
++          and profile_version.id = requested_profile_version_id
++          and profile_version.status = 'ACTIVE'
++          and profile_version.valid_from <= current_date
++          and (profile_version.valid_until is null or profile_version.valid_until > current_date)
++      )
++      when requested_capability_id is not null then exists (
++        select 1
++        from public.job_profile_capability_requirements requirement
++        join public.job_profile_versions profile_version
++          on profile_version.tenant_id = requirement.tenant_id
++         and profile_version.id = requirement.profile_version_id
++        join public.job_profiles profile
++          on profile.tenant_id = profile_version.tenant_id
++         and profile.id = profile_version.job_profile_id
++        join scoped_manager_organizations scope_row
++          on scope_row.tenant_id = profile.tenant_id
++         and scope_row.job_id = profile.job_id
++        where requirement.tenant_id = requested_tenant_id
++          and requirement.capability_id = requested_capability_id
++          and profile_version.status = 'ACTIVE'
++          and profile_version.valid_from <= current_date
++          and (profile_version.valid_until is null or profile_version.valid_until > current_date)
++      )
++      when requested_level_id is not null then exists (
++        select 1
++        from public.job_profile_capability_requirements requirement
++        join public.job_profile_versions profile_version
++          on profile_version.tenant_id = requirement.tenant_id
++         and profile_version.id = requirement.profile_version_id
++        join public.job_profiles profile
++          on profile.tenant_id = profile_version.tenant_id
++         and profile.id = profile_version.job_profile_id
++        join scoped_manager_organizations scope_row
++          on scope_row.tenant_id = profile.tenant_id
++         and scope_row.job_id = profile.job_id
++        where requirement.tenant_id = requested_tenant_id
++          and requirement.target_level_id = requested_level_id
++          and profile_version.status = 'ACTIVE'
++          and profile_version.valid_from <= current_date
++          and (profile_version.valid_until is null or profile_version.valid_until > current_date)
++      )
++      else false
++    end;
++$function$;
++
++revoke all on function internal_security.current_user_can_read_talent_manager_scope(uuid, uuid, uuid, uuid, uuid)
++  from public, anon, authenticated;
++grant execute on function internal_security.current_user_can_read_talent_manager_scope(uuid, uuid, uuid, uuid, uuid)
++  to authenticated;
++
++drop policy if exists job_profiles_talent_read on public.job_profiles;
++create policy job_profiles_talent_read on public.job_profiles for select to authenticated
++using (
++  (select internal_security.current_user_has_permission(tenant_id, null, 'talent:read'))
++  or (select internal_security.current_user_has_permission(tenant_id, null, 'talent:manage'))
++  or (select internal_security.current_user_can_read_talent_manager_scope(tenant_id, job_id, null, null, null))
++  or (select internal_security.current_user_has_permission(tenant_id, null, 'self:talent-comparison:read'))
++);
++
++drop policy if exists job_profile_versions_talent_read on public.job_profile_versions;
++create policy job_profile_versions_talent_read on public.job_profile_versions for select to authenticated
++using (
++  (select internal_security.current_user_has_permission(tenant_id, null, 'talent:read'))
++  or (select internal_security.current_user_has_permission(tenant_id, null, 'talent:manage'))
++  or (select internal_security.current_user_can_read_talent_manager_scope(tenant_id, null, id, null, null))
++  or (
++    status = 'ACTIVE'
++    and valid_from <= current_date
++    and (valid_until is null or valid_until > current_date)
++    and (select internal_security.current_user_has_permission(tenant_id, null, 'self:talent-comparison:read'))
++  )
++);
++
++drop policy if exists job_profile_capability_requirements_talent_read on public.job_profile_capability_requirements;
++create policy job_profile_capability_requirements_talent_read
++on public.job_profile_capability_requirements for select to authenticated
++using (
++  (select internal_security.current_user_has_permission(tenant_id, null, 'talent:read'))
++  or (select internal_security.current_user_has_permission(tenant_id, null, 'talent:manage'))
++  or (select internal_security.current_user_can_read_talent_manager_scope(tenant_id, null, profile_version_id, null, null))
++  or (
++    exists (
++      select 1
++      from public.job_profile_versions profile_version
++      where profile_version.tenant_id = job_profile_capability_requirements.tenant_id
++        and profile_version.id = job_profile_capability_requirements.profile_version_id
++        and profile_version.status = 'ACTIVE'
++        and profile_version.valid_from <= current_date
++        and (profile_version.valid_until is null or profile_version.valid_until > current_date)
++    )
++    and (select internal_security.current_user_has_permission(tenant_id, null, 'self:talent-comparison:read'))
++  )
++);
++
++drop policy if exists talent_capabilities_talent_read on public.talent_capabilities;
++create policy talent_capabilities_talent_read on public.talent_capabilities for select to authenticated
++using (
++  (select internal_security.current_user_has_permission(tenant_id, null, 'talent:read'))
++  or (select internal_security.current_user_has_permission(tenant_id, null, 'talent:manage'))
++  or (select internal_security.current_user_can_read_talent_manager_scope(tenant_id, null, null, id, null))
++  or (
++    status = 'ACTIVE'
++    and (
++      (select internal_security.current_user_has_permission(tenant_id, null, 'self:talent-record:read'))
++      or (select internal_security.current_user_has_permission(tenant_id, null, 'self:talent-comparison:read'))
++    )
++  )
++);
++
++drop policy if exists talent_levels_talent_read on public.talent_levels;
++create policy talent_levels_talent_read on public.talent_levels for select to authenticated
++using (
++  (select internal_security.current_user_has_permission(tenant_id, null, 'talent:read'))
++  or (select internal_security.current_user_has_permission(tenant_id, null, 'talent:manage'))
++  or (select internal_security.current_user_can_read_talent_manager_scope(tenant_id, null, null, null, id))
++  or (
++    exists (
++      select 1
++      from public.talent_level_models model
++      where model.tenant_id = talent_levels.tenant_id
++        and model.id = talent_levels.level_model_id
++        and model.status = 'ACTIVE'
++    )
++    and (
++      (select internal_security.current_user_has_permission(tenant_id, null, 'self:talent-record:read'))
++      or (select internal_security.current_user_has_permission(tenant_id, null, 'self:talent-comparison:read'))
++    )
++  )
++);
++
++commit;
+diff --git a/docs/quality/incidents/CORE-DB-25P02-01-20261018.md b/docs/quality/incidents/CORE-DB-25P02-01-20261018.md
+new file mode 100644
+index 00000000..a7e11001
+--- /dev/null
++++ b/docs/quality/incidents/CORE-DB-25P02-01-20261018.md
+@@ -0,0 +1,41 @@
++# CORE-DB-25P02-01 — Core TEST transaction failures
++
++Date: 2026-10-18 (UTC)
++
++Scope: Core TEST and the shared STAR Performers / Payroll request paths. Payroll Lab TEST remains a separate database.
++
++## Proven failure chain
++
++The Core TEST PostgreSQL and PostgREST logs show the first failure as a statement timeout, not `25P02`:
++
++| UTC | Evidence |
++| --- | --- |
++| 07:27:10.774752 | PostgREST returned SQLSTATE `57014` for `GET /talent_levels` (`select=id,code,name`, three IDs); HTTP 500 at 07:27:11.175548. The corresponding PostgreSQL backend is not present in this PostgREST log row. |
++| 07:27:13.612000 | PostgreSQL SQLSTATE `57014`, command `BIND`, backend PID `1728553`, session `6ad474a6.1a6029`; the matching request was `GET /talent_capabilities` (`select=id,code,name,capability_type`, six IDs), HTTP 500 at 07:27:13.803277. |
++| 07:27:15.581000 | The same backend/session returned `25P02` on its next BIND. The request was `GET /user_hr_group_access`. |
++| 07:27:25–07:27:36 | The same session returned `25P02` on the next four BINDs for `/tenants`, `/management_roles`, `/hr_groups`, and `/department_management`. The available log rows do not show a rollback/reset boundary before these requests; they prove that later statements reached an aborted transaction on that backend. |
++
++The initial read-only 24-hour review counted 27 Core TEST `25P02` responses and none in Payroll Lab TEST. The observed repeated SQL timeouts at 08:30 UTC include `GET /talent_capabilities`, `/talent_levels`, and `/job_profile_capability_requirements`.
++
++## Root cause and request path
++
++The direct failing SQL is the PostgREST-generated `SELECT` for the requested capability/level catalog rows. It is not an RPC. The shared caller is `readRecordRows()` in `apps/hr-suite/lib/talent/employee-capability-service.ts`, which launched capability, level, and employee lookups together with `Promise.all`.
++
++The STAR Performers V2 manager-detail flow calls `listTalentEmployeeCapabilityRecords()` through its optional read path (`lib/star-performers/v2-service.ts` in the protected STAR V2 worktree). This is the product flow matching the catalog IDs and projections in the logs. Payroll Lab itself had no matching database errors. Payroll requests authenticate and read shared Core data through `lib/payroll/source/liquid-hr-source-provider.ts` and the same Core `requirePermission()` context, so a poisoned Core PostgREST backend could also break a Payroll page even though the Payroll Lab database is clean.
++
++The `57014` timeout came from nested manager-read RLS checks. The manager branch in `20260803082559_optimize_talent_capability_rls_short_circuit.sql` joins capability requirements, profile versions, job profiles, and employee organizations. Those tables have their own manager-read policies, which repeat similar `EXISTS` joins and invoke organization visibility checks (`can_manage_employee`, `current_user_has_hr_group_permission`, and preboarding checks). The read-only authenticated `EXPLAIN` expanded the capability request to 707 subplans. The supporting manager/profile indexes already exist, so this is not an absent-index failure.
++
++PostgREST 14.5 owns each REST request transaction and the connection pool; the application uses Supabase HTTP queries and has no transaction handle on which it can issue `ROLLBACK`. PostgREST documents request transaction rollback on database errors ([transaction handling](https://docs.postgrest.org/en/stable/references/transactions.html)). The available logs prove that the same backend later received statements while in an aborted transaction, but do not expose the pooler's transaction-boundary commands, so they do not establish whether the failed request's rollback was skipped or a later request entered an already-aborted transaction. The app fix removes the observed timeout trigger and stops the shared capability-read flow from starting later catalog/employee requests after an earlier read fails. If `25P02` persists after the RLS query fix is applied, investigate the PostgREST/Supavisor transaction reset path using backend logs; the application must not issue an unrelated rollback request or add a retry loop.
++
++## Changes
++
++- `20261018083400_core_db_25p02_manager_scope_optimization.sql` adds one fixed-search-path `SECURITY DEFINER` predicate that retains the existing manager permission, active-version dates, current direct-manager assignment, and all four `employee_organizations` read-visibility paths. It replaces only the manager-read branches of five SELECT policies. Existing `talent:read`, `talent:manage`, and self-read branches remain. No role permissions, grants on data tables, RLS enablement, write policies, or payroll data are changed.
++- `employee-capability-service.ts` reads capabilities, levels, and employees in order and stops at the first error; it logs only a fixed operation label and validated SQLSTATE, then returns the existing safe service error.
++- Shared Core auth/context database failures now log only the operation and SQLSTATE and throw a generic server error without retaining the PostgreSQL error object.
++- `app/error.tsx` renders localized, actionable feedback without displaying or logging the raw Next/PostgreSQL error.
++
++## Verification boundary
++
++Static migration/service contracts, TypeScript syntax transpilation for nine changed TypeScript/TSX files, safe-error behavior, and NL/EN i18n parity passed. `git diff --check` passed. Vitest and typecheck did not complete: app dependencies are missing/incompatible in this checkout, and Windows denied the workspace dependency junction; the custom typecheck emitted dependency-wide errors, so it is not valid type evidence. Browser acceptance on either STAR Performers or Payroll is blocked: the approved TEST runtime preflight requires central TEST configuration, but its existing file is not a verified hard link to the canonical configuration, and the provisioner correctly refused to overwrite it. No configuration was read, copied, replaced, or bypassed.
++
++The migration is prepared but has not been applied to Core TEST. No database write, Production write, merge, or deployment was performed. Therefore post-migration Core TEST acceptance via normal login remains open for both products. Existing finalized payroll runs are untouched; no salary run was created or modified.

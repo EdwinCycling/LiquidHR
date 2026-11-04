@@ -1,0 +1,92 @@
+diff --git a/docs/AA/AA-CURRENT.md b/docs/AA/AA-CURRENT.md
+index 8b498cd4..b7a6197f 100644
+--- a/docs/AA/AA-CURRENT.md
++++ b/docs/AA/AA-CURRENT.md
+@@ -5,8 +5,8 @@ Momentopname: 2026-10-13 (historische acceptance-evidence blijft ongewijzigd)
+ 
+ ## PAYESS-01 — final acceptance candidate (2026-10-13)
+ 
+-- Source candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e` merges PAYESS-01 with current `origin/main` `f7db482b19b81d9c5aa5517c66394faa5f628e1b` via a clean non-force merge. No other Payroll branch was included.
+-- AA-LEAN-02 impact: **CONTROLLED**. Final gates on the merged candidate passed: 630 HR files, 3,027 tests; type-check; changed-file ESLint; 43-namespace i18n parity; diff-check; and production build (323 routes, Payroll boundary scan 163 assets).
++- Source candidate `47e42505` merges PAYESS-01 with current `origin/main` `1c435021124e036f9b6177b669b2c385f64550c9` via clean non-force merges. The latest main update changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; no other Payroll branch was included.
++- AA-LEAN-02 impact: **CONTROLLED**. The final product-code gates passed on runtime candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`: 630 HR files, 3,027 tests; type-check; changed-file ESLint; 43-namespace i18n parity; diff-check; and production build (323 routes, Payroll boundary scan 163 assets). The later main integration and evidence update changed documentation only; the final documentation diff check passed.
+ - Authenticated Employee TEST acceptance is **BLOCKED pending explicit Auth approval**. Local route redirects to login; the existing Test Auth entry is HR Admin and switching to the configured Employee target requires a Supabase Auth handoff. No Auth request or Payroll data read was made. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
+ 
+ ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
+diff --git a/docs/delivery/IMPLEMENTATION_STATUS.md b/docs/delivery/IMPLEMENTATION_STATUS.md
+index 50ef8bf4..46cf3a12 100644
+--- a/docs/delivery/IMPLEMENTATION_STATUS.md
++++ b/docs/delivery/IMPLEMENTATION_STATUS.md
+@@ -2,7 +2,7 @@
+ 
+ ## PAYESS-01 — controlled feature candidate — 2026-10-13
+ 
+-**Status: LOCAL CONTROLLED GATES GREEN / AUTHENTICATED EMPLOYEE ACCEPTANCE BLOCKED PENDING AUTH APPROVAL.** Source candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e` merges PAYESS-01 with `origin/main` `f7db482b19b81d9c5aa5517c66394faa5f628e1b` via a clean non-force merge. No other Payroll branch was included; nothing was merged to main or deployed.
++**Status: LOCAL CONTROLLED GATES GREEN / AUTHENTICATED EMPLOYEE ACCEPTANCE BLOCKED PENDING AUTH APPROVAL.** Current branch candidate `47e42505` includes current `origin/main` `1c435021124e036f9b6177b669b2c385f64550c9` via clean non-force merges. The final main delta changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; the last full product-code gates passed on unchanged runtime candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`. No other Payroll branch was included; nothing was merged to main or deployed.
+ 
+ The 12 tests covering merged PAYLAB-UX-01 files, prior 55 PAYESS-focused tests, final HR suite (630 files; 3,027 passed, 8 skipped), type-check, changed-file ESLint, 43-namespace i18n, diff-check and production build passed. The local TEST-runtime preflight passed without printing configuration values. Local `/my-salary` redirects to login. The configured Test Employee fixture target is present, but no authenticated session was available to verify its employee row, administration, finalized periods or either payslip source. The required Auth handoff was not submitted pending explicit approval. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
+ 
+diff --git a/docs/quality/acceptance/RUN-LOG.md b/docs/quality/acceptance/RUN-LOG.md
+index 99d6e309..84e1cf70 100644
+--- a/docs/quality/acceptance/RUN-LOG.md
++++ b/docs/quality/acceptance/RUN-LOG.md
+@@ -4,7 +4,7 @@ This log contains only known historical outcomes. Detailed screenshots, traces a
+ 
+ | Run | Result | Proven scope | Open boundary |
+ |---|---|---|---|
+-| PAYESS-01-20261013 | PARTIAL / CONTROLLED | Clean merge with current main; 12 merged-PAYLAB tests, prior 55 PAYESS tests, final suite 630 files / 3,027 passed, type/lint/i18n/build green | Authenticated Employee fixture session, administration, saved history, both document sources, viewing/download and responsive dashboard remain blocked pending explicit Auth approval |
++| PAYESS-01-20261013 | PARTIAL / CONTROLLED | Current main `1c435021` integrated by non-force merge; its delta was docs-only. Runtime candidate gates: 12 merged-PAYLAB tests, prior 55 PAYESS tests, final suite 630 files / 3,027 passed, type/lint/i18n/build green; final docs diff-check green | Authenticated Employee fixture session, administration, saved history, both document sources, viewing/download and responsive dashboard remain blocked pending explicit Auth approval |
+ | A01 | GREEN | Full DEV persona acceptance for Focus, Absence and Leave | Regression maintenance |
+ | GJ01 | PARTIAL / EXTERNAL_BLOCKER | HR journey, preview, restrictions and responsive checks | Authenticated future Employee leg; DEV Auth mail delivery returned HTTP 502 |
+ | GJ02 | GREEN | Canonical batch → snapshot → dossier → signing → SIGNED lifecycle | DOC02 rendering follow-up |
+diff --git a/docs/quality/acceptance/runs/PAYESS-01-20261013.md b/docs/quality/acceptance/runs/PAYESS-01-20261013.md
+index d91d90de..382fb4a7 100644
+--- a/docs/quality/acceptance/runs/PAYESS-01-20261013.md
++++ b/docs/quality/acceptance/runs/PAYESS-01-20261013.md
+@@ -4,12 +4,13 @@
+ - Classification: **CONTROLLED** (AA-LEAN-02)
+ - Result: **PARTIAL — LOCAL CONTROLLED GATES GREEN; LIVE EMPLOYEE ACCEPTANCE BLOCKED PENDING AUTH APPROVAL**
+ - Feature branch: `work/PAYESS-01-20261013`
+-- Source candidate: `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`
+-- Integrated `origin/main`: `f7db482b19b81d9c5aa5517c66394faa5f628e1b`
++- Current branch candidate: `47e42505` (acceptance-document update follows this docs-only merge)
++- Integrated `origin/main`: `1c435021124e036f9b6177b669b2c385f64550c9`
++- Product-code gate candidate: `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`; subsequent `origin/main` and evidence changes contain documentation only.
+ 
+ ## 1. Executive Summary
+ 
+-PAYESS-01 was merged with the fetched current main through a clean non-force merge. No other Payroll branch was included. The final local CONTROLLED gates passed. Authenticated employee acceptance was not performed: the existing browser session could not be reused, the local route had no session, and explicit permission for the required Supabase Auth handoff is still pending. No Auth request, Payroll readback or data write was made. No acceptance result is inferred from mocks or the deployed main page.
++PAYESS-01 was merged with fetched current main through clean non-force merges. The latest main update (`1c435021`) changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; no other Payroll branch was included. Product-code CONTROLLED gates passed on `f9f7f69`, whose runtime code is unchanged in the current candidate. Authenticated employee acceptance was not performed: the existing browser session could not be reused, the local route had no session, and explicit permission for the required Supabase Auth handoff is still pending. No Auth request, Payroll readback or data write was made. No acceptance result is inferred from mocks or the deployed main page.
+ 
+ | ID | Area | What broke | Why | Fix | Regression | Result |
+ |---|---|---|---|---|---|---|
+@@ -55,14 +56,14 @@ The central TEST-runtime metadata preflight passed with values hidden. No authen
+ 
+ - PAYESS focused suite from the unchanged feature code: 8 files, 55 tests passed.
+ - Targeted tests for the merged PAYLAB-UX-01 files: 2 files, 12 tests passed.
+-- Final CONTROLLED HR suite on source candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`: 630 files passed, 4 skipped; 3,027 tests passed, 8 skipped.
++- Final CONTROLLED HR suite on unchanged product-code candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`: 630 files passed, 4 skipped; 3,027 tests passed, 8 skipped. The only changes after this run were documentation merges/updates.
+ - Type-check, changed-file ESLint, 43-namespace i18n parity and `git diff --check`: passed.
+ - Production build: passed; 323 routes generated and Payroll client-boundary scan passed for 163 assets.
+ - Existing dynamic logo-file tracing warning in the shared Payroll PDF renderer remained non-blocking and was not changed.
+ 
+ ## 9. Fixed During Run
+ 
+-No product source fix was needed during reconciliation. The merge completed without conflicts. Only current main’s PAYLAB-UX-01 files were added; the existing PAYESS implementation was retained.
++No product source fix was needed during reconciliation. Both main merges completed without conflicts. The first added PAYLAB-UX-01 files; the latest main delta added only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`. The existing PAYESS implementation was retained.
+ 
+ ## 10. ENVIRONMENT-GATED
+ 
+@@ -89,8 +90,10 @@ The source-level negative matrix and final full suite are green, but they do not
+ 
+ - Starting feature head: `8d96dd4cba86d2b90ba3649d0fd55ddaa77f0fe6`.
+ - PAYESS code commit: `e0fc0e97f843d744097687b5db9ff26dd63b8bd5`.
+-- Fetched origin/main: `f7db482b19b81d9c5aa5517c66394faa5f628e1b`.
+-- Non-force merge candidate: `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`.
++- First integrated origin/main: `f7db482b19b81d9c5aa5517c66394faa5f628e1b`.
++- First non-force merge candidate / product-code gate candidate: `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`.
++- Latest fetched origin/main: `1c435021124e036f9b6177b669b2c385f64550c9`.
++- Latest non-force merge candidate: `47e42505`; final acceptance-document commit and pushed branch SHA are recorded in the delivery summary.
+ - No main merge, deployment, migration, TEST release or force push was performed.
+ 
+ ## 15. Final Verdict

@@ -1,0 +1,123 @@
+diff --git a/docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md b/docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md
+index 8a563302..5cf2a2a5 100644
+--- a/docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md
++++ b/docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md
+@@ -24,9 +24,11 @@ Gebruik vanuit de repositoryroot:
+ ```powershell
+ .\scripts\start-test-worktree.ps1 -Mode Development -PreflightOnly
+ .\scripts\start-test-worktree.ps1 -Mode Development -PayrollAcceptance
++.\scripts\start-test-worktree.ps1 -Mode Development -BsnAcceptance -PreflightOnly
++.\scripts\start-test-worktree.ps1 -Mode Development -BsnAcceptance
+ ```
+ 
+-De eerste opdracht controleert zonder serverstart; de tweede start Next.js op `127.0.0.1:3010`. De scriptcontrole omvat de centrale config (alleen vereiste namen/aanwezigheid), het vaste Core TEST-project, runtimeversie, bestaande workspace-dependencies, vrije loopback-poort en start/buildscripts. Met `-PayrollAcceptance` worden ook het vaste Payroll Lab TEST-project, de Payroll-runtimevelden en exact `PAYROLL_LAB_ENABLED=true` gecontroleerd. De enige ondersteunde Core-clientkey is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
++De eerste opdracht controleert zonder serverstart; de tweede start Next.js op `127.0.0.1:3010`. De scriptcontrole omvat de centrale config (alleen vereiste namen/aanwezigheid), het vaste Core TEST-project, runtimeversie, bestaande workspace-dependencies, vrije loopback-poort en start/buildscripts. Met `-PayrollAcceptance` worden ook het vaste Payroll Lab TEST-project, de Payroll-runtimevelden en exact `PAYROLL_LAB_ENABLED=true` gecontroleerd. Voor lokale BSN-afhankelijke acceptatie gebruikt `-BsnAcceptance` uitsluitend Development-mode en vereist de preflight de bestaande `BSN_HASH_KEY` en `EMPLOYEE_PII_ENCRYPTION_KEY` met geldig formaat; alleen veldnamen kunnen in foutmeldingen verschijnen. De runner blijft eerst bestaande Node/Next-, package- en workspace-dependencies controleren en installeert niets. De enige ondersteunde Core-clientkey is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+ 
+ Maak een productiebuild vanaf een schone, vastgelegde kandidaat met:
+ 
+diff --git a/scripts/start-test-worktree.contract.ps1 b/scripts/start-test-worktree.contract.ps1
+index 47339ffd..75805f3c 100644
+--- a/scripts/start-test-worktree.contract.ps1
++++ b/scripts/start-test-worktree.contract.ps1
+@@ -16,6 +16,19 @@ $launcherAst = [System.Management.Automation.Language.Parser]::ParseFile(
+ if ($parseErrors.Count -gt 0) {
+     throw "start-test-worktree.ps1 bevat PowerShell-syntaxfouten: $($parseErrors -join '; ')"
+ }
++foreach ($requiredBsnToken in @(
++    '[switch]$BsnAcceptance',
++    '$BsnAcceptance -and ($Mode -ne ''Development'' -or $Build)',
++    'BSN_HASH_KEY',
++    'EMPLOYEE_PII_ENCRYPTION_KEY',
++    'decodedEncryptionKey.length !== 32',
++    "process.argv[3] === 'true'",
++    'ls --workspaces --depth=0 --json'
++)) {
++    if ($launcherSource -notmatch [Regex]::Escape($requiredBsnToken)) {
++        throw "BSN-acceptatiecontract mist verplichte gate: $requiredBsnToken"
++    }
++}
+ $forbiddenProcessCommand = 'Stop' + '-Process'
+ if ($launcherSource -match "(?im)$forbiddenProcessCommand") {
+     throw 'De runner mag geen willekeurige bestaande processen stoppen.'
+diff --git a/scripts/start-test-worktree.ps1 b/scripts/start-test-worktree.ps1
+index 8196ffb4..657d47cb 100644
+--- a/scripts/start-test-worktree.ps1
++++ b/scripts/start-test-worktree.ps1
+@@ -6,6 +6,7 @@ param(
+     [int]$Port = 0,
+     [switch]$PayrollAcceptance,
+     [switch]$PayrollPersonaAcceptance,
++    [switch]$BsnAcceptance,
+     [switch]$Build,
+     [switch]$PreflightOnly
+ )
+@@ -25,6 +26,9 @@ if ($PayrollPersonaAcceptance -and -not $PayrollAcceptance) {
+ if ($PayrollPersonaAcceptance -and ($Mode -ne 'Development' -or $Build)) {
+     throw 'Payroll-personacredentials mogen alleen voor een lokale Development-test worden geladen; Production-mode en Build blijven gesloten.'
+ }
++if ($BsnAcceptance -and ($Mode -ne 'Development' -or $Build)) {
++    throw 'BSN-acceptatie is alleen toegestaan in lokale Development-mode.'
++}
+ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+ $appRoot = Join-Path $repoRoot 'apps/hr-suite'
+ $centralConfigRoot = [Environment]::GetEnvironmentVariable('LOCALAPPDATA')
+@@ -194,7 +198,7 @@ if (Test-Path -LiteralPath $worktreeConfig -PathType Leaf) {
+ # Voorkom dat geërfde Supabase-/Payroll-/testauth-instellingen de centrale bron overrulen.
+ $shadowedRuntimeNames = @(
+     Get-ChildItem Env: |
+-        Where-Object { $_.Name -match '^(NEXT_PUBLIC_.*|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|PAYROLL_.*|LIQUIDHR_TEST_.*|TALENT_.*|VERCEL(?:_.*)?|NODE_ENV|NODE_OPTIONS)$' } |
++        Where-Object { $_.Name -match '^(NEXT_PUBLIC_.*|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|BSN_HASH_KEY|EMPLOYEE_PII_ENCRYPTION_KEY|PAYROLL_.*|LIQUIDHR_TEST_.*|TALENT_.*|VERCEL(?:_.*)?|NODE_ENV|NODE_OPTIONS)$' } |
+         ForEach-Object { $_.Name } |
+         Sort-Object -Unique
+ )
+@@ -250,13 +254,30 @@ if ($PayrollAcceptance) {
+ $requiredGroupsJson += ' ]'
+ $requiredGroupsBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($requiredGroupsJson))
+ $requirePayrollJson = if ($PayrollAcceptance) { 'true' } else { 'false' }
++$requireBsnJson = if ($BsnAcceptance) { 'true' } else { 'false' }
+ $configProbe = @'
+ const requiredGroupsJson = Buffer.from(process.argv[1], 'base64').toString('utf8');
+ const groups = JSON.parse(requiredGroupsJson);
+ const requirePayroll = process.argv[2] === 'true';
++const requireBsn = process.argv[3] === 'true';
+ const missing = groups
+   .filter((group) => !group.some((name) => (process.env[name] ?? '').trim().length > 0))
+   .map((group) => group.join(' or '));
++const invalidBsnFields = [];
++if (requireBsn) {
++  const hashKey = process.env.BSN_HASH_KEY ?? '';
++  if (!hashKey.trim()) missing.push('BSN_HASH_KEY');
++  else if (hashKey.length < 32 || hashKey.trim() !== hashKey) invalidBsnFields.push('BSN_HASH_KEY');
++
++  const encryptionKey = process.env.EMPLOYEE_PII_ENCRYPTION_KEY ?? '';
++  if (!encryptionKey.trim()) missing.push('EMPLOYEE_PII_ENCRYPTION_KEY');
++  else {
++    const decodedEncryptionKey = Buffer.from(encryptionKey, 'base64');
++    if (decodedEncryptionKey.length !== 32 || decodedEncryptionKey.toString('base64') !== encryptionKey) {
++      invalidBsnFields.push('EMPLOYEE_PII_ENCRYPTION_KEY');
++    }
++  }
++}
+ const canonicalTestHosts = {
+   NEXT_PUBLIC_SUPABASE_URL: 'wnpfloqpjvaacobppbpk.supabase.co',
+   PAYROLL_SUPABASE_URL: 'jhgeriucbkfarxiudzfy.supabase.co',
+@@ -282,15 +303,16 @@ if (process.env.PAYROLL_LAB_ENABLED === 'true' && !requirePayroll) {
+     if (!(process.env[name] ?? '').trim()) missing.push(name);
+   }
+ }
+-if (missing.length > 0 || invalidTargets.length > 0) {
+-  if (missing.length > 0) console.error(`Ontbrekende TEST-runtimevelden (alleen namen): ${missing.join(', ')}`);
++if (missing.length > 0 || invalidTargets.length > 0 || invalidBsnFields.length > 0) {
++  if (missing.length > 0) console.error(`Ontbrekende TEST-runtimevelden (alleen namen): ${[...new Set(missing)].join(', ')}`);
+   if (invalidTargets.length > 0) console.error(`Runtime-URL wijst niet naar het goedgekeurde TEST-project (alleen veldnamen): ${invalidTargets.join(', ')}`);
++  if (invalidBsnFields.length > 0) console.error(`Ongeldige BSN-TEST-runtimevelden (alleen namen): ${[...new Set(invalidBsnFields)].join(', ')}`);
+   process.exitCode = 2;
+ } else {
+   console.log('Centrale TEST-configuratie: vereiste variabelen aanwezig; waarden verborgen.');
+ }
+ '@
+-& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsBase64 $requirePayrollJson
++& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsBase64 $requirePayrollJson $requireBsnJson
+ if ($LASTEXITCODE -ne 0) {
+     throw 'De centrale TEST-configuratie bevat niet alle vereiste runtimevelden; waarden zijn niet getoond.'
+ }

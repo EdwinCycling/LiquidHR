@@ -1,0 +1,467 @@
+diff --git a/apps/hr-suite/app/(dashboard)/payroll-components/page.test.tsx b/apps/hr-suite/app/(dashboard)/payroll-components/page.test.tsx
+index bd451b87..6e69571f 100644
+--- a/apps/hr-suite/app/(dashboard)/payroll-components/page.test.tsx
++++ b/apps/hr-suite/app/(dashboard)/payroll-components/page.test.tsx
+@@ -41,6 +41,16 @@ vi.mock('@/lib/i18n/server', () => ({
+       payrollComponentsRoundingMode_HALF_UP: 'Afronden: half omhoog',
+       payrollComponentsCopyBlockedRegisteredRule: 'Deze wettelijke systeemregel is in deze versie niet kopieerbaar. De vertrouwde systeemimplementatie blijft uitsluitend systeemcode.',
+       payrollComponentsCopied: 'De kopie is opgeslagen als eigen concept.',
++      payrollComponentsEditorDraftStatus: 'Status concept',
++      payrollComponentsEditorConcept: 'Concept',
++      payrollComponentsEditorConceptInactive: 'nog niet actief in salarisberekeningen',
++      payrollComponentsEditorSourceField: 'Bronveld',
++      payrollComponentsEditorOwnCalculation: 'Eigen berekening',
++      payrollComponentsEditorOwnCalculationNotConverted: 'nog niet omgezet; de bronmethode blijft alleen-lezen',
++      payrollComponentsEditorOwnCalculationEditable: 'formule aanpasbaar',
++      payrollComponentsEditorOwnCalculationReadOnly: 'formule alleen-lezen',
++      payrollComponentsEditorConvertSourceToFormula: 'Omzetten naar eigen berekening',
++      payrollComponentsEditorConvertSourceToFormulaHelp: 'De kopie wordt een zelfstandige formulecomponent. De originele SYSTEM-bron en het bronpad blijven ongewijzigd.',
+       payrollComponentsOfficialSymbol: 'Officieel symbool',
+       payrollComponentsSourceValue: 'Bronwaarde',
+       payrollComponentsParameterSource: 'Bronverwijzing',
+@@ -104,6 +114,42 @@ const draftEntry: ComponentCatalogEntry = {
+   forkable: false,
+ }
+ 
++const grossSalarySystemEntry = getSystemComponentCatalog().find((entry) => entry.definition.code === 'NL_REGULAR_WAGE')
++if (!grossSalarySystemEntry || grossSalarySystemEntry.definition.method.kind !== 'source') {
++  throw new Error('NL_REGULAR_WAGE source component test fixture is missing.')
++}
++const grossSalaryOutput = grossSalarySystemEntry.definition.outputs[0]
++if (!grossSalaryOutput) throw new Error('NL_REGULAR_WAGE output test fixture is missing.')
++
++const convertedGrossSalaryDraftEntry: ComponentCatalogEntry = {
++  ...draftEntry,
++  key: 'draft::30000000-0000-4000-8000-000000000012',
++  displayName: 'Bruto salaris eigen berekening',
++  displayCode: 'CUSTOM_GROSS_SALARY_FORK',
++  definition: {
++    ...grossSalarySystemEntry.definition,
++    id: 'customer:draft:30000000-0000-4000-8000-000000000012',
++    code: 'CUSTOM_GROSS_SALARY_FORK',
++    version: '2',
++    ownership: {
++      kind: 'CUSTOMER_FORK',
++      origin: {
++        id: grossSalarySystemEntry.definition.id,
++        code: grossSalarySystemEntry.definition.code,
++        version: grossSalarySystemEntry.definition.version,
++      },
++      forkedAt: '2026-10-01T10:00:00.000Z',
++    },
++    inputs: [{ name: 'baseGross', valueType: 'MONEY', required: true }],
++    dependencies: [],
++    method: { kind: 'expression', outputs: { [grossSalaryOutput.name]: { kind: 'input', name: 'baseGross' } } },
++  },
++  ownership: 'CUSTOMER_FORK',
++  status: 'DRAFT',
++  package: grossSalarySystemEntry.package,
++  sourceMetadata: grossSalarySystemEntry.sourceMetadata,
++}
++
+ beforeEach(() => {
+   getComponentLibrary.mockReset().mockResolvedValue({ components: [systemEntry, draftEntry], canCopy: true })
+   vi.mocked(nextRedirect).mockClear()
+@@ -171,11 +217,36 @@ describe('Payroll component library route', () => {
+     expect(markup).toContain('payrollComponentsEditorGeneral')
+     expect(markup).toContain('payrollComponentsEditorSaveDraft')
+     expect(markup).toContain('payrollComponentsEditorSourceMethodReadOnly')
++    expect(markup).toContain('Omzetten naar eigen berekening')
++    expect(markup).toContain('nog niet actief in salarisberekeningen')
+     expect(markup).toContain('CUSTOM_30000000000040008000000000000001')
+     expect(markup).not.toContain('name="tenantId"')
+     expect(markup).not.toContain('name="definition"')
+   })
+ 
++  it('reopens a formula fork with its trusted original gross salary source path and editable formula status', async () => {
++    getComponentLibrary.mockResolvedValueOnce({ components: [grossSalarySystemEntry, convertedGrossSalaryDraftEntry], canCopy: true })
++    const page = await PayrollComponentsPage({ searchParams: Promise.resolve({
++      ownership: 'customer',
++      component: convertedGrossSalaryDraftEntry.key,
++      edit: '1',
++    }) })
++    const markup = renderToStaticMarkup(page)
++
++    expect(markup).toContain('Bronveld:')
++    expect(markup).toContain('regularWage.grossAmount')
++    expect(markup).toContain('Eigen berekening')
++    expect(markup).toContain('formule aanpasbaar')
++    expect(markup).toContain('nog niet actief in salarisberekeningen')
++    expect(markup).toContain('input.baseGross')
++    expect(markup).toContain('payrollComponentsEditorAddInput')
++    expect(markup).toContain('payrollComponentsEditorAddOutput')
++    expect(markup).toContain('payrollComponentsEditorAddDependency')
++    expect(markup).toContain('payrollComponentsEditorAddParameter')
++    expect(markup).not.toMatch(/<fieldset[^>]*disabled/)
++    expect(markup).not.toContain('Omzetten naar eigen berekening')
++  })
++
+   it('opens a new customer component editor inside the component library', async () => {
+     getComponentLibrary.mockResolvedValueOnce({
+       components: [systemEntry],
+diff --git a/apps/hr-suite/app/(dashboard)/payroll-components/page.tsx b/apps/hr-suite/app/(dashboard)/payroll-components/page.tsx
+index 10538a10..05cd7f0c 100644
+--- a/apps/hr-suite/app/(dashboard)/payroll-components/page.tsx
++++ b/apps/hr-suite/app/(dashboard)/payroll-components/page.tsx
+@@ -51,6 +51,8 @@ const EDITOR_LABEL_KEYS = [
+   'payrollComponentsEditorAggregateOperation', 'payrollComponentsEditorCalculation', 'payrollComponentsEditorCalculationContext',
+   'payrollComponentsEditorCalculationMethod', 'payrollComponentsEditorTracePolicy_FULL', 'payrollComponentsEditorTracePolicy_OUTPUTS',
+   'payrollComponentsEditorTracePolicy_NONE', 'payrollComponentsEditorStatus', 'payrollComponentsEditorCalculated', 'payrollComponentsEditorBlocked',
++  'payrollComponentsEditorConcept', 'payrollComponentsEditorConceptInactive', 'payrollComponentsEditorConvertSourceToFormula',
++  'payrollComponentsEditorConvertSourceToFormulaHelp', 'payrollComponentsEditorDraftStatus',
+   'payrollComponentsEditorCategory', 'payrollComponentsEditorCode', 'payrollComponentsEditorCodeHelp',
+   'payrollComponentsEditorComponentOutput', 'payrollComponentsEditorControls', 'payrollComponentsEditorDecimalPlaces',
+   'payrollComponentsEditorDependencies', 'payrollComponentsEditorDescription', 'payrollComponentsEditorEffectiveFrom',
+@@ -62,6 +64,9 @@ const EDITOR_LABEL_KEYS = [
+   'payrollComponentsEditorParameterName', 'payrollComponentsEditorParameters', 'payrollComponentsEditorParameterValue',
+   'payrollComponentsEditorPreviewInput', 'payrollComponentsEditorPreviewInputHelp', 'payrollComponentsEditorPreviewInputs',
+   'payrollComponentsEditorProvenance', 'payrollComponentsEditorReadOnly', 'payrollComponentsEditorRemove',
++  'payrollComponentsEditorSourceField', 'payrollComponentsEditorOwnCalculation',
++  'payrollComponentsEditorOwnCalculationEditable', 'payrollComponentsEditorOwnCalculationNotConverted',
++  'payrollComponentsEditorOwnCalculationReadOnly',
+   'payrollComponentsEditorRequired', 'payrollComponentsEditorResult', 'payrollComponentsEditorRounding',
+   'payrollComponentsEditorRoundingMode', 'payrollComponentsEditorRunPreview', 'payrollComponentsEditorSaveDraft',
+   'payrollComponentsEditorSaveFailed', 'payrollComponentsEditorScope', 'payrollComponentsEditorSelectInput',
+@@ -98,6 +103,20 @@ function entryCategoryKey(entry: ComponentCatalogEntry): string {
+   return entry.category?.trim() || entry.definition.method.kind
+ }
+ 
++function trustedSourcePath(entry: ComponentCatalogEntry, components: readonly ComponentCatalogEntry[]): string | undefined {
++  if (entry.definition.ownership.kind !== 'CUSTOMER_FORK') {
++    return entry.definition.method.kind === 'source' ? entry.definition.method.path.join('.') : undefined
++  }
++  const origin = entry.definition.ownership.origin
++  const source = components.find((candidate) => candidate.definition.ownership.kind === 'SYSTEM'
++    && candidate.definition.id === origin.id
++    && candidate.definition.code === origin.code
++    && candidate.definition.version === origin.version
++    && candidate.package.compositionId === entry.package.compositionId
++    && (entry.package.packageHash === undefined || candidate.package.packageHash === entry.package.packageHash))
++  return source?.definition.method.kind === 'source' ? source.definition.method.path.join('.') : undefined
++}
++
+ function filterEntries(entries: readonly ComponentCatalogEntry[], filters: Filters, locale: string, t: (key: string) => string): ComponentCatalogEntry[] {
+   const query = filters.q.toLocaleLowerCase(locale)
+   return entries.filter((entry) => {
+@@ -329,7 +348,7 @@ export default async function PayrollComponentsPage({
+       label: `${payrollComponentName(entry, t)} · ${entry.definition.code}.${output.name} · ${output.valueType}`,
+     })))
+   const editorLabels = Object.fromEntries(EDITOR_LABEL_KEYS.map((key) => [key, t(key)]))
+-  const sourcePath = editDraft && selected?.definition.method.kind === 'source' ? selected.definition.method.path.join('.') : undefined
++  const sourcePath = editDraft && selected ? trustedSourcePath(selected, library.components) : undefined
+   const provenanceLabel = editDraft && selected?.definition.ownership.kind === 'CUSTOMER_FORK'
+     ? `${selected.definition.ownership.origin.code} v${selected.definition.ownership.origin.version}`
+     : editDraft ? t('payrollComponentsEditorCustomerCustom') : ''
+diff --git a/apps/hr-suite/components/payroll/component-editor.tsx b/apps/hr-suite/components/payroll/component-editor.tsx
+index 13fe8220..09bce35a 100644
+--- a/apps/hr-suite/components/payroll/component-editor.tsx
++++ b/apps/hr-suite/components/payroll/component-editor.tsx
+@@ -7,7 +7,12 @@ import { Surface } from '@/components/ui/surface'
+ import { TextInput } from '@/components/ui/text-input'
+ import { DropdownSelect } from '@/components/ui/dropdown-select'
+ import type { ComponentEditorPayload, ComponentEditorMethodPayload } from '@/lib/payroll/component-editor-contract'
+-import type { ComponentEditorState } from '@/lib/payroll/component-editor-state'
++import {
++  componentEditorPayloadFromState,
++  convertCustomerForkSourceToFormula,
++  expressionMethodForOutputs,
++  type ComponentEditorState,
++} from '@/lib/payroll/component-editor-state'
+ import type { ComponentEditorValidationResult } from '@/lib/payroll/component-editor-engine'
+ import type { PayrollValueType } from '@liquid-hr/payroll-engine'
+ import {
+@@ -83,11 +88,7 @@ function methodForOutputs(kind: ComponentEditorMethodPayload['kind'], state: Com
+   }
+   if (kind === 'aggregate') return { kind, operation: 'SUM', inputNames: state.inputs.map((input) => input.name) }
+   return {
+-    kind: 'expression',
+-    formulas: Object.fromEntries(state.outputs.map((output) => [
+-      output.name,
+-      output.valueType === 'BOOLEAN' ? 'false' : output.valueType === 'STRING' ? '""' : `${output.valueType}(0)`,
+-    ])),
++    ...expressionMethodForOutputs(state.outputs),
+   }
+ }
+ 
+@@ -113,6 +114,8 @@ export function ComponentEditor({
+   const requestId = useRef<string | null>(null)
+   const router = useRouter()
+   const label = (key: string) => labels[key] ?? key
++  const canConvertSourceToFormula = Boolean(canSave && !readOnly && state.draftId
++    && state.ownershipKind === 'CUSTOMER_FORK' && state.method.kind === 'source')
+   const formatIssues = (issues: readonly string[]) => issues.map((issue) => (
+     label(VALIDATION_ISSUE_KEYS[issue] ?? 'payrollComponentsEditorIssueGeneric')
+   )).join(' ')
+@@ -139,7 +142,15 @@ export function ComponentEditor({
+   }
+ 
+   function validationPayload(): ComponentEditorPayload {
+-    return { ...state, requestId: requestId.current ?? crypto.randomUUID() }
++    return componentEditorPayloadFromState(state, requestId.current ?? crypto.randomUUID())
++  }
++
++  function convertSourceToFormula(): void {
++    if (!canConvertSourceToFormula) return
++    requestId.current = null
++    setState((current) => convertCustomerForkSourceToFormula(current))
++    setResult(null)
++    setMessage(null)
+   }
+ 
+   function runValidation(preview: boolean): void {
+@@ -219,6 +230,18 @@ export function ComponentEditor({
+ 
+   return <fieldset disabled={readOnly} className="m-0 min-w-0 space-y-4 border-0 p-0">
+     <Surface className="space-y-6 p-4 sm:p-6">
++      <section aria-labelledby="component-editor-draft-status" className="space-y-2 rounded-[var(--radius-surface)] border border-border-subtle p-3">
++        <h3 className="text-sm font-semibold text-foreground" id="component-editor-draft-status">{label('payrollComponentsEditorDraftStatus')}</h3>
++        <p className="text-sm text-muted-foreground"><strong className="text-foreground">{label('payrollComponentsEditorConcept')}:</strong> {label('payrollComponentsEditorConceptInactive')}</p>
++        {sourcePath ? <p className="break-words text-sm text-muted-foreground"><strong className="text-foreground">{label('payrollComponentsEditorSourceField')}:</strong> <code className="break-all">{sourcePath}</code> ({label('payrollComponentsEditorReadOnly')})</p> : null}
++        <p className="text-sm text-muted-foreground"><strong className="text-foreground">{label('payrollComponentsEditorOwnCalculation')}:</strong> {state.method.kind === 'source'
++          ? label('payrollComponentsEditorOwnCalculationNotConverted')
++          : readOnly ? label('payrollComponentsEditorOwnCalculationReadOnly') : label('payrollComponentsEditorOwnCalculationEditable')}</p>
++        {canConvertSourceToFormula ? <div className="space-y-2">
++          <Button onClick={convertSourceToFormula} type="button" variant="secondary">{label('payrollComponentsEditorConvertSourceToFormula')}</Button>
++          <p className="text-xs text-muted-foreground">{label('payrollComponentsEditorConvertSourceToFormulaHelp')}</p>
++        </div> : null}
++      </section>
+       <section aria-labelledby="component-editor-general" className="space-y-4">
+         <h3 className="text-base font-semibold text-foreground" id="component-editor-general">{label('payrollComponentsEditorGeneral')}</h3>
+         <div className="grid gap-4 sm:grid-cols-2">
+@@ -254,7 +277,6 @@ export function ComponentEditor({
+         <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+           <span>{label('payrollComponentsEditorOwnership')}: {ownershipLabel}</span>
+           {provenanceLabel ? <span>{label('payrollComponentsEditorProvenance')}: {provenanceLabel}</span> : null}
+-          {sourcePath ? <span>{label('payrollComponentsEditorSourceMethod')}: <code className="break-all">{sourcePath}</code> ({label('payrollComponentsEditorReadOnly')})</span> : null}
+         </div>
+       </section>
+ 
+diff --git a/apps/hr-suite/lib/payroll/component-draft-service.test.ts b/apps/hr-suite/lib/payroll/component-draft-service.test.ts
+index e0ea365b..b51e3f8d 100644
+--- a/apps/hr-suite/lib/payroll/component-draft-service.test.ts
++++ b/apps/hr-suite/lib/payroll/component-draft-service.test.ts
+@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
+ import { sha256, stableSerialize } from '@liquid-hr/payroll-engine'
+ import type { ComponentCatalogEntry } from './component-catalog'
+ import { SYSTEM_COMPONENT_CATALOG } from './component-catalog'
++import { validatePreparedComponentDraft } from './component-editor-engine'
++import { componentEditorPayloadFromState, componentEditorStateFromEntry, convertCustomerForkSourceToFormula } from './component-editor-state'
++import { parseComponentEditorPayload } from './component-editor-contract'
+ import type { ComponentDraftEditorInput } from './component-draft-service'
+ import type { PayrollCustomerComponentVersionRow, PayrollDatabase } from './database'
+ import {
+@@ -22,9 +25,11 @@ const actorUserId = '10000000-0000-4000-8000-000000000005'
+ const componentId = '10000000-0000-4000-8000-000000000010'
+ const now = '2026-10-01T10:00:00.000Z'
+ const sourceEntry = SYSTEM_COMPONENT_CATALOG.find((entry) => entry.forkable && entry.ownership === 'SYSTEM')
++const grossSalarySourceEntry = SYSTEM_COMPONENT_CATALOG.find((entry) => entry.definition.code === 'NL_REGULAR_WAGE'
++  && entry.definition.method.kind === 'source' && entry.forkable)
+ const registeredRuleEntry = SYSTEM_COMPONENT_CATALOG.find((entry) => entry.definition.method.kind === 'registeredRule')
+ 
+-if (!sourceEntry || !registeredRuleEntry) throw new Error('Payroll system catalog test entries are missing.')
++if (!sourceEntry || !grossSalarySourceEntry || !registeredRuleEntry) throw new Error('Payroll system catalog test entries are missing.')
+ 
+ type ComponentDraftInsert = PayrollDatabase['public']['Tables']['customer_component_versions']['Insert']
+ 
+@@ -146,6 +151,82 @@ describe('Payroll customer component draft service', () => {
+     await expect(service.get(scope, payrollAdministrationId, saved.id)).resolves.toEqual(saved)
+   })
+ 
++  it('converts the gross_salary source fork through the safe editor flow, previews a trace, and appends a reopenable DRAFT version', async () => {
++    const { repository, service } = createService()
++    const systemBefore = stableSerialize(grossSalarySourceEntry.definition)
++    const systemEditorState = componentEditorStateFromEntry(grossSalarySourceEntry, 'system-source', 'Bruto salaris', 'Bronveld')
++    expect(convertCustomerForkSourceToFormula(systemEditorState)).toBe(systemEditorState)
++
++    const first = await service.forkSystemComponent(scope, payrollAdministrationId, actorUserId, grossSalarySourceEntry.key)
++    const original = toDraftDefinition(first)
++    const initial = componentEditorStateFromEntry(toDraftCatalogEntry(first), first.id, 'Bruto salaris', 'Bronveld')
++
++    expect(initial.ownershipKind).toBe('CUSTOMER_FORK')
++    expect(initial.method).toEqual({ kind: 'source' })
++    expect(original.method).toEqual(grossSalarySourceEntry.definition.method)
++    expect(grossSalarySourceEntry.definition.method.kind === 'source' && grossSalarySourceEntry.definition.method.path)
++      .toEqual(['regularWage', 'grossAmount'])
++
++    const converted = convertCustomerForkSourceToFormula(initial)
++    const grossOutput = converted.outputs[0]
++    expect(converted.method).toEqual({ kind: 'expression', formulas: { [grossOutput!.name]: 'MONEY(0)' } })
++    expect(converted.ownershipKind).toBe('CUSTOMER_FORK')
++    expect(converted.outputs).toEqual(initial.outputs)
++
++    const inputName = 'baseGross'
++    const formula = 'input.baseGross + MONEY(250.00)'
++    const edited = {
++      ...converted,
++      inputs: [...converted.inputs, { name: inputName, valueType: 'MONEY' as const, required: true }],
++      dependencies: [{
++        componentCode: grossSalarySourceEntry.definition.code,
++        outputName: grossOutput!.name,
++        inputName,
++      }],
++      method: { kind: 'expression' as const, formulas: { [grossOutput!.name]: formula } },
++      previewInputs: { [inputName]: '5000.00' },
++    }
++    const payload = componentEditorPayloadFromState(edited, '30000000-0000-4000-8000-000000000011')
++
++    expect(payload).not.toHaveProperty('ownershipKind')
++    expect(payload.method).toEqual({ kind: 'expression', formulas: { [grossOutput!.name]: formula } })
++    const parsed = parseComponentEditorPayload(payload)
++    expect(parsed.success).toBe(true)
++    if (!parsed.success) return
++    const { previewInputs, ...input } = parsed.data
++    const prepared = await service.prepareVersion(scope, payrollAdministrationId, input)
++    const validation = validatePreparedComponentDraft(prepared, previewInputs)
++
++    expect(validation.valid, validation.issues.join(', ')).toBe(true)
++    expect(validation.result?.outputs).toEqual([{ name: grossOutput!.name, valueType: 'MONEY', value: '5250.00' }])
++    expect(validation.result?.trace.some((step) => step.componentCode === first.component_code
++      && step.dependencyRefs.some((dependency) => dependency.componentCode === grossSalarySourceEntry.definition.code
++        && dependency.inputName === inputName))).toBe(true)
++    expect(repository.rows).toEqual([first])
++    expect(stableSerialize(grossSalarySourceEntry.definition)).toBe(systemBefore)
++
++    const saved = await service.saveVersion(scope, payrollAdministrationId, actorUserId, input)
++    expect(saved.id).not.toBe(first.id)
++    expect(saved.component_version).toBe('2')
++    expect(saved.status).toBe('DRAFT')
++    expect(saved.ownership).toBe('CUSTOMER_FORK')
++    expect(saved.origin_component_id).toBe(first.origin_component_id)
++    expect(saved.origin_component_code).toBe(first.origin_component_code)
++    expect(saved.origin_component_version).toBe(first.origin_component_version)
++    expect(repository.rows[0]).toEqual(first)
++    expect(repository.rows).toHaveLength(2)
++
++    const reopened = await service.get(scope, payrollAdministrationId, saved.id)
++    expect(reopened).toEqual(saved)
++    const reopenedEntry = toDraftCatalogEntry(reopened!)
++    const reopenedState = componentEditorStateFromEntry(reopenedEntry, reopened!.id, 'Bruto salaris', 'Formule')
++    expect(reopenedState.ownershipKind).toBe('CUSTOMER_FORK')
++    expect(reopenedState.method).toEqual({ kind: 'expression', formulas: { [grossOutput!.name]: '(input.baseGross + MONEY(250.00))' } })
++    expect(reopenedState.dependencies).toEqual(edited.dependencies)
++    expect(reopenedState.inputs).toEqual(edited.inputs)
++    expect(stableSerialize(grossSalarySourceEntry.definition)).toBe(systemBefore)
++  })
++
+   it('creates CUSTOMER_CUSTOM without SYSTEM provenance and keeps repeated submissions idempotent', async () => {
+     const { repository, service } = createService()
+     const input: ComponentDraftEditorInput = {
+diff --git a/apps/hr-suite/lib/payroll/component-editor-state.ts b/apps/hr-suite/lib/payroll/component-editor-state.ts
+index c49f579d..9b1b0b21 100644
+--- a/apps/hr-suite/lib/payroll/component-editor-state.ts
++++ b/apps/hr-suite/lib/payroll/component-editor-state.ts
+@@ -3,7 +3,55 @@ import { formatPayrollExpression } from './component-expression-dsl'
+ import type { ComponentEditorPayload, ComponentEditorMethodPayload } from './component-editor-contract'
+ import type { PayrollComponentMethod } from '@liquid-hr/payroll-engine'
+ 
+-export type ComponentEditorState = Omit<ComponentEditorPayload, 'requestId'>
++export type ComponentEditorState = Omit<ComponentEditorPayload, 'requestId'> & {
++  /** Local UI context; ownership is never submitted as a client-controlled draft field. */
++  readonly ownershipKind: ComponentCatalogEntry['definition']['ownership']['kind']
++}
++
++function formulaForOutput(valueType: ComponentEditorState['outputs'][number]['valueType']): string {
++  return valueType === 'BOOLEAN' ? 'false' : valueType === 'STRING' ? '""' : `${valueType}(0)`
++}
++
++export function expressionMethodForOutputs(
++  outputs: ComponentEditorState['outputs'],
++): ComponentEditorMethodPayload {
++  return {
++    kind: 'expression',
++    formulas: Object.fromEntries(outputs.map((output) => [output.name, formulaForOutput(output.valueType)])),
++  }
++}
++
++/** Enables only detached CUSTOMER_FORK source drafts to become customer-authored formulas. */
++export function convertCustomerForkSourceToFormula(state: ComponentEditorState): ComponentEditorState {
++  if (state.ownershipKind !== 'CUSTOMER_FORK' || state.method.kind !== 'source') return state
++  return { ...state, method: expressionMethodForOutputs(state.outputs) }
++}
++
++/** Serializes editable values while keeping ownership and trusted source paths server-owned. */
++export function componentEditorPayloadFromState(
++  state: ComponentEditorState,
++  requestId: string,
++): ComponentEditorPayload {
++  return {
++    ...(state.draftId === undefined ? {} : { draftId: state.draftId }),
++    requestId,
++    ...(state.packageCompositionId === undefined ? {} : { packageCompositionId: state.packageCompositionId }),
++    displayName: state.displayName,
++    displayCode: state.displayCode,
++    description: state.description,
++    category: state.category,
++    effectiveFrom: state.effectiveFrom,
++    effectiveTo: state.effectiveTo,
++    processingScope: state.processingScope,
++    inputs: state.inputs,
++    outputs: state.outputs,
++    dependencies: state.dependencies,
++    parameters: state.parameters,
++    tracePolicy: state.tracePolicy,
++    method: state.method,
++    previewInputs: state.previewInputs,
++  }
++}
+ 
+ function expressionMethod(method: PayrollComponentMethod): ComponentEditorMethodPayload {
+   if (method.kind === 'source') return { kind: 'source' }
+@@ -27,6 +75,7 @@ export function componentEditorStateFromEntry(
+   const definition = entry.definition
+   return {
+     draftId: rowId,
++    ownershipKind: definition.ownership.kind,
+     displayName: entry.displayName?.trim() || fallbackName,
+     displayCode: entry.displayCode?.trim() || definition.code,
+     description: entry.description ?? '',
+@@ -52,6 +101,7 @@ export function newComponentEditorState(
+ ): ComponentEditorState {
+   return {
+     packageCompositionId,
++    ownershipKind: 'CUSTOMER_CUSTOM',
+     displayName: name,
+     displayCode: 'CUSTOM_COMPONENT',
+     description: '',
+diff --git a/apps/hr-suite/messages/en/navigation.json b/apps/hr-suite/messages/en/navigation.json
+index bf36505f..feebb1a5 100644
+--- a/apps/hr-suite/messages/en/navigation.json
++++ b/apps/hr-suite/messages/en/navigation.json
+@@ -591,6 +591,16 @@
+   "payrollComponentsEditorCalculationContext": "Rule package context",
+   "payrollComponentsEditorOwnership": "Ownership",
+   "payrollComponentsEditorProvenance": "Copied from",
++  "payrollComponentsEditorDraftStatus": "Draft status",
++  "payrollComponentsEditorConcept": "Draft",
++  "payrollComponentsEditorConceptInactive": "not active in payroll calculations yet",
++  "payrollComponentsEditorSourceField": "Source field",
++  "payrollComponentsEditorOwnCalculation": "Own calculation",
++  "payrollComponentsEditorOwnCalculationNotConverted": "not converted yet; the source method remains read-only",
++  "payrollComponentsEditorOwnCalculationEditable": "formula editable",
++  "payrollComponentsEditorOwnCalculationReadOnly": "formula read-only",
++  "payrollComponentsEditorConvertSourceToFormula": "Convert to own calculation",
++  "payrollComponentsEditorConvertSourceToFormulaHelp": "This copy becomes a standalone formula component. The original SYSTEM source and source path remain unchanged. Saving creates a new draft version; it is not active in payroll calculations.",
+   "payrollComponentsEditorSourceMethod": "Source path",
+   "payrollComponentsEditorReadOnly": "read-only",
+   "payrollComponentsEditorInputs": "Inputs",
+diff --git a/apps/hr-suite/messages/nl/navigation.json b/apps/hr-suite/messages/nl/navigation.json
+index 11970b49..1d0a39f0 100644
+--- a/apps/hr-suite/messages/nl/navigation.json
++++ b/apps/hr-suite/messages/nl/navigation.json
+@@ -591,6 +591,16 @@
+   "payrollComponentsEditorCalculationContext": "Context van het regelpakket",
+   "payrollComponentsEditorOwnership": "Eigendom",
+   "payrollComponentsEditorProvenance": "Gekopieerd van",
++  "payrollComponentsEditorDraftStatus": "Status van de conceptversie",
++  "payrollComponentsEditorConcept": "Concept",
++  "payrollComponentsEditorConceptInactive": "nog niet actief in salarisberekeningen",
++  "payrollComponentsEditorSourceField": "Bronveld",
++  "payrollComponentsEditorOwnCalculation": "Eigen berekening",
++  "payrollComponentsEditorOwnCalculationNotConverted": "nog niet omgezet; de bronmethode blijft alleen-lezen",
++  "payrollComponentsEditorOwnCalculationEditable": "formule aanpasbaar",
++  "payrollComponentsEditorOwnCalculationReadOnly": "formule alleen-lezen",
++  "payrollComponentsEditorConvertSourceToFormula": "Omzetten naar eigen berekening",
++  "payrollComponentsEditorConvertSourceToFormulaHelp": "De kopie wordt een zelfstandige formulecomponent. De originele SYSTEM-bron en het bronpad blijven ongewijzigd. Alleen bewaren maakt een nieuwe conceptversie; die is niet actief in salarisberekeningen.",
+   "payrollComponentsEditorSourceMethod": "Bronpad",
+   "payrollComponentsEditorReadOnly": "alleen-lezen",
+   "payrollComponentsEditorInputs": "Invoer",

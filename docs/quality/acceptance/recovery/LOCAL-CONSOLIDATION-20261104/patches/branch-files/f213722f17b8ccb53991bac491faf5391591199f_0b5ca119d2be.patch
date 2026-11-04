@@ -1,0 +1,24 @@
+diff --git a/docs/README.md b/docs/README.md
+index 052fb7f1..ba3d9f50 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -1,5 +1,19 @@
+ # Liquid HR documentatie-index
+ 
++## PAYLAB00 close + PAYLAB01 source adapter — 2026-09-30
++
++**PAYLAB00: ENVIRONMENT-GATED / CLOSED; database-isolation foundation
++accepted. PAYLAB01: PARTIAL.** The read-only server source adapter, canonical
++snapshot schema, scope checks and deterministic hash are implemented. The
++bounded regression set is 12 files / 62 tests; typecheck, changed-area lint,
++production build and client-secret scan are green. Live authenticated source proof is blocked
++by the local test environment rejecting a newly issued JWT
++(`PGRST303: JWT issued at future`). No Core data/schema/config or CONTROL02
++contract changed; no PAYLAB02 started. See [`PAYLAB status`](payroll/PAYLAB_STATUS.md),
++[`acceptance evidence`](payroll/acceptance/PAYLAB00-01-20260930.md),
++[`open issues`](payroll/OPEN_ISSUES.md) and the
++[`boundary ADR`](payroll/ADR-PAYLAB-001-BOUNDARY.md).
++
+ ## ABS02 — verzuim hardening, security en WvP-foundation — 2026-09-27
+ 
+ **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance blijven environment-gated.**

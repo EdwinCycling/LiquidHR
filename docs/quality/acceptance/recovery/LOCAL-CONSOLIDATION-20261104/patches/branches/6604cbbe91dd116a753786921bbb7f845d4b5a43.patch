@@ -1,0 +1,73 @@
+diff --git a/docs/AA/AA-CURRENT.md b/docs/AA/AA-CURRENT.md
+index 75551ae7..eeb12c76 100644
+--- a/docs/AA/AA-CURRENT.md
++++ b/docs/AA/AA-CURRENT.md
+@@ -119,6 +119,6 @@ De vroegere werkstatus, debugging en checkpoints zijn historische informatie en
+ 
+ ## BRAND01 — lokale featurebranch
+ 
+-- Status: **PARTIAL** op work/BRAND01-20261012; code-SHA 6ce4d20e3e46490b7bfc32671767e5bb520dcf93. Niet geïntegreerd in main; er is geen PR.
+-- Lokale codegates zijn groen. Visuele nacht-themeacceptatie en een finale Focus-capture met Employee-context staan nog open; daarom geen push, merge of releaseclaim.
+-- Implementatie: [BRAND01 productbranding](../requirements/ux/BRAND01_PRODUCT_BRANDING.md). Bewijs: [BRAND01 lokale acceptatie](../quality/acceptance/runs/BRAND01-20261012.md).
++- Status: **PARTIAL** op work/BRAND01-20261012; nieuwste lokale code-SHA 99c417f740c679b97e44cd9e53516a5f5413e123. Niet geïntegreerd in main; er is geen PR.
++- OAuth-consent en contextkeuze gebruiken nu dezelfde professionele AuthShell en NL/EN-uitleg; gerichte tests, HR Suite-typecheck, lint en i18n zijn groen. Browseracceptatie van deze schermen en de eerdere nacht-theme-/Employee-Focus-gates staan nog open.
++- Implementatie: [BRAND01 productbranding](../requirements/ux/BRAND01_PRODUCT_BRANDING.md). Bewijs: [oorspronkelijke lokale acceptatie](../quality/acceptance/runs/BRAND01-20261012.md) en [OAuth/context-follow-up](../quality/acceptance/runs/BRAND01-UI-FOLLOWUP-20261012.md).
+diff --git a/docs/quality/acceptance/runs/BRAND01-UI-FOLLOWUP-20261012.md b/docs/quality/acceptance/runs/BRAND01-UI-FOLLOWUP-20261012.md
+new file mode 100644
+index 00000000..12efbb51
+--- /dev/null
++++ b/docs/quality/acceptance/runs/BRAND01-UI-FOLLOWUP-20261012.md
+@@ -0,0 +1,30 @@
++# BRAND01 — OAuth-consent en contextkeuze
++
++| Veld | Waarde |
++| --- | --- |
++| Datum | 12 oktober 2026 |
++| Status | **PARTIAL** — lokale implementatie en codegates geslaagd; desktop/mobile browseracceptatie van deze twee schermen ontbreekt. |
++| Branch | work/BRAND01-20261012 |
++| Code-SHA | 99c417f740c679b97e44cd9e53516a5f5413e123 |
++| Basis | BRAND01 lokale acceptatie van 12 oktober 2026 |
++
++## Resultaat
++
++- De OAuth-consent toont LiquidHR → ChatGPT met herkenbare productbranding, duidelijke gegevenscategorieën, eigen medewerkercontext, alleen-lezen toegang en gegroepeerde aanvraagdetails.
++- Nederlandse en Engelse gebruikerscopy benoemt de koppeling en rechten zonder interne testomgevingslabels.
++- De contextkeuze gebruikt dezelfde LiquidHR AuthShell, met uitleg over klantomgeving, HR-groep en de invloed van de gekozen context.
++- OAuth-validatie, scopes, toestemmingsacties, contextopties, cookie-instelling en selectiehandler zijn niet gewijzigd.
++
++## Lokale controles
++
++| Controle | Resultaat |
++| --- | --- |
++| OAuth-consent paginatests | 12/12 geslaagd; inclusief controle op omgevingstermen in NL/EN-copy |
++| HR Suite typecheck | npm.cmd run type-check geslaagd |
++| ESLint | Alleen de vier gewijzigde TSX-bestanden gecontroleerd; geslaagd |
++| NL/EN i18n | npm.cmd run check:i18n geslaagd; 43 namespaces met gelijke sleutels |
++| Diff-whitespace | git diff --check geslaagd |
++
++## Open bewijs
++
++De huidige follow-up heeft geen browsercapture op desktop of mobiel. Er zijn geen hosted OAuth-instellingen gewijzigd en er zijn geen databasewrites, push, PR, merge of deployment uitgevoerd. De bestaande BRAND01-open punten voor het nacht-theme en een finale Employee-contextcapture blijven staan. Status blijft daarom **PARTIAL**; zie ook het [oorspronkelijke BRAND01-acceptatierapport](BRAND01-20261012.md).
+diff --git a/docs/requirements/ux/BRAND01_PRODUCT_BRANDING.md b/docs/requirements/ux/BRAND01_PRODUCT_BRANDING.md
+index b0fa6155..d20a4c51 100644
+--- a/docs/requirements/ux/BRAND01_PRODUCT_BRANDING.md
++++ b/docs/requirements/ux/BRAND01_PRODUCT_BRANDING.md
+@@ -22,11 +22,18 @@ Gebruikte varianten:
+ | --- | --- |
+ | Auth-shell desktop (login, uitnodiging, wachtwoordherstel en OAuth-schermen) | horizontaal, `lg` |
+ | Auth-shell mobiel boven het formulier | horizontaal, `md` |
++| Contextkeuze desktop en mobiel | Auth-shell met LiquidHR-logo; gebouw- en HR-groepiconen bij de bestaande keuzevelden |
+ | HR Suite desktop-sidebar uitgeklapt | horizontaal, `sm` |
+ | HR Suite desktop-sidebar ingeklapt | beeldmerk, `sm` |
+ | Mobiele hoofdheader | horizontaal, `sm` |
+ | Focus ESS/MSS-header | horizontaal, `sm` |
+ 
++## OAuth- en contextschermen
++
++De OAuth-consent gebruikt dezelfde AuthShell als de overige toegangsschermen. De verbindingskaart toont het LiquidHR-beeldmerk, de door OAuth gevalideerde toepassingsnaam en een neutraal applicatie-icoon. De pagina houdt de gevraagde gegevens, aanmeldrechten, alleen-lezen grens en eigen medewerkercontext helder zichtbaar. Gebruikersgerichte tekst benoemt de verbinding en rechten, niet de interne omgevingsstatus. Toestemmingsvalidatie en scopes blijven ongewijzigd.
++
++De contextkeuze gebruikt dezelfde AuthShell, met de bestaande doorzoekbare klantomgeving- en HR-groepkeuze. De uitleg vermeldt wat de gekozen context bepaalt; gebouw- en HR-groepiconen ondersteunen de herkenning zonder klantbranding of selectiegedrag te veranderen.
++
+ ## Product- en klantbranding
+ 
+ De productlogo's linken in de navigatie naar de bestaande HR Suite-startpagina. Een ingesteld `preferences.companyBranding.logoUrl` blijft ongewijzigd en staat los van het LiquidHR-logo: naast de mobiele topbar verschijnt het achter een scheidingslijn; in de uitgeklapte sidebar staat het als HR-groepbranding op een afzonderlijke regel. De HR-groep- en administratiekeuze, bedrijfsthema's en LinkedHR blijven werken. Er zijn geen database-, instellingen- of autorisatiewijzigingen.

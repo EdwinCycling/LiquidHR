@@ -1,0 +1,195 @@
+diff --git a/scripts/start-test-worktree.ps1 b/scripts/start-test-worktree.ps1
+index 01b4064d..715d7f7c 100644
+--- a/scripts/start-test-worktree.ps1
++++ b/scripts/start-test-worktree.ps1
+@@ -5,6 +5,7 @@ param(
+     [ValidateRange(0, 65535)]
+     [int]$Port = 0,
+     [switch]$PayrollAcceptance,
++    [switch]$PayrollAcceptanceIsolatedRuntime,
+     [switch]$Build,
+     [switch]$PreflightOnly,
+     [switch]$TestRunner,
+@@ -28,6 +29,9 @@ if ($Build -and $PreflightOnly) {
+ if ($Build -and $TestRunner) {
+     throw '-Build en -TestRunner mogen niet tegelijk worden gebruikt; bouw eerst met de bestaande productieflow.'
+ }
++if ($PayrollAcceptanceIsolatedRuntime -and (-not $PayrollAcceptance -or $Mode -ne 'Development' -or -not $TestRunner)) {
++    throw '-PayrollAcceptanceIsolatedRuntime vereist -PayrollAcceptance -TestRunner in Development.'
++}
+ if ($StopTestRunner -and -not $TestRunner) {
+     throw '-StopTestRunner is alleen toegestaan met -TestRunner.'
+ }
+@@ -263,7 +267,10 @@ if ($LASTEXITCODE -ne 0 -or $publicRuntimeFingerprint -notmatch '^[a-f0-9]{64}$'
+ $gitCommit = $null
+ $runtimeConfigIdentity = $null
+ $runtimeHost = '127.0.0.1'
+-$nextDirectory = Join-Path $appRoot '.next'
++$runtimeDistDirectoryName = if ($PayrollAcceptance -and $Mode -eq 'Development') {
++    if ($PayrollAcceptanceIsolatedRuntime) { '.next/payrun01-acceptance-20261009' } else { '.next/payrun01-acceptance' }
++} else { '.next' }
++$nextDirectory = Join-Path $appRoot $runtimeDistDirectoryName
+ $runtimeMetadataPath = Join-Path $nextDirectory 'liquidhr-test-runtime.json'
+ $runtimeLockPath = Join-Path $nextDirectory 'liquidhr-test-runtime.lock'
+ if ($TestRunner -or $Mode -eq 'Production') {
+@@ -592,6 +599,7 @@ function Test-TestRuntimeMetadataIdentity {
+         [string]$ExpectedAppRoot = '',
+         [string]$ExpectedNextCli = '',
+         [string]$ExpectedConfigPath = '',
++        [string]$ExpectedDistDirectory = '.next',
+         [string]$ExpectedHost = '127.0.0.1',
+         [int]$ExpectedPort = 0
+     )
+@@ -621,6 +629,7 @@ function Test-TestRuntimeMetadataIdentity {
+         (Get-MetadataProperty -Metadata $Metadata -Name 'appRoot') -isnot [string] -or
+         (Get-MetadataProperty -Metadata $Metadata -Name 'nextCli') -isnot [string] -or
+         (Get-MetadataProperty -Metadata $Metadata -Name 'configPath') -isnot [string] -or
++         (Get-MetadataProperty -Metadata $Metadata -Name 'distDirectory') -isnot [string] -or
+         (Get-MetadataProperty -Metadata $Metadata -Name 'host') -isnot [string] -or
+         (($portValue -isnot [int]) -and ($portValue -isnot [long])) -or
+         (($pidValue -isnot [int]) -and ($pidValue -isnot [long])) -or
+@@ -639,6 +648,7 @@ function Test-TestRuntimeMetadataIdentity {
+         ([string]::IsNullOrWhiteSpace($ExpectedAppRoot) -or [string]::Equals((Get-MetadataProperty -Metadata $Metadata -Name 'appRoot'), $ExpectedAppRoot, [StringComparison]::OrdinalIgnoreCase)) -and
+         ([string]::IsNullOrWhiteSpace($ExpectedNextCli) -or [string]::Equals((Get-MetadataProperty -Metadata $Metadata -Name 'nextCli'), $ExpectedNextCli, [StringComparison]::OrdinalIgnoreCase)) -and
+         ([string]::IsNullOrWhiteSpace($ExpectedConfigPath) -or [string]::Equals((Get-MetadataProperty -Metadata $Metadata -Name 'configPath'), $ExpectedConfigPath, [StringComparison]::OrdinalIgnoreCase)) -and
++        [string]::Equals((Get-MetadataProperty -Metadata $Metadata -Name 'distDirectory'), $ExpectedDistDirectory, [StringComparison]::OrdinalIgnoreCase) -and
+         [string]::Equals($metadataHost, $ExpectedHost, [StringComparison]::OrdinalIgnoreCase) -and
+         $port -ge 1 -and $port -le 65535 -and
+         ($ExpectedPort -eq 0 -or $port -eq $ExpectedPort) -and
+@@ -724,6 +734,7 @@ function Start-TestRuntimeProcess {
+         [Parameter(Mandatory)][string]$CentralConfigPath,
+         [Parameter(Mandatory)][string]$NextCliPath,
+         [Parameter(Mandatory)][string]$WorkingDirectory,
++        [Parameter(Mandatory)][ValidateSet('.next', '.next/payrun01', '.next/payrun01-acceptance', '.next/payrun01-acceptance-20261009')][string]$RuntimeDistDirectoryName,
+         [Parameter(Mandatory)][ValidateSet('Development', 'Production')][string]$RuntimeMode,
+         [Parameter(Mandatory)][string]$HostAddress,
+         [Parameter(Mandatory)][int]$RuntimePort
+@@ -732,12 +743,18 @@ function Start-TestRuntimeProcess {
+     $bootstrap = @'
+ const process = require('node:process');
+ const { spawnSync } = require('node:child_process');
+-const [envFileArgument, workingDirectory, nextCliPath, ...nextArgs] = process.argv.slice(1);
++const [envFileArgument, runtimeDistArgument, workingDirectory, nextCliPath, ...nextArgs] = process.argv.slice(1);
+ const envFilePrefix = '--env-file=';
++const runtimeDistPrefix = '--runtime-dist-dir=';
+ if (!envFileArgument || !envFileArgument.startsWith(envFilePrefix)) {
+   throw new Error('The central TEST config argument is invalid.');
+ }
++if (!runtimeDistArgument || !runtimeDistArgument.startsWith(runtimeDistPrefix) ||
++    !['.next', '.next/payrun01', '.next/payrun01-acceptance', '.next/payrun01-acceptance-20261009'].includes(runtimeDistArgument.slice(runtimeDistPrefix.length))) {
++  throw new Error('The isolated Next.js output directory is invalid.');
++}
+ process.loadEnvFile(envFileArgument.slice(envFilePrefix.length));
++process.env.LIQUIDHR_NEXT_DIST_DIR = runtimeDistArgument.slice(runtimeDistPrefix.length);
+ if ((process.env.NODE_OPTIONS ?? '').trim()) {
+   throw new Error('NODE_OPTIONS is unsupported by the isolated TEST runtime.');
+ }
+@@ -755,6 +772,7 @@ process.exit(result.status ?? 1);
+     $arguments.Add($bootstrap)
+     $arguments.Add('--')
+     $arguments.Add("--env-file=$CentralConfigPath")
++    $arguments.Add("--runtime-dist-dir=$RuntimeDistDirectoryName")
+     $arguments.Add($WorkingDirectory)
+     $arguments.Add($NextCliPath)
+     if ($RuntimeMode -eq 'Development') {
+@@ -827,6 +845,7 @@ function Invoke-TestRuntimeStop {
+         [Parameter(Mandatory)][string]$RuntimeHost,
+         [Parameter(Mandatory)][string]$RuntimeHead,
+         [Parameter(Mandatory)][string]$RuntimeConfigIdentity,
++        [Parameter(Mandatory)][ValidateSet('.next', '.next/payrun01', '.next/payrun01-acceptance', '.next/payrun01-acceptance-20261009')][string]$RuntimeDistDirectoryName,
+         [Parameter(Mandatory)][int]$RequestedPid,
+         [int]$RequestedPort = 0,
+         [Parameter(Mandatory)][int]$TimeoutSeconds
+@@ -843,6 +862,7 @@ function Invoke-TestRuntimeStop {
+                 -ExpectedConfigIdentity $RuntimeConfigIdentity -ExpectedMode $RuntimeMode `
+                 -ExpectedAppRoot $RuntimeAppRoot -ExpectedNextCli $RuntimeNextCli `
+                 -ExpectedConfigPath $RuntimeCentralConfig -ExpectedHost $RuntimeHost `
++                -ExpectedDistDirectory $RuntimeDistDirectoryName `
+                 -ExpectedPort $RequestedPort)) {
+             throw 'Het test-runtime-eigenaarsrecord hoort niet exact bij deze worktree, HEAD, config, mode of poort; er is geen proces gestopt.'
+         }
+@@ -954,6 +974,7 @@ function Invoke-TestRunner {
+         [Parameter(Mandatory)][string]$RuntimeHost,
+         [Parameter(Mandatory)][string]$RuntimeHead,
+         [Parameter(Mandatory)][string]$RuntimeConfigIdentity,
++        [Parameter(Mandatory)][ValidateSet('.next', '.next/payrun01', '.next/payrun01-acceptance', '.next/payrun01-acceptance-20261009')][string]$RuntimeDistDirectoryName,
+         [Parameter(Mandatory)][int]$RequestedPort,
+         [Parameter(Mandatory)][int]$TimeoutSeconds
+     )
+@@ -969,6 +990,7 @@ function Invoke-TestRunner {
+                 -ExpectedConfigIdentity $RuntimeConfigIdentity -ExpectedMode $RuntimeMode `
+                 -ExpectedAppRoot $RuntimeAppRoot -ExpectedNextCli $RuntimeNextCli `
+                 -ExpectedConfigPath $RuntimeCentralConfig -ExpectedHost $RuntimeHost `
++                -ExpectedDistDirectory $RuntimeDistDirectoryName `
+                 -ExpectedPort $RequestedPort
+         }
+ 
+@@ -1027,7 +1049,10 @@ function Invoke-TestRunner {
+ 
+         # A mismatched or stale record is never enough to start another server.
+         # First prove that no Next process or Next lock remains for this .next directory.
+-        $existingNextProcesses = @(Get-NextProcessRecordsByApp -AppPath $RuntimeAppRoot -NextCliPath $RuntimeNextCli)
++        $existingNextProcesses = @()
++        if ($RuntimeDistDirectoryName -eq '.next') {
++            $existingNextProcesses = @(Get-NextProcessRecordsByApp -AppPath $RuntimeAppRoot -NextCliPath $RuntimeNextCli)
++        }
+         if ($existingNextProcesses.Count -gt 0 -or (Test-NextLockFiles -NextDirectory $RuntimeNextDirectory)) {
+             throw 'Een bestaande Next.js-server of lock in dezelfde .next-directory heeft geen verifieerbaar exact worktree-/HEAD-/config-eigenaarschap; er is geen tweede server gestart.'
+         }
+@@ -1040,7 +1065,7 @@ function Invoke-TestRunner {
+         }
+         $runtimeUrl = "http://$RuntimeHost`:$selectedPort"
+         $ownedProcess = Start-TestRuntimeProcess -NodePath $RuntimeNodePath -CentralConfigPath $RuntimeCentralConfig `
+-            -NextCliPath $RuntimeNextCli -WorkingDirectory $RuntimeAppRoot -RuntimeMode $RuntimeMode `
++            -NextCliPath $RuntimeNextCli -WorkingDirectory $RuntimeAppRoot -RuntimeDistDirectoryName $RuntimeDistDirectoryName -RuntimeMode $RuntimeMode `
+             -HostAddress $RuntimeHost -RuntimePort $selectedPort
+         try {
+             $ownedRecord = Get-NextProcessRecordById -ProcessId $ownedProcess.Id -AppPath $RuntimeAppRoot `
+@@ -1073,6 +1098,7 @@ function Invoke-TestRunner {
+             appRoot = $RuntimeAppRoot
+             nextCli = $RuntimeNextCli
+             configPath = $RuntimeCentralConfig
++            distDirectory = $RuntimeDistDirectoryName
+             head = $RuntimeHead
+             configIdentity = $RuntimeConfigIdentity
+             mode = $RuntimeMode
+@@ -1115,6 +1141,7 @@ if ($TestRunner) {
+             -RuntimeMetadataPath $runtimeMetadataPath -RuntimeLockPath $runtimeLockPath `
+             -RuntimeCentralConfig $centralConfig -RuntimeNextCli $nextCli -RuntimeMode $Mode `
+             -RuntimeHost $runtimeHost -RuntimeHead $gitCommit -RuntimeConfigIdentity $runtimeConfigIdentity `
++            -RuntimeDistDirectoryName $runtimeDistDirectoryName `
+             -RequestedPid $RuntimePid -RequestedPort $Port -TimeoutSeconds $ReadyTimeoutSeconds
+         Write-Output ($stopResult | ConvertTo-Json -Depth 4 -Compress)
+         return
+@@ -1134,6 +1161,7 @@ if ($TestRunner) {
+         -RuntimeNextDirectory $nextDirectory -RuntimeMetadataPath $runtimeMetadataPath -RuntimeLockPath $runtimeLockPath `
+         -RuntimeNodePath $node.Source -RuntimeCentralConfig $centralConfig -RuntimeNextCli $nextCli `
+         -RuntimeMode $Mode -RuntimeHost $runtimeHost -RuntimeHead $gitCommit -RuntimeConfigIdentity $runtimeConfigIdentity `
++        -RuntimeDistDirectoryName $runtimeDistDirectoryName `
+         -RequestedPort $Port -TimeoutSeconds $ReadyTimeoutSeconds
+     Write-Output ($runnerResult | ConvertTo-Json -Depth 4 -Compress)
+     return
+@@ -1195,7 +1223,13 @@ $nextArguments += @('--hostname', '127.0.0.1', '--port', [string]$resolvedPort)
+ # process and start Next as a clean child with that environment already loaded.
+ $nextBootstrap = @'
+ const { spawnSync } = require('node:child_process');
+-const [nextCli, ...nextArgs] = process.argv.slice(1);
++const [runtimeDistArgument, nextCli, ...nextArgs] = process.argv.slice(1);
++const runtimeDistPrefix = '--runtime-dist-dir=';
++if (!runtimeDistArgument || !runtimeDistArgument.startsWith(runtimeDistPrefix) ||
++    !['.next', '.next/payrun01', '.next/payrun01-acceptance', '.next/payrun01-acceptance-20261009'].includes(runtimeDistArgument.slice(runtimeDistPrefix.length))) {
++  throw new Error('The isolated Next.js output directory is invalid.');
++}
++process.env.LIQUIDHR_NEXT_DIST_DIR = runtimeDistArgument.slice(runtimeDistPrefix.length);
+ const result = spawnSync(process.execPath, [nextCli, ...nextArgs], {
+   env: process.env,
+   stdio: 'inherit',
+@@ -1203,7 +1237,7 @@ const result = spawnSync(process.execPath, [nextCli, ...nextArgs], {
+ if (result.error) throw result.error;
+ process.exit(result.status ?? 1);
+ '@
+-$nextArguments = @("--env-file=$centralConfig", '-e', $nextBootstrap, $nextCli) + $nextArguments
++$nextArguments = @("--env-file=$centralConfig", '-e', $nextBootstrap, '--', "--runtime-dist-dir=$runtimeDistDirectoryName", $nextCli) + $nextArguments
+ 
+ Write-Host "Start $Mode op http://127.0.0.1:$resolvedPort met de centrale TEST-configuratie. Configwaarden worden niet getoond of gekopieerd."
+ Push-Location $appRoot

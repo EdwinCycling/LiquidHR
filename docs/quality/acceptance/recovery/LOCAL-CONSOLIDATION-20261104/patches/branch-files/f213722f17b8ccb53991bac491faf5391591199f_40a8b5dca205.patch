@@ -1,0 +1,18 @@
+diff --git a/apps/hr-suite/messages/en/navigation.json b/apps/hr-suite/messages/en/navigation.json
+index 02c22583..92543563 100644
+--- a/apps/hr-suite/messages/en/navigation.json
++++ b/apps/hr-suite/messages/en/navigation.json
+@@ -48,5 +48,12 @@
+   "testRoleSwitchHrAdmin": "Test HR Admin",
+   "testRoleSwitchManager": "Test Manager",
+   "testRoleSwitchEmployee": "Test Employee",
+-  "testRoleSwitchReturnToAdmin": "Return to Test HR Admin"
++  "testRoleSwitchReturnToAdmin": "Return to Test HR Admin",
++  "payrollLab": "Payroll Lab",
++  "payrollLabDescription": "Isolated Payroll Lab environment.",
++  "payrollLabAdministration": "Administration",
++  "payrollLabStatus": "Status",
++  "payrollLabActive": "Active",
++  "payrollLabConnected": "Payroll Lab connection active",
++  "payrollLabUnavailable": "Payroll Lab is temporarily unavailable. Try again later."
+ }

@@ -1,0 +1,21 @@
+diff --git a/docs/AA/AA-REL.md b/docs/AA/AA-REL.md
+index 62fc60d1..6cf4ff5d 100644
+--- a/docs/AA/AA-REL.md
++++ b/docs/AA/AA-REL.md
+@@ -85,6 +85,16 @@ Canoniek HR-project: `liquidhr`.
+ - Controleer waar tooling dit exposeert de commitprovenance.
+ - Een ontbrekend hostingmetadata-veld is evidencegap, niet automatisch productdefect.
+ 
++### Verplichte deployment-preflight
++
++Vóór iedere gezamenlijke TEST-deployment controleert de releaser in het bestaande Vercel-project `liquidhr` de configuratie **alleen op vereiste naam, aanwezigheid en doelomgeving**. Open of registreer geen geheime waarden. Vergelijk de variabelen met de scope van de bedoelde release: ten minste Core (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`) en, als Payroll Lab wordt vrijgegeven, `PAYROLL_SUPABASE_URL`, `PAYROLL_SUPABASE_SECRET_KEY` en `PAYROLL_LAB_ENABLED`. Voor deze repository heet de gezamenlijke TEST-deploymentomgeving in Vercel `Production`.
++
++Controleer daarna vóór browseracceptatie dat de Core- en Payroll-verbindingen vanuit de bedoelde deployment bereikbaar zijn en naar de goedgekeurde TEST-projecten verwijzen, en dat de voor deze release verplichte featureflags effectief aan staan. Gebruik alleen veilige status-/health-uitvoer; dump geen environment, request headers, JWT's of secrets. Een ontbrekende variabele, verkeerde Vercel-doelomgeving, onbereikbare/verkeerde backend of uitgeschakelde verplichte flag stopt de deploymentgate. Pas eerst uitsluitend de door de projecteigenaar goedgekeurde configuratie aan en voer daarna één redeployment uit van exact de al goedgekeurde `main`-SHA; verifieer READY, canonieke TEST-alias en commitprovenance opnieuw.
++
++Geleerde les uit ONE VERSION (2026-10-03): een READY `main`-deployment kan Payroll Lab verbergen wanneer de drie Payroll-variabelen niet in de Vercel `Production`-omgeving zijn toegewezen. Een eerdere deployment neemt later toegevoegde variabelen niet vanzelf over; controleer de doelomgeving en redeploy exact dezelfde geaccepteerde commit. Bewijs configuratie zonder waarden te openen.
++
++Documentatie-only changes na een deployment zijn geen nieuwe release. Houd een documentatie-only commit lokaal tenzij een volgende bedoelde release hem bevat; push geen losse documentatiecommit naar de deployment-triggerende branch. Als een documentatiecommit toch remote nodig is, controleer vóór push de Vercel Ignore Build Step en bewijs dat de commit geen deployment start. Ga niet uit van een docs-only skip zonder die controle.
++
+ ### Preview → gezamenlijke TEST
+ 
+ - Elke pull request wordt op een immutable Preview-deployment van de bedoelde commit geaccepteerd.

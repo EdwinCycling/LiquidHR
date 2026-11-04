@@ -1,0 +1,203 @@
+diff --git a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx
+index 6640807a..9dd651a1 100644
+--- a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx
++++ b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx
+@@ -195,7 +195,7 @@ function buildChangeData(detail: EmploymentDetail, notRecorded: string): Employm
+ function buildChangeLabels(t: Translator): EmploymentOverviewActionLabels {
+   return {
+     sectionTitle: t("changeActionsTitle"), hoursSchedule: t("changeHoursSchedule"), hoursScheduleSalary: t("changeHoursScheduleSalary"), functionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"), salary: t("changeSalary"), laborConditions: t("changeLaborConditions"), contractTypeStartDate: t("changeContractTypeStartDate"), deleteContract: t("changeDeleteContract"),
+-    modalTitle: t("changeModalTitle"), cancel: t("cancel"), changeDiscardTitle: t("changeDiscardTitle"), changeDiscardDescription: t("changeDiscardDescription"), changeDiscardConfirm: t("changeDiscardConfirm"), changeDiscardCancel: t("changeDiscardCancel"), chooseContract: t("chooseContract"), contractSelectionTitle: t("contractSelectionTitle"), contractSelectionHelp: t("contractSelectionHelp"), contractNumber: t("contractNumber"), period: t("period"), selectedContractStatement: t("selectedContractStatement"), dateOutsideContract: t("dateOutsideContract"), contractStartOption: t("contractStartOption"), currentMonthOption: t("currentMonthOption"), nextMonthOption: t("nextMonthOption"), customDateOption: t("customDateOption"), changeStartDateTitle: t("changeStartDateTitle"), changeStartDateHelp: t("changeStartDateHelp"), timelineBeforeChange: t("timelineBeforeChange"), stepSelection: t("stepSelection"), stepDate: t("stepDate"), stepDetails: t("stepDetails"), stepReview: t("stepReview"), changeDetailsTitle: t("changeDetailsTitle"), reviewChangeTitle: t("reviewChangeTitle"), changeNotAvailable: t("changeNotAvailable"), changeHoursSchedule: t("changeHoursSchedule"), changeHoursScheduleSalary: t("changeHoursScheduleSalary"), changeFunctionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"), changeSalary: t("changeSalary"), changeLaborConditions: t("changeLaborConditions"), changeContractTypeStartDate: t("changeContractTypeStartDate"), changeModalTitle: t("changeModalTitle"), stepSchedule: t("stepSchedule"), active: t("active"), definite: t("definite"), indefinite: t("indefinite"), temporaryWithoutEnd: t("temporaryWithoutEnd"), contractType: t("contractType"), workerType: t("workerType"), selectWorkerType: t("selectWorkerType"), workerEmployee: t("workerEmployee"), workerStudentIntern: t("workerStudentIntern"), workerTemporaryAgency: t("workerTemporaryAgency"), workerExternal: t("workerExternal"), notRecorded: t("notRecorded"), flexPhase: t("flexPhase"), laborConditionsLabel: t("laborConditions"), duration: t("duration"), startDate: t("startDate"), endDate: t("endsOn"), probation: t("probation"), probationEnd: t("probationEnd"), yes: t("yes"), no: t("no"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"), probationCaoMaximum: t("probationCaoMaximum"), employmentScope: t("employmentScope"), fullTime: t("fullTime"), partTime: t("partTime"), weeklyHours: t("weeklyHours"), hoursPerWeek: t("hoursPerWeek"), hourUnit: t("hourUnit"), fulltimeReference: t("fulltimeReference"), factorCalculated: t("factorCalculated"), hoursAgreement: t("hoursAgreement"), hoursAgreementHelp: t("hoursAgreementHelp"), averageDays: t("averageDays"), partTimeFactor: t("partTimeFactor"), roster: t("roster"), rosterHelp: t("rosterHelp"), rosterInputMode: t("rosterInputMode"), rosterDecimal: t("rosterDecimal"), rosterHoursMinutes: t("rosterHoursMinutes"), rosterDecimalHelp: t("rosterDecimalHelp"), rosterHoursMinutesHelp: t("rosterHoursMinutesHelp"), rosterDecimalUnit: t("rosterDecimalUnit"), rosterHoursMinutesUnit: t("rosterHoursMinutesUnit"), rosterDecimalPlaceholder: t("rosterDecimalPlaceholder"), rosterHoursMinutesPlaceholder: t("rosterHoursMinutesPlaceholder"), rosterAverage: t("rosterAverage"), rosterMismatch: t("rosterMismatch"), weekOne: t("weekOne"), weekTwo: t("weekTwo"), addSecondWeek: t("addSecondWeek"), removeSecondWeek: t("removeSecondWeek"), timeForTime: t("timeForTime"), hoursPerDay: t("hoursPerDay"), hoursAndAverageDays: t("hoursAndAverageDays"), hoursAndSpecificDays: t("hoursAndSpecificDays"), timesPerDay: t("timesPerDay"), stepSalary: t("stepSalary"), salaryCalculation: t("salaryCalculation"), salaryManual: t("salaryManual"), salaryMinimum: t("salaryMinimum"), salaryTable: t("salaryTable"), salaryBand: t("salaryApplication.salaryBand"), salaryApplicationScheme: t("salaryApplication.scheme"), salaryRegular: t("salaryApplication.regular"), salaryBbl: t("salaryApplication.bbl"), salaryApplicationExternalAmount: t("salaryApplication.externalAmount"), salaryScale: t("salaryScale"), salaryScaleStep: t("salaryScaleStep"), salaryScaleAmount: t("salaryScaleAmount"), fulltimeSalary: t("fulltimeSalary"), parttimeSalary: t("parttimeSalary"), hourlyRate: t("hourlyRate"), paymentFrequency: t("paymentFrequency"), monthly: t("monthly"), fourWeekly: t("fourWeekly"), salaryBandMinimum: t("salaryApplication.minimum"), salaryBandMidpoint: t("salaryApplication.midpoint"), salaryBandMaximum: t("salaryApplication.maximum"), compaRatio: t("salaryApplication.compaRatio"), rangePenetration: t("salaryApplication.rangePenetration"), status: t("salaryApplication.status"), underMinimum: t("salaryApplication.underMinimum"), withinRange: t("salaryApplication.withinRange"), aboveMaximum: t("salaryApplication.aboveMaximum"), noValidBand: t("salaryApplication.noValidBand"), salaryOpenEnded: t("salaryApplication.openEnded"), organizationPlacement: t("organizationPlacement"), department: t("department"), job: t("job"), costCenter: t("costCenter"), costCarrier: t("costCarrier"), addAllocation: t("addAllocation"), removeAllocation: t("removeAllocation"), allocationPercentage: t("allocationPercentage"), allocationTotal: t("allocationTotal"), allocationMismatch: t("allocationMismatch"), currentValue: t("currentValue"), historyLabel: t("historyLabel"), future: t("future"), validUntil: t("validUntil"), salaryHistoryTitle: t("salaryHistoryTitle"), salaryHistoryEmpty: t("salaryHistoryEmpty"), salaryIncrease: t("salaryIncrease"), salaryDecrease: t("salaryDecrease"), change: t("change"), effectiveOn: t("effectiveOn"), changeReason: t("changeReason"), requiredFields: t("requiredFields"), previous: t("previous"), next: t("next"), confirm: t("confirm"), saving: t("saving"), changeSaved: t("changeSaved"), changeFailed: t("changeFailed"),
++    modalTitle: t("changeModalTitle"), cancel: t("cancel"), changeDiscardTitle: t("changeDiscardTitle"), changeDiscardDescription: t("changeDiscardDescription"), changeDiscardConfirm: t("changeDiscardConfirm"), changeDiscardCancel: t("changeDiscardCancel"), chooseContract: t("chooseContract"), contractSelectionTitle: t("contractSelectionTitle"), contractSelectionHelp: t("contractSelectionHelp"), contractNumber: t("contractNumber"), period: t("period"), selectedContractStatement: t("selectedContractStatement"), dateOutsideContract: t("dateOutsideContract"), contractStartOption: t("contractStartOption"), currentMonthOption: t("currentMonthOption"), nextMonthOption: t("nextMonthOption"), customDateOption: t("customDateOption"), changeStartDateTitle: t("changeStartDateTitle"), changeStartDateHelp: t("changeStartDateHelp"), timelineBeforeChange: t("timelineBeforeChange"), stepSelection: t("stepSelection"), stepDate: t("stepDate"), stepDetails: t("stepDetails"), stepReview: t("stepReview"), changeDetailsTitle: t("changeDetailsTitle"), reviewChangeTitle: t("reviewChangeTitle"), changeNotAvailable: t("changeNotAvailable"), changeHoursSchedule: t("changeHoursSchedule"), changeHoursScheduleSalary: t("changeHoursScheduleSalary"), changeFunctionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"), changeSalary: t("changeSalary"), changeLaborConditions: t("changeLaborConditions"), changeContractTypeStartDate: t("changeContractTypeStartDate"), changeModalTitle: t("changeModalTitle"), stepSchedule: t("stepSchedule"), active: t("active"), definite: t("definite"), indefinite: t("indefinite"), temporaryWithoutEnd: t("temporaryWithoutEnd"), contractType: t("contractType"), workerType: t("workerType"), selectWorkerType: t("selectWorkerType"), workerEmployee: t("workerEmployee"), workerStudentIntern: t("workerStudentIntern"), workerTemporaryAgency: t("workerTemporaryAgency"), workerExternal: t("workerExternal"), notRecorded: t("notRecorded"), flexPhase: t("flexPhase"), laborConditionsLabel: t("laborConditions"), duration: t("duration"), startDate: t("startDate"), endDate: t("endsOn"), probation: t("probation"), probationEnd: t("probationEnd"), yes: t("yes"), no: t("no"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"), probationCaoMaximum: t("probationCaoMaximum"), employmentScope: t("employmentScope"), fullTime: t("fullTime"), partTime: t("partTime"), weeklyHours: t("weeklyHours"), hoursPerWeek: t("hoursPerWeek"), hourUnit: t("hourUnit"), fulltimeReference: t("fulltimeReference"), factorCalculated: t("factorCalculated"), hoursAgreement: t("hoursAgreement"), hoursAgreementHelp: t("hoursAgreementHelp"), averageDays: t("averageDays"), partTimeFactor: t("partTimeFactor"), roster: t("roster"), rosterHelp: t("rosterHelp"), rosterInputMode: t("rosterInputMode"), rosterDecimal: t("rosterDecimal"), rosterHoursMinutes: t("rosterHoursMinutes"), rosterDecimalHelp: t("rosterDecimalHelp"), rosterHoursMinutesHelp: t("rosterHoursMinutesHelp"), rosterDecimalUnit: t("rosterDecimalUnit"), rosterHoursMinutesUnit: t("rosterHoursMinutesUnit"), rosterDecimalPlaceholder: t("rosterDecimalPlaceholder"), rosterHoursMinutesPlaceholder: t("rosterHoursMinutesPlaceholder"), rosterAverage: t("rosterAverage"), rosterMismatch: t("rosterMismatch"), weekOne: t("weekOne"), weekTwo: t("weekTwo"), addSecondWeek: t("addSecondWeek"), removeSecondWeek: t("removeSecondWeek"), timeForTime: t("timeForTime"), hoursPerDay: t("hoursPerDay"), hoursAndAverageDays: t("hoursAndAverageDays"), hoursAndSpecificDays: t("hoursAndSpecificDays"), timesPerDay: t("timesPerDay"), stepSalary: t("stepSalary"), salaryCalculation: t("salaryCalculation"), salaryBasis: t("salaryBasis"), salaryManual: t("salaryManual"), salaryMinimum: t("salaryMinimum"), salaryTable: t("salaryTable"), customScale: t("customScale"), caoScale: t("caoScale"), salaryBand: t("salaryApplication.salaryBand"), salaryApplicationScheme: t("salaryApplication.scheme"), salaryRegular: t("salaryApplication.regular"), salaryBbl: t("salaryApplication.bbl"), salaryApplicationExternalAmount: t("salaryApplication.externalAmount"), salaryScale: t("salaryScale"), salaryScaleStep: t("salaryScaleStep"), salaryScaleAmount: t("salaryScaleAmount"), fulltimeSalary: t("fulltimeSalary"), parttimeSalary: t("parttimeSalary"), hourlyRate: t("hourlyRate"), paymentFrequency: t("paymentFrequency"), monthly: t("monthly"), fourWeekly: t("fourWeekly"), salaryBandMinimum: t("salaryApplication.minimum"), salaryBandMidpoint: t("salaryApplication.midpoint"), salaryBandMaximum: t("salaryApplication.maximum"), compaRatio: t("salaryApplication.compaRatio"), rangePenetration: t("salaryApplication.rangePenetration"), status: t("salaryApplication.status"), underMinimum: t("salaryApplication.underMinimum"), withinRange: t("salaryApplication.withinRange"), aboveMaximum: t("salaryApplication.aboveMaximum"), noValidBand: t("salaryApplication.noValidBand"), salaryOpenEnded: t("salaryApplication.openEnded"), organizationPlacement: t("organizationPlacement"), department: t("department"), job: t("job"), costCenter: t("costCenter"), costCarrier: t("costCarrier"), addAllocation: t("addAllocation"), removeAllocation: t("removeAllocation"), allocationPercentage: t("allocationPercentage"), allocationTotal: t("allocationTotal"), allocationMismatch: t("allocationMismatch"), currentValue: t("currentValue"), historyLabel: t("historyLabel"), future: t("future"), validUntil: t("validUntil"), salaryHistoryTitle: t("salaryHistoryTitle"), salaryHistoryEmpty: t("salaryHistoryEmpty"), salaryIncrease: t("salaryIncrease"), salaryDecrease: t("salaryDecrease"), change: t("change"), effectiveOn: t("effectiveOn"), changeReason: t("changeReason"), requiredFields: t("requiredFields"), previous: t("previous"), next: t("next"), confirm: t("confirm"), saving: t("saving"), changeSaved: t("changeSaved"), changeFailed: t("changeFailed"),
+   };
+ }
+ 
+@@ -1065,6 +1065,7 @@ export default async function EmploymentDetailPage({
+                   summary: `${row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual")} · ${row.payment_frequency}`,
+                   details: [
+                     { label: t("salaryCalculation"), value: row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual") },
++                    { label: t("salaryBasis"), value: row.salary_basis === 'CAO_SCALE' ? t("caoScale") : row.salary_basis === 'CUSTOM_SCALE' ? t("customScale") : row.salary_basis === 'MINIMUM_WAGE' ? t("salaryMinimum") : row.salary_basis === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : t("salaryManual") },
+                     { label: t("fulltimeSalary"), value: String(resolvedSalaryAmount(row, row.valid_from) ?? "—") },
+                     { label: t("parttimeSalary"), value: String(row.parttime_amount ?? "—") },
+                     { label: t("frequency"), value: row.payment_frequency },
+diff --git a/apps/hr-suite/components/employment/employment-contract-change-dialog.tsx b/apps/hr-suite/components/employment/employment-contract-change-dialog.tsx
+index 2c23cccf..82377d58 100644
+--- a/apps/hr-suite/components/employment/employment-contract-change-dialog.tsx
++++ b/apps/hr-suite/components/employment/employment-contract-change-dialog.tsx
+@@ -15,7 +15,7 @@ import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-referen
+ import { parseDecimalInput } from '@/lib/employment/decimal-input'
+ import { convertRosterHoursInput, parseRosterHoursValue, type RosterHoursInputMode } from '@/lib/employment/roster-hours'
+ import { resolveEmploymentSalaryBasis, type EmploymentSalaryBasis, type EmploymentSalaryRoute, type PublishedSalaryBasisRevision } from '@/lib/employment/salary-basis-resolution'
+-import { mapCaoSalarySource } from '@/lib/employment/salary-source-mapping'
++import { mapCaoSalarySource, resolveSalaryApplicationBasis } from '@/lib/employment/salary-source-mapping'
+ 
+ export type EmploymentOverviewActionKey =
+   | 'hoursSchedule'
+@@ -272,7 +272,7 @@ function workerTypeLabel(value: string, labels: Labels): string {
+ 
+ function salaryBasisLabel(value: string, labels: Labels): string {
+   if (value === 'MINIMUM_WAGE') return labels.salaryMinimum
+-  if (value === 'CUSTOM_SCALE') return labels.salaryTable
++  if (value === 'CUSTOM_SCALE') return labels.customScale ?? labels.salaryTable
+   if (value === 'SALARY_BAND') return labels.salaryBand
+   if (value === 'CAO_SCALE') return labels.caoScale
+   return labels.salaryManual
+@@ -640,14 +640,16 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
+   function salaryPayload() {
+     const isMinimumWage = salary.salaryRoute === 'MINIMUM_WAGE'
+     const paymentType = isMinimumWage ? 'HOURLY_VARIABLE' : salary.paymentType
++    const salaryBasis = resolveSalaryApplicationBasis(salary.salaryRoute, salary.salaryBasis)
+     const caoSource = mapCaoSalarySource({
+       salaryRoute: salary.salaryRoute,
++      salaryBasis,
+       selectedScale: data.options.salaryScales.find((item) => item.id === salary.salaryScaleId),
+       selectedStep: data.options.salaryScaleSteps.find((item) => item.id === salary.salaryScaleStepId),
+     })
+     return {
+       paymentType, paymentFrequency: salary.paymentFrequency,
+-      salaryBasis: salary.salaryBasis,
++      salaryBasis,
+       salaryRoute: salary.salaryRoute,
+       minimumWageScheme: isMinimumWage ? salary.minimumWageScheme : null,
+       fulltimeAmount: isMinimumWage ? null : asNumber(salary.fulltimeAmount),
+@@ -919,7 +921,7 @@ function SalaryEditor({ locale, labels, salary, salaryFactor, options, onChange
+   const selectedBand = options.salaryBands.find((item) => item.id === salary.salaryBandId)
+   const selectedScale = options.salaryScaleSteps.find((item) => item.id === salary.salaryScaleStepId)
+   const availableRoutes = options.salaryRoutes
+-  return <section className="border border-subtle p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-[var(--radius-control)] bg-accent text-accent-foreground"><CalendarDays aria-hidden="true" className="size-5" /></span><div><p className="eyebrow text-primary">{labels.salary}</p><h4 className="mt-1 text-lg font-semibold">{labels.stepSalary}</h4></div></div><div className="mt-5 grid gap-4 sm:grid-cols-2"><Field label={labels.salaryCalculation}><DropdownSelect searchable searchPlaceholder={labels.salaryCalculation} value={salary.salaryRoute} onChange={(event) => onChange('salaryRoute', event.target.value as SalaryDraft['salaryRoute'])}><option value="MANUAL">{labels.salaryManual}</option>{availableRoutes.includes('MINIMUM_WAGE') && <option value="MINIMUM_WAGE">{labels.salaryMinimum}</option>}{availableRoutes.includes('SCALE_WITH_STEPS') && <option value="SCALE_WITH_STEPS">{labels.salaryTable}</option>}{availableRoutes.includes('SALARY_BAND') && <option value="SALARY_BAND">{labels.salaryBand}</option>}</DropdownSelect></Field><Field label={labels.paymentFrequency}><DropdownSelect value={salary.paymentFrequency} onChange={(event) => onChange('paymentFrequency', event.target.value as SalaryDraft['paymentFrequency'])}><option value="MONTHLY">{labels.monthly}</option><option value="FOUR_WEEKLY">{labels.fourWeekly}</option></DropdownSelect></Field>{salary.salaryRoute === 'MINIMUM_WAGE' && <><Field label={labels.salaryApplicationScheme ?? labels.salaryMinimum}><DropdownSelect value={salary.minimumWageScheme} onChange={(event) => onChange('minimumWageScheme', event.target.value as SalaryDraft['minimumWageScheme'])}><option value="REGULAR">{labels.salaryRegular ?? 'REGULAR'}</option><option value="BBL">{labels.salaryBbl ?? 'BBL'}</option></DropdownSelect></Field><p className="self-end text-sm text-muted-foreground">{labels.salaryApplicationExternalAmount ?? labels.notRecorded}</p></>}{salary.salaryRoute === 'SCALE_WITH_STEPS' && <><Field label={labels.salaryScale}><DropdownSelect searchable searchPlaceholder={labels.salaryScale} emptyLabel={labels.notRecorded} value={salary.salaryScaleId} onChange={(event) => onChange('salaryScaleId', event.target.value)}>{options.salaryScales.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field><Field label={labels.salaryScaleStep}><DropdownSelect searchable searchPlaceholder={labels.salaryScaleStep} emptyLabel={labels.notRecorded} value={salary.salaryScaleStepId} onChange={(event) => onChange('salaryScaleStepId', event.target.value)}>{options.salaryScaleSteps.filter((item) => item.salaryScaleId === salary.salaryScaleId).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</DropdownSelect></Field><Field label={labels.salaryScaleAmount}><input className="form-field bg-muted/40" readOnly value={selectedScale ? `€ ${selectedScale.fulltimeAmount.toFixed(2)}` : '—'} /></Field></>}{salary.salaryRoute === 'SALARY_BAND' && <Field label={labels.salaryBand}><DropdownSelect searchable searchPlaceholder={labels.salaryBand} emptyLabel={labels.notRecorded} value={salary.salaryBandId} onChange={(event) => onChange('salaryBandId', event.target.value)}>{options.salaryBands.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field>}{(salary.salaryRoute === 'MANUAL' || salary.salaryRoute === 'SALARY_BAND') && <><Field label={labels.fulltimeSalary}><SalaryAmountInput decreaseLabel={labels.salaryDecrease} increaseLabel={labels.salaryIncrease} onChange={(value) => onChange('fulltimeAmount', value)} value={salary.fulltimeAmount} /></Field><Field label={labels.parttimeSalary}><SalaryAmountInput decreaseLabel={labels.salaryDecrease} increaseLabel={labels.salaryIncrease} onChange={(value) => onChange('parttimeAmount', value)} value={salary.parttimeAmount} /><span className="text-xs font-normal text-muted-foreground">{labels.partTimeFactor}: {Math.round(salaryFactor * 10000) / 100}%</span></Field></>}{salary.salaryRoute === 'SALARY_BAND' && selectedBand && <div className="sm:col-span-2"><SalaryBandPositionCard salaryAmount={salary.fulltimeAmount || String(selectedBand.midpointAmount)} band={{ minimum: selectedBand.minimumAmount.toFixed(2), midpoint: selectedBand.midpointAmount.toFixed(2), maximum: selectedBand.maximumAmount === null ? null : selectedBand.maximumAmount.toFixed(2) }} locale={locale} currencyCode="EUR" labels={{ preview: labels.salaryBand, currentSalary: labels.fulltimeSalary, minimum: labels.salaryBandMinimum ?? labels.salaryBand, midpoint: labels.salaryBandMidpoint ?? labels.salaryBand, maximum: labels.salaryBandMaximum ?? labels.salaryBand, compaRatio: labels.compaRatio ?? labels.salaryBand, rangePenetration: labels.rangePenetration ?? labels.salaryBand, status: labels.status ?? labels.salaryBand, underMinimum: labels.underMinimum ?? labels.salaryBand, withinRange: labels.withinRange ?? labels.salaryBand, aboveMaximum: labels.aboveMaximum ?? labels.salaryBand, noValidBand: labels.noValidBand ?? labels.salaryBand, openEnded: labels.salaryOpenEnded ?? '—' }} /></div>}</div></section>
++  return <section className="border border-subtle p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-[var(--radius-control)] bg-accent text-accent-foreground"><CalendarDays aria-hidden="true" className="size-5" /></span><div><p className="eyebrow text-primary">{labels.salary}</p><h4 className="mt-1 text-lg font-semibold">{labels.stepSalary}</h4></div></div><div className="mt-5 grid gap-4 sm:grid-cols-2"><Field label={labels.salaryCalculation}><DropdownSelect searchable searchPlaceholder={labels.salaryCalculation} value={salary.salaryRoute} onChange={(event) => onChange('salaryRoute', event.target.value as SalaryDraft['salaryRoute'])}><option value="MANUAL">{labels.salaryManual}</option>{availableRoutes.includes('MINIMUM_WAGE') && <option value="MINIMUM_WAGE">{labels.salaryMinimum}</option>}{availableRoutes.includes('SCALE_WITH_STEPS') && <option value="SCALE_WITH_STEPS">{labels.salaryTable}</option>}{availableRoutes.includes('SALARY_BAND') && <option value="SALARY_BAND">{labels.salaryBand}</option>}</DropdownSelect></Field><Field label={labels.paymentFrequency}><DropdownSelect value={salary.paymentFrequency} onChange={(event) => onChange('paymentFrequency', event.target.value as SalaryDraft['paymentFrequency'])}><option value="MONTHLY">{labels.monthly}</option><option value="FOUR_WEEKLY">{labels.fourWeekly}</option></DropdownSelect></Field>{salary.salaryRoute === 'MINIMUM_WAGE' && <><Field label={labels.salaryApplicationScheme ?? labels.salaryMinimum}><DropdownSelect value={salary.minimumWageScheme} onChange={(event) => onChange('minimumWageScheme', event.target.value as SalaryDraft['minimumWageScheme'])}><option value="REGULAR">{labels.salaryRegular ?? 'REGULAR'}</option><option value="BBL">{labels.salaryBbl ?? 'BBL'}</option></DropdownSelect></Field><p className="self-end text-sm text-muted-foreground">{labels.salaryApplicationExternalAmount ?? labels.notRecorded}</p></>}{salary.salaryRoute === 'SCALE_WITH_STEPS' && <><Field label={labels.salaryScale}><DropdownSelect searchable searchPlaceholder={labels.salaryScale} emptyLabel={labels.notRecorded} value={salary.salaryScaleId} onChange={(event) => onChange('salaryScaleId', event.target.value)}>{options.salaryScales.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field><Field label={labels.salaryScaleStep}><DropdownSelect searchable searchPlaceholder={labels.salaryScaleStep} emptyLabel={labels.notRecorded} value={salary.salaryScaleStepId} onChange={(event) => onChange('salaryScaleStepId', event.target.value)}>{options.salaryScaleSteps.filter((item) => item.salaryScaleId === salary.salaryScaleId).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</DropdownSelect></Field><Field label={labels.salaryBasis}><DropdownSelect value={salary.salaryBasis === 'CAO_SCALE' ? 'CAO_SCALE' : 'CUSTOM_SCALE'} onChange={(event) => onChange('salaryBasis', event.target.value as SalaryDraft['salaryBasis'])}><option value="CAO_SCALE">{labels.caoScale}</option><option value="CUSTOM_SCALE">{labels.customScale ?? labels.salaryTable}</option></DropdownSelect></Field><Field label={labels.salaryScaleAmount}><input className="form-field bg-muted/40" readOnly value={selectedScale ? `€ ${selectedScale.fulltimeAmount.toFixed(2)}` : '—'} /></Field></>}{salary.salaryRoute === 'SALARY_BAND' && <Field label={labels.salaryBand}><DropdownSelect searchable searchPlaceholder={labels.salaryBand} emptyLabel={labels.notRecorded} value={salary.salaryBandId} onChange={(event) => onChange('salaryBandId', event.target.value)}>{options.salaryBands.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field>}{(salary.salaryRoute === 'MANUAL' || salary.salaryRoute === 'SALARY_BAND') && <><Field label={labels.fulltimeSalary}><SalaryAmountInput decreaseLabel={labels.salaryDecrease} increaseLabel={labels.salaryIncrease} onChange={(value) => onChange('fulltimeAmount', value)} value={salary.fulltimeAmount} /></Field><Field label={labels.parttimeSalary}><SalaryAmountInput decreaseLabel={labels.salaryDecrease} increaseLabel={labels.salaryIncrease} onChange={(value) => onChange('parttimeAmount', value)} value={salary.parttimeAmount} /><span className="text-xs font-normal text-muted-foreground">{labels.partTimeFactor}: {Math.round(salaryFactor * 10000) / 100}%</span></Field></>}{salary.salaryRoute === 'SALARY_BAND' && selectedBand && <div className="sm:col-span-2"><SalaryBandPositionCard salaryAmount={salary.fulltimeAmount || String(selectedBand.midpointAmount)} band={{ minimum: selectedBand.minimumAmount.toFixed(2), midpoint: selectedBand.midpointAmount.toFixed(2), maximum: selectedBand.maximumAmount === null ? null : selectedBand.maximumAmount.toFixed(2) }} locale={locale} currencyCode="EUR" labels={{ preview: labels.salaryBand, currentSalary: labels.fulltimeSalary, minimum: labels.salaryBandMinimum ?? labels.salaryBand, midpoint: labels.salaryBandMidpoint ?? labels.salaryBand, maximum: labels.salaryBandMaximum ?? labels.salaryBand, compaRatio: labels.compaRatio ?? labels.salaryBand, rangePenetration: labels.rangePenetration ?? labels.salaryBand, status: labels.status ?? labels.salaryBand, underMinimum: labels.underMinimum ?? labels.salaryBand, withinRange: labels.withinRange ?? labels.salaryBand, aboveMaximum: labels.aboveMaximum ?? labels.salaryBand, noValidBand: labels.noValidBand ?? labels.salaryBand, openEnded: labels.salaryOpenEnded ?? '—' }} /></div>}</div></section>
+ }
+ 
+ function LaborConditionsEditor({ labels, options, value, onChange }: { labels: Labels; options: EmploymentOverviewChangeData['options']; value: string; onChange: (value: string) => void }) {
+diff --git a/apps/hr-suite/components/employment/employment-mutation-panel.tsx b/apps/hr-suite/components/employment/employment-mutation-panel.tsx
+index 64c5c10c..cd5d6f00 100644
+--- a/apps/hr-suite/components/employment/employment-mutation-panel.tsx
++++ b/apps/hr-suite/components/employment/employment-mutation-panel.tsx
+@@ -99,7 +99,7 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
+         salaryScaleId: salaryRoute === 'SCALE_WITH_STEPS' ? String(values.salaryScaleId) : null,
+         salaryStepCode: salaryRoute === 'SCALE_WITH_STEPS' ? selectedStep?.stepCode ?? null : null,
+         salaryBandId: salaryRoute === 'SALARY_BAND' ? String(values.salaryBandId) : null,
+-        ...mapCaoSalarySource({ salaryRoute, selectedScale, selectedStep }),
++        ...mapCaoSalarySource({ salaryRoute, salaryBasis: 'CUSTOM_SCALE', selectedScale, selectedStep }),
+       }
+     }
+     return { allocations }
+diff --git a/apps/hr-suite/lib/employment/salary-source-mapping.test.ts b/apps/hr-suite/lib/employment/salary-source-mapping.test.ts
+index f23ebb2f..987941cf 100644
+--- a/apps/hr-suite/lib/employment/salary-source-mapping.test.ts
++++ b/apps/hr-suite/lib/employment/salary-source-mapping.test.ts
+@@ -1,10 +1,11 @@
+ import { describe, expect, it } from 'vitest'
+-import { mapCaoSalarySource } from './salary-source-mapping'
++import { mapCaoSalarySource, resolveSalaryApplicationBasis } from './salary-source-mapping'
+ 
+ describe('mapCaoSalarySource', () => {
+   it('preserves the scale code and step code for the CAO engine', () => {
+     expect(mapCaoSalarySource({
+       salaryRoute: 'SCALE_WITH_STEPS',
++      salaryBasis: 'CAO_SCALE',
+       selectedScale: { code: 'I', name: 'Functiegroep I' },
+       selectedStep: { stepCode: '15', label: 'Trede 15' },
+     })).toEqual({ caoScaleName: 'I · Functiegroep I', caoStepName: '15 · Trede 15' })
+@@ -13,12 +14,25 @@ describe('mapCaoSalarySource', () => {
+   it('supports numeric Kinderopvang scales without changing the source shape', () => {
+     expect(mapCaoSalarySource({
+       salaryRoute: 'SCALE_WITH_STEPS',
++      salaryBasis: 'CAO_SCALE',
+       selectedScale: { code: '6', name: 'Schaal 6' },
+       selectedStep: { stepCode: '12', label: 'Salarisnummer 12' },
+     })).toEqual({ caoScaleName: '6 · Schaal 6', caoStepName: '12 · Salarisnummer 12' })
+   })
+ 
+   it('does not attach CAO fields to manual or band salaries', () => {
+-    expect(mapCaoSalarySource({ salaryRoute: 'MANUAL', selectedScale: undefined, selectedStep: undefined })).toEqual({ caoScaleName: null, caoStepName: null })
++    expect(mapCaoSalarySource({ salaryRoute: 'MANUAL', salaryBasis: 'MANUAL', selectedScale: undefined, selectedStep: undefined })).toEqual({ caoScaleName: null, caoStepName: null })
++    expect(mapCaoSalarySource({
++      salaryRoute: 'SCALE_WITH_STEPS',
++      salaryBasis: 'CUSTOM_SCALE',
++      selectedScale: { code: '6', name: 'Schaal 6' },
++      selectedStep: { stepCode: '12', label: 'Salarisnummer 12' },
++    })).toEqual({ caoScaleName: null, caoStepName: null })
++  })
++
++  it('preserves an explicitly selected CAO basis while resolving the salary route', () => {
++    expect(resolveSalaryApplicationBasis('SCALE_WITH_STEPS', 'CAO_SCALE')).toBe('CAO_SCALE')
++    expect(resolveSalaryApplicationBasis('SCALE_WITH_STEPS', 'CUSTOM_SCALE')).toBe('CUSTOM_SCALE')
++    expect(resolveSalaryApplicationBasis('MINIMUM_WAGE', 'CAO_SCALE')).toBe('MINIMUM_WAGE')
+   })
+ })
+diff --git a/apps/hr-suite/lib/employment/salary-source-mapping.ts b/apps/hr-suite/lib/employment/salary-source-mapping.ts
+index 3d99fa95..e9019694 100644
+--- a/apps/hr-suite/lib/employment/salary-source-mapping.ts
++++ b/apps/hr-suite/lib/employment/salary-source-mapping.ts
+@@ -8,12 +8,27 @@ export type SalarySourceStep = {
+   readonly label: string
+ }
+ 
++export type SalaryApplicationBasis = 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE' | 'CAO_SCALE' | 'SALARY_BAND'
++
++export function resolveSalaryApplicationBasis(
++  salaryRoute: string,
++  selectedScaleBasis: SalaryApplicationBasis,
++): SalaryApplicationBasis {
++  if (salaryRoute === 'SCALE_WITH_STEPS') return selectedScaleBasis === 'CAO_SCALE' ? 'CAO_SCALE' : 'CUSTOM_SCALE'
++  if (salaryRoute === 'MINIMUM_WAGE') return 'MINIMUM_WAGE'
++  if (salaryRoute === 'SALARY_BAND') return 'SALARY_BAND'
++  return 'MANUAL'
++}
++
+ export function mapCaoSalarySource(input: {
+   readonly salaryRoute: string
++  readonly salaryBasis: SalaryApplicationBasis
+   readonly selectedScale: SalarySourceScale | undefined
+   readonly selectedStep: SalarySourceStep | undefined
+ }): { readonly caoScaleName: string | null; readonly caoStepName: string | null } {
+-  if (input.salaryRoute !== 'SCALE_WITH_STEPS') return { caoScaleName: null, caoStepName: null }
++  if (input.salaryRoute !== 'SCALE_WITH_STEPS' || input.salaryBasis !== 'CAO_SCALE') {
++    return { caoScaleName: null, caoStepName: null }
++  }
+   return {
+     caoScaleName: input.selectedScale ? `${input.selectedScale.code} · ${input.selectedScale.name}` : null,
+     caoStepName: input.selectedStep ? `${input.selectedStep.stepCode} · ${input.selectedStep.label}` : null,
+diff --git a/docs/payroll/acceptance/PAYROLL-K2-CLOSE-01-checkpoint-20261019.md b/docs/payroll/acceptance/PAYROLL-K2-CLOSE-01-checkpoint-20261019.md
+new file mode 100644
+index 00000000..df97f538
+--- /dev/null
++++ b/docs/payroll/acceptance/PAYROLL-K2-CLOSE-01-checkpoint-20261019.md
+@@ -0,0 +1,37 @@
++# PAYROLL-K2-CLOSE-01 checkpoint
++
++## Recovery point
++
++- Worktree: `PAYINTEGRATE-01-20261017`
++- Branch: `work/PAYINTEGRATE-01-20261017`
++- Starting checkpoint: `603078e7`
++- Scope: preserve the explicit salary application basis when HR Admin saves a salary timeline change.
++- The checkpoint commit is the Git recovery point for the source files listed below. Do not reset or clean the worktree to restore it; keep later user changes and payroll history.
++
++## Included source changes
++
++- `apps/hr-suite/lib/employment/salary-source-mapping.ts`
++- `apps/hr-suite/lib/employment/salary-source-mapping.test.ts`
++- `apps/hr-suite/components/employment/employment-contract-change-dialog.tsx`
++- `apps/hr-suite/components/employment/employment-mutation-panel.tsx`
++- `apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx`
++
++These changes preserve `CAO_SCALE` only when explicitly selected and keep `CUSTOM_SCALE`, manual, minimum-wage, and salary-band mappings distinct.
++
++## Protected worktree content
++
++- `apps/hr-suite/next-env.d.ts` was already modified and is excluded.
++- Existing untracked `.tmp/` and `tmp/` content is excluded and must remain untouched.
++- Existing payroll runs, artifacts, and historical records are not part of this Git checkpoint.
++
++## Verification before the checkpoint
++
++- Targeted salary-source Vitest: 4 tests passed.
++- TypeScript check: passed.
++- Targeted ESLint: passed.
++- NL/EN i18n key check: passed.
++- Runtime/package installation attempts were not repeated after the Windows EPERM; targeted checks used the existing toolchain.
++
++## Business data state at checkpoint
++
++No business mutation had been submitted when this manifest was prepared. The inspected future salary row was the latest row from `2026-11-01`; no November 2026 payroll run for Frits was present in the Payroll UI. Its subsequent correction and any resulting CONCEPT run must be verified in the normal HR Admin and Payroll UI after the user-approved workflow completes.

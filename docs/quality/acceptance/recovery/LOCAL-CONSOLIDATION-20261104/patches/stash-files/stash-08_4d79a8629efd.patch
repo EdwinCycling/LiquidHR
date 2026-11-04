@@ -1,0 +1,55 @@
+diff --git a/scripts/start-test-worktree.contract.ps1 b/scripts/start-test-worktree.contract.ps1
+index 47339ffd..b71746c0 100644
+--- a/scripts/start-test-worktree.contract.ps1
++++ b/scripts/start-test-worktree.contract.ps1
+@@ -36,6 +36,13 @@ if ($launcherSource -notmatch '(?im)\$Process\.Kill\(\$true\)') {
+ if ($launcherSource -notmatch '(?im)process\.loadEnvFile') {
+     throw 'De runner moet de centrale config via Node process.loadEnvFile laden.'
+ }
++if ($launcherSource -notmatch [Regex]::Escape("'.next/payrun01-acceptance'") -or
++    $launcherSource -notmatch 'LIQUIDHR_NEXT_DIST_DIR' -or
++    $launcherSource -notmatch 'const \[runtimeDistArgument, nextCli, \.\.\.nextArgs\] = process\.argv\.slice\(1\)' -or
++    $launcherSource -notmatch 'process\.env\.LIQUIDHR_NEXT_DIST_DIR = runtimeDistArgument\.slice\(runtimeDistPrefix\.length\)' -or
++    $launcherSource -notmatch 'distDirectory\s*=\s*\$RuntimeDistDirectoryName') {
++    throw 'De Payroll Acceptance-runner moet een geïsoleerde Next-outputdirectory expliciet instellen en vastleggen.'
++}
+ $configProbeStartMarker = ([string][char]36) + 'configProbe = @' + [string][char]39
+ $configProbeStart = $launcherSource.IndexOf($configProbeStartMarker)
+ if ($configProbeStart -lt 0) {
+@@ -72,7 +79,7 @@ if ($launcherSource -notmatch "\`$arguments\.Add\('-e'\)" -or $launcherSource -n
+ if ($launcherSource -match '(?is)return\s+\[pscustomobject\]@\{[^}]*\bworktree\s*=') {
+     throw 'Publieke runner-metadata mag geen absoluut worktree-pad bevatten.'
+ }
+-foreach ($requiredSourceToken in @('-StopTestRunner', '-RuntimePid', '/login', 'CreationUtc')) {
++foreach ($requiredSourceToken in @('-StopTestRunner', '-RuntimePid', '-PayrollAcceptanceIsolatedRuntime', '/login', 'CreationUtc')) {
+     if ($launcherSource -notmatch [Regex]::Escape($requiredSourceToken)) {
+         throw "Runner-contract ontbreekt vereist lifecycle/identity-element: $requiredSourceToken"
+     }
+@@ -141,6 +148,7 @@ $metadata = [pscustomobject]@{
+     appRoot = $appRoot
+     nextCli = $nextCli
+     configPath = $configPath
++    distDirectory = '.next'
+     head = $head
+     configIdentity = $configIdentity
+     mode = 'Development'
+@@ -162,6 +170,10 @@ if (Test-TestRuntimeMetadataIdentity -Metadata $metadata -ExpectedWorktree $work
+         -ExpectedAppRoot $appRoot -ExpectedNextCli $nextCli -ExpectedConfigPath $configPath -ExpectedHost '127.0.0.1') {
+     throw 'Een gewijzigde runtime-mode werd onterecht hergebruikt.'
+ }
++if (Test-TestRuntimeMetadataIdentity -Metadata $metadata -ExpectedWorktree $worktree -ExpectedHead $head -ExpectedConfigIdentity $configIdentity -ExpectedMode 'Development' `
++        -ExpectedAppRoot $appRoot -ExpectedNextCli $nextCli -ExpectedConfigPath $configPath -ExpectedDistDirectory '.next/payrun01-acceptance' -ExpectedHost '127.0.0.1') {
++    throw 'Runtime-metadata uit .next werd onterecht hergebruikt voor de geïsoleerde PAYRUN01-directory.'
++}
+ 
+ $contractWorkspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+ $contractWorkspacePrefix = $contractWorkspace.TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
+@@ -208,7 +220,7 @@ if (Test-NextProcessCommandLine -CommandLine $matchingCommandLine.Replace($confi
+     throw 'Een Next-proces met een andere configbron werd onterecht als dezelfde server herkend.'
+ }
+ if (Test-TestRuntimeMetadataIdentity -Metadata ([pscustomobject]@{
+-        schemaVersion = [long]1; worktree = $worktree; appRoot = $appRoot; nextCli = $nextCli; configPath = $configPath
++        schemaVersion = [long]1; worktree = $worktree; appRoot = $appRoot; nextCli = $nextCli; configPath = $configPath; distDirectory = '.next'
+         head = $head; configIdentity = $configIdentity; mode = 'Development'; host = '127.0.0.1'
+         port = [long]32123; pid = [long]12345; url = 'http://127.0.0.1:32123'; startedAtUtc = 'not-a-time'
+     }) -ExpectedWorktree $worktree -ExpectedHead $head -ExpectedConfigIdentity $configIdentity -ExpectedMode Development `

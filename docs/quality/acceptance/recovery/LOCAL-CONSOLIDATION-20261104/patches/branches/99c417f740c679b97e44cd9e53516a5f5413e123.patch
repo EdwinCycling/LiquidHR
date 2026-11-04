@@ -1,0 +1,508 @@
+diff --git a/apps/hr-suite/app/context/select/page.tsx b/apps/hr-suite/app/context/select/page.tsx
+index 669c14c1..245c75a7 100644
+--- a/apps/hr-suite/app/context/select/page.tsx
++++ b/apps/hr-suite/app/context/select/page.tsx
+@@ -1,21 +1,58 @@
+ import { redirect } from 'next/navigation'
+ import { ContextSelectionForm } from '@/components/context/context-selection-form'
++import { AuthShell } from '@/components/auth/auth-shell'
+ import { loadAccessibleContextOptions } from '@/lib/context/server-context'
+ import { getTranslator } from '@/lib/i18n/server'
+ 
+ export default async function ContextSelectionPage() {
+-  const [{ tenants }, translate] = await Promise.all([
++  const [{ tenants }, translate, common] = await Promise.all([
+     loadAccessibleContextOptions(),
+     getTranslator('context'),
++    getTranslator('common'),
+   ])
+   if (tenants.length === 0) redirect('/geen-toegang')
+ 
+-  return <main className="min-h-dvh bg-background px-4 py-12 sm:px-6 lg:px-8">
+-    <div className="mx-auto max-w-xl">
+-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">LiquidHR</p>
+-      <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">{translate('title')}</h1>
+-      <p className="mt-3 text-sm leading-6 text-muted-foreground">{translate('description')}</p>
+-      <div className="mt-8"><ContextSelectionForm tenants={tenants.map((tenant) => ({ id: tenant.id, name: tenant.name, slug: tenant.slug, hrGroups: tenant.hrGroups.map((group) => ({ id: group.id, name: group.name, code: group.code })) }))} labels={{ tenantLabel: translate('tenantLabel'), tenantPlaceholder: translate('tenantPlaceholder'), hrGroupLabel: translate('hrGroupLabel'), hrGroupPlaceholder: translate('hrGroupPlaceholder'), continue: translate('continue'), invalid: translate('invalid'), failed: translate('failed') }} /></div>
+-    </div>
+-  </main>
++  return (
++    <AuthShell
++      brand={common('appName')}
++      visualBody={translate('visualBody')}
++      visualPoints={[
++        translate('visualPointAccess'),
++        translate('visualPointContext'),
++        translate('visualPointPermissions'),
++      ]}
++      visualTitle={translate('visualTitle')}
++    >
++      <div className="mb-6 px-1">
++        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground">{translate('eyebrow')}</p>
++        <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground">{translate('title')}</h1>
++        <p className="mt-3 text-sm leading-6 text-muted-foreground">{translate('description')}</p>
++      </div>
++
++      <ContextSelectionForm
++        labels={{
++          tenantLabel: translate('tenantLabel'),
++          tenantPlaceholder: translate('tenantPlaceholder'),
++          hrGroupLabel: translate('hrGroupLabel'),
++          hrGroupPlaceholder: translate('hrGroupPlaceholder'),
++          formTitle: translate('formTitle'),
++          formDescription: translate('formDescription'),
++          contextNote: translate('contextNote'),
++          continue: translate('continue'),
++          invalid: translate('invalid'),
++          failed: translate('failed'),
++        }}
++        tenants={tenants.map((tenant) => ({
++          id: tenant.id,
++          name: tenant.name,
++          slug: tenant.slug,
++          hrGroups: tenant.hrGroups.map((group) => ({
++            id: group.id,
++            name: group.name,
++            code: group.code,
++          })),
++        }))}
++      />
++    </AuthShell>
++  )
+ }
+diff --git a/apps/hr-suite/app/oauth/consent/page.test.tsx b/apps/hr-suite/app/oauth/consent/page.test.tsx
+index 47d0746a..ac84488d 100644
+--- a/apps/hr-suite/app/oauth/consent/page.test.tsx
++++ b/apps/hr-suite/app/oauth/consent/page.test.tsx
+@@ -1,5 +1,7 @@
+ import { isValidElement, type ReactNode } from 'react'
+ import { beforeEach, describe, expect, it, vi } from 'vitest'
++import enAuthMessages from '../../../messages/en/auth.json'
++import nlAuthMessages from '../../../messages/nl/auth.json'
+ 
+ const { createClient, getAuthorizationDetails, getClaims, getTranslator, redirect, resolveEmployeeSelfContext } = vi.hoisted(() => ({
+   createClient: vi.fn(),
+@@ -41,6 +43,14 @@ function pageText(node: ReactNode): string[] {
+ }
+ 
+ describe('GET /oauth/consent page', () => {
++  it('keeps the user-facing connection copy free of environment labels in Dutch and English', () => {
++    const consentCopy = [...Object.entries(nlAuthMessages), ...Object.entries(enAuthMessages)]
++      .filter(([key]) => key.startsWith('oauthConsent'))
++      .map(([, value]) => value)
++      .join(' ')
++
++    expect(consentCopy).not.toMatch(/\btest\b/iu)
++  })
+   beforeEach(() => {
+     vi.resetAllMocks()
+     getTranslator.mockImplementation(async () => (key: string) => key)
+diff --git a/apps/hr-suite/app/oauth/consent/page.tsx b/apps/hr-suite/app/oauth/consent/page.tsx
+index 0984f8cb..85f6d9ec 100644
+--- a/apps/hr-suite/app/oauth/consent/page.tsx
++++ b/apps/hr-suite/app/oauth/consent/page.tsx
+@@ -1,7 +1,9 @@
+ import { redirect } from 'next/navigation'
++import { ArrowRight, Check, MessageSquareText, ShieldCheck } from 'lucide-react'
+ import { Button } from '@/components/ui/button'
+ import { Surface } from '@/components/ui/surface'
+ import { AuthShell } from '@/components/auth/auth-shell'
++import { LiquidHRLogo } from '@/components/layout/liquidhr-logo'
+ import { resolveEmployeeSelfContext } from '@/lib/api-v1/auth/employee-self-context'
+ import { getTranslator } from '@/lib/i18n/server'
+ import { createClient } from '@/lib/supabase/server'
+@@ -134,57 +136,97 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
+         </Surface>
+       ) : details ? (
+         <Surface className="space-y-5 p-5 sm:p-6">
+-          {message ? <p className="text-sm leading-6 text-foreground" role="alert">{message}</p> : null}
+-          <div>
+-            <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentClientLabel')}</p>
+-            <p className="mt-1 break-words text-lg font-semibold text-foreground">{details.clientName}</p>
+-          </div>
+-          <div>
+-            <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentRedirectLabel')}</p>
+-            <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.redirectUri}</p>
+-          </div>
+-          {details.resource ? (
+-            <div>
+-              <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentResourceLabel')}</p>
+-              <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.resource}</p>
++          <div className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-4">
++            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
++              <div className="flex min-w-0 items-center gap-2">
++                <LiquidHRLogo decorative size="sm" variant="mark" />
++                <div className="min-w-0">
++                  <p className="truncate text-sm font-semibold text-foreground">{common('appName')}</p>
++                  <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentConnectedAccount')}</p>
++                </div>
++              </div>
++              <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground" />
++              <div className="flex min-w-0 items-center gap-2">
++                <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)] border border-border-subtle bg-surface text-foreground">
++                  <MessageSquareText className="size-5" />
++                </span>
++                <div className="min-w-0">
++                  <p className="truncate text-sm font-semibold text-foreground">{details.clientName}</p>
++                  <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentClientLabel')}</p>
++                </div>
++              </div>
+             </div>
++          </div>
++
++          {message ? (
++            <p className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground" role="alert">
++              {message}
++            </p>
+           ) : null}
++
+           <div>
+             <h2 className="text-sm font-semibold text-foreground">{auth('oauthConsentDataTitle')}</h2>
+-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+-              <li>{auth('oauthConsentDevelopmentPlans')}</li>
+-              <li>{auth('oauthConsentDevelopmentGaps')}</li>
+-              <li>{auth('oauthConsentSkills')}</li>
+-              <li>{auth('oauthConsentCompetencies')}</li>
++            <ul className="mt-3 space-y-2.5 text-sm leading-6 text-muted-foreground">
++              {[auth('oauthConsentDevelopmentPlans'), auth('oauthConsentDevelopmentGaps'), auth('oauthConsentSkills'), auth('oauthConsentCompetencies')].map((item) => (
++                <li className="flex items-start gap-2.5" key={item}>
++                  <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />
++                  <span>{item}</span>
++                </li>
++              ))}
+             </ul>
+           </div>
+-          <p className="text-sm leading-6 text-muted-foreground">{auth('oauthConsentSelfOnly')}</p>
+-          <p className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground">
+-            {auth('oauthConsentReadOnly')}
+-          </p>
+-          <p className="text-sm leading-6 text-muted-foreground">
+-            <span className="font-medium text-foreground">{auth('oauthConsentScopesLabel')}: </span>
+-            <span>{details.scope}</span>
++
++          <p className="flex items-start gap-2.5 rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-foreground">
++            <ShieldCheck aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />
++            <span>{auth('oauthConsentSelfOnly')}</span>
+           </p>
+-          {details.scope.split(/\s+/u).includes('email') ? (
+-            <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentEmailScope')}</p>
+-          ) : null}
+-          {details.scope.split(/\s+/u).includes('offline_access') ? (
+-            <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentOfflineAccessScope')}</p>
+-          ) : null}
+ 
+-          {details.canApprove ? (
+-            <form action={approveChatGptMcpConsent}>
+-              <input name="authorization_id" type="hidden" value={details.authorizationId} />
+-              <Button className="w-full" type="submit">{auth('oauthConsentApprove')}</Button>
+-            </form>
+-          ) : null}
+-          {details.canDeny ? (
+-            <form action={denyChatGptMcpConsent}>
+-              <input name="authorization_id" type="hidden" value={details.authorizationId} />
+-              <Button className="w-full" type="submit" variant="secondary">{auth('oauthConsentDeny')}</Button>
+-            </form>
+-          ) : null}
++          <div className="flex items-start gap-2.5 rounded-[var(--radius-control)] border border-subtle p-3">
++            <ShieldCheck aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />
++            <div>
++              <p className="text-sm font-semibold text-foreground">{auth('oauthConsentAccessType')}</p>
++              <p className="mt-1 text-sm leading-6 text-muted-foreground">{auth('oauthConsentReadOnly')}</p>
++            </div>
++          </div>
++
++          <div className="space-y-4 border-t border-border-subtle pt-4">
++            <h2 className="text-sm font-semibold text-foreground">{auth('oauthConsentRequestDetailsLabel')}</h2>
++            <div>
++              <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentRedirectLabel')}</p>
++              <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.redirectUri}</p>
++            </div>
++            {details.resource ? (
++              <div>
++                <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentResourceLabel')}</p>
++                <p className="mt-1 break-all text-sm leading-6 text-foreground">{details.resource}</p>
++              </div>
++            ) : null}
++            <div>
++              <p className="text-sm font-medium text-muted-foreground">{auth('oauthConsentScopesLabel')}</p>
++              <p className="mt-1 break-all font-mono text-xs leading-5 text-foreground">{details.scope}</p>
++            </div>
++            {details.scope.split(/\s+/u).includes('email') ? (
++              <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentEmailScope')}</p>
++            ) : null}
++            {details.scope.split(/\s+/u).includes('offline_access') ? (
++              <p className="text-xs leading-5 text-muted-foreground">{auth('oauthConsentOfflineAccessScope')}</p>
++            ) : null}
++          </div>
++
++          <div className="grid gap-3 pt-1">
++            {details.canApprove ? (
++              <form action={approveChatGptMcpConsent}>
++                <input name="authorization_id" type="hidden" value={details.authorizationId} />
++                <Button className="w-full" type="submit">{auth('oauthConsentApprove')}</Button>
++              </form>
++            ) : null}
++            {details.canDeny ? (
++              <form action={denyChatGptMcpConsent}>
++                <input name="authorization_id" type="hidden" value={details.authorizationId} />
++                <Button className="w-full" type="submit" variant="secondary">{auth('oauthConsentDeny')}</Button>
++              </form>
++            ) : null}
++          </div>
+         </Surface>
+       ) : (
+         <Surface className="p-5" role="alert">
+diff --git a/apps/hr-suite/components/context/context-selection-form.tsx b/apps/hr-suite/components/context/context-selection-form.tsx
+index 02393e6c..cdc8010b 100644
+--- a/apps/hr-suite/components/context/context-selection-form.tsx
++++ b/apps/hr-suite/components/context/context-selection-form.tsx
+@@ -2,6 +2,7 @@
+ 
+ import { useMemo, useState } from 'react'
+ import { useRouter } from 'next/navigation'
++import { Building2, ShieldCheck, UsersRound } from 'lucide-react'
+ import { Button } from '@/components/ui/button'
+ import { DropdownSelect } from '@/components/ui/dropdown-select'
+ import { Surface } from '@/components/ui/surface'
+@@ -18,6 +19,9 @@ interface ContextSelectionFormProps {
+     tenantPlaceholder: string
+     hrGroupLabel: string
+     hrGroupPlaceholder: string
++    formTitle: string
++    formDescription: string
++    contextNote: string
+     continue: string
+     invalid: string
+     failed: string
+@@ -65,12 +69,51 @@ export function ContextSelectionForm({ tenants, labels }: ContextSelectionFormPr
+     }
+   }
+ 
+-  return <form onSubmit={handleSubmit}>
+-    <Surface className="space-y-5 p-6">
+-      <label className="block text-sm font-medium" htmlFor="context-tenant">{labels.tenantLabel}<DropdownSelect className="mt-2" id="context-tenant" onChange={(event) => handleTenantChange(event.target.value)} searchable value={tenantId}><option value="">{labels.tenantPlaceholder}</option>{tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.slug}</option>)}</DropdownSelect></label>
+-      <label className="block text-sm font-medium" htmlFor="context-hr-group">{labels.hrGroupLabel}<DropdownSelect className="mt-2" id="context-hr-group" onChange={(event) => { setHrGroupId(event.target.value); setError(null) }} searchable value={hrGroupId}><option value="">{labels.hrGroupPlaceholder}</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name} · {group.code}</option>)}</DropdownSelect></label>
+-      {error ? <p className="rounded-[var(--radius-control)] bg-destructive-subtle px-3 py-2 text-sm text-destructive" role="alert">{error}</p> : null}
+-      <Button loading={pending} type="submit">{labels.continue}</Button>
+-    </Surface>
+-  </form>
++  return (
++    <form onSubmit={handleSubmit}>
++      <Surface className="space-y-6 p-5 sm:p-6">
++        <div className="flex items-start gap-4 border-b border-border-subtle pb-5">
++          <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle text-accent-foreground">
++            <Building2 className="size-5" />
++          </span>
++          <div>
++            <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">{labels.formTitle}</h2>
++            <p className="mt-1 text-sm leading-6 text-muted-foreground">{labels.formDescription}</p>
++          </div>
++        </div>
++
++        <div className="space-y-5">
++          <label className="block text-sm font-medium text-foreground" htmlFor="context-tenant">
++            <span className="inline-flex items-center gap-2">
++              <Building2 aria-hidden="true" className="size-4 text-muted-foreground" />
++              {labels.tenantLabel}
++            </span>
++            <DropdownSelect className="mt-2" id="context-tenant" onChange={(event) => handleTenantChange(event.target.value)} searchable value={tenantId}>
++              <option value="">{labels.tenantPlaceholder}</option>
++              {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.slug}</option>)}
++            </DropdownSelect>
++          </label>
++
++          <label className="block text-sm font-medium text-foreground" htmlFor="context-hr-group">
++            <span className="inline-flex items-center gap-2">
++              <UsersRound aria-hidden="true" className="size-4 text-muted-foreground" />
++              {labels.hrGroupLabel}
++            </span>
++            <DropdownSelect className="mt-2" id="context-hr-group" onChange={(event) => { setHrGroupId(event.target.value); setError(null) }} searchable value={hrGroupId}>
++              <option value="">{labels.hrGroupPlaceholder}</option>
++              {groups.map((group) => <option key={group.id} value={group.id}>{group.name} · {group.code}</option>)}
++            </DropdownSelect>
++          </label>
++        </div>
++
++        <p className="flex items-start gap-2.5 rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3 text-sm leading-6 text-muted-foreground">
++          <ShieldCheck aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />
++          <span>{labels.contextNote}</span>
++        </p>
++
++        {error ? <p className="rounded-[var(--radius-control)] bg-destructive-subtle px-3 py-2 text-sm text-destructive" role="alert">{error}</p> : null}
++        <Button className="w-full" loading={pending} type="submit">{labels.continue}</Button>
++      </Surface>
++    </form>
++  )
+ }
+diff --git a/apps/hr-suite/messages/en/auth.json b/apps/hr-suite/messages/en/auth.json
+index eba6ca27..e5b6419c 100644
+--- a/apps/hr-suite/messages/en/auth.json
++++ b/apps/hr-suite/messages/en/auth.json
+@@ -63,32 +63,35 @@
+   "noAccessHelp": "Ask the HR administrator who invited you to check your access.",
+   "signOut": "Sign out",
+   "oauthConsentEyebrow": "Secure connection",
+-  "oauthConsentTitle": "Allow ChatGPT to access your own Workforce data?",
+-  "oauthConsentDescription": "Review the requested access before continuing. You can deny this request.",
++  "oauthConsentTitle": "ChatGPT wants to connect to LiquidHR",
++  "oauthConsentDescription": "Review the data ChatGPT can access and the sign-in permissions it requests. You can deny this request.",
+   "oauthConsentVisualTitle": "You control which data you share.",
+-  "oauthConsentVisualBody": "The TEST connection uses your existing LiquidHR account and applies the same employee permissions as LiquidHR.",
+-  "oauthConsentVisualPointSelf": "Only your own data is requested.",
+-  "oauthConsentVisualPointReadOnly": "The available tools can only read data.",
+-  "oauthConsentVisualPointDeny": "You can deny this request.",
++  "oauthConsentVisualBody": "Use ChatGPT with your existing LiquidHR account. Your current permissions and personal employee context remain in effect.",
++  "oauthConsentVisualPointSelf": "ChatGPT can request only your own data.",
++  "oauthConsentVisualPointReadOnly": "The available Workforce tools have read-only access.",
++  "oauthConsentVisualPointDeny": "You decide whether to grant access.",
+   "oauthConsentClientLabel": "Requesting application",
+-  "oauthConsentDataTitle": "Data the Workforce tools can read",
++  "oauthConsentConnectedAccount": "Your account",
++  "oauthConsentAccessType": "Read only",
++  "oauthConsentRequestDetailsLabel": "Request details",
++  "oauthConsentDataTitle": "Data ChatGPT can read through LiquidHR",
+   "oauthConsentDevelopmentPlans": "Development plans: period, progress, status, and completion date.",
+   "oauthConsentDevelopmentGaps": "Development gaps from your current role profile.",
+   "oauthConsentSkills": "Your registered skills and levels.",
+   "oauthConsentCompetencies": "Your registered competencies and levels.",
+-  "oauthConsentSelfOnly": "LiquidHR resolves your employee context. The request cannot choose an employee, tenant, administration, or role.",
+-  "oauthConsentReadOnly": "This TEST connection has no write actions. ChatGPT cannot change data.",
++  "oauthConsentSelfOnly": "LiquidHR resolves your employee context. ChatGPT cannot choose an employee, customer environment, HR group, administration, or role.",
++  "oauthConsentReadOnly": "This connection can only read data. ChatGPT cannot change anything in LiquidHR.",
+   "oauthConsentEmailScope": "The email scope shares your account email with ChatGPT.",
+   "oauthConsentOfflineAccessScope": "Offline access allows ChatGPT to refresh tokens until you revoke access.",
+   "oauthConsentApprove": "Allow and continue to ChatGPT",
+   "oauthConsentDeny": "Deny",
+   "oauthConsentInvalidRequest": "This sign-in request is invalid, expired, or belongs to a different account.",
+   "oauthConsentUnsupportedClient": "This request does not use the allowed ChatGPT OAuth redirect. Close this window.",
+-  "oauthConsentUnsupportedScope": "The request asks for scopes outside the limited TEST sign-in and cannot be approved.",
+-  "oauthConsentEmployeeOnly": "This TEST connection is available only to an Employee account with a current self employee context.",
+-  "oauthConsentNoEmployeeContext": "No own Employee context with current access was found. You can deny this request.",
+-  "oauthConsentContextSelectionRequired": "More than one valid own Employee context exists. Explicitly select a context in LiquidHR before allowing this connection.",
+-  "oauthConsentContextUnavailable": "Your own Employee context could not be checked safely. You can deny this request and try again later.",
++  "oauthConsentUnsupportedScope": "The request asks for sign-in permissions LiquidHR does not support and cannot be approved.",
++  "oauthConsentEmployeeOnly": "This connection is available only to an employee with a current personal employee context.",
++  "oauthConsentNoEmployeeContext": "No personal employee context is available to approve this request. You can deny it.",
++  "oauthConsentContextSelectionRequired": "Your account can access more than one personal employee context. Choose the context you want to use in LiquidHR before allowing this connection.",
++  "oauthConsentContextUnavailable": "Your personal employee context could not be checked safely. Deny this request and try again later.",
+   "oauthDecisionErrorEyebrow": "Connection not completed",
+   "oauthDecisionErrorTitle": "Start a new connection in ChatGPT",
+   "oauthDecisionErrorDescription": "LiquidHR could not safely complete the return to ChatGPT. This request has not been reopened. Close this window and start a new connection from ChatGPT.",
+diff --git a/apps/hr-suite/messages/en/context.json b/apps/hr-suite/messages/en/context.json
+index 7d35b17e..6ad450f3 100644
+--- a/apps/hr-suite/messages/en/context.json
++++ b/apps/hr-suite/messages/en/context.json
+@@ -1,12 +1,21 @@
+ {
+-  "title": "Choose where to work",
+-  "description": "You can access multiple customer environments or HR groups. Choose the context for this session.",
++  "eyebrow": "Work context",
++  "title": "Choose your work context",
++  "description": "Your account can access multiple customer environments or HR groups. Select the environment and group you want to work in.",
++  "visualTitle": "Continue in the right context.",
++  "visualBody": "LiquidHR tailors the information and features shown to the customer environment and HR group you select.",
++  "visualPointAccess": "You can choose from contexts your account can access.",
++  "visualPointContext": "The selected HR group determines which information is available.",
++  "visualPointPermissions": "Your existing access permissions remain in effect.",
++  "formTitle": "Select your environment",
++  "formDescription": "Choose a customer environment and the HR group you want to work in.",
++  "contextNote": "LiquidHR uses your choice to show the related information and features.",
+   "tenantLabel": "Customer environment",
+-  "tenantPlaceholder": "Choose a customer environment",
++  "tenantPlaceholder": "Select a customer environment",
+   "hrGroupLabel": "HR group",
+-  "hrGroupPlaceholder": "Choose an HR group",
+-  "continue": "Continue",
++  "hrGroupPlaceholder": "Select an HR group",
++  "continue": "Continue to LiquidHR",
+   "noAccess": "No active HR context is available.",
+   "failed": "The context could not be saved. Choose again.",
+-  "invalid": "Choose a valid customer environment and HR group."
++  "invalid": "Select a valid customer environment and HR group."
+ }
+diff --git a/apps/hr-suite/messages/nl/auth.json b/apps/hr-suite/messages/nl/auth.json
+index 5800c760..7346eeca 100644
+--- a/apps/hr-suite/messages/nl/auth.json
++++ b/apps/hr-suite/messages/nl/auth.json
+@@ -63,32 +63,35 @@
+   "noAccessHelp": "Vraag de HR-beheerder die je heeft uitgenodigd om je toegang te controleren.",
+   "signOut": "Uitloggen",
+   "oauthConsentEyebrow": "Veilige koppeling",
+-  "oauthConsentTitle": "Geef ChatGPT toegang tot je eigen Workforce-gegevens?",
+-  "oauthConsentDescription": "Controleer de gevraagde toegang voordat je doorgaat. Je kunt de aanvraag weigeren.",
++  "oauthConsentTitle": "ChatGPT wil verbinding maken met LiquidHR",
++  "oauthConsentDescription": "Bekijk welke gegevens ChatGPT kan raadplegen en welke aanmeldrechten worden gevraagd. Je kunt de aanvraag weigeren.",
+   "oauthConsentVisualTitle": "Jij bepaalt welke gegevens je deelt.",
+-  "oauthConsentVisualBody": "De TEST-koppeling gebruikt je bestaande LiquidHR-account en past dezelfde medewerkerrechten toe als LiquidHR.",
+-  "oauthConsentVisualPointSelf": "Alleen je eigen gegevens worden opgevraagd.",
+-  "oauthConsentVisualPointReadOnly": "De beschikbare tools kunnen alleen lezen.",
+-  "oauthConsentVisualPointDeny": "Je kunt deze aanvraag weigeren.",
++  "oauthConsentVisualBody": "Gebruik ChatGPT met je bestaande LiquidHR-account. Je huidige rechten en eigen medewerkercontext blijven van kracht.",
++  "oauthConsentVisualPointSelf": "ChatGPT kan alleen je eigen gegevens opvragen.",
++  "oauthConsentVisualPointReadOnly": "De beschikbare Workforce-tools hebben alleen-lezen toegang.",
++  "oauthConsentVisualPointDeny": "Je bepaalt zelf of je toegang verleent.",
+   "oauthConsentClientLabel": "Aanvragende toepassing",
+-  "oauthConsentDataTitle": "Gegevens die de Workforce-tools kunnen lezen",
++  "oauthConsentConnectedAccount": "Je account",
++  "oauthConsentAccessType": "Alleen lezen",
++  "oauthConsentRequestDetailsLabel": "Aanvraagdetails",
++  "oauthConsentDataTitle": "Gegevens die ChatGPT via LiquidHR kan lezen",
+   "oauthConsentDevelopmentPlans": "Ontwikkelplannen: periode, voortgang, status en afrondingsdatum.",
+   "oauthConsentDevelopmentGaps": "Ontwikkelgaps uit je actuele functieprofiel.",
+   "oauthConsentSkills": "Je geregistreerde skills en niveaus.",
+   "oauthConsentCompetencies": "Je geregistreerde competenties en niveaus.",
+-  "oauthConsentSelfOnly": "LiquidHR bepaalt je medewerkercontext. De aanvraag kan geen medewerker, tenant, administratie of rol kiezen.",
+-  "oauthConsentReadOnly": "Deze TEST-koppeling bevat geen schrijfacties. ChatGPT kan geen gegevens aanpassen.",
++  "oauthConsentSelfOnly": "LiquidHR bepaalt je medewerkercontext. ChatGPT kan geen medewerker, klantomgeving, HR-groep, administratie of rol kiezen.",
++  "oauthConsentReadOnly": "Deze koppeling kan alleen gegevens lezen. ChatGPT kan niets in LiquidHR aanpassen.",
+   "oauthConsentEmailScope": "De e-mailscope deelt je accountadres met ChatGPT.",
+   "oauthConsentOfflineAccessScope": "Offline toegang kan tokens vernieuwen totdat je de toegang intrekt.",
+   "oauthConsentApprove": "Toestaan en doorgaan naar ChatGPT",
+   "oauthConsentDeny": "Weigeren",
+   "oauthConsentInvalidRequest": "Deze aanmeldaanvraag is ongeldig, verlopen of hoort bij een ander account.",
+   "oauthConsentUnsupportedClient": "Deze aanvraag komt niet van de toegestane ChatGPT OAuth-omleiding. Sluit dit venster.",
+-  "oauthConsentUnsupportedScope": "De aanvraag vraagt om scopes buiten de beperkte TEST-aanmelding en kan niet worden goedgekeurd.",
+-  "oauthConsentEmployeeOnly": "Deze TEST-koppeling is alleen beschikbaar voor een Employee-account met de huidige eigen medewerkercontext.",
+-  "oauthConsentNoEmployeeContext": "Er is geen eigen Employee-context gevonden waartoe je nu toegang hebt. Je kunt deze aanvraag weigeren.",
+-  "oauthConsentContextSelectionRequired": "Er zijn meerdere geldige eigen Employee-contexten. Kies eerst expliciet een context in LiquidHR voordat je deze koppeling toestaat.",
+-  "oauthConsentContextUnavailable": "De eigen Employee-context kon niet veilig worden gecontroleerd. Je kunt deze aanvraag weigeren en het later opnieuw proberen.",
++  "oauthConsentUnsupportedScope": "De aanvraag vraagt om aanmeldrechten die LiquidHR niet ondersteunt en kan daarom niet worden goedgekeurd.",
++  "oauthConsentEmployeeOnly": "Deze koppeling is alleen beschikbaar voor een medewerker met een actuele eigen medewerkercontext.",
++  "oauthConsentNoEmployeeContext": "Er is geen eigen medewerkercontext beschikbaar waarmee je deze aanvraag kunt goedkeuren. Je kunt de aanvraag weigeren.",
++  "oauthConsentContextSelectionRequired": "Je account heeft toegang tot meerdere eigen medewerkercontexten. Kies eerst in LiquidHR de context waarmee je deze koppeling wilt gebruiken.",
++  "oauthConsentContextUnavailable": "De eigen medewerkercontext kon niet veilig worden gecontroleerd. Weiger de aanvraag en probeer het later opnieuw.",
+   "oauthDecisionErrorEyebrow": "Koppeling niet afgerond",
+   "oauthDecisionErrorTitle": "Start een nieuwe koppeling in ChatGPT",
+   "oauthDecisionErrorDescription": "LiquidHR kon de terugkeer naar ChatGPT niet veilig afronden. Deze aanvraag is niet opnieuw geopend. Sluit dit venster en start een nieuwe koppeling vanuit ChatGPT.",
+diff --git a/apps/hr-suite/messages/nl/context.json b/apps/hr-suite/messages/nl/context.json
+index 4fdc7f65..0f57fd61 100644
+--- a/apps/hr-suite/messages/nl/context.json
++++ b/apps/hr-suite/messages/nl/context.json
+@@ -1,12 +1,21 @@
+ {
+-  "title": "Kies waar je wilt werken",
+-  "description": "Je hebt toegang tot meerdere klantomgevingen of HR-groepen. Kies bewust de context voor deze sessie.",
++  "eyebrow": "Werkcontext",
++  "title": "Kies je werkcontext",
++  "description": "Je account heeft toegang tot meerdere klantomgevingen of HR-groepen. Selecteer de omgeving en groep waarin je wilt werken.",
++  "visualTitle": "Werk verder in de juiste context.",
++  "visualBody": "LiquidHR stemt de getoonde gegevens en functies af op de klantomgeving en HR-groep die je kiest.",
++  "visualPointAccess": "Je kiest uit contexten waartoe je account toegang heeft.",
++  "visualPointContext": "De geselecteerde HR-groep bepaalt welke informatie beschikbaar is.",
++  "visualPointPermissions": "Je bestaande toegangsrechten blijven van kracht.",
++  "formTitle": "Selecteer je omgeving",
++  "formDescription": "Kies een klantomgeving en de HR-groep waarin je wilt werken.",
++  "contextNote": "LiquidHR gebruikt deze keuze om de bijbehorende informatie en functies te tonen.",
+   "tenantLabel": "Klantomgeving",
+-  "tenantPlaceholder": "Kies een klantomgeving",
++  "tenantPlaceholder": "Selecteer een klantomgeving",
+   "hrGroupLabel": "HR-groep",
+-  "hrGroupPlaceholder": "Kies een HR-groep",
+-  "continue": "Doorgaan",
++  "hrGroupPlaceholder": "Selecteer een HR-groep",
++  "continue": "Doorgaan naar LiquidHR",
+   "noAccess": "Er is geen actieve HR-context beschikbaar.",
+   "failed": "De context kon niet worden opgeslagen. Kies opnieuw.",
+-  "invalid": "Kies een geldige klantomgeving en HR-groep."
++  "invalid": "Selecteer een geldige klantomgeving en HR-groep."
+ }

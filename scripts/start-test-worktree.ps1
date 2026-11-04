@@ -6,6 +6,7 @@ param(
     [int]$Port = 0,
     [switch]$PayrollAcceptance,
     [switch]$PayrollPersonaAcceptance,
+    [switch]$BsnAcceptance,
     [switch]$Build,
     [switch]$PreflightOnly
 )
@@ -24,6 +25,9 @@ if ($PayrollPersonaAcceptance -and -not $PayrollAcceptance) {
 }
 if ($PayrollPersonaAcceptance -and ($Mode -ne 'Development' -or $Build)) {
     throw 'Payroll-personacredentials mogen alleen voor een lokale Development-test worden geladen; Production-mode en Build blijven gesloten.'
+}
+if ($BsnAcceptance -and ($Mode -ne 'Development' -or $Build)) {
+    throw 'BSN-acceptatie is alleen toegestaan in lokale Development-mode.'
 }
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $appRoot = Join-Path $repoRoot 'apps/hr-suite'
@@ -194,7 +198,7 @@ if (Test-Path -LiteralPath $worktreeConfig -PathType Leaf) {
 # Voorkom dat geërfde Supabase-/Payroll-/testauth-instellingen de centrale bron overrulen.
 $shadowedRuntimeNames = @(
     Get-ChildItem Env: |
-        Where-Object { $_.Name -match '^(NEXT_PUBLIC_.*|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|PAYROLL_.*|LIQUIDHR_TEST_.*|TALENT_.*|VERCEL(?:_.*)?|NODE_ENV|NODE_OPTIONS)$' } |
+        Where-Object { $_.Name -match '^(NEXT_PUBLIC_.*|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|BSN_HASH_KEY|EMPLOYEE_PII_ENCRYPTION_KEY|PAYROLL_.*|LIQUIDHR_TEST_.*|TALENT_.*|VERCEL(?:_.*)?|NODE_ENV|NODE_OPTIONS)$' } |
         ForEach-Object { $_.Name } |
         Sort-Object -Unique
 )
@@ -250,10 +254,12 @@ if ($PayrollAcceptance) {
 $requiredGroupsJson += ' ]'
 $requiredGroupsBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($requiredGroupsJson))
 $requirePayrollJson = if ($PayrollAcceptance) { 'true' } else { 'false' }
+$requireBsnJson = if ($BsnAcceptance) { 'true' } else { 'false' }
 $configProbe = @'
 const requiredGroupsJson = Buffer.from(process.argv[1], 'base64').toString('utf8');
 const groups = JSON.parse(requiredGroupsJson);
 const requirePayroll = process.argv[2] === 'true';
+const requireBsn = process.argv[3] === 'true';
 const missing = groups
   .filter((group) => !group.some((name) => (process.env[name] ?? '').trim().length > 0))
   .map((group) => group.join(' or '));
@@ -277,20 +283,36 @@ const invalidTargets = Object.entries(canonicalTestHosts)
 if (requirePayroll && process.env.PAYROLL_LAB_ENABLED !== 'true') {
   missing.push('PAYROLL_LAB_ENABLED=true');
 }
+const invalidBsnFields = [];
+if (requireBsn) {
+  const hashKey = process.env.BSN_HASH_KEY ?? '';
+  if (!hashKey.trim()) missing.push('BSN_HASH_KEY');
+  else if (hashKey.length < 32 || hashKey.trim() !== hashKey) invalidBsnFields.push('BSN_HASH_KEY');
+
+  const encryptionKey = process.env.EMPLOYEE_PII_ENCRYPTION_KEY ?? '';
+  if (!encryptionKey.trim()) missing.push('EMPLOYEE_PII_ENCRYPTION_KEY');
+  else {
+    const decodedEncryptionKey = Buffer.from(encryptionKey, 'base64');
+    if (decodedEncryptionKey.length !== 32 || decodedEncryptionKey.toString('base64') !== encryptionKey) {
+      invalidBsnFields.push('EMPLOYEE_PII_ENCRYPTION_KEY');
+    }
+  }
+}
 if (process.env.PAYROLL_LAB_ENABLED === 'true' && !requirePayroll) {
   for (const name of ['PAYROLL_SUPABASE_URL', 'PAYROLL_SUPABASE_SECRET_KEY']) {
     if (!(process.env[name] ?? '').trim()) missing.push(name);
   }
 }
-if (missing.length > 0 || invalidTargets.length > 0) {
-  if (missing.length > 0) console.error(`Ontbrekende TEST-runtimevelden (alleen namen): ${missing.join(', ')}`);
+if (missing.length > 0 || invalidTargets.length > 0 || invalidBsnFields.length > 0) {
+  if (missing.length > 0) console.error(`Ontbrekende TEST-runtimevelden (alleen namen): ${[...new Set(missing)].join(', ')}`);
   if (invalidTargets.length > 0) console.error(`Runtime-URL wijst niet naar het goedgekeurde TEST-project (alleen veldnamen): ${invalidTargets.join(', ')}`);
+  if (invalidBsnFields.length > 0) console.error(`Ongeldige BSN-TEST-runtimevelden (alleen namen): ${[...new Set(invalidBsnFields)].join(', ')}`);
   process.exitCode = 2;
 } else {
   console.log('Centrale TEST-configuratie: vereiste variabelen aanwezig; waarden verborgen.');
 }
 '@
-& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsBase64 $requirePayrollJson
+& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsBase64 $requirePayrollJson $requireBsnJson
 if ($LASTEXITCODE -ne 0) {
     throw 'De centrale TEST-configuratie bevat niet alle vereiste runtimevelden; waarden zijn niet getoond.'
 }

@@ -1,0 +1,11 @@
+diff --git a/apps/hr-suite/lib/payroll/feature-flag.ts b/apps/hr-suite/lib/payroll/feature-flag.ts
+new file mode 100644
+index 00000000..4b6fcfb5
+--- /dev/null
++++ b/apps/hr-suite/lib/payroll/feature-flag.ts
+@@ -0,0 +1,5 @@
++import 'server-only'
++
++export function isPayrollLabEnabled(): boolean {
++  return process.env.PAYROLL_LAB_ENABLED === 'true'
++}

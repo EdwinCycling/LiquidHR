@@ -1,0 +1,223 @@
+diff --git a/apps/hr-suite/AGENTS.md b/apps/hr-suite/AGENTS.md
+index 643577df..af3b7c84 100644
+--- a/apps/hr-suite/AGENTS.md
++++ b/apps/hr-suite/AGENTS.md
+@@ -1,6 +1,6 @@
+ <!-- BEGIN:nextjs-agent-rules -->
+ 
+-# This is NOT the Next.js you know
++## This is NOT the Next.js you know
+ 
+ This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+ 
+diff --git a/apps/hr-suite/app/(dashboard)/dashboard/start/page.tsx b/apps/hr-suite/app/(dashboard)/dashboard/start/page.tsx
+index ef648875..0ff015b1 100644
+--- a/apps/hr-suite/app/(dashboard)/dashboard/start/page.tsx
++++ b/apps/hr-suite/app/(dashboard)/dashboard/start/page.tsx
+@@ -1,7 +1,7 @@
+ import { redirect } from 'next/navigation'
+ import { StartPage } from '@/components/startpage/start-page'
+ import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
+-import { getLocale, getTranslator } from '@/lib/i18n/server'
++import { getTranslator } from '@/lib/i18n/server'
+ import { getRequestUserPreferences } from '@/lib/preferences/server'
+ import { getStartPagePreferences } from '@/lib/preferences/start-page'
+ import { createServerPerformanceTrace } from '@/lib/performance/server-trace'
+@@ -32,21 +32,23 @@ export default async function StartPageRoute({ searchParams }: StartPageRoutePro
+   }
+ 
+   const scope: StartPageScope | undefined = requestedScope === 'company' || requestedScope === 'team' ? requestedScope : undefined
+-  const locale = await performanceTrace.measure('i18n.locale', getLocale)
++  const preferencesPromise = getRequestUserPreferences()
++  const localePromise = performanceTrace.measure('i18n.locale', async () => (await preferencesPromise).locale)
+   const dataPromise = getStartPageData(scope, {
+     supabase: requestContext.supabase,
+     auth: requestContext.context,
+     activeContext: requestContext.activeContext,
+-    locale,
++    localePromise,
+     performance: performanceTrace,
+     journeyOnly,
+     journeys: journeyOnlyJourneys,
+   })
+-  const [data, preferences, translate, startPagePreferences] = await performanceTrace.measure('page.parallel', () => Promise.all([
++  const [data, preferences, translate, startPagePreferences, locale] = await performanceTrace.measure('page.parallel', () => Promise.all([
+     dataPromise,
+-    getRequestUserPreferences(),
+-    getTranslator('startpage'),
++    preferencesPromise,
++    preferencesPromise.then(({ locale: userLocale }) => getTranslator('startpage', userLocale)),
+     getStartPagePreferences({ supabase: requestContext.supabase, userId: requestContext.context.userId }),
++    localePromise,
+   ]))
+   const now = new Date()
+   const hour = now.getHours()
+diff --git a/apps/hr-suite/app/(dashboard)/layout.tsx b/apps/hr-suite/app/(dashboard)/layout.tsx
+index c53f992e..7ebe26be 100644
+--- a/apps/hr-suite/app/(dashboard)/layout.tsx
++++ b/apps/hr-suite/app/(dashboard)/layout.tsx
+@@ -84,14 +84,15 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
+   const canReadAnalysis = authContext.permissions.includes(ANALYSIS_PERMISSION)
+   const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
+ 
++  const requestPreferencesPromise = getRequestUserPreferences()
+   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, setupAssistantMessages, setupAssistant, reminders, enabledModules, productUpdates, profile] = await Promise.all([
+-    getRequestUserPreferences(),
+-    getTranslator('common'),
+-    getTranslator('navigation'),
+-    getTranslator('auth'),
+-    getTranslator('reminders'),
+-    getTranslator('productUpdates'),
+-    getTranslator('setupAssistant'),
++    requestPreferencesPromise,
++    requestPreferencesPromise.then(({ locale }) => getTranslator('common', locale)),
++    requestPreferencesPromise.then(({ locale }) => getTranslator('navigation', locale)),
++    requestPreferencesPromise.then(({ locale }) => getTranslator('auth', locale)),
++    requestPreferencesPromise.then(({ locale }) => getTranslator('reminders', locale)),
++    requestPreferencesPromise.then(({ locale }) => getTranslator('productUpdates', locale)),
++    requestPreferencesPromise.then(({ locale }) => getTranslator('setupAssistant', locale)),
+     canShowSetupAssistant ? getSetupAssistantState() : Promise.resolve(null),
+     listMyReminders(20, { context: authContext, supabase }).catch(() => []),
+     getEnabledTenantModules({ auth: authContext, supabase }),
+diff --git a/apps/hr-suite/lib/startpage/service.test.ts b/apps/hr-suite/lib/startpage/service.test.ts
+new file mode 100644
+index 00000000..67f42b55
+--- /dev/null
++++ b/apps/hr-suite/lib/startpage/service.test.ts
+@@ -0,0 +1,110 @@
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++
++import type { AuthContext } from '@/lib/auth/permissions'
++import type { ActiveContext } from '@/lib/context/administration-context'
++import type { Locale } from '@/lib/i18n/config'
++import { createClient } from '@/lib/supabase/server'
++import { getStartPageData } from './service'
++
++const mocks = vi.hoisted(() => ({
++  listMyReminders: vi.fn(),
++  listDirectTeamEmployeeIds: vi.fn(),
++  getContinuousAppraisalSummary: vi.fn(),
++  listProcessWork: vi.fn(),
++  loadTeamAvailability: vi.fn(),
++  getUpcomingCalendarItems: vi.fn(),
++  listJourneyProjectionsForContext: vi.fn(),
++  resolveStoredImageUrl: vi.fn(),
++  getTeamAiStartPageData: vi.fn(),
++  getPersonalLogbookSummary: vi.fn(),
++}))
++
++vi.mock('@/lib/reminders/reminder-service', () => ({ listMyReminders: mocks.listMyReminders }))
++vi.mock('@/lib/organization/team-scope', () => ({ listDirectTeamEmployeeIds: mocks.listDirectTeamEmployeeIds }))
++vi.mock('@/lib/continuous-appraisal/service', () => ({ getContinuousAppraisalSummary: mocks.getContinuousAppraisalSummary }))
++vi.mock('@/lib/process-automation/work-service', () => ({ listProcessWork: mocks.listProcessWork }))
++vi.mock('./team-availability-service', () => ({ loadTeamAvailability: mocks.loadTeamAvailability }))
++vi.mock('@/lib/company-activities/service', () => ({ getUpcomingCalendarItems: mocks.getUpcomingCalendarItems }))
++vi.mock('@/lib/journeys/projection-service', () => ({ listJourneyProjectionsForContext: mocks.listJourneyProjectionsForContext }))
++vi.mock('@/lib/storage/image-url', () => ({ resolveStoredImageUrl: mocks.resolveStoredImageUrl }))
++vi.mock('@/lib/ai/team-scope', () => ({ getTeamAiStartPageData: mocks.getTeamAiStartPageData }))
++vi.mock('@/lib/logbook/service', () => ({ getPersonalLogbookSummary: mocks.getPersonalLogbookSummary }))
++vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
++
++const queryResponse = { data: [] as unknown[], error: null, count: 0 }
++type QueryBuilder = Promise<typeof queryResponse> & Record<string, unknown>
++
++function createQueryBuilder(): QueryBuilder {
++  const promise = Promise.resolve(queryResponse)
++  const builder = new Proxy(promise as QueryBuilder, {
++    get(target, property) {
++      if (property === 'then') return target.then.bind(target)
++      if (property === 'maybeSingle' || property === 'single') {
++        return () => Promise.resolve({ data: null, error: null })
++      }
++      return () => builder
++    },
++  })
++  return builder
++}
++
++describe('getStartPageData locale loading', () => {
++  beforeEach(() => {
++    vi.clearAllMocks()
++    mocks.listMyReminders.mockResolvedValue([])
++    mocks.listDirectTeamEmployeeIds.mockResolvedValue(null)
++    mocks.getContinuousAppraisalSummary.mockResolvedValue(null)
++    mocks.listProcessWork.mockResolvedValue({ total: 0, items: [] })
++    mocks.loadTeamAvailability.mockResolvedValue(null)
++    mocks.getUpcomingCalendarItems.mockResolvedValue([])
++    mocks.listJourneyProjectionsForContext.mockResolvedValue([])
++    mocks.resolveStoredImageUrl.mockResolvedValue(null)
++    mocks.getTeamAiStartPageData.mockResolvedValue(null)
++    mocks.getPersonalLogbookSummary.mockResolvedValue({ totalCount: 0, latestCreatedAt: null, manualCount: 0, aiCount: 0 })
++  })
++
++  it('starts independent Core reads while process work waits for the shared request locale', async () => {
++    let resolveLocale: (locale: Locale) => void = () => undefined
++    const localePromise = new Promise<Locale>((resolve) => {
++      resolveLocale = resolve
++    })
++    const from = vi.fn(() => createQueryBuilder())
++    const supabase = { from } as unknown as Awaited<ReturnType<typeof createClient>>
++    const auth = {
++      userId: 'synthetic-user',
++      tenantId: 'synthetic-tenant',
++      hrGroupId: 'synthetic-hr-group',
++      administrationId: 'synthetic-administration',
++      employeeId: null,
++      permissions: ['start-page:read', 'process-task:read', 'workforce:read'],
++      activeRoles: ['TENANT_ADMIN'],
++    } as unknown as AuthContext
++    const activeContext = {
++      tenant: { id: 'synthetic-tenant', name: 'Synthetic tenant' },
++      activeHrGroup: { id: 'synthetic-hr-group' },
++      activeAdministration: null,
++      hrGroups: [],
++    } as unknown as ActiveContext
++
++    const dataPromise = getStartPageData(undefined, {
++      supabase,
++      auth,
++      activeContext,
++      localePromise,
++    })
++
++    expect(from).toHaveBeenCalled()
++    expect(mocks.listProcessWork).not.toHaveBeenCalled()
++
++    resolveLocale('en')
++    const data = await dataPromise
++
++    expect(mocks.listProcessWork).toHaveBeenCalledTimes(2)
++    expect(mocks.listProcessWork).toHaveBeenNthCalledWith(
++      1,
++      expect.objectContaining({ administrationId: 'synthetic-administration', language: 'en', tab: 'TODO' }),
++      expect.objectContaining({ context: auth, supabase }),
++    )
++    expect(data).toMatchObject({ isHrAdmin: true, isManager: false, scope: 'company', journeyOnly: false })
++  })
++})
+diff --git a/apps/hr-suite/lib/startpage/service.ts b/apps/hr-suite/lib/startpage/service.ts
+index d23c3821..f3ef1a0b 100644
+--- a/apps/hr-suite/lib/startpage/service.ts
++++ b/apps/hr-suite/lib/startpage/service.ts
+@@ -25,6 +25,7 @@ export interface StartPageDependencies {
+   auth: AuthContext
+   activeContext: ActiveContext
+   locale?: Locale
++  localePromise?: Promise<Locale>
+   performance?: ServerPerformanceTrace
+   journeyOnly?: boolean
+   journeys?: JourneyProjectionList
+@@ -542,7 +543,12 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
+     employeeScopePromise.then((employeeScope) => measure('recurringAbsence', () => countRecurringAbsence(auth, employeeScope, supabase))),
+     measure('countdowns', () => getStartPageCountdowns(auth, supabase)),
+     measure('continuousAppraisal', () => getStartPageContinuousAppraisal({ context: auth, supabase })),
+-    measure('processWork', () => getStartPageProcessWork(auth, supabase, dependencies?.locale ?? 'nl')),
++    measure('processWork', async () => {
++      const locale = dependencies?.localePromise
++        ? await dependencies.localePromise
++        : dependencies?.locale ?? 'nl'
++      return getStartPageProcessWork(auth, supabase, locale)
++    }),
+     isManager && scope === 'team'
+       ? managerTeamEmployeeIdsPromise.then((managerTeamEmployeeIds) => measure('teamAvailability', () => loadTeamAvailability(auth, managerTeamEmployeeIds, supabase)))
+       : Promise.resolve(null),

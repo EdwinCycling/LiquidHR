@@ -24,9 +24,11 @@ Gebruik vanuit de repositoryroot:
 ```powershell
 .\scripts\start-test-worktree.ps1 -Mode Development -PreflightOnly
 .\scripts\start-test-worktree.ps1 -Mode Development -PayrollAcceptance
+.\scripts\start-test-worktree.ps1 -Mode Development -BsnAcceptance -PreflightOnly
+.\scripts\start-test-worktree.ps1 -Mode Development -BsnAcceptance
 ```
 
-De eerste opdracht controleert zonder serverstart; de tweede start Next.js op `127.0.0.1:3010`. De scriptcontrole omvat de centrale config (alleen vereiste namen/aanwezigheid), het vaste Core TEST-project, runtimeversie, bestaande workspace-dependencies, vrije loopback-poort en start/buildscripts. Met `-PayrollAcceptance` worden ook het vaste Payroll Lab TEST-project, de Payroll-runtimevelden en exact `PAYROLL_LAB_ENABLED=true` gecontroleerd. De enige ondersteunde Core-clientkey is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+De eerste opdracht controleert zonder serverstart; de tweede start Next.js op `127.0.0.1:3010`. De scriptcontrole omvat de centrale config (alleen vereiste namen/aanwezigheid), het vaste Core TEST-project, runtimeversie, bestaande workspace-dependencies, vrije loopback-poort en start/buildscripts. Met `-PayrollAcceptance` worden ook het vaste Payroll Lab TEST-project, de Payroll-runtimevelden en exact `PAYROLL_LAB_ENABLED=true` gecontroleerd. Voor lokale BSN-afhankelijke acceptatie gebruikt `-BsnAcceptance` uitsluitend Development-mode en vereist de preflight de bestaande `BSN_HASH_KEY` en `EMPLOYEE_PII_ENCRYPTION_KEY` met geldig formaat; alleen veldnamen kunnen in foutmeldingen verschijnen. De runner blijft eerst bestaande Node/Next-, package- en workspace-dependencies controleren en installeert niets. De enige ondersteunde Core-clientkey is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 
 Maak een productiebuild vanaf een schone, vastgelegde kandidaat met:
 
