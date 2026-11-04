@@ -1,5 +1,8 @@
 # AA-PAYROLL — LiquidHR Payroll Development Standard
 
+> **04-11-2026 — CODE-/ROADMAPCHECK:** de geconsolideerde Payroll-code staat in `main` en de bestaande Vercel-TEST-app draait op dezelfde geverifieerde bron-SHA `fbe44908`. Het globale Payroll-schakelpunt staat AAN; tenant-, HR-groep-, administratie- en RLS-autoristatie blijft leidend. Zie [de audit met aanwezige modules, tests, migraties, bronlacunes en PFAST/P2-roadmap](AA-PAYROLL-AUDIT-20261104.md). Deze nieuwe toets is geen wettelijke of gehoste payrollacceptatie; oude statusblokken hieronder blijven historisch.
+
+
 ## PAYROLL FAST TRACK — ontwikkelstandaard (29 oktober 2026)
 
 **Besluit:** bouw korte, bruikbare verticale Payroll-slices; vermijd herhaalde volledige test- en documentatierondes. Snelheid is een doel, niet het versoepelen van geldbedragen, persoonsgegevens, wettelijke regels of RLS.
