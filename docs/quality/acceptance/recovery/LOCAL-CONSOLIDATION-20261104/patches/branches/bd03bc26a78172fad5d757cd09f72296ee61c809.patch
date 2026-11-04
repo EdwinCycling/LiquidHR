@@ -1,0 +1,102 @@
+diff --git a/apps/hr-suite/app/oauth/consent/page.test.tsx b/apps/hr-suite/app/oauth/consent/page.test.tsx
+index ac84488d..405e8b1b 100644
+--- a/apps/hr-suite/app/oauth/consent/page.test.tsx
++++ b/apps/hr-suite/app/oauth/consent/page.test.tsx
+@@ -17,12 +17,24 @@ vi.mock('@/lib/api-v1/auth/employee-self-context', () => ({ resolveEmployeeSelfC
+ vi.mock('@/lib/i18n/server', () => ({ getTranslator }))
+ vi.mock('@/lib/supabase/server', () => ({ createClient }))
+ 
++import { CHATGPT_MCP_TOOLS } from '@/lib/workforce-tools/mcp/chatgpt-metadata'
+ import OAuthConsentPage from './page'
+ 
+ const AUTHORIZATION_ID = 'f6a4c2e8b1d3a5f70918273645546321'
+ const CALLBACK_URL = 'https://chatgpt.com/connector/oauth/callback'
+ const RESOURCE_URL = 'https://liquid-hr-hr-suite.vercel.app/mcp'
+ 
++const consentCategoryByTool = {
++  'employee.talent.development-plans.read': 'oauthConsentDevelopmentPlans',
++  'employee.talent.development-gaps.read': 'oauthConsentDevelopmentGaps',
++  'employee.talent.skills.read': 'oauthConsentSkills',
++  'employee.talent.competencies.read': 'oauthConsentCompetencies',
++  'employee.leave.balance.read': 'oauthConsentLeaveBalance',
++  'employee.leave.next.read': 'oauthConsentNextLeave',
++  'employee.leave.requests.read': 'oauthConsentLeaveRequests',
++  'employee.reminders.read': 'oauthConsentReminders',
++} as const
++
+ function response(authorizationId = AUTHORIZATION_ID, overrides: Record<string, unknown> = {}): Record<string, unknown> {
+   return {
+     authorization_id: authorizationId,
+@@ -66,6 +78,20 @@ describe('GET /oauth/consent page', () => {
+     })
+   })
+ 
++  it('discloses each read category exposed by the ChatGPT MCP catalog', async () => {
++    const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
++    const copy = pageText(page).join(' ')
++    const toolNames = CHATGPT_MCP_TOOLS.map((tool) => tool.name).sort()
++    const disclosedToolNames = Object.keys(consentCategoryByTool).sort()
++
++    expect(disclosedToolNames).toEqual(toolNames)
++    for (const key of Object.values(consentCategoryByTool)) {
++      expect(copy).toContain(key)
++      expect(nlAuthMessages[key]).toBeTruthy()
++      expect(enAuthMessages[key]).toBeTruthy()
++    }
++  })
++
+   it('authenticates before loading pending details and shows Supabase metadata with pre-consent user_id NULL', async () => {
+     const page = await OAuthConsentPage({ searchParams: Promise.resolve({ authorization_id: AUTHORIZATION_ID }) })
+     const text = pageText(page)
+diff --git a/apps/hr-suite/app/oauth/consent/page.tsx b/apps/hr-suite/app/oauth/consent/page.tsx
+index 85f6d9ec..c0bec0e6 100644
+--- a/apps/hr-suite/app/oauth/consent/page.tsx
++++ b/apps/hr-suite/app/oauth/consent/page.tsx
+@@ -167,7 +167,16 @@ export default async function OAuthConsentPage({ searchParams }: OAuthConsentPag
+           <div>
+             <h2 className="text-sm font-semibold text-foreground">{auth('oauthConsentDataTitle')}</h2>
+             <ul className="mt-3 space-y-2.5 text-sm leading-6 text-muted-foreground">
+-              {[auth('oauthConsentDevelopmentPlans'), auth('oauthConsentDevelopmentGaps'), auth('oauthConsentSkills'), auth('oauthConsentCompetencies')].map((item) => (
++              {[
++                auth('oauthConsentDevelopmentPlans'),
++                auth('oauthConsentDevelopmentGaps'),
++                auth('oauthConsentSkills'),
++                auth('oauthConsentCompetencies'),
++                auth('oauthConsentLeaveBalance'),
++                auth('oauthConsentNextLeave'),
++                auth('oauthConsentLeaveRequests'),
++                auth('oauthConsentReminders'),
++              ].map((item) => (
+                 <li className="flex items-start gap-2.5" key={item}>
+                   <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-accent-foreground" />
+                   <span>{item}</span>
+diff --git a/apps/hr-suite/messages/en/auth.json b/apps/hr-suite/messages/en/auth.json
+index e5b6419c..03f6026b 100644
+--- a/apps/hr-suite/messages/en/auth.json
++++ b/apps/hr-suite/messages/en/auth.json
+@@ -79,6 +79,10 @@
+   "oauthConsentDevelopmentGaps": "Development gaps from your current role profile.",
+   "oauthConsentSkills": "Your registered skills and levels.",
+   "oauthConsentCompetencies": "Your registered competencies and levels.",
++  "oauthConsentLeaveBalance": "Your current leave balance by type, including the as-of date and available expiry information.",
++  "oauthConsentNextLeave": "Your next future approved leave request.",
++  "oauthConsentLeaveRequests": "Your open and approved leave requests, including their status and period.",
++  "oauthConsentReminders": "Your personal reminders, due date, and current status.",
+   "oauthConsentSelfOnly": "LiquidHR resolves your employee context. ChatGPT cannot choose an employee, customer environment, HR group, administration, or role.",
+   "oauthConsentReadOnly": "This connection can only read data. ChatGPT cannot change anything in LiquidHR.",
+   "oauthConsentEmailScope": "The email scope shares your account email with ChatGPT.",
+diff --git a/apps/hr-suite/messages/nl/auth.json b/apps/hr-suite/messages/nl/auth.json
+index 7346eeca..2402f232 100644
+--- a/apps/hr-suite/messages/nl/auth.json
++++ b/apps/hr-suite/messages/nl/auth.json
+@@ -79,6 +79,10 @@
+   "oauthConsentDevelopmentGaps": "Ontwikkelgaps uit je actuele functieprofiel.",
+   "oauthConsentSkills": "Je geregistreerde skills en niveaus.",
+   "oauthConsentCompetencies": "Je geregistreerde competenties en niveaus.",
++  "oauthConsentLeaveBalance": "Je actuele verlofsaldo per type, met peildatum en beschikbare vervalinformatie.",
++  "oauthConsentNextLeave": "Je eerstvolgende toekomstige, goedgekeurde verlofaanvraag.",
++  "oauthConsentLeaveRequests": "Je lopende en goedgekeurde verlofaanvragen met status en periode.",
++  "oauthConsentReminders": "Je persoonlijke reminders, vervaldatum en actuele status.",
+   "oauthConsentSelfOnly": "LiquidHR bepaalt je medewerkercontext. ChatGPT kan geen medewerker, klantomgeving, HR-groep, administratie of rol kiezen.",
+   "oauthConsentReadOnly": "Deze koppeling kan alleen gegevens lezen. ChatGPT kan niets in LiquidHR aanpassen.",
+   "oauthConsentEmailScope": "De e-mailscope deelt je accountadres met ChatGPT.",

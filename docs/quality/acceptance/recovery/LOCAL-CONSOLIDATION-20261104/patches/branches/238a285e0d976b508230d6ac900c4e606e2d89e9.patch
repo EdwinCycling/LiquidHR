@@ -1,0 +1,54 @@
+diff --git a/docs/delivery/CURRENT_CONTEXT.md b/docs/delivery/CURRENT_CONTEXT.md
+index 2a020b7b..10aaa400 100644
+--- a/docs/delivery/CURRENT_CONTEXT.md
++++ b/docs/delivery/CURRENT_CONTEXT.md
+@@ -1,13 +1,13 @@
+ # Actuele overdracht Liquid HR
+ 
+-## ONE VERSION — redeployment and hosted acceptance — 2026-10-03
+-
+-- Geaccepteerde releasebron: GitHub `main` commit `6349d02538351cd01fc51f298c6e6fa0ba88006c`; integratieacceptatie `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96` en bestaande PAYLAB desktop-/390 px-bewijzen blijven de codebasis.
+-- De drie ontbrekende Payroll-namen zijn nu aanwezig in Vercel-project `liquidhr`, doelomgeving `Production`: `PAYROLL_LAB_ENABLED`, `PAYROLL_SUPABASE_URL` en `PAYROLL_SUPABASE_SECRET_KEY`. Alleen aanwezigheid en doelomgeving gecontroleerd; geen waarde geopend, gelezen of vastgelegd.
+-- Eén gecontroleerde Production-redeployment van de bestaande `main`-deployment leverde `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5`, status `READY`, exacte SHA `6349d02538351cd01fc51f298c6e6fa0ba88006c` en canonieke TEST-alias `https://liquid-hr-hr-suite.vercel.app`.
+-- De bestaande geauthenticeerde browser stond op de immutable host van de vorige deployment. Op de canonieke alias eindigt `/dashboard/start` nu op `/login?next=%2Fdashboard%2Fstart`; er is dus geen Edwin-sessie op de huidige canonieke host beschikbaar voor Payroll-smoke. Geen credentials gevraagd of gelezen en geen auth-/rechten-/cookiewijziging gedaan. Hosted Dashboard/Payroll, historische runs, componenten en mobiel 390 px blijven open.
+-- ONE VERSION blijft **NOT FULLY GREEN** totdat Edwin zich normaal aanmeldt op de canonieke TEST-alias met de bestaande geautoriseerde HR Admin en Planeten/Jupiter BV-context, waarna de beperkte hosted smoke kan worden afgerond.
+-- De verplichte Vercel env/verbinding/featureflag-preflight en les over Production-scoped Payroll-config staan nu in [`docs/AA/AA-REL.md`](../AA/AA-REL.md). Geen code-, database-, auth- of rechtenwijziging; geen nieuwe merge of push.
++## ONE VERSION — hosted Payroll acceptance — 2026-10-03
++
++- Releasebron: GitHub `main` commit `6349d02538351cd01fc51f298c6e6fa0ba88006c`; deployment `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5` is `READY` op de canonieke TEST-alias `https://liquid-hr-hr-suite.vercel.app` met exact die SHA.
++- De variabelen `PAYROLL_LAB_ENABLED`, `PAYROLL_SUPABASE_URL` en `PAYROLL_SUPABASE_SECRET_KEY` zijn bevestigd aanwezig in Vercel `Production`; uitsluitend namen en doelomgeving gecontroleerd, geen waarden gelezen.
++- De geauthenticeerde Edwin-sessie is nu op de canonieke URL met HR-groep `Planeten`. De Payroll-runweergave bevestigt administratie `PAYLAB GC-NL-001 — Jupiter BV`. Dashboard en Payroll Lab zijn gestyled; heen-/terugnavigatie slaagde. De Payroll Lab toont exact de tegels `Berekeningen` en `Salariscomponenten`; de componentenbibliotheek opende met 26 entries (24 SYSTEM, twee bestaande klantconcepten).
++- Historische M0-run `3d83c8ca-2ebe-47f7-9735-76e7377168d7` en NL-2026-run `06f7a7ff-fc8f-4ffe-aeb6-a9aed10f98ae` zijn beide `SUCCEEDED` op Jupiter BV; uitkomsten en bron/input/result-hashes komen overeen met PAYLAB03/PAYLAB04.
++- Edwin heeft bevestigd dat de mobiele eis de Chrome Responsive DevTools mobile preset is en geen vaste 390 px-breedte. De handmatige screenshots tonen deze preset als `iPhone 16 · 393 × 852`, met normale opmaak van Berekeningen (`SUCCEEDED`, `PAYLAB GC-NL-001 — Jupiter BV`) en Salariscomponenten (26 gevonden). Samen met de geslaagde hosted desktopcontrole van Dashboard, beide tegels, routecyclus, historische M0/NL-2026-resultaten/traces en componentenbibliotheek is de gevraagde hosted acceptatie **ONE VERSION — GREEN**.
++- AA-releaseprocedure is bijgewerkt met verplichte variabele-, verbindingen- en featureflag-preflight plus de Production-configuratie-les: [`docs/AA/AA-REL.md`](../AA/AA-REL.md). Documentatiecommits blijven lokaal en zijn niet gepusht. Geen code-, database-, auth- of rechtenwijziging; geen nieuwe build, redeployment, merge of push.
+ - Actueel acceptatierapport: `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
+ 
+ ## PAYLAB00–04 integration handoff — 2026-10-02
+diff --git a/docs/quality/acceptance/runs/ONE-VERSION-20261002.md b/docs/quality/acceptance/runs/ONE-VERSION-20261002.md
+index bc057f0c..6e829023 100644
+--- a/docs/quality/acceptance/runs/ONE-VERSION-20261002.md
++++ b/docs/quality/acceptance/runs/ONE-VERSION-20261002.md
+@@ -1,6 +1,6 @@
+ # ONE VERSION — Payroll TEST release — 2026-10-02
+ 
+-**Status: NOT FULLY GREEN — CANONICAL HOSTED SESSION REQUIRED.** The accepted PAYLAB00–04 integration remains MERGE-READY. The missing Payroll variable names are now present in Vercel Production and one redeployment of the existing main commit is READY; hosted Payroll acceptance is blocked because the existing authenticated browser session is only on the old immutable deployment host and the canonical TEST alias opens the normal login page.
++**Status: ONE VERSION — GREEN (HOSTED TEST ACCEPTANCE).** The accepted PAYLAB00–04 integration remains MERGE-READY. The missing Payroll variable names are present in Vercel Production and one redeployment of the existing main commit is READY. Hosted desktop checks passed for Dashboard, Payroll Lab, both tiles, navigation, historical M0/NL-2026 results/traces, component library and Jupiter administration. Per Edwin's clarification, the mobile criterion is Chrome Responsive DevTools' mobile preset rather than a fixed 390 px width. The supplied `iPhone 16 · 393 × 852` screenshots show normal styling and successful Jupiter calculation output on Berekeningen and 26 entries on Salariscomponenten; together with the desktop acceptance, the required hosted mobile coverage is accepted.
+ 
+ ## Scope and baselines
+ 
+@@ -54,10 +54,12 @@ The Vercel Preview flow uses Preview-scoped configuration and separate synthetic
+ 
+ ## GitHub, Vercel and hosted TEST proof
+ 
+-- Pull request: **PENDING**.
+-- Final `main` commit: **PENDING**.
++- Pull request: **N/A for this redeployment**; it reused existing GitHub `main`.
++- Deployed `main` commit: `6349d02538351cd01fc51f298c6e6fa0ba88006c`.
+ - Vercel `liquidhr` deployment: `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5`, **READY / Production**, exact source SHA `6349d02538351cd01fc51f298c6e6fa0ba88006c`, canonical TEST alias `liquid-hr-hr-suite.vercel.app`.
+-- Hosted smoke: the old immutable host retains the authenticated Edwin Dashboard session with `Planeten`. The canonical alias opens the normal login page; no hosted Payroll route acceptance was performed on the new deployment. Payroll Lab tiles, history/traces, components, navigation and mobile 390 px are **BLOCKED** until the existing authorized user signs into the canonical alias.
++- Hosted smoke on the canonical alias: the existing Edwin session is signed in with `Planeten`; Dashboard and Payroll Lab rendered with normal styling. Dashboard → Payroll Lab and return navigation worked. Payroll Lab showed exactly the `Berekeningen` and `Salariscomponenten` tiles; the components tile opened the library (26 total entries: 24 SYSTEM components and two existing customer drafts).
++- Active Payroll administration was shown as `PAYLAB GC-NL-001 — Jupiter BV` on both historical results. Historical M0 run `3d83c8ca-2ebe-47f7-9735-76e7377168d7` returned `SUCCEEDED`, net `€ 3.175,00`, employer cost `€ 4.910,00`, hashes matching PAYLAB04: source `d751c32f1e54b6bbed64eec7314340b6c7a247a79e5a2792144068c19ce87854`, input `ae1a740b0c1b3bad2ee07edd71fa331203f7496c0fc244a5e050530efa41c345`, result `f23fa646764176becc9bb78cacba1e3909b3640f97103ae6386168ee6ef61acd`. Historical NL-2026 run `06f7a7ff-fc8f-4ffe-aeb6-a9aed10f98ae` returned `SUCCEEDED`, net `€ 3.181,33`; source/input/result hashes exactly matched PAYLAB03/PAYLAB04: `6e4e9e1c2d51eb4b06e28fc226a19a413b314b66c4cb7231b40d26be83c13d0c`, `47246b1f3e7037a11eb7ddd68303a9ed1625e5c62cf3fc4e4469d4833ff6c17a`, `a2995a7af2a6b1876f5b5ccb21fb5db04a7f4a2ddfe190699cdda9f871e41cc5`. No new calculation was started.
++- Supplemental hosted mobile evidence supplied by Edwin: both Chrome Responsive DevTools screenshots report `iPhone 16 · 393 × 852`, the selected mobile preset now accepted in place of a fixed 390 px viewport. Berekeningen is styled and shows NL-2026/synthetic case controls, `SUCCEEDED`, administration `PAYLAB GC-NL-001 — Jupiter BV` and result amounts. Salariscomponenten is styled and shows search/category/ownership/status filters and 26 found components. Hosted desktop evidence covers the overview tiles, navigation cycle, historical runs/traces and component-library acceptance. No additional browser automation was run for this documentation update.
+ - Shared TEST data/database: existing Payroll Lab migration/readbacks are unchanged; this release applies no migration and performs no database write.
+ - Separate CONVERGENCE01 release security/persona acceptance remains **OPEN** and is not reclassified by this TEST release.
+ - Existing branches and worktrees, including Nmbrs work, remain untouched; no cleanup was performed.

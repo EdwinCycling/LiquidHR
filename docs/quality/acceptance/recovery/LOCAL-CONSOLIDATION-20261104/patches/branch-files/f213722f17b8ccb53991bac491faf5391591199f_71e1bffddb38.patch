@@ -1,0 +1,58 @@
+diff --git a/docs/delivery/IMPLEMENTATION_STATUS.md b/docs/delivery/IMPLEMENTATION_STATUS.md
+index 1ad3ff00..d2861a04 100644
+--- a/docs/delivery/IMPLEMENTATION_STATUS.md
++++ b/docs/delivery/IMPLEMENTATION_STATUS.md
+@@ -1,5 +1,53 @@
+ # Implementatiestatus Liquid HR
+ 
++## PAYLAB00 close + PAYLAB01 source adapter — 2026-09-30
++
++**PAYLAB00: ENVIRONMENT-GATED / CLOSED; database/isolation foundation
++accepted. PAYLAB01: PARTIAL.** The previously authorized Payroll Lab
++migration and database/security readback were accepted. A fresh local test
++login's authenticated context read failed with PostgREST
++`PGRST303: JWT issued at future`; Auth/PostgREST time validation in the test
++environment blocks the remaining live proof.
++
++PAYLAB01 adds a pure provider contract and a server-only LiquidHR adapter using
++existing employment services. It validates the source schema, matches source
++scope to the authenticated context, maps employment/salary/schedule timelines,
++records explicit CONTROL02 and fiscal source gaps, honors the Payroll Lab kill
++switch before authorization/source reads, and computes a deterministic
++SHA-256 hash. Targeted verification: **12 files / 62 tests**, strict
++TypeScript, changed-area ESLint and production build passed. The build generated
++300 pages; its negative control and browser client-boundary scan passed on
++143 assets, and the exact Payroll secret scan found zero matches.
++
++Core schema/config/migration delta is zero; CONTROL02 is untouched. No Core
++business data was created or modified; no Payroll migration was added/applied
++in this slice. Full-suite reruns are excluded under bounded AA-TEST. PAYLAB02,
++push and merge remain unstarted. See [`PAYLAB acceptance evidence`](../payroll/acceptance/PAYLAB00-01-20260930.md).
++
++## PAYLAB00 — initial status snapshot (superseded)
++
++**Status: lokale codegates GREEN; totale PAYLAB00 RED / remote migration niet
++geautoriseerd of toegepast.** Branch `work/paylab00`, exacte startcommit
++`5ac6060236c947b5029d76de2998fa7ab9435e01`. De afzonderlijke server-only
++Payroll client, pure TypeScript engine-contracten, scoped repository, feature-
++en capability-gates, beschermde `/payroll-lab` shell en aparte negen-tabellen-
++migration zijn geïmplementeerd. Core employee/employment/IKV, CONTROL02,
++Core-migraties en dependencies zijn niet aangepast.
++
++Lokale verificatie: hr-suite `478/478` bestanden en `1918/1918` tests met
++`--maxWorkers=2`; strict TypeScript, ESLint, Next production build
++`299/299`, Payroll boundary/migration/access tests en automatische browserbundle scan zijn
++GREEN. De scanner vond en verwierp de tijdelijke niet-geheime testmarker;
++schone scan: 150 assets. Een onbegrensde volledige run time-outte eenmaal op
++de bestaande PDF-renderertest; die geïsoleerde test slaagde in 2,9s en de
++volledige beperkte-parallelle run slaagde. Core migration/config delta vanaf
++de exacte basis is nul. Zie [`PAYLAB00 status`](../payroll/PAYLAB_STATUS.md).
++
++Remote Payroll-schema/RLS readback, capability-provisioning en geauthenticeerde
++pagina-acceptatie blijven open. De remote migration is uitsluitend code en
++wacht op expliciete autorisatie; daarna is de volgende gate PAYLAB00 remote
++convergence. PAYLAB01 niet starten.
++
+ ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
+ 
+ **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance environment-gated.**

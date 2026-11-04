@@ -16,6 +16,19 @@ $launcherAst = [System.Management.Automation.Language.Parser]::ParseFile(
 if ($parseErrors.Count -gt 0) {
     throw "start-test-worktree.ps1 bevat PowerShell-syntaxfouten: $($parseErrors -join '; ')"
 }
+foreach ($requiredBsnToken in @(
+    '[switch]$BsnAcceptance',
+    '$BsnAcceptance -and ($Mode -ne ''Development'' -or $Build)',
+    'BSN_HASH_KEY',
+    'EMPLOYEE_PII_ENCRYPTION_KEY',
+    'decodedEncryptionKey.length !== 32',
+    "process.argv[3] === 'true'",
+    'ls --workspaces --depth=0 --json'
+)) {
+    if ($launcherSource -notmatch [Regex]::Escape($requiredBsnToken)) {
+        throw "BSN-acceptatiecontract mist verplichte gate: $requiredBsnToken"
+    }
+}
 $forbiddenProcessCommand = 'Stop' + '-Process'
 if ($launcherSource -match "(?im)$forbiddenProcessCommand") {
     throw 'De runner mag geen willekeurige bestaande processen stoppen.'

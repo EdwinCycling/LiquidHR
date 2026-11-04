@@ -1,0 +1,11 @@
+diff --git a/apps/hr-suite/.env.example b/apps/hr-suite/.env.example
+index 2e6b3c1e..e04645e7 100644
+--- a/apps/hr-suite/.env.example
++++ b/apps/hr-suite/.env.example
+@@ -17,3 +17,6 @@ AI_PROVIDER_MAX_CONCURRENT=2
+ AI_PROVIDER_GLOBAL_MAX_OUTPUT_TOKENS=4096
+ AI_PROVIDER_GLOBAL_MAX_INPUT_CHARACTERS=16000
+ AI_PROVIDER_LEASE_SECONDS=120
++PAYROLL_LAB_ENABLED=false
++PAYROLL_SUPABASE_URL=
++PAYROLL_SUPABASE_SECRET_KEY=

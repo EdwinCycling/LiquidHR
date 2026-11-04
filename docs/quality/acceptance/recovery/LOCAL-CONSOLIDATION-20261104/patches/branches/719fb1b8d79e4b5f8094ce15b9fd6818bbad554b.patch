@@ -1,0 +1,655 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 21335925..f6568c6a 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -5,8 +5,10 @@ Motto: **It takes a genius to keep it simple.**
+ ## Start en instructieprioriteit
+ 
+ - Lees dit bestand vóór wijzigingen. Lees daarna de concrete opdracht en de actuele kop van [`docs/AA/AA-CURRENT.md`](docs/AA/AA-CURRENT.md); gebruik [`docs/AA/AA-README.md`](docs/AA/AA-README.md) als router.
++- Volg voor alle productmodules [`docs/architecture/PRODUCT_ENVIRONMENT_PARITY.md`](docs/architecture/PRODUCT_ENVIRONMENT_PARITY.md): TEST is omgevings- en herkomstinformatie, geen afwijkende productfunctionaliteit. Normale klantflows, rechten en presentatie blijven gelijk; technische TEST-beperkingen horen in de omgeving en distributielaag.
+ - Lees alleen toepasselijke AA-secties en requirements/ADR's van het geraakte domein. Laad `docs/README.md`, `docs/delivery/CURRENT_CONTEXT.md`, `docs/delivery/IMPLEMENTATION_STATUS.md` en historische rapporten niet volledig tenzij de concrete taak die inhoud nodig heeft. Zoek gericht op onderwerp, datum, route of evidence-ID.
+ - Bij conflict geldt: (1) actuele expliciete opdracht en mandaat; (2) niet-onderhandelbare privacy-, security- en data-integriteitsgrenzen; (3) dit operationele contract; (4) toepasselijke AA-documenten; (5) goedgekeurde domeinrequirements/architectuur; (6) historische rapporten uitsluitend als bewijs/context. Herstel een conflict op de juiste plek.
++- Voor een conflict over TEST/Production-productwerking is `docs/architecture/PRODUCT_ENVIRONMENT_PARITY.md` de bindende productregel en gaat die vóór oudere domeinontwerpen; herstel de strijdige instructie op de plek waar die ontstond.
+ 
+ ## Uitvoeringsmandaat
+ 
+@@ -41,6 +43,7 @@ Motto: **It takes a genius to keep it simple.**
+ - Gebruik Engelse database-entiteiten en identifiers; Nederlandse, i18n-klare comments, documentatie, zichtbare tekst en fouten. Nederlands (`nl`) is standaard; NL en EN hebben dezelfde keys. Voeg een taal als volledige namespace-set toe onder `apps/hr-suite/messages/<taalcode>/`.
+ - Na een schemawijziging: relevante Supabase advisors controleren en `packages/db/types.ts` genereren/verifiëren. Migrations zijn forward-only; herschrijf geen historische migratieregistratie. Test kritieke autorisatie- en salarislogica test-first.
+ - Payroll behoudt exacte decimalen, wettelijke afrondingsstappen, versionering, immutable history en bron-/resultaatprovenance; raadpleeg `AA-PAYROLL.md` voor de volledige domeingates.
++- Klantgerichte schermen en documenten tonen geen technische test-, fixture- of herkomstlabels enkel vanwege de omgeving. Leg omgevings- en gegevensherkomst intern vast in audit/provenance; normale handelingen lopen via reguliere productservices en rechten.
+ - `apps/hr-suite` gebruikt UX Foundation v1. Hergebruik bestaande primitives/patterns/layouts; plaats generieke componenten respectievelijk in `components/ui`, `components/patterns` en `components/layout`, domeincomponenten in hun featuremap. Rapporteer een ontbrekende gedeelde component als `FOUNDATION_GAP` in plaats van een lokale kopie te bouwen.
+ - UI gebruikt Tailwind v4, Foundation CSS-variabelen, Lucide voor standaardiconen en toegankelijke `focus-visible`-states. Geen hardcoded hex, willekeurige radius/shadow/gradient of standaard hover-lift. Surfaces zijn vlak met semantische border/radius zonder standaard shadow; voorkom card-on-card.
+ - Behoud `/employees` als lijst-/workbenchreferentie en Employee Detail met `DetailColumns` (ongeveer 2/3 inhoud, 1/3 aside). Closed value lists gebruiken een toegankelijke doorzoekbare keuzecomponent met zichtbare selectie; beheerstamdata is lijst-eerst met zoeken/filter/sort, klikrij en modal bewaren/annuleren; archiveren is een expliciete modalactie.
+diff --git a/docs/AA/AA-CURRENT.md b/docs/AA/AA-CURRENT.md
+index 7cb7f7d9..1fb8c20f 100644
+--- a/docs/AA/AA-CURRENT.md
++++ b/docs/AA/AA-CURRENT.md
+@@ -2,6 +2,10 @@
+ 
+ Status: **ACTUEEL / LIVING**
+ Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
++
++## Blijvende productregel (besluit 2026-10-17)
++
++Voor alle modules is TEST uitsluitend een omgeving en gegevensherkomst. De klantworkflow, productrechten en klantgerichte inhoud blijven gelijk aan Production; technische TEST-blokkades gelden voor externe acties in de omgeving/distributielaag. Interne herkomst blijft aantoonbaar in audit/provenance en wordt niet als TEST-label in normale schermen of documenten getoond. Zie de leidende [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md); deze regel verandert historische acceptance-verdicts niet.
+ 
+ ## TALENT-CONVERGENCE-01 — lokale codeconvergentie (2026-10-16)
+ 
+diff --git a/docs/AA/AA-OP.md b/docs/AA/AA-OP.md
+index af5f2be9..4526c90b 100644
+--- a/docs/AA/AA-OP.md
++++ b/docs/AA/AA-OP.md
+@@ -10,6 +10,7 @@ Codex mag zelfstandig:
+ - een concreet defect reproduceren, de oorzaak vaststellen, in scope repareren en gericht hertesten;
+ - tests toevoegen en passende typecheck-, lint-, build- of browserchecks uitvoeren;
+ - bestaande synthetische TEST-fixtures lezen/gebruiken binnen expliciet toegestane scope;
++- productgedrag en acceptatie afstemmen op [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md): normale flows gebruiken reguliere services/rechten, terwijl fixture-provisioning uitsluitend intern hulpmiddel blijft;
+ - alleen expliciet geselecteerde eigen wijzigingen committen en een Draft PR openen indien de bestaande workflow dat vereist;
+ - een merge-/releaseworkflow uitvoeren wanneer de **oorspronkelijke opdracht** dat expliciet autoriseert.
+ 
+diff --git a/docs/AA/AA-PAYROLL.md b/docs/AA/AA-PAYROLL.md
+index 8760d36d..17fa8402 100644
+--- a/docs/AA/AA-PAYROLL.md
++++ b/docs/AA/AA-PAYROLL.md
+@@ -11,6 +11,8 @@ Hoofdstuk 13 hieronder blijft de gezaghebbende vaststelling van de oorspronkelij
+ 
+ Dit document legt de structurele product-, architectuur- en ontwikkelafspraken voor LiquidHR Payroll vast. Detailrequirements, fiscale bronbestanden en gedateerde acceptance evidence blijven elders staan.
+ 
++Voor alle Payroll- en pensioenflows geldt daarnaast de leidende [regel voor productwerking per omgeving](../architecture/PRODUCT_ENVIRONMENT_PARITY.md). Productbediening en presentatie zijn niet TEST-specifiek; interne dataherkomst, wettelijke onderbouwing en externe-actiesafety blijven afzonderlijk aantoonbaar.
++
+ ## 1. Productgrens
+ 
+ Payroll is onderdeel van dezelfde LiquidHR-app en dezelfde repository.
+@@ -21,6 +23,8 @@ Payroll is onderdeel van dezelfde LiquidHR-app en dezelfde repository.
+ - PAYLAB04 maakt de tegels `Berekeningen` en `Salariscomponenten` functioneel; toekomstige functies zoals `Cao's en regelingen`, `Controles` en `Historie` worden later als venster toegevoegd wanneer ze echt werken.
+ - Payroll gebruikt dezelfde app-shell, styles, tokens, componenten, responsive patterns, i18n en authorization-aware UI-patronen als de rest van LiquidHR.
+ - Er komt geen afzonderlijk Payroll design system of losse gebruikersapp voor deze productlijn.
++- Core-pensioeninrichting en toepasselijke werknemerskoppeling volgen de normale beheerflow; requirements staan in [PAYPENS01](../requirements/payroll/PAYPENS01-CORE-PENSION-PRODUCT-DESIGN.md).
++- TEST beperkt geen reguliere Payroll- of pensioenfunctionaliteit. Klantinrichting, berekenen, controleren, herberekenen, finaliseren en documentproductie volgen dezelfde productservices en normale rechten in iedere omgeving; externe acties worden op omgevings-/distributieniveau geblokkeerd waar nodig.
+ 
+ Technische isolatie blijft wel expliciet:
+ 
+@@ -182,11 +186,12 @@ Voor dezelfde fixture + engine/rule/inputversie moeten minimaal stabiel zijn:
+ 
+ Een nieuwe run mag een nieuwe run-id/timestamp hebben.
+ 
+-## 8. Payroll development mode
++## 8. Productwerking en development mode
+ 
+-Zolang Payroll uitsluitend intern/test is:
++De productworkflow is gelijk in TEST en Production. De huidige technische/legal-readinessstatus wordt apart beoordeeld en mag niet worden verward met een TEST-only productvariant. Voor intern ontwikkelen en accepteren:
+ 
+-- synthetische testdata is toegestaan;
++- is gecontroleerde synthetische testdata toegestaan; de data staat via de normale productservices in de normale administratiecontext;
++- blijven fixture- en provisioningsflows afgeschermde interne hulpmiddelen en geen vereiste klantstap;
+ - zichtbare verticale slices krijgen voorrang boven langdurige tussenarchitectuur zonder payrollresultaat;
+ - niet-kritieke issues mogen als `KNOWN ISSUE / LATER CHECK` worden geregistreerd;
+ - werkcyclus: implementeren → targeted test → onafhankelijke review waar nuttig → fix → retest → verder;
+@@ -269,6 +274,8 @@ Later als werkende overzichtstegels:
+ 
+ **Geen afzonderlijke Payroll-submenu's in de sidebar.** Onderliggende routes mogen bestaan achter de overzichtstegels; voeg een terugnavigatie naar Payroll Lab toe en behoud bestaande berekeningsflows en backward compatibility waar nodig. Toon geen niet-functionele navigatie-acties. Dezelfde server-side autorisatie- en NL/EN-i18n-patronen gelden voor overzicht en bestemmingen.
+ 
++Gebruik in normale schermen en klantdocumenten geen TEST-, fixture-, demo- of synthetische labels enkel vanwege de omgeving. Een conceptstatus blijft wel zichtbaar wanneer de document- of runstatus daadwerkelijk CONCEPT is. Interne provenance wordt auditbaar opgeslagen, niet in de klantpresentatie.
++
+ ## 11. Bewezen M0-baseline
+ 
+ PAYLAB02 M0 heeft op 2026-09-30 lokaal/authenticated bewezen:
+@@ -524,7 +531,7 @@ Deze status wijzigt niets aan de toekomstige invarianten: geen automatische empl
+ 
+ De pro-formamodule wordt geen tweede engine of parallelle bronadministratie. Een scenario is een immutable canonical baseline + gestructureerde tijdelijke delta's + versiegebonden rule-/cao-/bedrijfspakketcompositie. Berekening loopt via dezelfde Payroll Component Graph Engine in een strict `SIMULATION` context, **zonder** echte HR/Payroll-writes, betaling, aangifte, journaalpost of wijziging van productiecumulatieven.
+ 
+-HR Admin kan eerst een synthetische werknemer gebruiken; pas na live Core-sourceacceptatie en server-side salary-permissions een bestaande medewerker kopiëren. Medewerkers zien alleen de eigen toegestane gegevens en houden hun simulaties privé totdat ze bewust delen. Bied alleen scenario's aan waarvoor de betrokken componenten, wettelijke regels en cao-behandeling daadwerkelijk getest en ondersteund zijn; geen onjuiste ziekengeld-, pensioen-, werkgeverskosten- of netto-uitkomst verzinnen.
++What-if-scenario's mogen een expliciet fictieve invoer gebruiken als normale simulatie-inhoud, maar vereisen geen synthetisch medewerkerstype of TEST-only route. Bestaande medewerkers zijn alleen via de normale server-side bron- en salarisrechten toegankelijk. Medewerkers zien alleen de eigen toegestane gegevens en houden hun simulaties privé totdat ze bewust delen. Bied alleen scenario's aan waarvoor de betrokken componenten, wettelijke regels en cao-behandeling daadwerkelijk getest en ondersteund zijn; geen onjuiste ziekengeld-, pensioen-, werkgeverskosten- of netto-uitkomst verzinnen.
+ 
+ Netto-naar-bruto is een **bounded inverse search over de bestaande forward engine**, geen eigen belastingformule. Definieer doelnetto, zoekvariabele, brutoband/salarisstap en overige bevroren arbeidsvoorwaarden expliciet. Houd rekening met discontinuïteiten, loonbelastingtabelstappen, afronding en mogelijk onbereikbare exacte nettodoelen; rapporteer controleerbaar doelbereik of dichtstbijzijnde uitkomst.
+ 
+@@ -540,6 +547,8 @@ Jaaropgaaf gebruikt **loonstaat-/jaaraggregatie** en correcte werkgever-, dienst
+ 
+ Navigatie: pas zodra functioneel de tegel `Loonstroken & Jaaropgaven` onder het enkele `Payroll Lab`-overzicht; medewerker ziet PDF's onder eigen ESS-ingang. De toekomstige eenvoudige salaris-cockpit is een **apart uit te werken** productonderdeel. Geen extra Payroll-sidebar-item.
+ 
++Dezelfde professionele PDF-inhoud, bedragen, werkgevergegevens en layout gelden lokaal, op TEST en in Production. Voeg geen TEST-/fixturewatermerk of disclaimer toe enkel op grond van de omgeving. Toon de echte documentstatus, bijvoorbeeld Concept, en behoud bronversies, hashes, controles, immutable historie en audittrail. Interne herkomst en beperkingen worden in gecontroleerde audit- en acceptatiedocumentatie vastgelegd. TEST houdt aangifte, SEPA, externe distributie en productie-integraties tegen in de omgeving-/distributielaag; een technisch TEST-document mag buiten de gecontroleerde omgeving niet als authentiek betaaldocument worden uitgegeven.
++
+ Details en gefaseerde acceptatie: [PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER](../requirements/payroll/PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER.md). Huidige PAYLAB03-jaar- en premiegegevens zijn onvoldoende voor een echte, wettelijk volledige jaaropgaaf; geen premature uitgifteclaim.
+ 
+ ## 19. Salary/tax payments — separate payment orchestration (planned)
+@@ -548,6 +557,8 @@ Geen eigen payroll-/belastinggeld door LiquidHR laten lopen. De engine maakt imm
+ 
+ Betalingsgoedkeuring staat los van HR-/payrollrollen en payrollfinalisatie. Batchinhoud/IBAN/bedrag/datum wordt bij goedkeuring vastgezet met immutable hash; inhoudelijke wijziging vereist nieuwe revisie en goedkeuring. Download betekent alleen EXPORTED, API-submission alleen submitted/accepted wanneer bevestigd; nooit SETTLED zonder betrouwbare reconciliatie/verklaring. UNKNOWN status is veilig af te handelen vóór fallback om dubbele salarisbetaling te voorkomen.
+ 
++In TEST worden payment instructions en externe submission fail-closed geblokkeerd door environment-aware orchestration; de klantworkflow en documentpresentatie blijven hetzelfde. Maak geen klantgerichte TEST-labels om een uitgeschakelde externe actie te vervangen.
++
+ Eerste kanaal: versie-/bankprofielgebonden, volledig gevalideerde SEPA Credit Transfer XML-export. Later optionele bank-/PSP-adapter die een batch klaarzet voor bankautorisatie bij de klant. Behoud altijd gecontroleerde SEPA-fallback; directe koppeling introduceert geen eigen betaalinstellingsclaims. EU SCT rulebook en EPC customer-to-PSP IG op uitvoerdatum opnieuw verifiëren, inclusief name/IBAN-check (VOP) die door bank/PSP wordt uitgevoerd.
+ 
+ Loonheffingenbetaling komt uit het **eindbedrag van een werkelijk geaccepteerde aangifte**, heeft periodiek betalingskenmerk, deadline en actueel officieel rekeningprofiel; fiscale periodebetaling is onderscheiden van werknemerbetalingen. Geen negatieve SEPA-instructie voor een netto-terugvordering. Werknemerloonstrook gebruikt dezelfde pinned payableprojection, bankstatus verandert geen historische PDF.
+diff --git a/docs/AA/AA-README.md b/docs/AA/AA-README.md
+index a61b5008..29d7df42 100644
+--- a/docs/AA/AA-README.md
++++ b/docs/AA/AA-README.md
+@@ -18,6 +18,7 @@ Status: **LEIDEND** · levende afspraken worden in deze bestaande documenten bij
+ | [`AA-REQ.md`](AA-REQ.md) | Fundamentele product-, data-, security- en architectuurinvarianten |
+ | [`AA-PAYROLL.md`](AA-PAYROLL.md) | Payrollbounded context, precisie, wettelijke regels, provenance en gates |
+ | [`AA-ROAD.md`](AA-ROAD.md) | Langetermijnproductrichting |
++| [`../architecture/PRODUCT_ENVIRONMENT_PARITY.md`](../architecture/PRODUCT_ENVIRONMENT_PARITY.md) | Bindende productregel voor gelijke werking per omgeving, klantpresentatie, interne herkomst en TEST-veiligheidsgrenzen |
+ | `docs/requirements/`, ADR/FDR en domeindocumenten | Alleen requirements en architectuur die de feitelijke wijziging raakt |
+ 
+ ## Standaard leesroute
+@@ -38,6 +39,7 @@ De AA-CURRENT-startcontext blijft compact. Een nieuwe taak hoeft niet standaard
+ | Toolkit-/proceswijziging | `AGENTS.md`, `AA-OP.md`, `AA-TEST.md`, `AA-REL.md` voor integratie, de toolkitbestanden en relevante tests |
+ | Auth, security, tenant, schema of RLS | Bovenstaande plus relevante delen van `AA-REQ.md`, toepasselijke domeinrequirements/ADR en exacte bestaande acceptance-evidence |
+ | Payroll | Alleen voor zover geraakt `AA-PAYROLL.md`, `AA-OP.md`, `AA-TEST.md` en relevante Payroll-requirements/evidence |
++| Productflow of omgeving-/herkomstverschil | `PRODUCT_ENVIRONMENT_PARITY.md`, `AA-REQ.md`, `AA-TEST.md` en de geraakte domeinrequirement |
+ | Merge/release/deployment | `AA-OP.md`, `AA-TEST.md`, `AA-REL.md`, actuele `AA-CURRENT.md`; alleen relevante rijen uit `AA-ACCEPT.md`/`AA-OPEN.md` en het exacte runrapport |
+ | Roadmapbesluit | `AA-NEXT.md`, relevante `AA-ROAD.md`-sectie en alleen de benodigde `AA-CURRENT.md`/`AA-OPEN.md`-status |
+ 
+@@ -49,7 +51,7 @@ Voor lokale TEST-runtime of geïsoleerde Vercel Preview: raadpleeg gericht [`doc
+ 2. Niet-onderhandelbare privacy-, security- en data-integriteitsgrenzen.
+ 3. `AGENTS.md` als operationeel contract.
+ 4. Alleen de toepasselijke uitvoeringsregels uit `AA-OP.md`, `AA-TEST.md`, `AA-REL.md` en eventueel `AA-PAYROLL.md`.
+-5. Goedgekeurde domeinrequirements en architectuur.
++5. Goedgekeurde domeinrequirements en architectuur; bij een TEST/Production-productconflict is [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md) leidend boven oudere domeinspecificaties.
+ 6. Historische acceptance-/deliveryrapporten als bewijs of context, nooit als actuele werkinstructie zonder controle.
+ 
+ Bij conflict: stel vast welk document verantwoordelijk is, herstel de afspraak daar en verwijder de tegenstrijdige instructie waar die ontstond. Verander geen historische verdicts retroactief. Een aanname of implementatieclaim wordt niet stilzwijgend `GETEST`, `GREEN` of `RELEASED`.
+diff --git a/docs/AA/AA-REQ.md b/docs/AA/AA-REQ.md
+index 5c11d079..a0e55e90 100644
+--- a/docs/AA/AA-REQ.md
++++ b/docs/AA/AA-REQ.md
+@@ -13,6 +13,7 @@ Dit document bevat alleen fundamentele product- en architectuurregels. Detailreq
+ - Een administratie behoort tot precies één HR-groep en wordt niet stilzwijgend tussen groepen verplaatst.
+ - Server-side contextvalidatie is leidend; querystrings, cookies en clientstate zijn nooit zelfstandig bewijs van autorisatie.
+ - Control Plane is een gesloten leveranciersapplicatie en geen klantmodule.
++- TEST is een omgeving en gegevensherkomst, geen andere set productmogelijkheden: normale producthandelingen zijn via dezelfde gebruikersworkflow en autorisaties beschikbaar. De volledige regel en acceptatiecriteria staan in [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
+ 
+ Leidend detail:
+ - `docs/requirements/multitenancy/`
+@@ -44,6 +45,7 @@ Leidend detail:
+ - RLS, grants en RPC-autorisatie worden als defense in depth gebruikt.
+ - Cross-tenant, cross-group en out-of-scope subjecttoegang moeten fail-closed zijn.
+ - Beveiligde identificerende gegevens worden niet onnodig gelogd of in testfixtures opgenomen.
++- Omgevings- en gegevensherkomst zijn interne audit/provenance; toon die niet als technische teststatus in klantgerichte schermen of documenten.
+ - BSN wordt volgens de bestaande beveiligde identifier/fingerprintarchitectuur behandeld; geen plaintext BSN in importstaging.
+ - Secrets, tokens, wachtwoorden en `.env.local`-inhoud komen nooit in logs, prompts, screenshots, commits of documentatie.
+ 
+@@ -70,6 +72,7 @@ Leidend detail:
+ - Loading-, error-, empty-, validation- en permissionstates horen bij de feature, niet bij een latere polishronde.
+ - Responsive gedrag wordt passend bij het scherm getest.
+ - Toegankelijke labels, focusgedrag en toetsenbordbediening blijven onderdeel van UI-acceptatie.
++- Verberg geen normale producthandeling achter fixtureclaims, ontwikkelrollen of een TEST-only route. Interne provisioning blijft afgeschermd en staat los van de productflow.
+ 
+ Leidend detail:
+ - `docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`
+diff --git a/docs/AA/AA-ROAD.md b/docs/AA/AA-ROAD.md
+index e894fd41..83fbba1c 100644
+--- a/docs/AA/AA-ROAD.md
++++ b/docs/AA/AA-ROAD.md
+@@ -1,10 +1,12 @@
+ # AA-ROAD — Long-Term Product Roadmap
+ 
+ Status: **STRATEGISCH / LIVING**
+-Bijgewerkt: 2026-10-13 (alleen Core/PERF-prioriteiten)
++Bijgewerkt: 2026-10-17 (productregel bijgewerkt; Core/PERF-prioriteiten ongewijzigd)
+ 
+ De volgorde binnen horizons kan veranderen. AA-NEXT bepaalt de concrete eerstvolgende runs.
+ 
++**Productregel voor alle horizons:** elke module gebruikt dezelfde productwerking en normale gebruikersflow in TEST en Production. Alleen omgeving, gegevensherkomst en externe veiligheidsgrenzen verschillen. Nieuwe en bestaande productrequirements volgen [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md); dit is van toepassing op Core HR, Talent, Payroll, Pensioen, Documenten, ESS/MSS, AI en toekomstige modules.
++
+ **Core-productbesluit 2026-10-13:** rond PERF01-B2 (CONTROLLED server-side medewerkerpagination) eerst af. Daarna volgt **WVP01**, vervolgens **INS02**. Dashboardoptimalisaties zijn op synthetische TEST geïntegreerd; AI on-demand bestaat al, maar zonder gekwantificeerde winst. De AI-, Payroll- en Nmbrs-roadmaps worden in andere threads bijgewerkt.
+ 
+ ### AI-roadmap
+diff --git a/docs/AA/AA-TEST.md b/docs/AA/AA-TEST.md
+index 6e3e9351..34183898 100644
+--- a/docs/AA/AA-TEST.md
++++ b/docs/AA/AA-TEST.md
+@@ -35,6 +35,20 @@ Test **risicogestuurd en bounded**.
+ 
+ Een full suite is geen ritueel. Gebruik hem waar het bewijs toevoegt.
+ 
++### Omgevingspariteit als productacceptatie
++
++Volg voor iedere module [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md). Acceptance voor een klantfeature gebruikt de normale productroute, normale HR Admin/Payroll/Manager/Employee-rechten en gewone instellingen met gecontroleerde TEST-gegevens. Een interne fixture- of provisioningsstap kan data voorbereiden, maar geldt niet als bewijs dat de feature alleen op die route kan werken.
++
++Neem waar van toepassing deze regressieasserties op:
++
++- dezelfde productcode en workflow zijn bruikbaar in TEST en Production;
++- normale schermen, exports en documenten lekken geen interne omgevings-, synthetische of fixtureherkomst;
++- reguliere serverautorisatie, audit, hashes, controles en statuslifecycle blijven gelden;
++- TEST weigert aangiften, SEPA-betalingen, externe loonstrookdistributie en productie-integraties op de omgevings-/distributiegrens;
++- klantinrichting kan via de normale productinstellingen worden beheerd; opgegeven waarden worden niet stilzwijgend als juridisch gevalideerd gepresenteerd.
++
++Een berekening kan technisch slagen zonder wettelijke compliance te bewijzen. Controleer technische uitkomst, juridische onderbouwing en productiegeschiktheid als afzonderlijke claims.
++
+ Praktische regel:
+ - tijdens bouwen: targeted;
+ - bij een defect: defecttest + relevante regressie;
+diff --git a/docs/architecture/ENVIRONMENT_AND_AI_RULES.md b/docs/architecture/ENVIRONMENT_AND_AI_RULES.md
+index d3ca8c00..03374b88 100644
+--- a/docs/architecture/ENVIRONMENT_AND_AI_RULES.md
++++ b/docs/architecture/ENVIRONMENT_AND_AI_RULES.md
+@@ -19,6 +19,10 @@ De bron-app gebruikt een `CLAUDE.md`-bestand (project-instructies, gelezen bij e
+ 
+ ---
+ 
++## Productwerking per omgeving
++
++Omgevingsconfiguratie mag credentials, externe verbindingen, dataverkeer en productieacties beheersen; zij maakt geen klantgerichte feature of gebruikersworkflow TEST-only. TEST en Production gebruiken dezelfde normale productservices, UI en rechten. Houd interne dataherkomst in audit/provenance en scherm test-/fixturemetadata af van normale klantpresentatie. Zie [PRODUCT_ENVIRONMENT_PARITY](PRODUCT_ENVIRONMENT_PARITY.md) voor de volledige regel en verplichte acceptatiecriteria.
++
+ ## 2. Environment Variables Template
+ 
+ > Namen + doel, **geen waarden**. Verzameld door te greppen op `process.env.*`-gebruik in de bron-app — pas de lijst aan naar wat de nieuwe HR-app daadwerkelijk nodig heeft; dit is een startpunt, niet een verplichte 1-op-1 kopie.
+diff --git a/docs/architecture/PRODUCT_ENVIRONMENT_PARITY.md b/docs/architecture/PRODUCT_ENVIRONMENT_PARITY.md
+new file mode 100644
+index 00000000..e895ab4e
+--- /dev/null
++++ b/docs/architecture/PRODUCT_ENVIRONMENT_PARITY.md
+@@ -0,0 +1,91 @@
++# Product Environment Parity
++
++**Status:** LEIDEND product- en architectuurbesluit<br>
++**Besluitdatum:** 2026-10-17<br>
++**Scope:** alle bestaande en toekomstige LiquidHR-modules
++
++## Besluit
++
++LiquidHR wordt met gecontroleerde fictieve gegevens in TEST ontwikkeld en geaccepteerd. TEST is een eigenschap van de omgeving en gegevensherkomst, niet van de productfunctionaliteit. Dezelfde productcode, klantgerichte werking, rechten en normale gebruikersworkflow zijn daarom geschikt voor TEST en Production.
++
++Deze regel geldt voor Core HR, Workforce, Talent, Salaris/Payroll, Pensioen, CAO, fiscale dossiers, IKV, documenten, ESS/MSS, AI en modules die later worden toegevoegd. Hij staat boven oudere productontwerpen voor zover die een afwijkende TEST-klantworkflow, TEST-only productfunctie of TEST-label in klantuitvoer voorschrijven. Historische acceptance- en deliveryrapporten blijven onveranderd en zijn bewijs van hun eigen run.
++
++## Begrippen en gegevensherkomst
++
++- **Omgeving:** de geïsoleerde uitvoering en haar credentials, integraties en externe-actiesafety, zoals lokaal, TEST of Production.
++- **Gegevensherkomst:** of opgeslagen data fictief, echt, door een werkgever opgegeven, door een bron aangeleverd of onafhankelijk juridisch gevalideerd is.
++- **Productflow:** de reguliere gebruikershandeling met de bestaande productservices, normale rollen/rechten, opgeslagen administratiegegevens en normale auditregels.
++- **Interne tooling:** afgeschermde provisioning-, fixture-, testlogin- en acceptatiehulpmiddelen. Deze mogen gecontroleerde data voorbereiden, maar zijn geen klantworkflow en bewijzen op zichzelf niet de productflow.
++
++Een bedrijfsadministratie zoals **Mars BV** is in Core TEST een gewone administratie. Als een fictieve naam of medewerkernaam expliciet is gekozen en als normale bedrijfsdata is opgeslagen, mag die naam op de gebruikelijke plekken worden getoond. De applicatie verzint geen fictieve bedrijfsdata om een berekening of wettelijke uitkomst aannemelijk te laten lijken.
++
++## Normale productwerking
++
++1. Normale HR Admin-, Payroll Admin-, Manager- en Employee-handelingen verlopen via dezelfde productroutes, services, serverautorisatie, audit en lifecycle in iedere omgeving.
++2. Medewerkers, dienstverbanden, fiscale verklaringen, IKV's, pensioenregelingen, salarisregels, documenten en andere klantdata worden via de gewone instellingen en producthandelingen beheerd.
++3. Toepasselijke pensioenregelingen kunnen op basis van de werkgeverconfiguratie en geldende selectiecriteria aan werknemers worden gekoppeld. Ontbrekende of ambigue vereisten worden gemeld of ter beoordeling aangeboden; de applicatie leidt geen ontbrekende juridische parameters af.
++4. Er bestaat geen vereiste fixture-identiteit, fixtureclaim, synthetisch medewerkertype of speciale TEST-only route voor normale productfunctionaliteit. Een featureflag die uitsluitend interne tooling beveiligt, blijft uit de gewone productflow.
++5. Dezelfde geldige bron- en parametercombinatie doorloopt dezelfde productlogica en documentopmaak. Verschillen in uitkomst komen uit werkelijk verschillende opgeslagen data of expliciet geversioneerde regels, niet uit een verborgen omgevingstak.
++
++## Klantgerichte schermen en documenten
++
++Normale klantgerichte schermen, loonstroken, exports en documenten beschrijven de opgeslagen bedrijfsdata en functionele status. Ze gebruiken gewone zakelijke termen zoals medewerker, dienstverband, pensioenregeling, salarisberekening, loonstrook, concept, gecontroleerd en definitief.
++
++Toon daar niet enkel vanwege de omgeving interne termen zoals *synthetische medewerker*, *testregeling*, *DEMO-fixture*, *TEST-payroll*, *fixturebron* of *technische acceptatiestatus*. Voeg geen TEST-, fixture- of synthetisch-watermerk of disclaimer aan PDF's toe enkel omdat de render in TEST plaatsvindt. Een status zoals **Concept** blijft zichtbaar wanneer het document of de berekening werkelijk de conceptstatus heeft.
++
++Een gekozen fictieve bedrijfsnaam, medewerkernaam of scenario-invoer is normale opgeslagen data en mag dus worden weergegeven. Vermom zulke waarden niet als echte feiten en verzin geen aannames. Werkgeveropgegeven parameters zijn niet automatisch juridisch gevalideerd; een geslaagde berekening toont op zichzelf geen wettelijke compliance aan.
++
++## Audit, provenance en interne documentatie
++
++Verberg interne metadata niet uit de audittrail. Sla omgevingsidentiteit en relevante data-/bronherkomst betrouwbaar op naast actor, administratie, versie, effectieve datum, bron-/resultaatreferenties, hashes, controles en lifecycle-events, voor zover het domein dit vereist. Deze metadata zijn standaard niet klantzichtbaar.
++
++Interne technische documentatie en acceptatierapporten benoemen expliciet:
++
++- TEST versus Production en de exacte bewezen omgeving;
++- fictieve versus echte gegevens en hun bron;
++- door de werkgever opgegeven parameters versus juridisch gevalideerde regelingen;
++- een technisch geslaagde berekening versus aangetoonde wettelijke compliance;
++- lokale, remote, browser-, release- en productiegeschiktheidsbewijzen als afzonderlijke claims.
++
++Behoud bestaande hashes, controles, auditrecords en immutable historie. Een technische fout of ontbrekend wettelijk bewijs wordt niet met een label, fallback, nulwaarde of gefingeerde lifecycle opgelost.
++
++## Omgevingsgrenzen voor externe acties
++
++TEST biedt geen echte aangiften, SEPA-betalingen, externe loonstrookdistributie of koppelingen met Production-systemen aan. Blokkeer zulke acties fail-closed in de omgeving-, credentials-, integratie- of distributielaag, ook wanneer de normale gebruikersflow beschikbaar blijft. Toon waar nodig een begrijpelijke functionele reden voor een niet-beschikbare externe actie; verander daarvoor de inhoud van een loonstrook of andere klantdocumenten niet.
++
++Een technisch TEST-document blijft in de gecontroleerde omgeving. De distributie- en exportgrens voorkomt dat het als authentiek betaaldocument buiten die omgeving wordt uitgegeven. Deze veiligheidsgrens wordt niet nagebootst met een zichtbaar TEST-watermerk in de PDF.
++
++## Toegestane interne hulpmiddelen
++
++Beveiligde, interne fixture- en provisioningtools mogen blijven bestaan voor deterministische tests, acceptatie en gecontroleerde voorbereiding van TEST-data. Ze zijn afgeschermd van klantnavigatie en normale autorisaties, en mogen de reguliere businessservices niet omzeilen voor een geaccepteerde producthandeling. De interne featureflag `PENSION_TEST_FIXTURES_ENABLED` en speciale claims zijn hoogstens provisioning-/acceptatievoorwaarden; ze zijn nooit voorwaarden voor normale pensioeninstellingen of werknemerskoppeling.
++
++Een fixture mag een standaard productflow ondersteunen. De feature-acceptatie voert daarna de gewone workflow uit met reguliere rollen en leest de normale opgeslagen uitkomst terug.
++
++Een privé connector- of protocolproef mag bewust alleen op TEST worden geactiveerd zolang die nog geen klantfeature is. Leg die scope expliciet vast; gebruik de proefroute niet als normale productworkflow of als reden om dezelfde klantfeature in TEST anders te laten werken. Een product- of veiligheidsfunctie die in alle omgevingen gesloten blijft totdat een vereiste autorisatie-/bevestigingsgrens is gebouwd, is een readinessbesluit en geen omgevingsverschil.
++
++## Verboden antipatterns
++
++- Normale medewerkers-, contract-, IKV-, pensioen- of payrollhandelingen alleen via een testwizard, fixture-runner of speciale claim beschikbaar maken.
++- Klantfunctionaliteit verbergen of aanpassen omdat `NODE_ENV`, een TEST-label of een synthetische identiteit actief is.
++- Op normale schermen of PDFs TEST-, fixture-, demo- of synthetisch-labels tonen op basis van de omgeving.
++- Dezelfde uitkomst of legaliteitsclaim voor fictieve input presenteren alsof die werkgeverdata of juridisch advies bewijst.
++- Testpresentatie gebruiken als enige bescherming tegen verzending, betaling of externe integratie.
++- Normale rechten, audit, hashes of lifecycle overslaan voor acties op TEST.
++
++## Verplichte Definition of Done
++
++Een productfeature is pas gereed wanneer de toepasselijke punten zijn aangetoond:
++
++1. Dezelfde productcode en gebruikersworkflow werken voor TEST en zijn geschikt voor Production.
++2. Klantgerichte schermen en documenten lekken interne omgevings- of fixtureherkomst niet.
++3. Normale serverrechten, auditregels, statuslifecycle, bronverantwoording, hashes en controles gelden.
++4. Echte externe productieacties zijn in TEST veilig geblokkeerd aan de omgevings-/distributiegrens.
++5. De normale productflow is daadwerkelijk getest met passende HR Admin-, Payroll Admin-, Manager- of Employee-rechten; fixture-provisioning alleen telt niet.
++6. Benodigde klantgegevens zijn via normale productinstellingen te beheren.
++7. Werkgeveropgegeven gegevens en juridische validatie zijn afzonderlijk herkenbaar; technische berekeningssucces wordt niet als compliancebewijs gepresenteerd.
++
++## Canonieke verwijzingen
++
++- Instructies en documentrouter: [`AGENTS.md`](../../AGENTS.md), [`AA-README.md`](../AA/AA-README.md), [`AA-REQ.md`](../AA/AA-REQ.md), [`AA-TEST.md`](../AA/AA-TEST.md) en [`AA-ROAD.md`](../AA/AA-ROAD.md).
++- Payroll: [`AA-PAYROLL.md`](../AA/AA-PAYROLL.md), [`PAYPENS01`](../requirements/payroll/PAYPENS01-CORE-PENSION-PRODUCT-DESIGN.md) en [`PAYDOC01`](../requirements/payroll/PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER.md).
++- UX, ESS/MSS en documentbeheer: de relevante requirements wijzen naar dit besluit en behouden hun eigen domeinbeveiliging.
+diff --git a/docs/decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md b/docs/decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md
+index a05aef5e..91a32f93 100644
+--- a/docs/decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md
++++ b/docs/decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md
+@@ -19,6 +19,7 @@ Administration availability has an effective start and optional inclusive end da
+ - Keep assignment, availability and snapshot IDs separate from Core employee/employment foreign keys. Fixture employment IDs are synthetic identifiers only.
+ - Use the shared searchable `DropdownSelect` and `TextInput` controls. All visible copy lives in matching NL/EN navigation messages.
+ - Preserve exact Core QA findings from [AA-PAYROLL §13](../AA/AA-PAYROLL.md), including Planeten → Jupiter BV → Directie. They inform a later read-only benchmark phase and do not authorize Core access in Phase 1.
++- The three-fixture Phase 1 boundary applies only to this internal Payroll Lab benchmark. It does not constrain normal customer pension setup in Core, require fixture identities/claims for pension administration, or define a separate customer workflow. Follow [PAYPENS01](../requirements/payroll/PAYPENS01-CORE-PENSION-PRODUCT-DESIGN.md) and [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md) for customer product requirements.
+ 
+ ## Consequences
+ 
+diff --git a/docs/payroll/ENGINE_M0.md b/docs/payroll/ENGINE_M0.md
+index 150a086d..1d9e7d66 100644
+--- a/docs/payroll/ENGINE_M0.md
++++ b/docs/payroll/ENGINE_M0.md
+@@ -3,6 +3,8 @@
+ Datum: 2026-09-30. Scope: eerste synthetische berekening GC-NL-001 en het
+ ownership-addendum van Edwin. Geen fiscale Nederlandse 2026-regels.
+ 
++GC-NL-001 is een interne deterministische regressiecase, geen alternatieve productworkflow. Klantgerichte Payroll gebruikt dezelfde engine- en serviceketen in TEST en Production; zie [PRODUCT_ENVIRONMENT_PARITY](../architecture/PRODUCT_ENVIRONMENT_PARITY.md). De cijfers hieronder blijven expliciet interne testinvoer en bewijzen geen wettelijke compliance.
++
+ ## Keten
+ 
+ Canonical `PayrollSourceSnapshot` → getypeerde engine-input → immutable
+diff --git a/docs/quality/acceptance/TEST-HARNESS01.md b/docs/quality/acceptance/TEST-HARNESS01.md
+index b49e79d8..f00a92bf 100644
+--- a/docs/quality/acceptance/TEST-HARNESS01.md
++++ b/docs/quality/acceptance/TEST-HARNESS01.md
+@@ -12,6 +12,8 @@ Voer daarna de volledige persona- en viewportmatrix uit met de bestaande central
+ 
+ Vervang routes, context en probes door bestaande TEST-fixtures en autorisatiecontracten van het gewijzigde domein. Neem per persona ten minste één toegestane en één geweigerde directe API-probe op. Probes gebruiken browsercookies van die persona; response bodies worden niet opgeslagen of getoond. Gebruik waar mogelijk GET. Richt een schrijfmethode alleen op een bestaande synthetische fixture en de bedoelde autorisatiegrens.
+ 
++De harness en fixture-provisioning zijn interne acceptatiehulpmiddelen. Voor een productfeature voert de persona de normale klantworkflow uit met de reguliere services, rechten en instellingen. Fixturecreatie mag de gecontroleerde gegevens voorbereiden, maar is geen alternatieve functionele route of bewijs dat de klantfeature alleen via fixtures werkt. Controleer klantpresentatie zonder interne TEST-/fixturelabels en verifieer dat niet-toegestane externe acties aan de omgevingsgrens blokkeren; zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
++
+ ## Persona-, route- en contextregels
+ 
+ - HR Admin en Manager gebruiken standaard de opgegeven route; de startpagina is /dashboard/start.
+diff --git a/docs/requirements/ai/APIAI-07_REMOTE_MCP_TEST.md b/docs/requirements/ai/APIAI-07_REMOTE_MCP_TEST.md
+index 3a588ace..e0f1b81b 100644
+--- a/docs/requirements/ai/APIAI-07_REMOTE_MCP_TEST.md
++++ b/docs/requirements/ai/APIAI-07_REMOTE_MCP_TEST.md
+@@ -2,6 +2,8 @@
+ 
+ **Status: TEST deployment READY; hosted anonymous protocol and negative-security checks passed. Authenticated Employee reads, audit/limiter readback after a real call, and Edwin's personal ChatGPT connection remain open.**
+ 
++**Scope clarification (2026-10-17):** This document governs a private TEST-only connector/protocol experiment for one existing ChatGPT account. It is not the product specification for normal LiquidHR Workforce/AI customer workflows. Keep its endpoint, consent configuration and limiter scoped to that controlled experiment; any customer AI capability uses the ordinary services, roles and workflow in every environment under [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md). The historical acceptance status below is unchanged.
++
+ ## Doel en begrenzing
+ 
+ APIAI-07 biedt Edwin's bestaande ChatGPT Plus-account een private, read-only Remote MCP-koppeling naar uitsluitend de synthetische LiquidHR TEST-omgeving. Edwin bevestigde dat zijn account-UI custom MCP-configuratie biedt en dat Supabase-projectref `wnpfloqpjvaacobppbpk` de synthetische TEST is, ondanks de dashboardlabel “main Production”. Het bestaande Vercel-project `liquidhr` gebruikt de Production-target als gezamenlijke TEST-omgeving.
+diff --git a/docs/requirements/ai/APIAI-08_ESS_ASSISTANT.md b/docs/requirements/ai/APIAI-08_ESS_ASSISTANT.md
+index e51675be..0a8a31ef 100644
+--- a/docs/requirements/ai/APIAI-08_ESS_ASSISTANT.md
++++ b/docs/requirements/ai/APIAI-08_ESS_ASSISTANT.md
+@@ -1,5 +1,7 @@
+ # APIAI-08 — ESS Assistant: Leave & Personal Reminders
+ 
++**Omgevingspariteit (2026-10-17):** Dezelfde AI- en ESS/MSS-capabilities, normale services, permissions en gebruikersworkflow gelden in TEST en Production. De beschreven write/Execute-gate blijft gesloten totdat server-verifieerbare bevestiging en de overige beveiligingsvoorwaarden bewezen zijn; dat is een readiness-/securitygrens voor iedere omgeving, geen TEST-only productvariant. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md). Deze verduidelijking activeert geen write-tools of nieuwe rechten.
++
+ Status: **IMPLEMENTED IN MAIN — TEST MIGRATION REGISTERED — HOSTED TEST ACCEPTANCE OPEN**. The original implementation used ONE VERSION `783999044de83c902e63fefb3587fdbbf99d4de3` on `work/apiai-08-ess-assistant-20261009`; its migration-approval note below is historical. Read-only Supabase inventory on 2026-10-11 confirmed remote registration `20261010064331_apiai08_employee_ess_controlled_actions`; do not reapply it. Recovery evidence on 2026-10-12 confirmed public server discovery returns all eight Employee tools, while the available connector catalog exposes only four; the four calls failed with MCP `-32603` without reaching the Vercel route. Hosted acceptance remains 0/8, and canonical balance, audit/limiter and authenticated scope evidence remain OPEN. See [the APIAI-08 acceptance record](../../quality/acceptance/runs/APIAI-08-20261009.md).
+ 
+ ## User value / ChatGPT conversations
+diff --git a/docs/requirements/ai/LIQUIDHR_AI_MASTER_ROADMAP.md b/docs/requirements/ai/LIQUIDHR_AI_MASTER_ROADMAP.md
+index 79d91985..57d6a45a 100644
+--- a/docs/requirements/ai/LIQUIDHR_AI_MASTER_ROADMAP.md
++++ b/docs/requirements/ai/LIQUIDHR_AI_MASTER_ROADMAP.md
+@@ -5,6 +5,8 @@
+ **Owner:** LiquidHR Product
+ **Functie:** centraal AI-roadmapdocument; AA-ROAD blijft de brede productroadmap, AA-NEXT bepaalt de eerstvolgende concrete Codex-runs.
+ 
++**Omgevingspariteit:** normale AI-capabilities gebruiken dezelfde productservices, permissions en klantworkflow in TEST en Production. Een private connector/protocolproef kan tijdelijk op TEST zijn begrensd, maar vormt geen afwijkende AI-klantworkflow. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
++
+ > **Besluit 10 oktober:** ONE VERSION is op main geïntegreerd en als synthetische TEST-release beschikbaar. Rond eerst de nog open hosted/API-authenticatie-acceptatie voor APIAI-08 ESS af, vervolgens MSS (APIAI-09) zoveel mogelijk in één grote bouwslag, dan LiquidHR Focus als ChatGPT Plugin Extension (APIAI-10), daarna echte acties met trusted confirmation (APIAI-11). Brede HR Admin-/publieke API-/always-on agentuitbreiding blijft voorlopig geparkeerd.
+ 
+ ## 1. Visie en productprincipes
+diff --git a/docs/requirements/core-hr/MEDEWERKER.md b/docs/requirements/core-hr/MEDEWERKER.md
+index fd968a86..215b1dc1 100644
+--- a/docs/requirements/core-hr/MEDEWERKER.md
++++ b/docs/requirements/core-hr/MEDEWERKER.md
+@@ -5,6 +5,8 @@ Dit document beschrijft de architectuur en het datamodel voor de 'Core HR' modul
+ 
+ **Implementatiestatus 2026-07-15:** de Employee-slice is volledig gebouwd met schema, RLS, API, responsive UI, audit en tests. Het personeelsnummer is uniek per tenant, wordt oplopend voorgesteld en mag gecontroleerd worden overschreven. BSN-ciphertext en tenantgebonden BSN-fingerprint staan bewust in `employee_secure_identifiers`, niet in de algemene medewerkerstabel. Alleen HR-admins met expliciete functiepunten en de medewerker zelf mogen het BSN via een gelogde reveal bekijken; managers nooit.
+ 
++De medewerkerinrichting en bijbehorende HR-workflows zijn in TEST dezelfde productfunctionaliteit als in Production. Een fictieve bedrijfs- of medewerkernaam mag als gewone opgeslagen administratiegegevens worden getoond; technische fixture- of omgevingsherkomst niet. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
++
+ ## 2. Besproken Informatie & Architectuur Keuzes
+ Tijdens het ontwerpproces (gebaseerd op best-practices en vergelijkingen met bestaande Nederlandse HR-applicaties) zijn de volgende cruciale beslissingen genomen:
+ 
+diff --git a/docs/requirements/documents/Documenten_en_Dossier_Systeem_Master.md b/docs/requirements/documents/Documenten_en_Dossier_Systeem_Master.md
+index d2298cd1..9ffb28e9 100644
+--- a/docs/requirements/documents/Documenten_en_Dossier_Systeem_Master.md
++++ b/docs/requirements/documents/Documenten_en_Dossier_Systeem_Master.md
+@@ -6,6 +6,8 @@ Dit document is de leidende vertaling van `C:\Users\Edwin\Downloads\documenten.m
+ 2. bedrijfsdocumenten zonder mappen;
+ 3. loonstroken met een eigen autorisatiemodel en eigen tab.
+ 
++Documenten volgen [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md): een loonstrook, export of klantdocument krijgt geen TEST-/fixturewatermerk of disclaimer enkel vanwege de omgeving. Werkelijke documentstatus, waaronder Concept wanneer van toepassing, blijft zichtbaar. Omgevings- en gegevensherkomst blijven intern auditbaar; TEST-distributie en externe afleveracties worden door de omgeving/distributielaag geblokkeerd.
++
+ ## 1. Medewerkersdossier
+ 
+ Het dossier is beschikbaar op de medewerkerkaart onder **Documenten**. Documenten zijn gekoppeld aan één medewerker en één platte documentcategorie. HR-beheer maakt, hernoemt, activeert en deactiveert categorieën via **Stamtabellen**. Een categorie mag alleen definitief worden verwijderd wanneer er binnen de volledige tenant geen document meer aan gekoppeld is. De server controleert dit expliciet en de UI toont bij blokkade dat de categorie eerst bij alle medewerkers moet worden leeggemaakt.
+diff --git a/docs/requirements/payroll/LIQUIDHR_PAYROLL_P2_READINESS.md b/docs/requirements/payroll/LIQUIDHR_PAYROLL_P2_READINESS.md
+index 218b6a33..1fb3200f 100644
+--- a/docs/requirements/payroll/LIQUIDHR_PAYROLL_P2_READINESS.md
++++ b/docs/requirements/payroll/LIQUIDHR_PAYROLL_P2_READINESS.md
+@@ -6,6 +6,10 @@
+ **Scope:** alleen onderzoek, contractvastlegging en architectuur-readiness.
+ **Geen:** P2-code, migration, Supabase-write, deployment, Nmbrs employee-call, employee/employment-read of -write in de huidige run.
+ 
++## Productflow en omgeving
++
++Dit readinessplan beschrijft een specifieke Nmbrs-integratie- en testscenario; de lege Test BV-fixture en de technische preconditions zijn geen reguliere Payroll-klantworkflow. Productbediening blijft gelijk per omgeving volgens [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md). Fixturedata of interne claims mogen alleen acceptatie/provisioning ondersteunen.
++
+ ## Eindstatus
+ 
+ **PAYROLL P2 READINESS: READY WITH LIVE VALIDATION**
+diff --git a/docs/requirements/payroll/PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER.md b/docs/requirements/payroll/PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER.md
+new file mode 100644
+index 00000000..53a1356f
+--- /dev/null
++++ b/docs/requirements/payroll/PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER.md
+@@ -0,0 +1,75 @@
++# PAYDOC01 — Payslip, Annual Statement and Document Design
++
++**Status:** LEIDEND productrequirementsdocument; product implementation and legal acceptance remain separately evidenced<br>
++**Scope:** payroll-generated payslips, annual statements, PDF rendering, employee access and distribution<br>
++**Productregel:** [`PRODUCT_ENVIRONMENT_PARITY`](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md)
++
++## Productbesluit
++
++Dezelfde payrollresultaten, werkgevergegevens, documentcomponenten, layout en lifecycle bepalen een loonstrook, ongeacht of LiquidHR lokaal, op TEST of in Production draait. De omgeving verandert de productpresentatie niet.
++
++Een LiquidHR Standard-template wordt door LiquidHR onderhouden en is niet automatisch door een overheidsinstantie gecertificeerd. Templates tonen alleen data uit de vastgelegde bron-/resultaatsnapshot. Een technisch geslaagde berekening of PDF bewijst niet op zichzelf wettelijke volledigheid of compliance.
++
++## Documenttypen en lifecycle
++
++- `PAYSLIP` toont de gecontroleerde periode-uitkomst van een specifieke medewerker, dienstverband en toepasselijke IKV's.
++- `ANNUAL_STATEMENT` wordt uit de correcte loonstaat-/jaaraggregatie en de vereiste werkgever-, dienstbetrekking- en IKV-groepering opgebouwd; het is niet simpelweg een optelsom van PDF-loonstroken.
++- Documentsjablonen zijn versiegebonden. Klantaanpassing kan alleen uitdrukkelijk optionele blokken en toegestane werkgeverbranding aanpassen. Verplichte velden, bedragen, betekenis en brontoewijzing blijven beschermd door een server-side validator.
++- De normale documentlifecycle onderscheidt concept, gecontroleerd en definitief/uitgegeven wanneer die domeinstatus van toepassing is. De PDF en de opslag-/distributiestatus worden niet verward.
++
++Digitale loonstrooktoegang volgt toepasselijke instemming, wettelijke bewaarplicht en duurzame employee-inzage. Een werknemer leest alleen de eigen documenten; HR Admins handelen binnen hun toegestane administratie. Manager-toegang vereist een expliciet product- en autorisatiebesluit.
++
++## Inhoud en presentatie
++
++Een loonstrook gebruikt de normale zakelijke presentatie en de relevante opgeslagen werkgever-, medewerker-, dienstverband-, IKV-, periode-, looncomponent-, inhoudings-, netto- en werkgeverskostenvelden die voor die uitkomst vereist zijn. De inhoud volgt de geldende wettelijke bron- en veldspecificaties voor de relevante datum; de implementatie legt die bronnen en validatie vast.
++
++Toon geen *TEST*, *synthetisch*, *fixture*, *DEMO* of technische acceptatiestatus enkel omdat de brondata of renderomgeving TEST is. Geen environment-only watermerk of disclaimer in een PDF. Gebruik normale producttermen. **Concept** staat wel op een conceptdocument; een correctie-, supersession- of definitieve status blijft volgens het documentcontract zichtbaar.
++
++Een expliciet gekozen fictieve bedrijfs- of medewerkernaam is gewone opgeslagen administratiegegevens en mag worden getoond. Opgegeven werkgeverparameters zijn niet automatisch wettelijk gevalideerd. Interne documentatie benoemt de herkomst, aannames, juridische bewijsgrenzen en testomgeving; normale klantdocumenten doen dat niet via technische testlabels.
++
++## Reproduceerbaarheid en audit
++
++Een gegenereerd document verwijst naar:
++
++- immutable payrollresultaat en input-/bronsnapshot;
++- exacte engine-, fiscale regel-, CAO-/regeling- en templateversies;
++- administratie, dienstverband, IKV, periode en toepasselijke lifecycle;
++- outputhash, tijdstip, maker/actor en audit-events;
++- eventuele correctie-/supersessionrelatie.
++
++Een eenmaal definitief uitgegeven PDF wordt niet stilzwijgend gewijzigd. Een correctie genereert een nieuwe versie/artefact met expliciete provenance. PDF-waarden komen uit de gepinde persistente uitkomst; de renderer rekent niet opnieuw.
++
++## TEST-omgeving en distributie
++
++TEST gebruikt fictieve gegevens maar genereert dezelfde professionele klantgerichte layout en dezelfde toegestane documentfunctionaliteit. Externe uitgifte van een technisch TEST-document als authentiek betaaldocument is verboden.
++
++Blokkeer in TEST, fail-closed op de omgeving-/distributiegrens:
++
++- officiële aangifte of verzending naar een overheidsvoorziening;
++- SEPA- of andere daadwerkelijke betaling;
++- externe loonstrookdistributie buiten de gecontroleerde TEST-context;
++- verbinding met Production-systemen of credentials.
++
++De gewone documentpresentatie blijft gelijk. De veiligheidsgrens is de distributie- en integratielaag, niet een afwijkende PDF-inhoud, watermerk of disclaimer. Preview/download binnen de gecontroleerde TEST-omgeving mag alleen binnen de bestaande rechten en documentstatus plaatsvinden.
++
++Interne acceptatierapporten registreren wel dat een PDF technisch uit TEST-data kwam, welke input fictief of werkgeveropgegeven was, welke hash is gecontroleerd, en of juridische/documentcompliance afzonderlijk is aangetoond. Behandel een interne TEST-PDF niet als bewijs dat externe distributie of authentieke uitgifte is toegestaan.
++
++De historische [PAYRUN01 checkpoint van 2026-10-06](../../payroll/acceptance/PAYRUN01-IMPLEMENTATION-CHECKPOINT-20261006.md) beschrijft een gemarkeerd TEST-artefact voor die technische run. Dat is historische fixture-evidence en geen klantgerichte PDF-specificatie; nieuwe product-PDF's volgen deze PAYDOC01-regel.
++
++## Acceptatiecriteria
++
++1. Dezelfde geldige payrollsnapshot en templateversie produceren dezelfde inhoud en lay-out in lokale, TEST en Production-runtime.
++2. Er is geen environment-only test-, fixture- of synthetisch-watermerk/disclaimer.
++3. Functionele documentstatus, waaronder Concept, blijft correct zichtbaar.
++4. Bedragen, werkgever-/werknemercontext, bronversies, controles, outputhash en audit zijn aan de persistente uitkomst gebonden.
++5. Rechten, instemming, administratie-/employee-scope en downloadbeveiliging worden server-side afgedwongen.
++6. Correcties en herberekeningen maken nieuwe expliciete artefacten; historische PDF's en hashes blijven onveranderd.
++7. TEST blokkeert echte aangifte, SEPA-betaling, externe distributie en Production-integratie buiten de documentrenderer.
++8. Interne TEST/dataherkomst en wettelijke onzekerheid lekken niet in gewone klantpresentatie, maar zijn wel in acceptatie- en auditbewijs vastgelegd.
++
++## Relaties
++
++- [`AA-PAYROLL §18`](../../AA/AA-PAYROLL.md)
++- [`PRODUCT_ENVIRONMENT_PARITY`](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md)
++- [`PAYPENS01`](PAYPENS01-CORE-PENSION-PRODUCT-DESIGN.md)
++- [`Documenten en Dossier`](../documents/Documenten_en_Dossier_Systeem_Master.md)
+diff --git a/docs/requirements/payroll/PAYLAB_START_PLAN_v1.0.md b/docs/requirements/payroll/PAYLAB_START_PLAN_v1.0.md
+index 4b1cb33a..018ac448 100644
+--- a/docs/requirements/payroll/PAYLAB_START_PLAN_v1.0.md
++++ b/docs/requirements/payroll/PAYLAB_START_PLAN_v1.0.md
+@@ -4,6 +4,8 @@
+ **Status:** READY TO START  
+ **Doel:** Payroll Lab veilig naast LiquidHR bouwen zonder de bestaande HR-database of core-domeinen onnodig te vervuilen.
+ 
++Dit plan beschrijft interne engine- en acceptatiescenario's; een synthetische medewerker is hier testinvoer, geen productrol of klantworkflow. Normale Payroll-bediening volgt [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
++
+ > **Statusupdate 2026-10-02:** de onderstaande oorspronkelijke milestone-indeling is historische planning en is voor de opgeleverde PAYLAB-reeks vervangen. De geaccepteerde volgorde is PAYLAB00 isolatiefoundation, PAYLAB01 source adapter, PAYLAB02 M0, PAYLAB03 NL-2026 wage tax en PAYLAB04 Component Library V1. Gebruik [`PAYLAB_STATUS.md`](../../payroll/PAYLAB_STATUS.md) en de actuele [PAYLAB04-acceptatie](../../payroll/acceptance/PAYLAB04-COMPONENT-LIBRARY.md); voer de oude PAYLAB04 NL-tax/M1-stap niet opnieuw uit.
+ 
+ ## 1. Architectuurbesluit
+diff --git a/docs/requirements/payroll/PAYPENS01-CORE-PENSION-PRODUCT-DESIGN.md b/docs/requirements/payroll/PAYPENS01-CORE-PENSION-PRODUCT-DESIGN.md
+new file mode 100644
+index 00000000..51587631
+--- /dev/null
++++ b/docs/requirements/payroll/PAYPENS01-CORE-PENSION-PRODUCT-DESIGN.md
+@@ -0,0 +1,76 @@
++# PAYPENS01 — Core Pension Product Design
++
++**Status:** LEIDEND productrequirementsdocument<br>
++**Scope:** normale pensioeninrichting en toepasselijke werknemerskoppeling in Core HR en Payroll<br>
++**Productregel:** [`PRODUCT_ENVIRONMENT_PARITY`](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md)
++
++## Productbesluit
++
++Een werkgever beheert pensioenregelingen als gewone administratiegegevens. In Core TEST is een expliciet gekozen fictieve werkgever, waaronder Mars BV, een normale administratie. HR Admins met de reguliere rechten kunnen regelingen inrichten en beheren; Payroll gebruikt de opgeslagen, versiegebonden regeling via de normale productservices.
++
++TEST verandert deze productfunctionaliteit niet. Een regeling wordt niet apart aangemaakt als TEST-feature en werknemers krijgen geen speciale synthetische status. De gegevens kunnen fictief zijn en de interne audittrail registreert die herkomst.
++
++## Reguliere klantworkflow
++
++1. Een bevoegde HR Admin of Payroll Admin opent Pensioenregelingen vanuit de normale beheerervaring.
++2. De werkgever legt de regeling, uitvoerder/referentie, effectieve periode, pensioenbasis, franchise, maxima, percentages, verdeling, deelnamevoorwaarden en toepasselijke loon-/urenbehandeling vast voor zover nodig voor die regeling.
++3. De applicatie valideert volledigheid, typen, effectieve datums, versieoverlap en onderlinge consistentie. Ze maakt geen wettelijke of contractuele waarden op basis van een voorbeeld, naam of testpersona.
++4. Op basis van de opgeslagen regeling en expliciet beheerde toepasselijkheidscriteria koppelt het systeem de relevante dienstverbanden/werknemers. De uitkomst is inzichtelijk en auditeerbaar; ambigue of onvolledige gevallen worden als controle- of reviewpunt aangeboden.
++5. Een bevoegde gebruiker kan een koppeling corrigeren of beëindigen via de reguliere wijzigingsflow met ingangsdatum, reden, actor en audit-event. Historische runs en afgesloten versies blijven immutable.
++6. Payroll leest de effectieve regeling en toewijzing in de normale bronprojectie en berekeningsflow. Een ontbrekende, niet-ondersteunde of onbewezen juridische regel resulteert in een zichtbare controle/warning of blokkade volgens de lifecycle; er wordt geen fictief bedrag of automatische nul ingevuld.
++
++Er is geen aparte TEST-knop, fixturepagina, synthetic-only route, environment claim of `PENSION_TEST_FIXTURES_ENABLED`-vereiste voor deze normale productworkflow.
++
++## Regelingsgegevens en toepasselijkheid
++
++Regelingsconfiguratie is werkgeveropgegeven data, tenzij een specifieke parameter aantoonbaar uit een onafhankelijke bron is gevalideerd. Het model bewaart minimaal:
++
++- tenant-, HR-groep- en administratiegrens;
++- regelingidentiteit, naam, uitvoerder-/regelingreferentie en versie;
++- ingangsdatum en optionele einddatum;
++- toepasselijkheidscriteria die de werkgever of bevoegde beheerder expliciet heeft vastgelegd;
++- financiële parameters met eenheden, basis, afrondings- en verdelingsmethode;
++- bron/verantwoording en eventuele verificatiestatus;
++- actor, audit-timestamps, supersession en immutable historie.
++
++Toepasselijkheid gebruikt de aanwezige gescopeerde dienstverband-, IKV-, loon-, uren- en arbeidsvoorwaardengegevens en de expliciet beheerde criteria. Een regeling wordt niet alleen aan een administratie toegewezen zonder toepasbaarheidscontrole. Conflicterende regelingen en ontbrekende brongegevens leiden tot een controlepunt, geen stille selectie.
++
++Door de werkgever opgegeven parameters bewijzen niet dat een pensioenregeling juridisch volledig is, op een specifieke werknemer van toepassing is, of fiscaal juist is verwerkt. Die conclusies vereisen passende juridische bronvalidatie en afzonderlijke acceptatie.
++
++## Rechten, audit en gegevenspresentatie
++
++- Beheer verloopt via de bestaande HR Admin-/Payroll Admin-permissions, server-side services en de geldende tenant-, HR-groep- en administratiescope.
++- Toewijzingen, correcties, versies en berekeningskeuzes zijn controleerbaar en voorzien van actor, datum, reden, bron, versie en hashes waar het domein dit vereist.
++- Managers en werknemers zien alleen de pensioeninformatie die hun normale scope en permissions toestaan.
++- Klantgerichte schermen gebruiken gewone termen zoals pensioenregeling en deelname. Ze tonen geen `TEST`, `fixture`, `synthetic` of technische acceptatieclaims op basis van de omgeving.
++- Interne audit- en acceptatiedocumentatie benoemt wel TEST/Production, fictieve/echte data, opgegeven/geverifieerde parameters en de grenzen van de compliance-evidence.
++
++## TEST-safety en interne tooling
++
++TEST gebruikt fictieve gegevens en behoudt dezelfde beheerschermen, businessregels en autorisaties. De omgeving blokkeert echte aangiften, SEPA-betalingen, externe distributie en Production-integraties. Een succesvolle lokale of TEST-berekening is geen bewijs dat de regeling juridisch is gevalideerd.
++
++Beveiligde fixture-provisioning, testclaims en flags mogen alleen interne ontwikkel- of acceptatietooling beveiligen. Ze worden niet als productvereiste, autorisatie voor een klantgebruiker, of noodzakelijke stap in de normale pensioenbeheerworkflow gebruikt. Een fixture kan TEST-data klaarzetten; acceptatie van de feature voert daarna normale beheer- en werknemerskoppelingshandelingen uit.
++
++De bestaande CAO-BENCH02/PAYLAB Phase 1-beperking tot drie synthetische Payroll Lab-fixtures blijft een historische interne benchmarkscope. Zij beperkt de Core-pensioenfunctie voor klanten niet. Zie de verduidelijking in [`ADR-PAYLAB-002`](../../decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md).
++
++De benodigde flag en claims in de historische [PAY-RULE-002 acceptatie](../../payroll/acceptance/PAY-RULE-002-PFZW-2026-20261009.md) en [final-closeout](../../payroll/acceptance/PAY-RULE-002-FINAL-CLOSURE-20261010.md) beveiligen die specifieke interne fixture-executie. Ze zijn geen Core-pensioenontwerp en geen precondition voor normale klantinrichting.
++
++## Acceptatiecriteria
++
++Een pensioenfeature voldoet wanneer de relevante criteria zijn getest:
++
++1. Een normale bevoegde beheerder kan een regeling via de gewone productinstellingen aanmaken, versiebeheer uitvoeren en corrigeren.
++2. Geldige toepasselijke werknemers/dienstverbanden worden volgens expliciete criteria gekoppeld; niet-toepasselijke en ambigue gevallen worden veilig geweigerd of ter review aangeboden.
++3. Geen speciale TEST-flag, fixtureclaim of alternatieve route is nodig voor instellingen, koppelingen of payrollinvoer.
++4. Positieve en negatieve normale autorisaties, scopegrenzen en audit-events zijn aangetoond.
++5. Effective dating, versie, bron, parameters, herberekening en immutable historische resultaten zijn herleidbaar.
++6. Werkgeveropgegeven parameters zijn onderscheiden van juridisch gevalideerde regeling en berekeningssucces van compliance.
++7. TEST weigert externe betalingen, aangiften, distributie en Production-integraties.
++8. Normale UI en documenten bevatten geen omgeving- of fixturelabels; functionele statussen zoals Concept blijven behouden.
++
++## Gerelateerde standaarden
++
++- [`AA-PAYROLL`](../../AA/AA-PAYROLL.md)
++- [`PRODUCT_ENVIRONMENT_PARITY`](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md)
++- [`ADR-PAYLAB-002`](../../decisions/ADR-PAYLAB-002-ARRANGEMENT-FOUNDATION.md)
++- [`PAYDOC01`](PAYDOC01-PAYSLIP-ANNUAL-STATEMENT-AND-DESIGNER.md)
+diff --git a/docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md b/docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md
+index 67b63cae..ea4060fe 100644
+--- a/docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md
++++ b/docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md
+@@ -9,6 +9,8 @@ Scope: **Blok 1 t/m Blok 4; Employees en Employee Detail zijn reference implemen
+ 
+ Dit document is vanaf 2026-08-20 de leidende algemene UX- en stylingfoundation voor de LiquidHR HR Suite. Het vervangt conflicterende suitebrede richting uit oudere conceptdocumenten. Historische ontwerpdocumenten blijven bewaard als context; bestaande schermen adopteren nieuwe patronen later, per gecontroleerde slice.
+ 
++**Omgevingspariteit:** TEST en Production gebruiken dezelfde klantgerichte UI en normale productflow. Toon geen ontwikkel-, fixture-, synthetische of TEST-herkomstlabels enkel vanwege de omgeving. Functionele statussen zoals Concept blijven wel zichtbaar; interne herkomst hoort in audit/provenance. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
++
+ ## 0.2 Blok 4 afgerond — governance
+ 
+ | Blok | Status |
+diff --git a/docs/requirements/workflows/ESS_MSS_WORKFLOW_UNIFICATION_V1.md b/docs/requirements/workflows/ESS_MSS_WORKFLOW_UNIFICATION_V1.md
+index f18a761c..e8da56ef 100644
+--- a/docs/requirements/workflows/ESS_MSS_WORKFLOW_UNIFICATION_V1.md
++++ b/docs/requirements/workflows/ESS_MSS_WORKFLOW_UNIFICATION_V1.md
+@@ -8,6 +8,8 @@ ESS en MSS gebruiken één werkmodel voor procesgestuurde aanvragen en acties. D
+ 
+ De verticale V1-slice maakt Leave self-service beschikbaar via `/leave/request`. De aanvraag wordt eerst als `PENDING` in de bestaande Leave-domeintabel opgeslagen, daarna via de bestaande `start_process`-kernel gestart. De typed bridge `process_leave_subjects` koppelt de Leave-aanvraag aan de process instance zonder directe Data API-toegang. De manager handelt via de native Leave-detailroute; uitsluitend de effectieve `APPROVE`-actie kan binnen dezelfde transactionele adapter de bestaande Leave-booking en append-only `TAKEN`-ledger uitvoeren.
+ 
++ESS/MSS gebruikt dezelfde gebruikersworkflow, rollen en businessregels in TEST en Production. TEST-gegevens maken de brondata fictief, maar veranderen de producthandelingen niet. Geen fixtureclaim of TEST-only route is vereist om een normale medewerker- of manageractie te gebruiken; interne provisioning blijft buiten de klantflow. Zie [PRODUCT_ENVIRONMENT_PARITY](../../architecture/PRODUCT_ENVIRONMENT_PARITY.md).
++
+ ## Reconciliatie van bestaande domeinen
+ 
+ - P-mutaties behouden de bestaande dynamic renderer, form bindings, native Internal Transfer-preview/commit en generieke work-item-acties. De nieuwe projectie en routing veranderen hun eigenaarschap of autorisatie niet.

@@ -1,0 +1,300 @@
+diff --git a/apps/hr-suite/app/(dashboard)/payroll/runs/actions.ts b/apps/hr-suite/app/(dashboard)/payroll/runs/actions.ts
+index 4e552e53..fdced886 100644
+--- a/apps/hr-suite/app/(dashboard)/payroll/runs/actions.ts
++++ b/apps/hr-suite/app/(dashboard)/payroll/runs/actions.ts
+@@ -58,11 +58,14 @@ function parseEmployeeReference(value: unknown): { readonly employeeId: string;
+   return rest.length === 0 && isUuid(employeeId) && isUuid(employmentId) ? { employeeId, employmentId } : null
+ }
+ 
+-function recalculationTarget(periodKey: unknown, outcome: PayrollEmployeeRecalculationOutcome): string {
++function recalculationTarget(periodKey: unknown, outcome: PayrollEmployeeRecalculationOutcome, diagnosticCode?: string | null): string {
+   const period = typeof periodKey === 'string' && /^(20\d{2}|21\d{2}|2200)-(0[1-9]|1[0-2])$/.test(periodKey)
+     ? `?period=${encodeURIComponent(periodKey)}`
+     : ''
+-  return `/payroll/runs${period}${period ? '&' : '?'}recalculation=${outcome}`
++  const diagnostic = process.env.NODE_ENV === 'development' && diagnosticCode
++    ? `&diagnostic=${encodeURIComponent(diagnosticCode)}`
++    : ''
++  return `/payroll/runs${period}${period ? '&' : '?'}recalculation=${outcome}${diagnostic}`
+ }
+ 
+ export async function recalculatePayrollEmployee(formData: FormData): Promise<never> {
+@@ -77,6 +80,7 @@ export async function recalculatePayrollEmployee(formData: FormData): Promise<ne
+   if (!reference || !periodMatch) redirect(recalculationTarget(periodKey, 'invalid'))
+ 
+   let outcome: PayrollEmployeeRecalculationOutcome = 'failed'
++  let diagnosticCode: string | null = null
+   try {
+     const result = await calculateEmployeePayroll({
+       employeeId: reference.employeeId,
+@@ -91,6 +95,11 @@ export async function recalculatePayrollEmployee(formData: FormData): Promise<ne
+               : result.status === 'IN_PROGRESS' ? 'inProgress' : 'failed'
+   } catch (error) {
+     const code = errorCode(error)
++    const candidate = code ?? (error instanceof Error ? error.name : null)
++    diagnosticCode = candidate && /^[A-Za-z0-9_]{3,48}$/.test(candidate) ? candidate.toUpperCase() : 'UNKNOWN_ERROR'
++    if (process.env.NODE_ENV === 'development') {
++      console.error('[payroll-recalculation] failed', { diagnosticCode })
++    }
+     outcome = code === 'PAYROLL_SOURCE_CHANGED_RECALCULATE_REQUIRED'
+       ? 'correctionRequired'
+       : error instanceof Error && error.name === 'AuthorizationError' ? 'accessDenied' : 'failed'
+@@ -98,7 +107,7 @@ export async function recalculatePayrollEmployee(formData: FormData): Promise<ne
+ 
+   revalidatePath('/payroll/runs')
+   revalidatePath('/payroll')
+-  redirect(recalculationTarget(periodKey, outcome))
++  redirect(recalculationTarget(periodKey, outcome, diagnosticCode))
+ }
+ 
+ export type PayrollPeriodActionState = {
+@@ -107,6 +116,10 @@ export type PayrollPeriodActionState = {
+ 
+ function errorCode(error: unknown): string | null {
+   if (typeof error !== 'object' || error === null || !('code' in error)) return null
++  if (process.env.NODE_ENV === 'development' && 'diagnosticCode' in error
++    && typeof error.diagnosticCode === 'string' && /^[A-Z0-9_]{3,48}$/.test(error.diagnosticCode)) {
++    return error.diagnosticCode
++  }
+   return typeof error.code === 'string' ? error.code : null
+ }
+ 
+diff --git a/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.test.ts b/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.test.ts
+index 3b2a829c..4ecf137b 100644
+--- a/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.test.ts
++++ b/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.test.ts
+@@ -1500,4 +1500,17 @@ describe('LiquidHR Payroll source provider', () => {
+       .rejects.toBeInstanceOf(PayrollSourceProviderError)
+     expect(deps.authorize).not.toHaveBeenCalled()
+   })
++
++  it('keeps a sanitized source-read stage code without exposing the database message', async () => {
++    const databaseError = Object.assign(new Error('sensitive row detail'), { code: '57014' })
++    const provider = new LiquidHrPayrollSourceProvider(dependencies({
++      loadActualWork: vi.fn(async () => { throw databaseError }),
++    }))
++
++    await expect(provider.getPayrollSourceSnapshot(request)).rejects.toMatchObject({
++      code: 'PAYROLL_SOURCE_DATA_UNAVAILABLE',
++      diagnosticCode: 'SOURCE_TIMELINE_57014',
++      message: 'PAYROLL_SOURCE_DATA_UNAVAILABLE',
++    })
++  })
+ })
+diff --git a/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.ts b/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.ts
+index b0ecdb50..47e998c4 100644
+--- a/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.ts
++++ b/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.ts
+@@ -185,12 +185,26 @@ export type PayrollSourceProviderErrorCode =
+   | 'PAYROLL_SOURCE_DATA_UNAVAILABLE'
+ 
+ export class PayrollSourceProviderError extends Error {
+-  constructor(readonly code: PayrollSourceProviderErrorCode, readonly status: 400 | 403 | 404 | 409 | 503) {
++  constructor(
++    readonly code: PayrollSourceProviderErrorCode,
++    readonly status: 400 | 403 | 404 | 409 | 503,
++    readonly diagnosticCode?: string,
++  ) {
+     super(code)
+     this.name = 'PayrollSourceProviderError'
+   }
+ }
+ 
++function sourceReadDiagnostic(stage: 'EMPLOYMENTS' | 'TIMELINE', error: unknown): string {
++  const candidate = typeof error === 'object' && error !== null && 'code' in error
++    ? (error as { readonly code?: unknown }).code
++    : null
++  const safeCode = typeof candidate === 'string' && /^[A-Za-z0-9_]{3,24}$/.test(candidate)
++    ? candidate.toUpperCase()
++    : 'READ_FAILED'
++  return `SOURCE_${stage}_${safeCode}`
++}
++
+ function defaultDependencies(): PayrollSourceProviderDependencies {
+   return {
+     authorize: async (employeeId) => {
+@@ -1346,8 +1360,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
+     let employments: readonly PayrollSourceEmployment[]
+     try {
+       employments = await this.dependencies.listEmployments(input.employeeId)
+-    } catch {
+-      throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503)
++    } catch (error) {
++      throw new PayrollSourceProviderError(
++        'PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceReadDiagnostic('EMPLOYMENTS', error),
++      )
+     }
+ 
+     const bounds = periodBounds(input.payrollPeriod)
+@@ -1373,8 +1389,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
+         this.dependencies.loadTimeline(input.employeeId, employment.id, input.payrollPeriod),
+         this.dependencies.loadActualWork(input.employeeId, employment.id, `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`),
+       ])
+-    } catch {
+-      throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503)
++    } catch (error) {
++      throw new PayrollSourceProviderError(
++        'PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, sourceReadDiagnostic('TIMELINE', error),
++      )
+     }
+     if (
+       timeline.employment.id !== employment.id
+@@ -1841,7 +1859,9 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
+     }
+ 
+     const validated = payrollSourceSnapshotSchema.safeParse(snapshot)
+-    if (!validated.success) throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503)
++    if (!validated.success) {
++      throw new PayrollSourceProviderError('PAYROLL_SOURCE_DATA_UNAVAILABLE', 503, 'SOURCE_SNAPSHOT_VALIDATION_FAILED')
++    }
+     return validated.data
+   }
+ }
+diff --git a/apps/hr-suite/lib/salary-structures/service.ts b/apps/hr-suite/lib/salary-structures/service.ts
+index d0f787ca..571bbef3 100644
+--- a/apps/hr-suite/lib/salary-structures/service.ts
++++ b/apps/hr-suite/lib/salary-structures/service.ts
+@@ -2,7 +2,7 @@ import type { Database, Json } from '@scope/db'
+ import { z } from 'zod'
+ import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+ import { createClient } from '@/lib/supabase/server'
+-import { selectedSalaryStructureRevisionId } from './catalog-read-scope'
++import { salaryStructureRevisionIdsForStructures, selectedSalaryStructureRevisionId } from './catalog-read-scope'
+ import type { SalaryStructureCreateInput, SalaryStructureDraftInput, SalaryStructureUpdateInput } from './schemas'
+ 
+ type SalaryStructureRow = Database['public']['Tables']['salary_structures']['Row']
+@@ -33,6 +33,7 @@ export type SalaryStructureCatalog = {
+ export type SalaryStructureCatalogReadScope = {
+   structureId: string | null
+   revisionId: string | null
++  structureIds?: readonly string[]
+ }
+ 
+ export type SalaryStructureMigrationConflictAction =
+@@ -48,14 +49,21 @@ export class SalaryStructureError extends Error {
+   }
+ }
+ 
+-function databaseError(message: string): never {
++function databaseError(error: string | { readonly code?: string | null; readonly message: string }): never {
++  const message = typeof error === 'string' ? error : error.message
+   const code = message.match(/[A-Z][A-Z_]+/)?.[0] ?? 'SALARY_STRUCTURE_FAILED'
+-  const status = code.includes('AUTHENTICATION') ? 401
+-    : code.includes('FORBIDDEN') ? 403
+-      : code.includes('NOT_FOUND') ? 404
+-        : code.includes('CONFLICT') || code.includes('DUPLICATE') || code.includes('IMMUTABLE') ? 409
++  const databaseCode = typeof error === 'string' ? null : error.code
++  const diagnosticCode = process.env.NODE_ENV === 'development'
++    && code === 'SALARY_STRUCTURE_FAILED'
++    && databaseCode && /^[A-Z0-9_]{3,32}$/.test(databaseCode)
++    ? `SALARY_STRUCTURE_FAILED_DB_${databaseCode}`
++    : code
++  const status = diagnosticCode.includes('AUTHENTICATION') ? 401
++    : diagnosticCode.includes('FORBIDDEN') ? 403
++      : diagnosticCode.includes('NOT_FOUND') ? 404
++        : diagnosticCode.includes('CONFLICT') || diagnosticCode.includes('DUPLICATE') || diagnosticCode.includes('IMMUTABLE') ? 409
+           : 400
+-  throw new SalaryStructureError(code, status)
++  throw new SalaryStructureError(diagnosticCode, status)
+ }
+ 
+ async function salaryContext(permission: string) {
+@@ -101,15 +109,25 @@ export async function listSalaryStructureCatalog(readScope?: SalaryStructureCata
+   ])
+   const error = structures.error ?? revisions.error ?? scales.error ?? scaleValues.error
+     ?? bands.error ?? bandValues.error ?? laborConditionRelations.error ?? migrationConflicts.error
+-  if (error) databaseError(error.message)
++  if (error) databaseError(error)
+   let steps: SalaryScaleStepRow[] = []
+   if (canReadAmounts) {
+     if (readScope === undefined) {
+       const result = await supabase.from('salary_scale_steps').select('*')
+         .eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId)
+         .order('sequence_number').limit(10000)
+-      if (result.error) databaseError(result.error.message)
++      if (result.error) databaseError(result.error)
+       steps = result.data ?? []
++    } else if (readScope.structureIds !== undefined) {
++      const revisionIds = salaryStructureRevisionIdsForStructures(revisions.data ?? [], readScope.structureIds)
++      if (revisionIds.length > 0) {
++        const result = await supabase.from('salary_scale_steps').select('*')
++          .eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId)
++          .in('salary_structure_revision_id', revisionIds)
++          .order('sequence_number').limit(10000)
++        if (result.error) databaseError(result.error)
++        steps = result.data ?? []
++      }
+     } else {
+       const revisionId = selectedSalaryStructureRevisionId(
+         revisions.data ?? [],
+@@ -121,7 +139,7 @@ export async function listSalaryStructureCatalog(readScope?: SalaryStructureCata
+           .eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId)
+           .eq('salary_structure_revision_id', revisionId)
+           .order('sequence_number').limit(10000)
+-        if (result.error) databaseError(result.error.message)
++        if (result.error) databaseError(result.error)
+         steps = result.data ?? []
+       }
+     }
+@@ -146,7 +164,7 @@ export async function createSalaryStructure(input: SalaryStructureCreateInput):
+     requested_hr_group_id: auth.hrGroupId,
+     requested_payload: jsonPayload(input),
+   })
+-  if (error || !data) databaseError(error?.message ?? 'SALARY_STRUCTURE_CREATE_FAILED')
++  if (error || !data) databaseError(error ?? 'SALARY_STRUCTURE_CREATE_FAILED')
+   return idResult.parse(data).id
+ }
+ 
+@@ -164,7 +182,7 @@ export async function updateSalaryStructure(structureId: string, input: SalarySt
+     .maybeSingle()
+   if (error) {
+     if (error.code === '23505') throw new SalaryStructureError('SALARY_STRUCTURE_CODE_CONFLICT', 409)
+-    databaseError(error.message)
++    databaseError(error)
+   }
+   if (!data) throw new SalaryStructureError('SALARY_STRUCTURE_NOT_FOUND', 404)
+ }
+@@ -184,7 +202,7 @@ export async function createSalaryStructureDraft(structureId: string, draft: Sal
+         requested_structure_id: structureId,
+         requested_payload: jsonPayload(draft),
+       })
+-  if (error || !data) databaseError(error?.message ?? 'SALARY_STRUCTURE_DRAFT_CREATE_FAILED')
++  if (error || !data) databaseError(error ?? 'SALARY_STRUCTURE_DRAFT_CREATE_FAILED')
+   return draftResult.parse(data)
+ }
+ 
+@@ -205,7 +223,7 @@ export async function saveSalaryStructureDraft(structureId: string, draftId: str
+         requested_expected_lock_version: expectedLockVersion,
+         requested_payload: jsonPayload(draft),
+       })
+-  if (error || !data) databaseError(error?.message ?? 'SALARY_STRUCTURE_DRAFT_SAVE_FAILED')
++  if (error || !data) databaseError(error ?? 'SALARY_STRUCTURE_DRAFT_SAVE_FAILED')
+   return draftResult.parse(data)
+ }
+ 
+@@ -217,7 +235,7 @@ export async function publishSalaryStructureRevision(revisionId: string, expecte
+     requested_revision_id: revisionId,
+     requested_expected_lock_version: expectedLockVersion,
+   })
+-  if (error || !data) databaseError(error?.message ?? 'SALARY_STRUCTURE_PUBLISH_FAILED')
++  if (error || !data) databaseError(error ?? 'SALARY_STRUCTURE_PUBLISH_FAILED')
+   return publishResult.parse(data)
+ }
+ 
+@@ -228,7 +246,7 @@ export async function replaceLaborConditionSalaryStructures(laborConditionSetId:
+     requested_labor_condition_set_id: laborConditionSetId,
+     requested_salary_structure_ids: salaryStructureIds,
+   })
+-  if (error || !data) databaseError(error?.message ?? 'LABOR_CONDITION_SALARY_STRUCTURES_FAILED')
++  if (error || !data) databaseError(error ?? 'LABOR_CONDITION_SALARY_STRUCTURES_FAILED')
+   return z.object({ count: z.number().int().nonnegative() }).parse(data).count
+ }
+ 
+@@ -250,6 +268,6 @@ export async function resolveSalaryStructureMigrationConflict(
+     .eq('id', conflictId)
+     .eq('tenant_id', auth.tenantId)
+     .eq('hr_group_id', auth.hrGroupId)
+-  if (error) databaseError(error.message)
++  if (error) databaseError(error)
+   if (!count) databaseError('SALARY_STRUCTURE_CONFLICT_NOT_FOUND')
+ }

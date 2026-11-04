@@ -1,0 +1,358 @@
+diff --git a/apps/hr-suite/lib/payroll/payfull02-independent-oracle.test.ts b/apps/hr-suite/lib/payroll/payfull02-independent-oracle.test.ts
+index 1324b250..25ed91b2 100644
+--- a/apps/hr-suite/lib/payroll/payfull02-independent-oracle.test.ts
++++ b/apps/hr-suite/lib/payroll/payfull02-independent-oracle.test.ts
+@@ -40,6 +40,23 @@ describe('independent PAYFULL-02 Mars payroll oracle', () => {
+     })
+   })
+ 
++  it('checks DEMO-003 with loonheffingskorting against the published 2026 table and its distinct opening basis', () => {
++    expect(derivePayfull02MarsOracle('DEMO-003')).toEqual({
++      source: PAYFULL02_MARS_ORACLE_SOURCE,
++      printedPage: 20,
++      candidate: 'DEMO-003',
++      grossAmount: '3517.00', taxableWage: '3325.07', wageTax: '518.42',
++      employeePension: '191.93', employerPension: '287.90', netReimbursement: '45.00',
++      netDeduction: '0.00', netCorrection: '0.00', netPay: '2851.65',
++      employerAwf: '257.36', employerAof: '208.48', employerWko: '16.63',
++      employerWhk: '60.18', employerZvw: '202.83', employerPremiums: '745.48',
++      holidayReserve: '281.36', yearEndReserve: '0.00', totalEmployerCost: '4876.74',
++      cumulativeGross: '35476.00', cumulativeTaxableWage: '33526.10',
++      cumulativeWageTax: '11322.20', cumulativeEmployeeInsuranceWage: '33526.10',
++      cumulativeZvwWage: '33526.10', cumulativeHolidayReserve: '2838.08',
++    })
++  })
++
+   it('checks the fixed €500 DEMO-001 regular variable-wage revision against its published table row', () => {
+     expect(derivePayfull02MarsVariableOracle()).toEqual({
+       source: PAYFULL02_MARS_ORACLE_SOURCE,
+diff --git a/apps/hr-suite/lib/payroll/payfull02-independent-oracle.ts b/apps/hr-suite/lib/payroll/payfull02-independent-oracle.ts
+index b491f2f5..89ddd41d 100644
+--- a/apps/hr-suite/lib/payroll/payfull02-independent-oracle.ts
++++ b/apps/hr-suite/lib/payroll/payfull02-independent-oracle.ts
+@@ -1,5 +1,5 @@
+ /**
+- * Independent fixed reference cases for the two synthetic Mars PAYFULL-02
++ * Independent fixed reference cases for the three synthetic Mars PAYFULL-02
+  * acceptance employees. This module intentionally imports no payroll engine,
+  * rule package, or scenario setup code.
+  */
+@@ -10,7 +10,7 @@ export const PAYFULL02_MARS_ORACLE_SOURCE = {
+   tableVersion: '2026-01-01',
+ } as const
+ 
+-type MarsCandidate = 'DEMO-001' | 'DEMO-002'
++export type MarsCandidate = 'DEMO-001' | 'DEMO-002' | 'DEMO-003'
+ 
+ type MarsCase = {
+   readonly grossCents: number
+@@ -20,6 +20,8 @@ type MarsCase = {
+   readonly taxableWageCents: number
+   readonly annualTableWageCents: number
+   readonly tableWithholdingWithoutCreditCents: number
++  readonly payrollTaxCreditApplies: boolean
++  readonly tableWithholdingWithCreditCents?: number
+   readonly employerPremiumRatesHundredths: readonly number[]
+   readonly holidayReserveRateHundredths: number
+   readonly openingGrossCents: number
+@@ -32,7 +34,8 @@ type MarsCase = {
+ 
+ // The amounts and rates below are the synthetic, versioned Mars TEST setup.
+ // Table withholding values are transcribed from the cited Belastingdienst
+-// white monthly table, NL standard, under AOW age, without loonheffingskorting.
++// white monthly table, NL standard, under AOW age, with the applicable
++// loonheffingskorting selection explicitly pinned per case.
+ const MARS_CASES: Readonly<Record<MarsCandidate, MarsCase>> = Object.freeze({
+   'DEMO-001': {
+     grossCents: 351_700,
+@@ -42,6 +45,7 @@ const MARS_CASES: Readonly<Record<MarsCandidate, MarsCase>> = Object.freeze({
+     taxableWageCents: 332_507,
+     annualTableWageCents: 3_985_200,
+     tableWithholdingWithoutCreditCents: 118_858,
++    payrollTaxCreditApplies: false,
+     employerPremiumRatesHundredths: [774, 627, 50, 181, 610],
+     holidayReserveRateHundredths: 800,
+     openingGrossCents: 9 * 351_700,
+@@ -59,6 +63,7 @@ const MARS_CASES: Readonly<Record<MarsCandidate, MarsCase>> = Object.freeze({
+     taxableWageCents: 328_228,
+     annualTableWageCents: 3_936_600,
+     tableWithholdingWithoutCreditCents: 117_342,
++    payrollTaxCreditApplies: false,
+     employerPremiumRatesHundredths: [774, 627, 50, 181, 610],
+     holidayReserveRateHundredths: 800,
+     openingGrossCents: 9 * 353_400,
+@@ -68,6 +73,25 @@ const MARS_CASES: Readonly<Record<MarsCandidate, MarsCase>> = Object.freeze({
+     openingZvwWageCents: 9 * 328_228,
+     openingHolidayReserveCents: 9 * 28_272,
+   },
++  'DEMO-003': {
++    grossCents: 351_700,
++    employeePensionCents: 19_193,
++    employerPensionCents: 28_790,
++    reimbursementCents: 4_500,
++    taxableWageCents: 332_507,
++    annualTableWageCents: 3_985_200,
++    tableWithholdingWithoutCreditCents: 118_858,
++    payrollTaxCreditApplies: true,
++    tableWithholdingWithCreditCents: 51_842,
++    employerPremiumRatesHundredths: [774, 627, 50, 181, 610],
++    holidayReserveRateHundredths: 800,
++    openingGrossCents: 9 * 355_100,
++    openingTaxableWageCents: 9 * 335_567,
++    openingWageTaxCents: 9 * 120_042,
++    openingEmployeeInsuranceWageCents: 9 * 335_567,
++    openingZvwWageCents: 9 * 335_567,
++    openingHolidayReserveCents: 9 * 28_408,
++  },
+ })
+ 
+ const DEMO_001_VARIABLE_CASE: MarsCase = Object.freeze({
+@@ -89,13 +113,22 @@ function tableWithholding(candidate: MarsCase): number {
+   if (tableWageCents !== candidate.annualTableWageCents / 12) {
+     throw new Error('The Mars taxable wage does not map to its independently pinned 2026 monthly table row.')
+   }
+-  const publishedRows: Readonly<Record<number, number>> = {
++  const publishedRowsWithoutCredit: Readonly<Record<number, number>> = {
+     332_100: 118_858,
+     328_050: 117_342,
+     377_100: 135_767,
+   }
+-  const withholding = publishedRows[tableWageCents]
+-  if (withholding === undefined || withholding !== candidate.tableWithholdingWithoutCreditCents) {
++  const publishedRowsWithCredit: Readonly<Record<number, number>> = {
++    332_100: 51_842,
++  }
++  const expected = candidate.payrollTaxCreditApplies
++    ? candidate.tableWithholdingWithCreditCents
++    : candidate.tableWithholdingWithoutCreditCents
++  const withholding = candidate.payrollTaxCreditApplies
++    ? publishedRowsWithCredit[tableWageCents]
++    : publishedRowsWithoutCredit[tableWageCents]
++  if (withholding === undefined || withholding !== expected
++    || publishedRowsWithoutCredit[tableWageCents] !== candidate.tableWithholdingWithoutCreditCents) {
+     throw new Error('The Mars withholding differs from its pinned Belastingdienst monthly table cell.')
+   }
+   return withholding
+diff --git a/apps/hr-suite/lib/payroll/payroll-professional-run-service.test.ts b/apps/hr-suite/lib/payroll/payroll-professional-run-service.test.ts
+index 6cf71fe8..96174d91 100644
+--- a/apps/hr-suite/lib/payroll/payroll-professional-run-service.test.ts
++++ b/apps/hr-suite/lib/payroll/payroll-professional-run-service.test.ts
+@@ -105,6 +105,7 @@ describe('Payroll Professional multi-employee calculation', () => {
+       grossAmount: '4000.00',
+       wageTaxAmount: '500.00',
+       netAfterWageTax: '3500.00',
++      payfull02: { totalEmployerCost: '5200.00' },
+       gaps: [],
+       incompleteComponents: ['PENSION_EMPLOYEE_ALLOCATION'],
+       recoveryActions: [],
+@@ -121,7 +122,7 @@ describe('Payroll Professional multi-employee calculation', () => {
+     expect(result.items.map((item) => item.state)).toEqual(['SOURCE_GAP', 'INCOMPLETE'])
+     expect(result.items[0]?.missingFields).toEqual([{ field: 'taxProfile', unsupported: false }])
+     expect(result.items[1]?.remainingAfterWageTax).toBe('3500.00')
+-    expect(result.items[1]?.employerCosts).toBeNull()
++    expect(result.items[1]?.employerCosts).toBe('5200.00')
+     expect(result.items[1]?.incompleteComponents).toEqual(['PENSION_EMPLOYEE_ALLOCATION'])
+     expect(calculateEmployee).toHaveBeenCalledTimes(1)
+     expect(calculateEmployee).toHaveBeenCalledWith({
+diff --git a/apps/hr-suite/lib/payroll/payroll-professional-run-service.ts b/apps/hr-suite/lib/payroll/payroll-professional-run-service.ts
+index a00954f2..476e71cc 100644
+--- a/apps/hr-suite/lib/payroll/payroll-professional-run-service.ts
++++ b/apps/hr-suite/lib/payroll/payroll-professional-run-service.ts
+@@ -213,7 +213,7 @@ function toRunItem(
+     grossAmount: result.grossAmount,
+     wageTaxAmount: result.wageTaxAmount,
+     remainingAfterWageTax: result.netAfterWageTax,
+-    employerCosts: null,
++    employerCosts: result.payfull02?.totalEmployerCost ?? null,
+     missingFields: displayMissingFields(result.gaps),
+     incompleteComponents: [...result.incompleteComponents],
+   }
+diff --git a/apps/hr-suite/next.config.ts b/apps/hr-suite/next.config.ts
+index fff3cc4c..45d38b4f 100644
+--- a/apps/hr-suite/next.config.ts
++++ b/apps/hr-suite/next.config.ts
+@@ -1,7 +1,15 @@
+ import type { NextConfig } from 'next'
+ import path from 'node:path'
+-import { MAX_DOCUMENT_REQUEST_BYTES } from './lib/documents/file-rules'
+-import { securityHeaders } from './lib/security/security-headers'
++
++// Keep this aligned with the 25 MiB file limit plus 2 MiB request overhead in lib/documents/file-rules.ts.
++const MAX_DOCUMENT_REQUEST_BYTES = 27 * 1024 * 1024
++const securityHeaders = [
++  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
++  { key: 'X-Content-Type-Options', value: 'nosniff' },
++  { key: 'X-Frame-Options', value: 'DENY' },
++  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
++  { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
++]
+ 
+ const serverlessPdfRuntimeFiles = [
+   '../../node_modules/playwright-core/browsers.json',
+diff --git a/packages/payroll-rules-nl-2026/src/pension-calculation.test.ts b/packages/payroll-rules-nl-2026/src/pension-calculation.test.ts
+index fc16e872..9ce690d9 100644
+--- a/packages/payroll-rules-nl-2026/src/pension-calculation.test.ts
++++ b/packages/payroll-rules-nl-2026/src/pension-calculation.test.ts
+@@ -82,6 +82,17 @@ describe('calculatePension', () => {
+     })
+   })
+ 
++  it('blocks a generic pension arrangement when participation starts mid-period', () => {
++    expect(calculatePension(input({ participationStartDate: '2026-10-16' }))).toMatchObject({
++      status: 'BLOCKED',
++      reasonCode: 'PENSION_PARTIAL_MONTH_PRORATION_UNVERIFIED',
++      totalPremiumMonthly: null,
++      employeePremiumMonthly: null,
++      employerPremiumMonthly: null,
++      fiscalBases: { wageTax: null, employeeInsurance: null, zvw: null },
++    })
++  })
++
+   it('calculates the Jaap TEST legacy pension from explicit Annex IV Table 2 OP-only terms', () => {
+     const arrangement: PensionArrangementInput = {
+       ...flatArrangement,
+diff --git a/packages/payroll-rules-nl-2026/src/pension-calculation.ts b/packages/payroll-rules-nl-2026/src/pension-calculation.ts
+index 16d4e870..5ba2b92b 100644
+--- a/packages/payroll-rules-nl-2026/src/pension-calculation.ts
++++ b/packages/payroll-rules-nl-2026/src/pension-calculation.ts
+@@ -209,6 +209,9 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
+       },
+     }
+   }
++  if (input.participationStartDate > periodStart) {
++    return blocked(input, 'PENSION_PARTIAL_MONTH_PRORATION_UNVERIFIED')
++  }
+   if (arrangement.grandfatheringMode === 'EERBIEDIGENDE_WERKING') {
+     if (arrangement.transitionDate === null || !validDate(arrangement.transitionDate)) {
+       return blocked(input, 'PENSION_GRANDFATHERING_TRANSITION_DATE_UNVERIFIED')
+diff --git a/scripts/check-test-personas.browser.mjs b/scripts/check-test-personas.browser.mjs
+index 5ccfdc28..2a30d2af 100644
+--- a/scripts/check-test-personas.browser.mjs
++++ b/scripts/check-test-personas.browser.mjs
+@@ -146,48 +146,47 @@ async function chooseContext(page, expectedAdministrationId, usePayrollScope) {
+ }
+ 
+ async function submitRoleSwitch(page, key) {
+-  const trigger = page.getByTestId('test-role-switch-trigger')
+-  if (!(await trigger.count())) return { ok: false, unavailable: false, cause: 'switcher-missing' }
+-  await trigger.click()
+-  const target = page.getByTestId('test-role-switch-target')
+-  const targetVisible = await target.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)
+-  if (!targetVisible) {
+-    const expanded = await trigger.getAttribute('aria-expanded').catch(() => null)
+-    return { ok: false, unavailable: false, cause: expanded === 'true' ? 'menu-not-visible' : 'trigger-not-responsive' }
+-  }
++  const target = page.locator('#local-persona-target')
++  if (!(await target.count())) return { ok: false, unavailable: false, cause: 'switcher-missing' }
++  const form = page.locator('form[action="/api/auth/test-role-switch"]')
++  if (await form.count() !== 1) return { ok: false, unavailable: false, cause: 'switch-form-missing' }
+   const values = await target.locator('option').evaluateAll((options) => options.map((option) => option.value))
+-  if (!values.includes(key)) {
+-    await page.keyboard.press('Escape')
+-    return { ok: false, unavailable: false, cause: 'key-missing' }
+-  }
++  if (!values.includes(key)) return { ok: false, unavailable: false, cause: 'key-missing' }
+ 
+-  const navigation = page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => null)
+   await target.selectOption(key)
+-  const response = await navigation
+-  if (response?.status() === 503 || new URL(page.url()).pathname === '/api/auth/test-role-switch') {
+-    return { ok: false, unavailable: true, cause: 'handoff-unavailable' }
+-  }
+-  const personaMarker = page.getByTestId('test-role-current-persona')
+-  if (new URL(page.url()).pathname === '/context/select') return { ok: true, unavailable: false, cause: null }
+-  await page.waitForFunction((expected) => document.querySelector('[data-testid="test-role-current-persona"]')?.getAttribute('data-persona') === expected, key, { timeout: 20000 }).catch(() => undefined)
+-  const ok = (await personaMarker.getAttribute('data-persona').catch(() => null)) === key
+-  return { ok, unavailable: false, cause: ok ? null : 'persona-marker-missing' }
++  const navigation = page.waitForURL((url) => ['/dashboard/start', '/context/select'].includes(url.pathname), { timeout: 30000 }).then(() => true).catch(() => false)
++  await form.locator('button[type="submit"]').click()
++  const arrived = await navigation
++  if (!arrived) return { ok: false, unavailable: true, cause: 'handoff-unavailable' }
++  return { ok: true, unavailable: false, cause: null }
+ }
+ 
+ async function returnToAdmin(page) {
+-  const button = page.getByTestId('test-role-return-to-admin')
+-  if (!(await button.count())) return false
+-  const navigation = page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => null)
+-  await button.click()
+-  await navigation
+-  if (new URL(page.url()).pathname === '/context/select') await chooseContext(page, null, false).catch(() => ({ ok: false, cause: 'context-selection-failed' }))
+-  await page.waitForFunction(() => document.querySelector('[data-testid="test-role-current-persona"]')?.getAttribute('data-persona') === 'hr-admin', undefined, { timeout: 20000 }).catch(() => undefined)
+-  return (await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null)) === 'hr-admin'
++  await page.goto(new URL('/local/personas', origin).toString(), { waitUntil: 'domcontentloaded' })
++  const returnForm = page.locator('form[action="/api/auth/test-role-switch"] input[name="target"][value="hr-admin"]')
++  if (!(await returnForm.count())) return false
++  const form = page.locator('form[action="/api/auth/test-role-switch"]').filter({ has: returnForm })
++  const navigation = page.waitForURL((url) => ['/dashboard/start', '/context/select'].includes(url.pathname), { timeout: 30000 }).then(() => true).catch(() => false)
++  await form.locator('button[type="submit"]').click()
++  if (!await navigation) return false
++  if (new URL(page.url()).pathname === '/context/select') {
++    const context = await chooseContext(page, null, false).catch(() => ({ ok: false, cause: 'context-selection-failed' }))
++    if (!context.ok) return false
++  }
++  await page.goto(new URL('/local/personas', origin).toString(), { waitUntil: 'domcontentloaded' })
++  const ownerTarget = page.locator('#local-persona-target')
++  if (!(await ownerTarget.count())) return false
++  const accessText = (await page.locator('body').innerText()).toLocaleLowerCase('nl-NL')
++  const effectiveAdminRole = /\b(?:hr_admin|tenant_admin)\b/i.test(accessText)
++  const businessGuardAllows = /zou toegang geven|would allow/i.test(accessText)
++  const localGuardAllows = /lokaal.*toegestaan|local.*allowed/i.test(accessText)
++  return effectiveAdminRole && businessGuardAllows && localGuardAllows
+ }
+ 
+ async function testRoleSwitch(page, persona) {
+-  const activePersona = await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null)
+-  if (activePersona !== 'hr-admin') {
++  await page.goto(new URL('/local/personas', origin).toString(), { waitUntil: 'domcontentloaded' })
++  const ownerTarget = page.locator('#local-persona-target')
++  if (!(await ownerTarget.count())) {
+     addReason(persona.key, 'De vaste Payroll-role-switch is niet gestart vanuit de lokale Test HR Admin-sessie.')
+     return false
+   }
+@@ -211,9 +210,12 @@ async function testRoleSwitch(page, persona) {
+ 
+   const scopeResult = await chooseContext(page, scope.administration.id, true).catch(() => ({ ok: false, cause: 'context-check-failed' }))
+   if (!scopeResult.ok) addReason(persona.key, `De persona heeft geen actieve, geverifieerde Jupiter-administratiecontext (${scopeResult.cause}).`)
+-  if (await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null) !== persona.roleSwitchKey) {
+-    addReason(persona.key, 'De directe handoff eindigde niet bij de vaste persona-key.')
++  await page.goto(new URL('/local/personas', origin).toString(), { waitUntil: 'domcontentloaded' })
++  const returnTarget = page.locator('form[action="/api/auth/test-role-switch"] input[name="target"][value="hr-admin"]')
++  if (await returnTarget.count() !== 1 || await page.locator('#local-persona-target').count() !== 0) {
++    addReason(persona.key, 'De handoff heeft geen verifieerbare lokale persona-sessie opgeleverd.')
+   }
++  await checkEss(page, persona)
+   return scopeResult.ok
+ }
+ async function expectCrossEmployeeDenied(page, personaKey, routeName, url) {
+@@ -332,7 +334,7 @@ async function testAdminHandoff(persona) {
+     browserErrorKinds.add(error.name === 'TypeError' || error.name === 'ReferenceError' ? 'runtime' : 'pageerror')
+   })
+   try {
+-    await page.goto(new URL('/login', origin).toString(), { waitUntil: 'domcontentloaded' })
++    await page.goto(new URL('/local/sign-in', origin).toString(), { waitUntil: 'domcontentloaded' })
+     const adminLoginButton = page.getByTestId('test-login-hr-admin')
+     if (!(await adminLoginButton.count())) {
+       addReason(persona.key, 'Lokale Test HR Admin-login is niet beschikbaar op de opgegeven loopback-server.')
+@@ -346,8 +348,10 @@ async function testAdminHandoff(persona) {
+       return
+     }
+     if (new URL(page.url()).pathname === '/context/select') await chooseContext(page, null, false).catch(() => false)
+-    const activeAdminPersona = await page.getByTestId('test-role-current-persona').getAttribute('data-persona').catch(() => null)
+-    if (activeAdminPersona !== 'hr-admin') {
++    await page.goto(new URL('/local/personas', origin).toString(), { waitUntil: 'domcontentloaded' })
++    const activeAdminPersona = await page.locator('#local-persona-target').count()
++    const adminAccessText = (await page.locator('body').innerText()).toLocaleLowerCase('nl-NL')
++    if (activeAdminPersona !== 1 || !/\b(?:hr_admin|tenant_admin)\b/i.test(adminAccessText) || !/zou toegang geven|would allow/i.test(adminAccessText)) {
+       addReason(persona.key, 'Lokale Test HR Admin-authenticatie of het normale contextladen faalde.')
+       return
+     }
+@@ -355,7 +359,7 @@ async function testAdminHandoff(persona) {
+     await page.waitForLoadState('networkidle', { timeout: 2500 }).catch(() => undefined)
+     await page.waitForTimeout(250)
+     const wasSwitched = await testRoleSwitch(page, persona)
+-    const returnButton = page.getByTestId('test-role-return-to-admin')
++    const returnButton = page.locator('form[action="/api/auth/test-role-switch"] input[name="target"][value="hr-admin"]')
+     if (wasSwitched && await returnButton.count()) {
+       const returned = await returnToAdmin(page)
+       if (!returned) addReason(persona.key, 'Terugkeer via de bestaande lokale Test HR Admin-login is niet bevestigd.')

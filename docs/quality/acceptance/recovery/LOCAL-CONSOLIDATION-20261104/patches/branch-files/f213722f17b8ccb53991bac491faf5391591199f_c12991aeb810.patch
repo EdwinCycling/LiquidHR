@@ -1,0 +1,36 @@
+diff --git a/docs/delivery/CURRENT_CONTEXT.md b/docs/delivery/CURRENT_CONTEXT.md
+index 76b4d53b..f9fbba6c 100644
+--- a/docs/delivery/CURRENT_CONTEXT.md
++++ b/docs/delivery/CURRENT_CONTEXT.md
+@@ -1,5 +1,31 @@
+ # Actuele overdracht Liquid HR
+ 
++## PAYLAB00 close + PAYLAB01 source adapter — 2026-09-30
++
++- Branch `work/paylab00`, baseline `5ac6060236c947b5029d76de2998fa7ab9435e01`,
++  repo `C:\Users\Edwin\Documents\Apps\LiquidHR-Payroll\Code`.
++- PAYLAB00 status: **ENVIRONMENT-GATED / CLOSED**; the previously authorized
++  Payroll Lab migration and database/isolation readback are accepted. The
++  remaining authenticated context read fails in the local test environment
++  with `PGRST303: JWT issued at future` after the test login redirect.
++- PAYLAB01 status: **PARTIAL**. Server-only provider reads via existing
++  employment services, enforces authenticated tenant/group/administration and
++  employee scope, maps effective-dated employment/salary/hours, validates the
++  snapshot, honors the Payroll Lab kill switch before authorization/source
++  reads, records source gaps and creates a deterministic SHA-256 source hash.
++  No direct Core Supabase query or Core write.
++- Explicit source gaps: IncomeRelationship remains `UNSUPPORTED` pending the
++  CONTROL02-owned contract; tax/fiscal profile remains `SOURCE_GAP`. Personal
++  names, birth data, BSN, IBAN and contact values are excluded.
++- Targeted tests `12 files / 62 tests`, strict TypeScript, changed-area ESLint,
++  and production build passed. Build generated 300 pages; boundary
++  scan passed on 143 assets and the exact Payroll secret scan found zero
++  matches. Full hr-suite was not rerun under bounded AA-TEST policy.
++- Core schema/config/migration delta: **0**. CONTROL02 untouched. No Core
++  business data created or modified; no Payroll migration added/applied in
++  this slice. No PAYLAB02, push or merge. Live source integration remains
++  environment-gated. Evidence: [`PAYLAB00/PAYLAB01 acceptance`](../payroll/acceptance/PAYLAB00-01-20260930.md).
++
+ ## ABS02 — absence hardening, security en WvP-foundation — 2026-09-27
+ 
+ **Status: CODE/TEST/MAIN GREEN; Vercel READY; hosted authenticated version- en strikte GitHub-SHA-provenance blijven environment-gated.** Baseline was exact `22ad719246095f75c1e3c034e6bdd3867c489569`; de gedeployde ABS02-applicatiebron is `e5e090b084a18561dc74a09d4054ddabe2c641b`; kandidaatversie `1.20260927.3` (eenmalig `.2 -> .3` na groene gates). Deze handoff-update is documentatie-only. ABS01 blijft frozen PARTIAL en INS01 is niet gestart.

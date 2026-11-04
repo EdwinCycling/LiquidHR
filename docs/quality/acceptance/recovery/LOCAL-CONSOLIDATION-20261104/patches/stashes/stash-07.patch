@@ -1,0 +1,1102 @@
+diff --git a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/fiscal/page.test.tsx b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/fiscal/page.test.tsx
+index 0316fa3c..b90be0b0 100644
+--- a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/fiscal/page.test.tsx
++++ b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/fiscal/page.test.tsx
+@@ -77,4 +77,19 @@ describe('Employment fiscal dossier page', () => {
+     expect(taxes).toContain('fiscalDossier.calculationLimitDescription')
+     expect(insurance).toContain('fiscalDossier.insuranceCalculationUnavailable')
+   })
++
++  it('keeps the profile form available while an existing employment IKV is DRAFT', async () => {
++    getEmploymentPayrollTaxDossier.mockResolvedValueOnce({
++      ...fixture,
++      incomeRelationships: fixture.incomeRelationships.map((row) => ({ ...row, reportingStatus: 'DRAFT' })),
++    })
++
++    const taxes = renderToStaticMarkup(await EmploymentFiscalDossierPage({
++      params: Promise.resolve({ employeeId: 'employee-1', employmentId: 'employment-1' }),
++      searchParams: Promise.resolve({ tab: 'taxes' }),
++    }))
++
++    expect(taxes).toContain('name="incomeRelationshipId"')
++    expect(taxes).toContain('value="ikv-1"')
++  })
+ })
+diff --git a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/fiscal/page.tsx b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/fiscal/page.tsx
+index b96f8126..5fa01343 100644
+--- a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/fiscal/page.tsx
++++ b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/fiscal/page.tsx
+@@ -96,7 +96,7 @@ export default async function EmploymentFiscalDossierPage({ params, searchParams
+   const activeProfiles = profiles.filter(({ profile, effectiveTo }) => profile.effective_from <= today
+     && (effectiveTo === null || effectiveTo >= today))
+   const activeIncomeRelationships = dossier.incomeRelationships.filter((row) => row.relationshipType === 'EMPLOYMENT'
+-    && row.reportingStatus !== 'DRAFT' && row.startsOn <= today && (row.endsOn === null || row.endsOn >= today)
++    && row.startsOn <= today && (row.endsOn === null || row.endsOn >= today)
+     && row.validFrom <= today && (row.validUntil === null || row.validUntil >= today))
+   const currentProfile = activeIncomeRelationships.length === 1
+     ? activeProfiles.filter(({ profile }) => profile.income_relationship_id === activeIncomeRelationships[0]?.incomeRelationshipId)
+@@ -107,7 +107,7 @@ export default async function EmploymentFiscalDossierPage({ params, searchParams
+   const currentTaxNumber = dossier.payrollTaxNumbers.find((row) => row.isPrimary
+     && row.validFrom <= today && (row.validUntil === null || row.validUntil >= today))
+   const eligibleIncomeRelationships = dossier.incomeRelationships.filter((row) =>
+-    row.relationshipType === 'EMPLOYMENT' && row.reportingStatus !== 'DRAFT',
++    row.relationshipType === 'EMPLOYMENT',
+   )
+   const dateLabel = (value: string | null) => value ? formatDate(value, { locale, dateFormat: preferences.dateFormat }) : copy('notAvailable')
+   const periodLabel = (from: string, to: string | null) => `${dateLabel(from)} – ${to ? dateLabel(to) : copy('openEnded')}`
+diff --git a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/ikv/actions.ts b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/ikv/actions.ts
+index b17d2b1f..0b5de5d3 100644
+--- a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/ikv/actions.ts
++++ b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/ikv/actions.ts
+@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
+ import { redirect } from 'next/navigation'
+ import {
+   IncomeRelationshipReadinessError,
++  bindIncomeRelationshipPayrollTaxNumber,
+   markIncomeRelationshipReady,
+ } from '@/lib/employment/income-relationship-readiness-service'
+ 
+@@ -15,11 +16,43 @@ function scalar(formData: FormData, name: string): string {
+   return values[0]
+ }
+ 
+-function destination(employeeId: string, employmentId: string, result: 'saved' | 'blocked' | 'forbidden' | 'unavailable') {
++function destination(employeeId: string, employmentId: string, result: 'saved' | 'bound' | 'blocked' | 'forbidden' | 'unavailable') {
+   const params = new URLSearchParams({ tab: 'overview', ikv: result })
+   return `/employees/${encodeURIComponent(employeeId)}/employments/${encodeURIComponent(employmentId)}?${params}`
+ }
+ 
++export async function bindIncomeRelationshipPayrollTaxNumberAction(formData: FormData): Promise<never> {
++  let employeeId = ''
++  let employmentId = ''
++  let result: 'saved' | 'bound' | 'blocked' | 'forbidden' | 'unavailable' = 'unavailable'
++  try {
++    const fields = Array.from(formData.keys()).filter((key) => !key.startsWith('$ACTION_')).sort()
++    if (fields.join('|') !== ['employeeId', 'employmentId', 'incomeRelationshipId', 'payrollTaxBindingId'].sort().join('|')) {
++      throw new Error('INVALID_INPUT')
++    }
++    employeeId = scalar(formData, 'employeeId')
++    employmentId = scalar(formData, 'employmentId')
++    const incomeRelationshipId = scalar(formData, 'incomeRelationshipId')
++    const payrollTaxBindingId = scalar(formData, 'payrollTaxBindingId')
++    if (![employeeId, employmentId, incomeRelationshipId, payrollTaxBindingId].every((value) => UUID_PATTERN.test(value))) {
++      throw new Error('INVALID_INPUT')
++    }
++
++    await bindIncomeRelationshipPayrollTaxNumber(employeeId, employmentId, incomeRelationshipId, payrollTaxBindingId)
++    result = 'bound'
++    revalidatePath(`/employees/${employeeId}/employments/${employmentId}`)
++    revalidatePath(`/employees/${employeeId}/employments/${employmentId}/fiscal`)
++  } catch (error) {
++    if (error instanceof IncomeRelationshipReadinessError) {
++      if (error.code === 'PAYROLL_IKV_FORBIDDEN') result = 'forbidden'
++      else if (error.status === 409) result = 'blocked'
++    } else if (error instanceof Error && error.message === 'INVALID_INPUT') {
++      result = 'blocked'
++    }
++  }
++  redirect(destination(employeeId, employmentId, result))
++}
++
+ export async function markIncomeRelationshipReadyAction(formData: FormData): Promise<never> {
+   let employeeId = ''
+   let employmentId = ''
+diff --git a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx
+index 8712176a..667023d6 100644
+--- a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx
++++ b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx
+@@ -45,7 +45,8 @@ import { listProcessWork } from "@/lib/process-automation/work-service";
+ import { resolveSalaryBandAtDate, resolveSalaryScaleStepAtDate } from "@/lib/salary-application/resolution";
+ import { employmentMutationTranslationKey } from "@/lib/employment/employment-mutation-labels";
+ import { getIncomeRelationshipReadiness } from "@/lib/employment/income-relationship-readiness-service";
+-import { markIncomeRelationshipReadyAction } from "./ikv/actions";
++import { bindIncomeRelationshipPayrollTaxNumberAction, markIncomeRelationshipReadyAction } from "./ikv/actions";
++import { repairFulltimeSalarySourceAction } from "./salary-actions";
+ import type { Translator } from "@/lib/i18n/translator";
+ 
+ interface PageProps {
+@@ -287,6 +288,14 @@ export default async function EmploymentDetailPage({
+     ? resolveSalaryBandAtDate({ salaryStructureId: currentSalary.salary_structure_id, salaryBandId: currentSalary.salary_band_id, asOf: selectedDate, revisions: resolutionRevisions, bandValues: resolutionBandValues })
+     : null;
+   const currentSalaryAmount = currentSalary ? resolvedSalaryAmount(currentSalary, selectedDate) : null;
++  const hasFulltimeSourceMismatch = Boolean(
++    currentSalary
++      && currentSalary.fulltime_amount !== null
++      && currentSalary.parttime_amount !== null
++      && Number(currentSalary.fulltime_amount) !== Number(currentSalary.parttime_amount)
++      && currentSchedule
++      && Math.abs(Number(currentSchedule.part_time_factor) - 1) < 0.0001,
++  );
+   const name = `${detail.employee.first_name} ${detail.employee.birth_name}`;
+   const mutationLabels = Object.fromEntries(
+     [
+@@ -547,6 +556,7 @@ export default async function EmploymentDetailPage({
+             {canReviewIncomeRelationships ? <Surface className="p-5 sm:p-6">
+               <SectionHeader title={t('ikvReadiness.title')} description={t('ikvReadiness.description')} />
+               {query.ikv === 'saved' ? <p className="mt-4 border border-success/30 bg-success-surface p-3 text-sm text-success" role="status">{t('ikvReadiness.readySaved')}</p> : null}
++              {query.ikv === 'bound' ? <p className="mt-4 border border-success/30 bg-success-surface p-3 text-sm text-success" role="status">{t('ikvReadiness.taxNumberBindingSaved')}</p> : null}
+               {query.ikv === 'blocked' ? <p className="mt-4 border border-warning/40 bg-warning-surface p-3 text-sm text-warning" role="status">{t('ikvReadiness.readyBlocked')}</p> : null}
+               {query.ikv === 'forbidden' ? <p className="mt-4 border border-destructive/30 bg-destructive-surface p-3 text-sm text-destructive" role="alert">{t('ikvReadiness.readyForbidden')}</p> : null}
+               {query.ikv === 'unavailable' ? <p className="mt-4 border border-destructive/30 bg-destructive-surface p-3 text-sm text-destructive" role="alert">{t('ikvReadiness.readyUnavailable')}</p> : null}
+@@ -586,6 +596,22 @@ export default async function EmploymentDetailPage({
+                       </ul>
+                     </div> : null
+                     })()}
++                    {canWriteIncomeRelationships && relationship.reportingStatus === 'DRAFT' && relationship.payrollTaxNumberOptions.length > 0 ? <form action={bindIncomeRelationshipPayrollTaxNumberAction} className="mt-4 flex flex-wrap items-center gap-3">
++                      <input type="hidden" name="employeeId" value={employeeId} />
++                      <input type="hidden" name="employmentId" value={employmentId} />
++                      <input type="hidden" name="incomeRelationshipId" value={relationship.id} />
++                      <label className="grid min-w-64 gap-1 text-sm font-medium">
++                        {t('ikvReadiness.selectPayrollTaxNumber')}
++                        <select className="min-h-10 rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm" defaultValue={relationship.payrollTaxBindingId ?? ''} name="payrollTaxBindingId" required>
++                          <option value="">{t('ikvReadiness.selectPayrollTaxNumberPlaceholder')}</option>
++                          {relationship.payrollTaxNumberOptions.map((option) => <option key={option.id} value={option.id}>
++                            {option.payrollTaxNumber} · {option.payrollTaxSubnumber} · {periodLabel(option.validFrom, option.validUntil, locale, preferences.dateFormat, t('fiscalDossier.openEnded'))}
++                          </option>)}
++                        </select>
++                      </label>
++                      <button className={buttonClasses({ size: 'sm' })} type="submit">{t('ikvReadiness.saveTaxNumberBinding')}</button>
++                      <span className="text-sm text-muted-foreground">{t('ikvReadiness.saveTaxNumberBindingHelp')}</span>
++                    </form> : null}
+                     {canWriteIncomeRelationships && relationship.reportingStatus === 'DRAFT' ? <form action={markIncomeRelationshipReadyAction} className="mt-4 flex flex-wrap items-center gap-3">
+                       <input type="hidden" name="employeeId" value={employeeId} />
+                       <input type="hidden" name="employmentId" value={employmentId} />
+@@ -1011,6 +1037,15 @@ export default async function EmploymentDetailPage({
+                   <p className="mt-1 text-sm text-muted-foreground">{t("salaryTimelineDescription")}</p>
+                 </div>
+                 {detail.capabilities.canWriteSalary && currentContract ? <EmploymentChangeButton actionKey="salary" actionTitle={t("changeSalary")} buttonLabel={t("change")} labels={changeLabels} employmentId={employmentId} today={today} locale={locale} data={changeData} dayLabels={[t("dayMonday"), t("dayTuesday"), t("dayWednesday"), t("dayThursday"), t("dayFriday"), t("daySaturday"), t("daySunday")]} /> : null}
++                {detail.capabilities.canWriteSalary && currentSalary && hasFulltimeSourceMismatch ? (
++                  <form action={repairFulltimeSalarySourceAction}>
++                    <input name="employeeId" type="hidden" value={employeeId} />
++                    <input name="employmentId" type="hidden" value={employmentId} />
++                    <input name="effectiveOn" type="hidden" value={currentSalary.valid_from} />
++                    <input name="parttimeAmount" type="hidden" value={Number(currentSalary.parttime_amount).toFixed(2)} />
++                    <button aria-label="Herstel FTE 1,00 salarisbron" className={buttonClasses({ variant: "secondary", size: "sm" })} type="submit">Bron corrigeren</button>
++                  </form>
++                ) : null}
+               </div>
+               <SelectableTimelineList
+                 labels={timelineListLabels}
+diff --git a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/actions.ts b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/actions.ts
+index b3f6b325..8892a7aa 100644
+--- a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/actions.ts
++++ b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/actions.ts
+@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
+ import {
+   assignEmploymentPensionArrangement,
+   createPensionArrangementSuccessor,
++  ensureMarsPayfull02SyntheticPensionArrangement,
+   EmploymentPensionArrangementError,
+ } from '@/lib/employment/pension-arrangement-service'
+ import type { Json } from '@scope/db'
+@@ -17,7 +18,7 @@ function scalar(formData: FormData, name: string): string {
+   return values[0]
+ }
+ 
+-function destination(employeeId: string, employmentId: string, result: 'saved' | 'versionSaved' | 'invalid' | 'blocked' | 'unavailable') {
++function destination(employeeId: string, employmentId: string, result: 'arrangementSaved' | 'saved' | 'versionSaved' | 'invalid' | 'blocked' | 'unavailable') {
+   const params = new URLSearchParams({
+     [result === 'saved' || result === 'versionSaved' ? 'saved' : 'error']: result,
+   })
+@@ -89,6 +90,34 @@ export async function assignEmploymentPensionArrangementAction(formData: FormDat
+   redirect(destination(employeeId, employmentId, result))
+ }
+ 
++export async function createMarsPayfull02SyntheticPensionArrangementAction(formData: FormData): Promise<never> {
++  let employeeId = ''
++  let employmentId = ''
++  let result: 'arrangementSaved' | 'invalid' | 'blocked' | 'unavailable' = 'unavailable'
++  try {
++    const fields = Array.from(formData.keys()).filter((key) => !key.startsWith('$ACTION_')).sort()
++    if (fields.join('|') !== ['employeeId', 'employmentId', 'requestKey'].sort().join('|')) {
++      throw new Error('INVALID_INPUT')
++    }
++    employeeId = scalar(formData, 'employeeId')
++    employmentId = scalar(formData, 'employmentId')
++    const requestKey = scalar(formData, 'requestKey')
++    if (![employeeId, employmentId, requestKey].every((value) => UUID_PATTERN.test(value))) {
++      throw new Error('INVALID_INPUT')
++    }
++    await ensureMarsPayfull02SyntheticPensionArrangement({ employeeId, employmentId, requestKey })
++    revalidatePath(`/employees/${employeeId}/employments/${employmentId}/pension`)
++    result = 'arrangementSaved'
++  } catch (error) {
++    if (error instanceof EmploymentPensionArrangementError) {
++      result = error.status === 400 || error.status === 409 ? 'blocked' : 'unavailable'
++    } else if (error instanceof Error && error.message === 'INVALID_INPUT') {
++      result = 'invalid'
++    }
++  }
++  redirect(destination(employeeId, employmentId, result))
++}
++
+ export async function createPensionArrangementSuccessorAction(formData: FormData): Promise<never> {
+   let employeeId = ''
+   let employmentId = ''
+diff --git a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/page.tsx b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/page.tsx
+index f0aca13e..5021202d 100644
+--- a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/page.tsx
++++ b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/page.tsx
+@@ -10,7 +10,11 @@ import {
+   getEmploymentPensionArrangementPageData,
+ } from '@/lib/employment/pension-arrangement-service'
+ import { getTranslator } from '@/lib/i18n/server'
+-import { assignEmploymentPensionArrangementAction, createPensionArrangementSuccessorAction } from './actions'
++import {
++  assignEmploymentPensionArrangementAction,
++  createMarsPayfull02SyntheticPensionArrangementAction,
++  createPensionArrangementSuccessorAction,
++} from './actions'
+ 
+ type PageProps = {
+   params: Promise<{ employeeId: string; employmentId: string }>
+@@ -30,7 +34,6 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
+     if (error instanceof EmploymentPensionArrangementError && error.status === 404) notFound()
+     throw error
+   }
+-
+   const today = new Date().toISOString().slice(0, 10)
+   const isError = query.error === 'invalid' || query.error === 'blocked' || query.error === 'unavailable'
+   const errorMessage = query.error === 'invalid'
+@@ -51,6 +54,7 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
+       title={t('pensionPageTitle')}
+       description={t('pensionPageDescription', { employmentNumber: data.employment.employment_number })}
+     />
++    {query.saved === 'arrangementSaved' ? <p role="status" className="border-l-2 border-success-border pl-3 text-sm text-success">{t('pensionArrangementFixtureSaved')}</p> : null}
+     {query.saved === 'saved' ? <p role="status" className="border-l-2 border-success-border pl-3 text-sm text-success">{t('pensionAssignmentSaved')}</p> : null}
+     {query.saved === 'versionSaved' ? <p role="status" className="border-l-2 border-success-border pl-3 text-sm text-success">{t('pensionSuccessorSaved')}</p> : null}
+     {isError ? <p role="alert" className="border-l-2 border-destructive-border pl-3 text-sm text-destructive">{errorMessage}</p> : null}
+@@ -99,7 +103,15 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
+         ? <p className="text-sm text-muted-foreground">{t('pensionAssignmentOverlapPresent')}</p>
+         : null}
+       {data.arrangements.length === 0
+-        ? <p className="text-sm text-muted-foreground">{t('pensionNoArrangementOptions')}</p>
++        ? data.canCreateSyntheticFixture
++          ? <form action={createMarsPayfull02SyntheticPensionArrangementAction} className="grid max-w-2xl gap-3">
++            <input type="hidden" name="employeeId" value={employeeId} />
++            <input type="hidden" name="employmentId" value={employmentId} />
++            <input type="hidden" name="requestKey" value={crypto.randomUUID()} />
++            <p className="text-sm text-muted-foreground">{t('pensionSyntheticFixtureNotice')}</p>
++            <Button type="submit" className="w-fit">{t('pensionSyntheticFixtureCreate')}</Button>
++          </form>
++          : <p className="text-sm text-muted-foreground">{t('pensionNoArrangementOptions')}</p>
+         : data.laborConditionSet === null
+           ? <p className="text-sm text-muted-foreground">{t('pensionCaoMappingUnavailable')}</p>
+           : <form action={assignEmploymentPensionArrangementAction} className="grid max-w-2xl gap-4">
+diff --git a/apps/hr-suite/app/(dashboard)/settings/page.tsx b/apps/hr-suite/app/(dashboard)/settings/page.tsx
+index 20897953..416c5610 100644
+--- a/apps/hr-suite/app/(dashboard)/settings/page.tsx
++++ b/apps/hr-suite/app/(dashboard)/settings/page.tsx
+@@ -23,6 +23,7 @@ import {
+   ClipboardList,
+   ClipboardCheck,
+   Route,
++  PiggyBank,
+   type LucideIcon,
+ } from 'lucide-react'
+ import { redirect } from 'next/navigation'
+@@ -120,6 +121,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
+       allowed('recruitment-settings:manage'),
+       allowed('ai:manage'),
+       allowed('salary:read'),
++      allowed('pension:manage'),
+     ]),
+     getEnabledTenantModules(),
+   ])
+@@ -146,6 +148,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
+     recruitmentSettings,
+     aiManage,
+     payrollFiscalRead,
++    pensionManage,
+   ] = capabilities
+   const canUseSetupAssistant = canReadSetupAssistant(settingsAuth)
+   const payrollFiscalSettings = payrollFiscalRead
+@@ -288,6 +291,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
+           description: messages('payrollFiscal.description'),
+           visible: payrollFiscalSettings,
+         },
++        {
++          kind: 'link',
++          href: '/settings/payroll/pension',
++          icon: PiggyBank,
++          title: messages('payrollPension.title'),
++          description: messages('payrollPension.description'),
++          visible: pensionManage && (settingsAuth.activeRoles.includes('HR_ADMIN') || settingsAuth.activeRoles.includes('TENANT_ADMIN')),
++        },
+         {
+           kind: 'link',
+           href: '/master-data',
+diff --git a/apps/hr-suite/lib/employment/employment-payroll-tax-profile-admin-source-migration.test.ts b/apps/hr-suite/lib/employment/employment-payroll-tax-profile-admin-source-migration.test.ts
+index 1577d785..be12dea4 100644
+--- a/apps/hr-suite/lib/employment/employment-payroll-tax-profile-admin-source-migration.test.ts
++++ b/apps/hr-suite/lib/employment/employment-payroll-tax-profile-admin-source-migration.test.ts
+@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
+ const migration = readFileSync(new URL('../../supabase/migrations/20261014153334_core_payroll_tax_profile_admin_source.sql', import.meta.url), 'utf8')
+ const indexMigration = readFileSync(new URL('../../supabase/migrations/20261014154020_core_payroll_tax_profile_fk_indexes.sql', import.meta.url), 'utf8')
+ const baseMigration = readFileSync(new URL('../../supabase/migrations/20261014091918_20261013150000_core_employment_payroll_tax_profiles.sql', import.meta.url), 'utf8')
++const draftSourceMigration = readFileSync(new URL('../../supabase/migrations/20261017090000_allow_scoped_draft_payroll_tax_profile_sources.sql', import.meta.url), 'utf8')
+ 
+ describe('Core payroll tax profile administration source migration', () => {
+   it('allows only the two valid source classifications and keeps the profile immutable', () => {
+@@ -48,4 +49,14 @@ describe('Core payroll tax profile administration source migration', () => {
+     expect(migration).not.toMatch(/UPDATE\s+public\.employment_payroll_tax_profiles/i)
+     expect(migration).not.toMatch(/DELETE\s+FROM\s+public\.employment_payroll_tax_profiles/i)
+   })
++
++  it('removes only the DRAFT source-record guard and preserves the privileged execution boundary', () => {
++    expect(draftSourceMigration).toContain("pg_get_functiondef(")
++    expect(draftSourceMigration).toContain('PAYROLL_TAX_PROFILE_V2_DRAFT_GUARD_NOT_FOUND')
++    expect(draftSourceMigration).toContain('PAYROLL_TAX_PROFILE_V2_SECURITY_DEFINER_REQUIRED')
++    expect(draftSourceMigration).toContain("REVOKE ALL ON FUNCTION public.confirm_employment_payroll_tax_profile_v2(jsonb) FROM PUBLIC, anon, service_role")
++    expect(draftSourceMigration).toContain('GRANT EXECUTE ON FUNCTION public.confirm_employment_payroll_tax_profile_v2(jsonb) TO authenticated')
++    expect(draftSourceMigration).not.toContain('INSERT INTO public.employment_payroll_tax_profiles')
++    expect(draftSourceMigration).not.toContain('UPDATE public.employment_payroll_tax_profiles')
++  })
+ })
+diff --git a/apps/hr-suite/lib/employment/employment-payroll-tax-profile-service.ts b/apps/hr-suite/lib/employment/employment-payroll-tax-profile-service.ts
+index ff06e6ec..5275f83e 100644
+--- a/apps/hr-suite/lib/employment/employment-payroll-tax-profile-service.ts
++++ b/apps/hr-suite/lib/employment/employment-payroll-tax-profile-service.ts
+@@ -221,7 +221,6 @@ export async function getEmploymentPayrollTaxSourceProjection(
+   )
+   const activeIncomeRelationships = (incomeResult.data ?? []).filter((income) =>
+     income.relationship_type === 'EMPLOYMENT'
+-    && income.reporting_status !== 'DRAFT'
+     && income.starts_on <= end
+     && (income.ends_on === null || income.ends_on >= start),
+   )
+diff --git a/apps/hr-suite/lib/employment/income-relationship-readiness-service.ts b/apps/hr-suite/lib/employment/income-relationship-readiness-service.ts
+index f684d8f8..4b5ea705 100644
+--- a/apps/hr-suite/lib/employment/income-relationship-readiness-service.ts
++++ b/apps/hr-suite/lib/employment/income-relationship-readiness-service.ts
+@@ -108,11 +108,13 @@ export async function getIncomeRelationshipReadiness(
+       .select('id, hr_group_id, administration_id, payroll_tax_number, valid_from, valid_until')
+       .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
+       .eq('administration_id', administrationId).order('valid_from').limit(200),
+-    salaryContext.permissions.includes('employee-bsn:read')
+-      ? supabase.from('employee_secure_identifiers').select('employee_id')
+-        .eq('tenant_id', salaryContext.tenantId).eq('employee_id', employeeId)
+-        .not('bsn_fingerprint', 'is', null).maybeSingle()
+-      : Promise.resolve({ data: null, error: null }),
++    // The readiness check needs only a scoped existence fact. RLS on the
++    // secure-identifier table remains the authorization boundary; this query
++    // never selects the fingerprint or ciphertext and does not grant reveal
++    // permission to HR Admin.
++    supabase.from('employee_secure_identifiers').select('employee_id')
++      .eq('tenant_id', salaryContext.tenantId).eq('employee_id', employeeId)
++      .not('bsn_fingerprint', 'is', null).maybeSingle(),
+   ])
+ 
+   if (employmentResult.error || employeeResult.error || relationshipResult.error
+@@ -321,3 +323,54 @@ export async function markIncomeRelationshipReady(
+   if (!data) throw new IncomeRelationshipReadinessError('PAYROLL_IKV_NOT_DRAFT', 409)
+   if (data.reporting_status !== 'READY') throw new IncomeRelationshipReadinessError('PAYROLL_IKV_SOURCE_BLOCKED', 409)
+ }
++
++/**
++ * Stores the employer-tax-number binding as an HR-admin source fact while the
++ * IKV remains DRAFT. The separate READY action still requires the existing
++ * BSN-backed readiness gate.
++ */
++export async function bindIncomeRelationshipPayrollTaxNumber(
++  employeeId: string,
++  employmentId: string,
++  incomeRelationshipId: string,
++  payrollTaxBindingId: string,
++): Promise<void> {
++  const writeContext = await requirePermission('salary:write', employeeId)
++  if (!writeContext.administrationId || !writeContext.hrGroupId || !isPayrollAdministrator(writeContext)) {
++    throw new IncomeRelationshipReadinessError('PAYROLL_IKV_FORBIDDEN', 403)
++  }
++
++  const records = await getIncomeRelationshipReadiness(employeeId, employmentId)
++  const record = records.find((item) => item.id === incomeRelationshipId)
++  if (!record || record.reportingStatus !== 'DRAFT') {
++    throw new IncomeRelationshipReadinessError('PAYROLL_IKV_NOT_DRAFT', 409)
++  }
++  const selectedRegistration = record.payrollTaxNumberOptions.find((option) => option.id === payrollTaxBindingId)
++  if (!selectedRegistration) {
++    throw new IncomeRelationshipReadinessError('PAYROLL_IKV_SOURCE_BLOCKED', 409)
++  }
++  const nonIdentifierBlockers = selectedRegistration.blockers.filter((blocker) => blocker !== 'employee_identifier_missing')
++  if (nonIdentifierBlockers.length > 0) {
++    throw new IncomeRelationshipReadinessError('PAYROLL_IKV_SOURCE_BLOCKED', 409)
++  }
++
++  const supabase = await createClient()
++  const { data, error } = await supabase.from('income_relationships')
++    .update({
++      payroll_tax_subnumber: selectedRegistration.payrollTaxSubnumber,
++      payroll_tax_number: selectedRegistration.payrollTaxNumber,
++      payroll_tax_binding_hr_group_id: writeContext.hrGroupId,
++      payroll_tax_binding_id: selectedRegistration.id,
++    })
++    .eq('id', incomeRelationshipId)
++    .eq('tenant_id', writeContext.tenantId)
++    .eq('administration_id', writeContext.administrationId)
++    .eq('employee_id', employeeId)
++    .eq('reporting_status', 'DRAFT')
++    .is('deleted_at', null)
++    .select('id, payroll_tax_binding_id, reporting_status')
++    .maybeSingle()
++  if (error || !data || data.payroll_tax_binding_id !== selectedRegistration.id || data.reporting_status !== 'DRAFT') {
++    throw new IncomeRelationshipReadinessError('PAYROLL_IKV_SOURCE_BLOCKED', 409)
++  }
++}
+diff --git a/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts b/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts
+index 6fa1cccf..5fe14031 100644
+--- a/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts
++++ b/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts
+@@ -4,6 +4,9 @@ import { requirePermission } from '@/lib/auth/permissions'
+ import { createClient } from '@/lib/supabase/server'
+ import {
+   assignEmploymentPensionArrangement,
++  createPensionArrangement,
++  createPensionArrangementSuccessorForAdministration,
++  ensureMarsPayfull02SyntheticPensionArrangement,
+   EmploymentPensionArrangementError,
+ } from './pension-arrangement-service'
+ import {
+@@ -56,7 +59,7 @@ function assignmentInput(overrides: Partial<Parameters<typeof assignEmploymentPe
+ function configureClient(options: {
+   readonly employment?: Record<string, unknown> | null
+   readonly appMetadata?: Record<string, unknown>
+-  readonly rpcResult?: Record<string, unknown>
++  readonly rpcResult?: unknown
+ } = {}) {
+   const query = {
+     select: vi.fn(),
+@@ -215,4 +218,136 @@ describe('assignEmploymentPensionArrangement', () => {
+         status: 500,
+       } satisfies Partial<EmploymentPensionArrangementError>)
+   })
++
++  it('creates the fixed Mars PAYFULL-02 fixture only through the authorized RPC', async () => {
++    vi.stubEnv('PENSION_TEST_FIXTURES_ENABLED', 'true')
++    vi.stubEnv('LIQUIDHR_RUNTIME_ENV', 'test')
++    const { rpc } = configureClient({
++      appMetadata: {
++        [SYNTHETIC_PENSION_FIXTURE_CLAIM]: true,
++        [SYNTHETIC_PENSION_FIXTURE_ENVIRONMENT_CLAIM]: 'test',
++      },
++      rpcResult: {
++        arrangement_id: ids.arrangement,
++        version_id: '61000000-0000-4000-8000-000000000001',
++        version_number: 1,
++        arrangement_reused: false,
++        source_classification: 'TEST_SETUP_PAYFULL_02',
++      },
++    })
++
++    const result = await ensureMarsPayfull02SyntheticPensionArrangement({
++      employeeId: ids.employee,
++      employmentId: ids.employment,
++      requestKey: ids.request,
++    })
++
++    expect(rpc).toHaveBeenCalledWith('create_mars_payfull02_synthetic_pension_arrangement', {
++      p_input: {
++        employee_id: ids.employee,
++        employment_id: ids.employment,
++        request_key: ids.request,
++        scenario: 'PAYFULL-02-DEMO-001-MARS',
++      },
++    })
++    expect(result).toMatchObject({
++      arrangementId: ids.arrangement,
++      versionNumber: 1,
++      sourceClassification: 'TEST_SETUP_PAYFULL_02',
++    })
++  })
++
++  it('does not create a Mars fixture when the trusted TEST claims are absent', async () => {
++    vi.stubEnv('PENSION_TEST_FIXTURES_ENABLED', 'true')
++    vi.stubEnv('LIQUIDHR_RUNTIME_ENV', 'test')
++    const { client, rpc } = configureClient()
++
++    await expect(ensureMarsPayfull02SyntheticPensionArrangement({
++      employeeId: ids.employee,
++      employmentId: ids.employment,
++      requestKey: ids.request,
++    })).rejects.toMatchObject({ code: 'PENSION_TEST_FIXTURE_DISABLED', status: 403 })
++
++    expect(client.auth.getUser).toHaveBeenCalledOnce()
++    expect(rpc).not.toHaveBeenCalled()
++  })
++})
++
++describe('normal pension arrangement customer workflow', () => {
++  beforeEach(() => {
++    vi.mocked(requirePermission).mockResolvedValue(managerContext)
++  })
++
++  afterEach(() => {
++    vi.unstubAllEnvs()
++    vi.clearAllMocks()
++  })
++
++  it('creates one normal employer-recorded arrangement without consulting synthetic claims', async () => {
++    const { client, rpc } = configureClient({
++      rpcResult: {
++        arrangement_id: ids.arrangement,
++        version_id: '61000000-0000-4000-8000-000000000001',
++      },
++    })
++
++    const result = await createPensionArrangement({
++      code: 'MARS-PENSION-2026',
++      name: 'Mars BV pensioenregeling 2026',
++      effectiveFrom: '2026-01-01',
++      effectiveTo: '2026-12-31',
++      employeeRatePercent: 10,
++      employerRatePercent: 15,
++      annualFranchise: 19172,
++      annualPensionableSalaryCap: 137800,
++      participantGroup: 'NEW_ENTRANT',
++    })
++
++    expect(client.auth.getUser).not.toHaveBeenCalled()
++    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement', {
++      p_input: expect.objectContaining({
++        tenant_id: ids.tenant,
++        hr_group_id: ids.hrGroup,
++        administration_id: ids.administration,
++        flat_total_rate: 25,
++        employer_share_pct: 60,
++        employee_share_pct: 40,
++        annual_franchise: 19172,
++        annual_pensionable_salary_cap: 137800,
++        eligibility_rule: { participantGroup: 'NEW_ENTRANT' },
++      }),
++    })
++    expect(result).toEqual({ arrangementId: ids.arrangement, versionId: '61000000-0000-4000-8000-000000000001' })
++  })
++
++  it('creates a normal successor through the pension-scoped successor RPC', async () => {
++    const predecessorVersionId = '61000000-0000-4000-8000-000000000001'
++    const { rpc } = configureClient({ rpcResult: '62000000-0000-4000-8000-000000000001' })
++
++    const result = await createPensionArrangementSuccessorForAdministration({
++      predecessorVersionId,
++      settings: {
++        code: 'MARS-PENSION-2026',
++        name: 'Mars BV pensioenregeling 2026',
++        effectiveFrom: '2026-01-01',
++        effectiveTo: '2026-12-31',
++        employeeRatePercent: 10,
++        employerRatePercent: 15,
++        annualFranchise: 19172,
++        annualPensionableSalaryCap: 137800,
++        participantGroup: 'NEW_ENTRANT',
++      },
++    })
++
++    expect(rpc).toHaveBeenCalledWith('create_pension_arrangement_successor_for_pension_manager', {
++      p_predecessor_version_id: predecessorVersionId,
++      p_successor: expect.objectContaining({
++        flat_total_rate: 25,
++        employer_share_pct: 60,
++        employee_share_pct: 40,
++        provenance_json: expect.objectContaining({ status: 'USER_RECORDED' }),
++      }),
++    })
++    expect(result).toEqual({ versionId: '62000000-0000-4000-8000-000000000001' })
++  })
+ })
+diff --git a/apps/hr-suite/lib/employment/pension-arrangement-service.ts b/apps/hr-suite/lib/employment/pension-arrangement-service.ts
+index b54ebb22..d4ef12f7 100644
+--- a/apps/hr-suite/lib/employment/pension-arrangement-service.ts
++++ b/apps/hr-suite/lib/employment/pension-arrangement-service.ts
+@@ -15,6 +15,7 @@ type Arrangement = Database['public']['Tables']['pension_arrangements']['Row']
+ type LaborConditionPensionMapping = Database['public']['Tables']['labor_condition_pension_arrangements']['Row']
+ 
+ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
++const ARRANGEMENT_CODE_PATTERN = /^[A-Z0-9][A-Z0-9_-]{1,79}$/
+ 
+ function isPensionManager(context: Awaited<ReturnType<typeof requirePermission>>): boolean {
+   return context.activeRoles.includes('HR_ADMIN') || context.activeRoles.includes('TENANT_ADMIN')
+@@ -33,6 +34,269 @@ function isIsoDate(value: string): boolean {
+   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+ }
+ 
++export const MARS_PAYFULL02_SYNTHETIC_SCENARIO = 'PAYFULL-02-DEMO-001-MARS'
++
++export type PensionArrangementContributionInput = {
++  readonly employeeRatePercent: number
++  readonly employerRatePercent: number
++}
++
++export type PensionArrangementSettingsInput = PensionArrangementContributionInput & {
++  readonly code: string
++  readonly name: string
++  readonly effectiveFrom: string
++  readonly effectiveTo?: string | null
++  readonly annualFranchise: number
++  readonly annualPensionableSalaryCap?: number | null
++  readonly participantGroup?: 'NEW_ENTRANT' | 'GRANDFATHERED'
++}
++
++const DEFAULT_PENSIONABLE_SALARY_DEFINITION = {
++  method: 'ANNUALIZED_MONTHLY_SALARY_MINUS_FRANCHISE',
++  annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
++  basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
++  floorAtZero: true,
++  capBeforePartTimeFactor: true,
++  partTimeFactor: 'EMPLOYMENT_FTE',
++  rounding: 'HALF_UP_CENTS_PER_SHARE',
++} satisfies Json
++
++const USER_RECORDED_PROVENANCE = {
++  schemaVersion: 'PENSION_ARRANGEMENT_PROVENANCE_V1',
++  status: 'USER_RECORDED',
++  sourceClassification: 'CORE_PENSION_ARRANGEMENT_WORKFLOW',
++  parameterOrigin: 'EMPLOYER_PROVIDED',
++  legalFiscalStatus: 'OPEN',
++  legalFiscalGap: 'PENSION_LEGAL_FISCAL_TREATMENT_UNVERIFIED',
++} satisfies Json
++
++function isJsonObject(value: Json | null | undefined): value is { readonly [key: string]: Json } {
++  return typeof value === 'object' && value !== null && !Array.isArray(value)
++}
++
++function normalizeContributionRates(input: PensionArrangementContributionInput): {
++  readonly totalRate: number
++  readonly employerSharePercent: number
++  readonly employeeSharePercent: number
++} {
++  if (!Number.isFinite(input.employeeRatePercent) || !Number.isFinite(input.employerRatePercent)
++    || input.employeeRatePercent < 0 || input.employerRatePercent < 0) {
++    throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_INPUT_INVALID', 400)
++  }
++  const totalRate = Number((input.employeeRatePercent + input.employerRatePercent).toFixed(4))
++  if (totalRate <= 0) throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_INPUT_INVALID', 400)
++  const employeeSharePercent = Number(((input.employeeRatePercent / totalRate) * 100).toFixed(4))
++  const employerSharePercent = Number((100 - employeeSharePercent).toFixed(4))
++  return { totalRate, employerSharePercent, employeeSharePercent }
++}
++
++function arrangementRpcError(error: { readonly message?: string } | null, fallback: string): EmploymentPensionArrangementError {
++  const code = error?.message?.match(/PENSION_[A-Z_]+/)?.[0] ?? fallback
++  const status = code.endsWith('_FORBIDDEN') || code.endsWith('_AUTHENTICATION_REQUIRED') ? 403
++    : code.endsWith('_NOT_FOUND') ? 404
++      : code.includes('_CONFLICT') || code.includes('DUPLICATE') ? 409 : 400
++  return new EmploymentPensionArrangementError(code, status)
++}
++
++async function scopedPensionAdministration() {
++  const context = await requirePermission('pension:manage')
++  if (!context.administrationId || !context.hrGroupId || !isPensionManager(context)) {
++    throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_FORBIDDEN', 403)
++  }
++  const supabase = await createClient()
++  const { data: administration, error } = await supabase.from('administrations')
++    .select('id, name, code, administration_number')
++    .eq('id', context.administrationId)
++    .eq('tenant_id', context.tenantId)
++    .eq('hr_group_id', context.hrGroupId)
++    .eq('is_active', true)
++    .maybeSingle()
++  if (error || !administration) {
++    throw new EmploymentPensionArrangementError('PENSION_ADMINISTRATION_NOT_FOUND', 404)
++  }
++  return { context, supabase, administration }
++}
++
++export async function getPensionAdministrationSettings() {
++  const { context, supabase, administration } = await scopedPensionAdministration()
++  const hrGroupId = context.hrGroupId as string
++  const administrationId = context.administrationId as string
++  const [arrangementsResult, assignmentsResult, employmentsResult, employeesResult] = await Promise.all([
++    supabase.from('pension_arrangements')
++      .select('id, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, provenance_json, is_active, updated_at')
++      .eq('tenant_id', context.tenantId)
++      .eq('hr_group_id', hrGroupId)
++      .eq('administration_id', administrationId)
++      .order('name'),
++    supabase.from('employment_pension_arrangement_assignments')
++      .select('id, employment_id, pension_arrangement_id, participation_start_date, effective_from, effective_to, assignment_reason, provenance_json, version_number, updated_at')
++      .eq('tenant_id', context.tenantId)
++      .eq('hr_group_id', hrGroupId)
++      .eq('administration_id', administrationId)
++      .order('effective_from', { ascending: false }),
++    supabase.from('employments')
++      .select('id, employee_id, employment_number, starts_on, ends_on, record_status, is_primary')
++      .eq('tenant_id', context.tenantId)
++      .eq('hr_group_id', hrGroupId)
++      .eq('administration_id', administrationId)
++      .is('deleted_at', null)
++      .order('employment_number'),
++    supabase.from('employees')
++      .select('id, employee_number, first_name, birth_name, birth_name_prefix')
++      .eq('tenant_id', context.tenantId)
++      .eq('hr_group_id', hrGroupId)
++      .is('deleted_at', null)
++      .order('birth_name'),
++  ])
++  if (arrangementsResult.error || assignmentsResult.error || employmentsResult.error || employeesResult.error) {
++    throw new EmploymentPensionArrangementError('PENSION_ADMINISTRATION_READ_FAILED', 500)
++  }
++  const arrangements = arrangementsResult.data ?? []
++  const arrangementIds = arrangements.map((arrangement) => arrangement.id)
++  const versionsResult = arrangementIds.length > 0
++    ? await supabase.from('pension_arrangement_versions')
++      .select('id, pension_arrangement_id, version_number, supersedes_version_id, code, name, arrangement_type, effective_from, effective_to, transition_date, grandfathering_mode, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, contract_classification, contract_classification_provenance, provenance_json, is_active, supersession_reason, supersession_provenance, created_at')
++      .eq('tenant_id', context.tenantId)
++      .eq('hr_group_id', hrGroupId)
++      .eq('administration_id', administrationId)
++      .in('pension_arrangement_id', arrangementIds)
++      .order('version_number', { ascending: false })
++    : { data: [], error: null }
++  if (versionsResult.error) throw new EmploymentPensionArrangementError('PENSION_VERSION_READ_FAILED', 500)
++  const today = new Date().toISOString().slice(0, 10)
++  const employeesById = new Map((employeesResult.data ?? []).map((employee) => [employee.id, employee]))
++  const currentAssignments = new Map<string, NonNullable<typeof assignmentsResult.data>[number]>()
++  for (const assignment of assignmentsResult.data ?? []) {
++    if (assignment.effective_from > today || (assignment.effective_to !== null && assignment.effective_to < today)) continue
++    if (!currentAssignments.has(assignment.employment_id)) currentAssignments.set(assignment.employment_id, assignment)
++  }
++  const employments = (employmentsResult.data ?? [])
++    .filter((employment) => employment.record_status === 'CONFIRMED'
++      && employment.starts_on <= today
++      && (employment.ends_on === null || employment.ends_on >= today))
++    .map((employment) => {
++      const employee = employeesById.get(employment.employee_id)
++      const assignment = currentAssignments.get(employment.id) ?? null
++      return {
++        id: employment.id,
++        employeeId: employment.employee_id,
++        employeeName: employee ? [employee.first_name, employee.birth_name_prefix, employee.birth_name].filter(Boolean).join(' ') : employment.employee_id,
++        employeeNumber: employee ? employee.employee_number : null,
++        employmentNumber: employment.employment_number,
++        startsOn: employment.starts_on,
++        endsOn: employment.ends_on,
++        isPrimary: employment.is_primary,
++        assignment,
++      }
++    })
++  return {
++    administration,
++    arrangements,
++    versions: versionsResult.data ?? [],
++    employments,
++    canWrite: true,
++  }
++}
++
++export async function createPensionArrangement(input: PensionArrangementSettingsInput): Promise<{
++  readonly arrangementId: string
++  readonly versionId: string
++}> {
++  if (!ARRANGEMENT_CODE_PATTERN.test(input.code.trim())) {
++    throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_INPUT_INVALID', 400)
++  }
++  if (!isIsoDate(input.effectiveFrom)
++    || (input.effectiveTo !== undefined && input.effectiveTo !== null && !isIsoDate(input.effectiveTo))
++    || (input.effectiveTo !== undefined && input.effectiveTo !== null && input.effectiveTo < input.effectiveFrom)
++    || input.name.trim().length === 0
++    || !Number.isFinite(input.annualFranchise) || input.annualFranchise < 0
++    || (input.annualPensionableSalaryCap !== undefined && input.annualPensionableSalaryCap !== null
++      && (!Number.isFinite(input.annualPensionableSalaryCap) || input.annualPensionableSalaryCap < 0))) {
++    throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_INPUT_INVALID', 400)
++  }
++  const normalized = normalizeContributionRates(input)
++  const { context, supabase } = await scopedPensionAdministration()
++  const { data, error } = await supabase.rpc('create_pension_arrangement', {
++    p_input: {
++      tenant_id: context.tenantId,
++      hr_group_id: context.hrGroupId,
++      administration_id: context.administrationId,
++      code: input.code.trim(),
++      name: input.name.trim(),
++      arrangement_type: 'FLAT_PREMIUM',
++      effective_from: input.effectiveFrom,
++      effective_to: input.effectiveTo ?? null,
++      transition_date: null,
++      grandfathering_mode: 'NONE',
++      flat_total_rate: normalized.totalRate,
++      employer_share_pct: normalized.employerSharePercent,
++      employee_share_pct: normalized.employeeSharePercent,
++      annual_franchise: Number(input.annualFranchise.toFixed(2)),
++      annual_pensionable_salary_cap: input.annualPensionableSalaryCap === undefined || input.annualPensionableSalaryCap === null
++        ? null : Number(input.annualPensionableSalaryCap.toFixed(2)),
++      pensionable_salary_definition: DEFAULT_PENSIONABLE_SALARY_DEFINITION,
++      eligibility_rule: { participantGroup: input.participantGroup ?? 'NEW_ENTRANT' } satisfies Json,
++      contract_classification: 'UNKNOWN',
++      contract_classification_provenance: { status: 'UNVERIFIED' } satisfies Json,
++      tiers: [] satisfies Json,
++    } satisfies Json,
++  })
++  if (error || !isJsonObject(data)) throw arrangementRpcError(error, 'PENSION_ARRANGEMENT_WRITE_FAILED')
++  const arrangementId = data.arrangement_id
++  const versionId = data.version_id
++  if (typeof arrangementId !== 'string' || typeof versionId !== 'string') {
++    throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_WRITE_READBACK_INVALID', 500)
++  }
++  return { arrangementId, versionId }
++}
++
++export async function createPensionArrangementSuccessorForAdministration(input: {
++  readonly predecessorVersionId: string
++  readonly settings: PensionArrangementSettingsInput
++}): Promise<{ readonly versionId: string }> {
++  if (!UUID_PATTERN.test(input.predecessorVersionId)) {
++    throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_INPUT_INVALID', 400)
++  }
++  if (!isIsoDate(input.settings.effectiveFrom)
++    || (input.settings.effectiveTo !== undefined && input.settings.effectiveTo !== null && !isIsoDate(input.settings.effectiveTo))
++    || (input.settings.effectiveTo !== undefined && input.settings.effectiveTo !== null && input.settings.effectiveTo < input.settings.effectiveFrom)
++    || input.settings.name.trim().length === 0
++    || !Number.isFinite(input.settings.annualFranchise) || input.settings.annualFranchise < 0
++    || (input.settings.annualPensionableSalaryCap !== undefined && input.settings.annualPensionableSalaryCap !== null
++      && (!Number.isFinite(input.settings.annualPensionableSalaryCap) || input.settings.annualPensionableSalaryCap < 0))) {
++    throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_INPUT_INVALID', 400)
++  }
++  const normalized = normalizeContributionRates(input.settings)
++  const { supabase } = await scopedPensionAdministration()
++  const { data, error } = await supabase.rpc('create_pension_arrangement_successor_for_pension_manager', {
++    p_predecessor_version_id: input.predecessorVersionId,
++    p_successor: {
++      effective_from: input.settings.effectiveFrom,
++      effective_to: input.settings.effectiveTo ?? null,
++      arrangement_type: 'FLAT_PREMIUM',
++      transition_date: null,
++      grandfathering_mode: 'NONE',
++      flat_total_rate: normalized.totalRate,
++      employer_share_pct: normalized.employerSharePercent,
++      employee_share_pct: normalized.employeeSharePercent,
++      annual_franchise: Number(input.settings.annualFranchise.toFixed(2)),
++      annual_pensionable_salary_cap: input.settings.annualPensionableSalaryCap === undefined || input.settings.annualPensionableSalaryCap === null
++        ? null : Number(input.settings.annualPensionableSalaryCap.toFixed(2)),
++      pensionable_salary_definition: DEFAULT_PENSIONABLE_SALARY_DEFINITION,
++      eligibility_rule: { participantGroup: input.settings.participantGroup ?? 'NEW_ENTRANT' } satisfies Json,
++      contract_classification: 'UNKNOWN',
++      contract_classification_provenance: { status: 'UNVERIFIED' } satisfies Json,
++      provenance_json: USER_RECORDED_PROVENANCE,
++      is_active: true,
++      tiers: [] satisfies Json,
++      supersession_reason: 'Explicit configuration change through the normal HR-admin pension arrangement workflow.',
++      supersession_provenance: USER_RECORDED_PROVENANCE,
++    } satisfies Json,
++  })
++  if (error || typeof data !== 'string') throw arrangementRpcError(error, 'PENSION_ARRANGEMENT_SUCCESSOR_WRITE_FAILED')
++  return { versionId: data }
++}
++
+ async function scopedEmployment(employeeId: string, employmentId: string, permission: 'contract:read' | 'contract:write' | 'pension:manage'): Promise<{
+   employment: Employment
+   context: Awaited<ReturnType<typeof requirePermission>>
+@@ -207,7 +471,7 @@ export async function createPensionArrangementSuccessor(input: {
+   if (predecessorError || !predecessor) {
+     throw new EmploymentPensionArrangementError('PENSION_ARRANGEMENT_PREDECESSOR_NOT_FOUND', 404)
+   }
+-  const { data, error } = await supabase.rpc('create_pension_arrangement_successor', {
++  const { data, error } = await supabase.rpc('create_pension_arrangement_successor_for_pension_manager', {
+     p_predecessor_version_id: predecessor.id,
+     p_successor: input.successor,
+   })
+@@ -218,6 +482,65 @@ export async function createPensionArrangementSuccessor(input: {
+   return { versionId: data }
+ }
+ 
++export async function ensureMarsPayfull02SyntheticPensionArrangement(input: {
++  readonly employeeId: string
++  readonly employmentId: string
++  readonly requestKey: string
++}): Promise<{
++  readonly arrangementId: string
++  readonly versionId: string
++  readonly versionNumber: number
++  readonly arrangementReused: boolean
++  readonly sourceClassification: string
++}> {
++  if (!UUID_PATTERN.test(input.employeeId) || !UUID_PATTERN.test(input.employmentId)
++    || !UUID_PATTERN.test(input.requestKey)) {
++    throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_ARRANGEMENT_INPUT_INVALID', 400)
++  }
++  const { employment, context } = await scopedEmployment(input.employeeId, input.employmentId, 'pension:manage')
++  if (!isPensionManager(context)) throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_ARRANGEMENT_FORBIDDEN', 403)
++  if (!isSyntheticPensionFixtureRuntimeEnabled()) {
++    throw new EmploymentPensionArrangementError('PENSION_TEST_FIXTURE_DISABLED', 403)
++  }
++
++  const supabase = await createClient()
++  const authResult = await supabase.auth.getUser()
++  if (authResult.error || !isSyntheticPensionFixtureEnabled(process.env, authResult.data.user?.app_metadata)) {
++    throw new EmploymentPensionArrangementError('PENSION_TEST_FIXTURE_DISABLED', 403)
++  }
++  const { data, error } = await supabase.rpc('create_mars_payfull02_synthetic_pension_arrangement', {
++    p_input: {
++      employee_id: employment.employee_id,
++      employment_id: employment.id,
++      request_key: input.requestKey,
++      scenario: MARS_PAYFULL02_SYNTHETIC_SCENARIO,
++    } satisfies Json,
++  })
++  if (error || !data || typeof data !== 'object' || Array.isArray(data)) {
++    const code = error?.message.match(/PENSION_[A-Z_]+/)?.[0] ?? 'PENSION_SYNTHETIC_ARRANGEMENT_WRITE_FAILED'
++    const status = code.endsWith('_FORBIDDEN') || code.endsWith('_DISABLED') ? 403
++      : code.endsWith('_NOT_FOUND') ? 404
++        : code.endsWith('_CONFLICT') ? 409 : 400
++    throw new EmploymentPensionArrangementError(code, status)
++  }
++  const result = data as Record<string, unknown>
++  const arrangementId = result.arrangement_id
++  const versionId = result.version_id
++  const versionNumber = Number(result.version_number)
++  const sourceClassification = result.source_classification
++  if (typeof arrangementId !== 'string' || typeof versionId !== 'string'
++    || !Number.isInteger(versionNumber) || typeof sourceClassification !== 'string') {
++    throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_ARRANGEMENT_WRITE_READBACK_INVALID', 500)
++  }
++  return {
++    arrangementId,
++    versionId,
++    versionNumber,
++    arrangementReused: result.arrangement_reused === true,
++    sourceClassification,
++  }
++}
++
+ export async function assignEmploymentPensionArrangement(input: {
+   readonly employeeId: string
+   readonly employmentId: string
+diff --git a/apps/hr-suite/messages/en/employment.json b/apps/hr-suite/messages/en/employment.json
+index 7378b638..d02b341b 100644
+--- a/apps/hr-suite/messages/en/employment.json
++++ b/apps/hr-suite/messages/en/employment.json
+@@ -13,6 +13,9 @@
+   "pensionEffectiveFrom": "Arrangement effective from",
+   "pensionAssignAction": "Assign arrangement",
+   "pensionAssignmentSaved": "The pension arrangement was saved.",
++  "pensionArrangementFixtureSaved": "The fixed synthetic Mars TEST arrangement was saved.",
++  "pensionSyntheticFixtureNotice": "This creates only the authorized Mars PAYFULL-02 TEST fixture; its values are not a statutory or CBA arrangement.",
++  "pensionSyntheticFixtureCreate": "Create Mars TEST arrangement",
+   "pensionAssignmentInvalid": "Check the arrangement and dates.",
+   "pensionAssignmentBlocked": "The assignment or CAO mapping overlaps an existing version, lacks a confirmed predecessor, or is not available to this administration.",
+   "pensionAssignmentUnavailable": "The arrangement could not be saved. Check access and try again.",
+@@ -394,6 +397,9 @@
+     "markReadyHelp": "The existing income relationship is retained. Its source details are checked again and the status change is recorded.",
+     "markReadyDisabled": "Resolve the items below first.",
+     "readySaved": "The income relationship is ready for filing.",
++    "taxNumberBindingSaved": "The existing employer registration was linked as source data. The income relationship remains draft until readiness checks pass.",
++    "saveTaxNumberBinding": "Save source link",
++    "saveTaxNumberBindingHelp": "Saves only the existing employer registration; this does not change the income relationship status.",
+     "readyBlocked": "The income relationship cannot be marked ready yet. Nothing changed.",
+     "readyForbidden": "You do not have permission to mark this income relationship ready.",
+     "readyUnavailable": "The income relationship could not be updated. Try again later.",
+diff --git a/apps/hr-suite/messages/en/settings.json b/apps/hr-suite/messages/en/settings.json
+index 6d921fc6..b643b7fc 100644
+--- a/apps/hr-suite/messages/en/settings.json
++++ b/apps/hr-suite/messages/en/settings.json
+@@ -90,6 +90,7 @@
+     "menuOrderTitle": "Menu order", "menuOrderDescription": "Choose the order of items in the left navigation for your workspace.", "menuOrderSave": "Save order", "menuOrderSaved": "Menu order saved.", "menuOrderMoveUp": "up", "menuOrderMoveDown": "down", "menuOrderCancel": "Cancel"
+   },
+   "payrollFiscal": {"title":"Payroll tax settings","description":"Review payroll tax details and fiscal-record completeness for the active administration.","administration":"Active administration","taxNumber":"Payroll tax number","taxNumberPeriod":"Effective period","taxNumberMissing":"No payroll tax number is recorded for this administration.","taxYear":"Tax year","taxYearValue":"2026","supportedRules":"Available calculation","supportedRulesValue":"Netherlands · white monthly table · regular wages for a full period","employeeList":"Fiscal records by employment","employee":"Employee","employment":"Employment","period":"Period","incomeRelationships":"Active income relationships","status":"Fiscal record","present":"Present","missing":"Missing","ended":"Ended","manage":"Open fiscal record","search":"Search employees or employments","searchPlaceholder":"Name, employee or employment number","filter":"Record status","applyFilter":"Apply","all":"All records","presentOnly":"Present","missingOnly":"Missing","noResults":"No employments match this search.","profileCoverage":"Active employments with a fiscal record","totalEmployments":"Employments in this administration","missingIkv":"Employments without exactly one active income relationship","scopeNotice":"This overview shows only the active administration. A fiscal record does not mean every payroll calculation is complete.","payrollNumberSource":"Recorded payroll tax numbers","numberPrimary":"Primary","numberOther":"Additional","openEnded":"No end date","notRecorded":"Not recorded","taxNumberSubnumber":"Employer suffix","taxNumberHistoryDescription":"Payroll tax numbers for this administration, with effective periods and linked income relationships.","linkedIncomeRelationships":"linked income relationships","noLinkedIncomeRelationships":"No income relationships are linked to this number.","taxNumberPlaceholder":"123456789L01","taxNumberValidFrom":"Valid from","taxNumberValidUntil":"Valid through","taxNumberPriority":"Use","addOrChangeTaxNumber":"Save registration","taxNumberHistoryHelp":"Enter the same number and start date to record an end date. A new primary registration ends the previous one on the preceding day. Saved registrations remain in the history.","registrationSaved":"The payroll tax number registration was saved.","registrationInvalid":"Check the number and effective dates.","registrationConflict":"The effective period overlaps another registration. Review the history.","registrationForbidden":"You are not authorized to manage payroll tax numbers for this administration.","registrationUnavailable":"The registration could not be saved. Try again later.","incomeRelationshipNumber":"Income relationship","incomeRelationshipDraft":"In preparation","incomeRelationshipReady":"Ready","incomeRelationshipReported":"Submitted","incomeRelationshipClosed":"Ended","incomeRelationshipStatusUnavailable":"Status unavailable"},
++  "payrollPension": { "title": "Pension arrangements", "description": "Manage administration-scoped pension arrangements, versions and participation.", "backToSettings": "Back to settings", "scopeNotice": "This setup applies only to {administration}. Employer parameters are stored as provided; legal or collective-agreement validation is not established automatically.", "createTitle": "New pension arrangement", "createDescription": "Record the employer arrangement with an effective period, franchise, salary cap and premium split.", "code": "Arrangement code", "name": "Name", "namePlaceholder": "Mars BV pension arrangement 2026", "effectiveFrom": "Effective from", "effectiveTo": "Effective through", "employeeRate": "Employee contribution", "employerRate": "Employer contribution", "annualFranchise": "Annual franchise", "annualCap": "Maximum pensionable salary", "participantGroup": "Participation criteria", "newEntrant": "New entrant", "grandfathered": "Grandfathered", "createAction": "Save arrangement", "provenanceNotice": "The percentages are employer parameters. The Payroll engine stores the total premium and the shares; part-time derivation follows the stored salary-basis definition.", "saved": "The pension arrangement or version was saved.", "invalid": "Check the arrangement, percentages and effective dates.", "blocked": "The action was rejected by source or authorization controls.", "unavailable": "The pension arrangement could not be saved. Try again later.", "arrangementsTitle": "Pension arrangements in this administration", "arrangementsDescription": "Versions are immutable; a change creates a successor version.", "emptyArrangements": "There are no pension arrangements for this administration yet.", "employerProvided": "Employer-provided", "validity": "Validity", "totalRate": "Total premium", "franchiseCap": "Franchise / maximum", "openEnded": "open ended", "eligibilitySummary": "Participation criterion", "allEligible": "Not specified", "versionCount": "{count} versions", "newVersionTitle": "New version from version {version}", "saveVersion": "Save new version", "versionHistory": "Version history", "versionSummary": "Version {version}, effective from {date}", "employeesTitle": "Participating employees", "employeesDescription": "Link only explicitly selected employments. A labor-condition mapping does not automatically enroll employees.", "linked": "Linked", "unlinked": "Not yet linked", "allLinked": "All active employments are linked, or there are no active employments.", "linkedTitle": "Existing links", "arrangement": "Pension arrangement", "chooseArrangement": "Choose an arrangement", "participationStart": "Participation from", "confirmMapping": "Confirm that this arrangement matches the selected labor conditions and employment.", "assignAction": "Link", "createBeforeAssign": "Create a pension arrangement first.", "openEmployment": "Open employment" },
+   "employeeDirectory": { "title": "Employee directory", "subtitle": "Choose which colleague information employees may see in a safe popup.", "enabled": "Employees may open the employee directory", "enabledDescription": "When disabled, the list remains available only to HR and managers.", "fieldsTitle": "Details in the colleague popup", "fieldsDescription": "All options are enabled by default. Disable individual details when employees should not see them.", "name": "Name", "nameAlwaysOn": "always visible", "jobDepartment": "Job and department", "workEmail": "Business email", "workPhone": "Business phone", "presence": "Presence this week", "schedule": "Schedule", "save": "Save settings", "saving": "Savingâ€¦", "saved": "Settings saved.", "failed": "The settings could not be saved.", "cancel": "Cancel" },
+   "businessStructure": { "title": "Administration", "subtitle": "Manage all administrations and HR groups within this tenant.", "groups": "HR groups", "administrations": "Administrations", "add": "Add administration", "edit": "Edit", "save": "Save", "cancel": "Cancel", "name": "Name", "description": "Description", "code": "Code", "number": "Administration number", "coc": "Chamber of Commerce number", "vat": "VAT number", "parent": "Parent administration", "active": "Active", "group": "HR group", "failed": "Saving failed.", "saved": "Saved.", "empty": "Select an administration or HR group on the left." },
+   "hrGroups": {
+diff --git a/apps/hr-suite/messages/nl/employment.json b/apps/hr-suite/messages/nl/employment.json
+index 3ba92f59..e36bd08f 100644
+--- a/apps/hr-suite/messages/nl/employment.json
++++ b/apps/hr-suite/messages/nl/employment.json
+@@ -13,6 +13,9 @@
+   "pensionEffectiveFrom": "Ingangsdatum regeling",
+   "pensionAssignAction": "Regeling toewijzen",
+   "pensionAssignmentSaved": "De pensioenregeling is opgeslagen.",
++  "pensionArrangementFixtureSaved": "De vaste synthetische Mars-TEST-regeling is opgeslagen.",
++  "pensionSyntheticFixtureNotice": "Dit maakt uitsluitend de geautoriseerde Mars PAYFULL-02 TEST-fixture aan; de waarden zijn geen wettelijke of cao-regeling.",
++  "pensionSyntheticFixtureCreate": "Mars TEST-regeling aanmaken",
+   "pensionAssignmentInvalid": "Controleer de regeling en datums.",
+   "pensionAssignmentBlocked": "De pensioenafspraak of cao-koppeling overlapt een bestaande versie, mist een bevestigde voorganger of is niet beschikbaar voor deze administratie.",
+   "pensionAssignmentUnavailable": "De regeling kon niet worden opgeslagen. Controleer de toegang en probeer het opnieuw.",
+@@ -394,6 +397,9 @@
+     "markReadyHelp": "De bestaande inkomstenverhouding blijft behouden. De gegevens worden opnieuw gecontroleerd en de statuswijziging wordt vastgelegd.",
+     "markReadyDisabled": "Los eerst de onderstaande punten op.",
+     "readySaved": "De inkomstenverhouding is gereed gemeld.",
++    "taxNumberBindingSaved": "De bestaande loonheffingenregistratie is als bron aan de IKV gekoppeld. De IKV blijft concept zolang de gereedheidscontroles niet slagen.",
++    "saveTaxNumberBinding": "Bronkoppeling opslaan",
++    "saveTaxNumberBindingHelp": "Slaat alleen de bestaande werkgeversregistratie op; dit wijzigt de IKV-status niet.",
+     "readyBlocked": "De inkomstenverhouding kan nog niet gereed worden gemeld. Er is niets gewijzigd.",
+     "readyForbidden": "Je hebt geen rechten om deze inkomstenverhouding gereed te melden.",
+     "readyUnavailable": "De inkomstenverhouding kon niet worden bijgewerkt. Probeer het later opnieuw.",
+diff --git a/apps/hr-suite/messages/nl/settings.json b/apps/hr-suite/messages/nl/settings.json
+index ef9aa073..f861d17a 100644
+--- a/apps/hr-suite/messages/nl/settings.json
++++ b/apps/hr-suite/messages/nl/settings.json
+@@ -90,6 +90,7 @@
+     "menuOrderTitle": "Menuvolgorde", "menuOrderDescription": "Bepaal de volgorde van de onderdelen in de linker navigatie voor jouw werkruimte.", "menuOrderSave": "Volgorde opslaan", "menuOrderSaved": "Menuvolgorde opgeslagen.", "menuOrderMoveUp": "omhoog", "menuOrderMoveDown": "omlaag", "menuOrderCancel": "Annuleren"
+   },
+   "payrollFiscal": {"title":"Fiscale instellingen","description":"Controleer de loonheffingsgegevens en de volledigheid van fiscale registraties voor de actieve administratie.","administration":"Actieve administratie","taxNumber":"Loonheffingennummer","taxNumberPeriod":"Geldigheidsperiode","taxNumberMissing":"Geen loonheffingennummer vastgelegd voor deze administratie.","taxYear":"Belastingjaar","taxYearValue":"2026","supportedRules":"Beschikbare berekening","supportedRulesValue":"Nederland · witte maandtabel · regulier loon over volledige periode","employeeList":"Fiscale registraties per dienstverband","employee":"Medewerker","employment":"Dienstverband","period":"Periode","incomeRelationships":"Actieve IKV's","status":"Fiscale registratie","present":"Aanwezig","missing":"Ontbreekt","ended":"Beëindigd","manage":"Open fiscaal dossier","search":"Medewerker of dienstverband zoeken","searchPlaceholder":"Naam, medewerker- of dienstverbandnummer","filter":"Registratiestatus","applyFilter":"Toepassen","all":"Alle registraties","presentOnly":"Aanwezig","missingOnly":"Ontbreekt","noResults":"Geen dienstverbanden gevonden voor deze zoekopdracht.","profileCoverage":"Actieve dienstverbanden met fiscale registratie","totalEmployments":"Dienstverbanden in deze administratie","missingIkv":"Dienstverbanden zonder precies één actieve IKV","scopeNotice":"Dit overzicht toont alleen de actieve administratie. Een aanwezige fiscale registratie betekent niet dat alle salarisberekeningen compleet zijn.","payrollNumberSource":"Vastgelegde loonheffingennummers","numberPrimary":"Primair","numberOther":"Aanvullend","openEnded":"Geen einddatum","notRecorded":"Niet vastgelegd","taxNumberSubnumber":"Subnummer","taxNumberHistoryDescription":"Loonheffingennummers voor deze administratie, met geldigheidsperioden en gekoppelde inkomstenverhoudingen.","linkedIncomeRelationships":"gekoppelde inkomstenverhoudingen","noLinkedIncomeRelationships":"Geen inkomstenverhoudingen aan dit nummer gekoppeld.","taxNumberPlaceholder":"123456789L01","taxNumberValidFrom":"Geldig vanaf","taxNumberValidUntil":"Geldig tot en met","taxNumberPriority":"Gebruik","addOrChangeTaxNumber":"Registratie opslaan","taxNumberHistoryHelp":"Gebruik hetzelfde nummer en dezelfde begindatum om een einddatum vast te leggen. Een nieuwe primaire registratie sluit de vorige af op de dag ervoor. Opgeslagen registraties blijven zichtbaar in de historie.","registrationSaved":"De loonheffingennummerregistratie is opgeslagen.","registrationInvalid":"Controleer het nummer en de geldigheidsdatums.","registrationConflict":"De geldigheidsperiode overlapt met een andere registratie. Controleer de historie.","registrationForbidden":"Je hebt geen bevoegdheid om loonheffingennummers voor deze administratie te beheren.","registrationUnavailable":"De registratie kon niet worden opgeslagen. Probeer het later opnieuw.","incomeRelationshipNumber":"IKV","incomeRelationshipDraft":"In voorbereiding","incomeRelationshipReady":"Gereed","incomeRelationshipReported":"Aangeleverd","incomeRelationshipClosed":"Beëindigd","incomeRelationshipStatusUnavailable":"Status niet beschikbaar"},
++  "payrollPension": { "title": "Pensioenregelingen", "description": "Beheer administratiegebonden pensioenregelingen, versies en deelname.", "backToSettings": "Terug naar instellingen", "scopeNotice": "Dit beheer geldt alleen voor {administration}. Werkgeversparameters worden opgeslagen als opgegeven; wettelijke of cao-validatie is niet automatisch vastgesteld.", "createTitle": "Nieuwe pensioenregeling", "createDescription": "Leg de werkgeversregeling vast met een geldigheidsperiode, franchise, salarismaximum en premieverdeling.", "code": "Regelingscode", "name": "Naam", "namePlaceholder": "Mars BV pensioenregeling 2026", "effectiveFrom": "Geldig vanaf", "effectiveTo": "Geldig tot en met", "employeeRate": "Werknemersbijdrage", "employerRate": "Werkgeversbijdrage", "annualFranchise": "Jaarfranchise", "annualCap": "Maximum pensioengevend salaris", "participantGroup": "Deelnemingscriteria", "newEntrant": "Nieuwe deelnemer", "grandfathered": "Overgangsrecht", "createAction": "Regeling opslaan", "provenanceNotice": "De percentages zijn werkgeversparameters. De Payroll-engine bewaart de totale premie en de aandelen; de deeltijdherleiding volgt de opgeslagen grondslagdefinitie.", "saved": "De pensioenregeling of versie is opgeslagen.", "invalid": "Controleer de regeling, percentages en geldigheidsdatums.", "blocked": "De actie is door de bron- of autorisatiecontroles geweigerd.", "unavailable": "De pensioenregeling kon niet worden opgeslagen. Probeer het later opnieuw.", "arrangementsTitle": "Pensioenregelingen in deze administratie", "arrangementsDescription": "Versies zijn immutable; een wijziging maakt een opvolgende versie aan.", "emptyArrangements": "Er zijn nog geen pensioenregelingen voor deze administratie.", "employerProvided": "Door werkgever opgegeven", "validity": "Geldigheid", "totalRate": "Totale premie", "franchiseCap": "Franchise / maximum", "openEnded": "open einde", "eligibilitySummary": "Deelnemingscriterium", "allEligible": "Niet gespecificeerd", "versionCount": "{count} versies", "newVersionTitle": "Nieuwe versie vanaf versie {version}", "saveVersion": "Nieuwe versie opslaan", "versionHistory": "Versiehistorie", "versionSummary": "Versie {version}, geldig vanaf {date}", "employeesTitle": "Deelnemende medewerkers", "employeesDescription": "Koppel alleen expliciet geselecteerde dienstverbanden. Een arbeidsvoorwaardenkoppeling maakt geen automatische deelnames aan.", "linked": "Gekoppeld", "unlinked": "Nog niet gekoppeld", "allLinked": "Alle actieve dienstverbanden zijn gekoppeld of er zijn geen actieve dienstverbanden.", "linkedTitle": "Bestaande koppelingen", "arrangement": "Pensioenregeling", "chooseArrangement": "Kies een regeling", "participationStart": "Deelname vanaf", "confirmMapping": "Bevestig dat deze regeling bij de gekozen arbeidsvoorwaarden en dit dienstverband past.", "assignAction": "Koppelen", "createBeforeAssign": "Maak eerst een pensioenregeling aan.", "openEmployment": "Open dienstverband" },
+   "employeeDirectory": { "title": "Medewerkersdirectory", "subtitle": "Bepaal welke collega-informatie medewerkers in een veilige popup mogen zien.", "enabled": "Medewerkers mogen de medewerkerslijst openen", "enabledDescription": "Wanneer dit uitstaat, blijft de lijst alleen beschikbaar voor HR en leidinggevenden.", "fieldsTitle": "Gegevens in de collega-popup", "fieldsDescription": "Alle opties staan standaard aan. Schakel afzonderlijke gegevens uit wanneer medewerkers die niet mogen zien.", "name": "Naam", "nameAlwaysOn": "altijd zichtbaar", "jobDepartment": "Functie en afdeling", "workEmail": "Zakelijk e-mailadres", "workPhone": "Zakelijk telefoonnummer", "presence": "Aanwezigheid deze week", "schedule": "Rooster", "save": "Instellingen opslaan", "saving": "Opslaanâ€¦", "saved": "Instellingen opgeslagen.", "failed": "De instellingen konden niet worden opgeslagen.", "cancel": "Annuleren" },
+   "businessStructure": { "title": "Administratie", "subtitle": "Beheer alle administraties en HR-groepen binnen deze tenant.", "groups": "HR-groepen", "administrations": "Administraties", "add": "Administratie toevoegen", "edit": "Aanpassen", "save": "Opslaan", "cancel": "Annuleren", "name": "Naam", "description": "Omschrijving", "code": "Code", "number": "Administratienummer", "coc": "KvK-nummer", "vat": "Btw-nummer", "parent": "Parent-administratie", "active": "Actief", "group": "HR-groep", "failed": "Opslaan is niet gelukt.", "saved": "Opgeslagen.", "empty": "Selecteer links een administratie of HR-groep." },
+   "hrGroups": {
+diff --git a/docs/AA/AA-CURRENT.md b/docs/AA/AA-CURRENT.md
+index bb683a70..ff01d732 100644
+--- a/docs/AA/AA-CURRENT.md
++++ b/docs/AA/AA-CURRENT.md
+@@ -16,6 +16,21 @@ Momentopname: 2026-10-16 (historische acceptance-evidence blijft ongewijzigd)
+ - Persistente loonstrook-PDF via HR Admin opgeslagen en teruggelezen: `liquidhr-loonstrook-2026-10.pdf`, 513.667 bytes, SHA-256 `2996b1447ff304c5583ebe7e7a34b3040f5f1bcb3b131f070a8e9aacd2e380cd`; downloadroute HTTP 200. Onafhankelijke Belastingdienst-witte maandtabelcontrole met korting: €518,42. Zie [PAYCASE-03A-bewijs](../quality/acceptance/runs/PAYCASE-03A-20261016.md).
+ - Lokale featurecommit blijft apart en bouwt op PAYFULL-02 in Draft PR #33; geen merge of deployment. Bestaande FINALIZED-runs zijn ongewijzigd. Geen Employee-login/ESS-acceptatie uitgevoerd.
+ 
++## PAYCASE-03B — OPEN / BLOCKED, inrichting gedeeltelijk aanwezig, 2026-10-16
++
++- Nieuwe synthetische Mars BV/Core TEST-medewerkers DEMO-004 (`PAYCASE-03B-004`) en DEMO-005 (`PAYCASE-03B-005`) en hun contract-, rooster- en salarisgegevens zijn via HR Admin aangemaakt. Bestaande conflicterende DEMO-004/005-profielen zijn niet gewijzigd; de bestaande-profielcontrole is op verzoek uitgesteld en blijft als datakwaliteitsissue open.
++- De normale Core-route weigert BSN-opslag omdat serverinstelling `BSN_HASH_KEY` ontbreekt. Er zijn geen BSN-waarden opgeslagen; geen alternatieve opslagroute gebruikt. Het fiscale dossier voor het nieuwe dienstverband is via de bestaande route niet beschikbaar (404). Voor Mars BV bestaat bovendien geen actieve pensioenkoppeling, zodat de gevraagde DEMO-001-regeling niet kan worden toegewezen.
++- Geen Payroll-run, trace/hash, REVIEWED/FINALIZED-status of PDF voor PAYCASE-03B. DEMO-004 mist nog de toegestane januari–september-openingscumulatieven. De bestaande loonheffingsregel weigert onvolledige/andere-dan-maandelijkse tijdvakken; voor DEMO-005 is daarom geen wettelijke 2026-loonheffing berekend. Zie [PAYCASE-03B-acceptatie](../quality/acceptance/runs/PAYCASE-03B-20261016.md) voor bronhiaat, officiële tijdvakregels en exacte eindstatus.
++- Alle bestaande FINALIZED-runs en PDF's zijn behouden. PAYCASE-03B blijft TEST-only; geen merge, deployment of ESS-acceptatie.
++- Gerichte bestaande tests: NL-2026-rules 27/27 en pensioenregels 7/7 PASS; dit zijn geen PAYCASE-03B-acceptatietests.
++
++## PAYTEST-SETUP-01B — PARTIAL / OPEN, Core TEST-inventaris 2026-10-16
++
++- HR Admin heeft de records DEMO-004 t/m DEMO-009 in het medewerkerbestand teruggevonden. Emma en Noah zijn de bestaande Mars BV-profielen; Emma’s feitelijke personeelsnummer is `PAYCASE-03B-004`, terwijl Nora Smit al `DEMO-004` heeft. Geen medewerkers of IKV’s zijn opnieuw aangemaakt of gewijzigd.
++- De bestaande DEMO-006 t/m DEMO-009-records staan in Mercurius BV. De HR Admin-administratiekiezer toont alleen Jupiter BV en Mars BV; de Mercurius-profielen zijn niet aangepast. DEMO-008/009-profielreadback bleef op “Medewerker laden”.
++- De Emma/Noah-contract-, salaris- en roosterinvoer is aanwezig; fiscale Core-readback blijft 404 en Mars BV heeft geen actieve pensioenregeling/koppeling. Geen BSN ingevuld, run, PDF of Auth-account aangemaakt.
++- K2 is alleen als bestaande CAO-BENCH02-fixture onderbouwd (schaal 6/nummer 12, 24/36 uur, 4 zondaguren, 45%, versie 2026.09); niet aan een Core-dienstverband toegewezen. Contractuele bedragen/jaarloonbasis en IKV-scope voor DEMO-006/007/008 ontbreken. Zie [PAYTEST-SETUP-01B](../quality/acceptance/runs/PAYTEST-SETUP-01B-20261016.md).
++
+ ## PAYTAX-UI-01B / PAYTEST-PERSONAS-CLOSEOUT — PARTIAL, lokaal bewezen 2026-10-15
+ 
+ - Bestaande PAYFULL-branch/PR33; geen merge/deployment. Lokale HR Admin-knop hersteld met echte Auth-login. Rechtstreekse Lisa/Jaap/Frits-handoff, ESS-self en negatieve salaris-/documentscope gecontroleerd; bestaande Lisa-Managerrechten behouden.
+diff --git a/docs/AA/AA-NEXT.md b/docs/AA/AA-NEXT.md
+index 5c005c3f..4ea3bd95 100644
+--- a/docs/AA/AA-NEXT.md
++++ b/docs/AA/AA-NEXT.md
+@@ -79,6 +79,10 @@ PAYLAB00–04 zijn geïntegreerd en geaccepteerd; de bestaande source-/featurewo
+ 
+ PAYCASE-03A is als afzonderlijke synthetische TEST-berekening afgerond en lokaal vastgelegd. De feature bouwt op PAYFULL-02 uit Draft PR #33; integreer of release niets vanuit deze testfeature voordat die dependency afzonderlijk is beoordeeld en de actuele main-baseline is gereconcilieerd. Geen merge of deployment in PAYCASE-03A.
+ 
++PAYCASE-03B blijft OPEN/BLOCKED: HR Admin-profielen/contracten bestaan, maar Core weigert BSN-opslag zonder `BSN_HASH_KEY`, het fiscale dossier is onbeschikbaar, Mars BV heeft geen actieve pensioenregeling en DEMO-004 mist openingscumulatieven. Payroll ondersteunt nu geen loonheffing voor een gebroken maandtijdvak. Hervat pas na herstel via de bevoegde Core-configuratie/service, fiscale bronbeschikbaarheid, actieve synthetische pensioenfixture en toegestane openingsbalans; breid daarna alleen de relevante tijdvakcomponenten uit en voer de onafhankelijke Belastingdienst-controle uit. Maak geen concept-/definitieve run of PDF zolang die gates niet slagen. Bestaande conflicterende DEMO-004/005-profielen blijven ongewijzigd; hun consistentiecontrole staat expliciet open. Geen BSN-waarden in documentatie, geen ESS-acceptatie, merge of deployment.
++
++PAYTEST-SETUP-01B is OPEN: bestaande profielen zijn teruggevonden, maar Mercurius BV is niet beschikbaar in de HR Admin-administratiekiezer; DEMO-008/009-details bleven laden. Herstel de ondersteunde Core-readback en bevoegde administratiecontext vóór wijzigingen. Los de bestaande DEMO-004-nummerbotsing gecontroleerd op; herstel eerst fiscale bron/readback en de effectieve Mars-pensioenkoppeling. Vul voor variabel loon/overwerk en bijzondere beloning alleen aantoonbare contractbedragen en jaarloonbasis in. Lees voor DEMO-008 de huidige dienstverbanden/IKV’s terug vóór eventuele aanvulling. Koppel de bestaande K2-fixture niet aan DEMO-009 voordat functie, werkingssfeer, rooster en Mercurius-configuratie bevestigd zijn. Geen loonrun of finalisatie zolang deze gates openstaan. Zie [PAYTEST-SETUP-01B](../quality/acceptance/runs/PAYTEST-SETUP-01B-20261016.md).
++
+ Voorgesteld volgende productonderwerp, pas definitief maken na expliciete scopekeuze:
+ 
+ - PAYLAB05 (later): eventuele component Designer bovenop de bestaande veilige engine/DSL; geen designer is onderdeel van PAYLAB04;
+diff --git a/packages/db/types.ts b/packages/db/types.ts
+index 9d60b976..100f3edb 100644
+--- a/packages/db/types.ts
++++ b/packages/db/types.ts
+@@ -24251,10 +24251,22 @@ export type Database = {
+         Args: { p_predecessor_version_id: string; p_successor: Json }
+         Returns: string
+       }
++      create_pension_arrangement: {
++        Args: { p_input: Json }
++        Returns: Json
++      }
++      create_pension_arrangement_successor_for_pension_manager: {
++        Args: { p_predecessor_version_id: string; p_successor: Json }
++        Returns: string
++      }
+       apply_employment_pension_arrangement: {
+         Args: { p_input: Json }
+         Returns: Json
+       }
++      create_mars_payfull02_synthetic_pension_arrangement: {
++        Args: { p_input: Json }
++        Returns: Json
++      }
+       resolve_pension_arrangement_versions: {
+         Args: { p_effective_date: string; p_pension_arrangement_ids: string[] }
+         Returns: Database["public"]["Tables"]["pension_arrangement_versions"]["Row"][]

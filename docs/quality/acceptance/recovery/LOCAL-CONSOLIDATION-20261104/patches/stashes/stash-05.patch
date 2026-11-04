@@ -1,0 +1,170 @@
+diff --git a/docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md b/docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md
+index 1ac851f0..236d5a52 100644
+--- a/docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md
++++ b/docs/delivery/TEST_RUNTIME_AND_VERCEL_PREVIEW.md
+@@ -24,9 +24,11 @@ Gebruik vanuit de repositoryroot:
+ ```powershell
+ .\scripts\start-test-worktree.ps1 -Mode Development -PreflightOnly
+ .\scripts\start-test-worktree.ps1 -Mode Development -PayrollAcceptance
++.\scripts\start-test-worktree.ps1 -Mode Development -BsnAcceptance -PreflightOnly
++.\scripts\start-test-worktree.ps1 -Mode Development -BsnAcceptance
+ ```
+ 
+-De eerste opdracht controleert zonder serverstart; de tweede start Next.js op `127.0.0.1:3010`. De scriptcontrole omvat de centrale config (alleen vereiste namen/aanwezigheid), het vaste Core TEST-project, runtimeversie, bestaande workspace-dependencies, vrije loopback-poort en start/buildscripts. Met `-PayrollAcceptance` worden ook het vaste Payroll Lab TEST-project, de Payroll-runtimevelden en exact `PAYROLL_LAB_ENABLED=true` gecontroleerd. De enige ondersteunde Core-clientkey is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
++De eerste opdracht controleert zonder serverstart; de tweede start Next.js op `127.0.0.1:3010`. De scriptcontrole omvat de centrale config (alleen vereiste namen/aanwezigheid), het vaste Core TEST-project, runtimeversie, bestaande workspace-dependencies, vrije loopback-poort en start/buildscripts. Met `-PayrollAcceptance` worden ook het vaste Payroll Lab TEST-project, de Payroll-runtimevelden en exact `PAYROLL_LAB_ENABLED=true` gecontroleerd. Voor BSN-afhankelijke lokale tests gebruikt `-BsnAcceptance` Development-mode; de preflight eist dan beide BSN-sleutels en controleert hun formaat voordat de server start. Fouten tonen alleen variabelenamen. De enige ondersteunde Core-clientkey is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+ 
+ Maak een productiebuild vanaf een schone, vastgelegde kandidaat met:
+ 
+diff --git a/scripts/start-test-worktree.ps1 b/scripts/start-test-worktree.ps1
+index 514d512c..d4a60a3d 100644
+--- a/scripts/start-test-worktree.ps1
++++ b/scripts/start-test-worktree.ps1
+@@ -5,6 +5,7 @@ param(
+     [ValidateRange(0, 65535)]
+     [int]$Port = 0,
+     [switch]$PayrollAcceptance,
++    [switch]$BsnAcceptance,
+     [switch]$Build,
+     [switch]$PreflightOnly
+ )
+@@ -18,6 +19,9 @@ if ($Build -and $Mode -ne 'Production') {
+ if ($Build -and $PreflightOnly) {
+     throw '-Build en -PreflightOnly mogen niet tegelijk worden gebruikt.'
+ }
++if ($BsnAcceptance -and ($Mode -ne 'Development' -or $Build)) {
++    throw 'BSN-acceptatie is alleen toegestaan in lokale Development-mode.'
++}
+ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+ $appRoot = Join-Path $repoRoot 'apps/hr-suite'
+ $centralConfigRoot = [Environment]::GetEnvironmentVariable('LOCALAPPDATA')
+@@ -98,7 +102,7 @@ if (Test-Path -LiteralPath $worktreeConfig -PathType Leaf) {
+ # Voorkom dat geërfde Supabase-/Payroll-/testauth-instellingen de centrale bron overrulen.
+ $shadowedRuntimeNames = @(
+     Get-ChildItem Env: |
+-        Where-Object { $_.Name -match '^(NEXT_PUBLIC_.*|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|PAYROLL_.*|LIQUIDHR_TEST_.*|TALENT_.*|VERCEL(?:_.*)?|NODE_ENV|NODE_OPTIONS)$' } |
++        Where-Object { $_.Name -match '^(NEXT_PUBLIC_.*|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|BSN_HASH_KEY|EMPLOYEE_PII_ENCRYPTION_KEY|PAYROLL_.*|LIQUIDHR_TEST_.*|TALENT_.*|VERCEL(?:_.*)?|NODE_ENV|NODE_OPTIONS)$' } |
+         ForEach-Object { $_.Name } |
+         Sort-Object -Unique
+ )
+@@ -116,49 +120,35 @@ if ($nodeVersion -lt [Version]'20.9.0') {
+     throw "Node.js $nodeVersionOutput is te oud voor deze Next.js-runtime; minimaal 20.9.0 is vereist."
+ }
+ 
+-$nextCliCandidates = @(
+-    (Join-Path $appRoot 'node_modules/next/dist/bin/next'),
+-    (Join-Path $repoRoot 'node_modules/next/dist/bin/next')
+-)
+-$nextCli = $nextCliCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+-if (-not $nextCli) {
+-    throw 'De bestaande Next.js-dependencies ontbreken in deze worktree. Het script installeert niets.'
+-}
+-
+-$packagePath = Join-Path $appRoot 'package.json'
+-$lockPath = Join-Path $repoRoot 'package-lock.json'
+-if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf) -or -not (Test-Path -LiteralPath $lockPath -PathType Leaf)) {
+-    throw 'package.json of package-lock.json ontbreekt; dependency-state is niet verifieerbaar.'
+-}
+-$package = Get-Content -LiteralPath $packagePath -Raw | ConvertFrom-Json
+-if ([string]::IsNullOrWhiteSpace($package.scripts.build) -or [string]::IsNullOrWhiteSpace($package.scripts.start)) {
+-    throw 'De bestaande build- of startscript ontbreekt in apps/hr-suite/package.json.'
+-}
+-
+-$npm = Get-Command npm.cmd -ErrorAction Stop
+-Push-Location $repoRoot
+-try {
+-    & $npm.Source ls --workspaces --depth=0 --json *> $null
+-    $dependencyExitCode = $LASTEXITCODE
+-} finally {
+-    Pop-Location
+-}
+-if ($dependencyExitCode -ne 0) {
+-    throw 'De bestaande workspace-dependencyboom is niet compleet of consistent. Er is niets geïnstalleerd of gewijzigd; herstel dependencies apart met de repository-lockfile.'
+-}
+-
+ $requiredGroupsJson = '[ ["NEXT_PUBLIC_SUPABASE_URL"], ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], ["SUPABASE_SECRET_KEY"]'
+ if ($PayrollAcceptance) {
+     $requiredGroupsJson += ', ["PAYROLL_SUPABASE_URL"], ["PAYROLL_SUPABASE_SECRET_KEY"], ["PAYROLL_LAB_ENABLED"]'
+ }
+ $requiredGroupsJson += ' ]'
+ $requirePayrollJson = if ($PayrollAcceptance) { 'true' } else { 'false' }
++$requireBsnJson = if ($BsnAcceptance) { 'true' } else { 'false' }
+ $configProbe = @'
+ const groups = JSON.parse(process.argv[1]);
+ const requirePayroll = process.argv[2] === 'true';
++const requireBsn = process.argv[3] === 'true';
+ const missing = groups
+   .filter((group) => !group.some((name) => (process.env[name] ?? '').trim().length > 0))
+   .map((group) => group.join(' or '));
++const invalidBsnFields = [];
++if (requireBsn) {
++  const hashKey = process.env.BSN_HASH_KEY ?? '';
++  if (!hashKey.trim()) missing.push('BSN_HASH_KEY');
++  else if (hashKey.length < 32 || hashKey.trim() !== hashKey) invalidBsnFields.push('BSN_HASH_KEY');
++
++  const encryptionKey = process.env.EMPLOYEE_PII_ENCRYPTION_KEY ?? '';
++  if (!encryptionKey.trim()) missing.push('EMPLOYEE_PII_ENCRYPTION_KEY');
++  else {
++    const decodedEncryptionKey = Buffer.from(encryptionKey, 'base64');
++    if (decodedEncryptionKey.length !== 32 || decodedEncryptionKey.toString('base64') !== encryptionKey) {
++      invalidBsnFields.push('EMPLOYEE_PII_ENCRYPTION_KEY');
++    }
++  }
++}
+ const canonicalTestHosts = {
+   NEXT_PUBLIC_SUPABASE_URL: 'wnpfloqpjvaacobppbpk.supabase.co',
+   PAYROLL_SUPABASE_URL: 'jhgeriucbkfarxiudzfy.supabase.co',
+@@ -184,19 +174,51 @@ if (process.env.PAYROLL_LAB_ENABLED === 'true' && !requirePayroll) {
+     if (!(process.env[name] ?? '').trim()) missing.push(name);
+   }
+ }
+-if (missing.length > 0 || invalidTargets.length > 0) {
+-  if (missing.length > 0) console.error(`Ontbrekende TEST-runtimevelden (alleen namen): ${missing.join(', ')}`);
++if (missing.length > 0 || invalidTargets.length > 0 || invalidBsnFields.length > 0) {
++  if (missing.length > 0) console.error(`Ontbrekende TEST-runtimevelden (alleen namen): ${[...new Set(missing)].join(', ')}`);
+   if (invalidTargets.length > 0) console.error(`Runtime-URL wijst niet naar het goedgekeurde TEST-project (alleen veldnamen): ${invalidTargets.join(', ')}`);
++  if (invalidBsnFields.length > 0) console.error(`Ongeldige BSN-TEST-runtimevelden (alleen namen): ${[...new Set(invalidBsnFields)].join(', ')}`);
+   process.exitCode = 2;
+ } else {
+   console.log('Centrale TEST-configuratie: vereiste variabelen aanwezig; waarden verborgen.');
+ }
+ '@
+-& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsJson $requirePayrollJson
++& $node.Source "--env-file=$centralConfig" -e $configProbe $requiredGroupsJson $requirePayrollJson $requireBsnJson
+ if ($LASTEXITCODE -ne 0) {
+     throw 'De centrale TEST-configuratie bevat niet alle vereiste runtimevelden; waarden zijn niet getoond.'
+ }
+ 
++$nextCliCandidates = @(
++    (Join-Path $appRoot 'node_modules/next/dist/bin/next'),
++    (Join-Path $repoRoot 'node_modules/next/dist/bin/next')
++)
++$nextCli = $nextCliCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
++if (-not $nextCli) {
++    throw 'De bestaande Next.js-dependencies ontbreken in deze worktree. Het script installeert niets.'
++}
++
++$packagePath = Join-Path $appRoot 'package.json'
++$lockPath = Join-Path $repoRoot 'package-lock.json'
++if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf) -or -not (Test-Path -LiteralPath $lockPath -PathType Leaf)) {
++    throw 'package.json of package-lock.json ontbreekt; dependency-state is niet verifieerbaar.'
++}
++$package = Get-Content -LiteralPath $packagePath -Raw | ConvertFrom-Json
++if ([string]::IsNullOrWhiteSpace($package.scripts.build) -or [string]::IsNullOrWhiteSpace($package.scripts.start)) {
++    throw 'De bestaande build- of startscript ontbreekt in apps/hr-suite/package.json.'
++}
++
++$npm = Get-Command npm.cmd -ErrorAction Stop
++Push-Location $repoRoot
++try {
++    & $npm.Source ls --workspaces --depth=0 --json *> $null
++    $dependencyExitCode = $LASTEXITCODE
++} finally {
++    Pop-Location
++}
++if ($dependencyExitCode -ne 0) {
++    throw 'De bestaande workspace-dependencyboom is niet compleet of consistent. Er is niets geïnstalleerd of gewijzigd; herstel dependencies apart met de repository-lockfile.'
++}
++
+ $publicFingerprintProbe = @'
+ const { createHash } = require('node:crypto');
+ const hash = createHash('sha256');

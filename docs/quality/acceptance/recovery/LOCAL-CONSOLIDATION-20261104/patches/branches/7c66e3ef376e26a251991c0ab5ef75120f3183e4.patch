@@ -1,0 +1,78 @@
+diff --git a/docs/AA/AA-CURRENT.md b/docs/AA/AA-CURRENT.md
+index eeb12c76..00b71fab 100644
+--- a/docs/AA/AA-CURRENT.md
++++ b/docs/AA/AA-CURRENT.md
+@@ -119,6 +119,7 @@ De vroegere werkstatus, debugging en checkpoints zijn historische informatie en
+ 
+ ## BRAND01 — lokale featurebranch
+ 
+-- Status: **PARTIAL** op work/BRAND01-20261012; nieuwste lokale code-SHA 99c417f740c679b97e44cd9e53516a5f5413e123. Niet geïntegreerd in main; er is geen PR.
+-- OAuth-consent en contextkeuze gebruiken nu dezelfde professionele AuthShell en NL/EN-uitleg; gerichte tests, HR Suite-typecheck, lint en i18n zijn groen. Browseracceptatie van deze schermen en de eerdere nacht-theme-/Employee-Focus-gates staan nog open.
+-- Implementatie: [BRAND01 productbranding](../requirements/ux/BRAND01_PRODUCT_BRANDING.md). Bewijs: [oorspronkelijke lokale acceptatie](../quality/acceptance/runs/BRAND01-20261012.md) en [OAuth/context-follow-up](../quality/acceptance/runs/BRAND01-UI-FOLLOWUP-20261012.md).
++- Status: **PARTIAL; integratie geblokkeerd** op `work/BRAND01-20261012`. Laatste code-SHA `bd03bc26a78172fad5d757cd09f72296ee61c809`; `origin/main` stond bij de laatste read-only controle op `db23b12446b4d04c823710ae48780dd0b47cc5b8`. Niet gepusht of gedeployed.
++- OAuth-consent en contextkeuze gebruiken dezelfde professionele AuthShell en NL/EN-uitleg. De consentpagina licht nu alle acht read-only MCP-categorieën toe. Gerichte tests, typecheck, lint, i18n en Production-build zijn groen; de volledige testsuite heeft drie ongewijzigde baseline-fouten.
++- Browseracceptatie van consent/context, nacht-theme, Employee-Focus en LinkedHR blijft open. Lokale testauth eindigde met `PGRST303: JWT issued at future`; de releasegate is daardoor PARTIAL en blokkeert integratie.
++- Implementatie: [BRAND01 productbranding](../requirements/ux/BRAND01_PRODUCT_BRANDING.md). Actueel bewijs: [finale close-out](../quality/acceptance/runs/BRAND01-FINAL-CLOSEOUT-20261012.md); eerdere rapporten: [oorspronkelijke lokale acceptatie](../quality/acceptance/runs/BRAND01-20261012.md) en [OAuth/context-follow-up](../quality/acceptance/runs/BRAND01-UI-FOLLOWUP-20261012.md).
+diff --git a/docs/quality/acceptance/runs/BRAND01-FINAL-CLOSEOUT-20261012.md b/docs/quality/acceptance/runs/BRAND01-FINAL-CLOSEOUT-20261012.md
+new file mode 100644
+index 00000000..630705e5
+--- /dev/null
++++ b/docs/quality/acceptance/runs/BRAND01-FINAL-CLOSEOUT-20261012.md
+@@ -0,0 +1,57 @@
++# BRAND01 — finale close-out
++
++| Veld | Waarde |
++| --- | --- |
++| Datum | 12 oktober 2026 |
++| Status | **PARTIAL — integratie, push, deployment en worktree-cleanup geblokkeerd door releasegate en open browserbewijs** |
++| Branch | `work/BRAND01-20261012` |
++| Code-SHA | `bd03bc26a78172fad5d757cd09f72296ee61c809` |
++| Laatst waargenomen `origin/main` | `db23b12446b4d04c823710ae48780dd0b47cc5b8` (read-only `git ls-remote`) |
++
++## Opgeleverd
++
++- OAuth-consent en contextkeuze zijn op dezelfde professionele LiquidHR AuthShell en NL/EN-presentatie gebaseerd. De koppelingsteksten tonen geen interne testlabeling.
++- De consentpagina beschrijft de acht read-only tools die `CHATGPT_MCP_TOOLS` aanbiedt: ontwikkelplannen, ontwikkelgaps, skills, competenties, verlofsaldo, eerstvolgend goedgekeurd verlof, verlofaanvragen en persoonlijke herinneringen.
++- De scope-uitleg benoemt `openid`, `email` en `offline_access`. De pagina blijft self-only en read-only. OAuth-validatie, contextselectie, scopes, autorisatie en toolgedrag zijn niet gewijzigd.
++- Toegevoegd: een contracttest die de disclosure vergelijkt met de volledige MCP-toolcatalogus, inclusief NL- en EN-copy.
++
++## Lokale verificatie op de code-SHA
++
++| Controle | Resultaat |
++| --- | --- |
++| Gerichte consent-, logo- en route-access-tests | **31/31 geslaagd** |
++| TypeScript | `npm.cmd run type-check -- --incremental false` geslaagd |
++| ESLint | Gewijzigde consentpagina en test geslaagd |
++| NL/EN i18n | `npm.cmd run check:i18n` geslaagd; 43 namespaces met gelijke sleutels |
++| Production-build | Geslaagd; 323 routes/pages; Payroll client-boundary negative control geslaagd; 156 browserbundles gecontroleerd |
++| Assetinventaris | README plus 22 assets; PNG-signatures/IHDR, SVG-wrapperstructuur, favicon-ICO-header en overeenkomst met de kandidaatcommit gecontroleerd |
++| Lokale Production HTTP-smoke | App, manifest, favicon, PWA-iconen en horizontaal logo geven 200; manifest-MIME is `application/manifest+json`; anonieme `/api/context` en `/api/employees` geven 401 |
++| Desktop/mobile login | Vier screenshots op de kandidaatcode; 320 px viewport heeft geen horizontale overflow |
++| Diff-whitespace | `git diff --check` geslaagd voor codewijzigingen |
++
++## Releasegate
++
++De volledige release-suite op `bd03bc26a78172fad5d757cd09f72296ee61c809` eindigde met **610 testbestanden geslaagd, 3 mislukt, 4 overgeslagen; 2.889 tests geslaagd, 3 mislukt, 8 overgeslagen**. De drie falende bestanden zijn ongewijzigd ten opzichte van de releasebasis:
++
++1. `lib/app-version.test.ts` verwacht `1.20261011.1`; de kandidaat rapporteert `1.20261011.2`.
++2. `lib/controlled-actions/service.test.ts` gebruikt een vaste herinneringstijd `2026-10-12T08:00:00Z`, die bij uitvoering niet meer toekomstig was.
++3. `lib/workforce-tools/employee-tools.test.ts` gebruikt dezelfde verlopen fixture en verwacht `isOverdue: false`.
++
++Er zijn geen ongerelateerde tests of runtimegegevens aangepast om deze fouten te maskeren. Volgens AA-REL is de volledige rode releasegate een blocker. Daarom zijn er geen merge, push, PR of deployment gestart; er bestaat dus geen hosted/Vercel deployment-ID of hosted smoke-evidence voor deze kandidaat.
++
++## Open browserbewijs
++
++- De definitieve screenshots tonen de login op desktop (`1440×900`), tablet (`768×1024`) en mobiel (`390×844`, `320×640`). Bij 320 px zijn `innerWidth`, `clientWidth` en `scrollWidth` gelijk aan 320.
++- De OAuth-consent- en contextkeuzeschermen zijn niet op de exacte kandidaatcode vastgelegd. De lokale Test Auth-poging leidde na HTTP 303 naar `/dashboard/start`, dat HTTP 500 gaf met `PGRST303: JWT issued at future`. Er was geen geldige actuele lokale OAuth-toestemming. De flow is niet omzeild en er is geen bestaande OAuth-aanvraag gebruikt of gewijzigd.
++- Daardoor blijven de finale visuele controle van consent/context, Employee-Focus, het `nacht`-theme en LinkedHR open. Dit zijn ontbrekende browserbewijzen, geen aangetoonde codefouten.
++
++## Screenshots
++
++- [Login desktop 1440×900](BRAND01-20261012/screenshots/final-bd03bc26-login-desktop-1440x900.png)
++- [Login tablet 768×1024](BRAND01-20261012/screenshots/final-bd03bc26-login-tablet-768x1024.png)
++- [Login mobiel 390×844](BRAND01-20261012/screenshots/final-bd03bc26-login-mobile-390x844.png)
++- [Login mobiel 320×640](BRAND01-20261012/screenshots/final-bd03bc26-login-mobile-320x640.png)
++
++## Integratie en cleanup
++
++De finale gate staat rood en consent/context- en themabewijs ontbreekt. `work/BRAND01-20261012` en de overige bestaande worktrees blijven daarom behouden. De actieve APIAI-, Payroll/Nmbrs- en PERF01-worktrees zijn niet aangepast. Er zijn geen databasewrites, secrets, productiegegevens of remote configuratie aangeraakt.

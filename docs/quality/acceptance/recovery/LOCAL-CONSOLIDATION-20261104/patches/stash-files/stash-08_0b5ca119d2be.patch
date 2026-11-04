@@ -1,0 +1,24 @@
+diff --git a/docs/README.md b/docs/README.md
+index bc249b47..6edf6ea6 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -1,5 +1,19 @@
+ # Liquid HR documentatie-index
+ 
++## PAY-RULE-002 — PFZW 2026 TEST acceptance — 2026-10-10
++
++**ENGINEERING GREEN / PERSISTENCE DEFERRED.** The generic PFZW 2026 engine, scoped Core mapping/assignment workflow, and PAYRUN01 versioned snapshot integration are implemented and tested. Frits's September and October results remain **non-persisted deterministic previews** because the central TEST runtime is absent and the new Core migration is unapplied. Synthetic policy choices are TEST-only and do not prove actual PFZW enrollment or production employer policy. No canonical payroll run changed. See the [final closure checkpoint](payroll/acceptance/PAY-RULE-002-FINAL-CLOSURE-20261010.md), the [PAY-RULE-002 report](payroll/acceptance/PAY-RULE-002-PFZW-2026-20261009.md), the [official rule note](payroll/research/PAYRUN01-PENSION-OFFICIAL-SOURCES-20261008.md) and [CURRENT_CONTEXT](delivery/CURRENT_CONTEXT.md).
++
++## Historical PAYRUN01 — pension and Payroll product UI — 2026-10-08
++
++Latest checkpoint: Lisa's flat-pension correction successor is finalized with persisted JSON/PDF artifacts; the permanent Payroll workspace, reconciliation, external comparison, and self-service surfaces are implemented and reviewed on desktop. Frits's corrected 8-hour run remains frozen with PFZW `SOURCE_GAP`. Jaap's synthetic legacy reference is clarified as Annex IV Table 2 (OP-only, 1.701%, age-62 band 20%, €15,308 franchise, €137,800 cap); a local pension regression passed 6/6. Jaap v2, corrected Core version/assignment, snapshot/input/run and artifacts remain unpersisted: no safe standalone runner exists, the authenticated local app is unavailable behind an unidentified `.next/dev/lock`, and the Core pension page has no supported arrangement-version correction workflow. Authenticated iPhone-size acceptance is still open. Lisa/Frits records remain unchanged. See the [PAYRUN01 pension and product UI checkpoint](payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md) and [official pension source note](payroll/research/PAYRUN01-PENSION-OFFICIAL-SOURCES-20261008.md).
++
++## Historical PAYRUN01 snapshot — Frits canonical Kinderopvang TEST — 2026-10-07
++
++**Current persona: Frits. Jan remains an unchanged legacy TEST persona and is not the Kinderopvang fixture.** Frits' September and October calculation pipelines persisted and finalized in Payroll Lab TEST; October JSON is persisted. The October PDF and current desktop/iPhone 16 acceptance remain open because the local runtime cannot restart while an unidentified process holds the generated `.next/dev/lock`. Its recorded PID is no longer present, but the sandbox cannot identify the current handle owner, so `.next` has not been removed. Port 3000 and unrelated Chrome processes were not touched. Calculation green is not compliance or full acceptance: Core IKV remains on a bounded Payroll fallback, PFZW monthly rounding is open, and the employer tax number is a declaration-only gap. See the [Frits checkpoint](payroll/acceptance/PAYRUN01-FRITS-TEST-PERSONA-20261007.md) for amounts, hashes, controls, artifacts, and remaining gates. `SYNTHETIC TEST PERSONA DATA — RANDOMLY GENERATED`; private identity and bank values are omitted from documents, logs, calculation hashes, and JSON.
++
++Lisa scenario v3 remains a separate **GREEN Payroll Lab TEST baseline**: the persisted run has 19 passing controls, a complete lifecycle, and separately verified JSON/PDF artifacts. See the [Lisa implementation checkpoint](payroll/acceptance/PAYRUN01-IMPLEMENTATION-CHECKPOINT-20261007.md). The unrelated `TS2366` in `component-library-entry-detail.tsx` and the untouched PDF-renderer test's 5-second timeout remain reported.
++
+ ## PAYRUN01 — Complete Individual Payroll + TEST Persona Readiness — 2026-10-05
+ 
+ **NO-GO / PARTIAL / NOT RELEASE-READY.** De lokale PAYRUN01-code-, build-, runtime- en browsergates zijn GREEN op code-HEAD c04d8e615afd3d1f42067c38840f8c83f43c3b3f. De guarded build, secret-safe TEST-preflight, Production-smoke, geauthenticeerde persona-/viewportmatrix 6/6 en aparte HR Admin Payroll Lab-matrix 2/2 zijn bewezen. Jan en Lisa hebben geen complete individuele payrollberekening: vereiste Core→Payroll-/tax-/IKV-bronnen, arrangementinvoer, cumulatieven, kosten, controls en resultaatartefacten blijven OPEN of UNSUPPORTED. Geen bedrag is berekend; geen candidate deployment of businessdatawrite.

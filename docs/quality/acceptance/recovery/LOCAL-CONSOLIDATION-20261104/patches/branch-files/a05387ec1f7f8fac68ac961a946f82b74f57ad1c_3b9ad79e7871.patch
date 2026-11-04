@@ -1,0 +1,45 @@
+diff --git a/docs/quality/acceptance/runs/ONE-VERSION-20261002.md b/docs/quality/acceptance/runs/ONE-VERSION-20261002.md
+index b393f396..bc057f0c 100644
+--- a/docs/quality/acceptance/runs/ONE-VERSION-20261002.md
++++ b/docs/quality/acceptance/runs/ONE-VERSION-20261002.md
+@@ -1,6 +1,6 @@
+ # ONE VERSION — Payroll TEST release — 2026-10-02
+ 
+-**Status: RELEASE IN PROGRESS.** The accepted PAYLAB00–04 integration is MERGE-READY. Final GitHub merge, Vercel deployment provenance and hosted smoke are recorded below when complete.
++**Status: NOT FULLY GREEN — CANONICAL HOSTED SESSION REQUIRED.** The accepted PAYLAB00–04 integration remains MERGE-READY. The missing Payroll variable names are now present in Vercel Production and one redeployment of the existing main commit is READY; hosted Payroll acceptance is blocked because the existing authenticated browser session is only on the old immutable deployment host and the canonical TEST alias opens the normal login page.
+ 
+ ## Scope and baselines
+ 
+@@ -15,6 +15,8 @@
+ 
+ The earlier React #441 / digest `4058759727@E394` matched the sanitized server error `PGRST303: JWT issued at future`. The historical NL-2026 route then passed direct load and client navigation on desktop and 390 px, with the expected trace and PAYLAB03/PAYLAB04 hashes. No application defect or fix was demonstrated. Do not reopen this investigation unless the error recurs; if it does, check clock synchronization first.
+ 
++For the 2026-10-03 event (`/dashboard/start`, digest `364289065@E394`), Edwin reports that Core and Payroll Supabase clocks were correct and that a fresh incognito login, context selection and styled Dashboard load succeeded. This supports a session-scoped recovery, but the target JWT's `iat` was not inspected and cannot be compared to the receiving validator because the authenticated incognito session is not exposed to browser automation. Source routing shows the Dashboard uses the Core Supabase client (`NEXT_PUBLIC_SUPABASE_URL`); Payroll Lab uses its separate `PAYROLL_SUPABASE_URL` client. No JWT, cookie, credential, or secret was read or recorded. No code, auth/security setting, configuration, build, or deployment was changed.
++
+ ## Release checks
+ 
+ - HR full suite: **512 files passed; 2,110 tests passed; 3 skipped** (`--maxWorkers=4`).
+@@ -30,6 +32,12 @@ The earlier React #441 / digest `4058759727@E394` matched the sanitized server e
+ - Production preflight/build provenance: the earlier isolated build passed at `7716d7f96fb853d9fa2a4811d3893de238c6fa22`. Final app candidate `17b0485736f4e108a0dec96c77a877c30ab80568` then passed the isolated production build, TypeScript, all 308 static pages, Payroll client-boundary scan and production preflight. The generated provenance binds that exact commit and the approved central TEST public-config fingerprint; values remain hidden. The `:3011` process was left untouched.
+ - Local production browser smoke on `:3012`: authenticated Test HR Admin selected the existing default TEST context. Dashboard → Payroll Lab → Dashboard → Payroll Lab passed repeatedly; Payroll Lab showed exactly the Berekeningen and Salariscomponenten tiles. The existing M0 run and current M0 run (9 trace steps) opened under `GC-NL-001`; historical/current NL-2026 runs and traces opened under `CC-NL-2026-001`. The visible source/input/result hashes matched the recorded PAYLAB03/PAYLAB04 values. The catalog showed 24 SYSTEM entries and two existing customer-owned drafts; an existing `Netto loon` fork reopened. RegisteredRule `NL_WAGE_TAX` had no edit action, its copy button was disabled, and the page stated that it was not copyable. No new run or component draft was created.
+ - Mobile and browser assets: the candidate login rendered at exactly 390×844 with normal styling, two loaded stylesheets, no horizontal overflow, and no browser console errors. All observed CSS/font requests returned HTTP 200. The protected dashboard returned 307 to login anonymously. Authenticated Payroll navigation/component checks used the in-app browser viewport; exact authenticated 390 px route/layout acceptance remains the already accepted integration evidence at `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`, with no Payroll/UI code changed by this release. Final LUNA MAX evidence review is **PENDING**. Before the successful Test HR Admin login, two `Invalid Refresh Token: Refresh Token Not Found` messages were recorded. After the correct login, no `PGRST303`, React #441, or corresponding server error occurred during acceptance.
++- Hosted resolver diagnosis on 2026-10-03: the authenticated Codex browser shows the styled Dashboard with `Planeten` selected. The administration selector lists Jupiter BV, Mars BV and Mercurius BV with no explicit selection. Source confirms that the request context defaults to the first name-sorted administration when no valid explicit administration is selected; for this request that is Jupiter BV. No cookie value was read.
++- Vercel settings preflight on 2026-10-03 confirmed the presence and `Production` assignment of `PAYROLL_LAB_ENABLED`, `PAYROLL_SUPABASE_URL` and `PAYROLL_SUPABASE_SECRET_KEY`. Only names and target environment were checked; no values were opened or read. Project settings were not changed by this run.
++- One controlled redeployment of the existing GitHub `main` deployment created `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5`; Vercel reports `READY`, target `production`, source `redeploy`, and exact commit `6349d02538351cd01fc51f298c6e6fa0ba88006c`. The canonical TEST alias `https://liquid-hr-hr-suite.vercel.app` is assigned to this deployment. No new source commit, merge, push, database change, authentication change, or additional deployment was made.
++- Hosted session check: the existing Edwin session showed the styled Dashboard on the prior immutable host `liquidhr-3u0ccrimm-edwinitsolutions.vercel.app`. Navigating the same controlled Codex browser tab to the canonical alias `/dashboard/start` ended at `/login?next=%2Fdashboard%2Fstart`. Thus the existing browser session is not authenticated on the canonical host. No credentials were requested/read, no account/context access was changed, and no cookies were set or copied. Stop here: dashboard/Payroll navigation, tiles, historical runs, component library, and current 390 px hosted acceptance cannot be evidenced until Edwin logs into the canonical URL with the existing authorized HR Admin and selects De Sterren holding → Planeten → Jupiter BV.
++- The documented release preflight now requires Vercel variable name/presence/target checks, safe Core and Payroll connection checks, and effective mandatory featureflag checks before deploy and hosted acceptance. This lesson and the exact Production-scoped Payroll names are in `docs/AA/AA-REL.md`. Keep the documentation-only commit local; do not push it as a separate deployment trigger.
++- No code, database, authentication, or permission changes. The release remains **NOT FULLY GREEN** pending the authenticated canonical-host smoke and 390 px acceptance.
+ - `git diff --check`: **passed**.
+ - Final isolated production build and exact-commit preflight: **PASSED** at app candidate `17b0485736f4e108a0dec96c77a877c30ab80568`.
+ 
+@@ -48,8 +56,8 @@ The Vercel Preview flow uses Preview-scoped configuration and separate synthetic
+ 
+ - Pull request: **PENDING**.
+ - Final `main` commit: **PENDING**.
+-- Vercel `liquidhr` deployment ID/status/commit and alias: **PENDING**.
+-- Hosted smoke (`/login`, authenticated HR, Payroll Lab, desktop/mobile): **PENDING**.
++- Vercel `liquidhr` deployment: `dpl_63efkfC6BXosA9m1dQy7GjZ4Gho5`, **READY / Production**, exact source SHA `6349d02538351cd01fc51f298c6e6fa0ba88006c`, canonical TEST alias `liquid-hr-hr-suite.vercel.app`.
++- Hosted smoke: the old immutable host retains the authenticated Edwin Dashboard session with `Planeten`. The canonical alias opens the normal login page; no hosted Payroll route acceptance was performed on the new deployment. Payroll Lab tiles, history/traces, components, navigation and mobile 390 px are **BLOCKED** until the existing authorized user signs into the canonical alias.
+ - Shared TEST data/database: existing Payroll Lab migration/readbacks are unchanged; this release applies no migration and performs no database write.
+ - Separate CONVERGENCE01 release security/persona acceptance remains **OPEN** and is not reclassified by this TEST release.
+ - Existing branches and worktrees, including Nmbrs work, remain untouched; no cleanup was performed.

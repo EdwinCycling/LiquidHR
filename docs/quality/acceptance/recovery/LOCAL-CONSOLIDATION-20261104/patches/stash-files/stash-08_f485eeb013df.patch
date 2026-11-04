@@ -1,0 +1,12 @@
+diff --git a/apps/hr-suite/components/payroll/component-library-entry-detail.tsx b/apps/hr-suite/components/payroll/component-library-entry-detail.tsx
+index bc92dbf2..59eeb4b5 100644
+--- a/apps/hr-suite/components/payroll/component-library-entry-detail.tsx
++++ b/apps/hr-suite/components/payroll/component-library-entry-detail.tsx
+@@ -83,6 +83,7 @@ function expressionText(expression: PayrollExpression): string {
+     case 'parameter': return `parameter.${expression.name}`
+     case 'unary': return `${expression.operator}(${expressionText(expression.operand)})`
+     case 'binary': return `(${expressionText(expression.left)} ${expression.operator} ${expressionText(expression.right)})`
++    case 'ratio': return `RATIO(${expressionText(expression.numerator)} / ${expressionText(expression.denominator)}, roundingDefinitionId=${expression.roundingDefinitionId})`
+     case 'if': return `IF(${expressionText(expression.condition)}, ${expressionText(expression.then)}, ${expressionText(expression.else)})`
+     case 'call': return `${expression.operator}(${expression.arguments.map(expressionText).join(', ')})`
+   }

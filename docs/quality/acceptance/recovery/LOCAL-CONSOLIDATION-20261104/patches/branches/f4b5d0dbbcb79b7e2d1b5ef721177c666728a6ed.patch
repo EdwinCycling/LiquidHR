@@ -1,0 +1,87 @@
+diff --git a/docs/AA/AA-CURRENT.md b/docs/AA/AA-CURRENT.md
+index de93faa7..75551ae7 100644
+--- a/docs/AA/AA-CURRENT.md
++++ b/docs/AA/AA-CURRENT.md
+@@ -1,7 +1,7 @@
+ # AA-CURRENT — Current LiquidHR State
+ 
+ Status: **ACTUEEL / LIVING**
+-Momentopname: 2026-10-11 (historische acceptance-evidence blijft ongewijzigd)
++Momentopname: 2026-10-12 (releasebaseline ongewijzigd; lokale featurebranch apart vermeld)
+ 
+ ## Actuele releasebaseline — 1.20261011.2 (TEST RELEASED — LIMITED)
+ 
+@@ -116,3 +116,9 @@ De vroegere werkstatus, debugging en checkpoints zijn historische informatie en
+ **Eerstvolgende taak:** hervat Nmbrs vanuit de bestaande P0/P1-basis en de bijbehorende acceptatiedocumentatie. CONTROL02 wordt niet hervat. Losse `packages/payroll-engine`-ontwikkeling blijft alleen na dependencycheck afzonderlijk te plannen.
+ 
+ **Belangrijk:** `docs/AA/` staat nog op een afzonderlijke documentatiebranch. Rebase/cherry-pick alleen de definitieve AA-bestanden bovenop de nieuwste `main` wanneer integratie expliciet wordt gepland; merge geen oude baselines blind.
++
++## BRAND01 — lokale featurebranch
++
++- Status: **PARTIAL** op work/BRAND01-20261012; code-SHA 6ce4d20e3e46490b7bfc32671767e5bb520dcf93. Niet geïntegreerd in main; er is geen PR.
++- Lokale codegates zijn groen. Visuele nacht-themeacceptatie en een finale Focus-capture met Employee-context staan nog open; daarom geen push, merge of releaseclaim.
++- Implementatie: [BRAND01 productbranding](../requirements/ux/BRAND01_PRODUCT_BRANDING.md). Bewijs: [BRAND01 lokale acceptatie](../quality/acceptance/runs/BRAND01-20261012.md).
+diff --git a/docs/quality/acceptance/runs/BRAND01-20261012.md b/docs/quality/acceptance/runs/BRAND01-20261012.md
+new file mode 100644
+index 00000000..461cfa6e
+--- /dev/null
++++ b/docs/quality/acceptance/runs/BRAND01-20261012.md
+@@ -0,0 +1,57 @@
++# BRAND01 — lokale acceptatie
++
++| Veld | Waarde |
++| --- | --- |
++| Datum | 12 oktober 2026 |
++| Status | **PARTIAL** — implementatie en lokale codegates zijn groen; visuele acceptatie van het `nacht`-theme en een nieuwe finale Employee-contextcapture ontbreken. |
++| Branch | `work/BRAND01-20261012` |
++| Code-SHA | `6ce4d20e3e46490b7bfc32671767e5bb520dcf93` (`feat(brand): implement LiquidHR product branding`) |
++| Read-only origin/main-controle | `db23b12446b4d04c823710ae48780dd0b47cc5b8` |
++| PR | Niet aangemaakt; de opdracht staat push/PR alleen toe bij groene lokale acceptatie. |
++
++## Resultaat
++
++De centrale `LiquidHRLogo`-component gebruikt de goedgekeurde transparante PNG-masters voor `horizontal`, `wordmark` en `mark`, met vaste intrinsieke afmetingen, toegankelijke alttekst of decoratief gebruik en de bestaande UX Foundation. Login/auth, desktop- en mobiele navigatie en Focus gebruiken de juiste variant. De productidentiteit staat los van klant- en HR-groepbranding; bestaande klantlogo's, contextkeuze, bedrijfsthema's en LinkedHR zijn niet vervangen.
++
++Alle 23 bestanden uit het aangeleverde assetpack zijn behouden. De assetaudit controleerde onder meer PNG-signaturen, afmetingen, alfa, profielen, aspectratio's, leesbaarheid, dubbele/ontbrekende assets en ingesloten rasterdata in de SVG-wrappers. De SVG's zijn rasterwrappers, geen native vectoren. De byte-preserving Git-regel houdt aangeleverde bronbestanden ongewijzigd.
++
++De metadata gebruikt één expliciete `metadata.icons`-registratie; het oude `app/icon.svg` is verwijderd. `/manifest.webmanifest` gebruikt de goedgekeurde vierkante iconen zonder ongeteste `maskable`-claim, service worker of offline-infrastructuur. De zichtbare productnaam is `LiquidHR` in NL/EN, `title`, `applicationName` en manifest.
++
++## Technische gates
++
++| Gate | Bewijs | Resultaat |
++| --- | --- | --- |
++| Gerichte regressietests | `lib/auth/route-access.test.ts` en `components/layout/liquidhr-logo.test.tsx` | 18/18 geslaagd |
++| TypeScript | Strict `tsc --noEmit --incremental false` | Geslaagd |
++| ESLint | Alle gewijzigde TSX- en route-accessbestanden | Geslaagd |
++| NL/EN i18n | `npm.cmd run check:i18n` | 43 namespaces met gelijke keys |
++| Productiebouw | Veilige lokale TEST-runtime; exacte bron-SHA hierboven | Geslaagd; 323 pagina's gegenereerd |
++| Payroll client-boundary guard | Negatieve controle en scan tijdens build | Geslaagd; 155 browserbundles gescand |
++| Metadata en routes | Gegenereerde `<head>`, manifest en publieke routecontrole | Geslaagd; merkassets en manifest zijn publiek, vergelijkbare niet-toegestane routes blijven beschermd |
++| HTTP-assets | `/manifest.webmanifest`, `/brand/logo/web/favicon.ico`, `/brand/logo/web/favicon-16x16.png`, `/brand/logo/web/favicon-32x32.png`, `/brand/logo/pwa-mobile/apple-touch-icon.png`, `/brand/logo/pwa-mobile/icon-192.png`, `/brand/logo/pwa-mobile/icon-512.png`, `/brand/logo/branding/transparent/logo-horizontal-transparent.png` en `/_next/image` | Alle gecontroleerde requests HTTP 200; manifest MIME `application/manifest+json` |
++
++Het manifest is op de gebouwde app uitgelezen: `name` en `short_name` zijn `LiquidHR`, `start_url` en `scope` zijn `/`, en de iconen zijn 192×192 en 512×512. Er is geen voor/na-performancebenchmark gemaakt; daarom wordt geen performanceverbetering geclaimd.
++
++## Browserbewijs
++
++De screenshots staan in [`screenshots/`](BRAND01-20261012/screenshots/):
++
++- `login-desktop.png` — 1440×900; `login-tablet.png` — 768×1024.
++- `login-mobile-390.png` — 390×844; `login-mobile-320.png` — 320×640.
++- `sidebar-expanded-desktop.png` en `sidebar-collapsed-desktop.png`.
++- `mobile-header-390.png` en `mobile-menu-open-390.png`; productlogo en HR-groep-/klantcontext blijven afzonderlijk herkenbaar.
++- `focus-manager-header-390.png` — productie-runtime van de exacte code-SHA; Manager-only `Team in beeld` was zichtbaar in de QA-sessie.
++- `focus-employee-header-390.png` — eerder Development-browserbewijs; alleen de Focus-logoheader, geen medewerkersgegevens. Deze capture is van vóór de codecommit. De latere wijziging `loading="eager"` verandert de beeldweergave niet.
++
++Login, sidebar, mobiel menu en Manager-header zijn op de gebouwde code visueel gecontroleerd. De eerdere lokale synthetic-accountcontrole toonde de Employee ESS/MSS-navigatie en de Manager-only teamsectie binnen de gekozen context. Test Auth is niet actief in de productiebuild. Geen echte klantgegevens zijn als screenshot vastgelegd.
++
++## Open acceptatiepunten en grens
++
++- De witte contrastplaat rond de transparante master is in licht/donker geschikte code vastgelegd en de `nacht`-tokens bestaan. Een visuele Focus-controle van het volledige `nacht`-theme op de definitieve SHA is niet afgerond.
++- Een nieuwe headless rolrun kwam na Test Auth bij `/context/select` uit. De contextselector bood in deze begrensde run geen selecteerbare niet-placeholderoptie; er is geen contextkeuze ingediend en geen voorkeur of databasewaarde gewijzigd. De eerdere Manager-capture blijft beschikbaar; de Employee-headercapture is een Development-capture van vóór de commit.
++- Favicon-/manifesticonen zijn via gegenereerde metadata en HTTP gecontroleerd; er is geen afzonderlijke homescreen-installatie of favicon-tabcapture gemaakt.
++- Geen hosted Preview, GitHub CI, push, PR, merge, deployment, TEST-databasemutatie of Supabase-write uitgevoerd.
++
++De codegates zijn groen, maar de visuele theme/contextacceptatie is onvolledig. Daarom blijft BRAND01 **PARTIAL** en wordt de branch niet gepusht. Integreer pas nadat een korte Focus-acceptatie op de exacte code-SHA zowel `nacht` als Employee/Manager met expliciet geselecteerde synthetische context heeft vastgelegd.
++
++Zie ook [BRAND01 productbranding](../../../requirements/ux/BRAND01_PRODUCT_BRANDING.md) voor assetmapping, themekeuzes, klantbrandingscheiding en metadata.
+\ No newline at end of file

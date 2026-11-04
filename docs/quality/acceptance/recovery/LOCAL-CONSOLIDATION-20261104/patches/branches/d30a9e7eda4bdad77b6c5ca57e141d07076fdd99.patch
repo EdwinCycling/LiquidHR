@@ -1,0 +1,101 @@
+diff --git a/docs/AA/AA-ACCEPT.md b/docs/AA/AA-ACCEPT.md
+index c042f599..2c2df116 100644
+--- a/docs/AA/AA-ACCEPT.md
++++ b/docs/AA/AA-ACCEPT.md
+@@ -43,6 +43,10 @@ PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51`; alleen de gese
+ | PAYLAB04 | GREEN | Componentbibliotheek: 24 SYSTEM-definities read-only; CUSTOMER_FORK detached/save/reopen; RegisteredRule niet kopieerbaar; negatieve auth-/scopeprobes |
+ | PAYLAB00–04 integrated candidate | **MERGE-READY** | `integration/payroll-foundation-20261002` at `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`; desktop/390 px production browser acceptance and independent LUNA MAX review passed. ONE VERSION release evidence is in `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`. |
+ 
++## PERF01-A1 — kandidaatperformance (2026-10-11)
++
++**PARTIAL — performancewinst niet aangetoond.** De request-locale-waterfall is lokaal aangepast en de rol-/scopechecks zijn geslaagd, maar de HR Admin-, Manager- en Employee-p75 verbeterden niet gezamenlijk. De featurecandidate is `fc4d2d61c7d2a471981fe27b3f245591498c13ea`, gebaseerd op actuele `origin/main` `db23b12446b4d04c823710ae48780dd0b47cc5b8`; zie het [PERF01-A1 acceptance-rapport](../quality/acceptance/runs/PERF01-A1-20261011.md). Dit is geen geaccepteerde releasebaseline.
++
+ ## ABS02 accepted kern
+ 
+ Accepted onder meer:
+diff --git a/docs/AA/AA-CURRENT.md b/docs/AA/AA-CURRENT.md
+index de93faa7..459fbf36 100644
+--- a/docs/AA/AA-CURRENT.md
++++ b/docs/AA/AA-CURRENT.md
+@@ -19,6 +19,10 @@ De kandidaatstatus van ONE VERSION op 2026-10-10 is historisch vastgelegd in [he
+ 
+ > **PAYLAB update 2026-10-02:** die oudere branchstatus is superseded. PAYLAB00–04 zijn geïntegreerd en browser-geaccepteerd op `integration/payroll-foundation-20261002`, exact accepted HEAD `3ff38bdc4b145dbf1080cf8f0a7f4abd41c2eb96`. De onafhankelijke LUNA MAX-review en desktop/390 px productie-acceptatie zijn GREEN. ONE VERSION gebruikt kandidaatversie `1.20261002.1`; de gezamenlijke TEST-release blijft pas RELEASED nadat main, Vercel en hosted smoke exact zijn geverifieerd. Zie `docs/quality/acceptance/runs/ONE-VERSION-20261002.md`.
+ 
++## PERF01-A1-kandidaat — dashboard performance (2026-10-11)
++
++**Status: PARTIAL — geen p75-winst bewezen; geen releasebaseline.** De candidatebranch `work/PERF01-A1-20261011` staat op codecommit `fc4d2d61c7d2a471981fe27b3f245591498c13ea`, boven actuele `origin/main` `db23b12446b4d04c823710ae48780dd0b47cc5b8`. Baseline is gemeten op de toenmalige actuele main `fae79d8ef1d3d186ff254c0f1032f4b9674bc2dd`; de oudere `deba6c0d`-SHA was geen actuele main. Lokale HR Admin/Manager/Employee-metingen tonen geen gezamenlijke p75-verbetering. Scopechecks bleven groen; zie het [PERF01-A1-rapport](../quality/acceptance/runs/PERF01-A1-20261011.md).
++
+ ## Canonieke repository
+ 
+ - Repo: `EdwinCycling/LiquidHR`
+diff --git a/docs/quality/acceptance/runs/PERF01-A1-20261011.md b/docs/quality/acceptance/runs/PERF01-A1-20261011.md
+new file mode 100644
+index 00000000..eb27ae57
+--- /dev/null
++++ b/docs/quality/acceptance/runs/PERF01-A1-20261011.md
+@@ -0,0 +1,65 @@
++# PERF01-A1 — Dashboard Performance & Request Optimization
++
++Run date: 2026-10-11
++Status: **PARTIAL — performancewinst niet aangetoond**
++Branch: `work/PERF01-A1-20261011`
++Final candidate code SHA: `fc4d2d61c7d2a471981fe27b3f245591498c13ea`
++Origin/main at closeout: `db23b12446b4d04c823710ae48780dd0b47cc5b8`
++
++## Provenance en baseline
++
++De eerder gebruikte `deba6c0d5489bbe1ab15a77e1f60169661121816` was niet de actuele `origin/main` toen deze taak startte: `7bc40b46ce18af2a63e2a73d7a0fcfa7a660f865` is de parent van `deba6c0d`; de actuele `fae79d8ef1d3d186ff254c0f1032f4b9674bc2dd` is een directe child van `deba6c0d`. De performance-baseline is op `fae79d8` gemeten. Tijdens de taak schoof `origin/main` door naar `db23b124`; de uiteindelijke featurebranch is daarop gerebased. De commits tussen `fae79d8` en `db23b124` wijzigden alleen `docs/AA/AA-CURRENT.md`, `docs/AA/AA-OPEN.md`, Nmbrs-release-evidence/readiness en `vercel.json`; geen `apps/hr-suite`-broncode. De gemeten codepatch is ongewijzigd in kandidaatcommit `fc4d2d61` opgenomen. De tijdelijke pre-rebase codecommit was `625dc2d8ed680cdb4430f99123dd49601587a133`.
++
++Baseline- en kandidaatmetingen gebruikten dezelfde lokale app- en TEST-runtimebenadering. Dit is lokale Next.js 16.4.0 webpack development-mode evidence, geen productie- of hosted benchmark. De goedgekeurde `scripts/start-test-worktree.ps1`-launcher draaide op `http://localhost:3010`; waarden uit de centrale TEST-config zijn niet gelezen of getoond en de configuratie is niet gewijzigd. Viewport: 1280×720.
++
++## Meetmethode
++
++- Bestaande synthetische Test Auth-flows voor HR Admin, Manager en Employee; één opwarmnavigatie en daarna zeven metingen per rol. P75 gebruikt nearest-rank (`ceil(0,75 × 7)`). Alle gemeten dashboardnavigaties antwoordden HTTP 200.
++- Bruikbare-contenttijd loopt van start navigatie tot een zichtbare `main h1` plus de bestaande relevante startpagemarker. HR Admin/Manager gebruikten de teamoverzichtmarker; Manager vereiste daarnaast de beschikbaarheidsmarker. Employee gebruikte de Journey-only hoofdinhoud.
++- TTFB, DOMContentLoaded en First Contentful Paint komen uit de browser Navigation Timing API. Browserrequestaantal is één documentrequest plus Resource Timing resource entries. Payload is de som van `transferSize` van document en resources; browsercache was via CDP uitgeschakeld.
++- Serverlatency en serverfasen komen uit de bestaande `serverPerformanceTrace` met `?perf=1`. De trace geeft geen server→Supabase requestaantal of payload; die zijn dus niet als browserrequests meegeteld. Extra dev/HMR-traces zijn niet als samples gebruikt.
++
++## Browserresultaten — p75
++
++| Rol | Bruikbare content (ms) | TTFB (ms) | DOMContentLoaded (ms) | FCP (ms) | Browserrequests | Transfer payload (bytes) | HTTP |
++| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
++| HR Admin baseline | 4.116 | 3.221 | 3.594 | 3.316 | 10 | 3.219.430 | 200 (7/7) |
++| HR Admin kandidaat | 4.225 | 3.159 | 3.727 | 3.252 | 11 | 3.219.334 | 200 (7/7) |
++| Manager baseline | 3.296 | 1.899 | 3.180 | 1.984 | 11 | 3.220.764 | 200 (7/7) |
++| Manager kandidaat | 4.543 | 2.150 | 4.451 | 2.256 | 11 | 3.220.825 | 200 (7/7) |
++| Employee baseline | 1.717 | 1.339 | 1.586 | 1.408 | 5 | 79.945 | 200 (7/7) |
++| Employee kandidaat | 2.304 | 1.225 | 1.803 | 1.304 | 10 | 3.209.415 | 200 (7/7) |
++
++## Serverresultaten — p75 (ms)
++
++| Rol | Totale servertrace baseline → kandidaat | `auth.context` baseline → kandidaat | `i18n.locale` baseline → kandidaat | `page.parallel` baseline → kandidaat | Relevante dataspan baseline → kandidaat |
++| --- | ---: | ---: | ---: | ---: | ---: |
++| HR Admin | 3.487,6 → 3.523,6 | 621,6 → 578,1 | 0,26 → 396,1 | 2.916,9 → 2.947,1 | `data.parallel` 2.921,9 → 2.950,7 |
++| Manager | 3.050,9 → 4.305,2 | 796,1 → 965,0 | 0,75 → 63,1 | 2.253,8 → 3.544,3 | `teamAvailability` 2.038,2 → 3.262,4 |
++| Employee | 1.475,0 → 1.590,2 | 752,3 → 860,1 | 0,38 → 2,62 | 61,3 → 71,5 | Journey-only projection 662,8 → 681,5 |
++
++## Bevinding en autorisatie
++
++De concrete waterfall zat in `/dashboard/start`: de route wachtte op locale-resolutie voordat `getStartPageData` startte, terwijl alleen `processWork` die locale nodig heeft. De kandidaat start nu de bestaande parallelle Core-loaders direct; alleen `processWork` wacht op de locale uit dezelfde request-cached preferences. De gedeelde dashboardlayout geeft translators expliciet diezelfde requestlocale. De bestaande React `cache` voor `getRequestUserPreferences` is hergebruikt; er is geen nieuwe cache gebouwd en een dubbele database-read is niet als oorzaak bewezen.
++
++De p75-vergelijking toont geen algemene verbetering: HR Admin bruikbare content is 109 ms langzamer, Manager 1.247 ms langzamer en Employee 587 ms langzamer. Manager had één bruikbare-content-outlier van 9.392 ms; `teamAvailability` is in deze kleine lokale steekproef de grootste resterende serverdependency. De Employee payload-/requesttoename is niet vergelijkbaar als productpayloadbewijs: development-mode/HMR-resources verschilden sterk tussen batches. De aantallen omvatten browserresources, niet de Supabase-aanroepen op de server. Claim daarom geen p75-winst en behandel dit bewijs als **PARTIAL**.
++
++Scopechecks bleven intact. Manager op `/dashboard/start?scope=company&perf=1` kreeg HTTP 200 en behield uitsluitend de bestaande teammarkers. Employee op dezelfde URL-state kreeg HTTP 200, behield de hoofdinhoud/Journey-only ervaring en had geen team-/beschikbaarheidsmarkers. Geen toegangsfout trad op. Dit gebruikte bestaande testidentiteiten en de eerste tenant/HR-groep die via de normale context-UI als toegankelijk werd aangeboden. Er zijn geen RLS-, auth-, rol-, tenant-, HR-groep- of administratiecontracten gewijzigd.
++
++## Open dependencies en scopegrens
++
++- De Manager-`teamAvailability` fallback gebruikt `getEmployeeDirectoryDetail`, dat de gedeelde RLS/security-backed RPC `get_employee_directory_detail` aanroept wanneer planning-/roosterdata ontbreekt. Dat contract is niet aangepast; elke reductie vereist een aparte toets van de directorydata en fallbacksemantiek.
++- De HR Admin-trace bevatte na wijziging een bestaande `teamAi`-span van 2.948,8 ms. AI/HeRa/MCP/voice-paden zijn niet gewijzigd.
++- De bestaande gedeelde layout-/context-/auth- en Payroll Lab-administration/permission-dependencies zijn niet gewijzigd. Payroll/Nmbrs, remote Supabase, TEST-config en data zijn niet aangepast.
++
++## Codegates
++
++- Gerichte regressies: `npm.cmd run test --workspace @liquid-hr/hr-suite -- lib/preferences/user-preferences.test.ts components/startpage/start-page.test.tsx lib/startpage/service.test.ts` — 3 bestanden, 20 tests geslaagd, inclusief de nieuwe locale-parallelismeregressie.
++- TypeScript: `npm.cmd run type-check --workspace=@liquid-hr/hr-suite -- --incremental false` — PASS.
++- ESLint: `npm.cmd exec --workspace=@liquid-hr/hr-suite -- eslint "app/(dashboard)/layout.tsx" "app/(dashboard)/dashboard/start/page.tsx" "lib/startpage/service.ts" "lib/startpage/service.test.ts"` — PASS.
++- Browser: bestaande HR Admin-, Manager- en Employee-flows, HTTP 200, bruikbare markers en Manager/Employee `scope=company`-negatives — PASS.
++- `git diff --check` — PASS.
++
++## Advies
++
++**HOLD voor performance-acceptatie en samenvoeging met de claim “dashboard sneller”.** De code voorkomt een onnodige locale-waterfall en de gerichte functionele/auth-scopegates zijn groen, maar de gevraagde p75-winst is niet aangetoond. Herhaal baseline en kandidaat met gepaarde, productie-equivalente traces en stabiele browsercache-/resourcecondities voordat dit als performancewinst wordt geaccepteerd. Geen push, merge of deployment uitgevoerd.

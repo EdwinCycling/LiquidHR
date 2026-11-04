@@ -1,0 +1,25 @@
+diff --git a/docs/README.md b/docs/README.md
+index ba3d9f50..4f3d96bc 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -1,5 +1,20 @@
+ # Liquid HR documentatie-index
+ 
++## Payroll Engine M0 / PAYLAB02 — 2026-09-30
++
++**Synthetic M0 accepted in the authenticated local browser and separate Lab.**
++Existing HR Admin Test Auth → Payroll → Payroll Lab → Bereken test payroll →
++SUCCEEDED. Net 3175.00 and employer cost 4910.00; nine persisted components,
++one trace and seven PASS controls. Repeat browser runs have identical hashes.
++SYSTEM / detached CUSTOMER_FORK / CUSTOMER_CUSTOM and bounded expressions are
++implemented. Existing LiquidHR shell, primitives and NL/EN navigation are reused.
++Only explicitly approved testcontext mappings and synthetic test artifacts were
++written to the Lab; no Core writes, auth/permission changes, push or merge.
++PAYLAB01 live Core source proof and fiscal NL 2026 rules remain separate scope.
++See [M0 acceptance](payroll/acceptance/PAYLAB02-M0-20260930.md) and [contract](payroll/ENGINE_M0.md).
++The older status below describes the preceding run and is retained as history.
++
++
+ ## PAYLAB00 close + PAYLAB01 source adapter — 2026-09-30
+ 
+ **PAYLAB00: ENVIRONMENT-GATED / CLOSED; database-isolation foundation

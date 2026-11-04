@@ -1,0 +1,951 @@
+diff --git a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/page.tsx b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/page.tsx
+index 9cfd832c..9c1956b0 100644
+--- a/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/page.tsx
++++ b/apps/hr-suite/app/(dashboard)/employees/[employeeId]/employments/[employmentId]/pension/page.tsx
+@@ -154,8 +154,22 @@ export default async function EmploymentPensionPage({ params, searchParams }: Pa
+                 <option value="GRANDFATHERED">{t('pensionGrandfathered')}</option>
+               </select>
+             </label>
+-            <input type="hidden" name="provenanceMode" value="USER_RECORDED" />
+-            <input type="hidden" name="testScenario" value="" />
++            {data.canCreateSyntheticFixture ? <>
++              <label className="grid gap-1 text-sm font-medium">
++                {t('pensionProvenanceMode')}
++                <select name="provenanceMode" defaultValue="USER_RECORDED" className="min-h-10 rounded-md border border-border bg-background px-3 font-normal">
++                  <option value="USER_RECORDED">{t('pensionUserRecorded')}</option>
++                  <option value="SYNTHETIC_TEST_FIXTURE">{t('pensionSyntheticTestFixture')}</option>
++                </select>
++              </label>
++              <label className="grid gap-1 text-sm font-medium">
++                {t('pensionTestScenario')}
++                <input name="testScenario" type="text" maxLength={180} className="min-h-10 rounded-md border border-border bg-background px-3 font-normal" />
++              </label>
++            </> : <>
++              <input type="hidden" name="provenanceMode" value="USER_RECORDED" />
++              <input type="hidden" name="testScenario" value="" />
++            </>}
+             <label className="flex items-start gap-3 text-sm">
+               <input name="confirmMapping" type="checkbox" value="yes" required className="mt-1" />
+               <span>{t('pensionConfirmCaoMapping', { conditionSet: data.laborConditionSet.name })}</span>
+diff --git a/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts b/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts
+index f368dd4d..acc68713 100644
+--- a/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts
++++ b/apps/hr-suite/lib/employment/pension-arrangement-service.test.ts
+@@ -57,6 +57,8 @@ function assignmentInput(overrides: Partial<Parameters<typeof assignEmploymentPe
+ function configureClient(options: {
+   readonly employment?: Record<string, unknown> | null
+   readonly predecessorVersionId?: string
++  readonly arrangement?: Record<string, unknown> | null
++  readonly version?: Record<string, unknown>
+   readonly appMetadata?: Record<string, unknown>
+   readonly rpcResult?: unknown
+ } = {}) {
+@@ -67,7 +69,9 @@ function configureClient(options: {
+     is: vi.fn(),
+     maybeSingle: vi.fn(async () => ({
+       data: currentTable === 'pension_arrangement_versions'
+-        ? { id: options.predecessorVersionId ?? 'b0000000-0000-4000-8000-000000000001' }
++        ? options.version ?? { id: options.predecessorVersionId ?? 'b0000000-0000-4000-8000-000000000001' }
++        : currentTable === 'pension_arrangements'
++          ? options.arrangement ?? null
+         : options.employment === undefined
+           ? { id: ids.employment, employee_id: ids.employee }
+           : options.employment,
+@@ -228,6 +232,107 @@ describe('assignEmploymentPensionArrangement', () => {
+     })
+   })
+ 
++  it('records the Jantje TEST fixture as separate assignment provenance copied from scoped MARS version 2', async () => {
++    vi.stubEnv('PENSION_TEST_FIXTURES_ENABLED', 'true')
++    vi.stubEnv('LIQUIDHR_RUNTIME_ENV', 'test')
++    const { rpc } = configureClient({
++      arrangement: { id: ids.arrangement, code: 'MARS-PENSION-2026', name: 'Mars BV pensioenregeling' },
++      version: {
++        id: 'b0000000-0000-4000-8000-000000000028',
++        version_number: 2,
++        code: 'MARS-PENSION-2026',
++        name: 'Mars BV pensioenregeling',
++        effective_from: '2026-01-01',
++        effective_to: null,
++        flat_total_rate: 25,
++        employer_share_pct: 60,
++        employee_share_pct: 40,
++        annual_franchise: 19172,
++        annual_pensionable_salary_cap: 137800,
++        pensionable_salary_definition: {
++          annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
++          basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
++          floorAtZero: true,
++        },
++        eligibility_rule: { participantGroup: 'NEW_ENTRANT' },
++        is_active: true,
++      },
++      appMetadata: {
++        [SYNTHETIC_PENSION_FIXTURE_CLAIM]: true,
++        [SYNTHETIC_PENSION_FIXTURE_ENVIRONMENT_CLAIM]: 'test',
++      },
++    })
++
++    await assignEmploymentPensionArrangement(assignmentInput({
++      participationStartDate: '2026-10-01',
++      effectiveFrom: '2026-10-01',
++      effectiveTo: '2026-10-31',
++      provenance: { status: 'SYNTHETIC_TEST_FIXTURE', scenario: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28' },
++    }))
++
++    expect(rpc).toHaveBeenCalledWith('apply_employment_pension_arrangement', {
++      p_input: expect.objectContaining({
++        provenance_json: expect.objectContaining({
++          status: 'SYNTHETIC_TEST_FIXTURE',
++          legalFiscalStatus: 'OPEN',
++          syntheticFixture: expect.objectContaining({
++            fixtureId: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28',
++            testRuleCode: 'MARS-PENSION-2026-TEST-JANTJE-28',
++            provider: { name: 'Mars BV TEST-pensioenuitvoerder (fictief)', classification: 'FICTITIOUS_TEST_ONLY' },
++            sourceArrangement: expect.objectContaining({ code: 'MARS-PENSION-2026', versionNumber: 2 }),
++            eligibility: expect.objectContaining({ participantGroup: 'NEW_ENTRANT', employmentType: 'ON_CALL' }),
++            pensionParameters: {
++              totalPremiumRatePercent: 25,
++              employerSharePercent: 60,
++              employeeSharePercent: 40,
++              annualFranchise: 19172,
++              annualPensionableSalaryCap: 137800,
++              pensionableSalaryDefinition: {
++                annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
++                basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
++                floorAtZero: true,
++              },
++            },
++            fiscalAssumptions: expect.objectContaining({ status: 'TEST_ASSUMPTIONS_NOT_LEGALLY_VALIDATED' }),
++          }),
++        }),
++      }),
++    })
++  })
++
++  it('fails closed if the MARS version 2 parameters differ from the approved TEST fixture assumptions', async () => {
++    vi.stubEnv('PENSION_TEST_FIXTURES_ENABLED', 'true')
++    vi.stubEnv('LIQUIDHR_RUNTIME_ENV', 'test')
++    const { rpc } = configureClient({
++      arrangement: { id: ids.arrangement, code: 'MARS-PENSION-2026', name: 'Mars BV pensioenregeling' },
++      version: {
++        id: 'b0000000-0000-4000-8000-000000000028', version_number: 2,
++        code: 'MARS-PENSION-2026', name: 'Mars BV pensioenregeling',
++        effective_from: '2026-01-01', effective_to: null,
++        flat_total_rate: 20, employer_share_pct: 60, employee_share_pct: 40,
++        annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
++        pensionable_salary_definition: {
++          annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
++          basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true,
++        },
++        eligibility_rule: { participantGroup: 'NEW_ENTRANT' }, is_active: true,
++      },
++      appMetadata: {
++        [SYNTHETIC_PENSION_FIXTURE_CLAIM]: true,
++        [SYNTHETIC_PENSION_FIXTURE_ENVIRONMENT_CLAIM]: 'test',
++      },
++    })
++
++    await expect(assignEmploymentPensionArrangement(assignmentInput({
++      participationStartDate: '2026-10-01',
++      effectiveFrom: '2026-10-01',
++      effectiveTo: '2026-10-31',
++      provenance: { status: 'SYNTHETIC_TEST_FIXTURE', scenario: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28' },
++    }))).rejects.toMatchObject({ code: 'PENSION_SYNTHETIC_FIXTURE_SOURCE_MISMATCH', status: 409 })
++
++    expect(rpc).not.toHaveBeenCalled()
++  })
++
+   it('fails closed on malformed RPC readback instead of returning a partial assignment', async () => {
+     configureClient({ rpcResult: { assignment_id: ids.assignment, mapping_id: null } })
+ 
+diff --git a/apps/hr-suite/lib/employment/pension-arrangement-service.ts b/apps/hr-suite/lib/employment/pension-arrangement-service.ts
+index 166b7fa1..0e207e4b 100644
+--- a/apps/hr-suite/lib/employment/pension-arrangement-service.ts
++++ b/apps/hr-suite/lib/employment/pension-arrangement-service.ts
+@@ -21,6 +21,111 @@ function isPensionManager(context: Awaited<ReturnType<typeof requirePermission>>
+   return context.activeRoles.includes('HR_ADMIN') || context.activeRoles.includes('TENANT_ADMIN')
+ }
+ 
++function jsonRecord(value: Json): Record<string, Json | undefined> | null {
++  return typeof value === 'object' && value !== null && !Array.isArray(value)
++    ? value as Record<string, Json | undefined>
++    : null
++}
++
++async function jantjeSyntheticPensionFixture(input: {
++  readonly supabase: Awaited<ReturnType<typeof createClient>>
++  readonly tenantId: string
++  readonly hrGroupId: string
++  readonly administrationId: string
++  readonly arrangementId: string
++  readonly effectiveFrom: string
++  readonly effectiveTo: string | null
++  readonly participationStartDate: string
++  readonly participantGroup: 'NEW_ENTRANT' | 'GRANDFATHERED'
++}): Promise<Json> {
++  if (input.effectiveFrom !== '2026-10-01' || input.effectiveTo !== '2026-10-31'
++    || input.participationStartDate !== '2026-10-01' || input.participantGroup !== 'NEW_ENTRANT') {
++    throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_FIXTURE_SCOPE_INVALID', 400)
++  }
++  const arrangementResult = await input.supabase.from('pension_arrangements')
++    .select('id, code, name')
++    .eq('id', input.arrangementId)
++    .eq('tenant_id', input.tenantId)
++    .eq('hr_group_id', input.hrGroupId)
++    .eq('administration_id', input.administrationId)
++    .maybeSingle()
++  if (arrangementResult.error || !arrangementResult.data
++    || arrangementResult.data.code !== 'MARS-PENSION-2026') {
++    throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_FIXTURE_SOURCE_MISMATCH', 409)
++  }
++  const versionResult = await input.supabase.from('pension_arrangement_versions')
++    .select('id, version_number, code, name, effective_from, effective_to, flat_total_rate, employer_share_pct, employee_share_pct, annual_franchise, annual_pensionable_salary_cap, pensionable_salary_definition, eligibility_rule, is_active')
++    .eq('pension_arrangement_id', input.arrangementId)
++    .eq('tenant_id', input.tenantId)
++    .eq('hr_group_id', input.hrGroupId)
++    .eq('administration_id', input.administrationId)
++    .eq('version_number', 2)
++    .eq('is_active', true)
++    .maybeSingle()
++  const version = versionResult.data
++  const definition = jsonRecord(version?.pensionable_salary_definition ?? null)
++  const eligibility = jsonRecord(version?.eligibility_rule ?? null)
++  if (versionResult.error || !version || version.code !== 'MARS-PENSION-2026'
++    || version.effective_from > input.effectiveFrom
++    || (version.effective_to !== null && version.effective_to < input.effectiveTo)
++    || version.flat_total_rate !== 25 || version.employer_share_pct !== 60
++    || version.employee_share_pct !== 40 || version.annual_franchise !== 19172
++    || version.annual_pensionable_salary_cap !== 137800
++    || definition?.annualization !== '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY'
++    || definition?.basis !== 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE'
++    || definition?.floorAtZero !== true || eligibility?.participantGroup !== 'NEW_ENTRANT') {
++    throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_FIXTURE_SOURCE_MISMATCH', 409)
++  }
++  return {
++    schemaVersion: 'PAYROLL_SYNTHETIC_PENSION_FIXTURE_V1',
++    fixtureId: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28',
++    testRuleCode: 'MARS-PENSION-2026-TEST-JANTJE-28',
++    testRuleVersion: 1,
++    purpose: 'Synthetic Payroll test case only; not a real or formally approved pension arrangement.',
++    provider: {
++      name: 'Mars BV TEST-pensioenuitvoerder (fictief)',
++      classification: 'FICTITIOUS_TEST_ONLY',
++    },
++    sourceArrangement: {
++      id: arrangementResult.data.id,
++      code: arrangementResult.data.code,
++      name: arrangementResult.data.name,
++      versionId: version.id,
++      versionNumber: version.version_number,
++      effectiveFrom: version.effective_from,
++      effectiveTo: version.effective_to,
++    },
++    eligibility: {
++      participantGroup: 'NEW_ENTRANT',
++      employmentStartOnOrAfter: '2026-10-01',
++      employmentType: 'ON_CALL',
++      currencyCode: 'EUR',
++      hourlyRate: '20.00',
++      requiresReleasedPaidHoursInPeriod: true,
++      payrollPeriod: '2026-10',
++    },
++    pensionParameters: {
++      totalPremiumRatePercent: version.flat_total_rate,
++      employerSharePercent: version.employer_share_pct,
++      employeeSharePercent: version.employee_share_pct,
++      annualFranchise: version.annual_franchise,
++      annualPensionableSalaryCap: version.annual_pensionable_salary_cap,
++      pensionableSalaryDefinition: version.pensionable_salary_definition,
++    },
++    componentMappings: {
++      variableWage: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
++      employeePension: 'PAYRUN01_EMPLOYEE_PENSION',
++      employerPension: 'PAYRUN01_EMPLOYER_PENSION',
++    },
++    fiscalAssumptions: {
++      status: 'TEST_ASSUMPTIONS_NOT_LEGALLY_VALIDATED',
++      taxYear: 2026,
++      basis: 'Existing scoped HR Admin confirmed fiscal profile and existing NL-2026 PAYFULL02 package; no formal legal validation is claimed.',
++    },
++    legalFiscalStatus: 'OPEN',
++  }
++}
++
+ export class EmploymentPensionArrangementError extends Error {
+   constructor(readonly code: string, readonly status: number) {
+     super(code)
+@@ -269,6 +374,19 @@ export async function assignEmploymentPensionArrangement(input: {
+     }
+     const sourceClassification = syntheticPensionSourceClassification(input.provenance.scenario)
+     if (!sourceClassification) throw new EmploymentPensionArrangementError('PENSION_SYNTHETIC_PROVENANCE_INVALID', 400)
++    const syntheticFixture = input.provenance.scenario === 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28'
++      ? await jantjeSyntheticPensionFixture({
++        supabase,
++        tenantId: context.tenantId,
++        hrGroupId: context.hrGroupId!,
++        administrationId: context.administrationId!,
++        arrangementId: input.arrangementId,
++        effectiveFrom: input.effectiveFrom,
++        effectiveTo,
++        participationStartDate: input.participationStartDate,
++        participantGroup: input.participantGroup,
++      })
++      : null
+     provenance = {
+       schemaVersion: 'EMPLOYMENT_PENSION_ASSIGNMENT_PROVENANCE_V1',
+       status: 'SYNTHETIC_TEST_FIXTURE',
+@@ -276,6 +394,7 @@ export async function assignEmploymentPensionArrangement(input: {
+       source: 'Explicit HR-admin synthetic TEST pension arrangement workflow.',
+       legalFiscalStatus: 'OPEN',
+       legalFiscalGap: 'PENSION_LEGAL_FISCAL_TREATMENT_UNVERIFIED',
++      ...(syntheticFixture ? { syntheticFixture } : {}),
+     }
+   } else {
+     provenance = {
+diff --git a/apps/hr-suite/lib/payroll/employee-payroll-calculation-service.test.ts b/apps/hr-suite/lib/payroll/employee-payroll-calculation-service.test.ts
+index 7157f898..f96cae9c 100644
+--- a/apps/hr-suite/lib/payroll/employee-payroll-calculation-service.test.ts
++++ b/apps/hr-suite/lib/payroll/employee-payroll-calculation-service.test.ts
+@@ -487,6 +487,80 @@ describe('Core-backed employee payroll calculation', () => {
+     expect(missingFiscalProfile.inputs.size).toBe(0)
+   })
+ 
++  it('accepts only a mapped on-call hourly source with released paid hours at the calculation preflight', async () => {
++    const base = payfullScenarioProvider({ variant: 'VARIABLE', variableWage: '20.00' })
++    const sourceProvider: PayrollSourceProvider = {
++      getPayrollSourceSnapshot: async (input) => {
++        const snapshot = await base.getPayrollSourceSnapshot(input)
++        const source = snapshot.canonicalSource as Record<string, unknown>
++        const compensation = source.compensation as { entries: Array<Record<string, unknown>> }
++        const schedule = source.schedule as { entries: Array<Record<string, unknown>> }
++        const regularWage = source.regularWage as Record<string, unknown>
++        const actualWork = source.actualWork as Record<string, unknown>
++        const payrollOwned = source.payrollOwned as Record<string, unknown>
++        const amounts = payrollOwned.amounts as Record<string, unknown>
++        const controls = payrollOwned.controls as Record<string, unknown>
++        const pension = payrollOwned.pension as Record<string, unknown>
++        const fiscalProfile = source.fiscalProfile as Record<string, unknown>
++        const salary = compensation.entries[0]
++        const scheduleEntry = schedule.entries[0]
++        if (!salary || !scheduleEntry) throw new Error('HOURLY_TEST_SOURCE_MISSING')
++        const canonicalSource = {
++          ...source,
++          compensation: { entries: [{
++            ...salary, paymentType: 'HOURLY_VARIABLE', paymentFrequency: 'MONTHLY', currencyCode: 'EUR',
++            hourlyRate: 20, fulltimeAmount: null, parttimeAmount: null,
++          }] },
++          schedule: { entries: [{
++            ...scheduleEntry, averageHoursPerWeek: 0, fulltimeHoursPerWeek: 40,
++            partTimeFactor: 0, scheduleType: 'HOURS_AND_AVG_DAYS', isOnCall: true,
++          }] },
++          regularWage: {
++            ...regularWage, grossAmount: '20.00', fulltimeMonthlyAmount: '0.00',
++            contractHoursPerWeek: '0.0000', fulltimeHoursPerWeek: '40.0000',
++            wageBasis: 'ON_CALL_HOURLY_VARIABLE',
++          },
++          fiscalProfile: { ...fiscalProfile, status: 'CONFIRMED' },
++          actualWork: {
++            ...actualWork,
++            entries: [{
++              family: 'WORK', hours: '1.0000', releasedForPayroll: true,
++              payrollMapping: {
++                target: 'PAYMENT', componentCode: 'PAYFULL02_VARIABLE_REGULAR_WAGE',
++                componentOutput: 'amount', calculationRule: 'HOURLY_RATE_X_HOURS', factor: '1',
++              },
++            }],
++          },
++          payrollOwned: {
++            ...payrollOwned,
++            amounts: { ...amounts, variableRegularWage: '20.00' },
++            controls: { ...controls, sourceReady: true },
++            pension: {
++              ...pension,
++              partTimeFactor: '0.00576923',
++              partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA',
++              variableHourlyBasis: {
++                hourlyRate: '20.00', fullTimeHoursPerWeek: '40.0000',
++                fullTimeMonthlyHours: '173.33333333', fullTimeMonthlyPensionableSalary: '3466.66666660',
++                paidHours: '1.0000', partTimeFactor: '0.00576923',
++              },
++            },
++          },
++        }
++        return { ...snapshot, canonicalSource: canonicalSource as PayrollSourceSnapshot['canonicalSource'] }
++      },
++    }
++    const eligible = await harness({}, sourceProvider).service.inspectEmployeePayrollSource({ employeeId, employmentId, period })
++
++    expect(eligible.eligibleForCalculation).toBe(true)
++    expect(eligible.gaps).not.toEqual(expect.arrayContaining([
++      expect.objectContaining({ reasonCode: 'ONLY_FIXED_EUR_MONTHLY_WAGE_SUPPORTED' }),
++      expect.objectContaining({ reasonCode: 'POSITIVE_EFFECTIVE_SALARY_REQUIRED' }),
++      expect.objectContaining({ reasonCode: 'REGULAR_NON_ON_CALL_HOURS_SCHEDULE_REQUIRED' }),
++      expect.objectContaining({ reasonCode: 'SUPPORTED_REGULAR_WAGE_INPUT_UNAVAILABLE' }),
++    ]))
++  })
++
+   it.each([
+     {
+       missing: 'persisted Payroll Lab config',
+diff --git a/apps/hr-suite/lib/payroll/employee-payroll-calculation-service.ts b/apps/hr-suite/lib/payroll/employee-payroll-calculation-service.ts
+index a8f69af2..2df40d98 100644
+--- a/apps/hr-suite/lib/payroll/employee-payroll-calculation-service.ts
++++ b/apps/hr-suite/lib/payroll/employee-payroll-calculation-service.ts
+@@ -489,6 +489,105 @@ function recoveryActions(gaps: readonly PayrollSourceGap[], incomplete: readonly
+   return [...actions]
+ }
+ 
++function isSupportedOnCallHourlySource(input: {
++  readonly snapshot: PayrollSourceSnapshot
++  readonly source: Record<string, unknown> | null
++  readonly salary: Record<string, unknown> | undefined
++  readonly schedule: Record<string, unknown> | undefined
++  readonly contract: Record<string, unknown> | undefined
++}): boolean {
++  const { snapshot, source, salary, schedule, contract } = input
++  const compensation = record(source?.compensation)
++  const scheduleSource = record(source?.schedule)
++  const contractSource = record(source?.contract)
++  const actualWork = record(source?.actualWork)
++  const payrollOwned = record(source?.payrollOwned)
++  const amounts = record(payrollOwned?.amounts)
++  const pension = record(payrollOwned?.pension)
++  const hourlyBasis = record(pension?.variableHourlyBasis)
++  const wage = record(source?.regularWage)
++  const salaries = entries(compensation?.entries)
++  const schedules = entries(scheduleSource?.entries)
++  const contracts = entries(contractSource?.entries)
++  const actualEntries = entries(actualWork?.entries)
++  if (!salary || !schedule || !contract || !payrollOwned || !amounts || !pension || !hourlyBasis || !wage
++    || salaries?.length !== 1 || schedules?.length !== 1 || contracts?.length !== 1 || !actualEntries?.length
++    || salary.paymentType !== 'HOURLY_VARIABLE' || salary.paymentFrequency !== 'MONTHLY'
++    || salary.currencyCode !== 'EUR' || salary.fulltimeAmount !== null || salary.parttimeAmount !== null
++    || schedule.isOnCall !== true || !['HOURS_PER_DAY', 'HOURS_AND_AVG_DAYS', 'HOURS_AND_SPECIFIC_DAYS'].includes(String(schedule.scheduleType))
++    || wage.wageBasis !== 'ON_CALL_HOURLY_VARIABLE'
++    || wage.fulltimeMonthlyAmount !== '0.00' || !['0', '0.0000'].includes(String(wage.contractHoursPerWeek))) return false
++
++  try {
++    const periodStart = `${snapshot.periodReference.year}-${String(snapshot.periodReference.month).padStart(2, '0')}-01`
++    const periodEndExclusive = new Date(Date.UTC(snapshot.periodReference.year, snapshot.periodReference.month, 1))
++      .toISOString().slice(0, 10)
++    const periodEndInclusive = new Date(Date.parse(`${periodEndExclusive}T00:00:00.000Z`) - 86400000)
++      .toISOString().slice(0, 10)
++    const coversPeriod = (from: unknown, until: unknown, endInclusive = periodEndInclusive) =>
++      typeof from === 'string' && from <= periodStart
++      && (until === null || (typeof until === 'string' && until >= endInclusive))
++    if (!coversPeriod(salary.validFrom, salary.validUntil)
++      || !coversPeriod(schedule.validFrom, schedule.validUntil)
++      || !coversPeriod(contract.validFrom, contract.validUntil)) return false
++
++    const hourlyRate = FixedDecimal.parse(String(salary.hourlyRate))
++    const fullTimeHours = FixedDecimal.parse(String(schedule.fulltimeHoursPerWeek))
++    const averageHours = FixedDecimal.parse(String(schedule.averageHoursPerWeek))
++    const scheduleFactor = FixedDecimal.parse(String(schedule.partTimeFactor))
++    if (hourlyRate.compare(FixedDecimal.parse('0')) <= 0
++      || fullTimeHours.compare(FixedDecimal.parse('0')) <= 0
++      || averageHours.compare(FixedDecimal.parse('0')) !== 0
++      || scheduleFactor.compare(FixedDecimal.parse('0')) !== 0
++      || FixedDecimal.parse(String(contract.fulltimeHoursPerWeek)).compare(fullTimeHours) !== 0
++      || FixedDecimal.parse(String(wage.fulltimeHoursPerWeek)).compare(fullTimeHours) !== 0) return false
++
++    let paidHours = FixedDecimal.parse('0')
++    let grossFromReleasedHours = FixedDecimal.parse('0')
++    for (const value of actualEntries) {
++      const entry = record(value)
++      if (!entry) return false
++      if (entry.informational === true || entry.family === 'TRANSPARENT') continue
++      const mapping = record(entry.payrollMapping)
++      if (entry.family !== 'WORK' || entry.releasedForPayroll !== true
++        || mapping?.target !== 'PAYMENT' || mapping.componentCode !== 'PAYFULL02_VARIABLE_REGULAR_WAGE'
++        || mapping.componentOutput !== 'amount' || mapping.calculationRule !== 'HOURLY_RATE_X_HOURS'
++        || String(mapping.factor) !== '1') return false
++      const hours = FixedDecimal.parse(String(entry.hours))
++      if (hours.compare(FixedDecimal.parse('0')) <= 0) return false
++      paidHours = paidHours.add(hours)
++      grossFromReleasedHours = grossFromReleasedHours.add(hourlyRate.multiply(hours))
++    }
++    if (paidHours.compare(FixedDecimal.parse('0')) <= 0) return false
++    const gross = grossFromReleasedHours.round(2, 'HALF_UP').toString(2)
++    const compositeTimePeriod = typeof wage.timePeriod === 'string'
++      ? parseNl2026CompositeTimePeriod(wage.timePeriod)
++      : null
++    const supportedPeriod = wage.timePeriod === 'MONTH' && wage.fullPeriod === true
++      || compositeTimePeriod !== null && wage.fullPeriod === false
++    if (!supportedPeriod) return false
++    const monthlyHours = fullTimeHours.multiply(FixedDecimal.parse('52'))
++      .divideToScale(FixedDecimal.parse('12'), 8, 'ARITHMETIC')
++    const fullTimeMonthlyPensionableSalary = hourlyRate.multiply(monthlyHours).round(8, 'HALF_UP').toString(8)
++    const partTimeFactor = paidHours.divideToScale(monthlyHours, 8, 'ARITHMETIC')
++      .round(8, 'HALF_UP').toString(8)
++    if (FixedDecimal.parse(partTimeFactor).compare(FixedDecimal.parse('0')) <= 0
++      || FixedDecimal.parse(partTimeFactor).compare(FixedDecimal.parse('1')) > 0
++      || wage.grossAmount !== gross || amounts.variableRegularWage !== gross
++      || hourlyBasis.hourlyRate !== hourlyRate.toString(2)
++      || hourlyBasis.fullTimeHoursPerWeek !== fullTimeHours.toString(4)
++      || hourlyBasis.fullTimeMonthlyHours !== monthlyHours.round(8, 'HALF_UP').toString(8)
++      || hourlyBasis.fullTimeMonthlyPensionableSalary !== fullTimeMonthlyPensionableSalary
++      || hourlyBasis.paidHours !== paidHours.toString(4)
++      || hourlyBasis.partTimeFactor !== partTimeFactor
++      || pension.partTimeFactor !== partTimeFactor
++      || !['CALENDAR_DAYS_PRO_RATA', 'FULL_MONTH'].includes(String(pension.partialMonthMethod))) return false
++    return true
++  } catch {
++    return false
++  }
++}
++
+ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIsolatedTestScenario = false): PayrollSourceGap[] {
+   const gaps: PayrollSourceGap[] = []
+   const source = record(snapshot.canonicalSource)
+@@ -507,7 +606,10 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIso
+   const salary = salaryRows?.[0]
+   const schedule = scheduleRows?.[0]
+   const contract = contractRows?.[0]
+-  if (salary) {
++  const variableHourlySource = isSupportedOnCallHourlySource({ snapshot, source, salary, schedule, contract })
++  if (salary && salary.paymentType === 'HOURLY_VARIABLE' && !variableHourlySource) {
++    gaps.push({ field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'ON_CALL_HOURLY_VARIABLE_SOURCE_UNSUPPORTED' })
++  } else if (salary && !variableHourlySource) {
+     if (salary.paymentType !== 'PERIODIC_FIXED' || salary.paymentFrequency !== 'MONTHLY' || salary.currencyCode !== 'EUR') {
+       gaps.push({ field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'ONLY_FIXED_EUR_MONTHLY_WAGE_SUPPORTED' })
+     }
+@@ -535,7 +637,7 @@ function validateSupportedRegularMonth(snapshot: PayrollSourceSnapshot, allowIso
+       gaps.push({ field: 'contractualSalary', status: 'UNSUPPORTED', reasonCode: 'EFFECTIVE_SALARY_DECIMAL_INVALID' })
+     }
+   }
+-  if (schedule) {
++  if (schedule && !variableHourlySource) {
+     const fulltimeHours = Number(schedule.fulltimeHoursPerWeek)
+     const averageHours = Number(schedule.averageHoursPerWeek)
+     const factor = Number(schedule.partTimeFactor)
+diff --git a/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.test.ts b/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.test.ts
+index 982e2cca..63b6cc3d 100644
+--- a/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.test.ts
++++ b/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.test.ts
+@@ -1024,7 +1024,7 @@ describe('LiquidHR Payroll source provider', () => {
+     expect(source.payrollOwned).toBeUndefined()
+   })
+ 
+-  it('uses the regular employer configuration and explicit calendar-day pension method for a new joiner', async () => {
++  it('uses the explicit calendar-day pension method at the one-day month-end boundary', async () => {
+     const configuration = assertActivePayrollEmployerConfiguration({
+       schemaVersion: 'payroll-employer-configuration-v1',
+       effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', sourceReference: 'Mars BV payroll decision 2026',
+@@ -1059,16 +1059,16 @@ describe('LiquidHR Payroll source provider', () => {
+       openingBalance: null,
+     }
+     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+-      listEmployments: vi.fn(async () => [employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' })]),
++      listEmployments: vi.fn(async () => [employment({ starts_on: '2026-09-30', original_hire_date: '2026-09-30', seniority_date: '2026-09-30' })]),
+       loadTimeline: vi.fn(async () => ({
+-        employment: employment({ starts_on: '2026-10-16', original_hire_date: '2026-10-16', seniority_date: '2026-10-16' }),
++        employment: employment({ starts_on: '2026-09-30', original_hire_date: '2026-09-30', seniority_date: '2026-09-30' }),
+         salaries: [salary({ fulltime_amount: 3517, parttime_amount: 3517 })],
+         schedules: [schedule({ part_time_factor: 1 })],
+         incomeRelationships: [incomeRelationship({ reportingStatus: 'READY', startsOn: '2026-01-01' })],
+         taxProfileProjection: taxProjection({ taxProfiles: [taxProfile({ effective_from: '2026-01-01' })] }),
+         pensionAssignments: [{
+           id: '92000000-0000-4000-8000-000000000009', pension_arrangement_id: 'MARS-PENSION-2026',
+-          effective_from: '2026-01-01', effective_to: null, participation_start_date: '2026-10-16',
++          effective_from: '2026-09-30', effective_to: null, participation_start_date: '2026-09-30',
+           assignment_reason: 'CORE', provenance_json: {}, updated_at: '2026-01-01T00:00:00.000Z', version_number: 1,
+           supersedes_assignment_id: null, arrangement_resolution_reason: null, arrangement_resolution_change_version_ids: [], age_for_tier: null,
+           arrangement: {
+@@ -1085,15 +1085,15 @@ describe('LiquidHR Payroll source provider', () => {
+         }],
+       })),
+       loadPayrollSetup: vi.fn(async () => setup),
+-    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 10 } })
++    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+ 
+     const source = snapshot.canonicalSource as Record<string, unknown>
+     const payrollOwned = source.payrollOwned as Record<string, unknown>
+     expect(payrollOwned).toBeDefined()
+     const pension = payrollOwned.pension as Record<string, unknown>
+     expect(pension.partialMonthMethod).toBe('CALENDAR_DAYS_PRO_RATA')
+-    expect(pension.periodFactor).toBe('0.5161')
+-    expect(pension.partTimeFactor).toBe('0.5161')
++    expect(pension.periodFactor).toBe('0.0333')
++    expect(pension.partTimeFactor).toBe('0.0333')
+     expect(pension.calculationTrace).toEqual(expect.arrayContaining([
+       expect.objectContaining({
+         ruleProvenance: expect.objectContaining({
+@@ -1207,6 +1207,139 @@ describe('LiquidHR Payroll source provider', () => {
+     }))
+   })
+ 
++  it('calculates an on-call hourly pension basis from released paid hours without inventing fixed monthly salary', async () => {
++    const setup = completePayrollSetup()
++    const fixture = {
++      fixtureId: 'PAYROLL-JANTJE-SYNTHETIC-PENSION-28',
++      classification: 'SYNTHETIC_TEST_FIXTURE',
++      legalFiscalStatus: 'OPEN',
++    }
++    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
++      listEmployments: vi.fn(async () => [employment({
++        starts_on: '2026-10-01', original_hire_date: '2026-10-01', seniority_date: '2026-10-01',
++      })]),
++      loadTimeline: vi.fn(async () => ({
++        employment: employment({ starts_on: '2026-10-01', original_hire_date: '2026-10-01', seniority_date: '2026-10-01' }),
++        salaries: [salary({
++          payment_type: 'HOURLY_VARIABLE',
++          payment_frequency: 'MONTHLY',
++          hourly_rate: 20,
++          fulltime_amount: null,
++          parttime_amount: null,
++        })],
++        schedules: [schedule({
++          average_hours_per_week: 0,
++          fulltime_hours_per_week: 40,
++          part_time_factor: 0,
++          schedule_type: 'HOURS_AND_AVG_DAYS',
++          is_on_call: true,
++        })],
++        contracts: [{
++          id: '8b000000-0000-4000-8000-000000000028',
++          labor_condition_set_id: '8c000000-0000-4000-8000-000000000028',
++          fulltime_hours_per_week: 40,
++          starts_on: '2026-10-01',
++          ends_on: null,
++          updated_at: '2026-10-01T10:01:00.000Z',
++        }],
++        laborConditions: [{
++          id: '8d000000-0000-4000-8000-000000000028',
++          condition_group: 'COMPANY',
++          labor_condition_set_id: '8c000000-0000-4000-8000-000000000028',
++          valid_from: '2026-10-01',
++          valid_until: null,
++          updated_at: '2026-10-01T10:02:00.000Z',
++          set: {
++            id: '8c000000-0000-4000-8000-000000000028',
++            code: 'MARS_COMPANY_TEST',
++            name: 'Mars BV TEST',
++            standard_hours_per_week: 40,
++            is_active: true,
++            valid_from: '2026-01-01',
++            updated_at: '2026-01-01T00:00:00.000Z',
++          },
++        }],
++        incomeRelationships: [incomeRelationship({
++          reportingStatus: 'READY', startsOn: '2026-10-01', validFrom: '2026-10-01',
++        })],
++        taxProfileProjection: taxProjection(),
++        pensionAssignments: [{
++          id: '92000000-0000-4000-8000-000000000028',
++          pension_arrangement_id: 'MARS-PENSION-2026',
++          effective_from: '2026-10-01', effective_to: '2026-10-31',
++          participation_start_date: '2026-10-01', assignment_reason: 'Explicit HR-admin assignment.',
++          provenance_json: { status: 'SYNTHETIC_TEST_FIXTURE', syntheticFixture: fixture },
++          updated_at: '2026-10-01T00:00:00.000Z', version_number: 1,
++          supersedes_assignment_id: null, arrangement_resolution_reason: null,
++          arrangement_resolution_change_version_ids: [], age_for_tier: null,
++          arrangement: {
++            id: 'MARS-PENSION-2026', code: 'MARS-PENSION-2026', name: 'Mars BV TEST-pensioenfixture',
++            arrangement_type: 'FLAT_PREMIUM', effective_from: '2026-01-01',
++            arrangement_established_from: '2026-01-01', effective_to: null, transition_date: null,
++            grandfathering_mode: 'NONE', flat_total_rate: 25, employer_share_pct: 60,
++            employee_share_pct: 40, annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
++            pensionable_salary_definition: {
++              annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
++              basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true,
++            },
++            eligibility_rule: {
++              participantGroup: 'NEW_ENTRANT', employmentOrParticipationStartOnOrAfter: '2026-01-01',
++            },
++            contract_classification: 'UNKNOWN' as const, contract_classification_provenance: { status: 'UNVERIFIED' },
++            provenance_json: { sourceClassification: 'SYNTHETIC_TEST_FIXTURE', legalFiscalStatus: 'OPEN' },
++            is_active: true, version_id: '93000000-0000-4000-8000-000000000028', version_number: 2,
++            version_created_at: '2026-01-01T00:00:00.000Z', source_updated_at: '2026-01-01T00:00:00.000Z', tiers: [],
++          },
++        }],
++      })),
++      loadActualWork: vi.fn(async () => withPayrollReleases(actualWork({
++        period: {
++          id: actualWorkPeriodId, period_start: '2026-10-01', period_end: '2026-11-01',
++          status: 'CLOSED', updated_at: '2026-10-31T20:00:00.000Z',
++        },
++        entries: [actualWorkEntry({
++          hours: 1, work_date: '2026-10-06', subject_period_start: '2026-10-06',
++          subject_period_end: '2026-10-07', posting_period_start: '2026-10-01',
++        })],
++        types: [actualWorkType({ code: 'AW_WORK', name: 'Gewerkte uren' })],
++      }))),
++      loadPayrollSetup: vi.fn(async () => setup),
++    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 10 } })
++
++    const source = snapshot.canonicalSource as Record<string, unknown>
++    const payrollOwned = source.payrollOwned as Record<string, unknown>
++    const amounts = payrollOwned.amounts as Record<string, unknown>
++    const controls = payrollOwned.controls as Record<string, unknown>
++    const pension = payrollOwned.pension as Record<string, unknown>
++    const regularWage = source.regularWage as Record<string, unknown>
++
++    expect(snapshot.sourceGaps).toEqual([])
++    expect(controls.sourceReady).toBe(true)
++    expect(amounts.variableRegularWage).toBe('20.00')
++    expect(regularWage).toMatchObject({
++      grossAmount: '20.00', fulltimeMonthlyAmount: '0.00', contractHoursPerWeek: '0.0000',
++      fulltimeHoursPerWeek: '40.0000',
++    })
++    expect(pension).toMatchObject({
++      partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA', periodFactor: '1.0000',
++      variableHourlyBasis: {
++        hourlyRate: '20.00', fullTimeHoursPerWeek: '40.0000',
++        fullTimeMonthlyHours: '173.33333333', fullTimeMonthlyPensionableSalary: '3466.66666660',
++        paidHours: '1.0000', partTimeFactor: '0.00576923',
++      },
++      calculationStatus: 'CALCULATED',
++    })
++    expect(amounts.employeePension).toBe('1.08')
++    expect(amounts.employerPension).toBe('1.62')
++    expect(pension.calculationTrace).toEqual(expect.arrayContaining([
++      expect.objectContaining({
++        componentCode: 'PENSION_ANNUALIZED_PENSIONABLE_SALARY',
++        inputs: expect.objectContaining({ fullTimeMonthlyPensionableSalary: '3466.66666660' }),
++      }),
++    ]))
++    expect(snapshot.sourceHash).toMatch(/^[0-9a-f]{64}$/)
++  })
++
+   it('uses an effective HR Admin confirmed Core tax profile to build the regular wage engine input', async () => {
+     const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+       loadTimeline: vi.fn(async () => ({
+diff --git a/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.ts b/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.ts
+index 501f9d4e..82436260 100644
+--- a/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.ts
++++ b/apps/hr-suite/lib/payroll/source/liquid-hr-source-provider.ts
+@@ -1179,9 +1179,76 @@ function payrollDecimalSource(value: number | null): string | null {
+   }
+ }
+ 
++type VariableHourlyPensionBasis = {
++  readonly hourlyRate: string
++  readonly fullTimeHoursPerWeek: string
++  readonly fullTimeMonthlyHours: string
++  readonly fullTimeMonthlyPensionableSalary: string
++  readonly paidHours: string
++  readonly partTimeFactor: string
++}
++
++function variableHourlyPensionBasis(
++  salary: PayrollSourceSalary | undefined,
++  schedule: PayrollSourceSchedule | undefined,
++  entries: readonly unknown[],
++  variableWage: ReturnType<typeof actualWorkVariableWage>,
++): VariableHourlyPensionBasis | null {
++  if (!salary || !schedule || salary.payment_type !== 'HOURLY_VARIABLE'
++    || salary.payment_frequency !== 'MONTHLY' || salary.currency_code !== 'EUR'
++    || salary.fulltime_amount !== null || salary.parttime_amount !== null
++    || !schedule.is_on_call || schedule.average_hours_per_week !== 0 || schedule.part_time_factor !== 0
++    || !variableWage.used || variableWage.errorCode !== null || entries.length === 0) return null
++  try {
++    const hourlyRate = FixedDecimal.parse(String(salary.hourly_rate))
++    const fullTimeHours = FixedDecimal.parse(String(schedule.fulltime_hours_per_week))
++    if (hourlyRate.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0
++      || fullTimeHours.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) return null
++    let paidHours = FixedDecimal.fromInteger(BigInt(0))
++    let computedGross = FixedDecimal.fromInteger(BigInt(0))
++    for (const entry of entries) {
++      const record = asRecord(entry)
++      if (!record || record.informational === true || record.family === 'TRANSPARENT') continue
++      const mapping = asRecord(record.payrollMapping)
++      if (record.family !== 'WORK' || record.releasedForPayroll !== true
++        || mapping?.target !== 'PAYMENT'
++        || mapping.componentCode !== 'PAYFULL02_VARIABLE_REGULAR_WAGE'
++        || mapping.componentOutput !== 'amount'
++        || mapping.calculationRule !== 'HOURLY_RATE_X_HOURS'
++        || mapping.factor !== '1'
++        || (typeof record.hours !== 'number' && typeof record.hours !== 'string')) return null
++      const hours = FixedDecimal.parse(String(record.hours))
++      if (hours.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) return null
++      paidHours = paidHours.add(hours)
++      computedGross = computedGross.add(hourlyRate.multiply(hours))
++    }
++    if (paidHours.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0
++      || computedGross.round(2, 'HALF_UP').toString(2) !== variableWage.amount) return null
++    const monthlyHours = fullTimeHours.multiply(FixedDecimal.parse('52'))
++      .divideToScale(FixedDecimal.parse('12'), 8, 'ARITHMETIC')
++    const monthlyPensionableSalary = hourlyRate.multiply(monthlyHours).round(8, 'HALF_UP')
++    const partTimeFactor = paidHours.divideToScale(monthlyHours, 8, 'ARITHMETIC')
++      .round(8, 'HALF_UP')
++    if (partTimeFactor.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0
++      || partTimeFactor.compare(FixedDecimal.parse('1')) > 0) return null
++    return {
++      hourlyRate: hourlyRate.toString(2),
++      fullTimeHoursPerWeek: fullTimeHours.toString(4),
++      fullTimeMonthlyHours: monthlyHours.round(8, 'HALF_UP').toString(8),
++      fullTimeMonthlyPensionableSalary: monthlyPensionableSalary.toString(8),
++      paidHours: paidHours.toString(4),
++      partTimeFactor: partTimeFactor.toString(8),
++    }
++  } catch {
++    return null
++  }
++}
++
+ function regularWageInput(
+   salaries: readonly PayrollSourceSalary[],
+   schedules: readonly PayrollSourceSchedule[],
++  actualWorkEntries: readonly unknown[],
++  variableWage: ReturnType<typeof actualWorkVariableWage>,
+   period: PayrollSourceProviderInput['payrollPeriod'],
+   start: string,
+   endExclusive: string,
+@@ -1203,15 +1270,51 @@ function regularWageInput(
+   if (!salary || !schedule
+     || salary.valid_from > start || (salary.valid_until !== null && salary.valid_until < endExclusive)
+     || schedule.valid_from > start || (schedule.valid_until !== null && schedule.valid_until < endExclusive)) return null
++  const periodBoundsForWage = periodBounds(period)
++  const fullPeriod = start === periodBoundsForWage.start && endExclusive === periodBoundsForWage.endExclusive
++  let timePeriod = fiscalProfile.timePeriod
++  if (!fullPeriod) {
++    try {
++      const segments = calculateNl2026PeriodSegments({
++        periodStart: periodBoundsForWage.start,
++        periodEndExclusive: periodBoundsForWage.endExclusive,
++        paidStart: start,
++        paidEndExclusive: endExclusive,
++      })
++      timePeriod = encodeNl2026CompositeTimePeriod(segments)
++    } catch {
++      return null
++    }
++  }
++  if (salary.payment_type === 'HOURLY_VARIABLE'
++    && (schedule.is_on_call || salary.fulltime_amount === null || salary.parttime_amount === null)) {
++    const basis = variableHourlyPensionBasis(salary, schedule, actualWorkEntries, variableWage)
++    if (!basis) return null
++    return {
++      fiscalYear: String(period.year),
++      table: fiscalProfile.wageTaxTable,
++      residence: fiscalProfile.residenceCountryCode,
++      ageCategory: fiscalProfile.ageCategory,
++      herleiding: fiscalProfile.herleiding,
++      timePeriod,
++      payrollTaxCredit: fiscalProfile.payrollTaxCreditApplies,
++      regularWage: true,
++      fullPeriod,
++      hasSpecialSituation: fiscalProfile.hasSpecialSituation,
++      incomeRelationshipCount: String(fiscalProfile.activeIncomeRelationshipCount),
++      grossAmount: variableWage.amount,
++      fulltimeMonthlyAmount: '0.00',
++      contractHoursPerWeek: '0.0000',
++      fulltimeHoursPerWeek: basis.fullTimeHoursPerWeek,
++      wageBasis: 'ON_CALL_HOURLY_VARIABLE',
++    }
++  }
+   const monthlyAmount = payrollMoneySource(salary.parttime_amount)
+   const fulltimeMonthlyAmount = payrollMoneySource(salary.fulltime_amount)
+   const contractHoursPerWeek = payrollDecimalSource(schedule.average_hours_per_week)
+   const fulltimeHoursPerWeek = payrollDecimalSource(schedule.fulltime_hours_per_week)
+   if (!monthlyAmount || !fulltimeMonthlyAmount || !contractHoursPerWeek || !fulltimeHoursPerWeek) return null
+-  const periodBoundsForWage = periodBounds(period)
+-  const fullPeriod = start === periodBoundsForWage.start && endExclusive === periodBoundsForWage.endExclusive
+   let grossAmount = monthlyAmount
+-  let timePeriod = fiscalProfile.timePeriod
+   if (!fullPeriod) {
+     let segments: ReturnType<typeof calculateNl2026PeriodSegments>
+     try {
+@@ -1616,6 +1719,7 @@ function buildRegularPayrollOwned(input: {
+   readonly regularWage: Record<string, string | boolean> | null
+   readonly salaryBasisCandidates: readonly PayrollSourceSalary[]
+   readonly schedule: PayrollSourceSchedule | undefined
++  readonly variableHourlyBasis: VariableHourlyPensionBasis | null
+   readonly laborConditionSetId: string | null
+   readonly pensionAssignments: readonly NonNullable<PayrollSourceTimeline['pensionAssignments']>[number][]
+   readonly laborConditionPensionArrangements: readonly NonNullable<PayrollSourceTimeline['laborConditionPensionArrangements']>[number][]
+@@ -1666,7 +1770,11 @@ function buildRegularPayrollOwned(input: {
+     : '1.0000'
+   const scheduleFactor = input.schedule?.part_time_factor
+   let effectivePartTimeFactor: string | null = null
+-  if (scheduleFactor !== undefined) {
++  if (input.variableHourlyBasis) {
++    // Released hours already reflect the hours worked in the active period;
++    // applying calendar proration again would count a partial month twice.
++    effectivePartTimeFactor = input.variableHourlyBasis.partTimeFactor
++  } else if (scheduleFactor !== undefined) {
+     try {
+       effectivePartTimeFactor = FixedDecimal.parse(String(scheduleFactor))
+         .multiply(FixedDecimal.parse(periodFactor))
+@@ -1710,7 +1818,8 @@ function buildRegularPayrollOwned(input: {
+     pensionResult = calculatePension({
+       arrangement: arrangementInput,
+       period: input.period,
+-      fullTimeMonthlyPensionableSalary: String(input.regularWage.fulltimeMonthlyAmount),
++      fullTimeMonthlyPensionableSalary: input.variableHourlyBasis?.fullTimeMonthlyPensionableSalary
++        ?? String(input.regularWage.fulltimeMonthlyAmount),
+       monthlyPayrollGross,
+       partTimeFactor: effectivePartTimeFactor,
+       ageForTier: assignment.age_for_tier,
+@@ -1825,6 +1934,14 @@ function buildRegularPayrollOwned(input: {
+         sourceReference: configuration.pension.methodSourceReference,
+         calculationStatus: pensionResult.status,
+         calculationTrace: pensionResult.trace,
++        ...(input.variableHourlyBasis ? {
++          variableHourlyBasis: {
++            ...input.variableHourlyBasis,
++            derivation: 'HOURLY_RATE_X_FULLTIME_WEEKLY_HOURS_X_52_DIVIDED_BY_12',
++            partTimeFactorDerivation: 'RELEASED_PAID_HOURS_DIVIDED_BY_FULLTIME_MONTHLY_HOURS',
++            partialMonthAllocation: 'ACTUAL_RELEASED_PAID_HOURS_ALREADY_LIMITED_TO_ACTIVE_PERIOD',
++          },
++        } : {}),
+       },
+       employerRates: {
+         awf: configuration.employerRates.awf,
+@@ -2369,6 +2486,8 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
+     const baseRegularWage = regularWageInput(
+       salaries,
+       schedules,
++      actualWorkEntries,
++      mappedActualWorkVariableWage,
+       input.payrollPeriod,
+       activeStart,
+       activeEndExclusive,
+@@ -2385,6 +2504,12 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
+         caoApplied: true,
+       }
+       : baseRegularWage
++    const variableHourlyBasis = variableHourlyPensionBasis(
++      salaries.length === 1 ? salaries[0] : undefined,
++      schedules.length === 1 ? schedules[0] : undefined,
++      actualWorkEntries,
++      mappedActualWorkVariableWage,
++    )
+     let payrollSetup: PayrollSourceSetup | null = null
+     if (this.dependencies.loadPayrollSetup) {
+       try {
+@@ -2892,6 +3017,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
+           regularWage,
+           salaryBasisCandidates: pensionSalaryBasisCandidates,
+           schedule: schedules.length === 1 ? schedules[0] : undefined,
++          variableHourlyBasis,
+           laborConditionSetId: activeLaborConditionSet?.id ?? null,
+           pensionAssignments,
+           laborConditionPensionArrangements,
+diff --git a/apps/hr-suite/messages/en/employment.json b/apps/hr-suite/messages/en/employment.json
+index d13ff527..5968a983 100644
+--- a/apps/hr-suite/messages/en/employment.json
++++ b/apps/hr-suite/messages/en/employment.json
+@@ -28,6 +28,8 @@
+   "pensionGrandfathered": "Grandfathered participant",
+   "pensionProvenanceMode": "Record type",
+   "pensionUserRecorded": "HR-admin recorded",
++  "pensionSyntheticTestFixture": "Source with legal review open",
++  "pensionTestScenario": "Source reference",
+   "pensionArrangementPredecessor": "CAO mapping version being superseded (optional)",
+   "pensionAssignmentPredecessor": "Employment assignment version being superseded (optional)",
+   "pensionNoPredecessor": "No predecessor",
+diff --git a/apps/hr-suite/messages/nl/employment.json b/apps/hr-suite/messages/nl/employment.json
+index 410d988d..452a4485 100644
+--- a/apps/hr-suite/messages/nl/employment.json
++++ b/apps/hr-suite/messages/nl/employment.json
+@@ -28,6 +28,8 @@
+   "pensionGrandfathered": "Deelnemer met overgangsrecht",
+   "pensionProvenanceMode": "Type registratie",
+   "pensionUserRecorded": "Vastgelegd door HR-beheerder",
++  "pensionSyntheticTestFixture": "Bron met open juridische beoordeling",
++  "pensionTestScenario": "Bronverwijzing",
+   "pensionArrangementPredecessor": "Te vervangen versie van de CAO-koppeling (optioneel)",
+   "pensionAssignmentPredecessor": "Te vervangen versie van de dienstverbandtoewijzing (optioneel)",
+   "pensionNoPredecessor": "Geen voorganger",

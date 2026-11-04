@@ -1,0 +1,13 @@
+diff --git a/apps/hr-suite/components/layout/sidebar-navigation.ts b/apps/hr-suite/components/layout/sidebar-navigation.ts
+index adda42b4..630028fd 100644
+--- a/apps/hr-suite/components/layout/sidebar-navigation.ts
++++ b/apps/hr-suite/components/layout/sidebar-navigation.ts
+@@ -14,7 +14,7 @@ export const SIDEBAR_SECTION_DEFINITIONS: readonly { id: SidebarSectionId; hrefs
+   { id: 'peopleOrganization', hrefs: ['/employees', '/organization-chart', '/workforce'] },
+   { id: 'hrProcesses', hrefs: ['/recruitment', '/recruitment/assigned', '/journeys', '/research'] },
+   { id: 'steering', hrefs: ['/insights'] },
+-  { id: 'management', hrefs: ['/settings', '/document-studio'] },
++  { id: 'management', hrefs: ['/settings', '/document-studio', '/payroll-lab'] },
+ ]
+ 
+ export const SIDEBAR_MENU_HREFS = SIDEBAR_SECTION_DEFINITIONS.flatMap((section) => section.hrefs)

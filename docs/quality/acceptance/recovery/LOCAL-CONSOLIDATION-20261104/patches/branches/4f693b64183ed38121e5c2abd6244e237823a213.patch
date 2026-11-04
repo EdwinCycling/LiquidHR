@@ -1,0 +1,256 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 835263cc..99057ac8 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -27,6 +27,7 @@ Motto: **It takes a genius to keep it simple.**
+ 
+ - Aparte expliciete toestemming is vereist voor remote database/schemawrites, inclusief TEST; destructieve businessdatawijzigingen; Production-data of echte klantgegevens; secret-/credentialrotatie; securityrechten of tenanttoegang buiten de opdracht; het weggooien van unieke niet-geïntegreerde gebruikerswijzigingen; en merge/deployment/release buiten het oorspronkelijke mandaat.
+ - Bestaande synthetische TEST-fixtures zijn binnen expliciete scope bruikbaar. Geen directe SQL/service-role-bypass, verzonnen fallback, kunstmatig afgedwongen lifecycle-succes of wijzigingen aan Payroll-history om groen te fabriceren.
++- Voor de canonieke lokale LiquidHR TEST-runtime is blijvende toestemming gegeven om bestaande synthetische testaccounts en reeds geconfigureerde inloggegevens via de ingebouwde Test Auth-/role-switch-flow te gebruiken voor normale ontwikkel- en acceptatietests. Dit omvat in-/uitloggen, de normale Supabase Auth-sessies, role-switch naar bestaande Employee-, Manager- en HR Admin-testidentiteiten en geauthenticeerde read-only browser-, API- en documentcontroles. Vraag hiervoor niet opnieuw toestemming. Dit machtigt geen nieuwe accounts, rollen, rechten of fixtures, geen businessdatawrites of migrations, geen service-role/securitybypass, en geen Test Auth op Preview of Production. Credentials en sessiegeheimen blijven altijd verborgen.
+ - Nooit secrets, tokens, cookies, magic links, plaintext BSN of IBAN printen, loggen, vragen of committen.
+ - Beschermde canonical config: `apps/hr-suite/.env.local`. Lees of toon de waarden nooit; kopieer, vervang, verplaats of verwijder het bestand niet. De centrale TEST-config `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` is volgens de provisioner een hardlink naar diezelfde file. Controleer alleen bestaan/linkmetadata; maak of herstel de link alleen wanneer de opdracht lokale runtimeconfiguratie vereist. Nooit `git clean -x/-X`.
+ - Vercel `production` is de deploymentchannelnaam van de bestaande synthetic TEST-omgeving; het is geen toestemming voor writes naar live productiedata. Geen Docker, lokale containers of WSL-workaround.
+diff --git a/apps/hr-suite/messages/en/payrollProfessional.json b/apps/hr-suite/messages/en/payrollProfessional.json
+index 2743f570..4b534af7 100644
+--- a/apps/hr-suite/messages/en/payrollProfessional.json
++++ b/apps/hr-suite/messages/en/payrollProfessional.json
+@@ -236,6 +236,7 @@
+   "salaryChartTitle": "Gross and net by month",
+   "salaryChartDescription": "The chart includes only available finalized pay periods.",
+   "salaryChartRange": "Chart period",
++  "month": "Month",
+   "salaryRange6": "Latest 6 periods",
+   "salaryRange12": "Latest 12 periods",
+   "salaryRange24": "Latest 24 periods",
+diff --git a/apps/hr-suite/messages/nl/payrollProfessional.json b/apps/hr-suite/messages/nl/payrollProfessional.json
+index 2da3aece..636f595d 100644
+--- a/apps/hr-suite/messages/nl/payrollProfessional.json
++++ b/apps/hr-suite/messages/nl/payrollProfessional.json
+@@ -236,6 +236,7 @@
+   "salaryChartTitle": "Bruto en netto per maand",
+   "salaryChartDescription": "De grafiek toont alleen beschikbare definitieve loonperioden.",
+   "salaryChartRange": "Grafiekperiode",
++  "month": "Maand",
+   "salaryRange6": "Laatste 6 perioden",
+   "salaryRange12": "Laatste 12 perioden",
+   "salaryRange24": "Laatste 24 perioden",
+diff --git a/docs/AA/AA-CURRENT.md b/docs/AA/AA-CURRENT.md
+index b7a6197f..c26aed30 100644
+--- a/docs/AA/AA-CURRENT.md
++++ b/docs/AA/AA-CURRENT.md
+@@ -5,9 +5,9 @@ Momentopname: 2026-10-13 (historische acceptance-evidence blijft ongewijzigd)
+ 
+ ## PAYESS-01 — final acceptance candidate (2026-10-13)
+ 
+-- Source candidate `47e42505` merges PAYESS-01 with current `origin/main` `1c435021124e036f9b6177b669b2c385f64550c9` via clean non-force merges. The latest main update changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; no other Payroll branch was included.
+-- AA-LEAN-02 impact: **CONTROLLED**. The final product-code gates passed on runtime candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`: 630 HR files, 3,027 tests; type-check; changed-file ESLint; 43-namespace i18n parity; diff-check; and production build (323 routes, Payroll boundary scan 163 assets). The later main integration and evidence update changed documentation only; the final documentation diff check passed.
+-- Authenticated Employee TEST acceptance is **BLOCKED pending explicit Auth approval**. Local route redirects to login; the existing Test Auth entry is HR Admin and switching to the configured Employee target requires a Supabase Auth handoff. No Auth request or Payroll data read was made. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
++- Source candidate includes PAYESS-01 and current `origin/main` `1c435021124e036f9b6177b669b2c385f64550c9` via clean non-force merges. The latest main update changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; no other Payroll branch was included.
++- AA-LEAN-02 impact: **CONTROLLED**. The prior full product-code gates passed on runtime candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`: 630 HR files, 3,027 tests; type-check; changed-file ESLint; 43-namespace i18n parity; diff-check; and production build (323 routes, Payroll boundary scan 163 assets). Acceptance found and fixed the missing NL/EN `month` labels; targeted JSON validation and the authenticated route render passed.
++- The existing local Test Auth/role-switch flow opened `/my-salary` as Noah in tenant `liquid-hr-demo-holding`, HR group `Planeten · DEFAULT`; the page returned 200 and showed no finalized periods or available payslips. **DATA/EVIDENCE GAP; not ready for TEST release.** Amounts, chart, comparison, documents, dossier parity, live negative probes, employee administration and 390 px remain OPEN. The missing NL/EN `month` label was fixed and the page now renders. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
+ 
+ ## PAYCOMP-EDIT-01 — controlled synthetic TEST release 1.20261012.3 (LIMITED)
+ 
+diff --git a/docs/AA/AA-OP.md b/docs/AA/AA-OP.md
+index 3339b057..50f95e42 100644
+--- a/docs/AA/AA-OP.md
++++ b/docs/AA/AA-OP.md
+@@ -10,6 +10,7 @@ Codex mag zelfstandig:
+ - een concreet defect reproduceren, de oorzaak vaststellen, in scope repareren en gericht hertesten;
+ - tests toevoegen en passende typecheck-, lint-, build- of browserchecks uitvoeren;
+ - bestaande synthetische TEST-fixtures lezen/gebruiken binnen expliciet toegestane scope;
++- gebruik in de canonieke lokale LiquidHR TEST-runtime bestaande synthetische accounts en hun beveiligd geconfigureerde credentials zelfstandig via Test Auth en de bestaande role-switch, inclusief normale Supabase Auth login/logout/sessionhandelingen en geauthenticeerde read-only browser-, API- en documentchecks. Dit geeft geen toestemming voor nieuwe accounts/rechten/fixtures, businessdatawrites, secrets, bypasses of gebruik buiten lokale TEST;
+ - alleen expliciet geselecteerde eigen wijzigingen committen en een Draft PR openen indien de bestaande workflow dat vereist;
+ - een merge-/releaseworkflow uitvoeren wanneer de **oorspronkelijke opdracht** dat expliciet autoriseert.
+ 
+diff --git a/docs/AA/AA-OPEN.md b/docs/AA/AA-OPEN.md
+index f822c903..6bfc4406 100644
+--- a/docs/AA/AA-OPEN.md
++++ b/docs/AA/AA-OPEN.md
+@@ -35,11 +35,11 @@ De observaties over CAO-BENCH02 en TEST-HARNESS01 hieronder komen uit **lokale C
+ 
+ ## 3. Actief register — bijgewerkt 2026-10-13
+ 
+-Bestaande rijen behouden hun laatst vastgelegde bewijsdatum. De update van 2026-10-13 registreert de beperkte PAYDOC-STD-01A-TEST-release, de PAYESS-01 Auth-/browseracceptatiegrens en de expliciet open browser-/bedragspunten; historische acceptance-runs blijven ongewijzigd.
++Bestaande rijen behouden hun laatst vastgelegde bewijsdatum. De update van 2026-10-13 registreert de beperkte PAYDOC-STD-01A-TEST-release en PAYESS-01's live data-/browserbewijs; historische acceptance-runs blijven ongewijzigd.
+ 
+ | ID | Status / eigenaar | Punt en huidig bewijs | Heropenen / afsluitvoorwaarde |
+ | --- | --- | --- | --- |
+-| PAYESS-01-LIVE-ESS-001 | OPEN — DECISION / EVIDENCE; Payroll QA | De lokale login heeft alleen Test HR Admin als directe ingang. De bestaande Test Employee-fixture is als rolwisseldoel geconfigureerd, maar een geauthenticeerde sessie en de gekoppelde employee-, tenant-/HR-groep-/administratiegegevens zijn niet vastgesteld. De bestaande Chrome-sessie kon niet worden hergebruikt; de huidige hosted main-pagina gaf een serverfout en is geen kandidaatbewijs. Er is geen Auth-verzoek verzonden en geen Payroll-data gelezen. | Na expliciete toestemming voor de bestaande lokale Test Auth/role-switch Auth-handoff: gebruik uitsluitend de bestaande Employee-fixture, voer read-only bewijs uit voor eigen FINALIZED-perioden en geïmporteerde/gegeneerde loonstroken, en sluit de desktop/390 px-flow plus scope-negatives af. Geen account, permissie, fixture, run of database aanpassen. Zie [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md). |
++| PAYESS-01-LIVE-ESS-001 | OPEN — DATA / EVIDENCE; Payroll QA | Test Auth/role-switch opende `/my-salary` als Noah (`22222222-2222-4222-8222-222222222222`) in tenant `liquid-hr-demo-holding`, HR-groep `Planeten · DEFAULT`. De route gaf 200 maar toonde geen definitieve perioden en geen beschikbare loonstroken; daardoor zijn echte bedragen, grafiek/vergelijking en document view/download niet aantoonbaar. Employee-administratie en exacte permission claims zijn niet bevestigd. Live negatives, dossierpariteit en 390 px blijven OPEN. Na rolterugkeer gaf de lokale dev-browser een hydrationfout bij Admin-contextnavigatie. | Sluit met alleen bestaande toegestane Employee-data: bevestig administratie/permissies, ten minste één opgeslagen definitieve periode en aanwezige documentbronnen indien beschikbaar; voer positieve en negatieve read-only controles uit, inclusief dossier/view/download en 390 px. Geen accounts, rechten, fixtures, salarisruns, documents of database aanpassen. Geen Auth-toestemmingsvraag voor de bestaande lokale flow. Zie [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md). |
+ | PAYDOC-STD-01A-PDF-001 | OPEN — EVIDENCE; Payroll QA | Bestaande Test HR Admin-context is De Sterren holding → Planeten → Mars BV. De FINALIZED-run `57ac6c10-7a02-49c4-a588-2ca244e621d9` staat in Jupiter BV; Jupiter is niet selecteerbaar voor deze gebruiker en de Mars-runlijst bevat deze run niet. De bestaande Payroll → Salarisrun → LiquidHR Standard Loonstrook-browserflow en een echte PDF-response zijn daarom niet aangetoond. Geen autorisatie omzeild of aangepast. Zie [PAYDOC-STD-01A beperkte TEST-release](../quality/acceptance/runs/PAYDOC-STD-01A-20261013-LIMITED-TEST.md). | OPEN tot dezelfde bestaande gebruiker de run via de reeds toegestane Jupiter-context kan openen. Controleer dan de bestaande UI-view/download en leg één echte PDF-response vast met status en content-type; geen nieuwe gebruiker, rechten, run of TEST-data. |
+ | PAYDOC-STD-01A-AMOUNT-002 | OPEN — EVIDENCE; Payroll QA | Live bedragcontrole van de PDF tegenover de FINALIZED Jupiter-run is niet uitgevoerd, omdat de bestaande gebruiker alleen Mars BV kan selecteren. Dit is een ontbrekend bewijsstuk door de vastgestelde administratiemismatch, geen aangetoonde PDF- of bedragfout. Zie [PAYDOC-STD-01A beperkte TEST-release](../quality/acceptance/runs/PAYDOC-STD-01A-20261013-LIMITED-TEST.md). | OPEN tot de bestaande toegestane browserflow beschikbaar is; vergelijk dan de echte PDF-bedragen met de bestaande FINALIZED-run en leg de controle vast zonder persoonsgegevens of secrets in logs. |
+ | PAYCOMP-EDIT-01-TEST-018 | OPEN — EVIDENCE; Payroll QA | Op de finale editorcode kandidaat `625eabcc93992f71beb6f143341bb15adf9b8c1c` zijn 92 gerichte editor/NL-2026-tests geslaagd. Eén volledige hr-suite-run met twee workers en een unieke veilige tijdelijke directory startte Vitest maar gaf binnen vier minuten geen testnamen of resultaten; hij is bounded gestopt. Dit is geen mislukte productassertion en geen full-suite-pass. | Bij volledige hr-suite-acceptatie of na een aantoonbare runner/Windows-tempfix: één volledige run met zichtbare testcollectie en resultaat. Geen productcodewijziging nodig tenzij die run een concrete regressie vindt. Zie [PAYCOMP-EDIT-01 acceptance](../quality/acceptance/runs/PAYCOMP-EDIT-01-20261012-TEST.md). |
+diff --git a/docs/AA/AA-TEST.md b/docs/AA/AA-TEST.md
+index 6e3e9351..cbf1af29 100644
+--- a/docs/AA/AA-TEST.md
++++ b/docs/AA/AA-TEST.md
+@@ -97,6 +97,8 @@ Test Auth:
+ - fail-closed buiten lokale dev;
+ - nooit zichtbaar of bruikbaar op Vercel Production/Preview;
+ - mag geen rollen creëren of escaleren om een scenario groen te krijgen.
++- Blijvende werkafspraak: bestaande synthetische TEST-accounts en hun beveiligd/geconfigureerde gebruikersnaam-wachtwoord mogen zonder nieuwe toestemmingsvraag via Test Auth en de bestaande role-switch worden gebruikt voor normale ontwikkel- en acceptatietests. Dit dekt in-/uitloggen, de gewone Supabase Auth-sessionhandelingen, wisselen naar bestaande Employee-, Manager- en HR Admin-identiteiten en geauthenticeerde read-only browser-, API- en documentcontroles.
++- Dit is geen toestemming voor nieuwe accounts, rollen, rechten of fixtures, writes naar businessdata/schema, securitybypass of gebruik buiten de canonieke lokale TEST-runtime. Toon, log of commit nooit de inloggegevens, tokens, cookies of magic links; de accountmapping blijft in de beveiligde runtimeconfiguratie.
+ 
+ Normale OAuth:
+ - gebruiken wanneer echte identity/callback/sessiongedrag onderdeel van acceptance is;
+diff --git a/docs/delivery/IMPLEMENTATION_STATUS.md b/docs/delivery/IMPLEMENTATION_STATUS.md
+index 46cf3a12..f4e851f2 100644
+--- a/docs/delivery/IMPLEMENTATION_STATUS.md
++++ b/docs/delivery/IMPLEMENTATION_STATUS.md
+@@ -2,9 +2,9 @@
+ 
+ ## PAYESS-01 — controlled feature candidate — 2026-10-13
+ 
+-**Status: LOCAL CONTROLLED GATES GREEN / AUTHENTICATED EMPLOYEE ACCEPTANCE BLOCKED PENDING AUTH APPROVAL.** Current branch candidate `47e42505` includes current `origin/main` `1c435021124e036f9b6177b669b2c385f64550c9` via clean non-force merges. The final main delta changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; the last full product-code gates passed on unchanged runtime candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`. No other Payroll branch was included; nothing was merged to main or deployed.
++**Status: EMPLOYEE ROUTE GREEN / LIVE DATA AND CONTROLLED ACCEPTANCE OPEN / NOT READY FOR TEST RELEASE.** Current branch includes `origin/main` `1c435021124e036f9b6177b669b2c385f64550c9` via clean non-force merges. The last full product-code gates passed on runtime candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`; no other Payroll branch was included. Nothing was merged to main or deployed.
+ 
+-The 12 tests covering merged PAYLAB-UX-01 files, prior 55 PAYESS-focused tests, final HR suite (630 files; 3,027 passed, 8 skipped), type-check, changed-file ESLint, 43-namespace i18n, diff-check and production build passed. The local TEST-runtime preflight passed without printing configuration values. Local `/my-salary` redirects to login. The configured Test Employee fixture target is present, but no authenticated session was available to verify its employee row, administration, finalized periods or either payslip source. The required Auth handoff was not submitted pending explicit approval. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
++The 12 merged-PAYLAB tests, prior 55 PAYESS-focused tests, final HR suite (630 files; 3,027 passed, 8 skipped), type-check, changed-file ESLint, i18n, diff-check and production build are reused from the unchanged product-code candidate. The existing local Test Auth/role-switch opened Employee Noah (`22222222-2222-4222-8222-222222222222`) in tenant `liquid-hr-demo-holding`, HR group `Planeten · DEFAULT`. `/my-salary` returned 200 but showed no finalized periods or available payslips, so saved amounts, chart/comparison and view/download acceptance remain a concrete DATA/EVIDENCE gap. Employee administration and exact permission claims, live negative checks, dossier parity and 390 px remain OPEN. The missing NL/EN `month` label was fixed and validated with a targeted JSON check and authenticated route render. Existing Test Auth requires no additional approval; no run, fixture, permission, schema or business data changed. See [PAYESS-01 acceptance](../quality/acceptance/runs/PAYESS-01-20261013.md).
+ 
+ ## Current release — APIAI-09 — 2026-10-12
+ 
+diff --git a/docs/quality/acceptance/RUN-LOG.md b/docs/quality/acceptance/RUN-LOG.md
+index 84e1cf70..2de9800a 100644
+--- a/docs/quality/acceptance/RUN-LOG.md
++++ b/docs/quality/acceptance/RUN-LOG.md
+@@ -4,7 +4,7 @@ This log contains only known historical outcomes. Detailed screenshots, traces a
+ 
+ | Run | Result | Proven scope | Open boundary |
+ |---|---|---|---|
+-| PAYESS-01-20261013 | PARTIAL / CONTROLLED | Current main `1c435021` integrated by non-force merge; its delta was docs-only. Runtime candidate gates: 12 merged-PAYLAB tests, prior 55 PAYESS tests, final suite 630 files / 3,027 passed, type/lint/i18n/build green; final docs diff-check green | Authenticated Employee fixture session, administration, saved history, both document sources, viewing/download and responsive dashboard remain blocked pending explicit Auth approval |
++| PAYESS-01-20261013 | PARTIAL / CONTROLLED | Existing local Test Auth/role-switch opened Employee Noah in tenant `liquid-hr-demo-holding` / Planeten; `/my-salary` returned 200 and the empty history/payslip state. Missing NL/EN `month` key fixed; targeted locale validation and post-fix route render green. Prior 55 PAYESS, 12 PAYLAB and 3,027-test suite results reused | DATA/EVIDENCE gap: zero finalized periods and available self payslips. Amounts/chart/comparison/document actions, dossier parity, live authorization negatives, employee administration and 390 px remain OPEN; no Auth approval blocker |
+ | A01 | GREEN | Full DEV persona acceptance for Focus, Absence and Leave | Regression maintenance |
+ | GJ01 | PARTIAL / EXTERNAL_BLOCKER | HR journey, preview, restrictions and responsive checks | Authenticated future Employee leg; DEV Auth mail delivery returned HTTP 502 |
+ | GJ02 | GREEN | Canonical batch → snapshot → dossier → signing → SIGNED lifecycle | DOC02 rendering follow-up |
+diff --git a/docs/quality/acceptance/runs/PAYESS-01-20261013.md b/docs/quality/acceptance/runs/PAYESS-01-20261013.md
+index 382fb4a7..24a7ce5c 100644
+--- a/docs/quality/acceptance/runs/PAYESS-01-20261013.md
++++ b/docs/quality/acceptance/runs/PAYESS-01-20261013.md
+@@ -2,72 +2,72 @@
+ 
+ - Run date: 2026-10-13
+ - Classification: **CONTROLLED** (AA-LEAN-02)
+-- Result: **PARTIAL — LOCAL CONTROLLED GATES GREEN; LIVE EMPLOYEE ACCEPTANCE BLOCKED PENDING AUTH APPROVAL**
++- Result: **PARTIAL — EMPLOYEE ROUTE GREEN; SAVED-DATA, LIVE NEGATIVE, DOSSIER AND 390 PX EVIDENCE OPEN; NOT READY FOR TEST RELEASE**
+ - Feature branch: `work/PAYESS-01-20261013`
+-- Current branch candidate: `47e42505` (acceptance-document update follows this docs-only merge)
++- Acceptance starting head: `dcd949e121b2767116eb94cd89f838c837872764`
+ - Integrated `origin/main`: `1c435021124e036f9b6177b669b2c385f64550c9`
+-- Product-code gate candidate: `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`; subsequent `origin/main` and evidence changes contain documentation only.
++- Product-code gate candidate: `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`; this acceptance added only the missing NL/EN `month` labels after that full gate and checked the JSON plus authenticated route.
+ 
+ ## 1. Executive Summary
+ 
+-PAYESS-01 was merged with fetched current main through clean non-force merges. The latest main update (`1c435021`) changed only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`; no other Payroll branch was included. Product-code CONTROLLED gates passed on `f9f7f69`, whose runtime code is unchanged in the current candidate. Authenticated employee acceptance was not performed: the existing browser session could not be reused, the local route had no session, and explicit permission for the required Supabase Auth handoff is still pending. No Auth request, Payroll readback or data write was made. No acceptance result is inferred from mocks or the deployed main page.
++PAYESS-01 is integrated with fetched `origin/main` through clean non-force merges; no other Payroll branch was included. The existing local Test HR Admin entry and role-switch flow were used to open the Employee route. The session showed Noah (employeeId matched against the authorized HR Admin roster: `22222222-2222-4222-8222-222222222222`), tenant slug `liquid-hr-demo-holding`, and HR group `Planeten · DEFAULT`. The active administration and the full permission claim list were not separately verified; the self-service route authorization did pass. `/my-salary` returned 200 and rendered its empty states: no finalized periods and no available payslips. Thus saved amounts, chart points, month comparison, document viewing/download and document-source parity could not be exercised. No Auth approval was required or requested. No salary, fixture, schema, or database writes were made.
+ 
+ | ID | Area | What broke | Why | Fix | Regression | Result |
+ |---|---|---|---|---|---|---|
+-| PAYESS-01 | `/my-salary`, employee payslips and Payroll PDF access | Self-service initially exposed one period and the employee/dossier document sources were separate | No multi-period self read model or employee-scoped Payroll PDF response existed | Implemented a scoped period projection, salary dashboard, read-only period PDF route and shared payslip list | Prior 55 PAYESS tests, 12 merged-PAYLAB tests, final full HR suite, local runtime preflight | PARTIAL — live employee, saved-data, document and responsive dashboard acceptance blocked pending Auth approval |
++| PAYESS-01 | `/my-salary`, employee payslips and Payroll PDF access | Live Employee route returned no finalized periods or payslips; browser locale lookup initially failed | Employee TEST data did not expose saved periods/documents; `month` locale key was missing | Existing scoped period/PDF implementation retained; added missing NL/EN `month` labels; same `EmployeePayslips` component/source references are used by the dossier | Prior 55 PAYESS tests, 12 merged-PAYLAB tests, final full HR suite; targeted locale JSON validation and authenticated route render | PARTIAL — route GREEN; DATA/EVIDENCE gap and live security, dossier, and mobile checks remain OPEN |
+ 
+ ## 2. Coverage
+ 
+-Local tests cover actual-period selection, zero/one/multiple periods and gaps; gross/net chart data, period filtering, comparisons and component changes; unified imported/Payroll document references; and finalized-only PDF access. The run did not read an employee’s persisted amounts or document rows.
++Local tests cover actual-period selection, zero/one/multiple periods and gaps; gross/net chart data, period filtering, comparisons and component changes; unified imported/Payroll document references; and finalized-only PDF access. Live Employee browser evidence confirms route authorization and the empty state only; no persisted amounts, periods, or documents were available to compare or open.
+ 
+ ## 3. Role Matrix
+ 
+ | Scenario | Evidence | Result |
+ |---|---|---|
+-| Own finalized salary periods | Authorization/service tests in the PAYESS suite and final full suite | GREEN at service-test level; live record OPEN |
+-| Other employee or forged employee context | Owner/self-only service tests | DENIED in tests; live API probe OPEN |
+-| Other tenant, HR group or administration | Scope mismatch tests | DENIED in tests; live context not verified |
+-| Missing self salary or dossier permission | Permission tests assert denial before repository access | DENIED in tests; live permission state not verified |
+-| Missing imported payslip permission or out-of-scope document | Payslip service tests | DENIED in tests; live source not verified |
+-| Concept or non-final lifecycle | Statement/PDF service tests | HIDDEN / DENIED in tests |
+-| Other employee or unavailable Payroll PDF period | PDF service/response tests | DENIED / NOT FOUND in tests |
+-| Authenticated Employee browser session | No Auth request submitted while approval is pending | BLOCKED |
++| Own finalized salary periods | Existing self-service authorization passed and the page queried the current Employee scope | Route GREEN; no finalized rows, so period assertion is DATA/EVIDENCE OPEN |
++| Other employee or forged employee context | Owner/self-only service tests | DENIED in tests; live probe OPEN |
++| Other tenant, HR group or administration | Scope mismatch tests; live page context showed tenant slug and Planeten group | DENIED in tests; employee administration and live mismatch probes OPEN |
++| Missing self salary or dossier permission | Permission tests assert denial before repository access | DENIED in tests; `/my-salary` route allowed; exact live claims and dossier permission OPEN |
++| Missing imported payslip permission or out-of-scope document | Payslip service tests | DENIED in tests; live document source/permission OPEN |
++| Concept or non-final lifecycle | Statement/PDF service tests | HIDDEN / DENIED in tests; no safe existing run ID available for a live probe |
++| Other employee or unavailable Payroll PDF period | PDF service/response tests | DENIED / NOT FOUND in tests; live probe OPEN |
++| Authenticated Employee browser session | Existing Test Auth + role-switch; local `/my-salary` returned 200 and showed Noah | GREEN for route and self-scope entry |
+ 
+ ## 4. Functional Results
+ 
+-- Dashboard calculations and chart data use the saved-period projection; history tests cover zero, one, multiple periods and gaps without inventing months.
+-- Period comparison and component differences are covered by local tests. Actual saved gross/net amounts were not read during this run.
+-- Both document sources share the same logical list and source references in tests. The presence of an imported PDF and a finalized generated Payroll PDF for the configured Employee fixture is unverified.
+-- No absent period, amount or document was fabricated.
++- `/my-salary` rendered the professional empty state: no definitive salary slip, no finalized salary periods, and no available payslips. This is evidence of a zero-row Employee view, not evidence that a payslip exists elsewhere in storage.
++- With zero periods, no period selector, chart points, gross/net values, comparison, or changed components were available for live acceptance. Automated tests cover 0/1/multiple periods and comparisons.
++- Code reuses the existing `EmployeePayslips` dossier component and source references. The dossier screen and imported/generated documents were not independently live-verified; there was no available self-service document to view or download.
++- No absent period, amount, document or source was fabricated.
+ 
+ ## 5. Negative/Security Results
+ 
+-Final tests passed for self identity, owner binding, tenant/HR-group/administration, permission, lifecycle, unavailable period, PDF response and allow-listed projection behavior. These are automated service/route tests. No live authenticated request was used to assert cross-employee or cross-administration denial. Tests assert raw HR/Payroll snapshots, hashes and traces are not exposed to the client.
++Existing tests passed for self identity, owner binding, tenant/HR-group/administration, permission, lifecycle, unavailable period, PDF response and allow-listed projection behavior. These are automated service/route tests. No live authenticated request asserted cross-employee, cross-administration, missing-permission, non-final or PDF denial. The rendered page exposed only its empty state; automated projection tests assert raw HR/Payroll snapshots, hashes and traces are not exposed to the client.
+ 
+ ## 6. Mobile/Responsive Results
+ 
+-The local `/my-salary` candidate route redirects an unauthenticated request to login. Authenticated dashboard rendering, chart interaction, document viewing/download and the requested 390 px employee viewport remain OPEN. The existing Chrome tab could not be reused; a new request to the current deployed main page returned a generic server error, which is not evidence for this feature candidate.
++Authenticated `/my-salary` rendering was observed at a 1715 px desktop viewport. The 390 px viewport, chart interaction, document viewer, and download remain OPEN because the Employee data view is empty. The local HR Admin return flow later hit a development-client hydration error after context selection; no deployed main page was used as candidate evidence.
+ 
+ ## 7. Data/DB Readback
+ 
+-The central TEST-runtime metadata preflight passed with values hidden. No authenticated Payroll readback, migration, schema change, salary run, component activation, fixture change, payslip write, application database write or deployment was performed.
++The self-service page performed an authenticated read in the selected Employee context and returned zero finalized periods and zero available payslips. Tenant slug and HR group were visible in the existing context flow; administration was not confirmed. No direct SQL read, migration, schema change, salary run, component activation, fixture change, payslip write, application database write or deployment was performed.
+ 
+ ## 8. Quality Gates
+ 
+ - PAYESS focused suite from the unchanged feature code: 8 files, 55 tests passed.
+ - Targeted tests for the merged PAYLAB-UX-01 files: 2 files, 12 tests passed.
+ - Final CONTROLLED HR suite on unchanged product-code candidate `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`: 630 files passed, 4 skipped; 3,027 tests passed, 8 skipped. The only changes after this run were documentation merges/updates.
+-- Type-check, changed-file ESLint, 43-namespace i18n parity and `git diff --check`: passed.
++- Type-check, changed-file ESLint, 43-namespace i18n parity and `git diff --check`: passed on the prior product-code candidate. After this run's locale-key fix, targeted NL/EN JSON validation, authenticated page render and final `git diff --check` are used; no full suite is repeated for the one-key translation fix.
+ - Production build: passed; 323 routes generated and Payroll client-boundary scan passed for 163 assets.
+ - Existing dynamic logo-file tracing warning in the shared Payroll PDF renderer remained non-blocking and was not changed.
+ 
+ ## 9. Fixed During Run
+ 
+-No product source fix was needed during reconciliation. Both main merges completed without conflicts. The first added PAYLAB-UX-01 files; the latest main delta added only `docs/AA/AA-NEXT.md` and `docs/AA/AA-ROAD.md`. The existing PAYESS implementation was retained.
++The live route first failed because `page.tsx` requested the missing `month` translation. Added `month: Maand` and `month: Month` to the NL/EN Payroll Professional messages; the authenticated route then rendered the expected empty states. Both main merges completed without conflicts. No PAYESS authorization or document-access boundary changed.
+ 
+ ## 10. ENVIRONMENT-GATED
+ 
+-The local login page offers Test HR Admin as its direct Test Auth entry. The configured Test Employee fixture is reached through the existing local role-switch flow, which performs Supabase Auth operations. The explicit user approval requested for that handoff has not arrived, so no login or role switch was submitted. The hosted page inspected was current main, not the PAYESS candidate, and returned a server error.
++Test Auth and role-switch succeeded for Employee. On return to Test HR Admin, context reselection returned HTTP 200, but the local development browser hit `Cannot read properties of null (reading 'enqueueModel')` during navigation; the HR Admin dossier view therefore remains unverified. No hosted deployment was used. This is an OPEN browser/runtime evidence item, not an Auth-approval blocker.
+ 
+ ## 11. PRODUCT DECISIONS
+ 
+@@ -78,13 +78,13 @@ The local login page offers Test HR Admin as its direct Test Auth entry. The con
+ 
+ ## 12. NOT FIXED
+ 
+-- The configured Test Employee fixture has no authenticated session in this run. Its employee row, employeeId, tenant/HR-group/administration binding, and permission state were not verified.
+-- No live read established whether this employee has an imported payslip source or a FINALIZED Payroll period with a generated payslip. Both document sources, actual amounts, viewing and download therefore remain OPEN.
+-- After explicit Auth approval, use only the existing Employee fixture and perform read-only employee/data/document acceptance. Do not create accounts, change permissions, or alter fixtures.
++- The Employee session was matched to Noah and employeeId `22222222-2222-4222-8222-222222222222`; the selected tenant was `liquid-hr-demo-holding` and HR group `Planeten · DEFAULT`. The employee administration and exact permission claims remain unverified.
++- The self-service read returned no finalized periods and no available payslips. Imported PDF presence, generated PDF presence, dossier parity, viewing and download remain OPEN because the data rows are absent from the Employee view and the dossier route was not completed.
++- Live cross-employee, tenant/administration, missing-permission, non-final-run and PDF-negative probes remain OPEN; existing automated negative tests are GREEN. The 390 px view also remains OPEN. No fixture, permission, run or business data should be changed to close the gap without a separate mandate.
+ 
+ ## 13. LESSONS/PATTERNS
+ 
+-The source-level negative matrix and final full suite are green, but they do not replace saved-data browser acceptance. The branch was updated by merging only fetched origin/main; no other Payroll worktree or branch was integrated. `.tmp-payess01-vitest-20261013` was left untouched.
++The source-level negative matrix and prior full suite are green, but they do not replace saved-data browser acceptance. A local Test Auth session is no longer a blocker. The branch was updated by merging only fetched origin/main; no other Payroll worktree or branch was integrated. `.tmp-payess01-vitest-20261013` was left untouched.
+ 
+ ## 14. Commits/Remote Head
+ 
+@@ -93,9 +93,9 @@ The source-level negative matrix and final full suite are green, but they do not
+ - First integrated origin/main: `f7db482b19b81d9c5aa5517c66394faa5f628e1b`.
+ - First non-force merge candidate / product-code gate candidate: `f9f7f69bd33dc449d476cd36cc90fcd2d790bf9e`.
+ - Latest fetched origin/main: `1c435021124e036f9b6177b669b2c385f64550c9`.
+-- Latest non-force merge candidate: `47e42505`; final acceptance-document commit and pushed branch SHA are recorded in the delivery summary.
++- Acceptance started from pushed head `dcd949e121b2767116eb94cd89f838c837872764`; the closeout commit and pushed branch SHA are recorded in the delivery summary.
+ - No main merge, deployment, migration, TEST release or force push was performed.
+ 
+ ## 15. Final Verdict
+ 
+-**PARTIAL — NOT SAFE FOR TEST RELEASE YET.** All local CONTROLLED code gates passed on the merged candidate. A live Employee session and the exact employee/administration/document records remain unverified pending explicit Auth approval. Do not claim authenticated acceptance or TEST release until those assertions pass.
++**PARTIAL — NOT READY FOR TEST RELEASE.** The authenticated Employee route is GREEN and the missing locale key is fixed. The actual view has no finalized periods or available payslips, so salary amounts, chart/comparison, document viewing/download and dossier parity cannot be accepted. Administration scope, live negative authorization checks and 390 px responsiveness remain OPEN. No approval is needed for the existing local Test Auth flow; no release, main merge or deployment occurred.

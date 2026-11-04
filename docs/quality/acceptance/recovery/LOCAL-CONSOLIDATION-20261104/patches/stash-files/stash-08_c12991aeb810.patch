@@ -1,0 +1,78 @@
+diff --git a/docs/delivery/CURRENT_CONTEXT.md b/docs/delivery/CURRENT_CONTEXT.md
+index c436ce73..cc9b28a4 100644
+--- a/docs/delivery/CURRENT_CONTEXT.md
++++ b/docs/delivery/CURRENT_CONTEXT.md
+@@ -1,5 +1,73 @@
+ # Actuele overdracht Liquid HR
+ 
++## PAY-RULE-002 PFZW 2026 TEST acceptance — 2026-10-10
++
++**Status: ENGINEERING GREEN / PERSISTENCE DEFERRED.** The generic PFZW 2026 engine, Core's scoped effective mapping/assignment workflow, and PAYRUN01 snapshot integration are implemented and tested. September and October remain deterministic previews; no TEST fixture or successor payroll is persisted. The Core forward migration is prepared locally and unapplied.
++
++Worktree remains `Integration-PAY-CONVERGE-20261004`, branch `integration/pay-converge-20261004`, HEAD `0337af89d01ea072936b8894e01f46f09f7b3be9`; all pre-existing dirty and untracked files were preserved. The bounded runtime check found `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` absent. No second attempt, login, credential recovery, provisioning or remote DB mutation was made.
++
++Core workflow: HR Admin/Tenant Admin permission, tenant/HR-group/administration scope, employment and CAO-set date checks, participant group validation, explicit mapping confirmation, mapping plus one explicit assignment in a transaction, version lineage, idempotency, overlap rejection and audit logging. Direct authenticated DML is revoked; existing scoped read RLS policies remain. Synthetic provenance requires `PENSION_TEST_FIXTURES_ENABLED=true` and trusted app-metadata claims `liquidhr_pension_test_fixtures_enabled=true` and `liquidhr_pension_fixture_environment` matching the non-production runtime. Mapping rows do not enroll other employments. PAYRUN01 binds mapping/assignment versions into source hashes and blocks mismatched assignment-to-mapping references. Migration `20261010120000_core_pension_assignment_workflow.sql` is not applied and DB advisors/readback remain pending.
++
++For the synthetic test vector, `RegLn = €3,425 × 12 (€41,100) + 8% holiday (€3,288) + 5.5% prior-year EJU (€2,260.50) = €46,648.50`, rounded upward to €46,649. The 5.5% EJU is the structural 2025-12-31 PFZW reference; actual 2026 CAO EJU reserve remains 8%. The user-authorized extra-hours vector derives 210 full-time leave hours / (36 × 52) = 11.2179487179%; it is synthetic, dimensionally aligned annual hours, and not employer-verified. Monthly policy uses separate annual employee/employer shares, ÷12, then HALF_UP cents per share.
++
++| Deterministic calculation preview | September 2026 | October 2026 |
++| --- | ---: | ---: |
++| Gross salary | €3,044.44 | €3,219.41 |
++| Annual pensionable salary | €46,649 | €46,649 |
++| Contract DTF / contract pension hours | 0.8889 / 138.67 | 0.8889 / 138.67 |
++| Extra adjusted hours / final DTF | 0 / 0.8889 | 8.8974358974 / 0.9460 |
++| OP/NP assessment base | €26,103.44 | €27,780.24 |
++| Employee / employer OP/NP | €280.61 / €282.79 | €298.64 / €300.95 |
++| LB/PH, SV, Zvw bases | €2,763.83 each | €2,920.77 each |
++| Wage tax / net | €292.75 / €2,471.08 | €356.00 / €2,564.77 |
++| Holiday / actual 2026 EJU reserve | €243.56 / €243.56 | €257.55 / €257.55 |
++| Cumulative gross / reserves | €3,044.44 / €243.56 each | €6,263.85 / €501.11 each |
++| Total employer cost | €4,434.00 | €4,690.30 |
++
++Employer cost includes gross + employer insurance (€619.65 / €654.84) + employer pension + both current-period reserves (€243.56 each / €257.55 each).
++
++The source-projection regression resolves a synthetic versioned assignment and mapping fixture into the PFZW policy, corrected eight-hour pension basis, employee/employer amounts and trace. Engine output is still a non-persisted preview, not a PAYRUN01 successor. Canonical Lisa `57ac6c10-7a02-49c4-a588-2ca244e621d9`, Jaap `e20e0345-90ac-489b-9fee-7610b2d8f6a3`, and Frits finalized pre-PFZW October `338ef391-fbf6-435a-a4d7-e28a8024ebc2` remain unchanged.
++
++Focused verification: PFZW rules 31/31 across 3 files; Core/PAYRUN01 86/86 across 10 files; strict non-incremental TypeScript passed for HR suite and rules package; changed-source ESLint passed; NL/EN i18n parity passed for 42 namespaces; and `git diff --check` passed with only LF/CRLF notices. The exact remaining step is one authorized non-production Core/Payroll execution context: apply the reviewed Core migration through its normal path, provide the central TEST runtime, set `PENSION_TEST_FIXTURES_ENABLED=true`, and use an existing authorized TEST identity with the matching trusted app-metadata claims. Then read back the scoped mapping/assignment and use versioned PAYRUN01 successor services. See the [final closure checkpoint](../payroll/acceptance/PAY-RULE-002-FINAL-CLOSURE-20261010.md). No browser acceptance, UPA, payment, Production change, deployment, push or merge was performed.
++
++## Historical PAYRUN01 → PFZW integration safety gate — before implementation, 2026-10-09
++
++**Functional acceptance remains preserved:** Lisa FINALIZED `57ac6c10-7a02-49c4-a588-2ca244e621d9`, Jaap SUCCEEDED / CONCEPT `e20e0345-90ac-489b-9fee-7610b2d8f6a3` (62 trace steps; 18 PASS / 1 pension WARN), and Frits FINALIZED before PFZW `338ef391-fbf6-435a-a4d7-e28a8024ebc2` (source gap visible; net non-definitive). Existing professional/ESS browser evidence and 1440×900 / 393×852 presentation evidence remain accepted. The two-identity ESS browser test is **DEFERRED — USER DECISION**; no interactive login or account change was attempted.
++
++Recorded engineering evidence: ESS authorization tests 9/9; focused payroll/UI/pension/security set 16 files / 130 tests; strict TypeScript, changed-source ESLint, 42 NL/EN namespace pairs, `git diff --check`, and the Core index migration contract 2/2 passed. They were not rerun in this read-only gate. Production build status is **BUILD_ENVIRONMENT_BLOCKED**: the authorized launcher prerequisite `%LOCALAPPDATA%\LiquidHR\TestRuntime\.env.local` is missing. No secret was read or reconstructed.
++
++Worktree `Integration-PAY-CONVERGE-20261004`, branch `integration/pay-converge-20261004`, HEAD `0337af89d01ea072936b8894e01f46f09f7b3be9`: 55 modified tracked, 7,534 untracked, 0 staged. Of the untracked files, 7,465 are in three temporary harness/cache trees, 13 are payroll screenshots, and 56 are source/tests, migrations, or PAYRUN01 documentation. No files were removed, staged, or committed.
++
++Read-only migration comparison: Core/DEV `wnpfloqpjvaacobppbpk` has two same-version/name migrations whose SQL bodies differ from local files, two version/name-shifted migrations with equivalent normalized SQL, and one local-only forward migration for two absent FK indexes. Payroll Lab TEST `jhgeriucbkfarxiudzfy` maps all 13 PAYRUN01-scoped migrations to applied rows; 12 version IDs differ, 12 SQL bodies match after normalization, and one availability migration has different SQL but the same final nullability/default state. No local-only or remote-only Payroll Lab migrations were found in scope. Do not reapply or rewrite applied history; see the linked checkpoint for hashes, schema/RLS/grant readback, and proposed commit groups.
++
++PFZW `PAY-RULE-002` remains open for authoritative monthly proration/allocation, exact 2026 cent-rounding sequence, Frits’s coverage/arrangement source, the Kinderopvang extra-hours uplift, and a September-new-participant oracle. The current rule fails closed; no missing pension was persisted. Jaap’s legal/fiscal finalization gate remains. Recommendation: **READY to begin isolated PFZW engineering/research/test work; migration application remains blocked on lineage reconciliation.** No Production action, migration apply, stage/commit, push, merge, deployment, payroll write, payment, or Loonaangifte submission occurred. See the [2026-10-09 integration safety checkpoint](../payroll/acceptance/PAYRUN01-PENSION-PRODUCT-UI-20261008.md).
++
++## Historical PAYRUN01 pension and Payroll product UI checkpoint — 2026-10-08
++
++The following 2026-10-08 status is retained as historical context; its UI, browser, and self-service gaps were resolved by the continuation linked above.
++
++## Historical PAYRUN01 snapshot — Frits canonical Kinderopvang TEST — 2026-10-07
++
++**Actieve persona: Frits. Jan blijft ongewijzigde legacy TEST en is geen Kinderopvang-fixture.** De September- en October-berekening van Frits zijn via Payroll Lab TEST persistently berekend, hebben 15 componenten en traces, zijn gereviewd en gefinaliseerd. October heeft 18 PASS, 1 WARN (`PAYRUN01-CTRL-009-PENSION-RULE-READY`), 0 FAIL en een opgeslagen JSON-artifact. De October-PDF en actuele desktop/iPhone 16-acceptatie zijn OPEN: de goedgekeurde lokale launcher kan niet herstarten zolang `.next/dev/lock` door een niet-geïdentificeerde proceshandle wordt vastgehouden. De lock noemt PID 42032, die niet meer bestaat; normale leestoegang is geweigerd. `.next` is gegenereerd en Git-ignored, maar niet verwijderd omdat de huidige eigenaar niet betrouwbaar kon worden vastgesteld. Poort 3000 en unrelated Chrome-processen zijn onaangeroerd.
++
++`SYNTHETIC TEST PERSONA DATA — RANDOMLY GENERATED`. Frits' perso- en bankwaarden zijn eerder via beveiligde Core/DEV-domeinpaden verwerkt; ruwe waarden staan niet in dit document, logs, calculation hashes of JSON. Een privacy-keyscan vond geen BSN-, IBAN-, e-mail-, adres-, geboorte- of naamvelden in de Payroll-source snapshot of October-JSON. PFZW-rounding blijft `PAY-RULE-002 = OPEN / SOURCE_GAP`. Een werkgeversloonheffingennummer is niet aangemaakt; `DECLARATION NOT READY` is geen rekenblokkade. Geen betaling of Loonaangifte is gestart.
++
++De eerdere eenmalige Jan-specifieke supersessionvoorstel is verlaten; `20261007150000_payrun01_source_supersession.sql` staat niet in de actieve migratiebestanden en mag niet opnieuw worden ingediend of toegepast. De algemene Core-supersession wordt afzonderlijk backlogwerk. Jan is niet aangepast. Zie het [Frits checkpoint](../payroll/acceptance/PAYRUN01-FRITS-TEST-PERSONA-20261007.md). De actuele berekeningsstatus is groen; volledige artefact- en viewportacceptatie blijft partieel totdat de PDF en browsermatrix zijn geverifieerd.
++
++## HISTORISCH / VERVANGEN — PAYRUN01 Jan route-1-supersessionanalyse — 2026-10-07
++
++Dit hieronder behouden verslag legt de toenmalige Jan-route vast. Het is vervangen door de Frits-richting bovenaan: Jan is legacy TEST en blijft ongewijzigd. Een Jan-specifieke Core-uitzondering is geen actieve implementatie of backlogopdracht.
++
++**Status: Lisa remains GREEN; Jan's supported source replacement is implemented locally but Core/DEV apply is blocked by automatic review; Jan September/October calculation remains OPEN.** The user selected route 1: keep Jan's single existing employment and replace only the synthetic 2026-09-01 source slice. Local code now submits `labor_condition_set_id`, validates the selected set under the same tenant/HR-group/administration, derives its canonical name, and defines a Jan-pinned replacement RPC with effective-date and old-source guards. PAYRUN01's explicit Jan TEST tax profile is part of projected source hashing and v3 source-snapshot identity.
++
++The new migration `20261007150000_payrun01_source_supersession.sql` was submitted for Core/DEV apply and rejected by automatic review because it replaces the global labor-condition trigger. The rejection is not bypassed; the migration is not applied and no Jan Core/DEV data changed. The existing readback therefore still stands: one employment; `Bedrijfseigen regeling`, `Monteur`, manual €4,000/€4,250 salary rows, and 32/40 schedule. The selected Kinderopvang set remains the requested ID `a67b0731-6e0b-4c4f-8086-41a444528ccb`; the intended TEST mapping is Pedagogisch professional, scale 6, step 20, €3,425 full-time, 32/36 hours. No persisted Jan calculation or post-supersession readback exists yet.
++
++Verification after local fixes: four focused Vitest files, 43/43 tests; strict HR TypeScript reports only the existing unrelated `TS2366` at `component-library-entry-detail.tsx:76`. Core/DEV advisors, generated DB types, migration apply, Jan readback, calculation, review/finalize, and artifacts remain unverified because the apply was rejected. PFZW remains an independent Jan compliance gate; employer tax number remains declaration-only. The untouched PDF-renderer 5-second timeout is still reported.
++
++## HISTORISCHE snapshot — PAYRUN01 Lisa en eerdere Jan-status — 2026-10-07
++
++**Status: LISA CALCULATION GREEN; Jan source rebuild blocked at the supported CAO-timeline path; RELEASE NO-GO.** Lisa v3 succeeded in Payroll Lab TEST with configuration included in source/input identity; the prior v2 `FAILED` run remains preserved and was not reused. Nineteen controls passed, all 15 payroll components and trace entries persisted, and the same run reloaded through `CONCEPT → REVIEWED → FINALIZED`. JSON and PDF were generated separately and their downloaded SHA-256 values match the stored artifacts. Desktop and iPhone 16 acceptance show no horizontal overflow; the global Setup rail overlaps the right edge of lifecycle timestamps on mobile. The approved launcher cleared the 3013 `.next` `EPERM` after confirming that only ignored/generated cache data was removed and no owned PAYRUN01 process retained it. The user-created Jupiter Kinderopvang set is linked to a published PAYRUN01 TEST salary structure. Jan's normal `CAO aanpassen` wizard exposed the new set, but the 2026-09-01 submission failed with Postgres `P0001` at `apply_employment_timeline_mutation` line 39; the existing `LABOR_CONDITIONS` row already starts that day, so the duplicate effective date is rejected. The UI sends a condition-group name rather than the CAO set ID, and the employment-contract CAO reference is guarded as immutable. Reload confirmed Jan remains on `Bedrijfseigen regeling`, 32/40 hours, and `Monteur`; no Jan source row was changed. Read-only source verification found IKV 1 `DRAFT`, zero administration payroll-tax-number records overlapping September–October, and no accepted employee tax profile. A new contract on the existing employment can only start after current contract end, 2026-12-01, and a second primary employment cannot overlap. No parallel non-primary employment was created because it would change the specified single-employment fixture. PFZW monthly allocation/rounding remains an independent open gate. Hosted Preview gates remain separate. The exact hashes, amounts, source findings, and evidence are in the [2026-10-07 checkpoint](../payroll/acceptance/PAYRUN01-IMPLEMENTATION-CHECKPOINT-20261007.md) and [Jan fixture](../payroll/acceptance/PAYRUN01-JAN-KINDEROPVANG-FIXTURE-20261007.md). The unrelated `TS2366` in `component-library-entry-detail.tsx` and untouched PDF-renderer test timeout at 5 seconds remain open. The active local app session shows “Edwin”; its visible profile menu does not expose the exact email address, and no credentials or account settings were changed.
++
+ ## PAYRUN01 — Complete Individual Payroll + TEST Persona Readiness — 2026-10-05
+ 
+ **Status: lokale kandidaatgates PASS; individuele Jan/Lisa DoD OPEN; NO-GO / PARTIAL / NOT RELEASE-READY.** Exacte codecommit: c04d8e615afd3d1f42067c38840f8c83f43c3b3f op integration/pay-converge-20261004, gebaseerd op read-only geverifieerde origin/main 6349d02538351cd01fc51f298c6e6fa0ba88006c. Appversie blijft 1.20261002.1.

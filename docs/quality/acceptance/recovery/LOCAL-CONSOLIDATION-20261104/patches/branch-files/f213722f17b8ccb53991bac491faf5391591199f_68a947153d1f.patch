@@ -1,0 +1,21 @@
+diff --git a/packages/payroll-engine/package.json b/packages/payroll-engine/package.json
+new file mode 100644
+index 00000000..1a57b712
+--- /dev/null
++++ b/packages/payroll-engine/package.json
+@@ -0,0 +1,15 @@
++{
++  "name": "@liquid-hr/payroll-engine",
++  "version": "0.0.0",
++  "private": true,
++  "type": "module",
++  "exports": {
++    ".": {
++      "types": "./src/index.ts",
++      "import": "./src/index.ts"
++    }
++  },
++  "scripts": {
++    "type-check": "tsc --noEmit --project tsconfig.json"
++  }
++}

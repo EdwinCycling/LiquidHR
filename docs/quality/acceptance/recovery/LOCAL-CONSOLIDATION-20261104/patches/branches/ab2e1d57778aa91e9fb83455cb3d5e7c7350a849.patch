@@ -1,0 +1,29 @@
+diff --git a/docs/delivery/CURRENT_CONTEXT.md b/docs/delivery/CURRENT_CONTEXT.md
+index 43f938a6..cf475d04 100644
+--- a/docs/delivery/CURRENT_CONTEXT.md
++++ b/docs/delivery/CURRENT_CONTEXT.md
+@@ -11,7 +11,9 @@ twee identieke browserrunhashes. M0 GC-NL-001 blijft synthetisch/ongewijzigd.
+ Eén aparte synthetische IKV; future iteration/shared-base contracts gereserveerd,
+ geen Core-schema/write. Geen push/merge/deployment of nieuwe auth/perms.
+ Zie [PAYLAB03-acceptance](../payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md) voor scope, bronnen, tests, review en bewijs.
+-Finale build en 628-assets secretscan PASS.
++Finale build en 628-assets secretscan PASS. Codecommit `5d7e9fc5e19ff4582787b51e0104c885ac83370a`.
++Lokale server op localhost:3002 hervat; finale browserrun
++`3124489e-8e64-4284-aff8-717ba5d6a014` beschikbaar.
+ 
+ ## Payroll Engine M0 / PAYLAB02 — 2026-09-30
+ 
+diff --git a/docs/payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md b/docs/payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md
+index 4c91ac85..90c17362 100644
+--- a/docs/payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md
++++ b/docs/payroll/acceptance/PAYLAB03-NL2026-REGULAR-WAGE-20260930.md
+@@ -8,7 +8,8 @@ Lab-persistence en geauthenticeerde lokale browser **GREEN**.
+ - Branch: `work/paylab00`; PAYLAB02 checkpoint `1918a7b2f94e6ad9c1544929a735b4d94a26a118`.
+ - AA-reference: `origin/docs/aa-foundation-20260929` op `b71d663` gelezen,
+   inclusief AA-PAYROLL/AA-OP/AA-CURRENT/AA-ACCEPT; niet gemerged.
+-- Finale code-SHA wordt na de lokale commit hieronder vastgelegd.
++- Finale code-SHA: `5d7e9fc5e19ff4582787b51e0104c885ac83370a`. De opvolgende documentatiecommit
++  registreert uitsluitend deze SHA; de geverifieerde implementatie blijft identiek.
+ - Geen push, merge, deployment, app-version bump, authwijziging, nieuwe gebruiker,
+   gewijzigde permissions, Core-write of CONTROL02-schemawijziging.
+ - Bestaande goedgekeurde Planeten Lab-administratiekoppelingen hergebruikt.

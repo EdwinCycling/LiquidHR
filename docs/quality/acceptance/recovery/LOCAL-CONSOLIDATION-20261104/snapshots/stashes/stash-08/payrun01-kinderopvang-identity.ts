@@ -1,0 +1,22 @@
+/** Fixed, non-PII source identity for the canonical PAYRUN01 Kinderopvang TEST persona. */
+export const PAYRUN01_KINDEROPVANG_TEST = Object.freeze({
+  employeeId: '79091d14-ef66-41fe-a2d5-92df108727e5',
+  employmentId: 'd19bace9-bb97-4822-a462-eed22821ed05',
+  tenantId: '07249eb9-545c-883b-b26b-d52f83b4f4a1',
+  hrGroupId: '6ba6f1df-e376-40f2-abff-ffdf000172e1',
+  administrationId: '8483abc9-f275-c80b-5a23-fedc54ce9f0a',
+  effectiveOn: '2026-09-01',
+  laborConditionSetId: 'a67b0731-6e0b-4c4f-8086-41a444528ccb',
+  laborConditionSetCode: 'CAO_KINDEROPVANG_2025_2026',
+  laborConditionSetName: 'Cao Kinderopvang 2025-2026',
+  fulltimeHoursPerWeek: 36,
+  salaryStructureId: '2116ec84-78ad-447d-80f7-8e49d240ab3f',
+  salaryStructureCode: 'CAO_KO_2025_2026_PAYRUN01_TEST',
+  salaryScaleId: '360a1058-7e43-472f-a47d-c0dab28ec8af',
+  salaryScaleStepId: 'a541d461-b323-4588-91d7-09abb5ae72df',
+  salaryStepCode: '20',
+  fulltimeMonthlyAmount: '3425.00',
+  departmentId: 'b551dc4c-0482-3911-5e7a-5b40cf8fe113',
+  jobCode: 'PAYRUN01_PEDAGOGISCH_PROFESSIONAL',
+  jobTitle: 'Pedagogisch professional',
+})

@@ -1,0 +1,12 @@
+diff --git a/apps/hr-suite/lib/i18n/config.ts b/apps/hr-suite/lib/i18n/config.ts
+index 582f9e86..8e9eca0e 100644
+--- a/apps/hr-suite/lib/i18n/config.ts
++++ b/apps/hr-suite/lib/i18n/config.ts
+@@ -44,6 +44,7 @@ export const MESSAGE_NAMESPACES = [
+   'focus',
+   'context',
+   'payrollImport',
++  'payrollProfessional',
+ ] as const
+ 
+ export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

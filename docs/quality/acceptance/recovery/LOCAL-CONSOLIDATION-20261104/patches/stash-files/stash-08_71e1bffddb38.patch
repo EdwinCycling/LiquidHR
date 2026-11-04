@@ -1,0 +1,16 @@
+diff --git a/docs/delivery/IMPLEMENTATION_STATUS.md b/docs/delivery/IMPLEMENTATION_STATUS.md
+index 3aaae131..5800b48a 100644
+--- a/docs/delivery/IMPLEMENTATION_STATUS.md
++++ b/docs/delivery/IMPLEMENTATION_STATUS.md
+@@ -1,5 +1,11 @@
+ # Implementatiestatus Liquid HR
+ 
++## PAY-RULE-002 — PFZW 2026 Kinderopvang — 2026-10-10
++
++**Status: ENGINEERING GREEN / PERSISTENCE DEFERRED.** The effective-dated PFZW 2026 path is integrated with PAYRUN01 trace, fiscal deductions and employer-cost composition. Core now has a scoped, effective-dated mapping and explicit assignment workflow with permission checks, synthetic provenance gates, idempotency, overlap protection, version lineage and audit logging. PAYRUN01 snapshots bind the matching assignment and mapping versions and block a mismatched reference. Golden tests cover official rates/franchises, salary basis/EJU, upward whole-euro RegLn, part-time/supplementary hours, WIA threshold, separate employee/employer shares, fiscal treatment and the existing flat/progressive paths. Four-weekly payroll remains fail-closed until a 13-period PAYRUN01 model exists.
++
++The new Core migration is prepared but unapplied; no authenticated Core/Payroll TEST runtime was available, so there are no persisted PFZW mapping, assignment or successor runs. Frits's September/October results remain non-persisted analytical previews. The TEST runtime and matching trusted non-production app-metadata claims are the remaining execution prerequisites. Lisa/Jaap and Frits's immutable finalized pre-PFZW run are unchanged. No TEST payroll write, lifecycle transition, UPA, payment, Production/deploy action or release action occurred. Exact preview amounts and next-action setup: [PAY-RULE-002 final closure](../payroll/acceptance/PAY-RULE-002-FINAL-CLOSURE-20261010.md).
++
+ ## PAYRUN01 Phase 1 — 2026-10-05
+ 
+ **Status: source-gates PASS; guarded build/browser environment-blocked; PARTIAL / NOT RELEASE-READY / HOLD.** Candidate branch `integration/pay-converge-20261004` is based on exact read-only verified `origin/main` `6349d025`. TEST-HARNESS01 is integrated locally at code-HEAD `65ccfedea623295c4ec20b3191185b19ef848bad`.
