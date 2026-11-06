@@ -54,6 +54,45 @@ export function projectWvpMilestones(clockStart: string, analysisOn?: string) {
   return milestones.sort((left, right) => left.dueOn.localeCompare(right.dueOn) || left.code.localeCompare(right.code))
 }
 
+export type WvpDossierEvidenceStatus = 'RECORDED' | 'OPEN' | 'MISSING_EVENT' | 'CANCELLED' | 'UNKNOWN'
+
+export interface WvpDossierEvidenceTask {
+  readonly id: string
+  readonly code: string
+  readonly dueOn: string
+  readonly status: string
+}
+
+export interface WvpDossierEvidenceEvent {
+  readonly taskId: string | null
+  readonly type: string
+  readonly occurredOn: string
+}
+
+/**
+ * Project the existing task/event data into an operational evidence index.
+ * This is not a legal RIV-completeness assessment and never creates evidence.
+ */
+export function summarizeWvpDossierEvidence(
+  tasks: readonly WvpDossierEvidenceTask[],
+  events: readonly WvpDossierEvidenceEvent[],
+  clockStart: string,
+) {
+  const ownerByCode = new Map(projectWvpMilestones(clockStart).map(milestone => [milestone.code, milestone.owner] as const))
+  return tasks.map(task => {
+    const linkedEvents = events.filter(event => event.taskId === task.id && event.type === 'MILESTONE')
+    const event = linkedEvents[linkedEvents.length - 1] ?? null
+    const status: WvpDossierEvidenceStatus = task.status === 'CANCELLED'
+      ? 'CANCELLED'
+      : task.status === 'OPEN'
+        ? 'OPEN'
+        : task.status === 'COMPLETED'
+          ? event ? 'RECORDED' : 'MISSING_EVENT'
+          : 'UNKNOWN'
+    return { ...task, owner: ownerByCode.get(task.code) ?? null, event, readiness: status }
+  })
+}
+
 export function wvpUrgency(dueOn: string, today: string): 'OVERDUE' | 'SOON' | 'PLANNED' {
   date(dueOn); date(today)
   return dueOn < today ? 'OVERDUE' : dueOn <= addCalendarDays(today, 7) ? 'SOON' : 'PLANNED'

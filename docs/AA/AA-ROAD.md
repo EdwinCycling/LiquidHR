@@ -131,6 +131,12 @@ PMUX-01 tot en met PMUX-03 en de individuele PMUX-05A/B/C-labels zijn historisch
 - RIV-readiness, werkvoorraad, reminders en inzichten;
 - verifieer de actuele wettelijke bronset vóór de eerste implementatieslice.
 
+### WvP / Verzuim — WVP03, operationele dossierstatusindex 06-11-2026
+- **Eerste read-only slice gebouwd op `work/wvp03-20261106`.** De bestaande WVP-caseworkspace toont per mijlpaal de modelrol, gekoppelde `MILESTONE`-gebeurtenis en operationele status; open taken en voltooide taken zonder gebeurtenis zijn zichtbaar.
+- Werkafspraken blijven in de bestaande gebeurtenistijdlijn. De documentenlink leidt naar de beveiligde medewerkerdocumentenpagina; WVP toont geen generieke employee-documentinventaris.
+- Geen nieuw schema, grant, documentcategorie, auto-document of WVP02-migratieafhankelijkheid.
+- **OPEN:** echte casus-/mijlpaal-documentkoppeling vereist een gevalideerd datacontract en scoped RLS/serviceontwerp; wettelijke RIV-onderdelen/compleetheid vereisen gevalideerde requirements. Geauthenticeerde HR Admin-/Manager-/Employee-acceptatie is NOT RUN. PR #94 blijft de afzonderlijke, open WVP02-Draft.
+
 ### Workforce Insights — INS02, na WVP01
 - Report Consistency Contract voor filters, definities, KPI/chart/tabel/drilldown/export en scopes;
 - Headcount/FTE als referentierapport;

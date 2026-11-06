@@ -64,10 +64,23 @@ WVP01 sluit wel aan op de bestaande interne PMUX-reminder-/escalatievoorzieninge
 - Volledig en gedeeltelijk herstel, uren/percentage en ziekteperioden blijven uitsluitend in de bestaande `absence_spells`/`absence_capacity_changes`. De nieuwe dossierweergave leest deze bron en linkt naar de bestaande mutatieflow. Werkafspraken zijn vaste operationele keuzes met gebeurtenis- en evaluatiedatum, waaronder geleidelijke opbouw.
 - Heropening binnen de vierwekenketen hergebruikt casus en proces. Na normalisatie door de bestaande verzuimflow naar `CLOSED` kan HR afronden als alle tot de laatste hersteldatum verschuldigde taken zijn afgehandeld. Toekomstige taken vervallen; historie blijft staan. Een nieuwe casus buiten de keten krijgt een eigen traject. Geen automatische backfill bij migratie.
 
-## 9. WVP02 lokale slice (2026-11-06)
+## 9. WVP02 — PMUX-casuswerkplek en START-autorisatie (2026-11-06)
 
-De casuswerkplek en `/work` hergebruiken de bestaande WVP-casusquery, PMUX-instantie, taken, audit-events en urgencyregels. De actuele open `currentMilestone` heeft voorrang bij de presentatie; als die ontbreekt of niet open is, toont de UI de vroegste resterende open taak. Taakuitvoering blijft gekoppeld aan `process-task:act`; alleen starten van een procesdefinitie vereist `process-definition:write` plus `process-definition:publish`. De bestaande gepubliceerde definitie en lopende procesinstantie worden door deze lokale wijziging niet aangepast. Zie [WVP02 acceptance](../../quality/acceptance/runs/WVP02-CASE-WORKSPACE-20261106.md) voor gewijzigde code, uitgevoerde checks en de resterende live-acceptatie.
+De casuswerkplek en `/work` hergebruiken de bestaande WVP-casusquery, PMUX-instantie, taken, audit-events en urgencyregels. De actuele open `currentMilestone` heeft voorrang bij de presentatie; als die ontbreekt of niet open is, toont de UI de vroegste resterende open taak. Taakuitvoering blijft gekoppeld aan `process-task:act`; alleen starten van een procesdefinitie vereist `process-definition:write` plus `process-definition:publish`, naast de bestaande `process-instance:start`-controle in de kernel. De directe `internal_security.wvp_command`-RPC en de applicatieservice controleren beide definitierechten vóór idempotente terugkeer of mutatie, binnen bestaande tenant-, HR-groep- en administratiescope. Deze wijziging past geen rechten, gepubliceerde definitie of procesinstantie aan.
 
-## 10. Verificatie
+Zie [WVP02 acceptance](../../quality/acceptance/runs/WVP02-CASE-WORKSPACE-20261106.md) voor de bijbehorende code en openstaande gates.
 
-De lokale PostgreSQL-contractharness voert de volledige WVP-basismigratie uit, inclusief echte nieuwe tabel-RLS. Historisch bewijs staat in [lokale acceptatie en TEST-writevoorstel](../../quality/acceptance/runs/WVP01-20261026-LOCAL.md), [Core TEST-acceptatie 03](../../quality/acceptance/runs/WVP01-CORE-TEST-ACCEPTANCE-03-20261026.md), [audit-fix 06](../../quality/acceptance/runs/WVP01-AUDIT-FIX-AND-PROCESS-START-06-20261026.md) en het [architectuurbesluit](../../architecture/ADR-WVP01-ABSENCE-PROCESS-BRIDGE.md). De actuele lokale WVP02-codechecks en live-acceptatiegrens staan in [WVP02 acceptance](../../quality/acceptance/runs/WVP02-CASE-WORKSPACE-20261106.md); die checks vervangen geen geauthenticeerde rol-, RLS-, reminder-/audit- of browseracceptatie.
+## 10. WVP03 — operationele dossierstatusindex (2026-11-06)
+
+De WVP03-slice toont binnen de bestaande casuswerkplek een operationele index op `absence_tasks` en `absence_guidance_events`:
+
+- Toon per mijlpaal de huidige taakstatus, deadline, modelrol uit `projectWvpMilestones` en de gebeurtenis die via dezelfde `task_id` is gekoppeld.
+- Markeer open taken en voltooide taken zonder gekoppelde mijlpaalgebeurtenis als werk- of registratiepunt. Dit beschrijft de aanwezige productregistratie.
+- Werkafspraken en evaluatiedatum blijven zichtbaar via de bestaande geautoriseerde gebeurtenistijdlijn.
+- De casus en checklistgegevens komen via de bestaande `wvp_list`-route en behouden tenant-, HR-groep-, administratie-, team- en eigen-casusscope. Documenttoegang volgt aanvullend het bestaande documentcontract.
+
+Deze index is **geen wettelijke RIV-compleetheidsbeoordeling**. Een open mijlpaal of ontbrekende gebeurtenis bewijst niet dat een wettelijk dossierstuk ontbreekt. De getoonde rol is de modelrol, geen bewijs van een toegewezen persoon. Medische documenten en medische details blijven buiten onbevoegde WVP-weergaven; er worden geen wettelijke documenten gegenereerd.
+
+## 11. Verificatie
+
+De lokale PostgreSQL-contractharness voert de volledige WVP-basismigratie uit, inclusief echte nieuwe tabel-RLS. Historisch bewijs staat in [lokale acceptatie en TEST-writevoorstel](../../quality/acceptance/runs/WVP01-20261026-LOCAL.md), [Core TEST-acceptatie 03](../../quality/acceptance/runs/WVP01-CORE-TEST-ACCEPTANCE-03-20261026.md), [audit-fix 06](../../quality/acceptance/runs/WVP01-AUDIT-FIX-AND-PROCESS-START-06-20261026.md) en het [architectuurbesluit](../../architecture/ADR-WVP01-ABSENCE-PROCESS-BRIDGE.md). De actuele WVP02/WVP03-code en resterende acceptatiegrenzen staan in hun acceptatierapporten; zij vervangen geen geauthenticeerde rol-, RLS-, reminder-/audit- of browseracceptatie.

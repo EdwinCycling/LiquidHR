@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { FormField } from '@/components/patterns/form-field'
 import type { WvpCase } from '@/lib/absence/wvp/service'
-import { agreementCodes, nextWvpTask, wvpUrgency, type WvpCommand } from '@/lib/absence/wvp/domain'
+import { agreementCodes, nextWvpTask, summarizeWvpDossierEvidence, wvpUrgency, type WvpCommand } from '@/lib/absence/wvp/domain'
 import { milestoneLabel, processStatusLabel, type WvpLabels } from '@/components/absence/wvp-labels'
 
 export type { WvpLabels } from '@/components/absence/wvp-labels'
@@ -24,6 +24,21 @@ export function WvpDossier({ dossier, labels, today, locale, processStatus = nul
   const [reviewOn, setReviewOn] = useState(today)
   const nextTask = nextWvpTask(dossier.tasks, dossier.currentMilestone)
   const actionableTasks = nextTask && nextTask.code === dossier.currentMilestone ? [nextTask] : []
+  const evidence = summarizeWvpDossierEvidence(dossier.tasks, dossier.events, dossier.clockStartOn)
+  const evidenceById = new Map(evidence.map(item => [item.id, item]))
+  const ownerLabelKeys: Record<string, string> = {
+    OCCUPATIONAL_PHYSICIAN: 'dossierOwnerPhysician',
+    EMPLOYER_EMPLOYEE: 'dossierOwnerJoint',
+    HR: 'dossierOwnerHr',
+    EMPLOYEE: 'dossierOwnerEmployee',
+  }
+  const readinessLabelKeys: Record<string, string> = {
+    RECORDED: 'dossierReadinessRecorded',
+    OPEN: 'dossierReadinessOpen',
+    MISSING_EVENT: 'dossierReadinessMissingEvent',
+    CANCELLED: 'dossierReadinessCancelled',
+    UNKNOWN: 'dossierReadinessUnknown',
+  }
   const canAct = dossier.canManage && Boolean(dossier.processInstanceId) && !dossier.closedAt
   const date = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`))
   async function send(command: WvpCommand) {
@@ -55,10 +70,25 @@ export function WvpDossier({ dossier, labels, today, locale, processStatus = nul
     <DetailColumns main={<div className="min-w-0 space-y-6">
       <section aria-label={labels.milestones}>
         <h2 className="mb-3 text-lg font-semibold">{labels.milestones}</h2>
-        {dossier.tasks.length ? <ol className="divide-y divide-border-subtle border-y border-border-subtle">{dossier.tasks.map(task => <li key={task.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
-          <div className="min-w-0"><p className="break-words font-medium">{milestoneLabel(task.code, labels)}</p><p className="text-muted-foreground">{date(task.dueOn)} · {task.code === 'WVP_WEEK_42' || task.code === 'WVP_WIA_APPLICATION' ? labels.signal : task.code.startsWith('WVP_EVALUATION') ? labels.review : labels.statutory}</p></div>
-          <span>{task.status === 'OPEN' && !dossier.closedAt ? labels[wvpUrgency(task.dueOn, today)] : labels[task.status]}</span>
-        </li>)}</ol> : <p className="text-sm text-muted-foreground">{labels.noTasks}</p>}
+        <p className="mb-3 text-sm text-muted-foreground">{labels.dossierReadinessNote}</p>
+        <Link className="mb-3 inline-block text-sm text-primary underline" href={`/employees/${dossier.employeeId}?tab=documents`}>{labels.employeeDocuments}</Link>
+        {dossier.tasks.length ? <ol className="divide-y divide-border-subtle border-y border-border-subtle">{dossier.tasks.map(task => {
+          const item = evidenceById.get(task.id)
+          const ownerKey = ownerLabelKeys[item?.owner ?? ''] ?? 'dossierOwnerUnknown'
+          const readinessKey = readinessLabelKeys[item?.readiness ?? 'UNKNOWN'] ?? 'dossierReadinessUnknown'
+          return <li key={task.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
+            <div className="min-w-0">
+              <p className="break-words font-medium">{milestoneLabel(task.code, labels)}</p>
+              <p className="text-muted-foreground">{date(task.dueOn)} · {task.code === 'WVP_WEEK_42' || task.code === 'WVP_WIA_APPLICATION' ? labels.signal : task.code.startsWith('WVP_EVALUATION') ? labels.review : labels.statutory}</p>
+              <p className="text-muted-foreground">{labels.dossierOwner}: {labels[ownerKey]}</p>
+              {item?.event && <p className="text-muted-foreground">{labels.dossierEvent}: {date(item.event.occurredOn)}</p>}
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <span>{labels[readinessKey]}</span>
+              {task.status === 'OPEN' && !dossier.closedAt && <span className="text-muted-foreground">{labels[wvpUrgency(task.dueOn, today)]}</span>}
+            </div>
+          </li>
+        })}</ol> : <p className="text-sm text-muted-foreground">{labels.noTasks}</p>}
         {canAct && dossier.canConfirm && actionableTasks.length > 0 && <form className="mt-4 grid gap-3" onSubmit={event => { event.preventDefault(); void send({ action: 'MILESTONE', caseId: dossier.id, taskId: selectedTask, occurredOn, confirmed: true, idempotencyKey: crypto.randomUUID() }) }}>
           <FormField label={labels.complete} control={<DropdownSelect value={selectedTask} onChange={event => setSelectedTask(event.target.value)} searchable required><option value="">{labels.milestones}</option>{actionableTasks.map(task => <option key={task.id} value={task.id}>{milestoneLabel(task.code, labels)}</option>)}</DropdownSelect>} />
           <FormField label={labels.occurredOn} control={<input className="ui-input w-full min-w-0" type="date" value={occurredOn} min={dossier.firstAbsenceOn} max={today} required onChange={event => setOccurredOn(event.target.value)} />} />
