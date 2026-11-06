@@ -1,5 +1,7 @@
 # AA-OPEN — Openstaande punten, uitgesteld bewijs en beslissingen
 
+> **06-11-2026 — WVP-ACCEPT01:** voer de [handmatige procedure](../quality/acceptance/runs/WVP-ACCEPT01-20261106.md) uit op de werkelijk beschikbare codeversie. WVP02–07 vereisen kandidaatcode; de directe START-guard en documentkoppelingen vereisen respectievelijk de nog niet geregistreerde migraties `20261106150000` en `20261106180416`. CONTROLLED-securitygates, apart migratie- en releasebesluit, persona-/negatieve scopeacceptatie en bewijs dat Vercel Git-/Preview-triggers uitstaan blijven OPEN.
+
 > **06-11-2026 — WVP07:** gerichte regie-/autorisatieregressies, type/lint en bestaande HR Admin-/Manager-/Employee- en negatieve scopeacceptatie blijven OPEN. De WVP-INT01 security-HOLD, afzonderlijke migratiemandaten en Vercel-pushvoorwaarde blijven ongewijzigd.
 
 > **06-11-2026 — WVP06:** bevestig de effectieve Vercel Git-/Preview-triggerinstellingen vóór push; voer de bestaande WVP-contract-, UI-, type-, lint- en persona-/negatieve scopecontroles uit zodra beschikbaar. De bestaande WVP-INT01 security-HOLD en afzonderlijke migratiemandaten blijven open.
