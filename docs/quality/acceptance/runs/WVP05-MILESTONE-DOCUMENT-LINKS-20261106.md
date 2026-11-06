@@ -3,7 +3,8 @@
 **Datum:** 6 november 2026
 **Branch:** `work/wvp05-20261106`
 **Basis:** `main` / `origin/main` `8c580cda76cd2ea641ddaafe13a7b55213d89833`
-**Status:** lokale codekandidaat; integratie- en TEST-acceptatie OPEN
+**Status:** [Draft PR #97](https://github.com/EdwinCycling/LiquidHR/pull/97) open en mergeable; integratie- en TEST-acceptatie OPEN
+**Implementatiecommit:** `8d7de273cefbcebee5a871786298aa041dd73dc6`
 
 ## Functionele scope
 
