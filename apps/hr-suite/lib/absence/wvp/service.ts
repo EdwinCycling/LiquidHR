@@ -21,7 +21,7 @@ const caseSchema = z.object({
   capacity: z.array(z.object({ effectiveOn: z.iso.date(), absencePercentage: z.number(), reviewOn: z.iso.date().nullable() })),
   spells: z.array(z.object({ startedOn: z.iso.date(), recoveredOn: z.iso.date().nullable() })),
 })
-export type WvpCase = z.infer<typeof caseSchema> & { canConfirm: boolean }
+export type WvpCase = z.infer<typeof caseSchema> & { canConfirm: boolean; canStartProcess: boolean }
 export class WvpError extends Error {
   constructor(readonly code: string, readonly status = 409) { super(code) }
 }
@@ -37,7 +37,11 @@ export async function listWvpCases(caseId?: string): Promise<WvpCase[]> {
   const db = await createClient()
   const { data, error } = await db.rpc('wvp_list', { requested_tenant_id: auth.tenantId, requested_hr_group_id: requireHrGroupId(auth), requested_administration_id: auth.administrationId, requested_case_id: caseId ?? null })
   if (error) rpcFailure(error)
-  return z.array(caseSchema).parse(data).map(item => ({ ...item, canConfirm: item.canManage && auth.permissions.includes('process-definition:publish') }))
+  return z.array(caseSchema).parse(data).map(item => ({
+    ...item,
+    canConfirm: item.canManage && auth.permissions.includes('process-task:act'),
+    canStartProcess: item.canManage && auth.permissions.includes('process-definition:write') && auth.permissions.includes('process-definition:publish'),
+  }))
 }
 
 async function ensureDefinition(target: WvpCase): Promise<string> {
@@ -71,7 +75,11 @@ export async function executeWvpCommand(input: unknown): Promise<string> {
   const auth = await requireAuthContext()
   const target = (await listWvpCases(command.caseId))[0]
   if (!target || (command.action === 'ACKNOWLEDGE' ? !target.isSelf : !target.canManage)) throw new WvpError('WVP_FORBIDDEN', 403)
-  if (command.action === 'START' && target.processInstanceId) return target.processInstanceId
+  if (command.action === 'START' && target.processInstanceId) {
+    await requirePermission('process-definition:write')
+    await requirePermission('process-definition:publish')
+    return target.processInstanceId
+  }
   const processDefinitionId = command.action === 'START' ? await ensureDefinition(target) : undefined
   const db = await createClient()
   const payload = processDefinitionId ? { ...command, processDefinitionId } : command

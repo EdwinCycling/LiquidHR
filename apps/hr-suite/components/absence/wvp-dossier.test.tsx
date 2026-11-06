@@ -6,10 +6,15 @@ import type { WvpCase } from '@/lib/absence/wvp/service'
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 const id='11111111-1111-4111-8111-111111111111'
 const labels=Object.fromEntries(wvpLabelKeys.map(key=>[key,`label-${key}`]))
-const dossier: WvpCase={ id,employeeId:id,employmentId:id,administrationId:id,name:'Test Medewerker',status:'ACTIVE',firstAbsenceOn:'2026-01-01',clockStartOn:'2026-01-01',pendingConfirmation:false,processInstanceId:id,closedAt:null,canManage:true,canConfirm:true,isSelf:false,currentMilestone:'WVP_WEEK_6',tasks:[{id,code:'WVP_WEEK_6',dueOn:'2026-02-12',status:'OPEN',completedAt:null}],events:[],capacity:[],spells:[{startedOn:'2026-01-01',recoveredOn:null}] }
-function render(overrides: Partial<WvpCase>={}) { return renderToStaticMarkup(<WvpDossier dossier={{...dossier,...overrides}} labels={labels} today="2026-10-26" locale="nl" />) }
+const dossier: WvpCase={ id,employeeId:id,employmentId:id,administrationId:id,name:'Test Medewerker',status:'ACTIVE',firstAbsenceOn:'2026-01-01',clockStartOn:'2026-01-01',pendingConfirmation:false,processInstanceId:id,closedAt:null,canManage:true,canConfirm:true,canStartProcess:false,isSelf:false,currentMilestone:'WVP_WEEK_6',tasks:[{id,code:'WVP_WEEK_6',dueOn:'2026-02-12',status:'OPEN',completedAt:null}],events:[],capacity:[],spells:[{startedOn:'2026-01-01',recoveredOn:null}] }
+function render(overrides: Partial<WvpCase>={}, processStatus: string | null = null) { return renderToStaticMarkup(<WvpDossier dossier={{...dossier,...overrides}} labels={labels} today="2026-10-26" locale="nl" processStatus={processStatus} />) }
 it('biedt HR mijlpaalbevestiging en werkafspraak met echte endpointacties',()=> {
-  const html=render(); expect(html).toContain('label-complete'); expect(html).toContain('label-recordAgreement'); expect(html).not.toContain('<textarea')
+  const html=render(); expect(html).toContain('label-complete'); expect(html).toContain('label-recordAgreement'); expect(html).toContain('label-nextAction'); expect(html).toContain('label-OVERDUE'); expect(html).not.toContain('<textarea')
+})
+it('toont PMUX-processtatus wanneer de bestaande projection actor-read toestaat',()=> {
+  const html=render({}, 'RUNNING')
+  expect(html).toContain('label-processStatus')
+  expect(html).toContain('label-processRunning')
 })
 it('biedt de manager afspraken maar geen HR-mijlpaalafronding',()=> {
   const html=render({canConfirm:false}); expect(html).toContain('label-recordAgreement'); expect(html).not.toContain('label-complete')
