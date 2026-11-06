@@ -9,15 +9,12 @@ import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { FormField } from '@/components/patterns/form-field'
 import type { WvpCase } from '@/lib/absence/wvp/service'
-import { agreementCodes, wvpUrgency, type WvpCommand } from '@/lib/absence/wvp/domain'
+import { agreementCodes, nextWvpTask, wvpUrgency, type WvpCommand } from '@/lib/absence/wvp/domain'
+import { milestoneLabel, processStatusLabel, type WvpLabels } from '@/components/absence/wvp-labels'
 
-export type WvpLabels = Record<string, string>
+export type { WvpLabels } from '@/components/absence/wvp-labels'
 
-export function milestoneLabel(code: string, labels: WvpLabels): string {
-  return code.startsWith('WVP_EVALUATION_6W_') ? `${labels.evaluation} ${Number(code.slice(-2))}` : labels[code] ?? labels.milestones
-}
-
-export function WvpDossier({ dossier, labels, today, locale }: { dossier: WvpCase; labels: WvpLabels; today: string; locale: string }) {
+export function WvpDossier({ dossier, labels, today, locale, processStatus = null }: { dossier: WvpCase; labels: WvpLabels; today: string; locale: string; processStatus?: string | null }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -25,8 +22,8 @@ export function WvpDossier({ dossier, labels, today, locale }: { dossier: WvpCas
   const [occurredOn, setOccurredOn] = useState(today)
   const [agreement, setAgreement] = useState<(typeof agreementCodes)[number]>('UNCHANGED')
   const [reviewOn, setReviewOn] = useState(today)
-  const openTasks = dossier.tasks.filter(t => t.status === 'OPEN')
-  const actionableTasks = dossier.tasks.filter(t => t.code === dossier.currentMilestone)
+  const nextTask = nextWvpTask(dossier.tasks, dossier.currentMilestone)
+  const actionableTasks = nextTask && nextTask.code === dossier.currentMilestone ? [nextTask] : []
   const canAct = dossier.canManage && Boolean(dossier.processInstanceId) && !dossier.closedAt
   const date = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`))
   async function send(command: WvpCommand) {
@@ -49,9 +46,10 @@ export function WvpDossier({ dossier, labels, today, locale }: { dossier: WvpCas
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <div className="flex flex-wrap items-center gap-3">
       <span className="text-sm font-semibold">{labels[dossier.closedAt ? 'CLOSED' : dossier.status]}</span>
+      {processStatus && <span className="text-sm text-muted-foreground">{labels.processStatus}: {processStatusLabel(processStatus, labels)}</span>}
       <Link className="text-sm text-primary underline" href={`/employees/${dossier.employeeId}?tab=absence&caseId=${dossier.id}`}>{labels.source}</Link>
       <Link className="text-sm text-primary underline" href="/work">{labels.work}</Link>
-      {!dossier.processInstanceId && dossier.canConfirm && dossier.status === 'ACTIVE' && !dossier.pendingConfirmation && <Button disabled={busy} onClick={() => void send({ action: 'START', caseId: dossier.id })}>{labels.start}</Button>}
+      {!dossier.processInstanceId && dossier.canStartProcess && dossier.status === 'ACTIVE' && !dossier.pendingConfirmation && <Button disabled={busy} onClick={() => void send({ action: 'START', caseId: dossier.id })}>{labels.start}</Button>}
       {canAct && dossier.canConfirm && dossier.status === 'CLOSED' && <Button disabled={busy} onClick={() => void send({ action: 'CLOSE', caseId: dossier.id, idempotencyKey: crypto.randomUUID() })}>{labels.close}</Button>}
     </div>
     <DetailColumns main={<div className="min-w-0 space-y-6">
@@ -77,7 +75,7 @@ export function WvpDossier({ dossier, labels, today, locale }: { dossier: WvpCas
         </li>)}</ol>{!dossier.events.length && <p className="text-sm text-muted-foreground">{labels.noHistory}</p>}
       </section>
     </div>} aside={<div className="min-w-0 space-y-6">
-      <Surface className="p-4"><h2 className="font-semibold">{labels.nextAction}</h2><p className="mt-2 text-sm">{openTasks[0] ? `${milestoneLabel(openTasks[0].code, labels)} · ${date(openTasks[0].dueOn)}` : labels.noTasks}</p><h3 className="mt-4 text-sm font-semibold">{labels.responsibility}</h3><p className="mt-1 text-sm">{labels.hrOwner}</p><p className="mt-2 text-sm text-muted-foreground">{labels.physicianOwner}</p><p className="mt-2 text-sm text-muted-foreground">{labels.jointOwner}</p></Surface>
+      <Surface className="p-4"><h2 className="font-semibold">{labels.nextAction}</h2>{nextTask ? <><p className="mt-2 text-sm">{milestoneLabel(nextTask.code, labels)} · {date(nextTask.dueOn)}</p><p className="mt-1 text-sm font-medium">{labels[wvpUrgency(nextTask.dueOn, today)]}</p></> : <p className="mt-2 text-sm">{labels.noTasks}</p>}<h3 className="mt-4 text-sm font-semibold">{labels.responsibility}</h3><p className="mt-1 text-sm">{labels.hrOwner}</p><p className="mt-2 text-sm text-muted-foreground">{labels.physicianOwner}</p><p className="mt-2 text-sm text-muted-foreground">{labels.jointOwner}</p></Surface>
       <section><h2 className="font-semibold">{labels.capacity}</h2><ol className="mt-2 space-y-2 text-sm">{dossier.capacity.map((change, index) => <li key={`${change.effectiveOn}-${index}`}>{date(change.effectiveOn)} · {100 - change.absencePercentage}%</li>)}{dossier.spells.filter(s => s.recoveredOn).map(s => <li key={s.startedOn}>{date(s.recoveredOn!)} · 100%</li>)}</ol><p className="mt-2 text-sm text-muted-foreground">{labels.recoveryHelp}</p></section>
       {canAct && <form className="grid gap-3" onSubmit={event => { event.preventDefault(); void send({ action: 'AGREEMENT', caseId: dossier.id, agreement, occurredOn, reviewOn, idempotencyKey: crypto.randomUUID() }) }}>
         <h2 className="font-semibold">{labels.recordAgreement}</h2>

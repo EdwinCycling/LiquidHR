@@ -31,6 +31,20 @@ it('behandelt een ontbrekende actor-medewerkermapping als geen eigen casus', asy
   await expect(listWvpCases(legacyCaseId)).resolves.toMatchObject([{ id: legacyCaseId, isSelf: false, canConfirm: false }])
   expect(mocks.rpc).toHaveBeenCalledWith('wvp_list', expect.objectContaining({ requested_case_id: legacyCaseId }))
 })
+it('scheidt taakbevestiging van de rechten om een definitie te starten', async () => {
+  const caseData = {
+    id, employeeId: id, employmentId: id, administrationId: id, name: 'Synthetische medewerker', status: 'ACTIVE',
+    firstAbsenceOn: '2026-01-01', clockStartOn: '2026-01-01', pendingConfirmation: false,
+    processInstanceId: id, closedAt: null, canManage: true, isSelf: false, currentMilestone: 'WVP_WEEK_6',
+    tasks: [], events: [], capacity: [], spells: [],
+  }
+  mocks.rpc.mockResolvedValue({ data: [caseData], error: null })
+  mocks.auth.mockResolvedValue({ tenantId: id, hrGroupId: id, administrationId: id, permissions: ['process-task:act'] })
+  await expect(listWvpCases()).resolves.toMatchObject([{ canConfirm: true, canStartProcess: false }])
+
+  mocks.auth.mockResolvedValue({ tenantId: id, hrGroupId: id, administrationId: id, permissions: ['process-definition:write', 'process-definition:publish'] })
+  await expect(listWvpCases()).resolves.toMatchObject([{ canConfirm: false, canStartProcess: true }])
+})
 it('weigert verborgen of onbekende cases vóór mutatie of procesdefinitie', async () => {
   mocks.rpc.mockResolvedValue({ data: [], error: null })
   await expect(executeWvpCommand({ action: 'START', caseId: id })).rejects.toMatchObject({ code: 'WVP_FORBIDDEN', status: 403 })
