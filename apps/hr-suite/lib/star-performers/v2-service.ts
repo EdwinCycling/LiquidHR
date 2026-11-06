@@ -1328,7 +1328,7 @@ async function readStarPerformersInsights(
     selectedCampaignId: gridSelection.selectedPeriodId ?? latestCampaignId,
   })
   const employeeLabels = new Map(scopeRows.map((row) => [row.employee.employeeId, row.employee.label]))
-  const includeSkills = options.includeSkills ?? (query.insight === 'skills' || query.insight === 'skill-gaps')
+  const includeSkills = options.includeSkills ?? (query.insight === 'skills' || query.insight === 'skill-gaps' || query.insight === 'development')
   const skillsRead = includeSkills
     ? await readInsightSkills(filteredIds, refs, scopeRows, access)
     : null
@@ -1338,7 +1338,7 @@ async function readStarPerformersInsights(
   const development = (options.includeDevelopment ?? (query.insight === 'development' || query.insight === 'skill-gaps'))
     ? await readInsightDevelopment(filteredIds, employeeLabels, scopeRows, access.isManager ? 'manager' : 'admin', today)
     : emptyDevelopmentInsight(today)
-  const appraisal = (options.includeAppraisal ?? query.insight === 'appraisal')
+  const appraisal = (options.includeAppraisal ?? (query.insight === 'appraisal' || query.insight === 'development'))
     ? await readInsightAppraisal(filteredIds, scopeRows, query, today)
     : emptyAppraisalInsight(today, query.periodFrom ?? null, query.periodTo ?? null)
   const periods = [...gridHistory.campaigns].sort((left, right) => (right.closed_at ?? right.starts_on).localeCompare(left.closed_at ?? left.starts_on)).map((campaign) => ({ id: campaign.id, name: campaign.name, closedAt: campaign.closed_at, startsOn: campaign.starts_on }))

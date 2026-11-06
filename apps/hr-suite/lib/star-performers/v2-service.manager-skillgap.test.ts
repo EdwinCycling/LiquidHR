@@ -234,7 +234,7 @@ describe('Star Performers Manager skillgap readpath', () => {
       { id: 'team-meeting', employee_id: 'employee-team', item_type: 'MEETING_SUMMARY', title: 'Teamgesprek', occurred_on: '2026-10-10', due_on: null, next_meeting_on: null, item_status: 'DONE' },
       { id: 'outside-meeting', employee_id: 'employee-outside', item_type: 'MEETING_SUMMARY', title: 'Buiten scope', occurred_on: '2026-10-10', due_on: null, next_meeting_on: null, item_status: 'DONE' },
     ])
-    const report = await getStarPerformersInsights({ perspective: 'top-talent', area: 'insights', insight: 'development', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20 }, undefined, { includeSkills: true, includeDevelopment: true, includeAppraisal: true })
+    const report = await getStarPerformersInsights({ perspective: 'top-talent', area: 'insights', insight: 'development', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20 })
     expect(report.development.plans.map(plan => plan.employeeId)).toEqual(['employee-team'])
     expect(report.appraisal.items.map(item => item.employeeId)).toEqual(['employee-team'])
     expect(report.skillGaps.rows[0]?.employees.map(employee => employee.employeeId)).toEqual(['employee-team'])
