@@ -66,21 +66,20 @@ WVP01 sluit wel aan op de bestaande interne PMUX-reminder-/escalatievoorzieninge
 
 ## 9. WVP02 — PMUX-casuswerkplek en START-autorisatie (2026-11-06)
 
-De casuswerkplek en `/work` hergebruiken de bestaande WVP-casusquery, PMUX-instantie, taken, audit-events en urgencyregels. De actuele open `currentMilestone` heeft voorrang bij de presentatie; als die ontbreekt of niet open is, toont de UI de vroegste resterende open taak. Taakuitvoering blijft gekoppeld aan `process-task:act`; alleen starten van een procesdefinitie vereist `process-definition:write` plus `process-definition:publish`, naast de bestaande `process-instance:start`-controle in de kernel. De directe `internal_security.wvp_command`-RPC en de applicatieservice controleren beide definitierechten vóór idempotente terugkeer of mutatie, binnen bestaande tenant-, HR-groep- en administratiescope. Deze wijziging past geen rechten, gepubliceerde definitie of procesinstantie aan.
-
-Zie [WVP02 acceptance](../../quality/acceptance/runs/WVP02-CASE-WORKSPACE-20261106.md) voor de bijbehorende code en openstaande gates.
+De casuswerkplek en `/work` hergebruiken de bestaande WVP-casusquery, PMUX-instantie, taken, audit-events en urgencyregels. De actuele open `currentMilestone` heeft voorrang bij de presentatie; als die ontbreekt of niet open is, toont de UI de vroegste resterende open taak. Taakuitvoering blijft gekoppeld aan `process-task:act`; alleen starten van een procesdefinitie vereist `process-definition:write` plus `process-definition:publish`, naast de bestaande `process-instance:start`-controle in de kernel. De directe `internal_security.wvp_command`-RPC en applicatieservice controleren beide definitierechten vóór een idempotente terugkeer of mutatie, binnen bestaande tenant-, HR-groep- en administratiescope. Dit wijzigt geen rechten, gepubliceerde definitie of procesinstantie.
 
 ## 10. WVP03 — operationele dossierstatusindex (2026-11-06)
 
-De WVP03-slice toont binnen de bestaande casuswerkplek een operationele index op `absence_tasks` en `absence_guidance_events`:
+De casuswerkplek toont per bestaande mijlpaal de taakstatus, deadline, modelrol uit `projectWvpMilestones` en een gebeurtenis gekoppeld via dezelfde `task_id`. Open taken en voltooide taken zonder gekoppelde mijlpaalgebeurtenis zijn herkenbare werk- of registratiepunten. Werkafspraken en evaluatiedatums blijven in de bestaande geautoriseerde gebeurtenistijdlijn. De casus en checklistgegevens komen via `wvp_list` met tenant-, HR-groep-, administratie-, team- en eigen-casusscope.
 
-- Toon per mijlpaal de huidige taakstatus, deadline, modelrol uit `projectWvpMilestones` en de gebeurtenis die via dezelfde `task_id` is gekoppeld.
-- Markeer open taken en voltooide taken zonder gekoppelde mijlpaalgebeurtenis als werk- of registratiepunt. Dit beschrijft de aanwezige productregistratie.
-- Werkafspraken en evaluatiedatum blijven zichtbaar via de bestaande geautoriseerde gebeurtenistijdlijn.
-- De casus en checklistgegevens komen via de bestaande `wvp_list`-route en behouden tenant-, HR-groep-, administratie-, team- en eigen-casusscope. Documenttoegang volgt aanvullend het bestaande documentcontract.
+Deze index is **geen wettelijke RIV-compleetheidsbeoordeling**. Een ontbrekende gebeurtenis bewijst niet dat een wettelijk dossierstuk ontbreekt. De getoonde rol is de modelrol, geen bewijs van een toegewezen persoon. Medische documenten en medische details blijven buiten onbevoegde WVP-weergaven; er worden geen wettelijke documenten gegenereerd.
 
-Deze index is **geen wettelijke RIV-compleetheidsbeoordeling**. Een open mijlpaal of ontbrekende gebeurtenis bewijst niet dat een wettelijk dossierstuk ontbreekt. De getoonde rol is de modelrol, geen bewijs van een toegewezen persoon. Medische documenten en medische details blijven buiten onbevoegde WVP-weergaven; er worden geen wettelijke documenten gegenereerd.
+## 11. WVP04 — read-only documentkoppelingsstatus (2026-11-06)
 
-## 11. Verificatie
+De initiële documentmodelreview vond geen betrouwbare koppeling van `employee_documents` naar een WVP-casus of mijlpaal. De medewerkerdocumentenservice leest documenten op medewerker, administratie en bestaande rechten; tags/audiences vormen geen WVP-case- of mijlpaalrelatie. `absence_guidance_events.task_id` verbindt gebeurtenissen met taken, niet met documenten. De aparte documentkennisnameflow is geen gevalideerde WVP-mijlpaalrelatie.
 
-De lokale PostgreSQL-contractharness voert de volledige WVP-basismigratie uit, inclusief echte nieuwe tabel-RLS. Historisch bewijs staat in [lokale acceptatie en TEST-writevoorstel](../../quality/acceptance/runs/WVP01-20261026-LOCAL.md), [Core TEST-acceptatie 03](../../quality/acceptance/runs/WVP01-CORE-TEST-ACCEPTANCE-03-20261026.md), [audit-fix 06](../../quality/acceptance/runs/WVP01-AUDIT-FIX-AND-PROCESS-START-06-20261026.md) en het [architectuurbesluit](../../architecture/ADR-WVP01-ABSENCE-PROCESS-BRIDGE.md). De actuele WVP02/WVP03-code en resterende acceptatiegrenzen staan in hun acceptatierapporten; zij vervangen geen geauthenticeerde rol-, RLS-, reminder-/audit- of browseracceptatie.
+Daarom toonde WVP04 per mijlpaal **Geen WVP-documentkoppeling** met de expliciete uitleg dat dit niet betekent dat een document ontbreekt. De read-only route haalde geen ongekoppelde documentmetadata op en toonde geen medische documentdetails. WVP-casustoegang bleef via `wvp_list`; medewerkerdocumenten behielden `document:read` en `can_access_employee_dossier`. WVP05 vult deze read-only toestand aan met een expliciete geautoriseerde koppeling en ontkoppeling.
+
+## 12. Verificatie
+
+De lokale PostgreSQL-contractharness voert de WVP-basismigratie uit, inclusief nieuwe tabel-RLS. Historisch bewijs over `20261026055349` en de auditcorrectie `20261026172808` is vastgelegd in de WVP01-acceptaties van 26-10-2026; de remote toestand is tijdens deze integratie niet opnieuw gelezen. De actuele WVP02/WVP03/WVP04-code en resterende gates staan in hun acceptatierapporten. Deze vervangen geen geauthenticeerde rol-, RLS-, reminder-/audit- of browseracceptatie.

@@ -131,11 +131,11 @@ PMUX-01 tot en met PMUX-03 en de individuele PMUX-05A/B/C-labels zijn historisch
 - RIV-readiness, werkvoorraad, reminders en inzichten;
 - verifieer de actuele wettelijke bronset vóór de eerste implementatieslice.
 
-### WvP / Verzuim — WVP03, operationele dossierstatusindex 06-11-2026
-- **Eerste read-only slice gebouwd op `work/wvp03-20261106`.** De bestaande WVP-caseworkspace toont per mijlpaal de modelrol, gekoppelde `MILESTONE`-gebeurtenis en operationele status; open taken en voltooide taken zonder gebeurtenis zijn zichtbaar.
-- Werkafspraken blijven in de bestaande gebeurtenistijdlijn. De documentenlink leidt naar de beveiligde medewerkerdocumentenpagina; WVP toont geen generieke employee-documentinventaris.
-- Geen nieuw schema, grant, documentcategorie, auto-document of WVP02-migratieafhankelijkheid.
-- **OPEN:** echte casus-/mijlpaal-documentkoppeling vereist een gevalideerd datacontract en scoped RLS/serviceontwerp; wettelijke RIV-onderdelen/compleetheid vereisen gevalideerde requirements. Geauthenticeerde HR Admin-/Manager-/Employee-acceptatie is NOT RUN. PR #94 blijft de afzonderlijke, open WVP02-Draft.
+### WvP / Verzuim — WVP-INT01 integratieslice (06-11-2026)
+- **WVP02–WVP04** zijn lokaal gecombineerd in `work/wvp-int01-20261106`: PMUX-processtatus en taakvoorraad, gescheiden START-/taakrechten, operationele mijlpaalstatus met modelrol/gebeurtenis, plus de tussenstap die een niet-bestaande documentrelatie expliciet als “geen koppeling” presenteert.
+- De oorspronkelijke Draft PR’s #94, #95 en #96 blijven traceerbaar en ongewijzigd; PR #97 bevat de vervolgslice voor echte documentkoppelingen.
+- Geen gepubliceerde definitie, procesinstantie, rol/grant of TEST-data gewijzigd; WVP02-migratiecode is niet toegepast.
+- **OPEN:** afmaken en statisch reviewen van de WVP05-samenvoeging; CONTROLLED SQL/PGlite- en autorisatiechecks; finale relevante suite, type/lint en browser/personaacceptatie. RIV-compleetheid vereist gevalideerde wettelijke requirements.
 
 ### Workforce Insights — INS02, na WVP01
 - Report Consistency Contract voor filters, definities, KPI/chart/tabel/drilldown/export en scopes;

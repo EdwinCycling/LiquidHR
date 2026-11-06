@@ -96,6 +96,15 @@ export function WvpDossier({ dossier, labels, today, locale, processStatus = nul
           <Button disabled={busy || !selectedTask} type="submit">{labels.complete}</Button>
         </form>}
       </section>
+      <section aria-label={labels.dossierDocuments}>
+        <h2 className="mb-3 text-lg font-semibold">{labels.dossierDocuments}</h2>
+        <p className="mb-3 text-sm text-muted-foreground">{labels.dossierDocumentRelationshipNote}</p>
+        {dossier.tasks.length ? <ul className="divide-y divide-border-subtle border-y border-border-subtle">{dossier.tasks.map(task => <li key={task.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
+          <span className="break-words font-medium">{milestoneLabel(task.code, labels)}</span>
+          <span className="text-muted-foreground">{labels.dossierDocumentNotLinked}</span>
+        </li>)}</ul> : <p className="text-sm text-muted-foreground">{labels.noTasks}</p>}
+        <Link className="mt-3 inline-block text-sm text-primary underline" href={`/employees/${dossier.employeeId}?tab=documents`}>{labels.employeeDocuments}</Link>
+      </section>
       <section aria-label={labels.timeline}><h2 className="mb-3 text-lg font-semibold">{labels.timeline}</h2>
         <ol className="space-y-4">{dossier.events.map(event => <li key={event.id} className="border-l-2 border-border-subtle pl-4 text-sm">
           <p className="font-medium">{labels[event.type] ?? labels.timeline}{event.taskId ? ` · ${milestoneLabel(dossier.tasks.find(t => t.id === event.taskId)?.code ?? '', labels)}` : ''}</p>

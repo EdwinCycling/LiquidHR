@@ -33,6 +33,13 @@ it('markeert een voltooide mijlpaal zonder gekoppelde gebeurtenis als ontbrekend
   const html=render({canConfirm:false,currentMilestone:null,tasks:[task]})
   expect(html).toContain('label-dossierReadinessMissingEvent')
 })
+it('onderscheidt een ontbrekende WVP-documentkoppeling van een ontbrekend document',()=> {
+  const html=render()
+  expect(html).toContain('label-dossierDocuments')
+  expect(html).toContain('label-dossierDocumentRelationshipNote')
+  expect(html).toContain('label-dossierDocumentNotLinked')
+  expect(html).toContain('/employees/' + id + '?tab=documents')
+})
 it('biedt de employee uitsluitend eigen kennisname',()=> {
   const event={id,type:'AGREEMENT',occurredOn:'2026-01-02',createdAt:'2026-01-02T12:00:00Z',actorUserId:id,taskId:null,agreement:'ADAPTED_HOURS',reviewOn:'2026-01-20',agreementId:null}
   const html=render({canManage:false,canConfirm:false,isSelf:true,events:[event]}); expect(html).toContain('label-acknowledge'); expect(html).not.toContain('label-recordAgreement'); expect(html).not.toContain('label-complete')
