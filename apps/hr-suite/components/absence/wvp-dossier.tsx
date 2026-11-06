@@ -40,6 +40,10 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
   const nextTask = nextWvpTask(dossier.tasks, dossier.currentMilestone)
   const actionableTasks = nextTask && nextTask.code === dossier.currentMilestone ? [nextTask] : []
   const evidence = summarizeWvpDossierEvidence(dossier.tasks, dossier.events, dossier.clockStartOn)
+  const openTasks = dossier.tasks.filter(task => task.status === 'OPEN')
+  const completedTasks = dossier.tasks.filter(task => task.status === 'COMPLETED')
+  const overdueTasks = openTasks.filter(task => wvpUrgency(task.dueOn, today) === 'OVERDUE')
+  const soonTasks = openTasks.filter(task => wvpUrgency(task.dueOn, today) === 'SOON')
   const evidenceById = new Map(evidence.map(item => [item.id, item]))
   const ownerLabelKeys: Record<string, string> = {
     OCCUPATIONAL_PHYSICIAN: 'dossierOwnerPhysician',
@@ -94,6 +98,19 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
       {!dossier.processInstanceId && dossier.canStartProcess && dossier.status === 'ACTIVE' && !dossier.pendingConfirmation && <Button disabled={busy} onClick={() => void send({ action: 'START', caseId: dossier.id })}>{labels.start}</Button>}
       {canAct && dossier.canConfirm && dossier.status === 'CLOSED' && <Button disabled={busy} onClick={() => void send({ action: 'CLOSE', caseId: dossier.id, idempotencyKey: crypto.randomUUID() })}>{labels.close}</Button>}
     </div>
+    <section aria-labelledby="wvp-progress" className="space-y-3 border-y border-border-subtle py-4">
+      <h2 id="wvp-progress" className="text-lg font-semibold">{labels.progressTitle}</h2>
+      {dossier.processInstanceId && dossier.tasks.length > 0 && <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm">
+        <div><dt>{labels.OPEN}</dt><dd className="font-semibold">{openTasks.length}</dd></div>
+        <div><dt>{labels.COMPLETED}</dt><dd className="font-semibold">{completedTasks.length}</dd></div>
+        <div><dt>{labels.OVERDUE}</dt><dd className="font-semibold">{overdueTasks.length}</dd></div>
+        <div><dt>{labels.SOON}</dt><dd className="font-semibold">{soonTasks.length}</dd></div>
+      </dl>}
+      {(!dossier.processInstanceId || dossier.tasks.length === 0) && <p role="status" className="text-sm text-muted-foreground">{labels.progressSourceMissing}</p>}
+      {evidence.some(item => item.readiness === 'MISSING_EVENT') && <p role="status" className="text-sm text-muted-foreground">{labels.progressEventMissing}</p>}
+      <p className="text-sm text-muted-foreground">{labels.progressLegalNote}</p>
+      {nextTask && <a className="text-sm text-primary underline" href={`#milestone-${nextTask.id}`}>{labels.nextAction}: {milestoneLabel(nextTask.code, labels)} · {date(nextTask.dueOn)}</a>}
+    </section>
     <DetailColumns main={<div className="min-w-0 space-y-6">
       <section aria-label={labels.milestones}>
         <h2 className="mb-3 text-lg font-semibold">{labels.milestones}</h2>
@@ -105,11 +122,12 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
           const readinessKey = readinessLabelKeys[item?.readiness ?? 'UNKNOWN'] ?? 'dossierReadinessUnknown'
           const taskLinks = documentLinks.filter(link => link.taskId === task.id)
           const availableDocuments = documentOptions.filter(option => !taskLinks.some(link => link.documentId === option.id))
-          return <li key={task.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
+          return <li id={`milestone-${task.id}`} key={task.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
             <div className="min-w-0 grow">
               <p className="break-words font-medium">{milestoneLabel(task.code, labels)}</p>
               <p className="text-muted-foreground">{date(task.dueOn)} · {task.code === 'WVP_WEEK_42' || task.code === 'WVP_WIA_APPLICATION' ? labels.signal : task.code.startsWith('WVP_EVALUATION') ? labels.review : labels.statutory}</p>
               <p className="text-muted-foreground">{labels.dossierOwner}: {labels[ownerKey]}</p>
+              <p className="text-muted-foreground">{labels.progressTaskStatus}: {labels[task.status] ?? labels.dossierReadinessUnknown}</p>
               {item?.event && <p className="text-muted-foreground">{labels.dossierEvent}: {date(item.event.occurredOn)}</p>}
               {dossier.processInstanceId && <div className="mt-3 space-y-2">
                 <h3 className="font-medium">{labels.documents}</h3>
