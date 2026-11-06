@@ -75,7 +75,11 @@ export async function executeWvpCommand(input: unknown): Promise<string> {
   const auth = await requireAuthContext()
   const target = (await listWvpCases(command.caseId))[0]
   if (!target || (command.action === 'ACKNOWLEDGE' ? !target.isSelf : !target.canManage)) throw new WvpError('WVP_FORBIDDEN', 403)
-  if (command.action === 'START' && target.processInstanceId) return target.processInstanceId
+  if (command.action === 'START' && target.processInstanceId) {
+    await requirePermission('process-definition:write')
+    await requirePermission('process-definition:publish')
+    return target.processInstanceId
+  }
   const processDefinitionId = command.action === 'START' ? await ensureDefinition(target) : undefined
   const db = await createClient()
   const payload = processDefinitionId ? { ...command, processDefinitionId } : command

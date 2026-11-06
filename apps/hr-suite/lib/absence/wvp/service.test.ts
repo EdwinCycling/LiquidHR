@@ -9,6 +9,7 @@ import { executeWvpCommand, listWvpCases, WvpError } from './service'
 const id = '11111111-1111-4111-8111-111111111111'
 beforeEach(() => {
   mocks.rpc.mockReset()
+  mocks.permission.mockReset().mockResolvedValue(undefined)
   mocks.auth.mockResolvedValue({ tenantId: id, hrGroupId: id, administrationId: id, permissions: [] })
 })
 it('meldt ontbrekende schemafunctie expliciet zonder succesvolle fallback', async () => {
@@ -49,6 +50,33 @@ it('weigert verborgen of onbekende cases vóór mutatie of procesdefinitie', asy
   mocks.rpc.mockResolvedValue({ data: [], error: null })
   await expect(executeWvpCommand({ action: 'START', caseId: id })).rejects.toMatchObject({ code: 'WVP_FORBIDDEN', status: 403 })
   expect(mocks.rpc).toHaveBeenCalledTimes(1)
+})
+it('eist definitierechten vóór een idempotente START met bestaande instantie', async () => {
+  const caseData = {
+    id, employeeId: id, employmentId: id, administrationId: id, name: 'Synthetische medewerker', status: 'ACTIVE',
+    firstAbsenceOn: '2026-01-01', clockStartOn: '2026-01-01', pendingConfirmation: false,
+    processInstanceId: id, closedAt: null, canManage: true, isSelf: false, currentMilestone: 'WVP_WEEK_6',
+    tasks: [], events: [], capacity: [], spells: [],
+  }
+  mocks.rpc.mockResolvedValue({ data: [caseData], error: null })
+  mocks.auth.mockResolvedValue({ tenantId: id, hrGroupId: id, administrationId: id, permissions: ['process-task:act'] })
+  mocks.permission.mockRejectedValue(new Error('WVP_FORBIDDEN'))
+
+  await expect(executeWvpCommand({ action: 'START', caseId: id })).rejects.toThrow('WVP_FORBIDDEN')
+  expect(mocks.permission).toHaveBeenCalledWith('process-definition:write')
+  expect(mocks.rpc).toHaveBeenCalledTimes(1)
+
+  mocks.permission.mockReset().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('WVP_FORBIDDEN'))
+  await expect(executeWvpCommand({ action: 'START', caseId: id })).rejects.toThrow('WVP_FORBIDDEN')
+  expect(mocks.permission).toHaveBeenNthCalledWith(1, 'process-definition:write')
+  expect(mocks.permission).toHaveBeenNthCalledWith(2, 'process-definition:publish')
+  expect(mocks.rpc).toHaveBeenCalledTimes(2)
+
+  mocks.permission.mockReset().mockResolvedValue(undefined)
+  await expect(executeWvpCommand({ action: 'START', caseId: id })).resolves.toBe(id)
+  expect(mocks.permission).toHaveBeenNthCalledWith(1, 'process-definition:write')
+  expect(mocks.permission).toHaveBeenNthCalledWith(2, 'process-definition:publish')
+  expect(mocks.rpc).toHaveBeenCalledTimes(3)
 })
 it('weigert medische velden vóór iedere auth- of databaseaanroep', async () => {
   const before = mocks.auth.mock.calls.length
