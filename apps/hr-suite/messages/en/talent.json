@@ -1,4 +1,5 @@
 {
+  "ins01": {"title":"Talent and development overview","description":"This overview follows the current report filters and access scope.","plans":"Development plans","activePlans":"Active plans","averageProgress":"Average progress of active plans","unavailable":"Source unavailable","openPlans":"View plans and employees","skills":"Skills and competencies","noSkills":"No comparable profile information available","assessed":"Employees with an assessment","notAssessed":"Unassessed role requirements","expiredEvidence":"Role requirements with expired evidence","openSkills":"View skills and competencies","conversations":"Conversations and follow-up","noConversation":"Employees without a recorded conversation","overdueFollowUp":"Overdue follow-up","openConversations":"View conversations","limits":"Missing evidence is not a negative score. There is no defined age threshold for an outdated assessment; expired evidence and follow-up are separate signals."},
   "settingsTitle": "Talent Management",
   "startTitle": "Start",
   "startDescription": "Choose an area to open. Only one area is open at a time.",

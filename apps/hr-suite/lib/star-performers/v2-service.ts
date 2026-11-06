@@ -1213,6 +1213,7 @@ function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsigh
 type StarPerformersInsightsOptions = {
   readonly includeSkills?: boolean
   readonly includeDevelopment?: boolean
+  readonly includeAppraisal?: boolean
 }
 
 async function readStarPerformersInsights(
@@ -1336,7 +1337,7 @@ async function readStarPerformersInsights(
   const development = (options.includeDevelopment ?? query.insight === 'development')
     ? await readInsightDevelopment(filteredIds, employeeLabels, scopeRows, access.isManager ? 'manager' : 'admin', today)
     : emptyDevelopmentInsight(today)
-  const appraisal = query.insight === 'appraisal'
+  const appraisal = (options.includeAppraisal ?? query.insight === 'appraisal')
     ? await readInsightAppraisal(filteredIds, scopeRows, query, today)
     : emptyAppraisalInsight(today, query.periodFrom ?? null, query.periodTo ?? null)
   const periods = [...gridHistory.campaigns].sort((left, right) => (right.closed_at ?? right.starts_on).localeCompare(left.closed_at ?? left.starts_on)).map((campaign) => ({ id: campaign.id, name: campaign.name, closedAt: campaign.closed_at, startsOn: campaign.starts_on }))
@@ -1375,9 +1376,10 @@ async function readStarPerformersInsights(
 export async function getStarPerformersInsights(
   query: StarPerformerWorkspaceQuery,
   dependencies?: StarPerformersReadDependencies,
+  options?: StarPerformersInsightsOptions,
 ): Promise<StarPerformersInsights> {
   const access = await resolveStarPerformersReadAccess(dependencies)
-  return readStarPerformersInsights(query, access)
+  return readStarPerformersInsights(query, access, options)
 }
 
 export type StarPerformersDashboardSummary = {

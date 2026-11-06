@@ -1,5 +1,7 @@
 # AA-CURRENT — Current LiquidHR State
 
+> **06-11-2026 — TAL-INS01 lokale kandidaat:** het bestaande Talent-ontwikkelrapport combineert de bestaande scoped bronnen voor ontwikkelplannen, skills/bewijs en gesprekken in één overzicht met links naar de detailroutes. Ontbrekend of verlopen bewijs is geen negatieve score; een wettelijke of productregel voor de ouderdom van beoordelingen is niet aangenomen. Test- en acceptatiestatus: zie [TAL-INS01](../requirements/Talent/TAL-INS01_OVERVIEW.md). Geen databasewrite of release.
+
 > **04-11-2026 — ACTUELE BASELINE (controle op GitHub/Vercel):** één `main` en de bestaande Vercel-app staan op `fbe44908`, alias geverifieerd, deployment READY. Payroll-engine, NL-2026-regels, W04/HOURLY_VARIABLE, P0/P1, runs, pensioen en PDF zijn als code geïntegreerd; volledige Jantje/Mars-acceptatie, mid-period pensioen, formele NL-P2-dekking en Core-migratiereconciliatie blijven afzonderlijke bewijs-/producttaken. PR #89: 4.227 PASS / 8 SKIP / 0 FAIL; PR #90 zelf draaide geen volledige suite. **Lees eerst [de Payroll-code-audit en roadmapcheck 4 november](AA-PAYROLL-AUDIT-20261104.md).** Oudere statuskoppen hieronder zijn historische momentopnamen, geen actuele HEAD- of deploymentclaims.
 
 

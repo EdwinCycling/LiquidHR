@@ -214,4 +214,20 @@ describe('Star Performers Manager skillgap readpath', () => {
     expect(report.appraisal.items.map((item) => item.employeeId)).toEqual(['employee-team'])
     expect(JSON.stringify(report.appraisal)).not.toContain('employee-outside')
   })
+
+  it('keeps combined development, skills and conversations within the direct team', async () => {
+    mocks.listTalentGoals.mockResolvedValue({ goals: [
+      { id: 'team-plan', employee_id: 'employee-team', title: 'Teamplan', status: 'ACTIVE', progress_percent: 40, period_start: '2026-01-01', period_end: null, completed_at: null },
+      { id: 'outside-plan', employee_id: 'employee-outside', title: 'Buiten scope', status: 'ACTIVE', progress_percent: 99, period_start: '2026-01-01', period_end: null, completed_at: null },
+    ], employees: [], capabilities: [] })
+    mocks.listContinuousAppraisalItemsForEmployees.mockResolvedValue([
+      { id: 'team-meeting', employee_id: 'employee-team', item_type: 'MEETING_SUMMARY', title: 'Teamgesprek', occurred_on: '2026-10-10', due_on: null, next_meeting_on: null, item_status: 'DONE' },
+      { id: 'outside-meeting', employee_id: 'employee-outside', item_type: 'MEETING_SUMMARY', title: 'Buiten scope', occurred_on: '2026-10-10', due_on: null, next_meeting_on: null, item_status: 'DONE' },
+    ])
+    const report = await getStarPerformersInsights({ perspective: 'top-talent', area: 'insights', insight: 'development', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20 }, undefined, { includeSkills: true, includeDevelopment: true, includeAppraisal: true })
+    expect(report.development.plans.map(plan => plan.employeeId)).toEqual(['employee-team'])
+    expect(report.appraisal.items.map(item => item.employeeId)).toEqual(['employee-team'])
+    expect(report.skillGaps.rows[0]?.employees.map(employee => employee.employeeId)).toEqual(['employee-team'])
+    expect(JSON.stringify(report)).not.toContain('employee-outside')
+  })
 })
