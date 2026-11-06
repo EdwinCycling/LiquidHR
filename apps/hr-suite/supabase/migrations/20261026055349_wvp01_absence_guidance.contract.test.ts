@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // Geen live persona-/PMUX-kernelacceptatie: de bestaande permissiehelpers en
 // start/claim/act-kernel worden hier door kleine contractdoubles vertegenwoordigd.
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
-const tenant=id(1), group=id(2), admin=id(3), hr=id(4), manager=id(5), self=id(6), stranger=id(7), employee=id(8), other=id(9), caseId=id(10), definition=id(11)
+const tenant=id(1), group=id(2), admin=id(3), hr=id(4), manager=id(5), self=id(6), stranger=id(7), employee=id(8), other=id(9), caseId=id(10), definition=id(11), startOnly=id(13), missingWrite=id(14), missingPublish=id(15), missingInstanceStart=id(16), noTaskAct=id(17)
 let db: PGlite
 async function actor(user: string) { await db.query("select set_config('test.actor',$1,false)", [user]) }
 async function command(input: Record<string, unknown>) {
@@ -16,12 +16,31 @@ async function list(user: string, target?: string) {
   await actor(user)
   return (await db.query<{ data: Array<{ id: string; tasks: Array<{ id: string; code: string; dueOn: string }>; events: unknown[] }> }>('select public.wvp_list($1,$2,$3,$4) data',[tenant,group,admin,target??null])).rows[0].data
 }
-describe('WVP01 uitvoerbaar databasecontract', () => {
+async function mutationCounts() {
+  return (await db.query<{guidance:number;events:number;tasks:number;definitions:number;versions:number;processes:number;steps:number;workItems:number;audits:number}>(`select
+    (select count(*) from public.absence_guidance)::int guidance,
+    (select count(*) from public.absence_guidance_events)::int events,
+    (select count(*) from public.absence_tasks)::int tasks,
+    (select count(*) from public.process_definitions)::int definitions,
+    (select count(*) from public.process_versions)::int versions,
+    (select count(*) from public.process_instances)::int processes,
+    (select count(*) from public.process_step_instances)::int steps,
+    (select count(*) from public.process_work_items)::int "workItems",
+    (select count(*) from public.audit_logs)::int audits`)).rows[0]
+}
+describe('WVP01/WVP02 uitvoerbaar databasecontract', () => {
   beforeAll(async () => {
     db=new PGlite()
     await db.exec(`
       create role anon; create role authenticated;
       create schema auth; create schema internal_security;
+      create type public.access_scope_type as enum ('TENANT','ADMINISTRATION');
+      create table internal_security.test_scope_permissions(
+        actor_user_id uuid,tenant_id uuid,hr_group_id uuid,scope_type public.access_scope_type,
+        administration_id uuid,permission_code text,
+        primary key(actor_user_id,tenant_id,hr_group_id,scope_type,administration_id,permission_code)
+      );
+      create table internal_security.test_pmux_calls(action text,work_item_id uuid,actor_user_id uuid);
       create table auth.users(id uuid primary key);
       create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.actor',true),'')::uuid $$;
       create table public.hr_groups(tenant_id uuid,id uuid primary key,time_zone text,unique(tenant_id,id));
@@ -36,12 +55,16 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
       create table public.process_instances(id uuid primary key,tenant_id uuid,hr_group_id uuid,status text,idempotency_key text,process_definition_id uuid,unique(tenant_id,hr_group_id,id));
       create table public.process_step_instances(id uuid primary key default gen_random_uuid(),process_instance_id uuid,status text,step_key text,deadline_at timestamptz);
       create table public.process_work_items(id uuid primary key default gen_random_uuid(),process_instance_id uuid,step_instance_id uuid,status text,step_key text,deadline_at timestamptz,expected_version bigint default 1);
-      create function internal_security.has_hr_group_access(uuid,uuid) returns boolean language sql stable as $$ select auth.uid() in ('${hr}','${manager}','${self}','${stranger}') and $1='${tenant}' and $2='${group}' $$;
+      create function internal_security.has_hr_group_access(uuid,uuid) returns boolean language sql stable as $$ select auth.uid() in ('${hr}','${manager}','${self}','${stranger}','${startOnly}','${missingWrite}','${missingPublish}','${missingInstanceStart}','${noTaskAct}') and $1='${tenant}' and $2='${group}' $$;
       create function internal_security.current_employee_id(uuid,uuid) returns uuid language sql stable as $$ select case when auth.uid()='${self}' then '${employee}'::uuid when auth.uid()='${stranger}' then '${other}'::uuid else null end $$;
       create function internal_security.current_employee_has_permission(text) returns boolean language sql stable as $$ select $1='self:absence:read' $$;
       create function internal_security.current_employee_is_preboarding(uuid,uuid) returns boolean language sql stable as $$ select coalesce(current_setting('test.preboarding',true),'false')='true' $$;
-      create function internal_security.can_manage_employee(uuid,text) returns boolean language sql stable as $$ select auth.uid()='${hr}' or (auth.uid()='${manager}' and $1='${employee}') $$;
-      create function internal_security.process_scope_has_permission(uuid,uuid,text,uuid,text) returns boolean language sql stable as $$ select $1='${tenant}' and $2='${group}' and $4='${admin}' and auth.uid() in ('${hr}','${manager}') $$;
+      create function internal_security.can_manage_employee(uuid,text) returns boolean language sql stable as $$ select auth.uid()='${hr}' or (auth.uid() in ('${manager}','${startOnly}','${missingWrite}','${missingPublish}','${missingInstanceStart}','${noTaskAct}') and $1='${employee}') $$;
+      create function internal_security.process_scope_has_permission(uuid,uuid,public.access_scope_type,uuid,text) returns boolean language sql stable as $$
+        select exists(select 1 from internal_security.test_scope_permissions permission
+          where permission.actor_user_id=auth.uid() and permission.tenant_id=$1 and permission.hr_group_id=$2
+            and permission.scope_type=$3 and permission.administration_id=$4 and permission.permission_code=$5)
+      $$;
       create table public.audit_logs(
         id uuid primary key default gen_random_uuid(),tenant_id uuid not null,administration_id uuid,
         entity_name text not null,entity_id uuid not null,actor_user_id uuid,action text not null,
@@ -53,13 +76,27 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
           return new;
         end $$;
       create table public.process_work_item_notes(id uuid,work_item_id uuid,body text);
-      create function public.start_process(uuid,uuid,uuid,date,text,uuid) returns jsonb language plpgsql as $$ declare i uuid:=gen_random_uuid();s uuid; begin
+      create function internal_security.test_task_act_allowed(requested_work_item_id uuid) returns boolean language sql stable as $$
+        select exists(select 1 from public.process_work_items item
+          join public.process_instances instance on instance.id=item.process_instance_id
+          join public.process_definitions definition on definition.id=instance.process_definition_id
+          where item.id=requested_work_item_id and internal_security.process_scope_has_permission(
+            definition.tenant_id,definition.hr_group_id,'ADMINISTRATION',definition.administration_id,'process-task:act'))
+      $$;
+      create function public.start_process(uuid,uuid,uuid,date,text,uuid) returns jsonb language plpgsql as $$ declare i uuid:=gen_random_uuid();s uuid; d public.process_definitions%rowtype; begin
+        select * into d from public.process_definitions where id=$1;
+        if not internal_security.process_scope_has_permission(d.tenant_id,d.hr_group_id,'ADMINISTRATION',d.administration_id,'process-instance:start') then raise exception 'WVP_FORBIDDEN' using errcode='42501'; end if;
         insert into public.process_instances values(i,'${tenant}','${group}','RUNNING',$5,$1);
         insert into public.process_step_instances(process_instance_id,status,step_key) values(i,'ACTIVE','wvp-week-6') returning id into s;
         insert into public.process_work_items(process_instance_id,step_instance_id,status,step_key,deadline_at) select i,s,'OPEN','wvp-week-6',deadline_at from public.process_step_instances where id=s;
         return jsonb_build_object('processInstanceId',i); end $$;
-      create function public.claim_process_work_item(uuid,bigint) returns jsonb language plpgsql as $$ begin update public.process_work_items set status='CLAIMED',expected_version=expected_version+1 where id=$1; return '{}'::jsonb; end $$;
+      create function public.claim_process_work_item(uuid,bigint) returns jsonb language plpgsql as $$ begin
+        if not internal_security.test_task_act_allowed($1) then raise exception 'WVP_FORBIDDEN' using errcode='42501'; end if;
+        insert into internal_security.test_pmux_calls values('CLAIM',$1,auth.uid());
+        update public.process_work_items set status='CLAIMED',expected_version=expected_version+1 where id=$1; return '{}'::jsonb; end $$;
       create function public.perform_process_work_item_action(uuid,text,bigint,bigint,text,uuid) returns jsonb language plpgsql as $$ declare i uuid; s uuid; next_key text; begin
+        if not internal_security.test_task_act_allowed($1) then raise exception 'WVP_FORBIDDEN' using errcode='42501'; end if;
+        insert into internal_security.test_pmux_calls values($2,$1,auth.uid());
         select process_instance_id into i from public.process_work_items where id=$1;
         if $2='CANCEL' then update public.process_instances set status='COMPLETED' where id=(select process_instance_id from public.process_work_items where id=$1); end if;
         update public.process_step_instances set status=case when $2='CANCEL' then 'CANCELLED' else 'COMPLETED' end where id=(select step_instance_id from public.process_work_items where id=$1);
@@ -71,7 +108,7 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
           insert into public.process_work_items(process_instance_id,step_instance_id,status,step_key,deadline_at) select i,s,'OPEN',next_key,deadline_at from public.process_step_instances where id=s;
         end if;
         return '{}'::jsonb; end $$;
-      insert into auth.users values('${hr}'),('${manager}'),('${self}'),('${stranger}');
+      insert into auth.users values('${hr}'),('${manager}'),('${self}'),('${stranger}'),('${startOnly}'),('${missingWrite}'),('${missingPublish}'),('${missingInstanceStart}'),('${noTaskAct}');
       insert into public.hr_groups values('${tenant}','${group}','Europe/Amsterdam');
       insert into public.administrations values('${tenant}','${group}','${admin}');
       insert into public.employees values('${employee}','Test','Medewerker'),('${other}','Andere','Medewerker');
@@ -79,7 +116,35 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
       insert into public.absence_cases values('${id(20)}','${tenant}','${group}','${admin}','${other}','${id(21)}','ACTIVE',false,null,current_date-50,current_date-50);
       insert into public.process_definitions values('${definition}','${tenant}','${group}','${admin}','wvp01-${admin.replaceAll('-','')}','PUBLISHED');
     `)
+    await db.exec(`insert into internal_security.test_scope_permissions values
+      ('${hr}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:read'),
+      ('${hr}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:write'),
+      ('${hr}','${tenant}','${group}','ADMINISTRATION','${admin}','process-definition:write'),
+      ('${hr}','${tenant}','${group}','ADMINISTRATION','${admin}','process-definition:publish'),
+      ('${hr}','${tenant}','${group}','ADMINISTRATION','${admin}','process-instance:start'),
+      ('${hr}','${tenant}','${group}','ADMINISTRATION','${admin}','process-task:act'),
+      ('${manager}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:read'),
+      ('${manager}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:write'),
+      ('${manager}','${tenant}','${group}','ADMINISTRATION','${admin}','process-task:act'),
+      ('${startOnly}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:read'),
+      ('${startOnly}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:write'),
+      ('${startOnly}','${tenant}','${group}','ADMINISTRATION','${admin}','process-instance:start'),
+      ('${missingWrite}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:read'),
+      ('${missingWrite}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:write'),
+      ('${missingWrite}','${tenant}','${group}','ADMINISTRATION','${admin}','process-definition:publish'),
+      ('${missingWrite}','${tenant}','${group}','ADMINISTRATION','${admin}','process-instance:start'),
+      ('${missingPublish}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:read'),
+      ('${missingPublish}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:write'),
+      ('${missingPublish}','${tenant}','${group}','ADMINISTRATION','${admin}','process-definition:write'),
+      ('${missingPublish}','${tenant}','${group}','ADMINISTRATION','${admin}','process-instance:start'),
+      ('${missingInstanceStart}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:read'),
+      ('${missingInstanceStart}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:write'),
+      ('${missingInstanceStart}','${tenant}','${group}','ADMINISTRATION','${admin}','process-definition:write'),
+      ('${missingInstanceStart}','${tenant}','${group}','ADMINISTRATION','${admin}','process-definition:publish'),
+      ('${noTaskAct}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:read'),
+      ('${noTaskAct}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:write')`)
     await db.exec(readFileSync(new URL('./20261026055349_wvp01_absence_guidance.sql', import.meta.url),'utf8'))
+    await db.exec(readFileSync(new URL('./20261106150000_wvp02_sec01_start_permission_guard.sql', import.meta.url),'utf8'))
   },30000)
   afterAll(async () => { await db?.close() })
   it('HR ziet beide cases, manager alleen team, employee alleen zichzelf',async () => {
@@ -91,7 +156,25 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
   })
   it('weigert employee-start en een manager buiten het team',async () => {
     await actor(self); await expect(command({action:'START',processDefinitionId:definition})).rejects.toThrow('WVP_FORBIDDEN')
-    await actor(manager); await expect(command({action:'START',caseId:id(20),processDefinitionId:definition})).rejects.toThrow('WVP_FORBIDDEN')
+    await actor(manager)
+    for (const action of ['START','MILESTONE','AGREEMENT','ACKNOWLEDGE','CLOSE']) {
+      await expect(command({action,caseId:id(20),processDefinitionId:definition})).rejects.toThrow('WVP_FORBIDDEN')
+    }
+    await expect(command({action:'START',caseId:id(90),processDefinitionId:definition})).rejects.toThrow('WVP_FORBIDDEN')
+  })
+  it('eist definitie-write én publish vóór START en laat geweigerde pogingen zonder mutaties achter',async () => {
+    const before=await mutationCounts()
+    for (const actorId of [startOnly,missingWrite,missingPublish]) {
+      await actor(actorId)
+      await expect(command({action:'START',processDefinitionId:definition})).rejects.toThrow('WVP_FORBIDDEN')
+      expect(await mutationCounts()).toEqual(before)
+    }
+  })
+  it('behoudt de afzonderlijke process-instance:start-gate in de PMUX-kernel',async () => {
+    const before=await mutationCounts()
+    await actor(missingInstanceStart)
+    await expect(command({action:'START',processDefinitionId:definition})).rejects.toThrow('WVP_FORBIDDEN')
+    expect(await mutationCounts()).toEqual(before)
   })
   it('blokkeert een generieke processtart zonder transactionele verzuimkoppeling',async () => {
     await actor(hr); await db.exec('begin;')
@@ -147,7 +230,11 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
   })
   it('start eenmaal, ook bij tweede actor en herhaalde aanvraag',async () => {
     await actor(hr); const first=await command({action:'START',processDefinitionId:definition})
-    await actor(manager); expect(await command({action:'START',processDefinitionId:definition})).toBe(first)
+    const afterFirst=await mutationCounts()
+    expect(await command({action:'START',processDefinitionId:definition})).toBe(first)
+    expect(await mutationCounts()).toEqual(afterFirst)
+    await actor(manager); await expect(command({action:'START',processDefinitionId:definition})).rejects.toThrow('WVP_FORBIDDEN')
+    expect(await mutationCounts()).toEqual(afterFirst)
     expect((await db.query('select * from public.absence_guidance')).rows).toHaveLength(1)
     expect((await list(hr,caseId))[0].tasks).toHaveLength(22)
     expect((await db.query<{deadline_at: string}>('select deadline_at from public.process_work_items')).rows[0].deadline_at).toBeTruthy()
@@ -171,6 +258,16 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
     expect(JSON.stringify(audits.rows)).not.toMatch(/diagnosis|treatment|medical|cause/i)
     expect(audits.rows).toHaveLength(3)
   })
+  it('behoudt de PMUX process-task:act-gate voor claim en taakuitvoering',async () => {
+    const task=(await list(hr,caseId))[0].tasks.find(t=>t.code==='WVP_WEEK_6')!
+    const before=await mutationCounts()
+    const taskBefore=(await db.query('select status,completed_at,completed_by_user_id from public.absence_tasks where id=$1',[task.id])).rows[0]
+    await actor(noTaskAct)
+    await expect(command({action:'MILESTONE',taskId:task.id,occurredOn:(await db.query<{date_value:string}>("select current_date::text date_value")).rows[0].date_value,confirmed:true,idempotencyKey:id(90)})).rejects.toThrow('WVP_FORBIDDEN')
+    expect(await mutationCounts()).toEqual(before)
+    expect((await db.query('select status,completed_at,completed_by_user_id from public.absence_tasks where id=$1',[task.id])).rows[0]).toEqual(taskBefore)
+    expect((await db.query('select * from internal_security.test_pmux_calls')).rows).toHaveLength(0)
+  })
   it('weigert vrije tekst op RPC- en tabelniveau',async () => {
     await actor(hr)
     await expect(command({action:'AGREEMENT',diagnosis:'niet opslaan',idempotencyKey:id(50)})).rejects.toThrow('WVP_INVALID_INPUT')
@@ -180,9 +277,12 @@ describe('WVP01 uitvoerbaar databasecontract', () => {
     const task=(await list(hr,caseId))[0].tasks.find(t=>t.code==='WVP_WEEK_6')!
     const today=(await db.query<{ date_value: string }>("select current_date::text date_value")).rows[0].date_value
     const input={action:'MILESTONE',taskId:task.id,occurredOn:today,confirmed:true,idempotencyKey:id(51)}
+    await db.exec('delete from internal_security.test_pmux_calls')
+    await actor(manager)
     const first=await command(input); expect(await command(input)).toBe(first)
     await expect(command({...input,occurredOn:'2020-01-01'})).rejects.toThrow('WVP_IDEMPOTENCY_CONFLICT')
     expect((await list(hr,caseId))[0].events).toHaveLength(2)
+    expect((await db.query<{action:string}>('select action from internal_security.test_pmux_calls order by action')).rows.map(row=>row.action)).toEqual(['CLAIM','SUBMIT'])
   })
   it('registreert niet-medische werkafspraak en self-only kennisname',async () => {
     const today=(await db.query<{date_value:string}>('select current_date::text date_value')).rows[0].date_value

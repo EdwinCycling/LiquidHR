@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addCalendarDays, projectWvpMilestones, wvpCommandSchema, wvpUrgency } from './domain'
+import { addCalendarDays, nextWvpTask, projectWvpMilestones, wvpCommandSchema, wvpUrgency } from './domain'
 
 describe('WVP wettelijke kalender en privacycontract', () => {
   it('rekent kalenderweken over DST en schrikkeldag, zonder werkkalender', () => {
@@ -17,6 +17,16 @@ describe('WVP wettelijke kalender en privacycontract', () => {
     expect(wvpUrgency('2026-01-01', '2026-01-02')).toBe('OVERDUE')
     expect(wvpUrgency('2026-01-09', '2026-01-02')).toBe('SOON')
     expect(wvpUrgency('2026-01-10', '2026-01-02')).toBe('PLANNED')
+  })
+  it('toont de actieve mijlpaal als eerstvolgende taak en valt terug op de vroegste open taak', () => {
+    const tasks = [
+      { code: 'WVP_WEEK_6', dueOn: '2026-02-12', status: 'OPEN' },
+      { code: 'WVP_WEEK_8', dueOn: '2026-02-26', status: 'OPEN' },
+      { code: 'WVP_WEEK_42', dueOn: '2026-10-22', status: 'COMPLETED' },
+    ]
+    expect(nextWvpTask(tasks, 'WVP_WEEK_8')?.code).toBe('WVP_WEEK_8')
+    expect(nextWvpTask(tasks, 'WVP_WEEK_42')?.code).toBe('WVP_WEEK_6')
+    expect(nextWvpTask(tasks.slice(2), null)).toBeNull()
   })
   it.each(['diagnosis', 'medicalCause', 'treatment', 'note', 'completionNote'])('weigert extra gezondheids-/vrije tekstveld %s', (field) => {
     expect(wvpCommandSchema.safeParse({ action: 'START', caseId: '11111111-1111-4111-8111-111111111111', [field]: 'niet opslaan' }).success).toBe(false)
