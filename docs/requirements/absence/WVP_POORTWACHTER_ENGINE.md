@@ -64,6 +64,20 @@ WVP01 sluit wel aan op de bestaande interne PMUX-reminder-/escalatievoorzieninge
 - Volledig en gedeeltelijk herstel, uren/percentage en ziekteperioden blijven uitsluitend in de bestaande `absence_spells`/`absence_capacity_changes`. De nieuwe dossierweergave leest deze bron en linkt naar de bestaande mutatieflow. Werkafspraken zijn vaste operationele keuzes met gebeurtenis- en evaluatiedatum, waaronder geleidelijke opbouw.
 - Heropening binnen de vierwekenketen hergebruikt casus en proces. Na normalisatie door de bestaande verzuimflow naar `CLOSED` kan HR afronden als alle tot de laatste hersteldatum verschuldigde taken zijn afgehandeld. Toekomstige taken vervallen; historie blijft staan. Een nieuwe casus buiten de keten krijgt een eigen traject. Geen automatische backfill bij migratie.
 
-## 9. Verificatie
+## 9. WVP03 — eerste dossierstatusslice (2026-11-06)
+
+De eerste WVP03-slice toont binnen de bestaande casuswerkplek een operationele index op de bestaande `absence_tasks` en `absence_guidance_events`:
+
+- Toon per bestaande mijlpaal de huidige taakstatus, deadline, rol uit de bestaande `projectWvpMilestones`-projectie en een gebeurtenis die via dezelfde `task_id` is gekoppeld.
+- Markeer open taken en voltooide taken zonder gekoppelde mijlpaalgebeurtenis als werk-/registratiepunt. Dit beschrijft alleen de aanwezige productregistratie.
+- Werkafspraken en hun evaluatiedatum blijven zichtbaar via de bestaande, geautoriseerde gebeurtenistijdlijn.
+- Verwijs naar de bestaande medewerkerdocumentenpagina. Die pagina gebruikt de bestaande `document:read`-permissioncheck, `can_access_employee_dossier` en `listEmployeeDocuments`; deze WVP-slice haalt geen documentmetadata rechtstreeks op.
+- De casus en alle checklistgegevens komen uitsluitend via de bestaande `wvp_list`-route en behouden de tenant-, HR-groep-, administratie-, team- en eigen-casusscope. De documentroute behoudt haar eigen medewerker- en documentautorisatie.
+
+Deze index is **geen wettelijke RIV-compleetheidsbeoordeling**. Een open mijlpaal of ontbrekende gebeurtenis betekent niet automatisch dat een wettelijk dossierstuk ontbreekt. De bestaande mijlpaalrol is een modelrol, geen bewijs van een toegewezen of behandelende persoon. Een custom taak zonder modelrol blijft expliciet zonder vastgelegde rol.
+
+Er is geen bestaande veilige relatie die een `employee_document` aan een WVP-casus of mijlpaal koppelt. Daarom toont deze slice geen documentinventaris alsof die casusspecifiek is, maakt geen documentlinks of categorieën aan en genereert geen wettelijke documenten. Een latere echte WVP-documentkoppeling vereist eerst een gevalideerd casus-/mijlpaalcontract, scoped serverservice, audit- en RLS/permissionontwerp en bijbehorende databasegate. Medische documenten en medische details blijven buiten het werkgeversdossier. Deze slice leest alleen bestaande WVP-data en is niet afhankelijk van de nog open WVP02-START-migratie.
+
+## 10. Verificatie
 
 De lokale PostgreSQL-contractharness voert de volledige WVP-basismigratie uit, inclusief echte nieuwe tabel-RLS. Volgens Core TEST acceptance 03 is `20261026055349` eenmaal toegepast; security/advisor-readback en gegenereerde type-readback zijn daar gecontroleerd. De latere auditcorrectie `20261026172808` bleef volgens acceptance 06 geblokkeerd door `INVALID_REQUEST_STATE`. Deze bewijsstukken zijn gedateerd 26-10-2026; de remote toestand is in deze consolidatie niet opnieuw gelezen. De begrensde tests zijn geen volledige native-kernel- of live-personaacceptatie. Native rolketen, daadwerkelijke reminder/escalatie en volledige dossierresponsivecontrole blijven OPEN. Zie [lokale acceptatie en TEST-writevoorstel](../../quality/acceptance/runs/WVP01-20261026-LOCAL.md), [Core TEST-acceptatie 03](../../quality/acceptance/runs/WVP01-CORE-TEST-ACCEPTANCE-03-20261026.md), [audit-fix 06](../../quality/acceptance/runs/WVP01-AUDIT-FIX-AND-PROCESS-START-06-20261026.md) en [architectuurbesluit](../../architecture/ADR-WVP01-ABSENCE-PROCESS-BRIDGE.md).
