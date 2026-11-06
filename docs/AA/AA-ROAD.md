@@ -122,6 +122,12 @@ PMUX-01 tot en met PMUX-03 en de individuele PMUX-05A/B/C-labels zijn historisch
 - RIV-readiness, werkvoorraad, reminders en inzichten;
 - verifieer de actuele wettelijke bronset vóór de eerste implementatieslice.
 
+### WvP / Verzuim — WVP03 en WVP04 (06-11-2026)
+- **WVP03:** bestaande statusindex staat op afzonderlijke Draft PR [#95](https://github.com/EdwinCycling/LiquidHR/pull/95); geen merge of release.
+- **WVP04 eerste read-only slice:** documentmodelreview bevestigt geen betrouwbare employee-documentrelatie naar WVP-case/mijlpaal. De caseworkspace maakt de ontbrekende koppeling herkenbaar per mijlpaal en linkt naar de bestaande geautoriseerde medewerkerdocumentpagina.
+- Geen documentmetadata in de WVP-view, nieuwe tabel, grants, RLS-policy, migratie of TEST-write.
+- **OPEN:** gevalideerde case-/mijlpaal-documentrelatie en scoped permission/RLS/auditcontract; gevalideerde RIV-onderdelen; rol- en negatieve-scopebrowseracceptatie.
+
 ### Workforce Insights — INS02, na WVP01
 - Report Consistency Contract voor filters, definities, KPI/chart/tabel/drilldown/export en scopes;
 - Headcount/FTE als referentierapport;

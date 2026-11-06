@@ -67,3 +67,15 @@ WVP01 sluit wel aan op de bestaande interne PMUX-reminder-/escalatievoorzieninge
 ## 9. Verificatie
 
 De lokale PostgreSQL-contractharness voert de volledige WVP-basismigratie uit, inclusief echte nieuwe tabel-RLS. Volgens Core TEST acceptance 03 is `20261026055349` eenmaal toegepast; security/advisor-readback en gegenereerde type-readback zijn daar gecontroleerd. De latere auditcorrectie `20261026172808` bleef volgens acceptance 06 geblokkeerd door `INVALID_REQUEST_STATE`. Deze bewijsstukken zijn gedateerd 26-10-2026; de remote toestand is in deze consolidatie niet opnieuw gelezen. De begrensde tests zijn geen volledige native-kernel- of live-personaacceptatie. Native rolketen, daadwerkelijke reminder/escalatie en volledige dossierresponsivecontrole blijven OPEN. Zie [lokale acceptatie en TEST-writevoorstel](../../quality/acceptance/runs/WVP01-20261026-LOCAL.md), [Core TEST-acceptatie 03](../../quality/acceptance/runs/WVP01-CORE-TEST-ACCEPTANCE-03-20261026.md), [audit-fix 06](../../quality/acceptance/runs/WVP01-AUDIT-FIX-AND-PROCESS-START-06-20261026.md) en [architectuurbesluit](../../architecture/ADR-WVP01-ABSENCE-PROCESS-BRIDGE.md).
+
+## 10. WVP04 — read-only documentkoppelingsstatus (2026-11-06)
+
+De contractreview vindt geen betrouwbare koppeling van `employee_documents` aan een WVP-casus of mijlpaal:
+
+- `employee_documents` koppelt een document aan medewerker, administratie en categorie; tags/audiences zijn geen gevalideerde WVP-casus- of mijlpaalrelatie.
+- `absence_guidance_events.task_id` koppelt alleen een WVP-gebeurtenis aan een bestaande taak. De WVP-listprojectie retourneert geen documentreferentie.
+- `employee_document_acknowledgements` legt een document-, procesinstantie- en werkitemrelatie vast voor de aparte documentkennisnameflow. Dit is geen gevalideerde koppeling naar `absence_tasks.milestone_code`; de WVP-procesdefinitie bevat geen documentreferentieveld.
+
+De WVP-casus toont daarom per bestaande mijlpaal **Geen WVP-documentkoppeling** met de expliciete uitleg dat dit niet betekent dat een document ontbreekt. De link naar de medewerkerdocumentpagina hergebruikt de bestaande `listEmployeeDocuments`-service, die `document:read` en `can_access_employee_dossier` controleert. De WVP-weergave vraagt geen ongekoppelde documentmetadata op en toont geen medische documentdetails. WVP-casustoegang blijft via `wvp_list` binnen de bestaande tenant-, HR-groep-, administratie-, team- en eigen-casusscope; de medewerkerdocumentpagina bewaakt de eigen documentscope.
+
+Deze slice voert geen datawijzigingen uit en gebruikt daarom geen nieuw auditpad, tabel, grant, policy of migratie. Een echte documentstatus per mijlpaal blijft OPEN totdat een gevalideerd relatiecontract, server-side read/write-scope, permission/RLS en auditafhandeling zijn goedgekeurd. Er worden geen wettelijke documenten gemaakt en de status is geen RIV-compleetheidsclaim. Zie [WVP04 acceptance](../../quality/acceptance/runs/WVP04-DOCUMENT-LINKS-20261106.md).
