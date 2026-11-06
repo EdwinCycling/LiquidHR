@@ -88,6 +88,8 @@ Migratievolgorde: WVP02 SEC01 `20261106150000_wvp02_sec01_start_permission_guard
 
 ## 13. Verificatie
 
+WVP07 presenteert voor actoren met `absence:read` een geautoriseerd casusoverzicht met prioriteiten, urgentie- en statusfilters en tellingen van open verlopen en binnenkort vervallende mijlpalen. `wvp_list` blijft de enige casusbron. De grens van 250 resultaten en ontbrekende volgende mijlpalen worden zichtbaar gemaakt; tellingen claimen geen volledigheid buiten de teruggegeven casussen.
+
 WVP06 toont aantallen open, afgeronde, verlopen en binnen zeven dagen vervallende mijlpalen en verwijst naar de eerstvolgende bestaande taak. Taakstatus, gebeurtenis en documentrelatie zijn afzonderlijk zichtbaar; ontbrekende broninformatie wordt gemeld. Dit is geen wettelijke RIV-beoordeling.
 
 WVP02–WVP05 contract- en UI-regressies staan in de gecombineerde codekandidaat. Statische autorisatiereview, i18n en diff-check zijn PASS; Vitest/PGlite, UI-tests, TypeScript, lint en browser/personaacceptatie zijn NOT RUN. Read-only Core TEST-migratiehistorie toont alleen de bestaande WVP01-basis en auditcorrectie; WVP02 SEC01 en WVP05 staan uitsluitend als forward-only code en zijn niet toegepast. De actuele Git-, security-, database- en acceptatiestatus staat in [WVP-INT01 acceptance](../../quality/acceptance/runs/WVP-INT01-CONSOLIDATION-20261106.md). Geen lokale codecontrole vervangt live rol-/RLS-/auditacceptatie of migratiereadback.
