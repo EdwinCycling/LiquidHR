@@ -76,10 +76,16 @@ Deze index is **geen wettelijke RIV-compleetheidsbeoordeling**. Een ontbrekende 
 
 ## 11. WVP04 — read-only documentkoppelingsstatus (2026-11-06)
 
-De initiële documentmodelreview vond geen betrouwbare koppeling van `employee_documents` naar een WVP-casus of mijlpaal. De medewerkerdocumentenservice leest documenten op medewerker, administratie en bestaande rechten; tags/audiences vormen geen WVP-case- of mijlpaalrelatie. `absence_guidance_events.task_id` verbindt gebeurtenissen met taken, niet met documenten. De aparte documentkennisnameflow is geen gevalideerde WVP-mijlpaalrelatie.
+WVP04 stelde vast dat de bestaande `employee_documents`- en WVP-projecties geen betrouwbare relatie tussen document, casus en mijlpaal boden. De tussentijdse read-only status “geen koppeling” betekende niet dat een document ontbrak. WVP05 vervangt deze tussenstap door expliciete, geautoriseerde relaties; er is geen tweede documentopslag.
 
-Daarom toonde WVP04 per mijlpaal **Geen WVP-documentkoppeling** met de expliciete uitleg dat dit niet betekent dat een document ontbreekt. De read-only route haalde geen ongekoppelde documentmetadata op en toonde geen medische documentdetails. WVP-casustoegang bleef via `wvp_list`; medewerkerdocumenten behielden `document:read` en `can_access_employee_dossier`. WVP05 vult deze read-only toestand aan met een expliciete geautoriseerde koppeling en ontkoppeling.
+## 12. WVP05 — bestaande documenten aan WVP-casus en mijlpaal koppelen (2026-11-06)
 
-## 12. Verificatie
+HR Admin en Managers met bestaande case-, team-, HR-groep-, administratie- en documentrechten kunnen vanuit een bestaande WVP-casus een bestaand toegankelijk medewerkerdocument aan een bestaande WVP-mijlpaaltaak koppelen en de relatie na bevestiging verwijderen. Employee ziet uitsluitend eigen toegestane koppelingen. De bronlink en bestaande medewerkerdocumentenservice blijven leidend; verwijderen ontkoppelt alleen en verwijdert het brondocument nooit.
 
-De lokale PostgreSQL-contractharness voert de WVP-basismigratie uit, inclusief nieuwe tabel-RLS. Historisch bewijs over `20261026055349` en de auditcorrectie `20261026172808` is vastgelegd in de WVP01-acceptaties van 26-10-2026; de remote toestand is tijdens deze integratie niet opnieuw gelezen. De actuele WVP02/WVP03/WVP04-code en resterende gates staan in hun acceptatierapporten. Deze vervangen geen geauthenticeerde rol-, RLS-, reminder-/audit- of browseracceptatie.
+De forward-only migratie maakt `wvp_document_links` met alleen referentie-ID's, actor/tijdstempels en een verwijdermarkering. Tenant, HR-groep, administratie, medewerker, casus, documenttoegang en geldige bestaande mijlpaal worden server-side gecontroleerd. RLS beschermt reads; mutaties gebruiken begrensde RPC's en audit. Client-DML is niet verleend. Toevoegen is idempotent. Er worden geen documentbytes, medische metadata, vrije tekst of automatisch gemaakte wettelijke stukken opgeslagen. Geen wettelijke RIV-compleetheid wordt afgeleid uit een ontbrekende koppeling.
+
+Migratievolgorde: WVP02 SEC01 `20261106150000_wvp02_sec01_start_permission_guard.sql`, daarna WVP05 `20261106180416_wvp05_milestone_document_links.sql`. Beide staan als code; geen TEST-toepassing/readback is in deze integratie uitgevoerd.
+
+## 13. Verificatie
+
+WVP02–WVP05 contract- en UI-regressies staan in de gecombineerde codekandidaat. Statische autorisatiereview, i18n en diff-check zijn PASS; Vitest/PGlite, UI-tests, TypeScript, lint en browser/personaacceptatie zijn NOT RUN. Read-only Core TEST-migratiehistorie toont alleen de bestaande WVP01-basis en auditcorrectie; WVP02 SEC01 en WVP05 staan uitsluitend als forward-only code en zijn niet toegepast. De actuele Git-, security-, database- en acceptatiestatus staat in [WVP-INT01 acceptance](../../quality/acceptance/runs/WVP-INT01-CONSOLIDATION-20261106.md). Geen lokale codecontrole vervangt live rol-/RLS-/auditacceptatie of migratiereadback.

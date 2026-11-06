@@ -6,7 +6,8 @@ import { WvpDossier } from '@/components/absence/wvp-dossier'
 import { wvpLabelKeys } from '@/components/absence/wvp-labels'
 import { AuthenticationError, AuthorizationError } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
-import { listWvpCases, WvpError } from '@/lib/absence/wvp/service'
+import { listEmployeeDocumentLinkOptions, type EmployeeDocumentLinkOption } from '@/lib/documents/document-service'
+import { listWvpCases, listWvpDocumentLinks, WvpError } from '@/lib/absence/wvp/service'
 import { postgresUuidSchema } from '@/lib/absence/wvp/domain'
 import { getProcessInstanceProjection, ProcessRuntimeError } from '@/lib/process-automation/runtime-service'
 
@@ -31,10 +32,31 @@ export default async function AbsenceGuidanceDetail({ params }: { params: Promis
       if (!(error instanceof ProcessRuntimeError) || error.code !== 'FORBIDDEN') throw error
     }
   }
+  let documentLinks: Awaited<ReturnType<typeof listWvpDocumentLinks>> = []
+  let documentOptions: EmployeeDocumentLinkOption[] = []
+  let linksUnavailable = false
+  let documentReadUnavailable = false
+  if (dossier?.processInstanceId) {
+    try { documentLinks = await listWvpDocumentLinks(caseId) }
+    catch (error) {
+      if (error instanceof AuthenticationError || error instanceof AuthorizationError) redirect('/geen-toegang')
+      if (error instanceof WvpError && error.code === 'WVP_SCHEMA_REQUIRED') linksUnavailable = true
+      else throw error
+    }
+    if (!linksUnavailable) {
+      try { documentOptions = await listEmployeeDocumentLinkOptions(dossier.employeeId) }
+      catch (error) {
+        if (error instanceof AuthenticationError) redirect('/geen-toegang')
+        if (error instanceof AuthorizationError) documentReadUnavailable = true
+        else throw error
+      }
+    }
+  }
+  const canManageDocumentLinks = Boolean(dossier?.processInstanceId && dossier.canManage && !dossier.closedAt && !linksUnavailable && !documentReadUnavailable)
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(new Date())
   return <PageShell className="py-7">
     <Link href="/absence/guidance" className="text-sm text-primary underline">{t('wvp.back')}</Link>
     <PageHeader className="my-6" title={dossier?.name ?? t('wvp.title')} description={t('wvp.description')} />
-    {unavailable ? <p role="status">{t('wvp.schemaRequired')}</p> : <WvpDossier dossier={dossier} today={today} locale={locale} processStatus={processStatus} labels={Object.fromEntries(wvpLabelKeys.map(key => [key, t(`wvp.${key}`)]))} />}
+    {unavailable ? <p role="status">{t('wvp.schemaRequired')}</p> : <WvpDossier dossier={dossier} documentLinks={documentLinks} documentOptions={documentOptions} canManageDocumentLinks={canManageDocumentLinks} linksUnavailable={linksUnavailable} documentReadUnavailable={documentReadUnavailable} today={today} locale={locale} processStatus={processStatus} labels={Object.fromEntries(wvpLabelKeys.map(key => [key, t(`wvp.${key}`)]))} />}
   </PageShell>
 }

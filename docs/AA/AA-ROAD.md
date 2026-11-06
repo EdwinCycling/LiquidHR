@@ -114,15 +114,12 @@ PMUX-01 tot en met PMUX-03 en de individuele PMUX-05A/B/C-labels zijn historisch
 
 ### WvP / Verzuim — WVP01, lokale verticale implementatie 26-10-2026
 - **Lokale engineering PASS; Core TEST-schema PASS; volledige native acceptatie PARTIAL/OPEN:** dossier, 22 systeemmijlpalen, scope-/privacyguards, PMUX-werkitems, werkafspraken, eigen kennisname en herstelbronintegratie; 111 gerichte lokale tests PASS. Basismigratie `20261026055349` was volgens acceptance 03 eenmaal toegepast en read-only gecontroleerd. Auditcorrectie `20261026172808` bleef volgens acceptance 06 BLOCKED; processtart en volledige native rolacceptatie blijven OPEN. Readbacks zijn van 26-10-2026 en niet opnieuw live gecontroleerd. Zie [lokale acceptatie](../quality/acceptance/runs/WVP01-20261026-LOCAL.md), [Core TEST 03](../quality/acceptance/runs/WVP01-CORE-TEST-ACCEPTANCE-03-20261026.md) en [audit-fix 06](../quality/acceptance/runs/WVP01-AUDIT-FIX-AND-PROCESS-START-06-20261026.md).
-
-### WvP / Verzuim — WVP02, casuswerkplek en taakafhandeling 06-11-2026
-- **WVP02-SEC01 codefix toegevoegd; CONTROLLED securityverificatie OPEN.** Forward-only migratie `20261106150000_wvp02_sec01_start_permission_guard.sql` dwingt binnen administratie-, tenant- en HR-groepscope `process-definition:write` én `process-definition:publish` af vóór een nieuwe of idempotente START. De PMUX-kernel blijft daarnaast `process-instance:start` controleren. De bestaande PGlite-contractsuite dekt ontbrekende rechten, casus-/team-/administratiescope, idempotentie, rollback en de bestaande PMUX-claim-/taakact-route. Vitest/PGlite, TypeScript en lint zijn NOT RUN wegens ontbrekende binaries; PR #94 blijft daarom open/draft tot de verplichte gates slagen. Geen TEST-toepassing, role/grant-wijziging of mutatie aan gepubliceerde definitie/instantie. Zie [WVP02 acceptance](../quality/acceptance/runs/WVP02-CASE-WORKSPACE-20261106.md).
-
-### WvP / Verzuim — WVP03, re-integratiedossier en RIV-readiness — eerstvolgende bouwslice na WVP02-integratie
-- Bouw na afronding van de WVP02-autorisatieblokkade een overzicht van verplichte dossieronderdelen en koppel documenten en procesgebeurtenissen aan de bestaande WVP-casus.
-- Toon ontbrekende onderdelen en de verantwoordelijke HR Admin-, Manager- of Employee-rol volgens de bestaande tenant-, team-, casus- en eigen-gegevensautorisatie.
-- Hergebruik de bestaande documentservices, audit en PMUX; maak geen documenten automatisch.
-- Claim geen wettelijke RIV-compleetheid voordat de requirements juridisch zijn gevalideerd. WVP03 is voorbereid in de roadmap en nog niet geïmplementeerd.
+### WvP / Verzuim — WVP-INT01, gecombineerde casuswerkplek (06-11-2026)
+- WVP02–WVP05 zijn als één lokale kandidaat opgebouwd vanuit de bestaande PR-heads #94–#97: PMUX-processtatus en taakvoorraad; gescheiden processtart-/taakrechten; mijlpaalstatus, modelrol en gebeurtenis; documentstatus en echte geautoriseerde koppeling/ontkoppeling.
+- De twee forward-only migraties blijven afzonderlijk en op volgorde: `20261106150000_wvp02_sec01_start_permission_guard.sql`, daarna `20261106180416_wvp05_milestone_document_links.sql`. Read-only Core TEST-migratiehistorie bevat WVP01-basis/audit, maar niet deze twee; er is in deze cyclus geen migratie toegepast.
+- De oorspronkelijke PR's blijven open en traceerbaar; geen merge naar `main` of release.
+- Statische autorisatiereview, NL/EN-pariteit en diff-check zijn PASS; SQL/PGlite, Vitest, TypeScript, lint en browserpersonaacceptatie zijn NOT RUN. Security-integratie blijft HOLD tot de verplichte checks slagen.
+- **OPEN:** contract-/UI-regressies, type/lint, HR Admin/Manager/Employee- en negatieve scopeacceptatie; daarna apart migratiemandaat, migraties in bovenstaande volgorde, advisors, gegenereerde types en readback. Valideer de wettelijke RIV-requirements voordat volledigheid wordt geclaimd.
 - De onderstaande volledige domeinroadmap blijft breder dan deze eerste systeemset; custom-templateorkestratie, RIV-readiness en afwijkende individuele routes zijn niet als voltooid gemarkeerd.
 - hergebruik bestaande `absence_tasks`, milestone-/generator- en casemanagerfoundation;
 - volledige caseworkspace: Overzicht / Tijdlijn / Acties / Dossier / Re-integratie / Historie;
@@ -130,12 +127,6 @@ PMUX-01 tot en met PMUX-03 en de individuele PMUX-05A/B/C-labels zijn historisch
 - expliciete casemanagerautorisatie, HR-groepoptie en veilige backfill voor actieve cases;
 - RIV-readiness, werkvoorraad, reminders en inzichten;
 - verifieer de actuele wettelijke bronset vóór de eerste implementatieslice.
-
-### WvP / Verzuim — WVP-INT01 integratieslice (06-11-2026)
-- **WVP02–WVP04** zijn lokaal gecombineerd in `work/wvp-int01-20261106`: PMUX-processtatus en taakvoorraad, gescheiden START-/taakrechten, operationele mijlpaalstatus met modelrol/gebeurtenis, plus de tussenstap die een niet-bestaande documentrelatie expliciet als “geen koppeling” presenteert.
-- De oorspronkelijke Draft PR’s #94, #95 en #96 blijven traceerbaar en ongewijzigd; PR #97 bevat de vervolgslice voor echte documentkoppelingen.
-- Geen gepubliceerde definitie, procesinstantie, rol/grant of TEST-data gewijzigd; WVP02-migratiecode is niet toegepast.
-- **OPEN:** afmaken en statisch reviewen van de WVP05-samenvoeging; CONTROLLED SQL/PGlite- en autorisatiechecks; finale relevante suite, type/lint en browser/personaacceptatie. RIV-compleetheid vereist gevalideerde wettelijke requirements.
 
 ### Workforce Insights — INS02, na WVP01
 - Report Consistency Contract voor filters, definities, KPI/chart/tabel/drilldown/export en scopes;

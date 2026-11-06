@@ -44,6 +44,80 @@ export async function listWvpCases(caseId?: string): Promise<WvpCase[]> {
   }))
 }
 
+const wvpDocumentLinkSchema = z.object({
+  id: postgresUuidSchema,
+  taskId: postgresUuidSchema,
+  documentId: postgresUuidSchema,
+  createdAt: z.string(),
+})
+export type WvpDocumentLink = z.infer<typeof wvpDocumentLinkSchema>
+
+const addDocumentLinkSchema = z.object({
+  caseId: postgresUuidSchema,
+  taskId: postgresUuidSchema,
+  documentId: postgresUuidSchema,
+}).strict()
+const removeDocumentLinkSchema = z.object({
+  caseId: postgresUuidSchema,
+  linkId: postgresUuidSchema,
+}).strict()
+
+export async function listWvpDocumentLinks(caseId: string): Promise<WvpDocumentLink[]> {
+  postgresUuidSchema.parse(caseId)
+  const auth = await requireAnyPermission(['absence:read', 'self:absence:read'])
+  if (!auth.administrationId) throw new WvpError('WVP_FORBIDDEN', 403)
+  const db = await createClient()
+  const { data, error } = await db.rpc('wvp_document_links', {
+    requested_tenant_id: auth.tenantId,
+    requested_hr_group_id: requireHrGroupId(auth),
+    requested_administration_id: auth.administrationId,
+    requested_case_id: caseId,
+  })
+  if (error) rpcFailure(error)
+  return z.array(wvpDocumentLinkSchema).parse(data)
+}
+
+async function requireManageableWvpCase(caseId: string) {
+  const target = (await listWvpCases(caseId))[0]
+  if (!target || !target.canManage) throw new WvpError('WVP_FORBIDDEN', 403)
+  const auth = await requirePermission('absence:write', target.employeeId)
+  await requirePermission('document:read', target.employeeId)
+  const administrationId = auth.administrationId
+  if (!administrationId) throw new WvpError('WVP_FORBIDDEN', 403)
+  return { target, auth, administrationId }
+}
+
+export async function addWvpDocumentLink(input: unknown): Promise<string> {
+  const command = addDocumentLinkSchema.parse(input)
+  const { target, auth, administrationId } = await requireManageableWvpCase(command.caseId)
+  const db = await createClient()
+  const { data, error } = await db.rpc('wvp_document_link_add', {
+    requested_tenant_id: auth.tenantId,
+    requested_hr_group_id: requireHrGroupId(auth),
+    requested_administration_id: administrationId,
+    requested_case_id: target.id,
+    requested_task_id: command.taskId,
+    requested_document_id: command.documentId,
+  })
+  if (error) rpcFailure(error)
+  return postgresUuidSchema.parse(data)
+}
+
+export async function removeWvpDocumentLink(input: unknown): Promise<boolean> {
+  const command = removeDocumentLinkSchema.parse(input)
+  const { target, auth, administrationId } = await requireManageableWvpCase(command.caseId)
+  const db = await createClient()
+  const { data, error } = await db.rpc('wvp_document_link_remove', {
+    requested_tenant_id: auth.tenantId,
+    requested_hr_group_id: requireHrGroupId(auth),
+    requested_administration_id: administrationId,
+    requested_case_id: target.id,
+    requested_link_id: command.linkId,
+  })
+  if (error) rpcFailure(error)
+  return z.boolean().parse(data)
+}
+
 async function ensureDefinition(target: WvpCase): Promise<string> {
   const auth = await requirePermission('process-definition:write')
   await requirePermission('process-definition:publish')

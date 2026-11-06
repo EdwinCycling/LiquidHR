@@ -8,17 +8,32 @@ import { Surface } from '@/components/ui/surface'
 import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { FormField } from '@/components/patterns/form-field'
-import type { WvpCase } from '@/lib/absence/wvp/service'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import type { WvpCase, WvpDocumentLink } from '@/lib/absence/wvp/service'
+import type { EmployeeDocumentLinkOption } from '@/lib/documents/document-service'
 import { agreementCodes, nextWvpTask, summarizeWvpDossierEvidence, wvpUrgency, type WvpCommand } from '@/lib/absence/wvp/domain'
 import { milestoneLabel, processStatusLabel, type WvpLabels } from '@/components/absence/wvp-labels'
 
 export type { WvpLabels } from '@/components/absence/wvp-labels'
 
-export function WvpDossier({ dossier, labels, today, locale, processStatus = null }: { dossier: WvpCase; labels: WvpLabels; today: string; locale: string; processStatus?: string | null }) {
+export function WvpDossier({ dossier, documentLinks, documentOptions, canManageDocumentLinks, linksUnavailable, documentReadUnavailable, labels, today, locale, processStatus = null }: {
+  dossier: WvpCase
+  documentLinks: WvpDocumentLink[]
+  documentOptions: EmployeeDocumentLinkOption[]
+  canManageDocumentLinks: boolean
+  linksUnavailable: boolean
+  documentReadUnavailable: boolean
+  processStatus?: string | null
+  labels: WvpLabels
+  today: string
+  locale: string
+}) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [selectedTask, setSelectedTask] = useState('')
+  const [selectedDocuments, setSelectedDocuments] = useState<Record<string, string>>({})
+  const [removeCandidate, setRemoveCandidate] = useState<{ id: string } | null>(null)
   const [occurredOn, setOccurredOn] = useState(today)
   const [agreement, setAgreement] = useState<(typeof agreementCodes)[number]>('UNCHANGED')
   const [reviewOn, setReviewOn] = useState(today)
@@ -56,6 +71,18 @@ export function WvpDossier({ dossier, labels, today, locale, processStatus = nul
     } catch { setError(labels.failed) }
     finally { setBusy(false) }
   }
+  async function changeDocumentLink(method: 'POST' | 'DELETE', body: { caseId: string; taskId?: string; documentId?: string; linkId?: string }) {
+    if (busy) return
+    setBusy(true); setError('')
+    try {
+      const response = await fetch('/api/absence/wvp/document-links', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (!response.ok) { setError(labels.failed); return }
+      if (method === 'DELETE') setRemoveCandidate(null)
+      if (method === 'POST' && body.taskId) setSelectedDocuments(current => ({ ...current, [body.taskId]: '' }))
+      router.refresh()
+    } catch { setError(labels.failed) }
+    finally { setBusy(false) }
+  }
   return <div className="min-w-0 space-y-6">
     <p className="text-sm text-muted-foreground">{labels.privacy}</p>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
@@ -76,12 +103,30 @@ export function WvpDossier({ dossier, labels, today, locale, processStatus = nul
           const item = evidenceById.get(task.id)
           const ownerKey = ownerLabelKeys[item?.owner ?? ''] ?? 'dossierOwnerUnknown'
           const readinessKey = readinessLabelKeys[item?.readiness ?? 'UNKNOWN'] ?? 'dossierReadinessUnknown'
+          const taskLinks = documentLinks.filter(link => link.taskId === task.id)
+          const availableDocuments = documentOptions.filter(option => !taskLinks.some(link => link.documentId === option.id))
           return <li key={task.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
-            <div className="min-w-0">
+            <div className="min-w-0 grow">
               <p className="break-words font-medium">{milestoneLabel(task.code, labels)}</p>
               <p className="text-muted-foreground">{date(task.dueOn)} · {task.code === 'WVP_WEEK_42' || task.code === 'WVP_WIA_APPLICATION' ? labels.signal : task.code.startsWith('WVP_EVALUATION') ? labels.review : labels.statutory}</p>
               <p className="text-muted-foreground">{labels.dossierOwner}: {labels[ownerKey]}</p>
               {item?.event && <p className="text-muted-foreground">{labels.dossierEvent}: {date(item.event.occurredOn)}</p>}
+              {dossier.processInstanceId && <div className="mt-3 space-y-2">
+                <h3 className="font-medium">{labels.documents}</h3>
+                {taskLinks.length ? <ul className="space-y-1">{taskLinks.map(link => {
+                  const document = documentOptions.find(option => option.id === link.documentId)
+                  return <li key={link.id} className="flex flex-wrap items-center gap-2">
+                    {document ? <Link className="text-primary underline" href={`/employees/${dossier.employeeId}?tab=documents`}>{document.title}</Link> : <span>{labels.documentUnavailable}</span>}
+                    {document && <span className="text-muted-foreground">{date(document.createdAt)}</span>}
+                    {canManageDocumentLinks && document && <Button type="button" variant="secondary" disabled={busy} aria-label={`${labels.removeDocumentLink}: ${document.title} — ${milestoneLabel(task.code, labels)}`} onClick={() => setRemoveCandidate({ id: link.id })}>{labels.removeDocumentLink}</Button>}
+                  </li>
+                })}</ul> : !linksUnavailable && !documentReadUnavailable && <p className="text-muted-foreground">{labels.noDocumentLink}</p>}
+                {canManageDocumentLinks && <form className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" onSubmit={event => { event.preventDefault(); const documentId = selectedDocuments[task.id]; if (documentId) void changeDocumentLink('POST', { caseId: dossier.id, taskId: task.id, documentId }) }}>
+                  <FormField label={labels.selectDocument} control={<DropdownSelect value={selectedDocuments[task.id] ?? ''} onChange={event => setSelectedDocuments(current => ({ ...current, [task.id]: event.target.value }))} searchable required><option value="">{labels.selectDocument}</option>{availableDocuments.map(document => <option key={document.id} value={document.id}>{document.title}</option>)}</DropdownSelect>} />
+                  <Button type="submit" disabled={busy || !availableDocuments.length || !selectedDocuments[task.id]}>{labels.linkDocument}</Button>
+                  {!availableDocuments.length && <p className="text-xs text-muted-foreground sm:col-span-2">{labels.noAvailableDocuments}</p>}
+                </form>}
+              </div>}
             </div>
             <div className="flex flex-col items-end gap-1">
               <span>{labels[readinessKey]}</span>
@@ -89,21 +134,17 @@ export function WvpDossier({ dossier, labels, today, locale, processStatus = nul
             </div>
           </li>
         })}</ol> : <p className="text-sm text-muted-foreground">{labels.noTasks}</p>}
+        {dossier.processInstanceId && <div className="space-y-2 text-sm text-muted-foreground">
+          <p>{labels.documentLinkHelp}</p>
+          {linksUnavailable && <p role="status">{labels.documentLinksUnavailable}</p>}
+          {documentReadUnavailable && <p role="status">{labels.documentsUnavailable}</p>}
+        </div>}
         {canAct && dossier.canConfirm && actionableTasks.length > 0 && <form className="mt-4 grid gap-3" onSubmit={event => { event.preventDefault(); void send({ action: 'MILESTONE', caseId: dossier.id, taskId: selectedTask, occurredOn, confirmed: true, idempotencyKey: crypto.randomUUID() }) }}>
           <FormField label={labels.complete} control={<DropdownSelect value={selectedTask} onChange={event => setSelectedTask(event.target.value)} searchable required><option value="">{labels.milestones}</option>{actionableTasks.map(task => <option key={task.id} value={task.id}>{milestoneLabel(task.code, labels)}</option>)}</DropdownSelect>} />
           <FormField label={labels.occurredOn} control={<input className="ui-input w-full min-w-0" type="date" value={occurredOn} min={dossier.firstAbsenceOn} max={today} required onChange={event => setOccurredOn(event.target.value)} />} />
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" required className="mt-1" />{labels.confirm}</label>
           <Button disabled={busy || !selectedTask} type="submit">{labels.complete}</Button>
         </form>}
-      </section>
-      <section aria-label={labels.dossierDocuments}>
-        <h2 className="mb-3 text-lg font-semibold">{labels.dossierDocuments}</h2>
-        <p className="mb-3 text-sm text-muted-foreground">{labels.dossierDocumentRelationshipNote}</p>
-        {dossier.tasks.length ? <ul className="divide-y divide-border-subtle border-y border-border-subtle">{dossier.tasks.map(task => <li key={task.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
-          <span className="break-words font-medium">{milestoneLabel(task.code, labels)}</span>
-          <span className="text-muted-foreground">{labels.dossierDocumentNotLinked}</span>
-        </li>)}</ul> : <p className="text-sm text-muted-foreground">{labels.noTasks}</p>}
-        <Link className="mt-3 inline-block text-sm text-primary underline" href={`/employees/${dossier.employeeId}?tab=documents`}>{labels.employeeDocuments}</Link>
       </section>
       <section aria-label={labels.timeline}><h2 className="mb-3 text-lg font-semibold">{labels.timeline}</h2>
         <ol className="space-y-4">{dossier.events.map(event => <li key={event.id} className="border-l-2 border-border-subtle pl-4 text-sm">
@@ -124,5 +165,6 @@ export function WvpDossier({ dossier, labels, today, locale, processStatus = nul
         <Button type="submit" disabled={busy}>{labels.save}</Button>
       </form>}
     </div>} />
+    <ConfirmDialog cancelLabel={labels.cancel} confirmLabel={labels.removeDocumentLink} description={labels.removeDocumentLinkDescription} destructive onConfirm={async () => { if (removeCandidate) await changeDocumentLink('DELETE', { caseId: dossier.id, linkId: removeCandidate.id }) }} onOpenChange={(open) => { if (!open && !busy) setRemoveCandidate(null) }} open={removeCandidate !== null} pending={busy} title={labels.removeDocumentLinkTitle} />
   </div>
 }
