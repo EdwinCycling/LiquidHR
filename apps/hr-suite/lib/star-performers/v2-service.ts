@@ -1153,6 +1153,7 @@ async function readInsightDevelopment(
   const plans: DevelopmentPlanInput[] = goals.map((goal) => ({
     id: goal.id,
     employeeId: goal.employee_id,
+    capabilityId: goal.capability_id,
     employeeLabel: employeeLabels.get(goal.employee_id) ?? goal.employee_id,
     title: goal.title,
     status: goal.status,
@@ -1334,7 +1335,7 @@ async function readStarPerformersInsights(
   const skills = skillsRead
     ? { state: skillsRead.state, evaluatedEmployees: skillsRead.evaluatedEmployees, roles: skillsRead.roles, topGaps: skillsRead.topGaps }
     : { state: 'no-data' as const, evaluatedEmployees: 0, roles: [], topGaps: [] }
-  const development = (options.includeDevelopment ?? query.insight === 'development')
+  const development = (options.includeDevelopment ?? (query.insight === 'development' || query.insight === 'skill-gaps'))
     ? await readInsightDevelopment(filteredIds, employeeLabels, scopeRows, access.isManager ? 'manager' : 'admin', today)
     : emptyDevelopmentInsight(today)
   const appraisal = (options.includeAppraisal ?? query.insight === 'appraisal')

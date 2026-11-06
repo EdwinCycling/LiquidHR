@@ -173,6 +173,16 @@ describe('Star Performers Manager skillgap readpath', () => {
     expect(JSON.stringify(report.skillGaps)).not.toContain('employee-outside')
   })
 
+  it('returns capability-linked plans only for the existing direct-team scope in the skillgap report', async () => {
+    mocks.listTalentGoals.mockResolvedValue({ goals: [
+      { id: 'team-plan', employee_id: 'employee-team', capability_id: 'capability-1', title: 'Teamplan', status: 'ACTIVE', progress_percent: 40, period_start: '2026-01-01', period_end: null, completed_at: null },
+      { id: 'outside-plan', employee_id: 'employee-outside', capability_id: 'capability-1', title: 'Buiten scope', status: 'ACTIVE', progress_percent: 50, period_start: '2026-01-01', period_end: null, completed_at: null },
+    ], employees: [], capabilities: [] })
+    const report = await getStarPerformersInsights({ perspective: 'top-talent', area: 'insights', insight: 'skill-gaps', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20 })
+    expect(report.development.plans).toMatchObject([{ id: 'team-plan', employeeId: 'employee-team', capabilityId: 'capability-1' }])
+    expect(JSON.stringify(report)).not.toContain('outside-plan')
+  })
+
   it('uses the same server-derived direct-team scope for POP and development actions', async () => {
     mocks.listTalentGoals.mockResolvedValue({
       goals: [

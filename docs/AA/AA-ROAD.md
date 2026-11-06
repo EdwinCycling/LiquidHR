@@ -134,6 +134,7 @@ PMUX-01 tot en met PMUX-03 en de individuele PMUX-05A/B/C-labels zijn historisch
 - cross-domain reports.
 
 ### Talent
+- **TAL-INS02 lokaal:** het bestaande skillgaprapport verbindt expliciet gekoppelde medewerker-/competentieplannen aan prioriteiten. Algemene medewerkersacties staan afzonderlijk als context; een directe actie-/competentierelatie ontbreekt. Bronlimieten en personaacceptatie blijven OPEN. Zie [TAL-INS02](../requirements/Talent/TAL-INS02_SKILL_PRIORITIES.md).
 - **TAL-INS01 lokaal:** het bestaande ontwikkelrapport krijgt een gecombineerd overzicht van plannen, skills/bewijs en gesprekken met bestaande bronservices en toegangscontrole. De ouderdomsgrens voor een verouderde beoordeling is nog niet vastgesteld; live personaacceptatie blijft OPEN. Zie [requirements en controle](../requirements/Talent/TAL-INS01_OVERVIEW.md).
 - STAR-V2-04C — read-only Talentpaspoort is lokaal geaccepteerd op basis van de gedateerde [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04C-CLOSE-20261018.md); de centrale catalogusuitbreiding volgt als 04D-1;
 - STAR-V2-04D-1 — centrale Insights-categorie **Talent & Ontwikkeling** is lokaal geaccepteerd; de catalogus ontsluit alleen bestaande Star Performers- en Talent-rapporten met bestaande scope-, filter- en exportcontracten; zie [acceptance-evidence](../quality/acceptance/runs/STAR-V2-04D-1-LOCAL-20261018.md);

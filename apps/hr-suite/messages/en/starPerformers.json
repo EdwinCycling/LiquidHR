@@ -1,4 +1,5 @@
 {
+  "ins02": {"title":"Development priorities","explanation":"Role requirements with an evidenced difference or missing evidence; not assessed is not a negative score.","capability":"Competency or skill","planStatus":"Linked plan status","all":"All","active":"Active","draft":"Draft","completed":"Completed","cancelled":"Cancelled","archived":"Archived","unknownStatus":"Unknown status","noPlan":"No linked plan found in the available results","filterScope":"These filters apply only to the priorities list. Report totals and CSV follow the general report filters.","sourceUnavailable":"Development plans are unavailable.","actionsUnavailable":"Actions are unavailable.","contextActions":"Other actions for this employee","actionDisclaimer":"These actions are not known to be linked to this competency.","empty":"No priorities match these filters.","truncated":"Only the first 100 priorities are shown.","sourceLimit":"The plan source is limited to 1000 results; no link found does not prove that no plan exists."},
   "backToWorkforce": "Back to Workforce",
   "title": "Star performers",
   "talentPassportTab": "Talent passport",
