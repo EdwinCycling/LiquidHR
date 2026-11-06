@@ -14,6 +14,20 @@ it('biedt HR mijlpaalbevestiging en werkafspraak met echte endpointacties',()=> 
 it('biedt de manager afspraken maar geen HR-mijlpaalafronding',()=> {
   const html=render({canConfirm:false}); expect(html).toContain('label-recordAgreement'); expect(html).not.toContain('label-complete')
 })
+it('toont mijlpaalrol, gekoppelde gebeurtenis en de beveiligde medewerkersdocumentroute',()=> {
+  const event={id,type:'MILESTONE',occurredOn:'2026-02-10',createdAt:'2026-02-10T12:00:00Z',actorUserId:id,taskId:id,agreement:null,reviewOn:null,agreementId:null}
+  const html=render({events:[event]})
+  expect(html).toContain('label-dossierReadinessNote')
+  expect(html).toContain('label-dossierOwnerPhysician')
+  expect(html).toContain('label-dossierReadinessOpen')
+  expect(html).toContain('label-dossierEvent')
+  expect(html).toContain('/employees/' + id + '?tab=documents')
+})
+it('markeert een voltooide mijlpaal zonder gekoppelde gebeurtenis als ontbrekende registratie',()=> {
+  const task={...dossier.tasks[0],status:'COMPLETED',completedAt:'2026-02-10T12:00:00Z'}
+  const html=render({canConfirm:false,currentMilestone:null,tasks:[task]})
+  expect(html).toContain('label-dossierReadinessMissingEvent')
+})
 it('biedt de employee uitsluitend eigen kennisname',()=> {
   const event={id,type:'AGREEMENT',occurredOn:'2026-01-02',createdAt:'2026-01-02T12:00:00Z',actorUserId:id,taskId:null,agreement:'ADAPTED_HOURS',reviewOn:'2026-01-20',agreementId:null}
   const html=render({canManage:false,canConfirm:false,isSelf:true,events:[event]}); expect(html).toContain('label-acknowledge'); expect(html).not.toContain('label-recordAgreement'); expect(html).not.toContain('label-complete')
