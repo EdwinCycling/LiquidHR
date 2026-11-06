@@ -22,6 +22,7 @@ import { readPayrollSourcePensionVersionTiers } from './payroll-source-pension-v
 import { readPayrollSourceQueryCached } from './payroll-source-read-cache'
 import { readPayrollTimelineBatch, type PayrollTimelineTarget } from './payroll-timeline-batch-reader'
 import { salaryRowCoversPayrollPeriod, salaryRowOverlapsPayrollPeriod } from './salary-table-period'
+import { assertPayrollEmployeeSourceAuthorization, type PayrollEmployeeSourceAuthorization } from '@/lib/payroll/scope'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
@@ -124,10 +125,14 @@ export async function getEmploymentIncomeRelationshipProjection(
   employeeId: string,
   employmentId: string,
   payrollSourceEmployment?: Pick<Employment, 'id' | 'tenant_id' | 'hr_group_id' | 'administration_id' | 'employee_id'>,
+  authorization?: PayrollEmployeeSourceAuthorization,
 ): Promise<readonly EmploymentIncomeRelationshipProjection[]> {
   let employment: Pick<Employment, 'id' | 'tenant_id' | 'hr_group_id' | 'administration_id' | 'employee_id'>
   if (payrollSourceEmployment) {
-    const context = await requirePermission('contract:read', employeeId)
+    const scope = authorization
+      ? assertPayrollEmployeeSourceAuthorization(authorization, employeeId)
+      : null
+    const context = scope ?? await requirePermission('contract:read', employeeId)
     if (payrollSourceEmployment.id !== employmentId
       || payrollSourceEmployment.employee_id !== employeeId
       || context.tenantId !== payrollSourceEmployment.tenant_id
@@ -430,8 +435,9 @@ export async function getEmploymentPayrollSourceProjection(
   employeeId: string,
   employmentId: string,
   payrollPeriod: { readonly year: number; readonly month: number },
+  authorization?: PayrollEmployeeSourceAuthorization,
 ): Promise<EmploymentPayrollSourceProjection> {
-  return getEmploymentPayrollSourceProjectionWithRows(employeeId, employmentId, payrollPeriod)
+  return getEmploymentPayrollSourceProjectionWithRows(employeeId, employmentId, payrollPeriod, undefined, authorization)
 }
 
 /** Hergebruikt begrensde tabelreads; ieder doel doorloopt de normale projectieautorisatie. */
@@ -471,13 +477,19 @@ async function getEmploymentPayrollSourceProjectionWithRows(
   employmentId: string,
   payrollPeriod: { readonly year: number; readonly month: number },
   prefetched?: Awaited<ReturnType<typeof readPayrollTimelineBatch>>[number],
+  authorization?: PayrollEmployeeSourceAuthorization,
 ): Promise<EmploymentPayrollSourceProjection> {
-  const context = await requirePermission('salary:read', employeeId)
-  await Promise.all([
-    requirePermission('contract:read', employeeId),
-    requirePermission('organization-placement:read', employeeId),
-    requirePermission('job-catalog:read', employeeId),
-  ])
+  const authorizedScope = authorization
+    ? assertPayrollEmployeeSourceAuthorization(authorization, employeeId)
+    : null
+  const context = authorizedScope ?? await requirePermission('salary:read', employeeId)
+  if (!authorizedScope) {
+    await Promise.all([
+      requirePermission('contract:read', employeeId),
+      requirePermission('organization-placement:read', employeeId),
+      requirePermission('job-catalog:read', employeeId),
+    ])
+  }
   if (!context.administrationId || !context.hrGroupId) {
     throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
   }

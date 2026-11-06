@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react'
 import {
@@ -29,6 +30,7 @@ import {
 type Labels = {
   readonly gross: string
   readonly net: string
+  readonly proFormaLink: string
   readonly period: string
   readonly historyEmpty: string
   readonly historyEmptyTitle: string
@@ -188,6 +190,9 @@ export function MySalaryDashboard({
   ] : []
 
   return <div className="space-y-6">
+    <div className="flex justify-end">
+      <Link className="inline-flex min-h-11 items-center rounded-[var(--radius-control)] border border-border-subtle bg-surface px-4 text-sm font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href="/my-salary/pro-forma">{labels.proFormaLink}</Link>
+    </div>
     {selectedStatement ? <>
       <div className="flex flex-col gap-3 rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
         <div>

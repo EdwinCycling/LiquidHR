@@ -291,6 +291,73 @@ async function checkEss(page, persona) {
   const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
   if (desktopOverflow || mobileOverflow) addReason(persona.key, 'De salarisroute heeft horizontale overflow op desktop of 390 px mobiel.')
 
+  const proFormaPage = await page.goto(new URL('/my-salary/pro-forma', origin).toString(), { waitUntil: 'domcontentloaded' }).catch(() => null)
+  const proFormaForm = page.locator('main form').filter({ has: page.locator('select option[value="SALARY_INCREASE"]') }).first()
+  if (!proFormaPage || proFormaPage.status() !== 200 || !(await proFormaForm.count())) {
+    const finalPath = (() => { try { return new URL(page.url()).pathname } catch { return 'unknown' } })()
+    addReason(persona.key, `De eigen pro-formaroute /my-salary/pro-forma is niet beschikbaar (HTTP ${proFormaPage?.status() ?? 'geen response'}; pagina ${finalPath}).`)
+  } else {
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => undefined)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const proFormaDesktopOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
+    await page.setViewportSize({ width: 390, height: 852 })
+    const proFormaMobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
+    if (proFormaDesktopOverflow || proFormaMobileOverflow) {
+      addReason(persona.key, 'De pro-formaroute heeft horizontale overflow op desktop of 390 px mobiel.')
+    }
+
+    const form = proFormaForm
+    await form.locator('select').selectOption('SALARY_INCREASE')
+    await form.locator('input').fill('5')
+    const calculateButton = form.locator('button[type="submit"]')
+    const responsePath = (response) => {
+      try { return new URL(response.url()).pathname === '/api/my-salary/pro-forma' } catch { return false }
+    }
+    const firstResponse = await Promise.all([
+      page.waitForResponse(responsePath, { timeout: 30000 }),
+      calculateButton.click(),
+    ]).then(([response]) => response).catch(() => null)
+    const firstResult = firstResponse?.status() === 200 ? await firstResponse.json().catch(() => null) : null
+    if (!firstResult || typeof firstResult !== 'object' || typeof firstResult.status !== 'string') {
+      addReason(persona.key, `De pro-formaberekening gaf geen geldige serverrespons (HTTP ${firstResponse?.status() ?? 'geen response'}).`)
+    } else {
+      const proForma = {
+        status: firstResult.status,
+        sourceStatus: firstResult.sourceStatus,
+        period: firstResult.period,
+        sourceHash: firstResult.sourceHash,
+        baseline: firstResult.baseline,
+        scenario: firstResult.scenario,
+        difference: firstResult.difference,
+        hashes: firstResult.hashes,
+        traceSteps: firstResult.traceSteps,
+        gapCodes: Array.isArray(firstResult.gaps) ? firstResult.gaps.map((gap) => gap?.reasonCode).filter(Boolean) : [],
+      }
+      result.proForma = proForma
+      if (firstResult.sourceHash) {
+        const secondResponse = await Promise.all([
+          page.waitForResponse(responsePath, { timeout: 30000 }),
+          calculateButton.click(),
+        ]).then(([response]) => response).catch(() => null)
+        const secondResult = secondResponse?.status() === 200 ? await secondResponse.json().catch(() => null) : null
+        if (secondResult?.status !== firstResult.status
+          || secondResult.sourceHash !== firstResult.sourceHash
+          || JSON.stringify(secondResult.hashes) !== JSON.stringify(firstResult.hashes)) {
+          addReason(persona.key, 'De herhaalde pro-forma-read gaf geen identieke bron-, invoer- en resultaathashes.')
+        } else {
+          result.proForma.repeat = {
+            status: secondResult.status,
+            sourceHash: secondResult.sourceHash,
+            hashes: secondResult.hashes,
+          }
+        }
+      }
+      if (firstResult.status !== 'CALCULATED') {
+        addExpectedGap(persona.key, `Pro-formaberekening blijft fail-closed: ${String(firstResult.status)}; codes: ${proForma.gapCodes.join(', ') || 'geen'}.`)
+      }
+    }
+  }
+
   const ownSalary = await page.context().request.get(new URL(`/api/employees/${persona.employeeId}/salary?employmentId=${persona.employmentId}`, origin).toString()).catch(() => null)
   if (!ownSalary || ownSalary.status() !== 200) {
     addReason(persona.key, `De eigen employee-salary-API gaf geen toegestane response (HTTP ${ownSalary?.status() ?? 'geen response'}).`)

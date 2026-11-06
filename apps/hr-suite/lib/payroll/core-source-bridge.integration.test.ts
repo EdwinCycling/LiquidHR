@@ -116,9 +116,9 @@ describe('Core readers through the standard Payroll source assembly', () => {
     expect(first.sourceVersionVector[`employment_salary:${timeline().salaries[0]!.id}`]).toBe(version)
     expect(reads.permission).toHaveBeenCalledWith('salary:read', employeeId)
     expect(reads.permission).toHaveBeenCalledWith('contract:read', employeeId)
-    expect(reads.timeline).toHaveBeenCalledWith(employeeId, employmentId, period)
-    expect(reads.income).toHaveBeenCalledWith(employeeId, employmentId, timeline().employment)
-    expect(reads.fiscal).toHaveBeenCalledWith(employeeId, employmentId, period)
+    expect(reads.timeline).toHaveBeenCalledWith(employeeId, employmentId, period, undefined)
+    expect(reads.income).toHaveBeenCalledWith(employeeId, employmentId, timeline().employment, undefined)
+    expect(reads.fiscal).toHaveBeenCalledWith(employeeId, employmentId, period, undefined)
     expect(reads.actualWork).toHaveBeenCalledWith({ employeeId, employmentId, month: '2026-07' })
     expect(reads.configurations).toHaveBeenCalledWith(scope, payrollAdministrationId)
     expect(reads.openings).toHaveBeenCalledWith(scope, payrollAdministrationId, employmentId)
@@ -133,7 +133,7 @@ describe('Core readers through the standard Payroll source assembly', () => {
       expect.objectContaining({ field: 'payrollConfiguration', status: 'SOURCE_GAP' }),
     ]))
     expect(reads.access).toHaveBeenCalledWith(false)
-    expect(reads.timeline).toHaveBeenCalledWith(employeeId, employmentId, period)
+    expect(reads.timeline).toHaveBeenCalledWith(employeeId, employmentId, period, undefined)
     expect(reads.lifecycle).not.toHaveBeenCalled()
   })
 

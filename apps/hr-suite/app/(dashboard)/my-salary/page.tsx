@@ -109,6 +109,7 @@ export default async function MySalaryPage({ searchParams }: MySalaryPageProps) 
         reserves: t('reserves'), reserveExplanation: t('salaryReserveExplanation'),
         employerContributions: t('salaryEmployerContributions'), grossToNetExplanation: t('grossToNetExplanation'),
         grossToNetIntro: t('grossToNetIntro'), pensionDetails: t('salaryPensionDetails'),
+        proFormaLink: t('proFormaLink'),
         pensionSourceGap: t('salaryPensionSourceGap'), pensionReview: t('salaryPensionReview'),
         pensionTestAssumptions: t('salaryPensionTestAssumptions'),
         pensionExplanationText: t('pensionExplanationText'), netNotDefinitive: t('netNotDefinitive'),

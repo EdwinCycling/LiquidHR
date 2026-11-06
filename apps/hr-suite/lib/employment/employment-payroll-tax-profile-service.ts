@@ -5,6 +5,7 @@ import { AuthorizationError, requirePermission, type AuthContext } from '@/lib/a
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
 import { buildPayrollSourceIncomeRelationshipProjection } from './payroll-source-income-relationship-projection'
+import { assertPayrollEmployeeSourceAuthorization, type PayrollEmployeeSourceAuthorization } from '@/lib/payroll/scope'
 
 type TaxProfileRow = Database['public']['Tables']['employment_payroll_tax_profiles']['Row']
 
@@ -270,9 +271,13 @@ export async function getEmploymentPayrollTaxSourceProjection(
   employeeId: string,
   employmentId: string,
   period: { readonly year: number; readonly month: number },
+  authorization?: PayrollEmployeeSourceAuthorization,
 ): Promise<EmploymentPayrollTaxSourceProjection> {
-  const salaryContext = await requirePermission('salary:read', employeeId)
-  const identityContext = await requirePermission('employee:read', employeeId)
+  const authorizedScope = authorization
+    ? assertPayrollEmployeeSourceAuthorization(authorization, employeeId)
+    : null
+  const salaryContext = authorizedScope ?? await requirePermission('salary:read', employeeId)
+  const identityContext = authorizedScope ?? await requirePermission('employee:read', employeeId)
   if (!salaryContext.administrationId || !salaryContext.hrGroupId
     || identityContext.tenantId !== salaryContext.tenantId
     || identityContext.hrGroupId !== salaryContext.hrGroupId

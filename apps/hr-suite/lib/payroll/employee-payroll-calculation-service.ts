@@ -14,6 +14,7 @@ import {
   type PayrollSourceGap,
   type PayrollSourceProvider,
   type PayrollSourceSnapshot,
+  type PayrollSerializedValue,
 } from '@liquid-hr/payroll-engine'
 import { partTimeFactorMatchesHours, partTimeMonthlySalaryFromHours } from './source/part-time-reconciliation'
 import {
@@ -747,6 +748,84 @@ function sourceColumns(scope: PayrollScope, payrollAdministrationId: string) {
 function resultAmount(result: PayrollCalculationResult, key: string): string | null {
   const row = result.resultRows.find((candidate) => candidate.key === key)
   return row && typeof row.value === 'string' ? row.value : null
+}
+
+export type PayrollSnapshotEngineCalculation = {
+  readonly status: 'CALCULATED' | 'SOURCE_GAP' | 'INCOMPLETE' | 'CALCULATION_FAILED'
+  readonly result: PayrollCalculationResult | null
+  readonly sourceHash: string
+  readonly inputHash: string | null
+  readonly resultHash: string | null
+  readonly gaps: readonly PayrollSourceGap[]
+  readonly incompleteComponents: readonly string[]
+}
+
+/**
+ * Evaluates one already-authorized, immutable Core source snapshot in memory.
+ * This deliberately does not use any payroll repository or lifecycle service.
+ */
+export function calculatePayrollSnapshot(
+  snapshot: PayrollSourceSnapshot,
+  sourceValueOverrides: Readonly<Record<string, PayrollSerializedValue>> = {},
+): PayrollSnapshotEngineCalculation {
+  const source = record(snapshot.canonicalSource)
+  const payfull02Package = payfull02PackageForSource(source)
+  const rulePackage = payfull02Package ?? NL_2026_RULE_PACKAGE
+  const isPayfull02 = payfull02Package !== null
+  const ruleRegistry = isPayfull02 ? PAYFULL02_RULE_REGISTRY : NL_2026_RULE_REGISTRY
+  const gaps = [...snapshot.sourceGaps, ...validateSupportedRegularMonth(snapshot)]
+  const incompleteComponents = incompleteComponentsForSource(source, rulePackage)
+
+  if (gaps.some(isBlockingGap)) {
+    return {
+      status: 'SOURCE_GAP', result: null, sourceHash: snapshot.sourceHash,
+      inputHash: null, resultHash: null, gaps, incompleteComponents,
+    }
+  }
+  if (incompleteComponents.length > 0) {
+    return {
+      status: 'INCOMPLETE', result: null, sourceHash: snapshot.sourceHash,
+      inputHash: null, resultHash: null, gaps, incompleteComponents,
+    }
+  }
+
+  const period = snapshot.periodReference
+  const stableSnapshotId = deterministicUuid(
+    `pro-forma:${snapshot.sourceTenantId}:${snapshot.sourceHrGroupId}:${snapshot.sourceAdministrationId}:${snapshot.sourceEmployeeId}:${snapshot.sourceEmploymentId}:${period.year}-${period.month}:${snapshot.sourceHash}`,
+  )
+  try {
+    const inputs = buildCalculationInputs({ ...snapshot, id: stableSnapshotId }, rulePackage, {
+      effectiveDate: periodStart(period),
+      scopeInstanceIds: {
+        EMPLOYEE: snapshot.sourceEmployeeId,
+        EMPLOYMENT: snapshot.sourceEmploymentId,
+        INCOME_RELATIONSHIP: snapshot.sourceIncomeRelationshipId ?? '',
+      },
+      ...(Object.keys(sourceValueOverrides).length > 0 ? { sourceValueOverrides } : {}),
+    })
+    if (inputs.engineVersion !== PAYROLL_ENGINE_VERSION || inputs.rulePackageCompositionId !== rulePackage.compositionId) {
+      return {
+        status: 'CALCULATION_FAILED', result: null, sourceHash: snapshot.sourceHash,
+        inputHash: inputs.inputHash, resultHash: null, gaps, incompleteComponents,
+      }
+    }
+    const result = calculatePayroll(inputs, ruleRegistry)
+    if (result.status !== 'CALCULATED' || result.sourceHash !== snapshot.sourceHash || result.inputHash !== inputs.inputHash) {
+      return {
+        status: 'CALCULATION_FAILED', result: null, sourceHash: snapshot.sourceHash,
+        inputHash: inputs.inputHash, resultHash: result.resultHash, gaps, incompleteComponents,
+      }
+    }
+    return {
+      status: 'CALCULATED', result, sourceHash: snapshot.sourceHash,
+      inputHash: result.inputHash, resultHash: result.resultHash, gaps, incompleteComponents,
+    }
+  } catch {
+    return {
+      status: 'CALCULATION_FAILED', result: null, sourceHash: snapshot.sourceHash,
+      inputHash: null, resultHash: null, gaps, incompleteComponents,
+    }
+  }
 }
 
 function payfull02Amounts(getAmount: (key: string) => string | null): Payfull02CalculationAmounts {

@@ -2091,7 +2091,7 @@ describe('LiquidHR Payroll source provider', () => {
     expect(dependenciesForPeriod.verifyPayrollPeriodIdentity).toHaveBeenCalledWith(
       { tenantId, hrGroupId, administrationId }, payrollPeriodIdentity,
     )
-    expect(loadActualWork).toHaveBeenCalledWith(employeeId, employmentId, '2026-12', payrollPeriodIdentity)
+    expect(loadActualWork).toHaveBeenCalledWith(employeeId, employmentId, '2026-12', payrollPeriodIdentity, undefined)
     expect(snapshot.payrollPeriodIdentity).toEqual(payrollPeriodIdentity)
     expect(snapshot.sourceVersionVector[`payroll_period_identity:${payrollPeriodIdentity.id}`]).toBe(
       'FOUR_WEEKLY:2026:13:2026-12-21:2027-01-17',
@@ -2236,6 +2236,40 @@ describe('LiquidHR Payroll source provider', () => {
     expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain('raw authorization detail')
   })
 
+  it('reads an already self-authorized employee scope without requiring broader HR permissions', async () => {
+    const authorize = vi.fn(async () => { throw new AuthorizationError('broader HR permission is absent') })
+    const deps = dependencies({ authorize })
+    const provider = new LiquidHrPayrollSourceProvider(deps)
+    const authorization = { employeeId, scope: { tenantId, hrGroupId, administrationId } }
+
+    const snapshot = await provider.getPayrollSourceSnapshotForAuthorizedEmployee(request, {
+      ...authorization,
+    })
+
+    expect(snapshot.sourceEmployeeId).toBe(employeeId)
+    expect(snapshot.sourceTenantId).toBe(tenantId)
+    expect(authorize).not.toHaveBeenCalled()
+    expect(deps.listEmployments).toHaveBeenCalledWith(employeeId)
+    expect(deps.loadTimeline).toHaveBeenCalledWith(employeeId, employmentId, request.payrollPeriod, authorization)
+    expect(deps.loadActualWork).toHaveBeenCalledWith(employeeId, employmentId, '2026-09', undefined, authorization)
+  })
+
+  it('rejects an authorized source context when employee or administration does not match', async () => {
+    const deps = dependencies()
+    const provider = new LiquidHrPayrollSourceProvider(deps)
+
+    await expect(provider.getPayrollSourceSnapshotForAuthorizedEmployee(request, {
+      employeeId: '40000000-0000-4000-8000-000000000099',
+      scope: { tenantId, hrGroupId, administrationId },
+    })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_SCOPE_FORBIDDEN', status: 403 })
+    await expect(provider.getPayrollSourceSnapshotForAuthorizedEmployee(request, {
+      employeeId,
+      scope: { tenantId, hrGroupId, administrationId: otherAdministrationId },
+    })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_SCOPE_FORBIDDEN', status: 403 })
+    expect(deps.listEmployments).not.toHaveBeenCalled()
+    expect(deps.loadTimeline).not.toHaveBeenCalled()
+  })
+
   it('preserves an authorization denial inside a source projection diagnostic', async () => {
     const reportDiagnostic = vi.fn()
     const correlationId = '90000000-0000-4000-8000-000000000029'
@@ -2303,7 +2337,7 @@ describe('LiquidHR Payroll source provider', () => {
     const snapshot = await provider.getPayrollSourceSnapshot({ ...request, employmentId: secondEmploymentId })
 
     expect(snapshot.sourceEmploymentId).toBe(secondEmploymentId)
-    expect(deps.loadTimeline).toHaveBeenCalledWith(employeeId, secondEmploymentId, request.payrollPeriod)
+    expect(deps.loadTimeline).toHaveBeenCalledWith(employeeId, secondEmploymentId, request.payrollPeriod, undefined)
   })
 
   it('validates an explicit employment id against the scoped employment projection', async () => {

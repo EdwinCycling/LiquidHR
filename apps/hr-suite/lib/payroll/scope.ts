@@ -6,6 +6,12 @@ export interface PayrollScope {
   readonly administrationId: string
 }
 
+/** Narrow, request-local authorization passed only after an own-employee salary check. */
+export interface PayrollEmployeeSourceAuthorization {
+  readonly employeeId: string
+  readonly scope: PayrollScope
+}
+
 export class PayrollScopeError extends Error {
   constructor() {
     super('A complete Payroll Lab scope is required.')
@@ -35,6 +41,14 @@ export function assertPayrollScope(scope: PayrollScope): PayrollScope {
     throw new PayrollScopeError()
   }
   return scope
+}
+
+export function assertPayrollEmployeeSourceAuthorization(
+  authorization: PayrollEmployeeSourceAuthorization,
+  employeeId: string,
+): PayrollScope {
+  if (authorization.employeeId !== employeeId) throw new PayrollScopeError()
+  return assertPayrollScope(authorization.scope)
 }
 
 export interface PayrollScopeFilterBuilder<TSelf> {

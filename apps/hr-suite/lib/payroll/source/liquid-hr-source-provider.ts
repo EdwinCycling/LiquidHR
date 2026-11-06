@@ -51,6 +51,7 @@ import {
 } from '@/lib/employment/employment-detail-service'
 import { isPayrollLabEnabled } from '../feature-flag'
 import { payrollScopeFromAuthContext } from '../scope'
+import type { PayrollEmployeeSourceAuthorization } from '../scope'
 import { payrollSourceProviderInputSchema, payrollSourceSnapshotSchema } from './schemas'
 import { isValidPayrollSourceDate } from './source-readiness'
 import { hashPayrollSourceSnapshot } from './snapshot-hash'
@@ -196,11 +197,18 @@ export interface PayrollSourceProviderDependencies {
     employeeId: string,
     employmentId: string,
     payrollPeriod: PayrollSourceProviderInput['payrollPeriod'],
+    authorization?: PayrollEmployeeSourceAuthorization,
   ) => Promise<PayrollSourceTimeline>
   readonly loadTimelineBatch?: (
     inputs: readonly Pick<PayrollSourceProviderInput, 'employeeId' | 'employmentId' | 'payrollPeriod'>[],
   ) => Promise<readonly PayrollSourceTimeline[]>
-  readonly loadActualWork: (employeeId: string, employmentId: string, month: string, payrollPeriodIdentity?: PayrollPeriodIdentity) => Promise<ActualWorkPayrollProjection>
+  readonly loadActualWork: (
+    employeeId: string,
+    employmentId: string,
+    month: string,
+    payrollPeriodIdentity?: PayrollPeriodIdentity,
+    authorization?: PayrollEmployeeSourceAuthorization,
+  ) => Promise<ActualWorkPayrollProjection>
   readonly loadActualWorkBatch?: (inputs: readonly {
     readonly employeeId: string
     readonly employmentId: string
@@ -322,15 +330,16 @@ async function loadDefaultPayrollTimeline(
   employeeId: string,
   employmentId: string,
   payrollPeriod: PayrollSourceProviderInput['payrollPeriod'],
+  authorization?: PayrollEmployeeSourceAuthorization,
 ): Promise<PayrollSourceTimeline> {
-  const source = await getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod).catch((error: unknown) => {
+  const source = await getEmploymentPayrollSourceProjection(employeeId, employmentId, payrollPeriod, authorization).catch((error: unknown) => {
     throw new PayrollSourceReadFailure('employment-payroll-projection', error)
   })
   let taxProfileProjection: EmploymentPayrollTaxSourceProjection
   try {
-    taxProfileProjection = await getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod)
+    taxProfileProjection = await getEmploymentPayrollTaxSourceProjection(employeeId, employmentId, payrollPeriod, authorization)
   } catch (error) {
-    await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((incomeError: unknown) => {
+    await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment, authorization).catch((incomeError: unknown) => {
       throw new PayrollSourceReadFailure('income-relationship-projection', incomeError)
     })
     throw new PayrollSourceReadFailure('tax-profile-projection', error)
@@ -338,7 +347,7 @@ async function loadDefaultPayrollTimeline(
   const sharedIncomeProjection = taxProfileProjection.payrollIncomeRelationshipProjection
   const incomeRelationships = sharedIncomeProjection?.complete
     ? sharedIncomeProjection.rows
-    : await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment).catch((error: unknown) => {
+    : await getEmploymentIncomeRelationshipProjection(employeeId, employmentId, source.employment, authorization).catch((error: unknown) => {
       throw new PayrollSourceReadFailure('income-relationship-projection', error)
     })
   return {
@@ -421,13 +430,23 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
       console.error(diagnostic.event, diagnostic)
     },
     isEnabled: isPayrollLabEnabled,
-    loadTimeline: async (employeeId, employmentId, payrollPeriod) =>
-      await loadDefaultPayrollTimeline(employeeId, employmentId, payrollPeriod),
+    loadTimeline: async (employeeId, employmentId, payrollPeriod, authorization) =>
+      await loadDefaultPayrollTimeline(employeeId, employmentId, payrollPeriod, authorization),
     loadTimelineBatch: async (inputs) => await loadDefaultPayrollTimelinesBatch(inputs),
-    loadActualWork: async (employeeId, employmentId, month, payrollPeriodIdentity) =>
-      await getActualWorkPayrollProjection({ employeeId, employmentId, month, ...(payrollPeriodIdentity ? { payrollPeriodIdentity } : {}) }).catch((error: unknown) => {
+    loadActualWork: async (employeeId, employmentId, month, payrollPeriodIdentity, authorization) => {
+      if (authorization) {
+        const [projection] = await getActualWorkPayrollProjectionsBatch([{
+          employeeId, employmentId, month, ...(payrollPeriodIdentity ? { payrollPeriodIdentity } : {}),
+        }], [{ ...authorization.scope, employeeId }]).catch((error: unknown) => {
+          throw new PayrollSourceReadFailure('actual-work-projection', error)
+        })
+        if (!projection) throw new PayrollSourceReadFailure('actual-work-projection', new Error('ACTUAL_WORK_PAYROLL_BATCH_INCOMPLETE'))
+        return projection
+      }
+      return await getActualWorkPayrollProjection({ employeeId, employmentId, month, ...(payrollPeriodIdentity ? { payrollPeriodIdentity } : {}) }).catch((error: unknown) => {
         throw new PayrollSourceReadFailure('actual-work-projection', error)
-      }),
+      })
+    },
     loadActualWorkBatch: async (inputs, authorizedScopes) => await getActualWorkPayrollProjectionsBatch(inputs, authorizedScopes).catch((error: unknown) => {
       throw new PayrollSourceReadFailure('actual-work-projection', error)
     }),
@@ -2045,6 +2064,26 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     return await this.getPayrollSourceSnapshotWithActualWork(rawInput)
   }
 
+  /**
+   * Reads a self-scoped source after the caller has completed the existing
+   * salary:read authorization. This keeps the source read in the caller's
+   * authenticated request/RLS context while avoiding broader HR permissions
+   * for an employee reading only their own payroll data.
+   */
+  async getPayrollSourceSnapshotForAuthorizedEmployee(
+    rawInput: PayrollSourceProviderInput,
+    authorization: { readonly employeeId: string; readonly scope: PayrollScope },
+  ): Promise<PayrollSourceSnapshot> {
+    const input = payrollSourceProviderInputSchema.parse(rawInput)
+    if (input.employeeId !== authorization.employeeId
+      || input.tenantId !== authorization.scope.tenantId
+      || input.hrGroupId !== authorization.scope.hrGroupId
+      || input.administrationId !== authorization.scope.administrationId) {
+      throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+    }
+    return await this.getPayrollSourceSnapshotWithActualWork(input, undefined, authorization.scope)
+  }
+
   async getPayrollSourceSnapshots(
     rawInputs: readonly PayrollSourceProviderInput[],
   ): Promise<readonly PromiseSettledResult<PayrollSourceSnapshot>[]> {
@@ -2374,6 +2413,9 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     ) {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
+    const selfAuthorization: PayrollEmployeeSourceAuthorization | undefined = preauthorizedContext
+      ? { employeeId: input.employeeId, scope: authorizedScope }
+      : undefined
     const periodIdentity = input.payrollPeriodIdentity
     if (periodIdentity) {
       const referenceMonth = periodIdentity.startsOn.slice(0, 7)
@@ -2411,8 +2453,9 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       try {
         timeline = await this.dependencies.loadTimeline(
           input.employeeId,
-        employment.id,
+          employment.id,
           input.payrollPeriod,
+          selfAuthorization,
         )
       } catch (error) {
         if (input.employmentId !== undefined && isEmploymentNotFoundReadFailure(error)) {
@@ -2434,6 +2477,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           ? periodIdentity.startsOn.slice(0, 7)
           : `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,
         periodIdentity,
+        selfAuthorization,
       )
     } catch (error) {
       const sourceCategory = safeSourceCategory(error, 'actual-work-projection')

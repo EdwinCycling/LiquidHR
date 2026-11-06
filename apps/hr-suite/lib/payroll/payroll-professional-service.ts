@@ -515,7 +515,7 @@ const defaultEmployeePayrollDependencies: EmployeePayrollDependencies = {
   loadPayslipDisplayProfile: loadScopedPayslipDisplayProfile,
 }
 
-type EmployeePayrollAccess = {
+export type EmployeePayrollAccess = {
   readonly employeeId: string
   readonly actorUserId: string
   readonly scope: PayrollScope
@@ -573,6 +573,12 @@ async function authorizeMySalary(
     throw new AuthorizationError('Persoonlijke salarisgegevens zijn niet beschikbaar.')
   }
   return await createEmployeePayrollAccess(context, employeeId, dependencies)
+}
+
+export async function authorizeMySalaryPayrollAccess(
+  dependencies: EmployeePayrollDependencies = defaultEmployeePayrollDependencies,
+): Promise<EmployeePayrollAccess | null> {
+  return await authorizeMySalary(dependencies)
 }
 
 async function authorizeEmployeeSalary(
