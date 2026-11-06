@@ -35,6 +35,16 @@ export type Database = {
           { foreignKeyName: "absence_guidance_events_agreement_id_fkey"; columns: ["agreement_id"]; isOneToOne: false; referencedRelation: "absence_guidance_events"; referencedColumns: ["id"] }
         ]
       }
+      wvp_document_links: {
+        Row: { id: string; case_id: string; task_id: string; document_id: string; created_by_user_id: string; created_at: string; removed_at: string | null; removed_by_user_id: string | null }
+        Insert: { id?: string; case_id: string; task_id: string; document_id: string; created_by_user_id?: string; created_at?: string; removed_at?: string | null; removed_by_user_id?: string | null }
+        Update: { id?: string; case_id?: string; task_id?: string; document_id?: string; created_by_user_id?: string; created_at?: string; removed_at?: string | null; removed_by_user_id?: string | null }
+        Relationships: [
+          { foreignKeyName: "wvp_document_links_case_id_fkey"; columns: ["case_id"]; isOneToOne: false; referencedRelation: "absence_guidance"; referencedColumns: ["case_id"] },
+          { foreignKeyName: "wvp_document_links_task_id_fkey"; columns: ["task_id"]; isOneToOne: false; referencedRelation: "absence_tasks"; referencedColumns: ["id"] },
+          { foreignKeyName: "wvp_document_links_document_id_fkey"; columns: ["document_id"]; isOneToOne: false; referencedRelation: "employee_documents"; referencedColumns: ["id"] }
+        ]
+      }
       work_calendars: {
         Row: {
           id: string
@@ -22116,6 +22126,18 @@ export type Database = {
       wvp_command: {
         Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string | null; command: Json }
         Returns: string
+      }
+      wvp_document_links: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string; requested_case_id: string }
+        Returns: Json
+      }
+      wvp_document_link_add: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string; requested_case_id: string; requested_task_id: string; requested_document_id: string }
+        Returns: string
+      }
+      wvp_document_link_remove: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string; requested_case_id: string; requested_link_id: string }
+        Returns: boolean
       }
       get_work_calendars: {
         Args: { requested_hr_group_id: string; requested_administration_id: string | null }

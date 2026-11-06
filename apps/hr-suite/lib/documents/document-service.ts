@@ -68,6 +68,25 @@ export async function listEmployeeDocuments(employeeId: string) {
   return [...activeDocuments, ...deletedDocuments].sort((left, right) => right.created_at.localeCompare(left.created_at))
 }
 
+export type EmployeeDocumentLinkOption = { id: string; title: string; createdAt: string }
+
+export async function listEmployeeDocumentLinkOptions(employeeId: string): Promise<EmployeeDocumentLinkOption[]> {
+  const context = await requirePermission('document:read', employeeId)
+  const administrationId = administration(context.administrationId)
+  const supabase = await createClient()
+  await assertEmployeeDocumentScope(employeeId, 'document:read', supabase)
+  const { data, error } = await supabase.from('employee_documents')
+    .select('id, title, created_at')
+    .eq('tenant_id', context.tenantId)
+    .eq('administration_id', administrationId)
+    .eq('employee_id', employeeId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(500)
+  if (error) throw new DocumentServiceError('DOCUMENT_READ_FAILED', 500)
+  return (data ?? []).map(document => ({ id: document.id, title: document.title, createdAt: document.created_at }))
+}
+
 export async function listEmployeeDashboardDocuments(employeeId: string, limit = 3, dependencies?: { context: Awaited<ReturnType<typeof requirePermission>>; supabase: Awaited<ReturnType<typeof createClient>> }) {
   if (!dependencies) await requirePermission('document:read', employeeId)
   const supabase = dependencies?.supabase ?? await createClient()
