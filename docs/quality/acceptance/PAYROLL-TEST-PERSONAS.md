@@ -1,5 +1,7 @@
 # Permanente Payroll TEST-persona's
 
+> **07-11-2026 — actuele lokale PAYFAST-werkwijze:** voor Lisa november en de bestaande HR Admin-/ESS-persona's, zie [PAYFAST Lisa — TEST-account en bronherstel](PAYFAST-LISA-TEST-ACCESS-AND-SOURCE-RECOVERY-20261107.md). Deze procedure bevat de exacte lokale loginroute, echte schrijfrechten, bewijslast en toestemming voor gedeelde synthetische Jupiter-instellingen. De oudere historische persona-HOLD-teksten hieronder blijven snapshots.
+
 Dit is de leesbare ingang voor de canonieke [machinecatalogus](PAYROLL-TEST-PERSONAS.json). Gebruik de catalogus en `scripts/check-test-personas.ps1` voor lokale Payroll-, ESS-, MSS- of PDF-acceptatie. Lisa/Jaap/Frits blijven **PARTIAL / BLOCKED** waar hun afzonderlijke Auth- of bronlinks ontbreken. De Test HR Admin-context en de afgebakende DEMO-002-loonstrookflow zijn lokaal gecontroleerd in [PAYDOC-D0](runs/PAYDOC-D0-20261021-LOCAL.md).
 
 ## TEST-omgeving en vaste loginroute
