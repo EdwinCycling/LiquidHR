@@ -21,10 +21,23 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 function snapshotDetail(snapshot: PayrollSetupReadModel['openingSnapshots'][number], key: string): string {
   const opening = asRecord(snapshot.opening_balance_json)
   const value = opening?.[key]
-  if (typeof value === 'string') return value
-  const meaning = asRecord(opening?.meaning)
-  return typeof meaning?.[key] === 'string' ? meaning[key] as string : '—'
+  if (typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value))) return String(value)
+  const values = asRecord(opening?.meaning) ?? asRecord(opening?.cumulativeBalances)
+  const nestedValue = values?.[key]
+  return typeof nestedValue === 'string' || (typeof nestedValue === 'number' && Number.isFinite(nestedValue))
+    ? String(nestedValue)
+    : '—'
 }
+
+const openingBalanceFields = [
+  'grossWageBeforePeriod',
+  'taxableWageBeforePeriod',
+  'wageTaxBeforePeriod',
+  'employeeInsuranceWageBeforePeriod',
+  'zvwWageBeforePeriod',
+  'holidayReserveBeforePeriod',
+  'yearEndReserveBeforePeriod',
+] as const
 
 function Field({ label, name }: { readonly label: string; readonly name: string }) {
   return <label className="grid gap-1 text-sm">
@@ -85,9 +98,9 @@ export function PayrollOpeningCumulativePanel({ setup, canWrite, labels, statusM
         <h2 className="text-lg font-semibold">{label('openingBalanceHistoryTitle')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{label('openingBalanceHistoryDescription')}</p>
       </div>
-      {setup.openingSnapshots.length === 0 ? <p className="text-sm text-muted-foreground">{label('openingBalanceHistoryEmpty')}</p> : <div className="overflow-x-auto"><table className="w-full min-w-[56rem] text-left text-sm"><thead><tr className="border-b border-border-subtle text-xs text-muted-foreground"><th className="px-2 py-2">{label('openingBalanceEmployee')}</th><th className="px-2 py-2">{label('version')}</th><th className="px-2 py-2">{label('openingBalanceAsOfDate')}</th><th className="px-2 py-2">{label('openingBalanceSourcePeriod')}</th><th className="px-2 py-2">{label('openingBalanceSourceReference')}</th><th className="px-2 py-2">{label('hash')}</th></tr></thead><tbody>{setup.openingSnapshots.map((snapshot) => {
+      {setup.openingSnapshots.length === 0 ? <p className="text-sm text-muted-foreground">{label('openingBalanceHistoryEmpty')}</p> : <div className="overflow-x-auto"><table className="w-full min-w-[64rem] text-left text-sm"><thead><tr className="border-b border-border-subtle text-xs text-muted-foreground"><th className="px-2 py-2">{label('openingBalanceEmployee')}</th><th className="px-2 py-2">{label('version')}</th><th className="px-2 py-2">{label('openingBalanceAsOfDate')}</th><th className="px-2 py-2">{label('openingBalanceSourcePeriod')}</th><th className="px-2 py-2">{label('openingBalanceSourceReference')}</th><th className="px-2 py-2">{label('hash')}</th><th className="px-2 py-2">{label('openingBalanceAmountsTitle')}</th></tr></thead><tbody>{setup.openingSnapshots.map((snapshot) => {
         const employee = setup.employeeOptions.find((option) => option.employmentId === snapshot.source_employment_id)
-        return <tr key={snapshot.id} className="border-b border-border-subtle"><td className="px-2 py-2">{employee ? employeeLabel(employee) : snapshot.source_employment_id}</td><td className="px-2 py-2">{snapshot.snapshot_version}</td><td className="px-2 py-2">{snapshot.as_of_date}</td><td className="px-2 py-2">{snapshotDetail(snapshot, 'sourcePeriodFrom')} – {snapshotDetail(snapshot, 'sourcePeriodTo')}</td><td className="px-2 py-2">{snapshot.provenance_source}</td><td className="px-2 py-2 font-mono text-xs">{snapshot.snapshot_hash.slice(0, 12)}…</td></tr>
+        return <tr key={snapshot.id} className="border-b border-border-subtle"><td className="px-2 py-2">{employee ? employeeLabel(employee) : snapshot.source_employment_id}</td><td className="px-2 py-2">{snapshot.snapshot_version}</td><td className="px-2 py-2">{snapshot.as_of_date}</td><td className="px-2 py-2">{snapshotDetail(snapshot, 'sourcePeriodFrom')} – {snapshotDetail(snapshot, 'sourcePeriodTo')}</td><td className="px-2 py-2">{snapshot.provenance_source}</td><td className="px-2 py-2 font-mono text-xs">{snapshot.snapshot_hash.slice(0, 12)}…</td><td className="px-2 py-2"><details className="min-w-44"><summary className="cursor-pointer rounded-sm text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2">{label('openingBalanceAmountsTitle')}</summary><div className="mt-3 grid gap-3"><dl className="grid gap-2">{openingBalanceFields.map((field) => <div key={field} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4"><dt className="text-xs text-muted-foreground">{label(field)}</dt><dd className="font-mono text-xs tabular-nums">{snapshotDetail(snapshot, field)}</dd></div>)}</dl><dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 border-t border-border-subtle pt-2"><dt className="text-xs text-muted-foreground">{label('hash')}</dt><dd><code className="block max-w-72 break-all text-xs">{snapshot.snapshot_hash}</code></dd></dl></div></details></td></tr>
       })}</tbody></table></div>}
     </Surface>
   </div>

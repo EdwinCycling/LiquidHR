@@ -345,6 +345,7 @@
   "openingBalanceHistoryDescription": "Versies zijn auditbaar, gehashd en worden niet overschreven. Een nieuwe versie vervangt de vorige alleen door de hoogste versie in de bronselectie.",
   "openingBalanceHistoryEmpty": "Er is nog geen openingsbalans vastgelegd.",
   "openingBalanceSourcePeriod": "Bronperiode",
+  "openingBalanceAmountsTitle": "Cumulatieven bekijken",
   "grossWageBeforePeriod": "Brutoloon vóór openingsdatum",
   "taxableWageBeforePeriod": "Fiscaal loon vóór openingsdatum",
   "wageTaxBeforePeriod": "Loonheffing vóór openingsdatum",

@@ -35,6 +35,7 @@ const setupLabelKeys = [
   'openingBalanceSourcePeriodFrom', 'openingBalanceSourcePeriodTo', 'openingBalanceAsOfDate', 'openingBalanceSourceReference',
   'openingBalanceMeaningTitle', 'openingBalanceMeaningDescription', 'openingBalanceNoSyntheticValues', 'openingBalanceSave',
   'openingBalanceHistoryTitle', 'openingBalanceHistoryDescription', 'openingBalanceHistoryEmpty', 'openingBalanceSourcePeriod',
+  'openingBalanceAmountsTitle',
   'grossWageBeforePeriod', 'taxableWageBeforePeriod', 'wageTaxBeforePeriod', 'employeeInsuranceWageBeforePeriod',
   'zvwWageBeforePeriod', 'holidayReserveBeforePeriod', 'yearEndReserveBeforePeriod',
   ...[
