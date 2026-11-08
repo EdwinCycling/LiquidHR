@@ -345,6 +345,7 @@
   "openingBalanceHistoryDescription": "Versions are auditable, hashed and never overwritten. A new version supersedes the previous one through the highest version selected by the source.",
   "openingBalanceHistoryEmpty": "No opening balance has been recorded yet.",
   "openingBalanceSourcePeriod": "Source period",
+  "openingBalanceAmountsTitle": "View cumulative amounts",
   "grossWageBeforePeriod": "Gross wage before opening date",
   "taxableWageBeforePeriod": "Taxable wage before opening date",
   "wageTaxBeforePeriod": "Wage tax before opening date",
