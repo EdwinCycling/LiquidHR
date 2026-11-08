@@ -46,6 +46,7 @@ export type DevelopmentPopulationInput = {
 export type DevelopmentPlanInput = {
   id: string
   employeeId: string
+  capabilityId?: string | null
   employeeLabel: string
   title: string
   status: string
@@ -96,6 +97,7 @@ export type DevelopmentInsight = {
   plans: Array<{
     id: string
     employeeId: string
+    capabilityId?: string | null
     employeeLabel: string
     title: string
     status: string
@@ -556,6 +558,7 @@ export function buildDevelopmentInsight(input: {
     plans: plans.map((plan) => ({
       id: plan.id,
       employeeId: plan.employeeId,
+      capabilityId: plan.capabilityId ?? null,
       employeeLabel: plan.employeeLabel,
       title: plan.title,
       status: plan.status,

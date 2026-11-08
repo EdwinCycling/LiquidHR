@@ -1,4 +1,5 @@
 {
+  "ins01": {"title":"Talent en ontwikkeling in beeld","description":"Dit overzicht volgt de huidige rapportfilters en de bevoegdheden van de gebruiker.","plans":"Ontwikkelplannen","activePlans":"Actieve plannen","averageProgress":"Gemiddelde voortgang actieve plannen","unavailable":"Bron niet beschikbaar","openPlans":"Bekijk plannen en medewerkers","skills":"Skills en competenties","noSkills":"Geen vergelijkbare profielgegevens beschikbaar","assessed":"Medewerkers met beoordeling","notAssessed":"Niet beoordeelde functievereisten","expiredEvidence":"Functievereisten met verlopen bewijs","openSkills":"Bekijk skills en competenties","conversations":"Gesprekken en opvolging","noConversation":"Medewerkers zonder geregistreerd gesprek","overdueFollowUp":"Verlopen opvolging","openConversations":"Bekijk gesprekken","limits":"Ontbrekend bewijs is geen negatieve score. Er is geen vastgestelde leeftijdsgrens voor een verouderde beoordeling; verlopen bewijs en opvolging zijn afzonderlijke signalen."},
   "settingsTitle": "Talent Management",
   "startTitle": "Start",
   "startDescription": "Kies een onderdeel om te openen. Er staat steeds maar één onderdeel open.",

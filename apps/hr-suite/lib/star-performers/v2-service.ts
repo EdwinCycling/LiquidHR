@@ -1153,6 +1153,7 @@ async function readInsightDevelopment(
   const plans: DevelopmentPlanInput[] = goals.map((goal) => ({
     id: goal.id,
     employeeId: goal.employee_id,
+    capabilityId: goal.capability_id,
     employeeLabel: employeeLabels.get(goal.employee_id) ?? goal.employee_id,
     title: goal.title,
     status: goal.status,
@@ -1213,6 +1214,7 @@ function emptyInsights(query: StarPerformerWorkspaceQuery): StarPerformersInsigh
 type StarPerformersInsightsOptions = {
   readonly includeSkills?: boolean
   readonly includeDevelopment?: boolean
+  readonly includeAppraisal?: boolean
 }
 
 async function readStarPerformersInsights(
@@ -1326,17 +1328,17 @@ async function readStarPerformersInsights(
     selectedCampaignId: gridSelection.selectedPeriodId ?? latestCampaignId,
   })
   const employeeLabels = new Map(scopeRows.map((row) => [row.employee.employeeId, row.employee.label]))
-  const includeSkills = options.includeSkills ?? (query.insight === 'skills' || query.insight === 'skill-gaps')
+  const includeSkills = options.includeSkills ?? (query.insight === 'skills' || query.insight === 'skill-gaps' || query.insight === 'development')
   const skillsRead = includeSkills
     ? await readInsightSkills(filteredIds, refs, scopeRows, access)
     : null
   const skills = skillsRead
     ? { state: skillsRead.state, evaluatedEmployees: skillsRead.evaluatedEmployees, roles: skillsRead.roles, topGaps: skillsRead.topGaps }
     : { state: 'no-data' as const, evaluatedEmployees: 0, roles: [], topGaps: [] }
-  const development = (options.includeDevelopment ?? query.insight === 'development')
+  const development = (options.includeDevelopment ?? (query.insight === 'development' || query.insight === 'skill-gaps'))
     ? await readInsightDevelopment(filteredIds, employeeLabels, scopeRows, access.isManager ? 'manager' : 'admin', today)
     : emptyDevelopmentInsight(today)
-  const appraisal = query.insight === 'appraisal'
+  const appraisal = (options.includeAppraisal ?? (query.insight === 'appraisal' || query.insight === 'development'))
     ? await readInsightAppraisal(filteredIds, scopeRows, query, today)
     : emptyAppraisalInsight(today, query.periodFrom ?? null, query.periodTo ?? null)
   const periods = [...gridHistory.campaigns].sort((left, right) => (right.closed_at ?? right.starts_on).localeCompare(left.closed_at ?? left.starts_on)).map((campaign) => ({ id: campaign.id, name: campaign.name, closedAt: campaign.closed_at, startsOn: campaign.starts_on }))
@@ -1375,9 +1377,10 @@ async function readStarPerformersInsights(
 export async function getStarPerformersInsights(
   query: StarPerformerWorkspaceQuery,
   dependencies?: StarPerformersReadDependencies,
+  options?: StarPerformersInsightsOptions,
 ): Promise<StarPerformersInsights> {
   const access = await resolveStarPerformersReadAccess(dependencies)
-  return readStarPerformersInsights(query, access)
+  return readStarPerformersInsights(query, access, options)
 }
 
 export type StarPerformersDashboardSummary = {

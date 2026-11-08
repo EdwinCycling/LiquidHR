@@ -1,6 +1,6 @@
 # Wet verbetering poortwachter
 
-Status: **LEIDEND — WVP01 lokaal geïmplementeerd; Core TEST-basismigratie toegepast, auditcorrectie en native acceptatie OPEN, 2026-10-26**
+Status: **LEIDEND — WVP01 geïmplementeerd; WVP02 casus-/taakwerkplek verbeterd in lokale code (2026-11-06). Core TEST-migraties, audittriggers, guidance en procesinstantie zijn op 2026-11-04 door de gebruiker bevestigd; native rol-/browseracceptatie blijft OPEN.**
 Afhankelijkheid: `VERZUIM_EN_HERSTEL.md`.
 
 ## 1. Doel
@@ -58,12 +58,38 @@ WVP01 sluit wel aan op de bestaande interne PMUX-reminder-/escalatievoorzieninge
 
 `/work` → `/absence/guidance` → `/absence/guidance/[caseId]`. Het bestaande medewerkerverzuimdetail krijgt een directe dossierlink; het PMUX-werkdetail routeert naar de gekoppelde casus. Het overzicht toont maximaal 250 recente dossiers met een melding bij die grens.
 
-- HR Admin start vanaf een bevestigde actieve casus. Herhaalde of gelijktijdige start hergebruikt hetzelfde traject. Eerste inrichting gebruikt bestaande schrijf-/publicatierechten; geen nieuwe rollen of grants. De HR-permissionqueue gebruikt `process-definition:publish`, zodat andere teammanagers geen algemene kandidaten worden. De geclaimde PMUX-taak bepaalt de behandelaar.
-- Managers zien uitsluitend eigen teams en mogen operationele werkafspraken vastleggen. HR-mijlpaalafronding is afzonderlijk afgeschermd. Werknemers zien alleen de eigen gegevens en kunnen een specifieke eigen afspraak voor kennisname bevestigen; dit is geen medische toestemming. Opvolging en open kennisnames verschijnen ook in `/work`.
-- Servercontext én RPC controleren tenant, HR-groep, administratie, employee-/teamscope. Nieuwe tabellen hebben RLS en alleen SELECT voor clients. Mutaties gebruiken begrensde private functies met bestaande auth-helpers en invokerfacades, zonder service-roleclient.
+- HR Admin start vanaf een bevestigde actieve casus. Herhaalde of gelijktijdige start hergebruikt hetzelfde traject. Eerste inrichting en processtart vereisen de bestaande schrijf-/publicatierechten; geen nieuwe rollen of grants. De PMUX-werkqueue en taakbevestiging gebruiken `process-task:act`; publicatierecht is geen voorwaarde voor gewone taakuitvoering. De bestaande resolver en PMUX-claim-/act-RPC blijven de actuele kandidaat, actor, tenant, HR-groep, administratie, team en casusscope afdwingen.
+- Managers zien uitsluitend eigen teams en mogen operationele werkafspraken vastleggen. Een WVP-PMUX-taak kan alleen worden geclaimd of uitgevoerd door een actuele toegestane kandidaat met de gewone PMUX-taakrechten; er is geen publicatierecht nodig. Werknemers zien alleen de eigen gegevens en kunnen een specifieke eigen afspraak voor kennisname bevestigen; dit is geen medische toestemming. Opvolging en open kennisnames verschijnen ook in `/work`.
+- Servercontext én RPC controleren tenant, HR-groep, administratie, employee-/teamscope. Nieuwe tabellen hebben RLS en alleen SELECT voor clients. Mutaties gebruiken begrensde private functies met bestaande auth-helpers en invokerfacades, zonder service-roleclient. `/work` toont voor geautoriseerde actieve casussen de actuele mijlpaal, deadline en urgentie; de medewerkerweergave beperkt zich tot eigen open kennisnames.
 - Volledig en gedeeltelijk herstel, uren/percentage en ziekteperioden blijven uitsluitend in de bestaande `absence_spells`/`absence_capacity_changes`. De nieuwe dossierweergave leest deze bron en linkt naar de bestaande mutatieflow. Werkafspraken zijn vaste operationele keuzes met gebeurtenis- en evaluatiedatum, waaronder geleidelijke opbouw.
 - Heropening binnen de vierwekenketen hergebruikt casus en proces. Na normalisatie door de bestaande verzuimflow naar `CLOSED` kan HR afronden als alle tot de laatste hersteldatum verschuldigde taken zijn afgehandeld. Toekomstige taken vervallen; historie blijft staan. Een nieuwe casus buiten de keten krijgt een eigen traject. Geen automatische backfill bij migratie.
 
-## 9. Verificatie
+## 9. WVP02 — PMUX-casuswerkplek en START-autorisatie (2026-11-06)
 
-De lokale PostgreSQL-contractharness voert de volledige WVP-basismigratie uit, inclusief echte nieuwe tabel-RLS. Volgens Core TEST acceptance 03 is `20261026055349` eenmaal toegepast; security/advisor-readback en gegenereerde type-readback zijn daar gecontroleerd. De latere auditcorrectie `20261026172808` bleef volgens acceptance 06 geblokkeerd door `INVALID_REQUEST_STATE`. Deze bewijsstukken zijn gedateerd 26-10-2026; de remote toestand is in deze consolidatie niet opnieuw gelezen. De begrensde tests zijn geen volledige native-kernel- of live-personaacceptatie. Native rolketen, daadwerkelijke reminder/escalatie en volledige dossierresponsivecontrole blijven OPEN. Zie [lokale acceptatie en TEST-writevoorstel](../../quality/acceptance/runs/WVP01-20261026-LOCAL.md), [Core TEST-acceptatie 03](../../quality/acceptance/runs/WVP01-CORE-TEST-ACCEPTANCE-03-20261026.md), [audit-fix 06](../../quality/acceptance/runs/WVP01-AUDIT-FIX-AND-PROCESS-START-06-20261026.md) en [architectuurbesluit](../../architecture/ADR-WVP01-ABSENCE-PROCESS-BRIDGE.md).
+De casuswerkplek en `/work` hergebruiken de bestaande WVP-casusquery, PMUX-instantie, taken, audit-events en urgencyregels. De actuele open `currentMilestone` heeft voorrang bij de presentatie; als die ontbreekt of niet open is, toont de UI de vroegste resterende open taak. Taakuitvoering blijft gekoppeld aan `process-task:act`; alleen starten van een procesdefinitie vereist `process-definition:write` plus `process-definition:publish`, naast de bestaande `process-instance:start`-controle in de kernel. De directe `internal_security.wvp_command`-RPC en applicatieservice controleren beide definitierechten vóór een idempotente terugkeer of mutatie, binnen bestaande tenant-, HR-groep- en administratiescope. Dit wijzigt geen rechten, gepubliceerde definitie of procesinstantie.
+
+## 10. WVP03 — operationele dossierstatusindex (2026-11-06)
+
+De casuswerkplek toont per bestaande mijlpaal de taakstatus, deadline, modelrol uit `projectWvpMilestones` en een gebeurtenis gekoppeld via dezelfde `task_id`. Open taken en voltooide taken zonder gekoppelde mijlpaalgebeurtenis zijn herkenbare werk- of registratiepunten. Werkafspraken en evaluatiedatums blijven in de bestaande geautoriseerde gebeurtenistijdlijn. De casus en checklistgegevens komen via `wvp_list` met tenant-, HR-groep-, administratie-, team- en eigen-casusscope.
+
+Deze index is **geen wettelijke RIV-compleetheidsbeoordeling**. Een ontbrekende gebeurtenis bewijst niet dat een wettelijk dossierstuk ontbreekt. De getoonde rol is de modelrol, geen bewijs van een toegewezen persoon. Medische documenten en medische details blijven buiten onbevoegde WVP-weergaven; er worden geen wettelijke documenten gegenereerd.
+
+## 11. WVP04 — read-only documentkoppelingsstatus (2026-11-06)
+
+WVP04 stelde vast dat de bestaande `employee_documents`- en WVP-projecties geen betrouwbare relatie tussen document, casus en mijlpaal boden. De tussentijdse read-only status “geen koppeling” betekende niet dat een document ontbrak. WVP05 vervangt deze tussenstap door expliciete, geautoriseerde relaties; er is geen tweede documentopslag.
+
+## 12. WVP05 — bestaande documenten aan WVP-casus en mijlpaal koppelen (2026-11-06)
+
+HR Admin en Managers met bestaande case-, team-, HR-groep-, administratie- en documentrechten kunnen vanuit een bestaande WVP-casus een bestaand toegankelijk medewerkerdocument aan een bestaande WVP-mijlpaaltaak koppelen en de relatie na bevestiging verwijderen. Employee ziet uitsluitend eigen toegestane koppelingen. De bronlink en bestaande medewerkerdocumentenservice blijven leidend; verwijderen ontkoppelt alleen en verwijdert het brondocument nooit.
+
+De forward-only migratie maakt `wvp_document_links` met alleen referentie-ID's, actor/tijdstempels en een verwijdermarkering. Tenant, HR-groep, administratie, medewerker, casus, documenttoegang en geldige bestaande mijlpaal worden server-side gecontroleerd. RLS beschermt reads; mutaties gebruiken begrensde RPC's en audit. Client-DML is niet verleend. Toevoegen is idempotent. Er worden geen documentbytes, medische metadata, vrije tekst of automatisch gemaakte wettelijke stukken opgeslagen. Geen wettelijke RIV-compleetheid wordt afgeleid uit een ontbrekende koppeling.
+
+Migratievolgorde: WVP02 SEC01 `20261106150000_wvp02_sec01_start_permission_guard.sql`, daarna WVP05 `20261106180416_wvp05_milestone_document_links.sql`. Beide staan als code; geen TEST-toepassing/readback is in deze integratie uitgevoerd.
+
+## 13. Verificatie
+
+WVP07 presenteert voor actoren met `absence:read` een geautoriseerd casusoverzicht met prioriteiten, urgentie- en statusfilters en tellingen van open verlopen en binnenkort vervallende mijlpalen. `wvp_list` blijft de enige casusbron. De grens van 250 resultaten en ontbrekende volgende mijlpalen worden zichtbaar gemaakt; tellingen claimen geen volledigheid buiten de teruggegeven casussen.
+
+WVP06 toont aantallen open, afgeronde, verlopen en binnen zeven dagen vervallende mijlpalen en verwijst naar de eerstvolgende bestaande taak. Taakstatus, gebeurtenis en documentrelatie zijn afzonderlijk zichtbaar; ontbrekende broninformatie wordt gemeld. Dit is geen wettelijke RIV-beoordeling.
+
+WVP02–WVP05 contract- en UI-regressies staan in de gecombineerde codekandidaat. Statische autorisatiereview, i18n en diff-check zijn PASS; Vitest/PGlite, UI-tests, TypeScript, lint en browser/personaacceptatie zijn NOT RUN. Read-only Core TEST-migratiehistorie toont alleen de bestaande WVP01-basis en auditcorrectie; WVP02 SEC01 en WVP05 staan uitsluitend als forward-only code en zijn niet toegepast. De actuele Git-, security-, database- en acceptatiestatus staat in [WVP-INT01 acceptance](../../quality/acceptance/runs/WVP-INT01-CONSOLIDATION-20261106.md). Geen lokale codecontrole vervangt live rol-/RLS-/auditacceptatie of migratiereadback.

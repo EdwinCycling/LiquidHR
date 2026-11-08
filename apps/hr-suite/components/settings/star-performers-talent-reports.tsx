@@ -8,6 +8,7 @@ import { FilterBar } from '@/components/patterns/filter-bar'
 import { FormField } from '@/components/patterns/form-field'
 import { TextInput } from '@/components/ui/text-input'
 import { StarPerformersInsights } from './star-performers-insights'
+import { TalentDevelopmentOverview } from './talent-development-overview'
 import type { StarPerformersInsights as StarPerformersInsightsData } from '@/lib/star-performers/insights-service'
 import { starPerformersQueryString } from '@/lib/star-performers/query'
 import type { StarPerformersInsightLabels, StarPerformersReportFilterLabels } from '@/lib/star-performers/presentation'
@@ -16,6 +17,7 @@ import type { StarPerformersWorkspacePage } from '@/lib/star-performers/v2-servi
 
 type Props = {
   canViewEmployees: boolean
+  overviewLabels: Record<string, string>
   initial: StarPerformersInsightsData
   initialQuery: StarPerformerWorkspaceQuery
   initialWorkspace: StarPerformersWorkspacePage
@@ -31,7 +33,7 @@ function activeFilterCount(query: StarPerformerWorkspaceQuery): number {
   return [query.q, query.departmentId, query.jobGroupId, query.jobId, query.status !== 'all' ? query.status : undefined, query.appraisalStatus !== 'all' ? query.appraisalStatus : undefined, query.period, query.periodFrom, query.periodTo].filter(Boolean).length
 }
 
-export function StarPerformersTalentReports({ canViewEmployees, filterLabels, initial, initialQuery, initialWorkspace, insightLabels }: Props) {
+export function StarPerformersTalentReports({ canViewEmployees, filterLabels, initial, initialQuery, initialWorkspace, insightLabels, overviewLabels }: Props) {
   const [data, setData] = useState<StarPerformersInsightsData | null>(initial)
   const [query, setQuery] = useState<StarPerformerWorkspaceQuery>(initialQuery)
   const [loading, setLoading] = useState(false)
@@ -45,6 +47,9 @@ export function StarPerformersTalentReports({ canViewEmployees, filterLabels, in
 
   function updateQuery(patch: Partial<StarPerformerWorkspaceQuery>): void {
     const next = { ...query, ...patch, area: 'insights' as const, page: patch.page ?? 1 }
+    setData(null)
+    setLoading(true)
+    setError(false)
     setQuery(next)
     updateUrl(next)
   }
@@ -96,6 +101,7 @@ export function StarPerformersTalentReports({ canViewEmployees, filterLabels, in
       <FormField className="min-w-[12rem] flex-1" control={isAppraisal ? <DropdownSelect aria-label={filterLabels.relevantStatus} onChange={(event) => updateQuery({ appraisalStatus: event.currentTarget.value as StarPerformerWorkspaceQuery['appraisalStatus'] })} value={query.appraisalStatus}>{appraisalStatusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</DropdownSelect> : <DropdownSelect aria-label={filterLabels.relevantStatus} onChange={(event) => updateQuery({ status: event.currentTarget.value as StarPerformerWorkspaceQuery['status'] })} value={query.status}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</DropdownSelect>} label={filterLabels.relevantStatus} />
       {isAppraisal ? <><FormField className="min-w-[10rem] flex-1" control={<TextInput aria-label={filterLabels.fromDate} onChange={(event) => updateQuery({ periodFrom: event.currentTarget.value || undefined })} type="date" value={query.periodFrom ?? ''} />} label={filterLabels.fromDate} /><FormField className="min-w-[10rem] flex-1" control={<TextInput aria-label={filterLabels.toDate} onChange={(event) => updateQuery({ periodTo: event.currentTarget.value || undefined })} type="date" value={query.periodTo ?? ''} />} label={filterLabels.toDate} /></> : null}
     </FilterBar>
+    {query.insight === 'development' && data && !loading && !error && <TalentDevelopmentOverview data={data} labels={overviewLabels} />}
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" aria-live="polite"><Badge tone={filterCount ? 'info' : 'neutral'}>{filterCount}</Badge><span>{filterLabels.filtersTitle}</span>{query.insight !== 'top-talent' ? <span>· {insightLabels.insights}</span> : null}</div>
     <StarPerformersInsights activeArea={query.insight} canViewEmployees={canViewEmployees} data={data} error={error} exportHref={`/api/star-performers/insights/export?${starPerformersQueryString(query)}`} labels={insightLabels} loading={loading} onAreaChange={(area) => updateQuery({ insight: area, perspective: reportPerspective(area), status: 'all', appraisalStatus: 'all', period: area === 'top-talent' ? query.period : undefined, periodFrom: area === 'appraisal' ? query.periodFrom : undefined, periodTo: area === 'appraisal' ? query.periodTo : undefined })} onPeriodChange={(period) => updateQuery({ period })} onRetry={() => setReloadToken((current) => current + 1)} showPeriod={query.insight === 'top-talent'} />
   </div>

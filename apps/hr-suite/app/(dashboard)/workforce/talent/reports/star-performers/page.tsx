@@ -49,7 +49,7 @@ export default async function StarPerformersTalentReportsPage({ searchParams }: 
     pageSize: queryValue(rawQuery.pageSize),
   })
   const [initial, initialWorkspace, talentT, starT] = await Promise.all([
-    getStarPerformersInsights(query, readAccess),
+    getStarPerformersInsights(query, readAccess, insight === 'development' ? { includeSkills: true, includeDevelopment: true, includeAppraisal: true } : undefined),
     listStarPerformersWorkspacePage(query, readAccess),
     getTranslator('talent'),
     getTranslator('starPerformers'),
@@ -57,6 +57,6 @@ export default async function StarPerformersTalentReportsPage({ searchParams }: 
 
   return <PageShell className="py-6 lg:py-8" width="wide">
     <AdminSettingsPageHeader actions={readAccess.isAdmin ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/workforce/star-performers"><ArrowUpRight aria-hidden="true" className="size-4" />{starT('title')}</Link> : undefined} backHref="/workforce/talent/reports" backLabel={talentT('reportTitle')} title={starT('insights')} subtitle={starT('insightsDescription')} />
-    <StarPerformersTalentReports canViewEmployees={canViewEmployees} filterLabels={createStarPerformersReportFilterLabels(starT)} initial={initial} initialQuery={query} initialWorkspace={initialWorkspace} insightLabels={createStarPerformersInsightLabels(starT)} />
+    <StarPerformersTalentReports overviewLabels={Object.fromEntries(['title','description','plans','activePlans','averageProgress','unavailable','openPlans','skills','noSkills','assessed','notAssessed','expiredEvidence','openSkills','conversations','noConversation','overdueFollowUp','openConversations','limits'].map(key => [key, talentT(`ins01.${key}`)]))} canViewEmployees={canViewEmployees} filterLabels={createStarPerformersReportFilterLabels(starT)} initial={initial} initialQuery={query} initialWorkspace={initialWorkspace} insightLabels={createStarPerformersInsightLabels(starT)} />
   </PageShell>
 }
