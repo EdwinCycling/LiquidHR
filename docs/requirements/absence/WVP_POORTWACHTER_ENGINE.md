@@ -1,5 +1,7 @@
 # Wet verbetering poortwachter
 
+> **13-11-2026 — integratieacceptatie PARTIAL:** WVP02 en WVP05 zijn in Core TEST-migratiehistorie aanwezig. Lokale HR Admin-/Manager-/Employee-leesproeven en negatieve dossiergrenzen zijn uitgevoerd; aanvullende taak-, document- en directe autorisatieproeven blijven OPEN. Zie [integratiehandoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
+
 Status: **LEIDEND — WVP01 geïmplementeerd; WVP02 casus-/taakwerkplek verbeterd in lokale code (2026-11-06). Core TEST-migraties, audittriggers, guidance en procesinstantie zijn op 2026-11-04 door de gebruiker bevestigd; native rol-/browseracceptatie blijft OPEN.**
 Afhankelijkheid: `VERZUIM_EN_HERSTEL.md`.
 

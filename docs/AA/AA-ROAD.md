@@ -1,5 +1,7 @@
 # AA-ROAD — Long-Term Product Roadmap
 
+> **13-11-2026 — gezamenlijke TEST-release:** werk verder op één integratielijn voor WVP, Talent en Payroll ESS/HR Admin. Manager-MSS en BONUS blijven PARKED. De resterende rol-/scopeacceptatie en het gezamenlijke releasebesluit staan in de [integratiehandoff](../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md); er is geen deployment uitgevoerd.
+
 > **04-11-2026 — ACTUELE PRODUCTGRENZEN:** zie [Payroll-code-audit en herijkte roadmap](AA-PAYROLL-AUDIT-20261104.md) voor de gecontroleerde geïntegreerde `main`/`Vercel`-baseline. Payroll is inmiddels **wel** aanwezig in de canonieke code en globaal ingeschakeld voor geautoriseerde TEST-gebruikers; oude tekst hieronder die Payroll als niet gemerged, op een aparte branch of als nog niet gedeployed beschrijft, is historisch. Volgende fasen blijven betrouwbare end-to-end-cases/PFAST-01–04, daarna wettelijke P2, P3 en G1–G3; geen algemene complianceclaim of automatische finalisatie.
 
 

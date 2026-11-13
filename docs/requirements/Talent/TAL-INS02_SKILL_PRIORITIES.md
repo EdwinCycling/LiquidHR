@@ -1,5 +1,7 @@
 # TAL-INS02 — skillgaps en ontwikkelprioriteiten
 
+> **13-11-2026 — integratieacceptatie OPEN:** code is aanwezig in de gezamenlijke kandidaat en de gerichte WVP-/Talent-tests slagen; een afzonderlijke live controle van de prioriteitenlijst en gekoppelde plannen is niet uitgevoerd. Zie [integratiehandoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
+
 **06-11-2026 — lokale kandidaat.** Het bestaande skillgaprapport bevat al functie-/rolvereisten, aantoonbare niveaus en aparte statussen voor onvoldoende niveau, niet beoordeeld, ontbrekend niveau, ontbrekend bewijs en verlopen bewijs. TAL-INS02 voegt daar een prioriteitenlijst aan toe. Een ontwikkelplan wordt uitsluitend gekoppeld wanneer zowel de bestaande medewerker-ID als de bestaande capability-ID overeenkomen. Planstatus en vastgelegde voortgang blijven bronwaarden. Medewerker- en profiel-/rolverkennerlinks en de bestaande planroute blijven beschikbaar.
 
 De bestaande rapportfilters voor functie en team blijven gelden. Filters voor competentie en planstatus beperken alleen de nieuwe prioriteitenlijst; rapporttotalen en CSV blijven de algemene rapportfilters volgen en dit staat bij de filters. De lijst toont maximaal 100 resultaten met een melding bij overschrijding. De bestaande planservice is begrensd op 1000 bronresultaten: geen gevonden koppeling bewijst niet dat er geen plan bestaat. Niet-beschikbare plan-, actie- of skillbronnen worden afzonderlijk gemeld.
